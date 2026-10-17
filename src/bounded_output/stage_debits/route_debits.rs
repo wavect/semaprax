@@ -360,3 +360,49 @@ pub(crate) fn print_settled() {
         }
     });
 }
+
+#[test]
+fn child_replay_operations_keep_route_cells_and_refusal_attribution_reconciled() {
+    use crate::bounded_output::{reserve_active_required, with_limit_usage_refusal, with_reservation_stage, ReservationStage};
+    use super::Operation;
+    let _observation = observe();
+    let (((), metrics), refused, used, first) = with_limit_usage_refusal(64, || {
+        crate::test_allocation_observer::measure(|| {
+            let _trace = super::start(0, 0, 6);
+            with_reservation_stage(ReservationStage::HirValidation, || {
+                let _function = function(0, false, "route-child");
+                let _phase = phase(Phase::EnumeratedHIR);
+                for operation in [Operation::CleanupReplay, Operation::ReplayStructure,
+                    Operation::ReplayExpressionFacts, Operation::ReplayPathStates,
+                    Operation::ReplayHirSkeleton, Operation::ReplayPlanSkeleton,
+                    Operation::ReplayFactored, Operation::ReplayFactoredConstruction,
+                    Operation::ReplayFactoredCanonical] {
+                    let _operation = super::operation_guard(operation);
+                    assert!(reserve_active_required(1));
+                }
+                {
+                    let _operation = super::operation_guard(Operation::CoreValidation);
+                    assert!(reserve_active_required(2));
+                }
+                let _operation = super::operation_guard(Operation::ReplayPlanSkeleton);
+                assert!(!reserve_active_required(64));
+            });
+        })
+    });
+    assert!(refused && used == 11);
+    let first = first.unwrap();
+    assert_eq!((first.requested, first.remaining, first.floor), (64, 53, 0));
+    assert!(!metrics.invalid);
+    assert_eq!((metrics.allocations, metrics.allocated, metrics.live), (0, 0, 0));
+    STATE.with(|state| {
+        let state = state.borrow();
+        assert!(state.have_last && state.have_max);
+        let packet = &state.last;
+        assert!(packet.complete && packet.first_is_hir_cleanup);
+        assert_eq!((packet.hir, packet.expected_hir, packet.non_cleanup_hir), (11, 11, 2));
+        assert_eq!((packet.unknown_cleanup, packet.overflow_cleanup, packet.used), (0, 0, 1));
+        assert_eq!(packet.rows[0].bytes[Route::Production as usize][Phase::EnumeratedHIR as usize], 9);
+        assert_eq!(packet.rows[0].calls[Route::Production as usize][Phase::EnumeratedHIR as usize], 9);
+        assert_eq!(packet.first.unwrap().row, Some(0));
+    });
+}

@@ -35,6 +35,11 @@
     "lines": 73
   },
   {
+    "source": "src/bounded_output/stage_debits/route_debits.rs",
+    "sha256": "192778d58063fdda21c98469627340fb80ac78baea1c60dc8a0900247af3dba8",
+    "lines": 408
+  },
+  {
     "source": "src/cleanup/inventory_builder/typed.rs",
     "sha256": "1fc91f2b668d3d7a541db114af63016574566d403cadfc41db2619627c0d523b",
     "lines": 403
@@ -83,6 +88,26 @@
     "source": "src/cleanup_plan/replay/allocation/tests/clone_cursor/before.rs",
     "sha256": "bb48c7638f36cea213135773a9f3689c19273828a6b5f7272a802c4af59e4c42",
     "lines": 33
+  },
+  {
+    "source": "src/cleanup_plan/replay/branch_clone/production_capacity.rs",
+    "sha256": "6cb7f63a48bb023c7c366f16a7030f9c7855715898a85b31770062835482e314",
+    "lines": 196
+  },
+  {
+    "source": "src/cleanup_plan/replay/branch_clone/production_capacity/before.rs",
+    "sha256": "722fa28ab44182bb56f32843b05d56cf69fbfd6c4b59e32be575085d2b84adf5",
+    "lines": 625
+  },
+  {
+    "source": "src/cleanup_plan/replay/branch_clone/production_capacity/main_c883.rs",
+    "sha256": "c2ef9e20ce48efb170724b171a0b2a56c43d1bae6de3d138b8b73842f345f697",
+    "lines": 450
+  },
+  {
+    "source": "src/cleanup_plan/replay/branch_clone/production_capacity/tests.rs",
+    "sha256": "dd08b1e895292eb5a7650183bdc64174fe8a3cb7446fafe2b8708b243b239482",
+    "lines": 300
   },
   {
     "source": "src/cleanup_plan/replay/compact_stage/source_custody_main44.rs",
@@ -141,8 +166,8 @@
   },
   {
     "source": "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs",
-    "sha256": "7d72a2aadb93fc3a865cceb4a35b7ce9fa0ee01a23dab50491845184859b3f1e",
-    "lines": 675
+    "sha256": "fc054c4c7c3089e8aa3fd136d92d7d895bfe79f41f1e75e9bd92f60396e585e0",
+    "lines": 1122
   },
   {
     "source": "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels/lexical_finish.rs",
@@ -165,6 +190,21 @@
     "lines": 220
   },
   {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/lexical_child_scratch.rs",
+    "sha256": "02302e1ed5ffd06792da3300d2031518a5611b6f1e7d684419d93bd3fdb01639",
+    "lines": 41
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/lexical_child_scratch/before.rs",
+    "sha256": "a00d6f9d749ee85fedc8e3ee33e6ce9716a221ce7c0c04a7749dc1a796332961",
+    "lines": 336
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/lexical_child_scratch/tests.rs",
+    "sha256": "5e0bc4576a2abc8a5093d60946f1272c2e9a50c6517c2003c98790f4c38bb3bb",
+    "lines": 149
+  },
+  {
     "source": "src/cleanup_plan/replay/factored/canonical_shared/paid_many.rs",
     "sha256": "8d595d375bf2d99a56fcd7e5f36971d67e10fd19d7715442c2a99422ee48fae7",
     "lines": 213
@@ -181,8 +221,8 @@
   },
   {
     "source": "src/cleanup_plan/replay/factored/canonical_shared/paid_many/tests.rs",
-    "sha256": "2eb76c67de772fec04013504817cf64ec5b90848f8030021ba248115bd837c8c",
-    "lines": 635
+    "sha256": "6d70cfe62b35c0ab8617b86aada00de55c3bd8aade98578d4ac994e8a1a9b86a",
+    "lines": 994
   },
   {
     "source": "src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf.rs",
@@ -266,7 +306,7 @@
   },
   {
     "source": "src/cleanup_plan/replay/owned_suffix.rs",
-    "sha256": "e9cd09455d33d55768e413902085d1b27870a972fe7a079497e976d5acbd2da4",
+    "sha256": "4a6e8f3c107e0ca3c8eff1d78418ab3787acafc50d445f46bd5f496ef492a6e0",
     "lines": 475
   },
   {
@@ -281,8 +321,8 @@
   },
   {
     "source": "src/cleanup_plan/replay/owned_suffix/tests.rs",
-    "sha256": "3edb2464491fda85a208c95b4a2b62549a42fd1791b4bae1ef78087bd3430d3e",
-    "lines": 331
+    "sha256": "fa6695fa3d741c3a96ee5e69f45dac1e5ad2a28080baf9b47f43bac2612f2977",
+    "lines": 334
   },
   {
     "source": "src/cleanup_plan/replay/path_array/main44/before.rs",
@@ -461,8 +501,8 @@
   },
   {
     "source": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix.rs",
-    "sha256": "d74cf92511cdc0557030444582ecdd41e345f3d87aa0fc1d126d933e715511e3",
-    "lines": 807
+    "sha256": "fb5c395326c2343fb3983a8cc6129364479901dbc9b3d827cccf023e79701c99",
+    "lines": 808
   },
   {
     "source": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/before.rs",
@@ -476,8 +516,8 @@
   },
   {
     "source": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
-    "sha256": "b2004e6eb3450ca8bc02c7822a3f258280ae3b248f6054f761cdd6567b8e52c8",
-    "lines": 688
+    "sha256": "f972a395e082188f2e05fb98624c80e04070aa0f106731230920c288120e65e3",
+    "lines": 773
   },
   {
     "source": "src/cleanup_plan/replay/skeleton_work/merge_keys.rs",
@@ -571,7 +611,7 @@
   },
   {
     "source": "src/source_reflows/incoming090_semantic_receivers.rs",
-    "sha256": "bcf07a735ff7f7b9afa6e799a3f9f65c136d17e333ec89e427443aec7aa57d9a",
+    "sha256": "9824d62a2453b4aea0daba0dd61327306b8a61afa2840b112850a9f4ace3c484",
     "lines": 1099
   },
   {
@@ -640,6 +680,11 @@
     "lines": 166
   },
   {
+    "source": "src/source_reflows/main_c883_receivers.rs",
+    "sha256": "55a788a6569c82c852adce3fbfeac6b8be823875475d7b2b6d027d5f3e82b7fe",
+    "lines": 366
+  },
+  {
     "source": "src/source_reflows/nested_scope.rs",
     "sha256": "f69a1894b66fc9d5e263e46c13d67508289a37e2ce739128620204ecc59f64a0",
     "lines": 467
@@ -676,8 +721,8 @@
   },
   {
     "source": "src/source_reflows_merge/main67107_inputs.rs",
-    "sha256": "2b2db6c67ef7576c1128954cfec23d087b3824adde8bff024b651531bcd69a8a",
-    "lines": 989
+    "sha256": "02cbeb5887a105dfdda929606503229a3949145660568e07a332d96a8fdca9be",
+    "lines": 1120
   },
   {
     "source": "src/source_reflows_merge/main7f8_presence.rs",
@@ -695,6 +740,11 @@
     "lines": 80
   },
   {
+    "source": "src/source_reflows_merge/main_c883_inputs.rs",
+    "sha256": "f659adff6839c8bfe505ad1bba95c2e6e695f961b35a559e6cd42ae82fbfd987",
+    "lines": 174
+  },
+  {
     "source": "src/source_reflows_merge/main_eb2_inputs.rs",
     "sha256": "b354552752b10566769cdfc9efbb7b68683140d5e5471662030a81106ce06782",
     "lines": 124
@@ -706,12 +756,12 @@
   },
   {
     "source": "src/source_reflows_merge/opt858_sequence_input.rs",
-    "sha256": "f5a04eeb6b33a8048fa358bdba484912a3c1db1381d92d391d5cc163c614a4b1",
-    "lines": 102
+    "sha256": "f183f359e52278f8a33da7a9e2eaf4be876588bcd67c76bfa3666d0d5e5b7d32",
+    "lines": 113
   },
   {
     "source": "src/source_reflows_merge/ordinary_plan_inputs.rs",
-    "sha256": "919146025e7eb4327d2a825185fcc5e2a0fb5a00688f61d7fa145791054458e5",
+    "sha256": "35ad1a62ceaecbb6a37cf69770a52744263bec12b4033531b53fe907683d814f",
     "lines": 397
   },
   {
@@ -863,5 +913,10 @@
     "source": "tests/wasm/scalar_browser_ci_contract/next_actual.rs",
     "sha256": "930d95d045927873bc64cfe71450cae70832c19a6c3683b19cc9355765ba43a7",
     "lines": 111
+  },
+  {
+    "source": "tests/workspace/semantic_graph/source_inventory_controls.rs",
+    "sha256": "041318692c94bce2b09485903ba91dba25f75d71a7b9727db0611184e059a13d",
+    "lines": 288
   }
 ]

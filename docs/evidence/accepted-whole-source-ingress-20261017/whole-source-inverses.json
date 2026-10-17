@@ -1,0 +1,37 @@
+{
+  "schema": "semaprax.whole-source-inverse.v1",
+  "rows": [
+    {
+      "path": "src/source_reflows_merge/main67107_inputs.rs",
+      "current_length": 75800,
+      "current_sha256": "0f6a10dd9a8e52a29d5af2c31d10b27576eb0ae76cb0f31ac2e8c7177d36b202",
+      "before_length": 64470,
+      "before_sha256": "2b2db6c67ef7576c1128954cfec23d087b3824adde8bff024b651531bcd69a8a",
+      "before_archive": "docs/evidence/accepted-whole-source-ingress-20261017/before/main67107_inputs.rs",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 75800,
+          "remove_sha256": "0f6a10dd9a8e52a29d5af2c31d10b27576eb0ae76cb0f31ac2e8c7177d36b202",
+          "insert_archive": "docs/evidence/accepted-whole-source-ingress-20261017/before/main67107_inputs.rs"
+        }
+      ]
+    },
+    {
+      "path": "src/source_reflows_merge/main_c883_inputs.rs",
+      "current_length": 14792,
+      "current_sha256": "f659adff6839c8bfe505ad1bba95c2e6e695f961b35a559e6cd42ae82fbfd987",
+      "before_length": 14539,
+      "before_sha256": "c12c922a2b10413288d9bf3a470e9afceacb05d946e705bda47e66c7041ec591",
+      "before_archive": "docs/evidence/accepted-whole-source-ingress-20261017/before/main_c883_inputs.rs",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 14792,
+          "remove_sha256": "f659adff6839c8bfe505ad1bba95c2e6e695f961b35a559e6cd42ae82fbfd987",
+          "insert_archive": "docs/evidence/accepted-whole-source-ingress-20261017/before/main_c883_inputs.rs"
+        }
+      ]
+    }
+  ]
+}

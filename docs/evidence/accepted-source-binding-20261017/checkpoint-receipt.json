@@ -1,0 +1,21 @@
+{
+  "status": "WIP_SOURCE_CHECKPOINT_PAUSED_FOR_NEW_MAIN_NOT_FINAL_BINDING",
+  "source_checkpoint": "67046b952",
+  "new_main_requested": "1ebcc54ae864278d8900846deaa7103efdd7f8d8",
+  "physical_additions_registered_in_source": 11,
+  "current_raw_prefix": 28,
+  "strict_old_guard": {
+    "whole_original_raw3_reconstruction": "PASS",
+    "old_caps_still_unchanged": true,
+    "current_source_refusal_preserved": "scratch and scratch/tests observed2 vs originalmax1;21newlegacy currentunion keys require distinct current registrations",
+    "successor_draft": "current-allowed.DRAFT.json is unexecuted and old literalallowed/bindings restored"
+  },
+  "current_owned_closure": 31,
+  "current_broad_list_refresh": "PENDING after newmain and final acceptedbytebatch",
+  "final_ingress": "NOT_AUTHORED",
+  "MAIN043_definition_generation": "NOT_AUTHORED",
+  "frozen174_and_currentowners_and_FINAL6": "NOT_RUN",
+  "cargo": false,
+  "common": false,
+  "runtime": false
+}

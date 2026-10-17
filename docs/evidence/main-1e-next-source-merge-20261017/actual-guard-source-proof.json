@@ -1,0 +1,56 @@
+{
+  "status": "SOURCE_ONLY_NO_RUST_EXECUTION",
+  "actual_current_spans": [
+    {
+      "path": "src/cleanup_plan/replay.rs",
+      "actual_name": "validate_structure_with_budget_storage",
+      "operation": "ReplayStructure",
+      "exact_statement_once": true
+    },
+    {
+      "path": "src/cleanup_plan/replay.rs",
+      "actual_name": "hir_skeleton_paths_with_index_storage",
+      "operation": "ReplayHirSkeleton",
+      "exact_statement_once": true
+    },
+    {
+      "path": "src/cleanup_plan/replay.rs",
+      "actual_name": "plan_skeleton_paths",
+      "operation": "ReplayPlanSkeleton",
+      "exact_statement_once": true
+    },
+    {
+      "path": "src/cleanup_plan/replay/expression_facts.rs",
+      "actual_name": "with_budget",
+      "operation": "ReplayExpressionFacts",
+      "exact_statement_once": true
+    },
+    {
+      "path": "src/cleanup_plan/replay/path_join.rs",
+      "actual_name": "validate_path_states",
+      "operation": "ReplayPathStates",
+      "exact_statement_once": true
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored.rs",
+      "actual_name": "validate_with_index_storage",
+      "operation": "ReplayFactored",
+      "exact_statement_once": true
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored.rs",
+      "actual_name": "build_comparison",
+      "operation": "ReplayFactoredConstruction",
+      "exact_statement_once": true
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+      "actual_name": "id_with_receiving",
+      "operation": "ReplayFactoredCanonical",
+      "exact_statement_once": true
+    }
+  ],
+  "complete_current_before_images_restored": 5,
+  "before_head": "b28cb69dc32e491aa55237cacffad02a4e98d5cc",
+  "main_historical_guards_table_unchanged": true
+}

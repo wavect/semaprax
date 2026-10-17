@@ -1,0 +1,36 @@
+{
+  "scope": "SOURCE_ONLY_NO_COMPILATION_OR_QUALIFICATION",
+  "parents": [
+    "30865da19e7e5a18257e84c5954671cd83efb0d6",
+    "3f4a48e74f6194536d4d02c4e964c65a7214eaa5"
+  ],
+  "all_other_existing_paths_exact_ROOT": true,
+  "all_selected831_files_except_root_exact_accepted30865": true,
+  "new_physical_owners": 4,
+  "canonical_lines": 1488,
+  "complete_independent_old_archive_exact": true,
+  "complete_old_terminal_child_exact": true,
+  "whole_parent_inverses_verified": 2,
+  "files": {
+    "docs/evidence/opt831-current3f-implementation-merge-20261017/README.md": {
+      "length": 1570,
+      "sha256": "da266faf854d33608ab95492899b523f0b9f93d68926bd64e1cc72424d919820"
+    },
+    "docs/evidence/opt831-current3f-implementation-merge-20261017/canonical-whole-parent-inverses.json": {
+      "length": 2600,
+      "sha256": "7b40aaee59ccb2a942501b8dfa8ca0f98b61aa2da10f7d04ac981ceccfb10414"
+    },
+    "docs/evidence/opt831-current3f-implementation-merge-20261017/currentROOT3f.canonical.before.txt": {
+      "length": 65056,
+      "sha256": "91f0f7c964ba8a94b91f8da9a6aaa73017b49e3adf49bde5828645128015dbca"
+    },
+    "docs/evidence/opt831-current3f-implementation-merge-20261017/future-coupling-obligations.json": {
+      "length": 1774,
+      "sha256": "3b50a9d9118c15acb28227e5d73e0eecc515b403f9b3096f70674129a55b8646"
+    },
+    "docs/evidence/opt831-current3f-implementation-merge-20261017/selected30865.canonical.before.txt": {
+      "length": 65190,
+      "sha256": "54aa8f29d29f3b784dc5ca70719c455fe9b9cfcffae4cbd95fd041d39b261077"
+    }
+  }
+}

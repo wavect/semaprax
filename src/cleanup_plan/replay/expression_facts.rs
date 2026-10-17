@@ -177,6 +177,10 @@ pub(super) fn with_budget<'hir>(
     function: &'hir ResolvedFunction,
     budget: &mut ReplayBudget,
 ) -> Result<Facts<'hir>, Diagnostic> {
+    #[cfg(test)]
+    let _operation = crate::bounded_output::stage_debits::operation_guard(
+        crate::bounded_output::stage_debits::Operation::ReplayExpressionFacts,
+    );
     let builder_payer = match budget.payer {
         AllocationPayer::ActiveBuilder => Some(capacity::Payer::ActiveBuilder),
         #[cfg(test)]

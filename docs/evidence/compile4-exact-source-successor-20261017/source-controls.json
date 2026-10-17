@@ -1,0 +1,11 @@
+{
+  "status": "PASS_SOURCE_ONLY_EXACT_COMPILE4_SUCCESSOR",
+  "complete_current_sources": 41,
+  "whole_prior_views": 51,
+  "original_prior_views_retained": 48,
+  "frozen_membership": 174,
+  "current_owners": 184,
+  "full_role_boundary_and_six_hostiles": "PASS",
+  "four_file_original_parser": "PASS",
+  "Cargo": false
+}

@@ -1,0 +1,28 @@
+{
+  "status": "UNBOUND_UNREGISTERED_UNCOMPILED",
+  "canonical_root": {
+    "path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+    "length": 65386,
+    "sha256": "92728f9f1f6e4ce861de0ed8e5ad4ec095550a924338a9168cba8bb812bd2783",
+    "lines": 1488,
+    "selected_stage_sha256": "54aa8f29d29f3b784dc5ca70719c455fe9b9cfcffae4cbd95fd041d39b261077",
+    "root3f_stage_sha256": "91f0f7c964ba8a94b91f8da9a6aaa73017b49e3adf49bde5828645128015dbca"
+  },
+  "new_physical_rust_owners": [
+    "src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels/terminal_leaf.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/selected_labels.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/selected_labels/tests.rs"
+  ],
+  "required_raw_inventory_carriers": [
+    "tests/hir_module_boundaries.rs",
+    "tests/workspace/semantic_graph.rs",
+    "tests/native.rs"
+  ],
+  "obligations": [
+    "Register four actual new Rust owners in raw3 and distinct strict043 generation while preserving all old scopes/counts and native line budget.",
+    "Keep all frozen source metadata; add exact current canonical root acquisition before retained canonical-import/selected source guards, without retargeting old packets.",
+    "Existing831 complete_before_receiver_is_source_exact_with_only_test_wiring has unchanged assertions: its three inverse edits leave the current3f operation guard. Add exact whole1488-to1484 stage before its original source assertion; original1476 archive remains intact.",
+    "Bind current catalogs/closed actual source inputs only after final code assembly. Execute all five831 owners plus original strict831/876 controls; no gain/fit claim."
+  ]
+}

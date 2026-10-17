@@ -1044,7 +1044,7 @@ fn one_pass_real_composition_repetition_promotion_content_labels_and_all_cuts_ke
         let original_subset = graph.nodes[1].moves().len().saturating_add(1);
         // Measure real delegated helper work independently, rather than assume
         // a constant or subtract a guessed allowance from the new producer.
-        let delegated = if case == 3 {
+        let (delegated, delegated_refused) = if case == 3 {
             with_limit(usize::MAX, || {
                 let mut budget = ReplayBudget::new();
                 let before = budget.remaining;
@@ -1061,11 +1061,13 @@ fn one_pass_real_composition_repetition_promotion_content_labels_and_all_cuts_ke
                 drop(budget);
                 spent
             })
-        } else { 0 };
-        let expected = with_limit(usize::MAX, || {
+        } else { (0, false) };
+        assert!(!delegated_refused);
+        let (expected, reference_refused) = with_limit(usize::MAX, || {
             let mut budget = ReplayBudget::new();
             successors(&function, &mut budget, &graph, &closed, 11)
         });
+        assert!(!reference_refused);
         let observe = |limit| with_limit_usage_refusal(limit, || measure(|| {
             let mut budget = ReplayBudget::new();
             let before = budget.remaining;

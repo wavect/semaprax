@@ -102,6 +102,10 @@
 - Reconcile Main8a finished-path capacity, arbitrary final-suffix transfer and borrowed nominal context with lexical paid receiving; preserve original work-before-optional-payment priority and complete Main controls. Qualification and net application cost remain pending.
 
 - Reconcile Main24 as an independent historical prefix probe/transfer receiver with all six current and five prior-wrapper controls; retain the shipping lexical single-successor transfer and exact path-array preflight.
+- Distinguish borrowed-view failure checks from owned zero-byte cleanup in the byte traversal host, retaining strict report and ownership assertions.
+
+- Attribute committed test-only builder debits to exclusive replay phases, retaining the ordinary ledger behavior, quota frontiers, and complete source controls.
+
 - Retain the paid status insertion index for authenticated ordinary membership queries, requiring full-key equality and preserving original caps, fallback receivers, and complete source controls.
 
 - Audit the complete private-layout module for projection purity while preserving every broader source input and rejecting missing owned or external module files.

@@ -1,0 +1,36 @@
+{
+  "status": "SOURCE_ONLY_INCREMENTAL_MERGE_NOT_RUNTIME_QUALIFICATION",
+  "endpoints": {
+    "previous_next": "b28cb69dc32e491aa55237cacffad02a4e98d5cc",
+    "main_1e": "1ebcc54ae864278d8900846deaa7103efdd7f8d8",
+    "before_c883": "c883c2d3fff04a3e7afbb4afd5e0cae99ef91af4"
+  },
+  "conflicts": {
+    "all": 18,
+    "json": 13,
+    "code": 4,
+    "prose": 1
+  },
+  "old_live_json_preserved": 19,
+  "whole_packet_endpoint_rows": 354,
+  "new_historical_inputs": 22,
+  "new_controller_acquisition_edits": 6,
+  "actual_guard_spans": 8,
+  "whole_current_before_images_restored": 5,
+  "source_inverse_rows": 13,
+  "cleanup_family_operations": 9,
+  "exclusive_operation_totals_preserved": true,
+  "both_reconciliations_before_route_finish": true,
+  "Borrowed_failure_profiles": [
+    "nested-failure",
+    "view-failure"
+  ],
+  "owned_zero_byte_profile": "catalog-failure-0 requiresonecopy/onedrop",
+  "module_budget_violations": [],
+  "old_c883_full_chain_claim": "C883 only; not relabeled1e",
+  "new_1e_old19_chain_qualification": "Complete endpoints preserved; NOT new old-owner execution",
+  "final_source_bindings": "PENDING finalfinitebatch after independent source review",
+  "cargo": false,
+  "common": false,
+  "runtime": false
+}

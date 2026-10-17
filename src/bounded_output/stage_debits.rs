@@ -20,7 +20,90 @@ pub(crate) enum Operation {
     TextSubstitution,
     ScopeCheckpoint,
     Lifecycle,
+    ReplayStructure,
+    ReplayExpressionFacts,
+    ReplayPathStates,
+    ReplayHirSkeleton,
+    ReplayPlanSkeleton,
+    ReplayFactored,
+    ReplayFactoredConstruction,
+    ReplayFactoredCanonical,
 }
+// This family is inclusive only for the separate route observer. The operation
+// totals below still attribute each committed debit to one exclusive child.
+fn cleanup_family(operation: Option<Operation>) -> bool {
+    match operation {
+        Some(Operation::CleanupReplay | Operation::ReplayStructure | Operation::ReplayExpressionFacts
+            | Operation::ReplayPathStates | Operation::ReplayHirSkeleton | Operation::ReplayPlanSkeleton
+            | Operation::ReplayFactored | Operation::ReplayFactoredConstruction
+            | Operation::ReplayFactoredCanonical) => true,
+        None | Some(Operation::FunctionDirectory | Operation::CanonicalLoanStorage | Operation::CoreValidation
+            | Operation::ValidatorConstructor | Operation::FunctionValues | Operation::AttachedIdentities
+            | Operation::CleanupInventory | Operation::TextRuntime | Operation::TextContains
+            | Operation::TextSubstitution | Operation::ScopeCheckpoint | Operation::Lifecycle) => false,
+    }
+}
+// Exhaustive matching makes a new operation require its own distinct counter.
+// These are exclusive scopes: child operations do not also increment parents.
+macro_rules! operation_totals {
+    ($($operation:ident => $field:ident),+ $(,)?) => {
+        #[derive(Clone, Copy)]
+        pub(crate) struct OperationTotals {
+            unscoped: usize,
+            $($field: usize,)+
+        }
+        impl OperationTotals {
+            const EMPTY: Self = Self { unscoped: 0, $($field: 0,)+ };
+            fn add(&mut self, operation: Option<Operation>, bytes: usize) {
+                let counter = match operation {
+                    None => &mut self.unscoped,
+                    $(Some(Operation::$operation) => &mut self.$field,)+
+                };
+                *counter = counter.checked_add(bytes)
+                    .expect("operation debit overflow cannot exceed the finite budget");
+            }
+            pub(crate) fn get(self, operation: Option<Operation>) -> usize {
+                match operation {
+                    None => self.unscoped,
+                    $(Some(Operation::$operation) => self.$field,)+
+                }
+            }
+            pub(crate) fn sum(self) -> usize { self.unscoped $(+ self.$field)+ }
+        }
+        impl std::fmt::Debug for OperationTotals {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                let mut entries = f.debug_map();
+                if self.unscoped != 0 { entries.entry(&"unscoped", &self.unscoped); }
+                $(if self.$field != 0 { entries.entry(&stringify!($field), &self.$field); })+
+                entries.finish()
+            }
+        }
+    };
+}
+operation_totals! {
+    FunctionDirectory => function_directory,
+    CanonicalLoanStorage => canonical_loan_storage,
+    CoreValidation => core_validation,
+    ValidatorConstructor => validator_constructor,
+    FunctionValues => function_values,
+    AttachedIdentities => attached_identities,
+    CleanupInventory => cleanup_inventory,
+    CleanupReplay => cleanup_replay,
+    TextRuntime => text_runtime,
+    TextContains => text_contains,
+    TextSubstitution => text_substitution,
+    ScopeCheckpoint => scope_checkpoint,
+    Lifecycle => lifecycle,
+    ReplayStructure => replay_structure,
+    ReplayExpressionFacts => replay_expression_facts,
+    ReplayPathStates => replay_path_states,
+    ReplayHirSkeleton => replay_hir_skeleton,
+    ReplayPlanSkeleton => replay_plan_skeleton,
+    ReplayFactored => replay_factored,
+    ReplayFactoredConstruction => replay_factored_construction,
+    ReplayFactoredCanonical => replay_factored_canonical,
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct OperationRefusal {
     pub(crate) operation: Option<Operation>,
@@ -42,6 +125,7 @@ pub(crate) struct Trace {
     pub(crate) layouts: usize,
     pub(crate) mode: u8,
     pub(crate) debits: [usize; COUNT],
+    pub(crate) operation_debits: OperationTotals,
 }
 impl Trace {
     const EMPTY: Self = Self {
@@ -55,6 +139,7 @@ impl Trace {
         layouts: 0,
         mode: 0,
         debits: [0; COUNT],
+        operation_debits: OperationTotals::EMPTY,
     };
     pub(crate) fn sum(self) -> usize {
         self.debits.into_iter().sum()
@@ -70,11 +155,12 @@ thread_local! {
 pub(super) fn debit(budget: &Budget, bytes: usize) {
     CURRENT.with(|current| {
         let mut trace = current.get();
-        if trace.owner == budget as *const Budget as usize { route_debits::debit(trace.owner, bytes, budget.stage.get() == Some(ReservationStage::HirValidation), trace.operation == Some(Operation::CleanupReplay));
+        if trace.owner == budget as *const Budget as usize { route_debits::debit(trace.owner, bytes, budget.stage.get() == Some(ReservationStage::HirValidation), cleanup_family(trace.operation));
             let ordinal = budget.stage.get().map_or(0, |stage| stage as usize + 1);
             trace.debits[ordinal] = trace.debits[ordinal]
                 .checked_add(bytes)
                 .expect("stage debit overflow cannot exceed the finite budget");
+            trace.operation_debits.add(trace.operation, bytes);
             current.set(trace);
         }
     });
@@ -120,7 +206,7 @@ pub(super) fn refusal(budget: &Budget, requested: usize) {
         let mut trace = current.get();
         if trace.owner == budget as *const Budget as usize
             && trace.first_operation_refusal.is_none()
-        { route_debits::refusal(trace.owner, budget.stage.get() == Some(ReservationStage::HirValidation) && trace.operation == Some(Operation::CleanupReplay));
+        { route_debits::refusal(trace.owner, budget.stage.get() == Some(ReservationStage::HirValidation) && cleanup_family(trace.operation));
             trace.first_operation_refusal = Some(OperationRefusal {
                 operation: trace.operation,
                 requested,
@@ -160,7 +246,13 @@ impl Drop for Guard {
             trace.sum(),
             trace.consumed,
             "every committed debit exactly once"
-        ); route_debits::finish(trace.owner, trace.consumed, trace.debits[ReservationStage::HirValidation as usize + 1]);
+        );
+        assert_eq!(
+            trace.operation_debits.sum(),
+            trace.consumed,
+            "every committed operation debit exactly once"
+        );
+        route_debits::finish(trace.owner, trace.consumed, trace.debits[ReservationStage::HirValidation as usize + 1]);
         LAST_COMPLETED.with(|completed| completed.set(Some(trace)));
         COMPLETED.with(|completed| {
             if completed

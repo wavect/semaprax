@@ -1,0 +1,108 @@
+{
+  "status": "WIP_NOT_FINAL_SOURCE_BINDING",
+  "previous_head": "67046b952",
+  "rows": [
+    {
+      "source": "tests/hir_module_boundaries.rs",
+      "current_length": 99079,
+      "current_sha256": "7dade8fc55a0ea5f4a16bc57d1ac8ce43ed200694a39ea6e3d33038228c8b8c1",
+      "current_archive": "docs/evidence/accepted-source-binding-20261017/current-checkpoint/tests/hir_module_boundaries.rs",
+      "previous_length": 98174,
+      "previous_sha256": "5090d08b52cb9650af5fc2c2a28739a9783c3d43c7a0f25037ce032b04f51137",
+      "previous_archive": "docs/evidence/accepted-source-binding-20261017/before-checkpoint/tests/hir_module_boundaries.rs",
+      "inverse": [
+        {
+          "start": 0,
+          "remove_length": 99079,
+          "remove_sha256": "7dade8fc55a0ea5f4a16bc57d1ac8ce43ed200694a39ea6e3d33038228c8b8c1",
+          "insert_archive": "docs/evidence/accepted-source-binding-20261017/before-checkpoint/tests/hir_module_boundaries.rs"
+        }
+      ]
+    },
+    {
+      "source": "tests/workspace/semantic_graph/source_inventory.rs",
+      "current_length": 94257,
+      "current_sha256": "8debd7324052ca398a9385bdf7b47f1b479d8638b8e5ed9dc72ef4b9213cd177",
+      "current_archive": "docs/evidence/accepted-source-binding-20261017/current-checkpoint/tests/workspace/semantic_graph/source_inventory.rs",
+      "previous_length": 96961,
+      "previous_sha256": "ec2e0fc045c11e2f81cfe29e91c00c46cba741cca2ab3939b455d765fbd67011",
+      "previous_archive": "docs/evidence/accepted-source-binding-20261017/before-checkpoint/tests/workspace/semantic_graph/source_inventory.rs",
+      "inverse": [
+        {
+          "start": 0,
+          "remove_length": 94257,
+          "remove_sha256": "8debd7324052ca398a9385bdf7b47f1b479d8638b8e5ed9dc72ef4b9213cd177",
+          "insert_archive": "docs/evidence/accepted-source-binding-20261017/before-checkpoint/tests/workspace/semantic_graph/source_inventory.rs"
+        }
+      ]
+    },
+    {
+      "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "current_length": 157441,
+      "current_sha256": "369a29b5860f644b33b82e8e968ab66225faf70cfb930757aff04ba591824d4e",
+      "current_archive": "docs/evidence/accepted-source-binding-20261017/current-checkpoint/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "previous_length": 156404,
+      "previous_sha256": "bdf614306dd818a9d66a794edf46008c3306ffa2fabcb3acbf4b03060d7db316",
+      "previous_archive": "docs/evidence/accepted-source-binding-20261017/before-checkpoint/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "inverse": [
+        {
+          "start": 0,
+          "remove_length": 157441,
+          "remove_sha256": "369a29b5860f644b33b82e8e968ab66225faf70cfb930757aff04ba591824d4e",
+          "insert_archive": "docs/evidence/accepted-source-binding-20261017/before-checkpoint/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        }
+      ]
+    },
+    {
+      "source": "tests/support/production_source_inventory.rs",
+      "current_length": 13583,
+      "current_sha256": "652adbdf49e32e5d2a6f10efcc4a7fec5b13f0c1000af7307305e76c491bc818",
+      "current_archive": "docs/evidence/accepted-source-binding-20261017/current-checkpoint/tests/support/production_source_inventory.rs",
+      "previous_length": 8361,
+      "previous_sha256": "8cfe881209352c42b8ba120a19f6d7c02a384008cb39ed097cfce5926b7db7d1",
+      "previous_archive": "docs/evidence/accepted-source-binding-20261017/before-checkpoint/tests/support/production_source_inventory.rs",
+      "inverse": [
+        {
+          "start": 0,
+          "remove_length": 13583,
+          "remove_sha256": "652adbdf49e32e5d2a6f10efcc4a7fec5b13f0c1000af7307305e76c491bc818",
+          "insert_archive": "docs/evidence/accepted-source-binding-20261017/before-checkpoint/tests/support/production_source_inventory.rs"
+        }
+      ]
+    },
+    {
+      "source": "tests/workspace/semantic_graph.rs",
+      "current_length": 57417,
+      "current_sha256": "5dc9ae6bd7908364d934efb54b9d75259f6d35974a50bc0d13e0f8d2528f1941",
+      "current_archive": "docs/evidence/accepted-source-binding-20261017/current-checkpoint/tests/workspace/semantic_graph.rs",
+      "previous_length": 57300,
+      "previous_sha256": "b768071aad66268faf5b01a8bc773580b004d30883d62046f4187842fa9ace73",
+      "previous_archive": "docs/evidence/accepted-source-binding-20261017/before-checkpoint/tests/workspace/semantic_graph.rs",
+      "inverse": [
+        {
+          "start": 0,
+          "remove_length": 57417,
+          "remove_sha256": "5dc9ae6bd7908364d934efb54b9d75259f6d35974a50bc0d13e0f8d2528f1941",
+          "insert_archive": "docs/evidence/accepted-source-binding-20261017/before-checkpoint/tests/workspace/semantic_graph.rs"
+        }
+      ]
+    },
+    {
+      "source": "tests/workspace/semantic_graph/source_inventory_controls.rs",
+      "current_length": 13153,
+      "current_sha256": "041318692c94bce2b09485903ba91dba25f75d71a7b9727db0611184e059a13d",
+      "current_archive": "docs/evidence/accepted-source-binding-20261017/current-checkpoint/tests/workspace/semantic_graph/source_inventory_controls.rs",
+      "previous_length": 8728,
+      "previous_sha256": "d039555eb377e21ff99cd74941b44af0eaf31015eb2242c1db08f3fc36272b9d",
+      "previous_archive": "docs/evidence/accepted-source-binding-20261017/before-checkpoint/tests/workspace/semantic_graph/source_inventory_controls.rs",
+      "inverse": [
+        {
+          "start": 0,
+          "remove_length": 13153,
+          "remove_sha256": "041318692c94bce2b09485903ba91dba25f75d71a7b9727db0611184e059a13d",
+          "insert_archive": "docs/evidence/accepted-source-binding-20261017/before-checkpoint/tests/workspace/semantic_graph/source_inventory_controls.rs"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "status": "SOURCE_ONLY_PREPARED_BINDER_NOT_RUN",
+  "fix_head": "065f248ada3a587ea595fe8b8806c32ea0ce631c",
+  "packet_current": 41,
+  "prior_views": 51,
+  "changed_current": [
+    "src/cleanup_plan/replay/branch_clone.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs"
+  ],
+  "frozen174_changed": {
+    "src/cleanup_plan/replay/branch_clone.rs": [
+      17063,
+      "dbedf701561e84f3bad64dca84478115c28884fb3ff12b9aa5b34b3ed4ae5274"
+    ],
+    "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs": [
+      37266,
+      "a3aec4ec0190ac665d563ec9c231e4120c073b0e30e1647ad760a92a35e2e44b"
+    ]
+  },
+  "old_packet_sha256": "45d050b7ea9a8a785aa4358d87fd4d9ffcc04acc47f114946ab5ac9d961b884a",
+  "current_packet_sha256": "a1a438f20890ef13c17073bedf664bae77affb71fd07616a378a31d528bbccc8",
+  "no_new_physical_source": true
+}

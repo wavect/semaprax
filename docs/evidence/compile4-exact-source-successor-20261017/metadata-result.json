@@ -1,0 +1,25 @@
+{
+  "status": "SOURCE_ONLY_EXACT_BOUNDARIES_AND_COMPLETE_SOURCE_ROLE_CUSTODY_PASS",
+  "changed_sources": [
+    "src/cleanup_plan/replay/branch_clone.rs",
+    "src/cleanup_plan/replay/branch_clone/production_capacity.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs",
+    "src/source_reflows/incoming090_semantic_receivers.rs",
+    "src/source_reflows_merge/main67107_inputs.rs",
+    "src/source_reflows_merge/ordinary_plan_inputs.rs"
+  ],
+  "current_owners": 184,
+  "frozen_membership": 174,
+  "roles_classes_chunks_closures_unchanged": true,
+  "all_registration_edge_texts_exact": true,
+  "negative_controls": {
+    "dropped_actual_child_refused": true,
+    "coordinated_class_drop_not_original_generated_output": true,
+    "production_reclassification_refused": true,
+    "actual_source_drift_refused": true,
+    "whole_raw_drift_refused": true,
+    "foreign_path_child_cannot_escape": true
+  },
+  "Cargo": false
+}

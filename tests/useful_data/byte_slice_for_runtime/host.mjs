@@ -4,7 +4,8 @@ import {readFile} from 'node:fs/promises';
 const bytes=await readFile(process.argv[2]),kind=process.argv[3],expected=BigInt(process.argv[4]);
 const catalog=/^catalog-(failure-)?(0|[1-9][0-9]*)$/.exec(kind);
 const nestedFailure=kind==='nested-failure';
-const failure=kind==='failure'||nestedFailure||Boolean(catalog?.[1]);
+const viewFailure=kind==='view-failure'||nestedFailure;
+const failure=kind==='failure'||viewFailure||Boolean(catalog?.[1]);
 const expectedCopies=kind==='success'?2:kind==='failure'||catalog?1:0;
 const expectedAllocated=kind==='success'?256+new TextEncoder().encode('SEMAPRAX').length:kind==='failure'?3:catalog?Number(catalog[2]):0;
 const module=await WebAssembly.compile(bytes);
@@ -50,11 +51,11 @@ for(let run=0;run<4;run++){
       assert.equal(++reports,1,'exactly one selected report');
       assert.equal(owners.size,0,'report follows complete non-result cleanup');
       assert.equal(copies,expectedCopies);assert.equal(drops,expectedCopies);assert.equal(allocated,expectedAllocated);
-      if(nestedFailure){assert.equal(copies,0);assert.equal(drops,0);assert.equal(allocated,0)}
+      if(viewFailure){assert.equal(copies,0);assert.equal(drops,0);assert.equal(allocated,0)}
       throw Error('contract');
     },
     spx_bytes_copy:carrier=>{
-      assert(kind!=='view','view traversal called copy');
+      assert(kind!=='view'&&!viewFailure,'view traversal called copy');
       const source=read(carrier);assert(owners.size<16,'owner capacity');
       const value=Uint8Array.from(source),token=serial++;
       owners.set(token,value);copies++;allocated+=value.length;

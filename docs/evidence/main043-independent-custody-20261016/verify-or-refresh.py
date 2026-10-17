@@ -22,8 +22,8 @@ def held(path,length):
 original=held(D/'verify-or-refresh.before.py',9518)
 assert len(original)==9518 and sha(original)=='7c2eb0ca8ff31f89b3744d69089bb62c57c8114495ddc4ec78862c32f8b4392a'
 assert original.decode().count(SEMANTIC_HELPER_SHA)==1
-helper=R/'docs/evidence/main043-definition-semantic-batch-generation-20261017/definition_payload.py';raw=held(helper,3234)
-assert len(raw)==3234 and sha(raw)=='44836e12bd82a4cdcdcc5fd00f561af0b0cc1541520c6b8c8c3cfb129fbab0e0'
+helper=R/'docs/evidence/main043-definition-accepted-generation-20261017/definition_payload.py';raw=held(helper,3228)
+assert len(raw)==3228 and sha(raw)=='59e731713eea180fec3a07c7eb818633591ed948cf4462c5796dcd1810ec36f3'
 m=types.ModuleType('fixed_main043_definition_payload')
 m.__file__=str(helper)
 exec(compile(raw,str(helper),'exec'),m.__dict__)
@@ -32,4 +32,13 @@ new=" payload=_definition_payload(R,row,read)"
 source=original.decode();assert source.count(old)==1
 current=source.replace(old,new,1)
 assert current.replace(new,old,1).encode()==original
-exec(compile(current,str(P),'exec'),{'__name__':'__main__','__file__':str(P),'_definition_payload':m.definition_payload})
+guard_helper=R/'docs/evidence/accepted-strict-guard-generation-20261017/guard_payload.py';guard_raw=held(guard_helper,3965)
+assert sha(guard_raw)=='17d849f39380f26dcd0d12c9c3754f7480d8d3153a44a20a31d849901066e147'
+g=types.ModuleType('accepted_main043_strict_guard');g.__file__=str(guard_helper)
+exec(compile(guard_raw,str(guard_helper),'exec'),g.__dict__)
+guard_old="runpy.run_path(str(R/D/'guard-extensions.py'))"
+guard_new="_accepted_guard_extensions(R)"
+assert current.count(guard_old)==2
+current=current.replace(guard_old,guard_new)
+assert current.replace(guard_new,guard_old).replace(new,old,1).encode()==original
+exec(compile(current,str(P),'exec'),{'__name__':'__main__','__file__':str(P),'_definition_payload':m.definition_payload,'_accepted_guard_extensions':g.accepted_guard_extensions})

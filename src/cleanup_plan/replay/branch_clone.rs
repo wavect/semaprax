@@ -381,6 +381,11 @@ pub(super) fn note_generic_take() {
 }
 
 #[cfg(test)]
+pub(super) fn note_plan_copy() {
+    tests::note_plan_copy();
+}
+
+#[cfg(test)]
 pub(in crate::cleanup_plan::replay) mod before;
 #[cfg(test)]
 pub(in crate::cleanup_plan::replay) use before::for_push;

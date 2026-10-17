@@ -1,0 +1,62 @@
+{
+  "source_only": true,
+  "source_head": "b396e8f7d2106aea89c8bbc67c2fdb98ffe9c176",
+  "source_tree": "986ceaedfae5ef71ff446daad05625ee3e724c83",
+  "physical_membership_count": 174,
+  "prior_manifest": {
+    "length": 241192,
+    "sha256": "b038e9569e8a23b018afab892e6f7062d21d900d95fb20386bf0a10eba1094d2"
+  },
+  "changed_physical": {
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": [
+      157441,
+      "369a29b5860f644b33b82e8e968ab66225faf70cfb930757aff04ba591824d4e"
+    ],
+    "src/cleanup_plan/replay.rs": [
+      326295,
+      "add44f92c19bb698ebec165c74554f4d606cd38885e6230e1e882556eb068848"
+    ],
+    "src/cleanup_plan/replay/branch_clone.rs": [
+      16985,
+      "59a609682f8a1ef9d6db0ad89301206b937e20dab3debac052ed85628db45816"
+    ],
+    "src/cleanup_plan/replay/branch_clone/tests.rs": [
+      31717,
+      "cd9a1c11b0ad8f0194d13e74ed78211161fb75faf859f555a3e05dc13f10ac05"
+    ],
+    "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs": [
+      37219,
+      "b4e8e91622e62eb9795fb6b8495c6a54cce68cba5d1a56566438cc05592ceea0"
+    ],
+    "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/tests.rs": [
+      54774,
+      "4627d662ac47ed383ab9952d32d4158a49ff1e9a7a1d7006760d6290c470ee2b"
+    ],
+    "src/cleanup_plan/replay/expression_facts/receiving/retained.rs": [
+      36291,
+      "ecff19f81e1a41f7e1c7331c7277fafa3b40a1670f200a76427e7ffd60e4ec0d"
+    ],
+    "src/cleanup_plan/replay/factored.rs": [
+      45985,
+      "aefc6b83feccaab7f919718135f285bba22243c4e726adccef37ca72cfd7a73b"
+    ],
+    "src/cleanup_plan/replay/factored/oracle_hook.rs": [
+      12088,
+      "8cb40146286217b0816abb9f576b9d72805b3a38c0e48d5b71e51fedead76800"
+    ],
+    "src/source_reflows/semantic_receivers.rs": [
+      36956,
+      "10d00d2724897708edf0bcb0164dcea49fe61743af6f18dfcb6a81eaec24383c"
+    ],
+    "tests/hir_module_boundaries.rs": [
+      99079,
+      "7dade8fc55a0ea5f4a16bc57d1ac8ce43ed200694a39ea6e3d33038228c8b8c1"
+    ],
+    "tests/workspace/semantic_graph/source_inventory.rs": [
+      94257,
+      "8debd7324052ca398a9385bdf7b47f1b479d8638b8e5ed9dc72ef4b9213cd177"
+    ]
+  },
+  "whole_original_binder_preserved": true,
+  "new_physical_owners_not_added_to_frozen_174": true
+}

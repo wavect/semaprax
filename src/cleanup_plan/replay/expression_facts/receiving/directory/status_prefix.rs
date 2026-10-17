@@ -4,6 +4,7 @@ use super::{
     StatusLane, StatusSourceId, VISIT_UNITS, overflow,
 };
 use crate::bounded_output::classifier_string::ClassifierLedger;
+use crate::cleanup_plan::replay::replay_error;
 use std::cell::Cell;
 use std::mem::size_of;
 

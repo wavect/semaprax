@@ -238,7 +238,7 @@ fn final_prefix_transfer_keeps_full_checked_arithmetic_paths_and_work() {
                     with_original(|| compact_stage::original_paths(function, &mut old)).unwrap();
                 let old_count = skeleton_materializations() - before;
                 let before = skeleton_materializations();
-                let actual = plan_skeleton_paths(function, &mut current).unwrap();
+                let actual = super::super::plan_skeleton_paths(function, &mut current).unwrap();
                 assert_eq!(skeleton_materializations() - before, old_count);
                 assert!(compact_stage::paths_match(&actual, &expected));
                 assert_eq!(current.remaining, old.remaining);
@@ -348,7 +348,7 @@ fn joined_generic_three_edge_transfer_keeps_complete_paths_and_original_work() {
         let count=skeleton_materializations()-before;
         let before=skeleton_materializations();
         let takes=GENERIC_TAKES.with(Cell::get);
-        let actual=plan_skeleton_paths(function,&mut current).unwrap();
+        let actual=super::super::plan_skeleton_paths(function,&mut current).unwrap();
         assert!(GENERIC_TAKES.with(Cell::get)>takes);
         assert!(compact_stage::paths_match(&actual,&expected));
         assert_eq!(skeleton_materializations()-before,count);
@@ -397,7 +397,7 @@ fn observe_generic_probe(function: &ResolvedFunction, limit: usize, floor: usize
     let (result,refused,paid,first,site)=crate::bounded_output::with_limit_usage_refusal_site(limit,||measure(||{
         assert!(crate::bounded_output::set_active_floor(floor));
         let mut budget=ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
-        let result=plan_skeleton_paths(function,&mut budget);
+        let result=super::super::plan_skeleton_paths(function,&mut budget);
         let failure=match result {
             Ok(paths)=>{drop(paths);None}
             Err(error)=>{

@@ -1,0 +1,21 @@
+{
+  "status": "PASS_SOURCE_ONLY_FIX_NOT_RECOMPILED",
+  "base": "7827d3687da21e1093d40f8c8e3f7116edba1993",
+  "compiler_error_packet": {
+    "path": "/Volumes/Semaprax/provenance/final443-first-compilation-errors-7827-20261017.json",
+    "sha256": "f0a3b7700fef264adb34fece2e4c01047da5c4f4f1621ec5734fffd7cffb8dbb"
+  },
+  "whole_before_inverse_records": 2,
+  "production_root_calls_explicitly_selected": 3,
+  "complete_original_test_prefix_lines_unchanged": 204,
+  "complete_cross_type_comparator_unchanged": true,
+  "independent_old_producer_calls_unchanged": true,
+  "all_work_materialization_Diagnostic_refusal_floor_and_Drop_controls_unchanged": true,
+  "PLAN_reserved_slots_Result_usize_received": true,
+  "MAIN090_physical_intersection": [
+    "src/cleanup_plan/replay/branch_clone/tests.rs"
+  ],
+  "PLAN6_intersection": [],
+  "source_custody_full_rebind_executed": false,
+  "Cargo_rustc_build_or_runtime_executed": false
+}

@@ -1,0 +1,33 @@
+{
+  "scope": "Actual scoped productionClippy at6fb PASS; actual changedCI Python module atd3d12PASS; prior7548 owning build remains3commands/2PASS/1FAIL, zero bodies; no final runtime qualification",
+  "clippy_head": "6fb88632f73ea8aed713c5e22156c2d838cce7c5",
+  "clippy_command": [
+    "/Users/kevin/.cargo/bin/rustup",
+    "run",
+    "1.97.1",
+    "cargo",
+    "clippy",
+    "--locked",
+    "--offline",
+    "-p",
+    "semaprax",
+    "--lib",
+    "--bin",
+    "semaprax",
+    "--jobs",
+    "1",
+    "--message-format=json",
+    "--",
+    "-D",
+    "warnings"
+  ],
+  "clippy_exit": 0,
+  "clippy_peak_rss_bytes": 5754208256,
+  "clippy_wall_seconds": 149.31096466700546,
+  "source_inputs_external": "/Volumes/Semaprax/lane-prompts/production-clippy-repaired-batch-20261017/source-inputs.jsonl",
+  "source_inputs_sha256": "21baab6d4e5825cfdacefa7c2d84c81dd8e620486511e3d8946a0754849a3def",
+  "full_cargo_json_and_memory_external": "/Volumes/Semaprax/lane-prompts/production-clippy-repaired-batch-20261017",
+  "final_owning_runtime": "PENDING",
+  "pin_qualification": "PENDING",
+  "benchmark_or_application_advantage_claimed": false
+}

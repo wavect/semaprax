@@ -1023,3 +1023,6 @@ mod final_ready_inputs;
 
 #[path = "source_reflows_merge/main67107_inputs.rs"]
 pub(crate) mod main67107_inputs;
+
+#[path = "source_reflows_merge/ordinary_plan_inputs.rs"]
+mod ordinary_plan_inputs;

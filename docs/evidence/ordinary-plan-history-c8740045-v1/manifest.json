@@ -1,0 +1,31 @@
+{
+  "base": "c8740045e33126a4375aadd1dc524a25be9245fc",
+  "runtime_verification": "not run; integrated parent owns Cargo and runtime",
+  "files": [
+    {
+      "path": "src/cleanup_plan/replay/ordinary_plan_history/before.rs",
+      "sha256": "9e07f08634f9a79e9d38955da089790acf951521362e46ba23b073e67e9ba3a5",
+      "lines": 630
+    },
+    {
+      "path": "src/cleanup_plan/replay/ordinary_plan_history/producer.rs",
+      "sha256": "16fee074ee0d363bb66d1c127042a63a105e1d1073d7b82a72661c246a3fa0b0",
+      "lines": 423
+    },
+    {
+      "path": "src/cleanup_plan/replay/ordinary_plan_history/source_custody.rs",
+      "sha256": "fad8019cba19347bd47f1d661e0b561d639e4bc23831824780e2072cf57b9c80",
+      "lines": 47
+    },
+    {
+      "path": "src/cleanup_plan/replay/ordinary_plan_history/tests.rs",
+      "sha256": "8fca669ec592c6e1b9f846fc479ac7b0ba86ffc4f6cf00bdf0367136efe6237a",
+      "lines": 241
+    },
+    {
+      "path": "src/cleanup_plan/replay/ordinary_plan_history.rs",
+      "sha256": "17e9733605916e64ad4f504d5398257a37ec16f7840c38f3cafbd98d1f831d18",
+      "lines": 367
+    }
+  ]
+}

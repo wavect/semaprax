@@ -1,0 +1,16 @@
+{
+  "base": "c8740045e33126a4375aadd1dc524a25be9245fc",
+  "path": "src/cleanup_plan/replay.rs",
+  "before_sha256": "6db5b0ed361258023e3d7cad058c3de6d737b416b67e98e7113ecb0a993c86c1",
+  "after_sha256": "5404649b780c3127c9d89f96693d45efef9cf961d7a4212a7de26e11b54519fe",
+  "inverse": [
+    {
+      "after": "mod ordinary_plan_history;\n",
+      "before": ""
+    },
+    {
+      "after": "    if ordinary_plan_history::select(function, budget)? {\n        let actual = ordinary_plan_history::produce(function, budget)?;\n        expected.sort();\n        return ordinary_plan_history::compare(function, budget, actual, &expected);\n    }\n",
+      "before": ""
+    }
+  ]
+}

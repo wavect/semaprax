@@ -19,6 +19,7 @@ mod flat_records;
 use call_paths::finish_call_states;
 mod inventory_coverage;
 pub(in crate::cleanup_plan) mod ordinary_status;
+mod ordinary_plan_history;
 mod physical_budget;
 mod physical_clone;
 mod physical_storage;
@@ -2780,6 +2781,11 @@ fn validate_typed_control_skeleton_with_index<'hir>(
     }
     let mut expected =
         hir_skeleton_paths_with_index_storage(program, function, budget, helpers, continuations)?;
+    if ordinary_plan_history::select(function, budget)? {
+        let actual = ordinary_plan_history::produce(function, budget)?;
+        expected.sort();
+        return ordinary_plan_history::compare(function, budget, actual, &expected);
+    }
     let mut actual = plan_skeleton_paths(function, budget)?;
     expected.sort();
     actual.sort();

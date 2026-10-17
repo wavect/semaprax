@@ -1001,11 +1001,11 @@ fn compile_repair_file(path: &::std::path::Path, length: usize, expected: &str) 
 // Whole-source finite admission in front of the independently frozen prior chains.
 fn accepted_records() -> serde_json::Value {
     let data = include_str!("../../docs/evidence/future831-f247-final-source-binding-20261017/current-inputs.json");
-    assert_eq!(data.len(), 42945);
-    assert_eq!(digest(data), "1534c57c748a197c12d4276331ab89ee2a8b38d4dd1f1a656f9254d7a8995399");
+    assert_eq!(data.len(), 46861);
+    assert_eq!(digest(data), "41cdb5d63b4b405b85f71b563326f6eb500971c7a59a64420acb226c7c448b69");
     let packet: serde_json::Value = serde_json::from_str(data).unwrap();
     assert_eq!(packet["schema"], "semaprax.accepted-whole-source-ingress.v1");
-    assert_eq!(packet["rows"].as_array().unwrap().len(), 54);
+    assert_eq!(packet["rows"].as_array().unwrap().len(), 57);
     packet
 }
 fn accepted_compiled(source: &str) -> &'static str {
@@ -1064,6 +1064,9 @@ fn accepted_compiled(source: &str) -> &'static str {
         "src/workspace_graph/static_text/scalar_helpers/capture_directory/tests.rs" => include_str!("../../src/workspace_graph/static_text/scalar_helpers/capture_directory/tests.rs"),
         "tests/workspace/semantic_change/reporting.rs" => include_str!("../../tests/workspace/semantic_change/reporting.rs"),
         "tests/workspace/semantic_structural_change/reporting.rs" => include_str!("../../tests/workspace/semantic_structural_change/reporting.rs"),
+        "src/cleanup_plan/replay/compact_stage.rs" => include_str!("../../src/cleanup_plan/replay/compact_stage.rs"),
+        "src/cleanup_plan/replay/compact_stage/main_f247_source_custody.rs" => include_str!("../../src/cleanup_plan/replay/compact_stage/main_f247_source_custody.rs"),
+        "src/source_reflows/main_f247_controllers.rs" => include_str!("../../src/source_reflows/main_f247_controllers.rs"),
         _ => unreachable!("closed accepted whole-source membership"),
     }
 }

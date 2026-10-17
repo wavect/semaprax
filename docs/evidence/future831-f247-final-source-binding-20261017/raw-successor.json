@@ -60,8 +60,8 @@
   },
   "helper": {
     "path": "docs/evidence/future831-f247-final-source-binding-20261017/guard_payload.py",
-    "length": 8703,
-    "sha256": "423e1e3cdf5f01773e91c68f668185361b63f52d6950c2a5f076b7bc61da7b91"
+    "length": 10051,
+    "sha256": "367f3e692c69243e198a407686b85eb2871de023abb3fac366ede894f82f81aa"
   },
   "old_counts_and_controls_unchanged": true,
   "native_literal_line_join": {
@@ -79,6 +79,37 @@
     "finite_terminal_execution_acquisition": {
       "remove": "_future_execute_carrier_program(current,ns)",
       "restore": "exec(compile(current,ns['__file__'],'exec'),ns)"
+    }
+  },
+  "new_broad_owner_acquisition": {
+    "status": "SOURCE_ONLY_UNEXECUTED",
+    "old_inputs": 405,
+    "current_inputs": 414,
+    "owned_closure_unchanged": 31,
+    "new_inputs": [
+      "src/cleanup_plan/replay/factored/canonical_shared/selected_labels.rs",
+      "src/cleanup_plan/replay/factored/canonical_shared/selected_labels/tests.rs",
+      "src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels.rs",
+      "src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels/terminal_leaf.rs",
+      "src/cleanup_plan/replay/skeleton_work/isolated_paths.rs",
+      "src/cleanup_plan/replay/skeleton_work/isolated_paths/tests.rs",
+      "src/cleanup_plan/replay/skeleton_work/isolated_paths/tests/before.rs",
+      "src/source_reflows/main_f247_controllers.rs",
+      "src/cleanup_plan/replay/compact_stage/main_f247_source_custody.rs"
+    ],
+    "old_whole_table": "docs/evidence/workspace21-legacy-source-repair-20261017/current-projection-inputs.tsv",
+    "current_table": "docs/evidence/future831-f247-final-source-binding-20261017/current-projection-inputs.tsv",
+    "one_owner_acquisition": {
+      "remove": "docs/evidence/future831-f247-final-source-binding-20261017/current-projection-inputs.tsv",
+      "restore": "docs/evidence/workspace21-legacy-source-repair-20261017/current-projection-inputs.tsv"
+    },
+    "owner_before": {
+      "length": 57424,
+      "sha256": "b291ce67ab1eb43ca4407c85b53b157d4d76f4ffb6c7091c63d91fb8f641ae9c"
+    },
+    "owner_current": {
+      "length": 57427,
+      "sha256": "1849b6be08210ee81f6ca1518cd51b8ccd5ff137c04781d6498be159ed3f285f"
     }
   }
 }

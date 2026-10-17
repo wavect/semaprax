@@ -178,7 +178,7 @@ fn closed_main_1e_acquisition_authenticates_all_complete_current_owners() {
 fn packet_f247() -> serde_json::Value {
     let data = include_str!("../../docs/evidence/future831-f247-final-source-binding-20261017/main-f247-inputs.json");
     assert_eq!(data.len(), 218113); // F247_PACKET_LENGTH
-    assert_eq!(digest(data.as_bytes()), "2f89fcec21301a261e0dca0a1ecd17aed39771d90dcaab06c75e64ce9d8f1342");
+    assert_eq!(digest(data.as_bytes()), "6f23ce8906ae025b4bc263885b423c999219a659618f401144e89b95bcadf8de");
     let packet: serde_json::Value = serde_json::from_str(data).unwrap();
     assert_eq!(packet["schema"], "semaprax.main-f247-source-acquisition.v1");
     assert_eq!(packet["rows"].as_array().unwrap().len(), 408); // F247_PACKET_ROWS

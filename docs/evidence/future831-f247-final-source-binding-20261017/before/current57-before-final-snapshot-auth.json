@@ -1,0 +1,1006 @@
+{
+  "schema": "semaprax.accepted-whole-source-ingress.v1",
+  "status": "SOURCE_ONLY_NO_RUNTIME_QUALIFICATION",
+  "base": "5f5808c6cf89a29388f25056baee2e7bd5f0dd08",
+  "rows": [
+    {
+      "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "current": {
+        "length": 158336,
+        "sha256": "1593db2b5b16f88c509952eddf075e1b574a8c6352382bff4ca19e2478ea7517",
+        "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/1593db2b5b16f88c509952eddf075e1b574a8c6352382bff4ca19e2478ea7517.txt"
+      },
+      "priors": [
+        {
+          "name": "base5f",
+          "length": 156404,
+          "sha256": "bdf614306dd818a9d66a794edf46008c3306ffa2fabcb3acbf4b03060d7db316",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/bdf614306dd818a9d66a794edf46008c3306ffa2fabcb3acbf4b03060d7db316.txt"
+        },
+        {
+          "name": "main_c883",
+          "length": 156404,
+          "sha256": "bdf614306dd818a9d66a794edf46008c3306ffa2fabcb3acbf4b03060d7db316",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/bdf614306dd818a9d66a794edf46008c3306ffa2fabcb3acbf4b03060d7db316.txt"
+        },
+        {
+          "name": "future_base00f",
+          "length": 157441,
+          "sha256": "369a29b5860f644b33b82e8e968ab66225faf70cfb930757aff04ba591824d4e",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/369a29b5860f644b33b82e8e968ab66225faf70cfb930757aff04ba591824d4e.txt"
+        },
+        {
+          "name": "future_full_f247_stage",
+          "length": 158162,
+          "sha256": "43518d1edf9297eb3770918c27e309a0931fc0587d507df6648ee8585e268b8a",
+          "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/43518d1edf9297eb3770918c27e309a0931fc0587d507df6648ee8585e268b8a.txt"
+        }
+      ]
+    },
+    {
+      "source": "src/bounded_output/classifier_string.rs",
+      "current": {
+        "length": 13634,
+        "sha256": "c0c85cc51b32418114866b49b58efed018b1032ad6e5231dcad67de94c4171b6",
+        "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/c0c85cc51b32418114866b49b58efed018b1032ad6e5231dcad67de94c4171b6.txt"
+      },
+      "priors": [
+        {
+          "name": "base5f",
+          "length": 13125,
+          "sha256": "88389f912f0bd6c275a8cee2bec309210bb0c575c7b449547606d8449dfdb9cc",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/88389f912f0bd6c275a8cee2bec309210bb0c575c7b449547606d8449dfdb9cc.txt"
+        }
+      ]
+    },
+    {
+      "source": "src/bounded_output/stage_debits.rs",
+      "current": {
+        "length": 10996,
+        "sha256": "c071652700ff960bcd99b23937f69c8a1098ebca5536801fdc0a9de26d2c0e36",
+        "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/c071652700ff960bcd99b23937f69c8a1098ebca5536801fdc0a9de26d2c0e36.txt"
+      },
+      "priors": [
+        {
+          "name": "base5f",
+          "length": 6369,
+          "sha256": "94c4a7efb9f9d353f2cde6a4d8ff520df1d821f73f882c2997c7c7c34ffabc0c",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/94c4a7efb9f9d353f2cde6a4d8ff520df1d821f73f882c2997c7c7c34ffabc0c.txt"
+        }
+      ]
+    },
+    {
+      "source": "src/bounded_output/stage_debits/tests.rs",
+      "current": {
+        "length": 12575,
+        "sha256": "d81892e1cca7878eadfd74743e6b4610884312e08a446b53c2ffac1e67c05a06",
+        "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/d81892e1cca7878eadfd74743e6b4610884312e08a446b53c2ffac1e67c05a06.txt"
+      },
+      "priors": [
+        {
+          "name": "base5f",
+          "length": 8833,
+          "sha256": "80deae3c1a3b8d2f2c22aeeeee799cc410aa2e3b80698121971cb6bc508fa1ae",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/80deae3c1a3b8d2f2c22aeeeee799cc410aa2e3b80698121971cb6bc508fa1ae.txt"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan.rs",
+      "current": {
+        "length": 33704,
+        "sha256": "13e6348ce65faeccf92fc10bb0136e1aa1fc61e16cab73c649f173ef831c9f8b",
+        "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/13e6348ce65faeccf92fc10bb0136e1aa1fc61e16cab73c649f173ef831c9f8b.txt"
+      },
+      "priors": [
+        {
+          "name": "base5f",
+          "length": 33642,
+          "sha256": "0e19e80ed9cc80eafe015ff4e11688d6aa24b80755e6afbe1ed727f5d2a63621",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/0e19e80ed9cc80eafe015ff4e11688d6aa24b80755e6afbe1ed727f5d2a63621.txt"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay.rs",
+      "current": {
+        "length": 326295,
+        "sha256": "add44f92c19bb698ebec165c74554f4d606cd38885e6230e1e882556eb068848",
+        "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/add44f92c19bb698ebec165c74554f4d606cd38885e6230e1e882556eb068848.txt"
+      },
+      "priors": [
+        {
+          "name": "base5f",
+          "length": 323567,
+          "sha256": "807735eb8713ff6e02abd9ea6d3d4aea4fdc53f95bc6b6d1a2a1e51dba605afa",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/807735eb8713ff6e02abd9ea6d3d4aea4fdc53f95bc6b6d1a2a1e51dba605afa.txt"
+        },
+        {
+          "name": "main_c883",
+          "length": 325774,
+          "sha256": "b4995d99cca72389c384fab3cc3b8d79e092634e9562fc1dea0ca544761719c8",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/b4995d99cca72389c384fab3cc3b8d79e092634e9562fc1dea0ca544761719c8.txt"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/branch_clone.rs",
+      "current": {
+        "length": 17063,
+        "sha256": "dbedf701561e84f3bad64dca84478115c28884fb3ff12b9aa5b34b3ed4ae5274",
+        "archive": "docs/evidence/compile4-exact-source-successor-20261017/current/dbedf701561e84f3bad64dca84478115c28884fb3ff12b9aa5b34b3ed4ae5274.txt"
+      },
+      "priors": [
+        {
+          "name": "base5f",
+          "length": 11660,
+          "sha256": "7c87d361dda743f65516b263826af386f03b3b53ce7886a9c707233cbf123957",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/7c87d361dda743f65516b263826af386f03b3b53ce7886a9c707233cbf123957.txt"
+        },
+        {
+          "name": "compile_round1",
+          "length": 16985,
+          "sha256": "59a609682f8a1ef9d6db0ad89301206b937e20dab3debac052ed85628db45816",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/59a609682f8a1ef9d6db0ad89301206b937e20dab3debac052ed85628db45816.txt"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/branch_clone/tests.rs",
+      "current": {
+        "length": 31717,
+        "sha256": "cd9a1c11b0ad8f0194d13e74ed78211161fb75faf859f555a3e05dc13f10ac05",
+        "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/cd9a1c11b0ad8f0194d13e74ed78211161fb75faf859f555a3e05dc13f10ac05.txt"
+      },
+      "priors": [
+        {
+          "name": "base5f",
+          "length": 23912,
+          "sha256": "46bf0451ef390225f540d031f326100c7f4288cf7e9d50e30ce7ddb68a448e0f",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/46bf0451ef390225f540d031f326100c7f4288cf7e9d50e30ce7ddb68a448e0f.txt"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/expression_facts.rs",
+      "current": {
+        "length": 23859,
+        "sha256": "053698df5f2f88f5e6fde6c2d3a0c47f7eb683cc34dca0365f4be56682da4ae5",
+        "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/053698df5f2f88f5e6fde6c2d3a0c47f7eb683cc34dca0365f4be56682da4ae5.txt"
+      },
+      "priors": [
+        {
+          "name": "base5f",
+          "length": 23681,
+          "sha256": "82c15975078a1e841c342440723a2e75ec2a0bfee01366ea8f43c49af0b6dec1",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/82c15975078a1e841c342440723a2e75ec2a0bfee01366ea8f43c49af0b6dec1.txt"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/directory.rs",
+      "current": {
+        "length": 20800,
+        "sha256": "77eaa20915336fa5076884d3f87ba267c47dec665c57de0d3919765f8380a0d8",
+        "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/77eaa20915336fa5076884d3f87ba267c47dec665c57de0d3919765f8380a0d8.txt"
+      },
+      "priors": [
+        {
+          "name": "base5f",
+          "length": 15428,
+          "sha256": "d161622003e500b3b9197c0f463b88eee388d9447c5a87ba75f464d3aa2a59cc",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/d161622003e500b3b9197c0f463b88eee388d9447c5a87ba75f464d3aa2a59cc.txt"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs",
+      "current": {
+        "length": 37266,
+        "sha256": "a3aec4ec0190ac665d563ec9c231e4120c073b0e30e1647ad760a92a35e2e44b",
+        "archive": "docs/evidence/compile4-exact-source-successor-20261017/current/a3aec4ec0190ac665d563ec9c231e4120c073b0e30e1647ad760a92a35e2e44b.txt"
+      },
+      "priors": [
+        {
+          "name": "base5f",
+          "length": 19604,
+          "sha256": "37dbfa2677e03beab295d5f96fbb3a4f9a4a84908721021b566113156dbc43f0",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/37dbfa2677e03beab295d5f96fbb3a4f9a4a84908721021b566113156dbc43f0.txt"
+        },
+        {
+          "name": "compile_round1",
+          "length": 37219,
+          "sha256": "b4e8e91622e62eb9795fb6b8495c6a54cce68cba5d1a56566438cc05592ceea0",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/b4e8e91622e62eb9795fb6b8495c6a54cce68cba5d1a56566438cc05592ceea0.txt"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/tests.rs",
+      "current": {
+        "length": 54774,
+        "sha256": "4627d662ac47ed383ab9952d32d4158a49ff1e9a7a1d7006760d6290c470ee2b",
+        "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/4627d662ac47ed383ab9952d32d4158a49ff1e9a7a1d7006760d6290c470ee2b.txt"
+      },
+      "priors": [
+        {
+          "name": "base5f",
+          "length": 29910,
+          "sha256": "58d578202f5276792d67035830b908a97408d3c702d015e89ce316becf13bc17",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/58d578202f5276792d67035830b908a97408d3c702d015e89ce316becf13bc17.txt"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/retained.rs",
+      "current": {
+        "length": 36291,
+        "sha256": "ecff19f81e1a41f7e1c7331c7277fafa3b40a1670f200a76427e7ffd60e4ec0d",
+        "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/ecff19f81e1a41f7e1c7331c7277fafa3b40a1670f200a76427e7ffd60e4ec0d.txt"
+      },
+      "priors": [
+        {
+          "name": "base5f",
+          "length": 36271,
+          "sha256": "993310a1f8247923519f59099a7a5deaae6566972345a71b8f4c41ce1482d120",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/993310a1f8247923519f59099a7a5deaae6566972345a71b8f4c41ce1482d120.txt"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified.rs",
+      "current": {
+        "length": 12421,
+        "sha256": "3abb525e65e38f0312e1d30d31848ed1152e367adf3b106132ce8ab3ae54b576",
+        "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/3abb525e65e38f0312e1d30d31848ed1152e367adf3b106132ce8ab3ae54b576.txt"
+      },
+      "priors": [
+        {
+          "name": "base5f",
+          "length": 12401,
+          "sha256": "f244ecc06a62858f94ed2723ac88beff4fb2c1ca176baf1bc5cfc6893fd03dc3",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/f244ecc06a62858f94ed2723ac88beff4fb2c1ca176baf1bc5cfc6893fd03dc3.txt"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/counter_tests.rs",
+      "current": {
+        "length": 12026,
+        "sha256": "4dbb4d85e0660ef51235c630c09a6efa097c18d064a17634b02fe2e5d630b19c",
+        "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/4dbb4d85e0660ef51235c630c09a6efa097c18d064a17634b02fe2e5d630b19c.txt"
+      },
+      "priors": [
+        {
+          "name": "base5f",
+          "length": 7350,
+          "sha256": "68c44c4e3b3d3e1298b8f95b46fcef12bff983bfbcab23e236767cff50d143cc",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/68c44c4e3b3d3e1298b8f95b46fcef12bff983bfbcab23e236767cff50d143cc.txt"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored.rs",
+      "current": {
+        "length": 45985,
+        "sha256": "aefc6b83feccaab7f919718135f285bba22243c4e726adccef37ca72cfd7a73b",
+        "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/aefc6b83feccaab7f919718135f285bba22243c4e726adccef37ca72cfd7a73b.txt"
+      },
+      "priors": [
+        {
+          "name": "base5f",
+          "length": 44197,
+          "sha256": "343eda3712d0c3b224742d72c34838a327e0c69449c8a94fd7eb81dc5e0134a6",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/343eda3712d0c3b224742d72c34838a327e0c69449c8a94fd7eb81dc5e0134a6.txt"
+        },
+        {
+          "name": "main_c883",
+          "length": 45631,
+          "sha256": "525a1ecd04c23876bcdb3c959592d68710079dc8b602659fb2650f07467b0693",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/525a1ecd04c23876bcdb3c959592d68710079dc8b602659fb2650f07467b0693.txt"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+      "current": {
+        "length": 65386,
+        "sha256": "92728f9f1f6e4ce861de0ed8e5ad4ec095550a924338a9168cba8bb812bd2783",
+        "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/92728f9f1f6e4ce861de0ed8e5ad4ec095550a924338a9168cba8bb812bd2783.txt"
+      },
+      "priors": [
+        {
+          "name": "base5f",
+          "length": 64942,
+          "sha256": "cdbced119fdcd161c437ef9ac83d8066caadae0eabdf5bee83ce95db260fd472",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/cdbced119fdcd161c437ef9ac83d8066caadae0eabdf5bee83ce95db260fd472.txt"
+        },
+        {
+          "name": "future_base00f",
+          "length": 65056,
+          "sha256": "91f0f7c964ba8a94b91f8da9a6aaa73017b49e3adf49bde5828645128015dbca",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/91f0f7c964ba8a94b91f8da9a6aaa73017b49e3adf49bde5828645128015dbca.txt"
+        },
+        {
+          "name": "selected831_accepted30865",
+          "length": 65190,
+          "sha256": "54aa8f29d29f3b784dc5ca70719c455fe9b9cfcffae4cbd95fd041d39b261077",
+          "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/54aa8f29d29f3b784dc5ca70719c455fe9b9cfcffae4cbd95fd041d39b261077.txt"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs",
+      "current": {
+        "length": 68741,
+        "sha256": "96d849fd034040565db32a1ca30494c07a8faaafb0b80b8c9a9942c63f2e4ae4",
+        "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/96d849fd034040565db32a1ca30494c07a8faaafb0b80b8c9a9942c63f2e4ae4.txt"
+      },
+      "priors": [
+        {
+          "name": "base5f",
+          "length": 68514,
+          "sha256": "48c1fe3778d050ffbb7fcde220f10ea47a209d1935135f46328b381d727aa2dd",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/48c1fe3778d050ffbb7fcde220f10ea47a209d1935135f46328b381d727aa2dd.txt"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs",
+      "current": {
+        "length": 64315,
+        "sha256": "fc054c4c7c3089e8aa3fd136d92d7d895bfe79f41f1e75e9bd92f60396e585e0",
+        "archive": "docs/evidence/compile4-exact-source-successor-20261017/current/fc054c4c7c3089e8aa3fd136d92d7d895bfe79f41f1e75e9bd92f60396e585e0.txt"
+      },
+      "priors": [
+        {
+          "name": "base5f",
+          "length": 38692,
+          "sha256": "7d72a2aadb93fc3a865cceb4a35b7ce9fa0ee01a23dab50491845184859b3f1e",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/7d72a2aadb93fc3a865cceb4a35b7ce9fa0ee01a23dab50491845184859b3f1e.txt"
+        },
+        {
+          "name": "compile_round1",
+          "length": 64190,
+          "sha256": "d0e32e0a93ca47ccf399670e610ea5a7fa29af91fb98fdcdac470bf3e72ce258",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/d0e32e0a93ca47ccf399670e610ea5a7fa29af91fb98fdcdac470bf3e72ce258.txt"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs",
+      "current": {
+        "length": 9293,
+        "sha256": "59f15d0dc91103a34a15dcd5ea7f475634951747e28454edee8c890f917b32dc",
+        "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/59f15d0dc91103a34a15dcd5ea7f475634951747e28454edee8c890f917b32dc.txt"
+      },
+      "priors": [
+        {
+          "name": "base5f",
+          "length": 9275,
+          "sha256": "e6fe00f0a39f8c1ee59fa25e72dfa4fe8d1b5a81315602244ea6dff75965e0c0",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/e6fe00f0a39f8c1ee59fa25e72dfa4fe8d1b5a81315602244ea6dff75965e0c0.txt"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/intern_arena.rs",
+      "current": {
+        "length": 11574,
+        "sha256": "8f30eae09d94a3f5e530354feab4ce299951d0990164fff670514ad03f363ab8",
+        "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/8f30eae09d94a3f5e530354feab4ce299951d0990164fff670514ad03f363ab8.txt"
+      },
+      "priors": [
+        {
+          "name": "base5f",
+          "length": 11110,
+          "sha256": "5c90131b3b1b642982d77be8b298fde44058382f9428fe59789dd70ea5dade30",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/5c90131b3b1b642982d77be8b298fde44058382f9428fe59789dd70ea5dade30.txt"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/paid_many/tests.rs",
+      "current": {
+        "length": 44200,
+        "sha256": "6d70cfe62b35c0ab8617b86aada00de55c3bd8aade98578d4ac994e8a1a9b86a",
+        "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/6d70cfe62b35c0ab8617b86aada00de55c3bd8aade98578d4ac994e8a1a9b86a.txt"
+      },
+      "priors": [
+        {
+          "name": "base5f",
+          "length": 28417,
+          "sha256": "2eb76c67de772fec04013504817cf64ec5b90848f8030021ba248115bd837c8c",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/2eb76c67de772fec04013504817cf64ec5b90848f8030021ba248115bd837c8c.txt"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/continuation_receiver.rs",
+      "current": {
+        "length": 2098,
+        "sha256": "c6256e04224731110b5e1906169ec5e55139147f18433700825e18c982007794",
+        "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/c6256e04224731110b5e1906169ec5e55139147f18433700825e18c982007794.txt"
+      },
+      "priors": [
+        {
+          "name": "base5f",
+          "length": 1720,
+          "sha256": "b6d48fd5125b0ab91d8bae0ded52561d43a3f8fe27d36a4e79c15b29f879a4d7",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/b6d48fd5125b0ab91d8bae0ded52561d43a3f8fe27d36a4e79c15b29f879a4d7.txt"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/oracle_hook.rs",
+      "current": {
+        "length": 12088,
+        "sha256": "8cb40146286217b0816abb9f576b9d72805b3a38c0e48d5b71e51fedead76800",
+        "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/8cb40146286217b0816abb9f576b9d72805b3a38c0e48d5b71e51fedead76800.txt"
+      },
+      "priors": [
+        {
+          "name": "base5f",
+          "length": 11716,
+          "sha256": "0126d25150ca4b96f11995293fc9043d23fc8fff2008485e9560abe5c85cb7ae",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/0126d25150ca4b96f11995293fc9043d23fc8fff2008485e9560abe5c85cb7ae.txt"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/owned_suffix.rs",
+      "current": {
+        "length": 17895,
+        "sha256": "4a6e8f3c107e0ca3c8eff1d78418ab3787acafc50d445f46bd5f496ef492a6e0",
+        "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/4a6e8f3c107e0ca3c8eff1d78418ab3787acafc50d445f46bd5f496ef492a6e0.txt"
+      },
+      "priors": [
+        {
+          "name": "base5f",
+          "length": 17898,
+          "sha256": "e9cd09455d33d55768e413902085d1b27870a972fe7a079497e976d5acbd2da4",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/e9cd09455d33d55768e413902085d1b27870a972fe7a079497e976d5acbd2da4.txt"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/owned_suffix/tests.rs",
+      "current": {
+        "length": 16740,
+        "sha256": "fa6695fa3d741c3a96ee5e69f45dac1e5ad2a28080baf9b47f43bac2612f2977",
+        "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/fa6695fa3d741c3a96ee5e69f45dac1e5ad2a28080baf9b47f43bac2612f2977.txt"
+      },
+      "priors": [
+        {
+          "name": "base5f",
+          "length": 16483,
+          "sha256": "3edb2464491fda85a208c95b4a2b62549a42fd1791b4bae1ef78087bd3430d3e",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/3edb2464491fda85a208c95b4a2b62549a42fd1791b4bae1ef78087bd3430d3e.txt"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/path_join.rs",
+      "current": {
+        "length": 49747,
+        "sha256": "4aa305f35a2f0f60954c979c010ed8209420a5b4389bbe03225ba7256a549b7c",
+        "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/4aa305f35a2f0f60954c979c010ed8209420a5b4389bbe03225ba7256a549b7c.txt"
+      },
+      "priors": [
+        {
+          "name": "base5f",
+          "length": 49574,
+          "sha256": "b38a40a8d556835ff406bd3b150fc51f818b80769c6031423d3fedcf9d6a5849",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/b38a40a8d556835ff406bd3b150fc51f818b80769c6031423d3fedcf9d6a5849.txt"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix.rs",
+      "current": {
+        "length": 31853,
+        "sha256": "fb5c395326c2343fb3983a8cc6129364479901dbc9b3d827cccf023e79701c99",
+        "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/fb5c395326c2343fb3983a8cc6129364479901dbc9b3d827cccf023e79701c99.txt"
+      },
+      "priors": [
+        {
+          "name": "base5f",
+          "length": 31772,
+          "sha256": "d74cf92511cdc0557030444582ecdd41e345f3d87aa0fc1d126d933e715511e3",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/d74cf92511cdc0557030444582ecdd41e345f3d87aa0fc1d126d933e715511e3.txt"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
+      "current": {
+        "length": 31873,
+        "sha256": "f972a395e082188f2e05fb98624c80e04070aa0f106731230920c288120e65e3",
+        "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/f972a395e082188f2e05fb98624c80e04070aa0f106731230920c288120e65e3.txt"
+      },
+      "priors": [
+        {
+          "name": "base5f",
+          "length": 28129,
+          "sha256": "b2004e6eb3450ca8bc02c7822a3f258280ae3b248f6054f761cdd6567b8e52c8",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/b2004e6eb3450ca8bc02c7822a3f258280ae3b248f6054f761cdd6567b8e52c8.txt"
+        }
+      ]
+    },
+    {
+      "source": "src/source_reflows/semantic_receivers.rs",
+      "current": {
+        "length": 37053,
+        "sha256": "58cd8a8d2dcb03fcb88f32537ebd5c5d9b6ac1dd1ed60a6fe75b1336bfaf14a4",
+        "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/58cd8a8d2dcb03fcb88f32537ebd5c5d9b6ac1dd1ed60a6fe75b1336bfaf14a4.txt"
+      },
+      "priors": [
+        {
+          "name": "base5f",
+          "length": 30256,
+          "sha256": "3697d98f51d3d633a280ffd7ee0656c0d45e660e061cee5275ee81189d1ee1a4",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/3697d98f51d3d633a280ffd7ee0656c0d45e660e061cee5275ee81189d1ee1a4.txt"
+        },
+        {
+          "name": "main_c883",
+          "length": 30307,
+          "sha256": "05451fc41e67572e493f670e887ff9360f8d0ead8c2a0994cd0f9812beaee547",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/05451fc41e67572e493f670e887ff9360f8d0ead8c2a0994cd0f9812beaee547.txt"
+        },
+        {
+          "name": "future_base00f",
+          "length": 36956,
+          "sha256": "10d00d2724897708edf0bcb0164dcea49fe61743af6f18dfcb6a81eaec24383c",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/10d00d2724897708edf0bcb0164dcea49fe61743af6f18dfcb6a81eaec24383c.txt"
+        },
+        {
+          "name": "future_full_f247_stage",
+          "length": 43516,
+          "sha256": "129480a7de0c2269dc83a32ad7f3505b3f089c1fc958ff6adeca086db2852726",
+          "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/129480a7de0c2269dc83a32ad7f3505b3f089c1fc958ff6adeca086db2852726.txt"
+        }
+      ]
+    },
+    {
+      "source": "src/source_reflows_merge.rs",
+      "current": {
+        "length": 46507,
+        "sha256": "57c0fc50ab6d03eb94094b8f47e8946f5f4a011a1d9a387083eab6bdb41d8168",
+        "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/57c0fc50ab6d03eb94094b8f47e8946f5f4a011a1d9a387083eab6bdb41d8168.txt"
+      },
+      "priors": [
+        {
+          "name": "base5f",
+          "length": 46420,
+          "sha256": "17fd9053a46a45e17f3ae8890220a4176290d00c26a7f9a6890b696c9ec7ac89",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/17fd9053a46a45e17f3ae8890220a4176290d00c26a7f9a6890b696c9ec7ac89.txt"
+        }
+      ]
+    },
+    {
+      "source": "src/source_reflows_merge/opt858_sequence_input.rs",
+      "current": {
+        "length": 6611,
+        "sha256": "f183f359e52278f8a33da7a9e2eaf4be876588bcd67c76bfa3666d0d5e5b7d32",
+        "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/f183f359e52278f8a33da7a9e2eaf4be876588bcd67c76bfa3666d0d5e5b7d32.txt"
+      },
+      "priors": [
+        {
+          "name": "base5f",
+          "length": 5685,
+          "sha256": "f5a04eeb6b33a8048fa358bdba484912a3c1db1381d92d391d5cc163c614a4b1",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/f5a04eeb6b33a8048fa358bdba484912a3c1db1381d92d391d5cc163c614a4b1.txt"
+        }
+      ]
+    },
+    {
+      "source": "src/workspace_graph/tests/builder_limits.rs",
+      "current": {
+        "length": 37144,
+        "sha256": "097f76d8ae610f8fa46a1ec1bcd47fae2d2d8b6da396caa0857ec517806c5967",
+        "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/097f76d8ae610f8fa46a1ec1bcd47fae2d2d8b6da396caa0857ec517806c5967.txt"
+      },
+      "priors": [
+        {
+          "name": "base5f",
+          "length": 36466,
+          "sha256": "c1f40dbe6d396e0bac776028d029b7d3cc938293857a86750aa9f4a03e3a17ed",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/c1f40dbe6d396e0bac776028d029b7d3cc938293857a86750aa9f4a03e3a17ed.txt"
+        },
+        {
+          "name": "future_base00f",
+          "length": 36981,
+          "sha256": "f342819e37b0d60ba64bb502cb06ab120f00170be29ee8860294234db60121b4",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/f342819e37b0d60ba64bb502cb06ab120f00170be29ee8860294234db60121b4.txt"
+        }
+      ]
+    },
+    {
+      "source": "tests/hir_module_boundaries.rs",
+      "current": {
+        "length": 99902,
+        "sha256": "46e5fbd03a01ef804e351ffe5c4ee15d61336f7ca0ab1a612839baa723f85d15",
+        "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/46e5fbd03a01ef804e351ffe5c4ee15d61336f7ca0ab1a612839baa723f85d15.txt"
+      },
+      "priors": [
+        {
+          "name": "base5f",
+          "length": 98174,
+          "sha256": "5090d08b52cb9650af5fc2c2a28739a9783c3d43c7a0f25037ce032b04f51137",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/5090d08b52cb9650af5fc2c2a28739a9783c3d43c7a0f25037ce032b04f51137.txt"
+        },
+        {
+          "name": "main_c883",
+          "length": 98174,
+          "sha256": "5090d08b52cb9650af5fc2c2a28739a9783c3d43c7a0f25037ce032b04f51137",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/5090d08b52cb9650af5fc2c2a28739a9783c3d43c7a0f25037ce032b04f51137.txt"
+        },
+        {
+          "name": "future_base00f",
+          "length": 99079,
+          "sha256": "7dade8fc55a0ea5f4a16bc57d1ac8ce43ed200694a39ea6e3d33038228c8b8c1",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/7dade8fc55a0ea5f4a16bc57d1ac8ce43ed200694a39ea6e3d33038228c8b8c1.txt"
+        },
+        {
+          "name": "future_full_f247_stage",
+          "length": 99752,
+          "sha256": "9743cc249a380141a76f774c1c24331aaadfae7abcbf13aa99856bb21143d36c",
+          "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/9743cc249a380141a76f774c1c24331aaadfae7abcbf13aa99856bb21143d36c.txt"
+        }
+      ]
+    },
+    {
+      "source": "tests/native/string_settlement/codec_allocation/codec808_frontier.rs",
+      "current": {
+        "length": 7068,
+        "sha256": "39837794268d365be877d508bbec1210ab7469de5185758f22209088ef75cae2",
+        "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/39837794268d365be877d508bbec1210ab7469de5185758f22209088ef75cae2.txt"
+      },
+      "priors": [
+        {
+          "name": "base5f",
+          "length": 6913,
+          "sha256": "06b4f66200fcf3557246ed1fb71bf7bdb75c1926c8307ba917dcdab39213dd9a",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/06b4f66200fcf3557246ed1fb71bf7bdb75c1926c8307ba917dcdab39213dd9a.txt"
+        }
+      ]
+    },
+    {
+      "source": "tests/project/standard_library/application_json/nested_response/string_vectors.rs",
+      "current": {
+        "length": 26034,
+        "sha256": "491a5513d425e3bcefd1fe6d8a731c820f90a68fd8f68005592e23562fd83cf6",
+        "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/491a5513d425e3bcefd1fe6d8a731c820f90a68fd8f68005592e23562fd83cf6.txt"
+      },
+      "priors": [
+        {
+          "name": "base5f",
+          "length": 25305,
+          "sha256": "c54393ca268854087e92fe9632b11fc15d1a748595a269b3158d309695a1ab49",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/c54393ca268854087e92fe9632b11fc15d1a748595a269b3158d309695a1ab49.txt"
+        }
+      ]
+    },
+    {
+      "source": "tests/support/production_source_inventory.rs",
+      "current": {
+        "length": 13583,
+        "sha256": "652adbdf49e32e5d2a6f10efcc4a7fec5b13f0c1000af7307305e76c491bc818",
+        "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/652adbdf49e32e5d2a6f10efcc4a7fec5b13f0c1000af7307305e76c491bc818.txt"
+      },
+      "priors": [
+        {
+          "name": "base5f",
+          "length": 7821,
+          "sha256": "bea3c9c841d38be2b51ce6e9e3614da4589e1976625b4e09511957e7879ce190",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/bea3c9c841d38be2b51ce6e9e3614da4589e1976625b4e09511957e7879ce190.txt"
+        }
+      ]
+    },
+    {
+      "source": "tests/useful_data/byte_slice_for_runtime/nested.rs",
+      "current": {
+        "length": 9145,
+        "sha256": "d97d007f5b9a147230b43f2c698bd46fee5228a3564b60c0625be0544008fcbd",
+        "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/d97d007f5b9a147230b43f2c698bd46fee5228a3564b60c0625be0544008fcbd.txt"
+      },
+      "priors": [
+        {
+          "name": "base5f",
+          "length": 3980,
+          "sha256": "a937965cb7d286931639a836a94f2080cfaef94307f83dd220ceab4f79fb9a8f",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/a937965cb7d286931639a836a94f2080cfaef94307f83dd220ceab4f79fb9a8f.txt"
+        }
+      ]
+    },
+    {
+      "source": "tests/workspace/semantic_graph.rs",
+      "current": {
+        "length": 57424,
+        "sha256": "b291ce67ab1eb43ca4407c85b53b157d4d76f4ffb6c7091c63d91fb8f641ae9c",
+        "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/b291ce67ab1eb43ca4407c85b53b157d4d76f4ffb6c7091c63d91fb8f641ae9c.txt"
+      },
+      "priors": [
+        {
+          "name": "base5f",
+          "length": 56740,
+          "sha256": "d20db2e8839141a4a41fb40694203a6c7c899fe109eea61daa4dd00591a1a64e",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/d20db2e8839141a4a41fb40694203a6c7c899fe109eea61daa4dd00591a1a64e.txt"
+        },
+        {
+          "name": "main_c883",
+          "length": 57300,
+          "sha256": "b768071aad66268faf5b01a8bc773580b004d30883d62046f4187842fa9ace73",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/b768071aad66268faf5b01a8bc773580b004d30883d62046f4187842fa9ace73.txt"
+        },
+        {
+          "name": "compile_round2",
+          "length": 57417,
+          "sha256": "5dc9ae6bd7908364d934efb54b9d75259f6d35974a50bc0d13e0f8d2528f1941",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/5dc9ae6bd7908364d934efb54b9d75259f6d35974a50bc0d13e0f8d2528f1941.txt"
+        },
+        {
+          "name": "future_full_f247_stage",
+          "length": 57423,
+          "sha256": "57ea6ed78a86d14bf977425ec48dc9d68b346eba03f64724754c49dc1088e070",
+          "archive": "docs/evidence/workspace21-final-bindings-20261017/current/57ea6ed78a86d14bf977425ec48dc9d68b346eba03f64724754c49dc1088e070.txt"
+        }
+      ]
+    },
+    {
+      "source": "tests/workspace/semantic_graph/source_inventory.rs",
+      "current": {
+        "length": 97691,
+        "sha256": "f42216ee8017033d39f6f29648613ddb4056483041ac6ed302b3db09623c3359",
+        "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/f42216ee8017033d39f6f29648613ddb4056483041ac6ed302b3db09623c3359.txt"
+      },
+      "priors": [
+        {
+          "name": "base5f",
+          "length": 91318,
+          "sha256": "aa4e1844d2e867c519bd24fdb560535c9f07b7daa790e343c1b4b04e978d0989",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/aa4e1844d2e867c519bd24fdb560535c9f07b7daa790e343c1b4b04e978d0989.txt"
+        },
+        {
+          "name": "main_c883",
+          "length": 96961,
+          "sha256": "ec2e0fc045c11e2f81cfe29e91c00c46cba741cca2ab3939b455d765fbd67011",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/ec2e0fc045c11e2f81cfe29e91c00c46cba741cca2ab3939b455d765fbd67011.txt"
+        },
+        {
+          "name": "compile_round2",
+          "length": 94257,
+          "sha256": "8debd7324052ca398a9385bdf7b47f1b479d8638b8e5ed9dc72ef4b9213cd177",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/8debd7324052ca398a9385bdf7b47f1b479d8638b8e5ed9dc72ef4b9213cd177.txt"
+        },
+        {
+          "name": "future_base00f",
+          "length": 96877,
+          "sha256": "4dbeb81d84db0f80bb51ccc8fc1a25d2d71e49759ddeeccdc84c4d1748b27e11",
+          "archive": "docs/evidence/workspace21-final-bindings-20261017/current/4dbeb81d84db0f80bb51ccc8fc1a25d2d71e49759ddeeccdc84c4d1748b27e11.txt"
+        },
+        {
+          "name": "future_full_f247_stage",
+          "length": 97535,
+          "sha256": "ec79e706722d44165d450530c3aa6509c35f44cbad206144ed0aa6edc0d583ad",
+          "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/ec79e706722d44165d450530c3aa6509c35f44cbad206144ed0aa6edc0d583ad.txt"
+        }
+      ]
+    },
+    {
+      "source": "tests/workspace/semantic_graph/source_inventory_controls.rs",
+      "current": {
+        "length": 13153,
+        "sha256": "041318692c94bce2b09485903ba91dba25f75d71a7b9727db0611184e059a13d",
+        "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/041318692c94bce2b09485903ba91dba25f75d71a7b9727db0611184e059a13d.txt"
+      },
+      "priors": [
+        {
+          "name": "main_c883",
+          "length": 8728,
+          "sha256": "d039555eb377e21ff99cd74941b44af0eaf31015eb2242c1db08f3fc36272b9d",
+          "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/d039555eb377e21ff99cd74941b44af0eaf31015eb2242c1db08f3fc36272b9d.txt"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels.rs",
+      "current": {
+        "length": 63367,
+        "sha256": "553179e57cccd27eae0d228ad54b4717ec743007d9ae354d31ed6174266732be",
+        "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/553179e57cccd27eae0d228ad54b4717ec743007d9ae354d31ed6174266732be.txt"
+      },
+      "priors": []
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels/terminal_leaf.rs",
+      "current": {
+        "length": 7473,
+        "sha256": "d611a058bf45d4c5ff05135c9c76119b366877f0c5a7ca840a205547a8f3650e",
+        "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/d611a058bf45d4c5ff05135c9c76119b366877f0c5a7ca840a205547a8f3650e.txt"
+      },
+      "priors": []
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/selected_labels.rs",
+      "current": {
+        "length": 15707,
+        "sha256": "ea3b9f8e55a3f183ba7f6f07a01d6a1d71364a4ce6e246934de95e3603535edd",
+        "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/ea3b9f8e55a3f183ba7f6f07a01d6a1d71364a4ce6e246934de95e3603535edd.txt"
+      },
+      "priors": []
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/selected_labels/tests.rs",
+      "current": {
+        "length": 17690,
+        "sha256": "50e4d6dc7bfd923acba894af0d8bb004c97ea56bb6c23164f80e33f2c78f8ea1",
+        "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/50e4d6dc7bfd923acba894af0d8bb004c97ea56bb6c23164f80e33f2c78f8ea1.txt"
+      },
+      "priors": []
+    },
+    {
+      "source": "src/cleanup_plan/replay/skeleton_work.rs",
+      "current": {
+        "length": 47627,
+        "sha256": "f86667440e07a2a01e0e8c043966c9df2ecbae3dd6d0a7cc1a991c6ade54e423",
+        "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/f86667440e07a2a01e0e8c043966c9df2ecbae3dd6d0a7cc1a991c6ade54e423.txt"
+      },
+      "priors": [
+        {
+          "name": "future_base00f",
+          "length": 47594,
+          "sha256": "2532173c152df743989e4afd5fc84ae4b3dd32bf45b0a72fe09039a832887c4b",
+          "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/2532173c152df743989e4afd5fc84ae4b3dd32bf45b0a72fe09039a832887c4b.txt"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/skeleton_work/isolated_paths.rs",
+      "current": {
+        "length": 2063,
+        "sha256": "5cc0e767a4e5e61ae5135d4193b831d941b90b6f676f6620d64fb9ac016c0d72",
+        "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/5cc0e767a4e5e61ae5135d4193b831d941b90b6f676f6620d64fb9ac016c0d72.txt"
+      },
+      "priors": []
+    },
+    {
+      "source": "src/cleanup_plan/replay/skeleton_work/isolated_paths/tests.rs",
+      "current": {
+        "length": 11699,
+        "sha256": "021a0dd84f3275b7cbd69936cb8def96e5172fb39ceaa1b4b385d3962f6792f2",
+        "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/021a0dd84f3275b7cbd69936cb8def96e5172fb39ceaa1b4b385d3962f6792f2.txt"
+      },
+      "priors": []
+    },
+    {
+      "source": "src/cleanup_plan/replay/skeleton_work/isolated_paths/tests/before.rs",
+      "current": {
+        "length": 7000,
+        "sha256": "7e3eb4e7868f45d04e6f1abd69ee35a56f32c0c355154d2e44386e2be1bc96c4",
+        "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/7e3eb4e7868f45d04e6f1abd69ee35a56f32c0c355154d2e44386e2be1bc96c4.txt"
+      },
+      "priors": []
+    },
+    {
+      "source": "src/source_reflows.rs",
+      "current": {
+        "length": 9821,
+        "sha256": "0bcb6e47e644e3c5b6ac552d1f231d4448c4fd7c3ab93beeca6ad67f5fcad016",
+        "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/0bcb6e47e644e3c5b6ac552d1f231d4448c4fd7c3ab93beeca6ad67f5fcad016.txt"
+      },
+      "priors": [
+        {
+          "name": "future_base00f",
+          "length": 9659,
+          "sha256": "7aef58d3741f42fe73cb7f34ed926a0ba8b286d6a0e60f4e216dfbf205a4da00",
+          "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/7aef58d3741f42fe73cb7f34ed926a0ba8b286d6a0e60f4e216dfbf205a4da00.txt"
+        },
+        {
+          "name": "future_full_f247_stage",
+          "length": 9730,
+          "sha256": "41aa490a424355ae092c95a76287b0ac60d4d8c3bb6a12f8561315f66ae4a054",
+          "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/41aa490a424355ae092c95a76287b0ac60d4d8c3bb6a12f8561315f66ae4a054.txt"
+        }
+      ]
+    },
+    {
+      "source": "src/workspace_graph/static_text/scalar_helpers.rs",
+      "current": {
+        "length": 22360,
+        "sha256": "045c8979f0daa4eaa7f7758aed94c47b0c039186c88515d83b0940509545a548",
+        "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/045c8979f0daa4eaa7f7758aed94c47b0c039186c88515d83b0940509545a548.txt"
+      },
+      "priors": [
+        {
+          "name": "future_base00f",
+          "length": 18503,
+          "sha256": "9700af77f59fe5203f2d5c69e2ab9514a9f0890f1f42bc70b655a91a4b5958b5",
+          "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/9700af77f59fe5203f2d5c69e2ab9514a9f0890f1f42bc70b655a91a4b5958b5.txt"
+        }
+      ]
+    },
+    {
+      "source": "src/workspace_graph/static_text/scalar_helpers/capture_directory/tests.rs",
+      "current": {
+        "length": 33531,
+        "sha256": "b912238b74ededd9143f1a2d039c8d3a41a9af9723f3aee877a85f4f5f8d2685",
+        "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/b912238b74ededd9143f1a2d039c8d3a41a9af9723f3aee877a85f4f5f8d2685.txt"
+      },
+      "priors": [
+        {
+          "name": "future_base00f",
+          "length": 22563,
+          "sha256": "1cc0489a52cad126d7516d2b57b91cf4ad5d8064a880eea97b247e4a0936d82b",
+          "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/1cc0489a52cad126d7516d2b57b91cf4ad5d8064a880eea97b247e4a0936d82b.txt"
+        }
+      ]
+    },
+    {
+      "source": "tests/workspace/semantic_change/reporting.rs",
+      "current": {
+        "length": 12931,
+        "sha256": "e92ac9e412d628e6f6f385487b747a7088b5f1ec7d8d5b75bd897846d424ff34",
+        "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/e92ac9e412d628e6f6f385487b747a7088b5f1ec7d8d5b75bd897846d424ff34.txt"
+      },
+      "priors": [
+        {
+          "name": "future_base00f",
+          "length": 8246,
+          "sha256": "584dd162b3568bc2cd1eb4b17d62c66d2dc87cfdab43048a7243f28c876a1e4d",
+          "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/584dd162b3568bc2cd1eb4b17d62c66d2dc87cfdab43048a7243f28c876a1e4d.txt"
+        }
+      ]
+    },
+    {
+      "source": "tests/workspace/semantic_structural_change/reporting.rs",
+      "current": {
+        "length": 12374,
+        "sha256": "789fafed65a250974ab9036efececdfd33ffa11f40c231de20e970580776b118",
+        "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/789fafed65a250974ab9036efececdfd33ffa11f40c231de20e970580776b118.txt"
+      },
+      "priors": [
+        {
+          "name": "future_base00f",
+          "length": 7757,
+          "sha256": "12a26fafee8a217474d2219f8b3ae9ec0aa71b494a8bc9ef496f1332e92997bf",
+          "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/12a26fafee8a217474d2219f8b3ae9ec0aa71b494a8bc9ef496f1332e92997bf.txt"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/compact_stage.rs",
+      "current": {
+        "length": 11447,
+        "sha256": "71578a27c76a5849ea663ff2c66b0587f96d1d9977607ecc94d152abb8fbff5e",
+        "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/71578a27c76a5849ea663ff2c66b0587f96d1d9977607ecc94d152abb8fbff5e.txt"
+      },
+      "priors": [
+        {
+          "name": "future_base00f",
+          "length": 11403,
+          "sha256": "9a41c6a7dc6f70483600bb58996aeba947cfca55e404839d80f6527a8919aa1b",
+          "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/9a41c6a7dc6f70483600bb58996aeba947cfca55e404839d80f6527a8919aa1b.txt"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/compact_stage/main_f247_source_custody.rs",
+      "current": {
+        "length": 15011,
+        "sha256": "d7e95c86f04f8575da2de803cc38d6d89caf23a606443f7dccfc2f866c4ba977",
+        "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/d7e95c86f04f8575da2de803cc38d6d89caf23a606443f7dccfc2f866c4ba977.txt"
+      },
+      "priors": []
+    },
+    {
+      "source": "src/source_reflows/main_f247_controllers.rs",
+      "current": {
+        "length": 58236,
+        "sha256": "df7852aac1d8938f364801cada6594344a75d37167e5f3512681f9ce14b3c96a",
+        "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/df7852aac1d8938f364801cada6594344a75d37167e5f3512681f9ce14b3c96a.txt"
+      },
+      "priors": []
+    }
+  ]
+}

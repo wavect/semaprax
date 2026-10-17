@@ -1,0 +1,23 @@
+{
+  "status": "SOURCE_ONLY_UNEXECUTED",
+  "current_rows": 57,
+  "prior_views": 73,
+  "changed_old_rows": [
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "src/source_reflows/semantic_receivers.rs",
+    "tests/hir_module_boundaries.rs",
+    "tests/workspace/semantic_graph.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs",
+    "src/source_reflows.rs"
+  ],
+  "added_rows": [
+    "src/cleanup_plan/replay/compact_stage.rs",
+    "src/cleanup_plan/replay/compact_stage/main_f247_source_custody.rs",
+    "src/source_reflows/main_f247_controllers.rs"
+  ],
+  "no_self_binding_cycle": [
+    "src/source_reflows_merge/main67107_inputs.rs",
+    "src/source_reflows_merge/main_c883_inputs.rs"
+  ],
+  "all_original_rows_and_prior_views_retained": true
+}

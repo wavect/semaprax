@@ -6,9 +6,9 @@
     {
       "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
       "current": {
-        "length": 158162,
-        "sha256": "43518d1edf9297eb3770918c27e309a0931fc0587d507df6648ee8585e268b8a",
-        "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/43518d1edf9297eb3770918c27e309a0931fc0587d507df6648ee8585e268b8a.txt"
+        "length": 158336,
+        "sha256": "1593db2b5b16f88c509952eddf075e1b574a8c6352382bff4ca19e2478ea7517",
+        "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/1593db2b5b16f88c509952eddf075e1b574a8c6352382bff4ca19e2478ea7517.txt"
       },
       "priors": [
         {
@@ -28,6 +28,12 @@
           "length": 157441,
           "sha256": "369a29b5860f644b33b82e8e968ab66225faf70cfb930757aff04ba591824d4e",
           "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/369a29b5860f644b33b82e8e968ab66225faf70cfb930757aff04ba591824d4e.txt"
+        },
+        {
+          "name": "future_full_f247_stage",
+          "length": 158162,
+          "sha256": "43518d1edf9297eb3770918c27e309a0931fc0587d507df6648ee8585e268b8a",
+          "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/43518d1edf9297eb3770918c27e309a0931fc0587d507df6648ee8585e268b8a.txt"
         }
       ]
     },
@@ -524,9 +530,9 @@
     {
       "source": "src/source_reflows/semantic_receivers.rs",
       "current": {
-        "length": 43516,
-        "sha256": "129480a7de0c2269dc83a32ad7f3505b3f089c1fc958ff6adeca086db2852726",
-        "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/129480a7de0c2269dc83a32ad7f3505b3f089c1fc958ff6adeca086db2852726.txt"
+        "length": 37053,
+        "sha256": "58cd8a8d2dcb03fcb88f32537ebd5c5d9b6ac1dd1ed60a6fe75b1336bfaf14a4",
+        "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/58cd8a8d2dcb03fcb88f32537ebd5c5d9b6ac1dd1ed60a6fe75b1336bfaf14a4.txt"
       },
       "priors": [
         {
@@ -546,6 +552,12 @@
           "length": 36956,
           "sha256": "10d00d2724897708edf0bcb0164dcea49fe61743af6f18dfcb6a81eaec24383c",
           "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/10d00d2724897708edf0bcb0164dcea49fe61743af6f18dfcb6a81eaec24383c.txt"
+        },
+        {
+          "name": "future_full_f247_stage",
+          "length": 43516,
+          "sha256": "129480a7de0c2269dc83a32ad7f3505b3f089c1fc958ff6adeca086db2852726",
+          "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/129480a7de0c2269dc83a32ad7f3505b3f089c1fc958ff6adeca086db2852726.txt"
         }
       ]
     },
@@ -606,9 +618,9 @@
     {
       "source": "tests/hir_module_boundaries.rs",
       "current": {
-        "length": 99752,
-        "sha256": "9743cc249a380141a76f774c1c24331aaadfae7abcbf13aa99856bb21143d36c",
-        "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/9743cc249a380141a76f774c1c24331aaadfae7abcbf13aa99856bb21143d36c.txt"
+        "length": 99902,
+        "sha256": "46e5fbd03a01ef804e351ffe5c4ee15d61336f7ca0ab1a612839baa723f85d15",
+        "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/46e5fbd03a01ef804e351ffe5c4ee15d61336f7ca0ab1a612839baa723f85d15.txt"
       },
       "priors": [
         {
@@ -628,6 +640,12 @@
           "length": 99079,
           "sha256": "7dade8fc55a0ea5f4a16bc57d1ac8ce43ed200694a39ea6e3d33038228c8b8c1",
           "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/7dade8fc55a0ea5f4a16bc57d1ac8ce43ed200694a39ea6e3d33038228c8b8c1.txt"
+        },
+        {
+          "name": "future_full_f247_stage",
+          "length": 99752,
+          "sha256": "9743cc249a380141a76f774c1c24331aaadfae7abcbf13aa99856bb21143d36c",
+          "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/9743cc249a380141a76f774c1c24331aaadfae7abcbf13aa99856bb21143d36c.txt"
         }
       ]
     },
@@ -698,9 +716,9 @@
     {
       "source": "tests/workspace/semantic_graph.rs",
       "current": {
-        "length": 57423,
-        "sha256": "57ea6ed78a86d14bf977425ec48dc9d68b346eba03f64724754c49dc1088e070",
-        "archive": "docs/evidence/workspace21-final-bindings-20261017/current/57ea6ed78a86d14bf977425ec48dc9d68b346eba03f64724754c49dc1088e070.txt"
+        "length": 57427,
+        "sha256": "1849b6be08210ee81f6ca1518cd51b8ccd5ff137c04781d6498be159ed3f285f",
+        "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/1849b6be08210ee81f6ca1518cd51b8ccd5ff137c04781d6498be159ed3f285f.txt"
       },
       "priors": [
         {
@@ -720,15 +738,27 @@
           "length": 57417,
           "sha256": "5dc9ae6bd7908364d934efb54b9d75259f6d35974a50bc0d13e0f8d2528f1941",
           "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/5dc9ae6bd7908364d934efb54b9d75259f6d35974a50bc0d13e0f8d2528f1941.txt"
+        },
+        {
+          "name": "future_full_f247_stage",
+          "length": 57423,
+          "sha256": "57ea6ed78a86d14bf977425ec48dc9d68b346eba03f64724754c49dc1088e070",
+          "archive": "docs/evidence/workspace21-final-bindings-20261017/current/57ea6ed78a86d14bf977425ec48dc9d68b346eba03f64724754c49dc1088e070.txt"
+        },
+        {
+          "name": "root_ef_owner_before_future414_table",
+          "length": 57424,
+          "sha256": "b291ce67ab1eb43ca4407c85b53b157d4d76f4ffb6c7091c63d91fb8f641ae9c",
+          "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/b291ce67ab1eb43ca4407c85b53b157d4d76f4ffb6c7091c63d91fb8f641ae9c.txt"
         }
       ]
     },
     {
       "source": "tests/workspace/semantic_graph/source_inventory.rs",
       "current": {
-        "length": 97535,
-        "sha256": "ec79e706722d44165d450530c3aa6509c35f44cbad206144ed0aa6edc0d583ad",
-        "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/ec79e706722d44165d450530c3aa6509c35f44cbad206144ed0aa6edc0d583ad.txt"
+        "length": 97691,
+        "sha256": "f42216ee8017033d39f6f29648613ddb4056483041ac6ed302b3db09623c3359",
+        "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/f42216ee8017033d39f6f29648613ddb4056483041ac6ed302b3db09623c3359.txt"
       },
       "priors": [
         {
@@ -754,6 +784,12 @@
           "length": 96877,
           "sha256": "4dbeb81d84db0f80bb51ccc8fc1a25d2d71e49759ddeeccdc84c4d1748b27e11",
           "archive": "docs/evidence/workspace21-final-bindings-20261017/current/4dbeb81d84db0f80bb51ccc8fc1a25d2d71e49759ddeeccdc84c4d1748b27e11.txt"
+        },
+        {
+          "name": "future_full_f247_stage",
+          "length": 97535,
+          "sha256": "ec79e706722d44165d450530c3aa6509c35f44cbad206144ed0aa6edc0d583ad",
+          "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/ec79e706722d44165d450530c3aa6509c35f44cbad206144ed0aa6edc0d583ad.txt"
         }
       ]
     },
@@ -855,9 +891,9 @@
     {
       "source": "src/source_reflows.rs",
       "current": {
-        "length": 9730,
-        "sha256": "41aa490a424355ae092c95a76287b0ac60d4d8c3bb6a12f8561315f66ae4a054",
-        "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/41aa490a424355ae092c95a76287b0ac60d4d8c3bb6a12f8561315f66ae4a054.txt"
+        "length": 9821,
+        "sha256": "0bcb6e47e644e3c5b6ac552d1f231d4448c4fd7c3ab93beeca6ad67f5fcad016",
+        "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/0bcb6e47e644e3c5b6ac552d1f231d4448c4fd7c3ab93beeca6ad67f5fcad016.txt"
       },
       "priors": [
         {
@@ -865,6 +901,12 @@
           "length": 9659,
           "sha256": "7aef58d3741f42fe73cb7f34ed926a0ba8b286d6a0e60f4e216dfbf205a4da00",
           "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/7aef58d3741f42fe73cb7f34ed926a0ba8b286d6a0e60f4e216dfbf205a4da00.txt"
+        },
+        {
+          "name": "future_full_f247_stage",
+          "length": 9730,
+          "sha256": "41aa490a424355ae092c95a76287b0ac60d4d8c3bb6a12f8561315f66ae4a054",
+          "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/41aa490a424355ae092c95a76287b0ac60d4d8c3bb6a12f8561315f66ae4a054.txt"
         }
       ]
     },
@@ -931,6 +973,40 @@
           "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/12a26fafee8a217474d2219f8b3ae9ec0aa71b494a8bc9ef496f1332e92997bf.txt"
         }
       ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/compact_stage.rs",
+      "current": {
+        "length": 11447,
+        "sha256": "71578a27c76a5849ea663ff2c66b0587f96d1d9977607ecc94d152abb8fbff5e",
+        "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/71578a27c76a5849ea663ff2c66b0587f96d1d9977607ecc94d152abb8fbff5e.txt"
+      },
+      "priors": [
+        {
+          "name": "future_base00f",
+          "length": 11403,
+          "sha256": "9a41c6a7dc6f70483600bb58996aeba947cfca55e404839d80f6527a8919aa1b",
+          "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/9a41c6a7dc6f70483600bb58996aeba947cfca55e404839d80f6527a8919aa1b.txt"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/compact_stage/main_f247_source_custody.rs",
+      "current": {
+        "length": 15559,
+        "sha256": "825671ce87b04e06fdf31464bb474120016b52ae02100c4fd14345831928cb21",
+        "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/825671ce87b04e06fdf31464bb474120016b52ae02100c4fd14345831928cb21.txt"
+      },
+      "priors": []
+    },
+    {
+      "source": "src/source_reflows/main_f247_controllers.rs",
+      "current": {
+        "length": 58236,
+        "sha256": "df7852aac1d8938f364801cada6594344a75d37167e5f3512681f9ce14b3c96a",
+        "archive": "docs/evidence/future831-f247-final-source-binding-20261017/current/df7852aac1d8938f364801cada6594344a75d37167e5f3512681f9ce14b3c96a.txt"
+      },
+      "priors": []
     }
   ]
 }

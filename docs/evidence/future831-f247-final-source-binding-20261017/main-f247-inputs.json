@@ -163,8 +163,8 @@
   "rows": [
     {
       "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
-      "current_length": 158162,
-      "current_sha256": "43518d1edf9297eb3770918c27e309a0931fc0587d507df6648ee8585e268b8a",
+      "current_length": 158336,
+      "current_sha256": "1593db2b5b16f88c509952eddf075e1b574a8c6352382bff4ca19e2478ea7517",
       "main_length": 105842,
       "main_sha256": "0e077ec3242fdeafaffb74be980d0dac03fb0e8bd27b5bd77484b3e82b21bf15",
       "main_archive": "docs/evidence/future831-f247-final-source-binding-20261017/incoming/0e077ec3242fdeafaffb74be980d0dac03fb0e8bd27b5bd77484b3e82b21bf15.txt"
@@ -3347,8 +3347,8 @@
     },
     {
       "path": "tests/hir_module_boundaries.rs",
-      "current_length": 99752,
-      "current_sha256": "9743cc249a380141a76f774c1c24331aaadfae7abcbf13aa99856bb21143d36c",
+      "current_length": 99902,
+      "current_sha256": "46e5fbd03a01ef804e351ffe5c4ee15d61336f7ca0ab1a612839baa723f85d15",
       "main_length": 54618,
       "main_sha256": "2a8c92d82704c56d18e15da4912e839be52e96114dbd9d2562fdb67cce303577",
       "main_archive": "docs/evidence/future831-f247-final-source-binding-20261017/incoming/2a8c92d82704c56d18e15da4912e839be52e96114dbd9d2562fdb67cce303577.txt"
@@ -3395,16 +3395,16 @@
     },
     {
       "path": "tests/workspace/semantic_graph.rs",
-      "current_length": 57423,
-      "current_sha256": "57ea6ed78a86d14bf977425ec48dc9d68b346eba03f64724754c49dc1088e070",
+      "current_length": 57427,
+      "current_sha256": "1849b6be08210ee81f6ca1518cd51b8ccd5ff137c04781d6498be159ed3f285f",
       "main_length": 50241,
       "main_sha256": "f55a9ff27884e16088511f7dea0a7c17eb5d55c08327758ae46d3fd9833650a3",
       "main_archive": "docs/evidence/future831-f247-final-source-binding-20261017/incoming/f55a9ff27884e16088511f7dea0a7c17eb5d55c08327758ae46d3fd9833650a3.txt"
     },
     {
       "path": "tests/workspace/semantic_graph/source_inventory.rs",
-      "current_length": 97535,
-      "current_sha256": "ec79e706722d44165d450530c3aa6509c35f44cbad206144ed0aa6edc0d583ad",
+      "current_length": 97691,
+      "current_sha256": "f42216ee8017033d39f6f29648613ddb4056483041ac6ed302b3db09623c3359",
       "main_length": 38742,
       "main_sha256": "75534a389c06ec3f4e28e6504303bf155b51062b46e5a76e2c80a255a5e56aa9",
       "main_archive": "docs/evidence/future831-f247-final-source-binding-20261017/incoming/75534a389c06ec3f4e28e6504303bf155b51062b46e5a76e2c80a255a5e56aa9.txt"

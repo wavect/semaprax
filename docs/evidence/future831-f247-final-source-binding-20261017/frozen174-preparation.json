@@ -1,0 +1,28 @@
+{
+  "status": "SOURCE_ONLY_PREPARED_UNEXECUTED",
+  "membership": 174,
+  "delta": {
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": [
+      158336,
+      "1593db2b5b16f88c509952eddf075e1b574a8c6352382bff4ca19e2478ea7517"
+    ],
+    "src/cleanup_plan/replay/skeleton_work.rs": [
+      47627,
+      "f86667440e07a2a01e0e8c043966c9df2ecbae3dd6d0a7cc1a991c6ade54e423"
+    ],
+    "src/source_reflows/semantic_receivers.rs": [
+      37053,
+      "58cd8a8d2dcb03fcb88f32537ebd5c5d9b6ac1dd1ed60a6fe75b1336bfaf14a4"
+    ],
+    "tests/hir_module_boundaries.rs": [
+      99902,
+      "46e5fbd03a01ef804e351ffe5c4ee15d61336f7ca0ab1a612839baa723f85d15"
+    ],
+    "tests/workspace/semantic_graph/source_inventory.rs": [
+      97691,
+      "f42216ee8017033d39f6f29648613ddb4056483041ac6ed302b3db09623c3359"
+    ]
+  },
+  "strict_dependencies": 67,
+  "original_binder_unchanged": true
+}

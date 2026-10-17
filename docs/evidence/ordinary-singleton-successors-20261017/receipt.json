@@ -1,12 +1,11 @@
 {
-  "status": "NEXT_SOURCE_ONLY_NOT_COMPILED_NOT_EXECUTED",
-  "base": "c8740045e33126a4375aadd1dc524a25be9245fc",
-  "supersedes_feature_checkpoint": "020f5daf5",
+  "status": "SOURCE_ONLY_NOT_COMPILED_NOT_EXECUTED",
+  "base": "809eee10c",
   "files": [
     {
       "path": "docs/evidence/ordinary-singleton-successors-20261017/README.md",
-      "size": 5686,
-      "sha256": "8b19b8511317a27efa652b4c45e3b6f2eacb900ae9d0ec3ce2cf579b819c0fa4"
+      "size": 6017,
+      "sha256": "ecccbd94012ecacfc9e8dc8502af0a734f862d2d9966548b9ba4e829bee48f93"
     },
     {
       "path": "docs/evidence/ordinary-singleton-successors-20261017/before/src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs",
@@ -40,13 +39,18 @@
     },
     {
       "path": "docs/evidence/ordinary-singleton-successors-20261017/full-source-inverses.json",
-      "size": 87738,
-      "sha256": "90586d0b3c8550177de86d52016c523e616e991397daa20a2deabe1d8053a1dc"
+      "size": 91759,
+      "sha256": "942dfa14ad3dcecd116886cb0702b3f8a2a508c794922287d1017a140753bbbd"
     },
     {
       "path": "docs/evidence/ordinary-singleton-successors-20261017/full-source-inverses.json.020f-before.txt",
       "size": 85910,
       "sha256": "18359375d75cde5b69786233f8aae6f384a56f22998850424e378a735fd0df6a"
+    },
+    {
+      "path": "docs/evidence/ordinary-singleton-successors-20261017/full-source-inverses.json.809-before.txt",
+      "size": 87738,
+      "sha256": "90586d0b3c8550177de86d52016c523e616e991397daa20a2deabe1d8053a1dc"
     },
     {
       "path": "docs/evidence/ordinary-singleton-successors-20261017/generation-controls.json",
@@ -62,6 +66,11 @@
       "path": "docs/evidence/ordinary-singleton-successors-20261017/receipt.json.020f-before.txt",
       "size": 3427,
       "sha256": "197dbf1f99f595abda555780884a932d323274129c149346c085403401ea0d0f"
+    },
+    {
+      "path": "docs/evidence/ordinary-singleton-successors-20261017/receipt.json.809-before.txt",
+      "size": 4146,
+      "sha256": "acd971f8c6175b5cb58fa392cf39867e75586b51c9d0663021a81cf7a4d797e7"
     },
     {
       "path": "docs/evidence/ordinary-singleton-successors-20261017/source-acquisition.json",
@@ -90,11 +99,11 @@
     },
     {
       "path": "src/source_reflows_merge/main67107_inputs.rs",
-      "size": 25093,
-      "sha256": "70a1b0751771d5094a5a8d838ed4b862b9465d077f1fe2deb5be959cb0e6ff9a"
+      "size": 28987,
+      "sha256": "28e8451120ed3de1fe88a0daa01b26c96ffb3cc50f7e8530e92cf24acbd8d83e"
     }
   ],
-  "no_root_writes": true,
-  "no_rust_execution": true,
-  "no_application_gain_claim": true
+  "companion_packet": "docs/evidence/alias-fixtures-c874-20261017",
+  "no_root_write": true,
+  "no_runtime_or_generator_run": true
 }

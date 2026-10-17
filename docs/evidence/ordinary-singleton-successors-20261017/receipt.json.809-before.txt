@@ -1,0 +1,100 @@
+{
+  "status": "NEXT_SOURCE_ONLY_NOT_COMPILED_NOT_EXECUTED",
+  "base": "c8740045e33126a4375aadd1dc524a25be9245fc",
+  "supersedes_feature_checkpoint": "020f5daf5",
+  "files": [
+    {
+      "path": "docs/evidence/ordinary-singleton-successors-20261017/README.md",
+      "size": 5686,
+      "sha256": "8b19b8511317a27efa652b4c45e3b6f2eacb900ae9d0ec3ce2cf579b819c0fa4"
+    },
+    {
+      "path": "docs/evidence/ordinary-singleton-successors-20261017/before/src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs",
+      "size": 12616,
+      "sha256": "60f688bdadc749a017b45d09e43e8eb1b1034b2c11d7f38bcc25e3d8e3cd7185"
+    },
+    {
+      "path": "docs/evidence/ordinary-singleton-successors-20261017/before/src/cleanup_plan/replay/factored/canonical_shared.rs",
+      "size": 63023,
+      "sha256": "bbe5d1ff75b6b3bc811d181275181994027cd83188d6096e5b7716efbec753d3"
+    },
+    {
+      "path": "docs/evidence/ordinary-singleton-successors-20261017/before/src/source_reflows_merge/main67107_inputs.rs",
+      "size": 22127,
+      "sha256": "92f37c17f42b28477804d61c882e45ca4b64d8fc67fd78cab11ab369026152d9"
+    },
+    {
+      "path": "docs/evidence/ordinary-singleton-successors-20261017/bind-composed-endpoints.before.py.txt",
+      "size": 9235,
+      "sha256": "d07eb7b76220b90ef37778a9998251ac46ad32bed32ac2f2232adc7988012a8f"
+    },
+    {
+      "path": "docs/evidence/ordinary-singleton-successors-20261017/bind-singleton-endpoints.py",
+      "size": 2044,
+      "sha256": "72d4b13654b8bbb1912e3d6b0a9f04cefbe75d707f087f623552db45ba18c262"
+    },
+    {
+      "path": "docs/evidence/ordinary-singleton-successors-20261017/check-source.py",
+      "size": 3549,
+      "sha256": "a6580ec84622f07b1b26795fee8a662f62a7e70ebe8dbc6b9f44d9e4c6ed9455"
+    },
+    {
+      "path": "docs/evidence/ordinary-singleton-successors-20261017/full-source-inverses.json",
+      "size": 87738,
+      "sha256": "90586d0b3c8550177de86d52016c523e616e991397daa20a2deabe1d8053a1dc"
+    },
+    {
+      "path": "docs/evidence/ordinary-singleton-successors-20261017/full-source-inverses.json.020f-before.txt",
+      "size": 85910,
+      "sha256": "18359375d75cde5b69786233f8aae6f384a56f22998850424e378a735fd0df6a"
+    },
+    {
+      "path": "docs/evidence/ordinary-singleton-successors-20261017/generation-controls.json",
+      "size": 203,
+      "sha256": "8e88e5f851046c0204806fa76c0c6663c99fa569216720f6aa9857c00c296409"
+    },
+    {
+      "path": "docs/evidence/ordinary-singleton-successors-20261017/pending-selectors.json",
+      "size": 2581,
+      "sha256": "d0a2e421ac66fe4f845685f3ea49ab4c569513ba9cb76e18a4000ab428ab182c"
+    },
+    {
+      "path": "docs/evidence/ordinary-singleton-successors-20261017/receipt.json.020f-before.txt",
+      "size": 3427,
+      "sha256": "197dbf1f99f595abda555780884a932d323274129c149346c085403401ea0d0f"
+    },
+    {
+      "path": "docs/evidence/ordinary-singleton-successors-20261017/source-acquisition.json",
+      "size": 42243,
+      "sha256": "41327f4c8e236917741b66131247a526792aa641f027ddd342fc3bce72f47ba2"
+    },
+    {
+      "path": "docs/evidence/ordinary-singleton-successors-20261017/source-acquisition.json.020f-before.txt",
+      "size": 40415,
+      "sha256": "c59266c9839c024cd5839e825835ea06406a5748ddd7a67d16a21a93b22f3c7e"
+    },
+    {
+      "path": "docs/evidence/ordinary-singleton-successors-20261017/source-controls.json",
+      "size": 422,
+      "sha256": "bf0ac770629907f602f1cb20b11db5d748634f45abe696565bbbd17c4ccf15f3"
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+      "size": 63833,
+      "sha256": "bf9c7cf18aafd539daaac00db9253eff6287a562d76e41dfc91c56bd5bd0337b"
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs",
+      "size": 28647,
+      "sha256": "2b906eb09774155f0f8af2f944fc8e1676d1100d63cd53dd97e467e315c173e8"
+    },
+    {
+      "path": "src/source_reflows_merge/main67107_inputs.rs",
+      "size": 25093,
+      "sha256": "70a1b0751771d5094a5a8d838ed4b862b9465d077f1fe2deb5be959cb0e6ff9a"
+    }
+  ],
+  "no_root_writes": true,
+  "no_rust_execution": true,
+  "no_application_gain_claim": true
+}

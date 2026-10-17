@@ -1,0 +1,33 @@
+{
+  "base": "0fa63204bc67d3c35245a8634b90c7ecd4984707",
+  "new_subjects": [
+    "src/loop_calls/byte_writer/tests/string_slots.rs",
+    "tests/wasm/scalar_browser_ci_contract/before_21abc.rs"
+  ],
+  "edits": [
+    {
+      "source": "tests/hir_module_boundaries.rs",
+      "before_archive": "docs/evidence/raw-owner-census-0fa632-20261017/before/tests/hir_module_boundaries.rs",
+      "insert_after": "include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/incoming_flat_targets.rs\"),",
+      "addition": "include_str!(\"../src/loop_calls/byte_writer/tests/string_slots.rs\"),include_str!(\"../tests/wasm/scalar_browser_ci_contract/before_21abc.rs\"),",
+      "current_sha256": "dc3bf3b20917a0c523231e405ff329e5950f12b55501bced9ae908fbaf5b8888",
+      "before_sha256": "c1ef0ebc48df71bc52b830a86f3525ebd8db53fb3ae24b79197384372d5a9be0"
+    },
+    {
+      "source": "tests/workspace/semantic_graph/source_inventory.rs",
+      "before_archive": "docs/evidence/raw-owner-census-0fa632-20261017/before/tests/workspace/semantic_graph/source_inventory.rs",
+      "insert_after": "include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/incoming_flat_targets.rs\"),",
+      "addition": "include_str!(\"../../src/loop_calls/byte_writer/tests/string_slots.rs\"),include_str!(\"../../tests/wasm/scalar_browser_ci_contract/before_21abc.rs\"),",
+      "current_sha256": "42bdd4f76491607cab8538b3006d4b807aca5d138badc1d763c7090cfc53b000",
+      "before_sha256": "4fd17065b73b1141ebf2e03b6a8d9d0e7c15e86b277c6344785324c21a3c15cb"
+    },
+    {
+      "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "before_archive": "docs/evidence/raw-owner-census-0fa632-20261017/before/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "insert_after": "include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/incoming_flat_targets.rs\"),",
+      "addition": "include_str!(\"../../../../../src/loop_calls/byte_writer/tests/string_slots.rs\"),include_str!(\"../../../../../tests/wasm/scalar_browser_ci_contract/before_21abc.rs\"),",
+      "current_sha256": "dff1f6f15ef145c633165446c54ad37ed6c8ef978caa121c413dcaf06b5fa918",
+      "before_sha256": "65a85506ae5f882fc1b2f045421a4f1bebc03550245b1fbaebaa117d66f3a35e"
+    }
+  ]
+}

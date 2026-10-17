@@ -1,0 +1,11 @@
+{
+  "status": "PARTIAL_SOURCE_BINDING_NOT_QUALIFIED",
+  "source_head": "509e2c4f5c06372799fc92af3244f31047519b25",
+  "prior_043_definition_path_refusals": "RESOLVED",
+  "actual_authority_generation": "COMPLETED_BEFORE_VERIFIER_REFUSAL",
+  "hir_chunks": 1093,
+  "projection_chunks": 274,
+  "common_refresh": "REFUSED_ALIAS1AE_VERIFIER_READING_RAW_INSTEAD_OF_GENERATED_STAGE",
+  "readonly_binders": "NOT_RUN_AFTER_REFUSAL",
+  "cargo_runtime_clippy": "NOT_RUN"
+}

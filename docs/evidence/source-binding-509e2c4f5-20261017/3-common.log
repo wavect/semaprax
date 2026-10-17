@@ -1,0 +1,28 @@
+hir chunks 1093 production 481 testonly 804 bytes 1904961
+projection chunks 274 production 602 testonly 880 bytes 2208524
+Traceback (most recent call last):
+  File "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/joined-batch-custody-20261016/verify-source-parts.py", line 18, in <module>
+    runpy.run_path(str(original),run_name='__main__')
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen runpy>", line 294, in run_path
+  File "<frozen runpy>", line 98, in _run_module_code
+  File "<frozen runpy>", line 88, in _run_code
+  File "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/a3-e47-final-custody-20261016/verify-source.py", line 8, in <module>
+    raw=(R/r['source']).read_bytes();assert h(raw)==r['current_sha256'],r['source'];s=raw.decode()
+                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: src/workspace_graph/expected_projection/borrowed_imports/typed/alias/owned_growth_tests.rs
+Traceback (most recent call last):
+  File "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/main67107-fronts-6e45-20261017/refresh-composed.py", line 32, in <module>
+    exec(compile(current,str(original),'exec'),{'__file__':str(original),'__name__':'__main__','alias_stage':alias_stage})
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/joined-batch-custody-20261016/refresh.py", line 91, in <module>
+    # authenticator. Its old main conflated new raw-custody roots with semantic
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py", line 473, in check_output
+    return run(*popenargs, stdout=PIPE, timeout=timeout, check=True,
+           ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+               **kwargs).stdout
+               ^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['/opt/homebrew/opt/python@3.14/bin/python3.14', '/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/joined-batch-custody-20261016/verify-source-parts.py', '--repo', '/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang']' returned non-zero exit status 1.

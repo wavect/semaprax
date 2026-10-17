@@ -51,6 +51,8 @@ fn project(rows: &serde_json::Value, domain: &str, path: &str, current: &str) ->
 pub(crate) fn source(domain: &str, path: &str, current: &str) -> String {
     // A later combined batch must bind its new complete raw input to THIS
     // immutable checkpoint before entering this owner; never repin these hashes.
+    let acquired = later_452_input(domain, path, current);
+    let current = acquired.as_str();
     let presence = presence_before_later_inventory(domain, path, current);
     let outer = super::final_ready_inputs::source_owner(domain, path, &presence);
     project(&records(), domain, path, &outer)
@@ -119,4 +121,51 @@ fn complete_presence_inventory_acquisition_preserves_both_domains_and_refuses_dr
     }
     assert_eq!(presence_before_later_inventory("foreign", path, "foreign"), "foreign");
     assert_eq!(presence_before_later_inventory("incoming", "foreign", "foreign"), "foreign");
+}
+
+// Exact later input generation before immutable EB2/cache-fit/compact domains.
+// Physical source and supplied stage are separate authenticated channels.
+pub(crate) fn later_452_input(domain: &str, path: &str, current: &str) -> String {
+    if !matches!((domain, path),
+        ("eb2-incoming", "src/cleanup_plan/replay/physical_clone.rs")
+        | ("cache-fit", "src/workspace_graph.rs")
+        | ("compact-original", "src/cleanup_plan/replay/live_oracle/source_custody/presence.json")) {
+        return current.to_owned();
+    }
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let directory = root.join("docs/evidence/source-custody-452-inputs-20261017");
+    let table = reader::read(&directory.join("inputs.json"), 1751,
+        "aea83e0739377303ed5043183b222f5925b4f1facceef2e16e27ec1b16b17ac3", 65536)
+        .expect("fixed complete452 input table");
+    let rows: serde_json::Value = serde_json::from_str(&table).unwrap();
+    let rows = rows.as_array().unwrap();
+    assert_eq!(rows.len(), 3);
+    let matching: Vec<_> = rows.iter().filter(|r| r["domain"] == domain && r["path"] == path).collect();
+    assert_eq!(matching.len(), 1, "closed452 whole input domain");
+    let row = matching[0];
+    let read = |field: &str, actual: bool| {
+        let length = usize::try_from(row[format!("{field}_length")].as_u64().unwrap()).unwrap();
+        let sha = row[format!("{field}_sha256")].as_str().unwrap();
+        let file = if actual { root.join(path) } else { directory.join(row[format!("{field}_archive")].as_str().unwrap()) };
+        reader::read(&file, length, sha, 2_097_152).expect("whole452 bounded regular input")
+    };
+    let physical = read("physical", true);
+    assert_eq!(physical, read("physical", false), "actual physical source archive");
+    let input = read("current", false);
+    assert_eq!(current, input, "whole supplied452 source stage");
+    read("previous", false)
+}
+#[test]
+fn later_452_source_inputs_preserve_complete_frozen_domains_and_refuse_wrong_stages() {
+    for (domain, path, current) in [
+        ("eb2-incoming", "src/cleanup_plan/replay/physical_clone.rs", include_str!("../cleanup_plan/replay/physical_clone.rs")),
+        ("cache-fit", "src/workspace_graph.rs", include_str!("../workspace_graph.rs")),
+        ("compact-original", "src/cleanup_plan/replay/live_oracle/source_custody/presence.json", include_str!("../../docs/evidence/source-custody-452-inputs-20261017/2.current.txt"))] {
+        let prior = later_452_input(domain, path, current);
+        assert_ne!(prior, current);
+        for bad in [String::new(), current[..current.len()-1].to_owned(), format!("{current} "), prior] {
+            assert!(std::panic::catch_unwind(|| later_452_input(domain, path, &bad)).is_err());
+        }
+    }
+    assert_eq!(later_452_input("foreign", "foreign", "untouched"), "untouched");
 }

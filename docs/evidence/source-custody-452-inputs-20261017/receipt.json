@@ -1,0 +1,109 @@
+{
+  "status": "SOURCE_ONLY",
+  "base": "8b8f8f316",
+  "original_frozen_context": "36c6deb98720e243b0daaf81e813fbe3ec3b0a2d",
+  "old_tables_assertions_archives_caps_unchanged": true,
+  "new_rust_owners": 0,
+  "raw3_changes": false,
+  "proof": {
+    "status": "PASS_SOURCE_ONLY",
+    "finite_stages": 3,
+    "refusals": 12,
+    "all_scalar_and_cache_fit_original_whole_restorations": true,
+    "compact_metadata_original_whole_restoration": true,
+    "old_tables_byte_exact": true,
+    "runtime": false
+  },
+  "files": [
+    {
+      "path": "docs/evidence/source-custody-452-inputs-20261017/0.physical.txt",
+      "length": 18783,
+      "sha256": "f730ed63dbd193546319a8aa9bdadf15c7cd44c984bbafd96bb9756628695ac3"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-inputs-20261017/2.previous.txt",
+      "length": 48138,
+      "sha256": "43ce0a20e3e727960c010da44561b8ec6c0e8353ed48d5067662c955be0ed7cc"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-inputs-20261017/changed-0.before.txt",
+      "length": 6705,
+      "sha256": "7f5dff8a7270ab76c6850b5fc323ad4106e42f59ccd08d117100f22d6b4a8285"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-inputs-20261017/2.current.txt",
+      "length": 20477,
+      "sha256": "73f72ac12231befb30913d153afa06c36a2f1af4f27336fba3fdf2c80a84bfba"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-inputs-20261017/1.physical.txt",
+      "length": 217060,
+      "sha256": "b8d71709bbe9961b338552bba4f6098e59c8d78c5da7ca5f8ff4157b36ea3f31"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-inputs-20261017/1.current.txt",
+      "length": 217060,
+      "sha256": "b8d71709bbe9961b338552bba4f6098e59c8d78c5da7ca5f8ff4157b36ea3f31"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-inputs-20261017/changed-2.before.txt",
+      "length": 23678,
+      "sha256": "9f3ac71703fa3926dc37a0a5ea02ecef1c9b41d102f445dbb89a34758e7a7596"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-inputs-20261017/pending-selectors.json",
+      "length": 1402,
+      "sha256": "8835a11baca427e37517ba3a6952909a151dc5c896f57eedea88212b4f0a51a3"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-inputs-20261017/README.md",
+      "length": 1952,
+      "sha256": "91a5b91322e5dcca88a24646a7e55f350147dd0beb271e6a96d0ae18346d9fe1"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-inputs-20261017/whole-inverses.json",
+      "length": 79902,
+      "sha256": "22880e5cc239a180b6b801abc608d5677c438969dbf5ae2c883fcb604648f608"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-inputs-20261017/inputs.json",
+      "length": 1751,
+      "sha256": "aea83e0739377303ed5043183b222f5925b4f1facceef2e16e27ec1b16b17ac3"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-inputs-20261017/check-source.py",
+      "length": 3393,
+      "sha256": "7af4cb08c6e87fb01bd4848e342583b8c6c18b11b791a7527b2079fd4a3c1467"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-inputs-20261017/source-controls.json",
+      "length": 247,
+      "sha256": "3e1be7fb7a9f1b0ba90c5955aee31a4381084e4886a0fd3bea86fed8963dbd96"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-inputs-20261017/changed-1.before.txt",
+      "length": 5985,
+      "sha256": "61636a2f8d88678cc19f2cd90b84a213f0f8208e1cd95e4266adb39ffd3a7751"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-inputs-20261017/1.previous.txt",
+      "length": 217455,
+      "sha256": "e961737ba41e3db1b0e0333fbb082566026ea8e80e58e51a2b3cf1a3108e686d"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-inputs-20261017/0.previous.txt",
+      "length": 18777,
+      "sha256": "fbd90dcfb034d3b630f383958a37baf2e4dedbbfbc7445b926d6431923558afe"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-inputs-20261017/0.current.txt",
+      "length": 18783,
+      "sha256": "f730ed63dbd193546319a8aa9bdadf15c7cd44c984bbafd96bb9756628695ac3"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-inputs-20261017/2.physical.txt",
+      "length": 48138,
+      "sha256": "43ce0a20e3e727960c010da44561b8ec6c0e8353ed48d5067662c955be0ed7cc"
+    }
+  ]
+}

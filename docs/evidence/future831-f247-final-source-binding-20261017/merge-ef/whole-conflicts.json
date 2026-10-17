@@ -1,0 +1,91 @@
+{
+  "status": "SOURCE_MERGE_NOT_BOUND",
+  "rows": [
+    {
+      "path": "docs/evidence/accepted-final6-source-binding-20261017/check-source.py",
+      "endpoints": [
+        {
+          "name": "future66d33",
+          "archive": "docs/evidence/future831-f247-final-source-binding-20261017/merge-ef/future66d33/docs__evidence__accepted-final6-source-binding-20261017__check-source.py.txt",
+          "length": 2221,
+          "sha256": "56bef52f7dd6db017b58f115112d1f432b8022dcda75bc831a5f4bc236e20262"
+        },
+        {
+          "name": "root-ef788",
+          "archive": "docs/evidence/future831-f247-final-source-binding-20261017/merge-ef/root-ef788/docs__evidence__accepted-final6-source-binding-20261017__check-source.py.txt",
+          "length": 2227,
+          "sha256": "dfdbc15716ae6dffffaab217d80c6e228e8cf87885cce6b8613a61e34c7ff8bf"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/accepted-strict-guard-generation-20261017/check-source.py",
+      "endpoints": [
+        {
+          "name": "future66d33",
+          "archive": "docs/evidence/future831-f247-final-source-binding-20261017/merge-ef/future66d33/docs__evidence__accepted-strict-guard-generation-20261017__check-source.py.txt",
+          "length": 4046,
+          "sha256": "93b9e916d69bdefb39060a1c9ce87fa7aafded0d9d30767f919303b2af911378"
+        },
+        {
+          "name": "root-ef788",
+          "archive": "docs/evidence/future831-f247-final-source-binding-20261017/merge-ef/root-ef788/docs__evidence__accepted-strict-guard-generation-20261017__check-source.py.txt",
+          "length": 4052,
+          "sha256": "7d15562ccbcc97f34f44935dd156370ce3b0606fe917efde7213d3f447df5eae"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/main043-independent-custody-20261016/guard-extension-recipe-edits.json",
+      "endpoints": [
+        {
+          "name": "future66d33",
+          "archive": "docs/evidence/future831-f247-final-source-binding-20261017/merge-ef/future66d33/docs__evidence__main043-independent-custody-20261016__guard-extension-recipe-edits.json.txt",
+          "length": 43554,
+          "sha256": "f7cede6453ba00cd207f474da6b1921c56c4730bdb656ad32a74acf4d64162d6"
+        },
+        {
+          "name": "root-ef788",
+          "archive": "docs/evidence/future831-f247-final-source-binding-20261017/merge-ef/root-ef788/docs__evidence__main043-independent-custody-20261016__guard-extension-recipe-edits.json.txt",
+          "length": 49145,
+          "sha256": "32b4ef5fbca26c163bd6bb7294d89f67e44b08cf447896dbafb4b4c2b03eb709"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/main043-independent-custody-20261016/verify-or-refresh.py",
+      "endpoints": [
+        {
+          "name": "future66d33",
+          "archive": "docs/evidence/future831-f247-final-source-binding-20261017/merge-ef/future66d33/docs__evidence__main043-independent-custody-20261016__verify-or-refresh.py.txt",
+          "length": 2716,
+          "sha256": "132ebb5dccab42dbc9452b7413311b1fbf2dccd83614b4032505778f98d90aaa"
+        },
+        {
+          "name": "root-ef788",
+          "archive": "docs/evidence/future831-f247-final-source-binding-20261017/merge-ef/root-ef788/docs__evidence__main043-independent-custody-20261016__verify-or-refresh.py.txt",
+          "length": 2722,
+          "sha256": "be000f272c5c2512ca454f00a7d89694d813ad8a98593427c310d4fe006503de"
+        }
+      ]
+    },
+    {
+      "path": "src/source_reflows_merge/main67107_inputs.rs",
+      "endpoints": [
+        {
+          "name": "future66d33",
+          "archive": "docs/evidence/future831-f247-final-source-binding-20261017/merge-ef/future66d33/src__source_reflows_merge__main67107_inputs.rs.txt",
+          "length": 81162,
+          "sha256": "969adab5079d9857f605f48a1ba314ce06c5a935f8f4c7139882dbf2c8f87621"
+        },
+        {
+          "name": "root-ef788",
+          "archive": "docs/evidence/future831-f247-final-source-binding-20261017/merge-ef/root-ef788/src__source_reflows_merge__main67107_inputs.rs.txt",
+          "length": 75802,
+          "sha256": "59f5aa1cb6f7f6ff59e5955c59ed7ac06230571c72daf2a56aed0cf6a721101e"
+        }
+      ]
+    }
+  ],
+  "policy": "future successor current declarations retained; whole ROOT endpoint controls preserved; latest owner guard composed separately"
+}

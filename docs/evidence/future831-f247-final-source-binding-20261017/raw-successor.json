@@ -60,8 +60,8 @@
   },
   "helper": {
     "path": "docs/evidence/future831-f247-final-source-binding-20261017/guard_payload.py",
-    "length": 8288,
-    "sha256": "22e23d1a2d0884bffcadde9d5efc9745e6fd72013c59068ddbe434c1900766d7"
+    "length": 8703,
+    "sha256": "423e1e3cdf5f01773e91c68f668185361b63f52d6950c2a5f076b7bc61da7b91"
   },
   "old_counts_and_controls_unchanged": true,
   "native_literal_line_join": {
@@ -70,5 +70,15 @@
     "after_length": 158162,
     "after_sha256": "43518d1edf9297eb3770918c27e309a0931fc0587d507df6648ee8585e268b8a",
     "whole_before": "docs/evidence/future831-f247-final-source-binding-20261017/before/native-before-literal-line-join.txt"
+  },
+  "new_owner_guard": {
+    "path": "docs/evidence/compile3-second-borrow-source-acquisition-20261017/guard_payload.py",
+    "length": 3084,
+    "sha256": "d639966e45394029dffa61d03136c5fc3648b278b9a61643303d6d48675874e5",
+    "whole_source_preserved": true,
+    "finite_terminal_execution_acquisition": {
+      "remove": "_future_execute_carrier_program(current,ns)",
+      "restore": "exec(compile(current,ns['__file__'],'exec'),ns)"
+    }
   }
 }

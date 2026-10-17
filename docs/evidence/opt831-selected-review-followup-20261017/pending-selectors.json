@@ -1,0 +1,11 @@
+{
+  "status": "UNREGISTERED_UNCOMPILED_UNEXECUTED",
+  "selectors": [
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::selected_labels::tests::selected_inline_every_actual_physical_frontier_retains_full_first_status_sticky_reason_and_drop",
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/selected_labels/tests.rs"
+    }
+  ]
+}

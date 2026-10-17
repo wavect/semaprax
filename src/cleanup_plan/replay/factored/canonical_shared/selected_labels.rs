@@ -22,13 +22,21 @@ const NODE_ABI: usize = 2 * size_of::<NodeCall<'static>>()
 // later node, later initializer, consuming transport, and Many iterator.
 pub(super) const ENTRY: usize = 2 * size_of::<Groups>()
     + 6 * BYTE_ABI + 3 * NODE_ABI;
+// One actual mutable Label field binding, then the two operands' actual and
+// formal immutable references for full Label::eq. These are distinct roles.
+const ONE_LABEL_BINDING: usize = size_of::<&mut Label>();
+const LABEL_EQUALITY_RECEIVERS: usize = 2 * size_of::<(&Label, &Label)>();
+// Many(many) binds a field reference before insert/get_mut forms its own
+// actual/formal receiver pair. The field is not credited to that pair.
+const MANY_FIELD_BINDING: usize = size_of::<&mut BTreeMap<Label, paid_many::Targets>>();
+const MAP_MUTABLE_CALL_RECEIVERS: usize = 2 * size_of::<&mut BTreeMap<Label, paid_many::Targets>>();
 pub(super) const MOVEMENT: usize = 2 * size_of::<&mut Groups>()
-    + 2 * size_of::<&Label>() + 2 * size_of::<&mut Label>()
+    + ONE_LABEL_BINDING + LABEL_EQUALITY_RECEIVERS
     + 2 * size_of::<bool>()
     + 2 * size_of::<&mut paid_many::Targets>()
     + 2 * size_of::<&mut usize>() + 2 * size_of::<&mut u64>()
     + size_of::<Option<u64>>()
-    + 2 * size_of::<&mut BTreeMap<Label, paid_many::Targets>>()
+    + MANY_FIELD_BINDING + MAP_MUTABLE_CALL_RECEIVERS
     + 2 * size_of::<&BTreeMap<Label, paid_many::Targets>>()
     + 2 * size_of::<Option<&mut paid_many::Targets>>();
 // Label::clone copies a terminal or one Rc only: no payload clone or type

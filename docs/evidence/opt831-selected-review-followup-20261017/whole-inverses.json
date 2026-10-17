@@ -1,0 +1,145 @@
+{
+  "base": "d075235f68b42125c8bf3592b999cebaa2a53163",
+  "rows": [
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/selected_labels.rs",
+      "before_file": "0.before.txt",
+      "before_length": 15103,
+      "before_sha256": "8f7dc9fe5b003c90e93dc4a750d72cdd850a74d5b062e72b7745c07a31a759b1",
+      "current_length": 15707,
+      "current_sha256": "ea3b9f8e55a3f183ba7f6f07a01d6a1d71364a4ce6e246934de95e3603535edd",
+      "edits": [
+        {
+          "old_start": 1253,
+          "old_end": 1253,
+          "new_start": 1253,
+          "new_end": 1876,
+          "old": "",
+          "new": "// One actual mutable Label field binding, then the two operands' actual and\n// formal immutable references for full Label::eq. These are distinct roles.\nconst ONE_LABEL_BINDING: usize = size_of::<&mut Label>();\nconst LABEL_EQUALITY_RECEIVERS: usize = 2 * size_of::<(&Label, &Label)>();\n// Many(many) binds a field reference before insert/get_mut forms its own\n// actual/formal receiver pair. The field is not credited to that pair.\nconst MANY_FIELD_BINDING: usize = size_of::<&mut BTreeMap<Label, paid_many::Targets>>();\nconst MAP_MUTABLE_CALL_RECEIVERS: usize = 2 * size_of::<&mut BTreeMap<Label, paid_many::Targets>>();\n"
+        },
+        {
+          "old_start": 1323,
+          "old_end": 1331,
+          "new_start": 1946,
+          "new_end": 1949,
+          "old": "2 * size",
+          "new": "ONE"
+        },
+        {
+          "old_start": 1332,
+          "old_end": 1338,
+          "new_start": 1950,
+          "new_end": 1950,
+          "old": "of::<&",
+          "new": ""
+        },
+        {
+          "old_start": 1339,
+          "old_end": 1346,
+          "new_start": 1951,
+          "new_end": 1963,
+          "old": "abel>()",
+          "new": "ABEL_BINDING"
+        },
+        {
+          "old_start": 1349,
+          "old_end": 1357,
+          "new_start": 1966,
+          "new_end": 1971,
+          "old": "2 * size",
+          "new": "LABEL"
+        },
+        {
+          "old_start": 1358,
+          "old_end": 1368,
+          "new_start": 1972,
+          "new_end": 1976,
+          "old": "of::<&mut ",
+          "new": "EQUA"
+        },
+        {
+          "old_start": 1369,
+          "old_end": 1376,
+          "new_start": 1977,
+          "new_end": 1990,
+          "old": "abel>()",
+          "new": "ITY_RECEIVERS"
+        },
+        {
+          "old_start": 1551,
+          "old_end": 1552,
+          "new_start": 2165,
+          "new_end": 2183,
+          "old": "2",
+          "new": "MANY_FIELD_BINDING"
+        },
+        {
+          "old_start": 1553,
+          "old_end": 1554,
+          "new_start": 2184,
+          "new_end": 2185,
+          "old": "*",
+          "new": "+"
+        },
+        {
+          "old_start": 1555,
+          "old_end": 1559,
+          "new_start": 2186,
+          "new_end": 2189,
+          "old": "size",
+          "new": "MAP"
+        },
+        {
+          "old_start": 1560,
+          "old_end": 1570,
+          "new_start": 2190,
+          "new_end": 2194,
+          "old": "of::<&mut ",
+          "new": "MUTA"
+        },
+        {
+          "old_start": 1571,
+          "old_end": 1579,
+          "new_start": 2195,
+          "new_end": 2195,
+          "old": "TreeMap<",
+          "new": ""
+        },
+        {
+          "old_start": 1580,
+          "old_end": 1590,
+          "new_start": 2196,
+          "new_end": 2197,
+          "old": "abel, paid",
+          "new": "E"
+        },
+        {
+          "old_start": 1591,
+          "old_end": 1608,
+          "new_start": 2198,
+          "new_end": 2212,
+          "old": "many::Targets>>()",
+          "new": "CALL_RECEIVERS"
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/selected_labels/tests.rs",
+      "before_file": "1.before.txt",
+      "before_length": 11028,
+      "before_sha256": "3a5e3c41c79da05733edab3d8a05b03ba1a3bdfadfc4b53418e78ea44dafd449",
+      "current_length": 17374,
+      "current_sha256": "212aee5d931ecb133547283c481771bd3ef2ecb5d6fb1a55422c98da35d4ecd3",
+      "edits": [
+        {
+          "old_start": 11028,
+          "old_end": 11028,
+          "new_start": 11028,
+          "new_end": 17374,
+          "old": "",
+          "new": "\n// Fixed stack-only observation metadata. Presence and exact UTF-8 bytes are\n// retained independently: None and Some(\"\") are not conflated or truncated.\n#[derive(Debug, Eq, PartialEq)]\nstruct FieldText {\n    present: bool,\n    len: usize,\n    bytes: [u8; 1024],\n}\nimpl FieldText {\n    fn capture(value: Option<&str>) -> Self {\n        let mut result = Self { present: value.is_some(), len: 0, bytes: [0; 1024] };\n        if let Some(value) = value {\n            assert!(value.len() <= result.bytes.len(), \"diagnostic observation must remain lossless\");\n            result.len = value.len();\n            result.bytes[..value.len()].copy_from_slice(value.as_bytes());\n        }\n        result\n    }\n}\n#[derive(Debug, Eq, PartialEq)]\nstruct FullDiagnostic {\n    code: &'static str,\n    severity: crate::diagnostic::Severity,\n    message: FieldText,\n    span: Option<crate::ast::Span>,\n    path: FieldText,\n    help: FieldText,\n}\nimpl FullDiagnostic {\n    fn capture(error: &Diagnostic) -> Self {\n        Self {\n            code: error.code, severity: error.severity,\n            message: FieldText::capture(Some(error.message.as_ref())),\n            span: error.span, path: FieldText::capture(error.path.as_deref()),\n            help: FieldText::capture(error.help.as_deref()),\n        }\n    }\n}\n#[derive(Debug, Eq, PartialEq)]\nstruct FrontierOutcome {\n    result: Result<usize, ()>,\n    first: Option<FullDiagnostic>,\n    physical_reason: Option<crate::cleanup_plan::replay::physical_storage::PhysicalRefusal>,\n}\nfn observe_full_frontier(function: &ResolvedFunction, graph: &Automaton,\n    sink: usize, root: usize, limit: usize) -> (FrontierOutcome, Metrics) {\n    let mut first = None;\n    let mut physical_reason = None;\n    let (result, metrics) = measure(|| {\n        let mut budget = match ReplayBudget::with_physical(function, limit) {\n            Ok(budget) => budget,\n            Err(error) => {\n                assert_eq!(error.code, \"SPX-H006\");\n                first = Some(FullDiagnostic::capture(&error));\n                drop(error);\n                // There is no live budget to retry after constructor refusal.\n                return Err(());\n            }\n        };\n        let mut owner = Canonicalizer::new(graph, sink);\n        let result = (|| {\n            budget.reserve_array::<(usize, u64)>(function, 1, \"selected inline root\")?;\n            let id = owner.id(function, vec![(root, 1)], &mut budget)?;\n            assert!(id.is_some());\n            Ok::<_, Diagnostic>(budget.physical.as_ref().unwrap().charged())\n        })();\n        drop(owner);\n        let result = match result {\n            Ok(charged) => Ok(charged),\n            Err(error) => {\n                assert_eq!(error.code, \"SPX-H006\");\n                let selected = FullDiagnostic::capture(&error);\n                let remaining = (budget.remaining, budget.skeleton_remaining);\n                let charged = budget.physical.as_ref().unwrap().charged();\n                // This observes the actual retained first reason; reserve(0)\n                // on an already failed reservation neither clears nor debits it.\n                let reason = budget.physical.as_mut().unwrap().reserve(0).unwrap_err();\n                let enclosing_remaining = crate::bounded_output::active_remaining();\n                let ledger = crate::bounded_output::classifier_string::ClassifierLedger::capture();\n                let enclosing_first = ledger.first_refusal();\n                let allocated = current_metrics().allocated;\n                let retry = budget.reserve_bytes(function, 0, \"selected inline sticky retry\").unwrap_err();\n                let empty = Diagnostic::io(\"SPX-H006\", String::new());\n                // First reporting text remains selected in its owning error;\n                // retry reports the precise stable empty six-field status.\n                assert_eq!(FullDiagnostic::capture(&error), selected);\n                assert_eq!(FullDiagnostic::capture(&retry), FullDiagnostic::capture(&empty));\n                assert_eq!(budget.physical.as_mut().unwrap().reserve(0), Err(reason));\n                assert_eq!(budget.physical.as_ref().unwrap().charged(), charged);\n                assert_eq!((budget.remaining, budget.skeleton_remaining), remaining);\n                assert_eq!(crate::bounded_output::active_remaining(), enclosing_remaining);\n                assert_eq!(ledger.first_refusal(), enclosing_first);\n                assert_eq!(current_metrics().allocated, allocated);\n                first = Some(selected);\n                physical_reason = Some(reason);\n                drop(empty);\n                drop(retry);\n                drop(ledger);\n                drop(error);\n                Err(())\n            }\n        };\n        let stopped = current_metrics().allocated;\n        drop(budget);\n        assert_eq!(current_metrics().allocated, stopped, \"whole Drop allocates no backing\");\n        result\n    });\n    (FrontierOutcome { result, first, physical_reason }, metrics)\n}\n#[test]\nfn selected_inline_every_actual_physical_frontier_retains_full_first_status_sticky_reason_and_drop() {\n    let function = fixture();\n    for case in 0..=4 {\n        let (graph, sink, root) = graph(&function, case);\n        let (success, metrics) = observe_full_frontier(&function, &graph, sink, root, 1 << 25);\n        let exact = success.result.unwrap();\n        assert!(success.first.is_none() && success.physical_reason.is_none());\n        assert!(!metrics.invalid && metrics.live == 0 && metrics.allocated == metrics.freed);\n        for limit in 0..=exact {\n            let (first, metrics) = observe_full_frontier(&function, &graph, sink, root, limit);\n            let (repeat, repeated_metrics) = observe_full_frontier(&function, &graph, sink, root, limit);\n            // Complete first-diagnostic values and the actual first physical\n            // reason repeat exactly; no code-only or digest comparison is used.\n            assert_eq!(first, repeat, \"case={case} limit={limit}/{exact}\");\n            assert_eq!(first.result.is_ok(), limit == exact);\n            assert_eq!(first.first.is_none(), limit == exact);\n            for metrics in [metrics, repeated_metrics] {\n                assert!(!metrics.invalid && metrics.live == 0);\n                assert_eq!(metrics.allocated, metrics.freed);\n            }\n        }\n    }\n}\n"
+        }
+      ]
+    }
+  ]
+}

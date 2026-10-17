@@ -1,0 +1,55 @@
+{
+  "scope": "SOURCE_ONLY_UNCOMPILED",
+  "base": "d075235f68b42125c8bf3592b999cebaa2a53163",
+  "source_files": [
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/selected_labels.rs",
+      "before_file": "0.before.txt",
+      "before_length": 15103,
+      "before_sha256": "8f7dc9fe5b003c90e93dc4a750d72cdd850a74d5b062e72b7745c07a31a759b1",
+      "current_length": 15707,
+      "current_sha256": "ea3b9f8e55a3f183ba7f6f07a01d6a1d71364a4ce6e246934de95e3603535edd"
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/selected_labels/tests.rs",
+      "before_file": "1.before.txt",
+      "before_length": 11028,
+      "before_sha256": "3a5e3c41c79da05733edab3d8a05b03ba1a3bdfadfc4b53418e78ea44dafd449",
+      "current_length": 17374,
+      "current_sha256": "212aee5d931ecb133547283c481771bd3ef2ecb5d6fb1a55422c98da35d4ecd3"
+    }
+  ],
+  "evidence_files": {
+    "docs/evidence/opt831-selected-review-followup-20261017/0.before.txt": {
+      "length": 15103,
+      "sha256": "8f7dc9fe5b003c90e93dc4a750d72cdd850a74d5b062e72b7745c07a31a759b1"
+    },
+    "docs/evidence/opt831-selected-review-followup-20261017/1.before.txt": {
+      "length": 11028,
+      "sha256": "3a5e3c41c79da05733edab3d8a05b03ba1a3bdfadfc4b53418e78ea44dafd449"
+    },
+    "docs/evidence/opt831-selected-review-followup-20261017/README.md": {
+      "length": 1915,
+      "sha256": "612b78eda862038493c2ed6e6bcd144be317bbbf21e5564f1015916bf4bde62a"
+    },
+    "docs/evidence/opt831-selected-review-followup-20261017/pending-selectors.json": {
+      "length": 424,
+      "sha256": "73e042f374a204d3f37c52dd01e9b1e359d783bfaeb81de7a36b70d6966e54d5"
+    },
+    "docs/evidence/opt831-selected-review-followup-20261017/whole-inverses.json": {
+      "length": 10805,
+      "sha256": "b45a6ba55ae35ef5df1a4d630b40209edbec24748e4b27c6bbbdbee8f0f92dce"
+    }
+  },
+  "checks": [
+    "complete two-file inverse",
+    "entire old test prefix unchanged"
+  ],
+  "not_run": [
+    "Cargo",
+    "rustc",
+    "tests",
+    "registration",
+    "source generation"
+  ]
+}

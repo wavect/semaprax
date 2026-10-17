@@ -64,14 +64,18 @@ impl Resolver<'_, '_> {
         let (kind, ownership) = match op {
             crate::stdin_stream_ops::PureOp::Chunk => (
                 ResolvedExprKind::BorrowPlace {
-                    operation: DeclarationId::new(op.id()),
+                    operation: DeclarationId::compiler(
+                        crate::hir::CompilerDeclaration::StdinInspection(op),
+                    ),
                     place,
                 },
                 OwnershipMode::Borrow,
             ),
             crate::stdin_stream_ops::PureOp::Eof => (
                 ResolvedExprKind::Call {
-                    callee: DeclarationId::new(op.id()),
+                    callee: DeclarationId::compiler(
+                        crate::hir::CompilerDeclaration::StdinInspection(op),
+                    ),
                     type_arguments: Vec::new(),
                     instance: None,
                     args: vec![ResolvedExpr {

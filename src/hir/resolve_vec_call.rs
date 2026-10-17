@@ -269,7 +269,7 @@ pub(super) fn finish<'p>(
         ty,
         ownership,
         kind: ResolvedExprKind::Call {
-            callee: DeclarationId::new(op.id()),
+            callee: DeclarationId::compiler(crate::hir::CompilerDeclaration::VecOperation(op)),
             type_arguments: vec![element],
             instance: None,
             args,

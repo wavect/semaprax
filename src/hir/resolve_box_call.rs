@@ -281,7 +281,7 @@ pub(super) fn finish<'p>(
         },
         ty,
         kind: ResolvedExprKind::Call {
-            callee: DeclarationId::new(op.id()),
+            callee: DeclarationId::compiler(crate::hir::CompilerDeclaration::BoxOperation(op)),
             type_arguments: vec![element],
             instance: None,
             args,

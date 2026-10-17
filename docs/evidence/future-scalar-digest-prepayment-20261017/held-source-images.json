@@ -1,0 +1,26 @@
+{
+  "base": "3f4a48e74f6194536d4d02c4e964c65a7214eaa5",
+  "held_from": "/Volumes/Semaprax/worktrees/opt831-selected-inline-labels-20261017",
+  "rows": [
+    {
+      "path": "src/workspace_graph/static_text/scalar_helpers.rs",
+      "root_before_length": 18503,
+      "root_before_sha256": "9700af77f59fe5203f2d5c69e2ab9514a9f0890f1f42bc70b655a91a4b5958b5",
+      "held_length": 20079,
+      "held_sha256": "32f2e88dc2e9bff3f602c2ffd80cd271a9b7d9e7e88d17929bc0e732f16cb744",
+      "incoming_length": 20079,
+      "incoming_sha256": "32f2e88dc2e9bff3f602c2ffd80cd271a9b7d9e7e88d17929bc0e732f16cb744"
+    },
+    {
+      "path": "src/workspace_graph/static_text/scalar_helpers/capture_directory/tests.rs",
+      "root_before_length": 22563,
+      "root_before_sha256": "1cc0489a52cad126d7516d2b57b91cf4ad5d8064a880eea97b247e4a0936d82b",
+      "held_length": 25721,
+      "held_sha256": "9e905311f34e0854f31f0b42d24b118c61c716778863b924e00ad5d8a683ead6",
+      "incoming_length": 25721,
+      "incoming_sha256": "9e905311f34e0854f31f0b42d24b118c61c716778863b924e00ad5d8a683ead6"
+    }
+  ],
+  "Cargo": false,
+  "incoming_main": "f247b8e5b4ab3a8bc04980e77e7362464012bf55"
+}

@@ -1,0 +1,27 @@
+{
+  "status": "SOURCE_ONLY_ACTIVATION_PENDING",
+  "actual_current_production_owner": "src/cleanup_plan/replay/skeleton_work/merge_keys.rs::SkeletonWork::merged_paths",
+  "current_production_body": "UNCHANGED_FROM_3f",
+  "incoming_original_helper": "src/cleanup_plan/replay/skeleton_work/isolated_paths.rs::can_reuse",
+  "frontier": "after original early return and exact self.charge(paths.len(), factored path-state merge), before existing DIRECTORY_CONTROLS reserve",
+  "minimal_next_design": "A distinct full-literal old DIRECTORY census successor, selected only by binding-free existing ActiveBuilder/Ordinary place match; same existing reserve call prepays complete query/return before actual query. No second reserve ABI, no removed backing credit. Complete originalhelper/method remain independently compiled. False fallback honestly pays additional query fee.",
+  "remaining_actual_roles": [
+    "caller+formal borrowed SkeletonWork/Vec pairs and returned/received bool",
+    "pays_builder/selected borrowed budget receivers and bools; selected AdmissionMode operands",
+    "Option<Box<LexicalControlPlan>> and Option<ExpressionId> borrowed is_some/is_none receivers",
+    "five Vec len +one capacity actual/formal references and returned/received usize",
+    "five checked arithmetic operand pairs and returned/received Option<usize>",
+    "three and_then/two is_some_and consumed Options, closure owners/callback captures and scalar/results",
+    "scalar comparison operands/results and lazy predicate bools",
+    "owned Vec and Result<Vec,Diagnostic> output/receiving roles"
+  ],
+  "constraints": [
+    "Original two-path strict gain remains required and unexecuted; full bank must not be hidden behind old incomplete RECEIVING threshold.",
+    "Incoming directtest calls can_reuse before productionbank; no claim these authenticate production prepaid route.",
+    "Do not resurrect relocated root merger or bypass878 clone-before-merge.",
+    "Borrowed merged_suffixes retains all original cloning before owned merged_paths.",
+    "No cap/timeout/assertion/basefee inflation or refund."
+  ],
+  "incoming_optimized_method_wired_under_cfgtest": "src/cleanup_plan/replay/skeleton_work/isolated_paths/tests/before.rs::SkeletonWork::incoming_merged_paths",
+  "compilation": "NOT_RUN"
+}

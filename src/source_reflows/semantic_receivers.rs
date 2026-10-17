@@ -869,3 +869,154 @@ fn current_replay_operation_guards_bind_the_actual_receivers_without_production_
         assert_eq!(stripped[index], original, "complete pre-1e CURRENT source, not main historical source");
     }
 }
+
+/// The original source-work assertion still reads its complete prior input.
+/// The separate custody control below authenticates all current changed files.
+pub(crate) fn helper_digest_capture_predecessor(current: &str) -> String {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let proofs: Vec<serde_json::Value> = serde_json::from_str(
+        &std::fs::read_to_string(
+            root.join("docs/evidence/optional-helper-digest-work-v1/sources.json"),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let proof = proofs
+        .iter()
+        .find(|proof| proof["path"] == "src/workspace_graph/static_text/scalar_helpers.rs")
+        .unwrap();
+    let before = invert(proof, current);
+    assert_eq!(
+        before,
+        std::fs::read_to_string(root.join(proof["archive"].as_str().unwrap())).unwrap()
+    );
+    before
+}
+
+#[test]
+fn optional_helper_digest_preserves_complete_predecessors_and_all_old_controls() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let proofs: Vec<serde_json::Value> = serde_json::from_str(
+        &std::fs::read_to_string(
+            root.join("docs/evidence/optional-helper-digest-work-v1/sources.json"),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(proofs.len(), 6);
+    let mut paths = std::collections::BTreeSet::new();
+    for proof in &proofs {
+        let path = proof["path"].as_str().unwrap();
+        assert!(paths.insert(path));
+        let current = std::fs::read_to_string(root.join(path)).unwrap();
+        let before = invert(proof, &current);
+        assert_eq!(
+            before,
+            std::fs::read_to_string(root.join(proof["archive"].as_str().unwrap())).unwrap()
+        );
+        assert!(std::panic::catch_unwind(|| invert(proof, &(current.clone() + "\n"))).is_err());
+        let mut forged = proof.clone();
+        forged["before_sha256"] = serde_json::Value::String("0".repeat(64));
+        assert!(std::panic::catch_unwind(|| invert(&forged, &current)).is_err());
+        if path == "src/workspace_graph/static_text/scalar_helpers.rs" {
+            assert_eq!(helper_digest_capture_predecessor(&current), before);
+            assert!(
+                std::panic::catch_unwind(|| helper_digest_capture_predecessor(
+                    &(current.clone() + "\n")
+                ))
+                .is_err()
+            );
+        }
+    }
+}
+
+#[test]
+fn isolated_lexical_path_reuse_preserves_complete_merger_and_all_prior_controls() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let proofs: Vec<serde_json::Value> = serde_json::from_str(
+        &std::fs::read_to_string(
+            root.join("docs/evidence/isolated-skeleton-paths-v1/sources.json"),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(proofs.len(), 7);
+    let mut paths = std::collections::BTreeSet::new();
+    let mut created = std::collections::BTreeSet::new();
+    let mut merger = String::new();
+    for proof in &proofs {
+        let path = proof["path"].as_str().unwrap();
+        assert!(paths.insert(path.to_owned()));
+        let current = std::fs::read_to_string(root.join(path)).unwrap();
+        let before = invert(proof, &current);
+        assert_eq!(
+            before,
+            std::fs::read_to_string(root.join(proof["archive"].as_str().unwrap())).unwrap()
+        );
+        assert!(std::panic::catch_unwind(|| invert(proof, &(current.clone() + "\n"))).is_err());
+        let mut forged = proof.clone();
+        forged["before_sha256"] = serde_json::Value::String("0".repeat(64));
+        assert!(std::panic::catch_unwind(|| invert(&forged, &current)).is_err());
+        if before.is_empty() {
+            created.insert(path.to_owned());
+        } else if path == "src/source_reflows/semantic_receivers.rs" {
+            assert!(current.starts_with(&before));
+        } else if path == "src/cleanup_plan/replay/skeleton_work.rs" {
+            let hook = "        if isolated_paths::can_reuse(self, &paths) {\n            self.budget.reserve_array::<u8>(\n                self.function,\n                isolated_paths::RECEIVING_BYTES,\n                \"isolated path receiving owners\",\n            )?;\n            return Ok(paths);\n        }\n";
+            assert_eq!(current.matches(hook).count(), 1);
+            assert_eq!(current.matches("mod isolated_paths;\n").count(), 1);
+            assert_eq!(
+                current
+                    .replacen(hook, "", 1)
+                    .replacen("mod isolated_paths;\n", "", 1),
+                before
+            );
+            merger = before;
+        }
+    }
+    let marker = "    pub(super) fn merged_paths(";
+    assert_eq!(merger.matches(marker).count(), 1);
+    let body = merger
+        .split_once(marker)
+        .unwrap()
+        .1
+        .split_once("\n    pub(super) fn merged_suffixes")
+        .unwrap()
+        .0;
+    let saved = format!("use super::super::*;\n\nimpl SkeletonWork<'_, '_> {{\n    pub(super) fn saved_merged_paths({}\n}}\n", body.trim_end());
+    assert_eq!(
+        saved,
+        std::fs::read_to_string(
+            root.join("src/cleanup_plan/replay/skeleton_work/isolated_paths/tests/before.rs")
+        )
+        .unwrap()
+    );
+    fn inventory(root: &Path, directory: &Path, out: &mut std::collections::BTreeSet<String>) {
+        for entry in std::fs::read_dir(directory).unwrap() {
+            let path = entry.unwrap().path();
+            if path.is_dir() {
+                inventory(root, &path, out);
+            } else {
+                assert!(out.insert(
+                    path.strip_prefix(root)
+                        .unwrap()
+                        .to_str()
+                        .unwrap()
+                        .replace('\\', "/")
+                ));
+            }
+        }
+    }
+    let helper = "src/cleanup_plan/replay/skeleton_work/isolated_paths.rs";
+    let mut live = std::collections::BTreeSet::from([helper.to_owned()]);
+    inventory(
+        root,
+        &root.join("src/cleanup_plan/replay/skeleton_work/isolated_paths"),
+        &mut live,
+    );
+    assert_eq!(created, live);
+    let authority = std::fs::read_to_string(root.join("tests/hir_module_boundaries.rs")).unwrap();
+    for path in created {
+        assert_eq!(authority.matches(&format!("\"../{path}\"")).count(), 1);
+    }
+}

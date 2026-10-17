@@ -255,6 +255,85 @@ fn pure_profile_checked<E>(
     }
     Ok(true)
 }
+// Each selected function prepays the later payment call's argument/formal and
+// returned/receiving Result slots through the already existing Inventory bank.
+// This static stride adds no fee-computation call or intermediate receiver.
+const DIGEST_PAYMENT_HEADER_BYTES: usize = 2 * std::mem::size_of::<usize>()
+    + 2 * std::mem::size_of::<Result<(), Vec<Diagnostic>>>();
+const CAPTURE_FUNCTION_SLOT_BYTES: usize =
+    std::mem::size_of::<Function>() + DIGEST_PAYMENT_HEADER_BYTES;
+// Separate from capture_digest's actual/formal references: the encoder call
+// receives its own function and revision arguments while the outer formals live.
+const DIGEST_ENCODER_CALL_REFERENCES: usize =
+    2 * std::mem::size_of::<(&ResolvedFunction, &[u8; 32])>();
+// Callback units actual/formal are already named below. checked_sub additionally
+// receives by-value self and rhs at its own actual/formal boundary. The original
+// Option<usize> slot below is its returned value; this second Option is the
+// caller's receiving/match slot. `remaining` has the separate usize slot.
+const DIGEST_CHECKED_SUB_ADDITIONAL: usize =
+    2 * std::mem::size_of::<(usize, usize)>()
+        + std::mem::size_of::<Option<usize>>();
+// Complete new caller/callee results, hash outcome, callback references and
+// local refusal state. No removed owner is credited against these frames.
+const DIGEST_RECEIVER_BYTES: usize = 2 * std::mem::size_of::<
+    Result<Option<[u8; 32]>, Vec<Diagnostic>>,
+>() + std::mem::size_of::<Option<[u8; 32]>>()
+    + std::mem::size_of::<(Option<[u8; 32]>, usize)>()
+    + 2 * std::mem::size_of::<&ResolvedFunction>()
+    + 2 * std::mem::size_of::<&[u8; 32]>()
+    + 2 * std::mem::size_of::<&mut usize>()
+    + std::mem::size_of::<(&mut usize, &mut bool)>()
+    + std::mem::size_of::<Option<usize>>()
+    + std::mem::size_of::<Option<()>>()
+    + std::mem::size_of::<usize>()
+    + std::mem::size_of::<bool>()
+    // The unwrapped caller Option and both digest bindings are distinct roles.
+    + std::mem::size_of::<Option<[u8; 32]>>()
+    + 2 * std::mem::size_of::<[u8; 32]>()
+    // The metered callback actual/formal, callback units actual/formal and
+    // receiving callback result are not the closure's captured references.
+    + 2 * std::mem::size_of::<Option<&mut dyn FnMut(usize) -> Option<()>>>()
+    + 2 * std::mem::size_of::<usize>()
+    + std::mem::size_of::<Option<()>>()
+    + DIGEST_ENCODER_CALL_REFERENCES
+    + DIGEST_CHECKED_SUB_ADDITIONAL;
+
+/// Only shared capture-work exhaustion declines this optional inventory.
+/// A body the encoder cannot authenticate still keeps the original refusal.
+fn capture_digest(
+    function: &ResolvedFunction,
+    revision: &[u8; 32],
+    work: &mut usize,
+) -> Result<Option<[u8; 32]>, Vec<Diagnostic>> {
+    // The capture caller pays the complete receiver bank before constructing
+    // this call's arguments, formal references or Result receiving slot.
+    let mut refused = false;
+    let digest = body_digest::typed_attempt_metered(
+        function,
+        revision,
+        Some(&mut |units| {
+            let Some(remaining) = work.checked_sub(units) else {
+                refused = true;
+                return None;
+            };
+            *work = remaining;
+            Some(())
+        }),
+    )
+    .0;
+    if refused {
+        // All successful work and backing debits stay consumed. The caller
+        // drops every partial fact; no selected receiver gains authority.
+        return Ok(None);
+    }
+    // Keep the two digest bindings explicit; no nested Option/map receiver is
+    // constructed between the encoder outcome and the existing Result slots.
+    match digest {
+        Some(digest) => Ok(Some(digest)),
+        None => Err(fail()),
+    }
+}
+
 pub(in crate::workspace_graph) fn capture(
     program: &Program,
     resolved: &hir::ResolvedProgram,
@@ -334,7 +413,7 @@ pub(in crate::workspace_graph) fn capture(
         std::mem::size_of::<Inventory>()
             .checked_add(
                 count
-                    .checked_mul(std::mem::size_of::<Function>())
+                    .checked_mul(CAPTURE_FUNCTION_SLOT_BYTES)
                     .ok_or_else(capacity)?,
             )
             .ok_or_else(capacity)?,
@@ -459,13 +538,12 @@ pub(in crate::workspace_graph) fn capture(
                 ownership: param.ownership,
             });
         }
-        let digest = body_digest::typed_attempt_metered(
-            function,
-            &revision,
-            Some(&mut |units| debit(&mut work, units).ok()),
-        )
-        .0
-        .ok_or_else(fail)?;
+        // The payment ABI was prepaid in the Inventory bank. Pay the complete
+        // new callee and both caller receivers before forming the invocation.
+        reserve_builder_structure(DIGEST_RECEIVER_BYTES)?;
+        let Some(digest) = capture_digest(function, &revision, &mut work)? else {
+            return Ok(None);
+        };
         functions.push(Function {
             id: function.id.clone(),
             explicit: source.explicit_id,

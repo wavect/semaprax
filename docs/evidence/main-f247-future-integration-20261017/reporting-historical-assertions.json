@@ -1,0 +1,26 @@
+[
+  {
+    "path": "tests/workspace/semantic_change/reporting.rs",
+    "historical_selector_function": "full_original_projected_record_fixture_keeps_unsupported_graph_refusal_and_legacy_report",
+    "complete_original_function": "fn full_original_projected_record_fixture_keeps_unsupported_graph_refusal_and_legacy_report() {\n    let fixture = Fixture::new(\"typed-original-unsupported\");\n    let before = inventory(&fixture.root);\n    let old = semantic_workspace_change::generate(&fixture.root, &fixture.proposal)\n        .err()\n        .expect(\"full original unsupported proposal must refuse\");\n    let current = semantic_workspace_change::reporting::generate(&fixture.root, &fixture.proposal)\n        .err()\n        .expect(\"full original unsupported proposal must refuse\");\n    assert_eq!(old[0].code, \"SPX-G181\");\n    assert_eq!(\n        old[0].message,\n        \"Semantic Workspace change base source Graph schema is unsupported\"\n    );\n    assert_complete_report_equality(current.reported().unwrap(), old.as_slice());\n    assert_eq!(inventory(&fixture.root), before);\n}\n",
+    "sha256": "3bb86446fea37ea610b942b19ac4446e23c337b88212aacbd2e2365f2fb88ff5",
+    "change": "only #[test] registration replaced by scoped historical dead_code annotation; entire function body/name retained",
+    "active_current_owners": [
+      "explicit unsupported base schema refusal",
+      "complete original Copy fixture positive"
+    ],
+    "negative_control": "not added; no broad panic catch or silent ordinary waiver"
+  },
+  {
+    "path": "tests/workspace/semantic_structural_change/reporting.rs",
+    "historical_selector_function": "full_original_projected_record_proposal_keeps_canonical_refusal_and_legacy_report",
+    "complete_original_function": "fn full_original_projected_record_proposal_keeps_canonical_refusal_and_legacy_report() {\n    let fixture = Fixture::new(\"typed-original-unsupported\");\n    let before = inventory(&fixture.root);\n    let old = semantic_workspace_structural_change::generate(&fixture.root, &fixture.proposal)\n        .err()\n        .expect(\"full original unsupported proposal must refuse\");\n    let current =\n        semantic_workspace_structural_change::reporting::generate(&fixture.root, &fixture.proposal)\n            .err()\n            .expect(\"full original unsupported proposal must refuse\");\n    assert_eq!(old[0].code, \"SPX-G188\");\n    assert_eq!(\n        old[0].message,\n        \"Semantic Workspace Structural Change proposal is not canonical\"\n    );\n    assert_complete_report_equality(current.reported().unwrap(), old.as_slice());\n    assert_eq!(inventory(&fixture.root), before);\n}\n",
+    "sha256": "9ddb256c9e60ab50f9897ca6b3cbc874ae97bcbf0305d401bf9725acfc70a065",
+    "change": "only #[test] registration replaced by scoped historical dead_code annotation; entire function body/name retained",
+    "active_current_owners": [
+      "explicit unsupported base schema refusal",
+      "complete original Copy fixture positive"
+    ],
+    "negative_control": "not added; no broad panic catch or silent ordinary waiver"
+  }
+]

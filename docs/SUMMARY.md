@@ -1176,3 +1176,4 @@ Audience: all documentation readers.
 - [Held status identity insertion index evidence](evidence/status-identity-index-v1/README.md)
 
 - [Complete projection source-audit scopes](evidence/projection-audit-scope-v1/README.md)
+- [Isolated lexical skeleton paths](evidence/isolated-skeleton-paths-v1/README.md)

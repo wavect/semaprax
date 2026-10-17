@@ -448,6 +448,9 @@ include_str!("../tests/workspace/semantic_graph/source_inventory.rs"),
         include_str!("../src/cleanup_plan/replay/allocation/oracle/diagnostic.rs"),
         audit_source_join!(
             include_str!("../src/cleanup_plan/replay/skeleton_work.rs"),
+            include_str!("../src/cleanup_plan/replay/skeleton_work/isolated_paths.rs"),
+            include_str!("../src/cleanup_plan/replay/skeleton_work/isolated_paths/tests.rs"),
+            include_str!("../src/cleanup_plan/replay/skeleton_work/isolated_paths/tests/before.rs"),
             include_str!("../src/cleanup_plan/replay/skeleton_work/dag_storage.rs"),
             include_str!("../src/cleanup_plan/replay/skeleton_work/dag_storage/tests.rs"),
             include_str!(

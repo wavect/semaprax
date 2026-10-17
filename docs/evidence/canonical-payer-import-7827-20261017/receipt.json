@@ -1,0 +1,18 @@
+{
+  "status": "SOURCE_ONLY_NOT_COMPILED",
+  "base": "7827d3687da21e1093d40f8c8e3f7116edba1993",
+  "source": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+  "current_sha256": "22d0dcf599a65ce24039027378d46ea04bae83735dcbc93ba13df6eb99c450e4",
+  "before_sha256": "014f04e64f90e79480cce6ad9fe5cfbc8ce7f3fa82564e739ab53e131669700c",
+  "before_archive": "docs/evidence/canonical-payer-import-7827-20261017/canonical_shared.before.rs.txt",
+  "inverse": [
+    {
+      "after": "    physical_clone, replay_error, AllocationPayer, Automaton,",
+      "before": "    physical_clone, replay_error, Automaton,"
+    }
+  ],
+  "source_proof": "Exactly one import-token addition; all other source bytes and assertions unchanged. Both affected child modules already import super::* before the affected references.",
+  "new_tests": [],
+  "main090_input_domains_contains_source": false,
+  "later_binding": "Finite current->7827 source acquisition before frozen Selected/singleton/current canonical source predicates; original packets untouched. Parent batches final source bindings after all compile fixes."
+}

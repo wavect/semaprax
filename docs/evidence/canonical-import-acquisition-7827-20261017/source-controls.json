@@ -1,0 +1,9 @@
+{
+  "status": "SOURCE_ONLY_NOT_RUST_OR_BINDER_MAIN_QUALIFIED",
+  "whole_old_selected_packet_retained": true,
+  "whole_original_selected_source_assertions_executed": true,
+  "two_subject_stage_channels": 4,
+  "refusals": 41,
+  "main67107_full_previous_recovered": true,
+  "main67107_lines": 738
+}

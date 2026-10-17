@@ -1,0 +1,50 @@
+[
+  {
+    "source": "src/source_reflows_merge/main67107_inputs.rs",
+    "before_archive": "docs/evidence/canonical-import-acquisition-7827-20261017/before/src/source_reflows_merge/main67107_inputs.rs",
+    "before_sha256": "c30561ec04950c587768523fb3a4abddba844441983de979f14adeb171544937",
+    "current_sha256": "362585e1e2e79d50d0a062c2eb40bbcba8fcfe20340fad2f5779402de54aa8aa",
+    "inverse": [
+      {
+        "after": "        let raw_compiled = compiled;\n        let compiled_stage = canonical_import_input(path, compiled);\n        let compiled = compiled_stage.as_str();\n        let physical = compiled_stage.clone();\n        assert_eq!(physical.len(), length);\n        assert_eq!(digest(&physical), row[\"current_sha256\"]);\n",
+        "before": "        let physical = factored_core_file(&root.join(path), length, row[\"current_sha256\"].as_str().unwrap()).unwrap();\n"
+      },
+      {
+        "after": "            let current = if current == raw_compiled { physical.as_str() } else { current };\n",
+        "before": ""
+      },
+      {
+        "after": "\n\n// Import-only compile generation before the immutable Selected947 source rows.\npub(crate) fn canonical_import_input(source: &str, current: &str) -> String {\n    let compiled = match source {\n        \"src/cleanup_plan/replay/factored/canonical_shared.rs\" => include_str!(\"../cleanup_plan/replay/factored/canonical_shared.rs\"),\n        \"src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs\" => include_str!(\"../cleanup_plan/replay/factored/canonical_shared/arena_tests.rs\"),\n        _ => return current.to_owned(),\n    };\n    let data = include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/canonical-import-acquisition-7827-20261017/sources.json\"));\n    assert!(data.len() <= 65_536);\n    assert_eq!(digest(data), \"c0ec361ae90245676b4804403a4fe7bf65a34df06347109b086dfd0762deb7e0\");\n    let rows: serde_json::Value = serde_json::from_str(data).unwrap();\n    assert_eq!(rows.as_array().unwrap().len(), 2);\n    let row = rows.as_array().unwrap().iter().find(|r| r[\"source\"] == source).unwrap();\n    let root = std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\"));\n    let read = |archive: &str, length: &str, hash: &str| {\n        let length = usize::try_from(row[length].as_u64().unwrap()).unwrap();\n        assert!(length <= 131_072);\n        factored_core_file(&root.join(archive), length, row[hash].as_str().unwrap()).unwrap()\n    };\n    let actual = read(source, \"current_length\", \"current_sha256\");\n    assert_eq!(actual, compiled);\n    assert_eq!(actual, read(row[\"current_archive\"].as_str().unwrap(), \"current_length\", \"current_sha256\"));\n    let stage = read(row[\"stage_archive\"].as_str().unwrap(), \"stage_length\", \"stage_sha256\");\n    let mut restored = actual.clone();\n    for edit in row[\"inverse\"].as_array().unwrap() {\n        let after = edit[\"after\"].as_str().unwrap();\n        assert_eq!(restored.matches(after).count(), 1);\n        restored = restored.replacen(after, edit[\"before\"].as_str().unwrap(), 1);\n    }\n    assert_eq!(restored, stage);\n    assert!(current == actual || current == stage, \"foreign canonical import generation\");\n    stage\n}\n\n#[test]\nfn canonical_import_generation_authenticates_current_and_complete_selected_stages() {\n    for (source, raw) in [\n        (\"src/cleanup_plan/replay/factored/canonical_shared.rs\", include_str!(\"../cleanup_plan/replay/factored/canonical_shared.rs\")),\n        (\"src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs\", include_str!(\"../cleanup_plan/replay/factored/canonical_shared/arena_tests.rs\")),\n    ] {\n        let stage = canonical_import_input(source, raw);\n        assert_ne!(stage, raw);\n        assert_eq!(canonical_import_input(source, &stage), stage);\n        for bad in [String::new(), \"foreign\".to_owned(), format!(\"{raw} \"), raw[..raw.len()-1].to_owned()] {\n            assert!(std::panic::catch_unwind(|| canonical_import_input(source, &bad)).is_err());\n        }\n    }\n    assert_eq!(canonical_import_input(\"foreign\", \"unchanged\"), \"unchanged\");\n}\n",
+        "before": ""
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs",
+    "before_archive": "docs/evidence/canonical-import-acquisition-7827-20261017/before/src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs",
+    "before_sha256": "ba15ecc74f11b3add8df8014ff5e2188da0b8581d00771b7646aa55dc4dab02c",
+    "current_sha256": "6dbb0428fcd1e70858de38f0b795d7ac92f0b601d92318e7d2c818b5dfc3cb27",
+    "inverse": [
+      {
+        "after": "    let acquired=crate::source_reflows_merge::main67107_inputs::canonical_import_input(\"src/cleanup_plan/replay/factored/canonical_shared.rs\",current);\n    let current=acquired.as_str();\n",
+        "before": ""
+      }
+    ]
+  },
+  {
+    "source": "docs/evidence/selected-successor-generation-20261017/bind-selected-endpoints.py",
+    "before_archive": "docs/evidence/canonical-import-acquisition-7827-20261017/bind-selected-endpoints.before.py",
+    "before_sha256": "05ad6ee46f9147227d0fece012c7ad118ec43c3e50aaa535d78025e4d46d4b49",
+    "current_sha256": "5e8231b69371b6997e306246311c9cb33bed4c74fe891ce9f595085629b95735",
+    "inverse": [
+      {
+        "after": "\"\"\"Fixed compile-import generation before the complete Selected binder.\"\"\"\n",
+        "before": "\"\"\"Explicit later endpoint bind, never a capture/build/pin tool.\nAuthenticate actual new canonical bytes, recover the complete immediate f6ae\nstage, then execute the whole previous singleton binder with one finite hook.\nThe parent must bind other integrated source endpoints from actual final HEAD.\n\"\"\"\n"
+      },
+      {
+        "after": "import types\nP=Path(__file__).resolve();R=P.parents[3];N=R/'docs/evidence/canonical-import-acquisition-7827-20261017'\n# Bootstrap bounded held-byte reader, exact helper source before execution.\nimport os,stat,hashlib\ndef _held(path,length,digest):\n    assert hasattr(os,'O_NOFOLLOW') and length<=65536\n    with os.fdopen(os.open(path,os.O_RDONLY|os.O_NOFOLLOW),'rb') as f:\n        before=os.fstat(f.fileno());assert stat.S_ISREG(before.st_mode) and before.st_size==length\n        raw=f.read(length+1);assert len(raw)==length\n        after=os.fstat(f.fileno());physical=os.lstat(path)\n        identity=lambda x:(x.st_dev,x.st_ino,x.st_size,x.st_mode,x.st_mtime_ns,x.st_ctime_ns)\n        assert stat.S_ISREG(physical.st_mode) and identity(before)==identity(after)==identity(physical)\n    assert hashlib.sha256(raw).hexdigest()==digest;return raw\n_raw=_held(N/'acquire.py',1825,'0548bc742a3a2b25271717b23673657f17c2b815baea538fb57d20f086d5a10f')\n_m=types.ModuleType('canonical_import_acquisition');_m.__file__=str(N/'acquire.py')\nexec(compile(_raw,_m.__file__,'exec'),_m.__dict__)\n_canonical_import_input=_m.acquire\n_original=_held(N/'bind-selected-endpoints.before.py',1951,'05ad6ee46f9147227d0fece012c7ad118ec43c3e50aaa535d78025e4d46d4b49')\n_edits=[{'before': 'def selected_previous(repo,raw):\\n', 'after': \"def selected_previous(repo,raw):\\n    raw=_canonical_import_input(repo,'src/cleanup_plan/replay/factored/canonical_shared.rs',raw)\\n\"}]\n_text=_original.decode()\nfor _e in _edits:assert _text.count(_e['before'])==1;_text=_text.replace(_e['before'],_e['after'],1)\n_restored=_text\nfor _e in reversed(_edits):assert _restored.count(_e['after'])==1;_restored=_restored.replace(_e['after'],_e['before'],1)\nassert _restored.encode()==_original\nexec(compile(_text,str(P),'exec'),globals())\n",
+        "before": "import hashlib,json\nD=Path(__file__).resolve().parent\nR=D.parents[2]\nsha=lambda raw:hashlib.sha256(raw).hexdigest()\nPACKET_SHA='947c41698347ca27788aae5985e63f19c85d3f7eb3f25fee4374dac9d0d743d1'\nBINDER_SHA='fb830593f4ccc544d8d54774a68ad5f823f9c96d2aa42dc75051cd6a74ec3978'\ndef selected_previous(repo,raw):\n    packet=(D/'full-source-inverses.json').read_bytes();assert sha(packet)==PACKET_SHA\n    row=json.loads(packet)[0]\n    assert row['path']=='src/cleanup_plan/replay/factored/canonical_shared.rs'\n    assert len(raw)==row['current_length'] and sha(raw)==row['current_sha256']\n    text=raw.decode()\n    for edit in row['inverse']:\n        assert text.count(edit['after'])==1\n        text=text.replace(edit['after'],edit['before'],1)\n    before=(repo/row['archive']).read_bytes()\n    assert len(before)==row['before_length'] and sha(before)==row['before_sha256']\n    assert text.encode()==before\n    return before\n\ndef render():\n    original=(D/'bind-singleton-endpoints.before.py.txt').read_bytes()\n    assert sha(original)==BINDER_SHA\n    old=\" assert sha(raw)==row['current_sha256']\"\n    new=\" raw=_selected_previous(repo,raw)\\n\"+old\n    source=original.decode();assert source.count(old)==1\n    current=source.replace(old,new,1)\n    assert current.replace(new,old,1).encode()==original\n    return current\n\ndef main():\n    path=R/'docs/evidence/ordinary-singleton-successors-20261017/bind-singleton-endpoints.py'\n    assert sha(path.read_bytes())==BINDER_SHA\n    exec(compile(render(),str(path),'exec'),{'__name__':'__main__','__file__':str(path),'_selected_previous':selected_previous})\nif __name__=='__main__':main()\n"
+      }
+    ]
+  }
+]

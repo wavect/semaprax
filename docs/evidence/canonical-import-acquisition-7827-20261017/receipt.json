@@ -1,0 +1,101 @@
+{
+  "status": "SOURCE_ONLY_NOT_COMPILED_OR_COMMON_QUALIFIED",
+  "base": "4821fe1a2",
+  "changed_existing": [
+    "src/source_reflows_merge/main67107_inputs.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs",
+    "docs/evidence/selected-successor-generation-20261017/bind-selected-endpoints.py"
+  ],
+  "new_rust_owners": 0,
+  "controls": {
+    "status": "SOURCE_ONLY_NOT_RUST_OR_BINDER_MAIN_QUALIFIED",
+    "whole_old_selected_packet_retained": true,
+    "whole_original_selected_source_assertions_executed": true,
+    "two_subject_stage_channels": 4,
+    "refusals": 41,
+    "main67107_full_previous_recovered": true,
+    "main67107_lines": 738
+  },
+  "files": [
+    {
+      "path": "src/source_reflows_merge/main67107_inputs.rs",
+      "bytes": 46690,
+      "sha256": "362585e1e2e79d50d0a062c2eb40bbcba8fcfe20340fad2f5779402de54aa8aa"
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs",
+      "bytes": 56925,
+      "sha256": "6dbb0428fcd1e70858de38f0b795d7ac92f0b601d92318e7d2c818b5dfc3cb27"
+    },
+    {
+      "path": "docs/evidence/selected-successor-generation-20261017/bind-selected-endpoints.py",
+      "bytes": 1889,
+      "sha256": "5e8231b69371b6997e306246311c9cb33bed4c74fe891ce9f595085629b95735"
+    },
+    {
+      "path": "docs/evidence/canonical-import-acquisition-7827-20261017/README.md",
+      "bytes": 2907,
+      "sha256": "c27464cd2798db81f10c359c54afed8d79879c9b962a0b8e271f9745c44aafe7"
+    },
+    {
+      "path": "docs/evidence/canonical-import-acquisition-7827-20261017/acquire.py",
+      "bytes": 1825,
+      "sha256": "0548bc742a3a2b25271717b23673657f17c2b815baea538fb57d20f086d5a10f"
+    },
+    {
+      "path": "docs/evidence/canonical-import-acquisition-7827-20261017/before/src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs",
+      "bytes": 56738,
+      "sha256": "ba15ecc74f11b3add8df8014ff5e2188da0b8581d00771b7646aa55dc4dab02c"
+    },
+    {
+      "path": "docs/evidence/canonical-import-acquisition-7827-20261017/before/src/cleanup_plan/replay/factored/canonical_shared.rs",
+      "bytes": 63947,
+      "sha256": "014f04e64f90e79480cce6ad9fe5cfbc8ce7f3fa82564e739ab53e131669700c"
+    },
+    {
+      "path": "docs/evidence/canonical-import-acquisition-7827-20261017/before/src/source_reflows_merge/main67107_inputs.rs",
+      "bytes": 43443,
+      "sha256": "c30561ec04950c587768523fb3a4abddba844441983de979f14adeb171544937"
+    },
+    {
+      "path": "docs/evidence/canonical-import-acquisition-7827-20261017/bind-selected-endpoints.before.py",
+      "bytes": 1951,
+      "sha256": "05ad6ee46f9147227d0fece012c7ad118ec43c3e50aaa535d78025e4d46d4b49"
+    },
+    {
+      "path": "docs/evidence/canonical-import-acquisition-7827-20261017/check-source.py",
+      "bytes": 6063,
+      "sha256": "85055bcfa1ef269afa779835e5e6b399af772b283a7a29bbf5777c9f6fd80ae9"
+    },
+    {
+      "path": "docs/evidence/canonical-import-acquisition-7827-20261017/current/src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs",
+      "bytes": 56925,
+      "sha256": "6dbb0428fcd1e70858de38f0b795d7ac92f0b601d92318e7d2c818b5dfc3cb27"
+    },
+    {
+      "path": "docs/evidence/canonical-import-acquisition-7827-20261017/current/src/cleanup_plan/replay/factored/canonical_shared.rs",
+      "bytes": 63964,
+      "sha256": "22d0dcf599a65ce24039027378d46ea04bae83735dcbc93ba13df6eb99c450e4"
+    },
+    {
+      "path": "docs/evidence/canonical-import-acquisition-7827-20261017/full-source-inverses.json",
+      "bytes": 9309,
+      "sha256": "b556faf43a955d707dfdf53c468cb0bf3e532b5a4dd6e0aa48dacde34b4dbaf5"
+    },
+    {
+      "path": "docs/evidence/canonical-import-acquisition-7827-20261017/public-finite-edits.json",
+      "bytes": 212,
+      "sha256": "56805fd4830630e6ef58aba4cec4b0bc9d1294a36e5a984ab156813850e23463"
+    },
+    {
+      "path": "docs/evidence/canonical-import-acquisition-7827-20261017/source-controls.json",
+      "bytes": 296,
+      "sha256": "24b576ad1173b46ff0f946cddeac8a835c94d844cdf04644a3a54b90443324e9"
+    },
+    {
+      "path": "docs/evidence/canonical-import-acquisition-7827-20261017/sources.json",
+      "bytes": 1807,
+      "sha256": "c0ec361ae90245676b4804403a4fe7bf65a34df06347109b086dfd0762deb7e0"
+    }
+  ]
+}

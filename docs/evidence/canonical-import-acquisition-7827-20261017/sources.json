@@ -1,0 +1,32 @@
+[
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+    "current_length": 63964,
+    "current_sha256": "22d0dcf599a65ce24039027378d46ea04bae83735dcbc93ba13df6eb99c450e4",
+    "current_archive": "docs/evidence/canonical-import-acquisition-7827-20261017/current/src/cleanup_plan/replay/factored/canonical_shared.rs",
+    "stage_length": 63947,
+    "stage_sha256": "014f04e64f90e79480cce6ad9fe5cfbc8ce7f3fa82564e739ab53e131669700c",
+    "stage_archive": "docs/evidence/canonical-import-acquisition-7827-20261017/before/src/cleanup_plan/replay/factored/canonical_shared.rs",
+    "inverse": [
+      {
+        "after": "    physical_clone, replay_error, AllocationPayer, Automaton,",
+        "before": "    physical_clone, replay_error, Automaton,"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs",
+    "current_length": 56925,
+    "current_sha256": "6dbb0428fcd1e70858de38f0b795d7ac92f0b601d92318e7d2c818b5dfc3cb27",
+    "current_archive": "docs/evidence/canonical-import-acquisition-7827-20261017/current/src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs",
+    "stage_length": 56738,
+    "stage_sha256": "ba15ecc74f11b3add8df8014ff5e2188da0b8581d00771b7646aa55dc4dab02c",
+    "stage_archive": "docs/evidence/canonical-import-acquisition-7827-20261017/before/src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs",
+    "inverse": [
+      {
+        "after": "    let current=include_str!(\"../canonical_shared.rs\");\n    let acquired=crate::source_reflows_merge::main67107_inputs::canonical_import_input(\"src/cleanup_plan/replay/factored/canonical_shared.rs\",current);\n    let current=acquired.as_str();",
+        "before": "    let current=include_str!(\"../canonical_shared.rs\");"
+      }
+    ]
+  }
+]

@@ -564,7 +564,12 @@ fn selected_successor_expected_input(source: &str, expected: &str, current: &str
         let length = usize::try_from(row["current_length"].as_u64().unwrap()).unwrap();
         let before_length = usize::try_from(row["before_length"].as_u64().unwrap()).unwrap();
         assert!(length <= 131_072 && before_length <= 131_072);
-        let physical = factored_core_file(&root.join(path), length, row["current_sha256"].as_str().unwrap()).unwrap();
+        let raw_compiled = compiled;
+        let compiled_stage = canonical_import_input(path, compiled);
+        let compiled = compiled_stage.as_str();
+        let physical = compiled_stage.clone();
+        assert_eq!(physical.len(), length);
+        assert_eq!(digest(&physical), row["current_sha256"]);
         assert_eq!(physical, compiled, "complete compiled and physical selected source");
         let before = factored_core_file(&root.join(row["archive"].as_str().unwrap()), before_length, row["before_sha256"].as_str().unwrap()).unwrap();
         let mut restored = physical.clone();
@@ -577,6 +582,7 @@ fn selected_successor_expected_input(source: &str, expected: &str, current: &str
         }
         assert_eq!(restored, before, "complete selected predecessor");
         if path == source {
+            let current = if current == raw_compiled { physical.as_str() } else { current };
             if source == root_source && expected == "bbe5d1ff75b6b3bc811d181275181994027cd83188d6096e5b7716efbec753d3" && digest(current) == expected {
                 // The independently authenticated older singleton namespace is
                 // already at its requested stage; do not project it a second time.
@@ -678,4 +684,55 @@ fn owned_compile35f_current_acquisition_preserves_complete_seven_subjects_and_re
         assert!(std::panic::catch_unwind(|| owned_compile35f_input(source, &bad)).is_err());
     }
     assert_eq!(owned_compile35f_input("foreign", "unchanged"), "unchanged");
+}
+
+
+// Import-only compile generation before the immutable Selected947 source rows.
+pub(crate) fn canonical_import_input(source: &str, current: &str) -> String {
+    let compiled = match source {
+        "src/cleanup_plan/replay/factored/canonical_shared.rs" => include_str!("../cleanup_plan/replay/factored/canonical_shared.rs"),
+        "src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs" => include_str!("../cleanup_plan/replay/factored/canonical_shared/arena_tests.rs"),
+        _ => return current.to_owned(),
+    };
+    let data = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/canonical-import-acquisition-7827-20261017/sources.json"));
+    assert!(data.len() <= 65_536);
+    assert_eq!(digest(data), "c0ec361ae90245676b4804403a4fe7bf65a34df06347109b086dfd0762deb7e0");
+    let rows: serde_json::Value = serde_json::from_str(data).unwrap();
+    assert_eq!(rows.as_array().unwrap().len(), 2);
+    let row = rows.as_array().unwrap().iter().find(|r| r["source"] == source).unwrap();
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let read = |archive: &str, length: &str, hash: &str| {
+        let length = usize::try_from(row[length].as_u64().unwrap()).unwrap();
+        assert!(length <= 131_072);
+        factored_core_file(&root.join(archive), length, row[hash].as_str().unwrap()).unwrap()
+    };
+    let actual = read(source, "current_length", "current_sha256");
+    assert_eq!(actual, compiled);
+    assert_eq!(actual, read(row["current_archive"].as_str().unwrap(), "current_length", "current_sha256"));
+    let stage = read(row["stage_archive"].as_str().unwrap(), "stage_length", "stage_sha256");
+    let mut restored = actual.clone();
+    for edit in row["inverse"].as_array().unwrap() {
+        let after = edit["after"].as_str().unwrap();
+        assert_eq!(restored.matches(after).count(), 1);
+        restored = restored.replacen(after, edit["before"].as_str().unwrap(), 1);
+    }
+    assert_eq!(restored, stage);
+    assert!(current == actual || current == stage, "foreign canonical import generation");
+    stage
+}
+
+#[test]
+fn canonical_import_generation_authenticates_current_and_complete_selected_stages() {
+    for (source, raw) in [
+        ("src/cleanup_plan/replay/factored/canonical_shared.rs", include_str!("../cleanup_plan/replay/factored/canonical_shared.rs")),
+        ("src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs", include_str!("../cleanup_plan/replay/factored/canonical_shared/arena_tests.rs")),
+    ] {
+        let stage = canonical_import_input(source, raw);
+        assert_ne!(stage, raw);
+        assert_eq!(canonical_import_input(source, &stage), stage);
+        for bad in [String::new(), "foreign".to_owned(), format!("{raw} "), raw[..raw.len()-1].to_owned()] {
+            assert!(std::panic::catch_unwind(|| canonical_import_input(source, &bad)).is_err());
+        }
+    }
+    assert_eq!(canonical_import_input("foreign", "unchanged"), "unchanged");
 }

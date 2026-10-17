@@ -1,0 +1,6 @@
+[
+  {
+    "before": "def selected_previous(repo,raw):\n",
+    "after": "def selected_previous(repo,raw):\n    raw=_canonical_import_input(repo,'src/cleanup_plan/replay/factored/canonical_shared.rs',raw)\n"
+  }
+]

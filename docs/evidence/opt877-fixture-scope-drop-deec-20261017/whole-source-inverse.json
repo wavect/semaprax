@@ -1,0 +1,32 @@
+{
+  "base": "deec161142b2f3e882e50b4450338c69c137e586",
+  "path": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
+  "before_length": 28129,
+  "before_sha256": "b2004e6eb3450ca8bc02c7822a3f258280ae3b248f6054f761cdd6567b8e52c8",
+  "before_archive": "tests.before.rs.txt",
+  "current_length": 31873,
+  "current_sha256": "f972a395e082188f2e05fb98624c80e04070aa0f106731230920c288120e65e3",
+  "current_archive": "tests.after.rs.txt",
+  "inverse": [
+    {
+      "start": 28474,
+      "after": "\n\n// Observation-only transport: keep every field byte, not an owning refusal\n// String beyond measure(). This fixture's prepaid refusal text is bounded by\n// its short function IDs plus the existing 512-byte refusal backing contract.\n// The reporting bound is checked, never truncated or used as compiler funding.\n#[derive(Debug, Eq, PartialEq)]\nstruct DiagnosticText {\n    bytes: [u8; 1024],\n    len: usize,\n}\nimpl DiagnosticText {\n    fn capture(value: &str) -> Self {\n        let mut bytes = [0; 1024];\n        assert!(value.len() <= bytes.len(), \"complete fixture Diagnostic must fit reporting storage\");\n        bytes[..value.len()].copy_from_slice(value.as_bytes());\n        Self { bytes, len: value.len() }\n    }\n}\n#[derive(Debug, Eq, PartialEq)]\nstruct DiagnosticFields {\n    code: &'static str,\n    severity: crate::diagnostic::Severity,\n    message: DiagnosticText,\n    path: Option<DiagnosticText>,\n    span: Option<crate::ast::Span>,\n    help: Option<DiagnosticText>,\n}\nimpl DiagnosticFields {\n    fn capture(error: Diagnostic) -> Self {\n        Self {\n            code: error.code,\n            severity: error.severity,\n            message: DiagnosticText::capture(&error.message),\n            path: error.path.as_deref().map(DiagnosticText::capture),\n            span: error.span,\n            help: error.help.as_deref().map(DiagnosticText::capture),\n        }\n        // The original owning Diagnostic drops here, before measure returns.\n    }\n}\n\n#[test]\nfn oracle_entry_still_refuses_missing_and_same_id_foreign_invocation_without_active_fallback() {\n    let program = program();\n    let function = &program.functions[0];\n    let foreign = function.clone();\n    assert_eq!(foreign.id, function.id);\n    for entered_foreign in [false, true] {\n        let ((), refused, paid, first) = with_limit_usage_refusal(usize::MAX, || {\n            let active = crate::bounded_output::active_remaining();\n            let scope = allocation::OracleScope::open_with_work(usize::MAX, usize::MAX).unwrap();\n            let invocation = if entered_foreign {\n                Some(allocation::enter(&program, &foreign, scope.lease()).unwrap())\n            } else {\n                None\n            };\n            let mut budget = ReplayBudget::with_skeleton_limit_oracle(usize::MAX, scope.lease());\n            let error = SkeletonWork::with_index(&program, function, &mut budget, None).err().unwrap();\n            assert_eq!(error, Diagnostic::io(\"SPX-H006\", String::new()));\n            assert!(budget.refusal_spent);\n            assert_eq!((budget.remaining, budget.skeleton_remaining), (0, 0));\n            let selected = scope.receipt();\n            assert_eq!((selected.charged, selected.work), (0, 0));\n            assert!(selected.physical_failure.is_some());\n            let retry = budget.reserve_bytes(function, 0, \"oracle invocation sticky retry\").unwrap_err();\n            assert_eq!(retry, error);\n            let retried = scope.receipt();\n            assert_eq!((retried.charged, retried.work, retried.physical_failure),\n                (selected.charged, selected.work, selected.physical_failure));\n            assert_eq!(crate::bounded_output::active_remaining(), active);\n            drop((retry, error));\n            drop(budget);\n            drop(invocation);\n            drop(scope);\n        });\n        assert!(!refused && first.is_none());\n        assert_eq!(paid, 0);\n    }\n}\n",
+      "before": ""
+    },
+    {
+      "start": 20906,
+      "after": "            drop(invocation);\n",
+      "before": ""
+    },
+    {
+      "start": 20146,
+      "after": "            let invocation = allocation::enter(&program, function, scope.lease()).unwrap();\n",
+      "before": ""
+    },
+    {
+      "start": 9215,
+      "after": "                // Keep the original budget-before-error Drop order. The full\n                // Diagnostic must be freed inside the allocation observer too.\n                drop(budget);\n                result.map_err(DiagnosticFields::capture)\n",
+      "before": "                result\n"
+    }
+  ]
+}

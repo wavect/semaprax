@@ -219,26 +219,26 @@ pub(super) const ORIGINAL_BEGIN_BYTES: usize = 2 * size_of::<Attempt<'_, '_>>()
 const _: () = assert!(LEXICAL_BEGIN_BYTES <= ORIGINAL_BEGIN_BYTES);
 macro_rules! begin_receiving {
     ($proof:ident, $function:ident, $budget:ident) => {{
-        if $proof.state.get() != super::case_proof::State::Ready {
+        if $proof.state.get() != $crate::cleanup_plan::replay::expression_facts::receiving::retained::case_proof::State::Ready {
             return Err($proof.reject());
         }
         $proof.authenticate($function, $budget)?;
         if let Err(error) = $budget
             .reserve_bytes(
                 $function,
-                super::case_proof::ORIGINAL_BEGIN_BYTES,
-                super::case_proof::PHASE,
+                $crate::cleanup_plan::replay::expression_facts::receiving::retained::case_proof::ORIGINAL_BEGIN_BYTES,
+                $crate::cleanup_plan::replay::expression_facts::receiving::retained::case_proof::PHASE,
             )
-            .and_then(|()| $budget.charge($function, 3, super::case_proof::PHASE))
+            .and_then(|()| $budget.charge($function, 3, $crate::cleanup_plan::replay::expression_facts::receiving::retained::case_proof::PHASE))
         {
-            $proof.state.set(super::case_proof::State::Failed);
+            $proof.state.set($crate::cleanup_plan::replay::expression_facts::receiving::retained::case_proof::State::Failed);
             return Err(error);
         }
         // Same three debits: Active assignment, proof-field initialization,
         // and the caller's direct borrowed ActiveBuilder predicate. The last
         // replaces the absent complete:false initializer; no stored bool exists.
-        $proof.state.set(super::case_proof::State::Active);
-        super::case_proof::LexicalAttempt { proof: $proof }
+        $proof.state.set($crate::cleanup_plan::replay::expression_facts::receiving::retained::case_proof::State::Active);
+        $crate::cleanup_plan::replay::expression_facts::receiving::retained::case_proof::LexicalAttempt { proof: $proof }
     }};
 }
 pub(super) use begin_receiving;

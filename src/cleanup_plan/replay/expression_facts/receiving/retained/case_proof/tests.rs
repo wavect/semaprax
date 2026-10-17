@@ -444,3 +444,115 @@ fn attempts_cannot_complete_after_poison_foreign_payer_or_successful_consumption
         assert!(!metrics.invalid && metrics.live == 0 && metrics.allocated == metrics.freed);
     }
 }
+
+#[test]
+fn lexical_current_attempt_refusal_unwind_and_completed_reuse_are_affine() {
+    let program = program(3);
+    let function = program
+        .functions
+        .iter()
+        .find(|f| f.id.as_str() == "cases.main")
+        .unwrap();
+    assert!(function.cleanup_plan.status_sources.len() >= 3);
+    let facts = facts(function);
+    for scenario in 0..3 {
+        let (((), metrics), _, _, _) = with_limit_usage_refusal(usize::MAX, || {
+            measure(|| {
+                let mut budget = ReplayBudget::new();
+                let proof = StatusCases::validate(&program, function, &mut budget).unwrap();
+                let first = if scenario == 0 {
+                    // The genuine current caller has entered its lexical attempt;
+                    // only begin's three work units remain, so later receiving refuses.
+                    budget.remaining = 3;
+                    match validate_status_sources_certified(function, &facts, &mut budget, &proof) {
+                        Err(error) => error,
+                        Ok(_) => panic!("current receiving must refuse before completion"),
+                    }
+                } else {
+                    let proof = &proof;
+                    let budget = &mut budget;
+                    let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(
+                        || -> Result<(), Diagnostic> {
+                            let mut attempt = super::begin_receiving!(proof, function, budget);
+                            if scenario == 1 {
+                                // Unwind through the actual production lexical token.
+                                std::panic::resume_unwind(Box::new(()));
+                            }
+                            attempt.complete(function, budget)?;
+                            // Completion grants no second use; rejection must survive Drop.
+                            proof.member(
+                                function,
+                                &function.cleanup_plan.status_sources[0],
+                                0,
+                                budget,
+                            )
+                        },
+                    ));
+                    if scenario == 1 {
+                        assert!(outcome.is_err());
+                        drop(outcome);
+                        proof
+                            .member(
+                                function,
+                                &function.cleanup_plan.status_sources[0],
+                                0,
+                                budget,
+                            )
+                            .unwrap_err()
+                    } else {
+                        outcome.unwrap().unwrap_err()
+                    }
+                };
+                assert_eq!(first.code, "SPX-H006");
+                let selected = first.clone();
+                let allocated = current_metrics().allocated;
+                let receiving_remaining = crate::bounded_output::active_remaining();
+                let remaining = budget.remaining;
+                for _ in 0..2 {
+                    assert_eq!(
+                        proof.member(
+                            function,
+                            &function.cleanup_plan.status_sources[0],
+                            0,
+                            &mut budget
+                        ),
+                        Err(Diagnostic::io("SPX-H006", String::new()))
+                    );
+                    let retry = (|| -> Result<(), Diagnostic> {
+                        let proof = &proof;
+                        let budget = &mut budget;
+                        let _attempt = super::begin_receiving!(proof, function, budget);
+                        Ok(())
+                    })();
+                    assert_eq!(retry, Err(Diagnostic::io("SPX-H006", String::new())));
+                }
+                assert_eq!(
+                    first, selected,
+                    "the selected diagnostic retains all six fields"
+                );
+                assert_eq!(
+                    budget.remaining, remaining,
+                    "poisoned proof cannot spend more work"
+                );
+                assert_eq!(
+                    crate::bounded_output::active_remaining(),
+                    receiving_remaining,
+                    "poisoned proof cannot debit the receiving ledger"
+                );
+                assert_eq!(
+                    current_metrics().allocated,
+                    allocated,
+                    "retries cannot acquire or format"
+                );
+                drop(first);
+                drop(selected);
+                drop(proof);
+                drop(budget);
+            })
+        });
+        assert!(
+            !metrics.invalid && metrics.live == 0 && metrics.allocated == metrics.freed,
+            "refusal, unwind, rejected completion and last Drop: {metrics:?}"
+        );
+    }
+}

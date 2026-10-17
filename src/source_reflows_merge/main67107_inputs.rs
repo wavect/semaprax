@@ -613,4 +613,4 @@ fn selected_successor_complete_root_and_arena_acquisition_refuses_foreign_stages
 }
 
 const SUPPLEMENT_RECEIVER_LENGTH: usize = 607;
-const SUPPLEMENT_RECEIVER_SHA: &str = "4f73b6091d11a7bc7b9427234698fd4fea4f88e4c2e6c160947e1ac1ebaf7ac4";
+const SUPPLEMENT_RECEIVER_SHA: &str = "1c120e26c852966dba70f8d67b5869465bedd655aa4eb4612986453a2f8f1035";

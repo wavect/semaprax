@@ -2,7 +2,7 @@
 from pathlib import Path
 import hashlib,json,os,stat
 META_LENGTH=607
-META_SHA='4f73b6091d11a7bc7b9427234698fd4fea4f88e4c2e6c160947e1ac1ebaf7ac4'
+META_SHA='1c120e26c852966dba70f8d67b5869465bedd655aa4eb4612986453a2f8f1035'
 ROOT_SOURCE='src/source_reflows/semantic_receivers.rs'
 def read(path,length,sha):
  assert 0<=length<=65536

@@ -2,6 +2,7 @@
 //! Labels borrow only immutable automaton cells. Legacy outer trees remain in
 //! both actual successor branches; this directory is selected only for payers.
 use super::*;
+use crate::cleanup_plan::replay::physical_storage;
 use std::mem::size_of;
 
 type Successors = (u64, Vec<(Label, SharedWeighted)>);

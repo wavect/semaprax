@@ -441,7 +441,8 @@ fn whole_sequence_owner_reports_paid_allocated_peak_and_complete_drop_for_small_
                 }
                 .unwrap();
                 let paths = result.len();
-                drop((result, suffixes, work, budget));
+                drop((result, suffixes, work));
+                drop(budget);
                 paths
             })
         })
@@ -482,7 +483,8 @@ fn original_oracle_retains_full_old_accounts_without_entering_shared_storage() {
             }
             .unwrap();
             assert!(paths.iter().all(|path| path.observations.prefix.is_none()));
-            drop((paths, suffixes, work, budget));
+            drop((paths, suffixes, work));
+            drop(budget);
             let receipt = scope.receipt();
             drop(scope);
             receipt

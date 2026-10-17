@@ -1,0 +1,503 @@
+{
+  "base": "aafda9f37f3d093c60013f3c63b6e7286a6285df",
+  "rows": [
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs",
+      "before_sha256": "e83f7a28c14df7b622b696975ebf2231c4e40f0ee140162be2ff9e51c7acee0f",
+      "after_sha256": "7d72a2aadb93fc3a865cceb4a35b7ce9fa0ee01a23dab50491845184859b3f1e",
+      "before": "00.before.txt",
+      "after": "00.after.txt",
+      "edits": [
+        {
+          "start": 251,
+          "end": 251,
+          "old": "",
+          "new": ";\nuse crate::cleanup_plan::replay::physical_storage"
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/skeleton_work/merge_keys_tests.rs",
+      "before_sha256": "06d8eb03297f3e9daf1d66c15fb46024005edce6f35d2286f9c547103d907e49",
+      "after_sha256": "e31dcefcb253e8d9ba94da407cb87d3f11a2e18ea4f9a29e9ff5f7e0913ffa92",
+      "before": "01.before.txt",
+      "after": "01.after.txt",
+      "edits": [
+        {
+          "start": 89,
+          "end": 89,
+          "old": "",
+          "new": ";\nuse std::rc::Rc"
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/physical_storage/zero_tests.rs",
+      "before_sha256": "6cc68d62c5e6674ab87344a3cb70819ca6de291f816cf3d94992243f8f16a508",
+      "after_sha256": "a053304fc38a762c3f1f1f837b46a2e120496236aede8c1c236543819bc083b3",
+      "before": "02.before.txt",
+      "after": "02.after.txt",
+      "edits": [
+        {
+          "start": 523,
+          "end": 523,
+          "old": "",
+          "new": ",direct_anchor:None"
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/owned_suffix.rs",
+      "before_sha256": "2a07888cb9fbc7c3fffcca2fafa689c87fdf4d16e2db5727e42f3ce0b7f3d938",
+      "after_sha256": "e9cd09455d33d55768e413902085d1b27870a972fe7a079497e976d5acbd2da4",
+      "before": "03.before.txt",
+      "after": "03.after.txt",
+      "edits": [
+        {
+          "start": 1870,
+          "end": 1871,
+          "old": ">",
+          "new": ""
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/skeleton_work/ordinary_dag.rs",
+      "before_sha256": "b77e9c8426386d86fc922421c1cab4c997643cb401294a537ea2afb9634ea3e9",
+      "after_sha256": "08b5b67b03b2e80391e9a2ed4ccb936937481c88b38da9cc18fae79da2418d66",
+      "before": "04.before.txt",
+      "after": "04.after.txt",
+      "edits": [
+        {
+          "start": 3223,
+          "end": 3224,
+          "old": "s",
+          "new": "in crate::clean"
+        },
+        {
+          "start": 3226,
+          "end": 3226,
+          "old": "",
+          "new": "_plan::r"
+        },
+        {
+          "start": 3227,
+          "end": 3228,
+          "old": "r",
+          "new": "play"
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/skeleton_work.rs",
+      "before_sha256": "73ae980d09e4324eb272f1379364cb6ace3cce71a1f8c57de9bfd1a47f482c41",
+      "after_sha256": "2532173c152df743989e4afd5fc84ae4b3dd32bf45b0a72fe09039a832887c4b",
+      "before": "05.before.txt",
+      "after": "05.after.txt",
+      "edits": [
+        {
+          "start": 9303,
+          "end": 9303,
+          "old": "",
+          "new": "\n    /// Release test-owned observation scratch in the original field order.\n    #[cfg(test)]\n    pub(super) fn release_observation_scratch_for_test(&mut self) {\n        drop(self.dag_scratch.take());\n        drop(self.ordinary_scratch.take());\n    }\n"
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/owned_suffix/tests.rs",
+      "before_sha256": "c0f445022ebd5ec1ac69bf16dd2f8f88029ae80032047f221cc0c2ac6d2afff4",
+      "after_sha256": "3edb2464491fda85a208c95b4a2b62549a42fd1791b4bae1ef78087bd3430d3e",
+      "before": "06.before.txt",
+      "after": "06.after.txt",
+      "edits": [
+        {
+          "start": 3446,
+          "end": 3451,
+          "old": "drop(",
+          "new": ""
+        },
+        {
+          "start": 3456,
+          "end": 3457,
+          "old": "d",
+          "new": "rele"
+        },
+        {
+          "start": 3458,
+          "end": 3459,
+          "old": "g",
+          "new": "se_observation"
+        },
+        {
+          "start": 3467,
+          "end": 3503,
+          "old": ".take());\n                    drop(w",
+          "new": "_f"
+        },
+        {
+          "start": 3505,
+          "end": 3515,
+          "old": "k.ordinary",
+          "new": ""
+        },
+        {
+          "start": 3516,
+          "end": 3516,
+          "old": "",
+          "new": "te"
+        },
+        {
+          "start": 3517,
+          "end": 3520,
+          "old": "cra",
+          "new": ""
+        },
+        {
+          "start": 3521,
+          "end": 3528,
+          "old": "ch.take",
+          "new": ""
+        },
+        {
+          "start": 3529,
+          "end": 3530,
+          "old": ")",
+          "new": ""
+        },
+        {
+          "start": 5710,
+          "end": 5715,
+          "old": "drop(",
+          "new": ""
+        },
+        {
+          "start": 5720,
+          "end": 5721,
+          "old": "d",
+          "new": "rele"
+        },
+        {
+          "start": 5722,
+          "end": 5723,
+          "old": "g",
+          "new": "se_observation"
+        },
+        {
+          "start": 5731,
+          "end": 5759,
+          "old": ".take());\n            drop(w",
+          "new": "_f"
+        },
+        {
+          "start": 5761,
+          "end": 5771,
+          "old": "k.ordinary",
+          "new": ""
+        },
+        {
+          "start": 5772,
+          "end": 5772,
+          "old": "",
+          "new": "te"
+        },
+        {
+          "start": 5773,
+          "end": 5776,
+          "old": "cra",
+          "new": ""
+        },
+        {
+          "start": 5777,
+          "end": 5784,
+          "old": "ch.take",
+          "new": ""
+        },
+        {
+          "start": 5785,
+          "end": 5786,
+          "old": ")",
+          "new": ""
+        },
+        {
+          "start": 9139,
+          "end": 9144,
+          "old": "drop(",
+          "new": ""
+        },
+        {
+          "start": 9149,
+          "end": 9150,
+          "old": "d",
+          "new": "rele"
+        },
+        {
+          "start": 9151,
+          "end": 9152,
+          "old": "g",
+          "new": "se_observation"
+        },
+        {
+          "start": 9160,
+          "end": 9188,
+          "old": ".take());\n            drop(w",
+          "new": "_f"
+        },
+        {
+          "start": 9190,
+          "end": 9200,
+          "old": "k.ordinary",
+          "new": ""
+        },
+        {
+          "start": 9201,
+          "end": 9201,
+          "old": "",
+          "new": "te"
+        },
+        {
+          "start": 9202,
+          "end": 9205,
+          "old": "cra",
+          "new": ""
+        },
+        {
+          "start": 9206,
+          "end": 9213,
+          "old": "ch.take",
+          "new": ""
+        },
+        {
+          "start": 9214,
+          "end": 9215,
+          "old": ")",
+          "new": ""
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
+      "before_sha256": "58faa5c67c0bfd7c487ec180bec6b1bc8f7d967d645c71b18ac5535ea162743e",
+      "after_sha256": "b2004e6eb3450ca8bc02c7822a3f258280ae3b248f6054f761cdd6567b8e52c8",
+      "before": "07.before.txt",
+      "after": "07.after.txt",
+      "edits": [
+        {
+          "start": 18663,
+          "end": 18664,
+          "old": ",",
+          "new": "));\n"
+        },
+        {
+          "start": 18665,
+          "end": 18665,
+          "old": "",
+          "new": "               drop("
+        },
+        {
+          "start": 18671,
+          "end": 18672,
+          "old": ")",
+          "new": ""
+        },
+        {
+          "start": 20539,
+          "end": 20540,
+          "old": ",",
+          "new": "));\n"
+        },
+        {
+          "start": 20541,
+          "end": 20541,
+          "old": "",
+          "new": "           drop("
+        },
+        {
+          "start": 20547,
+          "end": 20548,
+          "old": ")",
+          "new": ""
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/sequence_prefix.rs",
+      "before_sha256": "097d701c509a7a143a1003fdc179d4a52aa74e1352bb2a381fd0dbeed43191d8",
+      "after_sha256": "65a4f05aaf7a0cabfdb583657de5afbffb7b2e8b605c91638b2c87a6a9d57258",
+      "before": "08.before.txt",
+      "after": "08.after.txt",
+      "edits": [
+        {
+          "start": 330,
+          "end": 386,
+          "old": ";\n#[cfg(test)]\nuse main_current::sequence_skeleton_paths",
+          "new": ""
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/owned_suffix/sequence_vector.rs",
+      "before_sha256": "8b3736ee75fff0a1e774eb2349bcca18e7c2c20f06d08d5056609e4831fb4edf",
+      "after_sha256": "083d5de99eb0f24380d58b5ccd9ba4a27f978d5436d5149de9c6c012cc517b95",
+      "before": "09.before.txt",
+      "after": "09.after.txt",
+      "edits": [
+        {
+          "start": 79,
+          "end": 131,
+          "old": "\nuse super::super::{ExprSkeletonPath, Observations};",
+          "new": ""
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/lexical_cert/paid/chains_tests.rs",
+      "before_sha256": "fb83d5122403a7f70813d87ac3cf4c1fd8ffade280e4a6b79834be4d5ef6df1d",
+      "after_sha256": "eac62af2cbb2f0fc090b303db09ae0853a7a1efc38f6b0a48d9c8732b9e931c1",
+      "before": "10.before.txt",
+      "after": "10.after.txt",
+      "edits": [
+        {
+          "start": 0,
+          "end": 42,
+          "old": "use super::{contains, contains_or_false};\n",
+          "new": ""
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/sequence_prefix/main_c11/wrapper_context.rs",
+      "before_sha256": "ea7e0dbafb12d87d9e0eaca636df929cca8121b01e28b6cdd12bf26d540473a4",
+      "after_sha256": "a27633e7378a0af162f16900d932bafb8ae15a8819530cea7b8af6d6e26ed5ec",
+      "before": "11.before.txt",
+      "after": "11.after.txt",
+      "edits": [
+        {
+          "start": 141,
+          "end": 159,
+          "old": ", lexical_skeleton",
+          "new": ""
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/sequence_prefix/main8a/wrapper_context.rs",
+      "before_sha256": "ea7e0dbafb12d87d9e0eaca636df929cca8121b01e28b6cdd12bf26d540473a4",
+      "after_sha256": "a27633e7378a0af162f16900d932bafb8ae15a8819530cea7b8af6d6e26ed5ec",
+      "before": "12.before.txt",
+      "after": "12.after.txt",
+      "edits": [
+        {
+          "start": 141,
+          "end": 159,
+          "old": ", lexical_skeleton",
+          "new": ""
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/sequence_vector/main_a3/path_array_source.rs",
+      "before_sha256": "bf332aaa81cefb76bbe17c610523c3b2916a24cbb1bf1fced10617f35f2d6473",
+      "after_sha256": "36686f375c3e05d7f3bfd3305a2ebdc14bce3abf9fb7e8aa3204e5d01f9a3e61",
+      "before": "13.before.txt",
+      "after": "13.after.txt",
+      "edits": [
+        {
+          "start": 0,
+          "end": 14,
+          "old": "use super::*;\n",
+          "new": ""
+        }
+      ]
+    },
+    {
+      "path": "src/workspace_graph/source_schema/nominal_context/tests.rs",
+      "before_sha256": "fe8a8d461eb4a0977a69a929be63651959a24638ffc87d6ac079a1577a6a5bc7",
+      "after_sha256": "6867c0c3615144a5b5e79343f2afbb560454dd58d6202e4847f89df649ccfa95",
+      "before": "14.before.txt",
+      "after": "14.after.txt",
+      "edits": [
+        {
+          "start": 81,
+          "end": 112,
+          "old": "::*;\nuse crate::workspace_graph",
+          "new": ""
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/inventory_coverage/typed_tests.rs",
+      "before_sha256": "90e883ce881573c8ae5a8c87a14fc3d962a4a1ae91223e681d977f10f7a40526",
+      "after_sha256": "dd7f441df60b498cddef2388c0b84565e5e699b32993901258a549f03cec2768",
+      "before": "15.before.txt",
+      "after": "15.after.txt",
+      "edits": [
+        {
+          "start": 4859,
+          "end": 4859,
+          "old": "",
+          "new": "mut actual_work = usize::MAX;\n            let "
+        },
+        {
+          "start": 5057,
+          "end": 5057,
+          "old": "",
+          "new": "act"
+        },
+        {
+          "start": 5058,
+          "end": 5067,
+          "old": "size::MAX",
+          "new": "al_work"
+        },
+        {
+          "start": 7787,
+          "end": 7787,
+          "old": "",
+          "new": "mut a_work = usize::MAX;\n    let "
+        },
+        {
+          "start": 7904,
+          "end": 7914,
+          "old": "usize::MAX",
+          "new": "a_work"
+        },
+        {
+          "start": 7953,
+          "end": 7953,
+          "old": "",
+          "new": ";\n    let mut b_work = usize::MAX"
+        },
+        {
+          "start": 8080,
+          "end": 8090,
+          "old": "usize::MAX",
+          "new": "b_work"
+        },
+        {
+          "start": 8981,
+          "end": 8981,
+          "old": "",
+          "new": "let mut refused_work = usize::MAX;\n        "
+        },
+        {
+          "start": 9049,
+          "end": 9049,
+          "old": "",
+          "new": "ref"
+        },
+        {
+          "start": 9051,
+          "end": 9053,
+          "old": "iz",
+          "new": ""
+        },
+        {
+          "start": 9054,
+          "end": 9059,
+          "old": "::MAX",
+          "new": "d_work"
+        }
+      ]
+    }
+  ]
+}

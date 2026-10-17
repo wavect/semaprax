@@ -1,4 +1,3 @@
-use super::*;
 #[test]
 fn complete_old_functions_are_compiled_and_only_capacity_hooks_change() {
     use sha2::{Digest, Sha256};

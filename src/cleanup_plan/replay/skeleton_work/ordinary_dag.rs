@@ -93,7 +93,7 @@ impl SkeletonWork<'_, '_> {
         .map(Some)
     }
 
-    pub(super) fn ordinary_union(
+    pub(in crate::cleanup_plan::replay) fn ordinary_union(
         &mut self,
         members: Vec<Observations>,
     ) -> Result<Observations, Diagnostic> {

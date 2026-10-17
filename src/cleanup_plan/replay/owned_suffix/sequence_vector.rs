@@ -1,5 +1,4 @@
 //! Lexical one-successor output-vector transfer after the first original work.
-use super::super::{ExprSkeletonPath, Observations};
 
 // Unchanged fees remain owned and compiled at replay::sequence_vector.
 macro_rules! transfer {

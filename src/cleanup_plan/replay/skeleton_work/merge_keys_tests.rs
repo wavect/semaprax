@@ -1,5 +1,6 @@
 //! Small complete-language oracle and cumulative storage probes for OPT878.
 use super::*;
+use std::rc::Rc;
 
 fn fixture(lexical: bool) -> ResolvedProgram {
     let source = if lexical {

@@ -1,0 +1,7 @@
+
+impl Canonicalizer<'_> {
+    pub(super) fn signatures(&self) -> &intern_arena::Arena<intern_arena::Signature> { &self.ids }
+    pub(super) fn states(&self) -> &intern_arena::Arena<SharedWeighted> { &self.states }
+}
+#[path = "terminal_leaf.rs"]
+mod terminal_leaf;

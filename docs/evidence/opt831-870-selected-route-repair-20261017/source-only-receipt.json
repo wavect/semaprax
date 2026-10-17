@@ -1,0 +1,34 @@
+{
+  "status": "SOURCE_ONLY_UNCOMPILED_UNQUALIFIED",
+  "base": "0f9fb3766f0413694e4a12447538f7c7bb99627f",
+  "new_modules": [
+    "src/cleanup_plan/replay/factored/canonical_shared/before_selected_route.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/paid_route_tests.rs"
+  ],
+  "current_lines": 1489,
+  "whole_before_lines": 1393,
+  "original_tariffs_unchanged": [
+    "selected_labels.rs",
+    "paid_many.rs"
+  ],
+  "original_failure_assertions_unchanged": [
+    "receiving_layer_tests.rs inline_targets_actual_old_current_reserved_allocated_peak_and_whole_drop_are_measured",
+    "paid_many/tests.rs composed_paid_producer_measures_both_receiving_paths_and_exact_short_zero_whole_drop"
+  ],
+  "new_receiving_roles": "None introduced in shipping successor. Selected match arm now reaches already-existing full tree producer; removed Groups representation and itspaymentcalls are compiled only in beforecontrol.",
+  "source_binding_obligations": [
+    "All3 rawinventories/currentowned closure join2new physicalmodules",
+    "Named actualcurrent->whole0f9->whole1484 existing accepted_expected_value source guard retains exact historical2dispatch assertions",
+    "No generated sourcebindings authored inlane"
+  ],
+  "Cargo": false,
+  "tests_executed": false,
+  "rustfmt_stdout_parse": true,
+  "gain_or_fit_claim": false,
+  "source_guard_152": {
+    "defect": "ROOT42 table has no expected54aa prior and returns1488current; exact196-byte Operation guard remains after existing selectedinverse",
+    "fix": "Named current physical+compiled+supplied next_big_batch::value selects exactwhole1484 view; same3args and all assertions unchanged",
+    "whole_original_source": "docs/evidence/opt831-870-selected-route-repair-20261017/selected_labels_tests.whole-before.rs.txt"
+  },
+  "role_delta": "selected_labels module registration changes from shipping to cfg(test); derive bounded actual root role delta, do not claim old role classes identical"
+}

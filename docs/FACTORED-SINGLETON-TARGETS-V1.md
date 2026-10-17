@@ -146,3 +146,19 @@ independent negative controls, including original payment-before-scope failure.
 Production held-receiving logic is unchanged. Full before inputs, original
 assertions and new same-ID/scope/restored/ledger-layout controls remain required.
 No executable correctness, reservation improvement or application fit is asserted.
+
+## Selected outer-label route correction (OPT831/870, source only)
+
+The observed complete singleton receiver paid more after the selected Groups
+transport even though it allocated less. General empty labels also acquired
+Groups entry and transport controls and violated the unchanged exact small
+fallback contract. Selected replay therefore uses the already paid outer label
+tree and inlined One targets. Its old label-node, initializer, iterator and
+publication payments remain real and unchanged. Distinct children still enter
+the composed paid flat receiver; no promotion/search/finish tariff is removed.
+The Groups representation, macro and complete immediate canonical producer are
+retained independently under test cfg. Their original receiving banks remain
+unchanged; they supply no credit to current code. All preceding controls remain
+executable. The new unprojected source owner distinguishes the current fallback
+from the whole historical Groups producer. Strict831 saving and exact870 small
+fallback assertions are unchanged and require actual combined execution.

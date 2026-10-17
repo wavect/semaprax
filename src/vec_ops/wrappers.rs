@@ -160,22 +160,12 @@ pub(crate) fn source_wrapper(program: &dyn ProgramSource, function: &Function) -
 }
 
 /// Downstream presentation classification: the current projected module and
-/// effective name control recognition; provider authentication uses the
-/// unchanged raw classifier above. No payload-name substitution is allowed.
+/// original declaration name control recognition; local lookup separately uses
+/// the effective binding name. The complete reserved declaration guard remains.
 pub(crate) fn source_wrapper_ref(
     program: &dyn ProgramSource,
     function: &crate::ast::program_source::FunctionRef<'_>,
 ) -> Option<VecOp> {
-    if let Some((provider, declaration)) = function.provider_declaration() {
-        if !source_module_is_authenticated(program) {
-            return None;
-        }
-        // A borrowed presentation must be an actual member of this source.
-        // The unchanged full guard checks the real provider's reserved name,
-        // identity, signature, effects and complete forwarding body.
-        return program.function_refs().contains_presentation(function)
-            .then(|| source_wrapper(provider, declaration)).flatten();
-    }
     if !source_module_is_authenticated(program)
         || !function.payload().explicit_id
         || function.payload().type_parameters.len() != 1
@@ -187,7 +177,7 @@ pub(crate) fn source_wrapper_ref(
         return None;
     }
     let op = wrapper_by_id(&function.payload().stable_id)?;
-    if function.name() != wrapper_name(op)? {
+    if function.declaration_name() != wrapper_name(op)? {
         return None;
     }
     let expected_names: &[&str] = match op {

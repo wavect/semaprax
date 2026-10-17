@@ -406,30 +406,38 @@ fn provider_bound_intrinsic_alias_requires_existing_authority_exact_membership_a
         assert_eq!(before.alias_cell.copied(), Some(alias));
         let specialized = original.clone();
         let specialized_cell = cell.specialized_payload(&specialized);
-        assert!(specialized_cell.provider_declaration().is_none());
-        linked(|| assert!(crate::vec_ops::source_wrapper_ref(&view, &specialized_cell).is_none()));
+        assert!(!view.function_refs().contains_presentation(&specialized_cell));
         assert!(crate::vec_ops::source_wrapper_ref(&view, &cell).is_none());
-        assert!(cell.provider_declaration().is_some());
+        assert!(view.function_refs().contains_presentation(&cell));
+        assert!(!view.function_refs().contains_presentation(&alien));
+        assert_eq!(cell.declaration_name(), original.name);
         linked(|| {
             assert_eq!(crate::vec_ops::source_wrapper_ref(&view, &cell), Some(crate::vec_ops::VecOp::WithCapacity));
-            assert!(crate::vec_ops::source_wrapper_ref(&view, &alien).is_none());
+            // Directory membership is checked above, independently of the
+            // original pure classifier and its authenticated-module scope.
+            assert_eq!(crate::vec_ops::source_wrapper_ref(&view, &alien), Some(crate::vec_ops::VecOp::WithCapacity));
         });
         let mut changed = original.clone();
         changed.name = "make_vec".to_owned();
         assert!(crate::vec_ops::source_wrapper(&programs[1], &changed).is_none());
+        linked(|| assert!(crate::vec_ops::source_wrapper_ref(&view, &FunctionRef::ordinary(&changed)).is_none()));
         assert!(FunctionView::checked(&programs[1], &changed, "make_vec").is_none());
         changed = original.clone();
         changed.effects.push("hostile.effect".to_owned());
         assert!(crate::vec_ops::source_wrapper(&programs[1], &changed).is_none());
+        linked(|| assert!(crate::vec_ops::source_wrapper_ref(&view, &FunctionRef::ordinary(&changed)).is_none()));
         changed = original.clone();
         changed.params[0].mode = crate::ast::ParamMode::Own;
         assert!(crate::vec_ops::source_wrapper(&programs[1], &changed).is_none());
+        linked(|| assert!(crate::vec_ops::source_wrapper_ref(&view, &FunctionRef::ordinary(&changed)).is_none()));
         changed = original.clone();
         changed.body = programs[0].functions[0].body.clone();
         assert!(crate::vec_ops::source_wrapper(&programs[1], &changed).is_none());
+        linked(|| assert!(crate::vec_ops::source_wrapper_ref(&view, &FunctionRef::ordinary(&changed)).is_none()));
         changed = original.clone();
         changed.stable_id = "forged.wrapper".to_owned();
         assert!(crate::vec_ops::source_wrapper(&programs[1], &changed).is_none());
+        linked(|| assert!(crate::vec_ops::source_wrapper_ref(&view, &FunctionRef::ordinary(&changed)).is_none()));
         drop((view, foreign, owner));
         drop(registry);
     });

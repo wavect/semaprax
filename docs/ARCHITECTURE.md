@@ -1072,10 +1072,14 @@ transformations and semantic cache publication keep genuine owning boundaries.
 views and the projected `DeclSlices` directory. A view requires the exact
 provider member; its local alias remains the binding used by name lookup.
 Under the existing linked-source authority, the intrinsic classifier checks
-actual presentation membership and the complete original provider declaration,
-including its reserved name, identity, signature and forwarding body. Intrinsic
-HIR templates retain that provider name. A pointer, alias or origin label alone
-grants no authority. Its `FunctionDirectory` retains one `GeneratedRoots` owner
+the complete declaration payload, including its reserved name, identity,
+signature and forwarding body; it reads the declaration name instead of the
+local binding name. Exact provider membership remains the checked producer's
+boundary, rather than a new classifier callback. Intrinsic HIR templates retain
+that declaration name. Template-name selection first reserves its receiving
+carriers, then the complete selected name's UTF-8 bytes before cloning. General
+nonintrinsic templates retain their local binding names. A pointer, alias or
+origin label alone grants no authority. Its `FunctionDirectory` retains one `GeneratedRoots` owner
 for all generated types and fallback functions, including partial-construction
 teardown. `expected_projection/borrowed_imports/typed/alias.rs` owns the ordered
 import walk. The original full wrapper classifier still admits the shape;

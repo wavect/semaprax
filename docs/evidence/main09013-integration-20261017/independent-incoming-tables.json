@@ -1,0 +1,86 @@
+[
+  {
+    "path": "docs/evidence/compact-staged-observations-v1/inverse.json",
+    "retained_ours_sha256": "ef2d603d1d9190002b8e6b0c44fe6e1fb2bfb940e9497bf14db3026d3bf133ae",
+    "incoming_archive": "docs/evidence/main09013-integration-20261017/incoming/docs/evidence/compact-staged-observations-v1/inverse.json",
+    "incoming_length": 155646,
+    "incoming_sha256": "77586fd216e172f08d846f678bcf7fee846deaade485152279f9d2d97c17aff4"
+  },
+  {
+    "path": "docs/evidence/held-continuation-growth-v1/sources.json",
+    "retained_ours_sha256": "fc570428ed0d2c7eabbbb6226bab73b0e5c3fa4dc16fa5e72fc6143ad86f8673",
+    "incoming_archive": "docs/evidence/main09013-integration-20261017/incoming/docs/evidence/held-continuation-growth-v1/sources.json",
+    "incoming_length": 565227,
+    "incoming_sha256": "bf29c54afdba671b4fa18026ccd420119ca426426855f003338ce00634d1f9b2"
+  },
+  {
+    "path": "docs/evidence/held-status-prefix-v1/sources.json",
+    "retained_ours_sha256": "20fd863fcb291ad9e4e09c4ccf79ca2be1bad9f206a7f87d88a201df890ab3de",
+    "incoming_archive": "docs/evidence/main09013-integration-20261017/incoming/docs/evidence/held-status-prefix-v1/sources.json",
+    "incoming_length": 9457256,
+    "incoming_sha256": "c9693b5d0782da400b1184b838803d2876d76e132ad1f0b213fc096d2b556b55"
+  },
+  {
+    "path": "docs/evidence/moderate-factored-v1/sources.json",
+    "retained_ours_sha256": "cd4a2d223a0d10598b534e2416e1eb9024903b75ac84bd238cc155204dfdc088",
+    "incoming_archive": "docs/evidence/main09013-integration-20261017/incoming/docs/evidence/moderate-factored-v1/sources.json",
+    "incoming_length": 1093824,
+    "incoming_sha256": "84997fc54515945cdcb946f73e1a7dc65d7a387df055f52cbb7fb6359cb0269d"
+  },
+  {
+    "path": "docs/evidence/ordinary-replay-routes-v1/sources.json",
+    "retained_ours_sha256": "08561b7278747222f6e7902d5169ce6444e25da3e1add2dcdcb4c6cb3a8fd73f",
+    "incoming_archive": "docs/evidence/main09013-integration-20261017/incoming/docs/evidence/ordinary-replay-routes-v1/sources.json",
+    "incoming_length": 23281,
+    "incoming_sha256": "bbe4ada7bde9d07a5f6b8c85569dbc9cfb3dd426618ec2299c8ea8c997952f40"
+  },
+  {
+    "path": "docs/evidence/ordinary-replay-setup-v1/helper-inputs.json",
+    "retained_ours_sha256": "347499fc3e60466e1e1ee04e219aeec04d61cd8e6ae3a165f91d8bb6a04a65ef",
+    "incoming_archive": "docs/evidence/main09013-integration-20261017/incoming/docs/evidence/ordinary-replay-setup-v1/helper-inputs.json",
+    "incoming_length": 634902,
+    "incoming_sha256": "35d31aaa1b5637fb5a258b8bf8e5de9c50b20f709303e0ec8e8b34cb5478074c"
+  },
+  {
+    "path": "docs/evidence/ordinary-replay-setup-v1/production-cfg.json",
+    "retained_ours_sha256": "a2433bba5c8d80869a3d30cbf99e72d1ab75570aac06b19f719406b8b20a14ab",
+    "incoming_archive": "docs/evidence/main09013-integration-20261017/incoming/docs/evidence/ordinary-replay-setup-v1/production-cfg.json",
+    "incoming_length": 91893,
+    "incoming_sha256": "d88f7e359de0dacf7d2f5a8cda79120f92e1782d5c48c848e073bf15a431956e"
+  },
+  {
+    "path": "docs/evidence/ordinary-replay-setup-v1/sources.json",
+    "retained_ours_sha256": "8649bea97b3a9081a3b46eb46758140defe906d6d467ff1e704a5f6d015b4816",
+    "incoming_archive": "docs/evidence/main09013-integration-20261017/incoming/docs/evidence/ordinary-replay-setup-v1/sources.json",
+    "incoming_length": 4278485,
+    "incoming_sha256": "036e54fbe96a2b1e4324eeb4b8925bed0df614e0687613d2cdc7bbde90b0e8f1"
+  },
+  {
+    "path": "docs/evidence/paid-expression-lookup-state-v1/sources.json",
+    "retained_ours_sha256": "812f4c176e8efecd3415907be8ec146be60c78d33a19dcccc3175d7d5eb7daef",
+    "incoming_archive": "docs/evidence/main09013-integration-20261017/incoming/docs/evidence/paid-expression-lookup-state-v1/sources.json",
+    "incoming_length": 979341,
+    "incoming_sha256": "f9f369210fcdb893fe6fd2fb567948cc15f9e0ec49674e7c31e103786f4cf041"
+  },
+  {
+    "path": "docs/evidence/receiver-source-custody-v1/inverse.json",
+    "retained_ours_sha256": "17758338cdb03f1a294fb75d923ccc515c814aa3d257521f41ef8593a7d9da1b",
+    "incoming_archive": "docs/evidence/main09013-integration-20261017/incoming/docs/evidence/receiver-source-custody-v1/inverse.json",
+    "incoming_length": 305440,
+    "incoming_sha256": "6f39f3e238182d5694f78ffef61fe7191cad10e7a60709d847359b3b9d121b58"
+  },
+  {
+    "path": "docs/evidence/source-reader-followups-20261016/sources.json",
+    "retained_ours_sha256": "08d9a996cbf1c0d2582d3ae1175398c46666e28ba47f65f8fd69fdebc3c05115",
+    "incoming_archive": "docs/evidence/main09013-integration-20261017/incoming/docs/evidence/source-reader-followups-20261016/sources.json",
+    "incoming_length": 166069,
+    "incoming_sha256": "e795c9736c25d94939ac81dc69f18b3e21daa73a3d6224d54adbb7edeed3b726"
+  },
+  {
+    "path": "docs/evidence/borrowed-exit-region-match-v1/sources.json",
+    "retained_ours_sha256": "92daa68109ac3fb5716b5509e04bc108c454a96bb97e54228bb8332d6f60761f",
+    "incoming_archive": "docs/evidence/main09013-integration-20261017/incoming/docs/evidence/borrowed-exit-region-match-v1/sources.json",
+    "incoming_length": 23054,
+    "incoming_sha256": "0b7b400236a0f1af35f17e4fa86b659019c06561e229555d7c2c237655f41c62"
+  }
+]

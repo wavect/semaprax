@@ -95,6 +95,14 @@
 - Reconcile Main8a finished-path capacity, arbitrary final-suffix transfer and borrowed nominal context with lexical paid receiving; preserve original work-before-optional-payment priority and complete Main controls. Qualification and net application cost remain pending.
 
 - Reconcile Main24 as an independent historical prefix probe/transfer receiver with all six current and five prior-wrapper controls; retain the shipping lexical single-successor transfer and exact path-array preflight.
+- Bind primitive String-vector fixture byte arrays to named owners before borrowing, preserving every original value, output limit, backend and rejection assertion.
+
+- Transfer already funded final-branch observation backing when a bounded terminal-chain probe proves it can hold every remaining observation, preserving original clone work, fallback receivers and source controls.
+
+- Admit strictly checked primitive String-slot reads in nonallocating byte-helper proofs, avoid temporary type owners during slot inspection, and retain generic declaration-bound receipts at the rejected-storage frontier.
+
+- Refresh browser graph pins from complete hosted 21abcda9b captures after the 4,707-byte cumulative builder-debit reduction, retaining every prior wire and source control.
+
 - Compare paid non-latch exit region prefixes through fully funded borrowed ancestry state, retaining complete chain validation, original owning paths, limits and whole-source controls.
 
 - Refresh browser graph pins from complete hosted 7d34f1269 captures, preserving every prior wire byte except the observed builder debit and self-digest, with all historical controls retained.

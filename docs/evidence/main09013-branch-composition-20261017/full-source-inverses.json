@@ -1,0 +1,491 @@
+[
+  {
+    "path": "src/cleanup_plan/replay.rs",
+    "current_length": 321224,
+    "current_sha256": "555fe96fc9153aa2a7843ffd15da85e429bb56b1eef52e98193930f80203618e",
+    "parents": [
+      {
+        "domain": "ours",
+        "head": "272655d6cdfd1b2c37fd768bee81880b4df6b193",
+        "archive": "docs/evidence/main09013-branch-composition-20261017/before/ours/src/cleanup_plan/replay.rs.txt",
+        "length": 318621,
+        "sha256": "458260e9a3d66601d731b7bad8737efdfd5a4deb4e52bbb07adf0f0af150777b",
+        "inverse": [
+          {
+            "start_byte": 294445,
+            "after": "                        // Original clone1 is charged above on both true and\n                        // false probe paths; this is a bounded implementation\n                        // detail of that materialization, not a CPU ledger.\n                        match budget {\n                            ReplayBudget { payer: AllocationPayer::ActiveBuilder, .. } => {\n                                budget.reserve_bytes(function, branch_clone::TAKE_CALL_CONTROLS,\n                                    \"plan final branch probe receiving\")?;\n                                if branch_clone::can_take(branch_clone::TakeCandidate {\n                                    values: &observations,\n                                    remaining_edges: remaining_edges.len(),\n                                    edge_count: edges.len(),\n                                    budget,\n                                    plan,\n                                    target: edge.to,\n                                }) {\n                                    note_skeleton_materialization();\n                                    budget.charge_skeleton(function, 1, \"plan branch observation push\")?;\n                                    note_skeleton_materialization();\n                                    budget.reserve_bytes(function, 0, \"plan branch observation push\")?;\n                                    budget.reserve_bytes(function,\n                                        physical_clone::conversion_bytes::<std::rc::Rc<SkeletonObservation>, _>(&observation),\n                                        \"plan branch observation push\")?;\n                                    #[cfg(test)]\n                                    branch_clone::note_take();\n                                    #[cfg(test)]\n                                    branch_clone::note_generic_take();\n                                    branch = std::mem::take(&mut observations);\n                                    branch.push(observation.into());\n                                    skeleton_queue_push(budget, function, &mut queue,\n                                        (edge.to, branch), \"plan branch state push\")?;\n                                    continue;\n                                }\n                            }\n                            _ => {}\n                        }\n",
+            "before": ""
+          },
+          {
+            "start_byte": 289560,
+            "after": "                // Same slice iterator as the original for-loop, now named for the final-edge query.\n                let mut remaining_edges = edges.iter();\n                while let Some(edge) = remaining_edges.next() {\n",
+            "before": "                for edge in edges {\n"
+          },
+          {
+            "start_byte": 288515,
+            "after": "                    #[cfg(test)]\n                    branch_clone::note_take();\n",
+            "before": ""
+          }
+        ]
+      },
+      {
+        "domain": "main",
+        "head": "09013dbfafbcb37db7c79a0622a56a0707e94e3b",
+        "archive": "docs/evidence/main09013-branch-composition-20261017/before/main/src/cleanup_plan/replay.rs.txt",
+        "length": 302169,
+        "sha256": "e02105834f829503b1e1a6645067f7b0784fed133890c6f7b4553346ba011f28",
+        "inverse": [
+          {
+            "start_byte": 320532,
+            "after": "\n#[cfg(test)]\npub(crate) use factored::EpsilonAppCensus;\n\nmod selected_type_drop;\n\n#[cfg(test)]\n#[path = \"replay/sequence_prefix/main24/mod.rs\"]\nmod sequence_prefix_main24;\n\n#[cfg(test)]\n#[path = \"replay/sequence_prefix/main_c11/mod.rs\"]\nmod sequence_prefix_main_c11;\n\n#[cfg(test)]\n#[path = \"replay/branch_clone/main8a.rs\"]\nmod branch_clone_main8a;\n#[cfg(test)]\n#[path = \"replay/path_array/main8a/mod.rs\"]\nmod path_array_main8a;\n#[cfg(test)]\n#[path = \"replay/sequence_prefix/main8a/mod.rs\"]\nmod sequence_prefix_main8a;\n\n#[cfg(test)]\n#[path = \"replay/sequence_vector/main_a3/mod.rs\"]\nmod sequence_vector_maina3;\n\n#[cfg(test)]\n#[path = \"replay/path_array/main44/mod.rs\"]\nmod path_array_main44;\n",
+            "before": ""
+          },
+          {
+            "start_byte": 297991,
+            "after": "                            capacity - observations.len(),\n                            \"plan branch observation push\",\n                        )?;\n                        budget.reserve_bytes(\n                            function,\n                            physical_clone::conversion_bytes::<std::rc::Rc<SkeletonObservation>, _>(\n                                &observation,\n                            ),\n                            \"plan branch observation push\",\n                        )?;\n                        branch = Vec::with_capacity(capacity);\n                        branch.extend(observations.iter().cloned());\n                        branch.push(observation.into());\n                    }\n",
+            "before": "                            &observations,\n                            \"cleanup-plan skeleton branch clone\",\n                        )?\n                    };\n                    skeleton_push(\n                        budget,\n                        function,\n                        &mut branch,\n                        observation,\n                        \"plan branch observation push\",\n                    )?;\n"
+          },
+          {
+            "start_byte": 297061,
+            "after": "                        // Original push work precedes every extra backing debit.\n                        budget.charge_skeleton(function, 1, \"plan branch observation push\")?;\n                        note_skeleton_materialization();\n                        let capacity = if observations.is_empty() {\n                            1\n                        } else {\n                            if observations.len() > usize::MAX / 2 {\n                                return Err(budget.budget_refusal(\n                                    function,\n                                    \"cleanup replay branch capacity overflowed\",\n                                    \"\",\n                                ));\n                            }\n                            observations.len() * 2\n                        };\n                        budget.reserve_array::<std::rc::Rc<SkeletonObservation>>(\n",
+            "before": "                        #[cfg(test)]\n                        branch_clone::note_take();\n                        std::mem::take(&mut observations)\n                    } else {\n                        branch_clone::for_push(\n                            budget,\n"
+          },
+          {
+            "start_byte": 296867,
+            "after": "                            &observations,\n",
+            "before": "                            branch_clone::TAKE_BYTES,\n"
+          },
+          {
+            "start_byte": 294445,
+            "after": "                        // Original clone1 is charged above on both true and\n                        // false probe paths; this is a bounded implementation\n                        // detail of that materialization, not a CPU ledger.\n                        match budget {\n                            ReplayBudget { payer: AllocationPayer::ActiveBuilder, .. } => {\n                                budget.reserve_bytes(function, branch_clone::TAKE_CALL_CONTROLS,\n                                    \"plan final branch probe receiving\")?;\n                                if branch_clone::can_take(branch_clone::TakeCandidate {\n                                    values: &observations,\n                                    remaining_edges: remaining_edges.len(),\n                                    edge_count: edges.len(),\n                                    budget,\n                                    plan,\n                                    target: edge.to,\n                                }) {\n                                    note_skeleton_materialization();\n                                    budget.charge_skeleton(function, 1, \"plan branch observation push\")?;\n                                    note_skeleton_materialization();\n                                    budget.reserve_bytes(function, 0, \"plan branch observation push\")?;\n                                    budget.reserve_bytes(function,\n                                        physical_clone::conversion_bytes::<std::rc::Rc<SkeletonObservation>, _>(&observation),\n                                        \"plan branch observation push\")?;\n                                    #[cfg(test)]\n                                    branch_clone::note_take();\n                                    #[cfg(test)]\n                                    branch_clone::note_generic_take();\n                                    branch = std::mem::take(&mut observations);\n                                    branch.push(observation.into());\n                                    skeleton_queue_push(budget, function, &mut queue,\n                                        (edge.to, branch), \"plan branch state push\")?;\n                                    continue;\n                                }\n                            }\n                            _ => {}\n                        }\n                        budget.reserve_clone(\n",
+            "before": "                        budget.reserve_array::<u8>(\n"
+          },
+          {
+            "start_byte": 293087,
+            "after": "                    budget.reserve_bytes(\n                        function,\n                        branch_clone::inline_controls::<std::rc::Rc<SkeletonObservation>>(),\n                        \"branch clone receiving controls\",\n                    )?;\n                    // The branch producer has no Result<Vec<_>, Diagnostic>\n                    // receiver or owned observation forwarding argument. Its\n                    // nested work/census/payment Results retain their charges.\n                    let mut branch;\n                    if !budget.pays_allocations() {\n                        branch = skeleton_clone(\n                            budget,\n                            function,\n                            &observations,\n                            \"cleanup-plan skeleton branch clone\",\n                        )?;\n                        skeleton_push(\n                            budget,\n                            function,\n                            &mut branch,\n                            observation,\n                            \"plan branch observation push\",\n                        )?;\n                    } else {\n",
+            "before": "                    let mut branch = if branch_clone::can_take(branch_clone::TakeCandidate {\n                        values: &observations,\n                        remaining_edges: remaining_edges.len(),\n                        edge_count: edges.len(),\n                        budget,\n                        plan,\n                        target: edge.to,\n                    }) {\n                        // Keep the original clone work/materialization, fund the\n                        // complete probe, then move this final prefix unchanged.\n"
+          },
+          {
+            "start_byte": 283887,
+            "after": "                budget.reserve_bytes(\n                    function,\n                    final_output::PLAN_SELECTION_CONTROLS,\n                    \"plan final-output selection controls\",\n                )?;\n                if edges.len() == 2 && observations.len() < observations.capacity() {\n                    let edge = &plan.edges[edges[0].0 as usize];\n                    let observation = final_output::observation!(edge, budget, function);\n                    budget.reserve_bytes(\n                        function,\n                        branch_clone::inline_controls::<std::rc::Rc<SkeletonObservation>>(),\n                        \"branch clone receiving controls\",\n                    )?;\n                    // The branch producer has no Result<Vec<_>, Diagnostic>\n                    // receiver or owned observation forwarding argument. Its\n                    // nested work/census/payment Results retain their charges.\n                    let mut branch;\n                    if !budget.pays_allocations() {\n                        branch = skeleton_clone(\n                            budget,\n                            function,\n                            &observations,\n                            \"cleanup-plan skeleton branch clone\",\n                        )?;\n                        skeleton_push(\n                            budget,\n                            function,\n                            &mut branch,\n                            observation,\n                            \"plan branch observation push\",\n                        )?;\n                    } else {\n                        budget.charge_skeleton(\n                            function,\n                            1,\n                            \"cleanup-plan skeleton branch clone\",\n                        )?;\n                        budget.reserve_clone(\n                            function,\n                            &observations,\n                            \"cleanup-plan skeleton branch clone\",\n                        )?;\n                        note_skeleton_materialization();\n                        // Original push work precedes every extra backing debit.\n                        budget.charge_skeleton(function, 1, \"plan branch observation push\")?;\n                        note_skeleton_materialization();\n                        let capacity = if observations.is_empty() {\n                            1\n                        } else {\n                            if observations.len() > usize::MAX / 2 {\n                                return Err(budget.budget_refusal(\n                                    function,\n                                    \"cleanup replay branch capacity overflowed\",\n                                    \"\",\n                                ));\n                            }\n                            observations.len() * 2\n                        };\n                        budget.reserve_array::<std::rc::Rc<SkeletonObservation>>(\n                            function,\n                            capacity - observations.len(),\n                            \"plan branch observation push\",\n                        )?;\n                        budget.reserve_bytes(\n                            function,\n                            physical_clone::conversion_bytes::<std::rc::Rc<SkeletonObservation>, _>(\n                                &observation,\n                            ),\n                            \"plan branch observation push\",\n                        )?;\n                        branch = Vec::with_capacity(capacity);\n                        branch.extend(observations.iter().cloned());\n                        branch.push(observation.into());\n                    }\n                    skeleton_queue_push(\n                        budget,\n                        function,\n                        &mut queue,\n                        (edge.to, branch),\n                        \"plan branch state push\",\n                    )?;\n                    let edge = &plan.edges[edges[1].0 as usize];\n                    let observation = final_output::observation!(edge, budget, function);\n                    budget.reserve_bytes(\n                        function,\n                        final_output::PLAN_MOVE_CONTROLS,\n                        \"plan final-output move controls\",\n                    )?;\n                    budget.charge_skeleton(function, 1, \"cleanup-plan skeleton branch clone\")?;\n                    note_skeleton_materialization();\n                    #[cfg(test)]\n                    final_output::record_move(observations.len(), observations.capacity());\n                    #[cfg(test)]\n                    branch_clone::note_take();\n                    let mut branch = observations;\n                    budget.charge_skeleton(function, 1, \"plan branch observation push\")?;\n                    note_skeleton_materialization();\n                    budget.reserve_bytes(function, 0, \"plan branch observation push\")?;\n                    budget.reserve_bytes(\n                        function,\n                        physical_clone::conversion_bytes::<std::rc::Rc<SkeletonObservation>, _>(\n                            &observation,\n                        ),\n                        \"plan branch observation push\",\n                    )?;\n                    branch.push(observation.into());\n                    skeleton_queue_push(\n                        budget,\n                        function,\n                        &mut queue,\n                        (edge.to, branch),\n                        \"plan branch state push\",\n                    )?;\n                    continue;\n                }\n                // Same slice iterator as the original for-loop, now named for the final-edge query.\n",
+            "before": ""
+          },
+          {
+            "start_byte": 281942,
+            "after": "                    compact_stage::prepare!(function, budget, &source);\n",
+            "before": ""
+          },
+          {
+            "start_byte": 272029,
+            "after": "        path_array::push!(\n            work,\n            first,\n            minimum,\n            &mut results,\n            path,\n            \"contract success path\"\n        );\n",
+            "before": "        work.push_expr_path(&mut results, path, \"contract success path\")?;\n"
+          },
+          {
+            "start_byte": 271456,
+            "after": "        path_array::push!(\n            work,\n            first,\n            minimum,\n            &mut results,\n            failure,\n            \"contract failure path\"\n        );\n",
+            "before": "        work.push_expr_path(&mut results, failure, \"contract failure path\")?;\n"
+          },
+          {
+            "start_byte": 270689,
+            "after": "            path_array::push!(\n                work,\n                first,\n                minimum,\n                &mut results,\n                path,\n                \"short-circuited contract path\"\n            );\n",
+            "before": "            work.push_expr_path(&mut results, path, \"short-circuited contract path\")?;\n"
+          },
+          {
+            "start_byte": 270472,
+            "after": "    let minimum = path_array::count!(work, false, paths.len(), \"contract path capacity\");\n    path_array::select!(first, minimum, &results, work);\n",
+            "before": "    path_array::minimum(&mut results, paths.len(), work, \"contract path capacity\")?;\n"
+          },
+          {
+            "start_byte": 270299,
+            "after": "    #[cfg(test)]\n    if path_array::main696::selected() {\n        return path_array::main696::split_contract(paths, contract, work);\n    }\n",
+            "before": ""
+          },
+          {
+            "start_byte": 269932,
+            "after": "        path_array::push!(\n            work,\n            first,\n            minimum,\n            &mut results,\n            path,\n            \"status success path\"\n        );\n",
+            "before": "        work.push_expr_path(&mut results, path, \"status success path\")?;\n"
+          },
+          {
+            "start_byte": 269397,
+            "after": "        path_array::push!(\n            work,\n            first,\n            minimum,\n            &mut results,\n            failure,\n            \"status failure path\"\n        );\n",
+            "before": "        work.push_expr_path(&mut results, failure, \"status failure path\")?;\n"
+          },
+          {
+            "start_byte": 268670,
+            "after": "            path_array::push!(\n                work,\n                first,\n                minimum,\n                &mut results,\n                path,\n                \"short-circuited status path\"\n            );\n",
+            "before": "            work.push_expr_path(&mut results, path, \"short-circuited status path\")?;\n"
+          },
+          {
+            "start_byte": 268455,
+            "after": "    let minimum = path_array::count!(work, false, paths.len(), \"status path capacity\");\n    path_array::select!(first, minimum, &results, work);\n",
+            "before": "    path_array::minimum(&mut results, paths.len(), work, \"status path capacity\")?;\n"
+          },
+          {
+            "start_byte": 268280,
+            "after": "    #[cfg(test)]\n    if path_array::main696::selected() {\n        return path_array::main696::split_status_paths(paths, source, work);\n    }\n",
+            "before": ""
+          },
+          {
+            "start_byte": 258893,
+            "after": "            compact_stage::prepare!(work.function, work.budget, &staged_source);\n",
+            "before": ""
+          },
+          {
+            "start_byte": 251113,
+            "after": "        path_array::push!(work, first, minimum, target, path, phase);\n",
+            "before": "        work.push_expr_path(target, path, phase)?;\n"
+          },
+          {
+            "start_byte": 250816,
+            "after": "    #[cfg(test)]\n    if path_array::main696::selected() {\n        return path_array::main696::append_expr_paths(target, paths, work, phase);\n    }\n    let minimum = path_array::count!(work, false, paths.len(), phase);\n    path_array::select!(first, minimum, target, work);\n",
+            "before": "    path_array::minimum(target, paths.len(), work, phase)?;\n"
+          },
+          {
+            "start_byte": 157398,
+            "after": "                                        callee,\n",
+            "before": ""
+          },
+          {
+            "start_byte": 157175,
+            "after": "                                    resolved_call::vector_params(\n",
+            "before": "                                    crate::vec_ops::resolved_params_in(\n"
+          },
+          {
+            "start_byte": 124064,
+            "after": "        // The last original clone also debits work before any header query.\n        #[cfg(test)]\n        final_output::record_final_frontier(1, work);\n        work.charge(1, \"skeleton prefix clone\")?;\n        work.budget.reserve_bytes(\n            work.function,\n            final_output::FINAL_HEADER_CONTROLS,\n            \"HIR final-suffix header controls\",\n        )?;\n        let len = prefix.observations.items.len();\n        let capacity = prefix.observations.items.capacity();\n        let suffix_len = last.observations.items.len();\n        let take = if work.budget.pays_allocations() {\n            if work.budget.selected() || len < final_output::FINAL_MINIMUM_ITEMS {\n                false\n            } else if last.observations.prefix.is_some() || capacity == len {\n                true\n            } else {\n                suffix_len <= capacity - len\n            }\n        } else {\n            false\n        };\n        let observations = if take {\n            work.budget.reserve_bytes(\n                work.function,\n                final_output::FINAL_MOVE_CONTROLS,\n                \"HIR final-suffix move controls\",\n            )?;\n            note_skeleton_materialization();\n            prefix.observations\n        } else {\n            work.budget.reserve_clone(\n                work.function,\n                &prefix.observations,\n                \"skeleton prefix clone\",\n            )?;\n            note_skeleton_materialization();\n            prefix.observations.clone()\n        };\n        let observations = work.extend_owned_observations(\n            observations,\n            &last.observations,\n            \"skeleton suffix clone\",\n        )?;\n        let owned_source =\n            work.clone_owned(&last.owned_source, \"sequenced skeleton owned-source clone\")?;\n        path_array::push!(\n            work,\n            first,\n            minimum,\n            &mut combined,\n            ExprSkeletonPath {\n                observations,\n                owned_source,\n                failed: last.failed,\n                residual: last.residual,\n                continuation: lexical_skeleton::Continuation::sequenced(\n                    &prefix.continuation,\n                    &last.continuation,\n                ),\n            },\n            \"sequenced skeleton path\",\n        );\n",
+            "before": ""
+          },
+          {
+            "start_byte": 123300,
+            "after": "            let owned_source = work.clone_owned(\n                &suffix.owned_source,\n                \"sequenced skeleton owned-source clone\",\n            )?;\n            path_array::push!(\n                work,\n                first,\n                minimum,\n                &mut combined,\n                ExprSkeletonPath {\n                    observations,\n                    owned_source,\n                    failed: suffix.failed,\n                    residual: suffix.residual,\n                    continuation: lexical_skeleton::Continuation::sequenced(\n                        &prefix.continuation,\n                        &suffix.continuation,\n                    ),\n                },\n                \"sequenced skeleton path\",\n            );\n",
+            "before": ""
+          },
+          {
+            "start_byte": 120992,
+            "after": "            );\n            continue;\n        }\n        // The first original clone work debit wins before optional metadata.\n        // Iter/next are the original borrowed for-loop state; empty input does\n        // not introduce either a work debit or a selector payment.\n        let mut pending = suffixes.iter();\n        let Some(first_suffix) = pending.next() else {\n            continue;\n        };\n        #[cfg(test)]\n        final_output::record_final_frontier(0, work);\n        work.charge(1, \"skeleton prefix clone\")?;\n        work.budget.reserve_bytes(\n            work.function,\n            final_output::FINAL_SPLIT_CONTROLS,\n            \"HIR final-suffix split controls\",\n        )?;\n        // Lexical remainder of the original first clone: no second charge and\n        // no newly forwarded Result<Observations, Diagnostic>.\n        let observations = skeleton_work::prefix_fusion::after_work!(\n            work, prefix.observations, first_suffix.observations\n        );\n        let owned_source = work.clone_owned(\n            &first_suffix.owned_source,\n            \"sequenced skeleton owned-source clone\",\n        )?;\n        path_array::sequence_minimum::optimized::push!(\n            work,\n            first,\n            minimum,\n            pending,\n            &mut combined,\n            ExprSkeletonPath {\n                observations,\n                owned_source,\n                failed: first_suffix.failed,\n                residual: first_suffix.residual,\n                continuation: lexical_skeleton::Continuation::sequenced(\n                    &prefix.continuation,\n                    &first_suffix.continuation,\n                ),\n            },\n            \"sequenced skeleton path\",\n        );\n        // Preserve the original first-output remaining-count receiver: only\n        // after that publication may the last suffix leave this iterator.\n        let Some(last) = pending.next_back() else {\n            continue;\n        };\n        for suffix in pending {\n            let observations =\n                work.clone_observations(&prefix.observations, \"skeleton prefix clone\")?;\n            let observations = work.extend_owned_observations(\n                observations,\n                &suffix.observations,\n                \"skeleton suffix clone\",\n",
+            "before": ""
+          },
+          {
+            "start_byte": 120413,
+            "after": "            path_array::push!(\n                work,\n                first,\n                minimum,\n",
+            "before": "            work.push_expr_path(\n"
+          },
+          {
+            "start_byte": 119960,
+            "after": "            }\n            let suffix = &suffixes[0];\n            let observations = prefix.observations;\n",
+            "before": "                std::mem::take(&mut prefix.observations)\n            } else {\n                work.clone_observations(&prefix.observations, \"skeleton prefix clone\")?\n            };\n"
+          },
+          {
+            "start_byte": 119911,
+            "after": "",
+            "before": "                work.budget.reserve_array::<u8>(\n                    work.function,\n                    sequence_prefix::RECEIVING_BYTES,\n                    \"skeleton prefix clone\",\n                )?;\n"
+          },
+          {
+            "start_byte": 119542,
+            "after": "        if single {\n            if precharged {\n                precharged = false;\n            } else {\n                work.budget.reserve_bytes(\n                    work.function,\n                    final_output::HIR_MOVE_CONTROLS,\n                    \"HIR single-suffix move controls\",\n                )?;\n",
+            "before": "        // This is the original for-loop's Iter/Option state. Earlier\n        // successors borrow the prefix; the last one can take it intact.\n        let mut remaining_suffixes = suffixes.iter();\n        while let Some(suffix) = remaining_suffixes.next() {\n            let observations = if sequence_prefix::can_take(sequence_prefix::Candidate {\n                prefix: &prefix.observations,\n                suffix: &suffix.observations,\n                remaining_suffixes: remaining_suffixes.len(),\n                budget: work.budget,\n            }) {\n                // Retain the original clone's work and materialization, while\n                // funding the pure probe before transferring any owned field.\n"
+          },
+          {
+            "start_byte": 119428,
+            "after": "        if !precharged && share_prefix {\n",
+            "before": "        if share_prefix {\n"
+          },
+          {
+            "start_byte": 118979,
+            "after": "            if precharged {\n                precharged = false;\n                sequence_vector::stopped_after_work!(work, first, minimum, combined, prefix);\n                continue;\n            }\n            path_array::push!(\n                work,\n                first,\n                minimum,\n                &mut combined,\n                prefix,\n                \"short-circuited skeleton path\"\n            );\n",
+            "before": "            work.push_expr_path(&mut combined, prefix, \"short-circuited skeleton path\")?;\n"
+          },
+          {
+            "start_byte": 118282,
+            "after": "    let minimum = path_array::count!(\n        work,\n        true,\n        if suffixes.is_empty() {\n            0\n        } else {\n            prefixes.len()\n        },\n        \"sequenced path capacity\"\n    );\n    path_array::select!(first, minimum, &combined, work);\n    work.budget.reserve_bytes(\n        work.function,\n        final_output::HIR_SELECTION_CONTROLS,\n        \"HIR single-suffix selection controls\",\n    )?;\n    let single = suffixes.len() == 1;\n    let mut precharged = false;\n    if single && first {\n        sequence_vector::reuse!(prefixes, suffixes, work, share_prefix, minimum, precharged);\n",
+            "before": "    if !suffixes.is_empty() {\n        path_array::sequence::minimum(\n            &mut combined,\n            &prefixes,\n            &suffixes,\n            work,\n            \"sequenced path capacity\",\n        )?;\n"
+          },
+          {
+            "start_byte": 118247,
+            "after": "",
+            "before": "    if sequence_vector::can_reuse(sequence_vector::Candidate {\n        prefixes: &prefixes,\n        suffixes: &suffixes,\n        budget: work.budget,\n    }) {\n        work.budget.reserve_array::<u8>(\n            work.function,\n            sequence_vector::receiving_bytes(),\n            \"single-successor receiving frame\",\n        )?;\n        return sequence_vector::single(prefixes, &suffixes, work, share_prefix);\n    }\n"
+          },
+          {
+            "start_byte": 117641,
+            "after": "    #[cfg(test)]\n    if path_array_main44::selected() {\n        return path_array_main44::current_sequence(prefixes, suffixes, work);\n    }\n    #[cfg(test)]\n    if sequence_vector_maina3::selected() {\n        return sequence_vector_maina3::current_sequence(prefixes, suffixes, work);\n    }\n    #[cfg(test)]\n    if path_array::main696::selected() {\n        return path_array::main696::sequence_skeleton_paths(prefixes, suffixes, work);\n    }\n    let mut prefixes = work.merged_paths(prefixes)?;\n",
+            "before": "    let prefixes = work.merged_paths(prefixes)?;\n"
+          },
+          {
+            "start_byte": 116033,
+            "after": "    // This is the original consuming for-loop's IntoIter/Option state, made\n    // explicit to query its remaining length only after the first old push work.\n    let mut paths = paths.into_iter();\n    let path = match paths.next() {\n        Some(path) => path,\n        None => return Ok(completed),\n    };\n    let terminal = lexical_skeleton::terminal(&path);\n    path_array::completed_first!(\n        work,\n        paths,\n        completed,\n        SkeletonPath {\n            observations: path.observations,\n            terminal\n        },\n        \"completed HIR skeleton path\"\n    );\n",
+            "before": "    path_array::completed_minimum(\n        &mut completed,\n        paths.len(),\n        &mut work,\n        \"completed HIR skeleton capacity\",\n    )?;\n"
+          },
+          {
+            "start_byte": 110166,
+            "after": "    // Match the existing received reference, with no new payer/tag/flag carrier.\n    match budget {\n        ReplayBudget {\n            payer: AllocationPayer::ActiveBuilder,\n            ..\n        } => {\n            budget.reserve_bytes(\n                function,\n                ordinary_plan_history::SELECT_CALL_CONTROLS,\n                \"ordinary plan history selector call receivers\",\n            )?;\n            if ordinary_plan_history::select(function, budget)? {\n                budget.reserve_bytes(\n                    function,\n                    ordinary_plan_history::PRODUCE_CALL_CONTROLS,\n                    \"ordinary plan history producer call receivers\",\n                )?;\n                let actual = ordinary_plan_history::produce(function, budget)?;\n                expected.sort();\n                budget.reserve_bytes(\n                    function,\n                    ordinary_plan_history::COMPARE_CALL_CONTROLS,\n                    \"ordinary plan history owned comparison call receivers\",\n                )?;\n                return ordinary_plan_history::compare(function, budget, actual, &expected);\n            }\n        }\n        _ => {}\n    }\n",
+            "before": ""
+          },
+          {
+            "start_byte": 20508,
+            "after": "        &status_cases,\n",
+            "before": ""
+          },
+          {
+            "start_byte": 20364,
+            "after": "    let statuses = expression_facts::receiving::validate_status_sources_certified(\n",
+            "before": "    let statuses = expression_facts::receiving::validate_status_sources_retained(\n"
+          },
+          {
+            "start_byte": 20138,
+            "after": "    let status_cases =\n        expression_facts::receiving::StatusCases::validate(program, function, budget)?;\n",
+            "before": "    validate_required_status_sources(program, function)?;\n"
+          },
+          {
+            "start_byte": 2037,
+            "after": "",
+            "before": "#[cfg(test)]\n"
+          },
+          {
+            "start_byte": 988,
+            "after": "#[cfg(test)]\n",
+            "before": ""
+          },
+          {
+            "start_byte": 656,
+            "after": "mod ordinary_plan_history;\n",
+            "before": ""
+          },
+          {
+            "start_byte": 281,
+            "after": "mod final_output;\n",
+            "before": ""
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "src/cleanup_plan/replay/branch_clone.rs",
+    "current_length": 11660,
+    "current_sha256": "9e9ff135113a8993340db3a7686bbfc29454d4f3ec4dafc081c4767ecfa25131",
+    "parents": [
+      {
+        "domain": "ours",
+        "head": "272655d6cdfd1b2c37fd768bee81880b4df6b193",
+        "archive": "docs/evidence/main09013-branch-composition-20261017/before/ours/src/cleanup_plan/replay/branch_clone.rs.txt",
+        "length": 4977,
+        "sha256": "35facf68388efde6a741c404244e3263248d059d3c13e9d12a18d24e8da4a072",
+        "inverse": [
+          {
+            "start_byte": 4658,
+            "after": "/// A pure probe for transferring the final branch's already funded prefix.\npub(super) struct TakeCandidate<'a> {\n    pub(super) values: &'a Vec<std::rc::Rc<SkeletonObservation>>,\n    pub(super) remaining_edges: usize,\n    pub(super) edge_count: usize,\n    pub(super) budget: &'a ReplayBudget,\n    pub(super) plan: &'a crate::cleanup_plan::CleanupPlan,\n    pub(super) target: BlockId,\n}\nstruct TakeBounds<'a> {\n    required: Option<usize>,\n    capacity: Option<usize>,\n    block: Option<&'a crate::cleanup_plan::CleanupBlock>,\n    exit: Option<&'a crate::cleanup_plan::ExitTarget>,\n    next: BlockId,\n    spare: usize,\n    remaining: usize,\n}\n// Complete caller/callee headers, checked-bound state and temporary results,\n// growth operands, borrowed block/exit/edge receivers and both bool results.\n// No existing Vec/Result owner is credited against these new layouts.\npub(super) const TAKE_BYTES: usize = 2 * std::mem::size_of::<TakeCandidate<'static>>()\n    + std::mem::size_of::<TakeBounds<'static>>()\n    + 4 * std::mem::size_of::<Option<usize>>()\n    + 4 * std::mem::size_of::<usize>()\n    + 4 * std::mem::size_of::<&crate::cleanup_plan::CleanupBlock>()\n    + 2 * std::mem::size_of::<bool>();\n\n// The real enumerator pays BEFORE TakeCandidate/length/policy receivers.\n// TAKE_BYTES retains the original Candidate/Bounds and checked arithmetic\n// layout. No later clone or skipped backing is credited to this payment.\npub(super) const TAKE_CALL_CONTROLS: usize = TAKE_BYTES\n    + 2 * size_of::<Result<(), Diagnostic>>() // receiving reservation and nested payment\n    + 2 * size_of::<&mut ReplayBudget>() + 2 * size_of::<&ResolvedFunction>() // reserve actual/formal\n    + 2 * size_of::<&str>() + 2 * size_of::<usize>() // phase and byte request actual/formal\n    + size_of::<&std::slice::Iter<'static, EdgeId>>() // remaining-edge len receiver\n    + size_of::<&Vec<EdgeId>>() // total edge len receiver\n    + 2 * size_of::<&ReplayBudget>() // selected() actual/formal receiver\n    + 4 * size_of::<&AllocationPayer>() // two PartialEq actuals and two formals\n    + 14 * size_of::<&Vec<std::rc::Rc<SkeletonObservation>>>() // seven len/capacity actual/formal pairs\n    + 2 * size_of::<&Vec<crate::cleanup_plan::CleanupBlock>>() // block Vec dereference actual/formal\n    + 2 * size_of::<&[crate::cleanup_plan::CleanupBlock]>() // get actual/formal\n    + 2 * size_of::<&Vec<crate::cleanup_plan::CleanupTransition>>() // transition len actual/formal\n    + 2 * size_of::<&Vec<crate::cleanup_plan::CleanupEdge>>() // Vec dereference actual/formal\n    + 2 * size_of::<&[crate::cleanup_plan::CleanupEdge]>() // get actual/formal\n    + 2 * size_of::<&Vec<crate::cleanup_plan::ExitTarget>>() // Vec dereference actual/formal\n    + 2 * size_of::<&[crate::cleanup_plan::ExitTarget]>() // get actual/formal\n    + size_of::<Option<&crate::cleanup_plan::CleanupEdge>>() // get result\n    + size_of::<&crate::cleanup_plan::CleanupEdge>() // successful edge binding\n    + size_of::<Option<&crate::cleanup_plan::ExitTarget>>() // copied exit match\n    + size_of::<&crate::cleanup_plan::ExitTarget>() // successful exit binding\n    + size_of::<&BlockId>() + size_of::<&crate::cleanup_plan::ExitTargetId>() // terminator borrowed patterns\n    + 5 * size_of::<usize>() // transition length, three indexes, multiplication input\n    + 14 * size_of::<bool>() // lazy eligibility5+aggregate, capacity5, loop, matches, caller condition\n    + size_of::<&mut Vec<std::rc::Rc<SkeletonObservation>>>(); // take receiver\n\npub(super) fn can_take(input: TakeCandidate<'_>) -> bool {\n    #[cfg(test)]\n    if tests::original_selected() {\n        return false;\n    }\n    if input.budget.payer != AllocationPayer::ActiveBuilder\n        || input.budget.selected()\n        || input.remaining_edges != 0\n        || input.edge_count < 2\n        || input.values.capacity() <= input.values.len()\n    {\n        return false;\n    }\n    let mut bounds = TakeBounds {\n        required: input.values.len().checked_add(1),\n        capacity: None,\n        block: None,\n        exit: None,\n        next: input.target,\n        spare: input.values.capacity() - input.values.len() - 1,\n        remaining: input.values.len(),\n    };\n    let Some(required) = bounds.required else {\n        return false;\n    };\n    bounds.capacity = physical_storage::replay_growth_capacity(input.values.len(), required);\n    let Some(capacity) = bounds.capacity else {\n        return false;\n    };\n    if input.values.capacity() > capacity\n        || !capacity\n            .checked_mul(std::mem::size_of::<std::rc::Rc<SkeletonObservation>>())\n            .is_some_and(|bytes| bytes >= TAKE_BYTES)\n    {\n        return false;\n    }\n    // The earlier branch has already cloned this entire prefix. Bound this\n    // read-only shape probe by that existing prefix length; exhaustion merely\n    // keeps the original clone route, with no new admission limit or quota.\n    while bounds.remaining != 0 {\n        bounds.remaining -= 1;\n        bounds.block = input.plan.blocks.get(bounds.next.0 as usize);\n        let Some(block) = bounds.block else {\n            return false;\n        };\n        // Every transition emits at most one observation. Counting even the\n        // ignored cleanup transitions conservatively bounds all future growth.\n        bounds.required = bounds.spare.checked_sub(block.transitions.len());\n        let Some(spare) = bounds.required else {\n            return false;\n        };\n        bounds.spare = spare;\n        match &block.terminator {\n            CleanupTerminator::Goto(edge) => {\n                bounds.required = bounds.spare.checked_sub(1);\n                let Some(spare) = bounds.required else {\n                    return false;\n                };\n                bounds.spare = spare;\n                let Some(edge) = input.plan.edges.get(edge.0 as usize) else {\n                    return false;\n                };\n                bounds.next = edge.to;\n            }\n            CleanupTerminator::Exit(exit) => {\n                bounds.exit = input.plan.exits.get(exit.0 as usize);\n                let Some(exit) = bounds.exit else {\n                    return false;\n                };\n                return matches!(\n                    exit.continuation,\n                    ExitContinuation::CommitResult { .. }\n                        | ExitContinuation::ReturnUnit\n                        | ExitContinuation::ReturnFailure { .. }\n                );\n            }\n            CleanupTerminator::Branch(_) => return false,\n        }\n    }\n    false\n}\n\n#[cfg(test)]\npub(super) fn note_take() {\n    tests::note_take();\n}\n#[cfg(test)]\npub(super) fn note_generic_take() {\n    tests::note_generic_take();\n}\n\n",
+            "before": ""
+          }
+        ]
+      },
+      {
+        "domain": "main",
+        "head": "09013dbfafbcb37db7c79a0622a56a0707e94e3b",
+        "archive": "docs/evidence/main09013-branch-composition-20261017/before/main/src/cleanup_plan/replay/branch_clone.rs.txt",
+        "length": 5704,
+        "sha256": "e0c30462e1576af2a9b48f9bdc55a64ce606510864752932fc8b280a3c77b1d4",
+        "inverse": [
+          {
+            "start_byte": 11595,
+            "after": "\n#[cfg(test)]\nmod inline_tests;\n\n#[cfg(test)]\nmod before_inline;\n",
+            "before": ""
+          },
+          {
+            "start_byte": 11354,
+            "after": "pub(in crate::cleanup_plan::replay) mod before;\n#[cfg(test)]\npub(in crate::cleanup_plan::replay) use before::for_push;\n#[cfg(test)]\nuse before::{main_replay_input, plan_skeleton_paths};\n#[cfg(test)]\nmod funded_tests;\n#[cfg(test)]\n",
+            "before": ""
+          },
+          {
+            "start_byte": 11257,
+            "after": "#[cfg(test)]\npub(super) fn note_generic_take() {\n    tests::note_generic_take();\n}\n",
+            "before": ""
+          },
+          {
+            "start_byte": 5857,
+            "after": "\n// The real enumerator pays BEFORE TakeCandidate/length/policy receivers.\n// TAKE_BYTES retains the original Candidate/Bounds and checked arithmetic\n// layout. No later clone or skipped backing is credited to this payment.\npub(super) const TAKE_CALL_CONTROLS: usize = TAKE_BYTES\n    + 2 * size_of::<Result<(), Diagnostic>>() // receiving reservation and nested payment\n    + 2 * size_of::<&mut ReplayBudget>() + 2 * size_of::<&ResolvedFunction>() // reserve actual/formal\n    + 2 * size_of::<&str>() + 2 * size_of::<usize>() // phase and byte request actual/formal\n    + size_of::<&std::slice::Iter<'static, EdgeId>>() // remaining-edge len receiver\n    + size_of::<&Vec<EdgeId>>() // total edge len receiver\n    + 2 * size_of::<&ReplayBudget>() // selected() actual/formal receiver\n    + 4 * size_of::<&AllocationPayer>() // two PartialEq actuals and two formals\n    + 14 * size_of::<&Vec<std::rc::Rc<SkeletonObservation>>>() // seven len/capacity actual/formal pairs\n    + 2 * size_of::<&Vec<crate::cleanup_plan::CleanupBlock>>() // block Vec dereference actual/formal\n    + 2 * size_of::<&[crate::cleanup_plan::CleanupBlock]>() // get actual/formal\n    + 2 * size_of::<&Vec<crate::cleanup_plan::CleanupTransition>>() // transition len actual/formal\n    + 2 * size_of::<&Vec<crate::cleanup_plan::CleanupEdge>>() // Vec dereference actual/formal\n    + 2 * size_of::<&[crate::cleanup_plan::CleanupEdge]>() // get actual/formal\n    + 2 * size_of::<&Vec<crate::cleanup_plan::ExitTarget>>() // Vec dereference actual/formal\n    + 2 * size_of::<&[crate::cleanup_plan::ExitTarget]>() // get actual/formal\n    + size_of::<Option<&crate::cleanup_plan::CleanupEdge>>() // get result\n    + size_of::<&crate::cleanup_plan::CleanupEdge>() // successful edge binding\n    + size_of::<Option<&crate::cleanup_plan::ExitTarget>>() // copied exit match\n    + size_of::<&crate::cleanup_plan::ExitTarget>() // successful exit binding\n    + size_of::<&BlockId>() + size_of::<&crate::cleanup_plan::ExitTargetId>() // terminator borrowed patterns\n    + 5 * size_of::<usize>() // transition length, three indexes, multiplication input\n    + 14 * size_of::<bool>() // lazy eligibility5+aggregate, capacity5, loop, matches, caller condition\n    + size_of::<&mut Vec<std::rc::Rc<SkeletonObservation>>>(); // take receiver\n",
+            "before": ""
+          },
+          {
+            "start_byte": 4603,
+            "after": "    result.push(observation.into());\n",
+            "before": ""
+          },
+          {
+            "start_byte": 3713,
+            "after": "    // The original push work refusal must win before any extra capacity debit.\n    budget.charge_skeleton(function, 1, \"plan branch observation push\")?;\n    note_skeleton_materialization();\n    let capacity = if values.is_empty() {\n        1\n    } else {\n        if values.len() > usize::MAX / 2 {\n            return Err(budget.budget_refusal(\n                function,\n                \"cleanup replay branch capacity overflowed\",\n                \"\",\n            ));\n        }\n        values.len() * 2\n    };\n    budget.reserve_array::<T>(\n        function,\n        capacity - values.len(),\n        \"plan branch observation push\",\n    )?;\n    budget.reserve_bytes(\n        function,\n        physical_clone::conversion_bytes::<T, _>(&observation),\n        \"plan branch observation push\",\n    )?;\n",
+            "before": ""
+          },
+          {
+            "start_byte": 3513,
+            "after": "    budget.charge_skeleton(function, 1, \"cleanup-plan skeleton branch clone\")?;\n    budget.reserve_clone(function, values, \"cleanup-plan skeleton branch clone\")?;\n",
+            "before": "    if !budget.pays_allocations() {\n        return skeleton_clone(budget, function, values, phase);\n    }\n    budget.charge_skeleton(function, 1, phase)?;\n    // Keep the complete old clone census, including all nested owned backing\n    // and its independently funded oracle work. Nothing is repriced or waived.\n    budget.reserve_clone(function, values, phase)?;\n    let capacity = values\n        .len()\n        .checked_add(1)\n        .and_then(|required| physical_storage::replay_growth_capacity(values.len(), required))\n        .ok_or_else(|| {\n            budget.budget_refusal(function, \"cleanup replay branch capacity overflowed\", \"\")\n        })?;\n    budget.reserve_array::<T>(function, capacity - values.len(), phase)?;\n"
+          },
+          {
+            "start_byte": 3108,
+            "after": "    if !budget.pays_allocations() {\n        let mut branch = skeleton_clone(\n            budget,\n            function,\n            values,\n            \"cleanup-plan skeleton branch clone\",\n        )?;\n        skeleton_push(\n            budget,\n            function,\n            &mut branch,\n            observation,\n            \"plan branch observation push\",\n        )?;\n        return Ok(branch);\n",
+            "before": "    #[cfg(test)]\n    if tests::original_selected() {\n        return skeleton_clone(budget, function, values, phase);\n"
+          },
+          {
+            "start_byte": 3054,
+            "after": "    observation: V,\n",
+            "before": "    phase: &str,\n"
+          },
+          {
+            "start_byte": 2878,
+            "after": "pub(super) fn with_observation<T: Clone + ClonePayload, V: physical_clone::IntoReplay<T>>(\n",
+            "before": "pub(super) fn for_push<T: Clone + ClonePayload>(\n"
+          },
+          {
+            "start_byte": 116,
+            "after": "// The producer is physically in the enumerator. Its outer Vec Result and\n// owned observation argument no longer exist; all nested Result controls stay.\n// One budget/function reference pair pays the caller's reservation boundary.\n// The payload-reference term remains for the direct clone census argument.\npub(super) fn inline_controls<T: Clone>() -> usize {\n    size_of::<Result<(), Diagnostic>>() // caller payment result\n        + 4 * size_of::<Result<(), Diagnostic>>() // clone/push work, clone census, conversion\n        + 2 * size_of::<Result<(), Diagnostic>>() // backing wrapper and nested byte payment\n        + size_of::<Result<usize, Diagnostic>>() // checked array size conversion\n        + size_of::<Option<usize>>()\n        + 2 * size_of::<Vec<T>>() // initializer and the enumerator's named branch\n        + size_of::<&mut ReplayBudget>() + size_of::<&ResolvedFunction>()\n        + size_of::<&Vec<T>>() // direct clone census argument\n        + 2 * size_of::<&str>()\n        + 2 * size_of::<usize>()\n        + 2 * size_of::<bool>()\n        + 2 * size_of::<&mut Vec<T>>() + size_of::<&[T]>()\n        + 2 * size_of::<std::slice::Iter<'_, T>>()\n        + 2 * size_of::<std::iter::Cloned<std::slice::Iter<'_, T>>>()\n}\n\n// Paid by the enumerator before evaluating the new helper's arguments. The\n// original clone/push controls are not credited against these actual new sites.\n#[cfg(test)]\npub(super) fn controls<T: Clone, V>() -> usize {\n    size_of::<Result<Vec<T>, Diagnostic>>() // fused receiving result\n        + size_of::<Result<(), Diagnostic>>() // caller payment result\n        + 4 * size_of::<Result<(), Diagnostic>>() // clone/push work, clone census, conversion\n        + 2 * size_of::<Result<(), Diagnostic>>() // backing wrapper and nested byte payment\n        + size_of::<Result<usize, Diagnostic>>() // reserve_array checked byte-size conversion\n        + size_of::<Option<usize>>() // reserve_array checked multiplication\n        + 2 * size_of::<Vec<T>>() // initializer and named local receiver\n        + 2 * size_of::<&mut ReplayBudget>() + 2 * size_of::<&ResolvedFunction>()\n        + size_of::<&Vec<T>>() + size_of::<V>() // new argument receivers\n        + 2 * size_of::<&str>() // fixed phase receivers\n        + 2 * size_of::<usize>() // controls() receiving value and capacity local\n        + 2 * size_of::<bool>() // empty and arithmetic overflow branch receivers\n        + 2 * size_of::<&mut Vec<T>>() // extend and push method receivers\n        + size_of::<&[T]>() // iter slice receiver\n        + 2 * size_of::<std::slice::Iter<'_, T>>() // iterator initializer and cloned receiver\n        + 2 * size_of::<std::iter::Cloned<std::slice::Iter<'_, T>>>() // initializer and extend receiver\n}\n\n#[cfg(test)]\n",
+            "before": ""
+          },
+          {
+            "start_byte": 92,
+            "after": "use std::mem::size_of;\n",
+            "before": ""
+          },
+          {
+            "start_byte": 0,
+            "after": "//! Fused history clone and its known immediate push, with paid new controls.\n",
+            "before": "//! A known next push can acquire its existing growth capacity at clone time.\n//! This removes the intermediate clone backing; future capacity stays the same.\n"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "src/cleanup_plan/replay/branch_clone/tests.rs",
+    "current_length": 16984,
+    "current_sha256": "cd660f53acc9f62a51be010707e8bec7122aad7d38710e223aae89a686cc47fe",
+    "parents": [
+      {
+        "domain": "ours",
+        "head": "272655d6cdfd1b2c37fd768bee81880b4df6b193",
+        "archive": "docs/evidence/main09013-branch-composition-20261017/before/ours/src/cleanup_plan/replay/branch_clone/tests.rs.txt",
+        "length": 9162,
+        "sha256": "1ceebb30aefeb84f0b3be9a2ff916c247a8017ecbe1a33d58f36bd556094c757",
+        "inverse": [
+          {
+            "start_byte": 9162,
+            "after": "\nthread_local! { static TAKES: Cell<usize> = const { Cell::new(0) }; }\npub(super) fn note_take() {\n    TAKES.with(|count| count.set(count.get() + 1));\n}\n\n#[test]\nfn final_prefix_transfer_keeps_full_checked_arithmetic_paths_and_work() {\n    let mut source = String::from(\"module final_prefix; @id(\\\"f\\\") fn f(x:i64)->i64 {\");\n    for index in 0..48 {\n        let input = if index == 0 {\n            \"x\".to_owned()\n        } else {\n            format!(\"x{}\", index - 1)\n        };\n        source.push_str(&format!(\"let x{index}={input}+1;\"));\n    }\n    source.push_str(\"x47} @id(\\\"main\\\") fn main()->i64 {f(0)}\");\n    let checked = crate::check(&source, \"final-prefix.spx\").unwrap();\n    let canonical = crate::format::canonical(&checked);\n    let checked = crate::check(&canonical, \"final-prefix.spx\").unwrap();\n    assert_eq!(crate::format::canonical(&checked), canonical);\n    let program = crate::hir::resolve(&checked).unwrap();\n    let before_takes = TAKES.with(Cell::get);\n    let (((), allocation), refused, paid, first) = with_limit_usage_refusal(usize::MAX, || {\n        measure(|| {\n            for function in &program.functions {\n                let mut old = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);\n                let mut current = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);\n                let before = skeleton_materializations();\n                let expected =\n                    with_original(|| compact_stage::original_paths(function, &mut old)).unwrap();\n                let old_count = skeleton_materializations() - before;\n                let before = skeleton_materializations();\n                let actual = plan_skeleton_paths(function, &mut current).unwrap();\n                assert_eq!(skeleton_materializations() - before, old_count);\n                assert!(compact_stage::paths_match(&actual, &expected));\n                assert_eq!(current.remaining, old.remaining);\n                assert_eq!(current.skeleton_remaining, old.skeleton_remaining);\n                drop(actual);\n                drop(expected);\n                drop(current);\n                drop(old);\n            }\n        })\n    });\n    assert!(TAKES.with(Cell::get) > before_takes);\n    assert!(!refused && first.is_none());\n    assert!(!allocation.invalid && allocation.live == 0);\n    assert_eq!(allocation.allocated, allocation.freed);\n    assert!(allocation.allocated <= paid);\n}\n\n#[test]\nfn terminal_prefix_probe_rejects_growth_cycles_and_nonfinal_edges() {\n    let program = program();\n    let function = &program.functions[0];\n    let mut plan = function.cleanup_plan.clone();\n    let terminal = plan.blocks.iter().find(|block| {\n        matches!(block.terminator, CleanupTerminator::Exit(exit) if matches!(plan.exits[exit.0 as usize].continuation,\n            ExitContinuation::ReturnUnit | ExitContinuation::ReturnFailure { .. } | ExitContinuation::CommitResult { .. }))\n    }).unwrap().id;\n    let mut values = Vec::with_capacity(64);\n    for _ in 0..48 {\n        values.push(Rc::new(SkeletonObservation::Boolean {\n            expression: crate::hir::ExpressionId::from_owned(\"prefix.test\".to_owned()),\n            value: true,\n        }));\n    }\n    let (((), allocation), refused, paid, first) = with_limit_usage_refusal(usize::MAX, || {\n        measure(|| {\n            let budget = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);\n            let probe =\n                |plan: &crate::cleanup_plan::CleanupPlan, target, remaining_edges, edge_count| {\n                    can_take(TakeCandidate {\n                        values: &values,\n                        remaining_edges,\n                        edge_count,\n                        budget: &budget,\n                        plan,\n                        target,\n                    })\n                };\n            assert!(probe(&plan, terminal, 0, 2));\n            assert!(!probe(&plan, terminal, 1, 2));\n            assert!(!probe(&plan, terminal, 0, 1));\n            assert!(!probe(&plan, BlockId(u32::MAX), 0, 2));\n            assert!(!with_original(|| probe(&plan, terminal, 0, 2)));\n            let index = terminal.0 as usize;\n            let original = plan.blocks[index].terminator.clone();\n            plan.blocks[index].terminator = CleanupTerminator::Branch(Vec::new());\n            assert!(!probe(&plan, terminal, 0, 2));\n            plan.blocks[index].terminator = CleanupTerminator::Goto(EdgeId(u32::MAX));\n            assert!(!probe(&plan, terminal, 0, 2));\n            plan.blocks[index].terminator =\n                CleanupTerminator::Exit(crate::cleanup_plan::ExitTargetId(u32::MAX));\n            assert!(!probe(&plan, terminal, 0, 2));\n            let old_target = plan.edges[0].to;\n            plan.edges[0].to = terminal;\n            plan.blocks[index].terminator = CleanupTerminator::Goto(EdgeId(0));\n            assert!(!probe(&plan, terminal, 0, 2));\n            plan.edges[0].to = old_target;\n            plan.blocks[index].terminator = original;\n            drop(budget);\n        })\n    });\n    assert!(!refused && first.is_none());\n    assert_eq!(paid, 0);\n    assert_eq!(allocation.allocated, 0);\n    assert!(!allocation.invalid && allocation.live == 0);\n}\n\nthread_local! { static GENERIC_TAKES: Cell<usize> = const { Cell::new(0) }; }\npub(super) fn note_generic_take() {\n    GENERIC_TAKES.with(|count|count.set(count.get()+1));\n}\n\n#[test]\nfn joined_generic_three_edge_transfer_keeps_complete_paths_and_original_work() {\n    let mut source=String::from(\"module three_prefix; @id(\\\"f\\\") fn f(x:i64)->i64 {\");\n    for index in 0..48 {\n        let value=if index==0 {\"x\".to_owned()}else{format!(\"x{}\",index-1)};\n        source.push_str(&format!(\"let x{index}={value}+1;\"));\n    }\n    source.push_str(\"x47} @id(\\\"main\\\") fn main()->i64 {f(0)}\");\n    let checked=crate::check(&source,\"three-prefix.spx\").unwrap();\n    let mut program=crate::hir::resolve(&checked).unwrap();\n    let function=program.functions.iter_mut().find(|function|function.id.as_str()==\"f\").unwrap();\n    let block=function.cleanup_plan.blocks.iter().rposition(|block|\n        matches!(&block.terminator,CleanupTerminator::Branch(edges) if edges.len()==2)).unwrap();\n    let CleanupTerminator::Branch(edges)=&function.cleanup_plan.blocks[block].terminator else {unreachable!()};\n    let mut edge=function.cleanup_plan.edges[edges[edges.len()-1].0 as usize].clone();\n    let id=EdgeId(u32::try_from(function.cleanup_plan.edges.len()).unwrap());\n    edge.id=id;function.cleanup_plan.edges.push(edge);\n    let CleanupTerminator::Branch(edges)=&mut function.cleanup_plan.blocks[block].terminator else {unreachable!()};\n    edges.push(id);\n    let (((),allocation),refused,paid,first)=with_limit_usage_refusal(usize::MAX,||measure(||{\n        let mut old=ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);\n        let mut current=ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);\n        let before=skeleton_materializations();\n        let expected=with_original(||compact_stage::original_paths(function,&mut old)).unwrap();\n        let count=skeleton_materializations()-before;\n        let before=skeleton_materializations();\n        let takes=GENERIC_TAKES.with(Cell::get);\n        let actual=plan_skeleton_paths(function,&mut current).unwrap();\n        assert!(GENERIC_TAKES.with(Cell::get)>takes);\n        assert!(compact_stage::paths_match(&actual,&expected));\n        assert_eq!(skeleton_materializations()-before,count);\n        assert_eq!(current.remaining,old.remaining);\n        assert_eq!(current.skeleton_remaining,old.skeleton_remaining);\n        drop(actual);drop(expected);drop(current);drop(old);\n    }));\n    assert!(!refused && first.is_none());\n    assert!(!allocation.invalid && allocation.live==0 && allocation.allocated==allocation.freed);\n    assert!(allocation.allocated<=paid);\n}\n",
+            "before": ""
+          }
+        ]
+      },
+      {
+        "domain": "main",
+        "head": "09013dbfafbcb37db7c79a0622a56a0707e94e3b",
+        "archive": "docs/evidence/main09013-branch-composition-20261017/before/main/src/cleanup_plan/replay/branch_clone/tests.rs.txt",
+        "length": 14229,
+        "sha256": "c9740354e927c9c0bf50aa07f448505486a3fdead8702a26d064465026068c0c",
+        "inverse": [
+          {
+            "start_byte": 14360,
+            "after": "\nthread_local! { static GENERIC_TAKES: Cell<usize> = const { Cell::new(0) }; }\npub(super) fn note_generic_take() {\n    GENERIC_TAKES.with(|count|count.set(count.get()+1));\n}\n\n#[test]\nfn joined_generic_three_edge_transfer_keeps_complete_paths_and_original_work() {\n    let mut source=String::from(\"module three_prefix; @id(\\\"f\\\") fn f(x:i64)->i64 {\");\n    for index in 0..48 {\n        let value=if index==0 {\"x\".to_owned()}else{format!(\"x{}\",index-1)};\n        source.push_str(&format!(\"let x{index}={value}+1;\"));\n    }\n    source.push_str(\"x47} @id(\\\"main\\\") fn main()->i64 {f(0)}\");\n    let checked=crate::check(&source,\"three-prefix.spx\").unwrap();\n    let mut program=crate::hir::resolve(&checked).unwrap();\n    let function=program.functions.iter_mut().find(|function|function.id.as_str()==\"f\").unwrap();\n    let block=function.cleanup_plan.blocks.iter().rposition(|block|\n        matches!(&block.terminator,CleanupTerminator::Branch(edges) if edges.len()==2)).unwrap();\n    let CleanupTerminator::Branch(edges)=&function.cleanup_plan.blocks[block].terminator else {unreachable!()};\n    let mut edge=function.cleanup_plan.edges[edges[edges.len()-1].0 as usize].clone();\n    let id=EdgeId(u32::try_from(function.cleanup_plan.edges.len()).unwrap());\n    edge.id=id;function.cleanup_plan.edges.push(edge);\n    let CleanupTerminator::Branch(edges)=&mut function.cleanup_plan.blocks[block].terminator else {unreachable!()};\n    edges.push(id);\n    let (((),allocation),refused,paid,first)=with_limit_usage_refusal(usize::MAX,||measure(||{\n        let mut old=ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);\n        let mut current=ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);\n        let before=skeleton_materializations();\n        let expected=with_original(||compact_stage::original_paths(function,&mut old)).unwrap();\n        let count=skeleton_materializations()-before;\n        let before=skeleton_materializations();\n        let takes=GENERIC_TAKES.with(Cell::get);\n        let actual=plan_skeleton_paths(function,&mut current).unwrap();\n        assert!(GENERIC_TAKES.with(Cell::get)>takes);\n        assert!(compact_stage::paths_match(&actual,&expected));\n        assert_eq!(skeleton_materializations()-before,count);\n        assert_eq!(current.remaining,old.remaining);\n        assert_eq!(current.skeleton_remaining,old.skeleton_remaining);\n        drop(actual);drop(expected);drop(current);drop(old);\n    }));\n    assert!(!refused && first.is_none());\n    assert!(!allocation.invalid && allocation.live==0 && allocation.allocated==allocation.freed);\n    assert!(allocation.allocated<=paid);\n}\n",
+            "before": ""
+          },
+          {
+            "start_byte": 13648,
+            "after": "            plan.blocks[index].terminator =\n                CleanupTerminator::Exit(crate::cleanup_plan::ExitTargetId(u32::MAX));\n",
+            "before": "            plan.blocks[index].terminator = CleanupTerminator::Exit(ExitTargetId(u32::MAX));\n"
+          },
+          {
+            "start_byte": 7457,
+            "after": "    let root = main_replay_input(include_str!(\"../../replay.rs\"));\n",
+            "before": "    let root = compact_stage::source_custody::before_root(include_str!(\"../../replay.rs\"));\n"
+          },
+          {
+            "start_byte": 4782,
+            "after": "                            assert_eq!(budget.skeleton_remaining, 0);\n",
+            "before": ""
+          },
+          {
+            "start_byte": 3393,
+            "after": "                            // One actual clone and exactly this many pushes; lend\n                            // their work from the unchanged global caller budget.\n                            budget.reserve_skeleton(function, 1 + pushes)?;\n",
+            "before": ""
+          },
+          {
+            "start_byte": 3222,
+            "after": "                        let mut budget = ReplayBudget::new();\n",
+            "before": "                        let mut budget = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);\n"
+          },
+          {
+            "start_byte": 2208,
+            "after": "                assert_eq!(actual, expected);\n",
+            "before": "                assert!(compact_stage::paths_match(&actual, &expected));\n"
+          },
+          {
+            "start_byte": 1821,
+            "after": "                let expected = with_original(|| plan_skeleton_paths(function, &mut old)).unwrap();\n",
+            "before": "                let expected =\n                    with_original(|| compact_stage::original_paths(function, &mut old)).unwrap();\n"
+          },
+          {
+            "start_byte": 1368,
+            "after": "                let mut old = ReplayBudget::new();\n                let mut current = ReplayBudget::new();\n                reserve_program_skeleton_work(&program, std::iter::once(function), &mut old).unwrap();\n                reserve_program_skeleton_work(&program, std::iter::once(function), &mut current).unwrap();\n",
+            "before": "                let mut old = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);\n                let mut current = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);\n"
+          },
+          {
+            "start_byte": 113,
+            "after": "",
+            "before": "// These direct receivers start after skeleton preflight. Supply its explicit\n// work allowance; new() intentionally leaves that allowance unset. Allocation\n// zero/exact/short accounts below keep their original limits and assertions.\n"
+          }
+        ]
+      },
+      {
+        "domain": "main8c08",
+        "head": "8c08e049247582871734136e5dcef0261c947d9b",
+        "archive": "docs/evidence/main09013-branch-composition-20261017/before/main8c08/src/cleanup_plan/replay/branch_clone/tests.rs.txt",
+        "length": 14266,
+        "sha256": "48956a2d192fdbc73cbfa58cb9e57f3e4380a4ff601728ded0d53c2bbf9db8ca",
+        "inverse": [
+          {
+            "start_byte": 14360,
+            "after": "\nthread_local! { static GENERIC_TAKES: Cell<usize> = const { Cell::new(0) }; }\npub(super) fn note_generic_take() {\n    GENERIC_TAKES.with(|count|count.set(count.get()+1));\n}\n\n#[test]\nfn joined_generic_three_edge_transfer_keeps_complete_paths_and_original_work() {\n    let mut source=String::from(\"module three_prefix; @id(\\\"f\\\") fn f(x:i64)->i64 {\");\n    for index in 0..48 {\n        let value=if index==0 {\"x\".to_owned()}else{format!(\"x{}\",index-1)};\n        source.push_str(&format!(\"let x{index}={value}+1;\"));\n    }\n    source.push_str(\"x47} @id(\\\"main\\\") fn main()->i64 {f(0)}\");\n    let checked=crate::check(&source,\"three-prefix.spx\").unwrap();\n    let mut program=crate::hir::resolve(&checked).unwrap();\n    let function=program.functions.iter_mut().find(|function|function.id.as_str()==\"f\").unwrap();\n    let block=function.cleanup_plan.blocks.iter().rposition(|block|\n        matches!(&block.terminator,CleanupTerminator::Branch(edges) if edges.len()==2)).unwrap();\n    let CleanupTerminator::Branch(edges)=&function.cleanup_plan.blocks[block].terminator else {unreachable!()};\n    let mut edge=function.cleanup_plan.edges[edges[edges.len()-1].0 as usize].clone();\n    let id=EdgeId(u32::try_from(function.cleanup_plan.edges.len()).unwrap());\n    edge.id=id;function.cleanup_plan.edges.push(edge);\n    let CleanupTerminator::Branch(edges)=&mut function.cleanup_plan.blocks[block].terminator else {unreachable!()};\n    edges.push(id);\n    let (((),allocation),refused,paid,first)=with_limit_usage_refusal(usize::MAX,||measure(||{\n        let mut old=ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);\n        let mut current=ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);\n        let before=skeleton_materializations();\n        let expected=with_original(||compact_stage::original_paths(function,&mut old)).unwrap();\n        let count=skeleton_materializations()-before;\n        let before=skeleton_materializations();\n        let takes=GENERIC_TAKES.with(Cell::get);\n        let actual=plan_skeleton_paths(function,&mut current).unwrap();\n        assert!(GENERIC_TAKES.with(Cell::get)>takes);\n        assert!(compact_stage::paths_match(&actual,&expected));\n        assert_eq!(skeleton_materializations()-before,count);\n        assert_eq!(current.remaining,old.remaining);\n        assert_eq!(current.skeleton_remaining,old.skeleton_remaining);\n        drop(actual);drop(expected);drop(current);drop(old);\n    }));\n    assert!(!refused && first.is_none());\n    assert!(!allocation.invalid && allocation.live==0 && allocation.allocated==allocation.freed);\n    assert!(allocation.allocated<=paid);\n}\n",
+            "before": ""
+          },
+          {
+            "start_byte": 7457,
+            "after": "    let root = main_replay_input(include_str!(\"../../replay.rs\"));\n",
+            "before": "    let root = compact_stage::source_custody::before_root(include_str!(\"../../replay.rs\"));\n"
+          },
+          {
+            "start_byte": 4782,
+            "after": "                            assert_eq!(budget.skeleton_remaining, 0);\n",
+            "before": ""
+          },
+          {
+            "start_byte": 3393,
+            "after": "                            // One actual clone and exactly this many pushes; lend\n                            // their work from the unchanged global caller budget.\n                            budget.reserve_skeleton(function, 1 + pushes)?;\n",
+            "before": ""
+          },
+          {
+            "start_byte": 3222,
+            "after": "                        let mut budget = ReplayBudget::new();\n",
+            "before": "                        let mut budget = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);\n"
+          },
+          {
+            "start_byte": 2208,
+            "after": "                assert_eq!(actual, expected);\n",
+            "before": "                assert!(compact_stage::paths_match(&actual, &expected));\n"
+          },
+          {
+            "start_byte": 1821,
+            "after": "                let expected = with_original(|| plan_skeleton_paths(function, &mut old)).unwrap();\n",
+            "before": "                let expected =\n                    with_original(|| compact_stage::original_paths(function, &mut old)).unwrap();\n"
+          },
+          {
+            "start_byte": 1368,
+            "after": "                let mut old = ReplayBudget::new();\n                let mut current = ReplayBudget::new();\n                reserve_program_skeleton_work(&program, std::iter::once(function), &mut old).unwrap();\n                reserve_program_skeleton_work(&program, std::iter::once(function), &mut current).unwrap();\n",
+            "before": "                let mut old = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);\n                let mut current = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);\n"
+          },
+          {
+            "start_byte": 113,
+            "after": "",
+            "before": "// These direct receivers start after skeleton preflight. Supply its explicit\n// work allowance; new() intentionally leaves that allowance unset. Allocation\n// zero/exact/short accounts below keep their original limits and assertions.\n"
+          }
+        ]
+      }
+    ]
+  }
+]

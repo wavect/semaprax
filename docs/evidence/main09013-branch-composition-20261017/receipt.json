@@ -1,0 +1,110 @@
+{
+  "status": "SOURCE_ONLY_CONFLICT_RESOLUTION_CANDIDATE_UNEXECUTED",
+  "ours": "272655d6cdfd1b2c37fd768bee81880b4df6b193",
+  "main": "09013dbfafbcb37db7c79a0622a56a0707e94e3b",
+  "following_exact_qualifier": "8c08e049247582871734136e5dcef0261c947d9b",
+  "rust_paths": [
+    "src/cleanup_plan/replay.rs",
+    "src/cleanup_plan/replay/branch_clone.rs",
+    "src/cleanup_plan/replay/branch_clone/tests.rs"
+  ],
+  "files": [
+    {
+      "path": "src/cleanup_plan/replay.rs",
+      "length": 321224,
+      "sha256": "555fe96fc9153aa2a7843ffd15da85e429bb56b1eef52e98193930f80203618e"
+    },
+    {
+      "path": "src/cleanup_plan/replay/branch_clone.rs",
+      "length": 11660,
+      "sha256": "9e9ff135113a8993340db3a7686bbfc29454d4f3ec4dafc081c4767ecfa25131"
+    },
+    {
+      "path": "src/cleanup_plan/replay/branch_clone/tests.rs",
+      "length": 16984,
+      "sha256": "cd660f53acc9f62a51be010707e8bec7122aad7d38710e223aae89a686cc47fe"
+    },
+    {
+      "path": "docs/evidence/main09013-branch-composition-20261017/README.md",
+      "length": 4178,
+      "sha256": "1dede2b9979839da513eba39140142ea55e92373fb6b75df6049bd7c45d1f587"
+    },
+    {
+      "path": "docs/evidence/main09013-branch-composition-20261017/before/main/src/cleanup_plan/replay/branch_clone/tests.rs.txt",
+      "length": 14229,
+      "sha256": "c9740354e927c9c0bf50aa07f448505486a3fdead8702a26d064465026068c0c"
+    },
+    {
+      "path": "docs/evidence/main09013-branch-composition-20261017/before/main/src/cleanup_plan/replay/branch_clone.rs.txt",
+      "length": 5704,
+      "sha256": "e0c30462e1576af2a9b48f9bdc55a64ce606510864752932fc8b280a3c77b1d4"
+    },
+    {
+      "path": "docs/evidence/main09013-branch-composition-20261017/before/main/src/cleanup_plan/replay.rs.txt",
+      "length": 302169,
+      "sha256": "e02105834f829503b1e1a6645067f7b0784fed133890c6f7b4553346ba011f28"
+    },
+    {
+      "path": "docs/evidence/main09013-branch-composition-20261017/before/main8c08/src/cleanup_plan/replay/branch_clone/tests.rs.txt",
+      "length": 14266,
+      "sha256": "48956a2d192fdbc73cbfa58cb9e57f3e4380a4ff601728ded0d53c2bbf9db8ca"
+    },
+    {
+      "path": "docs/evidence/main09013-branch-composition-20261017/before/ours/src/cleanup_plan/replay/branch_clone/tests.rs.txt",
+      "length": 9162,
+      "sha256": "1ceebb30aefeb84f0b3be9a2ff916c247a8017ecbe1a33d58f36bd556094c757"
+    },
+    {
+      "path": "docs/evidence/main09013-branch-composition-20261017/before/ours/src/cleanup_plan/replay/branch_clone.rs.txt",
+      "length": 4977,
+      "sha256": "35facf68388efde6a741c404244e3263248d059d3c13e9d12a18d24e8da4a072"
+    },
+    {
+      "path": "docs/evidence/main09013-branch-composition-20261017/before/ours/src/cleanup_plan/replay.rs.txt",
+      "length": 318621,
+      "sha256": "458260e9a3d66601d731b7bad8737efdfd5a4deb4e52bbb07adf0f0af150777b"
+    },
+    {
+      "path": "docs/evidence/main09013-branch-composition-20261017/check-source.py",
+      "length": 3384,
+      "sha256": "69666cf85abeecac8675ad969aec070f6b32c7c33417638c06fe9585c6c32115"
+    },
+    {
+      "path": "docs/evidence/main09013-branch-composition-20261017/full-source-inverses.json",
+      "length": 75564,
+      "sha256": "4113239922eab800d9ddf1b60f1c9c957d946abcf8bb9ea9615f25ae71deb263"
+    },
+    {
+      "path": "docs/evidence/main09013-branch-composition-20261017/pending-selectors.json",
+      "length": 1115,
+      "sha256": "048ce53e4fd367ef95b8fe853e627951d7e0c8aa38eb3065bc29f96a4b7bb201"
+    },
+    {
+      "path": "docs/evidence/main09013-branch-composition-20261017/source-controls.json",
+      "length": 277,
+      "sha256": "8ec95d28385d5bc29f213fb3701738323c2bf4a6c5dd460eb775305192c1155d"
+    }
+  ],
+  "proof": {
+    "status": "PURE_SOURCE_PASS_NO_RUST_EXECUTION",
+    "complete_parent_inverses": 7,
+    "hostile_endpoints_refused": 21,
+    "incoming_can_take_body_unchanged": true,
+    "ours_twoedge_body_unchanged_except_counter": true,
+    "original_assertions_retained": true,
+    "actual_runtime_pending": true
+  },
+  "no_original_assertion_changes": true,
+  "new_physical_rust_owners": 0,
+  "cargo": false,
+  "runtime": false,
+  "next_mutated": false,
+  "pending": [
+    "Independent source review",
+    "Actual threefile typecheck and owning tests",
+    "Original samework/materialization exact assertions",
+    "Receiving preformation short/zero/floor/Drop controls",
+    "Parent complete source-domain composition and metadata bind",
+    "Actual capped applications; no universal gain"
+  ]
+}

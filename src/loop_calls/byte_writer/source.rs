@@ -209,7 +209,14 @@ pub(super) fn prove_with_cursor<'a>(
                                     return None;
                                 }
                             } else if let Some(op) = crate::vec_ops::by_name(name) {
-                                if !vec_operation(op) {
+                                if op == crate::vec_ops::VecOp::StrAt {
+                                    if !type_arguments.is_empty()
+                                        || !matches!(args.as_slice(), [source, _]
+                                            if matches!(&source.kind, ExprKind::Var(_)))
+                                    {
+                                        return None;
+                                    }
+                                } else if !vec_operation(op) {
                                     return None;
                                 }
                             } else {

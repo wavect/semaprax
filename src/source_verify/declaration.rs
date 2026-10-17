@@ -222,6 +222,19 @@ fn verify_profile_funded<'p>(
     // Rejected storage has no executable type. Finish all declaration checks
     // and preserve native-import failure priority before executable checks.
     if storage_declaration_refused {
+        // Generic declaration shape/depth/leaf bounds remain independently
+        // authoritative even when a concrete storage declaration was refused.
+        // Keep those declaration receipts without checking executable bodies
+        // or exposing unsupported-storage signature cascades.
+        let declaration_prefix = diagnostics.len();
+        check_function_declarations(program, capacity_functions, &types, &mut functions, &mut ids, &mut diagnostics);
+        let mut position = 0;
+        diagnostics.retain(|diagnostic| {
+            let retain =
+                position < declaration_prefix || matches!(diagnostic.code, "SPX-T223" | "SPX-T224");
+            position += 1;
+            retain
+        });
         return Ok(finish_diagnostics(diagnostics));
     }
 

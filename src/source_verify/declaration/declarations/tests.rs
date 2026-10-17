@@ -278,3 +278,28 @@ fn main() -> i64 { 0 }
     assert!(errors.contains(&"SPX-T309"), "{errors:?}");
     assert!(!errors.contains(&"SPX-T268"), "{errors:?}");
 }
+
+#[test]
+fn rejected_storage_preserves_generic_leaf_bound_receipts_without_executable_cascades() {
+    let fields = (0..257)
+        .map(|index| format!("leaf_{index}: Bytes,"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    let source = format!(
+        "module test.storage_generic_bounds; record Bag {{{fields}}} record Box<T> {{value:T,}} record Pair<T,U> {{left:T,right:U,}} fn relay<T>(value:own Box<Pair<Bag,T>>)->Box<Pair<Bag,T>>{{value}} fn main()->i64{{let unused=missing_executable();0}}"
+    );
+    let errors = codes(&source);
+    assert!(errors.contains(&"SPX-T268"), "{errors:?}");
+    assert!(
+        errors
+            .iter()
+            .any(|code| matches!(*code, "SPX-T223" | "SPX-T224")),
+        "{errors:?}"
+    );
+    assert!(
+        errors
+            .iter()
+            .all(|code| matches!(*code, "SPX-T268" | "SPX-T223" | "SPX-T224")),
+        "{errors:?}"
+    );
+}

@@ -1,0 +1,30 @@
+{
+  "source_head": "21abcda9bc82864834914dc5b89c91bc5a9c94a5",
+  "run": 39005559079,
+  "job": 117317575631,
+  "fixtures": {
+    "calculator-baseline.json": {
+      "bytes": 9894,
+      "sha256": "fc6a1d2ac456b99a70506a7e86f0290e3ff0552031843ff9f34e4b04b1223079",
+      "digest": "sha256:4bdc2f735a3de7b58292bd2df551631534fa0847b63f4d84d1c3ee54bd5a1955",
+      "used_builder_bytes": 2691397,
+      "prior_builder_bytes": 2696104
+    },
+    "calculator-renamed.json": {
+      "bytes": 9894,
+      "sha256": "b76b851f7a5b9141fe98ed10aaa1b8158a855577b4260efffc125aaa92e97628",
+      "digest": "sha256:5c5ae56e91c8028c41e2fd2f42218ef03781d3b24a100d86fdb26d83cfc93712",
+      "used_builder_bytes": 2691397,
+      "prior_builder_bytes": 2696104
+    },
+    "provenance.json": {
+      "bytes": 354,
+      "sha256": "12d63376ce998861f2541c8360ddc0a03303a7b69937b99c81dcd9c702329a6d"
+    }
+  },
+  "source_snapshots": {
+    "historical_builder.before.rs.txt": "d9e93e7afe98de8aa1d593ea5c8a80acbe08458929205a5f84f1608a8b86e704",
+    "test-fixtures.before.mjs": "b6339f8ce8c4641fb6ca65590f75deb9cb7cbed486c63a88b4be00e5b41c6283"
+  },
+  "scope": "Complete actual hosted records; strict base64, byte length/SHA, source/compiler provenance and independently recomputed graph-domain hashes. Only builder debit and self-digest differ from complete prior wires. Browser execution and current-head full CI remain pending."
+}

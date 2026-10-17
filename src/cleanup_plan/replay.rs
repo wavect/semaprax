@@ -6989,6 +6989,8 @@ fn plan_skeleton_paths(
                     note_skeleton_materialization();
                     #[cfg(test)]
                     final_output::record_move(observations.len(), observations.capacity());
+                    #[cfg(test)]
+                    branch_clone::note_take();
                     let mut branch = observations;
                     budget.charge_skeleton(function, 1, "plan branch observation push")?;
                     note_skeleton_materialization();
@@ -7010,7 +7012,9 @@ fn plan_skeleton_paths(
                     )?;
                     continue;
                 }
-                for edge in edges {
+                // Same slice iterator as the original for-loop, now named for the final-edge query.
+                let mut remaining_edges = edges.iter();
+                while let Some(edge) = remaining_edges.next() {
                     let edge = &plan.edges[edge.0 as usize];
                     let observation = match &edge.condition {
                         EdgeCondition::BooleanResult(expression, value) => {
@@ -7111,6 +7115,41 @@ fn plan_skeleton_paths(
                             1,
                             "cleanup-plan skeleton branch clone",
                         )?;
+                        // Original clone1 is charged above on both true and
+                        // false probe paths; this is a bounded implementation
+                        // detail of that materialization, not a CPU ledger.
+                        match budget {
+                            ReplayBudget { payer: AllocationPayer::ActiveBuilder, .. } => {
+                                budget.reserve_bytes(function, branch_clone::TAKE_CALL_CONTROLS,
+                                    "plan final branch probe receiving")?;
+                                if branch_clone::can_take(branch_clone::TakeCandidate {
+                                    values: &observations,
+                                    remaining_edges: remaining_edges.len(),
+                                    edge_count: edges.len(),
+                                    budget,
+                                    plan,
+                                    target: edge.to,
+                                }) {
+                                    note_skeleton_materialization();
+                                    budget.charge_skeleton(function, 1, "plan branch observation push")?;
+                                    note_skeleton_materialization();
+                                    budget.reserve_bytes(function, 0, "plan branch observation push")?;
+                                    budget.reserve_bytes(function,
+                                        physical_clone::conversion_bytes::<std::rc::Rc<SkeletonObservation>, _>(&observation),
+                                        "plan branch observation push")?;
+                                    #[cfg(test)]
+                                    branch_clone::note_take();
+                                    #[cfg(test)]
+                                    branch_clone::note_generic_take();
+                                    branch = std::mem::take(&mut observations);
+                                    branch.push(observation.into());
+                                    skeleton_queue_push(budget, function, &mut queue,
+                                        (edge.to, branch), "plan branch state push")?;
+                                    continue;
+                                }
+                            }
+                            _ => {}
+                        }
                         budget.reserve_clone(
                             function,
                             &observations,

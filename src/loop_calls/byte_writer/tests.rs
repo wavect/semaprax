@@ -213,3 +213,5 @@ fn legacy_allocating_helper_census_preserves_ordinary_depth_and_refuses_one_extr
         "SPX-H006"
     );
 }
+
+mod string_slots;

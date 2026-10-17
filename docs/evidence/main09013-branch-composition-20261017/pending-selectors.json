@@ -1,0 +1,29 @@
+{
+  "status": "SOURCE_ONLY_UNEXECUTED",
+  "checks": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::branch_clone::tests::full_plan_enumerator_keeps_every_original_path_work_and_materialization",
+      "sourcepath": "src/cleanup_plan/replay/branch_clone/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::branch_clone::tests::final_prefix_transfer_keeps_full_checked_arithmetic_paths_and_work",
+      "sourcepath": "src/cleanup_plan/replay/branch_clone/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::branch_clone::tests::terminal_prefix_probe_rejects_growth_cycles_and_nonfinal_edges",
+      "sourcepath": "src/cleanup_plan/replay/branch_clone/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::branch_clone::tests::joined_generic_three_edge_transfer_keeps_complete_paths_and_original_work",
+      "sourcepath": "src/cleanup_plan/replay/branch_clone/tests.rs"
+    }
+  ]
+}

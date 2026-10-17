@@ -103,6 +103,153 @@ pub(super) fn with_observation<T: Clone + ClonePayload, V: physical_clone::IntoR
     Ok(result)
 }
 
+/// A pure probe for transferring the final branch's already funded prefix.
+pub(super) struct TakeCandidate<'a> {
+    pub(super) values: &'a Vec<std::rc::Rc<SkeletonObservation>>,
+    pub(super) remaining_edges: usize,
+    pub(super) edge_count: usize,
+    pub(super) budget: &'a ReplayBudget,
+    pub(super) plan: &'a crate::cleanup_plan::CleanupPlan,
+    pub(super) target: BlockId,
+}
+struct TakeBounds<'a> {
+    required: Option<usize>,
+    capacity: Option<usize>,
+    block: Option<&'a crate::cleanup_plan::CleanupBlock>,
+    exit: Option<&'a crate::cleanup_plan::ExitTarget>,
+    next: BlockId,
+    spare: usize,
+    remaining: usize,
+}
+// Complete caller/callee headers, checked-bound state and temporary results,
+// growth operands, borrowed block/exit/edge receivers and both bool results.
+// No existing Vec/Result owner is credited against these new layouts.
+pub(super) const TAKE_BYTES: usize = 2 * std::mem::size_of::<TakeCandidate<'static>>()
+    + std::mem::size_of::<TakeBounds<'static>>()
+    + 4 * std::mem::size_of::<Option<usize>>()
+    + 4 * std::mem::size_of::<usize>()
+    + 4 * std::mem::size_of::<&crate::cleanup_plan::CleanupBlock>()
+    + 2 * std::mem::size_of::<bool>();
+
+// The real enumerator pays BEFORE TakeCandidate/length/policy receivers.
+// TAKE_BYTES retains the original Candidate/Bounds and checked arithmetic
+// layout. No later clone or skipped backing is credited to this payment.
+pub(super) const TAKE_CALL_CONTROLS: usize = TAKE_BYTES
+    + 2 * size_of::<Result<(), Diagnostic>>() // receiving reservation and nested payment
+    + 2 * size_of::<&mut ReplayBudget>() + 2 * size_of::<&ResolvedFunction>() // reserve actual/formal
+    + 2 * size_of::<&str>() + 2 * size_of::<usize>() // phase and byte request actual/formal
+    + size_of::<&std::slice::Iter<'static, EdgeId>>() // remaining-edge len receiver
+    + size_of::<&Vec<EdgeId>>() // total edge len receiver
+    + 2 * size_of::<&ReplayBudget>() // selected() actual/formal receiver
+    + 4 * size_of::<&AllocationPayer>() // two PartialEq actuals and two formals
+    + 16 * size_of::<&Vec<std::rc::Rc<SkeletonObservation>>>() // eight len/capacity actual/formal pairs
+    + 2 * size_of::<&Vec<crate::cleanup_plan::CleanupBlock>>() // block Vec dereference actual/formal
+    + 2 * size_of::<&[crate::cleanup_plan::CleanupBlock]>() // get actual/formal
+    + 2 * size_of::<&Vec<crate::cleanup_plan::CleanupTransition>>() // transition len actual/formal
+    + 2 * size_of::<&Vec<crate::cleanup_plan::CleanupEdge>>() // Vec dereference actual/formal
+    + 2 * size_of::<&[crate::cleanup_plan::CleanupEdge]>() // get actual/formal
+    + 2 * size_of::<&Vec<crate::cleanup_plan::ExitTarget>>() // Vec dereference actual/formal
+    + 2 * size_of::<&[crate::cleanup_plan::ExitTarget]>() // get actual/formal
+    + size_of::<Option<&crate::cleanup_plan::CleanupEdge>>() // get result
+    + size_of::<&crate::cleanup_plan::CleanupEdge>() // successful edge binding
+    + size_of::<Option<&crate::cleanup_plan::ExitTarget>>() // copied exit match
+    + size_of::<&crate::cleanup_plan::ExitTarget>() // successful exit binding
+    + size_of::<&BlockId>() + size_of::<&crate::cleanup_plan::ExitTargetId>() // terminator borrowed patterns
+    + 5 * size_of::<usize>() // transition length, three indexes, multiplication input
+    + 14 * size_of::<bool>() // lazy eligibility5+aggregate, capacity5, loop, matches, caller condition
+    + size_of::<&mut Vec<std::rc::Rc<SkeletonObservation>>>(); // take receiver
+
+pub(super) fn can_take(input: TakeCandidate<'_>) -> bool {
+    #[cfg(test)]
+    if tests::original_selected() {
+        return false;
+    }
+    if input.budget.payer != AllocationPayer::ActiveBuilder
+        || input.budget.selected()
+        || input.remaining_edges != 0
+        || input.edge_count < 2
+        || input.values.capacity() <= input.values.len()
+    {
+        return false;
+    }
+    let mut bounds = TakeBounds {
+        required: input.values.len().checked_add(1),
+        capacity: None,
+        block: None,
+        exit: None,
+        next: input.target,
+        spare: input.values.capacity() - input.values.len() - 1,
+        remaining: input.values.len(),
+    };
+    let Some(required) = bounds.required else {
+        return false;
+    };
+    bounds.capacity = physical_storage::replay_growth_capacity(input.values.len(), required);
+    let Some(capacity) = bounds.capacity else {
+        return false;
+    };
+    if input.values.capacity() > capacity
+        || !capacity
+            .checked_mul(std::mem::size_of::<std::rc::Rc<SkeletonObservation>>())
+            .is_some_and(|bytes| bytes >= TAKE_BYTES)
+    {
+        return false;
+    }
+    // The earlier branch has already cloned this entire prefix. Bound this
+    // read-only shape probe by that existing prefix length; exhaustion merely
+    // keeps the original clone route, with no new admission limit or quota.
+    while bounds.remaining != 0 {
+        bounds.remaining -= 1;
+        bounds.block = input.plan.blocks.get(bounds.next.0 as usize);
+        let Some(block) = bounds.block else {
+            return false;
+        };
+        // Every transition emits at most one observation. Counting even the
+        // ignored cleanup transitions conservatively bounds all future growth.
+        bounds.required = bounds.spare.checked_sub(block.transitions.len());
+        let Some(spare) = bounds.required else {
+            return false;
+        };
+        bounds.spare = spare;
+        match &block.terminator {
+            CleanupTerminator::Goto(edge) => {
+                bounds.required = bounds.spare.checked_sub(1);
+                let Some(spare) = bounds.required else {
+                    return false;
+                };
+                bounds.spare = spare;
+                let Some(edge) = input.plan.edges.get(edge.0 as usize) else {
+                    return false;
+                };
+                bounds.next = edge.to;
+            }
+            CleanupTerminator::Exit(exit) => {
+                bounds.exit = input.plan.exits.get(exit.0 as usize);
+                let Some(exit) = bounds.exit else {
+                    return false;
+                };
+                return matches!(
+                    exit.continuation,
+                    ExitContinuation::CommitResult { .. }
+                        | ExitContinuation::ReturnUnit
+                        | ExitContinuation::ReturnFailure { .. }
+                );
+            }
+            CleanupTerminator::Branch(_) => return false,
+        }
+    }
+    false
+}
+
+#[cfg(test)]
+pub(super) fn note_take() {
+    tests::note_take();
+}
+#[cfg(test)]
+pub(super) fn note_generic_take() {
+    tests::note_generic_take();
+}
+
 #[cfg(test)]
 pub(in crate::cleanup_plan::replay) mod before;
 #[cfg(test)]

@@ -1577,8 +1577,10 @@ response selectors. They write literals, decimal integers and escaped UTF-8 into
 one exactly sized bounded Bytes owner, then perform the ordinary final UTF-8
 String copy. The compiler admits helper renewal from a bounded transitive
 source/HIR closure proof in `src/loop_calls/byte_writer`, independently of codec
-names. Its immutable phase-owned ModuleIndex retains original census and proof
-order, with separately precharged borrowed numeric directories for functions,
+names. Primitive String-slot reads use the complete canonical fixed-call
+inspector in the typed proof and exact named-root/arity checks in the source
+proof, including the compiler-only fused byte form. Its immutable phase-owned
+ModuleIndex retains original census and proof order, with separately precharged borrowed numeric directories for functions,
 positive targets and exact expression-ID fields. Numeric keys only discover a
 candidate; receiving checks still require current pointer identity and original
 binding equality. Unseen/negative targets retain independent proof fallback.
@@ -5043,6 +5045,14 @@ prefix. Both ordinary receivers use it; loop latches and other payers retain the
 complete owning region receiver. The unchanged replay work account bounds all
 walks. Whole-source predecessors and pending full-fixture qualification live in
 [the comparison packet](evidence/borrowed-exit-region-match-v1/README.md).
+
+`cleanup_plan/replay/branch_clone.rs` also owns the ordinary final-branch
+prefix transfer probe. It permits moving an existing observation buffer only
+when a bounded terminal-chain walk proves all remaining observations fit and
+the avoided clone backing covers the full new control state. The original work,
+materialization count, ordering and clone fallback remain; selected replay is
+unchanged. Full predecessor custody and pending owning qualification are in
+[the transfer packet](evidence/last-branch-prefix-v1/README.md).
 
 Ordinary cleanup replay DAG constructors in
 `cleanup_plan/replay/skeleton_work/ordinary_dag/frontier.rs` retain an immutable

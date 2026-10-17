@@ -406,8 +406,8 @@
   },
   {
     "source": "src/cli/json_codec/retained_receipt/stdout_seal/tests.rs",
-    "sha256": "ad50a8b1e963106767e3fc7b4eb46de7e0e539a135daf829c074ce7cdcad99ab",
-    "lines": 229
+    "sha256": "4ab4541b0fe322ded7925f8e797b4c00d50bb6f8e2a0b1f638a0b8288f29440b",
+    "lines": 247
   },
   {
     "source": "src/cli/json_codec/retained_receipt/tests.rs",

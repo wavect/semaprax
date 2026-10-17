@@ -10,7 +10,7 @@
       "outside_production_still_fully_authenticated": 78,
       "full_role_production": 481,
       "full_role_test_only": 806,
-      "full_raw_sha256": "19ce3c498ef5c5b7c82130a090051d39e7dbc51d1f11fcc463ab358e97c9264f",
+      "full_raw_sha256": "6ce4fc2e0d3d39bfa742549b979b595f48ce90997d64d07db0b579524cb43506",
       "boundary_production_sha256": "cbdd8847b8fe4103996b1da73ca7d3ddf0a6a2fd159b5254e03d819927bb282b",
       "exact_original_forbidden_tokens": [
         "struct Resolver",
@@ -36,7 +36,7 @@
       "outside_production_still_fully_authenticated": 529,
       "full_role_production": 602,
       "full_role_test_only": 882,
-      "full_raw_sha256": "49474a2aadf71a95c485a8c72c0371702d6c90b36ade1e791440fe37657f444e",
+      "full_raw_sha256": "a1bc915f50618e8f7ffeb736b7133c7699c28a2a5c0f31bc6082aed2659cebf1",
       "boundary_production_sha256": "b2540688f074dd565405dfd06b67bf1fe3fe2b31ef2cf6a77c96998b03a0c6c5",
       "exact_original_forbidden_tokens": [
         "use super::*;",

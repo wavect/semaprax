@@ -5,24 +5,24 @@
   "rows": [
     {
       "path": "CHANGELOG.md",
-      "current_length": 573686,
-      "current_sha256": "cccc78675f5c81770545526f2832419735cfedf86f14adc4e458f71e2c6bd690",
+      "current_length": 574015,
+      "current_sha256": "9bc5dbe60dc1ddd282f192fdaedd0f0ce284a84b407e2dde297a1ee385887ce0",
       "main_length": 546181,
       "main_sha256": "96678114ef7c0ad97dd415c4d7756d350544c927ce93ffdfc37fdfa3ff5869bb",
       "main_archive": "docs/evidence/main-e177-full-controller-acquisition-20261017/incoming/96678114ef7c0ad97dd415c4d7756d350544c927ce93ffdfc37fdfa3ff5869bb.txt"
     },
     {
       "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
-      "current_length": 158606,
-      "current_sha256": "542ef32e1652f6a4331bcb05dadb87ae658379b5409ca9716144bdc809bda33e",
+      "current_length": 160762,
+      "current_sha256": "c340acc8567b6efbfadb7df3936f95b4ec17e10012f3d9cd2fabf4bc497c950e",
       "main_length": 106112,
       "main_sha256": "0a07bac8b9c0a51619952ca365ec06204c8ec0731f76d6b698c565ff8bcd88aa",
       "main_archive": "docs/evidence/main-e177-full-controller-acquisition-20261017/incoming/0a07bac8b9c0a51619952ca365ec06204c8ec0731f76d6b698c565ff8bcd88aa.txt"
     },
     {
       "path": "docs/ARCHITECTURE.md",
-      "current_length": 388194,
-      "current_sha256": "0b516f7757de9271c32ccaeecb8946fe41caa9707d9901b5d0849202cd1ee870",
+      "current_length": 388681,
+      "current_sha256": "3ca3e1a73ba5f279793deb366ce88f2d1b019028c4b0a1bfd0d3c2d95fef843a",
       "main_length": 360783,
       "main_sha256": "5d4b590093de8aa316a4330278d0ad781050b93056880f409959c25ded47213c",
       "main_archive": "docs/evidence/main-e177-full-controller-acquisition-20261017/incoming/5d4b590093de8aa316a4330278d0ad781050b93056880f409959c25ded47213c.txt"
@@ -2405,8 +2405,8 @@
     },
     {
       "path": "src/cleanup_plan/replay.rs",
-      "current_length": 324389,
-      "current_sha256": "6cdfce6c20964d62f360cd147d0c6ca8b4d9cb86f671d6d5b5773d8c6e446ae7",
+      "current_length": 324455,
+      "current_sha256": "733505ad93eda40bcbfa03ed0d2978f5e1dd5f0aa93020daff78d833def3b464",
       "main_length": 304581,
       "main_sha256": "e9d061abd4812771d5357a77182d490d96a5f0768f2c302f29b6dafe34f8c1e1",
       "main_archive": "docs/evidence/main-e177-full-controller-acquisition-20261017/incoming/e9d061abd4812771d5357a77182d490d96a5f0768f2c302f29b6dafe34f8c1e1.txt"
@@ -2541,8 +2541,8 @@
     },
     {
       "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs",
-      "current_length": 39548,
-      "current_sha256": "f0477415f73a2d9d0e02ad5411d28febdd0eb43e54fcde489b02e5202008ff7c",
+      "current_length": 39641,
+      "current_sha256": "943332a49bf82522b22bad1982b82cebfd6626f9f4e7f4cfe50d0ce9c595bcf2",
       "main_length": 37900,
       "main_sha256": "aff3b6e7d30470659a80db529b48a8acbb2931b02a7ea813c6d34844f474d20d",
       "main_archive": "docs/evidence/main-e177-full-controller-acquisition-20261017/incoming/aff3b6e7d30470659a80db529b48a8acbb2931b02a7ea813c6d34844f474d20d.txt"
@@ -2829,8 +2829,8 @@
     },
     {
       "path": "src/cleanup_plan/replay/skeleton_work.rs",
-      "current_length": 47627,
-      "current_sha256": "f86667440e07a2a01e0e8c043966c9df2ecbae3dd6d0a7cc1a991c6ade54e423",
+      "current_length": 47700,
+      "current_sha256": "6dd9f2807059079b8cf9900d3d1831afe3ba043b0fb1131031ae97e370668dec",
       "main_length": 41843,
       "main_sha256": "1311b7da9fba627de63bd7b5d1426e7640ea825265c9da4842c9a3bfe0f56787",
       "main_archive": "docs/evidence/main-e177-full-controller-acquisition-20261017/incoming/1311b7da9fba627de63bd7b5d1426e7640ea825265c9da4842c9a3bfe0f56787.txt"
@@ -3637,8 +3637,8 @@
     },
     {
       "path": "tests/hir_module_boundaries.rs",
-      "current_length": 100148,
-      "current_sha256": "ab2d3ee38fb8c5ba184a88df5153086b84156453c7be043b710c107f4e6e4805",
+      "current_length": 102020,
+      "current_sha256": "93f5c57978ccc93da4b59e6d43184febe23d33945a936af5513e8f8b11fd2e5f",
       "main_length": 54864,
       "main_sha256": "d9149e4de775720f16fd1f70603f953bc45f215b7534f16106e58d3f136b0b74",
       "main_archive": "docs/evidence/main-e177-full-controller-acquisition-20261017/incoming/d9149e4de775720f16fd1f70603f953bc45f215b7534f16106e58d3f136b0b74.txt"
@@ -3725,16 +3725,16 @@
     },
     {
       "path": "tests/workspace/semantic_graph.rs",
-      "current_length": 57474,
-      "current_sha256": "6ccf30ce469b558da186763dc4d641c042862369a6b75cd4eb116d24bb339eec",
+      "current_length": 57469,
+      "current_sha256": "e0e7f1bfff449baf1a3b40166de9b1334f4b639339c3f59a48940505b0e991c2",
       "main_length": 50286,
       "main_sha256": "6e2f921d4e56968dee9781070a212bac15df2617dc7fffb9f99d82c7cc3f9293",
       "main_archive": "docs/evidence/main-e177-full-controller-acquisition-20261017/incoming/6e2f921d4e56968dee9781070a212bac15df2617dc7fffb9f99d82c7cc3f9293.txt"
     },
     {
       "path": "tests/workspace/semantic_graph/source_inventory.rs",
-      "current_length": 97943,
-      "current_sha256": "880f07943189045d37e48bb495ada069ed74b0338ef3a9ac5d7cc23c217f838a",
+      "current_length": 99890,
+      "current_sha256": "76c00ed5e7e9bfd636a0ef3b4e7955cb094a97719030528b78cd10ef55c8518f",
       "main_length": 38994,
       "main_sha256": "da72498c6f63a37e488c75df9fe31fe2301c12114e5db0d496bc6d4072f6e06d",
       "main_archive": "docs/evidence/main-e177-full-controller-acquisition-20261017/incoming/da72498c6f63a37e488c75df9fe31fe2301c12114e5db0d496bc6d4072f6e06d.txt"

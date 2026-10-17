@@ -132,8 +132,12 @@ fn read_view(view: &serde_json::Value) -> String {
 }
 fn actual(row: &serde_json::Value) -> String {
     let root=Path::new(env!("CARGO_MANIFEST_DIR"));let source=row["source"].as_str().unwrap();let current=&row["current"];
-    let value=held(&root.join(source),current["length"].as_u64().unwrap()as usize,current["sha256"].as_str().unwrap()).unwrap();
-    if row["compiled"].as_bool().unwrap() { assert_eq!(Some(value.as_str()),compiled(source),"complete actual compiled source"); }
+    let value=crate::source_reflows_merge::main_e177_final_inputs::file(&root.join(source),current["length"].as_u64().unwrap()as usize,current["sha256"].as_str().unwrap())
+        .unwrap_or_else(|| held(&root.join(source),current["length"].as_u64().unwrap()as usize,current["sha256"].as_str().unwrap()).unwrap());
+    if row["compiled"].as_bool().unwrap() {
+        let compiled=crate::source_reflows_merge::main_e177_final_inputs::value(source,current["sha256"].as_str().unwrap(),compiled(source).unwrap());
+        assert_eq!(value,compiled,"complete actual compiled source");
+    }
     assert_eq!(value,read_view(current),"complete actual archive");value
 }
 pub(crate) fn file(path: &Path,length: usize,expected: &str) -> Option<String> {

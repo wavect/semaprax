@@ -1,0 +1,290 @@
+{
+  "status": "SOURCE_ONLY_PENDING_FINAL_SEAL",
+  "head": "5dff900cd1c3004437e3f706547ef55eda254563",
+  "rows": [
+    {
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs",
+      "before": {
+        "length": 39548,
+        "sha256": "f0477415f73a2d9d0e02ad5411d28febdd0eb43e54fcde489b02e5202008ff7c",
+        "archive": "docs/evidence/main-e177-final-source-binding-20261017/before/src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs.txt"
+      },
+      "after": {
+        "length": 39641,
+        "sha256": "943332a49bf82522b22bad1982b82cebfd6626f9f4e7f4cfe50d0ce9c595bcf2"
+      },
+      "edits": [
+        {
+          "before": "use crate::cleanup_plan::replay::replay_error;",
+          "after": "use crate::cleanup_plan::replay::replay_error;\n#[cfg(test)]\nuse super::{ExpressionId, StatusProducer, StatusSource, MAX_REPLAY_WORK_UNITS};",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "source": "src/source_reflows_merge/next_big_batch_inputs.rs",
+      "before": {
+        "length": 16397,
+        "sha256": "6e59808e53c27ac7d60543c44d70b356f735bec892bca02947a391883ff12c01",
+        "archive": "docs/evidence/main-e177-final-source-binding-20261017/before/src/source_reflows_merge/next_big_batch_inputs.rs.txt"
+      },
+      "after": {
+        "length": 16723,
+        "sha256": "4d42241052812d7b51d6d20db3881b3643decd0ebb37f52711d9345442b123a5"
+      },
+      "edits": [
+        {
+          "before": "let value=held(&root.join(source),current[\"length\"].as_u64().unwrap()as usize,current[\"sha256\"].as_str().unwrap()).unwrap();",
+          "after": "let value=crate::source_reflows_merge::main_e177_final_inputs::file(&root.join(source),current[\"length\"].as_u64().unwrap()as usize,current[\"sha256\"].as_str().unwrap())\n        .unwrap_or_else(|| held(&root.join(source),current[\"length\"].as_u64().unwrap()as usize,current[\"sha256\"].as_str().unwrap()).unwrap());",
+          "count": 1
+        },
+        {
+          "before": "if row[\"compiled\"].as_bool().unwrap() { assert_eq!(Some(value.as_str()),compiled(source),\"complete actual compiled source\"); }",
+          "after": "if row[\"compiled\"].as_bool().unwrap() {\n        let compiled=crate::source_reflows_merge::main_e177_final_inputs::value(source,current[\"sha256\"].as_str().unwrap(),compiled(source).unwrap());\n        assert_eq!(value,compiled,\"complete actual compiled source\");\n    }",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "source": "src/source_reflows_merge/main99f_inputs.rs",
+      "before": {
+        "length": 35280,
+        "sha256": "f51b7d60ffff5b9403650cd0dfbe42f4dc1994dc8ae05738973ce3a2456a1c7b",
+        "archive": "docs/evidence/main-e177-final-source-binding-20261017/before/src/source_reflows_merge/main99f_inputs.rs.txt"
+      },
+      "after": {
+        "length": 35618,
+        "sha256": "6609709d48b8303accacf05ce2158c3ff9f97a687cfe08ec0f631bace30adce7"
+      },
+      "edits": [
+        {
+          "before": "let actual=read(path,row[\"current_length\"].as_u64().unwrap()as usize,row[\"current_sha256\"].as_str().unwrap())?;",
+          "after": "let actual=if let Some(prior)=crate::source_reflows_merge::main_e177_final_inputs::file(path,row[\"current_length\"].as_u64().unwrap()as usize,row[\"current_sha256\"].as_str().unwrap()) {prior}else{read(path,row[\"current_length\"].as_u64().unwrap()as usize,row[\"current_sha256\"].as_str().unwrap())?};",
+          "count": 1
+        },
+        {
+          "before": "if let Some(compiled)=compiled(relative) {assert_eq!(actual,compiled,\"whole current compiled MAIN99F input\");}",
+          "after": "if let Some(compiled)=compiled(relative) {\n        let compiled=crate::source_reflows_merge::main_e177_final_inputs::value(relative,row[\"current_sha256\"].as_str().unwrap(),compiled);\n        assert_eq!(actual,compiled,\"whole current compiled MAIN99F input\");\n    }",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "source": "src/source_reflows_merge.rs",
+      "before": {
+        "length": 46849,
+        "sha256": "2e7779498c159c8bcc1c317a048f262a815c0a9bb7c225ff8c4ca12ae9e3a793",
+        "archive": "docs/evidence/main-e177-final-source-binding-20261017/before/src/source_reflows_merge.rs.txt"
+      },
+      "after": {
+        "length": 46948,
+        "sha256": "978bbf24cdc24521e8bd8829dd1101e1063c364253700febf9606d1c2ab3f606"
+      },
+      "edits": [
+        {
+          "before": " frozen parent readers.\n#[path = \"source_reflows_merge/next_big_batch_inputs.rs\"]\npub(crate) mod next_big_batch_inputs;\n",
+          "after": " frozen parent readers.\n#[path = \"source_reflows_merge/next_big_batch_inputs.rs\"]\npub(crate) mod next_big_batch_inputs;\n\n#[path = \"source_reflows_merge/main_e177_final_inputs.rs\"]\npub(crate) mod main_e177_final_inputs;\n",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "source": "tests/hir_module_boundaries.rs",
+      "before": {
+        "length": 101042,
+        "sha256": "0ed8680561165122a78596d309802f8fbfbc3a18e42a988bd1ae40defb5ac1a5",
+        "archive": "docs/evidence/main-e177-final-source-binding-20261017/before/tests/hir_module_boundaries.rs.txt"
+      },
+      "after": {
+        "length": 102020,
+        "sha256": "93f5c57978ccc93da4b59e6d43184febe23d33945a936af5513e8f8b11fd2e5f"
+      },
+      "edits": [
+        {
+          "before": "include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared.rs\")",
+          "after": "include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared.rs\"), include_str!(\"../src/cleanup_plan/replay/expression_facts/receiving/directory/before_cursor.rs\"), include_str!(\"../src/cleanup_plan/replay/expression_facts/receiving/directory/before_cursor/qualification.rs\"), include_str!(\"../src/cleanup_plan/replay/expression_facts/receiving/directory/before_cursor/status_prefix.rs\"), include_str!(\"../src/cleanup_plan/replay/merge_census.rs\"), include_str!(\"../src/cleanup_plan/replay/owned_suffix_878.rs\"), include_str!(\"../src/cleanup_plan/replay/owned_suffix_878_vector.rs\"), include_str!(\"../src/cleanup_plan/replay/skeleton_work/merge_keys_878.rs\"), include_str!(\"../src/cleanup_plan/replay/skeleton_work/merge_search.rs\"), include_str!(\"../src/source_reflows/main_e177_controllers.rs\"), include_str!(\"../src/source_reflows/main_e177_support.rs\"), include_str!(\"../src/source_reflows_merge/main_e177_final_inputs.rs\"), include_str!(\"../src/source_reflows_merge/main_e177_inputs.rs\"), include_str!(\"../tests/workspace/pin_capture.rs\")",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "source": "tests/workspace/semantic_graph/source_inventory.rs",
+      "before": {
+        "length": 98873,
+        "sha256": "cd457f9f3e36ab2d5aa8c1ff4dd78e54ce23ffd548bab477dc7ecab6498451f2",
+        "archive": "docs/evidence/main-e177-final-source-binding-20261017/before/tests/workspace/semantic_graph/source_inventory.rs.txt"
+      },
+      "after": {
+        "length": 99890,
+        "sha256": "76c00ed5e7e9bfd636a0ef3b4e7955cb094a97719030528b78cd10ef55c8518f"
+      },
+      "edits": [
+        {
+          "before": "include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared.rs\")",
+          "after": "include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared.rs\"), include_str!(\"../../src/cleanup_plan/replay/expression_facts/receiving/directory/before_cursor.rs\"), include_str!(\"../../src/cleanup_plan/replay/expression_facts/receiving/directory/before_cursor/qualification.rs\"), include_str!(\"../../src/cleanup_plan/replay/expression_facts/receiving/directory/before_cursor/status_prefix.rs\"), include_str!(\"../../src/cleanup_plan/replay/merge_census.rs\"), include_str!(\"../../src/cleanup_plan/replay/owned_suffix_878.rs\"), include_str!(\"../../src/cleanup_plan/replay/owned_suffix_878_vector.rs\"), include_str!(\"../../src/cleanup_plan/replay/skeleton_work/merge_keys_878.rs\"), include_str!(\"../../src/cleanup_plan/replay/skeleton_work/merge_search.rs\"), include_str!(\"../../src/source_reflows/main_e177_controllers.rs\"), include_str!(\"../../src/source_reflows/main_e177_support.rs\"), include_str!(\"../../src/source_reflows_merge/main_e177_final_inputs.rs\"), include_str!(\"../../src/source_reflows_merge/main_e177_inputs.rs\"), include_str!(\"../../tests/workspace/pin_capture.rs\")",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "before": {
+        "length": 159644,
+        "sha256": "8f46b869c4d108ba86a5f828b23617a2c21243a461cc031fe04b530dda246952",
+        "archive": "docs/evidence/main-e177-final-source-binding-20261017/before/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs.txt"
+      },
+      "after": {
+        "length": 160762,
+        "sha256": "c340acc8567b6efbfadb7df3936f95b4ec17e10012f3d9cd2fabf4bc497c950e"
+      },
+      "edits": [
+        {
+          "before": "include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared.rs\")",
+          "after": "include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/directory/before_cursor.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/directory/before_cursor/qualification.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/directory/before_cursor/status_prefix.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/merge_census.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/owned_suffix_878.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/owned_suffix_878_vector.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/skeleton_work/merge_keys_878.rs\"), include_str!(\"../../../../../src/cleanup_plan/replay/skeleton_work/merge_search.rs\"), include_str!(\"../../../../../src/source_reflows/main_e177_controllers.rs\"), include_str!(\"../../../../../src/source_reflows/main_e177_support.rs\"), include_str!(\"../../../../../src/source_reflows_merge/main_e177_final_inputs.rs\"), include_str!(\"../../../../../src/source_reflows_merge/main_e177_inputs.rs\"), include_str!(\"../../../../../tests/workspace/pin_capture.rs\")",
+          "count": 1
+        },
+        {
+          "before": "\n        include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/reused_cursor.rs\"),",
+          "after": " include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/reused_cursor.rs\"),",
+          "count": 1
+        },
+        {
+          "before": "\n        include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/reused_cursor/tests.rs\"),",
+          "after": " include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/reused_cursor/tests.rs\"),",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "source": "tests/workspace/semantic_graph.rs",
+      "before": {
+        "length": 57468,
+        "sha256": "1a35a450e2ecf3870e752fa60c17ace0460c960f24a9defd61522c2335deb9bf",
+        "archive": "docs/evidence/main-e177-final-source-binding-20261017/before/tests/workspace/semantic_graph.rs.txt"
+      },
+      "after": {
+        "length": 57469,
+        "sha256": "e0e7f1bfff449baf1a3b40166de9b1334f4b639339c3f59a48940505b0e991c2"
+      },
+      "edits": [
+        {
+          "before": "docs/evidence/next-big-batch-source-binding-20261017/current-projection-inputs.tsv",
+          "after": "docs/evidence/main-e177-final-source-binding-20261017/current-projection-inputs.tsv",
+          "count": 1
+        }
+      ]
+    }
+  ],
+  "new_modules": [
+    "src/cleanup_plan/replay/branch_clone/direct.rs",
+    "src/cleanup_plan/replay/branch_clone/direct/before.rs",
+    "src/cleanup_plan/replay/branch_clone/direct/tests.rs",
+    "src/cleanup_plan/replay/compact_stage/main_f247_source_custody.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/directory/before_cursor.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/directory/before_cursor/qualification.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/directory/before_cursor/status_prefix.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/reused_cursor.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/reused_cursor/tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels/terminal_leaf.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/selected_labels.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/selected_labels/tests.rs",
+    "src/cleanup_plan/replay/merge_census.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/before_comparison.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests.rs",
+    "src/cleanup_plan/replay/owned_suffix_878.rs",
+    "src/cleanup_plan/replay/owned_suffix_878_vector.rs",
+    "src/cleanup_plan/replay/skeleton_work/isolated_paths.rs",
+    "src/cleanup_plan/replay/skeleton_work/isolated_paths/tests.rs",
+    "src/cleanup_plan/replay/skeleton_work/isolated_paths/tests/before.rs",
+    "src/cleanup_plan/replay/skeleton_work/merge_keys_878.rs",
+    "src/cleanup_plan/replay/skeleton_work/merge_search.rs",
+    "src/source_reflows/main99f_controllers.rs",
+    "src/source_reflows/main_e177_controllers.rs",
+    "src/source_reflows/main_e177_support.rs",
+    "src/source_reflows/main_f247_controllers.rs",
+    "src/source_reflows_merge/main99f_inputs.rs",
+    "src/source_reflows_merge/main_e177_final_inputs.rs",
+    "src/source_reflows_merge/main_e177_inputs.rs",
+    "src/source_reflows_merge/next_big_batch_inputs.rs",
+    "src/workspace_graph/tests/core_attempt_trace.rs",
+    "tests/wasm/scalar_browser_ci_contract/before_3e66.rs",
+    "tests/wasm/scalar_browser_ci_contract/incoming_main3e66.rs",
+    "tests/workspace/pin_capture.rs"
+  ],
+  "raw_carriers": [
+    "tests/hir_module_boundaries.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs",
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+  ],
+  "ordered_table": {
+    "path": "docs/evidence/main-e177-final-source-binding-20261017/current-projection-inputs.tsv",
+    "rows": 441,
+    "prior": "docs/evidence/next-big-batch-source-binding-20261017/current-projection-inputs.tsv",
+    "prior_rows": 426,
+    "insertions": [
+      {
+        "at": 24,
+        "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/before_cursor.rs"
+      },
+      {
+        "at": 25,
+        "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/before_cursor/qualification.rs"
+      },
+      {
+        "at": 26,
+        "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/before_cursor/status_prefix.rs"
+      },
+      {
+        "at": 27,
+        "path": "src/cleanup_plan/replay/merge_census.rs"
+      },
+      {
+        "at": 28,
+        "path": "src/cleanup_plan/replay/owned_suffix_878.rs"
+      },
+      {
+        "at": 29,
+        "path": "src/cleanup_plan/replay/owned_suffix_878_vector.rs"
+      },
+      {
+        "at": 30,
+        "path": "src/cleanup_plan/replay/skeleton_work/merge_keys_878.rs"
+      },
+      {
+        "at": 31,
+        "path": "src/cleanup_plan/replay/skeleton_work/merge_search.rs"
+      },
+      {
+        "at": 32,
+        "path": "src/source_reflows/main_e177_controllers.rs"
+      },
+      {
+        "at": 33,
+        "path": "src/source_reflows/main_e177_support.rs"
+      },
+      {
+        "at": 34,
+        "path": "src/source_reflows_merge/main_e177_final_inputs.rs"
+      },
+      {
+        "at": 35,
+        "path": "src/source_reflows_merge/main_e177_inputs.rs"
+      },
+      {
+        "at": 36,
+        "path": "tests/workspace/pin_capture.rs"
+      },
+      {
+        "at": 388,
+        "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/reused_cursor.rs"
+      },
+      {
+        "at": 389,
+        "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/reused_cursor/tests.rs"
+      }
+    ],
+    "complete_prior_archive": "docs/evidence/main-e177-final-source-binding-20261017/prior426.whole.tsv.txt"
+  }
+}

@@ -59,7 +59,7 @@ fn digest(bytes: &[u8]) -> String { format!("{:x}", LowerHex(Sha256::digest(byte
 fn packet() -> serde_json::Value {
     let data=include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/docs/evidence/main-e177-full-controller-acquisition-20261017/inputs.json"));
     assert_eq!(data.len(), 237694); // MAIN_E177_PACKET_LENGTH
-    assert_eq!(digest(data.as_bytes()), "eba5f197707cd4b1e8229907011a2d1640af433f12f41927c1496d022aa52d05"); // MAIN_E177_PACKET_SHA
+    assert_eq!(digest(data.as_bytes()), "89ce381aff378d3e66b660fcf44acde6c712a58bb9dfa194106cfa080005e82a"); // MAIN_E177_PACKET_SHA
     let held=main_e177_file_raw(&Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/evidence/main-e177-full-controller-acquisition-20261017/inputs.json"),
         data.len(), &digest(data.as_bytes())).unwrap();
     assert_eq!(held,data,"whole actual and compiled MAIN_E177 namespace");

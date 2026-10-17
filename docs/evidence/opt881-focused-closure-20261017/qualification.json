@@ -1,0 +1,53 @@
+{
+  "issue": 881,
+  "qualified_source": "0f9fb3766f0413694e4a12447538f7c7bb99627f",
+  "required_owners": 16,
+  "pass": 16,
+  "complete_immediate_878_old_receivers": true,
+  "rows": [
+    {
+      "route": "borrowed paths",
+      "old878_paid": 54604,
+      "retained_paid": 39972,
+      "old_current_heap": [
+        23532,
+        23532
+      ],
+      "old_current_peak": [
+        14132,
+        14132
+      ]
+    },
+    {
+      "route": "borrowed calls",
+      "old878_paid": 56212,
+      "retained_paid": 48501,
+      "old_current_heap": [
+        20996,
+        20996
+      ],
+      "old_current_peak": [
+        13156,
+        13156
+      ]
+    },
+    {
+      "route": "owned suffix",
+      "old878_paid": 94691,
+      "retained_paid": 83447,
+      "old_current_heap": [
+        33604,
+        33604
+      ],
+      "old_current_peak": [
+        23604,
+        23604
+      ]
+    }
+  ],
+  "all_final_live": 0,
+  "full_six_build_admitted": false,
+  "newer_branch_global_qualification": false,
+  "shared_actual_build_and_clippy_receipts": "../opt882-focused-closure-20261017",
+  "no_agent_token_or_application_fit_claim": true
+}

@@ -221,7 +221,13 @@ fn verify_profile_funded<'p>(
     check_record_layouts(program, &types, &mut checked_layouts, &mut diagnostics);
     // Rejected storage has no executable type. Finish all declaration checks
     // and preserve native-import failure priority before executable checks.
-    if storage_declaration_refused {
+    if storage_declaration_refused
+        && !record_shape::all_storage_refusals_recoverable(
+            program,
+            &types,
+            &diagnostics[storage_diagnostics_start..],
+        )
+    {
         // Generic declaration shape/depth/leaf bounds remain independently
         // authoritative even when a concrete storage declaration was refused.
         // Keep those declaration receipts without checking executable bodies

@@ -1,0 +1,37 @@
+{
+  "status": "SOURCE_ONLY_UNEXECUTED_STRICT_ARENA_OWNER_PENDING",
+  "base": "d3b64d6afa52c3837c7d58d6fef4b6c635721003",
+  "changed_Rust": [
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+      "bytes": 64942,
+      "sha256": "cdbced119fdcd161c437ef9ac83d8066caadae0eabdf5bee83ce95db260fd472"
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf.rs",
+      "bytes": 7473,
+      "sha256": "d611a058bf45d4c5ff05135c9c76119b366877f0c5a7ca840a205547a8f3650e"
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs",
+      "bytes": 68514,
+      "sha256": "48c1fe3778d050ffbb7fcde220f10ea47a209d1935135f46328b381d727aa2dd"
+    }
+  ],
+  "new_Rust_owners": 0,
+  "source_inverse_check": "PASS three complete Git preimages/inverses, original test prefix unchanged, module limits",
+  "actual36_deficit_remains_pending": 10304,
+  "typed_receiving_map": "Binding-free Self {scratch_paid:false,..} matches the existing received &mut Self. No pattern bindings, copied discriminant, boolean local, new function call/return/owned aggregate or reference is formed. Original payment/body runs unchanged only when cold eligibility is possible. All surviving general callees keep original carriers and payments.",
+  "new_test_count": 1,
+  "pending_selectors": 8,
+  "files": {
+    "README.md": "0d6dc5f86862efa66f1e70676ded547e0dc04e9647c2ccacdf40f770d2edd3fd",
+    "actual36-row21.log": "34d3a6dc9c87d8a633db5c7cb0b474cd98ab6400a59cb74a6f8a6a085032578c",
+    "arena_tests.rs.before.txt": "f1054589d013a79e4ada72db77687fc72d4bdd4e271fa224c4292071bf870f22",
+    "canonical_shared.rs.before.txt": "40545329d8d155788f51d3dd83cd818c04f3bd72f1202dcc86a9c77feb9a95f2",
+    "check-source.py": "ea493e5c5944b2ae5789252b281c004edc32750c879b96b04bf6ef8e604e7cb6",
+    "pending-selectors.json": "229f1b5220dae9ce024dd488ec582a8475abd26ecb22f4a211908ea8d6ca5598",
+    "terminal_leaf.rs.before.txt": "102960d3ec7d589141b46b6fbcc6f94fb789abcfb1b33d37a5de73492e793275",
+    "whole-source-inverses.json": "f6a3e0fdc97833af5d4b8e0cf2ba36b064c46d6b45ce609215dcf4704aa612da"
+  }
+}

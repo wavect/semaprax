@@ -22,17 +22,17 @@
     },
     {
       "path": "src/cleanup_plan/replay.rs",
-      "current_len": 321092,
-      "current_sha256": "30616d71694d393a730c0c8e49a25bbad7539b07ff96ed901b9d07be29765b9c",
-      "current_archive": "docs/evidence/mainbcc-ordinary-source-domain-20261017/current-inputs/30616d71694d393a730c0c8e49a25bbad7539b07ff96ed901b9d07be29765b9c.txt",
+      "current_len": 323567,
+      "current_sha256": "807735eb8713ff6e02abd9ea6d3d4aea4fdc53f95bc6b6d1a2a1e51dba605afa",
+      "current_archive": "docs/evidence/mainbcc-ordinary-source-domain-20261017/current-inputs/807735eb8713ff6e02abd9ea6d3d4aea4fdc53f95bc6b6d1a2a1e51dba605afa.txt",
       "main_len": 300830,
       "main_sha256": "f55a89e71e01d7254fd13ae57b9fbe104a08bddc1a3f080140b6d70213c1544d",
       "main_archive": "docs/evidence/mainbcc-ordinary-source-domain-20261017/main-inputs/01.txt",
       "whole_source_inverse": [
         {
           "at": 0,
-          "remove_len": 321092,
-          "remove_sha256": "30616d71694d393a730c0c8e49a25bbad7539b07ff96ed901b9d07be29765b9c",
+          "remove_len": 323567,
+          "remove_sha256": "807735eb8713ff6e02abd9ea6d3d4aea4fdc53f95bc6b6d1a2a1e51dba605afa",
           "insert_archive": "docs/evidence/mainbcc-ordinary-source-domain-20261017/main-inputs/01.txt"
         }
       ]

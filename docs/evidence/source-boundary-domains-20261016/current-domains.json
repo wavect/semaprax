@@ -1603,6 +1603,13 @@
         "src/cleanup_plan/replay/skeleton_work/dag_storage/tests.rs",
         "src/cleanup_plan/replay/skeleton_work/dag_storage/tests/tail_moves.rs",
         "src/cleanup_plan/replay/skeleton_work/dag_storage/tests/tail_moves/old.rs",
+        "src/cleanup_plan/replay/skeleton_work/enumerated_prefix.rs",
+        "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/before.rs",
+        "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/source_custody.rs",
+        "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
+        "src/cleanup_plan/replay/skeleton_work/merge_keys.rs",
+        "src/cleanup_plan/replay/skeleton_work/merge_keys_before.rs",
+        "src/cleanup_plan/replay/skeleton_work/merge_keys_tests.rs",
         "src/cleanup_plan/replay/skeleton_work/oracle_entry.rs",
         "src/cleanup_plan/replay/skeleton_work/ordinary_dag.rs",
         "src/cleanup_plan/replay/skeleton_work/ordinary_dag/frontier.rs",
@@ -2323,6 +2330,8 @@
         "src/cleanup_plan/replay/shape_cursor.rs",
         "src/cleanup_plan/replay/skeleton_work.rs",
         "src/cleanup_plan/replay/skeleton_work/dag_storage.rs",
+        "src/cleanup_plan/replay/skeleton_work/enumerated_prefix.rs",
+        "src/cleanup_plan/replay/skeleton_work/merge_keys.rs",
         "src/cleanup_plan/replay/skeleton_work/ordinary_dag.rs",
         "src/cleanup_plan/replay/skeleton_work/ordinary_dag/frontier.rs",
         "src/cleanup_plan/replay/skeleton_work/prefix_fusion.rs",
@@ -2598,6 +2607,8 @@
         "src/cleanup_plan/replay/ordinary_plan_history/producer.rs",
         "src/cleanup_plan/replay/ordinary_status.rs",
         "src/cleanup_plan/replay/ordinary_status/allocation.rs",
+        "src/cleanup_plan/replay/owned_suffix.rs",
+        "src/cleanup_plan/replay/owned_suffix/sequence_vector.rs",
         "src/cleanup_plan/replay/path_join.rs",
         "src/cleanup_plan/replay/path_join/branch_join.rs",
         "src/cleanup_plan/replay/path_join/storage.rs",
@@ -2645,9 +2656,9 @@
         "src/source_verify/function_map.rs",
         "src/source_verify/funding.rs"
       ],
-      "full_manifest_sha256": "5ff5e48ce0eaab68cb82e340f83100918faf362b315a31eb375d5240bb1e0b82",
-      "full_raw_sha256": "788a126407c2f91c54fa5567e8af2617e57f98d29c71362366eab59243cb0d17",
-      "full_authenticated_production_sha256": "9c7787f577126af901899ba21ecf90ac13e9951ee329ce18507698ae5758baa9"
+      "full_manifest_sha256": "5ac52856ec2e477830d1e91354389dacdf8ff22cf020aadb75e9903b54223719",
+      "full_raw_sha256": "004e453b8e549c878fe5c5c9ae88bd4a500eb4fb910d1ec73f22d13ebb77239a",
+      "full_authenticated_production_sha256": "2a5b26352ef25f17e52b9c2ae1ede40a3f758fe1c986cee37808f8dd272b7f1d"
     },
     "projection": {
       "baseline": "a82e00cc83f99b16249181c45710d962598577db",
@@ -3193,6 +3204,8 @@
         "src/cleanup_plan/replay/ordinary_renewals.rs",
         "src/cleanup_plan/replay/ordinary_status.rs",
         "src/cleanup_plan/replay/ordinary_status/allocation.rs",
+        "src/cleanup_plan/replay/owned_suffix.rs",
+        "src/cleanup_plan/replay/owned_suffix/sequence_vector.rs",
         "src/cleanup_plan/replay/paid_type_facts.rs",
         "src/cleanup_plan/replay/paid_type_facts/droppability.rs",
         "src/cleanup_plan/replay/paid_type_facts/droppability/key.rs",
@@ -3273,6 +3286,8 @@
         "src/cleanup_plan/replay/skeleton_bound.rs",
         "src/cleanup_plan/replay/skeleton_work.rs",
         "src/cleanup_plan/replay/skeleton_work/dag_storage.rs",
+        "src/cleanup_plan/replay/skeleton_work/enumerated_prefix.rs",
+        "src/cleanup_plan/replay/skeleton_work/merge_keys.rs",
         "src/cleanup_plan/replay/skeleton_work/ordinary_dag.rs",
         "src/cleanup_plan/replay/skeleton_work/ordinary_dag/frontier.rs",
         "src/cleanup_plan/replay/skeleton_work/prefix_fusion.rs",
@@ -3638,9 +3653,9 @@
         "src/source_verify/declaration/identity.rs",
         "src/source_verify/declaration/record_shape.rs"
       ],
-      "full_manifest_sha256": "c3d6a1b09340d6046c38328fbb92866ad44dfd24292230e7cb1e69a5752f493f",
-      "full_raw_sha256": "a4435115a42247c190ba6f8b83e1bce4da6784ca738c772320b1fcafcd61f258",
-      "full_authenticated_production_sha256": "950e4bc5fe9bf328ee39309e8d9265b0026ce82e4280c4eef3526721bd13b303"
+      "full_manifest_sha256": "11b22bc30d058073ef978510bba20a8a7158b39758be218ac1fc3a4ca21105ad",
+      "full_raw_sha256": "059b98a3476ec3a927eeb14f5631623cfd0684464caddb8f8a8e32656f2a08c4",
+      "full_authenticated_production_sha256": "7d5f79972578ec0007b1549ff11e0d30b29b19b40d5a8eda9427dc50545cf470"
     }
   }
 }

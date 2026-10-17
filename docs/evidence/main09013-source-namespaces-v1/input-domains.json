@@ -5,8 +5,8 @@
   "main": [
     {
       "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
-      "current_len": 155342,
-      "current_sha256": "2f60338ca315635e7d533ba6cbdeadda40d8b2e3d66a7398c7521d4b44f5f845",
+      "current_len": 156404,
+      "current_sha256": "bdf614306dd818a9d66a794edf46008c3306ffa2fabcb3acbf4b03060d7db316",
       "archive": "docs/evidence/main21-exit-region-integration-20261017/main-inputs/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
       "view_len": 105523,
       "view_sha256": "70b707a2915c51abb76a72aeb084835c943c8a969c906a1b12eb287e7fa6beca",
@@ -986,8 +986,8 @@
     },
     {
       "path": "src/cleanup_plan/replay.rs",
-      "current_len": 321092,
-      "current_sha256": "30616d71694d393a730c0c8e49a25bbad7539b07ff96ed901b9d07be29765b9c",
+      "current_len": 323567,
+      "current_sha256": "807735eb8713ff6e02abd9ea6d3d4aea4fdc53f95bc6b6d1a2a1e51dba605afa",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/src/cleanup_plan/replay.rs",
       "view_len": 302169,
       "view_sha256": "e02105834f829503b1e1a6645067f7b0784fed133890c6f7b4553346ba011f28",
@@ -1211,8 +1211,8 @@
     },
     {
       "path": "src/cleanup_plan/replay/skeleton_work.rs",
-      "current_len": 54935,
-      "current_sha256": "916b817cb82b9e47eaacab364e94503b0e6ed0028d64c522ec4ccbb11a60c455",
+      "current_len": 47343,
+      "current_sha256": "73ae980d09e4324eb272f1379364cb6ace3cce71a1f8c57de9bfd1a47f482c41",
       "archive": "docs/evidence/main21-exit-region-integration-20261017/main-inputs/src/cleanup_plan/replay/skeleton_work.rs",
       "view_len": 41539,
       "view_sha256": "78712ffd0063c945b7053258f62e608cefdbbd892b2348f99d54fee9c8ad577f",
@@ -1445,8 +1445,8 @@
     },
     {
       "path": "src/source_verify/declaration.rs",
-      "current_len": 15623,
-      "current_sha256": "c93ac4c883fe6b10c831a2603c994ea03880986fd0b7a394bfa41ec8a06d88cb",
+      "current_len": 15793,
+      "current_sha256": "54bca5bc3be89d2b788655f72cb8671c76b540edd99c126a0862a4f1f22a0a88",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/src/source_verify/declaration.rs",
       "view_len": 12842,
       "view_sha256": "1ee6c27c7e20e6578261de0f58d0019762080e33f5631685081a8318485420d8",
@@ -1544,8 +1544,8 @@
     },
     {
       "path": "tests/hir_module_boundaries.rs",
-      "current_len": 97256,
-      "current_sha256": "f25b784eba1a2ea26a07b260b2ddff67b6dd90c0a6402fd143dc42ca68847d4e",
+      "current_len": 98174,
+      "current_sha256": "5090d08b52cb9650af5fc2c2a28739a9783c3d43c7a0f25037ce032b04f51137",
       "archive": "docs/evidence/main21-exit-region-integration-20261017/main-inputs/tests/hir_module_boundaries.rs",
       "view_len": 54335,
       "view_sha256": "d6e8ad51661a3f8727e9f654bd7e7f2687ffa6fa13fd9c66900217def541c1cc",
@@ -1553,8 +1553,8 @@
     },
     {
       "path": "tests/workspace/semantic_graph/source_inventory.rs",
-      "current_len": 90364,
-      "current_sha256": "59e5b98593c2c2d443d1479e7c89564551d515ca921f7abab2cc8f5d579c8c21",
+      "current_len": 91318,
+      "current_sha256": "aa4e1844d2e867c519bd24fdb560535c9f07b7daa790e343c1b4b04e978d0989",
       "archive": "docs/evidence/main21-exit-region-integration-20261017/main-inputs/tests/workspace/semantic_graph/source_inventory.rs",
       "view_len": 38330,
       "view_sha256": "1cd423cdab9473ed591145366c339f9519892e06593d287c28b799f7e359c660",
@@ -1564,8 +1564,8 @@
   "physical": [
     {
       "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
-      "current_len": 155342,
-      "current_sha256": "2f60338ca315635e7d533ba6cbdeadda40d8b2e3d66a7398c7521d4b44f5f845",
+      "current_len": 156404,
+      "current_sha256": "bdf614306dd818a9d66a794edf46008c3306ffa2fabcb3acbf4b03060d7db316",
       "archive": "docs/evidence/main21-exit-region-integration-20261017/main-inputs/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
       "view_len": 105523,
       "view_sha256": "70b707a2915c51abb76a72aeb084835c943c8a969c906a1b12eb287e7fa6beca",
@@ -2545,8 +2545,8 @@
     },
     {
       "path": "src/cleanup_plan/replay.rs",
-      "current_len": 321092,
-      "current_sha256": "30616d71694d393a730c0c8e49a25bbad7539b07ff96ed901b9d07be29765b9c",
+      "current_len": 323567,
+      "current_sha256": "807735eb8713ff6e02abd9ea6d3d4aea4fdc53f95bc6b6d1a2a1e51dba605afa",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/src/cleanup_plan/replay.rs",
       "view_len": 302169,
       "view_sha256": "e02105834f829503b1e1a6645067f7b0784fed133890c6f7b4553346ba011f28",
@@ -2770,8 +2770,8 @@
     },
     {
       "path": "src/cleanup_plan/replay/skeleton_work.rs",
-      "current_len": 54935,
-      "current_sha256": "916b817cb82b9e47eaacab364e94503b0e6ed0028d64c522ec4ccbb11a60c455",
+      "current_len": 47343,
+      "current_sha256": "73ae980d09e4324eb272f1379364cb6ace3cce71a1f8c57de9bfd1a47f482c41",
       "archive": "docs/evidence/main21-exit-region-integration-20261017/main-inputs/src/cleanup_plan/replay/skeleton_work.rs",
       "view_len": 41539,
       "view_sha256": "78712ffd0063c945b7053258f62e608cefdbbd892b2348f99d54fee9c8ad577f",
@@ -3004,8 +3004,8 @@
     },
     {
       "path": "src/source_verify/declaration.rs",
-      "current_len": 15623,
-      "current_sha256": "c93ac4c883fe6b10c831a2603c994ea03880986fd0b7a394bfa41ec8a06d88cb",
+      "current_len": 15793,
+      "current_sha256": "54bca5bc3be89d2b788655f72cb8671c76b540edd99c126a0862a4f1f22a0a88",
       "archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/src/source_verify/declaration.rs",
       "view_len": 12842,
       "view_sha256": "1ee6c27c7e20e6578261de0f58d0019762080e33f5631685081a8318485420d8",
@@ -3103,8 +3103,8 @@
     },
     {
       "path": "tests/hir_module_boundaries.rs",
-      "current_len": 97256,
-      "current_sha256": "f25b784eba1a2ea26a07b260b2ddff67b6dd90c0a6402fd143dc42ca68847d4e",
+      "current_len": 98174,
+      "current_sha256": "5090d08b52cb9650af5fc2c2a28739a9783c3d43c7a0f25037ce032b04f51137",
       "archive": "docs/evidence/main21-exit-region-integration-20261017/main-inputs/tests/hir_module_boundaries.rs",
       "view_len": 54335,
       "view_sha256": "d6e8ad51661a3f8727e9f654bd7e7f2687ffa6fa13fd9c66900217def541c1cc",
@@ -3112,8 +3112,8 @@
     },
     {
       "path": "tests/workspace/semantic_graph/source_inventory.rs",
-      "current_len": 90364,
-      "current_sha256": "59e5b98593c2c2d443d1479e7c89564551d515ca921f7abab2cc8f5d579c8c21",
+      "current_len": 91318,
+      "current_sha256": "aa4e1844d2e867c519bd24fdb560535c9f07b7daa790e343c1b4b04e978d0989",
       "archive": "docs/evidence/main21-exit-region-integration-20261017/main-inputs/tests/workspace/semantic_graph/source_inventory.rs",
       "view_len": 38330,
       "view_sha256": "1cd423cdab9473ed591145366c339f9519892e06593d287c28b799f7e359c660",
@@ -3125,7 +3125,7 @@
       "view_len": 32182,
       "view_sha256": "6c5d74b4423ae089bdb8864c3b0210bad4b160b8a6e003819a5553d7ab891e43",
       "current_len": 32535,
-      "current_sha256": "70136f31e90d3055f8622183540e6bcaf83c7ac29409dd0ac51715c89c9c6ee3"
+      "current_sha256": "d68f7f9b5a638b4b87498dbff360df371d5d2d2258f36a639c350b40cc243b54"
     }
   ],
   "ours": [],
@@ -4100,5 +4100,5 @@
   ],
   "unassembled": [],
   "cap": 9464242,
-  "bound_final_head": "2f714f9e2ade9cd2cda740cc7b5c1dbf3ef1da21"
+  "bound_final_head": "7c39f678886e21cf0fc8c470bc80a1d59f4fc938"
 }

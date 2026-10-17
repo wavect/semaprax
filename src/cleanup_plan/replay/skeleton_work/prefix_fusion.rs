@@ -45,7 +45,15 @@ const PROBE: usize = size_of::<&allocation::AllocationPayer>()
     + 2 * size_of::<&Vec<Observation>>()
     + 6 * size_of::<usize>()
     + 12 * size_of::<bool>();
-const _: () = assert!(NEW_SPLIT + PROBE <= REMOVED_SPLIT);
+// The earlier enumerated gate reuses this paid lexical probe frame before
+// the fusion probe. Payer/budget/Vec views and scalar results have disjoint
+// lifetimes; its lexical-control Option view occupies one of the two existing
+// prefix Option-view slots. Two extra scalar results fit the finite slack.
+const _: () = assert!(
+    size_of::<&Option<Box<crate::cleanup_plan::LexicalControlPlan>>>()
+        <= size_of::<&Option<std::rc::Rc<ObservationDag>>>()
+);
+const _: () = assert!(NEW_SPLIT + PROBE + 2 * size_of::<bool>() <= REMOVED_SPLIT);
 pub(in crate::cleanup_plan::replay) const MINIMUM_ITEMS: usize =
     CONTROLS / size_of::<Observation>() + 1;
 

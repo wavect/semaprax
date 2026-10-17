@@ -31,8 +31,8 @@ def main():
  # A fixed definition generation owns this exact verifier/recipe pair.
  # An unchanged semantic helper requires no substitution; a changed helper
  # cannot retarget this generation's complete immutable prior verifier.
- if sha(verifier.read_bytes())=='339c4cc0bc23e0956ba9683030e64c6d8acee47a27b9ca16613a9916a76b8a2d':
-  assert sha(recipe.read_bytes())=='7b199953ddad88a2ab7b000e653473406a5cccbff714801c92b681f31e999078'
+ if sha(verifier.read_bytes())=='b18355ee53524b3bc14be8b4187fe8b57e9d364eeb46e9b6d850e62bcb02bae0':
+  assert sha(recipe.read_bytes())=='51dc6a7246de09aee5eeeb3baa4c9a07d1c6aa9a740c686c1e2b9a7a1738ec61'
   assert sha(before)==sha(code.encode()),'new semantic helper needs an explicit definition generation'
   outputs[verifier]=verifier.read_bytes();outputs[recipe]=recipe.read_bytes()
  else:

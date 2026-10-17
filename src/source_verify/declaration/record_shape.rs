@@ -81,6 +81,38 @@ pub(in crate::source_verify) fn origin_named(
     })
 }
 
+/// Continue ordinary checking only when every refused storage declaration has
+/// the exact concrete-record producer understood by expression recovery.
+/// Other storage refusals keep their complete prior early-return route.
+pub(in crate::source_verify) fn all_storage_refusals_recoverable(
+    program: &dyn ProgramSource,
+    types: &TypeTable<'_>,
+    diagnostics: &[Diagnostic],
+) -> bool {
+    let mut refused = false;
+    for (index, diagnostic) in diagnostics.iter().enumerate() {
+        if !diagnostic.severity.is_error() {
+            continue;
+        }
+        refused = true;
+        if !program.types().iter().any(|declaration| {
+            // Bound refusals keep the previous signature-only frontier. In
+            // particular, generic signatures can add T223/T224 after this gate.
+            let root = Type::Named {
+                name: declaration.name.clone(),
+                arguments: Vec::new(),
+            };
+            matches!(
+                classify_nested_owned_byte_record(types, &root),
+                NestedOwnedRecordAdmission::OutsideProfile
+            ) && origin_named(program, types, &declaration.name, diagnostics) == Some(index)
+        }) {
+            return false;
+        }
+    }
+    refused
+}
+
 pub(in crate::source_verify) fn origin(
     program: &dyn ProgramSource,
     types: &TypeTable<'_>,
@@ -163,6 +195,52 @@ mod tests {
             }
             assert_eq!(origin_named(&parsed, &types, "Packet", &[foreign]), None);
         }
+    }
+
+    #[test]
+    fn storage_recovery_requires_every_exact_live_record_refusal() {
+        let source = "module recovery; record Packet { payload: Bytes, text: string, unsupported: [u8; 1], } fn main()->i64{0}";
+        let parsed = crate::parse(source, Path::new("storage-recovery.spx")).unwrap();
+        let types = TypeTable::new(&parsed);
+        let mut diagnostics = Vec::new();
+        before::check_byte_data_declarations(&parsed, &types, &mut diagnostics);
+        assert_eq!(diagnostics.len(), 1);
+        assert!(all_storage_refusals_recoverable(&parsed, &types, &diagnostics));
+        assert!(!all_storage_refusals_recoverable(&parsed, &types, &[]));
+        for field in 0..6 {
+            let mut foreign = diagnostics[0].clone();
+            match field {
+                0 => foreign.code = "SPX-T999",
+                1 => foreign.severity = crate::diagnostic::Severity::Warning,
+                2 => foreign.message.to_mut().push_str(" foreign"),
+                3 => foreign.path = Some("foreign.spx".to_owned()),
+                4 => foreign.span = None,
+                5 => foreign.help = Some("foreign help".to_owned()),
+                _ => unreachable!(),
+            }
+            assert!(!all_storage_refusals_recoverable(&parsed, &types, &[foreign]));
+        }
+        let fields = (0..257)
+            .map(|index| format!("leaf_{index}: Bytes,"))
+            .collect::<String>();
+        let bounded = crate::parse(
+            &format!("module bounded; record Bag {{{fields}}} fn main()->i64{{0}}"),
+            Path::new("storage-recovery-bound.spx"),
+        ).unwrap();
+        let bounded_types = TypeTable::new(&bounded);
+        let mut bounded_diagnostics = Vec::new();
+        before::check_byte_data_declarations(&bounded, &bounded_types, &mut bounded_diagnostics);
+        assert_eq!(bounded_diagnostics.len(), 1);
+        assert!(!all_storage_refusals_recoverable(&bounded, &bounded_types, &bounded_diagnostics));
+        let mixed = crate::parse(
+            &format!("{source} class Other {{ payload: Bytes, }}"),
+            Path::new("storage-recovery-mixed.spx"),
+        ).unwrap();
+        let mixed_types = TypeTable::new(&mixed);
+        let mut mixed_diagnostics = Vec::new();
+        before::check_byte_data_declarations(&mixed, &mixed_types, &mut mixed_diagnostics);
+        assert!(mixed_diagnostics.len() > 1);
+        assert!(!all_storage_refusals_recoverable(&mixed, &mixed_types, &mixed_diagnostics));
     }
 
     #[test]

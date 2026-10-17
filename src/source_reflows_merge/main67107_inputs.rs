@@ -694,6 +694,10 @@ pub(crate) fn canonical_import_input(source: &str, current: &str) -> String {
         "src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs" => include_str!("../cleanup_plan/replay/factored/canonical_shared/arena_tests.rs"),
         _ => return current.to_owned(),
     };
+    let batch_compiled = semantic_batch_previous(source, compiled, "base851");
+    let compiled = batch_compiled.as_str();
+    let batch_current = semantic_batch_previous(source, current, "base851");
+    let current = batch_current.as_str();
     let lexical_compiled = paid_many_canonical_previous(source, compiled);
     let compiled = lexical_compiled.as_str();
     let lexical_current = paid_many_canonical_previous(source, current);
@@ -711,7 +715,7 @@ pub(crate) fn canonical_import_input(source: &str, current: &str) -> String {
         if archive == source && source == "src/cleanup_plan/replay/factored/canonical_shared.rs" {
             return paid_many_canonical_previous(source, include_str!("../cleanup_plan/replay/factored/canonical_shared.rs"));
         }
-        factored_core_file(&root.join(archive), length, row[hash].as_str().unwrap()).unwrap()
+        semantic_batch_file(&root.join(archive), length, row[hash].as_str().unwrap()).unwrap()
     };
     let actual = read(source, "current_length", "current_sha256");
     assert_eq!(actual, compiled);
@@ -747,6 +751,8 @@ fn canonical_import_generation_authenticates_current_and_complete_selected_stage
 // Complete PaidMany source -> frozen compile-import input, a separate namespace.
 fn paid_many_canonical_previous(source: &str, current: &str) -> String {
     if source != "src/cleanup_plan/replay/factored/canonical_shared.rs" { return current.to_owned(); }
+    let batch = semantic_batch_previous(source, current, "base851");
+    let current = batch.as_str();
     let data = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/paid-many-canonical-ingress-20261017/seal.json"));
     assert_eq!(data.len(), 2923);
     assert_eq!(digest(data), "890336922097f28cddddbcfe85a3c267bf148acd9419289b198eb081fc8060be");
@@ -757,10 +763,10 @@ fn paid_many_canonical_previous(source: &str, current: &str) -> String {
     let read = |path: &str, kind: &str| {
         let length = seal[format!("{kind}_length")].as_u64().unwrap() as usize;
         assert!(length <= 131_072);
-        factored_core_file(&root.join(path), length, seal[format!("{kind}_sha256")].as_str().unwrap()).unwrap()
+        semantic_batch_file(&root.join(path), length, seal[format!("{kind}_sha256")].as_str().unwrap()).unwrap()
     };
     let actual = read(source, "current");
-    assert_eq!(actual, include_str!("../cleanup_plan/replay/factored/canonical_shared.rs"));
+    assert_eq!(actual, semantic_batch_previous(source, include_str!("../cleanup_plan/replay/factored/canonical_shared.rs"), "base851"));
     assert_eq!(actual, read(seal["current_archive"].as_str().unwrap(), "current"));
     let previous = read(seal["previous_archive"].as_str().unwrap(), "previous");
     let mut restored = actual.clone();
@@ -791,4 +797,99 @@ fn paid_many_canonical_ingress_keeps_whole_import_and_selected_controls() {
         assert!(std::panic::catch_unwind(|| canonical_import_input(source, &bad)).is_err());
     }
     assert_eq!(paid_many_canonical_previous("foreign", "unchanged"), "unchanged");
+}
+
+// Exact assembled physical inputs precede immutable historical source domains.
+// This test-only source transport grants no production or raw-audit authority.
+fn semantic_batch_records() -> serde_json::Value {
+    let data = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/next-semantic-source-views-20261017/inputs.json"));
+    assert_eq!(data.len(), 84888);
+    assert_eq!(digest(data), "c876c6b5f15969fe55bee55b31be8b6174db300d6b4f9f18cd412044273b6305");
+    let packet: serde_json::Value = serde_json::from_str(data).unwrap();
+    assert_eq!(packet["schema"], "semaprax.next-semantic-source-views.v1");
+    assert_eq!(packet["rows"].as_array().unwrap().len(), 15);
+    packet
+}
+pub(crate) fn semantic_batch_previous(source: &str, current: &str, view: &str) -> String {
+    let packet = semantic_batch_records();
+    let rows = packet["rows"].as_array().unwrap();
+    assert!(rows.iter().filter(|r| r["source"] == source).count() <= 1);
+    let Some(row) = rows.iter().find(|r| r["source"] == source) else { return current.to_owned(); };
+    let views = row["views"].as_array().unwrap();
+    assert!(views.iter().filter(|r| r["name"] == view).count() <= 1);
+    let Some(prior) = views.iter().find(|r| r["name"] == view) else { return current.to_owned(); };
+    let root = ::std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let read = |path: &str, length: &serde_json::Value, sha: &serde_json::Value| {
+        factored_core_file(&root.join(path), usize::try_from(length.as_u64().unwrap()).unwrap(), sha.as_str().unwrap()).unwrap()
+    };
+    let actual = read(source, &row["current_length"], &row["current_sha256"]);
+    assert_eq!(actual, read(row["current_archive"].as_str().unwrap(), &row["current_length"], &row["current_sha256"]));
+    let compiled = match source {
+        "src/cleanup_plan/replay.rs" => include_str!("../cleanup_plan/replay.rs"),
+        "src/cleanup_plan/replay/factored/canonical_shared.rs" => include_str!("../cleanup_plan/replay/factored/canonical_shared.rs"),
+        "src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs" => include_str!("../cleanup_plan/replay/factored/canonical_shared/arena_tests.rs"),
+        "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs" => include_str!("../cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs"),
+        "src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf.rs" => include_str!("../cleanup_plan/replay/factored/canonical_shared/terminal_leaf.rs"),
+        "src/cleanup_plan/replay/ordinary_plan_history.rs" => include_str!("../cleanup_plan/replay/ordinary_plan_history.rs"),
+        "src/cleanup_plan/replay/ordinary_plan_history/owned_tests.rs" => include_str!("../cleanup_plan/replay/ordinary_plan_history/owned_tests.rs"),
+        "src/cleanup_plan/replay/physical_budget/setup.rs" => include_str!("../cleanup_plan/replay/physical_budget/setup.rs"),
+        "src/cleanup_plan/replay/physical_storage.rs" => include_str!("../cleanup_plan/replay/physical_storage.rs"),
+        "src/cleanup_plan/replay/skeleton_work.rs" => include_str!("../cleanup_plan/replay/skeleton_work.rs"),
+        "src/cleanup_plan/replay/skeleton_work/ordinary_dag.rs" => include_str!("../cleanup_plan/replay/skeleton_work/ordinary_dag.rs"),
+        "src/cleanup_plan/replay/skeleton_work/ordinary_dag/frontier.rs" => include_str!("../cleanup_plan/replay/skeleton_work/ordinary_dag/frontier.rs"),
+        "src/cleanup_plan/replay/skeleton_work/prefix_fusion.rs" => include_str!("../cleanup_plan/replay/skeleton_work/prefix_fusion.rs"),
+        "src/source_verify/declaration.rs" => include_str!("../source_verify/declaration.rs"),
+        "src/source_verify/declaration/record_shape.rs" => include_str!("../source_verify/declaration/record_shape.rs"),
+        _ => unreachable!("sealed finite semantic source"),
+    };
+    assert_eq!(actual, compiled, "complete physical/compiled semantic source");
+    let previous = read(prior["archive"].as_str().unwrap(), &prior["length"], &prior["sha256"]);
+    let mut restored = actual.clone();
+    let mut last = restored.len();
+    for edit in prior["inverse"].as_array().unwrap() {
+        let start = usize::try_from(edit["start"].as_u64().unwrap()).unwrap();
+        let after = edit["after"].as_str().unwrap();
+        let end = start.checked_add(after.len()).unwrap();
+        assert!(end <= last);
+        assert_eq!(restored.get(start..end), Some(after));
+        restored.replace_range(start..end, edit["before"].as_str().unwrap());
+        last = start;
+    }
+    assert_eq!(restored, previous, "whole independent semantic predecessor");
+    if current == actual || current == previous { previous } else { current.to_owned() }
+}
+pub(crate) fn semantic_batch_file(path: &::std::path::Path, length: usize, expected: &str) -> Result<String, &'static str> {
+    let root = ::std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let packet = semantic_batch_records();
+    if let Ok(relative) = path.strip_prefix(root) {
+        if let Some(source) = relative.to_str() {
+            if let Some(row) = packet["rows"].as_array().unwrap().iter().find(|r| r["source"] == source) {
+                if let Some(prior) = row["views"].as_array().unwrap().iter().find(|r|
+                    r["sha256"] == expected && r["length"].as_u64() == Some(length as u64)) {
+                    let actual = factored_core_file(path, usize::try_from(row["current_length"].as_u64().unwrap()).map_err(|_| "semantic-length")?, row["current_sha256"].as_str().ok_or("semantic-sha")?)?;
+                    return Ok(semantic_batch_previous(source, &actual, prior["name"].as_str().ok_or("semantic-view")?));
+                }
+            }
+        }
+    }
+    factored_core_file(path, length, expected)
+}
+#[test]
+fn semantic_batch_complete_physical_views_preserve_old_sources_and_refuse_supplied_drift() {
+    let packet = semantic_batch_records();
+    let root = ::std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    for row in packet["rows"].as_array().unwrap() {
+        let source = row["source"].as_str().unwrap();
+        let raw = factored_core_file(&root.join(source), row["current_length"].as_u64().unwrap() as usize, row["current_sha256"].as_str().unwrap()).unwrap();
+        for prior in row["views"].as_array().unwrap() {
+            let name = prior["name"].as_str().unwrap();
+            let old = semantic_batch_previous(source, &raw, name);
+            assert_eq!(digest(&old), prior["sha256"]);
+            assert_eq!(semantic_batch_previous(source, &old, name), old);
+            for bad in [String::new(), format!("{raw} "), raw[..raw.len()-1].to_owned(), format!("{raw}{raw}")] {
+                assert_ne!(semantic_batch_previous(source, &bad, name), old);
+            }
+        }
+    }
+    assert_eq!(semantic_batch_previous("foreign", "unchanged", "base851"), "unchanged");
 }

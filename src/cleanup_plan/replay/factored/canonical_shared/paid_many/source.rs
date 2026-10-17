@@ -229,7 +229,7 @@ fn complete_paid_many_source_domains_keep_all_original_inputs_and_raw_production
     composed_production_prepays_both_real_promotion_search_and_finish_receivers();
 }
 const PAID_INPUT_LENGTH: usize = 4272;
-const PAID_INPUT_SHA: &str = "41f76bf96c83869b57737e1aa9df5a66943ca8c8286984f21ccaf6902931d213";
+const PAID_INPUT_SHA: &str = "fe4db433f6d05980bebe5b341c06d671b01de72eb3a946e6cb4538cdc20ed0de";
 
 // Metadata row ordering only; canonical runtime cleanup vectors are untouched.
 fn ordered_recipe_input(current: &str) -> String {

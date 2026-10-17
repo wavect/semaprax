@@ -1,0 +1,14 @@
+{
+  "status": "UNEXECUTED",
+  "lib": [
+    "source_verify::declaration::record_shape::tests::storage_recovery_requires_every_exact_live_record_refusal",
+    "source_verify::declaration::record_shape::tests::full_original_declaration_producer_keeps_every_diagnostic_field_and_order",
+    "source_verify::declaration::record_shape::tests::shape_origin_refuses_each_foreign_diagnostic_field_and_valid_record"
+  ],
+  "owned_data": [
+    "nested_owned_record_frontend_hir::excluded_owned_byte_record_shape_is_rejected_before_pattern_resolution",
+    "nested_owned_record_frontend_hir::original_mixed_string_pattern_is_admitted_by_the_current_owned_text_profile",
+    "nested_owned_record_frontend_hir::excluded_record_recovery_retains_independent_arm_body_parameter_and_declaration_errors",
+    "nested_owned_record_frontend_hir::valid_record_missing_field_and_plain_match_mode_diagnostics_remain_independent"
+  ]
+}

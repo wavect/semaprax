@@ -1,0 +1,17 @@
+
+running 1 test
+test cleanup_plan::replay::factored::canonical_shared::arena_tests::whole_arena_owner_reports_duplicate_unique_wide_costs_growth_refusal_and_complete_drop ... arena shape=0 old=true reserved=4513318 hits=31 misses=2 signature_nodes=2 state_nodes=33 actual=Metrics { allocations: 4927, reallocations: 12, allocated: 745197, freed: 745197, live: 0, highwater: 34509, invalid: false }
+arena shape=0 old=false reserved=4523622 hits=31 misses=2 signature_nodes=2 state_nodes=33 actual=Metrics { allocations: 4899, reallocations: 19, allocated: 655677, freed: 655677, live: 0, highwater: 35725, invalid: false }
+
+thread 'cleanup_plan::replay::factored::canonical_shared::arena_tests::whole_arena_owner_reports_duplicate_unique_wide_costs_growth_refusal_and_complete_drop' (24484945) panicked at src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs:233:13:
+whole duplicate-signature corpus, unchanged old receiver
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    cleanup_plan::replay::factored::canonical_shared::arena_tests::whole_arena_owner_reports_duplicate_unique_wide_costs_growth_refusal_and_complete_drop
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9740 filtered out; finished in 0.14s
+

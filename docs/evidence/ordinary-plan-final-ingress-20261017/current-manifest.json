@@ -19,8 +19,8 @@
     },
     {
       "path": "src/cleanup_plan/replay/ordinary_plan_history/owned_tests.rs",
-      "sha256": "41ff9db2a3a0a94a4557d1c3f2ba60ff96262842c083265eee7dfa8c3902aed3",
-      "lines": 154
+      "sha256": "649f67c2f34242d5a4999840af9b50e75d26a2f8101d6ee20d6eec53101d8f6f",
+      "lines": 196
     },
     {
       "path": "src/cleanup_plan/replay/ordinary_plan_history/producer.rs",
@@ -39,12 +39,12 @@
     },
     {
       "path": "src/cleanup_plan/replay/ordinary_plan_history.rs",
-      "sha256": "373e120333b6316c6e140e130db662d38ceb2c83b1ca68e87328543fa0c20641",
-      "lines": 580
+      "sha256": "d5e04c498ebdf3c725faa28a6b41440a6ebd2f2aa208a43445effb254a58cdb7",
+      "lines": 625
     },
     {
       "path": "src/source_reflows_merge/ordinary_plan_inputs.rs",
-      "sha256": "07dd9d5c3840aebc8482f2a6b303fde057acdee77b3fd570187e11868209fee5",
+      "sha256": "570661f037f223bbb45f7c28b5f6f8b26dd658ea29a7876934cf3a88939adbf8",
       "lines": 397
     }
   ]

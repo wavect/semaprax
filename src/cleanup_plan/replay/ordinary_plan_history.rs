@@ -482,6 +482,10 @@ pub(super) fn compare(
     mut actual: HistorySet,
     expected: &[SkeletonPath],
 ) -> Result<(), Diagnostic> {
+    #[cfg(test)]
+    if skeleton_work::enumerated_prefix::original_selected() {
+        return before_hir_compare::compare(function, budget, actual, expected);
+    }
     paid!(
         budget,
         function,
@@ -552,24 +556,62 @@ pub(super) fn compare(
             "ordinary plan history HIR cursor prepare"
         )?;
         cursors[0].prepare(&path.history, &actual.arena, function, budget)?;
-        let mut index = 0;
-        loop {
-            budget.charge(function, 1, "ordinary plan history HIR comparison")?;
-            paid!(
-                budget,
-                function,
-                NEXT_CALL,
-                "ordinary plan history HIR cursor next"
-            )?;
-            match (
-                cursors[0].next(&path.history, &actual.arena, function, budget)?,
-                flat.observations.get(index),
-            ) {
-                (Some(left), Some(right)) if left == right.as_ref() => {
-                    index += 1;
+        budget.reserve_bytes(
+            function,
+            skeleton_work::enumerated_prefix::HIR_QUERY_CONTROLS,
+            "ordinary PLAN shared HIR selector receivers",
+        )?;
+        if flat.observations.prefix.is_none() {
+            let mut index = 0;
+            loop {
+                budget.charge(function, 1, "ordinary plan history HIR comparison")?;
+                paid!(
+                    budget,
+                    function,
+                    NEXT_CALL,
+                    "ordinary plan history HIR cursor next"
+                )?;
+                match (
+                    cursors[0].next(&path.history, &actual.arena, function, budget)?,
+                    flat.observations.get(index),
+                ) {
+                    (Some(left), Some(right)) if left == right.as_ref() => {
+                        index += 1;
+                    }
+                    (None, None) => break,
+                    _ => return Err(mismatch()),
                 }
-                (None, None) => break,
-                _ => return Err(mismatch()),
+            }
+        } else {
+            budget.reserve_bytes(
+                function,
+                skeleton_work::enumerated_prefix::CURSOR_STORAGE
+                    + skeleton_work::enumerated_prefix::CURSOR_CALL,
+                "ordinary PLAN shared HIR cursor preparation receivers",
+            )?;
+            let mut hir = skeleton_work::enumerated_prefix::Cursor::new();
+            hir.prepare(&flat.observations, function, budget)?;
+            loop {
+                budget.charge(function, 1, "ordinary plan history HIR comparison")?;
+                paid!(
+                    budget,
+                    function,
+                    NEXT_CALL,
+                    "ordinary plan history HIR cursor next"
+                )?;
+                budget.reserve_bytes(
+                    function,
+                    skeleton_work::enumerated_prefix::CURSOR_CALL,
+                    "ordinary PLAN shared HIR cursor next receivers",
+                )?;
+                match (
+                    cursors[0].next(&path.history, &actual.arena, function, budget)?,
+                    hir.next(function, budget)?,
+                ) {
+                    (Some(left), Some(right)) if left == right => {}
+                    (None, None) => break,
+                    _ => return Err(mismatch()),
+                }
             }
         }
         if path.terminal != flat.terminal {
@@ -578,3 +620,6 @@ pub(super) fn compare(
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod before_hir_compare;

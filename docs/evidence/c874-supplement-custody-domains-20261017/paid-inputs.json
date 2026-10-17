@@ -16,9 +16,9 @@
   {
     "path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
     "current": {
-      "archive": "paid-current-1-33e45de2e06bd0a251c7e6c22c0b953b4d32991ca488becdfccfe29209380111.txt",
-      "length": 64422,
-      "sha256": "33e45de2e06bd0a251c7e6c22c0b953b4d32991ca488becdfccfe29209380111"
+      "archive": "paid-current-1-cdbced119fdcd161c437ef9ac83d8066caadae0eabdf5bee83ce95db260fd472.txt",
+      "length": 64942,
+      "sha256": "cdbced119fdcd161c437ef9ac83d8066caadae0eabdf5bee83ce95db260fd472"
     },
     "view": {
       "archive": "paid-view-1-d2da17ff0d2a477bf625e9bd039380165e9f0cfbf5f2b144e0000659669e3c30.txt",

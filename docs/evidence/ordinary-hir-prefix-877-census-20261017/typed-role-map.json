@@ -1,0 +1,34 @@
+{
+  "status": "SOURCE_ONLY_TYPED_CENSUS_CORRECTION",
+  "checkpoint": "4ce29a5c509e1fcfb7cfbbdb75fb8b0bd0a223e6",
+  "unchanged_old_baselines": [
+    "Whole original36 source-inverse packet and every row/archive",
+    "Complete4ce core/reader archived",
+    "ordinary_frontier existing complete body and all old callers/prices",
+    "before.rs complete old sequence/root comparator",
+    "before_hir_compare.rs wholeoldPLANcomparator",
+    "Observations andObservationDag layouts",
+    "All existing test assertion statements"
+  ],
+  "new_routes": {
+    "sequence_pending_bound": "BORROWED BOUND_CALL before entry; Seq match Option/borrow/boolean receivers then Cat iterator/enumerate actual/formal and per-next Option<(ordinal,child)> tuple plus checked-size roles; original semantic Some/None fold retained. No new work quota: original node release charge funds bound fold+Drop.",
+    "sequence_frontier": "FRONTIER_CALL before forwarding. Original sticky reserve0 first, then presence-query roles; real missing-header branch prepays Scratch/RefCell/Rc/Option/Vec initializer transports then real backing. Before clone/borrow: Option query, expect string, Rc clone and RefMut roles. Only actual replacement branch prepays growth Option/Result/capture, Vec/local, try_reserve_exact actual/formal/TryReserveError map and capacity-check roles then full live replacement backing. Existing old frontier untouched.",
+    "all_flat": "FLAT_CALL before entry; concrete Iter returned/received, each next prepays Option<&Path>/borrowed Option prefix predicate and scalar roles. Each actual traversal step pays existing ordinary work, never held loan. Short-circuit skips right probe completely.",
+    "equal_zip": "ZIP_INIT before two Iter/Zip creation; ZIP_NEXT before each next/Some tuple pattern; paired content order remains separately paid. Removed absent Chain/Iter from current ENTRY_CALL.",
+    "borrowed_work_exclusion": "Root flat PLAN comparator dispatch now excludes lent_skeleton and retains complete legacy path. all_flat rejects a direct borrowed-work caller before ordinary metadata charge. Existing PLAN-history select already excludes lent ownership."
+  },
+  "cost": "Additional current ordinary fees and flat-probe free-work debit; may worsen unchanged strict current comparisons. No refund, capraise, new quota, baselinefee padding, measured saving, app fit or netgain claim.",
+  "qualification": "UNEXECUTED: rustfmt syntax only;14existing owning selectors and all original gates remain required.",
+  "sources": [
+    {
+      "source": "src/cleanup_plan/replay.rs",
+      "current_sha256": "d193670add7f2cc26a1177e4e59ce48c94d2b213cb3b40102189723c32bcfa09",
+      "checkpoint_sha256": "d635a1a27c559d85c506f1c50671acd33a8e1d54ed7c72f879e0bddf451a7a4d"
+    },
+    {
+      "source": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix.rs",
+      "current_sha256": "d74cf92511cdc0557030444582ecdd41e345f3d87aa0fc1d126d933e715511e3",
+      "checkpoint_sha256": "7315951c5c5f84d986089351528b3bfd6ba7432a3a9e433dde87f9aa1799d9ad"
+    }
+  ]
+}

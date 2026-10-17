@@ -1,0 +1,14 @@
+{
+  "head": "36c6deb98720e243b0daaf81e813fbe3ec3b0a2d",
+  "path": "src/cleanup_plan/replay/skeleton_work.rs",
+  "bytes": 54935,
+  "sha256": "916b817cb82b9e47eaacab364e94503b0e6ed0028d64c522ec4ccbb11a60c455",
+  "retained": "skeleton_work.before.rs",
+  "identifier_changes": [
+    "merged_paths -> before_merged_paths",
+    "merged_suffixes -> before_merged_suffixes",
+    "merged_call_states -> before_merged_call_states",
+    "suffix receiver self-call -> before_merged_paths",
+    "pub(super) -> pub(in crate::cleanup_plan::replay) on the three relocated methods"
+  ]
+}

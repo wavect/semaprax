@@ -1,0 +1,564 @@
+{
+  "schema": "semaprax.next-semantic-source-views.v1",
+  "semantic_head": "e1e448d5bc50c9f56376b4fce2128e6ee3d040f9",
+  "rows": [
+    {
+      "source": "src/cleanup_plan/replay.rs",
+      "current_length": 323567,
+      "current_sha256": "807735eb8713ff6e02abd9ea6d3d4aea4fdc53f95bc6b6d1a2a1e51dba605afa",
+      "current_archive": "docs/evidence/next-semantic-source-views-20261017/objects/807735eb8713ff6e02abd9ea6d3d4aea4fdc53f95bc6b6d1a2a1e51dba605afa.txt",
+      "views": [
+        {
+          "name": "base851",
+          "head": "851f1293ce4ce0d35107637b9d4f78cb85e6293f",
+          "length": 321092,
+          "sha256": "30616d71694d393a730c0c8e49a25bbad7539b07ff96ed901b9d07be29765b9c",
+          "archive": "docs/evidence/next-semantic-source-views-20261017/objects/30616d71694d393a730c0c8e49a25bbad7539b07ff96ed901b9d07be29765b9c.txt",
+          "inverse": [
+            {
+              "start": 322553,
+              "after": "\n#[cfg(test)]\n#[allow(dead_code)]\nstruct BeforeDirectAnchorBudgetLayout {\n    admission: AdmissionMode,\n    payer: AllocationPayer,\n    remaining: usize,\n    skeleton_remaining: usize,\n    /// Actual successful skeleton debits, including deferred lexical walks.\n    skeleton_spent: usize,\n    /// Ordinary constructors share the temporarily lent skeleton allowance.\n    lent_skeleton: bool,\n    /// Factored replay: merge equal-state skeleton paths (`skeleton_work`).\n    merge_paths: bool,\n    /// Present only for the selected retained lexical replay entry.\n    physical: Option<Box<physical_storage::PhysicalReservation>>,\n    /// Prepaid selected-budget refusal text; consumed without a fresh allocation.\n    refusal_text: Option<String>,\n    refusal_spent: bool,\n    /// One reusable fixed clone census cursor on the ordinary builder path.\n    builder_clone_cursor_paid: bool,\n}\n#[cfg(test)]\nconst _: () = assert!(std::mem::size_of::<ReplayBudget>() == std::mem::size_of::<BeforeDirectAnchorBudgetLayout>());\n",
+              "before": ""
+            },
+            {
+              "start": 123051,
+              "after": "        skeleton_work::enumerated_prefix::share!(work, prefix);\n",
+              "before": ""
+            },
+            {
+              "start": 118827,
+              "after": "    #[cfg(test)]\n    if skeleton_work::enumerated_prefix::original_selected() {\n        return skeleton_work::enumerated_prefix::old_sequence(prefixes, suffixes, work);\n    }\n",
+              "before": ""
+            },
+            {
+              "start": 118528,
+              "after": "    owned_suffix::dispatch!(prefixes, suffixes, work);\n",
+              "before": ""
+            },
+            {
+              "start": 111851,
+              "after": "    if match budget {\n        ReplayBudget {\n            payer: AllocationPayer::ActiveBuilder,\n            admission: AdmissionMode::Ordinary,\n            lent_skeleton: false,\n            ..\n        } => {\n            budget.reserve_bytes(\n                function,\n                2 * skeleton_work::enumerated_prefix::ENTRY_CALL,\n                \"enumerated HIR sort and equality entry receivers\",\n            )?;\n            skeleton_work::enumerated_prefix::sort(&mut expected, function, budget)?;\n            actual.sort();\n            !skeleton_work::enumerated_prefix::equal(&expected, &actual, function, budget)?\n        }\n        _ => {\n            expected.sort();\n            actual.sort();\n            actual != expected\n        }\n    } {\n",
+              "before": "    expected.sort();\n    actual.sort();\n    if actual != expected {\n"
+            },
+            {
+              "start": 111120,
+              "after": "            let actual = ordinary_plan_history::produce(function, budget)?;\n            budget.reserve_bytes(\n                function,\n                skeleton_work::enumerated_prefix::ENTRY_CALL,\n                \"enumerated HIR sort entry receivers\",\n            )?;\n            skeleton_work::enumerated_prefix::sort(&mut expected, function, budget)?;\n            budget.reserve_bytes(\n                function,\n                ordinary_plan_history::COMPARE_CALL_CONTROLS,\n                \"ordinary plan history owned comparison call receivers\",\n            )?;\n            return ordinary_plan_history::compare(function, budget, actual, &expected);\n        }\n",
+              "before": "            if ordinary_plan_history::select(function, budget)? {\n                budget.reserve_bytes(\n                    function,\n                    ordinary_plan_history::PRODUCE_CALL_CONTROLS,\n                    \"ordinary plan history producer call receivers\",\n                )?;\n                let actual = ordinary_plan_history::produce(function, budget)?;\n                expected.sort();\n                budget.reserve_bytes(\n                    function,\n                    ordinary_plan_history::COMPARE_CALL_CONTROLS,\n                    \"ordinary plan history owned comparison call receivers\",\n                )?;\n                return ordinary_plan_history::compare(function, budget, actual, &expected);\n            }\n"
+            },
+            {
+              "start": 110977,
+              "after": "                ordinary_plan_history::PRODUCE_CALL_CONTROLS,\n                \"ordinary plan history producer call receivers\",\n",
+              "before": "                ordinary_plan_history::SELECT_CALL_CONTROLS,\n                \"ordinary plan history selector call receivers\",\n"
+            },
+            {
+              "start": 110594,
+              "after": "        payer: AllocationPayer::ActiveBuilder,\n        ..\n    } = budget\n    {\n        budget.reserve_bytes(\n            function,\n            ordinary_plan_history::SELECT_CALL_CONTROLS,\n            \"ordinary plan history selector call receivers\",\n        )?;\n        if ordinary_plan_history::select(function, budget)? {\n",
+              "before": "            payer: AllocationPayer::ActiveBuilder,\n            ..\n        } = budget {\n"
+            },
+            {
+              "start": 6150,
+              "after": "\n// Setup identity for the direct selected-budget compatibility receiver only.\n// General Session spending remains multi-function; this is not admission data.\nstruct SelectedDirectAnchor {\n    function: *const ResolvedFunction,\n    ledger: crate::bounded_output::classifier_string::ClassifierLedger,\n}\n",
+              "before": ""
+            },
+            {
+              "start": 3892,
+              "after": "mod owned_suffix;\n",
+              "before": ""
+            }
+          ]
+        },
+        {
+          "name": "opt877",
+          "head": "285f6e2ab3feacb5616f1a80d8fed5ddc46c7abf",
+          "length": 322178,
+          "sha256": "d193670add7f2cc26a1177e4e59ce48c94d2b213cb3b40102189723c32bcfa09",
+          "archive": "docs/evidence/next-semantic-source-views-20261017/objects/d193670add7f2cc26a1177e4e59ce48c94d2b213cb3b40102189723c32bcfa09.txt",
+          "inverse": [
+            {
+              "start": 322553,
+              "after": "\n#[cfg(test)]\n#[allow(dead_code)]\nstruct BeforeDirectAnchorBudgetLayout {\n    admission: AdmissionMode,\n    payer: AllocationPayer,\n    remaining: usize,\n    skeleton_remaining: usize,\n    /// Actual successful skeleton debits, including deferred lexical walks.\n    skeleton_spent: usize,\n    /// Ordinary constructors share the temporarily lent skeleton allowance.\n    lent_skeleton: bool,\n    /// Factored replay: merge equal-state skeleton paths (`skeleton_work`).\n    merge_paths: bool,\n    /// Present only for the selected retained lexical replay entry.\n    physical: Option<Box<physical_storage::PhysicalReservation>>,\n    /// Prepaid selected-budget refusal text; consumed without a fresh allocation.\n    refusal_text: Option<String>,\n    refusal_spent: bool,\n    /// One reusable fixed clone census cursor on the ordinary builder path.\n    builder_clone_cursor_paid: bool,\n}\n#[cfg(test)]\nconst _: () = assert!(std::mem::size_of::<ReplayBudget>() == std::mem::size_of::<BeforeDirectAnchorBudgetLayout>());\n",
+              "before": ""
+            },
+            {
+              "start": 118528,
+              "after": "    owned_suffix::dispatch!(prefixes, suffixes, work);\n",
+              "before": ""
+            },
+            {
+              "start": 6150,
+              "after": "\n// Setup identity for the direct selected-budget compatibility receiver only.\n// General Session spending remains multi-function; this is not admission data.\nstruct SelectedDirectAnchor {\n    function: *const ResolvedFunction,\n    ledger: crate::bounded_output::classifier_string::ClassifierLedger,\n}\n",
+              "before": ""
+            },
+            {
+              "start": 3892,
+              "after": "mod owned_suffix;\n",
+              "before": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+      "current_length": 64942,
+      "current_sha256": "cdbced119fdcd161c437ef9ac83d8066caadae0eabdf5bee83ce95db260fd472",
+      "current_archive": "docs/evidence/next-semantic-source-views-20261017/objects/cdbced119fdcd161c437ef9ac83d8066caadae0eabdf5bee83ce95db260fd472.txt",
+      "views": [
+        {
+          "name": "base851",
+          "head": "851f1293ce4ce0d35107637b9d4f78cb85e6293f",
+          "length": 64422,
+          "sha256": "33e45de2e06bd0a251c7e6c22c0b953b4d32991ca488becdfccfe29209380111",
+          "archive": "docs/evidence/next-semantic-source-views-20261017/objects/33e45de2e06bd0a251c7e6c22c0b953b4d32991ca488becdfccfe29209380111.txt",
+          "inverse": [
+            {
+              "start": 11597,
+              "after": "        // Identity/sticky preflight precedes every invocation payment. Cold\n        // activation and all original payment order remain in the old body.\n        self.closures.preflight(function, budget);\n        if self.closures.failed() { return Err(Diagnostic::io(\"SPX-H006\", String::new())); }\n",
+              "before": ""
+            },
+            {
+              "start": 10913,
+              "after": "        }\n",
+              "before": ""
+            },
+            {
+              "start": 10220,
+              "after": "        // Existing received owner place: no copied tag, bool or reference.\n        // scratch_paid=true makes cold_dead_node false by its own definition.\n        if let Self { scratch_paid: false, .. } = self {\n",
+              "before": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs",
+      "current_length": 68514,
+      "current_sha256": "48c1fe3778d050ffbb7fcde220f10ea47a209d1935135f46328b381d727aa2dd",
+      "current_archive": "docs/evidence/next-semantic-source-views-20261017/objects/48c1fe3778d050ffbb7fcde220f10ea47a209d1935135f46328b381d727aa2dd.txt",
+      "views": [
+        {
+          "name": "base851",
+          "head": "851f1293ce4ce0d35107637b9d4f78cb85e6293f",
+          "length": 56925,
+          "sha256": "6dbb0428fcd1e70858de38f0b795d7ac92f0b601d92318e7d2c818b5dfc3cb27",
+          "archive": "docs/evidence/next-semantic-source-views-20261017/objects/6dbb0428fcd1e70858de38f0b795d7ac92f0b601d92318e7d2c818b5dfc3cb27.txt",
+          "inverse": [
+            {
+              "start": 57315,
+              "after": "\n// Whole pre-preflight adapters retained independently; negative control below.\nimpl Canonicalizer<'_> {\n    #[cfg(test)]\n    fn current_successors_before_owner_preflight(\n        &mut self,\n        function: &ResolvedFunction,\n        state: &SharedWeighted,\n        budget: &mut ReplayBudget,\n    ) -> Result<Option<(u64, Vec<(Label, SharedWeighted)>)>, Diagnostic> {\n        if budget.pays_allocations() {\n            budget.reserve_bytes(\n                function,\n                closure_receiving::ClosureReceiving::DIRECT_CONTROLS,\n                \"factored held closure invocation controls\",\n            )?;\n        }\n        let mut receiving = closure_receiving::ClosureReceiving::from_prepaid(function, budget);\n        self.successors_with_receiving(function, state, budget, &mut receiving)\n    }\n    fn previous_successors_before_owner_preflight(\n        &mut self,\n        function: &ResolvedFunction,\n        state: &SharedWeighted,\n        budget: &mut ReplayBudget,\n    ) -> Result<Option<(u64, Vec<(Label, SharedWeighted)>)>, Diagnostic> {\n        if budget.pays_allocations() {\n            budget.reserve_bytes(\n                function,\n                closure_receiving::ClosureReceiving::DIRECT_CONTROLS,\n                \"factored held closure invocation controls\",\n            )?;\n        }\n        let mut receiving = closure_receiving::ClosureReceiving::from_prepaid(function, budget);\n        self.previous_selected_successors_with_receiving(function, state, budget, &mut receiving)\n    }\n}\n\n#[test]\nfn complete_before_successor_adapters_record_payment_before_foreign_scope_as_negative() {\n    use crate::bounded_output::with_limit_usage_refusal;\n    let function = fixture();\n    let (graph, sink, roots) = super::tests::automaton(&function);\n    let state = selected_state(&[(roots[0], 1)]);\n    for old in [true, false] {\n        with_limit_usage_refusal(usize::MAX, || {\n            let mut budget = ReplayBudget::with_physical(&function, 1 << 26).unwrap();\n            budget.reserve_bytes(&function, Canonicalizer::CONSTRUCTOR_CONTROLS,\n                \"before adapter negative owner\").unwrap();\n            let mut owner = Canonicalizer::new(&graph, sink);\n            let initial = if old {\n                owner.previous_successors_before_owner_preflight(&function, &state, &mut budget)\n            } else {\n                owner.current_successors_before_owner_preflight(&function, &state, &mut budget)\n            };\n            assert!(initial.unwrap().is_some());\n            // The complete previous adapter pays before it reaches the bound\n            // Memo's scope check. A zero child proves that original bad order;\n            // this source remains a negative, not a new production acceptance.\n            let (result, refused, _, _) = with_limit_usage_refusal(0, || {\n                if old {\n                    owner.previous_successors_before_owner_preflight(&function, &state, &mut budget)\n                } else {\n                    owner.current_successors_before_owner_preflight(&function, &state, &mut budget)\n                }\n            });\n            let error = result.unwrap_err();\n            assert!(refused);\n            assert_eq!(error, super::super::replay_error(&function,\n                \"cleanup replay physical reservation exhausted during factored held closure invocation controls\"));\n        });\n    }\n}\n\n// Complete immediate d3 entry bodies; only private method names/visibility differ.\nmod warm_before {\n    use super::super::*;\n    impl Canonicalizer<'_> {\n    pub(super) fn previous_warm_id(\n        &mut self,\n        function: &ResolvedFunction,\n        root: Weighted,\n        budget: &mut ReplayBudget,\n    ) -> Result<Option<usize>, Diagnostic> {\n        // Preserve the old entry's owner rejection before a fresh test-only slot\n        // can query or charge a foreign payer. A valid call still pays acquisition.\n        if self.closures.preflight(function, budget) {\n            if self.closures.failed() {\n                return Err(Diagnostic::io(\"SPX-H006\", String::new()));\n            }\n        } else {\n            if self.closures.failed() {\n                return Err(Diagnostic::io(\"SPX-H006\", String::new()));\n            }\n            // Keep the first-cold failure before invocation-slot acquisition.\n            // The outer id Result is unchanged; the inner auth Result is absent.\n            activate_closure!(self, function, budget, error, {\n                return Err(error);\n            });\n        }\n        if budget.pays_allocations() {\n            budget.reserve_bytes(function, Self::COLD_ROOT_CONTROLS, \"factored cold terminal root predicate\")?;\n        }\n        if root.len() == 1 && root[0].1 == 1 && self.cold_dead_node(root[0].0) {\n            if budget.pays_allocations() {\n                budget.reserve_bytes(function, Self::COLD_RESULT_CONTROLS, \"factored cold terminal result receiving\")?;\n            }\n            return self.cold_dead_id(function, root, budget);\n        }\n        if budget.pays_allocations() {\n            budget.reserve_bytes(\n                function,\n                closure_receiving::ClosureReceiving::DIRECT_CONTROLS,\n                \"factored held closure invocation controls\",\n            )?;\n        }\n        let mut receiving = closure_receiving::ClosureReceiving::from_prepaid(function, budget);\n        self.id_with_receiving(function, root, budget, &mut receiving)\n    }\n    pub(super) fn previous_warm_id_for_comparison(\n        &mut self, function: &ResolvedFunction, root: Weighted, budget: &mut ReplayBudget,\n    ) -> Result<Option<usize>, Diagnostic> {\n        self.closures.preflight(function, budget);\n        if self.closures.failed() {\n            return Err(Diagnostic::io(\"SPX-H006\", String::new()));\n        }\n        if budget.pays_allocations() {\n            budget.reserve_bytes(function, Self::COLD_ROOT_CONTROLS,\n                \"factored cold terminal root predicate\")?;\n            budget.reserve_bytes(function, Self::COLD_RESULT_CONTROLS,\n                \"factored cold terminal result receiving\")?;\n        }\n        if root.len() == 1 && root[0].1 == 1 && self.cold_dead_node(root[0].0) {\n            return self.cold_dead_id(function, root, budget);\n        }\n        if budget.pays_allocations() {\n            budget.reserve_bytes(function, closure_receiving::ClosureReceiving::DIRECT_CONTROLS,\n                \"factored held closure invocation controls\")?;\n        }\n        let mut receiving = closure_receiving::ClosureReceiving::from_prepaid(function, budget);\n        self.id_with_receiving(function, root, budget, &mut receiving)\n    }\n    }\n}\n\n#[test]\nfn warmed_canonical_entries_skip_only_impossible_cold_receivers_and_keep_old_authentication() {\n    let function = fixture();\n    let run = |previous, production, limit| {\n        let (graph, sink, roots) = corpus(&function, 0);\n        measure(|| {\n            let result = (|| {\n            let mut budget = ReplayBudget::with_physical(&function, limit)?;\n            budget.reserve_bytes(&function, Canonicalizer::CONSTRUCTOR_CONTROLS,\n                \"canonical ordered dictionary owner receiving\")?;\n            let mut owner = Canonicalizer::new(&graph, sink);\n            let mut checksum = 0_u64;\n            for root in roots {\n                budget.reserve_array::<(usize, u64)>(&function, 1, \"arena corpus root\")?;\n                let root = vec![(root, 1)];\n                let id = match (previous, production) {\n                    (true, true) => owner.previous_warm_id_for_comparison(&function, root, &mut budget),\n                    (true, false) => owner.previous_warm_id(&function, root, &mut budget),\n                    (false, true) => owner.id_for_comparison(&function, root, &mut budget),\n                    (false, false) => owner.id(&function, root, &mut budget),\n                }?.unwrap();\n                checksum = checksum.wrapping_mul(31).wrapping_add(id as u64);\n                assert!(owner.scratch_paid);\n            }\n            let result = (budget.physical.as_ref().unwrap().charged(), budget.remaining, checksum);\n            drop((owner, budget));\n            Ok::<_, Diagnostic>(result)\n            })();\n            result.map_err(|error| { assert_eq!(error.code, \"SPX-H006\"); drop(error); })\n        })\n    };\n    for production in [false, true] {\n        let (old, old_heap) = run(true, production, 1 << 26);\n        let (current, heap) = run(false, production, 1 << 26);\n        let old = old.unwrap();\n        let current = current.unwrap();\n        assert_eq!((old.1, old.2), (current.1, current.2), \"all original work and IDs\");\n        let skipped = Canonicalizer::COLD_ROOT_CONTROLS\n            + if production { Canonicalizer::COLD_RESULT_CONTROLS } else { 0 };\n        assert_eq!(old.0 - current.0, 31 * skipped, \"only the 31 impossible warm predicates\");\n        for observed in [old_heap, heap] {\n            assert!(!observed.invalid && observed.live == 0);\n            assert_eq!(observed.allocated, observed.freed);\n        }\n        for limit in [0, current.0 - 1, current.0] {\n            let (result, observed) = run(false, production, limit);\n            assert_eq!(result.is_ok(), limit == current.0);\n            assert!(!observed.invalid && observed.live == 0);\n            assert_eq!(observed.allocated, observed.freed);\n        }\n        let mut errors = Vec::new();\n        for previous in [true, false] {\n            let (graph, sink, roots) = corpus(&function, 0);\n            let mut budget = ReplayBudget::with_physical(&function, 1 << 26).unwrap();\n            budget.reserve_bytes(&function, Canonicalizer::CONSTRUCTOR_CONTROLS,\n                \"canonical ordered dictionary owner receiving\").unwrap();\n            let mut owner = Canonicalizer::new(&graph, sink);\n            let root = vec![(roots[0], 1)];\n            match (previous, production) {\n                (true, true) => owner.previous_warm_id_for_comparison(&function, root, &mut budget),\n                (true, false) => owner.previous_warm_id(&function, root, &mut budget),\n                (false, true) => owner.id_for_comparison(&function, root, &mut budget),\n                (false, false) => owner.id(&function, root, &mut budget),\n            }.unwrap();\n            let foreign = function.clone();\n            let charged = budget.physical.as_ref().unwrap().charged();\n            let error = match (previous, production) {\n                (true, true) => owner.previous_warm_id_for_comparison(&foreign, Vec::new(), &mut budget),\n                (true, false) => owner.previous_warm_id(&foreign, Vec::new(), &mut budget),\n                (false, true) => owner.id_for_comparison(&foreign, Vec::new(), &mut budget),\n                (false, false) => owner.id(&foreign, Vec::new(), &mut budget),\n            }.unwrap_err();\n            assert_eq!(budget.physical.as_ref().unwrap().charged(), charged);\n            let sticky = owner.id_for_comparison(&function, Vec::new(), &mut budget).unwrap_err();\n            assert_eq!(error, sticky, \"all six sticky diagnostic fields\");\n            errors.push(error);\n        }\n        assert_eq!(errors[0], errors[1], \"complete original foreign diagnostic\");\n    }\n}\n",
+              "before": ""
+            },
+            {
+              "start": 34994,
+              "after": "                budget.reserve_bytes(function, borrowed_labels::ordinary_receiving_before_selected_anchor(), \"factored direct singleton call receivers\")?;\n                return borrowed_labels::ordinary_successors_before_selected_anchor(function, budget, self.automaton, closed, accepted);\n",
+              "before": "                budget.reserve_bytes(function, borrowed_labels::ordinary_receiving(), \"factored direct singleton call receivers\")?;\n                return borrowed_labels::ordinary_successors(function, budget, self.automaton, closed, accepted);\n"
+            },
+            {
+              "start": 23068,
+              "after": "                    budget.reserve_bytes(function, borrowed_labels::ordinary_receiving_before_selected_anchor(), \"factored direct singleton call receivers\")?;\n                    return borrowed_labels::ordinary_successors_before_selected_anchor(function, budget, self.automaton, closed, accepted);\n",
+              "before": "                    budget.reserve_bytes(function, borrowed_labels::ordinary_receiving(), \"factored direct singleton call receivers\")?;\n                    return borrowed_labels::ordinary_successors(function, budget, self.automaton, closed, accepted);\n"
+            },
+            {
+              "start": 20013,
+              "after": "        // Identity/sticky preflight precedes every invocation payment. Cold\n        // activation and all original payment order remain in the old body.\n        self.closures.preflight(function, budget);\n        if self.closures.failed() { return Err(Diagnostic::io(\"SPX-H006\", String::new())); }\n",
+              "before": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs",
+      "current_length": 38641,
+      "current_sha256": "e83f7a28c14df7b622b696975ebf2231c4e40f0ee140162be2ff9e51c7acee0f",
+      "current_archive": "docs/evidence/next-semantic-source-views-20261017/objects/e83f7a28c14df7b622b696975ebf2231c4e40f0ee140162be2ff9e51c7acee0f.txt",
+      "views": [
+        {
+          "name": "base851",
+          "head": "851f1293ce4ce0d35107637b9d4f78cb85e6293f",
+          "length": 28861,
+          "sha256": "76fd94cd723677369a17540d5bf447e1b66fa08dffb14a754d53cf2c81180b32",
+          "archive": "docs/evidence/next-semantic-source-views-20261017/objects/76fd94cd723677369a17540d5bf447e1b66fa08dffb14a754d53cf2c81180b32.txt",
+          "inverse": [
+            {
+              "start": 35979,
+              "after": "\n#[test]\nfn direct_selected_anchor_rejects_same_id_foreign_pointer_and_foreign_scope_before_work() {\n    use crate::bounded_output::with_limit_usage_refusal;\n    let (function, graph, closed) = direct_fixture(1, 1, 3);\n    let same_id_foreign = function.clone();\n    assert_eq!(same_id_foreign.id, function.id);\n    for foreign_scope in [false, true] {\n        let (_, parent_refused, _, _) = with_limit_usage_refusal(usize::MAX, || {\n            let mut budget = ReplayBudget::with_physical(&function, 1 << 25).unwrap();\n            // Both calls are funded in the original scope before entering any\n            // foreign scope or setting sticky refusal; retry queries no payer.\n            budget.reserve_bytes(&function, 2 * ordinary_receiving(), \"selected direct two-call receiving controls\").unwrap();\n            let remaining = budget.remaining;\n            let charged = budget.physical.as_ref().unwrap().charged();\n            let error = if foreign_scope {\n                let (result, child_refused, _, _) = with_limit_usage_refusal(1 << 25, || {\n                    ordinary_successors(&function, &mut budget, &graph, &closed, 5)\n                });\n                assert!(!child_refused, \"foreign enclosing payer was not queried\");\n                result.unwrap_err()\n            } else {\n                ordinary_successors(&same_id_foreign, &mut budget, &graph, &closed, 5).unwrap_err()\n            };\n            assert_eq!(error, Diagnostic::io(\"SPX-H006\", String::new()));\n            assert_eq!(budget.remaining, remaining);\n            assert_eq!(budget.physical.as_ref().unwrap().charged(), charged);\n            assert!(budget.refusal_spent);\n            let restored = ordinary_successors(&function, &mut budget, &graph, &closed, 5).unwrap_err();\n            assert_eq!(restored, error);\n            assert_eq!(budget.remaining, remaining);\n            assert_eq!(budget.physical.as_ref().unwrap().charged(), charged);\n        });\n        assert_eq!(parent_refused, foreign_scope, \"only a held-scope mismatch poisons its scope\");\n    }\n}\n\n#[test]\nfn complete_before_direct_producer_records_foreign_first_acceptance_as_negative() {\n    let (function, graph, closed) = direct_fixture(1, 1, 3);\n    let mut foreign = function.clone();\n    foreign.id = crate::hir::DeclarationId::new(\"direct.foreign\");\n    let mut budget = ReplayBudget::with_physical(&function, 1 << 25).unwrap();\n    let result = ordinary_successors_before_selected_anchor(&foreign, &mut budget, &graph, &closed, 5)\n        .unwrap().unwrap();\n    assert_eq!(result.0, 5);\n    assert_eq!(result.1.len(), 1);\n    assert_eq!(result.1[0].1.as_ref().as_slice(), &[(0, 3)]);\n}\n",
+              "before": ""
+            },
+            {
+              "start": 30739,
+              "after": "    // Acquire both actual call boundaries under the held owner before refusal.\n    budget.reserve_bytes(&function, 2 * ordinary_receiving(), \"selected direct two-call receiving controls\").unwrap();\n",
+              "before": ""
+            },
+            {
+              "start": 23044,
+              "after": "\n#[cfg(test)]\npub(super) fn ordinary_receiving_before_selected_anchor() -> usize {\n    2 * size_of::<(&ResolvedFunction, &mut ReplayBudget, &Automaton, &ordered_weights::OrderedWeights, u64)>()\n        + 2 * size_of::<Result<Option<Successors>, Diagnostic>>()\n        + size_of::<Option<Successors>>()\n        + 2 * size_of::<ordered_weights::Iter<'static>>()\n        + size_of::<&ordered_weights::OrderedWeights>()\n        + size_of::<&mut ordered_weights::Iter<'static>>()\n        + 2 * size_of::<Option<(&usize, &u64)>>()\n        + 2 * size_of::<(&usize, &u64)>() + 2 * size_of::<&str>()\n        + 2 * size_of::<&[(Label, usize)]>()\n        + size_of::<&(Label, usize)>() + size_of::<(&Label, &usize)>()\n        + 2 * size_of::<Vec<(Label, SharedWeighted)>>()\n        + 2 * size_of::<SharedWeighted>() + size_of::<(Label, SharedWeighted)>()\n        + 2 * size_of::<Option<u64>>() + 4 * size_of::<u64>()\n        + 3 * size_of::<usize>() + 2 * size_of::<bool>()\n        + 4 * size_of::<Result<(), Diagnostic>>()\n        + 4 * size_of::<(&ResolvedFunction, &mut ReplayBudget, usize, &str)>()\n}\n",
+              "before": ""
+            },
+            {
+              "start": 16172,
+              "after": "    function: &ResolvedFunction, budget: &mut ReplayBudget, automaton: &Automaton,\n    closed: &ordered_weights::OrderedWeights, accepted: u64,\n) -> Result<Option<Successors>, Diagnostic> {\n    // The general replay budget intentionally permits multiple functions.\n    // This direct selected compatibility receiver instead authenticates the\n    // exact setup anchor before querying its payer or spending logical work.\n    if matches!(&budget.payer, AllocationPayer::SelectedReservation)\n        && (budget.refusal_spent || budget.physical.as_deref().is_none_or(|physical| {\n            physical.direct_anchor.as_ref().is_none_or(|anchor| {\n                !anchor.ledger.current() || anchor.function != std::ptr::from_ref(function)\n            })\n        })) {\n            budget.refusal_spent = true;\n            budget.physical.as_deref_mut().expect(\"selected reservation payer\").reject();\n            return Err(Diagnostic::io(\"SPX-H006\", String::new()));\n        }\n    // These zero calls retain sticky/function/ledger authentication even for a\n    // singleton sink. A paid refusal is final and never selects the old route.\n    budget.reserve_bytes(function, 0, \"factored direct singleton authentication\")?;\n    budget.charge(function, 0, \"factored direct singleton authentication\")?;\n    budget.charge(function, 4, \"factored direct singleton selection\")?;\n    if closed.len() == 1 {\n        let (node, weight) = closed.iter().next().expect(\"singleton closed node\");\n        let moves = automaton.nodes[*node].moves();\n        if moves.len() <= 1 {\n            // Replay the original requests in their original order. The old\n            // directory/search objects themselves are never formed or paid.\n            budget.charge(function, moves.len() + 1, \"factored successor label census\")?;\n            if !moves.is_empty() {\n                budget.charge(function, 1, \"factored successor label census search\")?;\n                budget.charge(function, 1, \"factored successor label census shifts\")?;\n            }\n            budget.charge(function, moves.len(), \"factored successor target headers\")?;\n            budget.charge(function, moves.len() + 1, \"factored skeleton subset construction\")?;\n            if !moves.is_empty() {\n                budget.charge(function, 2, \"factored successor label search\")?;\n            }\n            let mut result = Vec::new();\n            budget.reserve_vec(function, &mut result, moves.len(), \"factored successor vector\")?;\n            if let [(label, child)] = moves {\n                // Zero + the actual closure weight has the same non-overflow\n                // rule as Directory::add. No assumed unit weight is substituted.\n                let weight = 0_u64.checked_add(*weight).expect(\"zero plus u64 cannot overflow\");\n                budget.reserve_bytes(function,\n                    2 * size_of::<SmallWeighted>() + size_of::<[(usize, u64); 1]>()\n                        + size_of::<Result<(), Diagnostic>>(),\n                    \"factored inline weighted enum and array receiving\")?;\n                budget.reserve_bytes(function, physical_clone::rc_backing_bytes::<SmallWeighted>(),\n                    \"factored weighted shared header\")?;\n                let state = Rc::new(SmallWeighted::One([(*child, weight)]));\n                result.push((label.clone(), state));\n            }\n            return Ok(Some((accepted, result)));\n        }\n    }\n    // Multi-node/multi-movement closures retain the complete old algorithm.\n    // Its additional call/receivers are acquired before forming that call.\n    budget.reserve_bytes(function, receiving::<ordered_weights::OrderedWeights>(),\n        \"factored borrowed label fallback call receivers\")?;\n    lexical_finish::successors(function, budget, automaton, closed, accepted)\n}\n\n#[cfg(test)]\npub(super) fn ordinary_successors_before_selected_anchor(\n",
+              "before": ""
+            },
+            {
+              "start": 13162,
+              "after": "    crate::bounded_output::classifier_string::ClassifierLedger::current_receiving_controls()\n        // The held-current mismatch may record the first terminal receipt.\n        // These complete existing inventories include its receipt/site/stage\n        // constructors; no old generic producer allowance funds this branch.\n        + crate::bounded_output::classifier_string::ClassifierLedger::insertion_terminal_controls()\n        + crate::bounded_output::classifier_string::ClassifierLedger::storage_terminal_receipt_controls()\n        // Two nested callback captures: caller and receiving function borrow.\n        + 4 * size_of::<&ResolvedFunction>()\n        // Mutable selected-ledger lookup, expect transport, and sticky reject.\n        + 2 * size_of::<&mut Option<Box<physical_storage::PhysicalReservation>>>()\n        + 2 * size_of::<Option<&mut physical_storage::PhysicalReservation>>()\n        + 2 * size_of::<&mut physical_storage::PhysicalReservation>()\n        + 2 * size_of::<&str>()\n        + 2 * size_of::<Option<physical_storage::PhysicalRefusal>>()\n        + size_of::<physical_storage::PhysicalRefusal>()\n        + 2 * size_of::<&Option<crate::cleanup_plan::replay::SelectedDirectAnchor>>()\n        + 2 * size_of::<Option<&crate::cleanup_plan::replay::SelectedDirectAnchor>>()\n        + 2 * size_of::<&Option<Box<physical_storage::PhysicalReservation>>>()\n        + 2 * size_of::<Option<&physical_storage::PhysicalReservation>>()\n        + 2 * size_of::<&physical_storage::PhysicalReservation>()\n        + 2 * size_of::<&crate::cleanup_plan::replay::SelectedDirectAnchor>()\n        + 2 * size_of::<*const ResolvedFunction>()\n        + 2 * size_of::<&AllocationPayer>()\n        + 2 * size_of::<&ResolvedFunction>()\n        + 2 * size_of::<&crate::bounded_output::classifier_string::ClassifierLedger>()\n        + 2 * size_of::<&str>()\n        + 2 * size_of::<String>()\n        + 2 * size_of::<Diagnostic>()\n        + 12 * size_of::<bool>()\n        + 2 * size_of::<(&ResolvedFunction, &mut ReplayBudget, &Automaton, &ordered_weights::OrderedWeights, u64)>()\n",
+              "before": "    2 * size_of::<(&ResolvedFunction, &mut ReplayBudget, &Automaton, &ordered_weights::OrderedWeights, u64)>()\n"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf.rs",
+      "current_length": 7473,
+      "current_sha256": "d611a058bf45d4c5ff05135c9c76119b366877f0c5a7ca840a205547a8f3650e",
+      "current_archive": "docs/evidence/next-semantic-source-views-20261017/objects/d611a058bf45d4c5ff05135c9c76119b366877f0c5a7ca840a205547a8f3650e.txt",
+      "views": [
+        {
+          "name": "base851",
+          "head": "851f1293ce4ce0d35107637b9d4f78cb85e6293f",
+          "length": 7251,
+          "sha256": "102960d3ec7d589141b46b6fbcc6f94fb789abcfb1b33d37a5de73492e793275",
+          "archive": "docs/evidence/next-semantic-source-views-20261017/objects/102960d3ec7d589141b46b6fbcc6f94fb789abcfb1b33d37a5de73492e793275.txt",
+          "inverse": [
+            {
+              "start": 4095,
+              "after": "        }\n",
+              "before": ""
+            },
+            {
+              "start": 3431,
+              "after": "        // Existing received owner place: no copied tag, bool or reference.\n        // scratch_paid=true makes cold_dead_node false by its own definition.\n        if let Self { scratch_paid: false, .. } = self {\n",
+              "before": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history.rs",
+      "current_length": 22708,
+      "current_sha256": "d5e04c498ebdf3c725faa28a6b41440a6ebd2f2aa208a43445effb254a58cdb7",
+      "current_archive": "docs/evidence/next-semantic-source-views-20261017/objects/d5e04c498ebdf3c725faa28a6b41440a6ebd2f2aa208a43445effb254a58cdb7.txt",
+      "views": [
+        {
+          "name": "base851",
+          "head": "851f1293ce4ce0d35107637b9d4f78cb85e6293f",
+          "length": 20845,
+          "sha256": "373e120333b6316c6e140e130db662d38ceb2c83b1ca68e87328543fa0c20641",
+          "archive": "docs/evidence/next-semantic-source-views-20261017/objects/373e120333b6316c6e140e130db662d38ceb2c83b1ca68e87328543fa0c20641.txt",
+          "inverse": [
+            {
+              "start": 22670,
+              "after": "\n#[cfg(test)]\nmod before_hir_compare;\n",
+              "before": ""
+            },
+            {
+              "start": 21205,
+              "after": "            }\n        } else {\n            budget.reserve_bytes(\n                function,\n                skeleton_work::enumerated_prefix::CURSOR_STORAGE\n                    + skeleton_work::enumerated_prefix::CURSOR_CALL,\n                \"ordinary PLAN shared HIR cursor preparation receivers\",\n            )?;\n            let mut hir = skeleton_work::enumerated_prefix::Cursor::new();\n            hir.prepare(&flat.observations, function, budget)?;\n            loop {\n                budget.charge(function, 1, \"ordinary plan history HIR comparison\")?;\n                paid!(\n                    budget,\n                    function,\n                    NEXT_CALL,\n                    \"ordinary plan history HIR cursor next\"\n                )?;\n                budget.reserve_bytes(\n                    function,\n                    skeleton_work::enumerated_prefix::CURSOR_CALL,\n                    \"ordinary PLAN shared HIR cursor next receivers\",\n                )?;\n                match (\n                    cursors[0].next(&path.history, &actual.arena, function, budget)?,\n                    hir.next(function, budget)?,\n                ) {\n                    (Some(left), Some(right)) if left == right => {}\n                    (None, None) => break,\n                    _ => return Err(mismatch()),\n                }\n",
+              "before": "                (None, None) => break,\n                _ => return Err(mismatch()),\n"
+            },
+            {
+              "start": 20216,
+              "after": "        budget.reserve_bytes(\n            function,\n            skeleton_work::enumerated_prefix::HIR_QUERY_CONTROLS,\n            \"ordinary PLAN shared HIR selector receivers\",\n        )?;\n        if flat.observations.prefix.is_none() {\n            let mut index = 0;\n            loop {\n                budget.charge(function, 1, \"ordinary plan history HIR comparison\")?;\n                paid!(\n                    budget,\n                    function,\n                    NEXT_CALL,\n                    \"ordinary plan history HIR cursor next\"\n                )?;\n                match (\n                    cursors[0].next(&path.history, &actual.arena, function, budget)?,\n                    flat.observations.get(index),\n                ) {\n                    (Some(left), Some(right)) if left == right.as_ref() => {\n                        index += 1;\n                    }\n                    (None, None) => break,\n                    _ => return Err(mismatch()),\n",
+              "before": "        let mut index = 0;\n        loop {\n            budget.charge(function, 1, \"ordinary plan history HIR comparison\")?;\n            paid!(\n                budget,\n                function,\n                NEXT_CALL,\n                \"ordinary plan history HIR cursor next\"\n            )?;\n            match (\n                cursors[0].next(&path.history, &actual.arena, function, budget)?,\n                flat.observations.get(index),\n            ) {\n                (Some(left), Some(right)) if left == right.as_ref() => {\n                    index += 1;\n"
+            },
+            {
+              "start": 18317,
+              "after": "    #[cfg(test)]\n    if skeleton_work::enumerated_prefix::original_selected() {\n        return before_hir_compare::compare(function, budget, actual, expected);\n    }\n",
+              "before": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/owned_tests.rs",
+      "current_length": 8108,
+      "current_sha256": "649f67c2f34242d5a4999840af9b50e75d26a2f8101d6ee20d6eec53101d8f6f",
+      "current_archive": "docs/evidence/next-semantic-source-views-20261017/objects/649f67c2f34242d5a4999840af9b50e75d26a2f8101d6ee20d6eec53101d8f6f.txt",
+      "views": [
+        {
+          "name": "base851",
+          "head": "851f1293ce4ce0d35107637b9d4f78cb85e6293f",
+          "length": 6211,
+          "sha256": "41ff9db2a3a0a94a4557d1c3f2ba60ff96262842c083265eee7dfa8c3902aed3",
+          "archive": "docs/evidence/next-semantic-source-views-20261017/objects/41ff9db2a3a0a94a4557d1c3f2ba60ff96262842c083265eee7dfa8c3902aed3.txt",
+          "inverse": [
+            {
+              "start": 3323,
+              "after": "    let source = admitted_source();\n    let checked = crate::check(&source, \"history-owned.spx\").unwrap();\n",
+              "before": "    let checked = crate::check(SOURCE, \"history-owned.spx\").unwrap();\n"
+            },
+            {
+              "start": 1429,
+              "after": "// Keep the complete original source above as a separately checked refusal.\n// This declaration has never been admitted; all other owned/residual/scalar\n// functions enter both real history producers without changing their bytes.\nconst UNSUPPORTED_OWNED_OPTION: &str = r#\"@id(\"owned_option\") fn owned_option(value:own Option<Bytes>)->Option<Bytes> {\n    let payload=value?;\n    Option<Bytes>::Some {value:payload}\n}\n\"#;\n\nfn admitted_source() -> String {\n    assert_eq!(SOURCE.matches(UNSUPPORTED_OWNED_OPTION).count(), 1);\n    let blank = UNSUPPORTED_OWNED_OPTION\n        .chars()\n        .map(|character| if character == '\\n' { '\\n' } else { ' ' })\n        .collect::<String>();\n    let admitted = SOURCE.replacen(UNSUPPORTED_OWNED_OPTION, &blank, 1);\n    assert_eq!(admitted.len(), SOURCE.len());\n    assert_eq!(admitted.replace(&blank, UNSUPPORTED_OWNED_OPTION), SOURCE);\n    admitted\n}\n\n#[test]\nfn original_owned_option_remains_an_exact_unadmitted_residual_control() {\n    let diagnostics = crate::check(SOURCE, \"history-owned.spx\").unwrap_err();\n    let errors = diagnostics.iter().filter(|diagnostic| diagnostic.severity.is_error()).collect::<Vec<_>>();\n    assert_eq!(errors.len(), 2, \"{diagnostics:?}\");\n    for (diagnostic, message) in errors.iter().zip([\n        \"`?` with a live resource binding is not supported yet\",\n        \"Option `?` accepts only direct `i64` or `bool` source and enclosing payloads\",\n    ]) {\n        assert_eq!(diagnostic.code, \"SPX-T218\");\n        assert_eq!(diagnostic.severity, crate::diagnostic::Severity::Error);\n        assert_eq!(diagnostic.message, message);\n        assert_eq!(diagnostic.path.as_deref(), Some(\"history-owned.spx\"));\n        assert_eq!(diagnostic.span, Some(crate::ast::Span {\n            start: 1028, end: 1034, line: 30, column: 17,\n        }));\n        assert_eq!(diagnostic.help, None);\n    }\n}\n\n",
+              "before": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/physical_budget/setup.rs",
+      "current_length": 5066,
+      "current_sha256": "ed16d01065e83d40e3b0cfe917b17099c150ef7649132d10ccd5998f777e2e34",
+      "current_archive": "docs/evidence/next-semantic-source-views-20261017/objects/ed16d01065e83d40e3b0cfe917b17099c150ef7649132d10ccd5998f777e2e34.txt",
+      "views": [
+        {
+          "name": "base851",
+          "head": "851f1293ce4ce0d35107637b9d4f78cb85e6293f",
+          "length": 3626,
+          "sha256": "e8bd4daa936db9b2b6b693c9e6c829afe96129e6b2adb82b5ddb2bd8523403cc",
+          "archive": "docs/evidence/next-semantic-source-views-20261017/objects/e8bd4daa936db9b2b6b693c9e6c829afe96129e6b2adb82b5ddb2bd8523403cc.txt",
+          "inverse": [
+            {
+              "start": 5063,
+              "after": "\n",
+              "before": ""
+            },
+            {
+              "start": 3356,
+              "after": "        // This new inline owner and its capture receivers are fully acquired\n        // before any pointer/ledger/Option initializer is formed. It affects\n        // direct singleton authentication only, not general budget spending.\n        if physical.reserve(\n            3 * std::mem::size_of::<Option<SelectedDirectAnchor>>()\n                + 2 * std::mem::size_of::<SelectedDirectAnchor>()\n                + std::mem::size_of::<crate::bounded_output::classifier_string::ClassifierLedger>()\n                + crate::bounded_output::classifier_string::ClassifierLedger::capture_into_controls()\n                + 2 * std::mem::size_of::<*const ResolvedFunction>()\n                + 2 * std::mem::size_of::<&ResolvedFunction>()\n                + std::mem::size_of::<&mut crate::bounded_output::classifier_string::ClassifierLedger>()\n                + 2 * std::mem::size_of::<Result<(), physical_storage::PhysicalRefusal>>()\n                + 2 * std::mem::size_of::<(&mut PhysicalReservation, usize)>()\n                + 2 * std::mem::size_of::<bool>(),\n        ).is_err() {\n            refused!(SetupReason::Reservation);\n        }\n        let mut anchor = SelectedDirectAnchor {\n            function: std::ptr::from_ref(function),\n            ledger: crate::bounded_output::classifier_string::ClassifierLedger::empty_receiving(),\n        };\n        anchor.ledger.capture_current_into();\n        physical.direct_anchor = Some(anchor);\n",
+              "before": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/physical_storage.rs",
+      "current_length": 13357,
+      "current_sha256": "6d1342dc7f992a5000ef7412b1b971a360a750f67c6adc39d351246ebaa90c8d",
+      "current_archive": "docs/evidence/next-semantic-source-views-20261017/objects/6d1342dc7f992a5000ef7412b1b971a360a750f67c6adc39d351246ebaa90c8d.txt",
+      "views": [
+        {
+          "name": "base851",
+          "head": "851f1293ce4ce0d35107637b9d4f78cb85e6293f",
+          "length": 9147,
+          "sha256": "2a66ec45bb28428e4c769816bad60fa8fe18c0c9f4e9e03009e903d7909bb775",
+          "archive": "docs/evidence/next-semantic-source-views-20261017/objects/2a66ec45bb28428e4c769816bad60fa8fe18c0c9f4e9e03009e903d7909bb775.txt",
+          "inverse": [
+            {
+              "start": 9272,
+              "after": "\n#[cfg(test)]\nmod before_direct_anchor {\n    use super::*;\npub(crate) struct BeforeDirectAnchorReservation {\n    remaining: usize,\n    charged: usize,\n    refusal: Option<PhysicalRefusal>,\n}\n\nimpl BeforeDirectAnchorReservation {\n    pub(crate) fn new(limit: usize) -> Self {\n        Self {\n            remaining: limit,\n            charged: 0,\n            refusal: None,\n        }\n    }\n\n    pub(crate) fn charged(&self) -> usize {\n        self.charged\n    }\n\n    /// No allocation or refund occurs here. Failed requests cannot subsequently\n    /// authorize even a zero-byte construction through this ledger.\n    pub(crate) fn reserve(&mut self, bytes: usize) -> Result<(), PhysicalRefusal> {\n        if let Some(refusal) = self.refusal {\n            return Err(refusal);\n        }\n        let Some(charged) = self.charged.checked_add(bytes) else {\n            return self.fail(PhysicalRefusal::Overflow);\n        };\n        let Some(remaining) = self.remaining.checked_sub(bytes) else {\n            return self.fail(PhysicalRefusal::LocalLimit);\n        };\n        if crate::bounded_output::active_refused()\n            || !crate::bounded_output::reserve_active_required(bytes)\n        {\n            return self.fail(PhysicalRefusal::EnclosingBudget);\n        }\n        self.charged = charged;\n        self.remaining = remaining;\n        Ok(())\n    }\n\n    /// Exact reserve(0) frontier without constructing its Result receiver.\n    /// Adding/subtracting zero cannot overflow valid usize fields. The held\n    /// refusal remains first; enclosing floor authentication still runs.\n    pub(in crate::cleanup_plan::replay) fn authenticate_zero(&mut self) -> bool {\n        if self.refusal.is_some() {\n            return false;\n        }\n        if crate::bounded_output::active_refused()\n            || !crate::bounded_output::reserve_active_required(0)\n        {\n            self.refusal = Some(PhysicalRefusal::EnclosingBudget);\n            return false;\n        }\n        true\n    }\n\n    /// `T` describes the actual allocated element, including its padding. Nested\n    /// String/Vec/map/identity backing is separate and must be charged by callers.\n    pub(crate) fn reserve_array<T>(&mut self, count: usize) -> Result<(), PhysicalRefusal> {\n        if let Some(refusal) = self.refusal {\n            return Err(refusal);\n        }\n        match count.checked_mul(std::mem::size_of::<T>()) {\n            Some(bytes) => self.reserve(bytes),\n            None => self.fail(PhysicalRefusal::Overflow),\n        }\n    }\n\n    pub(super) fn reject(&mut self) {\n        if self.refusal.is_none() {\n            self.refusal = Some(PhysicalRefusal::LocalLimit);\n        }\n    }\n\n    fn fail(&mut self, refusal: PhysicalRefusal) -> Result<(), PhysicalRefusal> {\n        self.refusal = Some(refusal);\n        Err(refusal)\n    }\n}\n\n}\n\n#[cfg(test)]\nmod direct_anchor_layout_tests {\n    use super::*;\n    #[test]\n    fn direct_anchor_preserves_whole_old_selected_ledger_and_reports_actual_layout_cost() {\n        use before_direct_anchor::BeforeDirectAnchorReservation;\n        assert_eq!(std::mem::size_of::<BeforeDirectAnchorReservation>(),\n            std::mem::size_of::<(usize, usize, Option<PhysicalRefusal>)>());\n        assert!(std::mem::size_of::<PhysicalReservation>() >= std::mem::size_of::<BeforeDirectAnchorReservation>());\n        let mut old = BeforeDirectAnchorReservation::new(3);\n        let mut current = PhysicalReservation::new(3);\n        for bytes in [0, 1, 2, 1, 0] {\n            assert_eq!(old.reserve(bytes), current.reserve(bytes));\n            assert_eq!(old.charged(), current.charged());\n        }\n        assert_eq!(old.reserve_array::<u8>(0), current.reserve_array::<u8>(0));\n        assert_eq!(old.authenticate_zero(), current.authenticate_zero());\n        old.reject(); current.reject();\n        assert_eq!(old.reserve(0), current.reserve(0));\n        eprintln!(\"selected ledger old/current bytes={}/{}; ordinary budget carrier layout unchanged\",\n            std::mem::size_of::<BeforeDirectAnchorReservation>(), std::mem::size_of::<PhysicalReservation>());\n    }\n}\n",
+              "before": ""
+            },
+            {
+              "start": 918,
+              "after": "            direct_anchor: None,\n",
+              "before": ""
+            },
+            {
+              "start": 654,
+              "after": "    pub(in crate::cleanup_plan::replay) direct_anchor: Option<super::SelectedDirectAnchor>,\n",
+              "before": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/skeleton_work.rs",
+      "current_length": 47343,
+      "current_sha256": "73ae980d09e4324eb272f1379364cb6ace3cce71a1f8c57de9bfd1a47f482c41",
+      "current_archive": "docs/evidence/next-semantic-source-views-20261017/objects/73ae980d09e4324eb272f1379364cb6ace3cce71a1f8c57de9bfd1a47f482c41.txt",
+      "views": [
+        {
+          "name": "base851",
+          "head": "851f1293ce4ce0d35107637b9d4f78cb85e6293f",
+          "length": 54935,
+          "sha256": "916b817cb82b9e47eaacab364e94503b0e6ed0028d64c522ec4ccbb11a60c455",
+          "archive": "docs/evidence/next-semantic-source-views-20261017/objects/916b817cb82b9e47eaacab364e94503b0e6ed0028d64c522ec4ccbb11a60c455.txt",
+          "inverse": [
+            {
+              "start": 35339,
+              "after": "",
+              "before": "    pub(super) fn merged_suffixes<'s>(\n        &mut self,\n        paths: &'s [ExprSkeletonPath],\n    ) -> Result<std::borrow::Cow<'s, [ExprSkeletonPath]>, Diagnostic> {\n        if !self.budget.merge_paths || paths.len() < 2 {\n            return Ok(std::borrow::Cow::Borrowed(paths));\n        }\n        self.budget.reserve_array::<ExprSkeletonPath>(\n            self.function,\n            paths.len(),\n            \"factored suffix path copies\",\n        )?;\n        let mut owned = Vec::with_capacity(paths.len());\n        for path in paths {\n            owned.push(self.clone_payload(path, \"factored suffix path backing\")?);\n        }\n        Ok(std::borrow::Cow::Owned(self.merged_paths(owned)?))\n    }\n\n    /// Call states additionally merge only with identical commit lists.\n    pub(super) fn merged_call_states(\n        &mut self,\n        states: Vec<CallSkeletonState>,\n    ) -> Result<Vec<CallSkeletonState>, Diagnostic> {\n        if !self.budget.merge_paths || states.len() < 2 {\n            return Ok(states);\n        }\n        self.charge(states.len(), \"factored call-state merge\")?;\n        type Key = (\n            Option<CleanupPlace>,\n            bool,\n            bool,\n            lexical_skeleton::Continuation,\n            Vec<(u32, CleanupPlace)>,\n        );\n        type Group = (CallSkeletonState, Vec<Observations>);\n        let mut order = BTreeMap::<Key, usize>::new();\n        let mut groups = Vec::<Group>::new();\n        for (mut path, commits) in states {\n            if !self.lexical_merge_normal(&path)\n                || (self.function.cleanup_plan.lexical_control.is_some() && !commits.is_empty())\n            {\n                self.budget.reserve_vec(\n                    self.function,\n                    &mut groups,\n                    1,\n                    \"isolated lexical call state\",\n                )?;\n                groups.push(((path, commits), Vec::new()));\n                continue;\n            }\n            let source = self.clone_payload(&path.owned_source, \"factored call source key\")?;\n            let key_commits = self.clone_payload(&commits, \"factored call commit key\")?;\n            let key = (\n                source,\n                path.failed,\n                path.residual,\n                path.continuation.clone(),\n                key_commits,\n            );\n            match order.get(&key).copied() {\n                Some(index) => {\n                    self.budget.reserve_vec(\n                        self.function,\n                        &mut groups[index].1,\n                        1,\n                        \"factored call merge members\",\n                    )?;\n                    groups[index].1.push(path.observations);\n                }\n                None => {\n                    self.budget.reserve_btree_node::<Key, usize>(\n                        self.function,\n                        \"factored call identity index\",\n                    )?;\n                    self.budget.reserve_vec(\n                        self.function,\n                        &mut groups,\n                        1,\n                        \"factored call merge groups\",\n                    )?;\n                    self.budget.reserve_array::<Observations>(\n                        self.function,\n                        1,\n                        \"factored first call member\",\n                    )?;\n                    let observations = std::mem::take(&mut path.observations);\n                    order.insert(key, groups.len());\n                    groups.push(((path, commits), vec![observations]));\n                }\n            }\n        }\n        self.budget.reserve_array::<CallSkeletonState>(\n            self.function,\n            groups.len(),\n            \"factored merged call states\",\n        )?;\n        let mut result = Vec::with_capacity(groups.len());\n        for ((mut path, commits), mut members) in groups {\n            if members.len() > 1 {\n                path.observations = if self.budget.selected() {\n                    self.union_observations(members)?\n                } else {\n                    self.ordinary_union(members)?\n                };\n            } else if let Some(observations) = members.pop() {\n                // A singleton keeps its original prefix and Vec backing.\n                path.observations = observations;\n            }\n            result.push((path, commits));\n        }\n        Ok(result)\n    }\n"
+            },
+            {
+              "start": 35338,
+              "after": "",
+              "before": "    /// Factored replay only: merge paths whose cleanup state is identical\n    /// into one path carrying the union of their observation sequences. Every\n    /// later skeleton step depends only on that state, so the union denotes\n    /// exactly the paths enumeration would produce.\n    pub(super) fn merged_paths(\n        &mut self,\n        paths: Vec<ExprSkeletonPath>,\n    ) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {\n        if !self.budget.merge_paths || paths.len() < 2 {\n            return Ok(paths);\n        }\n        self.charge(paths.len(), \"factored path-state merge\")?;\n        type Key = (\n            Option<CleanupPlace>,\n            bool,\n            bool,\n            lexical_skeleton::Continuation,\n        );\n        type Group = (ExprSkeletonPath, Vec<Observations>);\n        let mut order = BTreeMap::<Key, usize>::new();\n        let mut groups = Vec::<Group>::new();\n        for mut path in paths {\n            if !self.lexical_merge_normal(&path) {\n                self.budget\n                    .reserve_vec(self.function, &mut groups, 1, \"isolated lexical path\")?;\n                groups.push((path, Vec::new()));\n                continue;\n            }\n            let source = self.clone_payload(&path.owned_source, \"factored merge source key\")?;\n            let key = (\n                source,\n                path.failed,\n                path.residual,\n                path.continuation.clone(),\n            );\n            match order.get(&key).copied() {\n                Some(index) => {\n                    self.budget.reserve_vec(\n                        self.function,\n                        &mut groups[index].1,\n                        1,\n                        \"factored merge members\",\n                    )?;\n                    groups[index].1.push(path.observations);\n                }\n                None => {\n                    self.budget.reserve_btree_node::<Key, usize>(\n                        self.function,\n                        \"factored merge identity index\",\n                    )?;\n                    self.budget.reserve_vec(\n                        self.function,\n                        &mut groups,\n                        1,\n                        \"factored merge groups\",\n                    )?;\n                    self.budget.reserve_array::<Observations>(\n                        self.function,\n                        1,\n                        \"factored first merge member\",\n                    )?;\n                    let observations = std::mem::take(&mut path.observations);\n                    order.insert(key, groups.len());\n                    groups.push((path, vec![observations]));\n                }\n            }\n        }\n        self.budget.reserve_array::<ExprSkeletonPath>(\n            self.function,\n            groups.len(),\n            \"factored merged paths\",\n        )?;\n        let mut result = Vec::with_capacity(groups.len());\n        for (mut path, mut members) in groups {\n            if members.len() > 1 {\n                path.observations = if self.budget.selected() {\n                    self.union_observations(members)?\n                } else {\n                    self.ordinary_union(members)?\n                };\n            } else if let Some(observations) = members.pop() {\n                // A singleton keeps its original prefix and Vec backing.\n                path.observations = observations;\n            }\n            result.push(path);\n        }\n        Ok(result)\n    }\n"
+            },
+            {
+              "start": 34921,
+              "after": "    pub(in crate::cleanup_plan::replay) fn lexical_merge_normal(&self, path: &ExprSkeletonPath) -> bool {\n",
+              "before": "    fn lexical_merge_normal(&self, path: &ExprSkeletonPath) -> bool {\n"
+            },
+            {
+              "start": 34229,
+              "after": "/// Legacy flat sequences compare by content. Factored prefixes compare by\n/// identity; ordinary enumerated history never uses this ordering and instead\n/// enters `enumerated_prefix`'s paid complete-content comparator.\n",
+              "before": "/// Flat sequences compare by content; the enumerating comparison sorts only\n/// flat paths. A merged prefix compares by identity.\n"
+            },
+            {
+              "start": 27216,
+              "after": "/// Enumerating replay preserves every distinct path. The ordinary-only\n/// `enumerated_prefix` route may store immutable sequence prefixes with\n/// complete-content paid comparison; legacy/Selected/Oracle paths stay flat.\n/// Only factored replay merges paths that carry identical cleanup state;\n/// their sequences then become one shared\n",
+              "before": "/// The enumerating replay keeps every path flat: `prefix` stays `None` and\n/// `items` is exactly the former observation vector, with the same clone,\n/// append and charge behavior. Only the factored replay merges paths that\n/// carry identical cleanup state; their sequences then become one shared\n"
+            },
+            {
+              "start": 583,
+              "after": "pub(super) mod enumerated_prefix;\n",
+              "before": ""
+            },
+            {
+              "start": 425,
+              "after": "pub(super) mod merge_keys;\n#[cfg(test)]\nmod merge_keys_before;\n#[cfg(test)]\npub(super) mod merge_keys_tests;\n",
+              "before": ""
+            }
+          ]
+        },
+        {
+          "name": "opt877",
+          "head": "285f6e2ab3feacb5616f1a80d8fed5ddc46c7abf",
+          "length": 55099,
+          "sha256": "51b66c2403ffe480a245f1d485ab31206601abfc47b66489b7212448bd69a2cf",
+          "archive": "docs/evidence/next-semantic-source-views-20261017/objects/51b66c2403ffe480a245f1d485ab31206601abfc47b66489b7212448bd69a2cf.txt",
+          "inverse": [
+            {
+              "start": 35339,
+              "after": "",
+              "before": "    pub(super) fn merged_suffixes<'s>(\n        &mut self,\n        paths: &'s [ExprSkeletonPath],\n    ) -> Result<std::borrow::Cow<'s, [ExprSkeletonPath]>, Diagnostic> {\n        if !self.budget.merge_paths || paths.len() < 2 {\n            return Ok(std::borrow::Cow::Borrowed(paths));\n        }\n        self.budget.reserve_array::<ExprSkeletonPath>(\n            self.function,\n            paths.len(),\n            \"factored suffix path copies\",\n        )?;\n        let mut owned = Vec::with_capacity(paths.len());\n        for path in paths {\n            owned.push(self.clone_payload(path, \"factored suffix path backing\")?);\n        }\n        Ok(std::borrow::Cow::Owned(self.merged_paths(owned)?))\n    }\n\n    /// Call states additionally merge only with identical commit lists.\n    pub(super) fn merged_call_states(\n        &mut self,\n        states: Vec<CallSkeletonState>,\n    ) -> Result<Vec<CallSkeletonState>, Diagnostic> {\n        if !self.budget.merge_paths || states.len() < 2 {\n            return Ok(states);\n        }\n        self.charge(states.len(), \"factored call-state merge\")?;\n        type Key = (\n            Option<CleanupPlace>,\n            bool,\n            bool,\n            lexical_skeleton::Continuation,\n            Vec<(u32, CleanupPlace)>,\n        );\n        type Group = (CallSkeletonState, Vec<Observations>);\n        let mut order = BTreeMap::<Key, usize>::new();\n        let mut groups = Vec::<Group>::new();\n        for (mut path, commits) in states {\n            if !self.lexical_merge_normal(&path)\n                || (self.function.cleanup_plan.lexical_control.is_some() && !commits.is_empty())\n            {\n                self.budget.reserve_vec(\n                    self.function,\n                    &mut groups,\n                    1,\n                    \"isolated lexical call state\",\n                )?;\n                groups.push(((path, commits), Vec::new()));\n                continue;\n            }\n            let source = self.clone_payload(&path.owned_source, \"factored call source key\")?;\n            let key_commits = self.clone_payload(&commits, \"factored call commit key\")?;\n            let key = (\n                source,\n                path.failed,\n                path.residual,\n                path.continuation.clone(),\n                key_commits,\n            );\n            match order.get(&key).copied() {\n                Some(index) => {\n                    self.budget.reserve_vec(\n                        self.function,\n                        &mut groups[index].1,\n                        1,\n                        \"factored call merge members\",\n                    )?;\n                    groups[index].1.push(path.observations);\n                }\n                None => {\n                    self.budget.reserve_btree_node::<Key, usize>(\n                        self.function,\n                        \"factored call identity index\",\n                    )?;\n                    self.budget.reserve_vec(\n                        self.function,\n                        &mut groups,\n                        1,\n                        \"factored call merge groups\",\n                    )?;\n                    self.budget.reserve_array::<Observations>(\n                        self.function,\n                        1,\n                        \"factored first call member\",\n                    )?;\n                    let observations = std::mem::take(&mut path.observations);\n                    order.insert(key, groups.len());\n                    groups.push(((path, commits), vec![observations]));\n                }\n            }\n        }\n        self.budget.reserve_array::<CallSkeletonState>(\n            self.function,\n            groups.len(),\n            \"factored merged call states\",\n        )?;\n        let mut result = Vec::with_capacity(groups.len());\n        for ((mut path, commits), mut members) in groups {\n            if members.len() > 1 {\n                path.observations = if self.budget.selected() {\n                    self.union_observations(members)?\n                } else {\n                    self.ordinary_union(members)?\n                };\n            } else if let Some(observations) = members.pop() {\n                // A singleton keeps its original prefix and Vec backing.\n                path.observations = observations;\n            }\n            result.push((path, commits));\n        }\n        Ok(result)\n    }\n"
+            },
+            {
+              "start": 35338,
+              "after": "",
+              "before": "    /// Factored replay only: merge paths whose cleanup state is identical\n    /// into one path carrying the union of their observation sequences. Every\n    /// later skeleton step depends only on that state, so the union denotes\n    /// exactly the paths enumeration would produce.\n    pub(super) fn merged_paths(\n        &mut self,\n        paths: Vec<ExprSkeletonPath>,\n    ) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {\n        if !self.budget.merge_paths || paths.len() < 2 {\n            return Ok(paths);\n        }\n        self.charge(paths.len(), \"factored path-state merge\")?;\n        type Key = (\n            Option<CleanupPlace>,\n            bool,\n            bool,\n            lexical_skeleton::Continuation,\n        );\n        type Group = (ExprSkeletonPath, Vec<Observations>);\n        let mut order = BTreeMap::<Key, usize>::new();\n        let mut groups = Vec::<Group>::new();\n        for mut path in paths {\n            if !self.lexical_merge_normal(&path) {\n                self.budget\n                    .reserve_vec(self.function, &mut groups, 1, \"isolated lexical path\")?;\n                groups.push((path, Vec::new()));\n                continue;\n            }\n            let source = self.clone_payload(&path.owned_source, \"factored merge source key\")?;\n            let key = (\n                source,\n                path.failed,\n                path.residual,\n                path.continuation.clone(),\n            );\n            match order.get(&key).copied() {\n                Some(index) => {\n                    self.budget.reserve_vec(\n                        self.function,\n                        &mut groups[index].1,\n                        1,\n                        \"factored merge members\",\n                    )?;\n                    groups[index].1.push(path.observations);\n                }\n                None => {\n                    self.budget.reserve_btree_node::<Key, usize>(\n                        self.function,\n                        \"factored merge identity index\",\n                    )?;\n                    self.budget.reserve_vec(\n                        self.function,\n                        &mut groups,\n                        1,\n                        \"factored merge groups\",\n                    )?;\n                    self.budget.reserve_array::<Observations>(\n                        self.function,\n                        1,\n                        \"factored first merge member\",\n                    )?;\n                    let observations = std::mem::take(&mut path.observations);\n                    order.insert(key, groups.len());\n                    groups.push((path, vec![observations]));\n                }\n            }\n        }\n        self.budget.reserve_array::<ExprSkeletonPath>(\n            self.function,\n            groups.len(),\n            \"factored merged paths\",\n        )?;\n        let mut result = Vec::with_capacity(groups.len());\n        for (mut path, mut members) in groups {\n            if members.len() > 1 {\n                path.observations = if self.budget.selected() {\n                    self.union_observations(members)?\n                } else {\n                    self.ordinary_union(members)?\n                };\n            } else if let Some(observations) = members.pop() {\n                // A singleton keeps its original prefix and Vec backing.\n                path.observations = observations;\n            }\n            result.push(path);\n        }\n        Ok(result)\n    }\n"
+            },
+            {
+              "start": 34921,
+              "after": "    pub(in crate::cleanup_plan::replay) fn lexical_merge_normal(&self, path: &ExprSkeletonPath) -> bool {\n",
+              "before": "    fn lexical_merge_normal(&self, path: &ExprSkeletonPath) -> bool {\n"
+            },
+            {
+              "start": 425,
+              "after": "pub(super) mod merge_keys;\n#[cfg(test)]\nmod merge_keys_before;\n#[cfg(test)]\npub(super) mod merge_keys_tests;\n",
+              "before": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/skeleton_work/ordinary_dag.rs",
+      "current_length": 8963,
+      "current_sha256": "b77e9c8426386d86fc922421c1cab4c997643cb401294a537ea2afb9634ea3e9",
+      "current_archive": "docs/evidence/next-semantic-source-views-20261017/objects/b77e9c8426386d86fc922421c1cab4c997643cb401294a537ea2afb9634ea3e9.txt",
+      "views": [
+        {
+          "name": "base851",
+          "head": "851f1293ce4ce0d35107637b9d4f78cb85e6293f",
+          "length": 7219,
+          "sha256": "3d1a9ab1fd584910af3044e44a19e4c429263778cc611fa44c4a3df6250e2ab5",
+          "archive": "docs/evidence/next-semantic-source-views-20261017/objects/3d1a9ab1fd584910af3044e44a19e4c429263778cc611fa44c4a3df6250e2ab5.txt",
+          "inverse": [
+            {
+              "start": 7333,
+              "after": "        if let ReplayBudget {\n            payer: AllocationPayer::ActiveBuilder,\n            admission: AdmissionMode::Ordinary,\n            merge_paths: false,\n            ..\n        } = self.budget\n        {\n            self.budget.reserve_bytes(\n                self.function,\n                enumerated_prefix::DISPATCH_CONTROLS,\n                \"enumerated HIR prepend representation query receivers\",\n            )?;\n            if target\n                .prefix\n                .as_ref()\n                .is_some_and(|node| node.ordinal == Some(enumerated_prefix::SEQUENCE_MARKER))\n            {\n                self.budget.reserve_bytes(\n                    self.function,\n                    enumerated_prefix::PREPEND_CONTROLS,\n                    \"enumerated HIR prepend receiving controls\",\n                )?;\n                return enumerated_prefix::prepend(self, target, observation);\n            }\n        }\n",
+              "before": ""
+            },
+            {
+              "start": 5695,
+              "after": "        if let ReplayBudget {\n            payer: AllocationPayer::ActiveBuilder,\n            admission: AdmissionMode::Ordinary,\n            merge_paths: false,\n            ..\n        } = self.budget\n        {\n            self.budget.reserve_bytes(\n                self.function,\n                enumerated_prefix::DISPATCH_CONTROLS,\n                \"enumerated HIR append representation query receivers\",\n            )?;\n            if prefix.ordinal == Some(enumerated_prefix::SEQUENCE_MARKER) {\n                self.budget.reserve_bytes(\n                    self.function,\n                    enumerated_prefix::EXTEND_CONTROLS,\n                    \"enumerated HIR concatenation receiving controls\",\n                )?;\n                return enumerated_prefix::extend(self, target, suffix);\n            }\n        }\n",
+              "before": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/skeleton_work/ordinary_dag/frontier.rs",
+      "current_length": 3804,
+      "current_sha256": "f4eda72f5361e60c9db731b227acf205e2fe63ee9a19c4091cbce5bec381ef7d",
+      "current_archive": "docs/evidence/next-semantic-source-views-20261017/objects/f4eda72f5361e60c9db731b227acf205e2fe63ee9a19c4091cbce5bec381ef7d.txt",
+      "views": [
+        {
+          "name": "base851",
+          "head": "851f1293ce4ce0d35107637b9d4f78cb85e6293f",
+          "length": 3764,
+          "sha256": "d8564be6acde2c6def66fc5ec06b3890545609f198f34e225773f78cfc42ae0c",
+          "archive": "docs/evidence/next-semantic-source-views-20261017/objects/d8564be6acde2c6def66fc5ec06b3890545609f198f34e225773f78cfc42ae0c.txt",
+          "inverse": [
+            {
+              "start": 796,
+              "after": "    pub(in crate::cleanup_plan::replay::skeleton_work) fn ordinary_frontier(\n",
+              "before": "    pub(super) fn ordinary_frontier(\n"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/skeleton_work/prefix_fusion.rs",
+      "current_length": 7957,
+      "current_sha256": "31e8205db8720309a4d7e6c35c0732671ce82a16956d760ac4c25d5441564c1f",
+      "current_archive": "docs/evidence/next-semantic-source-views-20261017/objects/31e8205db8720309a4d7e6c35c0732671ce82a16956d760ac4c25d5441564c1f.txt",
+      "views": [
+        {
+          "name": "base851",
+          "head": "851f1293ce4ce0d35107637b9d4f78cb85e6293f",
+          "length": 7468,
+          "sha256": "575ba5edd5dee6ffe14ee3a936f56005f2729a22b77bfacc7ecd207b82265f9a",
+          "archive": "docs/evidence/next-semantic-source-views-20261017/objects/575ba5edd5dee6ffe14ee3a936f56005f2729a22b77bfacc7ecd207b82265f9a.txt",
+          "inverse": [
+            {
+              "start": 2524,
+              "after": "// The earlier enumerated gate reuses this paid lexical probe frame before\n// the fusion probe. Payer/budget/Vec views and scalar results have disjoint\n// lifetimes; its lexical-control Option view occupies one of the two existing\n// prefix Option-view slots. Two extra scalar results fit the finite slack.\nconst _: () = assert!(\n    size_of::<&Option<Box<crate::cleanup_plan::LexicalControlPlan>>>()\n        <= size_of::<&Option<std::rc::Rc<ObservationDag>>>()\n);\nconst _: () = assert!(NEW_SPLIT + PROBE + 2 * size_of::<bool>() <= REMOVED_SPLIT);\n",
+              "before": "const _: () = assert!(NEW_SPLIT + PROBE <= REMOVED_SPLIT);\n"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "src/source_verify/declaration.rs",
+      "current_length": 15793,
+      "current_sha256": "54bca5bc3be89d2b788655f72cb8671c76b540edd99c126a0862a4f1f22a0a88",
+      "current_archive": "docs/evidence/next-semantic-source-views-20261017/objects/54bca5bc3be89d2b788655f72cb8671c76b540edd99c126a0862a4f1f22a0a88.txt",
+      "views": [
+        {
+          "name": "base851",
+          "head": "851f1293ce4ce0d35107637b9d4f78cb85e6293f",
+          "length": 15623,
+          "sha256": "c93ac4c883fe6b10c831a2603c994ea03880986fd0b7a394bfa41ec8a06d88cb",
+          "archive": "docs/evidence/next-semantic-source-views-20261017/objects/c93ac4c883fe6b10c831a2603c994ea03880986fd0b7a394bfa41ec8a06d88cb.txt",
+          "inverse": [
+            {
+              "start": 8908,
+              "after": "    if storage_declaration_refused\n        && !record_shape::all_storage_refusals_recoverable(\n            program,\n            &types,\n            &diagnostics[storage_diagnostics_start..],\n        )\n    {\n",
+              "before": "    if storage_declaration_refused {\n"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "src/source_verify/declaration/record_shape.rs",
+      "current_length": 11510,
+      "current_sha256": "f9dcecb71e66b45d12cebbbd1d4648018d20e26807467296f48999da326ea7a5",
+      "current_archive": "docs/evidence/next-semantic-source-views-20261017/objects/f9dcecb71e66b45d12cebbbd1d4648018d20e26807467296f48999da326ea7a5.txt",
+      "views": [
+        {
+          "name": "base851",
+          "head": "851f1293ce4ce0d35107637b9d4f78cb85e6293f",
+          "length": 7790,
+          "sha256": "97f52cfcb8fde11cddd2fb27f74ffa7806f4021e239497197bc51b0b27b0bdfd",
+          "archive": "docs/evidence/next-semantic-source-views-20261017/objects/97f52cfcb8fde11cddd2fb27f74ffa7806f4021e239497197bc51b0b27b0bdfd.txt",
+          "inverse": [
+            {
+              "start": 8400,
+              "after": "    fn storage_recovery_requires_every_exact_live_record_refusal() {\n        let source = \"module recovery; record Packet { payload: Bytes, text: string, unsupported: [u8; 1], } fn main()->i64{0}\";\n        let parsed = crate::parse(source, Path::new(\"storage-recovery.spx\")).unwrap();\n        let types = TypeTable::new(&parsed);\n        let mut diagnostics = Vec::new();\n        before::check_byte_data_declarations(&parsed, &types, &mut diagnostics);\n        assert_eq!(diagnostics.len(), 1);\n        assert!(all_storage_refusals_recoverable(&parsed, &types, &diagnostics));\n        assert!(!all_storage_refusals_recoverable(&parsed, &types, &[]));\n        for field in 0..6 {\n            let mut foreign = diagnostics[0].clone();\n            match field {\n                0 => foreign.code = \"SPX-T999\",\n                1 => foreign.severity = crate::diagnostic::Severity::Warning,\n                2 => foreign.message.to_mut().push_str(\" foreign\"),\n                3 => foreign.path = Some(\"foreign.spx\".to_owned()),\n                4 => foreign.span = None,\n                5 => foreign.help = Some(\"foreign help\".to_owned()),\n                _ => unreachable!(),\n            }\n            assert!(!all_storage_refusals_recoverable(&parsed, &types, &[foreign]));\n        }\n        let fields = (0..257)\n            .map(|index| format!(\"leaf_{index}: Bytes,\"))\n            .collect::<String>();\n        let bounded = crate::parse(\n            &format!(\"module bounded; record Bag {{{fields}}} fn main()->i64{{0}}\"),\n            Path::new(\"storage-recovery-bound.spx\"),\n        ).unwrap();\n        let bounded_types = TypeTable::new(&bounded);\n        let mut bounded_diagnostics = Vec::new();\n        before::check_byte_data_declarations(&bounded, &bounded_types, &mut bounded_diagnostics);\n        assert_eq!(bounded_diagnostics.len(), 1);\n        assert!(!all_storage_refusals_recoverable(&bounded, &bounded_types, &bounded_diagnostics));\n        let mixed = crate::parse(\n            &format!(\"{source} class Other {{ payload: Bytes, }}\"),\n            Path::new(\"storage-recovery-mixed.spx\"),\n        ).unwrap();\n        let mixed_types = TypeTable::new(&mixed);\n        let mut mixed_diagnostics = Vec::new();\n        before::check_byte_data_declarations(&mixed, &mixed_types, &mut mixed_diagnostics);\n        assert!(mixed_diagnostics.len() > 1);\n        assert!(!all_storage_refusals_recoverable(&mixed, &mixed_types, &mixed_diagnostics));\n    }\n\n    #[test]\n",
+              "before": ""
+            },
+            {
+              "start": 3589,
+              "after": "}\n\n/// Continue ordinary checking only when every refused storage declaration has\n/// the exact concrete-record producer understood by expression recovery.\n/// Other storage refusals keep their complete prior early-return route.\npub(in crate::source_verify) fn all_storage_refusals_recoverable(\n    program: &dyn ProgramSource,\n    types: &TypeTable<'_>,\n    diagnostics: &[Diagnostic],\n) -> bool {\n    let mut refused = false;\n    for (index, diagnostic) in diagnostics.iter().enumerate() {\n        if !diagnostic.severity.is_error() {\n            continue;\n        }\n        refused = true;\n        if !program.types().iter().any(|declaration| {\n            // Bound refusals keep the previous signature-only frontier. In\n            // particular, generic signatures can add T223/T224 after this gate.\n            let root = Type::Named {\n                name: declaration.name.clone(),\n                arguments: Vec::new(),\n            };\n            matches!(\n                classify_nested_owned_byte_record(types, &root),\n                NestedOwnedRecordAdmission::OutsideProfile\n            ) && origin_named(program, types, &declaration.name, diagnostics) == Some(index)\n        }) {\n            return false;\n        }\n    }\n    refused\n",
+              "before": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

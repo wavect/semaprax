@@ -166,6 +166,27 @@ impl SkeletonWork<'_, '_> {
             target.items.extend_from_slice(&suffix.items);
             return Ok(target);
         };
+        if let ReplayBudget {
+            payer: AllocationPayer::ActiveBuilder,
+            admission: AdmissionMode::Ordinary,
+            merge_paths: false,
+            ..
+        } = self.budget
+        {
+            self.budget.reserve_bytes(
+                self.function,
+                enumerated_prefix::DISPATCH_CONTROLS,
+                "enumerated HIR append representation query receivers",
+            )?;
+            if prefix.ordinal == Some(enumerated_prefix::SEQUENCE_MARKER) {
+                self.budget.reserve_bytes(
+                    self.function,
+                    enumerated_prefix::EXTEND_CONTROLS,
+                    "enumerated HIR concatenation receiving controls",
+                )?;
+                return enumerated_prefix::extend(self, target, suffix);
+            }
+        }
         let joined = match self.ordinary_freeze_owned(target)? {
             None => prefix.clone(),
             Some(head) => {
@@ -190,6 +211,31 @@ impl SkeletonWork<'_, '_> {
         target: &mut Observations,
         observation: Observation,
     ) -> Result<(), Diagnostic> {
+        if let ReplayBudget {
+            payer: AllocationPayer::ActiveBuilder,
+            admission: AdmissionMode::Ordinary,
+            merge_paths: false,
+            ..
+        } = self.budget
+        {
+            self.budget.reserve_bytes(
+                self.function,
+                enumerated_prefix::DISPATCH_CONTROLS,
+                "enumerated HIR prepend representation query receivers",
+            )?;
+            if target
+                .prefix
+                .as_ref()
+                .is_some_and(|node| node.ordinal == Some(enumerated_prefix::SEQUENCE_MARKER))
+            {
+                self.budget.reserve_bytes(
+                    self.function,
+                    enumerated_prefix::PREPEND_CONTROLS,
+                    "enumerated HIR prepend receiving controls",
+                )?;
+                return enumerated_prefix::prepend(self, target, observation);
+            }
+        }
         let prefix = target
             .prefix
             .as_ref()

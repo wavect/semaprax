@@ -128,3 +128,21 @@ The actual HIR/plan comparison caller and full lexical trace fixtures remain
 separate controls from direct automaton coverage. CLI, ShiftSim and normalizer
 owning gates, scoped Clippy and these focused bodies require later coordinated
 qualification. Independent incoming flat tests alone establish no adoption.
+
+## Direct selected compatibility authentication closure (source only)
+
+The focused452 direct singleton negative exposed that zero-byte payer/work checks
+do not establish a function owner. The actual ordinary caller already binds its
+Memo; the direct selected compatibility receiver now uses a funded setup anchor
+inside its selected physical ledger. It binds the exact function pointer and
+existing held scope before any payer query, logical work or output. General
+multi-function Session spending remains unchanged. The ordinary ReplayBudget
+layout and constructor bodies remain exact; selected ledger layout/capture costs
+are additional and must be reported against the independently retained old type.
+
+The selected-successors test adapters now perform existing Memo identity/sticky
+preflight before acquiring an invocation. Their whole prior bodies remain
+independent negative controls, including original payment-before-scope failure.
+Production held-receiving logic is unchanged. Full before inputs, original
+assertions and new same-ID/scope/restored/ledger-layout controls remain required.
+No executable correctness, reservation improvement or application fit is asserted.

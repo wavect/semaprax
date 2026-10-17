@@ -89,6 +89,29 @@ impl ReplayBudget {
         if refusal_text.capacity() != capacity {
             refused!(SetupReason::TextCapacity);
         }
+        // This new inline owner and its capture receivers are fully acquired
+        // before any pointer/ledger/Option initializer is formed. It affects
+        // direct singleton authentication only, not general budget spending.
+        if physical.reserve(
+            3 * std::mem::size_of::<Option<SelectedDirectAnchor>>()
+                + 2 * std::mem::size_of::<SelectedDirectAnchor>()
+                + std::mem::size_of::<crate::bounded_output::classifier_string::ClassifierLedger>()
+                + crate::bounded_output::classifier_string::ClassifierLedger::capture_into_controls()
+                + 2 * std::mem::size_of::<*const ResolvedFunction>()
+                + 2 * std::mem::size_of::<&ResolvedFunction>()
+                + std::mem::size_of::<&mut crate::bounded_output::classifier_string::ClassifierLedger>()
+                + 2 * std::mem::size_of::<Result<(), physical_storage::PhysicalRefusal>>()
+                + 2 * std::mem::size_of::<(&mut PhysicalReservation, usize)>()
+                + 2 * std::mem::size_of::<bool>(),
+        ).is_err() {
+            refused!(SetupReason::Reservation);
+        }
+        let mut anchor = SelectedDirectAnchor {
+            function: std::ptr::from_ref(function),
+            ledger: crate::bounded_output::classifier_string::ClassifierLedger::empty_receiving(),
+        };
+        anchor.ledger.capture_current_into();
+        physical.direct_anchor = Some(anchor);
         Ok(Self {
             admission: AdmissionMode::SelectedRetained,
             payer: AllocationPayer::SelectedReservation,
@@ -97,4 +120,5 @@ impl ReplayBudget {
             ..Self::new()
         })
     }
+
 }

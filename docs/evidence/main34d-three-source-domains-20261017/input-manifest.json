@@ -419,8 +419,8 @@
     },
     {
       "path": "src/cleanup_plan/replay.rs",
-      "current_len": 321092,
-      "current_sha256": "30616d71694d393a730c0c8e49a25bbad7539b07ff96ed901b9d07be29765b9c",
+      "current_len": 323567,
+      "current_sha256": "807735eb8713ff6e02abd9ea6d3d4aea4fdc53f95bc6b6d1a2a1e51dba605afa",
       "current_archive": "docs/evidence/main34d-three-source-domains-20261017/current-inputs/20.txt",
       "main_len": 300644,
       "main_sha256": "a095e76b1c26a3fb49664a2169e9933fac76904b75c0a5c39046892442d24370",
@@ -428,8 +428,8 @@
       "whole_source_inverse": [
         {
           "at": 0,
-          "remove_len": 321092,
-          "remove_sha256": "30616d71694d393a730c0c8e49a25bbad7539b07ff96ed901b9d07be29765b9c",
+          "remove_len": 323567,
+          "remove_sha256": "807735eb8713ff6e02abd9ea6d3d4aea4fdc53f95bc6b6d1a2a1e51dba605afa",
           "insert_archive": "docs/evidence/main34d-three-source-domains-20261017/main-inputs/20.txt"
         }
       ]

@@ -67,6 +67,8 @@ impl<'o> SourceFunding<'o> {
         + size_of::<[std::slice::Iter<'_, Diagnostic>; 2]>() // iter return and receiving iterator
         + size_of::<[&mut std::slice::Iter<'_, Diagnostic>; 2]>() // any argument and formal borrow
         + size_of::<[&Diagnostic; 2]>() // predicate argument and parameter
+        + size_of::<[Option<&Diagnostic>; 2]>() // iterator next return and item receiver
+        + size_of::<&mut ()>() // internal mutable borrow of the zero-capture predicate
         + size_of::<[crate::diagnostic::Severity; 2]>() // copied severity and is_error parameter
         + size_of::<[bool; 4]>() // is_error, predicate, any return and refusal receiver
         + size_of::<[Vec<Diagnostic>; 4]>(); // finish argument, parameter, return and receiver

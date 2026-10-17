@@ -1,0 +1,15 @@
+
+running 1 test
+test cleanup_plan::replay::branch_clone::tests::real_generic_probe_receiving_frontier_exact_short_zero_floor_is_sticky_and_drops_completely ... 
+thread 'cleanup_plan::replay::branch_clone::tests::real_generic_probe_receiving_frontier_exact_short_zero_floor_is_sticky_and_drops_completely' (27634609) panicked at src/cleanup_plan/replay/branch_clone/tests.rs:453:5:
+assertion failed: GENERIC_TAKES.with(Cell::get) > before
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    cleanup_plan::replay::branch_clone::tests::real_generic_probe_receiving_frontier_exact_short_zero_floor_is_sticky_and_drops_completely
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 0.08s
+

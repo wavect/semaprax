@@ -432,15 +432,9 @@ fn real_generic_probe_receiving_frontier_exact_short_zero_floor_is_sticky_and_dr
     let function=program.functions.iter_mut().find(|function|function.id.as_str()=="f").unwrap();
     let last=function.cleanup_plan.blocks.iter().rposition(|block|
         matches!(&block.terminator,CleanupTerminator::Branch(edges) if edges.len()==2)).unwrap();
-    // A finite synthetic plan control keeps all preceding status observations
-    // on one Goto path. Its only Branch is the real three-edge caller under test.
-    for (index,block) in function.cleanup_plan.blocks.iter_mut().enumerate() {
-        if index!=last {
-            if let CleanupTerminator::Branch(edges)=&block.terminator {
-                block.terminator=CleanupTerminator::Goto(edges[0]);
-            }
-        }
-    }
+    // Preserve the checked status branches and their real observations. A Goto
+    // does not emit a Status observation, and selecting its first edge can
+    // terminate before this final branch. Only append the third final edge.
     let CleanupTerminator::Branch(edges)=&function.cleanup_plan.blocks[last].terminator else {unreachable!()};
     let mut edge=function.cleanup_plan.edges[edges[edges.len()-1].0 as usize].clone();
     let id=EdgeId(u32::try_from(function.cleanup_plan.edges.len()).unwrap());

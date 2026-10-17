@@ -385,10 +385,11 @@ fn composed_frozen_actual_comparison_keeps_full_source_trace_and_diagnostic_orde
     use super::super::super::{compare_with_index_storage, lexical_plan_tests};
     use std::fmt::Write as _;
     for source in [lexical_plan_tests::WHILE, lexical_plan_tests::GENERATED] {
-        // The physical selected receiver needs the same complete authenticated
-        // current directory as production; detached HIR remains a negative below.
+        // These complete sources contain no borrowed UTF-8 literals, so the
+        // closed static-text receiver has no inventory. Use the actual held
+        // workspace's production linker; detached HIR remains a negative below.
         let fixture = crate::workspace_graph::SourceRecordReplayFixture::new(source);
-        fixture.with_prepared_context(|program| {
+        fixture.with_linked_context(|program| {
         let functions = program.functions();
         let function = functions.iter().find(|function| function.id.as_str() == "probe").unwrap();
         lexical_plan_tests::assert_plan_oracle(&function);

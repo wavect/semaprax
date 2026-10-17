@@ -1,0 +1,25 @@
+{
+  "status": "SOURCE_ONLY_UNCOMPILED_UNEXECUTED",
+  "actual_failures": [
+    {
+      "path": "actual-failures/owner-25.log",
+      "length": 961,
+      "sha256": "0326e0bcf56831b0fbe2c947a6fd077f4039f27d13eda5619fe81161d7c5622f"
+    },
+    {
+      "path": "actual-failures/owner-32.log",
+      "length": 787,
+      "sha256": "6c4613589b14ba7b530d8cbb68b86e544c81b56222c3c353c3e1e902030eb72c"
+    }
+  ],
+  "production_changes": false,
+  "assertions_removed_or_replaced": false,
+  "whole_inverses_sha256": "a22b65617e6aeecd11f7b88d927a70e104d57786fb82852f6788c91824397614",
+  "pending_selectors_sha256": "f06f8dcdf0cb22bdd3ce861a6d573fd0b32aa2f0cfcddcc8eb9c0a688988f45e",
+  "new_modules": [],
+  "source_lines": {
+    "src/cleanup_plan/replay/branch_clone/tests.rs": 656,
+    "src/cleanup_plan/replay/factored/canonical_shared/paid_many/tests.rs": 1065,
+    "src/workspace_graph/test_replay_context.rs": 106
+  }
+}

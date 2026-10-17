@@ -488,7 +488,7 @@ fn later_factored_current(path: &::std::path::Path, relative: &str, length: usiz
     };
     if length != prior_length || expected != prior_sha { return Err("foreign-later-factored-row"); }
     let directory = ::std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/evidence/source-custody-452-factored-20261017");
-    let raw = custody_file(path, current_length, current_sha)?;
+    let raw = singleton_concat_current(path, relative, current_length, current_sha)?;
     if raw != custody_file(&directory.join(current_archive), current_length, current_sha)? { return Err("later-factored-current-archive"); }
     custody_file(&directory.join(prior_archive), prior_length, prior_sha)
 }
@@ -505,4 +505,40 @@ fn later_factored_sources_keep_complete_fixed_domains_and_refuse_foreign_expecte
         assert!(later_factored_current(&root.join(path), path, length + 1, sha).is_err());
         assert!(later_factored_current(&root.join(path), path, length, &"0".repeat(64)).is_err());
     }
+}
+
+// A separate physical syntax successor precedes the unchanged d852 source row.
+// The two concat! expressions retain the old declaration-count needles exactly.
+fn singleton_concat_restore(current: &str) -> Result<String, &'static str> {
+    if current.len() != 28861 || custody_digest(current.as_bytes()) != "76fd94cd723677369a17540d5bf447e1b66fa08dffb14a754d53cf2c81180b32" { return Err("foreign-singleton-concat-current"); }
+    let mut before = current.to_owned();
+    for (after, old) in [
+        (r#"current.matches(concat!("pub(super) fn ", "successors<C: Closed>"))"#, r#"current.matches("pub(super) fn successors<C: Closed>")"#),
+        (r#"current.matches(concat!("struct ", "Directory<'a>"))"#, r#"current.matches("struct Directory<'a>")"#),
+    ] {
+        if before.matches(after).count() != 1 { return Err("singleton-concat-inverse-cardinality"); }
+        before = before.replacen(after, old, 1);
+    }
+    if before.len() != 28835 || custody_digest(before.as_bytes()) != "f4fd89c5c28b47d826968d935f51dac66a49e8fd859bfa519e98013913a3923a" { return Err("singleton-concat-before"); }
+    Ok(before)
+}
+fn singleton_concat_current(path: &::std::path::Path, relative: &str, length: usize, expected: &str) -> Result<String, &'static str> {
+    if relative != "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs" { return custody_file(path, length, expected); }
+    if length != 28835 || expected != "f4fd89c5c28b47d826968d935f51dac66a49e8fd859bfa519e98013913a3923a" { return Err("foreign-singleton-concat-row"); }
+    let raw = custody_file(path, 28861, "76fd94cd723677369a17540d5bf447e1b66fa08dffb14a754d53cf2c81180b32")?;
+    let before = singleton_concat_restore(&raw)?;
+    let archive = ::std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/evidence/source-custody-452-singleton-needle-20261017/borrowed_labels.before.rs.txt");
+    if before != custody_file(&archive, length, expected)? { return Err("singleton-concat-whole-archive"); }
+    Ok(before)
+}
+#[test]
+fn singleton_concat_physical_front_retains_whole_prior_and_refuses_drift() {
+    let root = ::std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let path = "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs";
+    let raw = custody_file(&root.join(path), 28861, "76fd94cd723677369a17540d5bf447e1b66fa08dffb14a754d53cf2c81180b32").unwrap();
+    let before = singleton_concat_current(&root.join(path), path, 28835, "f4fd89c5c28b47d826968d935f51dac66a49e8fd859bfa519e98013913a3923a").unwrap();
+    assert_eq!(before, singleton_concat_restore(&raw).unwrap());
+    for bad in [String::new(), format!("{raw}\n"), format!("{raw}{raw}"), raw[..raw.len()-1].to_owned(), raw.replacen("concat!", "format!", 1)] { assert!(singleton_concat_restore(&bad).is_err()); }
+    assert!(singleton_concat_current(&root.join(path), path, 28836, "f4fd89c5c28b47d826968d935f51dac66a49e8fd859bfa519e98013913a3923a").is_err());
+    assert!(singleton_concat_current(&root.join(path), path, 28835, &"0".repeat(64)).is_err());
 }

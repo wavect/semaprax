@@ -1335,3 +1335,5 @@ pub(crate) fn accepted_physical_compiled(source: &str) -> Option<&'static str> {
 }
 
 }
+
+pub(crate) use before_future57::main_f247_file_raw;

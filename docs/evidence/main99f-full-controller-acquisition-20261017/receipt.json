@@ -1,0 +1,68 @@
+{
+  "status": "SOURCE_ONLY_UNQUALIFIED",
+  "main_head": "99f1f06d361e16bd937f4a6eda19703e78f0e525",
+  "closed_whole_rows": 454,
+  "separate_exact_cap": 9730253,
+  "compiled_source_paths": 174,
+  "compiled_rust_byte_count": 4870788,
+  "large_json_embedded": false,
+  "full_semantic_original_reconstructed_byteexact": true,
+  "full_browser_original_reconstructed_byteexact": true,
+  "semantic_test_names": [
+    "ordinary_helper_views_authenticate_every_complete_input",
+    "ordinary_setup_complete_sources_and_original_legacy_constructor_remain_exact",
+    "ordinary_setup_bridges_preserve_every_complete_original_format_input",
+    "every_receiver_inverse_preserves_the_entire_reflow_input_and_archive",
+    "receiver_mutation_and_forged_predecessor_fail_closed",
+    "allocation_followup_preserves_the_complete_original_format_input",
+    "complete_followup_receivers_keep_all_original_source_bytes",
+    "held_status_views_preserve_complete_original_inputs_and_validation_loops",
+    "held_continuation_inputs_preserve_the_complete_machine_and_all_original_controls",
+    "receiving_lookup_views_keep_complete_prior_modules_and_all_owning_inputs",
+    "ordinary_replay_routes_keep_complete_predecessors_and_existing_controls",
+    "borrowed_exit_region_views_preserve_all_complete_predecessors_and_controls",
+    "slot_byte_helper_and_generic_bound_frontier_keep_complete_source_receivers",
+    "last_branch_prefix_keeps_complete_predecessors_and_original_source_controls",
+    "plan_branch_capacity_preserves_complete_sources_and_all_existing_controls",
+    "replay_work_refusal_capture_retains_all_complete_predecessors_and_assertions",
+    "held_status_index_keeps_complete_predecessor_receivers_and_assertions",
+    "projection_audit_scope_preserves_complete_sources_and_all_historical_receivers",
+    "historical_pin_capture_chains_restore_every_original_source",
+    "status_membership_index_preserves_complete_predecessors_and_all_original_controllers",
+    "replay_operation_totals_preserve_complete_predecessors_and_production_text",
+    "optional_helper_digest_preserves_complete_predecessors_and_all_old_controls",
+    "isolated_lexical_path_reuse_preserves_complete_merger_and_all_prior_controls",
+    "core_attempt_receipts_preserve_all_original_retry_and_source_controls",
+    "tail_merger_helper_name_preserves_both_complete_reference_bodies_and_all_assertions"
+  ],
+  "browser_test_names": [
+    "hosted_wires_keep_current_pins_and_every_complete_previous_receiver",
+    "a_rehashed_non_builder_change_still_fails_the_complete_bridge",
+    "every_original_bridge_byte_is_retained_except_its_frozen_runner_include",
+    "all_current_sources_and_three_complete_predecessors_are_authenticated"
+  ],
+  "new_modules": {
+    "src/source_reflows/main99f_controllers.rs": {
+      "length": 61825,
+      "sha256": "b29e9e1619e914c241bfbb1d0641da61b4422b56fea574ddd8135f4717c739d7",
+      "lines": 1477
+    },
+    "src/source_reflows_merge/main99f_inputs.rs": {
+      "length": 35280,
+      "sha256": "6ff939e908f7428d3b766954fad95ffc3f9912f06f03b02bd4f0d7a404326ce2",
+      "lines": 267
+    },
+    "tests/wasm/scalar_browser_ci_contract/incoming_main3e66.rs": {
+      "length": 7737,
+      "sha256": "35655ef91e476af9fa6903d00cbe9aee4da48ebcdb90b4dbcee2742fabbbb1fa",
+      "lines": 180
+    }
+  },
+  "parents": [
+    "src/source_reflows.rs",
+    "src/source_reflows_merge.rs",
+    "tests/wasm/scalar_browser_ci_contract.rs"
+  ],
+  "new_current_packet_requires_final_reseal": "inputs.json current_length/current_sha256 for every changed actual compiled/current subject; reader MAIN99F_PACKET_LENGTH/SHA after all source/coupling edits; immutable wholeincoming remains unchanged",
+  "no_cargo_tests_binders_or_browser": true
+}

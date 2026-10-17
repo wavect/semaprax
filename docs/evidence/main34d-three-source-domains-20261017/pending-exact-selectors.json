@@ -1,0 +1,13 @@
+{
+  "status": "DRAFT_UNCOMPILED_UNEXECUTED_UNREGISTERED",
+  "package": "semaprax",
+  "kind": "lib",
+  "new_selectors": [
+    "source_reflows::incoming67107_semantic_receivers::complete_main34d_inputs_keep_all_domains_and_refuse_wrong_source_and_bounded_io"
+  ],
+  "preserved_MAIN_selectors": [
+    "source_reflows::semantic_receivers::held_status_views_preserve_complete_original_inputs_and_validation_loops",
+    "source_reflows::semantic_receivers::held_continuation_inputs_preserve_the_complete_machine_and_all_original_controls",
+    "source_reflows::semantic_receivers::receiving_lookup_views_keep_complete_prior_modules_and_all_owning_inputs"
+  ]
+}

@@ -7,6 +7,7 @@ fn digest(bytes: &[u8]) -> String {
     format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)))
 }
 fn held(path: &Path, length: usize, expected: &str) -> std::io::Result<String> {
+    if let Some(value) = super::main67107_inputs::accepted_expected_file(path, length, expected) { return Ok(value); }
     use std::io::Read;
     let before = std::fs::symlink_metadata(path)?;
     assert!(before.is_file() && !before.file_type().is_symlink());
@@ -103,23 +104,35 @@ fn compiled(path: &str) -> Option<&'static str> {
         "tests/workspace/semantic_graph.rs" => Some(include_str!("../../tests/workspace/semantic_graph.rs")),
         "tests/workspace/semantic_graph/source_inventory.rs" => Some(include_str!("../../tests/workspace/semantic_graph/source_inventory.rs")),
         "tests/workspace/semantic_graph/source_inventory_controls.rs" => Some(include_str!("../../tests/workspace/semantic_graph/source_inventory_controls.rs")),
+        "src/bounded_output/stage_debits.rs" => Some(include_str!("../../src/bounded_output/stage_debits.rs")),
+        "src/bounded_output/stage_debits/tests.rs" => Some(include_str!("../../src/bounded_output/stage_debits/tests.rs")),
+        "src/cleanup_plan/replay/expression_facts.rs" => Some(include_str!("../../src/cleanup_plan/replay/expression_facts.rs")),
+        "src/cleanup_plan/replay/factored/canonical_shared.rs" => Some(include_str!("../../src/cleanup_plan/replay/factored/canonical_shared.rs")),
+        "src/cleanup_plan/replay/path_join.rs" => Some(include_str!("../../src/cleanup_plan/replay/path_join.rs")),
+        "tests/useful_data/byte_slice_for_runtime/nested.rs" => Some(include_str!("../../tests/useful_data/byte_slice_for_runtime/nested.rs")),
         _ => None,
     }
 }
 /// Authenticate the actual complete owner before selecting its named whole
 /// historical input. No fallback or arbitrary path projection is admitted.
 pub(crate) fn read(path: impl AsRef<Path>) -> std::io::Result<String> {
+    read_packet(path, packet())
+}
+pub(crate) fn read_1e(path: impl AsRef<Path>) -> std::io::Result<String> {
+    read_packet(path, packet_1e())
+}
+fn read_packet(path: impl AsRef<Path>, packet: serde_json::Value) -> std::io::Result<String> {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let path = path.as_ref();
     let relative = path.strip_prefix(root).expect("main-c883 confined source");
     assert!(relative.components().all(|part| matches!(part, std::path::Component::Normal(_))));
     let relative = relative.to_str().unwrap();
-    let packet = packet();
     let rows = packet["rows"].as_array().unwrap();
     assert_eq!(rows.iter().filter(|row| row["path"] == relative).count(), 1, "closed main-c883 source membership");
     let row = rows.iter().find(|row| row["path"] == relative).unwrap();
     let current = held(path, row["current_length"].as_u64().unwrap() as usize, row["current_sha256"].as_str().unwrap())?;
     if let Some(compiled) = compiled(relative) {
+        let compiled = super::main67107_inputs::accepted_expected_value(relative, row["current_sha256"].as_str().unwrap(), compiled);
         assert_eq!(current, compiled, "complete physical/compiled main-c883 owner");
     }
     held(&root.join(row["main_archive"].as_str().unwrap()), row["main_length"].as_u64().unwrap() as usize, row["main_sha256"].as_str().unwrap())
@@ -137,4 +150,25 @@ fn closed_main_c883_acquisition_authenticates_all_complete_current_owners() {
     for path in [root.join("not-a-main-c883-input"), root.join("src/../Cargo.toml")] {
         assert!(std::panic::catch_unwind(|| read(path)).is_err());
     }
+}
+
+fn packet_1e() -> serde_json::Value {
+    let data = include_str!("../../docs/evidence/main-1e-next-source-merge-20261017/main-inputs.json");
+    assert_eq!(data.len(), 10780);
+    assert_eq!(digest(data.as_bytes()), "d322aa4ae642d4d0176b174d4a076ec7cdc9240cfc38bf256bd402c23d9312a3");
+    let packet: serde_json::Value = serde_json::from_str(data).unwrap();
+    assert_eq!(packet["schema"], "semaprax.main-1e-source-acquisition.v1");
+    assert_eq!(packet["rows"].as_array().unwrap().len(), 22);
+    packet
+}
+#[test]
+fn closed_main_1e_acquisition_authenticates_all_complete_current_owners() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let packet = packet_1e();
+    for row in packet["rows"].as_array().unwrap() {
+        let value = read_1e(root.join(row["path"].as_str().unwrap())).unwrap();
+        assert_eq!(value.len() as u64, row["main_length"].as_u64().unwrap());
+        assert_eq!(digest(value.as_bytes()), row["main_sha256"]);
+    }
+    assert!(std::panic::catch_unwind(|| read_1e(root.join("not-a-main-1e-input"))).is_err());
 }

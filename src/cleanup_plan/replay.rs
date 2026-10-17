@@ -608,6 +608,10 @@ fn validate_structure_with_budget_storage<'hir>(
     helpers: Option<&crate::loop_calls::byte_writer::ModuleIndex<'hir>>,
     continuations: Option<&mut continuation_storage::Storage<'hir>>,
 ) -> Result<(), Diagnostic> {
+    #[cfg(test)]
+    let _operation = crate::bounded_output::stage_debits::operation_guard(
+        crate::bounded_output::stage_debits::Operation::ReplayStructure,
+    );
     let plan = &function.cleanup_plan;
     if helpers.is_some_and(|index| {
         !program
@@ -2906,6 +2910,10 @@ fn hir_skeleton_paths_with_index_storage<'hir>(
     helpers: Option<&crate::loop_calls::byte_writer::ModuleIndex<'hir>>,
     continuations: Option<&mut continuation_storage::Storage<'hir>>,
 ) -> Result<Vec<SkeletonPath>, Diagnostic> {
+    #[cfg(test)]
+    let _operation = crate::bounded_output::stage_debits::operation_guard(
+        crate::bounded_output::stage_debits::Operation::ReplayHirSkeleton,
+    );
     let mut work = SkeletonWork::checked_with_index(program, function, budget, helpers)?;
     work.continuations = continuations;
     let mut paths = work.singleton_path(empty_expr_path(), "HIR root path")?;
@@ -6743,6 +6751,10 @@ fn plan_skeleton_paths(
     function: &ResolvedFunction,
     budget: &mut ReplayBudget,
 ) -> Result<Vec<SkeletonPath>, Diagnostic> {
+    #[cfg(test)]
+    let _operation = crate::bounded_output::stage_debits::operation_guard(
+        crate::bounded_output::stage_debits::Operation::ReplayPlanSkeleton,
+    );
     let plan = &function.cleanup_plan;
     let mut queue = VecDeque::new();
     skeleton_queue_push(

@@ -5,13 +5,13 @@
   "domains": {
     "hir": {
       "original_roots": 1046,
-      "current_boundary_members": 1108,
-      "current_boundary_production": 407,
+      "current_boundary_members": 1117,
+      "current_boundary_production": 408,
       "outside_production_still_fully_authenticated": 82,
-      "full_role_production": 489,
-      "full_role_test_only": 829,
-      "full_raw_sha256": "b00d83df025ad665a7a5c4e585236d9fba90bde77c1c7a9dd9331248eb71c98b",
-      "boundary_production_sha256": "6f74193e282d65cff6071efaabc77d206d7961453afb9597bba77980776eeb8d",
+      "full_role_production": 490,
+      "full_role_test_only": 839,
+      "full_raw_sha256": "4333e91c0c3c2b6ed88910625cd34751dbe8b021f373d84b807cbc8a94bb9357",
+      "boundary_production_sha256": "fb8748c1331abcb509120c5e68882f6a288b1ce584433395e81df0a20926ff39",
       "exact_original_forbidden_tokens": [
         "struct Resolver",
         "impl Resolver",
@@ -31,13 +31,13 @@
     },
     "projection": {
       "original_roots": 179,
-      "current_boundary_members": 193,
+      "current_boundary_members": 194,
       "current_boundary_production": 73,
-      "outside_production_still_fully_authenticated": 537,
-      "full_role_production": 610,
-      "full_role_test_only": 905,
-      "full_raw_sha256": "6d0b30d6fb4c412a9388c2de34b30d5aa4cdb90b490d81031e438568585f9808",
-      "boundary_production_sha256": "b2540688f074dd565405dfd06b67bf1fe3fe2b31ef2cf6a77c96998b03a0c6c5",
+      "outside_production_still_fully_authenticated": 538,
+      "full_role_production": 611,
+      "full_role_test_only": 915,
+      "full_raw_sha256": "4b030da49cc1fef72ff25ec57ba548652aa841f61d3c533a854de400222750d2",
+      "boundary_production_sha256": "beddf4386c39d753a60aa9d1e436bbd87f18da5a9d62827a55eae46ee7410626",
       "exact_original_forbidden_tokens": [
         "use super::*;",
         "workspace::",
@@ -64,5 +64,6 @@
     "whole_raw_drift_refused": true,
     "foreign_path_child_cannot_escape": true
   },
-  "status": "SOURCE_ONLY_EXACT_BOUNDARIES_AND_COMPLETE_SOURCE_ROLE_CUSTODY_PASS"
+  "status": "SOURCE_ONLY_EXACT_BOUNDARIES_AND_COMPLETE_SOURCE_ROLE_CUSTODY_PASS",
+  "registration_update": "FINITE_EXACT_UNCHANGED_DECLARATIONS_AND_EDGE_TEXT_MAPPING"
 }

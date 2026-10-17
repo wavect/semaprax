@@ -25,6 +25,10 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
     lexical: Option<&lexical_cert::LexicalAuth>,
     helpers: Option<&crate::loop_calls::byte_writer::ModuleIndex<'_>>,
 ) -> Result<(), E> {
+    #[cfg(test)]
+    let _operation = crate::bounded_output::stage_debits::operation_guard(
+        crate::bounded_output::stage_debits::Operation::ReplayPathStates,
+    );
     // Authenticate the absence once before path traversal. The source/HIR
     // wrapper certificate identifies a conditional Step transfer, which must
     // never acquire the one-leaf renewal authority of another profile.

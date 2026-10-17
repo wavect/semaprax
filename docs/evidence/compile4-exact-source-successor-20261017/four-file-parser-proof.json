@@ -1,0 +1,36 @@
+{
+  "status": "PASS_ORIGINAL_BOUNDED_FOUR_FILE_PARSER",
+  "parser_sha256": "87a903ce0f9927d3d90063fdd686b50b5302e2ac10cfea324918f7c030b28599",
+  "single_reversible_source_acquisition_edit": {
+    "before": "s=p.read_text();m=mask(s);",
+    "after": "s=per_file_source[str(p.relative_to(R))];m=mask(s);"
+  },
+  "function_scope_not_a_new_source_module": true,
+  "files": [
+    {
+      "path": "src/cleanup_plan/replay/branch_clone.rs",
+      "registered_child_edges": 6,
+      "test_declarations": 0,
+      "exact_original_parser_registration_and_test_attributes_unchanged": true
+    },
+    {
+      "path": "src/cleanup_plan/replay/branch_clone/production_capacity.rs",
+      "registered_child_edges": 3,
+      "test_declarations": 0,
+      "exact_original_parser_registration_and_test_attributes_unchanged": true
+    },
+    {
+      "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs",
+      "registered_child_edges": 1,
+      "test_declarations": 0,
+      "exact_original_parser_registration_and_test_attributes_unchanged": true
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs",
+      "registered_child_edges": 1,
+      "test_declarations": 13,
+      "exact_original_parser_registration_and_test_attributes_unchanged": true
+    }
+  ],
+  "Cargo": false
+}

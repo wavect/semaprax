@@ -1,0 +1,7 @@
+{
+  "status": "PASS_SOURCE_ONLY_BOUNDED_CHANNELS",
+  "refusals": 6,
+  "complete_beforeimages_recovered": 6,
+  "six_source_inputs_and_Rust_unchanged": true,
+  "rust_executed": false
+}

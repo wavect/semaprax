@@ -1,0 +1,41 @@
+{
+  "status": "BOUND_SOURCE_ONLY_NOT_RUST_QUALIFIED",
+  "head": "d7bd1e87f521698b0a3d17350ffe207155acea5d",
+  "physical_subjects": 174,
+  "manifest_sha256": "c86997c1e82c046da48e4176a3724e65089d2e9236b9724ab8e5ec7b93a95cc1",
+  "whole_prior_manifest_and_module_preserved": true,
+  "rows": [
+    {
+      "path": "docs/evidence/main09013-source-namespaces-v1/input-domains.json",
+      "current_length": 241192,
+      "current_sha256": "c86997c1e82c046da48e4176a3724e65089d2e9236b9724ab8e5ec7b93a95cc1",
+      "before_length": 241192,
+      "before_sha256": "b038e9569e8a23b018afab892e6f7062d21d900d95fb20386bf0a10eba1094d2",
+      "before_archive": "docs/evidence/main090-accepted174-final-binding-20261017/input-domains.before.json",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 241192,
+          "remove_sha256": "c86997c1e82c046da48e4176a3724e65089d2e9236b9724ab8e5ec7b93a95cc1",
+          "insert_archive": "docs/evidence/main090-accepted174-final-binding-20261017/input-domains.before.json"
+        }
+      ]
+    },
+    {
+      "path": "src/source_reflows/incoming090_semantic_receivers.rs",
+      "current_length": 48349,
+      "current_sha256": "069c644ddc9db06577d5d43cffbfa10ef5dfd0ba459850203743e47a225ff2a5",
+      "before_length": 48349,
+      "before_sha256": "bcf07a735ff7f7b9afa6e799a3f9f65c136d17e333ec89e427443aec7aa57d9a",
+      "before_archive": "docs/evidence/main090-accepted174-final-binding-20261017/incoming090_semantic_receivers.before.rs.txt",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 48349,
+          "remove_sha256": "069c644ddc9db06577d5d43cffbfa10ef5dfd0ba459850203743e47a225ff2a5",
+          "insert_archive": "docs/evidence/main090-accepted174-final-binding-20261017/incoming090_semantic_receivers.before.rs.txt"
+        }
+      ]
+    }
+  ]
+}

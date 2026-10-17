@@ -1,0 +1,50 @@
+[
+  {
+    "path": "src/cleanup_plan/replay.rs",
+    "name": "validate_structure_with_budget_storage",
+    "operation": "ReplayStructure",
+    "statement": "\n    #[cfg(test)]\n    let _operation = crate::bounded_output::stage_debits::operation_guard(\n        crate::bounded_output::stage_debits::Operation::ReplayStructure,\n    );"
+  },
+  {
+    "path": "src/cleanup_plan/replay.rs",
+    "name": "hir_skeleton_paths_with_index_storage",
+    "operation": "ReplayHirSkeleton",
+    "statement": "\n    #[cfg(test)]\n    let _operation = crate::bounded_output::stage_debits::operation_guard(\n        crate::bounded_output::stage_debits::Operation::ReplayHirSkeleton,\n    );"
+  },
+  {
+    "path": "src/cleanup_plan/replay.rs",
+    "name": "plan_skeleton_paths",
+    "operation": "ReplayPlanSkeleton",
+    "statement": "\n    #[cfg(test)]\n    let _operation = crate::bounded_output::stage_debits::operation_guard(\n        crate::bounded_output::stage_debits::Operation::ReplayPlanSkeleton,\n    );"
+  },
+  {
+    "path": "src/cleanup_plan/replay/expression_facts.rs",
+    "name": "with_budget",
+    "operation": "ReplayExpressionFacts",
+    "statement": "\n    #[cfg(test)]\n    let _operation = crate::bounded_output::stage_debits::operation_guard(\n        crate::bounded_output::stage_debits::Operation::ReplayExpressionFacts,\n    );"
+  },
+  {
+    "path": "src/cleanup_plan/replay/path_join.rs",
+    "name": "validate_path_states",
+    "operation": "ReplayPathStates",
+    "statement": "\n    #[cfg(test)]\n    let _operation = crate::bounded_output::stage_debits::operation_guard(\n        crate::bounded_output::stage_debits::Operation::ReplayPathStates,\n    );"
+  },
+  {
+    "path": "src/cleanup_plan/replay/factored.rs",
+    "name": "validate_with_index_storage",
+    "operation": "ReplayFactored",
+    "statement": "\n    #[cfg(test)]\n    let _operation = crate::bounded_output::stage_debits::operation_guard(\n        crate::bounded_output::stage_debits::Operation::ReplayFactored,\n    );"
+  },
+  {
+    "path": "src/cleanup_plan/replay/factored.rs",
+    "name": "build_comparison",
+    "operation": "ReplayFactoredConstruction",
+    "statement": "\n    #[cfg(test)]\n    let _operation = crate::bounded_output::stage_debits::operation_guard(\n        crate::bounded_output::stage_debits::Operation::ReplayFactoredConstruction,\n    );"
+  },
+  {
+    "path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+    "name": "id",
+    "operation": "ReplayFactoredCanonical",
+    "statement": "\n        #[cfg(test)]\n        let _operation = crate::bounded_output::stage_debits::operation_guard(\n            crate::bounded_output::stage_debits::Operation::ReplayFactoredCanonical,\n        );"
+  }
+]

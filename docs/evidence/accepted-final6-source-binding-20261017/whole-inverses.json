@@ -1,0 +1,68 @@
+{
+  "rows": [
+    {
+      "path": "src/source_reflows_merge/ordinary_plan_inputs.rs",
+      "current_length": 18588,
+      "current_sha256": "d7c163213a8b29698f88ab5b62c5262b95852beb2da5b3dee157f0898a8edd5c",
+      "before_length": 18588,
+      "before_sha256": "919146025e7eb4327d2a825185fcc5e2a0fb5a00688f61d7fa145791054458e5",
+      "before_archive": "docs/evidence/accepted-final6-source-binding-20261017/before/src__source_reflows_merge__ordinary_plan_inputs.rs",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 18588,
+          "remove_sha256": "d7c163213a8b29698f88ab5b62c5262b95852beb2da5b3dee157f0898a8edd5c",
+          "insert_archive": "docs/evidence/accepted-final6-source-binding-20261017/before/src__source_reflows_merge__ordinary_plan_inputs.rs"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/ordinary-plan-final-ingress-20261017/current-inputs.json",
+      "current_length": 89370,
+      "current_sha256": "7ae3f067f4cb0392627b644ef06e560b57b82ae9e606ccd20dc907605e736b9c",
+      "before_length": 67371,
+      "before_sha256": "d0f102feb825bdac07c5d2757980972059d797fdff72b846c08f4cebc3ac9cdd",
+      "before_archive": "docs/evidence/accepted-final6-source-binding-20261017/before/docs__evidence__ordinary-plan-final-ingress-20261017__current-inputs.json",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 89370,
+          "remove_sha256": "7ae3f067f4cb0392627b644ef06e560b57b82ae9e606ccd20dc907605e736b9c",
+          "insert_archive": "docs/evidence/accepted-final6-source-binding-20261017/before/docs__evidence__ordinary-plan-final-ingress-20261017__current-inputs.json"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/ordinary-plan-final-ingress-20261017/current-manifest.json",
+      "current_length": 1850,
+      "current_sha256": "d04350ae71dcb4e7ceaf06996a181d60ef812aa868fff28ee66d0352816de0a5",
+      "before_length": 1850,
+      "before_sha256": "a2dafe2e9d92d9b63ed570ef89489d0010efe1a5e4819e9f8fd06175df2584b2",
+      "before_archive": "docs/evidence/accepted-final6-source-binding-20261017/before/docs__evidence__ordinary-plan-final-ingress-20261017__current-manifest.json",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 1850,
+          "remove_sha256": "d04350ae71dcb4e7ceaf06996a181d60ef812aa868fff28ee66d0352816de0a5",
+          "insert_archive": "docs/evidence/accepted-final6-source-binding-20261017/before/docs__evidence__ordinary-plan-final-ingress-20261017__current-manifest.json"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/ordinary-plan-final-ingress-20261017/binding-receipt.json",
+      "current_length": 420,
+      "current_sha256": "cec4426f1fb4a7a04314e1b3c9e2ef7fcf2df48e0b0ed9ac924000bf3b34353f",
+      "before_length": 420,
+      "before_sha256": "65592fe0c051198d8d0880e94980da3a689718e1173a2bc74e281493f1934c03",
+      "before_archive": "docs/evidence/accepted-final6-source-binding-20261017/before/docs__evidence__ordinary-plan-final-ingress-20261017__binding-receipt.json",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 420,
+          "remove_sha256": "cec4426f1fb4a7a04314e1b3c9e2ef7fcf2df48e0b0ed9ac924000bf3b34353f",
+          "insert_archive": "docs/evidence/accepted-final6-source-binding-20261017/before/docs__evidence__ordinary-plan-final-ingress-20261017__binding-receipt.json"
+        }
+      ]
+    }
+  ]
+}

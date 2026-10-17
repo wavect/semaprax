@@ -1,0 +1,146 @@
+{
+  "status": "PREPARED_ONLY_BINDER_NOT_EXECUTED",
+  "source_head": "b396e8f7d2106aea89c8bbc67c2fdb98ffe9c176",
+  "legacy_head": "5f5808c6cf89a29388f25056baee2e7bd5f0dd08",
+  "legacy_exact_seven": {
+    "docs/evidence/main043-independent-custody-20261016/guard-extension-allowed.json": {
+      "actual": [
+        62474,
+        "9bd9fe6bf24f8030f2307dafd423a6bd678e745e5ef67b75465c585ca258ece3"
+      ],
+      "archive": "docs/evidence/main090-accepted174-final-binding-20261017/legacy-0.txt",
+      "prior": [
+        62474,
+        "9bd9fe6bf24f8030f2307dafd423a6bd678e745e5ef67b75465c585ca258ece3"
+      ]
+    },
+    "tests/hir_module_boundaries.rs": {
+      "actual": [
+        99079,
+        "7dade8fc55a0ea5f4a16bc57d1ac8ce43ed200694a39ea6e3d33038228c8b8c1"
+      ],
+      "archive": "docs/evidence/main090-accepted174-final-binding-20261017/legacy-1.txt",
+      "prior": [
+        98174,
+        "5090d08b52cb9650af5fc2c2a28739a9783c3d43c7a0f25037ce032b04f51137"
+      ]
+    },
+    "tests/workspace/semantic_graph/source_inventory.rs": {
+      "actual": [
+        94257,
+        "8debd7324052ca398a9385bdf7b47f1b479d8638b8e5ed9dc72ef4b9213cd177"
+      ],
+      "archive": "docs/evidence/main090-accepted174-final-binding-20261017/legacy-2.txt",
+      "prior": [
+        91318,
+        "aa4e1844d2e867c519bd24fdb560535c9f07b7daa790e343c1b4b04e978d0989"
+      ]
+    },
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": {
+      "actual": [
+        157441,
+        "369a29b5860f644b33b82e8e968ab66225faf70cfb930757aff04ba591824d4e"
+      ],
+      "archive": "docs/evidence/main090-accepted174-final-binding-20261017/legacy-3.txt",
+      "prior": [
+        156404,
+        "bdf614306dd818a9d66a794edf46008c3306ffa2fabcb3acbf4b03060d7db316"
+      ]
+    },
+    "docs/evidence/main043-independent-custody-20261016/guard-extension-bindings/tests__hir_module_boundaries.rs.json": {
+      "actual": [
+        11472,
+        "025de3da8662e2c94b4427cc3779bd3b665f923893cb95b961f74c89b27dfd8c"
+      ],
+      "archive": "docs/evidence/main090-accepted174-final-binding-20261017/legacy-4.txt",
+      "prior": [
+        11472,
+        "025de3da8662e2c94b4427cc3779bd3b665f923893cb95b961f74c89b27dfd8c"
+      ]
+    },
+    "docs/evidence/main043-independent-custody-20261016/guard-extension-bindings/tests__workspace__semantic_graph__source_inventory.rs.json": {
+      "actual": [
+        14269,
+        "4adea0c6da5535355ea6374630eb139c606b84bed4bd66ac0fdf95b9a81b3102"
+      ],
+      "archive": "docs/evidence/main090-accepted174-final-binding-20261017/legacy-5.txt",
+      "prior": [
+        14269,
+        "4adea0c6da5535355ea6374630eb139c606b84bed4bd66ac0fdf95b9a81b3102"
+      ]
+    },
+    "docs/evidence/main043-independent-custody-20261016/guard-extension-bindings/crates__semaprax-native-rust-interop-builder__src__implementation__tests__ledger_capacity__source_inventory.rs.json": {
+      "actual": [
+        13688,
+        "dc2907e379bbb45e1e0ba51000545184d6e650438567b52991c1172db752b433"
+      ],
+      "archive": "docs/evidence/main090-accepted174-final-binding-20261017/legacy-6.txt",
+      "prior": [
+        13688,
+        "dc2907e379bbb45e1e0ba51000545184d6e650438567b52991c1172db752b433"
+      ]
+    }
+  },
+  "strict_dependencies": {
+    "docs/evidence/accepted-strict-guard-generation-20261017/guard_payload.py": [
+      3965,
+      "17d849f39380f26dcd0d12c9c3754f7480d8d3153a44a20a31d849901066e147"
+    ],
+    "docs/evidence/main043-independent-custody-20261016/guard-extensions.py": [
+      5113,
+      "ccfb62c8b30e5564446ddc6eb2a31f5a7502e5ed43d3d5077a8c0105c42ef95a"
+    ],
+    "docs/evidence/accepted-strict-guard-generation-20261017/before/guard-extensions.py": [
+      5113,
+      "ccfb62c8b30e5564446ddc6eb2a31f5a7502e5ed43d3d5077a8c0105c42ef95a"
+    ],
+    "docs/evidence/accepted-strict-guard-generation-20261017/current-allowed.json": [
+      70162,
+      "0969a237be8a596d0b469f8da25aa5e99f88c6190b46c263abf69f048a14e5a7"
+    ],
+    "docs/evidence/main043-independent-custody-20261016/guard-extension-original/verify-or-refresh.py": [
+      7938,
+      "b8b72537f880da2655f102002275dbe0c5a7eb0aee72982eae017204d15266c7"
+    ],
+    "docs/evidence/main043-independent-custody-20261016/guard-extension-recipe-edits.json": [
+      37966,
+      "95d941061f015386674d81ec51afbd3ca17d6aaa198639a2617dfb50851f3542"
+    ],
+    "docs/evidence/main043-independent-custody-20261016/verify-or-refresh.py": [
+      2713,
+      "340f54c3e919b2690b089f090a47876a141efca094bbb6589e96026d61d51d90"
+    ],
+    "docs/evidence/accepted-strict-guard-generation-20261017/current-bindings/tests__hir_module_boundaries.rs.json": [
+      12399,
+      "a99febda8d720446292b504dfa7cd9af95fb40e2705f88580b42be78a5c19d63"
+    ],
+    "docs/evidence/accepted-strict-guard-generation-20261017/current-bindings/tests__workspace__semantic_graph__source_inventory.rs.json": [
+      17315,
+      "a98297ee4d1f161e0484680c22168253b86050243845d168e02b7a55f6b4935b"
+    ],
+    "docs/evidence/accepted-strict-guard-generation-20261017/current-bindings/crates__semaprax-native-rust-interop-builder__src__implementation__tests__ledger_capacity__source_inventory.rs.json": [
+      14747,
+      "2bc1821ded60594e5c2ea2a4b0553e36975776dfb43c7f195c9b49689eaee060"
+    ],
+    "tests/hir_module_boundaries.rs": [
+      99079,
+      "7dade8fc55a0ea5f4a16bc57d1ac8ce43ed200694a39ea6e3d33038228c8b8c1"
+    ],
+    "tests/workspace/semantic_graph/source_inventory.rs": [
+      94257,
+      "8debd7324052ca398a9385bdf7b47f1b479d8638b8e5ed9dc72ef4b9213cd177"
+    ],
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": [
+      157441,
+      "369a29b5860f644b33b82e8e968ab66225faf70cfb930757aff04ba591824d4e"
+    ]
+  },
+  "old_raw_guard_sha256": "d02de9f703c724ce3d5679e32646355691be816cb5073d030adf5a9331ddecf7",
+  "before_wrapper_sha256": "dd008b39c4cc9c48a5536638a81ba0f156ce0c6bd74146f5aadf62d9f2f19707",
+  "after_wrapper_sha256": "119fd4bd6377db45b2fffc95e31aa3326481a497259a8c61b49d7f29232d3c23",
+  "guard_order": [
+    "actual_authenticated_strict3",
+    "complete_original_guard_local_legacy7"
+  ],
+  "no_global_current_or_Path_override": true
+}

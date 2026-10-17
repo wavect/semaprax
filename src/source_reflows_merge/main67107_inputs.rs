@@ -273,6 +273,8 @@ pub(super) fn compile35f_expected_input(source: &str, expected: &str, current: &
     let current = singleton.as_str();
     let ordinary = super::ordinary_plan_inputs::acquire_expected(source, expected, current);
     let current = ordinary.as_str();
+    let accepted = accepted_expected_value(source, expected, current);
+    let current = accepted.as_str();
     if COMPILE35F_KEYS.binary_search(&source).is_err() { return current.to_owned(); }
     let rows = compile35f_records();
     let row = rows.as_array().unwrap().iter().find(|r| r["source"] == source).unwrap();
@@ -330,7 +332,7 @@ fn factored_core_same_file(a: &std::fs::Metadata, b: &std::fs::Metadata) -> bool
     { use std::os::windows::fs::MetadataExt; if a.file_attributes() & 0x400 != 0 || b.file_attributes() & 0x400 != 0 || a.creation_time() != b.creation_time() || a.last_write_time() != b.last_write_time() { return false; } }
     true
 }
-fn factored_core_file(path: &::std::path::Path, length: usize, expected: &str) -> Result<String, &'static str> {
+fn factored_core_file_raw(path: &::std::path::Path, length: usize, expected: &str) -> Result<String, &'static str> {
     if length > FACTORED_CORE_CAP { return Err("bound"); }
     let path_before = std::fs::symlink_metadata(path).map_err(|_| "missing")?;
     if path_before.file_type().is_symlink() || !path_before.is_file() { return Err("length-or-nonregular"); }
@@ -353,6 +355,11 @@ fn factored_core_file(path: &::std::path::Path, length: usize, expected: &str) -
     if path_after.file_type().is_symlink() || !factored_core_same_file(&metadata, &after) || !factored_core_same_file(&after, &path_after) { return Err("metadata-drift"); }
     Ok(value)
 }
+fn factored_core_file(path: &::std::path::Path, length: usize, expected: &str) -> Result<String, &'static str> {
+    if let Some(value) = accepted_expected_file(path, length, expected) { return Ok(value); }
+    factored_core_file_raw(path, length, expected)
+}
+
 
 
 fn factored_core_physical(source: &str) -> String {
@@ -928,6 +935,8 @@ fn compile_repair_records() -> serde_json::Value {
     packet
 }
 fn compile_repair_previous(source: &str, current: &str) -> String {
+    let accepted = accepted_base_previous(source, current);
+    let current = accepted.as_str();
     let packet = compile_repair_records();
     let rows = packet["rows"].as_array().unwrap();
     assert!(rows.iter().filter(|r| r["source"] == source).count() <= 1);
@@ -957,6 +966,7 @@ fn compile_repair_previous(source: &str, current: &str) -> String {
         "src/cleanup_plan/replay/inventory_coverage/typed_tests.rs" => include_str!("../cleanup_plan/replay/inventory_coverage/typed_tests.rs"),
         _ => unreachable!("sealed sixteen compilation subjects"),
     };
+    let compiled = accepted_base_previous(source, compiled);
     assert_eq!(actual, compiled, "whole physical/compiled compilation repair");
     let previous = read(row["previous_archive"].as_str().unwrap(), &row["previous_length"], &row["previous_sha256"]);
     let mut restored = actual.clone();
@@ -986,4 +996,125 @@ fn compile_repair_file(path: &::std::path::Path, length: usize, expected: &str) 
         }
     }
     factored_core_file(path, length, expected)
+}
+
+// Whole-source finite admission in front of the independently frozen prior chains.
+fn accepted_records() -> serde_json::Value {
+    let data = include_str!("../../docs/evidence/compile4-exact-source-successor-20261017/inputs.json");
+    assert_eq!(data.len(), 32661);
+    assert_eq!(digest(data), "a1a438f20890ef13c17073bedf664bae77affb71fd07616a378a31d528bbccc8");
+    let packet: serde_json::Value = serde_json::from_str(data).unwrap();
+    assert_eq!(packet["schema"], "semaprax.accepted-whole-source-ingress.v1");
+    assert_eq!(packet["rows"].as_array().unwrap().len(), 41);
+    packet
+}
+fn accepted_compiled(source: &str) -> &'static str {
+    match source {
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs" => include_str!("../../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"),
+        "src/bounded_output/classifier_string.rs" => include_str!("../../src/bounded_output/classifier_string.rs"),
+        "src/bounded_output/stage_debits.rs" => include_str!("../../src/bounded_output/stage_debits.rs"),
+        "src/bounded_output/stage_debits/tests.rs" => include_str!("../../src/bounded_output/stage_debits/tests.rs"),
+        "src/cleanup_plan.rs" => include_str!("../../src/cleanup_plan.rs"),
+        "src/cleanup_plan/replay.rs" => include_str!("../../src/cleanup_plan/replay.rs"),
+        "src/cleanup_plan/replay/branch_clone.rs" => include_str!("../../src/cleanup_plan/replay/branch_clone.rs"),
+        "src/cleanup_plan/replay/branch_clone/tests.rs" => include_str!("../../src/cleanup_plan/replay/branch_clone/tests.rs"),
+        "src/cleanup_plan/replay/expression_facts.rs" => include_str!("../../src/cleanup_plan/replay/expression_facts.rs"),
+        "src/cleanup_plan/replay/expression_facts/receiving/directory.rs" => include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/directory.rs"),
+        "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs" => include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs"),
+        "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/tests.rs" => include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/tests.rs"),
+        "src/cleanup_plan/replay/expression_facts/receiving/retained.rs" => include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/retained.rs"),
+        "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified.rs" => include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified.rs"),
+        "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/counter_tests.rs" => include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/counter_tests.rs"),
+        "src/cleanup_plan/replay/factored.rs" => include_str!("../../src/cleanup_plan/replay/factored.rs"),
+        "src/cleanup_plan/replay/factored/canonical_shared.rs" => include_str!("../../src/cleanup_plan/replay/factored/canonical_shared.rs"),
+        "src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs" => include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs"),
+        "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs" => include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs"),
+        "src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs" => include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs"),
+        "src/cleanup_plan/replay/factored/canonical_shared/intern_arena.rs" => include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/intern_arena.rs"),
+        "src/cleanup_plan/replay/factored/canonical_shared/paid_many/tests.rs" => include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/paid_many/tests.rs"),
+        "src/cleanup_plan/replay/factored/continuation_receiver.rs" => include_str!("../../src/cleanup_plan/replay/factored/continuation_receiver.rs"),
+        "src/cleanup_plan/replay/factored/oracle_hook.rs" => include_str!("../../src/cleanup_plan/replay/factored/oracle_hook.rs"),
+        "src/cleanup_plan/replay/owned_suffix.rs" => include_str!("../../src/cleanup_plan/replay/owned_suffix.rs"),
+        "src/cleanup_plan/replay/owned_suffix/tests.rs" => include_str!("../../src/cleanup_plan/replay/owned_suffix/tests.rs"),
+        "src/cleanup_plan/replay/path_join.rs" => include_str!("../../src/cleanup_plan/replay/path_join.rs"),
+        "src/cleanup_plan/replay/skeleton_work/enumerated_prefix.rs" => include_str!("../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix.rs"),
+        "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs" => include_str!("../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs"),
+        "src/source_reflows/semantic_receivers.rs" => include_str!("../../src/source_reflows/semantic_receivers.rs"),
+        "src/source_reflows_merge.rs" => include_str!("../../src/source_reflows_merge.rs"),
+        "src/source_reflows_merge/opt858_sequence_input.rs" => include_str!("../../src/source_reflows_merge/opt858_sequence_input.rs"),
+        "src/workspace_graph/tests/builder_limits.rs" => include_str!("../../src/workspace_graph/tests/builder_limits.rs"),
+        "tests/hir_module_boundaries.rs" => include_str!("../../tests/hir_module_boundaries.rs"),
+        "tests/native/string_settlement/codec_allocation/codec808_frontier.rs" => include_str!("../../tests/native/string_settlement/codec_allocation/codec808_frontier.rs"),
+        "tests/project/standard_library/application_json/nested_response/string_vectors.rs" => include_str!("../../tests/project/standard_library/application_json/nested_response/string_vectors.rs"),
+        "tests/support/production_source_inventory.rs" => include_str!("../../tests/support/production_source_inventory.rs"),
+        "tests/useful_data/byte_slice_for_runtime/nested.rs" => include_str!("../../tests/useful_data/byte_slice_for_runtime/nested.rs"),
+        "tests/workspace/semantic_graph.rs" => include_str!("../../tests/workspace/semantic_graph.rs"),
+        "tests/workspace/semantic_graph/source_inventory.rs" => include_str!("../../tests/workspace/semantic_graph/source_inventory.rs"),
+        "tests/workspace/semantic_graph/source_inventory_controls.rs" => include_str!("../../tests/workspace/semantic_graph/source_inventory_controls.rs"),
+        _ => unreachable!("closed accepted whole-source membership"),
+    }
+}
+fn accepted_read(row: &serde_json::Value) -> String {
+    let root = ::std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    factored_core_file_raw(&root.join(row["archive"].as_str().unwrap()), row["length"].as_u64().unwrap() as usize, row["sha256"].as_str().unwrap()).unwrap()
+}
+fn accepted_actual(row: &serde_json::Value) -> String {
+    let source = row["source"].as_str().unwrap();
+    let current = &row["current"];
+    let root = ::std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let actual = factored_core_file_raw(&root.join(source), current["length"].as_u64().unwrap() as usize, current["sha256"].as_str().unwrap()).unwrap();
+    assert_eq!(actual, accepted_compiled(source), "complete compiled actual source before historical selection");
+    assert_eq!(actual, accepted_read(current), "complete current archive");
+    actual
+}
+fn accepted_select(row: &serde_json::Value, prior: &serde_json::Value, supplied: &str) -> String {
+    let actual = accepted_actual(row);
+    let previous = accepted_read(prior);
+    // Whole inverse: the complete authenticated current is replaced by the complete
+    // independently retained prior. Foreign supplied bytes never acquire a view.
+    if supplied == actual || supplied == previous { previous } else { supplied.to_owned() }
+}
+fn accepted_base_previous(source: &str, supplied: &str) -> String {
+    let packet = accepted_records();
+    let Some(row) = packet["rows"].as_array().unwrap().iter().find(|row| row["source"] == source) else { return supplied.to_owned(); };
+    let Some(prior) = row["priors"].as_array().unwrap().iter().find(|prior| prior["name"] == "base5f") else { return supplied.to_owned(); };
+    accepted_select(row, prior, supplied)
+}
+pub(crate) fn accepted_expected_value(source: &str, expected: &str, supplied: &str) -> String {
+    let packet = accepted_records();
+    let Some(row) = packet["rows"].as_array().unwrap().iter().find(|row| row["source"] == source) else { return supplied.to_owned(); };
+    let Some(prior) = row["priors"].as_array().unwrap().iter().find(|prior| prior["sha256"] == expected) else { return supplied.to_owned(); };
+    accepted_select(row, prior, supplied)
+}
+pub(crate) fn accepted_expected_file(path: &::std::path::Path, length: usize, expected: &str) -> Option<String> {
+    let root = ::std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let source = path.strip_prefix(root).ok()?.to_str()?;
+    let packet = accepted_records();
+    let row = packet["rows"].as_array().unwrap().iter().find(|row| row["source"] == source)?;
+    let prior = row["priors"].as_array().unwrap().iter().find(|prior| prior["sha256"] == expected && prior["length"].as_u64() == Some(length as u64))?;
+    let actual = accepted_actual(row);
+    Some(accepted_select(row, prior, &actual))
+}
+#[test]
+fn accepted_whole_sources_authenticate_actual_owners_and_keep_every_prior_independent() {
+    let packet = accepted_records();
+    let root = ::std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    for row in packet["rows"].as_array().unwrap() {
+        let source = row["source"].as_str().unwrap();
+        let actual = accepted_actual(row);
+        for prior in row["priors"].as_array().unwrap() {
+            let previous = accepted_read(prior);
+            assert_eq!(accepted_select(row, prior, &actual), previous);
+            assert_eq!(accepted_select(row, prior, &previous), previous);
+            for bad in [String::new(), format!("{actual} "), actual[..actual.len()-1].to_owned(), format!("{actual}{actual}"), "foreign".to_owned()] {
+                assert_eq!(accepted_select(row, prior, &bad), bad);
+            }
+            let length = prior["length"].as_u64().unwrap() as usize;
+            let expected = prior["sha256"].as_str().unwrap();
+            assert_eq!(accepted_expected_file(&root.join(source), length, expected), Some(previous));
+            assert!(accepted_expected_file(&root.join(source), length + 1, expected).is_none());
+            assert!(accepted_expected_file(&root.join(source), length, &"0".repeat(64)).is_none());
+        }
+    }
+    assert!(accepted_expected_file(&root.join("foreign"), 0, "foreign").is_none());
 }

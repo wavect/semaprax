@@ -1162,6 +1162,10 @@ impl<'a> Canonicalizer<'a> {
         receiving: &mut closure_receiving::ClosureReceiving,
     ) -> Result<Option<usize>, Diagnostic> {
         #[cfg(test)]
+        let _operation = crate::bounded_output::stage_debits::operation_guard(
+            crate::bounded_output::stage_debits::Operation::ReplayFactoredCanonical,
+        );
+        #[cfg(test)]
         tests::note_actual_entry(budget);
         // Authenticate even when states already contains the requested root.
         // One equivalent() call holds this function and budget borrowed across

@@ -1,0 +1,17 @@
+{
+  "status": "SOURCE_ONLY_UNQUALIFIED",
+  "main_inputs": 22,
+  "compiled_source_inputs": 9,
+  "additional_compiled_paths": [
+    "src/bounded_output/stage_debits.rs",
+    "src/bounded_output/stage_debits/tests.rs",
+    "src/cleanup_plan/replay/expression_facts.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared.rs",
+    "src/cleanup_plan/replay/path_join.rs",
+    "tests/useful_data/byte_slice_for_runtime/nested.rs"
+  ],
+  "only_new_controller_acquisition_edits": 6,
+  "c883_manifest_unchanged": true,
+  "large_JSON_embedded": false,
+  "final_ingress": "PENDING before c883 old-current and1e merge source epochs"
+}

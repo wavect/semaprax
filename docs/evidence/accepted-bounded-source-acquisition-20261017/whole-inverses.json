@@ -1,0 +1,102 @@
+{
+  "rows": [
+    {
+      "path": "docs/evidence/accepted-strict-guard-generation-20261017/guard_payload.py",
+      "current_length": 3965,
+      "current_sha256": "17d849f39380f26dcd0d12c9c3754f7480d8d3153a44a20a31d849901066e147",
+      "before_length": 2332,
+      "before_sha256": "f060fb61cb0116f7996f7576686f50e9ae1d2918a60a1cfb87ac7ac60257b1e4",
+      "before_archive": "docs/evidence/accepted-bounded-source-acquisition-20261017/before/docs__evidence__accepted-strict-guard-generation-20261017__guard_payload.py",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 3965,
+          "remove_sha256": "17d849f39380f26dcd0d12c9c3754f7480d8d3153a44a20a31d849901066e147",
+          "insert_archive": "docs/evidence/accepted-bounded-source-acquisition-20261017/before/docs__evidence__accepted-strict-guard-generation-20261017__guard_payload.py"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/accepted-final6-source-binding-20261017/check-source.py",
+      "current_length": 2218,
+      "current_sha256": "152e0aa39e5f428ce36d0a29d4a5995aca7b8ea41d6d05fe6714d21b5f1e2ed0",
+      "before_length": 1526,
+      "before_sha256": "f0faf2a045c748637d090faf9e7549b5e8d26d519b7013d483d490b3fc34693a",
+      "before_archive": "docs/evidence/accepted-bounded-source-acquisition-20261017/before/docs__evidence__accepted-final6-source-binding-20261017__check-source.py",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 2218,
+          "remove_sha256": "152e0aa39e5f428ce36d0a29d4a5995aca7b8ea41d6d05fe6714d21b5f1e2ed0",
+          "insert_archive": "docs/evidence/accepted-bounded-source-acquisition-20261017/before/docs__evidence__accepted-final6-source-binding-20261017__check-source.py"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/main043-independent-custody-20261016/verify-or-refresh.py",
+      "current_length": 2713,
+      "current_sha256": "340f54c3e919b2690b089f090a47876a141efca094bbb6589e96026d61d51d90",
+      "before_length": 2713,
+      "before_sha256": "34c12ca372f466ee79ac7770e8136e7a9bf472a005edb34d38e3c3d712c61a51",
+      "before_archive": "docs/evidence/accepted-bounded-source-acquisition-20261017/before/docs__evidence__main043-independent-custody-20261016__verify-or-refresh.py",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 2713,
+          "remove_sha256": "340f54c3e919b2690b089f090a47876a141efca094bbb6589e96026d61d51d90",
+          "insert_archive": "docs/evidence/accepted-bounded-source-acquisition-20261017/before/docs__evidence__main043-independent-custody-20261016__verify-or-refresh.py"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/main043-independent-custody-20261016/guard-extension-recipe-edits.json",
+      "current_length": 37966,
+      "current_sha256": "95d941061f015386674d81ec51afbd3ca17d6aaa198639a2617dfb50851f3542",
+      "before_length": 37966,
+      "before_sha256": "98f11e71724d0ffeb948fca4c300addf9c52e938507b1709ab0cd29ae63ca342",
+      "before_archive": "docs/evidence/accepted-bounded-source-acquisition-20261017/before/docs__evidence__main043-independent-custody-20261016__guard-extension-recipe-edits.json",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 37966,
+          "remove_sha256": "95d941061f015386674d81ec51afbd3ca17d6aaa198639a2617dfb50851f3542",
+          "insert_archive": "docs/evidence/accepted-bounded-source-acquisition-20261017/before/docs__evidence__main043-independent-custody-20261016__guard-extension-recipe-edits.json"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/main043-newmain-acquisition-20261017/bind-current.py",
+      "current_length": 4177,
+      "current_sha256": "e75784c43af4f35fe0dddd07fee8d1f052bce6dc3766052f5c47f922d111bdc5",
+      "before_length": 4177,
+      "before_sha256": "ac6321371b5c273b58230b9da24bedaaa218148ac9a07b7bbd67cee7ebd2d054",
+      "before_archive": "docs/evidence/accepted-bounded-source-acquisition-20261017/before/docs__evidence__main043-newmain-acquisition-20261017__bind-current.py",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 4177,
+          "remove_sha256": "e75784c43af4f35fe0dddd07fee8d1f052bce6dc3766052f5c47f922d111bdc5",
+          "insert_archive": "docs/evidence/accepted-bounded-source-acquisition-20261017/before/docs__evidence__main043-newmain-acquisition-20261017__bind-current.py"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/accepted-strict-guard-generation-20261017/check-source.py",
+      "current_length": 3987,
+      "current_sha256": "4b084e156ce3252a0fc4a565007bf6a4c9fe053052538245e4fee8453e9362c3",
+      "before_length": 2928,
+      "before_sha256": "54369b47ae83c4c7ce668276849bf27ad93a43cb156644a2d8b0c55849d08756",
+      "before_archive": "docs/evidence/accepted-bounded-source-acquisition-20261017/before/docs__evidence__accepted-strict-guard-generation-20261017__check-source.py",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 3987,
+          "remove_sha256": "4b084e156ce3252a0fc4a565007bf6a4c9fe053052538245e4fee8453e9362c3",
+          "insert_archive": "docs/evidence/accepted-bounded-source-acquisition-20261017/before/docs__evidence__accepted-strict-guard-generation-20261017__check-source.py"
+        }
+      ]
+    }
+  ],
+  "rust_source_changed": false,
+  "six_source_inputs_unchanged": true
+}

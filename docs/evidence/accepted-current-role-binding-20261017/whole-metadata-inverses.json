@@ -1,0 +1,103 @@
+{
+  "source_only": true,
+  "old_owners": 173,
+  "current_owners": 184,
+  "rows": [
+    {
+      "path": "docs/evidence/a3-e47-final-custody-20261016/new-owners.json",
+      "current_length": 33508,
+      "current_sha256": "9cd8ae0f2ed40241c242468c64155426ff2c3c7d09da77b82c98776fdeabfa9f",
+      "before_length": 31436,
+      "before_sha256": "33c2640736923921a461b8511e802f9c76ee5689dc065d99a348bb642f00c436",
+      "before_archive": "docs/evidence/accepted-current-role-binding-20261017/before/docs__evidence__a3-e47-final-custody-20261016__new-owners.json",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 33508,
+          "remove_sha256": "9cd8ae0f2ed40241c242468c64155426ff2c3c7d09da77b82c98776fdeabfa9f",
+          "insert_archive": "docs/evidence/accepted-current-role-binding-20261017/before/docs__evidence__a3-e47-final-custody-20261016__new-owners.json"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/a3-e47-final-custody-20261016/hir.json",
+      "current_length": 2016499,
+      "current_sha256": "b79e1d7d235e2788d6035d3c40705ab476261a303bb613d19d826f96dd9f67d7",
+      "before_length": 1996990,
+      "before_sha256": "8a66e51e221cfa7659aa0aab02c5ee49374d081a448552cc295453e07e282d13",
+      "before_archive": "docs/evidence/accepted-current-role-binding-20261017/before/docs__evidence__a3-e47-final-custody-20261016__hir.json",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 2016499,
+          "remove_sha256": "b79e1d7d235e2788d6035d3c40705ab476261a303bb613d19d826f96dd9f67d7",
+          "insert_archive": "docs/evidence/accepted-current-role-binding-20261017/before/docs__evidence__a3-e47-final-custody-20261016__hir.json"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/a3-e47-final-custody-20261016/projection.json",
+      "current_length": 2320272,
+      "current_sha256": "53f2b14ecd24192462b7acca42015a8257ddfa42bfbaefcc6a1f4f7263a825fe",
+      "before_length": 2300745,
+      "before_sha256": "eecc6aa9d7b66205cd4a40e3cc19e21c7990212a71197bc1aab1862ab36c20b9",
+      "before_archive": "docs/evidence/accepted-current-role-binding-20261017/before/docs__evidence__a3-e47-final-custody-20261016__projection.json",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 2320272,
+          "remove_sha256": "53f2b14ecd24192462b7acca42015a8257ddfa42bfbaefcc6a1f4f7263a825fe",
+          "insert_archive": "docs/evidence/accepted-current-role-binding-20261017/before/docs__evidence__a3-e47-final-custody-20261016__projection.json"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/a3-e47-final-custody-20261016/authority-source-proof.json",
+      "current_length": 2175,
+      "current_sha256": "0045560ce870d5471651c95ff2ba4c211276b7aef55e1bc50f0988b53d6f5d9c",
+      "before_length": 2175,
+      "before_sha256": "0045560ce870d5471651c95ff2ba4c211276b7aef55e1bc50f0988b53d6f5d9c",
+      "before_archive": "docs/evidence/accepted-current-role-binding-20261017/before/docs__evidence__a3-e47-final-custody-20261016__authority-source-proof.json",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 2175,
+          "remove_sha256": "0045560ce870d5471651c95ff2ba4c211276b7aef55e1bc50f0988b53d6f5d9c",
+          "insert_archive": "docs/evidence/accepted-current-role-binding-20261017/before/docs__evidence__a3-e47-final-custody-20261016__authority-source-proof.json"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/source-boundary-domains-20261016/current-domains.json",
+      "current_length": 233338,
+      "current_sha256": "b81380597d5b4307244588487488f80865539209d201e6739ddb9d48f38cac40",
+      "before_length": 232474,
+      "before_sha256": "6202f1a8f11023fe2e0455b13a320b0249d40676a8354b2898d6c2b9522f0997",
+      "before_archive": "docs/evidence/accepted-current-role-binding-20261017/before/docs__evidence__source-boundary-domains-20261016__current-domains.json",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 233338,
+          "remove_sha256": "b81380597d5b4307244588487488f80865539209d201e6739ddb9d48f38cac40",
+          "insert_archive": "docs/evidence/accepted-current-role-binding-20261017/before/docs__evidence__source-boundary-domains-20261016__current-domains.json"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/source-boundary-domains-20261016/boundary-source-proof.json",
+      "current_length": 2632,
+      "current_sha256": "e1681e3862828399b05d1f3337331aee032e063700bcda219e16f3939d7d7fa3",
+      "before_length": 2632,
+      "before_sha256": "805d1f478c12e8b1e2d0333bb7f860025ac0bbb06e3240cc451e20ad3c24a01f",
+      "before_archive": "docs/evidence/accepted-current-role-binding-20261017/before/docs__evidence__source-boundary-domains-20261016__boundary-source-proof.json",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 2632,
+          "remove_sha256": "e1681e3862828399b05d1f3337331aee032e063700bcda219e16f3939d7d7fa3",
+          "insert_archive": "docs/evidence/accepted-current-role-binding-20261017/before/docs__evidence__source-boundary-domains-20261016__boundary-source-proof.json"
+        }
+      ]
+    }
+  ]
+}

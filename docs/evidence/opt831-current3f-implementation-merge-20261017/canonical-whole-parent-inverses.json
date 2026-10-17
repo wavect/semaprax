@@ -1,0 +1,61 @@
+{
+  "scope": "SOURCE_ONLY_IMPLEMENTATION_MERGE",
+  "rows": [
+    {
+      "parent": "30865da19e7e5a18257e84c5954671cd83efb0d6",
+      "label": "selected30865",
+      "path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+      "before_file": "selected30865.canonical.before.txt",
+      "before_length": 65190,
+      "before_sha256": "54aa8f29d29f3b784dc5ca70719c455fe9b9cfcffae4cbd95fd041d39b261077",
+      "current_length": 65386,
+      "current_sha256": "92728f9f1f6e4ce861de0ed8e5ad4ec095550a924338a9168cba8bb812bd2783",
+      "edits": [
+        {
+          "old_start_line": 1164,
+          "old_end_line": 1164,
+          "new_start_line": 1164,
+          "new_end_line": 1168,
+          "old": "",
+          "new": "        let _operation = crate::bounded_output::stage_debits::operation_guard(\n            crate::bounded_output::stage_debits::Operation::ReplayFactoredCanonical,\n        );\n        #[cfg(test)]\n"
+        }
+      ]
+    },
+    {
+      "parent": "3f4a48e74f6194536d4d02c4e964c65a7214eaa5",
+      "label": "currentROOT3f",
+      "path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+      "before_file": "currentROOT3f.canonical.before.txt",
+      "before_length": 65056,
+      "before_sha256": "91f0f7c964ba8a94b91f8da9a6aaa73017b49e3adf49bde5828645128015dbca",
+      "current_length": 65386,
+      "current_sha256": "92728f9f1f6e4ce861de0ed8e5ad4ec095550a924338a9168cba8bb812bd2783",
+      "edits": [
+        {
+          "old_start_line": 48,
+          "old_end_line": 48,
+          "new_start_line": 48,
+          "new_end_line": 52,
+          "old": "",
+          "new": "#[macro_use]\nmod selected_labels;\n#[cfg(test)]\nmod before_selected_labels;\n"
+        },
+        {
+          "old_start_line": 734,
+          "old_end_line": 735,
+          "new_start_line": 738,
+          "new_end_line": 741,
+          "old": "                AllocationPayer::SelectedReservation => {}\n",
+          "new": "                AllocationPayer::SelectedReservation => {\n                    return selected_labels_successors!(function, budget, self.automaton, closed, accepted, true);\n                }\n"
+        },
+        {
+          "old_start_line": 964,
+          "old_end_line": 965,
+          "new_start_line": 970,
+          "new_end_line": 973,
+          "old": "            AllocationPayer::SelectedReservation => {}\n",
+          "new": "            AllocationPayer::SelectedReservation => {\n                return selected_labels_successors!(function, budget, self.automaton, closed, accepted, false);\n            }\n"
+        }
+      ]
+    }
+  ]
+}

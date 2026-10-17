@@ -132,6 +132,10 @@ pub(super) fn validate_with_index_storage<'hir>(
     helpers: Option<&crate::loop_calls::byte_writer::ModuleIndex<'hir>>,
     continuations: Option<&mut continuation_storage::Storage<'hir>>,
 ) -> Result<bool, Diagnostic> {
+    #[cfg(test)]
+    let _operation = crate::bounded_output::stage_debits::operation_guard(
+        crate::bounded_output::stage_debits::Operation::ReplayFactored,
+    );
     let cfg_paths = branch_sensitive_cfg_bounds(function)?.terminal_paths;
     let semantic_paths = hir_terminal_path_bound(function)?;
     let selected = selected_paid(
@@ -312,6 +316,10 @@ fn build_comparison<'hir>(
     helpers: Option<&crate::loop_calls::byte_writer::ModuleIndex<'hir>>,
     continuations: Option<&mut continuation_storage::Storage<'hir>>,
 ) -> Result<BuiltComparison, Diagnostic> {
+    #[cfg(test)]
+    let _operation = crate::bounded_output::stage_debits::operation_guard(
+        crate::bounded_output::stage_debits::Operation::ReplayFactoredConstruction,
+    );
     // Both independent constructors debit skeleton helpers as well as ordinary
     // constructors. Keep one active allowance through the HIR walk AND plan
     // automaton construction; the held program reservation belongs to other

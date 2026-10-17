@@ -1,0 +1,11 @@
+{
+  "status": "FAIL_ACTUAL_GENERIC_WHOLE_PROJECTION",
+  "error": "AssertionError: ('projection', ['use super::*;', 'ACTIVE'])",
+  "not_a_boundary_specific_qualifier": true,
+  "representative_unchanged_base_files": [
+    "src/cleanup/schema_summary.rs:4",
+    "src/cleanup_plan/replay/allocation.rs:3,174,191"
+  ],
+  "global_polluted_purity_result_not_claimed": true,
+  "verifier_rules_unchanged": true
+}

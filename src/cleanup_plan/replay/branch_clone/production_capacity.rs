@@ -186,7 +186,7 @@ macro_rules! produce {
                         // TAKE, shape probes and original fallback do not count.
                         #[cfg(test)]
                         if decision.copy_capacity.is_some() {
-                            branch_clone::tests::note_plan_copy();
+                            branch_clone::note_plan_copy();
                         }
         skeleton_queue_push($budget, $function, &mut $queue,
             ($edge.to, $branch), "plan branch state push")?;

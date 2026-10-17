@@ -1,0 +1,51 @@
+#[test]
+fn replay_operation_totals_preserve_complete_predecessors_and_production_text() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let proofs: Vec<serde_json::Value> = serde_json::from_str(
+        &std::fs::read_to_string(
+            root.join("docs/evidence/replay-operation-totals-v1/sources.json"),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(proofs.len(), 10);
+    let mut paths = std::collections::BTreeSet::new();
+    for proof in &proofs {
+        let path = proof["path"].as_str().unwrap();
+        assert!(paths.insert(path));
+        let current = std::fs::read_to_string(root.join(path)).unwrap();
+        let before = invert(proof, &current);
+        assert_eq!(
+            before,
+            std::fs::read_to_string(root.join(proof["archive"].as_str().unwrap())).unwrap()
+        );
+        assert!(std::panic::catch_unwind(|| invert(proof, &(current.clone() + "\n"))).is_err());
+        let mut forged = proof.clone();
+        forged["before_sha256"] = serde_json::Value::String("0".repeat(64));
+        assert!(std::panic::catch_unwind(|| invert(&forged, &current)).is_err());
+    }
+    let guards: Vec<serde_json::Value> = serde_json::from_str(
+        &std::fs::read_to_string(root.join("docs/evidence/replay-operation-totals-v1/guards.json"))
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(guards.len(), 8);
+    for path in guards
+        .iter()
+        .map(|row| row["path"].as_str().unwrap())
+        .collect::<std::collections::BTreeSet<_>>()
+    {
+        let mut current = std::fs::read_to_string(root.join(path)).unwrap();
+        for guard in guards.iter().filter(|row| row["path"] == path) {
+            let text = guard["statement"].as_str().unwrap();
+            assert!(text.contains("#[cfg(test)]"));
+            assert_eq!(current.matches(text).count(), 1);
+            current = current.replacen(text, "", 1);
+        }
+        let proof = proofs.iter().find(|proof| proof["path"] == path).unwrap();
+        assert_eq!(
+            current,
+            std::fs::read_to_string(root.join(proof["archive"].as_str().unwrap())).unwrap()
+        );
+    }
+}

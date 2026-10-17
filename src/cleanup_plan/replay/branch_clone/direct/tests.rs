@@ -246,6 +246,7 @@ fn direct_generic_entry_prepays_result_and_arguments_with_exact_short_floor_stic
             assert!(short.0.0.result.is_err());
             let floored = observe(function, &values, target, end, 1, 2);
             assert!(floored.1 && floored.0.0.result.is_err());
+            assert_eq!(floored.0.0, oracle(function, &values, expected, end, 1, 2));
             let admitted = observe(function, &values, target, end, 0, 2);
             assert!(admitted.2 >= end);
             limit = end;

@@ -1,0 +1,54 @@
+{
+  "base": "754f5c5c3c25facf8ea6e68ac14ce0492a3857ff",
+  "status": "SOURCE_ONLY_UNCOMPILED_UNEXECUTED",
+  "rows": [
+    {
+      "path": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+      "current_len": 30485,
+      "current_sha256": "96a19ecd051bf18608203c561daa8c7242eb74ed2f84d12c6d28dc41113d1686",
+      "before_len": 23095,
+      "before_sha256": "31815c1970c2371cfde5b8b93807e1ff17317c885a0d383c949228f7fb0085be",
+      "before_archive": "docs/evidence/browser-current-both-retained-754f-20261017/before/tests__wasm__scalar_browser_ci_contract__historical_builder.rs",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_len": 30485,
+          "remove_sha256": "96a19ecd051bf18608203c561daa8c7242eb74ed2f84d12c6d28dc41113d1686",
+          "insert_archive": "docs/evidence/browser-current-both-retained-754f-20261017/before/tests__wasm__scalar_browser_ci_contract__historical_builder.rs"
+        }
+      ]
+    },
+    {
+      "path": "tests/wasm/scalar_browser_ci_contract.rs",
+      "current_len": 10197,
+      "current_sha256": "64c26c09b6346b47463e95ca9e50ae6c59cd635112608582fc122ec7ed3d6dd5",
+      "before_len": 10177,
+      "before_sha256": "9129f5494054cfb7f5b891f1febc60eaabd2f06f7eef30d10beedd4533cc9166",
+      "before_archive": "docs/evidence/browser-current-both-retained-754f-20261017/before/tests__wasm__scalar_browser_ci_contract.rs",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_len": 10197,
+          "remove_sha256": "64c26c09b6346b47463e95ca9e50ae6c59cd635112608582fc122ec7ed3d6dd5",
+          "insert_archive": "docs/evidence/browser-current-both-retained-754f-20261017/before/tests__wasm__scalar_browser_ci_contract.rs"
+        }
+      ]
+    },
+    {
+      "path": "tests/wasm/scalar_browser_ci_contract/browser_custody.rs",
+      "current_len": 14949,
+      "current_sha256": "0a527de09f72a142be138e7c4d3499c121e09fa1884f01a05ebc4992a725f985",
+      "before_len": 14845,
+      "before_sha256": "5d8657fa572548ef88121a3a042f609e667c89edaec05dab840b912ff2a991cc",
+      "before_archive": "docs/evidence/browser-current-both-retained-754f-20261017/before/tests__wasm__scalar_browser_ci_contract__browser_custody.rs",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_len": 14949,
+          "remove_sha256": "0a527de09f72a142be138e7c4d3499c121e09fa1884f01a05ebc4992a725f985",
+          "insert_archive": "docs/evidence/browser-current-both-retained-754f-20261017/before/tests__wasm__scalar_browser_ci_contract__browser_custody.rs"
+        }
+      ]
+    }
+  ]
+}

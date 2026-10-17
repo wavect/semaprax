@@ -1,0 +1,1054 @@
+[
+  {
+    "rendered": "error[E0369]: binary operation `==` cannot be applied to type `std::result::Result<(), semaprax::diagnostic::Diagnostic>`\n   --> src/cli/json_codec/retained_receipt/stdout_seal/tests.rs:151:5\n    |\n151 | /     assert_eq!(\n152 | |         publish_sealed(&output, b\"new\\n\", \"n\", &mut stdout),\n153 | |         Err(expected)\n154 | |     );\n    | |     ^\n    | |     |\n    | |_____std::result::Result<(), semaprax::diagnostic::Diagnostic>\n    |       std::result::Result<(), semaprax::diagnostic::Diagnostic>\n    |\nnote: `semaprax::diagnostic::Diagnostic` does not implement `PartialEq`\n   --> src/diagnostic.rs:28:1\n    |\n 28 | pub struct Diagnostic {\n    | ^^^^^^^^^^^^^^^^^^^^^ `semaprax::diagnostic::Diagnostic` is defined in another crate\n\n",
+    "$message_type": "diagnostic",
+    "children": [
+      {
+        "children": [],
+        "code": null,
+        "level": "note",
+        "message": "`semaprax::diagnostic::Diagnostic` does not implement `PartialEq`",
+        "rendered": null,
+        "spans": [
+          {
+            "byte_end": 529,
+            "byte_start": 508,
+            "column_end": 22,
+            "column_start": 1,
+            "expansion": null,
+            "file_name": "src/diagnostic.rs",
+            "is_primary": true,
+            "label": "`semaprax::diagnostic::Diagnostic` is defined in another crate",
+            "line_end": 28,
+            "line_start": 28,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": [
+              {
+                "highlight_end": 22,
+                "highlight_start": 1,
+                "text": "pub struct Diagnostic {"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "level": "error",
+    "message": "binary operation `==` cannot be applied to type `std::result::Result<(), semaprax::diagnostic::Diagnostic>`",
+    "spans": [
+      {
+        "byte_end": 1463,
+        "byte_start": 1454,
+        "column_end": 31,
+        "column_start": 22,
+        "expansion": {
+          "def_site_span": {
+            "byte_end": 1316,
+            "byte_start": 1294,
+            "column_end": 23,
+            "column_start": 1,
+            "expansion": null,
+            "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/macros/mod.rs",
+            "is_primary": false,
+            "label": null,
+            "line_end": 42,
+            "line_start": 42,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": []
+          },
+          "macro_decl_name": "assert_eq!",
+          "span": {
+            "byte_end": 5034,
+            "byte_start": 4934,
+            "column_end": 6,
+            "column_start": 5,
+            "expansion": null,
+            "file_name": "src/cli/json_codec/retained_receipt/stdout_seal/tests.rs",
+            "is_primary": false,
+            "label": null,
+            "line_end": 154,
+            "line_start": 151,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": [
+              {
+                "highlight_end": 16,
+                "highlight_start": 5,
+                "text": "    assert_eq!("
+              },
+              {
+                "highlight_end": 61,
+                "highlight_start": 1,
+                "text": "        publish_sealed(&output, b\"new\\n\", \"n\", &mut stdout),"
+              },
+              {
+                "highlight_end": 22,
+                "highlight_start": 1,
+                "text": "        Err(expected)"
+              },
+              {
+                "highlight_end": 6,
+                "highlight_start": 1,
+                "text": "    );"
+              }
+            ]
+          }
+        },
+        "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/macros/mod.rs",
+        "is_primary": false,
+        "label": "std::result::Result<(), semaprax::diagnostic::Diagnostic>",
+        "line_end": 46,
+        "line_start": 46,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": []
+      },
+      {
+        "byte_end": 1477,
+        "byte_start": 1467,
+        "column_end": 45,
+        "column_start": 35,
+        "expansion": {
+          "def_site_span": {
+            "byte_end": 1316,
+            "byte_start": 1294,
+            "column_end": 23,
+            "column_start": 1,
+            "expansion": null,
+            "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/macros/mod.rs",
+            "is_primary": false,
+            "label": null,
+            "line_end": 42,
+            "line_start": 42,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": []
+          },
+          "macro_decl_name": "assert_eq!",
+          "span": {
+            "byte_end": 5034,
+            "byte_start": 4934,
+            "column_end": 6,
+            "column_start": 5,
+            "expansion": null,
+            "file_name": "src/cli/json_codec/retained_receipt/stdout_seal/tests.rs",
+            "is_primary": false,
+            "label": null,
+            "line_end": 154,
+            "line_start": 151,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": [
+              {
+                "highlight_end": 16,
+                "highlight_start": 5,
+                "text": "    assert_eq!("
+              },
+              {
+                "highlight_end": 61,
+                "highlight_start": 1,
+                "text": "        publish_sealed(&output, b\"new\\n\", \"n\", &mut stdout),"
+              },
+              {
+                "highlight_end": 22,
+                "highlight_start": 1,
+                "text": "        Err(expected)"
+              },
+              {
+                "highlight_end": 6,
+                "highlight_start": 1,
+                "text": "    );"
+              }
+            ]
+          }
+        },
+        "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/macros/mod.rs",
+        "is_primary": false,
+        "label": "std::result::Result<(), semaprax::diagnostic::Diagnostic>",
+        "line_end": 46,
+        "line_start": 46,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": []
+      },
+      {
+        "byte_end": 1466,
+        "byte_start": 1464,
+        "column_end": 34,
+        "column_start": 32,
+        "expansion": {
+          "def_site_span": {
+            "byte_end": 1316,
+            "byte_start": 1294,
+            "column_end": 23,
+            "column_start": 1,
+            "expansion": null,
+            "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/macros/mod.rs",
+            "is_primary": false,
+            "label": null,
+            "line_end": 42,
+            "line_start": 42,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": []
+          },
+          "macro_decl_name": "assert_eq!",
+          "span": {
+            "byte_end": 5034,
+            "byte_start": 4934,
+            "column_end": 6,
+            "column_start": 5,
+            "expansion": null,
+            "file_name": "src/cli/json_codec/retained_receipt/stdout_seal/tests.rs",
+            "is_primary": false,
+            "label": null,
+            "line_end": 154,
+            "line_start": 151,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": [
+              {
+                "highlight_end": 16,
+                "highlight_start": 5,
+                "text": "    assert_eq!("
+              },
+              {
+                "highlight_end": 61,
+                "highlight_start": 1,
+                "text": "        publish_sealed(&output, b\"new\\n\", \"n\", &mut stdout),"
+              },
+              {
+                "highlight_end": 22,
+                "highlight_start": 1,
+                "text": "        Err(expected)"
+              },
+              {
+                "highlight_end": 6,
+                "highlight_start": 1,
+                "text": "    );"
+              }
+            ]
+          }
+        },
+        "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/macros/mod.rs",
+        "is_primary": true,
+        "label": null,
+        "line_end": 46,
+        "line_start": 46,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": []
+      }
+    ],
+    "code": {
+      "code": "E0369",
+      "explanation": "A binary operation was attempted on a type which doesn't support it.\n\nErroneous code example:\n\n```compile_fail,E0369\nlet x = 12f32; // error: binary operation `<<` cannot be applied to\n               //        type `f32`\n\nx << 2;\n```\n\nTo fix this error, please check that this type implements this binary\noperation. Example:\n\n```\nlet x = 12u32; // the `u32` type does implement it:\n               // https://doc.rust-lang.org/stable/std/ops/trait.Shl.html\n\nx << 2; // ok!\n```\n\nIt is also possible to overload most operators for your own type by\nimplementing traits from `std::ops`.\n\nString concatenation appends the string on the right to the string on the\nleft and may require reallocation. This requires ownership of the string\non the left. If something should be added to a string literal, move the\nliteral to the heap by allocating it with `to_owned()` like in\n`\"Your text\".to_owned()`.\n"
+    }
+  },
+  {
+    "rendered": "error[E0369]: binary operation `==` cannot be applied to type `std::result::Result<(), semaprax::diagnostic::Diagnostic>`\n   --> src/cli/json_codec/retained_receipt/stdout_seal/tests.rs:160:5\n    |\n160 | /     assert_eq!(\n161 | |         publish_sealed(&missing, b\"new\\n\", \"n\", &mut stdout),\n162 | |         Err(expected)\n163 | |     );\n    | |     ^\n    | |     |\n    | |_____std::result::Result<(), semaprax::diagnostic::Diagnostic>\n    |       std::result::Result<(), semaprax::diagnostic::Diagnostic>\n    |\nnote: `semaprax::diagnostic::Diagnostic` does not implement `PartialEq`\n   --> src/diagnostic.rs:28:1\n    |\n 28 | pub struct Diagnostic {\n    | ^^^^^^^^^^^^^^^^^^^^^ `semaprax::diagnostic::Diagnostic` is defined in another crate\n\n",
+    "$message_type": "diagnostic",
+    "children": [
+      {
+        "children": [],
+        "code": null,
+        "level": "note",
+        "message": "`semaprax::diagnostic::Diagnostic` does not implement `PartialEq`",
+        "rendered": null,
+        "spans": [
+          {
+            "byte_end": 529,
+            "byte_start": 508,
+            "column_end": 22,
+            "column_start": 1,
+            "expansion": null,
+            "file_name": "src/diagnostic.rs",
+            "is_primary": true,
+            "label": "`semaprax::diagnostic::Diagnostic` is defined in another crate",
+            "line_end": 28,
+            "line_start": 28,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": [
+              {
+                "highlight_end": 22,
+                "highlight_start": 1,
+                "text": "pub struct Diagnostic {"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "level": "error",
+    "message": "binary operation `==` cannot be applied to type `std::result::Result<(), semaprax::diagnostic::Diagnostic>`",
+    "spans": [
+      {
+        "byte_end": 1463,
+        "byte_start": 1454,
+        "column_end": 31,
+        "column_start": 22,
+        "expansion": {
+          "def_site_span": {
+            "byte_end": 1316,
+            "byte_start": 1294,
+            "column_end": 23,
+            "column_start": 1,
+            "expansion": null,
+            "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/macros/mod.rs",
+            "is_primary": false,
+            "label": null,
+            "line_end": 42,
+            "line_start": 42,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": []
+          },
+          "macro_decl_name": "assert_eq!",
+          "span": {
+            "byte_end": 5415,
+            "byte_start": 5314,
+            "column_end": 6,
+            "column_start": 5,
+            "expansion": null,
+            "file_name": "src/cli/json_codec/retained_receipt/stdout_seal/tests.rs",
+            "is_primary": false,
+            "label": null,
+            "line_end": 163,
+            "line_start": 160,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": [
+              {
+                "highlight_end": 16,
+                "highlight_start": 5,
+                "text": "    assert_eq!("
+              },
+              {
+                "highlight_end": 62,
+                "highlight_start": 1,
+                "text": "        publish_sealed(&missing, b\"new\\n\", \"n\", &mut stdout),"
+              },
+              {
+                "highlight_end": 22,
+                "highlight_start": 1,
+                "text": "        Err(expected)"
+              },
+              {
+                "highlight_end": 6,
+                "highlight_start": 1,
+                "text": "    );"
+              }
+            ]
+          }
+        },
+        "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/macros/mod.rs",
+        "is_primary": false,
+        "label": "std::result::Result<(), semaprax::diagnostic::Diagnostic>",
+        "line_end": 46,
+        "line_start": 46,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": []
+      },
+      {
+        "byte_end": 1477,
+        "byte_start": 1467,
+        "column_end": 45,
+        "column_start": 35,
+        "expansion": {
+          "def_site_span": {
+            "byte_end": 1316,
+            "byte_start": 1294,
+            "column_end": 23,
+            "column_start": 1,
+            "expansion": null,
+            "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/macros/mod.rs",
+            "is_primary": false,
+            "label": null,
+            "line_end": 42,
+            "line_start": 42,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": []
+          },
+          "macro_decl_name": "assert_eq!",
+          "span": {
+            "byte_end": 5415,
+            "byte_start": 5314,
+            "column_end": 6,
+            "column_start": 5,
+            "expansion": null,
+            "file_name": "src/cli/json_codec/retained_receipt/stdout_seal/tests.rs",
+            "is_primary": false,
+            "label": null,
+            "line_end": 163,
+            "line_start": 160,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": [
+              {
+                "highlight_end": 16,
+                "highlight_start": 5,
+                "text": "    assert_eq!("
+              },
+              {
+                "highlight_end": 62,
+                "highlight_start": 1,
+                "text": "        publish_sealed(&missing, b\"new\\n\", \"n\", &mut stdout),"
+              },
+              {
+                "highlight_end": 22,
+                "highlight_start": 1,
+                "text": "        Err(expected)"
+              },
+              {
+                "highlight_end": 6,
+                "highlight_start": 1,
+                "text": "    );"
+              }
+            ]
+          }
+        },
+        "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/macros/mod.rs",
+        "is_primary": false,
+        "label": "std::result::Result<(), semaprax::diagnostic::Diagnostic>",
+        "line_end": 46,
+        "line_start": 46,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": []
+      },
+      {
+        "byte_end": 1466,
+        "byte_start": 1464,
+        "column_end": 34,
+        "column_start": 32,
+        "expansion": {
+          "def_site_span": {
+            "byte_end": 1316,
+            "byte_start": 1294,
+            "column_end": 23,
+            "column_start": 1,
+            "expansion": null,
+            "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/macros/mod.rs",
+            "is_primary": false,
+            "label": null,
+            "line_end": 42,
+            "line_start": 42,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": []
+          },
+          "macro_decl_name": "assert_eq!",
+          "span": {
+            "byte_end": 5415,
+            "byte_start": 5314,
+            "column_end": 6,
+            "column_start": 5,
+            "expansion": null,
+            "file_name": "src/cli/json_codec/retained_receipt/stdout_seal/tests.rs",
+            "is_primary": false,
+            "label": null,
+            "line_end": 163,
+            "line_start": 160,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": [
+              {
+                "highlight_end": 16,
+                "highlight_start": 5,
+                "text": "    assert_eq!("
+              },
+              {
+                "highlight_end": 62,
+                "highlight_start": 1,
+                "text": "        publish_sealed(&missing, b\"new\\n\", \"n\", &mut stdout),"
+              },
+              {
+                "highlight_end": 22,
+                "highlight_start": 1,
+                "text": "        Err(expected)"
+              },
+              {
+                "highlight_end": 6,
+                "highlight_start": 1,
+                "text": "    );"
+              }
+            ]
+          }
+        },
+        "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/macros/mod.rs",
+        "is_primary": true,
+        "label": null,
+        "line_end": 46,
+        "line_start": 46,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": []
+      }
+    ],
+    "code": {
+      "code": "E0369",
+      "explanation": "A binary operation was attempted on a type which doesn't support it.\n\nErroneous code example:\n\n```compile_fail,E0369\nlet x = 12f32; // error: binary operation `<<` cannot be applied to\n               //        type `f32`\n\nx << 2;\n```\n\nTo fix this error, please check that this type implements this binary\noperation. Example:\n\n```\nlet x = 12u32; // the `u32` type does implement it:\n               // https://doc.rust-lang.org/stable/std/ops/trait.Shl.html\n\nx << 2; // ok!\n```\n\nIt is also possible to overload most operators for your own type by\nimplementing traits from `std::ops`.\n\nString concatenation appends the string on the right to the string on the\nleft and may require reallocation. This requires ownership of the string\non the left. If something should be added to a string literal, move the\nliteral to the heap by allocating it with `to_owned()` like in\n`\"Your text\".to_owned()`.\n"
+    }
+  },
+  {
+    "rendered": "error[E0369]: binary operation `==` cannot be applied to type `std::result::Result<(), semaprax::diagnostic::Diagnostic>`\n   --> src/cli/json_codec/retained_receipt/stdout_seal/tests.rs:190:5\n    |\n190 | /     assert_eq!(\n191 | |         publish_sealed(&output, b\"exact\\n\", \"n\", &mut stdout),\n192 | |         Err(error(\n193 | |             \"codec receipt was published, but cannot write stdout seal: seal sink refused\"\n194 | |         ))\n195 | |     );\n    | |     ^\n    | |     |\n    | |_____std::result::Result<(), semaprax::diagnostic::Diagnostic>\n    |       std::result::Result<(), semaprax::diagnostic::Diagnostic>\n    |\nnote: `semaprax::diagnostic::Diagnostic` does not implement `PartialEq`\n   --> src/diagnostic.rs:28:1\n    |\n 28 | pub struct Diagnostic {\n    | ^^^^^^^^^^^^^^^^^^^^^ `semaprax::diagnostic::Diagnostic` is defined in another crate\n\n",
+    "$message_type": "diagnostic",
+    "children": [
+      {
+        "children": [],
+        "code": null,
+        "level": "note",
+        "message": "`semaprax::diagnostic::Diagnostic` does not implement `PartialEq`",
+        "rendered": null,
+        "spans": [
+          {
+            "byte_end": 529,
+            "byte_start": 508,
+            "column_end": 22,
+            "column_start": 1,
+            "expansion": null,
+            "file_name": "src/diagnostic.rs",
+            "is_primary": true,
+            "label": "`semaprax::diagnostic::Diagnostic` is defined in another crate",
+            "line_end": 28,
+            "line_start": 28,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": [
+              {
+                "highlight_end": 22,
+                "highlight_start": 1,
+                "text": "pub struct Diagnostic {"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "level": "error",
+    "message": "binary operation `==` cannot be applied to type `std::result::Result<(), semaprax::diagnostic::Diagnostic>`",
+    "spans": [
+      {
+        "byte_end": 1463,
+        "byte_start": 1454,
+        "column_end": 31,
+        "column_start": 22,
+        "expansion": {
+          "def_site_span": {
+            "byte_end": 1316,
+            "byte_start": 1294,
+            "column_end": 23,
+            "column_start": 1,
+            "expansion": null,
+            "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/macros/mod.rs",
+            "is_primary": false,
+            "label": null,
+            "line_end": 42,
+            "line_start": 42,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": []
+          },
+          "macro_decl_name": "assert_eq!",
+          "span": {
+            "byte_end": 6429,
+            "byte_start": 6228,
+            "column_end": 6,
+            "column_start": 5,
+            "expansion": null,
+            "file_name": "src/cli/json_codec/retained_receipt/stdout_seal/tests.rs",
+            "is_primary": false,
+            "label": null,
+            "line_end": 195,
+            "line_start": 190,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": [
+              {
+                "highlight_end": 16,
+                "highlight_start": 5,
+                "text": "    assert_eq!("
+              },
+              {
+                "highlight_end": 63,
+                "highlight_start": 1,
+                "text": "        publish_sealed(&output, b\"exact\\n\", \"n\", &mut stdout),"
+              },
+              {
+                "highlight_end": 19,
+                "highlight_start": 1,
+                "text": "        Err(error("
+              },
+              {
+                "highlight_end": 91,
+                "highlight_start": 1,
+                "text": "            \"codec receipt was published, but cannot write stdout seal: seal sink refused\""
+              },
+              {
+                "highlight_end": 11,
+                "highlight_start": 1,
+                "text": "        ))"
+              },
+              {
+                "highlight_end": 6,
+                "highlight_start": 1,
+                "text": "    );"
+              }
+            ]
+          }
+        },
+        "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/macros/mod.rs",
+        "is_primary": false,
+        "label": "std::result::Result<(), semaprax::diagnostic::Diagnostic>",
+        "line_end": 46,
+        "line_start": 46,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": []
+      },
+      {
+        "byte_end": 1477,
+        "byte_start": 1467,
+        "column_end": 45,
+        "column_start": 35,
+        "expansion": {
+          "def_site_span": {
+            "byte_end": 1316,
+            "byte_start": 1294,
+            "column_end": 23,
+            "column_start": 1,
+            "expansion": null,
+            "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/macros/mod.rs",
+            "is_primary": false,
+            "label": null,
+            "line_end": 42,
+            "line_start": 42,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": []
+          },
+          "macro_decl_name": "assert_eq!",
+          "span": {
+            "byte_end": 6429,
+            "byte_start": 6228,
+            "column_end": 6,
+            "column_start": 5,
+            "expansion": null,
+            "file_name": "src/cli/json_codec/retained_receipt/stdout_seal/tests.rs",
+            "is_primary": false,
+            "label": null,
+            "line_end": 195,
+            "line_start": 190,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": [
+              {
+                "highlight_end": 16,
+                "highlight_start": 5,
+                "text": "    assert_eq!("
+              },
+              {
+                "highlight_end": 63,
+                "highlight_start": 1,
+                "text": "        publish_sealed(&output, b\"exact\\n\", \"n\", &mut stdout),"
+              },
+              {
+                "highlight_end": 19,
+                "highlight_start": 1,
+                "text": "        Err(error("
+              },
+              {
+                "highlight_end": 91,
+                "highlight_start": 1,
+                "text": "            \"codec receipt was published, but cannot write stdout seal: seal sink refused\""
+              },
+              {
+                "highlight_end": 11,
+                "highlight_start": 1,
+                "text": "        ))"
+              },
+              {
+                "highlight_end": 6,
+                "highlight_start": 1,
+                "text": "    );"
+              }
+            ]
+          }
+        },
+        "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/macros/mod.rs",
+        "is_primary": false,
+        "label": "std::result::Result<(), semaprax::diagnostic::Diagnostic>",
+        "line_end": 46,
+        "line_start": 46,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": []
+      },
+      {
+        "byte_end": 1466,
+        "byte_start": 1464,
+        "column_end": 34,
+        "column_start": 32,
+        "expansion": {
+          "def_site_span": {
+            "byte_end": 1316,
+            "byte_start": 1294,
+            "column_end": 23,
+            "column_start": 1,
+            "expansion": null,
+            "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/macros/mod.rs",
+            "is_primary": false,
+            "label": null,
+            "line_end": 42,
+            "line_start": 42,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": []
+          },
+          "macro_decl_name": "assert_eq!",
+          "span": {
+            "byte_end": 6429,
+            "byte_start": 6228,
+            "column_end": 6,
+            "column_start": 5,
+            "expansion": null,
+            "file_name": "src/cli/json_codec/retained_receipt/stdout_seal/tests.rs",
+            "is_primary": false,
+            "label": null,
+            "line_end": 195,
+            "line_start": 190,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": [
+              {
+                "highlight_end": 16,
+                "highlight_start": 5,
+                "text": "    assert_eq!("
+              },
+              {
+                "highlight_end": 63,
+                "highlight_start": 1,
+                "text": "        publish_sealed(&output, b\"exact\\n\", \"n\", &mut stdout),"
+              },
+              {
+                "highlight_end": 19,
+                "highlight_start": 1,
+                "text": "        Err(error("
+              },
+              {
+                "highlight_end": 91,
+                "highlight_start": 1,
+                "text": "            \"codec receipt was published, but cannot write stdout seal: seal sink refused\""
+              },
+              {
+                "highlight_end": 11,
+                "highlight_start": 1,
+                "text": "        ))"
+              },
+              {
+                "highlight_end": 6,
+                "highlight_start": 1,
+                "text": "    );"
+              }
+            ]
+          }
+        },
+        "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/macros/mod.rs",
+        "is_primary": true,
+        "label": null,
+        "line_end": 46,
+        "line_start": 46,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": []
+      }
+    ],
+    "code": {
+      "code": "E0369",
+      "explanation": "A binary operation was attempted on a type which doesn't support it.\n\nErroneous code example:\n\n```compile_fail,E0369\nlet x = 12f32; // error: binary operation `<<` cannot be applied to\n               //        type `f32`\n\nx << 2;\n```\n\nTo fix this error, please check that this type implements this binary\noperation. Example:\n\n```\nlet x = 12u32; // the `u32` type does implement it:\n               // https://doc.rust-lang.org/stable/std/ops/trait.Shl.html\n\nx << 2; // ok!\n```\n\nIt is also possible to overload most operators for your own type by\nimplementing traits from `std::ops`.\n\nString concatenation appends the string on the right to the string on the\nleft and may require reallocation. This requires ownership of the string\non the left. If something should be added to a string literal, move the\nliteral to the heap by allocating it with `to_owned()` like in\n`\"Your text\".to_owned()`.\n"
+    }
+  },
+  {
+    "rendered": "error[E0369]: binary operation `==` cannot be applied to type `std::result::Result<(), semaprax::diagnostic::Diagnostic>`\n   --> src/cli/json_codec/retained_receipt/stdout_seal/tests.rs:220:5\n    |\n220 | /     assert_eq!(\n221 | |         publish_sealed(&output, b\"exact\\n\", \"n\", &mut stdout),\n222 | |         Err(error(\n223 | |             \"codec receipt was published, but cannot write stdout seal: flush refused\"\n224 | |         ))\n225 | |     );\n    | |     ^\n    | |     |\n    | |_____std::result::Result<(), semaprax::diagnostic::Diagnostic>\n    |       std::result::Result<(), semaprax::diagnostic::Diagnostic>\n    |\nnote: `semaprax::diagnostic::Diagnostic` does not implement `PartialEq`\n   --> src/diagnostic.rs:28:1\n    |\n 28 | pub struct Diagnostic {\n    | ^^^^^^^^^^^^^^^^^^^^^ `semaprax::diagnostic::Diagnostic` is defined in another crate\n\n",
+    "$message_type": "diagnostic",
+    "children": [
+      {
+        "children": [],
+        "code": null,
+        "level": "note",
+        "message": "`semaprax::diagnostic::Diagnostic` does not implement `PartialEq`",
+        "rendered": null,
+        "spans": [
+          {
+            "byte_end": 529,
+            "byte_start": 508,
+            "column_end": 22,
+            "column_start": 1,
+            "expansion": null,
+            "file_name": "src/diagnostic.rs",
+            "is_primary": true,
+            "label": "`semaprax::diagnostic::Diagnostic` is defined in another crate",
+            "line_end": 28,
+            "line_start": 28,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": [
+              {
+                "highlight_end": 22,
+                "highlight_start": 1,
+                "text": "pub struct Diagnostic {"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "level": "error",
+    "message": "binary operation `==` cannot be applied to type `std::result::Result<(), semaprax::diagnostic::Diagnostic>`",
+    "spans": [
+      {
+        "byte_end": 1463,
+        "byte_start": 1454,
+        "column_end": 31,
+        "column_start": 22,
+        "expansion": {
+          "def_site_span": {
+            "byte_end": 1316,
+            "byte_start": 1294,
+            "column_end": 23,
+            "column_start": 1,
+            "expansion": null,
+            "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/macros/mod.rs",
+            "is_primary": false,
+            "label": null,
+            "line_end": 42,
+            "line_start": 42,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": []
+          },
+          "macro_decl_name": "assert_eq!",
+          "span": {
+            "byte_end": 7467,
+            "byte_start": 7270,
+            "column_end": 6,
+            "column_start": 5,
+            "expansion": null,
+            "file_name": "src/cli/json_codec/retained_receipt/stdout_seal/tests.rs",
+            "is_primary": false,
+            "label": null,
+            "line_end": 225,
+            "line_start": 220,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": [
+              {
+                "highlight_end": 16,
+                "highlight_start": 5,
+                "text": "    assert_eq!("
+              },
+              {
+                "highlight_end": 63,
+                "highlight_start": 1,
+                "text": "        publish_sealed(&output, b\"exact\\n\", \"n\", &mut stdout),"
+              },
+              {
+                "highlight_end": 19,
+                "highlight_start": 1,
+                "text": "        Err(error("
+              },
+              {
+                "highlight_end": 87,
+                "highlight_start": 1,
+                "text": "            \"codec receipt was published, but cannot write stdout seal: flush refused\""
+              },
+              {
+                "highlight_end": 11,
+                "highlight_start": 1,
+                "text": "        ))"
+              },
+              {
+                "highlight_end": 6,
+                "highlight_start": 1,
+                "text": "    );"
+              }
+            ]
+          }
+        },
+        "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/macros/mod.rs",
+        "is_primary": false,
+        "label": "std::result::Result<(), semaprax::diagnostic::Diagnostic>",
+        "line_end": 46,
+        "line_start": 46,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": []
+      },
+      {
+        "byte_end": 1477,
+        "byte_start": 1467,
+        "column_end": 45,
+        "column_start": 35,
+        "expansion": {
+          "def_site_span": {
+            "byte_end": 1316,
+            "byte_start": 1294,
+            "column_end": 23,
+            "column_start": 1,
+            "expansion": null,
+            "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/macros/mod.rs",
+            "is_primary": false,
+            "label": null,
+            "line_end": 42,
+            "line_start": 42,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": []
+          },
+          "macro_decl_name": "assert_eq!",
+          "span": {
+            "byte_end": 7467,
+            "byte_start": 7270,
+            "column_end": 6,
+            "column_start": 5,
+            "expansion": null,
+            "file_name": "src/cli/json_codec/retained_receipt/stdout_seal/tests.rs",
+            "is_primary": false,
+            "label": null,
+            "line_end": 225,
+            "line_start": 220,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": [
+              {
+                "highlight_end": 16,
+                "highlight_start": 5,
+                "text": "    assert_eq!("
+              },
+              {
+                "highlight_end": 63,
+                "highlight_start": 1,
+                "text": "        publish_sealed(&output, b\"exact\\n\", \"n\", &mut stdout),"
+              },
+              {
+                "highlight_end": 19,
+                "highlight_start": 1,
+                "text": "        Err(error("
+              },
+              {
+                "highlight_end": 87,
+                "highlight_start": 1,
+                "text": "            \"codec receipt was published, but cannot write stdout seal: flush refused\""
+              },
+              {
+                "highlight_end": 11,
+                "highlight_start": 1,
+                "text": "        ))"
+              },
+              {
+                "highlight_end": 6,
+                "highlight_start": 1,
+                "text": "    );"
+              }
+            ]
+          }
+        },
+        "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/macros/mod.rs",
+        "is_primary": false,
+        "label": "std::result::Result<(), semaprax::diagnostic::Diagnostic>",
+        "line_end": 46,
+        "line_start": 46,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": []
+      },
+      {
+        "byte_end": 1466,
+        "byte_start": 1464,
+        "column_end": 34,
+        "column_start": 32,
+        "expansion": {
+          "def_site_span": {
+            "byte_end": 1316,
+            "byte_start": 1294,
+            "column_end": 23,
+            "column_start": 1,
+            "expansion": null,
+            "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/macros/mod.rs",
+            "is_primary": false,
+            "label": null,
+            "line_end": 42,
+            "line_start": 42,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": []
+          },
+          "macro_decl_name": "assert_eq!",
+          "span": {
+            "byte_end": 7467,
+            "byte_start": 7270,
+            "column_end": 6,
+            "column_start": 5,
+            "expansion": null,
+            "file_name": "src/cli/json_codec/retained_receipt/stdout_seal/tests.rs",
+            "is_primary": false,
+            "label": null,
+            "line_end": 225,
+            "line_start": 220,
+            "suggested_replacement": null,
+            "suggestion_applicability": null,
+            "text": [
+              {
+                "highlight_end": 16,
+                "highlight_start": 5,
+                "text": "    assert_eq!("
+              },
+              {
+                "highlight_end": 63,
+                "highlight_start": 1,
+                "text": "        publish_sealed(&output, b\"exact\\n\", \"n\", &mut stdout),"
+              },
+              {
+                "highlight_end": 19,
+                "highlight_start": 1,
+                "text": "        Err(error("
+              },
+              {
+                "highlight_end": 87,
+                "highlight_start": 1,
+                "text": "            \"codec receipt was published, but cannot write stdout seal: flush refused\""
+              },
+              {
+                "highlight_end": 11,
+                "highlight_start": 1,
+                "text": "        ))"
+              },
+              {
+                "highlight_end": 6,
+                "highlight_start": 1,
+                "text": "    );"
+              }
+            ]
+          }
+        },
+        "file_name": "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/macros/mod.rs",
+        "is_primary": true,
+        "label": null,
+        "line_end": 46,
+        "line_start": 46,
+        "suggested_replacement": null,
+        "suggestion_applicability": null,
+        "text": []
+      }
+    ],
+    "code": {
+      "code": "E0369",
+      "explanation": "A binary operation was attempted on a type which doesn't support it.\n\nErroneous code example:\n\n```compile_fail,E0369\nlet x = 12f32; // error: binary operation `<<` cannot be applied to\n               //        type `f32`\n\nx << 2;\n```\n\nTo fix this error, please check that this type implements this binary\noperation. Example:\n\n```\nlet x = 12u32; // the `u32` type does implement it:\n               // https://doc.rust-lang.org/stable/std/ops/trait.Shl.html\n\nx << 2; // ok!\n```\n\nIt is also possible to overload most operators for your own type by\nimplementing traits from `std::ops`.\n\nString concatenation appends the string on the right to the string on the\nleft and may require reallocation. This requires ownership of the string\non the left. If something should be added to a string literal, move the\nliteral to the heap by allocating it with `to_owned()` like in\n`\"Your text\".to_owned()`.\n"
+    }
+  }
+]

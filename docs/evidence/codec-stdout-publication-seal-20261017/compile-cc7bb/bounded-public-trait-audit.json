@@ -1,0 +1,30 @@
+{
+  "status": "BOUNDED_STATIC_AUDIT_NO_ADDITIONAL_CONCRETE_REPAIR_FOUND",
+  "base": "fade6f4df00808a4f9b763fff22cd5f3898683f4",
+  "frozen_head": "cc7bb2a5127aeccd9248a7daa30c06ae983f5051",
+  "changed_binary_or_integration_Rust_paths": 18,
+  "paths_with_added_comparison_result_or_error_unwrap_sites": 9,
+  "added_sites_reviewed": 107,
+  "known4DiagnosticEq_sites": "repaired6569+86865sourceacceptance",
+  "new_error_unwraps": [
+    {
+      "source": "src/cli/json_codec/retained_receipt/stdout_seal/tests.rs",
+      "original_lines": [
+        149,
+        159
+      ],
+      "success_type": "()",
+      "Debug": "unconditional unit"
+    },
+    {
+      "source": "tests/project/standard_library/application_json/retained_receipt.rs",
+      "line": 30,
+      "success_type": "project::ProjectManifest",
+      "Debug": "unconditionalderive src/project/manifest.rs101"
+    }
+  ],
+  "other_added_comparisons": "u8 selector/dispatch errors; strings/bytes/bools/integers/serde_jsonValue/statuscodes; no publicDiagnostic/wrapper equality found",
+  "public_field_traits": "Severity src/diagnostic.rs7 and Span src/ast.rs31 unconditionally Eq+PartialEq",
+  "scope_limits": "changed/new executable Rust sincefade; no assertion that old unrelated tests or every future target typechecks; no global old-source churn",
+  "Cargo_or_Rust_execution": false
+}

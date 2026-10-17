@@ -1,0 +1,15 @@
+{
+  "source_only": true,
+  "prior_manifest": {
+    "length": 241192,
+    "sha256": "1f9c93d55e91f0cd2162963d12fab1731636d4cb61b86029be46d1e15b9a1fa3"
+  },
+  "changed_physical": {
+    "src/cleanup_plan/replay/skeleton_work.rs": [
+      47594,
+      "2532173c152df743989e4afd5fc84ae4b3dd32bf45b0a72fe09039a832887c4b"
+    ]
+  },
+  "whole_original_binder_preserved": true,
+  "new_physical_owners_not_added_to_frozen_174": true
+}

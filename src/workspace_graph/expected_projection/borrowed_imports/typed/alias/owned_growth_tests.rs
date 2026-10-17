@@ -474,7 +474,7 @@ fn complete_immediate_directory_producer_and_expanded_acquisition_remain_source_
         format!("{}\n", expected.trim_end()),
         include_str!("before_owned_directory.rs")
     );
-    let tests = include_str!("tests.rs").replace(
+    let tests = crate::source_reflows_merge::maina3_847_input("src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs", include_str!("tests.rs")).replace(
         "        let current = super::owned_growth_tests::previous_source(source, &current);\n",
         "",
     );

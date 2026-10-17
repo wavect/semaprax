@@ -43,3 +43,48 @@ pub(super) fn normalize(source: &str, current: &str) -> String {
  assert_eq!(<[u8;32]>::from(Sha256::digest(normalized.as_bytes())),[134, 67, 1, 208, 184, 127, 141, 233, 92, 107, 141, 31, 47, 211, 6, 195, 187, 150, 234, 201, 47, 86, 105, 152, 99, 8, 6, 95, 42, 189, 174, 239]);
  normalized
 }
+
+// Exact complete inputs precede the immutable two-row Alias1ae domain.
+pub(super) fn alias_directory_input(source: &str, current: &str) -> String {
+    const KEYS: &[&str] = &[
+        "src/workspace_graph/expected_projection/borrowed_imports/typed/alias.rs",
+        "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/owned_growth_tests.rs",
+        "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs",
+    ];
+    if KEYS.binary_search(&source).is_err() { return current.to_owned(); }
+    use sha2::{Digest, Sha256};
+    let digest = |text: &str| format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(text.as_bytes())));
+    let data = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/fade-custody-size-ownedgrowth-20261017/alias-root.json"));
+    assert_eq!(digest(data), "1e833dffa1cc56ba21a9c077b60be487ea41b172bc2e7312d954a6f424190fdf");
+    let rows: serde_json::Value = serde_json::from_str(data).unwrap();
+    let rows = rows.as_array().unwrap();
+    assert_eq!(rows.len(), 3);
+    let matching: Vec<_> = rows.iter().filter(|row| row["source"] == source).collect();
+    assert_eq!(matching.len(), 1);
+    let row = matching[0];
+    assert_eq!(digest(current), row["current_sha256"], "whole current alias subject");
+    let mut restored = current.to_owned();
+    for edit in row["edits"].as_array().unwrap() {
+        let new = edit["new"].as_str().unwrap();
+        assert_eq!(restored.matches(new).count(), 1, "unique complete alias subject inverse");
+        restored = restored.replacen(new, edit["old"].as_str().unwrap(), 1);
+    }
+    assert_eq!(digest(&restored), row["input_sha256"], "whole original alias input");
+    restored
+}
+
+#[test]
+fn alias_root_lazy_domain_retains_complete_sources_and_refuses_drift() {
+    let rows: serde_json::Value = serde_json::from_str(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/fade-custody-size-ownedgrowth-20261017/alias-root.json"))).unwrap();
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    for row in rows.as_array().unwrap() {
+        let source = row["source"].as_str().unwrap();
+        let raw = std::fs::read_to_string(root.join(source)).unwrap();
+        let original = std::fs::read_to_string(root.join(row["input_archive"].as_str().unwrap())).unwrap();
+        assert_eq!(alias_directory_input(source, &raw), original);
+        for bad in [String::new(), format!("{raw} "), format!("{raw}{raw}"), original] {
+            assert!(std::panic::catch_unwind(|| alias_directory_input(source, &bad)).is_err());
+        }
+    }
+    assert_eq!(alias_directory_input("foreign", "unchanged"), "unchanged");
+}

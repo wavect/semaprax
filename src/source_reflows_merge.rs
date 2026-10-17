@@ -967,6 +967,8 @@ pub(crate) fn maina3_input(source: &str, current: &str) -> String {
     maina3_custody::input(maina3_custody::Input::Maina3, source, &normalized)
 }
 pub(crate) fn maina3_847_input(source: &str, current: &str) -> String {
+    let held = maina3_custody::alias_directory_input(source, current);
+    let current = held.as_str();
     let normalized = maina3_custody::normalize(source, current);
     maina3_custody::input(maina3_custody::Input::Alias1ae, source, &normalized)
 }

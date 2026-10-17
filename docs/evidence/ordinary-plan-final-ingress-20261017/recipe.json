@@ -1,0 +1,90 @@
+{
+  "checkpoint": "787d9810480209532fa645b8cb97f2585ce5f426",
+  "keys": [
+    "src/cleanup_plan/replay.rs",
+    "src/source_reflows_merge.rs",
+    "src/source_reflows_merge/main67107_inputs.rs",
+    "tests/hir_module_boundaries.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs",
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+  ],
+  "helper": "src/source_reflows_merge/ordinary_plan_inputs.rs",
+  "helper_template": "docs/evidence/ordinary-plan-final-ingress-20261017/helper.before-binding.rs.txt",
+  "helper_template_sha256": "7700308160c7347fe7827216975f9963efa349df5072bfb5528cefdc494b95a5",
+  "immutable": [
+    {
+      "path": "docs/evidence/ordinary-plan-integrated-e24-v1/stages.json",
+      "length": 1539271,
+      "sha256": "da99e3b9599f64e879ba43646aef4b69f927f566b25007c96cd6d0c932a815bd"
+    },
+    {
+      "path": "docs/evidence/ordinary-plan-integrated-e24-v1/current-manifest.json",
+      "length": 1856,
+      "sha256": "2a9536f3b349bfe41feddc5a208ae168d117750b380de11f92fa68702e0f1768"
+    },
+    {
+      "path": "docs/evidence/ordinary-plan-history-c8740045-v1/inputs.json",
+      "length": 784669,
+      "sha256": "a5d995cad4d5ecff6ea81eb310580a9a2caaf63150718d4992726cb99b877278"
+    },
+    {
+      "path": "docs/evidence/ordinary-plan-history-c8740045-v1/root-inverse.json",
+      "length": 2230,
+      "sha256": "1b03e7b910f14010da7dadb4afd0321761b274b83363bd5fd1580d55159628f6"
+    },
+    {
+      "path": "docs/evidence/ordinary-plan-history-c8740045-v1/replay.rs.before.txt",
+      "length": 317416,
+      "sha256": "6db5b0ed361258023e3d7cad058c3de6d737b416b67e98e7113ecb0a993c86c1"
+    },
+    {
+      "path": "docs/evidence/ordinary-plan-history-c8740045-v1/manifest.json",
+      "length": 1863,
+      "sha256": "c901eb04e15fce40c620bdf9f0b0b026ed502cbd553bdd33bd70477127486b4f"
+    }
+  ],
+  "checkpoints": [
+    {
+      "path": "src/cleanup_plan/replay.rs",
+      "archive": "docs/evidence/ordinary-plan-final-ingress-20261017/before787/00.txt",
+      "length": 318621,
+      "sha256": "458260e9a3d66601d731b7bad8737efdfd5a4deb4e52bbb07adf0f0af150777b",
+      "expected_sha256": "6db5b0ed361258023e3d7cad058c3de6d737b416b67e98e7113ecb0a993c86c1"
+    },
+    {
+      "path": "src/source_reflows_merge.rs",
+      "archive": "docs/evidence/ordinary-plan-final-ingress-20261017/before787/01.txt",
+      "length": 46161,
+      "sha256": "e39790a4feedf4e2ea920e66760e1f17c0d2455a78e3640cd64badaeaf55de53",
+      "expected_sha256": "10330014cf84803a8d017702b59a626820f777f7fb0cc950cc512897b8b6d220"
+    },
+    {
+      "path": "src/source_reflows_merge/main67107_inputs.rs",
+      "archive": "docs/evidence/ordinary-plan-final-ingress-20261017/before787/02.txt",
+      "length": 33251,
+      "sha256": "a511a68af9e2dfe857afff66e74f575b0ca01887b933767202f800db5c0f8ba7",
+      "expected_sha256": "92f37c17f42b28477804d61c882e45ca4b64d8fc67fd78cab11ab369026152d9"
+    },
+    {
+      "path": "tests/hir_module_boundaries.rs",
+      "archive": "docs/evidence/ordinary-plan-final-ingress-20261017/before787/03.txt",
+      "length": 96844,
+      "sha256": "4264ab588af07acb50304d667d09fb8685ab4d82bc1d78c92ea99d00cc825a4b",
+      "expected_sha256": "378d33aba7c844e66352f2eb7dc2c25b5e2f3d7101e7b331ba5bceb359a5d0fe"
+    },
+    {
+      "path": "tests/workspace/semantic_graph/source_inventory.rs",
+      "archive": "docs/evidence/ordinary-plan-final-ingress-20261017/before787/04.txt",
+      "length": 89937,
+      "sha256": "a8468859b79dd47e9ef6a77e1803e2942fcce4c4a41e6a2436e51691a495bae7",
+      "expected_sha256": "29a6c3be08485c93251c2c58a1eef2be4de905b21f54865f85356d3a85bdf21b"
+    },
+    {
+      "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "archive": "docs/evidence/ordinary-plan-final-ingress-20261017/before787/05.txt",
+      "length": 154870,
+      "sha256": "68f460f783a905ec3b35fbe0152b8353875ea0de23973dea8cf430e2b0a1c88f",
+      "expected_sha256": "754b81a88c3b698f7098524bd76cf0726d189632c44cf9027e6724e314cd7d53"
+    }
+  ]
+}

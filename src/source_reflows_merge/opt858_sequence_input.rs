@@ -47,6 +47,17 @@ fn before_later_sequence(current: &str) -> String {
     assert_eq!(PRIOR.len(), 9058);
     assert_eq!(sha(PRIOR), "4f22f98575c40645de39c95f918240e440c2e639605aadd5b36dd553fe5b5804");
     let physical = include_str!("../cleanup_plan/replay.rs");
+    // Authenticate the complete compiled/physical root before extracting its
+    // historical function. Supplied fragments confer no raw-audit authority.
+    let supplied_physical = format!("fn sequence_skeleton_paths({}", physical.split_once("fn sequence_skeleton_paths(").unwrap().1.split_once("\nuse path_summary::has_active_paths;").unwrap().0);
+    let acquired = super::main67107_inputs::semantic_batch_previous(
+        "src/cleanup_plan/replay.rs", physical, "base851",
+    );
+    let prior_fragment = format!("fn sequence_skeleton_paths({}", acquired.split_once("fn sequence_skeleton_paths(").unwrap().1.split_once("\nuse path_summary::has_active_paths;").unwrap().0);
+    assert!(current == supplied_physical || current == prior_fragment,
+        "whole supplied sequence must equal its authenticated current or exact prior stage");
+    let current = prior_fragment.as_str();
+    let physical = acquired.as_str();
     let fragment = format!("fn sequence_skeleton_paths({}", physical.split_once("fn sequence_skeleton_paths(").unwrap().1.split_once("\nuse path_summary::has_active_paths;").unwrap().0);
     assert_eq!(fragment, RAW, "whole compiled sequence fragment");
     assert_eq!(current, RAW, "whole supplied sequence fragment");

@@ -88,7 +88,11 @@ pub(crate) fn presence_before_later_inventory(domain: &str, path: &str, current:
         || !matches!(domain, "loan-stack" | "eb2-compact" | "incoming") {
         return current.to_owned();
     }
-    let raw = include_str!("../cleanup_plan/replay/live_oracle/source_custody/presence.json");
+    let raw = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/c874-presence-promotion-input-20261017/presence.c874-43ce-current.json.txt"));
+    assert_eq!(raw.len(), 48_138, "fixed c874 whole presence length");
+    assert_eq!(digest(raw), "43ce0a20e3e727960c010da44561b8ec6c0e8353ed48d5067662c955be0ed7cc", "fixed c874 whole presence SHA");
+    let compiled = include_str!("../cleanup_plan/replay/live_oracle/source_custody/presence.json");
+    assert_eq!(compiled, raw, "actual compiled presence equals independent fixed c874 endpoint");
     assert_eq!(current.len(), raw.len(), "whole compiled presence input length");
     assert_eq!(digest(current), digest(raw), "whole compiled presence input");
     assert_eq!(current, raw, "complete compiled presence input");

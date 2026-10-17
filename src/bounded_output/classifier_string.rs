@@ -310,6 +310,17 @@ impl ClassifierLedger {
             + 2 * size_of::<&Cell<usize>>()
             + size_of::<&Cell<Option<super::ReservationStage>>>()
     }
+    /// Identity probe only: mismatch grants nothing and mutates neither ledger.
+    /// Same receiving shapes as current(), funded by its unchanged caller bank.
+    /// Real acquisition still authenticates its payer after this probe succeeds.
+    pub(crate) fn current_identity(&self) -> bool {
+        let current = active();
+        match (&self.0, current) {
+            (None, None) => true,
+            (Some(held), Some(current)) => Rc::ptr_eq(held, &current),
+            _ => false,
+        }
+    }
     pub(crate) fn current(&self) -> bool {
         let current = active();
         let same = match (&self.0, current) {

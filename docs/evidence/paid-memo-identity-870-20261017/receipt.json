@@ -1,0 +1,26 @@
+{
+  "status": "SOURCE_CANDIDATE_UNEXECUTED",
+  "base": "aafda9f37f3d093c60013f3c63b6e7286a6285df",
+  "new_selector": "cleanup_plan::replay::factored::canonical_shared::paid_many::tests::memo_identity_gate_rejects_nested_ledger_without_spending_or_poisoning_either_payer",
+  "changed_paths": [
+    "src/bounded_output/classifier_string.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/paid_many/tests.rs"
+  ],
+  "complete_old_memo_verbatim_compiled": true,
+  "original_current_and_prices_whole_unchanged": true,
+  "original_paid_many_test_prefix_unchanged": true,
+  "finite_inverses_all_restored": true,
+  "all_files_under1500": true,
+  "files": {
+    "00.after.txt": "817b457bf874ea2233f362def886e3d05b59e37a30a7fe75f85026cd0034d393",
+    "00.before.txt": "88389f912f0bd6c275a8cee2bec309210bb0c575c7b449547606d8449dfdb9cc",
+    "01.after.txt": "59f15d0dc91103a34a15dcd5ea7f475634951747e28454edee8c890f917b32dc",
+    "01.before.txt": "e6fe00f0a39f8c1ee59fa25e72dfa4fe8d1b5a81315602244ea6dff75965e0c0",
+    "02.after.txt": "2432c4f4b2bf65fda9445014ff276ddbceaa3344ea9485318d52abeb67ee8b6e",
+    "02.before.txt": "2eb76c67de772fec04013504817cf64ec5b90848f8030021ba248115bd837c8c",
+    "README.md": "1ef24ed06852bdc632d16ba886e58e505bf124a923a80ebc24fae11f2cb69c35",
+    "pending-selectors.json": "d11942760310ef5c54aecb277f7fb3b7549d38f2d8eaba5b58ca06cb31f4e104",
+    "whole-source-inverses.json": "cae583d5f4d2c8a3f2cb72efdd8ebbe0b6f928dacbf46a04f15d82cf1167cd8f"
+  }
+}

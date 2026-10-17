@@ -22,8 +22,8 @@ def held(path,length):
 original=held(D/'verify-or-refresh.before.py',9518)
 assert len(original)==9518 and sha(original)=='7c2eb0ca8ff31f89b3744d69089bb62c57c8114495ddc4ec78862c32f8b4392a'
 assert original.decode().count(SEMANTIC_HELPER_SHA)==1
-helper=D/'definition_payload.py';raw=held(helper,3219)
-assert len(raw)==3219 and sha(raw)=='77b7aa8b9259c898458d43314b1b97241230021afca30f4d37a25907e40c1c5e'
+helper=R/'docs/evidence/main043-definition-raw3-generation-20261017/definition_payload.py';raw=held(helper,3224)
+assert len(raw)==3224 and sha(raw)=='a0b2591857ace73221f4749bb4371a12972b22c4a40a88af4423093b539ff7c7'
 m=types.ModuleType('fixed_main043_definition_payload')
 m.__file__=str(helper)
 exec(compile(raw,str(helper),'exec'),m.__dict__)

@@ -1,0 +1,51 @@
+{
+  "schema": "semaprax.main043-definition-generation.v1",
+  "status": "ACTUAL_SOURCE_DEFINITION_UNQUALIFIED_HISTORICAL_INGRESS",
+  "path": "src/source_reflows/main043/semantic_receivers.rs",
+  "old_row": {
+    "path": "src/source_reflows/main043/semantic_receivers.rs",
+    "bytes": 6160,
+    "sha256": "4bc99dc2b93442b83cb679e3c0e108f3b50121d90e8aee4ceed01296e7ec33b5"
+  },
+  "current_length": 7516,
+  "current_sha256": "c9f6aa0c11bc43b46331a94f07ced0bb7f9b1aa974f61a72e6addf7f23b2bdb6",
+  "current_archive": "docs/evidence/main043-definition-generation-20261017/semantic_receivers.current.rs.txt",
+  "old_archive": "docs/evidence/main043-definition-generation-20261017/semantic_receivers.c874.rs.txt",
+  "inverse": [
+    {
+      "at": 6242,
+      "after": "\n#[test]\nfn nominal_audit_comparison_retains_complete_reviewed_afterimage_and_archive() {\n    let path = \"src/hir/nominal_payload/legacy/source_tests.rs\";\n    let proof = proofs().iter().find(|proof| proof[\"path\"] == path).unwrap();\n    let root = Path::new(env!(\"CARGO_MANIFEST_DIR\"));\n    let current = std::fs::read_to_string(root.join(path)).unwrap();\n    let archive = std::fs::read_to_string(root.join(\"docs/evidence/live-source-audit-custody-v1\").join(proof[\"archive\"].as_str().unwrap())).unwrap();\n    assert_eq!(current, archive, \"raw current is this exact predecessor\");\n    let afterimage = receiver_comparison_input(proof, &current);\n    assert_eq!(digest(&afterimage), proof[\"after_sha256\"]);\n    assert_ne!(afterimage, archive);\n    assert_eq!(invert(proof, &current), archive);\n    assert_eq!(digest(&archive), proof[\"before_sha256\"]);\n    for bad in [String::new(), format!(\"{current} \"), current[..current.len()-1].to_owned(), afterimage.clone()] {\n        assert!(std::panic::catch_unwind(|| receiver_comparison_input(proof, &bad)).is_err());\n    }\n    let mut forged = proof.clone();\n    forged[\"after_sha256\"] = serde_json::Value::String(\"0\".repeat(64));\n    assert!(std::panic::catch_unwind(|| receiver_comparison_input(&forged, &current)).is_err());\n}\n",
+      "before": ""
+    },
+    {
+      "at": 4905,
+      "after": "    if !matches!(path, \"src/cleanup_plan/replay/selected_entry/tests/session_errors/source.rs\"\n        | \"src/hir/nominal_payload/legacy/source_tests.rs\") {\n",
+      "before": "    if path != \"src/cleanup_plan/replay/selected_entry/tests/session_errors/source.rs\" {\n"
+    },
+    {
+      "at": 4536,
+      "after": "// These two historical audits have raw endpoints equal to their predecessors.\n// The existing sealed route authenticates the complete reviewed afterimage;\n// the unchanged nonidentity assertion compares that afterimage with its archive.\n",
+      "before": "// Only this historical audit has a raw endpoint equal to its predecessor.\n// The existing sealed route authenticates raw250 -> reviewed75 in full; the\n// unchanged nonidentity assertion belongs to reviewed75 -> archive250.\n"
+    }
+  ],
+  "raw_inventories": [
+    {
+      "path": "tests/hir_module_boundaries.rs",
+      "length": 97057,
+      "sha256": "dc3bf3b20917a0c523231e405ff329e5950f12b55501bced9ae908fbaf5b8888",
+      "exact_target_include_count": 1
+    },
+    {
+      "path": "tests/workspace/semantic_graph/source_inventory.rs",
+      "length": 90159,
+      "sha256": "42bdd4f76491607cab8538b3006d4b807aca5d138badc1d763c7090cfc53b000",
+      "exact_target_include_count": 1
+    },
+    {
+      "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "length": 155119,
+      "sha256": "dff1f6f15ef145c633165446c54ad37ed6c8ef978caa121c413dcaf06b5fa918",
+      "exact_target_include_count": 1
+    }
+  ]
+}

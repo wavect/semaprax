@@ -283,17 +283,17 @@
     },
     {
       "path": "docs/evidence/ordinary-replay-setup-v1/sources.json",
-      "current_len": 3431914,
-      "current_sha256": "fca8ff3e71b5167c1350ba46ce12dee935e987183a55a016c5297ebdc06fad3b",
-      "current_archive": "docs/evidence/main34d535-integration-20261017/docs__evidence__ordinary-replay-setup-v1__sources.json.ours-before.json",
+      "current_len": 2071013,
+      "current_sha256": "f38d4e426196d25959a5fd4d7319a30b8d4e456f77e686ddb6060d94aa9b7ee2",
+      "current_archive": "docs/evidence/main34d-three-source-domains-20261017/current-inputs/meta-f38d4e426196d25959a5fd4d7319a30b8d4e456f77e686ddb6060d94aa9b7ee2.txt",
       "main_len": 4195473,
       "main_sha256": "5f43b9301289b6ce516b62121ec279920cb6a6bbec11edd45f1dd97aad4fa043",
       "main_archive": "docs/evidence/main34d535-integration-20261017/docs__evidence__ordinary-replay-setup-v1__sources.json.main34d.json",
       "whole_source_inverse": [
         {
           "at": 0,
-          "remove_len": 3431914,
-          "remove_sha256": "fca8ff3e71b5167c1350ba46ce12dee935e987183a55a016c5297ebdc06fad3b",
+          "remove_len": 2071013,
+          "remove_sha256": "f38d4e426196d25959a5fd4d7319a30b8d4e456f77e686ddb6060d94aa9b7ee2",
           "insert_archive": "docs/evidence/main34d535-integration-20261017/docs__evidence__ordinary-replay-setup-v1__sources.json.main34d.json"
         }
       ]

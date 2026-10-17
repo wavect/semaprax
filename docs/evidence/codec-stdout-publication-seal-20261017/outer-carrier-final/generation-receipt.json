@@ -1,0 +1,51 @@
+{
+  "status": "GENERATED_SOURCE_ONLY_NOT_APPLIED_OR_VERIFIED",
+  "repo": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
+  "snapshot_head": "3831436b7622170bf1ea6700315e6d6d54486eff",
+  "snapshot_tree": "f42927de57191daa31fd86036b47e834449bc7de",
+  "sealed_head": "87821ac6f304ca7ed69d5a539354e31e5db22845",
+  "carrier_count": 3,
+  "owners": [
+    {
+      "path": "src/cleanup_plan/replay/skeleton_work/prefix_fusion.rs",
+      "sha256": "490c187c8945b45a120be05c3c96a68800bef43f91522ae77653dbb50f254769"
+    },
+    {
+      "path": "src/cleanup_plan/replay/skeleton_work/prefix_fusion/before.rs",
+      "sha256": "8092b89c1e93aa1aaba35fd0d80c4d6d5aaf8dcdb337c65f6efb6c4c4133329c"
+    },
+    {
+      "path": "src/cleanup_plan/replay/skeleton_work/prefix_fusion/tests.rs",
+      "sha256": "e9b3cfee3b7f7ff0ef56b72dcd0ec3483b9c58bae86f26d222b46967c550b003"
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs",
+      "sha256": "60f688bdadc749a017b45d09e43e8eb1b1034b2c11d7f38bcc25e3d8e3cd7185"
+    },
+    {
+      "path": "src/source_reflows/incoming67107_semantic_receivers.rs",
+      "sha256": "312fde087005ab31671190994e8eb71cdac95cd32d3b4d1fbc13c3c544f66a21"
+    },
+    {
+      "path": "src/source_reflows_merge/main67107_inputs.rs",
+      "sha256": "c20c668e4305905b1d2de08f20b09caf0c9d1850dbef7e8bf9ea95a1fee85f4e"
+    }
+  ],
+  "cuts_sha256": "eacf0ce6d065e55124fb3aab851560eaa4bd935cf716b3d420e6bba91fb91248",
+  "generator_sha256": "c2cc94f3de000373500836cb112ee8f93fa03bbee26aa41f3722e95fc960236c",
+  "payload_sha256": {
+    "docs/evidence/codec-stdout-publication-seal-20261017/integration_input.py": "aab3e4f371cd1b1289914cf13acbf9feea6f082b13a323cb5779c9b2c17d2918",
+    "docs/evidence/codec-stdout-publication-seal-20261017/outer-carrier-final/cuts.json": "eacf0ce6d065e55124fb3aab851560eaa4bd935cf716b3d420e6bba91fb91248",
+    "docs/evidence/codec-stdout-publication-seal-20261017/outer-carrier-final/integration_input.py.before": "4e101654302a9110d0745ee6255ad99bf8273513a8cc58a60d086daf3b03ddd2",
+    "docs/evidence/codec-stdout-publication-seal-20261017/outer-carrier-final/preimages/0.current": "18d3f4fd180eaee6fb419fbdb215dd5faa37530f10c39e0624a5645cad0594b0",
+    "docs/evidence/codec-stdout-publication-seal-20261017/outer-carrier-final/preimages/0.sealed": "44bebd7f63c0a05e2f78b065e9c0802d9ac810795e30a26f87c406bd7c0366a4",
+    "docs/evidence/codec-stdout-publication-seal-20261017/outer-carrier-final/preimages/1.current": "0e19bed63f99aa9c4236add774c55ebf38d006b26303eeb0337c172c4756edcc",
+    "docs/evidence/codec-stdout-publication-seal-20261017/outer-carrier-final/preimages/1.sealed": "93ab500e906b6b7979d7c998d7e3d5a25260d4ba2b7f194629f38a0a8ad9eef7",
+    "docs/evidence/codec-stdout-publication-seal-20261017/outer-carrier-final/preimages/2.current": "07641bd8b3f203f2b642e437468b5c852174b572482d33423f6b8611d99f3a6e",
+    "docs/evidence/codec-stdout-publication-seal-20261017/outer-carrier-final/preimages/2.sealed": "43a1d5f58c83d7b675c3a8d8c01b770663414ff9f291e3661e967e6a52a74e15",
+    "docs/evidence/codec-stdout-publication-seal-20261017/outer_carrier_input.py": "4bda63c5271a6253fd3c5cc096030bc876b98ccb15e5b87a2a7a8a1277a0d0cc"
+  },
+  "source_verifier_run": false,
+  "compiler_tests_run": false,
+  "ROOT_written": false
+}

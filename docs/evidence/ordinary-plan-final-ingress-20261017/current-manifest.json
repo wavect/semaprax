@@ -39,12 +39,12 @@
     },
     {
       "path": "src/cleanup_plan/replay/ordinary_plan_history.rs",
-      "sha256": "35da2f708b6d73dc44427f6ef36e8a4d9dcebb9d499cab40efbbfa221b85bd66",
-      "lines": 583
+      "sha256": "373e120333b6316c6e140e130db662d38ceb2c83b1ca68e87328543fa0c20641",
+      "lines": 580
     },
     {
       "path": "src/source_reflows_merge/ordinary_plan_inputs.rs",
-      "sha256": "348f0224395d7553769cde5d58069f6ac7e7dd5a83f40ca7ac27f9a050fe106a",
+      "sha256": "07dd9d5c3840aebc8482f2a6b303fde057acdee77b3fd570187e11868209fee5",
       "lines": 397
     }
   ]

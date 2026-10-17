@@ -1,0 +1,74 @@
+[
+  {
+    "path": "src/cleanup_plan/replay/expression_facts/receiving/helpers.rs",
+    "archive": "docs/evidence/borrowed-exit-region-match-v1/src__cleanup_plan__replay__expression_facts__receiving__helpers.rs.before.txt",
+    "before_sha256": "0c17a23ade80a8a8cd9f69e0f2ee79afa19df2996444ad86a204ea710a15d049",
+    "after_sha256": "601b4fc2980f98019a1491988449050c3c4f54359466c88acc46e030245930f6",
+    "inverse": [
+      {
+        "after": "helpers stay compiled.\nuse super::*;\nmod matching;\nmod regions;\npub(super) use matching::exit_regions_match;\npub(super) use regions::expected_exit_regions;\n\npub(super) fn va",
+        "before": "helpers stay compiled.\nuse super::*;\nmod matching;\nmod regions;\npub(super) use regions::expected_exit_regions;\n\npub(super) fn va"
+      },
+      {
+        "after": "ing results; original root helpers stay compiled.\nuse super::*;\nmod matching;\nmod regions;\npub(super) use regions::expected_exit_regions;\n\npub",
+        "before": "ing results; original root helpers stay compiled.\nuse super::*;\nmod regions;\npub(super) use regions::expected_exit_regions;\n\npub"
+      }
+    ]
+  },
+  {
+    "path": "src/cleanup_plan/replay/expression_facts/receiving/remaining.rs",
+    "archive": "docs/evidence/borrowed-exit-region-match-v1/src__cleanup_plan__replay__expression_facts__receiving__remaining.rs.before.txt",
+    "before_sha256": "eff95ac901df52b4012ad9058f12e0189eb57997690e2f2e3bab47ae0cbd0b2a",
+    "after_sha256": "545c82627829c38bdc380b7e7c9023c8cba599af9cfd6e0fcd235b494c1e4b45",
+    "inverse": [
+      {
+        "after": " ID or unknown source block\",\n            ));\n        }\n        if budget.payer == AllocationPayer::ActiveBuilder\n            && !matches!(exit.continuation, ExitContinuation::LoopLatch { .. })\n        {\n            if !helpers::exit_regions_match(function, exit, budget)? {\n                return Err(replay_error(\n                    function,\n                    \"cleanup exit does not leave the exact source-to-target region chain\",\n                ));\n            }\n        } else {\n            let expected_regions = helpers::expected_exit_regions(function, exit, budget)?;\n            if exit.leaves_regions != expected_regions {\n                return Err(replay_error(\n                    function,\n                    \"cleanup exit does not leave the exact source-to-target region chain\",\n                ));\n            }\n        }\n        let mut prior: Option<super::CleanupRegionId>",
+        "before": " ID or unknown source block\",\n            ));\n        }\n        let expected_regions = helpers::expected_exit_regions(function, exit, budget)?;\n        if exit.leaves_regions != expected_regions {\n            return Err(replay_error(\n                function,\n                \"cleanup exit does not leave the exact source-to-target region chain\",\n            ));\n        }\n        let mut prior: Option<super::CleanupRegionId>"
+      }
+    ]
+  },
+  {
+    "path": "src/cleanup_plan/replay/expression_facts/receiving/retained/exits.rs",
+    "archive": "docs/evidence/borrowed-exit-region-match-v1/src__cleanup_plan__replay__expression_facts__receiving__retained__exits.rs.before.txt",
+    "before_sha256": "8edeff9193bd5e4bf0e0026f532aeeead3fb152225bad78a618f21e43301d9b8",
+    "after_sha256": "f6c3b1bf1b3d2e3bd3ca4e8278df6eb3238892acc12c74d358c25cc4b3cb12db",
+    "inverse": [
+      {
+        "after": " ID or unknown source block\",\n            ));\n        }\n        if budget.payer == AllocationPayer::ActiveBuilder\n            && !matches!(exit.continuation, ExitContinuation::LoopLatch { .. })\n        {\n            if !helpers::exit_regions_match(function, exit, budget)? {\n                return Err(replay_error(\n                    function,\n                    \"cleanup exit does not leave the exact source-to-target region chain\",\n                ));\n            }\n        } else {\n            let expected_regions = helpers::expected_exit_regions(function, exit, budget)?;\n            if exit.leaves_regions != expected_regions {\n                return Err(replay_error(\n                    function,\n                    \"cleanup exit does not leave the exact source-to-target region chain\",\n                ));\n            }\n        }\n        let mut prior: Option<super::CleanupRegionId>",
+        "before": " ID or unknown source block\",\n            ));\n        }\n        let expected_regions = helpers::expected_exit_regions(function, exit, budget)?;\n        if exit.leaves_regions != expected_regions {\n            return Err(replay_error(\n                function,\n                \"cleanup exit does not leave the exact source-to-target region chain\",\n            ));\n        }\n        let mut prior: Option<super::CleanupRegionId>"
+      }
+    ]
+  },
+  {
+    "path": "src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs",
+    "archive": "docs/evidence/borrowed-exit-region-match-v1/src__cleanup_plan__replay__expression_facts__receiving__helpers__tests.rs.before.txt",
+    "before_sha256": "f5bf554985629d8bd03343ea98b22c83cd042e77176a7fffff79b090b43cc330",
+    "after_sha256": "1d31e1bf8377e7a1d7dd1d5a8844faa974cefa6cf94bd3029283647f70d2a51c",
+    "inverse": [
+      {
+        "after": "rvationRefusal};\nuse crate::test_allocation_observer::measure;\n\npub(super) fn program() -> ResolvedProgram {\n    let owner = include_str!(c",
+        "before": "rvationRefusal};\nuse crate::test_allocation_observer::measure;\n\nfn program() -> ResolvedProgram {\n    let owner = include_str!(c"
+      }
+    ]
+  },
+  {
+    "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "archive": "docs/evidence/borrowed-exit-region-match-v1/crates__semaprax-native-rust-interop-builder__src__implementation__tests__ledger_capacity__source_inventory.rs.before.txt",
+    "before_sha256": "3cc384e9243b4686748e517e2b1e02bc9ef0ea61dd032a6a026e841e82068f2b",
+    "after_sha256": "0e077ec3242fdeafaffb74be980d0dac03fb0e8bd27b5bd77484b3e82b21bf15",
+    "inverse": [
+      {
+        "after": "tr!(\"../../../../../src/cleanup_plan/replay/skeleton_work.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/skeleton_work/isolated_paths.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/skeleton_work/isolated_paths/tests.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/skeleton_work/isolated_paths/tests/before.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay",
+        "before": "tr!(\"../../../../../src/cleanup_plan/replay/skeleton_work.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay"
+      },
+      {
+        "after": "            include_str!(\"../../../../../src/hir/validation/ownership_flags.rs\"),\n            include_str!(\"../../../../../src/hir/validation/ownership_flags/before.rs\"),\n            include_str!(\"../../../../../src/hir/validation/ownership_flags/tests.rs\"),\n            include_str!(\"../../../../../src/hir/validation/call_parameters/copy_before.rs\"),\n            include_str!(\"../../../../../src/hir/validation/call_parameters/copy_flags_tests.rs\"),\n            concat!(concat!(include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving.rs\"),\n                include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/regions_entry.rs\"),\n            ),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/retained.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/helpers.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/helpers/regions.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/helpers/matching.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/helpers/matching/tests.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/helpers/before_remaining.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/leaf_index.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/leaf_index/paid.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/retained/exits.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/remaining.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/remaining/selected.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs\"),\n            include_str!(\"../../../../../src/clea",
+        "before": "            include_str!(\"../../../../../src/hir/validation/ownership_flags.rs\"),\n            include_str!(\"../../../../../src/hir/validation/ownership_flags/before.rs\"),\n            include_str!(\"../../../../../src/hir/validation/ownership_flags/tests.rs\"),\n            include_str!(\"../../../../../src/hir/validation/call_parameters/copy_before.rs\"),\n            include_str!(\"../../../../../src/hir/validation/call_parameters/copy_flags_tests.rs\"),\n            concat!(concat!(include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving.rs\"),\n                include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/regions_entry.rs\"),\n            ),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/retained.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/helpers.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/helpers/regions.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/helpers/before_remaining.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/leaf_index.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/leaf_index/paid.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/retained/exits.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/remaining.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/remaining/selected.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs\"),\n            include_str!(\"../../../../../src/clea"
+      },
+      {
+        "after": "up_plan/replay/expression_facts/receiving/helpers/regions.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/helpers/matching.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/helpers/matching/tests.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay",
+        "before": "up_plan/replay/expression_facts/receiving/helpers/regions.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay"
+      }
+    ]
+  }
+]

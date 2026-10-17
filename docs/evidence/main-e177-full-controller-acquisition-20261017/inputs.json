@@ -3701,8 +3701,8 @@
     },
     {
       "path": "tests/workspace.rs",
-      "current_length": 4266,
-      "current_sha256": "cb397e1262d175a6f2b69a8a89594eeaa83591bbd18e2acf19cf4a27abcf8cfe",
+      "current_length": 4657,
+      "current_sha256": "b08e6a6ac41aea9919c08f4de0eeb8b7ec8802de278c3b6ef68c79af79604692",
       "main_length": 4167,
       "main_sha256": "45b44288e356eb9de5d7a2554fcdd6f1d9576e928cf076a778fa9b7eb379e7af",
       "main_archive": "docs/evidence/main-e177-full-controller-acquisition-20261017/incoming/45b44288e356eb9de5d7a2554fcdd6f1d9576e928cf076a778fa9b7eb379e7af.txt"

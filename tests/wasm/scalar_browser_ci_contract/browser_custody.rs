@@ -306,7 +306,7 @@ pub(super) fn main8a_input(source: &str, current: &str) -> String {
 }
 
 // Independent outer seam; every old immutable browser table sees exact4251.
-pub(super) fn before_e47_input(source: &str, current: &str) -> String {
+pub(crate) fn before_e47_input(source: &str, current: &str) -> String {
     let restored = current67b_input(source, current);
     let current = restored.as_str();
     pin_project(

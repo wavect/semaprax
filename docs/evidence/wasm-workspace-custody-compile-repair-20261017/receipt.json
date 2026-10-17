@@ -1,0 +1,52 @@
+{
+  "status": "SOURCE_ONLY_NOT_COMPILED",
+  "base": "0f9fb3766f0413694e4a12447538f7c7bb99627f",
+  "repairs": [
+    "Wasm and workspace independent crate roots import the exact original helper function/module items; no wrappers or changed historical acquisition algorithms.",
+    "Only before_e47_input visibility widens to pub(crate); body unchanged."
+  ],
+  "changed_rust": [
+    "src/source_reflows_merge/main_e177_final_inputs.rs",
+    "src/source_reflows_merge/main_e177_inputs.rs",
+    "tests/wasm.rs",
+    "tests/wasm/scalar_browser_ci_contract/browser_custody.rs",
+    "tests/workspace.rs"
+  ],
+  "production_rust_unchanged": true,
+  "production_reason": "All changed src helper modules descend from unchanged lib.rs cfg(test) source_reflows_merge; remaining changes are integration tests. No production manifests/build scripts changed.",
+  "binding_delta": "Incoming471 exactly one workspace current length/SHA tuple; all incoming fields/archive bytes/order unchanged. Existing49 exactly one E177 reader current descriptor; all views/other rows/order unchanged. Both whole original packets retained. Reader packet literal SHA values and existing guard module pins updated; algorithms unchanged.",
+  "strict_source_controls": {
+    "status": "PASS_SOURCE_ONLY_STRICT_AND_BOOTSTRAP",
+    "complete_current_carriers": 3,
+    "complete_original_guard_carriers": 3,
+    "old_maximums_unchanged": true,
+    "refusals": 58,
+    "original_verifier_executed": false,
+    "rust_executed": false
+  },
+  "precommit_authentication": {
+    "path": "/Volumes/Semaprax/provenance/wasm-workspace-custody-compile-repair-20261017/precommit-auth49.json",
+    "sha256": "3e83eb6b8cc79313591cefa6eea6c0c733883d342f7259a1dd0257283cd7a606"
+  },
+  "frozen174_affected": false,
+  "FINAL6_source_rows_affected": false,
+  "metadata_pending": "After parent combines new production candidates, update finite root module edges/roles and source hashes once. Fresh actual286/combined selection registration must use final source. Do not run old hash-only wrapper because registration edges changed.",
+  "new_physical_modules": [],
+  "new_independently_compiled_existing_helpers": {
+    "test:wasm": [
+      "main_e177_final_inputs"
+    ],
+    "test:workspace": [
+      "main_e177_final_inputs",
+      "next_big_batch_inputs"
+    ]
+  },
+  "postbind_checker": {
+    "path": "/Volumes/Semaprax/provenance/wasm-workspace-custody-compile-repair-20261017/check-postbind49.py",
+    "sha256": "9c77d79494c249be857010c3fc224d49df6ee733baecbe1fcc94dd65531defc6"
+  },
+  "Cargo": false,
+  "Rust_bodies_executed": false,
+  "tests_weakened": false,
+  "all_11_changed_beforeimages_verified_against_Git": true
+}

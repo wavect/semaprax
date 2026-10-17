@@ -1,0 +1,88 @@
+{
+  "status": "SOURCE_ONLY_NOT_RUST_QUALIFIED",
+  "base": "36c6deb98720e243b0daaf81e813fbe3ec3b0a2d",
+  "changed_rust": [
+    "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+    "src/cleanup_plan/replay/live_oracle/source_custody/current_view.rs",
+    "tests/support/production_source_inventory.rs"
+  ],
+  "new_rust_owners": 0,
+  "original_assertions_unchanged": true,
+  "original_tables_archives_caps_unchanged": true,
+  "raw3_unchanged": true,
+  "controls": {
+    "status": "PASS_SOURCE_ONLY_NO_RUST_RUNTIME",
+    "whole_changed_sources": 3,
+    "whole_funded_subjects": 2,
+    "physical_domains": 2,
+    "refusals": 23,
+    "old_guard_and_all_old_assertions_retained": true
+  },
+  "files": [
+    {
+      "path": "docs/evidence/source-custody-452-promotions-20261017/0.current.rs.txt",
+      "length": 3758,
+      "sha256": "c80bf82ed4cb60a58038c05229725b154b858a3afa56935000df8a5651c1b8a7"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-promotions-20261017/changed-0.before.txt",
+      "length": 73455,
+      "sha256": "007ccb3c42b1923a8fed73e12703973745a6af03a7865e792800969ddd0e0bfa"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-promotions-20261017/1.current.rs.txt",
+      "length": 7268,
+      "sha256": "fa8cd466ca164dc0639e8670d2c61586943ee07adb5ea4aea2affcb4451e6f08"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-promotions-20261017/changed-2.before.txt",
+      "length": 1887,
+      "sha256": "7f4e94f4f4e0e2177df9a6ed285a94c99acf801343b85da306d8de93f51629dc"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-promotions-20261017/pending-selectors.json",
+      "length": 1974,
+      "sha256": "5384d824d312bb6e57046c546f8eee54bb23fb6b9c49d9e02773cac611b8fdef"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-promotions-20261017/README.md",
+      "length": 1638,
+      "sha256": "726cc3dd28733a576d2ea43aeb5ac3b504b02ccb99fd45e5b38b572c4cac4920"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-promotions-20261017/subjects.json",
+      "length": 578,
+      "sha256": "fee5a3756cfb4047a463687ab535d9672a7df5034f35c616ebb64ec86432e3ff"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-promotions-20261017/whole-inverses.json",
+      "length": 177622,
+      "sha256": "2d1b107b4db1da5899d705ee5085a3e1782f09815ca6353b291a2e2dc6f866ff"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-promotions-20261017/check-source.py",
+      "length": 3224,
+      "sha256": "4816f9a3e90fa300f4f4b688b27104f93c8dff7b04e0d9aef3df0fd0258bf88e"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-promotions-20261017/source-controls.json",
+      "length": 207,
+      "sha256": "3cff23f4ca6ac09ea25457df4bfb531a129789754189d37112b0ad66ae5e5a97"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-promotions-20261017/changed-1.before.txt",
+      "length": 7247,
+      "sha256": "babe429c11416c659260dacb0a14a0e9a81ab84a0726965b550056853f0d7ba9"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-promotions-20261017/0.prior.rs.txt",
+      "length": 3740,
+      "sha256": "373e5f8ff1857e3893164c51e35cb26fc92e65556e8dc57b13c5d5ff62a58f7e"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-promotions-20261017/1.prior.rs.txt",
+      "length": 7250,
+      "sha256": "991930a735260c17530eacdc832d909c959f595efdddf0f0cff7f7a7d8137075"
+    }
+  ]
+}

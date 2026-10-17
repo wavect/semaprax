@@ -1,0 +1,8 @@
+{
+  "status": "PASS_SOURCE_ONLY_NO_RUST_RUNTIME",
+  "whole_changed_sources": 3,
+  "whole_funded_subjects": 2,
+  "physical_domains": 2,
+  "refusals": 23,
+  "old_guard_and_all_old_assertions_retained": true
+}

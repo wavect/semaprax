@@ -393,7 +393,7 @@ pub(crate) use funded::work::checked_moving_string_operands_funded_with_work;
         );
     }
     {
-        let mut current = include_str!("../../../../literal_format/funded.rs").to_owned();
+        let mut current = super::current_view::funded_before_promotion("src/literal_format/funded.rs", include_str!("../../../../literal_format/funded.rs"));
         undo(
             &mut current,
             r#"        assert_eq!(active, 0);
@@ -955,7 +955,7 @@ pub(crate) fn resolved_operands_with_work<'a, E>(
         );
     }
     {
-        let mut current = include_str!("../../../../string_ops/conditions/funded.rs").to_owned();
+        let mut current = super::current_view::funded_before_promotion("src/string_ops/conditions/funded.rs", include_str!("../../../../string_ops/conditions/funded.rs"));
         undo(
             &mut current,
             r#"        assert_eq!(active, 0);

@@ -88,3 +88,52 @@ Drop, and the full existing physical/foreign/wide/CLI/application gates in the
 coordinated batch. If current paid bytes do not meet the original strict owner,
 report that failure and retain the candidate unqualified; do not lower baseline
 or fees. No runtime result has yet been observed.
+
+## Before namespace audit (source only)
+
+The 1,476-line whole original parent remains literal in `canonical.before.txt`.
+The independent before root replaces only the original outer registration/import
+block with explicit sibling imports, retaining every byte from the first
+`activate_closure` comment through the last complete production impl. Its only
+suffix adds two read-only test accessors and a local `mod terminal_leaf;`.
+A source control strips exactly that literal prefix/suffix and compares the
+entire remaining body to the whole preimage's production region. Another exact
+inverse removes only the new module registration and two Selected dispatch arms
+from the current whole parent, and compares every remaining byte to the preimage.
+The terminal child is copied verbatim, with a whole-source equality control.
+
+The before root defines its own Canonicalizer, CanonicalFrame, SharedWeighted
+alias, own_weighted, weighted_successor, share_weighted and authentication macros.
+It imports neither the current Canonicalizer nor the new Selected macro/module.
+Its local SharedWeighted is exactly `Rc<SmallWeighted>` using the unchanged
+shared inline-weighted type. Label, ReplayBudget, Selected anchor and underlying
+Memo/Binding types remain the unchanged compiler-wide owners, rather than
+replacement lookalikes. ClosureReceiving and all unchanged helpers are explicit
+sibling imports. The original before Selected arms remain empty and fall into
+the original complete owned-label B-tree loops; they cannot delegate to the new
+macro. Active/Oracle retain their original helper dispatches in both versions.
+
+`before_selected_labels/terminal_leaf.rs` resolves from the before root's local
+module declaration. Its unchanged `use super::*` therefore extends the before
+Canonicalizer and sees its local authentication macro; it does not extend the
+current Canonicalizer. `intern_arena::prepare_insert!` and
+`lexical_child_scratch::prepare!` still expand at the before call sites against
+its own fields and locally defined attempt macro. Empty-signature constants use
+shared types definitionally identical to the before's aliases. Instrumentation
+imports (`tests`, `arena_tests`, `app_census`) remain observation hooks only.
+
+Remaining compiler questions are explicitly unproved: nested macro hygiene for
+add/publish metavariables and their outer budget/function captures, owned versus
+mutable Label guard typing, privacy of shared Arena/Memo field access through
+the deeper before terminal child, and alias/type inference in shared macro
+expansions and Arena iter equality. Source inspection found no intended current
+Selected dispatch reachable from before, but only coordinated compilation can
+settle name resolution/privacy/inference. No parse-only result, independent
+compilation result, runtime equivalence or physical receipt is claimed.
+
+The new semantic controls compare complete accepted results, entire ordered
+signature entries (including full Labels and accepted route weights), entire
+weighted-state entries (all child/weight pairs), remaining work accounts, and
+Diagnostic's complete derived equality. Different Rc addresses are deliberately
+used with equal Boolean observation payloads; multiplicity cases use all four
+weights 0/1/2/MAX and two target children. These are authored expectations only.

@@ -1,0 +1,7 @@
+OPT878 borrowed keys calls=false: previous held=12520 allocated=9152 highwater=5696; current held=54604 allocated=8224 highwater=4744
+OPT878 borrowed keys calls=true: previous held=18848 allocated=11984 highwater=7528; current held=56212 allocated=9832 highwater=6088
+OPT878 owned suffix old=true: held=40683 allocated=28256 highwater=13424
+OPT878 owned suffix old=false: held=94691 allocated=22248 highwater=13184
+OPT877 sequence-only len=1 old_paid=16244 new_paid=16244 old_heap=Metrics { allocations: 50, reallocations: 21, allocated: 5321, freed: 5321, live: 0, highwater: 3657, invalid: false } new_heap=Metrics { allocations: 50, reallocations: 21, allocated: 5321, freed: 5321, live: 0, highwater: 3657, invalid: false }; comparator costs are additional and not included
+OPT877 sequence-only len=4096 old_paid=966476 new_paid=642112 old_heap=Metrics { allocations: 4156, reallocations: 33, allocated: 955345, freed: 955345, live: 0, highwater: 854513, invalid: false } new_heap=Metrics { allocations: 4153, reallocations: 30, allocated: 627785, freed: 627785, live: 0, highwater: 593385, invalid: false }; comparator costs are additional and not included
+OPT877 sequence-only len=8192 old_paid=1916748 new_paid=1264704 old_heap=Metrics { allocations: 8253, reallocations: 34, allocated: 1905617, freed: 1905617, live: 0, highwater: 1706481, invalid: false } new_heap=Metrics { allocations: 8250, reallocations: 31, allocated: 1250377, freed: 1250377, live: 0, highwater: 1183209, invalid: false }; comparator costs are additional and not included

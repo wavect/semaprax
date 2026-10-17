@@ -1,0 +1,165 @@
+{
+  "status": "NOT_CLOSURE_AUTHORITY_PENDING_23_ACTUAL_RESULTS_AND_REPORTING",
+  "current_head": "9334eec5a785ed8b67a3698da019fbabd0cea01a",
+  "artifact_source_head": "f1b24eda3f98e19c294f50eff388f642eabc7ccb",
+  "ef112_head": "ef788f8237beeb16dcc1cfa9346fc1dbb6f69a4d",
+  "doc_publication_projection": {
+    "command": [
+      "git",
+      "diff",
+      "--name-only",
+      "f1b24eda3f98e19c294f50eff388f642eabc7ccb",
+      "9334eec5a785ed8b67a3698da019fbabd0cea01a",
+      "--",
+      "src",
+      "tests",
+      "Cargo.toml",
+      "Cargo.lock"
+    ],
+    "output": ""
+  },
+  "issues": [
+    {
+      "number": 877,
+      "path": "/Volumes/Semaprax/provenance/closure877878-literal-audit-20261017/issue-877.json",
+      "sha256": "36cd365d186a7677b0d876a3729775ee9b48331599c90425ba9a57a87b60a137",
+      "url": "https://github.com/wavect/semaprax/issues/877"
+    },
+    {
+      "number": 878,
+      "path": "/Volumes/Semaprax/provenance/closure877878-literal-audit-20261017/issue-878.json",
+      "sha256": "ad9610fc298588fe418f69220dca03c7105e8f5c16514b5365c1a682c3277c5a",
+      "url": "https://github.com/wavect/semaprax/issues/878"
+    }
+  ],
+  "actual_results": {
+    "path": "/Volumes/Semaprax/lane-prompts/semantic-focused112-ef788f82-20261017/owning-selected-results.json",
+    "sha256": "63ad1eb25cd5cb5f060e42b881a9fcba7263b03db38edfd03c290c728d09169e"
+  },
+  "current_dedicated_owners_already_executed": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::skeleton_work::enumerated_prefix::tests::sequence_and_cursor_real_byte_frontiers_preserve_six_field_diagnostics_and_full_drop",
+      "issue": 877,
+      "source": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
+      "line": 197,
+      "source_sha256": "f972a395e082188f2e05fb98624c80e04070aa0f106731230920c288120e65e3",
+      "actual_ef112_index": 0,
+      "exit_code": 0,
+      "log": "/Volumes/Semaprax/lane-prompts/semantic-focused112-ef788f82-20261017/owning-selected-00.log",
+      "log_sha256": "351ed36531a372d15db83778040998f046e7487b0e2b9e268610029de11a5e04"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::skeleton_work::enumerated_prefix::tests::original_oracle_retains_full_old_accounts_without_entering_shared_storage",
+      "issue": 877,
+      "source": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
+      "line": 472,
+      "source_sha256": "f972a395e082188f2e05fb98624c80e04070aa0f106731230920c288120e65e3",
+      "actual_ef112_index": 1,
+      "exit_code": 0,
+      "log": "/Volumes/Semaprax/lane-prompts/semantic-focused112-ef788f82-20261017/owning-selected-01.log",
+      "log_sha256": "ac60f4e11659dd8ca4769735466bbdbf2fc1ac556d16f7242628ec6cf8b6e945"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::skeleton_work::enumerated_prefix::tests::sequence_marker_never_authenticates_foreign_observation_contents_or_lent_work",
+      "issue": 877,
+      "source": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
+      "line": 561,
+      "source_sha256": "f972a395e082188f2e05fb98624c80e04070aa0f106731230920c288120e65e3",
+      "actual_ef112_index": 57,
+      "exit_code": 0,
+      "log": "/Volumes/Semaprax/lane-prompts/semantic-focused112-ef788f82-20261017/owning-selected-57.log",
+      "log_sha256": "cc6b4104e621661cd33e9f2585d7238a2311f3569a98eb7cfdae3cd19377244d"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::skeleton_work::enumerated_prefix::tests::oracle_entry_still_refuses_missing_and_same_id_foreign_invocation_without_active_fallback",
+      "issue": 877,
+      "source": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
+      "line": 736,
+      "source_sha256": "f972a395e082188f2e05fb98624c80e04070aa0f106731230920c288120e65e3",
+      "actual_ef112_index": 58,
+      "exit_code": 0,
+      "log": "/Volumes/Semaprax/lane-prompts/semantic-focused112-ef788f82-20261017/owning-selected-58.log",
+      "log_sha256": "f6fb9df35c97671a92a5c77e8496bdbee3f2214bac906741f4318d8e94983441"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::owned_suffix::tests::owned_suffix_copy_refusal_precedes_exhausted_merge_work_in_both_whole_routes",
+      "issue": 878,
+      "source": "src/cleanup_plan/replay/owned_suffix/tests.rs",
+      "line": 225,
+      "source_sha256": "fa6695fa3d741c3a96ee5e69f45dac1e5ad2a28080baf9b47f43bac2612f2977",
+      "actual_ef112_index": 2,
+      "exit_code": 0,
+      "log": "/Volumes/Semaprax/lane-prompts/semantic-focused112-ef788f82-20261017/owning-selected-02.log",
+      "log_sha256": "53a80f86213fbd4a205f6c5fe86026e0e6452adcc45a03fd92ee435f90d40ecc"
+    }
+  ],
+  "minimum23_supplement": {
+    "path": "/Volumes/Semaprax/provenance/closure877878-literal-audit-20261017/supplement23.json",
+    "sha256": "c53734fe7fef87f3a0413bc6709fe6459c33b682a741f7046e5ca20b815dca80",
+    "877_missing": 13,
+    "878_missing": 10
+  },
+  "source_inputs": [
+    {
+      "path": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
+      "bytes": 31873,
+      "sha256": "f972a395e082188f2e05fb98624c80e04070aa0f106731230920c288120e65e3",
+      "whole_ef_and_f1_equal": true
+    },
+    {
+      "path": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/source_custody.rs",
+      "bytes": 7001,
+      "sha256": "f3dcb6c08c2901dbab6c8992ad935515151764096251f03f91c7fecd6168383f",
+      "whole_ef_and_f1_equal": true
+    },
+    {
+      "path": "src/cleanup_plan/replay/skeleton_work/merge_keys_tests.rs",
+      "bytes": 17184,
+      "sha256": "e31dcefcb253e8d9ba94da407cb87d3f11a2e18ea4f9a29e9ff5f7e0913ffa92",
+      "whole_ef_and_f1_equal": true
+    },
+    {
+      "path": "src/cleanup_plan/replay/owned_suffix/tests.rs",
+      "bytes": 16740,
+      "sha256": "fa6695fa3d741c3a96ee5e69f45dac1e5ad2a28080baf9b47f43bac2612f2977",
+      "whole_ef_and_f1_equal": true
+    }
+  ],
+  "implementation_scope": {
+    "877": "Real ordinary enumerated prefix owner, full predecessor and both comparator paths exist; actual acceptance/measurement owners mostly omitted from112.",
+    "878": "Shipping owning sequence_expression handoff and index-based representative merge-key lookup exist. Borrowed merged_suffixes retains clone-before-merge; lexical_merge_normal exclusions retained. Future f247 isolated-lexical reuse is a distinct parked optimization and is not required to claim878 implemented."
+  },
+  "required_measured_reports": [
+    {
+      "selector": "cleanup_plan::replay::skeleton_work::enumerated_prefix::tests::whole_sequence_owner_reports_paid_allocated_peak_and_complete_drop_for_small_and_long_fanout",
+      "output": "Old/current paid bytes and full allocator Metrics at1/4096/8192 prefix length, fanout5; prints comparator costs excluded. Must disclose this scope, not whole-app gain."
+    },
+    {
+      "selector": "cleanup_plan::replay::skeleton_work::merge_keys_tests::borrowed_merge_directory_pays_storage_and_every_refusal_through_drop",
+      "output": "Old/current cumulative held bytes, allocated and highwater for both path and call keys; whole destruction/refusal windows; very exhaustive allowance loop retained."
+    },
+    {
+      "selector": "cleanup_plan::replay::owned_suffix::tests::owned_suffix_reports_cumulative_backing_through_result_destruction",
+      "output": "Old/current cumulative held, allocated/highwater through result/scratch destruction."
+    }
+  ],
+  "reporting_limit": "Existing877 output excludes comparator costs and does not print new.remaining-old.remaining ordinary comparison work. Full comparator bodies/tests charge ordinary work and preserve skeleton work; a numerical comparison-work difference cannot be invented from PASS. Explicitly disclose as unquantified if no authenticated actual trace provides it. No agent token/turn/cost/headline supported.",
+  "application_outcomes": "Actual808/catalog/NDJSON owners executed ef and failed at unchanged caps; report failures without fit claim.",
+  "not_performed": [
+    "Cargo",
+    "test execution",
+    "ROOT writes",
+    "issue writes",
+    "closure"
+  ]
+}

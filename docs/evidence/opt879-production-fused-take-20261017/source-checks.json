@@ -1,0 +1,9 @@
+{
+  "status": "source candidate only; independent review pending",
+  "whole_old_root_function_compiled_verbatim_except_visibility": true,
+  "incoming_and_parked_whole_files_unchanged": true,
+  "rustfmt_parse_only": true,
+  "cargo_or_tests_executed": false,
+  "raw3_MAIN043_registration": "pending explicit final integration generation",
+  "direct_helper_funding": "unresolved; issue 879 remains open"
+}

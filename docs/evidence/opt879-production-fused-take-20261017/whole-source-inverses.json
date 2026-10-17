@@ -1,0 +1,61 @@
+{
+  "schema": "semaprax.opt879.production-fused-take.source-candidate.v1",
+  "base": "aafda9f37f3d093c60013f3c63b6e7286a6285df",
+  "existing": [
+    {
+      "source": "src/cleanup_plan/replay.rs",
+      "before_archive": "docs/evidence/opt879-production-fused-take-20261017/src__cleanup_plan__replay.rs.before.txt",
+      "before_length": 323567,
+      "before_sha256": "807735eb8713ff6e02abd9ea6d3d4aea4fdc53f95bc6b6d1a2a1e51dba605afa",
+      "current_length": 322139,
+      "current_sha256": "27b044951de802a494bc2262b9d9a6ddb5312a2ea5c2f7f9e9a0c2f68929bf03",
+      "inverse": [
+        {
+          "start": 296204,
+          "after": "                            budget.reserve_bytes(function,\n                                branch_clone::TAKE_CALL_CONTROLS + branch_clone::production_capacity::ADDITIONAL_CONTROLS,\n                                \"plan final branch probe receiving\")?;\n                            branch_clone::production_capacity::produce!(budget, function, observations,\n                                observation, plan, edge, remaining_edges, edges, branch, queue);\n",
+          "before": "                                budget.reserve_bytes(function, branch_clone::TAKE_CALL_CONTROLS,\n                                    \"plan final branch probe receiving\")?;\n                                if branch_clone::can_take(branch_clone::TakeCandidate {\n                                    values: &observations,\n                                    remaining_edges: remaining_edges.len(),\n                                    edge_count: edges.len(),\n                                    budget,\n                                    plan,\n                                    target: edge.to,\n                                }) {\n                                    note_skeleton_materialization();\n                                    budget.charge_skeleton(function, 1, \"plan branch observation push\")?;\n                                    note_skeleton_materialization();\n                                    budget.reserve_bytes(function, 0, \"plan branch observation push\")?;\n                                    budget.reserve_bytes(function,\n                                        physical_clone::conversion_bytes::<std::rc::Rc<SkeletonObservation>, _>(&observation),\n                                        \"plan branch observation push\")?;\n                                    #[cfg(test)]\n                                    branch_clone::note_take();\n                                    #[cfg(test)]\n                                    branch_clone::note_generic_take();\n                                    branch = std::mem::take(&mut observations);\n                                    branch.push(observation.into());\n                                    skeleton_queue_push(budget, function, &mut queue,\n                                        (edge.to, branch), \"plan branch state push\")?;\n                                    continue;\n                                }\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/branch_clone.rs",
+      "before_archive": "docs/evidence/opt879-production-fused-take-20261017/src__cleanup_plan__replay__branch_clone.rs.before.txt",
+      "before_length": 11660,
+      "before_sha256": "7c87d361dda743f65516b263826af386f03b3b53ce7886a9c707233cbf123957",
+      "current_length": 11812,
+      "current_sha256": "f5b1b4a0986266171b3ad8cdc2c03b823f989903714804a86cc6ca2e1a9f3463",
+      "inverse": [
+        {
+          "start": 11750,
+          "after": "\npub(in crate::cleanup_plan::replay) mod production_capacity;\n",
+          "before": ""
+        },
+        {
+          "start": 8155,
+          "after": "#[allow(dead_code, reason = \"complete independently retained pre-fusion TAKE predicate\")]\n",
+          "before": ""
+        }
+      ]
+    }
+  ],
+  "new": [
+    {
+      "source": "src/cleanup_plan/replay/branch_clone/production_capacity.rs",
+      "length": 9104,
+      "sha256": "074c820b8d78de890ddaaeeb75050f4597a7edf9bb481e3e007f9f988d285a2d",
+      "lines": 167
+    },
+    {
+      "source": "src/cleanup_plan/replay/branch_clone/production_capacity/before.rs",
+      "length": 29069,
+      "sha256": "722fa28ab44182bb56f32843b05d56cf69fbfd6c4b59e32be575085d2b84adf5",
+      "lines": 625
+    },
+    {
+      "source": "src/cleanup_plan/replay/branch_clone/production_capacity/tests.rs",
+      "length": 8406,
+      "sha256": "281e1bb1772a26b4f49861cc3ac66c6bff6c6529dc0b582cf5af1a30e1eb42ad",
+      "lines": 141
+    }
+  ]
+}

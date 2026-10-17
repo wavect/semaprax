@@ -1,0 +1,77 @@
+{
+  "source_head": "fade6f4df00808a4f9b763fff22cd5f3898683f4",
+  "status": "ACTUAL_PRIOR_CAPTURE_COMPARISON_ONLY_NO_PIN_APPLY",
+  "prior_capture": "committed actual67b",
+  "rows": [
+    {
+      "name": "capability-context",
+      "prior_wire_sha256": "72f41a826d0777b00ff4aea435600ab7194c78215b3d144647f67a99df930459",
+      "actual_wire_sha256": "b1e5811acb98cb7d7d3b8d1dee5637edd79f5e72faec153dc35a7917d4765a82",
+      "whole_prior_bytes_restored": true
+    },
+    {
+      "name": "capability-review",
+      "prior_wire_sha256": "429213faf00ae672ac816d5e03c451d5bd222cd3722edc16b723b3a6dc834bb5",
+      "actual_wire_sha256": "9e819eddd3a987352336f92bd23187dc739ae38ef9303668f8a42f963cf416c0",
+      "whole_prior_bytes_restored": true
+    },
+    {
+      "name": "context",
+      "prior_wire_sha256": "78d03b6cb3dd6aeb53ae240e3a3902289f580d9e663105c945eb0783a350fe9c",
+      "actual_wire_sha256": "c82a684201c88eb98aeda55f8e79068e6d3f154cc02c1c894d9563db46973b0e",
+      "whole_prior_bytes_restored": true
+    },
+    {
+      "name": "custom-impact",
+      "prior_wire_sha256": "776bb249a5462a22a1141dadcc31ca9349ae340f59b47dbce68d6b660600b73d",
+      "actual_wire_sha256": "b02d0e2dcec852caf8531c40e51b9ab0f1123642fcf5133adead3e67b6b92240",
+      "whole_prior_bytes_restored": true
+    },
+    {
+      "name": "forward",
+      "prior_wire_sha256": "436b022ba05819f4a1e6a2242e35e97638436d5cb8ffe4d821977c48fd3fac9c",
+      "actual_wire_sha256": "fb11aac6eedf49521e97ba9ea625d2d8dc06fb86d5499952108b5fb3c57edcd9",
+      "whole_prior_bytes_restored": true
+    },
+    {
+      "name": "impact",
+      "prior_wire_sha256": "06206cc97d637223b08742e0587a9cad09b4a37bef2579c2d24723115172b338",
+      "actual_wire_sha256": "0f150d94f893464e25b1b9d65e9b7fe0488cefd47e7e248a9b9f3b9f50c5365a",
+      "whole_prior_bytes_restored": true
+    },
+    {
+      "name": "projection-wire",
+      "prior_wire_sha256": "9422e5da863668e10ff0841e619c99fca67b72de1b6dbbe5da3a8eaa13ded746",
+      "actual_wire_sha256": "ccc4d8975d2cf76dd576c5d76429a69da192e2ae426fe4c0ddd31f2d52974171",
+      "whole_prior_bytes_restored": true
+    },
+    {
+      "name": "public-graph",
+      "prior_wire_sha256": "646c457d51240593e29cabfc1e7849dcf4c90a565504c276d6937f0e324e14b6",
+      "actual_wire_sha256": "23500ce7387a67bdec1cba89a59ab7a91abdf34be66115185be5711015a9bdd2",
+      "whole_prior_bytes_restored": true
+    },
+    {
+      "name": "review",
+      "prior_wire_sha256": "5c020862f8125b587707938061997d05f3f020a4fcaf3d0823336f8e93bcbe5a",
+      "actual_wire_sha256": "8e1833b749703458042d30205662e6873526776a69a64bfeb378863d5599751c",
+      "whole_prior_bytes_restored": true
+    },
+    {
+      "name": "type-context",
+      "prior_wire_sha256": "9110f699840c81dcc2dbc57dd8d71e259266cf1074e6454081d4b21850cfaefc",
+      "actual_wire_sha256": "30e8957efc4937c1ee2195b8467a23bc0ddf10e7ba4f0df5db9dad982b8c1119",
+      "whole_prior_bytes_restored": true
+    }
+  ],
+  "recomputed_digest_semantic_hostiles_refused": 10,
+  "public_builder_bytes": {
+    "prior": 1114864,
+    "actual": 1160532
+  },
+  "projection_builder_bytes": {
+    "prior": 2933905,
+    "actual": 3302915
+  },
+  "scope": "All ten complete actual wires equal prior bytes after only explicit builder bill, graph binding, and independently validated nested self-digest restoration. This is historical fade evidence; current production has since changed. Original strict updater refusal preserved; no replacement build/capture authority or pin application."
+}

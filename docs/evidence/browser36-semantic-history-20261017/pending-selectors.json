@@ -1,0 +1,35 @@
+{
+  "status": "SOURCE_ONLY_PENDING_ACTUAL_FOCUSED_WASM_ROLE",
+  "checks": [
+    {
+      "package": "semaprax",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::browser_known_answers_match_authenticated_baseline_and_rename_graphs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::current_browser_bridge_keeps_both_complete_trees_and_refuses_rehashed_foreign_and_wrong_role"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main7d34_browser_bridge_preserves_three_complete_trees_and_raw_role_refusals"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::incoming_main21abc::hosted_wires_keep_current_pins_and_every_complete_previous_receiver"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::incoming_main21abc::a_rehashed_non_builder_change_still_fails_the_complete_bridge"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::incoming_main21abc::the_complete_old_bridge_changes_only_its_retained_runner_include"
+    }
+  ]
+}

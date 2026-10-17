@@ -1,0 +1,7 @@
+{
+  "reviewer": "parent",
+  "instruction": "Apply exact two digest literals; archive complete actual/historical role wires and whole source inverse. No Rust adapter needed.",
+  "source_subject": "36c6deb98720e243b0daaf81e813fbe3ec3b0a2d",
+  "producer_evidence_only": true,
+  "consumer_qualification": "pending"
+}

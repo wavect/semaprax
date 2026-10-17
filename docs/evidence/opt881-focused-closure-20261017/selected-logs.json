@@ -1,0 +1,98 @@
+[
+  {
+    "index": 174,
+    "selector": "cleanup_plan::replay::skeleton_work::merge_keys_tests::borrowed_merge_keys_match_complete_before_languages_order_and_work",
+    "sha256": "e94cc56e65152b53b65cf00b9d4538da9f256cc2d57021a78b1509e6dcd876f6",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::skeleton_work::merge_keys_tests::borrowed_merge_keys_match_complete_before_languages_order_and_work ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 0.05s\n\n"
+  },
+  {
+    "index": 175,
+    "selector": "cleanup_plan::replay::skeleton_work::merge_keys_tests::borrowed_merge_keys_keep_original_work_refusal_before_new_storage",
+    "sha256": "36e1ed1e41a2210737ad65228eb52d81db6619a33a681f5925c627f6b5d331d2",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::skeleton_work::merge_keys_tests::borrowed_merge_keys_keep_original_work_refusal_before_new_storage ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 0.01s\n\n"
+  },
+  {
+    "index": 176,
+    "selector": "cleanup_plan::replay::skeleton_work::merge_keys_tests::borrowed_suffix_route_retains_complete_before_multiplicity",
+    "sha256": "f6ef0c593b540d1edadaa7fe91ba0d5b039731d64c95eb03dd52abfbe1931ba5",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::skeleton_work::merge_keys_tests::borrowed_suffix_route_retains_complete_before_multiplicity ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 0.01s\n\n"
+  },
+  {
+    "index": 177,
+    "selector": "cleanup_plan::replay::skeleton_work::merge_keys_tests::borrowed_merge_directory_pays_storage_and_every_refusal_through_drop",
+    "sha256": "479b30c5581d3455a97db00a8744522573f1a9099cb281fdccaa7c24f5397da4",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::skeleton_work::merge_keys_tests::borrowed_merge_directory_pays_storage_and_every_refusal_through_drop ... OPT878 borrowed keys calls=false: previous held=12520 allocated=9152 highwater=5696; current held=39972 allocated=8224 highwater=4744\nOPT878 borrowed keys calls=true: previous held=18848 allocated=11984 highwater=7528; current held=48501 allocated=9832 highwater=6088\nok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 216.26s\n\n"
+  },
+  {
+    "index": 178,
+    "selector": "cleanup_plan::replay::skeleton_work::merge_keys_tests::borrowed_merge_floor_foreign_frontiers_keep_six_fields_sticky_and_complete_drop",
+    "sha256": "f620cf56a18e8e580fb195150bda490f5b52c6788d14aa9fbe643e5ed68313f7",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::skeleton_work::merge_keys_tests::borrowed_merge_floor_foreign_frontiers_keep_six_fields_sticky_and_complete_drop ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 0.01s\n\n"
+  },
+  {
+    "index": 179,
+    "selector": "cleanup_plan::replay::owned_suffix::tests::owned_suffix_retains_original_owner_free_order_on_work_refusals",
+    "sha256": "281f31783020d1a9eda21abc5045a4fc97e2820b063b1ead66b42b10719f056f",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::owned_suffix::tests::owned_suffix_retains_original_owner_free_order_on_work_refusals ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 0.30s\n\n"
+  },
+  {
+    "index": 180,
+    "selector": "cleanup_plan::replay::owned_suffix::tests::owned_suffix_all_physical_refusals_drop_prefix_carrier_before_original_suffix",
+    "sha256": "137b7224d23db72ff46fd3efa78a1f9b8760a4fa3d89e99fd69183a15701633b",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::owned_suffix::tests::owned_suffix_all_physical_refusals_drop_prefix_carrier_before_original_suffix ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 8.70s\n\n"
+  },
+  {
+    "index": 181,
+    "selector": "cleanup_plan::replay::owned_suffix::tests::owned_suffix_matches_full_borrowed_languages_and_work",
+    "sha256": "7bd167cdea2c9bd365c252eaa2699f59c64bbfac0040eaa93c4389c1e771ffb6",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::owned_suffix::tests::owned_suffix_matches_full_borrowed_languages_and_work ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 0.02s\n\n"
+  },
+  {
+    "index": 182,
+    "selector": "cleanup_plan::replay::owned_suffix::tests::owned_suffix_reports_cumulative_backing_through_result_destruction",
+    "sha256": "a769bf9ca6c2465306dc218bed50dba23fd8abba0ef2f0230507985ef5bbd21f",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::owned_suffix::tests::owned_suffix_reports_cumulative_backing_through_result_destruction ... OPT878 owned suffix old=true: held=40683 allocated=28256 highwater=13424\nOPT878 owned suffix old=false: held=83447 allocated=22248 highwater=13184\nok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 0.08s\n\n"
+  },
+  {
+    "index": 183,
+    "selector": "cleanup_plan::replay::owned_suffix::tests::owned_suffix_floor_foreign_frontiers_keep_six_fields_sticky_and_prefix_drop",
+    "sha256": "3cea65756def1036bbae88fe0251397ffaa984d2bda501691188602ac87caa60",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::owned_suffix::tests::owned_suffix_floor_foreign_frontiers_keep_six_fields_sticky_and_prefix_drop ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 0.03s\n\n"
+  },
+  {
+    "index": 277,
+    "selector": "cleanup_plan::replay::merge_census::fixed_merge_census_keeps_thirteen_cells_real_account_identity_and_checked_overflow",
+    "sha256": "12135558fc859ce34b155c768bcc431f5be51dea97fdeebdb0da2425cb0d06ac",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::merge_census::fixed_merge_census_keeps_thirteen_cells_real_account_identity_and_checked_overflow ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 0.05s\n\n"
+  },
+  {
+    "index": 278,
+    "selector": "cleanup_plan::replay::skeleton_work::merge_keys_tests::retained_search_matches_whole_immediate_borrowed_predecessor_and_original_work",
+    "sha256": "9a27971eb0c99009d5c84efeeaeb547efd8e896c7c8dc67edd5c401c503cfa8c",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::skeleton_work::merge_keys_tests::retained_search_matches_whole_immediate_borrowed_predecessor_and_original_work ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 0.02s\n\n"
+  },
+  {
+    "index": 279,
+    "selector": "cleanup_plan::replay::skeleton_work::merge_keys_tests::retained_search_actual_owner_query_and_step_frontiers_keep_six_fields_sticky_floor_and_drop",
+    "sha256": "ee4db1ccca7527bd071fc668725f469e062ca2ae31ffb0eb57f2dc4a72110ecf",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::skeleton_work::merge_keys_tests::retained_search_actual_owner_query_and_step_frontiers_keep_six_fields_sticky_floor_and_drop ... OPT881 borrowed calls=false: whole878 paid=54604 heap=23532 peak=14132; retained paid=39972 heap=23532 peak=14132; old/new census=[Cell { attempts: 1, requested: 744, acquired: 744, refused: 0 }, Cell { attempts: 1, requested: 2976, acquired: 2976, refused: 0 }, Cell { attempts: 31, requested: 42660, acquired: 42660, refused: 0 }, Cell { attempts: 0, requested: 0, acquired: 0, refused: 0 }, Cell { attempts: 7, requested: 56, acquired: 56, refused: 0 }, Cell { attempts: 7, requested: 952, acquired: 952, refused: 0 }, Cell { attempts: 43, requested: 2944, acquired: 2944, refused: 0 }, Cell { attempts: 1, requested: 448, acquired: 448, refused: 0 }, Cell { attempts: 0, requested: 0, acquired: 0, refused: 0 }, Cell { attempts: 0, requested: 0, acquired: 0, refused: 0 }, Cell { attempts: 0, requested: 0, acquired: 0, refused: 0 }, Cell { attempts: 0, requested: 0, acquired: 0, refused: 0 }, Cell { attempts: 77, requested: 3824, acquired: 3824, refused: 0 }]/[Cell { attempts: 1, requested: 744, acquired: 744, refused: 0 }, Cell { attempts: 1, requested: 752, acquired: 752, refused: 0 }, Cell { attempts: 31, requested: 1984, acquired: 1984, refused: 0 }, Cell { attempts: 74, requested: 28268, acquired: 28268, refused: 0 }, Cell { attempts: 7, requested: 56, acquired: 56, refused: 0 }, Cell { attempts: 7, requested: 952, acquired: 952, refused: 0 }, Cell { attempts: 43, requested: 2944, acquired: 2944, refused: 0 }, Cell { attempts: 1, requested: 448, acquired: 448, refused: 0 }, Cell { attempts: 0, requested: 0, acquired: 0, refused: 0 }, Cell { attempts: 0, requested: 0, acquired: 0, refused: 0 }, Cell { attempts: 0, requested: 0, acquired: 0, refused: 0 }, Cell { attempts: 0, requested: 0, acquired: 0, refused: 0 }, Cell { attempts: 77, requested: 3824, acquired: 3824, refused: 0 }]; no application-fit inference\nOPT881 borrowed calls=true: whole878 paid=56212 heap=20996 peak=13156; retained paid=48501 heap=20996 peak=13156; old/new census=[Cell { attempts: 1, requested: 744, acquired: 744, refused: 0 }, Cell { attempts: 1, requested: 2976, acquired: 2976, refused: 0 }, Cell { attempts: 31, requested: 42660, acquired: 42660, refused: 0 }, Cell { attempts: 0, requested: 0, acquired: 0, refused: 0 }, Cell { attempts: 10, requested: 120, acquired: 120, refused: 0 }, Cell { attempts: 10, requested: 2400, acquired: 2400, refused: 0 }, Cell { attempts: 46, requested: 2368, acquired: 2368, refused: 0 }, Cell { attempts: 1, requested: 816, acquired: 816, refused: 0 }, Cell { attempts: 0, requested: 0, acquired: 0, refused: 0 }, Cell { attempts: 0, requested: 0, acquired: 0, refused: 0 }, Cell { attempts: 0, requested: 0, acquired: 0, refused: 0 }, Cell { attempts: 0, requested: 0, acquired: 0, refused: 0 }, Cell { attempts: 84, requested: 4128, acquired: 4128, refused: 0 }]/[Cell { attempts: 1, requested: 744, acquired: 744, refused: 0 }, Cell { attempts: 1, requested: 752, acquired: 752, refused: 0 }, Cell { attempts: 31, requested: 1984, acquired: 1984, refused: 0 }, Cell { attempts: 77, requested: 35189, acquired: 35189, refused: 0 }, Cell { attempts: 10, requested: 120, acquired: 120, refused: 0 }, Cell { attempts: 10, requested: 2400, acquired: 2400, refused: 0 }, Cell { attempts: 46, requested: 2368, acquired: 2368, refused: 0 }, Cell { attempts: 1, requested: 816, acquired: 816, refused: 0 }, Cell { attempts: 0, requested: 0, acquired: 0, refused: 0 }, Cell { attempts: 0, requested: 0, acquired: 0, refused: 0 }, Cell { attempts: 0, requested: 0, acquired: 0, refused: 0 }, Cell { attempts: 0, requested: 0, acquired: 0, refused: 0 }, Cell { attempts: 84, requested: 4128, acquired: 4128, refused: 0 }]; no application-fit inference\nok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 0.01s\n\n"
+  },
+  {
+    "index": 280,
+    "selector": "cleanup_plan::replay::skeleton_work::merge_keys_tests::retained_merge_owner_preserves_complete_immediate_and_earlier_sources_without_hidden_callback",
+    "sha256": "438fb25896cd24d7ad6c4ca4b9205b8e5d3b43746211ba730069b813cb700455",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::skeleton_work::merge_keys_tests::retained_merge_owner_preserves_complete_immediate_and_earlier_sources_without_hidden_callback ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 0.00s\n\n"
+  },
+  {
+    "index": 281,
+    "selector": "cleanup_plan::replay::owned_suffix::tests::retained_owned_search_keeps_whole_immediate_sequence_languages_work_and_release_order",
+    "sha256": "52a71d2dd224c279223d0291d3137158772df56306bf1704e796018c0998e4d2",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::owned_suffix::tests::retained_owned_search_keeps_whole_immediate_sequence_languages_work_and_release_order ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 0.06s\n\n"
+  },
+  {
+    "index": 282,
+    "selector": "cleanup_plan::replay::owned_suffix::tests::retained_owned_search_real_receiving_frontiers_keep_full_diagnostics_sticky_floor_and_whole_drop",
+    "sha256": "6bc47afecdd63bbf9f5adbc69611d343956226a13cd2680c5cb3395f044b15bb",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::owned_suffix::tests::retained_owned_search_real_receiving_frontiers_keep_full_diagnostics_sticky_floor_and_whole_drop ... OPT881 owned whole878 paid=94691 heap=33604 peak=23604; retained paid=83447 heap=33604 peak=23604; actual category requests=[Cell { attempts: 1, requested: 744, acquired: 744, refused: 0 }, Cell { attempts: 1, requested: 672, acquired: 672, refused: 0 }, Cell { attempts: 38, requested: 51640, acquired: 51640, refused: 0 }, Cell { attempts: 0, requested: 0, acquired: 0, refused: 0 }, Cell { attempts: 19, requested: 240, acquired: 240, refused: 0 }, Cell { attempts: 19, requested: 2520, acquired: 2520, refused: 0 }, Cell { attempts: 56, requested: 2656, acquired: 2656, refused: 0 }, Cell { attempts: 2, requested: 800, acquired: 800, refused: 0 }, Cell { attempts: 1, requested: 236, acquired: 236, refused: 0 }, Cell { attempts: 1, requested: 16652, acquired: 16652, refused: 0 }, Cell { attempts: 32, requested: 1240, acquired: 1240, refused: 0 }, Cell { attempts: 2, requested: 264, acquired: 264, refused: 0 }, Cell { attempts: 247, requested: 17027, acquired: 17027, refused: 0 }]/[Cell { attempts: 1, requested: 744, acquired: 744, refused: 0 }, Cell { attempts: 1, requested: 752, acquired: 752, refused: 0 }, Cell { attempts: 38, requested: 2432, acquired: 2432, refused: 0 }, Cell { attempts: 94, requested: 40108, acquired: 40108, refused: 0 }, Cell { attempts: 19, requested: 240, acquired: 240, refused: 0 }, Cell { attempts: 19, requested: 2520, acquired: 2520, refused: 0 }, Cell { attempts: 56, requested: 2656, acquired: 2656, refused: 0 }, Cell { attempts: 2, requested: 800, acquired: 800, refused: 0 }, Cell { attempts: 1, requested: 236, acquired: 236, refused: 0 }, Cell { attempts: 1, requested: 13676, acquired: 13676, refused: 0 }, Cell { attempts: 32, requested: 1240, acquired: 1240, refused: 0 }, Cell { attempts: 2, requested: 1016, acquired: 1016, refused: 0 }, Cell { attempts: 247, requested: 17027, acquired: 17027, refused: 0 }]; unchanged work/caps, no application-fit claim\nok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 0.01s\n\n"
+  }
+]

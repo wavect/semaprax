@@ -1,0 +1,10 @@
+[
+  [
+    " for a,b in edits:assert text.count(a)==1;text=text.replace(a,b,1)",
+    " edits.extend(_owned_stage_edits())\n for a,b in edits:assert text.count(a)==1;text=text.replace(a,b,1)"
+  ],
+  [
+    " namespace['_corrected_fixture_stage']=lambda repo,source,raw:fixture_stage(repo,source,raw,namespace['_factored_file'])",
+    " namespace['_corrected_fixture_stage']=lambda repo,source,raw:fixture_stage(repo,source,raw,namespace['_factored_file'])\n namespace['_owned_compile_input']=lambda repo,source,raw:_owned_supplied(repo,source,raw,namespace['_factored_file'])\n namespace['_owned_compile_physical']=lambda repo,source:_owned_physical(repo,source,namespace['_factored_file'],namespace['_corrected_fixture_stage'])"
+  ]
+]

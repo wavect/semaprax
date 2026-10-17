@@ -141,8 +141,8 @@
   },
   {
     "source": "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs",
-    "sha256": "e83f7a28c14df7b622b696975ebf2231c4e40f0ee140162be2ff9e51c7acee0f",
-    "lines": 674
+    "sha256": "7d72a2aadb93fc3a865cceb4a35b7ce9fa0ee01a23dab50491845184859b3f1e",
+    "lines": 675
   },
   {
     "source": "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels/lexical_finish.rs",
@@ -211,8 +211,8 @@
   },
   {
     "source": "src/cleanup_plan/replay/inventory_coverage/typed_tests.rs",
-    "sha256": "90e883ce881573c8ae5a8c87a14fc3d962a4a1ae91223e681d977f10f7a40526",
-    "lines": 280
+    "sha256": "dd7f441df60b498cddef2388c0b84565e5e699b32993901258a549f03cec2768",
+    "lines": 284
   },
   {
     "source": "src/cleanup_plan/replay/inventory_coverage/typed_tests/initial_tests.rs",
@@ -266,7 +266,7 @@
   },
   {
     "source": "src/cleanup_plan/replay/owned_suffix.rs",
-    "sha256": "2a07888cb9fbc7c3fffcca2fafa689c87fdf4d16e2db5727e42f3ce0b7f3d938",
+    "sha256": "e9cd09455d33d55768e413902085d1b27870a972fe7a079497e976d5acbd2da4",
     "lines": 475
   },
   {
@@ -276,13 +276,13 @@
   },
   {
     "source": "src/cleanup_plan/replay/owned_suffix/sequence_vector.rs",
-    "sha256": "8b3736ee75fff0a1e774eb2349bcca18e7c2c20f06d08d5056609e4831fb4edf",
-    "lines": 175
+    "sha256": "083d5de99eb0f24380d58b5ccd9ba4a27f978d5436d5149de9c6c012cc517b95",
+    "lines": 174
   },
   {
     "source": "src/cleanup_plan/replay/owned_suffix/tests.rs",
-    "sha256": "c0f445022ebd5ec1ac69bf16dd2f8f88029ae80032047f221cc0c2ac6d2afff4",
-    "lines": 334
+    "sha256": "3edb2464491fda85a208c95b4a2b62549a42fd1791b4bae1ef78087bd3430d3e",
+    "lines": 331
   },
   {
     "source": "src/cleanup_plan/replay/path_array/main44/before.rs",
@@ -446,8 +446,8 @@
   },
   {
     "source": "src/cleanup_plan/replay/sequence_vector/main_a3/path_array_source.rs",
-    "sha256": "bf332aaa81cefb76bbe17c610523c3b2916a24cbb1bf1fced10617f35f2d6473",
-    "lines": 80
+    "sha256": "36686f375c3e05d7f3bfd3305a2ebdc14bce3abf9fb7e8aa3204e5d01f9a3e61",
+    "lines": 79
   },
   {
     "source": "src/cleanup_plan/replay/sequence_vector/main_a3/tests.rs",
@@ -476,8 +476,8 @@
   },
   {
     "source": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
-    "sha256": "58faa5c67c0bfd7c487ec180bec6b1bc8f7d967d645c71b18ac5535ea162743e",
-    "lines": 686
+    "sha256": "b2004e6eb3450ca8bc02c7822a3f258280ae3b248f6054f761cdd6567b8e52c8",
+    "lines": 688
   },
   {
     "source": "src/cleanup_plan/replay/skeleton_work/merge_keys.rs",
@@ -491,8 +491,8 @@
   },
   {
     "source": "src/cleanup_plan/replay/skeleton_work/merge_keys_tests.rs",
-    "sha256": "06d8eb03297f3e9daf1d66c15fb46024005edce6f35d2286f9c547103d907e49",
-    "lines": 379
+    "sha256": "e31dcefcb253e8d9ba94da407cb87d3f11a2e18ea4f9a29e9ff5f7e0913ffa92",
+    "lines": 380
   },
   {
     "source": "src/cleanup_plan/replay/skeleton_work/prefix_fusion.rs",
@@ -571,7 +571,7 @@
   },
   {
     "source": "src/source_reflows/incoming090_semantic_receivers.rs",
-    "sha256": "ea76a4e97506217eb9c18ab39b01ef592391694180d90829bce5c0dbd51aea74",
+    "sha256": "bcf07a735ff7f7b9afa6e799a3f9f65c136d17e333ec89e427443aec7aa57d9a",
     "lines": 1099
   },
   {
@@ -671,13 +671,13 @@
   },
   {
     "source": "src/source_reflows_merge/main44_custody.rs",
-    "sha256": "82e8f26bb7721d159b5a8d5ea25eb9a2e985394839e56da9298196bc542e1833",
+    "sha256": "56150c5a4c1ac274542e2dbd4356fb40531d2883317ee9c246c00fe6735a72bf",
     "lines": 45
   },
   {
     "source": "src/source_reflows_merge/main67107_inputs.rs",
-    "sha256": "38060d6b2c6a563363cd902032c8e2f9c92427fc06224e18be28ff63618deea9",
-    "lines": 895
+    "sha256": "2b2db6c67ef7576c1128954cfec23d087b3824adde8bff024b651531bcd69a8a",
+    "lines": 989
   },
   {
     "source": "src/source_reflows_merge/main7f8_presence.rs",
@@ -701,7 +701,7 @@
   },
   {
     "source": "src/source_reflows_merge/maina3_custody.rs",
-    "sha256": "96ae01e69f632bebf703cd436dc171d4d2ce5d8262d22355a943bb3fb9d005b8",
+    "sha256": "477731ef3e9517dcde1dc798cc869a4b423a6fb125863c3ca754e532a39276b6",
     "lines": 95
   },
   {
@@ -711,7 +711,7 @@
   },
   {
     "source": "src/source_reflows_merge/ordinary_plan_inputs.rs",
-    "sha256": "570661f037f223bbb45f7c28b5f6f8b26dd658ea29a7876934cf3a88939adbf8",
+    "sha256": "919146025e7eb4327d2a825185fcc5e2a0fb5a00688f61d7fa145791054458e5",
     "lines": 397
   },
   {

@@ -1,0 +1,26 @@
+{
+  "status": "PASS_SOURCE_ONLY_RUST_UNCOMPILED_UNEXECUTED",
+  "source_transport": {
+    "unique_inputs": 49,
+    "view_rows": [
+      3,
+      2,
+      4
+    ],
+    "whole_rows": [
+      6,
+      10,
+      10
+    ],
+    "ordered_duplicate_lookup_preserved": true,
+    "whole_MAIN_proof_records": 14,
+    "all35_original_inverse_rows_match_complete_Git_originals": true,
+    "three_original_test_bodies_finitely_restore_byte_exact": true
+  },
+  "rustfmt_parse_emit_stdout_only": true,
+  "cargo_or_tests_or_common_generation": false,
+  "files": {
+    "src/source_reflows/semantic_receivers.rs": "6816d73e025e149033a83a0bce3f0f1bd3072563fad3a8b715395274a6a8eb2b",
+    "src/source_reflows/incoming67107_semantic_receivers.rs": "829e3a0ad1b37cce2f05de10a294708a537b84994901309e6b36e17a27430960"
+  }
+}

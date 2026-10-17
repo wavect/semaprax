@@ -1,0 +1,34 @@
+[
+  {
+    "path": "src/source_reflows/semantic_receivers.rs",
+    "current_len": 27582,
+    "current_sha256": "6816d73e025e149033a83a0bce3f0f1bd3072563fad3a8b715395274a6a8eb2b",
+    "original_len": 26689,
+    "original_sha256": "21612c0284ea2787ec7b400d0a72ef16d8e1dfc3e2eaef4071ed521d66b4979a",
+    "original_archive": "docs/evidence/main34d-three-source-domains-20261017/original-programs/semantic_receivers.merged-before.txt",
+    "inverse": [
+      {
+        "at": 0,
+        "remove_len": 27582,
+        "remove_sha256": "6816d73e025e149033a83a0bce3f0f1bd3072563fad3a8b715395274a6a8eb2b",
+        "insert_archive": "docs/evidence/main34d-three-source-domains-20261017/original-programs/semantic_receivers.merged-before.txt"
+      }
+    ]
+  },
+  {
+    "path": "src/source_reflows/incoming67107_semantic_receivers.rs",
+    "current_len": 27813,
+    "current_sha256": "829e3a0ad1b37cce2f05de10a294708a537b84994901309e6b36e17a27430960",
+    "original_len": 14110,
+    "original_sha256": "312fde087005ab31671190994e8eb71cdac95cd32d3b4d1fbc13c3c544f66a21",
+    "original_archive": "docs/evidence/main34d-three-source-domains-20261017/original-programs/src__source_reflows__incoming67107_semantic_receivers.rs.ours492.txt",
+    "inverse": [
+      {
+        "at": 0,
+        "remove_len": 27813,
+        "remove_sha256": "829e3a0ad1b37cce2f05de10a294708a537b84994901309e6b36e17a27430960",
+        "insert_archive": "docs/evidence/main34d-three-source-domains-20261017/original-programs/src__source_reflows__incoming67107_semantic_receivers.rs.ours492.txt"
+      }
+    ]
+  }
+]

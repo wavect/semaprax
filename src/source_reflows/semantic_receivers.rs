@@ -3,6 +3,7 @@
 //! inventories continue to include the current modules and their new children.
 use super::*;
 use super::incoming67107_semantic_receivers::invert_ordinary;
+use super::incoming67107_semantic_receivers::{main34d_project, main34d_read, main34d_proofs, main34d_predecessor};
 
 const PROOFS: &str = include_str!("../../docs/evidence/receiver-source-custody-v1/inverse.json");
 static PROOF_RECORDS: OnceLock<serde_json::Value> = OnceLock::new();
@@ -58,8 +59,9 @@ fn held_status() -> &'static [serde_json::Value] {
     static RECORDS: OnceLock<Vec<serde_json::Value>> = OnceLock::new();
     RECORDS.get_or_init(|| {
         serde_json::from_str(
-            &std::fs::read_to_string(
-                Path::new(env!("CARGO_MANIFEST_DIR"))
+            &main34d_read(
+                "held-status",
+                &Path::new(env!("CARGO_MANIFEST_DIR"))
                     .join("docs/evidence/held-status-prefix-v1/views.json"),
             )
             .unwrap(),
@@ -73,8 +75,9 @@ fn held_continuations() -> &'static [serde_json::Value] {
     static RECORDS: OnceLock<Vec<serde_json::Value>> = OnceLock::new();
     RECORDS.get_or_init(|| {
         serde_json::from_str(
-            &std::fs::read_to_string(
-                Path::new(env!("CARGO_MANIFEST_DIR"))
+            &main34d_read(
+                "held-continuation",
+                &Path::new(env!("CARGO_MANIFEST_DIR"))
                     .join("docs/evidence/held-continuation-growth-v1/views.json"),
             )
             .unwrap(),
@@ -88,8 +91,9 @@ fn receiving_lookups() -> &'static [serde_json::Value] {
     static RECORDS: OnceLock<Vec<serde_json::Value>> = OnceLock::new();
     RECORDS.get_or_init(|| {
         serde_json::from_str(
-            &std::fs::read_to_string(
-                Path::new(env!("CARGO_MANIFEST_DIR"))
+            &main34d_read(
+                "receiving-lookup",
+                &Path::new(env!("CARGO_MANIFEST_DIR"))
                     .join("docs/evidence/paid-expression-lookup-state-v1/views.json"),
             )
             .unwrap(),
@@ -144,16 +148,19 @@ pub(super) fn predecessor(path: &str, current: &str) -> Option<String> {
         .iter()
         .find(|proof| proof["path"] == path)
     {
-        return Some(invert(proof, current));
+        let view = main34d_project("receiving-lookup", path, current);
+        return Some(invert_ordinary(proof, &view));
     }
     if let Some(proof) = held_continuations()
         .iter()
         .find(|proof| proof["path"] == path)
     {
-        return Some(invert(proof, current));
+        let view = main34d_project("held-continuation", path, current);
+        return Some(invert_ordinary(proof, &view));
     }
     if let Some(proof) = held_status().iter().find(|proof| proof["path"] == path) {
-        return Some(invert(proof, current));
+        let view = main34d_project("held-status", path, current);
+        return Some(invert_ordinary(proof, &view));
     }
     if let Some(proof) = ordinary_setup()
         .iter()
@@ -375,6 +382,11 @@ fn complete_followup_receivers_keep_all_original_source_bytes() {
 
 #[test]
 fn held_status_views_preserve_complete_original_inputs_and_validation_loops() {
+    // Explicit historical MAIN34d source view; actual raw roles remain live.
+    let main_read = |path: std::path::PathBuf| main34d_read("held-status", &path);
+    let invert = invert_ordinary;
+    let proofs = main34d_proofs;
+    let predecessor = main34d_predecessor;
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     assert_eq!(held_status().len(), 3);
     let mut paths = std::collections::BTreeSet::new();
@@ -387,11 +399,11 @@ fn held_status_views_preserve_complete_original_inputs_and_validation_loops() {
             .chain(ordinary_setup())
             .chain(ordinary_helpers())
             .any(|old| old["path"] == path));
-        let current = std::fs::read_to_string(root.join(path)).unwrap();
+        let current = main_read(root.join(path)).unwrap();
         let before = invert(proof, &current);
         assert_eq!(
             before,
-            std::fs::read_to_string(root.join(proof["archive"].as_str().unwrap())).unwrap()
+            main_read(root.join(proof["archive"].as_str().unwrap())).unwrap()
         );
         if let Some(format) = records().iter().find(|old| old["path"] == path) {
             assert_eq!(proof["before_sha256"], format["after_sha256"]);
@@ -405,17 +417,17 @@ fn held_status_views_preserve_complete_original_inputs_and_validation_loops() {
         assert!(std::panic::catch_unwind(|| invert(&forged, &current)).is_err());
     }
     let whole: Vec<serde_json::Value> = serde_json::from_str(
-        &std::fs::read_to_string(root.join("docs/evidence/held-status-prefix-v1/sources.json"))
+        &main_read(root.join("docs/evidence/held-status-prefix-v1/sources.json"))
             .unwrap(),
     )
     .unwrap();
     assert_eq!(whole.len(), 6);
     for proof in &whole {
-        let current = std::fs::read_to_string(root.join(proof["path"].as_str().unwrap())).unwrap();
+        let current = main_read(root.join(proof["path"].as_str().unwrap())).unwrap();
         let before = invert(proof, &current);
         assert_eq!(
             before,
-            std::fs::read_to_string(root.join(proof["archive"].as_str().unwrap())).unwrap()
+            main_read(root.join(proof["archive"].as_str().unwrap())).unwrap()
         );
         assert!(std::panic::catch_unwind(|| invert(proof, &(current.clone() + "\n"))).is_err());
     }
@@ -423,8 +435,8 @@ fn held_status_views_preserve_complete_original_inputs_and_validation_loops() {
         .iter()
         .find(|p| p["path"] == "src/cleanup_plan/replay/expression_facts/receiving/retained.rs")
         .unwrap();
-    let before = std::fs::read_to_string(root.join(proof["archive"].as_str().unwrap())).unwrap();
-    let current = std::fs::read_to_string(root.join(proof["path"].as_str().unwrap())).unwrap();
+    let before = main_read(root.join(proof["archive"].as_str().unwrap())).unwrap();
+    let current = main_read(root.join(proof["path"].as_str().unwrap())).unwrap();
     let guard="    if budget.pays_allocations() && function.cleanup_plan.status_sources.len() >= 3 {\n        return validate_status_sources_held_prefix(function, facts, budget);\n    }\n";
     assert_eq!(current.matches(guard).count(), 1);
     assert!(current.replacen(guard, "", 1).starts_with(&before));
@@ -451,6 +463,11 @@ fn held_status_views_preserve_complete_original_inputs_and_validation_loops() {
 
 #[test]
 fn held_continuation_inputs_preserve_the_complete_machine_and_all_original_controls() {
+    // Explicit historical MAIN34d source view; actual raw roles remain live.
+    let main_read = |path: std::path::PathBuf| main34d_read("held-continuation", &path);
+    let invert = invert_ordinary;
+    let proofs = main34d_proofs;
+    let predecessor = main34d_predecessor;
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     assert_eq!(held_continuations().len(), 2);
     let mut paths = std::collections::BTreeSet::new();
@@ -464,11 +481,11 @@ fn held_continuation_inputs_preserve_the_complete_machine_and_all_original_contr
             .chain(ordinary_helpers())
             .chain(held_status())
             .any(|old| old["path"] == path));
-        let current = std::fs::read_to_string(root.join(path)).unwrap();
+        let current = main_read(root.join(path)).unwrap();
         let before = invert(proof, &current);
         assert_eq!(
             before,
-            std::fs::read_to_string(root.join(proof["archive"].as_str().unwrap())).unwrap()
+            main_read(root.join(proof["archive"].as_str().unwrap())).unwrap()
         );
         assert!(contains(path));
         assert_eq!(predecessor(path, &current), Some(before));
@@ -478,7 +495,7 @@ fn held_continuation_inputs_preserve_the_complete_machine_and_all_original_contr
         assert!(std::panic::catch_unwind(|| invert(&forged, &current)).is_err());
     }
     let whole: Vec<serde_json::Value> = serde_json::from_str(
-        &std::fs::read_to_string(
+        &main_read(
             root.join("docs/evidence/held-continuation-growth-v1/sources.json"),
         )
         .unwrap(),
@@ -486,26 +503,26 @@ fn held_continuation_inputs_preserve_the_complete_machine_and_all_original_contr
     .unwrap();
     assert_eq!(whole.len(), 10);
     for proof in &whole {
-        let current = std::fs::read_to_string(root.join(proof["path"].as_str().unwrap())).unwrap();
+        let current = main_read(root.join(proof["path"].as_str().unwrap())).unwrap();
         let before = invert(proof, &current);
         assert_eq!(
             before,
-            std::fs::read_to_string(root.join(proof["archive"].as_str().unwrap())).unwrap()
+            main_read(root.join(proof["archive"].as_str().unwrap())).unwrap()
         );
         assert!(std::panic::catch_unwind(|| invert(proof, &(current.clone() + "\n"))).is_err());
     }
     let before_file = |path: &str| {
         let proof = whole.iter().find(|p| p["path"] == path).unwrap();
-        std::fs::read_to_string(root.join(proof["archive"].as_str().unwrap())).unwrap()
+        main_read(root.join(proof["archive"].as_str().unwrap())).unwrap()
     };
     let old_tests = before_file("src/cleanup_plan/replay/continuation_storage/tests.rs");
     let current_tests =
-        std::fs::read_to_string(root.join("src/cleanup_plan/replay/continuation_storage/tests.rs"))
+        main_read(root.join("src/cleanup_plan/replay/continuation_storage/tests.rs"))
             .unwrap();
     assert!(current_tests.starts_with(&old_tests));
     let old_storage = before_file("src/cleanup_plan/replay/continuation_storage.rs");
     let current_storage =
-        std::fs::read_to_string(root.join("src/cleanup_plan/replay/continuation_storage.rs"))
+        main_read(root.join("src/cleanup_plan/replay/continuation_storage.rs"))
             .unwrap();
     let fixed = old_storage.find("pub(super) fn fresh").unwrap();
     let fixed_end = fixed
@@ -520,7 +537,7 @@ fn held_continuation_inputs_preserve_the_complete_machine_and_all_original_contr
     );
     let machine_types = old_storage.find("pub(super) type OwnedStep").unwrap();
     assert!(current_storage.contains(&old_storage[machine_types..]));
-    let mut machine = std::fs::read_to_string(root.join("src/cleanup_plan/replay.rs")).unwrap();
+    let mut machine = main_read(root.join("src/cleanup_plan/replay.rs")).unwrap();
     let after = r###"            if $frames.len() == $frames.capacity() {
                 continuation_storage::reserve_push($frames, function, work.budget)?;
             }"###;
@@ -548,6 +565,11 @@ fn held_continuation_inputs_preserve_the_complete_machine_and_all_original_contr
 
 #[test]
 fn receiving_lookup_views_keep_complete_prior_modules_and_all_owning_inputs() {
+    // Explicit historical MAIN34d source view; actual raw roles remain live.
+    let main_read = |path: std::path::PathBuf| main34d_read("receiving-lookup", &path);
+    let invert = invert_ordinary;
+    let proofs = main34d_proofs;
+    let predecessor = main34d_predecessor;
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     assert_eq!(receiving_lookups().len(), 4);
     let mut paths = std::collections::BTreeSet::new();
@@ -562,11 +584,11 @@ fn receiving_lookup_views_keep_complete_prior_modules_and_all_owning_inputs() {
             .chain(held_status())
             .chain(held_continuations())
             .any(|old| old["path"] == path));
-        let current = std::fs::read_to_string(root.join(path)).unwrap();
+        let current = main_read(root.join(path)).unwrap();
         let before = invert(proof, &current);
         assert_eq!(
             before,
-            std::fs::read_to_string(root.join(proof["archive"].as_str().unwrap())).unwrap()
+            main_read(root.join(proof["archive"].as_str().unwrap())).unwrap()
         );
         assert!(contains(path));
         assert_eq!(predecessor(path, &current), Some(before));
@@ -581,7 +603,7 @@ fn receiving_lookup_views_keep_complete_prior_modules_and_all_owning_inputs() {
         assert!(std::panic::catch_unwind(|| invert(&forged, &current)).is_err());
     }
     let whole: Vec<serde_json::Value> = serde_json::from_str(
-        &std::fs::read_to_string(
+        &main_read(
             root.join("docs/evidence/paid-expression-lookup-state-v1/sources.json"),
         )
         .unwrap(),
@@ -589,28 +611,28 @@ fn receiving_lookup_views_keep_complete_prior_modules_and_all_owning_inputs() {
     .unwrap();
     assert_eq!(whole.len(), 10);
     for proof in &whole {
-        let current = std::fs::read_to_string(root.join(proof["path"].as_str().unwrap())).unwrap();
+        let current = main_read(root.join(proof["path"].as_str().unwrap())).unwrap();
         let before = invert(proof, &current);
         assert_eq!(
             before,
-            std::fs::read_to_string(root.join(proof["archive"].as_str().unwrap())).unwrap()
+            main_read(root.join(proof["archive"].as_str().unwrap())).unwrap()
         );
         assert!(std::panic::catch_unwind(|| invert(proof, &(current.clone() + "\n"))).is_err());
     }
     let before_file = |path: &str| {
         let proof = whole.iter().find(|p| p["path"] == path).unwrap();
-        std::fs::read_to_string(root.join(proof["archive"].as_str().unwrap())).unwrap()
+        main_read(root.join(proof["archive"].as_str().unwrap())).unwrap()
     };
     for path in [
         "src/cleanup_plan/replay/expression_facts/arena/prefix.rs",
         "src/cleanup_plan/replay/expression_facts/arena/prefix/tests.rs",
     ] {
-        assert!(std::fs::read_to_string(root.join(path))
+        assert!(main_read(root.join(path))
             .unwrap()
             .starts_with(&before_file(path)));
     }
     let path = "src/cleanup_plan/replay/expression_facts/arena.rs";
-    let current = std::fs::read_to_string(root.join(path)).unwrap();
+    let current = main_read(root.join(path)).unwrap();
     let guard = "        if budget.payer == AllocationPayer::ActiveBuilder && !self.nodes.is_empty() {\n            prefix::find_receiving(self, function, key, budget)\n        } else {\n            prefix::find(self, function, key, budget)\n        }";
     assert_eq!(current.matches(guard).count(), 1);
     assert_eq!(
@@ -622,7 +644,7 @@ fn receiving_lookup_views_keep_complete_prior_modules_and_all_owning_inputs() {
         before_file(path)
     );
     let path = "src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs";
-    let current = std::fs::read_to_string(root.join(path)).unwrap();
+    let current = main_read(root.join(path)).unwrap();
     assert_eq!(
         current
             .matches("let arena_now = ci_str!(\"../arena.rs\");")

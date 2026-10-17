@@ -1,0 +1,8 @@
+{
+  "status": "PASS_SOURCE_ONLY_NOT_BINDER_EXECUTED",
+  "whole_original_binder_inverse": true,
+  "physical_rows": 174,
+  "permitted_changed_rows": 3,
+  "refusals": 10,
+  "raw3_endpoints_match_alias_lane": true
+}

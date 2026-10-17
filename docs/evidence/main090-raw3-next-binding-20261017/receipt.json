@@ -1,0 +1,53 @@
+{
+  "status": "SOURCE_ONLY_NOT_BINDER_OR_RUST_QUALIFIED",
+  "base": "0fa63204bc67d3c35245a8634b90c7ecd4984707",
+  "finite_predecessor_manifest_sha256": "d2bffbbaf18725d6885008296734e931999ba7599e62c2448c114a54a2ebc187",
+  "whole_original_binder_sha256": "4921dedbcd93d865cafc825f176f5598891864f35c605096185dfb49c6887546",
+  "exact_generated_edits": 3,
+  "physical_subjects": 174,
+  "changed_current_rows": 3,
+  "unchanged_current_rows": 171,
+  "prior_historical_rows_and_caps_unchanged": true,
+  "MAIN21_checker_wrapper_change_required": false,
+  "execution": "Only render/AST and pure guard/refusal controls; no binder/main/common/Rust executed.",
+  "binding_order": [
+    "integrate alias raw3/allowed plus this packet",
+    "MAIN043 --write-endpoints for three guard-extension-bindings; commit inputs/bindings",
+    "bind-next.py --root NEXT --expected-head FULL40 (explicit newly committed reviewed endpoint)",
+    "commit manifest/module/new prior archive outputs",
+    "strict FINAL6 rebind and commit",
+    "one actual common refresh"
+  ],
+  "files": [
+    {
+      "path": "docs/evidence/main090-raw3-next-binding-20261017/README.md",
+      "length": 2293,
+      "sha256": "c8dd076befe1c39f219e6d71421a531fd13414bb96a303a6642d888347a40b8d"
+    },
+    {
+      "path": "docs/evidence/main090-raw3-next-binding-20261017/bind-next.py",
+      "length": 3744,
+      "sha256": "046729570ea85084c6a8a355dc1bc1990bc936c87473e226a0ae62e06e2f5993"
+    },
+    {
+      "path": "docs/evidence/main090-raw3-next-binding-20261017/bind_current.before.py.txt",
+      "length": 13491,
+      "sha256": "4921dedbcd93d865cafc825f176f5598891864f35c605096185dfb49c6887546"
+    },
+    {
+      "path": "docs/evidence/main090-raw3-next-binding-20261017/check-source.py",
+      "length": 1311,
+      "sha256": "160cc11484cebbf0d66bd423e470569a1b5ea8e614a12656c63e0b2c09c92971"
+    },
+    {
+      "path": "docs/evidence/main090-raw3-next-binding-20261017/input-domains.d2bff.json",
+      "length": 241192,
+      "sha256": "d2bffbbaf18725d6885008296734e931999ba7599e62c2448c114a54a2ebc187"
+    },
+    {
+      "path": "docs/evidence/main090-raw3-next-binding-20261017/source-controls.json",
+      "length": 212,
+      "sha256": "37a18dd32158ff856d1f6975f4b8fbf41e61901b8e413d8ca3a372353ee19f29"
+    }
+  ]
+}

@@ -219,6 +219,7 @@ const _: () = assert!(size_of::<&AllocationPayer>() + size_of::<bool>()
 // The old Directory producer above remains an independent, unchanged receiver.
 // All actual arguments, branch/iterator slots and returned/received headers
 // below are paid by the actual caller before this function is entered.
+#[cfg(test)]
 pub(super) fn ordinary_receiving() -> usize {
     crate::bounded_output::classifier_string::ClassifierLedger::current_receiving_controls()
         // The held-current mismatch may record the first terminal receipt.
@@ -267,6 +268,7 @@ pub(super) fn ordinary_receiving() -> usize {
         + 4 * size_of::<(&ResolvedFunction, &mut ReplayBudget, usize, &str)>()
 }
 
+#[cfg(test)]
 pub(super) fn ordinary_successors(
     function: &ResolvedFunction, budget: &mut ReplayBudget, automaton: &Automaton,
     closed: &ordered_weights::OrderedWeights, accepted: u64,
@@ -626,6 +628,7 @@ fn direct_singleton_new_selection_zero_through_three_keeps_six_fields_and_sticky
 
 // The complete original Directory and generic successors above stay executable.
 // Only the ordinary paid fallback selects the lexical finalizer.
+#[cfg(test)]
 mod lexical_finish;
 
 #[test]
@@ -675,4 +678,251 @@ fn complete_before_direct_producer_records_foreign_first_acceptance_as_negative(
     assert_eq!(result.0, 5);
     assert_eq!(result.1.len(), 1);
     assert_eq!(result.1[0].1.as_ref().as_slice(), &[(0, 3)]);
+}
+
+// Unlike the preceding singleton selector, this receiver executes the complete
+// original one-pass subset loop. Empty/One are storage states, not a separately
+// queried fast-path predicate. Labels continue to compare by complete content.
+enum OnePassLabels<'a> {
+    Empty,
+    One(&'a Label, paid_many::Targets),
+    Many(BTreeMap<&'a Label, paid_many::Targets>),
+}
+// Actual call/formal/return, two initializer/receiver values, and the original
+// traversal's iterator/next/tuple slots. Per-movement storage/query roles below
+// are acquired before the branch that forms them, rather than priced by width.
+pub(super) fn one_pass_receiving() -> usize {
+    2 * size_of::<(&ResolvedFunction, &mut ReplayBudget, &Automaton, &ordered_weights::OrderedWeights, u64)>()
+        + 2 * size_of::<Result<Option<Successors>, Diagnostic>>()
+        + size_of::<Option<Successors>>()
+        + 2 * size_of::<OnePassLabels<'static>>()
+        + 2 * size_of::<ordered_weights::Iter<'static>>()
+        + 2 * size_of::<Option<(&usize, &u64)>>()
+        + 2 * size_of::<(&usize, &u64)>()
+        + 2 * size_of::<&[(Label, usize)]>()
+        + 2 * size_of::<std::slice::Iter<'static, (Label, usize)>>()
+        + 2 * size_of::<Option<(&Label, &usize)>>()
+        + 2 * size_of::<(&Label, &usize)>()
+        + 2 * size_of::<usize>()
+        + 2 * size_of::<Vec<(Label, SharedWeighted)>>()
+        + 2 * size_of::<Result<(), Diagnostic>>()
+        + 2 * size_of::<(&ResolvedFunction, &mut ReplayBudget, usize, &str)>()
+}
+const ONE_PASS_MOVEMENT: usize =
+    2 * size_of::<&mut OnePassLabels<'static>>()
+    + 2 * size_of::<&Label>() + 2 * size_of::<&usize>()
+    + 2 * size_of::<&mut paid_many::Targets>()
+    // Real contains_key/get_mut receivers on the borrowed-label tree.
+    + 2 * size_of::<&BTreeMap<&Label, paid_many::Targets>>()
+    + 2 * size_of::<&mut BTreeMap<&Label, paid_many::Targets>>()
+    + 2 * size_of::<&Label>()
+    + 2 * size_of::<Option<&mut paid_many::Targets>>()
+    + 2 * size_of::<Option<u64>>() + 4 * size_of::<u64>()
+    + 4 * size_of::<bool>()
+    + 2 * size_of::<paid_many::Targets>()
+    + 2 * size_of::<Option<paid_many::Targets>>()
+    + 4 * size_of::<Result<(), Diagnostic>>()
+    + 4 * size_of::<(&ResolvedFunction, &mut ReplayBudget, usize, &str)>();
+const ONE_PASS_PROMOTION: usize =
+    2 * size_of::<BTreeMap<&Label, paid_many::Targets>>()
+    + 2 * size_of::<OnePassLabels<'static>>()
+    + 2 * size_of::<(&Label, paid_many::Targets)>()
+    + 2 * size_of::<paid_many::Targets>()
+    + 2 * size_of::<Option<paid_many::Targets>>()
+    + 3 * size_of::<Result<(), Diagnostic>>()
+    + 3 * size_of::<(&ResolvedFunction, &mut ReplayBudget, usize, &str)>();
+const ONE_PASS_PUBLICATION: usize = 2 * size_of::<usize>()
+    + 2 * size_of::<Result<(), Diagnostic>>()
+    + 2 * size_of::<(&ResolvedFunction, &mut ReplayBudget, usize, &str)>();
+const ONE_PASS_PUBLISHED_ROW: usize = 2 * size_of::<paid_many::Targets>()
+    + 2 * size_of::<SharedWeighted>() + size_of::<(Label, SharedWeighted)>()
+    + 2 * size_of::<Result<(), Diagnostic>>()
+    + 2 * size_of::<(&ResolvedFunction, &mut ReplayBudget, usize, &str)>();
+const ONE_PASS_OWNING_ITERATOR: usize =
+    size_of::<std::collections::btree_map::IntoIter<&'static Label, paid_many::Targets>>()
+    + 2 * size_of::<Option<(&Label, paid_many::Targets)>>()
+    + 2 * size_of::<(&Label, paid_many::Targets)>()
+    + size_of::<Result<(), Diagnostic>>()
+    + size_of::<(&ResolvedFunction, &mut ReplayBudget, usize, &str)>();
+
+pub(super) fn one_pass_successors(
+    function: &ResolvedFunction, budget: &mut ReplayBudget, automaton: &Automaton,
+    closed: &ordered_weights::OrderedWeights, accepted: u64,
+) -> Result<Option<Successors>, Diagnostic> {
+    // The actual canonical caller has already authenticated its Memo and held
+    // receiver. Keep zero-byte sticky authentication even for no movements.
+    budget.reserve_bytes(function, 0, "factored one-pass successor authentication")?;
+    budget.charge(function, 0, "factored one-pass successor authentication")?;
+    let mut labels = OnePassLabels::Empty;
+    macro_rules! add {
+        ($targets:ident, $child:ident, $weight:ident) => {
+            match $targets {
+                paid_many::Targets::One { child: first, weight: total } if *first == *$child => {
+                    let Some(sum) = total.checked_add(*$weight) else { return Ok(None); };
+                    *total = sum;
+                }
+                paid_many::Targets::One { child: first, weight: total } => {
+                    budget.reserve_bytes(function, paid_many::PROMOTE_RECEIVING,
+                        "factored one-pass distinct-target receivers")?;
+                    *$targets = paid_many::promote(function, budget, *first, *total, *$child, *$weight)?;
+                }
+                paid_many::Targets::PaidMany(flat) => {
+                    budget.reserve_bytes(function, paid_many::ADD_RECEIVING,
+                        "factored one-pass flat-target receivers")?;
+                    if !paid_many::add(function, budget, flat, *$child, *$weight)? { return Ok(None); }
+                }
+                paid_many::Targets::Many(targets) => {
+                    if !targets.contains_key($child) {
+                        budget.reserve_btree_node::<usize, u64>(function, "factored successor target node")?;
+                    }
+                    let slot = targets.entry(*$child).or_insert(0);
+                    let Some(sum) = slot.checked_add(*$weight) else { return Ok(None); };
+                    *slot = sum;
+                }
+            }
+        };
+    }
+    for (node, weight) in closed.iter() {
+        let moves = automaton.nodes[*node].moves();
+        // This is the complete before_index subset request, at the same point.
+        // No label census, search-charge prepass or four-op selector is run.
+        budget.charge(function, moves.len().saturating_add(1), "factored skeleton subset construction")?;
+        for (label, child) in moves {
+            budget.reserve_bytes(function, ONE_PASS_MOVEMENT, "factored one-pass movement receivers")?;
+            match &mut labels {
+                OnePassLabels::Empty => {
+                    budget.reserve_bytes(function, 0, "factored singleton target authentication")?;
+                    let weight = 0_u64.checked_add(*weight).expect("zero plus u64 cannot overflow");
+                    labels = OnePassLabels::One(label, paid_many::Targets::One { child: *child, weight });
+                }
+                OnePassLabels::One(first, targets) if *first == label => { add!(targets, child, weight); }
+                OnePassLabels::One(_, _) => {
+                    // All receiving and both new label nodes precede moving
+                    // the existing inline entry. A refusal retains that entry.
+                    budget.reserve_bytes(function, ONE_PASS_PROMOTION, "factored one-pass label promotion receivers")?;
+                    budget.reserve_btree_node::<&Label, paid_many::Targets>(function, "factored one-pass first label node")?;
+                    budget.reserve_btree_node::<&Label, paid_many::Targets>(function, "factored one-pass second label node")?;
+                    budget.reserve_bytes(function, 0, "factored singleton target authentication")?;
+                    let weight = 0_u64.checked_add(*weight).expect("zero plus u64 cannot overflow");
+                    let mut many = BTreeMap::new();
+                    let OnePassLabels::One(first, targets) = std::mem::replace(&mut labels, OnePassLabels::Empty)
+                    else { unreachable!("occupied inline label") };
+                    many.insert(first, targets);
+                    many.insert(label, paid_many::Targets::One { child: *child, weight });
+                    labels = OnePassLabels::Many(many);
+                }
+                OnePassLabels::Many(many) => {
+                    if !many.contains_key(label) {
+                        budget.reserve_btree_node::<&Label, paid_many::Targets>(function, "factored one-pass label node")?;
+                        budget.reserve_bytes(function, 0, "factored singleton target authentication")?;
+                        let weight = 0_u64.checked_add(*weight).expect("zero plus u64 cannot overflow");
+                        many.insert(label, paid_many::Targets::One { child: *child, weight });
+                    } else {
+                        let targets = many.get_mut(label).expect("present immutable label");
+                        add!(targets, child, weight);
+                    }
+                }
+            }
+        }
+    }
+    // Publication owns its actual iterator/enum transport. This new fee is not
+    // an old map/Vec-header credit and may regress many-label charged totals.
+    budget.reserve_bytes(function, ONE_PASS_PUBLICATION, "factored one-pass publication receivers")?;
+    let count = match &labels { OnePassLabels::Empty => 0, OnePassLabels::One(_, _) => 1, OnePassLabels::Many(many) => many.len() };
+    budget.reserve_array::<(Label, SharedWeighted)>(function, count, "factored successor vector")?;
+    let mut result = Vec::with_capacity(count);
+    macro_rules! publish {
+        ($label:ident, $targets:ident) => {{
+            budget.reserve_bytes(function, ONE_PASS_PUBLISHED_ROW, "factored one-pass published row receivers")?;
+            let state = match $targets {
+                paid_many::Targets::One { child, weight } => {
+                    budget.reserve_bytes(function,
+                        2 * size_of::<SmallWeighted>() + size_of::<[(usize, u64); 1]>()
+                            + size_of::<Result<(), Diagnostic>>(),
+                        "factored inline weighted enum and array receiving")?;
+                    budget.reserve_bytes(function, physical_clone::rc_backing_bytes::<SmallWeighted>(), "factored weighted shared header")?;
+                    Rc::new(SmallWeighted::One([(child, weight)]))
+                }
+                paid_many::Targets::PaidMany(flat) => {
+                    budget.reserve_bytes(function, paid_many::FINISH_RECEIVING, "factored one-pass flat finish receivers")?;
+                    own_weighted(function, budget, flat)?
+                }
+                paid_many::Targets::Many(targets) => weighted_successor(function, budget, targets)?,
+            };
+            result.push(($label.clone(), state));
+        }};
+    }
+    match labels {
+        OnePassLabels::Empty => {}
+        OnePassLabels::One(label, targets) => { publish!(label, targets); }
+        OnePassLabels::Many(many) => {
+            budget.reserve_bytes(function, ONE_PASS_OWNING_ITERATOR, "factored one-pass owning label iterator receivers")?;
+            for (label, targets) in many { publish!(label, targets); }
+        }
+    }
+    Ok(Some((accepted, result)))
+}
+
+#[test]
+fn one_pass_labels_preserve_original_subset_work_and_all_paid_cuts_through_drop() {
+    use crate::test_allocation_observer::measure;
+    use crate::bounded_output::with_limit_usage_refusal;
+    for width in 0..=3 {
+        let (function, mut graph, closed) = direct_fixture(width, 1, 7);
+        if width > 1 {
+            let mut setup = ReplayBudget::unobserved();
+            graph.movement(&function, &mut setup, 1,
+                Label::End(super::super::SkeletonTerminal::Failure), 0).unwrap();
+        }
+        let original_work: usize = closed.iter().map(|(node, _)|
+            graph.nodes[*node].moves().len().saturating_add(1)).sum();
+        let expected = {
+            let mut old = ReplayBudget::unobserved();
+            successors(&function, &mut old, &graph, &closed, 0)
+        };
+        let observe = |limit| with_limit_usage_refusal(limit, || measure(|| {
+            let mut budget = ReplayBudget::new();
+            let before = budget.remaining;
+            let result = budget.reserve_bytes(&function, one_pass_receiving(),
+                "factored one-pass test call receivers").and_then(|()|
+                one_pass_successors(&function, &mut budget, &graph, &closed, 0));
+            match result {
+                Ok(actual) => {
+                    same_successors(&Ok(actual), &expected);
+                    assert_eq!(before - budget.remaining, original_work);
+                    drop(budget);
+                    true
+                }
+                Err(error) => {
+                    assert_eq!(error.code, "SPX-H006");
+                    let remaining = budget.remaining;
+                    let retry = budget.reserve_bytes(&function, 0,
+                        "one-pass sticky retry").unwrap_err();
+                    // Full six-field Diagnostic equality, with the same
+                    // selected first refusal and no retry work debit.
+                    assert_eq!(error.code, retry.code);
+                    assert_eq!(error.severity, retry.severity);
+                    assert_eq!(error.message, retry.message);
+                    assert_eq!(error.span, retry.span);
+                    assert_eq!(error.path, retry.path);
+                    assert_eq!(error.help, retry.help);
+                    assert_eq!(budget.remaining, remaining);
+                    drop(retry);
+                    drop(error);
+                    drop(budget);
+                    false
+                }
+            }
+        }));
+        let ((ok, metrics), refused, exact, first) = observe(usize::MAX);
+        assert!(ok && !refused && first.is_none());
+        assert!(!metrics.invalid && metrics.live == 0 && metrics.allocated == metrics.freed);
+        for limit in 0..=exact {
+            let ((ok, metrics), refused, _, first) = observe(limit);
+            assert_eq!(ok, limit == exact);
+            assert_eq!(refused, limit != exact);
+            assert_eq!(first.is_none(), limit == exact);
+            assert!(!metrics.invalid && metrics.live == 0 && metrics.allocated == metrics.freed);
+        }
+    }
 }

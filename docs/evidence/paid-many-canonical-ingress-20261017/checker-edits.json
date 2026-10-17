@@ -1,0 +1,10 @@
+[
+  [
+    "m=runpy.run_path(str(D/'acquire.py'));",
+    "_public=R/'docs/evidence/selected-successor-generation-20261017/bind-selected-endpoints.py';_paid=runpy.run_path(str(_public),run_name='paid_source_controls_no_main');m={'acquire':_paid['_canonical_import_input']};"
+  ],
+  [
+    " for p in paths:(root/p).parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(R/p,root/p)",
+    " for p in paths:(root/p).parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(R/p,root/p)\n for p in ['docs/evidence/paid-many-canonical-ingress-20261017/seal.json','docs/evidence/paid-many-canonical-ingress-20261017/current.rs.txt','docs/evidence/paid-many-canonical-ingress-20261017/previous.rs.txt']:(root/p).parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(R/p,root/p)"
+  ]
+]

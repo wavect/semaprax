@@ -310,6 +310,7 @@
       "src/workspace_graph/expected_projection/borrowed_leaf.rs",
       "src/workspace_graph/expected_projection/import_stub/core_proofs/tests.rs",
       "src/workspace_graph/expected_projection/private_layout/authority_invocation.rs",
+      "src/workspace_graph/forecast_observation.rs",
       "src/workspace_graph/function_alias/before_core.rs",
       "src/workspace_graph/identity_resolution.rs",
       "src/workspace_graph/identity_resolution/base.rs",
@@ -347,16 +348,16 @@
         "first": ".github/workflows/ci.yml",
         "last": "src/source_verify/iterative/enter.rs",
         "rows": 240,
-        "length": 4938790,
-        "sha256": "826fb501ea034b3caac95d0306a5c379e6e29a7e314c4a673bd0cff57c45be22"
+        "length": 4939109,
+        "sha256": "971eb7c8723177720c67eedbc3494068e27b6bc81c222df9e8d11bfb39f8a580"
       },
       {
         "table": "current-to-Previous16c-part-001.json",
         "first": "src/source_verify/iterative/enter/enter_before_components.rs",
         "last": "tests/workspace/semantic_graph/source_inventory.rs",
-        "rows": 96,
-        "length": 1958485,
-        "sha256": "6ac3c6e644689bcebc70d932bd38d3f5196dbc6aee1ac579c969b29385f4a002"
+        "rows": 97,
+        "length": 2008526,
+        "sha256": "fa197d8a0af358262ee5dc425dfa7a43f7ef646de6822111ff84fe5637c729c0"
       }
     ]
   },

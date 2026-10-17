@@ -62,5 +62,5 @@
     }
   ],
   "verification_script_sha256": "b8b72537f880da2655f102002275dbe0c5a7eb0aee72982eae017204d15266c7",
-  "guard_extension_verifier_sha256": "5388bf54a2904e68b2c171d8d8d72650327c11061e44189b4a9518a20fec7fb6"
+  "guard_extension_verifier_sha256": "c2dece1bcd69cdcc66abe6be3c39230d6485bb8735641349c6c09bd9e153228f"
 }

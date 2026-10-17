@@ -1,0 +1,85 @@
+{
+  "status": "PACKAGED_REFRESH_ADAPTER_ALL_FOUR_COMPLETE_OUTPUTS_BYTE_IDENTICAL",
+  "head": "9894ca88ebca8697155494687647e6432e281051",
+  "phases": [
+    {
+      "phase": "authority-generate",
+      "command": [
+        "/opt/homebrew/bin/python3",
+        "/Volumes/Semaprax/worktrees/pure-mask-qualification-aaeb-20261017/docs/evidence/bounded-source-mask-cache-20261017/refresh-entry.py",
+        "--repo",
+        "/Volumes/Semaprax/worktrees/pure-mask-qualification-aaeb-20261017",
+        "--head",
+        "9894ca88ebca8697155494687647e6432e281051",
+        "--entry",
+        "authority-generate",
+        "--stats",
+        "/Volumes/Semaprax/provenance/pure-mask-packaged-qualification-20261017/authority-generate.stats.json",
+        "--",
+        "--repo",
+        "/Volumes/Semaprax/worktrees/pure-mask-qualification-aaeb-20261017",
+        "--out",
+        "/Volumes/Semaprax/provenance/pure-mask-packaged-qualification-20261017/fast-full"
+      ],
+      "exit": 0,
+      "expected_exit": 0,
+      "elapsed_seconds": 61.34336520900251,
+      "sampled_tree_peak_rss_bytes": 82788352,
+      "stop_reason": null
+    },
+    {
+      "phase": "boundary-generate",
+      "command": [
+        "/opt/homebrew/bin/python3",
+        "/Volumes/Semaprax/worktrees/pure-mask-qualification-aaeb-20261017/docs/evidence/bounded-source-mask-cache-20261017/refresh-entry.py",
+        "--repo",
+        "/Volumes/Semaprax/worktrees/pure-mask-qualification-aaeb-20261017",
+        "--head",
+        "9894ca88ebca8697155494687647e6432e281051",
+        "--entry",
+        "boundary-generate",
+        "--stats",
+        "/Volumes/Semaprax/provenance/pure-mask-packaged-qualification-20261017/boundary-generate.stats.json",
+        "--",
+        "--repo",
+        "/Volumes/Semaprax/worktrees/pure-mask-qualification-aaeb-20261017",
+        "--full-dir",
+        "/Volumes/Semaprax/provenance/pure-mask-packaged-qualification-20261017/fast-full",
+        "--out",
+        "/Volumes/Semaprax/provenance/pure-mask-packaged-qualification-20261017/fast-boundary"
+      ],
+      "exit": 0,
+      "expected_exit": 0,
+      "elapsed_seconds": 23.5097825829871,
+      "sampled_tree_peak_rss_bytes": 324665344,
+      "stop_reason": null
+    },
+    {
+      "phase": "boundary-verify",
+      "command": [
+        "/opt/homebrew/bin/python3",
+        "/Volumes/Semaprax/worktrees/pure-mask-qualification-aaeb-20261017/docs/evidence/bounded-source-mask-cache-20261017/refresh-entry.py",
+        "--repo",
+        "/Volumes/Semaprax/worktrees/pure-mask-qualification-aaeb-20261017",
+        "--head",
+        "9894ca88ebca8697155494687647e6432e281051",
+        "--entry",
+        "boundary-verify",
+        "--stats",
+        "/Volumes/Semaprax/provenance/pure-mask-packaged-qualification-20261017/boundary-verify.stats.json",
+        "--",
+        "--repo",
+        "/Volumes/Semaprax/worktrees/pure-mask-qualification-aaeb-20261017",
+        "--full-dir",
+        "/Volumes/Semaprax/provenance/pure-mask-packaged-qualification-20261017/fast-full",
+        "--scope-dir",
+        "/Volumes/Semaprax/provenance/pure-mask-packaged-qualification-20261017/fast-boundary"
+      ],
+      "exit": 0,
+      "expected_exit": 0,
+      "elapsed_seconds": 23.501069000019925,
+      "sampled_tree_peak_rss_bytes": 340951040,
+      "stop_reason": null
+    }
+  ]
+}

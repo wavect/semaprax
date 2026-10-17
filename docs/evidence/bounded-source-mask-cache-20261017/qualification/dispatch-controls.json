@@ -1,0 +1,9 @@
+{
+  "status": "PASS",
+  "controls": [
+    "wrong_head_refused_before_generator",
+    "unexpected_dirty_path_refused",
+    "declared_refresh_output_admitted_then_wrong_head_refused"
+  ],
+  "default_whole_refresh_restoration_and_all3_commands_passed": true
+}

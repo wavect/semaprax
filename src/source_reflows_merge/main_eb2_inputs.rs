@@ -72,7 +72,8 @@ mod tests {
 // all original rejection checks unchanged; archived inputs remain unchanged.
 fn complete_incoming_input(domain: &str, path: &str, current: &str) -> String {
     if domain != "incoming" { return current.to_owned(); }
-    let acquired = super::main7f8_source_inputs::later_452_input("eb2-incoming", path, current);
+    let closure92 = super::main7f8_source_inputs::closure92_walk_input("eb2-incoming-live", path, current);
+    let acquired = super::main7f8_source_inputs::later_452_input("eb2-incoming", path, &closure92);
     let current = acquired.as_str();
     let presence = super::main7f8_source_inputs::presence_before_later_inventory(domain, path, current);
     let current = presence.as_str();

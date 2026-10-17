@@ -51,7 +51,8 @@ fn project(rows: &serde_json::Value, domain: &str, path: &str, current: &str) ->
 pub(crate) fn source(domain: &str, path: &str, current: &str) -> String {
     // A later combined batch must bind its new complete raw input to THIS
     // immutable checkpoint before entering this owner; never repin these hashes.
-    let acquired = later_452_input(domain, path, current);
+    let closure92 = closure92_walk_input(domain, path, current);
+    let acquired = later_452_input(domain, path, &closure92);
     let current = acquired.as_str();
     let presence = presence_before_later_inventory(domain, path, current);
     let outer = super::final_ready_inputs::source_owner(domain, path, &presence);
@@ -216,4 +217,41 @@ fn moderate_452_complete_metadata_inputs_preserve_original_clauses_and_refuse_wr
         }
     }
     assert_eq!(moderate_452_input("foreign", "foreign", "unchanged"), "unchanged");
+}
+
+// Distinct complete851 input before both immutable compact/incoming stages.
+// The supplied stage and physical source are authenticated independently.
+pub(crate) fn closure92_walk_input(domain: &str, path: &str, current: &str) -> String {
+    if path != "src/hir/lexical_exit/walk/tests.rs"
+        || !matches!(domain, "eb2-compact" | "eb2-incoming-live") {
+        return current.to_owned();
+    }
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let directory = root.join("docs/evidence/closure92-finite-input-fixes-20261017");
+    let raw = reader::read(&root.join(path), 23833,
+        "01eda34563f982ef112c79b01ee02ae9cc606c6a9aa960ed9736dd383789d2b5", 65536)
+        .expect("exact complete851 walk tests physical input");
+    let held = reader::read(&directory.join("walk-tests.current.txt"), 23833,
+        "01eda34563f982ef112c79b01ee02ae9cc606c6a9aa960ed9736dd383789d2b5", 65536)
+        .expect("exact independent851 walk tests archive");
+    assert_eq!(raw, include_str!("../hir/lexical_exit/walk/tests.rs"), "compiled physical walk tests");
+    assert_eq!(raw, held, "whole physical/archive851 walk tests");
+    assert_eq!(current, held, "exact supplied851 walk tests source stage");
+    reader::read(&directory.join("walk-tests.previous.txt"), 23678,
+        "9f3ac71703fa3926dc37a0a5ea02ecef1c9b41d102f445dbb89a34758e7a7596", 65536)
+        .expect("whole retained incoming walk tests checkpoint")
+}
+#[test]
+fn closure92_walk_inputs_preserve_both_original_domains_and_refuse_wrong_stages() {
+    let path = "src/hir/lexical_exit/walk/tests.rs";
+    let raw = include_str!("../hir/lexical_exit/walk/tests.rs");
+    for domain in ["eb2-compact", "eb2-incoming-live"] {
+        let prior = closure92_walk_input(domain, path, raw);
+        assert_eq!(digest(&prior), "9f3ac71703fa3926dc37a0a5ea02ecef1c9b41d102f445dbb89a34758e7a7596");
+        for wrong in [String::new(), raw[..raw.len()-1].to_owned(), format!("{raw} "), format!("{raw}{raw}"), prior] {
+            assert!(std::panic::catch_unwind(|| closure92_walk_input(domain, path, &wrong)).is_err());
+        }
+    }
+    assert_eq!(closure92_walk_input("foreign", path, "foreign"), "foreign");
+    assert_eq!(closure92_walk_input("eb2-compact", "foreign", "foreign"), "foreign");
 }

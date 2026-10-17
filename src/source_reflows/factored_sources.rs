@@ -481,6 +481,16 @@ fn joined_factored_domains_preserve_complete_receivers_and_refuse_foreign_inputs
 
 // Two later production sources precede the fixed13-subject historical domains.
 fn later_factored_current(path: &::std::path::Path, relative: &str, length: usize, expected: &str) -> Result<String, &'static str> {
+    // The live labels metadata itself advanced; acquire its complete old
+    // physical checkpoint before the immutable thirteen-row joined contract.
+    if relative == "docs/evidence/factored-flat-labels-v1/sources.json" {
+        if length != 1547500 || expected != "ee4309e37b0523065c48ac67a5eb2e3542c9ac96b31dd38cfec85f5198660d0f" { return Err("foreign-closure92-labels-row"); }
+        let raw = custody_file(path, 1548925, "05cfbeaf39d9a1984c9e788643e9ed539347276feb68d28d224b28d9b82f9312")?;
+        let root = ::std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        let held = root.join("docs/evidence/closure92-finite-input-fixes-20261017/factored-labels.current.json.txt");
+        if raw != custody_file(&held, 1548925, "05cfbeaf39d9a1984c9e788643e9ed539347276feb68d28d224b28d9b82f9312")? { return Err("closure92-labels-whole-archive"); }
+        return custody_file(&root.join("docs/evidence/main-d285-factored-custody-20261017/objects/ee4309e37b0523065c48ac67a5eb2e3542c9ac96b31dd38cfec85f5198660d0f.txt"), length, expected);
+    }
     let (current_length, current_sha, prior_length, prior_sha, current_archive, prior_archive) = match relative {
         "src/cleanup_plan/replay/factored/canonical_shared.rs" => (64422usize, "33e45de2e06bd0a251c7e6c22c0b953b4d32991ca488becdfccfe29209380111", 63023usize, "bbe5d1ff75b6b3bc811d181275181994027cd83188d6096e5b7716efbec753d3", "0.current.txt", "0.prior.txt"),
         "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs" => (28835usize, "f4fd89c5c28b47d826968d935f51dac66a49e8fd859bfa519e98013913a3923a", 12616usize, "60f688bdadc749a017b45d09e43e8eb1b1034b2c11d7f38bcc25e3d8e3cd7185", "1.current.txt", "1.prior.txt"),
@@ -541,4 +551,18 @@ fn singleton_concat_physical_front_retains_whole_prior_and_refuses_drift() {
     for bad in [String::new(), format!("{raw}\n"), format!("{raw}{raw}"), raw[..raw.len()-1].to_owned(), raw.replacen("concat!", "format!", 1)] { assert!(singleton_concat_restore(&bad).is_err()); }
     assert!(singleton_concat_current(&root.join(path), path, 28836, "f4fd89c5c28b47d826968d935f51dac66a49e8fd859bfa519e98013913a3923a").is_err());
     assert!(singleton_concat_current(&root.join(path), path, 28835, &"0".repeat(64)).is_err());
+}
+
+#[test]
+fn closure92_labels_front_preserves_whole_retained_table_and_refuses_foreign_rows() {
+    let root = ::std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let relative = "docs/evidence/factored-flat-labels-v1/sources.json";
+    let manifest: serde_json::Value = serde_json::from_str(SUBJECTS).unwrap();
+    let row = subject(&manifest, relative, "ours").unwrap();
+    let expected = row["current"]["sha256"].as_str().unwrap();
+    let length = row["current"]["length"].as_u64().unwrap() as usize;
+    let restored = later_factored_current(&root.join(relative), relative, length, expected).unwrap();
+    assert_eq!(restored, archive(&row["current"]).unwrap());
+    assert!(later_factored_current(&root.join(relative), relative, length + 1, expected).is_err());
+    assert!(later_factored_current(&root.join(relative), relative, length, &"0".repeat(64)).is_err());
 }

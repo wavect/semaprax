@@ -23,9 +23,9 @@ pub(in crate::cleanup_plan::replay) const QUERY_CONTROLS: usize = size_of::<Quer
     + 2 * size_of::<BlockId>()
     + 2 * size_of::<usize>()
     + 2 * size_of::<Option<Bound>>()
-    + size_of::<Bound>()
-    + 8 * size_of::<Option<usize>>()
-    + 8 * size_of::<usize>()
+    + 2 * size_of::<Bound>() // terminal initializer and returned caller binding
+    + 6 * CHECKED_ARITHMETIC // transition, goto, branch, lexical marker, terminal2
+    + 7 * size_of::<usize>() // transition len and three get actual/formal index pairs
     + 2 * size_of::<Option<&crate::cleanup_plan::CleanupBlock>>()
     + 2 * size_of::<Option<&crate::cleanup_plan::CleanupEdge>>()
     + 2 * size_of::<Option<&crate::cleanup_plan::ExitTarget>>()
@@ -39,13 +39,28 @@ pub(in crate::cleanup_plan::replay) const QUERY_CONTROLS: usize = size_of::<Quer
     + 2 * size_of::<&Vec<EdgeId>>()
     + 2 * size_of::<&[EdgeId]>()
     + 2 * size_of::<Option<&EdgeId>>()
-    + 4 * size_of::<&EdgeId>()
+    + 5 * size_of::<&EdgeId>() // Goto, last edge, two lexical variants, common edge
     + 2 * size_of::<&crate::cleanup_plan::CleanupBlock>()
     + 2 * size_of::<&crate::cleanup_plan::CleanupEdge>()
     + 2 * size_of::<&crate::cleanup_plan::ExitTarget>()
+    + size_of::<&crate::cleanup_plan::CleanupTerminator>()
+    + size_of::<&crate::cleanup_plan::ExitContinuation>()
     + size_of::<&BlockId>()
     + size_of::<&crate::cleanup_plan::ExitTargetId>()
     + 8 * size_of::<bool>();
+
+// checked_add/sub/mul take their receiver and operand by value: each has an
+// actual and formal usize, plus the Option return before pattern consumption.
+const CHECKED_ARITHMETIC: usize = 4 * size_of::<usize>() + size_of::<Option<usize>>();
+// Separate actual current-probe additions, before its first input is formed.
+// No callback/closure values exist: every result is consumed by a named match.
+pub(in crate::cleanup_plan::replay) const PROBE_CONTROLS: usize = QUERY_CONTROLS
+    + 3 * CHECKED_ARITHMETIC // required checked_add, avoided checked_mul, spare checked_sub
+    + 4 * size_of::<usize>() // growth-capacity actual/formal inputs
+    + size_of::<Option<usize>>() // growth-capacity return
+    + 6 * size_of::<usize>() // required,growth,avoided binding,spare binding,two len values
+    + 2 * size_of::<Option<usize>>() // named avoided/spare receivers
+    + size_of::<bool>(); // named sufficiently_large receiver
 
 fn bound(plan: &crate::cleanup_plan::CleanupPlan, target: BlockId, prefix: usize) -> Option<Bound> {
     let mut query = Query {
@@ -122,16 +137,31 @@ pub(in crate::cleanup_plan::replay) fn probe(
             copy_capacity: None,
         };
     }
-    let bound = bound(input.plan, input.target, input.values.len());
-    let growth = input.values.len().checked_add(1).and_then(|required| {
-        physical_storage::replay_growth_capacity(input.values.len(), required)
-    });
-    let (Some(bound), Some(growth)) = (bound, growth) else {
+    let Some(bound) = bound(input.plan, input.target, input.values.len()) else {
         return production_capacity::Decision {
             take: false,
             copy_capacity: None,
         };
     };
+    let Some(required) = input.values.len().checked_add(1) else {
+        return production_capacity::Decision {
+            take: false,
+            copy_capacity: None,
+        };
+    };
+    let Some(growth) = physical_storage::replay_growth_capacity(input.values.len(), required)
+    else {
+        return production_capacity::Decision {
+            take: false,
+            copy_capacity: None,
+        };
+    };
+    let avoided = growth.checked_mul(size_of::<std::rc::Rc<SkeletonObservation>>());
+    let sufficiently_large = match avoided {
+        Some(bytes) => bytes >= TAKE_BYTES,
+        None => false,
+    };
+    let spare = growth.checked_sub(bound.required);
     production_capacity::Decision {
         take: !bound.forked
             && input.remaining_edges == 0
@@ -139,13 +169,11 @@ pub(in crate::cleanup_plan::replay) fn probe(
             && input.values.capacity() > input.values.len()
             && input.values.capacity() <= growth
             && bound.required <= input.values.capacity()
-            && growth
-                .checked_mul(size_of::<std::rc::Rc<SkeletonObservation>>())
-                .is_some_and(|bytes| bytes >= TAKE_BYTES),
-        copy_capacity: growth
-            .checked_sub(bound.required)
-            .filter(|spare| *spare >= production_capacity::COPY_SLOTS)
-            .map(|_| bound.required),
+            && sufficiently_large,
+        copy_capacity: match spare {
+            Some(spare) if spare >= production_capacity::COPY_SLOTS => Some(bound.required),
+            _ => None,
+        },
     }
 }
 
@@ -162,12 +190,14 @@ pub(in crate::cleanup_plan::replay) fn copy_controls<T: Clone, V>() -> usize {
         + 2 * size_of::<&crate::cleanup_plan::CleanupPlan>()
         + 2 * size_of::<BlockId>()
         + 2 * size_of::<Result<Vec<T>, Diagnostic>>()
-        + 2 * size_of::<Option<usize>>()
-        + 2 * size_of::<usize>()
-        + 2 * size_of::<&AllocationPayer>()
-        + size_of::<&ReplayBudget>()
-        + 2 * size_of::<&Vec<T>>()
-        + 4 * size_of::<bool>()
+        + CHECKED_ARITHMETIC // required checked_add actual/formal/Option
+        + 4 * size_of::<usize>() // growth-capacity actual/formal inputs
+        + 4 * size_of::<Option<usize>>() // required/original/capacity initializer/receivers
+        + 7 * size_of::<usize>() // required/original/capacity bindings and four len results
+        + 4 * size_of::<&AllocationPayer>() // equality actual/formal left and right
+        + 2 * size_of::<&ReplayBudget>() // selected actual/formal
+        + 8 * size_of::<&Vec<T>>() // four len actual/formal pairs
+        + 5 * size_of::<bool>() // payer, selected, lazy result, enabled, capacity fit
 }
 
 // Whole literal old inline census plus the direct bank. This replaces the
@@ -188,7 +218,8 @@ pub(in crate::cleanup_plan::replay) fn inline_controls<T: Clone, V>() -> usize {
         + 2 * size_of::<&mut Vec<T>>() + size_of::<&[T]>()
         + 2 * size_of::<std::slice::Iter<'_, T>>()
         + 2 * size_of::<std::iter::Cloned<std::slice::Iter<'_, T>>>()
-        + (QUERY_CONTROLS
+    + (
+QUERY_CONTROLS
         + 2 * size_of::<&mut ReplayBudget>()
         + 2 * size_of::<&ResolvedFunction>()
         + 2 * size_of::<&Vec<T>>()
@@ -197,12 +228,15 @@ pub(in crate::cleanup_plan::replay) fn inline_controls<T: Clone, V>() -> usize {
         + 2 * size_of::<&crate::cleanup_plan::CleanupPlan>()
         + 2 * size_of::<BlockId>()
         + 2 * size_of::<Result<Vec<T>, Diagnostic>>()
-        + 2 * size_of::<Option<usize>>()
-        + 2 * size_of::<usize>()
-        + 2 * size_of::<&AllocationPayer>()
-        + size_of::<&ReplayBudget>()
-        + 2 * size_of::<&Vec<T>>()
-        + 4 * size_of::<bool>())
+        + CHECKED_ARITHMETIC // required checked_add actual/formal/Option
+        + 4 * size_of::<usize>() // growth-capacity actual/formal inputs
+        + 4 * size_of::<Option<usize>>() // required/original/capacity initializer/receivers
+        + 7 * size_of::<usize>() // required/original/capacity bindings and four len results
+        + 4 * size_of::<&AllocationPayer>() // equality actual/formal left and right
+        + 2 * size_of::<&ReplayBudget>() // selected actual/formal
+        + 8 * size_of::<&Vec<T>>() // four len actual/formal pairs
+        + 5 * size_of::<bool>() // payer, selected, lazy result, enabled, capacity fit
+    )
 }
 
 #[track_caller]
@@ -218,17 +252,21 @@ pub(in crate::cleanup_plan::replay) fn copy_prepaid<
     plan: &crate::cleanup_plan::CleanupPlan,
     target: BlockId,
 ) -> Result<Vec<T>, Diagnostic> {
-    let original = values
-        .len()
-        .checked_add(1)
-        .and_then(|required| physical_storage::replay_growth_capacity(values.len(), required));
+    let required = values.len().checked_add(1);
+    let original = match required {
+        Some(required) => physical_storage::replay_growth_capacity(values.len(), required),
+        None => None,
+    };
     let capacity = if budget.payer == AllocationPayer::ActiveBuilder && !budget.selected() {
         #[cfg(test)]
         let enabled = !super::tests::original_selected();
         #[cfg(not(test))]
         let enabled = true;
         if enabled {
-            bound(plan, target, values.len()).map(|bound| bound.required)
+            match bound(plan, target, values.len()) {
+                Some(bound) => Some(bound.required),
+                None => None,
+            }
         } else {
             None
         }
@@ -242,16 +280,19 @@ pub(in crate::cleanup_plan::replay) fn copy_prepaid<
     // exactly as in the complete predecessor producer.
     budget.charge_skeleton(function, 1, "plan branch observation push")?;
     note_skeleton_materialization();
-    let capacity = match (capacity, original) {
-        (Some(capacity), Some(original)) if capacity <= original => capacity,
-        (_, Some(original)) => original,
-        _ => {
+    let original = match original {
+        Some(original) => original,
+        None => {
             return Err(budget.budget_refusal(
                 function,
                 "cleanup replay branch capacity overflowed",
                 "",
             ));
         }
+    };
+    let capacity = match capacity {
+        Some(capacity) if capacity <= original => capacity,
+        _ => original,
     };
     budget.reserve_array::<T>(
         function,
@@ -267,7 +308,7 @@ pub(in crate::cleanup_plan::replay) fn copy_prepaid<
     result.extend(values.iter().cloned());
     result.push(observation.into());
     #[cfg(test)]
-    if Some(capacity) != original {
+    if capacity != original {
         note_plan_copy();
     }
     Ok(result)

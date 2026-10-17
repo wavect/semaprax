@@ -1,0 +1,74 @@
+[
+  {
+    "path": "src/source_reflows/semantic_receivers.rs",
+    "before_head": "e7cf5bbcaf59714f3d74c2998f59a649a54314fe",
+    "before_length": 29039,
+    "before_sha256": "ba2ddbf8486039ba24fb0f36a90dea66910e931cbb71115b4d2eab114906430b",
+    "before_archive": "original-program-0.txt",
+    "after_length": 29392,
+    "after_sha256": "da7cbb1e26939354d97ef08c36f742606e5536aad5bb7053fefa36b655adeecf",
+    "inverse": {
+      "replace_complete_after_with_before_archive": "original-program-0.txt"
+    }
+  },
+  {
+    "path": "src/source_reflows/incoming67107_semantic_receivers.rs",
+    "before_head": "e7cf5bbcaf59714f3d74c2998f59a649a54314fe",
+    "before_length": 32045,
+    "before_sha256": "5b14ab93dba6fe594204817ac76eca64a4b7e1fd537177a3d3ac81f87e387c4a",
+    "before_archive": "original-program-1.txt",
+    "after_length": 32398,
+    "after_sha256": "333ea72b6ed6d7d4c6dea4168a9d5235fa9f374cc428c068599d48a95097275b",
+    "inverse": {
+      "replace_complete_after_with_before_archive": "original-program-1.txt"
+    }
+  },
+  {
+    "path": "src/source_reflows_merge/main67107_inputs.rs",
+    "before_head": "e7cf5bbcaf59714f3d74c2998f59a649a54314fe",
+    "before_length": 22127,
+    "before_sha256": "92f37c17f42b28477804d61c882e45ca4b64d8fc67fd78cab11ab369026152d9",
+    "before_archive": "original-program-2.txt",
+    "after_length": 26262,
+    "after_sha256": "d74c2c61088bbdcb0a1afa05396d141ac40ce17707dbf2bfda5747e9ab5be9a4",
+    "inverse": {
+      "replace_complete_after_with_before_archive": "original-program-2.txt"
+    }
+  },
+  {
+    "path": "src/cleanup_plan/replay/factored/canonical_shared/paid_many/source.rs",
+    "before_head": "e7cf5bbcaf59714f3d74c2998f59a649a54314fe",
+    "before_length": 5877,
+    "before_sha256": "d568e9dd4c668737cc1bc52d36b853a1e7f188d6b940cb4731e478c9ee6c277b",
+    "before_archive": "original-program-3.txt",
+    "after_length": 11292,
+    "after_sha256": "d900158205f5dec743169c1df4ab3c0a791cf3bc3fbc2741cd080821377ea9bb",
+    "inverse": {
+      "replace_complete_after_with_before_archive": "original-program-3.txt"
+    }
+  },
+  {
+    "path": "docs/evidence/mainbcc-ordinary-source-domain-20261017/check-source.py",
+    "before_head": "e7cf5bbcaf59714f3d74c2998f59a649a54314fe",
+    "before_length": 5577,
+    "before_sha256": "2f86c576f4b852e739eaa79101f80e2e8d46c4391a870822e45ef579aff80a0d",
+    "before_archive": "original-program-4.txt",
+    "after_length": 6109,
+    "after_sha256": "191fd9ee7a8b03dc33b8947c698a8f3938f4a69f7233d5e8333d3e947aee1e3d",
+    "inverse": {
+      "replace_complete_after_with_before_archive": "original-program-4.txt"
+    }
+  },
+  {
+    "path": "docs/evidence/main34d-three-source-domains-20261017/check-source.py",
+    "before_head": "e7cf5bbcaf59714f3d74c2998f59a649a54314fe",
+    "before_length": 5976,
+    "before_sha256": "5997fe4eb8457b65e3852c3ca852c5d2490ca84c84ace341743e1ebd634c98bd",
+    "before_archive": "original-program-5.txt",
+    "after_length": 5976,
+    "after_sha256": "f8d27e5e2b2c66fe7e2ea38db9ed7c0c6a4395553a2ec122ec58bf95c7cd4c08",
+    "inverse": {
+      "replace_complete_after_with_before_archive": "original-program-5.txt"
+    }
+  }
+]

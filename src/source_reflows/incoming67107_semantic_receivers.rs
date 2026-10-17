@@ -643,3 +643,10 @@ fn complete_mainbcc_routes_keep_all_six_rows_and_refuse_foreign_inputs() {
     let path = manifest["inputs"][0]["path"].as_str().unwrap();
     assert!(std::panic::catch_unwind(|| mainbcc_entry(&duplicate, path)).is_err());
 }
+
+// Semantic inverse owners pass complete, authenticated formatting AFTERimages.
+// Keep raw-current acquisition at source_reflows::restore for its live owners;
+// this namespace's archived-stage calls retain the full original formatter.
+fn restore(record: &serde_json::Value, current: &str) -> String {
+    super::restore_formatting(record, current)
+}

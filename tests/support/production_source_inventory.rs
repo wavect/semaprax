@@ -89,11 +89,19 @@ fn semantic_batch_relocated_prefix() -> &'static str {
         include_str!("../../src/cleanup_plan/replay/skeleton_work/merge_keys_tests.rs"),
     )
 }
-fn assert_semantic_batch_relocated_prefix(raw: &str) {
+fn assert_semantic_batch_relocated_prefix_before162(raw: &str) {
     let prefix = semantic_batch_relocated_prefix();
     assert!(!prefix.is_empty());
     let rest = raw.strip_prefix(prefix).expect("all seventeen relocated subjects must enter the actual raw inventory");
     assert!(!rest.starts_with(prefix), "duplicate semantic batch relocated inventory prefix");
+}
+// The complete prefix is a declaration of the relocated slice, not a complete
+// inventory on its own. The full source owner authenticates the remaining raw
+// sources and role table after this placement check; do not project that tail.
+fn assert_semantic_batch_relocated_prefix(raw: &str) {
+    assert_semantic_batch_relocated_prefix_before162(raw);
+    let rest = raw.strip_prefix(semantic_batch_relocated_prefix()).unwrap();
+    assert!(!rest.is_empty(), "relocated prefix must be followed by the remaining raw inventory");
 }
 #[test]
 fn semantic_batch_relocated_subjects_require_all_seventeen_and_keep_prior_three_five_guards() {

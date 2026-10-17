@@ -199,5 +199,7 @@ fn authenticate_compiled_inputs() {
     assert_eq!(f247_read("docs/evidence/compact-staged-observations-v1/tests__hir_module_boundaries.rs.before.txt"), source!("docs/evidence/compact-staged-observations-v1/tests__hir_module_boundaries.rs.before.txt"));
     assert_eq!(f247_read("tests/workspace/semantic_graph/source_inventory.rs"), source!("tests/workspace/semantic_graph/source_inventory.rs"));
     assert_eq!(f247_read("docs/evidence/compact-staged-observations-v1/tests__workspace__semantic_graph__source_inventory.rs.before.txt"), source!("docs/evidence/compact-staged-observations-v1/tests__workspace__semantic_graph__source_inventory.rs.before.txt"));
+    assert_eq!(f247_read("src/cleanup_plan/replay/compact_stage/before.rs"), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/future831-f247-final-source-binding-20261017/incoming/4d10cbe619d26918551f006a29055551fbd0e1020387ac881848aa8d6f9719f6.txt")));
+    assert_eq!(f247_read("src/cleanup_plan/replay/compact_stage/lexical_before.rs"), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/future831-f247-final-source-binding-20261017/incoming/ce639daa60fcb96e43d19d48d9c9f0e5e8eb22b34488604c48e12e55056bd889.txt")));
     assert_eq!(before_root(FILES[0].1), FILES[0].3);
 }

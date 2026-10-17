@@ -914,3 +914,23 @@ fn cli_authoring_card_search_is_bounded_exact_and_inert() {
 
 #[path = "cli_help_surface_v1/task_pages.rs"]
 mod task_pages;
+
+#[test]
+fn standalone_application_starter_options_explain_full_host_and_leave_no_files() {
+    for option in [
+        "--from",
+        "--codec-plan",
+        "--command-profile",
+        "--command-path",
+        "--command-source",
+    ] {
+        let (output, directory) = invoke(&["new", "fresh", option, "missing"]);
+        assert_eq!(output.status.code(), Some(2), "{option}: {output:?}");
+        assert!(output.stdout.is_empty());
+        assert!(String::from_utf8(output.stderr).unwrap().contains(
+            "new application starters require semaprax-full; use `semaprax-full help new`"
+        ));
+        assert_eq!(std::fs::read_dir(&directory).unwrap().count(), 0);
+        std::fs::remove_dir(directory).unwrap();
+    }
+}

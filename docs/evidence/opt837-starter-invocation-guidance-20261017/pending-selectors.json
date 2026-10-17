@@ -1,0 +1,32 @@
+{
+  "status": "SOURCE_ONLY_UNREGISTERED_UNEXECUTED",
+  "required_integration_owners": [
+    {
+      "package": "semaprax",
+      "kind": "test:cli_help_surface_v1",
+      "selector": "standalone_application_starter_options_explain_full_host_and_leave_no_files",
+      "source": "tests/cli_help_surface_v1.rs"
+    },
+    {
+      "package": "semaprax-toolchain",
+      "kind": "test:cli_new_project_v1",
+      "selector": "application_starter::incomplete_starter_options_select_exact_usage_before_inputs_or_publication",
+      "source": "crates/semaprax-toolchain/tests/cli_new_project_v1/application_starter.rs"
+    }
+  ],
+  "additional_unit_owner": {
+    "package": "semaprax",
+    "kind": "bin:semaprax unit test",
+    "selector": "cli_driver::cli::new_project::tests::application_starter_options_name_the_full_host_without_changing_template_errors",
+    "source": "src/cli/new_project.rs",
+    "registration_required": true
+  },
+  "preserve_existing_837_gates": [
+    "application_starter::application_starter_typed_shiftsim_fresh_check_native_tests_and_original_fifteen",
+    "application_starter::application_starter_selected_file_declared_native_tests_and_unchanged_cli49",
+    "new_project::application::tests::starter_unknown_duplicate_and_incomplete_profiles_refuse_before_input_reads",
+    "new_project::application::tests::starter_plan_and_activation_swap_to_symlink_or_fifo_refuses_before_staging",
+    "new_project::application::tests::starter_input_held_regular_reader_preserves_exact_bytes_and_bounds",
+    "new_project::application::tests::starter_initial_symlink_and_existing_destination_preserve_originals"
+  ]
+}

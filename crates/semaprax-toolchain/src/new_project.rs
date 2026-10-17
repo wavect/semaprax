@@ -80,7 +80,14 @@ impl WriteHook for NoopWriteHook {
 }
 
 pub(crate) fn run(arguments: &[String]) -> Result<(PathBuf, &'static str), NewProjectFailure> {
-    if arguments.iter().any(|arg| arg == "--codec-plan") {
+    // Any explicit starter option selects its closed grammar. An incomplete
+    // request must report that grammar before acquiring an input or destination.
+    if arguments.iter().any(|arg| {
+        matches!(
+            arg.as_str(),
+            "--from" | "--codec-plan" | "--command-profile" | "--command-path" | "--command-source"
+        )
+    }) {
         return application::run(arguments).map(|path| (path, "application"));
     }
     let options = parse(arguments)?;

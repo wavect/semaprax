@@ -35,6 +35,13 @@ pub(crate) fn parse(arguments: &[String]) -> Result<NewOptions, String> {
                 index += 2;
             }
             "--template" => return Err("duplicate new option `--template`".to_owned()),
+            "--from" | "--codec-plan" | "--command-profile" | "--command-path"
+            | "--command-source" => {
+                return Err(
+                    "new application starters require semaprax-full; use `semaprax-full help new`"
+                        .to_owned(),
+                );
+            }
             option if option.starts_with('-') => {
                 return Err(format!("unknown new option `{option}`"));
             }
@@ -205,6 +212,36 @@ mod tests {
         assert_eq!(
             parse(&strings(&["x", "--bogus"])).unwrap_err(),
             "unknown new option `--bogus`"
+        );
+    }
+
+    #[test]
+    fn application_starter_options_name_the_full_host_without_changing_template_errors() {
+        for option in [
+            "--from",
+            "--codec-plan",
+            "--command-profile",
+            "--command-path",
+            "--command-source",
+        ] {
+            assert_eq!(
+                parse(&strings(&["fresh", option, "missing"])).unwrap_err(),
+                "new application starters require semaprax-full; use `semaprax-full help new`"
+            );
+        }
+        assert_eq!(
+            parse(&strings(&["fresh", "--bogus", "--codec-plan", "missing"])).unwrap_err(),
+            "unknown new option `--bogus`"
+        );
+        assert_eq!(
+            parse(&strings(&["fresh", "--name", "--from"])).unwrap_err(),
+            "new option `--name` requires a value"
+        );
+        assert_eq!(
+            parse(&strings(&["fresh", "--template", "calculator"]))
+                .unwrap()
+                .template,
+            "calculator"
         );
     }
 }

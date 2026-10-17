@@ -129,3 +129,18 @@ Owning pending checks:
 No Cargo build, tests, Clippy, benchmark, hosted run or full gate was performed
 when authoring this source batch. The user prohibited full gates. Minimum exact
 owning checks are pending the parent's grouped compilation/verification budget.
+
+## Starter invocation recovery (#837)
+
+Source implementation; focused executable qualification remains pending.
+Each explicit starter option (`--from`, `--codec-plan`, `--command-profile`,
+`--command-path`, or `--command-source`) selects the full host's closed starter
+invocation grammar. A request missing its plan or profile reports that complete
+grammar with status two before selected-input reads or destination publication.
+The ordinary template grammar remains selected when no starter option appears.
+
+The standalone compiler recognizes these reserved starter options only to refuse
+with status two and the exact next command `semaprax-full help new`; it gains no
+installer or private host authority. Earlier ordinary argument errors remain
+selected by its left-to-right parser. This guidance is not successful installation,
+ordinary compiler admission, CLI49/ShiftSim15 execution or #837 closure evidence.

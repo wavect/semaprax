@@ -1,0 +1,124 @@
+{
+  "base": "0f9fb3766f0413694e4a12447538f7c7bb99627f",
+  "rows": [
+    {
+      "source": "CHANGELOG.md",
+      "before": {
+        "archive": "docs/evidence/opt837-starter-invocation-guidance-20261017/before/CHANGELOG.md",
+        "length": 574015,
+        "sha256": "9bc5dbe60dc1ddd282f192fdaedd0f0ce284a84b407e2dde297a1ee385887ce0"
+      },
+      "after": {
+        "length": 574263,
+        "sha256": "48e5b7ff9278754fcf8b7fa1f3a0b2a128fef40df5281a2ed112fc823c190e8a",
+        "lines": 7691
+      },
+      "whole_inverse": {
+        "require_complete_after_sha256": "48e5b7ff9278754fcf8b7fa1f3a0b2a128fef40df5281a2ed112fc823c190e8a",
+        "restore_complete_before": "docs/evidence/opt837-starter-invocation-guidance-20261017/before/CHANGELOG.md"
+      }
+    },
+    {
+      "source": "crates/semaprax-toolchain/src/new_project.rs",
+      "before": {
+        "archive": "docs/evidence/opt837-starter-invocation-guidance-20261017/before/crates__semaprax-toolchain__src__new_project.rs",
+        "length": 17035,
+        "sha256": "f4ebc2d7fc69a68ce5ea1a2da4a6eb3c2074bb15a9a2de41c80b8a56c3cc0a69"
+      },
+      "after": {
+        "length": 17334,
+        "sha256": "218dd626cd8da45fc84f718bf575cb557e5daea51455abe32b09fe4c6373ed52",
+        "lines": 519
+      },
+      "whole_inverse": {
+        "require_complete_after_sha256": "218dd626cd8da45fc84f718bf575cb557e5daea51455abe32b09fe4c6373ed52",
+        "restore_complete_before": "docs/evidence/opt837-starter-invocation-guidance-20261017/before/crates__semaprax-toolchain__src__new_project.rs"
+      }
+    },
+    {
+      "source": "crates/semaprax-toolchain/tests/cli_new_project_v1/application_starter.rs",
+      "before": {
+        "archive": "docs/evidence/opt837-starter-invocation-guidance-20261017/before/crates__semaprax-toolchain__tests__cli_new_project_v1__application_starter.rs",
+        "length": 21925,
+        "sha256": "e01a02fb235f02b43f8ea37fcb088e61ff72ea5c0b82c87bed187f328e559d53"
+      },
+      "after": {
+        "length": 23437,
+        "sha256": "a754b40bb88094d90b43e2f91b070007da676f063daedb2de6e3430a32196cb3",
+        "lines": 620
+      },
+      "whole_inverse": {
+        "require_complete_after_sha256": "a754b40bb88094d90b43e2f91b070007da676f063daedb2de6e3430a32196cb3",
+        "restore_complete_before": "docs/evidence/opt837-starter-invocation-guidance-20261017/before/crates__semaprax-toolchain__tests__cli_new_project_v1__application_starter.rs"
+      }
+    },
+    {
+      "source": "docs/APPLICATION-STARTER-V1.md",
+      "before": {
+        "archive": "docs/evidence/opt837-starter-invocation-guidance-20261017/before/docs__APPLICATION-STARTER-V1.md",
+        "length": 8592,
+        "sha256": "1d8b73eb312e7c3b206492e46d152eb9c62c6513e991d51bf8215efcf00b53f8"
+      },
+      "after": {
+        "length": 9507,
+        "sha256": "1df7c2877fd2fffb00092c2c609021c68dd3aad15239f189c6556cb8e6edb2f7",
+        "lines": 146
+      },
+      "whole_inverse": {
+        "require_complete_after_sha256": "1df7c2877fd2fffb00092c2c609021c68dd3aad15239f189c6556cb8e6edb2f7",
+        "restore_complete_before": "docs/evidence/opt837-starter-invocation-guidance-20261017/before/docs__APPLICATION-STARTER-V1.md"
+      }
+    },
+    {
+      "source": "docs/NEW-PROJECT-STANDALONE-V1.md",
+      "before": {
+        "archive": "docs/evidence/opt837-starter-invocation-guidance-20261017/before/docs__NEW-PROJECT-STANDALONE-V1.md",
+        "length": 5563,
+        "sha256": "9e9e3d3c0ac2d0956a756a61859e167dd3ebf4bde8d428ca300848a7ba51ba10"
+      },
+      "after": {
+        "length": 5924,
+        "sha256": "4f036bd1164ee3aaaa83af78d3a0ca9607778b4b0e5b30e557016a56d309ef46",
+        "lines": 104
+      },
+      "whole_inverse": {
+        "require_complete_after_sha256": "4f036bd1164ee3aaaa83af78d3a0ca9607778b4b0e5b30e557016a56d309ef46",
+        "restore_complete_before": "docs/evidence/opt837-starter-invocation-guidance-20261017/before/docs__NEW-PROJECT-STANDALONE-V1.md"
+      }
+    },
+    {
+      "source": "src/cli/new_project.rs",
+      "before": {
+        "archive": "docs/evidence/opt837-starter-invocation-guidance-20261017/before/src__cli__new_project.rs",
+        "length": 7612,
+        "sha256": "78f2cc817663e9d5e4d076082f0eef8c790d75954eca78e1ab5bab40f54ba510"
+      },
+      "after": {
+        "length": 8937,
+        "sha256": "8da14455d8d229a404958f9fe8c406d36f1c12de691663e4616f975d1864a55f",
+        "lines": 247
+      },
+      "whole_inverse": {
+        "require_complete_after_sha256": "8da14455d8d229a404958f9fe8c406d36f1c12de691663e4616f975d1864a55f",
+        "restore_complete_before": "docs/evidence/opt837-starter-invocation-guidance-20261017/before/src__cli__new_project.rs"
+      }
+    },
+    {
+      "source": "tests/cli_help_surface_v1.rs",
+      "before": {
+        "archive": "docs/evidence/opt837-starter-invocation-guidance-20261017/before/tests__cli_help_surface_v1.rs",
+        "length": 44814,
+        "sha256": "495139a32f896a5ca38991169d7617432173a0a7c67c62d3912f937beaf80f33"
+      },
+      "after": {
+        "length": 45556,
+        "sha256": "aac55ca64db2b37a04f6f46b40c05cadd99a67240259d37e9d83267ed0f7e7cc",
+        "lines": 936
+      },
+      "whole_inverse": {
+        "require_complete_after_sha256": "aac55ca64db2b37a04f6f46b40c05cadd99a67240259d37e9d83267ed0f7e7cc",
+        "restore_complete_before": "docs/evidence/opt837-starter-invocation-guidance-20261017/before/tests__cli_help_surface_v1.rs"
+      }
+    }
+  ]
+}

@@ -1,0 +1,119 @@
+{
+  "schema": "semaprax.selected-fixture-lifecycle-source.v1",
+  "base": "0acad3e05bde8145d98dbdfb1fbdc732602638f4",
+  "status": "SOURCE_ONLY_UNQUALIFIED",
+  "runtime_executed": false,
+  "source_validation": "rustfmt parsing/formatting and git diff --check only",
+  "files": [
+    {
+      "path": "src/cleanup_plan/replay/flat_records/tests/receiving_path_boundary.rs",
+      "preimage": "preimages/src__cleanup_plan__replay__flat_records__tests__receiving_path_boundary.rs.before",
+      "before_sha256": "77aed2e82246b4e2b30ad42e74d812b50521ef3cc107a2854c675deb78f38a38",
+      "current_sha256": "06e67264da2fc799f30a93eec22da2c538fef0d5471050097670c2ed2f412e3f",
+      "inverse": [
+        {
+          "before": "        let exact = b.physical.as_ref().unwrap().charged();\n        let work = initial - b.remaining;\n        drop(b);\n        assert!(exact > setup && work > 0);\n        for (limit, accepted) in [(setup, false), (exact - 1, false), (exact, true)] {\n            let ((), seen) = measure(|| {\n                let mut b = ReplayBudget::with_physical(f, limit).unwrap();\n                let ledger = b.physical.as_deref().unwrap() as *const _;\n                let result = path_join::validate_path_states::<EngineError>(\n                    &p,\n                    f,\n                    &slots,\n                    &leaves,\n                    &mut b,\n                    Some(&auth),\n                    None,\n                );\n                assert_eq!(result.is_ok(), accepted);\n                if !accepted {\n                    let physical = b.physical.as_deref_mut().unwrap();\n                    let first = physical.reserve(0).unwrap_err();\n                    assert_eq!(first, physical.reserve(1).unwrap_err());\n                }\n                assert_eq!(b.physical.as_deref().unwrap() as *const _, ledger);\n                drop(result);\n                drop(b);\n            });\n            assert!(!seen.invalid);\n            assert_eq!(seen.live, 0);\n            assert_eq!(seen.allocated, seen.freed);\n        }\n        for remaining in [0, work - 1, work] {\n            let mut b = ReplayBudget::with_physical(f, usize::MAX).unwrap();\n            b.remaining = remaining;\n            assert_eq!(\n                path_join::validate_path_states::<EngineError>(\n                    &p,\n                    f,\n                    &slots,\n                    &leaves,\n                    &mut b,\n                    Some(&auth),\n                    None\n                )\n                .is_ok(),\n                remaining == work\n            );\n        }\n    }\n",
+          "after": "    let owner = FunctionExecutionId::Monomorphic(f.id.clone());\n    crate::hir::lexical_exit::validate_owner(f, &owner).unwrap();\n    let facts = lexical_hir::collect(f, &mut ReplayBudget::new()).unwrap();\n    let auth = lexical_cert::authenticate(&p, f, &owner, &facts, &mut ReplayBudget::new()).unwrap();\n    let slots = replay::validate_slots_paid(f, &mut ReplayBudget::new()).unwrap();\n    let leaves = replay::collect_leaves_paid(f, &mut ReplayBudget::new()).unwrap();\n    let plan = f.cleanup_plan.clone();\n    let mut old = ReplayBudget::with_physical(f, usize::MAX).unwrap();\n    let expected = path_join::before_path_boundary::validate_path_states::<Diagnostic>(\n        &p,\n        f,\n        &slots,\n        &leaves,\n        &mut old,\n        Some(&auth),\n        None,\n    )\n    .unwrap_err();\n    let mut new = ReplayBudget::with_physical(f, usize::MAX).unwrap();\n    let actual = path_join::validate_path_states::<EngineError>(\n        &p,\n        f,\n        &slots,\n        &leaves,\n        &mut new,\n        Some(&auth),\n        None,\n    )\n    .unwrap_err();\n    let actual = render(actual, f);\n    same(&actual, &expected);\n    let missing = replay::replay_error(f, \"selected append lacks current function census\");\n    same(&actual, &missing);\n    assert_eq!(f.cleanup_plan, plan);\n"
+        },
+        {
+          "before": "        .filter(|f| f.cleanup_plan.lexical_control.is_some())\n    {\n        let owner = FunctionExecutionId::Monomorphic(f.id.clone());\n        crate::hir::lexical_exit::validate_owner(f, &owner).unwrap();\n        let facts = lexical_hir::collect(f, &mut ReplayBudget::new()).unwrap();\n        let auth =\n            lexical_cert::authenticate(&p, f, &owner, &facts, &mut ReplayBudget::new()).unwrap();\n        let slots = replay::validate_slots_paid(f, &mut ReplayBudget::new()).unwrap();\n        let leaves = replay::collect_leaves_paid(f, &mut ReplayBudget::new()).unwrap();\n        let mut b = ReplayBudget::with_physical(f, usize::MAX).unwrap();\n        let setup = b.physical.as_ref().unwrap().charged();\n        let initial = b.remaining;\n        path_join::validate_path_states::<EngineError>(\n            &p,\n            f,\n            &slots,\n            &leaves,\n            &mut b,\n            Some(&auth),\n            None,\n        )\n",
+          "after": "        .find(|f| f.id.as_str() == \"flat.identity\")\n"
+        },
+        {
+          "before": "    for f in p\n",
+          "after": "    let f = p\n"
+        },
+        {
+          "before": "",
+          "after": "    let fixture = crate::workspace_graph::SourceRecordReplayFixture::new(super::SOURCE);\n    fixture.with_prepared_context(|source| {\n        // Replacing the invalid payer/source pairing must retain the complete\n        // original lexical-function corpus, including declaration order.\n        let original = program();\n        assert_eq!(\n            source\n                .functions()\n                .iter()\n                .filter(|f| f.cleanup_plan.lexical_control.is_some())\n                .map(|f| &f.id)\n                .collect::<Vec<_>>(),\n            original\n                .functions\n                .iter()\n                .filter(|f| f.cleanup_plan.lexical_control.is_some())\n                .map(|f| &f.id)\n                .collect::<Vec<_>>()\n        );\n        for f in source\n            .functions()\n            .iter()\n            .filter(|f| f.cleanup_plan.lexical_control.is_some())\n        {\n            let owner = FunctionExecutionId::Monomorphic(f.id.clone());\n            crate::hir::lexical_exit::validate_owner(f, &owner).unwrap();\n            let facts = lexical_hir::collect(f, &mut ReplayBudget::new()).unwrap();\n            let auth =\n                lexical_cert::authenticate(source, f, &owner, &facts, &mut ReplayBudget::new())\n                    .unwrap();\n            let slots = replay::validate_slots_paid(f, &mut ReplayBudget::new()).unwrap();\n            let leaves = replay::collect_leaves_paid(f, &mut ReplayBudget::new()).unwrap();\n            // Context profile/census construction and its complete destruction\n            // belong to each receiver's SAME exact byte/work owner below.\n            for old in [false, true] {\n                let mut b = ReplayBudget::with_physical(f, usize::MAX).unwrap();\n                let setup = b.physical.as_ref().unwrap().charged();\n                let initial = b.remaining;\n                let context = selected_context::Context::new_paid(source, f, &mut b, true).unwrap();\n                (if old {\n                    path_join::before_path_boundary::validate_path_states::<Diagnostic>(\n                        &context,\n                        f,\n                        &slots,\n                        &leaves,\n                        &mut b,\n                        Some(&auth),\n                        None,\n                    )\n                    .map_err(EngineError::Owned)\n                } else {\n                    path_join::validate_path_states::<EngineError>(\n                        &context,\n                        f,\n                        &slots,\n                        &leaves,\n                        &mut b,\n                        Some(&auth),\n                        None,\n                    )\n                })\n                .unwrap();\n                let exact = b.physical.as_ref().unwrap().charged();\n                let work = initial - b.remaining;\n                drop(context);\n                drop(b);\n                assert!(exact > setup && work > 0);\n                for (limit, accepted) in [(setup, false), (exact - 1, false), (exact, true)] {\n                    let ((), seen) = measure(|| {\n                        let mut b = ReplayBudget::with_physical(f, limit).unwrap();\n                        let ledger = b.physical.as_deref().unwrap() as *const _;\n                        let result =\n                            (|| {\n                                let context =\n                                    selected_context::Context::new_paid(source, f, &mut b, true)?;\n                                if old {\n                                    path_join::before_path_boundary::validate_path_states::<\n                                        Diagnostic,\n                                    >(\n                                        &context, f, &slots, &leaves, &mut b, Some(&auth), None\n                                    )\n                                    .map_err(EngineError::Owned)\n                                } else {\n                                    path_join::validate_path_states::<EngineError>(\n                                        &context,\n                                        f,\n                                        &slots,\n                                        &leaves,\n                                        &mut b,\n                                        Some(&auth),\n                                        None,\n                                    )\n                                }\n                            })();\n                        assert_eq!(result.is_ok(), accepted);\n                        if !accepted {\n                            let physical = b.physical.as_deref_mut().unwrap();\n                            let first = physical.reserve(0).unwrap_err();\n                            assert_eq!(first, physical.reserve(1).unwrap_err());\n                        }\n                        assert_eq!(b.physical.as_deref().unwrap() as *const _, ledger);\n                        drop(result);\n                        drop(b);\n                    });\n                    assert!(!seen.invalid);\n                    assert_eq!(seen.live, 0);\n                    assert_eq!(seen.allocated, seen.freed);\n                }\n                for remaining in [0, work - 1, work] {\n                    let mut b = ReplayBudget::with_physical(f, usize::MAX).unwrap();\n                    b.remaining = remaining;\n                    assert_eq!(\n                        (|| {\n                            let context =\n                                selected_context::Context::new_paid(source, f, &mut b, true)?;\n                            if old {\n                                path_join::before_path_boundary::validate_path_states::<Diagnostic>(\n                                    &context,\n                                    f,\n                                    &slots,\n                                    &leaves,\n                                    &mut b,\n                                    Some(&auth),\n                                    None,\n                                )\n                                .map_err(EngineError::Owned)\n                            } else {\n                                path_join::validate_path_states::<EngineError>(\n                                    &context,\n                                    f,\n                                    &slots,\n                                    &leaves,\n                                    &mut b,\n                                    Some(&auth),\n                                    None,\n                                )\n                            }\n                        })()\n                        .is_ok(),\n                        remaining == work\n                    );\n                }\n            }\n        }\n    });\n}\n\n#[test]\nfn raw_selected_path_without_current_census_retains_original_six_field_refusal() {\n    // Preserve the original invalid setup as an explicit negative. A raw\n    // ResolvedProgram still cannot lend the current selected append directory.\n"
+        },
+        {
+          "before": "    }\n",
+          "after": "    });\n"
+        },
+        {
+          "before": "            let subject = if hostile { &changed } else { f };\n            let plan = subject.cleanup_plan.clone();\n            let mut old = ReplayBudget::with_physical(subject, usize::MAX).unwrap();\n            let expected = path_join::before_path_boundary::validate_path_states::<Diagnostic>(\n                &p,\n                subject,\n                &slots,\n                &leaves,\n                &mut old,\n                Some(&auth),\n                None,\n            );\n            let mut new = ReplayBudget::with_physical(subject, usize::MAX).unwrap();\n            let actual = path_join::validate_path_states::<EngineError>(\n                &p,\n                subject,\n                &slots,\n                &leaves,\n                &mut new,\n                Some(&auth),\n                None,\n            );\n            match (expected, actual) {\n                (Ok(()), Ok(())) => {}\n                (Err(a), Err(b)) => same(&a, &render(b, subject)),\n                _ => panic!(\"whole path verdict/order differs\"),\n            }\n            assert_eq!(subject.cleanup_plan, plan);\n",
+          "after": ""
+        },
+        {
+          "before": "",
+          "after": "                let subject = if hostile { &changed } else { f };\n                let plan = subject.cleanup_plan.clone();\n                let mut old = ReplayBudget::with_physical(subject, usize::MAX).unwrap();\n                let old_context =\n                    selected_context::Context::new_paid(source, f, &mut old, true).unwrap();\n                let expected = path_join::before_path_boundary::validate_path_states::<Diagnostic>(\n                    &old_context,\n                    subject,\n                    &slots,\n                    &leaves,\n                    &mut old,\n                    Some(&auth),\n                    None,\n                );\n                let mut new = ReplayBudget::with_physical(subject, usize::MAX).unwrap();\n                let new_context =\n                    selected_context::Context::new_paid(source, f, &mut new, true).unwrap();\n                let actual = path_join::validate_path_states::<EngineError>(\n                    &new_context,\n                    subject,\n                    &slots,\n                    &leaves,\n                    &mut new,\n                    Some(&auth),\n                    None,\n                );\n                match (expected, actual) {\n                    (Ok(()), Ok(())) => {}\n                    (Err(a), Err(b)) => same(&a, &render(b, subject)),\n                    _ => panic!(\"whole path verdict/order differs\"),\n                }\n                assert_eq!(subject.cleanup_plan, plan);\n"
+        },
+        {
+          "before": "    let p = program();\n    for f in p\n        .functions\n        .iter()\n        .filter(|f| f.cleanup_plan.lexical_control.is_some())\n    {\n        let owner = FunctionExecutionId::Monomorphic(f.id.clone());\n        crate::hir::lexical_exit::validate_owner(f, &owner).unwrap();\n        let facts = lexical_hir::collect(f, &mut ReplayBudget::new()).unwrap();\n        let auth =\n            lexical_cert::authenticate(&p, f, &owner, &facts, &mut ReplayBudget::new()).unwrap();\n        let slots = replay::validate_slots_paid(f, &mut ReplayBudget::new()).unwrap();\n        let leaves = replay::collect_leaves_paid(f, &mut ReplayBudget::new()).unwrap();\n        for hostile in [false, true] {\n            let mut changed = f.clone();\n            if hostile {\n                if let Some(block) = changed\n                    .cleanup_plan\n                    .blocks\n                    .iter_mut()\n                    .find(|b| !b.transitions.is_empty())\n                {\n                    block.transitions.insert(0, block.transitions[0].clone());\n",
+          "after": "    let fixture = crate::workspace_graph::SourceRecordReplayFixture::new(super::SOURCE);\n    fixture.with_prepared_context(|source| {\n        // Replacing the invalid payer/source pairing must retain the complete\n        // original lexical-function corpus, including declaration order.\n        let original = program();\n        assert_eq!(\n            source\n                .functions()\n                .iter()\n                .filter(|f| f.cleanup_plan.lexical_control.is_some())\n                .map(|f| &f.id)\n                .collect::<Vec<_>>(),\n            original\n                .functions\n                .iter()\n                .filter(|f| f.cleanup_plan.lexical_control.is_some())\n                .map(|f| &f.id)\n                .collect::<Vec<_>>()\n        );\n        for f in source\n            .functions()\n            .iter()\n            .filter(|f| f.cleanup_plan.lexical_control.is_some())\n        {\n            let owner = FunctionExecutionId::Monomorphic(f.id.clone());\n            crate::hir::lexical_exit::validate_owner(f, &owner).unwrap();\n            let facts = lexical_hir::collect(f, &mut ReplayBudget::new()).unwrap();\n            let auth =\n                lexical_cert::authenticate(source, f, &owner, &facts, &mut ReplayBudget::new())\n                    .unwrap();\n            let slots = replay::validate_slots_paid(f, &mut ReplayBudget::new()).unwrap();\n            let leaves = replay::collect_leaves_paid(f, &mut ReplayBudget::new()).unwrap();\n            for hostile in [false, true] {\n                let mut changed = f.clone();\n                if hostile {\n                    if let Some(block) = changed\n                        .cleanup_plan\n                        .blocks\n                        .iter_mut()\n                        .find(|b| !b.transitions.is_empty())\n                    {\n                        block.transitions.insert(0, block.transitions[0].clone());\n                    }\n"
+        },
+        {
+          "before": "    self, expression_facts::errors::EngineError, lexical_cert, lexical_hir, path_join, ReplayBudget,\n",
+          "after": "    self, expression_facts::errors::EngineError, lexical_cert, lexical_hir, path_join,\n    selected_context, ReplayBudget,\n"
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/path_array/sequence_minimum/optimized_tests.rs",
+      "preimage": "preimages/src__cleanup_plan__replay__path_array__sequence_minimum__optimized_tests.rs.before",
+      "before_sha256": "0ded630242e9a63fa6152daa450753eb9dad71e2666d144e812a4fe22ccede6c",
+      "current_sha256": "174196e798795f8aa9ccf288398493305ea8e23435ce52ebc260cac6f8f22213",
+      "inverse": [
+        {
+          "before": "",
+          "after": "\n#[test]\nfn oracle_path_fixture_without_invocation_keeps_original_entry_refusal() {\n    // An account must never substitute for invocation authority. Keep the\n    // formerly accidental setup failure as a deliberate, fallible negative.\n    let program = path_array_main8a::fixture_program();\n    let function = &program.functions[0];\n    let scope = allocation::OracleScope::open_with_work(1 << 20, MAX_REPLAY_WORK_UNITS).unwrap();\n    let mut budget = ReplayBudget::with_skeleton_limit_oracle(MAX_REPLAY_WORK_UNITS, scope.lease());\n    let error = match SkeletonWork::with_index(&program, function, &mut budget, None) {\n        Err(error) => error,\n        Ok(_) => panic!(\"account without invocation granted source authority\"),\n    };\n    assert_eq!(error.code, \"SPX-H006\");\n    assert!(error.message.is_empty());\n    let receipt = scope.receipt();\n    assert_eq!(receipt.charged, 0);\n    assert_eq!(receipt.work, 0);\n    assert_eq!(receipt.first_refusal, None);\n    assert_eq!(receipt.first_work_refusal, None);\n    assert_eq!(\n        receipt.physical_failure,\n        Some(\"oracle replay budget refused physical construction\")\n    );\n    drop((error, budget, scope));\n}\n"
+        },
+        {
+          "before": "",
+          "after": "            drop(invocation);\n"
+        },
+        {
+          "before": "",
+          "after": "            let setup = scope.receipt();\n            assert!(setup.charged > 0 && setup.charged < 1 << 20);\n            assert!(setup.work > 0 && setup.work < MAX_REPLAY_WORK_UNITS);\n            assert!(setup.first_refusal.is_none() && setup.first_work_refusal.is_none());\n            assert!(setup.physical_failure.is_none());\n"
+        },
+        {
+          "before": "",
+          "after": "            // The real constructor requires the same live subject's explicit\n            // invocation authority. An account alone grants no source authority.\n            let invocation = allocation::enter(&program, function, lease).unwrap();\n"
+        }
+      ]
+    }
+  ],
+  "pending_owners": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "complete_old_and_paid_path_boundaries_keep_all_fields_order_and_hostile_state",
+      "source": "src/cleanup_plan/replay/flat_records/tests/receiving_path_boundary.rs",
+      "line": 26,
+      "status": "PENDING"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "paid_path_boundary_actual_limits_work_sticky_and_complete_drop",
+      "source": "src/cleanup_plan/replay/flat_records/tests/receiving_path_boundary.rs",
+      "line": 108,
+      "status": "PENDING"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "raw_selected_path_without_current_census_retains_original_six_field_refusal",
+      "source": "src/cleanup_plan/replay/flat_records/tests/receiving_path_boundary.rs",
+      "line": 257,
+      "status": "PENDING"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "expired_and_foreign_account_keep_the_original_failure_before_probe",
+      "source": "src/cleanup_plan/replay/path_array/sequence_minimum/optimized_tests.rs",
+      "line": 523,
+      "status": "PENDING"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "oracle_path_fixture_without_invocation_keeps_original_entry_refusal",
+      "source": "src/cleanup_plan/replay/path_array/sequence_minimum/optimized_tests.rs",
+      "line": 701,
+      "status": "PENDING"
+    }
+  ]
+}

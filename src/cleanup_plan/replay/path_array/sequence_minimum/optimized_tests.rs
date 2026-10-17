@@ -528,10 +528,18 @@ fn expired_and_foreign_account_keep_the_original_failure_before_probe() {
             let scope =
                 allocation::OracleScope::open_with_work(1 << 20, MAX_REPLAY_WORK_UNITS).unwrap();
             let lease = scope.lease();
+            // The real constructor requires the same live subject's explicit
+            // invocation authority. An account alone grants no source authority.
+            let invocation = allocation::enter(&program, function, lease).unwrap();
             let mut budget = ReplayBudget::with_skeleton_limit_oracle(MAX_REPLAY_WORK_UNITS, lease);
             let suffixes = vec![empty_expr_path(), empty_expr_path()];
             // Authenticate the actual source inventory before retiring its owner.
             let mut work = SkeletonWork::new(&program, function, &mut budget);
+            let setup = scope.receipt();
+            assert!(setup.charged > 0 && setup.charged < 1 << 20);
+            assert!(setup.work > 0 && setup.work < MAX_REPLAY_WORK_UNITS);
+            assert!(setup.first_refusal.is_none() && setup.first_work_refusal.is_none());
+            assert!(setup.physical_failure.is_none());
             drop(scope);
             let live = foreign.then(|| {
                 allocation::OracleScope::open_with_work(1 << 20, MAX_REPLAY_WORK_UNITS).unwrap()
@@ -546,6 +554,7 @@ fn expired_and_foreign_account_keep_the_original_failure_before_probe() {
             );
             drop(work);
             drop((budget, suffixes, live));
+            drop(invocation);
             result
         };
         let actual = run(false).err().expect("optimized receiver must refuse");
@@ -686,4 +695,30 @@ fn positive_work_probe_header_and_full_query_floor_keep_original_six_fields() {
         assert_eq!(old_allocation.allocated, old_allocation.freed);
         eprintln!("sequence probe floor full_query={full_query} current={first:?} old={old_first:?} current_site={site:?} old_site={old_site:?}");
     }
+}
+
+#[test]
+fn oracle_path_fixture_without_invocation_keeps_original_entry_refusal() {
+    // An account must never substitute for invocation authority. Keep the
+    // formerly accidental setup failure as a deliberate, fallible negative.
+    let program = path_array_main8a::fixture_program();
+    let function = &program.functions[0];
+    let scope = allocation::OracleScope::open_with_work(1 << 20, MAX_REPLAY_WORK_UNITS).unwrap();
+    let mut budget = ReplayBudget::with_skeleton_limit_oracle(MAX_REPLAY_WORK_UNITS, scope.lease());
+    let error = match SkeletonWork::with_index(&program, function, &mut budget, None) {
+        Err(error) => error,
+        Ok(_) => panic!("account without invocation granted source authority"),
+    };
+    assert_eq!(error.code, "SPX-H006");
+    assert!(error.message.is_empty());
+    let receipt = scope.receipt();
+    assert_eq!(receipt.charged, 0);
+    assert_eq!(receipt.work, 0);
+    assert_eq!(receipt.first_refusal, None);
+    assert_eq!(receipt.first_work_refusal, None);
+    assert_eq!(
+        receipt.physical_failure,
+        Some("oracle replay budget refused physical construction")
+    );
+    drop((error, budget, scope));
 }

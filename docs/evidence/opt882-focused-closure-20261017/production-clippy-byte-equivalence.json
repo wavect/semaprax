@@ -1,0 +1,51 @@
+{
+  "status": "EXACT_PRODUCTION_BYTE_EQUIVALENCE_NOT_A_NEW_CLIPPY_RUN",
+  "actual_clippy_source": "f44e687aa7e37e2fec0a74803ccce3e315b69c41",
+  "actual_receipt": "/Volumes/Semaprax/provenance/production-clippy-f44e687aa-20261017/result.json",
+  "actual_receipt_sha256": "41f17833b6d9ec5dd482b66c319c00c05c4daf734d9bb875fd0f813ca6a0632f",
+  "actual_command": [
+    "/Volumes/Semaprax/internal-cache-offload-20261016/cargo-home/bin/rustup",
+    "run",
+    "1.97.1",
+    "cargo",
+    "clippy",
+    "--locked",
+    "--offline",
+    "-p",
+    "semaprax",
+    "--lib",
+    "--bin",
+    "semaprax",
+    "--",
+    "-D",
+    "warnings"
+  ],
+  "actual_exit_code": 0,
+  "actual_wall_seconds": 58.93144208297599,
+  "actual_peak_process_group_rss_bytes": 5703204864,
+  "equivalent_repaired_source": "0f9fb3766f0413694e4a12447538f7c7bb99627f",
+  "changed_Rust": [
+    {
+      "path": "src/source_reflows_merge/main67107_inputs.rs",
+      "before_sha256": "ca49b653a5909c4b044e90d2c0689df2108ba4e33af7605cbec129171d287c74",
+      "after_sha256": "e80fa5fa90e74255729ab37d4748c83ee1545499613d85e92442245e9db4ab37"
+    },
+    {
+      "path": "src/source_reflows_merge/main_e177_final_inputs.rs",
+      "before_sha256": "7a0ed56bcc349ac3b9a9977d4ba18f4b7d5b76e3b70568564e29627ddab41f4d",
+      "after_sha256": "0db38ae8756039b1e6242f838df0d11e630f1e76ca15c6939754b276005a54a3"
+    },
+    {
+      "path": "src/source_reflows_merge/ordinary_plan_inputs.rs",
+      "before_sha256": "4a1e3efa8ebfa87d8c2a66e06338a38b997d84605e3029564a1cb33bd6f430d4",
+      "after_sha256": "c4afdeae4473e52e287730e2288cec925125513e81c51975d94993632ceed04f"
+    }
+  ],
+  "scope": "All three changed Rust files are descendants of byte-identical #[cfg(test)] mod source_reflows_merge. Production Rust, Cargo/build inputs, lib root and CLI root unchanged. Metadata/doc changes are not a new test execution.",
+  "not_covered": [
+    "cfg(test) compilation",
+    "test bodies",
+    "alltargets/full quality profile",
+    "any later source delta not rechecked"
+  ]
+}

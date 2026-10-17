@@ -1,0 +1,308 @@
+{
+  "status": "ELIGIBLE_FOR_NARROW_PUBLISHED_0f9_REPAIR_CLOSURE_NOT_85ed_GLOBAL_QUALIFICATION",
+  "issue_body_sha256": "6a1f25c0faec3b4d9ee654ee3783e053e26c625b93dec169067a64d9bd5e8e28",
+  "qualified_source": "0f9fb3766f0413694e4a12447538f7c7bb99627f",
+  "published_head": "85edab80be892fc691e956cf8460ecc2ded7eb16",
+  "literal_six_build_or_pin_prerequisite": false,
+  "actual_checks": [
+    {
+      "index": 33,
+      "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::frozen_membership_keeps_full_byte_lane_equality_and_allocates_nothing",
+      "results_path": "/Volumes/Semaprax/provenance/diagnostic-remaining-core-0f9-20261017/results.json",
+      "results_sha256": "19d6bece58880a97a0b2648ea79e1462c70b25ef6f659357eb3e2e704be85019",
+      "exit_code": 0,
+      "binary": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1d2afec68112ad04"
+    },
+    {
+      "index": 34,
+      "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::frozen_membership_reuses_the_index_within_the_same_original_work_ceiling",
+      "results_path": "/Volumes/Semaprax/provenance/diagnostic-remaining-core-0f9-20261017/results.json",
+      "results_sha256": "19d6bece58880a97a0b2648ea79e1462c70b25ef6f659357eb3e2e704be85019",
+      "exit_code": 0,
+      "binary": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1d2afec68112ad04"
+    },
+    {
+      "index": 35,
+      "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::frozen_membership_exact_short_zero_floor_and_drop_remain_on_the_original_ledger",
+      "results_path": "/Volumes/Semaprax/provenance/diagnostic-remaining-core-0f9-20261017/results.json",
+      "results_sha256": "19d6bece58880a97a0b2648ea79e1462c70b25ef6f659357eb3e2e704be85019",
+      "exit_code": 0,
+      "binary": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1d2afec68112ad04"
+    },
+    {
+      "index": 36,
+      "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::frozen_membership_rejects_foreign_and_restored_owners_before_cached_keys_or_foreign_debits",
+      "results_path": "/Volumes/Semaprax/provenance/diagnostic-remaining-core-0f9-20261017/results.json",
+      "results_sha256": "19d6bece58880a97a0b2648ea79e1462c70b25ef6f659357eb3e2e704be85019",
+      "exit_code": 0,
+      "binary": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1d2afec68112ad04"
+    },
+    {
+      "index": 37,
+      "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::frozen_membership_is_sealed_and_incomplete_builders_cannot_publish_it",
+      "results_path": "/Volumes/Semaprax/provenance/diagnostic-remaining-core-0f9-20261017/results.json",
+      "results_sha256": "19d6bece58880a97a0b2648ea79e1462c70b25ef6f659357eb3e2e704be85019",
+      "exit_code": 0,
+      "binary": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1d2afec68112ad04"
+    },
+    {
+      "index": 38,
+      "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::frozen_membership_unobserved_payer_keeps_the_original_lookup_path",
+      "results_path": "/Volumes/Semaprax/provenance/diagnostic-remaining-core-0f9-20261017/results.json",
+      "results_sha256": "19d6bece58880a97a0b2648ea79e1462c70b25ef6f659357eb3e2e704be85019",
+      "exit_code": 0,
+      "binary": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1d2afec68112ad04"
+    },
+    {
+      "index": 39,
+      "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::frozen_membership_keeps_the_complete_old_comparison_fee_after_early_mismatch",
+      "results_path": "/Volumes/Semaprax/provenance/diagnostic-remaining-core-0f9-20261017/results.json",
+      "results_sha256": "19d6bece58880a97a0b2648ea79e1462c70b25ef6f659357eb3e2e704be85019",
+      "exit_code": 0,
+      "binary": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1d2afec68112ad04"
+    },
+    {
+      "index": 40,
+      "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::held_status_index_matches_every_original_avl_link_for_prefixes_bytes_lanes_and_duplicates",
+      "results_path": "/Volumes/Semaprax/provenance/diagnostic-remaining-core-0f9-20261017/results.json",
+      "results_sha256": "19d6bece58880a97a0b2648ea79e1462c70b25ef6f659357eb3e2e704be85019",
+      "exit_code": 0,
+      "binary": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1d2afec68112ad04"
+    },
+    {
+      "index": 41,
+      "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::held_status_index_preserves_exact_short_floor_and_zero_heap_frontiers_through_drop",
+      "results_path": "/Volumes/Semaprax/provenance/diagnostic-remaining-core-0f9-20261017/results.json",
+      "results_sha256": "19d6bece58880a97a0b2648ea79e1462c70b25ef6f659357eb3e2e704be85019",
+      "exit_code": 0,
+      "binary": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1d2afec68112ad04"
+    },
+    {
+      "index": 42,
+      "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::held_status_index_work_refusal_is_sticky_without_reusing_its_cached_path",
+      "results_path": "/Volumes/Semaprax/provenance/diagnostic-remaining-core-0f9-20261017/results.json",
+      "results_sha256": "19d6bece58880a97a0b2648ea79e1462c70b25ef6f659357eb3e2e704be85019",
+      "exit_code": 0,
+      "binary": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1d2afec68112ad04"
+    },
+    {
+      "index": 43,
+      "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::held_status_index_admits_a_wide_opaque_key_set_inside_the_original_work_cap",
+      "results_path": "/Volumes/Semaprax/provenance/diagnostic-remaining-core-0f9-20261017/results.json",
+      "results_sha256": "19d6bece58880a97a0b2648ea79e1462c70b25ef6f659357eb3e2e704be85019",
+      "exit_code": 0,
+      "binary": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1d2afec68112ad04"
+    },
+    {
+      "index": 44,
+      "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::held_status_index_cannot_reuse_cached_coordinates_in_foreign_or_restored_invocations",
+      "results_path": "/Volumes/Semaprax/provenance/diagnostic-remaining-core-0f9-20261017/results.json",
+      "results_sha256": "19d6bece58880a97a0b2648ea79e1462c70b25ef6f659357eb3e2e704be85019",
+      "exit_code": 0,
+      "binary": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1d2afec68112ad04"
+    },
+    {
+      "index": 45,
+      "selector": "cleanup_plan::replay::expression_facts::receiving::tests::every_directory_acquisition_exact_short_zero_and_sticky_is_paid_through_drop",
+      "results_path": "/Volumes/Semaprax/provenance/diagnostic-remaining-core-0f9-20261017/results.json",
+      "results_sha256": "19d6bece58880a97a0b2648ea79e1462c70b25ef6f659357eb3e2e704be85019",
+      "exit_code": 0,
+      "binary": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1d2afec68112ad04"
+    },
+    {
+      "index": 46,
+      "selector": "cleanup_plan::replay::expression_facts::receiving::tests::status_lane_and_copied_numeric_keys_keep_complete_original_order_and_disjointness",
+      "results_path": "/Volumes/Semaprax/provenance/diagnostic-remaining-core-0f9-20261017/results.json",
+      "results_sha256": "19d6bece58880a97a0b2648ea79e1462c70b25ef6f659357eb3e2e704be85019",
+      "exit_code": 0,
+      "binary": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1d2afec68112ad04"
+    },
+    {
+      "index": 47,
+      "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::certified_status_foreign_restored_and_wrong_subject_never_reactivate_the_bound_owner",
+      "results_path": "/Volumes/Semaprax/provenance/diagnostic-remaining-core-0f9-20261017/results.json",
+      "results_sha256": "19d6bece58880a97a0b2648ea79e1462c70b25ef6f659357eb3e2e704be85019",
+      "exit_code": 0,
+      "binary": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1d2afec68112ad04"
+    },
+    {
+      "index": 48,
+      "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::held_prefix_preserves_physical_frontiers_and_final_drop_without_a_new_allowance",
+      "results_path": "/Volumes/Semaprax/provenance/diagnostic-remaining-core-0f9-20261017/results.json",
+      "results_sha256": "19d6bece58880a97a0b2648ea79e1462c70b25ef6f659357eb3e2e704be85019",
+      "exit_code": 0,
+      "binary": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1d2afec68112ad04"
+    },
+    {
+      "index": 49,
+      "selector": "cleanup_plan::replay::expression_facts::receiving::retained::tests::retained_status_control_funding_exact_short_zero_and_foreign_active_are_sticky",
+      "results_path": "/Volumes/Semaprax/provenance/diagnostic-remaining-core-0f9-20261017/results.json",
+      "results_sha256": "19d6bece58880a97a0b2648ea79e1462c70b25ef6f659357eb3e2e704be85019",
+      "exit_code": 0,
+      "binary": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1d2afec68112ad04"
+    },
+    {
+      "index": 50,
+      "selector": "cleanup_plan::replay::expression_facts::receiving::retained::case_proof::tests::each_receiver_has_derived_exact_short_and_zero_bytes_and_work",
+      "results_path": "/Volumes/Semaprax/provenance/diagnostic-remaining-core-0f9-20261017/results.json",
+      "results_sha256": "19d6bece58880a97a0b2648ea79e1462c70b25ef6f659357eb3e2e704be85019",
+      "exit_code": 0,
+      "binary": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1d2afec68112ad04"
+    },
+    {
+      "index": 51,
+      "selector": "cleanup_plan::replay::expression_facts::receiving::retained::case_proof::tests::proof_binds_exact_rows_function_budget_and_foreign_restored_invocation",
+      "results_path": "/Volumes/Semaprax/provenance/diagnostic-remaining-core-0f9-20261017/results.json",
+      "results_sha256": "19d6bece58880a97a0b2648ea79e1462c70b25ef6f659357eb3e2e704be85019",
+      "exit_code": 0,
+      "binary": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1d2afec68112ad04"
+    },
+    {
+      "index": 52,
+      "selector": "cleanup_plan::replay::expression_facts::receiving::retained::case_proof::tests::lexical_current_attempt_refusal_unwind_and_completed_reuse_are_affine",
+      "results_path": "/Volumes/Semaprax/provenance/diagnostic-remaining-core-0f9-20261017/results.json",
+      "results_sha256": "19d6bece58880a97a0b2648ea79e1462c70b25ef6f659357eb3e2e704be85019",
+      "exit_code": 0,
+      "binary": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1d2afec68112ad04"
+    },
+    {
+      "index": 53,
+      "selector": "cleanup_plan::replay::expression_facts::receiving::retained::case_certified::counter_tests::certified_while_counter_preserves_complete_before_fields_work_and_receiving_debit",
+      "results_path": "/Volumes/Semaprax/provenance/diagnostic-remaining-core-0f9-20261017/results.json",
+      "results_sha256": "19d6bece58880a97a0b2648ea79e1462c70b25ef6f659357eb3e2e704be85019",
+      "exit_code": 0,
+      "binary": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1d2afec68112ad04"
+    },
+    {
+      "index": 54,
+      "selector": "cleanup_plan::replay::expression_facts::receiving::retained::case_certified::counter_tests::certified_unobserved_wide_dispatch_keeps_complete_rows_and_original_work_ceiling",
+      "results_path": "/Volumes/Semaprax/provenance/diagnostic-remaining-core-0f9-20261017/results.json",
+      "results_sha256": "19d6bece58880a97a0b2648ea79e1462c70b25ef6f659357eb3e2e704be85019",
+      "exit_code": 0,
+      "binary": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1d2afec68112ad04"
+    },
+    {
+      "index": 267,
+      "selector": "source_reflows::main_e177_controllers::reused_status_cursor_preserves_complete_predecessors_and_all_original_receivers",
+      "results_path": "/Volumes/Semaprax/provenance/diagnostic-remaining-core-0f9-20261017/results.json",
+      "results_sha256": "19d6bece58880a97a0b2648ea79e1462c70b25ef6f659357eb3e2e704be85019",
+      "exit_code": 0,
+      "binary": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1d2afec68112ad04"
+    },
+    {
+      "index": 269,
+      "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::reused_cursor::tests::reused_search_matches_every_old_link_and_preserves_all_original_work",
+      "results_path": "/Volumes/Semaprax/provenance/diagnostic-remaining-core-0f9-20261017/results.json",
+      "results_sha256": "19d6bece58880a97a0b2648ea79e1462c70b25ef6f659357eb3e2e704be85019",
+      "exit_code": 0,
+      "binary": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1d2afec68112ad04"
+    },
+    {
+      "index": 270,
+      "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::reused_cursor::tests::reused_search_removes_owning_carriers_and_releases_all_backing",
+      "results_path": "/Volumes/Semaprax/provenance/diagnostic-remaining-core-0f9-20261017/results.json",
+      "results_sha256": "19d6bece58880a97a0b2648ea79e1462c70b25ef6f659357eb3e2e704be85019",
+      "exit_code": 0,
+      "binary": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1d2afec68112ad04"
+    },
+    {
+      "index": 271,
+      "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::reused_cursor::tests::reused_search_backing_is_paid_before_allocation_at_exact_short_zero_and_floor",
+      "results_path": "/Volumes/Semaprax/provenance/diagnostic-remaining-core-0f9-20261017/results.json",
+      "results_sha256": "19d6bece58880a97a0b2648ea79e1462c70b25ef6f659357eb3e2e704be85019",
+      "exit_code": 0,
+      "binary": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1d2afec68112ad04"
+    },
+    {
+      "index": 274,
+      "selector": "cleanup_plan::replay::expression_facts::receiving::directory::before_cursor::qualification::complete_pre01527_layouts_and_fees_preserve_every_status_key_and_tree_link",
+      "results_path": "/Volumes/Semaprax/provenance/diagnostic-lib10-0f9-v2-20261017/results.json",
+      "results_sha256": "d6d481d2ab6a4d05db372d1e86ca2b890ce7ece948f93d1f07a597dff194dda5",
+      "exit_code": 0,
+      "binary": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1d2afec68112ad04"
+    },
+    {
+      "index": 275,
+      "selector": "cleanup_plan::replay::expression_facts::receiving::directory::before_cursor::qualification::actual_caller_prepaid_cursor_and_complete_old_producer_keep_receipts_floors_and_whole_drop",
+      "results_path": "/Volumes/Semaprax/provenance/diagnostic-lib10-0f9-v2-20261017/results.json",
+      "results_sha256": "d6d481d2ab6a4d05db372d1e86ca2b890ce7ece948f93d1f07a597dff194dda5",
+      "exit_code": 0,
+      "binary": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1d2afec68112ad04"
+    },
+    {
+      "index": 276,
+      "selector": "cleanup_plan::replay::expression_facts::receiving::directory::before_cursor::qualification::foreign_function_refuses_before_new_cursor_dispatch_and_keeps_all_six_fields",
+      "results_path": "/Volumes/Semaprax/provenance/diagnostic-lib10-0f9-v2-20261017/results.json",
+      "results_sha256": "d6d481d2ab6a4d05db372d1e86ca2b890ce7ece948f93d1f07a597dff194dda5",
+      "exit_code": 0,
+      "binary": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012/debug/deps/semaprax-1d2afec68112ad04"
+    }
+  ],
+  "source_comparison": [
+    {
+      "path": "src/cleanup_plan/replay/expression_facts/receiving/directory.rs",
+      "0f9_sha256": "71bddf2e91cd7b6768523035ce49c111e41686dc5104adbcdb8dd7165675e464",
+      "85ed_sha256": "71bddf2e91cd7b6768523035ce49c111e41686dc5104adbcdb8dd7165675e464",
+      "comparison": "byte-exact"
+    },
+    {
+      "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs",
+      "0f9_sha256": "943332a49bf82522b22bad1982b82cebfd6626f9f4e7f4cfe50d0ce9c595bcf2",
+      "85ed_sha256": "b48d87f5fefc85c1f9f0d70cf1d7d6446ee1f8a9ce1536a15f6ff9a159871458",
+      "comparison": "old whole body exact; additive production inline module"
+    },
+    {
+      "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/reused_cursor.rs",
+      "0f9_sha256": "76b701afa4678d67d51f11be249cbdbee219dd111ec53c9c10feff527d10dccf",
+      "85ed_sha256": "76b701afa4678d67d51f11be249cbdbee219dd111ec53c9c10feff527d10dccf",
+      "comparison": "byte-exact"
+    },
+    {
+      "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/before_cursor.rs",
+      "0f9_sha256": "250e582f1fcb5fa762b65ea05bbed980bf34e233c51d7f0004c9e8e45460d87a",
+      "85ed_sha256": "250e582f1fcb5fa762b65ea05bbed980bf34e233c51d7f0004c9e8e45460d87a",
+      "comparison": "byte-exact"
+    },
+    {
+      "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/before_cursor/status_prefix.rs",
+      "0f9_sha256": "fa6b23476286d2f1fb42a657af88e20cacee2042464074b4cc88c6699570207f",
+      "85ed_sha256": "fa6b23476286d2f1fb42a657af88e20cacee2042464074b4cc88c6699570207f",
+      "comparison": "byte-exact"
+    },
+    {
+      "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/before_cursor/qualification.rs",
+      "0f9_sha256": "dfc12e5461f0e86feb5a1f79e56e4850feebccfe5b70c6a7df207a2eec96ca93",
+      "85ed_sha256": "dfc12e5461f0e86feb5a1f79e56e4850feebccfe5b70c6a7df207a2eec96ca93",
+      "comparison": "byte-exact"
+    }
+  ],
+  "clippy_equivalence_receipt": {
+    "path": "/Volumes/Semaprax/provenance/closure-comment-drafts-20261017/production-clippy-byte-equivalence.json",
+    "sha256": "d5488b1b7260ca590894278ee3f9debcc6d92bfde004e5aa14a28854766cb3a6"
+  },
+  "measured": {
+    "old": {
+      "paid": 1250776,
+      "work": 275067,
+      "allocated": 148856,
+      "peak": 99336,
+      "freed": 148856,
+      "live": 0
+    },
+    "current": {
+      "paid": 977477,
+      "work": 277654,
+      "allocated": 148992,
+      "peak": 99472,
+      "freed": 148992,
+      "live": 0
+    }
+  },
+  "limits": [
+    "Actual library-test and production-lib compile succeeded; later unrelated wasm compile failed, so no all-six admission.",
+    "Unrelated diagnostic failures remain.",
+    "85ed main6d adds retained.rs 3bool/3work dispatch and new >=256 ActiveBuilder inline_status producer; no entire85ed productionClippy/runtime inheritance claimed.",
+    "Existing882 repaired caller banks and full independently compiled old producer retained; newmain route separate future qualification."
+  ],
+  "recommendation": "May close the bounded882 caller-funding/baseline repair with exact0f9 qualification and honest measured overhead disclosure, without blanket85ed/all-suite/gain claims. No missing issue-specific selector identified."
+}

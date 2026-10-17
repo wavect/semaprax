@@ -1,0 +1,26 @@
+{
+  "state": "SOURCE_ONLY_NO_RUST_EXECUTION",
+  "head": "c8740045e33126a4375aadd1dc524a25be9245fc",
+  "actual_live_module_declarations": [
+    {
+      "file": "src/lib.rs",
+      "line": 20,
+      "declaration": "mod source_reflows_merge;"
+    },
+    {
+      "file": "src/source_reflows_merge.rs",
+      "line": 1013,
+      "declaration": "pub(crate) mod main_eb2_inputs;"
+    },
+    {
+      "file": "src/source_reflows_merge.rs",
+      "line": 1019,
+      "declaration": "pub(crate) mod main7f8_source_inputs;"
+    }
+  ],
+  "extra_physical_roots": [
+    "src/lib.rs"
+  ],
+  "double_stage_fix": "later bridge owner keeps physical raw and passes it into complete_incoming_input; checkpoint used only original current-SHA/project refusal comparisons",
+  "original_b_callers": "a.rs function_value include_str physical; b.rs lexical_exit include_str physical; original promotion owner both physical compiled includes; newpositive also physical; neither checkpoint passed to production-promotion acquisition"
+}

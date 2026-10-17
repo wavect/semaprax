@@ -99,10 +99,13 @@ fn later_incoming_bridges_preserve_complete_original_domains_and_refusals() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     for row in rows.as_array().unwrap() {
         let path = row["path"].as_str().unwrap();
-        let raw = std::fs::read_to_string(root.join(path)).unwrap();
-        let raw = super::main7f8_source_inputs::presence_before_later_inventory("incoming", path, &raw);
+        let physical = std::fs::read_to_string(root.join(path)).unwrap();
+        let raw = super::main7f8_source_inputs::presence_before_later_inventory("incoming", path, &physical);
         assert_eq!(digest(&raw), row["current_sha256"]);
-        let input = complete_incoming_input("incoming", path, &raw);
+        let input = complete_incoming_input("incoming", path, &physical);
+        if raw != physical {
+            assert!(std::panic::catch_unwind(|| complete_incoming_input("incoming", path, &raw)).is_err(), "checkpoint must not be reacquired as raw");
+        }
         assert_eq!(digest(&input), row["input_sha256"]);
         let proof = original.as_array().unwrap().iter().find(|proof| proof["domain"] == "incoming" && proof["path"] == path).unwrap();
         assert_eq!(digest(&input), proof["current_sha256"]);

@@ -36,13 +36,24 @@ fn retained_handles_preserve_entire_original_manifest_and_sources_without_path_r
     let root = fixture();
     let manifest = root.join("semaprax.toml");
     let original = std::fs::read_to_string(&manifest).unwrap();
-    // A harmless noncanonical manifest comment is retained verbatim, never
-    // reconstructed from its canonical parsed projection.
-    std::fs::write(
-        &manifest,
-        format!("# original retained comment\n{original}"),
-    )
-    .unwrap();
+    // Project v1 fixes the ordered manifest grammar; a leading comment is
+    // not an admitted positive input. Retain the entire old fixture as a
+    // six-field negative rather than broadening the production parser.
+    let commented = format!("# original retained comment\n{original}");
+    let diagnostics = crate::project::ProjectManifest::parse(&commented).unwrap_err();
+    assert_eq!(diagnostics.len(), 1);
+    let diagnostic = &diagnostics[0];
+    assert_eq!(diagnostic.code, "SPX-J100");
+    assert_eq!(diagnostic.severity, crate::diagnostic::Severity::Error);
+    assert_eq!(diagnostic.message, "Project v1 manifest expected canonical `schema` string assignment");
+    assert_eq!(diagnostic.path, None);
+    assert_eq!(diagnostic.span, None);
+    assert_eq!(diagnostic.help, None);
+    // Source comments are admitted and remain exact retained input bytes,
+    // independently of the canonical manifest and parsed source projection.
+    let source_path = root.join("src/app.spx");
+    let source = std::fs::read_to_string(&source_path).unwrap();
+    std::fs::write(&source_path, format!("// original retained source comment\n{source}")).unwrap();
     let inputs =
         crate::project::with_authenticated_project(&manifest, |snapshot| retain(snapshot)).unwrap();
     assert_eq!(inputs.len(), 4);

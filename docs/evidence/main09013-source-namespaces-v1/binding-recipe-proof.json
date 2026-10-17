@@ -1,0 +1,10 @@
+{
+  "status": "PASS_SOURCE_ONLY_GUARDED_BINDING_RECIPE",
+  "descriptor_sha256": "c98b31327f8f5fb88d4ee36f1b457d9f18339789abe528efb5aa18d9b652619c",
+  "immutable_inputs": 236,
+  "hostile_refusals": 18,
+  "original_recipe_lines": 32,
+  "hardened_recipe_lines": 239,
+  "Cargo_or_Rust_runtime": false,
+  "actual_final_binding_executed": false
+}

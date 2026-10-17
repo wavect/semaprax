@@ -67,6 +67,13 @@ status and missing independent-review/custody records cannot confer authority.
 
 `cleanup_plan/replay/skeleton_work.rs` ordinary construction uses the explicit-payer renewal, moving-string, condition and lexical-owner collectors. It prepares the held ReplayBudget refusal/census backing before any collector allocation; original collectors and the complete previous constructor remain independent test controls. No allocation-funding claim is inferred from a transfer optimization.
 
+`cleanup_plan/replay/skeleton_work/merge_search.rs` owns the source-only retained
+merge search candidate shared by borrowed path/call grouping and owned suffix
+rows. It stores only local search scalars, eliminates callback/compound-result
+transport and pays every surviving dynamic index/comparison payload. Complete
+immediate and earlier producers remain independently compiled; no runtime gain
+is established by this module map. See [the contract](RETAINED-MERGE-SEARCH-OWNER-V1.md).
+
 `cleanup_plan/replay/ordinary_plan_history.rs` and its children own the private
 ordinary ActiveBuilder PLAN history candidate. Immutable segments use backward
 arena indices; child paths retain a segment index and a short owned tail.

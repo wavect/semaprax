@@ -332,3 +332,96 @@ fn owned_suffix_floor_foreign_frontiers_keep_six_fields_sticky_and_prefix_drop()
         }
     }
 }
+
+fn immediate878(prefixes: Vec<ExprSkeletonPath>, suffixes: Vec<ExprSkeletonPath>, work: &mut SkeletonWork<'_, '_>) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
+    assert!(suffixes.len() > 1 && work.budget.merge_paths, "this witness is the complete immediate owned branch, not its unrelated borrowed fallback");
+    super::super::owned_suffix_878::dispatch!(prefixes, suffixes, work);
+    unreachable!("the complete immediate dispatch must consume these admitted inputs")
+}
+#[test]
+fn retained_owned_search_keeps_whole_immediate_sequence_languages_work_and_release_order() {
+    use crate::test_allocation_observer::{measure, watch_free_order};
+    let program = fixture(); let function = &program.functions[0];
+    for prefix_count in [0, 1, 2, 7] { for suffix_count in [2, 7, 31] { for work_limit in [0, 1, 7, 31, 96, MAX_REPLAY_WORK_UNITS] {
+        let mut outcomes = Vec::new();
+        for old in [true, false] {
+            let mut budget = ReplayBudget::with_physical(function, 1 << 26).unwrap();
+            budget.skeleton_remaining = work_limit; budget.merge_paths = true;
+            let mut work = SkeletonWork::new(&program, function, &mut budget);
+            let ((result, order), metrics) = measure(|| {
+                let prefixes = inputs(function, prefix_count); let suffixes = inputs(function, suffix_count);
+                let mut pointers = Vec::new();
+                if !prefixes.is_empty() { pointers.push(prefixes.as_ptr() as usize); }
+                pointers.push(suffixes.as_ptr() as usize);
+                let (result, order) = watch_free_order(&pointers, || {
+                    let result = if old { immediate878(prefixes, suffixes, &mut work) } else { current(prefixes, suffixes, &mut work) };
+                    let output = result.as_ref().map(|paths| skeleton_work::merge_keys_tests::snapshot(paths.clone().into_iter().map(|p| (p, vec![])).collect())).map_err(|error| error.clone());
+                    drop(result); work.release_observation_scratch_for_test(); output
+                });
+                assert!(!order.invalid);
+                (result, (order.order, order.count))
+            });
+            assert!(!metrics.invalid);
+            // Snapshot output is explicitly test-owned, as in the old owner;
+            // the whole production result and watched carriers die inside.
+            outcomes.push((result, work.budget.remaining, work.budget.skeleton_remaining, work.budget.skeleton_spent, order));
+        }
+        assert_eq!(outcomes[0], outcomes[1], "prefixes={prefix_count} suffixes={suffix_count} work={work_limit}");
+    } } }
+}
+struct RetainedOwnedRun {
+    error: Option<crate::cleanup_plan::replay::merge_census::Failure>,
+    report: crate::cleanup_plan::replay::merge_census::Report,
+    admission: usize, paid: usize,
+}
+fn retained_owned_run(program: &ResolvedProgram, old: bool, physical: usize, allowance: Option<usize>)
+    -> (RetainedOwnedRun, crate::test_allocation_observer::Metrics) {
+    use crate::cleanup_plan::replay::merge_census::{Scope, failure};
+    let function = &program.functions[0];
+    let ((out, metrics), _, _, _) = crate::bounded_output::with_limit_usage_refusal(1 << 28, || crate::test_allocation_observer::measure(|| {
+        let mut budget = ReplayBudget::with_physical(function, physical).unwrap();
+        budget.skeleton_remaining = MAX_REPLAY_WORK_UNITS; budget.merge_paths = true;
+        let mut work = SkeletonWork::new(program, function, &mut budget);
+        let admission = work.budget.physical.as_ref().unwrap().charged();
+        let prefixes = inputs(function, 7); let suffixes = inputs(function, 31);
+        if let Some(allowance) = allowance { assert!(crate::bounded_output::set_active_floor(crate::bounded_output::active_remaining().unwrap() - allowance)); }
+        let scope = Scope::enter(function, work.budget);
+        let result = if old { immediate878(prefixes, suffixes, &mut work) } else { current(prefixes, suffixes, &mut work) }.map(drop);
+        let error = result.as_ref().err().map(failure);
+        if let Some(first) = &error {
+            crate::bounded_output::clear_active_floor();
+            let paid = work.budget.physical.as_ref().unwrap().charged(); let remaining = (work.budget.remaining, work.budget.skeleton_remaining, work.budget.skeleton_spent);
+            let allocation = crate::test_allocation_observer::current_metrics();
+            let retry = work.budget.reserve_bytes(function, 0, "owned retained sticky retry").unwrap_err();
+            assert_eq!(retry, Diagnostic::io("SPX-H006", String::new()));
+            assert_eq!(paid, work.budget.physical.as_ref().unwrap().charged()); assert_eq!(remaining, (work.budget.remaining, work.budget.skeleton_remaining, work.budget.skeleton_spent));
+            assert_eq!(crate::test_allocation_observer::current_metrics(), allocation); assert_eq!(failure(result.as_ref().err().unwrap()), *first); drop(retry);
+        }
+        let paid = work.budget.physical.as_ref().unwrap().charged() - admission;
+        let report = scope.report(); assert!(report.complete && report.foreign == 0);
+        assert_eq!(report.cells.iter().map(|cell| cell.acquired).sum::<usize>(), paid);
+        drop(scope); crate::bounded_output::clear_active_floor(); work.release_observation_scratch_for_test(); drop(work); drop(budget); drop(result);
+        RetainedOwnedRun { error, report, admission, paid }
+    }));
+    assert!(!metrics.invalid); assert_eq!(metrics.live, 0); assert_eq!(metrics.allocated, metrics.freed); (out, metrics)
+}
+#[test]
+fn retained_owned_search_real_receiving_frontiers_keep_full_diagnostics_sticky_floor_and_whole_drop() {
+    let program = fixture();
+    let (success, metrics) = retained_owned_run(&program, false, 1 << 26, None); assert!(success.error.is_none());
+    let (old, old_metrics) = retained_owned_run(&program, true, 1 << 26, None); assert!(old.error.is_none());
+    eprintln!("OPT881 owned whole878 paid={} heap={} peak={}; retained paid={} heap={} peak={}; actual category requests={:?}/{:?}; unchanged work/caps, no application-fit claim", old.paid, old_metrics.allocated, old_metrics.highwater, success.paid, metrics.allocated, metrics.highwater, old.report.cells, success.report.cells);
+    let mut events = Vec::new();
+    for category in [1, 2, 3] { events.push(success.report.first[category].unwrap()); events.push(success.report.last[category].unwrap()); }
+    events.push(success.report.first[11].unwrap()); // actual row owner/header bank before construction
+    for event in events {
+        let before = success.admission + event.charged_before;
+        let (short, _) = retained_owned_run(&program, false, before + event.requested - 1, None);
+        assert_eq!(short.error.unwrap(), skeleton_work::merge_keys_tests::retained_primitive_oracle(&program, event, before + event.requested - 1, None));
+        let (exact, _) = retained_owned_run(&program, false, before + event.requested, None); assert!(exact.paid >= event.charged_before + event.requested);
+        let floor = event.charged_before + event.requested - 1;
+        let (floored, _) = retained_owned_run(&program, false, 1 << 26, Some(floor));
+        assert_eq!(floored.error.unwrap(), skeleton_work::merge_keys_tests::retained_primitive_oracle(&program, event, 1 << 26, Some(floor)));
+    }
+    let (zero, _) = retained_owned_run(&program, false, 1 << 26, Some(0)); assert!(zero.error.is_some()); assert_eq!(zero.paid, 0);
+}

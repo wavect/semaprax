@@ -21,6 +21,8 @@ mod inventory_coverage;
 pub(in crate::cleanup_plan) mod ordinary_status;
 mod ordinary_plan_history;
 mod physical_budget;
+#[cfg(test)]
+mod merge_census;
 mod physical_clone;
 mod physical_storage;
 mod scalar_match;
@@ -110,6 +112,8 @@ mod factored;
 mod leaf_index;
 use leaf_index::Leaves;
 mod owned_suffix;
+#[cfg(test)]
+mod owned_suffix_878;
 mod path_summary;
 mod skeleton_bound;
 mod skeleton_work;

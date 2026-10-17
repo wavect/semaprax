@@ -1,0 +1,94 @@
+{
+  "status": "SOURCE_ONLY_COMMON_AND_RUNTIME_PENDING",
+  "base": "b7c73a952018ca11bd3661a54235815dbf893cad",
+  "changed_existing": [
+    "docs/evidence/main043-independent-custody-20261016/verify-or-refresh.py",
+    "docs/evidence/main043-independent-custody-20261016/guard-extension-recipe-edits.json",
+    "docs/evidence/main043-newmain-acquisition-20261017/bind-current.py"
+  ],
+  "new_rust_owners": 0,
+  "new_selectors": [],
+  "immutable_old_definition_packet": "docs/evidence/main043-definition-generation-20261017",
+  "controls": {
+    "status": "PASS_SOURCE_ONLY_NO_VERIFIER_BINDER_COMMON_RUST_EXECUTION",
+    "new_raw_scopes": 3,
+    "only_seal_changes": "three raw length/hash pairs",
+    "old_definition_bytes": 6160,
+    "old_definition_sha256": "4bc99dc2b93442b83cb679e3c0e108f3b50121d90e8aee4ceed01296e7ec33b5",
+    "old_helper_body_restored": true,
+    "whole_old_recipe_wrapper_binder_recovered": true,
+    "refusals": 34
+  },
+  "files": [
+    {
+      "path": "docs/evidence/main043-independent-custody-20261016/verify-or-refresh.py",
+      "length": 2033,
+      "sha256": "26155a29849779ab5ed77d23d19276e4681eaf7157e0136a965c2c5b9cee0acd"
+    },
+    {
+      "path": "docs/evidence/main043-independent-custody-20261016/guard-extension-recipe-edits.json",
+      "length": 24646,
+      "sha256": "bff38a8e67bd2b9a1f993bb48bfeae43b0f5630ed7eeeadd58e2299db4460847"
+    },
+    {
+      "path": "docs/evidence/main043-newmain-acquisition-20261017/bind-current.py",
+      "length": 4177,
+      "sha256": "564c26a54d51456c793c5764fcefc9c743e2d77e9ebba86d0cf40b0644adec96"
+    },
+    {
+      "path": "docs/evidence/main043-definition-raw3-generation-20261017/README.md",
+      "length": 1506,
+      "sha256": "ec2bbc35a62f56f5efba98b63a309e579530f6139159207a46aa94e2456f6232"
+    },
+    {
+      "path": "docs/evidence/main043-definition-raw3-generation-20261017/before/bind-current.py",
+      "length": 4177,
+      "sha256": "a6949122d4239e8304eeeabd43f77ad65c17353b37954caf27e688cc18e25513"
+    },
+    {
+      "path": "docs/evidence/main043-definition-raw3-generation-20261017/before/definition-seal.json",
+      "length": 3712,
+      "sha256": "3c8b99fb381a110edfd712cf21dc60bccff81db875d3bac3d258eb37199100b8"
+    },
+    {
+      "path": "docs/evidence/main043-definition-raw3-generation-20261017/before/definition_payload.py",
+      "length": 3219,
+      "sha256": "77b7aa8b9259c898458d43314b1b97241230021afca30f4d37a25907e40c1c5e"
+    },
+    {
+      "path": "docs/evidence/main043-definition-raw3-generation-20261017/before/guard-extension-recipe-edits.json",
+      "length": 20505,
+      "sha256": "334e9da921f8c20367ffb5d8fbaa08c87b20f71c2f313a1e9402aa7f6303d811"
+    },
+    {
+      "path": "docs/evidence/main043-definition-raw3-generation-20261017/before/verify-or-refresh.py",
+      "length": 1975,
+      "sha256": "63c94867f5cf88763e4100662fc875d82cb41231b077fa77c321a8b3a7afe5de"
+    },
+    {
+      "path": "docs/evidence/main043-definition-raw3-generation-20261017/check-source.py",
+      "length": 5562,
+      "sha256": "feb8899bf95ffaf6116cc07725ed9a7ee01167a33ecefd74fa2612de4d64f9fd"
+    },
+    {
+      "path": "docs/evidence/main043-definition-raw3-generation-20261017/definition-seal.json",
+      "length": 3712,
+      "sha256": "6669870b5de25dbb7e67fd85126cffc3e78cdc7a18504efa36088a61a0b7d811"
+    },
+    {
+      "path": "docs/evidence/main043-definition-raw3-generation-20261017/definition_payload.py",
+      "length": 3224,
+      "sha256": "a0b2591857ace73221f4749bb4371a12972b22c4a40a88af4423093b539ff7c7"
+    },
+    {
+      "path": "docs/evidence/main043-definition-raw3-generation-20261017/full-source-inverses.json",
+      "length": 75840,
+      "sha256": "8b510024b1d900d9fb3f209b7fca43d43640301778203e60573c3dfbf0e87a46"
+    },
+    {
+      "path": "docs/evidence/main043-definition-raw3-generation-20261017/source-controls.json",
+      "length": 387,
+      "sha256": "7e8f8e021526e9b40e4184aee5b9a99d19da9383534fc87f304c739ec83f7875"
+    }
+  ]
+}

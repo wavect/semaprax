@@ -571,6 +571,9 @@ mod targets {
                     .unwrap();
             let current =
                 std::fs::read_to_string(root.join(record["path"].as_str().unwrap())).unwrap();
+            let current = crate::source_reflows_merge::main67107_inputs::compile35f_input(
+                record["path"].as_str().unwrap(), &current,
+            );
             let current = super::super::targets::incoming_input(record["path"].as_str().unwrap(), &current);
             assert_eq!(digest(&before), record["before_sha256"]);
             assert_eq!(digest(&current), record["after_sha256"]);
@@ -597,6 +600,9 @@ mod targets {
         for record in proof["new_files"].as_array().unwrap() {
             let current =
                 std::fs::read_to_string(root.join(record["path"].as_str().unwrap())).unwrap();
+            let current = crate::source_reflows_merge::main67107_inputs::compile35f_input(
+                record["path"].as_str().unwrap(), &current,
+            );
             assert_eq!(digest(&current), record["sha256"]);
             assert_ne!(digest(&(current + "\n")), record["sha256"]);
         }
@@ -817,6 +823,9 @@ mod successor_labels {
                     .unwrap();
             let current =
                 std::fs::read_to_string(root.join(record["path"].as_str().unwrap())).unwrap();
+            let current = crate::source_reflows_merge::main67107_inputs::compile35f_input(
+                record["path"].as_str().unwrap(), &current,
+            );
             assert_eq!(digest(&before), record["before_sha256"]);
             assert_eq!(digest(&current), record["after_sha256"]);
             let restore = |input: &str| -> Option<String> {
@@ -842,6 +851,9 @@ mod successor_labels {
         for record in proof["new_files"].as_array().unwrap() {
             let current =
                 std::fs::read_to_string(root.join(record["path"].as_str().unwrap())).unwrap();
+            let current = crate::source_reflows_merge::main67107_inputs::compile35f_input(
+                record["path"].as_str().unwrap(), &current,
+            );
             assert_eq!(digest(&current), record["sha256"]);
             assert_ne!(digest(&(current + "\n")), record["sha256"]);
         }

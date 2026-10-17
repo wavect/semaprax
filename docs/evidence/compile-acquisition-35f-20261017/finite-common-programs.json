@@ -1,0 +1,78 @@
+{
+  "main": {
+    "tool": "main",
+    "original_sha256": "7fe43d4cf71a2aa2748c313ae3184f0fda76fa0a18924f216ca94c22d4c54d98",
+    "projected_sha256": "bd4a18e0c840edc22d0676a9fa8fe608549e661469791c5028e5b416b704f816",
+    "whole_original_restored": true,
+    "exact_edits": [
+      {
+        "before": "current=(S/row['path']).read_bytes();text=current.decode()",
+        "after": "current=compile35f_stage(R,row['path'],(S/row['path']).read_bytes());text=current.decode()"
+      },
+      {
+        "before": "bindings[row['path']]=sha(current);targets[target['archive']]=sha(old)",
+        "after": "bindings[row['path']]=sha((S/row['path']).read_bytes());targets[target['archive']]=sha(old)"
+      },
+      {
+        "before": "b=(S/row['path']).read_bytes();bindings[row['path']]=sha(b);row['sha256']=sha(b)",
+        "after": "b=compile35f_stage(R,row['path'],(S/row['path']).read_bytes());bindings[row['path']]=sha((S/row['path']).read_bytes());row['sha256']=sha(b)"
+      }
+    ]
+  },
+  "refresh": {
+    "tool": "refresh",
+    "original_sha256": "dbfb6f9dfbec702ed3f626588ceff61b9d454d08b5bd10f17dc1b07283cc3b64",
+    "projected_sha256": "f85dd83d1f9596a2c760f59bc1451b42139556160e574ed0111470a8a6c22afc",
+    "whole_original_restored": true,
+    "exact_edits": [
+      {
+        "before": "\"  before=old(d['commit'],f);raw=(R/f).read_bytes()\\n  if d['name']=='Alias1ae':raw=alias_stage(R,f,raw)\\n  archive=D/'before'/d['name']/f\\n\"",
+        "after": "\"  before=old(d['commit'],f);raw=compile35f_stage(R,f,(R/f).read_bytes())\\n  if d['name']=='Alias1ae':raw=alias_stage(R,f,raw)\\n  archive=D/'before'/d['name']/f\\n\""
+      },
+      {
+        "before": "\"str(R/'docs/evidence/main67107-fronts-6e45-20261017/verify-source-parts-composed.py')\"",
+        "after": "\"str(R/'docs/evidence/compile-acquisition-35f-20261017/run-common.py')\""
+      },
+      {
+        "before": "'__name__':'__main__','alias_stage':alias_stage})",
+        "after": "'__name__':'__main__','alias_stage':alias_stage,'compile35f_stage':compile35f_stage})"
+      }
+    ]
+  },
+  "parts": {
+    "tool": "parts",
+    "original_sha256": "48c26519908cda623bb69ebacce8324271dafe8b62660789cad9be262b3c4120",
+    "projected_sha256": "95a29bb013c12ea5e87f458ec17a03cc73c917f9ceb8668e64301ffe5b26a2ed",
+    "whole_original_restored": true,
+    "exact_edits": [
+      {
+        "before": "\"  raw=(R/r['source']).read_bytes()\\n  if domain['name']=='Alias1ae' and r['source']==TARGET:raw=alias_stage(R,r['source'],raw)\\n  assert h(raw)==r['current_sha256'],r['source'];s=raw.decode()\\n\"",
+        "after": "\"  raw=compile35f_stage(R,r['source'],(R/r['source']).read_bytes())\\n  if domain['name']=='Alias1ae' and r['source']==TARGET:raw=alias_stage(R,r['source'],raw)\\n  assert h(raw)==r['current_sha256'],r['source'];s=raw.decode()\\n\""
+      },
+      {
+        "before": "\"    exec(compile(projected_verifier,str(original),'exec'),{'__file__':str(original),'__name__':'__main__','alias_stage':alias_stage,'TARGET':TARGET})\\n\"",
+        "after": "\"    exec(compile(projected_verifier,str(original),'exec'),{'__file__':str(original),'__name__':'__main__','alias_stage':alias_stage,'TARGET':TARGET,'compile35f_stage':compile35f_stage})\\n\""
+      },
+      {
+        "before": "'projected_verifier':projected,'alias_stage':alias_stage,'TARGET':TARGET})",
+        "after": "'projected_verifier':projected,'alias_stage':alias_stage,'TARGET':TARGET,'compile35f_stage':compile35f_stage})"
+      }
+    ]
+  },
+  "checks": {
+    "tool": "checks",
+    "original_sha256": "1d04e1cc6ea2c606ac8338c264ffbfd28bc2d9ba31b6675774bcb9d9e4d1a2bc",
+    "projected_sha256": "d2460eb9e80a6c89e0eea0041177850125829245fb7019dddba5dc1c2f59420c",
+    "whole_original_restored": true,
+    "exact_edits": [
+      {
+        "before": "raw=(R/m.TARGET).read_bytes();sha=lambda b:hashlib.sha256(b).hexdigest()",
+        "after": "raw=compile35f_stage(R,m.TARGET,(R/m.TARGET).read_bytes());sha=lambda b:hashlib.sha256(b).hexdigest()"
+      },
+      {
+        "before": "# Concrete full census is deliberately raw and is a separate old read site.",
+        "after": "# Concrete full census is deliberately raw and is a separate old read site.\nhistorical_compile_input=raw\nraw=(R/m.TARGET).read_bytes()\nassert compile35f_stage(R,m.TARGET,raw)==historical_compile_input"
+      }
+    ]
+  }
+}

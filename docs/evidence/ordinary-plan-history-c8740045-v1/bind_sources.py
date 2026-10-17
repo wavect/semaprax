@@ -1,3 +1,10 @@
+# The integrated e24 namespace has a separate finite binder. The complete
+# previous recipe remains byte-for-byte below and in its immutable archive.
+from pathlib import Path as IntegratedPath
+import runpy as integrated_runpy
+integrated_runpy.run_path(str(IntegratedPath(__file__).resolve().parents[3] / "docs/evidence/ordinary-plan-integrated-e24-v1/bind_stages.py"), run_name="__main__")
+raise SystemExit(0)
+
 from pathlib import Path
 import hashlib,json,subprocess,difflib
 r=Path(__file__).resolve().parents[3];d=Path(__file__).resolve().parent

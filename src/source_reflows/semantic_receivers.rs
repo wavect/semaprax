@@ -725,3 +725,6 @@ pub(super) fn contains(path: &str) -> bool {
 fn restore(record: &serde_json::Value, current: &str) -> String {
     super::restore_formatting(record, current)
 }
+
+#[path = "incoming090_semantic_receivers.rs"]
+pub(super) mod incoming_main090;

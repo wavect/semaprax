@@ -1,0 +1,55 @@
+{
+  "status": "SOURCE_ONLY_FINITE_NAMESPACE_SEALED",
+  "base": "3220af312",
+  "table_head": "8c08e049247582871734136e5dcef0261c947d9b",
+  "source_body_head": "09013dbfafbcb37db7c79a0622a56a0707e94e3b",
+  "cap": 9464242,
+  "main_subjects": 173,
+  "legacy_current_checkpoints": 149,
+  "named_expected_stages": 3,
+  "prior090_complete_tables": 8,
+  "raw3": [
+    {
+      "path": "tests/hir_module_boundaries.rs",
+      "owner_occurrences": 1,
+      "lines": 899,
+      "existing_rules_preserved": true
+    },
+    {
+      "path": "tests/workspace/semantic_graph/source_inventory.rs",
+      "owner_occurrences": 1,
+      "lines": 777,
+      "existing_rules_preserved": true
+    },
+    {
+      "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "owner_occurrences": 1,
+      "lines": 1500,
+      "existing_rules_preserved": true
+    }
+  ],
+  "whole_inverses": 10,
+  "registration_negatives": 12,
+  "unassembled": [
+    "docs/evidence/last-branch-prefix-v1/README.md",
+    "docs/evidence/last-branch-prefix-v1/sources.json",
+    "docs/evidence/last-branch-prefix-v1/src__cleanup_plan__replay.rs.before.txt",
+    "docs/evidence/last-branch-prefix-v1/src__cleanup_plan__replay__branch_clone.rs.before.txt",
+    "docs/evidence/last-branch-prefix-v1/src__cleanup_plan__replay__branch_clone__tests.rs.before.txt",
+    "docs/evidence/last-branch-prefix-v1/src__source_reflows__semantic_receivers.rs.before.txt",
+    "docs/evidence/string-slot-byte-helper-v1/README.md",
+    "docs/evidence/string-slot-byte-helper-v1/crates__semaprax-native-rust-interop-builder__src__implementation__tests__ledger_capacity__source_inventory.rs.before.txt",
+    "docs/evidence/string-slot-byte-helper-v1/new-files.json",
+    "docs/evidence/string-slot-byte-helper-v1/sources.json",
+    "docs/evidence/string-slot-byte-helper-v1/src__loop_calls__byte_writer__resolved.rs.before.txt",
+    "docs/evidence/string-slot-byte-helper-v1/src__loop_calls__byte_writer__source.rs.before.txt",
+    "docs/evidence/string-slot-byte-helper-v1/src__loop_calls__byte_writer__tests.rs.before.txt",
+    "docs/evidence/string-slot-byte-helper-v1/src__source_reflows__semantic_receivers.rs.before.txt",
+    "docs/evidence/string-slot-byte-helper-v1/src__source_verify__declaration.rs.before.txt",
+    "docs/evidence/string-slot-byte-helper-v1/src__source_verify__declaration__declarations__tests.rs.before.txt",
+    "docs/evidence/string-slot-byte-helper-v1/src__vec_ops__string_slot.rs.before.txt",
+    "docs/evidence/string-slot-byte-helper-v1/tests__hir_module_boundaries.rs.before.txt",
+    "src/loop_calls/byte_writer/tests/string_slots.rs"
+  ],
+  "Cargo_or_runtime_run": false
+}

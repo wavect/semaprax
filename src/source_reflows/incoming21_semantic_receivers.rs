@@ -793,6 +793,7 @@ fn main21_manifest() -> serde_json::Value {
     serde_json::from_str(&text).unwrap()
 }
 fn main21_checked(path: &Path, length: usize, sha: &str) -> String {
+    if let Some(staged) = super::incoming_main090::legacy_checked(path,length,sha) { return staged; }
     assert!(length <= MAIN21_CAP);
     main21_file(path,length,sha).unwrap()
 }
@@ -800,6 +801,8 @@ fn main21_row<'a>(manifest: &'a serde_json::Value, domain: &str, path: &str) -> 
     manifest[domain].as_array().unwrap().iter().find(|r| r["path"] == path)
 }
 fn main21_entry(entry: &serde_json::Value, current: &str) -> String {
+    let staged = super::incoming_main090::legacy_expected(entry,current);
+    let current = staged.as_str();
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     // Every staged value is authenticated against actual physical current input.
     let raw = main21_checked(&root.join(entry["path"].as_str().unwrap()),

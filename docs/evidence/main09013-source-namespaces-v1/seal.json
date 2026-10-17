@@ -1,0 +1,27 @@
+[
+  {
+    "path": "src/source_reflows/incoming090_semantic_receivers.rs",
+    "length": 48349,
+    "sha256": "3ffd357bf5f488adeb97a1638261e46de11bee6ae937ecb8b7a86609744e4c1b"
+  },
+  {
+    "path": "docs/evidence/main09013-source-namespaces-v1/input-domains.json",
+    "length": 243204,
+    "sha256": "3fadb659b8f2fd420716096fdd3c35b076da5d5263e9a45629f025b31ca52a4a"
+  },
+  {
+    "path": "docs/evidence/main09013-source-namespaces-v1/whole-inverses.json",
+    "length": 1140156,
+    "sha256": "fa0c473e72306e167e76ec78729c9be664d2219b101a0f91f8c0b2ea29b85884"
+  },
+  {
+    "path": "docs/evidence/main09013-source-namespaces-v1/bind_current.py",
+    "length": 2321,
+    "sha256": "fa8d9d2ba0f7826e779faead391925a8fa3a37656ae4bc3dcb38fa5ac9ff1b85"
+  },
+  {
+    "path": "docs/evidence/main09013-source-namespaces-v1/verify_checkpoint.py",
+    "length": 3695,
+    "sha256": "1c78e844d4fd6bc0ae993bdb2524bd89367cfe203641a54da4bb8e1d011582f5"
+  }
+]

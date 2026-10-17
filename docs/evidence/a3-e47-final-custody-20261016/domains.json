@@ -390,8 +390,8 @@
         "first": ".github/workflows/ci.yml",
         "last": "src/source_verify/declaration/public_signature_before.rs",
         "rows": 266,
-        "length": 5019702,
-        "sha256": "f1718d44660f1d7320318b42d20783f4a067df45ee00ad9d8db3ea73324b3cc7"
+        "length": 5019952,
+        "sha256": "fdfb200cfeb16198d47f940b6a665202479597995fbb144b84fca5b96051ac15"
       },
       {
         "table": "current-to-Previous16c-part-001.json",
@@ -445,8 +445,8 @@
         "first": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
         "last": "tests/workspace/semantic_graph/source_inventory.rs",
         "rows": 30,
-        "length": 1655151,
-        "sha256": "e7332c407561d0623b1a82332aba2eae8acb361858831ae3735bd9c6623a3d91"
+        "length": 1655193,
+        "sha256": "c69728be23e0668c1a9d4005a8b0495fead8c569d0519bf6a607742a4be684c9"
       }
     ]
   },

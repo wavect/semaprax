@@ -1,0 +1,14 @@
+{
+  "status": "REVIEWED_METADATA_SCHEMA_ADAPTER_NO_TOOL_OR_GUARD_CHANGES",
+  "before_sha256": "c17346571a598b3b3bf88be27ea42e58d7cb52e86fb8200b21aaad49b046b1b9",
+  "after_sha256": "be6c466782fafe8508736f2cce77b50d7a28d0ac53070ce2b8c6c2c4db90c6f8",
+  "descriptor": "/Volumes/Semaprax/provenance/fresh-pin-workflow-36c6deb987-452-20261017/skeleton-record-public-compatible.json",
+  "changes": [
+    "locked-head flag becomes bool True after independently checking exact36 strict-source guard",
+    "same-byte trusted role tool acquires basename-only hash key and adjacent identical file; all11 tool digest multiset preserved"
+  ],
+  "all_other_fields_equal": true,
+  "strict_guard_actual_head": "36c6deb98720e243b0daaf81e813fbe3ec3b0a2d",
+  "old_full_record_preserved": true,
+  "complete_inverse_recovers_original_data": true
+}

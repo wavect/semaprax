@@ -42,7 +42,12 @@ mod ordered_weights;
 mod scratch_tests;
 #[cfg(test)]
 mod singleton_target_tests;
+#[cfg(test)]
 mod successor_targets;
+mod paid_many;
+#[cfg(test)]
+#[path = "canonical_shared/before_paid_many.rs"]
+mod before_paid_many;
 #[cfg(test)]
 mod unit_receiving_tests;
 
@@ -716,12 +721,12 @@ impl<'a> Canonicalizer<'a> {
             if budget.pays_allocations() {
                 budget.reserve_bytes(
                     function,
-                    std::mem::size_of::<BTreeMap<Label, successor_targets::Targets>>()
-                        + std::mem::size_of::<Option<&mut successor_targets::Targets>>(),
+                    std::mem::size_of::<BTreeMap<Label, paid_many::Targets>>()
+                        + std::mem::size_of::<Option<&mut paid_many::Targets>>(),
                     "factored successor label receiving controls",
                 )?;
             }
-            let mut successors = BTreeMap::<Label, successor_targets::Targets>::new();
+            let mut successors = BTreeMap::<Label, paid_many::Targets>::new();
             for (node, weight) in closed.iter() {
                 let moves = self.automaton.nodes[*node].moves();
                 budget.charge(
@@ -731,16 +736,16 @@ impl<'a> Canonicalizer<'a> {
                 )?;
                 for (label, child) in moves {
                     if !successors.contains_key(label) {
-                        budget.reserve_btree_node::<Label, successor_targets::Targets>(
+                        budget.reserve_btree_node::<Label, paid_many::Targets>(
                             function,
                             "factored successor label node",
                         )?;
                         if budget.pays_allocations() {
                             budget.reserve_bytes(
                                 function,
-                                2 * std::mem::size_of::<successor_targets::Targets>()
+                                2 * std::mem::size_of::<paid_many::Targets>()
                                     + std::mem::size_of::<Option<u64>>()
-                                    + std::mem::size_of::<Option<successor_targets::Targets>>(),
+                                    + std::mem::size_of::<Option<paid_many::Targets>>(),
                                 "factored inline singleton target initializer and receiving",
                             )?;
                         }
@@ -754,7 +759,7 @@ impl<'a> Canonicalizer<'a> {
                             .expect("zero plus u64 cannot overflow");
                         successors.insert(
                             label.clone(),
-                            successor_targets::Targets::One {
+                            paid_many::Targets::One {
                                 child: *child,
                                 weight,
                             },
@@ -762,7 +767,7 @@ impl<'a> Canonicalizer<'a> {
                     } else {
                         let targets = successors.get_mut(label).expect("existing label");
                         match targets {
-                            successor_targets::Targets::One {
+                            paid_many::Targets::One {
                                 child: first,
                                 weight: total,
                             } if *first == *child => {
@@ -773,43 +778,25 @@ impl<'a> Canonicalizer<'a> {
                                 };
                                 *total = sum;
                             }
-                            successor_targets::Targets::One {
+                            paid_many::Targets::One {
                                 child: first,
                                 weight: total,
                             } => {
-                                assert_ne!(*first, *child);
                                 if budget.pays_allocations() {
-                                    budget.reserve_bytes(
-                                        function,
-                                        2 * std::mem::size_of::<BTreeMap<usize, u64>>()
-                                            + std::mem::size_of::<successor_targets::Targets>()
-                                            + 2 * std::mem::size_of::<Option<u64>>()
-                                            + 2 * std::mem::size_of::<(usize, u64)>(),
-                                        "factored inline successor promotion carriers",
-                                    )?;
+                                    budget.reserve_bytes(function, paid_many::PROMOTE_RECEIVING,
+                                        "factored composed promotion receivers")?;
                                 }
-                                budget.reserve_bytes(
-                                    function,
-                                    0,
-                                    "factored successor target promotion authentication",
-                                )?;
-                                budget.reserve_btree_node::<usize, u64>(
-                                    function,
-                                    "factored successor target node",
-                                )?;
-                                budget.reserve_btree_node::<usize, u64>(
-                                    function,
-                                    "factored successor target node",
-                                )?;
-                                let mut promoted = BTreeMap::new();
-                                promoted.insert(*first, *total);
-                                let sum = 0_u64
-                                    .checked_add(*weight)
-                                    .expect("zero plus u64 cannot overflow");
-                                promoted.insert(*child, sum);
-                                *targets = successor_targets::Targets::Many(promoted);
+                                #[cfg(test)]
+                                if budget.pays_allocations() { paid_many::note_branch(true); }
+                                *targets = paid_many::promote(function, budget, *first, *total, *child, *weight)?;
                             }
-                            successor_targets::Targets::Many(targets) => {
+                            paid_many::Targets::PaidMany(_) => {
+                                budget.reserve_bytes(function, paid_many::ADD_RECEIVING,
+                                    "factored composed flat add receivers")?;
+                                let paid_many::Targets::PaidMany(flat) = targets else { unreachable!("paid flat arm") };
+                                if !paid_many::add(function, budget, flat, *child, *weight)? { return Ok(None); }
+                            }
+                            paid_many::Targets::Many(targets) => {
                                 if !targets.contains_key(child) {
                                     budget.reserve_btree_node::<usize, u64>(
                                         function,
@@ -841,10 +828,10 @@ impl<'a> Canonicalizer<'a> {
                         std::mem::size_of::<
                             std::collections::btree_map::IntoIter<
                                 Label,
-                                successor_targets::Targets,
+                                paid_many::Targets,
                             >,
-                        >() + std::mem::size_of::<Option<(Label, successor_targets::Targets)>>()
-                            + std::mem::size_of::<(Label, successor_targets::Targets)>(),
+                        >() + std::mem::size_of::<Option<(Label, paid_many::Targets)>>()
+                            + std::mem::size_of::<(Label, paid_many::Targets)>(),
                         "factored successor target iterator receiving",
                     )?;
                 }
@@ -863,7 +850,7 @@ impl<'a> Canonicalizer<'a> {
                         "factored successor target finish authentication",
                     )?;
                     let state = match targets {
-                        successor_targets::Targets::One { child, weight } => {
+                        paid_many::Targets::One { child, weight } => {
                             if budget.pays_allocations() {
                                 budget.reserve_bytes(
                                     function,
@@ -881,7 +868,13 @@ impl<'a> Canonicalizer<'a> {
                             let singleton = SmallWeighted::One([(child, weight)]);
                             Rc::new(singleton)
                         }
-                        successor_targets::Targets::Many(targets) => {
+                        paid_many::Targets::PaidMany(_) => {
+                            budget.reserve_bytes(function, paid_many::FINISH_RECEIVING,
+                                "factored composed flat finish receivers")?;
+                            let paid_many::Targets::PaidMany(flat) = targets else { unreachable!("paid flat finish") };
+                            own_weighted(function, budget, flat)?
+                        }
+                        paid_many::Targets::Many(targets) => {
                             // The remaining fallible weighted producer still has
                             // its real map argument and Result receiving carrier.
                             if budget.pays_allocations() {
@@ -943,12 +936,12 @@ impl<'a> Canonicalizer<'a> {
         if budget.pays_allocations() {
             budget.reserve_bytes(
                 function,
-                std::mem::size_of::<BTreeMap<Label, successor_targets::Targets>>()
-                    + std::mem::size_of::<Option<&mut successor_targets::Targets>>(),
+                std::mem::size_of::<BTreeMap<Label, paid_many::Targets>>()
+                    + std::mem::size_of::<Option<&mut paid_many::Targets>>(),
                 "factored successor label receiving controls",
             )?;
         }
-        let mut successors = BTreeMap::<Label, successor_targets::Targets>::new();
+        let mut successors = BTreeMap::<Label, paid_many::Targets>::new();
         for (node, weight) in closed.iter() {
             let moves = self.automaton.nodes[*node].moves();
             budget.charge(
@@ -958,16 +951,16 @@ impl<'a> Canonicalizer<'a> {
             )?;
             for (label, child) in moves {
                 if !successors.contains_key(label) {
-                    budget.reserve_btree_node::<Label, successor_targets::Targets>(
+                    budget.reserve_btree_node::<Label, paid_many::Targets>(
                         function,
                         "factored successor label node",
                     )?;
                     if budget.pays_allocations() {
                         budget.reserve_bytes(
                             function,
-                            2 * std::mem::size_of::<successor_targets::Targets>()
+                            2 * std::mem::size_of::<paid_many::Targets>()
                                 + std::mem::size_of::<Option<u64>>()
-                                + std::mem::size_of::<Option<successor_targets::Targets>>(),
+                                + std::mem::size_of::<Option<paid_many::Targets>>(),
                             "factored inline singleton target initializer and receiving",
                         )?;
                     }
@@ -981,7 +974,7 @@ impl<'a> Canonicalizer<'a> {
                         .expect("zero plus u64 cannot overflow");
                     successors.insert(
                         label.clone(),
-                        successor_targets::Targets::One {
+                        paid_many::Targets::One {
                             child: *child,
                             weight,
                         },
@@ -989,7 +982,7 @@ impl<'a> Canonicalizer<'a> {
                 } else {
                     let targets = successors.get_mut(label).expect("existing label");
                     match targets {
-                        successor_targets::Targets::One {
+                        paid_many::Targets::One {
                             child: first,
                             weight: total,
                         } if *first == *child => {
@@ -1000,43 +993,25 @@ impl<'a> Canonicalizer<'a> {
                             };
                             *total = sum;
                         }
-                        successor_targets::Targets::One {
+                        paid_many::Targets::One {
                             child: first,
                             weight: total,
                         } => {
-                            assert_ne!(*first, *child);
                             if budget.pays_allocations() {
-                                budget.reserve_bytes(
-                                    function,
-                                    2 * std::mem::size_of::<BTreeMap<usize, u64>>()
-                                        + std::mem::size_of::<successor_targets::Targets>()
-                                        + 2 * std::mem::size_of::<Option<u64>>()
-                                        + 2 * std::mem::size_of::<(usize, u64)>(),
-                                    "factored inline successor promotion carriers",
-                                )?;
+                                budget.reserve_bytes(function, paid_many::PROMOTE_RECEIVING,
+                                    "factored composed promotion receivers")?;
                             }
-                            budget.reserve_bytes(
-                                function,
-                                0,
-                                "factored successor target promotion authentication",
-                            )?;
-                            budget.reserve_btree_node::<usize, u64>(
-                                function,
-                                "factored successor target node",
-                            )?;
-                            budget.reserve_btree_node::<usize, u64>(
-                                function,
-                                "factored successor target node",
-                            )?;
-                            let mut promoted = BTreeMap::new();
-                            promoted.insert(*first, *total);
-                            let sum = 0_u64
-                                .checked_add(*weight)
-                                .expect("zero plus u64 cannot overflow");
-                            promoted.insert(*child, sum);
-                            *targets = successor_targets::Targets::Many(promoted);
+                            #[cfg(test)]
+                            if budget.pays_allocations() { paid_many::note_branch(false); }
+                            *targets = paid_many::promote(function, budget, *first, *total, *child, *weight)?;
                         }
-                        successor_targets::Targets::Many(targets) => {
+                        paid_many::Targets::PaidMany(_) => {
+                            budget.reserve_bytes(function, paid_many::ADD_RECEIVING,
+                                "factored composed flat add receivers")?;
+                            let paid_many::Targets::PaidMany(flat) = targets else { unreachable!("paid flat arm") };
+                            if !paid_many::add(function, budget, flat, *child, *weight)? { return Ok(None); }
+                        }
+                        paid_many::Targets::Many(targets) => {
                             if !targets.contains_key(child) {
                                 budget.reserve_btree_node::<usize, u64>(
                                     function,
@@ -1066,9 +1041,9 @@ impl<'a> Canonicalizer<'a> {
                 budget.reserve_bytes(
                     function,
                     std::mem::size_of::<
-                        std::collections::btree_map::IntoIter<Label, successor_targets::Targets>,
-                    >() + std::mem::size_of::<Option<(Label, successor_targets::Targets)>>()
-                        + std::mem::size_of::<(Label, successor_targets::Targets)>(),
+                        std::collections::btree_map::IntoIter<Label, paid_many::Targets>,
+                    >() + std::mem::size_of::<Option<(Label, paid_many::Targets)>>()
+                        + std::mem::size_of::<(Label, paid_many::Targets)>(),
                     "factored successor target iterator receiving",
                 )?;
             }
@@ -1087,7 +1062,7 @@ impl<'a> Canonicalizer<'a> {
                     "factored successor target finish authentication",
                 )?;
                 let state = match targets {
-                    successor_targets::Targets::One { child, weight } => {
+                    paid_many::Targets::One { child, weight } => {
                         if budget.pays_allocations() {
                             budget.reserve_bytes(
                                 function,
@@ -1105,7 +1080,13 @@ impl<'a> Canonicalizer<'a> {
                         let singleton = SmallWeighted::One([(child, weight)]);
                         Rc::new(singleton)
                     }
-                    successor_targets::Targets::Many(targets) => {
+                    paid_many::Targets::PaidMany(_) => {
+                        budget.reserve_bytes(function, paid_many::FINISH_RECEIVING,
+                            "factored composed flat finish receivers")?;
+                        let paid_many::Targets::PaidMany(flat) = targets else { unreachable!("paid flat finish") };
+                        own_weighted(function, budget, flat)?
+                    }
+                    paid_many::Targets::Many(targets) => {
                         // The remaining fallible weighted producer still has
                         // its real map argument and Result receiving carrier.
                         if budget.pays_allocations() {
@@ -1451,7 +1432,7 @@ mod before_terminal_leaf;
 #[cfg(test)]
 mod before_terminal_leaf_empty_memo;
 
-// Independent incoming receiver; paid Many production integration is OPT870.
+// Complete independent incoming flat receiver; production composition has its own namespace.
 #[cfg(test)]
 #[path = "canonical_shared/incoming_flat_targets.rs"]
 mod targets;

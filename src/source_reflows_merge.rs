@@ -1037,3 +1037,6 @@ pub(crate) mod main_c883_inputs;
 
 #[path = "source_reflows_merge/main99f_inputs.rs"]
 pub(crate) mod main99f_inputs;
+
+#[path = "source_reflows_merge/main_e177_inputs.rs"]
+pub(crate) mod main_e177_inputs;

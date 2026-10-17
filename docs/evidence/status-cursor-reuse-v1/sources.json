@@ -1,0 +1,82 @@
+[
+  {
+    "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs",
+    "archive": "docs/evidence/status-cursor-reuse-v1/src__cleanup_plan__replay__expression_facts__receiving__directory__status_prefix.rs.before.txt",
+    "before_sha256": "6571dc04f1e1eea962bc1450af4c7237292eebba1b8bdbf1e934337579524f5a",
+    "after_sha256": "aff3b6e7d30470659a80db529b48a8acbb2931b02a7ea813c6d34844f474d20d",
+    "inverse": [
+      {
+        "after": "rectory.lookup = Some(Box::new(frozen));\n        Ok(())\n    }\n}\n\nmod reused_cursor;\n",
+        "before": "rectory.lookup = Some(Box::new(frozen));\n        Ok(())\n    }\n}\n"
+      },
+      {
+        "after": "<IndexNode>,\n    path: Vec<IndexStep>,\n    root: Option<usize>,\n    cursor: Option<Box<IndexSearch>>,\n}\nstruct IndexSearch {\n    probe: Probe,\n    at: usize,\n    pare",
+        "before": "<IndexNode>,\n    path: Vec<IndexStep>,\n    root: Option<usize>,\n}\nstruct IndexSearch {\n    probe: Probe,\n    at: usize,\n    pare"
+      },
+      {
+        "after": "\n            budget.charge(function, 1, phase)?;\n            if let Some(index) = self.index.as_ref() {\n                budget.reserve_bytes(function, size_of::<&StatusIndex>(), phase)?;\n                budget.charge(function, 2, phase)?;\n                if index.cursor.is_some() {\n                    return self.insert_reusing_cursor(function, key, budget);\n                }\n                return self.insert_indexed(function, key, budge",
+        "before": "\n            budget.charge(function, 1, phase)?;\n            if self.index.is_some() {\n                return self.insert_indexed(function, key, budge"
+      },
+      {
+        "after": ") >= 256)\n                .then(StatusIndex::default),\n        };\n        // Payer selection, optional-index binding and cursor publication.\n        budget.charge(function, 3, held.directory.phase)?;\n        if matches!(budget.payer, AllocationPayer::ActiveBuilder) {\n            if let Some(index) = held.index.as_mut() {\n                index.cursor = Some(reused_cursor::allocate(\n                    function,\n                    budget,\n                    held.directory.phase,\n                )?);\n            }\n        }\n        Ok(held)\n    }\n\n    fn held_probe(\n        &self,\n        function: &Re",
+        "before": ") >= 256)\n                .then(StatusIndex::default),\n        })\n    }\n\n    fn held_probe(\n        &self,\n        function: &Re"
+      },
+      {
+        "after": "       let owner = Owner::new(function, self, budget)?;\n        let mut held = HeldPrefix {\n            directory: self,\n            owner,\n   ",
+        "before": "       let owner = Owner::new(function, self, budget)?;\n        Ok(HeldPrefix {\n            directory: self,\n            owner,\n   "
+      }
+    ]
+  },
+  {
+    "path": "src/source_reflows/semantic_receivers.rs",
+    "archive": "docs/evidence/status-cursor-reuse-v1/src__source_reflows__semantic_receivers.rs.before.txt",
+    "before_sha256": "fa6aa5b2d53932b4a013ab50168783003af766a41c651fb036cdf95f5f7c860e",
+    "after_sha256": "a354a8476c045fcb176ce6babbbb6174236f49efa3f3deae24de7eb4c445d8e9",
+    "inverse": [
+      {
+        "after": "::catch_unwind(|| invert(&forged, &current)).is_err());\n    }\n}\n\n#[test]\nfn public_wire_receipts_preserve_complete_sources_and_every_original_assertion() {\n    let root = Path::new(env!(\"CARGO_MANIFEST_DIR\"));\n    let proofs: Vec<serde_json::Value> = serde_json::from_str(\n        &std::fs::read_to_string(root.join(\"docs/evidence/public-wire-receipts-v1/sources.json\"))\n            .unwrap(),\n    )\n    .unwrap();\n    assert_eq!(proofs.len(), 6);\n    let mut paths = std::collections::BTreeSet::new();\n    for proof in &proofs {\n        let path = proof[\"path\"].as_str().unwrap();\n        assert!(paths.insert(path));\n        let current = std::fs::read_to_string(root.join(path)).unwrap();\n        let before = invert(proof, &current);\n        assert_eq!(\n            before,\n            std::fs::read_to_string(root.join(proof[\"archive\"].as_str().unwrap())).unwrap()\n        );\n        assert!(std::panic::catch_unwind(|| invert(proof, &(current.clone() + \"\\n\"))).is_err());\n        let mut forged = proof.clone();\n        forged[\"before_sha256\"] = serde_json::Value::String(\"0\".repeat(64));\n        assert!(std::panic::catch_unwind(|| invert(&forged, &current)).is_err());\n    }\n}\n",
+        "before": "::catch_unwind(|| invert(&forged, &current)).is_err());\n    }\n}\n"
+      },
+      {
+        "after": "ssert_eq!(current.replace(new, old), before);\n        }\n    }\n}\n\n#[test]\nfn reused_status_cursor_preserves_complete_predecessors_and_all_original_receivers() {\n    let root = Path::new(env!(\"CARGO_MANIFEST_DIR\"));\n    let proofs: Vec<serde_json::Value> = serde_json::from_str(\n        &std::fs::read_to_string(root.join(\"docs/evidence/status-cursor-reuse-v1/sources.json\"))\n            .unwrap(),\n    )\n    .unwrap();\n    assert_eq!(proofs.len(), 5);\n    let mut paths = std::collections::BTreeSet::new();\n    for proof in &proofs {\n        let path = proof[\"path\"].as_str().unwrap();\n        assert!(paths.insert(path));\n        let current = std::fs::read_to_string(root.join(path)).unwrap();\n        let before = invert(proof, &current);\n        assert_eq!(\n            before,\n            std::fs::read_to_string(root.join(proof[\"archive\"].as_str().unwrap())).unwrap()\n        );\n        assert!(std::panic::catch_unwind(|| invert(proof, &(current.clone() + \"\\n\"))).is_err());\n        let mut forged = proof.clone();\n        forged[\"before_sha256\"] = serde_json::Value::String(\"0\".repeat(64));\n        assert!(std::panic::catch_unwind(|| invert(&forged, &current)).is_err());\n    }\n}\n",
+        "before": "ssert_eq!(current.replace(new, old), before);\n        }\n    }\n}\n"
+      }
+    ]
+  },
+  {
+    "path": "tests/hir_module_boundaries.rs",
+    "archive": "docs/evidence/status-cursor-reuse-v1/tests__hir_module_boundaries.rs.before.txt",
+    "before_sha256": "2a8c92d82704c56d18e15da4912e839be52e96114dbd9d2562fdb67cce303577",
+    "after_sha256": "d9149e4de775720f16fd1f70603f953bc45f215b7534f16106e58d3f136b0b74",
+    "inverse": [
+      {
+        "after": "/expression_facts/receiving/directory/status_prefix/tests.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/reused_cursor.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/reused_cursor/tests.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/expression_fact",
+        "before": "/expression_facts/receiving/directory/status_prefix/tests.rs\"),\n        include_str!(\"../src/cleanup_plan/replay/expression_fact"
+      }
+    ]
+  },
+  {
+    "path": "tests/workspace/semantic_graph/source_inventory.rs",
+    "archive": "docs/evidence/status-cursor-reuse-v1/tests__workspace__semantic_graph__source_inventory.rs.before.txt",
+    "before_sha256": "75534a389c06ec3f4e28e6504303bf155b51062b46e5a76e2c80a255a5e56aa9",
+    "after_sha256": "da72498c6f63a37e488c75df9fe31fe2301c12114e5db0d496bc6d4072f6e06d",
+    "inverse": [
+      {
+        "after": "/expression_facts/receiving/directory/status_prefix/tests.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/reused_cursor.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/reused_cursor/tests.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/expression_f",
+        "before": "/expression_facts/receiving/directory/status_prefix/tests.rs\"),\n        include_str!(\"../../src/cleanup_plan/replay/expression_f"
+      }
+    ]
+  },
+  {
+    "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "archive": "docs/evidence/status-cursor-reuse-v1/crates__semaprax-native-rust-interop-builder__src__implementation__tests__ledger_capacity__source_inventory.rs.before.txt",
+    "before_sha256": "0e077ec3242fdeafaffb74be980d0dac03fb0e8bd27b5bd77484b3e82b21bf15",
+    "after_sha256": "0a07bac8b9c0a51619952ca365ec06204c8ec0731f76d6b698c565ff8bcd88aa",
+    "inverse": [
+      {
+        "after": "/expression_facts/receiving/directory/status_prefix/tests.rs\"),\n        include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/reused_cursor.rs\"),\n        include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/reused_cursor/tests.rs\"),\n        include_str!(\"../../../../../src/cleanup_plan/replay/exp",
+        "before": "/expression_facts/receiving/directory/status_prefix/tests.rs\"),\n        include_str!(\"../../../../../src/cleanup_plan/replay/exp"
+      }
+    ]
+  }
+]

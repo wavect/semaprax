@@ -1180,3 +1180,7 @@ Audience: all documentation readers.
 - [Core retry attempt receipts](evidence/core-attempt-receipts-v1/README.md)
 - [Complete browser graph pins from 3e66c0116](evidence/browser-graph-pins-3e66c0116/README.md)
 - [Separate reference merger helper names](evidence/tail-merge-helper-name-v1/README.md)
+
+- [Reuse paid status insertion scratch](evidence/status-cursor-reuse-v1/README.md)
+
+- [Public report wire receipts](evidence/public-wire-receipts-v1/README.md)

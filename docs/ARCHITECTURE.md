@@ -135,6 +135,8 @@ Complete original inventory and test-only schema materializer remain independent
 executable parity controls. Other schema probes retain their existing owners.
 `cleanup_plan/replay/expression_facts/receiving/directory/status_prefix` owns
 ordinary status insertion and optional immutable membership lookup storage.
+Its active builder holds paid mutable search scratch only during insertion;
+each subsequent row resets it and performs the complete original comparison and updates.
 After every current row and producer passes validation, an active-builder
 receiver retains its paid bit index alongside the complete AVL keys. Each query
 authenticates the exact function, replay budget, invocation and immutable key

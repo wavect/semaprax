@@ -99,3 +99,6 @@ mod universal_semantic_query;
 mod universal_semantic_transaction_v2_cli;
 #[path = "workspace/universal_semantic_workflow_cli.rs"]
 mod universal_semantic_workflow_cli;
+
+#[path = "workspace/pin_capture.rs"]
+mod pin_capture;

@@ -1,0 +1,13 @@
+{
+  "source": "src/source_reflows_merge/main_e177_inputs.rs",
+  "before": "docs/evidence/main-e177-full-controller-acquisition-20261017/reader-before-path-fix.rs.txt",
+  "before_sha256": "42b8163d0d146d787320edf00eef8fd02f754b50a35b1392fed24cfd2590c8a5",
+  "after_sha256": "96fdc2faf6087916194b408110616bb16dfb8ddfca7f940eebb4e3572648dc68",
+  "edits": [
+    {
+      "before": "docs/evidence/main_e177-full-controller-acquisition-20261017",
+      "after": "docs/evidence/main-e177-full-controller-acquisition-20261017",
+      "count": 2
+    }
+  ]
+}

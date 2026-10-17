@@ -1,0 +1,70 @@
+{
+  "status": "SOURCE_ONLY_PROVISIONAL_CURRENT_TUPLES",
+  "incoming_head": "e177a4f4ec59ca53051b6e2322626eb50daeed43",
+  "new_module_paths": [
+    "src/source_reflows/main_e177_controllers.rs",
+    "src/source_reflows/main_e177_support.rs",
+    "src/source_reflows_merge/main_e177_inputs.rs"
+  ],
+  "closed_rows": 471,
+  "exact_historical_bound": 9753094,
+  "largest_subject": {
+    "path": "docs/evidence/held-status-prefix-v1/sources.json",
+    "current_length": 9317546,
+    "current_sha256": "20fd863fcb291ad9e4e09c4ccf79ca2be1bad9f206a7f87d88a201df890ab3de",
+    "main_length": 9753094,
+    "main_sha256": "e4f31c93b5b3ac95cd60d2482ede93b81348f1f8b1910d906e31e7889b99c0dc",
+    "main_archive": "docs/evidence/main-e177-full-controller-acquisition-20261017/incoming/e4f31c93b5b3ac95cd60d2482ede93b81348f1f8b1910d906e31e7889b99c0dc.txt"
+  },
+  "packet_length": 237694,
+  "source_only": true,
+  "pending": [
+    "Reseal all471 current tuples after fee fixes and afa integration",
+    "Register complete new physical union in all raw3 and ordered workspace TSV once",
+    "Finite current-to-whole-afa source successor; retain old54 and MAIN99f454 unchanged",
+    "One final ROOT174/FINAL6/role execution after promotion; then reauthenticate every current row/anchor/module before Cargo"
+  ],
+  "whole_conflict_archive": "/Volumes/Semaprax/provenance/main-e177-evidence-controller-integration-20261017/whole-conflict-inputs.json",
+  "new_modules": [
+    {
+      "path": "src/source_reflows/main_e177_controllers.rs",
+      "length": 62936,
+      "sha256": "c4b1806abc5e4906f535789f5bae3ea29a2c6b1cdbfa2c8d9db0c7490ec36725",
+      "lines": 1489
+    },
+    {
+      "path": "src/source_reflows/main_e177_support.rs",
+      "length": 1406,
+      "sha256": "3e3fca744ff9489a7c4c3778c53dbe522e086d53968dba0243a1ff37235a5574",
+      "lines": 41
+    },
+    {
+      "path": "src/source_reflows_merge/main_e177_inputs.rs",
+      "length": 36180,
+      "sha256": "96fdc2faf6087916194b408110616bb16dfb8ddfca7f940eebb4e3572648dc68",
+      "lines": 272
+    }
+  ],
+  "whole_inverse": [
+    {
+      "source": "src/source_reflows/main_e177_controllers.rs",
+      "before": "docs/evidence/main-e177-full-controller-acquisition-20261017/semantic-receivers.incoming.rs.txt",
+      "before_length": 63525,
+      "before_sha256": "a354a8476c045fcb176ce6babbbb6174236f49efa3f3deae24de7eb4c445d8e9",
+      "after": "docs/evidence/main-e177-full-controller-acquisition-20261017/src__source_reflows__main_e177_controllers.rs.after.txt",
+      "after_length": 62936,
+      "after_sha256": "c4b1806abc5e4906f535789f5bae3ea29a2c6b1cdbfa2c8d9db0c7490ec36725",
+      "rule": "Require exact complete after; restore exact complete before. No fragment masking."
+    },
+    {
+      "source": "src/source_reflows/main_e177_support.rs",
+      "before": "docs/evidence/main-e177-full-controller-acquisition-20261017/root-helpers.incoming.rs.txt",
+      "before_length": 1144,
+      "before_sha256": "65063fe21bdd24647abd66d29460b6a6e655b0a27260abf33c72e338586d4256",
+      "after": "docs/evidence/main-e177-full-controller-acquisition-20261017/src__source_reflows__main_e177_support.rs.after.txt",
+      "after_length": 1406,
+      "after_sha256": "3e3fca744ff9489a7c4c3778c53dbe522e086d53968dba0243a1ff37235a5574",
+      "rule": "Require exact complete after; restore exact complete before. No fragment masking."
+    }
+  ]
+}

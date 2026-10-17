@@ -8,7 +8,13 @@ fn entries() -> Vec<project::JsonCodecPlanEntry> {
     }]
 }
 fn digest(bytes: &[u8]) -> String {
-    format!("sha256:{:x}", Sha256::digest(bytes))
+    use std::fmt::Write;
+    let mut encoded = String::with_capacity(7 + 64);
+    encoded.push_str("sha256:");
+    for byte in Sha256::digest(bytes) {
+        write!(&mut encoded, "{byte:02x}").unwrap();
+    }
+    encoded
 }
 #[test]
 fn retained_receipt_contains_complete_originals_resolved_closure_and_two_actual_equal_derivations()
@@ -149,8 +155,15 @@ fn retained_receipt_replay_refuses_reminted_originals_outputs_profiles_repeat_an
     })
     .unwrap_err();
     assert_eq!(
-        project::with_authenticated_json_codec_receipt(&manifest, &invalid).unwrap_err(),
-        expected,
+        project::with_authenticated_json_codec_receipt(&manifest, &invalid)
+            .unwrap_err()
+            .iter()
+            .map(|diagnostic| diagnostic.json())
+            .collect::<Vec<_>>(),
+        expected
+            .iter()
+            .map(|diagnostic| diagnostic.json())
+            .collect::<Vec<_>>(),
         "complete original six-field ordinary refusal"
     );
     std::fs::remove_dir_all(root).unwrap();

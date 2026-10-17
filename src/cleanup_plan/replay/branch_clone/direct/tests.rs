@@ -401,6 +401,11 @@ fn continue_return_break_and_latch_have_real_bounded_continuation_controls() {
             + plan.blocks[terminal.0 as usize].transitions.len()
             + marker;
         assert_eq!(bound(plan, start, 64).unwrap().required, expected);
+        let values = (0..64).map(Rc::new).collect::<Vec<_>>();
+        let ((paid_copy, _), refused, _, _) = observe(&function, &values, start, usize::MAX, 0, 2);
+        assert!(!refused);
+        assert_eq!(paid_copy.result, Ok(expected.min(128)));
+        assert_eq!((paid_copy.work, paid_copy.events), (0, 2));
         let (((), metrics), refused, paid, _) = with_limit_usage_refusal(usize::MAX, || {
             measure(|| {
                 let mut old = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);

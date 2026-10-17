@@ -1,0 +1,15 @@
+{
+  "path": "src/cleanup_plan/replay/branch_clone/direct/tests.rs",
+  "before_sha256": "e5a9898b6701ef50d2358b34b01e58e74b36729d9df3ccc72a2aa8894027f03b",
+  "before_archive": "docs/evidence/opt879-explicit-receiver-correction-20261017/paid-continuations.tests.before.rs.txt",
+  "after_sha256": "7db9c82810929bcb0ac09eb1eabef4e1aa2292c783ff393178b92731e48aaff3",
+  "after_archive": "docs/evidence/opt879-explicit-receiver-correction-20261017/paid-continuations.tests.after.rs.txt",
+  "inverse": [
+    {
+      "start": 0,
+      "end": 17883,
+      "replacement_archive": "docs/evidence/opt879-explicit-receiver-correction-20261017/paid-continuations.tests.before.rs.txt"
+    }
+  ],
+  "source_only": true
+}

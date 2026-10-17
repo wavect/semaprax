@@ -1,6 +1,6 @@
 {
   "status": "NEW_UNQUALIFIED_MAIN_FRONT_BINDINGS_ONLY",
-  "source_head": "99f2571f7cdd2e1db44d7bda3bdf0fcb9b14eee4",
+  "source_head": "d1df591a5ef8327f82188bbdbbee6fae01d0b6ce",
   "source_repo": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
   "raw_inputs": {
     "src/byte_ops.rs": "22e3f98ab80d320bed149c19de4ab1394f0dca7b55be3b7080f2745a50186ade",
@@ -37,15 +37,15 @@
     "docs/evidence/moderate-factored-v1/sources.json": "cd4a2d223a0d10598b534e2416e1eb9024903b75ac84bd238cc155204dfdc088",
     "docs/evidence/source-reader-followups-20261016/sources.json": "08d9a996cbf1c0d2582d3ae1175398c46666e28ba47f65f8fd69fdebc3c05115",
     "docs/evidence/compact-child-cursor-v1/sources.json": "c5d56a05dc66e3afe24d2ec2ef73408e4293fbc6ab17ef19f952c0e473a6b910",
-    "src/cleanup_plan/replay/factored/canonical_shared.rs": "22d0dcf599a65ce24039027378d46ea04bae83735dcbc93ba13df6eb99c450e4",
+    "src/cleanup_plan/replay/factored/canonical_shared.rs": "33e45de2e06bd0a251c7e6c22c0b953b4d32991ca488becdfccfe29209380111",
     "src/cleanup_plan/replay/factored/canonical_shared/tests.rs": "fd122ac9ba5101c7bec9046fe6b4f939a964bc362a59948b0774e64417ed3e17",
     "docs/evidence/unit-weight-closure-v1/inverse.json": "c54029793b825b9b2a2a6ddae6c1354d8f6eddfc7ef3c2c559c07fa74443e4ce",
     "docs/evidence/factored-flat-targets-v1/sources.json": "f71b6832ac5d869c1f9f557714724bbbab91033c6b9d13cd11be85f2ed1d7813",
-    "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs": "77eea947e5f1fd72351e549fe0b70790a87d0fa056c14f715bce3743b2172168",
-    "src/cleanup_plan/replay.rs": "555fe96fc9153aa2a7843ffd15da85e429bb56b1eef52e98193930f80203618e",
+    "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs": "f4fd89c5c28b47d826968d935f51dac66a49e8fd859bfa519e98013913a3923a",
+    "src/cleanup_plan/replay.rs": "30616d71694d393a730c0c8e49a25bbad7539b07ff96ed901b9d07be29765b9c",
     "src/cleanup_plan/replay/factored/oracle_hook.rs": "0126d25150ca4b96f11995293fc9043d23fc8fff2008485e9560abe5c85cb7ae",
-    "tests/hir_module_boundaries.rs": "dc3bf3b20917a0c523231e405ff329e5950f12b55501bced9ae908fbaf5b8888",
-    "tests/workspace/semantic_graph/source_inventory.rs": "42bdd4f76491607cab8538b3006d4b807aca5d138badc1d763c7090cfc53b000",
+    "tests/hir_module_boundaries.rs": "f25b784eba1a2ea26a07b260b2ddff67b6dd90c0a6402fd143dc42ca68847d4e",
+    "tests/workspace/semantic_graph/source_inventory.rs": "59e5b98593c2c2d443d1479e7c89564551d515ca921f7abab2cc8f5d579c8c21",
     "src/source_verify/declaration.rs": "c93ac4c883fe6b10c831a2603c994ea03880986fd0b7a394bfa41ec8a06d88cb",
     "src/cleanup_plan/replay/branch_clone/tests.rs": "46bf0451ef390225f540d031f326100c7f4288cf7e9d50e30ce7ddb68a448e0f",
     "src/cleanup_plan/replay/factored.rs": "343eda3712d0c3b224742d72c34838a327e0c69449c8a94fd7eb81dc5e0134a6",
@@ -116,9 +116,9 @@
     "docs/evidence/ordinary-replay-setup-v1/format-inputs.json": "b0dfadd73eb07d4fafb4010177b3f8e8e6b619b75d9cb7fd9e3b86f68bc5f840",
     "docs/evidence/ordinary-replay-setup-v1/helper-inputs.json": "9e43dba7bb28b6875d20a4084f9ad0a1868d2b093d62e36dcec9439389128a5e",
     "docs/evidence/ordinary-replay-setup-v1/production-cfg.json": "3134c2a1828fd0e20965fa242b7da954222f5bef2421e990e0340449fc768252",
-    "docs/evidence/factored-flat-labels-v1/sources.json": "7b738d5e48ad855001b0baf367ab3253819c2b9ba3f5875c7460606e7117d4c0",
+    "docs/evidence/factored-flat-labels-v1/sources.json": "05cfbeaf39d9a1984c9e788643e9ed539347276feb68d28d224b28d9b82f9312",
     "docs/evidence/factored-flat-labels-v1/test-namespace.json": "e3a5a6530353211086d3b554ceb19fbb82f9be82a2d8149b7220ccf0fce4ae69",
-    "docs/evidence/main67107-production-composition-20261017/receiver-main12.json": "4b84227dbc5a4e1a497bcd3522769a6729c72a9677b774ac075e336794a18604"
+    "docs/evidence/main67107-production-composition-20261017/receiver-main12.json": "27da0e3f302f857855ca0de0d471874bc77f5cc34cfb217dce1a67d114de889a"
   },
   "no_cargo_or_runtime": true
 }

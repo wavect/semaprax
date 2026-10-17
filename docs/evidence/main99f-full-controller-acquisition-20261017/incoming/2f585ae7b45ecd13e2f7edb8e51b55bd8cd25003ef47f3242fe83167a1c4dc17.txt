@@ -1,0 +1,22 @@
+[
+  {
+    "case": "enabled-by-default",
+    "compile_peak_KiB": 98224,
+    "assertion_log": "/Volumes/Semaprax/tmp/ci-38383508340/core-attempt-receipts/negative-enabled-by-default/run.log"
+  },
+  {
+    "case": "formats-without-opt-in",
+    "compile_peak_KiB": 112992,
+    "assertion_log": "/Volumes/Semaprax/tmp/ci-38383508340/core-attempt-receipts/negative-formats-without-opt-in/run.log"
+  },
+  {
+    "case": "loses-nested-state",
+    "compile_peak_KiB": 98960,
+    "assertion_log": "/Volumes/Semaprax/tmp/ci-38383508340/core-attempt-receipts/negative-loses-nested-state/run.log"
+  },
+  {
+    "case": "closes-window-before-call",
+    "compile_peak_KiB": 97824,
+    "assertion_log": "/Volumes/Semaprax/tmp/ci-38383508340/core-attempt-receipts/negative-closes-window-before-call/run.log"
+  }
+]

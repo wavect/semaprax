@@ -32,8 +32,8 @@ new=" payload=_definition_payload(R,row,read)"
 source=original.decode();assert source.count(old)==1
 current=source.replace(old,new,1)
 assert current.replace(new,old,1).encode()==original
-guard_helper=R/'docs/evidence/next-big-batch-source-binding-20261017/guard_payload.py';guard_raw=held(guard_helper,18420)
-assert sha(guard_raw)=='1641b57088ed77b78631be8843c0f074ea09e04f591811b129ddea709bbc11f9'
+guard_helper=R/'docs/evidence/main-e177-final-source-binding-20261017/guard_payload.py';guard_raw=held(guard_helper,19974)
+assert sha(guard_raw)=='0f5017eabe1fd2696f92bd9e381fdd21d76ed74834d90c5f5513d1cc77714ba8'
 g=types.ModuleType('accepted_main043_strict_guard');g.__file__=str(guard_helper);g._AUTHENTICATED_PROGRAM=guard_raw
 exec(compile(guard_raw,str(guard_helper),'exec'),g.__dict__)
 m._next_raw_source=g.source

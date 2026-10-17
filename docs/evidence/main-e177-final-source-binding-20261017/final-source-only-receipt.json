@@ -1,0 +1,61 @@
+{
+  "status": "PASS_SOURCE_ONLY_FINITE_COUPLING_NOT_RUST_QUALIFICATION",
+  "semantic_checkpoint": "5dff900cd1c3004437e3f706547ef55eda254563",
+  "whole_afa_checkpoint": "afa1e4d9da88da6420776ae3184cc9efb552d022",
+  "current_rows": 48,
+  "whole_old_views": 34,
+  "source_packet": "d641ad6bb30767dd172d73c67c32c3d2b1cecb1dca75f38b564156fe6fd3ed03",
+  "source_packet_length": 32765,
+  "strict_guard": {
+    "path": "docs/evidence/main-e177-final-source-binding-20261017/guard_payload.py",
+    "length": 19974,
+    "sha256": "0f5017eabe1fd2696f92bd9e381fdd21d76ed74834d90c5f5513d1cc77714ba8"
+  },
+  "strict_controls": {
+    "status": "PASS_SOURCE_ONLY_STRICT_AND_BOOTSTRAP",
+    "complete_current_carriers": 3,
+    "complete_original_guard_carriers": 3,
+    "old_maximums_unchanged": true,
+    "refusals": 58,
+    "original_verifier_executed": false,
+    "rust_executed": false
+  },
+  "main_e177_current_rows": 471,
+  "main_e177_reseal_changed_rows": 9,
+  "main_e177_packet_length": 237694,
+  "new_raw_modules": 36,
+  "ordered_workspace_rows": 441,
+  "complete_old426_retained_with_exact_insertions": 15,
+  "native_inventory_lines": 1500,
+  "frozen174": {
+    "status": "PREPARED_NOT_EXECUTED",
+    "membership": 174,
+    "changed_physical_subjects": 8,
+    "strict_dependencies": 238
+  },
+  "current_source_aliases": {
+    "old_afa54_table_unchanged": true,
+    "old_main99f454_table_unchanged": true,
+    "immutable_incoming_e177_fields_and_archives_unchanged": true
+  },
+  "postbind_required": {
+    "tool": "/Volumes/Semaprax/provenance/main-e177-final-coupling-20261017/check-postbind-source.py",
+    "sha256": "04622a7a23df27f2bf4f0974fdd406679fea73234ae83e4335a8a56064103b35",
+    "all48_rows": true,
+    "all471_namespace_rows": true,
+    "all36_module_pins": true,
+    "whole_old_anchors": true
+  },
+  "production_deltas_since_semantic_checkpoint": "Only cfg(test) four-name inherited import repair; all other Rust changes are source acquisition/test inventory and reviewed fixture-only controls.",
+  "pending": [
+    "Promote coherent source commit",
+    "Root deterministic graft refresh",
+    "ONE explicit-ROOT frozen174 then FINAL6/role metadata",
+    "Postbind whole-row/anchor/module reauthentication before Cargo",
+    "Actual six builds/eight roles and selected owners; no current runtime PASS claimed"
+  ],
+  "no_Cargo": true,
+  "no_174_execution": true,
+  "no_FINAL6_execution": true,
+  "no_common_execution": true
+}

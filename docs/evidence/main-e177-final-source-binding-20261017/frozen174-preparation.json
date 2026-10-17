@@ -1,0 +1,45 @@
+{
+  "status": "PREPARED_NOT_EXECUTED",
+  "membership": 174,
+  "changed": {
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": [
+      160762,
+      "c340acc8567b6efbfadb7df3936f95b4ec17e10012f3d9cd2fabf4bc497c950e"
+    ],
+    "src/cleanup_plan/replay.rs": [
+      324455,
+      "733505ad93eda40bcbfa03ed0d2978f5e1dd5f0aa93020daff78d833def3b464"
+    ],
+    "src/cleanup_plan/replay/branch_clone.rs": [
+      17112,
+      "4ff120ef24b54cc98d956f3548a76b4a7f0ca9f4393044356f47ea1e51cefbc5"
+    ],
+    "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs": [
+      39641,
+      "943332a49bf82522b22bad1982b82cebfd6626f9f4e7f4cfe50d0ce9c595bcf2"
+    ],
+    "src/cleanup_plan/replay/skeleton_work.rs": [
+      47700,
+      "6dd9f2807059079b8cf9900d3d1831afe3ba043b0fb1131031ae97e370668dec"
+    ],
+    "src/source_reflows/semantic_receivers.rs": [
+      37053,
+      "58cd8a8d2dcb03fcb88f32537ebd5c5d9b6ac1dd1ed60a6fe75b1336bfaf14a4"
+    ],
+    "tests/hir_module_boundaries.rs": [
+      102020,
+      "93f5c57978ccc93da4b59e6d43184febe23d33945a936af5513e8f8b11fd2e5f"
+    ],
+    "tests/workspace/semantic_graph/source_inventory.rs": [
+      99890,
+      "76c00ed5e7e9bfd636a0ef3b4e7955cb094a97719030528b78cd10ef55c8518f"
+    ]
+  },
+  "strict_dependencies": 238,
+  "strict_cap": 262144,
+  "only_inherited317943_exception_exact": true,
+  "binder_unchanged_sha256": "4921dedbcd93d865cafc825f176f5598891864f35c605096185dfb49c6887546",
+  "whole_wrapper_before_sha256": "3ac29c116d0b47cb07fff6beccc13235e0d755422968bb0b4ca5e0ce7896e086",
+  "wrapper_after_sha256": "1d7f004c30da1d5bdf4b355b81821bd63a2348bf62f93f61513664c7d378fee0",
+  "explicit_execution_expected_repo_and_HEAD_required": true
+}

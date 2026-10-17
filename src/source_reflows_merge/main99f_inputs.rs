@@ -255,8 +255,11 @@ fn acquire(path: &Path) -> std::io::Result<(String,String)> {
     assert_eq!(rows.iter().filter(|row|row["path"]==relative).count(),1);
     let row=rows.iter().find(|row|row["path"]==relative).unwrap();
     let read=|path:&Path,len,sha|main99f_file_raw(path,len,sha).map_err(|message|std::io::Error::new(std::io::ErrorKind::InvalidData,message));
-    let actual=read(path,row["current_length"].as_u64().unwrap()as usize,row["current_sha256"].as_str().unwrap())?;
-    if let Some(compiled)=compiled(relative) {assert_eq!(actual,compiled,"whole current compiled MAIN99F input");}
+    let actual=if let Some(prior)=crate::source_reflows_merge::main_e177_final_inputs::file(path,row["current_length"].as_u64().unwrap()as usize,row["current_sha256"].as_str().unwrap()) {prior}else{read(path,row["current_length"].as_u64().unwrap()as usize,row["current_sha256"].as_str().unwrap())?};
+    if let Some(compiled)=compiled(relative) {
+        let compiled=crate::source_reflows_merge::main_e177_final_inputs::value(relative,row["current_sha256"].as_str().unwrap(),compiled);
+        assert_eq!(actual,compiled,"whole current compiled MAIN99F input");
+    }
     let incoming=read(&root.join(row["main_archive"].as_str().unwrap()),row["main_length"].as_u64().unwrap()as usize,row["main_sha256"].as_str().unwrap())?;
     Ok((actual,incoming))
 }

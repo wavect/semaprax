@@ -22,8 +22,8 @@ new="template=b.read(R/recipe['helper_template'],digest=recipe['helper_template_
 assert raw.decode().count(old)==1
 current=raw.decode().replace(old,new,1)
 assert current.replace(new,old,1).encode()==raw
-helper=R/'docs/evidence/next-big-batch-source-binding-20261017/guard_payload.py'
-helper_raw=bounded(helper,18420,'1641b57088ed77b78631be8843c0f074ea09e04f591811b129ddea709bbc11f9')
+helper=R/'docs/evidence/main-e177-final-source-binding-20261017/guard_payload.py'
+helper_raw=bounded(helper,19974,'0f5017eabe1fd2696f92bd9e381fdd21d76ed74834d90c5f5513d1cc77714ba8')
 ns={'__file__':str(helper),'_AUTHENTICATED_PROGRAM':helper_raw};exec(compile(helper_raw,str(helper),'exec'),ns)
 old_guard='guard=runpy.run_path(str(guard_path))'
 new_guard='guard=_accepted_guard_extensions(R)'

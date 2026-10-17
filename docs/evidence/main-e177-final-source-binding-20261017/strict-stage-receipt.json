@@ -1,0 +1,107 @@
+{
+  "status": "SOURCE_ONLY_PENDING_CONTROLS",
+  "guard": {
+    "path": "docs/evidence/main-e177-final-source-binding-20261017/guard_payload.py",
+    "length": 19974,
+    "sha256": "0f5017eabe1fd2696f92bd9e381fdd21d76ed74834d90c5f5513d1cc77714ba8"
+  },
+  "source_packet": {
+    "path": "docs/evidence/main-e177-final-source-binding-20261017/current-inputs.json",
+    "length": 32765,
+    "sha256": "d641ad6bb30767dd172d73c67c32c3d2b1cecb1dca75f38b564156fe6fd3ed03"
+  },
+  "modules": 36,
+  "table_rows": 441,
+  "whole_afa_guard": {
+    "path": "docs/evidence/next-big-batch-source-binding-20261017/guard_payload.py",
+    "length": 18420,
+    "sha256": "1641b57088ed77b78631be8843c0f074ea09e04f591811b129ddea709bbc11f9"
+  },
+  "guard_acquisition_substitutions": 4,
+  "bootstrap_whole_inverses": [
+    {
+      "source": "docs/evidence/main043-independent-custody-20261016/verify-or-refresh.py",
+      "before": {
+        "path": "docs/evidence/main043-independent-custody-20261016/verify-or-refresh.py",
+        "length": 2765,
+        "sha256": "e7ff6c470d23e38036ecf09f82a0f2d86418f8370044d31eb90baafc20702373",
+        "archive": "docs/evidence/main-e177-final-source-binding-20261017/guards/docs__evidence__main043-independent-custody-20261016__verify-or-refresh.py.before.txt"
+      },
+      "after": {
+        "path": "docs/evidence/main043-independent-custody-20261016/verify-or-refresh.py",
+        "length": 2766,
+        "sha256": "403bf257c0d923f316de925312af164f85a18a593c43ee1d3d46742c27ddb9c9"
+      },
+      "edits": [
+        {
+          "before": "docs/evidence/next-big-batch-source-binding-20261017/guard_payload.py",
+          "after": "docs/evidence/main-e177-final-source-binding-20261017/guard_payload.py",
+          "count": 1
+        },
+        {
+          "before": "guard_raw=held(guard_helper,18420)",
+          "after": "guard_raw=held(guard_helper,19974)",
+          "count": 1
+        },
+        {
+          "before": "1641b57088ed77b78631be8843c0f074ea09e04f591811b129ddea709bbc11f9",
+          "after": "0f5017eabe1fd2696f92bd9e381fdd21d76ed74834d90c5f5513d1cc77714ba8",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "source": "docs/evidence/accepted-strict-guard-generation-20261017/check-source.py",
+      "before": {
+        "path": "docs/evidence/accepted-strict-guard-generation-20261017/check-source.py",
+        "length": 4403,
+        "sha256": "0b1d299529c7f6cbdf23ac5bda3436990b6bb5c95879c6343645b893285e0390",
+        "archive": "docs/evidence/main-e177-final-source-binding-20261017/guards/docs__evidence__accepted-strict-guard-generation-20261017__check-source.py.before.txt"
+      },
+      "after": {
+        "path": "docs/evidence/accepted-strict-guard-generation-20261017/check-source.py",
+        "length": 4404,
+        "sha256": "ba1b117b0710ac8b5e035ed5dc3b5396b0a9f8ad44cd2094950d9a6bdefa92c8"
+      },
+      "edits": [
+        {
+          "before": "docs/evidence/next-big-batch-source-binding-20261017/guard_payload.py",
+          "after": "docs/evidence/main-e177-final-source-binding-20261017/guard_payload.py",
+          "count": 1
+        },
+        {
+          "before": "18420,'1641b57088ed77b78631be8843c0f074ea09e04f591811b129ddea709bbc11f9'",
+          "after": "19974,'0f5017eabe1fd2696f92bd9e381fdd21d76ed74834d90c5f5513d1cc77714ba8'",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "source": "docs/evidence/accepted-final6-source-binding-20261017/check-source.py",
+      "before": {
+        "path": "docs/evidence/accepted-final6-source-binding-20261017/check-source.py",
+        "length": 2252,
+        "sha256": "a6438cde1762d154db2f7bcc9a2b24c3f3bdfbfe4613f847621ea1298a45fe76",
+        "archive": "docs/evidence/main-e177-final-source-binding-20261017/guards/docs__evidence__accepted-final6-source-binding-20261017__check-source.py.before.txt"
+      },
+      "after": {
+        "path": "docs/evidence/accepted-final6-source-binding-20261017/check-source.py",
+        "length": 2253,
+        "sha256": "c3bc8f6ee03f0e2f929cdf96b5bc771abeb26e93d6245968edaf0e3bdf7d0c5d"
+      },
+      "edits": [
+        {
+          "before": "docs/evidence/next-big-batch-source-binding-20261017/guard_payload.py",
+          "after": "docs/evidence/main-e177-final-source-binding-20261017/guard_payload.py",
+          "count": 1
+        },
+        {
+          "before": "18420,'1641b57088ed77b78631be8843c0f074ea09e04f591811b129ddea709bbc11f9'",
+          "after": "19974,'0f5017eabe1fd2696f92bd9e381fdd21d76ed74834d90c5f5513d1cc77714ba8'",
+          "count": 1
+        }
+      ]
+    }
+  ],
+  "strict_cap_unchanged": 262144
+}

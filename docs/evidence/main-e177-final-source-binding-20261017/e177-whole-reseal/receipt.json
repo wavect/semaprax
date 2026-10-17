@@ -1,0 +1,86 @@
+{
+  "source_only": true,
+  "immutable_before_head": "49d47aacf",
+  "actual_head": "5dff900cd1c3004437e3f706547ef55eda254563",
+  "rows": 471,
+  "changed": [
+    {
+      "path": "CHANGELOG.md",
+      "before_length": 573686,
+      "before_sha256": "cccc78675f5c81770545526f2832419735cfedf86f14adc4e458f71e2c6bd690",
+      "after_length": 574015,
+      "after_sha256": "9bc5dbe60dc1ddd282f192fdaedd0f0ce284a84b407e2dde297a1ee385887ce0",
+      "archive_prefix": "06572a96a58dc510037d5efa622f9bec8519bc1beab13c9f251e97e657a9d4ed"
+    },
+    {
+      "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "before_length": 158606,
+      "before_sha256": "542ef32e1652f6a4331bcb05dadb87ae658379b5409ca9716144bdc809bda33e",
+      "after_length": 160762,
+      "after_sha256": "c340acc8567b6efbfadb7df3936f95b4ec17e10012f3d9cd2fabf4bc497c950e",
+      "archive_prefix": "d6cf1ed9705db190b2c8c93cee9988a54c85b651073d9756755a9d58d8ebaba5"
+    },
+    {
+      "path": "docs/ARCHITECTURE.md",
+      "before_length": 388194,
+      "before_sha256": "0b516f7757de9271c32ccaeecb8946fe41caa9707d9901b5d0849202cd1ee870",
+      "after_length": 388681,
+      "after_sha256": "3ca3e1a73ba5f279793deb366ce88f2d1b019028c4b0a1bfd0d3c2d95fef843a",
+      "archive_prefix": "ff21b6b9a3a33e9d9056ac96882cc348d7077612b5931068f7459707b21eb3d1"
+    },
+    {
+      "path": "src/cleanup_plan/replay.rs",
+      "before_length": 324389,
+      "before_sha256": "6cdfce6c20964d62f360cd147d0c6ca8b4d9cb86f671d6d5b5773d8c6e446ae7",
+      "after_length": 324455,
+      "after_sha256": "733505ad93eda40bcbfa03ed0d2978f5e1dd5f0aa93020daff78d833def3b464",
+      "archive_prefix": "ccb34aaf4a57471376373f975909eee1741050241e1d505e5d43e957ba2df4c8"
+    },
+    {
+      "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs",
+      "before_length": 39548,
+      "before_sha256": "f0477415f73a2d9d0e02ad5411d28febdd0eb43e54fcde489b02e5202008ff7c",
+      "after_length": 39641,
+      "after_sha256": "943332a49bf82522b22bad1982b82cebfd6626f9f4e7f4cfe50d0ce9c595bcf2",
+      "archive_prefix": "2a2c09858e01d33b93032ea5e6ad1b33897a05dd46953ab1bdc5893a5f808765"
+    },
+    {
+      "path": "src/cleanup_plan/replay/skeleton_work.rs",
+      "before_length": 47627,
+      "before_sha256": "f86667440e07a2a01e0e8c043966c9df2ecbae3dd6d0a7cc1a991c6ade54e423",
+      "after_length": 47700,
+      "after_sha256": "6dd9f2807059079b8cf9900d3d1831afe3ba043b0fb1131031ae97e370668dec",
+      "archive_prefix": "de79aacc8b30036cf0d38290efa1b58c0216fbd6add4c0731605974cb7aa1caf"
+    },
+    {
+      "path": "tests/hir_module_boundaries.rs",
+      "before_length": 100148,
+      "before_sha256": "ab2d3ee38fb8c5ba184a88df5153086b84156453c7be043b710c107f4e6e4805",
+      "after_length": 102020,
+      "after_sha256": "93f5c57978ccc93da4b59e6d43184febe23d33945a936af5513e8f8b11fd2e5f",
+      "archive_prefix": "94eaba45a2cf4bd00d96578483d8aabb9f60fb2e939104f6938abd218186adc0"
+    },
+    {
+      "path": "tests/workspace/semantic_graph.rs",
+      "before_length": 57474,
+      "before_sha256": "6ccf30ce469b558da186763dc4d641c042862369a6b75cd4eb116d24bb339eec",
+      "after_length": 57469,
+      "after_sha256": "e0e7f1bfff449baf1a3b40166de9b1334f4b639339c3f59a48940505b0e991c2",
+      "archive_prefix": "030e77469c1f2e6b2a590183cbe6cbf5ceb2acb5a53d3def86caef727ea38fa3"
+    },
+    {
+      "path": "tests/workspace/semantic_graph/source_inventory.rs",
+      "before_length": 97943,
+      "before_sha256": "880f07943189045d37e48bb495ada069ed74b0338ef3a9ac5d7cc23c217f838a",
+      "after_length": 99890,
+      "after_sha256": "76c00ed5e7e9bfd636a0ef3b4e7955cb094a97719030528b78cd10ef55c8518f",
+      "archive_prefix": "c0865b78f25dedb05e408b13ee4a7cbf0e0a1e23557b341dc15e6b1aa3a83119"
+    }
+  ],
+  "packet_after_length": 237694,
+  "packet_after_sha256": "89ce381aff378d3e66b660fcf44acde6c712a58bb9dfa194106cfa080005e82a",
+  "reader_after_sha256": "70af76fae1c5ce92f37db4751627d343aad9d4901f750169903bd031572bc1ad",
+  "only_current_tuple_fields_changed": true,
+  "old_incoming_fields_and_archives_unchanged": true,
+  "written": true
+}

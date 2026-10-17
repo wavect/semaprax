@@ -1,0 +1,17 @@
+{
+  "status": "EXTERNAL_PATCH_SOURCE_ONLY_UNEXECUTED",
+  "base": "14c3ca4d50cf2ad7ecadff9415be9a2caa009bdc",
+  "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/before_cursor/qualification.rs",
+  "before_length": 11406,
+  "before_sha256": "bc82df0e8da14f67e01ab86ce12d18ac4b08b6fc3b89b6577ddb67caa6baaade",
+  "after_length": 17884,
+  "after_sha256": "dfc12e5461f0e86feb5a1f79e56e4850feebccfe5b70c6a7df207a2eec96ca93",
+  "patch_sha256": "ce5b81acf422c26604687520dbc35e054051f7e0ce408fa2949d36546498018e",
+  "old_incoming_tests_modified": false,
+  "production_modified": false,
+  "new_selectors": 0,
+  "limitations": [
+    "No Rust compilation or runtime result",
+    "Real moved-bank site/cost earned by actual complete receiver staircase when executed"
+  ]
+}

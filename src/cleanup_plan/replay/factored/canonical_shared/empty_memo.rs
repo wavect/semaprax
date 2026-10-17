@@ -40,7 +40,7 @@ impl<T> Memo<T> {
         if let Some(binding) = &self.binding {
             // Read no foreign payer, even to construct a refusal report. The
             // exact caller keeps both borrowed receivers at stable addresses.
-            let ledger_matches = binding.ledger.current();
+            let ledger_matches = binding.ledger.current_identity();
             if binding.function != std::ptr::from_ref(function)
                 || binding.budget != std::ptr::from_ref(budget)
                 || !ledger_matches
@@ -96,7 +96,7 @@ impl<T> Memo<T> {
             return false;
         }
         if let Some(binding) = &self.binding {
-            let ledger_matches = binding.ledger.current();
+            let ledger_matches = binding.ledger.current_identity();
             if binding.function != std::ptr::from_ref(function)
                 || binding.budget != std::ptr::from_ref(budget)
                 || !ledger_matches

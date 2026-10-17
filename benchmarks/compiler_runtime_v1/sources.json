@@ -1,0 +1,20 @@
+{
+  "status": "RETAINED_INSTALLED_SCHEMA_NOT_RUNTIME_QUALIFICATION",
+  "source_directory": "/Volumes/Semaprax/provenance/606-execution-origin-runtime-schema-20261017",
+  "originals": {
+    "ServerRequest.json": "3d7bc481f84dc042984a74420e65c5a8d3c423f37a91b7d5df2365c903a12ac6",
+    "ServerNotification.json": "c626079776d401d358a8791b74cfe6c978d18aabbb78477ce7bd710a79779bc1",
+    "v2/ThreadStartResponse.json": "107fe36c99ebaeb750a371580beec807a28c6451e9c8a02cd7d451a0135f1c91",
+    "v2/TurnStartResponse.json": "20e837d07826b9c01578ff40b962ab08f58a355a9984e96226733498514e9bad",
+    "v2/CommandExecResponse.json": "dec52d187121e8dd48124b47a4a8d8428ef3717b98b9200345bb404f73b62c9d",
+    "DynamicToolCallResponse.json": "abb082cad67f11fcc98ba75f2eff75d7d1723af0c657655329b83ff160451a02",
+    "ClientRequest.json": "92d920b10b9ce7871e21f49573275bb931a58ad7fd367ab71b3716edbb6a0352",
+    "v2/ThreadStartParams.json": "80a40a7fac15b4bf70efb7f893fb353acc0a0d30c68f54aee4f01923deca85de",
+    "v2/TurnStartParams.json": "abf0d6d29d223b38c650ff1155cb9c9f9b4211e6d0e20c57d750a9e1babfdb41",
+    "v2/CommandExecParams.json": "fd034b4c85d7b6f466e30a3cbb73db86be1263aca3f81b89b547f14817dfb62e",
+    "v2/CommandExecTerminateParams.json": "979ece7059c6713d0909ab1690daec27149510f4ea2ec10014600bfb1d631c97"
+  },
+  "aggregate_original_sha256": "43e8c1495557ca91e33a63bbfae36c311c206253afae2974c979dbdf5d940c71",
+  "projection": "Exact selected initialize variant plus reachable top-definition closure; other selected documents unchanged except unreachable definitions. InitializeResponse retains only its referenced v2/AbsolutePathBuf leaf rather than unrelated v2 definitions.",
+  "protocol_sha256": "1ac6d7c46a319d9c92d4fa78fca78ad01ea2fad82161c8855e837d8e59434077"
+}

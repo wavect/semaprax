@@ -1,0 +1,14 @@
+[
+  {
+    "name": "source",
+    "run_peak_KiB": 4624
+  },
+  {
+    "name": "docs",
+    "run_peak_KiB": 4256
+  },
+  {
+    "name": "release",
+    "run_peak_KiB": 24144
+  }
+]

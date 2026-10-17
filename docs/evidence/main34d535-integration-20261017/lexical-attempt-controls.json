@@ -1,0 +1,49 @@
+{
+  "scope": "source-only lifecycle proof, no Rust/runtime execution",
+  "old_begin_whole_function_unchanged": true,
+  "old_complete_whole_function_unchanged": true,
+  "new_complete_only_absent_redundant_store": true,
+  "current_selected_counter_source_unchanged": true,
+  "reachable_drop_states": [
+    {
+      "state": "Active",
+      "old_complete": false,
+      "old_drop": "Failed",
+      "lexical_drop": "Failed"
+    },
+    {
+      "state": "Failed",
+      "old_complete": false,
+      "old_drop": "Failed",
+      "lexical_drop": "Failed"
+    },
+    {
+      "state": "Finished",
+      "old_complete": true,
+      "old_drop": "Finished",
+      "lexical_drop": "Finished"
+    },
+    {
+      "state": "Failed",
+      "old_complete": true,
+      "old_drop": "Failed",
+      "lexical_drop": "Failed"
+    }
+  ],
+  "work_map": {
+    "old_3": [
+      "State::Active store",
+      "Attempt.proof initialization",
+      "Attempt.complete:false initialization"
+    ],
+    "lexical_3": [
+      "State::Active store",
+      "LexicalAttempt.proof initialization",
+      "laterdirectborrowedActiveBuilderdiscriminantquery"
+    ],
+    "no_tuple_or_stored_flag": true,
+    "active_additional_selector_work": 2,
+    "nonactive_additional_work": 0
+  },
+  "excluded": "No admissiblefallible/usercode between oldFinished store andcomplete=true; source field mutation is not a public authority. No actual target-layout constevaluation or selectedcut execution claimed."
+}

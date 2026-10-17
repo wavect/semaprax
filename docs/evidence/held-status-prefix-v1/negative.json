@@ -1,0 +1,28 @@
+[
+  {
+    "compiler": "/Volumes/Semaprax/worktrees/ci-unit-38383508340/target/ci-toolchains/toolchains/1.88.0-aarch64-apple-darwin/bin/rustc",
+    "control": "disable only nonempty prefix publication",
+    "compile_peak_KiB": 194224,
+    "expected": "assertion failure",
+    "caught": true
+  },
+  {
+    "compiler": "/opt/homebrew/bin/rustc",
+    "control": "disable only nonempty prefix publication",
+    "compile_peak_KiB": 160560,
+    "expected": "assertion failure",
+    "caught": true
+  },
+  {
+    "compiler": "/Volumes/Semaprax/worktrees/ci-unit-38383508340/target/ci-toolchains/toolchains/1.88.0-aarch64-apple-darwin/bin/rustc",
+    "control": "mutate directory while held prefix remains live",
+    "expected": "E0499",
+    "caught": true
+  },
+  {
+    "compiler": "/opt/homebrew/bin/rustc",
+    "control": "mutate directory while held prefix remains live",
+    "expected": "E0499",
+    "caught": true
+  }
+]

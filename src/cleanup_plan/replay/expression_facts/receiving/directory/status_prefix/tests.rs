@@ -397,3 +397,311 @@ fn certified_status_foreign_restored_and_wrong_subject_never_reactivate_the_boun
     );
     assert!(allocation.allocated <= paid && allocation.highwater <= paid);
 }
+
+#[test]
+fn held_prefix_keeps_every_original_link_and_shrinks_only_from_current_keys() {
+    let names = [
+        "shared.é.000",
+        "shared.é.002",
+        "shared.é.001",
+        "shared.é.000",
+        "shared.è",
+        "shared.\0",
+        "a",
+        "",
+        "界",
+    ];
+    let keys = names
+        .iter()
+        .flat_map(|name| {
+            [
+                StatusLane::OperationFailure,
+                StatusLane::OwnerAdmission,
+                StatusLane::ContractFalse,
+                StatusLane::AllocationFailure,
+            ]
+            .map(|lane| (*name, lane))
+        })
+        .collect::<Vec<_>>();
+    let function = function(&keys);
+    let (((), allocation), refused, paid, first) = with_limit_usage_refusal(usize::MAX, || {
+        measure(|| {
+            let mut old_budget = ReplayBudget::new();
+            let mut budget = ReplayBudget::new();
+            let mut old = Directory::new(
+                &function,
+                &mut old_budget,
+                "cleanup status identity directory",
+            )
+            .unwrap();
+            let mut current =
+                Directory::new(&function, &mut budget, "cleanup status identity directory")
+                    .unwrap();
+            let owner = Owner::new(&function, &old, &mut old_budget).unwrap();
+            let mut held = current.held_prefix(&function, &mut budget).unwrap();
+            for source in &function.cleanup_plan.status_sources {
+                let expected = old
+                    .insert_certified(&function, &source.id, &mut old_budget, &owner)
+                    .unwrap();
+                assert_eq!(
+                    held.insert(&function, &source.id, &mut budget).unwrap(),
+                    expected
+                );
+                same_tree(&old, held.directory);
+                let mut keys = held.directory.keys();
+                let first = keys.next().unwrap().expression.as_str().as_bytes();
+                let mut common = first.len();
+                for key in keys {
+                    common = first[..common]
+                        .iter()
+                        .zip(key.expression.as_str().as_bytes())
+                        .take_while(|(left, right)| left == right)
+                        .count();
+                }
+                assert_eq!(held.prefix, common);
+            }
+            drop(held);
+            drop(owner);
+            drop(current);
+            drop(old);
+            drop(budget);
+            drop(old_budget);
+        })
+    });
+    assert!(!refused && first.is_none());
+    assert!(!allocation.invalid && allocation.live == 0);
+    assert_eq!(allocation.allocated, allocation.freed);
+    assert!(allocation.allocated <= paid);
+}
+
+#[test]
+fn held_prefix_preserves_physical_frontiers_and_final_drop_without_a_new_allowance() {
+    let names = (0..128)
+        .rev()
+        .map(|index| format!("{}.{index:06}", "common.é".repeat(24)))
+        .collect::<Vec<_>>();
+    let keys = names
+        .iter()
+        .map(|name| (name.as_str(), StatusLane::OperationFailure))
+        .collect::<Vec<_>>();
+    let function = function(&keys);
+    let observe = |held, available, floor| {
+        with_limit_usage_refusal(available + floor, || {
+            assert!(crate::bounded_output::set_active_floor(floor));
+            measure(|| {
+                let mut budget = ReplayBudget::new();
+                let start = budget.remaining;
+                let result = (|| {
+                    let mut directory = Directory::new(
+                        &function,
+                        &mut budget,
+                        "cleanup status identity directory",
+                    )?;
+                    if held {
+                        let mut builder = directory.held_prefix(&function, &mut budget)?;
+                        for source in &function.cleanup_plan.status_sources {
+                            assert!(builder.insert(&function, &source.id, &mut budget)?);
+                        }
+                        drop(builder);
+                    } else {
+                        let owner = Owner::new(&function, &directory, &mut budget)?;
+                        for source in &function.cleanup_plan.status_sources {
+                            assert!(directory.insert_certified(
+                                &function,
+                                &source.id,
+                                &mut budget,
+                                &owner
+                            )?);
+                        }
+                        drop(owner);
+                    }
+                    assert_eq!(directory.len(), 128);
+                    assert!(directory.balanced());
+                    drop(directory);
+                    Ok::<_, Diagnostic>(())
+                })();
+                let ok = result.is_ok();
+                let work = start - budget.remaining;
+                drop(result);
+                if !ok {
+                    assert!(budget
+                        .reserve_bytes(&function, 0, "sticky held prefix")
+                        .is_err());
+                }
+                drop(budget);
+                (ok, work)
+            })
+        })
+    };
+    let (((ok, old_work), old), refused, old_bytes, first) = observe(false, usize::MAX, 0);
+    assert!(ok && !refused && first.is_none());
+    let (((ok, new_work), new), refused, exact, first) = observe(true, usize::MAX, 0);
+    assert!(ok && !refused && first.is_none());
+    assert!(new_work < old_work && exact < old_bytes);
+    assert_eq!(new.allocated, old.allocated);
+    for allocation in [old, new] {
+        assert!(!allocation.invalid && allocation.live == 0);
+        assert_eq!(allocation.allocated, allocation.freed);
+    }
+    for floor in [0, 37] {
+        for available in [0, exact - 1, exact] {
+            let (((ok, _), allocation), refused, spent, first) = observe(true, available, floor);
+            assert_eq!(ok, available == exact);
+            assert_eq!(refused, !ok);
+            assert_eq!(first.is_some(), !ok);
+            if let Some(first) = first {
+                assert_eq!(first.floor, floor);
+            }
+            assert!(spent <= available && allocation.allocated <= spent);
+            assert!(!allocation.invalid && allocation.live == 0);
+            assert_eq!(allocation.allocated, allocation.freed);
+            if available == 0 {
+                assert_eq!(allocation.allocated, 0);
+            }
+        }
+    }
+}
+
+#[test]
+fn held_prefix_stays_within_the_original_work_ceiling_on_a_wide_identity_set() {
+    let prefix = "shared.".repeat(146);
+    let names = (0..16_000)
+        .map(|index| format!("{prefix}.{index:06}"))
+        .collect::<Vec<_>>();
+    let keys = names
+        .iter()
+        .map(|name| (name.as_str(), StatusLane::OperationFailure))
+        .collect::<Vec<_>>();
+    let function = function(&keys);
+    let run = |held| {
+        crate::bounded_output::with_limit(usize::MAX, || {
+            let mut budget = ReplayBudget::new();
+            let mut directory =
+                Directory::new(&function, &mut budget, "cleanup status identity directory")
+                    .unwrap();
+            let result = (|| {
+                if held {
+                    let mut builder = directory.held_prefix(&function, &mut budget)?;
+                    for source in &function.cleanup_plan.status_sources {
+                        assert!(builder.insert(&function, &source.id, &mut budget)?);
+                    }
+                    drop(builder);
+                } else {
+                    let owner = Owner::new(&function, &directory, &mut budget)?;
+                    for source in &function.cleanup_plan.status_sources {
+                        assert!(directory.insert_certified(
+                            &function,
+                            &source.id,
+                            &mut budget,
+                            &owner
+                        )?);
+                    }
+                    drop(owner);
+                }
+                Ok::<_, Diagnostic>(())
+            })();
+            let ok = result.is_ok();
+            if let Err(error) = result {
+                assert_eq!(error.code, "SPX-H006");
+                assert!(error
+                    .message
+                    .contains("cleanup replay work budget exhausted"));
+            }
+            if ok {
+                assert_eq!(directory.len(), 16_000);
+                assert!(directory.balanced());
+            }
+            ok
+        })
+        .0
+    };
+    assert!(!run(false));
+    assert!(run(true));
+}
+
+#[test]
+fn held_prefix_never_uses_its_bound_in_a_foreign_or_restored_invocation() {
+    let function = function(&[
+        ("same.prefix.0", StatusLane::OperationFailure),
+        ("same.prefix.1", StatusLane::OperationFailure),
+        ("same.prefix.2", StatusLane::OperationFailure),
+    ]);
+    let expected=Diagnostic::io("SPX-H006",format!("cleanup plan for function `{}` failed independent replay: status prefix insertion belongs to another invocation",function.id));
+    let (((), allocation), refused, _, first) = with_limit_usage_refusal(usize::MAX, || {
+        measure(|| {
+            let mut budget = ReplayBudget::new();
+            let mut directory =
+                Directory::new(&function, &mut budget, "cleanup status identity directory")
+                    .unwrap();
+            let mut held = directory.held_prefix(&function, &mut budget).unwrap();
+            for source in &function.cleanup_plan.status_sources[..2] {
+                assert!(held.insert(&function, &source.id, &mut budget).unwrap());
+            }
+            let prefix = held.prefix;
+            let len = held.directory.len();
+            let pointer = held.directory.nodes.as_ptr();
+            assert!(prefix > 0);
+            let (_, child_refused, child_paid, child_first) =
+                with_limit_usage_refusal(usize::MAX, || {
+                    let before = current_metrics().allocated;
+                    let error = held
+                        .insert(
+                            &function,
+                            &function.cleanup_plan.status_sources[2].id,
+                            &mut budget,
+                        )
+                        .unwrap_err();
+                    assert_eq!(error, expected);
+                    drop(error);
+                    assert_eq!(current_metrics().allocated, before);
+                });
+            assert!(!child_refused && child_paid == 0 && child_first.is_none());
+            assert!(matches!(held.owner.first.get(), Some(Refusal::Invocation)));
+            let before = current_metrics().allocated;
+            let error = held
+                .insert(
+                    &function,
+                    &function.cleanup_plan.status_sources[2].id,
+                    &mut budget,
+                )
+                .unwrap_err();
+            assert_eq!(error, Diagnostic::io("SPX-H006", String::new()));
+            drop(error);
+            assert_eq!(current_metrics().allocated, before);
+            assert_eq!(held.prefix, prefix);
+            assert_eq!(held.directory.len(), len);
+            assert_eq!(held.directory.nodes.as_ptr(), pointer);
+            drop(held);
+            drop(directory);
+            drop(budget);
+        })
+    });
+    assert!(refused && first.is_some());
+    assert!(!allocation.invalid && allocation.live == 0);
+    assert_eq!(allocation.allocated, allocation.freed);
+    let wrong = function.clone();
+    let expected=Diagnostic::io("SPX-H006",format!("cleanup plan for function `{}` failed independent replay: status prefix insertion belongs to another subject or receiver",wrong.id));
+    let (((), allocation), _, paid, _) = with_limit_usage_refusal(usize::MAX, || {
+        measure(|| {
+            let mut budget = ReplayBudget::new();
+            let mut directory =
+                Directory::new(&function, &mut budget, "cleanup status identity directory")
+                    .unwrap();
+            let mut held = directory.held_prefix(&function, &mut budget).unwrap();
+            let result = held.insert(
+                &wrong,
+                &wrong.cleanup_plan.status_sources[0].id,
+                &mut budget,
+            );
+            assert_eq!(result.unwrap_err(), expected);
+            assert!(matches!(held.owner.first.get(), Some(Refusal::Binding)));
+            assert_eq!(held.directory.len(), 0);
+            assert_eq!(held.prefix, 0);
+            drop(held);
+            drop(directory);
+            drop(budget);
+        })
+    });
+    assert!(!allocation.invalid && allocation.live == 0 && allocation.allocated <= paid);
+    assert_eq!(allocation.allocated, allocation.freed);
+}

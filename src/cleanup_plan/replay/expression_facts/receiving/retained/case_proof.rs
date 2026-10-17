@@ -4,10 +4,10 @@ use super::{ClassifierLedger, Diagnostic, ReplayBudget, ResolvedFunction, Status
 use std::cell::Cell;
 use std::mem::size_of;
 
-const PHASE: &str = "complete status case proof";
+pub(super) const PHASE: &str = "complete status case proof";
 
 #[derive(Clone, Copy, Eq, PartialEq)]
-enum State {
+pub(super) enum State {
     Ready,
     Active,
     Finished,
@@ -19,7 +19,7 @@ pub(in crate::cleanup_plan::replay) struct StatusCases<'hir> {
     rows: &'hir [StatusSource],
     budget: *const ReplayBudget,
     ledger: ClassifierLedger,
-    state: Cell<State>,
+    pub(super) state: Cell<State>,
 }
 
 // Affine receiving attempt: every early error/unwind poisons the held proof.
@@ -27,6 +27,7 @@ pub(super) struct Attempt<'proof, 'hir> {
     proof: &'proof StatusCases<'hir>,
     complete: bool,
 }
+#[cfg(test)]
 impl Attempt<'_, '_> {
     pub(super) fn complete(
         &mut self,
@@ -81,7 +82,7 @@ impl<'hir> StatusCases<'hir> {
     // Do not consult/debit a foreign payer or format text after selected refusal.
     // The first actual byte/work diagnostic is returned unchanged to its caller;
     // subsequent attempts retain H006 and cannot publish another acquisition.
-    fn reject(&self) -> Diagnostic {
+    pub(super) fn reject(&self) -> Diagnostic {
         self.state.set(State::Failed);
         Diagnostic::io("SPX-H006", String::new())
     }
@@ -113,6 +114,7 @@ impl<'hir> StatusCases<'hir> {
         result
     }
 
+    #[cfg(test)]
     pub(super) fn begin<'proof>(
         &'proof self,
         function: &ResolvedFunction,
@@ -174,3 +176,69 @@ impl<'hir> StatusCases<'hir> {
 
 #[cfg(test)]
 mod tests;
+
+// The lexical caller does not construct the old forwarded Result<Attempt>.
+// It also does not initialize Attempt.complete: completion already has an
+// authenticated affine State::Finished. Keep the old type and method above
+// independently compiled for the complete selected counter receiver.
+pub(super) struct LexicalAttempt<'proof, 'hir> {
+    pub(super) proof: &'proof StatusCases<'hir>,
+}
+impl LexicalAttempt<'_, '_> {
+    pub(super) fn complete(
+        &mut self,
+        function: &ResolvedFunction,
+        budget: &mut ReplayBudget,
+    ) -> Result<(), Diagnostic> {
+        self.proof.authenticate(function, budget)?;
+        if self.proof.state.get() != State::Active {
+            return Err(self.proof.reject());
+        }
+        budget.reserve_bytes(function, size_of::<Result<(), Diagnostic>>(), PHASE)?;
+        budget.charge(function, 2, PHASE)?;
+        self.proof.state.set(State::Finished);
+        Ok(())
+    }
+}
+impl Drop for LexicalAttempt<'_, '_> {
+    fn drop(&mut self) {
+        if self.proof.state.get() != State::Finished {
+            self.proof.state.set(State::Failed);
+        }
+    }
+}
+// Two initializer/receiving tokens, conservative complete argument/header
+// overlaps, and the later single borrowed payer predicate. No flag or tuple is
+// constructed. The original authentication and payment receivers are unchanged.
+const LEXICAL_BEGIN_BYTES: usize = 2 * size_of::<LexicalAttempt<'_, '_>>()
+    + 2 * size_of::<(&StatusCases<'_>, &ResolvedFunction, &mut ReplayBudget)>()
+    + size_of::<&crate::cleanup_plan::replay::allocation::AllocationPayer>()
+    + 6 * size_of::<bool>();
+pub(super) const ORIGINAL_BEGIN_BYTES: usize = 2 * size_of::<Attempt<'_, '_>>()
+    + size_of::<Result<Attempt<'_, '_>, Diagnostic>>();
+const _: () = assert!(LEXICAL_BEGIN_BYTES <= ORIGINAL_BEGIN_BYTES);
+macro_rules! begin_receiving {
+    ($proof:ident, $function:ident, $budget:ident) => {{
+        if $proof.state.get() != super::case_proof::State::Ready {
+            return Err($proof.reject());
+        }
+        $proof.authenticate($function, $budget)?;
+        if let Err(error) = $budget
+            .reserve_bytes(
+                $function,
+                super::case_proof::ORIGINAL_BEGIN_BYTES,
+                super::case_proof::PHASE,
+            )
+            .and_then(|()| $budget.charge($function, 3, super::case_proof::PHASE))
+        {
+            $proof.state.set(super::case_proof::State::Failed);
+            return Err(error);
+        }
+        // Same three debits: Active assignment, proof-field initialization,
+        // and the caller's direct borrowed ActiveBuilder predicate. The last
+        // replaces the absent complete:false initializer; no stored bool exists.
+        $proof.state.set(super::case_proof::State::Active);
+        super::case_proof::LexicalAttempt { proof: $proof }
+    }};
+}
+pub(super) use begin_receiving;

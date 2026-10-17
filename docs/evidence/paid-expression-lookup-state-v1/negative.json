@@ -1,0 +1,26 @@
+[
+  {
+    "control": "omit only new state payment",
+    "compiler": "/Volumes/Semaprax/worktrees/ci-unit-38383508340/target/ci-toolchains/toolchains/1.88.0-aarch64-apple-darwin/bin/rustc",
+    "compile_peak_KiB": 122176,
+    "caught": true
+  },
+  {
+    "control": "omit only new state payment",
+    "compiler": "/opt/homebrew/bin/rustc",
+    "compile_peak_KiB": 136032,
+    "caught": true
+  },
+  {
+    "control": "reverse only the non-equal byte comparator",
+    "compiler": "/Volumes/Semaprax/worktrees/ci-unit-38383508340/target/ci-toolchains/toolchains/1.88.0-aarch64-apple-darwin/bin/rustc",
+    "compile_peak_KiB": 123744,
+    "caught": true
+  },
+  {
+    "control": "reverse only the non-equal byte comparator",
+    "compiler": "/opt/homebrew/bin/rustc",
+    "compile_peak_KiB": 182208,
+    "caught": true
+  }
+]

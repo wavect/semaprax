@@ -1,0 +1,51 @@
+{
+  "status": "SOURCE_ONLY; no Cargo/build/tests/common refresh; unresolved docs left intact, no mergecommit",
+  "base": "49219d230734e000e2884b5b4fb71e61cdf0eb0b",
+  "incoming": "34d53510a3374537874c89a0e46be4d68ad9fe61",
+  "copy_only": [
+    "src/cleanup_plan/replay/expression_facts/arena/prefix.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof.rs",
+    "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+    "tests/wasm/scalar_browser_ci_contract/browser_custody.rs",
+    "tests/wasm/scalar_browser_ci_contract/next_actual.rs"
+  ],
+  "conflicts": {
+    "arena/prefix.rs": "append-only union: whole existing lookup/custody declarations plus complete MAIN paid ReceivingComparison+find_receiving",
+    "receiving/retained.rs": "retain existing certified proof modules and MAIN independent held-prefix receiver. Original cfgtest direct retained receiver remains whole and unchanged; its merged MAIN dispatch is intentionally absent to preserve old baseline. Production combination is in separately authorized fourth file.",
+    "case_certified.rs": "Lexicalbegin removes forwardedResult andcomplete:false. DirectborrowedActiveBuilderpredicate isfunded fromunchanged oldbegin2Attempt+Result span and3work. Only ActiveBuilder paysnewselector2work+fulltypedfee, then3+rows useheldbuilder. Selected/Oracle/unobserved remainoriginalcharged/work/diagnostic path. Wholeoriginaltail remainsliteralexact. Parentauthorizedexistingcase_proof seventhfile; no newowner.",
+    "historical_builder.rs": "whole492root exactprefix + full34dprogram in incoming_main671 namespace. Its before_671 file module is declaredatroot; namespace uses it via one finite import substitution. All old/published67b/Main7f8 functions remain independent.",
+    "browser custody": "shipping rawrunner stays MAIN671. Fixed old218a9 table owns older acquisition stage, distinct from already-composed492 MAIN524 runner. Four explicit rawpaths authenticated against exact whole compiledbytes; no Path/import hook. Completeoldstage from pinned unchanged table before unchanged original projection. next_actual test runner uses explicitstage; nonewgraphgenerationorcurrentruntimeclaim.",
+    "case_proof.rs": "OldAttempttype/layout unchanged; originalbegin andcompletewholefunctions remainbyteexact (cfgtest wrappers outside forproductiondeadcode). NewLexicalAttempt completionduplicatesoriginal exceptredundanttruefieldstore; Drop derivesFinished fromaffinestate. Newtypedframeconstassert retainsoriginalspan. Auth/payment/state/refusalorder unchanged. Explicitreachablelifecycle proof inlexical-attempt-controls.json."
+  },
+  "source_verification": {
+    "rustfmt_parse_six": "PASS; --emit stdout --config skip_children=true, no rewrite",
+    "whole_inverse_all_parents": "PASS",
+    "whole_ours_browser_prefix": "PASS",
+    "whole_MAIN671_except_mod_import": "PASS",
+    "old_certified_tail": "PASS",
+    "old_cfgtest_retained_body": "PASS",
+    "twenty_raw_staged_hostiles": "PASS",
+    "max_lines": 816,
+    "rustfmt_parse_seven": "PASS; sourceparseonly",
+    "selected_counter_originalbinding": "counter_tests.rs wholebyteexact; exactcuts executionPENDING",
+    "new_type_layout_assertion": "compilepending; assertionnotrelaxed"
+  },
+  "selectors": {
+    "new_original_MAIN_namespace": [
+      "wasm::scalar_browser_ci_contract::historical_builder::incoming_main671::hosted_wires_keep_current_pins_and_every_complete_previous_receiver",
+      "wasm::scalar_browser_ci_contract::historical_builder::incoming_main671::a_rehashed_non_builder_change_still_fails_the_complete_bridge",
+      "wasm::scalar_browser_ci_contract::historical_builder::incoming_main671::the_complete_old_bridge_changes_only_its_retained_runner_include"
+    ],
+    "note": "Exact harnessprefix mustbe confirmed by actual owning discovery; no testdiscovery invoked. ExistingMAINmodule before_671 oldtests also compile/run independently; alloriginalcurrentselectorsretained."
+  },
+  "pending": "847 independentactualcodereview, parentcopy7+actualmerge+sourcebinders+onecombinedcompilation/runtime. No source/runtimePASS claim.",
+  "packet_hashes": {
+    "full-source-inverses-lexical.json": "980c3a53fac340829b694d1f852bae0e756b0759456632801500bc7565def080",
+    "source-controls.json": "6411f64a9247196264edabdb5c196cc45b2ae19b505a22b69d82ffa27e112588",
+    "lexical-attempt-controls.json": "d4f6f8e8825637db17e2538df80b99dbef6ea74162a61431aea6bf213238b90f"
+  },
+  "copy_directory": "resolved-lexical",
+  "supersedes": "Old6-file receipt/sourcepacket retained unchanged for audit only; do not copy its case_certified endpoints."
+}

@@ -310,3 +310,270 @@ fn lazy_first_and_nested_layouts_use_the_same_sticky_payer_through_drop() {
 }
 
 mod nested_pool;
+
+const HELD_TARGETS: [usize; 10] = [2, 4, 8, 16, 32, 64, 128, 256, 512, 516];
+fn fill_held<'a>(frames: &mut Vec<Frame<'a>>, function: &'a ResolvedFunction) {
+    while frames.len() < frames.capacity() {
+        let frame = if frames.len().is_multiple_of(2) {
+            Frame::Eval(&function.body)
+        } else {
+            Frame::UpcastPassthrough
+        };
+        frames.push(frame);
+    }
+}
+fn held_order(frames: &[Frame<'_>], function: &ResolvedFunction) {
+    for (index, frame) in frames.iter().enumerate() {
+        match frame {
+            Frame::Eval(expression) if index.is_multiple_of(2) => {
+                assert!(std::ptr::eq(*expression, &function.body));
+            }
+            Frame::UpcastPassthrough if !index.is_multiple_of(2) => {}
+            _ => panic!("a live continuation changed order or kind"),
+        }
+    }
+}
+#[test]
+fn held_growth_preserves_every_live_frame_and_pays_every_physical_frontier() {
+    let program = program();
+    let function = &program.functions[0];
+    let observe = |limit, floor, stop| {
+        with_limit_usage_refusal(limit + floor, || {
+            assert!(crate::bounded_output::set_active_floor(floor));
+            measure(|| {
+                let mut budget = ReplayBudget::new();
+                let start = budget.remaining;
+                let result = (|| {
+                    let mut frames = fresh_receiving(function, &mut budget)?;
+                    for target in HELD_TARGETS.into_iter().skip(1).take_while(|n| *n <= stop) {
+                        fill_held(&mut frames, function);
+                        let old_capacity = frames.capacity();
+                        let pointer = frames.as_ptr();
+                        let result = reserve_push(&mut frames, function, &mut budget);
+                        if result.is_err() {
+                            assert_eq!(frames.len(), old_capacity);
+                            assert_eq!(frames.capacity(), old_capacity);
+                            assert_eq!(frames.as_ptr(), pointer);
+                            held_order(&frames, function);
+                        }
+                        result?;
+                        assert_eq!(frames.len(), old_capacity);
+                        assert_eq!(frames.capacity(), target);
+                        held_order(&frames, function);
+                    }
+                    assert_eq!(frames.capacity(), stop);
+                    drop(frames);
+                    Ok::<_, Diagnostic>(())
+                })();
+                let ok = result.is_ok();
+                drop(result);
+                if !ok {
+                    assert!(budget.reserve_bytes(function, 0, "held retry").is_err());
+                }
+                (ok, start - budget.remaining)
+            })
+        })
+    };
+    for target in HELD_TARGETS {
+        let (((ok, work), allocation), refused, exact, receipt) = observe(usize::MAX, 0, target);
+        assert!(ok && !refused && receipt.is_none());
+        let backing = HELD_TARGETS
+            .into_iter()
+            .take_while(|n| *n <= target)
+            .sum::<usize>()
+            * std::mem::size_of::<Frame<'_>>();
+        // The refusal-text owner also exists through the final Drop.
+        assert!(allocation.allocated >= backing && allocation.allocated <= exact);
+        assert!(!allocation.invalid && allocation.live == 0);
+        assert_eq!(allocation.allocated, allocation.freed);
+        let growth_work = HELD_TARGETS
+            .into_iter()
+            .take_while(|n| *n < target)
+            .map(|n| 8 + 2 * n)
+            .sum::<usize>()
+            + 8;
+        assert_eq!(work, growth_work);
+        for floor in [0, 37] {
+            for available in [0, exact - 1, exact] {
+                let (((ok, _), allocation), refused, used, first) =
+                    observe(available, floor, target);
+                assert_eq!(ok, available == exact);
+                assert_eq!(refused, !ok);
+                assert_eq!(first.is_some(), !ok);
+                assert!(!allocation.invalid && allocation.live == 0);
+                assert_eq!(allocation.allocated, allocation.freed);
+                assert!(allocation.allocated <= used && used <= available);
+                if let Some(first) = first {
+                    assert_eq!(first.floor, floor);
+                    if available == exact - 1 {
+                        assert_eq!(first.requested, target * std::mem::size_of::<Frame<'_>>());
+                    }
+                }
+                if available == 0 {
+                    assert_eq!(allocation.allocated, 0);
+                }
+            }
+        }
+    }
+}
+#[test]
+fn held_growth_keeps_original_depth_refusal_and_never_relocates_after_work_failure() {
+    let program = program();
+    let function = &program.functions[0];
+    crate::bounded_output::with_limit(usize::MAX, || {
+        let mut budget = ReplayBudget::new();
+        let mut frames = fresh_receiving(function, &mut budget).unwrap();
+        fill_held(&mut frames, function);
+        budget.remaining = 0;
+        let pointer = frames.as_ptr();
+        let capacity = frames.capacity();
+        let (result, allocation) = measure(|| reserve_push(&mut frames, function, &mut budget));
+        assert!(result.is_err());
+        assert_eq!(allocation.allocated, 0);
+        assert_eq!(frames.as_ptr(), pointer);
+        assert_eq!(frames.capacity(), capacity);
+        held_order(&frames, function);
+        assert!(reserve_push(&mut frames, function, &mut budget).is_err());
+    });
+    let mut old_budget = ReplayBudget::unobserved();
+    let mut old = fresh(function, &mut old_budget).unwrap();
+    fill_held(&mut old, function);
+    let before = reserve_push(&mut old, function, &mut old_budget).unwrap_err();
+    crate::bounded_output::with_limit(usize::MAX, || {
+        let mut budget = ReplayBudget::new();
+        let mut frames = fresh_receiving(function, &mut budget).unwrap();
+        for _ in HELD_TARGETS.into_iter().skip(1) {
+            fill_held(&mut frames, function);
+            reserve_push(&mut frames, function, &mut budget).unwrap();
+        }
+        fill_held(&mut frames, function);
+        assert_eq!(frames.len(), FRAME_CAPACITY);
+        let pointer = frames.as_ptr();
+        let after = reserve_push(&mut frames, function, &mut budget).unwrap_err();
+        assert_eq!(before, after);
+        assert_eq!(frames.as_ptr(), pointer);
+        held_order(&frames, function);
+    });
+}
+#[test]
+fn only_authenticated_program_storage_selects_small_reusable_backing() {
+    let program = program();
+    let function = &program.functions[0];
+    with_limit_usage_refusal(usize::MAX, || {
+        let mut budget = ReplayBudget::new();
+        let mut legacy = Storage::new(&program);
+        let (lease, frames) = legacy.acquire(function, &mut budget).unwrap();
+        assert_eq!(frames.capacity(), FRAME_CAPACITY);
+        legacy.release(lease, frames);
+        let mut held = Storage::for_program(&program, &mut budget).unwrap();
+        let (outer, frames) = held.acquire(function, &mut budget).unwrap();
+        assert_eq!(frames.capacity(), 2);
+        let outer_pointer = frames.as_ptr();
+        let (inner, nested) = held.acquire(function, &mut budget).unwrap();
+        assert_eq!(nested.capacity(), 2);
+        let nested_pointer = nested.as_ptr();
+        assert_ne!(outer_pointer, nested_pointer);
+        held.release(inner, nested);
+        let (inner, nested) = held.acquire(function, &mut budget).unwrap();
+        assert_eq!(nested.as_ptr(), nested_pointer);
+        held.release(inner, nested);
+        held.release(outer, frames);
+        let (outer, frames) = held.acquire(function, &mut budget).unwrap();
+        assert_eq!(frames.as_ptr(), outer_pointer);
+        held.release(outer, frames);
+        crate::bounded_output::with_limit(usize::MAX, || {
+            assert!(held.acquire(function, &mut budget).is_err());
+        });
+        // Restoring the original invocation cannot clear the sticky refusal.
+        assert!(held.acquire(function, &mut budget).is_err());
+        assert!(held.frames.as_ref().unwrap().is_empty());
+    });
+}
+
+#[test]
+fn shallow_receiving_removes_the_full_fixed_request_without_an_allowance_change() {
+    let program = program();
+    let function = &program.functions[0];
+    let observe = |held| {
+        with_limit_usage_refusal(usize::MAX, || {
+            measure(|| {
+                let mut budget = ReplayBudget::new();
+                let frames = if held {
+                    fresh_receiving(function, &mut budget)
+                } else {
+                    fresh(function, &mut budget)
+                }
+                .unwrap();
+                let capacity = frames.capacity();
+                drop(frames);
+                drop(budget);
+                capacity
+            })
+        })
+    };
+    let ((old_capacity, old), old_refused, old_charge, old_first) = observe(false);
+    let ((capacity, current), refused, charge, first) = observe(true);
+    assert_eq!((old_capacity, capacity), (FRAME_CAPACITY, 2));
+    assert!(!old_refused && !refused && old_first.is_none() && first.is_none());
+    assert!(charge < old_charge);
+    assert_eq!(
+        old.allocated - current.allocated,
+        (FRAME_CAPACITY - 2) * std::mem::size_of::<Frame<'_>>()
+    );
+    for allocation in [old, current] {
+        assert!(!allocation.invalid && allocation.live == 0);
+        assert_eq!(allocation.allocated, allocation.freed);
+    }
+}
+
+#[test]
+fn checked_roots_and_reentrant_guards_keep_complete_old_paths_with_small_paid_backing() {
+    let program = program();
+    crate::bounded_output::with_limit(usize::MAX, || {
+        let mut old_budget = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
+        let mut budget = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
+        let mut storage = Storage::for_program(&program, &mut budget).unwrap();
+        for function in &program.functions {
+            let mut old = SkeletonWork::new(&program, function, &mut old_budget);
+            let mut current = SkeletonWork::new(&program, function, &mut budget);
+            current.continuations = Some(&mut storage);
+            for expression in function
+                .requires
+                .iter()
+                .chain(std::iter::once(&function.body))
+                .chain(function.ensures.iter())
+            {
+                let before = old_expression(&program, function, expression, &mut old).unwrap();
+                let after =
+                    expression_skeleton(&program, function, expression, &mut current).unwrap();
+                assert_eq!(before.len(), after.len());
+                for (before, after) in before.iter().zip(&after) {
+                    assert_eq!(
+                        observation_sequences(&before.observations),
+                        observation_sequences(&after.observations)
+                    );
+                    assert_eq!(before.owned_source, after.owned_source);
+                    assert_eq!(
+                        (before.failed, before.residual, &before.continuation),
+                        (after.failed, after.residual, &after.continuation)
+                    );
+                }
+            }
+        }
+        assert!(storage.frames.as_ref().unwrap().is_empty());
+        assert!(storage.frames.as_ref().unwrap().capacity() < FRAME_CAPACITY);
+        let nested = storage
+            .nested
+            .as_ref()
+            .expect("genuine guard reentry must run");
+        assert_eq!(nested.depth, 0);
+        assert!(nested.slots.iter().all(|slot| {
+            let frames = slot.as_ref().unwrap();
+            frames.is_empty() && frames.capacity() < FRAME_CAPACITY
+        }));
+        // Relocation uses the ordinary work account; every original skeleton
+        // push/event still consumes exactly the original skeleton account.
+        assert_eq!(old_budget.skeleton_spent, budget.skeleton_spent);
+        assert_eq!(old_budget.skeleton_remaining, budget.skeleton_remaining);
+    });
+}

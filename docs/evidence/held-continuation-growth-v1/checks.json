@@ -1,0 +1,19 @@
+{
+  "runs": [
+    {
+      "compiler": "/Volumes/Semaprax/worktrees/ci-unit-38383508340/target/ci-toolchains/toolchains/1.88.0-aarch64-apple-darwin/bin/rustc",
+      "compile_peak_KiB": 184032,
+      "run_peak_KiB": 32
+    },
+    {
+      "compiler": "/opt/homebrew/bin/rustc",
+      "compile_peak_KiB": 148784,
+      "run_peak_KiB": 32
+    }
+  ],
+  "source_sha256": {
+    "src/cleanup_plan/replay/continuation_storage.rs": "864641c685d78104376ddb50b24d172edfad362383bcd5b3dfb3637a87ae305c",
+    "src/cleanup_plan/replay/continuation_storage/tests.rs": "661e208e70b4d4559774f9d50f30af17d39a44f767e863530ba2ee0c51a4bd54"
+  },
+  "scope": "complete actual continuation Storage/Frame and paid_receiving, actual ReplayBudget paying/work/refusal methods, actual BO/Diagnostic/System/physical storage. Explicit HIR and non-executed payload/operator adapters; actual scalar continuation structs and Params enum. Four new complete owning controls. Full HIR traversal and production callable fixture pending hosted CI."
+}

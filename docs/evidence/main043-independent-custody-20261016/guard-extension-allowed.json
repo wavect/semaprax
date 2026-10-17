@@ -107,7 +107,8 @@
       "tests/project/standard_library/application_json/retained_receipt/stdout_seal.rs": 1,
       "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs": 1,
       "src/source_reflows/incoming67107_semantic_receivers.rs": 1,
-      "src/source_reflows_merge/main67107_inputs.rs": 1
+      "src/source_reflows_merge/main67107_inputs.rs": 1,
+      "tests/wasm/scalar_browser_ci_contract/before_671.rs": 1
     },
     "maximum": {
       "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": 1,
@@ -222,7 +223,8 @@
       "tests/project/standard_library/application_json/retained_receipt/stdout_seal.rs": 1,
       "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs": 1,
       "src/source_reflows/incoming67107_semantic_receivers.rs": 1,
-      "src/source_reflows_merge/main67107_inputs.rs": 1
+      "src/source_reflows_merge/main67107_inputs.rs": 1,
+      "tests/wasm/scalar_browser_ci_contract/before_671.rs": 1
     }
   },
   "tests/workspace/semantic_graph/source_inventory.rs": {
@@ -368,7 +370,8 @@
       "tests/project/standard_library/application_json/retained_receipt/stdout_seal.rs": 1,
       "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs": 1,
       "src/source_reflows/incoming67107_semantic_receivers.rs": 1,
-      "src/source_reflows_merge/main67107_inputs.rs": 1
+      "src/source_reflows_merge/main67107_inputs.rs": 1,
+      "tests/wasm/scalar_browser_ci_contract/before_671.rs": 1
     },
     "maximum": {
       "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": 1,
@@ -512,7 +515,8 @@
       "tests/project/standard_library/application_json/retained_receipt/stdout_seal.rs": 1,
       "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs": 1,
       "src/source_reflows/incoming67107_semantic_receivers.rs": 1,
-      "src/source_reflows_merge/main67107_inputs.rs": 1
+      "src/source_reflows_merge/main67107_inputs.rs": 1,
+      "tests/wasm/scalar_browser_ci_contract/before_671.rs": 1
     }
   },
   "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": {
@@ -628,7 +632,8 @@
       "tests/project/standard_library/application_json/retained_receipt/stdout_seal.rs": 1,
       "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs": 1,
       "src/source_reflows/incoming67107_semantic_receivers.rs": 1,
-      "src/source_reflows_merge/main67107_inputs.rs": 1
+      "src/source_reflows_merge/main67107_inputs.rs": 1,
+      "tests/wasm/scalar_browser_ci_contract/before_671.rs": 1
     },
     "maximum": {
       "src/cleanup_plan/replay.rs": 1,
@@ -742,7 +747,8 @@
       "tests/project/standard_library/application_json/retained_receipt/stdout_seal.rs": 1,
       "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs": 1,
       "src/source_reflows/incoming67107_semantic_receivers.rs": 1,
-      "src/source_reflows_merge/main67107_inputs.rs": 1
+      "src/source_reflows_merge/main67107_inputs.rs": 1,
+      "tests/wasm/scalar_browser_ci_contract/before_671.rs": 1
     }
   }
 }

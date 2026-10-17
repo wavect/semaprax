@@ -321,3 +321,207 @@ impl<'hir> Directory<&'hir StatusSourceId> {
 
 #[cfg(test)]
 mod tests;
+
+// This builder holds the only mutable directory borrow for its insertion loop.
+// Its prefix is derived from exactly the keys that loop has inserted; it never
+// authenticates a lookup or survives publication of the immutable directory.
+pub(in crate::cleanup_plan::replay::expression_facts::receiving) struct HeldPrefix<'directory, 'hir>
+{
+    directory: &'directory mut Directory<&'hir StatusSourceId>,
+    owner: Owner<'hir>,
+    prefix: usize,
+}
+struct HeldSearch {
+    probe: Probe,
+    at: usize,
+}
+const HELD_SEARCH_BYTES: usize = 2 * size_of::<HeldSearch>()
+    + size_of::<Result<Probe, Diagnostic>>()
+    + size_of::<Probe>()
+    + size_of::<usize>();
+const HELD_COMPARISON_BYTES: usize = size_of::<Comparison<'static>>()
+    + size_of::<Result<usize, Diagnostic>>()
+    + 2 * size_of::<usize>()
+    + size_of::<bool>()
+    + size_of::<&StatusSourceId>();
+
+impl<'hir> Directory<&'hir StatusSourceId> {
+    pub(in crate::cleanup_plan::replay::expression_facts::receiving) fn held_prefix<'directory>(
+        &'directory mut self,
+        function: &'hir ResolvedFunction,
+        budget: &mut ReplayBudget,
+    ) -> Result<HeldPrefix<'directory, 'hir>, Diagnostic> {
+        budget.reserve_bytes(
+            function,
+            2 * size_of::<HeldPrefix<'_, '_>>()
+                + size_of::<Result<HeldPrefix<'_, '_>, Diagnostic>>(),
+            self.phase,
+        )?;
+        // Directory borrow, existing owner, and prefix initialization.
+        budget.charge(function, 3, self.phase)?;
+        let owner = Owner::new(function, self, budget)?;
+        Ok(HeldPrefix {
+            directory: self,
+            owner,
+            prefix: 0,
+        })
+    }
+
+    fn held_probe(
+        &self,
+        function: &ResolvedFunction,
+        key: &StatusSourceId,
+        prefix: usize,
+        budget: &mut ReplayBudget,
+    ) -> Result<Probe, Diagnostic> {
+        budget.reserve_bytes(function, HELD_SEARCH_BYTES, self.phase)?;
+        // Two search fields, five nested probe fields, one received prefix.
+        budget.charge(function, 8, self.phase)?;
+        let mut search = HeldSearch {
+            probe: Probe {
+                found: false,
+                parent: NIL,
+                before: NIL,
+                after: NIL,
+                side: Ordering::Equal,
+            },
+            at: self.root,
+        };
+        while search.at != NIL {
+            budget.charge(function, VISIT_UNITS, self.phase)?;
+            let node = &self.nodes[search.at];
+            budget.charge(function, 1, self.phase)?;
+            search.probe.side = compare(function, key, node.key, prefix, budget, self.phase)?.0;
+            if search.probe.side == Ordering::Equal {
+                budget.charge(function, 1, self.phase)?;
+                search.probe.found = true;
+                return Ok(search.probe);
+            }
+            budget.charge(function, 3, self.phase)?;
+            search.probe.parent = search.at;
+            if search.probe.side == Ordering::Less {
+                search.probe.after = search.at;
+                search.at = node.left;
+            } else {
+                search.probe.before = search.at;
+                search.at = node.right;
+            }
+        }
+        Ok(search.probe)
+    }
+}
+
+impl<'hir> HeldPrefix<'_, 'hir> {
+    fn common_prefix(
+        &self,
+        function: &ResolvedFunction,
+        key: &StatusSourceId,
+        budget: &mut ReplayBudget,
+    ) -> Result<usize, Diagnostic> {
+        let phase = self.directory.phase;
+        budget.reserve_bytes(function, HELD_COMPARISON_BYTES, phase)?;
+        budget.charge(function, VISIT_UNITS, phase)?;
+        let minimum = self.directory.nodes[self.directory.first].key;
+        // The existing Comparison setup plus one clamp to the held bound.
+        budget.charge(function, COMPARISON_UNITS + 1, phase)?;
+        let mut comparison = Comparison {
+            left: key.expression.as_str().as_bytes(),
+            right: minimum.expression.as_str().as_bytes(),
+            end: key
+                .expression
+                .as_str()
+                .len()
+                .min(minimum.expression.as_str().len())
+                .min(self.prefix),
+            common: 0,
+        };
+        let units = comparison.end.checked_add(1).ok_or_else(|| {
+            overflow(
+                function,
+                budget,
+                "held status prefix comparison work overflow",
+            )
+        })?;
+        budget.charge(function, units, phase)?;
+        while comparison.common < comparison.end {
+            if comparison.left[comparison.common] != comparison.right[comparison.common] {
+                return Ok(comparison.common);
+            }
+            comparison.common += 1;
+        }
+        Ok(comparison.common)
+    }
+
+    pub(in crate::cleanup_plan::replay::expression_facts::receiving) fn insert(
+        &mut self,
+        function: &ResolvedFunction,
+        key: &'hir StatusSourceId,
+        budget: &mut ReplayBudget,
+    ) -> Result<bool, Diagnostic> {
+        let phase = self.directory.phase;
+        let result = (|| {
+            self.owner
+                .authenticate(self.directory, function, key, budget)?;
+            self.directory.authenticate(function, budget)?;
+            budget.charge(function, 1, phase)?;
+            if self.directory.nodes.is_empty() {
+                budget.reserve_bytes(function, size_of::<usize>(), phase)?;
+                budget.charge(function, 2, phase)?;
+                let prefix = key.expression.as_str().len();
+                let inserted = self.directory.insert(function, key, budget)?;
+                budget.charge(function, 1, phase)?;
+                if inserted {
+                    self.prefix = prefix;
+                }
+                return Ok(inserted);
+            }
+            let prefix = self.common_prefix(function, key, budget)?;
+            let probe = self.directory.held_probe(function, key, prefix, budget)?;
+            if probe.found {
+                return Ok(false);
+            }
+            self.directory.grow(function, budget)?;
+            budget.charge(function, VISIT_UNITS, self.directory.phase)?;
+            let index = self.directory.nodes.len();
+            self.directory.nodes.push(Node {
+                key,
+                left: NIL,
+                right: NIL,
+                parent: probe.parent,
+                next: probe.after,
+                height: 1,
+            });
+            if probe.before == NIL {
+                self.directory.first = index;
+            } else {
+                self.directory.nodes[probe.before].next = index;
+            }
+            if probe.parent == NIL {
+                self.directory.root = index;
+            } else if probe.side == Ordering::Less {
+                self.directory.nodes[probe.parent].left = index;
+            } else {
+                self.directory.nodes[probe.parent].right = index;
+            }
+            self.directory.rebalance(probe.parent, function, budget)?;
+            budget.charge(function, 1, phase)?;
+            self.prefix = prefix;
+            Ok(true)
+        })();
+        match result {
+            Ok(inserted) => {
+                budget.charge(function, 1, phase).inspect_err(|_| {
+                    self.owner.first.set(Some(Refusal::Budget));
+                })?;
+                self.owner.next.set(self.owner.next.get() + 1);
+                Ok(inserted)
+            }
+            Err(error) => {
+                if self.owner.first.get().is_none() {
+                    self.owner.first.set(Some(Refusal::Budget));
+                }
+                Err(error)
+            }
+        }
+    }
+}

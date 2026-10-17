@@ -1155,3 +1155,7 @@ Audience: all documentation readers.
 - [Loan-plan entry stack phases](evidence/loan-plan-entry-stack-v1/README.md)
 - [Fund ordinary replay setup](evidence/ordinary-replay-setup-v1/README.md)
 - [Direct successor label storage](evidence/factored-flat-labels-v1/README.md)
+- [Hosted graph bill after paid replay setup](evidence/browser-graph-pins-67107c7c5/README.md)
+- [Hold the status-directory prefix during paid construction](evidence/held-status-prefix-v1/README.md)
+- [Grow invocation-held continuation backing as reached](evidence/held-continuation-growth-v1/README.md)
+- [Keep one paid comparison state per expression lookup](evidence/paid-expression-lookup-state-v1/README.md)

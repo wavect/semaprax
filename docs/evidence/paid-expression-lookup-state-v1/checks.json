@@ -1,0 +1,21 @@
+{
+  "runs": [
+    {
+      "compiler": "/Volumes/Semaprax/worktrees/ci-unit-38383508340/target/ci-toolchains/toolchains/1.88.0-aarch64-apple-darwin/bin/rustc",
+      "compile_peak_KiB": 123648,
+      "run_peak_KiB": 2272
+    },
+    {
+      "compiler": "/opt/homebrew/bin/rustc",
+      "compile_peak_KiB": 180448,
+      "run_peak_KiB": 2352
+    }
+  ],
+  "source_sha256": {
+    "src/cleanup_plan/replay/expression_facts/arena.rs": "2eae0ecc943b9114099a7e87c7b2acf565c0f6454cb02f396ee30e981a109488",
+    "src/cleanup_plan/replay/expression_facts/arena/prefix.rs": "5b41b54ec6cf5e584e1845ab4e823ce752012ded7d3b9c485a3eb4fb181a74ae",
+    "src/cleanup_plan/replay/expression_facts/arena/prefix/tests.rs": "3de11b7505c11098ea01952832745ce8a2818a4a2c9a06932678bb783081c9b4"
+  },
+  "routing_fn_sha256": "0390040f3b4a31ed2b0315836d37f66caca9a47078020f7c24754e2f91104cb8",
+  "scope": "complete original/new prefix modules, actual production Arena::fact body and Node/Arena declarations; actual ReplayBudget paying/work/refusal methods including unobserved, BO, Diagnostic, System. Three complete new owning controls with explicit balanced-tree/HIR/non-executed CallFact payload adapters. All ordinary nonempty arenas select new state; legacy/selected routes checked unchanged. Fourth real-HIR call-fact test authored but not executed locally. No whole HIR or application qualification."
+}

@@ -1,0 +1,26 @@
+{
+  "controls": [
+    {
+      "path": "src/cleanup_plan/replay/expression_facts/arena/prefix/tests.rs",
+      "name": "complete_original_arena_and_every_added_source_join_have_exact_full_inverses",
+      "body_sha256": "a400fbb98c932bb8137e83ab659a1d91bc7853d60153891ba62b58f394c317d4",
+      "compile_peak_KiB": 136880,
+      "run_peak_KiB": 5232
+    },
+    {
+      "path": "src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs",
+      "name": "complete_original_capacity_entry_and_producer_are_byte_bound",
+      "body_sha256": "c4fdd1ba7b49abb0eb5028067c223fe0ce02ee9f0e54145371cea7c6dd3d2b4f",
+      "compile_peak_KiB": 139120,
+      "run_peak_KiB": 32
+    },
+    {
+      "path": "src/cleanup_plan/replay/expression_facts/tests/arena.rs",
+      "name": "complete_original_producers_receivers_and_full_arena_dispatch_are_source_locked",
+      "body_sha256": "f721927f2bf06bf8e2760837db6a4a0ee206b5cbc664cb1cb33755bb85c72a9f",
+      "compile_peak_KiB": 128560,
+      "run_peak_KiB": 32
+    }
+  ],
+  "scope": "Three complete actual source-only owning bodies in separate binaries; relative include/macro paths rebased. Same whole framework with independent already-passing test functions cfg-disabled; no owning assertion removed."
+}

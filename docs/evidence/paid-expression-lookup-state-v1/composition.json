@@ -1,0 +1,22 @@
+[
+  {
+    "packet": "docs/evidence/prefix-certified-expression-lookup/exact-source-inverses.json",
+    "composed_records": 1
+  },
+  {
+    "packet": "docs/evidence/source-reader-followups-20261016/sources.json",
+    "composed_records": 1
+  },
+  {
+    "packet": "docs/evidence/ordinary-replay-setup-v1/sources.json",
+    "composed_records": 2
+  },
+  {
+    "packet": "docs/evidence/held-status-prefix-v1/sources.json",
+    "composed_records": 3
+  },
+  {
+    "packet": "docs/evidence/held-continuation-growth-v1/sources.json",
+    "composed_records": 4
+  }
+]

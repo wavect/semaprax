@@ -339,5 +339,42 @@ pub(super) fn current67b_runner75b(current: &str) -> String {
 }
 
 pub(super) fn next_actual_input(source: &str, current: &str) -> String {
+    let current = main671_input(source, current);
+    let current = current.as_str();
     pin_project(include_str!("../../../docs/evidence/browser-next-actual-218a9-20261016/current-to-prior.json"), source, current)
+}
+
+// CLOSED MAIN671 outer acquisition; every older browser algorithm remains above.
+pub(super) fn main671_input(source: &str, current: &str) -> String {
+    let raw = match source {
+        "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs" =>
+            include_str!("../../../platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs"),
+        "tests/wasm/scalar_browser_ci_contract/historical_builder.rs" => include_str!("historical_builder.rs"),
+        "tests/wasm/scalar_browser_ci_contract/browser_custody.rs" => include_str!("browser_custody.rs"),
+        "tests/wasm/scalar_browser_ci_contract/next_actual.rs" => include_str!("next_actual.rs"),
+        _ => return current.to_owned(),
+    };
+    // Literal compile-time whole bytes bind each actual acquisition, including
+    // this owner itself, without a circular source/table self-hash claim.
+    assert_eq!(current, raw, "exact compiled MAIN671 browser acquisition");
+    if source == "tests/wasm/scalar_browser_ci_contract/next_actual.rs" {
+        let edit = "    let runner = super::custody::main671_input(\"platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs\", runner);\n";
+        assert_eq!(current.matches(edit).count(), 1);
+        let restored = current.replacen(edit, "", 1);
+        assert_eq!(hash(&restored), "0d33eea6239ab16b61f0db4344cba9e4b854b95c0ab95275fecde8fe44c469c9");
+        return restored;
+    }
+    // This immutable old table owns the exact218a9 input stage, which differs
+    // from492's already-composed MAIN524 runner and added MAIN7f8 namespace.
+    // Acquire its complete current-stage preimage BEFORE the unchanged inverse.
+    let table = include_str!("../../../docs/evidence/browser-next-actual-218a9-20261016/current-to-prior.json");
+    assert_eq!(hash(table), "e472406e433dd61bd26a852637996981a53b64cf4db9feb054185fb6e752c74a");
+    let rows: serde_json::Value = serde_json::from_str(table).unwrap();
+    assert_eq!(rows.as_array().unwrap().len(), 5);
+    assert_eq!(rows.as_array().unwrap().iter().filter(|row| row["source"] == source).count(), 1);
+    let row = rows.as_array().unwrap().iter().find(|row| row["source"] == source).unwrap();
+    assert_eq!(row["edits"].as_array().unwrap().len(), 1);
+    let restored = row["edits"][0]["new"].as_str().unwrap().to_owned();
+    assert_eq!(hash(&restored), row["current_sha256"]);
+    restored
 }

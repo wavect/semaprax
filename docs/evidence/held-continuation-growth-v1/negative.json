@@ -1,0 +1,26 @@
+[
+  {
+    "compiler": "/Volumes/Semaprax/worktrees/ci-unit-38383508340/target/ci-toolchains/toolchains/1.88.0-aarch64-apple-darwin/bin/rustc",
+    "control": "remove only replacement backing prepayment",
+    "compile_peak_KiB": 120176,
+    "caught": true
+  },
+  {
+    "compiler": "/opt/homebrew/bin/rustc",
+    "control": "remove only replacement backing prepayment",
+    "compile_peak_KiB": 180016,
+    "caught": true
+  },
+  {
+    "compiler": "/Volumes/Semaprax/worktrees/ci-unit-38383508340/target/ci-toolchains/toolchains/1.88.0-aarch64-apple-darwin/bin/rustc",
+    "control": "replace live-frame relocation with an empty sequence",
+    "compile_peak_KiB": 122928,
+    "caught": true
+  },
+  {
+    "compiler": "/opt/homebrew/bin/rustc",
+    "control": "replace live-frame relocation with an empty sequence",
+    "compile_peak_KiB": 137504,
+    "caught": true
+  }
+]

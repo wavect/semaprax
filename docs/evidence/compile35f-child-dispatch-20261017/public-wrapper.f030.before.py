@@ -1,0 +1,29 @@
+"""Fixed owned-growth generation before the unchanged corrected35f wrapper."""
+from pathlib import Path
+import hashlib,os,stat,types
+P=Path(__file__).resolve();R=P.parents[3];D=R/'docs/evidence/compile35f-owned-growth-ingress-20261017'
+sha=lambda raw:hashlib.sha256(raw).hexdigest()
+def held(path,length,expected):
+    assert hasattr(os,'O_NOFOLLOW') and length<=65536
+    with os.fdopen(os.open(path,os.O_RDONLY|os.O_NOFOLLOW),'rb') as stream:
+        before=os.fstat(stream.fileno());assert stat.S_ISREG(before.st_mode) and before.st_size==length
+        raw=stream.read(length+1);assert len(raw)==length
+        after=os.fstat(stream.fileno());physical=os.lstat(path)
+        identity=lambda s:(s.st_dev,s.st_ino,s.st_size,s.st_mtime_ns,s.st_ctime_ns,s.st_mode)
+        assert stat.S_ISREG(physical.st_mode) and identity(before)==identity(after)==identity(physical)
+    assert sha(raw)==expected;return raw
+raw=held(D/'owned_stage.py',3878,'b27a64e4a9a71326cf873b039fd104d7cf9526828a332e6c3342eb49ec5c9037')
+m=types.ModuleType('closed_owned_growth_stage');m.__file__=str(D/'owned_stage.py')
+exec(compile(raw,m.__file__,'exec'),m.__dict__)
+original=held(D/'run-common-corrected-fixtures.before.py',3202,'5b90164556d0a2d014aedc40cd5ea3cc57d19a839338838e3263a422e300bdeb')
+edits=[(' for a,b in edits:assert text.count(a)==1;text=text.replace(a,b,1)', ' edits.extend(_owned_stage_edits())\n for a,b in edits:assert text.count(a)==1;text=text.replace(a,b,1)'), (" namespace['_corrected_fixture_stage']=lambda repo,source,raw:fixture_stage(repo,source,raw,namespace['_factored_file'])", " namespace['_corrected_fixture_stage']=lambda repo,source,raw:fixture_stage(repo,source,raw,namespace['_factored_file'])\n namespace['_owned_compile_input']=lambda repo,source,raw:_owned_supplied(repo,source,raw,namespace['_factored_file'])\n namespace['_owned_compile_physical']=lambda repo,source:_owned_physical(repo,source,namespace['_factored_file'],namespace['_corrected_fixture_stage'])")]
+current=original.decode()
+for old,new in edits:assert current.count(old)==1;current=current.replace(old,new,1)
+restored=current
+for old,new in reversed(edits):assert restored.count(new)==1;restored=restored.replace(new,old,1)
+assert restored.encode()==original
+_owned_stage_edits=m.stage_edits
+_owned_supplied=m.supplied
+_owned_physical=m.physical
+# Preserve the original importable API and its original __main__ gate.
+exec(compile(current,str(P),'exec'),globals())

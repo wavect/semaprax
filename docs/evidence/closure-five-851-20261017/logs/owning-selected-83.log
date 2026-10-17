@@ -1,0 +1,137 @@
+
+running 1 test
+test cleanup_plan::replay::path_array_main44::source_domain::every_current_source_has_the_exact_complete_incoming_main44_preimage ... 
+thread 'cleanup_plan::replay::path_array_main44::source_domain::every_current_source_has_the_exact_complete_incoming_main44_preimage' (24871602) panicked at src/source_reflows_merge.rs:153:5:
+assertion `left == right` failed
+  left: "3ff2e75c46736d9496affbb3221f7400453640bd3dc9f6dd97e6deaf250e0ba1"
+ right: String("30616d71694d393a730c0c8e49a25bbad7539b07ff96ed901b9d07be29765b9c")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'cleanup_plan::replay::path_array_main44::source_domain::every_current_source_has_the_exact_complete_incoming_main44_preimage' (24871602) panicked at src/source_reflows_merge.rs:153:5:
+assertion `left == right` failed
+  left: "d6e09c96a97424c89d52d13ef959a1c84074b63f7ae95658caf7839d8d6849a3"
+ right: String("46bf0451ef390225f540d031f326100c7f4288cf7e9d50e30ce7ddb68a448e0f")
+
+thread 'cleanup_plan::replay::path_array_main44::source_domain::every_current_source_has_the_exact_complete_incoming_main44_preimage' (24871602) panicked at src/source_reflows_merge.rs:153:5:
+assertion `left == right` failed
+  left: "2c52a5a53ed170829b420db9bca1a591b222010ca8c9518d3010a8ea30974abd"
+ right: String("47fc6ffa22a2a47aab804971a0c483310cf506591c993fde481c712882d4c699")
+
+thread 'cleanup_plan::replay::path_array_main44::source_domain::every_current_source_has_the_exact_complete_incoming_main44_preimage' (24871602) panicked at src/source_reflows_merge.rs:153:5:
+assertion `left == right` failed
+  left: "9c45c1099c8b0224648feaf525583396c837c5bcf93fa8664fb230eb31fa95c1"
+ right: String("2523a5f847df2d945fd324ea64908670b4c121f684f3274ca0b2de174ed7d523")
+
+thread 'cleanup_plan::replay::path_array_main44::source_domain::every_current_source_has_the_exact_complete_incoming_main44_preimage' (24871602) panicked at src/source_reflows_merge.rs:153:5:
+assertion `left == right` failed
+  left: "16f5932b03d76de3d4e96c3a3bc0db6b7182de751f5d4406bf45f09ec666529d"
+ right: String("343eda3712d0c3b224742d72c34838a327e0c69449c8a94fd7eb81dc5e0134a6")
+
+thread 'cleanup_plan::replay::path_array_main44::source_domain::every_current_source_has_the_exact_complete_incoming_main44_preimage' (24871602) panicked at src/source_reflows_merge.rs:153:5:
+assertion `left == right` failed
+  left: "31afc27dfe24d9b46c47d24f6a34f40baa85d5661915981a3f49f9cdbe935a16"
+ right: String("01b3e408874930f2aad015d20cf8317fc1507183f92aae740d11985b99d223e1")
+
+thread 'cleanup_plan::replay::path_array_main44::source_domain::every_current_source_has_the_exact_complete_incoming_main44_preimage' (24871602) panicked at src/source_reflows_merge.rs:153:5:
+assertion `left == right` failed
+  left: "f823a64ea3f69f126cabd9150c7e3af25c3c142091e5cb4a3798b70238dd487f"
+ right: String("a5f456bd1d6f7fc43c08baf8f192d4c81f6efb036b6d35d8a15f9d785eb06b46")
+
+thread 'cleanup_plan::replay::path_array_main44::source_domain::every_current_source_has_the_exact_complete_incoming_main44_preimage' (24871602) panicked at src/source_reflows_merge.rs:153:5:
+assertion `left == right` failed
+  left: "771d2cf18105de282cdd379378bb33216de225d8d8d795c4100aa5223163310d"
+ right: String("0126d25150ca4b96f11995293fc9043d23fc8fff2008485e9560abe5c85cb7ae")
+
+thread 'cleanup_plan::replay::path_array_main44::source_domain::every_current_source_has_the_exact_complete_incoming_main44_preimage' (24871602) panicked at src/source_reflows_merge.rs:153:5:
+assertion `left == right` failed
+  left: "f2bd6e996f401484b866b5482bb9be2a1760d1d4505434a6d8011903ab0ac3e8"
+ right: String("adaca15c3ae85005ba22ad48351f41595ef30e6489d6a7e8d1b369c7e0f8bac3")
+
+thread 'cleanup_plan::replay::path_array_main44::source_domain::every_current_source_has_the_exact_complete_incoming_main44_preimage' (24871602) panicked at src/source_reflows_merge.rs:153:5:
+assertion `left == right` failed
+  left: "5e1b0e3fa83e4e2af4b36b18daa9cc1eb5d81c0e25241c26bd1dded08674e847"
+ right: String("1e6f9b2f9d6252d0c24a70584d7ba67d203ff01d611ff381810c3fb8415dc7fb")
+
+thread 'cleanup_plan::replay::path_array_main44::source_domain::every_current_source_has_the_exact_complete_incoming_main44_preimage' (24871602) panicked at src/source_reflows_merge.rs:153:5:
+assertion `left == right` failed
+  left: "8c38252b2d017f3fc83b0a330685c9a4829603d58a87321e6ff78be5c55ac0ed"
+ right: String("e866a597b35940a2b37c8449c98ac85ef89472f48c1c21cfbd50be7be7c9709e")
+
+thread 'cleanup_plan::replay::path_array_main44::source_domain::every_current_source_has_the_exact_complete_incoming_main44_preimage' (24871602) panicked at src/source_reflows_merge.rs:153:5:
+assertion `left == right` failed
+  left: "146ffc99da4397e343eb909965bfeabcc984d5b9a920e30a9329acf51b24a7c0"
+ right: String("8f0da852b94f3e8ecd001a528131ffcab6ea2be287892dece6c6711765a30984")
+
+thread 'cleanup_plan::replay::path_array_main44::source_domain::every_current_source_has_the_exact_complete_incoming_main44_preimage' (24871602) panicked at src/source_reflows_merge.rs:153:5:
+assertion `left == right` failed
+  left: "1fb416de6dd6947d4aa80116e09e76bd0e1c2a12df07f1d1d51f4ad2f8239414"
+ right: String("82f9459f88d10e960903c8001c366c6b057e8818aa613c441d7f9e13e7678314")
+
+thread 'cleanup_plan::replay::path_array_main44::source_domain::every_current_source_has_the_exact_complete_incoming_main44_preimage' (24871602) panicked at src/source_reflows_merge.rs:153:5:
+assertion `left == right` failed
+  left: "bc453162ed5393f9d04abfeaed27e7b7b380f6a1326453b6bc55a40234677b53"
+ right: String("53df021d2239f2754fd0c0c15fbb710d2402d8cf4c2ec4f8c193a63b5b2b5883")
+
+thread 'cleanup_plan::replay::path_array_main44::source_domain::every_current_source_has_the_exact_complete_incoming_main44_preimage' (24871602) panicked at src/source_reflows_merge.rs:153:5:
+assertion `left == right` failed
+  left: "65c02fa348fdd62fccce8a6529b58ba3a37bcfc158a98e7c734e71bbfdc4db9d"
+ right: String("b641a21d3e5ba8f517f79b3184f4bc3496fa32c74e3b36951877fd145b528619")
+
+thread 'cleanup_plan::replay::path_array_main44::source_domain::every_current_source_has_the_exact_complete_incoming_main44_preimage' (24871602) panicked at src/source_reflows_merge.rs:153:5:
+assertion `left == right` failed
+  left: "0f32228d1b4d9c7682de62b0c05337a3183601a6933c03b03aa138bcd51e41aa"
+ right: String("268d548459b7ef72cc260ece1570f1dffc3fbd320146f1941af103b18a87b7a8")
+
+thread 'cleanup_plan::replay::path_array_main44::source_domain::every_current_source_has_the_exact_complete_incoming_main44_preimage' (24871602) panicked at src/source_reflows_merge.rs:153:5:
+assertion `left == right` failed
+  left: "33cda3b38d050c843afcbdd42a50158f9fc134958e823ea8ab4c3d877914fd37"
+ right: String("6129acfd3338cbd3178cf4440c1056762dbc7a666774aab7896a55e6aada7d6b")
+
+thread 'cleanup_plan::replay::path_array_main44::source_domain::every_current_source_has_the_exact_complete_incoming_main44_preimage' (24871602) panicked at src/source_reflows_merge.rs:153:5:
+assertion `left == right` failed
+  left: "0e870cba846ec6619f8b0296d70df0d1945fd77ed5c361d1704adf9f6948e998"
+ right: String("9585d39576779e49265c8a75536e8b772ba0e41749f1ed9cc61639c4890c2bd7")
+
+thread 'cleanup_plan::replay::path_array_main44::source_domain::every_current_source_has_the_exact_complete_incoming_main44_preimage' (24871602) panicked at src/source_reflows_merge.rs:153:5:
+assertion `left == right` failed
+  left: "7e82eea4e3ea5e438b74c132d0eff860ccb6855f87cfcc5c5b7f8ae736ac8c47"
+ right: String("9199f60a9fa34805f8de4ca6013dfa1931c668ac0fa2fdd3ff8f98a644694ffe")
+
+thread 'cleanup_plan::replay::path_array_main44::source_domain::every_current_source_has_the_exact_complete_incoming_main44_preimage' (24871602) panicked at src/source_reflows_merge.rs:153:5:
+assertion `left == right` failed
+  left: "078a19d67600a337cc92f54140cf18ba2e8cb2b59d23637a908da323a8b38af6"
+ right: String("916b817cb82b9e47eaacab364e94503b0e6ed0028d64c522ec4ccbb11a60c455")
+
+thread 'cleanup_plan::replay::path_array_main44::source_domain::every_current_source_has_the_exact_complete_incoming_main44_preimage' (24871602) panicked at src/source_reflows_merge.rs:153:5:
+assertion `left == right` failed
+  left: "636337a0d0b452bfac3187e35e5b0bd3fc7938628fbd58b86da3fcc0cbfb375f"
+ right: String("e3aaf1c870be500fa794ec24d393f8dc94fcd996990abf388222ce079f4e0b04")
+
+thread 'cleanup_plan::replay::path_array_main44::source_domain::every_current_source_has_the_exact_complete_incoming_main44_preimage' (24871602) panicked at src/source_reflows_merge.rs:153:5:
+assertion `left == right` failed
+  left: "5303cab86366ff3bc3e5f27f4d8a6218c9a96c2b88ae75b7c728052417f0a8e8"
+ right: String("e2291267786bdec4371b969031209b4e77aa6876f4564048ad1c7561b004b73f")
+
+thread 'cleanup_plan::replay::path_array_main44::source_domain::every_current_source_has_the_exact_complete_incoming_main44_preimage' (24871602) panicked at src/source_reflows_merge.rs:153:5:
+assertion `left == right` failed
+  left: "2e11395560ea364c129ca281a8a8b7eb8bfbc0af74eab33a4844d51c668e3752"
+ right: String("f89e882a3d8ed796b8b8b864247e4e7eb19631d6299cd0dd94ddcc6b5ca17eba")
+
+thread 'cleanup_plan::replay::path_array_main44::source_domain::every_current_source_has_the_exact_complete_incoming_main44_preimage' (24871602) panicked at src/source_reflows_merge.rs:153:5:
+assertion `left == right` failed
+  left: "8eeaeaf8ff5342fe2d97359c4112e46e059569e899f1cefc3acce0883419b789"
+ right: String("c93ac4c883fe6b10c831a2603c994ea03880986fd0b7a394bfa41ec8a06d88cb")
+
+thread 'cleanup_plan::replay::path_array_main44::source_domain::every_current_source_has_the_exact_complete_incoming_main44_preimage' (24871602) panicked at src/source_reflows_merge.rs:153:5:
+assertion `left == right` failed
+  left: "d51204cf40224bd32a394ddc3a6c6bbe49e3d0d000024ac0071614148e74cbaa"
+ right: String("f25b784eba1a2ea26a07b260b2ddff67b6dd90c0a6402fd143dc42ca68847d4e")
+
+thread 'cleanup_plan::replay::path_array_main44::source_domain::every_current_source_has_the_exact_complete_incoming_main44_preimage' (24871602) panicked at src/source_reflows_merge.rs:153:5:
+assertion `left == right` failed
+  left: "970a14e540f169a54f625492d0910b827d459e31142749ffbb7d2a78c1dbfcf3"
+ right: String("59e5b98593c2c2d443d1479e7c89564551d515ca921f7abab2cc8f5d579c8c21")
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9747 filtered out; finished in 2.07s
+

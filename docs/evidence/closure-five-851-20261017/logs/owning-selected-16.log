@@ -1,0 +1,42 @@
+
+running 1 test
+test cleanup_plan::replay::factored::canonical_shared::paid_many::source::ordered_recipe_keeps_all115_original_rows_fields_and_refuses_old_or_forged_order ... 
+thread 'cleanup_plan::replay::factored::canonical_shared::paid_many::source::ordered_recipe_keeps_all115_original_rows_fields_and_refuses_old_or_forged_order' (24845125) panicked at src/cleanup_plan/replay/factored/canonical_shared/paid_many/source.rs:238:5:
+assertion `left == right` failed
+  left: 0
+ right: 25837
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'cleanup_plan::replay::factored::canonical_shared::paid_many::source::ordered_recipe_keeps_all115_original_rows_fields_and_refuses_old_or_forged_order' (24845125) panicked at src/cleanup_plan/replay/factored/canonical_shared/paid_many/source.rs:238:5:
+assertion `left == right` failed
+  left: 25836
+ right: 25837
+
+thread 'cleanup_plan::replay::factored::canonical_shared::paid_many::source::ordered_recipe_keeps_all115_original_rows_fields_and_refuses_old_or_forged_order' (24845125) panicked at src/cleanup_plan/replay/factored/canonical_shared/paid_many/source.rs:238:5:
+assertion `left == right` failed
+  left: 25838
+ right: 25837
+
+thread 'cleanup_plan::replay::factored::canonical_shared::paid_many::source::ordered_recipe_keeps_all115_original_rows_fields_and_refuses_old_or_forged_order' (24845125) panicked at src/cleanup_plan/replay/factored/canonical_shared/paid_many/source.rs:239:5:
+assertion `left == right` failed
+  left: "9f419bb0fce12834a91ef948d90ea9be6655748efee773ae06cbee896f80272c"
+ right: "53c5f765b4a94b70ba774096ea8e2619a464d8846b707ab29847f19a937f56eb"
+
+thread 'cleanup_plan::replay::factored::canonical_shared::paid_many::source::ordered_recipe_keeps_all115_original_rows_fields_and_refuses_old_or_forged_order' (24845125) panicked at src/cleanup_plan/replay/factored/canonical_shared/paid_many/source.rs:238:5:
+assertion `left == right` failed
+  left: 21802
+ right: 25837
+
+thread 'cleanup_plan::replay::factored::canonical_shared::paid_many::source::ordered_recipe_keeps_all115_original_rows_fields_and_refuses_old_or_forged_order' (24845125) panicked at src/cleanup_plan/replay/factored/canonical_shared/paid_many/source.rs:238:5:
+assertion `left == right` failed
+  left: 21808
+ right: 25837
+
+thread 'cleanup_plan::replay::factored::canonical_shared::paid_many::source::ordered_recipe_keeps_all115_original_rows_fields_and_refuses_old_or_forged_order' (24845125) panicked at src/cleanup_plan/replay/factored/canonical_shared/paid_many/source.rs:238:5:
+assertion `left == right` failed
+  left: 21755
+ right: 25837
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9747 filtered out; finished in 0.10s
+

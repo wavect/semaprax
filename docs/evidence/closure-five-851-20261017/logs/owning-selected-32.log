@@ -1,0 +1,6 @@
+
+running 1 test
+test cleanup_plan::replay::compact_stage::tests::constructor_and_rc_pay_all_backing_with_zero_exact_short_and_drop ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9747 filtered out; finished in 0.86s
+

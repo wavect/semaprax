@@ -1,0 +1,17 @@
+
+running 1 test
+test hir::lexical_exit::walk::tests::compact_cursor_complete_before_sources_and_compiled_control_stay_bound ... 
+thread 'hir::lexical_exit::walk::tests::compact_cursor_complete_before_sources_and_compiled_control_stay_bound' (24842369) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "01eda34563f982ef112c79b01ee02ae9cc606c6a9aa960ed9736dd383789d2b5"
+ right: String("9f3ac71703fa3926dc37a0a5ea02ecef1c9b41d102f445dbb89a34758e7a7596")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    hir::lexical_exit::walk::tests::compact_cursor_complete_before_sources_and_compiled_control_stay_bound
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9747 filtered out; finished in 0.18s
+

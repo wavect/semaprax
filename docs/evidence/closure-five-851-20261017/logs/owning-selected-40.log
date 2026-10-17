@@ -1,0 +1,97 @@
+
+running 1 test
+test source_reflows::semantic_receivers_mainb80::receiver_mutation_and_forged_predecessor_fail_closed ... 
+thread 'source_reflows::semantic_receivers_mainb80::receiver_mutation_and_forged_predecessor_fail_closed' (24856736) panicked at src/source_reflows_merge.rs:153:5:
+assertion `left == right` failed
+  left: "3ff2e75c46736d9496affbb3221f7400453640bd3dc9f6dd97e6deaf250e0ba1"
+ right: String("30616d71694d393a730c0c8e49a25bbad7539b07ff96ed901b9d07be29765b9c")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'source_reflows::semantic_receivers_mainb80::receiver_mutation_and_forged_predecessor_fail_closed' (24856736) panicked at src/source_reflows/semantic_receivers_mainb80.rs:42:5:
+assertion `left == right` failed: receiver predecessor drifted: src/cleanup_plan/replay.rs
+  left: "1ee09bd6f221d0eb3e272016f243a00c67815d56fcc246b794975c9ee00a5220"
+ right: String("0000000000000000000000000000000000000000000000000000000000000000")
+
+thread 'source_reflows::semantic_receivers_mainb80::receiver_mutation_and_forged_predecessor_fail_closed' (24856736) panicked at src/source_reflows/semantic_receivers_mainb80.rs:27:5:
+assertion `left == right` failed: receiver input drifted: src/cleanup_plan/replay/factored/oracle_hook.rs
+  left: "771d2cf18105de282cdd379378bb33216de225d8d8d795c4100aa5223163310d"
+ right: String("0126d25150ca4b96f11995293fc9043d23fc8fff2008485e9560abe5c85cb7ae")
+
+thread 'source_reflows::semantic_receivers_mainb80::receiver_mutation_and_forged_predecessor_fail_closed' (24856736) panicked at src/source_reflows/semantic_receivers_mainb80.rs:42:5:
+assertion `left == right` failed: receiver predecessor drifted: src/cleanup_plan/replay/factored/oracle_hook.rs
+  left: "aefe0d06e3f7a6b4ae36bc11160a9c7aed2bd9b30b6041308f619ada3266f707"
+ right: String("0000000000000000000000000000000000000000000000000000000000000000")
+
+thread 'source_reflows::semantic_receivers_mainb80::receiver_mutation_and_forged_predecessor_fail_closed' (24856736) panicked at src/source_reflows_merge.rs:153:5:
+assertion `left == right` failed
+  left: "d51204cf40224bd32a394ddc3a6c6bbe49e3d0d000024ac0071614148e74cbaa"
+ right: String("f25b784eba1a2ea26a07b260b2ddff67b6dd90c0a6402fd143dc42ca68847d4e")
+
+thread 'source_reflows::semantic_receivers_mainb80::receiver_mutation_and_forged_predecessor_fail_closed' (24856736) panicked at src/source_reflows/semantic_receivers_mainb80.rs:42:5:
+assertion `left == right` failed: receiver predecessor drifted: tests/hir_module_boundaries.rs
+  left: "444261bea247a81d21553b5c52d19dbad5b3f3cd55304774479aa9fb8ef9938d"
+ right: String("0000000000000000000000000000000000000000000000000000000000000000")
+
+thread 'source_reflows::semantic_receivers_mainb80::receiver_mutation_and_forged_predecessor_fail_closed' (24856736) panicked at src/source_reflows_merge.rs:153:5:
+assertion `left == right` failed
+  left: "970a14e540f169a54f625492d0910b827d459e31142749ffbb7d2a78c1dbfcf3"
+ right: String("59e5b98593c2c2d443d1479e7c89564551d515ca921f7abab2cc8f5d579c8c21")
+
+thread 'source_reflows::semantic_receivers_mainb80::receiver_mutation_and_forged_predecessor_fail_closed' (24856736) panicked at src/source_reflows/semantic_receivers_mainb80.rs:42:5:
+assertion `left == right` failed: receiver predecessor drifted: tests/workspace/semantic_graph/source_inventory.rs
+  left: "ed939b86f3382619c6d610582c724b899dbfd332f10ee4ccec4933b37bc10a9a"
+ right: String("0000000000000000000000000000000000000000000000000000000000000000")
+
+thread 'source_reflows::semantic_receivers_mainb80::receiver_mutation_and_forged_predecessor_fail_closed' (24856736) panicked at src/source_reflows_merge.rs:153:5:
+assertion `left == right` failed
+  left: "8eeaeaf8ff5342fe2d97359c4112e46e059569e899f1cefc3acce0883419b789"
+ right: String("c93ac4c883fe6b10c831a2603c994ea03880986fd0b7a394bfa41ec8a06d88cb")
+
+thread 'source_reflows::semantic_receivers_mainb80::receiver_mutation_and_forged_predecessor_fail_closed' (24856736) panicked at src/source_reflows/semantic_receivers_mainb80.rs:42:5:
+assertion `left == right` failed: receiver predecessor drifted: src/source_verify/declaration.rs
+  left: "11b26f1bc56c129657268cf90436753cfaf037fa7c37ec49596284fd5d1bdcd8"
+ right: String("0000000000000000000000000000000000000000000000000000000000000000")
+
+thread 'source_reflows::semantic_receivers_mainb80::receiver_mutation_and_forged_predecessor_fail_closed' (24856736) panicked at src/source_reflows_merge.rs:153:5:
+assertion `left == right` failed
+  left: "d6e09c96a97424c89d52d13ef959a1c84074b63f7ae95658caf7839d8d6849a3"
+ right: String("46bf0451ef390225f540d031f326100c7f4288cf7e9d50e30ce7ddb68a448e0f")
+
+thread 'source_reflows::semantic_receivers_mainb80::receiver_mutation_and_forged_predecessor_fail_closed' (24856736) panicked at src/source_reflows/semantic_receivers_mainb80.rs:42:5:
+assertion `left == right` failed: receiver predecessor drifted: src/cleanup_plan/replay/branch_clone/tests.rs
+  left: "e9c4c72bcfad51ee7936c3e4b302c4440ea6862c4b771bcfc3202885b63ebbb7"
+ right: String("0000000000000000000000000000000000000000000000000000000000000000")
+
+thread 'source_reflows::semantic_receivers_mainb80::receiver_mutation_and_forged_predecessor_fail_closed' (24856736) panicked at src/source_reflows_merge.rs:153:5:
+assertion `left == right` failed
+  left: "16f5932b03d76de3d4e96c3a3bc0db6b7182de751f5d4406bf45f09ec666529d"
+ right: String("343eda3712d0c3b224742d72c34838a327e0c69449c8a94fd7eb81dc5e0134a6")
+
+thread 'source_reflows::semantic_receivers_mainb80::receiver_mutation_and_forged_predecessor_fail_closed' (24856736) panicked at src/source_reflows/semantic_receivers_mainb80.rs:42:5:
+assertion `left == right` failed: receiver predecessor drifted: src/cleanup_plan/replay/factored.rs
+  left: "ca11b94661cd07264ef2b6da61f2dca28ac70aac3ffc4a362395c12e780beb7c"
+ right: String("0000000000000000000000000000000000000000000000000000000000000000")
+
+thread 'source_reflows::semantic_receivers_mainb80::receiver_mutation_and_forged_predecessor_fail_closed' (24856736) panicked at src/source_reflows/semantic_receivers_mainb80.rs:27:5:
+assertion `left == right` failed: receiver input drifted: src/cleanup_plan/replay/factored/borrowed_canonical/dictionary/keys.rs
+  left: "31afc27dfe24d9b46c47d24f6a34f40baa85d5661915981a3f49f9cdbe935a16"
+ right: String("01b3e408874930f2aad015d20cf8317fc1507183f92aae740d11985b99d223e1")
+
+thread 'source_reflows::semantic_receivers_mainb80::receiver_mutation_and_forged_predecessor_fail_closed' (24856736) panicked at src/source_reflows/semantic_receivers_mainb80.rs:42:5:
+assertion `left == right` failed: receiver predecessor drifted: src/cleanup_plan/replay/factored/borrowed_canonical/dictionary/keys.rs
+  left: "a37b4da6cef36a9249dd30031bab14a710c32cea7b259159983978f390529643"
+ right: String("0000000000000000000000000000000000000000000000000000000000000000")
+
+thread 'source_reflows::semantic_receivers_mainb80::receiver_mutation_and_forged_predecessor_fail_closed' (24856736) panicked at src/source_reflows_merge.rs:153:5:
+assertion `left == right` failed
+  left: "f823a64ea3f69f126cabd9150c7e3af25c3c142091e5cb4a3798b70238dd487f"
+ right: String("a5f456bd1d6f7fc43c08baf8f192d4c81f6efb036b6d35d8a15f9d785eb06b46")
+
+thread 'source_reflows::semantic_receivers_mainb80::receiver_mutation_and_forged_predecessor_fail_closed' (24856736) panicked at src/source_reflows/semantic_receivers_mainb80.rs:42:5:
+assertion `left == right` failed: receiver predecessor drifted: src/cleanup_plan/replay/factored/borrowed_canonical/tests.rs
+  left: "603d7c7bfcbc1d6163b7395f048b7421665539806d7643cc0d9f38b61e48bfc6"
+ right: String("0000000000000000000000000000000000000000000000000000000000000000")
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9747 filtered out; finished in 1.72s
+

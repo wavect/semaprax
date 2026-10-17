@@ -1,0 +1,15 @@
+
+running 1 test
+test source_reflows::factored_sources::joined_factored_domains_preserve_complete_receivers_and_refuse_foreign_inputs ... 
+thread 'source_reflows::factored_sources::joined_factored_domains_preserve_complete_receivers_and_refuse_foreign_inputs' (24846333) panicked at src/source_reflows/factored_sources.rs:437:116:
+called `Result::unwrap()` on an `Err` value: "length-or-nonregular"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    source_reflows::factored_sources::joined_factored_domains_preserve_complete_receivers_and_refuse_foreign_inputs
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9747 filtered out; finished in 0.15s
+

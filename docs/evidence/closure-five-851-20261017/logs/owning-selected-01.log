@@ -1,0 +1,22 @@
+
+running 1 test
+test semantic_graph::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root ... 
+thread 'semantic_graph::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root' (24840634) panicked at tests/workspace/../../src/source_reflows_merge/final_ready_inputs.rs:111:5:
+assertion `left == right` failed
+  left: "f930e66a3c153b3c6aa1ddcb5abdfbd06bb9c2f7a65a282f8bd9fc067e74c14f"
+ right: String("48a4b909a49abaf228b66d4f562dbbc707ddfd877fa40ffc623fd0adcd12503b")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'semantic_graph::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root' (24840634) panicked at tests/workspace/../../src/source_reflows_merge/final_ready_inputs.rs:111:5:
+assertion `left == right` failed
+  left: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ right: String("48a4b909a49abaf228b66d4f562dbbc707ddfd877fa40ffc623fd0adcd12503b")
+
+thread 'semantic_graph::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root' (24840634) panicked at tests/workspace/../../src/source_reflows_merge/final_ready_inputs.rs:111:5:
+assertion `left == right` failed
+  left: "3c5f2068b1ec9634f156dbc123eb60aebfc1a043de64adde5096febbdc9061f4"
+ right: String("48a4b909a49abaf228b66d4f562dbbc707ddfd877fa40ffc623fd0adcd12503b")
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 305 filtered out; finished in 3.40s
+

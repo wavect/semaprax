@@ -1,0 +1,187 @@
+
+running 1 test
+test source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs ... 
+thread 'source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs' (24842118) panicked at src/source_reflows_merge/main_eb2_inputs.rs:24:5:
+assertion `left == right` failed: exact finite complete source/domain choice
+  left: 0
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs' (24842118) panicked at src/source_reflows_merge/main_eb2_inputs.rs:24:5:
+assertion `left == right` failed: exact finite complete source/domain choice
+  left: 0
+ right: 1
+
+thread 'source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs' (24842118) panicked at src/source_reflows_merge/main_eb2_inputs.rs:24:5:
+assertion `left == right` failed: exact finite complete source/domain choice
+  left: 0
+ right: 1
+
+thread 'source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs' (24842118) panicked at src/source_reflows_merge/main_eb2_inputs.rs:24:5:
+assertion `left == right` failed: exact finite complete source/domain choice
+  left: 0
+ right: 1
+
+thread 'source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs' (24842118) panicked at src/source_reflows_merge/main_eb2_inputs.rs:24:5:
+assertion `left == right` failed: exact finite complete source/domain choice
+  left: 0
+ right: 1
+
+thread 'source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs' (24842118) panicked at src/source_reflows_merge/main_eb2_inputs.rs:24:5:
+assertion `left == right` failed: exact finite complete source/domain choice
+  left: 0
+ right: 1
+
+thread 'source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs' (24842118) panicked at src/source_reflows_merge/main_eb2_inputs.rs:24:5:
+assertion `left == right` failed: exact finite complete source/domain choice
+  left: 0
+ right: 1
+
+thread 'source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs' (24842118) panicked at src/source_reflows_merge/main_eb2_inputs.rs:24:5:
+assertion `left == right` failed: exact finite complete source/domain choice
+  left: 0
+ right: 1
+
+thread 'source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs' (24842118) panicked at src/source_reflows_merge/main_eb2_inputs.rs:24:5:
+assertion `left == right` failed: exact finite complete source/domain choice
+  left: 0
+ right: 1
+
+thread 'source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs' (24842118) panicked at src/source_reflows_merge/main_eb2_inputs.rs:24:5:
+assertion `left == right` failed: exact finite complete source/domain choice
+  left: 0
+ right: 1
+
+thread 'source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs' (24842118) panicked at src/source_reflows_merge/main_eb2_inputs.rs:24:5:
+assertion `left == right` failed: exact finite complete source/domain choice
+  left: 0
+ right: 1
+
+thread 'source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs' (24842118) panicked at src/source_reflows_merge/main_eb2_inputs.rs:24:5:
+assertion `left == right` failed: exact finite complete source/domain choice
+  left: 0
+ right: 1
+
+thread 'source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs' (24842118) panicked at src/source_reflows_merge/main_eb2_inputs.rs:24:5:
+assertion `left == right` failed: exact finite complete source/domain choice
+  left: 0
+ right: 1
+
+thread 'source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs' (24842118) panicked at src/source_reflows_merge/main_eb2_inputs.rs:24:5:
+assertion `left == right` failed: exact finite complete source/domain choice
+  left: 0
+ right: 1
+
+thread 'source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs' (24842118) panicked at src/source_reflows_merge/main_eb2_inputs.rs:24:5:
+assertion `left == right` failed: exact finite complete source/domain choice
+  left: 0
+ right: 1
+
+thread 'source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs' (24842118) panicked at src/source_reflows_merge/main_eb2_inputs.rs:24:5:
+assertion `left == right` failed: exact finite complete source/domain choice
+  left: 0
+ right: 1
+
+thread 'source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs' (24842118) panicked at src/source_reflows_merge/main_eb2_inputs.rs:24:5:
+assertion `left == right` failed: exact finite complete source/domain choice
+  left: 0
+ right: 1
+
+thread 'source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs' (24842118) panicked at src/source_reflows_merge/main_eb2_inputs.rs:24:5:
+assertion `left == right` failed: exact finite complete source/domain choice
+  left: 0
+ right: 1
+
+thread 'source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs' (24842118) panicked at src/source_reflows_merge/main_eb2_inputs.rs:24:5:
+assertion `left == right` failed: exact finite complete source/domain choice
+  left: 0
+ right: 1
+
+thread 'source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs' (24842118) panicked at src/source_reflows_merge/main_eb2_inputs.rs:24:5:
+assertion `left == right` failed: exact finite complete source/domain choice
+  left: 0
+ right: 1
+
+thread 'source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs' (24842118) panicked at src/source_reflows_merge/main_eb2_inputs.rs:24:5:
+assertion `left == right` failed: exact finite complete source/domain choice
+  left: 0
+ right: 1
+
+thread 'source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs' (24842118) panicked at src/source_reflows_merge/main_eb2_inputs.rs:24:5:
+assertion `left == right` failed: exact finite complete source/domain choice
+  left: 0
+ right: 1
+
+thread 'source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs' (24842118) panicked at src/source_reflows_merge/main_eb2_inputs.rs:24:5:
+assertion `left == right` failed: exact finite complete source/domain choice
+  left: 0
+ right: 1
+
+thread 'source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs' (24842118) panicked at src/source_reflows_merge/main_eb2_inputs.rs:24:5:
+assertion `left == right` failed: exact finite complete source/domain choice
+  left: 0
+ right: 1
+
+thread 'source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs' (24842118) panicked at src/source_reflows_merge/main_eb2_inputs.rs:24:5:
+assertion `left == right` failed: exact finite complete source/domain choice
+  left: 0
+ right: 1
+
+thread 'source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs' (24842118) panicked at src/source_reflows_merge/main_eb2_inputs.rs:24:5:
+assertion `left == right` failed: exact finite complete source/domain choice
+  left: 0
+ right: 1
+
+thread 'source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs' (24842118) panicked at src/source_reflows_merge/main_eb2_inputs.rs:24:5:
+assertion `left == right` failed: exact finite complete source/domain choice
+  left: 0
+ right: 1
+
+thread 'source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs' (24842118) panicked at src/source_reflows_merge/main_eb2_inputs.rs:24:5:
+assertion `left == right` failed: exact finite complete source/domain choice
+  left: 0
+ right: 1
+
+thread 'source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs' (24842118) panicked at src/source_reflows_merge/main_eb2_inputs.rs:24:5:
+assertion `left == right` failed: exact finite complete source/domain choice
+  left: 0
+ right: 1
+
+thread 'source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs' (24842118) panicked at src/source_reflows_merge/main_eb2_inputs.rs:24:5:
+assertion `left == right` failed: exact finite complete source/domain choice
+  left: 0
+ right: 1
+
+thread 'source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs' (24842118) panicked at src/source_reflows_merge/main_eb2_inputs.rs:24:5:
+assertion `left == right` failed: exact finite complete source/domain choice
+  left: 0
+ right: 1
+
+thread 'source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs' (24842118) panicked at src/source_reflows_merge/main_eb2_inputs.rs:24:5:
+assertion `left == right` failed: exact finite complete source/domain choice
+  left: 0
+ right: 1
+
+thread 'source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs' (24842118) panicked at src/source_reflows_merge/main_eb2_inputs.rs:24:5:
+assertion `left == right` failed: exact finite complete source/domain choice
+  left: 0
+ right: 1
+
+thread 'source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs' (24842118) panicked at src/source_reflows_merge/main_eb2_inputs.rs:24:5:
+assertion `left == right` failed: exact finite complete source/domain choice
+  left: 0
+ right: 1
+
+thread 'source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs' (24842118) panicked at src/source_reflows_merge/main_eb2_inputs.rs:24:5:
+assertion `left == right` failed: exact finite complete source/domain choice
+  left: 0
+ right: 1
+FAILED
+
+failures:
+
+failures:
+    source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9747 filtered out; finished in 0.14s
+

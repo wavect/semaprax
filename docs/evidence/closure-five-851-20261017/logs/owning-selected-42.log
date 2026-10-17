@@ -1,0 +1,10 @@
+
+running 1 test
+test cleanup_plan::replay::final_output::current_observation_tests::final_output_whole_owners_report_capacities_exact_short_zero_and_drop ... final_output plan old=(Ok((8, 32)), 120, (0, 0, 0)) current=(Ok((8, 32)), 120, (0, 0, 0)) old_paid=3833 current_paid=39715 old_backing=Metrics { allocations: 37, reallocations: 6, allocated: 3833, freed: 3833, live: 0, highwater: 3409, invalid: false } current_backing=Metrics { allocations: 37, reallocations: 6, allocated: 3833, freed: 3833, live: 0, highwater: 3409, invalid: false }
+final_output plan old=(Ok((2, 4)), 18, (0, 0, 0)) current=(Ok((2, 4)), 18, (0, 0, 0)) old_paid=1180 current_paid=6306 old_backing=Metrics { allocations: 11, reallocations: 2, allocated: 1180, freed: 1180, live: 0, highwater: 1140, invalid: false } current_backing=Metrics { allocations: 11, reallocations: 2, allocated: 1180, freed: 1180, live: 0, highwater: 1140, invalid: false }
+final_output plan old=(Ok((2, 264)), 323, (0, 0, 0)) current=(Ok((2, 260)), 323, (1, 1056, 128)) old_paid=14132 current_paid=15552 old_backing=Metrics { allocations: 83, reallocations: 9, allocated: 14132, freed: 14132, live: 0, highwater: 12996, invalid: false } current_backing=Metrics { allocations: 82, reallocations: 9, allocated: 13076, freed: 13076, live: 0, highwater: 12028, invalid: false }
+final_output HIR old=(Ok((4, 512, 512)), 527) current=(Ok((4, 512, 512)), 527) old_paid=92985 current_paid=92220 old_backing=Metrics { allocations: 591, reallocations: 55, allocated: 83161, freed: 83161, live: 0, highwater: 76161, invalid: false } current_backing=Metrics { allocations: 589, reallocations: 55, allocated: 81113, freed: 81113, live: 0, highwater: 75473, invalid: false }
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9747 filtered out; finished in 1.28s
+

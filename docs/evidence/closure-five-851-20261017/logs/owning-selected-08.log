@@ -1,0 +1,442 @@
+
+running 1 test
+test project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound ... 
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/final_ready_inputs.rs:111:5:
+assertion `left == right` failed
+  left: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ right: String("2ab876f8146b3eb19a950a4003bb7c3489a9f9963d7a6496d2019dc9246968dc")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/final_ready_inputs.rs:111:5:
+assertion `left == right` failed
+  left: "a607701e6e51e3ba8ddfb3757d45df68d7d8ebe39372c547ba53ac49056e0fc8"
+ right: String("2ab876f8146b3eb19a950a4003bb7c3489a9f9963d7a6496d2019dc9246968dc")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/final_ready_inputs.rs:111:5:
+assertion `left == right` failed
+  left: "c0dc2b3de9c0e16a12fc39cea79f9316f12437544e7751d554e37b6f59e1fc04"
+ right: String("2ab876f8146b3eb19a950a4003bb7c3489a9f9963d7a6496d2019dc9246968dc")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/final_ready_inputs.rs:111:5:
+assertion `left == right` failed
+  left: "413a71132e9c87cd41f5f7d79b6ca41f679b553d0a086a0251cbd5ce8cf3b6e4"
+ right: String("2ab876f8146b3eb19a950a4003bb7c3489a9f9963d7a6496d2019dc9246968dc")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/final_ready_inputs.rs:111:5:
+assertion `left == right` failed
+  left: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ right: String("459b9a2d0f454f608a3e1997b46e76cc09c1ddc098d976b7513f92b16263a839")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/final_ready_inputs.rs:111:5:
+assertion `left == right` failed
+  left: "9ace62bd86824ac22ab93796ecc6d08839c4bfe513c4c333e794d3a8aeb103f6"
+ right: String("459b9a2d0f454f608a3e1997b46e76cc09c1ddc098d976b7513f92b16263a839")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/final_ready_inputs.rs:111:5:
+assertion `left == right` failed
+  left: "88510b4d1320021405849cf1efb454aef8c25828a9c398ce389b1d1aa3609fd1"
+ right: String("459b9a2d0f454f608a3e1997b46e76cc09c1ddc098d976b7513f92b16263a839")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/final_ready_inputs.rs:111:5:
+assertion `left == right` failed
+  left: "6568da26e2376af6e713fc396db3e9390907d8dedc7074c3dc314b76da348d6b"
+ right: String("459b9a2d0f454f608a3e1997b46e76cc09c1ddc098d976b7513f92b16263a839")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/final_ready_inputs.rs:111:5:
+assertion `left == right` failed
+  left: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ right: String("48a4b909a49abaf228b66d4f562dbbc707ddfd877fa40ffc623fd0adcd12503b")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/final_ready_inputs.rs:111:5:
+assertion `left == right` failed
+  left: "f930e66a3c153b3c6aa1ddcb5abdfbd06bb9c2f7a65a282f8bd9fc067e74c14f"
+ right: String("48a4b909a49abaf228b66d4f562dbbc707ddfd877fa40ffc623fd0adcd12503b")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/final_ready_inputs.rs:111:5:
+assertion `left == right` failed
+  left: "87fc80d0d677a64108488dfbdce78c2652195621b96169363ab8cffc8743b6cd"
+ right: String("48a4b909a49abaf228b66d4f562dbbc707ddfd877fa40ffc623fd0adcd12503b")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/final_ready_inputs.rs:111:5:
+assertion `left == right` failed
+  left: "0c1b20aa901a342923a52a51f1e7b5bc71330c785e4baeee92185ebaf6e64aa4"
+ right: String("48a4b909a49abaf228b66d4f562dbbc707ddfd877fa40ffc623fd0adcd12503b")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ right: String("d01a82d602c286044cc1d5df8d05d02dfe5168d1139a82380aa01b06e47c7fd5")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "e0da232b9053a854f3391ddbbd6c03d74b48272d7cea2a04713a5fb0c5108ce2"
+ right: String("d01a82d602c286044cc1d5df8d05d02dfe5168d1139a82380aa01b06e47c7fd5")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "4aabdfe842efc94e86dad1015a44822a81a6c572b7f63bd0b173e0cce68996ee"
+ right: String("d01a82d602c286044cc1d5df8d05d02dfe5168d1139a82380aa01b06e47c7fd5")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:30:5:
+assertion `left == right` failed: closed incoming owner/source domain
+  left: 0
+ right: 1
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:30:5:
+assertion `left == right` failed: closed incoming owner/source domain
+  left: 0
+ right: 1
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ right: String("c34c4705dc8ecad1d8f61d3b8f997a074a3c4ba1c64dfb1b8a7dc0234dea4497")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "5c43eaf5f7329f93ba30285a3c3e9c1cb40319ed3632a3aa3a6759185460b023"
+ right: String("c34c4705dc8ecad1d8f61d3b8f997a074a3c4ba1c64dfb1b8a7dc0234dea4497")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "d092c08cb13068894e4e74cab9f09610b805b5e841033a37e72a9a62fabf9760"
+ right: String("c34c4705dc8ecad1d8f61d3b8f997a074a3c4ba1c64dfb1b8a7dc0234dea4497")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:30:5:
+assertion `left == right` failed: closed incoming owner/source domain
+  left: 0
+ right: 1
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:30:5:
+assertion `left == right` failed: closed incoming owner/source domain
+  left: 0
+ right: 1
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ right: String("e961737ba41e3db1b0e0333fbb082566026ea8e80e58e51a2b3cf1a3108e686d")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "c2e8632b45abd06656d6e5b4b8b51f9e44d8b84e80b84554c476806f28dc48bb"
+ right: String("e961737ba41e3db1b0e0333fbb082566026ea8e80e58e51a2b3cf1a3108e686d")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "00fd189710ece23ae9411d4df996a6c683525a1bb138bb0aefd85a36fdb8e397"
+ right: String("e961737ba41e3db1b0e0333fbb082566026ea8e80e58e51a2b3cf1a3108e686d")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:30:5:
+assertion `left == right` failed: closed incoming owner/source domain
+  left: 0
+ right: 1
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:30:5:
+assertion `left == right` failed: closed incoming owner/source domain
+  left: 0
+ right: 1
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ right: String("5da423f957f435ba1ca875e37fdb92aab84f8cfdeb35508df2224cac64f90a22")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "b1a4e3693cb679fb325dffffe05dcc0fb5acb61c62f7b288a6ea69531eb87636"
+ right: String("5da423f957f435ba1ca875e37fdb92aab84f8cfdeb35508df2224cac64f90a22")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "f22b2742cb7e26119c6e69540b1cbb2aa82a8e438c42295d0155e5f3e3af8080"
+ right: String("5da423f957f435ba1ca875e37fdb92aab84f8cfdeb35508df2224cac64f90a22")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:30:5:
+assertion `left == right` failed: closed incoming owner/source domain
+  left: 0
+ right: 1
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:30:5:
+assertion `left == right` failed: closed incoming owner/source domain
+  left: 0
+ right: 1
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ right: String("457d115f41607edd272dbf214714a0df276dfa75fb8a86a2cb313586c5bc495c")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "29ae0768cb4220e2fb205cb0621ebd961ecf349647fb707524e0f08ee7aeef22"
+ right: String("457d115f41607edd272dbf214714a0df276dfa75fb8a86a2cb313586c5bc495c")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "e79935b1502d2569264401224c9802bdaa462cf1a82aad356a630f7d0838da33"
+ right: String("457d115f41607edd272dbf214714a0df276dfa75fb8a86a2cb313586c5bc495c")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:30:5:
+assertion `left == right` failed: closed incoming owner/source domain
+  left: 0
+ right: 1
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:30:5:
+assertion `left == right` failed: closed incoming owner/source domain
+  left: 0
+ right: 1
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ right: String("413a71132e9c87cd41f5f7d79b6ca41f679b553d0a086a0251cbd5ce8cf3b6e4")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "43a46e753ef082aa481be9be078e37cdbd46221e0b0ee33b6aa4ac3ee3ff9807"
+ right: String("413a71132e9c87cd41f5f7d79b6ca41f679b553d0a086a0251cbd5ce8cf3b6e4")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "3c574244938f52adb0758075e8171596f5d1847d1d6f40c23deeb3962d0cba51"
+ right: String("413a71132e9c87cd41f5f7d79b6ca41f679b553d0a086a0251cbd5ce8cf3b6e4")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:30:5:
+assertion `left == right` failed: closed incoming owner/source domain
+  left: 0
+ right: 1
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:30:5:
+assertion `left == right` failed: closed incoming owner/source domain
+  left: 0
+ right: 1
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ right: String("bf59d79e6bcd513cf071c52112ded222e4561c785389f2723684d072c15d0fc2")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "1b07676f542eb15d987dc450f1aa5fdfe40e9411930b675f3e8561e67cf17aa4"
+ right: String("bf59d79e6bcd513cf071c52112ded222e4561c785389f2723684d072c15d0fc2")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "56c5562ee3b27cefb6092f476a70e8de3d828f2ff00a68ce63968e8dc75685bf"
+ right: String("bf59d79e6bcd513cf071c52112ded222e4561c785389f2723684d072c15d0fc2")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:30:5:
+assertion `left == right` failed: closed incoming owner/source domain
+  left: 0
+ right: 1
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:30:5:
+assertion `left == right` failed: closed incoming owner/source domain
+  left: 0
+ right: 1
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ right: String("152ef6605d31e0a114058a741e868b1ca64695ae78c09792058fda14537cf4f1")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "3c673090cdbf08f67991ddb6fd4d59f8128b6195bf1344fbb80cf65d4bbad733"
+ right: String("152ef6605d31e0a114058a741e868b1ca64695ae78c09792058fda14537cf4f1")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "e9bdad44570dfee55b69fe79ca0090e1934edcc4d6cddbce59acd387dc677817"
+ right: String("152ef6605d31e0a114058a741e868b1ca64695ae78c09792058fda14537cf4f1")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:30:5:
+assertion `left == right` failed: closed incoming owner/source domain
+  left: 0
+ right: 1
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:30:5:
+assertion `left == right` failed: closed incoming owner/source domain
+  left: 0
+ right: 1
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ right: String("bc2074ab329ba1f71416d503c222a5fcd75b49b65f11f70a784cac90bfa110a0")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "d0105becbcb7ae795836d0aa37948f8a865a0ab208d4205764c70c54b47863bb"
+ right: String("bc2074ab329ba1f71416d503c222a5fcd75b49b65f11f70a784cac90bfa110a0")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "2da0e3a05cc187ddddf92539e933008fdfa07f154ae433de9ab798cd95c4ba65"
+ right: String("bc2074ab329ba1f71416d503c222a5fcd75b49b65f11f70a784cac90bfa110a0")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:30:5:
+assertion `left == right` failed: closed incoming owner/source domain
+  left: 0
+ right: 1
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:30:5:
+assertion `left == right` failed: closed incoming owner/source domain
+  left: 0
+ right: 1
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ right: String("3eb09dfca99ff573319c67f4e2337d16436564d88edcaca9a9e0552ddea50e24")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "ac5b66e281fc2eafcf8788fb2272e6a15194690c2605cf055afbd84b3f28d605"
+ right: String("3eb09dfca99ff573319c67f4e2337d16436564d88edcaca9a9e0552ddea50e24")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "b9bcece22305bfb8e13adb137daf80fd3da734736955762e5abbd30751a4d978"
+ right: String("3eb09dfca99ff573319c67f4e2337d16436564d88edcaca9a9e0552ddea50e24")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:30:5:
+assertion `left == right` failed: closed incoming owner/source domain
+  left: 0
+ right: 1
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:30:5:
+assertion `left == right` failed: closed incoming owner/source domain
+  left: 0
+ right: 1
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ right: String("73f72ac12231befb30913d153afa06c36a2f1af4f27336fba3fdf2c80a84bfba")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "7044b1157169f6373d53128e64cafc6ddfe14ac93ad7c68118d843e6c29ef2ca"
+ right: String("73f72ac12231befb30913d153afa06c36a2f1af4f27336fba3fdf2c80a84bfba")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "f9f07b0e5b27f61a031a465e0786638a5e3e3d61222ef3e97944f0dde5d06b52"
+ right: String("73f72ac12231befb30913d153afa06c36a2f1af4f27336fba3fdf2c80a84bfba")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:30:5:
+assertion `left == right` failed: closed incoming owner/source domain
+  left: 0
+ right: 1
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:30:5:
+assertion `left == right` failed: closed incoming owner/source domain
+  left: 0
+ right: 1
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ right: String("3fd8e7c49b9966592a9e673b17c6b77ede1f22c72ff3556d16c86a156938c510")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "93620ed286ea7bdcc5079d023eb3cc6c1e1532ccf57c4b9fd4a714d39d08d9cc"
+ right: String("3fd8e7c49b9966592a9e673b17c6b77ede1f22c72ff3556d16c86a156938c510")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "1d4ff190b15bfab0bfa93afc38bf36cf906e355045575398bb698ea9542b8f49"
+ right: String("3fd8e7c49b9966592a9e673b17c6b77ede1f22c72ff3556d16c86a156938c510")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:30:5:
+assertion `left == right` failed: closed incoming owner/source domain
+  left: 0
+ right: 1
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:30:5:
+assertion `left == right` failed: closed incoming owner/source domain
+  left: 0
+ right: 1
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ right: String("3eb09dfca99ff573319c67f4e2337d16436564d88edcaca9a9e0552ddea50e24")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "ac5b66e281fc2eafcf8788fb2272e6a15194690c2605cf055afbd84b3f28d605"
+ right: String("3eb09dfca99ff573319c67f4e2337d16436564d88edcaca9a9e0552ddea50e24")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "b9bcece22305bfb8e13adb137daf80fd3da734736955762e5abbd30751a4d978"
+ right: String("3eb09dfca99ff573319c67f4e2337d16436564d88edcaca9a9e0552ddea50e24")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:30:5:
+assertion `left == right` failed: closed incoming owner/source domain
+  left: 0
+ right: 1
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:30:5:
+assertion `left == right` failed: closed incoming owner/source domain
+  left: 0
+ right: 1
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ right: String("9f3ac71703fa3926dc37a0a5ea02ecef1c9b41d102f445dbb89a34758e7a7596")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "b8194c2868feaf26867ceaba0e135a2551bd6ac89d9d2eab2dcdfc9317da4b7b"
+ right: String("9f3ac71703fa3926dc37a0a5ea02ecef1c9b41d102f445dbb89a34758e7a7596")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "8aac904489061029fbb159352d10b6e2b283eb24ad1792a2ec547f1aadb0d214"
+ right: String("9f3ac71703fa3926dc37a0a5ea02ecef1c9b41d102f445dbb89a34758e7a7596")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:30:5:
+assertion `left == right` failed: closed incoming owner/source domain
+  left: 0
+ right: 1
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:30:5:
+assertion `left == right` failed: closed incoming owner/source domain
+  left: 0
+ right: 1
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ right: String("73f72ac12231befb30913d153afa06c36a2f1af4f27336fba3fdf2c80a84bfba")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "7044b1157169f6373d53128e64cafc6ddfe14ac93ad7c68118d843e6c29ef2ca"
+ right: String("73f72ac12231befb30913d153afa06c36a2f1af4f27336fba3fdf2c80a84bfba")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:41:5:
+assertion `left == right` failed: complete actual incoming-owner input
+  left: "f9f07b0e5b27f61a031a465e0786638a5e3e3d61222ef3e97944f0dde5d06b52"
+ right: String("73f72ac12231befb30913d153afa06c36a2f1af4f27336fba3fdf2c80a84bfba")
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:30:5:
+assertion `left == right` failed: closed incoming owner/source domain
+  left: 0
+ right: 1
+
+thread 'project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound' (24842619) panicked at src/source_reflows_merge/main7f8_source_inputs.rs:30:5:
+assertion `left == right` failed: closed incoming owner/source domain
+  left: 0
+ right: 1
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9747 filtered out; finished in 0.56s
+

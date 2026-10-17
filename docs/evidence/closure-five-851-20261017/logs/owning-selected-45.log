@@ -1,0 +1,9 @@
+
+running 1 test
+test cleanup_plan::replay::factored::oracle_order::tests::compact_staged_receiving_keeps_floor_and_foreign_owner_first_refusal ... compact floor attack=0 first=ReservationRefusal { requested: 376, remaining: 1039637, floor: 1039637, stage: None } site=src/cleanup_plan/replay/factored/oracle_order/tests.rs:348:33
+compact floor attack=1 first=ReservationRefusal { requested: 232, remaining: 1037973, floor: 1037973, stage: None } site=src/cleanup_plan/replay/factored/oracle_order/tests.rs:354:29
+compact floor attack=2 first=ReservationRefusal { requested: 387, remaining: 1035653, floor: 1035653, stage: None } site=src/cleanup_plan/replay/factored/oracle_order.rs:446:12
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9747 filtered out; finished in 0.01s
+

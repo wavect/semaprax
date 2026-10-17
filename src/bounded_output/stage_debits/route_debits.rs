@@ -63,7 +63,6 @@ impl Row {
         calls: [[0; PHASES]; ROUTES],
     };
 }
-#[derive(Clone, Copy)]
 struct Packet {
     owner: usize,
     prebound: usize,
@@ -99,6 +98,44 @@ impl Packet {
         first_is_hir_cleanup: false,
         rows: [Row::EMPTY; ROWS],
     };
+
+    // Rows are overwritten when registered; clearing the header avoids a
+    // whole-packet temporary on the instrumented thread's stack.
+    fn clear_header(&mut self) {
+        self.owner = 0;
+        self.prebound = 0;
+        self.mode = 0;
+        self.consumed = 0;
+        self.expected_hir = 0;
+        self.hir = 0;
+        self.non_cleanup_hir = 0;
+        self.unknown_cleanup = 0;
+        self.overflow_cleanup = 0;
+        self.complete = true;
+        self.used = 0;
+        self.coordinate = Coordinate::EMPTY;
+        self.first = None;
+        self.first_is_hir_cleanup = false;
+    }
+
+    // Copy directly between TLS packets, retaining only the populated rows.
+    fn copy_from(&mut self, source: &Self) {
+        self.owner = source.owner;
+        self.prebound = source.prebound;
+        self.mode = source.mode;
+        self.consumed = source.consumed;
+        self.expected_hir = source.expected_hir;
+        self.hir = source.hir;
+        self.non_cleanup_hir = source.non_cleanup_hir;
+        self.unknown_cleanup = source.unknown_cleanup;
+        self.overflow_cleanup = source.overflow_cleanup;
+        self.complete = source.complete;
+        self.used = source.used;
+        self.coordinate = source.coordinate;
+        self.first = source.first;
+        self.first_is_hir_cleanup = source.first_is_hir_cleanup;
+        self.rows[..source.used].copy_from_slice(&source.rows[..source.used]);
+    }
 }
 struct State {
     current: Packet,
@@ -140,7 +177,7 @@ pub(crate) fn observe() -> Observation {
     if !previous {
         LOST.with(|lost| lost.set(false));
         update(|state| {
-            state.current = Packet::EMPTY;
+            state.current.clear_header();
             state.have_last = false;
             state.have_max = false;
         });
@@ -162,7 +199,7 @@ pub(super) fn start(owner: usize, prebound: usize, mode: u8) {
             state.current.complete = false;
             return;
         }
-        state.current = Packet::EMPTY;
+        state.current.clear_header();
         state.current.owner = owner;
         state.current.prebound = prebound;
         state.current.mode = mode;
@@ -208,10 +245,10 @@ pub(super) fn finish(owner: usize, consumed: usize, expected_hir: usize) {
         state.current.consumed = consumed;
         state.current.expected_hir = expected_hir;
         state.current.complete &= !LOST.with(Cell::get) && state.current.hir == expected_hir;
-        state.last = state.current;
+        state.last.copy_from(&state.current);
         state.have_last = true;
         if !state.have_max || consumed > state.maximum.consumed {
-            state.maximum = state.current;
+            state.maximum.copy_from(&state.current);
             state.have_max = true;
         }
         state.current.owner = 0;

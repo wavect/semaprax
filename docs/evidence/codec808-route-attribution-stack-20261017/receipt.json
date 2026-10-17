@@ -1,0 +1,18 @@
+{
+  "status": "SOURCE_ONLY_RUNTIME_UNQUALIFIED",
+  "previous_head": "4547674ff1191ada92df2a73f59a44d9199a59be",
+  "source": "src/bounded_output/stage_debits/route_debits.rs",
+  "current_sha256": "80aae46e41ff0d46be480e59e3d1f356af1ac94b77af11dc289b2615a8d53815",
+  "packet_copy_clone_removed": true,
+  "runtime_whole_packet_assignments_removed": true,
+  "static_tls_packet_constants": 3,
+  "rows": 1024,
+  "header_reset_fields": 14,
+  "packet_copy_fields": 14,
+  "copy_rows": "direct populated slice",
+  "whole_predecessor_restored": true,
+  "original_codec808_six_source_inverses_unchanged": true,
+  "cargo": false,
+  "runtime_tests": false,
+  "stack_measurement": false
+}

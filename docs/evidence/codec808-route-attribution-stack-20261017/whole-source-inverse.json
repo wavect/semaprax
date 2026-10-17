@@ -1,0 +1,23 @@
+{
+  "schema": "semaprax.codec808-stack-source-inverse.v1",
+  "previous_head": "4547674ff1191ada92df2a73f59a44d9199a59be",
+  "rows": [
+    {
+      "source": "src/bounded_output/stage_debits/route_debits.rs",
+      "before_length": 11646,
+      "before_sha256": "6b91f7e138e3f7ed4f43f004a197fe45decb1944c76bea95cb68f19f949df028",
+      "before_archive": "docs/evidence/codec808-route-attribution-stack-20261017/route_debits.before.rs.txt",
+      "current_length": 13070,
+      "current_sha256": "80aae46e41ff0d46be480e59e3d1f356af1ac94b77af11dc289b2615a8d53815",
+      "current_archive": "docs/evidence/codec808-route-attribution-stack-20261017/route_debits.after.rs.txt",
+      "inverse": [
+        {
+          "start": 0,
+          "remove_length": 13070,
+          "remove_sha256": "80aae46e41ff0d46be480e59e3d1f356af1ac94b77af11dc289b2615a8d53815",
+          "insert_archive": "docs/evidence/codec808-route-attribution-stack-20261017/route_debits.before.rs.txt"
+        }
+      ]
+    }
+  ]
+}

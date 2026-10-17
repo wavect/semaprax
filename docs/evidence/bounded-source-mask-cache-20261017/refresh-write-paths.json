@@ -49,6 +49,14 @@
     "src/source_reflows_merge/main043_custody.rs",
     "src/source_reflows_merge/main44_custody.rs",
     "src/source_reflows_merge/main8a_historical.rs",
-    "src/source_reflows_merge/maina3_custody.rs"
+    "src/source_reflows_merge/maina3_custody.rs",
+    "docs/evidence/a3-e47-final-custody-20261016/before/Previous16c/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity.rs",
+    "docs/evidence/a3-e47-final-custody-20261016/before/Previous16c/docs/DEVELOPMENT.md",
+    "docs/evidence/a3-e47-final-custody-20261016/before/Previous16c/src/cleanup/schema_summary/tests.rs",
+    "docs/evidence/a3-e47-final-custody-20261016/before/Previous16c/src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight_tests.rs",
+    "docs/evidence/a3-e47-final-custody-20261016/before/Previous16c/src/cleanup_plan/replay/flat_records/tests/receiving_path_boundary.rs",
+    "docs/evidence/a3-e47-final-custody-20261016/before/Previous16c/src/cleanup_plan/replay/live_oracle/source_custody/current_view.rs",
+    "docs/evidence/a3-e47-final-custody-20261016/before/Previous16c/src/hir/resolve_program/tests/reservation_stages.rs",
+    "docs/evidence/main67107-fronts-6e45-20261017/front-binding-receipt.json"
   ]
 }

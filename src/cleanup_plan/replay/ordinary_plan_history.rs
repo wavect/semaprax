@@ -152,7 +152,17 @@ pub(super) const COMPARE_CALL_CONTROLS: usize = 2 * size_of::<&ResolvedFunction>
 
 // Actual local aggregate/return, queue, loop and payment receivers. Nested
 // backing is paid separately; moving a tail never refunds its original debit.
-const PRODUCER_CONTROLS: usize = size_of::<HistorySet>()
+// The eligibility function is a real new boundary in both callers. Its
+// immutable budget actual/formal and returned/received Boolean are not funded
+// by branch controls or by unrelated payment receiver slots.
+const ELIGIBLE_CALL_CONTROLS: usize = 2 * size_of::<&ResolvedFunction>() // actual and immutable function formal
+    + 2 * size_of::<&ReplayBudget>() // actual shared reborrow and immutable formal
+    + 5 * size_of::<bool>() // five predicate results inside eligible
+    + size_of::<bool>() // eligible's returned Boolean
+    + size_of::<bool>(); // caller's successful Boolean receiver
+const PRODUCER_CONTROLS: usize = ELIGIBLE_CALL_CONTROLS
+    + size_of::<bool>() // producer entry guard's negated eligibility result
+    + size_of::<HistorySet>()
     + size_of::<Result<HistorySet, Diagnostic>>()
     + size_of::<VecDeque<(BlockId, History)>>()
     + size_of::<Option<(BlockId, History)>>()
@@ -160,8 +170,8 @@ const PRODUCER_CONTROLS: usize = size_of::<HistorySet>()
     + size_of::<PlanPath>()
     + size_of::<Result<(), Diagnostic>>()
     + 4 * size_of::<usize>() // max_depth, block index, root index, control price
-    + 4 * size_of::<&ResolvedFunction>() // eligibility actual/formal + payment actual/formal
-    + 4 * size_of::<&mut ReplayBudget>() // eligibility actual/formal + payment actual/formal
+    + 2 * size_of::<&ResolvedFunction>() // payment actual/formal; eligibility is separately typed above
+    + 2 * size_of::<&mut ReplayBudget>() // payment actual/formal; eligible uses immutable references
     + 4 * size_of::<&str>(); // payment/work actual/formal phase receivers
 const BRANCH_CONTROLS: usize = size_of::<Segment>()
     + size_of::<History>()
@@ -174,8 +184,9 @@ const BRANCH_CONTROLS: usize = size_of::<Segment>()
     + 3 * size_of::<&mut Vec<Segment>>() // arena reserve actual/formal + push receiver
     + size_of::<&Rc<SkeletonObservation>>() // observation conversion census receiver
     + 2 * size_of::<bool>(); // nonempty-tail predicate and depth/max comparison
-const SELECT_CONTROLS: usize = 3 * size_of::<&ResolvedFunction>() // eligibility actual/formal + block query
-    + 6 * size_of::<bool>() // five eligibility predicates + structural branch result
+const SELECT_CONTROLS: usize = ELIGIBLE_CALL_CONTROLS
+    + size_of::<&ResolvedFunction>() // existing function's block query receiver
+    + 4 * size_of::<bool>() // eligibility negation, tiny-length predicate, short-circuit condition, structural branch result
     + 2 * size_of::<usize>() // block length and scan-work amount
     + size_of::<Result<bool, Diagnostic>>() // selector's own returned Result
     + size_of::<Result<(), Diagnostic>>() // local payment/work Result

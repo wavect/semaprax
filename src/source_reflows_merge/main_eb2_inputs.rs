@@ -52,6 +52,7 @@ mod tests {
             } else {
                 std::fs::read_to_string(root.join(path)).unwrap()
             };
+            let source = complete_incoming_input(domain, path, &source);
             let incoming = project(domain, path, &source);
             assert_eq!(digest(&incoming), row["incoming_sha256"].as_str().unwrap());
             for wrong in [String::new(), format!("{source} "), format!("{source}{source}")] {
@@ -62,5 +63,52 @@ mod tests {
                 assert!(std::panic::catch_unwind(|| project(domain, path, &incoming)).is_err());
             }
         }
+    }
+}
+
+// Later source-only/presence repairs precede the immutable incoming domains.
+// Admit only these exact whole afterimages, then run the original table and
+// all original rejection checks unchanged; archived inputs remain unchanged.
+fn complete_incoming_input(domain: &str, path: &str, current: &str) -> String {
+    if domain != "incoming" { return current.to_owned(); }
+    let data = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/fade-custody-promotions-20261017/eb2-incoming-bridge.json"));
+    assert_eq!(digest(data), "549664ca658d0661599ace0e9dcd5b19c6ad34711dda25ab38b9a42856ae3acf");
+    let rows: serde_json::Value = serde_json::from_str(data).unwrap();
+    let rows = rows.as_array().unwrap();
+    assert_eq!(rows.len(), 3);
+    let hash = digest(current);
+    let matching: Vec<_> = rows.iter().filter(|row| row["path"] == path && row["current_sha256"] == hash).collect();
+    assert!(matching.len() <= 1, "unique finite incoming bridge");
+    let Some(row) = matching.first() else { return current.to_owned(); };
+    let mut restored = current.to_owned();
+    for edit in row["edits"].as_array().unwrap() {
+        let new = edit["new"].as_str().unwrap();
+        assert_eq!(restored.matches(new).count(), 1, "whole incoming bridge inverse");
+        restored = restored.replacen(new, edit["old"].as_str().unwrap(), 1);
+    }
+    assert_eq!(digest(&restored), row["input_sha256"]);
+    restored
+}
+
+#[test]
+fn later_incoming_bridges_preserve_complete_original_domains_and_refusals() {
+    let rows: serde_json::Value = serde_json::from_str(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/fade-custody-promotions-20261017/eb2-incoming-bridge.json"))).unwrap();
+    let original: serde_json::Value = serde_json::from_str(DATA).unwrap();
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    for row in rows.as_array().unwrap() {
+        let path = row["path"].as_str().unwrap();
+        let raw = std::fs::read_to_string(root.join(path)).unwrap();
+        assert_eq!(digest(&raw), row["current_sha256"]);
+        let input = complete_incoming_input("incoming", path, &raw);
+        assert_eq!(digest(&input), row["input_sha256"]);
+        let proof = original.as_array().unwrap().iter().find(|proof| proof["domain"] == "incoming" && proof["path"] == path).unwrap();
+        assert_eq!(digest(&input), proof["current_sha256"]);
+        assert_eq!(digest(&project("incoming", path, &input)), proof["incoming_sha256"]);
+        assert!(std::panic::catch_unwind(|| project("incoming", path, &raw)).is_err());
+        for wrong in [String::new(), format!("{raw} "), format!("{raw}{raw}")] {
+            assert!(std::panic::catch_unwind(|| project("incoming", path, &wrong)).is_err());
+        }
+        assert!(std::panic::catch_unwind(|| project("foreign", path, &raw)).is_err());
+        assert!(std::panic::catch_unwind(|| project("incoming", "foreign", &raw)).is_err());
     }
 }

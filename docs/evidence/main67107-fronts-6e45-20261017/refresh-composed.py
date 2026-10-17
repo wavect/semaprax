@@ -28,5 +28,9 @@ if __name__=='__main__':
     replacement="  before=old(d['commit'],f);raw=(R/f).read_bytes()\n  if d['name']=='Alias1ae':raw=alias_stage(R,f,raw)\n  archive=D/'before'/d['name']/f\n"
     text=old.decode();assert text.count(needle)==1
     current=text.replace(needle,replacement,1)
-    assert current.replace(replacement,needle,1).encode()==old
+    old_parts="str(O/'verify-source-parts.py')"
+    new_parts="str(R/'docs/evidence/main67107-fronts-6e45-20261017/verify-source-parts-composed.py')"
+    assert current.count(old_parts)==1
+    current=current.replace(old_parts,new_parts,1)
+    assert current.replace(new_parts,old_parts,1).replace(replacement,needle,1).encode()==old
     exec(compile(current,str(original),'exec'),{'__file__':str(original),'__name__':'__main__','alias_stage':alias_stage})

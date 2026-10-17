@@ -1,0 +1,93 @@
+{
+  "source_base": "1409da65fe3bf9a5f59a0f2bf858950de1b05d25",
+  "common_exit_code": 0,
+  "generated_diff": {
+    "docs/evidence/a3-e47-final-custody-20261016/arm-contract.json": {
+      "before_sha256": "7fffcde74fbb19d4579f3027ec4d286d5a52b4e0e616f825f8ad5beae6a649bf",
+      "after_sha256": "534ed7e054b16101c2dd7a54d1c0e751b665a2e1b39101622e67c09170bb6964",
+      "changed_json_paths": [
+        "/joined_batch_source_commit"
+      ]
+    },
+    "docs/evidence/a3-e47-final-custody-20261016/hir.json": {
+      "before_sha256": "7db4ab938c56e9c672fdece8cdf0dd0c8ad400e0787659c506431465858625a4",
+      "after_sha256": "5ff5e48ce0eaab68cb82e340f83100918faf362b315a31eb375d5240bb1e0b82",
+      "changed_json_paths": [
+        "/sources/src/source_reflows/factored_sources.rs/length",
+        "/sources/src/source_reflows/factored_sources.rs/sha256",
+        "/sources/src/source_reflows_merge/main7f8_source_inputs.rs/length",
+        "/sources/src/source_reflows_merge/main7f8_source_inputs.rs/sha256",
+        "/sources/src/source_reflows_merge/main_eb2_inputs.rs/length",
+        "/sources/src/source_reflows_merge/main_eb2_inputs.rs/sha256"
+      ]
+    },
+    "docs/evidence/a3-e47-final-custody-20261016/new-owners.json": {
+      "before_sha256": "9f7ae45f4ff4fcfcd63a6f782aa0ef0d28e34cc50cdc434d76f72ddffa5024df",
+      "after_sha256": "754b7361ff09ea5dd5a716c1fdae4ee337eb521f7c5b9b3210903a59f847d4e1",
+      "changed_json_paths": [
+        "/101/sha256",
+        "/101/lines",
+        "/125/sha256",
+        "/125/lines",
+        "/127/sha256",
+        "/127/lines"
+      ]
+    },
+    "docs/evidence/a3-e47-final-custody-20261016/projection.json": {
+      "before_sha256": "caf048bdc88750961334eb9c5a14a956205492d950f73eba2bc5f85eb2b77e29",
+      "after_sha256": "c3d6a1b09340d6046c38328fbb92866ad44dfd24292230e7cb1e69a5752f493f",
+      "changed_json_paths": [
+        "/sources/src/source_reflows/factored_sources.rs/length",
+        "/sources/src/source_reflows/factored_sources.rs/sha256",
+        "/sources/src/source_reflows_merge/main7f8_source_inputs.rs/length",
+        "/sources/src/source_reflows_merge/main7f8_source_inputs.rs/sha256",
+        "/sources/src/source_reflows_merge/main_eb2_inputs.rs/length",
+        "/sources/src/source_reflows_merge/main_eb2_inputs.rs/sha256"
+      ]
+    },
+    "docs/evidence/joined-batch-custody-20261016/authority-proof.json": {
+      "before_sha256": "a4fe5a9d19441d65a4442f36ac5b1a24ca4561230b97c6a10198899b2fed176f",
+      "after_sha256": "1fcb34921f6cdd19a593324860573f465facc8292a0d92cad242ac9a2d1df1c1",
+      "changed_json_paths": [
+        "/domains/hir/full_raw_sha256",
+        "/domains/projection/full_raw_sha256"
+      ]
+    },
+    "docs/evidence/joined-batch-custody-20261016/receipt.json": {
+      "before_sha256": "3ce25417af1b00c35e31bd21027c4e7fc04632b11296c3718d024dec214bc0dd",
+      "after_sha256": "c908329e810c75b02357cbac27ff459da78b33c412f6c961742ff4076b390f30",
+      "changed_json_paths": [
+        "/source_commit",
+        "/authority_proof_sha256"
+      ]
+    },
+    "docs/evidence/source-boundary-domains-20261016/boundary-source-proof.json": {
+      "before_sha256": "f950de448cdefd4bd9d971bd0e4a616c9d4c59e826304b960f6072624a50a9a1",
+      "after_sha256": "f227885fb05f802973186d21fe463bdff4c9773a991f8e52c25114827210beb3",
+      "changed_json_paths": [
+        "/domains/hir/full_raw_sha256",
+        "/domains/projection/full_raw_sha256"
+      ]
+    },
+    "docs/evidence/source-boundary-domains-20261016/current-domains.json": {
+      "before_sha256": "f68c38878e9ddbce70fe1713394128d028935d9dd19da8a8a6da97d61881f420",
+      "after_sha256": "e00dd9e086d5216a63dcab668bea4defe9b16d712a1442905c488eb9f9d530e9",
+      "changed_json_paths": [
+        "/domains/hir/full_manifest_sha256",
+        "/domains/hir/full_raw_sha256",
+        "/domains/projection/full_manifest_sha256",
+        "/domains/projection/full_raw_sha256"
+      ]
+    }
+  },
+  "current_owners_verified": 161,
+  "changed_rust_cfg_test_only": [
+    "src/source_reflows/factored_sources.rs",
+    "src/source_reflows_merge/main7f8_source_inputs.rs",
+    "src/source_reflows_merge/main_eb2_inputs.rs"
+  ],
+  "851_clippy_and_pin_results_are_not_relabelled": true,
+  "main043_readonly_exit_code": 0,
+  "whole_generated_beforeimages_external": "/Volumes/Semaprax/provenance/postpin-closure-parent-20261017/repair-common-audit",
+  "whole_generated_beforeimages_git_commit": "1409da65fe3bf9a5f59a0f2bf858950de1b05d25"
+}

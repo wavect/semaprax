@@ -1,0 +1,72 @@
+{
+  "status": "EXACT_LITERAL_SOURCE_VERIFIED_UNEXECUTED",
+  "source_head": "f1b24eda3f98e19c294f50eff388f642eabc7ccb",
+  "checks": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::arena_tests::selected_generation_complete_prior_directory_and_new_tree_keep_weights_overflow_and_both_sites",
+      "issue": 876,
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs",
+      "line": 950,
+      "current_source_sha256": "96d849fd034040565db32a1ca30494c07a8faaafb0b80b8c9a9942c63f2e4ae4",
+      "same_full_source_at_ef": true,
+      "status": "ABSENT_FROM_EF112_RUNTIME_PENDING_SUPPLEMENT"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::arena_tests::selected_generation_actual_local_and_enclosing_cuts_keep_six_fields_sticky_and_whole_drop",
+      "issue": 876,
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs",
+      "line": 1046,
+      "current_source_sha256": "96d849fd034040565db32a1ca30494c07a8faaafb0b80b8c9a9942c63f2e4ae4",
+      "same_full_source_at_ef": true,
+      "status": "ABSENT_FROM_EF112_RUNTIME_PENDING_SUPPLEMENT"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::arena_tests::selected_generation_foreign_function_budget_and_scope_never_revive_bound_receiver",
+      "issue": 876,
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs",
+      "line": 1081,
+      "current_source_sha256": "96d849fd034040565db32a1ca30494c07a8faaafb0b80b8c9a9942c63f2e4ae4",
+      "same_full_source_at_ef": true,
+      "status": "ABSENT_FROM_EF112_RUNTIME_PENDING_SUPPLEMENT"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::arena_tests::ordered_interning_preserves_complete_ids_signatures_work_overflow_and_cycle",
+      "issue": 854,
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs",
+      "line": 28,
+      "current_source_sha256": "96d849fd034040565db32a1ca30494c07a8faaafb0b80b8c9a9942c63f2e4ae4",
+      "same_full_source_at_ef": true,
+      "status": "ABSENT_FROM_EF112_RUNTIME_PENDING_SUPPLEMENT"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::arena_source::complete_old_receiver_and_full_source_views_remain_bound",
+      "issue": 854,
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/arena_source.rs",
+      "line": 3,
+      "current_source_sha256": "b8a5fc9a5f7c96838cd4ac03e5795bd33fcec8c290283eb909b6e736c5c8c17e",
+      "same_full_source_at_ef": true,
+      "status": "ABSENT_FROM_EF112_RUNTIME_PENDING_SUPPLEMENT"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::arena_tests::vec_borrowed_queries_and_zipped_misses_keep_full_old_key_order",
+      "issue": 854,
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs",
+      "line": 376,
+      "current_source_sha256": "96d849fd034040565db32a1ca30494c07a8faaafb0b80b8c9a9942c63f2e4ae4",
+      "same_full_source_at_ef": true,
+      "status": "ABSENT_FROM_EF112_RUNTIME_PENDING_SUPPLEMENT"
+    }
+  ]
+}

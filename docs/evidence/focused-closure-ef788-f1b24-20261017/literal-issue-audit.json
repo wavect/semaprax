@@ -1,0 +1,261 @@
+{
+  "status": "CLOSURE_BLOCKED_PENDING_SIX_LITERAL_SUPPLEMENT_AND_NINE_PIN_CONSUMERS_AND_PUBLICATION",
+  "actual_ef_head": "ef788f8237beeb16dcc1cfa9346fc1dbb6f69a4d",
+  "readonly_current_head": "f1b24eda3f98e19c294f50eff388f642eabc7ccb",
+  "issues": [
+    {
+      "number": 854,
+      "url": "https://github.com/wavect/semaprax/issues/854",
+      "path": "/Volumes/Semaprax/provenance/closure854875876-literal-audit-20261017/issue-854.json",
+      "sha256": "0216bf2bb31789108332bebb8d21c0bb62c845425f9120f2c0f3f715f09eb8eb"
+    },
+    {
+      "number": 875,
+      "url": "https://github.com/wavect/semaprax/issues/875",
+      "path": "/Volumes/Semaprax/provenance/closure854875876-literal-audit-20261017/issue-875.json",
+      "sha256": "f29bf21462a24ea788b04231a3453131ef1e8b264c18a9e36e8df578215145a5"
+    },
+    {
+      "number": 876,
+      "url": "https://github.com/wavect/semaprax/issues/876",
+      "path": "/Volumes/Semaprax/provenance/closure854875876-literal-audit-20261017/issue-876.json",
+      "sha256": "0d103b3ed1f48d3e50a238d71f0d46cf789ec3798ed5064464eb72cb94f4b713"
+    }
+  ],
+  "actual_results": {
+    "path": "/Volumes/Semaprax/lane-prompts/semantic-focused112-ef788f82-20261017/owning-selected-results.json",
+    "sha256": "63ad1eb25cd5cb5f060e42b881a9fcba7263b03db38edfd03c290c728d09169e"
+  },
+  "assessment_not_authority": {
+    "path": "/Volumes/Semaprax/provenance/issue-closure-ef788-actual112-20261017.json",
+    "sha256": "341954f7e0dbeaa0109f884aec95c0444a4db83e7ec0ede97d8f4d50cc5e9ca5",
+    "gap": "Core counts/maps omitted literal behavioral acceptance: 876 four mapped owners include lexical scratch/source controls but not its three real Selected owners; 854 historical entries do not become current execution. Reconcile exact issue body with source and actual results, never infer closure from helper count."
+  },
+  "minimum_missing_six": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::arena_tests::selected_generation_complete_prior_directory_and_new_tree_keep_weights_overflow_and_both_sites",
+      "issue": 876,
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs",
+      "line": 950,
+      "current_source_sha256": "96d849fd034040565db32a1ca30494c07a8faaafb0b80b8c9a9942c63f2e4ae4",
+      "same_full_source_at_ef": true,
+      "status": "ABSENT_FROM_EF112_RUNTIME_PENDING_SUPPLEMENT"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::arena_tests::selected_generation_actual_local_and_enclosing_cuts_keep_six_fields_sticky_and_whole_drop",
+      "issue": 876,
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs",
+      "line": 1046,
+      "current_source_sha256": "96d849fd034040565db32a1ca30494c07a8faaafb0b80b8c9a9942c63f2e4ae4",
+      "same_full_source_at_ef": true,
+      "status": "ABSENT_FROM_EF112_RUNTIME_PENDING_SUPPLEMENT"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::arena_tests::selected_generation_foreign_function_budget_and_scope_never_revive_bound_receiver",
+      "issue": 876,
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs",
+      "line": 1081,
+      "current_source_sha256": "96d849fd034040565db32a1ca30494c07a8faaafb0b80b8c9a9942c63f2e4ae4",
+      "same_full_source_at_ef": true,
+      "status": "ABSENT_FROM_EF112_RUNTIME_PENDING_SUPPLEMENT"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::arena_tests::ordered_interning_preserves_complete_ids_signatures_work_overflow_and_cycle",
+      "issue": 854,
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs",
+      "line": 28,
+      "current_source_sha256": "96d849fd034040565db32a1ca30494c07a8faaafb0b80b8c9a9942c63f2e4ae4",
+      "same_full_source_at_ef": true,
+      "status": "ABSENT_FROM_EF112_RUNTIME_PENDING_SUPPLEMENT"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::arena_source::complete_old_receiver_and_full_source_views_remain_bound",
+      "issue": 854,
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/arena_source.rs",
+      "line": 3,
+      "current_source_sha256": "b8a5fc9a5f7c96838cd4ac03e5795bd33fcec8c290283eb909b6e736c5c8c17e",
+      "same_full_source_at_ef": true,
+      "status": "ABSENT_FROM_EF112_RUNTIME_PENDING_SUPPLEMENT"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::arena_tests::vec_borrowed_queries_and_zipped_misses_keep_full_old_key_order",
+      "issue": 854,
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs",
+      "line": 376,
+      "current_source_sha256": "96d849fd034040565db32a1ca30494c07a8faaafb0b80b8c9a9942c63f2e4ae4",
+      "same_full_source_at_ef": true,
+      "status": "ABSENT_FROM_EF112_RUNTIME_PENDING_SUPPLEMENT"
+    }
+  ],
+  "875": {
+    "current_original_PLAN_owners_passed": 12,
+    "additional_missing_literal_core_gate": null,
+    "core_results": [
+      {
+        "index": 94,
+        "selector": "cleanup_plan::replay::ordinary_plan_history::owned_tests::original_owned_option_remains_an_exact_unadmitted_residual_control",
+        "exit_code": 0,
+        "log": "/Volumes/Semaprax/lane-prompts/semantic-focused112-ef788f82-20261017/owning-selected-94.log",
+        "log_sha256": "191c949ce25bb463748d49f561bf7813bb872185caa7d54205c9dd1bea0b827c"
+      },
+      {
+        "index": 95,
+        "selector": "cleanup_plan::replay::ordinary_plan_history::frontier_tests::each_new_frame_backing_and_post_swap_frontier_has_exact_short_zero_floor_and_drop_controls",
+        "exit_code": 0,
+        "log": "/Volumes/Semaprax/lane-prompts/semantic-focused112-ef788f82-20261017/owning-selected-95.log",
+        "log_sha256": "984b1651817a9931d8bc9a4796356173e4078c5fff7df57498d73f5009dbad79"
+      },
+      {
+        "index": 96,
+        "selector": "cleanup_plan::replay::ordinary_plan_history::owned_tests::full_owned_transition_residual_and_scalar_corpus_keeps_flat_predecessor",
+        "exit_code": 0,
+        "log": "/Volumes/Semaprax/lane-prompts/semantic-focused112-ef788f82-20261017/owning-selected-96.log",
+        "log_sha256": "3bd168ada85121dd92c4ea59417876308a812e515b8c80f09feac9ea31b84643"
+      },
+      {
+        "index": 97,
+        "selector": "cleanup_plan::replay::ordinary_plan_history::owned_tests::branch_and_ownership_mutations_keep_all_six_diagnostic_fields",
+        "exit_code": 0,
+        "log": "/Volumes/Semaprax/lane-prompts/semantic-focused112-ef788f82-20261017/owning-selected-97.log",
+        "log_sha256": "b63e47a68ddbe0eb71352b7d30bb49f40e21ed0861a535806d8cf5f115c757bd"
+      },
+      {
+        "index": 98,
+        "selector": "cleanup_plan::replay::ordinary_plan_history::source_custody::complete_predecessor_and_inverse_are_bound_to_exact_root_bytes",
+        "exit_code": 0,
+        "log": "/Volumes/Semaprax/lane-prompts/semantic-focused112-ef788f82-20261017/owning-selected-98.log",
+        "log_sha256": "5971493f0528cafeab30ffa9de8bf2fd838015a0d7b582d1452d866a3d37bd99"
+      },
+      {
+        "index": 99,
+        "selector": "cleanup_plan::replay::ordinary_plan_history::tests::complete_old_plan_and_materialization_work_are_preserved",
+        "exit_code": 0,
+        "log": "/Volumes/Semaprax/lane-prompts/semantic-focused112-ef788f82-20261017/owning-selected-99.log",
+        "log_sha256": "711470a3adb53efa54f57e14caaee22006359be4ae3c8284a185db532e023ba6"
+      },
+      {
+        "index": 100,
+        "selector": "cleanup_plan::replay::ordinary_plan_history::tests::late_changes_terminal_and_multiplicity_fail_closed",
+        "exit_code": 0,
+        "log": "/Volumes/Semaprax/lane-prompts/semantic-focused112-ef788f82-20261017/owning-selected-100.log",
+        "log_sha256": "91b872aa4912461c2b15743ef9c2be70c084c50da834f64550ac55c8e1543b39"
+      },
+      {
+        "index": 101,
+        "selector": "cleanup_plan::replay::ordinary_plan_history::tests::distinct_segment_boundaries_order_by_complete_values",
+        "exit_code": 0,
+        "log": "/Volumes/Semaprax/lane-prompts/semantic-focused112-ef788f82-20261017/owning-selected-101.log",
+        "log_sha256": "b3d8d17ece33f4a525bdbabcbce90ea2b4b9cfa3bebb6b29ac6d98a597db1cfc"
+      },
+      {
+        "index": 102,
+        "selector": "cleanup_plan::replay::ordinary_plan_history::tests::first_skeleton_refusal_and_sticky_zero_are_preserved",
+        "exit_code": 0,
+        "log": "/Volumes/Semaprax/lane-prompts/semantic-focused112-ef788f82-20261017/owning-selected-102.log",
+        "log_sha256": "882571d85c634cefde1d0226046fc3348147ed3e23ba472de948b1143732b78b"
+      },
+      {
+        "index": 103,
+        "selector": "cleanup_plan::replay::ordinary_plan_history::tests::retained_unobserved_and_lent_owners_are_excluded",
+        "exit_code": 0,
+        "log": "/Volumes/Semaprax/lane-prompts/semantic-focused112-ef788f82-20261017/owning-selected-103.log",
+        "log_sha256": "3dc633cefb5126105b20f8c669b7399e4dfbfab128588482f771ec5367b9625f"
+      },
+      {
+        "index": 104,
+        "selector": "cleanup_plan::replay::ordinary_plan_history::tests::full_comparator_exact_one_short_and_zero_leave_no_live_backing",
+        "exit_code": 0,
+        "log": "/Volumes/Semaprax/lane-prompts/semantic-focused112-ef788f82-20261017/owning-selected-104.log",
+        "log_sha256": "da89d97731a01fca3c98d0f1a203130af848b47a02c76626c0190f5650718726"
+      },
+      {
+        "index": 105,
+        "selector": "cleanup_plan::replay::ordinary_plan_history::tests::malformed_private_links_fail_without_recursive_drop_or_indexing",
+        "exit_code": 0,
+        "log": "/Volumes/Semaprax/lane-prompts/semantic-focused112-ef788f82-20261017/owning-selected-105.log",
+        "log_sha256": "ab6ee4f3552368a5ddd0892ba63eacd8c109e22af45f25f5f9cd2304f08ba897"
+      }
+    ],
+    "application_outcomes": "Required codec/catalog owners ran and failed; disclose exact failures, no application-fit claim."
+  },
+  "whole_source_applicability": [
+    {
+      "path": "src/cleanup_plan/replay/ordinary_plan_history.rs",
+      "bytes": 22708,
+      "sha256": "d5e04c498ebdf3c725faa28a6b41440a6ebd2f2aa208a43445effb254a58cdb7",
+      "whole_ef_equal": true
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+      "bytes": 65056,
+      "sha256": "91f0f7c964ba8a94b91f8da9a6aaa73017b49e3adf49bde5828645128015dbca",
+      "whole_ef_equal": true
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs",
+      "bytes": 68741,
+      "sha256": "96d849fd034040565db32a1ca30494c07a8faaafb0b80b8c9a9942c63f2e4ae4",
+      "whole_ef_equal": true
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/arena_source.rs",
+      "bytes": 2763,
+      "sha256": "b8a5fc9a5f7c96838cd4ac03e5795bd33fcec8c290283eb909b6e736c5c8c17e",
+      "whole_ef_equal": true
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/intern_arena.rs",
+      "bytes": 11574,
+      "sha256": "8f30eae09d94a3f5e530354feab4ce299951d0990164fff670514ad03f363ab8",
+      "whole_ef_equal": true
+    }
+  ],
+  "measured_arena_tradeoff": {
+    "source_log": "/Volumes/Semaprax/lane-prompts/semantic-focused112-ef788f82-20261017/owning-selected-08.log",
+    "duplicate": {
+      "old_reserved": 4513594,
+      "current_reserved": 4512788,
+      "old_allocated": 745221,
+      "current_allocated": 655701,
+      "old_peak": 34533,
+      "current_peak": 35749
+    },
+    "unique_wide": {
+      "old_reserved": 918794,
+      "current_reserved": 987794,
+      "old_allocated": 152141,
+      "current_allocated": 163573,
+      "old_peak": 30885,
+      "current_peak": 34373
+    },
+    "tiny": {
+      "old_reserved": 11682,
+      "current_reserved": 13066,
+      "old_allocated": 1485,
+      "current_allocated": 957,
+      "old_peak": 1485,
+      "current_peak": 957
+    },
+    "interpretation": "Duplicate-only strict reservation improvement; unique-wide and tiny paid overhead, duplicate and wide peak overhead. No universal benefit, cost headline or application fit."
+  },
+  "not_performed": [
+    "Cargo",
+    "Rust tests",
+    "ROOT writes",
+    "GitHub writes",
+    "closure"
+  ],
+  "remaining_shared": "Actual nine fresh pin consumers + parent publication; original five-build/Clippy/artifact evidence remains separately authenticated, not recomputed or relabeled here."
+}

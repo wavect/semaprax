@@ -1,0 +1,13 @@
+{
+  "producer_head": "ef788f8237beeb16dcc1cfa9346fc1dbb6f69a4d",
+  "consumer_head": "f1b24eda3f98e19c294f50eff388f642eabc7ccb",
+  "classification": "IDENTICAL_PRODUCTION_RUST_INPUTS_EXCEPT_CFG_TEST_ONLY",
+  "changed_Rust_owners": [
+    "src/source_reflows/incoming090_semantic_receivers.rs",
+    "src/source_reflows_merge/main67107_inputs.rs",
+    "src/source_reflows_merge/ordinary_plan_inputs.rs",
+    "src/workspace_graph/type_proof_tests.rs"
+  ],
+  "proof": "source_reflows and source_reflows_merge entire modules gated cfg(test) in unchanged lib.rs; type_proof_tests gated cfg(test) in unchanged workspace_graph.rs. Other changes test owners, evidence inputs, JS fixture digest literals. EF production Clippy remains applicable; no new producer qualification claimed.",
+  "runner_sha256": "96a6601764adf5d7edf56e9a8eddd676a619c9f577ce3762e807ac15e0865225"
+}

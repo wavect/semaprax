@@ -1,0 +1,6 @@
+{
+  "status": "ACCEPT_EXACT_ACTUAL_PIN_PLANS_FOR_SOURCE_CANDIDATE",
+  "managed_plan_sha256": "a3f391d00188ff8c14557f5fd535b1be68b72b9d6081d495d4f86e7010769219",
+  "browser_plan_sha256": "f584a99feb3c5a2991008a571110f570a141dac2c19e3170e998d928dc92b592",
+  "review": "Managed one actual builder-byte total and ten artifact digests. Browser only two role-specific graph digests; project/workspace revisions unchanged. Both independent full wire restorations passed all prior scopes. No semantic fields differ after restoring classified billing and self digests. No runtime owner pass implied."
+}

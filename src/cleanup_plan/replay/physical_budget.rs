@@ -25,8 +25,104 @@ impl ReplayBudget {
         })
     }
 
+    #[cfg(not(test))]
     #[track_caller]
     pub(super) fn reserve_bytes(
+        &mut self,
+        function: &ResolvedFunction,
+        bytes: usize,
+        phase: &str,
+    ) -> Result<(), Diagnostic> {
+        if bytes == 0 {
+            // A zero request constructs nothing, so it must not bootstrap the
+            // refusal String. It consults the same payer, sticky refusal,
+            // reserved floor and refusal_spent state that a positive request
+            // would, then authenticates only. Positive requests below keep
+            // their original bootstrap and charges byte-for-byte.
+            let admitted = match self.payer {
+                AllocationPayer::LegacyUnobserved => true,
+                AllocationPayer::ActiveBuilder => {
+                    if self.refusal_spent || crate::bounded_output::active_refused() {
+                        return Err(self.budget_refusal(
+                            function,
+                            "ordinary builder already failed",
+                            "",
+                        ));
+                    }
+                    crate::bounded_output::reserve_active_required(0)
+                }
+                #[cfg(test)]
+                AllocationPayer::Oracle(lease) => {
+                    if self.refusal_spent || lease.refused() {
+                        return Err(self.budget_refusal(
+                            function,
+                            "ordinary builder already failed",
+                            "",
+                        ));
+                    }
+                    lease.charge(0).is_ok()
+                }
+                AllocationPayer::SelectedReservation => self
+                    .physical
+                    .as_deref_mut()
+                    .expect("selected reservation payer")
+                    .reserve(0)
+                    .is_ok(),
+            };
+            return if admitted {
+                Ok(())
+            } else {
+                Err(self.budget_refusal(
+                    function,
+                    "cleanup replay physical reservation exhausted during ",
+                    phase,
+                ))
+            };
+        }
+        self.prepare_builder(function)?;
+        let accepted = match self.payer {
+            AllocationPayer::LegacyUnobserved => true,
+            AllocationPayer::ActiveBuilder => {
+                !self.refusal_spent
+                    && !crate::bounded_output::active_refused()
+                    && crate::bounded_output::reserve_active_required(bytes)
+            }
+            #[cfg(test)]
+            AllocationPayer::Oracle(lease) => {
+                !self.refusal_spent && !lease.refused() && lease.charge(bytes).is_ok()
+            }
+            AllocationPayer::SelectedReservation => self
+                .physical
+                .as_deref_mut()
+                .expect("selected reservation payer")
+                .reserve(bytes)
+                .is_ok(),
+        };
+        if accepted {
+            Ok(())
+        } else {
+            Err(self.budget_refusal(
+                function,
+                "cleanup replay physical reservation exhausted during ",
+                phase,
+            ))
+        }
+    }
+
+    #[cfg(test)]
+    #[track_caller]
+    pub(super) fn reserve_bytes(
+        &mut self, function: &ResolvedFunction, bytes: usize, phase: &str,
+    ) -> Result<(), Diagnostic> {
+        let ticket = super::merge_census::before(self, function, bytes, phase);
+        let result = self.reserve_bytes_without_merge_census(function, bytes, phase);
+        super::merge_census::after(ticket, self, function, result.is_ok());
+        result
+    }
+
+    #[cfg(test)]
+    #[track_caller]
+    pub(super) fn reserve_bytes_without_merge_census(
         &mut self,
         function: &ResolvedFunction,
         bytes: usize,

@@ -1,46 +1,6 @@
 //! Content-ordered merge lookup with no cloned ownership or continuation keys.
 use super::*;
 
-// Each search pays its actual call/callback transports, then a bounded number
-// of complete borrowed comparisons. No eliminated key clone funds these roles.
-const COMPARE_CONTROLS: usize = 4 * std::mem::size_of::<&ExprSkeletonPath>()
-    + 4 * std::mem::size_of::<&Option<CleanupPlace>>()
-    + 8 * std::mem::size_of::<&bool>()
-    + 4 * std::mem::size_of::<&lexical_skeleton::Continuation>()
-    + 10 * std::mem::size_of::<std::cmp::Ordering>()
-    + 2 * std::mem::size_of::<&usize>();
-
-// Acquired for every possible input lookup BEFORE any fee-computation call.
-// Eight usize slots cover len actual/formal, bit-length conversion, callback
-// count, multiplication/addition results and the returned fee. Four u32 slots
-// cover BITS, leading_zeros actual/return and subtraction. Vec receiver borrows
-// cover len's actual/formal boundary. This tuple is control inventory only.
-pub(in crate::cleanup_plan::replay) type SearchComputation = (
-    [usize; 8], [u32; 4], &'static Vec<usize>, &'static Vec<usize>,
-);
-
-const SEARCH_BASE: usize = 2 * std::mem::size_of::<&[usize]>()
-        + 2 * std::mem::size_of::<&Vec<usize>>()
-        + 4 * std::mem::size_of::<&ExprSkeletonPath>()
-        + 2 * std::mem::size_of::<&Vec<(u32, CleanupPlace)>>()
-        + 2 * std::mem::size_of::<&Vec<(ExprSkeletonPath, Vec<Observations>)>>()
-        + 2 * std::mem::size_of::<&Vec<(CallSkeletonState, Vec<Observations>)>>()
-        + 2 * std::mem::size_of::<&Vec<(usize, Vec<Observations>)>>()
-        + 2 * std::mem::size_of::<&[ExprSkeletonPath]>()
-        + 2 * std::mem::size_of::<Result<usize, usize>>()
-        + 2 * std::mem::size_of::<Result<(), Diagnostic>>()
-        + 2 * std::mem::size_of::<(&ResolvedFunction, &mut ReplayBudget, usize, &str)>();
-const SEARCH_CALLBACK: usize = COMPARE_CONTROLS
-    + 4 * std::mem::size_of::<&Vec<(u32, CleanupPlace)>>()
-    + 2 * std::mem::size_of::<std::cmp::Ordering>();
-
-pub(in crate::cleanup_plan::replay) fn search_controls(len: usize) -> usize {
-    // All dynamic scalar roles here were acquired before this helper call.
-    // Halving callbacks plus the final comparison fit bit length plus one.
-    let callbacks = (usize::BITS - len.leading_zeros()) as usize + 1;
-    SEARCH_BASE + callbacks * SEARCH_CALLBACK
-}
-
 pub(in crate::cleanup_plan::replay) const DIRECTORY_CONTROLS: usize =
     std::mem::size_of::<Vec<usize>>()
     + 2 * std::mem::size_of::<Result<(), Diagnostic>>()
@@ -85,11 +45,7 @@ impl SkeletonWork<'_, '_> {
             DIRECTORY_CONTROLS,
             "factored borrowed merge directory",
         )?;
-        self.budget.reserve_array::<SearchComputation>(
-            self.function,
-            paths.len(),
-            "factored merge fee computation controls",
-        )?;
+        super::merge_search::initialize!(self, search);
         let mut order = Vec::<usize>::new();
         let mut groups = Vec::<Group>::new();
         for mut path in paths {
@@ -99,16 +55,13 @@ impl SkeletonWork<'_, '_> {
                 groups.push((path, Vec::new()));
                 continue;
             }
-            // Pay the borrowed search frame before creating its closure/result.
+            // The retained owner removes the closure/compound Result entirely.
             // Original materialization work was charged before any new scratch.
-            self.budget.reserve_bytes(
-                self.function,
-                search_controls(order.len()),
-                "factored borrowed merge lookup",
-            )?;
-            match order.binary_search_by(|index| compare_paths(&groups[*index].0, &path)) {
-                Ok(position) => {
-                    let index = order[position];
+            super::merge_search::search!(self, search, order,
+                super::merge_search::PATH_INDEX, super::merge_search::PATH_COMPARE,
+                compare_paths(&groups[search.group].0, &path));
+            if search.found {
+                    let index = order[search.position];
                     self.budget.reserve_vec(
                         self.function,
                         &mut groups[index].1,
@@ -116,8 +69,7 @@ impl SkeletonWork<'_, '_> {
                         "factored merge members",
                     )?;
                     groups[index].1.push(path.observations);
-                }
-                Err(position) => {
+            } else {
                     self.budget.reserve_vec(
                         self.function,
                         &mut order,
@@ -136,9 +88,8 @@ impl SkeletonWork<'_, '_> {
                         "factored first merge member",
                     )?;
                     let observations = std::mem::take(&mut path.observations);
-                    order.insert(position, groups.len());
+                    order.insert(search.position, groups.len());
                     groups.push((path, vec![observations]));
-                }
             }
         }
         self.budget.reserve_array::<ExprSkeletonPath>(
@@ -199,11 +150,7 @@ impl SkeletonWork<'_, '_> {
             DIRECTORY_CONTROLS,
             "factored borrowed merge directory",
         )?;
-        self.budget.reserve_array::<SearchComputation>(
-            self.function,
-            states.len(),
-            "factored merge fee computation controls",
-        )?;
+        super::merge_search::initialize!(self, search);
         let mut order = Vec::<usize>::new();
         let mut groups = Vec::<Group>::new();
         for (mut path, commits) in states {
@@ -219,21 +166,16 @@ impl SkeletonWork<'_, '_> {
                 groups.push(((path, commits), Vec::new()));
                 continue;
             }
-            // Pay the borrowed search frame before creating its closure/result.
+            // The retained owner removes the closure/compound Result entirely.
             // Original materialization work was charged before any new scratch.
-            self.budget.reserve_bytes(
-                self.function,
-                search_controls(order.len()),
-                "factored borrowed merge lookup",
-            )?;
-            match order.binary_search_by(|index| {
-                match compare_paths(&groups[*index].0 .0, &path) {
-                    std::cmp::Ordering::Equal => groups[*index].0 .1.cmp(&commits),
+            super::merge_search::search!(self, search, order,
+                super::merge_search::CALL_INDEX, super::merge_search::CALL_COMPARE,
+                match compare_paths(&groups[search.group].0 .0, &path) {
+                    std::cmp::Ordering::Equal => groups[search.group].0 .1.cmp(&commits),
                     other => other,
-                }
-            }) {
-                Ok(position) => {
-                    let index = order[position];
+                });
+            if search.found {
+                    let index = order[search.position];
                     self.budget.reserve_vec(
                         self.function,
                         &mut groups[index].1,
@@ -241,8 +183,7 @@ impl SkeletonWork<'_, '_> {
                         "factored call merge members",
                     )?;
                     groups[index].1.push(path.observations);
-                }
-                Err(position) => {
+            } else {
                     self.budget.reserve_vec(
                         self.function,
                         &mut order,
@@ -261,9 +202,8 @@ impl SkeletonWork<'_, '_> {
                         "factored first call member",
                     )?;
                     let observations = std::mem::take(&mut path.observations);
-                    order.insert(position, groups.len());
+                    order.insert(search.position, groups.len());
                     groups.push(((path, commits), vec![observations]));
-                }
             }
         }
         self.budget.reserve_array::<CallSkeletonState>(

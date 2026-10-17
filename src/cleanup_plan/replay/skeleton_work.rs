@@ -9,8 +9,11 @@ mod dag_storage;
 #[cfg(test)]
 mod isolated_paths;
 pub(super) mod merge_keys;
+pub(super) mod merge_search;
 #[cfg(test)]
 mod merge_keys_before;
+#[cfg(test)]
+pub(super) mod merge_keys_878;
 #[cfg(test)]
 pub(super) mod merge_keys_tests;
 #[cfg(test)]

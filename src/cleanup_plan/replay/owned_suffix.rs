@@ -35,9 +35,7 @@ pub(super) const ROW_CLONE_CONTROLS: usize =
     2 * std::mem::size_of::<(&mut SkeletonWork<'static, 'static>, &Observations, &str)>()
     + 2 * std::mem::size_of::<Result<Observations, Diagnostic>>()
     + std::mem::size_of::<Observations>()
-    // Same pre-query computation owner as merge_keys: per original suffix,
-    // acquired by dispatch before the new receiving frame moves any input.
-    + std::mem::size_of::<skeleton_work::merge_keys::SearchComputation>();
+    ; // SearchComputation is physically absent from the new lexical search.
 
 pub(super) const CONTROLS: usize = 2 * std::mem::size_of::<Vec<Observations>>()
     + 2 * std::mem::size_of::<std::vec::IntoIter<Observations>>()
@@ -158,9 +156,11 @@ fn rows(
     work.budget.reserve_bytes(
         work.function,
         2 * std::mem::size_of::<Vec<usize>>()
-            + std::mem::size_of::<Vec<(usize, Vec<Observations>)>>(),
+            + std::mem::size_of::<Vec<(usize, Vec<Observations>)>>()
+            + skeleton_work::merge_search::OWNER_CONTROLS,
         "owned suffix merge headers",
     )?;
+    skeleton_work::merge_search::construct!(search);
     let mut order = Vec::<usize>::new();
     let mut groups = Vec::<(usize, Vec<Observations>)>::new();
     for (index, observations) in copies.into_iter().enumerate() {
@@ -176,16 +176,11 @@ fn rows(
             groups.push((index, vec![observations]));
             continue;
         }
-        work.budget.reserve_bytes(
-            work.function,
-            skeleton_work::merge_keys::search_controls(order.len()),
-            "factored borrowed merge lookup",
-        )?;
-        match order.binary_search_by(|group| {
-            skeleton_work::merge_keys::compare_paths(&originals[groups[*group].0], path)
-        }) {
-            Ok(position) => {
-                let group = order[position];
+        skeleton_work::merge_search::search!(work, search, order,
+            skeleton_work::merge_search::ROW_INDEX, skeleton_work::merge_search::PATH_COMPARE,
+            skeleton_work::merge_keys::compare_paths(&originals[groups[search.group].0], path));
+        if search.found {
+                let group = order[search.position];
                 work.budget.reserve_vec(
                     work.function,
                     &mut groups[group].1,
@@ -193,8 +188,7 @@ fn rows(
                     "factored merge members",
                 )?;
                 groups[group].1.push(observations);
-            }
-            Err(position) => {
+        } else {
                 work.budget.reserve_vec(
                     work.function,
                     &mut order,
@@ -208,9 +202,8 @@ fn rows(
                     1,
                     "factored first merge member",
                 )?;
-                order.insert(position, groups.len());
+                order.insert(search.position, groups.len());
                 groups.push((index, vec![observations]));
-            }
         }
     }
     work.budget.reserve_array::<(usize, Observations)>(

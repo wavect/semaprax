@@ -1,0 +1,48 @@
+{
+  "status": "SOURCE_AUTHORED_UNREGISTERED_UNEXECUTED",
+  "new_modules": [
+    "src/cleanup_plan/replay/merge_census.rs",
+    "src/cleanup_plan/replay/owned_suffix_878.rs",
+    "src/cleanup_plan/replay/owned_suffix_878_vector.rs",
+    "src/cleanup_plan/replay/skeleton_work/merge_keys_878.rs",
+    "src/cleanup_plan/replay/skeleton_work/merge_search.rs"
+  ],
+  "checks": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::merge_census::fixed_merge_census_keeps_thirteen_cells_real_account_identity_and_checked_overflow",
+      "source_path": "src/cleanup_plan/replay/merge_census.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::skeleton_work::merge_keys_tests::retained_search_matches_whole_immediate_borrowed_predecessor_and_original_work",
+      "source_path": "src/cleanup_plan/replay/skeleton_work/merge_keys_tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::skeleton_work::merge_keys_tests::retained_search_actual_owner_query_and_step_frontiers_keep_six_fields_sticky_floor_and_drop",
+      "source_path": "src/cleanup_plan/replay/skeleton_work/merge_keys_tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::skeleton_work::merge_keys_tests::retained_merge_owner_preserves_complete_immediate_and_earlier_sources_without_hidden_callback",
+      "source_path": "src/cleanup_plan/replay/skeleton_work/merge_keys_tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::owned_suffix::tests::retained_owned_search_keeps_whole_immediate_sequence_languages_work_and_release_order",
+      "source_path": "src/cleanup_plan/replay/owned_suffix/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::owned_suffix::tests::retained_owned_search_real_receiving_frontiers_keep_full_diagnostics_sticky_floor_and_whole_drop",
+      "source_path": "src/cleanup_plan/replay/owned_suffix/tests.rs"
+    }
+  ]
+}

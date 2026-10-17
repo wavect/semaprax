@@ -1,0 +1,100 @@
+{
+  "status": "ISOLATED_SOURCE_CANDIDATE_NO_RUST_EXECUTION_OR_GAIN_CLAIM",
+  "base": "a55df7587c9701be51424b6b35d2f9e0463da843",
+  "preserved_880_pointer": "f6a8fcdcd449e40ea07cb95a337c80d1b995bd45",
+  "whole_modified_inverses": 9,
+  "whole_compiled_predecessors": [
+    "878 merge fullsource",
+    "878 owned fullsource",
+    "878 vector fullsource"
+  ],
+  "original_btree_and_borrowed_sequence_unchanged": true,
+  "old_test_prefixes_unchanged": true,
+  "all_limits_and_work_requests_unchanged": true,
+  "new_modules": [
+    "src/cleanup_plan/replay/merge_census.rs",
+    "src/cleanup_plan/replay/owned_suffix_878.rs",
+    "src/cleanup_plan/replay/owned_suffix_878_vector.rs",
+    "src/cleanup_plan/replay/skeleton_work/merge_keys_878.rs",
+    "src/cleanup_plan/replay/skeleton_work/merge_search.rs"
+  ],
+  "required_future_coupling": "All five modules raw3/strict domains/MAIN043/current source generation; no current frozen batch inclusion",
+  "source_files": [
+    {
+      "path": "CHANGELOG.md",
+      "length": 573647,
+      "sha256": "f5bc8849c04e3561afd97d59568f43a5a7fb315ed721b6c173d2f46bdf2d6b3c"
+    },
+    {
+      "path": "docs/ARCHITECTURE.md",
+      "length": 388516,
+      "sha256": "59edc70f7914acac0193eb2caa8f952307588b5e569a28856460af018a89bdfc"
+    },
+    {
+      "path": "src/cleanup_plan/replay.rs",
+      "length": 324455,
+      "sha256": "733505ad93eda40bcbfa03ed0d2978f5e1dd5f0aa93020daff78d833def3b464"
+    },
+    {
+      "path": "src/cleanup_plan/replay/owned_suffix.rs",
+      "length": 17744,
+      "sha256": "9d71911133183261947e1d5e5d2799ad013ce36d175a55792b9fcb54f6e4afdb"
+    },
+    {
+      "path": "src/cleanup_plan/replay/owned_suffix/tests.rs",
+      "length": 24167,
+      "sha256": "d4bdaeda0c1963d7f17e26be036d10614ebba322fb5d67e7b1870d7ad471e3cc"
+    },
+    {
+      "path": "src/cleanup_plan/replay/physical_budget.rs",
+      "length": 17078,
+      "sha256": "dac9954e578bb258fbd5958b1e3ca79ebe029632c5df3500d38f147b9821ed0f"
+    },
+    {
+      "path": "src/cleanup_plan/replay/skeleton_work.rs",
+      "length": 47700,
+      "sha256": "6dd9f2807059079b8cf9900d3d1831afe3ba043b0fb1131031ae97e370668dec"
+    },
+    {
+      "path": "src/cleanup_plan/replay/skeleton_work/merge_keys.rs",
+      "length": 9827,
+      "sha256": "e85085a9135effbcb6d8478ad3d09f5ab77ed3fd14b75980338f30ac3598f0ca"
+    },
+    {
+      "path": "src/cleanup_plan/replay/skeleton_work/merge_keys_tests.rs",
+      "length": 27725,
+      "sha256": "81e106885d060686b2972ad40be11e45654d0e006f56f023eda5b698b90f4b6a"
+    },
+    {
+      "path": "src/cleanup_plan/replay/merge_census.rs",
+      "length": 10742,
+      "sha256": "d9991bb46c9f8ff420b27618461fefebd5cd9e171985a8231cbe718927e0b0e6"
+    },
+    {
+      "path": "src/cleanup_plan/replay/owned_suffix_878.rs",
+      "length": 17923,
+      "sha256": "3606c1dda6c04f709baa00cd76736ec9cf300f851a6a6196fcb846ee2590d47a"
+    },
+    {
+      "path": "src/cleanup_plan/replay/owned_suffix_878_vector.rs",
+      "length": 7826,
+      "sha256": "4a21f160952bc130224bb3588093e62e59aa30496ee6510ca92ee204640dfe12"
+    },
+    {
+      "path": "src/cleanup_plan/replay/skeleton_work/merge_keys_878.rs",
+      "length": 12587,
+      "sha256": "5bf8fcef9ae00d2c1168d6a42a4b271ca694cdb5da09b7b6214aa1e6abc9d12b"
+    },
+    {
+      "path": "src/cleanup_plan/replay/skeleton_work/merge_search.rs",
+      "length": 6500,
+      "sha256": "8b48f50c0274b533ed9039ca9ba9b215dbaaddced82c34664c5842540d5fef52"
+    }
+  ],
+  "limitations": [
+    "No Cargo/rustc/test execution or measured outcome",
+    "New banks and changed pure probe schedule may regress small/all-unique inputs",
+    "All surviving owned rows/views/clone forwarding remains charged",
+    "Focused owners, all old878 acceptance controls and scoped Clippy pending"
+  ]
+}

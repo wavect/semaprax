@@ -1,0 +1,30 @@
+{
+  "status": "SOURCE_INVENTORY_NOT_A_MEASURED_BILL",
+  "owner": "One local SearchOwner: low, high, mid, group, position, found, ordering; no source/function/budget/observation binding",
+  "setup_frontier": {
+    "borrowed": "Exact old DIRECTORY_CONTROLS acquisition first. Its explicitly prepaid subsequent (budget,function,usize,str)/Result boundary funds the replacement initialize reserve_bytes call, the same ABI as removed reserve_array<SearchComputation>; no initializer funds itself.",
+    "owned": "Existing owned-row header reserve_bytes amount is enlarged by OWNER_CONTROLS after all clones and original N-work. No extra reserve/caller/function frame is introduced; construct macro is lexical.",
+    "new_headers": "OWNER_CONTROLS pays precisely two distinct new query/step primitive caller+formal tuples and returned/received Result<(),Diagnostic> per local invocation, before formation. Narrow nonrecursive lexical-site frame lifetime, success ZST, only one terminal owning error exits. This rule does not retain compound/cmp/index payloads."
+  },
+  "dynamic_query": {
+    "len": "2 &Vec<usize> actual/formal, returned usize placed in retained high field",
+    "publication_lookup": "Distinct later order[position] source site: 2 &Vec<usize>, 2 usize actual/formal indexes, returned &usize; acquired before the search and consumed only on found branch. No slot is borrowed from the midpoint operation."
+  },
+  "dynamic_each_loop_even_terminal": {
+    "order_index": "2 &Vec<usize>, 2 usize actual/formal index, returned &usize",
+    "path_index": "2 &Vec<PathGroup>, 2 usize actual/formal index, returned &PathGroup",
+    "call_index": "TWO distinct CallGroup index boundaries: path comparison, then equal-key commits. Each 2 &Vec<CallGroup>, 2 usize, returned &CallGroup. Both potential branches acquired first even when non-Equal.",
+    "row_index": "2 &Vec<RowGroup>, 2 usize, returned &RowGroup; then 2 &[ExprSkeletonPath], 2 usize, returned &ExprSkeletonPath. Other key-kind banks are not charged here.",
+    "path_compare": "Full frozen compare_paths tariff: 4 &ExprSkeletonPath, 4 &Option<CleanupPlace>, 8 &bool, 4 &Continuation, 10 Ordering returns/receivers, 2 &usize. Three distinct nested other-pattern Ordering bindings additionally paid, no return-slot alias.",
+    "call_compare_extra": "4 &Vec<Commit> actual/formal pairs, 2 Ordering commit-cmp return/receiver, distinct caller other-pattern Ordering binding",
+    "arithmetic": "Four builtin operations each two copied usize operands + result: high-low, difference/2, low+quotient, mid+1. Bound comparison two usize + bool. No Option/checked-arithmetic callback is formed; interval invariants prove no overflow for real vectors.",
+    "terminal": "Full branch inventory is acquired before low>=high; the empty sentinel and unused comparison/branch fields cost real bytes and are not refunded."
+  },
+  "physical_eliminations": [
+    "binary_search_by closure actual/formal/callback transports at all three sites",
+    "Result<usize,usize> search return/match transport at all three sites",
+    "dynamic search_controls helper SearchComputation and callback-bound arithmetic at all three sites"
+  ],
+  "not_eliminated": ["all original member/group/index/output backing and publication", "owned Vec<View> and clone/row forwarding controls", "every source-level index/compare payload", "all original observation/commit content and work/Drop ordering"],
+  "schedule": "Textbook half-open binary search preserves unique-key lookup/insertion and first-seen publication but may use a different pure comparison schedule/count than std binary_search_by. Only original N-work and later materialization/work sequence are claimed unchanged; actual census must report all differences."
+}

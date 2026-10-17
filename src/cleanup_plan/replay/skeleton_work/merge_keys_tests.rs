@@ -378,3 +378,149 @@ fn borrowed_merge_floor_foreign_frontiers_keep_six_fields_sticky_and_complete_dr
         }
     }
 }
+
+#[test]
+fn retained_search_matches_whole_immediate_borrowed_predecessor_and_original_work() {
+    for lexical in [false, true] {
+        let program = fixture(lexical); let function = &program.functions[0];
+        for count in [0, 1, 2, 7, 31, 64] { for calls in [false, true] { for selected in [false, true] {
+            let mut results = Vec::new();
+            for old in [true, false] {
+                let mut budget = if selected { ReplayBudget::with_physical(function, 1 << 26).unwrap() } else { ReplayBudget::new() };
+                budget.skeleton_remaining = MAX_REPLAY_WORK_UNITS; budget.merge_paths = true;
+                let mut work = SkeletonWork::new(&program, function, &mut budget);
+                if lexical { work.active_copy_region = Some(function.body.id.clone()); }
+                let states = inputs(function, count);
+                let result = if calls {
+                    if old { work.before878_merged_call_states(states) } else { work.merged_call_states(states) }
+                } else {
+                    let paths = states.into_iter().map(|(path, _)| path).collect();
+                    let paths = if old { work.before878_merged_paths(paths) } else { work.merged_paths(paths) }.unwrap();
+                    Ok(paths.into_iter().map(|path| (path, vec![])).collect())
+                }.unwrap();
+                results.push((snapshot(result), work.budget.remaining, work.budget.skeleton_remaining, work.budget.skeleton_spent));
+            }
+            assert_eq!(results[0], results[1], "whole878/current count={count} calls={calls} selected={selected} lexical={lexical}");
+        } } }
+    }
+}
+
+struct RetainedRun {
+    error: Option<crate::cleanup_plan::replay::merge_census::Failure>,
+    report: crate::cleanup_plan::replay::merge_census::Report,
+    admission: usize, paid: usize,
+}
+fn retained_run(program: &ResolvedProgram, calls: bool, old: bool, physical: usize, allowance: Option<usize>)
+    -> (RetainedRun, crate::test_allocation_observer::Metrics) {
+    use crate::cleanup_plan::replay::merge_census::{Scope, failure};
+    let function = &program.functions[0];
+    let ((run, metrics), _, _, _) = crate::bounded_output::with_limit_usage_refusal(1 << 28, || crate::test_allocation_observer::measure(|| {
+        let mut budget = ReplayBudget::with_physical(function, physical).unwrap();
+        budget.skeleton_remaining = MAX_REPLAY_WORK_UNITS; budget.merge_paths = true;
+        let mut work = SkeletonWork::new(program, function, &mut budget);
+        let admission = work.budget.physical.as_ref().unwrap().charged();
+        let states = inputs(function, 31);
+        if let Some(allowance) = allowance {
+            let remaining = crate::bounded_output::active_remaining().unwrap();
+            assert!(crate::bounded_output::set_active_floor(remaining.checked_sub(allowance).unwrap()));
+        }
+        let scope = Scope::enter(function, work.budget);
+        let result = if calls {
+            if old { work.before878_merged_call_states(states) } else { work.merged_call_states(states) }.map(drop)
+        } else {
+            let paths = states.into_iter().map(|(path, _)| path).collect();
+            if old { work.before878_merged_paths(paths) } else { work.merged_paths(paths) }.map(drop)
+        };
+        let error = result.as_ref().err().map(failure);
+        if let Some(first) = &error {
+            crate::bounded_output::clear_active_floor();
+            let current = crate::test_allocation_observer::current_metrics();
+            let paid = work.budget.physical.as_ref().unwrap().charged();
+            let remaining = (work.budget.remaining, work.budget.skeleton_remaining, work.budget.skeleton_spent);
+            let retry = work.budget.reserve_bytes(function, 0, "retained merge sticky retry").unwrap_err();
+            assert_eq!(failure(&retry), failure(&Diagnostic::io("SPX-H006", String::new())));
+            assert_eq!(work.budget.physical.as_ref().unwrap().charged(), paid);
+            assert_eq!((work.budget.remaining, work.budget.skeleton_remaining, work.budget.skeleton_spent), remaining);
+            assert_eq!(crate::test_allocation_observer::current_metrics(), current);
+            assert_eq!(failure(result.as_ref().err().unwrap()), *first); drop(retry);
+        }
+        let paid = work.budget.physical.as_ref().unwrap().charged() - admission;
+        let report = scope.report(); assert!(report.complete && report.foreign == 0);
+        assert_eq!(report.cells.iter().map(|cell| cell.acquired).sum::<usize>(), paid, "actual primitive acquisitions reconcile selected charged(), never unrelated ACTIVE");
+        drop(scope); crate::bounded_output::clear_active_floor();
+        work.release_observation_scratch_for_test(); drop(work); drop(budget); drop(result);
+        RetainedRun { error, report, admission, paid }
+    }));
+    assert!(!metrics.invalid); assert_eq!(metrics.live, 0); assert_eq!(metrics.allocated, metrics.freed);
+    (run, metrics)
+}
+pub(in crate::cleanup_plan::replay) fn retained_primitive_oracle(program: &ResolvedProgram, event: crate::cleanup_plan::replay::merge_census::Event,
+    physical: usize, allowance: Option<usize>) -> crate::cleanup_plan::replay::merge_census::Failure {
+    use crate::cleanup_plan::replay::merge_census::failure;
+    let function = &program.functions[0];
+    let ((saved, metrics), _, _, _) = crate::bounded_output::with_limit_usage_refusal(1 << 28, || crate::test_allocation_observer::measure(|| {
+        let mut budget = ReplayBudget::with_physical(function, physical).unwrap();
+        budget.skeleton_remaining = MAX_REPLAY_WORK_UNITS; budget.merge_paths = true;
+        let mut work = SkeletonWork::new(program, function, &mut budget);
+        if let Some(allowance) = allowance {
+            assert!(crate::bounded_output::set_active_floor(crate::bounded_output::active_remaining().unwrap() - allowance));
+        }
+        work.budget.reserve_bytes(function, event.charged_before, "independent actual merge prefix").unwrap();
+        let error = work.budget.reserve_bytes(function, event.requested, event.phase).unwrap_err();
+        let saved = failure(&error); crate::bounded_output::clear_active_floor();
+        work.release_observation_scratch_for_test(); drop(work); drop(budget); drop(error); saved
+    }));
+    assert!(!metrics.invalid); assert_eq!(metrics.live, 0); saved
+}
+#[test]
+fn retained_search_actual_owner_query_and_step_frontiers_keep_six_fields_sticky_floor_and_drop() {
+    let program = fixture(false);
+    for calls in [false, true] {
+        let (success, metrics) = retained_run(&program, calls, false, 1 << 26, None);
+        assert!(success.error.is_none());
+        let (old, old_metrics) = retained_run(&program, calls, true, 1 << 26, None);
+        assert!(old.error.is_none());
+        eprintln!("OPT881 borrowed calls={calls}: whole878 paid={} heap={} peak={}; retained paid={} heap={} peak={}; old/new census={:?}/{:?}; no application-fit inference", old.paid, old_metrics.allocated, old_metrics.highwater, success.paid, metrics.allocated, metrics.highwater, old.report.cells, success.report.cells);
+        for category in [1, 2, 3] {
+            for event in [success.report.first[category].unwrap(), success.report.last[category].unwrap()] {
+                assert!(event.requested > 0);
+                let before = success.admission + event.charged_before;
+                let (short, _) = retained_run(&program, calls, false, before + event.requested - 1, None);
+                assert_eq!(short.error.unwrap(), retained_primitive_oracle(&program, event, before + event.requested - 1, None));
+                let (exact, _) = retained_run(&program, calls, false, before + event.requested, None);
+                assert!(exact.paid >= event.charged_before + event.requested);
+                let floor = event.charged_before + event.requested - 1;
+                let (floored, _) = retained_run(&program, calls, false, 1 << 26, Some(floor));
+                assert_eq!(floored.error.unwrap(), retained_primitive_oracle(&program, event, 1 << 26, Some(floor)));
+            }
+        }
+        let (zero, _) = retained_run(&program, calls, false, 1 << 26, Some(0));
+        assert!(zero.error.is_some()); assert_eq!(zero.paid, 0);
+    }
+}
+
+#[test]
+fn retained_merge_owner_preserves_complete_immediate_and_earlier_sources_without_hidden_callback() {
+    let original = include_str!("../../../../docs/evidence/opt881-retained-merge-owner-20261017/before/src/cleanup_plan/replay/skeleton_work/merge_keys.rs");
+    let mut complete = include_str!("merge_keys_878.rs").to_owned();
+    for name in ["merged_paths", "merged_suffixes", "merged_call_states"] {
+        let before = format!("before878_{name}("); let after = format!("{name}(");
+        assert!(complete.contains(&before)); complete = complete.replace(&before, &after);
+    }
+    assert_eq!(complete, original, "complete immediate bodies and prices, no dispatch into new search");
+    assert_eq!(include_str!("merge_keys_before.rs"), include_str!("../../../../docs/evidence/opt881-retained-merge-owner-20261017/before/src/cleanup_plan/replay/skeleton_work/merge_keys_before.rs"));
+    let current = include_str!("merge_keys.rs"); assert!(!current.contains(".binary_search_by("));
+    assert_eq!(current.matches("super::merge_search::search!(").count(), 2);
+    let owned = include_str!("../owned_suffix.rs"); assert!(!owned.contains(".binary_search_by("));
+    assert_eq!(owned.matches("skeleton_work::merge_search::search!(").count(), 1);
+    let original_owned = include_str!("../../../../docs/evidence/opt881-retained-merge-owner-20261017/before/src/cleanup_plan/replay/owned_suffix.rs");
+    let mut owned = include_str!("../owned_suffix_878.rs").to_owned();
+    for (before, after) in [
+        ("#[path = \"owned_suffix_878_vector.rs\"]\nmod sequence_vector;", "mod sequence_vector;\n#[cfg(test)]\nmod tests;\n#[cfg(test)]\nmod before;"),
+        ("$crate::cleanup_plan::replay::owned_suffix_878::", "$crate::cleanup_plan::replay::owned_suffix::"),
+        ("work.before878_merged_paths(", "work.merged_paths("),
+        ("skeleton_work::merge_keys_878::", "skeleton_work::merge_keys::"),
+    ] { assert!(owned.contains(before)); owned = owned.replace(before, after); }
+    assert_eq!(owned, original_owned, "complete whole immediate owned producer/dispatch/prices");
+    assert_eq!(include_str!("../owned_suffix_878_vector.rs").replace("::owned_suffix_878::sequence_vector::", "::owned_suffix::sequence_vector::"), include_str!("../owned_suffix/sequence_vector.rs"));
+}

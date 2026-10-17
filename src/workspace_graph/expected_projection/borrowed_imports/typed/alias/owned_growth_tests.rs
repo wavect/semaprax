@@ -225,7 +225,10 @@ fn borrowed_owned_mixed_and_synthetic_main_keep_zero_or_original_capacity_and_fu
                             crate::workspace_graph::reserve_builder_structure).unwrap().0;
                         (expected, actual)
                     }
-                    other => panic!("old/current historical outcome changed: {other:?}"),
+                    other => panic!(
+                        "old/current historical outcome changed: {:?}",
+                        (other.0.as_ref().map(|_| ()), other.1.as_ref().map(|_| ()))
+                    ),
                 };
                 assert_eq!(expected, actual);
                 crate::hir::validate(&actual).unwrap();

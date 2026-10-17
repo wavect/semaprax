@@ -44,10 +44,35 @@ inputs from their inverse packets. No Cargo, rustc, test executable, benchmark,
 codec/catalog runtime, or full quality profile ran in this lane. Source parsing
 and inverse reconstruction do not establish type correctness or runtime parity.
 
+A followup repairs the caller frontier: binding-free dispatch matches the
+already received budget place; selector/producer/owned-comparator argument,
+formal and Result receivers are acquired lexically before their calls. The
+redundant producer forwarding frame is removed. Numeric queue tuples and output
+paths have separately named actual/formal receiver payments before formation.
+Nested sift/order/cursor calls are also caller-paid. Forward cursor traversal
+has independent additive work, including crossing exhausted segments.
+
+The added fixed-buffer observer records only the actual production reservation
+frontiers and swap count. It grants no ledger authority. Authored reruns target
+first/later arena growth, short tails, queue/output headers, both cursor backing
+allocations, every new call frame and a comparator after an in-place sort swap.
+Each uses exact, one-short, zero-remaining and held-floor limits, compares all
+six repeated Diagnostic fields and first-refusal receipts, checks sticky zero
+without refund, and observes complete teardown of the partial arena/queue/path
+set. The broader corpus covers grouped owned calls, owner transfers, same-owner
+vector renewal, owned/Copy Result and Option residuals, scalar matches and
+branch/ownership mutations against the complete independent flat predecessor.
+All these Rust controls remain unrun.
+
+The source packets now have fixed compiled byte lengths, SHA-256 seals and a
+2 MiB cap checked before serde parsing. Newly added source-custody controls read
+compile-time source strings under the same cap. `bind_sources.py` is the portable
+full-original/inverse/seal recipe; it does not compile or execute the language.
+
 Required integrated verification still includes the existing exact codec808 and
 23-case catalog owners, independent backend branches, original hostile/source
-custody gates, broad owned-transition/status/renewal cases, individual node/tail/
-queue/cursor injected allocation frontiers, independent review, source-receipt
+custody gates, execution of the owned-transition/status/renewal corpus and the
+individual node/tail/queue/cursor allocation controls, independent review, source-receipt
 census and the unchanged complete quality profile. Requested-layout observer
 controls are authored but unrun. Actual application debit, peak/RSS and net
 savings are unknown; there is no support promotion or claim of application fit.

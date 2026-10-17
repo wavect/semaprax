@@ -2781,10 +2781,34 @@ fn validate_typed_control_skeleton_with_index<'hir>(
     }
     let mut expected =
         hir_skeleton_paths_with_index_storage(program, function, budget, helpers, continuations)?;
-    if ordinary_plan_history::select(function, budget)? {
-        let actual = ordinary_plan_history::produce(function, budget)?;
-        expected.sort();
-        return ordinary_plan_history::compare(function, budget, actual, &expected);
+    // Match the existing received reference, with no new payer/tag/flag carrier.
+    match budget {
+        ReplayBudget {
+            payer: AllocationPayer::ActiveBuilder,
+            ..
+        } => {
+            budget.reserve_bytes(
+                function,
+                ordinary_plan_history::SELECT_CALL_CONTROLS,
+                "ordinary plan history selector call receivers",
+            )?;
+            if ordinary_plan_history::select(function, budget)? {
+                budget.reserve_bytes(
+                    function,
+                    ordinary_plan_history::PRODUCE_CALL_CONTROLS,
+                    "ordinary plan history producer call receivers",
+                )?;
+                let actual = ordinary_plan_history::produce(function, budget)?;
+                expected.sort();
+                budget.reserve_bytes(
+                    function,
+                    ordinary_plan_history::COMPARE_CALL_CONTROLS,
+                    "ordinary plan history owned comparison call receivers",
+                )?;
+                return ordinary_plan_history::compare(function, budget, actual, &expected);
+            }
+        }
+        _ => {}
     }
     let mut actual = plan_skeleton_paths(function, budget)?;
     expected.sort();

@@ -1,26 +1,27 @@
 //! Complete independent plan walk with moved persistent branch tails.
 use super::*;
 
-pub(super) fn produce(
+pub(in crate::cleanup_plan::replay) fn produce(
     function: &ResolvedFunction,
     budget: &mut ReplayBudget,
 ) -> Result<HistorySet, Diagnostic> {
+    paid!(
+        budget,
+        function,
+        PRODUCER_CONTROLS,
+        "ordinary plan history producer controls"
+    )?;
     if !eligible(function, budget) {
         return Err(replay_error(
             function,
             "ordinary plan history owner is unavailable",
         ));
     }
-    budget.reserve_bytes(
-        function,
-        PRODUCER_CONTROLS,
-        "ordinary plan history producer controls",
-    )?;
     let mut arena = Vec::new();
     let mut max_depth = 0;
     let plan = &function.cleanup_plan;
     let mut queue = VecDeque::new();
-    skeleton_queue_push(
+    history_queue!(
         budget,
         function,
         &mut queue,
@@ -234,7 +235,7 @@ pub(super) fn produce(
                         "plan final variant observation push",
                     )?;
                 }
-                skeleton_queue_push(
+                history_queue!(
                     budget,
                     function,
                     &mut queue,
@@ -253,10 +254,11 @@ pub(super) fn produce(
                     note_skeleton_materialization();
                     budget.charge_skeleton(function, 1, "plan branch observation push")?;
                     note_skeleton_materialization();
-                    budget.reserve_bytes(
+                    paid!(
+                        budget,
                         function,
                         BRANCH_CONTROLS,
-                        "ordinary plan history branch controls",
+                        "ordinary plan history branch controls"
                     )?;
                     budget.charge(function, 1, "ordinary plan history branch bookkeeping")?;
                     if !observations.tail.is_empty() {
@@ -272,11 +274,12 @@ pub(super) fn produce(
                                 "",
                             )
                         })?;
-                        budget.reserve_vec(
+                        backing!(
+                            budget,
                             function,
                             &mut arena,
                             1,
-                            "ordinary plan history arena growth",
+                            "ordinary plan history arena growth"
                         )?;
                         let index = arena.len();
                         let items = std::mem::take(&mut observations.tail);
@@ -292,11 +295,12 @@ pub(super) fn produce(
                         previous: observations.previous,
                         tail: Vec::new(),
                     };
-                    budget.reserve_vec(
+                    backing!(
+                        budget,
                         function,
                         &mut branch.tail,
                         1,
-                        "plan branch observation push",
+                        "plan branch observation push"
                     )?;
                     budget.reserve_bytes(
                         function,
@@ -306,7 +310,7 @@ pub(super) fn produce(
                         "plan branch observation push",
                     )?;
                     branch.tail.push(observation.into());
-                    skeleton_queue_push(
+                    history_queue!(
                         budget,
                         function,
                         &mut queue,
@@ -331,7 +335,7 @@ pub(super) fn produce(
                                 "plan lexical exit observation push",
                             )?;
                         }
-                        skeleton_queue_push(
+                        history_queue!(
                             budget,
                             function,
                             &mut queue,
@@ -361,14 +365,14 @@ pub(super) fn produce(
                             "plan loop-latch observation push",
                         )?;
                         match lexical_cert::latch_resume(plan, exit.id) {
-                            Some(entry) => skeleton_queue_push(
+                            Some(entry) => history_queue!(
                                 budget,
                                 function,
                                 &mut queue,
                                 (entry, observations),
                                 "plan generated-latch state push",
                             )?,
-                            None => skeleton_push(
+                            None => history_path!(
                                 budget,
                                 function,
                                 &mut paths,
@@ -381,7 +385,7 @@ pub(super) fn produce(
                         }
                     }
                     ExitContinuation::Continue(edge) => {
-                        skeleton_queue_push(
+                        history_queue!(
                             budget,
                             function,
                             &mut queue,
@@ -390,7 +394,7 @@ pub(super) fn produce(
                         )?;
                     }
                     ExitContinuation::CommitResult { .. } | ExitContinuation::ReturnUnit => {
-                        skeleton_push(
+                        history_path!(
                             budget,
                             function,
                             &mut paths,
@@ -401,7 +405,7 @@ pub(super) fn produce(
                             "plan success path push",
                         )?;
                     }
-                    ExitContinuation::ReturnFailure { .. } => skeleton_push(
+                    ExitContinuation::ReturnFailure { .. } => history_path!(
                         budget,
                         function,
                         &mut paths,

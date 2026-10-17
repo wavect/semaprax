@@ -1,16 +1,15 @@
 {
-  "base": "c8740045e33126a4375aadd1dc524a25be9245fc",
   "path": "src/cleanup_plan/replay.rs",
   "before_sha256": "6db5b0ed361258023e3d7cad058c3de6d737b416b67e98e7113ecb0a993c86c1",
-  "after_sha256": "5404649b780c3127c9d89f96693d45efef9cf961d7a4212a7de26e11b54519fe",
+  "after_sha256": "458260e9a3d66601d731b7bad8737efdfd5a4deb4e52bbb07adf0f0af150777b",
   "inverse": [
     {
-      "after": "mod ordinary_plan_history;\n",
-      "before": ""
+      "after": "    let mut expected =\n        hir_skeleton_paths_with_index_storage(program, function, budget, helpers, continuations)?;\n    // Match the existing received reference, with no new payer/tag/flag carrier.\n    match budget {\n        ReplayBudget {\n            payer: AllocationPayer::ActiveBuilder,\n            ..\n        } => {\n            budget.reserve_bytes(\n                function,\n                ordinary_plan_history::SELECT_CALL_CONTROLS,\n                \"ordinary plan history selector call receivers\",\n            )?;\n            if ordinary_plan_history::select(function, budget)? {\n                budget.reserve_bytes(\n                    function,\n                    ordinary_plan_history::PRODUCE_CALL_CONTROLS,\n                    \"ordinary plan history producer call receivers\",\n                )?;\n                let actual = ordinary_plan_history::produce(function, budget)?;\n                expected.sort();\n                budget.reserve_bytes(\n                    function,\n                    ordinary_plan_history::COMPARE_CALL_CONTROLS,\n                    \"ordinary plan history owned comparison call receivers\",\n                )?;\n                return ordinary_plan_history::compare(function, budget, actual, &expected);\n            }\n        }\n        _ => {}\n    }\n    let mut actual = plan_skeleton_paths(function, budget)?;\n    expected.sort();\n",
+      "before": "    let mut expected =\n        hir_skeleton_paths_with_index_storage(program, function, budget, helpers, continuations)?;\n    let mut actual = plan_skeleton_paths(function, budget)?;\n    expected.sort();\n"
     },
     {
-      "after": "    if ordinary_plan_history::select(function, budget)? {\n        let actual = ordinary_plan_history::produce(function, budget)?;\n        expected.sort();\n        return ordinary_plan_history::compare(function, budget, actual, &expected);\n    }\n",
-      "before": ""
+      "after": "mod inventory_coverage;\npub(in crate::cleanup_plan) mod ordinary_status;\nmod ordinary_plan_history;\nmod physical_budget;\nmod physical_clone;\n",
+      "before": "mod inventory_coverage;\npub(in crate::cleanup_plan) mod ordinary_status;\nmod physical_budget;\nmod physical_clone;\n"
     }
   ]
 }

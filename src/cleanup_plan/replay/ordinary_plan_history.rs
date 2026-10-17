@@ -4,13 +4,103 @@ use std::cmp::Ordering;
 use std::mem::size_of;
 use std::rc::Rc;
 mod producer;
-use producer::produce as produce_inner;
+pub(super) use producer::produce;
 #[cfg(test)]
 mod before;
+#[cfg(test)]
+mod frontier_tests;
+#[cfg(test)]
+mod frontiers;
+#[cfg(test)]
+mod owned_tests;
 #[cfg(test)]
 pub(crate) mod source_custody;
 #[cfg(test)]
 mod tests;
+
+macro_rules! paid {
+    ($budget:expr, $function:expr, $bytes:expr, $phase:literal $(,)?) => {{
+        #[cfg(not(test))]
+        {
+            $budget.reserve_bytes($function, $bytes, $phase)
+        }
+        #[cfg(test)]
+        {
+            frontiers::before($phase);
+            let result = $budget.reserve_bytes($function, $bytes, $phase);
+            if result.is_ok() {
+                frontiers::after();
+            }
+            result
+        }
+    }};
+}
+macro_rules! backing {
+    ($budget:expr, $function:expr, $values:expr, $additional:expr, $phase:literal $(,)?) => {{
+        #[cfg(not(test))]
+        {
+            $budget.reserve_vec($function, $values, $additional, $phase)
+        }
+        #[cfg(test)]
+        {
+            frontiers::before($phase);
+            let result = $budget.reserve_vec($function, $values, $additional, $phase);
+            if result.is_ok() {
+                frontiers::after();
+            }
+            result
+        }
+    }};
+}
+macro_rules! history_queue {
+    ($budget:expr, $function:expr, $queue:expr, $value:expr, $phase:literal $(,)?) => {{
+        // The larger owned tuple actual and helper formal exist before the
+        // generic queue callee can charge backing; acquire both here.
+        paid!(
+            $budget,
+            $function,
+            QUEUE_RECEIVERS,
+            "ordinary plan history queue receivers"
+        )?;
+        #[cfg(not(test))]
+        {
+            skeleton_queue_push($budget, $function, $queue, $value, $phase)
+        }
+        #[cfg(test)]
+        {
+            frontiers::before($phase);
+            let result = skeleton_queue_push($budget, $function, $queue, $value, $phase);
+            if result.is_ok() {
+                frontiers::after();
+            }
+            result
+        }
+    }};
+}
+
+macro_rules! history_path {
+    ($budget:expr, $function:expr, $paths:expr, $value:expr, $phase:literal $(,)?) => {{
+        paid!(
+            $budget,
+            $function,
+            PATH_RECEIVERS,
+            "ordinary plan history path receivers"
+        )?;
+        #[cfg(not(test))]
+        {
+            skeleton_push($budget, $function, $paths, $value, $phase)
+        }
+        #[cfg(test)]
+        {
+            frontiers::before($phase);
+            let result = skeleton_push($budget, $function, $paths, $value, $phase);
+            if result.is_ok() {
+                frontiers::after();
+            }
+            result
+        }
+    }};
+}
 
 struct Segment {
     previous: Option<usize>,
@@ -31,6 +121,35 @@ pub(super) struct HistorySet {
     max_depth: usize,
 }
 
+// Exact new owned receiver types. The predecessor used
+// `(BlockId, Vec<Rc<SkeletonObservation>>)` and `SkeletonPath` at these same
+// actual/formal boundaries. Their work/payment calls remain independent;
+// no spare scalar/segment controls are credited toward these wider headers.
+const QUEUE_RECEIVERS: usize = 2 * size_of::<(BlockId, History)>() // owned actual + formal tuple
+    + 2 * size_of::<&mut VecDeque<(BlockId, History)>>() // queue actual/formal
+    + 2 * size_of::<&mut ReplayBudget>() + 2 * size_of::<&ResolvedFunction>()
+    + 2 * size_of::<&str>() + size_of::<Result<(), Diagnostic>>();
+const PATH_RECEIVERS: usize = 2 * size_of::<PlanPath>() // owned actual + formal path
+    + 2 * size_of::<&mut Vec<PlanPath>>() // output actual/formal
+    + 2 * size_of::<&mut ReplayBudget>() + 2 * size_of::<&ResolvedFunction>()
+    + 2 * size_of::<&str>() + size_of::<Result<(), Diagnostic>>();
+
+// Lexical call-frontier census: actual and formal references are distinct
+// receiver roles; Result and its named successful receiver are also distinct.
+pub(super) const SELECT_CALL_CONTROLS: usize = 2 * size_of::<&ResolvedFunction>() // caller actual + select formal function
+    + 2 * size_of::<&mut ReplayBudget>() // actual + select formal budget
+    + size_of::<Result<bool, Diagnostic>>() // returned selector Result
+    + size_of::<bool>(); // root condition successful-value receiver
+pub(super) const PRODUCE_CALL_CONTROLS: usize = 2 * size_of::<&ResolvedFunction>() // actual + producer formal function
+    + 2 * size_of::<&mut ReplayBudget>() // actual + producer formal budget
+    + size_of::<Result<HistorySet, Diagnostic>>() // producer return Result
+    + size_of::<HistorySet>(); // root's actual binding before owned transfer
+pub(super) const COMPARE_CALL_CONTROLS: usize = 2 * size_of::<&ResolvedFunction>() // actual + compare formal function
+    + 2 * size_of::<&mut ReplayBudget>() // actual + compare formal budget
+    + 2 * size_of::<HistorySet>() // moved argument + owned compare formal
+    + 2 * size_of::<&[SkeletonPath]>() // expected actual slice + formal slice
+    + size_of::<Result<(), Diagnostic>>(); // root return receiver
+
 // Actual local aggregate/return, queue, loop and payment receivers. Nested
 // backing is paid separately; moving a tail never refunds its original debit.
 const PRODUCER_CONTROLS: usize = size_of::<HistorySet>()
@@ -40,29 +159,29 @@ const PRODUCER_CONTROLS: usize = size_of::<HistorySet>()
     + size_of::<History>()
     + size_of::<PlanPath>()
     + size_of::<Result<(), Diagnostic>>()
-    + 4 * size_of::<usize>()
-    + 4 * size_of::<&ResolvedFunction>()
-    + 4 * size_of::<&mut ReplayBudget>()
-    + 4 * size_of::<&str>();
+    + 4 * size_of::<usize>() // max_depth, block index, root index, control price
+    + 4 * size_of::<&ResolvedFunction>() // eligibility actual/formal + payment actual/formal
+    + 4 * size_of::<&mut ReplayBudget>() // eligibility actual/formal + payment actual/formal
+    + 4 * size_of::<&str>(); // payment/work actual/formal phase receivers
 const BRANCH_CONTROLS: usize = size_of::<Segment>()
     + size_of::<History>()
     + size_of::<Option<usize>>()
-    + 8 * size_of::<usize>()
-    + 6 * size_of::<Result<(), Diagnostic>>()
-    + 6 * size_of::<&mut ReplayBudget>()
-    + 6 * size_of::<&ResolvedFunction>()
-    + 6 * size_of::<&str>()
-    + 3 * size_of::<&mut Vec<Segment>>()
-    + size_of::<&Rc<SkeletonObservation>>()
-    + 2 * size_of::<bool>();
-const SELECT_CONTROLS: usize = 3 * size_of::<&ResolvedFunction>()
-    + 6 * size_of::<bool>()
-    + 2 * size_of::<usize>()
-    + size_of::<Result<bool, Diagnostic>>()
-    + size_of::<Result<(), Diagnostic>>()
-    + size_of::<&ResolvedFunction>()
-    + size_of::<&mut ReplayBudget>()
-    + size_of::<&str>();
+    + 8 * size_of::<usize>() // old depth, new depth, index, arena len, max depth, tail len, addition, price
+    + 6 * size_of::<Result<(), Diagnostic>>() // controls/work/arena/tail/zero/conversion Results
+    + 6 * size_of::<&mut ReplayBudget>() // corresponding payment/work budget receivers
+    + 6 * size_of::<&ResolvedFunction>() // corresponding live function receivers
+    + 6 * size_of::<&str>() // corresponding static phase receivers
+    + 3 * size_of::<&mut Vec<Segment>>() // arena reserve actual/formal + push receiver
+    + size_of::<&Rc<SkeletonObservation>>() // observation conversion census receiver
+    + 2 * size_of::<bool>(); // nonempty-tail predicate and depth/max comparison
+const SELECT_CONTROLS: usize = 3 * size_of::<&ResolvedFunction>() // eligibility actual/formal + block query
+    + 6 * size_of::<bool>() // five eligibility predicates + structural branch result
+    + 2 * size_of::<usize>() // block length and scan-work amount
+    + size_of::<Result<bool, Diagnostic>>() // selector's own returned Result
+    + size_of::<Result<(), Diagnostic>>() // local payment/work Result
+    + size_of::<&ResolvedFunction>() // local payment function receiver
+    + size_of::<&mut ReplayBudget>() // local payment budget receiver
+    + size_of::<&str>(); // local static payment/work phase receiver
 
 fn eligible(function: &ResolvedFunction, budget: &ReplayBudget) -> bool {
     budget.admission == AdmissionMode::Ordinary
@@ -95,17 +214,6 @@ pub(super) fn select(
     Ok(function.cleanup_plan.blocks.iter().any(
         |block| matches!(&block.terminator, CleanupTerminator::Branch(edges) if edges.len() > 1),
     ))
-}
-pub(super) fn produce(
-    function: &ResolvedFunction,
-    budget: &mut ReplayBudget,
-) -> Result<HistorySet, Diagnostic> {
-    budget.reserve_bytes(
-        function,
-        size_of::<Result<HistorySet, Diagnostic>>() + size_of::<HistorySet>(),
-        "ordinary plan history caller receivers",
-    )?;
-    produce_inner(function, budget)
 }
 
 struct Cursor {
@@ -163,19 +271,29 @@ impl Cursor {
         &mut self,
         history: &'a History,
         arena: &'a [Segment],
-    ) -> Option<&'a SkeletonObservation> {
+        function: &ResolvedFunction,
+        budget: &mut ReplayBudget,
+    ) -> Result<Option<&'a SkeletonObservation>, Diagnostic> {
+        budget.charge(function, 1, "ordinary plan history forward cursor step")?;
         while self.segment < self.links.len() {
+            budget.charge(
+                function,
+                1,
+                "ordinary plan history forward segment traversal",
+            )?;
             let items = &arena[self.links[self.links.len() - self.segment - 1]].items;
             if let Some(value) = items.get(self.item) {
                 self.item += 1;
-                return Some(value);
+                return Ok(Some(value));
             }
             self.segment += 1;
             self.item = 0;
         }
-        let value = history.tail.get(self.item)?;
-        self.item += 1;
-        Some(value)
+        let value = history.tail.get(self.item);
+        if value.is_some() {
+            self.item += 1;
+        }
+        Ok(value.map(|value| value.as_ref()))
     }
 }
 
@@ -196,6 +314,54 @@ const COMPARE_CONTROLS: usize = 2 * size_of::<Cursor>()
     + size_of::<Option<usize>>()
     + size_of::<Ordering>();
 
+// Caller-paid frames: all actual + formal reference receivers, scalar
+// arguments, returned Results and named successful-value receivers.
+const ORDER_CALL: usize = 4 * size_of::<&PlanPath>() // two actuals + two formals
+    + 2 * size_of::<&[Segment]>() // arena actual/formal
+    + 2 * size_of::<&mut [Cursor; 2]>() // cursor pair actual/formal
+    + 2 * size_of::<&ResolvedFunction>() + 2 * size_of::<&mut ReplayBudget>()
+    + size_of::<Result<Ordering, Diagnostic>>() + size_of::<Ordering>();
+const SIFT_CALL: usize = 2 * size_of::<&mut [PlanPath]>() // paths actual/formal
+    + 2 * size_of::<&[Segment]>() // arena actual/formal
+    + 4 * size_of::<usize>() // root/end actuals + formals
+    + 2 * size_of::<&mut [Cursor; 2]>() // cursor pair actual/formal
+    + 2 * size_of::<&ResolvedFunction>() + 2 * size_of::<&mut ReplayBudget>()
+    + size_of::<Result<(), Diagnostic>>();
+const PREPARE_CALL: usize = 2 * size_of::<&mut Cursor>()
+    + 2 * size_of::<&History>()
+    + 2 * size_of::<&[Segment]>()
+    + 2 * size_of::<&ResolvedFunction>()
+    + 2 * size_of::<&mut ReplayBudget>()
+    + size_of::<Result<(), Diagnostic>>();
+const NEXT_CALL: usize = 2 * size_of::<&mut Cursor>()
+    + 2 * size_of::<&History>() + 2 * size_of::<&[Segment]>()
+    + 2 * size_of::<&ResolvedFunction>() + 2 * size_of::<&mut ReplayBudget>()
+    + size_of::<Result<Option<&SkeletonObservation>, Diagnostic>>() // fallible forward step return
+    + size_of::<Option<&SkeletonObservation>>(); // named successful item receiver
+
+macro_rules! paid_order {
+    ($a:expr, $b:expr, $arena:expr, $cursors:expr, $function:expr, $budget:expr $(,)?) => {{
+        paid!(
+            $budget,
+            $function,
+            ORDER_CALL,
+            "ordinary plan history order call"
+        )?;
+        order($a, $b, $arena, $cursors, $function, $budget)
+    }};
+}
+macro_rules! paid_sift {
+    ($paths:expr, $arena:expr, $root:expr, $end:expr, $cursors:expr, $function:expr, $budget:expr $(,)?) => {{
+        paid!(
+            $budget,
+            $function,
+            SIFT_CALL,
+            "ordinary plan history sift call"
+        )?;
+        sift($paths, $arena, $root, $end, $cursors, $function, $budget)
+    }};
+}
+
 fn order(
     a: &PlanPath,
     b: &PlanPath,
@@ -204,17 +370,36 @@ fn order(
     function: &ResolvedFunction,
     budget: &mut ReplayBudget,
 ) -> Result<Ordering, Diagnostic> {
-    budget.reserve_bytes(
+    paid!(
+        budget,
         function,
         COMPARE_CONTROLS,
-        "ordinary plan history comparison receivers",
+        "ordinary plan history comparison receivers"
+    )?;
+    paid!(
+        budget,
+        function,
+        PREPARE_CALL,
+        "ordinary plan history left cursor prepare"
     )?;
     cursors[0].prepare(&a.history, arena, function, budget)?;
+    paid!(
+        budget,
+        function,
+        PREPARE_CALL,
+        "ordinary plan history right cursor prepare"
+    )?;
     cursors[1].prepare(&b.history, arena, function, budget)?;
     loop {
         budget.charge(function, 1, "ordinary plan history observation comparison")?;
-        let left = cursors[0].next(&a.history, arena);
-        let right = cursors[1].next(&b.history, arena);
+        paid!(
+            budget,
+            function,
+            2 * NEXT_CALL,
+            "ordinary plan history paired cursor next"
+        )?;
+        let left = cursors[0].next(&a.history, arena, function, budget)?;
+        let right = cursors[1].next(&b.history, arena, function, budget)?;
         match (left, right) {
             (Some(left), Some(right)) => {
                 let cmp = left.cmp(right);
@@ -239,10 +424,11 @@ fn sift(
     function: &ResolvedFunction,
     budget: &mut ReplayBudget,
 ) -> Result<(), Diagnostic> {
-    budget.reserve_bytes(
+    paid!(
+        budget,
         function,
         COMPARE_CONTROLS,
-        "ordinary plan history sort receivers",
+        "ordinary plan history sort receivers"
     )?;
     loop {
         budget.charge(function, 1, "ordinary plan history sort traversal")?;
@@ -252,7 +438,7 @@ fn sift(
         }
         let mut child = root * 2 + 1;
         if child + 1 < end
-            && order(
+            && paid_order!(
                 &paths[child],
                 &paths[child + 1],
                 arena,
@@ -263,7 +449,7 @@ fn sift(
         {
             child += 1;
         }
-        if order(
+        if paid_order!(
             &paths[root],
             &paths[child],
             arena,
@@ -275,6 +461,8 @@ fn sift(
             return Ok(());
         }
         paths.swap(root, child);
+        #[cfg(test)]
+        frontiers::swapped();
         root = child;
     }
 }
@@ -285,10 +473,11 @@ pub(super) fn compare(
     mut actual: HistorySet,
     expected: &[SkeletonPath],
 ) -> Result<(), Diagnostic> {
-    budget.reserve_bytes(
+    paid!(
+        budget,
         function,
         COMPARE_CONTROLS + size_of::<HistorySet>(),
-        "ordinary plan history comparator controls",
+        "ordinary plan history comparator controls"
     )?;
     let mut cursors = [
         Cursor {
@@ -303,16 +492,17 @@ pub(super) fn compare(
         },
     ];
     for cursor in &mut cursors {
-        budget.reserve_vec(
+        backing!(
+            budget,
             function,
             &mut cursor.links,
             actual.max_depth,
-            "ordinary plan history cursor backing",
+            "ordinary plan history cursor backing"
         )?;
     }
     let len = actual.paths.len();
     for root in (0..len / 2).rev() {
-        sift(
+        paid_sift!(
             &mut actual.paths,
             &actual.arena,
             root,
@@ -324,7 +514,9 @@ pub(super) fn compare(
     }
     for end in (1..len).rev() {
         actual.paths.swap(0, end);
-        sift(
+        #[cfg(test)]
+        frontiers::swapped();
+        paid_sift!(
             &mut actual.paths,
             &actual.arena,
             0,
@@ -344,12 +536,24 @@ pub(super) fn compare(
         return Err(mismatch());
     }
     for (path, flat) in actual.paths.iter().zip(expected) {
+        paid!(
+            budget,
+            function,
+            PREPARE_CALL,
+            "ordinary plan history HIR cursor prepare"
+        )?;
         cursors[0].prepare(&path.history, &actual.arena, function, budget)?;
         let mut index = 0;
         loop {
             budget.charge(function, 1, "ordinary plan history HIR comparison")?;
+            paid!(
+                budget,
+                function,
+                NEXT_CALL,
+                "ordinary plan history HIR cursor next"
+            )?;
             match (
-                cursors[0].next(&path.history, &actual.arena),
+                cursors[0].next(&path.history, &actual.arena, function, budget)?,
                 flat.observations.get(index),
             ) {
                 (Some(left), Some(right)) if left == right.as_ref() => {

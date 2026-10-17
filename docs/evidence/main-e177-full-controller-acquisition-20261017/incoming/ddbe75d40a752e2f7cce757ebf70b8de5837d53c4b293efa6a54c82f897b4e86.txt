@@ -1,0 +1,5 @@
+{
+  "compile_rejected": true,
+  "diagnostic": "E0592",
+  "scope": "Restoring only the older method identifier in the capsule with BOTH complete real reference bodies reproduces the actual hosted duplicate-definition error. Fixed capsule passes Rust1.88/1.98."
+}

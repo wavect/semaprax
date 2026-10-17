@@ -1,0 +1,5 @@
+{
+  "compile_peak_KiB": 137296,
+  "run_peak_KiB": 6064,
+  "scope": "Complete actual current historical bridge, all unchanged default-compiled preceding bridge modules and all their owning assertions; actual outer digest normalization function, realSHA2/serde_json/digesthex and complete wire subjects. Does not execute browser or compiler."
+}

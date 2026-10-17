@@ -1,0 +1,58 @@
+[
+  {
+    "package": "semaprax",
+    "kind": "test",
+    "target": "wasm",
+    "selector": "scalar_browser_ci_contract::historical_builder::main7d34_browser_bridge_preserves_three_complete_trees_and_raw_role_refusals",
+    "source": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+    "status": "PENDING_COMPILE_DISCOVERY_RUNTIME"
+  },
+  {
+    "package": "semaprax",
+    "kind": "test",
+    "target": "wasm",
+    "selector": "scalar_browser_ci_contract::historical_builder::incoming_main7d34::hosted_wires_keep_current_pins_and_every_complete_previous_receiver",
+    "source": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+    "status": "PENDING_COMPILE_DISCOVERY_RUNTIME"
+  },
+  {
+    "package": "semaprax",
+    "kind": "test",
+    "target": "wasm",
+    "selector": "scalar_browser_ci_contract::historical_builder::incoming_main7d34::a_rehashed_non_builder_change_still_fails_the_complete_bridge",
+    "source": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+    "status": "PENDING_COMPILE_DISCOVERY_RUNTIME"
+  },
+  {
+    "package": "semaprax",
+    "kind": "test",
+    "target": "wasm",
+    "selector": "scalar_browser_ci_contract::historical_builder::incoming_main7d34::the_complete_old_bridge_changes_only_its_retained_runner_include",
+    "source": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+    "status": "PENDING_COMPILE_DISCOVERY_RUNTIME"
+  },
+  {
+    "package": "semaprax",
+    "kind": "test",
+    "target": "wasm",
+    "selector": "scalar_browser_ci_contract::historical_builder::before_7d34::hosted_wires_keep_current_pins_and_every_complete_previous_receiver",
+    "source": "tests/wasm/scalar_browser_ci_contract/before_7d34.rs",
+    "status": "PENDING_COMPILE_DISCOVERY_RUNTIME"
+  },
+  {
+    "package": "semaprax",
+    "kind": "test",
+    "target": "wasm",
+    "selector": "scalar_browser_ci_contract::historical_builder::before_7d34::a_rehashed_non_builder_change_still_fails_the_complete_bridge",
+    "source": "tests/wasm/scalar_browser_ci_contract/before_7d34.rs",
+    "status": "PENDING_COMPILE_DISCOVERY_RUNTIME"
+  },
+  {
+    "package": "semaprax",
+    "kind": "test",
+    "target": "wasm",
+    "selector": "scalar_browser_ci_contract::historical_builder::before_7d34::the_complete_old_bridge_changes_only_its_retained_runner_include",
+    "source": "tests/wasm/scalar_browser_ci_contract/before_7d34.rs",
+    "status": "PENDING_COMPILE_DISCOVERY_RUNTIME"
+  }
+]

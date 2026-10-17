@@ -1,0 +1,23 @@
+{
+  "schema": "semaprax.whole-program-inverse.v1",
+  "current_path": "src/source_reflows/factored_sources.rs",
+  "current_sha256": "02beda3ba8855672b8007ce0b81a7349d3ad5859a081d1490b643d8a1ffb5473",
+  "current_length": 24610,
+  "historical_program": "main-helper.before.txt",
+  "historical_sha256": "87f1159ce3ae591b86b88732138b51c5ef2577f50e84dae5c14f078da9c48f33",
+  "historical_length": 7108,
+  "inverse": [
+    {
+      "at": 0,
+      "remove_length": 24610,
+      "remove_sha256": "02beda3ba8855672b8007ce0b81a7349d3ad5859a081d1490b643d8a1ffb5473",
+      "insert_archive": "main-helper.before.txt",
+      "insert_sha256": "87f1159ce3ae591b86b88732138b51c5ef2577f50e84dae5c14f078da9c48f33"
+    }
+  ],
+  "isolated_original_adapter_changes": [
+    "lexical std alias only inside original MAIN receivers",
+    "tests.rs include resolves complete immutable MAIN core; gate/body assertions unchanged"
+  ],
+  "all_original_main_assertions": "byte-exact; check-source.py verifies complete original prefix inverse"
+}

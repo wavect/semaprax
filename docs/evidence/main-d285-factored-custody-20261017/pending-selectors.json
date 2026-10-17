@@ -1,0 +1,32 @@
+{
+  "state": "UNEXECUTED; source-only; registration pending actual final clean head",
+  "package": "semaprax",
+  "kind": "lib",
+  "selectors": [
+    {
+      "selector": "cleanup_plan::replay::factored::canonical_shared::tests::targets::complete_predecessors_and_new_target_sources_are_bound",
+      "sourcepath": "src/cleanup_plan/replay/factored/canonical_shared/tests.rs",
+      "status": "existing literal selector retained; now executes BOTH complete domains"
+    },
+    {
+      "selector": "cleanup_plan::replay::factored::canonical_shared::tests::successor_labels::complete_outer_label_sources_and_original_producer_remain_exact",
+      "sourcepath": "src/cleanup_plan/replay/factored/canonical_shared/tests.rs",
+      "status": "existing literal selector retained; now executes BOTH complete domains"
+    },
+    {
+      "selector": "source_reflows::factored_sources::complete_factored_custody_assertions_remain_executable_and_byte_exact",
+      "sourcepath": "src/source_reflows/factored_sources.rs",
+      "status": "unchanged incoming MAIN gate"
+    },
+    {
+      "selector": "source_reflows::factored_sources::joined_factored_domains_preserve_complete_receivers_and_refuse_foreign_inputs",
+      "sourcepath": "src/source_reflows/factored_sources.rs",
+      "status": "new bounded source/reader controls"
+    },
+    {
+      "selector": "source_reflows_merge::main67107_inputs::factored_core_relocation_preserves_complete_seven_source_domain_and_refuses_drift",
+      "sourcepath": "src/source_reflows_merge/main67107_inputs.rs",
+      "status": "new existing-owner core\u21923d77\u219235f boundary control; UNEXECUTED"
+    }
+  ]
+}

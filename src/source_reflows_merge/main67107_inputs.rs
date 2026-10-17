@@ -206,9 +206,11 @@ fn compile35f_records() -> serde_json::Value {
 fn compile35f_restore(row: &serde_json::Value, current: &str) -> String {
     let source = row["source"].as_str().unwrap();
     assert!(COMPILE35F_KEYS.binary_search(&source).is_ok());
+    let acquired = factored_core_input(source, current);
+    let current = acquired.as_str();
     // A35f intermediate requires the actual physical new source to remain bound.
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let raw = std::fs::read_to_string(root.join(source)).unwrap();
+    let raw = factored_core_physical(source);
     assert_eq!(digest(&raw), row["current_sha256"], "actual new compile subject");
     let before = std::fs::read_to_string(root.join(row["before_archive"].as_str().unwrap())).unwrap();
     assert_eq!(digest(&before), row["before_sha256"]);
@@ -266,4 +268,91 @@ fn complete_seven_compile_inputs_restore_35f_and_refuse_foreign_receivers() {
         }
     }
     assert_eq!(compile35f_input("foreign", "unchanged"), "unchanged");
+}
+
+// One closed outer acquisition for the original seven-source compile domain.
+// Path-included workspace harnesses also compile this module: no private lib dependency.
+const FACTORED_CORE_PATH: &str = "src/cleanup_plan/replay/factored/canonical_shared/tests.rs";
+const FACTORED_CORE_CAP: usize = 2_097_152;
+const FACTORED_CORE_RAW: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/tests.rs"));
+const FACTORED_CORE_OURS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main-d285-factored-custody-20261017/ours-core.before.txt"));
+fn factored_core_body(reader: &mut impl std::io::Read, length: usize, expected: &str) -> Result<String, &'static str> {
+    if length > FACTORED_CORE_CAP { return Err("bound"); }
+    let mut bytes = Vec::new();
+    bytes.try_reserve_exact(length).map_err(|_| "allocation")?;
+    bytes.resize(length, 0);
+    reader.read_exact(&mut bytes).map_err(|_| "truncated")?;
+    let mut extra = [0u8; 1];
+    if reader.read(&mut extra).map_err(|_| "read")? != 0 { return Err("extra"); }
+    if factored_core_digest(&bytes) != expected { return Err("digest"); }
+    String::from_utf8(bytes).map_err(|_| "utf8")
+}
+fn factored_core_digest(bytes: &[u8]) -> String {
+    format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)))
+}
+fn factored_core_same_file(a: &std::fs::Metadata, b: &std::fs::Metadata) -> bool {
+    if !a.is_file() || !b.is_file() || a.len() != b.len() || a.modified().ok() != b.modified().ok() { return false; }
+    #[cfg(unix)]
+    { use std::os::unix::fs::MetadataExt; if a.dev() != b.dev() || a.ino() != b.ino() || a.ctime() != b.ctime() || a.ctime_nsec() != b.ctime_nsec() { return false; } }
+    #[cfg(windows)]
+    { use std::os::windows::fs::MetadataExt; if a.file_attributes() & 0x400 != 0 || b.file_attributes() & 0x400 != 0 || a.creation_time() != b.creation_time() || a.last_write_time() != b.last_write_time() { return false; } }
+    true
+}
+fn factored_core_file(path: &::std::path::Path, length: usize, expected: &str) -> Result<String, &'static str> {
+    if length > FACTORED_CORE_CAP { return Err("bound"); }
+    let path_before = std::fs::symlink_metadata(path).map_err(|_| "missing")?;
+    if path_before.file_type().is_symlink() || !path_before.is_file() { return Err("length-or-nonregular"); }
+    let mut options = std::fs::OpenOptions::new(); options.read(true);
+    #[cfg(unix)]
+    { use std::os::unix::fs::OpenOptionsExt; options.custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC | libc::O_NONBLOCK); }
+    #[cfg(windows)]
+    { use std::os::windows::fs::OpenOptionsExt; options.custom_flags(0x0020_0000); }
+    #[cfg(not(any(unix, windows)))]
+    { return Err("platform"); }
+    let mut file = options.open(path).map_err(|_| "open")?;
+    let metadata = file.metadata().map_err(|_| "metadata")?;
+    if !factored_core_same_file(&path_before, &metadata) || metadata.len() != u64::try_from(length).map_err(|_| "bound")? {
+        return Err("length-or-nonregular");
+    }
+    // The one opened no-follow regular handle is checked before any buffer.
+    let value = factored_core_body(&mut file, length, expected)?;
+    let after = file.metadata().map_err(|_| "metadata")?;
+    let path_after = std::fs::symlink_metadata(path).map_err(|_| "metadata")?;
+    if path_after.file_type().is_symlink() || !factored_core_same_file(&metadata, &after) || !factored_core_same_file(&after, &path_after) { return Err("metadata-drift"); }
+    Ok(value)
+}
+
+
+fn factored_core_physical(source: &str) -> String {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    if source != FACTORED_CORE_PATH { return std::fs::read_to_string(root.join(source)).unwrap(); }
+    let actual = factored_core_file(&root.join(source), FACTORED_CORE_RAW.len(), &factored_core_digest(FACTORED_CORE_RAW.as_bytes())).unwrap();
+    assert_eq!(actual, FACTORED_CORE_RAW);
+    assert_eq!(digest(FACTORED_CORE_OURS), "c151768408bd95f3a56ae5eb48b013ac010c221d0b43df9a141ad47cd97ca953");
+    let old = factored_core_file(&root.join("docs/evidence/main-d285-factored-custody-20261017/ours-core.before.txt"), FACTORED_CORE_OURS.len(), &digest(FACTORED_CORE_OURS)).unwrap();
+    assert_eq!(old, FACTORED_CORE_OURS);
+    old
+}
+fn factored_core_input(source: &str, current: &str) -> String {
+    if source != FACTORED_CORE_PATH { return current.to_owned(); }
+    let old = factored_core_physical(source);
+    if current == FACTORED_CORE_RAW { old } else { current.to_owned() }
+}
+#[test]
+fn factored_core_relocation_preserves_complete_seven_source_domain_and_refuses_drift() {
+    use std::io::Cursor;
+    let old = factored_core_physical(FACTORED_CORE_PATH);
+    assert_eq!(old, FACTORED_CORE_OURS);
+    let before = compile35f_input(FACTORED_CORE_PATH, FACTORED_CORE_RAW);
+    assert_eq!(before, compile35f_input(FACTORED_CORE_PATH, &old));
+    assert_eq!(compile35f_input(FACTORED_CORE_PATH, &before), before);
+    let rows = compile35f_records();
+    let row = rows.as_array().unwrap().iter().find(|r| r["source"] == FACTORED_CORE_PATH).unwrap();
+    assert_eq!(compile35f_expected_input(FACTORED_CORE_PATH, row["before_sha256"].as_str().unwrap(), FACTORED_CORE_RAW), before);
+    for bad in [String::new(), format!("{FACTORED_CORE_RAW} "), format!("!{}", &FACTORED_CORE_RAW[1..]), format!("{FACTORED_CORE_RAW}{FACTORED_CORE_RAW}"), "foreign".to_owned()] {
+        assert!(std::panic::catch_unwind(|| compile35f_input(FACTORED_CORE_PATH, &bad)).is_err());
+    }
+    assert_eq!(compile35f_input("foreign", "unchanged"), "unchanged");
+    assert!(factored_core_body(&mut Cursor::new(b""), FACTORED_CORE_CAP+1, &digest("")).is_err());
+    assert!(factored_core_body(&mut Cursor::new(b"wrong"), 5, &digest(FACTORED_CORE_RAW)).is_err());
 }

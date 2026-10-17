@@ -3,7 +3,7 @@
 from pathlib import Path
 import ast,hashlib,importlib.util,json,sys
 E=Path(__file__).resolve().parent
-HELPER_SHA='966cf0bbea108acaf8a63cfaa7ab6b62632e4355f6d37949d40774d019ce458b'
+HELPER_SHA='8ae05d285bba94107d1073d792938057f6c997f3f9ee9e9d6b52dd525fc67e30'
 TOOLS={'main': ('docs/evidence/main67107-fronts-6e45-20261017/bind-main-fronts.py', '7fe43d4cf71a2aa2748c313ae3184f0fda76fa0a18924f216ca94c22d4c54d98'), 'refresh': ('docs/evidence/main67107-fronts-6e45-20261017/refresh-composed.py', 'dbfb6f9dfbec702ed3f626588ceff61b9d454d08b5bd10f17dc1b07283cc3b64'), 'parts': ('docs/evidence/main67107-fronts-6e45-20261017/verify-source-parts-composed.py', '48c26519908cda623bb69ebacce8324271dafe8b62660789cad9be262b3c4120'), 'checks': ('docs/evidence/main67107-fronts-6e45-20261017/check-source-parts-composed.py', '1d04e1cc6ea2c606ac8338c264ffbfd28bc2d9ba31b6675774bcb9d9e4d1a2bc')}
 def sha(b):return hashlib.sha256(b).hexdigest()
 raw=(E/'stage.py').read_bytes();assert sha(raw)==HELPER_SHA

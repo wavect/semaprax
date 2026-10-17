@@ -550,62 +550,9 @@ mod targets {
     }
 
     // Whole predecessors remain byte-bound before every historical inverse.
-    use sha2::{Digest, Sha256};
-
     #[test]
     fn complete_predecessors_and_new_target_sources_are_bound() {
-        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-        let evidence = root.join("docs/evidence/factored-flat-targets-v1");
-        let proof: serde_json::Value =
-            serde_json::from_str(&std::fs::read_to_string(evidence.join("sources.json")).unwrap())
-                .unwrap();
-        let digest = |text: &str| {
-            format!(
-                "{:x}",
-                crate::digest_hex::LowerHex(Sha256::digest(text.as_bytes()))
-            )
-        };
-        for record in proof["predecessors"].as_array().unwrap() {
-            let before =
-                std::fs::read_to_string(evidence.join(record["archive"].as_str().unwrap()))
-                    .unwrap();
-            let current =
-                std::fs::read_to_string(root.join(record["path"].as_str().unwrap())).unwrap();
-            let current = crate::source_reflows_merge::main67107_inputs::compile35f_input(
-                record["path"].as_str().unwrap(), &current,
-            );
-            let current = super::super::targets::incoming_input(record["path"].as_str().unwrap(), &current);
-            assert_eq!(digest(&before), record["before_sha256"]);
-            assert_eq!(digest(&current), record["after_sha256"]);
-            let restore = |input: &str| -> Option<String> {
-                let mut output = input.to_owned();
-                for edit in record["inverse"].as_array().unwrap() {
-                    let after = edit["after"].as_str().unwrap();
-                    if output.matches(after).count() != 1 {
-                        return None;
-                    }
-                    output = output.replacen(after, edit["before"].as_str().unwrap(), 1);
-                }
-                Some(output)
-            };
-            assert_eq!(restore(&current).as_deref(), Some(before.as_str()));
-            assert_ne!(
-                restore(&(current.clone() + "\n")).as_deref(),
-                Some(before.as_str())
-            );
-            let mut changed = current.clone();
-            changed.replace_range(..1, "!");
-            assert_ne!(restore(&changed).as_deref(), Some(before.as_str()));
-        }
-        for record in proof["new_files"].as_array().unwrap() {
-            let current =
-                std::fs::read_to_string(root.join(record["path"].as_str().unwrap())).unwrap();
-            let current = crate::source_reflows_merge::main67107_inputs::compile35f_input(
-                record["path"].as_str().unwrap(), &current,
-            );
-            assert_eq!(digest(&current), record["sha256"]);
-            assert_ne!(digest(&(current + "\n")), record["sha256"]);
-        }
+        crate::source_reflows::complete_predecessors_and_new_target_sources_are_bound (super::super::targets::incoming_input);
     }
 }
 
@@ -804,71 +751,6 @@ mod successor_labels {
 
     #[test]
     fn complete_outer_label_sources_and_original_producer_remain_exact() {
-        use sha2::{Digest, Sha256};
-        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-        let evidence = root.join("docs/evidence/factored-flat-labels-v1");
-        let proof: serde_json::Value =
-            serde_json::from_str(&std::fs::read_to_string(evidence.join("sources.json")).unwrap())
-                .unwrap();
-        let digest = |text: &str| {
-            format!(
-                "{:x}",
-                crate::digest_hex::LowerHex(Sha256::digest(text.as_bytes()))
-            )
-        };
-        assert_eq!(proof["predecessors"].as_array().unwrap().len(), 4);
-        for record in proof["predecessors"].as_array().unwrap() {
-            let before =
-                std::fs::read_to_string(evidence.join(record["archive"].as_str().unwrap()))
-                    .unwrap();
-            let current =
-                std::fs::read_to_string(root.join(record["path"].as_str().unwrap())).unwrap();
-            let current = crate::source_reflows_merge::main67107_inputs::compile35f_input(
-                record["path"].as_str().unwrap(), &current,
-            );
-            assert_eq!(digest(&before), record["before_sha256"]);
-            assert_eq!(digest(&current), record["after_sha256"]);
-            let restore = |input: &str| -> Option<String> {
-                let mut output = input.to_owned();
-                for edit in record["inverse"].as_array().unwrap() {
-                    let after = edit["after"].as_str().unwrap();
-                    if output.matches(after).count() != 1 {
-                        return None;
-                    }
-                    output = output.replacen(after, edit["before"].as_str().unwrap(), 1);
-                }
-                Some(output)
-            };
-            assert_eq!(restore(&current).as_deref(), Some(before.as_str()));
-            assert_ne!(
-                restore(&(current.clone() + "\n")).as_deref(),
-                Some(before.as_str())
-            );
-            let mut changed = current.clone();
-            changed.replace_range(..1, "!");
-            assert_ne!(restore(&changed).as_deref(), Some(before.as_str()));
-        }
-        for record in proof["new_files"].as_array().unwrap() {
-            let current =
-                std::fs::read_to_string(root.join(record["path"].as_str().unwrap())).unwrap();
-            let current = crate::source_reflows_merge::main67107_inputs::compile35f_input(
-                record["path"].as_str().unwrap(), &current,
-            );
-            assert_eq!(digest(&current), record["sha256"]);
-            assert_ne!(digest(&(current + "\n")), record["sha256"]);
-        }
-        let before = std::fs::read_to_string(
-            evidence.join("src__cleanup_plan__replay__factored__canonical_shared.rs.before.txt"),
-        )
-        .unwrap();
-        let start = before
-            .find("        let mut successors = BTreeMap::<Label, targets::Targets>::new();\n")
-            .unwrap();
-        let end = start
-            + before[start..]
-                .find("\n    }\n\n    pub(super) fn id(")
-                .unwrap();
-        let old_body = before[start..end].replace("self.automaton", "automaton");
-        assert_eq!(crate::source_reflows_merge::main67107_inputs::project("testsMAIN", include_str!("tests.rs")).matches(&old_body).count(), 1);
+        crate::source_reflows::complete_outer_label_sources_and_original_producer_remain_exact();
     }
 }

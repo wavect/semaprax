@@ -84,6 +84,12 @@
 - Reconcile Main8a finished-path capacity, arbitrary final-suffix transfer and borrowed nominal context with lexical paid receiving; preserve original work-before-optional-payment priority and complete Main controls. Qualification and net application cost remain pending.
 
 - Reconcile Main24 as an independent historical prefix probe/transfer receiver with all six current and five prior-wrapper controls; retain the shipping lexical single-successor transfer and exact path-array preflight.
+- Refresh browser graph pins from complete hosted 7d34f1269 captures, preserving every prior wire byte except the observed builder debit and self-digest, with all historical controls retained.
+
+- Stop executable signature and pattern checks after invalid storage declarations, keeping all declaration refusals, admitted text records, and existing native-import diagnostic priority.
+
+- Move complete factored target and label custody assertions into the test source-reader layer, keeping original entries, full assertion bodies, and historical inverses while preserving the HIR authority audit.
+
 - Keep the complete nested traversal custody assertions in the test source-reader layer, preserving their original body and fail-closed inverses while keeping filesystem operations outside core HIR.
 
 - Pass the installed macOS SDK explicitly when compiling native authority test executables with a scrubbed environment, so real system headers remain available.

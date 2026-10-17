@@ -163,7 +163,7 @@ impl SkeletonWork<'_, '_> {
         Ok(result)
     }
 
-    pub(in crate::cleanup_plan::replay) fn merged_suffixes<'s>(
+    pub(in crate::cleanup_plan::replay) fn before878_merged_suffixes<'s>(
         &mut self,
         paths: &'s [ExprSkeletonPath],
     ) -> Result<std::borrow::Cow<'s, [ExprSkeletonPath]>, Diagnostic> {

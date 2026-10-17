@@ -504,7 +504,7 @@ fn retained_merge_owner_preserves_complete_immediate_and_earlier_sources_without
     let original = include_str!("../../../../docs/evidence/opt881-retained-merge-owner-20261017/before/src/cleanup_plan/replay/skeleton_work/merge_keys.rs");
     let mut complete = include_str!("merge_keys_878.rs").to_owned();
     for name in ["merged_paths", "merged_suffixes", "merged_call_states"] {
-        let before = format!("before878_{name}("); let after = format!("{name}(");
+        let before = format!("before878_{name}"); let after = name;
         assert!(complete.contains(&before)); complete = complete.replace(&before, &after);
     }
     assert_eq!(complete, original, "complete immediate bodies and prices, no dispatch into new search");

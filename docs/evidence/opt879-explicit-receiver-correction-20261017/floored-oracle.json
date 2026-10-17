@@ -1,0 +1,15 @@
+{
+  "path": "src/cleanup_plan/replay/branch_clone/direct/tests.rs",
+  "before_archive": "docs/evidence/opt879-explicit-receiver-correction-20261017/after/src/cleanup_plan/replay/branch_clone/direct/tests.rs",
+  "before_sha256": "b293cb696f2c6bbf9d378b5a069d8569e9c09b841c563ff0069f5d66ece8570a",
+  "after_archive": "docs/evidence/opt879-explicit-receiver-correction-20261017/floored-oracle.tests.after.rs.txt",
+  "after_sha256": "e5a9898b6701ef50d2358b34b01e58e74b36729d9df3ccc72a2aa8894027f03b",
+  "inverse": [
+    {
+      "start": 0,
+      "end": 17568,
+      "replacement_archive": "docs/evidence/opt879-explicit-receiver-correction-20261017/after/src/cleanup_plan/replay/branch_clone/direct/tests.rs"
+    }
+  ],
+  "source_only": true
+}

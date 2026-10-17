@@ -1,0 +1,50 @@
+[
+  {
+    "path": "docs/evidence/compact-staged-observations-v1/inverse.json",
+    "retained_sha256": "ef2d603d1d9190002b8e6b0c44fe6e1fb2bfb940e9497bf14db3026d3bf133ae",
+    "incoming_sha256": "bfab8c59534f56239be16572896c97f573188a53d3430505b110dd738615538e",
+    "complete_incoming_archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/docs/evidence/compact-staged-observations-v1/inverse.json"
+  },
+  {
+    "path": "docs/evidence/held-continuation-growth-v1/sources.json",
+    "retained_sha256": "fc570428ed0d2c7eabbbb6226bab73b0e5c3fa4dc16fa5e72fc6143ad86f8673",
+    "incoming_sha256": "00672b45240b5820be1214cbd6974e20b9dd7f436f3b47f38cd3f6e2b96dd311",
+    "complete_incoming_archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/docs/evidence/held-continuation-growth-v1/sources.json"
+  },
+  {
+    "path": "docs/evidence/held-status-prefix-v1/sources.json",
+    "retained_sha256": "20fd863fcb291ad9e4e09c4ccf79ca2be1bad9f206a7f87d88a201df890ab3de",
+    "incoming_sha256": "3260b88f3be591d75e5b07a9456bac0f07499baf7bda5c983c69a9004aacce25",
+    "complete_incoming_archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/docs/evidence/held-status-prefix-v1/sources.json"
+  },
+  {
+    "path": "docs/evidence/last-branch-prefix-v1/sources.json",
+    "retained_sha256": "c2bdb2055db47057494e9c47b409c2c8632cfe59af7d2f9be736a97756b6729c",
+    "incoming_sha256": "2ea5ed92987ae80b7b200f8cf5851548b3b857d707bbfbd31fb674a3a89cc7e4",
+    "complete_incoming_archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/docs/evidence/last-branch-prefix-v1/sources.json"
+  },
+  {
+    "path": "docs/evidence/moderate-factored-v1/sources.json",
+    "retained_sha256": "cd4a2d223a0d10598b534e2416e1eb9024903b75ac84bd238cc155204dfdc088",
+    "incoming_sha256": "09b7fbe613beca8c7229e5c228782dc207767061183203de5877cc73d00e1a87",
+    "complete_incoming_archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/docs/evidence/moderate-factored-v1/sources.json"
+  },
+  {
+    "path": "docs/evidence/ordinary-replay-setup-v1/sources.json",
+    "retained_sha256": "8649bea97b3a9081a3b46eb46758140defe906d6d467ff1e704a5f6d015b4816",
+    "incoming_sha256": "050424d79817de22df698d782b639a1aef4cd4d1dcc26623cb501bd424185cec",
+    "complete_incoming_archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/docs/evidence/ordinary-replay-setup-v1/sources.json"
+  },
+  {
+    "path": "docs/evidence/paid-expression-lookup-state-v1/sources.json",
+    "retained_sha256": "812f4c176e8efecd3415907be8ec146be60c78d33a19dcccc3175d7d5eb7daef",
+    "incoming_sha256": "8eeb341ba638c496276fd6e77c01e3b0359de73359ef580620ddc945905741d4",
+    "complete_incoming_archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/docs/evidence/paid-expression-lookup-state-v1/sources.json"
+  },
+  {
+    "path": "docs/evidence/receiver-source-custody-v1/inverse.json",
+    "retained_sha256": "17758338cdb03f1a294fb75d923ccc515c814aa3d257521f41ef8593a7d9da1b",
+    "incoming_sha256": "c78ab917232bf92e83004d3cff18876476007fe69e8376c5e40ea7209a5f3053",
+    "complete_incoming_archive": "docs/evidence/main09013-source-namespaces-v1/main8c-inputs/docs/evidence/receiver-source-custody-v1/inverse.json"
+  }
+]

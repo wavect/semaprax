@@ -347,7 +347,7 @@ fn complete_followup_receivers_keep_all_original_source_bytes() {
 // complete current and MAIN inputs; no source, authority, or production text is
 // changed. Whole source payloads remain bounded runtime files, not large embeds.
 const MAIN34D_MANIFEST_LEN: usize = 51371;
-const MAIN34D_MANIFEST_SHA: &str = "b446a74f214d8021d98fbe2860bd75363803c12e2ce6a56fe49393aabcec866b";
+const MAIN34D_MANIFEST_SHA: &str = "3cd0b37a3d7b6bed673a7884c44aabd39accb5f50d99f3e4c8b285bf5b5f7507";
 // Separate NEWMAIN-only admitted source-proof input: held-status sources.json.
 // The unrelated runtime_json335 cap remains exactly5,081,115 and is untouched.
 const MAIN34D_CAP: usize = 9_317_546;
@@ -558,7 +558,7 @@ fn complete_main34d_inputs_keep_all_domains_and_refuse_wrong_source_and_bounded_
 
 // Independent latest MAIN ordinary-routes domain, never a retarget of MAIN34d.
 const MAINBCC_MANIFEST_LEN: usize = 12232;
-const MAINBCC_MANIFEST_SHA: &str = "c4bd51a066bc657b1fc75140f28278b185b6a15042feb2908f287b918c8a31a8";
+const MAINBCC_MANIFEST_SHA: &str = "5c624d67c6851d0d822c4262b45b918a9535f16de36c63ecb7c1f7b472bd7a24";
 const MAINBCC_CAP: usize = 1_048_576;
 fn mainbcc_manifest() -> serde_json::Value {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));

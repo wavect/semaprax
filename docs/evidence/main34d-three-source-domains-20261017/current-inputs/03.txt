@@ -705,3 +705,27 @@ fn held_prefix_never_uses_its_bound_in_a_foreign_or_restored_invocation() {
     assert!(!allocation.invalid && allocation.live == 0 && allocation.allocated <= paid);
     assert_eq!(allocation.allocated, allocation.freed);
 }
+
+#[test]
+fn unobserved_wide_status_construction_uses_the_same_authenticated_held_bound() {
+    let prefix = "shared.".repeat(146);
+    let names = (0..16_000)
+        .map(|index| format!("{prefix}.{index:06}"))
+        .collect::<Vec<_>>();
+    let keys = names
+        .iter()
+        .map(|name| (name.as_str(), StatusLane::OperationFailure))
+        .collect::<Vec<_>>();
+    let function = function(&keys);
+    let mut budget = ReplayBudget::unobserved();
+    let mut directory =
+        Directory::new(&function, &mut budget, "cleanup status identity directory").unwrap();
+    let mut held = directory.held_prefix(&function, &mut budget).unwrap();
+    for source in &function.cleanup_plan.status_sources {
+        assert!(held.insert(&function, &source.id, &mut budget).unwrap());
+    }
+    drop(held);
+    assert_eq!(directory.len(), 16_000);
+    assert!(directory.balanced());
+    assert!(budget.remaining < MAX_REPLAY_WORK_UNITS && budget.remaining > 0);
+}

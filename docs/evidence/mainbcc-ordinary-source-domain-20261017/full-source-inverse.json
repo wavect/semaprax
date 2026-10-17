@@ -22,13 +22,13 @@
       "before_archive": "docs/evidence/mainbcc-ordinary-source-domain-20261017/original-programs/src__source_reflows__incoming67107_semantic_receivers.rs",
       "before_sha256": "829e3a0ad1b37cce2f05de10a294708a537b84994901309e6b36e17a27430960",
       "before_len": 27813,
-      "current_sha256": "96e22b72215c9dc0370ef8ce877307798d48b99256e2393f2ad008e989cca77e",
+      "current_sha256": "5b14ab93dba6fe594204817ac76eca64a4b7e1fd537177a3d3ac81f87e387c4a",
       "current_len": 32045,
       "inverse": [
         {
           "at": 0,
           "remove_len": 32045,
-          "remove_sha256": "96e22b72215c9dc0370ef8ce877307798d48b99256e2393f2ad008e989cca77e",
+          "remove_sha256": "5b14ab93dba6fe594204817ac76eca64a4b7e1fd537177a3d3ac81f87e387c4a",
           "insert_archive": "docs/evidence/mainbcc-ordinary-source-domain-20261017/original-programs/src__source_reflows__incoming67107_semantic_receivers.rs"
         }
       ]

@@ -113,12 +113,13 @@ fn complete_registered_helper_membership_is_preserved() {
     for proof in proofs() { assert!(contains(proof["path"].as_str().unwrap())); }
 }
 
-// Only this historical audit has a raw endpoint equal to its predecessor.
-// The existing sealed route authenticates raw250 -> reviewed75 in full; the
-// unchanged nonidentity assertion belongs to reviewed75 -> archive250.
+// These two historical audits have raw endpoints equal to their predecessors.
+// The existing sealed route authenticates the complete reviewed afterimage;
+// the unchanged nonidentity assertion compares that afterimage with its archive.
 fn receiver_comparison_input(proof: &serde_json::Value, current: &str) -> String {
     let path = proof["path"].as_str().unwrap();
-    if path != "src/cleanup_plan/replay/selected_entry/tests/session_errors/source.rs" {
+    if !matches!(path, "src/cleanup_plan/replay/selected_entry/tests/session_errors/source.rs"
+        | "src/hir/nominal_payload/legacy/source_tests.rs") {
         return current.to_owned();
     }
     let afterimage = crate::source_reflows_merge::main043_input(path, current);
@@ -138,6 +139,27 @@ fn selected_audit_comparison_uses_the_authenticated_historical_domain() {
     assert_eq!(digest(&afterimage), proof["after_sha256"]);
     assert_eq!(digest(&restored), proof["before_sha256"]);
     assert!(std::panic::catch_unwind(|| receiver_comparison_input(proof, &format!("{current} "))).is_err());
+    let mut forged = proof.clone();
+    forged["after_sha256"] = serde_json::Value::String("0".repeat(64));
+    assert!(std::panic::catch_unwind(|| receiver_comparison_input(&forged, &current)).is_err());
+}
+
+#[test]
+fn nominal_audit_comparison_retains_complete_reviewed_afterimage_and_archive() {
+    let path = "src/hir/nominal_payload/legacy/source_tests.rs";
+    let proof = proofs().iter().find(|proof| proof["path"] == path).unwrap();
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let current = std::fs::read_to_string(root.join(path)).unwrap();
+    let archive = std::fs::read_to_string(root.join("docs/evidence/live-source-audit-custody-v1").join(proof["archive"].as_str().unwrap())).unwrap();
+    assert_eq!(current, archive, "raw current is this exact predecessor");
+    let afterimage = receiver_comparison_input(proof, &current);
+    assert_eq!(digest(&afterimage), proof["after_sha256"]);
+    assert_ne!(afterimage, archive);
+    assert_eq!(invert(proof, &current), archive);
+    assert_eq!(digest(&archive), proof["before_sha256"]);
+    for bad in [String::new(), format!("{current} "), current[..current.len()-1].to_owned(), afterimage.clone()] {
+        assert!(std::panic::catch_unwind(|| receiver_comparison_input(proof, &bad)).is_err());
+    }
     let mut forged = proof.clone();
     forged["after_sha256"] = serde_json::Value::String("0".repeat(64));
     assert!(std::panic::catch_unwind(|| receiver_comparison_input(&forged, &current)).is_err());

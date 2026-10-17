@@ -155,20 +155,20 @@ pub(super) fn cross_check_oracle(
     program: &dyn crate::cleanup::ReplayContext,
     function: &ResolvedFunction,
     lease: OracleLease,
-) {
+) { let _debit_route = debit_routes::route(debit_routes::Route::OptedOracle); let _debit_phase = debit_routes::phase(debit_routes::Phase::EnumeratedHIR);
     let _restore = Restore(SKELETON_MATERIALIZATIONS.with(Cell::get));
     let enumerated = receiver(program, function, lease, "enumerating", || {
         let mut enumerating =
             ReplayBudget::with_skeleton_limit_oracle(MAX_REPLAY_WORK_UNITS, lease);
-        hir_skeleton_paths(program, function, &mut enumerating).and_then(|mut hir| {
-            let mut plan = plan_skeleton_paths(function, &mut enumerating)?;
+        hir_skeleton_paths(program, function, &mut enumerating).and_then(|mut hir| { let _debit_phase = debit_routes::phase(debit_routes::Phase::FlatPLAN);
+            let mut plan = plan_skeleton_paths(function, &mut enumerating)?; let _debit_phase = debit_routes::phase(debit_routes::Phase::PathComparison);
             paid_sort(lease, &mut enumerating, function, &mut hir)?;
             paid_sort(lease, &mut enumerating, function, &mut plan)?;
             same_paths(function, &mut enumerating, &hir, &plan)
         })
     });
     // A fresh factored receiver runs regardless of the enumeration verdict.
-    let factored = receiver(program, function, lease, "factored", || {
+    let factored = receiver(program, function, lease, "factored", || { let _debit_phase = debit_routes::phase(debit_routes::Phase::OtherReplay);
         let mut factored = ReplayBudget::with_skeleton_limit_oracle(0, lease);
         compare(program, function, &mut factored)
     });

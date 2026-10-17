@@ -1,0 +1,2869 @@
+{
+  "schema": "semaprax.focused-closure-qualification.v1",
+  "producer_head": "ef788f8237beeb16dcc1cfa9346fc1dbb6f69a4d",
+  "consumer_head": "f1b24eda3f98e19c294f50eff388f642eabc7ccb",
+  "classification": "FOCUSED_COMPILER_QUALIFICATION_NOT_LIVE_AGENT_BENCHMARK",
+  "five_build": {
+    "exit_code": 0,
+    "wall_seconds": 812.4407600830018,
+    "ordered_commands": [
+      [
+        "/Volumes/Semaprax/internal-cache-offload-20261016/cargo-home/bin/rustup",
+        "run",
+        "1.97.1",
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-p",
+        "semaprax",
+        "--lib",
+        "--no-run",
+        "--jobs",
+        "1",
+        "--message-format=json"
+      ],
+      [
+        "/Volumes/Semaprax/internal-cache-offload-20261016/cargo-home/bin/rustup",
+        "run",
+        "1.97.1",
+        "cargo",
+        "build",
+        "--locked",
+        "--offline",
+        "-p",
+        "semaprax",
+        "--lib",
+        "--jobs",
+        "1",
+        "--message-format=json"
+      ],
+      [
+        "/Volumes/Semaprax/internal-cache-offload-20261016/cargo-home/bin/rustup",
+        "run",
+        "1.97.1",
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-p",
+        "semaprax",
+        "--test",
+        "hir_module_boundaries",
+        "--test",
+        "native",
+        "--test",
+        "project",
+        "--test",
+        "useful_data",
+        "--test",
+        "wasm",
+        "--test",
+        "workspace",
+        "--no-run",
+        "--jobs",
+        "1",
+        "--message-format=json"
+      ],
+      [
+        "/Volumes/Semaprax/internal-cache-offload-20261016/cargo-home/bin/rustup",
+        "run",
+        "1.97.1",
+        "cargo",
+        "build",
+        "--locked",
+        "--offline",
+        "-p",
+        "semaprax",
+        "--bin",
+        "semaprax",
+        "--jobs",
+        "1",
+        "--message-format=json"
+      ],
+      [
+        "/Volumes/Semaprax/internal-cache-offload-20261016/cargo-home/bin/rustup",
+        "run",
+        "1.97.1",
+        "cargo",
+        "build",
+        "--locked",
+        "--offline",
+        "-p",
+        "semaprax-toolchain",
+        "--bin",
+        "semaprax-full",
+        "--jobs",
+        "1",
+        "--message-format=json"
+      ]
+    ],
+    "receipt_sha256": "67e15309783ac86db1bd72aeadbc4b4f8083f2f2410c80ce987c384fadbba071"
+  },
+  "runtime": {
+    "complete": true,
+    "pass": 97,
+    "fail": 15,
+    "receipt_sha256": "63ad1eb25cd5cb5f060e42b881a9fcba7263b03db38edfd03c290c728d09169e",
+    "rows": [
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::skeleton_work::enumerated_prefix::tests::sequence_and_cursor_real_byte_frontiers_preserve_six_field_diagnostics_and_full_drop",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.0895883750054054,
+        "peak_process_group_rss_bytes": 3670016,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "351ed36531a372d15db83778040998f046e7487b0e2b9e268610029de11a5e04",
+        "index": 0,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::skeleton_work::enumerated_prefix::tests::original_oracle_retains_full_old_accounts_without_entering_shared_storage",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 1.9928546249866486,
+        "peak_process_group_rss_bytes": 3620864,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "ac60f4e11659dd8ca4769735466bbdbf2fc1ac556d16f7242628ec6cf8b6e945",
+        "index": 1,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::owned_suffix::tests::owned_suffix_copy_refusal_precedes_exhausted_merge_work_in_both_whole_routes",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 1.9998863330110908,
+        "peak_process_group_rss_bytes": 3276800,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "53a80f86213fbd4a205f6c5fe86026e0e6452adcc45a03fd92ee435f90d40ecc",
+        "index": 2,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "workspace_graph::tests::codec808_frontier::primitive_string_codec_actual_preparation_reports_existing_first_operation_without_replacing_failure",
+        "executed": true,
+        "exit_code": 101,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 4.041126791009447,
+        "peak_process_group_rss_bytes": 106463232,
+        "summary": [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "6ebc6b0588969272a5300d83ca0615acb575c129dc4344b3a2a6e7677f3148b1",
+        "index": 3,
+        "passed": false,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::project",
+        "selector": "standard_library::application_json::owned::shiftsim_typed_records::unfactored_schedule_retains_original_source_and_factored_admission",
+        "executed": true,
+        "exit_code": 101,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 1.6192582500225399,
+        "peak_process_group_rss_bytes": 2981888,
+        "summary": [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ],
+        "executable_sha256": "d82c89bd06dbf66f40f256be801069e675fcb51730a651f227128a2911f2d3b0",
+        "log_sha256": "cd63e537fa7a23c990082074eb4f9a8c884c12208e328bc8c256d88e09800703",
+        "index": 4,
+        "passed": false,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::project",
+        "selector": "standard_library::application_json::owned::catalog_scoped_records::typed_catalog_derives_codecs_and_preserves_all_23_functional_cases",
+        "executed": true,
+        "exit_code": 101,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.6156018330075312,
+        "peak_process_group_rss_bytes": 59703296,
+        "summary": [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ],
+        "executable_sha256": "d82c89bd06dbf66f40f256be801069e675fcb51730a651f227128a2911f2d3b0",
+        "log_sha256": "5a50baf2cb4a5a76d66f5f6900ccec5aa6d17b492777ca1dfc82c2662d8c03a6",
+        "index": 5,
+        "passed": false,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "workspace_graph::tests::builder_limits::catalog_normalizer_compact_core_fits_production_builder_cap",
+        "executed": true,
+        "exit_code": 101,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 1.9813403329753783,
+        "peak_process_group_rss_bytes": 3014656,
+        "summary": [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "22677024e6b93b2ca3e5f0a7a63fdc20311c576de4b2ab3042719d6b212b5839",
+        "index": 6,
+        "passed": false,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::project",
+        "selector": "standard_library::application_json::owned::shiftsim_typed_records::typed_record_shiftsim_derives_both_codecs_and_runs_retained_corpus",
+        "executed": true,
+        "exit_code": 101,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 1.6111592089873739,
+        "peak_process_group_rss_bytes": 2981888,
+        "summary": [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ],
+        "executable_sha256": "d82c89bd06dbf66f40f256be801069e675fcb51730a651f227128a2911f2d3b0",
+        "log_sha256": "fd1e4e3bdeb7a620a428f9da084b2b8c57ee501f374ced0140a6147b475062b0",
+        "index": 7,
+        "passed": false,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::factored::canonical_shared::arena_tests::whole_arena_owner_reports_duplicate_unique_wide_costs_growth_refusal_and_complete_drop",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 1.965236374991946,
+        "peak_process_group_rss_bytes": 3964928,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "829ee729c9d4b24da9fe60b1aceef4fad284bada57c93da388067f967dce9581",
+        "index": 8,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::project",
+        "selector": "standard_library::application_json::owned::catalog_scoped_records::catalog_sort_adoption::direct_wire_row_sort_retains_independent_original_pipeline_and_all_23_cases",
+        "executed": true,
+        "exit_code": 101,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.751884625002276,
+        "peak_process_group_rss_bytes": 57606144,
+        "summary": [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ],
+        "executable_sha256": "d82c89bd06dbf66f40f256be801069e675fcb51730a651f227128a2911f2d3b0",
+        "log_sha256": "02ed6c871cbc54c6c1c8cbf644fcd0f4919f40c4502e73e97f49462683c592f4",
+        "index": 9,
+        "passed": false,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::useful_data",
+        "selector": "catalog_normalizer_application::batch_boundaries_and_string_normalization_agree_across_backends",
+        "executed": true,
+        "exit_code": 101,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 3.642433415981941,
+        "peak_process_group_rss_bytes": 59441152,
+        "summary": [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ],
+        "executable_sha256": "6e28358705c3b936d909820bcf299fbf402d9e4201b8876634b2e8fc3070d9a3",
+        "log_sha256": "d8361636044aa154c597dbf9b56c195ec6b5c000b982b380f4b5961029a912a7",
+        "index": 10,
+        "passed": false,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "workspace_graph::tests::builder_limits::identity_prebound_production_core_retry_preserves_phase_debit_and_nested_refusal",
+        "executed": true,
+        "exit_code": 101,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 66.533879583003,
+        "peak_process_group_rss_bytes": 123191296,
+        "summary": [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "fa3e5e90b3278239233408a3b063284fdf4d48d3f639d8a9e066bcb3b5254c73",
+        "index": 11,
+        "passed": false,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::path_array::sequence_minimum::tests::complete_predecessor_is_bound_to_the_single_reviewed_macro_replacement",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.1481015000026673,
+        "peak_process_group_rss_bytes": 4718592,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "0c7a9a4c0a28cd592a6368a687d5770785af60c08829d6bc36083fe121345225",
+        "index": 12,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "source_reflows_merge::current344::sequence_minimum_input_tests::exact_complete_sequence_input_refuses_drift_and_historical_bytes",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.0603010000195354,
+        "peak_process_group_rss_bytes": 3899392,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "b213366fb24565faa02b0015568f8f25b51c2ccd371a032161b4df7de7d85e80",
+        "index": 13,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::workspace",
+        "selector": "semantic_graph::current344_input::sequence_minimum_input_tests::exact_complete_sequence_input_refuses_drift_and_historical_bytes",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 1.6282622080179863,
+        "peak_process_group_rss_bytes": 3260416,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "7ca3f4fb0ce599512392a18859ff697c91030f8fa10f0a235293dfe5f9c39b00",
+        "log_sha256": "3e8a7af7f6397a138254cfb1bf7aa0926b1afe0c08a5eae87ab8f2ec9ccf2a11",
+        "index": 14,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "source_reflows_merge::opt858_sequence_input::tests::full_sequence_join_refuses_empty_foreign_duplicate_and_old_input",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 1.9869726659962907,
+        "peak_process_group_rss_bytes": 4308992,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "c5f023211ce668da6424c9e42d8b5b77a1a2aeac52dbe005abce9cc69b7d8182",
+        "index": 15,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::workspace",
+        "selector": "semantic_graph::opt858_sequence_input::tests::full_sequence_join_refuses_empty_foreign_duplicate_and_old_input",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 1.561174000002211,
+        "peak_process_group_rss_bytes": 3162112,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "7ca3f4fb0ce599512392a18859ff697c91030f8fa10f0a235293dfe5f9c39b00",
+        "log_sha256": "5cb1ab3f008dd1e230d6efd7a24f90f32b541a423d34bffc43e38bd246666ec3",
+        "index": 16,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::factored::canonical_shared::memo::tests::chunked_complete_canonical_receiver_preserves_old_work_ids_and_last_drop",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.019356875010999,
+        "peak_process_group_rss_bytes": 5062656,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "e8ed8556343d99b8562fb48482b62d425757086270f9eb780993e0587d6b0847",
+        "index": 17,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::factored::continuation_tests::ordinary_factored_functions_and_contracts_reuse_exact_program_storage_with_old_automata_work_and_drop",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 1.9973477910098154,
+        "peak_process_group_rss_bytes": 5537792,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "55ef9341923573c09ca08868c50dea57de444e3304aba8630f9a259ef33be1a4",
+        "index": 18,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::factored::canonical_shared::borrowed_labels::direct_singleton_complete_directory_preimage_remains_byte_exact",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.058291207998991,
+        "peak_process_group_rss_bytes": 3997696,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "7d6c6cd2228dab76cc3fb9a779be740a23e5ebeb4dd5144f0ec9456ff1c64810",
+        "index": 19,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::factored::canonical_shared::arena_tests::selected_generation_retains_complete_immediate_methods_and_original_arena_gate",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.0143129999923985,
+        "peak_process_group_rss_bytes": 4341760,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "44e6ea3730ac4c8d622429586cf25abfde90ebc68fd966c5a0d61cf6cadef101",
+        "index": 20,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::hir_module_boundaries",
+        "selector": "production_source_inventory::semantic_batch_relocated_subjects_require_all_seventeen_and_keep_prior_three_five_guards",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 1.447160999989137,
+        "peak_process_group_rss_bytes": 4718592,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "f490a74be432a57bbb2a65ffb2280b17c538c2cc7e142effb8647eba8b99e717",
+        "log_sha256": "9bbfb78b79667694c3fcff69d51502565b76c859ec8bfb78de67b7f380583c32",
+        "index": 21,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::workspace",
+        "selector": "semantic_graph::production_source_inventory::semantic_batch_relocated_subjects_require_all_seventeen_and_keep_prior_three_five_guards",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 1.5740743330097757,
+        "peak_process_group_rss_bytes": 3325952,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "7ca3f4fb0ce599512392a18859ff697c91030f8fa10f0a235293dfe5f9c39b00",
+        "log_sha256": "6f755a3019b4b06b1b41a49653a750584dad220dadc511252b0877afb87eeec5",
+        "index": 22,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::native",
+        "selector": "string_settlement::codec_allocation::string_vectors::primitive_string_codec_reads_and_short_refusal_allocate_nothing_then_copy_final_string_once",
+        "executed": true,
+        "exit_code": 101,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.5144117920135614,
+        "peak_process_group_rss_bytes": 48185344,
+        "summary": [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ],
+        "executable_sha256": "f8cc35f17d6addb7feaf6f61328265de1dbbdffd4d8f2384c5ae1d158358f6a3",
+        "log_sha256": "0db53309140443f5f366530c2c9958236eeb2268becd2f1e3c6f3c3a1544c690",
+        "index": 23,
+        "passed": false,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::native",
+        "selector": "string_settlement::codec_allocation::string_vectors::primitive_string_codec_actual_byte_and_item_plus_one_preflight_never_reserve_output",
+        "executed": true,
+        "exit_code": 101,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.529998624988366,
+        "peak_process_group_rss_bytes": 3473408,
+        "summary": [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ],
+        "executable_sha256": "f8cc35f17d6addb7feaf6f61328265de1dbbdffd4d8f2384c5ae1d158358f6a3",
+        "log_sha256": "bdde2251b9b383eb38b4a0b1ebbbb62fdf49d6fd2433b86550cdd081c9fb26b7",
+        "index": 24,
+        "passed": false,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::factored::canonical_shared::paid_many::tests::composed_frozen_actual_comparison_keeps_full_source_trace_and_diagnostic_order",
+        "executed": true,
+        "exit_code": 101,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 1.968202249991009,
+        "peak_process_group_rss_bytes": 4128768,
+        "summary": [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "919735690c30c2fa83d9e6617128cb41f5a32366d5c8fdd7abe7de4d8f3dc4ca",
+        "index": 25,
+        "passed": false,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::factored::canonical_shared::paid_many::tests::composed_paid_memo_rejects_foreign_function_budget_and_ledger_then_stays_poisoned",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 1.9881225420103874,
+        "peak_process_group_rss_bytes": 3358720,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "ed1ac2a2cd2d00ee71b24d03fb46f57120f9ab15510aadb1794cf2dc4edbfaf3",
+        "index": 26,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::factored::canonical_shared::paid_many::tests::memo_identity_gate_rejects_nested_ledger_without_spending_or_poisoning_either_payer",
+        "executed": true,
+        "exit_code": 101,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 1.9843153750116471,
+        "peak_process_group_rss_bytes": 4390912,
+        "summary": [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "47cc2b98a3bba2f345ba0098e6fe0f7a014aa4791c8741a2ccfb94ddf3552c76",
+        "index": 27,
+        "passed": false,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::branch_clone::production_capacity::tests::production_fused_probe_preserves_every_original_take_decision_and_bounds_copy_receivers",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 1.9779065000184346,
+        "peak_process_group_rss_bytes": 4259840,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "4d9961cbda8fca554b4c90cd20d675f833019226a58703c4e16c1d0ed533062b",
+        "index": 28,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::branch_clone::production_capacity::tests::production_fused_enumerator_matches_the_complete_predecessor_paths_work_and_materializations",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.0335086669947486,
+        "peak_process_group_rss_bytes": 3817472,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "6fabea1d99f653a0fe03ff2d3c583c00e8793c8d5f7506604a5729d3cc580e4d",
+        "index": 29,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::branch_clone::production_capacity::tests::production_fused_clone_keeps_original_work_failures_and_actual_exact_short_floor_drop",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 1.9793428340053651,
+        "peak_process_group_rss_bytes": 4653056,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "e0890ad1e1e42ce886b5b7a714f972dcf232508df573cb4f0295de179290c97d",
+        "index": 30,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::branch_clone::production_capacity::tests::production_fused_earlier_bank_and_original_take_frontiers_keep_six_fields_first_receipt_and_whole_drop",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 1.979970582993701,
+        "peak_process_group_rss_bytes": 2998272,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "037c4a961bf591490c5e502c8b3fa3f090187deb9d0b5b6d5dedda18a0564e91",
+        "index": 31,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::branch_clone::tests::real_generic_probe_receiving_frontier_exact_short_zero_floor_is_sticky_and_drops_completely",
+        "executed": true,
+        "exit_code": 101,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.066542250016937,
+        "peak_process_group_rss_bytes": 3489792,
+        "summary": [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "98d47c90501ded0466c8f8f5216106b8158e2b6689a82f0c570daf9d7277e338",
+        "index": 32,
+        "passed": false,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::frozen_membership_keeps_full_byte_lane_equality_and_allocates_nothing",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.1568943330203183,
+        "peak_process_group_rss_bytes": 4980736,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "7bd8606cb6672d4f052da6e77e28b4fed44dc785440df3ab2f507f679a51e52d",
+        "index": 33,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::frozen_membership_reuses_the_index_within_the_same_original_work_ceiling",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.1371788330143318,
+        "peak_process_group_rss_bytes": 3604480,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "4eb7fff18999557982b314b0bd4a0457cb5bdd7681c587bb1b13bbf8d12f4757",
+        "index": 34,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::frozen_membership_exact_short_zero_floor_and_drop_remain_on_the_original_ledger",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.1372124159825034,
+        "peak_process_group_rss_bytes": 5455872,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "5b6a1313898062cbd23f43c25707ee31fcaa3d26b5a8253221c4e6ec1f59c5ca",
+        "index": 35,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::frozen_membership_rejects_foreign_and_restored_owners_before_cached_keys_or_foreign_debits",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.196866874990519,
+        "peak_process_group_rss_bytes": 7618560,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "65f81f8f00ad45de41d5f753d3378405a8d310c90c12f91f873ae6090cc79e69",
+        "index": 36,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::frozen_membership_is_sealed_and_incomplete_builders_cannot_publish_it",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.5634597500029486,
+        "peak_process_group_rss_bytes": 4063232,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "c528f4fcf88d2e37b68ba160539561899fdb48a8257da65469ea6642b607ebb3",
+        "index": 37,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::frozen_membership_unobserved_payer_keeps_the_original_lookup_path",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.386905207997188,
+        "peak_process_group_rss_bytes": 4194304,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "56fab565c4058dbdea6d272d12707613826269fbda6a71e64fa902d1eee0cde5",
+        "index": 38,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::frozen_membership_keeps_the_complete_old_comparison_fee_after_early_mismatch",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.2710251250246074,
+        "peak_process_group_rss_bytes": 8683520,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "0dccff4099b631dd1450352c1739498a7a39f8d52fa49fc3ab8803061631e9e4",
+        "index": 39,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::held_status_index_matches_every_original_avl_link_for_prefixes_bytes_lanes_and_duplicates",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.219639457995072,
+        "peak_process_group_rss_bytes": 4702208,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "a916a3e688b476cc56cf3a253764a7a7cc546f5c1399845fd0e92640083288f3",
+        "index": 40,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::held_status_index_preserves_exact_short_floor_and_zero_heap_frontiers_through_drop",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.067131457995856,
+        "peak_process_group_rss_bytes": 4390912,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "eb6c3bbf3ea38cc7b34da9e32e2bb17207a2bee4a1e4b43813869c9137725b0f",
+        "index": 41,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::held_status_index_work_refusal_is_sticky_without_reusing_its_cached_path",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.1495047920034267,
+        "peak_process_group_rss_bytes": 4505600,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "38788709704f4005be7380452cc7593ade10d7ec16928b2650a84a3384316d64",
+        "index": 42,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::held_status_index_admits_a_wide_opaque_key_set_inside_the_original_work_cap",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.1894581660162657,
+        "peak_process_group_rss_bytes": 3964928,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "5cf3ba39a639a8cb1040d5c1ffd4d443252683957d10d872760aee40ecf668dc",
+        "index": 43,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::held_status_index_cannot_reuse_cached_coordinates_in_foreign_or_restored_invocations",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.127642916981131,
+        "peak_process_group_rss_bytes": 4210688,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "3e2f59fcc3529e27fa95ad7920f2ef5b7b9bfe779b9c38f08be3d66da3a630dd",
+        "index": 44,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::expression_facts::receiving::tests::every_directory_acquisition_exact_short_zero_and_sticky_is_paid_through_drop",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.164253875002032,
+        "peak_process_group_rss_bytes": 4063232,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "689798d013895cb6b687bbe7b73c473f325c2dcd759060f691138ac9d5dc6081",
+        "index": 45,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::expression_facts::receiving::tests::status_lane_and_copied_numeric_keys_keep_complete_original_order_and_disjointness",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.0846171250159387,
+        "peak_process_group_rss_bytes": 4145152,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "c592d58baa947cafc9feeb59fe7f037ddcff922fbab80c705d04b4e3f3fba11c",
+        "index": 46,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::certified_status_foreign_restored_and_wrong_subject_never_reactivate_the_bound_owner",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.085626832995331,
+        "peak_process_group_rss_bytes": 3768320,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "877baa7de609bd9a92528fe94a3c212b38f755a8fda35a14f9c92a849a1f0f22",
+        "index": 47,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::held_prefix_preserves_physical_frontiers_and_final_drop_without_a_new_allowance",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.1148978330020327,
+        "peak_process_group_rss_bytes": 8568832,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "2c88789649fe6c79671d817a2b235ae2d18fb55137767ba0d6cb0e83a17456c8",
+        "index": 48,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::expression_facts::receiving::retained::tests::retained_status_control_funding_exact_short_zero_and_foreign_active_are_sticky",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.123278124985518,
+        "peak_process_group_rss_bytes": 3637248,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "78d1eb8aa4a98367dfaa47fee73d85e002760623b0f220ca85dcbe0a6b8ce822",
+        "index": 49,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::expression_facts::receiving::retained::case_proof::tests::each_receiver_has_derived_exact_short_and_zero_bytes_and_work",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.0381420829799026,
+        "peak_process_group_rss_bytes": 5636096,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "08b1c5b3b3923f6afadd8ade693cd4ca81ef4672ecadcf5c4f144131f0c944c1",
+        "index": 50,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::expression_facts::receiving::retained::case_proof::tests::proof_binds_exact_rows_function_budget_and_foreign_restored_invocation",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.087347791006323,
+        "peak_process_group_rss_bytes": 3391488,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "fcd93b80b9aae9aaa0b502f46db8a8b55bbcc36ff5f64eaee0e05ad8b2ce42cb",
+        "index": 51,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::expression_facts::receiving::retained::case_proof::tests::lexical_current_attempt_refusal_unwind_and_completed_reuse_are_affine",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.0974555000138935,
+        "peak_process_group_rss_bytes": 4292608,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "0853f87723d619272e349a01daee52efa2da52b8c8b78b6f255babde77e2373d",
+        "index": 52,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::expression_facts::receiving::retained::case_certified::counter_tests::certified_while_counter_preserves_complete_before_fields_work_and_receiving_debit",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 3.094839083001716,
+        "peak_process_group_rss_bytes": 72302592,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "ce471a7a3cbf3b6ea0029985bfc62a576382e30ee198cc757a80062b44208638",
+        "index": 53,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::expression_facts::receiving::retained::case_certified::counter_tests::certified_unobserved_wide_dispatch_keeps_complete_rows_and_original_work_ceiling",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 67.51524162499118,
+        "peak_process_group_rss_bytes": 233963520,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "e37cf842d4591e58e26d4b2c7e5eaf3b250c41bd6ae0d10aee258aa2a181d2ec",
+        "index": 54,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::factored::canonical_shared::lexical_child_scratch::tests::lexical_child_scratch_preserves_complete_deec_owner_work_backing_and_only_removes_outer_receipts",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 1.9992261250154115,
+        "peak_process_group_rss_bytes": 4145152,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "4ff3eaefd31c1ac78fdd2fd587c9d8f41fd1e5133bc26ca6949da36f7b1909db",
+        "index": 55,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::factored::canonical_shared::lexical_child_scratch::tests::lexical_child_scratch_preserves_complete_state_signature_and_every_original_work_failure",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 1.9954819580016192,
+        "peak_process_group_rss_bytes": 2670592,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "cd3bd08049ac62392f91ddb9bcb1359d4dc8f1415d7ca1f1d167b2f13a239374",
+        "index": 56,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::skeleton_work::enumerated_prefix::tests::sequence_marker_never_authenticates_foreign_observation_contents_or_lent_work",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.0012212499859743,
+        "peak_process_group_rss_bytes": 4308992,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "cc6b4104e621661cd33e9f2585d7238a2311f3569a98eb7cfdae3cd19377244d",
+        "index": 57,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::skeleton_work::enumerated_prefix::tests::oracle_entry_still_refuses_missing_and_same_id_foreign_invocation_without_active_fallback",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.0556292079854757,
+        "peak_process_group_rss_bytes": 3457024,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "f6fb9df35c97671a92a5c77e8496bdbee3f2214bac906741f4318d8e94983441",
+        "index": 58,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::factored::canonical_shared::borrowed_labels::one_pass_labels_preserve_original_subset_work_and_all_paid_cuts_through_drop",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 4.0633561249997,
+        "peak_process_group_rss_bytes": 75268096,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "3c0e616399925e502b2cc909e9fe0d41659c38af8040892a27f425c5971132e2",
+        "index": 59,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::expression_facts::receiving::retained::case_certified::counter_tests::certified_active_wide_rows_publish_the_held_membership_index_and_keep_sticky_frontiers",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 1.992922625009669,
+        "peak_process_group_rss_bytes": 4227072,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "27ee62034d3cb0580a7ca747cc4dfc069c8d717f79b22312922f5de31161242f",
+        "index": 60,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::branch_clone::tests::main_capacity::next_fork_capacity_keeps_every_full_arithmetic_path_and_original_work",
+        "executed": true,
+        "exit_code": 101,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 3.0049493330006953,
+        "peak_process_group_rss_bytes": 125190144,
+        "summary": [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "f45ebe9eb889cc12d433a36c2e6ea9bdd1d01900641605547ece508d1545b513",
+        "index": 61,
+        "passed": false,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::branch_clone::tests::main_capacity::next_fork_clone_keeps_future_capacity_and_exact_refusal_frontiers",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 1.979551917000208,
+        "peak_process_group_rss_bytes": 2850816,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "94886867e885ff431843c12a45ffc6df2e951a7b13260ebdf8bf3a0cd0921bfd",
+        "index": 62,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::branch_clone::tests::whole_original_enumerator_and_clone_push_helpers_remain_byte_exact",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 1.9777584580006078,
+        "peak_process_group_rss_bytes": 3604480,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "971866052430c6f8f2eb9d09eda0165e6949fb73e4517147e1c0365b6acc7f95",
+        "index": 63,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::branch_clone::production_capacity::tests::current_fused_enumerator_matches_complete_main_c883_arithmetic_control",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.0040157500188798,
+        "peak_process_group_rss_bytes": 3506176,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "6104d6452364fbc40ee84a7f767c7f0832ed9c2821bb58c4a568c42856e34bb1",
+        "index": 64,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "source_reflows::semantic_receivers::main_c883::last_branch_prefix_keeps_complete_predecessors_and_original_source_controls",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 1.974832374980906,
+        "peak_process_group_rss_bytes": 4177920,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "ebe064f2c453921de5b913e71cbcb93410fd172b9ef4004341be4503e1fb0fc7",
+        "index": 65,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "source_reflows::semantic_receivers::main_c883::plan_branch_capacity_preserves_complete_sources_and_all_existing_controls",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.0676062910060864,
+        "peak_process_group_rss_bytes": 3768320,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "fd3d6ce4772e7433e0804e4f0750f8389db3230613900a2fd736117326194043",
+        "index": 66,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "source_reflows::semantic_receivers::main_c883::replay_work_refusal_capture_retains_all_complete_predecessors_and_assertions",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.0718535000050906,
+        "peak_process_group_rss_bytes": 3833856,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "f70861a6b9e81b8f46940ee9001d0901d211a0b9e23592c370285942267c12b5",
+        "index": 67,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "source_reflows::semantic_receivers::main_c883::held_status_index_keeps_complete_predecessor_receivers_and_assertions",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.086816541006556,
+        "peak_process_group_rss_bytes": 5177344,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "87d917775547356424a02d12c17a427e1974f891688c3a41cf0815b6029b0d4d",
+        "index": 68,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "source_reflows::semantic_receivers::main_c883::projection_audit_scope_preserves_complete_sources_and_all_historical_receivers",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.231659707991639,
+        "peak_process_group_rss_bytes": 5177344,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "ac4f21252ced1f3922325412958b23e46da1c09b2888104cdaa21142a39b539d",
+        "index": 69,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "source_reflows::semantic_receivers::main_c883::historical_pin_capture_chains_restore_every_original_source",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 6.5863693749997765,
+        "peak_process_group_rss_bytes": 33439744,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "70fed6143f9a51610f6741bc7ce332fa85e91c4346de38b95a6f98f2ba621c95",
+        "index": 70,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "source_reflows::semantic_receivers::main_c883::status_membership_index_preserves_complete_predecessors_and_all_original_controllers",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 3.629999124997994,
+        "peak_process_group_rss_bytes": 65044480,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "ead2bc6ae8d26a5316e71763539245395de72a2921cf99d79a78d7f07d957771",
+        "index": 71,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "source_reflows::semantic_receivers::main_c883::main_c883_root_ingress_retains_the_complete_last_branch_predecessor",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 3.330899082997348,
+        "peak_process_group_rss_bytes": 31113216,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "08cb6b235e4f560b8e487b3d48efdcf8550a56b456078fadf6f9ad315a9438b9",
+        "index": 72,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "source_reflows_merge::main_c883_inputs::closed_main_c883_acquisition_authenticates_all_complete_current_owners",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 8.261263792024693,
+        "peak_process_group_rss_bytes": 100876288,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "0e2d819bb693a39922b9135dbc27d7af13e21e3ce1efc81227d2a8afa4d436bf",
+        "index": 73,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::workspace",
+        "selector": "semantic_graph::private_layout_inventory_retains_every_full_input_and_every_current_owned_module",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.599684499989962,
+        "peak_process_group_rss_bytes": 28622848,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "7ca3f4fb0ce599512392a18859ff697c91030f8fa10f0a235293dfe5f9c39b00",
+        "log_sha256": "c7259abd0ec59b9a951a5f91b90305019a5e49eff18b694c0eb89d1b34cedd92",
+        "index": 74,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::workspace",
+        "selector": "semantic_graph::source_inventory_controls::current_union::current_union_retains_every_frozen_legacy_input_and_all_owned_paths",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 1.6945879999839235,
+        "peak_process_group_rss_bytes": 2654208,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "7ca3f4fb0ce599512392a18859ff697c91030f8fa10f0a235293dfe5f9c39b00",
+        "log_sha256": "65e6843d6bc1dacc50d8789adc173193551d8f6fe67302227abe76a3805f5e20",
+        "index": 75,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::workspace",
+        "selector": "semantic_graph::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 8.964360707992455,
+        "peak_process_group_rss_bytes": 123338752,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "7ca3f4fb0ce599512392a18859ff697c91030f8fa10f0a235293dfe5f9c39b00",
+        "log_sha256": "90d02c0367bb5c1349939c8a3a7d48f42e1c22edf96a050d1cdf77971f8cd3f3",
+        "index": 76,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::factored::canonical_shared::borrowed_labels::one_pass_real_composition_repetition_promotion_content_labels_and_all_cuts_keep_full_results",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 5.428750457998831,
+        "peak_process_group_rss_bytes": 75218944,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "4a68de13ebada9a05c53cd7418fdd0a1177209ebc889d036a2c54be87bbac6f2",
+        "index": 77,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::factored::canonical_shared::borrowed_labels::direct_singleton_actual_canonical_calls_keep_complete_ids_signatures_and_states",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.0464689590153284,
+        "peak_process_group_rss_bytes": 4816896,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "490d1acae1573425d64cef1d0a52296e1aa1e09ff46c84b11f6982d4afb0b2ca",
+        "index": 78,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::factored::canonical_shared::borrowed_labels::direct_singleton_every_terminal_and_immutable_observation_keep_complete_labels",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.0713579999865033,
+        "peak_process_group_rss_bytes": 4734976,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "6c52d0a10005aeffdfc5ff7023c3bd8f6e325ddd90a20a9c545643eb45e5b650",
+        "index": 79,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::factored::canonical_shared::borrowed_labels::direct_selected_anchor_rejects_same_id_foreign_pointer_and_foreign_scope_before_work",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.0394029169983696,
+        "peak_process_group_rss_bytes": 4620288,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "9d5183a5d340356e0ef2bc41b8f57ed5188afb6e7a9fd8925b719a3550a72bb5",
+        "index": 80,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::factored::canonical_shared::borrowed_labels::direct_singleton_new_selection_zero_through_three_keeps_six_fields_and_sticky_cut",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.1222287919954397,
+        "peak_process_group_rss_bytes": 5685248,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "8a6f82d7c0196d535f3583b0dbb3d29973a0487d3356986e087cd20248b74e08",
+        "index": 81,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::factored::canonical_shared::borrowed_labels::complete_before_direct_producer_records_foreign_first_acceptance_as_negative",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.041034874971956,
+        "peak_process_group_rss_bytes": 3702784,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "828a9834f49961acac7b782d6b63ff37d5ae6eced0e0a89e6b42d8ea1aa90d61",
+        "index": 82,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::factored::canonical_shared::memo::tests::chunked_complete_cached_id_authenticates_before_any_new_backing",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 1.992477541003609,
+        "peak_process_group_rss_bytes": 3915776,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "5272a0e40ccbdb7aba58150ed9db6bea7003a11b7559bc078f0b4c24530d1247",
+        "index": 83,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "bounded_output::stage_debits::tests::operation_totals_reconcile_nested_exclusive_scopes_settlement_and_refusal",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.3349943330103997,
+        "peak_process_group_rss_bytes": 4341760,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "658a047be39081b3bf82b9357756d3fefc89e79d70000a4bcb890513df4bdf3f",
+        "index": 84,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "bounded_output::stage_debits::tests::operation_totals_and_debugging_use_no_storage_and_keep_the_trace_small",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.4140544999972917,
+        "peak_process_group_rss_bytes": 4014080,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "304558ad2306aee10f19757f2ebb6679ddb15535f5a63eebf09cb1b29de42396",
+        "index": 85,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "source_reflows::semantic_receivers::main_1e::replay_operation_totals_preserve_complete_predecessors_and_production_text",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 4.818763832998229,
+        "peak_process_group_rss_bytes": 65044480,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "dec27e8edc4c9423cb08a0b63c752d4378d58080a94e7ea80f91e61110d0939f",
+        "index": 86,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::useful_data",
+        "selector": "byte_slice_for_runtime::nested::borrowed_failure_host_keeps_owned_zero_byte_cleanup_strict",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 1.594960832997458,
+        "peak_process_group_rss_bytes": 5947392,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "6e28358705c3b936d909820bcf299fbf402d9e4201b8876634b2e8fc3070d9a3",
+        "log_sha256": "6106663ebb63284bab8b7c54fe69c2f8b5375ee537b47dfaa4e77baa36cfc082",
+        "index": 87,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::useful_data",
+        "selector": "byte_slice_for_runtime::nested::nested_byte_traversal_matches_manual_loop_on_interpreter_native_and_wasm",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 4.726954999990994,
+        "peak_process_group_rss_bytes": 49414144,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "6e28358705c3b936d909820bcf299fbf402d9e4201b8876634b2e8fc3070d9a3",
+        "log_sha256": "161a6fc5027e881eb0c7831fc1104504c8a59f3c60295eae9f2da90a1a861d42",
+        "index": 88,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "bounded_output::stage_debits::route_debits::child_replay_operations_keep_route_cells_and_refusal_attribution_reconciled",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 1.9966439999989234,
+        "peak_process_group_rss_bytes": 3981312,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "6257b5e4f6363f924d1de68a6f9919ea3a301328a208451ab34ea1f42bcddf31",
+        "index": 89,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "source_reflows::semantic_receivers::current_replay_operation_guards_bind_the_actual_receivers_without_production_changes",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 1.9975492920202669,
+        "peak_process_group_rss_bytes": 3833856,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "4ea773a7ae54c1fa9a578ef4e3dfd39a7f13262aedcb7ccf82608274314e77f4",
+        "index": 90,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "source_reflows_merge::main_c883_inputs::closed_main_1e_acquisition_authenticates_all_complete_current_owners",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.0785639579989947,
+        "peak_process_group_rss_bytes": 3473408,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "77dc604798f581ac77ccbba3511de3024274d5154249ec3b6b843df744f550ae",
+        "index": 91,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "source_reflows_merge::main67107_inputs::accepted_whole_sources_authenticate_actual_owners_and_keep_every_prior_independent",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 3.031332249986008,
+        "peak_process_group_rss_bytes": 33734656,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "7d8568a8dbd971282d51e4f4cbbfcd6753c6128f87b397d8f403c13faf83f4fa",
+        "index": 92,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::useful_data",
+        "selector": "catalog_normalizer_application::ndjson::old_framing_and_new_structured_receiver_preserve_the_complete_normalizer_oracle",
+        "executed": true,
+        "exit_code": 101,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 3.6585299579892308,
+        "peak_process_group_rss_bytes": 70238208,
+        "summary": [
+          "FAILED",
+          "0",
+          "1",
+          "0"
+        ],
+        "executable_sha256": "6e28358705c3b936d909820bcf299fbf402d9e4201b8876634b2e8fc3070d9a3",
+        "log_sha256": "33d1e3b1e2cf3f84c0bb108bf0bcd4924e025384d00654439490d107d21d52ec",
+        "index": 93,
+        "passed": false,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::ordinary_plan_history::owned_tests::original_owned_option_remains_an_exact_unadmitted_residual_control",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.1265723339747638,
+        "peak_process_group_rss_bytes": 6373376,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "191c949ce25bb463748d49f561bf7813bb872185caa7d54205c9dd1bea0b827c",
+        "index": 94,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::ordinary_plan_history::frontier_tests::each_new_frame_backing_and_post_swap_frontier_has_exact_short_zero_floor_and_drop_controls",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.2384050420077983,
+        "peak_process_group_rss_bytes": 4636672,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "984b1651817a9931d8bc9a4796356173e4078c5fff7df57498d73f5009dbad79",
+        "index": 95,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::ordinary_plan_history::owned_tests::full_owned_transition_residual_and_scalar_corpus_keeps_flat_predecessor",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 3.0847071669995785,
+        "peak_process_group_rss_bytes": 90603520,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "3bd168ada85121dd92c4ea59417876308a812e515b8c80f09feac9ea31b84643",
+        "index": 96,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::ordinary_plan_history::owned_tests::branch_and_ownership_mutations_keep_all_six_diagnostic_fields",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 3.1856829169846606,
+        "peak_process_group_rss_bytes": 92536832,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "b63e47a68ddbe0eb71352b7d30bb49f40e21ed0861a535806d8cf5f115c757bd",
+        "index": 97,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::ordinary_plan_history::source_custody::complete_predecessor_and_inverse_are_bound_to_exact_root_bytes",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 3.306281208002474,
+        "peak_process_group_rss_bytes": 35979264,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "5971493f0528cafeab30ffa9de8bf2fd838015a0d7b582d1452d866a3d37bd99",
+        "index": 98,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::ordinary_plan_history::tests::complete_old_plan_and_materialization_work_are_preserved",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.7917341249994934,
+        "peak_process_group_rss_bytes": 5652480,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "711470a3adb53efa54f57e14caaee22006359be4ae3c8284a185db532e023ba6",
+        "index": 99,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::ordinary_plan_history::tests::late_changes_terminal_and_multiplicity_fail_closed",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.394694624992553,
+        "peak_process_group_rss_bytes": 74661888,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "91b872aa4912461c2b15743ef9c2be70c084c50da834f64550ac55c8e1543b39",
+        "index": 100,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::ordinary_plan_history::tests::distinct_segment_boundaries_order_by_complete_values",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.1975137919944245,
+        "peak_process_group_rss_bytes": 4390912,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "b3d8d17ece33f4a525bdbabcbce90ea2b4b9cfa3bebb6b29ac6d98a597db1cfc",
+        "index": 101,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::ordinary_plan_history::tests::first_skeleton_refusal_and_sticky_zero_are_preserved",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.339132958994014,
+        "peak_process_group_rss_bytes": 4014080,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "882571d85c634cefde1d0226046fc3348147ed3e23ba472de948b1143732b78b",
+        "index": 102,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::ordinary_plan_history::tests::retained_unobserved_and_lent_owners_are_excluded",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.285571084008552,
+        "peak_process_group_rss_bytes": 5029888,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "3dc633cefb5126105b20f8c669b7399e4dfbfab128588482f771ec5367b9625f",
+        "index": 103,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::ordinary_plan_history::tests::full_comparator_exact_one_short_and_zero_leave_no_live_backing",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 3.459145458007697,
+        "peak_process_group_rss_bytes": 89178112,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "da89d97731a01fca3c98d0f1a203130af848b47a02c76626c0190f5650718726",
+        "index": 104,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "cleanup_plan::replay::ordinary_plan_history::tests::malformed_private_links_fail_without_recursive_drop_or_indexing",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.1435088330181316,
+        "peak_process_group_rss_bytes": 4440064,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "ab6ee4f3552368a5ddd0892ba63eacd8c109e22af45f25f5f9cd2304f08ba897",
+        "index": 105,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "hir::validation::identity_directory::tests::all_rotation_shapes_unique_shared_and_weak_keep_full_old_order_and_metadata",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 3.150101583014475,
+        "peak_process_group_rss_bytes": 31735808,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "ab475ad460cda23ccbb0e6ba49a0f01ba305b4cd38e664de8b3109b809ffa6de",
+        "index": 106,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "hir::validation::identity_directory::tests::whole_directory_snapshots_ordered_cursors_and_drop_keep_complete_btree_state",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.074199750000844,
+        "peak_process_group_rss_bytes": 6209536,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "1a6c6b69b64b479225a62e6698a314a402ac11dcdff2f63b168eec35afdf88f4",
+        "index": 107,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "hir::validation::identity_directory::tests::duplicate_priority_and_sticky_absent_insert_have_zero_requests_and_unchanged_roots",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.1279599999834318,
+        "peak_process_group_rss_bytes": 4866048,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "a8b9b87c5365d76cb0350243452f1d4b521fa1d7ef41c94179a02c0773b5fce6",
+        "index": 108,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "hir::validation::identity_directory::tests::shared_snapshot_success_preserves_every_old_identity_and_unwind_drops_real_nodes",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 1.9869907079846598,
+        "peak_process_group_rss_bytes": 5029888,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "1a1ec1e1b6dcfd252c34bb5a984eb319e54c93ec03c1bb1965e0b1fc47e30247",
+        "index": 109,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "hir::validation::identity_directory::tests::deep_unique_prefix_shared_and_weak_suffixes_preserve_every_original_node_at_each_boundary",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 29.555853750003735,
+        "peak_process_group_rss_bytes": 32407552,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "b8caab1326bfa3455cca74721461f2ed6619dbed650dca570cbbb145f9e577b6",
+        "index": 110,
+        "passed": true,
+        "process_group_settled": true
+      },
+      {
+        "harness": "semaprax::lib",
+        "selector": "hir::validation::identity_directory::tests::exact_empty_nul_unicode_and_independent_backings_keep_full_old_key_order_and_duplicates",
+        "executed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "resource_refusal": null,
+        "observation_errors": [],
+        "wall_seconds": 2.0345308749820106,
+        "peak_process_group_rss_bytes": 3997696,
+        "summary": [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ],
+        "executable_sha256": "2537b229fae9752f013e9fe0c1088cc56b8ea5ae8e06e1a1d6a6d26d0d6bd2ef",
+        "log_sha256": "a1a98abeda89003be70846990c62a8f3ac32a61d363f6c15e3456bfb37ffd170",
+        "index": 111,
+        "passed": true,
+        "process_group_settled": true
+      }
+    ]
+  },
+  "production_clippy": {
+    "command": [
+      "/Volumes/Semaprax/internal-cache-offload-20261016/cargo-home/bin/rustup",
+      "run",
+      "1.97.1",
+      "cargo",
+      "clippy",
+      "--locked",
+      "--offline",
+      "-p",
+      "semaprax",
+      "--lib",
+      "--bin",
+      "semaprax",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "exit_code": 0,
+    "wall_seconds": 112.2826139999961,
+    "peak_process_group_rss_bytes": 3677650944
+  },
+  "clippy_receipt_sha256": "a0d71864bd4b82d33c0eb684170d3c81115ea27a62ae4521e4ecd338f3935261",
+  "pin_consumers": {
+    "head": "f1b24eda3f98e19c294f50eff388f642eabc7ccb",
+    "passed": 9,
+    "selected": 9,
+    "result_sha256": "cce70088675e5887eefc615482b53be7364d127ede049b5eacbd867450efefac",
+    "compile_wall_seconds": 376.40879087499343,
+    "compile_peak_RSS_bytes": 5351030784,
+    "scope": "lib/workspace/wasm compile-only; 3 managed +6 browser exact test bodies",
+    "rows": [
+      {
+        "harness": "workspace",
+        "selector": "semantic_graph::public_api_cli_bytes_getters_and_read_only_locking_are_exact",
+        "passed": true,
+        "summary": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "artifact_sha256": "22b10e9e5cd09c6b7e5f0f8d49c1573c8d2fbd0fe32a723b491b5d981d637692",
+        "log_sha256": "e79d6fb5874b7a97fce6e6dbd2b8454b0685260a6e4ed742aebd3b7b47f14303"
+      },
+      {
+        "harness": "workspace",
+        "selector": "semantic_graph::public_workspace_analysis_api_cli_kats_and_locking_are_exact",
+        "passed": true,
+        "summary": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "artifact_sha256": "22b10e9e5cd09c6b7e5f0f8d49c1573c8d2fbd0fe32a723b491b5d981d637692",
+        "log_sha256": "5c4ff3aea5bc54490fb63fd0108575c46ec5d008487ab13b8a6ab0bafd03cec3"
+      },
+      {
+        "harness": "semaprax",
+        "selector": "workspace_graph::type_proof_tests::projection_tests::rendered_document_has_literal_sha_exact_wire_order_and_digest_binding",
+        "passed": true,
+        "summary": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "artifact_sha256": "e7a6e7612ae1d3910bc83cbe17e20e46488010e760f3a479642deffa1f955bef",
+        "log_sha256": "509db6a2e2b866b1d1e6d316b604a12f5060fc12822f0e3278964579d7b61a55"
+      },
+      {
+        "harness": "wasm",
+        "selector": "scalar_browser_ci_contract::browser_known_answers_match_authenticated_baseline_and_rename_graphs",
+        "passed": true,
+        "summary": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "artifact_sha256": "9a7fa43f5e99d0738d5189267bb745aa1504886a8bcacbc238cfad5344a37ace",
+        "log_sha256": "3dc6ec438e0cff6c3183b1fd883f06c5fc1c64c41f91f9b503b42975979fc136"
+      },
+      {
+        "harness": "wasm",
+        "selector": "scalar_browser_ci_contract::historical_builder::current_hosted_wires_replay_complete_historical_cursor_controls",
+        "passed": true,
+        "summary": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "artifact_sha256": "9a7fa43f5e99d0738d5189267bb745aa1504886a8bcacbc238cfad5344a37ace",
+        "log_sha256": "0c01076931f834e2977a35be0ed9d11b8fa2130ee659b06e227ca41bde3d2a6f"
+      },
+      {
+        "harness": "wasm",
+        "selector": "scalar_browser_ci_contract::historical_builder::current_hosted_wires_reproduce_every_prior_byte_after_only_bill_and_digest_restoration",
+        "passed": true,
+        "summary": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "artifact_sha256": "9a7fa43f5e99d0738d5189267bb745aa1504886a8bcacbc238cfad5344a37ace",
+        "log_sha256": "0657291695c99844204adca0af12db7f941123b5678c128e9e24f9ee3da1ca65"
+      },
+      {
+        "harness": "wasm",
+        "selector": "scalar_browser_ci_contract::historical_builder::a_rehashed_non_builder_budget_mutation_cannot_pass_the_historical_bridge",
+        "passed": true,
+        "summary": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "artifact_sha256": "9a7fa43f5e99d0738d5189267bb745aa1504886a8bcacbc238cfad5344a37ace",
+        "log_sha256": "52268371fd0b05246c5d3ef5784ad4105ac44aaee36c76a877bfe4b4d68f6b4e"
+      },
+      {
+        "harness": "wasm",
+        "selector": "scalar_browser_ci_contract::historical_builder::current_browser_bridge_keeps_both_complete_trees_and_refuses_rehashed_foreign_and_wrong_role",
+        "passed": true,
+        "summary": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "artifact_sha256": "9a7fa43f5e99d0738d5189267bb745aa1504886a8bcacbc238cfad5344a37ace",
+        "log_sha256": "d1d0a84ae78fd65e665ff898d6d3bdd90da849876b340a0751709e9a8aa6c7cd"
+      },
+      {
+        "harness": "wasm",
+        "selector": "scalar_browser_ci_contract::historical_builder::main7d34_browser_bridge_preserves_three_complete_trees_and_raw_role_refusals",
+        "passed": true,
+        "summary": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "artifact_sha256": "9a7fa43f5e99d0738d5189267bb745aa1504886a8bcacbc238cfad5344a37ace",
+        "log_sha256": "11dbf3c93a74e6b74eb81b777036d1857bb44f535cebe36d7071ffabae39ddaf"
+      }
+    ]
+  },
+  "new_live_agent_measurements": false,
+  "claims": "No application-fit, token, cost, turn or language-speedup claim. Application failures remain failures.",
+  "closure_supplement": {
+    "head": "f1b24eda3f98e19c294f50eff388f642eabc7ccb",
+    "passed": 6,
+    "selected": 6,
+    "result_sha256": "b8a2ff557f72d96c52784b71862979a603e4606c1a33b0052e53f3402e7972c9",
+    "artifact_sha256": "e7a6e7612ae1d3910bc83cbe17e20e46488010e760f3a479642deffa1f955bef",
+    "no_additional_build": true,
+    "literal_audit_sha256": "481696ba04f3438921dc5d7cc5e1e725f3ff76dd8acfa70a586eee12ae2bc005",
+    "rows": [
+      {
+        "selector": "cleanup_plan::replay::factored::canonical_shared::arena_tests::selected_generation_complete_prior_directory_and_new_tree_keep_weights_overflow_and_both_sites",
+        "source_subject": "f1b24eda3f98e19c294f50eff388f642eabc7ccb",
+        "passed": true,
+        "summary": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "stdout_sha256": "5df7ada83f39ad788490fd224f03077fae9328c2a4bb40fc26f874f3ab71e720",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "wall_seconds": 1.363987167016603,
+        "peak_process_group_rss_bytes": 3162112
+      },
+      {
+        "selector": "cleanup_plan::replay::factored::canonical_shared::arena_tests::selected_generation_actual_local_and_enclosing_cuts_keep_six_fields_sticky_and_whole_drop",
+        "source_subject": "f1b24eda3f98e19c294f50eff388f642eabc7ccb",
+        "passed": true,
+        "summary": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "stdout_sha256": "50b596dd309988c8461432cea063ebfdd52348408cd6841e06d137c88c8327c8",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "wall_seconds": 1.4197721250238828,
+        "peak_process_group_rss_bytes": 3588096
+      },
+      {
+        "selector": "cleanup_plan::replay::factored::canonical_shared::arena_tests::selected_generation_foreign_function_budget_and_scope_never_revive_bound_receiver",
+        "source_subject": "f1b24eda3f98e19c294f50eff388f642eabc7ccb",
+        "passed": true,
+        "summary": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "stdout_sha256": "af28d07cf0c62c5cc6dabab60870893b8cb0632e70a895f66cdbcffa78bef8a3",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "wall_seconds": 1.3724671250092797,
+        "peak_process_group_rss_bytes": 3211264
+      },
+      {
+        "selector": "cleanup_plan::replay::factored::canonical_shared::arena_tests::ordered_interning_preserves_complete_ids_signatures_work_overflow_and_cycle",
+        "source_subject": "f1b24eda3f98e19c294f50eff388f642eabc7ccb",
+        "passed": true,
+        "summary": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "stdout_sha256": "c3eac561668858b85574e9584d0c7bfced28029129055fb0815aaa912bca4fb5",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "wall_seconds": 1.3631312919897027,
+        "peak_process_group_rss_bytes": 2818048
+      },
+      {
+        "selector": "cleanup_plan::replay::factored::canonical_shared::arena_tests::vec_borrowed_queries_and_zipped_misses_keep_full_old_key_order",
+        "source_subject": "f1b24eda3f98e19c294f50eff388f642eabc7ccb",
+        "passed": true,
+        "summary": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "stdout_sha256": "4ae77fa591a9e76a0bf830429d85f606ca58ebd4a5c1bcd0a8525cd326c4592e",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "wall_seconds": 1.3702912500011735,
+        "peak_process_group_rss_bytes": 9338880
+      },
+      {
+        "selector": "cleanup_plan::replay::factored::canonical_shared::arena_source::complete_old_receiver_and_full_source_views_remain_bound",
+        "source_subject": "f1b24eda3f98e19c294f50eff388f642eabc7ccb",
+        "passed": true,
+        "summary": [
+          [
+            "ok",
+            "1",
+            "0",
+            "0"
+          ]
+        ],
+        "stdout_sha256": "f00791750c62d1225c8e634b72f2e0de8aefbc33a3a0caaee55f80c5159d892b",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "wall_seconds": 4.496375084039755,
+        "peak_process_group_rss_bytes": 46940160
+      }
+    ]
+  },
+  "issue_scope": {
+    "854": "REQUIRED_CORE_AND_ORIGINAL_ARENA_PLUS_BORROWED_AND_SIX_SUPPLEMENT_PASS_APPLICATION_FAILURES_DISCLOSED",
+    "875": "ALL_12_EXACT_REQUIRED_OWNERS_PASS_APPLICATION_FAILURES_DISCLOSED",
+    "876": "EXACT_ORIGINAL_ARENA_AND_3_REQUIRED_SELECTED_BEHAVIOR_OWNERS_PASS",
+    "808": "OPEN_APPLICATION_64MIB_REFUSALS_REMAIN",
+    "870": "OPEN_FIXTURES_SOURCE_REPAIRED_NEXT_BATCH_NOT_QUALIFIED",
+    "874": "OPEN_DEPENDENT_ON_870_RUNTIME_RECOVERY",
+    "879": "OPEN_NEXT_IMPLEMENTATION_REVIEW_PENDING",
+    "880": "OPEN_SOURCE_ACCEPTED_NEXT_BATCH_UNQUALIFIED"
+  }
+}

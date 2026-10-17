@@ -1,0 +1,9 @@
+{
+  "path": "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs",
+  "base": "87bd3bd12",
+  "before": "borrowed_labels.87bd.before.rs.txt",
+  "current": "borrowed_labels.current.rs.txt",
+  "before_sha256": "8d55d9154ba91e4223b066b4d80755c67becd13f5e6c400ed0ff332d2fdb3c5d",
+  "current_sha256": "5e6115a18878f0cf2b990402927b32a3522a821093d5092867991ca70457dbbd",
+  "inverse": "authenticate complete current then restore complete before, exact bytes; no wildcard projection"
+}

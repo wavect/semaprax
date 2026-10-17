@@ -390,16 +390,16 @@
         "first": ".github/workflows/ci.yml",
         "last": "src/source_verify/declaration/public_signature_before.rs",
         "rows": 266,
-        "length": 5019952,
-        "sha256": "fdfb200cfeb16198d47f940b6a665202479597995fbb144b84fca5b96051ac15"
+        "length": 5020511,
+        "sha256": "b872577b33da86a2d9d77eb9b3d6325d9b4185fcf94bdb5313531a93ffe804db"
       },
       {
         "table": "current-to-Previous16c-part-001.json",
         "first": "src/source_verify/declared_type.rs",
         "last": "tests/workspace/semantic_graph/source_inventory.rs",
         "rows": 113,
-        "length": 2795074,
-        "sha256": "a81bed0a2040093a739ccef05a3d866eabac9aa706187b3ef36d0b7ec5d7bc6d"
+        "length": 2795583,
+        "sha256": "c517922b423001db95a9066d608fa7b989555e1360a5f0a897294c4d5f40bb8a"
       }
     ]
   },
@@ -445,8 +445,8 @@
         "first": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
         "last": "tests/workspace/semantic_graph/source_inventory.rs",
         "rows": 30,
-        "length": 1655193,
-        "sha256": "c69728be23e0668c1a9d4005a8b0495fead8c569d0519bf6a607742a4be684c9"
+        "length": 1655694,
+        "sha256": "eae035a5e875a61ae1a6ee93f9b4976cb9c9d559ca9ff3b9dff8e3d84e912fe1"
       }
     ]
   },

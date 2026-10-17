@@ -493,14 +493,19 @@ fn ordinary_project_import_as_vec_alias_preserves_real_provider_declarations_and
     let manifest = "schema = \"semaprax.project.v1\"\nname = \"intrinsic-alias-witness\"\nentry = \"alias.current\"\nsources = [\"src/app.spx\", \"src/provider.spx\", \"src/tests.spx\"]\nweb_exports = [\"alias.current.main\"]\ntests = [\"alias.witness_tests\"]\n";
     let tests = "module alias.witness_tests; @id(\"alias.witness.smoke\") fn smoke()->bool {true}";
     std::fs::write(root.join("semaprax.toml"), manifest).unwrap();
-    for (path, source) in [("src/app.spx", RENAMED), ("src/provider.spx", PROVIDER), ("src/tests.spx", tests)] {
+    // Project source custody requires canonical bytes. Keep the original raw
+    // fixture inputs and use the actual compiler formatter for every file.
+    let sources = [("src/app.spx", RENAMED), ("src/provider.spx", PROVIDER), ("src/tests.spx", tests)]
+        .map(|(path, source)| (path, crate::format::canonical(
+            &crate::parse(source, std::path::Path::new(path)).unwrap())));
+    for (path, source) in &sources {
         std::fs::write(root.join(path), source).unwrap();
     }
     crate::project::with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
         snapshot.check()?;
         crate::hir::validate(snapshot.entry_program()).unwrap();
-        for (path, source) in [("src/app.spx", RENAMED), ("src/provider.spx", PROVIDER), ("src/tests.spx", tests)] {
-            assert_eq!(snapshot.sources().iter().find(|input| input.path() == path).unwrap().source(), source);
+        for (path, source) in &sources {
+            assert_eq!(snapshot.sources().iter().find(|input| input.path() == *path).unwrap().source(), source.as_str());
         }
         let evaluated = crate::interpreter::evaluate_resolved_zero_arg_i64(snapshot.entry_program(), "alias.current.main", 100_000)?;
         assert!(matches!(evaluated.outcome, crate::interpreter::ResolvedEvaluationOutcome::ReturnedI64(42)));

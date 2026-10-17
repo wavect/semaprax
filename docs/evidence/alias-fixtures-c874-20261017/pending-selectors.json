@@ -1,0 +1,26 @@
+{
+  "status": "SOURCE_ONLY_NOT_REGISTERED_NOT_EXECUTED",
+  "checks": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::expected_projection::borrowed_imports::typed::alias::rename_tests::ordinary_project_import_as_vec_alias_preserves_real_provider_declarations_and_complete_sources",
+      "sourcepath": "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/rename_tests.rs",
+      "role": "existing-real-failure"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "hir::resolve_program::tests::reservation_stages::template_selected_name_minimum_and_static_refusal_remain_complete",
+      "sourcepath": "src/hir/resolve_program/tests/reservation_stages.rs",
+      "role": "existing-real-failure"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows_merge::main67107_inputs::corrected_alias_fixtures_keep_complete_c874_sources_and_refuse_foreign_stages",
+      "sourcepath": "src/source_reflows_merge/main67107_inputs.rs",
+      "role": "new-exact-acquisition-control"
+    }
+  ]
+}

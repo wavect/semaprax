@@ -208,6 +208,12 @@ fn compile35f_records() -> serde_json::Value {
 fn compile35f_restore(row: &serde_json::Value, current: &str) -> String {
     let source = row["source"].as_str().unwrap();
     assert!(COMPILE35F_KEYS.binary_search(&source).is_ok());
+    // A preselected35f view still acquires/authenticates physical current below.
+    // Do not project it again through the distinct new-to-c874 fixture stage.
+    let fixture = if digest(current) == row["before_sha256"].as_str().unwrap() {
+        current.to_owned()
+    } else { corrected_alias_fixture_input(source, current) };
+    let current = fixture.as_str();
     let acquired = factored_core_input(source, current);
     let current = acquired.as_str();
     // A35f intermediate requires the actual physical new source to remain bound.
@@ -327,7 +333,10 @@ fn factored_core_file(path: &::std::path::Path, length: usize, expected: &str) -
 
 fn factored_core_physical(source: &str) -> String {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    if source != FACTORED_CORE_PATH { return std::fs::read_to_string(root.join(source)).unwrap(); }
+    if source != FACTORED_CORE_PATH {
+        let raw=std::fs::read_to_string(root.join(source)).unwrap();
+        return corrected_alias_fixture_input(source,&raw);
+    }
     let actual = factored_core_file(&root.join(source), FACTORED_CORE_RAW.len(), &factored_core_digest(FACTORED_CORE_RAW.as_bytes())).unwrap();
     assert_eq!(actual, FACTORED_CORE_RAW);
     assert_eq!(digest(FACTORED_CORE_OURS), "c151768408bd95f3a56ae5eb48b013ac010c221d0b43df9a141ad47cd97ca953");
@@ -376,7 +385,7 @@ fn singleton_successor_expected_input(source: &str, expected: &str, current: &st
     let physical = include_str!("../cleanup_plan/replay/factored/canonical_shared.rs");
     assert_eq!(digest(physical),row["current_sha256"]);
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let before = std::fs::read_to_string(root.join(row["archive"].as_str().unwrap())).unwrap();
+    let before = factored_core_file(&root.join(row["archive"].as_str().unwrap()), 63023, row["before_sha256"].as_str().unwrap()).unwrap();
     assert_eq!(digest(&before),row["before_sha256"]);
     assert!(current == physical || current == before,"foreign singleton successor stage");
     let mut restored = physical.to_owned();
@@ -401,4 +410,55 @@ fn singleton_successor_whole_c874_acquisition_is_scoped_and_refuses_foreign_stag
     }
     assert_eq!(singleton_successor_expected_input(source,"older historical domain","older staged input"),"older staged input");
     assert_eq!(singleton_successor_expected_input("foreign",&expected,"unchanged"),"unchanged");
+}
+
+
+fn corrected_alias_fixture_input(source: &str, current: &str) -> String {
+    let physical = match source {
+        "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/rename_tests.rs" => include_str!("../workspace_graph/expected_projection/borrowed_imports/typed/alias/rename_tests.rs"),
+        "src/hir/resolve_program/tests/reservation_stages.rs" => include_str!("../hir/resolve_program/tests/reservation_stages.rs"),
+        _ => return current.to_owned(),
+    };
+    let data=include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/docs/evidence/alias-fixtures-c874-20261017/acquisition.json"));
+    assert!(data.len()<=262_144);assert_eq!(digest(data),"97332f8c15c3e824634ac248f307bd755ed69319773d10c363b99df4e0e12bae");
+    let rows:serde_json::Value=serde_json::from_str(data).unwrap();assert_eq!(rows.as_array().unwrap().len(),2);
+    let row=rows.as_array().unwrap().iter().find(|r|r["source"]==source).unwrap();
+    assert_eq!(digest(physical),row["current_sha256"]);
+    let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let actual=factored_core_file(&root.join(source),physical.len(),&digest(physical)).unwrap();assert_eq!(actual,physical);
+    let before_len=usize::try_from(row["before_len"].as_u64().unwrap()).unwrap();
+    assert!(before_len<=262_144);
+    let before=factored_core_file(&root.join(row["archive"].as_str().unwrap()),before_len,row["before_sha256"].as_str().unwrap()).unwrap();
+    assert_eq!(digest(&before),row["before_sha256"]);
+    assert!(current==physical || current==before,"foreign corrected fixture stage");
+    let mut restored=physical.to_owned();
+    for edit in row["inverse"].as_array().unwrap() {
+        let after=edit["after"].as_str().unwrap();assert_eq!(restored.matches(after).count(),1);
+        restored=restored.replacen(after,edit["before"].as_str().unwrap(),1);
+    }
+    assert_eq!(restored,before);before
+}
+
+#[test]
+fn corrected_alias_fixtures_keep_complete_c874_sources_and_refuse_foreign_stages() {
+    for (source,raw) in [
+        ("src/workspace_graph/expected_projection/borrowed_imports/typed/alias/rename_tests.rs",include_str!("../workspace_graph/expected_projection/borrowed_imports/typed/alias/rename_tests.rs")),
+        ("src/hir/resolve_program/tests/reservation_stages.rs",include_str!("../hir/resolve_program/tests/reservation_stages.rs")),
+    ] {
+        let before=corrected_alias_fixture_input(source,raw);
+        assert_ne!(before,raw);assert_eq!(corrected_alias_fixture_input(source,&before),before);
+        if COMPILE35F_KEYS.binary_search(&source).is_ok() {
+            let rows=compile35f_records();
+            let row=rows.as_array().unwrap().iter().find(|r|r["source"]==source).unwrap();
+            let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+            let old=factored_core_file(&root.join(row["before_archive"].as_str().unwrap()),38678,row["before_sha256"].as_str().unwrap()).unwrap();
+            assert_eq!(compile35f_input(source,raw),old);
+            assert_eq!(compile35f_input(source,&before),old);
+            assert_eq!(compile35f_input(source,&old),old);
+        }
+        for wrong in ["foreign".to_owned(),format!("{raw}\n"),raw[..raw.len()-1].to_owned()] {
+            assert!(std::panic::catch_unwind(||corrected_alias_fixture_input(source,&wrong)).is_err());
+        }
+    }
+    assert_eq!(corrected_alias_fixture_input("foreign","unchanged"),"unchanged");
 }

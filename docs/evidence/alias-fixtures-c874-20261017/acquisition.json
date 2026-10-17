@@ -1,0 +1,30 @@
+[
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/rename_tests.rs",
+    "archive": "docs/evidence/alias-fixtures-c874-20261017/before/src/workspace_graph/expected_projection/borrowed_imports/typed/alias/rename_tests.rs",
+    "before_sha256": "fb9bcacb5b72f889e4ab62464ba6f6c845b3e63bb3dec40a43f30305db96b336",
+    "current_sha256": "9d65b759851bf0c50a2a99d7cccc63f5f5221dac51546b8dd015b4b46d2b1be7",
+    "inverse": [
+      {
+        "after": "// Project source custody requires canonical bytes. Keep the original raw\n    // fixture inputs and use the actual compiler formatter for every file.\n    let sources = [(\"src/app.spx\", RENAMED), (\"src/provider.spx\", PROVIDER), (\"src/tests.spx\", tests)]\n        .map(|(path, source)| (path, crate::format::canonical(\n            &crate::parse(source, std::path::Path::new(path)).unwrap())));\n    for (path, source) in &sources {\n        std::fs::write(root.join(path), source).unwrap();\n    }\n    crate::project::with_authenticated_project(&root.join(\"semaprax.toml\"), |snapshot| {\n        snapshot.check()?;\n        crate::hir::validate(snapshot.entry_program()).unwrap();\n        for (path, source) in &sources {\n            assert_eq!(snapshot.sources().iter().find(|input| input.path() == *path).unwrap().source(), source.as_str()",
+        "before": "for (path, source) in [(\"src/app.spx\", RENAMED), (\"src/provider.spx\", PROVIDER), (\"src/tests.spx\", tests)] {\n        std::fs::write(root.join(path), source).unwrap();\n    }\n    crate::project::with_authenticated_project(&root.join(\"semaprax.toml\"), |snapshot| {\n        snapshot.check()?;\n        crate::hir::validate(snapshot.entry_program()).unwrap();\n        for (path, source) in [(\"src/app.spx\", RENAMED), (\"src/provider.spx\", PROVIDER), (\"src/tests.spx\", tests)] {\n            assert_eq!(snapshot.sources().iter().find(|input| input.path() == path).unwrap().source(), source"
+      }
+    ],
+    "current_len": 39465,
+    "before_len": 39212
+  },
+  {
+    "source": "src/hir/resolve_program/tests/reservation_stages.rs",
+    "archive": "docs/evidence/alias-fixtures-c874-20261017/before/src/hir/resolve_program/tests/reservation_stages.rs",
+    "before_sha256": "4ab4bb777b1ed315ed5055f4bf53c5329eadd56fbbc61a5b3675141496a4bd16",
+    "current_sha256": "d69608047e2572e1ebb2aed3a51d7fa7dcca39a161a1aa970d6981c7b98bbb5b",
+    "inverse": [
+      {
+        "after": "<T>",
+        "before": "[T]"
+      }
+    ],
+    "current_len": 2820,
+    "before_len": 2820
+  }
+]

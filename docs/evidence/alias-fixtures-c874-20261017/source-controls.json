@@ -1,0 +1,12 @@
+{
+  "status": "PASS_PURE_SOURCE_ONLY",
+  "whole_originals": 3,
+  "hostile_source_and_stage_refusals": 16,
+  "complete_stages": [
+    "actualnew",
+    "c874",
+    "35f"
+  ],
+  "all_old_scripts_unchanged": true,
+  "no_generators_or_rust_executed": true
+}

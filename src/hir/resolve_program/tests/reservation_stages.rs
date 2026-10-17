@@ -27,7 +27,7 @@ fn actual_resolver_lowering_stage_keeps_complete_hir_and_first_refusal() {
 #[test]
 fn template_selected_name_minimum_and_static_refusal_remain_complete() {
     let program = parsed(
-        "module name.funding; @id(\"name.identity\") fn identity[T](value:T)->T {value} @id(\"name.main\") fn main()->i64 {0}",
+        "module name.funding; @id(\"name.identity\") fn identity<T>(value:T)->T {value} @id(\"name.main\") fn main()->i64 {0}",
         "name-funding.spx",
     );
     let prepared = resolver(&program);

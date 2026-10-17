@@ -79,3 +79,5 @@ archives or old runtime receipts. Actual focused compilation, source discovery,
 physical/work/diagnostic controls, unchanged codec/catalog/application owners
 and final phase accounting remain pending. Original discovery frontiers are
 cumulative evidence, not proof that this optimization alone makes an app fit.
+
+The source-custody canonical archive is acquired using the unchanged existing no-follow bounded regular reader at fixed63,023bytes and fullSHA, before publication. The old2MiB readercap remains unchanged. The shared helper also receives the separately documented alias-fixtures-c874 packet; combine both packets from this commit.

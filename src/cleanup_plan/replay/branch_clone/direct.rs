@@ -257,6 +257,8 @@ pub(in crate::cleanup_plan::replay) fn copy_prepaid<
         Some(required) => physical_storage::replay_growth_capacity(values.len(), required),
         None => None,
     };
+    // Keep explicit Option arms: Option::map would add callback receivers outside this bank.
+    #[allow(clippy::manual_map)]
     let capacity = if budget.payer == AllocationPayer::ActiveBuilder && !budget.selected() {
         #[cfg(test)]
         let enabled = !super::tests::original_selected();

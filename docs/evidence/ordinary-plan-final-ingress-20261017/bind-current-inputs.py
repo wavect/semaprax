@@ -64,6 +64,13 @@ def scrub(code):
  code,n=re.subn(r'const FINAL_INGRESS_LENGTH: usize = [0-9]+;','const FINAL_INGRESS_LENGTH: usize = SOURCE_LENGTH;',code);assert n==1
  code,n=re.subn(r'const FINAL_INGRESS_SHA256: &str = "[0-9a-f]{64}";','const FINAL_INGRESS_SHA256: &str = "SOURCE_SHA256";',code);assert n==1
  return code
+def custody_source_template(template):
+ # This exact new append block is the only extension to the old helper body.
+ addition=read(D.parent/'ordinary-plan-macro-custody-14d217-v1/helper-addition.rs.txt', 1046, '18b9d238b9c4393e8260d57916c8b937fc08d4c251b65ed2394e8c0cf566122f').decode()
+ assert template.count('pub(super) fn original_root_checkpoint(')==0
+ assert addition.count('pub(super) fn original_root_checkpoint(')==1
+ return template+addition
+
 def main():
  p=argparse.ArgumentParser();p.add_argument('--repo',type=Path,default=D.parents[2]);p.add_argument('--expected-head',required=True);p.add_argument('--write',action='store_true');a=p.parse_args()
  R=a.repo.resolve();assert R==D.parents[2]and R.is_relative_to('/Volumes/Semaprax')
@@ -74,6 +81,7 @@ def main():
  assert head()==a.expected_head
  spec=load(read(D/'recipe.json',SPEC_LENGTH,SPEC_SHA));assert spec['checkpoint']==CHECKPOINT and tuple(spec['keys'])==KEYS
  template=read(R/spec['helper_template'],digest=spec['helper_template_sha256']).decode()
+ template=custody_source_template(template)
  helper_path=R/spec['helper'];helper=read(helper_path).decode();assert scrub(helper)==scrub(template),'unexpected source helper drift'
  immutable={}
  for item in spec['immutable']:

@@ -42,6 +42,10 @@ fn complete_predecessor_and_inverse_are_bound_to_exact_root_bytes() {
     let packet = records();
     assert_eq!(digest(BEFORE), packet["before_sha256"]);
     let current = include_str!("../../replay.rs");
+    let physical_root = current;
+    let live_before = include_str!("before.rs");
+    let acquired = crate::source_reflows_merge::ordinary_plan_history_root_checkpoint(current, live_before);
+    let current = acquired.as_str();
     assert_eq!(digest(current), packet["after_sha256"]);
     assert_eq!(prior_root(current), BEFORE);
     let original = BEFORE
@@ -52,4 +56,12 @@ fn complete_predecessor_and_inverse_are_bound_to_exact_root_bytes() {
         .next()
         .unwrap();
     assert!(current.contains(original));
+    // Independent live compiled old owner: the historical root alone is insufficient.
+    assert_eq!(live_before.len(), 27915);
+    assert_eq!(digest(live_before), "9e07f08634f9a79e9d38955da089790acf951521362e46ba23b073e67e9ba3a5");
+    assert!(live_before.contains(original));
+    assert!(std::panic::catch_unwind(|| crate::source_reflows_merge::ordinary_plan_history_root_checkpoint(
+        &(physical_root.to_owned() + "\n"), live_before)).is_err());
+    assert!(std::panic::catch_unwind(|| crate::source_reflows_merge::ordinary_plan_history_root_checkpoint(
+        physical_root, &(live_before.to_owned() + "\n"))).is_err());
 }

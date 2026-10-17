@@ -1,0 +1,27 @@
+[
+  {
+    "path": "docs/evidence/ordinary-plan-macro-custody-14d217-v1/whole-inverses.json",
+    "length": 201397,
+    "sha256": "03d8b5d07997c80d441f5ce90be66979af8bd201a8352a9ad81ac0fa2eeef7f8"
+  },
+  {
+    "path": "docs/evidence/ordinary-plan-macro-custody-14d217-v1/helper-addition.rs.txt",
+    "length": 1046,
+    "sha256": "18b9d238b9c4393e8260d57916c8b937fc08d4c251b65ed2394e8c0cf566122f"
+  },
+  {
+    "path": "docs/evidence/ordinary-plan-macro-custody-14d217-v1/verify_source.py",
+    "length": 5485,
+    "sha256": "ad69ca4d3b16512011f23d081ce9eef696d391d2ccab7c67633fc255d660a7d1"
+  },
+  {
+    "path": "docs/evidence/ordinary-plan-macro-custody-14d217-v1/proof.json",
+    "length": 574,
+    "sha256": "0496d0e2b2284e84971c903f86d1243e624e19f2cd3702a0108906f1e33f2496"
+  },
+  {
+    "path": "docs/evidence/ordinary-plan-macro-custody-14d217-v1/bind-current-inputs.py.before.txt",
+    "length": 8891,
+    "sha256": "2f66e9e8789e0f2792e3c67ce67d569092553459a66723f51652c6ab0bc26bc4"
+  }
+]

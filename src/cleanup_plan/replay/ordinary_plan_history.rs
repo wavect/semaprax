@@ -3,20 +3,6 @@ use super::*;
 use std::cmp::Ordering;
 use std::mem::size_of;
 use std::rc::Rc;
-mod producer;
-pub(super) use producer::produce;
-#[cfg(test)]
-mod before;
-#[cfg(test)]
-mod frontier_tests;
-#[cfg(test)]
-mod frontiers;
-#[cfg(test)]
-mod owned_tests;
-#[cfg(test)]
-pub(crate) mod source_custody;
-#[cfg(test)]
-mod tests;
 
 macro_rules! paid {
     ($budget:expr, $function:expr, $bytes:expr, $phase:literal $(,)?) => {{
@@ -101,6 +87,21 @@ macro_rules! history_path {
         }
     }};
 }
+
+mod producer;
+pub(super) use producer::produce;
+#[cfg(test)]
+mod before;
+#[cfg(test)]
+mod frontier_tests;
+#[cfg(test)]
+mod frontiers;
+#[cfg(test)]
+mod owned_tests;
+#[cfg(test)]
+pub(crate) mod source_custody;
+#[cfg(test)]
+mod tests;
 
 struct Segment {
     previous: Option<usize>,

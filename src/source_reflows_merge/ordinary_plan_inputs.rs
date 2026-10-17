@@ -373,3 +373,25 @@ fn final_ingress_six_physical_owners_preserve_frozen_stages_and_expected_dispatc
         }
     }
 }
+
+// Exact root-only custody entry. It shares the complete six-owner FINAL
+// authenticator; the caller supplies actual compiled root and flat old owner.
+pub(super) fn original_root_checkpoint(current: &str, compiled_before: &str) -> String {
+    assert_eq!(CURRENT[0].0, "src/cleanup_plan/replay.rs");
+    assert_eq!(current, CURRENT[0].1, "custody entry requires actual compiled root");
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let actual_before = final_ingress_file(
+        &root.join("src/cleanup_plan/replay/ordinary_plan_history/before.rs"),
+        27915,
+        "9e07f08634f9a79e9d38955da089790acf951521362e46ba23b073e67e9ba3a5",
+    );
+    assert_eq!(actual_before, compiled_before, "complete current compiled flat predecessor");
+    let legacy = records();
+    assert_eq!(legacy[0]["path"], "src/cleanup_plan/replay.rs");
+    let (checkpoint, _) = final_ingress_checkpoint(
+        "src/cleanup_plan/replay.rs",
+        legacy[0]["before_sha256"].as_str().unwrap(),
+        current,
+    );
+    checkpoint
+}

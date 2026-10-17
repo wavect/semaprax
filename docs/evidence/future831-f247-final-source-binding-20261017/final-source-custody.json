@@ -1,0 +1,11 @@
+{
+  "status": "PASS_FINITE_SOURCE_CUSTODY_ONLY",
+  "current57": 57,
+  "independent_priors": 74,
+  "incoming_whole_inputs": 408,
+  "incoming19_live_tables_whole_old_unchanged": 19,
+  "incoming_max": 9703917,
+  "Rust": false,
+  "Cargo": false,
+  "runtime": "UNEXECUTED"
+}

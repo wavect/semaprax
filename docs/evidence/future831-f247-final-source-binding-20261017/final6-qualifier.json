@@ -1,0 +1,70 @@
+{
+  "status": "PURE_SOURCE_PASS_NOT_RUST_QUALIFIED",
+  "head": "235812b556d0637c25744e469d31d6f425dfcf65",
+  "checkpoint": "787d9810480209532fa645b8cb97f2585ce5f426",
+  "complete_final_sources": [
+    {
+      "path": "src/cleanup_plan/replay.rs",
+      "raw_sha256": "add44f92c19bb698ebec165c74554f4d606cd38885e6230e1e882556eb068848",
+      "checkpoint_sha256": "458260e9a3d66601d731b7bad8737efdfd5a4deb4e52bbb07adf0f0af150777b",
+      "synthetic_nonidentity_edits": 30
+    },
+    {
+      "path": "src/source_reflows_merge.rs",
+      "raw_sha256": "57c0fc50ab6d03eb94094b8f47e8946f5f4a011a1d9a387083eab6bdb41d8168",
+      "checkpoint_sha256": "e39790a4feedf4e2ea920e66760e1f17c0d2455a78e3640cd64badaeaf55de53",
+      "synthetic_nonidentity_edits": 2
+    },
+    {
+      "path": "src/source_reflows_merge/main67107_inputs.rs",
+      "raw_sha256": "0678410d6fda64f6c2b713878c2bbaae954106ec8593c44c415e1cbd17162bd2",
+      "checkpoint_sha256": "a511a68af9e2dfe857afff66e74f575b0ca01887b933767202f800db5c0f8ba7",
+      "synthetic_nonidentity_edits": 12
+    },
+    {
+      "path": "tests/hir_module_boundaries.rs",
+      "raw_sha256": "46e5fbd03a01ef804e351ffe5c4ee15d61336f7ca0ab1a612839baa723f85d15",
+      "checkpoint_sha256": "4264ab588af07acb50304d667d09fb8685ab4d82bc1d78c92ea99d00cc825a4b",
+      "synthetic_nonidentity_edits": 6
+    },
+    {
+      "path": "tests/workspace/semantic_graph/source_inventory.rs",
+      "raw_sha256": "f42216ee8017033d39f6f29648613ddb4056483041ac6ed302b3db09623c3359",
+      "checkpoint_sha256": "a8468859b79dd47e9ef6a77e1803e2942fcce4c4a41e6a2436e51691a495bae7",
+      "synthetic_nonidentity_edits": 7
+    },
+    {
+      "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "raw_sha256": "1593db2b5b16f88c509952eddf075e1b574a8c6352382bff4ca19e2478ea7517",
+      "checkpoint_sha256": "68f460f783a905ec3b35fbe0152b8353875ea0de23973dea8cf430e2b0a1c88f",
+      "synthetic_nonidentity_edits": 5
+    }
+  ],
+  "actual_raw_scopes": [
+    {
+      "path": "tests/hir_module_boundaries.rs",
+      "actual_raw_sha256": "46e5fbd03a01ef804e351ffe5c4ee15d61336f7ca0ab1a612839baa723f85d15",
+      "original_a82e_sha256": "959eaf830896619186a6c75d707a8bd1e41d123563f7bb04ced26ea947f4de78",
+      "raw_projected": false
+    },
+    {
+      "path": "tests/workspace/semantic_graph/source_inventory.rs",
+      "actual_raw_sha256": "f42216ee8017033d39f6f29648613ddb4056483041ac6ed302b3db09623c3359",
+      "original_a82e_sha256": "7cee73c09e4a61b24480a7abf756c3fdf228d15a0f341a3cd0bc387b39fd6375",
+      "raw_projected": false
+    },
+    {
+      "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "actual_raw_sha256": "1593db2b5b16f88c509952eddf075e1b574a8c6352382bff4ca19e2478ea7517",
+      "original_a82e_sha256": "4ce9be9127d201c440ba2725ff5e38cfbd89c9fd70f6809da0da82b4891c180c",
+      "raw_projected": false
+    }
+  ],
+  "negative_controls": 75,
+  "original_legacy_checkpoint_restored": "BYTE_EXACT",
+  "immutable_packets": "BYTE_EXACT_GIT787",
+  "binder_main_executed": false,
+  "Cargo": false,
+  "Rust_tests": false,
+  "runtime": "UNEXECUTED"
+}

@@ -1,0 +1,88 @@
+{
+  "status": "BOUNDED_ORIGINAL_PARSER_DELTA_SOURCE_ONLY",
+  "parser_sha256": "87a903ce0f9927d3d90063fdd686b50b5302e2ac10cfea324918f7c030b28599",
+  "parsed_parents": [
+    "src/cleanup_plan/replay/compact_stage.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared.rs",
+    "src/cleanup_plan/replay/skeleton_work.rs",
+    "src/source_reflows.rs"
+  ],
+  "parsed_new_files": [
+    "src/cleanup_plan/replay/compact_stage/main_f247_source_custody.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels/terminal_leaf.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/selected_labels.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/selected_labels/tests.rs",
+    "src/cleanup_plan/replay/skeleton_work/isolated_paths.rs",
+    "src/cleanup_plan/replay/skeleton_work/isolated_paths/tests.rs",
+    "src/cleanup_plan/replay/skeleton_work/isolated_paths/tests/before.rs",
+    "src/source_reflows/main_f247_controllers.rs"
+  ],
+  "full_root_enumeration": false,
+  "new_classes": {
+    "src/cleanup_plan/replay/compact_stage/main_f247_source_custody.rs": "test-only",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels.rs": "test-only",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels/terminal_leaf.rs": "test-only",
+    "src/cleanup_plan/replay/factored/canonical_shared/selected_labels.rs": "production",
+    "src/cleanup_plan/replay/factored/canonical_shared/selected_labels/tests.rs": "test-only",
+    "src/cleanup_plan/replay/skeleton_work/isolated_paths.rs": "test-only",
+    "src/cleanup_plan/replay/skeleton_work/isolated_paths/tests.rs": "test-only",
+    "src/cleanup_plan/replay/skeleton_work/isolated_paths/tests/before.rs": "test-only",
+    "src/source_reflows/main_f247_controllers.rs": "test-only"
+  },
+  "new_literal_chunks": 9,
+  "counts": {
+    "hir": {
+      "classes": 1338,
+      "chunks": 1148,
+      "closure_only": 226
+    },
+    "projection": {
+      "classes": 1534,
+      "chunks": 320,
+      "closure_only": 1227
+    }
+  },
+  "new_test_selectors": [
+    "cleanup_plan::replay::compact_stage::main_f247_source_custody::all_seven_live_receivers_reconstruct_every_predecessor_byte",
+    "cleanup_plan::replay::compact_stage::main_f247_source_custody::original_enumerator_enum_header_traits_and_lexical_helper_stay_complete",
+    "cleanup_plan::replay::factored::canonical_shared::selected_labels::tests::complete_before_receiver_is_source_exact_with_only_test_wiring",
+    "cleanup_plan::replay::factored::canonical_shared::selected_labels::tests::selected_inline_actual_parent_preserves_whole_ids_states_work_and_six_field_refusal",
+    "cleanup_plan::replay::factored::canonical_shared::selected_labels::tests::selected_inline_every_actual_physical_frontier_retains_full_first_status_sticky_reason_and_drop",
+    "cleanup_plan::replay::factored::canonical_shared::selected_labels::tests::selected_inline_reports_current_old_actual_tuples_and_every_byte_cut_through_drop",
+    "cleanup_plan::replay::factored::canonical_shared::selected_labels::tests::selected_inline_warm_parent_rejects_foreign_function_budget_scope_and_restoration",
+    "cleanup_plan::replay::skeleton_work::constructor_funding_tests::ordinary_constructor_matches_complete_previous_collectors_and_order",
+    "cleanup_plan::replay::skeleton_work::constructor_funding_tests::ordinary_constructor_prepays_real_scratch_at_zero_short_exact_and_sticky_limits",
+    "cleanup_plan::replay::skeleton_work::incoming_constructor_control::main_complete_prepared_receiver_matches_joined_actual_inventories",
+    "cleanup_plan::replay::skeleton_work::isolated_paths::tests::all_other_merge_modes_and_unbounded_spare_capacity_keep_the_original_route",
+    "cleanup_plan::replay::skeleton_work::isolated_paths::tests::complete_isolated_paths_keep_every_field_backing_work_and_drop",
+    "cleanup_plan::replay::skeleton_work::isolated_paths::tests::isolated_transfer_exact_short_zero_floor_and_work_refusal_remain_sticky",
+    "cleanup_plan::replay::skeleton_work::ordinary_entry::tests::complete_entry_keeps_every_inventory_work_and_physical_refusal",
+    "source_reflows::a_changed_current_byte_is_refused_before_an_inverse_can_hide_it",
+    "source_reflows::approved_reflows_authenticate_full_inputs_and_reconstruct_full_predecessors",
+    "source_reflows::main_f247_controllers::allocation_followup_preserves_the_complete_original_format_input",
+    "source_reflows::main_f247_controllers::borrowed_exit_region_views_preserve_all_complete_predecessors_and_controls",
+    "source_reflows::main_f247_controllers::complete_f247_selector_preserves_first_precedence_and_full_input",
+    "source_reflows::main_f247_controllers::complete_followup_receivers_keep_all_original_source_bytes",
+    "source_reflows::main_f247_controllers::every_receiver_inverse_preserves_the_entire_reflow_input_and_archive",
+    "source_reflows::main_f247_controllers::held_continuation_inputs_preserve_the_complete_machine_and_all_original_controls",
+    "source_reflows::main_f247_controllers::held_status_index_keeps_complete_predecessor_receivers_and_assertions",
+    "source_reflows::main_f247_controllers::held_status_views_preserve_complete_original_inputs_and_validation_loops",
+    "source_reflows::main_f247_controllers::historical_pin_capture_chains_restore_every_original_source",
+    "source_reflows::main_f247_controllers::isolated_lexical_path_reuse_preserves_complete_merger_and_all_prior_controls",
+    "source_reflows::main_f247_controllers::last_branch_prefix_keeps_complete_predecessors_and_original_source_controls",
+    "source_reflows::main_f247_controllers::optional_helper_digest_preserves_complete_predecessors_and_all_old_controls",
+    "source_reflows::main_f247_controllers::ordinary_helper_views_authenticate_every_complete_input",
+    "source_reflows::main_f247_controllers::ordinary_replay_routes_keep_complete_predecessors_and_existing_controls",
+    "source_reflows::main_f247_controllers::ordinary_setup_bridges_preserve_every_complete_original_format_input",
+    "source_reflows::main_f247_controllers::ordinary_setup_complete_sources_and_original_legacy_constructor_remain_exact",
+    "source_reflows::main_f247_controllers::plan_branch_capacity_preserves_complete_sources_and_all_existing_controls",
+    "source_reflows::main_f247_controllers::projection_audit_scope_preserves_complete_sources_and_all_historical_receivers",
+    "source_reflows::main_f247_controllers::receiver_mutation_and_forged_predecessor_fail_closed",
+    "source_reflows::main_f247_controllers::receiving_lookup_views_keep_complete_prior_modules_and_all_owning_inputs",
+    "source_reflows::main_f247_controllers::replay_operation_totals_preserve_complete_predecessors_and_production_text",
+    "source_reflows::main_f247_controllers::replay_work_refusal_capture_retains_all_complete_predecessors_and_assertions",
+    "source_reflows::main_f247_controllers::slot_byte_helper_and_generic_bound_frontier_keep_complete_source_receivers",
+    "source_reflows::main_f247_controllers::status_membership_index_preserves_complete_predecessors_and_all_original_controllers"
+  ]
+}

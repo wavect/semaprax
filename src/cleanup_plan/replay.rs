@@ -3281,10 +3281,16 @@ fn expression_skeleton<'hir>(
     } else {
         (
             continuation_storage::Lease::Local,
-            if work.budget.payer == AllocationPayer::ActiveBuilder {
-                continuation_storage::fresh_receiving(function, work.budget)?
-            } else {
-                continuation_storage::fresh(function, work.budget)?
+            match work.budget {
+                ReplayBudget {
+                    payer: AllocationPayer::ActiveBuilder,
+                    lent_skeleton: false,
+                    ..
+                } => continuation_storage::fresh_receiving(function, work.budget)?,
+                // A factored constructor has lent its ordinary allowance to the
+                // original skeleton events. Keep its standalone fixed backing;
+                // incremental relocation needs an independent ordinary account.
+                _ => continuation_storage::fresh(function, work.budget)?,
             },
         )
     };

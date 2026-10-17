@@ -1,0 +1,16 @@
+[
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "hir::declaration_index::source::identity_reuse_tests::resolver_held::inference_and_call_signature_keep_complete_old_results_and_index_backing_through_drop",
+    "sourcepath": "src/hir/declaration_index/identity_reuse/resolver_held.rs",
+    "status": "PENDING_COMPILE_DISCOVERY_AND_RUNTIME"
+  },
+  {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "hir::declaration_index::source::identity_reuse_tests::resolver_held::inference_index_payment_refuses_exact_short_and_preserves_original_payer_before_lowering",
+    "sourcepath": "src/hir/declaration_index/identity_reuse/resolver_held.rs",
+    "status": "PENDING_COMPILE_DISCOVERY_AND_RUNTIME"
+  }
+]

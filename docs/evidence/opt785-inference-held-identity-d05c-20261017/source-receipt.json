@@ -1,0 +1,21 @@
+{
+  "status": "SOURCE_ONLY_RUSTFMT_PARSE_NOT_TYPECHECKED_OR_EXECUTED",
+  "base": "d05c354dcb3470daf46308a6fd46dc9c493693e3",
+  "two_original_production_constructors_only": true,
+  "complete_old_testfile_prefix_exact": true,
+  "full_inverse_sha256": "19d662fc8d32fa05a0fdfa113eb6b84add135dc58532a22964498dc0ee071d32",
+  "rustfmt_parse_exit_codes": [
+    0,
+    0
+  ],
+  "new_Rust_owner": false,
+  "raw_inventory_registration_needed": false,
+  "no_help_change": "Private identity allocation policy only; no syntax/API admission/new agent-visible operation.",
+  "module_lines": {
+    "src/hir/generic_inference.rs": 661,
+    "src/hir/declaration_index/identity_reuse/resolver_held.rs": 1118
+  },
+  "actual_build_or_tests": false,
+  "all_old_assertions_unchanged": true,
+  "ROOT_untouched": true
+}

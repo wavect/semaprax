@@ -25,6 +25,8 @@ fn restore(rows: &serde_json::Value, domain: &str, current: &str) -> String {
         _ => panic!("foreign MAIN source domain"),
     };
     assert_eq!(row["source"], source);
+    let selected = selected_successor_expected_input(source, row["current_sha256"].as_str().unwrap(), current);
+    let current = selected.as_str();
     let singleton = singleton_successor_expected_input(source, row["current_sha256"].as_str().unwrap(), current);
     let current = singleton.as_str();
     let stage = supplemental_receiver_expected_input(source, row["current_sha256"].as_str().unwrap(), current);
@@ -259,6 +261,10 @@ pub(crate) fn compile35f_input(source: &str, current: &str) -> String {
     compile35f_restore(row, current)
 }
 pub(super) fn compile35f_expected_input(source: &str, expected: &str, current: &str) -> String {
+    let selected = selected_successor_expected_input(source, expected, current);
+    let current = selected.as_str();
+    let singleton = singleton_successor_expected_input(source, expected, current);
+    let current = singleton.as_str();
     let ordinary = super::ordinary_plan_inputs::acquire_expected(source, expected, current);
     let current = ordinary.as_str();
     if COMPILE35F_KEYS.binary_search(&source).is_err() { return current.to_owned(); }
@@ -394,7 +400,11 @@ fn singleton_successor_expected_input(source: &str, expected: &str, current: &st
     assert_eq!(row["source"],source);
     // Do not change an older, already selected historical namespace.
     if row["before_sha256"] != expected { return current.to_owned(); }
-    let physical = include_str!("../cleanup_plan/replay/factored/canonical_shared.rs");
+    let selected = selected_successor_expected_input(source, expected, current);
+    let current = selected.as_str();
+    let compiled = include_str!("../cleanup_plan/replay/factored/canonical_shared.rs");
+    let selected_physical = selected_successor_expected_input(source, row["current_sha256"].as_str().unwrap(), compiled);
+    let physical = selected_physical.as_str();
     assert_eq!(digest(physical),row["current_sha256"]);
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let before = factored_core_file(&root.join(row["archive"].as_str().unwrap()), 63023, row["before_sha256"].as_str().unwrap()).unwrap();
@@ -519,5 +529,88 @@ fn complete_supplemental_receiver_stages_and_original_six_field_record_remain_bo
     }
     assert_eq!(supplemental_receiver_expected_input("foreign", expected, "unchanged"), "unchanged");
 }
+
+// Selected876 is a separate complete generation. Only these exact predecessor
+// namespaces acquire it; every existing singleton and arena inverse stays fixed.
+fn selected_successor_expected_input(source: &str, expected: &str, current: &str) -> String {
+    let root_source = "src/cleanup_plan/replay/factored/canonical_shared.rs";
+    let arena_source = "src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs";
+    let admitted = match source {
+        "src/cleanup_plan/replay/factored/canonical_shared.rs" => matches!(expected,
+            "bf9c7cf18aafd539daaac00db9253eff6287a562d76e41dfc91c56bd5bd0337b" |
+            "bbe5d1ff75b6b3bc811d181275181994027cd83188d6096e5b7716efbec753d3"),
+        "src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs" =>
+            expected == "891edcee186f1c7b3fb59bf7d2adf2443c9d230343569865d941b90410b04dd8",
+        _ => false,
+    };
+    if !admitted { return current.to_owned(); }
+    let packet = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/selected-successor-generation-20261017/full-source-inverses.json"));
+    assert_eq!(packet.len(), 40_083);
+    assert_eq!(digest(packet), "947c41698347ca27788aae5985e63f19c85d3f7eb3f25fee4374dac9d0d743d1");
+    let rows: serde_json::Value = serde_json::from_str(packet).unwrap();
+    let rows = rows.as_array().unwrap();
+    assert_eq!(rows.len(), 2);
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let compiled = [
+        include_str!("../cleanup_plan/replay/factored/canonical_shared.rs"),
+        include_str!("../cleanup_plan/replay/factored/canonical_shared/arena_tests.rs"),
+    ];
+    let mut selected = None;
+    for ((row, path), compiled) in rows.iter().zip([root_source, arena_source]).zip(compiled) {
+        assert_eq!(row["path"], path);
+        let length = usize::try_from(row["current_length"].as_u64().unwrap()).unwrap();
+        let before_length = usize::try_from(row["before_length"].as_u64().unwrap()).unwrap();
+        assert!(length <= 131_072 && before_length <= 131_072);
+        let physical = factored_core_file(&root.join(path), length, row["current_sha256"].as_str().unwrap()).unwrap();
+        assert_eq!(physical, compiled, "complete compiled and physical selected source");
+        let before = factored_core_file(&root.join(row["archive"].as_str().unwrap()), before_length, row["before_sha256"].as_str().unwrap()).unwrap();
+        let mut restored = physical.clone();
+        let edits = row["inverse"].as_array().unwrap();
+        assert!(!edits.is_empty() && edits.len() <= 2);
+        for edit in edits {
+            let after = edit["after"].as_str().unwrap();
+            assert_eq!(restored.matches(after).count(), 1);
+            restored = restored.replacen(after, edit["before"].as_str().unwrap(), 1);
+        }
+        assert_eq!(restored, before, "complete selected predecessor");
+        if path == source {
+            if source == root_source && expected == "bbe5d1ff75b6b3bc811d181275181994027cd83188d6096e5b7716efbec753d3" && digest(current) == expected {
+                // The independently authenticated older singleton namespace is
+                // already at its requested stage; do not project it a second time.
+                let historical = factored_core_file(&root.join("docs/evidence/ordinary-singleton-successors-20261017/before/src/cleanup_plan/replay/factored/canonical_shared.rs"), 63_023, expected).unwrap();
+                assert_eq!(current, historical);
+                selected = Some(historical);
+            } else {
+                assert!(current == physical || current == before, "foreign selected successor stage");
+                selected = Some(before);
+            }
+        }
+    }
+    selected.expect("one exact selected predecessor namespace")
+}
+
+#[test]
+fn selected_successor_complete_root_and_arena_acquisition_refuses_foreign_stages() {
+    for (source, expected, raw, before) in [
+        ("src/cleanup_plan/replay/factored/canonical_shared.rs",
+         "bf9c7cf18aafd539daaac00db9253eff6287a562d76e41dfc91c56bd5bd0337b",
+         include_str!("../cleanup_plan/replay/factored/canonical_shared.rs"),
+         include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/selected-successor-generation-20261017/before/src/cleanup_plan/replay/factored/canonical_shared.rs"))),
+        ("src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs",
+         "891edcee186f1c7b3fb59bf7d2adf2443c9d230343569865d941b90410b04dd8",
+         include_str!("../cleanup_plan/replay/factored/canonical_shared/arena_tests.rs"),
+         include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/selected-successor-generation-20261017/before/src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs"))),
+    ] {
+        assert_eq!(selected_successor_expected_input(source, expected, raw), before);
+        assert_eq!(selected_successor_expected_input(source, expected, before), before);
+        for bad in [String::new(), "foreign".to_owned(), format!("{raw} "), raw[..raw.len()-1].to_owned(), format!("{before} ")] {
+            assert!(std::panic::catch_unwind(|| selected_successor_expected_input(source, expected, &bad)).is_err());
+        }
+        assert_eq!(selected_successor_expected_input(source, "older historical namespace", "older bytes"), "older bytes");
+        assert_eq!(compile35f_expected_input(source, expected, raw), before);
+    }
+    assert_eq!(selected_successor_expected_input("foreign", "older historical namespace", "unchanged"), "unchanged");
+}
+
 const SUPPLEMENT_RECEIVER_LENGTH: usize = 607;
 const SUPPLEMENT_RECEIVER_SHA: &str = "4f73b6091d11a7bc7b9427234698fd4fea4f88e4c2e6c160947e1ac1ebaf7ac4";

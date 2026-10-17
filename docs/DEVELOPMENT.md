@@ -252,6 +252,18 @@ change and `main`. [Required CI checks](CI-REQUIRED-CHECKS-V1.md) records that
 configuration, the fail-closed `Release gate` aggregate, and the unapplied
 proposal that would require it.
 
+Before each future build, test, or Clippy controller, select the existing
+`CARGO_HOME` and `RUSTUP_HOME` values (or their usual `$HOME/.cargo` and
+`$HOME/.rustup` defaults), resolve both to physical absolute paths, and export
+both from the launching shell. Keep those same resolved spellings across all
+controllers using this checkout's private target. This preserves the selected
+homes; it does not create or relocate them. Alternating a symlink spelling and
+its physical path can invalidate dependency freshness even when both identify
+the same files; see [the cache follow-up](https://github.com/wavect/semaprax/issues/871).
+Apply this policy only to future launches. Do not migrate homes, change an
+active job's environment, restart a running build, or share another checkout's
+target to adopt it. Record the resolved homes with the controller's environment.
+
 When several worktrees build on one machine, give each its own target
 directory and keep debug data out of it:
 

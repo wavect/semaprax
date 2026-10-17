@@ -33,6 +33,25 @@ def acceptance_times(original: dict) -> tuple[float | None, float | None]:
     return duration(original.get('acceptance_elapsed_seconds')), subtotal
 
 
+def input_slices(usage: dict) -> dict:
+    """Expose the cache-read complement, never infer task-only context."""
+    raw, cached = usage.get('input_tokens'), usage.get('cached_input_tokens')
+    known = (type(raw) is int and type(cached) is int and 0 <= cached <= raw)
+    return {'uncached_input_tokens_excluding_cache_reads': raw - cached if known else None,
+            'task_only_net_input_tokens': None}
+
+
+def completed_items(rows: list[dict]) -> dict | None:
+    """Exec item categories include messages; do not call their sum tool calls."""
+    values = [row.get('exec_completed_item_counts') for row in rows]
+    if not values or any(type(value) is not dict or any(
+            type(key) is not str or type(count) is not int or count < 0
+            for key, count in value.items()) for value in values):
+        return None
+    return {key: sum(value.get(key, 0) for value in values)
+            for key in sorted({key for value in values for key in value})}
+
+
 def summarize(data: dict, rows: list[dict]) -> dict:
     order = data['campaign']['trial_order']
     require(len(rows) <= len(order), 'more attempts than planned')
@@ -47,9 +66,12 @@ def summarize(data: dict, rows: list[dict]) -> dict:
         costs = [row['conditional_api_equivalent_usd'] for row in attempted]
         total_cost = sum(costs) if costs and all(cost is not None for cost in costs) else None
         def metric(key):
-            values = [row[key] for row in attempted]
+            values = [row.get(key) for row in attempted]
             return {'total': sum(values), 'mean_per_attempt': statistics.mean(values),
                     'median_per_attempt': statistics.median(values)} if values and all(value is not None for value in values) else None
+        additional_keys = ('outer_cli_turns', 'uncached_input_tokens_excluding_cache_reads',
+                           'reasoning_output_tokens_subset')
+        additional = {key: metric(key) for key in additional_keys}
         arms[arm] = {
             'planned': order.count(arm), 'attempted': len(attempted), 'accepted': accepted,
             'failed_or_rejected': len(attempted) - accepted,
@@ -61,6 +83,12 @@ def summarize(data: dict, rows: list[dict]) -> dict:
                 for key in ('agent_wall_seconds', 'acceptance_wall_seconds')
                 for values in ([row[key] for row in attempted],)
             },
+            'exec_completed_item_counts_all_attempts': completed_items(attempted),
+            'additional_metrics_all_attempts': additional,
+            'additional_metrics_per_accepted_task_including_failures': {
+                key: value['total'] / accepted if value is not None and accepted else None
+                for key, value in additional.items()},
+            'task_only_net_input_tokens': None,
             'metrics_all_attempts': {key: metric(key) for key in (
                 'model_requests', 'raw_input_tokens', 'cached_input_tokens', 'cache_write_input_tokens',
                 'legacy_net_input_tokens', 'output_tokens', 'final_authored_tokens_proxy', 'agent_wall_seconds', 'acceptance_wall_seconds')},
@@ -80,7 +108,8 @@ def recount(path: Path) -> dict:
         label = f"{original['arm']}-{original['number']:02d}"
         stream = Path(original['transcript']) if original.get('transcript') else None
         trace = Path(original['rollout_trace']) if original.get('rollout_trace') else None
-        observed = campaign.trace_usage(campaign.parse_exec_jsonl(stream), trace) if (
+        exec_observed = campaign.parse_exec_jsonl(stream) if stream and stream.is_file() else {}
+        observed = campaign.trace_usage(exec_observed, trace) if (
             stream and trace and stream.is_file() and trace.is_file()) else {'reconciled': False}
         if original['status'] == 'accepted':
             require(observed['reconciled'], f'{label}: accepted without reconciled raw usage')
@@ -115,6 +144,9 @@ def recount(path: Path) -> dict:
             'retained_compiler_file_inventories': original.get('retained_compiler_file_inventories'),
             'failure': original['failure'], 'resource_assessment': original.get('resource_assessment', {}),
             'model_requests': observed.get('model_request_count'),
+            'outer_cli_turns': exec_observed.get('codex_outer_turns'),
+            'exec_completed_item_counts': exec_observed.get('tool_item_counts'),
+            **input_slices(usage),
             'raw_input_tokens': usage.get('input_tokens'), 'cached_input_tokens': usage.get('cached_input_tokens'),
             'cache_write_input_tokens': usage.get('cache_write_input_tokens'), 'output_tokens': usage.get('output_tokens'),
             'reasoning_output_tokens_subset': usage.get('reasoning_output_tokens'),
@@ -136,6 +168,9 @@ def recount(path: Path) -> dict:
         'measurement_notes': {
             'turns': 'Model requests from reconciled task-owned per-request rollout usage; outer CLI turns and tool calls are separate.',
             'input': 'Raw input includes cache subsets. Cache reads/writes are not added again.',
+            'uncached_input': 'Raw input minus cache reads; cache-write tokens remain in this complement. Not task-only input.',
+            'outer_cli_turns': 'Exact turn.completed event count, separate from model requests and completed exec item categories.',
+            'completed_items': 'Categories retained verbatim; agent messages/reasoning can be included, so the sum is not tool calls.',
             'net_input': 'Historical proxy: sum input minus first-request input times model-request count. Not task-only input.',
             'authored': 'Final-source legacy Claude BPE proxy, including tests/docs/scripts. Not cumulative edits or exact GPT tokenization.',
             'cost': 'Conditional Standard short-context API-equivalent estimate, all attempted tasks divided by accepted tasks. Actual billed cost unavailable.',

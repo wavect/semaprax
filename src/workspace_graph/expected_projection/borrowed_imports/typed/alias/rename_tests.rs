@@ -492,6 +492,57 @@ fn ordinary_project_import_as_vec_alias_preserves_real_provider_declarations_and
 }
 
 
+// Type-only receiving ledgers: no tuple/array below is instantiated.
+// Each comparison frame pays both operand borrows and four call/return/chain
+// verdict slots. Each sequence names Vec/slice/iterator/item receivers too.
+type CommonCompareFrame<'a, T: ?Sized> = (&'a T, &'a T, [bool; 4]);
+type CommonSequenceFrame<'a, T> = ([&'a Vec<T>; 4], [&'a [T]; 4], [std::slice::Iter<'a, T>; 4], [Option<&'a T>; 8], [usize; 8], [bool; 8]);
+type CommonFacadeSlots<'a> = (
+    [crate::ast::program_source::FunctionSlices<'a>; 8], [Option<crate::ast::program_source::FunctionSlices<'a>>; 8],
+    [crate::ast::program_source::FunctionRef<'a>; 8], [Option<crate::ast::program_source::FunctionRef<'a>>; 8],
+    [Option<&'a crate::ast::program_source::function_alias::FunctionEntry<'a>>; 2], [Option<&'a Function>; 4],
+    [Option<&'a &'a str>; 2], [Option<&'a [usize]>; 2], [Option<usize>; 2], [usize; 12], [bool; 12],
+);
+type CommonEqSequences<'a> = (
+    [CommonSequenceFrame<'a, crate::ast::Type>; 12], [CommonSequenceFrame<'a, crate::ast::Expr>; 8],
+    [CommonSequenceFrame<'a, crate::ast::Statement>; 4], [CommonSequenceFrame<'a, crate::ast::Param>; 4],
+    [CommonSequenceFrame<'a, crate::ast::TypeParameterDeclaration>; 4], [CommonSequenceFrame<'a, String>; 4],
+    CommonCompareFrame<'a, Option<crate::ast::YieldsClause>>,
+    CommonCompareFrame<'a, Option<Box<crate::ast::SessionProtocolFollowsClause>>>,
+);
+type CommonCallerEqSlots<'a> = (
+    CommonFacadeSlots<'a>, CommonEqSequences<'a>, [CommonCompareFrame<'a, Function>; 4],
+    [CommonCompareFrame<'a, crate::ast::Expr>; 36], [CommonCompareFrame<'a, crate::ast::ExprKind>; 36],
+    [CommonCompareFrame<'a, crate::ast::Statement>; 8], [CommonCompareFrame<'a, crate::ast::Type>; 16],
+    [CommonCompareFrame<'a, Option<crate::ast::Type>>; 8], [CommonCompareFrame<'a, crate::ast::LetSyntax>; 8],
+    [CommonCompareFrame<'a, crate::ast::Span>; 64], [CommonCompareFrame<'a, usize>; 256],
+    [CommonCompareFrame<'a, str>; 36], [CommonCompareFrame<'a, String>; 36], [bool; 64],
+);
+type CommonWrapperEqSlots<'a> = (
+    CommonFacadeSlots<'a>, CommonEqSequences<'a>, [CommonCompareFrame<'a, Function>; 4],
+    [CommonCompareFrame<'a, crate::ast::Expr>; 16], [CommonCompareFrame<'a, crate::ast::ExprKind>; 16],
+    [CommonCompareFrame<'a, crate::ast::Type>; 32], [CommonCompareFrame<'a, crate::ast::Param>; 8], [CommonCompareFrame<'a, crate::ast::ParamMode>; 8],
+    [CommonCompareFrame<'a, crate::ast::TypeParameterDeclaration>; 4],
+    [CommonCompareFrame<'a, crate::ast::Span>; 64], [CommonCompareFrame<'a, usize>; 256],
+    [CommonCompareFrame<'a, str>; 96], [CommonCompareFrame<'a, String>; 96], [crate::ast::Type; 2], [crate::ast::ParamMode; 4], [crate::hir::OwnershipMode; 4],
+    [&'a [crate::ast::Type]; 4], [&'a [crate::ast::Expr]; 4], [&'a [crate::ast::Param]; 4], [&'a [&'a str]; 2],
+    std::slice::Iter<'a, crate::ast::Param>, std::slice::Iter<'a, &'a str>,
+    std::iter::Zip<std::slice::Iter<'a, crate::ast::Param>, std::slice::Iter<'a, &'a str>>,
+    std::iter::Enumerate<std::iter::Zip<std::slice::Iter<'a, crate::ast::Param>, std::slice::Iter<'a, &'a str>>>,
+    [Option<(usize, (&'a crate::ast::Param, &'a &'a str))>; 4],
+    std::iter::Zip<std::slice::Iter<'a, crate::ast::Expr>, std::slice::Iter<'a, crate::ast::Param>>,
+    [Option<(&'a crate::ast::Expr, &'a crate::ast::Param)>; 4],
+    [crate::vec_ops::VecOp; 17], std::array::IntoIter<crate::vec_ops::VecOp, 17>,
+    [Option<crate::vec_ops::VecOp>; 24], [crate::vec_ops::VecOp; 32], [Option<&'a str>; 68], [&'a crate::vec_ops::VecOp; 34],
+    [bool; 68], // four verdict slots per actual17-case wrapper_by_id walk
+    [bool; 32], // complete FunctionRef field chain and raw-name guard
+    [bool; 64], // source_wrapper signature/body/generic/ownership predicates
+    [bool; 32], // directory/Option/op-kind/reserve branches
+    [Option<crate::ast::program_source::function_alias::FunctionView<'a>>; 2],
+    [crate::ast::program_source::function_alias::FunctionView<'a>; 2],
+    [crate::ast::program_source::function_alias::FunctionEntry<'a>; 2], [&'a crate::ast::ModuleUse; 3],
+);
+
 /// Both arms use this correction only AFTER their complete original producer.
 /// It grants no verdict: the ordinary source verifier and full HIR resolver run
 /// again on a fresh presentation. All original source owners remain borrowed.
@@ -501,13 +552,13 @@ fn common_provider_binding<'p>(
     receiver: &mut Receiver,
 ) -> Result<Option<crate::ast::program_source::function_alias::FunctionDirectory<'p>>, Failure> {
     use crate::ast::program_source::function_alias::{FunctionDirectory, FunctionEntry, FunctionView, TransientFunctions};
-    use crate::ast::program_source::{generated_roots::GeneratedRoots, FunctionRef, FunctionSlices};
+    use crate::ast::program_source::{generated_roots::GeneratedRoots, FunctionSlices};
     use std::mem::size_of;
     receiver.entry::<Option<FunctionDirectory<'p>>>()?;
     // Closed three-wrapper fixture: no fallback body, types or owned functions
     // are manufactured. This common bound covers all top-level guard/iterator,
     // borrowing, result and directory-header receivers before they are formed.
-    receiver.reserve(size_of::<([&dyn ProgramSource; 2], [&[Program]; 2], [&Program; 4], [FunctionSlices<'_>; 3], [std::ops::Range<usize>; 2], [bool; 32], [usize; 16], [Option<&Program>; 2], [GeneratedRoots; 3], (&Program, GeneratedRoots), FunctionDirectory<'p>, [TransientFunctions<'p>; 2], [FunctionDirectory<'p>; 2], [Vec<FunctionEntry<'p>>; 2], [&crate::ast::TypeDeclaration; 8])>())?;
+    receiver.reserve(size_of::<([&dyn ProgramSource; 2], [&[Program]; 2], [&Program; 4], CommonFacadeSlots<'_>, [FunctionSlices<'_>; 3], [crate::ast::program_source::DeclSlices<'_, crate::ast::TypeDeclaration>; 4], [Option<crate::ast::program_source::DeclSlices<'_, crate::ast::TypeDeclaration>>; 4], [Option<FunctionDirectory<'p>>; 2], [Result<Option<FunctionDirectory<'p>>, Failure>; 2], [Option<&crate::ast::TypeDeclaration>; 2], [&[crate::ast::ModuleUse]; 2], [&[String]; 2], [&[crate::ast::InterfaceDeclaration]; 2], [&[crate::ast::ProtocolDeclaration]; 2], [&[crate::ast::ProtocolImplementation]; 2], [&[crate::ast::SessionProtocolDeclaration]; 2], [&[crate::ast::AgentDeclaration]; 2], [std::ops::Range<usize>; 2], [bool; 32], [usize; 16], [Option<&Program>; 2], [GeneratedRoots; 3], (&Program, GeneratedRoots), FunctionDirectory<'p>, [TransientFunctions<'p>; 2], [FunctionDirectory<'p>; 2], [Vec<FunctionEntry<'p>>; 2], [&crate::ast::TypeDeclaration; 8])>())?;
     if programs.len() != 2 || programs[0].functions.len() != 1 || source.function_refs().len() != 4 {
         return Ok(None);
     }
@@ -523,7 +574,7 @@ fn common_provider_binding<'p>(
         if source.types().get(index) != Some(&authored.types[index]) { return Ok(None); }
     }
     for index in 0..authored.functions.len() {
-        receiver.reserve(size_of::<([FunctionRef<'_>; 4], [&Function; 8], [&crate::ast::Expr; 64], [&crate::ast::Type; 64], [&str; 64], [bool; 512], [usize; 64])>())?;
+        receiver.reserve(size_of::<CommonCallerEqSlots<'_>>())?;
         if !source.function_refs().get(index).unwrap().same_ordinary_declaration(&authored.functions[index]) { return Ok(None); }
     }
     let mut directory = FunctionDirectory {
@@ -534,12 +585,12 @@ fn common_provider_binding<'p>(
         // A conservative complete receiving-frame bound for each admitted
         // with_capacity/push/get wrapper: <=2 parameters, <=4 body nodes and
         // <=8 type nodes. It pays authentication, not fictitious payload copies.
-        receiver.reserve(size_of::<([FunctionRef<'_>; 4], [&Function; 8], [&crate::ast::Expr; 16], [&crate::ast::Type; 16], [&str; 32], [bool; 128], [usize; 16], [Option<FunctionView<'p>>; 2], [FunctionView<'p>; 2], [FunctionEntry<'p>; 2], [&crate::ast::ModuleUse; 3], [Option<crate::vec_ops::VecOp>; 2], [crate::vec_ops::VecOp; 2])>())?;
+        receiver.reserve(size_of::<CommonWrapperEqSlots<'p>>())?;
         let import = &authored.module_uses[index];
         let provider = &programs[1];
         if import.kind != crate::ast::ModuleUseKind::Function || import.target_module != provider.module { return Ok(None); }
         // Full linear membership acquisition is paid identically in both arms.
-        let scan_bytes = provider.functions.len().checked_mul(size_of::<([Option<&Function>; 2], [&Function; 3], [*const Function; 2], [bool; 4])>()).ok_or_else(|| receiver.limit())?;
+        let scan_bytes = provider.functions.len().checked_mul(size_of::<([Option<&Function>; 4], [&Function; 8], [&&Function; 4], [*const Function; 4], [&str; 4], [&String; 4], [bool; 8])>()).ok_or_else(|| receiver.limit())?;
         let scan_bytes = scan_bytes.checked_add(size_of::<[std::slice::Iter<'_, Function>; 2]>()).ok_or_else(|| receiver.limit())?;
         receiver.reserve(scan_bytes)?;
         let Some(original) = provider.functions.iter().find(|function| function.stable_id == import.persistent_id) else { return Ok(None); };

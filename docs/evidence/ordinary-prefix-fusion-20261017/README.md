@@ -1,29 +1,35 @@
-# Ordinary prefix fusion candidate (source only, not ready)
+# Ordinary first-sibling prefix fusion candidate (source only)
 
 Base: `fade6f4df00808a4f9b763fff22cd5f3898683f4`. Private source candidate;
 no Cargo, compiler, test, benchmark, application replay, graft indexing, or full
 quality gate was run. The parent integration checkout was not edited.
 
-## Blocking accounting issue
+## Eligibility funding revision
 
-The candidate currently pays `prefix_fusion::CONTROLS` after the original first
-clone-work debit and before its eligibility probe. This correctly prices the
-probe itself, but means small, non-saving, DAG, selected, oracle, expired, and
-work-short receivers can encounter an additional byte refusal before entering
-the complete old fallback. The requested final design requires those receivers
-to decline before any new fee. Do not integrate this candidate as satisfying
-that requirement.
+The initial WIP paid a new probe before checking work/shape, which could change
+small/work-short fallback admission. It is superseded by a first-sibling-only
+receiver. `pending.next_back()` and consuming the existing pending iterator
+replace the old tuple/slice split and new earlier-slice iterator. The unchanged
+`FINAL_SPLIT_CONTROLS` bound now covers that smaller receiving frame plus ONE
+eligibility probe. `NEW_SPLIT + PROBE <= REMOVED_SPLIT` is a compile-time layout
+assertion: on a 64-bit host the roles are 40 + 116 <= 168 bytes.
 
-`FINAL_SPLIT_CONTROLS` currently prices one usize (its payment price), split
-references, Options and iterators, with no explicit new bool/work/length/growth
-probe roles. I have not claimed those roles are already paid. Moving the new
-fee after an unpriced probe would disguise this issue; increasing the split fee
-would still add a fee to receivers that must decline without one. A concrete
-funded eligibility frame must resolve that boundary before qualification.
+This does not amortize a fixed fee over repeated per-sibling probes: only the
+first earlier sibling can fuse. Subsequent earlier siblings retain the complete
+original clone/extension receiver. The last suffix leaves the iterator only
+after the original first-output capacity receiver, which still sees the exact
+same remaining count. No extra fee is charged on small, empty-suffix, DAG,
+selected, oracle or work-short decline. The already successful original clone
+work authenticates the actual account before this gate.
+
+This is a source argument awaiting parent review and execution, not a passed
+physical-accounting result. The conservative new fusion charge still requires
+removed clone backing to cover the whole charge; there is no claim that the
+exact row03 shape qualifies.
 
 ## Candidate's physical boundary
 
-Only ordinary ActiveBuilder flat-prefix/nonempty-flat-suffix earlier siblings
+Only the first ordinary ActiveBuilder flat-prefix/nonempty-flat-suffix earlier sibling
 can fuse. It requires enough actual existing skeleton work for the extension,
 nonoverflowing clone bytes and final geometric capacity, and removed clone
 backing at least as large as all new controls. Sole suffix and final sibling
@@ -53,9 +59,10 @@ new Rust paths in the union raw inventories:
 - `src/cleanup_plan/replay/skeleton_work/prefix_fusion/tests.rs`
 
 Actual carriers are `tests/hir_module_boundaries.rs`'s `validation_raw` join
-(not its sentinel assertion), the nested skeleton-work raw join in that same
-file, `tests/workspace/semantic_graph/source_inventory.rs`, and the parent-owned
-interop-builder ledger capacity inventory as appropriate to its complete join.
+(not its sentinel assertion), `tests/workspace/semantic_graph/source_inventory.rs`,
+and `crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs`.
+The existing nested skeleton-work join is a natural local context in the HIR
+carrier; preserve every existing occurrence and the sentinel exactly.
 All preexisting raw bytes and assertions must remain present. New files are
 below 1500 lines; replay.rs shrinks and its recorded budget is not raised.
 
@@ -66,13 +73,14 @@ must be refreshed in the common union, without weakening any original class.
 
 ## Pending selectors
 
-After fixing funding and completing union registration, compile and execute:
+After parent review and completing union registration, compile and execute:
 
 - `ordinary_prefix_fusion_complete_previous_fields_capacity_work_and_materializations`
 - `ordinary_prefix_fusion_whole_owner_removes_actual_backing_and_pays_controls`
 - `ordinary_prefix_fusion_original_work_and_sticky_failure_remain_first`
 - `ordinary_prefix_fusion_frozen_receiver_is_complete_and_original_calls_survive`
 - `ordinary_prefix_fusion_expired_active_builder_and_dag_suffix_keep_old_route`
+- `ordinary_prefix_fusion_independent_oracle_keeps_complete_original_account`
 
 Keep all final_output, sequence_vector, ordinary_dag/frontier, physical growth,
 clone, complete historical oracle and source-custody controls. Broader hostile

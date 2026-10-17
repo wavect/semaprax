@@ -3,6 +3,11 @@
   search, shift, growth and sharing receivers; retain complete legacy and
   immediate production controls. Source-only; focused qualification and actual
   application cost comparisons remain pending, including unfavorable cases.
+- Author a source-only ordinary first-sibling prefix/suffix fusion candidate.
+  Replaced split/iterator receiving roles fund one eligibility probe under the
+  unchanged charge; eligible paths allocate the final backing once after the
+  original extension work. Complete frozen/current owner and refusal controls
+  await the parent batch. No application-fit or measured-gain claim is made.
 - Split oversized joined custody metadata only at whole ordered rows, keeping
   the original sealed-reader cap and assertions. Fixed source dispatch opens one
   authenticated part; source controls preserve the complete logical table.

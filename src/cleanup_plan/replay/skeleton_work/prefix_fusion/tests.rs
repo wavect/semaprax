@@ -201,12 +201,12 @@ fn ordinary_prefix_fusion_whole_owner_removes_actual_backing_and_pays_controls()
             owner(&program, false, len, 1, count, usize::MAX);
         assert_eq!(current, old);
         assert!(current.okay && !old_refused && !new_refused);
-        let removed = (count - 1) * len * size_of::<Observation>();
+        let removed = len * size_of::<Observation>();
         assert_eq!(old_alloc.allocated - new_alloc.allocated, removed);
-        assert_eq!(old_paid - new_paid, removed - (count - 1) * CONTROLS);
+        assert_eq!(old_paid - new_paid, removed - CONTROLS);
         assert_eq!(
             old_alloc.allocations + old_alloc.reallocations,
-            new_alloc.allocations + new_alloc.reallocations + count - 1
+            new_alloc.allocations + new_alloc.reallocations + 1
         );
         assert!(new_alloc.highwater <= old_alloc.highwater);
         let (exact, _, refused, paid) = owner(&program, false, len, 1, count, new_paid);
@@ -219,14 +219,13 @@ fn ordinary_prefix_fusion_whole_owner_removes_actual_backing_and_pays_controls()
         let (old_short, _, refused, _) = owner(&program, true, len, 1, count, new_paid);
         assert!(!old_short.okay && refused);
     }
-    // Tiny, empty-suffix and sole-move cases remain visible, including the new
-    // selector cost when a multi-suffix receiver declines to fuse.
+    // Tiny, empty-suffix and sole-move cases decline before every new fee.
     for (len, suffix, count) in [(0, 1, 2), (1, 1, 4), (1024, 0, 2), (1024, 1, 1)] {
         let (old, old_alloc, _, old_paid) = owner(&program, true, len, suffix, count, usize::MAX);
         let (new, new_alloc, _, new_paid) = owner(&program, false, len, suffix, count, usize::MAX);
         assert_eq!(old, new);
         assert_eq!(old_alloc.allocated, new_alloc.allocated);
-        assert_eq!(new_paid - old_paid, count.saturating_sub(1) * CONTROLS);
+        assert_eq!(new_paid - old_paid, 0);
     }
 }
 #[test]
@@ -243,6 +242,11 @@ fn ordinary_prefix_fusion_original_work_and_sticky_failure_remain_first() {
                 work.budget.skeleton_remaining = remaining;
                 let result = (|| {
                     work.charge(1, "skeleton prefix clone")?;
+                    work.budget.reserve_bytes(
+                        function,
+                        final_output::FINAL_SPLIT_CONTROLS,
+                        "HIR final-suffix split controls",
+                    )?;
                     if old {
                         work.budget.reserve_clone(
                             function,
@@ -353,6 +357,34 @@ fn ordinary_prefix_fusion_expired_active_builder_and_dag_suffix_keep_old_route()
         drop((suffixes, work));
         assert_eq!(old.skeleton_spent, current.skeleton_spent);
         drop((actual, expected, old, current));
+    });
+    assert!(!refused);
+}
+
+#[test]
+fn ordinary_prefix_fusion_independent_oracle_keeps_complete_original_account() {
+    let program = program();
+    let function = &program.functions[0];
+    let ((), refused, _, _) = with_limit_usage_refusal(usize::MAX, || {
+        let run = |old| {
+            let scope = allocation::OracleScope::open_with_work(usize::MAX, usize::MAX).unwrap();
+            let mut budget = ReplayBudget::with_skeleton_limit_oracle(usize::MAX, scope.lease());
+            let mut work = SkeletonWork::new(&program, function, &mut budget);
+            let (prefixes, suffixes) = inputs(&mut work, 1024, 1, 4).unwrap();
+            let result = sequence(old, prefixes, &suffixes, &mut work).unwrap();
+            drop((suffixes, work));
+            let work = (budget.skeleton_spent, budget.skeleton_remaining);
+            drop(budget);
+            let receipt = scope.receipt();
+            drop(scope);
+            (result, work, receipt)
+        };
+        let (expected, old_work, old_receipt) = run(true);
+        let (actual, new_work, new_receipt) = run(false);
+        same(&actual, &expected);
+        assert_eq!(new_work, old_work);
+        assert_eq!(new_receipt, old_receipt);
+        drop((actual, expected));
     });
     assert!(!refused);
 }

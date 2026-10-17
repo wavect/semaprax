@@ -155,8 +155,11 @@ mod before_transfer_current;
 #[path = "final_output/current_observation_tests.rs"]
 mod current_observation_tests;
 
-// One split per active multi-suffix prefix, before every new view/Option.
-// The earlier loop keeps its original Iter/next/Option roles unchanged.
+// Unchanged numeric split-frame bound. prefix_fusion removes the tuple/slice
+// split and newly constructed earlier-slice iterator; its next_back/remaining
+// iterator and ONE first-sibling probe fit those removed receiving roles.
+// prefix_fusion's compile-time layout inequality binds that substitution;
+// no new selector payment is admitted on a declined first-sibling route.
 pub(super) const FINAL_SPLIT_CONTROLS: usize = size_of::<Result<(), Diagnostic>>()
     + size_of::<&mut ReplayBudget>()
     + size_of::<&ResolvedFunction>()

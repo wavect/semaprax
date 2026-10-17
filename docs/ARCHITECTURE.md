@@ -5138,7 +5138,7 @@ this shipping path. Original path-array work preflight remains unchanged.
 
 The test-only `replay/sequence_prefix/main24` namespace retains Main24’s complete borrowed-probe/current receiver and the preceding complete fallible wrapper, each with its original controls. The shipping replay keeps its lexical single-successor transfer and does not acquire the later-admitted Main24 probe carrier. Main24 source tables are separate aliases; historical allocation comparisons remain bound to their named representations.
 Shipping `cleanup_plan/replay.rs` retains its original lexical sole-suffix
-transfer. Active multi-suffix prefixes use one paid remaining-slice split,
+transfer. Active multi-suffix prefixes use one paid remaining-iterator frame,
 clone earlier siblings in canonical order, and may move the final complete
 prefix without an empty replacement. The first and last original clone work
 debits precede their optional metadata payments. Every surviving clone,
@@ -5146,6 +5146,19 @@ extension, owned-source and publication keeps its work and materialization.
 Eligibility includes all optional receiving controls and the same next growth
 target or available spare backing. Per-prefix metadata can cost more than the
 avoided clone; no universal reservation or capacity improvement is claimed.
+
+`skeleton_work/prefix_fusion` removes the tuple/slice split and extra
+previously constructed earlier-sibling iterator. A compile-time layout inequality
+uses those removed receiving roles to fund one first-sibling eligibility probe
+under the unchanged split charge. Only an ordinary live builder with sufficient
+existing extension work and a sufficiently large flat prefix/nonempty flat
+suffix can acquire new fusion controls. Its sole final backing has the old
+clone-then-growth capacity and is acquired after the old extension-work frontier;
+there is no intermediate clone backing. Declined and subsequent siblings keep
+the complete old clone/extension receiver. The independently compiled frozen
+whole sequence, full preimages, physical owner/Drop and byte/work controls live
+beside the source packet in `docs/evidence/ordinary-prefix-fusion-20261017`.
+All executable qualification and application receipts remain pending.
 
 Finished HIR conversion performs the original first output construction,
 work debit and materialization before lexical count/capacity payments.

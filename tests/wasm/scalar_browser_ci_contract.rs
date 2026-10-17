@@ -264,3 +264,8 @@ mod main_c11;
 
 // Shared custody seam for independent retained Main receivers.
 use historical_builder::custody as browser_custody;
+
+#[path = "../../src/source_reflows_merge/main99f_inputs.rs"]
+mod main99f_inputs;
+#[path = "scalar_browser_ci_contract/incoming_main3e66.rs"]
+mod incoming_main3e66;

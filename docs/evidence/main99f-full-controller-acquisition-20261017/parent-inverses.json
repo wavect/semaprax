@@ -1,0 +1,34 @@
+[
+  {
+    "path": "src/source_reflows.rs",
+    "before_archive": "docs/evidence/main99f-full-controller-acquisition-20261017/before-source-reflows.rs.txt",
+    "before_sha256": "0bcb6e47e644e3c5b6ac552d1f231d4448c4fd7c3ab93beeca6ad67f5fcad016",
+    "after_archive": "docs/evidence/main99f-full-controller-acquisition-20261017/after/src/source_reflows.rs",
+    "after_sha256": "d85901c7f05cf539337d6ccb97206337b0bf7439889f9ea00909cfbfbe8cfe50",
+    "inverse_remove_appended_bytes": 76
+  },
+  {
+    "path": "src/source_reflows_merge.rs",
+    "before_archive": "docs/evidence/main99f-full-controller-acquisition-20261017/before-source-reflows-merge.rs.txt",
+    "before_sha256": "57c0fc50ab6d03eb94094b8f47e8946f5f4a011a1d9a387083eab6bdb41d8168",
+    "after_archive": "docs/evidence/main99f-full-controller-acquisition-20261017/after/src/source_reflows_merge.rs",
+    "after_sha256": "3744cd3ea641430a3d18da22cc7839272edf7c87ec0676527d396aa59e6f50cc",
+    "inverse_remove_appended_bytes": 83
+  },
+  {
+    "path": "src/source_reflows_merge/main67107_inputs.rs",
+    "before_archive": "docs/evidence/main99f-full-controller-acquisition-20261017/before-main67107.rs.txt",
+    "before_sha256": "53c277f0f45055a8e7f825be75dbd23d5743d7d1a015ddcc8aa8b221bd4ff06e",
+    "after_archive": "docs/evidence/main99f-full-controller-acquisition-20261017/after/src/source_reflows_merge/main67107_inputs.rs",
+    "after_sha256": "4f836891ce94044be63346740725ab44de933f568f3fa1aeae0d2810a9fae6c3",
+    "inverse_remove_appended_bytes": 53
+  },
+  {
+    "path": "tests/wasm/scalar_browser_ci_contract.rs",
+    "before_archive": "docs/evidence/main99f-full-controller-acquisition-20261017/before-browser-parent.rs.txt",
+    "before_sha256": "64c26c09b6346b47463e95ca9e50ae6c59cd635112608582fc122ec7ed3d6dd5",
+    "after_archive": "docs/evidence/main99f-full-controller-acquisition-20261017/after/tests/wasm/scalar_browser_ci_contract.rs",
+    "after_sha256": "5eb8a2ee0db0c592bae84255d86a3019c89822c2d9d49ebca762fa14821bc285",
+    "inverse_remove_appended_bytes": 165
+  }
+]

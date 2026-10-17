@@ -177,7 +177,7 @@ const PRODUCER_CONTROLS: usize = ELIGIBLE_CALL_CONTROLS
 const BRANCH_CONTROLS: usize = size_of::<Segment>()
     + size_of::<History>()
     + size_of::<Option<usize>>()
-    + 8 * size_of::<usize>() // old depth, new depth, index, arena len, max depth, tail len, addition, price
+    + size_of::<[usize; 8]>() // old depth, new depth, index, arena len, max depth, tail len, addition, price
     + 6 * size_of::<Result<(), Diagnostic>>() // controls/work/arena/tail/zero/conversion Results
     + 6 * size_of::<&mut ReplayBudget>() // corresponding payment/work budget receivers
     + 6 * size_of::<&ResolvedFunction>() // corresponding live function receivers
@@ -254,10 +254,7 @@ impl Cursor {
                 || segment.previous.is_some_and(|parent| parent >= index)
                 || segment.depth
                     != self.links.first().map_or(segment.depth, |first| {
-                        arena[*first]
-                            .depth
-                            .checked_sub(self.links.len())
-                            .unwrap_or(0)
+                        arena[*first].depth.saturating_sub(self.links.len())
                     })
                 || segment.depth == 0
             {

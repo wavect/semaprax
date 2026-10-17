@@ -8,7 +8,7 @@ fn digest(bytes: &[u8]) -> String {
 fn packet() -> serde_json::Value {
     let data = include_str!("../../docs/evidence/main-e177-final-source-binding-20261017/current-inputs.json");
     assert_eq!(data.len(), 33454);
-    assert_eq!(digest(data.as_bytes()), "31786680b1b3670ff61f8031dd618d66b6f83a228e24022b4e3c3c9881320f60");
+    assert_eq!(digest(data.as_bytes()), "c7ef5558171837e13132324c39d047d9dac2f0f210322fd0b104e2e843be3209");
     let root=Path::new(env!("CARGO_MANIFEST_DIR"));
     let physical=held(&root.join("docs/evidence/main-e177-final-source-binding-20261017/current-inputs.json"),data.len(),&digest(data.as_bytes())).unwrap();
     assert_eq!(physical,data,"complete physical and compiled current manifest");

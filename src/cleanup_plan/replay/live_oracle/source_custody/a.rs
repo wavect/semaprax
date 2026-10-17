@@ -1477,7 +1477,7 @@ fn complete_prior_raw_and_zero_work_receivers_and_identity_formatter_remain_sour
         );
     }
     {
-        let mut current = include_str!("../../../../hir/function_value.rs").to_owned();
+        let mut current = super::current_view::before_production_promotion("src/hir/function_value.rs", include_str!("../../../../hir/function_value.rs"));
         undo(
             &mut current,
             r#"    };

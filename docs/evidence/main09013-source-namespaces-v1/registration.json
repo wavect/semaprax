@@ -1,0 +1,17 @@
+[
+  {
+    "path": "tests/hir_module_boundaries.rs",
+    "count": 1,
+    "lines": 899
+  },
+  {
+    "path": "tests/workspace/semantic_graph/source_inventory.rs",
+    "count": 1,
+    "lines": 777
+  },
+  {
+    "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "count": 1,
+    "lines": 1500
+  }
+]

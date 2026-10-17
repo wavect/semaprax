@@ -1,0 +1,127 @@
+{
+  "status": "PASS_SOURCE_ONLY_FINITE_EXPECTED_NAMESPACE_COMPOSITION",
+  "base": "e24e99787e8dec6cf5aed2930ff909cedc187f97",
+  "six_complete_stages": [
+    {
+      "path": "src/cleanup_plan/replay.rs",
+      "current": "458260e9a3d66601d731b7bad8737efdfd5a4deb4e52bbb07adf0f0af150777b",
+      "e24": "458260e9a3d66601d731b7bad8737efdfd5a4deb4e52bbb07adf0f0af150777b",
+      "legacy": "458260e9a3d66601d731b7bad8737efdfd5a4deb4e52bbb07adf0f0af150777b",
+      "c874": "6db5b0ed361258023e3d7cad058c3de6d737b416b67e98e7113ecb0a993c86c1"
+    },
+    {
+      "path": "src/source_reflows_merge.rs",
+      "current": "e39790a4feedf4e2ea920e66760e1f17c0d2455a78e3640cd64badaeaf55de53",
+      "e24": "e39790a4feedf4e2ea920e66760e1f17c0d2455a78e3640cd64badaeaf55de53",
+      "legacy": "e39790a4feedf4e2ea920e66760e1f17c0d2455a78e3640cd64badaeaf55de53",
+      "c874": "10330014cf84803a8d017702b59a626820f777f7fb0cc950cc512897b8b6d220"
+    },
+    {
+      "path": "src/source_reflows_merge/main67107_inputs.rs",
+      "current": "a511a68af9e2dfe857afff66e74f575b0ca01887b933767202f800db5c0f8ba7",
+      "e24": "56213d4e27e079023b712fb51d6f69db765d904639e740e598e250c92d5310df",
+      "legacy": "456798381af31abb67a8014bd296dfe480f25e4ffb23f1ad8fad9091b057c5c8",
+      "c874": "92f37c17f42b28477804d61c882e45ca4b64d8fc67fd78cab11ab369026152d9"
+    },
+    {
+      "path": "tests/hir_module_boundaries.rs",
+      "current": "4264ab588af07acb50304d667d09fb8685ab4d82bc1d78c92ea99d00cc825a4b",
+      "e24": "4264ab588af07acb50304d667d09fb8685ab4d82bc1d78c92ea99d00cc825a4b",
+      "legacy": "103e9c233c0b77ef7c7c9964070c51857dbd6c3787efee37255b91b46107ba4c",
+      "c874": "378d33aba7c844e66352f2eb7dc2c25b5e2f3d7101e7b331ba5bceb359a5d0fe"
+    },
+    {
+      "path": "tests/workspace/semantic_graph/source_inventory.rs",
+      "current": "a8468859b79dd47e9ef6a77e1803e2942fcce4c4a41e6a2436e51691a495bae7",
+      "e24": "a8468859b79dd47e9ef6a77e1803e2942fcce4c4a41e6a2436e51691a495bae7",
+      "legacy": "620a69f0376e4f8b6a9a8c04a33e31e78035a85de4fd1f753d9282b3f76c8c2a",
+      "c874": "29a6c3be08485c93251c2c58a1eef2be4de905b21f54865f85356d3a85bdf21b"
+    },
+    {
+      "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "current": "68f460f783a905ec3b35fbe0152b8353875ea0de23973dea8cf430e2b0a1c88f",
+      "e24": "68f460f783a905ec3b35fbe0152b8353875ea0de23973dea8cf430e2b0a1c88f",
+      "legacy": "463f1663a2e6ac0e84cb0141f124ed535a4672d19eb4e60d5d2aed890ff1e3f9",
+      "c874": "754b81a88c3b698f7098524bd76cf0726d189632c44cf9027e6724e314cd7d53"
+    }
+  ],
+  "actual_raw_scopes_unchanged": [
+    {
+      "path": "tests/hir_module_boundaries.rs",
+      "current_sha256": "4264ab588af07acb50304d667d09fb8685ab4d82bc1d78c92ea99d00cc825a4b",
+      "original_a82e_sha256": "959eaf830896619186a6c75d707a8bd1e41d123563f7bb04ced26ea947f4de78",
+      "native_1500": null,
+      "old_required_entries": 111,
+      "old_maximum_entries": 117,
+      "new_exact_counts": {
+        "src/cleanup_plan/replay/ordinary_plan_history/before.rs": 1,
+        "src/cleanup_plan/replay/ordinary_plan_history/frontier_tests.rs": 1,
+        "src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs": 1,
+        "src/cleanup_plan/replay/ordinary_plan_history/owned_tests.rs": 1,
+        "src/cleanup_plan/replay/ordinary_plan_history/producer.rs": 1,
+        "src/cleanup_plan/replay/ordinary_plan_history/source_custody.rs": 1,
+        "src/cleanup_plan/replay/ordinary_plan_history/tests.rs": 1,
+        "src/cleanup_plan/replay/ordinary_plan_history.rs": 1,
+        "src/source_reflows_merge/ordinary_plan_inputs.rs": 1,
+        "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching.rs": 2,
+        "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching/tests.rs": 2,
+        "src/source_reflows/incoming21_semantic_receivers.rs": 1
+      }
+    },
+    {
+      "path": "tests/workspace/semantic_graph/source_inventory.rs",
+      "current_sha256": "a8468859b79dd47e9ef6a77e1803e2942fcce4c4a41e6a2436e51691a495bae7",
+      "original_a82e_sha256": "7cee73c09e4a61b24480a7abf756c3fdf228d15a0f341a3cd0bc387b39fd6375",
+      "native_1500": null,
+      "old_required_entries": 146,
+      "old_maximum_entries": 146,
+      "new_exact_counts": {
+        "src/cleanup_plan/replay/ordinary_plan_history/before.rs": 1,
+        "src/cleanup_plan/replay/ordinary_plan_history/frontier_tests.rs": 1,
+        "src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs": 1,
+        "src/cleanup_plan/replay/ordinary_plan_history/owned_tests.rs": 1,
+        "src/cleanup_plan/replay/ordinary_plan_history/producer.rs": 1,
+        "src/cleanup_plan/replay/ordinary_plan_history/source_custody.rs": 1,
+        "src/cleanup_plan/replay/ordinary_plan_history/tests.rs": 1,
+        "src/cleanup_plan/replay/ordinary_plan_history.rs": 1,
+        "src/source_reflows_merge/ordinary_plan_inputs.rs": 1,
+        "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching.rs": 1,
+        "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching/tests.rs": 1,
+        "src/source_reflows/incoming21_semantic_receivers.rs": 1
+      }
+    },
+    {
+      "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "current_sha256": "68f460f783a905ec3b35fbe0152b8353875ea0de23973dea8cf430e2b0a1c88f",
+      "original_a82e_sha256": "4ce9be9127d201c440ba2725ff5e38cfbd89c9fd70f6809da0da82b4891c180c",
+      "native_1500": true,
+      "old_required_entries": 116,
+      "old_maximum_entries": 116,
+      "new_exact_counts": {
+        "src/cleanup_plan/replay/ordinary_plan_history/before.rs": 1,
+        "src/cleanup_plan/replay/ordinary_plan_history/frontier_tests.rs": 1,
+        "src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs": 1,
+        "src/cleanup_plan/replay/ordinary_plan_history/owned_tests.rs": 1,
+        "src/cleanup_plan/replay/ordinary_plan_history/producer.rs": 1,
+        "src/cleanup_plan/replay/ordinary_plan_history/source_custody.rs": 1,
+        "src/cleanup_plan/replay/ordinary_plan_history/tests.rs": 1,
+        "src/cleanup_plan/replay/ordinary_plan_history.rs": 1,
+        "src/source_reflows_merge/ordinary_plan_inputs.rs": 1,
+        "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching.rs": 3,
+        "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching/tests.rs": 3,
+        "src/source_reflows/incoming21_semantic_receivers.rs": 1
+      }
+    }
+  ],
+  "negative_controls": 137,
+  "retained_original_artifacts": [
+    "docs/evidence/ordinary-plan-history-c8740045-v1/inputs.json",
+    "docs/evidence/ordinary-plan-history-c8740045-v1/root-inverse.json",
+    "docs/evidence/ordinary-plan-history-c8740045-v1/replay.rs.before.txt",
+    "docs/evidence/ordinary-plan-history-c8740045-v1/manifest.json"
+  ],
+  "Cargo": false,
+  "Rust_tests": false,
+  "language_runtime": false,
+  "script_sha256": "b8b7e9a7e78066811dc47c9546beb1f566e6a9212cdf3c18366a8bc7e5ab4c4e"
+}

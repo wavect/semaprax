@@ -253,15 +253,13 @@ fn compile35f_restore(row: &serde_json::Value, current: &str) -> String {
     restored
 }
 pub(crate) fn compile35f_input(source: &str, current: &str) -> String {
-    let ordinary = super::ordinary_plan_inputs::acquire(source, current);
-    let current = ordinary.as_str();
     if COMPILE35F_KEYS.binary_search(&source).is_err() { return current.to_owned(); }
     let rows = compile35f_records();
     let row = rows.as_array().unwrap().iter().find(|r| r["source"] == source).unwrap();
     compile35f_restore(row, current)
 }
 pub(super) fn compile35f_expected_input(source: &str, expected: &str, current: &str) -> String {
-    let ordinary = super::ordinary_plan_inputs::acquire(source, current);
+    let ordinary = super::ordinary_plan_inputs::acquire_expected(source, expected, current);
     let current = ordinary.as_str();
     if COMPILE35F_KEYS.binary_search(&source).is_err() { return current.to_owned(); }
     let rows = compile35f_records();

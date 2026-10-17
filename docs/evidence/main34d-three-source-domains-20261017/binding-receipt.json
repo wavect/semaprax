@@ -1,6 +1,6 @@
 {
   "status": "BOUND_SOURCE_ONLY_UNQUALIFIED_UNTIL_FINAL_REGISTERED_BUILD",
-  "inputs_observed_head": "c8a8b5d6781084195575b9dbca2c54f7b9b27315",
+  "inputs_observed_head": "0284cc13d3254207bf7486ff49c2eb2aec0c052c",
   "main_head": "34d53510a3374537874c89a0e46be4d68ad9fe61",
   "manifest_sha256": "afe8e4b0d028c9404c4d4368ef2343d10b1057dea1ffddb2221fdf5f1b48d9e0",
   "manifest_bytes": 51348,

@@ -1,0 +1,34 @@
+{
+  "candidate_commit": "66bc4883cf3595d6ef3cda9abeb6633e2948744d",
+  "source_only": true,
+  "direct_actual_or_candidate_semantic_inputs_verified": 49,
+  "original_full_inverse_rows": 35,
+  "view_counts": [
+    3,
+    2,
+    4
+  ],
+  "whole_counts": [
+    6,
+    10,
+    10
+  ],
+  "MAIN_receiver_inventory": 14,
+  "OURS_inventory": 5,
+  "old_runtime335_cap": 5081115,
+  "new_closed_MAIN_cap": 9317546,
+  "old_reader_byte_exact": true,
+  "old_helper_prefix_byte_exact": true,
+  "no_new_large_include_str": true,
+  "whole_original_MAIN_tests_restore_after_finite_acquisitions": true,
+  "independent_guard_model_negatives": 247,
+  "domains_not_retargeted": true,
+  "reader_review": "Fixedcap beforeallocation; regularfile/exactlength beforebody; O_NOFOLLOW/O_NONBLOCK Unix, Windows reparse/openflag/attributes; onefd withbefore/afterpath/handlemetadata; exactlength EOF SHA UTF8; unknownplatformrefuses. AuthoredRustfilehostiles pendingexecution.",
+  "new_selector": "source_reflows::incoming67107_semantic_receivers::complete_main34d_inputs_keep_all_domains_and_refuse_wrong_source_and_bounded_io",
+  "limits": "No Cargo/Rusttests/common/generation/runtime. Only sourcechecker and independentbyte/guardmodelchecks. Finalregistration/head/sourceproof/build remainparenttasks.",
+  "files": {
+    "src/source_reflows/semantic_receivers.rs": "6816d73e025e149033a83a0bce3f0f1bd3072563fad3a8b715395274a6a8eb2b",
+    "src/source_reflows/incoming67107_semantic_receivers.rs": "829e3a0ad1b37cce2f05de10a294708a537b84994901309e6b36e17a27430960"
+  },
+  "manifest_sha256": "afe8e4b0d028c9404c4d4368ef2343d10b1057dea1ffddb2221fdf5f1b48d9e0"
+}

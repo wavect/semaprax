@@ -1,0 +1,36 @@
+{
+  "status": "SOURCE_ONLY_NOT_COMPILED_NOT_EXECUTED",
+  "base": "c8a8b5d6781084195575b9dbca2c54f7b9b27315",
+  "full_inverse_sha256": "14686dda4a8f06544d2042869971ed62de4bbc7fd938f7bd35ef48aa763469fe",
+  "macro_hygienic_paths": 7,
+  "old_production_outside_macro_byte_exact": true,
+  "macro_whole_original_after_seven_path_inverse": true,
+  "complete_old_test_file_unchanged_prefix": true,
+  "foreign_current_refusals": 6,
+  "checks": [
+    {
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof.rs",
+      "before_sha256": "9d123e32dbd70007a8d2ccf9ccbdc2b08cca95d4b1907393f429523e5404ac17",
+      "current_sha256": "2bbd9ba06b0160caf7ee953de6a3bc3bdc03d399b563915abc9e25ce453054c7",
+      "lines": 244
+    },
+    {
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs",
+      "before_sha256": "7ca585aab8b3fe7b7941644860af7a6a397695c41fc7b17d5e98a33bc0e3532b",
+      "current_sha256": "e49df43865c35267b95292ff8e1b3fc367d802a66cd300d71b98fa3ede97d665",
+      "lines": 558
+    }
+  ],
+  "pending_selector": {
+    "package": "semaprax",
+    "kind": "lib",
+    "selector": "cleanup_plan::replay::expression_facts::receiving::retained::case_proof::tests::lexical_current_attempt_refusal_unwind_and_completed_reuse_are_affine",
+    "sourcepath": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs"
+  },
+  "pending": [
+    "Actual Rust typecheck",
+    "Actual new test execution",
+    "Final common raw source binding after parent integration"
+  ],
+  "unwind": "resume_unwind unit payload skips panic hook while unwinding the genuine lexical token"
+}

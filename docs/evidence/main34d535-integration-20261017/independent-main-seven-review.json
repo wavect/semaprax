@@ -1,0 +1,72 @@
+{
+  "status": "ACCEPTED_SOURCE_REVIEW_ONLY_ACTUAL_COMPILE_AND_RUNTIME_PENDING",
+  "initial_counter_frontier_finding": "RESOLVED_BY_REAL_ACTIVE_ONLY_LEXICAL_ROUTE_NO_COUNTER_BASELINE_CHANGE",
+  "files": {
+    "src/cleanup_plan/replay/expression_facts/arena/prefix.rs": {
+      "sha256": "af5646f90884f31ab2a52f32a98a90a0a1d2710c36e1b0e04838f4a27ac98365",
+      "lines": 304
+    },
+    "src/cleanup_plan/replay/expression_facts/receiving/retained.rs": {
+      "sha256": "993310a1f8247923519f59099a7a5deaae6566972345a71b8f4c41ce1482d120",
+      "lines": 816
+    },
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified.rs": {
+      "sha256": "4b2f52739e64c879cf312016a0ff48446a71929d39cd4eabd64eff6059760ad4",
+      "lines": 258
+    },
+    "tests/wasm/scalar_browser_ci_contract/historical_builder.rs": {
+      "sha256": "31815c1970c2371cfde5b8b93807e1ff17317c885a0d383c949228f7fb0085be",
+      "lines": 541
+    },
+    "tests/wasm/scalar_browser_ci_contract/browser_custody.rs": {
+      "sha256": "5d8657fa572548ef88121a3a042f609e667c89edaec05dab840b912ff2a991cc",
+      "lines": 380
+    },
+    "tests/wasm/scalar_browser_ci_contract/next_actual.rs": {
+      "sha256": "930d95d045927873bc64cfe71450cae70832c19a6c3683b19cc9355765ba43a7",
+      "lines": 111
+    },
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof.rs": {
+      "sha256": "9d123e32dbd70007a8d2ccf9ccbdc2b08cca95d4b1907393f429523e5404ac17",
+      "lines": 244
+    }
+  },
+  "original_begin_and_complete_whole_bodies_exact": true,
+  "new_complete_exact_except_absent_redundant_bool_store": true,
+  "current_selected_counter_test_source_and_binding_unchanged": true,
+  "selected_original_certified_tail_byte_exact": true,
+  "macro_no_new_tuple_storedflag_or_prepaid_alias_binding": true,
+  "work_map": "unchanged3beginunits: StateActive+proofpointer+directborrowedActiveBuilder predicate replacing complete:false initializer; selected path no extra selectorwork; active pays2length/predicate units",
+  "receiving_layout": "actualnew LexicalAttempt+borrowedheaders/payer/bools checked by source const inequality against unchanged real original2Attempt+Result; targetconst evaluation not executed",
+  "proof_member_ordinal_complete_full_control_and_drop_preserved": true,
+  "reachable_drop_pairs_equivalent": [
+    [
+      "Active",
+      false
+    ],
+    [
+      "Failed",
+      false
+    ],
+    [
+      "Finished",
+      true
+    ],
+    [
+      "Failed",
+      true
+    ]
+  ],
+  "active_coverage_source": "case_proof/tests.rs observe uses with_limit_usage_refusal +ReplayBudget::new +Facts::Arena; cases1/8/33 and all6checked operations, eachreceiverownshort/zero budget and finalDrop; execution pending",
+  "browser_whole_OURS_and_MAIN_namespaces_and_old_inverses": "PASS_INDEPENDENT_SOURCE_CHECK",
+  "remaining_required": [
+    "actual compile/type and targetlayout const evaluation",
+    "unchanged CURRENT selected counter exact allcuts body",
+    "actual active StatusCases producer/refusal/Drop bodies",
+    "browser3preservedincoming bodies require explicitly separate existing wasm harness admission; core16 utility cannot claim them"
+  ],
+  "Cargo_Rust_runtime_or_ROOT_write": false,
+  "accepted_sealed_candidate_receipt": "/Volumes/Semaprax/provenance/main34d-rust-conflicts-20261017/receipt-lexical.json",
+  "accepted_sealed_candidate_receipt_sha256": "8c837994d7c7af73ddb9bf9c9495a80b82a5087c16a18e152037413c8d522458",
+  "sealed_all7_current_and_complete_bothparent_inverses_independently_verified": true
+}

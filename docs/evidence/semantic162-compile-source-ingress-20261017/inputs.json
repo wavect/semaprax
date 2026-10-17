@@ -1,0 +1,313 @@
+{
+  "schema": "semaprax.semantic162-compile-ingress.v1",
+  "source_head": "4d974f053c03cc9bfc67bc1b84a62badf65afdee",
+  "previous_head": "aafda9f37f3d093c60013f3c63b6e7286a6285df",
+  "rows": [
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs",
+      "current_length": 38692,
+      "current_sha256": "7d72a2aadb93fc3a865cceb4a35b7ce9fa0ee01a23dab50491845184859b3f1e",
+      "current_archive": "docs/evidence/semantic162-compile-fixes-aaf-20261017/00.after.txt",
+      "previous_length": 38641,
+      "previous_sha256": "e83f7a28c14df7b622b696975ebf2231c4e40f0ee140162be2ff9e51c7acee0f",
+      "previous_archive": "docs/evidence/semantic162-compile-fixes-aaf-20261017/00.before.txt",
+      "inverse": [
+        {
+          "start": 253,
+          "after": "use crate::cleanup_plan::replay::physical_storage;\n",
+          "before": ""
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/skeleton_work/merge_keys_tests.rs",
+      "current_length": 17184,
+      "current_sha256": "e31dcefcb253e8d9ba94da407cb87d3f11a2e18ea4f9a29e9ff5f7e0913ffa92",
+      "current_archive": "docs/evidence/semantic162-compile-fixes-aaf-20261017/01.after.txt",
+      "previous_length": 17167,
+      "previous_sha256": "06d8eb03297f3e9daf1d66c15fb46024005edce6f35d2286f9c547103d907e49",
+      "previous_archive": "docs/evidence/semantic162-compile-fixes-aaf-20261017/01.before.txt",
+      "inverse": [
+        {
+          "start": 91,
+          "after": "use std::rc::Rc;\n",
+          "before": ""
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/physical_storage/zero_tests.rs",
+      "current_length": 904,
+      "current_sha256": "a053304fc38a762c3f1f1f837b46a2e120496236aede8c1c236543819bc083b3",
+      "current_archive": "docs/evidence/semantic162-compile-fixes-aaf-20261017/02.after.txt",
+      "previous_length": 885,
+      "previous_sha256": "6cc68d62c5e6674ab87344a3cb70819ca6de291f816cf3d94992243f8f16a508",
+      "previous_archive": "docs/evidence/semantic162-compile-fixes-aaf-20261017/02.before.txt",
+      "inverse": [
+        {
+          "start": 422,
+          "after": "                let mut physical=PhysicalReservation { remaining:3,charged:usize::MAX,refusal:refused,direct_anchor:None };\n",
+          "before": "                let mut physical=PhysicalReservation { remaining:3,charged:usize::MAX,refusal:refused };\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/owned_suffix.rs",
+      "current_length": 17898,
+      "current_sha256": "e9cd09455d33d55768e413902085d1b27870a972fe7a079497e976d5acbd2da4",
+      "current_archive": "docs/evidence/semantic162-compile-fixes-aaf-20261017/03.after.txt",
+      "previous_length": 17899,
+      "previous_sha256": "2a07888cb9fbc7c3fffcca2fafa689c87fdf4d16e2db5727e42f3ce0b7f3d938",
+      "previous_archive": "docs/evidence/semantic162-compile-fixes-aaf-20261017/03.before.txt",
+      "inverse": [
+        {
+          "start": 1788,
+          "after": "    + 2 * std::mem::size_of::<std::iter::Enumerate<std::vec::IntoIter<Observations>>>()\n",
+          "before": "    + 2 * std::mem::size_of::<std::iter::Enumerate<std::vec::IntoIter<Observations>>>>()\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/skeleton_work/ordinary_dag.rs",
+      "current_length": 8988,
+      "current_sha256": "08b5b67b03b2e80391e9a2ed4ccb936937481c88b38da9cc18fae79da2418d66",
+      "current_archive": "docs/evidence/semantic162-compile-fixes-aaf-20261017/04.after.txt",
+      "previous_length": 8963,
+      "previous_sha256": "b77e9c8426386d86fc922421c1cab4c997643cb401294a537ea2afb9634ea3e9",
+      "previous_archive": "docs/evidence/semantic162-compile-fixes-aaf-20261017/04.before.txt",
+      "inverse": [
+        {
+          "start": 3215,
+          "after": "    pub(in crate::cleanup_plan::replay) fn ordinary_union(\n",
+          "before": "    pub(super) fn ordinary_union(\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/skeleton_work.rs",
+      "current_length": 47594,
+      "current_sha256": "2532173c152df743989e4afd5fc84ae4b3dd32bf45b0a72fe09039a832887c4b",
+      "current_archive": "docs/evidence/semantic162-compile-fixes-aaf-20261017/05.after.txt",
+      "previous_length": 47343,
+      "previous_sha256": "73ae980d09e4324eb272f1379364cb6ace3cce71a1f8c57de9bfd1a47f482c41",
+      "previous_archive": "docs/evidence/semantic162-compile-fixes-aaf-20261017/05.before.txt",
+      "inverse": [
+        {
+          "start": 9304,
+          "after": "    /// Release test-owned observation scratch in the original field order.\n    #[cfg(test)]\n    pub(super) fn release_observation_scratch_for_test(&mut self) {\n        drop(self.dag_scratch.take());\n        drop(self.ordinary_scratch.take());\n    }\n\n",
+          "before": ""
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/owned_suffix/tests.rs",
+      "current_length": 16483,
+      "current_sha256": "3edb2464491fda85a208c95b4a2b62549a42fd1791b4bae1ef78087bd3430d3e",
+      "current_archive": "docs/evidence/semantic162-compile-fixes-aaf-20261017/06.after.txt",
+      "previous_length": 16593,
+      "previous_sha256": "c0f445022ebd5ec1ac69bf16dd2f8f88029ae80032047f221cc0c2ac6d2afff4",
+      "previous_archive": "docs/evidence/semantic162-compile-fixes-aaf-20261017/06.before.txt",
+      "inverse": [
+        {
+          "start": 9051,
+          "after": "            work.release_observation_scratch_for_test();\n",
+          "before": "            drop(work.dag_scratch.take());\n            drop(work.ordinary_scratch.take());\n"
+        },
+        {
+          "start": 5656,
+          "after": "            work.release_observation_scratch_for_test();\n",
+          "before": "            drop(work.dag_scratch.take());\n            drop(work.ordinary_scratch.take());\n"
+        },
+        {
+          "start": 3426,
+          "after": "                    work.release_observation_scratch_for_test();\n",
+          "before": "                    drop(work.dag_scratch.take());\n                    drop(work.ordinary_scratch.take());\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
+      "current_length": 28129,
+      "current_sha256": "b2004e6eb3450ca8bc02c7822a3f258280ae3b248f6054f761cdd6567b8e52c8",
+      "current_archive": "docs/evidence/semantic162-compile-fixes-aaf-20261017/07.after.txt",
+      "previous_length": 28089,
+      "previous_sha256": "58faa5c67c0bfd7c487ec180bec6b1bc8f7d967d645c71b18ac5535ea162743e",
+      "previous_archive": "docs/evidence/semantic162-compile-fixes-aaf-20261017/07.before.txt",
+      "inverse": [
+        {
+          "start": 20522,
+          "after": "            drop((paths, suffixes, work));\n            drop(budget);\n",
+          "before": "            drop((paths, suffixes, work, budget));\n"
+        },
+        {
+          "start": 18619,
+          "after": "                drop((result, suffixes, work));\n                drop(budget);\n",
+          "before": "                drop((result, suffixes, work, budget));\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/sequence_prefix.rs",
+      "current_length": 2419,
+      "current_sha256": "65a4f05aaf7a0cabfdb583657de5afbffb7b2e8b605c91638b2c87a6a9d57258",
+      "current_archive": "docs/evidence/semantic162-compile-fixes-aaf-20261017/08.after.txt",
+      "previous_length": 2475,
+      "previous_sha256": "097d701c509a7a143a1003fdc179d4a52aa74e1352bb2a381fd0dbeed43191d8",
+      "previous_archive": "docs/evidence/semantic162-compile-fixes-aaf-20261017/08.before.txt",
+      "inverse": [
+        {
+          "start": 332,
+          "after": "",
+          "before": "#[cfg(test)]\nuse main_current::sequence_skeleton_paths;\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/owned_suffix/sequence_vector.rs",
+      "current_length": 7822,
+      "current_sha256": "083d5de99eb0f24380d58b5ccd9ba4a27f978d5436d5149de9c6c012cc517b95",
+      "current_archive": "docs/evidence/semantic162-compile-fixes-aaf-20261017/09.after.txt",
+      "previous_length": 7874,
+      "previous_sha256": "8b3736ee75fff0a1e774eb2349bcca18e7c2c20f06d08d5056609e4831fb4edf",
+      "previous_archive": "docs/evidence/semantic162-compile-fixes-aaf-20261017/09.before.txt",
+      "inverse": [
+        {
+          "start": 80,
+          "after": "",
+          "before": "use super::super::{ExprSkeletonPath, Observations};\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/lexical_cert/paid/chains_tests.rs",
+      "current_length": 2073,
+      "current_sha256": "eac62af2cbb2f0fc090b303db09ae0853a7a1efc38f6b0a48d9c8732b9e931c1",
+      "current_archive": "docs/evidence/semantic162-compile-fixes-aaf-20261017/10.after.txt",
+      "previous_length": 2115,
+      "previous_sha256": "fb83d5122403a7f70813d87ac3cf4c1fd8ffade280e4a6b79834be4d5ef6df1d",
+      "previous_archive": "docs/evidence/semantic162-compile-fixes-aaf-20261017/10.before.txt",
+      "inverse": [
+        {
+          "start": 0,
+          "after": "",
+          "before": "use super::{contains, contains_or_false};\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/sequence_prefix/main_c11/wrapper_context.rs",
+      "current_length": 567,
+      "current_sha256": "a27633e7378a0af162f16900d932bafb8ae15a8819530cea7b8af6d6e26ed5ec",
+      "current_archive": "docs/evidence/semantic162-compile-fixes-aaf-20261017/11.after.txt",
+      "previous_length": 585,
+      "previous_sha256": "ea7e0dbafb12d87d9e0eaca636df929cca8121b01e28b6cdd12bf26d540473a4",
+      "previous_archive": "docs/evidence/semantic162-compile-fixes-aaf-20261017/11.before.txt",
+      "inverse": [
+        {
+          "start": 122,
+          "after": "    empty_expr_path, note_skeleton_materialization, skeleton_materializations,\n",
+          "before": "    empty_expr_path, lexical_skeleton, note_skeleton_materialization, skeleton_materializations,\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/sequence_prefix/main8a/wrapper_context.rs",
+      "current_length": 567,
+      "current_sha256": "a27633e7378a0af162f16900d932bafb8ae15a8819530cea7b8af6d6e26ed5ec",
+      "current_archive": "docs/evidence/semantic162-compile-fixes-aaf-20261017/12.after.txt",
+      "previous_length": 585,
+      "previous_sha256": "ea7e0dbafb12d87d9e0eaca636df929cca8121b01e28b6cdd12bf26d540473a4",
+      "previous_archive": "docs/evidence/semantic162-compile-fixes-aaf-20261017/12.before.txt",
+      "inverse": [
+        {
+          "start": 122,
+          "after": "    empty_expr_path, note_skeleton_materialization, skeleton_materializations,\n",
+          "before": "    empty_expr_path, lexical_skeleton, note_skeleton_materialization, skeleton_materializations,\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/sequence_vector/main_a3/path_array_source.rs",
+      "current_length": 6766,
+      "current_sha256": "36686f375c3e05d7f3bfd3305a2ebdc14bce3abf9fb7e8aa3204e5d01f9a3e61",
+      "current_archive": "docs/evidence/semantic162-compile-fixes-aaf-20261017/13.after.txt",
+      "previous_length": 6780,
+      "previous_sha256": "bf332aaa81cefb76bbe17c610523c3b2916a24cbb1bf1fced10617f35f2d6473",
+      "previous_archive": "docs/evidence/semantic162-compile-fixes-aaf-20261017/13.before.txt",
+      "inverse": [
+        {
+          "start": 0,
+          "after": "",
+          "before": "use super::*;\n"
+        }
+      ]
+    },
+    {
+      "source": "src/workspace_graph/source_schema/nominal_context/tests.rs",
+      "current_length": 9238,
+      "current_sha256": "6867c0c3615144a5b5e79343f2afbb560454dd58d6202e4847f89df649ccfa95",
+      "current_archive": "docs/evidence/semantic162-compile-fixes-aaf-20261017/14.after.txt",
+      "previous_length": 9269,
+      "previous_sha256": "fe8a8d461eb4a0977a69a929be63651959a24638ffc87d6ac079a1577a6a5bc7",
+      "previous_archive": "docs/evidence/semantic162-compile-fixes-aaf-20261017/14.before.txt",
+      "inverse": [
+        {
+          "start": 86,
+          "after": "",
+          "before": "use crate::workspace_graph::*;\n"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/inventory_coverage/typed_tests.rs",
+      "current_length": 11392,
+      "current_sha256": "dd7f441df60b498cddef2388c0b84565e5e699b32993901258a549f03cec2768",
+      "current_archive": "docs/evidence/semantic162-compile-fixes-aaf-20261017/15.after.txt",
+      "previous_length": 11242,
+      "previous_sha256": "90e883ce881573c8ae5a8c87a14fc3d962a4a1ae91223e681d977f10f7a40526",
+      "previous_archive": "docs/evidence/semantic162-compile-fixes-aaf-20261017/15.before.txt",
+      "inverse": [
+        {
+          "start": 9141,
+          "after": "            raw(&program, function, &mut physical, &mut refused_work, old)\n",
+          "before": "            raw(&program, function, &mut physical, &mut usize::MAX, old)\n"
+        },
+        {
+          "start": 9078,
+          "after": "        let mut refused_work = usize::MAX;\n",
+          "before": ""
+        },
+        {
+          "start": 8176,
+          "after": "        &mut b_work,\n",
+          "before": "        &mut usize::MAX,\n"
+        },
+        {
+          "start": 8031,
+          "after": "    let mut b_work = usize::MAX;\n",
+          "before": ""
+        },
+        {
+          "start": 7971,
+          "after": "        &mut a_work,\n",
+          "before": "        &mut usize::MAX,\n"
+        },
+        {
+          "start": 7826,
+          "after": "    let mut a_work = usize::MAX;\n",
+          "before": ""
+        },
+        {
+          "start": 5082,
+          "after": "                &mut actual_work,\n",
+          "before": "                &mut usize::MAX,\n"
+        },
+        {
+          "start": 4843,
+          "after": "            let mut actual_work = usize::MAX;\n",
+          "before": ""
+        }
+      ]
+    }
+  ]
+}

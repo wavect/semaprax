@@ -1,0 +1,6 @@
+
+running 1 test
+test source_verify::constructor_tests::complete_saved_pass_sources_and_all_children_remain_joined_and_within_caps ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9566 filtered out; finished in 0.02s
+

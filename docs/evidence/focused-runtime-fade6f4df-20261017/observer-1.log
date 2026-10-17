@@ -1,0 +1,9 @@
+
+running 1 test
+test workspace_graph::forecast_observation::tests::ring_backing_is_lazy_and_prepared_before_application_allocation_observation ... {"application":"lazy-ring","authority_index_requests":0,"completed_mode7_forecasts":0,"completed_module_forecasts_by_layout_mode":[0,0,0,0,1,0,0,0],"discarded_prefix_records":0,"observer_metadata":"fixed 256-record ring and fixed path buffers excluded from builder/account observations","oversized_path_records":0,"retained_records":1,"schema":"semaprax.forecast-observation.v1","scope":"actual per-module static forecasts and uncached formula passes; sums are not global peaks, allocations or application fit"}
+{"application":"lazy-ring","execution_peak_pass":null,"fixed_upper_after_layout_adjustment":0,"fixed_upper_before_layout_adjustment":0,"generic_instances":0,"identity_carrier_upper":0,"identity_occurrence_upper":0,"layout_mode":4,"ordinal":0,"original_formula_overflow":null,"original_mode7_fixed_upper":null,"path":"source","raw_exact_expressions":0,"raw_literal_absence_bytes":0,"raw_strings":0,"raw_total":0,"retained_clone_and_hir":0,"retention":"Parsed","runtime_exact_expressions":0,"runtime_strings":0,"runtime_total":0,"schema":"semaprax.forecast-component.v1","string_input":0,"structure_input":0,"transient_import_clone":0}
+{"application":"empty-ring","authority_index_requests":0,"completed_mode7_forecasts":0,"completed_module_forecasts_by_layout_mode":[0,0,0,0,0,0,0,0],"discarded_prefix_records":0,"observer_metadata":"fixed 256-record ring and fixed path buffers excluded from builder/account observations","oversized_path_records":0,"retained_records":0,"schema":"semaprax.forecast-observation.v1","scope":"actual per-module static forecasts and uncached formula passes; sums are not global peaks, allocations or application fit"}
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9566 filtered out; finished in 0.00s
+

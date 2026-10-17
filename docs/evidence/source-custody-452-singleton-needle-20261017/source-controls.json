@@ -1,0 +1,8 @@
+{
+  "status": "PASS_SOURCE_ONLY",
+  "whole_before_restored": true,
+  "runtime_needles_identical": true,
+  "count1_predicates_unchanged": true,
+  "complete_physical_source_included": true,
+  "Rust_execution": false
+}

@@ -1,0 +1,41 @@
+{
+  "status": "SOURCE_ONLY_FINAL_COUPLING_REQUIRED",
+  "base": "5d5e609fa",
+  "production_changes": false,
+  "original_runtime_needles_and_assertions_unchanged": true,
+  "full_source_scope_preserved": true,
+  "new_physical_Rust_owners": 0,
+  "final_parent_raw_to_d852_ingress_required": true,
+  "files": [
+    {
+      "path": "docs/evidence/source-custody-452-singleton-needle-20261017/whole-inverse.json",
+      "length": 59653,
+      "sha256": "eec115a55108090693972736e7adfaf2c4aff794e24f0eedbd5696e667eb6342"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-singleton-needle-20261017/pending-selectors.json",
+      "length": 448,
+      "sha256": "9dbebc44aad3e6e883adadaa548eea2cc0d08b0c488f44e1f6fb39d294d52187"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-singleton-needle-20261017/README.md",
+      "length": 989,
+      "sha256": "ddd99ef02399a54dd205ff764f6360e93e392a76defdf301f5f2bfa4877b92b7"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-singleton-needle-20261017/check-source.py",
+      "length": 1073,
+      "sha256": "c1baa97958dc5276813e65bf2118ba029152e6b5e1ded5c72fe9a24321fa88d4"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-singleton-needle-20261017/borrowed_labels.before.txt",
+      "length": 28835,
+      "sha256": "f4fd89c5c28b47d826968d935f51dac66a49e8fd859bfa519e98013913a3923a"
+    },
+    {
+      "path": "docs/evidence/source-custody-452-singleton-needle-20261017/source-controls.json",
+      "length": 216,
+      "sha256": "22101bc704d1c11b434e01fe26cdb4db9f3b179dc25ad50b894e57f9f0cdf5bf"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "status": "SOURCE_ONLY",
+  "checks": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::borrowed_labels::direct_singleton_complete_directory_preimage_remains_byte_exact",
+      "sourcepath": "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs",
+      "reason": "actual452352 existingselector; exactsame runtime needles/count1 via concat"
+    }
+  ]
+}

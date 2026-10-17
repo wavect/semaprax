@@ -1,0 +1,264 @@
+{
+  "status": "SOURCE_REGISTERED_UNEXECUTED_PARENT_FINAL_HEAD",
+  "source_head": "9037153cb362d490d23e8bb325dea38bcc4c80b7",
+  "source_tree": "88ac802518813c81408d502aaad3234417f53727",
+  "repository": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
+  "selected": 5,
+  "resolved": 5,
+  "issues": [],
+  "rows": [
+    {
+      "source_path": "src/source_reflows_merge/main_eb2_inputs.rs",
+      "line": 45,
+      "name": "complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 20,
+          "module": "source_reflows_merge",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        },
+        {
+          "source_path": "src/source_reflows_merge.rs",
+          "line": 1013,
+          "module": "main_eb2_inputs",
+          "attributes": []
+        },
+        {
+          "source_path": "src/source_reflows_merge/main_eb2_inputs.rs",
+          "line": 42,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "b354552752b10566769cdfc9efbb7b68683140d5e5471662030a81106ce06782",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs",
+      "reason": "actual postpin92 failed cfg(test) custody control; retain complete original assertions",
+      "current_batch_selection_reasons": [
+        "actual postpin92 failed cfg(test) custody control; retain complete original assertions"
+      ]
+    },
+    {
+      "source_path": "src/hir/lexical_exit/walk/tests.rs",
+      "line": 586,
+      "name": "compact_cursor_complete_before_sources_and_compiled_control_stay_bound",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 178,
+          "module": "hir",
+          "attributes": [
+            "#[allow(\n    unused_imports,\n    clippy::needless_borrows_for_generic_args,\n    clippy::too_many_arguments,\n    clippy::unnecessary_map_or,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+          ]
+        },
+        {
+          "source_path": "src/hir.rs",
+          "line": 127,
+          "module": "lexical_exit",
+          "attributes": []
+        },
+        {
+          "source_path": "src/hir/lexical_exit.rs",
+          "line": 65,
+          "module": "walk",
+          "attributes": []
+        },
+        {
+          "source_path": "src/hir/lexical_exit/walk.rs",
+          "line": 324,
+          "module": "tests",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        }
+      ],
+      "sha256": "01eda34563f982ef112c79b01ee02ae9cc606c6a9aa960ed9736dd383789d2b5",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "hir::lexical_exit::walk::tests::compact_cursor_complete_before_sources_and_compiled_control_stay_bound",
+      "reason": "actual postpin92 failed cfg(test) custody control; retain complete original assertions",
+      "current_batch_selection_reasons": [
+        "actual postpin92 failed cfg(test) custody control; retain complete original assertions"
+      ]
+    },
+    {
+      "source_path": "src/source_reflows/factored_sources.rs",
+      "line": 430,
+      "name": "joined_factored_domains_preserve_complete_receivers_and_refuse_foreign_inputs",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 18,
+          "module": "source_reflows",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[macro_use]"
+          ]
+        },
+        {
+          "source_path": "src/source_reflows.rs",
+          "line": 259,
+          "module": "factored_sources",
+          "attributes": [
+            "#[path = \"source_reflows/factored_sources.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "0c7318412b2888e628705004cf0e3eb8748ba0920dc833cb8bec3620cb03b019",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "source_reflows::factored_sources::joined_factored_domains_preserve_complete_receivers_and_refuse_foreign_inputs",
+      "reason": "actual postpin92 failed cfg(test) custody control; retain complete original assertions",
+      "current_batch_selection_reasons": [
+        "actual postpin92 failed cfg(test) custody control; retain complete original assertions"
+      ]
+    },
+    {
+      "source_path": "src/source_reflows_merge/main7f8_source_inputs.rs",
+      "line": 245,
+      "name": "closure92_walk_inputs_preserve_both_original_domains_and_refuse_wrong_stages",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 20,
+          "module": "source_reflows_merge",
+          "attributes": [
+            "#[cfg(test)]"
+          ]
+        },
+        {
+          "source_path": "src/source_reflows_merge.rs",
+          "line": 1019,
+          "module": "main7f8_source_inputs",
+          "attributes": [
+            "#[path = \"source_reflows_merge/main7f8_source_inputs.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "b540739bc6bf23c8526f60641e6021f63819ea4050e71fe67427492173ac2f7e",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "source_reflows_merge::main7f8_source_inputs::closure92_walk_inputs_preserve_both_original_domains_and_refuse_wrong_stages",
+      "reason": "actual authored new helper hostile control for closure92 repair828e953d4",
+      "current_batch_selection_reasons": [
+        "actual authored new helper hostile control for closure92 repair828e953d4"
+      ]
+    },
+    {
+      "source_path": "src/source_reflows/factored_sources.rs",
+      "line": 557,
+      "name": "closure92_labels_front_preserves_whole_retained_table_and_refuses_foreign_rows",
+      "attributes": [
+        "#[test]"
+      ],
+      "registration_chain": [
+        {
+          "source_path": "src/lib.rs",
+          "line": 18,
+          "module": "source_reflows",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[macro_use]"
+          ]
+        },
+        {
+          "source_path": "src/source_reflows.rs",
+          "line": 259,
+          "module": "factored_sources",
+          "attributes": [
+            "#[path = \"source_reflows/factored_sources.rs\"]"
+          ]
+        }
+      ],
+      "sha256": "0c7318412b2888e628705004cf0e3eb8748ba0920dc833cb8bec3620cb03b019",
+      "ignored": false,
+      "harness": "semaprax::lib",
+      "kind": "lib",
+      "selector": "source_reflows::factored_sources::closure92_labels_front_preserves_whole_retained_table_and_refuses_foreign_rows",
+      "reason": "actual authored new helper hostile control for closure92 repair828e953d4",
+      "current_batch_selection_reasons": [
+        "actual authored new helper hostile control for closure92 repair828e953d4"
+      ]
+    }
+  ],
+  "prior_failed_bodies": 0,
+  "parser_source": "/Volumes/Semaprax/provenance/focused167-source-registration-extension-20261016/source_registration_extension.py",
+  "parser_sha256": "f63778fbe9d835492c039ade64db54e0ee7d2065d90bbd22ce9f5a8b82c9f9a2",
+  "parser_span_protocol": "Unchanged original definitions and enumeration; one exact fixed include callsite adds exactly three source registrations",
+  "registration_extension": {
+    "status": "EXACT_FIXED_INCLUDE_SOURCE_REGISTRATION_NOT_EXECUTION",
+    "original_parser": "/Volumes/Semaprax/provenance/qualification-registration-module-path-20261014.py",
+    "original_parser_sha256": "8774afeeb957dabcde7eee44a29c1a91aec2572d7740413a0dbebf473ec7da6f",
+    "unchanged_prefix_sha256": "87a903ce0f9927d3d90063fdd686b50b5302e2ac10cfea324918f7c030b28599",
+    "unchanged_enumeration_sha256": "9381857077aa2ef98855e3446e717205e081c9547cf9d5120f909a7bcbf10414",
+    "extension_sha256": "f63778fbe9d835492c039ade64db54e0ee7d2065d90bbd22ce9f5a8b82c9f9a2",
+    "contract_sha256": "f429c2163e4e6202759e90513633e89db16a6f149ca2a428d0824053d7f59464",
+    "parent_source_sha256": "d20db2e8839141a4a41fb40694203a6c7c899fe109eea61daa4dd00591a1a64e",
+    "target_source_sha256": "437c95c79983359e5d43a2b3700d7d93d8086e596dd9f817d1c6a68c1a5a73cd",
+    "complete_callsite": {
+      "source_path": "tests/workspace/semantic_graph.rs",
+      "line": 1474,
+      "module": "current344_input",
+      "attributes": [],
+      "sha256": "d20db2e8839141a4a41fb40694203a6c7c899fe109eea61daa4dd00591a1a64e",
+      "registration_kind": "fixed-inline-module-include-concat-cargo-manifest-dir",
+      "registration_text": "mod current344_input {\n    include!(concat!(\n        env!(\"CARGO_MANIFEST_DIR\"),\n        \"/src/source_reflows_merge/current344.rs\"\n    ));\n}",
+      "registration_start": 56595,
+      "registration_end": 56735,
+      "include_start": 56622,
+      "include_line": 1475,
+      "include_expression": "include!(concat!(\n        env!(\"CARGO_MANIFEST_DIR\"),\n        \"/src/source_reflows_merge/current344.rs\"\n    ));",
+      "included_source_path": "src/source_reflows_merge/current344.rs",
+      "included_source_sha256": "437c95c79983359e5d43a2b3700d7d93d8086e596dd9f817d1c6a68c1a5a73cd",
+      "source_prefix": [
+        "semantic_graph",
+        "current344_input"
+      ]
+    },
+    "added_keys": [
+      [
+        "semaprax",
+        "test:workspace",
+        "semantic_graph::current344_input::live_push_source_tests::actual_skeleton_pushes_keep_work_before_materialization_and_growth"
+      ],
+      [
+        "semaprax",
+        "test:workspace",
+        "semantic_graph::current344_input::sequence_minimum_input_tests::exact_complete_sequence_input_refuses_drift_and_historical_bytes"
+      ],
+      [
+        "semaprax",
+        "test:workspace",
+        "semantic_graph::current344_input::tests::complete_direct_reader_preimages_refuse_stale_truncated_and_historical_inputs"
+      ]
+    ],
+    "all_original_registrations_preserved": true
+  },
+  "register_source": "/Volumes/Semaprax/provenance/focused167-source-registration-extension-20261016/register-final.py",
+  "register_sha256": "e1f0e29cd70447f5c8c840bf469a3058228fa100fc6d6d26c95882e50eebad9c",
+  "selection_sha256": "740dc4e6c4483729fd1c8b0b01febe8f2d18863c89b6739afd98fb56ef74777c",
+  "discovery_performed": false,
+  "execution_performed": false
+}

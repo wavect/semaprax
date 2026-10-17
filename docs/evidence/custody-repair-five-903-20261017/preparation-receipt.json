@@ -1,0 +1,22 @@
+{
+  "status": "PREPARED_NOT_EXECUTED",
+  "source": "9037153cb362d490d23e8bb325dea38bcc4c80b7",
+  "checks": 5,
+  "source_files": 289,
+  "driver_changes": {},
+  "driver_sha256": {
+    "run-owning-selected.py": "fb7459b6e44a336e44f779de6aff9fbf7921d986f86a8157aedb2c810eed6450",
+    "draft_contract.py": "1869cf5aa5633a55f05323589a3db3d092fd6e98b6f558f025f6faebab3fa038",
+    "semaprax_pressure_observation_v3.py": "5f1d756491ccc5dd662afe6e7ed744b7e65e8e0a45bc7e420b358ec531cec90b",
+    "run-production-lib-cli-clippy.py": "bc67ef6dbed2bc2423b25159bc995c4a66dba489b5b4e326635351196e5241d9",
+    "build-owning.py": "07cf91ca745f3e53f3f6dee51fca407734dc75c7d2316efb5f8e96d079c731a5",
+    "observed_phase.py": "36d75093b66bdb07e059a9255e9b7decebf4a2a2c10a531543b202b24b302867"
+  },
+  "guardian_original_sha256": "169fd47f69e211abb79307fe583674773af88b4c750690a4d7aa7399ee56df1c",
+  "guardian_sha256": "5477e4fc6d89aba14abefbb225fe06b2f47ff86e5515fa0491cdf9640f6f722a",
+  "guardian_complete_original_restored": true,
+  "producer_build_contract_sha256": null,
+  "manifest_sha256": "0ade91147df6dfc5dc6dbd170f5dfbd60f171c7729cc9b3a6a3b69ab1c6fa55b",
+  "target": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/target/final-cgu64-20261012",
+  "parent_manifest_sha256": "8b79f5fe06f231574ea9e41835675851c7941fe05842b1440916cdbd6010f187"
+}

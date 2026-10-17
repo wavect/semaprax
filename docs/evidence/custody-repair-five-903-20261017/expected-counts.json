@@ -1,0 +1,808 @@
+{
+  "schema": "semaprax.focused-repair-batch.v1",
+  "status": "FROZEN_SOURCE_ONLY_UNEXECUTED",
+  "freeze_required": false,
+  "source_subject": "9037153cb362d490d23e8bb325dea38bcc4c80b7",
+  "source_tree": "88ac802518813c81408d502aaad3234417f53727",
+  "draft_repository": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
+  "checks": [
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-p",
+        "semaprax",
+        "--lib",
+        "source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs",
+        "--",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "source_binding": {
+        "source_path": "src/source_reflows_merge/main_eb2_inputs.rs",
+        "line": 45,
+        "name": "complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 20,
+            "module": "source_reflows_merge",
+            "attributes": [
+              "#[cfg(test)]"
+            ],
+            "sha256": "88e47f85887a13d114c862a24e35f90196c02dd7bb11d6477575bced80ecd2de"
+          },
+          {
+            "source_path": "src/source_reflows_merge.rs",
+            "line": 1013,
+            "module": "main_eb2_inputs",
+            "attributes": [],
+            "sha256": "17fd9053a46a45e17f3ae8890220a4176290d00c26a7f9a6890b696c9ec7ac89"
+          },
+          {
+            "source_path": "src/source_reflows_merge/main_eb2_inputs.rs",
+            "line": 42,
+            "module": "tests",
+            "attributes": [
+              "#[cfg(test)]"
+            ],
+            "sha256": "b354552752b10566769cdfc9efbb7b68683140d5e5471662030a81106ce06782"
+          }
+        ],
+        "sha256": "b354552752b10566769cdfc9efbb7b68683140d5e5471662030a81106ce06782",
+        "ignored": false
+      },
+      "selected_bodies": [
+        {
+          "source_path": "src/source_reflows_merge/main_eb2_inputs.rs",
+          "line": 45,
+          "name": "complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs",
+          "attributes": [
+            "#[test]"
+          ],
+          "registration_chain": [
+            {
+              "source_path": "src/lib.rs",
+              "line": 20,
+              "module": "source_reflows_merge",
+              "attributes": [
+                "#[cfg(test)]"
+              ],
+              "sha256": "88e47f85887a13d114c862a24e35f90196c02dd7bb11d6477575bced80ecd2de"
+            },
+            {
+              "source_path": "src/source_reflows_merge.rs",
+              "line": 1013,
+              "module": "main_eb2_inputs",
+              "attributes": [],
+              "sha256": "17fd9053a46a45e17f3ae8890220a4176290d00c26a7f9a6890b696c9ec7ac89"
+            },
+            {
+              "source_path": "src/source_reflows_merge/main_eb2_inputs.rs",
+              "line": 42,
+              "module": "tests",
+              "attributes": [
+                "#[cfg(test)]"
+              ],
+              "sha256": "b354552752b10566769cdfc9efbb7b68683140d5e5471662030a81106ce06782"
+            }
+          ],
+          "sha256": "b354552752b10566769cdfc9efbb7b68683140d5e5471662030a81106ce06782",
+          "ignored": false
+        }
+      ],
+      "ignored_bodies_not_executed": [],
+      "expected_selected": 1,
+      "status": "UNEXECUTED_SOURCE_AUTHORED",
+      "reasons": [
+        "actual postpin92 failed cfg(test) custody control; retain complete original assertions"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "hir::lexical_exit::walk::tests::compact_cursor_complete_before_sources_and_compiled_control_stay_bound",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-p",
+        "semaprax",
+        "--lib",
+        "hir::lexical_exit::walk::tests::compact_cursor_complete_before_sources_and_compiled_control_stay_bound",
+        "--",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "source_binding": {
+        "source_path": "src/hir/lexical_exit/walk/tests.rs",
+        "line": 586,
+        "name": "compact_cursor_complete_before_sources_and_compiled_control_stay_bound",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 178,
+            "module": "hir",
+            "attributes": [
+              "#[allow(\n    unused_imports,\n    clippy::needless_borrows_for_generic_args,\n    clippy::too_many_arguments,\n    clippy::unnecessary_map_or,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+            ],
+            "sha256": "88e47f85887a13d114c862a24e35f90196c02dd7bb11d6477575bced80ecd2de"
+          },
+          {
+            "source_path": "src/hir.rs",
+            "line": 127,
+            "module": "lexical_exit",
+            "attributes": [],
+            "sha256": "e3aaf1c870be500fa794ec24d393f8dc94fcd996990abf388222ce079f4e0b04"
+          },
+          {
+            "source_path": "src/hir/lexical_exit.rs",
+            "line": 65,
+            "module": "walk",
+            "attributes": [],
+            "sha256": "246cb0df50653502b3cf26ab9348e6db14508dad14c870852a22aab95db1e05d"
+          },
+          {
+            "source_path": "src/hir/lexical_exit/walk.rs",
+            "line": 324,
+            "module": "tests",
+            "attributes": [
+              "#[cfg(test)]"
+            ],
+            "sha256": "3eb09dfca99ff573319c67f4e2337d16436564d88edcaca9a9e0552ddea50e24"
+          }
+        ],
+        "sha256": "01eda34563f982ef112c79b01ee02ae9cc606c6a9aa960ed9736dd383789d2b5",
+        "ignored": false
+      },
+      "selected_bodies": [
+        {
+          "source_path": "src/hir/lexical_exit/walk/tests.rs",
+          "line": 586,
+          "name": "compact_cursor_complete_before_sources_and_compiled_control_stay_bound",
+          "attributes": [
+            "#[test]"
+          ],
+          "registration_chain": [
+            {
+              "source_path": "src/lib.rs",
+              "line": 178,
+              "module": "hir",
+              "attributes": [
+                "#[allow(\n    unused_imports,\n    clippy::needless_borrows_for_generic_args,\n    clippy::too_many_arguments,\n    clippy::unnecessary_map_or,\n    reason = \"REF-24 (#543) inventoried pre-existing findings in this module; fix forward, never extend\"\n)]"
+              ],
+              "sha256": "88e47f85887a13d114c862a24e35f90196c02dd7bb11d6477575bced80ecd2de"
+            },
+            {
+              "source_path": "src/hir.rs",
+              "line": 127,
+              "module": "lexical_exit",
+              "attributes": [],
+              "sha256": "e3aaf1c870be500fa794ec24d393f8dc94fcd996990abf388222ce079f4e0b04"
+            },
+            {
+              "source_path": "src/hir/lexical_exit.rs",
+              "line": 65,
+              "module": "walk",
+              "attributes": [],
+              "sha256": "246cb0df50653502b3cf26ab9348e6db14508dad14c870852a22aab95db1e05d"
+            },
+            {
+              "source_path": "src/hir/lexical_exit/walk.rs",
+              "line": 324,
+              "module": "tests",
+              "attributes": [
+                "#[cfg(test)]"
+              ],
+              "sha256": "3eb09dfca99ff573319c67f4e2337d16436564d88edcaca9a9e0552ddea50e24"
+            }
+          ],
+          "sha256": "01eda34563f982ef112c79b01ee02ae9cc606c6a9aa960ed9736dd383789d2b5",
+          "ignored": false
+        }
+      ],
+      "ignored_bodies_not_executed": [],
+      "expected_selected": 1,
+      "status": "UNEXECUTED_SOURCE_AUTHORED",
+      "reasons": [
+        "actual postpin92 failed cfg(test) custody control; retain complete original assertions"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "source_reflows::factored_sources::joined_factored_domains_preserve_complete_receivers_and_refuse_foreign_inputs",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-p",
+        "semaprax",
+        "--lib",
+        "source_reflows::factored_sources::joined_factored_domains_preserve_complete_receivers_and_refuse_foreign_inputs",
+        "--",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "source_binding": {
+        "source_path": "src/source_reflows/factored_sources.rs",
+        "line": 430,
+        "name": "joined_factored_domains_preserve_complete_receivers_and_refuse_foreign_inputs",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 18,
+            "module": "source_reflows",
+            "attributes": [
+              "#[cfg(test)]",
+              "#[macro_use]"
+            ],
+            "sha256": "88e47f85887a13d114c862a24e35f90196c02dd7bb11d6477575bced80ecd2de"
+          },
+          {
+            "source_path": "src/source_reflows.rs",
+            "line": 259,
+            "module": "factored_sources",
+            "attributes": [
+              "#[path = \"source_reflows/factored_sources.rs\"]"
+            ],
+            "sha256": "7aef58d3741f42fe73cb7f34ed926a0ba8b286d6a0e60f4e216dfbf205a4da00"
+          }
+        ],
+        "sha256": "0c7318412b2888e628705004cf0e3eb8748ba0920dc833cb8bec3620cb03b019",
+        "ignored": false
+      },
+      "selected_bodies": [
+        {
+          "source_path": "src/source_reflows/factored_sources.rs",
+          "line": 430,
+          "name": "joined_factored_domains_preserve_complete_receivers_and_refuse_foreign_inputs",
+          "attributes": [
+            "#[test]"
+          ],
+          "registration_chain": [
+            {
+              "source_path": "src/lib.rs",
+              "line": 18,
+              "module": "source_reflows",
+              "attributes": [
+                "#[cfg(test)]",
+                "#[macro_use]"
+              ],
+              "sha256": "88e47f85887a13d114c862a24e35f90196c02dd7bb11d6477575bced80ecd2de"
+            },
+            {
+              "source_path": "src/source_reflows.rs",
+              "line": 259,
+              "module": "factored_sources",
+              "attributes": [
+                "#[path = \"source_reflows/factored_sources.rs\"]"
+              ],
+              "sha256": "7aef58d3741f42fe73cb7f34ed926a0ba8b286d6a0e60f4e216dfbf205a4da00"
+            }
+          ],
+          "sha256": "0c7318412b2888e628705004cf0e3eb8748ba0920dc833cb8bec3620cb03b019",
+          "ignored": false
+        }
+      ],
+      "ignored_bodies_not_executed": [],
+      "expected_selected": 1,
+      "status": "UNEXECUTED_SOURCE_AUTHORED",
+      "reasons": [
+        "actual postpin92 failed cfg(test) custody control; retain complete original assertions"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "source_reflows_merge::main7f8_source_inputs::closure92_walk_inputs_preserve_both_original_domains_and_refuse_wrong_stages",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-p",
+        "semaprax",
+        "--lib",
+        "source_reflows_merge::main7f8_source_inputs::closure92_walk_inputs_preserve_both_original_domains_and_refuse_wrong_stages",
+        "--",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "source_binding": {
+        "source_path": "src/source_reflows_merge/main7f8_source_inputs.rs",
+        "line": 245,
+        "name": "closure92_walk_inputs_preserve_both_original_domains_and_refuse_wrong_stages",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 20,
+            "module": "source_reflows_merge",
+            "attributes": [
+              "#[cfg(test)]"
+            ],
+            "sha256": "88e47f85887a13d114c862a24e35f90196c02dd7bb11d6477575bced80ecd2de"
+          },
+          {
+            "source_path": "src/source_reflows_merge.rs",
+            "line": 1019,
+            "module": "main7f8_source_inputs",
+            "attributes": [
+              "#[path = \"source_reflows_merge/main7f8_source_inputs.rs\"]"
+            ],
+            "sha256": "17fd9053a46a45e17f3ae8890220a4176290d00c26a7f9a6890b696c9ec7ac89"
+          }
+        ],
+        "sha256": "b540739bc6bf23c8526f60641e6021f63819ea4050e71fe67427492173ac2f7e",
+        "ignored": false
+      },
+      "selected_bodies": [
+        {
+          "source_path": "src/source_reflows_merge/main7f8_source_inputs.rs",
+          "line": 245,
+          "name": "closure92_walk_inputs_preserve_both_original_domains_and_refuse_wrong_stages",
+          "attributes": [
+            "#[test]"
+          ],
+          "registration_chain": [
+            {
+              "source_path": "src/lib.rs",
+              "line": 20,
+              "module": "source_reflows_merge",
+              "attributes": [
+                "#[cfg(test)]"
+              ],
+              "sha256": "88e47f85887a13d114c862a24e35f90196c02dd7bb11d6477575bced80ecd2de"
+            },
+            {
+              "source_path": "src/source_reflows_merge.rs",
+              "line": 1019,
+              "module": "main7f8_source_inputs",
+              "attributes": [
+                "#[path = \"source_reflows_merge/main7f8_source_inputs.rs\"]"
+              ],
+              "sha256": "17fd9053a46a45e17f3ae8890220a4176290d00c26a7f9a6890b696c9ec7ac89"
+            }
+          ],
+          "sha256": "b540739bc6bf23c8526f60641e6021f63819ea4050e71fe67427492173ac2f7e",
+          "ignored": false
+        }
+      ],
+      "ignored_bodies_not_executed": [],
+      "expected_selected": 1,
+      "status": "UNEXECUTED_SOURCE_AUTHORED",
+      "reasons": [
+        "actual authored new helper hostile control for closure92 repair828e953d4"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "harness": "lib",
+      "selector": "source_reflows::factored_sources::closure92_labels_front_preserves_whole_retained_table_and_refuses_foreign_rows",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-p",
+        "semaprax",
+        "--lib",
+        "source_reflows::factored_sources::closure92_labels_front_preserves_whole_retained_table_and_refuses_foreign_rows",
+        "--",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "source_binding": {
+        "source_path": "src/source_reflows/factored_sources.rs",
+        "line": 557,
+        "name": "closure92_labels_front_preserves_whole_retained_table_and_refuses_foreign_rows",
+        "attributes": [
+          "#[test]"
+        ],
+        "registration_chain": [
+          {
+            "source_path": "src/lib.rs",
+            "line": 18,
+            "module": "source_reflows",
+            "attributes": [
+              "#[cfg(test)]",
+              "#[macro_use]"
+            ],
+            "sha256": "88e47f85887a13d114c862a24e35f90196c02dd7bb11d6477575bced80ecd2de"
+          },
+          {
+            "source_path": "src/source_reflows.rs",
+            "line": 259,
+            "module": "factored_sources",
+            "attributes": [
+              "#[path = \"source_reflows/factored_sources.rs\"]"
+            ],
+            "sha256": "7aef58d3741f42fe73cb7f34ed926a0ba8b286d6a0e60f4e216dfbf205a4da00"
+          }
+        ],
+        "sha256": "0c7318412b2888e628705004cf0e3eb8748ba0920dc833cb8bec3620cb03b019",
+        "ignored": false
+      },
+      "selected_bodies": [
+        {
+          "source_path": "src/source_reflows/factored_sources.rs",
+          "line": 557,
+          "name": "closure92_labels_front_preserves_whole_retained_table_and_refuses_foreign_rows",
+          "attributes": [
+            "#[test]"
+          ],
+          "registration_chain": [
+            {
+              "source_path": "src/lib.rs",
+              "line": 18,
+              "module": "source_reflows",
+              "attributes": [
+                "#[cfg(test)]",
+                "#[macro_use]"
+              ],
+              "sha256": "88e47f85887a13d114c862a24e35f90196c02dd7bb11d6477575bced80ecd2de"
+            },
+            {
+              "source_path": "src/source_reflows.rs",
+              "line": 259,
+              "module": "factored_sources",
+              "attributes": [
+                "#[path = \"source_reflows/factored_sources.rs\"]"
+              ],
+              "sha256": "7aef58d3741f42fe73cb7f34ed926a0ba8b286d6a0e60f4e216dfbf205a4da00"
+            }
+          ],
+          "sha256": "0c7318412b2888e628705004cf0e3eb8748ba0920dc833cb8bec3620cb03b019",
+          "ignored": false
+        }
+      ],
+      "ignored_bodies_not_executed": [],
+      "expected_selected": 1,
+      "status": "UNEXECUTED_SOURCE_AUTHORED",
+      "reasons": [
+        "actual authored new helper hostile control for closure92 repair828e953d4"
+      ]
+    }
+  ],
+  "expected_groups_authored": 5,
+  "expected_bodies_authored": 5,
+  "source_file_sha256": {
+    "Cargo.lock": "73c2e543a41d2524e150597226b62686b36ba67bf023f884b52282ced19865f3",
+    "Cargo.toml": "1a8f1da38219e1bec1d0100b1e55fa8b5d3466fc09d731f34979e6f792bf71c1",
+    "crates/semaprax-native-rust-interop-builder/src/implementation.rs": "8deeb4eab6b5aa745f479da6e956b0f9751a3ccf227c77096c3e13740d395037",
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests.rs": "aa2924571ec229f6593d808c66cc52d678df736a6899b49e78d02c21a6f7573a",
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/hir_traversal.rs": "ebf271928e6f3aa2e86b77c20851f56bf4bfe9025b7715bd48fa1ea44be0bc57",
+    "crates/semaprax-native-rust-interop-builder/src/lib.rs": "645efe86cbd44e9570793e25bbfb4891ff3837cfe054ef9d994e2ba1d0b59906",
+    "crates/semaprax-toolchain/tests/cli_new_project_v1.rs": "ab953159c51b667e3c03f3296ff1e74bb0ccf1ac2292aa5ac5dc0a2af5dd24d6",
+    "crates/semaprax-toolchain/tests/cli_new_project_v1/application_starter.rs": "e01a02fb235f02b43f8ea37fcb088e61ff72ea5c0b82c87bed187f328e559d53",
+    "src/ast.rs": "21fde894857274971ff965964224db7a1e726e9d20d3dd883308117ddb7808e5",
+    "src/ast/program_source.rs": "2b3d504ef2cbcea751116cfb4314877034251ba6cda77dd6826a3fd37a88f855",
+    "src/ast/program_source/function_alias.rs": "67bc93a9e52e70a42ad53614b4475a5fa881e96b17859fa376205bbc558088b2",
+    "src/ast/program_source/function_alias/presentation.rs": "9ddbcd42161ca0a2c2a348aa32ad6568c499d69d29aefdfdb2fcdedb1c544fc0",
+    "src/ast/program_source/function_alias/presentation/metadata.rs": "02b94225567956bfadb78a830264f977c02996932be93eb92a4986742a7b5246",
+    "src/ast/program_source/function_alias/presentation/metadata/tests.rs": "f3817d3046185540690074269b46d7d9b6addd8491dcf81e7d6cdce4c87e41f8",
+    "src/cleanup.rs": "4820018fca75aadcebc15abcb5abf80e978e9e8238080d6c1558a12ef8425f7a",
+    "src/cleanup/schema_summary.rs": "54e038e5d81554bf704ec082d2b16b0c82632e78ffd22cf607a754281a18073d",
+    "src/cleanup/schema_summary/tests.rs": "c71f214a9cddb013e1528dc880a78587bf3ac935164d4929149f39529067788c",
+    "src/cleanup_plan.rs": "0e19e80ed9cc80eafe015ff4e11688d6aa24b80755e6afbe1ed727f5d2a63621",
+    "src/cleanup_plan/renewal_profile.rs": "bde7beca5c39e461272e062a2c9137ad75a95cff150e230d0adbe4f4f0f7bf2b",
+    "src/cleanup_plan/renewal_profile/ordinary/consuming.rs": "5621537e690fb5fdd0325964147e4840bfbbfd479238bf501c8eb7b677c94861",
+    "src/cleanup_plan/renewal_profile/ordinary/consuming/tests.rs": "2d59fe6bb8e60380c426e3c07fdbfe165a7ba59745fd0b706d3653a6074ea13d",
+    "src/cleanup_plan/renewal_profile/ordinary/direct_presence_tests.rs": "67016ed77a9173b68114258d131ccfae3c24b6191d3f5c03129fa44534b5f0ba",
+    "src/cleanup_plan/renewal_profile/ordinary/mod.rs": "e480f42946f67762a7498e42b5350ef82b89b45798f7759b35815ec3288594af",
+    "src/cleanup_plan/renewal_profile/ordinary/record_presence.rs": "685368b3288fbe5b26a880469e7173b41de5e3b285639f5a4dc791c568ee20a6",
+    "src/cleanup_plan/renewal_profile/ordinary/record_presence/tests.rs": "c124aeefd523c28c4b065ca49d93f6d52d84c00d26a6b72cba625f0566b89203",
+    "src/cleanup_plan/replay.rs": "30616d71694d393a730c0c8e49a25bbad7539b07ff96ed901b9d07be29765b9c",
+    "src/cleanup_plan/replay/allocation.rs": "0ad98be164b6f5f2340e57f769f5dc6b2bdc33eee75df00d77abe5352eed98da",
+    "src/cleanup_plan/replay/allocation/tests.rs": "45a58a61a33d6136f77184cde24cd0ba1a4731dbcac37e949a6c270a4e8a7152",
+    "src/cleanup_plan/replay/allocation/tests/clone_cursor.rs": "6c031f6fc2ed45f973c12da9b84d84ccab8ac76467d7ffdde3e2b313526fee17",
+    "src/cleanup_plan/replay/branch_clone.rs": "7c87d361dda743f65516b263826af386f03b3b53ce7886a9c707233cbf123957",
+    "src/cleanup_plan/replay/branch_clone/tests.rs": "46bf0451ef390225f540d031f326100c7f4288cf7e9d50e30ce7ddb68a448e0f",
+    "src/cleanup_plan/replay/compact_stage.rs": "9a41c6a7dc6f70483600bb58996aeba947cfca55e404839d80f6527a8919aa1b",
+    "src/cleanup_plan/replay/compact_stage/source_custody.rs": "8b0cb2c2c16f3fcba177489b1718b52da6666b21dd6d5828823edbc1474943d8",
+    "src/cleanup_plan/replay/compact_stage/tests.rs": "6c9860cf8b34c9c420811a3efab07b72a06a99613fe562a15fa06e80769232d6",
+    "src/cleanup_plan/replay/continuation_storage.rs": "4afe0bddb6402b7708b59f02963f954b7c2c9ade69c99a7803a95cdd23b745a8",
+    "src/cleanup_plan/replay/continuation_storage/tests.rs": "ef071c7def7542ab0365cdd9566779a4b37270365bf6c147df7e87122debbdc2",
+    "src/cleanup_plan/replay/expression_facts.rs": "82c15975078a1e841c342440723a2e75ec2a0bfee01366ea8f43c49af0b6dec1",
+    "src/cleanup_plan/replay/expression_facts/arena.rs": "2eae0ecc943b9114099a7e87c7b2acf565c0f6454cb02f396ee30e981a109488",
+    "src/cleanup_plan/replay/expression_facts/arena/prefix.rs": "af5646f90884f31ab2a52f32a98a90a0a1d2710c36e1b0e04838f4a27ac98365",
+    "src/cleanup_plan/replay/expression_facts/arena/prefix/tests.rs": "cf3a63ba83b16a9308def7f749b37f30e9287cf34ee0bb2845baf4c26fca78d8",
+    "src/cleanup_plan/replay/expression_facts/receiving.rs": "db822f51812769eadf1570bfee4b315ceadd31b689fc6efa643e5da03d7a9bb7",
+    "src/cleanup_plan/replay/expression_facts/receiving/directory.rs": "d161622003e500b3b9197c0f463b88eee388d9447c5a87ba75f464d3aa2a59cc",
+    "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs": "37dbfa2677e03beab295d5f96fbb3a4f9a4a84908721021b566113156dbc43f0",
+    "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/tests.rs": "58d578202f5276792d67035830b908a97408d3c702d015e89ce316becf13bc17",
+    "src/cleanup_plan/replay/expression_facts/receiving/helpers.rs": "d8283639362ab72ba61cfa137d83bb02389deb9dd67599f627a662e0d55ddf16",
+    "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching.rs": "29a301abb545c42ffd46c2f8b017d24743deaa6ac702ca9b919a529e29b32910",
+    "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching/tests.rs": "182cda4c6791de5f5ecc182090dbad4510312ba109e90f480bdd09e0b78d9fd3",
+    "src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs": "1d31e1bf8377e7a1d7dd1d5a8844faa974cefa6cf94bd3029283647f70d2a51c",
+    "src/cleanup_plan/replay/expression_facts/receiving/remaining.rs": "4fd496130c03af88b5cf74597527897c775491ee54aefb6d075ace0bd0373215",
+    "src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs": "e6d9241f9287e8e00d5c8413623383b53b46e5efbe6da50e576dcf6bbd642db4",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained.rs": "993310a1f8247923519f59099a7a5deaae6566972345a71b8f4c41ce1482d120",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified.rs": "f244ecc06a62858f94ed2723ac88beff4fb2c1ca176baf1bc5cfc6893fd03dc3",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/counter_tests.rs": "68c44c4e3b3d3e1298b8f95b46fcef12bff983bfbcab23e236767cff50d143cc",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof.rs": "2bbd9ba06b0160caf7ee953de6a3bc3bdc03d399b563915abc9e25ce453054c7",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs": "e49df43865c35267b95292ff8e1b3fc367d802a66cd300d71b98fa3ede97d665",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/exits.rs": "a372db755ee90873f7ddf58bdab6f091589c2cd63b6e9dc6991f6eb0d4499ddd",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs": "c149185dca8edd769caf94b5d810b157701ac060f9081ca8cfbbdbc8f8a4fda2",
+    "src/cleanup_plan/replay/factored.rs": "343eda3712d0c3b224742d72c34838a327e0c69449c8a94fd7eb81dc5e0134a6",
+    "src/cleanup_plan/replay/factored/canonical_shared.rs": "33e45de2e06bd0a251c7e6c22c0b953b4d32991ca488becdfccfe29209380111",
+    "src/cleanup_plan/replay/factored/canonical_shared/arena_source.rs": "b8a5fc9a5f7c96838cd4ac03e5795bd33fcec8c290283eb909b6e736c5c8c17e",
+    "src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs": "6dbb0428fcd1e70858de38f0b795d7ac92f0b601d92318e7d2c818b5dfc3cb27",
+    "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs": "76fd94cd723677369a17540d5bf447e1b66fa08dffb14a754d53cf2c81180b32",
+    "src/cleanup_plan/replay/factored/canonical_shared/empty_closure_tests.rs": "aacbac80783e6b9ca04ce6d63e9924a9bb5d296afd3791861eab4872f414ca69",
+    "src/cleanup_plan/replay/factored/canonical_shared/empty_signature_tests.rs": "4a13fff38d152df1a419a3f02ac8ae7ef36600a8ebeb3126255344440e4394c0",
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_weighted.rs": "35145393e9136bc1fb9ca238e2d7c23b4d303dc80aa4ce562249eee1005e06ca",
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_weighted/tests.rs": "0f45910f5aac7575f6aec3d6c92e3a1bae7bcd82c2f5043cb921a05bf927ecd1",
+    "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight.rs": "71b6f03b83115e6c048e46630179c0a17562c9b1f974fac5af3ff132ea86bcb6",
+    "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight_tests.rs": "32fe7f5d3c46cc0d199954141ce2c3b15e119bbe83b2418f51d33fe740a23c0f",
+    "src/cleanup_plan/replay/factored/canonical_shared/memo.rs": "502c572265a7ff22cdac09ef121fee812cd05ff406b92685f77403f61937096c",
+    "src/cleanup_plan/replay/factored/canonical_shared/memo/tests.rs": "25c57215c7c8141ff53eda894e4a470bf287ed4bb1bd4ab2c9249e211fd37b27",
+    "src/cleanup_plan/replay/factored/canonical_shared/paid_many.rs": "8d595d375bf2d99a56fcd7e5f36971d67e10fd19d7715442c2a99422ee48fae7",
+    "src/cleanup_plan/replay/factored/canonical_shared/paid_many/lexical_tests.rs": "65d09ccad2df6d6138fde916ceac9c8b48bd56ffc880a62543ce440f4b2064b8",
+    "src/cleanup_plan/replay/factored/canonical_shared/paid_many/source.rs": "294ae60e6f2c4cb18ebd2b817934570235555bff1e9f4a46fc9fab09ecb76b91",
+    "src/cleanup_plan/replay/factored/canonical_shared/paid_many/tests.rs": "2eb76c67de772fec04013504817cf64ec5b90848f8030021ba248115bd837c8c",
+    "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs": "969a66f6a53585c67165c9b7eba481cc8528bf93e7e8e9a797b47c99352199a7",
+    "src/cleanup_plan/replay/factored/canonical_shared/singleton_target_tests.rs": "a373837be7e035dad61897d2f9e5156e29c0c3f37e258b0706ca3ea207cc74f7",
+    "src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf_tests.rs": "c58833b1f5eb96900f8263a9b519e35ecef6f38ff92eb26f755fdd362d933d06",
+    "src/cleanup_plan/replay/factored/canonical_shared/tests.rs": "fd122ac9ba5101c7bec9046fe6b4f939a964bc362a59948b0774e64417ed3e17",
+    "src/cleanup_plan/replay/factored/moderate_tests.rs": "92e56a374c20a9f649151a1c9f4aad5c08954abf44b0f07ae4c82782acb47912",
+    "src/cleanup_plan/replay/factored/oracle_order.rs": "a5b274eb811d25ba6b1aa0b78ef108859c7f37bef32fb9236a51b816011f4011",
+    "src/cleanup_plan/replay/factored/oracle_order/tests.rs": "d76b0f8f5bf01ffebde35d2f370abfe686a6061f251efc0fc146d0ee307dbe4c",
+    "src/cleanup_plan/replay/factored/strategy.rs": "8df7ec56344f5e028ccc78078b15f8d582a3477fe00a371f8251ae31613a0a27",
+    "src/cleanup_plan/replay/factored/strategy/activation_tests.rs": "daba60f6688ac69bb97368afa97253e1eeb065f927cbef9ab7bd45832cecc367",
+    "src/cleanup_plan/replay/final_output.rs": "14ef67381d229e623951062d33c4af71d0a33f4878ce6bbccea0e012fbf19794",
+    "src/cleanup_plan/replay/final_output/current_observation_tests.rs": "c6cd5f2027247d74506c5ba21085eaabb68cc4af0f7b7c3462bf0a16fdfc4f73",
+    "src/cleanup_plan/replay/final_output/fanout_tests.rs": "7164e06cdf36aa23e8cf76ca659542f371cdb90e87e351422359ebcc30a55ab7",
+    "src/cleanup_plan/replay/final_output/tests.rs": "34c3509135ef13e6bf9e0cc189f42daa7fa7a81d8753626d423ff7cf1a31ed5a",
+    "src/cleanup_plan/replay/flat_records.rs": "a4ad00f44f52324c96e008c4180c40497b59b1e062bd5aeb9f6f90451ed5666c",
+    "src/cleanup_plan/replay/flat_records/tests.rs": "4e3aec2bb86656df7766df46b9ddef775a844032d2c92cafdbfca570edc89ceb",
+    "src/cleanup_plan/replay/flat_records/tests/receiving_boundary.rs": "a677eaf1bdd10da9dc37e6110c27dc0d5b9e3a7cb62e6cf618a5c08924b9ccc3",
+    "src/cleanup_plan/replay/flat_records/tests/receiving_certificate.rs": "e1c2ba89e61f7ca0425516477e4e2a44be6ee91ccb571dea888ebe03974aa665",
+    "src/cleanup_plan/replay/flat_records/tests/receiving_families.rs": "38c6346f72c7448ae01e536c6adb0babaa6190f77d2969bd28733de5a963ac56",
+    "src/cleanup_plan/replay/flat_records/tests/receiving_path_boundary.rs": "06e67264da2fc799f30a93eec22da2c538fef0d5471050097670c2ed2f412e3f",
+    "src/cleanup_plan/replay/flat_records/tests/receiving_status_scalar.rs": "8b7333c9db4358599f65af2790311da74ec3e25f38207c332f4eb838295d7ed6",
+    "src/cleanup_plan/replay/inventory_coverage.rs": "696345a7159a7f7589cbd87e9fbc7f1f24f894351467161982b93bef81a1a25c",
+    "src/cleanup_plan/replay/inventory_coverage/typed_tests.rs": "90e883ce881573c8ae5a8c87a14fc3d962a4a1ae91223e681d977f10f7a40526",
+    "src/cleanup_plan/replay/inventory_coverage/typed_tests/initial_tests.rs": "ba36fbf79afd70c77b00c57ab5138737d2ebd6cd70f5d8505a5002f876f1f72c",
+    "src/cleanup_plan/replay/live_oracle.rs": "dc44825d5925dd2771486de97f4e6626b5ff195803f32164a014124921423a33",
+    "src/cleanup_plan/replay/live_oracle/source_custody.rs": "8c9fc655e264eda062eacbf629bbfe337b5d86b940e490d5d7e06b6e10a095ec",
+    "src/cleanup_plan/replay/live_oracle/source_custody/a.rs": "76d4985832927d8ee6910c216796343a30ec9a3ec1359645bd6ee94c383679ad",
+    "src/cleanup_plan/replay/live_oracle/source_custody/b.rs": "ca0e42fbd3f14f29ff59b7dc4c6bff26a364a1e305967bcf548970a53774a9ca",
+    "src/cleanup_plan/replay/live_oracle/source_custody/current_view.rs": "fc74fffbab1b7ffa173f3921e5e885daa6df55790ff9bcd6153e896e908d586d",
+    "src/cleanup_plan/replay/live_oracle/source_custody/presence_tests.rs": "d4fdaf15c651ee326cf2dcb6cde810f4a7c766ef0e337291053f5f14004fa64e",
+    "src/cleanup_plan/replay/ordinary_plan_history.rs": "373e120333b6316c6e140e130db662d38ceb2c83b1ca68e87328543fa0c20641",
+    "src/cleanup_plan/replay/ordinary_plan_history/frontier_tests.rs": "ffef6a5cfa6ad40ec9517466227b422d853a87f6415596ea8c622d40153550b2",
+    "src/cleanup_plan/replay/ordinary_plan_history/owned_tests.rs": "41ff9db2a3a0a94a4557d1c3f2ba60ff96262842c083265eee7dfa8c3902aed3",
+    "src/cleanup_plan/replay/ordinary_plan_history/source_custody.rs": "15c00486d9fc40bbafddde3a37ed3d945ef9eaf48320990da930f712671cd114",
+    "src/cleanup_plan/replay/ordinary_plan_history/tests.rs": "c60b4814141b9467b3dfcd22f496f918c24d871d2343c2388b3fccafcaee40c4",
+    "src/cleanup_plan/replay/path_array.rs": "adaca15c3ae85005ba22ad48351f41595ef30e6489d6a7e8d1b369c7e0f8bac3",
+    "src/cleanup_plan/replay/path_array/main44/mod.rs": "dcbeb6850549642638cf48f4d5455ecd4f6ff6600f63eceec7e6512701b4ee90",
+    "src/cleanup_plan/replay/path_array/main44/sequence.rs": "8f0da852b94f3e8ecd001a528131ffcab6ea2be287892dece6c6711765a30984",
+    "src/cleanup_plan/replay/path_array/main44/sequence/tests.rs": "10b40a6ea8972e6c2e11be83a3632c41178f9429d630aee2e57b82737b110915",
+    "src/cleanup_plan/replay/path_array/main44/source_domain.rs": "6e907cd07fbdc82a86d112faf0c04e18c666c2d38f4f4bc80e861262f8287330",
+    "src/cleanup_plan/replay/path_array/main44/vector.rs": "60e5d358e2073d0faffc8b78dbc2ffb86cd01b8f23965f426d66c2110cb80ea9",
+    "src/cleanup_plan/replay/path_array/main44/vector_tests.rs": "9199f60a9fa34805f8de4ca6013dfa1931c668ac0fa2fdd3ff8f98a644694ffe",
+    "src/cleanup_plan/replay/path_array/sequence_minimum.rs": "586e41c93dbfd3301f444857101bbab092bdd8c417621c516dee0dbec43d644e",
+    "src/cleanup_plan/replay/path_array/sequence_minimum/optimized_tests.rs": "174196e798795f8aa9ccf288398493305ea8e23435ce52ebc260cac6f8f22213",
+    "src/cleanup_plan/replay/path_array/sequence_minimum/tests.rs": "5c67f1e815297d722bc57b1c23d9a3222f99673ac2355f5f464174d90b277892",
+    "src/cleanup_plan/replay/sequence_prefix.rs": "097d701c509a7a143a1003fdc179d4a52aa74e1352bb2a381fd0dbeed43191d8",
+    "src/cleanup_plan/replay/sequence_prefix/main24/before_wrapper.rs": "291204a47157774ff167ac42ad42cb2ba8be594e5b43d298c4d7bcf8d1d132cd",
+    "src/cleanup_plan/replay/sequence_prefix/main24/before_wrapper_tests.rs": "dbe4a9b878c0fa842f803b4ed8d2bc6e3849c72def30608fa1dd6c76a111b4f8",
+    "src/cleanup_plan/replay/sequence_prefix/main24/helper.rs": "6d26952dc6acbd5f9f287a8de3d02e20de88cc2eca31281bdf3f4343b8dfd0fb",
+    "src/cleanup_plan/replay/sequence_prefix/main24/mod.rs": "bdc5bcb078cce3280d4a795e367753de4fc5c193c58b7085f37c6c642a1d29b9",
+    "src/cleanup_plan/replay/sequence_prefix/main24/tests.rs": "86b33a7556a2c663a5e871880133c30ad8d56734ba3682a15c0690c43f56b80f",
+    "src/cleanup_plan/replay/sequence_prefix/main24/wrapper_context.rs": "396256767d71e4c19febef1bae88fafeeb86047f7283480c7482939bc63fb728",
+    "src/cleanup_plan/replay/sequence_prefix/main_c11/before_wrapper.rs": "273142f525bdbf71805a4ba0ae16028ff9c992d98e1bcc872c83a5209919bee2",
+    "src/cleanup_plan/replay/sequence_prefix/main_c11/before_wrapper_tests.rs": "dbe4a9b878c0fa842f803b4ed8d2bc6e3849c72def30608fa1dd6c76a111b4f8",
+    "src/cleanup_plan/replay/sequence_prefix/main_c11/helper.rs": "6d26952dc6acbd5f9f287a8de3d02e20de88cc2eca31281bdf3f4343b8dfd0fb",
+    "src/cleanup_plan/replay/sequence_prefix/main_c11/mod.rs": "bdc5bcb078cce3280d4a795e367753de4fc5c193c58b7085f37c6c642a1d29b9",
+    "src/cleanup_plan/replay/sequence_prefix/main_c11/tests.rs": "f9569c9deaee8e5516bad85235b260ec49e5da2647a58f8778c604df52a4cec8",
+    "src/cleanup_plan/replay/sequence_prefix/main_c11/wrapper_context.rs": "ea7e0dbafb12d87d9e0eaca636df929cca8121b01e28b6cdd12bf26d540473a4",
+    "src/cleanup_plan/replay/sequence_prefix/shipping_tests.rs": "d40e58b2b49d26942b7b30841bcd939c34e792fa0a10061dc326c7e72ac2e62c",
+    "src/cleanup_plan/replay/sequence_prefix/tests.rs": "a6a22bff80eb2aa43a9aa4076a4351875429831b87f11843354ae5e80e262b07",
+    "src/cleanup_plan/replay/sequence_vector.rs": "6129acfd3338cbd3178cf4440c1056762dbc7a666774aab7896a55e6aada7d6b",
+    "src/cleanup_plan/replay/sequence_vector/funded_tests.rs": "0a177d36f88e5febf77558507f5bdf1f1a74f5851e000c3637512f1ec069fba1",
+    "src/cleanup_plan/replay/skeleton_work.rs": "916b817cb82b9e47eaacab364e94503b0e6ed0028d64c522ec4ccbb11a60c455",
+    "src/cleanup_plan/replay/skeleton_work/prefix_fusion.rs": "575ba5edd5dee6ffe14ee3a936f56005f2729a22b77bfacc7ecd207b82265f9a",
+    "src/cleanup_plan/replay/skeleton_work/prefix_fusion/tests.rs": "e9b3cfee3b7f7ff0ef56b72dcd0ec3483b9c58bae86f26d222b46967c550b003",
+    "src/cleanup_plan/replay/structural_maps.rs": "1da9c7201905f113ea60321fbf75cbf0da93c947d708c974dfed8f642e1198b9",
+    "src/cleanup_plan/replay/structural_maps/tests.rs": "839a2981800cd8587bc992e158fe5232d6c99708247aefed1d28c8b74dbdeb92",
+    "src/cleanup_plan/replay/supplemental.rs": "a685d1085ccb1ba4d11ae064a068dbc920bd8eeefdc5a48dd5193fb7318dd4b6",
+    "src/cleanup_plan/replay/supplemental/receiving.rs": "6450e222d84b7596f1989582ff767163a84dc7cf1a40d85308a43efe1d37d047",
+    "src/cleanup_plan/replay/supplemental/receiving/tests.rs": "f3270b6540b41cf2adcf3b33cdd12bda31c2423f80ed4ef63096c3880417accd",
+    "src/cleanup_plan/replay/supplemental/receiving/tests/legacy.rs": "549a77bcfa7687c3763a6cc687f3770c7be38df88c81935cd6fb4914436f1cc3",
+    "src/cli/help.rs": "14c16fc43eeee853d1e78ca56c5d3b5943b3003231ce4d0cdd237fd6c186ba33",
+    "src/cli/help/authoring.rs": "b71e914399e1f316e573bfa4022d699ce20ce982aabf01cb053ad62c67f49b72",
+    "src/cli/help/authoring/tasks.rs": "f8c90e79cd481352a0c545c28e4c4c61d10a7dd48ff18c088a80c4dc05df6720",
+    "src/cli/help/authoring/tasks/tests.rs": "6795e85583b18b0cb0fa9afb24da1ae921f8f3295aee0c66c64c0a4fdcfd421f",
+    "src/cli/json_codec.rs": "13a35648c61f74a96882d46ebdc6d20f60d42f56aaafbf57474377a2f341e6f9",
+    "src/cli/json_codec/retained_receipt.rs": "fab22ee424db212390a00d6cfbb3b58e42c4c1a64991cfaa675e818d0180ae8b",
+    "src/cli/json_codec/retained_receipt/stdout_seal.rs": "ee542f5a5e09db0ff25ff8f22e945926dcb041e26aa0984c3c60c928a9d1ff37",
+    "src/cli/json_codec/retained_receipt/stdout_seal/tests.rs": "4ab4541b0fe322ded7925f8e797b4c00d50bb6f8e2a0b1f638a0b8288f29440b",
+    "src/cli/json_codec/retained_receipt/tests.rs": "9ae79e694467d8a4f327f4fa608661d5cb9f4937f88945da72f2c53facdf84eb",
+    "src/cli/mod.rs": "3793a79de7803bbc44588c63d121d2eb8bb7a4eeda58f74372f400d49a281890",
+    "src/cli_driver.rs": "2cc325a8ea74cfedb0c30fb93452969eae6f1f9ea295e8c4f3b3b1972d002af5",
+    "src/hir.rs": "e3aaf1c870be500fa794ec24d393f8dc94fcd996990abf388222ce079f4e0b04",
+    "src/hir/declaration_index.rs": "adc41f5edf1a8bf7a598e6020ff0f014489bb753a462a7150b4938dd47deb55a",
+    "src/hir/declaration_index/identity_reuse/resolver_held.rs": "32d78091710fe29362e27a201b1ce22137b136586232ed736f198a766b3a4669",
+    "src/hir/declaration_index/identity_reuse/tests.rs": "e43730db530de8df5756a18f4287bc1c19345b7008761861dc43c85434689281",
+    "src/hir/declaration_index/source.rs": "cf218618eafd9ca06a3b61d85fec7a22a1e48eef652898dcde88f76a06a370ec",
+    "src/hir/expr_nodes.rs": "e2291267786bdec4371b969031209b4e77aa6876f4564048ad1c7561b004b73f",
+    "src/hir/ids.rs": "186e98de002cd77f1e546a34423a6ca4792d8fbedc8ff7decc8d8a6a3e03b306",
+    "src/hir/ids/fixed_operation_tests.rs": "f4737545cbd67bf47da51e8b8f1a488bfd849c73d02bbc11e7773f353573cf61",
+    "src/hir/ids/instance_match.rs": "2d1ef4d1b59a2e789565da2445b134db9c19157fa144a2fb5095374480180119",
+    "src/hir/ids/instance_match/tests.rs": "8691935c8e328296a0f71a4671e9912ca686c9504f6d566a5ece5e37000865f1",
+    "src/hir/lexical_exit.rs": "246cb0df50653502b3cf26ab9348e6db14508dad14c870852a22aab95db1e05d",
+    "src/hir/lexical_exit/walk.rs": "3eb09dfca99ff573319c67f4e2337d16436564d88edcaca9a9e0552ddea50e24",
+    "src/hir/lexical_exit/walk/tests.rs": "01eda34563f982ef112c79b01ee02ae9cc606c6a9aa960ed9736dd383789d2b5",
+    "src/hir/residual_type/before.rs": "ec971d9022e44d280dadce22ccabff5696b885f6a7ab2ca5db3bee7eefc85e34",
+    "src/hir/resolve_program.rs": "7378a8179de267b5566b45fd2b612713d5d1cf1c3cb7644bc3d75de5f54038d1",
+    "src/hir/resolve_program/tests.rs": "bf70e1516f371835e919a46a7ae3ed437c2f98cf69d79f11cfcf379c9a100fbb",
+    "src/hir/resolve_program/tests/reservation_stages.rs": "d69608047e2572e1ebb2aed3a51d7fa7dcca39a161a1aa970d6981c7b98bbb5b",
+    "src/hir/validation.rs": "f89e882a3d8ed796b8b8b864247e4e7eb19631d6299cd0dd94ddcc6b5ca17eba",
+    "src/hir/validation/byte_traversal.rs": "0d71a63bfe68e872a57d7ce42c0862b87dfcea6203ac412e9d34b1346cb2bbec",
+    "src/hir/validation/byte_traversal/nested.rs": "56a85653d2190c2211554fd8c25282f450bc1b1b7a1977b9da976bdf71df16a1",
+    "src/hir/validation/byte_traversal/nested/tests.rs": "097a4b1531266a7115e32128ed3226ea42512afd1506bb57928c94573587aa99",
+    "src/hir/validation/byte_traversal/nested/tests/source_composition.rs": "7a5ca6b38f7609fb2a9d38cfa94ed1e8377eee6f47662314351e8bed3b97b590",
+    "src/hir/validation/iterative_while_admission_tests.rs": "6ae19431da3839495e725f661f6710417bc01c9651f982db8eeb36ffe1a833ad",
+    "src/lib.rs": "88e47f85887a13d114c862a24e35f90196c02dd7bb11d6477575bced80ecd2de",
+    "src/loan_plan.rs": "17fd522d64873f729b35336c27303cd0a9de3239b1b93ff19dd5f45447770a5a",
+    "src/loan_plan/tests.rs": "bc2074ab329ba1f71416d503c222a5fcd75b49b65f11f70a784cac90bfa110a0",
+    "src/loop_calls.rs": "72a422bc0328c8d51b1a803f49308ac44120ac56b719870c3dd862feb690b22c",
+    "src/loop_calls/byte_writer.rs": "9d9227d8d51508bf478aa83d9c76ee2d16a40ea8bda2413b239da92bf87fa863",
+    "src/loop_calls/byte_writer/tests.rs": "25783b38fd84562964e61bcb2682253634427ec5496f11600bc38e7c3e4c2a15",
+    "src/loop_calls/byte_writer/tests/string_slots.rs": "f1a4ba2d8638076e3c784089305b3ae9b583f656e3112eaf6e637f8eaf4fae62",
+    "src/main.rs": "4b5e16e975f61a69bff8b3ad4d249640e43fced7fe567c518dee6399cc980e89",
+    "src/project/incremental.rs": "c34c4705dc8ecad1d8f61d3b8f997a074a3c4ba1c64dfb1b8a7dc0234dea4497",
+    "src/project/json_codec.rs": "425bd649ea086ec26bd027010652ce1f17cad76ea5a321cce084059cbb6159ba",
+    "src/project/json_codec/retained_receipt.rs": "dfddf1506d91b05580a64fdbf7f2e93593a06d0d6714cab4f8224430722306f3",
+    "src/project/json_codec/retained_receipt/tests.rs": "68a01a87124ed4533231c37e2f626ed8e140b31b437925dfbd37fd6466c56cad",
+    "src/project/mod.rs": "0a9926183972f18f2c0c1bfd98a1ee2f2bc5f569e7ad31d729f200c517c62856",
+    "src/source_reflows.rs": "7aef58d3741f42fe73cb7f34ed926a0ba8b286d6a0e60f4e216dfbf205a4da00",
+    "src/source_reflows/factored_sources.rs": "0c7318412b2888e628705004cf0e3eb8748ba0920dc833cb8bec3620cb03b019",
+    "src/source_reflows/incoming090_semantic_receivers.rs": "dc274fc5d1f3b7a38132568981a2f3a34406b8124c271b6c0719414284b1b8db",
+    "src/source_reflows/incoming21_semantic_receivers.rs": "171e4307a579b7cae5dd435a00b52f5db0502d9faadc296185cd7347caa80cf4",
+    "src/source_reflows/incoming67107_semantic_receivers.rs": "70136f31e90d3055f8622183540e6bcaf83c7ac29409dd0ac51715c89c9c6ee3",
+    "src/source_reflows/main043.rs": "aa2286e2c9b1a78c91075334ca7cc52dbfff632128b9d96725a4d42979870b2c",
+    "src/source_reflows/main043/semantic_receivers.rs": "c9f6aa0c11bc43b46331a94f07ced0bb7f9b1aa974f61a72e6addf7f23b2bdb6",
+    "src/source_reflows/nested_scope.rs": "f69a1894b66fc9d5e263e46c13d67508289a37e2ce739128620204ecc59f64a0",
+    "src/source_reflows/semantic_receivers.rs": "3697d98f51d3d633a280ffd7ee0656c0d45e660e061cee5275ee81189d1ee1a4",
+    "src/source_reflows/semantic_receivers_main7c6.rs": "87a59afef395d730fcf53cdd2a3bd63efb4f4a60926ff4bb246b20b9bf5bae6e",
+    "src/source_reflows/semantic_receivers_mainb80.rs": "778a3a4b0356b3b3f74f93ed93a1aa1f6a31f87d2cb91a1fe219b90f937148be",
+    "src/source_reflows_merge.rs": "17fd9053a46a45e17f3ae8890220a4176290d00c26a7f9a6890b696c9ec7ac89",
+    "src/source_reflows_merge/current344.rs": "437c95c79983359e5d43a2b3700d7d93d8086e596dd9f817d1c6a68c1a5a73cd",
+    "src/source_reflows_merge/final_ready_inputs.rs": "24888efdbc3d2559f411dbf78ebb463005c9bec307fe7a3f188cfe8ad849d782",
+    "src/source_reflows_merge/main67107_inputs.rs": "dbf1f6de495247e896b2f118aac78d54228d824029023288ff6672289fb20f00",
+    "src/source_reflows_merge/main7f8_source_inputs.rs": "b540739bc6bf23c8526f60641e6021f63819ea4050e71fe67427492173ac2f7e",
+    "src/source_reflows_merge/main_eb2_inputs.rs": "b354552752b10566769cdfc9efbb7b68683140d5e5471662030a81106ce06782",
+    "src/source_reflows_merge/maina3_custody.rs": "036d01437e58db64739cd65f6e8f30f875103f67e64f9881873ac44b5781d4b3",
+    "src/source_reflows_merge/opt858_sequence_input.rs": "f5a04eeb6b33a8048fa358bdba484912a3c1db1381d92d391d5cc163c614a4b1",
+    "src/source_reflows_merge/ordinary_plan_inputs.rs": "07dd9d5c3840aebc8482f2a6b303fde057acdee77b3fd570187e11868209fee5",
+    "src/source_reflows_merge/runtime_json.rs": "864301d0b87f8de95c6b8d1f2fd306c3bb96eac92f5669986308065f2abdaeef",
+    "src/source_reflows_merge/runtime_json/tests.rs": "9b3cdcdc4f256a6174c3b4f1157ef6042aa3c4053faa2294bf368275781bad88",
+    "src/source_verify.rs": "eb96327e2a5eda750973d5b55f12f107d74f17de89f2465b6611f06a63fdfa1f",
+    "src/source_verify/constructor_tests.rs": "3bb066087c62d99a1169a6eabb6a24af2c786afb3561a18e6fd0641ac33d944d",
+    "src/source_verify/declaration.rs": "c93ac4c883fe6b10c831a2603c994ea03880986fd0b7a394bfa41ec8a06d88cb",
+    "src/source_verify/declaration/declarations.rs": "2b37023d68d6abbbb65c9ddd29efacd024fd098303c0060eb22f6b6e7a2ea446",
+    "src/source_verify/declaration/declarations/tests.rs": "be58d086c21bfa98ec4fe8fb6fe4fba523046ac6240f3e7f0722ed65dcce5018",
+    "src/source_verify/declaration/functions.rs": "9813f3255640ce6fd02167491582b4a7b6b141a0b472cf561de6e52abb25a79a",
+    "src/source_verify/declaration/functions/funding_tests.rs": "4dad415a1357ca33dd3655eedc93c9b904c025fec7cca4a8cba6a3e14a4b909d",
+    "src/source_verify/declaration/record_shape.rs": "97f52cfcb8fde11cddd2fb27f74ffa7806f4021e239497197bc51b0b27b0bdfd",
+    "src/source_verify/function_map.rs": "4fdf6175e65eb5985d903b9a02c5a17f8939076ee39f7b414ad33f113bfcf7e2",
+    "src/source_verify/function_map/tests.rs": "898e7f0dc8b3073e67d8aa5e135ccbe177ed61769b7ed596281040126b066de9",
+    "src/source_verify/funding.rs": "c675a69bc687080e4cbbb01811e2e599cb1adace3fc314b8c325c220c87ae510",
+    "src/source_verify/funding/tests.rs": "8a8c11e9286b8a2184361dbc531273284cb0861ce82ea397c5d7d1a7393190d0",
+    "src/wasm.rs": "c27ceec55d0a616d3206bba7de32a988c47d7898d682b7be4234b723a96fd902",
+    "src/wasm/aggregate.rs": "7e9c2482bd5a536c3c103185f97df60fc758ded55142f6e7a4a73e400617afce",
+    "src/wasm/aggregate/semantic_work.rs": "c341401652ff0c7cc6be923c455fec316ff7e5c11e303b024a0a24ea59767cff",
+    "src/wasm/aggregate/tests.rs": "4b1db4a3d033b9e0ec68503605d6126133954b8782deb8b2f904a29eac3a2e0a",
+    "src/wasm/aggregate/tests/owned_utf8_usage.rs": "3d58bbd7a18303ab362a6a4e4a6782a268028cea234b8a19679869af675fc715",
+    "src/workspace_graph.rs": "b8d71709bbe9961b338552bba4f6098e59c8d78c5da7ca5f8ff4157b36ea3f31",
+    "src/workspace_graph/constructor_failure.rs": "0be58a7886decb768c4852135537dc8fba3b3228ade90c49111563770899f4b8",
+    "src/workspace_graph/constructor_failure/typed.rs": "1482ad177d1d605a183cccc3ef185aaed36e7214b1bf4db8065a466303fc99f6",
+    "src/workspace_graph/expected_projection.rs": "974468e7035d1a7baa48b13078ce7ec7b0711c2c7610d64db7feea561b192f0c",
+    "src/workspace_graph/expected_projection/borrowed_imports.rs": "326d155ffc918d43dd00ccbb2f1aa562e45fbfd9d0fe5b4809ac4401408c7d1c",
+    "src/workspace_graph/expected_projection/borrowed_imports/typed.rs": "2532586630034d6c7f2953a1f487c34c25953a5b13dc86a2170bb7561a8fac36",
+    "src/workspace_graph/expected_projection/borrowed_imports/typed/alias.rs": "434640ce68332a1d96840ae10b8e4a500799a567f6d75cc903a6e272196a24b2",
+    "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/owned_growth_tests.rs": "5265ad08a18f48440a0615bf5e4f815e40790f99c43ec681d0f31401a3e4aaa9",
+    "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/rename_tests.rs": "9d65b759851bf0c50a2a99d7cccc63f5f5221dac51546b8dd015b4b46d2b1be7",
+    "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs": "fdd92e3f7dd1a2064a727f478bdc15f217c5c93edc9d4bb32d0d901d510ec1da",
+    "src/workspace_graph/expected_projection/private_layout.rs": "ca6c93a679b97cf275c83168b03d6ee550c2989b12c6d4a08db93063f43ff9a3",
+    "src/workspace_graph/expected_projection/private_layout/authority.rs": "9a66a7bb422c27e3528e7d17aaf44ef96ca868017df31d21a44e9a1abdb375fe",
+    "src/workspace_graph/expected_projection/private_layout/authority_invocation.rs": "8da861c040f59d451e2420b395291f69e19b5f02a05b83aaf377c8ceff3fb5d2",
+    "src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch.rs": "faeb4b64e3f99c22deb35086b78a5c2cb35a9d40d4267848a5f50a25746361c4",
+    "src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch/tests.rs": "2ba79abdb1f5719f28a01fbfedb3e5bf247792c252c58ad4ee31026411c1917b",
+    "src/workspace_graph/expected_projection/private_layout/authority_invocation/tests.rs": "481d906a657a599afb0faadba2a362ee410f47c52709086b70d7eb0edf11fd27",
+    "src/workspace_graph/function_alias/before_core.rs": "4b0a8ea2da5186b87d3481d4cec49e50fffe899c6cbd102229a9b94d7d33b1b6",
+    "src/workspace_graph/function_alias/before_core/tests.rs": "f5e945c4bfbe403b871f7fd5c4bf959c8f4d2810adb88d18221780694561704d",
+    "src/workspace_graph/tests.rs": "563d66569e1de4b8a5d9932442ec2e387158496c22a443defbe0e15a1cce58d5",
+    "src/workspace_graph/tests/builder_limits.rs": "c1f40dbe6d396e0bac776028d029b7d3cc938293857a86750aa9f4a03e3a17ed",
+    "src/workspace_graph/tests/cache_stage_debits.rs": "1988b681e3109f36569d09ad86654eb8a3eb4fd52de1dceb9532eec69f472696",
+    "tests/agent_runtime_v1.rs": "6951c8fae6b0e6b4a7e1fcec1a694717ed0d58a3bc28a46f1ed71bc09a55f5dc",
+    "tests/agent_runtime_v1/stage_backend_parity.rs": "ba3def314e79f284d6a6b9bb4657f5db74a6453033037d87c68fda14540fd746",
+    "tests/cli_help_surface_v1.rs": "495139a32f896a5ca38991169d7617432173a0a7c67c62d3912f937beaf80f33",
+    "tests/documentation.rs": "304dd3d66aab6ae0ead5b4dfb2ef9280de0b19b9f7361d4cc35c215ca5ea97e9",
+    "tests/hir_module_boundaries.rs": "f25b784eba1a2ea26a07b260b2ddff67b6dd90c0a6402fd143dc42ca68847d4e",
+    "tests/language.rs": "e0bec24a37c2d84a07830135dd0d699bacc366041d37f52c1239a99f2716fcf2",
+    "tests/language/option_try_semantics.rs": "2d2f7f2c45a57fb989c1b3d5aee9fdd192c7173e2b5c278482ec3578a41fb956",
+    "tests/language/owned_result_variants.rs": "d779bc8bd0d2d4704f1bd9139d2485eeda89642e82baf618af85cb298167134e",
+    "tests/module_size.rs": "f4db65da11156807050b9e929231c0c2df885256690a8416c6064d31e1b2e14b",
+    "tests/native.rs": "32b88eb8b2d8cc91b357d65ed384cb6e191ce67b4e8d26df6b9f6009fee5dbb3",
+    "tests/native/string_settlement.rs": "cde42a8d9ebc50264096109e4d4e79b6eb33abf4875bad62f9801f8e0a9456c6",
+    "tests/native/string_settlement/codec_allocation.rs": "82b7368428178f592d1de52dd17b175b75b5dfd7ca1543dca9bacbdcb5dc7200",
+    "tests/native/string_settlement/codec_allocation/codec808_frontier.rs": "06b4f66200fcf3557246ed1fb71bf7bdb75c1926c8307ba917dcdab39213dd9a",
+    "tests/native/string_settlement/codec_allocation/string_vectors.rs": "8fc18b5920eb5f4a5c5d43c886f327b32e6f0ead6570d1640e43db0e5f0cfddb",
+    "tests/owned_data.rs": "1632660134b1a5c4af343e89b741beafaa45086020a6570c4c22919ac783bb8b",
+    "tests/owned_data/nested_owned_record_frontend_hir.rs": "0a23846e8bdd24c3d3ea97f7a1181a0fbf2d68ed6e0a72fbd0f3e4cdff05ec24",
+    "tests/project.rs": "8c6b103a1408696f7073db89f158c91591fe92bdfa4414e74b8e878eed448005",
+    "tests/project/semantic_cache.rs": "44e718b0fc6d913043c29d8e550c0ec61744cc8aab06d6fde93eccdcdbbf967d",
+    "tests/project/standard_library.rs": "0e5d02afba9d12ce61316b7d85cac2aa118b5e27ac0a17e9b92f4acc5e4343fe",
+    "tests/project/standard_library/application_json.rs": "ac6e1e40420e6cc7b4bb2c9ff3a3827a16ea0f0afac969268aa079182f2015b2",
+    "tests/project/standard_library/application_json/nested_request.rs": "9b70b4cb28e78989e4794f50e336690027826a8149366292b8d259626a41d574",
+    "tests/project/standard_library/application_json/nested_request/scheduler.rs": "44a2b3ff646494987ee1ef53faf4487e688807f51c2e2741f988d338786d3f68",
+    "tests/project/standard_library/application_json/owned.rs": "f783fb7be7a3b445f5bd3ee1ac00fe7a7bbca024959f926919e3116b0e95e404",
+    "tests/project/standard_library/application_json/owned/catalog_scoped_records.rs": "fc5048241b7937f487d12cb934f591730185ab905b63c2f5713d1374648f5d9d",
+    "tests/project/standard_library/application_json/owned/catalog_sort_adoption.rs": "f52a25b528790e35b2d89aa1fb2d97eb58ecb32a54de0c17cde144a0814a8e4e",
+    "tests/project/standard_library/application_json/owned/shiftsim_typed_records.rs": "30e0ec893b8c5a65d11a05f98cfbe741381870ba8f6402f52af2687911d6b999",
+    "tests/project/standard_library/application_json/retained_receipt.rs": "abf5219d6b3f618620a9b2db51dc499ebba56786cf27fe1829827633d5149f68",
+    "tests/project/standard_library/application_json/retained_receipt/stdout_seal.rs": "b8b8219a9d4476b345945f086322a24fb8c925ebdb13ba240b9212e593146ad3",
+    "tests/project/standard_library/application_json/utf8.rs": "0043199481fd84d7097d3a889d7426cc6b0f1af5b957b64cba6a042f3f005474",
+    "tests/project/standard_library/application_json/utf8/max_shape.rs": "c3bfbbbc31d8296a3845a929d67fd4dc3af856e47f417aadb2c25e87f6faf2cc",
+    "tests/semantic_cache_store_cli_v1.rs": "521f4709b23cb630191c341b3714f16577513056988d6a1d25bb4cde23d09309",
+    "tests/semantic_cache_store_cli_v1/application_profiles.rs": "e23311f938942b85c733b4e0c1b6a2d656389b4a396e5e0c6678d247a9df5c13",
+    "tests/support/new_boundary_module.rs": "c57d688fb1fbc78f4bf79dd43884603f6160f78735daf1d2dc327d27ba3ccbfd",
+    "tests/support/production_source_inventory.rs": "5222fd3b115cc7eb8e0aaa90970e927ee366fa3860a9129bf5b50b096b466951",
+    "tests/useful_data.rs": "fc3b66a4ee738a42d1d3d1c381d52d5e9ebf11a47c3346c318f72b29a14470b5",
+    "tests/useful_data/catalog_normalizer_application.rs": "fc1cf969252a732cbb0105339ac79863c34bf87d00cff243245a46a98789eb14",
+    "tests/workspace.rs": "fd3151358b6ef60560a2af7b6639a56a6cf3ad148fa3bb6ceb7c8de95ec5feed",
+    "tests/workspace/semantic_graph.rs": "d20db2e8839141a4a41fb40694203a6c7c899fe109eea61daa4dd00591a1a64e"
+  },
+  "prepared_driver_sha256": {
+    "run-owning-selected.py": "fb7459b6e44a336e44f779de6aff9fbf7921d986f86a8157aedb2c810eed6450",
+    "draft_contract.py": "1869cf5aa5633a55f05323589a3db3d092fd6e98b6f558f025f6faebab3fa038",
+    "semaprax_pressure_observation_v3.py": "5f1d756491ccc5dd662afe6e7ed744b7e65e8e0a45bc7e420b358ec531cec90b",
+    "run-production-lib-cli-clippy.py": "bc67ef6dbed2bc2423b25159bc995c4a66dba489b5b4e326635351196e5241d9",
+    "build-owning.py": "07cf91ca745f3e53f3f6dee51fca407734dc75c7d2316efb5f8e96d079c731a5",
+    "observed_phase.py": "36d75093b66bdb07e059a9255e9b7decebf4a2a2c10a531543b202b24b302867"
+  },
+  "compile_only_harnesses": [],
+  "production_equivalence_claimed": false,
+  "fresh_build_required": true,
+  "execution_performed": false,
+  "discovery_performed": false,
+  "prior_actual344": {
+    "source": "a82e00cc83f99b16249181c45710d962598577db",
+    "receipt_path": "/Volumes/Semaprax/lane-prompts/final-joined344-a82e00cc8-20261016/owning-selected-results.json",
+    "receipt_sha256": "440c382a3a5c807b81af28b1e0bdfbbd37eeb0297a4c5cd410b956dde3ccfe2f",
+    "passed": 285,
+    "failed": 59,
+    "outcomes_unchanged": true
+  },
+  "registration_sha256": "0ba5d8e40cda7b8e38bced6318db9b150b727bcbd165372261597a3e4a218777",
+  "selection_sha256": "740dc4e6c4483729fd1c8b0b01febe8f2d18863c89b6739afd98fb56ef74777c",
+  "source_registration": "/Volumes/Semaprax/provenance/postpin-custody-lib-repair-prepared-20261017/registration-9037153cb.json"
+}

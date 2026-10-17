@@ -1,0 +1,9 @@
+{
+  "original_entry_sha256": "8acbe01ed9db54065fdd6fe9a1f36376402a4de851660abb3dd2aac80332d901",
+  "single_exact_source_replacement": {
+    "old": "    assert not subprocess.check_output([\"git\",\"status\",\"--porcelain=v1\",\"--untracked-files=all\"],cwd=repo,text=True).strip()\n",
+    "new": "    refresh_dirty_status=subprocess.check_output([\"git\",\"status\",\"--porcelain=v1\",\"--untracked-files=all\"],cwd=repo,text=True)\n"
+  },
+  "pre_and_post_closed_dirty_path_validation": "refresh-write-paths.json",
+  "fresh_reads_and_all7_original_hash_guards_preserved": true
+}

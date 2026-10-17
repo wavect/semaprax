@@ -1,0 +1,15 @@
+{
+  "status": "PASS_SOURCE_ONLY_PLAN_MACRO_CUSTODY_FIX",
+  "base": "14d2179e11b0a2aabb2ae33b46a8591c2d8cd37f",
+  "whole_before_inverse_records": 5,
+  "original_test_lines_retained": 55,
+  "flat_old_owner_length": 27915,
+  "flat_old_owner_sha256": "9e07f08634f9a79e9d38955da089790acf951521362e46ba23b073e67e9ba3a5",
+  "unchanged_old_producer_body_bytes": 26428,
+  "finite_binder_drift_negatives": 4,
+  "MAIN090_physical_intersection": [],
+  "FINAL_six_root_rebind_required": [
+    "src/source_reflows_merge.rs"
+  ],
+  "Rust_Cargo_runtime_binder_or_refresh_executed": false
+}

@@ -1026,3 +1026,8 @@ pub(crate) mod main67107_inputs;
 
 #[path = "source_reflows_merge/ordinary_plan_inputs.rs"]
 mod ordinary_plan_inputs;
+
+// Only the historical PLAN source test receives this exact root checkpoint.
+pub(crate) fn ordinary_plan_history_root_checkpoint(current: &str, compiled_before: &str) -> String {
+    ordinary_plan_inputs::original_root_checkpoint(current, compiled_before)
+}

@@ -8,7 +8,7 @@ Status: NEXT source candidate; executable qualification pending. This is one com
 semaprax json-codec <project> --source <declared-module-path> --type <record-id> --output <new-receipt.json> [ordinary profile and bounds] --retained-receipt --receipt-stdout-seal <nonce>
 ```
 
-`--receipt-stdout-seal` and its nonce occur exactly once. The nonce is 1..64 bytes, each an ASCII letter, digit, hyphen or underscore. It is an opaque correlation value, not a secret or authorization. Empty, overlong, Unicode, whitespace, duplicate and missing values refuse with usage status2 before Project authority. The sealed form requires exactly one `--retained-receipt`; ordinary source, plan and explain forms cannot select it. All ordinary selectors and bounds retain their existing validation and diagnostic order. Absent the new flag, original single-codec, plan, explain and retained-receipt behavior is unchanged.
+`--receipt-stdout-seal` and its nonce occur exactly once. The nonce is 1..64 bytes, each an ASCII letter, digit, hyphen or underscore, and must not start with `--` (a flag-like missing/invalid value). A single leading hyphen and interior hyphens are valid. It is an opaque correlation value, not a secret or authorization. Empty, overlong, Unicode, whitespace, duplicate and missing values refuse with usage status2 before Project authority. The sealed form requires exactly one `--retained-receipt`; ordinary source, plan and explain forms cannot select it. All ordinary selectors and bounds retain their existing validation and diagnostic order. Absent the new flag, original single-codec, plan, explain and retained-receipt behavior is unchanged.
 
 ## Exact bytes and publication order
 

@@ -1,0 +1,150 @@
+{
+  "schema": "semaprax.codec-stdout-integration-handoff.v1",
+  "base": "1bae9e8902fe8ba9e59958308dc779f9bb185da9",
+  "held": "aa749f9842b390c045ec27b1f57f4ea86b6a2306",
+  "status": "SOURCE_ONLY_UNQUALIFIED",
+  "runtime_executed": false,
+  "source_validation": "Rustfmt parsing/formatting, Python AST/JSON parsing, complete CLI-help literal source comparison, git diff --check only; source verifier not executed",
+  "sources": [
+    {
+      "path": "src/cli/json_codec.rs",
+      "sha256": "13a35648c61f74a96882d46ebdc6d20f60d42f56aaafbf57474377a2f341e6f9"
+    },
+    {
+      "path": "src/cli/json_codec/retained_receipt.rs",
+      "sha256": "fab22ee424db212390a00d6cfbb3b58e42c4c1a64991cfaa675e818d0180ae8b"
+    },
+    {
+      "path": "src/cli/json_codec/retained_receipt/stdout_seal.rs",
+      "sha256": "ee542f5a5e09db0ff25ff8f22e945926dcb041e26aa0984c3c60c928a9d1ff37"
+    },
+    {
+      "path": "src/cli/json_codec/retained_receipt/stdout_seal/tests.rs",
+      "sha256": "ad50a8b1e963106767e3fc7b4eb46de7e0e539a135daf829c074ce7cdcad99ab"
+    },
+    {
+      "path": "tests/project/standard_library/application_json/retained_receipt.rs",
+      "sha256": "abf5219d6b3f618620a9b2db51dc499ebba56786cf27fe1829827633d5149f68"
+    },
+    {
+      "path": "tests/project/standard_library/application_json/retained_receipt/stdout_seal.rs",
+      "sha256": "b8b8219a9d4476b345945f086322a24fb8c925ebdb13ba240b9212e593146ad3"
+    },
+    {
+      "path": "tests/cli_help_surface_v1.rs",
+      "sha256": "495139a32f896a5ca38991169d7617432173a0a7c67c62d3912f937beaf80f33"
+    },
+    {
+      "path": "tests/hir_module_boundaries.rs",
+      "sha256": "44bebd7f63c0a05e2f78b065e9c0802d9ac810795e30a26f87c406bd7c0366a4"
+    },
+    {
+      "path": "tests/workspace/semantic_graph/source_inventory.rs",
+      "sha256": "93ab500e906b6b7979d7c998d7e3d5a25260d4ba2b7f194629f38a0a8ad9eef7"
+    },
+    {
+      "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "sha256": "43a1d5f58c83d7b675c3a8d8c01b770663414ff9f291e3661e967e6a52a74e15"
+    }
+  ],
+  "pending_owners": [
+    {
+      "package": "semaprax",
+      "kind": "bin",
+      "target": "semaprax",
+      "selector": "cli_driver::cli::json_codec::retained_receipt::stdout_seal::tests::nonce_grammar_is_closed_bounded_and_preserves_all_ordinary_arguments",
+      "source": "src/cli/json_codec/retained_receipt/stdout_seal/tests.rs",
+      "line": 36,
+      "status": "PENDING"
+    },
+    {
+      "package": "semaprax",
+      "kind": "bin",
+      "target": "semaprax",
+      "selector": "cli_driver::cli::json_codec::retained_receipt::stdout_seal::tests::sealed_forms_require_exact_retained_route_before_project_authority",
+      "source": "src/cli/json_codec/retained_receipt/stdout_seal/tests.rs",
+      "line": 68,
+      "status": "PENDING"
+    },
+    {
+      "package": "semaprax",
+      "kind": "bin",
+      "target": "semaprax",
+      "selector": "cli_driver::cli::json_codec::retained_receipt::stdout_seal::tests::seal_binds_exact_complete_buffer_including_lf_and_follows_publication",
+      "source": "src/cli/json_codec/retained_receipt/stdout_seal/tests.rs",
+      "line": 92,
+      "status": "PENDING"
+    },
+    {
+      "package": "semaprax",
+      "kind": "bin",
+      "target": "semaprax",
+      "selector": "cli_driver::cli::json_codec::retained_receipt::stdout_seal::tests::publication_refusal_preserves_destination_and_never_writes_a_seal",
+      "source": "src/cli/json_codec/retained_receipt/stdout_seal/tests.rs",
+      "line": 145,
+      "status": "PENDING"
+    },
+    {
+      "package": "semaprax",
+      "kind": "bin",
+      "target": "semaprax",
+      "selector": "cli_driver::cli::json_codec::retained_receipt::stdout_seal::tests::partial_stdout_failure_reports_publication_without_rollback",
+      "source": "src/cli/json_codec/retained_receipt/stdout_seal/tests.rs",
+      "line": 170,
+      "status": "PENDING"
+    },
+    {
+      "package": "semaprax",
+      "kind": "bin",
+      "target": "semaprax",
+      "selector": "cli_driver::cli::json_codec::retained_receipt::stdout_seal::tests::flush_failure_is_failure_even_after_a_complete_stdout_record",
+      "source": "src/cli/json_codec/retained_receipt/stdout_seal/tests.rs",
+      "line": 204,
+      "status": "PENDING"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test",
+      "target": "project",
+      "selector": "standard_library::application_json::retained_receipt::stdout_seal::cli_seal_matches_exact_legacy_receipt_bytes_and_no_overwrite_is_silent",
+      "source": "tests/project/standard_library/application_json/retained_receipt/stdout_seal.rs",
+      "line": 28,
+      "status": "PENDING"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test",
+      "target": "project",
+      "selector": "standard_library::application_json::retained_receipt::stdout_seal::malformed_or_failed_sealed_derivation_publishes_neither_artifact_nor_stdout",
+      "source": "tests/project/standard_library/application_json/retained_receipt/stdout_seal.rs",
+      "line": 89,
+      "status": "PENDING"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test",
+      "target": "cli_help_surface_v1",
+      "selector": "standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert",
+      "source": "tests/cli_help_surface_v1.rs",
+      "status": "PENDING"
+    }
+  ],
+  "preserved_required": [
+    {
+      "package": "semaprax",
+      "kind": "bin",
+      "target": "semaprax",
+      "selector": "cli_driver::cli::json_codec::retained_receipt::tests::receipt_selection_is_additive_exact_and_rejects_ambiguous_grammar_before_authority"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test",
+      "target": "project",
+      "selector": "standard_library::application_json::retained_receipt::retained_receipt_cli_exclusively_publishes_one_artifact_and_preserves_old_source_mode"
+    }
+  ],
+  "parent_pending": [
+    "union source-role/binding refresh with prefix fusion and other batch additions, retaining finite current/held endpoints",
+    "all Rust compilation, exact selectors, original complete controls, application rows and full gate"
+  ]
+}

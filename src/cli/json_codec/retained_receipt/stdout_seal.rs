@@ -18,7 +18,9 @@ struct PublicationSeal<'a> {
 
 fn select(args: &[String]) -> Result<(Vec<String>, &str), u8> {
     let fail = || {
-        eprintln!("{USAGE} --retained-receipt {FLAG} <1..64 ASCII letters/digits/_/->");
+        eprintln!(
+            "{USAGE} --retained-receipt {FLAG} <nonce: 1..64 ASCII letters/digits/_/-, no leading -- >"
+        );
         2
     };
     let mut positions = args
@@ -31,6 +33,7 @@ fn select(args: &[String]) -> Result<(Vec<String>, &str), u8> {
     }
     let nonce = args.get(index + 1).ok_or_else(fail)?;
     if nonce.is_empty()
+        || nonce.starts_with("--")
         || nonce.len() > MAX_NONCE_BYTES
         || !nonce
             .bytes()

@@ -4,6 +4,7 @@ from pathlib import Path
 import hashlib
 import json
 import re
+from integration_input import read_input
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
@@ -33,7 +34,7 @@ def main():
     negatives = 0
     old_assertions = 0
     for row in DATA["changed"]:
-        current = (ROOT / row["path"]).read_text()
+        current = read_input(ROOT / row["path"])
         before = restore(row, current)
         if row["path"].endswith(".rs"):
             old_assertions += len(re.findall(r"\bassert(?:_eq|_ne)?!", before))
@@ -41,7 +42,7 @@ def main():
         refused(lambda: restore(row, current + " "))
         negatives += 2
     for row in DATA["new"] + DATA["unchanged"]:
-        text = (ROOT / row["path"]).read_text()
+        text = read_input(ROOT / row["path"])
         assert sha(text) == row["sha256"], row["path"]
         refused(lambda: assert_hash(row, ("!" if text[0] != "!" else "?") + text[1:]))
         negatives += 1
@@ -55,7 +56,7 @@ def main():
         ("tests/workspace/semantic_graph/source_inventory.rs", "../../"),
         ("crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs", "../../../../../"),
     ]:
-        text = (ROOT / filename).read_text()
+        text = read_input(ROOT / filename)
         row = next(row for row in DATA["changed"] if row["path"] == filename)
         added = "".join('include_str!("' + prefix + child + '"),' for child in children)
         assert text.count(added) == 1
@@ -69,13 +70,13 @@ def main():
         (children[0], '#[path = "stdout_seal/tests.rs"]\nmod tests;'),
         ("tests/project/standard_library/application_json/retained_receipt.rs", '#[path = "retained_receipt/stdout_seal.rs"]\nmod stdout_seal;'),
     ]:
-        assert (ROOT / parent).read_text().count(registration) == 1, parent
+        assert read_input(ROOT / parent).count(registration) == 1, parent
     native = ROOT / "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
-    assert len(native.read_text().splitlines()) <= 1500
+    assert len(read_input(native).splitlines()) <= 1500
     owners = json.loads((HERE / "pending-owners.json").read_text())["new"]
     assert len(owners) == 8
     for owner in owners:
-        text = (ROOT / owner["source"]).read_text()
+        text = read_input(ROOT / owner["source"])
         assert text.count("fn " + owner["selector"].split("::")[-1] + "(") == 1
         assert owner["status"] == "PENDING"
     print(json.dumps({"status": "PASS_SOURCE_ONLY", "complete_preimages": len(DATA["changed"]),

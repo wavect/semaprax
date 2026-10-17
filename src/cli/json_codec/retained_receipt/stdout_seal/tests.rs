@@ -34,7 +34,7 @@ fn expected_digest(bytes: &[u8]) -> String {
 
 #[test]
 fn nonce_grammar_is_closed_bounded_and_preserves_all_ordinary_arguments() {
-    for nonce in ["a", "A_b-09", &"z".repeat(64)] {
+    for nonce in ["a", "-", "-single", "A_b-09", &"z".repeat(64)] {
         let mut args = arguments();
         args.extend([
             "--retained-receipt".to_owned(),

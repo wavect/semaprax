@@ -1,3 +1,41 @@
+# Integration successor at ROOT 1bae9e890 (source only)
+
+Held commit `aa749f9842b390c045ec27b1f57f4ea86b6a2306` is joined in a new
+SSD worktree from `1bae9e890`. All three new Rust subjects are inserted after
+the existing leading three-subject block in the actual three raw carriers.
+Removing only those exact additions restores each complete ROOT carrier;
+the original HIR sentinel is unchanged. Existing paid-many subjects remain.
+
+The reviewed grammar explicitly rejects a nonce beginning with `--`, matching
+the preserved `--other` refusal assertion; `-`, `-single`, and interior hyphens
+have additional success controls. CLI help and the owning contract state this
+rule. All other nonce bytes and 1..64 bounds remain exact.
+
+`integration-1bae9e890/cuts.json` and complete held/ROOT preimages define a
+finite current-to-held layer. `integration_input.py` pins that metadata, rejects
+duplicate JSON fields, authenticates full current and previous bytes, checks
+all three physical insertions independently, and restores exact held inputs.
+The original verifier uses that layer without deleting any original assertion;
+its complete old script is retained. All original source-cuts, pending owners,
+source verification receipt and held preimages remain unchanged. The old
+source-only receipt below belongs to its held endpoint, not this integration.
+
+The actual118 scoped-help expectation now includes both complete retained-receipt
+and seal paragraphs. Source comparison confirms its full `JSON_CODEC_HELP`
+literal equals the final CLI `HELP` literal. The retained paragraph matches the
+same-process/no-binary-authentication contract; the seal paragraph matches exact
+publication-before-stdout and failure retention. Every exhaustive, capability,
+and inertness assertion remains unchanged. The complete old fixture and finite
+literal inverse are retained in `integration-1bae9e890/root/` and
+`help-fixture-cuts.json`; its runtime selector remains pending.
+
+Only Rustfmt parsing/formatting, Python AST/JSON parsing and diff checks are
+permitted here. No Cargo/build/test/compiler/provider execution or publication
+has run for this integration; all eight owners remain pending. Parent union
+source-role/binding refresh must extend this finite layer for later carrier
+additions and preserve its current endpoints. The original complete verifier
+is ready for a future source-only run but has not been executed in this lane.
+
 # Compiler stdout publication seal — NEXT source candidate
 
 Base: `57f8758749efe32ebadf99149223dd8a8abba0f2`. Private SSD lane; ROOT/current frozen qualification was not edited. Scoped to compiler-side [OPT869](https://github.com/wavect/semaprax/issues/869), linked to OPT606. This batch closes neither issue.

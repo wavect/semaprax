@@ -765,7 +765,11 @@ impl DeclarationIndex {
                 + std::mem::size_of::<[IdentityOrigin; 2]>()
                 + std::mem::size_of::<[bool; 2]>()
                 + std::mem::size_of::<[usize; 2]>()
-                + std::mem::size_of::<[&Vec<crate::ast::TypeParameterDeclaration>; 2]>(),
+                + std::mem::size_of::<[&Vec<crate::ast::TypeParameterDeclaration>; 2]>()
+                // New payload result/receiver, plus actual/formal self borrows
+                // for payload selection and the separate local-key name call.
+                + std::mem::size_of::<[&crate::ast::Function; 2]>()
+                + std::mem::size_of::<[&crate::ast::program_source::FunctionRef<'_>; 4]>(),
         ).map_err(IdentityIndexError::Identity)?;
         let name = payer.text(if function.payload().type_parameters.is_empty() {
             function.name()

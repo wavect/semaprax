@@ -1128,6 +1128,9 @@ fn selected_generation_retains_complete_immediate_methods_and_original_arena_gat
         .replace("            AllocationPayer::SelectedReservation => {}\n","");
     assert_eq!(restored,original);
     let tests=include_str!("arena_tests.rs");
+    let acquired_tests=crate::source_reflows_merge::main67107_inputs::semantic_batch_previous(
+        "src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs",tests,"base851");
+    let tests=acquired_tests.as_str();
     let oldtests=include_str!("../../../../../docs/evidence/selected-successor-generation-20261017/before/src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs");
     assert!(tests.starts_with(oldtests));
     for (start,end) in [("    fn successors(\n","    #[cfg(test)]\n    fn closure("),

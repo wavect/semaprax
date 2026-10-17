@@ -440,6 +440,11 @@
     "lines": 136
   },
   {
+    "source": "src/source_reflows/factored_sources.rs",
+    "sha256": "02beda3ba8855672b8007ce0b81a7349d3ad5859a081d1490b643d8a1ffb5473",
+    "lines": 480
+  },
+  {
     "source": "src/source_reflows/incoming67107_semantic_receivers.rs",
     "sha256": "5b14ab93dba6fe594204817ac76eca64a4b7e1fd537177a3d3ac81f87e387c4a",
     "lines": 643
@@ -526,18 +531,18 @@
   },
   {
     "source": "src/source_reflows_merge/main043_custody.rs",
-    "sha256": "84d3515978eeccfa2211b72cff4085a50891b11ac19dd3964d8505b4bafabfda",
+    "sha256": "78bb1fde3c1996d7ea5fc4f3969703414509ca8ad4ecf3fb9ca736ad037883dc",
     "lines": 51
   },
   {
     "source": "src/source_reflows_merge/main44_custody.rs",
-    "sha256": "c8a219cc059e749c00527ce70bfca73466516e2e957da93ecb1e1b0a757e44da",
+    "sha256": "42798c65e2bd816e5d718132942d8a56fea6080911eb8bf9ce68a24a3facdb1e",
     "lines": 45
   },
   {
     "source": "src/source_reflows_merge/main67107_inputs.rs",
-    "sha256": "0a511a057dd6854bda7641671bfb3c99d0682234d172d851711c9aa047fa2d9a",
-    "lines": 269
+    "sha256": "92f37c17f42b28477804d61c882e45ca4b64d8fc67fd78cab11ab369026152d9",
+    "lines": 358
   },
   {
     "source": "src/source_reflows_merge/main7f8_presence.rs",
@@ -551,7 +556,7 @@
   },
   {
     "source": "src/source_reflows_merge/main8a_historical.rs",
-    "sha256": "5e570abe1bbf3b41cd2fc27684d34c4dff9712b28d80aac9f6e61410fb5dbbed",
+    "sha256": "f708f498beb65555e66bb21e88766b934a3cb618ef78510d97eed29f413d9030",
     "lines": 80
   },
   {
@@ -561,7 +566,7 @@
   },
   {
     "source": "src/source_reflows_merge/maina3_custody.rs",
-    "sha256": "d0bc678b423d09ad87216385819b20e9ac7cb1538b82e4d2fe27a489ec4c8620",
+    "sha256": "93adf538ab9114e18f71f2478c928be8191ff0ba27d04ab0d16d416f8e3e4582",
     "lines": 95
   },
   {
@@ -601,13 +606,13 @@
   },
   {
     "source": "src/source_verify/funding.rs",
-    "sha256": "a08078853bb9d086af449af2573971186eee7186e905aa347ba963ee2fd60af0",
-    "lines": 137
+    "sha256": "c675a69bc687080e4cbbb01811e2e599cb1adace3fc314b8c325c220c87ae510",
+    "lines": 154
   },
   {
     "source": "src/source_verify/funding/tests.rs",
-    "sha256": "2a03f7926b10515077e58661029f08f7ac135341319d57279399f5b9556f3fdc",
-    "lines": 53
+    "sha256": "8a8c11e9286b8a2184361dbc531273284cb0861ce82ea397c5d7d1a7393190d0",
+    "lines": 88
   },
   {
     "source": "src/workspace_graph/before_private_roots.rs",
@@ -688,6 +693,11 @@
     "source": "tests/wasm/scalar_browser_ci_contract/before_75b.rs",
     "sha256": "9baa58a5fd9faf046c7cd88bba1029ee01b615d9a62370ff209a75460368077b",
     "lines": 133
+  },
+  {
+    "source": "tests/wasm/scalar_browser_ci_contract/before_7d34.rs",
+    "sha256": "eb43b69f6a9deded48d37ed201bb2a3526ae70bf1f90446dfe57987ff80cc836",
+    "lines": 129
   },
   {
     "source": "tests/wasm/scalar_browser_ci_contract/browser_75b_controls.rs",

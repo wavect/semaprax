@@ -5,8 +5,10 @@
     "keys": [
       ".github/workflows/ci.yml",
       "CHANGELOG.md",
+      "benchmarks/cli-tokens-v1/README.md",
       "benchmarks/cli-tokens-v1/codex_campaign.py",
       "benchmarks/cli-tokens-v1/codex_report.py",
+      "benchmarks/cli-tokens-v1/test_codex_report.py",
       "benchmarks/compiler_input_capture.py",
       "benchmarks/event-sim-tokens-v1/codex_campaign.py",
       "benchmarks/event-sim-tokens-v1/codex_report.py",
@@ -24,8 +26,10 @@
       "docs/ARCHITECTURE.md",
       "docs/BORROWED-BYTE-SLICE-FOR-TRAVERSAL-V2.md",
       "docs/CLI-HELP-V6.md",
+      "docs/DECLARATION-IDENTITY-BACKING-V1.md",
       "docs/DEVELOPMENT.md",
       "docs/FACTORED-SINGLETON-TARGETS-V1.md",
+      "docs/NESTED-OWNED-BYTE-RECORDS-V1.md",
       "docs/QUALITY-GATES.md",
       "docs/SELECTED-REPLAY-RECOVERING-CONSTRUCTOR-V1.md",
       "docs/SUMMARY.md",
@@ -145,6 +149,8 @@
       "src/hir/identity_resolution/nominal_original.rs",
       "src/hir/identity_resolution/nominal_tests.rs",
       "src/hir/identity_resolution/nominal_tests/legacy.rs",
+      "src/hir/ids/compiler.rs",
+      "src/hir/ids/fixed_operation_tests.rs",
       "src/hir/ids/instance_match/tests.rs",
       "src/hir/iterative_validator_tests.rs",
       "src/hir/iterator_loop.rs",
@@ -243,6 +249,7 @@
       "src/source_verify/constructor_tests/corpus.rs",
       "src/source_verify/declaration.rs",
       "src/source_verify/declaration/declarations.rs",
+      "src/source_verify/declaration/declarations/tests.rs",
       "src/source_verify/declaration/functions.rs",
       "src/source_verify/declaration/functions/generic_inference_tests.rs",
       "src/source_verify/declaration/functions/old.rs",
@@ -368,17 +375,17 @@
         "table": "current-to-Previous16c.json",
         "first": ".github/workflows/ci.yml",
         "last": "src/source_verify/generic_inference.rs",
-        "rows": 254,
-        "length": 4988602,
-        "sha256": "4fecd7340c81754eef7c3d41b39dc6616adda570dc4ac9b2e6d4c144eb962b3b"
+        "rows": 261,
+        "length": 5031195,
+        "sha256": "4cc438bc5a25981a81de457d2494981b667cdf46f16fa3baea7c0469bfe2f0c8"
       },
       {
         "table": "current-to-Previous16c-part-001.json",
         "first": "src/source_verify/hints.rs",
         "last": "tests/workspace/semantic_graph/source_inventory.rs",
         "rows": 104,
-        "length": 2524356,
-        "sha256": "a04c413c5dd181b905a6c1929e6a60d693d46c4c69e3818c54c5250d2a4ec6ae"
+        "length": 2534630,
+        "sha256": "0530a358d8b69adb36249eddb18c894db936cc241fa193253d193017a0105eb8"
       }
     ]
   },
@@ -424,8 +431,8 @@
         "first": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
         "last": "tests/workspace/semantic_graph/source_inventory.rs",
         "rows": 30,
-        "length": 1630995,
-        "sha256": "e70e1a2f2a375376a37f27f686c2cb24f612698da7e295c132c2ce34bb96b170"
+        "length": 1631716,
+        "sha256": "9a03e1b0fed8fc48cb27d90f4b6c873b9229d0ea7f609798e5b515c1a386de17"
       }
     ]
   },

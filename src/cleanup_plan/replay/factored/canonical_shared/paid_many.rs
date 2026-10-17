@@ -161,3 +161,53 @@ pub(super) fn note_branch(unit: bool) {
         ));
     });
 }
+
+// One lexical payment replaces the owned helper and both forwarding Results.
+// Two payment tuples are its actual/formal arguments; two Result<(), Diagnostic>
+// slots are its returned/caller result. Remaining Vec/enum/Rc move slots are
+// independently funded. No new owned Targets binding exists, even for the
+// optional caller. TOTAL uses the exact existing Rc layout at compile time:
+// no runtime helper return, addition or intermediate byte operand is formed.
+// The caller already owns the flat backing; the same actual Rc backing bytes
+// are acquired in this single request before any Vec extraction or publication.
+pub(super) const LEXICAL_FINISH_RECEIVING: usize = size_of::<Weighted>()
+    + 2 * size_of::<super::SmallWeighted>()
+    + 2 * size_of::<super::SharedWeighted>()
+    + 2 * size_of::<Result<(), Diagnostic>>()
+    + 2 * size_of::<(&ResolvedFunction, &mut ReplayBudget, usize, &str)>();
+pub(super) const LEXICAL_FINISH_TOTAL: usize = LEXICAL_FINISH_RECEIVING
+    + super::physical_clone::rc_backing_bytes::<super::SmallWeighted>();
+
+macro_rules! finish {
+    ($function:ident, $budget:ident, $targets:ident) => {
+        paid_many::finish!($function, $budget, $targets,
+            paid_many::Targets::PaidMany(flat) => flat)
+    };
+    ($function:ident, $budget:ident, $targets:ident, optional) => {
+        paid_many::finish!($function, $budget, $targets,
+            Some(paid_many::Targets::PaidMany(flat)) => flat)
+    };
+    ($function:ident, $budget:ident, $targets:ident, $pattern:pat => $flat:ident) => {{
+        $budget.reserve_bytes($function,
+            paid_many::LEXICAL_FINISH_TOTAL,
+            "factored lexical flat publication receivers")?;
+        #[cfg(test)]
+        paid_many::note_publication();
+        let $pattern = $targets else { unreachable!("paid flat publication") };
+        Rc::new(SmallWeighted::Many($flat))
+    }};
+}
+pub(super) use finish;
+
+#[cfg(test)]
+#[path = "paid_many/lexical_tests.rs"]
+mod lexical_tests;
+
+#[cfg(test)]
+thread_local! {
+    static PUBLICATIONS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+#[cfg(test)]
+pub(super) fn note_publication() {
+    PUBLICATIONS.with(|value| value.set(value.get() + 1));
+}

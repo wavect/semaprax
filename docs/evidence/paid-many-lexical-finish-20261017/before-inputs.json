@@ -1,0 +1,25 @@
+{
+  "base": "761351d847a3bd4d7d86bb81206aa1c89cdfb620",
+  "subjects": [
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+      "before_sha256": "22d0dcf599a65ce24039027378d46ea04bae83735dcbc93ba13df6eb99c450e4",
+      "before_length": 63964
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs",
+      "before_sha256": "77eea947e5f1fd72351e549fe0b70790a87d0fa056c14f715bce3743b2172168",
+      "before_length": 28651
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/paid_many.rs",
+      "before_sha256": "cbeb41b6d006f320b316d8d7dfcbaeb30f7bc05a8e72c05a208df83a5ab1b94c",
+      "before_length": 6108
+    },
+    {
+      "path": "src/cleanup_plan/replay/physical_clone.rs",
+      "before_sha256": "fbd90dcfb034d3b630f383958a37baf2e4dedbbfbc7445b926d6431923558afe",
+      "before_length": 18777
+    }
+  ]
+}

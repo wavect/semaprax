@@ -510,7 +510,7 @@ struct RcBacking<T> {
     weak: std::cell::Cell<usize>,
     value: T,
 }
-pub(super) fn rc_backing_bytes<T>() -> usize {
+pub(super) const fn rc_backing_bytes<T>() -> usize {
     size_of::<RcBacking<T>>()
 }
 pub(super) fn observation_rc_bytes() -> usize {

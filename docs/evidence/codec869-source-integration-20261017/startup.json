@@ -1,0 +1,89 @@
+{
+  "status": "PRIVATE_STATIC_STARTUP_ADAPTER_SOURCE_ONLY_NOT_QUALIFICATION",
+  "head": "7993caff786525783f6f7792a72971d93b05eba3",
+  "base": "aee7af58bdd7ab7375e1c2bde77edcd3ca80aec6",
+  "repo": "/Volumes/Semaprax/worktrees/issue869-effective-policy-20261017",
+  "new_files": [
+    {
+      "path": "benchmarks/compiler_config_startup_qualification.py",
+      "before": null,
+      "after_sha256": "33c816e52bc821803b036d19c0e7f75637fd99fb8c2f864af0ebebd942714ca3",
+      "after_bytes": 5296,
+      "full_after": "/Volumes/Semaprax/provenance/codec869-config-startup-source-20261017/after/00.txt"
+    },
+    {
+      "path": "benchmarks/compiler_runtime_v1/CONFIG-STARTUP-QUALIFICATION-V1.md",
+      "before": null,
+      "after_sha256": "c2e509ce426ebe73073b6fa6925e7da202e71691b691ff92eb5a5f2cd35bec71",
+      "after_bytes": 3070,
+      "full_after": "/Volumes/Semaprax/provenance/codec869-config-startup-source-20261017/after/01.txt"
+    },
+    {
+      "path": "benchmarks/compiler_runtime_v1/config-startup/ConfigReadParams.json",
+      "before": null,
+      "after_sha256": "257c54a423b47c1d209ff1076765a1564d82322fd5161670fd489a2874de1bac",
+      "after_bytes": 495,
+      "full_after": "/Volumes/Semaprax/provenance/codec869-config-startup-source-20261017/after/02.txt"
+    },
+    {
+      "path": "benchmarks/compiler_runtime_v1/config-startup/ConfigReadResponse.json",
+      "before": null,
+      "after_sha256": "4ec77e1a3eed746037149799c3b6bb8fe7b4b593e5930fc9f410e6282de9df50",
+      "after_bytes": 28667,
+      "full_after": "/Volumes/Semaprax/provenance/codec869-config-startup-source-20261017/after/03.txt"
+    },
+    {
+      "path": "benchmarks/test_compiler_config_startup_qualification.py",
+      "before": null,
+      "after_sha256": "289f578258002c9d48b9d0fcfbc491d0df8755461db4299507db1cf203c75268",
+      "after_bytes": 5133,
+      "full_after": "/Volumes/Semaprax/provenance/codec869-config-startup-source-20261017/after/04.txt"
+    }
+  ],
+  "all_original_tracked_files_unchanged": true,
+  "whole_unchanged_owners": [
+    {
+      "path": "benchmarks/compiler_execution_authority.py",
+      "sha256": "359640a7060a1180ad6d37d788e05c29e134c2bebe600e324de04d49d7fd3df0",
+      "full_before": "/Volumes/Semaprax/provenance/codec869-config-startup-source-20261017/unchanged-before/compiler_execution_authority.py"
+    },
+    {
+      "path": "benchmarks/compiler_configuration_provisioning.py",
+      "sha256": "b59cb1e0872ea902fab32688415c3030cbcc26177b2faab37c1e9eaf5c279b2e",
+      "full_before": "/Volumes/Semaprax/provenance/codec869-config-startup-source-20261017/unchanged-before/compiler_configuration_provisioning.py"
+    },
+    {
+      "path": "benchmarks/compiler_effective_policy.py",
+      "sha256": "fc9dfb79355ba15b1b835719387d9481063f818604bbbe0a1d1eca8eac7b0d2c",
+      "full_before": "/Volumes/Semaprax/provenance/codec869-config-startup-source-20261017/unchanged-before/compiler_effective_policy.py"
+    },
+    {
+      "path": "benchmarks/compiler_shared_runtime.py",
+      "sha256": "b9add8ebad38f6824542fa05d009337922103ba529d4a876ed869aa899a25a4a",
+      "full_before": "/Volumes/Semaprax/provenance/codec869-config-startup-source-20261017/unchanged-before/compiler_shared_runtime.py"
+    }
+  ],
+  "full_inverse_sha256": "54cb4e02f235dd149754c1a9089557535e319bea937516c563259ed30772a89b",
+  "pure_tests": 44,
+  "pure_log_sha256": "066d73918827d9c612183eeb423be2ea693827f060a38fd9c758cf27a846a760",
+  "retained_schemas_whole_byte_exact": true,
+  "API": [
+    "startup_request(plan)->params cwd/includeLayers:true",
+    "evaluate_startup(plan,request=params,response=result,held_config_bytes,model,effort)->StartupObservation",
+    "acquire_configuration(plan)->ConfigurationSnapshot via actual protected named nofollow read",
+    "require_same_configuration(before,after)->None or refusal; endpoint continuity only"
+  ],
+  "authority": "Original grant/admit closed; observation/schema/hash/snapshot never authority. Runner owns actual private server, FD/process identity, initialized connection, numeric wire IDs and complete raw transcripts.",
+  "not_run": [
+    "runtime/server/RPC/model/provider/Claude",
+    "OS sandbox probes",
+    "Cargo/build/Rust tests",
+    "ROOT edits"
+  ],
+  "pending": [
+    "Alias source/composition review",
+    "Actual runtime startup/config response and supported layer shape",
+    "Protected TCB/loader/env/ACL/mount/pipe/socket/no-fork and whole-child qualification"
+  ],
+  "storage": "All outputs/work/temp SSD; no task-owned internal artifacts."
+}

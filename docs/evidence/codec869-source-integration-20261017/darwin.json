@@ -1,0 +1,12 @@
+{
+  "status": "ACCEPT_PRIVATE_STATIC_SOURCE_CHECKPOINT_ONLY",
+  "head": "7e0d5aac1ca176927060a0ac9dbacca8fd86d3dd",
+  "receipt_sha256": "8f5db1c0caaff90b34d026e19543f373db4170135314fac0fc8fe4deb839db60",
+  "full_child_v1_v2_before_inverse_verified": true,
+  "all8_source_hashes_verified": true,
+  "all_existing_tracked_files_unchanged": true,
+  "independent_pure_tests": 49,
+  "pure_log_sha256": "cc46fb225f450053d132e983c7b16855c60124795bfecc9238f1a6961817dfc1",
+  "review": "Closed literal argv/env/profile/publication/metadata/config bindings; v2 actual named nofollow configuration route; exact old authority remains refused. No actual protected policy/loader/FD/no-fork/settlement qualification.",
+  "runtime_or_authority_claim": false
+}

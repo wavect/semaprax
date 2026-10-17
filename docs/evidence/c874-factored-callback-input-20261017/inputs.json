@@ -1,0 +1,80 @@
+[
+  {
+    "path": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+    "stage": {
+      "archive": "stage-0.txt",
+      "length": 63023,
+      "sha256": "bbe5d1ff75b6b3bc811d181275181994027cd83188d6096e5b7716efbec753d3",
+      "provenance": "3d77c956650"
+    },
+    "joined": {
+      "archive": "joined-0.txt",
+      "length": 63373,
+      "sha256": "459b9a2d0f454f608a3e1997b46e76cc09c1ddc098d976b7513f92b16263a839",
+      "provenance": "51c1dfc49962e046566ad21ec31f20c6b3a9bdae"
+    },
+    "joined_result": {
+      "archive": "original-callback-result-0.txt",
+      "length": 18832,
+      "sha256": "12c81f4f41e3def7945f24b1abf5720db26224e8c34d09d56f1e4259865614ad"
+    },
+    "ours_after": {
+      "archive": "ours-after-0.txt",
+      "length": 24537,
+      "sha256": "d27b81557c2c7e3b7ea8f84c8781cf19a73be36c5176c6f562bf433d2bce4649",
+      "provenance": "complete immutable OURS inverse reconstructed from its independently archived before"
+    }
+  },
+  {
+    "path": "src/cleanup_plan/replay/factored/canonical_shared/tests.rs",
+    "stage": {
+      "archive": "stage-1.txt",
+      "length": 35761,
+      "sha256": "d3bb747a4465ebf6616305f66f2f80105738cb67ee2ead2ebe9446106a4e6a41",
+      "provenance": "35f346ca7"
+    },
+    "joined": {
+      "archive": "joined-1.txt",
+      "length": 25028,
+      "sha256": "7f1f4ff20511927fe02a8d05b41806271929e1b5cecbf06bda460064b5a9b39a",
+      "provenance": "51c1dfc49962e046566ad21ec31f20c6b3a9bdae"
+    },
+    "joined_result": {
+      "archive": "original-callback-result-1.txt",
+      "length": 24557,
+      "sha256": "80eb0e59925451f8bb09c0dff8368c44479b674c3263f3a741e17f1533d58b81"
+    },
+    "ours_after": {
+      "archive": "ours-after-1.txt",
+      "length": 35095,
+      "sha256": "438fa2addd07efbcb41b2065b4e979eee3d0a14a504d7fe9018d58eed80ac285",
+      "provenance": "complete immutable OURS inverse reconstructed from its independently archived before"
+    }
+  },
+  {
+    "path": "docs/evidence/unit-weight-closure-v1/inverse.json",
+    "stage": {
+      "archive": "stage-2.txt",
+      "length": 83632,
+      "sha256": "c54029793b825b9b2a2a6ddae6c1354d8f6eddfc7ef3c2c559c07fa74443e4ce",
+      "provenance": "3d77c956650"
+    },
+    "joined": {
+      "archive": "joined-2.txt",
+      "length": 3053,
+      "sha256": "2f2913fb4ff6edc977a5a35ded799c828ceaa92b84a2e71d90a7360697ec9b1f",
+      "provenance": "51c1dfc49962e046566ad21ec31f20c6b3a9bdae"
+    },
+    "joined_result": {
+      "archive": "original-callback-result-2.txt",
+      "length": 38956,
+      "sha256": "88e336db1e1613896276f47d827f8a4506dd42bd7a7a8ed0eba660282644d3d7"
+    },
+    "ours_after": {
+      "archive": "ours-after-2.txt",
+      "length": 83632,
+      "sha256": "c54029793b825b9b2a2a6ddae6c1354d8f6eddfc7ef3c2c559c07fa74443e4ce",
+      "provenance": "complete immutable OURS inverse reconstructed from its independently archived before"
+    }
+  }
+]

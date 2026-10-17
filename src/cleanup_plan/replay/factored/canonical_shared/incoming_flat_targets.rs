@@ -135,6 +135,86 @@ fn joined_checked(data: &str, path: &str, current: &str) -> Option<String> {
     Some(restored)
 }
 pub(super) fn incoming_input(path: &str, current: &str) -> String {
-    joined_checked(&joined_data(), path, current)
-        .expect("complete joined-to-incoming source domain")
+    let rows = callback_rows();
+    let joined = relocated_callback_input(&rows, path, current);
+    let result = joined_checked(&joined_data(), path, &joined)
+        .expect("complete joined-to-incoming source domain");
+    relocated_callback_result(&rows, path, current, &result)
 }
+
+// A distinct, closed caller-input domain before the unchanged joined callback.
+// Reuse the existing regular-handle bounded reader; no old cap/table is changed.
+#[path = "../../../../workspace_graph/identity_resolution/base/cache_billing/main7f8_reader.rs"]
+mod callback_reader;
+const CALLBACK_PREFIX: &str = "docs/evidence/c874-factored-callback-input-20261017";
+const CALLBACK_DATA: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/c874-factored-callback-input-20261017/inputs.json"));
+fn callback_rows() -> serde_json::Value {
+    assert_eq!(CALLBACK_DATA.len(), CALLBACK_LENGTH);
+    assert_eq!(joined_digest(CALLBACK_DATA.as_bytes()), CALLBACK_SHA);
+    let rows: serde_json::Value = serde_json::from_str(CALLBACK_DATA).unwrap();
+    assert_eq!(rows.as_array().unwrap().len(), 3);
+    rows
+}
+fn callback_archive(row: &serde_json::Value) -> String {
+    callback_reader::read(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(CALLBACK_PREFIX).join(row["archive"].as_str().unwrap()),
+        usize::try_from(row["length"].as_u64().unwrap()).unwrap(), row["sha256"].as_str().unwrap(), 2_097_152).expect("complete fixed callback input archive")
+}
+fn relocated_callback_input(rows: &serde_json::Value, path: &str, current: &str) -> String {
+    assert_eq!(rows, &callback_rows(), "whole fixed callback domain");
+    let rows = rows.as_array().unwrap();
+    assert_eq!(rows.iter().filter(|r| r["path"] == path).count(), 1, "one closed callback subject");
+    let row = rows.iter().find(|r| r["path"] == path).unwrap();
+    let stage = callback_archive(&row["stage"]);
+    let joined = callback_archive(&row["joined"]);
+    assert!(current == stage || current == joined, "complete admitted callback stage");
+    joined
+}
+
+fn relocated_callback_result(rows: &serde_json::Value, path: &str, current: &str, result: &str) -> String {
+    assert_eq!(rows, &callback_rows(), "whole fixed callback output domain");
+    let row = rows.as_array().unwrap().iter().find(|r| r["path"] == path).unwrap();
+    let original = callback_archive(&row["joined_result"]);
+    assert_eq!(result, original, "complete original callback result");
+    let stage = callback_archive(&row["stage"]);
+    if current == stage {
+        // The relocated OURS caller owns a separate immutable afterimage.
+        // The original callback has run in full above; preserve its old direct
+        // joined-input/output contract and bind only this exact caller stage.
+        callback_archive(&row["ours_after"])
+    } else {
+        assert_eq!(current, callback_archive(&row["joined"]));
+        result.to_owned()
+    }
+}
+
+#[test]
+fn complete_relocated_callback_inputs_preserve_original_joined_receiver_and_refuse_drift() {
+    callback_reader::controls();
+    let rows = callback_rows();
+    let old = joined_data();
+    let old_rows: serde_json::Value = serde_json::from_str(&old).unwrap();
+    for row in rows.as_array().unwrap() {
+        let path = row["path"].as_str().unwrap();
+        let stage = callback_archive(&row["stage"]);
+        let joined = callback_archive(&row["joined"]);
+        assert_ne!(stage, joined);
+        assert_eq!(relocated_callback_input(&rows, path, &stage), joined);
+        assert_eq!(relocated_callback_input(&rows, path, &joined), joined);
+        let original = old_rows.as_array().unwrap().iter().find(|r| r["path"] == path).unwrap();
+        assert_eq!(joined_digest(joined.as_bytes()), original["current_sha256"]);
+        let result = joined_checked(&old, path, &joined).unwrap();
+        let ours_after = callback_archive(&row["ours_after"]);
+        assert_eq!(incoming_input(path, &stage), ours_after);
+        assert_eq!(incoming_input(path, &joined), result);
+        assert_eq!(joined_digest(result.as_bytes()), original["incoming_sha256"]);
+        for bad in [String::new(), stage[..stage.len()-1].to_owned(), format!("{stage} "), format!("{stage}{stage}"), result] {
+            assert!(std::panic::catch_unwind(|| incoming_input(path, &bad)).is_err());
+        }
+        assert!(std::panic::catch_unwind(|| incoming_input("foreign", &stage)).is_err());
+        let mut forged = rows.clone();
+        forged[0]["stage"]["sha256"] = serde_json::Value::String("0".repeat(64));
+        assert!(std::panic::catch_unwind(|| relocated_callback_input(&forged, path, &stage)).is_err());
+    }
+}
+const CALLBACK_LENGTH: usize = 2889;
+const CALLBACK_SHA: &str = "8cb7bd2f9e1891bf21e9f7405e9dd00ab0a6470557b2c6969430f97912ef88b2";

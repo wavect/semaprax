@@ -1,0 +1,112 @@
+{
+  "state": "SOURCE_CANDIDATE_RUNTIME_UNEXECUTED",
+  "base": "5f76bba67",
+  "current_failure": "core247 owning-selected-246",
+  "files": [
+    {
+      "path": "docs/evidence/c874-factored-callback-input-20261017/README.md",
+      "length": 1432,
+      "sha256": "ad145075dcf2efded5ce92925dba3f83ae813d880798dc5df13682ec7678598e"
+    },
+    {
+      "path": "docs/evidence/c874-factored-callback-input-20261017/check-source.py",
+      "length": 4159,
+      "sha256": "e25711c7204e713304558c5842008e21939deaef9cbb255cefeaf4ed4af9fd79"
+    },
+    {
+      "path": "docs/evidence/c874-factored-callback-input-20261017/incoming-flat-targets.before.rs.txt",
+      "length": 5659,
+      "sha256": "4e2eb4e769f942d63dc045ba26d8bcf73493c8226133dcfefa2f6e898728b882"
+    },
+    {
+      "path": "docs/evidence/c874-factored-callback-input-20261017/inputs.json",
+      "length": 2889,
+      "sha256": "8cb7bd2f9e1891bf21e9f7405e9dd00ab0a6470557b2c6969430f97912ef88b2"
+    },
+    {
+      "path": "docs/evidence/c874-factored-callback-input-20261017/joined-0.txt",
+      "length": 63373,
+      "sha256": "459b9a2d0f454f608a3e1997b46e76cc09c1ddc098d976b7513f92b16263a839"
+    },
+    {
+      "path": "docs/evidence/c874-factored-callback-input-20261017/joined-1.txt",
+      "length": 25028,
+      "sha256": "7f1f4ff20511927fe02a8d05b41806271929e1b5cecbf06bda460064b5a9b39a"
+    },
+    {
+      "path": "docs/evidence/c874-factored-callback-input-20261017/joined-2.txt",
+      "length": 3053,
+      "sha256": "2f2913fb4ff6edc977a5a35ded799c828ceaa92b84a2e71d90a7360697ec9b1f"
+    },
+    {
+      "path": "docs/evidence/c874-factored-callback-input-20261017/original-callback-result-0.txt",
+      "length": 18832,
+      "sha256": "12c81f4f41e3def7945f24b1abf5720db26224e8c34d09d56f1e4259865614ad"
+    },
+    {
+      "path": "docs/evidence/c874-factored-callback-input-20261017/original-callback-result-1.txt",
+      "length": 24557,
+      "sha256": "80eb0e59925451f8bb09c0dff8368c44479b674c3263f3a741e17f1533d58b81"
+    },
+    {
+      "path": "docs/evidence/c874-factored-callback-input-20261017/original-callback-result-2.txt",
+      "length": 38956,
+      "sha256": "88e336db1e1613896276f47d827f8a4506dd42bd7a7a8ed0eba660282644d3d7"
+    },
+    {
+      "path": "docs/evidence/c874-factored-callback-input-20261017/ours-after-0.txt",
+      "length": 24537,
+      "sha256": "d27b81557c2c7e3b7ea8f84c8781cf19a73be36c5176c6f562bf433d2bce4649"
+    },
+    {
+      "path": "docs/evidence/c874-factored-callback-input-20261017/ours-after-1.txt",
+      "length": 35095,
+      "sha256": "438fa2addd07efbcb41b2065b4e979eee3d0a14a504d7fe9018d58eed80ac285"
+    },
+    {
+      "path": "docs/evidence/c874-factored-callback-input-20261017/ours-after-2.txt",
+      "length": 83632,
+      "sha256": "c54029793b825b9b2a2a6ddae6c1354d8f6eddfc7ef3c2c559c07fa74443e4ce"
+    },
+    {
+      "path": "docs/evidence/c874-factored-callback-input-20261017/source-proof.json",
+      "length": 296,
+      "sha256": "746ff42cb83ec72d3636ceac4353dea39aa0ece4272ae68cf0d8adfd98302d33"
+    },
+    {
+      "path": "docs/evidence/c874-factored-callback-input-20261017/stage-0.txt",
+      "length": 63023,
+      "sha256": "bbe5d1ff75b6b3bc811d181275181994027cd83188d6096e5b7716efbec753d3"
+    },
+    {
+      "path": "docs/evidence/c874-factored-callback-input-20261017/stage-1.txt",
+      "length": 35761,
+      "sha256": "d3bb747a4465ebf6616305f66f2f80105738cb67ee2ead2ebe9446106a4e6a41"
+    },
+    {
+      "path": "docs/evidence/c874-factored-callback-input-20261017/stage-2.txt",
+      "length": 83632,
+      "sha256": "c54029793b825b9b2a2a6ddae6c1354d8f6eddfc7ef3c2c559c07fa74443e4ce"
+    },
+    {
+      "path": "docs/evidence/c874-factored-callback-input-20261017/whole-source-inverse.json",
+      "length": 16913,
+      "sha256": "dcec3b951e0f75ed743c84fff1503bc0b3c32cc8880de53f83ec4b12a808c984"
+    },
+    {
+      "path": "src/cleanup_plan/replay/factored/canonical_shared/incoming_flat_targets.rs",
+      "length": 10296,
+      "sha256": "185543a5d61d4e63b00b7fd2eb47d9c235eefbdb284f86dc5f6d1bfc06eb7b72"
+    }
+  ],
+  "new_selector": "cleanup_plan::replay::factored::canonical_shared::targets::complete_relocated_callback_inputs_preserve_original_joined_receiver_and_refuse_drift",
+  "old_domains_preserved": [
+    "whole private callback algorithm and direct joined51\u2192incomingbe8 contract",
+    "whole relocated OURS body/callback signature/assertions",
+    "all13 domains and original7 compile sources",
+    "all old caps and full original tables"
+  ],
+  "new_boundary": "exact3d/35f caller\u2192wholejoined51\u2192originalcallback\u2192wholebe8result\u2192separate OURS afterimage",
+  "rustfmt_parse_only": "PASS",
+  "rust_runtime_or_cargo": false
+}

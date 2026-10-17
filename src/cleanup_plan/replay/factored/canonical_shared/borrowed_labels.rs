@@ -284,7 +284,7 @@ pub(super) fn ordinary_successors(
     // Its additional call/receivers are acquired before forming that call.
     budget.reserve_bytes(function, receiving::<ordered_weights::OrderedWeights>(),
         "factored borrowed label fallback call receivers")?;
-    successors(function, budget, automaton, closed, accepted)
+    lexical_finish::successors(function, budget, automaton, closed, accepted)
 }
 
 
@@ -504,3 +504,7 @@ fn direct_singleton_new_selection_zero_through_three_keeps_six_fields_and_sticky
         });
     }
 }
+
+// The complete original Directory and generic successors above stay executable.
+// Only the ordinary paid fallback selects the lexical finalizer.
+mod lexical_finish;

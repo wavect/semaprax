@@ -881,12 +881,15 @@ impl<'a> Canonicalizer<'a> {
                             let singleton = SmallWeighted::One([(child, weight)]);
                             Rc::new(singleton)
                         }
-                        paid_many::Targets::PaidMany(_) => {
-                            budget.reserve_bytes(function, paid_many::FINISH_RECEIVING,
-                                "factored composed flat finish receivers")?;
-                            let paid_many::Targets::PaidMany(flat) = targets else { unreachable!("paid flat finish") };
-                            own_weighted(function, budget, flat)?
-                        }
+                        paid_many::Targets::PaidMany(_) => match budget {
+                            ReplayBudget { payer: AllocationPayer::LegacyUnobserved, .. } => {
+                                budget.reserve_bytes(function, paid_many::FINISH_RECEIVING,
+                                    "factored composed flat finish receivers")?;
+                                let paid_many::Targets::PaidMany(flat) = targets else { unreachable!("paid flat finish") };
+                                own_weighted(function, budget, flat)?
+                            }
+                            _ => paid_many::finish!(function, budget, targets),
+                        },
                         paid_many::Targets::Many(targets) => {
                             // The remaining fallible weighted producer still has
                             // its real map argument and Result receiving carrier.
@@ -1105,12 +1108,15 @@ impl<'a> Canonicalizer<'a> {
                         let singleton = SmallWeighted::One([(child, weight)]);
                         Rc::new(singleton)
                     }
-                    paid_many::Targets::PaidMany(_) => {
-                        budget.reserve_bytes(function, paid_many::FINISH_RECEIVING,
-                            "factored composed flat finish receivers")?;
-                        let paid_many::Targets::PaidMany(flat) = targets else { unreachable!("paid flat finish") };
-                        own_weighted(function, budget, flat)?
-                    }
+                    paid_many::Targets::PaidMany(_) => match budget {
+                        ReplayBudget { payer: AllocationPayer::LegacyUnobserved, .. } => {
+                            budget.reserve_bytes(function, paid_many::FINISH_RECEIVING,
+                                "factored composed flat finish receivers")?;
+                            let paid_many::Targets::PaidMany(flat) = targets else { unreachable!("paid flat finish") };
+                            own_weighted(function, budget, flat)?
+                        }
+                        _ => paid_many::finish!(function, budget, targets),
+                    },
                     paid_many::Targets::Many(targets) => {
                         // The remaining fallible weighted producer still has
                         // its real map argument and Result receiving carrier.

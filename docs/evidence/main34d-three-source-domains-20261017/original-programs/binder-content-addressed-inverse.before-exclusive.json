@@ -1,0 +1,17 @@
+{
+  "path": "docs/evidence/main34d-three-source-domains-20261017/bind-inputs.py",
+  "current_sha256": "6b5711ceb786413b45f67d35075217f7d06db2ef1c9a32119abcb450af89eafb",
+  "current_len": 7726,
+  "original_archive": "docs/evidence/main34d-three-source-domains-20261017/original-programs/bind-inputs.before-content-addressed.py.txt",
+  "original_sha256": "6ae886739ee17670c8e12a4fec6b336644563e102c063b9d25028a822b1b2533",
+  "original_len": 7032,
+  "inverse": [
+    {
+      "at": 0,
+      "remove_sha256": "6b5711ceb786413b45f67d35075217f7d06db2ef1c9a32119abcb450af89eafb",
+      "remove_len": 7726,
+      "insert_archive": "docs/evidence/main34d-three-source-domains-20261017/original-programs/bind-inputs.before-content-addressed.py.txt"
+    }
+  ],
+  "scope": "Only META current endpoints may receive new content-addressed archives; all four merge snapshots and original MAIN programs/tables remain immutable."
+}

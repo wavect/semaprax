@@ -1,0 +1,14 @@
+{
+  "path": "docs/evidence/main34d-three-source-domains-20261017/bind-inputs.py",
+  "current_sha256": "ad701b482c3cb42b5acff52ac99c0228553c3040e470cde79df425db0996b474",
+  "original_sha256": "6b5711ceb786413b45f67d35075217f7d06db2ef1c9a32119abcb450af89eafb",
+  "original_archive": "docs/evidence/main34d-three-source-domains-20261017/original-programs/bind-inputs.before-exclusive.py.txt",
+  "inverse": [
+    {
+      "at": 0,
+      "remove_len": 8341,
+      "remove_sha256": "ad701b482c3cb42b5acff52ac99c0228553c3040e470cde79df425db0996b474",
+      "insert_archive": "docs/evidence/main34d-three-source-domains-20261017/original-programs/bind-inputs.before-exclusive.py.txt"
+    }
+  ]
+}

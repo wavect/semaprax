@@ -1,0 +1,18 @@
+{
+  "status": "SOURCE_ONLY_COMMON_RETRY_PENDING",
+  "base": "0a35b31280d0987371b4a7817442713bd0b0ad3e",
+  "retained_old_packet": "docs/evidence/main043-definition-raw3-generation-20261017",
+  "changed_existing": [
+    "docs/evidence/main043-independent-custody-20261016/verify-or-refresh.py",
+    "docs/evidence/main043-independent-custody-20261016/guard-extension-recipe-edits.json",
+    "docs/evidence/main043-newmain-acquisition-20261017/bind-current.py"
+  ],
+  "new_rust_owners": 0,
+  "new_selectors": [],
+  "only_definition_seal_changes": "three exact actual raw scope length/SHA pairs",
+  "helper_changes": "namespace REL and seal SHA only",
+  "old_definition_bytes": 6160,
+  "old_caps_unchanged": true,
+  "common_failed_partial_outputs": "externally_preserved_all16_whole_before_and_partial",
+  "runtime": "UNEXECUTED"
+}

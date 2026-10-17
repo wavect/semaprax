@@ -1,0 +1,10 @@
+{
+  "status": "PASS_SOURCE_ONLY_NO_VERIFIER_BINDER_COMMON_RUST_EXECUTION",
+  "new_raw_scopes": 3,
+  "only_seal_changes": "three raw length/hash pairs",
+  "old_definition_bytes": 6160,
+  "old_definition_sha256": "4bc99dc2b93442b83cb679e3c0e108f3b50121d90e8aee4ceed01296e7ec33b5",
+  "old_helper_body_restored": true,
+  "whole_old_recipe_wrapper_binder_recovered": true,
+  "refusals": 34
+}

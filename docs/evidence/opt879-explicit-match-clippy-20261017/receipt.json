@@ -1,0 +1,11 @@
+{
+  "status": "SOURCE_ONLY_NO_COMPILATION_OR_EXECUTION",
+  "before_head": "19520781744566c17d02ba1d12cdb82bc2933ff5",
+  "path": "src/cleanup_plan/replay/branch_clone/direct.rs",
+  "before_sha256": "f5b616f78936a2093e51132d5a99ff0042dce66d743323b01ff7fb179f67d880",
+  "after_sha256": "5f43434478af597206ee62ea0ca626c60b5c37d3fa5df1904676eb919a60c975",
+  "inverse": {
+    "remove_exact_once": "    // Keep explicit Option arms: Option::map would add callback receivers outside this bank.\n    #[allow(clippy::manual_map)]\n"
+  },
+  "reason": "The existing explicit Some/None match avoids new Option::map callback actual/formal/control receivers. Only this capacity let statement receives the manual_map allowance; the production body, prices and all assertions remain byte-exact after removing these two added lines."
+}

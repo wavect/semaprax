@@ -1,0 +1,212 @@
+{
+  "rows": [
+    {
+      "path": "docs/evidence/a3-e47-final-custody-20261016/hir.json",
+      "current_length": 2016499,
+      "current_sha256": "1ed6438e58a6d661ace4d2c869acdb382df5641a77c77b93bda0f1a9f13ce221",
+      "before_length": 2016499,
+      "before_sha256": "c25673fedb597888a2792110ec8f456977832b348a7db57d290a8d1ede59576e",
+      "before_archive": "docs/evidence/workspace21-final-bindings-20261017/before/docs__evidence__a3-e47-final-custody-20261016__hir.json",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 2016499,
+          "remove_sha256": "1ed6438e58a6d661ace4d2c869acdb382df5641a77c77b93bda0f1a9f13ce221",
+          "insert_archive": "docs/evidence/workspace21-final-bindings-20261017/before/docs__evidence__a3-e47-final-custody-20261016__hir.json"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/a3-e47-final-custody-20261016/new-owners.json",
+      "current_length": 33508,
+      "current_sha256": "565838ec3dfb0103e949202229b4c162687417eacb3c334d15a400128d2fb514",
+      "before_length": 33508,
+      "before_sha256": "414d5899e213b0e7317b3a8da7e987e43e57484c4642ad40842b3b508f83716d",
+      "before_archive": "docs/evidence/workspace21-final-bindings-20261017/before/docs__evidence__a3-e47-final-custody-20261016__new-owners.json",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 33508,
+          "remove_sha256": "565838ec3dfb0103e949202229b4c162687417eacb3c334d15a400128d2fb514",
+          "insert_archive": "docs/evidence/workspace21-final-bindings-20261017/before/docs__evidence__a3-e47-final-custody-20261016__new-owners.json"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/a3-e47-final-custody-20261016/projection.json",
+      "current_length": 2320272,
+      "current_sha256": "712df54e7e009f0b1c5136123f17f54435ed4dc1af511e2428ec7edc68bb5094",
+      "before_length": 2320272,
+      "before_sha256": "cff9bfe8779f583bbfd87e791d5f0c26204d446c1a05904da2a0be30594cacdd",
+      "before_archive": "docs/evidence/workspace21-final-bindings-20261017/before/docs__evidence__a3-e47-final-custody-20261016__projection.json",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 2320272,
+          "remove_sha256": "712df54e7e009f0b1c5136123f17f54435ed4dc1af511e2428ec7edc68bb5094",
+          "insert_archive": "docs/evidence/workspace21-final-bindings-20261017/before/docs__evidence__a3-e47-final-custody-20261016__projection.json"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/compile4-exact-source-successor-20261017/inputs.json",
+      "current_length": 32661,
+      "current_sha256": "a1a438f20890ef13c17073bedf664bae77affb71fd07616a378a31d528bbccc8",
+      "before_length": 32661,
+      "before_sha256": "a1a438f20890ef13c17073bedf664bae77affb71fd07616a378a31d528bbccc8",
+      "before_archive": "docs/evidence/workspace21-final-bindings-20261017/before/docs__evidence__compile4-exact-source-successor-20261017__inputs.json",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 32661,
+          "remove_sha256": "a1a438f20890ef13c17073bedf664bae77affb71fd07616a378a31d528bbccc8",
+          "insert_archive": "docs/evidence/workspace21-final-bindings-20261017/before/docs__evidence__compile4-exact-source-successor-20261017__inputs.json"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/ordinary-plan-final-ingress-20261017/binding-receipt.json",
+      "current_length": 420,
+      "current_sha256": "4dbbc1103d5990029c1510b5210f272177cab16376a364e64cfed492fb68e823",
+      "before_length": 420,
+      "before_sha256": "2a0023652ddf0ca2374b5be03879127a346a3fd0b35a80b088ce6ac495f27f8f",
+      "before_archive": "docs/evidence/workspace21-final-bindings-20261017/before/docs__evidence__ordinary-plan-final-ingress-20261017__binding-receipt.json",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 420,
+          "remove_sha256": "4dbbc1103d5990029c1510b5210f272177cab16376a364e64cfed492fb68e823",
+          "insert_archive": "docs/evidence/workspace21-final-bindings-20261017/before/docs__evidence__ordinary-plan-final-ingress-20261017__binding-receipt.json"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/ordinary-plan-final-ingress-20261017/current-inputs.json",
+      "current_length": 92126,
+      "current_sha256": "93ffaf0fbd92fb1f6b52ba0b28e073ed686422fea2d548138888674ea0315cc9",
+      "before_length": 89372,
+      "before_sha256": "bbc1d4191f7e343fc78d768ccad69154bf11ec72f9ef9b221344ea06106b0522",
+      "before_archive": "docs/evidence/workspace21-final-bindings-20261017/before/docs__evidence__ordinary-plan-final-ingress-20261017__current-inputs.json",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 92126,
+          "remove_sha256": "93ffaf0fbd92fb1f6b52ba0b28e073ed686422fea2d548138888674ea0315cc9",
+          "insert_archive": "docs/evidence/workspace21-final-bindings-20261017/before/docs__evidence__ordinary-plan-final-ingress-20261017__current-inputs.json"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/ordinary-plan-final-ingress-20261017/current-manifest.json",
+      "current_length": 1850,
+      "current_sha256": "940986f3990ccc95b70a01b785ad06e986f8d285cc454ccc9b13b0b6fdf73cc0",
+      "before_length": 1850,
+      "before_sha256": "bb780d135b6b508e6f90ff434a294653f667a9bfc8e25409fb655567dd76cef2",
+      "before_archive": "docs/evidence/workspace21-final-bindings-20261017/before/docs__evidence__ordinary-plan-final-ingress-20261017__current-manifest.json",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 1850,
+          "remove_sha256": "940986f3990ccc95b70a01b785ad06e986f8d285cc454ccc9b13b0b6fdf73cc0",
+          "insert_archive": "docs/evidence/workspace21-final-bindings-20261017/before/docs__evidence__ordinary-plan-final-ingress-20261017__current-manifest.json"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/source-boundary-domains-20261016/boundary-source-proof.json",
+      "current_length": 2718,
+      "current_sha256": "0ac1ffab54d1102c859ffa9d064f963c8af6497c56047359622ba4ddbfb9a87a",
+      "before_length": 2718,
+      "before_sha256": "12c233b18495de0599a14b327513706576792e84b829528f0111d78c63163cfa",
+      "before_archive": "docs/evidence/workspace21-final-bindings-20261017/before/docs__evidence__source-boundary-domains-20261016__boundary-source-proof.json",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 2718,
+          "remove_sha256": "0ac1ffab54d1102c859ffa9d064f963c8af6497c56047359622ba4ddbfb9a87a",
+          "insert_archive": "docs/evidence/workspace21-final-bindings-20261017/before/docs__evidence__source-boundary-domains-20261016__boundary-source-proof.json"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/source-boundary-domains-20261016/current-domains.json",
+      "current_length": 233338,
+      "current_sha256": "624aa7350d24fed86aed85744a0c15a774c18c0897860003c5b1865cd337a1fa",
+      "before_length": 233338,
+      "before_sha256": "940be75665d2a838e3008db1a1d5ec9e486712a75d51d6cef4086aaaae2db3de",
+      "before_archive": "docs/evidence/workspace21-final-bindings-20261017/before/docs__evidence__source-boundary-domains-20261016__current-domains.json",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 233338,
+          "remove_sha256": "624aa7350d24fed86aed85744a0c15a774c18c0897860003c5b1865cd337a1fa",
+          "insert_archive": "docs/evidence/workspace21-final-bindings-20261017/before/docs__evidence__source-boundary-domains-20261016__current-domains.json"
+        }
+      ]
+    },
+    {
+      "path": "src/source_reflows_merge/main67107_inputs.rs",
+      "current_length": 75797,
+      "current_sha256": "e94748caccb9e642f67d04e05c0dcd3612b0350fcced644a240e50c01f82c2a8",
+      "before_length": 75802,
+      "before_sha256": "02cbeb5887a105dfdda929606503229a3949145660568e07a332d96a8fdca9be",
+      "before_archive": "docs/evidence/workspace21-final-bindings-20261017/before/src__source_reflows_merge__main67107_inputs.rs",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 75797,
+          "remove_sha256": "e94748caccb9e642f67d04e05c0dcd3612b0350fcced644a240e50c01f82c2a8",
+          "insert_archive": "docs/evidence/workspace21-final-bindings-20261017/before/src__source_reflows_merge__main67107_inputs.rs"
+        }
+      ]
+    },
+    {
+      "path": "src/source_reflows_merge/ordinary_plan_inputs.rs",
+      "current_length": 18588,
+      "current_sha256": "12d219b21fb7eeeb55e7ef55cb5ce1ee40b18390af3ed2aebdafeb7fcab40a35",
+      "before_length": 18588,
+      "before_sha256": "35ad1a62ceaecbb6a37cf69770a52744263bec12b4033531b53fe907683d814f",
+      "before_archive": "docs/evidence/workspace21-final-bindings-20261017/before/src__source_reflows_merge__ordinary_plan_inputs.rs",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 18588,
+          "remove_sha256": "12d219b21fb7eeeb55e7ef55cb5ce1ee40b18390af3ed2aebdafeb7fcab40a35",
+          "insert_archive": "docs/evidence/workspace21-final-bindings-20261017/before/src__source_reflows_merge__ordinary_plan_inputs.rs"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/main09013-source-namespaces-v1/input-domains.json",
+      "current_length": 241192,
+      "current_sha256": "f124958415022894126b6ceb47c5b5d1d7d2920ff2e90d88240a4bc383d103a5",
+      "before_length": 241192,
+      "before_sha256": "d9a5fc77fc345bbcc959f16c3e8a46ea4e95c6cabd06f55b8e6186f11c02be98",
+      "before_archive": "docs/evidence/workspace21-final-bindings-20261017/frozen174/input-domains.before.json",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 241192,
+          "remove_sha256": "f124958415022894126b6ceb47c5b5d1d7d2920ff2e90d88240a4bc383d103a5",
+          "insert_archive": "docs/evidence/workspace21-final-bindings-20261017/frozen174/input-domains.before.json"
+        }
+      ]
+    },
+    {
+      "path": "src/source_reflows/incoming090_semantic_receivers.rs",
+      "current_length": 48349,
+      "current_sha256": "05901e3c9a4050c9ce6a47481293a79ff956a228cfa664f9a3056fc721e40af6",
+      "before_length": 48349,
+      "before_sha256": "9824d62a2453b4aea0daba0dd61327306b8a61afa2840b112850a9f4ace3c484",
+      "before_archive": "docs/evidence/workspace21-final-bindings-20261017/frozen174/incoming090_semantic_receivers.before.rs.txt",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 48349,
+          "remove_sha256": "05901e3c9a4050c9ce6a47481293a79ff956a228cfa664f9a3056fc721e40af6",
+          "insert_archive": "docs/evidence/workspace21-final-bindings-20261017/frozen174/incoming090_semantic_receivers.before.rs.txt"
+        }
+      ]
+    }
+  ]
+}

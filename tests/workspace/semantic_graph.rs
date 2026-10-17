@@ -1487,8 +1487,8 @@ fn private_layout_inventory_retains_every_full_input_and_every_current_owned_mod
     source_inventory_controls::verify(
         Path::new(env!("CARGO_MANIFEST_DIR")),
         SEMANTIC_GRAPH_PRIVATE_LAYOUT_ROOT,
-        semantic_graph_private_layout_source_inventory!(),
+        &semantic_graph_private_layout_source_inventory!(),
         source_inventory_controls::current_owned_source_inventory(),
-        include_str!("../../docs/evidence/main-c883-next-source-merge-20261017/current-projection-inputs.tsv"),
+        include_str!("../../docs/evidence/workspace21-legacy-source-repair-20261017/current-projection-inputs.tsv"),
     );
 }

@@ -1,0 +1,9 @@
+{
+  "status": "PASS_BOUNDED_SOURCE_ONLY",
+  "strict_original_refusals": 58,
+  "new_view_refusals": 10,
+  "whole_legacy_sources": 10,
+  "all_successor_table_paths_exist": true,
+  "rust_executed": false,
+  "metadata_bindings_pending": true
+}

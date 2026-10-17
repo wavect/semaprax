@@ -1,0 +1,15 @@
+{
+  "current": 41,
+  "priors": 53,
+  "changed": [
+    "tests/workspace/semantic_graph.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs"
+  ],
+  "changed174": {
+    "tests/workspace/semantic_graph/source_inventory.rs": [
+      96877,
+      "4dbeb81d84db0f80bb51ccc8fc1a25d2d71e49759ddeeccdc84c4d1748b27e11"
+    ]
+  },
+  "source_only": true
+}

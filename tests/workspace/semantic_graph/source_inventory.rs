@@ -1,3 +1,16 @@
+// Closed complete legacy inputs; current compiled owners remain in the original inventory.
+macro_rules! semantic_graph_legacy_main_source {
+    ("src/cleanup_plan/replay/factored/canonical_shared/unit_weight.rs") => { include_str!("../../docs/evidence/workspace21-legacy-source-repair-20261017/legacy/34a61014ad6d0c558f2938800474edfe27e8feeedbded16268975530d6726328.rs.txt") };
+    ("src/cleanup_plan/replay/factored/canonical_shared/unit_weight/tests.rs") => { include_str!("../../docs/evidence/workspace21-legacy-source-repair-20261017/legacy/f47774e25fa2dac4d310501512824c35ab9d27e21e75bfdd433aa7020ff7d616.rs.txt") };
+    ("src/cleanup_plan/replay/factored/canonical_shared/unit_weight_tests.rs") => { include_str!("../../docs/evidence/workspace21-legacy-source-repair-20261017/legacy/2f7588bcce948d61f635f34530299f6848a0e6d3b59334bc270aa4effa20020b.rs.txt") };
+    ("src/cleanup_plan/replay/path_join/grouping.rs") => { include_str!("../../docs/evidence/workspace21-legacy-source-repair-20261017/legacy/0e8bb4378f8ed328052ec7b4913f2104dd234a47c6074b722db5c6a2895c9ecd.rs.txt") };
+    ("src/cleanup_plan/replay/path_join/grouping/source_custody.rs") => { include_str!("../../docs/evidence/workspace21-legacy-source-repair-20261017/legacy/505e80ef49d6324db1e23c37d2cbaa77b6a1e01fbd7c1da442c02666f3ae67aa.rs.txt") };
+    ("src/cleanup_plan/replay/path_join/grouping/tests.rs") => { include_str!("../../docs/evidence/workspace21-legacy-source-repair-20261017/legacy/f3bc4ad754d4c33ca7508aac28412c6409469ebafe425392454ab43676e72dbb.rs.txt") };
+    ("src/cleanup_plan/replay/sequence_prefix/before_wrapper.rs") => { include_str!("../../docs/evidence/workspace21-legacy-source-repair-20261017/legacy/273142f525bdbf71805a4ba0ae16028ff9c992d98e1bcc872c83a5209919bee2.rs.txt") };
+    ("src/cleanup_plan/replay/sequence_prefix/before_wrapper_tests.rs") => { include_str!("../../docs/evidence/workspace21-legacy-source-repair-20261017/legacy/38f11a53d0a21dc60470dc7ac46fda2a86d191ade68bd7abf5c40ab4da783846.rs.txt") };
+    ("src/cleanup_plan/replay/sequence_vector/before.rs") => { include_str!("../../docs/evidence/workspace21-legacy-source-repair-20261017/legacy/9585d39576779e49265c8a75536e8b772ba0e41749f1ed9cc61639c4890c2bd7.rs.txt") };
+    ("src/cleanup_plan/replay/sequence_vector/tests.rs") => { include_str!("../../docs/evidence/workspace21-legacy-source-repair-20261017/legacy/3d2be8c8fdaf0a3e09079feffc83f25a11e0bc370dcdaf4fc3135ac051bdf765.rs.txt") };
+}
 macro_rules! audit_source_join { ($($piece:expr),* $(,)?) => {{ let pieces: &[&str] = &[$(&$piece),*]; pieces.concat() }}; }
 // Complete own-module private-layout input for projection purity. The broad
 // compiled-control union below keeps every original source in its original order.
@@ -218,25 +231,25 @@ macro_rules! semantic_graph_private_layout_source_inventory {
         include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/retained/status_before_prefix.rs"),
         include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/retained/component_before_prefix.rs"),
 semantic_graph_private_layout_owned_source_inventory!(core),
-        include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/unit_weight.rs"),
-        include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/unit_weight/tests.rs"),
-        include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/unit_weight_tests.rs"),
+        semantic_graph_legacy_main_source!("src/cleanup_plan/replay/factored/canonical_shared/unit_weight.rs"),
+        semantic_graph_legacy_main_source!("src/cleanup_plan/replay/factored/canonical_shared/unit_weight/tests.rs"),
+        semantic_graph_legacy_main_source!("src/cleanup_plan/replay/factored/canonical_shared/unit_weight_tests.rs"),
         include_str!("../../src/cleanup_plan/replay/path_array/completed_tests.rs"),
         include_str!("../../src/cleanup_plan/replay/path_array/final_before.rs"),
         include_str!("../../src/cleanup_plan/replay/path_array/sequence.rs"),
         include_str!("../../src/cleanup_plan/replay/path_array/sequence/before.rs"),
         include_str!("../../src/cleanup_plan/replay/path_array/sequence/tests.rs"),
-        include_str!("../../src/cleanup_plan/replay/path_join/grouping.rs"),
-        include_str!("../../src/cleanup_plan/replay/path_join/grouping/source_custody.rs"),
-        include_str!("../../src/cleanup_plan/replay/path_join/grouping/tests.rs"),
+        semantic_graph_legacy_main_source!("src/cleanup_plan/replay/path_join/grouping.rs"),
+        semantic_graph_legacy_main_source!("src/cleanup_plan/replay/path_join/grouping/source_custody.rs"),
+        semantic_graph_legacy_main_source!("src/cleanup_plan/replay/path_join/grouping/tests.rs"),
         include_str!("../../src/cleanup_plan/replay/sequence_prefix.rs"),
         include_str!("../../src/cleanup_plan/replay/sequence_prefix/before.rs"),
-        include_str!("../../src/cleanup_plan/replay/sequence_prefix/before_wrapper.rs"),
-        include_str!("../../src/cleanup_plan/replay/sequence_prefix/before_wrapper_tests.rs"),
+        semantic_graph_legacy_main_source!("src/cleanup_plan/replay/sequence_prefix/before_wrapper.rs"),
+        semantic_graph_legacy_main_source!("src/cleanup_plan/replay/sequence_prefix/before_wrapper_tests.rs"),
         include_str!("../../src/cleanup_plan/replay/sequence_prefix/tests.rs"),
         include_str!("../../src/cleanup_plan/replay/sequence_vector.rs"),
-        include_str!("../../src/cleanup_plan/replay/sequence_vector/before.rs"),
-        include_str!("../../src/cleanup_plan/replay/sequence_vector/tests.rs"),
+        semantic_graph_legacy_main_source!("src/cleanup_plan/replay/sequence_vector/before.rs"),
+        semantic_graph_legacy_main_source!("src/cleanup_plan/replay/sequence_vector/tests.rs"),
         include_str!("../../src/loan_plan/paid_live/funded_before.rs"),
         include_str!("../../src/loan_plan/paid_live/original.rs"),
         include_str!("semantic_graph/source_inventory.rs")

@@ -1,0 +1,15 @@
+{
+  "status": "PASS_SOURCE_BINDING_ONLY",
+  "source_head": "827d3e0f2b5f39dbfe3fbe27d453dc62e46670ad",
+  "all_five_steps_exit_zero": true,
+  "both_readonly_binders_byte_equal_write_outputs": true,
+  "prior_refusals_retained": true,
+  "cargo_runtime_clippy": "NOT_YET_RUN",
+  "files": {
+    "1-main-fronts.json": "2d26d1605027261984e932ca8068928c67653a2aa020f13ef4ce359d7e23c84b",
+    "2-composed-endpoints.json": "f0cc85b3f274ef6b107721be11a708c303ce10603571bc89a6b3818f5b3e129c",
+    "3-common.log": "4fd402f2c1b429741ef5819d0f162d121bbcf26f1218dc0abd6e2bb922dfc5cd",
+    "4-main-readonly.json": "2d26d1605027261984e932ca8068928c67653a2aa020f13ef4ce359d7e23c84b",
+    "5-composed-readonly.json": "f0cc85b3f274ef6b107721be11a708c303ce10603571bc89a6b3818f5b3e129c"
+  }
+}

@@ -1,0 +1,25 @@
+hir chunks 1093 production 481 testonly 804 bytes 1904961
+projection chunks 274 production 602 testonly 880 bytes 2208524
+{"mode": "SOURCE_ONLY_NO_RUST_EXECUTION", "original_generator_definition_span_sha256": "fabc67d5447a0fe66a363782da7d578383ddc2f1cad504b332eeefe7cb7d6a5f", "original_verifier_definition_span_sha256": "b02eca2b0f07e13c6478f511c2c0a9e2e865ca3f518626e19fe0f78a3eb50912", "domains": {"hir": {"original_roots": 1046, "current_boundary_members": 1090, "current_boundary_production": 403, "outside_production_still_fully_authenticated": 78, "full_role_production": 481, "full_role_test_only": 804, "full_raw_sha256": "578d8917946a59f7a4314f8dbb06517e62a17ab4783196b3e19d8c944005d2dc", "boundary_production_sha256": "4e385daf041821f62afd0228cd386f137a120302e41b6c3b5a610e4f0442f4f2", "exact_original_forbidden_tokens": ["struct Resolver", "impl Resolver", "fn scoped_identity(", "fn materialize_function_template", "fn specialize_source_function", "pub fn resolve(", "crate::cleanup::build_inventory", "crate::cleanup_plan::build_plan", "std::fs", "std::process", "platform::"], "all_original_coverage_preserved": true, "actual_current_registered_children_complete": true, "global_polluted_purity_result_not_claimed": true}, "projection": {"original_roots": 179, "current_boundary_members": 191, "current_boundary_production": 73, "outside_production_still_fully_authenticated": 529, "full_role_production": 602, "full_role_test_only": 880, "full_raw_sha256": "613efb577d59ad938b9dbd74b9a5ee2c45281af8b19e4ed4b5ea7464f073175a", "boundary_production_sha256": "b2540688f074dd565405dfd06b67bf1fe3fe2b31ef2cf6a77c96998b03a0c6c5", "exact_original_forbidden_tokens": ["use super::*;", "workspace::", "std::fs", "std::process", "snapshot(", "build_authenticated", "render_graph_json", "write_file", "create_dir", "remove_file", "ACTIVE"], "all_original_coverage_preserved": true, "actual_current_registered_children_complete": true, "global_polluted_purity_result_not_claimed": true}}}
+{"status": "MAIN043_SOURCE_ONLY_CUSTODY_PASS", "rows": 75, "helper_controls": 14, "historical_extra_views": 5, "raw_owners": [2, 4, 7], "all_three_raw_inventories": true, "rust_executed": false, "write_endpoints": false}
+{
+  "scope": "static source/JSON proof only; no build, compiler, browser or test execution",
+  "incoming_subject": "44f52ebee749b2877ba001c5398acbf803a277a1",
+  "complete_source_views": 26,
+  "namespace_adapters": 11,
+  "new_sources_in_every_authority_inventory": 22,
+  "complete_independent_tables": [
+    {
+      "table": "compact-inverse7.json",
+      "sha256": "99a8a6c0ba7694c8268f54a10e69ad9d70ffad90db354ac60b80d26a45ae6f80",
+      "rows": 7,
+      "complete_original_inverse_and_archive_match": true
+    },
+    {
+      "table": "receiver-inverse12.json",
+      "sha256": "7548f9e7d429e7ef8fb25c422d9b2614d088681a6342a3e1195749381d4bde12",
+      "rows": 12,
+      "complete_original_inverse_and_archive_match": true
+    }
+  ]
+}

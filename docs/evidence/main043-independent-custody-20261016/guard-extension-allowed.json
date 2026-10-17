@@ -101,7 +101,10 @@
       "src/cleanup_plan/replay/factored/canonical_shared/paid_many.rs": 1,
       "src/cleanup_plan/replay/skeleton_work/prefix_fusion.rs": 1,
       "src/cleanup_plan/replay/skeleton_work/prefix_fusion/before.rs": 1,
-      "src/cleanup_plan/replay/skeleton_work/prefix_fusion/tests.rs": 1
+      "src/cleanup_plan/replay/skeleton_work/prefix_fusion/tests.rs": 1,
+      "src/cli/json_codec/retained_receipt/stdout_seal.rs": 1,
+      "src/cli/json_codec/retained_receipt/stdout_seal/tests.rs": 1,
+      "tests/project/standard_library/application_json/retained_receipt/stdout_seal.rs": 1
     },
     "maximum": {
       "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": 1,
@@ -210,7 +213,10 @@
       "src/cleanup_plan/replay/factored/canonical_shared/paid_many.rs": 1,
       "src/cleanup_plan/replay/skeleton_work/prefix_fusion.rs": 1,
       "src/cleanup_plan/replay/skeleton_work/prefix_fusion/before.rs": 1,
-      "src/cleanup_plan/replay/skeleton_work/prefix_fusion/tests.rs": 1
+      "src/cleanup_plan/replay/skeleton_work/prefix_fusion/tests.rs": 1,
+      "src/cli/json_codec/retained_receipt/stdout_seal.rs": 1,
+      "src/cli/json_codec/retained_receipt/stdout_seal/tests.rs": 1,
+      "tests/project/standard_library/application_json/retained_receipt/stdout_seal.rs": 1
     }
   },
   "tests/workspace/semantic_graph/source_inventory.rs": {
@@ -350,7 +356,10 @@
       "src/cleanup_plan/replay/factored/canonical_shared/paid_many.rs": 1,
       "src/cleanup_plan/replay/skeleton_work/prefix_fusion.rs": 1,
       "src/cleanup_plan/replay/skeleton_work/prefix_fusion/before.rs": 1,
-      "src/cleanup_plan/replay/skeleton_work/prefix_fusion/tests.rs": 1
+      "src/cleanup_plan/replay/skeleton_work/prefix_fusion/tests.rs": 1,
+      "src/cli/json_codec/retained_receipt/stdout_seal.rs": 1,
+      "src/cli/json_codec/retained_receipt/stdout_seal/tests.rs": 1,
+      "tests/project/standard_library/application_json/retained_receipt/stdout_seal.rs": 1
     },
     "maximum": {
       "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": 1,
@@ -488,7 +497,10 @@
       "src/cleanup_plan/replay/factored/canonical_shared/paid_many.rs": 1,
       "src/cleanup_plan/replay/skeleton_work/prefix_fusion.rs": 1,
       "src/cleanup_plan/replay/skeleton_work/prefix_fusion/before.rs": 1,
-      "src/cleanup_plan/replay/skeleton_work/prefix_fusion/tests.rs": 1
+      "src/cleanup_plan/replay/skeleton_work/prefix_fusion/tests.rs": 1,
+      "src/cli/json_codec/retained_receipt/stdout_seal.rs": 1,
+      "src/cli/json_codec/retained_receipt/stdout_seal/tests.rs": 1,
+      "tests/project/standard_library/application_json/retained_receipt/stdout_seal.rs": 1
     }
   },
   "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": {
@@ -598,7 +610,10 @@
       "src/cleanup_plan/replay/factored/canonical_shared/paid_many.rs": 1,
       "src/cleanup_plan/replay/skeleton_work/prefix_fusion.rs": 1,
       "src/cleanup_plan/replay/skeleton_work/prefix_fusion/before.rs": 1,
-      "src/cleanup_plan/replay/skeleton_work/prefix_fusion/tests.rs": 1
+      "src/cleanup_plan/replay/skeleton_work/prefix_fusion/tests.rs": 1,
+      "src/cli/json_codec/retained_receipt/stdout_seal.rs": 1,
+      "src/cli/json_codec/retained_receipt/stdout_seal/tests.rs": 1,
+      "tests/project/standard_library/application_json/retained_receipt/stdout_seal.rs": 1
     },
     "maximum": {
       "src/cleanup_plan/replay.rs": 1,
@@ -706,7 +721,10 @@
       "src/cleanup_plan/replay/factored/canonical_shared/paid_many.rs": 1,
       "src/cleanup_plan/replay/skeleton_work/prefix_fusion.rs": 1,
       "src/cleanup_plan/replay/skeleton_work/prefix_fusion/before.rs": 1,
-      "src/cleanup_plan/replay/skeleton_work/prefix_fusion/tests.rs": 1
+      "src/cleanup_plan/replay/skeleton_work/prefix_fusion/tests.rs": 1,
+      "src/cli/json_codec/retained_receipt/stdout_seal.rs": 1,
+      "src/cli/json_codec/retained_receipt/stdout_seal/tests.rs": 1,
+      "tests/project/standard_library/application_json/retained_receipt/stdout_seal.rs": 1
     }
   }
 }

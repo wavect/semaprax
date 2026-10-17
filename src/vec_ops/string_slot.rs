@@ -15,7 +15,7 @@ pub(crate) struct Slot<'a> {
 }
 pub(crate) fn arguments(args: &[ResolvedExpr]) -> bool {
     matches!(args, [source, index]
-        if source.ty == super::resolved_vec(ResolvedType::String)
+        if super::resolved_vec_matches(&source.ty, &ResolvedType::String)
         && matches!(source.ownership, OwnershipMode::Own | OwnershipMode::Borrow)
         && matches!(&source.kind, ResolvedExprKind::Place(place) if place.projections.is_empty())
         && index.ty == ResolvedType::Usize && index.ownership == OwnershipMode::Value)

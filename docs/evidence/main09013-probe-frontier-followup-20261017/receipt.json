@@ -1,0 +1,72 @@
+{
+  "status": "SOURCE_ONLY_UNEXECUTED",
+  "base": "609cbc2592a1ab9d6fbc81b72d1b2bac71dc85b5",
+  "replay_unchanged": true,
+  "original_test_prefix_byteexact": true,
+  "new_literal_selectors": 1,
+  "new_rust_physical_owners": 0,
+  "files": [
+    {
+      "path": "src/cleanup_plan/replay/branch_clone.rs",
+      "length": 11660,
+      "sha256": "7c87d361dda743f65516b263826af386f03b3b53ce7886a9c707233cbf123957"
+    },
+    {
+      "path": "src/cleanup_plan/replay/branch_clone/tests.rs",
+      "length": 23870,
+      "sha256": "e8163fa7935623b165170be2242d547f3ad89a5c4905f9a90b763ab9b8619e59"
+    },
+    {
+      "path": "docs/evidence/main09013-probe-frontier-followup-20261017/README.md",
+      "length": 2748,
+      "sha256": "deb920fb47cc1ec0e3cce7bdd87a3f5d9bf977ca67a2cb8fcaf70a4b30afc60d"
+    },
+    {
+      "path": "docs/evidence/main09013-probe-frontier-followup-20261017/before/src/cleanup_plan/replay/branch_clone/tests.rs.txt",
+      "length": 16984,
+      "sha256": "cd660f53acc9f62a51be010707e8bec7122aad7d38710e223aae89a686cc47fe"
+    },
+    {
+      "path": "docs/evidence/main09013-probe-frontier-followup-20261017/before/src/cleanup_plan/replay/branch_clone.rs.txt",
+      "length": 11660,
+      "sha256": "9e9ff135113a8993340db3a7686bbfc29454d4f3ec4dafc081c4767ecfa25131"
+    },
+    {
+      "path": "docs/evidence/main09013-probe-frontier-followup-20261017/check-source.py",
+      "length": 1831,
+      "sha256": "c9a05ae91c61f3e11ac607a996e4b6b31395df69cdb80919779fa74641e55c88"
+    },
+    {
+      "path": "docs/evidence/main09013-probe-frontier-followup-20261017/full-source-inverses.json",
+      "length": 8479,
+      "sha256": "ffca216534c21b35d3584e90bea2aa27a844416c759083295996d4551fbb15be"
+    },
+    {
+      "path": "docs/evidence/main09013-probe-frontier-followup-20261017/pending-selectors.json",
+      "length": 346,
+      "sha256": "0032a966ccf463b03f2859ac5f907c11469e6d392ea4292ab60112daaa7211c9"
+    },
+    {
+      "path": "docs/evidence/main09013-probe-frontier-followup-20261017/source-controls.json",
+      "length": 263,
+      "sha256": "b79f5d41b19aa476372d73dc304397e3f0f2e3929921b492a68d3ace722e8676"
+    }
+  ],
+  "source_controls": {
+    "status": "SOURCE_ONLY_NOT_EXECUTED",
+    "whole609_preimages_and_inverses": 2,
+    "old_test_prefix_byteexact": true,
+    "replay_unchanged": true,
+    "actual_values_method_sites": 8,
+    "receiving_reference_pairs": 8,
+    "hostile_source_refusals": 8,
+    "rust_tests_executed": false
+  },
+  "cargo_or_runtime": false,
+  "pending": [
+    "Actual type/borrow check",
+    "Actual payment-site staircase and zero/short/exact/floor observation",
+    "Actual sixfield/sticky/physical/peak/Drop owning body",
+    "Independent review and finalsource binding"
+  ]
+}

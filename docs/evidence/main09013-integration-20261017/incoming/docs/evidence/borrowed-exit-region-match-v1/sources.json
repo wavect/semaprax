@@ -1,0 +1,122 @@
+[
+  {
+    "path": "src/cleanup_plan/replay/expression_facts/receiving/helpers.rs",
+    "archive": "docs/evidence/borrowed-exit-region-match-v1/src__cleanup_plan__replay__expression_facts__receiving__helpers.rs.before.txt",
+    "before_sha256": "0c17a23ade80a8a8cd9f69e0f2ee79afa19df2996444ad86a204ea710a15d049",
+    "after_sha256": "601b4fc2980f98019a1491988449050c3c4f54359466c88acc46e030245930f6",
+    "inverse": [
+      {
+        "after": "helpers stay compiled.\nuse super::*;\nmod matching;\nmod regions;\npub(super) use matching::exit_regions_match;\npub(super) use regions::expected_exit_regions;\n\npub(super) fn va",
+        "before": "helpers stay compiled.\nuse super::*;\nmod matching;\nmod regions;\npub(super) use regions::expected_exit_regions;\n\npub(super) fn va"
+      },
+      {
+        "after": "ing results; original root helpers stay compiled.\nuse super::*;\nmod matching;\nmod regions;\npub(super) use regions::expected_exit_regions;\n\npub",
+        "before": "ing results; original root helpers stay compiled.\nuse super::*;\nmod regions;\npub(super) use regions::expected_exit_regions;\n\npub"
+      }
+    ]
+  },
+  {
+    "path": "src/cleanup_plan/replay/expression_facts/receiving/remaining.rs",
+    "archive": "docs/evidence/borrowed-exit-region-match-v1/src__cleanup_plan__replay__expression_facts__receiving__remaining.rs.before.txt",
+    "before_sha256": "eff95ac901df52b4012ad9058f12e0189eb57997690e2f2e3bab47ae0cbd0b2a",
+    "after_sha256": "545c82627829c38bdc380b7e7c9023c8cba599af9cfd6e0fcd235b494c1e4b45",
+    "inverse": [
+      {
+        "after": " ID or unknown source block\",\n            ));\n        }\n        if budget.payer == AllocationPayer::ActiveBuilder\n            && !matches!(exit.continuation, ExitContinuation::LoopLatch { .. })\n        {\n            if !helpers::exit_regions_match(function, exit, budget)? {\n                return Err(replay_error(\n                    function,\n                    \"cleanup exit does not leave the exact source-to-target region chain\",\n                ));\n            }\n        } else {\n            let expected_regions = helpers::expected_exit_regions(function, exit, budget)?;\n            if exit.leaves_regions != expected_regions {\n                return Err(replay_error(\n                    function,\n                    \"cleanup exit does not leave the exact source-to-target region chain\",\n                ));\n            }\n        }\n        let mut prior: Option<super::CleanupRegionId>",
+        "before": " ID or unknown source block\",\n            ));\n        }\n        let expected_regions = helpers::expected_exit_regions(function, exit, budget)?;\n        if exit.leaves_regions != expected_regions {\n            return Err(replay_error(\n                function,\n                \"cleanup exit does not leave the exact source-to-target region chain\",\n            ));\n        }\n        let mut prior: Option<super::CleanupRegionId>"
+      }
+    ]
+  },
+  {
+    "path": "src/cleanup_plan/replay/expression_facts/receiving/retained/exits.rs",
+    "archive": "docs/evidence/borrowed-exit-region-match-v1/src__cleanup_plan__replay__expression_facts__receiving__retained__exits.rs.before.txt",
+    "before_sha256": "8edeff9193bd5e4bf0e0026f532aeeead3fb152225bad78a618f21e43301d9b8",
+    "after_sha256": "f6c3b1bf1b3d2e3bd3ca4e8278df6eb3238892acc12c74d358c25cc4b3cb12db",
+    "inverse": [
+      {
+        "after": " ID or unknown source block\",\n            ));\n        }\n        if budget.payer == AllocationPayer::ActiveBuilder\n            && !matches!(exit.continuation, ExitContinuation::LoopLatch { .. })\n        {\n            if !helpers::exit_regions_match(function, exit, budget)? {\n                return Err(replay_error(\n                    function,\n                    \"cleanup exit does not leave the exact source-to-target region chain\",\n                ));\n            }\n        } else {\n            let expected_regions = helpers::expected_exit_regions(function, exit, budget)?;\n            if exit.leaves_regions != expected_regions {\n                return Err(replay_error(\n                    function,\n                    \"cleanup exit does not leave the exact source-to-target region chain\",\n                ));\n            }\n        }\n        let mut prior: Option<super::CleanupRegionId>",
+        "before": " ID or unknown source block\",\n            ));\n        }\n        let expected_regions = helpers::expected_exit_regions(function, exit, budget)?;\n        if exit.leaves_regions != expected_regions {\n            return Err(replay_error(\n                function,\n                \"cleanup exit does not leave the exact source-to-target region chain\",\n            ));\n        }\n        let mut prior: Option<super::CleanupRegionId>"
+      }
+    ]
+  },
+  {
+    "path": "src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs",
+    "archive": "docs/evidence/borrowed-exit-region-match-v1/src__cleanup_plan__replay__expression_facts__receiving__helpers__tests.rs.before.txt",
+    "before_sha256": "f5bf554985629d8bd03343ea98b22c83cd042e77176a7fffff79b090b43cc330",
+    "after_sha256": "1d31e1bf8377e7a1d7dd1d5a8844faa974cefa6cf94bd3029283647f70d2a51c",
+    "inverse": [
+      {
+        "after": "rvationRefusal};\nuse crate::test_allocation_observer::measure;\n\npub(super) fn program() -> ResolvedProgram {\n    let owner = include_str!(c",
+        "before": "rvationRefusal};\nuse crate::test_allocation_observer::measure;\n\nfn program() -> ResolvedProgram {\n    let owner = include_str!(c"
+      }
+    ]
+  },
+  {
+    "path": "tests/hir_module_boundaries.rs",
+    "archive": "docs/evidence/borrowed-exit-region-match-v1/tests__hir_module_boundaries.rs.before.txt",
+    "before_sha256": "e0f96011e9747cfa5f36253933f6e6ea3c4647fe65212f4b16a5846e09706643",
+    "after_sha256": "d6e8ad51661a3f8727e9f654bd7e7f2687ffa6fa13fd9c66900217def541c1cc",
+    "inverse": [
+      {
+        "after": "up_plan/replay/expression_facts/receiving/helpers/regions.rs\"),\n            include_str!(\"../src/cleanup_plan/replay/expression_facts/receiving/helpers/matching.rs\"),\n            include_str!(\"../src/cleanup_plan/replay/expression_facts/receiving/helpers/matching/tests.rs\"),\n            include_str!(\"../src/cleanup_plan/replay/expression_",
+        "before": "up_plan/replay/expression_facts/receiving/helpers/regions.rs\"),\n            include_str!(\"../src/cleanup_plan/replay/expression_"
+      }
+    ]
+  },
+  {
+    "path": "src/source_reflows/semantic_receivers.rs",
+    "archive": "docs/evidence/borrowed-exit-region-match-v1/src__source_reflows__semantic_receivers.rs.before.txt",
+    "before_sha256": "806760673e36ddff23fc45a9c35da3d44910519e253845b07ac7ab1296b6e9b9",
+    "after_sha256": "a620377ce8bcfe1ff7d44654ddc5ebf45cfecb2743e3ad4248220260a4dc58c7",
+    "inverse": [
+      {
+        "after": " assert_ne!(digest(&(current + \"\\n\")), file[\"sha256\"]);\n    }\n}\n\nfn before_last_branch_root(current: &str) -> String {\n    let sources: Vec<serde_json::Value> = serde_json::from_str(\n        &std::fs::read_to_string(\n            Path::new(env!(\"CARGO_MANIFEST_DIR\"))\n                .join(\"docs/evidence/last-branch-prefix-v1/sources.json\"),\n        )\n        .unwrap(),\n    )\n    .unwrap();\n    let proof = sources\n        .iter()\n        .find(|proof| proof[\"path\"] == \"src/cleanup_plan/replay.rs\")\n        .unwrap();\n    invert(proof, current)\n}\n\n#[test]\nfn last_branch_prefix_keeps_complete_predecessors_and_original_source_controls() {\n    let root = Path::new(env!(\"CARGO_MANIFEST_DIR\"));\n    let sources: Vec<serde_json::Value> = serde_json::from_str(\n        &std::fs::read_to_string(root.join(\"docs/evidence/last-branch-prefix-v1/sources.json\"))\n            .unwrap(),\n    )\n    .unwrap();\n    assert_eq!(sources.len(), 4);\n    let mut paths = std::collections::BTreeSet::new();\n    for proof in &sources {\n        let path = proof[\"path\"].as_str().unwrap();\n        assert!(paths.insert(path));\n        let current = std::fs::read_to_string(root.join(path)).unwrap();\n        let before = invert(proof, &current);\n        assert_eq!(\n            before,\n            std::fs::read_to_string(root.join(proof[\"archive\"].as_str().unwrap())).unwrap()\n        );\n        assert!(std::panic::catch_unwind(|| invert(proof, &(current.clone() + \"\\n\"))).is_err());\n        let mut forged = proof.clone();\n        forged[\"before_sha256\"] = serde_json::Value::String(\"0\".repeat(64));\n        assert!(std::panic::catch_unwind(|| invert(&forged, &current)).is_err());\n        if path.ends_with(\"branch_clone/tests.rs\") {\n            assert!(current.starts_with(&before));\n        }\n    }\n    let helper =\n        std::fs::read_to_string(root.join(\"src/cleanup_plan/replay/branch_clone.rs\")).unwrap();\n    let proof = sources\n        .iter()\n        .find(|proof| proof[\"path\"] == \"src/cleanup_plan/replay/branch_clone.rs\")\n        .unwrap();\n    let before = invert(proof, &helper);\n    assert_eq!(\n        helper.split(\"/// A pure probe\").next().unwrap(),\n        before.split(\"#[cfg(test)]\\nmod tests;\").next().unwrap()\n    );\n}\n",
+        "before": " assert_ne!(digest(&(current + \"\\n\")), file[\"sha256\"]);\n    }\n}\n"
+      },
+      {
+        "after": "o_string(root.join(record[\"path\"].as_str().unwrap())).unwrap();\n            let current = if record[\"path\"] == \"src/cleanup_plan/replay.rs\" {\n                before_last_branch_root(&current)\n            } else {\n                current\n            };\n            assert_eq!(digest(&current), record[\"sha256\"]);\n    ",
+        "before": "o_string(root.join(record[\"path\"].as_str().unwrap())).unwrap();\n            assert_eq!(digest(&current), record[\"sha256\"]);\n    "
+      },
+      {
+        "after": "contains(&old_storage[machine_types..]));\n    let mut machine = before_last_branch_root(\n        &std::fs::read_to_string(root.join(\"src/cleanup_plan/replay.rs\")).unwrap(),\n    );\n    let standalone = \"if work.budget.payer == AllocationPayer",
+        "before": "contains(&old_storage[machine_types..]));\n    let mut machine = std::fs::read_to_string(root.join(\"src/cleanup_plan/replay.rs\")).unwrap();\n    let standalone = \"if work.budget.payer == AllocationPayer"
+      },
+      {
+        "after": "digest(&(current + \"\\n\")), record[\"sha256\"]);\n        }\n    }\n}\n\n#[test]\nfn slot_byte_helper_and_generic_bound_frontier_keep_complete_source_receivers() {\n    let root = Path::new(env!(\"CARGO_MANIFEST_DIR\"));\n    let evidence = root.join(\"docs/evidence/string-slot-byte-helper-v1\");\n    let sources: Vec<serde_json::Value> =\n        serde_json::from_str(&std::fs::read_to_string(evidence.join(\"sources.json\")).unwrap())\n            .unwrap();\n    assert_eq!(sources.len(), 9);\n    let mut paths = std::collections::BTreeSet::new();\n    for proof in &sources {\n        let path = proof[\"path\"].as_str().unwrap();\n        assert!(paths.insert(path));\n        let current = std::fs::read_to_string(root.join(path)).unwrap();\n        let before = invert(proof, &current);\n        assert_eq!(\n            before,\n            std::fs::read_to_string(root.join(proof[\"archive\"].as_str().unwrap())).unwrap()\n        );\n        assert!(std::panic::catch_unwind(|| invert(proof, &(current.clone() + \"\\n\"))).is_err());\n        let mut forged = proof.clone();\n        forged[\"before_sha256\"] = serde_json::Value::String(\"0\".repeat(64));\n        assert!(std::panic::catch_unwind(|| invert(&forged, &current)).is_err());\n        if path.ends_with(\"byte_writer/tests.rs\") {\n            assert_eq!(\n                current.strip_suffix(\"\\nmod string_slots;\\n\").unwrap(),\n                before\n            );\n        }\n    }\n    let new_files: Vec<serde_json::Value> =\n        serde_json::from_str(&std::fs::read_to_string(evidence.join(\"new-files.json\")).unwrap())\n            .unwrap();\n    assert_eq!(new_files.len(), 1);\n    for file in new_files {\n        let current = std::fs::read_to_string(root.join(file[\"path\"].as_str().unwrap())).unwrap();\n        assert_eq!(digest(&current), file[\"sha256\"]);\n        assert_ne!(digest(&(current + \"\\n\")), file[\"sha256\"]);\n    }\n}\n",
+        "before": "digest(&(current + \"\\n\")), record[\"sha256\"]);\n        }\n    }\n}\n"
+      },
+      {
+        "after": "::catch_unwind(|| invert(&forged, &current)).is_err());\n    }\n}\n\n#[test]\nfn borrowed_exit_region_views_preserve_all_complete_predecessors_and_controls() {\n    let root = Path::new(env!(\"CARGO_MANIFEST_DIR\"));\n    assert_eq!(exit_region_matches().len(), 5);\n    let mut paths = std::collections::BTreeSet::new();\n    for proof in exit_region_matches() {\n        let path = proof[\"path\"].as_str().unwrap();\n        assert!(paths.insert(path));\n        assert!(!proofs()\n            .iter()\n            .chain(followups())\n            .chain(ordinary_setup())\n            .chain(ordinary_helpers())\n            .chain(held_status())\n            .chain(held_continuations())\n            .chain(receiving_lookups())\n            .any(|old| old[\"path\"] == path));\n        let current = std::fs::read_to_string(root.join(path)).unwrap();\n        let before = invert(proof, &current);\n        assert_eq!(\n            before,\n            std::fs::read_to_string(root.join(proof[\"archive\"].as_str().unwrap())).unwrap()\n        );\n        assert_eq!(predecessor(path, &current), Some(before.clone()));\n        assert!(contains(path));\n        if let Some(format) = records().iter().find(|record| record[\"path\"] == path) {\n            assert_eq!(proof[\"before_sha256\"], format[\"after_sha256\"]);\n            assert_eq!(digest(&restore(format, &before)), format[\"before_sha256\"]);\n        }\n        if path.ends_with(\"helpers/tests.rs\") {\n            assert_eq!(\n                current.replacen(\"pub(super) fn program()\", \"fn program()\", 1),\n                before\n            );\n        }\n        assert!(std::panic::catch_unwind(|| invert(proof, &(current.clone() + \"\\n\"))).is_err());\n        let mut forged = proof.clone();\n        forged[\"before_sha256\"] = serde_json::Value::String(\"0\".repeat(64));\n        assert!(std::panic::catch_unwind(|| invert(&forged, &current)).is_err());\n    }\n    let evidence = root.join(\"docs/evidence/borrowed-exit-region-match-v1\");\n    let sources: Vec<serde_json::Value> =\n        serde_json::from_str(&std::fs::read_to_string(evidence.join(\"sources.json\")).unwrap())\n            .unwrap();\n    assert_eq!(sources.len(), 7);\n    for proof in sources {\n        let current = std::fs::read_to_string(root.join(proof[\"path\"].as_str().unwrap())).unwrap();\n        assert_eq!(\n            invert(&proof, &current),\n            std::fs::read_to_string(root.join(proof[\"archive\"].as_str().unwrap())).unwrap()\n        );\n    }\n    for manifest in [\"new-files.json\", \"retained-sources.json\"] {\n        let records: Vec<serde_json::Value> =\n            serde_json::from_str(&std::fs::read_to_string(evidence.join(manifest)).unwrap())\n                .unwrap();\n        assert_eq!(records.len(), 2);\n        for record in records {\n            let current =\n                std::fs::read_to_string(root.join(record[\"path\"].as_str().unwrap())).unwrap();\n            assert_eq!(digest(&current), record[\"sha256\"]);\n            assert_ne!(digest(&(current + \"\\n\")), record[\"sha256\"]);\n        }\n    }\n}\n",
+        "before": "::catch_unwind(|| invert(&forged, &current)).is_err());\n    }\n}\n"
+      },
+      {
+        "after": "chain(held_continuations())\n        .chain(receiving_lookups())\n        .chain(exit_region_matches())\n        .any(|proof| proof[\"path\"] == path)\n}\n\n#[test]\nfn ordina",
+        "before": "chain(held_continuations())\n        .chain(receiving_lookups())\n        .any(|proof| proof[\"path\"] == path)\n}\n\n#[test]\nfn ordina"
+      },
+      {
+        "after": ") fn predecessor(path: &str, current: &str) -> Option<String> {\n    if let Some(proof) = exit_region_matches()\n        .iter()\n        .find(|proof| proof[\"path\"] == path)\n    {\n        return Some(invert(proof, current));\n    }\n    if let Some(proof) = receiving_lookups()\n        .iter()\n   ",
+        "before": ") fn predecessor(path: &str, current: &str) -> Option<String> {\n    if let Some(proof) = receiving_lookups()\n        .iter()\n   "
+      },
+      {
+        "after": " )\n            .unwrap(),\n        )\n        .unwrap()\n    })\n}\n\n// Complete predecessors for borrowed exit-region comparison and its test entry.\nfn exit_region_matches() -> &'static [serde_json::Value] {\n    static RECORDS: OnceLock<Vec<serde_json::Value>> = OnceLock::new();\n    RECORDS.get_or_init(|| {\n        serde_json::from_str(\n            &std::fs::read_to_string(\n                Path::new(env!(\"CARGO_MANIFEST_DIR\"))\n                    .join(\"docs/evidence/borrowed-exit-region-match-v1/views.json\"),\n            )\n            .unwrap(),\n        )\n        .unwrap()\n    })\n}\n\nfn proofs() -> &'static [serde_json::Value] {\n    PROOF_RECORDS.",
+        "before": " )\n            .unwrap(),\n        )\n        .unwrap()\n    })\n}\n\nfn proofs() -> &'static [serde_json::Value] {\n    PROOF_RECORDS."
+      }
+    ]
+  },
+  {
+    "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "archive": "docs/evidence/borrowed-exit-region-match-v1/crates__semaprax-native-rust-interop-builder__src__implementation__tests__ledger_capacity__source_inventory.rs.before.txt",
+    "before_sha256": "3cc384e9243b4686748e517e2b1e02bc9ef0ea61dd032a6a026e841e82068f2b",
+    "after_sha256": "70b707a2915c51abb76a72aeb084835c943c8a969c906a1b12eb287e7fa6beca",
+    "inverse": [
+      {
+        "after": "            include_str!(\"../../../../../src/hir/validation/ownership_flags.rs\"),\n            include_str!(\"../../../../../src/hir/validation/ownership_flags/before.rs\"),\n            include_str!(\"../../../../../src/hir/validation/ownership_flags/tests.rs\"),\n            include_str!(\"../../../../../src/hir/validation/call_parameters/copy_before.rs\"),\n            include_str!(\"../../../../../src/hir/validation/call_parameters/copy_flags_tests.rs\"),\n            concat!(concat!(include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving.rs\"),\n                include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/regions_entry.rs\"),\n            ),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/retained.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/helpers.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/helpers/regions.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/helpers/matching.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/helpers/matching/tests.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/helpers/before_remaining.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/leaf_index.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/leaf_index/paid.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/retained/exits.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/remaining.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/remaining/selected.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs\"),\n            include_str!(\"../../../../../src/clea",
+        "before": "            include_str!(\"../../../../../src/hir/validation/ownership_flags.rs\"),\n            include_str!(\"../../../../../src/hir/validation/ownership_flags/before.rs\"),\n            include_str!(\"../../../../../src/hir/validation/ownership_flags/tests.rs\"),\n            include_str!(\"../../../../../src/hir/validation/call_parameters/copy_before.rs\"),\n            include_str!(\"../../../../../src/hir/validation/call_parameters/copy_flags_tests.rs\"),\n            concat!(concat!(include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving.rs\"),\n                include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/regions_entry.rs\"),\n            ),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/retained.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/helpers.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/helpers/regions.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/helpers/before_remaining.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/leaf_index.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/leaf_index/paid.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/retained/exits.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/remaining.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/remaining/selected.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs\"),\n            include_str!(\"../../../../../src/clea"
+      },
+      {
+        "after": "up_plan/replay/expression_facts/receiving/helpers/regions.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/helpers/matching.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/helpers/matching/tests.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay",
+        "before": "up_plan/replay/expression_facts/receiving/helpers/regions.rs\"),\n            include_str!(\"../../../../../src/cleanup_plan/replay"
+      }
+    ]
+  }
+]

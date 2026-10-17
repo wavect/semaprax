@@ -330,7 +330,9 @@ fn prove_with_frames<'a>(
                                     return None;
                                 }
                             } else if let Some(op) = crate::vec_ops::by_id(callee.as_str()) {
-                                if !vec_operation(op) {
+                                if op == crate::vec_ops::VecOp::StrAt {
+                                    crate::vec_ops::string_slot::inspect(expression)?;
+                                } else if !vec_operation(op) {
                                     return None;
                                 }
                             } else {

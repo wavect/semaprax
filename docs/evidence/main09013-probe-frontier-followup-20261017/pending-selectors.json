@@ -1,0 +1,11 @@
+{
+  "status": "SOURCE_ONLY_UNEXECUTED",
+  "checks": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::branch_clone::tests::real_generic_probe_receiving_frontier_exact_short_zero_floor_is_sticky_and_drops_completely",
+      "sourcepath": "src/cleanup_plan/replay/branch_clone/tests.rs"
+    }
+  ]
+}

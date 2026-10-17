@@ -185,7 +185,7 @@ fn text(value: &str) -> String {
         "\"\"".to_owned()
     } else {
         format!(
-            "string_from_utf8(array_as_slice({}))",
+            "{{let raw={};string_from_utf8(array_as_slice(raw))}}",
             array(value.as_bytes())
         )
     }
@@ -253,7 +253,7 @@ match own outcome{{Decoded::Error{{code,offset,field}}=>0,Decoded::Ready{{value}
 let accepted=decision(value.rows);let required=encoded_len(value);
 let short=encode(value,required-1usize);
 let refused=match own short{{Encoded::Refused{{required:n}}=>n==required,Encoded::Encoded{{text:t}}=>false,}};
-let full=encode(value,required);let expected=string_from_utf8(array_as_slice({}));
+let full=encode(value,required);let expected_raw={};let expected=string_from_utf8(array_as_slice(expected_raw));
 let same=match own full{{Encoded::Refused{{required:n}}=>false,Encoded::Encoded{{text:t}}=>equal(string_as_str(t),string_as_str(expected)),}};
 if accepted && refused && same && required=={}usize{{724}}else{{0}}
 }},}}
@@ -343,7 +343,7 @@ fn primitive_string_response_two_nested_paths_preserve_exact_and_one_short_bytes
 let value=Report{{config:Config{{label:"left",retry:left()}},rows:Config{{label:"right",retry:right()}},ok:true}};
 let required=encoded_len(value);let short=encode(value,required-1usize);
 let refused=match own short{{Encoded::Refused{{required:n}}=>n==required,Encoded::Encoded{{text:t}}=>false,}};
-let full=encode(value,required);let expected=string_from_utf8(array_as_slice({}));
+let full=encode(value,required);let expected_raw={};let expected=string_from_utf8(array_as_slice(expected_raw));
 let same=match own full{{Encoded::Refused{{required:n}}=>false,Encoded::Encoded{{text:t}}=>equal(string_as_str(t),string_as_str(expected)),}};
 if refused && same && required=={}usize{{724}}else{{0}}
 }}
@@ -403,7 +403,7 @@ while at<count{{values=vec_push<string>(values,string_from_utf8(array_as_slice(r
 }}
 @id("consumer.right") fn right()->Vec<string>{{
 let mut values=full({}usize);values=vec_reserve_owned<string>(values,{}usize);
-values=vec_push<string>(values,string_from_utf8(array_as_slice({})));values
+let raw={};values=vec_push<string>(values,string_from_utf8(array_as_slice(raw)));values
 }}
 "#,
             right.len() - 1,
@@ -564,4 +564,60 @@ fn primitive_string_response_plan_receipts_and_live_revision_reject_forged_versi
     })
     .unwrap();
     std::fs::remove_dir_all(root).unwrap();
+}
+
+// Primitive String fixture custody.
+#[test]
+fn primitive_string_fixture_owners_keep_all_original_values_cases_and_assertions() {
+    use sha2::{Digest, Sha256};
+    let original = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/docs/evidence/string-fixture-owners-v1/string_vectors.before.rs.txt"
+    ));
+    let expected = [
+        0x50u8, 0xdf, 0xbf, 0x22, 0x3f, 0x42, 0xbd, 0x4f, 0x64, 0x8b, 0x5a, 0xb9, 0x62, 0x84, 0x9d,
+        0x2f, 0xa3, 0xda, 0xe8, 0x6b, 0x53, 0x19, 0xf3, 0x61, 0x59, 0x4c, 0x70, 0xf0, 0xa2, 0x9f,
+        0x2f, 0xaf,
+    ];
+    assert!(Sha256::digest(original.as_bytes())
+        .iter()
+        .copied()
+        .eq(expected));
+    let mut restored = include_str!("string_vectors.rs")
+        .split_once("\n// Primitive String fixture custody.")
+        .unwrap()
+        .0
+        .to_owned();
+    let after = "\"{{let raw={};string_from_utf8(array_as_slice(raw))}}\"";
+    let before = "\"string_from_utf8(array_as_slice({}))\"";
+    assert_eq!(restored.matches(after).count(), 1);
+    restored = restored.replace(after, before);
+    let after = "let full=encode(value,required);let expected_raw={};let expected=string_from_utf8(array_as_slice(expected_raw));";
+    let before =
+        "let full=encode(value,required);let expected=string_from_utf8(array_as_slice({}));";
+    assert_eq!(restored.matches(after).count(), 2);
+    restored = restored.replace(after, before);
+    let after =
+        "let raw={};values=vec_push<string>(values,string_from_utf8(array_as_slice(raw)));values";
+    let before = "values=vec_push<string>(values,string_from_utf8(array_as_slice({})));values";
+    assert_eq!(restored.matches(after).count(), 1);
+    restored = restored.replace(after, before);
+    assert_eq!(restored, original);
+}
+
+#[test]
+fn primitive_string_fixture_named_byte_owner_passes_and_temporary_keeps_t266() {
+    for value in ["a", "é\0😀", "\"\\\n\t"] {
+        let source = format!("module fixture_string; @id(\"main\") fn main()->i64 {{let value={}; let bytes=str_as_bytes(string_as_str(value)); if byte_len(bytes)=={}usize {{724}}else{{0}}}}", text(value), value.len());
+        let checked = semaprax::check(&source, "fixture-string.spx").unwrap();
+        let canonical = semaprax::format::canonical(&checked);
+        let checked = semaprax::check(&canonical, "fixture-string.spx").unwrap();
+        assert_eq!(semaprax::format::canonical(&checked), canonical);
+        semaprax::hir::resolve(&checked).unwrap();
+    }
+    let source = "module fixture_temporary; @id(\"main\") fn main()->i64 {let value=string_from_utf8(array_as_slice([65u8])); 724}";
+    assert!(semaprax::check(source, "fixture-temporary.spx")
+        .unwrap_err()
+        .iter()
+        .any(|diagnostic| diagnostic.code == "SPX-T266"));
 }

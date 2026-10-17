@@ -26,7 +26,13 @@ this independent proof.
 
 Allowed operations are existing scalar arithmetic/conversions, Copy products,
 borrowed byte/text reads and views, existing byte stores, Copy Vec length,
-capacity and element reads, and authenticated Vec field reads. A literal
+capacity and element reads, authenticated Vec field reads, and the existing
+primitive String-slot read. `vec_str_at` retains zero source type arguments,
+two operands and a whole named root. HIR independently checks its complete fixed
+String specialization, whole Vec root, Value usize index and Borrow Str result;
+the compiler-only fused byte form requires Borrow Slice<u8> instead. Slot
+inspection compares the existing type by reference without constructing another
+Vec type. Ordinary origin and loan checks remain authoritative. A literal
 `vec_field` selector is static proof data, not a runtime String allocation.
 Bytes copying or zeroed allocation, String construction (including literals,
 formatting, numeric text, UTF-8 materialization and copying), Vec construction,

@@ -1,0 +1,180 @@
+{
+  "rows": [
+    {
+      "path": "docs/evidence/a3-e47-final-custody-20261016/hir.json",
+      "current_length": 2016499,
+      "current_sha256": "02015b90e3c6a8127b1f06fe00d38df35c7628a850eaf2205aa6636c72f72f49",
+      "before_length": 2016499,
+      "before_sha256": "8bfe1853eedf589fe400ab6960733bb218a9ff5d879d25a67cac0e7dc1851b03",
+      "before_archive": "docs/evidence/earned-managed-pin42-source-coupling-20261017/before/docs__evidence__a3-e47-final-custody-20261016__hir.json",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 2016499,
+          "remove_sha256": "02015b90e3c6a8127b1f06fe00d38df35c7628a850eaf2205aa6636c72f72f49",
+          "insert_archive": "docs/evidence/earned-managed-pin42-source-coupling-20261017/before/docs__evidence__a3-e47-final-custody-20261016__hir.json"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/a3-e47-final-custody-20261016/new-owners.json",
+      "current_length": 33508,
+      "current_sha256": "271448e81257343479c8f66304fb877dcba3b1491b814cd7c14aed82d86c9544",
+      "before_length": 33508,
+      "before_sha256": "d625654080e001c21592ea191c35faac5ec18bec6288c35d84d8169628b45a71",
+      "before_archive": "docs/evidence/earned-managed-pin42-source-coupling-20261017/before/docs__evidence__a3-e47-final-custody-20261016__new-owners.json",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 33508,
+          "remove_sha256": "271448e81257343479c8f66304fb877dcba3b1491b814cd7c14aed82d86c9544",
+          "insert_archive": "docs/evidence/earned-managed-pin42-source-coupling-20261017/before/docs__evidence__a3-e47-final-custody-20261016__new-owners.json"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/a3-e47-final-custody-20261016/projection.json",
+      "current_length": 2320272,
+      "current_sha256": "97d5875864c55d2492861b872fa656cebe4bf8257da02bb00585cc6800dd9f55",
+      "before_length": 2320272,
+      "before_sha256": "dc13e623c160fdb5b552f1aa2015bd66ba79e59e26c2efee8ad80ab5789796af",
+      "before_archive": "docs/evidence/earned-managed-pin42-source-coupling-20261017/before/docs__evidence__a3-e47-final-custody-20261016__projection.json",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 2320272,
+          "remove_sha256": "97d5875864c55d2492861b872fa656cebe4bf8257da02bb00585cc6800dd9f55",
+          "insert_archive": "docs/evidence/earned-managed-pin42-source-coupling-20261017/before/docs__evidence__a3-e47-final-custody-20261016__projection.json"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/ordinary-plan-final-ingress-20261017/binding-receipt.json",
+      "current_length": 420,
+      "current_sha256": "33e172cdca5a76d87903befe8cf106a736f2943ff3ae6ade102ddb94eebc5688",
+      "before_length": 420,
+      "before_sha256": "b8f4e1f376f21c4082da866c784fb0fd6ec68e4271f39ea5c89b224e23558d4e",
+      "before_archive": "docs/evidence/earned-managed-pin42-source-coupling-20261017/before/docs__evidence__ordinary-plan-final-ingress-20261017__binding-receipt.json",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 420,
+          "remove_sha256": "33e172cdca5a76d87903befe8cf106a736f2943ff3ae6ade102ddb94eebc5688",
+          "insert_archive": "docs/evidence/earned-managed-pin42-source-coupling-20261017/before/docs__evidence__ordinary-plan-final-ingress-20261017__binding-receipt.json"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/ordinary-plan-final-ingress-20261017/current-inputs.json",
+      "current_length": 93425,
+      "current_sha256": "d68a8ac0aac79f047d82c1956eb5fbea8b8edfbfd66409cfe98257b0f01598cb",
+      "before_length": 92131,
+      "before_sha256": "33c4bfaec201c15f2317c0960b934e3b3b6bcea8bb9f46255daef96501a80f7f",
+      "before_archive": "docs/evidence/earned-managed-pin42-source-coupling-20261017/before/docs__evidence__ordinary-plan-final-ingress-20261017__current-inputs.json",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 93425,
+          "remove_sha256": "d68a8ac0aac79f047d82c1956eb5fbea8b8edfbfd66409cfe98257b0f01598cb",
+          "insert_archive": "docs/evidence/earned-managed-pin42-source-coupling-20261017/before/docs__evidence__ordinary-plan-final-ingress-20261017__current-inputs.json"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/ordinary-plan-final-ingress-20261017/current-manifest.json",
+      "current_length": 1850,
+      "current_sha256": "da942731d19bd45090e3487a62e2ca2983197e86579eda6a977abc8e7e0220b2",
+      "before_length": 1850,
+      "before_sha256": "17596e3e88d5bee31fa39bdc1d42c945fe1c7656725165d55ca7bd9f4486b3f6",
+      "before_archive": "docs/evidence/earned-managed-pin42-source-coupling-20261017/before/docs__evidence__ordinary-plan-final-ingress-20261017__current-manifest.json",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 1850,
+          "remove_sha256": "da942731d19bd45090e3487a62e2ca2983197e86579eda6a977abc8e7e0220b2",
+          "insert_archive": "docs/evidence/earned-managed-pin42-source-coupling-20261017/before/docs__evidence__ordinary-plan-final-ingress-20261017__current-manifest.json"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/source-boundary-domains-20261016/boundary-source-proof.json",
+      "current_length": 2718,
+      "current_sha256": "0352b89ea31e2003665cf77071f5d62dbba9a98f46beeedb9ff87c06ec8ed80c",
+      "before_length": 2718,
+      "before_sha256": "55eefb15eed1ed420dde73c5388e3ee5ffe05d1b04dacd85706516057b5ae032",
+      "before_archive": "docs/evidence/earned-managed-pin42-source-coupling-20261017/before/docs__evidence__source-boundary-domains-20261016__boundary-source-proof.json",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 2718,
+          "remove_sha256": "0352b89ea31e2003665cf77071f5d62dbba9a98f46beeedb9ff87c06ec8ed80c",
+          "insert_archive": "docs/evidence/earned-managed-pin42-source-coupling-20261017/before/docs__evidence__source-boundary-domains-20261016__boundary-source-proof.json"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/source-boundary-domains-20261016/current-domains.json",
+      "current_length": 233338,
+      "current_sha256": "56d7831a0550d36f19862a748f47a08eda1ca10f34a477cb6c3270246c34122d",
+      "before_length": 233338,
+      "before_sha256": "23149e4852d27743751df9758d85e66af6e5b92ed9267bfdb4ac2b2c699be940",
+      "before_archive": "docs/evidence/earned-managed-pin42-source-coupling-20261017/before/docs__evidence__source-boundary-domains-20261016__current-domains.json",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 233338,
+          "remove_sha256": "56d7831a0550d36f19862a748f47a08eda1ca10f34a477cb6c3270246c34122d",
+          "insert_archive": "docs/evidence/earned-managed-pin42-source-coupling-20261017/before/docs__evidence__source-boundary-domains-20261016__current-domains.json"
+        }
+      ]
+    },
+    {
+      "path": "src/source_reflows_merge/ordinary_plan_inputs.rs",
+      "current_length": 18588,
+      "current_sha256": "4462c6629400396f9d789031b8194629318d2128f5869eb4b92b50ba9a655d56",
+      "before_length": 18588,
+      "before_sha256": "f268f11144e5566afc03243adf982a35b313538a58cc39b16374ac5638aceb99",
+      "before_archive": "docs/evidence/earned-managed-pin42-source-coupling-20261017/before/src__source_reflows_merge__ordinary_plan_inputs.rs",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 18588,
+          "remove_sha256": "4462c6629400396f9d789031b8194629318d2128f5869eb4b92b50ba9a655d56",
+          "insert_archive": "docs/evidence/earned-managed-pin42-source-coupling-20261017/before/src__source_reflows_merge__ordinary_plan_inputs.rs"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/main09013-source-namespaces-v1/input-domains.json",
+      "current_length": 241192,
+      "current_sha256": "97de007454d921012bef12b07a2bdee0e3e73cdc90dc20bc1196cabd8849c3c5",
+      "before_length": 241192,
+      "before_sha256": "d402fbe5ba954cfddc311af85ee500c7c4859fe192134a239e8575e2a8c10594",
+      "before_archive": "docs/evidence/earned-managed-pin42-source-coupling-20261017/frozen174/input-domains.before.json",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 241192,
+          "remove_sha256": "97de007454d921012bef12b07a2bdee0e3e73cdc90dc20bc1196cabd8849c3c5",
+          "insert_archive": "docs/evidence/earned-managed-pin42-source-coupling-20261017/frozen174/input-domains.before.json"
+        }
+      ]
+    },
+    {
+      "path": "src/source_reflows/incoming090_semantic_receivers.rs",
+      "current_length": 48349,
+      "current_sha256": "14047066e35cfdcccebbd1f161fb84e5f221c5806603d150017adf9246e437e2",
+      "before_length": 48349,
+      "before_sha256": "4a578810adb15031cc9dccd320ae955acba3f4cbfab7bb1c3bded0f35f15db73",
+      "before_archive": "docs/evidence/earned-managed-pin42-source-coupling-20261017/frozen174/incoming090_semantic_receivers.before.rs.txt",
+      "inverse": [
+        {
+          "at": 0,
+          "remove_length": 48349,
+          "remove_sha256": "14047066e35cfdcccebbd1f161fb84e5f221c5806603d150017adf9246e437e2",
+          "insert_archive": "docs/evidence/earned-managed-pin42-source-coupling-20261017/frozen174/incoming090_semantic_receivers.before.rs.txt"
+        }
+      ]
+    }
+  ]
+}

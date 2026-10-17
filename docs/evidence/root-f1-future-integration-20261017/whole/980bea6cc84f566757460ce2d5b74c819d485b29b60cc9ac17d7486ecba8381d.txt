@@ -1,0 +1,19 @@
+[
+  "/Users/kevin/.local/bin/python3",
+  "/Volumes/Semaprax/provenance/currentef788-pin-workflow-20261017/update-current94-pins.py",
+  "/Volumes/Semaprax/provenance/pins-ef788-managed-actual-20261017",
+  "--repo",
+  "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang",
+  "--expected-capture-head",
+  "ef788f8237beeb16dcc1cfa9346fc1dbb6f69a4d",
+  "--round",
+  "/Volumes/Semaprax/lane-prompts/semantic-focused112-ef788f82-20261017",
+  "--expected-build-receipt-sha256",
+  "67e15309783ac86db1bd72aeadbc4b4f8083f2f2410c80ce987c384fadbba071",
+  "--expected-producer-receipt-sha256",
+  "38da2f443266500fdc0f6307cc5115e4fdea6b1772efebac548da9f1e6b4450c",
+  "--workflow-record",
+  "/Volumes/Semaprax/provenance/currentef788-pin-workflow-20261017/skeleton-record.json",
+  "--expected-workflow-record-sha256",
+  "9c545fd7998a2e01d3bcaade2a582a6659105008710fe1792e8b9b5ddb3d1d65"
+]

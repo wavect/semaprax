@@ -670,10 +670,10 @@ fn public_api_cli_bytes_getters_and_read_only_locking_are_exact() {
     // analysis digest chain follow. The separate, explicitly derived history
     // proof restores this semantic transition before unchanged budget checks.
     // See docs/evidence/managed67b-semantic-history-20261016/README.md.
-    assert_eq!(graph.budget().used_builder_bytes(), 973_339);
+    assert_eq!(graph.budget().used_builder_bytes(), 1_015_985);
     assert_eq!(
         document_digest(graph.to_json().as_bytes()),
-        "sha256:cda634c1cfeb7fd5a31be9f8332bc5cee0610310379be7510fee23cdc1e669c1"
+        "sha256:f9e254ca5de88fbc1af31fc025bbbe3bc5f2e35c251c4ce1428943a7c9790600"
     );
 
     let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
@@ -1102,14 +1102,14 @@ fn public_workspace_analysis_api_cli_kats_and_locking_are_exact() {
             document_digest(capability_review.as_bytes()),
         ],
         [
-            "sha256:26c450e0185cbe5de20633e074f7d38455ed04ceb68651adbd2459e0e496b2a8",
-            "sha256:7c7ae2cedc6ee83ba9814c28b1a6b0a96fb8b85cfb7bd65cca628fe9242222af",
-            "sha256:3be3b04b2cbc5f8abef6c584deed7f854ec22189134a4b67db71cfd416d6dfb1",
-            "sha256:bb4991566a276f76d7970f49def1184a9047ecf4af0a166b9e642a5598583a73",
-            "sha256:d6e4f39c11c6c2d6ed7ec3e5138d787583961a3669a648daa9085236b3e3e7ee",
-            "sha256:720704c7baf6b69411b6357041512416c02ece3305fa0ff034d580ddc93a87a7",
-            "sha256:93cd7596ab762e34654581f0530368afbe6896e0a395149609711fc9e2b89b3f",
-            "sha256:64807a35fbe94bfa66201dd3db1468712b93f28b49d98ccc70eeb33460c1e2a0",
+            "sha256:be378c0f130cb5d3de37eab4cb840988aa635e2877ff63a9316e4bbb65da59c9",
+            "sha256:ea1c6914bab96e5cc4706e5b09836139196495956c148a5e909a9f7c26ac662f",
+            "sha256:ef32b73b86f2342419526e920f9ed1498c62df3e3ab4d060d0531b939077bd13",
+            "sha256:398769425e1601469066ce42f18fe832fde030672faf52c890b2764ab12c6779",
+            "sha256:d9087de07c4170c6cb104922e2c8fcd2d3ef7d84053e24fb7f8929e5d8d7ef5f",
+            "sha256:f9406a2cd0565f5eb476ecf91b9676621d4a32a117c6ce27e4a46896195c5c61",
+            "sha256:fcf6b4149c6ac2926f5d4e9ed79c0b0fa6ebc9574cdac5d2619c06f5a511496d",
+            "sha256:fde9c1b0d2934b90e0e131b84368a5700121a36e23ebd5d13bb5f841e8584a6d",
         ]
     );
 

@@ -1,0 +1,42 @@
+{
+  "schema": "semaprax.closed-whole-source-promotion-input.v1",
+  "state": "SOURCE_ONLY_UNEXECUTED",
+  "source": "src/hir/lexical_exit.rs",
+  "current_head": "c8740045e33126a4375aadd1dc524a25be9245fc",
+  "current_archive": "lexical-exit.c874-current.rs.txt",
+  "current_sha256": "246cb0df50653502b3cf26ab9348e6db14508dad14c870852a22aab95db1e05d",
+  "current_len": 6956,
+  "original_head": "2d87a3b8927b25eb8cf039ab307a69d44df229f9",
+  "original_archive": "lexical-exit.2d87-before.rs.txt",
+  "original_sha256": "4fcfdef9e15555a8356841b45746e23650e5811f115fe3f40c1c43914aa9d9a9",
+  "original_len": 6885,
+  "whole_inverse": [
+    {
+      "at": 0,
+      "remove_len": 6956,
+      "remove_sha256": "246cb0df50653502b3cf26ab9348e6db14508dad14c870852a22aab95db1e05d",
+      "insert_archive": "lexical-exit.2d87-before.rs.txt",
+      "insert_sha256": "4fcfdef9e15555a8356841b45746e23650e5811f115fe3f40c1c43914aa9d9a9"
+    }
+  ],
+  "helper": {
+    "path": "src/cleanup_plan/replay/live_oracle/source_custody/current_view.rs",
+    "before_archive": "current-view.before.rs.txt",
+    "before_sha256": "df71adaed6be227163a5b305d98d36cddafc0a28518804bb06bb898fea4d2d12",
+    "after_sha256": "babe429c11416c659260dacb0a14a0e9a81ab84a0726965b550056853f0d7ba9",
+    "inverse": [
+      {
+        "at": 0,
+        "remove_len": 7247,
+        "remove_sha256": "babe429c11416c659260dacb0a14a0e9a81ab84a0726965b550056853f0d7ba9",
+        "insert_archive": "current-view.before.rs.txt",
+        "insert_sha256": "df71adaed6be227163a5b305d98d36cddafc0a28518804bb06bb898fea4d2d12"
+      }
+    ]
+  },
+  "original_bindings_sha256": "e8a262b7ac880fea45f532eb997f9ddb77fecaae4c38fc58bf917b2ef7ff9067",
+  "original_controls": "whole prior helper preserved except one named inputacquisition; originaltestbodies unchanged",
+  "no_cap_changes": true,
+  "production_code_changed": false,
+  "new_selector": "cleanup_plan::replay::live_oracle::source_custody::current_view::lexical_later_promotions_retain_complete_original_input_and_refuse_foreign_stages"
+}

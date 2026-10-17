@@ -1,0 +1,15 @@
+{
+  "status": "PARTIAL_SOURCE_BINDING_NOT_QUALIFIED",
+  "source_head": "197e7814c86f144804eaa65ef1143828c4fd39bd",
+  "prior_raw043_sha_refusal": "RESOLVED",
+  "main_fronts": "PASS_SOURCE_ONLY",
+  "composed_endpoints": "PASS_SOURCE_ONLY",
+  "common_refresh": "REFUSED_STABLE_DEFINITION_CENSUS_SEMANTIC_RECEIVERS",
+  "readonly_binders": "NOT_RUN_AFTER_REFUSAL",
+  "cargo_runtime_clippy": "NOT_RUN",
+  "files": {
+    "1-main-fronts.json": "512a8494532fcb1c019f11dd6aa5a148f0993bfe9989aa13dc6ca12569a96d2a",
+    "2-composed-endpoints.json": "29bcc367856aa98fe60cde7e3ccb84fbe62ee3a5a9d902ac0a13177e7aa614ed",
+    "3-common.log": "9e7a550920465548a21965f3b1c6d107bdcd51e47227602bbe96ec1359eac12d"
+  }
+}

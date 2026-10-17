@@ -1,0 +1,20 @@
+Traceback (most recent call last):
+  File "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/main043-independent-custody-20261016/verify-or-refresh.py", line 130, in <module>
+    else:assert row['bytes']==len(payload.encode()) and row['sha256']==sha(payload),('definition drift',row['path'])
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ('definition drift', 'src/source_reflows/main043/semantic_receivers.rs')
+Traceback (most recent call last):
+  File "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/main67107-fronts-6e45-20261017/refresh-composed.py", line 32, in <module>
+    exec(compile(current,str(original),'exec'),{'__file__':str(original),'__name__':'__main__','alias_stage':alias_stage})
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/joined-batch-custody-20261016/refresh.py", line 40, in <module>
+    main043=subprocess.check_output([sys.executable,str(R/'docs/evidence/main043-independent-custody-20261016/verify-or-refresh.py'),'--repo',str(R),'--write-endpoints'],cwd=R);(O/'main043-proof.json').write_bytes(main043)
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py", line 473, in check_output
+    return run(*popenargs, stdout=PIPE, timeout=timeout, check=True,
+           ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+               **kwargs).stdout
+               ^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['/opt/homebrew/opt/python@3.14/bin/python3.14', '/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/main043-independent-custody-20261016/verify-or-refresh.py', '--repo', '/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang', '--write-endpoints']' returned non-zero exit status 1.

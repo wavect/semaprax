@@ -146,6 +146,10 @@ fn project(rows: &str, source: &str, current: &str) -> String {
     let Some(row) = matching.first() else {
         return current.to_owned();
     };
+    let acquired = main67107_inputs::compile35f_expected_input(
+        source, row["current_sha256"].as_str().unwrap(), current,
+    );
+    let current = acquired.as_str();
     assert_eq!(
         format!(
             "{:x}",

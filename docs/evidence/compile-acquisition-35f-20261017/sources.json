@@ -1,0 +1,184 @@
+[
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/before_paid_many.rs",
+    "current_sha256": "499e2e20b836ab7adf9b095ae608e55482a411ae7e5d9bea34b3a560d77ccdf2",
+    "before_sha256": "04cd63b0567d11983e3220371da9dcc556a8422efdd70387ee53eb83a31d54d0",
+    "before_archive": "docs/evidence/compile-acquisition-35f-20261017/before/00.rs.txt",
+    "inverse": [
+      {
+        "start": 1,
+        "end": 2,
+        "current": "use super::{app_census, physical_clone, replay_error, Automaton, BTreeMap, Diagnostic, Label, Rc,\n",
+        "previous": "use super::{physical_clone, replay_error, Automaton, BTreeMap, Diagnostic, Label, Rc,\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/tests.rs",
+    "current_sha256": "c151768408bd95f3a56ae5eb48b013ac010c221d0b43df9a141ad47cd97ca953",
+    "before_sha256": "d3bb747a4465ebf6616305f66f2f80105738cb67ee2ead2ebe9446106a4e6a41",
+    "before_archive": "docs/evidence/compile-acquisition-35f-20261017/before/01.rs.txt",
+    "inverse": [
+      {
+        "start": 573,
+        "end": 576,
+        "current": "            let current = crate::source_reflows_merge::main67107_inputs::compile35f_input(\n                record[\"path\"].as_str().unwrap(), &current,\n            );\n",
+        "previous": ""
+      },
+      {
+        "start": 602,
+        "end": 605,
+        "current": "            let current = crate::source_reflows_merge::main67107_inputs::compile35f_input(\n                record[\"path\"].as_str().unwrap(), &current,\n            );\n",
+        "previous": ""
+      },
+      {
+        "start": 612,
+        "end": 615,
+        "current": "    use super::super::{targets, borrowed_labels as labels};\n    use crate::cleanup_plan::replay::SkeletonObservation;\n    use crate::hir::ExpressionId;\n",
+        "previous": "    use super::super::{targets, borrowed_labels as labels, SharedWeighted};\n"
+      },
+      {
+        "start": 672,
+        "end": 673,
+        "current": "    ) -> Result<Option<(u64, Vec<(Label, Rc<Weighted>)>)>, Diagnostic> {\n",
+        "previous": "    ) -> Result<Option<(u64, Vec<(Label, SharedWeighted)>)>, Diagnostic> {\n"
+      },
+      {
+        "start": 696,
+        "end": 697,
+        "current": "        budget.reserve_array::<(Label, Rc<Weighted>)>(\n",
+        "previous": "        budget.reserve_array::<(Label, SharedWeighted)>(\n"
+      },
+      {
+        "start": 716,
+        "end": 720,
+        "current": "                let expected = before_labels(&function, &mut old, &automaton, &closed, 57);\n                let actual = labels::successors(&function, &mut new, &automaton, &closed, 57);\n                super::super::inline_weighted::assert_successors(&actual, &expected);\n                if let Some((accepted, labels)) = actual.unwrap() {\n",
+        "previous": "                let expected = before_labels(&function, &mut old, &automaton, &closed, 57).unwrap();\n                let actual =\n                    labels::successors(&function, &mut new, &automaton, &closed, 57).unwrap();\n                assert_eq!(actual, expected);\n                if let Some((accepted, labels)) = actual {\n"
+      },
+      {
+        "start": 734,
+        "end": 748,
+        "current": "        fn inspect<T: std::ops::Deref<Target = [(usize, u64)]>>(\n            result: Result<Option<(u64, Vec<(Label, Rc<T>)>)>, Diagnostic>,\n        ) -> bool {\n            let success = result.is_ok();\n            if let Ok(Some((accepted, labels))) = &result {\n                assert_eq!(*accepted, 57);\n                assert_eq!(labels.len(), 67);\n                for (_, weights) in labels {\n                    assert_eq!(weights.iter().map(|(_, weight)| weight).sum::<u64>(), 10);\n                }\n            }\n            drop(result);\n            success\n        }\n",
+        "previous": ""
+      },
+      {
+        "start": 753,
+        "end": 755,
+        "current": "                    let success = if old {\n                        inspect(before_labels(&function, &mut budget, &automaton, &closed, 57))\n",
+        "previous": "                    let result = if old {\n                        before_labels(&function, &mut budget, &automaton, &closed, 57)\n"
+      },
+      {
+        "start": 756,
+        "end": 757,
+        "current": "                        inspect(labels::successors(&function, &mut budget, &automaton, &closed, 57))\n",
+        "previous": "                        labels::successors(&function, &mut budget, &automaton, &closed, 57)\n"
+      },
+      {
+        "start": 758,
+        "end": 758,
+        "current": "",
+        "previous": "                    let success = result.is_ok();\n                    if let Ok(Some((accepted, labels))) = &result {\n                        assert_eq!(*accepted, 57);\n                        assert_eq!(labels.len(), 67);\n                        for (_, weights) in labels {\n                            assert_eq!(weights.iter().map(|(_, weight)| weight).sum::<u64>(), 10);\n                        }\n                    }\n                    drop(result);\n"
+      },
+      {
+        "start": 825,
+        "end": 828,
+        "current": "            let current = crate::source_reflows_merge::main67107_inputs::compile35f_input(\n                record[\"path\"].as_str().unwrap(), &current,\n            );\n",
+        "previous": ""
+      },
+      {
+        "start": 853,
+        "end": 856,
+        "current": "            let current = crate::source_reflows_merge::main67107_inputs::compile35f_input(\n                record[\"path\"].as_str().unwrap(), &current,\n            );\n",
+        "previous": ""
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/sequence_prefix.rs",
+    "current_sha256": "097d701c509a7a143a1003fdc179d4a52aa74e1352bb2a381fd0dbeed43191d8",
+    "before_sha256": "8c95feee390193bce33eea76f4667697c675259f9a6b30ab13ab8b8916e23a8b",
+    "before_archive": "docs/evidence/compile-acquisition-35f-20261017/before/02.rs.txt",
+    "inverse": [
+      {
+        "start": 7,
+        "end": 8,
+        "current": "#[cfg(test)]\n",
+        "previous": ""
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/sequence_vector/funded_tests.rs",
+    "current_sha256": "0a177d36f88e5febf77558507f5bdf1f1a74f5851e000c3637512f1ec069fba1",
+    "before_sha256": "9078b64058929a18a42f85874ac28cf579be998f6ba75bef75bc3dd92f9d3867",
+    "before_archive": "docs/evidence/compile-acquisition-35f-20261017/before/03.rs.txt",
+    "inverse": [
+      {
+        "start": 413,
+        "end": 416,
+        "current": "                    // The assignment above already dropped the actual funded\n                    // budget here. Only its resource-free unobserved replacement\n                    // remains in caller, outside the observer and borrow.\n",
+        "previous": "                    drop(caller);\n"
+      }
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/skeleton_work/prefix_fusion.rs",
+    "current_sha256": "575ba5edd5dee6ffe14ee3a936f56005f2729a22b77bfacc7ecd207b82265f9a",
+    "before_sha256": "490c187c8945b45a120be05c3c96a68800bef43f91522ae77653dbb50f254769",
+    "before_archive": "docs/evidence/compile-acquisition-35f-20261017/before/04.rs.txt",
+    "inverse": [
+      {
+        "start": 40,
+        "end": 42,
+        "current": "// slots cover one borrowed payer pattern, selected(), two Option headers and Vec headers.\nconst PROBE: usize = size_of::<&allocation::AllocationPayer>()\n",
+        "previous": "// slots cover payer comparison, selected(), two Option headers and Vec headers.\nconst PROBE: usize = 2 * size_of::<&allocation::AllocationPayer>()\n"
+      },
+      {
+        "start": 55,
+        "end": 59,
+        "current": "        if matches!(\n            &$work.budget.payer,\n            &$crate::cleanup_plan::replay::allocation::AllocationPayer::ActiveBuilder\n        )\n",
+        "previous": "        if $work.budget.payer\n            == $crate::cleanup_plan::replay::allocation::AllocationPayer::ActiveBuilder\n"
+      }
+    ]
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/owned_growth_tests.rs",
+    "current_sha256": "fa95c61e8eb3ba3c300c4fee92e3da1777ad360483309c6f0ac9c2c5cf46e956",
+    "before_sha256": "7056202c20fd3ae918b53ffc4ac65cd606e5e5faf38828ef7d9336cba0a78bf2",
+    "before_archive": "docs/evidence/compile-acquisition-35f-20261017/before/05.rs.txt",
+    "inverse": [
+      {
+        "start": 227,
+        "end": 231,
+        "current": "                    other => panic!(\n                        \"old/current historical outcome changed: {:?}\",\n                        (other.0.as_ref().map(|_| ()), other.1.as_ref().map(|_| ()))\n                    ),\n",
+        "previous": "                    other => panic!(\"old/current historical outcome changed: {other:?}\"),\n"
+      }
+    ]
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/rename_tests.rs",
+    "current_sha256": "fb9bcacb5b72f889e4ab62464ba6f6c845b3e63bb3dec40a43f30305db96b336",
+    "before_sha256": "9938f945716c0ba7483384c14ce2dae1b98fc793c0c442f9c31cc86f41970147",
+    "before_archive": "docs/evidence/compile-acquisition-35f-20261017/before/06.rs.txt",
+    "inverse": [
+      {
+        "start": 86,
+        "end": 90,
+        "current": "                other => panic!(\n                    \"historical owning intrinsic-name limitation changed: {:?}\",\n                    other.as_ref().map(|_| ())\n                ),\n",
+        "previous": "                other => panic!(\"historical owning intrinsic-name limitation changed: {other:?}\"),\n"
+      },
+      {
+        "start": 211,
+        "end": 223,
+        "current": "            let diagnostic = if current {\n                match construct_transient(\n                    &programs[0],\n                    &authored,\n                    &programs,\n                    &registry,\n                    None,\n                    &mut owner,\n                ) {\n                    Err(Failure::One(diagnostic)) => diagnostic,\n                    _ => panic!(\"original generic malformed provider did not retain its early refusal\"),\n                }\n",
+        "previous": "            let result = if current {\n                construct_transient(&programs[0], &authored, &programs, &registry, None, &mut owner)\n"
+      },
+      {
+        "start": 224,
+        "end": 235,
+        "current": "                match super::super::before_alias::construct_using(\n                    &programs[0],\n                    &authored,\n                    &programs,\n                    &registry,\n                    None,\n                    &mut owner,\n                ) {\n                    Err(Failure::One(diagnostic)) => diagnostic,\n                    _ => panic!(\"original generic malformed provider did not retain its early refusal\"),\n                }\n",
+        "previous": "                super::super::before_alias::construct_using(&programs[0], &authored, &programs, &registry, None, &mut owner)\n            };\n            let diagnostic = match result {\n                Err(Failure::One(diagnostic)) => diagnostic,\n                _ => panic!(\"original generic malformed provider did not retain its early refusal\"),\n"
+      }
+    ]
+  }
+]

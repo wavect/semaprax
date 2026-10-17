@@ -25,6 +25,8 @@ fn restore(rows: &serde_json::Value, domain: &str, current: &str) -> String {
         _ => panic!("foreign MAIN source domain"),
     };
     assert_eq!(row["source"], source);
+    let acquired = compile35f_expected_input(source, row["current_sha256"].as_str().unwrap(), current);
+    let current = acquired.as_str();
     assert_eq!(digest(current), row["current_sha256"]);
     assert_eq!(current, row["current"].as_str().unwrap());
     let edits = row["inverse"].as_array().unwrap();
@@ -179,4 +181,86 @@ fn main043_receiver_complete_stage_and_original_historical_inverse_are_retained(
     assert!(std::panic::catch_unwind(|| main043_receiver_restore(&forged, source, &raw)).is_err());
     let mut altered = row.clone(); altered["inverse"][0]["previous"] = serde_json::Value::String("foreign".to_owned());
     assert!(std::panic::catch_unwind(|| main043_receiver_restore(&altered, source, &raw)).is_err());
+}
+
+// Exact compile-repair acquisition. Historical domains retain their original bytes.
+const COMPILE35F_KEYS: &[&str] = &[
+    "src/cleanup_plan/replay/factored/canonical_shared/before_paid_many.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/tests.rs",
+    "src/cleanup_plan/replay/sequence_prefix.rs",
+    "src/cleanup_plan/replay/sequence_vector/funded_tests.rs",
+    "src/cleanup_plan/replay/skeleton_work/prefix_fusion.rs",
+    "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/owned_growth_tests.rs",
+    "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/rename_tests.rs",
+];
+fn compile35f_records() -> serde_json::Value {
+    let data = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/compile-acquisition-35f-20261017/sources.json"));
+    assert!(data.len() <= 1_048_576);
+    assert_eq!(digest(data), "61af497922931df374510a7d8acd4b8691481f960407f1670c4d4e4dc37625fe");
+    let rows: serde_json::Value = serde_json::from_str(data).unwrap();
+    let array = rows.as_array().unwrap();
+    assert_eq!(array.len(), COMPILE35F_KEYS.len());
+    assert_eq!(array.iter().map(|r| r["source"].as_str().unwrap()).collect::<Vec<_>>(), COMPILE35F_KEYS);
+    rows
+}
+fn compile35f_restore(row: &serde_json::Value, current: &str) -> String {
+    let source = row["source"].as_str().unwrap();
+    assert!(COMPILE35F_KEYS.binary_search(&source).is_ok());
+    // A35f intermediate requires the actual physical new source to remain bound.
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let raw = std::fs::read_to_string(root.join(source)).unwrap();
+    assert_eq!(digest(&raw), row["current_sha256"], "actual new compile subject");
+    if digest(current) == row["before_sha256"].as_str().unwrap() { return current.to_owned(); }
+    assert_eq!(digest(current), row["current_sha256"], "complete compile input");
+    let mut lines: Vec<&str> = current.split_inclusive('\n').collect();
+    let mut last = lines.len();
+    for edit in row["inverse"].as_array().unwrap().iter().rev() {
+        let a = edit["start"].as_u64().unwrap() as usize;
+        let z = edit["end"].as_u64().unwrap() as usize;
+        assert!(a <= z && z <= last && z <= lines.len());
+        assert_eq!(lines[a..z].concat(), edit["current"].as_str().unwrap());
+        lines.splice(a..z, edit["previous"].as_str().unwrap().split_inclusive('\n'));
+        last = a;
+    }
+    let restored = lines.concat();
+    assert_eq!(digest(&restored), row["before_sha256"]);
+    let before = std::fs::read_to_string(root.join(row["before_archive"].as_str().unwrap())).unwrap();
+    assert_eq!(digest(&before), row["before_sha256"]);
+    assert_eq!(restored, before);
+    restored
+}
+pub(crate) fn compile35f_input(source: &str, current: &str) -> String {
+    if COMPILE35F_KEYS.binary_search(&source).is_err() { return current.to_owned(); }
+    let rows = compile35f_records();
+    let row = rows.as_array().unwrap().iter().find(|r| r["source"] == source).unwrap();
+    compile35f_restore(row, current)
+}
+pub(super) fn compile35f_expected_input(source: &str, expected: &str, current: &str) -> String {
+    if COMPILE35F_KEYS.binary_search(&source).is_err() { return current.to_owned(); }
+    let rows = compile35f_records();
+    let row = rows.as_array().unwrap().iter().find(|r| r["source"] == source).unwrap();
+    // Only a receiver explicitly expecting full35f owns this outer acquisition.
+    if row["before_sha256"] != expected { return current.to_owned(); }
+    compile35f_restore(row, current)
+}
+#[test]
+fn complete_seven_compile_inputs_restore_35f_and_refuse_foreign_receivers() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let rows = compile35f_records();
+    for row in rows.as_array().unwrap() {
+        let source = row["source"].as_str().unwrap();
+        let raw = std::fs::read_to_string(root.join(source)).unwrap();
+        let before = std::fs::read_to_string(root.join(row["before_archive"].as_str().unwrap())).unwrap();
+        assert_eq!(compile35f_input(source, &raw), before);
+        assert_eq!(compile35f_expected_input(source, row["before_sha256"].as_str().unwrap(), &raw), before);
+        assert_eq!(compile35f_input(source, &before), before);
+        for bad in [String::new(), format!("{raw} "), format!("{raw}{raw}"), format!("!{}", &raw[1..])] {
+            assert!(std::panic::catch_unwind(|| compile35f_input(source, &bad)).is_err());
+        }
+        for foreign in rows.as_array().unwrap().iter().filter(|r| r["source"] != source) {
+            let other = std::fs::read_to_string(root.join(foreign["source"].as_str().unwrap())).unwrap();
+            assert!(std::panic::catch_unwind(|| compile35f_input(source, &other)).is_err());
+        }
+    }
+    assert_eq!(compile35f_input("foreign", "unchanged"), "unchanged");
 }

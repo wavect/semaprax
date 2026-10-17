@@ -1,0 +1,12 @@
+{
+  "source_head": "d05c354dcb3470daf46308a6fd46dc9c493693e3",
+  "exit_code": 101,
+  "wall_seconds": 458.205000417016,
+  "test_bodies_run": 0,
+  "result_exit_codes": [
+    0,
+    0,
+    101
+  ],
+  "original_round": "/Volumes/Semaprax/lane-prompts/final-focused247-d05c354dc-20261017"
+}

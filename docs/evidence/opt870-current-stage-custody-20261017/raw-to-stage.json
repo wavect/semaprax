@@ -1,0 +1,215 @@
+{
+  "schema": "semaprax.canonical870-stage.v1",
+  "source": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+  "raw_length": 62384,
+  "raw_sha256": "d2da17ff0d2a477bf625e9bd039380165e9f0cfbf5f2b144e0000659669e3c30",
+  "stage_length": 63373,
+  "stage_sha256": "459b9a2d0f454f608a3e1997b46e76cc09c1ddc098d976b7513f92b16263a839",
+  "stage_source_commit": "51c1dfc49962e046566ad21ec31f20c6b3a9bdae",
+  "inverse": [
+    {
+      "start": 44,
+      "end": 45,
+      "current": "#[cfg(test)]\n",
+      "previous": ""
+    },
+    {
+      "start": 46,
+      "end": 50,
+      "current": "mod paid_many;\n#[cfg(test)]\n#[path = \"canonical_shared/before_paid_many.rs\"]\nmod before_paid_many;\n",
+      "previous": ""
+    },
+    {
+      "start": 723,
+      "end": 725,
+      "current": "                    std::mem::size_of::<BTreeMap<Label, paid_many::Targets>>()\n                        + std::mem::size_of::<Option<&mut paid_many::Targets>>(),\n",
+      "previous": "                    std::mem::size_of::<BTreeMap<Label, successor_targets::Targets>>()\n                        + std::mem::size_of::<Option<&mut successor_targets::Targets>>(),\n"
+    },
+    {
+      "start": 728,
+      "end": 729,
+      "current": "            let mut successors = BTreeMap::<Label, paid_many::Targets>::new();\n",
+      "previous": "            let mut successors = BTreeMap::<Label, successor_targets::Targets>::new();\n"
+    },
+    {
+      "start": 738,
+      "end": 739,
+      "current": "                        budget.reserve_btree_node::<Label, paid_many::Targets>(\n",
+      "previous": "                        budget.reserve_btree_node::<Label, successor_targets::Targets>(\n"
+    },
+    {
+      "start": 745,
+      "end": 746,
+      "current": "                                2 * std::mem::size_of::<paid_many::Targets>()\n",
+      "previous": "                                2 * std::mem::size_of::<successor_targets::Targets>()\n"
+    },
+    {
+      "start": 747,
+      "end": 748,
+      "current": "                                    + std::mem::size_of::<Option<paid_many::Targets>>(),\n",
+      "previous": "                                    + std::mem::size_of::<Option<successor_targets::Targets>>(),\n"
+    },
+    {
+      "start": 761,
+      "end": 762,
+      "current": "                            paid_many::Targets::One {\n",
+      "previous": "                            successor_targets::Targets::One {\n"
+    },
+    {
+      "start": 769,
+      "end": 770,
+      "current": "                            paid_many::Targets::One {\n",
+      "previous": "                            successor_targets::Targets::One {\n"
+    },
+    {
+      "start": 780,
+      "end": 781,
+      "current": "                            paid_many::Targets::One {\n",
+      "previous": "                            successor_targets::Targets::One {\n"
+    },
+    {
+      "start": 784,
+      "end": 784,
+      "current": "",
+      "previous": "                                assert_ne!(*first, *child);\n"
+    },
+    {
+      "start": 785,
+      "end": 787,
+      "current": "                                    budget.reserve_bytes(function, paid_many::PROMOTE_RECEIVING,\n                                        \"factored composed promotion receivers\")?;\n",
+      "previous": "                                    budget.reserve_bytes(\n                                        function,\n                                        2 * std::mem::size_of::<BTreeMap<usize, u64>>()\n                                            + std::mem::size_of::<successor_targets::Targets>()\n                                            + 2 * std::mem::size_of::<Option<u64>>()\n                                            + 2 * std::mem::size_of::<(usize, u64)>(),\n                                        \"factored inline successor promotion carriers\",\n                                    )?;\n"
+    },
+    {
+      "start": 788,
+      "end": 791,
+      "current": "                                #[cfg(test)]\n                                if budget.pays_allocations() { paid_many::note_branch(true); }\n                                *targets = paid_many::promote(function, budget, *first, *total, *child, *weight)?;\n",
+      "previous": "                                budget.reserve_bytes(\n                                    function,\n                                    0,\n                                    \"factored successor target promotion authentication\",\n                                )?;\n                                budget.reserve_btree_node::<usize, u64>(\n                                    function,\n                                    \"factored successor target node\",\n                                )?;\n                                budget.reserve_btree_node::<usize, u64>(\n                                    function,\n                                    \"factored successor target node\",\n                                )?;\n                                let mut promoted = BTreeMap::new();\n                                promoted.insert(*first, *total);\n                                let sum = 0_u64\n                                    .checked_add(*weight)\n                                    .expect(\"zero plus u64 cannot overflow\");\n                                promoted.insert(*child, sum);\n                                *targets = successor_targets::Targets::Many(promoted);\n"
+    },
+    {
+      "start": 792,
+      "end": 799,
+      "current": "                            paid_many::Targets::PaidMany(_) => {\n                                budget.reserve_bytes(function, paid_many::ADD_RECEIVING,\n                                    \"factored composed flat add receivers\")?;\n                                let paid_many::Targets::PaidMany(flat) = targets else { unreachable!(\"paid flat arm\") };\n                                if !paid_many::add(function, budget, flat, *child, *weight)? { return Ok(None); }\n                            }\n                            paid_many::Targets::Many(targets) => {\n",
+      "previous": "                            successor_targets::Targets::Many(targets) => {\n"
+    },
+    {
+      "start": 830,
+      "end": 831,
+      "current": "                                paid_many::Targets,\n",
+      "previous": "                                successor_targets::Targets,\n"
+    },
+    {
+      "start": 832,
+      "end": 834,
+      "current": "                        >() + std::mem::size_of::<Option<(Label, paid_many::Targets)>>()\n                            + std::mem::size_of::<(Label, paid_many::Targets)>(),\n",
+      "previous": "                        >() + std::mem::size_of::<Option<(Label, successor_targets::Targets)>>()\n                            + std::mem::size_of::<(Label, successor_targets::Targets)>(),\n"
+    },
+    {
+      "start": 852,
+      "end": 853,
+      "current": "                        paid_many::Targets::One { child, weight } => {\n",
+      "previous": "                        successor_targets::Targets::One { child, weight } => {\n"
+    },
+    {
+      "start": 870,
+      "end": 877,
+      "current": "                        paid_many::Targets::PaidMany(_) => {\n                            budget.reserve_bytes(function, paid_many::FINISH_RECEIVING,\n                                \"factored composed flat finish receivers\")?;\n                            let paid_many::Targets::PaidMany(flat) = targets else { unreachable!(\"paid flat finish\") };\n                            own_weighted(function, budget, flat)?\n                        }\n                        paid_many::Targets::Many(targets) => {\n",
+      "previous": "                        successor_targets::Targets::Many(targets) => {\n"
+    },
+    {
+      "start": 938,
+      "end": 940,
+      "current": "                std::mem::size_of::<BTreeMap<Label, paid_many::Targets>>()\n                    + std::mem::size_of::<Option<&mut paid_many::Targets>>(),\n",
+      "previous": "                std::mem::size_of::<BTreeMap<Label, successor_targets::Targets>>()\n                    + std::mem::size_of::<Option<&mut successor_targets::Targets>>(),\n"
+    },
+    {
+      "start": 943,
+      "end": 944,
+      "current": "        let mut successors = BTreeMap::<Label, paid_many::Targets>::new();\n",
+      "previous": "        let mut successors = BTreeMap::<Label, successor_targets::Targets>::new();\n"
+    },
+    {
+      "start": 953,
+      "end": 954,
+      "current": "                    budget.reserve_btree_node::<Label, paid_many::Targets>(\n",
+      "previous": "                    budget.reserve_btree_node::<Label, successor_targets::Targets>(\n"
+    },
+    {
+      "start": 960,
+      "end": 961,
+      "current": "                            2 * std::mem::size_of::<paid_many::Targets>()\n",
+      "previous": "                            2 * std::mem::size_of::<successor_targets::Targets>()\n"
+    },
+    {
+      "start": 962,
+      "end": 963,
+      "current": "                                + std::mem::size_of::<Option<paid_many::Targets>>(),\n",
+      "previous": "                                + std::mem::size_of::<Option<successor_targets::Targets>>(),\n"
+    },
+    {
+      "start": 976,
+      "end": 977,
+      "current": "                        paid_many::Targets::One {\n",
+      "previous": "                        successor_targets::Targets::One {\n"
+    },
+    {
+      "start": 984,
+      "end": 985,
+      "current": "                        paid_many::Targets::One {\n",
+      "previous": "                        successor_targets::Targets::One {\n"
+    },
+    {
+      "start": 995,
+      "end": 996,
+      "current": "                        paid_many::Targets::One {\n",
+      "previous": "                        successor_targets::Targets::One {\n"
+    },
+    {
+      "start": 999,
+      "end": 999,
+      "current": "",
+      "previous": "                            assert_ne!(*first, *child);\n"
+    },
+    {
+      "start": 1000,
+      "end": 1002,
+      "current": "                                budget.reserve_bytes(function, paid_many::PROMOTE_RECEIVING,\n                                    \"factored composed promotion receivers\")?;\n",
+      "previous": "                                budget.reserve_bytes(\n                                    function,\n                                    2 * std::mem::size_of::<BTreeMap<usize, u64>>()\n                                        + std::mem::size_of::<successor_targets::Targets>()\n                                        + 2 * std::mem::size_of::<Option<u64>>()\n                                        + 2 * std::mem::size_of::<(usize, u64)>(),\n                                    \"factored inline successor promotion carriers\",\n                                )?;\n"
+    },
+    {
+      "start": 1003,
+      "end": 1006,
+      "current": "                            #[cfg(test)]\n                            if budget.pays_allocations() { paid_many::note_branch(false); }\n                            *targets = paid_many::promote(function, budget, *first, *total, *child, *weight)?;\n",
+      "previous": "                            budget.reserve_bytes(\n                                function,\n                                0,\n                                \"factored successor target promotion authentication\",\n                            )?;\n                            budget.reserve_btree_node::<usize, u64>(\n                                function,\n                                \"factored successor target node\",\n                            )?;\n                            budget.reserve_btree_node::<usize, u64>(\n                                function,\n                                \"factored successor target node\",\n                            )?;\n                            let mut promoted = BTreeMap::new();\n                            promoted.insert(*first, *total);\n                            let sum = 0_u64\n                                .checked_add(*weight)\n                                .expect(\"zero plus u64 cannot overflow\");\n                            promoted.insert(*child, sum);\n                            *targets = successor_targets::Targets::Many(promoted);\n"
+    },
+    {
+      "start": 1007,
+      "end": 1014,
+      "current": "                        paid_many::Targets::PaidMany(_) => {\n                            budget.reserve_bytes(function, paid_many::ADD_RECEIVING,\n                                \"factored composed flat add receivers\")?;\n                            let paid_many::Targets::PaidMany(flat) = targets else { unreachable!(\"paid flat arm\") };\n                            if !paid_many::add(function, budget, flat, *child, *weight)? { return Ok(None); }\n                        }\n                        paid_many::Targets::Many(targets) => {\n",
+      "previous": "                        successor_targets::Targets::Many(targets) => {\n"
+    },
+    {
+      "start": 1043,
+      "end": 1046,
+      "current": "                        std::collections::btree_map::IntoIter<Label, paid_many::Targets>,\n                    >() + std::mem::size_of::<Option<(Label, paid_many::Targets)>>()\n                        + std::mem::size_of::<(Label, paid_many::Targets)>(),\n",
+      "previous": "                        std::collections::btree_map::IntoIter<Label, successor_targets::Targets>,\n                    >() + std::mem::size_of::<Option<(Label, successor_targets::Targets)>>()\n                        + std::mem::size_of::<(Label, successor_targets::Targets)>(),\n"
+    },
+    {
+      "start": 1064,
+      "end": 1065,
+      "current": "                    paid_many::Targets::One { child, weight } => {\n",
+      "previous": "                    successor_targets::Targets::One { child, weight } => {\n"
+    },
+    {
+      "start": 1082,
+      "end": 1089,
+      "current": "                    paid_many::Targets::PaidMany(_) => {\n                        budget.reserve_bytes(function, paid_many::FINISH_RECEIVING,\n                            \"factored composed flat finish receivers\")?;\n                        let paid_many::Targets::PaidMany(flat) = targets else { unreachable!(\"paid flat finish\") };\n                        own_weighted(function, budget, flat)?\n                    }\n                    paid_many::Targets::Many(targets) => {\n",
+      "previous": "                    successor_targets::Targets::Many(targets) => {\n"
+    },
+    {
+      "start": 1434,
+      "end": 1435,
+      "current": "// Complete independent incoming flat receiver; production composition has its own namespace.\n",
+      "previous": "// Independent incoming receiver; paid Many production integration is OPT870.\n"
+    }
+  ]
+}

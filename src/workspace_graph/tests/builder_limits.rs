@@ -589,6 +589,7 @@ fn retained_output_reuses_only_complete_exact_carriers_and_charges_all_sidecars(
 
 #[test]
 fn catalog_normalizer_compact_core_fits_production_builder_cap() {
+    let _route_observation = crate::bounded_output::stage_debits::route_debits::observe();
     let _epsilon_app_census = crate::cleanup_plan::EpsilonAppCensus::normalizer();
     let manifest = crate::project::ProjectManifest::parse(include_str!(
         "../../../examples/catalog-normalizer-project/semaprax.toml"
@@ -656,6 +657,7 @@ fn catalog_normalizer_compact_core_fits_production_builder_cap() {
     crate::bounded_output::stage_debits::take_completed();
     let result = build_owned_with_builder_limit(sources.clone(), MAX_BUILDER_BYTES);
     print_operation_receipt("catalog-normalizer-compact-original");
+    crate::bounded_output::stage_debits::route_debits::print_settled();
     let built = result.unwrap_or_else(|errors| {
             let programs = parsed_sources(&sources);
             let authored = index_authored(&programs).unwrap();

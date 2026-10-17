@@ -192,7 +192,13 @@ mod terminal_leaf;
     assert_eq!(restored, format!("// Invoked only after preflight{production}"));
     assert_eq!(include_str!("../before_selected_labels/terminal_leaf.rs"),
         include_str!("../terminal_leaf.rs"));
-    let current = include_str!("../../canonical_shared.rs");
+    let actual_current = include_str!("../../canonical_shared.rs");
+    let current_owned = crate::source_reflows_merge::main67107_inputs::accepted_expected_value(
+        "src/cleanup_plan/replay/factored/canonical_shared.rs",
+        "54aa8f29d29f3b784dc5ca70719c455fe9b9cfcffae4cbd95fd041d39b261077",
+        actual_current,
+    );
+    let current = current_owned.as_str();
     let restored_current = current
         .replacen("#[macro_use]\nmod selected_labels;\n#[cfg(test)]\nmod before_selected_labels;\n", "", 1)
         .replacen("AllocationPayer::SelectedReservation => {\n                    return selected_labels_successors!(function, budget, self.automaton, closed, accepted, true);\n                }", "AllocationPayer::SelectedReservation => {}", 1)

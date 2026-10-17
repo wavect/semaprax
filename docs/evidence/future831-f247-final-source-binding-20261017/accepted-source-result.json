@@ -1,0 +1,33 @@
+{
+  "status": "SOURCE_ONLY_UNEXECUTED",
+  "current_rows": 54,
+  "prior_views": 66,
+  "changed_old_rows": [
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared.rs",
+    "src/source_reflows/semantic_receivers.rs",
+    "src/workspace_graph/tests/builder_limits.rs",
+    "tests/hir_module_boundaries.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs"
+  ],
+  "added_rows": [
+    "src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels/terminal_leaf.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/selected_labels.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/selected_labels/tests.rs",
+    "src/cleanup_plan/replay/skeleton_work.rs",
+    "src/cleanup_plan/replay/skeleton_work/isolated_paths.rs",
+    "src/cleanup_plan/replay/skeleton_work/isolated_paths/tests.rs",
+    "src/cleanup_plan/replay/skeleton_work/isolated_paths/tests/before.rs",
+    "src/source_reflows.rs",
+    "src/workspace_graph/static_text/scalar_helpers.rs",
+    "src/workspace_graph/static_text/scalar_helpers/capture_directory/tests.rs",
+    "tests/workspace/semantic_change/reporting.rs",
+    "tests/workspace/semantic_structural_change/reporting.rs"
+  ],
+  "no_self_binding_cycle": [
+    "src/source_reflows_merge/main67107_inputs.rs",
+    "src/source_reflows_merge/main_c883_inputs.rs"
+  ],
+  "all_original_rows_and_prior_views_retained": true
+}

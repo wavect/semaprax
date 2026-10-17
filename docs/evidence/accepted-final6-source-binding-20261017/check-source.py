@@ -22,8 +22,8 @@ new="template=b.read(R/recipe['helper_template'],digest=recipe['helper_template_
 assert raw.decode().count(old)==1
 current=raw.decode().replace(old,new,1)
 assert current.replace(new,old,1).encode()==raw
-helper=R/'docs/evidence/workspace21-legacy-source-repair-20261017/guard_payload.py'
-helper_raw=bounded(helper,5028,'5ba509e7343ac8ada5b6dd4f7e7ab22df4856d28f455d0b902c088b896cdad35')
+helper=R/'docs/evidence/future831-f247-final-source-binding-20261017/guard_payload.py'
+helper_raw=bounded(helper,7538,'c249dbbb29427d6034809305d352fa51326dbe6d2280c73afe41e331de51fd07')
 ns={'__file__':str(helper)};exec(compile(helper_raw,str(helper),'exec'),ns)
 old_guard='guard=runpy.run_path(str(guard_path))'
 new_guard='guard=_accepted_guard_extensions(R)'

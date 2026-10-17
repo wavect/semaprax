@@ -32,8 +32,8 @@ new=" payload=_definition_payload(R,row,read)"
 source=original.decode();assert source.count(old)==1
 current=source.replace(old,new,1)
 assert current.replace(new,old,1).encode()==original
-guard_helper=R/'docs/evidence/workspace21-legacy-source-repair-20261017/guard_payload.py';guard_raw=held(guard_helper,5028)
-assert sha(guard_raw)=='5ba509e7343ac8ada5b6dd4f7e7ab22df4856d28f455d0b902c088b896cdad35'
+guard_helper=R/'docs/evidence/future831-f247-final-source-binding-20261017/guard_payload.py';guard_raw=held(guard_helper,7538)
+assert sha(guard_raw)=='c249dbbb29427d6034809305d352fa51326dbe6d2280c73afe41e331de51fd07'
 g=types.ModuleType('accepted_main043_strict_guard');g.__file__=str(guard_helper)
 exec(compile(guard_raw,str(guard_helper),'exec'),g.__dict__)
 guard_old="runpy.run_path(str(R/D/'guard-extensions.py'))"

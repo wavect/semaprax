@@ -172,3 +172,55 @@ fn closed_main_1e_acquisition_authenticates_all_complete_current_owners() {
     }
     assert!(std::panic::catch_unwind(|| read_1e(root.join("not-a-main-1e-input"))).is_err());
 }
+
+// Separate f247 acquisition. Current physical bytes are authenticated first;
+// complete incoming JSON/source images remain a distinct immutable namespace.
+fn packet_f247() -> serde_json::Value {
+    let data = include_str!("../../docs/evidence/future831-f247-final-source-binding-20261017/main-f247-inputs.json");
+    assert_eq!(data.len(), 117066); // F247_PACKET_LENGTH
+    assert_eq!(digest(data.as_bytes()), "e5366792799f4042ee9d3c87bcbf1605574d165e627cf019a7f48b5aefae14f5");
+    let packet: serde_json::Value = serde_json::from_str(data).unwrap();
+    assert_eq!(packet["schema"], "semaprax.main-f247-source-acquisition.v1");
+    assert_eq!(packet["rows"].as_array().unwrap().len(), 228); // F247_PACKET_ROWS
+    packet
+}
+pub(crate) fn read_f247(path: impl AsRef<Path>) -> std::io::Result<String> {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let relative = path.as_ref().strip_prefix(root).expect("confined f247 source");
+    assert!(relative.components().all(|p| matches!(p, std::path::Component::Normal(_))));
+    let relative = relative.to_str().unwrap();
+    let packet = packet_f247();
+    let rows = packet["rows"].as_array().unwrap();
+    assert_eq!(rows.iter().filter(|r| r["path"] == relative).count(), 1);
+    let row = rows.iter().find(|r| r["path"] == relative).unwrap();
+    let read = |path: &Path, length, expected| {
+        super::main67107_inputs::main_f247_file_raw(path, length, expected)
+            .map_err(|message| std::io::Error::new(std::io::ErrorKind::InvalidData, message))
+    };
+    let current = read(&root.join(relative), row["current_length"].as_u64().unwrap() as usize, row["current_sha256"].as_str().unwrap())?;
+    if let Some(compiled) = compiled(relative).or_else(|| super::main67107_inputs::accepted_physical_compiled(relative)) {
+        let compiled = super::main67107_inputs::accepted_expected_value(relative, row["current_sha256"].as_str().unwrap(), compiled);
+        assert_eq!(current, compiled, "actual complete compiled f247 current owner");
+    }
+    read(&root.join(row["main_archive"].as_str().unwrap()), row["main_length"].as_u64().unwrap() as usize, row["main_sha256"].as_str().unwrap())
+}
+pub(crate) fn f247_expected(path: &str, supplied: &str) -> String {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let incoming = read_f247(root.join(path)).unwrap();
+    let packet = packet_f247();
+    let row = packet["rows"].as_array().unwrap().iter().find(|r| r["path"] == path).unwrap();
+    let actual = super::main67107_inputs::main_f247_file_raw(&root.join(path), row["current_length"].as_u64().unwrap() as usize, row["current_sha256"].as_str().unwrap()).unwrap();
+    assert!(supplied == actual || supplied == incoming, "foreign f247 supplied source");
+    incoming
+}
+#[test]
+fn closed_f247_acquisition_authenticates_whole_current_and_incoming_domains() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let packet = packet_f247();
+    for row in packet["rows"].as_array().unwrap() {
+        let value = read_f247(root.join(row["path"].as_str().unwrap())).unwrap();
+        assert_eq!(value.len() as u64, row["main_length"].as_u64().unwrap());
+        assert_eq!(digest(value.as_bytes()), row["main_sha256"]);
+    }
+    assert!(std::panic::catch_unwind(|| read_f247(root.join("foreign-f247-source"))).is_err());
+}

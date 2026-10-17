@@ -1,0 +1,802 @@
+{
+  "status": "DRAFT_POSTPIN_SOURCE_ONLY_UNREGISTERED_UNEXECUTED",
+  "source_head": null,
+  "source_tree": null,
+  "freeze_required": true,
+  "checks": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::live_oracle::source_custody::b::complete_original_sources_and_compiled_owning_receivers_remain_exact",
+      "reasons": [
+        "custody-only18"
+      ],
+      "sourcepath": "src/cleanup_plan/replay/live_oracle/source_custody/b.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:workspace",
+      "selector": "semantic_graph::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root",
+      "reasons": [
+        "custody-only18"
+      ],
+      "sourcepath": "tests/workspace/semantic_graph.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::live_oracle::source_custody::current_view::funded_promotions_preserve_whole_original_guards_and_refuse_foreign_stages",
+      "reasons": [
+        "custody-only18"
+      ],
+      "sourcepath": "src/cleanup_plan/replay/live_oracle/source_custody/current_view.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:hir_module_boundaries",
+      "selector": "production_source_inventory::current_relocated_subjects_require_all_five_in_order_and_reject_old_or_duplicate_prefixes",
+      "reasons": [
+        "custody-only18"
+      ],
+      "sourcepath": "tests/support/production_source_inventory.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:workspace",
+      "selector": "semantic_graph::production_source_inventory::current_relocated_subjects_require_all_five_in_order_and_reject_old_or_duplicate_prefixes",
+      "reasons": [
+        "custody-only18"
+      ],
+      "sourcepath": "tests/support/production_source_inventory.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::allocation::tests::clone_cursor::scalar_cursor_complete_sources_and_original_census_remain_bound",
+      "reasons": [
+        "custody-only18"
+      ],
+      "sourcepath": "src/cleanup_plan/replay/allocation/tests/clone_cursor.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs",
+      "reasons": [
+        "custody-only18"
+      ],
+      "sourcepath": "src/source_reflows_merge/main_eb2_inputs.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "hir::lexical_exit::walk::tests::compact_cursor_complete_before_sources_and_compiled_control_stay_bound",
+      "reasons": [
+        "custody-only18"
+      ],
+      "sourcepath": "src/hir/lexical_exit/walk/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound",
+      "reasons": [
+        "custody-only18"
+      ],
+      "sourcepath": "src/project/incremental.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows_merge::main7f8_source_inputs::later_452_source_inputs_preserve_complete_frozen_domains_and_refuse_wrong_stages",
+      "reasons": [
+        "custody-only18"
+      ],
+      "sourcepath": "src/source_reflows_merge/main7f8_source_inputs.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows_merge::opt858_sequence_input::later_sequence_fusion_keeps_complete858_input_and_rejects_other_stages",
+      "reasons": [
+        "custody-only18"
+      ],
+      "sourcepath": "src/source_reflows_merge/opt858_sequence_input.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::moderate_tests::original_selector_and_whole_source_receivers_remain_bound",
+      "reasons": [
+        "custody-only18"
+      ],
+      "sourcepath": "src/cleanup_plan/replay/factored/moderate_tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows_merge::main7f8_source_inputs::moderate_452_complete_metadata_inputs_preserve_original_clauses_and_refuse_wrong_stages",
+      "reasons": [
+        "custody-only18"
+      ],
+      "sourcepath": "src/source_reflows_merge/main7f8_source_inputs.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::tests::targets::complete_predecessors_and_new_target_sources_are_bound",
+      "reasons": [
+        "custody-only18"
+      ],
+      "sourcepath": "src/cleanup_plan/replay/factored/canonical_shared/tests/targets.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows::factored_sources::later_factored_sources_keep_complete_fixed_domains_and_refuse_foreign_expected_rows",
+      "reasons": [
+        "custody-only18"
+      ],
+      "sourcepath": "src/source_reflows/factored_sources.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::paid_many::source::complete_immediate_canonicalizer_caller_terminal_helpers_and_all_original_tests_are_exact",
+      "reasons": [
+        "custody-only18"
+      ],
+      "sourcepath": "src/cleanup_plan/replay/factored/canonical_shared/paid_many/source.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::paid_many::source::ordered_recipe_keeps_all115_original_rows_fields_and_refuses_old_or_forged_order",
+      "reasons": [
+        "custody-only18"
+      ],
+      "sourcepath": "src/cleanup_plan/replay/factored/canonical_shared/paid_many/source.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::borrowed_labels::direct_singleton_complete_directory_preimage_remains_byte_exact",
+      "reasons": [
+        "custody-only18"
+      ],
+      "sourcepath": "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows::factored_sources::singleton_concat_physical_front_retains_whole_prior_and_refuses_drift",
+      "reasons": [
+        "additional_factored_source_front"
+      ],
+      "sourcepath": "src/source_reflows/factored_sources.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows::factored_sources::joined_factored_domains_preserve_complete_receivers_and_refuse_foreign_inputs",
+      "reasons": [
+        "additional_factored_source_front"
+      ],
+      "sourcepath": "src/source_reflows/factored_sources.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:workspace",
+      "selector": "semantic_graph::public_api_cli_bytes_getters_and_read_only_locking_are_exact",
+      "reasons": [
+        "managed_normal_consumer"
+      ],
+      "sourcepath": "tests/workspace/semantic_graph.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:workspace",
+      "selector": "semantic_graph::public_workspace_analysis_api_cli_kats_and_locking_are_exact",
+      "reasons": [
+        "managed_normal_consumer"
+      ],
+      "sourcepath": "tests/workspace/semantic_graph.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "workspace_graph::type_proof_tests::projection_tests::rendered_document_has_literal_sha_exact_wire_order_and_digest_binding",
+      "reasons": [
+        "managed_normal_consumer"
+      ],
+      "sourcepath": "src/workspace_graph/type_proof_tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::browser_known_answers_match_authenticated_baseline_and_rename_graphs",
+      "reasons": [
+        "browser_pin_owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::current_browser_bridge_keeps_both_complete_trees_and_refuses_rehashed_foreign_and_wrong_role",
+      "reasons": [
+        "browser_pin_owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::main7d34_browser_bridge_preserves_three_complete_trees_and_raw_role_refusals",
+      "reasons": [
+        "browser_pin_owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::incoming_main21abc::hosted_wires_keep_current_pins_and_every_complete_previous_receiver",
+      "reasons": [
+        "browser_pin_owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::incoming_main21abc::a_rehashed_non_builder_change_still_fails_the_complete_bridge",
+      "reasons": [
+        "browser_pin_owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:wasm",
+      "selector": "scalar_browser_ci_contract::historical_builder::incoming_main21abc::the_complete_old_bridge_changes_only_its_retained_runner_include",
+      "reasons": [
+        "browser_pin_owner"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::final_output::tests::final_output_keeps_complete_hir_plan_multiplicity_work_and_failures",
+      "reasons": [
+        "original_primary_issue_852"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::final_output::tests::final_output_whole_owners_report_capacities_exact_short_zero_and_drop",
+      "reasons": [
+        "original_primary_issue_852"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::compact_stage::tests::all_canonical_fields_order_and_debug_survive_compaction",
+      "reasons": [
+        "original_primary_issue_852"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::compact_stage::tests::constructor_and_rc_pay_all_backing_with_zero_exact_short_and_drop",
+      "reasons": [
+        "original_primary_issue_852"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::compact_stage::tests::complete_original_plan_paths_keep_every_field_work_and_materialization",
+      "reasons": [
+        "original_primary_issue_852"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::compact_stage::source_custody::all_seven_live_receivers_reconstruct_every_predecessor_byte",
+      "reasons": [
+        "original_primary_issue_852"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::compact_stage::source_custody::original_enumerator_enum_header_traits_and_lexical_helper_stay_complete",
+      "reasons": [
+        "original_primary_issue_852"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::oracle_order::tests::compact_staged_order_preserves_canonical_fields_work_and_refusals",
+      "reasons": [
+        "original_primary_issue_852"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::structural_maps::tests::borrowed_status_coverage_still_rejects_missing_and_changed_declarations",
+      "reasons": [
+        "original_primary_issue_852"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::structural_maps::tests::borrowed_status_sets_keep_full_identity_order_and_pay_backing_through_drop",
+      "reasons": [
+        "original_primary_issue_852"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows::semantic_receivers_mainb80::every_receiver_inverse_preserves_the_entire_reflow_input_and_archive",
+      "reasons": [
+        "original_primary_issue_852"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows::semantic_receivers_mainb80::receiver_mutation_and_forged_predecessor_fail_closed",
+      "reasons": [
+        "original_primary_issue_852"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::final_output::current_observation_tests::final_output_keeps_complete_hir_plan_multiplicity_work_and_failures",
+      "reasons": [
+        "original_primary_issue_852"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::final_output::current_observation_tests::final_output_whole_owners_report_capacities_exact_short_zero_and_drop",
+      "reasons": [
+        "original_primary_issue_852"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::oracle_order::tests::paid_type_order_matches_full_derived_order_all_variants_arguments_and_utf8",
+      "reasons": [
+        "original_primary_issue_852"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::oracle_order::tests::deep_paid_type_order_exact_short_zero_retains_first_refusal_and_drop",
+      "reasons": [
+        "original_primary_issue_852"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::oracle_order::tests::compact_staged_receiving_keeps_floor_and_foreign_owner_first_refusal",
+      "reasons": [
+        "original_primary_issue_852"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "hir::ids::instance_match::tests::streamed_instance_matches_complete_encoder_all_forms_and_forged_bytes",
+      "reasons": [
+        "original_primary_issue_853"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "hir::ids::instance_match::tests::streamed_instance_exact_short_zero_sticky_floor_keep_all_key_producers_and_drop",
+      "reasons": [
+        "original_primary_issue_853"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "hir::ids::instance_match::tests::streamed_instance_validator_preserves_duplicate_before_canonical_refusal",
+      "reasons": [
+        "original_primary_issue_853"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "hir::ids::instance_match::tests::streamed_instance_zero_argument_nominal_omission_cannot_authenticate_empty_key",
+      "reasons": [
+        "original_primary_issue_853"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::sequence_prefix_main24::helper::tests::thin_header_and_complete_shipped_wrapper_and_tests_stay_source_bound",
+      "reasons": [
+        "original_primary_issue_856"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::sequence_prefix_main_c11::helper::tests::thin_header_and_complete_shipped_wrapper_and_tests_stay_source_bound",
+      "reasons": [
+        "original_primary_issue_856"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::sequence_prefix::tests::complete_original_sequence_keeps_order_path_fields_work_and_materializations",
+      "reasons": [
+        "original_primary_issue_856"
+      ],
+      "sourcepath": "src/cleanup_plan/replay/sequence_prefix/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::sequence_prefix::tests::transfer_reuses_full_backing_and_preserves_each_observation_identity",
+      "reasons": [
+        "original_primary_issue_856"
+      ],
+      "sourcepath": "src/cleanup_plan/replay/sequence_prefix/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::sequence_prefix::tests::original_receiver_source_remains_complete",
+      "reasons": [
+        "original_primary_issue_856"
+      ],
+      "sourcepath": "src/cleanup_plan/replay/sequence_prefix/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::sequence_prefix::tests::complete_transfer_receiver_pays_before_allocation_at_zero_exact_and_short_limits",
+      "reasons": [
+        "original_primary_issue_856"
+      ],
+      "sourcepath": "src/cleanup_plan/replay/sequence_prefix/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::sequence_prefix::tests::bypasses_and_sticky_refusals_leave_the_complete_input_untouched",
+      "reasons": [
+        "original_primary_issue_856"
+      ],
+      "sourcepath": "src/cleanup_plan/replay/sequence_prefix/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::sequence_prefix::shipping_tests::shipping_lexical_single_successor_matches_complete_main_f1_corpus",
+      "reasons": [
+        "original_primary_issue_856"
+      ],
+      "sourcepath": "src/cleanup_plan/replay/sequence_prefix/shipping_tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::sequence_prefix_main24::helper::tests::complete_original_sequence_keeps_order_path_fields_work_and_materializations",
+      "reasons": [
+        "original_primary_issue_856"
+      ],
+      "sourcepath": "src/cleanup_plan/replay/sequence_prefix/main24/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::sequence_prefix_main24::helper::tests::transfer_reuses_full_backing_and_preserves_each_observation_identity",
+      "reasons": [
+        "original_primary_issue_856"
+      ],
+      "sourcepath": "src/cleanup_plan/replay/sequence_prefix/main24/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::sequence_prefix_main24::helper::tests::original_receiver_source_remains_complete",
+      "reasons": [
+        "original_primary_issue_856"
+      ],
+      "sourcepath": "src/cleanup_plan/replay/sequence_prefix/main24/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::sequence_prefix_main24::helper::tests::complete_transfer_receiver_pays_before_allocation_at_zero_exact_and_short_limits",
+      "reasons": [
+        "original_primary_issue_856"
+      ],
+      "sourcepath": "src/cleanup_plan/replay/sequence_prefix/main24/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::sequence_prefix_main24::helper::tests::bypasses_and_sticky_refusals_leave_the_complete_input_untouched",
+      "reasons": [
+        "original_primary_issue_856"
+      ],
+      "sourcepath": "src/cleanup_plan/replay/sequence_prefix/main24/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::sequence_prefix_main24::helper::before_wrapper::before_wrapper::tests::complete_original_sequence_keeps_order_path_fields_work_and_materializations",
+      "reasons": [
+        "original_primary_issue_856"
+      ],
+      "sourcepath": "src/cleanup_plan/replay/sequence_prefix/main24/before_wrapper_tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::sequence_prefix_main24::helper::before_wrapper::before_wrapper::tests::transfer_reuses_full_backing_and_preserves_each_observation_identity",
+      "reasons": [
+        "original_primary_issue_856"
+      ],
+      "sourcepath": "src/cleanup_plan/replay/sequence_prefix/main24/before_wrapper_tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::sequence_prefix_main24::helper::before_wrapper::before_wrapper::tests::original_receiver_source_remains_complete",
+      "reasons": [
+        "original_primary_issue_856"
+      ],
+      "sourcepath": "src/cleanup_plan/replay/sequence_prefix/main24/before_wrapper_tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::sequence_prefix_main24::helper::before_wrapper::before_wrapper::tests::complete_transfer_receiver_pays_before_allocation_at_zero_exact_and_short_limits",
+      "reasons": [
+        "original_primary_issue_856"
+      ],
+      "sourcepath": "src/cleanup_plan/replay/sequence_prefix/main24/before_wrapper_tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::sequence_prefix_main24::helper::before_wrapper::before_wrapper::tests::bypasses_and_sticky_refusals_leave_the_complete_input_untouched",
+      "reasons": [
+        "original_primary_issue_856"
+      ],
+      "sourcepath": "src/cleanup_plan/replay/sequence_prefix/main24/before_wrapper_tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::sequence_prefix_main_c11::helper::tests::complete_original_sequence_keeps_order_path_fields_work_and_materializations",
+      "reasons": [
+        "original_primary_issue_856"
+      ],
+      "sourcepath": "src/cleanup_plan/replay/sequence_prefix/main_c11/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::sequence_prefix_main_c11::helper::tests::transfer_reuses_full_backing_and_preserves_each_observation_identity",
+      "reasons": [
+        "original_primary_issue_856"
+      ],
+      "sourcepath": "src/cleanup_plan/replay/sequence_prefix/main_c11/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::sequence_prefix_main_c11::helper::tests::original_receiver_source_remains_complete",
+      "reasons": [
+        "original_primary_issue_856"
+      ],
+      "sourcepath": "src/cleanup_plan/replay/sequence_prefix/main_c11/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::sequence_prefix_main_c11::helper::tests::complete_transfer_receiver_pays_before_allocation_at_zero_exact_and_short_limits",
+      "reasons": [
+        "original_primary_issue_856"
+      ],
+      "sourcepath": "src/cleanup_plan/replay/sequence_prefix/main_c11/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::sequence_prefix_main_c11::helper::tests::bypasses_and_sticky_refusals_leave_the_complete_input_untouched",
+      "reasons": [
+        "original_primary_issue_856"
+      ],
+      "sourcepath": "src/cleanup_plan/replay/sequence_prefix/main_c11/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::sequence_prefix_main_c11::helper::before_wrapper::before_wrapper::tests::complete_original_sequence_keeps_order_path_fields_work_and_materializations",
+      "reasons": [
+        "original_primary_issue_856"
+      ],
+      "sourcepath": "src/cleanup_plan/replay/sequence_prefix/main_c11/before_wrapper_tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::sequence_prefix_main_c11::helper::before_wrapper::before_wrapper::tests::transfer_reuses_full_backing_and_preserves_each_observation_identity",
+      "reasons": [
+        "original_primary_issue_856"
+      ],
+      "sourcepath": "src/cleanup_plan/replay/sequence_prefix/main_c11/before_wrapper_tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::sequence_prefix_main_c11::helper::before_wrapper::before_wrapper::tests::original_receiver_source_remains_complete",
+      "reasons": [
+        "original_primary_issue_856"
+      ],
+      "sourcepath": "src/cleanup_plan/replay/sequence_prefix/main_c11/before_wrapper_tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::sequence_prefix_main_c11::helper::before_wrapper::before_wrapper::tests::complete_transfer_receiver_pays_before_allocation_at_zero_exact_and_short_limits",
+      "reasons": [
+        "original_primary_issue_856"
+      ],
+      "sourcepath": "src/cleanup_plan/replay/sequence_prefix/main_c11/before_wrapper_tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::sequence_prefix_main_c11::helper::before_wrapper::before_wrapper::tests::bypasses_and_sticky_refusals_leave_the_complete_input_untouched",
+      "reasons": [
+        "original_primary_issue_856"
+      ],
+      "sourcepath": "src/cleanup_plan/replay/sequence_prefix/main_c11/before_wrapper_tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_array::sequence_minimum::tests::complete_predecessor_is_bound_to_the_single_reviewed_macro_replacement",
+      "reasons": [
+        "original_primary_issue_858"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_array_main44::sequence::tests::complete_paid_drop_and_exact_short_zero_sticky_controls",
+      "reasons": [
+        "original_primary_issue_858"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows_merge::current344::sequence_minimum_input_tests::exact_complete_sequence_input_refuses_drift_and_historical_bytes",
+      "reasons": [
+        "original_primary_issue_858"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:workspace",
+      "selector": "semantic_graph::current344_input::sequence_minimum_input_tests::exact_complete_sequence_input_refuses_drift_and_historical_bytes",
+      "reasons": [
+        "original_primary_issue_858"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_array_main44::sequence_vector::tests::complete_predecessor_and_original_push_operations_stay_source_bound",
+      "reasons": [
+        "original_primary_issue_858"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_array_main44::source_domain::every_current_source_has_the_exact_complete_incoming_main44_preimage",
+      "reasons": [
+        "original_primary_issue_858"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_array::sequence_minimum::optimized_tests::staged_probe_reports_every_paid_and_heap_delta_with_exact_sticky_accounts",
+      "reasons": [
+        "original_primary_issue_858"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_array::sequence_minimum::optimized_tests::total_capacity_covers_both_frames_and_preserves_overflow_fallbacks",
+      "reasons": [
+        "original_primary_issue_858"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_array::sequence_minimum::optimized_tests::selected_unpaid_and_warm_receivers_keep_complete_drop_and_real_fee_deltas",
+      "reasons": [
+        "original_primary_issue_858"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows_merge::opt858_sequence_input::tests::full_sequence_join_refuses_empty_foreign_duplicate_and_old_input",
+      "reasons": [
+        "original_primary_issue_858"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_array::sequence_minimum::tests::paid_probe_reports_no_saving_case_and_exact_finite_sticky_accounts",
+      "reasons": [
+        "original_primary_issue_858"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::path_array::sequence_minimum::tests::pure_capacity_requires_full_removed_backing_and_checks_overflow",
+      "reasons": [
+        "original_primary_issue_858"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "test:workspace",
+      "selector": "semantic_graph::opt858_sequence_input::tests::full_sequence_join_refuses_empty_foreign_duplicate_and_old_input",
+      "reasons": [
+        "original_primary_issue_858"
+      ]
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows_merge::current344::tests::complete_direct_reader_preimages_refuse_stale_truncated_and_historical_inputs",
+      "reasons": [
+        "original_primary_issue_858"
+      ]
+    }
+  ],
+  "selected": 92,
+  "literal_roles": [
+    "lib",
+    "test:hir_module_boundaries",
+    "test:wasm",
+    "test:workspace"
+  ],
+  "not_five_build_producer_qualification": true,
+  "source_observed_head": "851f1293ce4ce0d35107637b9d4f78cb85e6293f"
+}

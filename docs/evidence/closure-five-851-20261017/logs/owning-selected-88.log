@@ -1,0 +1,10 @@
+
+running 1 test
+test cleanup_plan::replay::path_array::sequence_minimum::tests::paid_probe_reports_no_saving_case_and_exact_finite_sticky_accounts ... sequence minimum count=8 current_paid=40819 old_paid=41108 current_heap=Metrics { allocations: 201, reallocations: 61, allocated: 24401, freed: 24401, live: 0, highwater: 20057, invalid: false } old_heap=Metrics { allocations: 202, reallocations: 62, allocated: 25297, freed: 25297, live: 0, highwater: 20137, invalid: false }
+sequence minimum count=9 current_paid=48947 old_paid=48340 current_heap=Metrics { allocations: 222, reallocations: 69, allocated: 31865, freed: 31865, live: 0, highwater: 25977, invalid: false } old_heap=Metrics { allocations: 222, reallocations: 69, allocated: 31865, freed: 31865, live: 0, highwater: 25977, invalid: false }
+sequence minimum count=16 current_paid=66419 old_paid=67604 current_heap=Metrics { allocations: 354, reallocations: 110, allocated: 44689, freed: 44689, live: 0, highwater: 36185, invalid: false } old_heap=Metrics { allocations: 355, reallocations: 111, allocated: 46481, freed: 46481, live: 0, highwater: 36393, invalid: false }
+sequence minimum count=64 current_paid=220019 old_paid=226580 current_heap=Metrics { allocations: 1268, reallocations: 400, allocated: 166417, freed: 166417, live: 0, highwater: 132953, invalid: false } old_heap=Metrics { allocations: 1269, reallocations: 401, allocated: 173585, freed: 173585, live: 0, highwater: 133929, invalid: false }
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9747 filtered out; finished in 0.84s
+

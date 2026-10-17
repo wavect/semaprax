@@ -1,0 +1,124 @@
+{
+  "source": "851f1293ce4ce0d35107637b9d4f78cb85e6293f",
+  "full_selected_batch_passed": false,
+  "selected": 92,
+  "passed": 89,
+  "failed": [
+    {
+      "selector": "source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs",
+      "exit_code": 101,
+      "log": "/Volumes/Semaprax/lane-prompts/postpin-focused92-851f1293c-20261017/owning-selected-06.log",
+      "log_sha256": "a9e887b6d8d2f79c7d85cb82f51381e2eff4f1580697286c77f211efa9e5b899"
+    },
+    {
+      "selector": "hir::lexical_exit::walk::tests::compact_cursor_complete_before_sources_and_compiled_control_stay_bound",
+      "exit_code": 101,
+      "log": "/Volumes/Semaprax/lane-prompts/postpin-focused92-851f1293c-20261017/owning-selected-07.log",
+      "log_sha256": "6a665c1929e27d70749f1e12c688c21206980b1a09f41e15693ea388f46fbb48"
+    },
+    {
+      "selector": "source_reflows::factored_sources::joined_factored_domains_preserve_complete_receivers_and_refuse_foreign_inputs",
+      "exit_code": 101,
+      "log": "/Volumes/Semaprax/lane-prompts/postpin-focused92-851f1293c-20261017/owning-selected-19.log",
+      "log_sha256": "7a3fc2d2e455aeb895be22a47e7322beeb3a7ee7ff4e4deacac2c1c5e81e73a3"
+    }
+  ],
+  "issue_specific_complete_acceptance": {
+    "852": {
+      "passed": 17,
+      "selectors": [
+        "cleanup_plan::replay::final_output::tests::final_output_keeps_complete_hir_plan_multiplicity_work_and_failures",
+        "cleanup_plan::replay::final_output::tests::final_output_whole_owners_report_capacities_exact_short_zero_and_drop",
+        "cleanup_plan::replay::compact_stage::tests::all_canonical_fields_order_and_debug_survive_compaction",
+        "cleanup_plan::replay::compact_stage::tests::constructor_and_rc_pay_all_backing_with_zero_exact_short_and_drop",
+        "cleanup_plan::replay::compact_stage::tests::complete_original_plan_paths_keep_every_field_work_and_materialization",
+        "cleanup_plan::replay::compact_stage::source_custody::all_seven_live_receivers_reconstruct_every_predecessor_byte",
+        "cleanup_plan::replay::compact_stage::source_custody::original_enumerator_enum_header_traits_and_lexical_helper_stay_complete",
+        "cleanup_plan::replay::factored::oracle_order::tests::compact_staged_order_preserves_canonical_fields_work_and_refusals",
+        "cleanup_plan::replay::structural_maps::tests::borrowed_status_coverage_still_rejects_missing_and_changed_declarations",
+        "cleanup_plan::replay::structural_maps::tests::borrowed_status_sets_keep_full_identity_order_and_pay_backing_through_drop",
+        "source_reflows::semantic_receivers_mainb80::every_receiver_inverse_preserves_the_entire_reflow_input_and_archive",
+        "source_reflows::semantic_receivers_mainb80::receiver_mutation_and_forged_predecessor_fail_closed",
+        "cleanup_plan::replay::final_output::current_observation_tests::final_output_keeps_complete_hir_plan_multiplicity_work_and_failures",
+        "cleanup_plan::replay::final_output::current_observation_tests::final_output_whole_owners_report_capacities_exact_short_zero_and_drop",
+        "cleanup_plan::replay::factored::oracle_order::tests::paid_type_order_matches_full_derived_order_all_variants_arguments_and_utf8",
+        "cleanup_plan::replay::factored::oracle_order::tests::deep_paid_type_order_exact_short_zero_retains_first_refusal_and_drop",
+        "cleanup_plan::replay::factored::oracle_order::tests::compact_staged_receiving_keeps_floor_and_foreign_owner_first_refusal"
+      ]
+    },
+    "853": {
+      "passed": 4,
+      "selectors": [
+        "hir::ids::instance_match::tests::streamed_instance_matches_complete_encoder_all_forms_and_forged_bytes",
+        "hir::ids::instance_match::tests::streamed_instance_exact_short_zero_sticky_floor_keep_all_key_producers_and_drop",
+        "hir::ids::instance_match::tests::streamed_instance_validator_preserves_duplicate_before_canonical_refusal",
+        "hir::ids::instance_match::tests::streamed_instance_zero_argument_nominal_omission_cannot_authenticate_empty_key"
+      ]
+    },
+    "856": {
+      "passed": 28,
+      "selectors": [
+        "cleanup_plan::replay::sequence_prefix_main24::helper::tests::thin_header_and_complete_shipped_wrapper_and_tests_stay_source_bound",
+        "cleanup_plan::replay::sequence_prefix_main_c11::helper::tests::thin_header_and_complete_shipped_wrapper_and_tests_stay_source_bound",
+        "cleanup_plan::replay::sequence_prefix::tests::complete_original_sequence_keeps_order_path_fields_work_and_materializations",
+        "cleanup_plan::replay::sequence_prefix::tests::transfer_reuses_full_backing_and_preserves_each_observation_identity",
+        "cleanup_plan::replay::sequence_prefix::tests::original_receiver_source_remains_complete",
+        "cleanup_plan::replay::sequence_prefix::tests::complete_transfer_receiver_pays_before_allocation_at_zero_exact_and_short_limits",
+        "cleanup_plan::replay::sequence_prefix::tests::bypasses_and_sticky_refusals_leave_the_complete_input_untouched",
+        "cleanup_plan::replay::sequence_prefix::shipping_tests::shipping_lexical_single_successor_matches_complete_main_f1_corpus",
+        "cleanup_plan::replay::sequence_prefix_main24::helper::tests::complete_original_sequence_keeps_order_path_fields_work_and_materializations",
+        "cleanup_plan::replay::sequence_prefix_main24::helper::tests::transfer_reuses_full_backing_and_preserves_each_observation_identity",
+        "cleanup_plan::replay::sequence_prefix_main24::helper::tests::original_receiver_source_remains_complete",
+        "cleanup_plan::replay::sequence_prefix_main24::helper::tests::complete_transfer_receiver_pays_before_allocation_at_zero_exact_and_short_limits",
+        "cleanup_plan::replay::sequence_prefix_main24::helper::tests::bypasses_and_sticky_refusals_leave_the_complete_input_untouched",
+        "cleanup_plan::replay::sequence_prefix_main24::helper::before_wrapper::before_wrapper::tests::complete_original_sequence_keeps_order_path_fields_work_and_materializations",
+        "cleanup_plan::replay::sequence_prefix_main24::helper::before_wrapper::before_wrapper::tests::transfer_reuses_full_backing_and_preserves_each_observation_identity",
+        "cleanup_plan::replay::sequence_prefix_main24::helper::before_wrapper::before_wrapper::tests::original_receiver_source_remains_complete",
+        "cleanup_plan::replay::sequence_prefix_main24::helper::before_wrapper::before_wrapper::tests::complete_transfer_receiver_pays_before_allocation_at_zero_exact_and_short_limits",
+        "cleanup_plan::replay::sequence_prefix_main24::helper::before_wrapper::before_wrapper::tests::bypasses_and_sticky_refusals_leave_the_complete_input_untouched",
+        "cleanup_plan::replay::sequence_prefix_main_c11::helper::tests::complete_original_sequence_keeps_order_path_fields_work_and_materializations",
+        "cleanup_plan::replay::sequence_prefix_main_c11::helper::tests::transfer_reuses_full_backing_and_preserves_each_observation_identity",
+        "cleanup_plan::replay::sequence_prefix_main_c11::helper::tests::original_receiver_source_remains_complete",
+        "cleanup_plan::replay::sequence_prefix_main_c11::helper::tests::complete_transfer_receiver_pays_before_allocation_at_zero_exact_and_short_limits",
+        "cleanup_plan::replay::sequence_prefix_main_c11::helper::tests::bypasses_and_sticky_refusals_leave_the_complete_input_untouched",
+        "cleanup_plan::replay::sequence_prefix_main_c11::helper::before_wrapper::before_wrapper::tests::complete_original_sequence_keeps_order_path_fields_work_and_materializations",
+        "cleanup_plan::replay::sequence_prefix_main_c11::helper::before_wrapper::before_wrapper::tests::transfer_reuses_full_backing_and_preserves_each_observation_identity",
+        "cleanup_plan::replay::sequence_prefix_main_c11::helper::before_wrapper::before_wrapper::tests::original_receiver_source_remains_complete",
+        "cleanup_plan::replay::sequence_prefix_main_c11::helper::before_wrapper::before_wrapper::tests::complete_transfer_receiver_pays_before_allocation_at_zero_exact_and_short_limits",
+        "cleanup_plan::replay::sequence_prefix_main_c11::helper::before_wrapper::before_wrapper::tests::bypasses_and_sticky_refusals_leave_the_complete_input_untouched"
+      ]
+    },
+    "858": {
+      "passed": 14,
+      "selectors": [
+        "cleanup_plan::replay::path_array::sequence_minimum::tests::complete_predecessor_is_bound_to_the_single_reviewed_macro_replacement",
+        "cleanup_plan::replay::path_array_main44::sequence::tests::complete_paid_drop_and_exact_short_zero_sticky_controls",
+        "source_reflows_merge::current344::sequence_minimum_input_tests::exact_complete_sequence_input_refuses_drift_and_historical_bytes",
+        "semantic_graph::current344_input::sequence_minimum_input_tests::exact_complete_sequence_input_refuses_drift_and_historical_bytes",
+        "cleanup_plan::replay::path_array_main44::sequence_vector::tests::complete_predecessor_and_original_push_operations_stay_source_bound",
+        "cleanup_plan::replay::path_array_main44::source_domain::every_current_source_has_the_exact_complete_incoming_main44_preimage",
+        "cleanup_plan::replay::path_array::sequence_minimum::optimized_tests::staged_probe_reports_every_paid_and_heap_delta_with_exact_sticky_accounts",
+        "cleanup_plan::replay::path_array::sequence_minimum::optimized_tests::total_capacity_covers_both_frames_and_preserves_overflow_fallbacks",
+        "cleanup_plan::replay::path_array::sequence_minimum::optimized_tests::selected_unpaid_and_warm_receivers_keep_complete_drop_and_real_fee_deltas",
+        "source_reflows_merge::opt858_sequence_input::tests::full_sequence_join_refuses_empty_foreign_duplicate_and_old_input",
+        "cleanup_plan::replay::path_array::sequence_minimum::tests::paid_probe_reports_no_saving_case_and_exact_finite_sticky_accounts",
+        "cleanup_plan::replay::path_array::sequence_minimum::tests::pure_capacity_requires_full_removed_backing_and_checks_overflow",
+        "semantic_graph::opt858_sequence_input::tests::full_sequence_join_refuses_empty_foreign_duplicate_and_old_input",
+        "source_reflows_merge::current344::tests::complete_direct_reader_preimages_refuse_stale_truncated_and_historical_inputs"
+      ]
+    },
+    "872": {
+      "passed": 3,
+      "selectors": [
+        "semantic_graph::public_api_cli_bytes_getters_and_read_only_locking_are_exact",
+        "semantic_graph::public_workspace_analysis_api_cli_kats_and_locking_are_exact",
+        "workspace_graph::type_proof_tests::projection_tests::rendered_document_has_literal_sha_exact_wire_order_and_digest_binding"
+      ]
+    }
+  },
+  "build_commands": 4,
+  "build_receipt_sha256": "0776fb4d43fa25fef0c382803acaa000ffda54cfe6f42eef6ea2e1cc215b9c92",
+  "clippy_exit_code": 0,
+  "no_live_benchmark_or_token_gain_claim": true,
+  "three_other_cfg_test_source_custody_failures_under_active_repair": true
+}

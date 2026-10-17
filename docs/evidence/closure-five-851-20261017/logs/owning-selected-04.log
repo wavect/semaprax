@@ -1,0 +1,28 @@
+
+running 1 test
+test semantic_graph::production_source_inventory::current_relocated_subjects_require_all_five_in_order_and_reject_old_or_duplicate_prefixes ... 
+thread 'semantic_graph::production_source_inventory::current_relocated_subjects_require_all_five_in_order_and_reject_old_or_duplicate_prefixes' (24841553) panicked at tests/workspace/../support/production_source_inventory.rs:55:41:
+all five relocated subjects must enter the actual raw inventory
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'semantic_graph::production_source_inventory::current_relocated_subjects_require_all_five_in_order_and_reject_old_or_duplicate_prefixes' (24841553) panicked at tests/workspace/../support/production_source_inventory.rs:55:41:
+all five relocated subjects must enter the actual raw inventory
+
+thread 'semantic_graph::production_source_inventory::current_relocated_subjects_require_all_five_in_order_and_reject_old_or_duplicate_prefixes' (24841553) panicked at tests/workspace/../support/production_source_inventory.rs:55:41:
+all five relocated subjects must enter the actual raw inventory
+
+thread 'semantic_graph::production_source_inventory::current_relocated_subjects_require_all_five_in_order_and_reject_old_or_duplicate_prefixes' (24841553) panicked at tests/workspace/../support/production_source_inventory.rs:55:41:
+all five relocated subjects must enter the actual raw inventory
+
+thread 'semantic_graph::production_source_inventory::current_relocated_subjects_require_all_five_in_order_and_reject_old_or_duplicate_prefixes' (24841553) panicked at tests/workspace/../support/production_source_inventory.rs:56:5:
+duplicate current relocated inventory prefix
+
+thread 'semantic_graph::production_source_inventory::current_relocated_subjects_require_all_five_in_order_and_reject_old_or_duplicate_prefixes' (24841553) panicked at tests/workspace/../support/production_source_inventory.rs:55:41:
+all five relocated subjects must enter the actual raw inventory
+
+thread 'semantic_graph::production_source_inventory::current_relocated_subjects_require_all_five_in_order_and_reject_old_or_duplicate_prefixes' (24841553) panicked at tests/workspace/../support/production_source_inventory.rs:55:41:
+all five relocated subjects must enter the actual raw inventory
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 305 filtered out; finished in 0.00s
+

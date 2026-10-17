@@ -1,0 +1,6 @@
+
+running 1 test
+test semantic_graph::public_api_cli_bytes_getters_and_read_only_locking_are_exact ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 305 filtered out; finished in 9.85s
+

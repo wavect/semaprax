@@ -1,0 +1,10 @@
+
+running 1 test
+test hir::ids::instance_match::tests::streamed_instance_exact_short_zero_sticky_floor_keep_all_key_producers_and_drop ... instance shape=zero old_paid=47 current_paid=1051 old=Metrics { allocations: 4, reallocations: 2, allocated: 225, freed: 225, live: 0, highwater: 195, invalid: false } current=Metrics { allocations: 1, reallocations: 0, allocated: 88, freed: 88, live: 0, highwater: 88, invalid: false }
+instance shape=small old_paid=57 current_paid=1311 old=Metrics { allocations: 8, reallocations: 2, allocated: 361, freed: 361, live: 0, highwater: 211, invalid: false } current=Metrics { allocations: 4, reallocations: 0, allocated: 211, freed: 211, live: 0, highwater: 211, invalid: false }
+instance shape=long-compound old_paid=41159 current_paid=37170 old=Metrics { allocations: 18, reallocations: 10, allocated: 58024, freed: 58024, live: 0, highwater: 24911, invalid: false } current=Metrics { allocations: 13, reallocations: 7, allocated: 41415, freed: 41415, live: 0, highwater: 24911, invalid: false }
+instance comparison old_bill=1074 new_bill=28658 old=Metrics { allocations: 110, reallocations: 24, allocated: 6116, freed: 6116, live: 0, highwater: 1393, invalid: false } new=Metrics { allocations: 100, reallocations: 16, allocated: 4029, freed: 4029, live: 0, highwater: 392, invalid: false }
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9747 filtered out; finished in 0.00s
+

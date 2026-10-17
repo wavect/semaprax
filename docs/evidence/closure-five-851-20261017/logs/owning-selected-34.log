@@ -1,0 +1,77 @@
+
+running 1 test
+test cleanup_plan::replay::compact_stage::source_custody::all_seven_live_receivers_reconstruct_every_predecessor_byte ... 
+thread 'cleanup_plan::replay::compact_stage::source_custody::all_seven_live_receivers_reconstruct_every_predecessor_byte' (24853831) panicked at src/cleanup_plan/replay/compact_stage/source_custody.rs:85:5:
+assertion `left == right` failed: "src/cleanup_plan/replay.rs"
+  left: "a052d4fa6217c26883e92279e9390b1c86d49145b59a073488e71035d4c7cef3"
+ right: String("6dabd9057ffe5ec0a1ad0e552c2a3f437e20487d7b0ce64d54b2ff0798ac62db")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'cleanup_plan::replay::compact_stage::source_custody::all_seven_live_receivers_reconstruct_every_predecessor_byte' (24853831) panicked at src/cleanup_plan/replay/compact_stage/source_custody.rs:97:5:
+assertion `left == right` failed: "src/cleanup_plan/replay.rs"
+  left: "ee6582dfe9654e0d405cd103834e5ceb501c87c60d4b676ccde829fb4801329f"
+ right: String("0000000000000000000000000000000000000000000000000000000000000000")
+
+thread 'cleanup_plan::replay::compact_stage::source_custody::all_seven_live_receivers_reconstruct_every_predecessor_byte' (24853831) panicked at src/cleanup_plan/replay/compact_stage/source_custody.rs:85:5:
+assertion `left == right` failed: "src/cleanup_plan/replay/branch_clone/tests.rs"
+  left: "ea453fc2b5fe130d207b8c73575472a2bbd70cbacf1b8902eff8498646c4ee3e"
+ right: String("053dbd5dee8d05d3ed56db80729de01e2f0e572c0299779bed1cfbf6a0f64303")
+
+thread 'cleanup_plan::replay::compact_stage::source_custody::all_seven_live_receivers_reconstruct_every_predecessor_byte' (24853831) panicked at src/cleanup_plan/replay/compact_stage/source_custody.rs:97:5:
+assertion `left == right` failed: "src/cleanup_plan/replay/branch_clone/tests.rs"
+  left: "e9c4c72bcfad51ee7936c3e4b302c4440ea6862c4b771bcfc3202885b63ebbb7"
+ right: String("0000000000000000000000000000000000000000000000000000000000000000")
+
+thread 'cleanup_plan::replay::compact_stage::source_custody::all_seven_live_receivers_reconstruct_every_predecessor_byte' (24853831) panicked at src/cleanup_plan/replay/compact_stage/source_custody.rs:85:5:
+assertion `left == right` failed: "src/cleanup_plan/replay/factored.rs"
+  left: "c957b6b5cb3c5d8cb6f2ec0bcbbb87d85feb6655188addc81ccdc4f67bd78802"
+ right: String("88ed9119b1af09c4875cf3ec8d07a0b0ced6af6b47528eae581647d401348dd1")
+
+thread 'cleanup_plan::replay::compact_stage::source_custody::all_seven_live_receivers_reconstruct_every_predecessor_byte' (24853831) panicked at src/cleanup_plan/replay/compact_stage/source_custody.rs:97:5:
+assertion `left == right` failed: "src/cleanup_plan/replay/factored.rs"
+  left: "ca11b94661cd07264ef2b6da61f2dca28ac70aac3ffc4a362395c12e780beb7c"
+ right: String("0000000000000000000000000000000000000000000000000000000000000000")
+
+thread 'cleanup_plan::replay::compact_stage::source_custody::all_seven_live_receivers_reconstruct_every_predecessor_byte' (24853831) panicked at src/cleanup_plan/replay/compact_stage/source_custody.rs:85:5:
+assertion `left == right` failed: "src/cleanup_plan/replay/factored/borrowed_canonical/dictionary/keys.rs"
+  left: "31afc27dfe24d9b46c47d24f6a34f40baa85d5661915981a3f49f9cdbe935a16"
+ right: String("01b3e408874930f2aad015d20cf8317fc1507183f92aae740d11985b99d223e1")
+
+thread 'cleanup_plan::replay::compact_stage::source_custody::all_seven_live_receivers_reconstruct_every_predecessor_byte' (24853831) panicked at src/cleanup_plan/replay/compact_stage/source_custody.rs:97:5:
+assertion `left == right` failed: "src/cleanup_plan/replay/factored/borrowed_canonical/dictionary/keys.rs"
+  left: "a37b4da6cef36a9249dd30031bab14a710c32cea7b259159983978f390529643"
+ right: String("0000000000000000000000000000000000000000000000000000000000000000")
+
+thread 'cleanup_plan::replay::compact_stage::source_custody::all_seven_live_receivers_reconstruct_every_predecessor_byte' (24853831) panicked at src/cleanup_plan/replay/compact_stage/source_custody.rs:85:5:
+assertion `left == right` failed: "src/cleanup_plan/replay/factored/borrowed_canonical/tests.rs"
+  left: "7379d291b72999396e93d6285843bbaf45f2324ac4bf2e89bacb1debf46af062"
+ right: String("c9c42329ff2e2ee3802de78f0da6484b42a7c58ae6636532024c4e955b743033")
+
+thread 'cleanup_plan::replay::compact_stage::source_custody::all_seven_live_receivers_reconstruct_every_predecessor_byte' (24853831) panicked at src/cleanup_plan/replay/compact_stage/source_custody.rs:97:5:
+assertion `left == right` failed: "src/cleanup_plan/replay/factored/borrowed_canonical/tests.rs"
+  left: "603d7c7bfcbc1d6163b7395f048b7421665539806d7643cc0d9f38b61e48bfc6"
+ right: String("0000000000000000000000000000000000000000000000000000000000000000")
+
+thread 'cleanup_plan::replay::compact_stage::source_custody::all_seven_live_receivers_reconstruct_every_predecessor_byte' (24853831) panicked at src/cleanup_plan/replay/compact_stage/source_custody.rs:85:5:
+assertion `left == right` failed: "tests/hir_module_boundaries.rs"
+  left: "8a4c650af6dc4708bce127ce681a81f9cef4aaf96baa63eeb125fbe0241f4381"
+ right: String("72ab59ee5adca20d1ea19366bf58cbfece2c5f0a95be5340d85a43b1ba0a9891")
+
+thread 'cleanup_plan::replay::compact_stage::source_custody::all_seven_live_receivers_reconstruct_every_predecessor_byte' (24853831) panicked at src/cleanup_plan/replay/compact_stage/source_custody.rs:97:5:
+assertion `left == right` failed: "tests/hir_module_boundaries.rs"
+  left: "0fe29b4e9a4c1aea7e6ff38c608e4bc3f8b82c4c3c3a4484f35cf7f2490842bb"
+ right: String("0000000000000000000000000000000000000000000000000000000000000000")
+
+thread 'cleanup_plan::replay::compact_stage::source_custody::all_seven_live_receivers_reconstruct_every_predecessor_byte' (24853831) panicked at src/cleanup_plan/replay/compact_stage/source_custody.rs:85:5:
+assertion `left == right` failed: "tests/workspace/semantic_graph/source_inventory.rs"
+  left: "abfe12fb51864a5f03892e41d6edf34bfb9c03953c32b1dde1c581fdcec06ca3"
+ right: String("c649ef7b81ac26cc7efc769330148a860509a6b0b5fdec7d877e4eb3bfcea4cf")
+
+thread 'cleanup_plan::replay::compact_stage::source_custody::all_seven_live_receivers_reconstruct_every_predecessor_byte' (24853831) panicked at src/cleanup_plan/replay/compact_stage/source_custody.rs:97:5:
+assertion `left == right` failed: "tests/workspace/semantic_graph/source_inventory.rs"
+  left: "401c904b0941c4dc7e4677936366d23375d7503944692061ee024f9278d40cb1"
+ right: String("0000000000000000000000000000000000000000000000000000000000000000")
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9747 filtered out; finished in 1.03s
+

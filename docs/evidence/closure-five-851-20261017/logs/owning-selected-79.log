@@ -1,0 +1,6 @@
+
+running 1 test
+test cleanup_plan::replay::path_array_main44::sequence::tests::complete_paid_drop_and_exact_short_zero_sticky_controls ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9747 filtered out; finished in 1.06s
+

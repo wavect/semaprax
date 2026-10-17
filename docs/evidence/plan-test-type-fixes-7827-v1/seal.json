@@ -1,0 +1,12 @@
+{
+  "base": "7827d3687da21e1093d40f8c8e3f7116edba1993",
+  "claim": "source-only; actual compile pending",
+  "files": {
+    "README.md": "429b1beaac6f8ed1da1ec0039bd0492790de8423889cde7537acb3300a6d1794",
+    "source-proof.json": "4e4e7a865aabbd5588ac15addbc3aebca1999c1edff76630de71b19fafbcafe0",
+    "src__cleanup_plan__replay__branch_clone__tests.rs.before.txt": "e8163fa7935623b165170be2242d547f3ad89a5c4905f9a90b763ab9b8619e59",
+    "src__cleanup_plan__replay__ordinary_plan_history__tests.rs.before.txt": "b100fb248f89d1ca80b62d259db2576b9846cc0072952b072d2a80def28d0a3c",
+    "verify-source.py": "3495ed7455caccf203df98c52d84008f039e8195f4a65c8660bf3100419c0b1a",
+    "whole-inverses.json": "3cc3b4a23c75f427ce9d036c588ba9bc5e9d6a56898ba7597b1f68269653d099"
+  }
+}

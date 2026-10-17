@@ -179,7 +179,7 @@ fn full_comparator_exact_one_short_and_zero_leave_no_live_backing() {
                 let mut budget = ReplayBudget::new();
                 let result =
                     reserve_program_skeleton_work(&program, std::iter::once(function), &mut budget)
-                        .and_then(|()| produce(function, &mut budget))
+                        .and_then(|_reserved_slots| produce(function, &mut budget))
                         .and_then(|actual| compare(function, &mut budget, actual, &expected));
                 let success = result.is_ok();
                 drop(result);

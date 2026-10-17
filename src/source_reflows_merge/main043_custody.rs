@@ -17,7 +17,7 @@ Self::Receivers => Spec { path: concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evide
 Self::LiveAudits => Spec { path: concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main043-independent-custody-20261016/incoming/LiveAudits.json"), length: 24038, sha256: [178, 67, 123, 65, 69, 209, 43, 201, 254, 32, 251, 29, 191, 44, 136, 140, 26, 104, 50, 242, 230, 153, 165, 0, 100, 1, 116, 121, 177, 18, 78, 74] },
 Self::HistoricalCiExtras => Spec { path: concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main043-independent-custody-20261016/historical-ci-extra-inputs.json"), length: 266989, sha256: [158, 141, 221, 103, 92, 215, 252, 174, 70, 32, 208, 98, 59, 57, 161, 222, 210, 251, 115, 144, 248, 247, 170, 202, 28, 41, 238, 78, 57, 7, 234, 100] },
 }}}
-pub(super) fn input_spec() -> Spec { Spec { path: concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main043-independent-custody-20261016/current-to-main043-helper14.json"), length: 2150630, sha256: [188, 157, 79, 91, 98, 240, 26, 174, 59, 173, 20, 179, 138, 16, 141, 30, 181, 146, 239, 218, 52, 192, 65, 220, 177, 27, 246, 66, 89, 74, 187, 213] } }
+pub(super) fn input_spec() -> Spec { Spec { path: concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/main043-independent-custody-20261016/current-to-main043-helper14.json"), length: 2150672, sha256: [221, 33, 101, 13, 101, 16, 26, 50, 19, 96, 86, 88, 106, 75, 163, 41, 38, 249, 225, 43, 180, 151, 222, 111, 29, 80, 96, 132, 232, 239, 77, 53] } }
 pub(super) fn input(source: &str, current: &str) -> String {
 const KEYS: &[&str] = &[
 "src/cleanup_plan/replay.rs",

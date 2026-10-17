@@ -1,6 +1,6 @@
 {
   "status": "PASS_JOINED_SOURCE_AND_EXPLICIT_BOUNDARIES_ONLY",
-  "source_commit": "86e84ed6084d34be40dd84421b6de1650cc0e1a7",
+  "source_commit": "99f2571f7cdd2e1db44d7bda3bdf0fcb9b14eee4",
   "domain_counts": {
     "Previous16c": 379,
     "Maina3": 30,
@@ -339,7 +339,7 @@
   "completed_authority_generations": 1,
   "pre856_generation_interrupted_before_output": true,
   "source_proof_sha256": "17c323902a34e5336582cb65b03f1c4573e41773abf69f60228e0b0da4c3c69f",
-  "authority_proof_sha256": "c53606e39702e11f98a0ee235da80f7598ea22688efda6cdc8fd2fe21767a55a",
+  "authority_proof_sha256": "e81e747487355ce72c9eaf9f9a42a1d5a0889305e2a4c94352eb52700c472379",
   "guard_sha256": {
     "tests/hir_module_boundaries.rs": "dc3bf3b20917a0c523231e405ff329e5950f12b55501bced9ae908fbaf5b8888",
     "tests/workspace/semantic_graph/source_inventory.rs": "42bdd4f76491607cab8538b3006d4b807aca5d138badc1d763c7090cfc53b000",
@@ -348,7 +348,7 @@
   "all_six_original_static_negatives_refused": true,
   "complete_original_source_role_authentication": true,
   "original_global_verifier_main_executed": false,
-  "explicit_boundary_proof": "/Volumes/Semaprax/worktrees/next-large-integration-20261017/docs/evidence/source-boundary-domains-20261016/boundary-source-proof.json",
+  "explicit_boundary_proof": "/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang/docs/evidence/source-boundary-domains-20261016/boundary-source-proof.json",
   "rust_executed": false,
   "qualification": "PENDING"
 }

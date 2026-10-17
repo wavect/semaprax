@@ -583,3 +583,38 @@ fn tiny_collection_record_selector_executes_typed_native_roots_and_keeps_legacy_
         .iter()
         .all(|case| case["result"] == 0 && case["stdout"] == "0\n" && case["stderr"] == ""));
 }
+
+#[test]
+fn incomplete_starter_options_select_exact_usage_before_inputs_or_publication() {
+    let fixture = Fixture::new("incomplete-starter-options");
+    for options in [
+        vec!["--from", "missing-project"],
+        vec!["--codec-plan", "missing-plan.json"],
+        vec!["--command-profile", "source-command.v1"],
+        vec!["--command-path", "src/app.spx"],
+        vec!["--command-source", "missing-command.spx"],
+        vec![
+            "--from",
+            "missing-project",
+            "--command-profile",
+            "source-command.v1",
+        ],
+    ] {
+        let mut arguments = vec!["new", "fresh"];
+        arguments.extend(options.iter().copied());
+        let output = cli(&fixture.root, &arguments);
+        assert_eq!(output.status.code(), Some(2), "{arguments:?}: {output:?}");
+        assert!(output.stdout.is_empty());
+        assert!(String::from_utf8(output.stderr).unwrap().contains(
+            "new <fresh-directory> --from <project> --codec-plan <plan-json> --command-profile <exact-profile>"
+        ));
+        assert_eq!(std::fs::read_dir(&fixture.root).unwrap().count(), 0);
+    }
+    // Shared template grammar remains selected without an explicit starter flag.
+    let output = cli(&fixture.root, &["new", "fresh", "--bogus"]);
+    assert_eq!(output.status.code(), Some(2));
+    assert!(String::from_utf8(output.stderr)
+        .unwrap()
+        .contains("unknown new option `--bogus`"));
+    assert_eq!(std::fs::read_dir(&fixture.root).unwrap().count(), 0);
+}

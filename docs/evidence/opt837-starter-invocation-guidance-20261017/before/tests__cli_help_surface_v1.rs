@@ -1,0 +1,916 @@
+use std::path::PathBuf;
+use std::process::{Command, Output};
+use std::sync::atomic::{AtomicU64, Ordering};
+
+static NEXT: AtomicU64 = AtomicU64::new(0);
+const SHAPES_CATALOG_PATH: &str = "docs/LANGUAGE-SHAPES-CATALOG.md";
+const DEV_LINE: &str =
+    "semaprax dev <semaprax.toml> --jsonl|--human [--interpreter|--source-agent]\n";
+const BUILD_SOURCE_LINE: &str =
+    "semaprax build <file> [--target native] [-o|--output path] [--json]\n";
+const BUILD_PROJECT_LINE: &str = "semaprax build [<dir>|semaprax.toml|--manifest-path path] [--target native|web|wasm|npm|oci] [-o|--output path] [--json]\n";
+const DOCTOR_LINE: &str = "semaprax doctor [--profile <id>] [--target native|web|all] [--json]\n";
+const NEW_LINE: &str = "semaprax new <destination> [--name project-name] [--template calculator|library|service|stdin-stream-text|stdin-stream-data|stdin-stream-collection-record|source-command-file-text]\n";
+const PROJECT_SCAFFOLD_LINE: &str = "semaprax project-scaffold --name project-name [--template calculator|library|service|stdin-stream-text|stdin-stream-data|stdin-stream-collection-record|source-command-file-text] [--layout frozen|tables|current]\n";
+const BANNER: &str = "SEMAPRAX — Meaning in. Verified machine code out.\n";
+const JSON_CODEC_HELP: &str = "Derives checked ordinary source for explicit scalar records; opt-in identifier-views.v1, request-views.v1 and stream-request-views.v1 add bounded identifier/array views; owned-request.v1 and stream-owned-request.v1 materialize bounded identifier String/record collections under an owning runtime profile. UTF-8 owned request profiles bound each decoded string with --max-string-bytes (1..64 UTF-8 bytes). bounded-collection-response.v1 selects an encode-only nested collection view and also requires that bound. bounded-nested-request.v1 requires both --max-string-bytes (1..64) and --max-array-items (1..256); direct decoding only, under the independently admitted caller Project profile. bounded-stream-nested-request.v1 uses the same bounds, original schema stdin permit and a computed normalized spelling envelope; it adds no raw-input or whitespace cap. bounded-nested-response.v1 requires the same two bounds and derives encode-only borrowed finite nested records; primitive Vec<string> refuses. Contract: docs/APPLICATION-JSON-NESTED-RESPONSE-V1.md. bounded-nested-response.v2 adds named borrowed Vec<string> slot reads with the same caps and distinct generated identities. Contract: docs/APPLICATION-JSON-NESTED-RESPONSE-V2.md.\nRequires declared std.data.json scan/token/digits/write dependencies. Publishes a new complete module replacement; never overwrites source.\nAdd --plan <plan-json> --output <new-bundle> instead of single-codec selectors to derive 1..8 distinct replacements against one immutable revision and validate the complete candidate. The deterministic JSON bundle preserves authored schema bytes, complete candidate sources and exact per-entry evidence; no authority to install it. Existing destinations refuse. Plan contract: docs/APPLICATION-JSON-CODEC-PLAN-V1.md.\nFull-host fresh application assembly: semaprax-full new <fresh-directory> --from <project> --codec-plan <plan-json> --command-profile <exact-profile> [--command-path <declared-path> --command-source <source-file>]. Reuses this plan and complete ordinary checks; preserves the manifest grant, writes canonical authored inventory and generation/source receipts through held-parent no-replace publication. Only direct src/*.spx modules (1..32); source-command v26/v28/v33/v34 and collection-record v31. V31 explicitly selects test --target native-collection-record-pure.v1, a pure typed declared-test successor; --target native retains its old refusal. Installation executes no native code; unresolved source-capacity/compiler admission still refuses before publication. Standalone new has no installer authority. Contract: docs/APPLICATION-STARTER-V1.md.\nRead-only shape discovery: json-codec <project> --explain --type <stable-id> [--source <path>] [--target native64|wasm32] [--max-string-bytes N] [--max-array-items N] [--max-bytes N] [--revision <digest>] [--offset N]. Reports actual shape predicates and explicit unmet policy; candidate/backend admission remains unperformed. Continuations require the returned project revision. Contract: docs/JSON-CODEC-SUITABILITY-V1.md\nRetained receipt publication may add --receipt-stdout-seal <nonce>: 1..64 ASCII letters/digits/_/-, with no leading --. The compiler publishes the exact receipt first, then writes and flushes its byte count and SHA-256 seal to stdout; a stdout failure leaves the published receipt intact. Contract: docs/JSON-CODEC-PUBLICATION-SEAL-V1.md\nContract and typed failure codes: docs/APPLICATION-JSON-CODECS-V1.md\nAdd --retained-receipt to the single-codec form to publish one JSON receipt bundle instead of source: exact held original manifest/source/dependency bytes, resolved sources and two ordinary derivations from one retained revision. No independent execution or binary authentication claim. Contract: docs/JSON-CODEC-RETAINED-RECEIPT-V1.md\n";
+/// The guided overview must stay one screen; CLI Help v4 fixes the bound.
+const GUIDE_MAX_BYTES: usize = 2048;
+const GUIDE_HEADINGS: &[&str] = &[
+    "Write, check, and run",
+    "Inspect meaning",
+    "Change by meaning",
+    "Start a project",
+    "Toolchain",
+];
+const LANGUAGE_TOPICS: &str = concat!(
+    "Language topics:\n",
+    "  workflow        Spend tokens on source, not on dumps\n",
+    "  module          A complete file\n",
+    "  scalars         Scalars and literals\n",
+    "  control-flow    Control flow, mutation, contracts, effects\n",
+    "  records         Records, variants, classes\n",
+    "  ownership       Ownership and resources\n",
+    "  strings         Strings and bytes\n",
+    "  builtins        Compiler-owned functions\n",
+    "  cli             Command-line programs\n",
+    "  maps            String-keyed maps\n",
+    "  lists           Lists and iterators\n",
+    "  mistakes-code   Habits from other languages: diagnostic examples\n",
+    "  mistakes-index  Habits from other languages: diagnostic index\n",
+    "  web             Web applications\n",
+    "  projects        Projects\n",
+    "  json            JSON documents and cursors\n",
+    "  specifications  Where the rules live\n",
+);
+const DIAGNOSTIC_CODES: &str = concat!(
+    "Common diagnostic codes:\n",
+    "  SPX-P106 SPX-H006 SPX-T252 SPX-T203 SPX-G170 SPX-P003 SPX-P201 SPX-T205 SPX-T266 SPX-B104 SPX-F102 SPX-G171\n",
+    "Fix: semaprax help diagnostic <code>\n",
+    "All: semaprax help language mistakes-index\n",
+);
+const DIAGNOSTIC_T208: &str = concat!(
+    "SPX-T208\n",
+    "wrote: index + 1 when index: usize\n",
+    "fix: Default i64; index + 1usize\n",
+);
+const DIAGNOSTIC_G171: &str = concat!(
+    "SPX-G171\n",
+    "wrote: resolved-core builder ledger refusal\n",
+    "fix: Preserve behavior/caps; record source, requested/remaining/floor and compiler stage. Reduce source or optimize its compiler owner. Ledger bytes are not RSS/peak; do not infer unknowns.\n",
+);
+const DIAGNOSTIC_T267: &str = concat!(
+    "SPX-T267\n",
+    "wrote: Bytes allocation capacity: loop/cycle, per-value or full-path bound\n",
+    "fix: Follow the diagnostic's named limit; reduce complete allocation/input-read demand or per-value capacity. Keep Bytes allocation/copy and allocating calls out of ordinary while/cycles; nonallocating updates may fill a live owner where equivalent. Drops do not refund cumulative limits. Separate finite scratch/fused routes need their own proof/profile and qualification; help grants no admission. [Bytes](OWNED-BOUNDED-BYTE-BUFFER-V1.md)\n",
+);
+
+/// The command named by every indented entry of the guided overview.
+fn guide_commands(guide: &str) -> Vec<&str> {
+    guide
+        .lines()
+        .filter_map(|line| line.strip_prefix("  "))
+        .map(|entry| entry.split_whitespace().next().unwrap())
+        .collect()
+}
+
+fn empty_working_directory() -> PathBuf {
+    let path = std::env::temp_dir().join(format!(
+        "semaprax-cli-help-standalone-{}-{}",
+        std::process::id(),
+        NEXT.fetch_add(1, Ordering::Relaxed)
+    ));
+    std::fs::create_dir(&path).unwrap();
+    path
+}
+
+fn invoke(arguments: &[&str]) -> (Output, PathBuf) {
+    let working_directory = empty_working_directory();
+    let mut command = Command::new(env!("CARGO_BIN_EXE_semaprax"));
+    command.current_dir(&working_directory);
+    for argument in arguments {
+        command.arg(argument);
+    }
+    let output = command.output().unwrap();
+    assert_eq!(std::fs::read_dir(&working_directory).unwrap().count(), 0);
+    (output, working_directory)
+}
+
+#[test]
+fn cli_language_help_documents_run_string_fallback_and_json_schemas() {
+    let (output, working_directory) = invoke(&["help", "language", "cli"]);
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let help = String::from_utf8(output.stdout).unwrap();
+    for detail in [
+        "Pure single-file `run`: `semaprax.interpret.v1`, then internal Strings for owned",
+        "`string` parameters/results (`SPX-F102`). Both refuse: ordinary diagnostic.",
+        "Retry JSON `schema`: `semaprax.interpret.internal-strings.v1`.",
+        "`semaprax.interpret.v1`",
+        "`semaprax.interpret.internal-strings.v1`",
+        "Permit-selected",
+        "command/stdout skip fallback.",
+        "Both refuse: ordinary diagnostic.",
+    ] {
+        assert!(help.contains(detail), "missing help detail: {detail}");
+    }
+    std::fs::remove_dir(working_directory).unwrap();
+}
+
+#[test]
+fn cli_language_web_distinguishes_offline_runtime_checks_from_the_server_check() {
+    let (output, working_directory) = invoke(&["help", "language", "web"]);
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let help = String::from_utf8(output.stdout).unwrap();
+    for detail in [
+        "node\n  out/server.mjs --self-test-offline",
+        "deterministic in-memory runtime\n  checks with no data directory, listener, or child",
+        "`--self-test [--data DIR]`\n  remains the real loopback-server check",
+        "full acceptance remains mandatory",
+    ] {
+        assert!(help.contains(detail), "missing web help detail: {detail}");
+    }
+    std::fs::remove_dir(working_directory).unwrap();
+}
+
+#[test]
+fn cli_language_projects_distinguishes_the_private_stream_data_profile() {
+    let (output, working_directory) = invoke(&["help", "language", "projects"]);
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let help = String::from_utf8(output.stdout).unwrap();
+    for detail in [
+        "`stdin-stream-text` stays v25\nfor private owned-String helpers.",
+        "`language-command-io.stream-data.v1`",
+        "V27 admits immutable `borrow Vec<T>` for\nall eight Copy scalars",
+        "(`i64`, `i32`, `u8`, `usize`, `char`, `f32`, `f64`, `bool`)",
+        "pure `main`/test closures may interpret without\nauthority",
+        "without\nauthority, stdin provider, or command adapter",
+        "v24/v25 retain closed helper boundaries",
+        "Web/Wasm/npm refuse v27",
+    ] {
+        assert!(
+            help.contains(detail),
+            "missing project help detail: {detail}"
+        );
+    }
+    let index = help
+        .find("Start with `help library` for the module index")
+        .unwrap();
+    let exact = help.find("`help library <module|name|stable-id>`").unwrap();
+    let page = help.find("`help language find:<word>:0`").unwrap();
+    let export = help
+        .find("Use `help library all` only for an explicit full offline")
+        .unwrap();
+    assert!(index < exact && exact < page && page < export);
+    std::fs::remove_dir(working_directory).unwrap();
+}
+
+#[test]
+fn standalone_help_is_exact_capability_aware_and_inert() {
+    let (empty, empty_dir) = invoke(&[]);
+    // Bare `semaprax` is the first contact anyone has with the tool: it prints
+    // the guide and exits 2. Carry the child's stderr into the failure so an
+    // abort inside the guide's own one-screen assertion names itself instead
+    // of arriving as an unattributed 101.
+    assert_eq!(
+        empty.status.code(),
+        Some(2),
+        "bare `semaprax` must print guided help, not abort: {}",
+        String::from_utf8_lossy(&empty.stderr)
+    );
+    assert!(empty.stderr.is_empty());
+
+    for alias in ["help", "--help", "-h"] {
+        let (output, working_directory) = invoke(&[alias]);
+        assert!(output.status.success(), "{alias}");
+        assert!(output.stderr.is_empty(), "{alias}");
+        assert_eq!(output.stdout, empty.stdout, "{alias}");
+        std::fs::remove_dir(working_directory).unwrap();
+    }
+
+    // The global form is the guided one-screen overview owned by CLI Help v4.
+    let guide = String::from_utf8(empty.stdout.clone()).unwrap();
+    assert!(guide.starts_with(BANNER));
+    assert!(guide.len() <= GUIDE_MAX_BYTES, "{} bytes", guide.len());
+    assert!(guide.contains("\nUsage: semaprax <command> [arguments]\n"));
+    for heading in GUIDE_HEADINGS {
+        assert_eq!(
+            guide.matches(&format!("\n{heading}:\n")).count(),
+            1,
+            "{heading}"
+        );
+    }
+    assert_eq!(guide.matches("\n  help all ").count(), 1);
+    assert_eq!(guide.matches("\n  help language ").count(), 1);
+    assert_eq!(guide.matches("\n  help shapes ").count(), 1);
+    assert!(guide.contains("kinds` lists exact selectors"));
+    assert!(guide.contains("semaprax help diagnostic <code>`\n"));
+    assert_eq!(guide.matches("\n  project-scaffold ").count(), 1);
+    assert_eq!(guide.matches("\n  new ").count(), 1);
+    assert_eq!(guide.matches("\n  doctor ").count(), 1);
+    assert_eq!(guide.matches("|rust").count(), 0);
+    assert_eq!(guide.matches("\nsemaprax ").count(), 0);
+    for name in guide_commands(&guide) {
+        let (output, directory) = invoke(&["help", name]);
+        assert!(
+            output.status.success(),
+            "guided entry `{name}` must have scoped help"
+        );
+        assert!(output.stderr.is_empty(), "{name}");
+        assert!(String::from_utf8(output.stdout)
+            .unwrap()
+            .starts_with("Usage:\n  semaprax "));
+        std::fs::remove_dir(directory).unwrap();
+    }
+
+    // `help all` is the exhaustive catalog: the exact global bytes of v1..v3.
+    let (all, all_dir) = invoke(&["help", "all"]);
+    assert!(all.status.success());
+    assert!(all.stderr.is_empty());
+    let help = String::from_utf8(all.stdout.clone()).unwrap();
+    assert!(help.starts_with(&format!("{BANNER}\nUsage:\n{DEV_LINE}semaprax check ")));
+    assert_eq!(help.matches(DEV_LINE).count(), 1);
+    assert_eq!(help.matches(BUILD_SOURCE_LINE).count(), 1);
+    assert_eq!(help.matches(BUILD_PROJECT_LINE).count(), 1);
+    assert_eq!(help.matches(DOCTOR_LINE).count(), 1);
+    assert_eq!(help.matches(NEW_LINE).count(), 1);
+    assert_eq!(help.matches(PROJECT_SCAFFOLD_LINE).count(), 1);
+    assert!(help.find(NEW_LINE).unwrap() < help.find(PROJECT_SCAFFOLD_LINE).unwrap());
+    assert!(help.find(PROJECT_SCAFFOLD_LINE).unwrap() < help.find(BUILD_SOURCE_LINE).unwrap());
+    assert_eq!(
+        help.matches("native|native-callable|web|wasm|npm|oci|rust")
+            .count(),
+        0
+    );
+    assert!(help.len() > guide.len());
+    std::fs::remove_dir(all_dir).unwrap();
+
+    let (unknown, unknown_dir) = invoke(&["not-a-command"]);
+    assert_eq!(unknown.status.code(), Some(2));
+    assert_eq!(unknown.stdout, empty.stdout);
+    assert_eq!(unknown.stderr, b"unknown command `not-a-command`\n\n");
+
+    let (typo, typo_dir) = invoke(&["chek"]);
+    assert_eq!(typo.status.code(), Some(2));
+    assert_eq!(typo.stdout, empty.stdout);
+    assert_eq!(
+        typo.stderr,
+        b"unknown command `chek`; did you mean `check`?\n\n"
+    );
+
+    // `doctor` is catalogued by both binaries, so its typo is suggested too.
+    let (hidden_typo, hidden_typo_dir) = invoke(&["doctro"]);
+    assert_eq!(hidden_typo.status.code(), Some(2));
+    assert_eq!(hidden_typo.stdout, empty.stdout);
+    assert_eq!(
+        hidden_typo.stderr,
+        b"unknown command `doctro`; did you mean `doctor`?\n\n"
+    );
+
+    let (malformed_known, malformed_known_dir) = invoke(&["check", "--unknown"]);
+    assert_eq!(malformed_known.status.code(), Some(2));
+    assert!(malformed_known.stdout.is_empty());
+    assert_eq!(
+        malformed_known.stderr,
+        b"unknown check option `--unknown`\nhint: run `semaprax check --help` for usage\n"
+    );
+
+    // `doctor` is admitted by both binaries; its option grammar is closed.
+    let (hidden_known, hidden_known_dir) = invoke(&["doctor", "--unknown"]);
+    assert_eq!(hidden_known.status.code(), Some(2));
+    assert!(hidden_known.stdout.is_empty());
+    assert_eq!(
+        hidden_known.stderr,
+        b"doctor: unknown doctor option `--unknown`\nhint: run `semaprax doctor --help` for usage\n"
+    );
+
+    let (help_extra, help_extra_dir) = invoke(&["help", "all", "extra"]);
+    assert_eq!(help_extra.status.code(), Some(2));
+    assert!(help_extra.stdout.is_empty());
+    assert_eq!(
+        help_extra.stderr,
+        b"help accepts exactly one operand; unexpected extra operand `extra`\n"
+    );
+
+    std::fs::remove_dir(help_extra_dir).unwrap();
+    std::fs::remove_dir(hidden_known_dir).unwrap();
+    std::fs::remove_dir(malformed_known_dir).unwrap();
+    std::fs::remove_dir(hidden_typo_dir).unwrap();
+    std::fs::remove_dir(typo_dir).unwrap();
+    std::fs::remove_dir(unknown_dir).unwrap();
+    std::fs::remove_dir(empty_dir).unwrap();
+}
+
+#[test]
+fn standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
+    let (global, global_dir) = invoke(&["--help"]);
+    let (catalog, catalog_dir) = invoke(&["help", "all"]);
+    let global_text = String::from_utf8(catalog.stdout.clone()).unwrap();
+    std::fs::remove_dir(catalog_dir).unwrap();
+    let usages: Vec<_> = global_text
+        .lines()
+        .filter_map(|line| line.trim_start().strip_prefix("semaprax "))
+        .collect();
+    assert!(!usages.is_empty());
+    for usage in usages {
+        let command = usage.split_whitespace().next().unwrap();
+        let expected: String = global_text
+            .lines()
+            .filter_map(|line| {
+                let line = line.trim_start();
+                let prefix = format!("semaprax {command}");
+                (line == prefix
+                    || line
+                        .strip_prefix(&prefix)
+                        .is_some_and(|tail| tail.starts_with(' ')))
+                .then(|| format!("  {line}\n"))
+            })
+            .collect();
+        let expected = if command == "new" {
+            format!("{expected}  semaprax-full new <fresh-directory> --from <project> --codec-plan <plan-json> --command-profile <exact-profile> [--command-path <declared-path> --command-source <source-file>]\n")
+        } else {
+            expected
+        };
+        // The exhaustive catalog carries exact grammar only. Scoped codec
+        // help deliberately appends its profile contract, which is part of
+        // the public no-side-effect authoring surface.
+        let expected = format!(
+            "Usage:\n{expected}{}",
+            if command == "json-codec" {
+                JSON_CODEC_HELP
+            } else {
+                ""
+            }
+        );
+        for arguments in [
+            vec!["help", command],
+            vec![command, "--help"],
+            vec![command, "-h"],
+        ] {
+            let (output, directory) = invoke(&arguments);
+            assert!(output.status.success(), "{arguments:?}");
+            assert!(output.stderr.is_empty(), "{arguments:?}");
+            assert_eq!(output.stdout, expected.as_bytes(), "{arguments:?}");
+            std::fs::remove_dir(directory).unwrap();
+        }
+    }
+
+    // No command is hidden by a capability boundary any more: `doctor` has
+    // scoped help in the standalone binary too.
+    let (hidden, hidden_dir) = invoke(&["help", "doctor"]);
+    assert!(hidden.status.success());
+    assert!(hidden.stderr.is_empty());
+    assert_eq!(
+        hidden.stdout,
+        format!("Usage:\n  {DOCTOR_LINE}  semaprax doctor verify-release <release-dir> --trusted-root-sha256 <64-lowercase-hex>\n")
+            .as_bytes()
+    );
+    std::fs::remove_dir(hidden_dir).unwrap();
+    let (language, language_dir) = invoke(&["help", "language"]);
+    assert!(language.status.success());
+    assert!(language.stderr.is_empty());
+    let guide = std::fs::read(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/AGENT-AUTHORING-GUIDE.md"),
+    )
+    .unwrap();
+    assert_eq!(language.stdout, guide);
+    assert!(language.stdout.len() <= 2_048);
+    std::fs::remove_dir(language_dir).unwrap();
+    for selector in [
+        "author:routes",
+        "author:stdin-json",
+        "author:nested-outcomes",
+        "author:record-field-views",
+        "author:string-from-utf8",
+        "author:static-utf8",
+        "author:json-nested-response",
+        "author:file-text",
+        "author:source-web",
+        "find:json:0",
+    ] {
+        let (page, directory) = invoke(&["help", "language", selector]);
+        assert!(page.status.success(), "{selector}: {page:?}");
+        assert!(page.stderr.is_empty());
+        assert!(page.stdout.len() <= 2_048);
+        std::fs::remove_dir(directory).unwrap();
+    }
+    for selector in ["author:unknown", "find:json:00", "find:json:0:extra"] {
+        let (page, directory) = invoke(&["help", "language", selector]);
+        assert_eq!(page.status.code(), Some(2));
+        assert!(page.stdout.is_empty());
+        std::fs::remove_dir(directory).unwrap();
+    }
+    let (language_all, language_all_dir) = invoke(&["help", "language", "all"]);
+    assert!(language_all.status.success());
+    assert!(language_all.stderr.is_empty());
+    let card = std::fs::read(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/AGENT-QUICK-REFERENCE.md"),
+    )
+    .unwrap();
+    assert_eq!(language_all.stdout, card);
+    assert!(language_all
+        .stdout
+        .starts_with(b"# Agent quick reference\n"));
+    std::fs::remove_dir(language_all_dir).unwrap();
+    let (topics, topics_dir) = invoke(&["help", "language", "topics"]);
+    assert!(topics.status.success());
+    assert!(topics.stderr.is_empty());
+    assert_eq!(topics.stdout, LANGUAGE_TOPICS.as_bytes());
+    assert!(topics.stdout.len() <= 768);
+    std::fs::remove_dir(topics_dir).unwrap();
+    let (json_topic, json_topic_dir) = invoke(&["help", "language", "json"]);
+    assert!(json_topic.status.success());
+    assert!(json_topic.stderr.is_empty());
+    let card_text = std::str::from_utf8(&card).unwrap();
+    let start = card_text.find("## JSON documents and cursors\n").unwrap();
+    let section = &card_text[start..];
+    let end = section.find("\n## ").unwrap_or(section.len());
+    assert_eq!(json_topic.stdout, &section.as_bytes()[..end]);
+    std::fs::remove_dir(json_topic_dir).unwrap();
+    let (scalars, scalars_dir) = invoke(&["help", "language", "scalars"]);
+    assert!(scalars.status.success());
+    assert!(scalars.stderr.is_empty());
+    assert!(scalars.stdout.starts_with(b"## Scalars and literals\n"));
+    assert!(scalars
+        .stdout
+        .windows(b"- `u8`:".len())
+        .any(|window| window == b"- `u8`:"));
+    assert!(!scalars
+        .stdout
+        .windows(b"## Control flow".len())
+        .any(|window| window == b"## Control flow"));
+    let scalar_text = std::str::from_utf8(&scalars.stdout).unwrap();
+    assert!(scalar_text.contains("`str\"text\"` is static borrowed UTF-8"));
+    assert!(!scalar_text.contains("`str`: no literal"));
+    assert!(scalars.stdout.len() <= 1_024);
+    assert!(scalars.stdout.len() * 20 < card.len());
+    let scalar_units =
+        semaprax::agent_economics::lexical_tokens(std::str::from_utf8(&scalars.stdout).unwrap());
+    let card_units = semaprax::agent_economics::lexical_tokens(std::str::from_utf8(&card).unwrap());
+    assert!(scalar_units <= 300);
+    assert!(scalar_units * 20 < card_units);
+    std::fs::remove_dir(scalars_dir).unwrap();
+    let (diagnostic_codes, diagnostic_codes_dir) = invoke(&["help", "diagnostic", "codes"]);
+    assert!(diagnostic_codes.status.success());
+    assert!(diagnostic_codes.stderr.is_empty());
+    assert_eq!(diagnostic_codes.stdout, DIAGNOSTIC_CODES.as_bytes());
+    assert!(diagnostic_codes.stdout.len() <= 256);
+    std::fs::remove_dir(diagnostic_codes_dir).unwrap();
+    let (bare_diagnostic, bare_diagnostic_dir) = invoke(&["help", "diagnostic"]);
+    assert!(bare_diagnostic.status.success());
+    assert_eq!(bare_diagnostic.stdout, DIAGNOSTIC_CODES.as_bytes());
+    std::fs::remove_dir(bare_diagnostic_dir).unwrap();
+    let (diagnostic, diagnostic_dir) = invoke(&["help", "diagnostic", "SPX-T208"]);
+    assert!(diagnostic.status.success());
+    assert!(diagnostic.stderr.is_empty());
+    assert_eq!(diagnostic.stdout, DIAGNOSTIC_T208.as_bytes());
+    assert!(diagnostic.stdout.len() <= 256);
+    let (mistakes, mistakes_dir) = invoke(&["help", "language", "mistakes-index"]);
+    assert!(mistakes.status.success());
+    assert!(mistakes.stderr.is_empty());
+    assert!(mistakes
+        .stdout
+        .starts_with(b"## Habits from other languages: diagnostic index\n"));
+    let (reference, reference_dir) = invoke(&["help", "language", "all"]);
+    assert!(reference.status.success());
+    assert!(reference.stderr.is_empty());
+    let reference = std::str::from_utf8(&reference.stdout).unwrap();
+    let marker = "## Habits from other languages: diagnostic index\n";
+    let index = reference
+        .split_once(marker)
+        .unwrap()
+        .1
+        .split("\n## ")
+        .next()
+        .unwrap();
+    assert!(diagnostic.stdout.len() * 20 < index.len());
+    assert!(
+        semaprax::agent_economics::lexical_tokens(DIAGNOSTIC_T208) * 20
+            < semaprax::agent_economics::lexical_tokens(index)
+    );
+    std::fs::remove_dir(reference_dir).unwrap();
+    std::fs::remove_dir(mistakes_dir).unwrap();
+    std::fs::remove_dir(diagnostic_dir).unwrap();
+    let (g171, g171_dir) = invoke(&["help", "diagnostic", "SPX-G171"]);
+    assert!(g171.status.success());
+    assert!(g171.stderr.is_empty());
+    assert_eq!(g171.stdout, DIAGNOSTIC_G171.as_bytes());
+    assert!(g171.stdout.len() <= 256);
+    std::fs::remove_dir(g171_dir).unwrap();
+    let (t267, t267_dir) = invoke(&["help", "diagnostic", "SPX-T267"]);
+    assert!(t267.status.success());
+    assert!(t267.stderr.is_empty());
+    assert_eq!(t267.stdout, DIAGNOSTIC_T267.as_bytes());
+    assert!(t267.stdout.len() <= 768);
+    std::fs::remove_dir(t267_dir).unwrap();
+    let (p106, p106_dir) = invoke(&["help", "diagnostic", "SPX-P106"]);
+    assert!(p106.status.success());
+    assert!(p106.stderr.is_empty());
+    assert_eq!(
+        p106.stdout
+            .windows(b"\nwrote: ".len())
+            .filter(|window| *window == b"\nwrote: ")
+            .count(),
+        9
+    );
+    assert!(p106.stdout.len() <= 1_024);
+    std::fs::remove_dir(p106_dir).unwrap();
+    let (missing_diagnostic, missing_diagnostic_dir) = invoke(&["help", "diagnostic", "spx-t208"]);
+    assert_eq!(missing_diagnostic.status.code(), Some(2));
+    assert!(missing_diagnostic.stdout.is_empty());
+    assert_eq!(
+        missing_diagnostic.stderr,
+        b"diagnostic help has no exact match for `spx-t208`\n"
+    );
+    std::fs::remove_dir(missing_diagnostic_dir).unwrap();
+    let (diagnostic_extra, diagnostic_extra_dir) =
+        invoke(&["help", "diagnostic", "SPX-T208", "extra"]);
+    assert_eq!(diagnostic_extra.status.code(), Some(2));
+    assert!(diagnostic_extra.stdout.is_empty());
+    assert_eq!(
+        diagnostic_extra.stderr,
+        b"help accepts exactly one operand; unexpected extra operand `extra`\n"
+    );
+    std::fs::remove_dir(diagnostic_extra_dir).unwrap();
+    let (library, library_dir) = invoke(&["help", "library"]);
+    assert!(library.status.success());
+    assert!(library.stderr.is_empty());
+    let library_index = std::str::from_utf8(&library.stdout).unwrap();
+    let catalog: serde_json::Value = serde_json::from_str(include_str!("../std/catalog.json"))
+        .expect("checked-in standard-library catalog is valid JSON");
+    let expected_modules = catalog["modules"]
+        .as_array()
+        .expect("catalog has a module list")
+        .iter()
+        .map(|module| {
+            module["module"]
+                .as_str()
+                .expect("catalog module has a stable identity")
+        })
+        .collect::<Vec<_>>();
+    let expected_header = format!("Standard library modules ({}):\n", expected_modules.len());
+    assert!(library_index.starts_with(&expected_header));
+    assert!(library_index.contains("\n  std.int.decimal\n"));
+    assert!(library_index.contains("\n  std.data.json.scan\n"));
+    assert!(library_index.contains("semaprax help library <module|name|stable-id>"));
+    assert!(library_index.contains("semaprax help library all"));
+    let indexed_modules = library_index
+        .lines()
+        .filter_map(|line| line.strip_prefix("  "))
+        .collect::<Vec<_>>();
+    assert_eq!(indexed_modules, expected_modules);
+    assert_eq!(
+        library
+            .stdout
+            .split(|byte| *byte == b'\n')
+            .filter(|line| line.starts_with(b"  std."))
+            .count(),
+        expected_modules.len()
+    );
+    assert!(library.stdout.len() <= 2_048);
+    assert!(semaprax::agent_economics::lexical_tokens(library_index) <= 256);
+    std::fs::remove_dir(library_dir).unwrap();
+    let catalog = std::fs::read(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/STANDARD-LIBRARY-CATALOG.md"),
+    )
+    .unwrap();
+    let (all_library, all_library_dir) = invoke(&["help", "library", "all"]);
+    assert!(all_library.status.success());
+    assert!(all_library.stderr.is_empty());
+    assert_eq!(all_library.stdout, catalog);
+    std::fs::remove_dir(all_library_dir).unwrap();
+    let (shapes, shapes_dir) = invoke(&["help", "shapes"]);
+    assert!(shapes.status.success());
+    assert!(shapes.stderr.is_empty());
+    let shapes_catalog =
+        std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(SHAPES_CATALOG_PATH))
+            .unwrap();
+    assert_eq!(shapes.stdout, shapes_catalog);
+    assert!(shapes.stdout.starts_with(b"# Language shapes catalog\n"));
+    std::fs::remove_dir(shapes_dir).unwrap();
+    let kinds_expected = concat!(
+        "Language shape kinds (8):\n",
+        "  class\n",
+        "  function\n",
+        "  interface\n",
+        "  method\n",
+        "  record\n",
+        "  resource\n",
+        "  session_protocol\n",
+        "  variant\n",
+        "Exact exemplar: semaprax help shapes <kind>\n",
+        "Full catalog: semaprax help shapes\n",
+    );
+    let (kinds, kinds_dir) = invoke(&["help", "shapes", "kinds"]);
+    assert!(kinds.status.success());
+    assert!(kinds.stderr.is_empty());
+    assert_eq!(kinds.stdout, kinds_expected.as_bytes());
+    assert!(kinds.stdout.len() <= 2_048);
+    assert!(semaprax::agent_economics::lexical_tokens(kinds_expected) <= 256);
+    std::fs::remove_dir(kinds_dir).unwrap();
+    for selector in ["Kinds", "kin"] {
+        let (output, directory) = invoke(&["help", "shapes", selector]);
+        assert_eq!(output.status.code(), Some(2), "{selector}");
+        assert!(output.stdout.is_empty(), "{selector}");
+        assert_eq!(
+            output.stderr,
+            format!("language shapes catalog has no exact match for `{selector}`\n").as_bytes()
+        );
+        std::fs::remove_dir(directory).unwrap();
+    }
+    let (kinds_extra, kinds_extra_dir) = invoke(&["help", "shapes", "kinds", "extra"]);
+    assert_eq!(kinds_extra.status.code(), Some(2));
+    assert!(kinds_extra.stdout.is_empty());
+    assert_eq!(
+        kinds_extra.stderr,
+        b"help accepts exactly one operand; unexpected extra operand `extra`\n"
+    );
+    std::fs::remove_dir(kinds_extra_dir).unwrap();
+    let expected_add = b"function calculator.add\nsource examples/calculator.spx\n@id(\"calculator.add\")\nfn add(left: i64, right: i64) -> i64\n";
+    let (shape, shape_dir) = invoke(&["help", "shapes", "calculator.add"]);
+    assert!(shape.status.success());
+    assert!(shape.stderr.is_empty());
+    assert_eq!(shape.stdout, expected_add);
+    assert!(shape.stdout.len() <= 512);
+    assert!(shape.stdout.len() * 40 < shapes_catalog.len());
+    let shape_units =
+        semaprax::agent_economics::lexical_tokens(std::str::from_utf8(&shape.stdout).unwrap());
+    let shapes_catalog_units =
+        semaprax::agent_economics::lexical_tokens(std::str::from_utf8(&shapes_catalog).unwrap());
+    assert!(shape_units <= 128);
+    assert!(shape_units * 40 < shapes_catalog_units);
+    std::fs::remove_dir(shape_dir).unwrap();
+    let (representative, representative_dir) = invoke(&["help", "shapes", "record"]);
+    assert!(representative.status.success());
+    assert!(representative.stderr.is_empty());
+    assert!(representative
+        .stdout
+        .starts_with(b"representative record\nsource "));
+    assert!(representative.stdout.len() <= 512);
+    assert!(representative.stdout.len() * 40 < shapes_catalog.len());
+    assert!(
+        semaprax::agent_economics::lexical_tokens(
+            std::str::from_utf8(&representative.stdout).unwrap()
+        ) <= 128
+    );
+    std::fs::remove_dir(representative_dir).unwrap();
+    let (disambiguated, disambiguated_dir) =
+        invoke(&["help", "shapes", "examples/calculator.spx#app.main"]);
+    assert!(disambiguated.status.success());
+    assert!(disambiguated.stderr.is_empty());
+    assert!(disambiguated
+        .stdout
+        .starts_with(b"function app.main\nsource examples/calculator.spx\n"));
+    std::fs::remove_dir(disambiguated_dir).unwrap();
+    let (missing_shape, missing_shape_dir) = invoke(&["help", "shapes", "not_a_shape"]);
+    assert_eq!(missing_shape.status.code(), Some(2));
+    assert!(missing_shape.stdout.is_empty());
+    assert_eq!(
+        missing_shape.stderr,
+        b"language shapes catalog has no exact match for `not_a_shape`\n"
+    );
+    std::fs::remove_dir(missing_shape_dir).unwrap();
+    let (shape_extra, shape_extra_dir) = invoke(&["help", "shapes", "record", "extra"]);
+    assert_eq!(shape_extra.status.code(), Some(2));
+    assert!(shape_extra.stdout.is_empty());
+    assert_eq!(
+        shape_extra.stderr,
+        b"help accepts exactly one operand; unexpected extra operand `extra`\n"
+    );
+    std::fs::remove_dir(shape_extra_dir).unwrap();
+    let expected_compare = b"std.core.compare\ndependency std.core = \"^0.1.0\"\nprofile scalar\nfn compare(left: i64, right: i64) -> i64\n    ensures result >= -1 && result <= 1\n    ensures result != 0 || left == right\n    ensures result == 0 || left != right\n";
+    let expected_decimal = b"std.int.decimal.compare\ndependency std.int.decimal = \"^0.1.0\"\nprofile owned-data-api.v1\nfn compare(left: borrow str, right: borrow str) -> i64\n    requires valid(left) && valid(right)\n    ensures result >= -1 && result <= 1\n";
+    for (selector, expected) in [
+        ("std.core.compare", expected_compare.as_slice()),
+        ("std.int.decimal.compare", expected_decimal.as_slice()),
+    ] {
+        let (entry, directory) = invoke(&["help", "library", selector]);
+        assert!(entry.status.success());
+        assert!(entry.stderr.is_empty());
+        assert_eq!(entry.stdout, expected);
+        assert!(entry.stdout.len() <= 512);
+        assert!(entry.stdout.len() * 50 < catalog.len());
+        let entry_units =
+            semaprax::agent_economics::lexical_tokens(std::str::from_utf8(&entry.stdout).unwrap());
+        let catalog_units =
+            semaprax::agent_economics::lexical_tokens(std::str::from_utf8(&catalog).unwrap());
+        assert!(entry_units <= 128);
+        assert!(entry_units * 50 < catalog_units);
+        std::fs::remove_dir(directory).unwrap();
+    }
+    let (ambiguous, ambiguous_dir) = invoke(&["help", "library", "compare"]);
+    assert!(ambiguous.status.success());
+    assert!(ambiguous.stderr.is_empty());
+    assert_eq!(
+        ambiguous.stdout,
+        [
+            expected_compare.as_slice(),
+            b"\n",
+            expected_decimal.as_slice()
+        ]
+        .concat()
+    );
+    assert!(ambiguous.stdout.len() <= 512);
+    assert!(ambiguous.stdout.len() * 50 < catalog.len());
+    let combined_units =
+        semaprax::agent_economics::lexical_tokens(std::str::from_utf8(&ambiguous.stdout).unwrap());
+    assert!(combined_units <= 2 * 128);
+    assert!(
+        combined_units * 50
+            < semaprax::agent_economics::lexical_tokens(std::str::from_utf8(&catalog).unwrap())
+    );
+    std::fs::remove_dir(ambiguous_dir).unwrap();
+    let (module, module_dir) = invoke(&["help", "library", "std.core"]);
+    assert!(module.status.success());
+    assert!(module.stderr.is_empty());
+    let module = String::from_utf8(module.stdout).unwrap();
+    assert!(module.starts_with("std.core.ordering.less\n"));
+    assert!(module.contains("\nstd.core.compare\n"));
+    assert!(!module.contains("std.bytes."));
+    std::fs::remove_dir(module_dir).unwrap();
+    let (missing_library, missing_library_dir) =
+        invoke(&["help", "library", "not_a_library_function"]);
+    assert_eq!(missing_library.status.code(), Some(2));
+    assert!(missing_library.stdout.is_empty());
+    assert_eq!(
+        missing_library.stderr,
+        b"standard library has no exact match for `not_a_library_function`\n"
+    );
+    std::fs::remove_dir(missing_library_dir).unwrap();
+    let (missing_topic, missing_topic_dir) = invoke(&["help", "language", "not-a-topic"]);
+    assert_eq!(missing_topic.status.code(), Some(2));
+    assert!(missing_topic.stdout.is_empty());
+    assert_eq!(
+        missing_topic.stderr,
+        b"language card has no exact topic `not-a-topic`\n"
+    );
+    std::fs::remove_dir(missing_topic_dir).unwrap();
+    let (language_extra, language_extra_dir) = invoke(&["help", "language", "scalars", "extra"]);
+    assert_eq!(language_extra.status.code(), Some(2));
+    assert!(language_extra.stdout.is_empty());
+    assert_eq!(
+        language_extra.stderr,
+        b"help accepts exactly one operand; unexpected extra operand `extra`\n"
+    );
+    std::fs::remove_dir(language_extra_dir).unwrap();
+    let (version_alias, version_alias_dir) = invoke(&["-V", "--help"]);
+    assert!(version_alias.status.success());
+    assert!(version_alias.stderr.is_empty());
+    assert_eq!(version_alias.stdout, b"Usage:\n  semaprax --version\n");
+    std::fs::remove_dir(version_alias_dir).unwrap();
+    for name in ["help", "--help", "-h"] {
+        let (output, directory) = invoke(&["help", name]);
+        assert!(output.status.success(), "{name}");
+        assert_eq!(
+            output.stdout,
+            concat!(
+                "Usage:\n",
+                "  semaprax help <command>\n",
+                "  semaprax help all\n",
+                "  semaprax help diagnostic <SPX-code|codes>\n",
+                "  semaprax help language\n",
+                "  semaprax help language all\n",
+                "  semaprax help language <topic|topics>\n",
+                "  semaprax help language author:<route>\n",
+                "  semaprax help language find:<word>:<offset>\n",
+                "  semaprax help library\n",
+                "  semaprax help library all\n",
+                "  semaprax help library <module|name|stable-id>\n",
+                "  semaprax help shapes\n",
+                "  semaprax help shapes kinds\n",
+                "  semaprax help shapes <kind|stable-id|path#stable-id>\n"
+            )
+            .as_bytes()
+        );
+        assert!(output.stderr.is_empty());
+        std::fs::remove_dir(directory).unwrap();
+    }
+    let (all_extra, all_extra_dir) = invoke(&["help", "all", "extra"]);
+    assert_eq!(all_extra.status.code(), Some(2));
+    assert!(all_extra.stdout.is_empty());
+    assert_eq!(
+        all_extra.stderr,
+        b"help accepts exactly one operand; unexpected extra operand `extra`\n"
+    );
+    std::fs::remove_dir(all_extra_dir).unwrap();
+    let (typo, typo_dir) = invoke(&["help", "buidl"]);
+    assert_eq!(typo.status.code(), Some(2));
+    assert_eq!(typo.stdout, global.stdout);
+    assert_eq!(
+        typo.stderr,
+        b"unknown command `buidl`; did you mean `build`?\n\n"
+    );
+    std::fs::remove_dir(typo_dir).unwrap();
+    let (malformed, malformed_dir) = invoke(&["help", "build", "extra"]);
+    assert_eq!(malformed.status.code(), Some(2));
+    assert!(malformed.stdout.is_empty());
+    assert_eq!(
+        malformed.stderr,
+        b"help accepts exactly one operand; unexpected extra operand `extra`\n"
+    );
+    let (embedded, embedded_dir) = invoke(&["fmt", "effectful.spx", "--help"]);
+    assert_eq!(embedded.status.code(), Some(2));
+    assert!(embedded.stdout.is_empty());
+    assert_eq!(
+        embedded.stderr,
+        b"help flags are admitted only as the sole operand of a command\n"
+    );
+    assert!(!embedded_dir.join("effectful.spx").exists());
+    let (embedded_short, embedded_short_dir) = invoke(&["fmt", "effectful.spx", "-h"]);
+    assert_eq!(embedded_short.status.code(), Some(2));
+    assert!(embedded_short.stdout.is_empty());
+    assert_eq!(embedded_short.stderr, embedded.stderr);
+    assert!(!embedded_short_dir.join("effectful.spx").exists());
+    std::fs::remove_dir(embedded_short_dir).unwrap();
+    std::fs::remove_dir(embedded_dir).unwrap();
+    std::fs::remove_dir(malformed_dir).unwrap();
+    std::fs::remove_dir(global_dir).unwrap();
+}
+
+#[test]
+fn fmt_and_context_failures_keep_stable_diagnostic_codes() {
+    let directory = empty_working_directory();
+    let source_path = directory.join("module.spx");
+    std::fs::write(
+        &source_path,
+        "module cli.diagnostics;\n@id(\"app.main\")\nfn main() -> i64 { 0 }\n",
+    )
+    .unwrap();
+
+    let context = Command::new(env!("CARGO_BIN_EXE_semaprax"))
+        .current_dir(&directory)
+        .args(["context", "module.spx", "missing"])
+        .output()
+        .unwrap();
+    assert_eq!(context.status.code(), Some(1));
+    let stderr = String::from_utf8(context.stderr).unwrap();
+    assert!(stderr.contains("error[SPX-G404]"), "{stderr}");
+    assert!(stderr.contains("module.spx"), "{stderr}");
+
+    let missing_source = Command::new(env!("CARGO_BIN_EXE_semaprax"))
+        .current_dir(&directory)
+        .args(["fmt", "missing.spx"])
+        .output()
+        .unwrap();
+    assert_eq!(missing_source.status.code(), Some(1));
+    assert!(String::from_utf8(missing_source.stderr)
+        .unwrap()
+        .contains("error[SPX-I001]"));
+
+    let empty_project = directory.join("empty-project");
+    std::fs::create_dir(&empty_project).unwrap();
+    let missing_manifest = Command::new(env!("CARGO_BIN_EXE_semaprax"))
+        .current_dir(&directory)
+        .args(["fmt", "empty-project"])
+        .output()
+        .unwrap();
+    assert_eq!(missing_manifest.status.code(), Some(1));
+    let stderr = String::from_utf8(missing_manifest.stderr).unwrap();
+    assert!(stderr.contains("error[SPX-J102]"), "{stderr}");
+    assert!(stderr.contains("help:"), "{stderr}");
+
+    std::fs::remove_dir(empty_project).unwrap();
+    std::fs::remove_file(source_path).unwrap();
+    std::fs::remove_dir(directory).unwrap();
+}
+
+#[path = "cli_help_surface_v1/language_details.rs"]
+mod language_details;
+
+#[test]
+fn cli_authoring_card_search_is_bounded_exact_and_inert() {
+    for (selector, expected) in [
+        ("author:find:string_take:0", "author:string-take"),
+        ("author:find:core.string.take:0", "author:string-take"),
+        ("author:find:byte-traversal:0", "author:byte-traversal"),
+    ] {
+        let (page, directory) = invoke(&["help", "language", selector]);
+        assert!(page.status.success(), "{selector}: {page:?}");
+        assert!(page.stderr.is_empty());
+        assert!(page.stdout.len() <= 2_048);
+        let text = std::str::from_utf8(&page.stdout).unwrap();
+        assert!(text.contains(expected));
+        assert!(text.contains("Coverage: complete matching authoring cards."));
+        assert!(text.contains("Library declarations: help language find:"));
+        assert_eq!(std::fs::read_dir(&directory).unwrap().count(), 0);
+        std::fs::remove_dir(directory).unwrap();
+    }
+    for selector in [
+        "author:find::0",
+        "author:find:string_take:00",
+        "author:find:string_take:999999",
+        "author:find:core.string.no_take:0",
+        "author:find:string_take:0:extra",
+    ] {
+        let (page, directory) = invoke(&["help", "language", selector]);
+        assert_eq!(page.status.code(), Some(2), "{selector}: {page:?}");
+        assert!(page.stdout.is_empty());
+        assert_eq!(std::fs::read_dir(&directory).unwrap().count(), 0);
+        std::fs::remove_dir(directory).unwrap();
+    }
+}
+
+#[path = "cli_help_surface_v1/task_pages.rs"]
+mod task_pages;

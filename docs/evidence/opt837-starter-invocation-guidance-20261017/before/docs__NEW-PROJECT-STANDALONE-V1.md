@@ -1,0 +1,99 @@
+# Standalone project creation v1
+
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, device/simulator, or separately provisioned evidence
+below retains its narrower scope; public promotion, registry publication and
+broader product completion remain separately gated.
+
+Audience: new SEMAPRAX users, toolchain contributors, and reviewers.
+
+## Purpose
+
+Previously, `semaprax new <destination>` required the unpublished full
+toolchain and its private held-parent staging authority. Users of the
+standalone compiler needed a second binary to create a first project. The
+standalone compiler now offers `new` through a bounded standard-library route,
+with the same grammar, templates, file bytes, and success line.
+
+## Grammar and template
+
+```text
+semaprax new <destination> [--name project-name] [--template calculator|library|service|stdin-stream-text|source-command-file-text]
+```
+
+The grammar and every shared rejection message are those of the full
+toolchain's `new`. The project name defaults to the destination's final
+component and must match lowercase `[a-z][a-z0-9-]*` within 64 bytes. The
+template defaults to `calculator`; every template of the [Public Project
+Scaffold Capsule v3](PROJECT-SCAFFOLD-V3.md) is admitted, and an unknown one is
+rejected with `unknown new template <name>; expected calculator or library or
+service or stdin-stream-text or source-command-file-text`. `new` selects the
+extensible table layout. The calculator and
+[service](PROJECT-SCAFFOLD-SERVICE-V1.md) templates both separate their
+entry-module logic into `src/core.spx` and import it by stable identity from
+the entry module; the library retains its existing three source modules. The
+`stdin-stream-text` template adds `src/input.spx` for the bounded reader and
+private String helper and is documented in [Project Scaffold Capsule v4](PROJECT-SCAFFOLD-V4.md).
+The `source-command-file-text` template adds a sample `digits` input, pins
+`std.int.decimal = "=0.1.0"`, and selects Project v26's native-only file-text
+command profile; [Project Scaffold Capsule v5](PROJECT-SCAFFOLD-V5.md) owns its
+exact six-file inventory. Files are exactly the selected capsule's files for
+that template and name, in that order. The full toolchain's `new` publishes
+each closed inventory through its stricter held-parent staged authority.
+
+## Route
+
+On success the standalone compiler has performed exactly these steps:
+
+1. Derive the selected table-layout scaffold in memory; a derivation failure is
+   reported before the filesystem is touched.
+2. Resolve the destination to an absolute path. Its parent must exist and be a
+   directory when inspected without following a final symbolic link; the
+   destination itself must not exist as any kind of entry.
+3. Create the destination directory with create-new semantics, then each
+   directory the scaffold needs (`src`), then each file with create-new
+   semantics, in scaffold order.
+4. Read every file back and require byte equality with the scaffold.
+5. Authenticate the written project through the ordinary selected-Project
+   snapshot path and run its `check`.
+6. Print `created <template> project <destination>` with the destination as
+   the caller spelled it, and exit zero.
+
+Invocation errors exit two with `new: <message>` and the scoped-help recovery
+hint; they create nothing. A creation failure exits one with `new: <message>`.
+A failure before step 3 creates nothing. A failure during or after step 3
+leaves whatever was written in place and reports it; `new` never deletes,
+replaces, or writes into an entry it did not create in the same invocation.
+
+## Non-claims
+
+This route has no staging directory, no atomic rename, and no re-verification
+that the parent or destination identity was unchanged between steps. A
+concurrent writer that creates the destination between step 2 and step 3 is
+detected by the create-new directory creation; one that substitutes the parent
+after step 2 is not. The full toolchain's `new`, owned by [calculator project
+publication](NEW-PROJECT-PUBLICATION-V1.md), remains the hardened route and is
+what the tag archives ship. This is not template discovery, a package manager,
+Git initialization, dependency installation, or a network operation. Local
+evidence is not hosted, cross-platform, release, or support evidence.
+
+## Evidence
+
+`tests/project/new_cli.rs` pins, against the standalone binary: the exact
+template bytes for a default and an explicit name, nested destinations under an
+existing parent, the success line, that the created project checks, tests, and
+runs, the library template's bytes, success line, and check/test/run/`fmt
+--check` results, that the default template stays the calculator, refusal of
+existing directories and files without touching them, the exit-two invocation
+rejections and their messages, the missing-parent failure, and the guided and
+scoped help entries. The standalone help harness pins the
+public catalog entry; the quickstart harness executes the documented flow with
+the standalone binary alone. The source-command case pins its Project v26
+manifest, dependency, sample input, and successful `check`; interpreter
+test/run are intentional `SPX-F102` refusals and native execution remains with
+the Project v26 owner gate.
+
+Newly created projects now select [scaffold capsule v8](PROJECT-SCAFFOLD-V8.md)
+for corrected authoring guidance. Existing capsule selectors remain replayable;
+this source change awaits its focused creation and refusal gates.

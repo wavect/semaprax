@@ -1,0 +1,71 @@
+{
+  "status": "SOURCE_ONLY_STARTER_INVOCATION_RECOVERY_NOT_837_CLOSURE",
+  "base": "0f9fb3766f0413694e4a12447538f7c7bb99627f",
+  "changed_existing_files": 7,
+  "new_Rust_modules": 0,
+  "new_harnesses": 0,
+  "old_test_bodies_retained_exact": true,
+  "whole_beforeimages_match_git": true,
+  "behavior": [
+    "standalone known5fullhost flags report exact fullhosthelp recovery before input/destination operations",
+    "fullhost any known5starter flag selects existing closedstarter grammar so missing plan/from/profile emits its exactusage before reads",
+    "ordinary template parsing/creation code and all existing original tests retained"
+  ],
+  "untouched": [
+    "codec generator/replay",
+    "application_starter derivation/profile/caps",
+    "heldinput reader",
+    "scaffold publisher/staging/pivot/cleanup",
+    "HIR/backends",
+    "source binding helpers/tables",
+    "ROOT/current286freeze"
+  ],
+  "qualification_pending": [
+    "actual registration and owning core/fullCLI regressions",
+    "existing837 publication/hostile/CLI49/ShiftSim15 requirements",
+    "scoped productionClippy atadoptedsource",
+    "actual sourcebinding/pin changes if required by later combinedbatch"
+  ],
+  "no_claims": [
+    "No Cargo/rustc/tests/fullgates or actualCLI execution",
+    "No installed runtime success or837closure",
+    "No token/cost/repair-command reduction"
+  ],
+  "files": {
+    "CHANGELOG.md": {
+      "length": 574263,
+      "sha256": "48e5b7ff9278754fcf8b7fa1f3a0b2a128fef40df5281a2ed112fc823c190e8a",
+      "lines": 7691
+    },
+    "crates/semaprax-toolchain/src/new_project.rs": {
+      "length": 17334,
+      "sha256": "218dd626cd8da45fc84f718bf575cb557e5daea51455abe32b09fe4c6373ed52",
+      "lines": 519
+    },
+    "crates/semaprax-toolchain/tests/cli_new_project_v1/application_starter.rs": {
+      "length": 23437,
+      "sha256": "a754b40bb88094d90b43e2f91b070007da676f063daedb2de6e3430a32196cb3",
+      "lines": 620
+    },
+    "docs/APPLICATION-STARTER-V1.md": {
+      "length": 9507,
+      "sha256": "1df7c2877fd2fffb00092c2c609021c68dd3aad15239f189c6556cb8e6edb2f7",
+      "lines": 146
+    },
+    "docs/NEW-PROJECT-STANDALONE-V1.md": {
+      "length": 5924,
+      "sha256": "4f036bd1164ee3aaaa83af78d3a0ca9607778b4b0e5b30e557016a56d309ef46",
+      "lines": 104
+    },
+    "src/cli/new_project.rs": {
+      "length": 8937,
+      "sha256": "8da14455d8d229a404958f9fe8c406d36f1c12de691663e4616f975d1864a55f",
+      "lines": 247
+    },
+    "tests/cli_help_surface_v1.rs": {
+      "length": 45556,
+      "sha256": "aac55ca64db2b37a04f6f46b40c05cadd99a67240259d37e9d83267ed0f7e7cc",
+      "lines": 936
+    }
+  }
+}

@@ -97,3 +97,8 @@ the Project v26 owner gate.
 Newly created projects now select [scaffold capsule v8](PROJECT-SCAFFOLD-V8.md)
 for corrected authoring guidance. Existing capsule selectors remain replayable;
 this source change awaits its focused creation and refusal gates.
+
+The additive full-host application starter options remain unavailable here.
+Their status-two refusal names `semaprax-full help new` rather than treating the
+known host-only route as an unknown template option. No input is read and no
+project is created by this guidance. See [Application Starter v1](APPLICATION-STARTER-V1.md#starter-invocation-recovery-837).

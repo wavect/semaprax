@@ -1358,16 +1358,13 @@ impl<'a> Canonicalizer<'a> {
                         continue;
                     }
                     attempt!(budget.reserve_bytes(
-                        function, intern_arena::SignatureQuery::EXIT_CONTROLS,
+                        function, intern_arena::SignatureQuery::LEXICAL_EXIT_CONTROLS,
                         "canonical borrowed signature receiving",
                     ));
                     // Retained scalar scratch contains only the child IDs for
                     // this frame; the epsilon cursor keeps its original shape.
                     self.child_ids.clear();
-                    attempt!(budget.reserve_vec(
-                        function, &mut self.child_ids, successors.len(),
-                        "canonical ordered child identity scratch",
-                    ));
+                    lexical_child_scratch::prepare!(self, successors, function, budget, receiving);
                     attempt!(budget.reserve_array::<[usize; 2]>(
                         function, successors.len(), "canonical child identity receiving",
                     ));
@@ -1475,3 +1472,5 @@ mod before_terminal_leaf_empty_memo;
 #[cfg(test)]
 #[path = "canonical_shared/incoming_flat_targets.rs"]
 mod targets;
+
+mod lexical_child_scratch;

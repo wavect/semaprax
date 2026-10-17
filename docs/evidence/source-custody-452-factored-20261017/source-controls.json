@@ -1,0 +1,8 @@
+{
+  "status": "PASS_SOURCE_ONLY",
+  "strict_fixed_original_subjects": 13,
+  "new_exact_physical_fronts": 2,
+  "whole_old_helper_restored": true,
+  "refusals": 10,
+  "old_tables_caps_body_assertions_unchanged": true
+}

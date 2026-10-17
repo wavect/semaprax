@@ -1,0 +1,10 @@
+{
+  "status": "PASS_SOURCE_ONLY",
+  "original_recipe_byte_exact": true,
+  "ordered_rows_exact_bijection": 115,
+  "whole_row_bytes_retained": true,
+  "other_recipe_fields_unchanged": true,
+  "all115_current_helper_views_bound": true,
+  "arena_physical_fronts": 1,
+  "refusals": 7
+}

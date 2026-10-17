@@ -36,7 +36,7 @@ macro_rules! include_str {
 #[test]
 fn complete_immediate_canonicalizer_caller_terminal_helpers_and_all_original_tests_are_exact() {
     use self::historical_std as std;
-    let recipe: serde_json::Value = serde_json::from_str(RECIPE).unwrap();
+    let recipe: serde_json::Value = serde_json::from_str(&ordered_recipe()).unwrap();
     assert_eq!(recipe["schema"], "semaprax.opt870.full-frozen-receivers.v1");
     assert_eq!(recipe["base"], "51c1dfc49962e046566ad21ec31f20c6b3a9bdae");
     let canonical = &recipe["canonical"];
@@ -193,6 +193,9 @@ mod historical_std {
                 let raw = super::super::paid_archive(&row["current"]);
                 return Ok(super::super::paid_view(&rows, logical, &raw).into_bytes());
             }
+            if logical == "src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs" {
+                return Ok(super::super::later_arena_helper(path)?.into_bytes());
+            }
             // The remaining original helper reads retain their fixed115-key
             // domain and original full byte/hash checks, with bounded IO.
             let recipe: serde_json::Value = serde_json::from_str(super::super::RECIPE).unwrap();
@@ -227,3 +230,66 @@ fn complete_paid_many_source_domains_keep_all_original_inputs_and_raw_production
 }
 const PAID_INPUT_LENGTH: usize = 4272;
 const PAID_INPUT_SHA: &str = "abe19258899810c8aac85239cfb32e4ccde2b0623161959bed13d11e6e9e75b4";
+
+// Metadata row ordering only; canonical runtime cleanup vectors are untouched.
+fn ordered_recipe_input(current: &str) -> String {
+    assert_eq!(RECIPE.len(), 25837);
+    assert_eq!(digest(RECIPE.as_bytes()), "9f419bb0fce12834a91ef948d90ea9be6655748efee773ae06cbee896f80272c");
+    assert_eq!(current.len(), 25837);
+    assert_eq!(digest(current.as_bytes()), "53c5f765b4a94b70ba774096ea8e2619a464d8846b707ab29847f19a937f56eb");
+    let old: serde_json::Value = serde_json::from_str(RECIPE).unwrap();
+    let candidate: serde_json::Value = serde_json::from_str(current).unwrap();
+    let before = old["helpers"].as_array().unwrap();
+    let after = candidate["helpers"].as_array().unwrap();
+    assert_eq!(before.len(), 115);
+    assert_eq!(after.len(), 115);
+    let mut previous = "";
+    for row in after {
+        let path = row["path"].as_str().unwrap();
+        assert!(path > previous && path.starts_with("src/cleanup_plan/replay/factored/"));
+        previous = path;
+        let matched: Vec<_> = before.iter().filter(|r| r["path"] == path).collect();
+        assert_eq!(matched.len(), 1);
+        assert_eq!(row, matched[0], "whole original helper row");
+    }
+    let mut restored = candidate.clone();
+    restored["helpers"] = old["helpers"].clone();
+    assert_eq!(restored, old, "every other original recipe field");
+    current.to_owned()
+}
+fn ordered_recipe() -> String {
+    let path = ::std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("docs/evidence/source-custody-452-paid-recipe-order-20261017/recipe.ordered.json.txt");
+    let text = paid_reader::read(&path, 25837, "53c5f765b4a94b70ba774096ea8e2619a464d8846b707ab29847f19a937f56eb", 65_536).unwrap();
+    ordered_recipe_input(&text)
+}
+#[test]
+fn ordered_recipe_keeps_all115_original_rows_fields_and_refuses_old_or_forged_order() {
+    let current = ordered_recipe();
+    assert_ne!(current, RECIPE);
+    let value: serde_json::Value = serde_json::from_str(&current).unwrap();
+    for bad in [String::new(), current[..current.len()-1].to_owned(), format!("{current} "), RECIPE.to_owned()] {
+        assert!(::std::panic::catch_unwind(|| ordered_recipe_input(&bad)).is_err());
+    }
+    for kind in 0..3 {
+        let mut wrong = value.clone();
+        let rows = wrong["helpers"].as_array_mut().unwrap();
+        if kind == 0 { rows.swap(0, 1); }
+        if kind == 1 { rows[1] = rows[0].clone(); }
+        if kind == 2 { rows[0]["path"] = serde_json::Value::String("src/foreign.rs".to_owned()); }
+        assert!(::std::panic::catch_unwind(|| ordered_recipe_input(&wrong.to_string())).is_err());
+    }
+}
+
+fn later_arena_helper(path: &::std::path::Path) -> ::std::io::Result<String> {
+    let expected = ::std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs");
+    if path != expected { return Err(::std::io::Error::new(::std::io::ErrorKind::InvalidInput, "foreign arena helper path")); }
+    let directory = ::std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("docs/evidence/source-custody-452-paid-recipe-order-20261017");
+    let read = |path: &::std::path::Path, length, sha| paid_reader::read(path, length, sha, 2_097_152)
+        .map_err(|_| ::std::io::Error::new(::std::io::ErrorKind::InvalidData, "whole original arena helper input"));
+    let current = read(path, 56925, "6dbb0428fcd1e70858de38f0b795d7ac92f0b601d92318e7d2c818b5dfc3cb27")?;
+    assert_eq!(current, read(&directory.join("arena.current.txt"), 56925, "6dbb0428fcd1e70858de38f0b795d7ac92f0b601d92318e7d2c818b5dfc3cb27")?);
+    read(&directory.join("arena.prior.txt"), 19645, "891edcee186f1c7b3fb59bf7d2adf2443c9d230343569865d941b90410b04dd8")
+}

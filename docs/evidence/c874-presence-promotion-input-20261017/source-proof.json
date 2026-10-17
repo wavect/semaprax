@@ -5,8 +5,11 @@
   "main7f8_domains": 2,
   "complete_eb2_old_bridge_and_inverses": 3,
   "old_tables_unchanged": true,
-  "compiled_input_authentication": "complete literal equality + length + SHA, no runtime filesystem claim",
+  "compiled_input_authentication": "fixed independent c874 archive48138B/SHA43ce0a + actual compiled equality + caller length/SHA/full equality",
   "rust_parse": "PASS",
   "runtime": "UNEXECUTED",
-  "call_boundary_audit": "physical input retained separately; raw-only acquisition executes once; original current-SHA compares staged; explicit second-stage refusal in existing owner"
+  "call_boundary_audit": "physical input retained separately; raw-only acquisition executes once; original current-SHA compares staged; explicit second-stage refusal in existing owner",
+  "fixed_current_git_head": "c8740045e33126a4375aadd1dc524a25be9245fc",
+  "independent_current_archive_equals_git_c874": true,
+  "future_endpoint_refusal": "compiled whole-source must equal fixed archive before current admission; source-only predicate audit"
 }

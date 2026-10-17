@@ -1,0 +1,68 @@
+[
+  {
+    "path": "src/cleanup_plan/replay.rs",
+    "expected_sha256": "6db5b0ed361258023e3d7cad058c3de6d737b416b67e98e7113ecb0a993c86c1",
+    "current_length": 318621,
+    "current_sha256": "458260e9a3d66601d731b7bad8737efdfd5a4deb4e52bbb07adf0f0af150777b",
+    "current_archive": "docs/evidence/ordinary-plan-final-ingress-20261017/current/458260e9a3d66601d731b7bad8737efdfd5a4deb4e52bbb07adf0f0af150777b.txt",
+    "checkpoint_length": 318621,
+    "checkpoint_sha256": "458260e9a3d66601d731b7bad8737efdfd5a4deb4e52bbb07adf0f0af150777b",
+    "checkpoint_archive": "docs/evidence/ordinary-plan-final-ingress-20261017/before787/00.txt",
+    "inverse": []
+  },
+  {
+    "path": "src/source_reflows_merge.rs",
+    "expected_sha256": "10330014cf84803a8d017702b59a626820f777f7fb0cc950cc512897b8b6d220",
+    "current_length": 46161,
+    "current_sha256": "e39790a4feedf4e2ea920e66760e1f17c0d2455a78e3640cd64badaeaf55de53",
+    "current_archive": "docs/evidence/ordinary-plan-final-ingress-20261017/current/e39790a4feedf4e2ea920e66760e1f17c0d2455a78e3640cd64badaeaf55de53.txt",
+    "checkpoint_length": 46161,
+    "checkpoint_sha256": "e39790a4feedf4e2ea920e66760e1f17c0d2455a78e3640cd64badaeaf55de53",
+    "checkpoint_archive": "docs/evidence/ordinary-plan-final-ingress-20261017/before787/01.txt",
+    "inverse": []
+  },
+  {
+    "path": "src/source_reflows_merge/main67107_inputs.rs",
+    "expected_sha256": "92f37c17f42b28477804d61c882e45ca4b64d8fc67fd78cab11ab369026152d9",
+    "current_length": 33251,
+    "current_sha256": "a511a68af9e2dfe857afff66e74f575b0ca01887b933767202f800db5c0f8ba7",
+    "current_archive": "docs/evidence/ordinary-plan-final-ingress-20261017/current/a511a68af9e2dfe857afff66e74f575b0ca01887b933767202f800db5c0f8ba7.txt",
+    "checkpoint_length": 33251,
+    "checkpoint_sha256": "a511a68af9e2dfe857afff66e74f575b0ca01887b933767202f800db5c0f8ba7",
+    "checkpoint_archive": "docs/evidence/ordinary-plan-final-ingress-20261017/before787/02.txt",
+    "inverse": []
+  },
+  {
+    "path": "tests/hir_module_boundaries.rs",
+    "expected_sha256": "378d33aba7c844e66352f2eb7dc2c25b5e2f3d7101e7b331ba5bceb359a5d0fe",
+    "current_length": 96844,
+    "current_sha256": "4264ab588af07acb50304d667d09fb8685ab4d82bc1d78c92ea99d00cc825a4b",
+    "current_archive": "docs/evidence/ordinary-plan-final-ingress-20261017/current/4264ab588af07acb50304d667d09fb8685ab4d82bc1d78c92ea99d00cc825a4b.txt",
+    "checkpoint_length": 96844,
+    "checkpoint_sha256": "4264ab588af07acb50304d667d09fb8685ab4d82bc1d78c92ea99d00cc825a4b",
+    "checkpoint_archive": "docs/evidence/ordinary-plan-final-ingress-20261017/before787/03.txt",
+    "inverse": []
+  },
+  {
+    "path": "tests/workspace/semantic_graph/source_inventory.rs",
+    "expected_sha256": "29a6c3be08485c93251c2c58a1eef2be4de905b21f54865f85356d3a85bdf21b",
+    "current_length": 89937,
+    "current_sha256": "a8468859b79dd47e9ef6a77e1803e2942fcce4c4a41e6a2436e51691a495bae7",
+    "current_archive": "docs/evidence/ordinary-plan-final-ingress-20261017/current/a8468859b79dd47e9ef6a77e1803e2942fcce4c4a41e6a2436e51691a495bae7.txt",
+    "checkpoint_length": 89937,
+    "checkpoint_sha256": "a8468859b79dd47e9ef6a77e1803e2942fcce4c4a41e6a2436e51691a495bae7",
+    "checkpoint_archive": "docs/evidence/ordinary-plan-final-ingress-20261017/before787/04.txt",
+    "inverse": []
+  },
+  {
+    "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "expected_sha256": "754b81a88c3b698f7098524bd76cf0726d189632c44cf9027e6724e314cd7d53",
+    "current_length": 154870,
+    "current_sha256": "68f460f783a905ec3b35fbe0152b8353875ea0de23973dea8cf430e2b0a1c88f",
+    "current_archive": "docs/evidence/ordinary-plan-final-ingress-20261017/current/68f460f783a905ec3b35fbe0152b8353875ea0de23973dea8cf430e2b0a1c88f.txt",
+    "checkpoint_length": 154870,
+    "checkpoint_sha256": "68f460f783a905ec3b35fbe0152b8353875ea0de23973dea8cf430e2b0a1c88f",
+    "checkpoint_archive": "docs/evidence/ordinary-plan-final-ingress-20261017/before787/05.txt",
+    "inverse": []
+  }
+]

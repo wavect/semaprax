@@ -1,0 +1,17 @@
+{
+  "status": "SOURCE_ONLY_UNCOMPILED_UNEXECUTED_NOT_REGISTERED",
+  "new_owner": {
+    "package": "semaprax",
+    "kind": "test:wasm",
+    "selector": "scalar_browser_ci_contract::historical_builder::current_browser_bridge_keeps_both_complete_trees_and_refuses_rehashed_foreign_and_wrong_role",
+    "sourcepath": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs"
+  },
+  "existing_actual_live_producer_owner": {
+    "package": "semaprax",
+    "kind": "test:wasm",
+    "selector": "scalar_browser_ci_contract::browser_known_answers_match_authenticated_baseline_and_rename_graphs",
+    "sourcepath": "tests/wasm/scalar_browser_ci_contract.rs"
+  },
+  "retained_browser12_draft": "/Volumes/Semaprax/provenance/main34d-additional-exact-selectors-20261017/separate-wasm12-draft.json",
+  "qualification": "Separate guarded wasm build after actual pin plan; not core all5/supplement79 evidence."
+}

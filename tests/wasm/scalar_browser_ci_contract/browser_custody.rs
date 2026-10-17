@@ -349,6 +349,7 @@ pub(super) fn main671_input(source: &str, current: &str) -> String {
     let raw = match source {
         "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs" =>
             include_str!("../../../platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs"),
+        "tests/wasm/scalar_browser_ci_contract.rs" => include_str!("../scalar_browser_ci_contract.rs"),
         "tests/wasm/scalar_browser_ci_contract/historical_builder.rs" => include_str!("historical_builder.rs"),
         "tests/wasm/scalar_browser_ci_contract/browser_custody.rs" => include_str!("browser_custody.rs"),
         "tests/wasm/scalar_browser_ci_contract/next_actual.rs" => include_str!("next_actual.rs"),

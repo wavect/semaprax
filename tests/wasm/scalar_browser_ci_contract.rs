@@ -121,8 +121,8 @@ fn browser_known_answers_match_authenticated_baseline_and_rename_graphs() {
                     file.write_all(revision.semantic_graph().as_bytes())
                         .expect("capture complete actual calculator graph");
                 }
-                previous_digests.push(historical_builder::next_actual_digest(revision.semantic_graph()));
-                historical_builder::next_actual_drift_controls(revision.semantic_graph());
+                previous_digests.push(historical_builder::current_browser_digest(revision.semantic_graph(), name));
+                historical_builder::current_browser_drift_controls(revision.semantic_graph(), name);
                 let actual = [
                     revision.project_revision(),
                     revision.workspace_revision(),

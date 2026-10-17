@@ -1,0 +1,22 @@
+{
+  "status": "ACCEPT_SOURCE_ONLY_NOT_RUST_TYPECHECK",
+  "commits": [
+    "6569dbde2185f95b8cae559e7d2ec45914818f19",
+    "86865ccf6f593c13eebee0d48b316eeb5e3ba2c0"
+  ],
+  "receipt_sha256": "6d51ccd912fd83faf675eca4d66496eae53264120b31e43e979dc853c756c812",
+  "hardening_sha256": "53a68ef18d176430d314b0aaa3dcf100839ed64236180b0a3e09957d59119f4b",
+  "checks": [
+    "all4actualE0369sites requireErr and compareall6publicdiagnosticfields",
+    "unitOkDebug and unconditionalpublicSeverity/SpanEq verified",
+    "wholeleaf current\u2192cc preimage exactGit;4independent wholecurrent mutation refusals",
+    "oldverifier/sourcecuts/outer byteexactccGit",
+    "newhelper literal rawSHA checked beforeimport"
+  ],
+  "sources": {
+    "src/cli/json_codec/retained_receipt/stdout_seal/tests.rs": "4ab4541b0fe322ded7925f8e797b4c00d50bb6f8e2a0b1f638a0b8288f29440b",
+    "docs/evidence/codec-stdout-publication-seal-20261017/integration_input.py": "0bae34965f306e253dab00c043e8fb2399f0ea4d4a1a1a856af9008573482744",
+    "docs/evidence/codec-stdout-publication-seal-20261017/compile_input.py": "f46b668bd8cdb3a77afd99fff496439786665ee603ff6cf8c915abbf660805e0"
+  },
+  "runtime_or_Cargo": false
+}

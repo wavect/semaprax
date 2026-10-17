@@ -3066,9 +3066,6 @@ fn sequence_skeleton_paths(
             final_output::FINAL_SPLIT_CONTROLS,
             "HIR final-suffix split controls",
         )?;
-        let Some((last, earlier)) = pending.as_slice().split_last() else {
-            continue;
-        };
         // Lexical remainder of the original first clone: no second charge and
         // no newly forwarded Result<Observations, Diagnostic>.
         let observations = skeleton_work::prefix_fusion::after_work!(
@@ -3096,11 +3093,19 @@ fn sequence_skeleton_paths(
             },
             "sequenced skeleton path",
         );
-        for suffix in earlier.iter() {
-            work.charge(1, "skeleton prefix clone")?;
-            let observations = skeleton_work::prefix_fusion::after_work!(
-                work, prefix.observations, suffix.observations
-            );
+        // Preserve the original first-output remaining-count receiver: only
+        // after that publication may the last suffix leave this iterator.
+        let Some(last) = pending.next_back() else {
+            continue;
+        };
+        for suffix in pending {
+            let observations =
+                work.clone_observations(&prefix.observations, "skeleton prefix clone")?;
+            let observations = work.extend_owned_observations(
+                observations,
+                &suffix.observations,
+                "skeleton suffix clone",
+            )?;
             let owned_source = work.clone_owned(
                 &suffix.owned_source,
                 "sequenced skeleton owned-source clone",

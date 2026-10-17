@@ -1,25 +1,31 @@
 {
   "schema": "semaprax.source-only-inverses.v1",
   "base": "fade6f4df00808a4f9b763fff22cd5f3898683f4",
-  "status": "NONREADY: eligibility probe funding unresolved; do not integrate as qualified",
+  "status": "SOURCE ONLY: first-sibling funded probe revision; pending parent review, union registration and all execution",
   "files": [
     {
       "path": "src/cleanup_plan/replay.rs",
+      "preimage": "preimages/src__cleanup_plan__replay.rs.before",
       "before_sha256": "0cf35a330c89ec7ae532f3ac39ecc4cb0b056cb9538966962ac04851c3a611bc",
-      "after_sha256": "215dbc6f14dc73771c91a84ba3fbb76157b41de2a609fbf5379187718bc05899",
+      "after_sha256": "1018deff55485f111f413a6eb7d1196271929a7338dd5ee32675608d814602e6",
       "inverse": [
         {
-          "before": "            let observations =\n                work.clone_observations(&prefix.observations, \"skeleton prefix clone\")?;\n            let observations = work.extend_owned_observations(\n                observations,\n                &suffix.observations,\n                \"skeleton suffix clone\",\n            )?;\n",
-          "after": "            work.charge(1, \"skeleton prefix clone\")?;\n            let observations = skeleton_work::prefix_fusion::after_work!(\n                work, prefix.observations, suffix.observations\n            );\n"
+          "before": "        for suffix in earlier.iter() {\n",
+          "after": "        // Preserve the original first-output remaining-count receiver: only\n        // after that publication may the last suffix leave this iterator.\n        let Some(last) = pending.next_back() else {\n            continue;\n        };\n        for suffix in pending {\n"
         },
         {
           "before": "        work.budget\n            .reserve_clone(work.function, &prefix.observations, \"skeleton prefix clone\")?;\n        note_skeleton_materialization();\n        let observations = prefix.observations.clone();\n        let observations = work.extend_owned_observations(\n            observations,\n            &first_suffix.observations,\n            \"skeleton suffix clone\",\n        )?;\n",
           "after": "        let observations = skeleton_work::prefix_fusion::after_work!(\n            work, prefix.observations, first_suffix.observations\n        );\n"
+        },
+        {
+          "before": "        let Some((last, earlier)) = pending.as_slice().split_last() else {\n            continue;\n        };\n",
+          "after": ""
         }
       ]
     },
     {
       "path": "src/cleanup_plan/replay/skeleton_work.rs",
+      "preimage": "preimages/src__cleanup_plan__replay__skeleton_work.rs.before",
       "before_sha256": "07a74198e5a441b7a406cdbde8c0d321ef283c82bbd2d6f810039196cc42fb7f",
       "after_sha256": "6d558fc460605a47508400dbe54939ba2969e42db99ac4759dd475e6434d3710",
       "inverse": [
@@ -28,6 +34,60 @@
           "after": "pub(super) mod prefix_fusion;\n"
         }
       ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/final_output.rs",
+      "preimage": "preimages/src__cleanup_plan__replay__final_output.rs.before",
+      "before_sha256": "c4a53473baf54edc1dd7280c194344a6f1897b1f292ade3da5d82c864e4231b0",
+      "after_sha256": "14ef67381d229e623951062d33c4af71d0a33f4878ce6bbccea0e012fbf19794",
+      "inverse": [
+        {
+          "before": "// One split per active multi-suffix prefix, before every new view/Option.\n// The earlier loop keeps its original Iter/next/Option roles unchanged.\n",
+          "after": "// Unchanged numeric split-frame bound. prefix_fusion removes the tuple/slice\n// split and newly constructed earlier-slice iterator; its next_back/remaining\n// iterator and ONE first-sibling probe fit those removed receiving roles.\n// prefix_fusion's compile-time layout inequality binds that substitution;\n// no new selector payment is admitted on a declined first-sibling route.\n"
+        }
+      ]
+    },
+    {
+      "path": "docs/ARCHITECTURE.md",
+      "preimage": "preimages/docs__ARCHITECTURE.md.before",
+      "before_sha256": "1057d4b0aabf76841f2c5c6b4e061c360f6ff221977e8060930b78480f159305",
+      "after_sha256": "4d9e2d86b7f423b3ae2b00f11f26449616088339fda784f8b09bdc25f8d26375",
+      "inverse": [
+        {
+          "before": "",
+          "after": "\n`skeleton_work/prefix_fusion` removes the tuple/slice split and extra\npreviously constructed earlier-sibling iterator. A compile-time layout inequality\nuses those removed receiving roles to fund one first-sibling eligibility probe\nunder the unchanged split charge. Only an ordinary live builder with sufficient\nexisting extension work and a sufficiently large flat prefix/nonempty flat\nsuffix can acquire new fusion controls. Its sole final backing has the old\nclone-then-growth capacity and is acquired after the old extension-work frontier;\nthere is no intermediate clone backing. Declined and subsequent siblings keep\nthe complete old clone/extension receiver. The independently compiled frozen\nwhole sequence, full preimages, physical owner/Drop and byte/work controls live\nbeside the source packet in `docs/evidence/ordinary-prefix-fusion-20261017`.\nAll executable qualification and application receipts remain pending.\n"
+        },
+        {
+          "before": "transfer. Active multi-suffix prefixes use one paid remaining-slice split,\n",
+          "after": "transfer. Active multi-suffix prefixes use one paid remaining-iterator frame,\n"
+        }
+      ]
+    },
+    {
+      "path": "CHANGELOG.md",
+      "preimage": "preimages/CHANGELOG.md.before",
+      "before_sha256": "ba8042129ba21765fb7c9af1a6bc2704e7fe8256ef0601c85813bced22843972",
+      "after_sha256": "ec22796dfde6468ef66897fac29f4560c001edd1a351db9b130a9faddc52c7cb",
+      "inverse": [
+        {
+          "before": "",
+          "after": "- Author a source-only ordinary first-sibling prefix/suffix fusion candidate.\n  Replaced split/iterator receiving roles fund one eligibility probe under the\n  unchanged charge; eligible paths allocate the final backing once after the\n  original extension work. Complete frozen/current owner and refusal controls\n  await the parent batch. No application-fit or measured-gain claim is made.\n"
+        }
+      ]
+    }
+  ],
+  "new_rust_owners": [
+    {
+      "path": "src/cleanup_plan/replay/skeleton_work/prefix_fusion.rs",
+      "sha256": "490c187c8945b45a120be05c3c96a68800bef43f91522ae77653dbb50f254769"
+    },
+    {
+      "path": "src/cleanup_plan/replay/skeleton_work/prefix_fusion/before.rs",
+      "sha256": "8092b89c1e93aa1aaba35fd0d80c4d6d5aaf8dcdb337c65f6efb6c4c4133329c"
+    },
+    {
+      "path": "src/cleanup_plan/replay/skeleton_work/prefix_fusion/tests.rs",
+      "sha256": "e9b3cfee3b7f7ff0ef56b72dcd0ec3483b9c58bae86f26d222b46967c550b003"
     }
   ]
 }

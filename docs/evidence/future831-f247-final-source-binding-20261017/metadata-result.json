@@ -1,0 +1,39 @@
+{
+  "status": "SOURCE_ONLY_EXACT_BOUNDARIES_AND_COMPLETE_SOURCE_ROLE_CUSTODY_PASS",
+  "owners": 193,
+  "old_owners_preserved": 184,
+  "new_rust_owners": 9,
+  "changed_binding_sources": [
+    "src/cleanup_plan/replay/compact_stage/main_f247_source_custody.rs",
+    "src/source_reflows/incoming090_semantic_receivers.rs",
+    "src/source_reflows_merge/main67107_inputs.rs",
+    "src/source_reflows_merge/main_c883_inputs.rs",
+    "src/source_reflows_merge/ordinary_plan_inputs.rs",
+    "tests/workspace/semantic_graph.rs"
+  ],
+  "counts": {
+    "hir": {
+      "classes": 1338,
+      "chunks": 1148,
+      "production": 491,
+      "test_only": 847
+    },
+    "projection": {
+      "classes": 1534,
+      "chunks": 320,
+      "production": 612,
+      "test_only": 922
+    }
+  },
+  "original_scope_rules_unchanged": true,
+  "global_polluted_purity_result_not_claimed": true,
+  "negative_controls": {
+    "dropped_actual_child_refused": true,
+    "coordinated_class_drop_not_original_generated_output": true,
+    "production_reclassification_refused": true,
+    "actual_source_drift_refused": true,
+    "whole_raw_drift_refused": true,
+    "foreign_path_child_cannot_escape": true
+  },
+  "Cargo": false
+}

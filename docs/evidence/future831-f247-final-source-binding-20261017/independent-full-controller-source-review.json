@@ -1,0 +1,72 @@
+{
+  "status": "BOUNDED_SOURCE_ACCEPTANCE_FULLCONTROLLER_ADAPTERS_ONLY",
+  "module_checks": [
+    {
+      "path": "src/source_reflows/main_f247_controllers.rs",
+      "sha256": "df7852aac1d8938f364801cada6594344a75d37167e5f3512681f9ce14b3c96a",
+      "whole_f247_inverse_exact": true,
+      "lines": 1407
+    },
+    {
+      "path": "src/cleanup_plan/replay/compact_stage/main_f247_source_custody.rs",
+      "sha256": "825671ce87b04e06fdf31464bb474120016b52ae02100c4fd14345831928cb21",
+      "whole_f247_inverse_exact": true,
+      "lines": 205
+    }
+  ],
+  "namespace_rows_observed": 408,
+  "exact_current_and_Git_incoming_direct_inputs": [
+    "docs/evidence/borrowed-exit-region-match-v1/sources.json",
+    "docs/evidence/borrowed-exit-region-match-v1/views.json",
+    "docs/evidence/compact-staged-observations-v1/inverse.json",
+    "docs/evidence/compact-staged-observations-v1/original-pieces.json",
+    "docs/evidence/compact-staged-observations-v1/src__cleanup_plan__replay.rs.before.txt",
+    "docs/evidence/compact-staged-observations-v1/src__cleanup_plan__replay__branch_clone__tests.rs.before.txt",
+    "docs/evidence/compact-staged-observations-v1/src__cleanup_plan__replay__factored.rs.before.txt",
+    "docs/evidence/compact-staged-observations-v1/src__cleanup_plan__replay__factored__borrowed_canonical__dictionary__keys.rs.before.txt",
+    "docs/evidence/compact-staged-observations-v1/src__cleanup_plan__replay__factored__borrowed_canonical__tests.rs.before.txt",
+    "docs/evidence/compact-staged-observations-v1/tests__hir_module_boundaries.rs.before.txt",
+    "docs/evidence/compact-staged-observations-v1/tests__workspace__semantic_graph__source_inventory.rs.before.txt",
+    "docs/evidence/held-continuation-growth-v1/sources.json",
+    "docs/evidence/held-status-prefix-v1/sources.json",
+    "docs/evidence/isolated-skeleton-paths-v1/sources.json",
+    "docs/evidence/last-branch-prefix-v1/sources.json",
+    "docs/evidence/live-source-audit-custody-v1/inverse.json",
+    "docs/evidence/optional-helper-digest-work-v1/sources.json",
+    "docs/evidence/ordinary-replay-routes-v1/sources.json",
+    "docs/evidence/ordinary-replay-setup-v1/helper-inputs.json",
+    "docs/evidence/ordinary-replay-setup-v1/sources.json",
+    "docs/evidence/paid-expression-lookup-state-v1/sources.json",
+    "docs/evidence/plan-branch-capacity-v1/sources.json",
+    "docs/evidence/projection-audit-scope-v1/sources.json",
+    "docs/evidence/receiver-source-custody-v1/inverse.json",
+    "docs/evidence/replay-operation-totals-v1/sources.json",
+    "docs/evidence/replay-work-refusal-v1/sources.json",
+    "docs/evidence/source-reader-followups-20261016/allocation.json",
+    "docs/evidence/source-reader-followups-20261016/sources.json",
+    "docs/evidence/status-identity-index-v1/sources.json",
+    "docs/evidence/status-membership-index-v1/sources.json",
+    "docs/evidence/string-slot-byte-helper-v1/sources.json",
+    "src/cleanup_plan/replay.rs",
+    "src/cleanup_plan/replay/branch_clone/tests.rs",
+    "src/cleanup_plan/replay/compact_stage/before.rs",
+    "src/cleanup_plan/replay/compact_stage/lexical_before.rs",
+    "src/cleanup_plan/replay/factored.rs",
+    "src/cleanup_plan/replay/factored/borrowed_canonical/dictionary/keys.rs",
+    "src/cleanup_plan/replay/factored/borrowed_canonical/tests.rs",
+    "src/source_reflows.json",
+    "tests/hir_module_boundaries.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs"
+  ],
+  "compact_two_missing_snapshot_checks_resolved": true,
+  "old23plus2complete_functions_assertions_loops_preserved": true,
+  "scope": "Fullcontroller adapters/imports/current\u2192incoming domain; final174/FINAL6/raw9 generation and Rust/runtime remain author/parent obligations",
+  "not_performed": [
+    "Cargo",
+    "Rust compiler",
+    "runtime gates",
+    "fullparser",
+    "sourcebinding execution",
+    "ROOT/future source writes"
+  ]
+}

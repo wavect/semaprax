@@ -1,0 +1,193 @@
+# Command-line token benchmark v1: LogLens
+
+A completely different application from the web benchmarks: a command-line
+log analyzer ([SPEC.md](SPEC.md)). It parses about 250 Common Log Format
+lines, counts by key, ranks, and prints a fixed text report or JSON. Golden
+outputs come from a seeded oracle (`oracle.py`, which benchmark agents may not
+read): `loglens sample.log` must print [expected.txt](expected.txt), and
+`loglens sample.log --top 3 --json` must print [expected.json](expected.json).
+
+Historical “net” values below use the earlier operational convention: sum each
+turn's provider input, cache-write, and cache-read counts, then subtract the
+first turn's input-plus-cache count once per turn. The first-turn baseline
+includes the task prompt as well as harness context. These values are not
+task-only model input or an upper bound; the live campaign labels this metric
+`legacy_net_input_tokens` and reports raw provider usage separately.
+
+## Round 3: matched live campaign, no qualified winner
+
+The original full-corpus acceptance result was **0/5 for both SEMAPRAX and
+TypeScript**, so cost per accepted task is undefined for both. The retrospective
+scope split found 28 SPEC-aligned checks passing all five candidates per arm;
+four extra CR/CRLF probes failed every candidate, although the frozen SPEC did
+not define those line endings. The split does not replace the original result.
+
+The same requested and observed model identity and effort were used for both arms. SEMAPRAX used more
+measured input/cache usage (8,482,473 raw tokens vs. 565,101), provider output
+(168,000 vs. 37,727), and list-price estimate ($4.664678 vs. $0.829111). These
+are descriptive differences from this campaign, not a qualified win or a
+causal language comparison. The final-source-only authored-token proxy was
+31,725 vs. 15,969 and is reported separately from provider output and the
+historical `legacy_net_input_tokens` convention.
+
+See the [round-three report](ROUND-3-REPORT.md) for per-trial usage, wall time,
+acceptance scope, transcript-backed retry evidence, and accounting caveats.
+The additive round-three entry in [results-live.json](results-live.json) keeps
+the round-one and round-two records intact; its compact hash and campaign
+metadata are in [round3-accounted-evidence.json](round3-accounted-evidence.json).
+Any changed guard-condition or other implementation should be measured as a
+new rerun against this frozen baseline; [issue #612](https://github.com/wavect/semaprax/issues/612)
+tracks that fair comparison.
+
+## Round 7: fresh Codex repeat (2026-10-08)
+
+A fresh repeat of the frozen round-6 LogLens campaign recorded five attempts per
+arm, with zero resource-contaminated attempts. SEMAPRAX accepted 1/5 and
+TypeScript 3/5; all six rejected candidates failed the `literal-plus-timezone`
+text and JSON boundary checks. This combined check covers the historical 33
+checks plus 16 boundaries, not the full repository quality gate or output
+continuation. See the [round-seven report](reports/codex-round7-mainc50-20261008.md)
+and [trace-backed recount](reports/codex-round7-mainc50-20261008-recount.json)
+for provenance, per-attempt means, and measurement limits. It is not a causal
+language comparison; actual billing and fixed harness context remain unavailable.
+
+## Fresh current-compiler repeat after chronological round 7 (2026-10-09; adapter profile round 6)
+
+A distinct, completed campaign used compiler source `398b051e6e7a06ac49ecf77d9292831401430de0` and the pinned binary recorded below. SEMAPRAX accepted 3/5 attempts and TypeScript 4/5; all three rejected attempts failed the same `literal-plus-timezone` text and JSON checks. All ten attempts were resource-clean. This is a descriptive matched campaign, not evidence of a winner, a causal language comparison, or an efficiency advantage. It retains the adapter's `round: 6` metadata; the new plan and artifact namespace are chronologically after the previously published round-seven campaign and do not overwrite or renumber it.
+
+The [full report](reports/codex-current398-20261009.md) includes all per-attempt and per-arm measurements, failed outcomes, resource-receipt hashes, and limits. The [trace-backed recount](reports/codex-current398-20261009-recount.json) retains all ten trials and independently checks usage reconciliation and archive/source hashes. Request input includes cache-read subsets; uncached input is exactly raw input minus that subset but is still not task-only input because fixed context is unknown. The separate `legacy_net_input_tokens` value is also not task-only input. Final-source tokens are a legacy Claude BPE proxy, not cumulative authorship. Here “current-compiler” means the source398 binary pinned at launch; later source batch `700701` (`687cbed33`) is not represented. Conditional API-equivalent costs are estimates, not actual billing; provider-resolved model identity and fixed harness context remain unavailable. Calibration is separate and not subtracted. See the additive adapter-round-six entry in [results-live.json](results-live.json).
+
+The report counts reconciled internal model requests separately from each outer
+CLI turn and tool calls. Its conditional cost totals include all five attempts
+per arm and are divided by accepted tasks only; actual billed cost and fixed
+harness context remain null. “Final-source tokens” means a legacy Claude BPE
+count of each final candidate inventory, including tests, docs, and scripts.
+
+## Round 1 (baseline, `f106fcebe`)
+
+| | TypeScript (Node, no deps) | SEMAPRAX |
+| --- | ---: | ---: |
+| Completed | yes, all tests pass | **no** |
+| Turns | 6 | 76 |
+| Legacy net input tokens | 104,540 | 4,363,904 |
+| Estimated cost (lower bound) | $0.20 | $1.94 |
+| Final-source token proxy (historical report label: authored) | 1,540 | (a 749-byte stub) |
+
+SEMAPRAX could not express the program. The web benchmarks never needed text
+processing in the language itself, because the projection generates it.
+Here it is the whole task, and the core language cannot yet:
+
+- accumulate text in a loop: `let mut` holds only Copy scalars (`SPX-U105`),
+  and string literals or string-producing calls are not admitted in `while`
+  bodies (`SPX-T252`);
+- recurse deeply enough to walk 250 lines instead (about 256 frames);
+- read a named file from the command profile, or write computed text more
+  than once per execution path (`SPX-T269`);
+- slice or search strings by offset, parse integers, or keep string
+  collections or maps.
+
+Each of these is now an improvement target. The next rounds re-run the same
+spec as they land; see [results-live.json](results-live.json).
+
+Round 3 used the pinned-model launcher and independent acceptance collector in
+[LIVE-CAMPAIGN.md](LIVE-CAMPAIGN.md); its results are reported above and in the
+linked round-three report.
+
+## Round 2 (Owned String Loops, Text Toolkit, String Collections, factored replay)
+
+| | TypeScript | SEMAPRAX run 1 | SEMAPRAX run 2 |
+| --- | ---: | ---: | ---: |
+| Completed | yes | **yes** | **yes** |
+| Turns | 6 | 19 | 27 |
+| Legacy net input tokens | 104,540 | 839,703 | 1,360,111 |
+| Estimated cost | $0.20 | $0.65 | $0.88 |
+| Final-source token proxy (historical report label: authored) | 1,540 | 4,252 | 4,307 |
+
+SEMAPRAX can now write the whole program, and both goldens and every exit
+status pass. It still costs 3–4 times as much as TypeScript. The agents'
+failed checks name the next targets: user functions with string parameters,
+`match`, and `arg_utf8` inside loop bodies (`SPX-T252`, `SPX-T270`); `if`
+as a statement and casts (`SPX-P106`); string reassignment from a branch
+(`SPX-U105`); string parameters that consume their argument; and no `str`
+to `string` conversion.
+
+Round 4 completed with explicit LF/CRLF/CR requirements, five matched live runs
+per arm: SEMAPRAX accepted 4/5 and TypeScript 5/5. See
+[the round 4 report](ROUND-4-REPORT.md) and
+[accounted evidence](round4-accounted-evidence.json) for usage, fixed-context
+calibration, estimated cost per accepted task and saved-artifact identities.
+
+## Next round preflight (2026-10-08)
+
+The Sonnet round-5 plan preserves the exact round-4 specification and sample
+hashes, with five attempts per arm. Its calibration was rejected by the
+account weekly quota; **zero application trials launched**. The
+[preflight record](round5-sonnet-preflight.json) binds the retained artifacts.
+This is not a scored campaign or a language-comparison result.
+
+A separate Codex GPT-6.1 Sol medium-effort entitlement preflight returned
+`READY`. Its [record](codex-preflight-20261008.json) preserves raw input/cache/
+cache-write/output counters and trace hashes. This read-only preflight is
+separate from any matched application campaign and calibration. Its conditional
+Standard short-context API rate-card estimate is not an actual subscription
+billing receipt, and unavailable fixed-context composition remains null.
+The [official model pricing](https://developers.openai.com/api/docs/models/gpt-6.1-sol)
+was checked on 2026-10-08. A new provider campaign must retain its own prompt,
+model, CLI, usage, acceptance and source provenance; results cannot be merged
+into the historical Sonnet campaign.
+
+The Codex campaign's saved request accounting and candidate archive hashes can
+be independently recounted without another model call or candidate execution:
+
+```sh
+python3 benchmarks/cli-tokens-v1/codex_report.py /absolute/campaign/results.json
+```
+
+The report keeps all attempted tasks in cost and token totals, divides conditional
+API-equivalent cost by accepted tasks, and leaves unknown cost unknown. Partial
+campaigns list unlaunched attempts separately. Final authored tokens remain a
+legacy Claude tokenizer proxy; raw input includes cache subsets; historical net
+input is not task-only input. Fixed harness context and actual billing remain
+unavailable. Empty-task calibration is reported separately and never subtracted.
+The report does not requalify runtime behavior: it checks the saved acceptance,
+public-input guards, trace reconciliation, source hashes, and recorded evidence.
+
+Future matched runs may opt into a pinned dependency-only TypeScript toolchain
+with `--typescript-bootstrap-receipt`; setup instructions and provenance limits
+are in [LIVE-CAMPAIGN.md](LIVE-CAMPAIGN.md). Historical trials remain unchanged.
+
+Fresh Codex plans require `--compiler-build-receipt` to bind the selected compiler
+source, binary, actual build command and retained log. This is a byte binding;
+independent hosted-build provenance still needs verification. See
+[LIVE-CAMPAIGN.md](LIVE-CAMPAIGN.md). Saved historical recounts are unchanged.
+
+Future Codex attempts retain the full monotonic acceptance harness duration as
+`acceptance_elapsed_seconds`. Recounts call only this recorded duration
+`acceptance_wall_seconds`; historical build/test/check subprocess sums remain
+separate `acceptance_subprocess_seconds`, with missing phase measurements null.
+Wall per accepted task includes all attempted tasks, including rejected ones;
+a zero accepted denominator or incomplete measurements remains unavailable.
+These accounting fields do not revise any retained campaign or imply a gain.
+
+### Receipt accounting maintenance (OPT606)
+
+The shared Claude parser requires every deduplicated message bucket before
+calling a per-message sum complete. A provider aggregate result can supply a
+missing total; the original messages and result remain retained separately.
+Conflicting result/model totals remain unavailable with both projections saved.
+`modelUsage` fallback sums all models rather than selecting one requested model.
+Pricing checks all observed message/modelUsage identities; unresolved aliases
+also cannot establish a single-model card. A mixed-model aggregate cannot use a single-model rate card; its conditional
+estimate stays unavailable. Provider `total_cost_usd` remains an API-equivalent
+report, never proof of account billing. Tool IDs do not replace assistant message
+IDs when deduplicating visible text.
+
+Codex live and recount routes use the campaign's retained dated `price_book`,
+including cache subsets. Missing or invalid cards yield an unavailable estimate.
+Direct compatibility helpers retain the explicit 2026-10-08 historical card;
+they do not claim current pricing. Fixed context, final authored-source proxy
+tokens, total provider output and historical net input stay separate. Existing
+all-attempt cost divided by accepted-task denominators are unchanged.
+
+Offline owning checks: `python3 -m unittest discover -s benchmarks -p 'test_metric_accounting.py'`. These synthetic checks do not run campaigns,
+invoke providers, establish accepted samples or reconcile account billing.

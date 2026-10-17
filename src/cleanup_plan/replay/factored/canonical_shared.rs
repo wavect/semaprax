@@ -45,6 +45,7 @@ mod singleton_target_tests;
 #[cfg(test)]
 mod successor_targets;
 mod paid_many;
+mod borrowed_labels;
 #[cfg(test)]
 #[path = "canonical_shared/before_paid_many.rs"]
 mod before_paid_many;
@@ -719,6 +720,10 @@ impl<'a> Canonicalizer<'a> {
             let closed = &*borrowed;
             let accepted = closed.get(&self.sink).copied().unwrap_or(0);
             if budget.pays_allocations() {
+                budget.reserve_bytes(function, borrowed_labels::receiving::<ordered_weights::OrderedWeights>(), "factored borrowed label call receivers")?;
+                return borrowed_labels::successors(function, budget, self.automaton, closed, accepted);
+            }
+            if budget.pays_allocations() {
                 budget.reserve_bytes(
                     function,
                     std::mem::size_of::<BTreeMap<Label, paid_many::Targets>>()
@@ -933,6 +938,10 @@ impl<'a> Canonicalizer<'a> {
         }
         let closed = &owned;
         let accepted = closed.get(&self.sink).copied().unwrap_or(0);
+        if budget.pays_allocations() {
+            budget.reserve_bytes(function, borrowed_labels::receiving::<ordered_weights::OrderedWeights>(), "factored borrowed label call receivers")?;
+            return borrowed_labels::successors(function, budget, self.automaton, closed, accepted);
+        }
         if budget.pays_allocations() {
             budget.reserve_bytes(
                 function,

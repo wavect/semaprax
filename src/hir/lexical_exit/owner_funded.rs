@@ -69,6 +69,7 @@ pub(crate) fn owner_funded<E>(
 /// so its real cursor layout is paid first. The only allocation reachable is
 /// the original depth-overflow diagnostic text, paid at its full length before
 /// the scan can build it (an upper bound; unused on the normal route).
+#[cfg(test)]
 pub(crate) fn requires_funded<E>(
     function: &ResolvedFunction,
     reserve: Reserve<'_, E>,
@@ -80,6 +81,47 @@ pub(crate) fn requires_funded<E>(
     )?;
     funded::charge(reserve, DEPTH_TEXT.len())?;
     Ok(super::requires(function).unwrap_or(false))
+}
+
+/// Ordinary replay keeps the original presence result and depth ceilings, but
+/// pays only the ancestor backing actually acquired by this invocation. The
+/// discarded depth diagnostic need not be constructed to preserve its false
+/// result. No attached plan, owner flag or previously scanned body is trusted.
+pub(crate) fn requires_with_funded_cursor<E>(
+    function: &ResolvedFunction,
+    reserve: Reserve<'_, E>,
+) -> Result<bool, FundedError<E>> {
+    funded::charge(reserve, std::mem::size_of::<Vec<super::ChildCursor<'_>>>())?;
+    let mut stack = Vec::new();
+    for root in function
+        .requires
+        .iter()
+        .chain(std::iter::once(&function.body))
+        .chain(&function.ensures)
+    {
+        funded::push(&mut stack, super::ChildCursor::new(root), reserve)?;
+        while !stack.is_empty() {
+            let len = stack.len();
+            let frame = stack.last_mut().expect("occupied lexical scan frame");
+            if !frame.is_started()
+                && matches!(
+                    &frame.expression().kind,
+                    crate::hir::ResolvedExprKind::LexicalExit { .. }
+                )
+            {
+                return Ok(len <= crate::cache_codec::MAX_DEPTH + 1);
+            }
+            if let Some(child) = frame.next() {
+                if len == super::walk::PRESENCE_DEPTH {
+                    return Ok(false);
+                }
+                funded::push(&mut stack, super::ChildCursor::new(child), reserve)?;
+            } else {
+                stack.pop();
+            }
+        }
+    }
+    Ok(false)
 }
 
 #[cfg(test)]
@@ -225,6 +267,104 @@ mod tests {
             debit_pairs[0], debit_pairs[1],
             "same canonical guard has identical charged work and storage"
         );
+    }
+    fn presence_function(exit: bool) -> ResolvedFunction {
+        let source = if exit {
+            "module presence; @id(\"main\") fn main()->i64 {return 0;}"
+        } else {
+            "module presence; @id(\"main\") fn main()->i64 {0}"
+        };
+        let mut function = crate::hir::resolve(&crate::check(source, "presence.spx").unwrap())
+            .unwrap()
+            .functions
+            .remove(0);
+        let mut seed = None;
+        crate::hir::function_value::walk(&function, |expression| {
+            if matches!(
+                &expression.kind,
+                crate::hir::ResolvedExprKind::LexicalExit { .. }
+            ) == exit
+                && (exit || matches!(expression.kind, crate::hir::ResolvedExprKind::Int(_)))
+            {
+                seed = Some(expression.clone());
+            }
+        });
+        function.body = seed.expect("presence seed");
+        function
+    }
+
+    #[test]
+    fn growing_presence_cursor_keeps_original_depth_results_and_every_physical_boundary() {
+        for exit in [false, true] {
+            for depth in [0, 1, 7, 8, 31, 32, 255, 256, 257, 511, 512, 513, 514] {
+                // Deliberately repeated identities are structural scan subjects,
+                // never a claim of resolver or HIR admission for these trees.
+                let mut function = presence_function(exit);
+                let parent = presence_function(false).body;
+                for _ in 0..depth {
+                    let mut next = parent.clone();
+                    next.kind = crate::hir::ResolvedExprKind::Unary {
+                        op: crate::ast::UnaryOp::Neg,
+                        value: Box::new(function.body),
+                    };
+                    function.body = next;
+                }
+                let expected = super::super::requires(&function).unwrap_or(false);
+                let observe = |available, floor| {
+                    crate::bounded_output::with_limit_usage_refusal(available + floor, || {
+                        assert!(crate::bounded_output::set_active_floor(floor));
+                        crate::test_allocation_observer::measure(|| {
+                            requires_with_funded_cursor(&function, &mut |bytes| {
+                                if crate::bounded_output::reserve_active_required(bytes) {
+                                    Ok(())
+                                } else {
+                                    Err("presence payer refused")
+                                }
+                            })
+                        })
+                    })
+                };
+                let ((result, allocation), refused, exact, first) = observe(usize::MAX, 0);
+                assert_eq!(result, Ok(expected));
+                assert!(!refused && first.is_none() && exact > 0);
+                assert!(!allocation.invalid && allocation.live == 0);
+                assert_eq!(allocation.allocated, allocation.freed);
+                assert!(allocation.allocated <= exact);
+                if depth == 0 {
+                    let mut fixed = 0usize;
+                    assert_eq!(
+                        requires_funded(&function, &mut |bytes| {
+                            fixed += bytes;
+                            Ok::<_, ()>(())
+                        }),
+                        Ok(expected)
+                    );
+                    assert!(
+                        exact < fixed,
+                        "shallow scans acquire less than the full fixed cursor"
+                    );
+                }
+                for floor in [0, 37] {
+                    for available in [0, exact - 1, exact] {
+                        let ((result, allocation), refused, used, receipt) =
+                            observe(available, floor);
+                        assert_eq!(result.is_ok(), available == exact);
+                        assert_eq!(refused, available != exact);
+                        assert_eq!(receipt.is_some(), available != exact);
+                        if let Some(receipt) = receipt {
+                            assert_eq!(receipt.floor, floor);
+                        }
+                        assert!(used <= available);
+                        assert!(!allocation.invalid && allocation.live == 0);
+                        assert_eq!(allocation.allocated, allocation.freed);
+                        assert!(allocation.allocated <= used);
+                        if available == 0 {
+                            assert_eq!(allocation.allocated, 0);
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

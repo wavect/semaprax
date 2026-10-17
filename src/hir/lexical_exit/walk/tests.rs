@@ -604,6 +604,7 @@ fn compact_cursor_complete_before_sources_and_compiled_control_stay_bound() {
         let current = crate::source_reflows_merge::main7f8_source_inputs::source("eb2-compact", record["path"].as_str().unwrap(), &current);
         let current = crate::source_reflows_merge::main_eb2_inputs::input(record["path"].as_str().unwrap(), &current);
         let current = crate::source_reflows_merge::main7f8_presence::compact_after_eb2(record["path"].as_str().unwrap(), &current);
+        let current = crate::source_reflows_merge::main7f8_source_inputs::later_452_input("compact-original", record["path"].as_str().unwrap(), &current);
         let restore = |source: &str| -> Option<String> {
             let mut result = source.to_owned();
             for edit in record["edits"].as_array().unwrap().iter().rev() {

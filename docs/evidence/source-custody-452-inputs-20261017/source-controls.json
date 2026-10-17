@@ -1,0 +1,9 @@
+{
+  "status": "PASS_SOURCE_ONLY",
+  "finite_stages": 3,
+  "refusals": 12,
+  "all_scalar_and_cache_fit_original_whole_restorations": true,
+  "compact_metadata_original_whole_restoration": true,
+  "old_tables_byte_exact": true,
+  "runtime": false
+}

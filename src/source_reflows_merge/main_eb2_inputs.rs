@@ -7,7 +7,8 @@ const DATA: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evide
 const DATA_LENGTH: usize = 17256;
 const DATA_SHA256: &str = "805be510a86e46dfb8cd58b63eca7b89e347053674e3357e8cb3c48924ce4955";
 pub(crate) fn input(path: &str, current: &str) -> String {
-    project("incoming", path, current)
+    let current = super::main7f8_source_inputs::later_452_input("eb2-incoming", path, current);
+    project("incoming", path, &current)
 }
 pub(crate) fn presence(path: &str, current: &str) -> String {
     project("presence", path, current)
@@ -71,6 +72,8 @@ mod tests {
 // all original rejection checks unchanged; archived inputs remain unchanged.
 fn complete_incoming_input(domain: &str, path: &str, current: &str) -> String {
     if domain != "incoming" { return current.to_owned(); }
+    let acquired = super::main7f8_source_inputs::later_452_input("eb2-incoming", path, current);
+    let current = acquired.as_str();
     let presence = super::main7f8_source_inputs::presence_before_later_inventory(domain, path, current);
     let current = presence.as_str();
     let data = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/fade-custody-promotions-20261017/eb2-incoming-bridge.json"));

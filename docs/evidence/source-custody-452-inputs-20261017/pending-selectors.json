@@ -1,0 +1,35 @@
+{
+  "status": "SOURCE_ONLY_PENDING_RUST_QUALIFICATION",
+  "checks": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::allocation::tests::clone_cursor::scalar_cursor_complete_sources_and_original_census_remain_bound",
+      "sourcepath": "src/cleanup_plan/replay/allocation/tests/clone_cursor.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows_merge::main_eb2_inputs::tests::complete_incoming_and_presence_views_refuse_foreign_truncated_and_duplicate_inputs",
+      "sourcepath": "src/source_reflows_merge/main_eb2_inputs.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "hir::lexical_exit::walk::tests::compact_cursor_complete_before_sources_and_compiled_control_stay_bound",
+      "sourcepath": "src/hir/lexical_exit/walk/tests.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "project::incremental::cache_attempt_fit_tests::complete_cache_fit_sources_and_original_lookup_remain_bound",
+      "sourcepath": "src/project/incremental.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows_merge::main7f8_source_inputs::later_452_source_inputs_preserve_complete_frozen_domains_and_refuse_wrong_stages",
+      "sourcepath": "src/source_reflows_merge/main7f8_source_inputs.rs"
+    }
+  ]
+}

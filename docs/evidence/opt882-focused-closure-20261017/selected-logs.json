@@ -1,0 +1,176 @@
+[
+  {
+    "index": 33,
+    "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::frozen_membership_keeps_full_byte_lane_equality_and_allocates_nothing",
+    "sha256": "afe9fbf76c56b5431178fb0e682612a918d8e4f40c1eb0a6061bd4eff42f8dfe",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::frozen_membership_keeps_full_byte_lane_equality_and_allocates_nothing ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 0.02s\n\n"
+  },
+  {
+    "index": 34,
+    "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::frozen_membership_reuses_the_index_within_the_same_original_work_ceiling",
+    "sha256": "a36e104e1b2b384eb05a6600c10be096af975f4b0e45acd4fefad4be1390dacd",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::frozen_membership_reuses_the_index_within_the_same_original_work_ceiling ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 0.17s\n\n"
+  },
+  {
+    "index": 35,
+    "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::frozen_membership_exact_short_zero_floor_and_drop_remain_on_the_original_ledger",
+    "sha256": "66fd155cc260bbc1b0a4e4b0232a928aaefcdf00fe4102a565578b4be85815d9",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::frozen_membership_exact_short_zero_floor_and_drop_remain_on_the_original_ledger ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 0.05s\n\n"
+  },
+  {
+    "index": 36,
+    "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::frozen_membership_rejects_foreign_and_restored_owners_before_cached_keys_or_foreign_debits",
+    "sha256": "0d6b4555118d68fd584433c37b36d620d7d884fe2df9c8a4aff09f4aebaf63a3",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::frozen_membership_rejects_foreign_and_restored_owners_before_cached_keys_or_foreign_debits ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 0.01s\n\n"
+  },
+  {
+    "index": 37,
+    "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::frozen_membership_is_sealed_and_incomplete_builders_cannot_publish_it",
+    "sha256": "b47c5091c5abe2dac38b20889c283a0404ddba5a2e69dbc4ee1bbbd3f9cbdd5a",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::frozen_membership_is_sealed_and_incomplete_builders_cannot_publish_it ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 0.01s\n\n"
+  },
+  {
+    "index": 38,
+    "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::frozen_membership_unobserved_payer_keeps_the_original_lookup_path",
+    "sha256": "1e81272e5315c01d5f784830580f120f2c36f0fe42598c1b3382d2c9beffe149",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::frozen_membership_unobserved_payer_keeps_the_original_lookup_path ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 0.01s\n\n"
+  },
+  {
+    "index": 39,
+    "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::frozen_membership_keeps_the_complete_old_comparison_fee_after_early_mismatch",
+    "sha256": "05ed6675e0f2d1257e203ad807a655ce5cc9fd59a24d97bb26c04e26a9a2daa9",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::frozen_membership_keeps_the_complete_old_comparison_fee_after_early_mismatch ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 0.01s\n\n"
+  },
+  {
+    "index": 40,
+    "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::held_status_index_matches_every_original_avl_link_for_prefixes_bytes_lanes_and_duplicates",
+    "sha256": "57c9d11c8ce37da31b679099ad270624d633f060e2f78ee7a41908260a01e118",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::held_status_index_matches_every_original_avl_link_for_prefixes_bytes_lanes_and_duplicates ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 0.02s\n\n"
+  },
+  {
+    "index": 41,
+    "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::held_status_index_preserves_exact_short_floor_and_zero_heap_frontiers_through_drop",
+    "sha256": "3c05c6688568b0b906a2808333185002197e3d9dea7f90e2a38c647a6156d9d5",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::held_status_index_preserves_exact_short_floor_and_zero_heap_frontiers_through_drop ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 0.02s\n\n"
+  },
+  {
+    "index": 42,
+    "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::held_status_index_work_refusal_is_sticky_without_reusing_its_cached_path",
+    "sha256": "b66a737404ec9f6cc55c00a3e1f261d2e0060612c54da150729c3c37e652cb89",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::held_status_index_work_refusal_is_sticky_without_reusing_its_cached_path ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 0.01s\n\n"
+  },
+  {
+    "index": 43,
+    "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::held_status_index_admits_a_wide_opaque_key_set_inside_the_original_work_cap",
+    "sha256": "bf5114ae6feb7d273f88d7dfe27a974ab62fa14118672d596a4eb786ed5da306",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::held_status_index_admits_a_wide_opaque_key_set_inside_the_original_work_cap ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 0.10s\n\n"
+  },
+  {
+    "index": 44,
+    "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::held_status_index_cannot_reuse_cached_coordinates_in_foreign_or_restored_invocations",
+    "sha256": "421d521bad81a257f3b33da39a77801ce98c016cf3d9930b85f6e97aca4dda37",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::held_status_index_cannot_reuse_cached_coordinates_in_foreign_or_restored_invocations ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 0.10s\n\n"
+  },
+  {
+    "index": 45,
+    "selector": "cleanup_plan::replay::expression_facts::receiving::tests::every_directory_acquisition_exact_short_zero_and_sticky_is_paid_through_drop",
+    "sha256": "e7e65f791ca09e9f1d799d37bf6f0546446487404b59e41a22f6d127d24f2d44",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::expression_facts::receiving::tests::every_directory_acquisition_exact_short_zero_and_sticky_is_paid_through_drop ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 0.02s\n\n"
+  },
+  {
+    "index": 46,
+    "selector": "cleanup_plan::replay::expression_facts::receiving::tests::status_lane_and_copied_numeric_keys_keep_complete_original_order_and_disjointness",
+    "sha256": "5684c5d435f7333b4f381efdd9ea314d4d73177b2ef5950e8fe18993c8055d43",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::expression_facts::receiving::tests::status_lane_and_copied_numeric_keys_keep_complete_original_order_and_disjointness ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 0.01s\n\n"
+  },
+  {
+    "index": 47,
+    "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::certified_status_foreign_restored_and_wrong_subject_never_reactivate_the_bound_owner",
+    "sha256": "0b9ae72be72dbbe8105d916bcd220e73621f3dfb4444334dc6241f0679ccd25e",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::certified_status_foreign_restored_and_wrong_subject_never_reactivate_the_bound_owner ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 0.01s\n\n"
+  },
+  {
+    "index": 48,
+    "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::held_prefix_preserves_physical_frontiers_and_final_drop_without_a_new_allowance",
+    "sha256": "f4d2f0f9effaa31cfaaaf34c6920c293df692cce3b9f45869f329e5eb2fb0bfe",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::tests::held_prefix_preserves_physical_frontiers_and_final_drop_without_a_new_allowance ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 0.03s\n\n"
+  },
+  {
+    "index": 49,
+    "selector": "cleanup_plan::replay::expression_facts::receiving::retained::tests::retained_status_control_funding_exact_short_zero_and_foreign_active_are_sticky",
+    "sha256": "30d89bcdec4b2a0976ae005ca61885308fd01781f3827a0aa602c6602c648242",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::expression_facts::receiving::retained::tests::retained_status_control_funding_exact_short_zero_and_foreign_active_are_sticky ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 0.01s\n\n"
+  },
+  {
+    "index": 50,
+    "selector": "cleanup_plan::replay::expression_facts::receiving::retained::case_proof::tests::each_receiver_has_derived_exact_short_and_zero_bytes_and_work",
+    "sha256": "65ce23e9c16753318d51ae3a029dc4e4bc37fb316128f5eea18912075d27d714",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::expression_facts::receiving::retained::case_proof::tests::each_receiver_has_derived_exact_short_and_zero_bytes_and_work ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 0.06s\n\n"
+  },
+  {
+    "index": 51,
+    "selector": "cleanup_plan::replay::expression_facts::receiving::retained::case_proof::tests::proof_binds_exact_rows_function_budget_and_foreign_restored_invocation",
+    "sha256": "58d3a22f77a2566ea34853e400916fd617fdd70ae367c25809466d4c33ee7a5d",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::expression_facts::receiving::retained::case_proof::tests::proof_binds_exact_rows_function_budget_and_foreign_restored_invocation ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 0.01s\n\n"
+  },
+  {
+    "index": 52,
+    "selector": "cleanup_plan::replay::expression_facts::receiving::retained::case_proof::tests::lexical_current_attempt_refusal_unwind_and_completed_reuse_are_affine",
+    "sha256": "cedc150c73ee312b5b512c7c6d2342fb3839ff1f92e8d9e6da9c0379a41f05b0",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::expression_facts::receiving::retained::case_proof::tests::lexical_current_attempt_refusal_unwind_and_completed_reuse_are_affine ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 0.06s\n\n"
+  },
+  {
+    "index": 53,
+    "selector": "cleanup_plan::replay::expression_facts::receiving::retained::case_certified::counter_tests::certified_while_counter_preserves_complete_before_fields_work_and_receiving_debit",
+    "sha256": "49fc9d04ccd517f7355c0661e5e3a1267837406cb098f43fd63b97a3c26e54ec",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::expression_facts::receiving::retained::case_certified::counter_tests::certified_while_counter_preserves_complete_before_fields_work_and_receiving_debit ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 1.58s\n\n"
+  },
+  {
+    "index": 54,
+    "selector": "cleanup_plan::replay::expression_facts::receiving::retained::case_certified::counter_tests::certified_unobserved_wide_dispatch_keeps_complete_rows_and_original_work_ceiling",
+    "sha256": "592084beca9345c23bb8f8e7c7d489ea607a71b5082513a0a698e13c8f6842ea",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::expression_facts::receiving::retained::case_certified::counter_tests::certified_unobserved_wide_dispatch_keeps_complete_rows_and_original_work_ceiling ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 10.68s\n\n"
+  },
+  {
+    "index": 267,
+    "selector": "source_reflows::main_e177_controllers::reused_status_cursor_preserves_complete_predecessors_and_all_original_receivers",
+    "sha256": "97200e42a0b8a09a426ae147e662d91992fbd713a938f94c22b3b76cdc2ce006",
+    "raw_utf8": "\nrunning 1 test\ntest source_reflows::main_e177_controllers::reused_status_cursor_preserves_complete_predecessors_and_all_original_receivers ... \nthread 'source_reflows::main_e177_controllers::reused_status_cursor_preserves_complete_predecessors_and_all_original_receivers' (27692145) panicked at src/source_reflows/main_e177_controllers.rs:134:5:\nassertion `left == right` failed: receiver input drifted: src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs\n  left: \"61654be91864a3f236f14bb20b66f9e908b5c0ebeb2f31bee6a934937fcfb8c6\"\n right: String(\"aff3b6e7d30470659a80db529b48a8acbb2931b02a7ea813c6d34844f474d20d\")\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n\nthread 'source_reflows::main_e177_controllers::reused_status_cursor_preserves_complete_predecessors_and_all_original_receivers' (27692145) panicked at src/source_reflows/main_e177_controllers.rs:149:5:\nassertion `left == right` failed: receiver predecessor drifted: src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs\n  left: \"6571dc04f1e1eea962bc1450af4c7237292eebba1b8bdbf1e934337579524f5a\"\n right: String(\"0000000000000000000000000000000000000000000000000000000000000000\")\n\nthread 'source_reflows::main_e177_controllers::reused_status_cursor_preserves_complete_predecessors_and_all_original_receivers' (27692145) panicked at src/source_reflows/main_e177_controllers.rs:134:5:\nassertion `left == right` failed: receiver input drifted: src/source_reflows/semantic_receivers.rs\n  left: \"1a691b784f6ec2360260d2cc335cea892633a4273e5a9416d961d6cf4c7cec46\"\n right: String(\"a354a8476c045fcb176ce6babbbb6174236f49efa3f3deae24de7eb4c445d8e9\")\n\nthread 'source_reflows::main_e177_controllers::reused_status_cursor_preserves_complete_predecessors_and_all_original_receivers' (27692145) panicked at src/source_reflows/main_e177_controllers.rs:149:5:\nassertion `left == right` failed: receiver predecessor drifted: src/source_reflows/semantic_receivers.rs\n  left: \"fa6aa5b2d53932b4a013ab50168783003af766a41c651fb036cdf95f5f7c860e\"\n right: String(\"0000000000000000000000000000000000000000000000000000000000000000\")\n\nthread 'source_reflows::main_e177_controllers::reused_status_cursor_preserves_complete_predecessors_and_all_original_receivers' (27692145) panicked at src/source_reflows/main_e177_controllers.rs:134:5:\nassertion `left == right` failed: receiver input drifted: tests/hir_module_boundaries.rs\n  left: \"f13436f60943c750341e244479de158fab6943bd516e6d447d3bda3f19791030\"\n right: String(\"d9149e4de775720f16fd1f70603f953bc45f215b7534f16106e58d3f136b0b74\")\n\nthread 'source_reflows::main_e177_controllers::reused_status_cursor_preserves_complete_predecessors_and_all_original_receivers' (27692145) panicked at src/source_reflows/main_e177_controllers.rs:149:5:\nassertion `left == right` failed: receiver predecessor drifted: tests/hir_module_boundaries.rs\n  left: \"2a8c92d82704c56d18e15da4912e839be52e96114dbd9d2562fdb67cce303577\"\n right: String(\"0000000000000000000000000000000000000000000000000000000000000000\")\n\nthread 'source_reflows::main_e177_controllers::reused_status_cursor_preserves_complete_predecessors_and_all_original_receivers' (27692145) panicked at src/source_reflows/main_e177_controllers.rs:134:5:\nassertion `left == right` failed: receiver input drifted: tests/workspace/semantic_graph/source_inventory.rs\n  left: \"57d7db3901f0ed1e617b6f04bd66b83ec796e12db224e4bca232c4c34b630476\"\n right: String(\"da72498c6f63a37e488c75df9fe31fe2301c12114e5db0d496bc6d4072f6e06d\")\n\nthread 'source_reflows::main_e177_controllers::reused_status_cursor_preserves_complete_predecessors_and_all_original_receivers' (27692145) panicked at src/source_reflows/main_e177_controllers.rs:149:5:\nassertion `left == right` failed: receiver predecessor drifted: tests/workspace/semantic_graph/source_inventory.rs\n  left: \"75534a389c06ec3f4e28e6504303bf155b51062b46e5a76e2c80a255a5e56aa9\"\n right: String(\"0000000000000000000000000000000000000000000000000000000000000000\")\n\nthread 'source_reflows::main_e177_controllers::reused_status_cursor_preserves_complete_predecessors_and_all_original_receivers' (27692145) panicked at src/source_reflows/main_e177_controllers.rs:134:5:\nassertion `left == right` failed: receiver input drifted: crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs\n  left: \"23a44f16245f25c95b84bf8b90b4c5f59712cd64e1310e5a69ecca37c9a35515\"\n right: String(\"0a07bac8b9c0a51619952ca365ec06204c8ec0731f76d6b698c565ff8bcd88aa\")\n\nthread 'source_reflows::main_e177_controllers::reused_status_cursor_preserves_complete_predecessors_and_all_original_receivers' (27692145) panicked at src/source_reflows/main_e177_controllers.rs:149:5:\nassertion `left == right` failed: receiver predecessor drifted: crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs\n  left: \"0e077ec3242fdeafaffb74be980d0dac03fb0e8bd27b5bd77484b3e82b21bf15\"\n right: String(\"0000000000000000000000000000000000000000000000000000000000000000\")\nok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 0.29s\n\n"
+  },
+  {
+    "index": 269,
+    "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::reused_cursor::tests::reused_search_matches_every_old_link_and_preserves_all_original_work",
+    "sha256": "db060d71213d8d2811631ddf05d4b69881d440d1b9cb7535a49a7e50f3b4a7ef",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::reused_cursor::tests::reused_search_matches_every_old_link_and_preserves_all_original_work ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 0.05s\n\n"
+  },
+  {
+    "index": 270,
+    "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::reused_cursor::tests::reused_search_removes_owning_carriers_and_releases_all_backing",
+    "sha256": "1f28aec2a8f94bcb50930a135eefd866671aa1c58e00e53784eeef0c81e0e773",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::reused_cursor::tests::reused_search_removes_owning_carriers_and_releases_all_backing ... status-cursor complete512 old=1461881 new=977477 saved=484404\nok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 0.02s\n\n"
+  },
+  {
+    "index": 271,
+    "selector": "cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::reused_cursor::tests::reused_search_backing_is_paid_before_allocation_at_exact_short_zero_and_floor",
+    "sha256": "31feae7fb9ee5b5664e62e2e24d85c583ea424f6e2cfe66a2c2edcdadd82c051",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::expression_facts::receiving::directory::status_prefix::reused_cursor::tests::reused_search_backing_is_paid_before_allocation_at_exact_short_zero_and_floor ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 0.01s\n\n"
+  },
+  {
+    "index": 274,
+    "selector": "cleanup_plan::replay::expression_facts::receiving::directory::before_cursor::qualification::complete_pre01527_layouts_and_fees_preserve_every_status_key_and_tree_link",
+    "sha256": "115e3242dad62b4f7120952ce9f48ed04e00f66e310f31fc0fcb7df2f8dc28cc",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::expression_facts::receiving::directory::before_cursor::qualification::complete_pre01527_layouts_and_fees_preserve_every_status_key_and_tree_link ... status-cursor REAL-pre01527 work old=275067 current=277654\nok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 0.01s\n\n"
+  },
+  {
+    "index": 275,
+    "selector": "cleanup_plan::replay::expression_facts::receiving::directory::before_cursor::qualification::actual_caller_prepaid_cursor_and_complete_old_producer_keep_receipts_floors_and_whole_drop",
+    "sha256": "74cafe8c9d25956d28c210010ff8340a360e6ace9a316057da5606d037e55a88",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::expression_facts::receiving::directory::before_cursor::qualification::actual_caller_prepaid_cursor_and_complete_old_producer_keep_receipts_floors_and_whole_drop ... status-cursor REAL-pre01527 old=true paid=1250776 work=275067 allocated=148856 peak=99336 freed=148856 live=0\nstatus-cursor REAL-pre01527 old=false paid=977477 work=277654 allocated=148992 peak=99472 freed=148992 live=0\nok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 0.06s\n\n"
+  },
+  {
+    "index": 276,
+    "selector": "cleanup_plan::replay::expression_facts::receiving::directory::before_cursor::qualification::foreign_function_refuses_before_new_cursor_dispatch_and_keeps_all_six_fields",
+    "sha256": "006e0e2692f48fc61c05ecb9fca1ba9f8ecd05da38e9dcccbab3f90627663d75",
+    "raw_utf8": "\nrunning 1 test\ntest cleanup_plan::replay::expression_facts::receiving::directory::before_cursor::qualification::foreign_function_refuses_before_new_cursor_dispatch_and_keeps_all_six_fields ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9964 filtered out; finished in 0.01s\n\n"
+  }
+]

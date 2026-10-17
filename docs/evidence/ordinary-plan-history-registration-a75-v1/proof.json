@@ -1,0 +1,182 @@
+{
+  "verification_script_sha256": "1ec00afcc8d8e7cdd7539ec55385c2910bb1985c3fdb5a1c84f0fff9e32be036",
+  "status": "PASS_SOURCE_ONLY_NINE_PLAN_OWNERS_THREE_RAW_SCOPES",
+  "base": "a75a82f035e401d372fb4714418334717042e99c",
+  "new_physical_Rust_owners": 9,
+  "raw_carriers": [
+    {
+      "carrier": "tests/hir_module_boundaries.rs",
+      "before_sha256": "103e9c233c0b77ef7c7c9964070c51857dbd6c3787efee37255b91b46107ba4c",
+      "current_sha256": "103e9c233c0b77ef7c7c9964070c51857dbd6c3787efee37255b91b46107ba4c",
+      "original_a82e_sha256": "959eaf830896619186a6c75d707a8bd1e41d123563f7bb04ced26ea947f4de78",
+      "physical_lines": 897,
+      "prior_required_entries": 111,
+      "prior_maximum_entries": 117,
+      "owners": {
+        "src/cleanup_plan/replay/ordinary_plan_history/before.rs": {
+          "observed": 1,
+          "required": 1,
+          "maximum": 1
+        },
+        "src/cleanup_plan/replay/ordinary_plan_history/frontier_tests.rs": {
+          "observed": 1,
+          "required": 1,
+          "maximum": 1
+        },
+        "src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs": {
+          "observed": 1,
+          "required": 1,
+          "maximum": 1
+        },
+        "src/cleanup_plan/replay/ordinary_plan_history/owned_tests.rs": {
+          "observed": 1,
+          "required": 1,
+          "maximum": 1
+        },
+        "src/cleanup_plan/replay/ordinary_plan_history/producer.rs": {
+          "observed": 1,
+          "required": 1,
+          "maximum": 1
+        },
+        "src/cleanup_plan/replay/ordinary_plan_history/source_custody.rs": {
+          "observed": 1,
+          "required": 1,
+          "maximum": 1
+        },
+        "src/cleanup_plan/replay/ordinary_plan_history/tests.rs": {
+          "observed": 1,
+          "required": 1,
+          "maximum": 1
+        },
+        "src/cleanup_plan/replay/ordinary_plan_history.rs": {
+          "observed": 1,
+          "required": 1,
+          "maximum": 1
+        },
+        "src/source_reflows_merge/ordinary_plan_inputs.rs": {
+          "observed": 1,
+          "required": 1,
+          "maximum": 1
+        }
+      }
+    },
+    {
+      "carrier": "tests/workspace/semantic_graph/source_inventory.rs",
+      "before_sha256": "620a69f0376e4f8b6a9a8c04a33e31e78035a85de4fd1f753d9282b3f76c8c2a",
+      "current_sha256": "620a69f0376e4f8b6a9a8c04a33e31e78035a85de4fd1f753d9282b3f76c8c2a",
+      "original_a82e_sha256": "7cee73c09e4a61b24480a7abf756c3fdf228d15a0f341a3cd0bc387b39fd6375",
+      "physical_lines": 777,
+      "prior_required_entries": 146,
+      "prior_maximum_entries": 146,
+      "owners": {
+        "src/cleanup_plan/replay/ordinary_plan_history/before.rs": {
+          "observed": 1,
+          "required": 1,
+          "maximum": 1
+        },
+        "src/cleanup_plan/replay/ordinary_plan_history/frontier_tests.rs": {
+          "observed": 1,
+          "required": 1,
+          "maximum": 1
+        },
+        "src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs": {
+          "observed": 1,
+          "required": 1,
+          "maximum": 1
+        },
+        "src/cleanup_plan/replay/ordinary_plan_history/owned_tests.rs": {
+          "observed": 1,
+          "required": 1,
+          "maximum": 1
+        },
+        "src/cleanup_plan/replay/ordinary_plan_history/producer.rs": {
+          "observed": 1,
+          "required": 1,
+          "maximum": 1
+        },
+        "src/cleanup_plan/replay/ordinary_plan_history/source_custody.rs": {
+          "observed": 1,
+          "required": 1,
+          "maximum": 1
+        },
+        "src/cleanup_plan/replay/ordinary_plan_history/tests.rs": {
+          "observed": 1,
+          "required": 1,
+          "maximum": 1
+        },
+        "src/cleanup_plan/replay/ordinary_plan_history.rs": {
+          "observed": 1,
+          "required": 1,
+          "maximum": 1
+        },
+        "src/source_reflows_merge/ordinary_plan_inputs.rs": {
+          "observed": 1,
+          "required": 1,
+          "maximum": 1
+        }
+      }
+    },
+    {
+      "carrier": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "before_sha256": "754b81a88c3b698f7098524bd76cf0726d189632c44cf9027e6724e314cd7d53",
+      "current_sha256": "463f1663a2e6ac0e84cb0141f124ed535a4672d19eb4e60d5d2aed890ff1e3f9",
+      "original_a82e_sha256": "4ce9be9127d201c440ba2725ff5e38cfbd89c9fd70f6809da0da82b4891c180c",
+      "physical_lines": 1500,
+      "prior_required_entries": 116,
+      "prior_maximum_entries": 116,
+      "owners": {
+        "src/cleanup_plan/replay/ordinary_plan_history/before.rs": {
+          "observed": 1,
+          "required": 1,
+          "maximum": 1
+        },
+        "src/cleanup_plan/replay/ordinary_plan_history/frontier_tests.rs": {
+          "observed": 1,
+          "required": 1,
+          "maximum": 1
+        },
+        "src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs": {
+          "observed": 1,
+          "required": 1,
+          "maximum": 1
+        },
+        "src/cleanup_plan/replay/ordinary_plan_history/owned_tests.rs": {
+          "observed": 1,
+          "required": 1,
+          "maximum": 1
+        },
+        "src/cleanup_plan/replay/ordinary_plan_history/producer.rs": {
+          "observed": 1,
+          "required": 1,
+          "maximum": 1
+        },
+        "src/cleanup_plan/replay/ordinary_plan_history/source_custody.rs": {
+          "observed": 1,
+          "required": 1,
+          "maximum": 1
+        },
+        "src/cleanup_plan/replay/ordinary_plan_history/tests.rs": {
+          "observed": 1,
+          "required": 1,
+          "maximum": 1
+        },
+        "src/cleanup_plan/replay/ordinary_plan_history.rs": {
+          "observed": 1,
+          "required": 1,
+          "maximum": 1
+        },
+        "src/source_reflows_merge/ordinary_plan_inputs.rs": {
+          "observed": 1,
+          "required": 1,
+          "maximum": 1
+        }
+      }
+    }
+  ],
+  "negative_controls": 223,
+  "whole_before_inverse_records": 12,
+  "Cargo": false,
+  "Rust_or_language_runtime": false,
+  "existing_required_and_maximum_entries_unchanged": true,
+  "original_a82e_raw_bytes_retained": true
+}

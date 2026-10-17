@@ -1,6 +1,6 @@
 {
   "status": "PASS_JOINED_SOURCE_AND_EXPLICIT_BOUNDARIES_ONLY",
-  "source_commit": "99f2571f7cdd2e1db44d7bda3bdf0fcb9b14eee4",
+  "source_commit": "03e8e80add4e3ba115a363a7105908acb229fab9",
   "domain_counts": {
     "Previous16c": 379,
     "Maina3": 30,
@@ -335,15 +335,15 @@
     "tests/support/production_source_inventory.rs",
     "tests/workspace.rs"
   ],
-  "new_owners": 159,
+  "new_owners": 161,
   "completed_authority_generations": 1,
   "pre856_generation_interrupted_before_output": true,
-  "source_proof_sha256": "17c323902a34e5336582cb65b03f1c4573e41773abf69f60228e0b0da4c3c69f",
-  "authority_proof_sha256": "e81e747487355ce72c9eaf9f9a42a1d5a0889305e2a4c94352eb52700c472379",
+  "source_proof_sha256": "651f08a8cac2e5eab72c7c38a033797b555647dae7d98b924825e08c109dcd50",
+  "authority_proof_sha256": "64b1848271234078462128d0af193e188e0972df51436fb695037bbff7984b8c",
   "guard_sha256": {
-    "tests/hir_module_boundaries.rs": "dc3bf3b20917a0c523231e405ff329e5950f12b55501bced9ae908fbaf5b8888",
-    "tests/workspace/semantic_graph/source_inventory.rs": "42bdd4f76491607cab8538b3006d4b807aca5d138badc1d763c7090cfc53b000",
-    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": "dff1f6f15ef145c633165446c54ad37ed6c8ef978caa121c413dcaf06b5fa918"
+    "tests/hir_module_boundaries.rs": "f25b784eba1a2ea26a07b260b2ddff67b6dd90c0a6402fd143dc42ca68847d4e",
+    "tests/workspace/semantic_graph/source_inventory.rs": "59e5b98593c2c2d443d1479e7c89564551d515ca921f7abab2cc8f5d579c8c21",
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": "2f60338ca315635e7d533ba6cbdeadda40d8b2e3d66a7398c7521d4b44f5f845"
   },
   "all_six_original_static_negatives_refused": true,
   "complete_original_source_role_authentication": true,

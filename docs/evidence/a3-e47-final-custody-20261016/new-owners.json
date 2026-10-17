@@ -141,8 +141,13 @@
   },
   {
     "source": "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs",
-    "sha256": "77eea947e5f1fd72351e549fe0b70790a87d0fa056c14f715bce3743b2172168",
-    "lines": 506
+    "sha256": "f4fd89c5c28b47d826968d935f51dac66a49e8fd859bfa519e98013913a3923a",
+    "lines": 510
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels/lexical_finish.rs",
+    "sha256": "9bb9313ff1f528d2187728ed55460494493e1f2fd74d54943c16bcdf0a69d59c",
+    "lines": 53
   },
   {
     "source": "src/cleanup_plan/replay/factored/canonical_shared/empty_signature.rs",
@@ -161,12 +166,17 @@
   },
   {
     "source": "src/cleanup_plan/replay/factored/canonical_shared/paid_many.rs",
-    "sha256": "cbeb41b6d006f320b316d8d7dfcbaeb30f7bc05a8e72c05a208df83a5ab1b94c",
-    "lines": 163
+    "sha256": "8d595d375bf2d99a56fcd7e5f36971d67e10fd19d7715442c2a99422ee48fae7",
+    "lines": 213
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/paid_many/lexical_tests.rs",
+    "sha256": "65d09ccad2df6d6138fde916ceac9c8b48bd56ffc880a62543ce440f4b2064b8",
+    "lines": 392
   },
   {
     "source": "src/cleanup_plan/replay/factored/canonical_shared/paid_many/source.rs",
-    "sha256": "5764c716dbdb7736b3c7eaedb1b66ced5babf397d25d20f140d6ef5e7f1a2725",
+    "sha256": "239dcac3a2d14a302bd9fd8c454d0956ab76cce7b6b0d602387b6f242ddd653b",
     "lines": 229
   },
   {
@@ -211,8 +221,8 @@
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history.rs",
-    "sha256": "35da2f708b6d73dc44427f6ef36e8a4d9dcebb9d499cab40efbbfa221b85bd66",
-    "lines": 583
+    "sha256": "373e120333b6316c6e140e130db662d38ceb2c83b1ca68e87328543fa0c20641",
+    "lines": 580
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/before.rs",
@@ -501,7 +511,7 @@
   },
   {
     "source": "src/source_reflows/incoming090_semantic_receivers.rs",
-    "sha256": "1418eb9c96257ee695f7740872a8533624c8f3f658b950fc99c54b6e65ade571",
+    "sha256": "dc274fc5d1f3b7a38132568981a2f3a34406b8124c271b6c0719414284b1b8db",
     "lines": 1099
   },
   {
@@ -511,7 +521,7 @@
   },
   {
     "source": "src/source_reflows/incoming67107_semantic_receivers.rs",
-    "sha256": "c4a18faf8945345860352bbf1e9ee2c3d9c5fac439e9c7359cff65c9ba8ffd0d",
+    "sha256": "70136f31e90d3055f8622183540e6bcaf83c7ac29409dd0ac51715c89c9c6ee3",
     "lines": 652
   },
   {
@@ -596,18 +606,18 @@
   },
   {
     "source": "src/source_reflows_merge/main043_custody.rs",
-    "sha256": "9d3e7fe24be3cf76b8e077647e3f2fa228a34ebc476f31e1a1d37c3520249179",
+    "sha256": "c18b1edbe2dadb3b5216deae611dff4e7702ee22ee1ef558b6f02c9650c4088b",
     "lines": 51
   },
   {
     "source": "src/source_reflows_merge/main44_custody.rs",
-    "sha256": "5fd5756eda2afdd48d10bade8a13334c2a3de588320b04fc0df82f4b8753376f",
+    "sha256": "3e3ce2889ab94278ae500e833f2615fb56d567a995baac6db5b922afd9720cff",
     "lines": 45
   },
   {
     "source": "src/source_reflows_merge/main67107_inputs.rs",
-    "sha256": "362585e1e2e79d50d0a062c2eb40bbcba8fcfe20340fad2f5779402de54aa8aa",
-    "lines": 738
+    "sha256": "dbf1f6de495247e896b2f118aac78d54228d824029023288ff6672289fb20f00",
+    "lines": 794
   },
   {
     "source": "src/source_reflows_merge/main7f8_presence.rs",
@@ -621,7 +631,7 @@
   },
   {
     "source": "src/source_reflows_merge/main8a_historical.rs",
-    "sha256": "3f8a0f1b254a350656844c5143d3580eb8e2d950aa944f04ee3182335091ea80",
+    "sha256": "401686d89e2e34f91aa67c1f6a23684d8abe5a4a19e4e0d8dc401e0f8c9e87bd",
     "lines": 80
   },
   {
@@ -631,7 +641,7 @@
   },
   {
     "source": "src/source_reflows_merge/maina3_custody.rs",
-    "sha256": "f33b3fb933a454ec4dbfc631a7347d0f3364211d89b220d74c12280323cfeef9",
+    "sha256": "e7670866d51281f67f71876fbe3ec20bf83d770e10f631eb952c399847914bbf",
     "lines": 95
   },
   {
@@ -641,7 +651,7 @@
   },
   {
     "source": "src/source_reflows_merge/ordinary_plan_inputs.rs",
-    "sha256": "348f0224395d7553769cde5d58069f6ac7e7dd5a83f40ca7ac27f9a050fe106a",
+    "sha256": "07dd9d5c3840aebc8482f2a6b303fde057acdee77b3fd570187e11868209fee5",
     "lines": 397
   },
   {

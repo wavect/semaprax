@@ -1248,6 +1248,7 @@
         "src/cleanup_plan/replay/factored/canonical_shared/before_unit/empty_memo.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/before_unit/empty_memo/retained.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels/lexical_finish.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/source.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/tests.rs",
@@ -1287,6 +1288,7 @@
         "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/source.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/tests.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/paid_many.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/paid_many/lexical_tests.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/paid_many/source.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/paid_many/tests.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs",
@@ -2227,6 +2229,7 @@
         "src/cleanup_plan/replay/expression_facts/receiving/return_operands/exits.rs",
         "src/cleanup_plan/replay/factored/canonical_shared.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels/lexical_finish.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/empty_closure.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs",
@@ -2642,9 +2645,9 @@
         "src/source_verify/function_map.rs",
         "src/source_verify/funding.rs"
       ],
-      "full_manifest_sha256": "26182d94dba0f9421fac1ecb9d9e6b46d87a63232f7353bc16049d469f863910",
-      "full_raw_sha256": "b4a38722d8919a9bef05d1c9005c2158c6d5f109ce48b9543d81d85590890798",
-      "full_authenticated_production_sha256": "5827695e3eb35505add1fe1f1f046682b82bd31181f262d7d925b80d579b47a1"
+      "full_manifest_sha256": "17f9fc7a5e3e9348fb6185aa0315f06e9fc5bcbbac311d2d334cd044ec047478",
+      "full_raw_sha256": "d35614fabf9442931ec8e4fab6eccb9ebd425feddfc643dede2825978fa91e0d",
+      "full_authenticated_production_sha256": "1966ce15ae36a6ddd50417ee679809611b26b56032290fd5589aaa203c14abd6"
     },
     "projection": {
       "baseline": "a82e00cc83f99b16249181c45710d962598577db",
@@ -3141,6 +3144,7 @@
         "src/cleanup_plan/replay/factored.rs",
         "src/cleanup_plan/replay/factored/canonical_shared.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels/lexical_finish.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/empty_closure.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs",
@@ -3634,9 +3638,9 @@
         "src/source_verify/declaration/identity.rs",
         "src/source_verify/declaration/record_shape.rs"
       ],
-      "full_manifest_sha256": "901a0f75c15bdf8318b0b379297397018c99a6269ff7b4bc38cae305c463448d",
-      "full_raw_sha256": "92df074d026efd517b37f1185fa439733f119bad0c2e2e9d0076820ca82f6a59",
-      "full_authenticated_production_sha256": "06ad506c3e12c4ed0cb74879ccf8604596af6e316b80ac0a83d19065c41d0f6e"
+      "full_manifest_sha256": "a48c24a0974189cda2ec1922c40e0fc348774aea5a3bc4cae6cdf774ca41064d",
+      "full_raw_sha256": "27718c25f615699c7dea2539b0f50caa8e741649ce3aa010987d39fdac8cc746",
+      "full_authenticated_production_sha256": "1efe8d31f21d372496d2a05117d5c5cd295616d1d991172823b587ae8a9b8fe2"
     }
   }
 }

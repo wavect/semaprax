@@ -1553,8 +1553,8 @@
     },
     {
       "path": "tests/workspace/semantic_graph/source_inventory.rs",
-      "current_len": 94257,
-      "current_sha256": "8debd7324052ca398a9385bdf7b47f1b479d8638b8e5ed9dc72ef4b9213cd177",
+      "current_len": 96877,
+      "current_sha256": "4dbeb81d84db0f80bb51ccc8fc1a25d2d71e49759ddeeccdc84c4d1748b27e11",
       "archive": "docs/evidence/main21-exit-region-integration-20261017/main-inputs/tests/workspace/semantic_graph/source_inventory.rs",
       "view_len": 38330,
       "view_sha256": "1cd423cdab9473ed591145366c339f9519892e06593d287c28b799f7e359c660",
@@ -3112,8 +3112,8 @@
     },
     {
       "path": "tests/workspace/semantic_graph/source_inventory.rs",
-      "current_len": 94257,
-      "current_sha256": "8debd7324052ca398a9385bdf7b47f1b479d8638b8e5ed9dc72ef4b9213cd177",
+      "current_len": 96877,
+      "current_sha256": "4dbeb81d84db0f80bb51ccc8fc1a25d2d71e49759ddeeccdc84c4d1748b27e11",
       "archive": "docs/evidence/main21-exit-region-integration-20261017/main-inputs/tests/workspace/semantic_graph/source_inventory.rs",
       "view_len": 38330,
       "view_sha256": "1cd423cdab9473ed591145366c339f9519892e06593d287c28b799f7e359c660",
@@ -4100,5 +4100,5 @@
   ],
   "unassembled": [],
   "cap": 9464242,
-  "bound_final_head": "eeb12674422bbe31e7b8a106b7bcbd113978589e"
+  "bound_final_head": "eb9df8c657654dd17230df54675a9ccb1ea24e37"
 }

@@ -1,0 +1,76 @@
+{
+  "schema": "semaprax.workspace21-complete-legacy.v1",
+  "main_head": "c883c2d3fff04a3e7afbb4afd5e0cae99ef91af4",
+  "rows": [
+    {
+      "logical": "src/cleanup_plan/replay/factored/canonical_shared/unit_weight.rs",
+      "archive": "docs/evidence/workspace21-legacy-source-repair-20261017/legacy/34a61014ad6d0c558f2938800474edfe27e8feeedbded16268975530d6726328.rs.txt",
+      "bytes": 1120,
+      "sha256": "34a61014ad6d0c558f2938800474edfe27e8feeedbded16268975530d6726328",
+      "git_head": "c883c2d3fff04a3e7afbb4afd5e0cae99ef91af4"
+    },
+    {
+      "logical": "src/cleanup_plan/replay/factored/canonical_shared/unit_weight/tests.rs",
+      "archive": "docs/evidence/workspace21-legacy-source-repair-20261017/legacy/f47774e25fa2dac4d310501512824c35ab9d27e21e75bfdd433aa7020ff7d616.rs.txt",
+      "bytes": 3776,
+      "sha256": "f47774e25fa2dac4d310501512824c35ab9d27e21e75bfdd433aa7020ff7d616",
+      "git_head": "c883c2d3fff04a3e7afbb4afd5e0cae99ef91af4"
+    },
+    {
+      "logical": "src/cleanup_plan/replay/factored/canonical_shared/unit_weight_tests.rs",
+      "archive": "docs/evidence/workspace21-legacy-source-repair-20261017/legacy/2f7588bcce948d61f635f34530299f6848a0e6d3b59334bc270aa4effa20020b.rs.txt",
+      "bytes": 6692,
+      "sha256": "2f7588bcce948d61f635f34530299f6848a0e6d3b59334bc270aa4effa20020b",
+      "git_head": "c883c2d3fff04a3e7afbb4afd5e0cae99ef91af4"
+    },
+    {
+      "logical": "src/cleanup_plan/replay/path_join/grouping.rs",
+      "archive": "docs/evidence/workspace21-legacy-source-repair-20261017/legacy/0e8bb4378f8ed328052ec7b4913f2104dd234a47c6074b722db5c6a2895c9ecd.rs.txt",
+      "bytes": 4160,
+      "sha256": "0e8bb4378f8ed328052ec7b4913f2104dd234a47c6074b722db5c6a2895c9ecd",
+      "git_head": "c883c2d3fff04a3e7afbb4afd5e0cae99ef91af4"
+    },
+    {
+      "logical": "src/cleanup_plan/replay/path_join/grouping/source_custody.rs",
+      "archive": "docs/evidence/workspace21-legacy-source-repair-20261017/legacy/505e80ef49d6324db1e23c37d2cbaa77b6a1e01fbd7c1da442c02666f3ae67aa.rs.txt",
+      "bytes": 3207,
+      "sha256": "505e80ef49d6324db1e23c37d2cbaa77b6a1e01fbd7c1da442c02666f3ae67aa",
+      "git_head": "c883c2d3fff04a3e7afbb4afd5e0cae99ef91af4"
+    },
+    {
+      "logical": "src/cleanup_plan/replay/path_join/grouping/tests.rs",
+      "archive": "docs/evidence/workspace21-legacy-source-repair-20261017/legacy/f3bc4ad754d4c33ca7508aac28412c6409469ebafe425392454ab43676e72dbb.rs.txt",
+      "bytes": 6442,
+      "sha256": "f3bc4ad754d4c33ca7508aac28412c6409469ebafe425392454ab43676e72dbb",
+      "git_head": "c883c2d3fff04a3e7afbb4afd5e0cae99ef91af4"
+    },
+    {
+      "logical": "src/cleanup_plan/replay/sequence_prefix/before_wrapper.rs",
+      "archive": "docs/evidence/workspace21-legacy-source-repair-20261017/legacy/273142f525bdbf71805a4ba0ae16028ff9c992d98e1bcc872c83a5209919bee2.rs.txt",
+      "bytes": 2231,
+      "sha256": "273142f525bdbf71805a4ba0ae16028ff9c992d98e1bcc872c83a5209919bee2",
+      "git_head": "c883c2d3fff04a3e7afbb4afd5e0cae99ef91af4"
+    },
+    {
+      "logical": "src/cleanup_plan/replay/sequence_prefix/before_wrapper_tests.rs",
+      "archive": "docs/evidence/workspace21-legacy-source-repair-20261017/legacy/38f11a53d0a21dc60470dc7ac46fda2a86d191ade68bd7abf5c40ab4da783846.rs.txt",
+      "bytes": 12935,
+      "sha256": "38f11a53d0a21dc60470dc7ac46fda2a86d191ade68bd7abf5c40ab4da783846",
+      "git_head": "c883c2d3fff04a3e7afbb4afd5e0cae99ef91af4"
+    },
+    {
+      "logical": "src/cleanup_plan/replay/sequence_vector/before.rs",
+      "archive": "docs/evidence/workspace21-legacy-source-repair-20261017/legacy/9585d39576779e49265c8a75536e8b772ba0e41749f1ed9cc61639c4890c2bd7.rs.txt",
+      "bytes": 3019,
+      "sha256": "9585d39576779e49265c8a75536e8b772ba0e41749f1ed9cc61639c4890c2bd7",
+      "git_head": "c883c2d3fff04a3e7afbb4afd5e0cae99ef91af4"
+    },
+    {
+      "logical": "src/cleanup_plan/replay/sequence_vector/tests.rs",
+      "archive": "docs/evidence/workspace21-legacy-source-repair-20261017/legacy/3d2be8c8fdaf0a3e09079feffc83f25a11e0bc370dcdaf4fc3135ac051bdf765.rs.txt",
+      "bytes": 18149,
+      "sha256": "3d2be8c8fdaf0a3e09079feffc83f25a11e0bc370dcdaf4fc3135ac051bdf765",
+      "git_head": "c883c2d3fff04a3e7afbb4afd5e0cae99ef91af4"
+    }
+  ]
+}

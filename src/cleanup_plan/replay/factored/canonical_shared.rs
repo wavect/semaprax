@@ -719,9 +719,16 @@ impl<'a> Canonicalizer<'a> {
             let borrowed = closure;
             let closed = &*borrowed;
             let accepted = closed.get(&self.sink).copied().unwrap_or(0);
-            if budget.pays_allocations() {
-                budget.reserve_bytes(function, borrowed_labels::receiving::<ordered_weights::OrderedWeights>(), "factored borrowed label call receivers")?;
-                return borrowed_labels::successors(function, budget, self.automaton, closed, accepted);
+            match &budget.payer {
+                AllocationPayer::ActiveBuilder => {
+                    budget.reserve_bytes(function, borrowed_labels::ordinary_receiving(), "factored direct singleton call receivers")?;
+                    return borrowed_labels::ordinary_successors(function, budget, self.automaton, closed, accepted);
+                }
+                AllocationPayer::LegacyUnobserved => {}
+                _ => {
+                    budget.reserve_bytes(function, borrowed_labels::receiving::<ordered_weights::OrderedWeights>(), "factored borrowed label call receivers")?;
+                    return borrowed_labels::successors(function, budget, self.automaton, closed, accepted);
+                }
             }
             if budget.pays_allocations() {
                 budget.reserve_bytes(
@@ -938,9 +945,16 @@ impl<'a> Canonicalizer<'a> {
         }
         let closed = &owned;
         let accepted = closed.get(&self.sink).copied().unwrap_or(0);
-        if budget.pays_allocations() {
-            budget.reserve_bytes(function, borrowed_labels::receiving::<ordered_weights::OrderedWeights>(), "factored borrowed label call receivers")?;
-            return borrowed_labels::successors(function, budget, self.automaton, closed, accepted);
+        match &budget.payer {
+            AllocationPayer::ActiveBuilder => {
+                budget.reserve_bytes(function, borrowed_labels::ordinary_receiving(), "factored direct singleton call receivers")?;
+                return borrowed_labels::ordinary_successors(function, budget, self.automaton, closed, accepted);
+            }
+            AllocationPayer::LegacyUnobserved => {}
+            _ => {
+                budget.reserve_bytes(function, borrowed_labels::receiving::<ordered_weights::OrderedWeights>(), "factored borrowed label call receivers")?;
+                return borrowed_labels::successors(function, budget, self.automaton, closed, accepted);
+            }
         }
         if budget.pays_allocations() {
             budget.reserve_bytes(

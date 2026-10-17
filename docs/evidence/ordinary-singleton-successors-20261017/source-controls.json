@@ -1,0 +1,24 @@
+{
+  "status": "PASS_PURE_SOURCE_ONLY",
+  "full_originals": 3,
+  "negative_source_controls": 12,
+  "original_directory_prefix_unchanged": true,
+  "selected_oracle_calls_unchanged": 2,
+  "actual_ordinary_calls": 2,
+  "work_requests_one": [
+    2,
+    1,
+    1,
+    1,
+    2,
+    2
+  ],
+  "work_requests_zero": [
+    1,
+    0,
+    1
+  ],
+  "new_selector_work": 4,
+  "new_physical_rust_modules": 0,
+  "rust_executed": false
+}

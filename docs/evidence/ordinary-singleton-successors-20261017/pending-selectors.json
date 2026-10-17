@@ -1,0 +1,47 @@
+{
+  "status": "SOURCE_ONLY_NOT_REGISTERED_NOT_EXECUTED",
+  "checks": [
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::borrowed_labels::direct_singleton_complete_weights_labels_work_cuts_and_fallback_keep_old_receiver",
+      "sourcepath": "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::borrowed_labels::direct_singleton_real_paid_allocated_peak_exact_short_zero_and_full_drop",
+      "sourcepath": "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::borrowed_labels::direct_singleton_zero_authentication_foreign_owner_and_sticky_refusal_are_final",
+      "sourcepath": "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::borrowed_labels::direct_singleton_actual_canonical_calls_keep_complete_ids_signatures_and_states",
+      "sourcepath": "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::borrowed_labels::direct_singleton_complete_directory_preimage_remains_byte_exact",
+      "sourcepath": "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "cleanup_plan::replay::factored::canonical_shared::borrowed_labels::direct_singleton_every_terminal_and_immutable_observation_keep_complete_labels",
+      "sourcepath": "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs"
+    },
+    {
+      "package": "semaprax",
+      "kind": "lib",
+      "selector": "source_reflows_merge::main67107_inputs::singleton_successor_whole_c874_acquisition_is_scoped_and_refuses_foreign_stages",
+      "sourcepath": "src/source_reflows_merge/main67107_inputs.rs"
+    }
+  ]
+}

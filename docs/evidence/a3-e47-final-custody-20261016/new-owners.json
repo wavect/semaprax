@@ -11,8 +11,8 @@
   },
   {
     "source": "src/ast/program_source/function_alias/presentation/metadata/tests.rs",
-    "sha256": "ca66c5b42b10578da168b3714ba1de57380bcad509be5818ae7c14edb664c9ff",
-    "lines": 232
+    "sha256": "f3817d3046185540690074269b46d7d9b6addd8491dcf81e7d6cdce4c87e41f8",
+    "lines": 233
   },
   {
     "source": "src/bounded_output/identity_reservation/function_cells.rs",

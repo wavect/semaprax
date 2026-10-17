@@ -21,10 +21,26 @@ fn retained_receipt_contains_complete_originals_resolved_closure_and_two_actual_
 {
     let root = fixture("codec-retained-receipt", SCHEMA);
     let manifest = root.join("semaprax.toml");
-    let original = format!(
-        "# retain this exact original comment\n{}",
-        std::fs::read_to_string(&manifest).unwrap()
-    );
+    let original = std::fs::read_to_string(&manifest).unwrap();
+    let commented = format!("# retain this exact original comment\n{original}");
+    // The original manifest-comment positive was inadmissible: the owning
+    // Project grammar requires schema first and exact ordered assignments.
+    // Keep both complete original hostile byte strings as six-field negatives.
+    for malformed in [&commented, &format!("{commented}# changed raw input, same parsed manifest\n")] {
+        let diagnostics = project::ProjectManifest::parse(malformed).unwrap_err();
+        assert_eq!(diagnostics.len(), 1);
+        let diagnostic = &diagnostics[0];
+        assert_eq!(diagnostic.code, "SPX-J100");
+        assert_eq!(diagnostic.severity, semaprax::diagnostic::Severity::Error);
+        assert_eq!(diagnostic.message, "Project v1 manifest expected canonical `schema` string assignment");
+        assert_eq!(diagnostic.path, None);
+        assert_eq!(diagnostic.span, None);
+        assert_eq!(diagnostic.help, None);
+    }
+    let source_path = root.join("src/schema.spx");
+    let source = std::fs::read_to_string(&source_path).unwrap();
+    let source_original = format!("// retain this exact original source comment\n{source}");
+    std::fs::write(&source_path, &source_original).unwrap();
     std::fs::write(&manifest, &original).unwrap();
     let receipt = project::with_authenticated_json_codec_receipt(&manifest, &entries()).unwrap();
     assert_eq!(receipt.schema, "semaprax.json-codec-retained-receipt.v1");
@@ -81,9 +97,11 @@ fn retained_receipt_contains_complete_originals_resolved_closure_and_two_actual_
         .unwrap()
         .insert("authority".into(), serde_json::json!(true));
     assert!(serde_json::from_value::<project::JsonCodecRetainedReceipt>(unknown).is_err());
+    // An admitted source-comment change keeps source meaning while changing
+    // complete retained bytes. Manifest comments above remain grammar refusals.
     std::fs::write(
-        &manifest,
-        format!("{original}# changed raw input, same parsed manifest\n"),
+        &source_path,
+        format!("{source_original}// changed raw input, same parsed source\n"),
     )
     .unwrap();
     assert_eq!(
@@ -92,6 +110,7 @@ fn retained_receipt_contains_complete_originals_resolved_closure_and_two_actual_
             .code,
         "SPX-J180"
     );
+    std::fs::write(&source_path, &source_original).unwrap();
     std::fs::write(&manifest, &original).unwrap();
     assert_eq!(std::fs::read_to_string(&manifest).unwrap(), original);
     std::fs::remove_dir_all(root).unwrap();

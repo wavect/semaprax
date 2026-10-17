@@ -1,0 +1,10 @@
+{
+  "status": "UNREGISTERED_UNEXECUTED",
+  "package": "semaprax",
+  "kind": "lib",
+  "selector": "cleanup_plan::replay::skeleton_work::enumerated_prefix::tests::complete_comparison_boundaries_report_real_old_current_work_paid_and_heap_after_drop",
+  "source": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
+  "source_sha256": "1d5f944822d4b1c425fb818015530b06230e1d1e38d1a298bcfd607d2ae3c36d",
+  "lines": 1058,
+  "original_test_prefix_byteexact": true
+}

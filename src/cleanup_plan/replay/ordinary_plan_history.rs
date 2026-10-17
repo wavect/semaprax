@@ -313,5 +313,185 @@ mod before_comparison;
 mod comparison_owner;
 pub(super) use comparison_owner::compare;
 
+// Frozen HIR comparator inherits these original test-only lexical helpers.
+#[cfg(test)]
+const COMPARE_CONTROLS: usize = 2 * size_of::<Cursor>()
+    + 2 * size_of::<Result<(), Diagnostic>>()
+    + size_of::<Result<Ordering, Diagnostic>>()
+    + 2 * size_of::<Option<&SkeletonObservation>>()
+    + 20 * size_of::<usize>()
+    + 8 * size_of::<bool>()
+    + 8 * size_of::<&ResolvedFunction>()
+    + 8 * size_of::<&mut ReplayBudget>()
+    + 8 * size_of::<&str>()
+    + 6 * size_of::<&PlanPath>()
+    + 4 * size_of::<&History>()
+    + 4 * size_of::<&[Segment]>()
+    + 2 * size_of::<&mut Cursor>()
+    + size_of::<std::slice::Iter<'static, SkeletonPath>>()
+    + size_of::<Option<usize>>()
+    + size_of::<Ordering>();
+
+// Caller-paid frames: all actual + formal reference receivers, scalar
+// arguments, returned Results and named successful-value receivers.
+#[cfg(test)]
+const ORDER_CALL: usize = 4 * size_of::<&PlanPath>() // two actuals + two formals
+    + 2 * size_of::<&[Segment]>() // arena actual/formal
+    + 2 * size_of::<&mut [Cursor; 2]>() // cursor pair actual/formal
+    + 2 * size_of::<&ResolvedFunction>() + 2 * size_of::<&mut ReplayBudget>()
+    + size_of::<Result<Ordering, Diagnostic>>() + size_of::<Ordering>();
+#[cfg(test)]
+const SIFT_CALL: usize = 2 * size_of::<&mut [PlanPath]>() // paths actual/formal
+    + 2 * size_of::<&[Segment]>() // arena actual/formal
+    + 4 * size_of::<usize>() // root/end actuals + formals
+    + 2 * size_of::<&mut [Cursor; 2]>() // cursor pair actual/formal
+    + 2 * size_of::<&ResolvedFunction>() + 2 * size_of::<&mut ReplayBudget>()
+    + size_of::<Result<(), Diagnostic>>();
+#[cfg(test)]
+const PREPARE_CALL: usize = 2 * size_of::<&mut Cursor>()
+    + 2 * size_of::<&History>()
+    + 2 * size_of::<&[Segment]>()
+    + 2 * size_of::<&ResolvedFunction>()
+    + 2 * size_of::<&mut ReplayBudget>()
+    + size_of::<Result<(), Diagnostic>>();
+#[cfg(test)]
+const NEXT_CALL: usize = 2 * size_of::<&mut Cursor>()
+    + 2 * size_of::<&History>() + 2 * size_of::<&[Segment]>()
+    + 2 * size_of::<&ResolvedFunction>() + 2 * size_of::<&mut ReplayBudget>()
+    + size_of::<Result<Option<&SkeletonObservation>, Diagnostic>>() // fallible forward step return
+    + size_of::<Option<&SkeletonObservation>>(); // named successful item receiver
+
+#[cfg(test)]
+macro_rules! paid_order {
+    ($a:expr, $b:expr, $arena:expr, $cursors:expr, $function:expr, $budget:expr $(,)?) => {{
+        paid!(
+            $budget,
+            $function,
+            ORDER_CALL,
+            "ordinary plan history order call"
+        )?;
+        order($a, $b, $arena, $cursors, $function, $budget)
+    }};
+}
+#[cfg(test)]
+macro_rules! paid_sift {
+    ($paths:expr, $arena:expr, $root:expr, $end:expr, $cursors:expr, $function:expr, $budget:expr $(,)?) => {{
+        paid!(
+            $budget,
+            $function,
+            SIFT_CALL,
+            "ordinary plan history sift call"
+        )?;
+        sift($paths, $arena, $root, $end, $cursors, $function, $budget)
+    }};
+}
+
+#[cfg(test)]
+fn order(
+    a: &PlanPath,
+    b: &PlanPath,
+    arena: &[Segment],
+    cursors: &mut [Cursor; 2],
+    function: &ResolvedFunction,
+    budget: &mut ReplayBudget,
+) -> Result<Ordering, Diagnostic> {
+    paid!(
+        budget,
+        function,
+        COMPARE_CONTROLS,
+        "ordinary plan history comparison receivers"
+    )?;
+    paid!(
+        budget,
+        function,
+        PREPARE_CALL,
+        "ordinary plan history left cursor prepare"
+    )?;
+    cursors[0].prepare(&a.history, arena, function, budget)?;
+    paid!(
+        budget,
+        function,
+        PREPARE_CALL,
+        "ordinary plan history right cursor prepare"
+    )?;
+    cursors[1].prepare(&b.history, arena, function, budget)?;
+    loop {
+        budget.charge(function, 1, "ordinary plan history observation comparison")?;
+        paid!(
+            budget,
+            function,
+            2 * NEXT_CALL,
+            "ordinary plan history paired cursor next"
+        )?;
+        let left = cursors[0].next(&a.history, arena, function, budget)?;
+        let right = cursors[1].next(&b.history, arena, function, budget)?;
+        match (left, right) {
+            (Some(left), Some(right)) => {
+                let cmp = left.cmp(right);
+                if cmp != Ordering::Equal {
+                    return Ok(cmp);
+                }
+            }
+            (None, None) => return Ok(a.terminal.cmp(&b.terminal)),
+            (None, Some(_)) => return Ok(Ordering::Less),
+            (Some(_), None) => return Ok(Ordering::Greater),
+        }
+    }
+}
+
+// A genuinely fallible heapsort: no fabricated equality after paid refusal.
+#[cfg(test)]
+fn sift(
+    paths: &mut [PlanPath],
+    arena: &[Segment],
+    mut root: usize,
+    end: usize,
+    cursors: &mut [Cursor; 2],
+    function: &ResolvedFunction,
+    budget: &mut ReplayBudget,
+) -> Result<(), Diagnostic> {
+    paid!(
+        budget,
+        function,
+        COMPARE_CONTROLS,
+        "ordinary plan history sort receivers"
+    )?;
+    loop {
+        budget.charge(function, 1, "ordinary plan history sort traversal")?;
+        // A root with no children exits before multiplication can overflow.
+        if end < 2 || root > (end - 2) / 2 {
+            return Ok(());
+        }
+        let mut child = root * 2 + 1;
+        if child + 1 < end
+            && paid_order!(
+                &paths[child],
+                &paths[child + 1],
+                arena,
+                cursors,
+                function,
+                budget,
+            )? == Ordering::Less
+        {
+            child += 1;
+        }
+        if paid_order!(
+            &paths[root],
+            &paths[child],
+            arena,
+            cursors,
+            function,
+            budget,
+        )? != Ordering::Less
+        {
+            return Ok(());
+        }
+        paths.swap(root, child);
+        #[cfg(test)]
+        frontiers::swapped();
+        root = child;
+    }
+}
+
 #[cfg(test)]
 mod before_hir_compare;

@@ -180,3 +180,34 @@ fn primitive_string_codec_actual_preparation_reports_existing_first_operation_wi
         }
     }
 }
+
+// Diagnostic-only first-manifest prefix of the unchanged STD-08 owner.
+// The integration gate and every backend assertion remain on main.
+#[test]
+#[ignore = "explicit hosted diagnostic; not an application qualification"]
+fn std08_io_lines_preparation_reports_actual_ledger_and_preserves_failure() {
+    let manifest =
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("std/io-lines/semaprax.toml");
+    let _observation = crate::bounded_output::stage_debits::route_debits::observe();
+    take_completed();
+    take_last_completed();
+    let result = std::panic::catch_unwind(|| {
+        // Same first manifest and authentication/check prefix used by
+        // run_examples_and_conformance; no replacement program or allowance.
+        project::with_authenticated_project(&manifest, |snapshot| snapshot.check()).unwrap()
+    });
+    // Read and print only after all original ledger ownership has settled.
+    let maximum = take_completed();
+    let last = take_last_completed();
+    eprintln!("STD08_PREFIX diagnostic expected source forecast=4345378 layouts=4; unit observation profile, not an integration/backend pass");
+    eprintln!("STD08_PREFIX maximum core trace: {maximum:?}");
+    eprintln!("STD08_PREFIX final core trace: {last:?}");
+    crate::bounded_output::stage_debits::route_debits::print_settled();
+    if let Err(original) = result {
+        eprintln!(
+            "STD08_PREFIX preserved original panic String: {:?}",
+            original.downcast_ref::<String>()
+        );
+        std::panic::resume_unwind(original);
+    }
+}

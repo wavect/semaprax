@@ -62,9 +62,9 @@ impl ComparisonCell {
 }
 fn comparison_phase(phase: &str) -> Option<usize> {
     match phase {
-        "ordinary plan history comparator controls" | "ordinary plan retained comparison owner" => {
-            Some(0)
-        }
+        "ordinary plan history comparator controls"
+        | "ordinary plan retained comparison owner"
+        | "ordinary plan reachable cursor primitive frames" => Some(0),
         "ordinary plan history order call" => Some(1),
         "ordinary plan history sift call" => Some(2),
         "ordinary plan history comparison receivers" => Some(3),
@@ -616,7 +616,11 @@ fn comparison_all_thirteen_categories_keep_real_routes_8769_calls_and_checked_ov
         Route::UnoptedCrosscheck,
         Route::OptedOracle,
     ] {
-        for (category, label) in LABELS.into_iter().enumerate() {
+        for (category, label) in LABELS
+            .into_iter()
+            .enumerate()
+            .chain([(0, "ordinary plan reachable cursor primitive frames")])
+        {
             assert_eq!(comparison_phase(label), Some(category));
             let (((), metrics), refused, used, first) = with_limit_usage_refusal(8_769, || {
                 crate::test_allocation_observer::measure(|| {

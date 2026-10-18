@@ -15,6 +15,14 @@ pub(super) struct Row {
     pub rounds: usize,
     pub tails: usize,
     pub steps: usize,
+    pub shared_checks: usize,
+    pub shared_patterns: usize,
+    pub shared_metadata: usize,
+    pub shared_steps: usize,
+    pub shared_empty_checks: usize,
+    pub shared_links: usize,
+    pub shared_queries: usize,
+    pub shared_boundaries: usize,
     pub loads: usize,
     pub complete: bool,
     pub ended: bool,
@@ -35,6 +43,14 @@ const EMPTY: Row = Row {
     rounds: 0,
     tails: 0,
     steps: 0,
+    shared_checks: 0,
+    shared_patterns: 0,
+    shared_metadata: 0,
+    shared_steps: 0,
+    shared_empty_checks: 0,
+    shared_links: 0,
+    shared_queries: 0,
+    shared_boundaries: 0,
     loads: 0,
     complete: false,
     ended: false,
@@ -171,6 +187,54 @@ impl Guard {
     pub(super) fn step(&self) {
         self.update(|r| match r.steps.checked_add(1) {
             Some(n) => r.steps = n,
+            None => r.overflow = true,
+        });
+    }
+    pub(super) fn shared_checks(&self) {
+        self.update(|r| match r.shared_checks.checked_add(1) {
+            Some(n) => r.shared_checks = n,
+            None => r.overflow = true,
+        });
+    }
+    pub(super) fn shared_patterns(&self) {
+        self.update(|r| match r.shared_patterns.checked_add(1) {
+            Some(n) => r.shared_patterns = n,
+            None => r.overflow = true,
+        });
+    }
+    pub(super) fn shared_metadata(&self) {
+        self.update(|r| match r.shared_metadata.checked_add(1) {
+            Some(n) => r.shared_metadata = n,
+            None => r.overflow = true,
+        });
+    }
+    pub(super) fn shared_steps(&self) {
+        self.update(|r| match r.shared_steps.checked_add(1) {
+            Some(n) => r.shared_steps = n,
+            None => r.overflow = true,
+        });
+    }
+    pub(super) fn shared_empty_checks(&self) {
+        self.update(|r| match r.shared_empty_checks.checked_add(1) {
+            Some(n) => r.shared_empty_checks = n,
+            None => r.overflow = true,
+        });
+    }
+    pub(super) fn shared_links(&self) {
+        self.update(|r| match r.shared_links.checked_add(1) {
+            Some(n) => r.shared_links = n,
+            None => r.overflow = true,
+        });
+    }
+    pub(super) fn shared_queries(&self) {
+        self.update(|r| match r.shared_queries.checked_add(1) {
+            Some(n) => r.shared_queries = n,
+            None => r.overflow = true,
+        });
+    }
+    pub(super) fn shared_boundaries(&self) {
+        self.update(|r| match r.shared_boundaries.checked_add(1) {
+            Some(n) => r.shared_boundaries = n,
             None => r.overflow = true,
         });
     }
@@ -346,4 +410,57 @@ mod controls {
             assert_eq!(budget.remaining, remaining);
         }
     }
+    #[test]
+    fn shared_step_counter_overflow_is_incomplete_and_does_not_spend_work() {
+        for counter in 0..4 {
+            let function = fixture();
+            let budget = ReplayBudget::unobserved();
+            let remaining = budget.remaining;
+            reset();
+            let guard = begin(&function, &budget, false);
+            TRACE.with(|trace| {
+                let mut trace = trace.borrow_mut();
+                match counter {
+                    0 => trace.rows[0].shared_checks = usize::MAX,
+                    1 => trace.rows[0].shared_patterns = usize::MAX,
+                    2 => trace.rows[0].shared_metadata = usize::MAX,
+                    _ => trace.rows[0].shared_steps = usize::MAX,
+                }
+            });
+            match counter {
+                0 => guard.shared_checks(),
+                1 => guard.shared_patterns(),
+                2 => guard.shared_metadata(),
+                _ => guard.shared_steps(),
+            }
+            guard.success();
+            drop(guard);
+            let (rows, lost) = finish();
+            assert_eq!(lost, 0);
+            assert_eq!(budget.remaining, remaining);
+            assert!(rows[0].overflow && rows[0].ended && !rows[0].complete);
+        }
+    }
+    #[test]
+    fn shared_boundary_counter_overflow_is_incomplete_without_spending_work() {
+        for counter in 0..4 {
+            let function = fixture(); let budget = ReplayBudget::unobserved();
+            let remaining = budget.remaining; reset();
+            let guard = begin(&function, &budget, false);
+            TRACE.with(|trace| { let mut trace = trace.borrow_mut();
+                match counter {
+                    0 => trace.rows[0].shared_empty_checks = usize::MAX,
+                    1 => trace.rows[0].shared_links = usize::MAX,
+                    2 => trace.rows[0].shared_queries = usize::MAX,
+                    _ => trace.rows[0].shared_boundaries = usize::MAX,
+                }
+            });
+            match counter { 0 => guard.shared_empty_checks(), 1 => guard.shared_links(),
+                2 => guard.shared_queries(), _ => guard.shared_boundaries() }
+            guard.success(); drop(guard); let (rows, lost) = finish();
+            assert_eq!(lost, 0); assert_eq!(budget.remaining, remaining);
+            assert!(rows[0].overflow && rows[0].ended && !rows[0].complete);
+        }
+    }
+
 }

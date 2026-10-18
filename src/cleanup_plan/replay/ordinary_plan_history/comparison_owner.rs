@@ -332,8 +332,13 @@ pub(in crate::cleanup_plan::replay) fn compare(
                     let mut left_tail = left_path.history.tail.as_slice();
                     let mut right_tail = right_path.history.tail.as_slice();
                     loop {
-                        shared_plan_pair_step!(owner, census, function, budget,
-                            "ordinary plan history paired cursor next");
+                        shared_plan_pair_step!(
+                            owner,
+                            census,
+                            function,
+                            budget,
+                            "ordinary plan history paired cursor next"
+                        );
                         paid!(
                             budget,
                             function,

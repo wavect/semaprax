@@ -27,6 +27,8 @@ struct ComparisonOwner<'history> {
     right_loaded: bool,
     left_cursor: Cursor,
     right_cursor: Cursor,
+    left_link: usize,
+    right_link: usize,
     left_segments: usize,
     right_segments: usize,
     step: Step,
@@ -131,6 +133,7 @@ const OWNER_CONTROLS: usize = size_of::<ComparisonOwner<'static>>()
     + 2 * (PAYMENT_HEADER + 2 * size_of::<&mut Vec<usize>>()) // explicit two backing sites
     + FINAL_ITERATORS + size_of::<bool>() + 4 * MISMATCH_CALL
     + LEN_QUERIES + SCALAR_TRANSPORT + STATE_TESTS
+    + 2 * size_of::<usize>() // initial remembered segment identities
     + 2 * size_of::<usize>() // initial retained segment extents
     + 3 * size_of::<Step>(); // copied state transports at return/schedule sites
 
@@ -175,6 +178,8 @@ pub(in crate::cleanup_plan::replay) fn compare(
             segment: 0,
             item: 0,
         },
+        left_link: 0,
+        right_link: 0,
         left_segments: 0,
         right_segments: 0,
         step: Step::Build,
@@ -327,6 +332,8 @@ pub(in crate::cleanup_plan::replay) fn compare(
                     let mut left_tail = left_path.history.tail.as_slice();
                     let mut right_tail = right_path.history.tail.as_slice();
                     loop {
+                        shared_plan_pair_step!(owner, census, function, budget,
+                            "ordinary plan history paired cursor next");
                         paid!(
                             budget,
                             function,

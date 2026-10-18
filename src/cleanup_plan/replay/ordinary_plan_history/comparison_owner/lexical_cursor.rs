@@ -5,7 +5,7 @@ use super::*;
 // sequential nonescaping nonrecursive ZST-success/one-terminal-Diagnostic slots.
 // Four expansions each have forward+segment work and STEP+LOAD+TAIL payment.
 // Every payload below is separately paid on actual execution, never once.
-pub(super) const PRIMITIVE_FRAMES: usize = 20 * PAYMENT_HEADER;
+pub(super) const PRIMITIVE_FRAMES: usize = 29 * PAYMENT_HEADER;
 pub(super) const SINGLE_PRIMITIVE_FRAMES: usize = 5 * PAYMENT_HEADER;
 // Before inspecting the already-funded owner length, fund the new payment
 // site's complete primitive frame, match/local usize receivers and both
@@ -38,7 +38,8 @@ pub(super) const LOAD: usize = 2 * size_of::<&mut Vec<usize>>()
     + size_of::<&Segment>()
     + 2 * size_of::<&Vec<Rc<SkeletonObservation>>>()
     + 2 * size_of::<&[Rc<SkeletonObservation>]>()
-    + size_of::<bool>(); // loaded=true
+    + size_of::<bool>() // loaded=true
+    + size_of::<usize>(); // remember exact validated segment identity
                          // The original exhausted-segment update remains above. Each tail scope forms
                          // one immutable Vec slice; each yielded head/rest, assignment, as_ref output,
                          // Option transport and original cursor item increment is still paid below.
@@ -106,6 +107,7 @@ macro_rules! lexical_plan_next {
                     let Some(link) = $owner.$cursor.links.pop() else {
                         unreachable!("prepared ordinary plan links");
                     };
+                    remember_plan_segment!($owner, $cursor, link);
                     $owner.$items = $owner.arena[link].items.as_slice();
                     $owner.$loaded = true;
                 }
@@ -135,4 +137,52 @@ macro_rules! lexical_plan_next {
             }
         }
     }};
+}
+
+// The arena and its observations are immutable during comparison. A loaded
+// view is exactly the remembered validated segment starting at cursor.item.
+// Same segment and item therefore prove equality of the next observation.
+macro_rules! remember_plan_segment {
+    ($owner:ident, left_cursor, $link:ident) => { $owner.left_link = $link; };
+    ($owner:ident, right_cursor, $link:ident) => { $owner.right_link = $link; };
+}
+
+// Four payment and five work sites have distinct complete primitive frames in
+// the multipath bank. Every actual selector, slice receiver and scalar copy
+// remains separately paid before formation. No observation Option/tuple/cmp
+// payload is formed on this branch. Original left-before-right work is exact.
+macro_rules! shared_plan_pair_step {
+    ($owner:ident, $census:ident, $function:ident, $budget:ident, $phase:literal) => {
+        paid!($budget, $function, 3 * size_of::<bool>(), $phase)?;
+        if $owner.left_loaded && $owner.right_loaded {
+            paid!($budget, $function, size_of::<&[Rc<SkeletonObservation>]>() + size_of::<bool>(), $phase)?;
+            if let [_, left_rest @ ..] = $owner.left_items {
+                paid!($budget, $function,
+                    4 * size_of::<usize>() + 3 * size_of::<bool>(), $phase)?;
+                if $owner.left_link == $owner.right_link
+                    && $owner.left_cursor.item == $owner.right_cursor.item {
+                    paid!($budget, $function,
+                        3 * size_of::<&[Rc<SkeletonObservation>]>()
+                            + 2 * size_of::<usize>() + size_of::<Ordering>() + size_of::<bool>(), $phase)?;
+                    let [_, right_rest @ ..] = $owner.right_items else {
+                        unreachable!("identical immutable ordinary plan segment and offset");
+                    };
+                    $budget.charge($function, 1, "ordinary plan history forward cursor step")?;
+                    #[cfg(test)] $census.step();
+                    $budget.charge($function, 1, "ordinary plan history forward segment traversal")?;
+                    $owner.left_items = left_rest;
+                    $owner.left_cursor.item += 1;
+                    $budget.charge($function, 1, "ordinary plan history forward cursor step")?;
+                    #[cfg(test)] $census.step();
+                    $budget.charge($function, 1, "ordinary plan history forward segment traversal")?;
+                    $owner.right_items = right_rest;
+                    $owner.right_cursor.item += 1;
+                    $owner.ordering = Ordering::Equal;
+                    $budget.charge($function, 1, "ordinary plan history observation comparison")?;
+                    #[cfg(test)] $census.round();
+                    continue;
+                }
+            }
+        }
+    };
 }

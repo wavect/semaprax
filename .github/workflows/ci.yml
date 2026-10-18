@@ -64,7 +64,7 @@ jobs:
           echo "CLANG=$clang_path" >> "$GITHUB_ENV"
       - name: Fetch locked workspace dependencies
         run: cargo fetch --locked
-      - name: Observe the existing first-manifest preparation and preserve its failure
+      - name: Observe every original STD-08 preparation and preserve its failure
         shell: bash
         run: |
           set -euo pipefail

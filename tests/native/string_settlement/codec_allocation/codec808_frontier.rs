@@ -181,33 +181,160 @@ fn primitive_string_codec_actual_preparation_reports_existing_first_operation_wi
     }
 }
 
-// Diagnostic-only first-manifest prefix of the unchanged STD-08 owner.
-// The integration gate and every backend assertion remain on main.
+// Exact original complete fixture generator; namespace/input-location adapter only.
+mod std08_cases {
+    use super::{format, parse};
+    use std::path::{Path, PathBuf};
+    pub(super) fn conformance_manifests(scratch: &Path, manifest: &Path) -> Vec<PathBuf> {
+        use crate::ast::{ModuleUseKind, Type};
+        use std::collections::BTreeSet;
+        const SOURCE: &str = include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/project/standard_library/io_lines_cases.spx"
+        ));
+        const CASES: &[&str] = &[
+            "test_crlf_line",
+            "test_lf_line",
+            "test_empty_line",
+            "test_crlf_only",
+            "test_bare_cr",
+            "test_bare_cr_eof",
+            "test_lone_cr_eof",
+            "test_double_cr_eof",
+            "test_bare_cr_offset",
+            "test_unterminated_tail",
+            "test_two_line_walk",
+            "test_runtime_line_walk",
+            "test_runtime_zero_line_walk",
+            "test_runtime_many_line_walk",
+            "test_offset_write",
+        ];
+        let parsed = parse(SOURCE, "io-lines-cases.spx").unwrap();
+        assert_eq!(format::canonical(&parsed), SOURCE);
+        let actual: Vec<_> = parsed
+            .functions
+            .iter()
+            .filter(|f| f.name.starts_with("test_"))
+            .map(|f| f.name.as_str())
+            .collect();
+        assert_eq!(actual, CASES, "line case inventory changed");
+        let package = manifest.parent().unwrap();
+        let mut manifests = vec![manifest.to_path_buf()];
+        let mut covered = BTreeSet::new();
+        for case in CASES {
+            let mut selected = parsed.clone();
+            let main = selected
+                .functions
+                .iter_mut()
+                .find(|f| f.name == "main")
+                .unwrap();
+            main.body = parse(
+                &format!("module fixture; @id(\"fixture.main\") fn main() -> i64 {{ {case}() }}"),
+                "io-lines-entry.spx",
+            )
+            .unwrap()
+            .functions[0]
+                .body
+                .clone();
+            let mut calls = BTreeSet::from(["main".to_owned()]);
+            loop {
+                let previous = calls.len();
+                for function in &selected.functions {
+                    if calls.contains(&function.name) {
+                        assert!(function.type_parameters.is_empty());
+                        for expression in function
+                            .requires
+                            .iter()
+                            .chain(&function.ensures)
+                            .chain(std::iter::once(&function.body))
+                        {
+                            expression.visit_calls(&mut |name, _| {
+                                calls.insert(name.to_owned());
+                            });
+                        }
+                    }
+                }
+                if previous == calls.len() {
+                    break;
+                }
+            }
+            selected.functions.retain(|f| calls.contains(&f.name));
+            let entry = selected.functions.iter().find(|f| f.name == *case).unwrap();
+            assert!(entry.params.is_empty());
+            assert_eq!(entry.return_type, Type::I64);
+            selected
+                .module_uses
+                .retain(|u| u.kind != ModuleUseKind::Function || calls.contains(&u.alias));
+            for import in &selected.module_uses {
+                if import.kind == ModuleUseKind::Function && import.target_module == "std.io.lines"
+                {
+                    covered.insert(import.persistent_id.clone());
+                }
+            }
+            let directory = scratch.join(case);
+            std::fs::create_dir_all(directory.join("src")).unwrap();
+            std::fs::copy(manifest, directory.join("semaprax.toml")).unwrap();
+            for file in std::fs::read_dir(package.join("src")).unwrap() {
+                let file = file.unwrap();
+                std::fs::copy(file.path(), directory.join("src").join(file.file_name())).unwrap();
+            }
+            std::fs::write(
+                directory.join("src/tests.spx"),
+                format::canonical(&selected),
+            )
+            .unwrap();
+            manifests.push(directory.join("semaprax.toml"));
+        }
+        let library = std::fs::read_to_string(package.join("src/lines.spx")).unwrap();
+        let library = parse(&library, "lines.spx").unwrap();
+        let public: BTreeSet<_> = library
+            .functions
+            .iter()
+            .map(|f| f.stable_id.clone())
+            .collect();
+        assert_eq!(
+            covered, public,
+            "every line function needs direct executed coverage"
+        );
+        manifests
+    }
+}
+// Diagnostic-only preparation prefixes of ALL unchanged STD-08 manifests.
 #[test]
 #[ignore = "explicit hosted diagnostic; not an application qualification"]
 fn std08_io_lines_preparation_reports_actual_ledger_and_preserves_failure() {
     let manifest =
         std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("std/io-lines/semaprax.toml");
+    let scratch = std::env::temp_dir().join(format!(
+        "std08-ledger-{}-{}",
+        std::process::id(),
+        SERIAL.fetch_add(1, Ordering::Relaxed)
+    ));
+    std::fs::create_dir(&scratch).unwrap();
+    let manifests = std08_cases::conformance_manifests(&scratch, &manifest);
+    assert_eq!(manifests.len(), 16);
+    assert_eq!(manifests[0], manifest);
     let _observation = crate::bounded_output::stage_debits::route_debits::observe();
-    take_completed();
-    take_last_completed();
-    let result = std::panic::catch_unwind(|| {
-        // Same first manifest and authentication/check prefix used by
-        // run_examples_and_conformance; no replacement program or allowance.
-        project::with_authenticated_project(&manifest, |snapshot| snapshot.check()).unwrap()
-    });
-    // Read and print only after all original ledger ownership has settled.
-    let maximum = take_completed();
-    let last = take_last_completed();
-    eprintln!("STD08_PREFIX diagnostic expected source forecast=4345378 layouts=4; unit observation profile, not an integration/backend pass");
-    eprintln!("STD08_PREFIX maximum core trace: {maximum:?}");
-    eprintln!("STD08_PREFIX final core trace: {last:?}");
-    crate::bounded_output::stage_debits::route_debits::print_settled();
-    if let Err(original) = result {
-        eprintln!(
-            "STD08_PREFIX preserved original panic String: {:?}",
-            original.downcast_ref::<String>()
-        );
-        std::panic::resume_unwind(original);
+    for (ordinal, current) in manifests.iter().enumerate() {
+        take_completed();
+        take_last_completed();
+        eprintln!("STD08_PREFIX actual original manifest ordinal={ordinal} path={current:?}");
+        let result = std::panic::catch_unwind(|| {
+            project::with_authenticated_project(current, |snapshot| snapshot.check()).unwrap()
+        });
+        let maximum = take_completed();
+        let last = take_last_completed();
+        eprintln!("STD08_PREFIX ordinal={ordinal} maximum core trace: {maximum:?}");
+        eprintln!("STD08_PREFIX ordinal={ordinal} final core trace: {last:?}");
+        crate::bounded_output::stage_debits::route_debits::print_settled();
+        if let Err(original) = result {
+            eprintln!(
+                "STD08_PREFIX ordinal={ordinal} preserved original panic String: {:?}",
+                original.downcast_ref::<String>()
+            );
+            let _ = std::fs::remove_dir_all(&scratch);
+            std::panic::resume_unwind(original);
+        }
     }
+    std::fs::remove_dir_all(scratch).unwrap();
 }

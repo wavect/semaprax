@@ -1,0 +1,26 @@
+{
+  "calculator-baseline.json": [
+    [
+      ".graph_digest",
+      "sha256:f79557926303e7e14932b195fc1cd65e2130ee4433da5aef8fe62fee2d4e9c67",
+      "sha256:04c9688d262a1df657bfb8099069c953e127b42d6153ad885612f6cf31dc886b"
+    ],
+    [
+      ".budget.used_builder_bytes",
+      8629481,
+      8635113
+    ]
+  ],
+  "calculator-renamed.json": [
+    [
+      ".graph_digest",
+      "sha256:fa10b6cb2d48a3bffac58afc9b0d893eb34799de1a1134ffee1aae3ef95ae94a",
+      "sha256:bc1907281fe1c765d1ccea7701444f0ee8e9ff967018932a62af849c052840fb"
+    ],
+    [
+      ".budget.used_builder_bytes",
+      8629481,
+      8635113
+    ]
+  ]
+}

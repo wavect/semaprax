@@ -1,0 +1,20 @@
+{
+  "status": "SOURCE_ONLY_ORIGINAL_FULL_DOMAIN_AND_HOSTILE_CONTROLS_PASS",
+  "domains": [
+    "hir",
+    "projection"
+  ],
+  "negative_controls": {
+    "dropped_actual_child_refused": true,
+    "coordinated_class_drop_not_original_generated_output": true,
+    "production_reclassification_refused": true,
+    "actual_source_drift_refused": true,
+    "whole_raw_drift_refused": true,
+    "foreign_path_child_cannot_escape": true
+  },
+  "generation_receipt_sha256": "84cc9b4dac0268d75c52ed2829fcb589ccfe81bc42434d3dd39f09657f21ae67",
+  "complete_chain_receipt_sha256": "42a49cf8132c0fdb541724819eb314d36e9f24dec2fa718b7f1202c22bfac169",
+  "peak_RSS_bytes": 128892928,
+  "no_Rust_or_hosted_qualification_claimed": true,
+  "must_refresh_if_header_or_other_source_changes": true
+}

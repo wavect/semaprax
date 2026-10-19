@@ -33,8 +33,9 @@ const expectedFunctions = [
   result,
 }));
 // Original hosted records remain in docs/evidence/ci-corrections-1c87-20261018.
-// Current digests replay the exact 4872530969 builder bills; complete graph and
-// wire checks are in docs/evidence/browser-pins-487-20261018/browser-capture.
+// Current Linux 1.88 digests replay the unchanged 775521f128 builder bills.
+// Whole graph comparisons are in docs/evidence/browser-bf8-20261019;
+// prior full captures remain in docs/evidence/browser-pins-487-20261018/browser-capture.
 // Browser runtime remains an executable CI gate.
 const fixtureSpecs = [
   { name: "direct-source", schema: "semaprax.web.v4" },
@@ -43,14 +44,14 @@ const fixtureSpecs = [
     schema: "semaprax.web-project.v1",
     project_revision: "sha256:8576caa566cb7f0d265354927c5bc7b481146f05e616f76917f340b4af26f053",
     workspace_revision: "sha256:f0454397a2b339677bc49c9ccd8e8491917426202c6aba2475221879e02ae3f6",
-    project_graph_digest: "sha256:f79557926303e7e14932b195fc1cd65e2130ee4433da5aef8fe62fee2d4e9c67",
+    project_graph_digest: "sha256:04c9688d262a1df657bfb8099069c953e127b42d6153ad885612f6cf31dc886b",
   },
   {
     name: "project-renamed",
     schema: "semaprax.web-project.v1",
     project_revision: "sha256:afa7b35b6b057eaa1cbf89c68ccd1e19a8d988f4168049f70717f80c28218fb7",
     workspace_revision: "sha256:8fcf973950f10bf9393ff5597484333b178e5f93c5d2a1847f6ccc18d6185f71",
-    project_graph_digest: "sha256:fa10b6cb2d48a3bffac58afc9b0d893eb34799de1a1134ffee1aae3ef95ae94a",
+    project_graph_digest: "sha256:bc1907281fe1c765d1ccea7701444f0ee8e9ff967018932a62af849c052840fb",
   },
 ];
 const expectedArtifacts = [

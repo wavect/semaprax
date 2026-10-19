@@ -1,0 +1,9 @@
+{
+  "status": "PASS_COMPLETE_HOSTED775_GRAPH_AND_PROVENANCE_BYTE_AUTHENTICATION",
+  "job": 117933951380,
+  "run": 39213952928,
+  "head": "775521f128d4f927b88413122f7eb504f6c50b01",
+  "all_three_base64_records_length_and_sha256_verified": true,
+  "original_log_sha256": "3a784525a8c1ade8ae286c40736df571268961c21000b9364dc73816b167899d",
+  "no_new_hosted_pass_claimed": true
+}

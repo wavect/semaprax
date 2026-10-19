@@ -534,6 +534,17 @@ pub(crate) fn controls() {
 // Separate new raw endpoint; the immutable Canonical344 row remains staged51.
 // Old stage bytes are never an alternative live870 input.
 fn canonical870_stage(current: &str) -> String {
+    // This endpoint admits only the complete live raw input. Reject foreign
+    // bytes before the expensive historical acquisition; valid input still
+    // passes every original physical, compiled, archive and stage assertion.
+    assert_eq!(
+        current,
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/cleanup_plan/replay/factored/canonical_shared.rs"
+        )),
+        "complete live canonical870 input"
+    );
     let outer = super::main67107_inputs::project("canonical870", current);
     let current = outer.as_str();
     let data = include_str!(concat!(

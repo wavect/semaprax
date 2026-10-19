@@ -1,0 +1,9 @@
+{
+  "status": "PASS_JS_SYNTAX_AND_EXACT_HOSTED_GRAPH_DIFF",
+  "node_syntax_check_exit": 0,
+  "hosted_records_independently_authenticated": true,
+  "only_budget_and_digest_graph_leaves_changed": true,
+  "original_entire_fixture_body_retained_except_two_expected_digests_and_comment": true,
+  "local_mac_graph_has_separate_184_byte_compiler_layout_difference": true,
+  "full_browser_runtime_not_claimed": true
+}

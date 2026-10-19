@@ -1,0 +1,12 @@
+{
+  "base_head": "bf8bd35b6efd2d50501c454cc265649737ef836e",
+  "changed_sources": [
+    "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+    "src/source_reflows_merge/final_ready_inputs.rs"
+  ],
+  "all_original_revisions_inputs_and_assertions_unchanged": true,
+  "all_old_graph_records_preserved": true,
+  "only_two_authenticated_linux_expected_digests_changed": true,
+  "no_new_rust_classes": true,
+  "full_current_head_CI_still_required": true
+}

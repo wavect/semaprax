@@ -1,0 +1,18 @@
+{
+  "status": "EXACT_TWO_EXPECTED_DIGESTS_AND_EXPLANATORY_COMMENT_ONLY",
+  "source": "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+  "before_sha256": "b0c289328e8cb8654732f9dc0fd6d166be42e82a99ff4d3720edfe51d282d4ef",
+  "current_sha256": "0b638f6ff16f4d5615fb9cf281b9bf0955548a7592808cb72b3f35c1e848c20a",
+  "original_entire_body_recovers_exactly": true,
+  "all_revisions_inputs_and_assertions_unchanged": true,
+  "changes": [
+    [
+      "sha256:f79557926303e7e14932b195fc1cd65e2130ee4433da5aef8fe62fee2d4e9c67",
+      "sha256:04c9688d262a1df657bfb8099069c953e127b42d6153ad885612f6cf31dc886b"
+    ],
+    [
+      "sha256:fa10b6cb2d48a3bffac58afc9b0d893eb34799de1a1134ffee1aae3ef95ae94a",
+      "sha256:bc1907281fe1c765d1ccea7701444f0ee8e9ff967018932a62af849c052840fb"
+    ]
+  ]
+}

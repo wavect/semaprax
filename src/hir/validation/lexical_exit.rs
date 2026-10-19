@@ -874,6 +874,80 @@ mod witness_tests {
     }
 
     #[test]
+    fn complete_public_cold_sequential_and_nested_match_callers_report_actual_frame_and_replacement_bills(
+    ) {
+        let mut cases = vec![
+            ("literal", 0usize, "module cold; @id(\"cold.main\") fn main()->i64 {1}".to_owned()),
+            ("call", 0usize, "module cold; @id(\"cold.f\") fn f(x:i64)->i64 {x} @id(\"cold.main\") fn main()->i64 {f(1)}".to_owned()),
+        ];
+        for count in [1usize, 8, 32] {
+            let mut body = String::new();
+            for index in 0..count {
+                body.push_str(&format!("let n{index}=match 0 {{_=>1,}};"));
+            }
+            body.push_str("1");
+            cases.push((
+                "sequential",
+                count,
+                format!("module sequential; @id(\"sequence.main\") fn main()->i64 {{{body}}}"),
+            ));
+            let mut body = "1".to_owned();
+            for _ in 0..count {
+                body = format!("match 0 {{_=>{body},}}");
+            }
+            cases.push((
+                "nested",
+                count,
+                format!("module nested; @id(\"nested.main\") fn main()->i64 {{{body}}}"),
+            ));
+        }
+        // A single exhaustive arm keeps one PLAN path. Sequential matches grow
+        // witness joins without introducing an exponential path-product fixture.
+        for (shape, count, source) in cases {
+            let checked = crate::check(&source, "matched-frame-shape.spx").unwrap();
+            let (success, metrics, refused, paid, receipt, report) =
+                run_public(&checked, &source, 64 << 20, 0);
+            let replacement = report
+                .joins
+                .checked_mul(WITNESS_JOIN)
+                .unwrap()
+                .checked_add(report.variant_views.checked_mul(VARIANT_VIEWS).unwrap())
+                .unwrap()
+                .checked_add(report.arm_views.checked_mul(VARIANT_ARM_VIEW).unwrap())
+                .unwrap()
+                .checked_add(report.finishes.checked_mul(WITNESS_FINISH).unwrap())
+                .unwrap();
+            let source_sha256 = {
+                use sha2::Digest;
+                format!("{:x}", crate::digest_hex::LowerHex(sha2::Sha256::digest(source.as_bytes())))
+            };
+            eprintln!(
+                "OPT904_SHAPE_JSON {}",
+                serde_json::json!({
+                    "source_sha256": source_sha256,
+                    "source_bytes": source.len(), "shape": shape, "match_count": count,
+                    "success": success, "refused": refused, "first_refusal": format!("{receipt:?}"),
+                    "limit": 64usize << 20, "floor": 0, "paid": paid,
+                    "frame_size": report.size, "frame_align": report.alignment,
+                    "requested_capacity": report.requested_capacity, "acquired_capacity": report.acquired_capacity,
+                    "requests": report.requests, "joins": report.joins, "variant_views": report.variant_views,
+                    "arm_views": report.arm_views, "finishes": report.finishes,
+                    "replacement_bill": replacement, "overflow": report.overflow,
+                    "allocated": metrics.allocated, "freed": metrics.freed, "live": metrics.live, "invalid": metrics.invalid,
+                    "matched_old_image_required": true, "no_clone_payload_credit": true
+                })
+            );
+            assert!(
+                success && !refused && receipt.is_none(),
+                "complete unchanged-capacity caller {shape}/{count}"
+            );
+            assert!(!metrics.invalid && metrics.live == 0 && metrics.allocated == metrics.freed);
+            assert!(!report.overflow && report.size > 0 && report.alignment.is_power_of_two());
+            assert_eq!(report.requested_capacity, report.acquired_capacity);
+        }
+    }
+
+    #[test]
     fn whole_immediate_production_frame_dispatch_helper_and_invoice_restore_and_refuse_drift() {
         use sha2::{Digest, Sha256};
         fn hash(bytes: &[u8]) -> String {

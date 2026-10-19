@@ -77,6 +77,7 @@ pub(super) const REPLACEMENTS: &[&str] = &[
     "src/source_reflows_merge/runtime_json.rs",
     "src/source_verify/declaration.rs",
     "src/workspace_graph.rs",
+    "src/workspace_graph/constructor_failure/receiving/typed/tests.rs",
     "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/owned_growth_tests.rs",
     "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
     "src/workspace_graph/function_alias/before_core.rs",

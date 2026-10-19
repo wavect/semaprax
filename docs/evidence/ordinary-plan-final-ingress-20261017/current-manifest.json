@@ -9,13 +9,13 @@
     },
     {
       "path": "src/cleanup_plan/replay/ordinary_plan_history/frontier_tests.rs",
-      "sha256": "7b593a07f36c1f3cd6d80ff40584a68523902617574755feb34cfe175f38124e",
-      "lines": 214
+      "sha256": "0c097682f7dc4a7c0a23a9c2b16555bd212df31e0013a7581d3b58127b7d7119",
+      "lines": 215
     },
     {
       "path": "src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs",
-      "sha256": "0e72ccf74360792956022784b2249c92914883a70bd85b1fc779ae99a7504d7c",
-      "lines": 101
+      "sha256": "e9191f522e39ce917ff31caf4794d0de88a3d00ecc8f4df726ea94ba6b49fb23",
+      "lines": 201
     },
     {
       "path": "src/cleanup_plan/replay/ordinary_plan_history/owned_tests.rs",
@@ -44,7 +44,7 @@
     },
     {
       "path": "src/source_reflows_merge/ordinary_plan_inputs.rs",
-      "sha256": "6899a83ca67517bd24894fb53eeb328ce0586c96fb9cf6d0b01ce3dae59ed6bc",
+      "sha256": "c7b046c3e039890183423f56e35b5aceafdf6482503e6f58ff83316da8abcde2",
       "lines": 520
     }
   ]

@@ -68,7 +68,7 @@ pub(super) const REPLACEMENTS: &[&str] = &[
     "src/loan_plan/paid_live.rs",
     "src/project/json_codec.rs",
     "src/source_reflows/incoming090_semantic_receivers.rs",
-    "src/source_reflows/incoming67107_semantic_receivers.rs",
+    "src/source_reflows/incoming67107_semantic_receivers.rs", "src/source_reflows_merge/current344.rs",
     "src/source_reflows_merge/final_ready_inputs.rs",
     "src/source_reflows_merge/main67107_inputs_tail.rs",
     "src/source_reflows_merge/main8a_historical.rs",
@@ -83,8 +83,8 @@ pub(super) const REPLACEMENTS: &[&str] = &[
     "src/workspace_graph/function_alias/before_core.rs",
     "src/workspace_graph/function_alias/before_core/tests.rs",
     "src/workspace_graph/source_schema/static_text/tests.rs",
-    "src/workspace_graph/test_replay_context.rs",
-    "tests/project/standard_library/application_json.rs",
+    "src/workspace_graph/test_replay_context.rs", "tests/doctor_production_provisioner_v1.rs",
+    "tests/project/standard_library/application_json.rs", "tests/quality_routing.rs",
     "tests/support/production_source_inventory.rs",
     "tests/wasm/scalar_browser_ci_contract.rs",
     "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
@@ -299,8 +299,8 @@ pub(super) const ADDITIONS: &[&str] = &[
 ];
 const POLICY_PATH: &str = "docs/evidence/finite-source-overlay-v2-20261018/policy.json";
 const PAGE_PATH: &str = "docs/evidence/finite-source-overlay-v2-20261018/page.json";
-const POLICY_LENGTH: usize = 102883; // Filled from the complete literal policy below.
-const POLICY_SHA256: &str = "49b5a94833aa896af03da1a6339b04577431dc3756d03c9c183ab9893ee8f0a8";
+const POLICY_LENGTH: usize = 110168; // Filled from the complete literal policy below.
+const POLICY_SHA256: &str = "9adafa368fc227b831ee99f423a1c497439e6c3af611f41d28a7d4ba572d15b7";
 const EXTENSION_PATH: &str = "docs/evidence/fmt-local-441-20261018/extension.json";
 const EXTENSION_LENGTH: usize = 262076;
 const EXTENSION_SHA256: &str = "2af7299253e5cfb027186ba4fc151011a937214ff381c9267bfc11ef7d0003b6";

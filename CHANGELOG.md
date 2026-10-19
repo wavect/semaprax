@@ -1,5 +1,16 @@
 - Reuse closed compiler declaration identities and fund dynamic sort-key identity backing through its existing payer, preserving wire identities and diagnostic precedence.
 - Add optional fixed-storage captures of exclusive resolved-core debits alongside the existing inclusive phase observations, retaining compiler budgets and complete historical source checks.
+## CI repair: preserve requested source views before older projections
+
+- Keep historical compiled-source acquisition on its exact authenticated view before applying a Clippy predecessor, preserving the nondelegating membership boundary and all physical/compiled/archive equality checks.
+- Register the already existing frontier-test source as an additive compiled overlay subject with its complete original 54-row-table view; retain all prior 543 subjects, order, views, classifications, caps and hostile controls.
+- Refresh the same nine FINAL6 owner identities for the observation-storage repair without rerunning a completed source publisher.
+
+## CI repair: keep dormant diagnostic buffers out of Linux thread storage
+
+- Move the unchanged 4096-event frontier trace and 128-row pair census to lazily prepared backing. Linux includes static TLS in a thread's allocation; these dormant test arrays consumed more than the 128 KiB low-stack regression requested. Prepare observation backing before allocation measurement, retain every capacity and counter, and keep the original constructor and exact 512-depth validation on the small thread.
+
+- Rebind the Native Rust JSON allocation audit to the already locked serde_json 1.0.154 after verifying the unchanged string scratch and owned-value allocation paths.
 - Retain the explicitly selected macOS SDK in cleared native fixture environments so the real Apple Clang can resolve its standard headers.
 - Authenticate the exact inventory and clone-source formatting successors before replaying their unchanged whole-source audit inverses.
 - Compare complete immutable cleanup-history segments in one receiver loop while retaining every original validation, work request and resource ceiling.

@@ -16,6 +16,23 @@ fn sha(bytes: &[u8]) -> String {
 }
 
 pub(super) fn prior_source(source: &str, current: &str) -> String {
+    // Bind the final complete operation-source owner before every unchanged
+    // earlier control repair and immutable lowering inverse below.
+    let operation_before = if source == "src/hir/ids/fixed_operation_tests.rs" {
+        assert_eq!(current, include_str!("fixed_operation_tests.rs"));
+        assert_eq!(current.len(), 42383);
+        assert_eq!(sha(current.as_bytes()), "2e6b11b6f13468c0a57c6bf4fe180c46a502736f5737bacf458b302bccfc4f43");
+        let mut before = current.to_owned();
+        for added in ["    // Authenticate the complete compiled generation before reversing only the\n    // retained-source profiling accessor; the original whole-file inverse below\n    // still reconstructs every pre-profile constructor byte.\n    assert_eq!(current, include_str!(\"../../../src/list_ops.rs\"));\n    assert_eq!(\n        format!(\n            \"{:x}\",\n            crate::digest_hex::LowerHex(<sha2::Sha256 as sha2::Digest>::digest(current.as_bytes()))\n        ),\n        \"eaf364364d29ea595520b8390a195ddd947a9caab5969b5c86cf1cf6c1923ab2\"\n    );\n    let profiled = \"program.functions().profile_iter().any(function_uses)\";\n    let ordinary = \"program.functions().iter().any(function_uses)\";\n    assert_eq!(current.matches(profiled).count(), 1);\n    let unprofiled = current.replacen(profiled, ordinary, 1);\n    let current = unprofiled.as_str();\n",
+            "    // Authenticate the complete Map catalogue before reversing only its\n    // retained-source profiling accessor; retain the original const-id inverse.\n    assert_eq!(current, include_str!(\"../../../src/map_ops.rs\"));\n    assert_eq!(current.len(), 16989);\n    assert_eq!(\n        format!(\n            \"{:x}\",\n            crate::digest_hex::LowerHex(<sha2::Sha256 as sha2::Digest>::digest(current.as_bytes()))\n        ),\n        \"adf43789d79a542aa5b160665a65f10a9ea116490efbbf1f91f6202651dd1dcf\"\n    );\n    let profiled = \"program.functions().profile_iter().any(|function| {\";\n    let ordinary = \"program.functions().iter().any(|function| {\";\n    assert_eq!(current.matches(profiled).count(), 1);\n    let unprofiled = current.replacen(profiled, ordinary, 1);\n    let current = unprofiled.as_str();\n"] {
+            assert_eq!(before.matches(added).count(), 1);
+            before = before.replacen(added, "", 1);
+        }
+        assert_eq!(before.len(), 40750);
+        assert_eq!(sha(before.as_bytes()), "f5ca1f734cd8ae4c3ecd9c73a65da5ff263d01cd412ffc97b4a00a326dc0f42d");
+        Some(before)
+    } else { None };
+    let current = operation_before.as_deref().unwrap_or(current);
     // Exact current control repairs precede the immutable complete lowering
     // inverse. Every archived baseline and original old-body check stays intact.
     let repaired = match source {
@@ -327,5 +344,8 @@ fn complete_source_inverses_and_independent_old_lowering_bodies_remain_exact() {
     }
     for hostile in [format!("{} ", sources[0].1), sources[0].1[..sources[0].1.len() - 1].to_owned(), originals[0].1.clone()] {
         assert!(std::panic::catch_unwind(|| prior_source(sources[0].0, &hostile)).is_err());
+    }
+    for hostile in [format!("{} ", sources[7].1), sources[7].1[..sources[7].1.len() - 1].to_owned(), originals[7].1.clone()] {
+        assert!(std::panic::catch_unwind(|| prior_source(sources[7].0, &hostile)).is_err());
     }
 }

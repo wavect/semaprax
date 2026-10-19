@@ -1470,7 +1470,7 @@ owners; no public/generic ABI.
 
 `new <dir> --template source-command-file-text`: v26 source-command.v1/native64,
 argv-utf8+file-text.v1. Web/Wasm/npm refuse; interpreter run/test: SPX-F102.
-Use native `semaprax test .`. `doctor --profile`: reports only. V28
+Use `semaprax test . --target native`. `doctor --profile`: reports only. V28
 source-command.resource-output.v1 keeps v26 ABI; 1 MiB Strings, borrowed
 text/staged output: [limits](PROJECT-MANIFEST-V28.md).
 

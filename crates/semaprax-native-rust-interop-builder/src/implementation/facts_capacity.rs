@@ -660,7 +660,7 @@ pub(super) fn post_hir_facts_capacity(
         .checked_add(4)
         .and_then(|entries| entries.checked_mul(std::mem::size_of::<(u64, &str)>()))
         .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
-    // Locked serde_json 1.0.151 owns one reusable `Deserializer::scratch`
+    // Locked serde_json 1.0.154 owns one reusable `Deserializer::scratch`
     // Vec<u8> (`src/de.rs`) whose string/number paths clear and reuse the same
     // buffer (`src/read.rs`). Decoded bytes cannot exceed the admitted input;
     // geometric Vec capacity is therefore at most twice that input. Returned

@@ -1,0 +1,42 @@
+[
+  {
+    "source": "src/cleanup_plan.rs",
+    "current_sha256": "144f255bb216245a2ef49c197b60659e2b725c45c0ca05209ebe16feb3e34920",
+    "before_sha256": "0e19e80ed9cc80eafe015ff4e11688d6aa24b80755e6afbe1ed727f5d2a63621"
+  },
+  {
+    "source": "src/hir/ids.rs",
+    "current_sha256": "5e56cda454fa3f14f61e2db5f410eea13ac7795d0887e680348eefdc64e80e64",
+    "before_sha256": "186e98de002cd77f1e546a34423a6ca4792d8fbedc8ff7decc8d8a6a3e03b306"
+  },
+  {
+    "source": "tests/native/string_settlement/codec_allocation/string_vectors.rs",
+    "current_sha256": "8fc18b5920eb5f4a5c5d43c886f327b32e6f0ead6570d1640e43db0e5f0cfddb",
+    "before_sha256": "8fc18b5920eb5f4a5c5d43c886f327b32e6f0ead6570d1640e43db0e5f0cfddb"
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/borrowed_canonical/dictionary/keys.rs",
+    "current_sha256": "01b3e408874930f2aad015d20cf8317fc1507183f92aae740d11985b99d223e1",
+    "before_sha256": "01b3e408874930f2aad015d20cf8317fc1507183f92aae740d11985b99d223e1"
+  },
+  {
+    "source": "src/hir/function_value/funded.rs",
+    "current_sha256": "633299f2369b23030fddc8feaae09a97da2622bc831f9f766d52b618baea2019",
+    "before_sha256": "633299f2369b23030fddc8feaae09a97da2622bc831f9f766d52b618baea2019"
+  },
+  {
+    "source": "tests/native/string_settlement/codec_allocation.rs",
+    "current_sha256": "82b7368428178f592d1de52dd17b175b75b5dfd7ca1543dca9bacbdcb5dc7200",
+    "before_sha256": "82b7368428178f592d1de52dd17b175b75b5dfd7ca1543dca9bacbdcb5dc7200"
+  },
+  {
+    "source": "src/cleanup_plan/replay/sequence_prefix/main24/before_wrapper_tests.rs",
+    "current_sha256": "dbe4a9b878c0fa842f803b4ed8d2bc6e3849c72def30608fa1dd6c76a111b4f8",
+    "before_sha256": "dbe4a9b878c0fa842f803b4ed8d2bc6e3849c72def30608fa1dd6c76a111b4f8"
+  },
+  {
+    "source": "src/cleanup_plan/replay/sequence_prefix/main_c11/before_wrapper_tests.rs",
+    "current_sha256": "dbe4a9b878c0fa842f803b4ed8d2bc6e3849c72def30608fa1dd6c76a111b4f8",
+    "before_sha256": "dbe4a9b878c0fa842f803b4ed8d2bc6e3849c72def30608fa1dd6c76a111b4f8"
+  }
+]

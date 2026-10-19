@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "process_tree_cap_MiB": 256,
+  "global_available_floor_percent": 15,
+  "steps_peak_tree_rss_KiB": {
+    "source-controls": 27696,
+    "strict-controls": 41408,
+    "browser-source-controls": 28304,
+    "finite-controls": 30368
+  },
+  "all_original_hostile_predicates_executed": true,
+  "signal_interrupt_restores_temporarily_mutated_inputs": true
+}

@@ -13,6 +13,20 @@ const DATA: &str = include_str!(concat!(
 const DATA_LENGTH: usize = 17256;
 const DATA_SHA256: &str = "805be510a86e46dfb8cd58b63eca7b89e347053674e3357e8cb3c48924ce4955";
 pub(crate) fn input(path: &str, current: &str) -> String {
+    // Only these two complete formatting successors precede the immutable
+    // incoming domains. The original source selection and inverses still run.
+    let expected = match path {
+        "src/cleanup_plan/replay/allocation/tests/clone_cursor.rs" => {
+            Some("6c031f6fc2ed45f973c12da9b84d84ccab8ac76467d7ffdde3e2b313526fee17")
+        }
+        "src/wasm/aggregate/semantic_work.rs" => {
+            Some("c341401652ff0c7cc6be923c455fec316ff7e5c11e303b024a0a24ea59767cff")
+        }
+        _ => None,
+    };
+    let projected = expected
+        .map(|expected| super::main_e177_final_inputs::value_direct(path, expected, current));
+    let current = projected.as_deref().unwrap_or(current);
     let current = super::main7f8_source_inputs::later_452_input("eb2-incoming", path, current);
     project("incoming", path, &current)
 }

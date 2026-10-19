@@ -1,6 +1,8 @@
 //! Pair-local successor: real complete producer+comparison boundaries.
 use super::super::before_flat_view::{ComparisonOwner, compare};
 use super::*;
+#[path = "pair_scope_tests/paired_segments.rs"]
+mod paired_segments;
 use crate::bounded_output::with_limit_usage_refusal;
 use crate::test_allocation_observer::{Metrics, measure};
 fn observe_pair(
@@ -12,6 +14,7 @@ fn observe_pair(
     comparison_work: usize,
     mutation: usize,
 ) -> Observed {
+    frontiers::prepare();
     with_limit_usage_refusal(physical, || {
         measure(|| {
             let mut budget = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
@@ -781,6 +784,7 @@ fn observe_886_pair(
     comparison_work: usize,
     mutation: usize,
 ) -> Observed {
+    frontiers::prepare();
     with_limit_usage_refusal(physical, || {
         measure(|| {
             let mut budget = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);

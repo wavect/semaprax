@@ -1,0 +1,10 @@
+{
+  "process_tree_cap_MiB": 160,
+  "start_available_percent": 35,
+  "stop_available_percent": 30,
+  "prior_200MiB_guard_file_unchanged": true,
+  "guard_sha256": "e1dd2517a8386e0217254d51e67ebb52f522a1abb7e9e79bbeb402402abac097",
+  "reason": "Limit this small test and source-verification task to a tighter process cap while preserving substantial observed global headroom; no compiler or CI resource bound changed",
+  "first_libtest_compile_stopped_and_not_counted_as_pass": true,
+  "current_harness": "Directly invokes the same complete original assertion body with current audited version/checksum pins; no assertion removed"
+}

@@ -1,0 +1,21 @@
+{
+  "base_head": "b8a808a144572a9e42f80547b82af2a52039407f",
+  "changed_sources": [
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_census.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_tests.rs",
+    "CHANGELOG.md",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/fused_readers.rs",
+    "src/bounded_output/stage_debits/route_debits.rs"
+  ],
+  "new_test_classes": [
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_segments_before.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_segments_before_cursor.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_tests/paired_segments.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/independent_segments.rs"
+  ],
+  "all_original_runtime_tests_and_assertions_preserved": true,
+  "primitive_sites_individually_funded": true,
+  "full_compiler_and_current_head_CI_still_required": true
+}

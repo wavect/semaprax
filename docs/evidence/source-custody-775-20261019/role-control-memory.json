@@ -1,0 +1,8 @@
+{
+  "status": "PASS",
+  "complete_original_source_verifier": true,
+  "process_tree_cap_MiB": 256,
+  "global_available_floor_percent": 15,
+  "peak_tree_rss_KiB": 119008,
+  "external_ssd_snapshots": true
+}

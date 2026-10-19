@@ -1,0 +1,40 @@
+{
+  "status": "SOURCE_ONLY_PENDING_ORIGINAL_CONTROLS",
+  "source": "src/source_reflows_merge/final_ready_inputs.rs",
+  "before_artifacts": {
+    "guard": {
+      "length": 11549,
+      "sha256": "2faf38908d0e49264b685590c466942bb9569dd10989419d72d02e4557323258",
+      "archive": "docs/evidence/source-custody-775-20261019/whole/2faf38908d0e49264b685590c466942bb9569dd10989419d72d02e4557323258.txt"
+    },
+    "config": {
+      "length": 136459,
+      "sha256": "ce5b3b9293b9f3653dde13966369acaeb173e029db5271934b57a143f1d01587",
+      "archive": "docs/evidence/source-custody-775-20261019/whole/ce5b3b9293b9f3653dde13966369acaeb173e029db5271934b57a143f1d01587.txt"
+    },
+    "rust_overlay": {
+      "length": 41632,
+      "sha256": "a4b3e5d2786bc3cac87ee324a4be0d5a0438d6f3382f21456231f4d58385c8e5",
+      "archive": "docs/evidence/source-custody-775-20261019/whole/a4b3e5d2786bc3cac87ee324a4be0d5a0438d6f3382f21456231f4d58385c8e5.txt"
+    },
+    "python_overlay": {
+      "length": 13915,
+      "sha256": "304b5174c9f447afa96b127b83d24489f2de24b9693480fcce9f1a65ab2bbab3",
+      "archive": "docs/evidence/source-custody-775-20261019/whole/304b5174c9f447afa96b127b83d24489f2de24b9693480fcce9f1a65ab2bbab3.txt"
+    },
+    "page": {
+      "length": 195375,
+      "sha256": "519ed59c46789523999a51436a827899cd0e2b7cc84f72c70934c7528d7f51be",
+      "archive": "docs/evidence/source-custody-775-20261019/whole/519ed59c46789523999a51436a827899cd0e2b7cc84f72c70934c7528d7f51be.txt"
+    },
+    "policy": {
+      "length": 16287,
+      "sha256": "82e17585b8d61b6380e4413066835ba1f0532225f6f7ce392db25735ee75cc93",
+      "archive": "docs/evidence/source-custody-775-20261019/whole/82e17585b8d61b6380e4413066835ba1f0532225f6f7ce392db25735ee75cc93.txt"
+    }
+  },
+  "all_original_544_rows_and_view_prefixes_retained": true,
+  "all_original_membership_literals_and_limits_unchanged": true,
+  "requested_raw_byte_fast_path_preserved": true,
+  "original_foreign_input_predicate_moved_before_expensive_reconstruction": true
+}

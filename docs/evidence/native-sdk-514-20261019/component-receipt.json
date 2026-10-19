@@ -1,0 +1,9 @@
+{
+  "status": "REAL_APPLE_CLANG_FIXTURE_AND_CLOSED_ONE_VARIABLE_ENVIRONMENT_PASS",
+  "memoryKiB": {
+    "compile": 200752,
+    "run": 59888
+  },
+  "scratch_only": true,
+  "full_native_builder_suite_not_claimed": true
+}

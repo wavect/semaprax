@@ -311,7 +311,7 @@ fn borrowed_reader_sources_keep_whole_pure2c_root_macro_and_all_original_pair_co
         hash(include_bytes!("lexical_cursor_main487.rs")),
         "b66e1c1f47583c8c687e352be56bcb01e49da9456b81c3e36862a359416e5583"
     );
-    let mut tests = include_str!("main487_pair_scope_tests.rs").to_owned();
+    let mut tests = frontiers::before_preparation("main487_pair_scope_tests.rs").to_owned();
     for (after, before) in [
         (
             "use super::super::before_main487::{compare, PAYMENT_HEADER, PATH_INDEX, PAIR_SCOPE, PAIR_PRIMITIVE, ComparisonOwner, Step};\n",

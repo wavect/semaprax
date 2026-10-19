@@ -175,12 +175,20 @@ fn projection344_stage(supplied: &str) -> String {
         digest(data),
         "ab922dd2f58ea4dc32b7e5ddfbae934a8353b7fe9eefbb2927414cbbdf7e4b3b"
     );
-    let read = |path: &str, length: usize, sha: &str| {
+    fn read(
+        invocation: &mut crate::source_reflows_merge::main_e177_final_inputs::ProjectionInvocation,
+        root: &std::path::Path,
+        path: &str,
+        length: usize,
+        sha: &str,
+    ) -> String {
         reader::read(&root.join(path), length, sha, 2_097_152)
+            .or_else(|error| invocation.file(&root.join(path), length, sha).ok_or(error))
             .unwrap_or_else(|error| panic!("exact projection344 part {path}: {error:?}"))
-    };
+    }
     assert_eq!(
         read(
+            &mut invocation, root,
             "docs/evidence/current339-source-custody-repair-20261017/projection344-stage.json",
             data.len(),
             &digest(data)
@@ -191,6 +199,36 @@ fn projection344_stage(supplied: &str) -> String {
     assert_eq!(
         row["schema"],
         "semaprax.current339.projection344-whole-stage.v1"
+    );
+    let mut image = |name: &str| {
+        let view = &row[name];
+        read(
+            &mut invocation, root,
+            view["archive"].as_str().unwrap(),
+            view["length"].as_u64().unwrap() as usize,
+            view["sha256"].as_str().unwrap(),
+        )
+    };
+    let current = image("current");
+    let previous = image("prior");
+    // The immutable old44 stage above remains independently checked. Only
+    // this exact, separately pinned live49 join may enter that old facade.
+    let live = projection344_live_descriptor();
+    let phase_prior = projection344_phase_join_with(supplied, &mut invocation);
+    let supplied = phase_prior.as_deref().unwrap_or(supplied);
+    let supplied = if supplied != current
+        && supplied != previous
+        && supplied.len() == live["length"].as_u64().unwrap() as usize
+        && digest(supplied) == live["sha256"].as_str().unwrap()
+    {
+        assert_eq!(projection344_live_sources_with(&live, &mut invocation), supplied);
+        current.as_str()
+    } else {
+        supplied
+    };
+    assert!(
+        supplied == current || supplied == previous,
+        "foreign historical projection input"
     );
     let carrier = &row["carrier"];
     let carrier_path = root.join(carrier["source"].as_str().unwrap());
@@ -203,6 +241,7 @@ fn projection344_stage(supplied: &str) -> String {
     )
     .unwrap_or_else(|| {
         read(
+            &mut invocation, root,
             carrier["source"].as_str().unwrap(),
             carrier_length,
             carrier_sha,
@@ -259,43 +298,14 @@ fn projection344_stage(supplied: &str) -> String {
                 assert_eq!(digest(&text), sha);
                 text
             } else {
-                read(source, length, sha)
+                read(&mut invocation, root, source, length, sha)
             };
             actual.push_str(&text);
         }
     }
-    let image = |name: &str| {
-        let view = &row[name];
-        read(
-            view["archive"].as_str().unwrap(),
-            view["length"].as_u64().unwrap() as usize,
-            view["sha256"].as_str().unwrap(),
-        )
-    };
-    let current = image("current");
-    let previous = image("prior");
     assert_eq!(
         actual, current,
         "every current projection source and literal in owning macro order"
-    );
-    // The immutable old44 stage above remains independently checked. Only
-    // this exact, separately pinned live49 join may enter that old facade.
-    let live = projection344_live_descriptor();
-    let phase_prior = projection344_phase_join_with(supplied, &mut invocation);
-    let supplied = phase_prior.as_deref().unwrap_or(supplied);
-    let supplied = if supplied != current
-        && supplied != previous
-        && supplied.len() == live["length"].as_u64().unwrap() as usize
-        && digest(supplied) == live["sha256"].as_str().unwrap()
-    {
-        assert_eq!(projection344_live_sources_with(&live, &mut invocation), supplied);
-        current.as_str()
-    } else {
-        supplied
-    };
-    assert!(
-        supplied == current || supplied == previous,
-        "foreign historical projection input"
     );
     previous
 }

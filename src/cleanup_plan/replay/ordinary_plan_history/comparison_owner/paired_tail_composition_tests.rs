@@ -1,5 +1,6 @@
 //! Real shipping tails; complete pre-fusion and pure-main generations stay compiled.
 use super::*;
+use crate::cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::loaded_segment_composition_tests as loaded;
 fn tail_run(
     function: &ResolvedFunction,
     generation: usize,
@@ -18,6 +19,10 @@ fn tail_run(
     )
 }
 fn delta(old: &pair_scope_census::Row, row: &pair_scope_census::Row) -> (usize, usize) {
+    let loaded_delta = loaded::complete_loaded_delta(row);
+    let immediate438_counts = loaded::complete_immediate438_invoice_counts(row);
+    let row = &immediate438_counts;
+    let prior_generation = {
     assert!(
         old.complete && row.complete,
         "complete invoice only, never a refused prefix"
@@ -55,6 +60,8 @@ fn delta(old: &pair_scope_census::Row, row: &pair_scope_census::Row) -> (usize, 
         + removed_boundary_checks
         + final_affine::delta(row).1;
     (current, removed)
+    };
+    (prior_generation.0 + loaded_delta.0, prior_generation.1 + loaded_delta.1)
 }
 #[test]
 fn paired_tail_composition_keeps_complete_real_generations_and_typed_invoices() {
@@ -363,7 +370,7 @@ fn paired_tail_composition_restores_all_complete_old_roots_macros_and_main_test_
             sha
         );
     }
-    let mut tests = include_str!("main_b692_pair_scope_tests.rs").to_owned();
+    let mut tests = frontiers::before_preparation("main_b692_pair_scope_tests.rs").to_owned();
     assert_eq!(tests.matches("use super::super::before_main_b692::{compare, PAYMENT_HEADER, PATH_INDEX, PAIR_SCOPE, PAIR_PRIMITIVE, ComparisonOwner, Step};\n").count(),1);
     tests=tests.replacen("use super::super::before_main_b692::{compare, PAYMENT_HEADER, PATH_INDEX, PAIR_SCOPE, PAIR_PRIMITIVE, ComparisonOwner, Step};\n","",1);
     assert_eq!(
@@ -509,6 +516,7 @@ fn paired_tail_composition_feature_counts_actual_admitted_banks_and_each_work_fr
 
 #[test]
 fn paired_tail_live_unwind_keeps_all_owned_storage_and_reports_only_reached_work() {
+    frontiers::prepare();
     let program = super::super::super::super::super::tests::program();
     let function = &program.functions[0];
     let (mut actual, expected) = fixture(4, 1, true, 0);

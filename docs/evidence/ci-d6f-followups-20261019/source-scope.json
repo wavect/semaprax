@@ -1,0 +1,11 @@
+{
+  "base_head": "d6f9814ae335f4dff27a6184c404555f178e6513",
+  "changed_sources": [
+    "src/source_reflows_merge/final_ready_inputs.rs",
+    "src/source_reflows_merge/current344.rs",
+    "tests/support/record_copy_field_update.rs"
+  ],
+  "all_original_assertions_and_source_caps_retained": true,
+  "no_new_rust_classes": true,
+  "full_current_head_CI_still_required": true
+}

@@ -1,0 +1,24 @@
+{
+  "status": "TWO_AUTHENTICATED_FORMATTING_VIEWS_AND_FULL_INCOMING_INVERSES_PASS",
+  "original_complete_module_recovered_by_only_named_insertion_removal": true,
+  "all_15_original_rows_and_domain_rules_unchanged": true,
+  "views": [
+    {
+      "source": "src/cleanup_plan/replay/allocation/tests/clone_cursor.rs",
+      "domain": "incoming",
+      "complete_current_sha256": "5e49eebf8a593dc19120f5cd89dc5f65f761ccd0f1395ecfd58b6cfc65bd599a",
+      "named_view_sha256": "6c031f6fc2ed45f973c12da9b84d84ccab8ac76467d7ffdde3e2b313526fee17",
+      "complete_incoming_sha256": "c8ea197ff1b15c88d59168d00df95cbfce3db239007dd51ae085b9adf33c5974",
+      "original_offsets_and_full_source_inverse_pass": true
+    },
+    {
+      "source": "src/wasm/aggregate/semantic_work.rs",
+      "domain": "incoming",
+      "complete_current_sha256": "99a4ce5ee5843c4e6f87a2423715f18c9b099081c8768ce6549bb9ea68f48624",
+      "named_view_sha256": "c341401652ff0c7cc6be923c455fec316ff7e5c11e303b024a0a24ea59767cff",
+      "complete_incoming_sha256": "ee94b118976a453568dfeec1fabd6fc7b18139c94a2d9b40236a7a8f69cb0483",
+      "original_offsets_and_full_source_inverse_pass": true
+    }
+  ],
+  "qualification": "Authenticated source and full inverse checks only; hosted Rust tests still required"
+}

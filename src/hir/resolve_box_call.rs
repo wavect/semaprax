@@ -145,7 +145,15 @@ impl OwnedGenericCallSite {
                 super::resolve_vec_call::resolve_reference(resolver, function, call, op)
             }
             Self::Box(op) => resolve_reference(resolver, function, call, op),
-            Self::Iterator(op) => iterator::reference(resolver, function, call, op),
+            Self::Iterator(op) => {
+                if super::resolve_statement::text_reference::canonical_iterator_path_active() {
+                    super::resolve_statement::text_reference::canonical_iterator_reference(
+                        resolver, function, call, op,
+                    )
+                } else {
+                    iterator::reference(resolver, function, call, op)
+                }
+            }
         }
     }
 }

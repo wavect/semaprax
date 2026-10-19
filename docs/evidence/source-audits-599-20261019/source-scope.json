@@ -1,0 +1,13 @@
+{
+  "base_head": "599d98fee9c6c56513cb1a9f21b938d912e73738",
+  "changed_sources": [
+    "src/cleanup/schema_summary/tests.rs",
+    "src/source_reflows_merge/main_eb2_inputs.rs",
+    "CHANGELOG.md"
+  ],
+  "all_original_runtime_tests_and_assertions_preserved": true,
+  "only_exact_named_existing_authenticated_formatting_views_added": true,
+  "no_new_rust_classes": true,
+  "all_reader_and_runtime_bounds_unchanged": true,
+  "full_hosted_CI_still_required": true
+}

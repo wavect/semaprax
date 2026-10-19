@@ -740,8 +740,8 @@ fn build_cfg_plan_counted(
             break;
         }
     }
+    drop(reachable);
     reject_cfg_overlaps(program, &cfg, &aliases, &drafts, &live, work)?;
-
     let (mut edge_live, mut termination_edges) = work::edge_liveness(&cfg, &live, work)?;
     // A contract/body root has no outgoing CFG edge. A synchronous call
     // ending at that root completes on its incoming After edge, rather than

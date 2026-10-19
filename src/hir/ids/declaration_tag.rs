@@ -676,8 +676,11 @@ pub(super) fn old_source(source: &str, current: &str) -> Result<String, &'static
 }
 #[test]
 fn complete_source_inverses_keep_all_raw_children_and_refuse_foreign_stages() {
+    let ids_before_lowering = super::lowering_identity_tests::prior_source(
+        "src/hir/ids.rs", include_str!("../ids.rs"),
+    );
     let sources=[
-        ("src/hir/ids.rs",include_str!("../ids.rs")),
+        ("src/hir/ids.rs",ids_before_lowering.as_str()),
         ("src/hir/ids/declaration_backing_tests.rs",backing_test_source_before_census(include_str!("declaration_backing_tests.rs"))),
         ("tests/hir_module_boundaries.rs",include_str!("../../../tests/hir_module_boundaries.rs")),
         ("tests/workspace/semantic_graph/source_inventory.rs",include_str!("../../../tests/workspace/semantic_graph/source_inventory.rs")),

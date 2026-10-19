@@ -40,6 +40,7 @@ fn observe(
     limit: usize,
     floor: usize,
 ) -> Observed {
+    frontiers::prepare();
     with_limit_usage_refusal(limit, || {
         measure(|| {
             let mut budget = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);

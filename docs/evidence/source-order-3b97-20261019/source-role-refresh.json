@@ -1,0 +1,62 @@
+{
+  "status": "SOURCE_ONLY_ORIGINAL_FULL_VERIFIER_AND_SIX_HOSTILE_CONTROLS_PASS",
+  "files": [
+    {
+      "path": "docs/evidence/a3-e47-final-custody-20261016/hir.json",
+      "before": {
+        "length": 2510876,
+        "sha256": "df6aeedbdad8e9b2911e5de7ef6b1000587fa537f5d507ccb52aca4a2e4fcddf",
+        "archive": "docs/evidence/source-order-3b97-20261019/whole/df6aeedbdad8e9b2911e5de7ef6b1000587fa537f5d507ccb52aca4a2e4fcddf.txt"
+      },
+      "current_length": 2510876,
+      "current_sha256": "f257bc07aa24ee8198e657758324eb29f3590b5046b8e1589f8751d40bc8d8e0",
+      "all_original_classes_and_roles_unchanged": true,
+      "added_actual_registered_sources": []
+    },
+    {
+      "path": "docs/evidence/a3-e47-final-custody-20261016/projection.json",
+      "before": {
+        "length": 2796084,
+        "sha256": "79eb14115907958c3caa75741a3b2099cdff60e136ec47a5150a4a8f31e0e5cd",
+        "archive": "docs/evidence/source-order-3b97-20261019/whole/79eb14115907958c3caa75741a3b2099cdff60e136ec47a5150a4a8f31e0e5cd.txt"
+      },
+      "current_length": 2796084,
+      "current_sha256": "95dfb7edee98613a796bd8368598b1efb201bddda3b405fad43de858ce1c3bf5",
+      "all_original_classes_and_roles_unchanged": true,
+      "added_actual_registered_sources": []
+    },
+    {
+      "path": "docs/evidence/a3-e47-final-custody-20261016/new-owners.json",
+      "before": {
+        "length": 63761,
+        "sha256": "371d8f4419ab3ce51a2f859011cf1253fff43a81d06d7368cf1c9f92089b105d",
+        "archive": "docs/evidence/source-order-3b97-20261019/whole/371d8f4419ab3ce51a2f859011cf1253fff43a81d06d7368cf1c9f92089b105d.txt"
+      },
+      "current_length": 63761,
+      "current_sha256": "d0cb2042fa903df254e12b702acac90fe4aad2dc4b8834c1b2861c8e30889074",
+      "all_original_owner_fields_and_order_retained_except_current_identity": true
+    },
+    {
+      "path": "docs/evidence/source-boundary-domains-20261016/current-domains.json",
+      "before": {
+        "length": 249493,
+        "sha256": "44bb722066da0bb652110b4c85a33f6bd34866190f2b738b7163cc12cbf1ff53",
+        "archive": "docs/evidence/source-order-3b97-20261019/whole/44bb722066da0bb652110b4c85a33f6bd34866190f2b738b7163cc12cbf1ff53.txt"
+      },
+      "current_length": 249493,
+      "current_sha256": "d9c6eef3044ae13bc026695e66d5ea71ca4f94016ba17233646275d1e383a6bf"
+    },
+    {
+      "path": "docs/evidence/source-boundary-domains-20261016/boundary-source-proof.json",
+      "before": {
+        "length": 3387,
+        "sha256": "fc885314e4650339ca24e9e5713607d81ef80dcbc3a961aab48507595b0bacac",
+        "archive": "docs/evidence/source-order-3b97-20261019/whole/fc885314e4650339ca24e9e5713607d81ef80dcbc3a961aab48507595b0bacac.txt"
+      },
+      "current_length": 3404,
+      "current_sha256": "c0a821cd1fdaa66fbce3b5e03bc5558046b6dab7f338f9440862d3ad9d05c819"
+    }
+  ],
+  "all_342_owner_rows_retained": true,
+  "original_authority_source_proof_unchanged": true
+}

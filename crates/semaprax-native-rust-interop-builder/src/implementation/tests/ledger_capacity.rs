@@ -884,15 +884,15 @@ fn post_hir_dense_fan_in_duplicates_and_all_interface_imports_stay_bounded() {
 }
 #[test]
 fn serde_json_lock_and_near_max_escaped_payload_match_parser_contract() {
-    assert!(include_str!("../../../Cargo.toml").contains("serde_json = \"=1.0.151\""));
+    assert!(include_str!("../../../Cargo.toml").contains("serde_json = \"=1.0.154\""));
     let serde_package = include_str!("../../../../../Cargo.lock")
         .split("[[package]]")
         .find(|package| package.lines().any(|line| line == "name = \"serde_json\""))
         .expect("serde_json package is locked");
     for expected in [
-        "version = \"1.0.151\"",
+        "version = \"1.0.154\"",
         "source = \"registry+https://github.com/rust-lang/crates.io-index\"",
-        "checksum = \"c841b55ecdae098c80dcae9cf767f6f8a0c2cdb3416bbef72181df4d0fe73f14\"",
+        "checksum = \"e7e9cc8b1b85264074fbcc02a88680c4096b1e47df8f739dceb03bf482f04bd6\"",
     ] {
         assert!(serde_package.lines().any(|line| line == expected));
     }

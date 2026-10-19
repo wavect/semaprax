@@ -1,0 +1,62 @@
+{
+  "status": "SOURCE_ONLY_ORIGINAL_FULL_VERIFIER_AND_SIX_HOSTILE_CONTROLS_PASS",
+  "files": [
+    {
+      "path": "docs/evidence/a3-e47-final-custody-20261016/hir.json",
+      "before": {
+        "length": 2510876,
+        "sha256": "b85d9b3edf95dee097d9de48ac38342b9f1d1d62bc33375790da8854c87cc057",
+        "archive": "docs/evidence/serde-audit-60f-20261019/whole/b85d9b3edf95dee097d9de48ac38342b9f1d1d62bc33375790da8854c87cc057.txt"
+      },
+      "current_length": 2510876,
+      "current_sha256": "c6171a5c4ea4e10459c2dffbce6d32058cca7f9fc52bc62060e135e70a49352f",
+      "all_original_classes_and_roles_unchanged": true,
+      "added_actual_registered_sources": []
+    },
+    {
+      "path": "docs/evidence/a3-e47-final-custody-20261016/projection.json",
+      "before": {
+        "length": 2796084,
+        "sha256": "3fd469491811f7ee0ad0c3a5d649971306b9d367a35f33df8025befb1842c754",
+        "archive": "docs/evidence/serde-audit-60f-20261019/whole/3fd469491811f7ee0ad0c3a5d649971306b9d367a35f33df8025befb1842c754.txt"
+      },
+      "current_length": 2796084,
+      "current_sha256": "3fd469491811f7ee0ad0c3a5d649971306b9d367a35f33df8025befb1842c754",
+      "all_original_classes_and_roles_unchanged": true,
+      "added_actual_registered_sources": []
+    },
+    {
+      "path": "docs/evidence/a3-e47-final-custody-20261016/new-owners.json",
+      "before": {
+        "length": 63761,
+        "sha256": "8ee8d1ec0b4354d00bbfb5c88b82deba4243ec3f2ee67c3f86c49bcf74c8504f",
+        "archive": "docs/evidence/serde-audit-60f-20261019/whole/8ee8d1ec0b4354d00bbfb5c88b82deba4243ec3f2ee67c3f86c49bcf74c8504f.txt"
+      },
+      "current_length": 63761,
+      "current_sha256": "ee73f8d5c9aa6e8e709c5629129ba3609598b67964f72476e885ccb374b7fec1",
+      "all_original_owner_fields_and_order_retained_except_current_identity": true
+    },
+    {
+      "path": "docs/evidence/source-boundary-domains-20261016/current-domains.json",
+      "before": {
+        "length": 249493,
+        "sha256": "d4ee69b0438f2aaa1e7772ddce2ba2eefb6ed83ae66abffa938b993d3fdc6f4a",
+        "archive": "docs/evidence/serde-audit-60f-20261019/whole/d4ee69b0438f2aaa1e7772ddce2ba2eefb6ed83ae66abffa938b993d3fdc6f4a.txt"
+      },
+      "current_length": 249493,
+      "current_sha256": "6fd5e2da44c4bef09f81db053b9bdc3adbb7742dac84a06979522f675eb5c8f8"
+    },
+    {
+      "path": "docs/evidence/source-boundary-domains-20261016/boundary-source-proof.json",
+      "before": {
+        "length": 3398,
+        "sha256": "8a3173e16e68f0a4f341dae04f088d15d74a9e544e1f83b401981a71cbfbe12e",
+        "archive": "docs/evidence/serde-audit-60f-20261019/whole/8a3173e16e68f0a4f341dae04f088d15d74a9e544e1f83b401981a71cbfbe12e.txt"
+      },
+      "current_length": 3397,
+      "current_sha256": "996a82b8a58162318246d626aa3a231c1d3b687c554edf736d118ad39aba2ff0"
+    }
+  ],
+  "all_342_owner_rows_retained": true,
+  "original_authority_source_proof_unchanged": true
+}

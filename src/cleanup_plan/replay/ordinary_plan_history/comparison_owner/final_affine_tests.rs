@@ -1,5 +1,6 @@
 //! Complete immediate PLAN/HIR comparison, not an arena identity certificate.
 use super::*;
+use crate::cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::loaded_segment_composition_tests as loaded;
 fn run(
     f: &ResolvedFunction,
     old: bool,
@@ -64,7 +65,8 @@ fn report(old: &Run, current: &Run) {
         )
     );
     let (added, removed) = final_affine::delta(&current.row);
-    assert_eq!(current.observed.2 + removed, old.observed.2 + added);
+    let (loaded_added, loaded_removed) = loaded::complete_loaded_delta(&current.row);
+    assert_eq!(current.observed.2 + removed + loaded_removed, old.observed.2 + added + loaded_added);
     eprintln!(
         "OPT907 complete old={} current={} added={} removed={} flat={} shared={} steps={} tails={}; independent content, full heap/Drop, cold losses retained; no app admission claim",
         old.observed.2,
@@ -265,6 +267,7 @@ fn affine_final_hir_feature_capture_prices_each_actual_admitted_bank_and_teardow
 }
 
 fn altered(f: &ResolvedFunction, old: bool, alteration: usize, shared: bool) -> Run {
+    frontiers::prepare();
     let (mut actual, mut expected) = fixture(4, 3, true, 0);
     match alteration {
         0 => {
@@ -362,6 +365,7 @@ fn affine_final_hir_retains_independent_content_exhaustion_and_terminal_mismatch
 }
 #[test]
 fn affine_final_hir_keeps_typed_foreign_restored_authority_and_unwind_full_drop() {
+    frontiers::prepare();
     // Existing complete authority owner exercises the actual current compare,
     // valid/missing/foreign Oracle admission and sticky refusal after restore.
     super::super::shared_identity_replay_typed_oracle_missing_foreign_and_restored_scope_keeps_ambient_unspent();
@@ -417,7 +421,7 @@ fn affine_final_hir_keeps_typed_foreign_restored_authority_and_unwind_full_drop(
     }
 }
 
-fn whole_before(case: usize, source: &str) -> Result<Vec<u8>, &'static str> {
+pub(super) fn whole_before(case: usize, source: &str) -> Result<Vec<u8>, &'static str> {
     use sha2::{Digest, Sha256};
     let table: serde_json::Value =
         serde_json::from_str(include_str!("final_affine_inverse.json")).unwrap();

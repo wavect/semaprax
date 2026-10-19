@@ -1,5 +1,6 @@
 //! Immediate d458 suffix-only comparator versus certified head and right split.
 use super::*;
+use crate::cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::loaded_segment_composition_tests as loaded;
 fn heads_run(
     function: &ResolvedFunction,
     length: usize,
@@ -43,6 +44,7 @@ pub(super) fn heads_run_generation(
     swaps_only: bool,
     shape: usize,
 ) -> Run {
+    frontiers::prepare();
     let (mut actual, mut expected) = fixture(length, depth, shared, fault);
     if shape == 1 {
         let values = actual.arena[0].items.clone();
@@ -250,6 +252,10 @@ mod paired_tail_composition_tests;
 // This is the genuine immediate suffix-only generation, not a hypothetical
 // first-head-only stage. Every coefficient names an actual old or new packet.
 fn invoice(r: &pair_scope_census::Row) -> (usize, usize) {
+    let loaded_delta = loaded::complete_loaded_delta(r);
+    let immediate438_counts = loaded::complete_immediate438_invoice_counts(r);
+    let r = &immediate438_counts;
+    let prior_generation = {
     let header = 2 * size_of::<&ResolvedFunction>()
         + 2 * size_of::<&mut ReplayBudget>()
         + 2 * size_of::<&str>()
@@ -350,6 +356,8 @@ fn invoice(r: &pair_scope_census::Row) -> (usize, usize) {
             + super::reader_removed(r)
             + final_affine::delta(r).1,
     )
+    };
+    (prior_generation.0 + loaded_delta.0, prior_generation.1 + loaded_delta.1)
 }
 fn observe_heads(
     function: &ResolvedFunction,
@@ -522,9 +530,10 @@ fn certified_heads_keep_complete_immediate_invoices_and_short_losses_for_both_hi
                                         + paired_value::TAIL))
                     );
                     let (affine_added, affine_removed) = final_affine::delta(&current.row);
+                    let (loaded_added, loaded_removed) = loaded::complete_loaded_delta(&current.row);
                     assert_eq!(
-                        current.observed.2 + affine_removed,
-                        before_affine.observed.2 + affine_added
+                        current.observed.2 + affine_removed + loaded_removed,
+                        before_affine.observed.2 + affine_added + loaded_added
                     );
                 }
                 if shape == 4 && length == 128 {
@@ -876,6 +885,10 @@ fn certified_heads_keep_whole_d458_owner_macros_and_independent_final_hir_loops(
         "375d7cfdbb9ea4c2024d2b56a453e9e9cc7a57648057af869f7050a121e072ee"
     );
     let current = include_str!("../comparison_owner.rs");
+    // Authenticate and restore the entire immediate predecessor before the
+    // original final-loop comparison; the affine owner binds its new driver.
+    let current_before_affine = final_affine_tests::whole_before(0, current).unwrap();
+    let current = std::str::from_utf8(&current_before_affine).unwrap();
     let final_marker = "    let mut pairs = actual.paths.iter().zip(expected);";
     let old_final = restored
         .split_once(final_marker)
@@ -1009,6 +1022,7 @@ fn certified_heads_real_oracle_missing_foreign_restored_scope_keeps_ambient_unsp
 
 #[test]
 fn certified_heads_both_complete_generations_unwind_with_full_drop_and_reached_prefix() {
+    frontiers::prepare();
     let program = super::super::super::super::tests::program();
     let function = &program.functions[0];
     for old in [true, false] {

@@ -810,6 +810,7 @@ impl Repository {
             directory.join("src/cli/help.rs"),
             concat!(
                 include_str!("../src/cli/help.rs"),
+                include_str!("../src/cli/help/usages.rs"),
                 "\n",
                 concat!(
                     include_str!("../src/cli/help/authoring.rs"),

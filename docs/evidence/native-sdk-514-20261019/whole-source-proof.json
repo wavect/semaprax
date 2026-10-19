@@ -1,0 +1,11 @@
+{
+  "status": "COMPLETE_ORIGINAL_MODULE_RECOVERED_BY_EXACT_TEST_HELPER_REPLACEMENT",
+  "base_head": "51413e0d4d4f4617bf4b657707fe4e4a9200a8fd",
+  "source": "crates/semaprax-native-rust-interop-builder/src/implementation/toolchain.rs",
+  "before_sha256": "e2c526cbd48c64945bbddfb3ac60b63c53262cd6f77eca45eb6e0e3c79c11999",
+  "after_sha256": "9e8baff5990a97151d1327e5b8bca38189f75f5e849fad4cd595a28c06ca1f6c",
+  "helper_is_cfg_test_only": true,
+  "all_other_source_bytes_unchanged": true,
+  "windows_include_and_lib_forwarding_unchanged": true,
+  "no_new_environment_variables_except_selected_macos_sdkroot": true
+}

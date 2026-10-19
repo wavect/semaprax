@@ -1,0 +1,41 @@
+[
+  {
+    "source": "src/source_reflows_merge/final_ready_inputs.rs",
+    "before": {
+      "length": 14115,
+      "sha256": "5a82dfdbe273d497f9b65746fc4efd99001e4cd699a3e9d4f6bde8885ef7fbce",
+      "archive": "docs/evidence/ci-d6f-followups-20261019/whole/5a82dfdbe273d497f9b65746fc4efd99001e4cd699a3e9d4f6bde8885ef7fbce.txt"
+    },
+    "current": {
+      "length": 14233,
+      "sha256": "2bdd9994b9966b5c6bfc3ed4d3f9911960c4ddd5cfe635f10373030d4bc47847",
+      "archive": "docs/evidence/ci-d6f-followups-20261019/whole/2bdd9994b9966b5c6bfc3ed4d3f9911960c4ddd5cfe635f10373030d4bc47847.txt"
+    }
+  },
+  {
+    "source": "src/source_reflows_merge/current344.rs",
+    "before": {
+      "length": 8357,
+      "sha256": "890c9eb07651f01c2d1e68dbad28930b7a9107e79c375fab84f7541760e58bd6",
+      "archive": "docs/evidence/ci-d6f-followups-20261019/whole/890c9eb07651f01c2d1e68dbad28930b7a9107e79c375fab84f7541760e58bd6.txt"
+    },
+    "current": {
+      "length": 11060,
+      "sha256": "e6cd584e82c456fadf1431de5934d22086d0196206cba17cc658e10d328038fa",
+      "archive": "docs/evidence/ci-d6f-followups-20261019/whole/e6cd584e82c456fadf1431de5934d22086d0196206cba17cc658e10d328038fa.txt"
+    }
+  },
+  {
+    "source": "tests/support/record_copy_field_update.rs",
+    "before": {
+      "length": 18639,
+      "sha256": "212604e4b3eff8e25169e2c87eac39c560bd0973241d3e088a8d4ff63a1b2a60",
+      "archive": "docs/evidence/ci-d6f-followups-20261019/whole/212604e4b3eff8e25169e2c87eac39c560bd0973241d3e088a8d4ff63a1b2a60.txt"
+    },
+    "current": {
+      "length": 21004,
+      "sha256": "7b14eb6f9ae50600e21e631db0534aa3edd8303320561af3672a24adae0718fd",
+      "archive": "docs/evidence/ci-d6f-followups-20261019/whole/7b14eb6f9ae50600e21e631db0534aa3edd8303320561af3672a24adae0718fd.txt"
+    }
+  }
+]

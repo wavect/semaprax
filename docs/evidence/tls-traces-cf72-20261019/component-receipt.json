@@ -1,0 +1,25 @@
+{
+  "status": "ACTUAL_OBSERVER_COMPONENT_PASS",
+  "original_census_controls": [
+    "nested_reset_rejects_foreign_and_restored_generation_without_touching_new_row",
+    "finish_while_guard_is_live_cannot_publish_complete_or_resume_same_row",
+    "serial_overflow_is_explicit_loss_and_does_not_alias_a_live_invocation",
+    "generation_overflow_disables_collection_and_never_wraps_to_old_identity",
+    "prepared_link_counter_overflow_is_incomplete_and_does_not_spend_work",
+    "shared_step_counter_overflow_is_incomplete_and_does_not_spend_work",
+    "shared_boundary_counter_overflow_is_incomplete_without_spending_work",
+    "shared_run_counter_overflow_is_incomplete_without_work_or_identity_aliasing",
+    "paired_tail_counter_overflow_is_incomplete_and_does_not_spend_work",
+    "fused_reader_counter_overflow_is_incomplete_and_does_not_spend_work"
+  ],
+  "unchanged_capacities": [
+    4096,
+    128
+  ],
+  "actual_global_allocation_observer": true,
+  "memoryKiB": {
+    "compile": 170304,
+    "run": 32
+  },
+  "qualification": "Actual observer source with minimal subject/ledger stubs; not full compiler or Linux regression proof"
+}

@@ -1,0 +1,54 @@
+{
+  "status": "SOURCE_ONLY_FINITE544_PACKET_PREDICATES_PASS",
+  "before_head": "775521f128d4f927b88413122f7eb504f6c50b01",
+  "before_guard": {
+    "length": 11549,
+    "sha256": "98b1d8792e6b37def92f91cd4cae111892fd41f22b0ba48199732a0d37433506",
+    "archive": "docs/evidence/source-custody-775-20261019/whole/98b1d8792e6b37def92f91cd4cae111892fd41f22b0ba48199732a0d37433506.txt"
+  },
+  "before_config": {
+    "length": 136459,
+    "sha256": "b6d711729842cdd5e30e201fefc2c62731f4ba3ae31f3fde0713841996b6c0ce",
+    "archive": "docs/evidence/source-custody-775-20261019/whole/b6d711729842cdd5e30e201fefc2c62731f4ba3ae31f3fde0713841996b6c0ce.txt"
+  },
+  "before_helper": {
+    "length": 41497,
+    "sha256": "a4a9156ab872904db96d5db42583b39ce1b685ed60467a70334ba2c522937c54",
+    "archive": "docs/evidence/source-custody-775-20261019/whole/a4a9156ab872904db96d5db42583b39ce1b685ed60467a70334ba2c522937c54.txt"
+  },
+  "before_python_overlay": {
+    "length": 13792,
+    "sha256": "93450ea5bb513aa1d2a4aac2c10c1b24be9cf37bd0301961d4eaa2c63cac36c7",
+    "archive": "docs/evidence/source-custody-775-20261019/whole/93450ea5bb513aa1d2a4aac2c10c1b24be9cf37bd0301961d4eaa2c63cac36c7.txt"
+  },
+  "before_policy": {
+    "length": 16167,
+    "sha256": "fb3ee7941b86c68f2b02ef0404576c17e7af1f0395d9736fe3d0e458f6eacf9a",
+    "archive": "docs/evidence/source-custody-775-20261019/whole/fb3ee7941b86c68f2b02ef0404576c17e7af1f0395d9736fe3d0e458f6eacf9a.txt"
+  },
+  "before_page": {
+    "length": 191583,
+    "sha256": "7aee0635d3bdfaa4bf9fed147a40534f0e6072b64c4ad361dd3db5edf2d04e74",
+    "archive": "docs/evidence/source-custody-775-20261019/whole/7aee0635d3bdfaa4bf9fed147a40534f0e6072b64c4ad361dd3db5edf2d04e74.txt"
+  },
+  "changed_sources": [
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "tests/hir_module_boundaries.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs",
+    "tests/support/production_source_inventory.rs",
+    "tests/doctor_production_provisioner_v1.rs",
+    "tests/quality_routing.rs"
+  ],
+  "module_pins_refreshed": [
+    "src/source_reflows_merge/main_e177_final_inputs.rs",
+    "src/source_reflows_merge/main_e177_overlay_v2.rs"
+  ],
+  "all_544_rows_fields_view_prefixes_and_prior_current_wires_retained": true,
+  "new_literal_replacements_inserted_in_predecessor_source_order": true,
+  "original_519_extension_and_loader_unchanged": true,
+  "python_and_rust_overlay_bodies_unchanged_except_literal_membership_and_policy_seals": true,
+  "all_reader_source_program_and_runtime_caps_unchanged": true,
+  "page_bytes": 194435,
+  "policy_bytes": 16238,
+  "raw_owners": 342
+}

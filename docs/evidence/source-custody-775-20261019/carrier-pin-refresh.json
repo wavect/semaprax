@@ -1,0 +1,13 @@
+{
+  "all_original_three_carrier_fields_retained_except_current_whole_identity": true,
+  "carriers": [
+    "tests/hir_module_boundaries.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs",
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+  ],
+  "before_config_sha256": "73e3f444a79d06e8bf36ca36d66d57481b6ce1f785c80c7aa6eb9e3d76396f24",
+  "after_config_sha256": "3da93480e38486709a2b98e2b60fe2f2e3f2cfd319a4bd46d54d9246ecb7010e",
+  "before_guard_sha256": "cd30b31843f1072c0ff5cb0e2f249f1708418ab7dbd1586a3bb534912592d137",
+  "after_guard_sha256": "e06873b39b01aaecdcc3c11bc484d56b19c6f5e2efd5ed1dbc048832f45d8391",
+  "strict_and_source_bounds_unchanged": true
+}

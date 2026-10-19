@@ -1,0 +1,9 @@
+{
+  "status": "PASS_SOURCE_ONLY_STRICT_AND_BOOTSTRAP",
+  "complete_current_carriers": 3,
+  "complete_original_guard_carriers": 3,
+  "old_maximums_unchanged": true,
+  "refusals": 67,
+  "original_verifier_executed": false,
+  "rust_executed": false
+}

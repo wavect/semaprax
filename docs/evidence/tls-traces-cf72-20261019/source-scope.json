@@ -1,0 +1,17 @@
+{
+  "base_head": "cf72d76b1eec67d7f6db0e5b81de93b910664090",
+  "changed_sources": [
+    "src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_census.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/frontier_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/source_format.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/independent_segments.rs",
+    "CHANGELOG.md"
+  ],
+  "test_observation_storage_only": true,
+  "production_validation_and_exact_low_stack_regression_unchanged": true,
+  "all_original_observation_capacities_and_assertions_retained": true,
+  "no_new_rust_classes": true,
+  "full_current_head_CI_still_required": true
+}

@@ -69,7 +69,13 @@ pub(super) fn bind_test_tool_environment(command: &mut std::process::Command) {
             command.env(variable, value);
         }
     }
-    #[cfg(not(windows))]
+    // CI chooses the SDK explicitly. Keep that selection when the native
+    // fixture clears the rest of its child environment, as on Windows.
+    #[cfg(target_os = "macos")]
+    if let Some(value) = std::env::var_os("SDKROOT") {
+        command.env("SDKROOT", value);
+    }
+    #[cfg(not(any(windows, target_os = "macos")))]
     let _ = command;
 }
 

@@ -1,0 +1,18 @@
+{
+  "base_head": "775521f128d4f927b88413122f7eb504f6c50b01",
+  "changed_sources": [
+    "src/source_reflows_merge/main_e177_final_inputs.rs",
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "tests/hir_module_boundaries.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs",
+    "tests/support/production_source_inventory.rs",
+    "tests/doctor_production_provisioner_v1.rs",
+    "tests/quality_routing.rs",
+    "src/source_reflows_merge/final_ready_inputs.rs"
+  ],
+  "complete_audit_bodies_appended": true,
+  "requested_side_view_before_clippy_normalization": true,
+  "all_original_assertions_and_source_caps_retained": true,
+  "no_new_rust_classes": true,
+  "full_current_head_CI_still_required": true
+}

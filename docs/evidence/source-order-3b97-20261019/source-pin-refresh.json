@@ -1,0 +1,51 @@
+{
+  "status": "SOURCE_ONLY_FINITE543_PACKET_PREDICATES_PASS",
+  "before_head": "3b97e74ed58dc81fa65fd00cc77452cc58d38d84",
+  "before_guard": {
+    "length": 11549,
+    "sha256": "9f9f2f5ba7788e6b20b023279aecceb9b6641c11d3306b71cfd8b9aabdd2adb1",
+    "archive": "docs/evidence/source-order-3b97-20261019/whole/9f9f2f5ba7788e6b20b023279aecceb9b6641c11d3306b71cfd8b9aabdd2adb1.txt"
+  },
+  "before_config": {
+    "length": 136459,
+    "sha256": "ca1ffa4f174e32816b6330900eb8edcc6efe81ac70fde2b366e24b881d8fe7ce",
+    "archive": "docs/evidence/source-order-3b97-20261019/whole/ca1ffa4f174e32816b6330900eb8edcc6efe81ac70fde2b366e24b881d8fe7ce.txt"
+  },
+  "before_helper": {
+    "length": 41234,
+    "sha256": "d9eedea4b1b9fd19809c48457fa6189590202769fc9d246c070d78d789dbc587",
+    "archive": "docs/evidence/source-order-3b97-20261019/whole/d9eedea4b1b9fd19809c48457fa6189590202769fc9d246c070d78d789dbc587.txt"
+  },
+  "before_python_overlay": {
+    "length": 13725,
+    "sha256": "ade5eded509b84d27744b3abb0b041cd7f7a86cb901dc244d9bf465aabd244a8",
+    "archive": "docs/evidence/source-order-3b97-20261019/whole/ade5eded509b84d27744b3abb0b041cd7f7a86cb901dc244d9bf465aabd244a8.txt"
+  },
+  "before_policy": {
+    "length": 16074,
+    "sha256": "8a0dc137c0ecbe53125289cd1a1a41d4c960febf6ed1dcb8978aedd9d9561ec7",
+    "archive": "docs/evidence/source-order-3b97-20261019/whole/8a0dc137c0ecbe53125289cd1a1a41d4c960febf6ed1dcb8978aedd9d9561ec7.txt"
+  },
+  "before_page": {
+    "length": 190736,
+    "sha256": "94d6242d22cdf77e8493a0da3f0127e07de96da33cec164d28e44b0aa3f853e0",
+    "archive": "docs/evidence/source-order-3b97-20261019/whole/94d6242d22cdf77e8493a0da3f0127e07de96da33cec164d28e44b0aa3f853e0.txt"
+  },
+  "changed_sources": [
+    "CHANGELOG.md"
+  ],
+  "module_pins_refreshed": [
+    "src/source_reflows_merge/main_e177_final_inputs.rs",
+    "src/source_reflows_merge/main_e177_overlay_v2.rs"
+  ],
+  "all_543_prior_rows_fields_view_prefixes_and_prior_current_wires_retained": true,
+  "additive_compiled_subject": "src/cleanup_plan/replay/ordinary_plan_history/frontier_tests.rs",
+  "new_logical_rows": 544,
+  "new_literal_replacements_inserted_in_predecessor_source_order": true,
+  "original_519_extension_and_loader_unchanged": true,
+  "python_and_rust_overlay_bodies_unchanged_except_literal_membership_and_policy_seals": true,
+  "all_reader_source_program_and_runtime_caps_unchanged": true,
+  "page_bytes": 191583,
+  "policy_bytes": 16167,
+  "raw_owners": 342
+}

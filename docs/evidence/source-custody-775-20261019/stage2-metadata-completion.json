@@ -1,0 +1,10 @@
+{
+  "status": "SOURCE_ONLY_METADATA_STAGE_COMPLETE_PENDING_ORIGINAL_CONTROLS",
+  "completed_module_pins": [
+    "src/source_reflows_merge/main_e177_overlay_v2.rs"
+  ],
+  "existing_final_ready_source_is_not_a_CONFIG_module": true,
+  "all_original_source_caps_and_carriers_retained": true,
+  "before_guard_sha256": "e06873b39b01aaecdcc3c11bc484d56b19c6f5e2efd5ed1dbc048832f45d8391",
+  "after_guard_sha256": "2faf38908d0e49264b685590c466942bb9569dd10989419d72d02e4557323258"
+}

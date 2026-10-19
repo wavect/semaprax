@@ -1,0 +1,72 @@
+{
+  "status": "SOURCE_ONLY_ORIGINAL_FULL_VERIFIER_AND_SIX_HOSTILE_CONTROLS_PASS",
+  "files": [
+    {
+      "path": "docs/evidence/a3-e47-final-custody-20261016/hir.json",
+      "before": {
+        "length": 2500309,
+        "sha256": "2486ddcd1f0f0a46ac93e6f22fdc42f4ff8cafaf7ad5cf1b08b4f0b6d9dab2a4",
+        "archive": "docs/evidence/paired-segments-5d46-20261019/whole/2486ddcd1f0f0a46ac93e6f22fdc42f4ff8cafaf7ad5cf1b08b4f0b6d9dab2a4.txt"
+      },
+      "current_length": 2510876,
+      "current_sha256": "c441b1e52626957ee0c1515dae1f6bcc18547695eea63eb9adc58cb724b57b94",
+      "all_original_classes_and_roles_unchanged": true,
+      "added_actual_registered_sources": [
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_tests/paired_segments.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_segments_before.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_segments_before_cursor.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/independent_segments.rs"
+      ]
+    },
+    {
+      "path": "docs/evidence/a3-e47-final-custody-20261016/projection.json",
+      "before": {
+        "length": 2785517,
+        "sha256": "617f9c3c7aacf815946075747dae02a01256cc5fa67dd44d154a2a380e45097e",
+        "archive": "docs/evidence/paired-segments-5d46-20261019/whole/617f9c3c7aacf815946075747dae02a01256cc5fa67dd44d154a2a380e45097e.txt"
+      },
+      "current_length": 2796084,
+      "current_sha256": "8377460963358a85fd322708041079a58b2a06c4388ba5bc0bffbb8e12d97be0",
+      "all_original_classes_and_roles_unchanged": true,
+      "added_actual_registered_sources": [
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_tests/paired_segments.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_segments_before.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_segments_before_cursor.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/independent_segments.rs"
+      ]
+    },
+    {
+      "path": "docs/evidence/a3-e47-final-custody-20261016/new-owners.json",
+      "before": {
+        "length": 63761,
+        "sha256": "dc2ed64f39bac1c8c539d916df5e6ad936f46bf177a18d27c65d818f7d682b9f",
+        "archive": "docs/evidence/paired-segments-5d46-20261019/whole/dc2ed64f39bac1c8c539d916df5e6ad936f46bf177a18d27c65d818f7d682b9f.txt"
+      },
+      "current_length": 63761,
+      "current_sha256": "50283d183fa188adb46a6b4bef6bb9524e828a5509f2b9bc47db26252e2f5e5e",
+      "all_original_owner_fields_and_order_retained_except_current_identity": true
+    },
+    {
+      "path": "docs/evidence/source-boundary-domains-20261016/current-domains.json",
+      "before": {
+        "length": 249493,
+        "sha256": "96691eeae826041db687fb669a8fe57d6bc50deb3f1b2092104adbb602aecaee",
+        "archive": "docs/evidence/paired-segments-5d46-20261019/whole/96691eeae826041db687fb669a8fe57d6bc50deb3f1b2092104adbb602aecaee.txt"
+      },
+      "current_length": 249493,
+      "current_sha256": "9ae38c29b006c23afe665c0512234b67f914dfe06adb773b7b0f67351444c68c"
+    },
+    {
+      "path": "docs/evidence/source-boundary-domains-20261016/boundary-source-proof.json",
+      "before": {
+        "length": 3390,
+        "sha256": "589313ad6ce31da5eaedfe731aa786a555bb58001fcf5ec636d0b595ddaafa40",
+        "archive": "docs/evidence/paired-segments-5d46-20261019/whole/589313ad6ce31da5eaedfe731aa786a555bb58001fcf5ec636d0b595ddaafa40.txt"
+      },
+      "current_length": 3390,
+      "current_sha256": "fb3e3073d77972c9d184f0e15c02db89e9f0633f8e9ced299f7fa7390553d0f8"
+    }
+  ],
+  "all_342_owner_rows_retained": true,
+  "original_authority_source_proof_unchanged": true
+}

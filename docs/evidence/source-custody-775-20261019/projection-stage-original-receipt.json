@@ -1,0 +1,6 @@
+{
+  "status": "PASS_ORIGINAL_COMPLETE_PROJECTION_STAGE_TEST",
+  "run_peakKiB": 27504,
+  "runtime_cap_MiB": 64,
+  "all_original_success_and_foreign_input_cases": true
+}

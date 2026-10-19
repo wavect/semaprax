@@ -4,10 +4,9 @@ use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 use std::sync::{Arc, Mutex};
-
 const PAGE_CAP: usize = 262144;
 // Bound from the final original-parser source union; this draft grants no paths.
-const REPLACEMENTS: &[&str] = &[
+pub(super) const REPLACEMENTS: &[&str] = &[
     "CHANGELOG.md",
     "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
     "docs/ARCHITECTURE.md",
@@ -46,7 +45,9 @@ const REPLACEMENTS: &[&str] = &[
     "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/retained_lookup.rs",
     "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_census.rs",
     "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_tests.rs",
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity.rs",
     "src/bounded_output.rs",
+    "src/cleanup/schema_summary/tests.rs",
     "src/cleanup_plan/replay/expression_facts/receiving/regions_entry/tests.rs",
     "src/cleanup_plan/replay/factored/canonical_shared/paid_many/source.rs",
     "src/cleanup_plan/replay/factored/strategy.rs",
@@ -71,6 +72,7 @@ const REPLACEMENTS: &[&str] = &[
     "src/source_reflows_merge/final_ready_inputs.rs",
     "src/source_reflows_merge/main67107_inputs_tail.rs",
     "src/source_reflows_merge/main8a_historical.rs",
+    "src/source_reflows_merge/main_eb2_inputs.rs",
     "src/source_reflows_merge/ordinary_plan_inputs.rs",
     "src/source_reflows_merge/runtime_json.rs",
     "src/source_verify/declaration.rs",
@@ -120,7 +122,7 @@ const REPLACEMENTS: &[&str] = &[
     "src/cleanup_plan/replay/scalar_replay.rs",
     "src/iterator_ops.rs",
 ];
-const ADDITIONS: &[&str] = &[
+pub(super) const ADDITIONS: &[&str] = &[
     "src/cleanup_plan/renewal_profile.rs",
     "src/cleanup_plan/renewal_profile/funded.rs",
     "src/cleanup_plan/renewal_profile/funded_receiving.rs",
@@ -282,11 +284,22 @@ const ADDITIONS: &[&str] = &[
     "src/hir/resolve_for/identity_before.rs",
     "src/hir/resolve_for_own/identity_before.rs",
     "src/source_reflows_merge/main_e177_overlay_pins_v9.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_loaded_segments.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads_before_loaded_segments.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/loaded_segment_composition_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main_loaded_segments.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main_loaded_segments_cursor.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_tests/paired_segments.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_segments_before.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_segments_before_cursor.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_loaded_segments.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/independent_segments.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/frontier_tests.rs",
 ];
 const POLICY_PATH: &str = "docs/evidence/finite-source-overlay-v2-20261018/policy.json";
 const PAGE_PATH: &str = "docs/evidence/finite-source-overlay-v2-20261018/page.json";
-const POLICY_LENGTH: usize = 102816; // Filled from the complete literal policy below.
-const POLICY_SHA256: &str = "8a6da901351f59d0cd1d06ce134b91991a4561d6d681f2dd859806f1137a9d00";
+const POLICY_LENGTH: usize = 102883; // Filled from the complete literal policy below.
+const POLICY_SHA256: &str = "49b5a94833aa896af03da1a6339b04577431dc3756d03c9c183ab9893ee8f0a8";
 const EXTENSION_PATH: &str = "docs/evidence/fmt-local-441-20261018/extension.json";
 const EXTENSION_LENGTH: usize = 262076;
 const EXTENSION_SHA256: &str = "2af7299253e5cfb027186ba4fc151011a937214ff381c9267bfc11ef7d0003b6";
@@ -385,7 +398,7 @@ fn pin(value: &Value) -> Result<(usize, &str, &str), &'static str> {
     );
     Ok((length, sha, path))
 }
-fn image(value: &Value) -> Result<String, &'static str> {
+pub(super) fn image(value: &Value) -> Result<String, &'static str> {
     let (length, sha, path) = pin(value)?;
     held_4a6eb(
         &Path::new(env!("CARGO_MANIFEST_DIR")).join(path),
@@ -865,7 +878,7 @@ fn current_tree(
     }
     Ok(raw)
 }
-fn current(row: &Value) -> Result<String, &'static str> {
+pub(super) fn current(row: &Value) -> Result<String, &'static str> {
     current_tree(
         row,
         &|row| {
@@ -1023,12 +1036,28 @@ mod compiled_sources;
 pub(super) fn compiled(source: &str) -> Option<&'static str> {
     compiled_sources::compiled(source)
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;
     #[test]
     fn logical_current_view_precedes_stage_normalization_and_preserves_foreign_refusals() {
+        // Borrow immutable metadata only. Both independently compiled routes
+        // still acquire current/archive bytes afresh for every supplied input.
+        let loads = (std::cell::Cell::new(0), std::cell::Cell::new(0));
+        let mut invocation = super::super::ProjectionInvocation::with_loaders(|| {
+            loads.0.set(loads.0.get() + 1);
+            super::super::packet()
+        }, || {
+            loads.1.set(loads.1.get() + 1);
+            super::super::clippy_stage::rows()
+        });
+        let mut value_direct = |source: &str, expected: &str, supplied: &str| {
+            let live = invocation.value_direct(source, expected, supplied);
+            let old = invocation.independent_old_value_direct(source, expected, supplied);
+            assert_eq!(live, old, "complete old/live output or foreign refusal parity");
+            live
+        };
+        super::super::packet_lookup::assert_independent_old_direct_source();
         let source = "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs";
         let expected = "700318b054f35e3dbf69cf25d7a83cd3bf65d04f5674327bcbbd5af02bbdec66";
         let current = super::super::compiled(source).unwrap();
@@ -1043,6 +1072,7 @@ mod tests {
         ] {
             assert_eq!(value_direct(source, expected, &bad), bad);
         }
+        assert_eq!((loads.0.get(), loads.1.get()), (1, 1), "both metadata loaders run once across both whole routes");
     }
     fn record(source: &str, value: &str) -> Value {
         serde_json::json!({"source":source,"compiled":false,

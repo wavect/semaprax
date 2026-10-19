@@ -1,0 +1,17 @@
+{
+  "status": "ORIGINAL_SCHEMA_ASSERTIONS_AND_HOSTILE_CASES_PASS",
+  "memoryKiB": {
+    "compile": 192512,
+    "run": 5984
+  },
+  "actual_rust_bodies": [
+    "value_4a6eb",
+    "actual",
+    "read_view",
+    "held_4a6eb",
+    "same_file",
+    "complete_inventory_predecessor"
+  ],
+  "packet_acquisition": "Actual unchanged authenticated full 543-row Python reader, sealed as exact complete bytes for component use",
+  "qualification": "Bounded Rust source receiver component only; complete production Rust packet loader and hosted full compiler tests still required"
+}

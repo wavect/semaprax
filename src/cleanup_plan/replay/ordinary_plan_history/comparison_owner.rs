@@ -68,6 +68,16 @@ mod before_retained_tail;
 #[cfg(test)]
 pub(super) mod pair_scope_census;
 
+#[cfg(test)]
+#[rustfmt::skip]
+mod before_loaded_segments;
+#[cfg(test)]
+#[rustfmt::skip]
+mod main_loaded_segments;
+#[cfg(test)]
+#[rustfmt::skip]
+mod paired_segments_before;
+
 #[derive(Clone, Copy)]
 enum Step {
     Build,
@@ -307,7 +317,7 @@ pub(in crate::cleanup_plan::replay) fn compare(
     let cursor_primitives = match owner.len {
         0 => 0,
         1 => lexical_cursor::SINGLE_PRIMITIVE_FRAMES,
-        _ => lexical_cursor::PRIMITIVE_FRAMES,
+        _ => lexical_cursor::PRIMITIVE_FRAMES + paired_value::INDEPENDENT_PRIMITIVES,
     };
     paid!(
         budget,
@@ -315,6 +325,8 @@ pub(in crate::cleanup_plan::replay) fn compare(
         cursor_primitives,
         "ordinary plan reachable cursor primitive frames"
     )?;
+    #[cfg(test)]
+    if owner.len >= 2 { census.independent_frames(); }
     owner.build = owner.len / 2;
     owner.drain = owner.len;
     backing!(
@@ -484,7 +496,7 @@ pub(in crate::cleanup_plan::replay) fn compare(
                         fused_plan_tails!(owner, left_path, right_path, left_tail, right_tail,
                             function, budget, census, 'paired);
                         'certificate: {
-                            certified_boundary!(owner, left_links, right_links, function, budget, census, 'certificate);
+                            certified_boundary!(owner, left_links, right_links, function, budget, census, 'certificate, 'paired);
                             // Both Some paths converge at the bare reference yield;
                             // no Option/tuple or owner payload crosses this frontier.
                             let left = certified_left_value!(

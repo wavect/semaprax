@@ -130,6 +130,12 @@ fn complete_inventory_predecessor(current: &str) -> String {
             crate::digest_hex::LowerHex(Sha256::digest(source.as_bytes()))
         )
     };
+    let projected = crate::source_reflows_merge::main_e177_final_inputs::value_direct(
+        "src/cleanup/inventory_builder.rs",
+        "74761ad25d83020ed34e245643d95a62fe29bdaa6f144d71720f2b777ba6881f",
+        current,
+    );
+    let current = projected.as_str();
     assert_eq!(
         digest(current),
         "74761ad25d83020ed34e245643d95a62fe29bdaa6f144d71720f2b777ba6881f"

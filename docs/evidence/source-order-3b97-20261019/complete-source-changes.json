@@ -1,0 +1,41 @@
+[
+  {
+    "source": "src/source_reflows_merge/main_e177_final_inputs.rs",
+    "before": {
+      "length": 113387,
+      "sha256": "e5bba8ed4ce2c5ce0a75c53b5ecbef76e4bc260a266ef88a03f52dafc467a328",
+      "archive": "docs/evidence/source-order-3b97-20261019/whole/e5bba8ed4ce2c5ce0a75c53b5ecbef76e4bc260a266ef88a03f52dafc467a328.txt"
+    },
+    "current": {
+      "length": 113129,
+      "sha256": "bf2a528ccd76a8bae92cf9e47127cea6c8172211ef7a7e3b3a115ac00b642e72",
+      "archive": "docs/evidence/source-order-3b97-20261019/whole/bf2a528ccd76a8bae92cf9e47127cea6c8172211ef7a7e3b3a115ac00b642e72.txt"
+    }
+  },
+  {
+    "source": "docs/evidence/ordinary-plan-final-ingress-20261017/current-manifest.json",
+    "before": {
+      "length": 1850,
+      "sha256": "d4dea85163c225d820a0ed267a59a10ee7f2e49eb569ff36efb0dfaafd6f6706",
+      "archive": "docs/evidence/source-order-3b97-20261019/whole/d4dea85163c225d820a0ed267a59a10ee7f2e49eb569ff36efb0dfaafd6f6706.txt"
+    },
+    "current": {
+      "length": 1850,
+      "sha256": "3a062cf45603dd9428cb04b981d536c0ad95efb661bee60b4dfbf93171a81a89",
+      "archive": "docs/evidence/source-order-3b97-20261019/whole/3a062cf45603dd9428cb04b981d536c0ad95efb661bee60b4dfbf93171a81a89.txt"
+    }
+  },
+  {
+    "source": "CHANGELOG.md",
+    "before": {
+      "length": 582825,
+      "sha256": "b122192b997d7906b96ec1fad7d56a72ace57901e89d287c48999c8fd0604d39",
+      "archive": "docs/evidence/source-order-3b97-20261019/whole/b122192b997d7906b96ec1fad7d56a72ace57901e89d287c48999c8fd0604d39.txt"
+    },
+    "current": {
+      "length": 583473,
+      "sha256": "48b2bb47eca6d764a0860320d10cadd37083a363b6c667ffe3096dce49efabde",
+      "archive": "docs/evidence/source-order-3b97-20261019/whole/48b2bb47eca6d764a0860320d10cadd37083a363b6c667ffe3096dce49efabde.txt"
+    }
+  }
+]

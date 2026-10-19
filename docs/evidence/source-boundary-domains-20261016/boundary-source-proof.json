@@ -10,7 +10,7 @@
       "outside_production_still_fully_authenticated": 111,
       "full_role_production": 556,
       "full_role_test_only": 1074,
-      "full_raw_sha256": "0220a4f51f9b907932c64c505213cad43f6c5e802ce761d9fcbd8be2c4cdd385",
+      "full_raw_sha256": "39e3d8f5ff1d6679b57adde7b47d2ec54d6c6a4b2b241cb7847fbd5c1b8a141d",
       "boundary_production_sha256": "e2a9bc7e60b74f93ef258a1aa65be516facc426bba2e4995752d8d4523ac7f30",
       "exact_original_forbidden_tokens": [
         "struct Resolver",
@@ -36,7 +36,7 @@
       "outside_production_still_fully_authenticated": 594,
       "full_role_production": 670,
       "full_role_test_only": 1119,
-      "full_raw_sha256": "6ee37e5ced2a44d6c730b8a10d0d0962f4bc6d7fd3e60a7cc4b2ee390d53337e",
+      "full_raw_sha256": "fd4edd0208c63184d168e36eec4d2e1026a1acf81d8dcc62b878f3a586abe07e",
       "boundary_production_sha256": "aaf2f55cb25236c9abdbb321f30ae5f5d51029f02b68a55bc3a4c4824e90a35d",
       "exact_original_forbidden_tokens": [
         "use super::*;",
@@ -65,6 +65,6 @@
     "foreign_path_child_cannot_escape": true
   },
   "status": "SOURCE_ONLY_EXACT_BOUNDARIES_AND_COMPLETE_SOURCE_ROLE_CUSTODY_PASS",
-  "registration_update": "EXACT_469_SOURCE_PIN_ONLY_SUCCESSOR",
+  "registration_update": "EXACT_AD944_NO_ADMISSION_ALL_469_SOURCE_ROLE_AND_ORIGINAL_PARSER_OFFSET_SUCCESSOR",
   "global_polluted_purity_result_not_claimed": true
 }

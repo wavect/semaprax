@@ -44,6 +44,7 @@ fn event_run(
     hir_shared: bool,
     swaps_only: bool,
 ) -> Run {
+    frontiers::prepare();
     let (actual, mut expected) = event_inputs(length, depth);
     if hir_shared {
         for path in &mut expected {
@@ -348,6 +349,7 @@ fn main99_run(
     hir_shared: bool,
     swaps_only: bool,
 ) -> Run {
+    frontiers::prepare();
     let (actual, mut expected) = event_inputs(length, depth);
     if hir_shared {
         for path in &mut expected {

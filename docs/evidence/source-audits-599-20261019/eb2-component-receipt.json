@@ -1,0 +1,11 @@
+{
+  "status": "BOTH_COMPLETE_ACTUAL_INCOMING_RECEIVERS_AND_EIGHT_HOSTILE_SUPPLIED_STAGES_PASS",
+  "memoryKiB": {
+    "compile": 126160,
+    "run": 5728
+  },
+  "all_15_original_table_rows_unchanged": true,
+  "actual_later_452_body": true,
+  "unrelated_historical_reader_routes_fail_closed_in_adapter": true,
+  "qualification": "Closed source-receiver Rust component; complete production packet loader, other historical domains and full hosted compiler tests still required"
+}

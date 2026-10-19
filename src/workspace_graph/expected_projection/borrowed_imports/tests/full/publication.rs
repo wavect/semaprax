@@ -104,6 +104,53 @@ fn last_alias_and_synthetic_main_refusal_never_publish_partial_generated_roots()
     }
 }
 
+// The complete pre-provider-proof constructor owns the original publication check.
+// Formatting and provider reuse are independent, ordered full-source inverses.
+fn publication_constructor_input(current: &str) -> String {
+    use sha2::{Digest, Sha256};
+    let digest = |text: &str| {
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(text.as_bytes()))
+        )
+    };
+    assert_eq!(current, include_str!("../../../borrowed_imports.rs"));
+    assert_eq!(
+        digest(current),
+        "9b70751b6d20536b964bf0739ba74e312f0fb1be03ef37037054cf274ca29a99"
+    );
+    let records: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../../../../docs/evidence/provider-proof-backing-714177/whole-source-inverses.json"
+    ))
+    .unwrap();
+    let record = records["whole_sources"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| r["file"] == "src/workspace_graph/expected_projection/borrowed_imports.rs")
+        .unwrap();
+    let edits = record["inverse"].as_array().unwrap();
+    assert_eq!(edits.len(), 7);
+    let mut restored = ci_str!("../../../borrowed_imports.rs").to_owned();
+    assert_eq!(
+        digest(&restored),
+        "cbea3d04790517cf7584fe1163000314dbf514990b5cd5ed4429564e59f23675"
+    );
+    // The existing CI receiver has already restored both complete prefix edits.
+    assert_eq!(edits[1]["before"].as_str().unwrap(), restored);
+    for edit in &edits[2..] {
+        let after = edit["current"].as_str().unwrap();
+        assert_eq!(restored.matches(after).count(), 1);
+        restored = restored.replacen(after, edit["before"].as_str().unwrap(), 1);
+    }
+    assert_eq!(restored.len(), 14329);
+    assert_eq!(
+        digest(&restored),
+        "54599fda2371ac9e76b897812e8d717828d542db25dceffa2d1161b403a2bc38"
+    );
+    restored
+}
+
 #[test]
 fn full_original_constructor_and_only_sticky_publication_changes_stay_source_bound() {
     use sha2::{Digest, Sha256};
@@ -120,7 +167,16 @@ fn full_original_constructor_and_only_sticky_publication_changes_stay_source_bou
         saved.replace("crate::workspace_graph::", "super::super::"),
         original
     );
-    let current = ci_str!("../../../borrowed_imports.rs");
+    let compiled = include_str!("../../../borrowed_imports.rs");
+    let current = publication_constructor_input(compiled);
+    for bad in [
+        compiled[..compiled.len() - 1].to_owned(),
+        format!("{compiled}\n"),
+        compiled.replacen("construct_using", "foreign_construct_using", 1),
+        current.clone(),
+    ] {
+        assert!(std::panic::catch_unwind(|| publication_constructor_input(&bad)).is_err());
+    }
     let start = current
         .find("pub(in crate::workspace_graph) fn construct<'a>(")
         .unwrap();

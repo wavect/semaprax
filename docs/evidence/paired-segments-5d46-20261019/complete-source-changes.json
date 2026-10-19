@@ -1,0 +1,106 @@
+[
+  {
+    "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs",
+    "before": {
+      "length": 22396,
+      "sha256": "23469f3a0ec012a0975f50e627811aa4874fdf4215b6a1c734b1c93a7a043955",
+      "archive": "docs/evidence/paired-segments-5d46-20261019/whole/23469f3a0ec012a0975f50e627811aa4874fdf4215b6a1c734b1c93a7a043955.txt"
+    },
+    "current": {
+      "length": 22498,
+      "sha256": "c8f66d4154fd2ed0bb830b4bcecb2c9153949b9c636ea2d4fc8977edfbf130f8",
+      "archive": "docs/evidence/paired-segments-5d46-20261019/whole/c8f66d4154fd2ed0bb830b4bcecb2c9153949b9c636ea2d4fc8977edfbf130f8.txt"
+    }
+  },
+  {
+    "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor.rs",
+    "before": {
+      "length": 30104,
+      "sha256": "b66e1c1f47583c8c687e352be56bcb01e49da9456b81c3e36862a359416e5583",
+      "archive": "docs/evidence/paired-segments-5d46-20261019/whole/b66e1c1f47583c8c687e352be56bcb01e49da9456b81c3e36862a359416e5583.txt"
+    },
+    "current": {
+      "length": 33725,
+      "sha256": "768c23a10fcec91ef7dfdbd67dabd64885266291f236c66efd0e80ad21b29b6e",
+      "archive": "docs/evidence/paired-segments-5d46-20261019/whole/768c23a10fcec91ef7dfdbd67dabd64885266291f236c66efd0e80ad21b29b6e.txt"
+    }
+  },
+  {
+    "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_census.rs",
+    "before": {
+      "length": 21432,
+      "sha256": "e0ff7f5bd4f8a4fef1cc91114440e0819fde58098f5c64e1ba3bf28546537bbc",
+      "archive": "docs/evidence/paired-segments-5d46-20261019/whole/e0ff7f5bd4f8a4fef1cc91114440e0819fde58098f5c64e1ba3bf28546537bbc.txt"
+    },
+    "current": {
+      "length": 22263,
+      "sha256": "e170bb6b5ce3e909866c7ed9388b355f3bb122d52dbe208824ace7cf5cc34a69",
+      "archive": "docs/evidence/paired-segments-5d46-20261019/whole/e170bb6b5ce3e909866c7ed9388b355f3bb122d52dbe208824ace7cf5cc34a69.txt"
+    }
+  },
+  {
+    "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_tests.rs",
+    "before": {
+      "length": 55208,
+      "sha256": "b46e7bfec30cd08b716e6070975651a38d235b0a8ad3ffd851d7534fc0b94d52",
+      "archive": "docs/evidence/paired-segments-5d46-20261019/whole/b46e7bfec30cd08b716e6070975651a38d235b0a8ad3ffd851d7534fc0b94d52.txt"
+    },
+    "current": {
+      "length": 55874,
+      "sha256": "2ef71d1a1613cab3e894b35d5aa07f9207e81917557827e10bc84a2e988dda0a",
+      "archive": "docs/evidence/paired-segments-5d46-20261019/whole/2ef71d1a1613cab3e894b35d5aa07f9207e81917557827e10bc84a2e988dda0a.txt"
+    }
+  },
+  {
+    "source": "CHANGELOG.md",
+    "before": {
+      "length": 581733,
+      "sha256": "3d4484a74a1d3d16574ce7de2fd9b6a537b5a511191e9101b1547dd063f28e31",
+      "archive": "docs/evidence/paired-segments-5d46-20261019/whole/3d4484a74a1d3d16574ce7de2fd9b6a537b5a511191e9101b1547dd063f28e31.txt"
+    },
+    "current": {
+      "length": 581886,
+      "sha256": "a565ce2a0c025b3eb803b0af843b358e3a286716976a871dd38cdd352cbe063f",
+      "archive": "docs/evidence/paired-segments-5d46-20261019/whole/a565ce2a0c025b3eb803b0af843b358e3a286716976a871dd38cdd352cbe063f.txt"
+    }
+  },
+  {
+    "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/fused_readers.rs",
+    "before": {
+      "length": 35833,
+      "sha256": "765985bf6033ecc25483f7b00a91fb665078b9172c17a9dba396b0c4d121e7db",
+      "archive": "docs/evidence/paired-segments-5d46-20261019/whole/765985bf6033ecc25483f7b00a91fb665078b9172c17a9dba396b0c4d121e7db.txt"
+    },
+    "current": {
+      "length": 36637,
+      "sha256": "75744783d5b661268c952ad3a604a9f874b828c12f60412f2faeeedbb3166335",
+      "archive": "docs/evidence/paired-segments-5d46-20261019/whole/75744783d5b661268c952ad3a604a9f874b828c12f60412f2faeeedbb3166335.txt"
+    }
+  },
+  {
+    "source": "src/bounded_output/stage_debits/route_debits.rs",
+    "before": {
+      "length": 36033,
+      "sha256": "250e351274cf1e0f745a0b8326f24fa6addbab59a4923313229bb9f8394c8c2a",
+      "archive": "docs/evidence/paired-segments-5d46-20261019/whole/250e351274cf1e0f745a0b8326f24fa6addbab59a4923313229bb9f8394c8c2a.txt"
+    },
+    "current": {
+      "length": 36241,
+      "sha256": "9e0b85cb25e817c7e7c87ef86455819f54c7b9657df6064165d41c99f5f0592d",
+      "archive": "docs/evidence/paired-segments-5d46-20261019/whole/9e0b85cb25e817c7e7c87ef86455819f54c7b9657df6064165d41c99f5f0592d.txt"
+    }
+  },
+  {
+    "source": ".github/workflows/macos-cli-diagnostic.yml",
+    "before": {
+      "length": 10886,
+      "sha256": "d7fc1bb02c650f5a777a345446973665ff3107b7f7c34f72ce5107eabdcc1abf",
+      "archive": "docs/evidence/paired-segments-5d46-20261019/whole/d7fc1bb02c650f5a777a345446973665ff3107b7f7c34f72ce5107eabdcc1abf.txt"
+    },
+    "current": {
+      "length": 11092,
+      "sha256": "311fbadbea3ce5a17a754b34d40e7bea1c9b3450a4eb1ba85ce9a981281f1e90",
+      "archive": "docs/evidence/paired-segments-5d46-20261019/whole/311fbadbea3ce5a17a754b34d40e7bea1c9b3450a4eb1ba85ce9a981281f1e90.txt"
+    }
+  }
+]

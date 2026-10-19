@@ -365,7 +365,7 @@ pub(crate) fn cancel(generation: u64) {
 }
 #[inline(never)]
 pub(crate) fn finish(generation: u64) -> Report {
-    access(|s| {
+    match access(|s| {
         if !s.enabled || s.generation != generation {
             s.invalid();
         }
@@ -376,13 +376,15 @@ pub(crate) fn finish(generation: u64) -> Report {
         s.report.lost = LOST.try_with(Cell::get).unwrap_or(true);
         s.report.complete &= !s.report.overflow && !s.report.lost && !s.report.invalid;
         s.report
-    })
-    .unwrap_or_else(|| Report {
-        complete: false,
-        lost: true,
-        invalid: true,
-        ..Report::EMPTY
-    })
+    }) {
+        Some(report) => report,
+        None => Report {
+            complete: false,
+            lost: true,
+            invalid: true,
+            ..Report::EMPTY
+        },
+    }
 }
 // Called after the existing ACTIVE install/restore, before parent settlement.
 // The complete old budget algorithm decides the topology; addresses only bind
@@ -774,48 +776,56 @@ mod tests {
             (10, true, false),
             (10, false, true),
         ] {
-            let plain = scenario(false, limit, refused, unwind);
-            let watched = scenario(true, limit, refused, unwind);
-            assert_eq!(
-                (plain.0, plain.1, plain.2),
-                (watched.0, watched.1, watched.2)
-            );
-            let r = watched.3.unwrap();
-            assert!(r.complete && !r.overflow && !r.lost && !r.invalid, "{r:?}");
-            assert_eq!(
-                (
-                    r.entered_attempts,
-                    r.stored_attempts,
-                    r.final_attempt_ordinal
-                ),
-                (1, 1, Some(0))
-            );
-            let a = r.attempts[0];
-            assert!(a.complete && !a.invalid);
-            assert_eq!(
-                (a.consumed, a.stage_sum(), a.operation_sum()),
-                (watched.1, Some(watched.1), Some(watched.1))
-            );
-            assert_eq!(
-                a.operation_debits[Operation::CoreValidation as usize + 1],
-                a.consumed
-            );
-            assert_eq!(a.parent_settlement_debits, a.nested_ledger_debits);
-            assert_eq!(
-                a.exceptional_parent_settlement_debits,
-                if refused {
-                    a.parent_settlement_debits
-                } else {
-                    0
-                }
-            );
-            assert_eq!(
-                a.first_refusal.map(|x| (x.requested, x.remaining, x.floor)),
-                watched.2.map(|x| (x.requested, x.remaining, x.floor))
-            );
-            assert_eq!((a.prebound, a.layouts, a.mode), (17, 19, 6));
-            assert_eq!(a.refused, watched.0);
+            exclusive_original_ledger_case(limit, refused, unwind);
         }
+        exclusive_zero_allocation_case();
+    }
+    #[inline(never)]
+    fn exclusive_original_ledger_case(limit: usize, refused: bool, unwind: bool) {
+        let plain = scenario(false, limit, refused, unwind);
+        let watched = scenario(true, limit, refused, unwind);
+        assert_eq!(
+            (plain.0, plain.1, plain.2),
+            (watched.0, watched.1, watched.2)
+        );
+        let r = watched.3.unwrap();
+        assert!(r.complete && !r.overflow && !r.lost && !r.invalid, "{r:?}");
+        assert_eq!(
+            (
+                r.entered_attempts,
+                r.stored_attempts,
+                r.final_attempt_ordinal
+            ),
+            (1, 1, Some(0))
+        );
+        let a = r.attempts[0];
+        assert!(a.complete && !a.invalid);
+        assert_eq!(
+            (a.consumed, a.stage_sum(), a.operation_sum()),
+            (watched.1, Some(watched.1), Some(watched.1))
+        );
+        assert_eq!(
+            a.operation_debits[Operation::CoreValidation as usize + 1],
+            a.consumed
+        );
+        assert_eq!(a.parent_settlement_debits, a.nested_ledger_debits);
+        assert_eq!(
+            a.exceptional_parent_settlement_debits,
+            if refused {
+                a.parent_settlement_debits
+            } else {
+                0
+            }
+        );
+        assert_eq!(
+            a.first_refusal.map(|x| (x.requested, x.remaining, x.floor)),
+            watched.2.map(|x| (x.requested, x.remaining, x.floor))
+        );
+        assert_eq!((a.prebound, a.layouts, a.mode), (17, 19, 6));
+        assert_eq!(a.refused, watched.0);
+    }
+    #[inline(never)]
+    fn exclusive_zero_allocation_case() {
         let c = capture();
         with_limit_usage_refusal(10, || {
             let (_, metrics) = crate::test_allocation_observer::measure(|| {

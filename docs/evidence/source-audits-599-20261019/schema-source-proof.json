@@ -1,0 +1,14 @@
+{
+  "status": "AUTHENTICATED_NAMED_VIEW_AND_COMPLETE_ORIGINAL_INVERSE_PASS",
+  "source": "src/cleanup/inventory_builder.rs",
+  "current_sha256": "2c2a1432e08d90123785bb4e1870bac65cce87e49e4af0caf82cc9cc911aee02",
+  "expected_named_view": {
+    "length": 48450,
+    "sha256": "74761ad25d83020ed34e245643d95a62fe29bdaa6f144d71720f2b777ba6881f",
+    "archive": "docs/evidence/fmt-a110/dHYa0l2DAg7TTiRWQ9laYv4pvapvFE1xcg8rd3umiB8.txt",
+    "name": "before-a110-format"
+  },
+  "complete_original_source_exact": true,
+  "all_original_assertions_and_hostile_cases_retained_verbatim": true,
+  "qualification": "Python authenticated source acquisition and complete inverse only; hosted Rust unit execution still required"
+}

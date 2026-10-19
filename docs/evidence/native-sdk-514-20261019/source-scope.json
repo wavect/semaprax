@@ -1,0 +1,13 @@
+{
+  "base_head": "51413e0d4d4f4617bf4b657707fe4e4a9200a8fd",
+  "changed_sources": [
+    "crates/semaprax-native-rust-interop-builder/src/implementation/toolchain.rs",
+    "CHANGELOG.md"
+  ],
+  "production_code_unchanged": true,
+  "only_selected_macos_sdkroot_added_to_cfg_test_fixture_environment": true,
+  "all_other_platform_environment_forwarding_unchanged": true,
+  "original_native_c_fixtures_and_resource_bounds_unchanged": true,
+  "no_new_rust_classes": true,
+  "full_hosted_CI_still_required": true
+}

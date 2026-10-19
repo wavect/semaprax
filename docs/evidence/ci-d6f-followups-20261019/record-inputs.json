@@ -1,0 +1,56 @@
+[
+  {
+    "source": "tests/support/record_copy_field_update.rs",
+    "current_sha256": "7b14eb6f9ae50600e21e631db0534aa3edd8303320561af3672a24adae0718fd",
+    "edits": [
+      {
+        "start": 16632,
+        "new": "    let current_stage;\n    let current = if domain == \"fixture-current\" {\n        let data: serde_json::Value = serde_json::from_str(include_str!(\n            \"../../docs/evidence/ci-d6f-followups-20261019/record-inputs.json\"\n        ))\n        .unwrap();\n        if let Some(row) = data\n            .as_array()\n            .unwrap()\n            .iter()\n            .find(|row| row[\"source\"] == source)\n        {\n            assert_eq!(\n                format!(\n                    \"{:x}\",\n                    semaprax::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))\n                ),\n                row[\"current_sha256\"],\n                \"whole current record input: {source}\"\n            );\n            let mut restored = current.to_owned();\n            for edit in row[\"edits\"].as_array().unwrap() {\n                let start = edit[\"start\"].as_u64().unwrap() as usize;\n                let new = edit[\"new\"].as_str().unwrap();\n                assert_eq!(\n                    &restored[start..start + new.len()],\n                    new,\n                    \"exact record input inverse\"\n                );\n                restored.replace_range(start..start + new.len(), edit[\"old\"].as_str().unwrap());\n            }\n            let before = match source {\n                \"tests/support/record_copy_field_update.rs\" => include_str!(\"../../docs/evidence/ci-d6f-followups-20261019/whole/212604e4b3eff8e25169e2c87eac39c560bd0973241d3e088a8d4ff63a1b2a60.txt\"),\n                \"tests/cleanup_backends/owned_leaf_collections/copy_field_update.rs\" => include_str!(\"../../docs/evidence/ci-d6f-followups-20261019/whole/b385f28f7d6862a3ca7209cd54fea521d6281ba728cb29c8e60e58c18b1b0974.txt\"),\n                \"src/wasm/aggregate.rs\" => include_str!(\"../../docs/evidence/ci-d6f-followups-20261019/whole/84971b8a067d718beee6a131d4b87c4c1549c0c9c12345f447592a1ef5d06c59.txt\"),\n                \"tests/owned_data/owned_leaf_vec.rs\" => include_str!(\"../../docs/evidence/ci-d6f-followups-20261019/whole/0d1e84bf3548f95bdce59aaa80f17bf89f295cc6dd38dd089669f756ab0d8859.txt\"),\n                _ => unreachable!(),\n            };\n            assert_eq!(restored, before, \"every complete prior record input byte\");\n            current_stage = restored;\n            current_stage.as_str()\n        } else {\n            current\n        }\n    } else {\n        current\n    };\n",
+        "old": ""
+      }
+    ]
+  },
+  {
+    "source": "tests/cleanup_backends/owned_leaf_collections/copy_field_update.rs",
+    "current_sha256": "88762ccfbd670b8aadfba5aaf6a50620519774140fc8b1596ebcb694a39a6233",
+    "edits": [
+      {
+        "start": 77,
+        "new": "#[allow(dead_code, reason = \"Shared full fixture.\")]\n",
+        "old": ""
+      }
+    ]
+  },
+  {
+    "source": "src/wasm/aggregate.rs",
+    "current_sha256": "7e9c2482bd5a536c3c103185f97df60fc758ded55142f6e7a4a73e400617afce",
+    "edits": [
+      {
+        "start": 194999,
+        "new": "                        ty: (**residual_type).clone(),\n",
+        "old": "                        ty: residual_type.clone(),\n"
+      },
+      {
+        "start": 45447,
+        "new": "    if uses_owned_strings && !semantic_work::uses_owned_utf8(owned_utf8_profile) {\n",
+        "old": "    if !owned_utf8_profile && uses_owned_strings {\n"
+      }
+    ]
+  },
+  {
+    "source": "tests/owned_data/owned_leaf_vec.rs",
+    "current_sha256": "2610797bf43ba8be7811d968706684b1ecc85f0dca02e7eac9e6526a571cbe3a",
+    "edits": [
+      {
+        "start": 285,
+        "new": "#[path = \"owned_leaf_vec/field_reads.rs\"]\nmod field_reads;\n",
+        "old": ""
+      },
+      {
+        "start": 214,
+        "new": "",
+        "old": "#[path = \"owned_leaf_vec/field_reads.rs\"]\nmod field_reads;\n"
+      }
+    ]
+  }
+]

@@ -1,0 +1,198 @@
+name: macOS CLI diagnostic
+on:
+  workflow_dispatch:
+    inputs:
+      unit_tests:
+        description: Also retain the unit-test binary for bounded local diagnosis
+        type: boolean
+        required: false
+        default: false
+      linux_stack:
+        description: Capture the unchanged low-stack test on Linux with the CI profile
+        type: boolean
+        required: false
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: macos-cli-diagnostic-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  cli:
+    if: ${{ ! inputs.linux_stack }}
+    runs-on: macos-15
+    timeout-minutes: 120
+    env:
+      CARGO_BUILD_JOBS: "1"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      CARGO_PROFILE_TEST_OPT_LEVEL: "1"
+      CARGO_INCREMENTAL: "0"
+      CARGO_TARGET_DIR: target/macos-cli-diagnostic
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          fetch-tags: false
+          lfs: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+        with:
+          toolchain: 1.97.1
+          targets: aarch64-apple-darwin
+      - name: Bind the build to this exact checkout
+        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Fetch locked dependencies before offline compilation
+        run: cargo fetch --locked
+      - name: Build the normal compiler without unit-only crosschecks
+        run: cargo build --locked --offline -p semaprax --bin semaprax --target aarch64-apple-darwin --jobs 1
+      - name: Stage the exact compiler and its build provenance
+        shell: bash
+        run: |
+          python3 - <<'PYCODE'
+          import hashlib,json,os,pathlib,shutil,subprocess
+          root=pathlib.Path.cwd()
+          head=subprocess.check_output(["git","rev-parse","HEAD"],text=True).strip()
+          assert head==os.environ["GITHUB_SHA"]
+          subprocess.run(["git","diff","--quiet","--","src","std","Cargo.toml","Cargo.lock","build.rs"],check=True)
+          target="aarch64-apple-darwin"
+          binary=root/"target/macos-cli-diagnostic"/target/"debug/semaprax"
+          assert binary.is_file() and not binary.is_symlink() and 0<binary.stat().st_size<=256*1024*1024
+          version=subprocess.check_output([str(binary),"--version"],text=True).strip()
+          digest=hashlib.sha256()
+          with binary.open("rb") as stream:
+              for chunk in iter(lambda:stream.read(65536),b""):digest.update(chunk)
+          out=root/"diagnostic-cli"
+          out.mkdir()
+          shutil.copyfile(binary,out/"semaprax")
+          (out/"build.json").write_text(json.dumps({"schema":"semaprax.diagnostic-cli-build.v1","head":head,"target":target,"repository":os.environ["GITHUB_REPOSITORY"],"run_id":os.environ["GITHUB_RUN_ID"],"binary":"semaprax","bytes":binary.stat().st_size,"sha256":digest.hexdigest(),"rustc":subprocess.check_output(["rustc","-vV"],text=True),"version":version,"profile":"dev-debug0-incremental0","qualification":"build_and_version_smoke_only"},indent=2)+"\n")
+          PYCODE
+      - name: Retain the diagnostic compiler
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: diagnostic-cli-aarch64-apple-darwin-${{ github.sha }}
+          path: diagnostic-cli/
+          if-no-files-found: error
+          retention-days: 1
+      - name: Build the unit-test binary without running tests
+        if: inputs.unit_tests
+        run: >-
+          cargo test --locked --offline -p semaprax --lib --all-features
+          --no-run --target aarch64-apple-darwin --jobs 1 --message-format=json
+          > unit-build.jsonl
+      - name: Stage the exact unit-test binary and its build provenance
+        if: inputs.unit_tests
+        shell: bash
+        run: |
+          python3 - <<'PYCODE'
+          import hashlib,json,os,pathlib,shutil,subprocess
+          root=pathlib.Path.cwd()
+          head=subprocess.check_output(["git","rev-parse","HEAD"],text=True).strip()
+          assert head==os.environ["GITHUB_SHA"]
+          subprocess.run(["git","diff","--quiet","--","src","std","Cargo.toml","Cargo.lock","build.rs"],check=True)
+          candidates=[]
+          with (root/"unit-build.jsonl").open() as stream:
+              for line in stream:
+                  item=json.loads(line)
+                  target=item.get("target",{})
+                  if item.get("reason")=="compiler-artifact" and target.get("name")=="semaprax" and target.get("kind")==["lib"] and item.get("profile",{}).get("test") and item.get("executable"):
+                      candidates.append(pathlib.Path(item["executable"]).resolve())
+          assert len(candidates)==1
+          binary=candidates[0]
+          target="aarch64-apple-darwin"
+          assert binary.is_relative_to((root/"target/macos-cli-diagnostic"/target/"debug/deps").resolve())
+          assert binary.is_file() and not binary.is_symlink() and 0<binary.stat().st_size<=2*1024*1024*1024
+          digest=hashlib.sha256()
+          with binary.open("rb") as stream:
+              for chunk in iter(lambda:stream.read(65536),b""):digest.update(chunk)
+          out=root/"diagnostic-unit"
+          out.mkdir()
+          shutil.copyfile(binary,out/"semaprax-unit")
+          (out/"build.json").write_text(json.dumps({"schema":"semaprax.diagnostic-unit-build.v1","head":head,"target":target,"repository":os.environ["GITHUB_REPOSITORY"],"run_id":os.environ["GITHUB_RUN_ID"],"binary":"semaprax-unit","bytes":binary.stat().st_size,"sha256":digest.hexdigest(),"rustc":subprocess.check_output(["rustc","-vV"],text=True),"source_root":str(root),"profile":"test-opt1-debug0-incremental0-all-features","qualification":"build_only; tests that read source files require the matching source_root"},indent=2)+"\n")
+          PYCODE
+      - name: Retain the diagnostic unit-test binary
+        if: inputs.unit_tests
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: diagnostic-unit-aarch64-apple-darwin-${{ github.sha }}
+          path: diagnostic-unit/
+          if-no-files-found: error
+          retention-days: 1
+  linux-stack:
+    name: Linux low-stack diagnostic
+    if: inputs.linux_stack
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      CARGO_BUILD_JOBS: "1"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      CARGO_PROFILE_TEST_OPT_LEVEL: "1"
+      CARGO_INCREMENTAL: "0"
+      CARGO_TARGET_DIR: target/linux-unit-diagnostic
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          fetch-tags: false
+          lfs: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+        with:
+          toolchain: 1.97.1
+      - name: Provision the diagnostic host debugger before compilation
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends gdb
+      - name: Check the existing debugger and exact checkout
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          gdb --version
+      - name: Fetch locked dependencies before offline compilation
+        run: cargo fetch --locked
+      - name: Build the unit binary with the exact CI optimization profile
+        run: >-
+          cargo test --locked --offline -p semaprax --lib --all-features
+          --no-run --jobs 1 --message-format=json > unit-build.jsonl
+      - name: Capture the unchanged low-stack test and its real signal frames
+        shell: bash
+        run: |
+          ulimit -c 0
+          python3 - <<'PYCODE'
+          import hashlib,json,os,pathlib,subprocess
+          root=pathlib.Path.cwd()
+          head=subprocess.check_output(["git","rev-parse","HEAD"],text=True).strip()
+          assert head==os.environ["GITHUB_SHA"]
+          subprocess.run(["git","diff","--quiet","--","src","std","Cargo.toml","Cargo.lock","build.rs"],check=True)
+          candidates=[]
+          with (root/"unit-build.jsonl").open() as stream:
+              for line in stream:
+                  item=json.loads(line)
+                  target=item.get("target",{})
+                  if item.get("reason")=="compiler-artifact" and target.get("name")=="semaprax" and target.get("kind")==["lib"] and item.get("profile",{}).get("test") and item.get("executable"):
+                      candidates.append(pathlib.Path(item["executable"]).resolve())
+          assert len(candidates)==1
+          binary=candidates[0]
+          assert binary.is_relative_to((root/"target/linux-unit-diagnostic/debug/deps").resolve())
+          assert binary.is_file() and 0<binary.stat().st_size<=2*1024*1024*1024
+          digest=hashlib.sha256()
+          with binary.open("rb") as stream:
+              for chunk in iter(lambda:stream.read(65536),b""):digest.update(chunk)
+          selector="hir::validation::iterative_while_admission_tests::exact_512_nested_indexed_matches_validate_on_a_low_stack"
+          out=root/"diagnostic-linux-stack"
+          out.mkdir()
+          commands=["gdb","--batch","--nx","--nh","-ex","set pagination off","-ex","set confirm off","-ex","set debuginfod enabled off","-ex","set auto-load off","-ex","set style enabled off","-ex","set print frame-arguments none","-ex","handle SIGSEGV stop print nopass","-ex","handle SIGABRT stop print nopass","-ex","run","-ex","thread apply all bt 48","-ex","info registers rsp rbp rax rip","-ex","x/12i $pc-16","-ex","quit","--args",str(binary),selector,"--exact","--nocapture","--test-threads=1"]
+          with (out/"stack.log").open("wb") as stream:
+              result=subprocess.run(commands,stdout=stream,stderr=subprocess.STDOUT,timeout=120,check=False)
+          log=(out/"stack.log").read_text(errors="replace")
+          assert "running 1 test" in log, "the exact unchanged test was not executed"
+          print(log)
+          (out/"build.json").write_text(json.dumps({"schema":"semaprax.diagnostic-linux-stack.v1","head":head,"repository":os.environ["GITHUB_REPOSITORY"],"run_id":os.environ["GITHUB_RUN_ID"],"binary_sha256":digest.hexdigest(),"bytes":binary.stat().st_size,"rustc":subprocess.check_output(["rustc","-vV"],text=True),"source_root":str(root),"profile":"test-opt1-debug0-incremental0-all-features","selector":selector,"gdb_exit":result.returncode,"qualification":"diagnostic_capture_only; inferior exit or signal is in stack.log; not a passing test claim"},indent=2)+"\n")
+          PYCODE
+      - name: Retain the Linux signal trace and build provenance
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: diagnostic-linux-stack-${{ github.sha }}
+          path: diagnostic-linux-stack/
+          if-no-files-found: error
+          retention-days: 1

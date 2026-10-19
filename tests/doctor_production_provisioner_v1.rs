@@ -194,6 +194,7 @@ impl Sources {
                 read(repository, "src/cli/project_runtime.rs"),
                 [
                     read(repository, "src/cli/help.rs"),
+                    read(repository, "src/cli/help/usages.rs"),
                     [
                         [
                             read(repository, "src/cli/help/authoring.rs"),

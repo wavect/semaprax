@@ -1,0 +1,41 @@
+[
+  {
+    "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity.rs",
+    "before": {
+      "length": 38202,
+      "sha256": "c82b1d1ac7a2ddccd6db1bcd9a4e69895a02b70e66d1992486343c8b8f0bf8fe",
+      "archive": "docs/evidence/serde-audit-60f-20261019/whole/c82b1d1ac7a2ddccd6db1bcd9a4e69895a02b70e66d1992486343c8b8f0bf8fe.txt"
+    },
+    "current": {
+      "length": 38202,
+      "sha256": "b649712f1d183c4d328765842c25eb2707bfda55a7eb9075f5f91f95270cf254",
+      "archive": "docs/evidence/serde-audit-60f-20261019/whole/b649712f1d183c4d328765842c25eb2707bfda55a7eb9075f5f91f95270cf254.txt"
+    }
+  },
+  {
+    "source": "crates/semaprax-native-rust-interop-builder/src/implementation/facts_capacity.rs",
+    "before": {
+      "length": 41122,
+      "sha256": "0a56f11ce3a69ed07f6c0c6df5d32f010c92559acf74764415d48328dc543d4c",
+      "archive": "docs/evidence/serde-audit-60f-20261019/whole/0a56f11ce3a69ed07f6c0c6df5d32f010c92559acf74764415d48328dc543d4c.txt"
+    },
+    "current": {
+      "length": 41122,
+      "sha256": "562cad326b3a05951f68c0ac3ad3732663c456bfa3ba7a8c57921177dbf00353",
+      "archive": "docs/evidence/serde-audit-60f-20261019/whole/562cad326b3a05951f68c0ac3ad3732663c456bfa3ba7a8c57921177dbf00353.txt"
+    }
+  },
+  {
+    "source": "CHANGELOG.md",
+    "before": {
+      "length": 582162,
+      "sha256": "87688553fa761e858df8efb54df0cb34867d80424c066ec2b836cf3c14e66ece",
+      "archive": "docs/evidence/serde-audit-60f-20261019/whole/87688553fa761e858df8efb54df0cb34867d80424c066ec2b836cf3c14e66ece.txt"
+    },
+    "current": {
+      "length": 582329,
+      "sha256": "2ee6d487b57afc99f5f57a4cd07e538f2d091e0a504fc5d2b5b813a4d9b01c56",
+      "archive": "docs/evidence/serde-audit-60f-20261019/whole/2ee6d487b57afc99f5f57a4cd07e538f2d091e0a504fc5d2b5b813a4d9b01c56.txt"
+    }
+  }
+]

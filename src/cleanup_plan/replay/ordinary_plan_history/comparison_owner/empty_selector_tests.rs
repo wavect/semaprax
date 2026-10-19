@@ -1,6 +1,7 @@
 //! Complete immutable7760 versus the shipping lexical empty selector.
 use super::certified_head_tests::heads_run_generation;
 use super::*;
+use crate::cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::loaded_segment_composition_tests as loaded;
 const SELECT: &str = "ordinary plan certified suffix empty selector";
 fn observe(
     f: &ResolvedFunction,
@@ -110,13 +111,14 @@ fn report(old: &Run, current: &Run, label: &str) {
         old.row.identity_empty_probes,
         current.row.empty_selector_skips + current.row.shared_publishes
     );
+    let (loaded_added, loaded_removed) = loaded::complete_loaded_delta(&current.row);
     assert_eq!(
         current.observed.2
             + probe * old.row.identity_empty_probes
             + right_rest * current.row.shared_boundaries
-            + final_affine::delta(&current.row).1,
+            + final_affine::delta(&current.row).1 + loaded_removed,
         old.observed.2 + header + selector * current.row.empty_selectors
-            + final_affine::delta(&current.row).0,
+            + final_affine::delta(&current.row).0 + loaded_added,
         "complete real old/new bills: independent selector/header plus removed actual right-rest transport"
     );
     eprintln!(
@@ -524,6 +526,7 @@ fn lexical_empty_selector_real_producer_keeps_complete_old_current_caller_and_dr
 }
 #[test]
 fn lexical_empty_selector_live_numeric_unwind_keeps_both_complete_owners_drop_balanced() {
+    frontiers::prepare();
     let p = super::super::super::super::tests::program();
     let f = &p.functions[0];
     for old in [false, true] {

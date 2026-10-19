@@ -1,0 +1,93 @@
+[
+  {
+    "source": "src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs",
+    "before": {
+      "length": 2049,
+      "sha256": "9d426284e668624a8173a4bbe19e63d34aadee30500529ac8e13c05f0a7530ec",
+      "archive": "docs/evidence/tls-traces-cf72-20261019/whole/9d426284e668624a8173a4bbe19e63d34aadee30500529ac8e13c05f0a7530ec.txt"
+    },
+    "current": {
+      "length": 2353,
+      "sha256": "694b2f1af1a6b9847e121b265ddfa9d11ea0e8f262dc6928075c49d872e870fc",
+      "archive": "docs/evidence/tls-traces-cf72-20261019/whole/694b2f1af1a6b9847e121b265ddfa9d11ea0e8f262dc6928075c49d872e870fc.txt"
+    }
+  },
+  {
+    "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_census.rs",
+    "before": {
+      "length": 22263,
+      "sha256": "e170bb6b5ce3e909866c7ed9388b355f3bb122d52dbe208824ace7cf5cc34a69",
+      "archive": "docs/evidence/tls-traces-cf72-20261019/whole/e170bb6b5ce3e909866c7ed9388b355f3bb122d52dbe208824ace7cf5cc34a69.txt"
+    },
+    "current": {
+      "length": 22294,
+      "sha256": "38549d9a47ec78e4f1153bdc27f04944a05a7a4d40ab284550f4b210d9cb0570",
+      "archive": "docs/evidence/tls-traces-cf72-20261019/whole/38549d9a47ec78e4f1153bdc27f04944a05a7a4d40ab284550f4b210d9cb0570.txt"
+    }
+  },
+  {
+    "source": "src/cleanup_plan/replay/ordinary_plan_history/frontier_tests.rs",
+    "before": {
+      "length": 8126,
+      "sha256": "7b593a07f36c1f3cd6d80ff40584a68523902617574755feb34cfe175f38124e",
+      "archive": "docs/evidence/tls-traces-cf72-20261019/whole/7b593a07f36c1f3cd6d80ff40584a68523902617574755feb34cfe175f38124e.txt"
+    },
+    "current": {
+      "length": 8152,
+      "sha256": "0c097682f7dc4a7c0a23a9c2b16555bd212df31e0013a7581d3b58127b7d7119",
+      "archive": "docs/evidence/tls-traces-cf72-20261019/whole/0c097682f7dc4a7c0a23a9c2b16555bd212df31e0013a7581d3b58127b7d7119.txt"
+    }
+  },
+  {
+    "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests.rs",
+    "before": {
+      "length": 43007,
+      "sha256": "6a8c5d6332f92bd5170f845375ef6f42f08a5f182ad531b47d652126d254c0b2",
+      "archive": "docs/evidence/tls-traces-cf72-20261019/whole/6a8c5d6332f92bd5170f845375ef6f42f08a5f182ad531b47d652126d254c0b2.txt"
+    },
+    "current": {
+      "length": 43059,
+      "sha256": "b55944ab8d0bf07f12819355431dcc7ff83732a1efa2be6a63e0cf6f4bf7d521",
+      "archive": "docs/evidence/tls-traces-cf72-20261019/whole/b55944ab8d0bf07f12819355431dcc7ff83732a1efa2be6a63e0cf6f4bf7d521.txt"
+    }
+  },
+  {
+    "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/source_format.rs",
+    "before": {
+      "length": 50644,
+      "sha256": "de676a1359d676c1cc4c70e5c3c0a0c2dc7b4a3600988b89b557a53813ba24c7",
+      "archive": "docs/evidence/tls-traces-cf72-20261019/whole/de676a1359d676c1cc4c70e5c3c0a0c2dc7b4a3600988b89b557a53813ba24c7.txt"
+    },
+    "current": {
+      "length": 51240,
+      "sha256": "b71aa66664f48cf9c5d107007a6b50fa8303f275973f6c30c211e3a26da80678",
+      "archive": "docs/evidence/tls-traces-cf72-20261019/whole/b71aa66664f48cf9c5d107007a6b50fa8303f275973f6c30c211e3a26da80678.txt"
+    }
+  },
+  {
+    "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/independent_segments.rs",
+    "before": {
+      "length": 14634,
+      "sha256": "cdc186c7cdf2b813246b192561fae1e91d2b4ea85fef401a61cc62e226beb777",
+      "archive": "docs/evidence/tls-traces-cf72-20261019/whole/cdc186c7cdf2b813246b192561fae1e91d2b4ea85fef401a61cc62e226beb777.txt"
+    },
+    "current": {
+      "length": 15428,
+      "sha256": "a551e5810dcf665ed05028533ad1c55240ff3121069ef6dd668c5d7057278b4a",
+      "archive": "docs/evidence/tls-traces-cf72-20261019/whole/a551e5810dcf665ed05028533ad1c55240ff3121069ef6dd668c5d7057278b4a.txt"
+    }
+  },
+  {
+    "source": "CHANGELOG.md",
+    "before": {
+      "length": 582329,
+      "sha256": "2ee6d487b57afc99f5f57a4cd07e538f2d091e0a504fc5d2b5b813a4d9b01c56",
+      "archive": "docs/evidence/tls-traces-cf72-20261019/whole/2ee6d487b57afc99f5f57a4cd07e538f2d091e0a504fc5d2b5b813a4d9b01c56.txt"
+    },
+    "current": {
+      "length": 582825,
+      "sha256": "b122192b997d7906b96ec1fad7d56a72ace57901e89d287c48999c8fd0604d39",
+      "archive": "docs/evidence/tls-traces-cf72-20261019/whole/b122192b997d7906b96ec1fad7d56a72ace57901e89d287c48999c8fd0604d39.txt"
+    }
+  }
+]

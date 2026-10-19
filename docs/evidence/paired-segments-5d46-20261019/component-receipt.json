@@ -1,0 +1,8 @@
+{
+  "status": "ACTUAL_CURRENT_KERNEL_COMPONENT_ONLY",
+  "peaksKiB": {
+    "compile": 186144,
+    "run": 53264
+  },
+  "full_compiler_unit_physical_and_project_gates_pending": true
+}

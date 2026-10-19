@@ -1,0 +1,7 @@
+{
+  "status": "PASS_ORIGINAL_NATIVE_FIELD_UPDATE_TESTS",
+  "normal_d6f_library_sha256": "e7750986cd098b3bae47c3ed3650c3243ae18a8ec3b82d186e6f298a2a9d7808",
+  "actual_current_test_and_corpus_sources": true,
+  "compile_peakKiB": 1062336,
+  "run_peakKiB": 113744
+}

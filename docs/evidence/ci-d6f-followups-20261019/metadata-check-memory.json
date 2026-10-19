@@ -1,0 +1,9 @@
+{
+  "source-controls": 27088,
+  "strict-controls": 38960,
+  "browser-source-controls": 28400,
+  "finite-controls": 29104,
+  "generate-current": 55456,
+  "complete-actual-chains": 49280,
+  "verify-current-ssd": 115872
+}

@@ -592,6 +592,7 @@ fn typed_constructor_complete_sources_original_helpers_and_live_caller_are_exact
             )),
         ),
     ];
+    let mut historical_caller = None;
     let records = packet.as_array().unwrap();
     assert_eq!(records.len(), sources.len());
     for (record, (path, current, original)) in records.iter().zip(sources) {
@@ -619,11 +620,28 @@ fn typed_constructor_complete_sources_original_helpers_and_live_caller_are_exact
             restored = restored.replacen(new, edit["before"].as_str().unwrap(), 1);
         }
         assert_eq!(restored, original, "{path}");
+        if path == "src/workspace_graph.rs" { historical_caller = Some(current.to_owned()); }
     }
-    let caller = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/src/workspace_graph.rs"
-    ));
+    // Retain the exact complete typed825 caller already authenticated above.
+    let caller = historical_caller.expect("complete historical workspace caller");
+    assert_eq!(caller.len(), 231867);
+    assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(caller.as_bytes()))), "f517b9c93b4de7db618db0abc0139d4d88121f298ae9f3b16246dc20e833c0a9");
+    let live_caller = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph.rs"));
+    let validate_live = |actual: &str| {
+        assert_eq!(actual, live_caller, "complete current workspace caller");
+        assert_eq!(actual.len(), 217358);
+        assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(actual.as_bytes()))), "763fd745d6b8afb41a7738ad14b8c0a0cffc782c70f698f4a272d398f1651699");
+        assert!(actual.contains("constructor_failure::typed::construct_selected_core("));
+        assert!(actual.contains(".receive_typed(failure)"));
+    };
+    validate_live(live_caller);
+    let dispatcher = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/constructor_failure/typed.rs"));
+    assert_eq!(dispatcher.len(), 11670);
+    assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(dispatcher.as_bytes()))), "b07ecf1da889cf25e1b9296bf320070d49c58af316efe6036dce534fccd73fb7");
+    assert!(dispatcher.contains("    if allow_transient && possible {\n        construct_transient_alias_core(program, authored, programs, registry, core, owner)\n    } else {\n        construct_transient_core(program, authored, programs, registry, core, owner)\n    }"));
+    for hostile in [format!("{live_caller}\n"), live_caller[..live_caller.len()-1].to_owned(), caller.clone()] {
+        assert!(std::panic::catch_unwind(|| validate_live(&hostile)).is_err());
+    }
     assert!(caller.contains("constructor_failure::typed::construct_transient_core("));
     assert!(caller.contains(".receive_typed(failure)"));
 }

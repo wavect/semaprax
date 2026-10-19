@@ -1,0 +1,13 @@
+{
+  "status": "ACTUAL_LOCK_MANIFEST_AND_UNCHANGED_NEAR_MAX_ESCAPED_STRING_AUDIT_PASS",
+  "locked_serde_json": "1.0.154",
+  "original_test_body_unchanged_except_exact_version_and_package_checksum_literals": true,
+  "descriptor_limit": 1048576,
+  "all_capacity_bounds_unchanged": true,
+  "actual_recursive_owned_string_capacity_helper_unchanged": true,
+  "memoryKiB": {
+    "compile": 153456,
+    "test": 2160
+  },
+  "qualification": "Focused actual source component only; full native builder and current-head CI still required"
+}

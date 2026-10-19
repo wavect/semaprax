@@ -222,7 +222,7 @@ fn accepted_batch_relocated_prefix() -> &'static str {
         include_str!("../../src/cleanup_plan/replay/skeleton_work/merge_keys.rs"),
         include_str!("../../src/cleanup_plan/replay/skeleton_work/merge_keys_before.rs"),
         include_str!("../../src/cleanup_plan/replay/skeleton_work/merge_keys_tests.rs"),
-        include_str!("../../src/bounded_output/stage_debits/route_debits.rs"),
+        concat!(include_str!("../../src/bounded_output/stage_debits/route_debits.rs"), include_str!("../../src/bounded_output/stage_debits/route_debits/json_codec_probe.rs")),
         include_str!("../../src/cleanup_plan/replay/branch_clone/production_capacity.rs"),
         include_str!("../../src/cleanup_plan/replay/branch_clone/production_capacity/before.rs"),
         include_str!("../../src/cleanup_plan/replay/branch_clone/production_capacity/main_c883.rs"),
@@ -254,7 +254,7 @@ fn formatted_accepted_batch_relocated_prefix() -> &'static str {
         include_str!("../../src/cleanup_plan/replay/skeleton_work/merge_keys.rs"),
         include_str!("../../src/cleanup_plan/replay/skeleton_work/merge_keys_before.rs"),
         include_str!("../../src/cleanup_plan/replay/skeleton_work/merge_keys_tests.rs"),
-        include_str!("../../src/bounded_output/stage_debits/route_debits.rs"),
+        concat!(include_str!("../../src/bounded_output/stage_debits/route_debits.rs"), include_str!("../../src/bounded_output/stage_debits/route_debits/json_codec_probe.rs")),
         include_str!("../../src/cleanup_plan/replay/branch_clone/production_capacity.rs"),
         include_str!("../../src/cleanup_plan/replay/branch_clone/production_capacity/before.rs"),
         include_str!("../../src/cleanup_plan/replay/branch_clone/production_capacity/main_c883.rs"),
@@ -305,7 +305,7 @@ fn accepted_raw_prefix_keeps_all_twenty_eight_subjects_old_guards_and_nonempty_t
         assert!(std::panic::catch_unwind(|| assert_accepted_batch_relocated_prefix(&bad)).is_err());
     }
     for subject in [
-        include_str!("../../src/bounded_output/stage_debits/route_debits.rs"),
+        concat!(include_str!("../../src/bounded_output/stage_debits/route_debits.rs"), include_str!("../../src/bounded_output/stage_debits/route_debits/json_codec_probe.rs")),
         include_str!("../../src/cleanup_plan/replay/branch_clone/production_capacity.rs"),
         include_str!("../../src/cleanup_plan/replay/branch_clone/production_capacity/before.rs"),
         include_str!("../../src/cleanup_plan/replay/branch_clone/production_capacity/main_c883.rs"),
@@ -394,7 +394,7 @@ fn current_accepted_batch_relocated_prefix() -> String {
         include_str!("../../src/cleanup_plan/replay/skeleton_work/merge_keys.rs"),
         include_str!("../../src/cleanup_plan/replay/skeleton_work/merge_keys_before.rs"),
         include_str!("../../src/cleanup_plan/replay/skeleton_work/merge_keys_tests.rs"),
-        include_str!("../../src/bounded_output/stage_debits/route_debits.rs"),
+        concat!(include_str!("../../src/bounded_output/stage_debits/route_debits.rs"), include_str!("../../src/bounded_output/stage_debits/route_debits/json_codec_probe.rs")),
         include_str!("../../src/cleanup_plan/replay/branch_clone/production_capacity.rs"),
         include_str!("../../src/cleanup_plan/replay/branch_clone/production_capacity/before.rs"),
         include_str!("../../src/cleanup_plan/replay/branch_clone/production_capacity/main_c883.rs"),

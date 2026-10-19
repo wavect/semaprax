@@ -46,6 +46,7 @@ fn observe(
     comparison_work: usize,
     mutation: usize,
 ) -> Observed {
+    frontiers::prepare();
     with_limit_usage_refusal(physical, || {
         measure(|| {
             let mut budget = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
@@ -440,6 +441,7 @@ fn observe_883(
     comparison_work: usize,
     mutation: usize,
 ) -> Observed {
+    frontiers::prepare();
     with_limit_usage_refusal(physical, || {
         measure(|| {
             let mut budget = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
@@ -1203,3 +1205,6 @@ mod main_b692_pair_scope_tests;
 #[path = "main487_pair_scope_tests.rs"]
 #[rustfmt::skip]
 mod main487_pair_scope_tests;
+
+#[path = "loaded_segment_composition_tests.rs"]
+mod loaded_segment_composition_tests;

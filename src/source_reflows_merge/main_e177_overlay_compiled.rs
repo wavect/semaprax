@@ -166,6 +166,17 @@ pub(super) fn compiled(source: &str) -> Option<&'static str> {
         "src/string_ops/conditions.rs" => Some(include_str!("../../src/string_ops/conditions.rs")),
         "src/string_ops/conditions/funded.rs" => Some(include_str!("../../src/string_ops/conditions/funded.rs")),
         "src/string_ops/conditions/funded_receiving.rs" => Some(include_str!("../../src/string_ops/conditions/funded_receiving.rs")),
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_loaded_segments.rs" => Some(include_str!("../../src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_loaded_segments.rs")),
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads_before_loaded_segments.rs" => Some(include_str!("../../src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads_before_loaded_segments.rs")),
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/loaded_segment_composition_tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/loaded_segment_composition_tests.rs")),
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main_loaded_segments.rs" => Some(include_str!("../../src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main_loaded_segments.rs")),
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main_loaded_segments_cursor.rs" => Some(include_str!("../../src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main_loaded_segments_cursor.rs")),
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_tests/paired_segments.rs" => Some(include_str!("../../src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_tests/paired_segments.rs")),
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_segments_before.rs" => Some(include_str!("../../src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_segments_before.rs")),
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_segments_before_cursor.rs" => Some(include_str!("../../src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_segments_before_cursor.rs")),
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_loaded_segments.rs" => Some(include_str!("../../src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_loaded_segments.rs")),
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/independent_segments.rs" => Some(include_str!("../../src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/independent_segments.rs")),
+        "src/cleanup_plan/replay/ordinary_plan_history/frontier_tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/ordinary_plan_history/frontier_tests.rs")),
         _ => None,
     }
 }
@@ -235,11 +246,31 @@ mod tests {
         &code[start..end]
     }
 
+    fn root_before_invocation_metadata(root: &str) -> String {
+        let mut restored = root.to_owned();
+        for (after, before) in [
+            ("    compiled_sources::compiled(source)\n}\n#[cfg(test)]\nmod tests", "    compiled_sources::compiled(source)\n}\n\n#[cfg(test)]\nmod tests"),
+            ("use std::sync::{Arc, Mutex};\nconst PAGE_CAP:", "use std::sync::{Arc, Mutex};\n\nconst PAGE_CAP:"),
+            ("        assert_eq!((loads.0.get(), loads.1.get()), (1, 1), \"both metadata loaders run once across both whole routes\");\n", ""),
+            ("        // Borrow immutable metadata only. Both independently compiled routes\n        // still acquire current/archive bytes afresh for every supplied input.\n        let loads = (std::cell::Cell::new(0), std::cell::Cell::new(0));\n        let mut invocation = super::super::ProjectionInvocation::with_loaders(|| {\n            loads.0.set(loads.0.get() + 1);\n            super::super::packet()\n        }, || {\n            loads.1.set(loads.1.get() + 1);\n            super::super::clippy_stage::rows()\n        });\n        let mut value_direct = |source: &str, expected: &str, supplied: &str| {\n            let live = invocation.value_direct(source, expected, supplied);\n            let old = invocation.independent_old_value_direct(source, expected, supplied);\n            assert_eq!(live, old, \"complete old/live output or foreign refusal parity\");\n            live\n        };\n        super::super::packet_lookup::assert_independent_old_direct_source();\n", ""),
+            ("pub(super) fn current(row: &Value) -> Result<String, &'static str> {\n", "fn current(row: &Value) -> Result<String, &'static str> {\n"),
+            ("pub(super) fn image(value: &Value) -> Result<String, &'static str> {\n", "fn image(value: &Value) -> Result<String, &'static str> {\n"),
+            ("pub(super) const ADDITIONS: &[&str] = &[\n", "const ADDITIONS: &[&str] = &[\n"),
+            ("pub(super) const REPLACEMENTS: &[&str] = &[\n", "const REPLACEMENTS: &[&str] = &[\n"),
+        ] {
+            assert_eq!(restored.matches(after).count(), 1);
+            restored = restored.replacen(after, before, 1);
+        }
+        restored
+    }
+
     fn restore_whole_before(root: &str, child: &str) -> String {
         // These arguments must be the entire independently compiled current
         // source images, before any metadata or whole-source normalization.
         assert_eq!(root, ROOT);
         assert_eq!(child, CHILD);
+        let root = root_before_invocation_metadata(root);
+        let root = root.as_str();
         let before = before();
         let old_additions = array(before, "ADDITIONS");
         let additions = array(root, "ADDITIONS");

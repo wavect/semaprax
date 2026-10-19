@@ -11,6 +11,38 @@ pub(super) enum Kind {
     Tests883,
 }
 pub(super) fn restore(kind: Kind, current: &str) -> String {
+    use sha2::{Digest, Sha256};
+    let acquired_preparation;
+    let prepared;
+    let current = if matches!(kind, Kind::Tests880 | Kind::Tests883) {
+        acquired_preparation = crate::source_reflows_merge::main_e177_final_inputs::value_direct(
+            "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests.rs",
+            "b55944ab8d0bf07f12819355431dcc7ff83732a1efa2be6a63e0cf6f4bf7d521",
+            current,
+        );
+        let acquired = acquired_preparation.as_str();
+        if format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(acquired.as_bytes()))
+        ) == "b55944ab8d0bf07f12819355431dcc7ff83732a1efa2be6a63e0cf6f4bf7d521"
+        {
+            assert_eq!(acquired.matches("    frontiers::prepare();\n").count(), 2);
+            prepared = acquired.replace("    frontiers::prepare();\n", "");
+            assert_eq!(
+                prepared,
+                include_str!(concat!(
+                    env!("CARGO_MANIFEST_DIR"),
+                    "/docs/evidence/tls-traces-cf72-20261019/before-owner-tests.rs.txt"
+                )),
+                "whole test predecessor, including every assertion"
+            );
+            prepared.as_str()
+        } else {
+            current
+        }
+    } else {
+        current
+    };
     // Exact incoming stages are selected only through the live current-source
     // physical/compiled/archive front, before this unchanged formatter inverse.
     let (source, expected) = match kind {

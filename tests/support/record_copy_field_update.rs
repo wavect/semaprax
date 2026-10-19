@@ -313,6 +313,53 @@ fn assert_coverage_sources() {
 // Each original full-source table retains its own authenticated physical domain.
 fn source_input(domain: &str, source: &str, current: &str) -> String {
     use sha2::{Digest, Sha256};
+    let current_stage;
+    let current = if domain == "fixture-current" {
+        let data: serde_json::Value = serde_json::from_str(include_str!(
+            "../../docs/evidence/ci-d6f-followups-20261019/record-inputs.json"
+        ))
+        .unwrap();
+        if let Some(row) = data
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["source"] == source)
+        {
+            assert_eq!(
+                format!(
+                    "{:x}",
+                    semaprax::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))
+                ),
+                row["current_sha256"],
+                "whole current record input: {source}"
+            );
+            let mut restored = current.to_owned();
+            for edit in row["edits"].as_array().unwrap() {
+                let start = edit["start"].as_u64().unwrap() as usize;
+                let new = edit["new"].as_str().unwrap();
+                assert_eq!(
+                    &restored[start..start + new.len()],
+                    new,
+                    "exact record input inverse"
+                );
+                restored.replace_range(start..start + new.len(), edit["old"].as_str().unwrap());
+            }
+            let before = match source {
+                "tests/support/record_copy_field_update.rs" => include_str!("../../docs/evidence/ci-d6f-followups-20261019/whole/212604e4b3eff8e25169e2c87eac39c560bd0973241d3e088a8d4ff63a1b2a60.txt"),
+                "tests/cleanup_backends/owned_leaf_collections/copy_field_update.rs" => include_str!("../../docs/evidence/ci-d6f-followups-20261019/whole/b385f28f7d6862a3ca7209cd54fea521d6281ba728cb29c8e60e58c18b1b0974.txt"),
+                "src/wasm/aggregate.rs" => include_str!("../../docs/evidence/ci-d6f-followups-20261019/whole/84971b8a067d718beee6a131d4b87c4c1549c0c9c12345f447592a1ef5d06c59.txt"),
+                "tests/owned_data/owned_leaf_vec.rs" => include_str!("../../docs/evidence/ci-d6f-followups-20261019/whole/0d1e84bf3548f95bdce59aaa80f17bf89f295cc6dd38dd089669f756ab0d8859.txt"),
+                _ => unreachable!(),
+            };
+            assert_eq!(restored, before, "every complete prior record input byte");
+            current_stage = restored;
+            current_stage.as_str()
+        } else {
+            current
+        }
+    } else {
+        current
+    };
     let predecessor;
     let current = if domain == "fixture-current" {
         current

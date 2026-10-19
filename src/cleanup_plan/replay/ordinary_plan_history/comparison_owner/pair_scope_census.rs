@@ -47,6 +47,10 @@ pub(super) struct Row {
     pub shared_links: usize,
     pub shared_queries: usize,
     pub shared_boundaries: usize,
+    pub independent_frames: usize,
+    pub independent_checks: usize,
+    pub independent_runs: usize,
+    pub independent_turns: usize,
     pub shared_runs: usize,
     pub shared_boundary_complete: usize,
     pub shared_publishes: usize,
@@ -114,6 +118,10 @@ const EMPTY: Row = Row {
     shared_links: 0,
     shared_queries: 0,
     shared_boundaries: 0,
+    independent_frames: 0,
+    independent_checks: 0,
+    independent_runs: 0,
+    independent_turns: 0,
     shared_runs: 0,
     shared_boundary_complete: 0,
     shared_publishes: 0,
@@ -144,10 +152,10 @@ struct Trace {
     count: usize,
     generation: usize,
     serial: usize,
-    rows: [Row; 128],
+    rows: Vec<Row>,
 }
 thread_local! {
-    static TRACE: RefCell<Trace> = const { RefCell::new(Trace { enabled: false, count: 0, generation: 0, serial: 0, rows: [EMPTY; 128] }) };
+    static TRACE: RefCell<Trace> = const { RefCell::new(Trace { enabled: false, count: 0, generation: 0, serial: 0, rows: Vec::new() }) };
     static LOST: Cell<usize> = const { Cell::new(0) };
     static UNWIND_TAIL: Cell<bool> = const { Cell::new(false) };
     static UNWIND_FINAL: Cell<bool> = const { Cell::new(false) };
@@ -172,6 +180,9 @@ pub(super) fn maybe_unwind_tail_work() {
 pub(super) fn unwind_next_final_round() {
     UNWIND_FINAL.with(|flag| flag.set(true));
 }
+pub(in crate::cleanup_plan::replay::ordinary_plan_history) fn prepare() {
+    TRACE.with(|t| t.borrow_mut().rows.resize(128, EMPTY));
+}
 pub(super) fn reset() {
     UNWIND_FINAL.with(|flag| flag.set(false));
     UNWIND_TAIL.with(|flag| flag.set(false));
@@ -189,6 +200,7 @@ pub(super) fn reset() {
                 }
             }
         }
+        t.rows.resize(128, EMPTY);
         t.count = 0;
         if let Some(generation) = t.generation.checked_add(1) {
             t.generation = generation;
@@ -487,6 +499,30 @@ impl Guard {
     pub(super) fn shared_boundary_complete(&self) {
         self.update(|r| match r.shared_boundary_complete.checked_add(1) {
             Some(n) => r.shared_boundary_complete = n,
+            None => r.overflow = true,
+        });
+    }
+    pub(super) fn independent_frames(&self) {
+        self.update(|r| match r.independent_frames.checked_add(1) {
+            Some(n) => r.independent_frames = n,
+            None => r.overflow = true,
+        });
+    }
+    pub(super) fn independent_checks(&self) {
+        self.update(|r| match r.independent_checks.checked_add(1) {
+            Some(n) => r.independent_checks = n,
+            None => r.overflow = true,
+        });
+    }
+    pub(super) fn independent_runs(&self) {
+        self.update(|r| match r.independent_runs.checked_add(1) {
+            Some(n) => r.independent_runs = n,
+            None => r.overflow = true,
+        });
+    }
+    pub(super) fn independent_turns(&self) {
+        self.update(|r| match r.independent_turns.checked_add(1) {
+            Some(n) => r.independent_turns = n,
             None => r.overflow = true,
         });
     }

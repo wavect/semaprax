@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "checks": [
+    "live browser source drift blocks old view",
+    "current browser archive drift blocks old view",
+    "old browser view archive tamper",
+    "extension packet tamper after module load",
+    "foreign browser tuple refused"
+  ],
+  "all_original_source_bytes_restored": true,
+  "old_and_current_exact_views_authenticate": true
+}

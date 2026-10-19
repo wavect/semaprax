@@ -166,6 +166,7 @@ fn observe_pair(
     comparison_work: usize,
     mutation: usize,
 ) -> Observed {
+    frontiers::prepare();
     with_limit_usage_refusal(physical, || {
         measure(|| {
             let mut budget = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
@@ -1197,7 +1198,7 @@ fn shared_run_replays_every_real_883_work_cut_before_private_cursor_publication(
 fn complete_main7e_owner_macro_and_all_original_test_bodies_are_retained() {
     use sha2::{Digest, Sha256};
     super::super::before_shared_runs::whole_source();
-    let restored = include_str!("main7e_pair_scope_tests.rs")
+    let restored = frontiers::before_preparation("main7e_pair_scope_tests.rs")
         .split_once("\n#[test]\nfn complete_main7e_owner_macro_and_all_original_test_bodies_are_retained").unwrap().0
         .replacen("use super::super::before_shared_runs::{compare, PAYMENT_HEADER, PATH_INDEX, PAIR_SCOPE, PAIR_PRIMITIVE};\n", "", 1)
         .replacen("pub(super) fn tail_receiver_prices(", "fn tail_receiver_prices(", 1)

@@ -1,0 +1,27 @@
+{
+  "status": "PASS_ACTUAL_COMPLETE_WORKSPACE_INTEGRATION_HARNESS_COMPILE_METADATA_ONLY",
+  "peakKiB": 701664,
+  "dependencies": [
+    "x509_cert",
+    "sigstore_verify",
+    "rustix",
+    "argon2",
+    "ed25519_dalek",
+    "webpki_roots",
+    "hmac",
+    "wasm_encoder",
+    "wasmparser",
+    "serde",
+    "sha2",
+    "fs2",
+    "serde_json",
+    "rustls",
+    "zeroize",
+    "same_file",
+    "reqwest",
+    "libc",
+    "getrandom"
+  ],
+  "normal_d6f_library": true,
+  "tests_not_executed": true
+}

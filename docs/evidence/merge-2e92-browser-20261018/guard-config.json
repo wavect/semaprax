@@ -393,8 +393,8 @@
       "sha256": "46f5e7917928ff472768e6c14073ee83d3f641dc6ae86f14f40b1e96b7b4be89"
     },
     "src/hir/ids/declaration_tag.rs": {
-      "length": 29752,
-      "sha256": "e7d0d11094c32d69467f3b5bc638370f90d661681dc9994c802b37c5e882a3f4"
+      "length": 29891,
+      "sha256": "58a3bbec53e96e2f429cebfe3bfe66105293a15ffc8862afe3503e293fd26ba9"
     },
     "src/hir/ids/declaration_tag/before.rs": {
       "length": 8897,
@@ -749,8 +749,8 @@
       "sha256": "523afb818016e67c13a23c0f653a13f94d2015aaad95efbb74363efb64ef642c"
     },
     "src/source_reflows_merge/main_e177_overlay_v2.rs": {
-      "length": 66403,
-      "sha256": "364fcf9063d770193a8309fe4b896421b830f6f013d020ffa951d07fce893758"
+      "length": 66475,
+      "sha256": "bf5c7a17cdfd37217057fc06cd51c0c3e687b2b4d8800acb4f9cca1a9120bba3"
     },
     "src/string_ops/conditions/funded_receiving.rs": {
       "length": 1017,
@@ -1037,8 +1037,8 @@
       "sha256": "d1a229642405a06f2037a30470188c82d66ecb51913c40f30842428c3984a1d6"
     },
     "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads_tests.rs": {
-      "length": 55816,
-      "sha256": "f673e261eb43d472d8f7dc4fe9ae134f7a0fb54c29711bfc30b76120d5d72d65"
+      "length": 56129,
+      "sha256": "bc46f1c86a89bfdef97abfd3381e27177c837e3dfce5d9ec50d718dc1234a2e2"
     },
     "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_before_certified.rs": {
       "length": 6956,
@@ -1241,8 +1241,8 @@
       "sha256": "2f4387d36e1e29ab15c409438dd74071439f2cb058d3fe53aa16c533ef79780e"
     },
     "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/final_affine_tests.rs": {
-      "length": 18332,
-      "sha256": "a7414d9225daa79915b099bf54fc1d52ec899cf0b02e8d1b628328307fb0f291"
+      "length": 18343,
+      "sha256": "263e2baf2761fd0eb175208e42406baccb00f7af1ee6514538110a3be6f8f612"
     },
     "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_before_final_affine.rs": {
       "length": 6956,
@@ -1257,12 +1257,12 @@
       "sha256": "faf2391a83182d4b60d1be8561c404ac7af427fcd1f59ff2bfa45c85058244d0"
     },
     "src/bounded_output/exclusive_debits.rs": {
-      "length": 35148,
-      "sha256": "31efc8266687140575dcf045904ffe49785f8bf6cb6467be2119bca438359bc6"
+      "length": 35332,
+      "sha256": "9a4a2a5c7f297f12231521a279e0ef17cd70085ae6918ae30b1bd63ceaca2932"
     },
     "src/hir/ids/lowering_identity_tests.rs": {
-      "length": 16495,
-      "sha256": "9a12f8665527f7d4a9c1f2d3ffe4254e3af648d17ec13f0069c80eb1dcd492ee"
+      "length": 24400,
+      "sha256": "030374fddb446ebeed72e8c9fa862e72dc7e14c255262a6c40ade044ed714af6"
     },
     "src/hir/owned_collection_record/identity_before.rs": {
       "length": 3616,

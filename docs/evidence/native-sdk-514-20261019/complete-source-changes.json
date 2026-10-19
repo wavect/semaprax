@@ -1,0 +1,28 @@
+[
+  {
+    "source": "crates/semaprax-native-rust-interop-builder/src/implementation/toolchain.rs",
+    "before": {
+      "length": 27394,
+      "sha256": "e2c526cbd48c64945bbddfb3ac60b63c53262cd6f77eca45eb6e0e3c79c11999",
+      "archive": "docs/evidence/native-sdk-514-20261019/whole/e2c526cbd48c64945bbddfb3ac60b63c53262cd6f77eca45eb6e0e3c79c11999.txt"
+    },
+    "current": {
+      "length": 27698,
+      "sha256": "9e8baff5990a97151d1327e5b8bca38189f75f5e849fad4cd595a28c06ca1f6c",
+      "archive": "docs/evidence/native-sdk-514-20261019/whole/9e8baff5990a97151d1327e5b8bca38189f75f5e849fad4cd595a28c06ca1f6c.txt"
+    }
+  },
+  {
+    "source": "CHANGELOG.md",
+    "before": {
+      "length": 582022,
+      "sha256": "3929191126e8e6ad270c3e631a4b05d0df6e97d1d2a02f09710efa54736373cd",
+      "archive": "docs/evidence/native-sdk-514-20261019/whole/3929191126e8e6ad270c3e631a4b05d0df6e97d1d2a02f09710efa54736373cd.txt"
+    },
+    "current": {
+      "length": 582162,
+      "sha256": "87688553fa761e858df8efb54df0cb34867d80424c066ec2b836cf3c14e66ece",
+      "archive": "docs/evidence/native-sdk-514-20261019/whole/87688553fa761e858df8efb54df0cb34867d80424c066ec2b836cf3c14e66ece.txt"
+    }
+  }
+]

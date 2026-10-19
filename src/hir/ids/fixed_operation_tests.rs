@@ -144,6 +144,14 @@ fn full_original_operation_sources_and_receivers_have_only_declared_identity_hoo
     // the declared payload accessor: bind that exact reversible relationship,
     // then run the original constructor/hook inverse on its genuine generation.
     let retained_hook = "program\n        .functions()\n        .iter()\n        .any(|function| uses_function(function.payload()))";
+    // The current retained-source iterator adds a profiling adapter. Normalize
+    // that one declared hook only after the complete compiled acquisition above;
+    // the original whole accessor and constructor inverses below stay unchanged.
+    let profiled_hook = "program\n        .functions()\n        .profile_iter()\n        .any(|function| uses_function(function.payload()))";
+    assert_eq!(actual.matches(profiled_hook).count(), 1);
+    assert_eq!(actual.matches(retained_hook).count(), 0);
+    let retained_current = actual.replacen(profiled_hook, retained_hook, 1);
+    let actual = retained_current.as_str();
     assert_eq!(actual.matches(retained_hook).count(), 1);
     assert_eq!(
         actual.replacen(retained_hook, "program.functions().iter().any(uses_function)", 1),
@@ -202,6 +210,22 @@ fn full_original_operation_sources_and_receivers_have_only_declared_identity_hoo
         "0abc67a67c5c22b175b81e2ef82e46206421f6a974fa772ea40de40181467dd2"
     );
     let current = ci_str!("../../../src/list_ops.rs");
+    // Authenticate the complete compiled generation before reversing only the
+    // retained-source profiling accessor; the original whole-file inverse below
+    // still reconstructs every pre-profile constructor byte.
+    assert_eq!(current, include_str!("../../../src/list_ops.rs"));
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(<sha2::Sha256 as sha2::Digest>::digest(current.as_bytes()))
+        ),
+        "eaf364364d29ea595520b8390a195ddd947a9caab5969b5c86cf1cf6c1923ab2"
+    );
+    let profiled = "program.functions().profile_iter().any(function_uses)";
+    let ordinary = "program.functions().iter().any(function_uses)";
+    assert_eq!(current.matches(profiled).count(), 1);
+    let unprofiled = current.replacen(profiled, ordinary, 1);
+    let current = unprofiled.as_str();
     let start = current.find("pub(crate) fn is_list(").unwrap();
     let end = current
         .find("pub(crate) fn validate_declarations(")
@@ -249,11 +273,15 @@ fn full_original_operation_sources_and_receivers_have_only_declared_identity_hoo
         ),
         "4c4f9dd06f00371bb571d1c7122e292fccabd7608b55160469c13350407555fd"
     );
+    // Restore the entire later lowering stage before the unchanged tag inverse.
+    let ids_before_lowering = super::lowering_identity_tests::prior_source(
+        "src/hir/ids.rs", ci_str!("../../../src/hir/ids.rs"),
+    );
     // Reuse the complete closed-tag inverse and its exact current/prior pins.
     let acquired = crate::source_reflows_merge::main_e177_final_inputs::value(
         "src/hir/ids.rs",
         "5e56cda454fa3f14f61e2db5f410eea13ac7795d0887e680348eefdc64e80e64",
-        ci_str!("../../../src/hir/ids.rs"),
+        &ids_before_lowering,
     );
     let current = super::declaration_tag::old_source("src/hir/ids.rs", &acquired).unwrap();
     assert_eq!(

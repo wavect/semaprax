@@ -1,0 +1,13 @@
+{
+  "base_head": "60f9594c1ffd959d06af0985c241eeac39894df2",
+  "changed_sources": [
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity.rs",
+    "crates/semaprax-native-rust-interop-builder/src/implementation/facts_capacity.rs",
+    "CHANGELOG.md"
+  ],
+  "only_reviewed_parser_audit_literals_and_owning_comment_changed": true,
+  "manifest_and_locked_dependency_unchanged": true,
+  "all_original_near_max_assertions_and_all_capacity_bounds_unchanged": true,
+  "no_new_rust_classes": true,
+  "full_current_head_CI_still_required": true
+}

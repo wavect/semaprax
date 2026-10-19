@@ -1,0 +1,6 @@
+{
+  "only_stopped_inferior_register_reads": true,
+  "old_commands_retained_in_order": true,
+  "unchanged_test_and_profile": true,
+  "python_syntax_checked": true
+}

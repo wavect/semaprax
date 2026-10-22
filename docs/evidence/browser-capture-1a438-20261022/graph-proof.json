@@ -1,0 +1,32 @@
+{
+  "status": "PRIOR_HEAD_COMPLETE_PRODUCTION_GRAPH_CAPTURE_AND_EXACT_WIRE_PROOF_PASS",
+  "source_head": "1a4385642bb412366957085a9b917cbbc0c60495",
+  "run_id": 39810631742,
+  "job_id": 119938063845,
+  "checks": [
+    {
+      "file": "calculator-baseline.json",
+      "old_builder_bytes": 3683754,
+      "new_builder_bytes": 3470026,
+      "old_digest": "sha256:fd0bb71ce5d4bf0c2f7bf18fb7f502b6e06e2985fc7bd872c979c38029248eb1",
+      "new_digest": "sha256:4a9d59d3f063fe1deb02506c7c89f3453e3758b9154035b7b47230d7a056f3f1",
+      "old_sha256": "db4dfa0d248f9b25c353df899c80397c8be74ccc645b7beaad20648573ca5ac8",
+      "captured_sha256": "aa68c21717f5f312732b38044b1fa0d7ba7b43333934f4a33109b3ee696f0a5c",
+      "production_domain_digest_independently_verified": true,
+      "all_other_wire_bytes_exact": true
+    },
+    {
+      "file": "calculator-renamed.json",
+      "old_builder_bytes": 3683754,
+      "new_builder_bytes": 3470026,
+      "old_digest": "sha256:859c7ab287350f3bc8bdf4fb4d672b3e9b68ce0581145405a23db9c3435c0376",
+      "new_digest": "sha256:53472ae99bbe2076a8c958c963e0c6330c8dff0fe29f8081ef2ae3f0a2678804",
+      "old_sha256": "11a870c5c88a6755447f8c0cff31667e4bb4e91fc11b8531e3a70779b72ef002",
+      "captured_sha256": "5f0a274c513aef0ad087720f1d7be7671571d2d416e29e9566107b0da035ba4d",
+      "production_domain_digest_independently_verified": true,
+      "all_other_wire_bytes_exact": true
+    }
+  ],
+  "entire_old_javascript_restored_by_two_digest_replacements_and_provenance_comment_removal": true,
+  "limits": "The graph capture succeeded; the browser gate subsequently failed against prior pins. No Chromium or full CI success is claimed."
+}

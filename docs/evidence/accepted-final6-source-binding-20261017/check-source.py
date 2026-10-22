@@ -18,7 +18,7 @@ P=R/'docs/evidence/ordinary-plan-final-ingress-20261017/verify-source.py'
 raw=bounded(P,7938,'8186f62cb05b263c051f1581db8fd2bacb6722506ef94588ace11749ef6e8635')
 assert raw==bounded(D/'before/verify-source.py',7938,'8186f62cb05b263c051f1581db8fd2bacb6722506ef94588ace11749ef6e8635')
 old="template=b.read(R/recipe['helper_template'],digest=recipe['helper_template_sha256']).decode();assert b.scrub(helper)==b.scrub(template)"
-new='template=b.read(R/recipe[\'helper_template\'],digest=recipe[\'helper_template_sha256\']).decode();template=b.custody_source_template(template);prior_helper=b.read(R/\'docs/evidence/fmt-a110/v8M15AIpSv-8kL6VHWd_Go87kMGIdJ7QfMfFIMH5XH4.txt\',18589,\'bfc335e402294affbc90be951d677f1a8f3b90c188749ed07cc7c520c1f95c7e\').decode();assert b.scrub(prior_helper)==b.scrub(template);assert len(helper.encode())==19828 and sha(helper.encode())==\'3e38d56d54d85cd6d4081f5200cfd171371cfcac382a8c40e2d60497e7ce4983\';_strict_pins=b.pins;b.pins=lambda code:_strict_pins(code.replace(\'const FINAL_INGRESS_SHA256: &str =\\n    \\"\',\'const FINAL_INGRESS_SHA256: &str = \\"\'))'
+new='template=b.read(R/recipe[\'helper_template\'],digest=recipe[\'helper_template_sha256\']).decode();template=b.custody_source_template(template);prior_helper=b.read(R/\'docs/evidence/fmt-a110/v8M15AIpSv-8kL6VHWd_Go87kMGIdJ7QfMfFIMH5XH4.txt\',18589,\'bfc335e402294affbc90be951d677f1a8f3b90c188749ed07cc7c520c1f95c7e\').decode();assert b.scrub(prior_helper)==b.scrub(template);assert len(helper.encode())==19828 and sha(helper.encode())==\'eb1bdf8583d15aff229b883060fb2076d2edaca738daf7d43d6592263b94dbe3\';_strict_pins=b.pins;b.pins=lambda code:_strict_pins(code.replace(\'const FINAL_INGRESS_SHA256: &str =\\n    \\"\',\'const FINAL_INGRESS_SHA256: &str = \\"\'))'
 assert raw.decode().count(old)==1
 current=raw.decode().replace(old,new,1)
 old_fmt='assert restored.count(hook)==1;restored=restored.replace(hook,old,1);assert restored.encode()==original'
@@ -31,7 +31,7 @@ assert current.count(old_dirty)==1
 current=current.replace(old_dirty,new_dirty,1)
 assert current.replace(new_dirty,old_dirty,1).replace(new_fmt,old_fmt,1).replace(new,old,1).encode()==raw
 helper=R/'docs/evidence/main-e177-final-source-binding-20261017/guard_payload.py'
-helper_raw=bounded(helper,19134,'47f58f1d7bdc463815597574bd1f68a06c19d4640873da0a463db38573b9f6f5')
+helper_raw=bounded(helper,19135,'c7f796bb2d3e251d4c2f6b3111caf1f30fe5bb88241cca18a36e6f245f82ab81')
 ns={'__file__':str(helper),'_AUTHENTICATED_PROGRAM':helper_raw};exec(compile(helper_raw,str(helper),'exec'),ns)
 old_guard='guard=runpy.run_path(str(guard_path))'
 new_guard='guard=_accepted_guard_extensions(R)'

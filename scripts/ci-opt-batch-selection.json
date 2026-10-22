@@ -1,7 +1,7 @@
 {
   "schema": "semaprax.hosted-opt-batch-selection.v1",
-  "filters": 44,
-  "expected_tests": 96,
+  "filters": 45,
+  "expected_tests": 99,
   "commands": [
     {
       "owner": "V10 codec",
@@ -310,6 +310,13 @@
       "binary": "lib",
       "filter": "hir::validation::lexical_exit::witness_tests::invocation_reuse_unwinds_live_scopes_and_witness_before_publication_drop",
       "exact": true
+    },
+    {
+      "owner": "OPT903 early HIR scratch release with complete independent constructor and Drop",
+      "expected_tests": 3,
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::factored::early_release::",
+      "exact": false
     }
   ]
 }

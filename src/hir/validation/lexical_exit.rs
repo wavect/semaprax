@@ -975,9 +975,13 @@ mod witness_tests {
         }
         let inverse: serde_json::Value =
             serde_json::from_str(include_str!("match_witness_inverse.json")).unwrap();
+        let original_root = frame_reuse::source_inverse::whole_root(
+            "src/hir/validation.rs", include_str!("../validation.rs"));
+        let original_lexical = frame_reuse::source_inverse::whole_root(
+            "src/hir/validation/lexical_exit.rs", include_str!("lexical_exit.rs"));
         let sources = [
-            include_str!("../validation.rs"),
-            include_str!("lexical_exit.rs"),
+            original_root.as_str(),
+            original_lexical.as_str(),
             include_str!("scope_checkpoint/storage.rs"),
         ];
         let before = [
@@ -1013,7 +1017,7 @@ mod witness_tests {
             assert!(restore(row, &drift).is_none());
         }
         let frame = include_str!("continuation_frame.rs")
-            .split_once("        pub(super) enum Frame<'e> {")
+            .split_once("pub(super) enum Frame<'e> {")
             .unwrap()
             .1;
         assert!(
@@ -1034,7 +1038,11 @@ mod witness_tests {
     fn invocation_reuse_unwinds_live_scopes_and_witness_before_publication_drop() {
         let checked = crate::check(SCALAR, "reuse-witness-unwind.spx").unwrap();
         let program = crate::hir::resolve(&checked).unwrap();
-        let function = program.functions.iter().find(|f| f.id.as_str() == "w.f").unwrap();
+        let function = program
+            .functions
+            .iter()
+            .find(|f| f.id.as_str() == "w.f")
+            .unwrap();
         let validator = HirValidator::new(&program).unwrap();
         let capture = Capture::begin();
         let (((), metrics), refused, _, receipt) =
@@ -1045,9 +1053,13 @@ mod witness_tests {
                         let mut validator = validator;
                         let mut scratch = frame_reuse::Scratch::new().unwrap();
                         frame_reuse::argument().unwrap();
-                        validator.validate_function_with_frames(function,
-                            &FunctionExecutionId::Monomorphic(function.id.clone()),
-                            Some(&mut scratch)).unwrap();
+                        validator
+                            .validate_function_with_frames(
+                                function,
+                                &FunctionExecutionId::Monomorphic(function.id.clone()),
+                                Some(&mut scratch),
+                            )
+                            .unwrap();
                     }));
                     assert!(caught.is_err());
                     drop(caught);
@@ -1059,5 +1071,4 @@ mod witness_tests {
         assert!(!metrics.invalid && metrics.live == 0 && metrics.allocated == metrics.freed);
         crate::hir::validate(&program).unwrap();
     }
-
 }

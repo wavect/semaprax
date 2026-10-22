@@ -3,6 +3,13 @@
 - Reuse closed compiler declaration identities and fund dynamic sort-key identity backing through its existing payer, preserving wire identities and diagnostic precedence.
 - Add optional fixed-storage captures of exclusive resolved-core debits alongside the existing inclusive phase observations, retaining compiler budgets and complete historical source checks.
 
+## Factored HIR scratch release (#903, 2026-10-22)
+
+- Release the completed DAG memo and HIR paths before plan construction, retaining
+  owned automaton observations and all prior debits. Fund both new explicit
+  release transports; independent source, result, refusal-frontier and complete
+  Drop controls await the combined focused run. No peak-saving claim is made.
+
 ## HIR continuation backing reuse (#912, 2026-10-22)
 
 - Reuse drained typed continuation directories across ordinary functions and

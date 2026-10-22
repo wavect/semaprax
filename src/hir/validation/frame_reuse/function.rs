@@ -1,13 +1,13 @@
 //! Ordinary invocation function receiver, retaining every preflight and phase.
-use super::super::*;
 use super::super::function_scope::lifecycle;
+use super::super::*;
 impl<'a> HirValidator<'a> {
     pub(in crate::hir) fn validate_function_with_frames<'e>(
         &mut self,
         function: &'e ResolvedFunction,
         execution: &FunctionExecutionId,
         mut scratch: Option<&mut frame_reuse::Scratch<'e>>,
-    ) -> Result<(), Diagnostic> 
+    ) -> Result<(), Diagnostic>
     where
         'a: 'e,
     {
@@ -188,7 +188,13 @@ impl<'a> HirValidator<'a> {
             )));
         }
         frame_reuse::argument()?;
-        self.validate_contracts_with_frames(execution, &function.requires, &scope, "requires", scratch.as_deref_mut())?;
+        self.validate_contracts_with_frames(
+            execution,
+            &function.requires,
+            &scope,
+            "requires",
+            scratch.as_deref_mut(),
+        )?;
         frame_reuse::argument()?;
         self.validate_expr_with_frames(
             execution,
@@ -242,5 +248,4 @@ impl<'a> HirValidator<'a> {
         )?;
         Ok(())
     }
-
 }

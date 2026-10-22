@@ -128,6 +128,26 @@ fn compiled(source: &str) -> Option<(usize, &'static str)> {
         _ => return None,
     })
 }
+// These two complete predecessor stages belong to this fixed CI inventory.
+// Authenticate the actual compiled/physical/current row before selecting the
+// already-declared whole view; every original indexed inverse still runs.
+fn historical_entry<'a>(source: &str, expected: &str, current: &'a str) -> Cow<'a, str> {
+    match (source, expected) {
+        (
+            "src/cleanup_plan/replay.rs",
+            "cc999fb9034687101cb5d34db54ed4ea58289ac6d9f9f7fae9f53e693231f74a",
+        )
+        | (
+            "src/cleanup_plan/replay/factored.rs",
+            "d3808da9519009c1a7b223a91a635bc94cdeb80a2c8bc40b22bcfc8b1f2f918c",
+        ) => Cow::Owned(
+            crate::source_reflows_merge::main_e177_final_inputs::value_direct(
+                source, expected, current,
+            ),
+        ),
+        _ => Cow::Borrowed(current),
+    }
+}
 fn rows() -> serde_json::Value {
     const DATA: &str = include_str!("../../docs/evidence/ci-inputs-20261021/inputs.json");
     assert_eq!(DATA.len(), 79496);
@@ -186,6 +206,7 @@ fn rows() -> serde_json::Value {
     assert_eq!(current.len(), 326351);
     assert_eq!(digest(current), "c4eb6d914f71ea5ea5ec3cee2710b4c18fee4c45b2c9019e8b48b5fb46653bbb");
     let main44: serde_json::Value = serde_json::from_str("[[366,\"#[cfg(test)]\\npub(crate) use path_array_main44::current_source as main44_current_source;\\n\",\"\"],[2719,\"\",\"\\n\"]]").unwrap();
+
     let mut checkpoint = current.to_owned();
     for edit in main44.as_array().unwrap().iter().rev() {
         let at = usize::try_from(edit[0].as_u64().unwrap()).unwrap();
@@ -195,6 +216,13 @@ fn rows() -> serde_json::Value {
     }
     assert_eq!(checkpoint.len() as u64, successor["length"]);
     assert_eq!(digest(&checkpoint), successor["sha256"]);
+    // The new main admission independently selects this same complete predecessor.
+    let entered = historical_entry(
+        row["source"].as_str().unwrap(),
+        successor["sha256"].as_str().unwrap(),
+        actual,
+    );
+    assert_eq!(entered.as_ref(), checkpoint);
     for edit in successor["indexed_inverse"]
         .as_array()
         .unwrap()
@@ -261,6 +289,31 @@ fn rows() -> serde_json::Value {
     // Compose diagnostic-only inverses last, so they execute first on the
     // complete compiled/fresh current bytes before every existing CI inverse.
     let probes: serde_json::Value = serde_json::from_str("[{\"source\":\"src/cleanup_plan/validate.rs\",\"length\":4475,\"sha256\":\"75ac0859815d3a47a94b81493c04a8ae89516f4939fe79a8da7f94d141e41c1b\",\"inverse\":[[530,\"    #[cfg(test)]\\n    let _allocation_phase = crate::test_allocation_observer::function_phase_guard(\\n        \\\"cleanup_plan::validate::canonical_rebuild\\\",\\n    );\\n\",\"\"],[2065,\"    #[cfg(test)]\\n    drop(_allocation_phase);\\n\",\"\"]]},{\"source\":\"src/cleanup_plan/replay.rs\",\"length\":326426,\"sha256\":\"5b40d53c43ccf6335bd2fbaf33c3c57d75b5bcfab2a7d6ebbd03851d77ee6e9d\",\"inverse\":[[2773,\"\",\"\\n\"],[2865,\"\",\"\\n\"],[4765,\"\",\"\\n\"],[6116,\"\",\"\\n\"],[6445,\"\",\"\\n\"],[6511,\"\",\"\\n\"],[113510,\"    #[cfg(test)]\\n    let _allocation_phase =\\n        crate::test_allocation_observer::function_phase_guard(\\\"cleanup_plan::replay::hir_paths\\\");\\n\",\"\"],[278824,\"    #[cfg(test)]\\n    let _allocation_phase =\\n        crate::test_allocation_observer::function_phase_guard(\\\"cleanup_plan::replay::plan_paths\\\");\\n\",\"\"],[576,\"use final_output::compact as compact_path;\\n\",\"\"],[122062,\"    let minimum = compact_path::count!(\\n\",\"    let minimum = path_array::count!(\\n\"],[122331,\"    final_output::compact::hir_selection!(work);\\n\",\"    work.budget.reserve_bytes(\\n        work.function,\\n        final_output::HIR_SELECTION_CONTROLS,\\n        \\\"HIR single-suffix selection controls\\\",\\n    )?;\\n\"],[122852,\"            compact_path::push!(\\n\",\"            path_array::push!(\\n\"],[123324,\"                final_output::compact::hir_move!(work);\\n                final_output::compact::hir_work!(work);\\n\",\"                work.budget.reserve_bytes(\\n                    work.function,\\n                    final_output::HIR_MOVE_CONTROLS,\\n                    \\\"HIR single-suffix move controls\\\",\\n                )?;\\n                work.charge(1, \\\"skeleton prefix clone\\\")?;\\n\"],[123938,\"            compact_path::push!(\\n\",\"            path_array::push!(\\n\"],[127075,\"            compact_path::push!(\\n\",\"            path_array::push!(\\n\"],[129471,\"        compact_path::push!(\\n\",\"        path_array::push!(\\n\"]]},{\"source\":\"src/cleanup_plan/replay/factored.rs\",\"length\":49022,\"sha256\":\"3e3835bc69e3029d4fbfb03639dab27573e3bdd3d8c02ea286a0cc53ea94ea02\",\"inverse\":[[41290,\"    let enumeration_phase = crate::test_allocation_observer::function_phase_guard(\\n        \\\"cleanup_plan::crosscheck::enumerated_hir_plan\\\",\\n    );\\n\",\"\"],[41845,\"    drop(enumeration_phase);\\n\",\"\"],[42067,\"        let _allocation_phase = crate::test_allocation_observer::function_phase_guard(\\n            \\\"cleanup_plan::crosscheck::factored_compare\\\",\\n        );\\n\",\"\"],[14022,\"    let Some(hir) = canonical.id_with_compact_receiving(\\n        function,\\n        vec![(hir_root, 1)],\\n        budget,\\n        &mut receiving,\\n    )?\\n\",\"    let Some(hir) =\\n        canonical.id_with_receiving(function, vec![(hir_root, 1)], budget, &mut receiving)?\\n\"],[14504,\"    let Some(plan) = canonical.id_with_compact_receiving(\\n        function,\\n        vec![(plan_root, 1)],\\n        budget,\\n        &mut receiving,\\n    )?\\n\",\"    let Some(plan) =\\n        canonical.id_with_receiving(function, vec![(plan_root, 1)], budget, &mut receiving)?\\n\"]]},{\"source\":\"src/cleanup_plan/replay/factored/continuation_receiver.rs\",\"length\":2919,\"sha256\":\"f8720b0acb29fe38df16c4c0c2f9baf69c220f99db81b8637b766c9f02529b4a\",\"inverse\":[[803,\"    let enumeration_phase = crate::test_allocation_observer::function_phase_guard(\\n        \\\"cleanup_plan::crosscheck::enumerated_hir_plan\\\",\\n    );\\n\",\"\"],[1358,\"    drop(enumeration_phase);\\n\",\"\"],[1580,\"        let _allocation_phase = crate::test_allocation_observer::function_phase_guard(\\n            \\\"cleanup_plan::crosscheck::factored_compare\\\",\\n        );\\n\",\"\"]]}]").unwrap();
+    let mut probes = probes;
+    // Preserve the complete original probe entry, then compose the two exact
+    // current early-release splices ahead of every immutable indexed inverse.
+    {
+        let probe = &mut probes[2];
+        assert_eq!(probe["source"], "src/cleanup_plan/replay/factored.rs");
+        assert_eq!(probe["length"], 49022);
+        assert_eq!(probe["sha256"], "3e3835bc69e3029d4fbfb03639dab27573e3bdd3d8c02ea286a0cc53ea94ea02");
+        let current = compiled(probe["source"].as_str().unwrap()).unwrap().1;
+        assert_eq!(current.len(), 49837);
+        assert_eq!(digest(current), "ffca82dfababa42ad8f21b57a51c42d313a769c17dc14115e1a2ac60a103e5c8");
+        let extra: serde_json::Value = serde_json::from_str("[[2039,\"#[cfg(test)]\\nmod early_release;\\n\",\"\"],[18392,\"        // Automaton labels now own every retained observation. Each explicit\\n        // release pays its argument/formal and reservation-result transport.\\n        #[cfg(test)]\\n        early_release::frontier(0, budget);\\n        budget.reserve_array::<(dag_memo::Memo, dag_memo::Memo, Result<(), Diagnostic>)>(\\n            function,\\n            1,\\n            \\\"factored DAG memo release transport\\\",\\n        )?;\\n        drop(memo);\\n        #[cfg(test)]\\n        early_release::frontier(1, budget);\\n        budget.reserve_array::<(Vec<SkeletonPath>, Vec<SkeletonPath>, Result<(), Diagnostic>)>(\\n            function,\\n            1,\\n            \\\"factored HIR paths release transport\\\",\\n        )?;\\n        drop(hir_paths);\\n        #[cfg(test)]\\n        early_release::frontier(2, budget);\\n\",\"\"]]").unwrap();
+        let mut restored = current.to_owned();
+        for edit in extra.as_array().unwrap().iter().rev() {
+            let at = usize::try_from(edit[0].as_u64().unwrap()).unwrap();
+            let after = edit[1].as_str().unwrap();
+            assert_eq!(&restored[at..at + after.len()], after);
+            restored.replace_range(at..at + after.len(), edit[2].as_str().unwrap());
+        }
+        assert_eq!(restored.len() as u64, probe["length"]);
+        assert_eq!(digest(&restored), probe["sha256"]);
+        probe["inverse"].as_array_mut().unwrap().extend(extra.as_array().unwrap().iter().cloned());
+        probe["length"] = serde_json::json!(current.len());
+        probe["sha256"] = serde_json::json!(digest(current));
+    }
     for probe in probes.as_array().unwrap() {
         let row = rows.as_array_mut().unwrap().iter_mut().find(|row| row["source"] == probe["source"]).unwrap();
         let actual = compiled(row["source"].as_str().unwrap()).unwrap().1;
@@ -282,8 +335,6 @@ pub(super) fn prior<'a>(source: &str, supplied: &'a str) -> Cow<'a, str> {
     let rows = rows();
     let row = &rows[index];
     assert_eq!(row["source"], source);
-    assert_eq!(current.len() as u64, row["current_length"]);
-    assert_eq!(digest(current), row["current_sha256"]);
     assert_eq!(
         supplied, current,
         "complete compiled current CI history input"
@@ -292,12 +343,15 @@ pub(super) fn prior<'a>(source: &str, supplied: &'a str) -> Cow<'a, str> {
     let fresh = reader::read(
         &root.join(source),
         current.len(),
-        row["current_sha256"].as_str().unwrap(),
+        &digest(current),
         2_097_152,
     )
     .unwrap();
     assert_eq!(fresh, current, "complete fresh physical CI history input");
-    let mut before = fresh;
+    let entered = historical_entry(source, row["current_sha256"].as_str().unwrap(), current);
+    assert_eq!(entered.len() as u64, row["current_length"]);
+    assert_eq!(digest(&entered), row["current_sha256"]);
+    let mut before = entered.into_owned();
     for edit in row["inverse"].as_array().unwrap().iter().rev() {
         let at = edit[0].as_u64().unwrap() as usize;
         let after = edit[1].as_str().unwrap();

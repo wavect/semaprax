@@ -262,6 +262,27 @@ pub(crate) fn before_phase_probes<'a>(source: &str, supplied: &'a str) -> std::b
     if supplied != compiled {
         return std::borrow::Cow::Borrowed(supplied);
     }
+    // Authenticate the exact early-release epoch before the unchanged incoming
+    // main and diagnostic-probe inverses; no predecessor pins move.
+    let physical_compiled = compiled;
+    let early_release_epoch = if source == "src/cleanup_plan/replay/factored.rs" {
+        assert_eq!(compiled.len(), 49837);
+        assert_eq!(super::source_sha(compiled), "ffca82dfababa42ad8f21b57a51c42d313a769c17dc14115e1a2ac60a103e5c8");
+        let mut prior = compiled.to_owned();
+        for (current, previous) in [
+            ("#[cfg(test)]\nmod early_release;\n", ""),
+            ("        // Automaton labels now own every retained observation. Each explicit\n        // release pays its argument/formal and reservation-result transport.\n        #[cfg(test)]\n        early_release::frontier(0, budget);\n        budget.reserve_array::<(dag_memo::Memo, dag_memo::Memo, Result<(), Diagnostic>)>(\n            function,\n            1,\n            \"factored DAG memo release transport\",\n        )?;\n        drop(memo);\n        #[cfg(test)]\n        early_release::frontier(1, budget);\n        budget.reserve_array::<(Vec<SkeletonPath>, Vec<SkeletonPath>, Result<(), Diagnostic>)>(\n            function,\n            1,\n            \"factored HIR paths release transport\",\n        )?;\n        drop(hir_paths);\n        #[cfg(test)]\n        early_release::frontier(2, budget);\n", ""),
+        ] {
+            assert_eq!(prior.matches(current).count(), 1);
+            prior = prior.replacen(current, previous, 1);
+        }
+        assert_eq!(prior.len(), 49022);
+        assert_eq!(super::source_sha(&prior), "3e3835bc69e3029d4fbfb03639dab27573e3bdd3d8c02ea286a0cc53ea94ea02");
+        std::borrow::Cow::Owned(prior)
+    } else {
+        std::borrow::Cow::Borrowed(compiled)
+    };
+    let compiled = early_release_epoch.as_ref();
     // The incoming production changes are independently authenticated, then
     // reversed only for this older probe/source epoch. Its original pins and
     // every diagnostic-scope inverse below remain unchanged.
@@ -285,7 +306,7 @@ pub(crate) fn before_phase_probes<'a>(source: &str, supplied: &'a str) -> std::b
     assert_eq!(compiled.len(), live_length, "complete current merged probe source");
     assert_eq!(super::source_sha(compiled), live_sha);
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    assert_eq!(current_file(&root.join(source), live_length, live_sha).expect("complete no-follow diagnostic-probe owner"), compiled);
+    assert_eq!(current_file(&root.join(source), physical_compiled.len(), &super::source_sha(physical_compiled)).expect("complete no-follow diagnostic-probe owner"), physical_compiled);
     let mut restored = compiled.to_owned();
     for &(at, after, before) in merge_edits.iter().rev() {
         assert_eq!(&restored[at..at + after.len()], after, "exact incoming-main source inverse");

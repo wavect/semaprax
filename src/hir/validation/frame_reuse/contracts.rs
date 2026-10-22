@@ -8,7 +8,7 @@ impl<'a> HirValidator<'a> {
         outer: &scope_checkpoint::Scope,
         phase: &'e str,
         mut scratch: Option<&mut frame_reuse::Scratch<'e>>,
-    ) -> Result<(), crate::diagnostic::Diagnostic> 
+    ) -> Result<(), crate::diagnostic::Diagnostic>
     where
         'a: 'e,
     {
@@ -40,5 +40,4 @@ impl<'a> HirValidator<'a> {
         }
         Ok(())
     }
-
 }

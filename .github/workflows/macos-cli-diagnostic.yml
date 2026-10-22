@@ -23,7 +23,7 @@ on:
         required: false
         default: false
       opt_batch:
-        description: Run the bounded 44-filter OPT qualification batch and production Clippy on Linux
+        description: Run the bounded 45-filter OPT qualification batch and production Clippy on Linux
         type: boolean
         required: false
         default: false
@@ -201,6 +201,9 @@ jobs:
           selector="hir::validation::iterative_while_admission_tests::exact_512_nested_indexed_matches_validate_on_a_low_stack"
           out=root/"diagnostic-linux-stack"
           out.mkdir()
+          layout=subprocess.check_output(["readelf","-W","-l",str(binary)],text=True)
+          (out/"tls-layout.txt").write_text(layout)
+          print(layout)
           frame_sizes="python f=gdb.newest_frame(); exec('for i in range(48):\\n if f is None: break\\n print(\"unwind-sp\",i,f.name(),hex(int(f.read_register(\"sp\"))))\\n f=f.older()')"
           commands=["gdb","--batch","--nx","--nh","-ex","set pagination off","-ex","set confirm off","-ex","set debuginfod enabled off","-ex","set auto-load off","-ex","set style enabled off","-ex","set print frame-arguments none","-ex","handle SIGSEGV stop print nopass","-ex","handle SIGABRT stop print nopass","-ex","run","-ex","thread apply all bt 48","-ex",frame_sizes,"-ex","info registers rsp rbp rax rip","-ex","x/12i $pc-16","-ex","quit","--args",str(binary),selector,"--exact","--nocapture","--test-threads=1"]
           with (out/"stack.log").open("wb") as stream:
@@ -298,7 +301,7 @@ jobs:
           retention-days: 1
 
   opt-batch:
-    name: Focused OPT qualification (44 filters / 96 tests)
+    name: Focused OPT qualification (45 filters / 99 tests)
     if: inputs.opt_batch
     runs-on: ubuntu-24.04
     timeout-minutes: 240
@@ -351,7 +354,7 @@ jobs:
           import json,os,pathlib,subprocess
           receipt=json.loads(pathlib.Path("diagnostic-opt-batch/receipt.json").read_text())
           assert not receipt.get("execution_aborted"), "qualification batch aborted"
-          assert receipt.get("completed_filters")==44 and receipt.get("summary_counts_complete") is True
+          assert receipt.get("completed_filters")==45 and receipt.get("summary_counts_complete") is True
           head=subprocess.check_output(["git","rev-parse","HEAD"],text=True).strip()
           tree=subprocess.check_output(["git","rev-parse","HEAD^{tree}"],text=True).strip()
           assert head==os.environ["GITHUB_SHA"]==receipt["head"]
@@ -374,6 +377,20 @@ jobs:
           pathlib.Path("diagnostic-opt-batch/loglens-compiler.json").write_text(json.dumps({"head":head,"binary_sha256":digest.hexdigest(),"qualification":"CLI49 references only; no live agent campaign"},indent=2)+"\n")
           PYCODE
           loglens_status=0
+          python3 - <<'PYCODE' || loglens_status=1
+          import os,pathlib,re,shutil,subprocess
+          output=pathlib.Path("diagnostic-opt-batch/browser-graphs")
+          output.mkdir()
+          renamed=pathlib.Path(os.environ["RUNNER_TEMP"])/"opt-calculator-project-renamed"
+          shutil.copytree("examples/calculator-project",renamed)
+          source=renamed/"src/core.spx"
+          text,count=re.subn(r"^fn add\(","fn sum(",source.read_text(),flags=re.MULTILINE)
+          assert count==1
+          source.write_text(text)
+          for name,manifest in (("calculator-baseline.json",pathlib.Path("examples/calculator-project/semaprax.toml")),("calculator-renamed.json",renamed/"semaprax.toml")):
+              with (output/name).open("wb") as stream:
+                  subprocess.run([os.environ["SEMAPRAX_BIN"],"graph",str(manifest)],stdout=stream,check=True)
+          PYCODE
           python3 benchmarks/cli-tokens-v1/selected_file_adoption.py --candidate experiments/selected-file-input/loglens --output diagnostic-opt-batch/loglens-selected > diagnostic-opt-batch/loglens-selected.log 2>&1 || loglens_status=1
           python3 benchmarks/cli-tokens-v1/selected_file_adoption.py --candidate experiments/ascii-pattern-source/loglens-reference/matcher-package-adapted --output diagnostic-opt-batch/loglens-matcher > diagnostic-opt-batch/loglens-matcher.log 2>&1 || loglens_status=1
           exit "$loglens_status"

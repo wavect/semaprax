@@ -2,18 +2,18 @@
 use super::*;
 #[cfg(test)]
 mod before;
+mod contracts;
+#[cfg(test)]
+mod contracts_before;
+#[cfg(test)]
+mod custody;
+mod function;
 #[cfg(test)]
 mod function_before;
 #[cfg(test)]
-mod contracts_before;
-mod function;
-mod contracts;
+pub(in crate::hir::validation) mod source_inverse;
 #[cfg(test)]
 mod tests;
-#[cfg(test)]
-mod custody;
-#[cfg(test)]
-pub(in crate::hir::validation) mod source_inverse;
 
 type Directories<'e> = (
     scope_checkpoint::Storage<Frame<'e>>,
@@ -25,6 +25,38 @@ type Directories<'e> = (
 pub(super) fn argument() -> Result<(), Diagnostic> {
     scope_checkpoint::charge::reserve(
         std::mem::size_of::<Option<&mut Scratch<'_>>>().checked_mul(2),
+    )
+}
+
+// Fresh adapters introduce another argument/result ABI layer. Acquire that
+// layer before forming the forwarded call; ordinary direct calls retain their
+// original parameter roles and pay only the added optional-owner transport.
+pub(super) fn fresh_function_transport() -> Result<(), Diagnostic> {
+    type Args<'a> = (
+        &'a mut HirValidator<'a>,
+        &'a ResolvedFunction,
+        &'a FunctionExecutionId,
+    );
+    scope_checkpoint::charge::reserve(
+        std::mem::size_of::<Args<'_>>()
+            .checked_mul(2)
+            .and_then(|bytes| bytes.checked_add(std::mem::size_of::<Result<(), Diagnostic>>())),
+    )
+}
+pub(super) fn fresh_expression_transport() -> Result<(), Diagnostic> {
+    type Args<'a> = (
+        &'a mut HirValidator<'a>,
+        &'a FunctionExecutionId,
+        &'a ResolvedExpr,
+        &'a mut dyn ScopeWrite,
+        path_label::Label<'a>,
+        bool,
+        Option<effect_keys::Allowed<'a>>,
+    );
+    scope_checkpoint::charge::reserve(
+        std::mem::size_of::<Args<'_>>()
+            .checked_mul(2)
+            .and_then(|bytes| bytes.checked_add(std::mem::size_of::<Result<(), Diagnostic>>())),
     )
 }
 
@@ -58,7 +90,9 @@ impl<'e> Scratch<'e> {
                 }),
         )?;
         if self.frames.len() != 0 || self.scopes.len() != 0 {
-            return Err(hir_error_static("HIR continuation reuse requires empty directories"));
+            return Err(hir_error_static(
+                "HIR continuation reuse requires empty directories",
+            ));
         }
         Ok((
             std::mem::replace(&mut self.frames, scope_checkpoint::Storage::new()),
@@ -71,10 +105,14 @@ impl<'e> Scratch<'e> {
         scopes: scope_checkpoint::Storage<scope_checkpoint::Scope>,
     ) -> Result<(), Diagnostic> {
         scope_checkpoint::charge::reserve(Some(0))?;
-        if frames.len() != 0 || scopes.len() != 0
-            || self.frames.len() != 0 || self.scopes.len() != 0
+        if frames.len() != 0
+            || scopes.len() != 0
+            || self.frames.len() != 0
+            || self.scopes.len() != 0
         {
-            return Err(hir_error_static("HIR continuation reuse requires drained directories"));
+            return Err(hir_error_static(
+                "HIR continuation reuse requires drained directories",
+            ));
         }
         self.frames = frames;
         self.scopes = scopes;

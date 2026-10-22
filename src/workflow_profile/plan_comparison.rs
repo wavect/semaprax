@@ -1,5 +1,6 @@
 //! Diagnostic-only, current-thread observation of the ordinary PLAN comparator.
-//! Fixed TLS storage is outside the compiler's allocation ledger. No timings,
+//! Fixed-capacity backing is prepared by explicit Capture::begin, outside the
+//! compiler's allocation ledger. Inactive callbacks never allocate. No timings,
 //! allocations, admission decisions, or default-shipping performance are measured.
 pub use crate::bounded_output::exclusive_debits::{
     Algorithm as CoreDebitAlgorithm, Attempt as CoreDebitAttempt, Operation as CoreDebitOperation,
@@ -301,7 +302,7 @@ pub(crate) struct PaidPhaseGuard {
 }
 fn phase_access<T>(f: impl FnOnce(&mut State) -> T) -> Option<T> {
     STATE.with(|state| match state.try_borrow_mut() {
-        Ok(mut state) => Some(f(&mut state)),
+        Ok(mut state) => state.as_deref_mut().map(f),
         Err(_) => {
             PHASE_LOST.with(|lost| lost.set(true));
             None
@@ -548,13 +549,15 @@ impl State {
     }
 }
 thread_local! {
-    static STATE: RefCell<State> = const { RefCell::new(State::new()) };
+    // Keep optional diagnostic rows out of every thread's static TLS block.
+    // Only explicit capture prepares backing; compiler callbacks only borrow it.
+    static STATE: RefCell<Option<Box<State>>> = const { RefCell::new(None) };
     static LOST: Cell<bool> = const { Cell::new(false) };
     static PHASE_LOST: Cell<bool> = const { Cell::new(false) };
 }
 fn access<T>(f: impl FnOnce(&mut State) -> T) -> Option<T> {
     STATE.with(|state| match state.try_borrow_mut() {
-        Ok(mut state) => Some(f(&mut state)),
+        Ok(mut state) => state.as_deref_mut().map(f),
         Err(_) => {
             LOST.with(|lost| lost.set(true));
             None
@@ -568,6 +571,16 @@ pub struct Capture {
 }
 impl Capture {
     pub fn begin(binding: Binding) -> Result<Self, CaptureError> {
+        STATE.with(|state| {
+            let mut state = state.try_borrow_mut().map_err(|_| {
+                LOST.with(|lost| lost.set(true));
+                CaptureError::Busy
+            })?;
+            if state.is_none() {
+                *state = Some(Box::new(State::new()));
+            }
+            Ok(())
+        })?;
         access(|s| {
             if s.enabled {
                 return Err(CaptureError::Busy);
@@ -786,6 +799,35 @@ mod tests {
             Invoice::EMPTY,
         )
     }
+    #[test]
+    fn inactive_callbacks_leave_optional_backing_absent_and_allocate_nothing() {
+        std::thread::Builder::new()
+            .stack_size(128 * 1024)
+            .spawn(|| {
+                STATE.with(|state| assert!(state.borrow().is_none()));
+                let (_, metrics) = crate::test_allocation_observer::measure(|| {
+                    let mut guard = invocation("inactive");
+                    event(Site::Round, 1);
+                    let _phase = active_paid_phase(PaidPhase::CanonicalRebuild);
+                    guard.success();
+                });
+                assert!(!metrics.invalid);
+                assert_eq!(
+                    (
+                        metrics.allocations,
+                        metrics.reallocations,
+                        metrics.allocated,
+                        metrics.live
+                    ),
+                    (0, 0, 0, 0)
+                );
+                STATE.with(|state| assert!(state.borrow().is_none()));
+            })
+            .unwrap()
+            .join()
+            .unwrap();
+    }
+
     #[test]
     fn paid_phase_scopes_keep_nested_prefixes_unknown_ledgers_and_overflow_separate() {
         paid_phase_nested_ledger_prefix_cases();

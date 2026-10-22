@@ -42,6 +42,8 @@ mod compact_nodes;
 pub(super) mod copy_regions;
 mod dag_memo;
 #[cfg(test)]
+mod early_release;
+#[cfg(test)]
 mod instrumentation;
 mod storage;
 #[cfg(test)]
@@ -444,6 +446,26 @@ fn build_comparison<'hir>(
         }
         #[cfg(test)]
         instrumentation::phase(function, budget, "HIR automaton", None);
+        // Automaton labels now own every retained observation. Each explicit
+        // release pays its argument/formal and reservation-result transport.
+        #[cfg(test)]
+        early_release::frontier(0, budget);
+        budget.reserve_array::<(dag_memo::Memo, dag_memo::Memo, Result<(), Diagnostic>)>(
+            function,
+            1,
+            "factored DAG memo release transport",
+        )?;
+        drop(memo);
+        #[cfg(test)]
+        early_release::frontier(1, budget);
+        budget.reserve_array::<(Vec<SkeletonPath>, Vec<SkeletonPath>, Result<(), Diagnostic>)>(
+            function,
+            1,
+            "factored HIR paths release transport",
+        )?;
+        drop(hir_paths);
+        #[cfg(test)]
+        early_release::frontier(2, budget);
         #[cfg(test)]
         let _debit_phase = debit_routes::phase(debit_routes::Phase::PLANAutomaton);
         let plan_root = automaton.add_plan(function, success, failure, latch, budget)?;

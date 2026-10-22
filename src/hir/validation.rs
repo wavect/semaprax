@@ -2,10 +2,10 @@
 //!
 //! Validates HIR meaning; source resolution remains in
 //! the parent module.
-mod function_lookup;
-mod function_scope;
 mod continuation_frame;
 mod frame_reuse;
+mod function_lookup;
+mod function_scope;
 use continuation_frame::Frame;
 mod identity_directory;
 mod identity_insert;
@@ -1775,8 +1775,17 @@ impl<'a> HirValidator<'a> {
         allow_moves: bool,
         allowed_effects: Option<effect_keys::Allowed<'_>>,
     ) -> Result<(), Diagnostic> {
+        frame_reuse::fresh_expression_transport()?;
         frame_reuse::argument()?;
-        self.validate_expr_with_frames(function, expression, scope, path, allow_moves, allowed_effects, None)
+        self.validate_expr_with_frames(
+            function,
+            expression,
+            scope,
+            path,
+            allow_moves,
+            allowed_effects,
+            None,
+        )
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -1793,7 +1802,6 @@ impl<'a> HirValidator<'a> {
     where
         'a: 'e,
     {
-
         const { assert!(std::mem::size_of::<Frame<'static>>() <= super::VALIDATOR_FRAME_BYTES) };
         #[cfg(test)]
         lexical_exit::observe_frame_layout::<Frame<'static>>(
@@ -5519,7 +5527,10 @@ impl<'a> HirValidator<'a> {
         ))?;
         let (mut frames, mut scopes) = match scratch.as_deref_mut() {
             Some(scratch) => scratch.take()?,
-            None => (scope_checkpoint::Storage::new(), scope_checkpoint::Storage::new()),
+            None => (
+                scope_checkpoint::Storage::new(),
+                scope_checkpoint::Storage::new(),
+            ),
         };
         frames.push(Frame::Enter {
             expression,

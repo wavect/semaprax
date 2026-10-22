@@ -1,0 +1,20 @@
+{
+  "schema": "semaprax.optional-profile-tls.source-preservation.v1",
+  "before_head": "86c08798e717a47b3a7c6decb3893fe81f7508e3",
+  "source": "src/workflow_profile/plan_comparison.rs",
+  "before_sha256": "e9d4a767ee50843a099964f9cbfbd1baa47d752f5a0bce52c55f32c866884c7b",
+  "current_sha256": "4c17db3e4d81ac32f62e6c762fa4b6d2ef6df1b6a579bd146b9fd1d0c1366223",
+  "entire_state_declaration_and_initializer_unchanged": true,
+  "report_layout_and_all_row_capacities_unchanged": true,
+  "original_linux_diagnostic": {
+    "run_id": 39816691203,
+    "job_id": 119956921518,
+    "result": "SIGSEGV in lexical_exit::walk::scan; diagnostic capture only"
+  },
+  "local_focused_tests": {
+    "passed": 10,
+    "failed": 0,
+    "scope": "actual observer tests and real ledger owners; unrelated compiler test modules excluded"
+  },
+  "qualification": "local focused observation only; not complete compiler unit or full current-head CI success"
+}

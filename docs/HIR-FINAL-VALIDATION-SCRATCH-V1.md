@@ -111,7 +111,7 @@ definition and literal. Production has one expression dispatch body.
 
 The owning `hir::validation::frame_reuse` controls cover full old/current state
 and diagnostic equality, direct map publication, guarded reentry, decimal and
-repeated scalar function/contract invocations, physical allocations through Drop,
+repeated scalar function/contract invocations, cold tiny/shallow roots, physical allocations through Drop,
 exact/one-short and floor limits, and sticky retry without reacquisition. They
 are source-authored and unexecuted pending the combined focused qualification.
 No measured saving, complete funding, or application-fit claim is made here.

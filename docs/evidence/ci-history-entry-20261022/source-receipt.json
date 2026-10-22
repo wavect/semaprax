@@ -1,0 +1,11 @@
+{
+  "schema": "semaprax.ci-history-entry.v1",
+  "before_head": "dbf6fed71bec34223c8f04a7dcb72eff2c58ccb3",
+  "source": "src/source_reflows/ci_inputs.rs",
+  "before_sha256": "d81b01c9174cbbf96cc283b8116f2096dac7b2bb923fee235f77ca8c9fa26582",
+  "current_sha256": "2917a25fe51c410bd1847f3a01e38417c00e7b889d259ab11789fab4513c963b",
+  "all_original_test_bodies_byte_identical": true,
+  "finite_source_and_digest_pairs": 2,
+  "original_successor_rows_and_inverse_data_unchanged": true,
+  "qualification": "source-only exact entry projection; no full CI success claim"
+}

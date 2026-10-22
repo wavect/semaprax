@@ -1,0 +1,10 @@
+{
+  "source_head": "1a4385642bb412366957085a9b917cbbc0c60495",
+  "node_syntax_pass": true,
+  "original_overlay_tests_passed": 29,
+  "source_harness_clippy_warnings_denied": true,
+  "original_full_domain_verifier_and_six_hostile_controls_pass": true,
+  "hosted_browser_runtime": "Still required on the resulting main head; not claimed by these local source/data checks.",
+  "page_bytes": 259189,
+  "all_page_source_byte_and_work_limits_unchanged": true
+}

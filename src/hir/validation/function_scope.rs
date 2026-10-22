@@ -6,6 +6,7 @@ impl HirValidator<'_> {
         function: &ResolvedFunction,
         execution: &FunctionExecutionId,
     ) -> Result<(), Diagnostic> {
+        frame_reuse::fresh_function_transport()?;
         frame_reuse::argument()?;
         self.validate_function_with_frames(function, execution, None)
     }

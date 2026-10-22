@@ -1,0 +1,10 @@
+[
+  {
+    "domain": "hir",
+    "all_original_sources_roles_chains_chunks_and_closure_preserved": true
+  },
+  {
+    "domain": "projection",
+    "all_original_sources_roles_chains_chunks_and_closure_preserved": true
+  }
+]

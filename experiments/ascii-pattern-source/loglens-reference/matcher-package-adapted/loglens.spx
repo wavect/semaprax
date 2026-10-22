@@ -1,4 +1,7 @@
 module loglens;
+use function @id("std.int.decimal.add") from std.int.decimal as decimal_add;
+use function @id("std.int.decimal.canonicalize") from std.int.decimal as decimal_canonicalize;
+use function @id("std.int.decimal.divide") from std.int.decimal as decimal_divide;
 use type @id("std.pattern.matcher") from std.pattern as Matcher;
 use function @id("std.pattern.capture-count") from std.pattern as matcher_capture_count;
 use function @id("std.pattern.capture-end") from std.pattern as matcher_capture_end;
@@ -55,32 +58,13 @@ fn ascii(s: string, start: i64, end: i64) -> bool
 @id("loglens.add")
 fn add(a: string, b: string) -> string
 {
-    let mut i = string_len(a) - 1;
-    let mut j = string_len(b) - 1;
-    let mut carry = 0;
-    let mut out = "";
-    while i >= 0 || j >= 0 || carry > 0 {
-        let x = if i >= 0 { string_byte_at(a, i) - 48 } else { 0 };
-        let y = if j >= 0 { string_byte_at(b, j) - 48 } else { 0 };
-        let sum = x + y + carry;
-        out = string_concat(string_from_i64(sum % 10), out);
-        carry = sum / 10;
-        i = i - 1;
-        j = j - 1;
-        0
-    }
-    let mut first = 0;
-    while first + 1 < string_len(out) && string_byte_at(out, first) == 48 {
-        first = first + 1;
-        0
-    }
-    string_slice(out, first, string_len(out))
+    decimal_add(decimal_canonicalize(a), decimal_canonicalize(b))
 }
 
 @id("loglens.divide")
 fn divide(a: string, divisor: i64) -> string
 {
-    if divisor == 0 { "0" } else { let mut rem = 0; let mut i = 0; let mut out = ""; while i < string_len(a) { rem = rem * 10 + string_byte_at(a, i) - 48; let digit = rem / divisor; if digit != 0 || string_len(out) > 0 { out = string_concat(out, string_from_i64(digit)); } rem = rem % divisor; i = i + 1; 0 } if string_len(out) == 0 { "0" } else { out } }
+    if divisor == 0 { "0" } else { let denominator = string_from_i64(divisor); decimal_divide(decimal_canonicalize(a), string_as_str(denominator)) }
 }
 
 @id("loglens.usage")

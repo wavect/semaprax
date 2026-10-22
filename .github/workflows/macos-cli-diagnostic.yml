@@ -304,7 +304,18 @@ jobs:
         if: ${{ always() && inputs.loglens_refs }}
         shell: bash
         run: |
-          test -f diagnostic-opt-batch/receipt.json
+          python3 - <<'PYCODE'
+          import json,os,pathlib,subprocess
+          receipt=json.loads(pathlib.Path("diagnostic-opt-batch/receipt.json").read_text())
+          assert not receipt.get("execution_aborted"), "qualification batch aborted"
+          assert receipt.get("completed_filters")==41 and receipt.get("summary_counts_complete") is True
+          head=subprocess.check_output(["git","rev-parse","HEAD"],text=True).strip()
+          tree=subprocess.check_output(["git","rev-parse","HEAD^{tree}"],text=True).strip()
+          assert head==os.environ["GITHUB_SHA"]==receipt["head"]
+          assert tree==receipt["tree"]
+          assert receipt["final_checkout"]=={"head":head,"tree":tree}
+          subprocess.run(["git","diff","--quiet","HEAD","--"],check=True)
+          PYCODE
           cargo build --locked --offline -p semaprax --bin semaprax --jobs 1
           export SEMAPRAX_BIN="$PWD/target/hosted-opt-batch/debug/semaprax"
           export LOGLENS_SAMPLE="$PWD/benchmarks/cli-tokens-v1/sample.log"
@@ -313,6 +324,7 @@ jobs:
           binary=pathlib.Path(os.environ["SEMAPRAX_BIN"])
           head=subprocess.check_output(["git","rev-parse","HEAD"],text=True).strip()
           assert head==os.environ["GITHUB_SHA"]
+          subprocess.run(["git","diff","--quiet","HEAD","--"],check=True)
           digest=hashlib.sha256()
           with binary.open("rb") as stream:
               for chunk in iter(lambda:stream.read(65536),b""):digest.update(chunk)

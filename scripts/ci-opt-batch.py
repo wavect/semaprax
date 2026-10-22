@@ -341,7 +341,7 @@ def main() -> int:
         receipt['observed_failed_tests'] = sum(row.get('failed', 0) for row in receipt['tests'])
         receipt['filters_without_unique_summary'] = [row['index'] for row in receipt['tests']
                                                      if len(row.get('summaries', [])) != 1]
-        receipt['summary_counts_complete'] = (receipt['completed_filters'] == 40 and not receipt['filters_without_unique_summary'])
+        receipt['summary_counts_complete'] = (receipt['completed_filters'] == 41 and not receipt['filters_without_unique_summary'])
         (OUT / 'receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
         print(f'OPT batch status: {receipt["status"]}; receipts/logs: {OUT.name}', flush=True)
 

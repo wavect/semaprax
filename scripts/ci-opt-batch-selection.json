@@ -1,7 +1,7 @@
 {
   "schema": "semaprax.hosted-opt-batch-selection.v1",
-  "filters": 42,
-  "expected_tests": 85,
+  "filters": 44,
+  "expected_tests": 96,
   "commands": [
     {
       "owner": "V10 codec",
@@ -296,6 +296,20 @@
       "binary": "lib",
       "filter": "source_reflows_merge::main_e177_final_inputs::overlay_v2::fragments_v3::pins_v11::tests::",
       "exact": false
+    },
+    {
+      "owner": "OPT912 complete ordinary invocation frame reuse and exact predecessor custody",
+      "expected_tests": 10,
+      "binary": "lib",
+      "filter": "hir::validation::frame_reuse::",
+      "exact": false
+    },
+    {
+      "owner": "OPT912 publication witness unwind order",
+      "expected_tests": 1,
+      "binary": "lib",
+      "filter": "hir::validation::lexical_exit::witness_tests::invocation_reuse_unwinds_live_scopes_and_witness_before_publication_drop",
+      "exact": true
     }
   ]
 }

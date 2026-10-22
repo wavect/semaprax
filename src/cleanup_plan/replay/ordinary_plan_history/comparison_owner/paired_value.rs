@@ -314,7 +314,7 @@ pub(super) const INDEPENDENT_PRIMITIVES: usize = 8 * PAYMENT_HEADER;
 // cursor transport or sharing decisions for each interior observation. Every
 // original semantic work request remains in its original order.
 pub(super) const INDEPENDENT_RUN_SETUP: usize =
-    certified_heads::RUN_SETUP + 2 * size_of::<&[Rc<SkeletonObservation>]>() + size_of::<[usize; 8]>();
+    certified_heads::RUN_CAPTURE + 2 * size_of::<&[Rc<SkeletonObservation>]>() + size_of::<[usize; 8]>();
 pub(super) const INDEPENDENT_RUN_PAYLOAD: usize = 2 * size_of::<&Rc<SkeletonObservation>>()
     + 4 * size_of::<&[Rc<SkeletonObservation>]>()
     + 4 * size_of::<&Rc<SkeletonObservation>>()
@@ -340,6 +340,7 @@ macro_rules! independent_plan_segment_run {
             #[cfg(test)]
             $census.independent_runs();
             let paired_length = $owner.left_items.len().min($owner.right_items.len());
+            #[allow(clippy::manual_repeat_n, reason = "closed Take<Repeat<()>> invoice and independent original driver")]
             let paired_work_driver: certified_heads::SharedUnitDriver =
                 std::iter::repeat(()).take(paired_length);
             for () in paired_work_driver {

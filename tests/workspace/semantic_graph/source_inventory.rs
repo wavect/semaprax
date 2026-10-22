@@ -306,7 +306,7 @@ semantic_graph_private_layout_owned_source_inventory!(core),
         include_str!("../../src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/prepared_pairing_tests.rs"),
         include_str!("../../src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links.rs"),
         include_str!("../../src/workspace_graph/expected_projection/call_carriers_before_directory.rs"),
-        include_str!("../../src/workspace_graph/expected_projection/call_carriers_directory.rs"),
+        include_str!("../../src/workspace_graph/expected_projection/call_carriers_directory.rs"),include_str!("../../src/workspace_graph/expected_projection/call_carriers_directory/reused.rs"),
         include_str!("../../src/workspace_graph/expected_projection/call_carriers_directory_tests.rs"),
         include_str!("../../src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_identity_prefix.rs"),
         include_str!("../../src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_before_identity.rs"),
@@ -800,10 +800,10 @@ macro_rules! semantic_graph_projection_root_source_inventory {
         audit_source_join!(
         audit_source_join!(
             audit_source_join!(
-                include_str!("../../src/workspace_graph/expected_projection.rs"),include_str!("../../src/workspace_graph/expected_projection/shared_local_callees.rs"),include_str!("../../src/workspace_graph/expected_projection/shared_local_callees/before_projection.rs"),include_str!("../../src/workspace_graph/expected_projection/shared_local_callees/controls_tests.rs"),include_str!("../../src/workspace_graph/expected_projection/shared_local_callees/invoice.rs"),include_str!("../../src/workspace_graph/expected_projection/shared_local_callees/tests.rs"),include_str!("../../src/workspace_graph/expected_projection/shared_local_callees/walk.rs"),
+                include_str!("../../src/workspace_graph/expected_projection.rs"),include_str!("../../src/workspace_graph/expected_projection/shared_local_callees.rs"),include_str!("../../src/workspace_graph/expected_projection/shared_local_callees/coupled_projection.rs"),include_str!("../../src/workspace_graph/expected_projection/shared_local_callees/reuse_tests.rs"),include_str!("../../src/workspace_graph/expected_projection/shared_local_callees/reused.rs"),include_str!("../../src/workspace_graph/expected_projection/shared_local_callees/reused_controls.rs"),include_str!("../../src/workspace_graph/expected_projection/shared_local_callees/before_projection.rs"),include_str!("../../src/workspace_graph/expected_projection/shared_local_callees/controls_tests.rs"),include_str!("../../src/workspace_graph/expected_projection/shared_local_callees/invoice.rs"),include_str!("../../src/workspace_graph/expected_projection/shared_local_callees/tests.rs"),include_str!("../../src/workspace_graph/expected_projection/shared_local_callees/walk.rs"),
                 include_str!("../../src/workspace_graph/expected_projection/vec_constructor.rs"),
                 include_str!("../../src/workspace_graph/expected_projection/held_projection.rs"),
-                include_str!("../../src/workspace_graph/expected_projection/call_carriers.rs"),
+                include_str!("../../src/workspace_graph/expected_projection/call_carriers.rs"),include_str!("../../src/workspace_graph/expected_projection/call_carriers_joint.rs"),
                 include_str!("../../src/workspace_graph/expected_projection/call_carriers_tests.rs"),
                 include_str!("../../src/workspace_graph/expected_projection/call_carriers_inverse.rs"),
                 include_str!("../../src/workspace_graph/expected_projection/call_carriers_original.rs"),

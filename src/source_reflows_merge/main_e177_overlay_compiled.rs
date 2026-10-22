@@ -1,5 +1,11 @@
 pub(super) fn compiled(source: &str) -> Option<&'static str> {
     match source {
+        "src/workspace_graph/expected_projection/call_carriers_joint.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/call_carriers_joint.rs")),
+        "src/workspace_graph/expected_projection/call_carriers_directory/reused.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/call_carriers_directory/reused.rs")),
+        "src/workspace_graph/expected_projection/shared_local_callees/coupled_projection.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/shared_local_callees/coupled_projection.rs")),
+        "src/workspace_graph/expected_projection/shared_local_callees/reuse_tests.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/shared_local_callees/reuse_tests.rs")),
+        "src/workspace_graph/expected_projection/shared_local_callees/reused.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/shared_local_callees/reused.rs")),
+        "src/workspace_graph/expected_projection/shared_local_callees/reused_controls.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/shared_local_callees/reused_controls.rs")),
         "src/cleanup_plan/replay/ordinary_plan_history/completed_fork.rs" => Some(include_str!("../../src/cleanup_plan/replay/ordinary_plan_history/completed_fork.rs")),
         "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/before.rs" => Some(include_str!("../../src/cleanup_plan/replay/ordinary_plan_history/completed_fork/before.rs")),
         "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/content.rs" => Some(include_str!("../../src/cleanup_plan/replay/ordinary_plan_history/completed_fork/content.rs")),
@@ -491,6 +497,12 @@ mod tests {
             "src/cleanup_plan/replay/ordinary_plan_history/producer_view.rs",
             "src/cleanup_plan/replay/ordinary_plan_history/producer_view_tests.rs",
             "src/cleanup_plan/replay/skeleton_work/dag_storage/flat_fanout.rs",
+            "src/workspace_graph/expected_projection/call_carriers_joint.rs",
+            "src/workspace_graph/expected_projection/call_carriers_directory/reused.rs",
+            "src/workspace_graph/expected_projection/shared_local_callees/coupled_projection.rs",
+            "src/workspace_graph/expected_projection/shared_local_callees/reuse_tests.rs",
+            "src/workspace_graph/expected_projection/shared_local_callees/reused.rs",
+            "src/workspace_graph/expected_projection/shared_local_callees/reused_controls.rs",
         ] {
             let declaration = format!("    {source:?},\n");
             assert_eq!(current_scope_root.matches(&declaration).count(), 1);
@@ -589,6 +601,12 @@ mod tests {
             "src/cleanup_plan/replay/ordinary_plan_history/producer_view.rs",
             "src/cleanup_plan/replay/ordinary_plan_history/producer_view_tests.rs",
             "src/cleanup_plan/replay/skeleton_work/dag_storage/flat_fanout.rs",
+            "src/workspace_graph/expected_projection/call_carriers_joint.rs",
+            "src/workspace_graph/expected_projection/call_carriers_directory/reused.rs",
+            "src/workspace_graph/expected_projection/shared_local_callees/coupled_projection.rs",
+            "src/workspace_graph/expected_projection/shared_local_callees/reuse_tests.rs",
+            "src/workspace_graph/expected_projection/shared_local_callees/reused.rs",
+            "src/workspace_graph/expected_projection/shared_local_callees/reused_controls.rs",
         ] {
             let arm = format!("        {source:?} => Some(include_str!(\"../../{source}\")),\n");
             assert_eq!(current_scope_child.matches(&arm).count(), 1);

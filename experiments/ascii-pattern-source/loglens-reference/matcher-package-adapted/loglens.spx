@@ -128,31 +128,9 @@ fn report(top: i64, json: bool) -> i64
         0
     }
     let rate = if requests == 0 { 0 } else { ((s4 + s5) * 2000 + requests) / (requests * 2) };
-    let percent = string_concat(string_concat(string_from_i64(rate / 10), "."), string_from_i64(rate % 10));
+    let percent = string_format("{}.{}", rate / 10, rate % 10);
     let average = divide(string_slice(total, 0, string_len(total)), requests);
-    let mut out = if json { "{\"lines\":" } else { "lines: " };
-    out = string_concat(out, string_from_i64(lines));
-    out = string_concat(out, if json { ",\"requests\":" } else { "\nrequests: " });
-    out = string_concat(out, string_from_i64(requests));
-    out = string_concat(out, if json { ",\"malformed\":" } else { "\nmalformed: " });
-    out = string_concat(out, string_from_i64(lines - requests));
-    out = string_concat(out, if json { ",\"unique_ips\":" } else { "\nunique_ips: " });
-    out = string_concat(out, string_from_usize(map_len(ips)));
-    out = string_concat(out, if json { ",\"status\":{\"2xx\":" } else { "\nstatus: 2xx=" });
-    out = string_concat(out, string_from_i64(s2));
-    out = string_concat(out, if json { ",\"3xx\":" } else { " 3xx=" });
-    out = string_concat(out, string_from_i64(s3));
-    out = string_concat(out, if json { ",\"4xx\":" } else { " 4xx=" });
-    out = string_concat(out, string_from_i64(s4));
-    out = string_concat(out, if json { ",\"5xx\":" } else { " 5xx=" });
-    out = string_concat(out, string_from_i64(s5));
-    out = string_concat(out, if json { "},\"error_rate\":" } else { "\nerror_rate: " });
-    out = string_concat(out, percent);
-    out = string_concat(out, if json { ",\"bytes\":" } else { "%\nbytes: " });
-    out = string_concat(out, total);
-    out = string_concat(out, if json { ",\"avg_bytes\":" } else { "\navg_bytes: " });
-    out = string_concat(out, average);
-    out = string_concat(out, if json { ",\"top_paths\":[" } else { "\ntop_paths:\n" });
+    let mut out = if json { string_format("{{\"lines\":{},\"requests\":{},\"malformed\":{},\"unique_ips\":{},\"status\":{{\"2xx\":{},\"3xx\":{},\"4xx\":{},\"5xx\":{}}},\"error_rate\":{},\"bytes\":{},\"avg_bytes\":{},\"top_paths\":[", lines, requests, lines - requests, map_len(ips), s2, s3, s4, s5, percent, total, average) } else { string_format("lines: {}\nrequests: {}\nmalformed: {}\nunique_ips: {}\nstatus: 2xx={} 3xx={} 4xx={} 5xx={}\nerror_rate: {}%\nbytes: {}\navg_bytes: {}\ntop_paths:\n", lines, requests, lines - requests, map_len(ips), s2, s3, s4, s5, percent, total, average) };
     let mut rank = 0;
     while rank < top && rank < i64_from_usize(map_len(paths)) {
         let mut best = 0usize;
@@ -164,7 +142,7 @@ fn report(top: i64, json: bool) -> i64
         }
         let key = map_key_at(paths, best);
         let count = map_value_at(paths, best);
-        if json { if rank > 0 { out = string_concat(out, ","); } out = string_concat(out, "{\"path\":\""); out = string_concat(out, string_slice(key, 0, string_len(key))); out = string_concat(out, "\",\"count\":"); out = string_concat(out, string_from_i64(count)); out = string_concat(out, "}"); } else { out = string_concat(out, "  "); out = string_concat(out, string_from_i64(rank + 1)); out = string_concat(out, ". "); out = string_concat(out, string_slice(key, 0, string_len(key))); out = string_concat(out, " "); out = string_concat(out, string_from_i64(count)); out = string_concat(out, "\n"); }
+        if json { if rank > 0 { out = string_concat(out, ","); } out = string_format("{}{{\"path\":\"{}\",\"count\":{}}}", out, string_slice(key, 0, string_len(key)), count); } else { out = string_format("{}  {}. {} {}\n", out, rank + 1, string_slice(key, 0, string_len(key)), count); }
         paths = map_set(paths, key, -1);
         rank = rank + 1;
         0
@@ -177,13 +155,11 @@ fn report(top: i64, json: bool) -> i64
         let hour = map_key_at(hours, h);
         let count = map_value_at(hours, h);
         if count > peak { busiest = string_slice(hour, 0, string_len(hour)); peak = count; }
-        if json { if h > 0usize { out = string_concat(out, ","); } out = string_concat(out, "\""); out = string_concat(out, hour); out = string_concat(out, "\":"); out = string_concat(out, string_from_i64(count)); } else { out = string_concat(out, "  "); out = string_concat(out, hour); out = string_concat(out, " "); out = string_concat(out, string_from_i64(count)); out = string_concat(out, "\n"); }
+        if json { if h > 0usize { out = string_concat(out, ","); } out = string_format("{}\"{}\":{}", out, hour, count); } else { out = string_format("{}  {} {}\n", out, hour, count); }
         h = h + 1usize;
         0
     }
-    out = string_concat(out, if json { "},\"busiest_hour\":\"" } else { "busiest_hour: " });
-    out = string_concat(out, busiest);
-    out = string_concat(out, if json { "\"}\n" } else { "\n" });
+    out = if json { string_format("{}}},\"busiest_hour\":\"{}\"}}\n", out, busiest) } else { string_format("{}busiest_hour: {}\n", out, busiest) };
     if matcher_failed { let message = "loglens: request matcher failed\n"; let view = string_as_str(message); let written = stderr_write(str_as_bytes(view)); 1 } else { let view = string_as_str(out); let written = stdout_write(str_as_bytes(view)); 0 }
 }
 

@@ -6,19 +6,23 @@ use super::super::skeleton_work::SkeletonWork;
 use super::*;
 use crate::bounded_output::classifier_string::ClassifierLedger;
 
+#[cfg(test)]
 struct Chunk {
     previous: Option<usize>,
     items: Vec<Rc<SkeletonObservation>>,
     length: usize,
 }
+#[cfg(test)]
 struct Path {
     previous: Option<usize>,
     tail: ExprSkeletonPath,
 }
+#[cfg(test)]
 pub(super) struct Histories {
     chunks: Vec<Chunk>,
     paths: Vec<Path>,
 }
+#[cfg(test)]
 pub(super) enum Outcome {
     Unsupported(Vec<ExprSkeletonPath>),
     Complete(Histories),
@@ -26,6 +30,7 @@ pub(super) enum Outcome {
 // The entry frame covers distinct actual/formal owners and returned receivers,
 // iterators, selectors, arithmetic Options, failure and complete Drop paths.
 // Nested backing is charged separately before every allocation/replacement.
+#[cfg(test)]
 pub(super) const ENTRY: usize = 2 * size_of::<Vec<ExprSkeletonPath>>()
     + 2 * size_of::<&[&[ExprSkeletonPath]]>()
     + 2 * size_of::<&mut SkeletonWork<'static, 'static>>()
@@ -57,6 +62,7 @@ pub(super) const PAYMENT: usize = 2 * size_of::<&mut ReplayBudget>()
     + 2 * size_of::<Result<(), Diagnostic>>();
 // Renewed before constructing each owned publication, including the partial
 // owner which is dropped if any original clone/work/backing operation fails.
+#[cfg(test)]
 const PATH: usize = 2 * size_of::<Path>()
     + 2 * size_of::<ExprSkeletonPath>()
     + 2 * size_of::<Observations>()
@@ -73,6 +79,7 @@ const PATH: usize = 2 * size_of::<Path>()
     + 4 * size_of::<&mut SkeletonWork<'static, 'static>>()
     + 4 * size_of::<&str>()
     + 2 * PAYMENT;
+#[cfg(test)]
 const CHUNK: usize = 2 * size_of::<Chunk>()
     + 2 * size_of::<Vec<Rc<SkeletonObservation>>>()
     + 3 * size_of::<Option<usize>>()
@@ -82,6 +89,7 @@ const CHUNK: usize = 2 * size_of::<Chunk>()
 
 // The caller acquires new actual/formal/Result owners before their formation.
 // A private macro keeps input evaluation and owned moves after that payment.
+#[cfg(test)]
 #[allow(
     unused_macros,
     reason = "closed producer awaits shipping expression plumbing"
@@ -99,12 +107,14 @@ macro_rules! produce {
         )
     }};
 }
+#[cfg(test)]
 #[allow(
     unused_imports,
     reason = "closed producer awaits shipping expression plumbing"
 )]
 pub(super) use produce;
 
+#[cfg(test)]
 pub(super) fn produce_prepaid(
     prefixes: Vec<ExprSkeletonPath>,
     forks: &[&[ExprSkeletonPath]],
@@ -318,6 +328,7 @@ pub(super) fn produce_prepaid(
 #[cfg(test)]
 #[rustfmt::skip]
 mod before;
+#[cfg(test)]
 mod content;
 #[cfg(test)]
 mod tests;

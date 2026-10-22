@@ -1,7 +1,7 @@
 {
   "schema": "semaprax.hosted-opt-batch-selection.v1",
-  "filters": 40,
-  "expected_tests": 74,
+  "filters": 48,
+  "expected_tests": 114,
   "commands": [
     {
       "owner": "OPT899 unchanged default owning controls",
@@ -282,6 +282,62 @@
       "filter": "cleanup_plan::replay::expression_facts::receiving::retained::case_certified::lookup_tests::complete_caller_success_and_refusal_drop_remain_observed_at_unchanged_cap",
       "exact": true,
       "expected_tests": 1
+    },
+    {
+      "owner": "OPT898 flat fanout prefix sharing and complete old source controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::skeleton_work::dag_storage::flat_fanout::",
+      "exact": false,
+      "expected_tests": 5
+    },
+    {
+      "owner": "OPT899 complete history prototype retention controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::completed_fork::tests::",
+      "exact": false,
+      "expected_tests": 6
+    },
+    {
+      "owner": "OPT899 shipping HIR history emitter owning controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::tests::",
+      "exact": false,
+      "expected_tests": 5
+    },
+    {
+      "owner": "OPT899 whole public and funded HIR/PLAN callers including nested call arguments",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::whole_tests::",
+      "exact": false,
+      "expected_tests": 7
+    },
+    {
+      "owner": "OPT899 independent fresh PLAN history loans",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::producer::view::tests::",
+      "exact": false,
+      "expected_tests": 4
+    },
+    {
+      "owner": "OPT899 fresh PLAN original comparator handoff",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::producer::view::joint_tests::",
+      "exact": false,
+      "expected_tests": 3
+    },
+    {
+      "owner": "OPT916 joint traversal actual shipping path and both complete predecessors",
+      "binary": "lib",
+      "filter": "workspace_graph::expected_projection::call_carriers::joint::tests::",
+      "exact": false,
+      "expected_tests": 7
+    },
+    {
+      "owner": "OPT916 separate callee certificate constructor and lender controls",
+      "binary": "lib",
+      "filter": "workspace_graph::expected_projection::shared_local_callees::reused::tests::",
+      "exact": false,
+      "expected_tests": 3
     }
   ]
 }

@@ -16,7 +16,7 @@ import time
 ROOT = Path(__file__).resolve().parents[1]
 SELECTIONS = {
     'historical': ('ci-opt-batch-selection.json', 50, 153, ('lib', 'hir_module_boundaries')),
-    'next': ('ci-opt-next-batch-selection.json', 40, 74, ('lib', 'owned_data', 'cli', 'project')),
+    'next': ('ci-opt-next-batch-selection.json', 48, 114, ('lib', 'owned_data', 'cli', 'project')),
 }
 OUT = ROOT / 'diagnostic-opt-batch'
 TARGET = ROOT / 'target/hosted-opt-batch'

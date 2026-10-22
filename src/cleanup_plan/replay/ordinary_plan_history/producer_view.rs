@@ -185,10 +185,6 @@ pub(in crate::cleanup_plan::replay::ordinary_plan_history) fn terminal(
     cursor.path.terminal
 }
 
-#[cfg(test)]
-#[path = "producer_view_tests.rs"]
-mod tests;
-
 /// Consume the fresh owner through the original sorter and complete HIR reader.
 /// Expected paths are finalized and content-sorted by their original HIR owner;
 /// this function never interprets a representation marker as equality evidence.
@@ -211,6 +207,10 @@ pub(in crate::cleanup_plan::replay::ordinary_plan_history) fn compare(
     }
     super::super::compare(produced.function, budget, produced.set, expected)
 }
+
+#[cfg(test)]
+#[path = "producer_view_tests.rs"]
+mod tests;
 
 #[cfg(test)]
 #[path = "producer_joint_tests.rs"]

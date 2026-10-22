@@ -1,5 +1,6 @@
 //! Test-only fixed observation buffer. It cannot inject or authorize a debit.
 use std::cell::RefCell;
+use std::sync::{Mutex, MutexGuard};
 #[derive(Clone, Copy, Debug)]
 pub(super) struct Event {
     pub phase: &'static str,
@@ -21,11 +22,23 @@ struct Trace {
     swaps: usize,
     events: [Event; 4096],
 }
+// The fixed test buffer has no heap backing and occupies no thread stack/TLS
+// payload. Explicit observations serialize; inactive compiler callbacks never
+// acquire this mutex. A thread retains its lease so repeated finish calls keep
+// their original complete snapshot. TLS destruction releases the lease.
+static STORAGE: Mutex<Trace> = Mutex::new(Trace {
+    enabled: false,
+    count: 0,
+    pending: None,
+    swaps_only: false,
+    swaps: 0,
+    events: [EMPTY; 4096],
+});
 thread_local! {
-    static TRACE: RefCell<Trace> = const { RefCell::new(Trace { enabled: false, count: 0, pending: None, swaps_only: false, swaps: 0, events: [EMPTY; 4096] }) };
+    static TRACE: RefCell<Option<MutexGuard<'static, Trace>>> = const { RefCell::new(None) };
 }
-// The fixed TLS buffer has no heap backing. Warm thread-local access before
-// measurements when a caller already has an explicit preparation boundary.
+// Warm only the allocation-free thread-bound lease carrier. The entire fixed
+// backing already exists; neither preparation nor first reset allocates.
 pub(super) fn prepare() {
     TRACE.with(|_| {});
     super::comparison_owner::pair_scope_census::prepare();
@@ -44,7 +57,17 @@ pub(super) fn reset_swaps() {
 }
 fn reset_mode(swaps_only: bool) {
     TRACE.with(|trace| {
-        let mut t = trace.borrow_mut();
+        let mut lease = trace.borrow_mut();
+        if lease.is_none() {
+            // A prior observer panic cannot authorize stale events: reset below
+            // overwrites every live control before enabling a new observation.
+            *lease = Some(
+                STORAGE
+                    .lock()
+                    .unwrap_or_else(std::sync::PoisonError::into_inner),
+            );
+        }
+        let t = lease.as_deref_mut().unwrap();
         assert_eq!(
             t.events.len(),
             4096,
@@ -59,7 +82,10 @@ fn reset_mode(swaps_only: bool) {
 }
 pub(super) fn before(phase: &'static str) {
     TRACE.with(|trace| {
-        let mut t = trace.borrow_mut();
+        let mut lease = trace.borrow_mut();
+        let Some(t) = lease.as_deref_mut() else {
+            return;
+        };
         if !t.enabled {
             return;
         }
@@ -87,7 +113,10 @@ pub(super) fn before(phase: &'static str) {
 }
 pub(super) fn after() {
     TRACE.with(|trace| {
-        let mut t = trace.borrow_mut();
+        let mut lease = trace.borrow_mut();
+        let Some(t) = lease.as_deref_mut() else {
+            return;
+        };
         if t.enabled {
             if let Some(index) = t.pending {
                 t.events[index].after = Some(consumed());
@@ -97,7 +126,10 @@ pub(super) fn after() {
 }
 pub(super) fn swapped() {
     TRACE.with(|trace| {
-        let mut t = trace.borrow_mut();
+        let mut lease = trace.borrow_mut();
+        let Some(t) = lease.as_deref_mut() else {
+            return;
+        };
         if t.enabled {
             t.swaps += 1;
         }
@@ -105,7 +137,10 @@ pub(super) fn swapped() {
 }
 pub(super) fn finish() -> Vec<Event> {
     TRACE.with(|trace| {
-        let mut t = trace.borrow_mut();
+        let mut lease = trace.borrow_mut();
+        let Some(t) = lease.as_deref_mut() else {
+            return Vec::new();
+        };
         t.enabled = false;
         t.events[..t.count].to_vec()
     })

@@ -14,8 +14,8 @@
     },
     {
       "path": "src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs",
-      "sha256": "d3fceae648fa9cd0d1e7c6da947075f912731bb74f72f28f9341cae94c43f957",
-      "lines": 219
+      "sha256": "4d9b686be048b16ae777c5990227c1afb97a166f583757dbddc11989b5ac1f01",
+      "lines": 254
     },
     {
       "path": "src/cleanup_plan/replay/ordinary_plan_history/owned_tests.rs",

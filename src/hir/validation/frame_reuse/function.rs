@@ -2,7 +2,7 @@
 use super::super::function_scope::lifecycle;
 use super::super::*;
 impl<'a> HirValidator<'a> {
-    pub(in crate::hir) fn validate_function_with_frames<'e>(
+    pub(in crate::hir::validation) fn validate_function_with_frames<'e>(
         &mut self,
         function: &'e ResolvedFunction,
         execution: &FunctionExecutionId,

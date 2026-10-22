@@ -13,6 +13,16 @@ fn restore(current: &str, receiver: &str) -> String {
         hash(current),
         binding["root_current_sha256"].as_str().unwrap()
     );
+    // Enter the unchanged receiver epoch through its exact visibility inverse.
+    let ingress = &binding["receiver_visibility"];
+    assert_eq!(receiver.len() as u64, ingress["current_length"].as_u64().unwrap());
+    assert_eq!(hash(receiver), ingress["current_sha256"].as_str().unwrap());
+    let after = ingress["after"].as_str().unwrap();
+    assert_eq!(receiver.matches(after).count(), 1);
+    let receiver_before = receiver.replacen(after, ingress["before"].as_str().unwrap(), 1);
+    assert_eq!(receiver_before.len() as u64, ingress["before_length"].as_u64().unwrap());
+    assert_eq!(hash(&receiver_before), ingress["before_sha256"].as_str().unwrap());
+    let receiver = receiver_before.as_str();
     assert_eq!(
         hash(receiver),
         binding["receiver_current_sha256"].as_str().unwrap()

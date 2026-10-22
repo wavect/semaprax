@@ -1,0 +1,15 @@
+{
+  "schema": "semaprax.frontier-tls.source-preservation.v1",
+  "before_head": "5cc182b20acd116402ba824eea2e00b0b6454710",
+  "source": "src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs",
+  "before_sha256": "f6631dae5796aba642c9a9b294a0479ff45e984856ae836591e563888cae9dba",
+  "current_sha256": "862cf4a52ff621fb42e443be130c68ca23ebe60be46ee6ba46def5deb020a22c",
+  "complete_event_and_trace_declarations_unchanged": true,
+  "original_fresh_thread_zero_allocation_and_full_capacity_test_body_unchanged": true,
+  "local_focused_tests": {
+    "passed": 3,
+    "failed": 0
+  },
+  "prior_actual_linux_tls_bytes": 234864,
+  "qualification": "private test instrumentation; source and focused runtime checks only; not full current-head CI success"
+}

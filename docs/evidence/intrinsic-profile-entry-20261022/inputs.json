@@ -1,0 +1,22 @@
+[
+  {
+    "source": "src/list_ops.rs",
+    "current_length": 12033,
+    "current_sha256": "eaf364364d29ea595520b8390a195ddd947a9caab5969b5c86cf1cf6c1923ab2",
+    "before_length": 12025,
+    "before_sha256": "7d4f64eec5df314812d064f9a14dfaad3f85dca579a7d4f4941c16028ad746fe",
+    "archive": "docs/evidence/intrinsic-profile-entry-20261022/7d4f64eec5df314812d064f9a14dfaad3f85dca579a7d4f4941c16028ad746fe.txt",
+    "after": "program.functions().profile_iter().any(function_uses)",
+    "before": "program.functions().iter().any(function_uses)"
+  },
+  {
+    "source": "src/iterator_ops.rs",
+    "current_length": 18717,
+    "current_sha256": "dc672b05a80a67c565e58d13e1c60ec2c3e9ad8a7b1d3828378c376f0a47c391",
+    "before_length": 18651,
+    "before_sha256": "6a9bd6dfb76df8707e5cd21ddd4e0ec85b0248cfc1834645c14824d11d775b16",
+    "archive": "docs/evidence/intrinsic-profile-entry-20261022/6a9bd6dfb76df8707e5cd21ddd4e0ec85b0248cfc1834645c14824d11d775b16.txt",
+    "after": "program\n        .functions()\n        .profile_iter()\n        .any(|function| uses_function(function.payload()))",
+    "before": "program.functions().iter().any(uses_function)"
+  }
+]

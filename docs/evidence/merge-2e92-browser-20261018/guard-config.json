@@ -750,7 +750,7 @@
     },
     "src/source_reflows_merge/main_e177_overlay_v2.rs": {
       "length": 71422,
-      "sha256": "56effdcc88dccec416fdc9ac0fe065516f61c51131bd6217bc38518c91bfcf88"
+      "sha256": "fc2f49701c14930da75ba4e8892f208d1fc06914d4c3cf44b4d110cee3a08c4b"
     },
     "src/string_ops/conditions/funded_receiving.rs": {
       "length": 1017,
@@ -1461,16 +1461,16 @@
       "sha256": "2cf5ab2bc4bf5a0e09218b926209a109e4d3d132ea0d2d2198383f685fe65af2"
     },
     "src/hir/validation/frame_reuse/function.rs": {
-      "length": 10327,
-      "sha256": "1d6af02d299e2a93ef68aa2089972a3460c51da3dd85b841e8bb339225a4c3c0"
+      "length": 10339,
+      "sha256": "906509cf3a5a03b5c5c526a3fba38184e7e608a2dd6c2f359b6c4cbd0c2ab151"
     },
     "src/hir/validation/frame_reuse/function_before.rs": {
       "length": 10010,
       "sha256": "a817300bd68181c86d4380a02d2d0a1d64453065848293823dd155375b6da1e4"
     },
     "src/hir/validation/frame_reuse/source_inverse.rs": {
-      "length": 8731,
-      "sha256": "4c59b56a4109fa35cafa203733e8f9d92b9ba9dfc02a0c87d2b471a6745ef234"
+      "length": 9438,
+      "sha256": "3b9f764b83a7c4c014aa4d868c90527f4d1d81351cd9e69c1da3d37f283ed002"
     },
     "src/hir/validation/frame_reuse/tests.rs": {
       "length": 13594,

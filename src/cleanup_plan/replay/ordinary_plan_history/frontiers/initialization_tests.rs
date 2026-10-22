@@ -78,3 +78,61 @@ pub(super) fn check_initial_reset_without_heap_allocation() {
 fn fresh_thread_trace_is_ready_without_prepare_and_keeps_exact_capacity() {
     check_initial_reset_without_heap_allocation();
 }
+
+#[test]
+fn inactive_frontier_callbacks_on_a_small_stack_allocate_nothing_and_take_no_lease() {
+    std::thread::Builder::new()
+        .stack_size(128 * 1024)
+        .spawn(|| {
+            let (_, metrics) = crate::test_allocation_observer::measure(|| {
+                before("inactive");
+                after();
+                swapped();
+            });
+            assert!(!metrics.invalid);
+            assert_eq!(
+                (
+                    metrics.allocations,
+                    metrics.reallocations,
+                    metrics.allocated
+                ),
+                (0, 0, 0)
+            );
+            TRACE.with(|trace| assert!(trace.borrow().is_none()));
+        })
+        .unwrap()
+        .join()
+        .unwrap();
+}
+
+#[test]
+fn a_foreign_inactive_thread_cannot_change_the_held_trace_or_repeated_snapshot() {
+    std::thread::spawn(|| {
+        crate::bounded_output::with_limit_usage_refusal(1, || {
+            reset();
+            before("owner first");
+            after();
+            std::thread::spawn(|| {
+                before("foreign");
+                after();
+                swapped();
+                assert!(finish().is_empty());
+            })
+            .join()
+            .unwrap();
+            before("owner second");
+            after();
+            for _ in 0..2 {
+                let events = finish();
+                assert_eq!(events.len(), 2);
+                assert_eq!(events[0].phase, "owner first");
+                assert_eq!(events[1].phase, "owner second");
+                assert!(events
+                    .iter()
+                    .all(|event| event.swaps == 0 && event.before == 0 && event.after == Some(0)));
+            }
+        });
+    })
+    .join()
+    .unwrap();
+}

@@ -1,0 +1,10 @@
+{
+  "schema": "semaprax.paid-constructor-entry.v1",
+  "before_head": "3f6ca633a8d345a7c81567441dffcd4972c992d1",
+  "source": "src/source_reflows/ci_inputs.rs",
+  "before_sha256": "a74888bbf95398f217ebf2ffaf27a23ced687f614889d2f69f9d405bfe3a7c9c",
+  "current_sha256": "0ac5dc6c11a0da4942aee095c15a0023f5868213754041484477982ab1e2f37e",
+  "complete_original_production_fixtures_reconstruct": true,
+  "original_paid_audit_comparison_and_inverse_bodies_unchanged": true,
+  "qualification": "actual source helpers; focused source-only execution; no full CI claim"
+}

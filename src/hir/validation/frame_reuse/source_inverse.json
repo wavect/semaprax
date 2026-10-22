@@ -1051,9 +1051,17 @@
     "src/hir/validation/frame_reuse/contracts.rs": "4a17e8336807e8e68c330b86358cdfcc047e70c87f4631658bad8fd87d531c0e",
     "src/hir/validation/frame_reuse/contracts_before.rs": "e0bb70ccfbbd6968ca6b1fe287792c9b0553fed97957c4b5bba72242e0118886",
     "src/hir/validation/frame_reuse/custody.rs": "2cf5ab2bc4bf5a0e09218b926209a109e4d3d132ea0d2d2198383f685fe65af2",
-    "src/hir/validation/frame_reuse/function.rs": "1d6af02d299e2a93ef68aa2089972a3460c51da3dd85b841e8bb339225a4c3c0",
+    "src/hir/validation/frame_reuse/function.rs": "906509cf3a5a03b5c5c526a3fba38184e7e608a2dd6c2f359b6c4cbd0c2ab151",
     "src/hir/validation/frame_reuse/function_before.rs": "a817300bd68181c86d4380a02d2d0a1d64453065848293823dd155375b6da1e4",
-    "src/hir/validation/frame_reuse/source_inverse.rs": "4c59b56a4109fa35cafa203733e8f9d92b9ba9dfc02a0c87d2b471a6745ef234",
+    "src/hir/validation/frame_reuse/source_inverse.rs": "3b9f764b83a7c4c014aa4d868c90527f4d1d81351cd9e69c1da3d37f283ed002",
     "src/hir/validation/frame_reuse/tests.rs": "2d874d35d5139662abf9a10e0fe45abbd666136349eae390220f134da2c8ebc9"
+  },
+  "receiver_visibility": {
+    "current_length": 10339,
+    "current_sha256": "906509cf3a5a03b5c5c526a3fba38184e7e608a2dd6c2f359b6c4cbd0c2ab151",
+    "before_length": 10327,
+    "before_sha256": "1d6af02d299e2a93ef68aa2089972a3460c51da3dd85b841e8bb339225a4c3c0",
+    "after": "    pub(in crate::hir::validation) fn validate_function_with_frames",
+    "before": "    pub(in crate::hir) fn validate_function_with_frames"
   }
 }

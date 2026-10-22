@@ -127,6 +127,10 @@ fn restore_formatting(record: &serde_json::Value, current: &str) -> String {
     restored
 }
 
+pub(crate) fn lifecycle_visibility_input(source: &str, current: &str) -> String {
+    ci_inputs::lifecycle_visibility_entry(source, current).expect("closed lifecycle source domain")
+}
+
 pub(crate) fn source(
     caller: &'static str,
     included: &'static str,
@@ -134,21 +138,24 @@ pub(crate) fn source(
 ) -> &'static str {
     let path = logical_path(caller, included);
     let record = records().iter().find(|record| record["path"] == path);
-    if record.is_none() && !semantic_receivers::contains(&path) {
+    let entry = ci_inputs::intrinsic_profile_entry(caller, &path, current)
+        .or_else(|| ci_inputs::lifecycle_visibility_entry(&path, current));
+    if record.is_none() && !semantic_receivers::contains(&path) && entry.is_none() {
         return current;
     }
     cached_source(
         CACHE.get_or_init(Mutex::default),
         (caller, included),
         || {
-            let predecessor = semantic_receivers::predecessor(&path, current);
-            let current = predecessor.as_deref().unwrap_or(current);
+            let projection_input = entry.as_deref().unwrap_or(current);
+            let predecessor = semantic_receivers::predecessor(&path, projection_input);
+            let current = predecessor.as_deref().unwrap_or(projection_input);
             // One bounded fixture allocation per included file, retained only for
             // this test process. This helper is absent from production builds.
             match record {
                 Some(record) if predecessor.is_some() => restore_formatting(record, current),
                 Some(record) => restore(record, current),
-                None => predecessor.unwrap(),
+                None => predecessor.unwrap_or_else(|| projection_input.to_owned()),
             }
         },
     )

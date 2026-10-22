@@ -1,0 +1,20 @@
+[
+  {
+    "source": "src/hir/function_directory/caller.rs",
+    "current_length": 4600,
+    "current_sha256": "63c8121f756943b8be3cfa53a0c4862459c7af14c3ef3124b75468546a42af35",
+    "view_length": 4373,
+    "view_sha256": "217896ad2e11c8bcbdfde236ec29a9cc1c00da142c9c18968a6015b79451127a",
+    "archive": "docs/evidence/paid-constructor-entry-20261022/217896ad2e11c8bcbdfde236ec29a9cc1c00da142c9c18968a6015b79451127a.txt",
+    "whole_original_preflight_fixture_reconstruction_equal": true
+  },
+  {
+    "source": "src/stdin_stream_ops.rs",
+    "current_length": 17324,
+    "current_sha256": "5c216d1345d20face39f0e07ac9554c2d659b0a171fcf0cbb33dd60684961836",
+    "view_length": 17268,
+    "view_sha256": "bc1e107b8756db7b323000b0d282b731db08b06b29b21ca9a3e86bb6366bef97",
+    "archive": "docs/evidence/paid-constructor-entry-20261022/bc1e107b8756db7b323000b0d282b731db08b06b29b21ca9a3e86bb6366bef97.txt",
+    "whole_original_stdin_fixture_reconstruction_equal": true
+  }
+]

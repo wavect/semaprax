@@ -1,0 +1,12 @@
+[
+  {
+    "source": "src/hir/validation/constructor_seed/intrinsic_tests.rs",
+    "name": "complete_intrinsic_sources_and_saved_constructor_dispatch_reconstruct_every_original_byte",
+    "original_complete_function_sha256": "c2c2cf3ecdc582c414552d90abb4b0eb71fd380d6c56d13b890e0aa9acd0b610"
+  },
+  {
+    "source": "src/hir/validation/constructor_seed/intrinsic_tests.rs",
+    "name": "corrective_controllers_reconstruct_complete_original_sources",
+    "original_complete_function_sha256": "4868b1b390611c03d48d8fbf69dc6f844f2766676ea70e746ea49ca081838b3e"
+  }
+]

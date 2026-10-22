@@ -53,6 +53,11 @@ pub fn signature(function: &ResolvedFunction) -> Option<ResolvedType> {
     })
 }
 pub(crate) fn walk<'a>(function: &'a ResolvedFunction, mut visit: impl FnMut(&'a ResolvedExpr)) {
+    walk_with(function, &mut visit);
+}
+
+#[inline(never)]
+fn walk_with<'a>(function: &'a ResolvedFunction, visit: &mut dyn FnMut(&'a ResolvedExpr)) {
     let mut pending = function
         .requires
         .iter()

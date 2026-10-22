@@ -73,6 +73,7 @@ pub(super) const REPLACEMENTS: &[&str] = &[
     "src/diagnostic/before_writer.rs",
     "src/hir/declaration_index/identity_payer.rs",
     "src/hir/expr_nodes.rs",
+    "src/hir/function_value.rs",
     "src/hir/ids/fixed_operation_tests.rs",
     "src/hir/lexical_exit.rs",
     "src/hir/resolve_program.rs",
@@ -343,8 +344,8 @@ pub(super) const ADDITIONS: &[&str] = &[
 ];
 const POLICY_PATH: &str = "docs/evidence/finite-source-overlay-v2-20261018/policy.json";
 const PAGE_PATH: &str = "docs/evidence/finite-source-overlay-v2-20261018/page.json";
-const POLICY_LENGTH: usize = 114246; // Filled from the complete literal policy below.
-const POLICY_SHA256: &str = "5d2b976941380e81ac5f4085725bc270365e03ddf863b9c427060dced7ab2531";
+const POLICY_LENGTH: usize = 114274; // Filled from the complete literal policy below.
+const POLICY_SHA256: &str = "c28b72da442d8a6ee10bb88f2e1e283d31094a4aac2983ab4a019a7d3dbc7e51";
 const EXTENSION_PATH: &str = "docs/evidence/fmt-local-441-20261018/extension.json";
 const EXTENSION_LENGTH: usize = 262076;
 const EXTENSION_SHA256: &str = "2af7299253e5cfb027186ba4fc151011a937214ff381c9267bfc11ef7d0003b6";

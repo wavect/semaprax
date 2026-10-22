@@ -287,6 +287,16 @@ fn actual_entry_and_box_layout_inventory_and_complete_main_receiver_sources_are_
     use sha2::{Digest, Sha256};
     for (source, raw) in sources {
         let current = crate::source_reflows_merge::boxed849_input(source, raw);
+        if source.ends_with("/boxed_states.rs") {
+            let mut drifted = raw.to_owned();
+            drifted.push(' ');
+            assert!(
+                std::panic::catch_unwind(|| crate::source_reflows_merge::boxed849_input(
+                    source, &drifted
+                ))
+                .is_err()
+            );
+        }
         let row = rows["rows"]
             .as_array()
             .unwrap()

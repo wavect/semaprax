@@ -19,7 +19,8 @@ const SCALAR: &str = r#"module selected.schema.family;
 @id("family.fill") fn fill(data:own Bytes)->Bytes {data}
 @id("family.bytes") fn bytes()->i64 {
  let data=fill(bytes_zeroed(1usize));
- if byte_len(bytes_as_slice(data))==1usize {7}else{0}
+ return if byte_len(bytes_as_slice(data))==1usize {7}else{0};
+ 0
 }
 "#;
 fn program(source: &str) -> ResolvedProgram {
@@ -38,7 +39,8 @@ fn owner_cost(
     function: &ResolvedFunction,
     old: bool,
 ) -> (Result<(), Diagnostic>, usize, usize) {
-    let lexical = function.cleanup_plan.lexical_control.is_some();
+    let lexical = crate::hir::lexical_exit::requires(function)
+        .expect("genuine checked HIR lexical classification");
     let mut budget = ReplayBudget::with_physical(function, LIMIT).unwrap();
     let initial = budget.remaining;
     let context = match selected_context::Context::new_paid(source, function, &mut budget, lexical)
@@ -145,3 +147,9 @@ mod renewal;
 
 mod lookup;
 mod strings;
+
+// Compile the complete existing preflight owner without changing its bytes.
+// Nonlexical ordinary replay preflights before the selected scalar profile;
+// these intentionally distinct entry routes retain their own first refusal.
+#[path = "../../../cfg_bounds/tests/old.rs"]
+mod ordinary_cfg_before;

@@ -9,7 +9,8 @@ const SOURCE: &str = r#"module test.byte_renewal;
   index=index+1usize;
   0
  }
- if byte_len(bytes_as_slice(buffer))==2usize && byte_len(bytes_as_slice(untouched))==1usize {7}else{0}
+ return if byte_len(bytes_as_slice(buffer))==2usize && byte_len(bytes_as_slice(untouched))==1usize {7}else{0};
+ 0
 }
 "#;
 #[test]

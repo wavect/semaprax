@@ -20,7 +20,7 @@ mod runtime_json;
 pub(crate) use runtime_json::{receiver_fixture, receiver_fixture_source_before, ReceiverFixture};
 // The final compositor authenticates its raw view at this independent owner front.
 pub(crate) fn boxed849_input(source: &str, current: &str) -> String {
-    let compile_fixed = compile_fixture_input(source, current);
+    let compile_fixed = metadata_json::boxed_inputs::input(source, current);
     let current = compile_fixed.as_str();
     let qualified = metadata_json::project(metadata_json::Fixture::M00, source, current);
     let current = qualified.as_str();

@@ -55,6 +55,20 @@ const CURSOR_NEXT_CALL: usize = 2 * size_of::<&mut Cursor>()
     + 2 * size_of::<&mut ReplayBudget>()
     + size_of::<Result<Option<&SkeletonObservation>, Diagnostic>>()
     + size_of::<Option<&SkeletonObservation>>();
+// Ownership transfers once into the original complete-content comparator.
+// Produced actual/formal, expected slice actual/formal, budget reborrow and
+// returned/received Result are independent of the original HistorySet packet.
+pub(in crate::cleanup_plan::replay::ordinary_plan_history) const COMPARE_CALL: usize = 2
+    * size_of::<Produced<'static>>()
+    + 2 * size_of::<&[SkeletonPath]>()
+    + 2 * size_of::<&mut ReplayBudget>()
+    + 2 * size_of::<&ResolvedFunction>()
+    + 2 * size_of::<Result<(), Diagnostic>>();
+const COMPARE_BODY: usize = COMPARE_CALL_CONTROLS
+    + ELIGIBLE_CALL_CONTROLS
+    + size_of::<bool>()
+    + size_of::<Result<(), Diagnostic>>()
+    + 2 * PAYMENT;
 const PAYMENT: usize = 2 * size_of::<&mut ReplayBudget>()
     + 2 * size_of::<&ResolvedFunction>()
     + 2 * size_of::<usize>()
@@ -174,3 +188,30 @@ pub(in crate::cleanup_plan::replay::ordinary_plan_history) fn terminal(
 #[cfg(test)]
 #[path = "producer_view_tests.rs"]
 mod tests;
+
+/// Consume the fresh owner through the original sorter and complete HIR reader.
+/// Expected paths are finalized and content-sorted by their original HIR owner;
+/// this function never interprets a representation marker as equality evidence.
+pub(in crate::cleanup_plan::replay::ordinary_plan_history) fn compare(
+    produced: Produced<'_>,
+    expected: &[SkeletonPath],
+    budget: &mut ReplayBudget,
+) -> Result<(), Diagnostic> {
+    paid!(
+        budget,
+        produced.function,
+        COMPARE_BODY,
+        "fresh PLAN comparison receivers"
+    )?;
+    if !super::admission::eligible(produced.function, budget) {
+        return Err(replay_error(
+            produced.function,
+            "fresh PLAN comparison requires its ordinary caller",
+        ));
+    }
+    super::super::compare(produced.function, budget, produced.set, expected)
+}
+
+#[cfg(test)]
+#[path = "producer_joint_tests.rs"]
+mod joint_tests;

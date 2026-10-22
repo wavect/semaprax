@@ -1,0 +1,126 @@
+{
+  "schema": "semaprax.hosted-opt-batch-selection.v1",
+  "filters": 17,
+  "expected_tests": 49,
+  "commands": [
+    {
+      "owner": "OPT899 unchanged default owning controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::shared_prefix_tests::shared_identity_replay_preserves_every_work_cut_six_fields_remaining_and_swaps",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT899 unchanged default owning controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::shared_prefix_tests::shared_identity_replay_has_exact_complete_cold_hot_invoices_and_actual_k",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT899 unchanged default owning controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::shared_prefix_tests::shared_identity_replay_every_new_acquisition_exact_short_zero_floor_and_sticky_drop",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT899 unchanged default owning controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::shared_prefix_tests::shared_identity_replay_real_producer_and_both_hir_representations_keep_complete_result",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT899 unchanged default owning controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::shared_prefix_tests::shared_identity_replay_retains_complete_immediate_sources_and_original_invoices",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT899 unchanged default owning controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::shared_prefix_tests::shared_identity_replay_typed_oracle_missing_foreign_and_restored_scope_keeps_ambient_unspent",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT899 unchanged default owning controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::shared_prefix_tests::shared_identity_replay_unwind_drops_live_remainder_and_marks_only_reached_prefix",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT907 unchanged default owning controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::shared_prefix_tests::certified_head_tests::final_affine_tests::affine_final_hir_keeps_complete_immediate_both_routes_cold_hot_and_actual_typed_invoices",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT907 unchanged default owning controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::shared_prefix_tests::certified_head_tests::final_affine_tests::affine_final_hir_keeps_all_original_work_cuts_malformed_six_fields_and_swaps",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT907 unchanged default owning controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::shared_prefix_tests::certified_head_tests::final_affine_tests::affine_final_hir_actual_banks_keep_exact_short_zero_floor_sticky_and_full_drop",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT907 unchanged default owning controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::shared_prefix_tests::certified_head_tests::final_affine_tests::affine_final_hir_retains_independent_content_exhaustion_and_terminal_mismatches_and_cold_loss",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT907 unchanged default owning controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::shared_prefix_tests::certified_head_tests::final_affine_tests::affine_final_hir_keeps_typed_foreign_restored_authority_and_unwind_full_drop",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT907 unchanged default owning controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::shared_prefix_tests::certified_head_tests::final_affine_tests::affine_final_hir_preserves_entire_immediate_comparator_four_macros_and_all_old_source_guards",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT915 compact lexical receiving complete immediate-old caller",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::factored::strategy::compact_receiving::tests::",
+      "exact": false,
+      "expected_tests": 4
+    },
+    {
+      "owner": "OPT916 shared local callee certificate and full predecessor forecast",
+      "binary": "lib",
+      "filter": "workspace_graph::expected_projection::shared_local_callees::tests::",
+      "exact": false,
+      "expected_tests": 10
+    },
+    {
+      "owner": "OPT729 nested outcome complete existing owner and boundary controls",
+      "binary": "owned_data",
+      "filter": "owned_nested_outcome::",
+      "exact": false,
+      "expected_tests": 6
+    },
+    {
+      "owner": "OPT775 borrowed row traversal complete existing owner and boundary controls",
+      "binary": "owned_data",
+      "filter": "owned_leaf_vec::record_traversal::",
+      "exact": false,
+      "expected_tests": 16
+    }
+  ]
+}

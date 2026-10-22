@@ -23,10 +23,18 @@ on:
         required: false
         default: false
       opt_batch:
-        description: Run the bounded 50-filter OPT qualification batch and production Clippy on Linux
+        description: Run the selected bounded OPT qualification batch and production Clippy on Linux
         type: boolean
         required: false
         default: false
+      opt_batch_selection:
+        description: OPT profile (historical 50/153 or next 17/49); requires opt_batch
+        type: choice
+        required: false
+        default: historical
+        options:
+          - historical
+          - next
       loglens_refs:
         description: Also run the unchanged CLI49 reference checks with the freshly built compiler (no agent campaign)
         type: boolean
@@ -301,7 +309,7 @@ jobs:
           retention-days: 1
 
   opt-batch:
-    name: Focused OPT qualification (50 filters / 153 tests)
+    name: Focused OPT qualification (${{ inputs.opt_batch_selection == 'next' && '17 filters / 49 tests' || '50 filters / 153 tests' }})
     if: inputs.opt_batch
     runs-on: ubuntu-24.04
     timeout-minutes: 240
@@ -344,17 +352,32 @@ jobs:
           test -x "$opt_archiver"
           echo "CLANG=$(readlink -f "$opt_clang")" >> "$GITHUB_ENV"
           echo "SEMAPRAX_ARCHIVER=$(readlink -f "$opt_archiver")" >> "$GITHUB_ENV"
-      - name: Build the two owning test images once, run the exact selection, then production Clippy
-        run: python3 scripts/ci-opt-batch.py
+      - name: Build the selected owning images once, run exact controls, then production Clippy
+        env:
+          OPT_BATCH_SELECTION: ${{ inputs.opt_batch_selection == 'next' && 'next' || 'historical' }}
+        run: |
+          if [ "$OPT_BATCH_SELECTION" = next ]; then
+            python3 scripts/ci-opt-batch.py --selection next
+          else
+            python3 scripts/ci-opt-batch.py
+          fi
       - name: Qualify the changed LogLens references without a live agent campaign
         if: ${{ always() && inputs.loglens_refs }}
         shell: bash
+        env:
+          OPT_BATCH_SELECTION: ${{ inputs.opt_batch_selection == 'next' && 'next' || 'historical' }}
         run: |
           python3 - <<'PYCODE'
           import json,os,pathlib,subprocess
           receipt=json.loads(pathlib.Path("diagnostic-opt-batch/receipt.json").read_text())
           assert not receipt.get("execution_aborted"), "qualification batch aborted"
-          assert receipt.get("completed_filters")==50 and receipt.get("summary_counts_complete") is True
+          profile=os.environ["OPT_BATCH_SELECTION"]
+          expected_filters=17 if profile=="next" else 50
+          expected_tests=49 if profile=="next" else 153
+          assert receipt["selection"]["profile"]==profile
+          assert receipt["selection"]["expected_filters"]==expected_filters
+          assert receipt["selection"]["expected_tests"]==expected_tests
+          assert receipt.get("completed_filters")==expected_filters and receipt.get("summary_counts_complete") is True
           head=subprocess.check_output(["git","rev-parse","HEAD"],text=True).strip()
           tree=subprocess.check_output(["git","rev-parse","HEAD^{tree}"],text=True).strip()
           assert head==os.environ["GITHUB_SHA"]==receipt["head"]

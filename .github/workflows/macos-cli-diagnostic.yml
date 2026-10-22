@@ -18,7 +18,12 @@ on:
         required: false
         default: false
       opt_batch:
-        description: Run the bounded 40-filter OPT qualification batch and production Clippy on Linux
+        description: Run the bounded 41-filter OPT qualification batch and production Clippy on Linux
+        type: boolean
+        required: false
+        default: false
+      loglens_refs:
+        description: Also run the unchanged CLI49 reference checks with the freshly built compiler (no agent campaign)
         type: boolean
         required: false
         default: false
@@ -250,7 +255,7 @@ jobs:
           retention-days: 1
 
   opt-batch:
-    name: Focused OPT qualification (40 filters / 75 tests)
+    name: Focused OPT qualification (41 filters / 82 tests)
     if: inputs.opt_batch
     runs-on: ubuntu-24.04
     timeout-minutes: 240
@@ -295,6 +300,28 @@ jobs:
           echo "SEMAPRAX_ARCHIVER=$(readlink -f "$opt_archiver")" >> "$GITHUB_ENV"
       - name: Build the two owning test images once, run the exact selection, then production Clippy
         run: python3 scripts/ci-opt-batch.py
+      - name: Qualify the changed LogLens references without a live agent campaign
+        if: ${{ always() && inputs.loglens_refs }}
+        shell: bash
+        run: |
+          test -f diagnostic-opt-batch/receipt.json
+          cargo build --locked --offline -p semaprax --bin semaprax --jobs 1
+          export SEMAPRAX_BIN="$PWD/target/hosted-opt-batch/debug/semaprax"
+          export LOGLENS_SAMPLE="$PWD/benchmarks/cli-tokens-v1/sample.log"
+          python3 - <<'PYCODE'
+          import hashlib,json,os,pathlib,subprocess
+          binary=pathlib.Path(os.environ["SEMAPRAX_BIN"])
+          head=subprocess.check_output(["git","rev-parse","HEAD"],text=True).strip()
+          assert head==os.environ["GITHUB_SHA"]
+          digest=hashlib.sha256()
+          with binary.open("rb") as stream:
+              for chunk in iter(lambda:stream.read(65536),b""):digest.update(chunk)
+          pathlib.Path("diagnostic-opt-batch/loglens-compiler.json").write_text(json.dumps({"head":head,"binary_sha256":digest.hexdigest(),"qualification":"CLI49 references only; no live agent campaign"},indent=2)+"\n")
+          PYCODE
+          loglens_status=0
+          python3 benchmarks/cli-tokens-v1/selected_file_adoption.py --candidate experiments/selected-file-input/loglens --output diagnostic-opt-batch/loglens-selected > diagnostic-opt-batch/loglens-selected.log 2>&1 || loglens_status=1
+          python3 benchmarks/cli-tokens-v1/selected_file_adoption.py --candidate experiments/ascii-pattern-source/loglens-reference/matcher-package-adapted --output diagnostic-opt-batch/loglens-matcher > diagnostic-opt-batch/loglens-matcher.log 2>&1 || loglens_status=1
+          exit "$loglens_status"
       - name: Retain actual commands, binaries' identities, logs and checked test counts
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9

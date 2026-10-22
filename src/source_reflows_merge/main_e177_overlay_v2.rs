@@ -355,7 +355,7 @@ pub(super) const ADDITIONS: &[&str] = &[
 const POLICY_PATH: &str = "docs/evidence/finite-source-overlay-v2-20261018/policy.json";
 const PAGE_PATH: &str = "docs/evidence/finite-source-overlay-v2-20261018/page.json";
 const POLICY_LENGTH: usize = 114885; // Filled from the complete literal policy below.
-const POLICY_SHA256: &str = "b58642e8fa513258f40a3ded8f2b8520ed60f1a520381d616affc6c759492125";
+const POLICY_SHA256: &str = "a2f154077b42c8cc65ff690e36e0256bc99187e857343c0fead8564547524a7d";
 const EXTENSION_PATH: &str = "docs/evidence/fmt-local-441-20261018/extension.json";
 const EXTENSION_LENGTH: usize = 262076;
 const EXTENSION_SHA256: &str = "2af7299253e5cfb027186ba4fc151011a937214ff381c9267bfc11ef7d0003b6";
@@ -1466,7 +1466,7 @@ mod tests {
             .split_once("fn edges(")
             .unwrap()
             .0;
-        let restored = format!("fn load(){old}");
+        let restored = format!("fn load(){old}").replacen("    let extension = include_str!(\"../../docs/evidence/fmt-local-441-20261018/extension.json\");\n", "    // Original metadata is read as metadata. It is never substituted for a\n    // changed physical Rust source, and it retains its original individual cap.\n    let extension = include_str!(\"../../docs/evidence/fmt-local-441-20261018/extension.json\");\n", 1);
         assert_eq!(
             digest(restored.as_bytes()),
             "cbb41edc5fda3c84c595601c511bd69ccfbbc160a6793ff4cc4848d1f0e70c9c"
@@ -1484,7 +1484,7 @@ mod tests {
                 "Ok((policy, page_data(&physical)?))",
                 "Ok((policy, json(&physical)?))",
                 1,
-            );
+            ).replacen("    let extension = include_str!(\"../../docs/evidence/fmt-local-441-20261018/extension.json\");\n", "    // Original metadata is read as metadata. It is never substituted for a\n    // changed physical Rust source, and it retains its original individual cap.\n    let extension = include_str!(\"../../docs/evidence/fmt-local-441-20261018/extension.json\");\n", 1);
         assert_eq!(
             inverse, restored,
             "all live I/O/config/policy/hash/version checks remain at their original frontiers"

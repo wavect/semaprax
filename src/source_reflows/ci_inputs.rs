@@ -179,10 +179,22 @@ fn rows() -> serde_json::Value {
     assert_eq!(row["source"], successor["source"]);
     assert_eq!(row["current_length"], successor["checkpoint_length"]);
     assert_eq!(row["current_sha256"], successor["checkpoint_sha256"]);
-    let current = compiled(row["source"].as_str().unwrap()).unwrap().1;
-    assert_eq!(current.len() as u64, successor["length"]);
-    assert_eq!(digest(current), successor["sha256"]);
+    let actual = compiled(row["source"].as_str().unwrap()).unwrap().1;
+    let probe_before = crate::source_reflows_merge::before_phase_probes(row["source"].as_str().unwrap(), actual);
+    let current = probe_before.as_ref();
+    // Restore the exact pre-Main44 adapter input before its immutable inverses.
+    assert_eq!(current.len(), 326351);
+    assert_eq!(digest(current), "c4eb6d914f71ea5ea5ec3cee2710b4c18fee4c45b2c9019e8b48b5fb46653bbb");
+    let main44: serde_json::Value = serde_json::from_str("[[366,\"#[cfg(test)]\\npub(crate) use path_array_main44::current_source as main44_current_source;\\n\",\"\"],[2719,\"\",\"\\n\"]]").unwrap();
     let mut checkpoint = current.to_owned();
+    for edit in main44.as_array().unwrap().iter().rev() {
+        let at = usize::try_from(edit[0].as_u64().unwrap()).unwrap();
+        let after = edit[1].as_str().unwrap();
+        assert_eq!(&checkpoint[at..at + after.len()], after);
+        checkpoint.replace_range(at..at + after.len(), edit[2].as_str().unwrap());
+    }
+    assert_eq!(checkpoint.len() as u64, successor["length"]);
+    assert_eq!(digest(&checkpoint), successor["sha256"]);
     for edit in successor["indexed_inverse"]
         .as_array()
         .unwrap()
@@ -203,8 +215,64 @@ fn rows() -> serde_json::Value {
             .iter()
             .cloned(),
     );
-    row["current_length"] = successor["length"].clone();
-    row["current_sha256"] = successor["sha256"].clone();
+    row["inverse"].as_array_mut().unwrap().extend(main44.as_array().unwrap().iter().cloned());
+    row["current_length"] = serde_json::json!(current.len());
+    row["current_sha256"] = serde_json::json!(digest(current));
+    // Authenticate subsequent complete source inputs before replaying the same
+    // immutable CI bodies; each inverse binds every changed literal and offset.
+    {
+        let row = &mut rows[5];
+        let current = compiled(row["source"].as_str().unwrap()).unwrap().1;
+        assert_eq!(current.len(), 29371);
+        assert_eq!(digest(current), "9dffc2821b02990bea08f9434b911c9dca98e52af5be26013bc1702916118742");
+        let edits: serde_json::Value = serde_json::from_str("[[1911,\"\\n#[cfg(test)]\\n#[rustfmt::skip]\\nmod before_loaded_segments;\\n#[cfg(test)]\\n#[rustfmt::skip]\\nmod main_loaded_segments;\\n#[cfg(test)]\\n#[rustfmt::skip]\\nmod paired_segments_before;\\n\",\"\"],[13567,\"        _ => lexical_cursor::PRIMITIVE_FRAMES + paired_value::INDEPENDENT_PRIMITIVES,\\n\",\"        _ => lexical_cursor::PRIMITIVE_FRAMES,\\n\"],[13798,\"    #[cfg(test)]\\n    if owner.len >= 2 { census.independent_frames(); }\\n\",\"\"],[21245,\"                            certified_boundary!(owner, left_links, right_links, function, budget, census, 'certificate, 'paired);\\n\",\"                            certified_boundary!(owner, left_links, right_links, function, budget, census, 'certificate);\\n\"]]").unwrap();
+        let mut checkpoint = current.to_owned();
+        for edit in edits.as_array().unwrap().iter().rev() {
+            let at = usize::try_from(edit[0].as_u64().unwrap()).unwrap();
+            let after = edit[1].as_str().unwrap();
+            assert_eq!(&checkpoint[at..at + after.len()], after);
+            checkpoint.replace_range(at..at + after.len(), edit[2].as_str().unwrap());
+        }
+        assert_eq!(checkpoint.len() as u64, row["current_length"]);
+        assert_eq!(digest(&checkpoint), row["current_sha256"]);
+        row["inverse"].as_array_mut().unwrap().extend(edits.as_array().unwrap().iter().cloned());
+        row["current_length"] = serde_json::json!(current.len());
+        row["current_sha256"] = serde_json::json!(digest(current));
+    }
+    {
+        let row = &mut rows[8];
+        let current = compiled(row["source"].as_str().unwrap()).unwrap().1;
+        assert_eq!(current.len(), 59526);
+        assert_eq!(digest(current), "96f77aa63800b15888434dde208ea6ed3f9bf3294297bcc371b8dfacfc9c7cf3");
+        let edits: serde_json::Value = serde_json::from_str("[[5156,\"mod selected_function;\\n\",\"\"]]").unwrap();
+        let mut checkpoint = current.to_owned();
+        for edit in edits.as_array().unwrap().iter().rev() {
+            let at = usize::try_from(edit[0].as_u64().unwrap()).unwrap();
+            let after = edit[1].as_str().unwrap();
+            assert_eq!(&checkpoint[at..at + after.len()], after);
+            checkpoint.replace_range(at..at + after.len(), edit[2].as_str().unwrap());
+        }
+        assert_eq!(checkpoint.len() as u64, row["current_length"]);
+        assert_eq!(digest(&checkpoint), row["current_sha256"]);
+        row["inverse"].as_array_mut().unwrap().extend(edits.as_array().unwrap().iter().cloned());
+        row["current_length"] = serde_json::json!(current.len());
+        row["current_sha256"] = serde_json::json!(digest(current));
+    }
+    // Compose diagnostic-only inverses last, so they execute first on the
+    // complete compiled/fresh current bytes before every existing CI inverse.
+    let probes: serde_json::Value = serde_json::from_str("[{\"source\":\"src/cleanup_plan/validate.rs\",\"length\":4475,\"sha256\":\"75ac0859815d3a47a94b81493c04a8ae89516f4939fe79a8da7f94d141e41c1b\",\"inverse\":[[530,\"    #[cfg(test)]\\n    let _allocation_phase = crate::test_allocation_observer::function_phase_guard(\\n        \\\"cleanup_plan::validate::canonical_rebuild\\\",\\n    );\\n\",\"\"],[2065,\"    #[cfg(test)]\\n    drop(_allocation_phase);\\n\",\"\"]]},{\"source\":\"src/cleanup_plan/replay.rs\",\"length\":326632,\"sha256\":\"ef98c1c3ee202b9802fb9040036e36ddb7a7e412cdbd8f6a627be1286400ac97\",\"inverse\":[[2773,\"\",\"\\n\"],[2865,\"\",\"\\n\"],[4765,\"\",\"\\n\"],[6116,\"\",\"\\n\"],[6445,\"\",\"\\n\"],[6511,\"\",\"\\n\"],[113510,\"    #[cfg(test)]\\n    let _allocation_phase =\\n        crate::test_allocation_observer::function_phase_guard(\\\"cleanup_plan::replay::hir_paths\\\");\\n\",\"\"],[278824,\"    #[cfg(test)]\\n    let _allocation_phase =\\n        crate::test_allocation_observer::function_phase_guard(\\\"cleanup_plan::replay::plan_paths\\\");\\n\",\"\"]]},{\"source\":\"src/cleanup_plan/replay/factored.rs\",\"length\":48944,\"sha256\":\"e70c71d81ddf3c10d9edc1251e2bb58e107e4a0b35d0b3dcca3915388816175b\",\"inverse\":[[41290,\"    let enumeration_phase = crate::test_allocation_observer::function_phase_guard(\\n        \\\"cleanup_plan::crosscheck::enumerated_hir_plan\\\",\\n    );\\n\",\"\"],[41845,\"    drop(enumeration_phase);\\n\",\"\"],[42067,\"        let _allocation_phase = crate::test_allocation_observer::function_phase_guard(\\n            \\\"cleanup_plan::crosscheck::factored_compare\\\",\\n        );\\n\",\"\"]]},{\"source\":\"src/cleanup_plan/replay/factored/continuation_receiver.rs\",\"length\":2919,\"sha256\":\"f8720b0acb29fe38df16c4c0c2f9baf69c220f99db81b8637b766c9f02529b4a\",\"inverse\":[[803,\"    let enumeration_phase = crate::test_allocation_observer::function_phase_guard(\\n        \\\"cleanup_plan::crosscheck::enumerated_hir_plan\\\",\\n    );\\n\",\"\"],[1358,\"    drop(enumeration_phase);\\n\",\"\"],[1580,\"        let _allocation_phase = crate::test_allocation_observer::function_phase_guard(\\n            \\\"cleanup_plan::crosscheck::factored_compare\\\",\\n        );\\n\",\"\"]]}]").unwrap();
+    for probe in probes.as_array().unwrap() {
+        let row = rows.as_array_mut().unwrap().iter_mut().find(|row| row["source"] == probe["source"]).unwrap();
+        let actual = compiled(row["source"].as_str().unwrap()).unwrap().1;
+        assert_eq!(actual.len() as u64, probe["length"]);
+        assert_eq!(digest(actual), probe["sha256"]);
+        let prior = crate::source_reflows_merge::before_phase_probes(row["source"].as_str().unwrap(), actual);
+        assert_eq!(prior.len() as u64, row["current_length"]);
+        assert_eq!(digest(&prior), row["current_sha256"]);
+        row["inverse"].as_array_mut().unwrap().extend(probe["inverse"].as_array().unwrap().iter().cloned());
+        row["current_length"] = probe["length"].clone();
+        row["current_sha256"] = probe["sha256"].clone();
+    }
     rows
 }
 pub(super) fn prior<'a>(source: &str, supplied: &'a str) -> Cow<'a, str> {

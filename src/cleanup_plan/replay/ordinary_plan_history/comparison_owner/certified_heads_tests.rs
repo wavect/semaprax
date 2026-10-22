@@ -452,9 +452,12 @@ fn certified_heads_keep_complete_immediate_invoices_and_short_losses_for_both_hi
                     old.row.identity_hits,
                     current.row.identity_hits + current.row.shared_boundary_complete
                 );
+                // Compare the same immediate-generation events as invoice():
+                // independent transport records turns instead of legacy steps.
+                let immediate438 = loaded::complete_immediate438_invoice_counts(&current.row);
                 assert_eq!(
                     old.row.value_steps,
-                    current.row.value_steps
+                    immediate438.value_steps
                         + current.row.certified_bases
                         + 4 * current.row.shared_boundary_complete
                         + 2 * current.row.fused_turns
@@ -467,7 +470,7 @@ fn certified_heads_keep_complete_immediate_invoices_and_short_losses_for_both_hi
                 );
                 assert_eq!(
                     old.row.pair_matches_admitted,
-                    current.row.pair_matches_admitted
+                    immediate438.pair_matches_admitted
                         + current.row.certified_firsts
                         + current.row.shared_boundary_complete
                         + current.row.fused_turns

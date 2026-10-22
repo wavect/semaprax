@@ -432,6 +432,19 @@ pub(super) fn whole_before(case: usize, source: &str) -> Result<Vec<u8>, &'stati
         serde_json::from_str(include_str!("final_affine_inverse.json")).unwrap();
     let row = &table["cases"][case];
     let digest = |bytes: &[u8]| format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)));
+    // Only the exact live owner may acquire its authenticated preformat view.
+    // All other inputs still meet the original whole-source inverse boundary.
+    let acquired;
+    let source = if case == 0 && source == include_str!("../comparison_owner.rs") {
+        acquired = restore_exact_preformat_source(
+            "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs",
+            source.as_bytes(),
+            row["current_sha256"].as_str().unwrap(),
+        );
+        acquired.as_str()
+    } else {
+        source
+    };
     if source.len() as u64 != row["current_length"].as_u64().unwrap()
         || digest(source.as_bytes()) != row["current_sha256"].as_str().unwrap()
     {

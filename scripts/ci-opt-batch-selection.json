@@ -1,7 +1,7 @@
 {
   "schema": "semaprax.hosted-opt-batch-selection.v1",
-  "filters": 40,
-  "expected_tests": 75,
+  "filters": 41,
+  "expected_tests": 82,
   "commands": [
     {
       "owner": "V10 codec",
@@ -282,6 +282,13 @@
       "binary": "lib",
       "filter": "hir::function_value::paid_walk::tests::complete_old_walk_presence_and_uses_sources_remain_exact",
       "exact": true
+    },
+    {
+      "owner": "complete prior continuation receiver and hostile/refusal/Drop controls",
+      "expected_tests": 7,
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::factored::continuation_receiver::tests::",
+      "exact": false
     }
   ]
 }

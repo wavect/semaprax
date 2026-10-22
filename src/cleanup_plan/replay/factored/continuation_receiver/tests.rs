@@ -412,6 +412,15 @@ fn complete_prior_receiver_and_funded_disagreement_assertion_remain_byte_exact()
         original.strip_suffix("#[cfg(test)]\nmod tests;\n").unwrap()
     );
     let changes = [
+        ("    let _debit_route = debit_routes::route(debit_routes::Route::UnoptedCrosscheck);\n    let _debit_phase = debit_routes::phase(debit_routes::Phase::EnumeratedHIR);\n", ""),
+        ("    #[cfg(feature = \"unstable-workflow-profiling\")]\n    let paid_enumeration = enumerating\n        .paid_phase(crate::workflow_profile::plan_comparison::PaidPhase::CrosscheckEnumerated);\n", ""),
+        ("        let _debit_phase = debit_routes::phase(debit_routes::Phase::FlatPLAN);\n", ""),
+        ("        let _debit_phase = debit_routes::phase(debit_routes::Phase::PathComparison);\n", ""),
+        ("    let _debit_phase = debit_routes::phase(debit_routes::Phase::OtherReplay);\n    #[cfg(feature = \"unstable-workflow-profiling\")]\n    drop(paid_enumeration);\n", ""),
+        ("        #[cfg(feature = \"unstable-workflow-profiling\")]\n        let _paid_crosscheck = factored\n            .paid_phase(crate::workflow_profile::plan_comparison::PaidPhase::CrosscheckFactored);\n", ""),
+        ("    let enumeration_phase = crate::test_allocation_observer::function_phase_guard(\n        \"cleanup_plan::crosscheck::enumerated_hir_plan\",\n    );\n", ""),
+        ("    drop(enumeration_phase);\n", ""),
+        ("        let _allocation_phase = crate::test_allocation_observer::function_phase_guard(\n            \"cleanup_plan::crosscheck::factored_compare\",\n        );\n", ""),
         (") -> Result<(), Diagnostic> {", ") {"),
         ("        let verdict =\n            match compare_with_index_storage(program, function, &mut factored, None, Some(storage))\n            {\n                // A refused ledger cannot finance a verdict. Preserve the exact\n                // error and let the caller report its sticky builder refusal.\n                Err(error) if crate::bounded_output::active_refused() => {\n                    SKELETON_MATERIALIZATIONS.with(|count| count.set(saved));\n                    return Err(error);\n                }\n                verdict => verdict,\n            };\n", "        let verdict =\n            compare_with_index_storage(program, function, &mut factored, None, Some(storage));\n"),
         ("    Ok(())\n", ""),

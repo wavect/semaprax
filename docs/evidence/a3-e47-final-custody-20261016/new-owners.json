@@ -716,8 +716,8 @@
   },
   {
     "source": "src/source_reflows_merge/main44_custody.rs",
-    "sha256": "ad7df65a1b2d9274361f5ee07db261032f30a589b7192d3832238d833e684146",
-    "lines": 235
+    "sha256": "1094d4fd93a3d0e54edf5de04e294ecf1aed6023b206669e77563ee1f2eb1227",
+    "lines": 277
   },
   {
     "source": "src/source_reflows_merge/main67107_inputs.rs",
@@ -761,7 +761,7 @@
   },
   {
     "source": "src/source_reflows_merge/ordinary_plan_inputs.rs",
-    "sha256": "e1427e64cb253d1ce05ea58ba4e7562b1719a1f317b17ef56328d7253eb85352",
+    "sha256": "e04ba652cb1be42db199c8f6455e9371b6628deb8347007ea37ae51f30c6a563",
     "lines": 520
   },
   {
@@ -1701,7 +1701,7 @@
   },
   {
     "source": "src/source_reflows_merge/main_e177_overlay_v2.rs",
-    "sha256": "1dbd3dc097320de9c494607781a8bf862130215e03558638ebb38e08381b1e95",
+    "sha256": "3e08635ce98ee6d232943250cc90d0d5cc304bd710b1ce75dac93016832bbeae",
     "lines": 1500
   },
   {
@@ -1931,8 +1931,8 @@
   },
   {
     "source": "src/workspace_graph/expected_projection/call_carriers_directory_tests.rs",
-    "sha256": "d820534cafd4ccf394e3c847dd486a3b8797add74c42395087e5ca07b8a99da1",
-    "lines": 487
+    "sha256": "49dff1adec731421ab4113dc99d165cf7ce97d889b6b744c0aa52c71fb2bf125",
+    "lines": 496
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_identity_prefix.rs",
@@ -2041,8 +2041,8 @@
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads_tests.rs",
-    "sha256": "68885d5f32f5c24b39cc1280c4656b0dc0aa6e06a1fac1db889901780524c39c",
-    "lines": 1476
+    "sha256": "0eb56c8ca9d8e5d7da3e8ed5e7c91b213a7e15d841adcc71ab913b9370971b6d",
+    "lines": 1479
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_before_certified.rs",
@@ -2226,8 +2226,8 @@
   },
   {
     "source": "src/source_reflows_merge/main_e177_overlay_compiled.rs",
-    "sha256": "bbfd84f7363a1909cd70682cdc60d2c0dd7092c472f128cf59da2b5729988668",
-    "lines": 978
+    "sha256": "3a4d00c7c925016b33178af2a3c3504a8b967a1b575916587f7e729226eb1781",
+    "lines": 980
   },
   {
     "source": "src/source_reflows_merge/main_e177_packet_lookup.rs",
@@ -2301,8 +2301,8 @@
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/final_affine_tests.rs",
-    "sha256": "f1dfab1d7ef779392e83162cd0f7152ee6699594b20736d53489e908d0802890",
-    "lines": 577
+    "sha256": "6ab4e3e2ac19b71c15e10acb82747ff91e2d7f2e631ed6f6da16c2e946bc3fc2",
+    "lines": 590
   },
   {
     "source": "src/bounded_output/exclusive_debits.rs",
@@ -2356,8 +2356,8 @@
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/loaded_segment_composition_tests.rs",
-    "sha256": "5ea53dda7d0d9329da09438848f9951f191142cdbc8791047a007701f48f9783",
-    "lines": 465
+    "sha256": "f2ad317ccfdb2532c6b4abb5b3865bcb927a668b47c0f8beb02345418ce0e4c4",
+    "lines": 469
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main_loaded_segments.rs",

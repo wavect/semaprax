@@ -81,12 +81,21 @@ fn parity(program: &Program, index: &Index<'_>, imports: bool) -> (Proof, Census
 
 #[test]
 fn complete_before_source_and_all_header_capacity_boundaries_are_retained() {
-    let before = include_str!("call_carriers_before_directory.rs");
+    let before = crate::source_reflows_merge::main_e177_final_inputs::value_direct(
+        "src/workspace_graph/expected_projection/call_carriers_before_directory.rs",
+        "87142dc1b3f98f9d381459f0f4f8925c807d28645aa0646ea453eea3c63cc512",
+        include_str!("call_carriers_before_directory.rs"),
+    );
+    let before = before.as_str();
     assert_eq!(
         format!("{:x}", crate::digest_hex::LowerHex(&Sha256::digest(before))),
         "87142dc1b3f98f9d381459f0f4f8925c807d28645aa0646ea453eea3c63cc512",
     );
-    let root = include_str!("call_carriers.rs");
+    let root = crate::source_reflows_merge::main_e177_final_inputs::value_direct(
+        "src/workspace_graph/expected_projection/call_carriers.rs",
+        "84802a57f88f708bbc10da608f169ebedba8307677b2e6858cd8e0850c505aaa",
+        include_str!("call_carriers.rs"),
+    );
     let linear = root.split("\n#[cfg(test)]").next().unwrap();
     assert_eq!(linear.matches("fn count_linear(").count(), 1);
     assert_eq!(

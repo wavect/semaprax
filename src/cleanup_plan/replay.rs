@@ -84,12 +84,10 @@ mod primitive_fixture;
 use expression_children::replay_expression_child;
 use expression_facts::expression_facts;
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
-
 #[cfg(test)]
 use crate::hir::ResolvedTypeDeclarationKind;
 #[cfg(test)]
 use std::cell::Cell;
-
 use super::{
     BlockId, CleanupPlace, CleanupRegionId, CleanupResultSource, CleanupTerminator,
     CleanupTransition, EdgeCondition, EdgeId, ExitContinuation, ExitTarget, StagedCopyResultSource,
@@ -132,7 +130,6 @@ use path_summary::{
 #[cfg(test)]
 use path_summary::{cleanup_plan_requires_path_replay, STATUS_ONLY_PATH_SUMMARY_THRESHOLD};
 use skeleton_work::{empty_expr_path, Observations, SkeletonWork};
-
 #[cfg(test)]
 mod context_tests;
 #[cfg(test)]
@@ -182,16 +179,13 @@ use resolved_call::{
     resolved_call_params, seal_changed_success_try_residual as seal_try_residual,
 };
 pub(crate) use schema::selected_schema;
-
 /// Provisional normal-scope end of a region whose independently proven flow has
 /// no normal completion. Only the lexical certificate replay may accept it.
 const UNRESOLVED_NORMAL_END: super::ExitTargetId = super::ExitTargetId(u32::MAX);
 const MAX_REPLAY_PATHS: usize = 65_536;
 const MAX_REPLAY_WORK_UNITS: usize = 32_000_000;
-
 mod allocation;
 use allocation::{AdmissionMode, AllocationPayer};
-
 // Setup identity for the direct selected-budget compatibility receiver only.
 // General Session spending remains multi-function; this is not admission data.
 struct SelectedDirectAnchor {
@@ -2848,6 +2842,9 @@ fn hir_skeleton_paths_with_index_storage<'hir>(
     helpers: Option<&crate::loop_calls::byte_writer::ModuleIndex<'hir>>,
     continuations: Option<&mut continuation_storage::Storage<'hir>>,
 ) -> Result<Vec<SkeletonPath>, Diagnostic> {
+    #[cfg(test)]
+    let _allocation_phase =
+        crate::test_allocation_observer::function_phase_guard("cleanup_plan::replay::hir_paths");
     #[cfg(feature = "unstable-workflow-profiling")]
     let _paid_phase = budget.paid_phase(PaidPhase::HirPaths);
 
@@ -6767,6 +6764,9 @@ fn plan_skeleton_paths(
     function: &ResolvedFunction,
     budget: &mut ReplayBudget,
 ) -> Result<Vec<SkeletonPath>, Diagnostic> {
+    #[cfg(test)]
+    let _allocation_phase =
+        crate::test_allocation_observer::function_phase_guard("cleanup_plan::replay::plan_paths");
     #[cfg(feature = "unstable-workflow-profiling")]
     let _paid_phase = budget.paid_phase(PaidPhase::PlanPaths);
 

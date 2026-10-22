@@ -425,7 +425,11 @@ fn loaded_segments_keep_entire_immediate_and_puremain_sources_and_all_unchanged_
         "c63b8f98af8b1fa55f7e305819efc87107477db4a92f57743365544885b4973c"
     );
     assert_eq!(
-        hash(include_str!("shared_prefix.rs")),
+        hash(&crate::source_reflows_merge::main_e177_final_inputs::value_direct(
+            "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix.rs",
+            "faf2391a83182d4b60d1be8561c404ac7af427fcd1f59ff2bfa45c85058244d0",
+            include_str!("shared_prefix.rs"),
+        )),
         "faf2391a83182d4b60d1be8561c404ac7af427fcd1f59ff2bfa45c85058244d0"
     );
     assert_eq!(

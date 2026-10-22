@@ -173,7 +173,7 @@ fn inert_roots_keep_exact_scope_and_legacy_owned_route_including_forged_payloads
                 .map(|(id, value)| (id.clone(), value.clone()))
                 .collect::<BTreeMap<_, _>>();
             let prior = legacy.clone();
-            let (outcome, refused, used) =
+            let (outcome, refused, used, _) =
                 with_limit_usage_refusal(0, || call(&validator, &expression, &mut legacy, false));
             outcome.unwrap();
             assert!(!refused);
@@ -295,14 +295,19 @@ fn inert_exact_short_zero_floor_and_sticky_refusal_never_take_the_scope() {
     ] {
         let mut scope = seed();
         let snapshot = scope.clone();
-        let ((outcome, allocations), refused, used) = with_limit_usage_refusal(limit, || {
-            if floor != 0 {
-                assert!(crate::bounded_output::set_active_floor(floor));
-            }
-            measure(|| call(&validator, &expression, &mut scope, false))
-        });
+        let ((outcome, allocations), refused, used, first) =
+            with_limit_usage_refusal(limit, || {
+                if floor != 0 {
+                    assert!(crate::bounded_output::set_active_floor(floor));
+                }
+                measure(|| call(&validator, &expression, &mut scope, false))
+            });
         assert_eq!(outcome.is_ok(), success);
         assert_eq!(refused, !success);
+        assert_eq!(first.is_none(), success);
+        if let Some(first) = first {
+            assert_eq!(first.requested, INERT_ROOT_CONTROLS);
+        }
         assert_eq!(used, if success { INERT_ROOT_CONTROLS } else { 0 });
         assert_eq!(scope, snapshot);
         assert_eq!(allocations.allocations, 0);
@@ -319,17 +324,19 @@ fn inert_exact_short_zero_floor_and_sticky_refusal_never_take_the_scope() {
     }
     let mut scope = seed();
     let snapshot = scope.clone();
-    let ((first, retry), refused, used) = with_limit_usage_refusal(INERT_ROOT_CONTROLS, || {
-        assert!(!crate::bounded_output::reserve_active_required(
-            INERT_ROOT_CONTROLS + 1
-        ));
-        let first = call(&validator, &expression, &mut scope, false);
-        let retry = call(&validator, &expression, &mut scope, false);
-        (first, retry)
-    });
+    let ((first, retry), refused, used, receipt) =
+        with_limit_usage_refusal(INERT_ROOT_CONTROLS, || {
+            assert!(!crate::bounded_output::reserve_active_required(
+                INERT_ROOT_CONTROLS + 1
+            ));
+            let first = call(&validator, &expression, &mut scope, false);
+            let retry = call(&validator, &expression, &mut scope, false);
+            (first, retry)
+        });
     assert!(refused);
     assert_eq!(used, 0);
     assert!(first.is_err());
+    assert_eq!(receipt.unwrap().requested, INERT_ROOT_CONTROLS + 1);
     same(&first, &retry);
     assert_eq!(scope, snapshot);
 }
@@ -344,7 +351,7 @@ fn tiny_and_repeated_actual_driver_payers_and_allocation_intervals_include_compl
             let ((used, refused), allocations) = measure(|| {
                 let mut scope = seed();
                 let snapshot = scope.clone();
-                let (outcome, refused, used) = with_limit_usage_refusal(LIMIT, || {
+                let (outcome, refused, used, _) = with_limit_usage_refusal(LIMIT, || {
                     for _ in 0..count {
                         call(&validator, &expression, &mut scope, old)?;
                     }
@@ -420,18 +427,19 @@ fn propagating_driver_keeps_each_original_payer_cut_after_the_new_selector() {
         }),
     );
     let mut scope = seed();
-    let (result, refused, old_paid) =
+    let (result, refused, old_paid, _) =
         with_limit_usage_refusal(LIMIT, || call(&validator, &expression, &mut scope, true));
     result.unwrap();
     assert!(!refused);
     for cut in [0, 1, old_paid / 2, old_paid - 1, old_paid] {
         let mut current = seed();
         let mut old = current.clone();
-        let (expected, old_refused, old_used) =
+        let (expected, old_refused, old_used, _) =
             with_limit_usage_refusal(cut, || call(&validator, &expression, &mut old, true));
-        let (actual, refused, used) = with_limit_usage_refusal(cut + INERT_ROOT_CONTROLS, || {
-            call(&validator, &expression, &mut current, false)
-        });
+        let (actual, refused, used, _) =
+            with_limit_usage_refusal(cut + INERT_ROOT_CONTROLS, || {
+                call(&validator, &expression, &mut current, false)
+            });
         same(&actual, &expected);
         assert_eq!(refused, old_refused);
         assert_eq!(used, old_used + INERT_ROOT_CONTROLS);
@@ -468,7 +476,7 @@ fn ordinary_function_callers_report_complete_old_current_bills_and_drop_without_
         .unwrap();
         let mut results = Vec::new();
         for old in [true, false] {
-            let ((outcome, refused, paid), allocations) = measure(|| {
+            let ((outcome, refused, paid, _), allocations) = measure(|| {
                 with_limit_usage_refusal(LIMIT, || {
                     with_before(old, || {
                         let mut validator = HirValidator::new(&program)?;

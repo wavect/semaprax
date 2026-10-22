@@ -1124,6 +1124,7 @@ fn assert_transitive_context_source() {
         let original = "fn value_direct_4a6eb(".to_owned() + root.split_once("fn value_direct_4a6eb(").unwrap().1.split_once("// Exact finite successor").unwrap().0;
         assert_eq!(restored, original.trim_end(), "whole direct_row_context source inverse");
     }
+}
 // Caller-cap lookup retained verbatim in the already audited sibling.
 pub(super) fn registered_file(source: &str, expected: &str, cap: usize) -> Option<String> {
     if cap == 0

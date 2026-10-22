@@ -11,7 +11,7 @@
       "outside_production_still_fully_authenticated": 144,
       "full_role_production": 589,
       "full_role_test_only": 1129,
-      "full_raw_sha256": "b10bc8aba48f15d197d75b55d17dbbbff87b5a398133582849b8ef3d27215da7",
+      "full_raw_sha256": "1b36f960a1a6467f97939799a5900d31ca441f8dfc1e67463000868598850418",
       "boundary_production_sha256": "a27badb6d85f46a2d5502a04d2eb70946b59655ea105aae421fd1dce393d74b0",
       "exact_original_forbidden_tokens": [
         "struct Resolver",

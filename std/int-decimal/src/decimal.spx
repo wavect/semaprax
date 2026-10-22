@@ -1,7 +1,7 @@
 module std.int.decimal;
 
 // Exact unsigned decimal integers use canonical owned UTF-8 strings. Arithmetic
-// is digit-wise; no complete operand is converted to a machine integer.
+// is digit-wise. No operand is required to fit a machine integer.
 @id("std.int.decimal.digit")
 fn digit(text: borrow str, index: i64) -> i64
     requires index >= 0 && index < str_len_bytes(text)
@@ -111,11 +111,60 @@ fn subtract(left: string, right: borrow str) -> string
     canonicalize(out)
 }
 
+// Return the floor quotient without requiring machine-sized operands.
+// Bounded divisors use exact digit-wise machine remainder arithmetic;
+// arbitrary divisors retain the complete original decimal long division.
+@id("std.int.decimal.divide")
+fn divide(dividend: string, divisor: borrow str) -> string
+    requires valid(string_as_str(dividend)) && valid(divisor)
+    requires digit(divisor, 0) != 0
+    ensures string_len(result) > 0
+{
+    let bounded = bounded_divisor(divisor);
+    if bounded == 0 { divide_generic(dividend, divisor) } else { divide_small(dividend, bounded) }
+}
+
+// Parse at most eighteen canonical digits: every prefix is below 10^18 and
+// therefore fits i64. Zero also denotes the unselected generic route.
+@id("std.int.decimal.internal-bounded-divisor")
+fn bounded_divisor(divisor: borrow str) -> i64
+    requires valid(divisor)
+{
+    let n = str_len_bytes(divisor);
+    if n > 18 { 0 } else { let mut value = 0; let mut i = 0; while i < n { value = value * 10 + digit(divisor, i); i = i + 1; 0 } if value <= 922337203685477580 { value } else { 0 } }
+}
+
+// With 0 <= remainder < divisor and 0 <= digit <= 9, the next value is
+// <= 10*divisor-1 <= 9223372036854775799 < i64::MAX. The quotient digit is
+// in 0..9 and the new remainder again lies in 0..divisor. The dividend is
+// never parsed as an integer. Leading quotient zeros are omitted exactly.
+@id("std.int.decimal.internal-divide-small")
+fn divide_small(dividend: string, divisor: i64) -> string
+    requires valid(string_as_str(dividend))
+    requires divisor > 0 && divisor <= 922337203685477580
+    ensures string_len(result) > 0
+{
+    let n = string_len(dividend);
+    let mut remainder = 0;
+    let mut out = "";
+    let mut i = 0;
+    while i < n {
+        let next = remainder * 10 + digit(string_as_str(dividend), i);
+        let quotient = next / divisor;
+        if quotient != 0 || string_len(out) > 0 { out = string_concat(out, string_from_i64(quotient)); }
+        remainder = next % divisor;
+        i = i + 1;
+        0
+    }
+    if string_len(out) == 0 { "0" } else { out }
+}
+
+// Complete original generic body, retained verbatim for every unselected divisor.
 // Long division returns the floor quotient. The partial remainder is shifted
 // by one decimal place before adding each dividend digit. Since the previous
 // remainder is below divisor, at most nine subtractions produce each digit.
-@id("std.int.decimal.divide")
-fn divide(dividend: string, divisor: borrow str) -> string
+@id("std.int.decimal.internal-divide-generic")
+fn divide_generic(dividend: string, divisor: borrow str) -> string
     requires valid(string_as_str(dividend)) && valid(divisor)
     requires digit(divisor, 0) != 0
     ensures string_len(result) > 0

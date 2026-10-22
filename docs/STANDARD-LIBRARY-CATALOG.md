@@ -4406,7 +4406,7 @@ Package `std/int-decimal`, tier `alloc`, status partial. Required project profil
 ### `std.int.decimal.digit`
 
 Exact unsigned decimal integers use canonical owned UTF-8 strings. Arithmetic
-is digit-wise; no complete operand is converted to a machine integer.
+is digit-wise. No operand is required to fit a machine integer.
 
 ```semaprax
 fn digit(text: borrow str, index: i64) -> i64
@@ -4470,9 +4470,9 @@ fn subtract(left: string, right: borrow str) -> string
 
 ### `std.int.decimal.divide`
 
-Long division returns the floor quotient. The partial remainder is shifted
-by one decimal place before adding each dividend digit. Since the previous
-remainder is below divisor, at most nine subtractions produce each digit.
+Return the floor quotient without requiring machine-sized operands.
+Bounded divisors use exact digit-wise machine remainder arithmetic;
+arbitrary divisors retain the complete original decimal long division.
 
 ```semaprax
 fn divide(dividend: string, divisor: borrow str) -> string

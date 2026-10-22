@@ -76,6 +76,34 @@ pub(super) fn prior_source(source: &str, current: &str) -> String {
         None
     };
     let current = operation_before.as_deref().unwrap_or(current);
+    // Authenticate the whole formatted owner, then reverse only its two exact
+    // rustfmt rewrites before every unchanged historical pin and edit below.
+    let declaration_before_formatting = if source == "src/hir/ids/declaration_tag.rs" {
+        assert_eq!(current, include_str!("declaration_tag.rs"));
+        assert_eq!(current.len(), 29925);
+        assert_eq!(
+            sha(current.as_bytes()),
+            "2cee894230ef7b0533f57da0523a6e9c31cdfe9470e3ded9462d3eb9eb09ef6d"
+        );
+        let mut before = current.to_owned();
+        for (formatted, original) in [
+            (
+                "    ids.extend(\n        super::lowering_identity_tests::cases()\n            .into_iter()\n            .map(|(tag, _)| tag),\n    );",
+                "    ids.extend(super::lowering_identity_tests::cases().into_iter().map(|(tag, _)| tag));",
+            ),
+            (
+                "    let ids_before_lowering =\n        super::lowering_identity_tests::prior_source(\"src/hir/ids.rs\", include_str!(\"../ids.rs\"));\n",
+                "    let ids_before_lowering = super::lowering_identity_tests::prior_source(\n        \"src/hir/ids.rs\", include_str!(\"../ids.rs\"),\n    );\n",
+            ),
+        ] {
+            assert_eq!(before.matches(formatted).count(), 1);
+            before = before.replacen(formatted, original, 1);
+        }
+        Some(before)
+    } else {
+        None
+    };
+    let current = declaration_before_formatting.as_deref().unwrap_or(current);
     // Exact current control repairs precede the immutable complete lowering
     // inverse. Every archived baseline and original old-body check stays intact.
     let repaired = match source {

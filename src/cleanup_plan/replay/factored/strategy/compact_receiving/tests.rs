@@ -297,7 +297,7 @@ fn immediate_old_entire_caller_and_unchanged_dependencies_are_source_bound() {
     let end = whole[start..].find("\n/// Add this function").unwrap() + start;
     let independently_compiled=include_str!("before.rs").strip_prefix("//! Complete immediate-old authenticated lexical comparison caller.\nuse super::super::*;\n\n").unwrap();
     assert_eq!(
-        independently_compiled.strip_suffix('\n').unwrap(),
+        independently_compiled,
         &whole[start..end]
     );
     for (source,hash) in [

@@ -121,4 +121,3 @@ pub(in crate::cleanup_plan::replay) fn validate_authenticated(
         )),
     }
 }
-

@@ -262,11 +262,37 @@ pub(crate) fn before_phase_probes<'a>(source: &str, supplied: &'a str) -> std::b
     if supplied != compiled {
         return std::borrow::Cow::Borrowed(supplied);
     }
-    assert_eq!(compiled.len(), length, "complete diagnostic-probe source");
-    assert_eq!(super::source_sha(compiled), expected);
+    // The incoming production changes are independently authenticated, then
+    // reversed only for this older probe/source epoch. Its original pins and
+    // every diagnostic-scope inverse below remain unchanged.
+    let (live_length, live_sha, merge_edits): (usize, &str, &[(usize, &str, &str)]) = match source {
+        "src/cleanup_plan/replay.rs" => (326426, "5b40d53c43ccf6335bd2fbaf33c3c57d75b5bcfab2a7d6ebbd03851d77ee6e9d", &[
+            (576, "use final_output::compact as compact_path;\n", ""),
+            (122062, "    let minimum = compact_path::count!(\n", "    let minimum = path_array::count!(\n"),
+            (122331, "    final_output::compact::hir_selection!(work);\n", "    work.budget.reserve_bytes(\n        work.function,\n        final_output::HIR_SELECTION_CONTROLS,\n        \"HIR single-suffix selection controls\",\n    )?;\n"),
+            (122852, "            compact_path::push!(\n", "            path_array::push!(\n"),
+            (123324, "                final_output::compact::hir_move!(work);\n                final_output::compact::hir_work!(work);\n", "                work.budget.reserve_bytes(\n                    work.function,\n                    final_output::HIR_MOVE_CONTROLS,\n                    \"HIR single-suffix move controls\",\n                )?;\n                work.charge(1, \"skeleton prefix clone\")?;\n"),
+            (123938, "            compact_path::push!(\n", "            path_array::push!(\n"),
+            (127075, "            compact_path::push!(\n", "            path_array::push!(\n"),
+            (129471, "        compact_path::push!(\n", "        path_array::push!(\n"),
+        ]),
+        "src/cleanup_plan/replay/factored.rs" => (49022, "3e3835bc69e3029d4fbfb03639dab27573e3bdd3d8c02ea286a0cc53ea94ea02", &[
+            (14022, "    let Some(hir) = canonical.id_with_compact_receiving(\n        function,\n        vec![(hir_root, 1)],\n        budget,\n        &mut receiving,\n    )?\n", "    let Some(hir) =\n        canonical.id_with_receiving(function, vec![(hir_root, 1)], budget, &mut receiving)?\n"),
+            (14504, "    let Some(plan) = canonical.id_with_compact_receiving(\n        function,\n        vec![(plan_root, 1)],\n        budget,\n        &mut receiving,\n    )?\n", "    let Some(plan) =\n        canonical.id_with_receiving(function, vec![(plan_root, 1)], budget, &mut receiving)?\n"),
+        ]),
+        _ => (length, expected, &[]),
+    };
+    assert_eq!(compiled.len(), live_length, "complete current merged probe source");
+    assert_eq!(super::source_sha(compiled), live_sha);
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    assert_eq!(current_file(&root.join(source), length, expected).expect("complete no-follow diagnostic-probe owner"), compiled);
+    assert_eq!(current_file(&root.join(source), live_length, live_sha).expect("complete no-follow diagnostic-probe owner"), compiled);
     let mut restored = compiled.to_owned();
+    for &(at, after, before) in merge_edits.iter().rev() {
+        assert_eq!(&restored[at..at + after.len()], after, "exact incoming-main source inverse");
+        restored.replace_range(at..at + after.len(), before);
+    }
+    assert_eq!(restored.len(), length, "complete original diagnostic-probe epoch");
+    assert_eq!(super::source_sha(&restored), expected);
     for &(after, before) in edits {
         assert_eq!(restored.matches(after).count(), 1, "unique diagnostic-probe scope");
         restored = restored.replacen(after, before, 1);
@@ -274,4 +300,14 @@ pub(crate) fn before_phase_probes<'a>(source: &str, supplied: &'a str) -> std::b
     assert_eq!(restored.len(), prior_length);
     assert_eq!(super::source_sha(&restored), prior_sha, "entire pre-probe source");
     std::borrow::Cow::Owned(restored)
+}
+
+// Select an explicitly authenticated historical parent view before the exact
+// probe inverse; incoming-main views retain their own full source bodies.
+pub(crate) fn phase_probe_stage<'a>(source: &str, expected: &str, supplied: &'a str) -> std::borrow::Cow<'a, str> {
+    if !matches!(source, "src/cleanup_plan/validate.rs" | "src/cleanup_plan/replay.rs" | "src/cleanup_plan/replay/factored.rs" | "src/cleanup_plan/replay/factored/continuation_receiver.rs") {
+        return std::borrow::Cow::Borrowed(supplied);
+    }
+    let acquired = super::main_e177_final_inputs::value_direct(source, expected, supplied);
+    std::borrow::Cow::Owned(before_phase_probes(source, &acquired).into_owned())
 }

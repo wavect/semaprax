@@ -73,3 +73,20 @@ frozen `v10-unqualified-full-union-v9.json` and
 `v10-unqualified-full-union.json` values are logical codec fixtures. They bind
 the complete 707-row parent-metadata union and its exact transport inverse for
 tests; they are not admitted current physical pages or source qualification.
+
+V11 is an explicitly versioned digest transport over a complete V10 page.
+Only the SHA256 member of each documented positional V9 current or named-view
+pin changes: 64 lowercase hexadecimal characters become 43 canonical unpadded
+base64url characters encoding exactly 32 bytes. Full object pins, including
+objects carrying unknown fields, remain literal. Source and view names, archive
+references, unknown metadata, ordering, and the existing prefix table stay
+unchanged. There is no recursive matching of digest-like strings.
+
+The V11 decoder checks tuple arity, named-view types, integer source lengths,
+the exact alphabet and length, decoded byte length, and canonical re-encoding.
+It restores the complete V10 value before entering the unchanged V10 through V2
+reader chain. All older schemas retain their readers and controls. The page cap
+remains 262144 bytes, the source cap remains 9753094 bytes, and the prefix limit
+remains 32. The owning Python and Rust controls round-trip the complete frozen
+V10 logical fixture and reject malformed and noncanonical inputs; these codec
+controls make no runtime qualification claim.

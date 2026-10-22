@@ -229,6 +229,192 @@ impl<'a> HirValidator<'a> {
         let mut imports = identity_scratch::Imports::new();
         self.validate_interface_imports(&mut interface_ids, &mut import_ids, &mut imports)?;
         let mut template_ids = BTreeSet::new();
+        self.validate_template_declarations(&mut template_ids)?;
+        let mut resource_drop_ids = BTreeSet::new();
+        let mut field_ids = BTreeSet::new();
+        let mut variant_case_ids = BTreeSet::new();
+        let mut case_field_ids = BTreeSet::new();
+        self.validate_type_declarations(
+            &mut resource_drop_ids,
+            &mut field_ids,
+            &mut variant_case_ids,
+            &mut case_field_ids,
+            &imports,
+        )?;
+        for declaration in self.program.declarations.declarations() {
+            match declaration.kind {
+                DeclarationKind::Resource
+                | DeclarationKind::Record
+                | DeclarationKind::Class
+                | DeclarationKind::Variant
+                    if !type_ids.contains(&declaration.id) =>
+                {
+                    return Err(hir_error(format!(
+                        "type `{}` has no resolved type declaration",
+                        declaration.id
+                    )));
+                }
+                DeclarationKind::Field if !field_ids.contains(&declaration.id) => {
+                    return Err(hir_error(format!(
+                        "field `{}` has no resolved field declaration",
+                        declaration.id
+                    )));
+                }
+                DeclarationKind::VariantCase if !variant_case_ids.contains(&declaration.id) => {
+                    return Err(hir_error(format!(
+                        "variant case `{}` has no resolved case declaration",
+                        declaration.id
+                    )));
+                }
+                DeclarationKind::CaseField if !case_field_ids.contains(&declaration.id) => {
+                    return Err(hir_error(format!(
+                        "case field `{}` has no resolved field declaration",
+                        declaration.id
+                    )));
+                }
+                DeclarationKind::Function
+                    if !self.functions.contains_key(&declaration.id)
+                        && !template_ids.contains(&declaration.id) =>
+                {
+                    return Err(hir_error(format!(
+                        "function `{}` has no resolved function body",
+                        declaration.id
+                    )));
+                }
+                DeclarationKind::ResourceDrop if !resource_drop_ids.contains(&declaration.id) => {
+                    return Err(hir_error(format!(
+                        "resource lifecycle `{}` has no resolved declaration",
+                        declaration.id
+                    )));
+                }
+                DeclarationKind::Interface if !interface_ids.contains(&declaration.id) => {
+                    return Err(hir_error(format!(
+                        "interface `{}` has no resolved declaration",
+                        declaration.id
+                    )));
+                }
+                DeclarationKind::Import if !import_ids.contains(&declaration.id) => {
+                    return Err(hir_error(format!(
+                        "import `{}` has no resolved declaration",
+                        declaration.id
+                    )));
+                }
+                DeclarationKind::Resource
+                | DeclarationKind::ResourceDrop
+                | DeclarationKind::Record
+                | DeclarationKind::Class
+                | DeclarationKind::Field
+                | DeclarationKind::Variant
+                | DeclarationKind::VariantCase
+                | DeclarationKind::CaseField
+                | DeclarationKind::Interface
+                | DeclarationKind::Import
+                | DeclarationKind::Function => {}
+            }
+        }
+
+        for function in &self.program.functions {
+            self.validate_function(
+                function,
+                &FunctionExecutionId::Monomorphic(function.id.clone()),
+            )?;
+        }
+        let mut instance_ids = BTreeSet::new();
+        let expected_instances = self.reachable_function_instances()?;
+        if expected_instances.len() != self.program.function_instances.len()
+            || expected_instances
+                .iter()
+                .zip(&self.program.function_instances)
+                .any(|((id, template, arguments), actual)| {
+                    *id != &actual.id
+                        || *template != &actual.template
+                        || *arguments != actual.type_arguments.as_slice()
+                })
+        {
+            return Err(hir_error(
+                "materialized generic function instances are not the exact reachable sequence",
+            ));
+        }
+        for instance in &self.program.function_instances {
+            if !instance_ids.insert(instance.id.clone())
+                || !super::ids::instance_match::instance_matches!(
+                    &instance.id,
+                    &instance.template,
+                    &instance.type_arguments
+                )
+                || instance.function.id != instance.template
+                || !generic_instance_arguments_are_admitted(
+                    self.program,
+                    &instance.template,
+                    &instance.type_arguments,
+                )
+            {
+                return Err(hir_error(
+                    "generic function instance identity is inconsistent",
+                ));
+            }
+            let template = self
+                .program
+                .function_templates
+                .iter()
+                .find(|template| template.id == instance.template)
+                .ok_or_else(|| hir_error("generic function instance has no template"))?;
+            if template.type_parameters.len() != instance.type_arguments.len()
+                || template.params.len() != instance.function.params.len()
+            {
+                return Err(hir_error("generic function instance has invalid arity"));
+            }
+            for (template_param, concrete_param) in
+                template.params.iter().zip(&instance.function.params)
+            {
+                let expected =
+                    substitute_type(&template_param.ty, &template.id, &instance.type_arguments)?;
+                if concrete_param.ty != expected {
+                    return Err(hir_error(
+                        "generic function instance parameter substitution is inconsistent",
+                    ));
+                }
+            }
+            let expected_return = substitute_type(
+                &template.return_type,
+                &template.id,
+                &instance.type_arguments,
+            )?;
+            if instance.function.return_type != expected_return {
+                return Err(hir_error(
+                    "generic function instance result substitution is inconsistent",
+                ));
+            }
+            let expected_function =
+                materialize_function_template(template, &instance.type_arguments)?;
+            if !same_function_meaning(&expected_function, &instance.function) {
+                return Err(hir_error(
+                    "generic function instance is not the exact template substitution",
+                ));
+            }
+            self.validate_function(
+                &instance.function,
+                &FunctionExecutionId::Generic(instance.id.clone()),
+            )?;
+        }
+        let expected_byte_roots =
+            derive_byte_slice_provenance(&self.program.functions, &self.program.declarations)?;
+        if self.program.declarations.byte_slice_roots != expected_byte_roots {
+            return Err(hir_error(
+                "byte-slice symbolic provenance is missing, forged, or non-canonical",
+            ));
+        }
+        // Rebuild the target-neutral storage/call-flow projection from the
+        // hostile HIR rather than trusting Graph or backend-attached totals.
+        self.analyze_capacity()?;
+        self.finish_static_pool()
+    }
+
+    #[inline(never)]
+    fn validate_template_declarations(
+        &mut self,
+        template_ids: &mut BTreeSet<DeclarationId>,
+    ) -> Result<(), Diagnostic> {
         for template in &self.program.function_templates {
             let transparent_owned_wrapper =
                 box_intrinsic::authenticate_owned_wrapper(self.program, template)?;
@@ -327,10 +513,18 @@ impl<'a> HirValidator<'a> {
                 self.value_ids = saved_value_ids;
             }
         }
-        let mut resource_drop_ids = BTreeSet::new();
-        let mut field_ids = BTreeSet::new();
-        let mut variant_case_ids = BTreeSet::new();
-        let mut case_field_ids = BTreeSet::new();
+        Ok(())
+    }
+
+    #[inline(never)]
+    fn validate_type_declarations(
+        &mut self,
+        resource_drop_ids: &mut BTreeSet<DeclarationId>,
+        field_ids: &mut BTreeSet<DeclarationId>,
+        variant_case_ids: &mut BTreeSet<DeclarationId>,
+        case_field_ids: &mut BTreeSet<DeclarationId>,
+        imports: &identity_scratch::Imports<'a>,
+    ) -> Result<(), Diagnostic> {
         for declaration in &self.program.types {
             let expected_kind = match &declaration.kind {
                 ResolvedTypeDeclarationKind::Resource { .. } => DeclarationKind::Resource,
@@ -961,173 +1155,7 @@ impl<'a> HirValidator<'a> {
                 }
             }
         }
-        for declaration in self.program.declarations.declarations() {
-            match declaration.kind {
-                DeclarationKind::Resource
-                | DeclarationKind::Record
-                | DeclarationKind::Class
-                | DeclarationKind::Variant
-                    if !type_ids.contains(&declaration.id) =>
-                {
-                    return Err(hir_error(format!(
-                        "type `{}` has no resolved type declaration",
-                        declaration.id
-                    )));
-                }
-                DeclarationKind::Field if !field_ids.contains(&declaration.id) => {
-                    return Err(hir_error(format!(
-                        "field `{}` has no resolved field declaration",
-                        declaration.id
-                    )));
-                }
-                DeclarationKind::VariantCase if !variant_case_ids.contains(&declaration.id) => {
-                    return Err(hir_error(format!(
-                        "variant case `{}` has no resolved case declaration",
-                        declaration.id
-                    )));
-                }
-                DeclarationKind::CaseField if !case_field_ids.contains(&declaration.id) => {
-                    return Err(hir_error(format!(
-                        "case field `{}` has no resolved field declaration",
-                        declaration.id
-                    )));
-                }
-                DeclarationKind::Function
-                    if !self.functions.contains_key(&declaration.id)
-                        && !template_ids.contains(&declaration.id) =>
-                {
-                    return Err(hir_error(format!(
-                        "function `{}` has no resolved function body",
-                        declaration.id
-                    )));
-                }
-                DeclarationKind::ResourceDrop if !resource_drop_ids.contains(&declaration.id) => {
-                    return Err(hir_error(format!(
-                        "resource lifecycle `{}` has no resolved declaration",
-                        declaration.id
-                    )));
-                }
-                DeclarationKind::Interface if !interface_ids.contains(&declaration.id) => {
-                    return Err(hir_error(format!(
-                        "interface `{}` has no resolved declaration",
-                        declaration.id
-                    )));
-                }
-                DeclarationKind::Import if !import_ids.contains(&declaration.id) => {
-                    return Err(hir_error(format!(
-                        "import `{}` has no resolved declaration",
-                        declaration.id
-                    )));
-                }
-                DeclarationKind::Resource
-                | DeclarationKind::ResourceDrop
-                | DeclarationKind::Record
-                | DeclarationKind::Class
-                | DeclarationKind::Field
-                | DeclarationKind::Variant
-                | DeclarationKind::VariantCase
-                | DeclarationKind::CaseField
-                | DeclarationKind::Interface
-                | DeclarationKind::Import
-                | DeclarationKind::Function => {}
-            }
-        }
-
-        for function in &self.program.functions {
-            self.validate_function(
-                function,
-                &FunctionExecutionId::Monomorphic(function.id.clone()),
-            )?;
-        }
-        let mut instance_ids = BTreeSet::new();
-        let expected_instances = self.reachable_function_instances()?;
-        if expected_instances.len() != self.program.function_instances.len()
-            || expected_instances
-                .iter()
-                .zip(&self.program.function_instances)
-                .any(|((id, template, arguments), actual)| {
-                    *id != &actual.id
-                        || *template != &actual.template
-                        || *arguments != actual.type_arguments.as_slice()
-                })
-        {
-            return Err(hir_error(
-                "materialized generic function instances are not the exact reachable sequence",
-            ));
-        }
-        for instance in &self.program.function_instances {
-            if !instance_ids.insert(instance.id.clone())
-                || !super::ids::instance_match::instance_matches!(
-                    &instance.id,
-                    &instance.template,
-                    &instance.type_arguments
-                )
-                || instance.function.id != instance.template
-                || !generic_instance_arguments_are_admitted(
-                    self.program,
-                    &instance.template,
-                    &instance.type_arguments,
-                )
-            {
-                return Err(hir_error(
-                    "generic function instance identity is inconsistent",
-                ));
-            }
-            let template = self
-                .program
-                .function_templates
-                .iter()
-                .find(|template| template.id == instance.template)
-                .ok_or_else(|| hir_error("generic function instance has no template"))?;
-            if template.type_parameters.len() != instance.type_arguments.len()
-                || template.params.len() != instance.function.params.len()
-            {
-                return Err(hir_error("generic function instance has invalid arity"));
-            }
-            for (template_param, concrete_param) in
-                template.params.iter().zip(&instance.function.params)
-            {
-                let expected =
-                    substitute_type(&template_param.ty, &template.id, &instance.type_arguments)?;
-                if concrete_param.ty != expected {
-                    return Err(hir_error(
-                        "generic function instance parameter substitution is inconsistent",
-                    ));
-                }
-            }
-            let expected_return = substitute_type(
-                &template.return_type,
-                &template.id,
-                &instance.type_arguments,
-            )?;
-            if instance.function.return_type != expected_return {
-                return Err(hir_error(
-                    "generic function instance result substitution is inconsistent",
-                ));
-            }
-            let expected_function =
-                materialize_function_template(template, &instance.type_arguments)?;
-            if !same_function_meaning(&expected_function, &instance.function) {
-                return Err(hir_error(
-                    "generic function instance is not the exact template substitution",
-                ));
-            }
-            self.validate_function(
-                &instance.function,
-                &FunctionExecutionId::Generic(instance.id.clone()),
-            )?;
-        }
-        let expected_byte_roots =
-            derive_byte_slice_provenance(&self.program.functions, &self.program.declarations)?;
-        if self.program.declarations.byte_slice_roots != expected_byte_roots {
-            return Err(hir_error(
-                "byte-slice symbolic provenance is missing, forged, or non-canonical",
-            ));
-        }
-        // Rebuild the target-neutral storage/call-flow projection from the
-        // hostile HIR rather than trusting Graph or backend-attached totals.
-        self.analyze_capacity()?;
-        self.finish_static_pool()
+        Ok(())
     }
 
     #[inline(never)]

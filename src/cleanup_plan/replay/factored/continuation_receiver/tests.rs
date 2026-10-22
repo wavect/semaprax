@@ -216,7 +216,7 @@ fn current_factored_storage_preserves_old_automata_work_and_full_hostile_diagnos
     assert_eq!(allocation.allocated, allocation.freed);
     // Rust panic payload/hook allocations are observed too, but have no compiler
     // debit claim. The valid compiler cases below retain the full funding bound.
-    for hostile in [false, true] {
+    for (hostile, warm) in [(false, false), (true, false), (false, true), (true, true)] {
         let mut program = program();
         if hostile {
             let plan = &mut program.functions[0].cleanup_plan;
@@ -240,6 +240,45 @@ fn current_factored_storage_preserves_old_automata_work_and_full_hostile_diagnos
                 let mut budget = ReplayBudget::with_skeleton_limit(0);
                 let mut storage =
                     continuation_storage::Storage::for_program(&program, &mut budget).unwrap();
+                if warm {
+                    // Warm both idle slots under their ordinary account, then
+                    // prove factored acquisition upgrades empty backing without
+                    // adding relocation work to the independent oracle's units.
+                    let mut warming = ReplayBudget::new();
+                    let (top, frames) = storage.acquire(function, &mut warming).unwrap();
+                    let (inner, nested) = storage.acquire(function, &mut warming).unwrap();
+                    assert_eq!((frames.capacity(), nested.capacity()), (2, 2));
+                    assert!(frames.is_empty() && nested.is_empty());
+                    storage.release(inner, nested);
+                    storage.release(top, frames);
+                    let work = (
+                        budget.remaining,
+                        budget.skeleton_spent,
+                        budget.skeleton_remaining,
+                    );
+                    budget.lent_skeleton = true;
+                    let (top, frames) = storage.acquire(function, &mut budget).unwrap();
+                    let (inner, nested) = storage.acquire(function, &mut budget).unwrap();
+                    assert_eq!(
+                        (frames.capacity(), nested.capacity()),
+                        (
+                            continuation_storage::FRAME_CAPACITY,
+                            continuation_storage::FRAME_CAPACITY
+                        )
+                    );
+                    assert!(frames.is_empty() && nested.is_empty());
+                    storage.release(inner, nested);
+                    storage.release(top, frames);
+                    budget.lent_skeleton = false;
+                    assert_eq!(
+                        work,
+                        (
+                            budget.remaining,
+                            budget.skeleton_spent,
+                            budget.skeleton_remaining
+                        )
+                    );
+                }
                 let old = build_comparison(&program, function, &mut old_budget, None, None);
                 let current =
                     build_comparison(&program, function, &mut budget, None, Some(&mut storage));

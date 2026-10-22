@@ -1,0 +1,29 @@
+{
+  "scope": "Incremental CI repair; current main CI remains unqualified.",
+  "before_head": "b60370fe3550f485707927eddf2ad5e266872a39",
+  "canonical_controls_hosted": {
+    "head": "cdf0ae5173c920aca6c22dc0959f80f147978aaf",
+    "run": 39795994339,
+    "groups": [
+      18,
+      10,
+      8,
+      2
+    ],
+    "all_selected_original_tests_passed": true,
+    "complete_root_unit_suite_not_run": true
+  },
+  "actual_normal_library_build_pass": true,
+  "actual_normal_library_source_sha256": "3570a59194270398b9ef31dbb56c2a60b79bead604894eb207a7f613f48fbdca",
+  "validator_declaration_bodies_and_literals_preserved": true,
+  "original_caller_retains_all_sets_and_import_map": true,
+  "low_stack_probe": "128 KiB public validation remains failing later in cleanup_plan::build::PlanBuilder::lower_expr_iterative; no passing stack qualification claimed.",
+  "product_budget": "Hosted complete standard_library group:149 passed,86 failed,1 ignored; installed journey failed SPX-G171. All existing byte/work/path ceilings unchanged.",
+  "source_tests": 29,
+  "python_generator_tests": 14,
+  "source_caps_unchanged": true,
+  "device_RAM_monitor": "Physical free+inactive+speculative pages and device memory-pressure metric; process RSS telemetry only; no process RSS cap.",
+  "all_work_and_outputs_on_external_ssd": true,
+  "production_clippy_warnings_denied_pass": true,
+  "actual_source_harness_clippy_warnings_denied_pass": true
+}

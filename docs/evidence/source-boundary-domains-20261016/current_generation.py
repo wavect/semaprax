@@ -2,6 +2,14 @@
 from pathlib import Path
 import argparse,json,re,hashlib,tomllib,posixpath
 
+# Owning source-as-text grammar: canonical-byte-source-20261022/current-source-authority.py:104-151.
+# These declarations admit complete read-only fragment trails, never folded routes.
+DATA_PROJECTIONS=frozenset([
+ ('src/source_reflows_merge/main67107_inputs_tail.rs','tests/workspace/semantic_graph/source_inventory.rs'),
+ ('crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs','crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs'),
+ ('tests/workspace/semantic_graph.rs','tests/workspace/semantic_graph/source_inventory.rs'),
+])
+
 def record_trail(record):
  value=record[3]
  return () if value is None else value if isinstance(value,tuple) else (value,)
@@ -24,6 +32,16 @@ def registration_paths(record):
 
 def require_acyclic_extension(record,parent,target):
  assert target!=parent and target not in registration_paths(record),('compiled include cycle',parent,target)
+
+def compiled_registration(record):
+ return not any(edge['text'].lstrip().startswith('include_str!') for edge in record_trail(record))
+
+def can_expand_literal_include(record,parent,target):
+ # An include_str! is a terminal source read, not another execution of the
+ # source's include tokens. Retain that exact read; stop a repeated DATA path.
+ if any(edge['text'].lstrip().startswith('include_str!') for edge in record_trail(record)) and target in registration_paths(record):return False
+ require_acyclic_extension(record,parent,target)
+ return True
 
 def registration_role(records,closed):
  def is_test(record):
@@ -142,43 +160,166 @@ def generate(repo,out=None):
   if i:projection_chunks.append({'literal':'\n'})
   projection_chunks+=Expr(macros[n][k],R/'tests/workspace').expr()
  needed={x['path'] for x in hir_chunks+projection_chunks if 'path'in x}
- # The existing parser's include! / test-data edges are authenticated literally.
- for target in sorted(needed-set(files)):
-  candidates=[]
-  for parent,registrations in list(files.items()):
+ # Every closed literal acquisition is retained even when the target also
+ # has an independent parsed registration. A complete prefix is never folded
+ # into a different module destination.
+ def literal_acquisitions(targets,registered):
+  by_target={target:[] for target in sorted(targets)};names={Path(target).name for target in targets}
+  for parent,registrations in registered:
    if not all(closed(record[0],record[1]) for record in registrations):continue
    text=source_text(R/parent)
-   if Path(target).name not in text:continue
+   if not any(name in text for name in names):continue
    masked=mask(text)
    for m in re.finditer(r'\binclude(?:_str)?!\(\s*"([^"]+)"\s*\)',text):
     if not masked.startswith('include',m.start()):continue
-    if str(((R/parent).parent/m[1]).resolve().relative_to(R))!=target:continue
+    target=str(((R/parent).parent/m[1]).resolve().relative_to(R))
+    if target not in by_target:continue
     edge={'parent':parent,'start':len(text[:m.start()].encode()),'text':m[0],'attributes':[],'child':target}
-    candidates.extend(data_alias_records(registrations,edge))
-  assert candidates,('unclassified inventory source',target)
-  files[target]=candidates
+    for record in registrations:inherit_record(by_target,target,record,edge)
+  return by_target
+ # Classification witnesses are terminal reads, not reusable DATA seeds.
+ parsed_records=tuple((p,tuple(rows))for p,rows in files.items())
+ terminal_witnesses=literal_acquisitions(needed|set(files),parsed_records)
+ classification_witnesses={p:terminal_witnesses[p]for p in needed}
+ for target,candidates in literal_acquisitions(needed-set(files),parsed_records).items():
+  assert candidates or target in files,('unclassified inventory source',target)
+  for record in candidates:
+   rows=files.setdefault(target,[])
+   if record not in rows:rows.append(record)
+ seed_files={p:tuple(rows)for p,rows in files.items()}
+ projection_cache={}
+ def projection_fragment_edges(parent,target):
+  assert (parent,target)in DATA_PROJECTIONS,('undeclared source-text continuation',parent,target)
+  pair=(parent,target)
+  if pair in projection_cache:return projection_cache[pair]
+  text=source_text(R/parent);masked=mask(text);edges=[]
+  data=parent=='src/source_reflows_merge/main67107_inputs_tail.rs'
+  pattern=r'\binclude_str!\s*\('if data else r'\binclude!\s*\('
+  literal=r'include_str!\s*\(\s*"([^"]+)"\s*\)'if data else r'include!\s*\(\s*"([^"]+)"\s*\)'
+  for use in re.finditer(pattern,masked):
+   match=re.match(literal,text[use.start():])
+   if match is None:continue
+   if str(((R/parent).parent/match[1]).resolve().relative_to(R))!=target:continue
+   edges.append(literal_include_edge(text,masked,parent,target,use.start(),match))
+  assert len(edges)==(2 if data else 1),('source-text literal multiplicity',parent,target,len(edges))
+  projection_cache[pair]=tuple(edges);return projection_cache[pair]
  roots={('semaprax','lib'):'src/lib.rs',('semaprax','bin:semaprax'):'src/main.rs',('semaprax','test:hir_module_boundaries'):'tests/hir_module_boundaries.rs',('semaprax','test:workspace'):'tests/workspace.rs',('semaprax','test:wasm'):'tests/wasm.rs',('semaprax','test:project'):'tests/project.rs',('semaprax','test:cli_help_surface_v1'):'tests/cli_help_surface_v1.rs',('semaprax-toolchain','test:cli_help_surface_v1'):'crates/semaprax-toolchain/tests/cli_help_surface_v1.rs'}
  def manifest(chunks):
+  files={p:list(rows)for p,rows in seed_files.items()}
   raw_paths={x['path']for x in chunks if 'path'in x}
   paths=set(raw_paths)
+  compiled_scan=set(raw_paths)
   for path,records in files.items():
-   if any(any(node['source_path']in raw_paths for node in record[1])for record in records):paths.add(path)
+   selection=tuple(records)+tuple(classification_witnesses.get(path,()))
+   descendants=[record for record in selection if any(node['source_path']in raw_paths for node in record[1])]
+   if descendants:paths.add(path)
+   if any(compiled_registration(record)for record in descendants):compiled_scan.add(path)
   # Inherit every parent registration across each literal compiled include.
   # The edge tuple retains multihop continuity and keeps data aliases distinct
   # from an independently parsed production registration of the same path.
-  pending=list(paths);seen_counts={}
-  while pending:
-   parent=pending.pop();records=files.get(parent);assert records,('unregistered inventory path',parent)
-   if seen_counts.get(parent)==len(records):continue
-   seen_counts[parent]=len(records);text=source_text(R/parent);masked=mask(text)
-   for use in re.finditer(r'\binclude!\s*\(',masked):
-    match=re.match(r'include!\s*\(\s*"([^"]+)"\s*\)',text[use.start():]);assert match,('nonliteral compiled include requires explicit inventory',parent)
-    target=str(((R/parent).parent/match[1]).resolve().relative_to(R));edge=literal_include_edge(text,masked,parent,target,use.start(),match)
-    paths.add(target);changed=False
-    for record in list(records):
-     require_acyclic_extension(record,parent,target)
-     changed=inherit_record(files,target,record,edge)or changed
-    if changed or seen_counts.get(target)!=len(files[target]):pending.append(target)
+  # Classify every actual acquisition ancestor without interpreting arbitrary
+  # ancestor macro bodies as additional compiled inventory roots.
+  while True:
+   parents={node['source_path'] for path in paths for record in files[path] for node in record[1]}
+   missing=parents-paths
+   if not missing:break
+   assert missing<=set(files),('unregistered module ancestor',missing)
+   paths.update(missing)
+  seen_counts={};include_edges={}
+  def expand_includes(pending,discover):
+   while pending:
+    parent=pending.pop();records=files.get(parent);assert records,('unregistered inventory path',parent)
+    if seen_counts.get(parent)==len(records):continue
+    seen_counts[parent]=len(records)
+    if parent not in include_edges:
+     assert discover,('DATA cannot introduce a new include scan root',parent)
+     text=source_text(R/parent);masked=mask(text);include_edges[parent]=[]
+     for use in re.finditer(r'\binclude!\s*\(',masked):
+      match=re.match(r'include!\s*\(\s*"([^"]+)"\s*\)',text[use.start():]);assert match,('nonliteral compiled include requires explicit inventory',parent)
+      target=str(((R/parent).parent/match[1]).resolve().relative_to(R))
+      include_edges[parent].append(literal_include_edge(text,masked,parent,target,use.start(),match))
+    for edge in include_edges[parent]:
+     target=edge['child'];paths.add(target);changed=False
+     for record in list(records):
+      if not compiled_registration(record):continue
+      if not can_expand_literal_include(record,parent,target):continue
+      changed=inherit_record(files,target,record,edge)or changed
+     if changed or seen_counts.get(target)!=len(files[target]):pending.append(target)
+  expand_includes(sorted(compiled_scan),True)
+  # Freeze the admitted literal suffix DAG before acquiring any later DATA.
+  active=set();complete=set()
+  def check_dag(parent):
+   assert parent not in active,('compiled include cycle',parent)
+   if parent in complete:return
+   active.add(parent)
+   for edge in include_edges.get(parent,[]):check_dag(edge['child'])
+   active.remove(parent);complete.add(parent)
+  for parent in include_edges:check_dag(parent)
+  # Discover terminal reads of already registered modules from this domain's
+  # admitted compiled readers only. A target adds a class, never a scan root.
+  admitted=compiled_scan|set(include_edges)
+  discovery_basis=tuple((p,tuple(record for record in files[p]if compiled_registration(record)))for p in sorted(admitted))
+  for target,candidates in literal_acquisitions({p for p,_ in parsed_records},discovery_basis).items():
+   if not candidates:continue
+   paths.add(target)
+   for record in candidates:
+    rows=files[target]
+    if record not in rows:rows.append(record)
+  # Close structural classes exposed by the compiled DAG before fixing the
+  # targets of the single DATA pass. This adds no include scan root.
+  while True:
+   parents={node['source_path']for path in paths for record in files[path]for node in record[1]}
+   parents.update(endpoint for path in paths for record in files[path]for edge in record_trail(record)for endpoint in (edge['parent'],edge['child']))
+   missing=parents-paths
+   if not missing:break
+   assert missing<=set(files),('unregistered compiled acquisition ancestor',missing)
+   paths.update(missing)
+  # A finite immutable basis: original parsed/initial DATA witnesses plus real
+  # DATA-free compiled include registrations. Derived DATA is never re-enlisted.
+  late_basis={p:list(rows)for p,rows in seed_files.items()}
+  for parent,records in files.items():
+   rows=late_basis.setdefault(parent,[])
+   for record in records:
+    if compiled_registration(record) and record not in rows:rows.append(record)
+  registered=tuple((p,tuple(record for record in rows if compiled_registration(record)))for p,rows in late_basis.items())
+  for target,candidates in literal_acquisitions(paths,registered).items():
+   for record in candidates:
+    rows=files.setdefault(target,[])
+    if record not in rows:rows.append(record)
+  # At most one suffix propagation over the already frozen include DAG.
+  expand_includes(list(seen_counts),False)
+  # DATA text is terminal except for the three owning source-inventory
+  # assembly declarations. Preserve each complete acquisition+fragment trail;
+  # never scan arbitrary nested read tokens or manufacture a folded shortcut.
+  for parent,target in sorted(DATA_PROJECTIONS):
+   if parent not in files or target not in paths:continue
+   for edge in projection_fragment_edges(parent,target):
+    for record in tuple(files[parent]):
+     trail=record_trail(record)
+     if not trail or not trail[-1]['text'].lstrip().startswith('include_str!'):continue
+     assert trail[-1]['child']==parent and closed(record[0],record[1]),('source-text projection must remain closed',parent,target)
+     inherit_record(files,target,record,edge)
+  # Late acquisitions can expose additional real module ancestors. Classify
+  # them completely without adding any scan root or interpreting their bodies.
+  while True:
+   parents={node['source_path']for path in paths for record in files[path]for node in record[1]}
+   parents.update(endpoint for path in paths for record in files[path]for edge in record_trail(record)for endpoint in (edge['parent'],edge['child']))
+   missing=parents-paths
+   if not missing:break
+   assert missing<=set(files),('unregistered late module ancestor',missing)
+   paths.update(missing)
+  # Preserve the frozen early closed-reader occurrences as terminal witnesses
+  # for the complete selected class set. They never become traversal inputs.
+  for target in sorted(paths):
+   for record in terminal_witnesses.get(target,()):
+    if record not in files[target]:files[target].append(record)
+  while True:
+   parents={node['source_path']for path in paths for record in files[path]for node in record[1]}
+   parents.update(endpoint for path in paths for record in files[path]for edge in record_trail(record)for endpoint in (edge['parent'],edge['child']))
+   missing=parents-paths
+   if not missing:break
+   assert missing<=set(files),('unregistered terminal acquisition ancestor',missing)
+   paths.update(missing)
   closure=sorted(paths-raw_paths);classes={};source_paths=set(paths)
   for p in sorted(paths):
    chains=[]

@@ -1,0 +1,14 @@
+[
+  {
+    "domain": "hir",
+    "all_original_sources_roles_classes_acquisition_chains_raw_chunks_and_closure_preserved": true,
+    "manifest_bytes": 7723659,
+    "classes": 1822
+  },
+  {
+    "domain": "projection",
+    "all_original_sources_roles_classes_acquisition_chains_raw_chunks_and_closure_preserved": true,
+    "manifest_bytes": 7758777,
+    "classes": 1908
+  }
+]

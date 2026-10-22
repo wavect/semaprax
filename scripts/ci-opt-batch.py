@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run only the committed 41-filter/82-test OPT batch and production Clippy."""
+"""Run only the committed 42-filter/85-test OPT batch and production Clippy."""
 from __future__ import annotations
 
 import hashlib
@@ -194,10 +194,10 @@ def main() -> int:
         if not receipt['rustc'].startswith('rustc 1.97.1 '):
             raise RuntimeError('the owning toolchain must remain Rust 1.97.1')
         rows = json.loads(SELECTION.read_text())['commands']
-        if (len(rows) != 41 or sum(r['expected_tests'] for r in rows) != 82
+        if (len(rows) != 42 or sum(r['expected_tests'] for r in rows) != 85
                 or sum(r['binary'] == 'lib' for r in rows) != 40
                 or sum(r['binary'] == 'hir_module_boundaries' for r in rows) != 1):
-            raise RuntimeError('selection must remain 41 filters / 82 tests / 2 binaries')
+            raise RuntimeError('selection must remain 42 filters / 85 tests / 2 binaries')
         for row in rows:
             if (not isinstance(row['filter'], str) or not row['filter'].strip()
                     or row['filter'].startswith('-') or '\n' in row['filter']
@@ -320,12 +320,12 @@ def main() -> int:
         receipt['final_checkout'] = state(expected)
         for kind in binaries:
             unchanged_binary(kind)
-        if (receipt['completed_filters'] != 41 or receipt['failed_filters'] != 0
-                or receipt['observed_passed_tests'] != 82 or not receipt['clippy']['passed']):
+        if (receipt['completed_filters'] != 42 or receipt['failed_filters'] != 0
+                or receipt['observed_passed_tests'] != 85 or not receipt['clippy']['passed']):
             receipt['status'] = 'failed'
             receipt['error'] = 'one or more focused filters or production Clippy failed; see all collected outcomes'
             return 1
-        receipt['passed_tests'] = 82
+        receipt['passed_tests'] = 85
         receipt['status'] = 'passed'
         return 0
     except Exception as error:
@@ -341,7 +341,7 @@ def main() -> int:
         receipt['observed_failed_tests'] = sum(row.get('failed', 0) for row in receipt['tests'])
         receipt['filters_without_unique_summary'] = [row['index'] for row in receipt['tests']
                                                      if len(row.get('summaries', [])) != 1]
-        receipt['summary_counts_complete'] = (receipt['completed_filters'] == 41 and not receipt['filters_without_unique_summary'])
+        receipt['summary_counts_complete'] = (receipt['completed_filters'] == 42 and not receipt['filters_without_unique_summary'])
         (OUT / 'receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
         print(f'OPT batch status: {receipt["status"]}; receipts/logs: {OUT.name}', flush=True)
 

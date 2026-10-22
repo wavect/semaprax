@@ -514,3 +514,5 @@ impl<'hir> Canonicalizer<'hir> {
         receiving.ready = true;
     }
 }
+
+pub(in crate::cleanup_plan::replay::factored::canonical_shared::inline_singleton) mod compact;

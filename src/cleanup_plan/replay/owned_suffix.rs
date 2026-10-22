@@ -245,7 +245,7 @@ fn sequence_core(
             .any(|suffix| suffix.observations.prefix.is_some())
     };
     let mut combined = Vec::new();
-    let minimum = path_array::count!(
+    let minimum = compact_path::count!(
         work,
         true,
         if suffixes.is_empty() {
@@ -256,11 +256,7 @@ fn sequence_core(
         "sequenced path capacity"
     );
     path_array::select!(first, minimum, &combined, work);
-    work.budget.reserve_bytes(
-        work.function,
-        final_output::HIR_SELECTION_CONTROLS,
-        "HIR single-suffix selection controls",
-    )?;
+    final_output::compact::hir_selection!(work);
     let single = suffixes.len() == 1;
     let mut precharged = false;
     if single && first {
@@ -273,7 +269,7 @@ fn sequence_core(
                 sequence_vector::stopped_after_work!(work, first, minimum, combined, prefix);
                 continue;
             }
-            path_array::push!(
+            compact_path::push!(
                 work,
                 first,
                 minimum,
@@ -290,12 +286,8 @@ fn sequence_core(
             if precharged {
                 precharged = false;
             } else {
-                work.budget.reserve_bytes(
-                    work.function,
-                    final_output::HIR_MOVE_CONTROLS,
-                    "HIR single-suffix move controls",
-                )?;
-                work.charge(1, "skeleton prefix clone")?;
+                final_output::compact::hir_move!(work);
+                final_output::compact::hir_work!(work);
                 note_skeleton_materialization();
             }
             let suffix = &suffixes[0];
@@ -307,7 +299,7 @@ fn sequence_core(
             )?;
             let owned_source =
                 work.clone_owned(suffix.owned_source, "sequenced skeleton owned-source clone")?;
-            path_array::push!(
+            compact_path::push!(
                 work,
                 first,
                 minimum,
@@ -385,7 +377,7 @@ fn sequence_core(
             )?;
             let owned_source =
                 work.clone_owned(suffix.owned_source, "sequenced skeleton owned-source clone")?;
-            path_array::push!(
+            compact_path::push!(
                 work,
                 first,
                 minimum,
@@ -450,7 +442,7 @@ fn sequence_core(
         )?;
         let owned_source =
             work.clone_owned(last.owned_source, "sequenced skeleton owned-source clone")?;
-        path_array::push!(
+        compact_path::push!(
             work,
             first,
             minimum,

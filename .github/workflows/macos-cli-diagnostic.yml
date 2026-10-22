@@ -12,13 +12,18 @@ on:
         type: boolean
         required: false
         default: false
+      focused_controls:
+        description: Run selected controls from the complete library harness (diagnostic only)
+        type: boolean
+        required: false
+        default: false
       resolved_core:
         description: Capture production-algorithm project reservation totals on Linux
         type: boolean
         required: false
         default: false
       opt_batch:
-        description: Run the bounded 41-filter OPT qualification batch and production Clippy on Linux
+        description: Run the bounded 42-filter OPT qualification batch and production Clippy on Linux
         type: boolean
         required: false
         default: false
@@ -34,7 +39,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   cli:
-    if: ${{ ! inputs.linux_stack && ! inputs.resolved_core && ! inputs.opt_batch }}
+    if: ${{ ! inputs.linux_stack && ! inputs.resolved_core && ! inputs.opt_batch && ! inputs.focused_controls }}
     runs-on: macos-15
     timeout-minutes: 120
     env:
@@ -217,7 +222,7 @@ jobs:
     if: inputs.resolved_core
     name: Project reservation census (diagnostic only)
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 120
     env:
       CARGO_BUILD_JOBS: "1"
       CARGO_PROFILE_DEV_DEBUG: "0"
@@ -233,15 +238,53 @@ jobs:
       - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
         with:
           toolchain: 1.97.1
+          components: clippy
       - name: Fetch locked dependencies
         run: cargo fetch --locked
+      - name: Check the actual production library with warnings denied
+        run: >-
+          cargo clippy --locked --offline -p semaprax --lib
+          --features unstable-workflow-profiling --jobs 1 -- -D warnings
       - name: Build the actual instrumented production library
+        id: production_build
         shell: bash
         run: |
           set -euo pipefail
           cargo build --locked --offline -p semaprax --lib --features unstable-workflow-profiling --jobs 1 --message-format=json > resolved-core-build.jsonl
       - name: Capture unchanged failure and exclusive reservation totals
         run: python3 scripts/diagnose-resolved-core.py resolved-core-build.jsonl
+      - name: Check complete canonical predecessor and compact Result controls
+        id: focused_controls
+        env:
+          CARGO_PROFILE_TEST_DEBUG: "0"
+          CARGO_PROFILE_TEST_OPT_LEVEL: "0"
+          CARGO_PROFILE_TEST_CODEGEN_UNITS: "256"
+        shell: bash
+        run: |
+          set -euo pipefail
+          result=0
+          for selector in inline_singleton:: final_output:: owned_suffix:: sequence_vector::funded_tests; do
+            cargo test --locked --offline -p semaprax --lib \
+              --features unstable-workflow-profiling --jobs 1 \
+              "$selector" -- --nocapture --test-threads=1 || result=1
+          done
+          exit "$result"
+      - name: Run the complete default-profile bundled-library project suite
+        if: ${{ !cancelled() && steps.production_build.outcome == 'success' }}
+        env:
+          CARGO_PROFILE_TEST_DEBUG: "0"
+          CARGO_PROFILE_TEST_OPT_LEVEL: "0"
+          CARGO_PROFILE_TEST_CODEGEN_UNITS: "256"
+        run: >-
+          cargo test --locked --offline -p semaprax --test project
+          standard_library:: -- --nocapture --test-threads=1
+      - name: Run the original installed-toolchain journey
+        if: ${{ !cancelled() && steps.production_build.outcome == 'success' }}
+        env:
+          CARGO_PROFILE_TEST_DEBUG: "0"
+          CARGO_PROFILE_TEST_OPT_LEVEL: "0"
+          CARGO_PROFILE_TEST_CODEGEN_UNITS: "256"
+        run: scripts/run-installed-journey-test.sh
       - name: Retain the bound diagnostic report
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
@@ -255,7 +298,7 @@ jobs:
           retention-days: 1
 
   opt-batch:
-    name: Focused OPT qualification (41 filters / 82 tests)
+    name: Focused OPT qualification (42 filters / 85 tests)
     if: inputs.opt_batch
     runs-on: ubuntu-24.04
     timeout-minutes: 240
@@ -308,7 +351,7 @@ jobs:
           import json,os,pathlib,subprocess
           receipt=json.loads(pathlib.Path("diagnostic-opt-batch/receipt.json").read_text())
           assert not receipt.get("execution_aborted"), "qualification batch aborted"
-          assert receipt.get("completed_filters")==41 and receipt.get("summary_counts_complete") is True
+          assert receipt.get("completed_filters")==42 and receipt.get("summary_counts_complete") is True
           head=subprocess.check_output(["git","rev-parse","HEAD"],text=True).strip()
           tree=subprocess.check_output(["git","rev-parse","HEAD^{tree}"],text=True).strip()
           assert head==os.environ["GITHUB_SHA"]==receipt["head"]
@@ -342,3 +385,47 @@ jobs:
           path: diagnostic-opt-batch/
           if-no-files-found: error
           retention-days: 7
+  focused-controls:
+    name: Focused complete-library unit controls (diagnostic only)
+    if: inputs.focused_controls
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      CARGO_BUILD_JOBS: "1"
+      CARGO_INCREMENTAL: "0"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      CARGO_PROFILE_TEST_OPT_LEVEL: "0"
+      CARGO_TARGET_DIR: target/focused-unit-diagnostic
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          fetch-tags: false
+          lfs: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+        with:
+          toolchain: 1.97.1
+      - name: Bind the build to this exact checkout
+        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Fetch locked dependencies
+        run: cargo fetch --locked
+      - name: Build the actual complete library test harness
+        run: cargo test --locked --offline -p semaprax --lib --features unstable-workflow-profiling --no-run --jobs 1
+      - name: Run every focused control and preserve any failure
+        shell: bash
+        run: |
+          status=0
+          cargo test --locked --offline -p semaprax --lib --features unstable-workflow-profiling --jobs 1 -- --list > focused-inventory.txt
+          for selector in compact_flat_probe_ compact_vec_tests:: compact_targets::tests path_join::boxed_states::receiving_tests::compact_positive_; do
+            python3 - "$selector" <<'PYCODE'
+          import pathlib,sys
+          names=[line.removesuffix(": test") for line in pathlib.Path("focused-inventory.txt").read_text().splitlines() if line.endswith(": test")]
+          selected=[name for name in names if sys.argv[1] in name]
+          assert selected, f"empty focused test selector: {sys.argv[1]}"
+          print(f"{sys.argv[1]}: {len(selected)} actual tests selected from {len(names)} compiled tests")
+          PYCODE
+            cargo test --locked --offline -p semaprax --lib --features unstable-workflow-profiling --jobs 1 "$selector" -- --nocapture --test-threads=1 || status=1
+          done
+          exit "$status"

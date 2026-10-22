@@ -588,6 +588,10 @@ pub(super) use pins_v9::{expand_v9, SCHEMA_V9};
 mod pins_v10;
 pub(super) use pins_v10::{expand_v10, SCHEMA_V10};
 
+#[path = "main_e177_overlay_pins_v11.rs"]
+mod pins_v11;
+pub(super) use pins_v11::{expand_v11, SCHEMA_V11};
+
 #[cfg(test)]
 mod tests {
     use super::super::{canonical, compose_values, compose_values_v2, digest, held_4a6eb};

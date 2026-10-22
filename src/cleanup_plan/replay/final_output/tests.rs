@@ -353,3 +353,5 @@ pub(super) fn assert_complete_old_sources() {
     );
     assert_eq!(compiled, expected);
 }
+
+mod compact_results;

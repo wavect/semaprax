@@ -41,6 +41,23 @@ fn main() {
     let report = capture.finish().unwrap();
     println!("product-json:{}", product(&result));
     eprintln!("result: {:?}", result);
+    use semaprax::workflow_profile::plan_comparison::{PaidPhase, PhaseOrigin, PhasePayer};
+    assert!(report.paid_phases.balanced && !report.paid_phases.overflow);
+    for phase in [
+        PaidPhase::CleanupValidation,
+        PaidPhase::CanonicalRebuild,
+        PaidPhase::ReplayStructure,
+        PaidPhase::FactoredComparison,
+        PaidPhase::FactoredConstruction,
+        PaidPhase::HirPaths,
+        PaidPhase::PlanPaths,
+        PaidPhase::Comparison,
+    ] {
+        let row = report
+            .paid_phases
+            .row(phase, PhasePayer::ActiveBuilder, PhaseOrigin::Shipping);
+        println!("inclusive paid phase {phase:?}: {row:?}");
+    }
     let core = report.resolved_core;
     assert!(
         core.complete && !core.invalid && !core.lost && !core.overflow,

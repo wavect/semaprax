@@ -1,5 +1,6 @@
 pub(super) fn compiled(source: &str) -> Option<&'static str> {
     match source {
+        "src/source_reflows_merge/main_e177_overlay_pins_v11.rs" => Some(include_str!("../../src/source_reflows_merge/main_e177_overlay_pins_v11.rs")),
         "src/bounded_output/exclusive_debits.rs" => Some(include_str!("../../src/bounded_output/exclusive_debits.rs")),
         "src/hir/ids/lowering_identity_tests.rs" => Some(include_str!("../../src/hir/ids/lowering_identity_tests.rs")),
         "src/hir/owned_collection_record/identity_before.rs" => Some(include_str!("../../src/hir/owned_collection_record/identity_before.rs")),
@@ -195,6 +196,17 @@ pub(super) fn compiled(source: &str) -> Option<&'static str> {
         "src/cleanup_plan/replay/skeleton_work/enumerated_prefix.rs" => Some(include_str!("../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix.rs")),
         "src/cleanup_plan/replay/sequence_vector/funded_tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/sequence_vector/funded_tests.rs")),
         "src/hir/selected_function.rs" => Some(include_str!("../../src/hir/selected_function.rs")),
+        "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact.rs" => Some(include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact.rs")),
+        "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/compact_targets.rs" => Some(include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/compact_targets.rs")),
+        "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/payments.rs" => Some(include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/payments.rs")),
+        "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/tests/compact_results.rs" => Some(include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/tests/compact_results.rs")),
+        "src/cleanup_plan/replay/final_output.rs" => Some(include_str!("../../src/cleanup_plan/replay/final_output.rs")),
+        "src/cleanup_plan/replay/final_output/compact.rs" => Some(include_str!("../../src/cleanup_plan/replay/final_output/compact.rs")),
+        "src/cleanup_plan/replay/final_output/tests/compact_results.rs" => Some(include_str!("../../src/cleanup_plan/replay/final_output/tests/compact_results.rs")),
+        "src/cleanup_plan/replay/path_join/boxed_states.rs" => Some(include_str!("../../src/cleanup_plan/replay/path_join/boxed_states.rs")),
+        "src/cleanup_plan/replay/path_join/boxed_states/receiving_tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/path_join/boxed_states/receiving_tests.rs")),
+        "src/cleanup_plan/replay/sequence_vector.rs" => Some(include_str!("../../src/cleanup_plan/replay/sequence_vector.rs")),
+        "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/flat_probe.rs" => Some(include_str!("../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix/flat_probe.rs")),
         _ => None,
     }
 }
@@ -285,6 +297,101 @@ mod tests {
         // source images, before any metadata or whole-source normalization.
         assert_eq!(root, ROOT);
         assert_eq!(child, CHILD);
+        // CURRENT_SCOPE_NORMALIZATION_BEGIN
+        // Reverse only the exact current literal-list packing and new scope.
+        // Actual current root/child equality above precedes every inverse.
+        let mut current_scope_root = root.to_owned();
+        let digest_dispatch = "    if page[\"schema\"] == fragments_v3::SCHEMA_V11 {\n        let expanded = fragments_v3::expand_v11(&before, policy, page)?;\n        compose_values_v2(before, policy, &expanded)\n    } else if page[\"schema\"] == fragments_v3::SCHEMA_V10 {\n";
+        assert_eq!(current_scope_root.matches(digest_dispatch).count(), 1);
+        current_scope_root = current_scope_root.replacen(digest_dispatch, "    if page[\"schema\"] == fragments_v3::SCHEMA_V10 {\n", 1);
+        let wrapped_comment = concat!(
+            "    // Original metadata is read as metadata. It is never substituted for a\n",
+            "    // changed physical Rust source, and it retains its original individual cap.\n",
+        );
+        assert_eq!(current_scope_root.matches(wrapped_comment).count(), 2);
+        current_scope_root = current_scope_root.replace(wrapped_comment, "");
+        for name in ["REPLACEMENTS", "ADDITIONS"] {
+            let at = constant(&current_scope_root, name);
+            let declaration = current_scope_root[at].to_owned();
+            let prefix = format!("const {name}: &[&str] = &");
+            let json = declaration
+                .strip_prefix(prefix.as_str())
+                .unwrap()
+                .strip_suffix(';')
+                .unwrap();
+            let values: Vec<String> = serde_json::from_str(json).unwrap();
+            let mut expanded = format!("pub(super) const {name}: &[&str] = &[\n");
+            for value in values {
+                expanded.push_str(&format!(
+                    "    {},\n",
+                    serde_json::to_string(&value).unwrap()
+                ));
+            }
+            expanded.push_str("];");
+            let packed = format!("#[rustfmt::skip]\npub(super) {declaration}");
+            assert_eq!(current_scope_root.matches(&packed).count(), 1);
+            current_scope_root = current_scope_root.replacen(&packed, &expanded, 1);
+        }
+        for source in [
+            "src/source_reflows_merge/main_e177_overlay_pins_v11.rs",
+            "src/cleanup_plan/replay/owned_suffix.rs",
+            "src/cleanup_plan/replay/final_output/current_observation_tests.rs",
+            "src/cleanup_plan/replay/final_output/tests.rs",
+            "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact.rs",
+            "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/compact_targets.rs",
+            "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/payments.rs",
+            "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/tests/compact_results.rs",
+            "src/cleanup_plan/replay/final_output.rs",
+            "src/cleanup_plan/replay/final_output/compact.rs",
+            "src/cleanup_plan/replay/final_output/tests/compact_results.rs",
+            "src/cleanup_plan/replay/path_join/boxed_states.rs",
+            "src/cleanup_plan/replay/path_join/boxed_states/receiving_tests.rs",
+            "src/cleanup_plan/replay/sequence_vector.rs",
+            "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/flat_probe.rs",
+        ] {
+            let declaration = format!("    {source:?},\n");
+            assert_eq!(current_scope_root.matches(&declaration).count(), 1);
+            current_scope_root = current_scope_root.replacen(&declaration, "", 1);
+        }
+        // Retain the exact prior comment-restoration controls after restoring
+        // the physical comments carried by the incoming source epoch.
+        for (current, previous) in [
+            ("        let restored = format!(\"fn load(){old}\");\n", "        let restored = format!(\"fn load(){old}\").replacen(\"    let extension = include_str!(\\\"../../docs/evidence/fmt-local-441-20261018/extension.json\\\");\\n\", \"    // Original metadata is read as metadata. It is never substituted for a\\n    // changed physical Rust source, and it retains its original individual cap.\\n    let extension = include_str!(\\\"../../docs/evidence/fmt-local-441-20261018/extension.json\\\");\\n\", 1);\n"),
+            ("                \"Ok((policy, json(&physical)?))\",\n                1,\n            );\n", "                \"Ok((policy, json(&physical)?))\",\n                1,\n            ).replacen(\"    let extension = include_str!(\\\"../../docs/evidence/fmt-local-441-20261018/extension.json\\\");\\n\", \"    // Original metadata is read as metadata. It is never substituted for a\\n    // changed physical Rust source, and it retains its original individual cap.\\n    let extension = include_str!(\\\"../../docs/evidence/fmt-local-441-20261018/extension.json\\\");\\n\", 1);\n"),
+        ] {
+            assert_eq!(current_scope_root.matches(current).count(), 1);
+            current_scope_root = current_scope_root.replacen(current, previous, 1);
+        }
+        let mut current_scope_child = child.to_owned();
+        for source in [
+            "src/source_reflows_merge/main_e177_overlay_pins_v11.rs",
+            "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact.rs",
+            "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/compact_targets.rs",
+            "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/payments.rs",
+            "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/tests/compact_results.rs",
+            "src/cleanup_plan/replay/final_output.rs",
+            "src/cleanup_plan/replay/final_output/compact.rs",
+            "src/cleanup_plan/replay/final_output/tests/compact_results.rs",
+            "src/cleanup_plan/replay/path_join/boxed_states.rs",
+            "src/cleanup_plan/replay/path_join/boxed_states/receiving_tests.rs",
+            "src/cleanup_plan/replay/sequence_vector.rs",
+            "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/flat_probe.rs",
+        ] {
+            let arm = format!("        {source:?} => Some(include_str!(\"../../{source}\")),\n");
+            assert_eq!(current_scope_child.matches(&arm).count(), 1);
+            current_scope_child = current_scope_child.replacen(&arm, "", 1);
+        }
+        let begin = concat!("        // ", "CURRENT_SCOPE_NORMALIZATION_BEGIN\n");
+        let end = concat!("        // ", "CURRENT_SCOPE_NORMALIZATION_END\n");
+        assert_eq!(current_scope_child.matches(begin).count(), 1);
+        assert_eq!(current_scope_child.matches(end).count(), 1);
+        let first = current_scope_child.find(begin).unwrap();
+        let last = current_scope_child.find(end).unwrap() + end.len();
+        assert!(first < last);
+        current_scope_child.replace_range(first..last, "");
+        let root = current_scope_root.as_str();
+        let child = current_scope_child.as_str();
+        // CURRENT_SCOPE_NORMALIZATION_END
         // Reverse this exact later metadata scope and comment-only packing
         // before every unchanged original span and whole-predecessor check.
         let mut preceding_root = root.to_owned();

@@ -418,3 +418,85 @@ fn complete_main_callback_and_current_receiving_replay_keep_full_success_error_w
     // Honest small-case tuple: new receiving/last-bank charges may exceed MAIN.
     eprintln!("849 whole small callback old/current reserved={old_paid}/{current_paid}");
 }
+
+#[test]
+fn compact_positive_results_amortize_the_once_paid_diagnostic_conversion_bank() {
+    let function = function();
+    let duplicate_entries = 64;
+    let (((), allocation), refused, paid, first) = with_limit_usage_refusal(usize::MAX, || {
+        measure(|| {
+            let mut budget = ReplayBudget::new();
+            let mut receiver = Insertions::<State>::acquire(&function, &mut budget).unwrap();
+            let mut states = BTreeSet::new();
+            receiver.insert_owned(&function, &mut states, State([3; 50]), &mut budget);
+            let allocated = current_metrics().allocated;
+            for _ in 0..duplicate_entries {
+                receiver.insert_owned(&function, &mut states, State([3; 50]), &mut budget);
+                assert!(!receiver.failed);
+                assert_eq!(states.len(), 1);
+                assert_eq!(current_metrics().allocated, allocated);
+            }
+            drop(states);
+            drop(receiver);
+            drop(budget);
+        })
+    });
+    assert!(!refused && first.is_none());
+    assert!(!allocation.invalid && allocation.live == 0);
+    assert_eq!(allocation.allocated, allocation.freed);
+    assert!(allocation.allocated <= paid);
+    let cold = 2 * size_of::<ByteFailure>() + 2 * size_of::<Diagnostic>();
+    let transport_delta =
+        size_of::<Result<(), Diagnostic>>() - size_of::<Result<(), ByteFailure>>();
+    assert!(transport_delta > 0);
+    assert_eq!(
+        paid,
+        bootstrap(&function)
+            + Insertions::<State>::controls()
+            + owned()
+            + (duplicate_entries + 1) * Insertions::<State>::entry_controls()
+    );
+    // Owner fields and every old fee except this Result are unchanged. The
+    // complete original source is retained by the source-history owner.
+    // This is target-layout arithmetic, not an old executable-cost claim.
+    let original_transport_charge = paid - cold + (duplicate_entries + 2) * transport_delta;
+    assert!(paid < original_transport_charge);
+}
+
+#[test]
+fn compact_positive_refusal_keeps_original_fields_receipt_work_and_sticky_owner() {
+    let function = function();
+    let observe = |compact: bool| {
+        let ((diagnostic, work), refused, paid, first) = with_limit_usage_refusal(1 << 20, || {
+            let mut budget = ReplayBudget::new();
+            let mut receiver = Insertions::<State>::acquire(&function, &mut budget).unwrap();
+            let mut states = BTreeSet::new();
+            receiver.insert_owned(&function, &mut states, State([5; 50]), &mut budget);
+            assert!(!receiver.failed);
+            assert!(set_active_floor(active_remaining().unwrap()));
+            let diagnostic = if compact {
+                receiver.insert_owned(&function, &mut states, State([5; 50]), &mut budget);
+                assert!(receiver.failed);
+                receiver.insert_owned(&function, &mut states, State([7; 50]), &mut budget);
+                assert!(receiver.failed);
+                receiver.failure()
+            } else {
+                budget
+                    .reserve_bytes(
+                        &function,
+                        Insertions::<State>::entry_controls(),
+                        "ownership duplicate receiving renewal",
+                    )
+                    .unwrap_err()
+            };
+            assert_eq!(states.len(), 1);
+            let work = (budget.remaining, budget.skeleton_remaining);
+            drop(states);
+            drop(receiver);
+            drop(budget);
+            (diagnostic, work)
+        });
+        (diagnostic.json(), work, refused, paid, first)
+    };
+    assert_eq!(observe(true), observe(false));
+}

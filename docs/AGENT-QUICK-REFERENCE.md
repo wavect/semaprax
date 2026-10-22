@@ -573,6 +573,10 @@ Use `string_format` for literal templates: `"id={}"`. See
 String parameters own their input implicitly: `text: string` transfers ownership;
 `text: own string` is `SPX-O002`.
 Read-only helpers take `text: borrow str`; pass `string_as_str(text)` before consumption.
+Compute other arguments that use the owner before borrowing it: write
+`let length = string_len(text); helper(string_as_str(text), length)`.
+An owning read such as `string_len(text)` later in that same argument list
+overlaps the active view and triggers `SPX-H006`.
 
 ```semaprax
 module app.bytes;

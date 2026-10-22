@@ -140,7 +140,7 @@ fn post21_input(source: &str, current: &str) -> String {
 // Exact historical ENTRY stages precede the complete compile35f front and its inverses.
 fn historical_project_entry(source: &str, expected: &str, current: &str) -> String {
     let legacy = crate::source_reflows::legacy_ci_expected_input(source, expected, current);
-    let current = legacy.as_ref(); let probes = before_phase_probes(source, current); let current = probes.as_ref();
+    let current = legacy.as_ref(); let probes = phase_probe_stage(source, expected, current); let current = probes.as_ref();
     // The preceding authentic a3 projector already restored this complete stage.
     let restored_receiving_stage = source
         == "src/workspace_graph/constructor_failure/receiving/before.rs"
@@ -1158,7 +1158,7 @@ pub(crate) fn main_e47_input(source: &str, current: &str) -> String {
 }
 #[path = "source_reflows_merge/main44_custody.rs"]
 mod main44_custody;
-pub(crate) use main44_custody::{Fixture as Main44Fixture, before_phase_probes};
+pub(crate) use main44_custody::{Fixture as Main44Fixture, before_phase_probes, phase_probe_stage};
 pub(crate) fn main44_metadata(fixture: Main44Fixture) -> String {
     runtime_json::main44_metadata(fixture)
 }

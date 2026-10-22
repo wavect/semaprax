@@ -2,6 +2,7 @@
 use super::super::physical_storage::btree_node_upper;
 use super::{Diagnostic, ReplayBudget, ResolvedFunction};
 use crate::bounded_output::classifier_string::ClassifierLedger;
+use crate::cleanup_plan::replay::physical_budget::ByteFailure;
 use std::{collections::BTreeSet, marker::PhantomData, mem::size_of};
 
 pub(super) struct Insertions<T> {
@@ -31,6 +32,11 @@ impl<T: Ord> Insertions<T> {
             + 5 * size_of::<Option<usize>>()
             + ClassifierLedger::capture_into_controls()
             + ClassifierLedger::insertion_terminal_controls()
+            // At most one positive-payment failure reaches conversion. Pay its
+            // actual/formal compact values and Diagnostic construction/return
+            // once, before any entry; sticky failure forbids reuse.
+            + 2 * size_of::<ByteFailure>()
+            + 2 * size_of::<Diagnostic>()
     }
     // A single entry's actual method/gateway/positive-reservation receivers.
     // Each entry consumes this bank and pays the next bank afresh. The final
@@ -40,7 +46,7 @@ impl<T: Ord> Insertions<T> {
             + 4 * size_of::<&ResolvedFunction>()
             + 4 * size_of::<&mut ReplayBudget>()
             + size_of::<&mut Option<Diagnostic>>()
-            + size_of::<Result<(), Diagnostic>>()
+            + size_of::<Result<(), ByteFailure>>()
             + ClassifierLedger::current_receiving_controls()
     }
     pub(super) fn acquire(
@@ -111,22 +117,22 @@ impl<T: Ord> Insertions<T> {
             return;
         }
         if target.contains(&value) {
-            if let Err(error) = budget.reserve_bytes(
+            if let Err(error) = budget.reserve_compact_bytes(
                 function,
                 Self::entry_controls(),
                 "ownership duplicate receiving renewal",
             ) {
-                self.refusal = Some(error);
+                self.refusal = Some(error.into_diagnostic());
                 self.failed = true;
                 return;
             }
         } else {
-            if let Err(error) = budget.reserve_bytes(
+            if let Err(error) = budget.reserve_compact_bytes(
                 function,
                 self.owned,
                 "incoming ownership state node, box and receiving renewal",
             ) {
-                self.refusal = Some(error);
+                self.refusal = Some(error.into_diagnostic());
                 self.failed = true;
                 return;
             }
@@ -146,22 +152,22 @@ impl<T: Ord> Insertions<T> {
             return;
         }
         if target.contains(value.as_ref()) {
-            if let Err(error) = budget.reserve_bytes(
+            if let Err(error) = budget.reserve_compact_bytes(
                 function,
                 Self::entry_controls(),
                 "ownership held duplicate receiving renewal",
             ) {
-                self.refusal = Some(error);
+                self.refusal = Some(error.into_diagnostic());
                 self.failed = true;
                 return;
             }
         } else {
-            if let Err(error) = budget.reserve_bytes(
+            if let Err(error) = budget.reserve_compact_bytes(
                 function,
                 self.held,
                 "incoming held ownership state node and receiving renewal",
             ) {
-                self.refusal = Some(error);
+                self.refusal = Some(error.into_diagnostic());
                 self.failed = true;
                 return;
             }

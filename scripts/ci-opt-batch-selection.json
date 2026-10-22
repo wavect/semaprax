@@ -1,7 +1,7 @@
 {
   "schema": "semaprax.hosted-opt-batch-selection.v1",
-  "filters": 41,
-  "expected_tests": 82,
+  "filters": 42,
+  "expected_tests": 85,
   "commands": [
     {
       "owner": "V10 codec",
@@ -288,6 +288,13 @@
       "expected_tests": 7,
       "binary": "lib",
       "filter": "cleanup_plan::replay::factored::continuation_receiver::tests::",
+      "exact": false
+    },
+    {
+      "owner": "V11 complete V10 inverse and hostile digest/slot controls",
+      "expected_tests": 3,
+      "binary": "lib",
+      "filter": "source_reflows_merge::main_e177_final_inputs::overlay_v2::fragments_v3::pins_v11::tests::",
       "exact": false
     }
   ]

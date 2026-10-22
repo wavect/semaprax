@@ -1153,3 +1153,62 @@ fn complete_comparison_boundaries_report_real_old_current_work_paid_and_heap_aft
         "both real flat and immutable PLAN receiver boundaries required"
     );
 }
+
+#[test]
+fn compact_flat_probe_keeps_complete_results_work_and_lent_refusals() {
+    let program = program();
+    let function = &program.functions[0];
+    for count in [0, 1, 3] {
+        let paths: Vec<SkeletonPath> = (0..count)
+            .map(|_| SkeletonPath {
+                observations: empty_expr_path().observations,
+                terminal: SkeletonTerminal::Success,
+            })
+            .collect();
+        for lent in [false, true] {
+            for allowance in [0, 1, 2, 4, usize::MAX] {
+                let run = |compact: bool| {
+                    let (result, refused, _, _) = with_limit_usage_refusal(usize::MAX, || {
+                        let mut budget = ReplayBudget::with_skeleton_limit(allowance);
+                        budget.prepare_builder(function).unwrap();
+                        budget.lent_skeleton = lent;
+                        let result = if compact {
+                            flat_probe::all_flat(&paths, function, &mut budget)
+                                .map_err(|error| error.into_diagnostic())
+                        } else {
+                            all_flat(&paths, function, &mut budget)
+                        };
+                        let result = result.map_err(|error| error.json());
+                        (
+                            result,
+                            budget.skeleton_spent,
+                            budget.skeleton_remaining,
+                            budget.remaining,
+                            budget.refusal_spent,
+                        )
+                    });
+                    (result, refused)
+                };
+                assert_eq!(
+                    run(true),
+                    run(false),
+                    "count={count}, lent={lent}, work={allowance}"
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn compact_flat_probe_accounts_only_actual_narrow_result_layout_changes() {
+    use crate::cleanup_plan::replay::physical_budget::ByteFailure;
+    let old_call = 2 * size_of::<(&[SkeletonPath], &ResolvedFunction, &mut ReplayBudget)>()
+        + 2 * size_of::<Result<bool, Diagnostic>>()
+        + 2 * size_of::<std::slice::Iter<'static, SkeletonPath>>();
+    let new_call = 2 * size_of::<(&[SkeletonPath], &ResolvedFunction, &mut ReplayBudget)>()
+        + 2 * size_of::<Result<bool, ByteFailure>>()
+        + 2 * size_of::<std::slice::Iter<'static, SkeletonPath>>();
+    assert_eq!(old_call, FLAT_CALL);
+    assert_eq!(new_call, flat_probe::CALL);
+    assert!(new_call < old_call);
+}

@@ -333,6 +333,85 @@ impl ReplayBudget {
         self.reserve_bytes(function, bytes, phase)
     }
 
+    // Complete original general work producer, including lending and refusal tracing.
+    #[cfg_attr(test, track_caller)]
+    pub(super) fn charge_compact(
+        &mut self,
+        function: &ResolvedFunction,
+        units: usize,
+        phase: &str,
+    ) -> Result<(), ByteFailure> {
+        match self.prepare_builder(function) {
+            Ok(()) => (),
+            Err(error) => return Err(ByteFailure::from_budget(error)),
+        };
+        if self.refusal_spent {
+            return Err(self.compact_refusal(
+                function,
+                "selected replay budget already failed",
+                "",
+            ));
+        }
+        if self.lent_skeleton {
+            return self.charge_compact_skeleton(function, units, phase);
+        }
+        match self.charge_oracle_work(function, units, phase) {
+            Ok(()) => (),
+            Err(error) => return Err(ByteFailure::from_budget(error)),
+        };
+        #[cfg(test)]
+        let caller = std::panic::Location::caller();
+        self.remaining = self.remaining.checked_sub(units).ok_or_else(|| {
+            #[cfg(test)]
+            REPLAY_WORK_REFUSAL.with(|record| {
+                record.set(Some(ReplayWorkRefusal {
+                    caller,
+                    requested: units,
+                    remaining: self.remaining,
+                    status_sources: function.cleanup_plan.status_sources.len(),
+                    first_status_bytes: function
+                        .cleanup_plan
+                        .status_sources
+                        .first()
+                        .map_or(0, |source| source.id.expression.as_str().len()),
+                    payer: match self.payer {
+                        AllocationPayer::LegacyUnobserved => "unobserved",
+                        AllocationPayer::ActiveBuilder => "builder",
+                        AllocationPayer::SelectedReservation => "selected",
+                        AllocationPayer::Oracle(_) => "oracle",
+                    },
+                }))
+            });
+            self.compact_refusal(
+                function,
+                "cleanup replay work budget exhausted during ",
+                phase,
+            )
+        })?;
+        Ok(())
+    }
+
+    // Same complete tree-layout producer and sticky reservation frontier as
+    // reserve_btree_node; only the actual returned error transport is narrow.
+    #[track_caller]
+    pub(super) fn reserve_compact_btree_node<K, V>(
+        &mut self,
+        function: &ResolvedFunction,
+        phase: &str,
+    ) -> Result<(), ByteFailure> {
+        if !self.pays_allocations() {
+            return Ok(());
+        }
+        let bytes = physical_storage::btree_node_upper::<K, V>().ok_or_else(|| {
+            self.compact_refusal(
+                function,
+                "cleanup replay physical tree layout overflowed",
+                "",
+            )
+        })?;
+        self.reserve_compact_bytes(function, bytes, phase)
+    }
+
     #[track_caller]
     pub(super) fn reserve_deque<T>(
         &mut self,
@@ -961,5 +1040,116 @@ mod byte_failure_tests {
         assert!(align_of::<ByteFailure>() <= align_of::<Diagnostic>());
         assert!(size_of::<Result<(), ByteFailure>>() < size_of::<Result<(), Diagnostic>>());
         assert!(size_of::<Result<usize, ByteFailure>>() < size_of::<Result<usize, Diagnostic>>());
+    }
+}
+
+// Complete fallible geometric growth with only the internal error carrier narrowed.
+impl ReplayBudget {
+    #[track_caller]
+    pub(super) fn reserve_compact_vec<T>(
+        &mut self,
+        function: &ResolvedFunction,
+        values: &mut Vec<T>,
+        additional: usize,
+        phase: &str,
+    ) -> Result<(), ByteFailure> {
+        if !self.pays_allocations() {
+            return Ok(());
+        }
+        self.reserve_compact_bytes(function, 0, phase)?;
+        let required = values.len().checked_add(additional).ok_or_else(|| {
+            self.compact_refusal(
+                function,
+                "cleanup replay physical vector length overflowed",
+                "",
+            )
+        })?;
+        if required <= values.capacity() {
+            return Ok(());
+        }
+        let target = physical_storage::replay_growth_capacity(values.capacity(), required)
+            .ok_or_else(|| {
+                self.compact_refusal(
+                    function,
+                    "cleanup replay physical vector capacity overflowed",
+                    "",
+                )
+            })?;
+        self.reserve_compact_array::<T>(function, target, phase)?;
+        values
+            .try_reserve_exact(target - values.len())
+            .map_err(|_| {
+                self.compact_refusal(
+                    function,
+                    "cleanup replay physical vector allocation failed",
+                    "",
+                )
+            })?;
+        if values.capacity() != target {
+            return Err(self.compact_refusal(
+                function,
+                "cleanup replay physical vector capacity disagrees with its reservation",
+                "",
+            ));
+        }
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod compact_vec_tests {
+    use super::*;
+    #[test]
+    fn compact_growth_preserves_actual_capacity_bytes_sticky_refusal_and_all_diagnostic_fields() {
+        let checked = crate::check(
+            "module compact_vec; @id(\"main\") fn main()->i64 {0}",
+            "vec.spx",
+        )
+        .unwrap();
+        let program = crate::hir::resolve(&checked).unwrap();
+        let function = &program.functions[0];
+        for limit in [0, 1, 1024, 4096, usize::MAX] {
+            let run = |compact| {
+                let ((result, values, capacity), refused, paid, first) =
+                    crate::bounded_output::with_limit_usage_refusal(limit, || {
+                        let mut budget = ReplayBudget::with_skeleton_limit(usize::MAX);
+                        let mut values = Vec::<(usize, u64)>::new();
+                        let result = (|| {
+                            for additional in [0, 1, 1, 3, 17] {
+                                if compact {
+                                    budget
+                                        .reserve_compact_vec(
+                                            function,
+                                            &mut values,
+                                            additional,
+                                            "vector parity",
+                                        )
+                                        .map_err(|e| e.into_diagnostic())?;
+                                } else {
+                                    budget.reserve_vec(
+                                        function,
+                                        &mut values,
+                                        additional,
+                                        "vector parity",
+                                    )?;
+                                }
+                                values.extend((0..additional).map(|i| (i, i as u64)));
+                            }
+                            Ok::<_, Diagnostic>(())
+                        })();
+                        let capacity = values.capacity();
+                        (result, values, capacity)
+                    });
+                (
+                    result.map_err(|e| e.json()),
+                    values,
+                    capacity,
+                    refused,
+                    paid,
+                    first,
+                )
+            };
+            assert_eq!(run(true), run(false), "byte limit {limit}");
+        }
     }
 }

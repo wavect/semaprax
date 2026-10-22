@@ -749,8 +749,8 @@
       "sha256": "523afb818016e67c13a23c0f653a13f94d2015aaad95efbb74363efb64ef642c"
     },
     "src/source_reflows_merge/main_e177_overlay_v2.rs": {
-      "length": 70917,
-      "sha256": "3e08635ce98ee6d232943250cc90d0d5cc304bd710b1ce75dac93016832bbeae"
+      "length": 70038,
+      "sha256": "b7bd8a01f54853baa82ae379f4600f29fb55c1d77db7388a44786ff969be6281"
     },
     "src/string_ops/conditions/funded_receiving.rs": {
       "length": 1017,
@@ -777,8 +777,8 @@
       "sha256": "39412583a543bf0b2d2f3f38c11d882183d89abfef4b8ae650f827142a3d2470"
     },
     "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop.rs": {
-      "length": 25833,
-      "sha256": "f1c518ace8bba8eb5b79ad2716b6a98ed15c5c7198dd2d11232b184c0b988f60"
+      "length": 25929,
+      "sha256": "2a64ea81fe25ac38ad7d3060cb1dae31de835e46c4572c5bf425ea979a477917"
     },
     "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/borrowed_single.rs": {
       "length": 5325,
@@ -789,8 +789,8 @@
       "sha256": "e96169bac2c81637e3a741eb51dad2d48604d59eec0c3c441d9db1e2b7a4d649"
     },
     "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/tests.rs": {
-      "length": 30918,
-      "sha256": "7ba820da6e65243527976b6bee0ea1920440144c9c5c416a6d8e0d10d180698c"
+      "length": 30940,
+      "sha256": "c8e1ee615fb6a8547bb5807f7259dc516d114dbf0f1dd7798369d3e3cdd22f27"
     },
     "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_paired.rs": {
       "length": 20736,
@@ -873,8 +873,8 @@
       "sha256": "ecc693e67e0a193efec4ddc0e22037fcd99b8626b7fd87e5f11c1123fd65d4f3"
     },
     "src/source_reflows_merge/main_e177_overlay_fragments_v3.rs": {
-      "length": 64805,
-      "sha256": "d7d73f3380a6cf0b835bf4717554a4e694b284440164c23919afd7bbb346ad5b"
+      "length": 64913,
+      "sha256": "af953cf250bc63c7e102ac0ed9c4014432c60aab5878bd1094b27353f128c60c"
     },
     "src/workspace_graph/expected_projection/borrowed_imports/typed/before_string_signature.rs": {
       "length": 19877,
@@ -1197,8 +1197,8 @@
       "sha256": "b137b062c8a91954441e84e9e77ed72b05c631a11608dab43eea8e5539f25cc2"
     },
     "src/source_reflows_merge/main_e177_overlay_compiled.rs": {
-      "length": 114508,
-      "sha256": "3a4d00c7c925016b33178af2a3c3504a8b967a1b575916587f7e729226eb1781"
+      "length": 124010,
+      "sha256": "122dc5238cf61a0ffe1cb23b3b91e44b3028bdd6e0beb42d7698b98594263483"
     },
     "src/source_reflows_merge/main_e177_packet_lookup.rs": {
       "length": 67419,
@@ -1261,8 +1261,8 @@
       "sha256": "7d0347a5de731360c0cb2b82df0ba9823e85d65ecfba60bcad9c3c6252caa6ba"
     },
     "src/hir/ids/lowering_identity_tests.rs": {
-      "length": 34602,
-      "sha256": "9abd8bea4e7ea9c8c8df8976510f9f281f45dcb5827c56a02889446f37810512"
+      "length": 35266,
+      "sha256": "fb81935c939ed5a3a07343b8a79f417d069a7f962430a7d844e4b47ff0800bda"
     },
     "src/hir/owned_collection_record/identity_before.rs": {
       "length": 3616,
@@ -5080,7 +5080,7 @@
     "length": 262076,
     "sha256": "2af7299253e5cfb027186ba4fc151011a937214ff381c9267bfc11ef7d0003b6"
   },
-  "logical_rows": 709,
+  "logical_rows": 721,
   "source_successor": {
     "path": "docs/evidence/clippy-11a0-integration/inputs.json",
     "length": 74925,

@@ -44,11 +44,13 @@ pub(super) const SWAP_CONTROLS: usize = 8 * size_of::<&mut Observations>();
 
 macro_rules! transfer {
     ($prefixes:ident, $suffixes:ident, $work:ident, $share:ident, $precharged:ident, $frame_bytes:ident) => {{
-        $work.budget.reserve_bytes(
-            $work.function,
-            $frame_bytes,
-            "single-successor vector receiving frame",
-        )?;
+        $crate::cleanup_plan::replay::physical_budget::compact_try!($work
+            .budget
+            .reserve_compact_bytes(
+                $work.function,
+                $frame_bytes,
+                "single-successor vector receiving frame",
+            ));
         let mut scratch = Observations::default();
         for slot in &mut $prefixes {
             if slot.failed || slot.residual {
@@ -71,12 +73,8 @@ macro_rules! transfer {
                 if $share {
                     $work.share_prefix_tail(&mut slot.observations)?;
                 }
-                $work.budget.reserve_bytes(
-                    $work.function,
-                    $crate::cleanup_plan::replay::final_output::HIR_MOVE_CONTROLS,
-                    "HIR single-suffix move controls",
-                )?;
-                $work.charge(1, "skeleton prefix clone")?;
+                $crate::cleanup_plan::replay::final_output::compact::hir_move!($work);
+                $crate::cleanup_plan::replay::final_output::compact::hir_work!($work);
                 note_skeleton_materialization();
             }
             let suffix = &$suffixes[0];
@@ -133,23 +131,19 @@ macro_rules! reuse {
                 if $share {
                     $work.share_prefix_tail(&mut prefix.observations)?;
                 }
-                $work.budget.reserve_bytes(
-                    $work.function,
-                    $crate::cleanup_plan::replay::final_output::HIR_MOVE_CONTROLS,
-                    "HIR single-suffix move controls",
-                )?;
+                $crate::cleanup_plan::replay::final_output::compact::hir_move!($work);
                 #[cfg(test)]
                 $crate::cleanup_plan::replay::sequence_vector::funded_tests::record_first($work);
-                $work.charge(1, "skeleton prefix clone")?;
+                $crate::cleanup_plan::replay::final_output::compact::hir_work!($work);
                 $crate::cleanup_plan::replay::note_skeleton_materialization();
             }
         }
         $precharged = true;
-        $work.budget.reserve_bytes(
+        $crate::cleanup_plan::replay::physical_budget::compact_try!($work.budget.reserve_compact_bytes(
             $work.function,
-            $crate::cleanup_plan::replay::sequence_vector::QUERY,
+            $crate::cleanup_plan::replay::final_output::compact::VECTOR_QUERY,
             "single-successor vector selection",
-        )?;
+        ));
         if !$work.budget.selected() {
             if $minimum <= MAX_REPLAY_PATHS {
                 let capacity = $prefixes.capacity();
@@ -159,9 +153,9 @@ macro_rules! reuse {
                                 Some(bytes) => {
                                     match $minimum.checked_mul($crate::cleanup_plan::replay::sequence_vector::SWAP_CONTROLS) {
                                         Some(swap_bytes) => {
-                                            match swap_bytes.checked_add($crate::cleanup_plan::replay::sequence_vector::FRAME) {
+                                            match swap_bytes.checked_add($crate::cleanup_plan::replay::final_output::compact::VECTOR_FRAME) {
                                                 Some(frame_bytes) => {
-                                                    match frame_bytes.checked_add($crate::cleanup_plan::replay::sequence_vector::QUERY) {
+                                                    match frame_bytes.checked_add($crate::cleanup_plan::replay::final_output::compact::VECTOR_QUERY) {
                                                         Some(min_saved) if bytes >= min_saved => {
                                                             $crate::cleanup_plan::replay::sequence_vector::transfer!(
                                                                 $prefixes, $suffixes, $work, $share, $precharged, frame_bytes);

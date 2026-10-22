@@ -318,12 +318,24 @@ fn final_output_whole_owners_report_capacities_exact_short_zero_and_drop() {
 fn assert_complete_old_sources() {
     super::tests::assert_complete_old_sources();
     use sha2::{Digest, Sha256};
+    let compiled = include_str!("before_transfer_current.rs");
+    assert_eq!(compiled.len(), 20_451);
     assert_eq!(
         format!(
             "{:x}",
-            crate::digest_hex::LowerHex(Sha256::digest(
-                include_str!("before_transfer_current.rs").as_bytes()
-            ))
+            crate::digest_hex::LowerHex(Sha256::digest(compiled))
+        ),
+        "25d0c819ce037e8ced896969f792635bf15731610bb53939f6e0cc02ae7882cf"
+    );
+    let complete_before = crate::source_reflows_merge::main_e177_final_inputs::value_direct(
+        "src/cleanup_plan/replay/final_output/before_transfer_current.rs",
+        "0f262dc78bccc47841ddf525edcb38b3c90a557fd96667bf9e82c3831145d2b0",
+        compiled,
+    );
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(complete_before.as_bytes()))
         ),
         "0f262dc78bccc47841ddf525edcb38b3c90a557fd96667bf9e82c3831145d2b0"
     );

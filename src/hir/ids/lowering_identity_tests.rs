@@ -40,10 +40,21 @@ pub(super) fn prior_source(source: &str, current: &str) -> String {
         None
     };
     let current = identity_batch_before.as_deref().unwrap_or(current);
+    // Reverse only rustfmt's split of the retained lowering-source arguments.
+    // The complete pre-format source must still satisfy every original pin.
+    let formatted_operation_before = if source == "src/hir/ids/fixed_operation_tests.rs" {
+        assert_eq!(current, include_str!("fixed_operation_tests.rs"));
+        let formatted = "        \"src/hir/ids.rs\",\n        ci_str!(\"../../../src/hir/ids.rs\"),";
+        let original = "        \"src/hir/ids.rs\", ci_str!(\"../../../src/hir/ids.rs\"),";
+        assert_eq!(current.matches(formatted).count(), 1);
+        Some(current.replacen(formatted, original, 1))
+    } else {
+        None
+    };
+    let current = formatted_operation_before.as_deref().unwrap_or(current);
     // Bind the final complete operation-source owner before every unchanged
     // earlier control repair and immutable lowering inverse below.
     let operation_before = if source == "src/hir/ids/fixed_operation_tests.rs" {
-        assert_eq!(current, include_str!("fixed_operation_tests.rs"));
         assert_eq!(current.len(), 42383);
         assert_eq!(
             sha(current.as_bytes()),

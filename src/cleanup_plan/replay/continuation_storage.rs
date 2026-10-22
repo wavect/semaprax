@@ -45,8 +45,11 @@ impl<'hir> Storage<'hir> {
         }
         if self.frames.is_some() {
             let frames = self.frames.as_mut().unwrap();
-            if frames.capacity() == 0 {
-                *frames = if self.receiving_owner.is_some() {
+            debug_assert!(frames.is_empty());
+            if frames.capacity() == 0
+                || (budget.lent_skeleton && frames.capacity() < FRAME_CAPACITY)
+            {
+                *frames = if self.receiving_owner.is_some() && !budget.lent_skeleton {
                     fresh_receiving(function, budget)?
                 } else {
                     fresh(function, budget)?
@@ -85,8 +88,14 @@ impl<'hir> Storage<'hir> {
             replacement.push(None);
             nested.slots = replacement;
         }
-        if nested.slots[depth].is_none() {
-            nested.slots[depth] = Some(if self.receiving_owner.is_some() {
+        debug_assert!(nested.slots[depth].as_ref().is_none_or(Vec::is_empty));
+        if nested.slots[depth].is_none()
+            || (budget.lent_skeleton
+                && nested.slots[depth]
+                    .as_ref()
+                    .is_some_and(|frames| frames.capacity() < FRAME_CAPACITY))
+        {
+            nested.slots[depth] = Some(if self.receiving_owner.is_some() && !budget.lent_skeleton {
                 fresh_receiving(function, budget)?
             } else {
                 fresh(function, budget)?

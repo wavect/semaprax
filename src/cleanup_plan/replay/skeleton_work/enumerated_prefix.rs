@@ -3,6 +3,8 @@
 use super::*;
 use std::cmp::Ordering;
 use std::mem::size_of;
+mod flat_probe;
+use crate::cleanup_plan::replay::physical_budget::compact_try;
 
 // Actual selector, moved node kind, result, payment and borrowed receivers.
 // The existing first clone work debit precedes these new controls.
@@ -400,8 +402,12 @@ pub(in crate::cleanup_plan::replay) fn sort(
 ) -> Result<(), Diagnostic> {
     // Preserve the former ordering algorithm on flat inputs. Ordinary entry
     // query receivers are charged separately; Selected/Oracle never call here.
-    budget.reserve_bytes(function, FLAT_CALL, "enumerated HIR sort flat probe call")?;
-    if all_flat(paths, function, budget)? {
+    budget.reserve_bytes(
+        function,
+        flat_probe::CALL,
+        "enumerated HIR sort flat probe call",
+    )?;
+    if compact_try!(flat_probe::all_flat(paths, function, budget)) {
         paths.sort();
         return Ok(());
     }
@@ -424,11 +430,19 @@ pub(in crate::cleanup_plan::replay) fn equal(
     function: &ResolvedFunction,
     budget: &mut ReplayBudget,
 ) -> Result<bool, Diagnostic> {
-    budget.reserve_bytes(function, FLAT_CALL, "enumerated HIR left flat probe call")?;
-    let left_flat = all_flat(left, function, budget)?;
+    budget.reserve_bytes(
+        function,
+        flat_probe::CALL,
+        "enumerated HIR left flat probe call",
+    )?;
+    let left_flat = compact_try!(flat_probe::all_flat(left, function, budget));
     let both_flat = if left_flat {
-        budget.reserve_bytes(function, FLAT_CALL, "enumerated HIR right flat probe call")?;
-        all_flat(right, function, budget)?
+        budget.reserve_bytes(
+            function,
+            flat_probe::CALL,
+            "enumerated HIR right flat probe call",
+        )?;
+        compact_try!(flat_probe::all_flat(right, function, budget))
     } else {
         false
     };
@@ -757,9 +771,20 @@ fn sequence_frontier(
     }
     Ok(Some(scratch))
 }
+#[cfg_attr(
+    not(test),
+    allow(dead_code, reason = "Complete original flat probe control bank")
+)]
 const FLAT_CALL: usize = 2 * size_of::<(&[SkeletonPath], &ResolvedFunction, &mut ReplayBudget)>()
     + 2 * size_of::<Result<bool, Diagnostic>>()
     + 2 * size_of::<std::slice::Iter<'static, SkeletonPath>>();
+#[cfg_attr(
+    not(test),
+    allow(
+        dead_code,
+        reason = "Complete original flat probe used by independent regression controls"
+    )
+)]
 fn all_flat(
     paths: &[SkeletonPath],
     function: &ResolvedFunction,

@@ -20,14 +20,6 @@ pub(in crate::cleanup_plan::replay) const ENTRY: usize = 2 * size_of::<Vec<ExprS
     + 2 * size_of::<ExprSkeletonPath>()
     + size_of::<std::vec::IntoIter<ExprSkeletonPath>>()
     + size_of::<Option<ExprSkeletonPath>>()
-    + 2 * size_of::<std::slice::Iter<'static, ExprSkeletonPath>>()
-    + 2 * size_of::<
-        std::iter::Chain<
-            std::slice::Iter<'static, ExprSkeletonPath>,
-            std::slice::Iter<'static, ExprSkeletonPath>,
-        >,
-    >()
-    + 2 * size_of::<Option<&ExprSkeletonPath>>()
     + 2 * size_of::<ClassifierLedger>()
     + 12 * size_of::<bool>()
     + PAYMENT;
@@ -182,19 +174,13 @@ pub(in crate::cleanup_plan::replay) fn emit_prepaid(
     if !sequence::without_renewal(work)? {
         return Ok(Emission::Unsupported(prefixes));
     }
-    for path in prefixes.iter().chain(suffixes.iter()) {
-        work.budget
-            .charge(work.function, 1, "complete HIR fork input selection")?;
-        work.budget.reserve_bytes(
-            work.function,
-            VALIDATE,
-            "complete HIR sequence validation caller",
-        )?;
-        if !matches!(path.continuation, lexical_skeleton::Continuation::Normal)
-            || !sequence_only(&path.observations, work)?
-        {
-            return Ok(Emission::Unsupported(prefixes));
-        }
+    work.budget.reserve_bytes(
+        work.function,
+        validation::CALL,
+        "complete HIR validation scope receivers",
+    )?;
+    if !validation::inputs(&prefixes, suffixes, work)? {
+        return Ok(Emission::Unsupported(prefixes));
     }
     let mut result = Vec::new();
     for mut prefix in prefixes {
@@ -465,3 +451,5 @@ fn with_emission<T>(operation: impl FnOnce() -> T) -> T {
 fn with_before<T>(operation: impl FnOnce() -> T) -> T {
     with_route(2, operation)
 }
+
+mod validation;

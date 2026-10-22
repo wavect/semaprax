@@ -6,8 +6,79 @@ impl HirValidator<'_> {
         expression: &ResolvedExpr,
         scope: &mut dyn ScopeWrite,
     ) -> Result<(), Diagnostic> {
+        #[cfg(test)]
+        if tests::before_selected() {
+            return self.mark_value_sources_moved_before_inert_root(expression, scope);
+        }
         if let Some(scope) = scope.old_mut() {
             return self.mark_value_sources_moved_owned_reference(expression, scope);
+        }
+        // The original walker does nothing for these exact root shapes. This
+        // is only a source-move pass: full expression validation already has
+        // its own owner, and every propagating root retains the old driver.
+        // Fund the additional required-reservation argument/formal and bool
+        // return/receiving, plus the borrowed match scrutinee, before formation.
+        // The existing outbound Result and static refusal constructor retain
+        // their roles; no forwarding Result/helper or owned selector is added.
+        {
+            #[cfg(test)]
+            let _operation = crate::bounded_output::stage_debits::operation_guard(
+                crate::bounded_output::stage_debits::Operation::ScopeCheckpoint,
+            );
+            #[cfg(feature = "unstable-workflow-profiling")]
+            let _exclusive_operation = crate::bounded_output::exclusive_debits::operation_guard(
+                crate::bounded_output::exclusive_debits::Operation::ScopeCheckpoint,
+            );
+            if !crate::bounded_output::reserve_active_required(INERT_ROOT_CONTROLS) {
+                // Same allocation-free diagnostic and complete outbound Result
+                // as the original first Storage payer. It is selected before
+                // touching scope, including a pre-existing sticky refusal.
+                return Err(Diagnostic::io_static(
+                    "SPX-H006",
+                    "ownership scope checkpoint exceeds the active validation budget",
+                ));
+            }
+        }
+        match &expression.kind {
+            ResolvedExprKind::Closure { .. }
+            | ResolvedExprKind::FunctionReference { .. }
+            | ResolvedExprKind::Int(_)
+            | ResolvedExprKind::Int32(_)
+            | ResolvedExprKind::Char(_)
+            | ResolvedExprKind::Uint8(_)
+            | ResolvedExprKind::Usize(_)
+            | ResolvedExprKind::Float32(_)
+            | ResolvedExprKind::Float64(_)
+            | ResolvedExprKind::Bool(_)
+            | ResolvedExprKind::String(_)
+            | ResolvedExprKind::BorrowedUtf8Literal(_)
+            | ResolvedExprKind::ArrayU8(_)
+            | ResolvedExprKind::RepeatArrayU8 { .. }
+            | ResolvedExprKind::BorrowPlace { .. }
+            | ResolvedExprKind::ByteRange { .. }
+            | ResolvedExprKind::Call { .. }
+            | ResolvedExprKind::LiteralFormat { .. }
+            | ResolvedExprKind::VecFieldRead { .. }
+            | ResolvedExprKind::RowLoan { .. }
+            | ResolvedExprKind::NativeRustImportCall(_)
+            | ResolvedExprKind::HostCommandCall(_)
+            | ResolvedExprKind::Unary { .. }
+            | ResolvedExprKind::Binary { .. }
+            | ResolvedExprKind::ConstructRecord { .. }
+            | ResolvedExprKind::ConstructVariant { .. }
+            | ResolvedExprKind::Try { .. }
+            | ResolvedExprKind::TryOption { .. }
+            | ResolvedExprKind::Yield { .. }
+            | ResolvedExprKind::UpdateRecord { .. } => return Ok(()),
+            ResolvedExprKind::LexicalExit { .. }
+            | ResolvedExprKind::Invoke { .. }
+            | ResolvedExprKind::Place(_)
+            | ResolvedExprKind::Block { .. }
+            | ResolvedExprKind::VecConstructor { .. }
+            | ResolvedExprKind::If { .. }
+            | ResolvedExprKind::Match { .. }
+            | ResolvedExprKind::Project { .. }
+            | ResolvedExprKind::Upcast { .. } => {}
         }
         enum Frame<'a> {
             Enter(&'a ResolvedExpr, usize),
@@ -224,3 +295,14 @@ impl HirValidator<'_> {
         Ok(())
     }
 }
+
+// One real primitive site, no new fallible wrapper or helper call. The bool
+// branch reads its original primitive result; match creates no bool predicate.
+const INERT_ROOT_CONTROLS: usize = 2 * std::mem::size_of::<usize>()
+    + 3 * std::mem::size_of::<bool>()
+    + std::mem::size_of::<&ResolvedExprKind>();
+
+#[cfg(test)]
+mod before;
+#[cfg(test)]
+mod tests;

@@ -131,7 +131,7 @@ pub(in crate::cleanup_plan::replay) fn compare(
     view::compare(produced, expected, budget)
 }
 
-macro_rules! finish {
+macro_rules! finish_current {
     ($function:ident, $budget:ident, $expected:ident) => {{
         if let $crate::cleanup_plan::replay::ReplayBudget {
             admission: $crate::cleanup_plan::replay::AdmissionMode::Ordinary,
@@ -166,6 +166,18 @@ macro_rules! finish {
                 }
             }
         }
+    }};
+}
+pub(in crate::cleanup_plan::replay) use finish_current;
+
+macro_rules! finish {
+    ($function:ident, $budget:ident, $expected:ident) => {{
+        #[cfg(test)]
+        if !$crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::before_selected() {
+            $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::shipping::finish_current!($function, $budget, $expected);
+        }
+        #[cfg(not(test))]
+        $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::shipping::finish_current!($function, $budget, $expected);
     }};
 }
 pub(in crate::cleanup_plan::replay) use finish;

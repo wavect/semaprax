@@ -76,7 +76,7 @@ const VALIDATE: usize = 2 * size_of::<(&Observations, &mut SkeletonWork<'static,
 // Inspect real node kinds, never a representation marker or shared identity.
 // Each borrowed traversal slot/backing is paid before publication. No recursive
 // traversal, observation copy, target scan or reusable classification authority.
-fn sequence_only(
+pub(in crate::cleanup_plan::replay) fn sequence_only(
     observations: &Observations,
     work: &mut SkeletonWork<'_, '_>,
 ) -> Result<bool, Diagnostic> {
@@ -349,6 +349,61 @@ macro_rules! dispatch {
 }
 pub(in crate::cleanup_plan::replay) use dispatch;
 
+// A nested call argument is independently enumerated before its caller's
+// Cartesian product. The public ordinary receiver must concatenate its real
+// shared sequence without switching to the old factored skeleton-loan payer.
+// No original helper body changes, including the independent old receiver.
+pub(in crate::cleanup_plan::replay) const CALL_BRIDGE: usize = 2 * VALIDATE
+    + 2 * size_of::<Result<Observations, Diagnostic>>()
+    + 4 * size_of::<bool>()
+    + 3 * PAYMENT; // validation, original suffix work, sequence helper acquisition
+macro_rules! extend_call_current {
+    ($target:ident, $suffix:ident, $work:ident) => {{
+        if let $crate::cleanup_plan::replay::ReplayBudget {
+            admission: $crate::cleanup_plan::replay::AdmissionMode::Ordinary,
+            payer: $crate::cleanup_plan::replay::AllocationPayer::LegacyUnobserved,
+            lent_skeleton: false, merge_paths: false, ..
+        } = $work.budget {
+            #[allow(clippy::redundant_pattern_matching,
+                reason = "Inspect existing places without acquiring receivers on an unsupported lender.")]
+            if let None = $work.function.cleanup_plan.lexical_control {
+                #[allow(clippy::redundant_pattern_matching,
+                    reason = "Match the existing suffix place before any new producer is admitted.")]
+                if let Some(_) = $suffix.observations.prefix {
+                $work.budget.reserve_bytes($work.function,
+                    $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::CALL_BRIDGE,
+                    "shared call argument bridge receivers")?;
+                if $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::sequence_only(&$target, $work)?
+                    && $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::sequence_only(&$suffix.observations, $work)? {
+                    $work.charge(1, "call suffix clone")?;
+                    $crate::cleanup_plan::replay::note_skeleton_materialization();
+                    $work.budget.reserve_bytes($work.function,
+                        $crate::cleanup_plan::replay::skeleton_work::enumerated_prefix::EXTEND_CONTROLS,
+                        "shared call argument sequence receivers")?;
+                    $crate::cleanup_plan::replay::skeleton_work::enumerated_prefix::extend($work, $target, &$suffix.observations)
+                } else { $work.extend_owned_observations($target, &$suffix.observations, "call suffix clone") }
+                } else { $work.extend_owned_observations($target, &$suffix.observations, "call suffix clone") }
+            } else { $work.extend_owned_observations($target, &$suffix.observations, "call suffix clone") }
+        } else { $work.extend_owned_observations($target, &$suffix.observations, "call suffix clone") }
+    }};
+}
+pub(in crate::cleanup_plan::replay) use extend_call_current;
+macro_rules! extend_call {
+    ($target:ident, $suffix:ident, $work:ident) => {{
+        #[cfg(test)]
+        {
+            if $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::before_selected() {
+                $work.extend_owned_observations($target, &$suffix.observations, "call suffix clone")
+            } else {
+                $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::extend_call_current!($target, $suffix, $work)
+            }
+        }
+        #[cfg(not(test))]
+        $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::extend_call_current!($target, $suffix, $work)
+    }};
+}
+pub(in crate::cleanup_plan::replay) use extend_call;
+
 #[cfg(test)]
 mod tests;
 
@@ -371,27 +426,15 @@ fn with_route<T>(mode: u8, operation: impl FnOnce() -> T) -> T {
     let _restore = Restore(SELECTED.with(|selected| selected.replace(mode)));
     operation()
 }
-#[cfg(test)]
-pub(in crate::cleanup_plan::replay) const TEST_FORWARD: usize =
-    4 * size_of::<Result<Vec<ExprSkeletonPath>, Diagnostic>>()
-        + 4 * size_of::<Vec<ExprSkeletonPath>>()
-        + 4 * size_of::<&[ExprSkeletonPath]>()
-        + 4 * size_of::<&mut SkeletonWork<'static, 'static>>()
-        + PAYMENT;
+// This is a test-harness switch to the complete prior function, not another
+// production producer. It adds no candidate entry/query/forwarding fee to the
+// old baseline; that function retains every original payment and work call.
 #[cfg(test)]
 macro_rules! whole_sequence {
     ($prefixes:expr, $suffixes:expr, $work:ident) => {{
-        $work.budget.reserve_bytes($work.function,
-            $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::TEST_FORWARD
-                + $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::ENTRY,
-            "whole HIR completed-fork receiver")?;
-        if $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::before_selected() {
-            $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::fallback($prefixes, $suffixes, $work)
-        } else { match $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::emit_prepaid($prefixes, $suffixes, $work)? {
-            $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::Emission::Complete(paths) => Ok(paths),
-            $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::Emission::Unsupported(paths) =>
-                $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::fallback(paths, $suffixes, $work),
-        } }
+        $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::fallback(
+            $prefixes, $suffixes, $work,
+        )
     }};
 }
 #[cfg(test)]

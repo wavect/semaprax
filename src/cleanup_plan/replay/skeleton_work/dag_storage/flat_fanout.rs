@@ -477,6 +477,23 @@ fn complete_current_callers_restore_whole_predecessors_without_touching_old_rout
         )
     };
     let mut root = include_str!("../../../replay.rs").to_owned();
+    // Reverse exactly the new public shared-call receiver before composing
+    // the independent DAG and HIR feature inverses (full f1d66/3666 root).
+    let current_call = r#####"            let observations = ordinary_plan_history::completed_fork::emission::extend_call!(
+                observations, suffix, work
+            )?;"#####;
+    let old_call = r#####"            let observations = work.extend_owned_observations(
+                observations,
+                &suffix.observations,
+                "call suffix clone",
+            )?;"#####;
+    assert_eq!(root.matches(current_call).count(), 1);
+    root = root.replacen(current_call, old_call, 1);
+    assert_eq!(root.len(), 326_654);
+    assert_eq!(
+        hash(&root),
+        "853eccb0d72747e0d824711d9973c2ca6404ef20f5a3e3ed370dff8239f57d6c"
+    );
     // Finite additive HIR stage from combined 3666e9a27 to the exact DAG-only
     // 48165bb59 root. The complete original DAG inverse below is unchanged.
     let added_dispatch = concat!(

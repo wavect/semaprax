@@ -1060,9 +1060,20 @@ fn cross_check(program: &dyn crate::cleanup::ReplayContext, function: &ResolvedF
         let _debit_phase = debit_routes::phase(debit_routes::Phase::FlatPLAN);
         let mut plan = plan_skeleton_paths(function, &mut enumerating)?;
         let _debit_phase = debit_routes::phase(debit_routes::Phase::PathComparison);
-        hir.sort();
-        plan.sort();
-        Ok(hir == plan)
+        if ordinary_plan_history::completed_fork::emission::before_selected() {
+            hir.sort();
+            plan.sort();
+            Ok(hir == plan)
+        } else {
+            enumerating.reserve_bytes(
+                function,
+                2 * skeleton_work::enumerated_prefix::ENTRY_CALL,
+                "factored cross-check complete enumerated content receivers",
+            )?;
+            skeleton_work::enumerated_prefix::sort(&mut hir, function, &mut enumerating)?;
+            plan.sort();
+            skeleton_work::enumerated_prefix::equal(&hir, &plan, function, &mut enumerating)
+        }
     });
     drop(enumeration_phase);
     let _debit_phase = debit_routes::phase(debit_routes::Phase::OtherReplay);

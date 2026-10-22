@@ -6483,10 +6483,8 @@ fn sequence_call_argument(
         for suffix in suffixes.iter() {
             let observations =
                 work.clone_observations(&prefix.observations, "call prefix clone")?;
-            let observations = work.extend_owned_observations(
-                observations,
-                &suffix.observations,
-                "call suffix clone",
+            let observations = ordinary_plan_history::completed_fork::emission::extend_call!(
+                observations, suffix, work
             )?;
             let owned_source =
                 work.clone_owned(&suffix.owned_source, "call suffix owned-source clone")?;

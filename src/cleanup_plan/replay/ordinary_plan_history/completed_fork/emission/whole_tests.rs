@@ -41,6 +41,29 @@ fn joint(
 #[test]
 fn complete_immediate_old_nested_receiver_and_production_gates_survive() {
     let mut source = include_str!("../../../../replay.rs").to_owned();
+    // Reverse exactly the new public shared-call receiver before composing
+    // the independent DAG and HIR feature inverses (full f1d66/3666 root).
+    let current_call = r#####"            let observations = ordinary_plan_history::completed_fork::emission::extend_call!(
+                observations, suffix, work
+            )?;"#####;
+    let old_call = r#####"            let observations = work.extend_owned_observations(
+                observations,
+                &suffix.observations,
+                "call suffix clone",
+            )?;"#####;
+    assert_eq!(source.matches(current_call).count(), 1);
+    source = source.replacen(current_call, old_call, 1);
+    assert_eq!(source.len(), 326_654);
+    {
+        use sha2::{Digest, Sha256};
+        assert_eq!(
+            format!(
+                "{:x}",
+                crate::digest_hex::LowerHex(Sha256::digest(source.as_bytes()))
+            ),
+            "853eccb0d72747e0d824711d9973c2ca6404ef20f5a3e3ed370dff8239f57d6c"
+        );
+    }
     // Finite additive DAG stage from combined 3666e9a27 to the exact HIR-only
     // e50001241 root. The complete original HIR inverse below is unchanged.
     let current = "let share_prefix = work.prefix_tail_sharing(&suffixes)?;";
@@ -203,6 +226,49 @@ fn whole_nested_hir_plan_exact_short_sticky_floor_and_full_drop() {
 
 #[test]
 fn whole_nested_work_failures_preserve_all_six_diagnostic_fields() {
+    // Original-event cuts come from the independently compiled old caller's
+    // actual skeleton debit total, not a guessed work horizon. Reducing the
+    // already reserved loan donates/refunds nothing; added metadata still pays
+    // from the untouched ordinary free-work account.
+    for program in [fixture(), nested_call_program()] {
+        let function = program
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == "f" || function.id.as_str() == "nested")
+            .unwrap();
+        with_limit_usage_refusal(usize::MAX, || {
+            let mut baseline = budget(&program, function);
+            with_before(|| hir_skeleton_paths(&program, function, &mut baseline)).unwrap();
+            let events = baseline.skeleton_spent;
+            assert!(events > 0);
+            for cut in 0..=events {
+                let attempt = |prior| {
+                    let mut budget = budget(&program, function);
+                    budget.skeleton_remaining = cut;
+                    let result = if prior {
+                        with_before(|| hir_skeleton_paths(&program, function, &mut budget))
+                    } else {
+                        hir_skeleton_paths(&program, function, &mut budget)
+                    }
+                    .map(drop);
+                    (result, budget.skeleton_spent)
+                };
+                let (before, old_spent) = attempt(true);
+                let (current, new_spent) = attempt(false);
+                assert_eq!(new_spent, old_spent);
+                assert_eq!(before.is_ok(), cut == events);
+                assert_eq!(current.is_ok(), cut == events);
+                match (before, current) {
+                    (Err(a), Err(b)) => assert_eq!(
+                        (a.code, a.severity, a.message, a.path, a.span, a.help),
+                        (b.code, b.severity, b.message, b.path, b.span, b.help)
+                    ),
+                    (Ok(()), Ok(())) => {}
+                    _ => panic!("original event-aligned refusal changed"),
+                }
+            }
+        });
+    }
     let program = fixture();
     let function = &program.functions[0];
     let attempt = |cut, prior| {
@@ -232,6 +298,78 @@ fn whole_nested_work_failures_preserve_all_six_diagnostic_fields() {
             }
         }
     }
+}
+
+fn nested_call_program() -> ResolvedProgram {
+    let source = r#"module history.call;
+@id("identity") fn identity(value:i64)->i64 {value}
+@id("nested") fn nested(a:bool,b:bool,c:bool)->i64 {
+ identity({let n=if a {1}else{2};let m=if b {n+1}else{n+2};if c {m+1}else{m+2}})
+}
+@id("main") fn main()->i64 {nested(true,false,true)}
+"#;
+    let checked = crate::check(source, "history-call.spx").unwrap();
+    let canonical = crate::format::canonical(&checked);
+    let checked = crate::check(&canonical, "history-call.spx").unwrap();
+    assert_eq!(crate::format::canonical(&checked), canonical);
+    crate::hir::resolve(&checked).unwrap()
+}
+
+#[test]
+fn shared_nested_call_argument_keeps_public_loan_events_and_late_content_refusals() {
+    let program = nested_call_program();
+    let function = program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "nested")
+        .unwrap();
+    let mut old_budget = budget(&program, function);
+    let mut old = with_before(|| hir_skeleton_paths(&program, function, &mut old_budget)).unwrap();
+    let mut current_budget = budget(&program, function);
+    let mut current = hir_skeleton_paths(&program, function, &mut current_budget).unwrap();
+    assert_eq!(current_budget.skeleton_spent, old_budget.skeleton_spent);
+    assert_eq!(
+        current_budget.skeleton_remaining,
+        old_budget.skeleton_remaining
+    );
+    assert!(current
+        .iter()
+        .any(|path| path.observations.prefix.is_some()));
+    current_budget
+        .reserve_bytes(
+            function,
+            4 * sequence::ENTRY_CALL,
+            "shared call old/current content receivers",
+        )
+        .unwrap();
+    sequence::sort(&mut old, function, &mut current_budget).unwrap();
+    sequence::sort(&mut current, function, &mut current_budget).unwrap();
+    assert!(sequence::equal(&old, &current, function, &mut current_budget).unwrap());
+    // A late omission inside the call's actual shared history must still be
+    // refused by independent PLAN content comparison, not accepted by identity.
+    assert!(!current.last().unwrap().observations.items.is_empty());
+    current.last_mut().unwrap().observations.items.clear();
+    sequence::sort(&mut current, function, &mut current_budget).unwrap();
+    current_budget
+        .reserve_bytes(
+            function,
+            view::PRODUCE_CALL + view::COMPARE_CALL,
+            "shared call malformed content comparison receivers",
+        )
+        .unwrap();
+    let produced = view::produce(function, &mut current_budget).unwrap();
+    assert_eq!(
+        view::compare(produced, &current, &mut current_budget)
+            .unwrap_err()
+            .code,
+        "SPX-H006"
+    );
+    with_before(|| validate_program(&program)).unwrap();
+    validate_program(&program).unwrap();
+    with_limit_usage_refusal(usize::MAX, || {
+        with_before(|| validate_program(&program)).unwrap();
+        validate_program(&program).unwrap();
+    });
 }
 
 #[test]

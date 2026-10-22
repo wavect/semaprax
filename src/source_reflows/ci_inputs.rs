@@ -487,6 +487,32 @@ fn fourteen_complete_ci_input_inverses_keep_independent_git_bodies_and_refuse_st
         }
     }
     assert!(lifecycle_visibility_entry("foreign.rs", "unlisted input").is_none());
+    for (source, current) in [
+        ("src/hir/validation/scope_checkpoint/marks.rs", include_str!("../hir/validation/scope_checkpoint/marks.rs")),
+        ("src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs", include_str!("../cleanup_plan/replay/ordinary_plan_history/frontiers.rs")),
+        ("src/hir/validation/frame_reuse/tests.rs", include_str!("../hir/validation/frame_reuse/tests.rs")),
+    ] {
+        let before = batch_913_entry(source, current).unwrap();
+        assert_ne!(before, current);
+        for bad in [format!("{current} "), current[..current.len()-1].to_owned(), before] {
+            assert!(std::panic::catch_unwind(|| batch_913_entry(source, &bad)).is_err());
+        }
+    }
+    assert!(batch_913_entry("foreign.rs", "unlisted input").is_none());
+    for (source, current) in [
+        ("src/cleanup_plan/replay/path_join/selected.rs", include_str!("../cleanup_plan/replay/path_join/selected.rs")),
+        ("src/cleanup_plan/replay/path_join/selected/walk.rs", include_str!("../cleanup_plan/replay/path_join/selected/walk.rs")),
+        ("src/cleanup_plan/replay/path_join/selected/queries.rs", include_str!("../cleanup_plan/replay/path_join/selected/queries.rs")),
+        ("src/cleanup_plan/replay/path_join/selected/receiving.rs", include_str!("../cleanup_plan/replay/path_join/selected/receiving.rs")),
+        ("src/cleanup_plan/replay/path_join/selected/tests/mod.rs", include_str!("../cleanup_plan/replay/path_join/selected/tests/mod.rs")),
+    ] {
+        let before = compact_frontier_entry(source, current).unwrap();
+        assert_ne!(before, current);
+        for bad in [format!("{current} "), current[..current.len()-1].to_owned(), before] {
+            assert!(std::panic::catch_unwind(|| compact_frontier_entry(source, &bad)).is_err());
+        }
+    }
+    assert!(compact_frontier_entry("foreign.rs", "unlisted input").is_none());
     reader::controls();
 }
 
@@ -736,5 +762,110 @@ pub(super) fn lifecycle_visibility_entry(source: &str, supplied: &str) -> Option
     }
     assert_eq!(before.len(), prior_length);
     assert_eq!(digest(&before), prior_sha);
+    Some(before)
+}
+
+// Exact #913 and cfg(test) repair ingress; every immutable predecessor stays whole.
+pub(super) fn batch_913_entry(source: &str, supplied: &str) -> Option<String> {
+    let (compiled, length, expected, prior_length, prior_sha, edits):
+        (&str, usize, &str, usize, &str, &[(&str, &str)]) = match source {
+        "src/hir/validation/scope_checkpoint/marks.rs" => (include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/scope_checkpoint/marks.rs")), 14549, "2965bb2d4a43a3ca060b21db1a7ad11ca0af3a7e5061e48832366a833bca3c0e", 10578, "08b3d1a43078fcc73d6ba8514a093d5bdd4b7a5b00378bfd20a8a9a67b75e464", &[
+            ("        // The original walker does nothing for these exact root shapes. This\n        // is only a source-move pass: full expression validation already has\n        // its own owner, and every propagating root retains the old driver.\n        // Fund the additional required-reservation argument/formal and bool\n        // return/receiving, plus the borrowed match scrutinee, before formation.\n        // The existing outbound Result and static refusal constructor retain\n        // their roles; no forwarding Result/helper or owned selector is added.\n        {\n            #[cfg(test)]\n            let _operation = crate::bounded_output::stage_debits::operation_guard(\n                crate::bounded_output::stage_debits::Operation::ScopeCheckpoint,\n            );\n            #[cfg(feature = \"unstable-workflow-profiling\")]\n            let _exclusive_operation = crate::bounded_output::exclusive_debits::operation_guard(\n                crate::bounded_output::exclusive_debits::Operation::ScopeCheckpoint,\n            );\n            if !crate::bounded_output::reserve_active_required(INERT_ROOT_CONTROLS) {\n                // Same allocation-free diagnostic and complete outbound Result\n                // as the original first Storage payer. It is selected before\n                // touching scope, including a pre-existing sticky refusal.\n                return Err(Diagnostic::io_static(\n                    \"SPX-H006\",\n                    \"ownership scope checkpoint exceeds the active validation budget\",\n                ));\n            }\n        }\n        match &expression.kind {\n            ResolvedExprKind::Closure { .. }\n            | ResolvedExprKind::FunctionReference { .. }\n            | ResolvedExprKind::Int(_)\n            | ResolvedExprKind::Int32(_)\n            | ResolvedExprKind::Char(_)\n            | ResolvedExprKind::Uint8(_)\n            | ResolvedExprKind::Usize(_)\n            | ResolvedExprKind::Float32(_)\n            | ResolvedExprKind::Float64(_)\n            | ResolvedExprKind::Bool(_)\n            | ResolvedExprKind::String(_)\n            | ResolvedExprKind::BorrowedUtf8Literal(_)\n            | ResolvedExprKind::ArrayU8(_)\n            | ResolvedExprKind::RepeatArrayU8 { .. }\n            | ResolvedExprKind::BorrowPlace { .. }\n            | ResolvedExprKind::ByteRange { .. }\n            | ResolvedExprKind::Call { .. }\n            | ResolvedExprKind::LiteralFormat { .. }\n            | ResolvedExprKind::VecFieldRead { .. }\n            | ResolvedExprKind::RowLoan { .. }\n            | ResolvedExprKind::NativeRustImportCall(_)\n            | ResolvedExprKind::HostCommandCall(_)\n            | ResolvedExprKind::Unary { .. }\n            | ResolvedExprKind::Binary { .. }\n            | ResolvedExprKind::ConstructRecord { .. }\n            | ResolvedExprKind::ConstructVariant { .. }\n            | ResolvedExprKind::Try { .. }\n            | ResolvedExprKind::TryOption { .. }\n            | ResolvedExprKind::Yield { .. }\n            | ResolvedExprKind::UpdateRecord { .. } => return Ok(()),\n            ResolvedExprKind::LexicalExit { .. }\n            | ResolvedExprKind::Invoke { .. }\n            | ResolvedExprKind::Place(_)\n            | ResolvedExprKind::Block { .. }\n            | ResolvedExprKind::VecConstructor { .. }\n            | ResolvedExprKind::If { .. }\n            | ResolvedExprKind::Match { .. }\n            | ResolvedExprKind::Project { .. }\n            | ResolvedExprKind::Upcast { .. } => {}\n        }\n", ""),
+            ("        #[cfg(test)]\n        if tests::before_selected() {\n            return self.mark_value_sources_moved_before_inert_root(expression, scope);\n        }\n", ""),
+            ("\n// One real primitive site, no new fallible wrapper or helper call. The bool\n// branch reads its original primitive result; match creates no bool predicate.\nconst INERT_ROOT_CONTROLS: usize = 2 * std::mem::size_of::<usize>()\n    + 3 * std::mem::size_of::<bool>()\n    + std::mem::size_of::<&ResolvedExprKind>();\n\n#[cfg(test)]\nmod before;\n#[cfg(test)]\nmod tests;\n", ""),
+        ]),
+        "src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs" => (include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs")), 10608, "c82fb33f537bed7561a0267298de31c1577b00e3d2e7b6db1ec70b52b9deec7d", 10327, "4d9b686be048b16ae777c5990227c1afb97a166f583757dbddc11989b5ac1f01", &[
+            ("        assert_eq!(\n            format!(\n                \"{:x}\",\n                crate::digest_hex::LowerHex(Sha256::digest(restored.as_bytes()))\n            ),\n            \"a176917b2f70a4ddff56230d92de0abd6575bfc3e6869b08612d5fff767499a1\"\n        );\n", "        assert_eq!(format!(\"{:x}\", crate::digest_hex::LowerHex(Sha256::digest(restored.as_bytes()))), \"a176917b2f70a4ddff56230d92de0abd6575bfc3e6869b08612d5fff767499a1\");\n"),
+            ("        assert_eq!(\n            restored\n                .matches(\"use super::*;\\nuse crate::bounded_output::with_limit_usage_refusal;\\n\")\n                .count(),\n            1\n        );\n", "        assert_eq!(restored.matches(\"use super::*;\\nuse crate::bounded_output::with_limit_usage_refusal;\\n\").count(), 1);\n"),
+            ("    use crate::test_allocation_observer::{measure, Metrics};\n", "    use crate::test_allocation_observer::{Metrics, measure};\n"),
+            ("    assert_eq!(\n        TRACE.with(|trace| trace\n            .borrow()\n            .as_ref()\n            .expect(\"active trace lease\")\n            .events\n            .len()),\n        4096\n    );\n", "    assert_eq!(TRACE.with(|trace| trace.borrow().events.len()), 4096);\n"),
+            ("    let (empty, lost) =\n        super::comparison_owner::pair_scope_census::finish_empty_for_frontier_test();\n", "    let (empty, lost) = super::comparison_owner::pair_scope_census::finish_empty_for_frontier_test();\n"),
+        ]),
+        "src/hir/validation/frame_reuse/tests.rs" => (include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/frame_reuse/tests.rs")), 13608, "a6968006a29a11d4fdcb2adc75c34c0142c2e51166636c77b1b285b5ffdbe6bb", 13594, "2d874d35d5139662abf9a10e0fe45abbd666136349eae390220f134da2c8ebc9", &[
+            ("            root.id = ExpressionId::from_owned(\"forged.trailing.identity\".to_owned());\n", "            root.id = ExpressionId::new(\"forged.trailing.identity\".to_owned());\n"),
+            ("                    tail.id = ExpressionId::from_owned(\"forged.tail\".to_owned());\n", "                    tail.id = ExpressionId::new(\"forged.tail\".to_owned());\n"),
+        ]),
+        _ => return None,
+    };
+    assert_eq!(supplied, compiled, "complete current batch source");
+    assert_eq!(compiled.len(), length);
+    assert_eq!(digest(compiled), expected);
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    assert_eq!(reader::read(&root.join(source), length, expected, 2_097_152).unwrap(), compiled);
+    if source == "src/hir/validation/scope_checkpoint/marks.rs" {
+        for (path, child, child_length, child_sha) in [
+        ("src/hir/validation/scope_checkpoint/marks/before.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/scope_checkpoint/marks/before.rs")), 10603, "429e331bf13d326e4ea5e26185f0d4d6945c2ad13dbadc5c457da65f4867140c"),
+        ("src/hir/validation/scope_checkpoint/marks/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/scope_checkpoint/marks/tests.rs")), 20658, "7f07e20bdc0b2797f0c2f8abc2af9c5427fef9472bdf91fa87b5cfbb30f51994"),
+        ] {
+            assert_eq!(child.len(), child_length);
+            assert_eq!(digest(child), child_sha);
+            assert_eq!(reader::read(&root.join(path), child_length, child_sha, 2_097_152).unwrap(), child);
+        }
+    }
+    let mut before = compiled.to_owned();
+    for &(after, prior) in edits {
+        assert_eq!(before.matches(after).count(), 1);
+        before = before.replacen(after, prior, 1);
+    }
+    assert_eq!(before.len(), prior_length);
+    assert_eq!(digest(&before), prior_sha);
+    Some(before)
+}
+
+// Enter the immutable selected-path predecessor only through complete live images.
+pub(super) fn compact_frontier_entry(source: &str, supplied: &str) -> Option<String> {
+    let compiled = match source {
+        "src/cleanup_plan/replay/path_join/selected.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected.rs")),
+        "src/cleanup_plan/replay/path_join/selected/walk.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/walk.rs")),
+        "src/cleanup_plan/replay/path_join/selected/queries.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/queries.rs")),
+        "src/cleanup_plan/replay/path_join/selected/receiving.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/receiving.rs")),
+        "src/cleanup_plan/replay/path_join/selected/tests/mod.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/tests/mod.rs")),
+        _ => return None,
+    };
+    assert_eq!(supplied, compiled, "complete current compact frontier source");
+    let encoded = include_str!("compact_frontier_inverse.json");
+    assert_eq!(encoded.len(), 28299);
+    assert_eq!(digest(encoded), "d187d79597d1c8028ab858e93bd229647d99caa3b8eb1e1f04e9ba6a39f15677");
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    assert_eq!(reader::read(&root.join("src/source_reflows/compact_frontier_inverse.json"), encoded.len(), &digest(encoded), 2_097_152).unwrap(), encoded);
+    let binding: serde_json::Value = serde_json::from_str(encoded).unwrap();
+    assert_eq!(binding["schema"], "semaprax.compact-frontier-whole-source-ingress.v1");
+    for (path, child) in [
+        ("src/cleanup_plan/replay/path_join/selected/before_frontier/finish.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/before_frontier/finish.rs"))),
+        ("src/cleanup_plan/replay/path_join/selected/before_frontier/mod.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/before_frontier/mod.rs"))),
+        ("src/cleanup_plan/replay/path_join/selected/before_frontier/queries.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/before_frontier/queries.rs"))),
+        ("src/cleanup_plan/replay/path_join/selected/before_frontier/receiving.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/before_frontier/receiving.rs"))),
+        ("src/cleanup_plan/replay/path_join/selected/before_frontier/walk.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/before_frontier/walk.rs"))),
+        ("src/cleanup_plan/replay/path_join/selected/boxed_flow.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/boxed_flow.rs"))),
+        ("src/cleanup_plan/replay/path_join/selected/frontier.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/frontier.rs"))),
+        ("src/cleanup_plan/replay/path_join/selected/frontier_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/frontier_tests.rs"))),
+        ("src/cleanup_plan/replay/path_join/selected/frontier_tests/full_callers.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/frontier_tests/full_callers.rs"))),
+        ("src/cleanup_plan/replay/path_join/selected/frontier_tests/lexical_before.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/frontier_tests/lexical_before.rs"))),
+        ("src/cleanup_plan/replay/path_join/selected/frontier_tests/lexical_before/ordinary.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/frontier_tests/lexical_before/ordinary.rs"))),
+        ("src/cleanup_plan/replay/path_join/selected/frontier_tests/scalar_before.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/frontier_tests/scalar_before.rs"))),
+    ] {
+        let pin = &binding["children"][path];
+        let length = usize::try_from(pin["length"].as_u64().unwrap()).unwrap();
+        let expected = pin["sha256"].as_str().unwrap();
+        assert_eq!(child.len(), length);
+        assert_eq!(digest(child), expected);
+        assert_eq!(reader::read(&root.join(path), length, expected, 2_097_152).unwrap(), child);
+    }
+    let row = &binding["rows"][source];
+    let length = usize::try_from(row["current_length"].as_u64().unwrap()).unwrap();
+    let expected = row["current_sha256"].as_str().unwrap();
+    assert_eq!(compiled.len(), length);
+    assert_eq!(digest(compiled), expected);
+    assert_eq!(reader::read(&root.join(source), length, expected, 2_097_152).unwrap(), compiled);
+    let mut before = compiled.as_bytes().to_vec();
+    for edit in row["edits"].as_array().unwrap().iter().rev() {
+        let start = usize::try_from(edit["start"].as_u64().unwrap()).unwrap();
+        let end = usize::try_from(edit["end"].as_u64().unwrap()).unwrap();
+        assert_eq!(before.get(start..end).unwrap(), edit["current"].as_str().unwrap().as_bytes());
+        before.splice(start..end, edit["before"].as_str().unwrap().as_bytes().iter().copied());
+    }
+    let before = String::from_utf8(before).unwrap();
+    assert_eq!(before.len() as u64, row["before_length"].as_u64().unwrap());
+    assert_eq!(digest(&before), row["before_sha256"].as_str().unwrap());
     Some(before)
 }

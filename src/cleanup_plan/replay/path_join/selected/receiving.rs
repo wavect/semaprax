@@ -194,7 +194,7 @@ pub(super) type PlaceCall<'a> = (
     Result<Vec<LivenessFlagId>, Error>,
 );
 
-pub(super) type WalkBody<'a> = (
+pub(super) type WalkBodyBefore<'a> = (
     &'a lexical_cert::LexicalAuth,
     &'a ExpressionId,
     &'a crate::cleanup_plan::CleanupPlan,
@@ -612,4 +612,60 @@ pub(super) type ConditionalJoin<'a> = (
     &'a [ReplayConditionalVariant],
     &'a mut ReplayBudget,
     Result<Vec<ReplayConditionalVariant>, Diagnostic>,
+);
+
+// Complete predecessor roles plus the newly materialized compact carriers.
+pub(super) type WalkBody<'a> = (
+    WalkBodyBefore<'a>,
+    Vec<super::frontier::Incoming<PathState>>,
+    super::frontier::Incoming<PathState>,
+    super::frontier::Iter<'a, PathState>,
+    std::option::IntoIter<Box<PathState>>,
+    Box<PathState>,
+    super::frontier::Insertions<PathState>,
+);
+pub(super) type FrontierEntriesNext<'a> = (
+    &'a mut super::frontier::Iter<'a, PathState>,
+    Option<&'a Box<PathState>>,
+    &'a Box<PathState>,
+);
+pub(super) type FrontierOneNext<'a> = (
+    &'a mut std::option::IntoIter<Box<PathState>>,
+    Option<Box<PathState>>,
+    Box<PathState>,
+);
+pub(super) type BoxedEdgeCall<'a> = (
+    &'a ResolvedFunction,
+    Box<PathState>,
+    &'a EdgeCondition,
+    &'a BTreeMap<ExpressionId, StatusSourceId>,
+    &'a mut ReplayBudget,
+    Result<Box<PathState>, Error>,
+);
+
+pub(super) type SingletonGroupCall<'a> = (
+    &'a ResolvedFunction,
+    &'a Box<PathState>,
+    BlockId,
+    &'a mut ReplayBudget,
+    Result<(), Error>,
+);
+
+// Actual resize_with method carrier and each repeated function-pointer callback.
+pub(super) type DirectoryResize<'a> = (
+    &'a mut Vec<super::frontier::Incoming<PathState>>,
+    &'a mut Vec<super::frontier::Incoming<PathState>>,
+    usize,
+    usize,
+    fn() -> super::frontier::Incoming<PathState>,
+    fn() -> super::frontier::Incoming<PathState>,
+    (),
+    (),
+);
+pub(super) type DirectoryCallback<'a> = (
+    &'a mut fn() -> super::frontier::Incoming<PathState>,
+    &'a mut fn() -> super::frontier::Incoming<PathState>,
+    super::frontier::Incoming<PathState>,
+    super::frontier::Incoming<PathState>,
+    super::frontier::Incoming<PathState>,
 );

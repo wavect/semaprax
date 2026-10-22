@@ -100,7 +100,13 @@ pub(in crate::hir::validation) fn whole_root(source: &str, current: &str) -> Str
         ("src/hir/validation/frame_reuse/source_inverse.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/frame_reuse/source_inverse.rs"))),
         ("src/hir/validation/frame_reuse/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/frame_reuse/tests.rs"))),
     ] {
-        assert_eq!(hash(compiled), binding["whole_children"][path].as_str().unwrap());
+        let predecessor = if path == "src/hir/validation/frame_reuse/tests.rs" {
+            crate::source_reflows::batch_913_entry(path, compiled)
+        } else {
+            None
+        };
+        let authenticated = predecessor.as_deref().unwrap_or(compiled);
+        assert_eq!(hash(authenticated), binding["whole_children"][path].as_str().unwrap());
     }
     let row = &binding["whole_roots"][source];
     assert_eq!(current.len() as u64, row["current_length"].as_u64().unwrap());

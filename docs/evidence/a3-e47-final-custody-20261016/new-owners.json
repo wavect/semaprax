@@ -281,8 +281,8 @@
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs",
-    "sha256": "4d9b686be048b16ae777c5990227c1afb97a166f583757dbddc11989b5ac1f01",
-    "lines": 254
+    "sha256": "c82fb33f537bed7561a0267298de31c1577b00e3d2e7b6db1ec70b52b9deec7d",
+    "lines": 274
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/owned_tests.rs",
@@ -761,7 +761,7 @@
   },
   {
     "source": "src/source_reflows_merge/ordinary_plan_inputs.rs",
-    "sha256": "eb1bdf8583d15aff229b883060fb2076d2edaca738daf7d43d6592263b94dbe3",
+    "sha256": "b14edb1418330fe55ef6714bedbd8b5b87fa8c77e436bf112add52b1ec1dddd6",
     "lines": 520
   },
   {
@@ -1381,8 +1381,8 @@
   },
   {
     "source": "src/cleanup_plan/replay/path_join/selected.rs",
-    "sha256": "bd051ea774e078c713048f74f4943a88ae2222dacc63c51baf643612381c882d",
-    "lines": 202
+    "sha256": "f1b8235cce258b1af2bae32372ff423410db7afd2c9245da7af388a33881d0c5",
+    "lines": 213
   },
   {
     "source": "src/cleanup_plan/replay/path_join/selected/append_before_formals.rs",
@@ -1421,7 +1421,7 @@
   },
   {
     "source": "src/cleanup_plan/replay/path_join/selected/queries.rs",
-    "sha256": "d1aa5cfe263f3412849d4d7818481e01a682aef3f0c3f07eeec6e196d2981909",
+    "sha256": "4b35a8528c5cc2c7fbcc4899526fab70acf7ff3037c5f5a7ad584ee6c9a2e861",
     "lines": 726
   },
   {
@@ -1431,8 +1431,8 @@
   },
   {
     "source": "src/cleanup_plan/replay/path_join/selected/receiving.rs",
-    "sha256": "d0a1faed7d1d9a2d17b8b7983aa6fdc75f95f7636724cadb6bc4433a717e1e7e",
-    "lines": 615
+    "sha256": "648748674015d3c2aeabd322ae9f438d65ccf8f0ac6d5a3cd49fb52a9bae8775",
+    "lines": 671
   },
   {
     "source": "src/cleanup_plan/replay/path_join/selected/renewal.rs",
@@ -1466,8 +1466,8 @@
   },
   {
     "source": "src/cleanup_plan/replay/path_join/selected/tests/mod.rs",
-    "sha256": "b18cda52ab90e700d541b1158a2b01ccaba83d4958334e40191fb9bdc086a295",
-    "lines": 132
+    "sha256": "56b717c8e3281dc9465d06af51b8f843853b5a4c5a4a89a34a90b859842ec229",
+    "lines": 147
   },
   {
     "source": "src/cleanup_plan/replay/path_join/selected/tests/nominal.rs",
@@ -1501,8 +1501,8 @@
   },
   {
     "source": "src/cleanup_plan/replay/path_join/selected/walk.rs",
-    "sha256": "a83992368a59d48c1d7cca887f9e184b5ec1457e985db6219efca294675302f4",
-    "lines": 1500
+    "sha256": "d34216eb45d74d5c3c5c8152fefde141d002769e36b64cd1fba087672f67fda5",
+    "lines": 1481
   },
   {
     "source": "src/cleanup_plan/replay/scalar_replay/before_selected_control.rs",
@@ -1701,7 +1701,7 @@
   },
   {
     "source": "src/source_reflows_merge/main_e177_overlay_v2.rs",
-    "sha256": "fc2f49701c14930da75ba4e8892f208d1fc06914d4c3cf44b4d110cee3a08c4b",
+    "sha256": "c7ad3ecbf1bfb0c79ec51569618d860fd6c3feab26df3f02d6ee62c654afede9",
     "lines": 1164
   },
   {
@@ -2226,8 +2226,8 @@
   },
   {
     "source": "src/source_reflows_merge/main_e177_overlay_compiled.rs",
-    "sha256": "512bc40746d1489ca222e200a579b9d1836e126f55f8c9dab7c0cf6a69efe46b",
-    "lines": 1177
+    "sha256": "987745471c03db40354cb2087e53c3bc50eb90146064bdc9727af18d7082f730",
+    "lines": 1221
   },
   {
     "source": "src/source_reflows_merge/main_e177_packet_lookup.rs",
@@ -2576,12 +2576,82 @@
   },
   {
     "source": "src/hir/validation/frame_reuse/source_inverse.rs",
-    "sha256": "3b9f764b83a7c4c014aa4d868c90527f4d1d81351cd9e69c1da3d37f283ed002",
-    "lines": 142
+    "sha256": "4432050d6538ee4469137dc7f147256591d256c569f1e49a0727e6a223fe7f38",
+    "lines": 148
   },
   {
     "source": "src/hir/validation/frame_reuse/tests.rs",
-    "sha256": "2d874d35d5139662abf9a10e0fe45abbd666136349eae390220f134da2c8ebc9",
+    "sha256": "a6968006a29a11d4fdcb2adc75c34c0142c2e51166636c77b1b285b5ffdbe6bb",
     "lines": 330
+  },
+  {
+    "source": "src/cleanup_plan/replay/path_join/selected/before_frontier/finish.rs",
+    "sha256": "b864db59f35453a3991eb78f8dcb7d4c88b06c6731ef92cdde960ca18f4a90df",
+    "lines": 471
+  },
+  {
+    "source": "src/cleanup_plan/replay/path_join/selected/before_frontier/mod.rs",
+    "sha256": "06ed23f38a8b7404b5dba58f36bfaf476a34c7fd73d72c24cf71599f4226da78",
+    "lines": 214
+  },
+  {
+    "source": "src/cleanup_plan/replay/path_join/selected/before_frontier/queries.rs",
+    "sha256": "d1aa5cfe263f3412849d4d7818481e01a682aef3f0c3f07eeec6e196d2981909",
+    "lines": 726
+  },
+  {
+    "source": "src/cleanup_plan/replay/path_join/selected/before_frontier/receiving.rs",
+    "sha256": "d0a1faed7d1d9a2d17b8b7983aa6fdc75f95f7636724cadb6bc4433a717e1e7e",
+    "lines": 615
+  },
+  {
+    "source": "src/cleanup_plan/replay/path_join/selected/before_frontier/walk.rs",
+    "sha256": "a83992368a59d48c1d7cca887f9e184b5ec1457e985db6219efca294675302f4",
+    "lines": 1500
+  },
+  {
+    "source": "src/cleanup_plan/replay/path_join/selected/boxed_flow.rs",
+    "sha256": "ce6dd3805e5577345ecd8aa1fde534d03ed44f73507e7e3ada38cc81b4406475",
+    "lines": 120
+  },
+  {
+    "source": "src/cleanup_plan/replay/path_join/selected/frontier.rs",
+    "sha256": "3ed81bd49ac6c90cd3ad76c63b4f3e070756973329aa737339403c814521b334",
+    "lines": 308
+  },
+  {
+    "source": "src/cleanup_plan/replay/path_join/selected/frontier_tests.rs",
+    "sha256": "2466dea4d1a33cbf7f36a80da2929e4a85fe308f4ec24737fbcab13c0a7e024c",
+    "lines": 519
+  },
+  {
+    "source": "src/cleanup_plan/replay/path_join/selected/frontier_tests/full_callers.rs",
+    "sha256": "287203c0658e7f4ec5904bad11540716d2afbb2dc1ca3ff7030bd7e42dd40a50",
+    "lines": 106
+  },
+  {
+    "source": "src/cleanup_plan/replay/path_join/selected/frontier_tests/lexical_before.rs",
+    "sha256": "059f257b657f161d7a32116cc5ce8164643fa8505c8d2755f303854b689773f6",
+    "lines": 230
+  },
+  {
+    "source": "src/cleanup_plan/replay/path_join/selected/frontier_tests/lexical_before/ordinary.rs",
+    "sha256": "d947a67e20af65598c445eecf30c19a797793e2ea45d9ca1d096976fa1111927",
+    "lines": 83
+  },
+  {
+    "source": "src/cleanup_plan/replay/path_join/selected/frontier_tests/scalar_before.rs",
+    "sha256": "b333af09d8e38b1de4f5d8f783d2b63333a0cd8ff0fc1f676227bcb256a72868",
+    "lines": 229
+  },
+  {
+    "source": "src/hir/validation/scope_checkpoint/marks/before.rs",
+    "sha256": "429e331bf13d326e4ea5e26185f0d4d6945c2ad13dbadc5c457da65f4867140c",
+    "lines": 226
+  },
+  {
+    "source": "src/hir/validation/scope_checkpoint/marks/tests.rs",
+    "sha256": "7f07e20bdc0b2797f0c2f8abc2af9c5427fef9472bdf91fa87b5cfbb30f51994",
+    "lines": 564
   }
 ]

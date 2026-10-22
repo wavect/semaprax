@@ -61,7 +61,7 @@ fn late_errors_preserve_complete_diagnostics_partial_publication_and_auxiliary_s
             _ => &mut function.body,
         };
         if phase == "identity" {
-            root.id = ExpressionId::new("forged.trailing.identity".to_owned());
+            root.id = ExpressionId::from_owned("forged.trailing.identity".to_owned());
         } else if phase == "type" {
             root.ty = ResolvedType::Bool;
         } else {
@@ -108,7 +108,7 @@ fn root_publication_matches_independent_previous_driver_on_success_and_late_fail
             let mut body = function.body.clone();
             if hostile {
                 if let ResolvedExprKind::Block { tail, .. } = &mut body.kind {
-                    tail.id = ExpressionId::new("forged.tail".to_owned());
+                    tail.id = ExpressionId::from_owned("forged.tail".to_owned());
                 } else {
                     body.ownership = OwnershipMode::Borrow;
                 }

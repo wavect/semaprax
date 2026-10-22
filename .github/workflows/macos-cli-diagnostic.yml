@@ -23,7 +23,7 @@ on:
         required: false
         default: false
       opt_batch:
-        description: Run the bounded 45-filter OPT qualification batch and production Clippy on Linux
+        description: Run the bounded 50-filter OPT qualification batch and production Clippy on Linux
         type: boolean
         required: false
         default: false
@@ -301,7 +301,7 @@ jobs:
           retention-days: 1
 
   opt-batch:
-    name: Focused OPT qualification (45 filters / 99 tests)
+    name: Focused OPT qualification (50 filters / 153 tests)
     if: inputs.opt_batch
     runs-on: ubuntu-24.04
     timeout-minutes: 240
@@ -354,7 +354,7 @@ jobs:
           import json,os,pathlib,subprocess
           receipt=json.loads(pathlib.Path("diagnostic-opt-batch/receipt.json").read_text())
           assert not receipt.get("execution_aborted"), "qualification batch aborted"
-          assert receipt.get("completed_filters")==45 and receipt.get("summary_counts_complete") is True
+          assert receipt.get("completed_filters")==50 and receipt.get("summary_counts_complete") is True
           head=subprocess.check_output(["git","rev-parse","HEAD"],text=True).strip()
           tree=subprocess.check_output(["git","rev-parse","HEAD^{tree}"],text=True).strip()
           assert head==os.environ["GITHUB_SHA"]==receipt["head"]

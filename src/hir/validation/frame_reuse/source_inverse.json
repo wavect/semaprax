@@ -1053,7 +1053,7 @@
     "src/hir/validation/frame_reuse/custody.rs": "2cf5ab2bc4bf5a0e09218b926209a109e4d3d132ea0d2d2198383f685fe65af2",
     "src/hir/validation/frame_reuse/function.rs": "906509cf3a5a03b5c5c526a3fba38184e7e608a2dd6c2f359b6c4cbd0c2ab151",
     "src/hir/validation/frame_reuse/function_before.rs": "a817300bd68181c86d4380a02d2d0a1d64453065848293823dd155375b6da1e4",
-    "src/hir/validation/frame_reuse/source_inverse.rs": "3b9f764b83a7c4c014aa4d868c90527f4d1d81351cd9e69c1da3d37f283ed002",
+    "src/hir/validation/frame_reuse/source_inverse.rs": "4432050d6538ee4469137dc7f147256591d256c569f1e49a0727e6a223fe7f38",
     "src/hir/validation/frame_reuse/tests.rs": "2d874d35d5139662abf9a10e0fe45abbd666136349eae390220f134da2c8ebc9"
   },
   "receiver_visibility": {

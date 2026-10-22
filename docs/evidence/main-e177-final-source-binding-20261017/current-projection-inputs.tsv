@@ -1187,3 +1187,17 @@ src/hir/validation/frame_reuse/source_inverse.rs
 src/hir/validation/frame_reuse/tests.rs
 src/cleanup_plan/replay/factored/early_release.rs
 src/cleanup_plan/replay/factored/early_release/before.rs
+src/hir/validation/scope_checkpoint/marks/before.rs
+src/hir/validation/scope_checkpoint/marks/tests.rs
+src/cleanup_plan/replay/path_join/selected/before_frontier/finish.rs
+src/cleanup_plan/replay/path_join/selected/before_frontier/mod.rs
+src/cleanup_plan/replay/path_join/selected/before_frontier/queries.rs
+src/cleanup_plan/replay/path_join/selected/before_frontier/receiving.rs
+src/cleanup_plan/replay/path_join/selected/before_frontier/walk.rs
+src/cleanup_plan/replay/path_join/selected/boxed_flow.rs
+src/cleanup_plan/replay/path_join/selected/frontier.rs
+src/cleanup_plan/replay/path_join/selected/frontier_tests.rs
+src/cleanup_plan/replay/path_join/selected/frontier_tests/full_callers.rs
+src/cleanup_plan/replay/path_join/selected/frontier_tests/lexical_before.rs
+src/cleanup_plan/replay/path_join/selected/frontier_tests/lexical_before/ordinary.rs
+src/cleanup_plan/replay/path_join/selected/frontier_tests/scalar_before.rs

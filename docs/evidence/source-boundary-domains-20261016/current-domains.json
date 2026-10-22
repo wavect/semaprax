@@ -2075,6 +2075,8 @@
         "src/hir/validation/scope_checkpoint/fresh.rs",
         "src/hir/validation/scope_checkpoint/fresh/tests.rs",
         "src/hir/validation/scope_checkpoint/marks.rs",
+        "src/hir/validation/scope_checkpoint/marks/before.rs",
+        "src/hir/validation/scope_checkpoint/marks/tests.rs",
         "src/hir/validation/scope_checkpoint/merge.rs",
         "src/hir/validation/scope_checkpoint/merge/saved.rs",
         "src/hir/validation/scope_checkpoint/merge/tests.rs",
@@ -2865,8 +2867,10 @@
         "src/cleanup_plan/replay/path_join.rs",
         "src/cleanup_plan/replay/path_join/branch_join.rs",
         "src/cleanup_plan/replay/path_join/selected.rs",
+        "src/cleanup_plan/replay/path_join/selected/boxed_flow.rs",
         "src/cleanup_plan/replay/path_join/selected/execution.rs",
         "src/cleanup_plan/replay/path_join/selected/finish.rs",
+        "src/cleanup_plan/replay/path_join/selected/frontier.rs",
         "src/cleanup_plan/replay/path_join/selected/history.rs",
         "src/cleanup_plan/replay/path_join/selected/joins.rs",
         "src/cleanup_plan/replay/path_join/selected/lexical_flow.rs",
@@ -3088,9 +3092,9 @@
         "src/workspace_graph/validation.rs",
         "src/workspace_report.rs"
       ],
-      "full_manifest_sha256": "7e1542e635df0bae20c02ea1a9e3d30cfeb057228107d819aedec81a0ae61b28",
-      "full_raw_sha256": "ea3e1bc9f9e3d6134772939f604878575e6bc2fb8e6f82eb23e5a6840aa156e5",
-      "full_authenticated_production_sha256": "e991ffafa2caaf70291bdbb994ccf5ec229fcfb872c4cb68a31c7e74e49af4f9"
+      "full_manifest_sha256": "2f7d00877d24e069198741d690006fd5e727b8e9ab8a4eaaa0876b3fc2636ffa",
+      "full_raw_sha256": "82f9d178fa16b0899893515948abc7850f7bf6a44b708e56553f4fced2a7e773",
+      "full_authenticated_production_sha256": "61e49ce52d2c8aa77d3b0d75ae952c4164bb6cc8c13751ae9822653ee3b51cb9"
     },
     "projection": {
       "baseline": "a82e00cc83f99b16249181c45710d962598577db",
@@ -3790,8 +3794,10 @@
         "src/cleanup_plan/replay/path_join/boxed_states.rs",
         "src/cleanup_plan/replay/path_join/branch_join.rs",
         "src/cleanup_plan/replay/path_join/selected.rs",
+        "src/cleanup_plan/replay/path_join/selected/boxed_flow.rs",
         "src/cleanup_plan/replay/path_join/selected/execution.rs",
         "src/cleanup_plan/replay/path_join/selected/finish.rs",
+        "src/cleanup_plan/replay/path_join/selected/frontier.rs",
         "src/cleanup_plan/replay/path_join/selected/history.rs",
         "src/cleanup_plan/replay/path_join/selected/joins.rs",
         "src/cleanup_plan/replay/path_join/selected/lexical_flow.rs",
@@ -4358,9 +4364,9 @@
         "src/workspace_report.rs",
         "src/workspace_report/initial.rs"
       ],
-      "full_manifest_sha256": "676ab9f42ea2888bcbefed75e94fdf4c03cb3cd776980187c1dc816ef4cce9d5",
-      "full_raw_sha256": "bbddd952c170e1ffe490030a4fb80fd676bf6522af87093e90506cf186bacac1",
-      "full_authenticated_production_sha256": "004342e58ad6e1a6882e7df12d502a2040e49434ab2be0f73ee7d5403d63d087"
+      "full_manifest_sha256": "afd489788058652337744e20e93f8b8fe494817f3aaf0d13fb470ff012d03a43",
+      "full_raw_sha256": "29092a12456b9811690322421fa65ae4644cebd86b03b58ff52a3faa6f2cf3a0",
+      "full_authenticated_production_sha256": "18ebbe01f3232805b603b4d98397e3541254598119fdf4b94873d8ec9b6febf8"
     }
   }
 }

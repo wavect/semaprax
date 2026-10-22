@@ -3,6 +3,14 @@
 - Reuse closed compiler declaration identities and fund dynamic sort-key identity backing through its existing payer, preserving wire identities and diagnostic precedence.
 - Add optional fixed-storage captures of exclusive resolved-core debits alongside the existing inclusive phase observations, retaining compiler budgets and complete historical source checks.
 
+## Ownership traversal setup and incoming state reuse (#913, #914, 2026-10-22)
+
+- Skip source-move traversal setup for the existing inert root shapes after
+  funded dispatch, retaining the complete predecessor and propagating paths.
+- Retain singleton incoming ownership states and transfer their existing boxes
+  across continuations; preserve sorted multi-state joins and explicit growth
+  funding. Focused execution and unchanged application qualification are pending.
+
 ## Factored HIR scratch release (#903, 2026-10-22)
 
 - Release the completed DAG memo and HIR paths before plan construction, retaining

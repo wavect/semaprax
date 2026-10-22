@@ -186,10 +186,21 @@ pub(super) fn before_preparation(source: &str) -> String {
     let mut restored = current.to_owned();
     if source == "main99_pair_scope_tests.rs" {
         assert_eq!(restored.len(), 43965);
-        assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(restored.as_bytes()))), "a176917b2f70a4ddff56230d92de0abd6575bfc3e6869b08612d5fff767499a1");
+        assert_eq!(
+            format!(
+                "{:x}",
+                crate::digest_hex::LowerHex(Sha256::digest(restored.as_bytes()))
+            ),
+            "a176917b2f70a4ddff56230d92de0abd6575bfc3e6869b08612d5fff767499a1"
+        );
         assert_eq!(restored.matches("    let current = include_str!(\"lexical_cursor.rs\");\n    let admitted = super::super::reachable_stage(\n        \"src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor.rs\",\n        \"e3278dc29dcce665dd9d3a67ce048e552254a65c5a939f769b2b7c1eb86a9ded\",\n        current,\n    );\n    assert_eq!(include_str!(\"lexical_cursor_shared_steps.rs\"), admitted);\n").count(), 1);
         restored = restored.replacen("    let current = include_str!(\"lexical_cursor.rs\");\n    let admitted = super::super::reachable_stage(\n        \"src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor.rs\",\n        \"e3278dc29dcce665dd9d3a67ce048e552254a65c5a939f769b2b7c1eb86a9ded\",\n        current,\n    );\n    assert_eq!(include_str!(\"lexical_cursor_shared_steps.rs\"), admitted);\n", "    let current = include_str!(\"lexical_cursor.rs\");\n    let admitted = super::super::reachable_stage(\"src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor.rs\", \"e3278dc29dcce665dd9d3a67ce048e552254a65c5a939f769b2b7c1eb86a9ded\", current);\n    assert_eq!(include_str!(\"lexical_cursor_shared_steps.rs\"), admitted);\n", 1);
-        assert_eq!(restored.matches("use super::*;\nuse crate::bounded_output::with_limit_usage_refusal;\n").count(), 1);
+        assert_eq!(
+            restored
+                .matches("use super::*;\nuse crate::bounded_output::with_limit_usage_refusal;\n")
+                .count(),
+            1
+        );
         restored = restored.replacen("use super::*;\nuse crate::bounded_output::with_limit_usage_refusal;\n", "use super::*;\nuse super::super::before_shared_steps::{compare, PAYMENT_HEADER, PATH_INDEX, PAIR_SCOPE, PAIR_PRIMITIVE};\nuse crate::bounded_output::with_limit_usage_refusal;\n", 1);
         assert_eq!(restored.matches("//! Pair-local successor: real complete producer+comparison boundaries.\nuse super::super::before_shared_steps::{\n    compare, PAIR_PRIMITIVE, PAIR_SCOPE, PATH_INDEX, PAYMENT_HEADER,\n};\nuse super::*;\n").count(), 1);
         restored = restored.replacen("//! Pair-local successor: real complete producer+comparison boundaries.\nuse super::super::before_shared_steps::{\n    compare, PAIR_PRIMITIVE, PAIR_SCOPE, PATH_INDEX, PAYMENT_HEADER,\n};\nuse super::*;\n", "//! Pair-local successor: real complete producer+comparison boundaries.\nuse super::*;\n", 1);
@@ -216,7 +227,7 @@ pub(super) fn before_preparation(source: &str) -> String {
 
 #[test]
 fn prepared_fixed_observers_keep_measured_resets_and_frontiers_allocation_free() {
-    use crate::test_allocation_observer::{Metrics, measure};
+    use crate::test_allocation_observer::{measure, Metrics};
     prepare();
     let (((), heap), refused, paid, receipt) =
         crate::bounded_output::with_limit_usage_refusal(usize::MAX, || {
@@ -233,7 +244,15 @@ fn prepared_fixed_observers_keep_measured_resets_and_frontiers_allocation_free()
     assert!(!refused);
     assert_eq!(paid, 0);
     assert!(receipt.is_none());
-    assert_eq!(TRACE.with(|trace| trace.borrow().events.len()), 4096);
+    assert_eq!(
+        TRACE.with(|trace| trace
+            .borrow()
+            .as_ref()
+            .expect("active trace lease")
+            .events
+            .len()),
+        4096
+    );
     let events = finish();
     assert_eq!(events.len(), 1);
     assert_eq!(
@@ -245,7 +264,8 @@ fn prepared_fixed_observers_keep_measured_resets_and_frontiers_allocation_free()
         ),
         ("prepared observer test", 0, Some(0), 0)
     );
-    let (empty, lost) = super::comparison_owner::pair_scope_census::finish_empty_for_frontier_test();
+    let (empty, lost) =
+        super::comparison_owner::pair_scope_census::finish_empty_for_frontier_test();
     assert!(empty);
     assert_eq!(lost, 0);
 }

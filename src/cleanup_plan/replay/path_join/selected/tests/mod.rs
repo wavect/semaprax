@@ -103,6 +103,21 @@ fn same_owner(program: &ResolvedProgram, id: &str, expected_success: bool) {
         outcomes[0], outcomes[1],
         "all six fields/first refusal {id}"
     );
+    let ((immediate, bytes, work), observed) =
+        measure(|| super::frontier_tests::owner_cost(&source, function));
+    assert!(!observed.invalid);
+    eprintln!(
+        "compact-frontier {} immediate-old physical={bytes} work={work}",
+        function.id
+    );
+    assert_eq!(
+        outcomes[1], immediate,
+        "complete immediate-old six-field diagnostic {id}"
+    );
+    drop(immediate);
+    let (_, observed) = measure(|| drop(super::frontier_tests::owner_cost(&source, function)));
+    assert!(!observed.invalid && observed.live == 0);
+    assert_eq!(observed.allocated, observed.freed);
     assert_eq!(
         outcomes[1].is_ok(),
         expected_success,

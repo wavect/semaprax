@@ -1,0 +1,539 @@
+{
+  "schema": "semaprax.compact-frontier-whole-source-ingress.v1",
+  "children": {
+    "src/cleanup_plan/replay/path_join/selected/before_frontier/finish.rs": {
+      "length": 18467,
+      "sha256": "b864db59f35453a3991eb78f8dcb7d4c88b06c6731ef92cdde960ca18f4a90df",
+      "production": false
+    },
+    "src/cleanup_plan/replay/path_join/selected/before_frontier/mod.rs": {
+      "length": 7491,
+      "sha256": "06ed23f38a8b7404b5dba58f36bfaf476a34c7fd73d72c24cf71599f4226da78",
+      "production": false
+    },
+    "src/cleanup_plan/replay/path_join/selected/before_frontier/queries.rs": {
+      "length": 22878,
+      "sha256": "d1aa5cfe263f3412849d4d7818481e01a682aef3f0c3f07eeec6e196d2981909",
+      "production": false
+    },
+    "src/cleanup_plan/replay/path_join/selected/before_frontier/receiving.rs": {
+      "length": 16518,
+      "sha256": "d0a1faed7d1d9a2d17b8b7983aa6fdc75f95f7636724cadb6bc4433a717e1e7e",
+      "production": false
+    },
+    "src/cleanup_plan/replay/path_join/selected/before_frontier/walk.rs": {
+      "length": 61824,
+      "sha256": "a83992368a59d48c1d7cca887f9e184b5ec1457e985db6219efca294675302f4",
+      "production": false
+    },
+    "src/cleanup_plan/replay/path_join/selected/boxed_flow.rs": {
+      "length": 4257,
+      "sha256": "ce6dd3805e5577345ecd8aa1fde534d03ed44f73507e7e3ada38cc81b4406475",
+      "production": true
+    },
+    "src/cleanup_plan/replay/path_join/selected/frontier.rs": {
+      "length": 11029,
+      "sha256": "3ed81bd49ac6c90cd3ad76c63b4f3e070756973329aa737339403c814521b334",
+      "production": true
+    },
+    "src/cleanup_plan/replay/path_join/selected/frontier_tests.rs": {
+      "length": 20198,
+      "sha256": "2466dea4d1a33cbf7f36a80da2929e4a85fe308f4ec24737fbcab13c0a7e024c",
+      "production": false
+    },
+    "src/cleanup_plan/replay/path_join/selected/frontier_tests/full_callers.rs": {
+      "length": 4254,
+      "sha256": "287203c0658e7f4ec5904bad11540716d2afbb2dc1ca3ff7030bd7e42dd40a50",
+      "production": false
+    },
+    "src/cleanup_plan/replay/path_join/selected/frontier_tests/lexical_before.rs": {
+      "length": 8742,
+      "sha256": "059f257b657f161d7a32116cc5ce8164643fa8505c8d2755f303854b689773f6",
+      "production": false
+    },
+    "src/cleanup_plan/replay/path_join/selected/frontier_tests/lexical_before/ordinary.rs": {
+      "length": 3442,
+      "sha256": "d947a67e20af65598c445eecf30c19a797793e2ea45d9ca1d096976fa1111927",
+      "production": false
+    },
+    "src/cleanup_plan/replay/path_join/selected/frontier_tests/scalar_before.rs": {
+      "length": 8515,
+      "sha256": "b333af09d8e38b1de4f5d8f783d2b63333a0cd8ff0fc1f676227bcb256a72868",
+      "production": false
+    }
+  },
+  "rows": {
+    "src/cleanup_plan/replay/path_join/selected.rs": {
+      "current_length": 7301,
+      "current_sha256": "f1b8235cce258b1af2bae32372ff423410db7afd2c9245da7af388a33881d0c5",
+      "before_length": 7073,
+      "before_sha256": "bd051ea774e078c713048f74f4943a88ae2222dacc63c51baf643612381c882d",
+      "edits": [
+        {
+          "start": 3162,
+          "end": 3390,
+          "current": "#[cfg(test)]\n#[allow(\n    dead_code,\n    unused_imports,\n    reason = \"complete independently executable immediate-old selected path owners\"\n)]\nmod before_frontier;\nmod boxed_flow;\nmod frontier;\n#[cfg(test)]\nmod frontier_tests;\n",
+          "before": ""
+        }
+      ]
+    },
+    "src/cleanup_plan/replay/path_join/selected/walk.rs": {
+      "current_length": 59490,
+      "current_sha256": "d34216eb45d74d5c3c5c8152fefde141d002769e36b64cd1fba087672f67fda5",
+      "before_length": 61824,
+      "before_sha256": "a83992368a59d48c1d7cca887f9e184b5ec1457e985db6219efca294675302f4",
+      "edits": [
+        {
+          "start": 0,
+          "end": 0,
+          "current": "",
+          "before": "//! Exact selected path twin; complete immediate old owners remain independent.\n"
+        },
+        {
+          "start": 389,
+          "end": 389,
+          "current": "",
+          "before": "    // Actual body/iterator/capture roles; original nested backing and\n    // explicit insertion/payload receiving banks remain separately intact.\n"
+        },
+        {
+          "start": 658,
+          "end": 737,
+          "current": "    budget.charge(function, 6, \"compact incoming additional body receiving\")?;\n",
+          "before": ""
+        },
+        {
+          "start": 2401,
+          "end": 2401,
+          "current": "",
+          "before": "    // Authenticate the absence once before path traversal. The source/HIR\n    // wrapper certificate identifies a conditional Step transfer, which must\n    // never acquire the one-leaf renewal authority of another profile.\n"
+        },
+        {
+          "start": 2693,
+          "end": 2693,
+          "current": "",
+          "before": "            // Inspect the existing lookup result directly; no Option method ABI.\n"
+        },
+        {
+          "start": 3717,
+          "end": 3717,
+          "current": "",
+          "before": "    // Exact ownership state each lexical loop body must restore, captured once\n    // from the state on its true-condition edge.\n"
+        },
+        {
+          "start": 8961,
+          "end": 9020,
+          "current": "    budget.reserve_array::<frontier::Incoming<PathState>>(\n",
+          "before": "    budget.reserve_array::<BTreeSet<Box<PathState>>>(\n"
+        },
+        {
+          "start": 9108,
+          "end": 9910,
+          "current": "    let mut incoming = Vec::with_capacity(plan.blocks.len());\n    budget.reserve_array::<receiving::DirectoryCallback<'_>>(\n        function,\n        plan.blocks.len(),\n        \"compact incoming repeated default callback receiving\",\n    )?;\n    budget.charge(\n        function,\n        plan.blocks.len().saturating_mul(5),\n        \"compact incoming repeated default callback receiving\",\n    )?;\n    receive!(\n        budget,\n        function,\n        receiving::DirectoryResize<'_>,\n        8,\n        \"compact incoming resize method receiving\",\n        incoming.resize_with(\n            plan.blocks.len(),\n            frontier::Incoming::default as fn() -> frontier::Incoming<PathState>\n        )\n    );\n    let mut incoming_insertions = frontier::Insertions::<PathState>::acquire(function, budget)?;\n",
+          "before": "    let mut incoming = vec![BTreeSet::<Box<PathState>>::new(); plan.blocks.len()];\n"
+        },
+        {
+          "start": 10002,
+          "end": 10040,
+          "current": "    incoming_insertions.insert_owned(\n",
+          "before": "    insertions.insert_owned(\n"
+        },
+        {
+          "start": 10171,
+          "end": 10265,
+          "current": "    if incoming_insertions.failed {\n        return Err(incoming_insertions.failure().into());\n",
+          "before": "    if insertions.failed {\n        return Err(insertions.failure().into());\n"
+        },
+        {
+          "start": 11623,
+          "end": 11623,
+          "current": "",
+          "before": "    // A validated acyclic CFG schedules each block at most once. Hold its\n    // complete queue capacity so push_back never grows an uncharged frontier.\n"
+        },
+        {
+          "start": 12917,
+          "end": 12965,
+          "current": "            receiving::FrontierEntriesNext<'_>,\n",
+          "before": "            receiving::GroupStateEntriesNext<'_>,\n"
+        },
+        {
+          "start": 13334,
+          "end": 13334,
+          "current": "",
+          "before": "        // A single incoming state is already its complete unique control group.\n        // Keep every validation/join/transition/exit and scheduling step below;\n        // no control-key clone, grouping map/set, or held insertion is needed.\n"
+        },
+        {
+          "start": 13452,
+          "end": 13452,
+          "current": "",
+          "before": "            // An owning break's fragment rejoins its wrapper's parent: every\n            // incoming state must agree exactly, with no ownership or history\n            // repair by the generic join below.\n"
+        },
+        {
+          "start": 13911,
+          "end": 13947,
+          "current": "                SingletonGroupCall,\n",
+          "before": "                ValidateControlGroupWithBudgetCall,\n"
+        },
+        {
+          "start": 13966,
+          "end": 14055,
+          "current": "                boxed_flow::validate_singleton(function, states.one(), block_id, budget)\n",
+          "before": "                joins::validate_control_group_with_budget(function, &states, block_id, budget)\n"
+        },
+        {
+          "start": 14071,
+          "end": 14172,
+          "current": "            let mut singleton_states = states.into_one();\n            let mut state = dynamic_next!(\n",
+          "before": "            // The validated singleton already owns the complete joined fields.\n            // Consume it once; neither original vector nor any nested identity\n            // is cloned, replaced from a clone, or temporarily reinitialized.\n            let mut singleton_states = states.into_iter();\n            let mut state = *dynamic_next!(\n"
+        },
+        {
+          "start": 14256,
+          "end": 14304,
+          "current": "                receiving::FrontierOneNext<'_>,\n",
+          "before": "                receiving::OwnedStatesNext<'_>,\n"
+        },
+        {
+          "start": 14394,
+          "end": 14921,
+          "current": "            receive!(\n                budget,\n                function,\n                (\n                    &mut Vec<ReplayConditionalVariant>,\n                    Vec<ReplayConditionalVariant>,\n                    Vec<ReplayConditionalVariant>,\n                    Vec<ReplayConditionalVariant>\n                ),\n                4,\n                \"same-box normalization replacement and moved vector receiving\",\n                ()\n            );\n            let variants = std::mem::take(&mut state.conditional_variants);\n",
+          "before": "            // Identical branch arms still require their original normalization.\n            // Move the original vector into that same producer and receive its\n            // result back into the same field. Partial failure drops the moved\n            // input and every remaining state field through their original owners.\n"
+        },
+        {
+          "start": 15081,
+          "end": 15179,
+          "current": "                branch_joins.normalize(program, function, block_id, exact_join, variants, budget)\n",
+          "before": "                branch_joins.normalize(\n                    program,\n                    function,\n                    block_id,\n                    exact_join,\n                    state.conditional_variants,\n                    budget,\n                )\n"
+        },
+        {
+          "start": 17276,
+          "end": 17315,
+          "current": "                        BoxedEdgeCall,\n",
+          "before": "                        StateForEdgeCall,\n"
+        },
+        {
+          "start": 17342,
+          "end": 17394,
+          "current": "                        boxed_flow::state_for_edge(\n",
+          "before": "                        finish::state_for_edge(\n"
+        },
+        {
+          "start": 17645,
+          "end": 17698,
+          "current": "                    incoming_insertions.insert_held(\n",
+          "before": "                    insertions.insert_owned(\n"
+        },
+        {
+          "start": 17904,
+          "end": 18030,
+          "current": "                    if incoming_insertions.failed {\n                        return Err(incoming_insertions.failure().into());\n",
+          "before": "                    if insertions.failed {\n                        return Err(insertions.failure().into());\n"
+        },
+        {
+          "start": 18420,
+          "end": 18420,
+          "current": "",
+          "before": "                    // Initial selection receivers are paid before len/index queries.\n                    // This is a new metadata refusal frontier, not clone backing.\n"
+        },
+        {
+          "start": 21526,
+          "end": 21584,
+          "current": "                        incoming_insertions.insert_owned(\n",
+          "before": "                        insertions.insert_owned(\n"
+        },
+        {
+          "start": 21809,
+          "end": 21943,
+          "current": "                        if incoming_insertions.failed {\n                            return Err(incoming_insertions.failure().into());\n",
+          "before": "                        if insertions.failed {\n                            return Err(insertions.failure().into());\n"
+        },
+        {
+          "start": 21969,
+          "end": 21969,
+          "current": "",
+          "before": "                        // The earlier sibling owns its independent clone. The final\n                        // sibling receives the original state, with identical work.\n"
+        },
+        {
+          "start": 22634,
+          "end": 22677,
+          "current": "                            BoxedEdgeCall,\n",
+          "before": "                            StateForEdgeCall,\n"
+        },
+        {
+          "start": 22708,
+          "end": 22764,
+          "current": "                            boxed_flow::state_for_edge(\n",
+          "before": "                            finish::state_for_edge(\n"
+        },
+        {
+          "start": 23750,
+          "end": 23807,
+          "current": "                        incoming_insertions.insert_held(\n",
+          "before": "                        insertions.insert_owned(\n"
+        },
+        {
+          "start": 24032,
+          "end": 24166,
+          "current": "                        if incoming_insertions.failed {\n                            return Err(incoming_insertions.failure().into());\n",
+          "before": "                        if insertions.failed {\n                            return Err(insertions.failure().into());\n"
+        },
+        {
+          "start": 24221,
+          "end": 24221,
+          "current": "",
+          "before": "                        // Complete old fallback for low-level malformed cardinality.\n"
+        },
+        {
+          "start": 27020,
+          "end": 27082,
+          "current": "                            incoming_insertions.insert_owned(\n",
+          "before": "                            insertions.insert_owned(\n"
+        },
+        {
+          "start": 27327,
+          "end": 27469,
+          "current": "                            if incoming_insertions.failed {\n                                return Err(incoming_insertions.failure().into());\n",
+          "before": "                            if insertions.failed {\n                                return Err(insertions.failure().into());\n"
+        },
+        {
+          "start": 28329,
+          "end": 28365,
+          "current": "                            *state,\n",
+          "before": "                            state,\n"
+        },
+        {
+          "start": 29162,
+          "end": 29162,
+          "current": "",
+          "before": "                                // The authenticated hidden Step has no\n                                // one-leaf reservation. Preserve every unrelated\n                                // history; unexpected authority fails closed.\n"
+        },
+        {
+          "start": 30328,
+          "end": 30390,
+          "current": "                            incoming_insertions.insert_owned(\n",
+          "before": "                            insertions.insert_owned(\n"
+        },
+        {
+          "start": 30639,
+          "end": 30781,
+          "current": "                            if incoming_insertions.failed {\n                                return Err(incoming_insertions.failure().into());\n",
+          "before": "                            if insertions.failed {\n                                return Err(insertions.failure().into());\n"
+        },
+        {
+          "start": 31344,
+          "end": 31410,
+          "current": "                                incoming_insertions.insert_owned(\n",
+          "before": "                                // A certified continue enters its finite generated\n                                // advancement fragment, whose own latch checks entry.\n                                insertions.insert_owned(\n"
+        },
+        {
+          "start": 31676,
+          "end": 31826,
+          "current": "                                if incoming_insertions.failed {\n                                    return Err(incoming_insertions.failure().into());\n",
+          "before": "                                if insertions.failed {\n                                    return Err(insertions.failure().into());\n"
+        },
+        {
+          "start": 35516,
+          "end": 35579,
+          "current": "        let mut owned_states = states.into_many().into_iter();\n",
+          "before": "        let mut owned_states = states.into_iter();\n"
+        },
+        {
+          "start": 37134,
+          "end": 37134,
+          "current": "",
+          "before": "            // An owning break's fragment rejoins its wrapper's parent: every\n            // incoming state must agree exactly, with no ownership or history\n            // repair by the generic join below.\n"
+        },
+        {
+          "start": 38054,
+          "end": 38054,
+          "current": "",
+          "before": "            // Identical branch arms deduplicate to one state; the producer\n            // still joined them. An exact break rejoin is never re-keyed.\n"
+        },
+        {
+          "start": 38637,
+          "end": 38680,
+          "current": "            let mut state = dynamic_next!(\n",
+          "before": "            let mut state = *dynamic_next!(\n"
+        },
+        {
+          "start": 41089,
+          "end": 41128,
+          "current": "                        BoxedEdgeCall,\n",
+          "before": "                        StateForEdgeCall,\n"
+        },
+        {
+          "start": 41155,
+          "end": 41207,
+          "current": "                        boxed_flow::state_for_edge(\n",
+          "before": "                        finish::state_for_edge(\n"
+        },
+        {
+          "start": 41458,
+          "end": 41511,
+          "current": "                    incoming_insertions.insert_held(\n",
+          "before": "                    insertions.insert_owned(\n"
+        },
+        {
+          "start": 41717,
+          "end": 41843,
+          "current": "                    if incoming_insertions.failed {\n                        return Err(incoming_insertions.failure().into());\n",
+          "before": "                    if insertions.failed {\n                        return Err(insertions.failure().into());\n"
+        },
+        {
+          "start": 42233,
+          "end": 42233,
+          "current": "",
+          "before": "                    // Initial selection receivers are paid before len/index queries.\n                    // This is a new metadata refusal frontier, not clone backing.\n"
+        },
+        {
+          "start": 45339,
+          "end": 45397,
+          "current": "                        incoming_insertions.insert_owned(\n",
+          "before": "                        insertions.insert_owned(\n"
+        },
+        {
+          "start": 45622,
+          "end": 45756,
+          "current": "                        if incoming_insertions.failed {\n                            return Err(incoming_insertions.failure().into());\n",
+          "before": "                        if insertions.failed {\n                            return Err(insertions.failure().into());\n"
+        },
+        {
+          "start": 45782,
+          "end": 45782,
+          "current": "",
+          "before": "                        // The earlier sibling owns its independent clone. The final\n                        // sibling receives the original state, with identical work.\n"
+        },
+        {
+          "start": 46447,
+          "end": 46490,
+          "current": "                            BoxedEdgeCall,\n",
+          "before": "                            StateForEdgeCall,\n"
+        },
+        {
+          "start": 46521,
+          "end": 46577,
+          "current": "                            boxed_flow::state_for_edge(\n",
+          "before": "                            finish::state_for_edge(\n"
+        },
+        {
+          "start": 47563,
+          "end": 47620,
+          "current": "                        incoming_insertions.insert_held(\n",
+          "before": "                        insertions.insert_owned(\n"
+        },
+        {
+          "start": 47845,
+          "end": 47979,
+          "current": "                        if incoming_insertions.failed {\n                            return Err(incoming_insertions.failure().into());\n",
+          "before": "                        if insertions.failed {\n                            return Err(insertions.failure().into());\n"
+        },
+        {
+          "start": 48034,
+          "end": 48034,
+          "current": "",
+          "before": "                        // Complete old fallback for low-level malformed cardinality.\n"
+        },
+        {
+          "start": 50833,
+          "end": 50895,
+          "current": "                            incoming_insertions.insert_owned(\n",
+          "before": "                            insertions.insert_owned(\n"
+        },
+        {
+          "start": 51140,
+          "end": 51282,
+          "current": "                            if incoming_insertions.failed {\n                                return Err(incoming_insertions.failure().into());\n",
+          "before": "                            if insertions.failed {\n                                return Err(insertions.failure().into());\n"
+        },
+        {
+          "start": 52142,
+          "end": 52178,
+          "current": "                            *state,\n",
+          "before": "                            state,\n"
+        },
+        {
+          "start": 52975,
+          "end": 52975,
+          "current": "",
+          "before": "                                // The authenticated hidden Step has no\n                                // one-leaf reservation. Preserve every unrelated\n                                // history; unexpected authority fails closed.\n"
+        },
+        {
+          "start": 54141,
+          "end": 54203,
+          "current": "                            incoming_insertions.insert_owned(\n",
+          "before": "                            insertions.insert_owned(\n"
+        },
+        {
+          "start": 54452,
+          "end": 54594,
+          "current": "                            if incoming_insertions.failed {\n                                return Err(incoming_insertions.failure().into());\n",
+          "before": "                            if insertions.failed {\n                                return Err(insertions.failure().into());\n"
+        },
+        {
+          "start": 55157,
+          "end": 55223,
+          "current": "                                incoming_insertions.insert_owned(\n",
+          "before": "                                // A certified continue enters its finite generated\n                                // advancement fragment, whose own latch checks entry.\n                                insertions.insert_owned(\n"
+        },
+        {
+          "start": 55489,
+          "end": 55639,
+          "current": "                                if incoming_insertions.failed {\n                                    return Err(incoming_insertions.failure().into());\n",
+          "before": "                                if insertions.failed {\n                                    return Err(insertions.failure().into());\n"
+        }
+      ]
+    },
+    "src/cleanup_plan/replay/path_join/selected/queries.rs": {
+      "current_length": 22893,
+      "current_sha256": "4b35a8528c5cc2c7fbcc4899526fab70acf7ff3037c5f5a7ad584ee6c9a2e861",
+      "before_length": 22878,
+      "before_sha256": "d1aa5cfe263f3412849d4d7818481e01a682aef3f0c3f07eeec6e196d2981909",
+      "edits": [
+        {
+          "start": 13289,
+          "end": 13338,
+          "current": "            super::frontier::Incoming<PathState>\n",
+          "before": "            BTreeSet<Box<PathState>>\n"
+        },
+        {
+          "start": 15664,
+          "end": 15727,
+          "current": "        clone_value!($budget, $function, (*$state), PathState)\n",
+          "before": "        clone_value!($budget, $function, $state, PathState)\n"
+        }
+      ]
+    },
+    "src/cleanup_plan/replay/path_join/selected/receiving.rs": {
+      "current_length": 18233,
+      "current_sha256": "648748674015d3c2aeabd322ae9f438d65ccf8f0ac6d5a3cd49fb52a9bae8775",
+      "before_length": 16518,
+      "before_sha256": "d0a1faed7d1d9a2d17b8b7983aa6fdc75f95f7636724cadb6bc4433a717e1e7e",
+      "edits": [
+        {
+          "start": 5149,
+          "end": 5188,
+          "current": "pub(super) type WalkBodyBefore<'a> = (\n",
+          "before": "pub(super) type WalkBody<'a> = (\n"
+        },
+        {
+          "start": 16524,
+          "end": 18233,
+          "current": "\n// Complete predecessor roles plus the newly materialized compact carriers.\npub(super) type WalkBody<'a> = (\n    WalkBodyBefore<'a>,\n    Vec<super::frontier::Incoming<PathState>>,\n    super::frontier::Incoming<PathState>,\n    super::frontier::Iter<'a, PathState>,\n    std::option::IntoIter<Box<PathState>>,\n    Box<PathState>,\n    super::frontier::Insertions<PathState>,\n);\npub(super) type FrontierEntriesNext<'a> = (\n    &'a mut super::frontier::Iter<'a, PathState>,\n    Option<&'a Box<PathState>>,\n    &'a Box<PathState>,\n);\npub(super) type FrontierOneNext<'a> = (\n    &'a mut std::option::IntoIter<Box<PathState>>,\n    Option<Box<PathState>>,\n    Box<PathState>,\n);\npub(super) type BoxedEdgeCall<'a> = (\n    &'a ResolvedFunction,\n    Box<PathState>,\n    &'a EdgeCondition,\n    &'a BTreeMap<ExpressionId, StatusSourceId>,\n    &'a mut ReplayBudget,\n    Result<Box<PathState>, Error>,\n);\n\npub(super) type SingletonGroupCall<'a> = (\n    &'a ResolvedFunction,\n    &'a Box<PathState>,\n    BlockId,\n    &'a mut ReplayBudget,\n    Result<(), Error>,\n);\n\n// Actual resize_with method carrier and each repeated function-pointer callback.\npub(super) type DirectoryResize<'a> = (\n    &'a mut Vec<super::frontier::Incoming<PathState>>,\n    &'a mut Vec<super::frontier::Incoming<PathState>>,\n    usize,\n    usize,\n    fn() -> super::frontier::Incoming<PathState>,\n    fn() -> super::frontier::Incoming<PathState>,\n    (),\n    (),\n);\npub(super) type DirectoryCallback<'a> = (\n    &'a mut fn() -> super::frontier::Incoming<PathState>,\n    &'a mut fn() -> super::frontier::Incoming<PathState>,\n    super::frontier::Incoming<PathState>,\n    super::frontier::Incoming<PathState>,\n    super::frontier::Incoming<PathState>,\n);\n",
+          "before": ""
+        }
+      ]
+    },
+    "src/cleanup_plan/replay/path_join/selected/tests/mod.rs": {
+      "current_length": 5019,
+      "current_sha256": "56b717c8e3281dc9465d06af51b8f843853b5a4c5a4a89a34a90b859842ec229",
+      "before_length": 4413,
+      "before_sha256": "b18cda52ab90e700d541b1158a2b01ccaba83d4958334e40191fb9bdc086a295",
+      "edits": [
+        {
+          "start": 3849,
+          "end": 4455,
+          "current": "    let ((immediate, bytes, work), observed) =\n        measure(|| super::frontier_tests::owner_cost(&source, function));\n    assert!(!observed.invalid);\n    eprintln!(\n        \"compact-frontier {} immediate-old physical={bytes} work={work}\",\n        function.id\n    );\n    assert_eq!(\n        outcomes[1], immediate,\n        \"complete immediate-old six-field diagnostic {id}\"\n    );\n    drop(immediate);\n    let (_, observed) = measure(|| drop(super::frontier_tests::owner_cost(&source, function)));\n    assert!(!observed.invalid && observed.live == 0);\n    assert_eq!(observed.allocated, observed.freed);\n",
+          "before": ""
+        }
+      ]
+    }
+  }
+}

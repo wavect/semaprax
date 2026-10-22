@@ -1,7 +1,7 @@
 {
   "schema": "semaprax.hosted-opt-batch-selection.v1",
-  "filters": 45,
-  "expected_tests": 99,
+  "filters": 50,
+  "expected_tests": 153,
   "commands": [
     {
       "owner": "V10 codec",
@@ -316,6 +316,41 @@
       "expected_tests": 3,
       "binary": "lib",
       "filter": "cleanup_plan::replay::factored::early_release::",
+      "exact": false
+    },
+    {
+      "owner": "OPT913 authenticated funded inert move roots and complete predecessor controls",
+      "expected_tests": 9,
+      "binary": "lib",
+      "filter": "hir::validation::scope_checkpoint::marks::tests::",
+      "exact": false
+    },
+    {
+      "owner": "OPT914 compact incoming frontiers and complete immediate-old caller controls",
+      "expected_tests": 12,
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::selected::frontier_tests::",
+      "exact": false
+    },
+    {
+      "owner": "OPT914 complete selected replay owner regressions",
+      "expected_tests": 19,
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::selected::tests::",
+      "exact": false
+    },
+    {
+      "owner": "OPT914 boxed state ownership and receiving controls",
+      "expected_tests": 11,
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::boxed_states::",
+      "exact": false
+    },
+    {
+      "owner": "OPT914 complete path replay receiver controls",
+      "expected_tests": 3,
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::receiver_tests::",
       "exact": false
     }
   ]

@@ -477,6 +477,23 @@ fn complete_current_callers_restore_whole_predecessors_without_touching_old_rout
         )
     };
     let mut root = include_str!("../../../replay.rs").to_owned();
+    // Finite additive HIR stage from combined 3666e9a27 to the exact DAG-only
+    // 48165bb59 root. The complete original DAG inverse below is unchanged.
+    let added_dispatch = concat!(
+        "    let prefixes = ordinary_plan_history::completed_fork::emission::dispatch!(\n",
+        "        prefixes, suffixes, work\n",
+        "    );\n",
+    );
+    assert_eq!(root.matches(added_dispatch).count(), 1);
+    root = root.replacen(added_dispatch, "", 1);
+    let added_finalizer = "    ordinary_plan_history::completed_fork::shipping::finish!(function, budget, expected);\n";
+    assert_eq!(root.matches(added_finalizer).count(), 1);
+    root = root.replacen(added_finalizer, "", 1);
+    assert_eq!(root.len(), 326_445);
+    assert_eq!(
+        hash(&root),
+        "be66867f23d4e5972e3faa68a12cfbd3b1f3f10c06a0a161b52d45fa91c29722"
+    );
     let current = r#####"let share_prefix = work.prefix_tail_sharing(&suffixes)?;"#####;
     let old = r#####"let share_prefix = work.shares_prefix_tail(&suffixes)?;"#####;
     assert_eq!(root.matches(current).count(), 2);

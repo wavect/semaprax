@@ -40,7 +40,46 @@ fn joint(
 
 #[test]
 fn complete_immediate_old_nested_receiver_and_production_gates_survive() {
-    let source = include_str!("../../../../replay.rs");
+    let mut source = include_str!("../../../../replay.rs").to_owned();
+    // Finite additive DAG stage from combined 3666e9a27 to the exact HIR-only
+    // e50001241 root. The complete original HIR inverse below is unchanged.
+    let current = "let share_prefix = work.prefix_tail_sharing(&suffixes)?;";
+    let old = "let share_prefix = work.shares_prefix_tail(&suffixes)?;";
+    assert_eq!(source.matches(current).count(), 2);
+    source = source.replacen(current, old, 2);
+    let current = "sequence_vector::reuse!(prefixes, suffixes, work, token share_prefix, minimum, precharged);";
+    let old =
+        "sequence_vector::reuse!(prefixes, suffixes, work, share_prefix, minimum, precharged);";
+    assert_eq!(source.matches(current).count(), 1);
+    source = source.replacen(current, old, 1);
+    let current = r#####"        if !precharged {
+            skeleton_work::dag_storage::share_prefix!(work, share_prefix, prefix.observations);
+        }"#####;
+    let old = r#####"        if !precharged && share_prefix {
+            work.share_prefix_tail(&mut prefix.observations)?;
+        }"#####;
+    assert_eq!(source.matches(current).count(), 1);
+    source = source.replacen(current, old, 1);
+    let current = r#####"        skeleton_work::dag_storage::share_prefix!(work, share_prefix, prefix.observations);
+
+"#####;
+    let old = r#####"        if share_prefix {
+            work.share_prefix_tail(&mut prefix.observations)?;
+        }
+"#####;
+    assert_eq!(source.matches(current).count(), 1);
+    source = source.replacen(current, old, 1);
+    assert_eq!(source.len(), 326_635);
+    {
+        use sha2::{Digest, Sha256};
+        assert_eq!(
+            format!(
+                "{:x}",
+                crate::digest_hex::LowerHex(Sha256::digest(source.as_bytes()))
+            ),
+            "a2970cce9c29cbf6845f4b7d75728f91dfbf89c68556ccfa87848de676c354fa"
+        );
+    }
     let start = source.find("fn sequence_skeleton_paths(").unwrap();
     let end = source[start + 1..].find("\nfn ").unwrap() + start + 1;
     let hook = concat!(

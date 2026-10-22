@@ -1,7 +1,7 @@
 {
   "schema": "semaprax.hosted-opt-batch-selection.v1",
-  "filters": 34,
-  "expected_tests": 68,
+  "filters": 40,
+  "expected_tests": 74,
   "commands": [
     {
       "owner": "OPT899 unchanged default owning controls",
@@ -238,6 +238,48 @@
       "owner": "Exact failed prior owning check: OPT914 complete path replay receiver controls",
       "binary": "lib",
       "filter": "cleanup_plan::replay::path_join::receiver_tests::complete_original_receiver_and_exact_current_source_inverse_stay_bound",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Catalog complete original23case functional and native C11O0/O2 owner",
+      "binary": "project",
+      "filter": "standard_library::application_json::owned::catalog_scoped_records::typed_catalog_derives_codecs_and_preserves_all_23_functional_cases",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "ShiftSim complete original15case typed application owner",
+      "binary": "project",
+      "filter": "standard_library::application_json::owned::shiftsim_typed_records::typed_record_shiftsim_derives_both_codecs_and_runs_retained_corpus",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT729 existing complete nested request decoder owner across interpreter/native/Wasm",
+      "binary": "project",
+      "filter": "standard_library::application_json::nested_request::nested_order_example_derives_detached_real_owners_and_agrees_on_three_backends",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT729 existing complete nested request decoder owner across interpreter/native/Wasm",
+      "binary": "project",
+      "filter": "standard_library::application_json::nested_request::nested_order_errors_and_exact_schema_capacities_agree_on_three_backends",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT729 existing complete nested request decoder owner across interpreter/native/Wasm",
+      "binary": "project",
+      "filter": "standard_library::application_json::nested_request::scheduler::independent_scheduler_nested_request_detaches_owners_and_keeps_typed_refusals",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT899/907 unchanged complete32row ordinary compiler caller at64MiB with refusal and fullDrop controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::expression_facts::receiving::retained::case_certified::lookup_tests::complete_caller_success_and_refusal_drop_remain_observed_at_unchanged_cap",
       "exact": true,
       "expected_tests": 1
     }

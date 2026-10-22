@@ -3,6 +3,7 @@ use super::{run_wasm, DECLARATION, SEQUENCE};
 use std::sync::atomic::Ordering;
 #[path = "selected_record_traversal.rs"]
 mod selected_record_traversal;
+#[path = "record_traversal/row_loan_boundaries.rs"]
 mod row_loan_boundaries;
 
 fn run(body: &str, expected: i64) {

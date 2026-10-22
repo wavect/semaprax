@@ -257,7 +257,7 @@ pub(in crate::workspace_graph::expected_projection) fn estimate<'a>(
         .checked_add(runtime.exact_expressions)
         .and_then(|count| {
             count
-                .checked_mul(super::super::super::super::HIR_FIXED_EXPANSION_FACTOR)
+                .checked_mul(super::super::super::HIR_FIXED_EXPANSION_FACTOR)
                 .and_then(|n| n.checked_mul(std::mem::size_of::<crate::ast::Expr>()))
                 .and_then(|old| prior_fixed_hir_upper.checked_sub(old))
                 .and_then(|base| {
@@ -267,15 +267,13 @@ pub(in crate::workspace_graph::expected_projection) fn estimate<'a>(
                         } else {
                             1
                         })
-                        .and_then(|n| {
-                            n.checked_mul(super::super::super::super::HIR_EXPR_FIXED_BUNDLE)
-                        })
+                        .and_then(|n| n.checked_mul(super::super::super::HIR_EXPR_FIXED_BUNDLE))
                         .and_then(|exact| base.checked_add(exact))
                 })
         })
         .unwrap_or(usize::MAX);
     #[cfg(test)]
-    super::super::super::super::forecast_observation::record_components(
+    super::super::super::forecast_observation::record_components(
         &program.path,
         layout_mode,
         retention == cached_exact::Retention::Semantic,

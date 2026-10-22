@@ -153,17 +153,21 @@ fn actual_uncached_tiny_repeated_shipping_path_and_complete_proof_drop_are_obser
                 .retained_hir
             }
             _ => {
-                held_projection::coupled_uncached_estimate(
+                let (full, retained) = shared_local_callees::paired::estimates(
                     ctx.program,
                     &authored,
                     &programs,
                     Some(maximum),
                     6,
-                    imports,
+                    true,
                     None,
                 )
-                .unwrap()
-                .retained_hir
+                .unwrap();
+                if imports {
+                    full.retained_hir
+                } else {
+                    retained.retained_hir
+                }
             }
         };
         // One module has no preceding retention: the real shipping peak is
@@ -305,7 +309,11 @@ pub(super) use reused::count as count_joint;
         hash(&restored),
         "c49b0a20bbb6681d67dfbf177fe3fd41a64c57079afa7d7713aaa78a42d6ab95"
     );
-    let current = include_str!("../held_projection.rs");
+    let current_owned = shared_local_callees::paired::tests::restore(
+        "held_projection.rs",
+        include_str!("../held_projection.rs"),
+    );
+    let current = current_owned.as_str();
     let wiring = r#####"
 #[path = "shared_local_callees/coupled_projection.rs"]
 mod coupled_projection;
@@ -317,7 +325,11 @@ pub(super) use coupled_projection::estimate as coupled_uncached_estimate;
         hash(&restored),
         "1e6c9f4893c8710afd7897e8e128a238d9f5c209f05ed411732839bf4921f6c4"
     );
-    let current = include_str!("../shared_local_callees.rs");
+    let current_owned = shared_local_callees::paired::tests::restore(
+        "shared_local_callees.rs",
+        include_str!("../shared_local_callees.rs"),
+    );
+    let current = current_owned.as_str();
     let wiring = r#####"
 #[path = "shared_local_callees/reused.rs"]
 mod reused;
@@ -362,7 +374,11 @@ pub(super) use reused::Session;
         hash(&restored),
         "d034d61bae469f0e68ab2c9a4cc9ee31e16ef62b57712af4293d1f035a46858d"
     );
-    let current = include_str!("../uncached_peak.rs");
+    let current_owned = shared_local_callees::paired::tests::restore(
+        "uncached_peak.rs",
+        include_str!("../uncached_peak.rs"),
+    );
+    let current = current_owned.as_str();
     let changed = "super::held_projection::coupled_uncached_estimate(";
     assert_eq!(current.matches(changed).count(), 2);
     let restored = current.replace(changed, "synthetic_builder_bytes_scoped_with_registry(");
@@ -375,7 +391,11 @@ pub(super) use reused::Session;
 #[test]
 fn coupled_estimate_retains_the_whole_old_algorithm_and_rejects_other_modes() {
     use sha2::{Digest, Sha256};
-    let source = include_str!("coupled_projection.rs");
+    let source_owned = shared_local_callees::paired::tests::restore(
+        "shared_local_callees/coupled_projection.rs",
+        include_str!("coupled_projection.rs"),
+    );
+    let source = source_owned.as_str();
     let start = source.find("    if layout_mode != 6 {").unwrap();
     let end = source.rfind("\n}").unwrap();
     let mut body = source[start..end].replace("super::super::", "super::");

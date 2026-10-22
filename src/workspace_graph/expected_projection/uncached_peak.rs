@@ -48,14 +48,11 @@ pub(in crate::workspace_graph) fn uncached_output_layout_with_registry(
         observation.module(index);
         super::super::diagnostics::begin_precharge_module(&program.path);
         let maximum = Some(dependency_identity_max(program, authored, programs)?);
-        full_costs[index] = super::held_projection::coupled_uncached_estimate(
+        let (full, retained) = super::shared_local_callees::paired::estimates(
             program, authored, programs, maximum, 6, true, registry,
-        )?
-        .retained_hir;
-        retained_costs[index] = super::held_projection::coupled_uncached_estimate(
-            program, authored, programs, maximum, 6, false, registry,
-        )?
-        .retained_hir;
+        )?;
+        full_costs[index] = full.retained_hir;
+        retained_costs[index] = retained.retained_hir;
         super::super::diagnostics::record_precharge_module(&program.path, full_costs[index]);
     }
     order[..programs.len()].sort_unstable_by(|left, right| {

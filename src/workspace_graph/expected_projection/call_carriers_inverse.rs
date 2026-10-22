@@ -82,6 +82,9 @@ mod call_identity;
 }
 // Complete authenticated acquisition stage, before the unchanged pre-898 inverse.
 pub(in crate::workspace_graph) fn pre916_held(source: &str) -> String {
+    let paired_stage =
+        super::super::shared_local_callees::paired::tests::restore("held_projection.rs", source);
+    let source = paired_stage.as_str();
     use sha2::{Digest, Sha256};
     let hash = |raw: &str| {
         format!(

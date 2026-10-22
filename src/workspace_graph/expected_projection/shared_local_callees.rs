@@ -297,3 +297,6 @@ pub(super) fn costs(context: Context<'_, '_>) -> Result<Costs, Vec<crate::diagno
 #[path = "shared_local_callees/reused.rs"]
 mod reused;
 pub(super) use reused::Session;
+
+#[path = "shared_local_callees/paired.rs"]
+pub(super) mod paired;

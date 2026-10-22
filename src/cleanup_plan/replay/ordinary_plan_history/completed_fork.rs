@@ -156,6 +156,8 @@ pub(super) fn produce_prepaid(
         }
     }
     for fork in forks {
+        work.budget
+            .charge(work.function, 1, "completed history fork selection")?;
         for path in *fork {
             work.budget
                 .charge(work.function, 1, "completed history input selection")?;
@@ -171,6 +173,8 @@ pub(super) fn produce_prepaid(
         paths: Vec::new(),
     };
     for prefix in prefixes {
+        work.budget
+            .charge(work.function, 1, "completed history initial record")?;
         work.budget
             .reserve_bytes(work.function, PATH, "completed history initial path")?;
         work.budget.reserve_vec(
@@ -188,6 +192,8 @@ pub(super) fn produce_prepaid(
         if !ledger.current() {
             return Err(Diagnostic::io("SPX-H006", String::new()));
         }
+        work.budget
+            .charge(work.function, 1, "completed history fork boundary")?;
         work.budget.reserve_bytes(
             work.function,
             PAYMENT + ClassifierLedger::current_receiving_controls(),
@@ -225,6 +231,8 @@ pub(super) fn produce_prepaid(
             // acquiring or publishing this new immutable chunk.
             work.charge(1, "skeleton prefix clone")?;
             note_skeleton_materialization();
+            work.budget
+                .charge(work.function, 1, "completed history chunk creation")?;
             work.budget
                 .reserve_bytes(work.function, CHUNK, "completed history immutable chunk")?;
             let previous_length = match prefix.previous {

@@ -43,7 +43,7 @@ pub(super) const FRAME: usize = size_of::<Result<(), Diagnostic>>()
 pub(super) const SWAP_CONTROLS: usize = 8 * size_of::<&mut Observations>();
 
 macro_rules! transfer {
-    ($prefixes:ident, $suffixes:ident, $work:ident, $share:ident, $precharged:ident, $frame_bytes:ident) => {{
+    ($prefixes:ident, $suffixes:ident, $work:ident, $share:expr, $precharged:ident, $frame_bytes:ident) => {{
         $crate::cleanup_plan::replay::physical_budget::compact_try!($work
             .budget
             .reserve_compact_bytes(
@@ -114,7 +114,13 @@ macro_rules! transfer {
 pub(super) use transfer;
 
 macro_rules! reuse {
-    ($prefixes:ident, $suffixes:ident, $work:ident, $share:ident, $minimum:ident, $precharged:ident) => {{
+    ($prefixes:ident, $suffixes:ident, $work:ident, token $sharing:ident, $minimum:ident, $precharged:ident) => {{
+        $crate::cleanup_plan::replay::sequence_vector::reuse!(
+            $prefixes, $suffixes, $work,
+            matches!($sharing, $crate::cleanup_plan::replay::skeleton_work::dag_storage::PrefixSharing::Existing),
+            $minimum, $precharged);
+    }};
+    ($prefixes:ident, $suffixes:ident, $work:ident, $share:expr, $minimum:ident, $precharged:ident) => {{
         // Original first-item acquisition, borrowed until the branch decision.
         // The existing minimum/first predicate proves a nonempty owned vector.
         {

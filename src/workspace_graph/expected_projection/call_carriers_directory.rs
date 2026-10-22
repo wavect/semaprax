@@ -595,3 +595,7 @@ fn take_census() -> Census {
 #[cfg(test)]
 #[path = "call_carriers_directory_tests.rs"]
 mod tests;
+
+#[path = "call_carriers_directory/reused.rs"]
+mod reused;
+pub(super) use reused::count as count_joint;

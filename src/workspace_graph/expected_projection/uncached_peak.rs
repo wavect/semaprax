@@ -48,11 +48,11 @@ pub(in crate::workspace_graph) fn uncached_output_layout_with_registry(
         observation.module(index);
         super::super::diagnostics::begin_precharge_module(&program.path);
         let maximum = Some(dependency_identity_max(program, authored, programs)?);
-        full_costs[index] = synthetic_builder_bytes_scoped_with_registry(
+        full_costs[index] = super::held_projection::coupled_uncached_estimate(
             program, authored, programs, maximum, 6, true, registry,
         )?
         .retained_hir;
-        retained_costs[index] = synthetic_builder_bytes_scoped_with_registry(
+        retained_costs[index] = super::held_projection::coupled_uncached_estimate(
             program, authored, programs, maximum, 6, false, registry,
         )?
         .retained_hir;

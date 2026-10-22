@@ -103,6 +103,9 @@ macro_rules! history_path {
     }};
 }
 
+// Retain the flat arena precursor and its independent controls beside the
+// complete Seq/Cat fork successor; application qualification remains pending.
+pub(super) mod completed_fork;
 mod producer;
 pub(super) use producer::produce;
 #[cfg(test)]

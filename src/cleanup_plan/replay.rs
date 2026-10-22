@@ -2737,6 +2737,7 @@ fn validate_typed_control_skeleton_with_index<'hir>(
     let _debit_phase = debit_routes::phase(debit_routes::Phase::EnumeratedHIR);
     let mut expected =
         hir_skeleton_paths_with_index_storage(program, function, budget, helpers, continuations)?;
+    ordinary_plan_history::completed_fork::shipping::finish!(function, budget, expected);
     #[cfg(test)]
     let _debit_phase = debit_routes::phase(debit_routes::Phase::OtherReplay);
     // Match the existing received reference, with no new payer/tag/flag carrier.
@@ -3072,9 +3073,12 @@ fn sequence_skeleton_paths(
     if path_array::main696::selected() {
         return path_array::main696::sequence_skeleton_paths(prefixes, suffixes, work);
     }
+    let prefixes = ordinary_plan_history::completed_fork::emission::dispatch!(
+        prefixes, suffixes, work
+    );
     let mut prefixes = work.merged_paths(prefixes)?;
     let suffixes = work.merged_suffixes(suffixes)?;
-    let share_prefix = work.shares_prefix_tail(&suffixes)?;
+    let share_prefix = work.prefix_tail_sharing(&suffixes)?;
     let mut combined = Vec::new();
     let minimum = compact_path::count!(
         work,
@@ -3091,7 +3095,7 @@ fn sequence_skeleton_paths(
     let single = suffixes.len() == 1;
     let mut precharged = false;
     if single && first {
-        sequence_vector::reuse!(prefixes, suffixes, work, share_prefix, minimum, precharged);
+        sequence_vector::reuse!(prefixes, suffixes, work, token share_prefix, minimum, precharged);
     }
     for mut prefix in prefixes {
         if prefix.failed || prefix.residual {
@@ -3110,8 +3114,8 @@ fn sequence_skeleton_paths(
             );
             continue;
         }
-        if !precharged && share_prefix {
-            work.share_prefix_tail(&mut prefix.observations)?;
+        if !precharged {
+            skeleton_work::dag_storage::share_prefix!(work, share_prefix, prefix.observations);
         }
         if single {
             if precharged {
@@ -6463,7 +6467,7 @@ fn sequence_call_argument(
 ) -> Result<Vec<CallSkeletonState>, Diagnostic> {
     let states = work.merged_call_states(states)?;
     let suffixes = work.merged_suffixes(suffixes)?;
-    let share_prefix = work.shares_prefix_tail(&suffixes)?;
+    let share_prefix = work.prefix_tail_sharing(&suffixes)?;
     let mut next = Vec::new();
     for (mut prefix, commits) in states {
         if prefix.failed || prefix.residual {
@@ -6474,16 +6478,13 @@ fn sequence_call_argument(
             next.push((prefix, commits));
             continue;
         }
-        if share_prefix {
-            work.share_prefix_tail(&mut prefix.observations)?;
-        }
+        skeleton_work::dag_storage::share_prefix!(work, share_prefix, prefix.observations);
+
         for suffix in suffixes.iter() {
             let observations =
                 work.clone_observations(&prefix.observations, "call prefix clone")?;
-            let observations = work.extend_owned_observations(
-                observations,
-                &suffix.observations,
-                "call suffix clone",
+            let observations = ordinary_plan_history::completed_fork::emission::extend_call!(
+                observations, suffix, work
             )?;
             let owned_source =
                 work.clone_owned(&suffix.owned_source, "call suffix owned-source clone")?;

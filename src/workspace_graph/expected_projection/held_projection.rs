@@ -556,3 +556,7 @@ pub(in crate::workspace_graph) fn synthetic_program_with_registry_using<'a>(
     byte_proofs.complete().map_err(|error| vec![error])?;
     Ok(synthetic)
 }
+
+#[path = "shared_local_callees/coupled_projection.rs"]
+mod coupled_projection;
+pub(super) use coupled_projection::estimate as coupled_uncached_estimate;

@@ -355,3 +355,7 @@ pub(super) use directory::count;
 #[cfg(test)]
 #[path = "call_carriers_before_directory.rs"]
 mod before_directory;
+
+#[path = "call_carriers_joint.rs"]
+mod joint;
+pub(super) use joint::count as count_joint;

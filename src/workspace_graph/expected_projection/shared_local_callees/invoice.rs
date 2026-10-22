@@ -2,7 +2,7 @@
 use super::*;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(super) enum Failure {
+pub(in crate::workspace_graph::expected_projection) enum Failure {
     Physical,
     Arithmetic,
     Foreign,
@@ -43,6 +43,24 @@ impl Invoice {
 
     pub(super) fn acquire() -> Result<Self, Failure> {
         let bytes = Self::setup_bytes();
+        if !crate::bounded_output::reserve_active_required(bytes) {
+            return Err(Failure::Physical);
+        }
+        let mut ledger = ClassifierLedger::empty_receiving();
+        ledger.capture_current_into();
+        Ok(Self {
+            bytes: Cell::new(bytes),
+            remaining: Cell::new(WORK),
+            ledger,
+        })
+    }
+
+    // A distinct same-invocation constructor pays its own actual/formal and
+    // returned owners before formation; the original certificate is unchanged.
+    pub(super) fn acquire_with<T>() -> Result<Self, Failure> {
+        let bytes = Self::setup_bytes()
+            .checked_add(size_of::<T>())
+            .ok_or(Failure::Arithmetic)?;
         if !crate::bounded_output::reserve_active_required(bytes) {
             return Err(Failure::Physical);
         }

@@ -40,7 +40,8 @@ mod invoice;
 mod tests;
 #[path = "shared_local_callees/walk.rs"]
 mod walk;
-use invoice::{Failure, Invoice};
+pub(super) use invoice::Failure;
+use invoice::Invoice;
 
 type Index<'a> = BTreeMap<&'a str, AuthoredDeclaration<'a>>;
 type Headers<'a> = BTreeMap<&'a str, Option<&'a Function>>;
@@ -292,3 +293,7 @@ pub(super) fn costs(context: Context<'_, '_>) -> Result<Costs, Vec<crate::diagno
         )]
     })
 }
+
+#[path = "shared_local_callees/reused.rs"]
+mod reused;
+pub(super) use reused::Session;

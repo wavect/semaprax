@@ -16,6 +16,18 @@ pub(in crate::cleanup_plan::replay) struct DestructionScratch {
     pub(super) next_ordinal: usize,
 }
 
+// New flat-only gate pays the actual/formal prefix receiver, moved kind and
+// result carriers, including its own explicit reservation call, before either
+// control flow or construction can acquire those receivers on this new arm.
+const FLAT_FANOUT_CONTROLS: usize = 2 * std::mem::size_of::<(
+    &mut SkeletonWork<'static, 'static>,
+    &mut Observations,
+)>() + 2 * std::mem::size_of::<(Option<Rc<ObservationDag>>, Vec<Observation>)>()
+    + 2 * std::mem::size_of::<ObservationDagKind>()
+    + 2 * std::mem::size_of::<Result<Rc<ObservationDag>, Diagnostic>>()
+    + 2 * std::mem::size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>()
+    + 2 * std::mem::size_of::<Result<(), Diagnostic>>();
+
 impl ObservationDagKind {
     pub(super) fn edges(&self) -> usize {
         match self {
@@ -128,13 +140,28 @@ impl SkeletonWork<'_, '_> {
         &mut self,
         suffixes: &[ExprSkeletonPath],
     ) -> Result<bool, Diagnostic> {
+        #[cfg(test)]
+        if flat_fanout::before_requested() {
+            return flat_fanout::before(self, suffixes);
+        }
         if !self.budget.merge_paths || suffixes.len() < 2 {
             return Ok(false);
         }
         self.charge(suffixes.len(), "factored suffix fanout inspection")?;
-        Ok(suffixes
+        if suffixes
             .iter()
-            .any(|suffix| suffix.observations.prefix.is_some()))
+            .any(|suffix| suffix.observations.prefix.is_some())
+        {
+            return Ok(true);
+        }
+        // Flat success/failure siblings also clone the same owned prefix.
+        // Its existing Vec can move into the already charged DAG receiver.
+        self.budget.reserve_bytes(
+            self.function,
+            FLAT_FANOUT_CONTROLS,
+            "flat fanout shared-prefix receivers",
+        )?;
+        Ok(true)
     }
 
     /// Move one authentic prefix tail into one immutable node before fanout.
@@ -317,3 +344,6 @@ impl SkeletonWork<'_, '_> {
         self.charged_dag(kind)
     }
 }
+
+#[cfg(test)]
+mod flat_fanout;

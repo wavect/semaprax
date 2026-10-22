@@ -17,14 +17,19 @@ on:
         type: boolean
         required: false
         default: false
+      opt_batch:
+        description: Run the bounded 40-filter OPT qualification batch and production Clippy on Linux
+        type: boolean
+        required: false
+        default: false
 permissions:
   contents: read
 concurrency:
-  group: macos-cli-diagnostic-${{ github.ref }}
+  group: macos-cli-diagnostic-${{ github.ref }}${{ inputs.opt_batch && '-opt-batch' || '' }}
   cancel-in-progress: false
 jobs:
   cli:
-    if: ${{ ! inputs.linux_stack && ! inputs.resolved_core }}
+    if: ${{ ! inputs.linux_stack && ! inputs.resolved_core && ! inputs.opt_batch }}
     runs-on: macos-15
     timeout-minutes: 120
     env:
@@ -243,3 +248,58 @@ jobs:
             resolved-core-build.jsonl
           if-no-files-found: error
           retention-days: 1
+
+  opt-batch:
+    name: Focused OPT qualification (40 filters / 75 tests)
+    if: inputs.opt_batch
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    env:
+      CARGO_BUILD_JOBS: "1"
+      CARGO_INCREMENTAL: "0"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      CARGO_PROFILE_DEV_OPT_LEVEL: "0"
+      CARGO_PROFILE_TEST_OPT_LEVEL: "0"
+      CARGO_PROFILE_DEV_CODEGEN_UNITS: "64"
+      CARGO_PROFILE_TEST_CODEGEN_UNITS: "64"
+      CARGO_PROFILE_DEV_DEBUG_ASSERTIONS: "true"
+      CARGO_PROFILE_TEST_DEBUG_ASSERTIONS: "true"
+      CARGO_PROFILE_DEV_OVERFLOW_CHECKS: "true"
+      CARGO_PROFILE_TEST_OVERFLOW_CHECKS: "true"
+      CARGO_PROFILE_DEV_INCREMENTAL: "false"
+      CARGO_PROFILE_TEST_INCREMENTAL: "false"
+      CARGO_PROFILE_DEV_LTO: "false"
+      CARGO_PROFILE_TEST_LTO: "false"
+      CARGO_TARGET_DIR: target/hosted-opt-batch
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          fetch-tags: false
+          lfs: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+        with:
+          toolchain: 1.97.1
+          components: clippy
+      - name: Resolve the existing native tools before qualification
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          opt_clang="$(command -v clang)"
+          opt_archiver="$(command -v ar)"
+          test -x "$opt_clang"
+          test -x "$opt_archiver"
+          echo "CLANG=$(readlink -f "$opt_clang")" >> "$GITHUB_ENV"
+          echo "SEMAPRAX_ARCHIVER=$(readlink -f "$opt_archiver")" >> "$GITHUB_ENV"
+      - name: Build the two owning test images once, run the exact selection, then production Clippy
+        run: python3 scripts/ci-opt-batch.py
+      - name: Retain actual commands, binaries' identities, logs and checked test counts
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: diagnostic-opt-batch-${{ github.sha }}-${{ github.run_attempt }}
+          path: diagnostic-opt-batch/
+          if-no-files-found: error
+          retention-days: 7

@@ -1,0 +1,427 @@
+[
+  [
+    0,
+    "#[path = \"historical_inputs.rs\"]\nmod historical_inputs;\n",
+    ""
+  ],
+  [
+    111,
+    "type ReceiverTextEdits<'a> = (usize, [u8; 32], usize, [u8; 32], &'a [(&'a str, &'a str)]);\ntype ReceiverSpanEdits<'a> = (\n    usize,\n    [u8; 32],\n    usize,\n    [u8; 32],\n    &'a [(usize, usize, &'a str, &'a str)],\n);\n",
+    ""
+  ],
+  [
+    12916,
+    "    let runtime = super::super::main_e177_final_inputs::value_direct(\n        \"src/source_reflows_merge/runtime_json.rs\",\n        \"d53fe461e231d8bfa061cf8b1fe31e709b32c2fe0fa2ea4a79c194bf08625e43\",\n        runtime,\n    );\n    assert_eq!(runtime.len(), 9945);\n",
+    ""
+  ],
+  [
+    13354,
+    "        *b\"\\x94\\x70\\xc1\\x19\\xd0\\x32\\x31\\x1e\\x9b\\x96\\x67\\xc6\\x42\\xd8\\x47\\x52\\x81\\x14\\xb4\\xa1\\xad\\x24\\x69\\xed\\xe1\\x7d\\x31\\x13\\x4d\\x95\\x9b\\xec\"\n",
+    "        [\n            148, 112, 193, 25, 208, 50, 49, 30, 155, 150, 103, 198, 66, 216, 71, 82, 129, 20, 180,\n            161, 173, 36, 105, 237, 225, 125, 49, 19, 77, 149, 155, 236\n        ]\n"
+  ],
+  [
+    13988,
+    "        *b\"\\x2f\\xc7\\x51\\x6b\\xf1\\x08\\xa3\\x53\\x87\\xc3\\xa4\\xe3\\x2c\\x7e\\x15\\xd2\\x66\\x5a\\x15\\x3c\\x9a\\xed\\x9a\\xea\\x67\\xcb\\x72\\xae\\xda\\x84\\x70\\xe1\"\n",
+    "        [\n            47, 199, 81, 107, 241, 8, 163, 83, 135, 195, 164, 227, 44, 126, 21, 210, 102, 90, 21,\n            60, 154, 237, 154, 234, 103, 203, 114, 174, 218, 132, 112, 225\n        ]\n"
+  ],
+  [
+    16673,
+    "        *b\"\\x27\\x41\\xae\\x80\\x1d\\xcf\\x4a\\x4d\\x2e\\x41\\x68\\x12\\x57\\x6b\\xcb\\xf6\\x9f\\x66\\xe9\\x4a\\xd6\\x97\\x46\\xea\\x81\\x98\\x9a\\x55\\x4f\\x1c\\xfd\\x3f\"\n",
+    "        [\n            39, 65, 174, 128, 29, 207, 74, 77, 46, 65, 104, 18, 87, 107, 203, 246, 159, 102, 233,\n            74, 214, 151, 70, 234, 129, 152, 154, 85, 79, 28, 253, 63\n        ]\n"
+  ],
+  [
+    17541,
+    "            \"    let rows: serde_json::Value = serde_json::from_str(include_str!(\\n        \\\"../../../docs/evidence/paid-live-pending-reuse-3c351/whole-source-inverses.json\\\"\\n    ))\\n    .unwrap();\", \"    let rows: serde_json::Value =\\n        serde_json::from_str(&crate::source_reflows_merge::receiver_fixture(\\n            crate::source_reflows_merge::ReceiverFixture::PaidLiveReuse,\\n        ))\\n        .unwrap();\", *b\"\\xd8\\x6d\\xf5\\x6a\\x91\\x64\\x3b\\x4f\\xd0\\xbd\\xf3\\xb2\\xba\\xfa\\xbc\\x74\\x72\\xc1\\xfd\\xcb\\xec\\x6f\\xba\\x36\\x8c\\xd4\\xc0\\x51\\x6f\\x2b\\x4b\\x4f\"),\n",
+    "            \"    let rows: serde_json::Value = serde_json::from_str(include_str!(\\n        \\\"../../../docs/evidence/paid-live-pending-reuse-3c351/whole-source-inverses.json\\\"\\n    ))\\n    .unwrap();\", \"    let rows: serde_json::Value =\\n        serde_json::from_str(&crate::source_reflows_merge::receiver_fixture(\\n            crate::source_reflows_merge::ReceiverFixture::PaidLiveReuse,\\n        ))\\n        .unwrap();\", [216, 109, 245, 106, 145, 100, 59, 79, 208, 189, 243, 178, 186, 250, 188, 116, 114, 193, 253, 203, 236, 111, 186, 54, 140, 212, 192, 81, 111, 43, 75, 79]),\n"
+  ],
+  [
+    18305,
+    "            \"    let rows: serde_json::Value = serde_json::from_str(include_str!(\\n        \\\"../../../../../docs/evidence/ordinary-lexical-return-operands-832/exact-source-inverses.json\\\"\\n    )).unwrap();\", \"    let rows: serde_json::Value =\\n        serde_json::from_str(&crate::source_reflows_merge::receiver_fixture(\\n            crate::source_reflows_merge::ReceiverFixture::LexicalOperands,\\n        ))\\n        .unwrap();\", *b\"\\x57\\x5f\\x74\\x61\\xfb\\x66\\x24\\xf8\\xdf\\xdf\\x1e\\xd5\\x11\\xcb\\xad\\xe1\\x22\\x7a\\x47\\x35\\x8a\\xbd\\x08\\x58\\x75\\x53\\x96\\xd9\\x49\\xe2\\x93\\x1b\"),\n",
+    "            \"    let rows: serde_json::Value = serde_json::from_str(include_str!(\\n        \\\"../../../../../docs/evidence/ordinary-lexical-return-operands-832/exact-source-inverses.json\\\"\\n    )).unwrap();\", \"    let rows: serde_json::Value =\\n        serde_json::from_str(&crate::source_reflows_merge::receiver_fixture(\\n            crate::source_reflows_merge::ReceiverFixture::LexicalOperands,\\n        ))\\n        .unwrap();\", [87, 95, 116, 97, 251, 102, 36, 248, 223, 223, 30, 213, 17, 203, 173, 225, 34, 122, 71, 53, 138, 189, 8, 88, 117, 83, 150, 217, 73, 226, 147, 27]),\n"
+  ],
+  [
+    19117,
+    "            \"    let rows: serde_json::Value = serde_json::from_str(include_str!(\\n        \\\"../../../../../docs/evidence/private-layout-entry-capacity-834/exact-source-inverses.json\\\"\\n    ))\\n    .unwrap();\", \"    let rows: serde_json::Value =\\n        serde_json::from_str(&crate::source_reflows_merge::receiver_fixture(\\n            crate::source_reflows_merge::ReceiverFixture::PrivateLayoutCapacity,\\n        ))\\n        .unwrap();\", *b\"\\xcb\\x4c\\x70\\x9e\\xcd\\x0d\\x89\\x66\\xec\\x03\\xc9\\xcc\\x9d\\x66\\x64\\x68\\x18\\x28\\x61\\xde\\xd8\\xcb\\x0c\\x86\\x0e\\xd2\\x0c\\x35\\x30\\x00\\x64\\xe2\"),\n",
+    "            \"    let rows: serde_json::Value = serde_json::from_str(include_str!(\\n        \\\"../../../../../docs/evidence/private-layout-entry-capacity-834/exact-source-inverses.json\\\"\\n    ))\\n    .unwrap();\", \"    let rows: serde_json::Value =\\n        serde_json::from_str(&crate::source_reflows_merge::receiver_fixture(\\n            crate::source_reflows_merge::ReceiverFixture::PrivateLayoutCapacity,\\n        ))\\n        .unwrap();\", [203, 76, 112, 158, 205, 13, 137, 102, 236, 3, 201, 204, 157, 102, 100, 104, 24, 40, 97, 222, 216, 203, 12, 134, 14, 210, 12, 53, 48, 0, 100, 226]),\n"
+  ],
+  [
+    19934,
+    "            \"    let packet: serde_json::Value = serde_json::from_str(include_str!(\\n        \\\"../../../../../docs/evidence/registry-census-scratch-833/source-inverses.json\\\"\\n    ))\\n    .unwrap();\", \"    let packet: serde_json::Value =\\n        serde_json::from_str(&crate::source_reflows_merge::receiver_fixture(\\n            crate::source_reflows_merge::ReceiverFixture::RegistryScratch,\\n        ))\\n        .unwrap();\", *b\"\\x0b\\xf3\\xa8\\x68\\x12\\x5c\\x5d\\x38\\x1e\\xad\\x3b\\x67\\x12\\x7f\\x62\\x20\\x85\\xd8\\xfb\\xa0\\x9b\\x23\\x86\\x2d\\xb6\\x8b\\xda\\xd1\\x3c\\x27\\x1e\\xc6\"),\n",
+    "            \"    let packet: serde_json::Value = serde_json::from_str(include_str!(\\n        \\\"../../../../../docs/evidence/registry-census-scratch-833/source-inverses.json\\\"\\n    ))\\n    .unwrap();\", \"    let packet: serde_json::Value =\\n        serde_json::from_str(&crate::source_reflows_merge::receiver_fixture(\\n            crate::source_reflows_merge::ReceiverFixture::RegistryScratch,\\n        ))\\n        .unwrap();\", [11, 243, 168, 104, 18, 92, 93, 56, 30, 173, 59, 103, 18, 127, 98, 32, 133, 216, 251, 160, 155, 35, 134, 45, 182, 139, 218, 209, 60, 39, 30, 198]),\n"
+  ],
+  [
+    20661,
+    "            \"    let packet: serde_json::Value = serde_json::from_str(include_str!(\\n        \\\"../../../docs/evidence/canonical-comment-comparison-835/source-inverses.json\\\"\\n    ))\\n    .unwrap();\", \"    let packet: serde_json::Value =\\n        serde_json::from_str(&crate::source_reflows_merge::receiver_fixture(\\n            crate::source_reflows_merge::ReceiverFixture::ColdCanonical,\\n        ))\\n        .unwrap();\", *b\"\\xec\\xc2\\xa0\\x7a\\xc3\\x66\\xad\\xea\\xdd\\xc9\\x86\\xc5\\xbf\\x1c\\x67\\x60\\x00\\xe9\\x5e\\xc9\\x8f\\x5d\\xd5\\x26\\xc3\\x7c\\x78\\xf6\\x54\\x06\\xd6\\x2c\"),\n",
+    "            \"    let packet: serde_json::Value = serde_json::from_str(include_str!(\\n        \\\"../../../docs/evidence/canonical-comment-comparison-835/source-inverses.json\\\"\\n    ))\\n    .unwrap();\", \"    let packet: serde_json::Value =\\n        serde_json::from_str(&crate::source_reflows_merge::receiver_fixture(\\n            crate::source_reflows_merge::ReceiverFixture::ColdCanonical,\\n        ))\\n        .unwrap();\", [236, 194, 160, 122, 195, 102, 173, 234, 221, 201, 134, 197, 191, 28, 103, 96, 0, 233, 94, 201, 143, 93, 213, 38, 195, 124, 120, 246, 84, 6, 214, 44]),\n"
+  ],
+  [
+    21415,
+    "            \"    let rows: serde_json::Value = serde_json::from_str(include_str!(\\n        \\\"../../../docs/evidence/borrowed-generic-type-rewrite-141387/whole-source-inverses.json\\\"\\n    ))\\n    .unwrap();\", \"    let rows: serde_json::Value =\\n        serde_json::from_str(&crate::source_reflows_merge::receiver_fixture(\\n            crate::source_reflows_merge::ReceiverFixture::BorrowedGeneric,\\n        ))\\n        .unwrap();\", *b\"\\xd3\\x31\\xc8\\x55\\xc4\\x1b\\x28\\x62\\x85\\x84\\xbd\\x25\\x76\\xc9\\x3c\\x0f\\x72\\x22\\x6e\\xd0\\x7b\\xeb\\x1c\\xfe\\x25\\x27\\x2e\\x17\\x8a\\x0a\\x9b\\x31\"),\n",
+    "            \"    let rows: serde_json::Value = serde_json::from_str(include_str!(\\n        \\\"../../../docs/evidence/borrowed-generic-type-rewrite-141387/whole-source-inverses.json\\\"\\n    ))\\n    .unwrap();\", \"    let rows: serde_json::Value =\\n        serde_json::from_str(&crate::source_reflows_merge::receiver_fixture(\\n            crate::source_reflows_merge::ReceiverFixture::BorrowedGeneric,\\n        ))\\n        .unwrap();\", [211, 49, 200, 85, 196, 27, 40, 98, 133, 132, 189, 37, 118, 201, 60, 15, 114, 34, 110, 208, 123, 235, 28, 254, 37, 39, 46, 23, 138, 10, 155, 49]),\n"
+  ],
+  [
+    24674,
+    "    let mut original =\n        complete_receiver_entry_glue(\"src/source_reflows_merge/runtime_json.rs\", runtime);\n",
+    "    let mut original = complete_receiver_entry_glue(\"src/source_reflows_merge/runtime_json.rs\", runtime);\n"
+  ],
+  [
+    25409,
+    "        *b\"\\xd5\\x3f\\xe4\\x61\\xe2\\x31\\xd8\\xbf\\xa0\\x61\\xcf\\x8b\\x1f\\xe3\\x1e\\x70\\x9b\\x32\\xc2\\xfe\\x0f\\xa2\\xea\\x4a\\x79\\xc1\\x94\\xbf\\x08\\x62\\x5e\\x43\",\n",
+    "        [\n            213, 63, 228, 97, 226, 49, 216, 191, 160, 97, 207, 139, 31, 227, 30, 112, 155, 50, 194,\n            254, 15, 162, 234, 74, 121, 193, 148, 191, 8, 98, 94, 67\n        ],\n"
+  ],
+  [
+    25604,
+    "    let prior_tests = historical_inputs::before(include_str!(\"tests.rs\"));\n    let mut original_tests = prior_tests\n",
+    "    let mut original_tests = include_str!(\"tests.rs\")\n"
+  ],
+  [
+    27868,
+    "        *b\"\\x33\\xe3\\x78\\x8d\\x8e\\xb3\\xa9\\x8e\\xf7\\x5a\\x79\\x40\\x70\\xa2\\x7c\\x4b\\x1c\\x16\\x1d\\x5c\\x4c\\x24\\x2c\\x1b\\x45\\xd6\\xf3\\x32\\xe1\\x6f\\x61\\xf3\",\n",
+    "        [\n            51, 227, 120, 141, 142, 179, 169, 142, 247, 90, 121, 64, 112, 162, 124, 75, 28, 22, 29,\n            92, 76, 36, 44, 27, 69, 214, 243, 50, 225, 111, 97, 243\n        ],\n"
+  ],
+  [
+    28400,
+    "    assert_eq!(\n        digest(current.as_bytes()),\n        *b\"\\x5a\\x95\\xfa\\x1f\\x07\\xfa\\xc9\\x9c\\x62\\xf6\\x57\\x28\\x17\\xdf\\x24\\x76\\x95\\xa4\\xd2\\xe2\\x74\\xd5\\xac\\xcc\\x5c\\xe2\\x31\\xd7\\xdc\\x15\\x0b\\xc4\"\n    );\n",
+    "    assert_eq!(digest(current.as_bytes()), [90, 149, 250, 31, 7, 250, 201, 156, 98, 246, 87, 40, 23, 223, 36, 118, 149, 164, 210, 226, 116, 213, 172, 204, 92, 226, 49, 215, 220, 21, 11, 196]);\n"
+  ],
+  [
+    30151,
+    "    assert_eq!(\n        digest(original.as_bytes()),\n        *b\"\\x86\\x43\\x01\\xd0\\xb8\\x7f\\x8d\\xe9\\x5c\\x6b\\x8d\\x1f\\x2f\\xd3\\x06\\xc3\\xbb\\x96\\xea\\xc9\\x2f\\x56\\x69\\x98\\x63\\x08\\x06\\x5f\\x2a\\xbd\\xae\\xef\"\n    );\n",
+    "    assert_eq!(digest(original.as_bytes()), [134, 67, 1, 208, 184, 127, 141, 233, 92, 107, 141, 31, 47, 211, 6, 195, 187, 150, 234, 201, 47, 86, 105, 152, 99, 8, 6, 95, 42, 189, 174, 239]);\n"
+  ],
+  [
+    30797,
+    "    let (length, current_sha, old_length, old_sha, edits): ReceiverTextEdits<'_> = match source {\n",
+    "    let (length, current_sha, old_length, old_sha, edits): (usize, [u8; 32], usize, [u8; 32], &[(&str, &str)]) = match source {\n"
+  ],
+  [
+    30938,
+    "            54109, *b\"\\xdc\\xf4\\xe0\\xdf\\xee\\xaf\\x24\\x8d\\x4f\\xbe\\x92\\x5b\\x8d\\xa3\\x1b\\x8e\\x81\\x96\\x2d\\x87\\xfc\\x62\\xf1\\x52\\x33\\x6e\\x89\\x3e\\x7c\\x72\\x27\\xd5\",\n            47396, *b\"\\x67\\xc9\\x9a\\x6f\\xb7\\x90\\xd9\\xf2\\x66\\xf1\\x2d\\x09\\x86\\x05\\xb1\\x52\\x36\\xea\\x8e\\xa0\\x7d\\xc8\\x94\\xe6\\x8f\\x3d\\x15\\x25\\x95\\xfb\\xef\\xdf\",\n",
+    "            54109, [220, 244, 224, 223, 238, 175, 36, 141, 79, 190, 146, 91, 141, 163, 27, 142, 129, 150, 45, 135, 252, 98, 241, 82, 51, 110, 137, 62, 124, 114, 39, 213],\n            47396, [103, 201, 154, 111, 183, 144, 217, 242, 102, 241, 45, 9, 134, 5, 177, 82, 54, 234, 142, 160, 125, 200, 148, 230, 143, 61, 21, 37, 149, 251, 239, 223],\n"
+  ],
+  [
+    40300,
+    "            36321, *b\"\\x8a\\xc5\\xb0\\xbc\\x82\\xb7\\x48\\x96\\xed\\xe9\\x91\\x86\\x39\\xb9\\x06\\x93\\x0d\\x34\\x84\\xf4\\xbb\\xb3\\x91\\xe8\\x1c\\x74\\xe4\\xab\\x51\\xc4\\x91\\x2a\",\n            34859, *b\"\\x7a\\x14\\xee\\x94\\x6d\\x44\\xe4\\x24\\x48\\xc7\\xb0\\x69\\xee\\x0d\\xaa\\x1a\\x35\\xde\\xda\\xe5\\x2e\\x8c\\x7a\\x99\\x8c\\xba\\xd8\\xb4\\x3b\\x37\\x95\\xe8\",\n",
+    "            36321, [138, 197, 176, 188, 130, 183, 72, 150, 237, 233, 145, 134, 57, 185, 6, 147, 13, 52, 132, 244, 187, 179, 145, 232, 28, 116, 228, 171, 81, 196, 145, 42],\n            34859, [122, 20, 238, 148, 109, 68, 228, 36, 72, 199, 176, 105, 238, 13, 170, 26, 53, 222, 218, 229, 46, 140, 122, 153, 140, 186, 216, 180, 59, 55, 149, 232],\n"
+  ],
+  [
+    42811,
+    "            14714, *b\"\\xa7\\xd3\\x8b\\x1f\\x8b\\xd2\\x93\\xdd\\x84\\x3a\\x0d\\xae\\x9f\\x6b\\x27\\x6f\\x37\\x4e\\xad\\x45\\x97\\x82\\x99\\x8f\\xb4\\x01\\x35\\x43\\x11\\x02\\x6a\\x63\",\n            12620, *b\"\\x2a\\x0b\\xb2\\xa4\\xaa\\x8d\\xd3\\x4a\\x67\\x56\\x5c\\x23\\xf5\\x47\\x3c\\x44\\x97\\xb0\\x63\\x25\\xe6\\x70\\x1c\\x3f\\x87\\x8d\\xc3\\xdf\\x18\\xf1\\x67\\x43\",\n",
+    "            14714, [167, 211, 139, 31, 139, 210, 147, 221, 132, 58, 13, 174, 159, 107, 39, 111, 55, 78, 173, 69, 151, 130, 153, 143, 180, 1, 53, 67, 17, 2, 106, 99],\n            12620, [42, 11, 178, 164, 170, 141, 211, 74, 103, 86, 92, 35, 245, 71, 60, 68, 151, 176, 99, 37, 230, 112, 28, 63, 135, 141, 195, 223, 24, 241, 103, 67],\n"
+  ],
+  [
+    46012,
+    "            23070, *b\"\\x0b\\x52\\x79\\x17\\x76\\x39\\x85\\x04\\x1a\\x50\\x0b\\xd9\\xd7\\x07\\x2d\\x23\\x8d\\x21\\x03\\xd7\\x90\\xa1\\x53\\x81\\xa0\\x2c\\xd5\\xca\\x05\\xef\\x78\\x90\",\n            22879, *b\"\\x1d\\x1f\\x1c\\x68\\xaf\\xc5\\xb1\\xfd\\x41\\x79\\x7e\\x01\\x8f\\xb4\\x6c\\xce\\xdc\\x2a\\x1c\\xec\\x86\\xe3\\x47\\xdc\\x5c\\x4d\\x7e\\xcb\\x29\\xf5\\xe4\\xd7\",\n",
+    "            23070, [11, 82, 121, 23, 118, 57, 133, 4, 26, 80, 11, 217, 215, 7, 45, 35, 141, 33, 3, 215, 144, 161, 83, 129, 160, 44, 213, 202, 5, 239, 120, 144],\n            22879, [29, 31, 28, 104, 175, 197, 177, 253, 65, 121, 126, 1, 143, 180, 108, 206, 220, 42, 28, 236, 134, 227, 71, 220, 92, 77, 126, 203, 41, 245, 228, 215],\n"
+  ],
+  [
+    47182,
+    "            17919, *b\"\\xa7\\xe1\\x46\\xf8\\x9c\\x90\\xb1\\xca\\xcb\\x07\\xa3\\x99\\x71\\xe7\\xd5\\x1f\\xe1\\xeb\\x32\\xb8\\x75\\x33\\x05\\xd0\\x92\\xb6\\xae\\xe7\\x16\\x27\\xc8\\x90\",\n            17756, *b\"\\x4d\\x5e\\xa7\\x83\\xb1\\x85\\x5f\\xcb\\x0a\\xd7\\x9b\\xbc\\x0a\\xa0\\x13\\x43\\x0d\\x44\\x06\\xeb\\x8b\\xb4\\xbf\\x6d\\xe1\\x16\\x69\\xfb\\x08\\x8a\\x5d\\x50\",\n",
+    "            17919, [167, 225, 70, 248, 156, 144, 177, 202, 203, 7, 163, 153, 113, 231, 213, 31, 225, 235, 50, 184, 117, 51, 5, 208, 146, 182, 174, 231, 22, 39, 200, 144],\n            17756, [77, 94, 167, 131, 177, 133, 95, 203, 10, 215, 155, 188, 10, 160, 19, 67, 13, 68, 6, 235, 139, 180, 191, 109, 225, 22, 105, 251, 8, 138, 93, 80],\n"
+  ],
+  [
+    48022,
+    "            16089, *b\"\\x9f\\x86\\xfb\\xb6\\xc4\\x0d\\x52\\x85\\xd1\\x3a\\xd2\\xb9\\x0e\\xb0\\x98\\x60\\xec\\xbb\\x82\\x92\\xb9\\x4a\\xa3\\x68\\xa8\\x90\\xb7\\xc3\\xe9\\xd7\\x1c\\xc6\",\n            15976, *b\"\\xfd\\xfb\\x6b\\xcb\\xca\\x86\\x66\\x8e\\xfc\\xd8\\x5d\\xc0\\x54\\xc2\\x89\\x86\\xae\\x2d\\x62\\xb9\\xee\\xfa\\x9b\\xa1\\x85\\xb9\\xe0\\x91\\x15\\x2d\\x1f\\xca\",\n",
+    "            16089, [159, 134, 251, 182, 196, 13, 82, 133, 209, 58, 210, 185, 14, 176, 152, 96, 236, 187, 130, 146, 185, 74, 163, 104, 168, 144, 183, 195, 233, 215, 28, 198],\n            15976, [253, 251, 107, 203, 202, 134, 102, 142, 252, 216, 93, 192, 84, 194, 137, 134, 174, 45, 98, 185, 238, 250, 155, 161, 133, 185, 224, 145, 21, 45, 31, 202],\n"
+  ],
+  [
+    49099,
+    "            22118, *b\"\\xca\\xbb\\x93\\x5f\\x95\\x35\\x96\\x05\\x70\\x0f\\x59\\x09\\xfd\\x27\\xf9\\xe6\\xdb\\x72\\xbe\\x4f\\xc3\\x7b\\x0c\\xa3\\x06\\x0a\\x59\\x33\\x26\\x47\\xf7\\x2d\",\n            21925, *b\"\\x7a\\x16\\x3c\\xa8\\x27\\x30\\xbc\\xba\\xc6\\xe3\\xc5\\x73\\xb9\\x06\\x46\\x3d\\xe5\\xb2\\x22\\x28\\xcd\\x2e\\x34\\xc3\\x77\\xb0\\xbd\\x81\\xa8\\x91\\x86\\xf4\",\n",
+    "            22118, [202, 187, 147, 95, 149, 53, 150, 5, 112, 15, 89, 9, 253, 39, 249, 230, 219, 114, 190, 79, 195, 123, 12, 163, 6, 10, 89, 51, 38, 71, 247, 45],\n            21925, [122, 22, 60, 168, 39, 48, 188, 186, 198, 227, 197, 115, 185, 6, 70, 61, 229, 178, 34, 40, 205, 46, 52, 195, 119, 176, 189, 129, 168, 145, 134, 244],\n"
+  ],
+  [
+    51369,
+    "    let receiver;\n    let current = if source == \"src/source_reflows/incoming67107_semantic_receivers.rs\" {\n        receiver = super::super::main_e177_final_inputs::value_direct(\n            source,\n            \"de536dea276a4e1801a8df06f7c45cbed916b1b861e7c7859a2f040ee37759c8\",\n            current,\n        );\n        receiver.as_str()\n    } else {\n        current\n    };\n    let (length, current_sha, old_length, old_sha, edits): ReceiverTextEdits<'_> = match source {\n",
+    "    let (length, current_sha, old_length, old_sha, edits): (usize, [u8; 32], usize, [u8; 32], &[(&str, &str)]) = match source {\n"
+  ],
+  [
+    51896,
+    "            16413, *b\"\\x73\\x1f\\x28\\x59\\x97\\x57\\xa0\\x90\\xce\\x12\\xc1\\x1d\\xa1\\x08\\xcc\\x0a\\xea\\x5b\\x3e\\x3e\\x18\\x0a\\xc0\\xbb\\x5a\\xd5\\x6d\\x53\\x16\\x5f\\xfd\\xec\",\n            14714, *b\"\\xa7\\xd3\\x8b\\x1f\\x8b\\xd2\\x93\\xdd\\x84\\x3a\\x0d\\xae\\x9f\\x6b\\x27\\x6f\\x37\\x4e\\xad\\x45\\x97\\x82\\x99\\x8f\\xb4\\x01\\x35\\x43\\x11\\x02\\x6a\\x63\",\n",
+    "            16413, [115, 31, 40, 89, 151, 87, 160, 144, 206, 18, 193, 29, 161, 8, 204, 10, 234, 91, 62, 62, 24, 10, 192, 187, 90, 213, 109, 83, 22, 95, 253, 236],\n            14714, [167, 211, 139, 31, 139, 210, 147, 221, 132, 58, 13, 174, 159, 107, 39, 111, 55, 78, 173, 69, 151, 130, 153, 143, 180, 1, 53, 67, 17, 2, 106, 99],\n"
+  ],
+  [
+    54299,
+    "            36765, *b\"\\xde\\x53\\x6d\\xea\\x27\\x6a\\x4e\\x18\\x01\\xa8\\xdf\\x06\\xf7\\xc4\\x5c\\xbe\\xd9\\x16\\xb1\\xb8\\x61\\xe7\\xc7\\x85\\x9a\\x2f\\x04\\x0e\\xe3\\x77\\x59\\xc8\",\n            36321, *b\"\\x8a\\xc5\\xb0\\xbc\\x82\\xb7\\x48\\x96\\xed\\xe9\\x91\\x86\\x39\\xb9\\x06\\x93\\x0d\\x34\\x84\\xf4\\xbb\\xb3\\x91\\xe8\\x1c\\x74\\xe4\\xab\\x51\\xc4\\x91\\x2a\",\n",
+    "            36765, [222, 83, 109, 234, 39, 106, 78, 24, 1, 168, 223, 6, 247, 196, 92, 190, 217, 22, 177, 184, 97, 231, 199, 133, 154, 47, 4, 14, 227, 119, 89, 200],\n            36321, [138, 197, 176, 188, 130, 183, 72, 150, 237, 233, 145, 134, 57, 185, 6, 147, 13, 52, 132, 244, 187, 179, 145, 232, 28, 116, 228, 171, 81, 196, 145, 42],\n"
+  ],
+  [
+    55378,
+    "            25265, *b\"\\x67\\x22\\xb6\\xfe\\x25\\xb8\\x41\\x00\\x67\\x19\\xf4\\x7a\\xfe\\xb6\\x61\\x0d\\x18\\x80\\xfc\\x5e\\xdd\\x6f\\x7a\\x72\\x37\\xdf\\xda\\x7a\\x3f\\x16\\xab\\xb5\",\n            23070, *b\"\\x0b\\x52\\x79\\x17\\x76\\x39\\x85\\x04\\x1a\\x50\\x0b\\xd9\\xd7\\x07\\x2d\\x23\\x8d\\x21\\x03\\xd7\\x90\\xa1\\x53\\x81\\xa0\\x2c\\xd5\\xca\\x05\\xef\\x78\\x90\",\n",
+    "            25265, [103, 34, 182, 254, 37, 184, 65, 0, 103, 25, 244, 122, 254, 182, 97, 13, 24, 128, 252, 94, 221, 111, 122, 114, 55, 223, 218, 122, 63, 22, 171, 181],\n            23070, [11, 82, 121, 23, 118, 57, 133, 4, 26, 80, 11, 217, 215, 7, 45, 35, 141, 33, 3, 215, 144, 161, 83, 129, 160, 44, 213, 202, 5, 239, 120, 144],\n"
+  ],
+  [
+    58447,
+    "            6885, *b\"\\x4c\\x66\\x45\\x03\\xb8\\xc2\\x94\\x0f\\x9c\\x35\\x19\\x52\\x4d\\x80\\xc9\\xa5\\x8f\\x23\\x4f\\x8d\\xbd\\xb9\\x73\\x84\\x38\\xdd\\xa5\\xef\\xf6\\xfd\\x1e\\xdd\",\n            4326, *b\"\\x59\\x2f\\xf9\\x9b\\x19\\x90\\x00\\xa5\\x29\\xe6\\x8f\\x39\\xe9\\x1e\\x98\\x6f\\xc1\\x33\\x87\\x17\\x18\\x96\\x58\\x89\\x23\\x1f\\x01\\x39\\xff\\x6a\\x57\\x5e\",\n",
+    "            6885, [76, 102, 69, 3, 184, 194, 148, 15, 156, 53, 25, 82, 77, 128, 201, 165, 143, 35, 79, 141, 189, 185, 115, 132, 56, 221, 165, 239, 246, 253, 30, 221],\n            4326, [89, 47, 249, 155, 25, 144, 0, 165, 41, 230, 143, 57, 233, 30, 152, 111, 193, 51, 135, 23, 24, 150, 88, 137, 35, 31, 1, 57, 255, 106, 87, 94],\n"
+  ],
+  [
+    61873,
+    "            54430, *b\"\\x00\\xb5\\x91\\x34\\xc1\\x63\\x0e\\xef\\x13\\xc1\\xe1\\xdf\\xc8\\x33\\x7f\\x9a\\x68\\x49\\x6e\\xf4\\xa6\\x1a\\x0e\\xa4\\x32\\x62\\xf5\\xfa\\xd2\\xd1\\xbe\\x1d\",\n            54109, *b\"\\xdc\\xf4\\xe0\\xdf\\xee\\xaf\\x24\\x8d\\x4f\\xbe\\x92\\x5b\\x8d\\xa3\\x1b\\x8e\\x81\\x96\\x2d\\x87\\xfc\\x62\\xf1\\x52\\x33\\x6e\\x89\\x3e\\x7c\\x72\\x27\\xd5\",\n",
+    "            54430, [0, 181, 145, 52, 193, 99, 14, 239, 19, 193, 225, 223, 200, 51, 127, 154, 104, 73, 110, 244, 166, 26, 14, 164, 50, 98, 245, 250, 210, 209, 190, 29],\n            54109, [220, 244, 224, 223, 238, 175, 36, 141, 79, 190, 146, 91, 141, 163, 27, 142, 129, 150, 45, 135, 252, 98, 241, 82, 51, 110, 137, 62, 124, 114, 39, 213],\n"
+  ],
+  [
+    63599,
+    "    let transport;\n    let current = if source == \"src/source_reflows_merge/runtime_json.rs\" {\n        transport = super::super::main_e177_final_inputs::value_direct(\n            source,\n            \"56ec9fc1ede65a5610ac46f2d82d4a26ac83a8e4ece2b4226bbc206e111b926e\",\n            current,\n        );\n        assert_eq!(transport.len(), 26084);\n        transport.as_str()\n    } else {\n        current\n    };\n",
+    ""
+  ],
+  [
+    64547,
+    "        *b\"\\x80\\x87\\x4f\\xca\\x48\\x53\\xbc\\x67\\xef\\xe4\\x40\\x62\\x74\\x3d\\x65\\x62\\xaa\\xf0\\xf8\\x2f\\x6f\\x8f\\x11\\xc2\\x89\\xde\\x27\\x83\\xc4\\x7e\\x08\\x55\"\n",
+    "        [\n            128, 135, 79, 202, 72, 83, 188, 103, 239, 228, 64, 98, 116, 61, 101, 98, 170, 240, 248,\n            47, 111, 143, 17, 194, 137, 222, 39, 131, 196, 126, 8, 85\n        ]\n"
+  ],
+  [
+    65554,
+    "        *b\"\\x73\\x1f\\x28\\x59\\x97\\x57\\xa0\\x90\\xce\\x12\\xc1\\x1d\\xa1\\x08\\xcc\\x0a\\xea\\x5b\\x3e\\x3e\\x18\\x0a\\xc0\\xbb\\x5a\\xd5\\x6d\\x53\\x16\\x5f\\xfd\\xec\"\n",
+    "        [\n            115, 31, 40, 89, 151, 87, 160, 144, 206, 18, 193, 29, 161, 8, 204, 10, 234, 91, 62, 62,\n            24, 10, 192, 187, 90, 213, 109, 83, 22, 95, 253, 236\n        ]\n"
+  ],
+  [
+    66382,
+    "        *b\"\\xb5\\x6d\\x7b\\xac\\x24\\x99\\xc4\\x23\\x57\\x12\\x4c\\x54\\x5e\\xfa\\x6b\\xb8\\x53\\x92\\x2c\\xd5\\x1c\\xab\\x4d\\x36\\x28\\xeb\\xed\\x44\\xb3\\xba\\x78\\x59\"\n",
+    "        [\n            181, 109, 123, 172, 36, 153, 196, 35, 87, 18, 76, 84, 94, 250, 107, 184, 83, 146, 44,\n            213, 28, 171, 77, 54, 40, 235, 237, 68, 179, 186, 120, 89\n        ]\n"
+  ],
+  [
+    67258,
+    "            *b\"\\x61\\x69\\x59\\x18\\x3d\\x4e\\x46\\x3e\\xf2\\x57\\xe3\\xdf\\x5a\\xfd\\x21\\x17\\x0e\\x2b\\xae\\x72\\xb2\\xc8\\x90\\x51\\x3f\\xa7\\x51\\x69\\xff\\xad\\x76\\x2d\",\n",
+    "            [\n                97, 105, 89, 24, 61, 78, 70, 62, 242, 87, 227, 223, 90, 253, 33, 23, 14, 43, 174,\n                114, 178, 200, 144, 81, 63, 167, 81, 105, 255, 173, 118, 45,\n            ],\n"
+  ],
+  [
+    67423,
+    "            *b\"\\xe7\\xfd\\xd3\\xd4\\x11\\xb2\\x60\\xb0\\x67\\xe4\\x6a\\x4a\\x61\\xb4\\x6b\\x24\\x46\\xa0\\xd3\\x07\\x0c\\x64\\x71\\x75\\x3b\\x57\\xc8\\x79\\x3d\\xfb\\x62\\xa8\",\n",
+    "            [\n                231, 253, 211, 212, 17, 178, 96, 176, 103, 228, 106, 74, 97, 180, 107, 36, 70, 160,\n                211, 7, 12, 100, 113, 117, 59, 87, 200, 121, 61, 251, 98, 168,\n            ],\n"
+  ],
+  [
+    68250,
+    "            *b\"\\xbe\\xc4\\x6f\\x81\\x95\\x0a\\xf2\\x57\\x62\\x52\\xc6\\x62\\x87\\x46\\x02\\x6c\\xc6\\x35\\xc4\\xc8\\x18\\x57\\x15\\x64\\x3e\\xb0\\xca\\x4d\\x15\\x7b\\x92\\xeb\",\n",
+    "            [\n                190, 196, 111, 129, 149, 10, 242, 87, 98, 82, 198, 98, 135, 70, 2, 108, 198, 53,\n                196, 200, 24, 87, 21, 100, 62, 176, 202, 77, 21, 123, 146, 235,\n            ],\n"
+  ],
+  [
+    68415,
+    "            *b\"\\x9b\\xb4\\xd3\\x7e\\xf0\\x18\\x99\\x23\\x38\\x45\\x9d\\x90\\x5c\\x75\\x58\\x1f\\x7e\\x42\\x14\\x87\\x50\\x88\\x0d\\xfc\\x8b\\xf6\\x86\\xf3\\xfb\\x67\\x64\\xf0\",\n",
+    "            [\n                155, 180, 211, 126, 240, 24, 153, 35, 56, 69, 157, 144, 92, 117, 88, 31, 126, 66,\n                20, 135, 80, 136, 13, 252, 139, 246, 134, 243, 251, 103, 100, 240,\n            ],\n"
+  ],
+  [
+    69267,
+    "            *b\"\\xc6\\x11\\x7e\\x98\\x19\\xb7\\xfe\\xab\\x1a\\x53\\x08\\xdb\\x09\\x47\\x03\\x6b\\xb0\\xc2\\x7d\\x2d\\x8b\\x62\\xfb\\xb8\\x32\\x2f\\xc5\\xdd\\xee\\xc7\\x7f\\x66\",\n",
+    "            [\n                198, 17, 126, 152, 25, 183, 254, 171, 26, 83, 8, 219, 9, 71, 3, 107, 176, 194, 125,\n                45, 139, 98, 251, 184, 50, 47, 197, 221, 238, 199, 127, 102,\n            ],\n"
+  ],
+  [
+    69432,
+    "            *b\"\\xeb\\xf3\\xd8\\x2b\\xcd\\x0c\\x46\\xc3\\xc7\\xb8\\x6c\\x2b\\x37\\xc2\\x4d\\x1e\\x0f\\x94\\x2e\\xe3\\xfe\\xdd\\xae\\x85\\xd6\\x3a\\xed\\x23\\x78\\x6d\\xc7\\x18\",\n",
+    "            [\n                235, 243, 216, 43, 205, 12, 70, 195, 199, 184, 108, 43, 55, 194, 77, 30, 15, 148,\n                46, 227, 254, 221, 174, 133, 214, 58, 237, 35, 120, 109, 199, 24,\n            ],\n"
+  ],
+  [
+    76703,
+    "                \"src/diagnostic.rs\",\n                &foreign,\n",
+    "                \"src/diagnostic.rs\", &foreign,\n"
+  ],
+  [
+    77154,
+    "        (\n            \"src/workspace_graph/diagnostics.rs\",\n            \"1c1552d56400ec781eb96ff6fd825bbbeec854f5042fab960e4d3d2941e60127\",\n            include_str!(\"../../workspace_graph/diagnostics.rs\"),\n        ),\n        (\n            \"src/workspace_graph/constructor_failure/typed.rs\",\n            \"1482ad177d1d605a183cccc3ef185aaed36e7214b1bf4db8065a466303fc99f6\",\n            include_str!(\"../../workspace_graph/constructor_failure/typed.rs\"),\n        ),\n        (\n            \"src/workspace_graph/expected_projection/defaults/typed.rs\",\n            \"9761dcd2ec5fd2351807f7526479680a56c51211eb584385ca85dbc893f38fb7\",\n            include_str!(\"../../workspace_graph/expected_projection/defaults/typed.rs\"),\n        ),\n        (\n            \"src/workspace_graph/expected_projection/import_stub/typed.rs\",\n            \"c220a90bfa131f6b75131e461ead26aea1dcee6c3ad09c42e5f481f5c12c5b11\",\n            include_str!(\"../../workspace_graph/expected_projection/import_stub/typed.rs\"),\n        ),\n        (\n            \"src/workspace_graph/constructor_failure/report.rs\",\n            \"fc2eb1ecc98cc13b6df906a1e2f59f09d198cf958a4c7ff3472e0aae1a866a84\",\n            include_str!(\"../../workspace_graph/constructor_failure/report.rs\"),\n        ),\n        (\n            \"src/workspace_graph/constructor_failure/receiving/typed/tests.rs\",\n            \"2cd6c2ce3b35abb30253549dc931c6c025653419d2bd16b9fb6c35224a34d6e4\",\n            include_str!(\"../../workspace_graph/constructor_failure/receiving/typed/tests.rs\"),\n        ),\n        (\n            \"src/workspace_graph/expected_projection/defaults/inline_tests.rs\",\n            \"1fa04bba6279f410439f819afeb9cbe0b9e33c43d6af56550e1cd39ade0e7ead\",\n            include_str!(\"../../workspace_graph/expected_projection/defaults/inline_tests.rs\"),\n        ),\n        (\n            \"src/workspace_graph/constructor_failure/receiving/before.rs\",\n            \"f07589cda30b524062f7ad4dcb87cfc1244b2746729b2b1e5cd0e84320786aed\",\n            include_str!(\"../../workspace_graph/constructor_failure/receiving/before.rs\"),\n        ),\n        (\n            \"src/workspace_graph/constructor_failure/receiving/before.rs\",\n            \"6135d75cf3f57029b9dd754030aba155a75ca902772aa036345481c1d3abc8b1\",\n            include_str!(\"../../workspace_graph/constructor_failure/receiving/before.rs\"),\n        ),\n",
+    "        (\"src/workspace_graph/diagnostics.rs\", \"1c1552d56400ec781eb96ff6fd825bbbeec854f5042fab960e4d3d2941e60127\", include_str!(\"../../workspace_graph/diagnostics.rs\")),\n        (\"src/workspace_graph/constructor_failure/typed.rs\", \"1482ad177d1d605a183cccc3ef185aaed36e7214b1bf4db8065a466303fc99f6\", include_str!(\"../../workspace_graph/constructor_failure/typed.rs\")),\n        (\"src/workspace_graph/expected_projection/defaults/typed.rs\", \"9761dcd2ec5fd2351807f7526479680a56c51211eb584385ca85dbc893f38fb7\", include_str!(\"../../workspace_graph/expected_projection/defaults/typed.rs\")),\n        (\"src/workspace_graph/expected_projection/import_stub/typed.rs\", \"c220a90bfa131f6b75131e461ead26aea1dcee6c3ad09c42e5f481f5c12c5b11\", include_str!(\"../../workspace_graph/expected_projection/import_stub/typed.rs\")),\n        (\"src/workspace_graph/constructor_failure/report.rs\", \"fc2eb1ecc98cc13b6df906a1e2f59f09d198cf958a4c7ff3472e0aae1a866a84\", include_str!(\"../../workspace_graph/constructor_failure/report.rs\")),\n        (\"src/workspace_graph/constructor_failure/receiving/typed/tests.rs\", \"2cd6c2ce3b35abb30253549dc931c6c025653419d2bd16b9fb6c35224a34d6e4\", include_str!(\"../../workspace_graph/constructor_failure/receiving/typed/tests.rs\")),\n        (\"src/workspace_graph/expected_projection/defaults/inline_tests.rs\", \"1fa04bba6279f410439f819afeb9cbe0b9e33c43d6af56550e1cd39ade0e7ead\", include_str!(\"../../workspace_graph/expected_projection/defaults/inline_tests.rs\")),\n        (\"src/workspace_graph/constructor_failure/receiving/before.rs\", \"f07589cda30b524062f7ad4dcb87cfc1244b2746729b2b1e5cd0e84320786aed\", include_str!(\"../../workspace_graph/constructor_failure/receiving/before.rs\")),\n        (\"src/workspace_graph/constructor_failure/receiving/before.rs\", \"6135d75cf3f57029b9dd754030aba155a75ca902772aa036345481c1d3abc8b1\", include_str!(\"../../workspace_graph/constructor_failure/receiving/before.rs\")),\n"
+  ],
+  [
+    79616,
+    "        for foreign in [\n            format!(\"{compiled} \"),\n            compiled[..compiled.len() - 1].to_owned(),\n            prior,\n        ] {\n",
+    "        for foreign in [format!(\"{compiled} \"), compiled[..compiled.len() - 1].to_owned(), prior] {\n"
+  ],
+  [
+    79948,
+    "                && foreign.len() == 14489\n                && format!(\n                    \"{:x}\",\n                    crate::digest_hex::LowerHex(digest(foreign.as_bytes()))\n                ) == expected\n",
+    "                && foreign.len() == 14489 && format!(\"{:x}\", crate::digest_hex::LowerHex(digest(foreign.as_bytes()))) == expected\n"
+  ],
+  [
+    80166,
+    "                assert_eq!(\n                    super::super::historical_project_entry(source, expected, &foreign),\n                    foreign,\n                    \"exact authenticated intermediate remains a valid projector input\"\n                );\n                assert!(\n                    std::panic::catch_unwind(|| super::super::constructor825_compiled_entry(\n                        source, expected, &foreign\n                    ))\n                    .is_err()\n                );\n",
+    "                assert_eq!(super::super::historical_project_entry(source, expected, &foreign), foreign, \"exact authenticated intermediate remains a valid projector input\");\n                assert!(std::panic::catch_unwind(|| super::super::constructor825_compiled_entry(source, expected, &foreign)).is_err());\n"
+  ],
+  [
+    80679,
+    "                assert!(\n                    std::panic::catch_unwind(|| super::super::historical_project_entry(\n                        source, expected, &foreign\n                    ))\n                    .is_err()\n                );\n",
+    "                assert!(std::panic::catch_unwind(|| super::super::historical_project_entry(source, expected, &foreign)).is_err());\n"
+  ],
+  [
+    81109,
+    "    let prior = super::super::setup_typed_input(\n        \"src/workspace_graph/constructor_failure/attempt.rs\",\n        attempt,\n    );\n    assert_eq!(\n        digest(prior.as_bytes()),\n        *b\"\\xd7\\x07\\x00\\xd1\\x0c\\xea\\xb7\\xa6\\x74\\x0e\\x2a\\x90\\xd4\\x6c\\xf4\\xd1\\x08\\x88\\xb9\\x8b\\x06\\xf5\\x91\\xa8\\x0c\\xda\\x96\\x0f\\x73\\xa2\\x6d\\x70\"\n    );\n",
+    "    let prior = super::super::setup_typed_input(\"src/workspace_graph/constructor_failure/attempt.rs\", attempt);\n    assert_eq!(digest(prior.as_bytes()), [215, 7, 0, 209, 12, 234, 183, 166, 116, 14, 42, 144, 212, 108, 244, 209, 8, 136, 185, 139, 6, 245, 145, 168, 12, 218, 150, 15, 115, 162, 109, 112]);\n"
+  ],
+  [
+    81500,
+    "        assert!(std::panic::catch_unwind(|| super::super::setup_typed_input(\n            \"src/workspace_graph/constructor_failure/attempt.rs\",\n            &foreign\n        ))\n        .is_err());\n",
+    "        assert!(std::panic::catch_unwind(|| super::super::setup_typed_input(\"src/workspace_graph/constructor_failure/attempt.rs\", &foreign)).is_err());\n"
+  ],
+  [
+    81733,
+    "        (\n            \"src/bounded_output.rs\",\n            include_str!(\"../../bounded_output.rs\"),\n        ),\n        (\n            \"src/workspace_graph/initial_report/build.rs\",\n            include_str!(\"../../workspace_graph/initial_report/build.rs\"),\n        ),\n        (\n            \"src/workspace_graph/initial_report/tests.rs\",\n            include_str!(\"../../workspace_graph/initial_report/tests.rs\"),\n        ),\n",
+    "        (\"src/bounded_output.rs\", include_str!(\"../../bounded_output.rs\")),\n        (\"src/workspace_graph/initial_report/build.rs\", include_str!(\"../../workspace_graph/initial_report/build.rs\")),\n        (\"src/workspace_graph/initial_report/tests.rs\", include_str!(\"../../workspace_graph/initial_report/tests.rs\")),\n"
+  ],
+  [
+    82293,
+    "        for foreign in [\n            format!(\"{compiled} \"),\n            compiled[..compiled.len() - 1].to_owned(),\n            prior,\n        ] {\n            assert!(\n                std::panic::catch_unwind(|| super::super::initial845_input(source, &foreign))\n                    .is_err()\n            );\n",
+    "        for foreign in [format!(\"{compiled} \"), compiled[..compiled.len() - 1].to_owned(), prior] {\n            assert!(std::panic::catch_unwind(|| super::super::initial845_input(source, &foreign)).is_err());\n"
+  ],
+  [
+    82674,
+    "    let old_ledger =\n        super::super::initial845_current_owner_before(\"src/bounded_output.rs\", ledger).unwrap();\n    let entry =\n        super::super::initial845_ledger_entry(\"src/bounded_output.rs\", &old_ledger).unwrap();\n",
+    "    let old_ledger = super::super::initial845_current_owner_before(\"src/bounded_output.rs\", ledger).unwrap();\n    let entry = super::super::initial845_ledger_entry(\"src/bounded_output.rs\", &old_ledger).unwrap();\n"
+  ],
+  [
+    82938,
+    "    assert_eq!(\n        digest(entry.as_bytes()),\n        *b\"\\xd0\\x1a\\x82\\xd6\\x02\\xc2\\x86\\x04\\x4c\\xc1\\xd5\\xdf\\x8d\\x05\\xd0\\x2d\\xfe\\x51\\x68\\xd1\\x13\\x9a\\x82\\x38\\x0a\\xa0\\x1b\\x06\\xe4\\x7c\\x7f\\xd5\"\n    );\n",
+    "    assert_eq!(digest(entry.as_bytes()), [208, 26, 130, 214, 2, 194, 134, 4, 76, 193, 213, 223, 141, 5, 208, 45, 254, 81, 104, 209, 19, 154, 130, 56, 10, 160, 27, 6, 228, 124, 127, 213]);\n"
+  ],
+  [
+    83232,
+    "    for foreign in [\n        format!(\"{old_ledger} \"),\n        old_ledger[..old_ledger.len() - 1].to_owned(),\n        entry,\n    ] {\n        assert!(\n            std::panic::catch_unwind(|| super::super::initial845_ledger_entry(\n                \"src/bounded_output.rs\",\n                &foreign\n            ))\n            .is_err()\n        );\n",
+    "    for foreign in [format!(\"{old_ledger} \"), old_ledger[..old_ledger.len() - 1].to_owned(), entry] {\n        assert!(std::panic::catch_unwind(|| super::super::initial845_ledger_entry(\"src/bounded_output.rs\", &foreign)).is_err());\n"
+  ],
+  [
+    84021,
+    "        assert_eq!(\n            digest(prior.as_bytes()),\n            *b\"\\x5c\\x7f\\x71\\x67\\x0f\\xb7\\xbf\\xb0\\xff\\xd7\\x70\\x71\\xfc\\xfa\\x60\\xc2\\x42\\x30\\x69\\x2e\\x31\\x06\\x44\\xce\\x47\\x26\\x3a\\x59\\xd4\\x3a\\xb8\\x7f\"\n        );\n        for foreign in [\n            format!(\"{current} \"),\n            current[..current.len() - 1].to_owned(),\n            prior,\n        ] {\n            assert!(\n                std::panic::catch_unwind(|| super::super::initial845_compiled_owner_entry(\n                    source, &foreign\n                ))\n                .is_err()\n            );\n",
+    "        assert_eq!(digest(prior.as_bytes()), [92, 127, 113, 103, 15, 183, 191, 176, 255, 215, 112, 113, 252, 250, 96, 194, 66, 48, 105, 46, 49, 6, 68, 206, 71, 38, 58, 89, 212, 58, 184, 127]);\n        for foreign in [format!(\"{current} \"), current[..current.len() - 1].to_owned(), prior] {\n            assert!(std::panic::catch_unwind(|| super::super::initial845_compiled_owner_entry(source, &foreign)).is_err());\n"
+  ],
+  [
+    85059,
+    "        assert_eq!(\n            digest(prior.as_bytes()),\n            *b\"\\xd7\\x36\\xb5\\xa9\\x2c\\xaa\\x2a\\x35\\x5e\\x5f\\xa1\\xa2\\x11\\x24\\x69\\x29\\x72\\x72\\xaf\\xd6\\x73\\xb7\\x04\\xc4\\x19\\x52\\x24\\xe7\\x82\\xeb\\x3e\\x1d\"\n        );\n        for foreign in [\n            format!(\"{current} \"),\n            current[..current.len() - 1].to_owned(),\n            prior,\n        ] {\n            assert!(\n                std::panic::catch_unwind(|| super::super::initial845_compiled_owner_entry(\n                    source, &foreign\n                ))\n                .is_err()\n            );\n",
+    "        assert_eq!(digest(prior.as_bytes()), [215, 54, 181, 169, 44, 170, 42, 53, 94, 95, 161, 162, 17, 36, 105, 41, 114, 114, 175, 214, 115, 183, 4, 196, 25, 82, 36, 231, 130, 235, 62, 29]);\n        for foreign in [format!(\"{current} \"), current[..current.len() - 1].to_owned(), prior] {\n            assert!(std::panic::catch_unwind(|| super::super::initial845_compiled_owner_entry(source, &foreign)).is_err());\n"
+  ],
+  [
+    86080,
+    "        assert_eq!(\n            digest(prior.as_bytes()),\n            *b\"\\x60\\x7a\\xf6\\xca\\xb2\\x43\\xe1\\x97\\x0a\\xed\\x32\\x6c\\x8d\\xc7\\xce\\x7c\\x21\\x1f\\xfe\\x90\\x2f\\x4e\\x42\\x54\\x67\\x59\\x95\\x38\\xae\\xf0\\x13\\xd1\"\n        );\n        for foreign in [\n            format!(\"{current} \"),\n            current[..current.len() - 1].to_owned(),\n            prior,\n        ] {\n            assert!(\n                std::panic::catch_unwind(|| super::super::initial845_compiled_owner_entry(\n                    source, &foreign\n                ))\n                .is_err()\n            );\n",
+    "        assert_eq!(digest(prior.as_bytes()), [96, 122, 246, 202, 178, 67, 225, 151, 10, 237, 50, 108, 141, 199, 206, 124, 33, 31, 254, 144, 47, 78, 66, 84, 103, 89, 149, 56, 174, 240, 19, 209]);\n        for foreign in [format!(\"{current} \"), current[..current.len() - 1].to_owned(), prior] {\n            assert!(std::panic::catch_unwind(|| super::super::initial845_compiled_owner_entry(source, &foreign)).is_err());\n"
+  ],
+  [
+    86663,
+    "    let live_controls = include_str!(\"tests.rs\");\n    let controls = historical_inputs::before(live_controls);\n    drop(three_fixture_test_source_before(&controls));\n    for foreign in [\n        format!(\"{live_controls} \"),\n        controls.clone(),\n        live_controls[..live_controls.len() - 1].to_owned(),\n    ] {\n        assert!(std::panic::catch_unwind(|| historical_inputs::before(&foreign)).is_err());\n    }\n",
+    "    let controls = include_str!(\"tests.rs\");\n    drop(three_fixture_test_source_before(controls));\n"
+  ],
+  [
+    87395,
+    "    let restored =\n        embedded_acquisition_source_before(source, current).unwrap_or_else(|| current.to_owned());\n",
+    "    let restored = embedded_acquisition_source_before(source, current)\n        .unwrap_or_else(|| current.to_owned());\n"
+  ],
+  [
+    87550,
+    "    let (length, sha, old_length, old_sha, edits): ReceiverSpanEdits<'_> = match source {\n        \"src/cleanup_plan/replay/expression_facts/receiving/regions_entry/tests.rs\" => (30430, *b\"\\x06\\x76\\x9d\\x45\\x55\\xe1\\x8d\\x5b\\xaa\\xfb\\xad\\x36\\x23\\xd7\\x29\\x00\\x4c\\x0a\\xf6\\x11\\x71\\x34\\x28\\xdd\\x29\\x2f\\x70\\x17\\xce\\xff\\x35\\xf4\", 22278, *b\"\\x61\\x69\\x59\\x18\\x3d\\x4e\\x46\\x3e\\xf2\\x57\\xe3\\xdf\\x5a\\xfd\\x21\\x17\\x0e\\x2b\\xae\\x72\\xb2\\xc8\\x90\\x51\\x3f\\xa7\\x51\\x69\\xff\\xad\\x76\\x2d\", &[\n",
+    "    let (length, sha, old_length, old_sha, edits): (usize, [u8; 32], usize, [u8; 32], &[(usize, usize, &str, &str)]) = match source {\n        \"src/cleanup_plan/replay/expression_facts/receiving/regions_entry/tests.rs\" => (30430, [6, 118, 157, 69, 85, 225, 141, 91, 170, 251, 173, 54, 35, 215, 41, 0, 76, 10, 246, 17, 113, 52, 40, 221, 41, 47, 112, 23, 206, 255, 53, 244], 22278, [97, 105, 89, 24, 61, 78, 70, 62, 242, 87, 227, 223, 90, 253, 33, 23, 14, 43, 174, 114, 178, 200, 144, 81, 63, 167, 81, 105, 255, 173, 118, 45], &[\n"
+  ],
+  [
+    96790,
+    "        \"src/source_reflows_merge/runtime_json.rs\" => (21463, *b\"\\x24\\x83\\xea\\xfd\\xc7\\xd6\\x4e\\xff\\xed\\x01\\xa3\\x7b\\xf8\\x93\\xb2\\x77\\xf6\\xc5\\x7c\\xc3\\xed\\xcc\\x35\\x3e\\xe7\\x4e\\xee\\xe5\\x7c\\x83\\x2a\\x18\", 20520, *b\"\\x80\\x87\\x4f\\xca\\x48\\x53\\xbc\\x67\\xef\\xe4\\x40\\x62\\x74\\x3d\\x65\\x62\\xaa\\xf0\\xf8\\x2f\\x6f\\x8f\\x11\\xc2\\x89\\xde\\x27\\x83\\xc4\\x7e\\x08\\x55\", &[\n",
+    "        \"src/source_reflows_merge/runtime_json.rs\" => (21463, [36, 131, 234, 253, 199, 214, 78, 255, 237, 1, 163, 123, 248, 147, 178, 119, 246, 197, 124, 195, 237, 204, 53, 62, 231, 78, 238, 229, 124, 131, 42, 24], 20520, [128, 135, 79, 202, 72, 83, 188, 103, 239, 228, 64, 98, 116, 61, 101, 98, 170, 240, 248, 47, 111, 143, 17, 194, 137, 222, 39, 131, 196, 126, 8, 85], &[\n"
+  ],
+  [
+    99178,
+    "        *b\"\\x56\\xec\\x9f\\xc1\\xed\\xe6\\x5a\\x56\\x10\\xac\\x46\\xf2\\xd8\\x2d\\x4a\\x26\\xac\\x83\\xa8\\xe4\\xec\\xe2\\xb4\\x22\\x6b\\xbc\\x20\\x6e\\x11\\x1b\\x92\\x6e\"\n",
+    "        [\n            86, 236, 159, 193, 237, 230, 90, 86, 16, 172, 70, 242, 216, 45, 74, 38, 172, 131, 168,\n            228, 236, 226, 180, 34, 107, 188, 32, 110, 17, 27, 146, 110\n        ]\n"
+  ],
+  [
+    104477,
+    "        *b\"\\x24\\x83\\xea\\xfd\\xc7\\xd6\\x4e\\xff\\xed\\x01\\xa3\\x7b\\xf8\\x93\\xb2\\x77\\xf6\\xc5\\x7c\\xc3\\xed\\xcc\\x35\\x3e\\xe7\\x4e\\xee\\xe5\\x7c\\x83\\x2a\\x18\"\n",
+    "        [\n            36, 131, 234, 253, 199, 214, 78, 255, 237, 1, 163, 123, 248, 147, 178, 119, 246, 197,\n            124, 195, 237, 204, 53, 62, 231, 78, 238, 229, 124, 131, 42, 24\n        ]\n"
+  ],
+  [
+    105500,
+    "        *b\"\\xde\\x5a\\xee\\x83\\x34\\xae\\xe4\\xc6\\x13\\xf9\\x95\\x27\\x3b\\x4e\\xbb\\x86\\xf1\\x42\\x58\\x5f\\xd1\\x6f\\x61\\x79\\x12\\xca\\x1b\\xd4\\x4c\\x67\\xf1\\xc6\"\n",
+    "        [\n            222, 90, 238, 131, 52, 174, 228, 198, 19, 249, 149, 39, 59, 78, 187, 134, 241, 66, 88,\n            95, 209, 111, 97, 121, 18, 202, 27, 212, 76, 103, 241, 198\n        ]\n"
+  ],
+  [
+    107590,
+    "        *b\"\\x00\\xb5\\x91\\x34\\xc1\\x63\\x0e\\xef\\x13\\xc1\\xe1\\xdf\\xc8\\x33\\x7f\\x9a\\x68\\x49\\x6e\\xf4\\xa6\\x1a\\x0e\\xa4\\x32\\x62\\xf5\\xfa\\xd2\\xd1\\xbe\\x1d\"\n",
+    "        [\n            0, 181, 145, 52, 193, 99, 14, 239, 19, 193, 225, 223, 200, 51, 127, 154, 104, 73, 110,\n            244, 166, 26, 14, 164, 50, 98, 245, 250, 210, 209, 190, 29\n        ]\n"
+  ],
+  [
+    108110,
+    "    assert_eq!(\n        digest(current.as_bytes()),\n        *b\"\\x66\\xdf\\x4c\\x15\\x56\\x90\\x77\\x9d\\x82\\xc6\\x37\\x99\\x18\\x52\\xad\\xe4\\xcf\\x7b\\xe2\\x8e\\x0a\\xf3\\x82\\x5d\\x66\\x38\\xe2\\x4f\\xd6\\x66\\xce\\x54\"\n    );\n",
+    "    assert_eq!(digest(current.as_bytes()), [102, 223, 76, 21, 86, 144, 119, 157, 130, 198, 55, 153, 24, 82, 173, 228, 207, 123, 226, 142, 10, 243, 130, 93, 102, 56, 226, 79, 214, 102, 206, 84]);\n"
+  ],
+  [
+    108783,
+    "    assert_eq!(\n        digest(before.as_bytes()),\n        *b\"\\xde\\x5a\\xee\\x83\\x34\\xae\\xe4\\xc6\\x13\\xf9\\x95\\x27\\x3b\\x4e\\xbb\\x86\\xf1\\x42\\x58\\x5f\\xd1\\x6f\\x61\\x79\\x12\\xca\\x1b\\xd4\\x4c\\x67\\xf1\\xc6\"\n    );\n",
+    "    assert_eq!(digest(before.as_bytes()), [222, 90, 238, 131, 52, 174, 228, 198, 19, 249, 149, 39, 59, 78, 187, 134, 241, 66, 88, 95, 209, 111, 97, 121, 18, 202, 27, 212, 76, 103, 241, 198]);\n"
+  ],
+  [
+    109067,
+    "    if source != \"src/source_reflows_merge.rs\" {\n        return current.to_owned();\n    }\n",
+    "    if source != \"src/source_reflows_merge.rs\" { return current.to_owned(); }\n"
+  ],
+  [
+    109195,
+    "    assert_eq!(\n        digest(current.as_bytes()),\n        *b\"\\x66\\x5f\\xbf\\x3c\\x93\\xa7\\x7e\\x7e\\x4f\\x91\\x54\\xe2\\x65\\xc1\\xb1\\xb1\\x82\\x98\\xbf\\x55\\x1c\\xdc\\x44\\x24\\x1a\\xd4\\x94\\xa3\\x71\\x4d\\x18\\xdf\"\n    );\n",
+    "    assert_eq!(digest(current.as_bytes()), [102, 95, 191, 60, 147, 167, 126, 126, 79, 145, 84, 226, 101, 193, 177, 177, 130, 152, 191, 85, 28, 220, 68, 36, 26, 212, 148, 163, 113, 77, 24, 223]);\n"
+  ],
+  [
+    113591,
+    "    assert_eq!(\n        digest(before.as_bytes()),\n        *b\"\\x66\\xdf\\x4c\\x15\\x56\\x90\\x77\\x9d\\x82\\xc6\\x37\\x99\\x18\\x52\\xad\\xe4\\xcf\\x7b\\xe2\\x8e\\x0a\\xf3\\x82\\x5d\\x66\\x38\\xe2\\x4f\\xd6\\x66\\xce\\x54\"\n    );\n",
+    "    assert_eq!(digest(before.as_bytes()), [102, 223, 76, 21, 86, 144, 119, 157, 130, 198, 55, 153, 24, 82, 173, 228, 207, 123, 226, 142, 10, 243, 130, 93, 102, 56, 226, 79, 214, 102, 206, 84]);\n"
+  ],
+  [
+    113883,
+    "    if source != \"src/source_reflows_merge.rs\" {\n        return current.to_owned();\n    }\n",
+    "    if source != \"src/source_reflows_merge.rs\" { return current.to_owned(); }\n"
+  ],
+  [
+    114011,
+    "    assert_eq!(\n        digest(current.as_bytes()),\n        *b\"\\x29\\x0d\\x9d\\x36\\xa2\\x01\\xf2\\x36\\x46\\xda\\x63\\x5c\\x19\\x93\\x71\\xff\\x9f\\x07\\x03\\xd5\\xb0\\x69\\x7b\\xa7\\x29\\xf0\\x77\\x42\\x8a\\x1f\\xfd\\x64\"\n    );\n",
+    "    assert_eq!(digest(current.as_bytes()), [41, 13, 157, 54, 162, 1, 242, 54, 70, 218, 99, 92, 25, 147, 113, 255, 159, 7, 3, 213, 176, 105, 123, 167, 41, 240, 119, 66, 138, 31, 253, 100]);\n"
+  ],
+  [
+    115687,
+    "    assert_eq!(\n        digest(before.as_bytes()),\n        *b\"\\x66\\x5f\\xbf\\x3c\\x93\\xa7\\x7e\\x7e\\x4f\\x91\\x54\\xe2\\x65\\xc1\\xb1\\xb1\\x82\\x98\\xbf\\x55\\x1c\\xdc\\x44\\x24\\x1a\\xd4\\x94\\xa3\\x71\\x4d\\x18\\xdf\"\n    );\n",
+    "    assert_eq!(digest(before.as_bytes()), [102, 95, 191, 60, 147, 167, 126, 126, 79, 145, 84, 226, 101, 193, 177, 177, 130, 152, 191, 85, 28, 220, 68, 36, 26, 212, 148, 163, 113, 77, 24, 223]);\n"
+  ],
+  [
+    115975,
+    "    if source != \"src/source_reflows_merge.rs\" {\n        return current.to_owned();\n    }\n",
+    "    if source != \"src/source_reflows_merge.rs\" { return current.to_owned(); }\n"
+  ],
+  [
+    116103,
+    "    assert_eq!(\n        digest(current.as_bytes()),\n        *b\"\\x38\\x73\\x9f\\xa9\\x5e\\x1c\\x18\\xff\\x09\\x39\\xe6\\x9b\\x5b\\x66\\x87\\x64\\xa8\\x8e\\x82\\xce\\xc0\\xec\\xc5\\x0b\\xf7\\xdd\\x58\\x66\\x24\\x63\\x5f\\x0e\"\n    );\n",
+    "    assert_eq!(digest(current.as_bytes()), [56, 115, 159, 169, 94, 28, 24, 255, 9, 57, 230, 155, 91, 102, 135, 100, 168, 142, 130, 206, 192, 236, 197, 11, 247, 221, 88, 102, 36, 99, 95, 14]);\n"
+  ],
+  [
+    122004,
+    "    assert_eq!(\n        digest(before.as_bytes()),\n        *b\"\\x29\\x0d\\x9d\\x36\\xa2\\x01\\xf2\\x36\\x46\\xda\\x63\\x5c\\x19\\x93\\x71\\xff\\x9f\\x07\\x03\\xd5\\xb0\\x69\\x7b\\xa7\\x29\\xf0\\x77\\x42\\x8a\\x1f\\xfd\\x64\"\n    );\n",
+    "    assert_eq!(digest(before.as_bytes()), [41, 13, 157, 54, 162, 1, 242, 54, 70, 218, 99, 92, 25, 147, 113, 255, 159, 7, 3, 213, 176, 105, 123, 167, 41, 240, 119, 66, 138, 31, 253, 100]);\n"
+  ],
+  [
+    122375,
+    "    if source != \"src/source_reflows_merge.rs\" {\n        return current.to_owned();\n    }\n",
+    "    if source != \"src/source_reflows_merge.rs\" { return current.to_owned(); }\n"
+  ],
+  [
+    122537,
+    "    let restored = super::super::main_e177_final_inputs::value_direct(\n        source,\n        \"59adcd7b9f642d026dec8c12658db880a275b9dcdb1e28d83dd9248427506764\",\n        current,\n    );\n    let current = restored.as_str();\n",
+    ""
+  ],
+  [
+    122800,
+    "    assert_eq!(\n        digest(current.as_bytes()),\n        *b\"\\x59\\xad\\xcd\\x7b\\x9f\\x64\\x2d\\x02\\x6d\\xec\\x8c\\x12\\x65\\x8d\\xb8\\x80\\xa2\\x75\\xb9\\xdc\\xdb\\x1e\\x28\\xd8\\x3d\\xd9\\x24\\x84\\x27\\x50\\x67\\x64\"\n    );\n",
+    "    assert_eq!(digest(current.as_bytes()), [89, 173, 205, 123, 159, 100, 45, 2, 109, 236, 140, 18, 101, 141, 184, 128, 162, 117, 185, 220, 219, 30, 40, 216, 61, 217, 36, 132, 39, 80, 103, 100]);\n"
+  ],
+  [
+    128113,
+    "    assert_eq!(\n        digest(before.as_bytes()),\n        *b\"\\x2f\\xf9\\x43\\x54\\xd2\\x3b\\x7d\\xeb\\xb0\\xdd\\x89\\x5a\\xf5\\x8d\\xfb\\xdc\\x14\\x70\\x8e\\x34\\x6c\\x9c\\x02\\x28\\x4c\\x53\\x09\\x2a\\xb2\\xfd\\x52\\xd3\"\n    );\n",
+    "    assert_eq!(digest(before.as_bytes()), [47, 249, 67, 84, 210, 59, 125, 235, 176, 221, 137, 90, 245, 141, 251, 220, 20, 112, 142, 52, 108, 156, 2, 40, 76, 83, 9, 42, 178, 253, 82, 211]);\n"
+  ],
+  [
+    128401,
+    "    if source != \"src/source_reflows_merge.rs\" {\n        return current.to_owned();\n    }\n",
+    "    if source != \"src/source_reflows_merge.rs\" { return current.to_owned(); }\n"
+  ],
+  [
+    128556,
+    "    let compiled_before =\n        current13_typed_root_before(source, include_str!(\"../../source_reflows_merge.rs\"));\n",
+    "    let compiled_before = current13_typed_root_before(source, include_str!(\"../../source_reflows_merge.rs\"));\n"
+  ],
+  [
+    128800,
+    "    assert_eq!(\n        digest(current.as_bytes()),\n        *b\"\\x2f\\xf9\\x43\\x54\\xd2\\x3b\\x7d\\xeb\\xb0\\xdd\\x89\\x5a\\xf5\\x8d\\xfb\\xdc\\x14\\x70\\x8e\\x34\\x6c\\x9c\\x02\\x28\\x4c\\x53\\x09\\x2a\\xb2\\xfd\\x52\\xd3\"\n    );\n",
+    "    assert_eq!(digest(current.as_bytes()), [47, 249, 67, 84, 210, 59, 125, 235, 176, 221, 137, 90, 245, 141, 251, 220, 20, 112, 142, 52, 108, 156, 2, 40, 76, 83, 9, 42, 178, 253, 82, 211]);\n"
+  ],
+  [
+    171761,
+    "    assert_eq!(\n        digest(before.as_bytes()),\n        *b\"\\x38\\x73\\x9f\\xa9\\x5e\\x1c\\x18\\xff\\x09\\x39\\xe6\\x9b\\x5b\\x66\\x87\\x64\\xa8\\x8e\\x82\\xce\\xc0\\xec\\xc5\\x0b\\xf7\\xdd\\x58\\x66\\x24\\x63\\x5f\\x0e\"\n    );\n",
+    "    assert_eq!(digest(before.as_bytes()), [56, 115, 159, 169, 94, 28, 24, 255, 9, 57, 230, 155, 91, 102, 135, 100, 168, 142, 130, 206, 192, 236, 197, 11, 247, 221, 88, 102, 36, 99, 95, 14]);\n"
+  ]
+]

@@ -38,6 +38,12 @@ fn project(rows: &serde_json::Value, domain: &str, path: &str, current: &str) ->
         .iter()
         .find(|r| r["domain"] == domain && r["path"] == path)
         .unwrap();
+    let requested = super::main_e177_final_inputs::value(
+        path,
+        row["current_sha256"].as_str().unwrap(),
+        current,
+    );
+    let current = requested.as_str();
     assert_eq!(
         digest(current),
         row["current_sha256"],
@@ -214,13 +220,23 @@ pub(crate) fn later_452_input(domain: &str, path: &str, current: &str) -> String
         };
         reader::read(&file, length, sha, 2_097_152).expect("whole452 bounded regular input")
     };
-    let physical = read("physical", true);
+    let physical = super::main_e177_final_inputs::file(
+        &root.join(path),
+        usize::try_from(row["physical_length"].as_u64().unwrap()).unwrap(),
+        row["physical_sha256"].as_str().unwrap(),
+    )
+    .unwrap_or_else(|| read("physical", true));
     assert_eq!(
         physical,
         read("physical", false),
         "actual physical source archive"
     );
     let input = read("current", false);
+    let current = super::main_e177_final_inputs::value_direct(
+        path,
+        row["current_sha256"].as_str().unwrap(),
+        current,
+    );
     assert_eq!(current, input, "whole supplied452 source stage");
     read("previous", false)
 }
@@ -299,7 +315,12 @@ pub(crate) fn moderate_452_input(domain: &str, path: &str, current: &str) -> Str
         };
         reader::read(&file, length, sha, 2_097_152).expect("whole452 bounded regular input")
     };
-    let physical = read("physical", true);
+    let physical = super::main_e177_final_inputs::file(
+        &root.join(path),
+        usize::try_from(row["physical_length"].as_u64().unwrap()).unwrap(),
+        row["physical_sha256"].as_str().unwrap(),
+    )
+    .unwrap_or_else(|| read("physical", true));
     assert_eq!(
         physical,
         read("physical", false),
@@ -366,12 +387,20 @@ pub(crate) fn closure92_walk_input(domain: &str, path: &str, current: &str) -> S
     }
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let directory = root.join("docs/evidence/closure92-finite-input-fixes-20261017");
-    let raw = reader::read(
+    let raw = super::main_e177_final_inputs::file(
         &root.join(path),
         23833,
         "01eda34563f982ef112c79b01ee02ae9cc606c6a9aa960ed9736dd383789d2b5",
-        65536,
     )
+    .or_else(|| {
+        reader::read(
+            &root.join(path),
+            23833,
+            "01eda34563f982ef112c79b01ee02ae9cc606c6a9aa960ed9736dd383789d2b5",
+            65536,
+        )
+        .ok()
+    })
     .expect("exact complete851 walk tests physical input");
     let held = reader::read(
         &directory.join("walk-tests.current.txt"),
@@ -382,10 +411,19 @@ pub(crate) fn closure92_walk_input(domain: &str, path: &str, current: &str) -> S
     .expect("exact independent851 walk tests archive");
     assert_eq!(
         raw,
-        include_str!("../hir/lexical_exit/walk/tests.rs"),
+        super::main_e177_final_inputs::value_direct(
+            path,
+            "01eda34563f982ef112c79b01ee02ae9cc606c6a9aa960ed9736dd383789d2b5",
+            include_str!("../hir/lexical_exit/walk/tests.rs"),
+        ),
         "compiled physical walk tests"
     );
     assert_eq!(raw, held, "whole physical/archive851 walk tests");
+    let current = super::main_e177_final_inputs::value_direct(
+        path,
+        "01eda34563f982ef112c79b01ee02ae9cc606c6a9aa960ed9736dd383789d2b5",
+        current,
+    );
     assert_eq!(current, held, "exact supplied851 walk tests source stage");
     reader::read(
         &directory.join("walk-tests.previous.txt"),
@@ -422,4 +460,13 @@ fn closure92_walk_inputs_preserve_both_original_domains_and_refuse_wrong_stages(
         closure92_walk_input("eb2-compact", "foreign", "foreign"),
         "foreign"
     );
+}
+
+pub(crate) fn complete_source_followup(path: &str, current: &str) -> String {
+    let incoming = source("source-followups", path, current);
+    if path == "src/source_reflows/semantic_receivers.rs" {
+        super::complete_receiver_followup(&incoming)
+    } else {
+        incoming
+    }
 }

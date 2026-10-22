@@ -1,5 +1,9 @@
 # #781 direct path-boundary and borrowed-chain component
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base09fb561dd055ae02ae57ceab6d216d7a184ee99f. Private source-only successor;
 12 complete before/inverse inputs,6 new Rust owners,3 pending existing-lib
 selectors. No Cargo, runtime, performance, cap, matrix or closure claim.

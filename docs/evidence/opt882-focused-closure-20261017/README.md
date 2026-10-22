@@ -1,5 +1,9 @@
 # OPT882 focused closure
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The caller-prepayment and genuine old-baseline repair is qualified at published
 `0f9fb3766f0413694e4a12447538f7c7bb99627f`. All 29 relevant existing owners
 passed: setup/insertion exact, short, zero, floor, sticky, foreign, full-six-field

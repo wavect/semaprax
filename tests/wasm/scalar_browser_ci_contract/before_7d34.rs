@@ -118,6 +118,12 @@ fn the_complete_old_bridge_changes_only_its_retained_runner_include() {
         );
     }
     let current = include_str!("before_671.rs");
+    let captured_source_stage = crate::main_e177_final_inputs::value_direct(
+        "tests/wasm/scalar_browser_ci_contract/before_671.rs",
+        "0f4e6a07c1f0487eb3163781bd60bdefc7daa4bbcee6b6deee255b9c911ab66d",
+        current,
+    );
+    let current = captured_source_stage.as_str();
     let new = concat!(
         "include_str!(\n",
         "        \"../../../docs/evidence/browser-graph-pins-67107c7c5/test-fixtures.before.mjs\"\n",

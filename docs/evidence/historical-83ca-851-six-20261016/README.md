@@ -1,5 +1,9 @@
 # Historical 83ca #851 supplement: six actual PASS
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 All six exact existing #851 owners ran from the authenticated 83ca libtest
 artifact: three shipping optional-capacity-witness controls and three complete
 independent original controls. Each discovered and executed one body, with no

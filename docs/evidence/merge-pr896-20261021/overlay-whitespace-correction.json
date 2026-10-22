@@ -1,0 +1,28 @@
+{
+  "status": "EXACT_FOUR_TOKEN_GAP_INVERSE_PENDING_TEST",
+  "edits": [
+    [
+      239,
+      "\n",
+      "\n\n"
+    ],
+    [
+      23848,
+      "\n",
+      "\n\n"
+    ],
+    [
+      49386,
+      "\n",
+      "\n\n"
+    ],
+    [
+      49490,
+      "\n",
+      "\n\n"
+    ]
+  ],
+  "current_root_sha256": "684e40d0f4cf0fc8b3ad536146f80d76abb50ca6dbb278f694c630180a2263e7",
+  "uncompressed_root_sha256": "a373e2e8bafa2dd293ecbf54f44934c6018bf71429a0c8345a642b3858dcc574",
+  "all_original_assertions_retained": true
+}

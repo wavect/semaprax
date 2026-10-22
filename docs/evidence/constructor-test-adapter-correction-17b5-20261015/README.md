@@ -1,5 +1,9 @@
 # Test-only compiler adapter correction against immutable17b
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Addresses actual17b production-PASS129s / unit-test-compilation-FAIL8 errors without changing production module visibility, existing helper bodies, carrier layouts, or observed allocation budgets. No Cargo, compiler, tests, review, Claude or ROOT writes were performed during preparation.
 
 The two private-module imports become calls through cfg(test)-only aliases on the already workspace-visible `borrowed_imports` module. Its new cfg(test) wrapper delegates directly to the complete original inline import helper with unchanged arguments/result and performs no allocation, reservation, conversion or control decision. Production builds exclude all additions. The expected_projection root already has1670 lines and is untouched. Existing full borrowed_imports source audit joins automatically retain this test bridge.

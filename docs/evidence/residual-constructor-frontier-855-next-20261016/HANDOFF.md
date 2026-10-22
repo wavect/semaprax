@@ -1,5 +1,9 @@
 # #855 compact residual receiving correction — source only
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Direct Main7c6a2a801f70525f31a2cd49fe64b59ab32f75f8. No Cargo/test/build or RAM claim.
 All current repository calls use sanctioned `hir::resolved_residual_type!`; no
 shipping `try_new(Type)` owned forwarding parameter remains. A fixed zero-owned-

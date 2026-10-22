@@ -1,0 +1,3 @@
+cargo:rerun-if-changed=src
+cargo:rerun-if-changed=crates
+cargo:rerun-if-changed=build.rs

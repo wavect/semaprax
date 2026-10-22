@@ -1,5 +1,9 @@
 # Comment comparison fixture correction
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only correction atop `d6bf8151942190a956eb57350fa8b8892a8c68e5`.
 The supplied qualification log fails before comparing any formatter output for
 the second corpus case: module-only input correctly refuses with SPX-P101.

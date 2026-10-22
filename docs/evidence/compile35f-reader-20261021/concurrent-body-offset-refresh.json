@@ -1,0 +1,18 @@
+[
+  {
+    "domain": "hir",
+    "source": "src/source_reflows_merge/main67107_inputs.rs",
+    "previous_start": 48964,
+    "current_start": 49380,
+    "exact_text_and_attributes_preserved": true,
+    "count": 2
+  },
+  {
+    "domain": "projection",
+    "source": "src/source_reflows_merge/main67107_inputs.rs",
+    "previous_start": 48964,
+    "current_start": 49380,
+    "exact_text_and_attributes_preserved": true,
+    "count": 2
+  }
+]

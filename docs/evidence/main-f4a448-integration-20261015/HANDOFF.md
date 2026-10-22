@@ -1,3 +1,9 @@
+# main-f4a448-integration-20261015 HANDOFF
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only integration of MAINf4a448 onto frozen6444. Both actual parents retained in merge ancestry. No Cargo, Rust tests, Clippy, Node, pin producer or runtime was executed. Prior6444 148 round remains unexecuted and must not be relabelled current after integration.
 
 Sole Git conflict: CHANGELOG. Preserve both845/796 source-only history and all seven MAIN entries. All13 MAIN changed Rust files are byte-exact MAIN, including concrete Diagnostic supplemental Scratch/walk/growth. No genericE adaptation introduced. Three old source unions are preserved verbatim except two include_str additions for supplemental receiving and its new owning tests on existing lines; interop remains1500 lines.

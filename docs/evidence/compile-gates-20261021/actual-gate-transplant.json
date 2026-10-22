@@ -1,0 +1,41 @@
+{
+  "functions": [
+    {
+      "function": "whole_before",
+      "source_start": 15011,
+      "source_end": 16340,
+      "source_sha256": "f14027fc54f9a85779239e9eb7dfa0d06faa577311809f8c94147dd916faf735"
+    },
+    {
+      "function": "affine_final_hir_preserves_entire_immediate_comparator_four_macros_and_all_old_source_guards",
+      "source_start": 16341,
+      "source_end": 20491,
+      "source_sha256": "ddb19be8115871a1bf03a281157303a74fa3e9c69552dcb31c412b7e9a2b72c1"
+    },
+    {
+      "function": "restore_exact_preformat_source",
+      "source_start": 20656,
+      "source_end": 21249,
+      "source_sha256": "7b93a4e7a72355fbe7635c1d7a5889b1ba9b94a48dcd7280aea1b5958f113418"
+    }
+  ],
+  "all_function_body_bytes_verbatim_except_literal_include_path_resolution": true,
+  "path_inverse_restores_exact_concatenated_functions": true,
+  "included_source_files": [
+    "final_affine_inverse.json",
+    "../comparison_owner.rs",
+    "before_final_affine.rs",
+    "lexical_cursor_before_final_affine.rs",
+    "paired_value_before_final_affine.rs",
+    "shared_prefix_before_final_affine.rs",
+    "certified_heads_before_final_affine.rs",
+    "lexical_cursor.rs",
+    "lexical_cursor_before_final_affine.rs",
+    "paired_value.rs",
+    "paired_value_before_final_affine.rs",
+    "shared_prefix.rs",
+    "shared_prefix_before_final_affine.rs",
+    "certified_heads.rs",
+    "certified_heads_before_final_affine.rs"
+  ]
+}

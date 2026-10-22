@@ -1,0 +1,15 @@
+# Bounded whole-row custody parts
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
+The failed88cc refresh wrote6,881,300 bytes/335rows to Previous16c, exceeding the unchanged5,081,115-byte sealed-file cap. Committed predecessor was3,099,260bytes/159rows;176new keys plus current receiver changes account for the growth. Compact JSON would still be6,848,630bytes.
+
+The joined generator now splits ONLY at whole ordered row boundaries. Each part has a fixed path, exact length/SHA and first/last/count; each must fit the unchanged cap. One semantic domain retains every sorted unique source key. Compiled source-boundary dispatch selects ONE physical Spec, then uses the unchanged single-file reader/cap and original projector. Known keys must occur exactly once in the selected part. No runtime concatenation or new Rust module exists. Original global nonmember passthrough is unchanged.
+
+The separate current-layer Python verifier reconstructs only the four fixed logical JSON metadata arrays. Every row/field/edit/hash/archive/order is retained; the immutable original verify-source.py then runs all its complete original assertions. All six protected historical scripts/receipts and prepare-arm-overlay remain byte-exact. The normalizer containing part hashes is excluded from its own predecessor domain, avoiding a selfhash cycle; runtime selector source is captured before descriptor generation as before. The parent must perform its one final common refresh and original source proof on its final joined head; no authority is generated here.
+
+Source controls and independent review passed: captured335rows become240rows/5,066,614bytes plus95rows/1,814,689bytes; canonical rejoining reproduces the entire original6,881,300 bytes/SHA exactly. All335 source keys select their own part. Exact-cap boundary and15 hostile controls cover index gaps/order/duplicates/missing parts, forged hash/length/boundary, foreign path/domain/row, missing/duplicate rows even with recomputed part signatures, missing files, trailing bytes and one oversized row. `proof.json` binds the input and helpers. Reader bodies/cap and old Rust tests are preserved byte-exact; all6 protected originals are authenticated. These measurements describe the captured failed88cc payload, not final joined output.
+
+`pending-checks.json` gives two new focused Rust bodies and the retained original hostile-I/O body in the existing lib harness. Rustfmt parsed the three changed Rust files; Python controls/AST and inverse checks passed. No Cargo, Rust tests, ROOT writes, common refresh or authority generation. Full before bytes/inverse receipt are preserved externally under `/Volumes/Semaprax/provenance/custody-table-parts-88cc-20261017/`.

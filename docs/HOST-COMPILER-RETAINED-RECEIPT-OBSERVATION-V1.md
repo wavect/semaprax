@@ -1,5 +1,7 @@
 # Host compiler retained-receipt observation v1
 
+Audience: compiler contributors and reviewers.
+
 Status: bounded host implementation with synthetic offline controls. Actual compiler receipt/host integration qualification, independent execution and OPT606 completion remain pending. No model/provider or compiler was executed for the offline evidence.
 
 This additive host route consumes [compiler retained receipt v1](JSON-CODEC-RETAINED-RECEIPT-V1.md) only when an agent explicitly invokes single-codec `json-codec ... --retained-receipt`. It does not change ordinary source output or rewrite argv to request a receipt automatically. Fresh CLI/LogLens and webapp-v2 harness source inventories pin `benchmarks/compiler_retained_receipt.py`; ShiftSim inherits the CLI inventory. Legacy immutable tool inventories lacking that optional helper retain their old capture behavior. If any supplied immutable tool inventory names the helper, all supplied inventories must bind its exact source hash. The pinned helper is copied beside the retained proxy, never imported from candidate code.

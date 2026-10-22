@@ -1,0 +1,29 @@
+{
+  "status": "PRODUCTION_CATALOG_REGENERATION_AND_EXACT_GUIDANCE_WIRE_REPLAY",
+  "base_head": "74f71fb04f67370d479bdfa3fbc163932ef19553",
+  "original_bundle_head": "9bb8e9160f1728d9ef9f8d6cbce6247fe4b7a481",
+  "original_bundle_job": 119285140922,
+  "actual_local_and_CI_bundle_differ_only_in_catalog_identity": true,
+  "unchanged_guidance_dependency_closure": [
+    "Cargo.toml",
+    "src/agent_skill_bundle.rs",
+    "src/installed_guidance.rs",
+    "src/installed_diagnostics.rs",
+    "src/semantic_discovery.rs",
+    "src/diagnostic.rs",
+    "src/project.rs",
+    "src/project",
+    "docs/AGENT-QUICK-REFERENCE.md",
+    "docs/LANGUAGE-SHAPES-CATALOG.md",
+    "docs/STANDARD-LIBRARY-CATALOG.md",
+    "std/catalog.json",
+    "std/packages.json"
+  ],
+  "build_generator_sha256": "b3f35d9ea63f7ad1da53f30a8a6758673dbb08a83f3fe2cd10d5b3b3cb59f6c0",
+  "current_code_count": 1517,
+  "current_catalog_identity": "sha256:b181f78350e5b2294341e84f136d9e07abb65f4d9b74b4d89a45a3560ba7bb10",
+  "all_other_payload_bytes_retained": true,
+  "production_payload_domain_digest_recomputed": true,
+  "current_bundle_sha256": "11d24f97cac3095b4995eb789108f3d2f0588ec71351cf9a8f64f92a669b25b2",
+  "full_current_Root_unit_test_still_required": true
+}

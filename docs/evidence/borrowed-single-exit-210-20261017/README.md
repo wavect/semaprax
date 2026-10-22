@@ -1,3 +1,9 @@
+# borrowed-single-exit-210-20261017 README
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only borrowed singleton Exit candidate based on b7425f236. Not qualified; no performance or application gain is claimed. The unchanged strict widths0..4 owner remains controlling.
 
 One atomic Exit admission replaces actual separate branch/query/miss positive call sites on the zero/one-label path. Its full cold primitive ABI is retained only within one nonrecursive activation. Every literal query, field reference, original iterator, remove tuple/index/bounds role, copied child scalar and branch/selection role remains fresh and conservatively paid on every Exit. The original general path and its tariffs remain complete, in addition to the new bound. Width0 cold_dead_id, Self layout, old shared query/API/arena/tariffs and the full immediate831 producer are unchanged.

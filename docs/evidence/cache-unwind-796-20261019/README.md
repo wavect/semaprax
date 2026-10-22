@@ -1,5 +1,9 @@
 # Test source cache unwind isolation
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The test-only source reader previously held its global cache mutex while running the complete source-restoration assertions. A rejected restoration left the cache unchanged but poisoned the mutex, causing later independent lookups to panic with PoisonError. The new reader checks for a hit under the lock, reconstructs the complete String outside the lock, then locks only to publish one immutable value. Concurrent misses discard the losing String normally.
 
 Every old source authentication assertion and existing test is retained. The fixed before-root archive and complete old/new entry archives reconstruct every byte of the previous source file. No poisoned mutex is silently recovered; the original authentication panic still propagates and a failed restoration publishes no value.

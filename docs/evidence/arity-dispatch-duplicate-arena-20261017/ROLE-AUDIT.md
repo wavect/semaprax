@@ -1,3 +1,9 @@
+# arity-dispatch-duplicate-arena-20261017 ROLE-AUDIT
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 This is a SOURCE-ONLY candidate. No test, Cargo, compilation, metadata binder or runtime measurement has run for it. Original index8 arena source and original strict210 test bodies are unchanged; the observed886 failure remains actual evidence.
 
 Actual cause and structural removal

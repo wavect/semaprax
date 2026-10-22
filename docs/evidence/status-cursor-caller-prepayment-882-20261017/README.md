@@ -1,5 +1,9 @@
 # Status cursor caller prepayment (#882)
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only integration of main01527/e177. No compilation, runtime, fit, saving,
 capture or pin qualification is claimed.
 

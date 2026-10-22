@@ -1,0 +1,47 @@
+{
+  "status": "PASS_TWO_ACTUAL_NEW_SOURCES_ALL_CHANNEL_AND_TUPLE_REFUSALS",
+  "checks": [
+    {
+      "source": "src/bounded_output/classifier_string.rs",
+      "refused": "live source"
+    },
+    {
+      "source": "src/bounded_output/classifier_string.rs",
+      "refused": "current archive"
+    },
+    {
+      "source": "src/bounded_output/classifier_string.rs",
+      "refused": "old archive"
+    },
+    {
+      "source": "src/bounded_output/classifier_string.rs",
+      "refused": "extension after module load"
+    },
+    {
+      "source": "src/bounded_output/classifier_string.rs",
+      "refused": "foreign tuple"
+    },
+    {
+      "source": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix.rs",
+      "refused": "live source"
+    },
+    {
+      "source": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix.rs",
+      "refused": "current archive"
+    },
+    {
+      "source": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix.rs",
+      "refused": "old archive"
+    },
+    {
+      "source": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix.rs",
+      "refused": "extension after module load"
+    },
+    {
+      "source": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix.rs",
+      "refused": "foreign tuple"
+    }
+  ],
+  "all_physical_source_archive_and_extension_bytes_restored": true,
+  "all_original_legacy_scope_function_bodies_unchanged": true
+}

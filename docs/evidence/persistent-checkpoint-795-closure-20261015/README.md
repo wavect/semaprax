@@ -1,5 +1,9 @@
 # Persistent validator checkpoints: #795 closure evidence
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The implementation replaces repeated complete scope snapshots with paid persistent ordered checkpoints and changed-path copies. Original scope/contract validators, full Binding payload comparisons, application owners, caps and physical allocation observers remain intact.
 
 Three exact existing owners were executed successfully against the authenticated d8fadfb7cd5ece54504cda542575e5a154d3657c unit artifact: whole-function physical debits/Drop/exact-short-sticky; complete function-chain saved-map iterative corpus; complete original generic symbolic contract/nested/late-error walks. The actual-* directories preserve unedited controllers, bindings, raw results, logs and memory telemetry. All three executed, passed one exact test each, had no resource refusal, and confirmed their owned process groups empty. No Cargo was needed for these artifact runs.

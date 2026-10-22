@@ -1,5 +1,9 @@
 # Finite source overlay v2
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The page is source-bound: 680 logical rows and 469 parser-derived owners. The complete original 519-row predecessor, prior generations, archive channels and original controls remain retained.
 
 The source checks recorded under `qualification/` cover the dc369 generation: strict 67 refusals, FINAL6 source 75 controls, six role controls and 36 Python protocol fixtures. The original source producers bound 174 subjects and six FINAL6 sources at the exact heads in their receipts; these are source-only producer results, not executed Rust tests.
@@ -41,3 +45,31 @@ readers. The generator requires exact whole-V8 equality after its round trip;
 composition, numeric positions, archive authentication, single-page 262144-byte
 cap and source admissions retain their existing meanings. This private
 transport grants no authority or runtime qualification.
+
+V10 is a structural transport for a complete V9 page. It adds one
+`archive_prefixes` array of at most 32 distinct, nonempty, normal directory
+prefixes. A prefix ends in `/`. Only an explicit archive member in a documented
+V9 pin tuple may replace its literal string with `[prefix_index, suffix]`.
+Implicit `e/<full_sha256>` archives, full literal pin objects, canonical
+references, row and fragment order, numeric positions, unknown fields and every
+other value remain unchanged.
+
+The decoder validates the prefix table, reference arity and types, expanded
+normal archive path, longest matching prefix, and at least two uses of every
+table entry. It refuses a matching archive left literal. It then removes the
+table, restores the V9 schema and every exact archive string, and enters the
+complete unchanged V9 through V2 reader chain. The generator derives candidate
+directory prefixes only from explicit archives, selects the size-reducing
+candidate with the smallest canonical page size (lexical prefix breaks ties),
+and stops within the unchanged 262144-byte page cap. A caller may request
+additional reserve; the codec imposes none by default. It requires exact
+whole-V9 equality after decoding. The frozen fixture retains its explicit
+10 KiB reserve assertion as a codec test oracle.
+
+V10 adds no page, source read, archive payload compression, source admission or
+runtime qualification. The source cap, physical-source authentication and all
+V9 and older formats keep their existing meanings and implementations. The
+frozen `v10-unqualified-full-union-v9.json` and
+`v10-unqualified-full-union.json` values are logical codec fixtures. They bind
+the complete 707-row parent-metadata union and its exact transport inverse for
+tests; they are not admitted current physical pages or source qualification.

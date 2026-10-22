@@ -1,5 +1,9 @@
 # Actual 3d4b source-consumer corrections
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only successor to frozen 3d4b996c9a8cd2b100a3c594e741314c108b5591. No Rust build, test, Clippy, or runtime qualification was executed here. The parent actual round remains 263 passing / 47 failing bodies; unselected failures remain unresolved.
 
 Eight named consumer domains authenticate complete physical source inputs before running every existing historical hook and unchanged full-source equality. This fixes the observed 825, 831, 832, 833, 834, and 835 input drift without modifying their immutable manifests. Source36a now uses its existing live CI projection for canonical_before.rs, matching the independently restored original signature literal. The shared current-to-3d4b layer precedes all older CI/custody routes, with exact new-input SHA and complete inverse bytes; it does not accept an already projected input as current.

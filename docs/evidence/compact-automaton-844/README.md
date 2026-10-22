@@ -1,5 +1,9 @@
 # OPT844 — c582 source-only checkpoint
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base c58243c6cbe4577efe6cfa81ca6312ff45c1c71a. No Rust, application,
 allocation measurement, performance or cap-fit execution occurred here. This
 checkpoint is not qualification and does not close OPT844 or OPT808.

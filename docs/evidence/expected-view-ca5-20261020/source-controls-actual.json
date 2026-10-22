@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "selected": [
+    "source_reflows_merge::merge_projection_selects_only_the_requested_complete_current_view",
+    "source_reflows::a_changed_current_byte_is_refused_before_an_inverse_can_hide_it",
+    "source_reflows::semantic_receivers::receiver_mutation_and_forged_predecessor_fail_closed",
+    "source_reflows::incoming67107_semantic_receivers::complete_main34d_inputs_keep_all_domains_and_refuse_wrong_source_and_bounded_io",
+    "source_reflows::semantic_receivers::allocation_followup_preserves_the_complete_original_format_input"
+  ],
+  "peakKiB": 124000
+}

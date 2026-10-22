@@ -1,5 +1,9 @@
 # Incoming3d5bef moderate source custody — bounded joined continuation
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base actual merge: `cde3e6afd2f6d2b07aff999da11513acc326a957`; actual incoming Main: `3d5bef332272ee54c998a836045c99b62a9c859a`. No ROOT/active selection edits, Cargo, Rust compiler, provider or RPC execution. The separate NEXT stdout-seal aa749 remains held and is not part of this patch.
 
 ## Three complete domains, unchanged original assertions

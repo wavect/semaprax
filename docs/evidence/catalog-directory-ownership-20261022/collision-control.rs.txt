@@ -1,0 +1,44 @@
+use serde_json::Value;
+fn check_descriptor_project(files: &[Value]) {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static NEXT: AtomicU64 = AtomicU64::new(0);
+    struct Directory(std::path::PathBuf);
+    impl Drop for Directory {
+        fn drop(&mut self) {
+            std::fs::remove_dir_all(&self.0).unwrap();
+        }
+    }
+    let directory_path = std::env::temp_dir().join(format!(
+        "semaprax-task-descriptor-{}-{}",
+        std::process::id(),
+        NEXT.fetch_add(1, Ordering::Relaxed)
+    ));
+    std::fs::create_dir(&directory_path).unwrap();
+    let directory = Directory(directory_path);
+    for file in files {
+        let path = std::path::Path::new(file["path"].as_str().unwrap());
+        assert!(path
+            .components()
+            .all(|part| matches!(part, std::path::Component::Normal(_))));
+        let path = directory.0.join(path);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(path, file["content"].as_str().unwrap()).unwrap();
+    }
+    semaprax::project::with_authenticated_project(&directory.0.join("semaprax.toml"), |project| {
+        project.check()
+    })
+    .unwrap();
+}
+
+#[test]
+fn collision_refusal_keeps_the_existing_directory_and_sentinel() {
+    let directory=std::env::temp_dir().join(format!("semaprax-task-descriptor-{}-0",std::process::id()));
+    std::fs::create_dir(&directory).unwrap();
+    let sentinel=directory.join("owned-by-another-operation");
+    std::fs::write(&sentinel,b"preserve these exact bytes").unwrap();
+    let refused=std::panic::catch_unwind(||check_descriptor_project(&[]));
+    let retained=std::fs::read(&sentinel).ok();
+    if directory.exists() {std::fs::remove_dir_all(&directory).unwrap();}
+    assert!(refused.is_err());
+    assert_eq!(retained.as_deref(),Some(b"preserve these exact bytes".as_slice()));
+}

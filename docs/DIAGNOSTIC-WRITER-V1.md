@@ -1,5 +1,7 @@
 # Borrowed diagnostic writer v1
 
+Audience: compiler contributors and reviewers.
+
 Status: private source-only renderer successor for OPT846. Executable qualification, physical measurements and scoped Clippy remain pending. This does not complete constructor/output funding or OPT825.
 
 Diagnostic::write_json writes the exact six-field JSON key order and escaping to a caller fmt::Write. On the ordinary unbounded output route it borrows every field; no intermediate JSON, quoted-field or location String is acquired. Diagnostic::write_to retains the original human Display contract. writer::write_lines preserves error order and one final newline per diagnostic. The real CLI report path uses it with the existing stdout JSON / stderr human streams. Existing WorkspaceReportFailure Display uses the same human writer for already-owned reports; opaque selected failures keep their original fallback. No new initial-constructor channel is claimed.

@@ -3,11 +3,6 @@ const SEMANTIC_GRAPH_PRIVATE_LAYOUT_ROOT: &str =
 include!("semantic_graph/source_inventory.rs");
 #[path = "semantic_graph/source_inventory_controls.rs"]
 mod source_inventory_controls;
-use std::fs::{File, OpenOptions};
-use std::path::{Path, PathBuf};
-use std::process::Command;
-use std::sync::atomic::{AtomicU64, Ordering};
-
 use semaprax::semantic_workspace;
 use semaprax::workspace_analysis::{
     self, WorkspaceAnalysisDirection, WorkspaceAnalysisTargetKind, WorkspaceContextOptions,
@@ -20,14 +15,16 @@ use semaprax::workspace_graph::{
 };
 use semaprax::{format, parse, workspace};
 use sha2::{Digest, Sha256};
+use std::fs::{File, OpenOptions};
+use std::path::{Path, PathBuf};
+use std::process::Command;
+use std::sync::atomic::{AtomicU64, Ordering};
 static SERIAL: AtomicU64 = AtomicU64::new(0);
-
 struct ManagedFixture {
     root: PathBuf,
     path_set: PathBuf,
     revision: String,
 }
-
 impl ManagedFixture {
     fn stage(label: &str) -> (PathBuf, PathBuf) {
         let serial = SERIAL.fetch_add(1, Ordering::Relaxed);
@@ -85,7 +82,6 @@ fn main() -> i64 { 0 }
         .unwrap();
         (root, path_set)
     }
-
     fn new(label: &str) -> Self {
         let (root, path_set) = Self::stage(label);
         let revision = semantic_workspace::initialize(&root, &path_set).unwrap();
@@ -95,7 +91,6 @@ fn main() -> i64 { 0 }
             revision,
         }
     }
-
     fn new_via_cli(label: &str) -> (Self, Vec<u8>) {
         let (root, path_set) = Self::stage(label);
         let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
@@ -121,7 +116,6 @@ fn main() -> i64 { 0 }
             output.stdout,
         )
     }
-
     fn lock(&self) -> File {
         OpenOptions::new()
             .read(true)
@@ -130,13 +124,11 @@ fn main() -> i64 { 0 }
             .unwrap()
     }
 }
-
 impl Drop for ManagedFixture {
     fn drop(&mut self) {
         let _ = std::fs::remove_dir_all(&self.root);
     }
 }
-
 fn inventory(root: &Path) -> Vec<(String, &'static str, Vec<u8>)> {
     fn visit(root: &Path, current: &Path, out: &mut Vec<(String, &'static str, Vec<u8>)>) {
         let mut entries = std::fs::read_dir(current)
@@ -161,12 +153,10 @@ fn inventory(root: &Path) -> Vec<(String, &'static str, Vec<u8>)> {
             }
         }
     }
-
     let mut result = Vec::new();
     visit(root, root, &mut result);
     result
 }
-
 /// Optional evidence sink for the actual owning producers. Existing assertions
 /// still execute, and an existing evidence file is never replaced.
 fn capture_pin_candidate(name: &str, bytes: &[u8]) {
@@ -183,14 +173,12 @@ fn capture_pin_candidate(name: &str, bytes: &[u8]) {
         .expect("fresh pin evidence file");
     file.write_all(bytes).expect("capture complete actual wire");
 }
-
 fn document_digest(bytes: &[u8]) -> String {
     format!(
         "sha256:{:x}",
         semaprax::digest_hex::LowerHex(Sha256::digest(bytes))
     )
 }
-
 #[allow(dead_code)]
 fn assert_public_edge_getter_surface(edge: &WorkspaceSemanticGraphEdge) {
     let _: (&str, &str, &str, &str, &str, &str, &str, &str, &str, usize) = (
@@ -206,7 +194,6 @@ fn assert_public_edge_getter_surface(edge: &WorkspaceSemanticGraphEdge) {
         edge.ordinal(),
     );
 }
-
 fn assert_public_getters_match_wire(graph: &WorkspaceSemanticGraph) {
     let wire: serde_json::Value = serde_json::from_str(graph.to_json()).unwrap();
     assert_eq!(graph.schema(), wire["schema"].as_str().unwrap());
@@ -216,11 +203,9 @@ fn assert_public_getters_match_wire(graph: &WorkspaceSemanticGraph) {
     );
     assert_eq!(graph.workspace_revision(), wire["workspace_revision"]);
     assert_eq!(graph.graph_digest(), wire["graph_digest"]);
-
     let entry: &WorkspaceSemanticGraphEntry = graph.entry();
     assert_eq!(entry.module(), wire["entry"]["module"]);
     assert_eq!(entry.path(), wire["entry"]["path"]);
-
     let modules = wire["modules"].as_array().unwrap();
     for (module, encoded) in graph.modules().iter().zip(modules) {
         let _: &WorkspaceSemanticGraphModule = module;
@@ -243,7 +228,6 @@ fn assert_public_getters_match_wire(graph: &WorkspaceSemanticGraph) {
                 .collect::<Vec<_>>()
         );
     }
-
     let declarations = wire["declarations"].as_array().unwrap();
     for (declaration, encoded) in graph.declarations().iter().zip(declarations) {
         let _: &WorkspaceSemanticGraphDeclaration = declaration;
@@ -268,7 +252,6 @@ fn assert_public_getters_match_wire(graph: &WorkspaceSemanticGraph) {
         declaration.identity_origin(),
         "automatic" | "explicit" | "compiler_owned"
     )));
-
     let edges = wire["edges"].as_array().unwrap();
     assert_eq!(graph.edges().len(), edges.len());
     for (edge, encoded) in graph.edges().iter().zip(edges) {
@@ -284,7 +267,6 @@ fn assert_public_getters_match_wire(graph: &WorkspaceSemanticGraph) {
         assert_eq!(edge.alias(), encoded["alias"]);
         assert_eq!(edge.ordinal() as u64, encoded["ordinal"].as_u64().unwrap());
     }
-
     let limits: WorkspaceSemanticGraphLimits = graph.limits();
     for (key, actual) in [
         ("max_managed_files", limits.max_managed_files()),
@@ -315,7 +297,6 @@ fn assert_public_getters_match_wire(graph: &WorkspaceSemanticGraph) {
     ] {
         assert_eq!(wire["limits"][key].as_u64(), Some(actual as u64), "{key}");
     }
-
     let budget: WorkspaceSemanticGraphBudget = graph.budget();
     for (key, actual) in [
         ("used_managed_files", budget.used_managed_files()),
@@ -358,7 +339,6 @@ fn assert_public_getters_match_wire(graph: &WorkspaceSemanticGraph) {
             .collect::<Vec<_>>()
     );
 }
-
 #[test]
 fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root() {
     // The boundary this contract locks is "the workspace graph module keeps its
@@ -487,7 +467,8 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
         "pub(super) fn pay_teardown_minimum(owner: &mut Receiver) -> Result<(), Setup> {",
     ]);
     current_facade.push("pub(super) fn verify(");
-    let current_facade_input = current_projection_facade_input(&facade_input, &current_projection_root);
+    let current_facade_input =
+        current_projection_facade_input(&facade_input, &current_projection_root);
     assert_eq!(
         current_facade_input
             .lines()
@@ -498,7 +479,6 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
             .collect::<Vec<_>>(),
         current_facade
     );
-
     assert_eq!(
         projection_call_sites
             .lines()
@@ -509,7 +489,6 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
             .collect::<Vec<_>>(),
         ["pub(super) fn imported_call_sites<'a>("],
     );
-
     for helper in [
         "fn reserve_builder_structure(",
         "fn push_edge(",
@@ -537,7 +516,6 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
             "expected one definition of `{moved}`"
         );
     }
-
     // Keep the complete child union for structural audits. The native/Wasm
     // fixture driver has host effects only behind its exact test-only module.
     let private_root = semantic_graph_private_layout_source_inventory!();
@@ -600,7 +578,6 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
             "pure expected projection admitted authority or effects through `{forbidden}`"
         );
     }
-
     let costs = projection.find("struct SyntheticBuilderCosts").unwrap();
     let bytes = projection.find("fn synthetic_builder_bytes(").unwrap();
     let dependency = projection.find("fn validate_dependency_dag(").unwrap();
@@ -609,7 +586,6 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
     let verify = projection.find("fn verify_resolved_call_edges(").unwrap();
     assert!(costs < bytes && bytes < dependency && dependency < synthetic);
     assert!(synthetic < collect && collect < verify);
-
     let collect_source = &projection[collect..verify];
     // Import-free modules return after their capability edges; the imported
     // path reaches the terminal sort. Each path sorts the complete projection
@@ -624,7 +600,6 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
     assert!(verify_source.contains("expected.sort();"));
     assert!(verify_source.contains("actual.sort();"));
     assert!(!verify_source.contains("collect_expected_edges("));
-
     let push = root.find("fn push_edge(").unwrap();
     let clone = root.find("fn budgeted_edge_clone(").unwrap();
     let push_source = &root[push..clone];
@@ -635,14 +610,12 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
     let append = push_source.find("edges.push(edge)").unwrap();
     assert!(limit < reserve && reserve < append);
 }
-
 #[test]
 fn public_api_cli_bytes_getters_and_read_only_locking_are_exact() {
     let fixture = ManagedFixture::new("public-success");
     let before = inventory(&fixture.root);
     let shared = fixture.lock();
     fs2::FileExt::try_lock_shared(&shared).unwrap();
-
     let graph = workspace_graph::snapshot(&fixture.root, "public.app").unwrap();
     capture_pin_candidate("public-graph.json", graph.to_json().as_bytes());
     assert_eq!(graph.workspace_revision(), fixture.revision);
@@ -676,7 +649,6 @@ fn public_api_cli_bytes_getters_and_read_only_locking_are_exact() {
         document_digest(graph.to_json().as_bytes()),
         "sha256:0dac82221135ed1967ced1e54e99214196da281bddf39e9c93eff494bbf341d3"
     );
-
     let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
         .arg("workspace-graph")
         .arg(&fixture.root)
@@ -688,14 +660,12 @@ fn public_api_cli_bytes_getters_and_read_only_locking_are_exact() {
     let mut expected_stdout = graph.to_json().as_bytes().to_vec();
     expected_stdout.push(b'\n');
     assert_eq!(output.stdout, expected_stdout);
-
     let contender = fixture.lock();
     assert!(fs2::FileExt::try_lock_exclusive(&contender).is_err());
     fs2::FileExt::unlock(&shared).unwrap();
     fs2::FileExt::try_lock_exclusive(&contender).unwrap();
     fs2::FileExt::unlock(&contender).unwrap();
     assert_eq!(inventory(&fixture.root), before);
-
     let (cli_fixture, init_stdout) = ManagedFixture::new_via_cli("cli-init-success");
     assert_eq!(
         init_stdout,
@@ -712,7 +682,6 @@ fn public_api_cli_bytes_getters_and_read_only_locking_are_exact() {
         "{\"schema\":\"semaprax.workspace-semantic-path-set.v1\",\"files\":[{\"path\":\"a/provider.spx\"},{\"path\":\"z/app.spx\"}]}\n"
     );
 }
-
 #[test]
 fn public_api_and_cli_reject_entry_and_arity_errors_exactly() {
     let fixture = ManagedFixture::new("public-errors");
@@ -734,7 +703,6 @@ fn public_api_and_cli_reject_entry_and_arity_errors_exactly() {
         assert_eq!(error.len(), 1);
         assert_eq!(error[0].code, code);
         assert_eq!(error[0].message, message);
-
         let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
             .arg("workspace-graph")
             .arg(&fixture.root)
@@ -748,7 +716,6 @@ fn public_api_and_cli_reject_entry_and_arity_errors_exactly() {
             format!("error[{code}]: {message}\n")
         );
     }
-
     let oversized = format!("-private-sentinel-{}", "x".repeat(16 * 1024 * 1024));
     let error = workspace_graph::snapshot(&fixture.root, &oversized)
         .err()
@@ -760,7 +727,6 @@ fn public_api_and_cli_reject_entry_and_arity_errors_exactly() {
         "Workspace Semantic Graph `entry_module_bytes` exceeds 16777216"
     );
     assert!(!error[0].message.contains("private-sentinel"));
-
     for arguments in [
         vec!["workspace-graph"],
         vec!["workspace-graph", "root", "entry", "extra"],
@@ -776,7 +742,6 @@ fn public_api_and_cli_reject_entry_and_arity_errors_exactly() {
             "workspace-graph requires exactly <root> <entry-module>\nhint: run `semaprax workspace-graph --help` for usage\n"
         );
     }
-
     for arguments in [
         vec!["semantic-workspace-init"],
         vec!["semantic-workspace-init", "root", "paths", "extra"],
@@ -793,7 +758,6 @@ fn public_api_and_cli_reject_entry_and_arity_errors_exactly() {
         );
     }
 }
-
 #[test]
 fn semantic_and_ordinary_public_modes_remain_exactly_separate() {
     let (root, path_set) = ManagedFixture::stage("ordinary-import-rejection");
@@ -811,7 +775,6 @@ fn semantic_and_ordinary_public_modes_remain_exactly_separate() {
     );
     assert!(!root.join(".semaprax-workspace").exists());
     std::fs::remove_dir_all(&root).unwrap();
-
     let (root, path_set) = ManagedFixture::stage("semantic-schema-rejection");
     std::fs::write(
         &path_set,
@@ -827,7 +790,6 @@ fn semantic_and_ordinary_public_modes_remain_exactly_separate() {
     );
     assert!(!root.join(".semaprax-workspace").exists());
     std::fs::remove_dir_all(&root).unwrap();
-
     let (ordinary_root, ordinary_path_set) = ManagedFixture::stage("ordinary-preservation");
     for (path, source) in [
         (
@@ -865,7 +827,6 @@ fn semantic_and_ordinary_public_modes_remain_exactly_separate() {
     );
     std::fs::remove_dir_all(&ordinary_root).unwrap();
 }
-
 fn assert_cli_artifact(arguments: &[&str], expected: &str) {
     let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
         .args(arguments)
@@ -881,14 +842,12 @@ fn assert_cli_artifact(arguments: &[&str], expected: &str) {
     expected_stdout.push(b'\n');
     assert_eq!(output.stdout, expected_stdout);
 }
-
 #[test]
 fn public_workspace_analysis_api_cli_kats_and_locking_are_exact() {
     let fixture = ManagedFixture::new("public-analysis-success");
     let before = inventory(&fixture.root);
     let shared = fixture.lock();
     fs2::FileExt::try_lock_shared(&shared).unwrap();
-
     let context_options = WorkspaceContextOptions::default();
     let context = workspace_analysis::context(
         &fixture.root,
@@ -914,7 +873,6 @@ fn public_workspace_analysis_api_cli_kats_and_locking_are_exact() {
         ],
         &context,
     );
-
     let forward_options =
         WorkspaceContextOptions::new(WorkspaceAnalysisDirection::Forward, 2, 1024 * 1024, 64)
             .unwrap();
@@ -944,7 +902,6 @@ fn public_workspace_analysis_api_cli_kats_and_locking_are_exact() {
         ],
         &forward,
     );
-
     let capability_context = workspace_analysis::context(
         &fixture.root,
         "public.app",
@@ -965,7 +922,6 @@ fn public_workspace_analysis_api_cli_kats_and_locking_are_exact() {
         WorkspaceContextOptions::default(),
     )
     .unwrap();
-
     let impact_options = WorkspaceImpactOptions::default();
     let impact = workspace_analysis::impact(
         &fixture.root,
@@ -1045,7 +1001,6 @@ fn public_workspace_analysis_api_cli_kats_and_locking_are_exact() {
         ],
         &custom_impact,
     );
-
     let review = workspace_analysis::review(
         &fixture.root,
         "public.app",
@@ -1075,7 +1030,6 @@ fn public_workspace_analysis_api_cli_kats_and_locking_are_exact() {
         serde_json::from_str::<serde_json::Value>(&capability_review).unwrap()["target"]["kind"],
         "capability"
     );
-
     for (name, wire) in [
         ("context.json", &context),
         ("forward.json", &forward),
@@ -1088,7 +1042,6 @@ fn public_workspace_analysis_api_cli_kats_and_locking_are_exact() {
     ] {
         capture_pin_candidate(name, wire.as_bytes());
     }
-
     // Full current reports reproduce all eight original hashes by restoring
     // only the measured workspace debit and authenticated digest bindings.
     assert_eq!(
@@ -1113,7 +1066,6 @@ fn public_workspace_analysis_api_cli_kats_and_locking_are_exact() {
             "sha256:ae98efa2b3d38e294cf4a730547b1361ebe917df83ab3015e7485acff1ce0bc6",
         ]
     );
-
     std::thread::scope(|scope| {
         let context_task = scope.spawn(|| {
             workspace_analysis::context(
@@ -1420,41 +1372,83 @@ fn current_projection_facade_input(current: &str, live: &str) -> String {
     let row: serde_json::Value = serde_json::from_str(include_str!(
         "../../docs/evidence/actual50-fixture-and-facade-corrections-20261016/current-facade-input.json"
     )).unwrap();
-    let sha = |text: &str| format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(text.as_bytes())));
+    let sha = |text: &str| {
+        format!(
+            "{:x}",
+            semaprax::digest_hex::LowerHex(Sha256::digest(text.as_bytes()))
+        )
+    };
     let actual = include_str!("../../src/ast/program_source/decl_slices.rs");
     let stage = &row["decl_profile_successor"];
     assert_eq!(sha(actual), stage["current_decl_sha256"]);
-    assert_eq!(actual.len(), stage["current_decl_length"].as_u64().unwrap() as usize);
-    assert_eq!(live.matches(actual).count(), 1, "complete actual declaration owner in live raw facade union");
+    assert_eq!(
+        actual.len(),
+        stage["current_decl_length"].as_u64().unwrap() as usize
+    );
+    assert_eq!(
+        live.matches(actual).count(),
+        1,
+        "complete actual declaration owner in live raw facade union"
+    );
     // project() already authenticated the complete live join before returning
     // this exact actual50 stage. Reconstruct only the declaration successor
     // inside that whole pinned context, then keep the original full inverse.
-    assert_eq!(sha(current), row["current_sha256"], "complete actual50 facade stage");
+    assert_eq!(
+        sha(current),
+        row["current_sha256"],
+        "complete actual50 facade stage"
+    );
     let prior_declaration = row["edits"][0]["new"].as_str().unwrap();
     assert_eq!(current.matches(prior_declaration).count(), 1);
     let current = current.replacen(prior_declaration, actual, 1);
-    assert_eq!(current.matches(actual).count(), 1, "complete actual declaration owner in raw facade union");
+    assert_eq!(
+        current.matches(actual).count(),
+        1,
+        "complete actual declaration owner in raw facade union"
+    );
     assert!(actual.contains("impl<'a, T> DeclSlices<'a, T> {"));
     let method = row["actual_projected_method"].as_str().unwrap();
     assert!(method.starts_with("    pub(super) fn projected("));
-    assert_eq!(actual.matches(method).count(), 1, "complete current parent-private projected method");
+    assert_eq!(
+        actual.matches(method).count(),
+        1,
+        "complete current parent-private projected method"
+    );
     // Undo only the complete authenticated profile extension; never retarget
     // the actual50 source pin or omit either generation from the audit.
     let mut declaration = actual.to_owned();
     for edit in stage["edits"].as_array().unwrap() {
         let new = edit["new"].as_str().unwrap();
-        assert_eq!(declaration.matches(new).count(), 1, "unique profile source inverse");
+        assert_eq!(
+            declaration.matches(new).count(),
+            1,
+            "unique profile source inverse"
+        );
         declaration = declaration.replacen(new, edit["old"].as_str().unwrap(), 1);
     }
-    assert_eq!(declaration.len(), stage["previous_decl_length"].as_u64().unwrap() as usize);
+    assert_eq!(
+        declaration.len(),
+        stage["previous_decl_length"].as_u64().unwrap() as usize
+    );
     assert_eq!(sha(&declaration), stage["previous_decl_sha256"]);
     assert_eq!(sha(&declaration), row["current_decl_sha256"]);
-    assert_eq!(declaration, row["edits"][0]["new"].as_str().unwrap(), "complete actual50 declaration bytes");
+    assert_eq!(
+        declaration,
+        row["edits"][0]["new"].as_str().unwrap(),
+        "complete actual50 declaration bytes"
+    );
     let mut previous = current.replacen(actual, &declaration, 1);
-    assert_eq!(sha(&previous), row["current_sha256"], "complete actual50 facade union before pre847 inverse");
+    assert_eq!(
+        sha(&previous),
+        row["current_sha256"],
+        "complete actual50 facade union before pre847 inverse"
+    );
     for edit in row["edits"].as_array().unwrap() {
         let new = edit["new"].as_str().unwrap();
-        assert_eq!(new, declaration, "complete actual50 declaration source input");
+        assert_eq!(
+            new, declaration,
+            "complete actual50 declaration source input"
+        );
         assert_eq!(previous.matches(new).count(), 1);
         previous = previous.replacen(new, edit["old"].as_str().unwrap(), 1);
     }
@@ -1467,6 +1461,7 @@ fn current_projection_facade_input(current: &str, live: &str) -> String {
 #[path = "../../src/source_reflows_merge/opt858_sequence_input.rs"]
 mod opt858_sequence_input;
 // Keep the shared source reader and its authenticated outer adapter together.
+use crate::main_e177_final_inputs;
 #[path = "../../src/source_reflows_merge/final_ready_inputs.rs"]
 mod final_ready_inputs;
 #[allow(dead_code, unused_imports, reason = "Retained reader.")]

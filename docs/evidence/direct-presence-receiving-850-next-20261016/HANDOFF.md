@@ -1,5 +1,9 @@
 # OPT850 direct shared presence receiver — next batch only
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base f82aefe1a4f4a01f1a865fadd7c61ba46ff81df3. Source-only private component;
 no Cargo, Rust, benchmark, runtime, capture, ROOT or frozen-round changes.
 

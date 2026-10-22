@@ -1,5 +1,9 @@
 # Genuine831 receiving-layer refinement
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source basis36fe9f92b847db41f26c685b079d06acf60a22f4, whose canonical receiver
 is the actual828f-qualified831 implementation. No Rust execution here. Actual
 previous width/physical logs48/51 and their verified bindings are retained; the

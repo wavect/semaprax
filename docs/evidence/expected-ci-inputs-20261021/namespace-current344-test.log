@@ -1,0 +1,6 @@
+
+running 1 test
+test workspace_context::current344_input::tests::complete_direct_reader_preimages_refuse_stale_truncated_and_historical_inputs ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 301 filtered out; finished in 444.09s
+

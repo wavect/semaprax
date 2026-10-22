@@ -1,5 +1,9 @@
 # OPT837 P2 follow-up — source-only
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Reviewed `604e7fb05203a6701be6bdbcda8a181c5b969df2..2ae6fee203fb726980524885ec36da268d5361bd` only for the prior input-opening counterexample and preservation of its content/publication boundary. No source edits, builds, tests, Clippy, native execution, or paid calls were performed.
 
 The prior P2 counterexample is closed in source. `new_project/application.rs:34–49` now acquires a held parent, opens its final component through `platform::hold_regular_file_bounded`, reads through that exact held regular file, and rechecks the named binding. The initial path metadata is explicitly advisory. Unix owner `platform-sys/src/unix/handles.rs:323–340` opens relative to the held directory with `O_NOFOLLOW | O_NONBLOCK`; its bounded authenticator at 284–304 checks the opened handle is a regular file before digesting. Thus a post-inspection symlink refuses at open, and a FIFO opens nonblocking and refuses classification before any content read. The former following `Handle::from_path`/`File::open` sequence is gone.

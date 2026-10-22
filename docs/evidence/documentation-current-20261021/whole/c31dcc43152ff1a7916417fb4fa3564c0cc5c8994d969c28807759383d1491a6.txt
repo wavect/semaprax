@@ -1,0 +1,9 @@
+# Fifteenth raw subject: exact new-main legacy supplemental owner
+
+Followup parent is immutablee55c4c1f9. The exact82a incoming legacy leaf is added byte-for-byte. Raw3 inventories each retain every prior include occurrence and add precisely this one; 043required/max each adds1 with alloldentries unchanged. Native remains1500lines. Before/after contain complete raw3+guard files and source-checks records fullmultisets and whole identities.
+
+The parent already merged the original9-file82a main change into9e84. Keep its production receiving.rs, test registrationmodlegacy and all three new work counters untouched; this followup copies only the exact leaf plus raw membership. It does not synthesize a new namespace or change the actual receiving algorithm. The private a2-based branch has the leaf for include dependency completeness; final registration uses the parent's original main wire. All original incoming production/test/source metadata preimages are retained under incoming/.
+
+pending-owners.json lists two new owning bodies and three mandatory existing real-HIR/funded11/old-source controls, with exact incoming source identities and role. Both incoming whole-source inverses reconstruct their complete unchanged archives, and the entire live receiving walk remains byte-identical to the old receiver. If finalsource changes a subject later, use a distinct closed incoming82 inputfront for whole historical custody, but keep actual receiving-walk comparison live. No expected hash is repinned.
+
+The incoming README's component probe history is not owning-HIR/current-main/application success. All relevant actual executable qualification remains pending; no Cargo,rustc or tests ran here. The sealed99 input table remains unchanged and parent's one final source/authority rebind remains pending. No ROOT edits, push or GitHub writes.

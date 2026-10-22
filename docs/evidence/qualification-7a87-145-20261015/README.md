@@ -1,5 +1,9 @@
 # Exact7a87 focused qualification
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Execution source: `7a87b33115c0cd45b14cac64d7b37e5742503159`.
 Five focused build commands passed; 145 exact selected bodies executed:
 **120 PASS, 25 FAIL**. Scoped core and full-CLI production Clippy passed.

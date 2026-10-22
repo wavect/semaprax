@@ -1,0 +1,64 @@
+{
+  "status": "ORIGINAL_CURRENT_CODEC_COMPOSITION_PASS_PENDING_PUBLICATION",
+  "base_head": "572b7eddd771ca378868e372b366291019d23d10",
+  "rows": 687,
+  "page_bytes": 234345,
+  "published_current_preserved_as_exact_views": [
+    {
+      "source": "src/source_reflows/main043/audit_3.rs",
+      "view": {
+        "length": 3494,
+        "sha256": "08fdb51bed162a79fe141d32d65b3677c0a481ed5c9a486d0ef9cfe352e9416c",
+        "archive": "docs/evidence/fmt-a110/CP21G-0WKnn-FB0y1ls2d8Ckge1cmkhtDvnP41LpQWw.txt",
+        "name": "whole-pre-legacy-572a15bdd5"
+      }
+    },
+    {
+      "source": "src/source_reflows_merge/main67107_inputs_tail.rs",
+      "view": {
+        "length": 59527,
+        "sha256": "efafdf720cc69602a40bd107508b2e959a88152aea399b6cc60402c935bec965",
+        "archive": "e/efafdf720cc69602a40bd107508b2e959a88152aea399b6cc60402c935bec965",
+        "name": "whole-pre-legacy-572a15bdd5"
+      }
+    },
+    {
+      "source": "src/source_reflows_merge/main99f_inputs.rs",
+      "view": {
+        "length": 37819,
+        "sha256": "dca81a7ea26bb7cb0273560d32fec6d05129b3696b8fa69f4cc91c6a30094991",
+        "archive": "e/dca81a7ea26bb7cb0273560d32fec6d05129b3696b8fa69f4cc91c6a30094991",
+        "name": "whole-pre-legacy-572a15bdd5"
+      }
+    },
+    {
+      "source": "src/source_reflows_merge/main_c883_inputs.rs",
+      "view": {
+        "length": 20328,
+        "sha256": "0c653d8c2d3de5fecfc2fd056247dde39a4fc958e9723e3c934db166f7eae464",
+        "archive": "docs/evidence/fmt-a110/DGU9jC095f7Pwv0FYkfd45pPyVjpcj48k02xZvfq5GQ.txt",
+        "name": "whole-pre-legacy-572a15bdd5"
+      }
+    },
+    {
+      "source": "src/source_reflows_merge/main_e177_inputs.rs",
+      "view": {
+        "length": 38749,
+        "sha256": "156b25619d771da6e55dbde9936222e399c518c2f454426cff8d484077a1ec6c",
+        "archive": "docs/evidence/fmt-a110/FWslYZ13HablXb3pk2Ii45nFGML0VEJs_41IQHeh7Gw.txt",
+        "name": "whole-pre-legacy-572a15bdd5"
+      }
+    },
+    {
+      "source": "src/source_reflows_merge/main_e177_overlay_compiled.rs",
+      "view": {
+        "length": 46102,
+        "sha256": "91420eb136670c42684c6ebf50f97bdca1960d810b2a0d414f5c7ed7bb37ad4f",
+        "archive": "docs/evidence/rustfmt-complete-20261021/current/91420eb136670c42684c6ebf50f97bdca1960d810b2a0d414f5c7ed7bb37ad4f.txt",
+        "name": "whole-pre-legacy-572a15bdd5"
+      }
+    }
+  ],
+  "all_previous_fields_views_memberships_and_fragment_edges_retained": true,
+  "all_original_codec_bodies_and_caps_unchanged": true
+}

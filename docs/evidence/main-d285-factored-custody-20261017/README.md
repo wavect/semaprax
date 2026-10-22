@@ -1,5 +1,9 @@
 # Combined factored source custody relocation — source only
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base OURS `3d77c9566508782b607bed64735a9efe81e15c88`; independent MAIN `d285dc5375ba78e63db8ad2b77ebad9069db3bcb`.
 
 The two existing canonical_shared test selectors keep their names and invoke BOTH complete OURS and MAIN receivers. The OURS target receiver receives the original private `targets::incoming_input` function explicitly from its original wrapper. No visibility or producer algorithm changes. All OURS assertions, compile35f acquisition, target incoming acquisition, and testsMAIN projection remain. Original MAIN two function bodies and its complete original body-custody gate remain byte-exact, independently executable.

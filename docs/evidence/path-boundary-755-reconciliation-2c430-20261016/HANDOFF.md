@@ -1,5 +1,9 @@
 # Private path-boundary / borrowed-chain reconciliation
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base: `2c4306e1b19c9899a4b11abe7ca1e604f91fde15`.
 Original component: `755c082541ffc8b724c7b932428b6bb80153ee6b`.
 Rebased code: `0ca588936f00d2d45b13d35510721a13332015cf`.

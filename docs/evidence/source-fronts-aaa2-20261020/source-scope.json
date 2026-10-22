@@ -1,0 +1,25 @@
+{
+  "status": "LOCAL_CI_REPAIR_SCOPE",
+  "base": "aaa2d21dd413ed2ab461965f4de3597f469e1c33",
+  "changed_sources": [
+    "src/source_reflows_merge/runtime_json.rs",
+    "src/source_reflows_merge.rs",
+    "src/source_reflows/main043.rs",
+    "src/source_reflows_merge/main67107_inputs.rs",
+    "src/source_reflows/incoming67107_semantic_receivers.rs",
+    "src/source_reflows/incoming21_semantic_receivers.rs",
+    "src/source_reflows/incoming090_semantic_receivers.rs",
+    "src/source_reflows/semantic_receivers_maina3.rs",
+    "src/source_reflows/semantic_receivers_mainb80.rs",
+    "src/source_reflows_merge/main7f8_source_inputs.rs",
+    "src/source_reflows/factored_sources.rs",
+    "src/hir/declaration_index/identity_payer.rs",
+    "docs/IMMUTABLE-NOMINAL-PAYLOAD-V1.md",
+    "CHANGELOG.md"
+  ],
+  "production_change": "Separate active exact legacy nominal constructor from unchanged funded source-cell constructor in the same audited file.",
+  "test_transport": "Authenticate complete raw sources and compose new inverse fronts before all unchanged original inverse rows.",
+  "caps_floors_tariffs_unchanged": true,
+  "hosted_green_claimed": false,
+  "release_PR_merged": false
+}

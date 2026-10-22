@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "checks": [
+    "live workspace root source drift blocks old view",
+    "current workspace archive drift blocks old view",
+    "old workspace view archive tamper",
+    "extension packet tamper after module load",
+    "foreign workspace root tuple refused",
+    "legacy named-source scope remains closed"
+  ],
+  "all_original_source_bytes_restored": true,
+  "old_and_current_exact_views_authenticate": true
+}

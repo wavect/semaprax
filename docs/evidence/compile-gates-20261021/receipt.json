@@ -1,0 +1,26 @@
+{
+  "status": "LOCAL_ACTUAL_BYTE_GUARD_AND_FOCUSED_SOURCE_GATES_PASS",
+  "before_head": "4f728b6a208ff5573e6ac8b3d886c54ab3b572b0",
+  "changes": [
+    "The complete pre-format source view authenticates before the original affine source inverse and whole-byte assertions; trailing and already-old inputs are rejected.",
+    "Intentional independent historical comparison/import modules receive test-only duplicate_mod reasons at their owning module scope; no receiver is merged or removed.",
+    "Use SOURCES.to_vec() for the flagged copied-slice collection."
+  ],
+  "checks": {
+    "actual_complete_affine_source_guard_and_both_helpers": "PASS with original positive, EOF, truncation, drift and prior-source cases",
+    "actual_source_audit_tests": 34,
+    "actual_hir_boundary_tests": 11,
+    "focused_clippy": "PASS warnings denied",
+    "cargo_fmt_all_check": "PASS",
+    "original_complete_source_domains_and_six_hostiles": "PASS",
+    "scoped_duplicate_lint_behavior": "PASS annotation works; removing it reproduces duplicate_mod"
+  },
+  "broad_root_clippy": {
+    "status": "STOPPED_BY_UNCHANGED_MEMORY_GUARD",
+    "peakKiB": 5522656,
+    "minimum_system_free_percent": 39,
+    "complete_pass_not_claimed": true
+  },
+  "all_original_byte_assertions_negative_cases_limits_and_historical_sources_retained": true,
+  "full_ci_green_claimed": false
+}

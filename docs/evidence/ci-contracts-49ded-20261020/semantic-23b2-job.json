@@ -1,0 +1,236 @@
+{
+  "id": 118050034121,
+  "run_id": 39249327458,
+  "workflow_name": "CI",
+  "head_branch": "main",
+  "run_url": "https://api.github.com/repos/wavect/semaprax/actions/runs/39249327458",
+  "run_attempt": 1,
+  "node_id": "CR_kwDOTxfTkc8AAAAbfFSRyQ",
+  "head_sha": "23b2f29378960ddd3c4202cd93b7696e32abb229",
+  "url": "https://api.github.com/repos/wavect/semaprax/actions/jobs/118050034121",
+  "html_url": "https://github.com/wavect/semaprax/actions/runs/39249327458/job/118050034121",
+  "status": "completed",
+  "conclusion": "failure",
+  "created_at": "2026-10-19T12:07:49Z",
+  "started_at": "2026-10-19T12:07:52Z",
+  "completed_at": "2026-10-19T13:09:31Z",
+  "name": "Rust tests windows-latest (integration-5)",
+  "steps": [
+    {
+      "name": "Set up job",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 1,
+      "started_at": "2026-10-19T12:07:53Z",
+      "completed_at": "2026-10-19T12:07:54Z"
+    },
+    {
+      "name": "Allow Windows to check out long evidence paths",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 2,
+      "started_at": "2026-10-19T12:07:54Z",
+      "completed_at": "2026-10-19T12:07:56Z"
+    },
+    {
+      "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 3,
+      "started_at": "2026-10-19T12:07:56Z",
+      "completed_at": "2026-10-19T12:09:12Z"
+    },
+    {
+      "name": "Run dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 4,
+      "started_at": "2026-10-19T12:09:12Z",
+      "completed_at": "2026-10-19T12:09:25Z"
+    },
+    {
+      "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 5,
+      "started_at": "2026-10-19T12:09:25Z",
+      "completed_at": "2026-10-19T12:09:31Z"
+    },
+    {
+      "name": "Install TypeScript compiler for cross-language suite",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 6,
+      "started_at": "2026-10-19T12:09:31Z",
+      "completed_at": "2026-10-19T12:09:39Z"
+    },
+    {
+      "name": "Resolve the real held rustc image (Unix)",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 7,
+      "started_at": "2026-10-19T12:09:39Z",
+      "completed_at": "2026-10-19T12:09:39Z"
+    },
+    {
+      "name": "Resolve the held Clang and deterministic archiver images (Unix)",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 8,
+      "started_at": "2026-10-19T12:09:39Z",
+      "completed_at": "2026-10-19T12:09:39Z"
+    },
+    {
+      "name": "Resolve the real held rustc image (Windows)",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 9,
+      "started_at": "2026-10-19T12:09:39Z",
+      "completed_at": "2026-10-19T12:09:39Z"
+    },
+    {
+      "name": "Keep Windows compiler and test artifacts compact",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 10,
+      "started_at": "2026-10-19T12:09:39Z",
+      "completed_at": "2026-10-19T12:09:39Z"
+    },
+    {
+      "name": "Resolve the authenticated Windows SDK and MSVC environment",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 11,
+      "started_at": "2026-10-19T12:09:39Z",
+      "completed_at": "2026-10-19T12:09:45Z"
+    },
+    {
+      "name": "Resolve the held Clang image (Windows)",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 12,
+      "started_at": "2026-10-19T12:09:45Z",
+      "completed_at": "2026-10-19T12:09:45Z"
+    },
+    {
+      "name": "Provision the native HTTPS development interface (Linux)",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 13,
+      "started_at": "2026-10-19T12:09:45Z",
+      "completed_at": "2026-10-19T12:09:45Z"
+    },
+    {
+      "name": "Fetch the complete locked workspace dependency closure",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 14,
+      "started_at": "2026-10-19T12:09:45Z",
+      "completed_at": "2026-10-19T12:10:10Z"
+    },
+    {
+      "name": "Fetch the standalone owned-data Rust setup dependency closure",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 15,
+      "started_at": "2026-10-19T12:10:10Z",
+      "completed_at": "2026-10-19T12:10:13Z"
+    },
+    {
+      "name": "Fetch standalone lockfile-check dependencies",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 16,
+      "started_at": "2026-10-19T12:10:13Z",
+      "completed_at": "2026-10-19T12:10:24Z"
+    },
+    {
+      "name": "Build the static Linux reference service for its packaging acceptance",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 17,
+      "started_at": "2026-10-19T12:10:24Z",
+      "completed_at": "2026-10-19T12:10:24Z"
+    },
+    {
+      "name": "Test the complete workspace target shard (Unix)",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 18,
+      "started_at": "2026-10-19T12:10:24Z",
+      "completed_at": "2026-10-19T12:10:24Z"
+    },
+    {
+      "name": "Capture task-service frontend bytes after a failed owning shard",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 19,
+      "started_at": "2026-10-19T12:10:24Z",
+      "completed_at": "2026-10-19T12:10:24Z"
+    },
+    {
+      "name": "Capture the unchanged native preparation ledger after the heavy shard fails",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 20,
+      "started_at": "2026-10-19T12:10:24Z",
+      "completed_at": "2026-10-19T12:10:24Z"
+    },
+    {
+      "name": "Trace the unchanged low-stack case after the Linux unit shard fails",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 21,
+      "started_at": "2026-10-19T12:10:24Z",
+      "completed_at": "2026-10-19T12:10:24Z"
+    },
+    {
+      "name": "Capture complete private-layout cache wires after the owning shard fails",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 22,
+      "started_at": "2026-10-19T12:10:24Z",
+      "completed_at": "2026-10-19T12:10:24Z"
+    },
+    {
+      "name": "Test the complete workspace target shard without duplicate Windows native interop",
+      "status": "completed",
+      "conclusion": "failure",
+      "number": 23,
+      "started_at": "2026-10-19T12:10:24Z",
+      "completed_at": "2026-10-19T13:09:25Z"
+    },
+    {
+      "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 45,
+      "started_at": "2026-10-19T13:09:25Z",
+      "completed_at": "2026-10-19T13:09:25Z"
+    },
+    {
+      "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 46,
+      "started_at": "2026-10-19T13:09:25Z",
+      "completed_at": "2026-10-19T13:09:29Z"
+    },
+    {
+      "name": "Complete job",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 47,
+      "started_at": "2026-10-19T13:09:29Z",
+      "completed_at": "2026-10-19T13:09:29Z"
+    }
+  ],
+  "check_run_url": "https://api.github.com/repos/wavect/semaprax/check-runs/118050034121",
+  "labels": [
+    "windows-latest"
+  ],
+  "runner_id": 1000082812,
+  "runner_name": "GitHub Actions 1000082812",
+  "runner_group_id": 0,
+  "runner_group_name": "GitHub Actions"
+}

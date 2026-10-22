@@ -1,5 +1,9 @@
 # Closure-specific unit receiving — source checkpoint
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base: `2d4b68d3a416cae5fba6ac08498cd56721878ba1`. No Rust, Cargo, test, application, Clippy or physical measurement was executed for this successor. The actual2d4b strict width0 failure remains old10,829/current12,238, with allocations12→11 and allocated bytes1,517→1,389. No proposed numerical recovery is claimed; the unchanged strict owner decides after qualification.
 
 The three shipping files remove an actual duplicated receiving owner: closure bookkeeping now stores `empty_memo::Memo` directly, without `RetainedMemo`'s separate refusal `Option<Diagnostic>`/controls flag. Ordinary `memo.rs` and `memo/retained.rs` are byte-exact. The cold `Memo::authenticate` Result, authorization-receipt debit, binding reservation and payer order remain complete. Test id/closure entry first performs identity preflight and original cold activation before acquiring the invocation slot, preserving the initial unreceived failure boundary. Production uses its existing paid invocation slot; no new allowance exists.

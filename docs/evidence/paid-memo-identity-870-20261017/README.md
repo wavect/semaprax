@@ -1,5 +1,9 @@
 # Pure-identity closure Memo gateway
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only candidate, no compiler/tests executed. Original261 remains byte-exact in the unchanged original paid_many/tests prefix. A full immediate-old Memo is independently compiled verbatim in before_identity in that same existing test file. Its old current() call intentionally demonstrates the prior captured-ledger mutation under nested mismatch; it is not relabeled as a passing old contract.
 
 ClassifierLedger::current() and current_receiving_controls() remain whole-byte exact. Only the new current_identity method is added: it evaluates the original active clone/match/borrowed pointer comparison and returns that identity, without record_refusal or overflow mutation. It removes the old mutation control flow and one named bool local; all remaining actual/formal/ACTIVE clone/TLS/match/Rc/bool receivers have exact same-site counterparts in the unchanged prepaid current_receiving_controls bank. No new payment, cap, exemption, authority or cached admission is introduced. The containing Memo/ClosureReceiving acquisition pays that bank as before.

@@ -1,5 +1,9 @@
 # OPT860 explicit audited source boundaries
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The complete original a82e manifests seal **all** 1046 HIR and 179 projection
 classes as membership roots, including their original test-only classes. Actual
 current compiled module and `include!` edges extend these roots transitively;

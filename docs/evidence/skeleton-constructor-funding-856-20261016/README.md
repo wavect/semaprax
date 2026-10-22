@@ -1,5 +1,9 @@
 # Ordinary skeleton constructor funding (#856)
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source checkpoint from a82e00cc83f99b16249181c45710d962598577db. No Rust
 compilation, runtime test, Clippy, allocation observation or savings is claimed.
 

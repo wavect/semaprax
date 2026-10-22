@@ -1,0 +1,52 @@
+{
+  "status": "SOURCE_ONLY_FINITE544_PACKET_PREDICATES_PASS",
+  "before_head": "ca5ffe48d442e59679eee2160f1903ceeae023c6",
+  "before_guard": {
+    "length": 11549,
+    "sha256": "e478adc6b929eb730c3f4a6bdf9a0360b1a77c102fdea044a18462b9a55d3998",
+    "archive": "docs/evidence/expected-view-ca5-20261020/stage4/whole/e478adc6b929eb730c3f4a6bdf9a0360b1a77c102fdea044a18462b9a55d3998.txt"
+  },
+  "before_config": {
+    "length": 136459,
+    "sha256": "0247b2652ba45a2d8082f496b6004cf51686ef1e437479594b49374569355518",
+    "archive": "docs/evidence/expected-view-ca5-20261020/stage4/whole/0247b2652ba45a2d8082f496b6004cf51686ef1e437479594b49374569355518.txt"
+  },
+  "before_helper": {
+    "length": 42127,
+    "sha256": "32c71959d040ddd4146765dc55a41e371e8927dab4a26835c9ca84f6204b919e",
+    "archive": "docs/evidence/expected-view-ca5-20261020/stage4/whole/32c71959d040ddd4146765dc55a41e371e8927dab4a26835c9ca84f6204b919e.txt"
+  },
+  "before_python_overlay": {
+    "length": 14378,
+    "sha256": "f9d2454d9ae71a08df7a72e4cc3ef3619198bb8620f40d504f7db5e6cc05c3cb",
+    "archive": "docs/evidence/expected-view-ca5-20261020/stage4/whole/f9d2454d9ae71a08df7a72e4cc3ef3619198bb8620f40d504f7db5e6cc05c3cb.txt"
+  },
+  "before_policy": {
+    "length": 16742,
+    "sha256": "2612f8994bf24e996c6e12103e68cf20e8908c324fac14132ee46948e1869d7b",
+    "archive": "docs/evidence/expected-view-ca5-20261020/stage4/whole/2612f8994bf24e996c6e12103e68cf20e8908c324fac14132ee46948e1869d7b.txt"
+  },
+  "before_page": {
+    "length": 212208,
+    "sha256": "6aa1218f81ef7279187c7dc0b86ad8023632484ba3be29fed960bf9c275d151e",
+    "archive": "docs/evidence/expected-view-ca5-20261020/stage4/whole/6aa1218f81ef7279187c7dc0b86ad8023632484ba3be29fed960bf9c275d151e.txt"
+  },
+  "changed_sources": [
+    "src/source_reflows.rs",
+    "src/source_reflows_merge.rs",
+    "src/source_reflows/semantic_receivers.rs",
+    "src/source_reflows/incoming67107_semantic_receivers.rs"
+  ],
+  "module_pins_refreshed": [
+    "src/source_reflows_merge/main_e177_overlay_v2.rs"
+  ],
+  "carrier_pins_refreshed": [],
+  "all_544_rows_fields_view_prefixes_and_prior_current_wires_retained": true,
+  "new_literal_replacements_inserted_in_predecessor_source_order": true,
+  "original_519_extension_and_loader_unchanged": true,
+  "python_and_rust_overlay_bodies_unchanged_except_literal_membership_and_policy_seals": true,
+  "all_reader_source_program_and_runtime_caps_unchanged": true,
+  "page_bytes": 213252,
+  "policy_bytes": 16742,
+  "raw_owners": 342
+}

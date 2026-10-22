@@ -1,5 +1,9 @@
 # Legacy final-link case ownership successor
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Basis a41774c0b3522ea7e13798f1a337b0aa5f35714e. Source-only, no Cargo/build/runtime. The real final index receiver retains exact Legacy case coordinates AFTER all existing Phase-A checks; it grants no payer/provenance. Funded branch remains byte-identical, decoded Owned copy fallback remains. Initial Legacy validation/copy costs and per-receiver name/maps remain explicit. No caps/work/forecast change or application recovery claim.
 
 Four new exact selectors and four required prior linker owners are listed in pending-selectors.json. Whole final constructor/HIR/cache/graph equality, full six-field diagnostics/first order/partial maps, index+HIR mutation/siblings, physical actual Owned-before/current and Legacy-before/current allocations/peak/Drop, zero ambient index debit, and512mixed detached child disposal await future qualification. Genuine decoded Owned baseline is not preoptimized. The same genuine Legacy input compares current with the complete immediate a417 index+finalizer; the older complete original index remains separately compiled/executed by existing and error controls.

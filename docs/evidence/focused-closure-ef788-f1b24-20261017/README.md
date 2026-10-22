@@ -1,5 +1,9 @@
 # Focused compiler qualification, 17 October 2026
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Production source: `ef788f8237beeb16dcc1cfa9346fc1dbb6f69a4d`.
 Earned-pin consumer source: `f1b24eda3f98e19c294f50eff388f642eabc7ccb`.
 

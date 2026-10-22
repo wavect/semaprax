@@ -1,5 +1,7 @@
 # Borrowed top-level identity: source-only #785
 
+Audience: compiler contributors and reviewers.
+
 Status: authored against frozen `886b75626e7935323f2dd37f38e2884abf87fa43`.
 No Cargo, build, Rust test, application, Clippy or current physical observation
 was executed. Standalone rustfmt parsed/formatted only new source. #785 stays

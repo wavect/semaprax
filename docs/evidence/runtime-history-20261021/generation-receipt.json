@@ -1,0 +1,339 @@
+{
+  "status": "GENERATED_SOURCE_ONLY_PENDING_ORIGINAL_VERIFIER",
+  "original_generator_prefix_sha256": "fabc67d5447a0fe66a363782da7d578383ddc2f1cad504b332eeefe7cb7d6a5f",
+  "original_registration_parser_unchanged": true,
+  "live_inventory_source_sha256": "949eafef81d1d525a84d530c81101eced9a9ff87093032cbfc73c778308639dc",
+  "all_raw_source_bytes_unchanged_by_generation": true,
+  "inventory_extension": "Closed literal grammar admits the actual legacy prelude, preserves literal arm keys, and expands complete actual inventory expressions. Every original registration parser/manifest predicate runs unchanged.",
+  "compiled_includes": "Actual literal include edges supplement data-only chains so production code cannot be mislabeled as test data.",
+  "domains": [
+    {
+      "domain": "hir",
+      "appended_actual_compiled_include_chains": [
+        {
+          "parent": "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs",
+          "child": "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels_tail.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "tests/workspace.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "tests/workspace.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "tests/wasm.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "tests/workspace.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "tests/wasm.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "tests/workspace.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "tests/wasm.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "tests/hir_module_boundaries.rs"
+        }
+      ],
+      "corrected_data_shadowing_roles": [
+        "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels_tail.rs"
+      ],
+      "sources": 1804,
+      "classes": 1708,
+      "sha256": "eb090552539bacb1ccc9395bdfbee7b6f7bd7de04151532b7cf2ecbc507e9d3e"
+    },
+    {
+      "domain": "projection",
+      "appended_actual_compiled_include_chains": [
+        {
+          "parent": "src/hir/resolve_program.rs",
+          "child": "src/hir/resolve_program_methods.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs",
+          "child": "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels_tail.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "tests/workspace.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "tests/workspace.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "tests/wasm.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "tests/workspace.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "tests/wasm.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "tests/workspace.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "tests/wasm.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "src/lib.rs"
+        },
+        {
+          "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "root": "tests/hir_module_boundaries.rs"
+        }
+      ],
+      "corrected_data_shadowing_roles": [
+        "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels_tail.rs",
+        "src/hir/resolve_program_methods.rs"
+      ],
+      "sources": 1860,
+      "classes": 1800,
+      "sha256": "301a722998ec2d6d84861750cdb8c5dfd0653a33d3936b6be218f9749648d19b"
+    }
+  ]
+}

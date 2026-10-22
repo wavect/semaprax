@@ -1,5 +1,9 @@
 # Private diagnostic observation: factored automaton node growth
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 These are three PRIVATE instrumented compiler probes derived from public6942715617829352c944b061018c7c71e37c468d (the13d implementation source plus evidence). Their commits are local observations, not product support. Source observers are removed from the product branch. Complete before/instrumented files and each probe patch are retained. All three production-only builds succeeded; all three unchanged normalizer Project checks failed G171 at cap67108864, request3072,remaining1992,floor0,HIRfinalvalidation,mode6. These are not an accepted application or a required total-budget estimate.
 
 The site-only probe records physical_budget.rs:86:24, a generic reservation helper. The primary probe records an empty H006 legacy primary, so neither identifies the operation. The final probe observes the already-failed physical reservation's supplied label/function and stack BEFORE ordinary error propagation loses the label: function catalog_normalizer.tests.main; phase factored automaton nodes; reserve_array<Node>→reserve_vec<Node>→Automaton::node→chain→add_dag→add_observations→build_comparison during final HIR validation. The full stack and final unchanged G171 diagnostic are in physical/normalizer-diagnostic.log.

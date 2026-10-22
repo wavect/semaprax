@@ -1,5 +1,9 @@
 # Visibility-only correction against immutable 912a
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 `ProviderProofs` and its `new` constructor already use the `expected_projection` ownership boundary. Its `authorized` method remained `pub(super)`, which admits only the `import_stub` subtree. The typed caller in sibling `borrowed_imports/typed.rs:200` therefore receives production E0624.
 
 `visibility-only.patch` changes that single method to `pub(in crate::workspace_graph::expected_projection)`. Complete prior helper bytes are archived and the exact inverse reconstructs them. All method body bytes, authentication order, carriers and layouts remain unchanged; no source guard exemption is introduced. The retained independent original helper is untouched. External preparation performed no Cargo, tests, review or ROOT mutation.

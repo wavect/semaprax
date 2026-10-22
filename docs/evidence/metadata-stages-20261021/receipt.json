@@ -1,0 +1,11 @@
+{
+  "base_head": "fbedc987ab85b6fca38ca77c5683cfd9dbf7a5f6",
+  "change": "Acquire 11 fixed already-registered source/hash pairs before the original historical metadata inverse. Every original projector, complete inverse, expected hash, and reader cap remains unchanged.",
+  "new_regression": "24 complete original fixture projections pass with their original output SHA-256; all 72 trailing/truncated/prefix changed-source inputs are rejected.",
+  "qualification": "New regression, 29 overlay tests, 4 packet lookup tests, registered digest test, 6 runtime fixture tests, focused Clippy with warnings denied, fresh full source-role generation, both original domain verifiers and six hostile controls passed.",
+  "broader_probe": "A broader source harness was stopped by its 256MiB process cap after recording existing failures. No full-unit or full-source-suite success is claimed.",
+  "page_bytes": 230345,
+  "source_root_lines": 1500,
+  "full_CI_green_not_claimed": true,
+  "all_work_and_caches_on_external_ssd": true
+}

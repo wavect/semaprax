@@ -1,5 +1,9 @@
 # Actual67b managed wire drift: intended imported-nominal metadata correction
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Read-only source investigation; no compiler, test, model, graph refresh, ROOT edit
 or allowed-path mutation. Frozen source:67b1b02141f19040fdd1b45bc9bea16dcff5d74e.
 The strict planner failure remains valid and preserved.

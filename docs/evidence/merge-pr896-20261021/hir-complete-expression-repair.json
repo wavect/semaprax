@@ -1,0 +1,19 @@
+{
+  "parent_inventory_expansions": [
+    {
+      "parent_stage": 2,
+      "pieces": 1421,
+      "new_multiplicity_pieces": 1421
+    },
+    {
+      "parent_stage": 3,
+      "pieces": 1538,
+      "new_multiplicity_pieces": 121
+    }
+  ],
+  "merged_piece_count": 1548,
+  "all_original_include_multiplicities_preserved": true,
+  "main_complete_accepted_prefix_kept_in_original_order": true,
+  "actual_new_private_sources_registered": true,
+  "lines": 167
+}

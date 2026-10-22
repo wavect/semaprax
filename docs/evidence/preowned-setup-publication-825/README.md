@@ -1,5 +1,9 @@
 # Partial #825: preowned non-sticky setup publication
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base: `9b174d852798c99ce2d14b8170ec05e6c0f94b88`. Source-only candidate; no Rust compilation, tests, builds or Clippy executed.
 
 The existing child attempt acquires its real report Vec and message/help backing before entering the core. For the five static G173 setup primaries, it now fills that same Vec before restoration and updates the existing error payload through a unit producer. Public compatibility then moves the paid Vec without allocation, reservation or authentication against a restored/foreign account. All six public Diagnostic fields match the original conversion. Sticky G171 publication retains its original route and first receipt.

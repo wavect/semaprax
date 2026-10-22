@@ -1,5 +1,9 @@
 # Complete Main test-child binding
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The previous private7e9f candidate had a concrete unresolved nested `mod tests;` child. No Rust compile ran; its byte-inverse proof was source-only, not proof of compiler closure. This successor preserves that complete prior packet and fixes the actual declaration with explicit `#[path="../tests.rs"]`. The shared parent file is the entire byte-exact Main531 original test child; it has no further children or literal input paths. Its lexical parent is still the independent Main namespace, so its original validators and nominal PathState/diagnostic context remain independent. No body or assertion is removed and no new test is authored.
 
 The unchanged original static registration parser now resolves the complete scoped namespace: nine real files and fourteen literal Main test bodies, with no missing child path. The newly registered existing test source is joined once in all three raw inventories. There are still eight newly added Rust files relative2d4b; the ninth is reused complete existing Main source. The original Main five changed controls and two affected existing owners remain the pending minimum, not a newly executed result.

@@ -1,1 +1,7 @@
+# browser-capture REPLAY
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The raw GitHub log is retained losslessly as job.log.gz, including its original trailing spaces. Decompress it into an external-SSD scratch file and verify its length and SHA-256 against compressed-log.json before passing it to the unchanged read-graph-capture.py reader with head 31eaf2f541fdada219a884c28a28f577d9931a7c, run 39158106716, and job 117766019033. The graph documents, original job metadata, provenance, and complete wire-comparison receipt remain unchanged.

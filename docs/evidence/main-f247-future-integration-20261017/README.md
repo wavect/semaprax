@@ -1,5 +1,9 @@
 # Future831 + current3f + incomingf247 source merge
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Real incoming ancestry f247b8e5b4ab3a8bc04980e77e7362464012bf55 is merged into the accepted831/current3f candidate659794576. This is SOURCE ONLY: no Rust/Cargo/tests, gate, binding generation, producer, capture, pin edit, runtime or gain claim. The full original831 source/before namespace, newreceiver fees/full6frontiers and entire current3f source/bindings remain retained. All19 existing metadata tables keep exact OURS bytes; complete incoming and OURS metadata domains are separate content-addressed objects. Incoming maximum held-status sources.json is9,703,917B, SHA1edc26b9d30610737a7c1dbe187f17846d40f64f36acbe421e2f1d7ae4e4ed99. Old9,464,242 cap is unchanged. A future distinct bounded domain must authenticate the new whole subject; no giant Rust literal was added.
 
 The incoming isolated lexical helper, all three original tests and the complete optimized92-line method are retained under cfg(test), not yet compiled. Production merge_keys.rs remains byteexact659/3f. No obsolete duplicate merger is resurrected and no unfunded query is shipping. Main9's independent source census found actual new argument, bool, Option, arithmetic and FnOnce roles beyond the incoming RECEIVING constant. A same existing DIRECTORY reserve successor could prepay them after the exact old work debit, but strict2path savings remains unproved. Activation is intentionally pending, with all assertions preserved. See isolated-activation-blocker.json. No claim that incoming test-only direct probes prove real production admission.

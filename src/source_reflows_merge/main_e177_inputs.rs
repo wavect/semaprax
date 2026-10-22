@@ -1,4 +1,10 @@
 //! Closed current-byte authentication before the complete incominge177 view.
+#[allow(
+    clippy::duplicate_mod,
+    reason = "The same closed reader must compile in independent library and integration harness namespaces."
+)]
+#[path = "../source_reflows/ci_inputs.rs"]
+mod legacy_ci_inputs;
 use sha2::{Digest, Sha256};
 use std::path::Path;
 struct LowerHex<T>(T);
@@ -71,6 +77,9 @@ pub(crate) fn main_e177_file_raw(
 ) -> Result<String, &'static str> {
     if length > MAIN_E177_CAP {
         return Err("bound");
+    }
+    if let Some(value) = legacy_ci_inputs::file_expected(path, length, expected) {
+        return Ok(value);
     }
     if let Some(value) = crate::source_reflows_merge::main_e177_final_inputs::combined_side_file(
         path, length, expected,
@@ -361,6 +370,12 @@ fn acquire(path: &Path) -> std::io::Result<(String, String)> {
         row["current_sha256"].as_str().unwrap(),
     )?;
     if let Some(compiled) = compiled(relative) {
+        let projected = legacy_ci_inputs::for_expected(
+            relative,
+            row["current_sha256"].as_str().unwrap(),
+            compiled,
+        );
+        let compiled = projected.as_ref();
         let compiled =
             crate::source_reflows_merge::main_e177_final_inputs::combined_side_expected_value(
                 relative,
@@ -391,6 +406,15 @@ pub(crate) fn read(path: impl AsRef<Path>) -> std::io::Result<String> {
 }
 pub(crate) fn expected(path: &str, supplied: &str) -> String {
     let (actual, incoming) = acquire(&Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap();
+    let projected = legacy_ci_inputs::for_expected(
+        path,
+        &format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(actual.as_bytes()))
+        ),
+        supplied,
+    );
+    let supplied = projected.as_ref();
     let packet = packet();
     let row = packet["rows"]
         .as_array()

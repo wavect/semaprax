@@ -1,5 +1,9 @@
 # OPT843 sticky owner correction
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Immediate predecessor `538673710c463b911c2e5a38d8f7fc9275f99c62`.
 Both invalid destination branches now invalidate the ordinary Memo with its
 existing unit `reject_after_error` before returning the unchanged Diagnostic.

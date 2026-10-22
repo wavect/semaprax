@@ -1,5 +1,9 @@
 # Final ready task-help and held-comparison batch
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Current source-only entrypoints:
 
 ```sh

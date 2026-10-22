@@ -1,5 +1,9 @@
 # Bounded counter review
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 One9656-byte tool-disabled Sonnet source review completed65.3316seconds,
 peak327663616bytes, exit0; raw payload/verdict/receipt retained unchanged.
 Provider listcost0.1008USD, actual billing unknown. No compiler/test/runtime.

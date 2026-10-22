@@ -1,5 +1,9 @@
 # Compact-Node actual layout and nested-floor controls
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Basis35cc6325790e00f7bcbd0c0bedf51518939f9b47. Actual175 logs00 and05 are genuine failures and remain unchanged. This test-only correction is unexecuted. No production code, fee, limit, allocator probe or independent old receiver changes.
 
 Layout: the owning actual Rust test measured compactNode24bytes, not the earlier predicted32; oldtwo-VecNode48 remains correct. Derive the inline payload using independent Label and usize Layout constituents/alignment; assert exact24/current equality, exactold48 and strictsmaller. Production continues using actual size_of<Node>; whole physical owners remain unchanged.

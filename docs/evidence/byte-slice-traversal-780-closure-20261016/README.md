@@ -1,5 +1,9 @@
 # Prospective OPT780 closure publication
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 PENDING current warm-cache result. This external preparation does not claim a current PASS, mutate ROOT, execute a test, or authorize closure.
 
 The standalone manifest retains full original raw receipt/log bytes, not selected summaries alone: 148 historical rows for the original 24 owners (127 actual PASS, 21 actual FAIL), four additional existing owning controls and their recorded passes, the live acceptance, full 97-file source cut and complete shared-source diff, and both scoped production Clippy receipts/raw logs. All 179 immutable assets (23,092,911 bytes) were copied and SHA256-checked; original failures remain present. Source bodies are bound to their actual historical subjects. No universal current-head, positive app-cap or matched-benchmark success is claimed or newly required.

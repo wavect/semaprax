@@ -1,5 +1,9 @@
 # Actual new canonical receiving sites
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 This inventory describes source constructors, not empirical deficits or a quota discount. Existing nested allocation primitives and their actual Results remain in the source.
 
 * Constructor caller: one Canonicalizer aggregate initializer and its returned caller owner; the retained scalar scratch Vec initializer/field receiver and each of the two new Arena constructors has its own initializer and field receiver. The positive reserve Result is explicit. New arena fields include their full Vec headers/root links through complete layout sizes. No Result<Canonicalizer> exists.

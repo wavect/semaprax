@@ -1,5 +1,9 @@
 # Typed raw constructor cost and default-teardown census
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Immediate basis: 95e6435fefc983eb505c5488657c5060978f9369. Private source-only continuation after the accepted
 directory checkpoint. Four authored controls plus 30 required existing selectors
 are unexecuted. No Cargo/compiler/runtime/savings/application-fit/closure claim.

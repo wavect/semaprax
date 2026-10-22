@@ -1,5 +1,9 @@
 # Final source assembly at corrected merged b1e3cad91
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 This is source custody, not Rust compilation, test execution, performance evidence or issue closure. The actual failed7800 build and its original expected counts remain byte-exact in their historical archive. No old runtime JSON, source proof, script or archive is rewritten.
 
 The isolated branches have incompatible complete source hashes for shared owners. Three distinct final-input views authenticate the actual final bytes, then provide the exact isolated9d,842 and843 source bytes to their original strict projectors. The three results must equal the complete common7800 source before existing MAIN/held/Source36/838 stages run. Old raw branch input is rejected at each changed final-input view; no projector was made idempotent. Paths absent from a branch are explicitly inventoried and are not represented as old owners.

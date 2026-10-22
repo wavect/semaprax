@@ -1,5 +1,9 @@
 # OPT831 lexical scratch and cold activation receiving
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only component based on `364d824194cd1df76b5c273aa0fb9cbafb602e29`.
 The actual strict owner on that subject reported old10,829/current11,566 at width0,
 allocations12/11 and allocated bytes1,517/1,389. It remains failed. This component

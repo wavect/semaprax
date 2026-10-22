@@ -1,5 +1,9 @@
 # OPT833 retained cold-success storage — source checkpoint
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base: `0e1a061e8ef09f786e2470b311ed7d4cb28e9d42` (the separately
 completed LowerHex repair already incorporated in the parent's MAIN assembly).
 Do not pick that compiler repair twice. This packet and feature commit are

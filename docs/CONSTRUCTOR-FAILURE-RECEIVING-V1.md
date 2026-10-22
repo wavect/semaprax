@@ -1,5 +1,7 @@
 # Constructor failure receiving v1
 
+Audience: compiler contributors and reviewers.
+
 Status: private source implementation of the connected receiving and final-attempt publication boundaries. No compiler/runtime qualification, application-fit, full-constructor funding or issue-closure claim. This is not the selected replay report protocol.
 
 ## First connected boundary

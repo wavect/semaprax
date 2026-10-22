@@ -1,5 +1,9 @@
 # Application OsStr map spelling
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Replace exactly two zero-capture |name| OsStr::new(name) closures with the
 OsStr::new function item. Both receive each &String from names.each_ref() and
 return the same borrowed &OsStr; no clone, source-copy, ownership, lifetime,

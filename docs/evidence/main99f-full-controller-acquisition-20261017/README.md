@@ -1,5 +1,7 @@
 # Complete independent main99f source and browser controllers
 
+Audience: compiler contributors and reviewers.
+
 Status: source-only, uncompiled and unqualified. No Cargo, Rust tests, binders,
 browser capture, application cost or public current-head claim.
 

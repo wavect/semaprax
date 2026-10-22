@@ -1,5 +1,7 @@
 //! Same-call borrowing only; no stored packet or acquisition cache.
+use super::SOURCE_CAP;
 use super::{actual, clippy_stage, digest, packet, read_view, value_4a6eb};
+use serde_json::Value;
 use std::path::Path;
 
 #[rustfmt::skip] // Exact extracted historical lookup body.
@@ -200,7 +202,8 @@ mod tests {
     }
 
     #[test]
-    fn same_invocation_file_context_reuses_metadata_and_keeps_fresh_reads_foreign_refusals_and_drop() {
+    fn same_invocation_file_context_reuses_metadata_and_keeps_fresh_reads_foreign_refusals_and_drop(
+    ) {
         use super::ProjectionInvocation;
         let files = files();
         let current = files.0.join("current.rs");
@@ -235,21 +238,39 @@ mod tests {
         drop(legacy_context);
         let ((), heap) = crate::test_allocation_observer::measure(|| {
             let mut context = ProjectionInvocation::new();
-            assert!(context.packet.is_none(), "a new invocation owns no prior packet");
-            assert!(context.file(std::path::Path::new("foreign"), 4, &expected).is_none());
-            assert!(context.packet.is_none(), "foreign paths retain the pre-packet refusal");
+            assert!(
+                context.packet.is_none(),
+                "a new invocation owns no prior packet"
+            );
+            assert!(context
+                .file(std::path::Path::new("foreign"), 4, &expected)
+                .is_none());
+            assert!(
+                context.packet.is_none(),
+                "foreign paths retain the pre-packet refusal"
+            );
             // Only this private control installs a synthetic immutable packet.
             // The public constructor always acquires the complete real packet.
             context.packet = Some(fixture.clone());
             let identity = context.metadata() as *const serde_json::Value;
             for _ in 0..2 {
-                assert_eq!(context.file_row(source, 4, &expected), Some("old!".to_owned()));
+                assert_eq!(
+                    context.file_row(source, 4, &expected),
+                    Some("old!".to_owned())
+                );
                 assert_eq!(from_packet(&fixture, source, &expected, "new!"), "old!");
                 assert_eq!(context.value_direct_row(source, &expected, "new!"), "old!");
                 assert_eq!(context.value_direct(source, &expected, "old!"), "old!");
-                assert_eq!(from_packet(&fixture, source, &expected, "foreign"), "foreign");
+                assert_eq!(
+                    from_packet(&fixture, source, &expected, "foreign"),
+                    "foreign"
+                );
                 assert_eq!(context.metadata() as *const serde_json::Value, identity);
-                assert_eq!(context.metadata(), &fixture, "every unknown field remains whole");
+                assert_eq!(
+                    context.metadata(),
+                    &fixture,
+                    "every unknown field remains whole"
+                );
             }
             assert!(context.file_row(source, 5, &expected).is_none());
             assert!(context.file_row(source, 4, &"0".repeat(64)).is_none());
@@ -260,23 +281,32 @@ mod tests {
         // Refusal panics are outside the complete normal-Drop measurement.
         let mut context = ProjectionInvocation::new();
         context.packet = Some(fixture.clone());
-        assert_eq!(context.file_row(source, 4, &expected), Some("old!".to_owned()));
+        assert_eq!(
+            context.file_row(source, 4, &expected),
+            Some("old!".to_owned())
+        );
         std::fs::write(&current, b"drft").unwrap();
         std::fs::remove_file(&old).unwrap();
         assert!(panic_text(std::panic::AssertUnwindSafe(|| {
             context.file_row(source, 4, &expected);
-        })).contains("length-or-digest"));
+        }))
+        .contains("length-or-digest"));
         assert!(panic_text(std::panic::AssertUnwindSafe(|| {
             context.value_direct(source, &expected, "new!");
-        })).contains("length-or-digest"));
+        }))
+        .contains("length-or-digest"));
         drop(context);
         let mut next = ProjectionInvocation::new();
-        assert!(next.packet.is_none(), "Drop cannot publish metadata into the next invocation");
+        assert!(
+            next.packet.is_none(),
+            "Drop cannot publish metadata into the next invocation"
+        );
         next.packet = Some(fixture);
         std::fs::write(&current, b"new!").unwrap();
         assert!(panic_text(std::panic::AssertUnwindSafe(|| {
             next.file_row(source, 4, &expected);
-        })).contains("missing"));
+        }))
+        .contains("missing"));
         // Common public endpoint methods use one lazy loader for this call only.
         let loads = std::cell::Cell::new(0usize);
         std::fs::write(&old, b"old!").unwrap();
@@ -292,8 +322,19 @@ mod tests {
                 }};
                 assert_eq!(context.value(source, &expected, "new!"), "old!");
                 assert_eq!(context.value_direct(source, &expected, "new!"), "old!");
-                assert_eq!(context.file_row_with_context(source, 4, &expected), Some("old!".to_owned()));
-                assert_eq!(super::from_packet_with_context(context.metadata(), source, &expected, "foreign"), "foreign");
+                assert_eq!(
+                    context.file_row_with_context(source, 4, &expected),
+                    Some("old!".to_owned())
+                );
+                assert_eq!(
+                    super::from_packet_with_context(
+                        context.metadata(),
+                        source,
+                        &expected,
+                        "foreign"
+                    ),
+                    "foreign"
+                );
                 assert_eq!(loads.get(), invocation);
                 assert_eq!(context.metadata(), &fixture);
                 drop(context);
@@ -307,33 +348,57 @@ mod tests {
         std::fs::remove_file(&old).unwrap();
         assert!(panic_text(std::panic::AssertUnwindSafe(|| {
             context.value(source, &expected, "new!");
-        })).contains("length-or-digest"));
+        }))
+        .contains("length-or-digest"));
         std::fs::write(&current, b"new!").unwrap();
         assert!(panic_text(std::panic::AssertUnwindSafe(|| {
             context.file_row_with_context(source, 4, &expected);
-        })).contains("missing"));
+        }))
+        .contains("missing"));
         // The borrowed row lookup is the complete original file lookup suffix.
         let root = include_str!("main_e177_final_inputs.rs");
-        let old = root.split_once("fn file_4a6eb(").unwrap().1
-            .split_once("    let packet = packet();\n").unwrap().1
-            .split_once("pub(crate) fn value(").unwrap().0;
+        let old = root
+            .split_once("fn file_4a6eb(")
+            .unwrap()
+            .1
+            .split_once("    let packet = packet();\n")
+            .unwrap()
+            .1
+            .split_once("pub(crate) fn value(")
+            .unwrap()
+            .0;
         let child = include_str!("main_e177_packet_lookup.rs");
-        let actual = child.rsplit_once("    fn file_row(&mut self,").unwrap().1
-            .split_once("        let packet = self.metadata();\n").unwrap().1
-            .split_once("\n}\n// END INVOCATION-LOCAL PROJECTION METADATA").unwrap().0;
+        let actual = child
+            .rsplit_once("    fn file_row(&mut self,")
+            .unwrap()
+            .1
+            .split_once("        let packet = self.metadata();\n")
+            .unwrap()
+            .1
+            .split_once("\n}\n// END INVOCATION-LOCAL PROJECTION METADATA")
+            .unwrap()
+            .0;
         assert_eq!(actual, old.trim_end_matches('\n'));
     }
 }
 
-fn held_with_packet(authenticated: &serde_json::Value, path: &Path, length: usize, expected: &str) -> Result<String, &'static str> {
-    if let Some(result) = super::overlay_v2::held_source_with_packet(authenticated, path, length, expected) {
+fn held_with_packet(
+    authenticated: &serde_json::Value,
+    path: &Path,
+    length: usize,
+    expected: &str,
+) -> Result<String, &'static str> {
+    if let Some(result) =
+        super::overlay_v2::held_source_with_packet(authenticated, path, length, expected)
+    {
         return result;
     }
     super::held_4a6eb(path, length, expected)
 }
 fn read_view_with_packet(authenticated: &serde_json::Value, view: &serde_json::Value) -> String {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
-    held_with_packet(authenticated,
+    held_with_packet(
+        authenticated,
         &root.join(view["archive"].as_str().unwrap()),
         view["length"].as_u64().unwrap() as usize,
         view["sha256"].as_str().unwrap(),
@@ -344,7 +409,8 @@ fn actual_with_packet(authenticated: &serde_json::Value, row: &serde_json::Value
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let source = row["source"].as_str().unwrap();
     let current = &row["current"];
-    let value = held_with_packet(authenticated,
+    let value = held_with_packet(
+        authenticated,
         &root.join(source),
         current["length"].as_u64().unwrap() as usize,
         current["sha256"].as_str().unwrap(),
@@ -357,7 +423,11 @@ fn actual_with_packet(authenticated: &serde_json::Value, row: &serde_json::Value
             "complete actual compiled source"
         );
     }
-    assert_eq!(value, read_view_with_packet(authenticated, current), "complete actual archive");
+    assert_eq!(
+        value,
+        read_view_with_packet(authenticated, current),
+        "complete actual archive"
+    );
     if let Some(children) = row.get("fragments") {
         for child in children.as_array().unwrap() {
             assert!(child.get("fragments").is_none());
@@ -427,8 +497,25 @@ fn root_before_nested_context(current: &str) -> String {
     let current = current.replace("    pub(super) fn compiled(source:", "    fn compiled(source:")
         .replace("    pub(super) fn pin(pin:", "    fn pin(pin:");
     let current = current.as_str();
+    // Main adds exactly one API forwarder and its executable regression.
+    // Remove only their complete bytes before the unchanged release inverse.
+    let registered_predecessor;
+    let current = if current.contains("pub(crate) fn registered_file(") {
+        let mut restored = current.to_owned();
+        assert_eq!(restored.matches("pub(crate) fn registered_file(source: &str, expected: &str, cap: usize) -> Option<String> {\n    packet_lookup::registered_file(source, expected, cap)\n}\n\n").count(), 1);
+        restored = restored.replacen("pub(crate) fn registered_file(source: &str, expected: &str, cap: usize) -> Option<String> {\n    packet_lookup::registered_file(source, expected, cap)\n}\n\n", "", 1);
+        assert_eq!(restored.matches("\n#[test]\nfn registered_digest_reads_keep_current_history_and_each_original_file_bound() {\n    packet_lookup::registered_digest_reads_keep_current_history_and_each_original_file_bound();\n}\n").count(), 1);
+        restored = restored.replacen("\n#[test]\nfn registered_digest_reads_keep_current_history_and_each_original_file_bound() {\n    packet_lookup::registered_digest_reads_keep_current_history_and_each_original_file_bound();\n}\n", "", 1);
+        registered_predecessor = restored;
+        registered_predecessor.as_str()
+    } else {
+        current
+    };
     assert_eq!(current.len(), 112797);
-    assert_eq!(digest(current.as_bytes()), "038f6b2515f59c4df7a11a8718b66f0904b2d07cb9544346eef2e3482a205467");
+    assert_eq!(
+        digest(current.as_bytes()),
+        "038f6b2515f59c4df7a11a8718b66f0904b2d07cb9544346eef2e3482a205467"
+    );
     let mut restored = current.to_owned();
     assert_eq!(restored.matches("pub(crate) fn value_direct(source: &str, expected: &str, supplied: &str) -> String {\n    ProjectionInvocation::new().value_direct(source, expected, supplied)\n}\n#[allow(dead_code, reason = \"Invocable complete predecessor acquisition route\")]\nfn value_direct_before_nested_context(source: &str, expected: &str, supplied: &str) -> String {").count(), 1);
     restored = restored.replacen("pub(crate) fn value_direct(source: &str, expected: &str, supplied: &str) -> String {\n    ProjectionInvocation::new().value_direct(source, expected, supplied)\n}\n#[allow(dead_code, reason = \"Invocable complete predecessor acquisition route\")]\nfn value_direct_before_nested_context(source: &str, expected: &str, supplied: &str) -> String {", "pub(crate) fn value_direct(source: &str, expected: &str, supplied: &str) -> String {", 1);
@@ -437,7 +524,10 @@ fn root_before_nested_context(current: &str) -> String {
     assert_eq!(restored.matches("pub(crate) fn file(path: &Path, length: usize, expected: &str) -> Option<String> {\n    ProjectionInvocation::new().file(path, length, expected)\n}\n#[allow(dead_code, reason = \"Invocable complete predecessor acquisition route\")]\nfn file_before_nested_context(path: &Path, length: usize, expected: &str) -> Option<String> {").count(), 1);
     restored = restored.replacen("pub(crate) fn file(path: &Path, length: usize, expected: &str) -> Option<String> {\n    ProjectionInvocation::new().file(path, length, expected)\n}\n#[allow(dead_code, reason = \"Invocable complete predecessor acquisition route\")]\nfn file_before_nested_context(path: &Path, length: usize, expected: &str) -> Option<String> {", "pub(crate) fn file(path: &Path, length: usize, expected: &str) -> Option<String> {", 1);
     assert_eq!(restored.len(), 112069);
-    assert_eq!(digest(restored.as_bytes()), "c99aa4c8f163fd93f2c5ab7dc050bbd69e0d2a5568f1faf2a02e8c62faf533a5");
+    assert_eq!(
+        digest(restored.as_bytes()),
+        "c99aa4c8f163fd93f2c5ab7dc050bbd69e0d2a5568f1faf2a02e8c62faf533a5"
+    );
     restored
 }
 
@@ -1034,4 +1124,131 @@ fn assert_transitive_context_source() {
         let original = "fn value_direct_4a6eb(".to_owned() + root.split_once("fn value_direct_4a6eb(").unwrap().1.split_once("// Exact finite successor").unwrap().0;
         assert_eq!(restored, original.trim_end(), "whole direct_row_context source inverse");
     }
+// Caller-cap lookup retained verbatim in the already audited sibling.
+pub(super) fn registered_file(source: &str, expected: &str, cap: usize) -> Option<String> {
+    if cap == 0
+        || !Path::new(source)
+            .components()
+            .all(|part| matches!(part, std::path::Component::Normal(_)))
+        || expected.len() != 64
+        || !expected
+            .bytes()
+            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    {
+        return None;
+    }
+    let cap = cap.min(SOURCE_CAP);
+    let packet = super::packet();
+    let row = packet["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["source"] == source)?;
+    let selected = std::iter::once(&row["current"])
+        .chain(row["views"].as_array().unwrap().iter())
+        .find(|pin| pin["sha256"] == expected)?;
+    let fits = |pin: &Value| pin["length"].as_u64().unwrap() <= cap as u64;
+    if !fits(selected) || !fits(&row["current"]) {
+        return None;
+    }
+    if let Some(children) = row.get("fragments") {
+        for child in children.as_array().unwrap() {
+            assert!(child.get("fragments").is_none());
+            if !fits(&child["current"]) {
+                return None;
+            }
+        }
+    }
+    let current = super::actual(row);
+    if selected == &row["current"] {
+        Some(current)
+    } else {
+        Some(super::read_view(selected))
+    }
+}
+
+pub(super) fn registered_digest_reads_keep_current_history_and_each_original_file_bound() {
+    use super::registered_file;
+    let packet = super::packet();
+    let rows = packet["rows"].as_array().unwrap();
+    let source = "src/source_reflows_merge/runtime_json.rs";
+    let row = rows.iter().find(|row| row["source"] == source).unwrap();
+    let current = super::actual(row);
+    let current_sha = row["current"]["sha256"].as_str().unwrap();
+    assert_eq!(
+        registered_file(source, current_sha, SOURCE_CAP),
+        Some(current.clone())
+    );
+    assert!(registered_file(source, current_sha, current.len() - 1).is_none());
+    assert!(registered_file(source, current_sha, 0).is_none());
+    assert!(registered_file(source, &"0".repeat(64), SOURCE_CAP).is_none());
+    assert!(registered_file("foreign-unregistered.rs", current_sha, SOURCE_CAP).is_none());
+    assert!(registered_file(
+        "../src/source_reflows_merge/runtime_json.rs",
+        current_sha,
+        SOURCE_CAP
+    )
+    .is_none());
+    assert!(registered_file(source, "not-a-digest", SOURCE_CAP).is_none());
+    let prior = row["views"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|pin| pin["length"].as_u64().unwrap() < current.len() as u64)
+        .unwrap();
+    let prior_sha = prior["sha256"].as_str().unwrap();
+    let before = super::read_view(prior);
+    assert_eq!(
+        registered_file(source, prior_sha, SOURCE_CAP),
+        Some(before.clone())
+    );
+    // A short historical output cannot hide a larger current source read.
+    assert!(registered_file(source, prior_sha, before.len()).is_none());
+    let parent = rows
+        .iter()
+        .find(|row| {
+            row.get("fragments").is_some_and(|children| {
+                children.as_array().unwrap().iter().any(|child| {
+                    child["current"]["length"].as_u64().unwrap()
+                        > row["current"]["length"].as_u64().unwrap()
+                })
+            })
+        })
+        .unwrap();
+    let source = parent["source"].as_str().unwrap();
+    let sha = parent["current"]["sha256"].as_str().unwrap();
+    let length = parent["current"]["length"].as_u64().unwrap() as usize;
+    assert!(registered_file(source, sha, length).is_none());
+    assert_eq!(
+        registered_file(source, sha, SOURCE_CAP),
+        Some(super::actual(parent))
+    );
+}
+
+#[test]
+fn combined_side_invocation_checks_current_and_complete_prior_before_returning() {
+    let packet = super::combined_side_packet();
+    let row = &packet["rows"].as_array().unwrap()[0];
+    let pin = &row["views"].as_array().unwrap()[0];
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let path = root.join(row["source"].as_str().unwrap());
+    let mut invocation = ProjectionInvocation::new();
+    assert_eq!(
+        invocation.combined_side_file(
+            &path,
+            pin["length"].as_u64().unwrap() as usize,
+            pin["sha256"].as_str().unwrap()
+        ),
+        Some(super::read_view(pin))
+    );
+    assert!(invocation
+        .combined_side_file(
+            &path,
+            pin["length"].as_u64().unwrap() as usize,
+            &"0".repeat(64)
+        )
+        .is_none());
+    assert!(invocation
+        .combined_side_file(&root.join("foreign-unregistered.rs"), 0, &"0".repeat(64))
+        .is_none());
 }

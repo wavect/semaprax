@@ -1,0 +1,15 @@
+# Stable report backing and historical browser Clippy controls
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
+The exact df942b53e9947be1f4f388f3d744310a4ad52060 heavy job 117603050299 exposed a two-byte difference between the ordinary production-limit and exact-minimum builder bills. The final-refusal owner previously sized its real message/help backing using the decimal width of the private effective limit. It now counts the full usize width for those same two owned allocations before acquiring them. Actual diagnostic rendering still uses the effective maximum and original context. No invoice is removed, no ledger/work allowance is raised, and every existing exact/one-short and hostile case remains. A new regression in the existing publication harness compares every diagnostic field, stable backing invoices, and complete actual deallocation across nine decimal boundaries.
+
+A bounded standalone Rust probe uses the actual formatter bodies, every complete borrowed-help branch, actual stage labels and actual allocation observer. It reproduces the old backing drift and passes all 63 branch/boundary combinations with stable current capacities, exact rendered text and full Drop. Its scope and visibility adapter are explicit; it does not execute the compiler, full Owner chain, or hosted fixture. Full compiler regressions remain CI gates.
+
+The exact parent Windows build job 117611150209 reported 15 Clippy errors in the historical browser test harness. Three unused imports and a one-element loop are simplified. Complete independently compiled historical module trees and two historical entries remain, with scoped reasoned lint attributes. A tiny real Clippy probe reproduces nested duplicate_mod without the attribute and executes both original module instances after it. Complete before/current files retain every previous body for review.
+
+The actual Chromium job 117611150030 passed on parent 7274134cac, including browser runtime and HTTPS fixtures. This is parent-head evidence only. Stable-width report backing changes actual production reservations; browser graph known answers must be recaptured from the eventual actual compiler, not predicted from this source change. The unchanged STD-08 full fixture still refuses 67108864 bytes in HIR final validation on that parent.
+
+The finite source page retains all 543 logical subjects and every prior view/edge. Only the two already enrolled historical helper subjects enter its replacements; the report subjects remain outside its domain, as before. All 342 original owners and their roles/order remain. Original strict, successor, browser and finite-page tamper controls and both complete original source-role domains pass with their original bounds. These are source-only results. Full current-head CI/quality profiles, unchanged full fixtures and 64 MiB caps, real runtime cost reduction, current genuine 174/FINAL6 producers, and genuine Lean gates remain required.

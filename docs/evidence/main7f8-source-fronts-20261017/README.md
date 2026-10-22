@@ -1,5 +1,9 @@
 # Main7f8 incoming source-owner fronts — source only
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base37c771b08. This batch installs distinct immutable historical input routes for be1984/524a/7f8 source readers while keeping actual behavior and actual compiled-control reads live. It carries no production authority or current runtime qualification. No Cargo, rustc, full gates or pin producers were run.
 
 ## Complete incoming routes

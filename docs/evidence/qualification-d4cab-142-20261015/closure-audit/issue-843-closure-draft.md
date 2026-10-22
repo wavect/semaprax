@@ -1,3 +1,9 @@
+# closure-audit issue-843-closure-draft
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Ready for parent verification and archive publication before posting.
 
 Implemented one paid invocation closure-receiving owner shared across both roots and a genuine unit producer. **All 11 direct owning gates PASS**, including exact/short/zero and work frontiers, full old IDs/verdict/work/diagnostics, success/arithmetic-None/failure distinction, first sticky failure/floors, direct foreign/restored cached-view invalidation and complete independent immediate-old receiver/caller/source histories. Still-existing outer/scratch/root/nested Result payments remain.

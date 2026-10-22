@@ -1,0 +1,7 @@
+# source-binding-f7357ec46-20261017 README
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
+Actual source-only integration attempt at f7357ec46b2b860682a31cbe5fc01a80209509e6. Main fronts and composed endpoints passed; common refresh stopped at the old Main043 semantic receiver input SHA. Generated endpoint/Main8a metadata is retained as partial source binding only. No build, Rust test, Clippy, capture or benchmark passed in this attempt. Complete stderr is retained; old verifier assertions remain unchanged.

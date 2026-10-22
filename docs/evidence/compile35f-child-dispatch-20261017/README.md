@@ -1,3 +1,9 @@
+# compile35f-child-dispatch-20261017 README
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The common refresh's generated source-parts child directly invoked the frozen
 35f runner. That runner loads its frozen stage, so it bypassed the public
 corrected-fixture and owned-growth acquisition generation. This packet changes

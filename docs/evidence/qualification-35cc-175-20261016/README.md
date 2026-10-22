@@ -1,5 +1,9 @@
 # Focused qualification at 35cc6325
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Five explicit sequential builds PASS in 709.969 seconds. No full suite or full quality gate ran. The source-bound selection executed all 175 exact owners: **135 PASS / 40 FAIL**, zero count mismatches, no resource or observation refusal, every owned process group confirmed empty. The complete unfiltered receipts, raw logs, memory observations, original drivers and manifest are retained under `raw/`; the parent independently authenticated every selected log and binding. Selected phases sum to 1180.065 seconds; this excludes some controller setup and artifact hashing and is not an end-to-end benchmark wall time.
 
 Both scoped core and full-CLI production Clippy commands actually FAIL the same `derivable_impls` lint in compact_nodes.rs. No lint waiver was applied. A derived Default correction is private and unqualified.

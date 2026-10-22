@@ -1,3 +1,9 @@
+# closure-audit issue-834-closure-draft
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Ready for parent verification and archive publication before posting.
 
 Implemented capacity `min(first-pass occurrences, checked total workspace types)`, retaining original names/work/overflow order, both traversals and canonical semantics. **All 15 exact owning gates PASS**, including the mandatory cold measurement, full independent old/current receivers, diagnostics, byte/work frontiers, floor and foreign/restored authority and source custody.

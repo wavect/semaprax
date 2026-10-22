@@ -1,3 +1,9 @@
+# closure-audit issue-839-closure-draft
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Ready for parent verification and archive publication before posting.
 
 Implemented retained authenticated cursor/frame/open scratch and genuinely removed the repeated warm Diagnostic-bearing success carrier. **All 31 direct owning gates PASS**: complete independent old/ordinary receivers, full construction/growth/overlap/Drop, cache-hit work, zero/exact/short/floor/foreign/stale/restored authority, six-field first failure and full source/inverse custody.

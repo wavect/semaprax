@@ -1,0 +1,12 @@
+
+running 7 tests
+test byte_failure_tests::compact_byte_error_preserves_all_public_fields_message_ownership_and_zero_backing ... ok
+test byte_failure_tests::compact_byte_error_refuses_extended_diagnostic_fields_instead_of_discarding_them ... ok
+test byte_failure_tests::compact_byte_error_result_layout_is_smaller_than_the_unchanged_public_diagnostic ... ok
+test test_allocation_observer::free_order::tests::a_reacquired_address_does_not_repeat_the_initial_release_event ... ok
+test test_allocation_observer::free_order::tests::allocator_replacement_keeps_the_initial_watch_and_all_layout_counters ... ok
+test test_allocation_observer::free_order::tests::duplicate_free_without_reacquisition_and_live_reacquisition_still_refuse ... ok
+test test_allocation_observer::free_order::tests::missing_release_still_refuses_and_unwatched_events_do_not_hide_it ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

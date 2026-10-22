@@ -1,5 +1,9 @@
 # Actual175 corrections and latest Main: source-only checkpoint
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The inherited source front authenticates 36 complete current inputs to c159, then retains its unchanged two-row35cc join and every prior MAIN/doc/90-runtime-fixture chain. A separate four-row front restores all eleven direct849 inputs to paid82fea before its immutable35c/Main019d stages. All four850 direct inputs remain byte-exact1ef, so its two original inline full-input stages execute unchanged. Full before archives accompany every new inverse. The actual canonical shared model remains the physical application fixture; only explicit historical source guards see its old bytes.
 
 The current production source authority manifests are newly generated: HIR338 production/442 test-only files; projection58/56. They preserve raw concatenations and every original forbidden predicate, authenticate complete current source hashes and actual closed registration chains, reject unknown children, and pass all six existing static negatives. Every original raw include remains in the same order and multiplicity; the new owners are joined in all three raw inventories. Interop remains1500 lines.

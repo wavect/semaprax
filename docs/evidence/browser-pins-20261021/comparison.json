@@ -1,0 +1,49 @@
+{
+  "status": "EXACT_HOSTED_RECORD_AND_FULL_WIRE_COMPARISON_PASS",
+  "run": 39540011351,
+  "head": "85f70a7cb7599a228b6800358ea7d1d386df7785",
+  "job": 119026036286,
+  "compiler": {
+    "binary_sha256": "4d3c8ea85b882563dcc56eb12a7ea41bbb33bcb2e3a6d7aa8c9ed12aa361668f",
+    "head": "85f70a7cb7599a228b6800358ea7d1d386df7785",
+    "rustc": "rustc 1.88.0 (6b00bc388 2025-06-23)\nbinary: rustc\ncommit-hash: 6b00bc3880198600130e1cf62b8f8a93494488cc\ncommit-date: 2025-06-23\nhost: x86_64-unknown-linux-gnu\nrelease: 1.88.0\nLLVM version: 20.1.5\n"
+  },
+  "raw_log_sha256": "4c2b1645aa2bba6b5f77f5f5cc25cf911ef3e15974fae5cbb671f3369530bd14",
+  "subjects": [
+    {
+      "subject": "calculator-baseline.json",
+      "differences": [
+        [
+          "/graph_digest",
+          "sha256:383323c2c8d76829ccb0600db4626d5214cfb475d6b765282e32cad0477e62c4",
+          "sha256:cdabfb16f746aada56c1100fc074d1ccff0ced6fcf3926abd344c1f6560fd1b7"
+        ],
+        [
+          "/budget/used_builder_bytes",
+          3760906,
+          3684292
+        ]
+      ],
+      "all_other_wire_bytes_equal": true,
+      "domain_digest_independently_recomputed": true
+    },
+    {
+      "subject": "calculator-renamed.json",
+      "differences": [
+        [
+          "/graph_digest",
+          "sha256:27e4bb132413637de37dcebfb9532ad48b8661bbdd6c37c621db0d34dc05243d",
+          "sha256:f97d976350a8e162bb775fb390cd95c4cf40d78859b65183aacaf2809bd86bde"
+        ],
+        [
+          "/budget/used_builder_bytes",
+          3760906,
+          3684292
+        ]
+      ],
+      "all_other_wire_bytes_equal": true,
+      "domain_digest_independently_recomputed": true
+    }
+  ],
+  "browser_runtime_pass_claimed": false
+}

@@ -1,5 +1,9 @@
 # OPT878 borrowed merge keys: source candidate
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 This is the key-storage part of issue #878, based on
 `36c6deb98720e243b0daaf81e813fbe3ec3b0a2d`. Execution and application
 qualification are pending. It does not close #878 or claim that the reported

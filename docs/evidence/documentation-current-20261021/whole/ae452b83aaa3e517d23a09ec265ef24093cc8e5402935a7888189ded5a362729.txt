@@ -1,0 +1,13 @@
+# main-f1-prefix-lexical-subsumption-20261016 UPSTREAM-856
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
+The Main commit f1f8b5943d784043d24b39daa35bef91aafe02da adds `sequence_prefix::try_take` with six argument receivers and a `Result<Option<Observations>, Diagnostic>` boundary before the receiving bank inside that callee. Eligibility/bypass branches return `Ok(None)` before any receiving debit. The chosen branch's `reserve_array::<u8>` also forms its checked multiplication Option, checked-size Result and forwarding payment Result; these are absent from the declared receiving inventory.
+
+The earlier `SkeletonWork::clone_observations` receives an observation reference and phase, charges the original clone work, reserves clone ownership, and returns one `Result<Observations, Diagnostic>`. That existing boundary does not authenticate the additional helper arguments, optional transport, or eligibility receivers on the new route.
+
+Acceptance: eliminate genuinely absent receivers lexically or pay each new actual receiving boundary before argument/result formation, preserve the complete old clone receiver and all field/order/work/materialization/zero/exact/short/sticky/Drop controls, preserve sticky first refusal provenance, and retain the actual transfer optimization. No aggregate guessed fee, cap change, or disabled optimization. Preserve independently compiled Main original controls and source inverses. Source-only finding: no runtime failure or measured saving is claimed.
+
+The PR implementation already has a broader lexical single-suffix transfer at the same sequence site. Its shipping receiver can remain byte-exact, removing the new helper boundary entirely while preserving Main as an independent historical receiver. The auto-merged helper otherwise runs only after the existing single-suffix path has continued, so it cannot transfer there.

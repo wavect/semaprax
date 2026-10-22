@@ -1,5 +1,9 @@
 # Actual focused runtime at fade6f4df
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 All five owning build commands passed. The 247 selected owners completed with **192 PASS / 55 FAIL**, no resource refusal; this is not a full-suite pass or an agent benchmark. The summary retains every selector, actual status, source/artifact binding, original log hash and owned-group settlement. Original full telemetry remains on the external SSD.
 
 Issue #859 has eight required passing owners (216–223); their complete logs are retained here. It was closed with the scoped evidence. Issue #860 remains open: its inventory sentinel and module-size owners failed. The subsequent implementation batch remains unqualified until its affected checks run.

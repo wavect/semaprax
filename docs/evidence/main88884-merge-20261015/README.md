@@ -1,5 +1,9 @@
 # Merge current main CI fixes with the optimization batch
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Parents: optimization6e549d1ae and main88884d148d9c148eed61bc3265eed955edf19346. All69 complete stage inputs for23 conflict paths are retained as deterministic gzip with Git blob IDs and raw/compressed SHA256. The separate resolved binding covers every conflict path; per-lane rationales record the semantic choices. No source history or independent comparison receiver is discarded.
 
 The merge retains the authored byte-ancestry and exact context-identity fixes, held-function region lookup, journal unlock/dependency pins, parser and graph admission repairs, as well as the optimization branch's paid certified status, retained scratch, ordered storage, record-field updates and starter route. The independent old_drop fixture remains independent; both recursive legacy cases and record-only parse refusal remain. Both report Vec owners live through their original pointer assertions.

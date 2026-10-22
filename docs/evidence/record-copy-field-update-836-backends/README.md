@@ -1,5 +1,9 @@
 # #836 native C11 and private Core-Wasm backend packet
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Frozen basis: `e3eb476838442b58c02ccc815aae4bbdfebfd50e`.
 Dependency: frontend interface `2677c34b3` (private cherry-pick `a4c91d7aa`).
 The complete frontend/validation/cleanup/interpreter continuation

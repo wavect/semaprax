@@ -1,5 +1,9 @@
 # NEXT831/858/852 finite source composition
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Combined from parent `e9dd415b563412b160fd4737102b9cb5437b1008` only:
 
 - 831 `c80285c7b1dc5bb9b0c7e51e389b601b63a49034`.

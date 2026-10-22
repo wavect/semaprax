@@ -1,0 +1,19 @@
+{
+  "status": "ORIGINAL_CURRENT_CODEC_COMPOSITION_PASS_PENDING_PUBLICATION",
+  "base_head": "874b03052c6813cce9d6c0727b059cc6dbb6669f",
+  "rows": 687,
+  "page_bytes": 228965,
+  "published_current_preserved_as_exact_views": [
+    {
+      "source": "src/hir/expr_nodes.rs",
+      "view": {
+        "length": 38151,
+        "sha256": "83b966066744c034bee88a717094f08891df2c6a813bbee17126ddc458b37666",
+        "archive": "docs/evidence/fmt-a110/g7lmBmdEwDS-6IpxcJTwiJHfLGqBO77hcSbdxFizdmY.txt",
+        "name": "whole-pre-residual-layout-874a15bdd5"
+      }
+    }
+  ],
+  "all_previous_fields_views_memberships_and_fragment_edges_retained": true,
+  "all_original_codec_bodies_and_caps_unchanged": true
+}

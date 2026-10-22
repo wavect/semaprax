@@ -1,0 +1,42 @@
+
+running 37 tests
+test source_reflows::a_changed_current_byte_is_refused_before_an_inverse_can_hide_it ... ok
+test source_reflows::approved_reflows_authenticate_full_inputs_and_reconstruct_full_predecessors ... ok
+test source_reflows::incoming67107_semantic_receivers::complete_followup_receivers_keep_all_original_source_bytes ... ok
+test source_reflows::incoming67107_semantic_receivers::complete_main34d_inputs_keep_all_domains_and_refuse_wrong_source_and_bounded_io ... ok
+test source_reflows::incoming67107_semantic_receivers::every_receiver_inverse_preserves_the_entire_reflow_input_and_archive ... ok
+test source_reflows::main043::audit_0::complete_before_exit_receiver_and_full_source_inverses_remain_exact ... ok
+test source_reflows::main043::audit_1::complete_original_owner_is_executed ... ok
+test source_reflows::main043::audit_2::legacy_nominal_complete_original_sources_and_semantic_constructor_stay_exact ... ok
+test source_reflows::main043::audit_3::complete_original_and_all_source_audit_receivers_are_byte_exact ... ok
+test source_reflows::main043::audit_4::complete_original_arena_and_every_added_source_join_have_exact_full_inverses ... ok
+test source_reflows::main043::audit_5::complete_original_owner_is_executed ... ok
+test source_reflows::main043::audit_6::complete_before_edge_receiver_and_current_full_source_remain_exact ... ok
+test source_reflows::main043::audit_7::selected_session_complete_source_inverses_and_old_layout_definitions_stay_bound ... ok
+test source_reflows::main043::audit_8::complete_before_status_fact_receiver_and_full_source_remain_exact ... ok
+test source_reflows::main_f247_controllers::held_status_views_preserve_complete_original_inputs_and_validation_loops ... ok
+test source_reflows::semantic_receivers::allocation_followup_preserves_the_complete_original_format_input ... ok
+test source_reflows::semantic_receivers::complete_followup_receivers_keep_all_original_source_bytes ... ok
+test source_reflows::semantic_receivers::incoming_main090::every_receiver_inverse_preserves_the_entire_reflow_input_and_archive ... ok
+test source_reflows::semantic_receivers::incoming_main090::proof_current_read_retains_the_complete_original_proof_domain ... ok
+test source_reflows::semantic_receivers::incoming_main090::receiver_mutation_and_forged_predecessor_fail_closed ... ok
+test source_reflows::semantic_receivers::incoming_main21::every_receiver_inverse_preserves_the_entire_reflow_input_and_archive ... ok
+test source_reflows::semantic_receivers::incoming_main21::proof_current_read_retains_the_complete_original_proof_domain ... ok
+test source_reflows::semantic_receivers::incoming_main21::receiver_mutation_and_forged_predecessor_fail_closed ... ok
+test source_reflows::semantic_receivers::receiver_mutation_and_forged_predecessor_fail_closed ... ok
+test source_reflows::semantic_receivers_maina3::every_receiver_inverse_preserves_the_entire_reflow_input_and_archive ... ok
+test source_reflows_merge::main_e177_final_inputs::overlay_v2::registered_digest_reads_keep_current_history_and_each_original_file_bound ... ok
+test source_reflows_merge::main_e177_final_inputs::overlay_v2::tests::finite_page_current_compiled_and_archive_channels_are_required_before_history ... ok
+test source_reflows_merge::main_e177_final_inputs::overlay_v2::tests::finite_page_exact_bound_compiled_physical_and_json_hostiles_are_independent ... ok
+test source_reflows_merge::main_e177_final_inputs::overlay_v2::tests::finite_page_literal_policy_replays_the_complete_519_metadata_inverse ... ok
+test source_reflows_merge::main_e177_final_inputs::overlay_v2::tests::finite_page_original_held_reader_keeps_nonregular_and_symlink_refusals ... ok
+test source_reflows_merge::main_e177_final_inputs::overlay_v2::tests::finite_page_refuses_lost_views_old_current_classification_and_unknown_fields ... ok
+test source_reflows_merge::main_e177_final_inputs::overlay_v2::tests::finite_page_refuses_nonleaf_duplicate_forged_and_undeclared_fragments ... ok
+test source_reflows_merge::main_e177_final_inputs::overlay_v2::tests::finite_page_refuses_wrong_schema_predecessor_scope_order_and_unknown_keys ... ok
+test source_reflows_merge::main_e177_final_inputs::overlay_v2::tests::finite_page_retains_the_entire_predecessor_object_and_unknown_fields ... ok
+test source_reflows_merge::main_e177_final_inputs::overlay_v2::tests::finite_page_source_cap_is_per_full_source_and_not_an_aggregate_budget ... ok
+test source_reflows_merge::merge_projection_selects_only_the_requested_complete_current_view ... ok
+test source_reflows_merge::runtime_json::complete_receiver_followup_keeps_both_original_prefixes_and_refuses_changed_inputs ... ok
+
+test result: ok. 37 passed; 0 failed; 0 ignored; 0 measured; 203 filtered out; finished in 148.52s
+

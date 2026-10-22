@@ -1,0 +1,29 @@
+# Compiler-owned retained JSON codec receipt source candidate
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
+Base: `7f8e901da66015b09a25d3a1b96b2abebf21e92f` (actual latest-main source cut, separate from ROOT and the ready831/host branches). Protocol: [JSON codec retained receipt v1](../../JSON-CODEC-RETAINED-RECEIPT-V1.md).
+
+This implements the next compiler-side protocol proposed by the f3f6 host handoff. It does not modify that host patch, benchmark task/baseline, runner, old accounting labels, live selection, or existing v1 output. No OPT606 closure or efficiency claim is made.
+
+The actual owner is `src/project/json_codec/retained_receipt.rs`: existing ordinary Project authentication surrounds complete original held-handle capture and two actual ordinary codec-plan derivations from the same immutable revision. `src/project/authority/retained_input.rs` reads only existing held handles under their original bounds and full expected SHA/length; it leaves ordinary identity/permission/ancestor rechecks intact. Complete exact original manifest, declared sources and dependency envelopes remain distinct from resolved source and mixed generated candidate inventories. The library receipt is authority-neutral and contains no held handles or retained root.
+
+`src/cli/json_codec/retained_receipt.rs` is the additive `--retained-receipt` single-codec route. Existing option/profile parsing is reused; plan/explain ambiguity refuses. One bounded complete JSON artifact uses the old exclusive private-file/write/sync/hard-link publisher. It creates neither a source-plus-sidecar partial transaction nor an external compiler invocation. The original CLI parse function, entire ordinary run/publish body and every existing CLI test are byte-exact. The ordinary plan implementation and snapshot loader are unchanged.
+
+The inner existing bundle identifies actual checked compiler outputs, original/candidate revisions, profiles/bounds and generated identities; two exact serialized bundle hashes bind the actual two derivations. A private shared workflow test double authors the failed-second-pass and disagreement controls, while production passes the actual ordinary generator. No independent process is represented by that test double or by the production same-process repeat. `compiler_package_version` is compatibility only, `compiler_binary_sha256` remains null and `independent_execution` remains false. Publication policy is descriptive; actual publication success remains the command return/artifact. External sandbox binary/invocation binding, host replay/adoption and any independent-execution obligation remain separate required work before full606 accounting can pass.
+
+`source-cuts.json` retains six complete original changed inputs and exact full-current-to-original line inverses with SHA256 at both endpoints, plus all six complete new Rust source hashes and three unchanged plan/loader owners. Existing57 assertions within the changed preimages remain complete. New source is registered through ordinary child modules; both new tests.rs children have explicit file-relative `#[path]`, as does the integration child in its existing Project harness. Project/CLI authority code is not projected into the unrelated pure-HIR inventory boundary. No HIR/raw boundary predicate or existing raw guard is removed or weakened.
+
+Source verification passed: six full originals, six new Rust sources, three unchanged owners,57 original assertions,24 rejected source/inverse drift controls, seven pending executable owners. The verifier proves source preservation, finite endpoints and registration spelling only. It does not prove Rust typing, successful admission, runtime results or protocol qualification. Rustfmt parsed the11 touched Rust files using the repository's edition2021 and skip_children; no Cargo, build, Rust compiler, test, provider call or full gate ran.
+
+Run the bounded source verifier with external tmp:
+
+```sh
+TMPDIR=/Volumes/Semaprax/runtime-tmp PYTHONDONTWRITEBYTECODE=1 /opt/homebrew/bin/python3 docs/evidence/json-codec-retained-receipt-20261017/verify-source.py
+```
+
+`pending-owners.json` binds literal package/kind/target/selector plus current file/line/SHA. The7 new owners cover original full byte capture, raw content/physical identity drift, second-pass failure/disagreement, closed CLI grammar, resolved bundled closure and full ordinary-plan equivalence, rehashed/partial/output/profile/repeat/binary forgeries, complete original diagnostic equality, exact JSON decode, no-overwrite/no-partial publication and unchanged source-output mode. Ordinary existing codec-plan/CLI controls remain required when parent selects qualification. Local dependency-envelope capture is source-bound to the existing admitted manifest/held vectors; successful use still requires ordinary Project/package profile admission and owning executable evidence.
+
+Integration should preserve all current sibling registrations/help text/changelog entries additively. If a root or whole-source owner has advanced, compose against the full retained preimages rather than overwriting the current endpoint or rewriting old proofs. All final source-binding/selection/qualification and host adoption remain parent-owned. No central generator, active selection, GH mutation or push was performed here.

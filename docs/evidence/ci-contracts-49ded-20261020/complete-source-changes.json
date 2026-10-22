@@ -1,0 +1,106 @@
+[
+  {
+    "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/source_format.rs",
+    "before": {
+      "length": 54054,
+      "sha256": "a68251696a3d686463b3089406c0f2d285d28eea7a8ebb22e2cdb47105d2ebe0",
+      "archive": "docs/evidence/ci-contracts-49ded-20261020/whole/a68251696a3d686463b3089406c0f2d285d28eea7a8ebb22e2cdb47105d2ebe0.txt"
+    },
+    "current": {
+      "length": 54054,
+      "sha256": "d0348f77bacb99ac3e6dbd4720a6fcca9e98cd1961d1e0a3730a5124df0cc25c",
+      "archive": "docs/evidence/ci-contracts-49ded-20261020/whole/d0348f77bacb99ac3e6dbd4720a6fcca9e98cd1961d1e0a3730a5124df0cc25c.txt"
+    }
+  },
+  {
+    "source": "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+    "before": {
+      "length": 10420,
+      "sha256": "0b638f6ff16f4d5615fb9cf281b9bf0955548a7592808cb72b3f35c1e848c20a",
+      "archive": "docs/evidence/ci-contracts-49ded-20261020/whole/0b638f6ff16f4d5615fb9cf281b9bf0955548a7592808cb72b3f35c1e848c20a.txt"
+    },
+    "current": {
+      "length": 10423,
+      "sha256": "d38b924a6d83a6d77aaa71f2d20b879cba48b3d5db4f43beaf3e01f2dd4a70b6",
+      "archive": "docs/evidence/ci-contracts-49ded-20261020/whole/d38b924a6d83a6d77aaa71f2d20b879cba48b3d5db4f43beaf3e01f2dd4a70b6.txt"
+    }
+  },
+  {
+    "source": "src/target_evidence.rs",
+    "before": {
+      "length": 20539,
+      "sha256": "bbff99e100a273512ad35f11d27bdce46065d065a988789f6dacb6980a591387",
+      "archive": "docs/evidence/ci-contracts-49ded-20261020/whole/bbff99e100a273512ad35f11d27bdce46065d065a988789f6dacb6980a591387.txt"
+    },
+    "current": {
+      "length": 20539,
+      "sha256": "bef8a7262ec49ab30b78ed274791c723c346b948243910379f3ed085cff4a43d",
+      "archive": "docs/evidence/ci-contracts-49ded-20261020/whole/bef8a7262ec49ab30b78ed274791c723c346b948243910379f3ed085cff4a43d.txt"
+    }
+  },
+  {
+    "source": "tests/semantic/target_evidence.rs",
+    "before": {
+      "length": 24437,
+      "sha256": "93a82a10a3c7423af6ec0bd118b23826497acaaf14806eaef320768e0aabd959",
+      "archive": "docs/evidence/ci-contracts-49ded-20261020/whole/93a82a10a3c7423af6ec0bd118b23826497acaaf14806eaef320768e0aabd959.txt"
+    },
+    "current": {
+      "length": 24437,
+      "sha256": "80bcbca31cb8feb0d4835f083cfc0f829028fb98f6e6b2d42fcf6e6473a13d3c",
+      "archive": "docs/evidence/ci-contracts-49ded-20261020/whole/80bcbca31cb8feb0d4835f083cfc0f829028fb98f6e6b2d42fcf6e6473a13d3c.txt"
+    }
+  },
+  {
+    "source": "docs/SEMANTIC-TARGET-EVIDENCE-V1.md",
+    "before": {
+      "length": 11232,
+      "sha256": "cb2588b0d0fe5ee3e93df35143a52722a44bd0f5c6fe7a4313d6c687930afc27",
+      "archive": "docs/evidence/ci-contracts-49ded-20261020/whole/cb2588b0d0fe5ee3e93df35143a52722a44bd0f5c6fe7a4313d6c687930afc27.txt"
+    },
+    "current": {
+      "length": 11272,
+      "sha256": "4dd150d5d784ac257b3d5b9c88d645b6f6e38191e8be9f70bde6c71fc27c57b6",
+      "archive": "docs/evidence/ci-contracts-49ded-20261020/whole/4dd150d5d784ac257b3d5b9c88d645b6f6e38191e8be9f70bde6c71fc27c57b6.txt"
+    }
+  },
+  {
+    "source": "CHANGELOG.md",
+    "before": {
+      "length": 584142,
+      "sha256": "5528cafd20d6e2deffb7726be76b8ca26527d5a9d634ac8f61ec18e198460131",
+      "archive": "docs/evidence/ci-contracts-49ded-20261020/whole/5528cafd20d6e2deffb7726be76b8ca26527d5a9d634ac8f61ec18e198460131.txt"
+    },
+    "current": {
+      "length": 584866,
+      "sha256": "96fe768a5b1de1151219efb63d7deabc762e8196aee9db75ff0a970bb6dbc5cb",
+      "archive": "docs/evidence/ci-contracts-49ded-20261020/whole/96fe768a5b1de1151219efb63d7deabc762e8196aee9db75ff0a970bb6dbc5cb.txt"
+    }
+  },
+  {
+    "source": "tests/semantic/patch_evidence_v2.rs",
+    "before": {
+      "length": 25355,
+      "sha256": "c1c4cd1786252fdb0266a88909bef63fd6899cab6232c89d5aa3fb4986f5f868",
+      "archive": "docs/evidence/ci-contracts-49ded-20261020/whole/c1c4cd1786252fdb0266a88909bef63fd6899cab6232c89d5aa3fb4986f5f868.txt"
+    },
+    "current": {
+      "length": 25355,
+      "sha256": "f5b4e2ea01b9e0b74d84240c036149a5cee50f8826a5517c07115a23e32f8df4",
+      "archive": "docs/evidence/ci-contracts-49ded-20261020/whole/f5b4e2ea01b9e0b74d84240c036149a5cee50f8826a5517c07115a23e32f8df4.txt"
+    }
+  },
+  {
+    "source": "src/project/candidate/wire.rs",
+    "before": {
+      "length": 8406,
+      "sha256": "b9cb75028a949be61cff45804bc56459100f8bc65b322c0c81b27a74167b3a6d",
+      "archive": "docs/evidence/ci-contracts-49ded-20261020/whole/b9cb75028a949be61cff45804bc56459100f8bc65b322c0c81b27a74167b3a6d.txt"
+    },
+    "current": {
+      "length": 8406,
+      "sha256": "a3189cb20eb761faae511d17c2132d7857952518faf6d6b21dcf5e19a6bd5a2a",
+      "archive": "docs/evidence/ci-contracts-49ded-20261020/whole/a3189cb20eb761faae511d17c2132d7857952518faf6d6b21dcf5e19a6bd5a2a.txt"
+    }
+  }
+]

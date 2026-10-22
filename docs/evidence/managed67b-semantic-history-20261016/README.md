@@ -1,5 +1,9 @@
 # Fixed imported-Point metadata migration (historical 67b capture)
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 This is source-only pin preparation and a static byte proof. It does not claim a
 new build, producer run, current-head acceptance, full quality gate, or issue
 closure. The actual capture is from

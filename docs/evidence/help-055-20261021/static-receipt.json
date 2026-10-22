@@ -1,0 +1,9 @@
+{
+  "status": "PASS_HELP_GRAMMAR_AND_PROSE_REPAIR",
+  "all_original_quick_reference_code_fences_byte_exact": true,
+  "original_changelog_tail_byte_exact": true,
+  "dispatcher_authority_unchanged": true,
+  "topic_limit_bytes": 5000,
+  "current_projects_topic_bytes": 4986,
+  "original_global_catalog_and_integration_assertions_unchanged": true
+}

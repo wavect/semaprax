@@ -1,3 +1,9 @@
+# opt-844-845-846-closure-20261016 issue-845-closure-comment-20261016
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Implemented the existing typed reporting boundary while preserving initial failure provenance and the complete selected diagnostic. All six real public reporting consumers PASS at `8bb9f5b7`: two in the 76-check batch, four in the separate supplement. Ten core diagnostic/lifetime/old-receiver controls retain their historical `35cc6325` PASS status; their bodies and six owning production files are byte-identical at 8bb and were not rerun.
 
 Scope is the actual compatibility-Vec removal through the typed boundary. Allocating compatibility/output residuals remain explicit; this does not close #825 or claim fully funded diagnostic output.

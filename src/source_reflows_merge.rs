@@ -1,5 +1,6 @@
-//! Complete physical-input successors for the immutable CI and Source36 views.
-//! This test-only projection owns no compiler authority and grants no admission.
+//! Test-only physical-input successors for immutable CI/Source36 data; no compiler authority.
+#[path = "source_reflows_merge/constructor_stage.rs"]
+mod constructor_stage;
 #[path = "source_reflows_merge/joined_custody.rs"]
 mod joined_custody;
 #[path = "source_reflows_merge/prefix_custody.rs"]
@@ -111,8 +112,8 @@ fn pin47_input(source: &str, current: &str) -> String {
     let current = joined.as_str();
     metadata_json::project(metadata_json::Fixture::M20, source, current)
 }
-// The new Main receiver has one additional, independently authenticated input;
-// its older four owners still use their exact Main696 domains.
+// The new Main receiver has one additional, independently authenticated input; its older
+// four owners still use their exact Main696 domains.
 pub(crate) fn main8fb_input(source: &str, current: &str) -> String {
     if source == "src/source_verify/declaration.rs" {
         let joined = future_main8fb_input(source, current);
@@ -136,44 +137,37 @@ fn post21_input(source: &str, current: &str) -> String {
     let current = joined.as_str();
     metadata_json::project(metadata_json::Fixture::M24, source, current)
 }
-// Only literal historical ENTRY stages are acquired here. The complete existing
-// compile35f front and every intermediate inverse below still execute in order.
+// Exact historical ENTRY stages precede the complete compile35f front and its inverses.
 fn historical_project_entry(source: &str, expected: &str, current: &str) -> String {
+    let legacy = crate::source_reflows::legacy_ci_expected_input(source, expected, current);
+    let current = legacy.as_ref();
     // The preceding authentic a3 projector already restored this complete stage.
-    let restored_receiving_stage = source == "src/workspace_graph/constructor_failure/receiving/before.rs"
+    let restored_receiving_stage = source
+        == "src/workspace_graph/constructor_failure/receiving/before.rs"
         && expected == "6135d75cf3f57029b9dd754030aba155a75ca902772aa036345481c1d3abc8b1"
         && current.len() == 14489
-        && format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))) == expected;
+        && source_sha(current) == expected;
     if !restored_receiving_stage {
         if let Some(entry) = constructor825_compiled_entry(source, expected, current) {
             return entry;
         }
     }
-    // This source is compiled DATA, not a canonical-row admission. Restore
-    // its exact formatter-only predecessor before the unchanged old projector.
+    // This source is compiled DATA, not a canonical-row admission. Restore its exact
+    // formatter-only predecessor before the unchanged old projector.
     if source == "src/diagnostic.rs"
         && expected == "922f3150549194a6016b86d86fe29dc56a9fb6a23384032b1afc144b248b782e"
     {
         assert_eq!(current, include_str!("diagnostic.rs"));
         assert_eq!(current.len(), 11599);
         assert_eq!(
-            format!(
-                "{:x}",
-                crate::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))
-            ),
+            source_sha(current),
             "028ee6f9753c7c70c88cf146f35f7b7c61c692d6b4035d3abc03260456eefaa1"
         );
         let formatted = "#[rustfmt::skip]\nmod before_writer;";
         assert_eq!(current.matches(formatted).count(), 1);
         let entry = current.replacen(formatted, "mod before_writer;", 1);
         assert_eq!(entry.len(), 11582);
-        assert_eq!(
-            format!(
-                "{:x}",
-                crate::digest_hex::LowerHex(Sha256::digest(entry.as_bytes()))
-            ),
-            expected
-        );
+        assert_eq!(source_sha(&entry), expected);
         return entry;
     }
     let admitted = matches!(
@@ -213,15 +207,13 @@ fn historical_project_entry(source: &str, expected: &str, current: &str) -> Stri
             "ecc2a07ac366adeaddc986c5bf1c676000e95ec98f5dd526c37c78f65406d62c"
         )
     );
+    let admitted = admitted || constructor_stage::entry(source, expected);
     if !admitted {
         return current.to_owned();
     }
     let entry = main_e177_final_inputs::value_direct(source, expected, current);
     assert_eq!(
-        format!(
-            "{:x}",
-            crate::digest_hex::LowerHex(Sha256::digest(entry.as_bytes()))
-        ),
+        source_sha(&entry),
         expected,
         "complete fixed historical projector entry: {source}"
     );
@@ -246,13 +238,7 @@ fn project(rows: &str, source: &str, current: &str) -> String {
         &entry,
     );
     let current = acquired.as_str();
-    assert_eq!(
-        format!(
-            "{:x}",
-            crate::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))
-        ),
-        row["current_sha256"]
-    );
+    assert_eq!(source_sha(current), row["current_sha256"], "{source}");
     let mut result = current.to_owned();
     for edit in row["edits"].as_array().unwrap() {
         let new = edit["new"].as_str().unwrap();
@@ -263,17 +249,11 @@ fn project(rows: &str, source: &str, current: &str) -> String {
         );
         result = result.replacen(new, edit["old"].as_str().unwrap(), 1);
     }
-    assert_eq!(
-        format!(
-            "{:x}",
-            crate::digest_hex::LowerHex(Sha256::digest(result.as_bytes()))
-        ),
-        row["original_sha256"]
-    );
+    assert_eq!(source_sha(&result), row["original_sha256"]);
     result
 }
-// Exact post-build name/visibility repair, before every protected older domain.
-// Unlisted sources remain unchanged; listed inputs must match their full new SHA.
+// Exact post-build name/visibility repair, before every protected older domain. Unlisted
+// sources remain unchanged; listed inputs must match their full new SHA.
 fn before_build_fix(source: &str, current: &str) -> String {
     runtime_json::project(runtime_json::Fixture::F00, source, current)
 }
@@ -287,13 +267,11 @@ fn prior_main(source: &str, current: &str) -> String {
     let current = predecessor.as_str();
     runtime_json::project(runtime_json::Fixture::F03, source, current)
 }
-
 pub(crate) fn held(source: &str, current: &str) -> String {
     let predecessor = assembled_previous(source, current);
     let current = predecessor.as_str();
     runtime_json::project(runtime_json::Fixture::F04, source, current)
 }
-
 pub(crate) fn weighted(path: &str, current: &str) -> String {
     let staged = if path == "../epsilon_alias/tests.rs" {
         final_ready_input(
@@ -317,19 +295,16 @@ pub(crate) fn weighted(path: &str, current: &str) -> String {
         current,
     )
 }
-
 // NEXT842 source transport precedes every immutable runtime domain.
 fn inline_weighted_previous(source: &str, current: &str) -> String {
     runtime_json::project(runtime_json::Fixture::F06, source, current)
 }
-
 // Separate authenticated #843 predecessor; older runtime manifests stay immutable.
 pub(crate) fn closure_previous(source: &str, current: &str) -> String {
     runtime_json::project(runtime_json::Fixture::F07, source, current)
 }
-
-// Each isolated branch projector remains strict. Authenticate the actual final
-// input separately into its named branch before comparing complete base bytes.
+// Each isolated branch projector remains strict. Authenticate the actual final input
+// separately into its named branch before comparing complete base bytes.
 pub(crate) fn assembly_view(stage: &str, source: &str, current: &str) -> String {
     let previous = latest_previous(source, current);
     let current = previous.as_str();
@@ -358,9 +333,8 @@ fn assembled_previous(source: &str, current: &str) -> String {
     );
     repaired
 }
-
-// Strict newest input, before the immutable9365 branch domains. No old raw input
-// is accepted as an alternative to its complete current source.
+// Strict newest input, before the immutable9365 branch domains. No old raw input is accepted
+// as an alternative to its complete current source.
 fn latest_previous(source: &str, current: &str) -> String {
     let corrected = corrected_previous(source, current);
     let current = corrected.as_str();
@@ -377,7 +351,6 @@ pub(crate) fn main(source: &str, current: &str) -> String {
     let _historical_main7f = runtime_json::project(runtime_json::Fixture::F12, source, &corrected);
     runtime_json::project(runtime_json::Fixture::F13, source, &physical)
 }
-
 // Actual corrective owners authenticate before the immutable d1bb source view.
 fn corrected_previous(source: &str, current: &str) -> String {
     let baseline = consumer_previous(source, current);
@@ -389,15 +362,14 @@ pub(crate) fn scalar_policy_input(source: &str, current: &str) -> String {
     let current = previous.as_str();
     runtime_json::project(runtime_json::Fixture::F15, source, current)
 }
-
 // The consumer correction has one strict current→frozen3d4b predecessor.
 fn consumer_previous(source: &str, current: &str) -> String {
     let predecessor = corrected_consumers_previous(source, current);
     let current = predecessor.as_str();
     runtime_json::project(runtime_json::Fixture::F16, source, current)
 }
-// Closed packet/source pairs only. This acquires the original consumer INPUT,
-// never its final inverse output; all caller hooks and full-byte checks remain.
+// Closed packet/source pairs only. This acquires the original consumer INPUT, never its
+// final inverse output; all caller hooks and full-byte checks remain.
 pub(crate) fn receiver_fixture_entry(
     fixture: ReceiverFixture,
     source: &str,
@@ -416,16 +388,12 @@ pub(crate) fn receiver_fixture_entry(
     };
     let entry = main_e177_final_inputs::value_direct(source, expected, current);
     assert_eq!(
-        format!(
-            "{:x}",
-            crate::digest_hex::LowerHex(Sha256::digest(entry.as_bytes()))
-        ),
+        source_sha(&entry),
         expected,
         "complete fixed receiver input: {source}"
     );
     entry
 }
-
 pub(crate) fn consumer_input(domain: &str, source: &str, current: &str) -> String {
     let entry = if domain == "lexical832" {
         receiver_fixture_entry(ReceiverFixture::LexicalOperands, source, current)
@@ -448,7 +416,6 @@ pub(crate) fn consumer_input(domain: &str, source: &str, current: &str) -> Strin
     };
     runtime_json::project(data, source, current)
 }
-
 fn corrected_consumers_previous(source: &str, current: &str) -> String {
     let fixes = final_fix_input(source, current);
     let fixes = runtime_json::project(runtime_json::Fixture::F25, source, &fixes);
@@ -461,9 +428,8 @@ fn corrected_consumers_previous(source: &str, current: &str) -> String {
     );
     fixes
 }
-
-// These three formatter inverses bind the ENTIRE actual compiled child body,
-// not merely an archived before image. No token or string-content normalization.
+// These three formatter inverses bind the ENTIRE actual compiled child body, not merely an
+// archived before image. No token or string-content normalization.
 pub(crate) fn receiver_child_entry(source: &str, current: &str) -> String {
     let (expected, length, compiled_sha, after, before) = match source {
         "src/workspace_graph/expected_projection/private_layout/before_registry.rs" => (
@@ -494,10 +460,7 @@ pub(crate) fn receiver_child_entry(source: &str, current: &str) -> String {
         "complete compiled child extent: {source}"
     );
     assert_eq!(
-        format!(
-            "{:x}",
-            crate::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))
-        ),
+        source_sha(current),
         compiled_sha,
         "complete compiled child bytes: {source}"
     );
@@ -508,10 +471,7 @@ pub(crate) fn receiver_child_entry(source: &str, current: &str) -> String {
     );
     let inverse = current.replacen(after, before, 1);
     assert_eq!(
-        format!(
-            "{:x}",
-            crate::digest_hex::LowerHex(Sha256::digest(inverse.as_bytes()))
-        ),
+        source_sha(&inverse),
         expected,
         "complete original compiled child: {source}"
     );
@@ -521,7 +481,6 @@ pub(crate) fn receiver_child_entry(source: &str, current: &str) -> String {
     );
     inverse
 }
-
 pub(crate) fn consumer_child(domain: &str, source: &str, current: &str) -> String {
     let entry = receiver_child_entry(source, current);
     let current = entry.as_str();
@@ -535,7 +494,6 @@ pub(crate) fn consumer_child(domain: &str, source: &str, current: &str) -> Strin
     };
     runtime_json::project(rows, source, current)
 }
-
 fn final_fix_input(source: &str, current: &str) -> String {
     let previous = before_main927(source, current);
     let current = previous.as_str();
@@ -559,7 +517,6 @@ pub(crate) fn main_f045_input(source: &str, current: &str) -> String {
 fn before_f045(source: &str, current: &str) -> String {
     runtime_json::project(runtime_json::Fixture::F35, source, current)
 }
-
 // Preserve the complete frozen9b domains independently of the newer MAIN proof.
 fn before_main927(source: &str, current: &str) -> String {
     let previous = before_setup825(source, current);
@@ -585,17 +542,14 @@ pub(crate) fn main927_input(source: &str, current: &str) -> String {
     let current = view.as_str();
     runtime_json::project(runtime_json::Fixture::F38, source, current)
 }
-
 // Compiler-confirmed facade digest correction precedes immutable9b source views.
 fn facade_hex_previous(source: &str, current: &str) -> String {
     runtime_json::project(runtime_json::Fixture::F39, source, current)
 }
-
 // Independent complete branch inputs; neither branch is fed the other's view.
 fn assembly_main927_input(source: &str, current: &str) -> String {
     runtime_json::project(runtime_json::Fixture::F40, source, current)
 }
-
 // Authenticated physical successor for the bounded preowned-setup/starter batch.
 fn before_setup825(source: &str, current: &str) -> String {
     let previous = before_setup_reference_controls(source, current);
@@ -605,8 +559,20 @@ fn before_setup825(source: &str, current: &str) -> String {
 // Preserve the complete immutable typed825 runtime manifest's own exact domain.
 pub(crate) fn setup_typed_input(source: &str, current: &str) -> String {
     let typed_entry = match source {
-        "src/workspace_graph/expected_projection/defaults/typed.rs" => constructor825_compiled_entry(source, "9761dcd2ec5fd2351807f7526479680a56c51211eb584385ca85dbc893f38fb7", current),
-        "src/workspace_graph/expected_projection/import_stub/typed.rs" => constructor825_compiled_entry(source, "c220a90bfa131f6b75131e461ead26aea1dcee6c3ad09c42e5f481f5c12c5b11", current),
+        "src/workspace_graph/expected_projection/defaults/typed.rs" => {
+            constructor825_compiled_entry(
+                source,
+                "9761dcd2ec5fd2351807f7526479680a56c51211eb584385ca85dbc893f38fb7",
+                current,
+            )
+        }
+        "src/workspace_graph/expected_projection/import_stub/typed.rs" => {
+            constructor825_compiled_entry(
+                source,
+                "c220a90bfa131f6b75131e461ead26aea1dcee6c3ad09c42e5f481f5c12c5b11",
+                current,
+            )
+        }
         _ => None,
     };
     let current = typed_entry.as_deref().unwrap_or(current);
@@ -621,21 +587,18 @@ pub(crate) fn setup_typed_input(source: &str, current: &str) -> String {
     let current = previous.as_str();
     runtime_json::project(runtime_json::Fixture::F42, source, current)
 }
-
 // Corrected physical receiving fees precede the immutable initial setup views.
 fn before_setup_reference_controls(source: &str, current: &str) -> String {
     let previous = before_region_status_view(source, current);
     let current = previous.as_str();
     runtime_json::project(runtime_json::Fixture::F43, source, current)
 }
-
 // Full physical successor; the prior receiving correction domain stays exact.
 fn before_region_status_view(source: &str, current: &str) -> String {
     let previous = before_constructor_complete_views(source, current);
     let current = previous.as_str();
     runtime_json::project(runtime_json::Fixture::F44, source, current)
 }
-
 fn before_constructor_complete_views(source: &str, current: &str) -> String {
     let previous = before_current_main(source, current);
     let current = previous.as_str();
@@ -647,7 +610,6 @@ pub(crate) fn constructor_complete_input(source: &str, current: &str) -> String 
     let current = previous.as_str();
     runtime_json::project(runtime_json::Fixture::F46, source, current)
 }
-
 // New MAIN/fixture bytes authenticate into the complete previous private batch.
 fn before_current_main(source: &str, current: &str) -> String {
     let previous = before_fixture841(source, current);
@@ -660,7 +622,6 @@ pub(crate) fn main_current_input(source: &str, current: &str) -> String {
     let current = previous.as_str();
     runtime_json::project(runtime_json::Fixture::F48, source, current)
 }
-
 // Independent branches: inherited guards see13d; the pilot sees its exact5f input.
 fn before_fixture841(source: &str, current: &str) -> String {
     let previous = before_retained833(source, current);
@@ -668,8 +629,8 @@ fn before_fixture841(source: &str, current: &str) -> String {
     runtime_json::project(runtime_json::Fixture::F49, source, current)
 }
 pub(crate) fn compressed_fixture_input(source: &str, current: &str) -> String {
-    // Independently authenticate the raw-default checkpoint and its complete
-    // immediate shim view; the inherited chain below retains every old guard.
+    // Independently authenticate the raw-default checkpoint and its complete immediate
+    // shim view; the inherited chain below retains every old guard.
     let raw_default = final_batch_input("841", source, current);
     let _whole_raw_default_before =
         runtime_json::project(runtime_json::Fixture::F50, source, &raw_default);
@@ -677,7 +638,6 @@ pub(crate) fn compressed_fixture_input(source: &str, current: &str) -> String {
     let current = previous.as_str();
     runtime_json::project(runtime_json::Fixture::F51, source, current)
 }
-
 // The retained registry owner and inherited guards have distinct whole inputs.
 fn before_retained833(source: &str, current: &str) -> String {
     let previous = before_main66517(source, current);
@@ -689,14 +649,12 @@ pub(crate) fn retained833_input(source: &str, current: &str) -> String {
     let current = previous.as_str();
     runtime_json::project(runtime_json::Fixture::F53, source, current)
 }
-
 // Latest MAIN source enters the immutable combined833/841 checkpoint first.
 fn before_main66517(source: &str, current: &str) -> String {
     let previous = before_retry_guard(source, current);
     let current = previous.as_str();
     runtime_json::project(runtime_json::Fixture::F54, source, current)
 }
-
 // Preserve the complete old runtime input before every inherited source domain.
 fn before_retry_guard(source: &str, current: &str) -> String {
     let previous = before_direct_carriers831(source, current);
@@ -708,21 +666,18 @@ pub(crate) fn retry_fixture_input(source: &str, current: &str) -> String {
     let current = previous.as_str();
     runtime_json::project(runtime_json::Fixture::F56, source, current)
 }
-
 // Every older runtime source guard retains the exact297 physical domain.
 fn before_direct_carriers831(source: &str, current: &str) -> String {
     let observed = before_cached_acquisition_observer(source, current);
     let current = observed.as_str();
     runtime_json::project(runtime_json::Fixture::F57, source, current)
 }
-
 // Test-only observation successor; exact prior runtime tables remain immutable.
 fn before_cached_acquisition_observer(source: &str, current: &str) -> String {
     let staged = before_sourceguard_inputs(source, current);
     let current = staged.as_str();
     runtime_json::project(runtime_json::Fixture::F58, source, current)
 }
-
 // Preserve complete physical7a87 inputs before the cached observer's older view.
 fn before_sourceguard_inputs(source: &str, current: &str) -> String {
     let staged = before_actual_pin_consumers(source, current);
@@ -733,14 +688,12 @@ pub(crate) fn source36_classifier_input(source: &str, current: &str) -> String {
     let staged = before_storage_oracle_join(source, current);
     runtime_json::project(runtime_json::Fixture::F60, source, &staged)
 }
-
 // Actual producer literals are transported only for historical full-source guards.
 fn before_actual_pin_consumers(source: &str, current: &str) -> String {
     let current = final_ready_input("d8", source, current);
     let current = current.as_str();
     runtime_json::project(runtime_json::Fixture::F61, source, current)
 }
-
 // Independent physical-input domains: no checkpoint table accepts another stage.
 fn final_ready_input(stage: &str, source: &str, current: &str) -> String {
     let current = if stage == "844" {
@@ -780,7 +733,6 @@ pub(crate) fn diagnostic846_input(source: &str, current: &str) -> String {
     };
     final_ready_input("846", source, current)
 }
-
 // MAIN and the two677 compile corrections have independent physical inputs.
 fn main27424_stage(stage: &str, source: &str, current: &str) -> String {
     let current = combined_ready_input("main", source, current);
@@ -796,7 +748,6 @@ fn main27424_stage(stage: &str, source: &str, current: &str) -> String {
 pub(crate) fn main27424_input(source: &str, current: &str) -> String {
     main27424_stage("main", source, current)
 }
-
 // Independent physical847 source for its complete owning guards.
 fn retained_function847_previous(source: &str, current: &str) -> String {
     joined_feature_input("453", source, current)
@@ -819,7 +770,6 @@ fn joined_feature_input(stage: &str, source: &str, current: &str) -> String {
     };
     runtime_json::project(rows, source, current)
 }
-
 // Independent final raw fronts for MAIN integration versus retained alias owners.
 fn combined_ready_input(stage: &str, source: &str, current: &str) -> String {
     let final_view = final_batch_input("796", source, current);
@@ -837,7 +787,6 @@ fn combined_ready_input(stage: &str, source: &str, current: &str) -> String {
     };
     runtime_json::project(rows, source, current)
 }
-
 // The direct831 source owner has a separate immediate domain from old guards.
 pub(crate) fn branch_closed831_input(source: &str, current: &str) -> String {
     final_batch_input("831", source, current)
@@ -860,7 +809,6 @@ fn final_batch_input(branch: &str, source: &str, current: &str) -> String {
     };
     runtime_json::project(rows, source, current)
 }
-
 // Direct845 owners authenticate independently from inherited source guards.
 pub(crate) fn initial845_input(source: &str, current: &str) -> String {
     let acquired = initial845_current_owner_before(source, current);
@@ -873,25 +821,27 @@ pub(crate) fn initial845_input(source: &str, current: &str) -> String {
     let _complete_original845_before =
         runtime_json::project(runtime_json::Fixture::F87, source, &checkpoint);
     if source == "src/workspace_graph/diagnostics.rs" {
-        return constructor825_compiled_entry(source, "1c1552d56400ec781eb96ff6fd825bbbeec854f5042fab960e4d3d2941e60127", &checkpoint).expect("complete diagnostics845 entry");
+        return constructor825_compiled_entry(
+            source,
+            "1c1552d56400ec781eb96ff6fd825bbbeec854f5042fab960e4d3d2941e60127",
+            &checkpoint,
+        )
+        .expect("complete diagnostics845 entry");
     }
     checkpoint
 }
-
 // Direct runtime-fixture custody stays independent of inherited source views.
 pub(crate) fn runtime848_input(source: &str, current: &str) -> String {
     let before_transport = before_runtime_json_transport(source, current);
     let current = before_transport.as_str();
     runtime_json::project(runtime_json::Fixture::F88, source, current)
 }
-
 // Complete pre-transport physical inputs precede every older named view.
 fn before_runtime_json_transport(source: &str, current: &str) -> String {
     let before_main83 = main83_physical_input(source, current);
     let current = before_main83.as_str();
     runtime_json::project(runtime_json::Fixture::Custody, source, current)
 }
-
 // MAIN83 reads its formatted fixture independently of historical preformat F56.
 pub(crate) fn main83_retry_fixture_input(source: &str, current: &str) -> String {
     let formatted = main83_physical_input(source, current);
@@ -903,7 +853,6 @@ fn main83_physical_input(source: &str, current: &str) -> String {
     let current = joined.as_str();
     metadata_json::project(metadata_json::Fixture::M25, source, current)
 }
-
 // Full post-compiler-fix inputs precede the immutable MAIN83 and older domains.
 fn before_storage_oracle_join(source: &str, current: &str) -> String {
     let compile_fixed = compile_fixture_input(source, current);
@@ -918,7 +867,6 @@ fn before_storage_oracle_join(source: &str, current: &str) -> String {
     let current = previous.as_str();
     metadata_json::project(metadata_json::Fixture::M28, source, current)
 }
-
 // Independent complete Main and pre-Main source domains.
 pub(crate) fn main_b80_input(source: &str, current: &str) -> String {
     let merged = main_dd0_previous(source, current);
@@ -941,7 +889,6 @@ pub(crate) fn main_b80_prior_input(source: &str, current: &str) -> String {
     let current = latest.as_str();
     metadata_json::project(metadata_json::Fixture::M31, source, current)
 }
-
 // Independent whole-driver input for the immutable first781 receiving owners.
 pub(crate) fn reference781_input(source: &str, current: &str) -> String {
     let merged = main_dd0_previous(source, current);
@@ -950,7 +897,6 @@ pub(crate) fn reference781_input(source: &str, current: &str) -> String {
     let current = latest.as_str();
     metadata_json::project(metadata_json::Fixture::M32, source, current)
 }
-
 // Independent physical predecessor domains, before all immutable older stages.
 fn session_reference_input(source: &str, current: &str) -> String {
     metadata_json::project(metadata_json::Fixture::M33, source, current)
@@ -958,7 +904,6 @@ fn session_reference_input(source: &str, current: &str) -> String {
 fn reference_family_input(source: &str, current: &str) -> String {
     metadata_json::project(metadata_json::Fixture::M34, source, current)
 }
-
 // A later compositor uses this normalization-only front BEFORE its raw table.
 #[allow(
     dead_code,
@@ -969,7 +914,6 @@ pub(crate) fn bulk848_arm_input(source: &str, current: &str) -> String {
     let current = final_input.as_str();
     release_custody::normalize(source, current)
 }
-
 // Main's compiled test corpus keeps every original source-domain check.
 fn main_dd0_previous(source: &str, current: &str) -> String {
     let main65 = main65_previous(source, current);
@@ -993,12 +937,11 @@ fn main_dd0_previous(source: &str, current: &str) -> String {
     let current = pair.as_str();
     metadata_json::project(metadata_json::Fixture::M35, source, current)
 }
-
 // New owner and inherited domains remain independent; all old tables stay exact.
 pub(crate) fn arena854_input(source: &str, current: &str) -> String {
-    // The incoming Main join supersedes this one complete pre-merge root.
-    // Authenticate and restore that exact raw input before the unchanged zip
-    // inverse; main65 below independently checks the original current source.
+    // The incoming Main join supersedes this one complete pre-merge root. Authenticate
+    // and restore that exact raw input before the unchanged zip inverse; main65 below
+    // independently checks the original current source.
     let query_input = if source == "src/cleanup_plan/replay/factored/canonical_shared.rs" {
         current344::project(source, current)
     } else {
@@ -1010,8 +953,8 @@ pub(crate) fn arena854_input(source: &str, current: &str) -> String {
         &query_input,
     );
     let main65 = main65_previous(source, current);
-    // The complete16c overlay may already remove this same source delta.
-    // Authenticate raw bytes above, then accept only raw or that exact old view.
+    // The complete16c overlay may already remove this same source delta. Authenticate
+    // raw bytes above, then accept only raw or that exact old view.
     let main65 = if next != current {
         assert!(
             main65 == current || main65 == next,
@@ -1043,7 +986,6 @@ pub(crate) fn arena854_previous(source: &str, current: &str) -> String {
     let component = arena854_input(source, current);
     final_custody::project(final_custody::Fixture::ArenaPrevious, source, &component)
 }
-
 // The complete twelve-row Main receiver has an independent scoped input.
 pub(crate) fn main7c6_input(source: &str, current: &str) -> String {
     let main65 = main65_previous(source, current);
@@ -1061,7 +1003,6 @@ pub(crate) fn main7c6_input(source: &str, current: &str) -> String {
     let current = successor.as_str();
     final_custody::input(final_custody::Fixture::Main7c6, source, current)
 }
-
 // Independent complete Main-afba receiver scope.
 pub(crate) fn main_afba_input(source: &str, current: &str) -> String {
     let main65 = main65_previous(source, current);
@@ -1076,7 +1017,6 @@ pub(crate) fn main_afba_input(source: &str, current: &str) -> String {
     let current = prefix_view.as_str();
     successor_custody::input(successor_custody::Fixture::MainAfba, source, current)
 }
-
 pub(crate) fn main_f1_input(source: &str, current: &str) -> String {
     let main65 = main65_previous(source, current);
     let current = main65.as_str();
@@ -1088,7 +1028,6 @@ pub(crate) fn main_f1_input(source: &str, current: &str) -> String {
     let current = joined.as_str();
     prefix_custody::input(prefix_custody::Fixture::MainF1, source, current)
 }
-
 // Updated Main24 inputs are independent of every inherited predecessor domain.
 pub(crate) fn main24_input(source: &str, current: &str) -> String {
     let main65 = main65_previous(source, current);
@@ -1104,7 +1043,6 @@ pub(crate) fn main24_proofs(compact: bool) -> String {
         release_custody::Fixture::Receivers24
     })
 }
-
 // Complete raw source difference for the statement-local prepaid-cursor lint expectation.
 fn cursor_clippy_input(source: &str, current: &str) -> String {
     const KEYS: &[&str] = &[
@@ -1124,7 +1062,6 @@ fn cursor_clippy_input(source: &str, current: &str) -> String {
         current,
     )
 }
-
 // Exact whole-source Main65 merge front; independent historical stages receive75d8.
 fn main65_previous(source: &str, current: &str) -> String {
     let corrected = compile9ce_input(source, current);
@@ -1150,7 +1087,6 @@ fn main65_previous(source: &str, current: &str) -> String {
         current,
     )
 }
-
 // Restore the complete pre-correction test inputs before immutable Main65 custody.
 fn compile9ce_input(source: &str, current: &str) -> String {
     let previous = main8a_previous(source, current);
@@ -1174,7 +1110,6 @@ fn compile9ce_input(source: &str, current: &str) -> String {
         current,
     )
 }
-
 #[path = "source_reflows_merge/main8a_custody.rs"]
 mod main8a_custody;
 pub(crate) use main8a_custody::Fixture as Main8aFixture;
@@ -1195,7 +1130,6 @@ pub(crate) fn main8a_input(source: &str, current: &str) -> String {
     let normalized = main8a_custody::normalize(source, current);
     main8a_custody::input(main8a_custody::Input::Main8a, source, &normalized)
 }
-
 #[path = "source_reflows_merge/maina3_custody.rs"]
 mod maina3_custody;
 pub(crate) use maina3_custody::Fixture as Maina3Fixture;
@@ -1222,7 +1156,6 @@ pub(crate) fn main_e47_input(source: &str, current: &str) -> String {
     let normalized = maina3_custody::normalize(source, current);
     maina3_custody::input(maina3_custody::Input::MainE47, source, &normalized)
 }
-
 #[path = "source_reflows_merge/main44_custody.rs"]
 mod main44_custody;
 pub(crate) use main44_custody::Fixture as Main44Fixture;
@@ -1232,10 +1165,12 @@ pub(crate) fn main44_metadata(fixture: Main44Fixture) -> String {
 pub(crate) fn main44_input(source: &str, current: &str) -> String {
     main44_custody::input(source, current)
 }
-
 #[path = "source_reflows_merge/main043_custody.rs"]
 mod main043_custody;
 pub(crate) use main043_custody::Fixture as Main043Fixture;
+pub(crate) fn main043_raw_metadata(fixture: Main043Fixture) -> String {
+    runtime_json::main043_raw_metadata(fixture)
+}
 pub(crate) fn main043_metadata(fixture: Main043Fixture) -> String {
     runtime_json::main043_metadata(fixture)
 }
@@ -1248,7 +1183,6 @@ pub(crate) fn main043_historical_ci_extra(source: &str, current: &str) -> String
 // Current344 direct readers keep their complete historical predicates below.
 #[path = "source_reflows_merge/current344.rs"]
 pub(crate) mod current344;
-
 pub(crate) fn release_current_input(source: &str, current: &str) -> String {
     let previous = main65_previous(source, current);
     cursor_clippy_input(source, &previous)
@@ -1257,23 +1191,18 @@ pub(crate) fn release_current_input(source: &str, current: &str) -> String {
 // Exact after-inputs for the two original Main8a historical metadata owners.
 #[path = "source_reflows_merge/main8a_historical.rs"]
 pub(crate) mod main8a_historical;
-
+pub(crate) mod main_eb2_inputs;
 mod opt858_sequence_input;
 
-pub(crate) mod main_eb2_inputs;
-
 // Distinct closed Main7f8 historical input domains; no compiler authority.
+#[path = "source_reflows_merge/final_ready_inputs.rs"]
+mod final_ready_inputs;
+#[path = "source_reflows_merge/main67107_inputs.rs"]
+pub(crate) mod main67107_inputs;
 #[path = "source_reflows_merge/main7f8_presence.rs"]
 pub(crate) mod main7f8_presence;
 #[path = "source_reflows_merge/main7f8_source_inputs.rs"]
 pub(crate) mod main7f8_source_inputs;
-
-#[path = "source_reflows_merge/final_ready_inputs.rs"]
-mod final_ready_inputs;
-
-#[path = "source_reflows_merge/main67107_inputs.rs"]
-pub(crate) mod main67107_inputs;
-
 #[path = "source_reflows_merge/ordinary_plan_inputs.rs"]
 mod ordinary_plan_inputs;
 
@@ -1284,7 +1213,6 @@ pub(crate) fn ordinary_plan_history_root_checkpoint(
 ) -> String {
     ordinary_plan_inputs::original_root_checkpoint(current, compiled_before)
 }
-
 #[path = "source_reflows_merge/main_c883_inputs.rs"]
 pub(crate) mod main_c883_inputs;
 
@@ -1301,12 +1229,62 @@ pub(crate) mod next_big_batch_inputs;
 #[path = "source_reflows_merge/main_e177_final_inputs.rs"]
 pub(crate) mod main_e177_final_inputs;
 
+#[test]
+fn merge_projection_selects_only_the_requested_complete_current_view() {
+    let source = "src/cleanup_plan/replay/allocation/oracle.rs";
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let current = std::fs::read_to_string(root.join(source)).unwrap();
+    let expected = std::fs::read_to_string(
+        root.join("docs/evidence/fmt-a110/-sNiaR-dl5pY-SdFlvBwJ-5c5dFFUGlebbR8SBoVMu4.txt"),
+    )
+    .unwrap();
+    let sha = source_sha(&expected);
+    let rows = serde_json::json!([{
+        "source": source, "current_sha256": sha, "original_sha256": sha, "edits": []
+    }])
+    .to_string();
+    assert_eq!(project(&rows, source, &current), expected);
+    assert_eq!(project(&rows, source, &expected), expected);
+    for bad in [
+        String::new(),
+        "foreign".to_owned(),
+        format!("{current} "),
+        current[..current.len() - 1].to_owned(),
+        format!("{expected} "),
+    ] {
+        assert!(std::panic::catch_unwind(|| project(&rows, source, &bad)).is_err());
+    }
+    assert_eq!(project(&rows, "unlisted", "foreign"), "foreign");
+    let mut foreign = serde_json::from_str::<serde_json::Value>(&rows).unwrap();
+    foreign[0]["current_sha256"] = "0".repeat(64).into();
+    assert!(std::panic::catch_unwind(|| project(&foreign.to_string(), source, &current)).is_err());
+}
+
+pub(crate) fn complete_receiver_followup(source: &str) -> String {
+    runtime_json::complete_receiver_followup(source)
+}
 // Closed complete compiled ENTRY acquisition precedes every original #825 inverse.
 fn constructor825_compiled_entry(source: &str, expected: &str, current: &str) -> Option<String> {
-    let typed_before = if source == "src/workspace_graph/constructor_failure/receiving/typed/tests.rs" && expected == "2cd6c2ce3b35abb30253549dc931c6c025653419d2bd16b9fb6c35224a34d6e4" {
-        assert_eq!(current, include_str!("workspace_graph/constructor_failure/receiving/typed/tests.rs"));
+    let restored_typed = constructor_stage::typed(source, current);
+    let current = restored_typed.as_deref().unwrap_or(current);
+    let typed_before = if source
+        == "src/workspace_graph/constructor_failure/receiving/typed/tests.rs"
+        && expected == "2cd6c2ce3b35abb30253549dc931c6c025653419d2bd16b9fb6c35224a34d6e4"
+    {
+        assert_eq!(
+            current,
+            constructor_stage::typed(
+                source,
+                include_str!("workspace_graph/constructor_failure/receiving/typed/tests.rs")
+            )
+            .as_deref()
+            .unwrap()
+        );
         assert_eq!(current.len(), 27662);
-        assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))), "ddaa2f3c3d54bab731acb976de3a9482d71fa65a4d409a83c2036ed8f9ad1251");
+        assert_eq!(
+            source_sha(current),
+            "ddaa2f3c3d54bab731acb976de3a9482d71fa65a4d409a83c2036ed8f9ad1251"
+        );
         let mut before = current.to_owned();
         for &(after, prior) in &[
             ("    // Retain the exact complete typed825 caller already authenticated above.\n    let caller = historical_caller.expect(\"complete historical workspace caller\");\n    assert_eq!(caller.len(), 231867);\n    assert_eq!(format!(\"{:x}\", crate::digest_hex::LowerHex(Sha256::digest(caller.as_bytes()))), \"f517b9c93b4de7db618db0abc0139d4d88121f298ae9f3b16246dc20e833c0a9\");\n    let live_caller = include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/workspace_graph.rs\"));\n    let validate_live = |actual: &str| {\n        assert_eq!(actual, live_caller, \"complete current workspace caller\");\n        assert_eq!(actual.len(), 217358);\n        assert_eq!(format!(\"{:x}\", crate::digest_hex::LowerHex(Sha256::digest(actual.as_bytes()))), \"763fd745d6b8afb41a7738ad14b8c0a0cffc782c70f698f4a272d398f1651699\");\n        assert!(actual.contains(\"constructor_failure::typed::construct_selected_core(\"));\n        assert!(actual.contains(\".receive_typed(failure)\"));\n    };\n    validate_live(live_caller);\n    let dispatcher = include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/workspace_graph/constructor_failure/typed.rs\"));\n    assert_eq!(dispatcher.len(), 11670);\n    assert_eq!(format!(\"{:x}\", crate::digest_hex::LowerHex(Sha256::digest(dispatcher.as_bytes()))), \"b07ecf1da889cf25e1b9296bf320070d49c58af316efe6036dce534fccd73fb7\");\n    assert!(dispatcher.contains(\"    if allow_transient && possible {\\n        construct_transient_alias_core(program, authored, programs, registry, core, owner)\\n    } else {\\n        construct_transient_core(program, authored, programs, registry, core, owner)\\n    }\"));\n    for hostile in [format!(\"{live_caller}\\n\"), live_caller[..live_caller.len()-1].to_owned(), caller.clone()] {\n        assert!(std::panic::catch_unwind(|| validate_live(&hostile)).is_err());\n    }\n", "    let caller = include_str!(concat!(\n        env!(\"CARGO_MANIFEST_DIR\"),\n        \"/src/workspace_graph.rs\"\n    ));\n"),
@@ -1317,9 +1295,14 @@ fn constructor825_compiled_entry(source: &str, expected: &str, current: &str) ->
             before = before.replacen(after, prior, 1);
         }
         assert_eq!(before.len(), 25856);
-        assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(before.as_bytes()))), "6199f2912e6064de90f1ecccfcbc516ba0e275faabbaac96126abb470d3755b7");
+        assert_eq!(
+            source_sha(&before),
+            "6199f2912e6064de90f1ecccfcbc516ba0e275faabbaac96126abb470d3755b7"
+        );
         Some(before)
-    } else { None };
+    } else {
+        None
+    };
     let current = typed_before.as_deref().unwrap_or(current);
     let (compiled, length, current_sha, edits): (&str, usize, &str, &[(&str, &str)]) = match (source, expected) {
         ("src/workspace_graph/constructor_failure/report.rs", "fc2eb1ecc98cc13b6df906a1e2f59f09d198cf958a4c7ff3472e0aae1a866a84") => (include_str!("workspace_graph/constructor_failure/report.rs"), 10609, "a389503a2f7e6b241bbbaf906f71e980e564fa689d2389543d581dbc12fe5662", &[
@@ -1352,7 +1335,7 @@ fn constructor825_compiled_entry(source: &str, expected: &str, current: &str) ->
         ("src/workspace_graph/diagnostics.rs", "1c1552d56400ec781eb96ff6fd825bbbeec854f5042fab960e4d3d2941e60127") => (include_str!("workspace_graph/diagnostics.rs"), 15942, "b0785724bdbde5253b6a1aee53779d668f4fdbd13fe079badb586082b4045612", &[
             ("use crate::diagnostic::Diagnostic;\n\nuse super::{\n    WorkspaceResolvedModule, MAX_BUILDER_BYTES, MAX_CALLABLES, MAX_CALLS, MAX_CROSS_FILE_EDGES,\n    MAX_DECLARATIONS, MAX_DEPENDENCY_DEPTH, MAX_ENTRY_MODULE_BYTES, MAX_FILES, MAX_OUTPUT_BYTES,\n    MAX_TOTAL_SOURCE_BYTES, MAX_USES,\n};\n\npub(super) const PROVIDER_MAIN_HELP: &str = \"`entry` in semaprax.toml must name the module that declares `main`; every other listed source is a provider module and declares no `main`\";\n", "use crate::diagnostic::Diagnostic;\n\nuse super::{\n    MAX_BUILDER_BYTES, MAX_CALLABLES, MAX_CALLS, MAX_CROSS_FILE_EDGES, MAX_DECLARATIONS,\n    MAX_DEPENDENCY_DEPTH, MAX_ENTRY_MODULE_BYTES, MAX_FILES, MAX_OUTPUT_BYTES,\n    MAX_TOTAL_SOURCE_BYTES, MAX_USES, WorkspaceResolvedModule,\n};\n\npub(super) const PROVIDER_MAIN_HELP: &str = \"`entry` in semaprax.toml must name the module that declares `main`; every other listed source is a provider module and declares no `main`\";\n"),
         ]),
-        ("src/workspace_graph/constructor_failure/typed.rs", "1482ad177d1d605a183cccc3ef185aaed36e7214b1bf4db8065a466303fc99f6") => (include_str!("workspace_graph/constructor_failure/typed.rs"), 11670, "b07ecf1da889cf25e1b9296bf320070d49c58af316efe6036dce534fccd73fb7", &[
+        ("src/workspace_graph/constructor_failure/typed.rs", "1482ad177d1d605a183cccc3ef185aaed36e7214b1bf4db8065a466303fc99f6") => (restored_typed.as_deref().unwrap_or(include_str!("workspace_graph/constructor_failure/typed.rs")), 11670, "b07ecf1da889cf25e1b9296bf320070d49c58af316efe6036dce534fccd73fb7", &[
             ("/// Reserved wrappers and ordinary function imports can trigger a full probe;\n", "/// Only these reserved identity families can reach FunctionEntry::Borrowed;\n"),
             ("    if SCALAR_SIGNATURE_BEFORE.with(std::cell::Cell::get) {\n        return before_scalar_dispatch::construct_selected_core(\n            program,\n            authored,\n            programs,\n            registry,\n            core,\n            allow_transient,\n            owner,\n        );\n    }\n    #[cfg(test)]\n", ""),
             ("            before_scalar_dispatch::construct_transient_alias_core(\n                program, authored, programs, registry, core, owner,\n            )\n", "            construct_transient_alias_core(program, authored, programs, registry, core, owner)\n"),
@@ -1367,68 +1350,96 @@ fn constructor825_compiled_entry(source: &str, expected: &str, current: &str) ->
         ]),
         _ => return None,
     };
-    assert_eq!(current, compiled, "actual complete compiled constructor ENTRY");
+    assert_eq!(
+        current, compiled,
+        "actual complete compiled constructor ENTRY"
+    );
     assert_eq!(current.len(), length);
-    assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))), current_sha);
+    assert_eq!(source_sha(current), current_sha);
     let mut entry = current.to_owned();
     for &(new, old) in edits {
-        assert_eq!(entry.matches(new).count(), 1, "unique complete constructor ENTRY hunk");
+        assert_eq!(
+            entry.matches(new).count(),
+            1,
+            "unique complete constructor ENTRY hunk"
+        );
         entry = entry.replacen(new, old, 1);
     }
-    assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(entry.as_bytes()))), expected);
+    assert_eq!(source_sha(&entry), expected);
     Some(entry)
 }
 
-// Authenticate the complete current owner before its unchanged historical chain.
 fn constructor825_attempt_before(current: &str) -> String {
-    assert_eq!(current, include_str!("workspace_graph/constructor_failure/attempt.rs"));
+    assert_eq!(
+        current,
+        include_str!("workspace_graph/constructor_failure/attempt.rs")
+    );
     assert_eq!(current.len(), 4136);
-    assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))), "a6ee9ade44a91d067b516603e52453d965b0e4bd8060add721ebe057f5fcb082");
+    assert_eq!(
+        source_sha(current),
+        "a6ee9ade44a91d067b516603e52453d965b0e4bd8060add721ebe057f5fcb082"
+    );
     let added = "    #[cfg(feature = \"unstable-workflow-profiling\")]\n    pub(in crate::workspace_graph) fn observation_succeeded(&self) -> bool {\n        self.result.is_ok()\n    }\n";
     assert_eq!(current.matches(added).count(), 1);
     let before = current.replacen(added, "", 1);
     assert_eq!(before.len(), 3973);
-    assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(before.as_bytes()))), "6a4ab15e6a334f636565dc83a21411c4ba40c6de8e61445c015309c94bc892f3");
+    assert_eq!(
+        source_sha(&before),
+        "6a4ab15e6a334f636565dc83a21411c4ba40c6de8e61445c015309c94bc892f3"
+    );
     before
 }
 
-// Exact current owners enter the original #845 source stages before any edits.
 fn initial845_current_owner_before(source: &str, current: &str) -> Option<String> {
+    let normalized = constructor_stage::owner(source, current);
+    let current = normalized.as_deref().unwrap_or(current);
     let (compiled, length, current_sha, old_length, old_sha, edits): (&str, usize, &str, usize, &str, &[(&str, &str)]) = match source {
-        "src/bounded_output.rs" => (include_str!("bounded_output.rs"), 52412, "fa91c8eca4825931211d066d6ebde8c0ff157de1ec78b5950abe867c295e481f", 51963, "f9379a489970b6cb369265386226ecaa82e2d657355d50eebedb9e33c8b6589a", &[
+        "src/bounded_output.rs" => (normalized.as_deref().unwrap_or(include_str!("bounded_output.rs")), 52412, "fa91c8eca4825931211d066d6ebde8c0ff157de1ec78b5950abe867c295e481f", 51963, "f9379a489970b6cb369265386226ecaa82e2d657355d50eebedb9e33c8b6589a", &[
             ("#[cfg(feature = \"unstable-workflow-profiling\")]\npub(crate) mod exclusive_debits;\n", ""),
             ("                    #[cfg(feature = \"unstable-workflow-profiling\")]\n                    exclusive_debits::exceptional_settlement(&parent, remaining.min(consumed));\n", ""),
             ("        #[cfg(feature = \"unstable-workflow-profiling\")]\n        exclusive_debits::refusal(budget, length);\n", ""),
             ("    #[cfg(feature = \"unstable-workflow-profiling\")]\n    exclusive_debits::debit(budget, length);\n", ""),
         ]),
-        "src/workspace_graph/initial_report/build.rs" => (include_str!("workspace_graph/initial_report/build.rs"), 17509, "48b56f916c25d00004bf6d8bc13e56a0972d07f531fceda2c7c94b57d2af20e1", 17054, "0fd9df9abe4ceadd45105394a4efcda2edc3a3ab780d0326d924288a60ea5bda", &[
+        "src/workspace_graph/initial_report/build.rs" => (normalized.as_deref().unwrap_or(include_str!("workspace_graph/initial_report/build.rs")), 17509, "48b56f916c25d00004bf6d8bc13e56a0972d07f531fceda2c7c94b57d2af20e1", 17054, "0fd9df9abe4ceadd45105394a4efcda2edc3a3ab780d0326d924288a60ea5bda", &[
             ("                #[cfg(feature = \"unstable-workflow-profiling\")]\n                let mut exclusive = crate::bounded_output::exclusive_debits::attempt(\n                    resolve_builder_bytes,\n                    layouts.receipt(),\n                    fallback_mode,\n                );\n                let result = constructor_failure::attempt::run(active_builder_limit(), || {\n", "                constructor_failure::attempt::run(active_builder_limit(), || {\n"),
             ("                });\n                #[cfg(feature = \"unstable-workflow-profiling\")]\n                exclusive.complete(result.observation_succeeded());\n                result\n", "                })\n"),
         ]),
-        "src/workspace_graph/initial_report/tests.rs" => (include_str!("workspace_graph/initial_report/tests.rs"), 15256, "0f530933b3964478e93a13bd7065cda6a97ab121b7c77508db45e72aff401ad7", 13095, "52afb2ca386cf27e4bd8bf2e70c46565539427a51b11a1cdded57b3762570971", &[
+        "src/workspace_graph/initial_report/tests.rs" => (normalized.as_deref().unwrap_or(include_str!("workspace_graph/initial_report/tests.rs")), 15256, "0f530933b3964478e93a13bd7065cda6a97ab121b7c77508db45e72aff401ad7", 13095, "52afb2ca386cf27e4bd8bf2e70c46565539427a51b11a1cdded57b3762570971", &[
             ("    let complete_before = crate::source_reflows_merge::initial845_input(\n        \"src/workspace_graph/initial_report/before.rs\", include_str!(\"before.rs\"),\n    );\n    assert!(complete_before.contains(&body));\n", "    assert!(include_str!(\"before.rs\").contains(&body));\n"),
             ("\n#[cfg(feature = \"unstable-workflow-profiling\")]\n#[test]\nfn exclusive_core_capture_keeps_complete_real_builder_outputs_and_every_original_limit() {\n    use crate::workflow_profile::plan_comparison::{Binding, Capture, CoreDebitAlgorithm};\n    for limit in [0, 1, 127, 1023, 8191, MAX_BUILDER_BYTES] {\n        let run = || {\n            build_owned_retaining_sources_with_frontend_limit::<Vec<Diagnostic>>(\n                sources(),\n                limit,\n                None,\n                false,\n                None,\n            )\n            .map(|(build, _)| build.source_graph_schemas().unwrap())\n        };\n        let plain = run();\n        let capture = Capture::begin(Binding::caller_labelled(\n            \"real initial builder parity\",\n            [0; 32],\n        ))\n        .unwrap();\n        let watched = run();\n        let report = capture.finish().unwrap();\n        assert_eq!(\n            plain, watched,\n            \"actual full compiler product at unchanged limit {limit}\"\n        );\n        assert_eq!(\n            report.resolved_core.algorithm,\n            CoreDebitAlgorithm::InstrumentedLibraryTest\n        );\n        assert!(\n            report.resolved_core.complete\n                && !report.resolved_core.invalid\n                && !report.resolved_core.lost\n                && !report.resolved_core.overflow,\n            \"{report:?}\"\n        );\n        for attempt in &report.resolved_core.attempts[..report.resolved_core.stored_attempts] {\n            assert!(attempt.complete && !attempt.invalid);\n            assert_eq!(attempt.stage_sum(), Some(attempt.consumed));\n            assert_eq!(attempt.operation_sum(), Some(attempt.consumed));\n        }\n        if limit == MAX_BUILDER_BYTES {\n            assert!(watched.is_ok());\n            assert!(report.resolved_core.entered_attempts > 0);\n            assert_eq!(\n                report.resolved_core.final_attempt_ordinal,\n                Some(report.resolved_core.entered_attempts - 1)\n            );\n        }\n    }\n}\n", ""),
         ]),
         _ => return None,
     };
-    assert_eq!(current, compiled, "complete actual current #845 source owner");
+    assert_eq!(
+        current, compiled,
+        "complete actual current #845 source owner"
+    );
     assert_eq!(current.len(), length);
-    assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))), current_sha);
+    assert_eq!(source_sha(current), current_sha);
     let mut before = current.to_owned();
     for &(new, old) in edits {
-        assert_eq!(before.matches(new).count(), 1, "unique entire #845 owner inverse");
+        assert_eq!(
+            before.matches(new).count(),
+            1,
+            "unique entire #845 owner inverse"
+        );
         before = before.replacen(new, old, 1);
     }
     assert_eq!(before.len(), old_length);
-    assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(before.as_bytes()))), old_sha);
+    assert_eq!(source_sha(&before), old_sha);
     Some(before)
 }
 
 // Closed complete legacy ledger ENTRY after the authentic current #908 inverse.
 fn initial845_ledger_entry(source: &str, current: &str) -> Option<String> {
-    if source != "src/bounded_output.rs" { return None; }
+    if source != "src/bounded_output.rs" {
+        return None;
+    }
     assert_eq!(current.len(), 51963);
-    assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))), "f9379a489970b6cb369265386226ecaa82e2d657355d50eebedb9e33c8b6589a");
+    assert_eq!(
+        source_sha(current),
+        "f9379a489970b6cb369265386226ecaa82e2d657355d50eebedb9e33c8b6589a"
+    );
     let mut entry = current.to_owned();
     for &(new, old) in &[
         ("pub(crate) mod cfg_reservation;\npub(crate) mod format_acceptance;\npub(crate) mod identity_reservation;\npub(crate) mod key_directory;\npub(crate) mod prepaid;\n", "pub(crate) mod format_acceptance;\npub(crate) mod cfg_reservation;\npub(crate) mod identity_reservation;\npub(crate) mod key_directory;\npub(crate) mod prepaid;\n"),
@@ -1442,7 +1453,10 @@ fn initial845_ledger_entry(source: &str, current: &str) -> Option<String> {
         entry = entry.replacen(new, old, 1);
     }
     assert_eq!(entry.len(), 50190);
-    assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(entry.as_bytes()))), "d01a82d602c286044cc1d5df8d05d02dfe5168d1139a82380aa01b06e47c7fd5");
+    assert_eq!(
+        source_sha(&entry),
+        "d01a82d602c286044cc1d5df8d05d02dfe5168d1139a82380aa01b06e47c7fd5"
+    );
     Some(entry)
 }
 
@@ -1463,13 +1477,24 @@ fn initial845_compiled_owner_entry(source: &str, current: &str) -> Option<String
         _ => return None,
     };
     assert_eq!(current.len(), length);
-    assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))), sha);
+    assert_eq!(source_sha(current), sha);
     let mut prior = current.to_owned();
     for &(new, old) in edits {
-        assert_eq!(prior.matches(new).count(), 1, "unique complete original845 owner hunk");
+        assert_eq!(
+            prior.matches(new).count(),
+            1,
+            "unique complete original845 owner hunk"
+        );
         prior = prior.replacen(new, old, 1);
     }
     assert_eq!(prior.len(), prior_length);
-    assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(prior.as_bytes()))), prior_sha);
+    assert_eq!(source_sha(&prior), prior_sha);
     Some(prior)
+}
+
+fn source_sha(text: &str) -> String {
+    format!(
+        "{:x}",
+        crate::digest_hex::LowerHex(Sha256::digest(text.as_bytes()))
+    )
 }

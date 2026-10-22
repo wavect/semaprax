@@ -1,5 +1,9 @@
 # MAIN d285 browser integration — source-only
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base is the immutable integration commit
 `3d77c9566508782b607bed64735a9efe81e15c88`; incoming MAIN is
 `d285dc5375ba78e63db8ad2b77ebad9069db3bcb`. This packet changes only

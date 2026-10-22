@@ -1,5 +1,9 @@
 # Private layout entry capacity — issue 834
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Basis: `940fcf220e47d1975f757e76f0b3401691db9358`.
 
 The existing first traversal counts callback occurrences. Every successful second traversal callback adds at most one entry; full stable declaration IDs suppress duplicates. After the unchanged name allocation, work debit and checked workspace type-count fold, the receiver now requests and allocates `min(occurrences, total_types)` entry slots. No traversal, fee, authority, owner-index capacity, cap or refund changes.

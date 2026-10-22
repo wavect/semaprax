@@ -1,5 +1,9 @@
 # Selected successor receiving repair — source only
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Actual diagnostic 0f9 owner210 measured width1 immediate831/current paid
 18801/29924; owner222 measured width0,weight2 immediate870/current paid
 12834/16218 with identical work9 and heap821 bytes. These are narrow diagnostic

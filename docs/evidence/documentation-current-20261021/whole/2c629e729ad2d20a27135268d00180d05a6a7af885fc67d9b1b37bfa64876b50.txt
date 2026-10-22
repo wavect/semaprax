@@ -1,0 +1,19 @@
+# One-pass receiving and actual-composition follow-up
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
+SOURCE ONLY; no Cargo/compiler/test/generator execution. Immediate predecessor87bd is retained whole with an exact fixed-file inverse. The original deec algorithms, prices and assertions remain untouched; no old baseline fee is increased, refunded or discounted.
+
+Fixes: physical_storage is imported only under cfg(test). Actual second distinct target promotion restores note_branch(true) immediately before the real paidMany::promote, after payment; no probe/failed acquisition manufactures a branch count. Distinct consuming publication now pays full new/received OnePassLabels, map, One tuple, Targets and borrowed-label bindings BEFORE match labels can move either payload. These are additional roles distinct from initial Empty construction.
+
+Every new payment ABI is now held at function ingress, rather than claiming that its own later returned fee pays for its caller. Named ZERO_BYTES, ZERO_WORK, SUBSET and VECTOR constants each include actual and formal tuples with mutable ReplayBudget receiver plus returned and received Result. Additional named constants separately own movement-payment, promotion-payment, both promoted label-node calls, promotion-auth, later-label node/auth, empty-label auth, publication-payment, final-transport-payment and iterator-payment. INLINE/TREE_TARGET_PAYMENTS name both actual add! expansions' promote/add reservation calls and legacy target-node call; INLINE/TREE_PUBLISH_PAYMENTS name both publish! expansions' row/enum/Rc/finish-bank calls and legacy weighted-helper actual/formal/result. Btree-node call headers have their real three-argument type, not the four-argument byte/work type.
+
+SUBSET is the original unchanged one-pass moves.len()+1 call at one lexical site. It is nonrecursive, the Result is consumed by ? before the next node, and no receiver/reference escapes that call. The named complete frame is retained for this sequential site only; it cannot pay zero/auth/vector or any other site. Per-movement new storage/pattern/query roles remain separately acquired before formation. Payment transport formerly inside branch fees has moved to the upfront named bank, avoiding both retroactive acquisition and duplicate role claims. One patterns explicitly include their actual mutable usize/u64 field bindings before checked_add or promotion. New enum/mem::replace/insert transport is separately named. New early physical fees and promotion costs are honest overhead and may regress totals; no fit/gain claim.
+
+New actual shipping corpus covers empty; same-child repetition; u64 overflow; distinct-child promotion followed by PaidMany repeated and absent children; two and three distinct labels; equal Observation content in distinct Rc allocations. Full outputs compare with the unchanged Directory. The original subset debit is combined only with independently executed real delegated PaidMany work in the promotion case, not with an invented offset or a universal work equality claim. Exact/short/zero and every actual byte cut remain authored through complete Drop.
+
+Sticky controls retain the first complete owning Diagnostic across retry, assert all six fields unchanged, and check first-refusal ledger provenance, allocation and both work/physical remaining. The subsequent retry is compared to its exact stable EMPTY six-field Diagnostic (the preowned first reporting text was consumed by the first failure); it is not wrongly compared to the first nonempty message. No lossy capture or heap clone is introduced.
+
+Both new test owners are source-authored/unexecuted. Parent assembly must refresh actual source bindings once; no historical packet, old row, cap or original owner was retargeted. Only an existing Rust file changes and remains below1500lines.

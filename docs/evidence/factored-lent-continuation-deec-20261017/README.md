@@ -1,5 +1,9 @@
 # Factored lent-continuation source repair
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only candidate based on deec161142b2f3e882e50b4450338c69c137e586. No Rust compilation or owning execution was performed.
 
 Actual owner81 failed at factored.rs1078, `old.allocated - current.allocated`, before the unchanged strict equality could be evaluated. build_comparison lends the ordinary work allowance to the complete original skeleton events. Its unpooled constructor had begun selecting incremental standalone backing, while explicit Storage::new still retained the original fixed516 backing. That mixes two different physical generations in the original nine-versus-one comparison.

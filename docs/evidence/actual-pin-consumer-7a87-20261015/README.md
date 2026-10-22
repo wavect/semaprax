@@ -1,5 +1,9 @@
 # Actual 7a87 pin consumers with repaired test inputs
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 This test-only successor applies the reviewed actual producer plan: 11 literal
 changes in two existing test files. Actual builder use increased 24,652 bytes
 (1,428,092 to 1,452,744); no improvement is claimed. The unchanged legacy pin

@@ -1,5 +1,9 @@
 # PLAN macro scope and source custody
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The complete 232-byte child declaration/reexport block moves verbatim after all
 four parent macros. No child bodies, source literals, fee calculations or runtime
 routes change. Rust item order leaves type/function references available while

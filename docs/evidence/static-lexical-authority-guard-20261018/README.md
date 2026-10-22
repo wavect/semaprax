@@ -1,5 +1,9 @@
 # Static lexical authority guard
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 SOURCE ONLY: no Cargo, build, tests or final custody generation.
 
 STATIC-BORROWED-UTF8-LITERALS-V1 requires G410 without the private exact-source

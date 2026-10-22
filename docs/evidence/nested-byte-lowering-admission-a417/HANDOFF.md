@@ -1,5 +1,9 @@
 # Nested-byte lowering admission correction
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Basis969e2b58dda092929b1804de5bb741808ac7701a preserves prior manual Option fixture/guide fixes. Source-only: no Cargo/build/test/runtime execution. Actual a417 nested owners stopped at the blanket bounded-loop HIR For rejection before reaching independent byte replay.
 
 The complete bounded-loop pre-scan now traverses only an immutable exact byte source available in the borrowed outer-entry map, preserving the full existing unsafe/call/scalar/allocation checks over every subtree. Vec/record/owned routes retain the strict no-scope gate. Actual scheduling additionally requires the exact entry binding identity, rejecting same-name shadows/current non-byte/mutable sources. Ordinary While can use it only while an actual EnterByteLoop continuation is active. The new variant replaces one EnterLoop slot; it publishes outer-entry scope after the existing lexical-depth check. LeaveLoop clears only after exiting that outer region. Fresh function/closure resolution gets an empty paid ancestry owner. Complete borrowed_root_oracle is unchanged, as are all late independent Census/freezes/nearest-target/loan proofs.

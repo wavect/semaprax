@@ -1,0 +1,24 @@
+{
+  "status": "CURRENT_SOURCE_CUSTODY_AND_CARRIER_PROTOCOL_PASS_PENDING_FULL_PRODUCTION_CI",
+  "base_head": "9bb8e9160f1728d9ef9f8d6cbce6247fe4b7a481",
+  "changes": [
+    "Independent compact byte/array/clone/work/refusal producers retain every original producer.",
+    "Four actual plan-copy receiving payments use new compact banks; original fee-bank bodies remain exact for retained references.",
+    "The cost-derived short-history boundary is unchanged and bound by a const equality.",
+    "Both immutable Root history protocols authenticate the complete new-to-old inverse before every original predecessor recipe."
+  ],
+  "checks": {
+    "real_normal_Diagnostic_and_Span_carrier_tests": 7,
+    "cross_namespace_CI_input_tests": 5,
+    "MAIN043_tests": 14,
+    "compiled_lookup_and_hostile_inverse_tests": 2,
+    "current_compiled_physical_archive_gate": 1,
+    "complete_180_entry_reflow_gate": true,
+    "original_source_verifiers_and_six_hostile_controls": true,
+    "source_harness_Clippy_warnings_denied": true,
+    "module_size_and_targeted_rustfmt": true
+  },
+  "local_source_compile_profile": "Rust 1.97.1, opt0, 16 codegen units, serial backend; 768MiB process cap",
+  "local_source_compile_peak_KiB": 695376,
+  "limits": "Full production compiler build, private branch-copy paired runtime test, complete Root unit suite and current-head CI remain required. Larger local compiler metadata attempts were stopped by RAM guards; they are not passing qualification. No quota, reserved floor, old assertion, immutable fixture, source membership or public Diagnostic layout is relaxed."
+}

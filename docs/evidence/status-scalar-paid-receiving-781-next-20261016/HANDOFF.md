@@ -1,5 +1,9 @@
 # Status and scalar-local receivers — source only
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Immediate base: c7c02a4f86b1ca35b5de7e68f8a7cf9265c23829.
 This is a separate future component, not the frozen83ca qualification. No Rust,
 Cargo, runtime owner, Clippy or benchmark was executed. All work and temporary

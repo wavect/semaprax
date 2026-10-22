@@ -1,5 +1,9 @@
 # Historical sequence-minimum source input after Clippy
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Actual a82e selected owner322 failed because later production Clippy fixes collapsed conditionals. The existing full historical before.rs, its fixed SHA256, the exact macro/argument inverse, and the complete final source assertion remain unchanged. The owning test now passes its entire extracted current sequence function through a separately named authenticated input bridge before executing those original assertions.
 
 The bridge admits exactly one complete current function SHA256 and three finite unique whole-block inverse edits; these restore four collapsed conditions to their original historical shape. It authenticates the resulting complete function SHA256. No compiler function, runtime behavior, quota, diagnostic, raw source inventory, original four current344 bridges or historical archive changes.

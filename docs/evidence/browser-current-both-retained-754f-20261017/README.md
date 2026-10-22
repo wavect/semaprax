@@ -1,5 +1,9 @@
 # Current browser input, two complete historical trees
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source only. No Cargo, Rust owner, capture, pin generation, readiness or apply
 has run for this candidate. Shipping runner pins remain unchanged at MAIN671.
 

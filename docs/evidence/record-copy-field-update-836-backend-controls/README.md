@@ -1,5 +1,9 @@
 # #836 missing backend controls: source-only follow-up
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Immediate basis: `186854fff7cc556ac1852019f39420094adc9996`. This is a
 coverage correction only: every production backend byte, public import index,
 private helper ABI and frozen old route is unchanged. The five original test

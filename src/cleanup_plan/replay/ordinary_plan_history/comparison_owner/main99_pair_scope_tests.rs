@@ -1,6 +1,8 @@
 //! Pair-local successor: real complete producer+comparison boundaries.
+use super::super::before_shared_steps::{
+    compare, PAIR_PRIMITIVE, PAIR_SCOPE, PATH_INDEX, PAYMENT_HEADER,
+};
 use super::*;
-use super::super::before_shared_steps::{compare, PAYMENT_HEADER, PATH_INDEX, PAIR_SCOPE, PAIR_PRIMITIVE};
 use crate::bounded_output::with_limit_usage_refusal;
 use crate::test_allocation_observer::{measure, Metrics};
 // Source-type coefficients are independent of measured debit differences.
@@ -1010,7 +1012,11 @@ fn retained_flat_view_keeps_complete_long_comparisons_and_stable_mismatch_diagno
 fn complete_incoming_shared_steps_producer_macro_and_test_bodies_remain_exact() {
     super::super::before_shared_steps::whole_source();
     let current = include_str!("lexical_cursor.rs");
-    let admitted = super::super::reachable_stage("src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor.rs", "e3278dc29dcce665dd9d3a67ce048e552254a65c5a939f769b2b7c1eb86a9ded", current);
+    let admitted = super::super::reachable_stage(
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor.rs",
+        "e3278dc29dcce665dd9d3a67ce048e552254a65c5a939f769b2b7c1eb86a9ded",
+        current,
+    );
     assert_eq!(include_str!("lexical_cursor_shared_steps.rs"), admitted);
     let restored = frontiers::before_preparation("main99_pair_scope_tests.rs").split_once("\n#[test]\nfn complete_incoming_shared_steps_producer_macro_and_test_bodies_remain_exact").unwrap().0.replacen("use super::super::before_shared_steps::{compare, PAYMENT_HEADER, PATH_INDEX, PAIR_SCOPE, PAIR_PRIMITIVE};\n", "", 1);
     assert_eq!(restored, super::super::reachable_stage("src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_tests.rs", "10ecb901fd3ce0805b1fbc81f68ad221d9a4fc3ddf3f707ff05fc38fff5b13e5", include_str!("pair_scope_tests.rs")));

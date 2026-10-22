@@ -1,5 +1,9 @@
 # Browser known answers and strict raw source input
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The complete original Linux Rust 1.88 CI records from job 117933951380 at
 775521f128d4f927b88413122f7eb504f6c50b01 are retained with their original log,
 job metadata and compiler provenance. Every decoded record's byte length and

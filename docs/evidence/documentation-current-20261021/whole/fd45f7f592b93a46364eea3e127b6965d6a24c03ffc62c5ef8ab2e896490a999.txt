@@ -1,0 +1,21 @@
+# Typed constructor propagation — future source batch
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
+Basis: a6a46a2cde6414611060e195b590377904e5a25e. Private, source-authored and unexecuted. OPT825 remains open. No application-fit, full-constructor funding, compiler or runtime claim.
+
+The actual resolved-core caller now passes its existing affine Receiver through typed overlay/stub/default/field successors. The original maximum and first Setup are held inline. Foreign identity is checked before even arithmetic/physical exits; it cannot donate ACTIVE. The same inherited physical maximum-size request remains selected after authentication. Semantic One remains primary despite a secondary sticky/detached association; Many moves its full original backing without paid reclassification.
+
+Primitive adapters return the existing small Copy Setup, rather than repeatedly initializing large Diagnostic-bearing Failure returns. Their declared small return/reference/argument/Option controls are priced in each actual request; fixed refusal controls are also prepaid with the acquired owner for the failed first entry. Helper Results, borrowed references, String initializer, field initializer and growth backing remain distinct charges. Field append additionally prices its actual incoming field and mutable Vec reference. The text sentinel check happens before later output acquisition. New fees are cumulative, no old carrier credit/refund or cost-equality claim exists.
+
+Old default, field, overlay, stub and core receivers stay independently compiled under cfg(test); whole bodies remain unchanged. Narrow cfg(test) gates only remove now-unused production dispatch. The new route adopts actual core use, not an unused API. Seven new controls cover same-owner/foreign/restored sticky association, complete dynamic Many and primary fields/pointer, widths 0/1/4/5/9 with every byte boundary including exact/short/zero and full Drop, complete old static/stub semantics, full old overlay success/late errors, same-child prepaid final publication, and whole-source custody. These have not executed.
+
+Residuals: registry/layout/census/cost/type rewriting, alias copying, provider-internal diagnostics, general owned/borrowed-leaf dependencies and semantic message producers retain legacy ownership/return behavior. A copied complete route is not a funding certificate for these producers. The public/no-owner outward Vec compatibility path still allocates; there is no externally adopted affine typed outward result yet. These are required before full OPT825 closure.
+
+Source-only checks: own21 full current-to-a6/original inverses, prior report15 whole original inverses and prior inline5 whole originals; all old hooks retained in their original consumer order, archives unchanged. The two prior packet JSON snapshots are preserved here. Own seven new and20 required existing raw source names/hashes are checked, not compiler registration. Source36 already fails on unchanged classifier_string.rs at the a6 basis (its earlier receiving integration custody was pending); this future packet does not edit that file or source36/a/b. Root final integration must compose that existing gap and later joins against its actual head.
+
+The minimal real compiler import/visibility corrections reported by parent are included: ClassifierLedger imports use classifier_string, and actual attempt API/Attempt are visible to workspace_graph. Parent's independent corrective may already contain them; preserve equivalent fixes on cherry-pick.
+
+No Cargo, test, build, Clippy or heavy command ran. New files were rustfmt checked and git diff --check passed. Any future actual failure is authoritative.

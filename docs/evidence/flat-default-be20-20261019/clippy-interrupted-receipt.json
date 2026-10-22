@@ -1,0 +1,14 @@
+{
+  "status": "INTERRUPTED_BY_MEMORY_GUARDS_NO_PASS_CLAIMED",
+  "attempt1": {
+    "peakKiB": 3153136,
+    "global_min_percent": 62,
+    "process_cap_MiB": 3072
+  },
+  "attempt2": {
+    "peakKiB": 2252800,
+    "global_min_percent": 34,
+    "process_cap_MiB": 3584,
+    "global_reserve_percent": 35
+  }
+}

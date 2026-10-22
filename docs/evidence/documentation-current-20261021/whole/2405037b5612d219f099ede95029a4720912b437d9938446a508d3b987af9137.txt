@@ -1,0 +1,13 @@
+# Borrowed diagnostic writer v1
+
+Audience: compiler contributors and reviewers.
+
+Status: private source-only renderer successor for OPT846. Executable qualification, physical measurements and scoped Clippy remain pending. This does not complete constructor/output funding or OPT825.
+
+Diagnostic::write_json writes the exact six-field JSON key order and escaping to a caller fmt::Write. On the ordinary unbounded output route it borrows every field; no intermediate JSON, quoted-field or location String is acquired. Diagnostic::write_to retains the original human Display contract. writer::write_lines preserves error order and one final newline per diagnostic. The real CLI report path uses it with the existing stdout JSON / stderr human streams. Existing WorkspaceReportFailure Display uses the same human writer for already-owned reports; opaque selected failures keep their original fallback. No new initial-constructor channel is claimed.
+
+Diagnostic::json and quote_json remain complete independent compatibility code. Active bounded output deliberately delegates to that route: its quotes reserve path/help before code/severity/message, despite the final JSON field order, and can retain partial escaped strings after a floor/sticky refusal. Streaming in JSON field order would alter that contract. The bounded route therefore retains its old intermediate allocations and all logical receipts, including unfavorable cases. No limits or reserved floors change.
+
+IoWriter borrows an existing byte writer. It retains the first IO error and stops further writes; it does not replace the selected compiler status. Diagnostic streams are not authoritative workspace artifacts. No project/source publication occurs in this renderer. CLI output buffering/locks, renderer controls and caller output backing remain ordinary caller ownership, explicitly outside any new prepaid compiler-report certification. No zero-budget output or free-control claim follows from streaming.
+
+The complete original Diagnostic production receiver remains cfg(test), including json, quote_json, Display, paths and every constructor. Focused controls compare all fields, nulls, order, Unicode/control/quote escaping, ordered arrays and human/newline behavior; every logical bounded byte/floor/retry; whole construction/renderer/Drop allocations with favorable and unfavorable routes; first writer error and actual CLI stream/status/source preservation. The source gate retains full immediate inverses and all three module-audit joins. Actual moved pins require their original producers/consumers, not a hand-edited value. No live benchmark, token, billed-cost or application-fit benefit is claimed.

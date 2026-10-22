@@ -1,0 +1,15 @@
+{
+  "status": "SOURCE_ONLY_ACQUISITION_STAGE_REPAIR",
+  "before_head": "f5b1bb7b5d5be8325c9d696543c3557397c3e959",
+  "production_behavior_changed": false,
+  "unchanged_DATA_table_length": 17256,
+  "unchanged_DATA_table_sha256": "805be510a86e46dfb8cd58b63eca7b89e347053674e3357e8cb3c48924ce4955",
+  "changes": [
+    "Keep complete incoming stages distinct from already acquired immutable EB2 inputs.",
+    "Run existing two formatting acquisitions before the complete audit route.",
+    "Authenticate current physical and compiled walk inputs before the original851 checkpoint and original bridge inverse.",
+    "Retain full original452 input table and archive comparisons after authenticated formatting acquisition.",
+    "Link the exact existing pre-opt881 physical budget source as an additional finite view; retain every old view."
+  ],
+  "limits": "Focused source harness and unchanged complete source-role verifiers only; not full unit, runtime, Chromium or CI qualification."
+}

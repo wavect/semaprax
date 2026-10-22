@@ -1,0 +1,10 @@
+{
+  "source": "src/hir/expr_nodes.rs",
+  "function": "residual_payload_compacts_the_complete_previous_expression_layout",
+  "body_sha256": "c6ffd0a0998befabd7a7a45e87f02a29c0c4d3ad72cf6c36a812afcb723287cd",
+  "actual_function_body_verbatim": true,
+  "current_types": "actual normal compiler library",
+  "before_types": "complete actual retained expr_nodes.rs.before.txt",
+  "unrelated_historical_cfg_test_modules_not_compiled": true,
+  "not_full_root_cfg_test_execution": true
+}

@@ -1,0 +1,16 @@
+{
+  "status": "PASS_EXACT_NORMAL_MAC_WORKSPACE_GRAPHS_UNCHANGED_BY_VALIDATOR_FACT_CORRECTION",
+  "graphs": [
+    {
+      "subject": "baseline",
+      "peakKiB": 7408,
+      "whole_old_and_current_graph_bytes_identical": true
+    },
+    {
+      "subject": "renamed",
+      "peakKiB": 48560,
+      "whole_old_and_current_graph_bytes_identical": true
+    }
+  ],
+  "does_not_replace_actual_Linux_or_browser_runtime_evidence": true
+}

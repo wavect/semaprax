@@ -1,0 +1,21 @@
+{
+  "status": "UNPUBLISHED_CONSTRUCTION_CORRECTION_PENDING_FRESH_VERIFICATION",
+  "source": "src/source_reflows_merge/main7f8_source_inputs.rs",
+  "removed_unused_compatibility_case": true,
+  "original_project_function_and_wrong_stage_checks_byte_exact": true,
+  "before_unpublished_current": {
+    "archive": "docs/evidence/source-frames-67a-20261020/whole/1a3ee3fcb6073f7c484cbd601dcb1e9dd807e1ec1cec883722669e6834d4eb30.txt",
+    "length": 17604,
+    "sha256": "1a3ee3fcb6073f7c484cbd601dcb1e9dd807e1ec1cec883722669e6834d4eb30"
+  },
+  "current": {
+    "length": 16392,
+    "sha256": "e41e405ea507f00a0929dab5b27eee062d7642641578ea24e0f50a155b46df93",
+    "archive": "docs/evidence/source-frames-67a-20261020/whole/e41e405ea507f00a0929dab5b27eee062d7642641578ea24e0f50a155b46df93.txt"
+  },
+  "all_existing_view_lists_unchanged": true,
+  "unpublished_intermediate_not_added_as_a_view": true,
+  "page_bytes": 240608,
+  "before_page_sha256": "bf25a3c2f1662a28c1373e8b6b7f361fffbceb22a44b33eae58f7187763f37df",
+  "current_page_sha256": "4ba3578dc8c028a434ac8c9ca1cd2323dcad47a536f9a999b1db84e782819639"
+}

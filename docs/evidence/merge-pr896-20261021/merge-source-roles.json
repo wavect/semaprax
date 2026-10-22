@@ -1,0 +1,20 @@
+{
+  "status": "SOURCE_ONLY_FULL_ORIGINAL_VERIFIER_AND_SIX_HOSTILE_CONTROLS_PASS",
+  "all_parent_classes_and_roles_preserved": true,
+  "current_owner_count": 475,
+  "files": [
+    "docs/evidence/a3-e47-final-custody-20261016/hir.json",
+    "docs/evidence/a3-e47-final-custody-20261016/projection.json",
+    "docs/evidence/a3-e47-final-custody-20261016/new-owners.json",
+    "docs/evidence/source-boundary-domains-20261016/current-domains.json",
+    "docs/evidence/source-boundary-domains-20261016/boundary-source-proof.json"
+  ],
+  "private_retained_sources": [
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/fixture_helpers.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/lexical_cursor.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/mod.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/pair_scope_census.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/pair_scope_tests.rs",
+    "src/bounded_output/stage_debits/route_debits/retained_main_289.rs"
+  ]
+}

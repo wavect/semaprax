@@ -1,3 +1,9 @@
+# borrowed-single-owning-equations-20261017 README
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Post210 exact owning-equation composition, source only. Entire precomposition222/286 files and literal inverses are retained. Existing all weights/widths, actual old producers, complete six-field outcomes, exact work and each producer own exact/short/zero/floor/sticky assertions remain. Counts are independently derived from unobserved completed states, nonempty states and unique nonempty signatures, never measured-paid subtraction. Cold-dead bypass is derived from scratch_paid=false, not an assumed universal admission. Old EXIT_CONTROLS includes the prior physically absent forwarding Result; all old query/array/miss/backing roles are counted at their real owning boundary. Both222 observers already pay the same current constructor envelope;286 pays no constructor request, so neither adds a fictitious global Self delta.
 
 The source removes exactly one persistent one-usize child-ID allocation iff a nonempty Exit completes. Total allocations/allocated/freed change by precisely that owner, reallocations remain equal, balanced Drop remains exact, and current peak<=old peak<=current peak+sizeofusize follows that single removed owner with every other allocation/lifetime matched (explicit miss buffer Drop restored the original release order). With no such owner, whole Metrics equality remains exact. Full physical tuples are reported; no universal wide/duplicate/application benefit is claimed. Strict210 is untouched. Parent explicitly approved this tight one-owner heap relationship. No Cargo/tests/builds/binders/ROOT writes.

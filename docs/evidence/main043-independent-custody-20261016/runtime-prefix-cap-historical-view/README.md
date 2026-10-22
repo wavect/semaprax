@@ -1,5 +1,9 @@
 # Distinct pre-cap runtime-json historical view
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Main043 retains its complete original startswith(gitA) equality through an exact
 whole88cc pre-cap source view. Both full88cc and full originala82 sources are
 held with pinned SHA256. Only this historical assertion reads the view; the real

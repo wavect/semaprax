@@ -1,0 +1,8 @@
+{
+  "tuple_annotations_replaced_with_two_exact_type_aliases": true,
+  "original_tables_values_and_assertions_unchanged": true,
+  "moved_reader_body_sha256": "9e9fbfe0e0505ea54e589a5166b65c3d31b6ec2cb4dfbff3d2e3e24c9ab3d36c",
+  "reader_body_byte_exact": true,
+  "overlay_lines": 1499,
+  "whole_predecessor_assertions_retained": true
+}

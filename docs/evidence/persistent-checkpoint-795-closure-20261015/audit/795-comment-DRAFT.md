@@ -1,3 +1,9 @@
+# audit 795-comment-DRAFT
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 DRAFT — do not publish or close until the two remaining d8 semantic owner
 receipts identified in 795-historical-to-d8-followup.json are verified PASS.
 

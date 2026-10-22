@@ -1,0 +1,17 @@
+# Exact Main043 receiver acquisition — source only
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
+Base: aba40624537c8fa5f121aec3954de82d9714eedc. The final common source binder refused the old043 receiver self-source row: current raw semantic_receivers.rs is d19607ff...7589df, whereas the untouched old043 row expects the complete 7,228-byte stage457d115f...bc495c. The existing followupReceiverMAIN domain instead restores a distinct 12,874-byte stage68c95445...d28f and is deliberately untouched.
+
+A closed one-source bridge authenticates whole current bytes, the current preimage, five exact line inverse groups, the whole previous-stage hash and previous preimage. It runs only as an explicit acquisition at the start of old Python restore, BEFORE every unchanged historical algorithm/guard. The rest of restore and the entire historical function remain byte-for-byte. Raw-current/self-read, mutation and forged-predecessor controls remain meaningful; the forged old historical hash reaches the original final refusal after the new acquisition.
+
+The old verifier receives one exact helper-hash literal update. Its original finite guard-extension recipe receives that same single pin edit as a final row; all previous recipe rows remain unchanged, and the exact reconstructed verifier equality passes. Whole old modules, row/current preimages and exact inverses are retained here; the old043 JSON row and archive are unchanged.
+
+There was no direct Rust consumer of this old043 self-source JSON/helper. The real Rust raw receiver route is incoming67107_semantic_receivers -> main67107_inputs followupReceiverMAIN; it keeps its separate frozen MAIN input and all old guards. The existing already-registered main67107_inputs.rs now appends a new cross-language control using the same fixed-SHA bridge data and original old043 row, complete original line inverse, whole historical archive and refusal cases. It is an additional source-proof owner, not old backend authority. Every preexisting byte of that Rust helper is preserved as an exact prefix; no seventh Rust file, raw inventory edit or production change was added.
+
+Targeted Python source controls pass (15 hostile cases), including old/foreign stage, full-current drift, foreign source, changed predecessor, reordered/changed inverse, duplicate JSON and old-row SHA forgeries. Python source parses, Rust2021 rustfmt parsing and git diff checks pass. The new Rust control remains UNEXECUTED. No Cargo, compiler execution, global/common refresh, endpoint regeneration, full gate or ROOT write occurred. Parent must rerun the existing common binder after integration, retaining the earlier refusal and generating its own endpoints.
+
+Pending Rust selector: source_reflows_merge::main67107_inputs::main043_receiver_complete_stage_and_original_historical_inverse_are_retained.

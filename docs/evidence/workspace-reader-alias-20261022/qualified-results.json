@@ -1,0 +1,12 @@
+[
+  {
+    "name": "source_reflows_merge::main_e177_final_inputs::overlay_v2::compiled_sources::tests::compiled_lookup_split_preserves_the_complete_predecessor_and_every_old_mapping",
+    "status": "PASS",
+    "peakKiB": 2480
+  },
+  {
+    "name": "source_reflows_merge::main_e177_final_inputs::overlay_v2::compiled_sources::tests::compiled_lookup_split_refuses_child_parent_span_eof_and_duplicate_glue",
+    "status": "PASS",
+    "peakKiB": 2480
+  }
+]

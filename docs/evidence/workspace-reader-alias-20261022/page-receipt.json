@@ -1,0 +1,19 @@
+{
+  "status": "ORIGINAL_CURRENT_CODEC_COMPOSITION_PASS_PENDING_PUBLICATION",
+  "base_head": "34f19acf30f80bd1198a201c7c3f15fc611c2622",
+  "rows": 697,
+  "page_bytes": 251287,
+  "published_current_preserved_as_exact_views": [
+    {
+      "source": "tests/workspace/semantic_graph.rs",
+      "view": {
+        "length": 59354,
+        "sha256": "261ccae2e4689f631614562cb73d599028846ec64518ef74a25d5d3c12803776",
+        "archive": "docs/evidence/rustfmt-complete-20261021/current/261ccae2e4689f631614562cb73d599028846ec64518ef74a25d5d3c12803776.txt",
+        "name": "whole-pre-workspace-reader-alias-34fa6b5cc8"
+      }
+    }
+  ],
+  "all_previous_fields_views_memberships_and_fragment_edges_retained": true,
+  "all_original_codec_bodies_and_caps_unchanged": true
+}

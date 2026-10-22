@@ -794,6 +794,10 @@ fn actual(row: &serde_json::Value) -> String {
 
     value
 }
+pub(crate) fn registered_file(source: &str, expected: &str, cap: usize) -> Option<String> {
+    packet_lookup::registered_file(source, expected, cap)
+}
+
 pub(crate) fn file(path: &Path, length: usize, expected: &str) -> Option<String> {
     ProjectionInvocation::new().file(path, length, expected)
 }
@@ -1468,4 +1472,9 @@ fn complete_current_compiled_sources_precede_strict_historical_stage_acquisition
         assert!(clippy_stage::requested(source, &expected, &foreign).is_none());
         assert!(clippy_stage::requested(source, &"0".repeat(64), compiled).is_none());
     }
+}
+
+#[test]
+fn registered_digest_reads_keep_current_history_and_each_original_file_bound() {
+    packet_lookup::registered_digest_reads_keep_current_history_and_each_original_file_bound();
 }

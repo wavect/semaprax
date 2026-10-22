@@ -1,0 +1,40 @@
+fn source_archives() {
+    use sha2::{Digest, Sha256};
+    let rows: serde_json::Value =
+        serde_json::from_str(super::metadata(super::Fixture::Receiving)).unwrap();
+    let sources = [
+        ("src/cleanup_plan/replay/expression_facts/receiving.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/receiving-transitive-results-816/src__cleanup_plan__replay__expression_facts__receiving.rs.before.txt")), "631abde22c4c2ff48d35b75d1f1e5475819d6ee20ed4bb5c83c531b057675ecd"),
+        ("src/cleanup_plan/replay/expression_facts/receiving/regions_entry.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/regions_entry.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/receiving-transitive-results-816/src__cleanup_plan__replay__expression_facts__receiving__regions_entry.rs.before.txt")), "327237ebc01755438f25ff967fc327a3ffb4f9d6be2a2a54bad6a36803b7095b"),
+        ("src/cleanup_plan/replay/expression_facts/receiving/remaining.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/remaining.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/receiving-transitive-results-816/src__cleanup_plan__replay__expression_facts__receiving__remaining.rs.before.txt")), "ea688655dac741ee5795e16582e64a69cae3928d491d008d36bca4549c73df05"),
+        ("src/cleanup_plan/replay/expression_facts/receiving/retained.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/receiving-transitive-results-816/src__cleanup_plan__replay__expression_facts__receiving__retained.rs.before.txt")), "350076d7fb340ac0c350a278b00f318762f1189418e12fc2abcc1c2e3c6adbe3"),
+        ("src/cleanup_plan/replay/expression_facts/receiving/retained/exits.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained/exits.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/receiving-transitive-results-816/src__cleanup_plan__replay__expression_facts__receiving__retained__exits.rs.before.txt")), "a314eae7257c5ba20dc57d1a9ee1f166d2919bb34ebf9fb4f46e287c8b64b40c"),
+        ("src/cleanup_plan/replay/leaf_index.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/leaf_index.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/receiving-transitive-results-816/src__cleanup_plan__replay__leaf_index.rs.before.txt")), "6d7f32f3ed12640d920d58b6001f1088d4ed8b8e846303e715065f19ca4a1b9e"),
+        ("tests/hir_module_boundaries.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/hir_module_boundaries.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/receiving-transitive-results-816/tests__hir_module_boundaries.rs.before.txt")), "4c6763cc6a218441e08de18be3eeb8f54e0612e23879e7c7085462f79521d86e"),
+        ("crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/receiving-transitive-results-816/crates__semaprax-native-rust-interop-builder__src__implementation__tests__ledger_capacity__source_inventory.rs.before.txt")), "ffca787b9ed74a134e02ed5af5dcfe62a137815b59360a130d4c2c3149d6f807"),
+        ("src/cleanup_plan/replay/live_oracle/source_custody/b.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/live_oracle/source_custody/b.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/receiving-transitive-results-816/src__cleanup_plan__replay__live_oracle__source_custody__b.rs.before.txt")), "3aba68eb707236e99d2d93679c19c9e0a9b4849a8f7e94c5bf6ef60e7fc6548f"),
+    ];
+    assert_eq!(rows.as_array().unwrap().len(), sources.len());
+    for (row, (path, current, archive, fixed)) in rows.as_array().unwrap().iter().zip(sources) {
+        assert_eq!(row["source"].as_str().unwrap(), path);
+        assert_eq!(row["sha256"].as_str().unwrap(), fixed);
+        assert_eq!(
+            format!(
+                "{:x}",
+                crate::digest_hex::LowerHex(Sha256::digest(archive.as_bytes()))
+            ),
+            fixed
+        );
+        let mut result = current.to_owned();
+        for edit in row["edits"].as_array().unwrap().iter().rev() {
+            let after = edit["after"].as_str().unwrap();
+            assert_eq!(result.matches(after).count(), 1);
+            result = result.replacen(after, edit["before"].as_str().unwrap(), 1);
+        }
+        assert_eq!(result, archive);
+    }
+}
+
+#[test]
+fn complete_original_owner_is_executed() {
+    source_archives();
+}

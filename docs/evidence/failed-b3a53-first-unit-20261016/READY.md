@@ -1,3 +1,9 @@
+# failed-b3a53-first-unit-20261016 READY
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Fresh authorized final-source preparation: 53 exact bodies/6 roles; four original sequential unit-first commands, jobs1/CGU64/debug0. Six drivers byte-exact original. All previous scopes and failures remain separate. Nothing executed.
 
 Parent reviews then launches:

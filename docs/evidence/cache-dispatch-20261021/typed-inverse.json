@@ -1,0 +1,142 @@
+[
+  [
+    2303,
+    "",
+    "and ordinary function imports "
+  ],
+  [
+    2328,
+    "",
+    "\n///"
+  ],
+  [
+    2358,
+    "\n///",
+    ""
+  ],
+  [
+    2402,
+    " Ordinary imports use the constructor",
+    ""
+  ],
+  [
+    2444,
+    "",
+    "Bo"
+  ],
+  [
+    2446,
+    "at supports retained frontend",
+    ""
+  ],
+  [
+    2482,
+    "k",
+    "mod"
+  ],
+  [
+    2484,
+    "y",
+    ""
+  ],
+  [
+    2487,
+    "in both cold",
+    "pay"
+  ],
+  [
+    2504,
+    "wa",
+    "perfo"
+  ],
+  [
+    2509,
+    "bu",
+    "th"
+  ],
+  [
+    2512,
+    "ld",
+    ""
+  ],
+  [
+    2515,
+    "",
+    " same allocation-free selection"
+  ],
+  [
+    4920,
+    "s",
+    "zer"
+  ],
+  [
+    4922,
+    "",
+    "-capt"
+  ],
+  [
+    4924,
+    "c",
+    ""
+  ],
+  [
+    4926,
+    "-bound",
+    ""
+  ],
+  [
+    5502,
+    "",
+    "\n        "
+  ],
+  [
+    5518,
+    "",
+    " + 2 * size_of::<&crate::ast::ModuleUseKind>("
+  ],
+  [
+    5519,
+    "",
+    " + 2 * size_of::<bool>("
+  ],
+  [
+    5520,
+    "?;",
+    ","
+  ],
+  [
+    5527,
+    "// Transient scalar aliases cannot be persisted as frontend cache keys.\n    // Keep ordinary imports on the same retained constructor in both modes",
+    "))?"
+  ],
+  [
+    5675,
+    "\n    // reserved wrappers retain their independent full classifier below.",
+    ""
+  ],
+  [
+    5775,
+    "\n        ",
+    ""
+  ],
+  [
+    5796,
+    "\n        ",
+    ""
+  ],
+  [
+    5812,
+    "\n        ",
+    ""
+  ],
+  [
+    5834,
+    "",
+    " {\n       "
+  ],
+  [
+    5884,
+    "",
+    "\n            || import.kind == crate::ast::ModuleUseKind::Function\n    }"
+  ]
+]

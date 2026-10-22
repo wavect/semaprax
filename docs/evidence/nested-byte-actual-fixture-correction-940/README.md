@@ -1,5 +1,9 @@
 # Actual nested-byte owner corrections, immutable940
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 This packet corrects two source-bound actual failures at `940fcf220e47d1975f757e76f0b3401691db9358`. The full original files, exact four-file inverses, both actual failure rows/logs, source-only verification and unchanged owning selectors are retained. No Rust/compiler/Cargo/Clippy, Wasm/Node execution, Claude, review, ROOT edit or remote write was performed. These corrected owners remain SOURCE AUTHORED / UNEXECUTED until the next consolidated batch. No safety fix, backend recovery or allocation gain is claimed from source inspection alone.
 
 ## Actual failure 1: local ownership premise

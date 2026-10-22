@@ -1,0 +1,13 @@
+# Bounded review disposition
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
+Both one-process Sonnet reviews are terminal, raw payload/result/receipt retained. Proposal: 9,508 bytes,57.96s,peak324,730,880 bytes, provider list USD0.089144. Implementation:9,744 bytes,70.57s,peak279,035,904 bytes, list USD0.111944; actual billing unknown. No tools, execution, delegation or retry. User subsequently stopped Claude; no process remained and none was dispatched afterward.
+
+Proposal findings: captured maximum, owner authentication on all physical exits and actual typed carrier names were implemented. The proposed change to let a secondary saved Budget replace an already selected semantic Diagnostic was rejected: the owning contract explicitly preserves that primary. ClassifierLedger has no custom Drop; dropping its Rc cannot reset ACTIVE or its held Budget. Many keeps its entire prior backing, unused paid receiver storage drops without credit. Current zero reservation checks sticky Budget; a legitimate empty string remains distinguishable by that check. Ordinary old Vec growth is preserved, not given an old-header credit.
+
+Implementation review found no confirmed semantic/typing blocker in the pasted subset, but correctly flagged large Failure-bearing primitive adapter returns and their argument controls. Final source simplifies reserve/entry/physical to Copy Setup returns, charges remaining explicit small controls, helper return/reference and field incoming/reference carriers, and acquires fixed refusal controls with the original owner. This post-review correction is source-inspected, not described as reviewed or executed. Arithmetic is sticky. Foreign identity precedes arithmetic, with a hostile usize::MAX request in the actual foreign-owner control. No new review followed the user's stop instruction.
+
+The review's suggestion to relax field capacity equality was rejected for this bounded custody change: the complete old receiving algorithm enforces exactly that physical condition. The typed copy retains its forced maximum-size G171 refusal and does not reinterpret it as Allocation or silently admit different capacity. No broader portable allocator proof is claimed. Distinct initializer/Result charges remain real simultaneous receiving declarations rather than fee rebates. Missing source contexts (Setup derives, ClassifierLedger identity, old make name-before-value order and legacy errors) were checked directly; no execution is inferred.

@@ -1,5 +1,9 @@
 # Private Main65 reconciliation (unqualified)
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Target65cc only, base75d8. Current actual83ca runner/root, Main24 namespace, f1 namespace and every old packet remain unchanged. Main c11 hosted pins are historical independent controls, never an alternative live bill.
 
 The new sequence_prefix_main_c11 copies the complete Main24 receiver and all eleven controls, then applies only Main c11 sharing/const corrections with a lexical before alias in wrapper_context. The old Main24/f1 controls and exact shipping path-array work preflight remain intact.

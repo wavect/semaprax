@@ -279,7 +279,7 @@ mod tests {
         std::fs::create_dir_all(root.join("src")).unwrap();
         std::fs::write(
             root.join("Cargo.toml"),
-            "[package]\nname = \"semaprax-ri07-serde-fixture\"\nversion = \"0.1.0\"\nedition = \"2021\"\n[dependencies]\nserde = { version = \"=1.0.229\", features = [\"derive\"] }\nserde_json = \"=1.0.151\"\n",
+            "[package]\nname = \"semaprax-ri07-serde-fixture\"\nversion = \"0.1.0\"\nedition = \"2021\"\n[dependencies]\nserde = { version = \"=1.0.229\", features = [\"derive\"] }\nserde_json = \"=1.0.154\"\n",
         )
         .unwrap();
         let mut consumer = projection.rust_source;

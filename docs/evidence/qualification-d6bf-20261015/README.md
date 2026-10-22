@@ -1,5 +1,9 @@
 # Actual d6bf focused qualification, 2026-10-15
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source: `d6bf8151942190a956eb57350fa8b8892a8c68e5`. This is historical source-bound evidence, not qualification of subsequent edits.
 
 The unit-first build, production library build and six selected integration harness compilations passed. The 106 exact owning runtime checks completed: 86 passed and 20 failed. No full suite ran. Every actual failure and complete raw receipt is retained. Ten failures remain application/builder budget refusals; the remaining failures require corrections before the batch can be called qualified.

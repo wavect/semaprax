@@ -1,0 +1,16 @@
+{
+  "scope": "Test-only resolver historical source readers; no compiler product, capacity, new semantics or whole hosted CI qualification claimed.",
+  "before_head": "2d4719bb454eee28718d09dea0013e0f163b0f7d",
+  "current_audit_sha256": "c646e7ddc5786cfb9d514f16e3d7eb4ee74cd318d780f8fae41e5b1b7b5ce23f",
+  "closed_whole_views": 45,
+  "original_frozen_receiver_provenance_count": 34,
+  "all_original_full_hashes_inverse_assertions_and_carrier_checks_retained": true,
+  "supplied_views": "Exactly the full current or the full sealed predecessor, because original ci_str acquisition may already return its predecessor. Every invocation freshly authenticates the physical current and the entire sealed predecessor through bounded no-follow reads.",
+  "original_audits": "All three original tests pass in the actual source harness.",
+  "physical_controls": "Eight same-process warmed physical-source/archive mutations rejected; all bytes restored. No mutation of unrelated inputs.",
+  "clippy": "Actual source harness Rust 1.97.1 clippy-driver, warnings denied; peak 572464 KiB, minimum available 63%.",
+  "source_build": "Actual source harness Rust 1.97.1; peak 765936 KiB, minimum available 63%.",
+  "formatting_scope": "Per-view full hashes and exact formatter comparison recorded separately; semantic API successor differences are explicitly not described as formatting or current semantic equivalence.",
+  "global_overlay_rows_unchanged": 697,
+  "global_overlay_page_unchanged": true
+}

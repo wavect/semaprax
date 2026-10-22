@@ -1,5 +1,9 @@
 # Managed actual pin plan, explicit frozen operands
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 SOURCE PREPARATION ONLY. Do not invoke until parent has actual three-build
 readiness and a complete managed capture from this same frozen head. No build,
 capture, producer or repository mutation is performed by this planner.

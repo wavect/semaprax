@@ -1,5 +1,9 @@
 # Retained codec input/output file inventories
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Host-only candidate from039b15f6a2a5e81110fefdc607dccf3478bf9263. Existing OPT606 remains open; this is a bounded accounting correction, not complete compiler-receipt qualification. No paid/provider call, compiler execution, Cargo, full Python suite, ROOT edit or GitHub mutation occurred.
 
 The concrete integration defect was in compiler_input_capture._captured_compiler: it accepted only ShiftSim's legacy harness_source_files_sha256, while current LogLens/TeamDesk plans retain their tool hashes in harness_source_snapshot.files_sha256. Capture would be marked unavailable for those plans. The context now accepts either exact immutable layout and refuses conflicting/missing hashes in a supplied layout. The existing thread/candidate/evidence authority and original sandbox/cwd/env execution remain unchanged.

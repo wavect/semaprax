@@ -1,5 +1,9 @@
 # Private outgoing-state and final-output source join
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base47f80b0f7a06fde9b2388439a9c0bfe998a05af1; cherry-picked complete43e09017a
 and276295dd. Shipping path_join.rs is byte-exact43e; replay.rs, final_output
 and historical inline-test routing are byte-exact276. The independent complete

@@ -1,0 +1,9 @@
+{
+  "qualification": "Uncommitted merge local checks only; no hosted or full unit pass claimed",
+  "production_build": "PASS; receipt retained",
+  "full_root_test_typecheck": "STOPPED by global 40 percent free-memory reserve; peak 6250832 KiB; last captured type errors corrected; full check remains unqualified",
+  "full_documentation_guard_run": "STOPPED by 256 MiB process cap; no full-suite result",
+  "documentation_catalog_and_metadata": "PASS unchanged prior guard on merged current files; compiled guard from main parent",
+  "source_harness": "Actual current modules compiled separately with unchanged real allocation observer; focused results recorded separately",
+  "private_retained_main_comparator": "Executable test implementation retained; no runtime invoice qualification claimed"
+}

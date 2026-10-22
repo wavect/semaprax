@@ -1,3 +1,9 @@
+# main090-raw3-next-binding-20261017 README
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 This finite next generation starts only from the complete 241192-byte MAIN090
 manifest d2bffbbaf18725d6885008296734e931999ba7599e62c2448c114a54a2ebc187,
 retained here unchanged. The whole original strict binder is retained unchanged.

@@ -1,5 +1,9 @@
 # OPT858 positive-work reserved-floor continuation
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Separate test-only source candidate from shipping
 `e3db5417cc159fd6a3567b88228c860eddab65ad`. The running focused244 manifest and
 ROOT are untouched. No Cargo, Rust compiler, test, Clippy, endpoint regeneration,

@@ -1,5 +1,9 @@
 # OPT831 cold terminal and deferred empty payload candidate
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base: `039b15f6a2a5e81110fefdc607dccf3478bf9263`. This is a private source-only candidate. No Rust build, test, formatter, benchmark, or provider invocation was performed. No improvement is qualified and #831 remains open.
 
 The actual prior selected15 result paid10829/11468 for width0, while allocations12/11 and allocated bytes1517/861 improved. The unchanged owner requires strict paid reduction separately for every width0..4. Later widths were not reached in that receipt.

@@ -1,0 +1,12 @@
+{
+  "status": "EXACT_TOP_LEVEL_MACRO_RELOCATION_ONLY_APPLIED",
+  "source": "src/cleanup_plan/replay/physical_budget.rs",
+  "before_sha256": "723aa0bd05a3eba3bc02340ff7b8f1c81803dfe848398e9787cde8faa32cbea0",
+  "after_sha256": "0817aff340bc6ffe4233344df96a1c84c43468331bab163875559299ef94a496",
+  "macro_block_byte_exact": true,
+  "all_other_source_bytes_unchanged_except_one_separator_newline": true,
+  "line_count": 965,
+  "failure": "Clippy items_after_test_module on both Ubuntu and Windows: compact_try was placed after byte_failure_tests.",
+  "no_lint_allowance_added": true,
+  "no_production_logic_or_test_body_changed": true
+}

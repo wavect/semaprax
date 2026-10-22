@@ -1,1 +1,7 @@
+# borrowed-single-macro-scope-fix-20261017 README
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The first focused d3d build refused the relocated historical control because lexical macro definitions in its original parent appear after the child registration. This test-only repair retains complete immediate-predecessor activate_closure and authenticate_closure macros verbatim in the relocated control. Both bodies are byte-identical to the complete old canonical source already retained by the original change. It changes no production code, baseline work, fee, failure order or assertion. The complete pre-repair module and exact insertion inverse are retained. No test has run for this repair.

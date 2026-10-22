@@ -1,5 +1,9 @@
 # #848 bulk90 common transport prerequisite — source only
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base0c942afa4004da34ec84639b3f0a2f6e97b52bb8. Runtime remains default. No Cargo/build/test/benchmark or matched comparison has run. This prerequisite removes no additional currently embedded fixture bytes: the original90 files already load at runtime. It enables an honest same-common-source comparison and leaves the issue's benefit predicate open.
 
 Active project() dispatches through selected_transport; one #[path] literal chooses transport_runtime.rs vs transport_embedded.rs. Both use the existing exact Spec and return the same owned String through unchanged bounded read_body (cap/read_exact/EOF/SHA/UTF8); runtime additionally retains one opened regular descriptor/metadata admission. The other transport module is not compiled as Rust. Audit include_str reads its source text only, never recursively expands its include_bytes literals. Membership, pure projector, stage order and all90 immutable files/inventory are byte-exact. Original selected-child5MB loader is unchanged in both arms.

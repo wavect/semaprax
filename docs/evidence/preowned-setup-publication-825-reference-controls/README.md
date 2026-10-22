@@ -1,5 +1,9 @@
 # #825 receiving-reference correction
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Independent review identified two unpaid outer Result match receivers. Before acquiring the report owner, the generic attempt now additionally reserves the exact actual layouts of `&Result<T, CoreFailure>`, `&mut Result<T, CoreFailure>`, the match-ergonomic `&Setup` binding, and two Setup value instances: the copied argument initializer and the by-value seal_setup parameter. The existing inner `&mut CoreFailure` remains separately charged. No original charge is removed or credited.
 
 No production routing, error order, sticky/floor behavior, tests, caps or legacy receiver is changed. All existing exact/one-short/zero controls discover the new actual acquisition frontier. Their runtime outcome remains unproven. This fixes inline accounting, not merely physical heap accounting.

@@ -1,0 +1,9 @@
+
+mod workspace_context {
+#[path="/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows_merge/opt858_sequence_input.rs"] mod opt858_sequence_input;
+#[path="/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows_merge/final_ready_inputs.rs"] mod final_ready_inputs;
+#[path="/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows_merge/main67107_inputs.rs"] mod main67107_inputs;
+#[path="/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows_merge/ordinary_plan_inputs.rs"] mod ordinary_plan_inputs;
+#[path="/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows_merge/runtime_json/sealed_io.rs"] mod runtime_json;
+mod current344_input { include!("/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows_merge/current344.rs"); }
+}

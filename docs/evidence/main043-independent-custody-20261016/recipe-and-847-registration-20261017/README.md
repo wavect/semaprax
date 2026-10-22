@@ -1,5 +1,9 @@
 # Recipe and847 registration repair
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The original verifier archive and all prior recipe edits are unchanged. One new
 recipe edit reconstructs exactly the8fff distinct historical-view assertion and
 its pinned helper hash. Complete verifier reconstruction passes.

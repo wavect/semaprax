@@ -1,0 +1,11 @@
+{
+  "base_head": "6de404d0a6a8f103359985d5dbd6f788b8884d04",
+  "change": "Ordinary function imports use the existing cache-retainable constructor in both cold and warm workspace graphs. Reserved Vec/Box wrappers retain their full transient classifier. The independently tested finite scalar signature producer remains unchanged.",
+  "accounting": "Remove only the six boolean and three inventory-reference roles and two kind references plus two booleans per import whose expressions were removed. All remaining selection and full producer charges remain.",
+  "regression": "Existing tests/project/semantic_cache.rs contains 12 unchanged public tests covering complete graph/image equality, actual cache counters, corruption refusal and provider/source changes. They remain required in CI.",
+  "local_tests": "41 actual current source/history tests passed; focused source Clippy denied warnings; complete original source-domain verifier and six hostile controls passed. Fresh full generation not claimed: retain 6de404 full generation with exact body-only pin/edge offset refresh.",
+  "normal_compile": "Cargo check was stopped by the RAM guard at minimum 39% available and peak 2956928 KiB. No successful current normal build or current public-cache execution is claimed locally.",
+  "diagnostic": "Before the source edit, an SSD-only executable counterfactual selecting reserved wrappers alone passed all 12 unchanged cache tests. This is cause isolation, not current-source qualification.",
+  "all_work_and_caches_on_external_ssd": true,
+  "full_CI_green_not_claimed": true
+}

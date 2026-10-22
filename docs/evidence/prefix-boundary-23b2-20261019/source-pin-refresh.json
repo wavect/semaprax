@@ -1,0 +1,54 @@
+{
+  "status": "SOURCE_ONLY_FINITE544_PACKET_PREDICATES_PASS",
+  "before_head": "23b2f29378960ddd3c4202cd93b7696e32abb229",
+  "before_guard": {
+    "length": 11549,
+    "sha256": "d1c9d80659bc99a351c3f03999b5ef07153a2c3558e4592b166885b26f494822",
+    "archive": "docs/evidence/prefix-boundary-23b2-20261019/whole/d1c9d80659bc99a351c3f03999b5ef07153a2c3558e4592b166885b26f494822.txt"
+  },
+  "before_config": {
+    "length": 136459,
+    "sha256": "966f5a004d09e52e02890e4f28f73fab5fcbb73319d868a06ecefa8020243b93",
+    "archive": "docs/evidence/prefix-boundary-23b2-20261019/whole/966f5a004d09e52e02890e4f28f73fab5fcbb73319d868a06ecefa8020243b93.txt"
+  },
+  "before_helper": {
+    "length": 41806,
+    "sha256": "0a0a1363db7c6bf5459fac4aea1438f8d0dcb9f9d70d98b17c4ab9c0c043cc35",
+    "archive": "docs/evidence/prefix-boundary-23b2-20261019/whole/0a0a1363db7c6bf5459fac4aea1438f8d0dcb9f9d70d98b17c4ab9c0c043cc35.txt"
+  },
+  "before_python_overlay": {
+    "length": 14077,
+    "sha256": "e09e9833ba2509341cf5a2907ec011587a418eeac829258c51bd56b629ad3492",
+    "archive": "docs/evidence/prefix-boundary-23b2-20261019/whole/e09e9833ba2509341cf5a2907ec011587a418eeac829258c51bd56b629ad3492.txt"
+  },
+  "before_policy": {
+    "length": 16446,
+    "sha256": "0d67b32fb31b7f7c5da3268a8b31ee11ff81e00965c497de4fff3393cc492fdf",
+    "archive": "docs/evidence/prefix-boundary-23b2-20261019/whole/0d67b32fb31b7f7c5da3268a8b31ee11ff81e00965c497de4fff3393cc492fdf.txt"
+  },
+  "before_page": {
+    "length": 200954,
+    "sha256": "f801a4894e719b8b016e4139c85a053fbd29446ed7175a3432ab79ed7ea3e222",
+    "archive": "docs/evidence/prefix-boundary-23b2-20261019/whole/f801a4894e719b8b016e4139c85a053fbd29446ed7175a3432ab79ed7ea3e222.txt"
+  },
+  "changed_sources": [
+    "tests/hir_module_boundaries.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs",
+    "CHANGELOG.md"
+  ],
+  "module_pins_refreshed": [
+    "src/source_reflows_merge/main_e177_overlay_v2.rs"
+  ],
+  "carrier_pins_refreshed": [
+    "tests/hir_module_boundaries.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs"
+  ],
+  "all_544_rows_fields_view_prefixes_and_prior_current_wires_retained": true,
+  "new_literal_replacements_inserted_in_predecessor_source_order": true,
+  "original_519_extension_and_loader_unchanged": true,
+  "python_and_rust_overlay_bodies_unchanged_except_literal_membership_and_policy_seals": true,
+  "all_reader_source_program_and_runtime_caps_unchanged": true,
+  "page_bytes": 201713,
+  "policy_bytes": 16446,
+  "raw_owners": 342
+}

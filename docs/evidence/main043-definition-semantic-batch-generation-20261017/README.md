@@ -1,5 +1,9 @@
 # Final semantic raw3 definition generation (source only)
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The complete paid-many generation is unchanged. Its exact6160-byte old definition,
 oldrow and currentdefinition source remain authoritative historical inputs. The
 copied seal changes only the three physical raw inventory length/SHA pairs after

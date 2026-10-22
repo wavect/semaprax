@@ -1,5 +1,9 @@
 # Existing inline and provider-backing source owners: exact runtime input domains
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Successor of aa03d88c21b268cfc383c9842c5799bc8bca3c3f; private source only.
 Actual d4 owners139/140 failures are copied whole with their actual log hashes.
 No ROOT edit, Rust execution, production change, new test body or pin movement.

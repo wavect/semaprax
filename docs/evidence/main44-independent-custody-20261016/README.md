@@ -1,5 +1,9 @@
 # Independent Main44 source and receiver custody
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Incoming subject: `44f52ebee749b2877ba001c5398acbf803a277a1`.
 
 `compact-inverse7.json` and `receiver-inverse12.json` are the complete incoming

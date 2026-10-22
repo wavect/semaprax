@@ -81,6 +81,37 @@ fn phase_presence_keeps_full_current_directories_and_every_consuming_entry() {
             .unwrap();
             (directory, work.get(), paid.get())
         };
+        // Keep the complete original consuming classifier as an independent
+        // result oracle, including functions whose new negative proof succeeds.
+        let consuming_entries = |before_spine| {
+            let mut work = |_| true;
+            let mut backing = |_| true;
+            let mut admission = Admission::new(&mut work, &mut backing);
+            let mut output = super::super::Scratch::new(&mut admission).unwrap();
+            if before_spine {
+                super::collect_before_spine(
+                    &program,
+                    member.function(),
+                    &mut output,
+                    &mut admission,
+                )
+            } else {
+                super::collect(&program, member.function(), &mut output, &mut admission)
+            }
+            .unwrap();
+            output.into_vec()
+        };
+        let old_entries = consuming_entries(true);
+        let new_entries = consuming_entries(false);
+        assert_eq!(old_entries.len(), new_entries.len());
+        for (old, new) in old_entries.iter().zip(&new_entries) {
+            assert!(std::ptr::eq(old.at, new.at));
+            assert!(std::ptr::eq(old.binding, new.binding));
+            assert_eq!(
+                (old.families, old.family, old.ordinal, old.rank, old.first),
+                (new.families, new.family, new.ordinal, new.rank, new.first)
+            );
+        }
         let (before, old_work, old_paid) = collect(false);
         let (after, new_work, new_paid) = collect(true);
         assert_eq!(new_work + prefix, old_work + 1);
@@ -592,4 +623,141 @@ fn full_consuming_collector_matches_unchanged_original() {
         emitted > 0,
         "complete consuming control must exercise real emission"
     );
+}
+
+#[test]
+fn complete_original_consuming_classifier_stays_byte_bound() {
+    use sha2::{Digest, Sha256};
+    let source = include_str!("../consuming.rs");
+    let saved = source
+        .split("pub(super) fn collect_before_spine")
+        .nth(1)
+        .unwrap();
+    let original = format!("pub(super) fn collect{}", saved.trim_end());
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(original.as_bytes()))
+        ),
+        "9e39cd078e4adcad6cc671259278fc06ab830be67bab70936a4d710f4ec995dd"
+    );
+}
+
+fn spine_body(source: &str) -> E {
+    let ast = crate::check(source, "spine-component.spx").unwrap();
+    let program = crate::hir::resolve(&ast).unwrap();
+    program
+        .functions
+        .iter()
+        .find(|f| f.name == "main")
+        .unwrap()
+        .body
+        .clone()
+}
+fn spine_leaf() -> E {
+    let root = spine_body("module spine; @id(\"main\") fn main()->i64{0}");
+    let K::Block { tail, .. } = root.kind else {
+        panic!("block");
+    };
+    *tail
+}
+fn spine_chain(mut value: E, wrappers: usize) -> E {
+    for _ in 0..wrappers {
+        let mut parent = spine_shallow_leaf(&value);
+        parent.kind = K::Block {
+            statements: Vec::new(),
+            tail: Box::new(value),
+        };
+        value = parent;
+    }
+    value
+}
+fn spine_shallow_leaf(value: &E) -> E {
+    E {
+        id: value.id.clone(),
+        ty: value.ty.clone(),
+        ownership: value.ownership,
+        kind: K::Int(0),
+        span: value.span,
+    }
+}
+fn spine_evaluate(
+    root: &E,
+    work_limit: usize,
+    backing_limit: usize,
+) -> (Result<bool, Refusal>, usize, usize) {
+    let mut work_left = work_limit;
+    let mut backing_left = backing_limit;
+    let result = {
+        let mut work = |n| match work_left.checked_sub(n) {
+            Some(left) => {
+                work_left = left;
+                true
+            }
+            None => false,
+        };
+        let mut backing = |n| match backing_left.checked_sub(n) {
+            Some(left) => {
+                backing_left = left;
+                true
+            }
+            None => false,
+        };
+        let mut admission = Admission::new(&mut work, &mut backing);
+        admission
+            .reserve(super::NO_LOOP_SPINE_CONTROLS)
+            .and_then(|()| super::no_loop_spine(root, &mut admission))
+    };
+    (result, work_limit - work_left, backing_limit - backing_left)
+}
+#[test]
+fn source_bound_constant_space_proof_accepts_deep_loop_free_spines() {
+    assert_eq!(super::NO_LOOP_SPINE_CONTROLS, 183);
+    for depth in [0, 7, 8, 256, 257, 511, 512] {
+        let tree = spine_chain(spine_leaf(), depth);
+        let (result, used, billed) = spine_evaluate(&tree, usize::MAX, 183);
+        assert_eq!(result, Ok(true));
+        assert_eq!(billed, 183);
+        assert_eq!(used, if depth == 0 { 1 } else { depth * 2 });
+    }
+}
+#[test]
+fn nested_loop_and_two_nontrivial_children_keep_full_collector() {
+    let loops = spine_body("module loop_probe; @id(\"main\") fn main()->i64{while false {0} 0}");
+    for depth in [0, 8, 257, 512] {
+        let root = spine_chain(loops.clone(), depth);
+        assert_eq!(spine_evaluate(&root, usize::MAX, 183).0, Ok(false));
+    }
+    let left = spine_chain(spine_leaf(), 2);
+    let right = spine_chain(spine_leaf(), 2);
+    let mut root = spine_shallow_leaf(&left);
+    root.kind = K::Binary {
+        op: crate::ast::BinaryOp::Add,
+        left: Box::new(left),
+        right: Box::new(right),
+    };
+    assert_eq!(spine_evaluate(&root, usize::MAX, 183).0, Ok(false));
+}
+#[test]
+fn required_work_and_backing_are_exact_and_sticky() {
+    let root = spine_chain(spine_leaf(), 512);
+    let exact = 1024;
+    assert_eq!(spine_evaluate(&root, exact, 183), (Ok(true), exact, 183));
+    assert_eq!(spine_evaluate(&root, exact - 1, 183).0, Err(Refusal::Work));
+    assert_eq!(
+        spine_evaluate(&root, exact, 182),
+        (Err(Refusal::Backing), 0, 0)
+    );
+    let mut work = |_| true;
+    let mut backing = |_| true;
+    let mut admission = Admission::new(&mut work, &mut backing);
+    assert_eq!(
+        admission.refuse::<()>(Refusal::Subject),
+        Err(Refusal::Subject)
+    );
+    assert_eq!(
+        super::no_loop_spine(&root, &mut admission),
+        Err(Refusal::Work)
+    );
+    assert_eq!(admission.reserve(0), Err(Refusal::Backing));
 }

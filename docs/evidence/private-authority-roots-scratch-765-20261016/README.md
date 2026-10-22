@@ -1,5 +1,9 @@
 # Invocation-paid private-authority roots backing (#765)
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only implementation from `787f84774e935833cd0d8de17c6c8da21d7b4986`.
 No Cargo, Rust tests, builds, Clippy, application execution or measured savings
 are claimed. `pending-selectors.json` records six new owning selectors and the

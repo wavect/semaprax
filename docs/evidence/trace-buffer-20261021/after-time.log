@@ -1,0 +1,23 @@
+
+thread '<unnamed>' (68347929) panicked at /Volumes/Semaprax/worktrees/ci-format-26eeb/src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs:72:9:
+finite frontier observation capacity exhausted
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+Actual fixed trace and original ledger/allocation observer passed
+        0.00 real         0.00 user         0.00 sys
+             7241728  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+                 631  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   1  voluntary context switches
+                   8  involuntary context switches
+            28867821  instructions retired
+            16514044  cycles elapsed
+             2457936  peak memory footprint

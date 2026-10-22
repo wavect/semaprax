@@ -1,6 +1,44 @@
+- Preserve complete joined source-custody histories within the fixed metadata page limit through canonical V10 archive-prefix references.
 - Reuse closed compiler declaration identities and fund dynamic sort-key identity backing through its existing payer, preserving wire identities and diagnostic precedence.
 - Add optional fixed-storage captures of exclusive resolved-core debits alongside the existing inclusive phase observations, retaining compiler budgets and complete historical source checks.
+## CI source-view boundary repair (2026-10-20)
+
+- Complete document metadata and navigation; bind named historical snapshots to their original link locations with exact-byte registration.
+
+- Restore the qualified full-host new grammar in standalone help and exact Project profile guidance; command authority is unchanged.
+
+- CI source frames: retain the original closed proof domains and size bounds, acquire exact registered views from fresh current channels, and complete the original eleven-step receiver recipe before its unchanged inverse checks.
+
+- CI source custody: authenticate complete current source channels before composing historical inverses; restore the active legacy nominal constructor independently of the funded cell path. Retain all original inverse rows, digests and resource bounds.
+
+- Select each historical receiver’s exact authenticated input namespace before its unchanged whole-source inverse; retain current-byte and foreign-stage refusals.
+
+## CI repair: portable evidence and current report contracts
+
+- Preserve all 180 extensionless content-addressed evidence images byte for
+  byte under Windows Git checkout instead of applying CRLF conversion.
+- Place the complete source-format inverse before its test module so the
+  existing warnings-as-errors Clippy gate accepts it without a lint exception.
+- Refresh both browser graph known answers from authenticated full Linux 1.88
+  graphs at 23b2f293789; retain the original rename and artifact assertions.
+- Report the actual pinned wasmparser 0.261.0 validator in both target-evidence
+  and Project candidate metadata. Retain the exact historical 0.256.0 report,
+  capsule and receipt reconstruction and hashes.
+
+## CI repair: retain the complete relocated source prefix
+
+- Move the already audited JSON codec probe next to its original route-debits
+  parent in both physical raw inventories. Preserve every fragment and count,
+  all original prefix assertions, and the source-role/hostile controls.
+
 ## CI repair: preserve requested source views before older projections
+
+
+- Restore the complete flat cleanup-plan verifier as the ordinary default.
+  Keep the unqualified immutable-history optimization behind explicit scoped
+  unit-test selection; preserve its full producer, comparison and refusal
+  controls. This removes excessive history-comparison debit on ordinary I/O
+  and library projects without changing graph limits or semantic validation.
 
 - Keep historical compiled-source acquisition on its exact authenticated view before applying a Clippy predecessor, preserving the nondelegating membership boundary and all physical/compiled/archive equality checks.
 - Register the already existing frontier-test source as an additive compiled overlay subject with its complete original 54-row-table view; retain all prior 543 subjects, order, views, classifications, caps and hostile controls.
@@ -14,6 +52,8 @@
 - Retain the explicitly selected macOS SDK in cleared native fixture environments so the real Apple Clang can resolve its standard headers.
 - Authenticate the exact inventory and clone-source formatting successors before replaying their unchanged whole-source audit inverses.
 - Compare complete immutable cleanup-history segments in one receiver loop while retaining every original validation, work request and resource ceiling.
+- Reuse closed compiler declaration identities and fund dynamic sort-key identity backing through its existing payer, preserving wire identities and diagnostic precedence.
+- Add optional fixed-storage captures of exclusive resolved-core debits alongside the existing inclusive phase observations, retaining compiler budgets and complete historical source checks.
 - Fix test source restoration so a rejected input cannot poison the shared cache or cascade into unrelated source-audit failures.
 - Avoid the recursive type-copy census cursor for one- and two-leaf nominal metadata. Pay the exact argument-vector backing before cloning; retain sticky refusal and the complete recursive, callable, wide-type and depth-bound fallback.
 - Source-only OPT #897 adds four explicit decode-only owned request codec profiles; unchanged full generators feed a closed source projection before whole ordinary candidate validation. Full profiles, decoder semantics, caps and existing application cohorts remain unchanged; executable qualification and net-cost measurements are pending.

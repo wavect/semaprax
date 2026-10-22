@@ -1,5 +1,9 @@
 # OPT835: cold canonical-comment comparison — source authored, unexecuted
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Immutable basis `940fcf220e47d1975f757e76f0b3401691db9358`. The private cold workspace preflight now sends the **complete unchanged commented formatter** into a borrowed byte-comparison sink, avoiding its temporary final output String. No current runtime, allocation/RSS, reservation, application-fit or token/cost gain has been measured. No Cargo, Rust compilation, Clippy, tests, backend execution, Claude, or review was run by this lane. ROOT, #834 private-layout and #825 type-rewrite files were not edited.
 
 ## Exact behavior and authority

@@ -1,5 +1,9 @@
 # OPT842 test-key compatibility correction
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only successor to8025cd196. The focused compiler reported E0277 because
 the existing before_alias::same_closure_state test adapter tried to look up an
 old Rc<Vec> key in the new Rc<SmallWeighted> dictionary.

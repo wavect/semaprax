@@ -1,3 +1,9 @@
+# closure-audit issue-832-closure-draft
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Ready for parent verification and archive publication before posting.
 
 Implemented the actual caller-paid ordinary lexical return-operand inventory. **All 14 exact owning gates PASS**, including complete independent old/no-owner callers, all six diagnostic fields, exact work/byte frontiers and Drop, duplicate/spare reuse, foreign/restored/stale authority and complete old/current source custody.

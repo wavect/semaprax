@@ -1,5 +1,9 @@
 # #859 invalid owned-record shape dependency — source only
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Implementation base: `12e7f8a4d3fcb3c5464327a68a8e13506b43e303`. No ROOT edits,
 Cargo, builds, Rust tests, Clippy, Claude, push or issue closure.
 

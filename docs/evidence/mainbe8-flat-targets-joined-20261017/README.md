@@ -1,5 +1,9 @@
 # Incoming be8fb flat targets — final source custody continuation
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base committed resolution: `51c1dfc49962e046566ad21ec31f20c6b3a9bdae`. Incoming true ancestry: `be8fb9326e069ab596a1c3ff16392460a32b9864`. All work is isolated SSD; no ROOT, active selection, Cargo, provider or RPC mutations/execution. Parent's production Clippy at51c1 is independent of this source-only packet.
 
 ## Honest production disposition

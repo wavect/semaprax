@@ -1,5 +1,9 @@
 # Review of the typed-failure proposal (pasted source only, not executed)
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The paste has no line numbers, so I cite functions and snippets. Nothing here was compiled or run. I can't see `reserve`, `ClassifierLedger`, `budgeted_clone` or `refuse_active_required`, so I mark assumptions about them.
 
 ## Blockers

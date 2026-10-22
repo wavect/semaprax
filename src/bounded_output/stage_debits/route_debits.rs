@@ -99,7 +99,11 @@ fn comparison_phase(phase: &str) -> Option<usize> {
         | "ordinary plan shared suffix scalar receivers"
         | "ordinary plan paired tail selection"
         | "ordinary plan paired tail turn" => Some(8),
-        "ordinary plan history HIR cursor next" => Some(9),
+        "ordinary plan history HIR cursor next"
+        | "ordinary plan affine HIR segment"
+        | "ordinary plan affine HIR tail"
+        | "ordinary plan affine flat HIR match"
+        | "ordinary plan affine shared HIR match" => Some(9),
         "ordinary plan retained drain swap receivers" => Some(10),
         "ordinary plan retained sift swap receivers" => Some(11),
         "ordinary plan retained final Zip next receivers" => Some(12),
@@ -526,7 +530,7 @@ pub(crate) fn print_settled() {
 fn child_replay_operations_keep_route_cells_and_refusal_attribution_reconciled() {
     use super::Operation;
     use crate::bounded_output::{
-        ReservationStage, reserve_active_required, with_limit_usage_refusal, with_reservation_stage,
+        reserve_active_required, with_limit_usage_refusal, with_reservation_stage, ReservationStage,
     };
     let _observation = observe();
     let (((), metrics), refused, used, first) = with_limit_usage_refusal(64, || {
@@ -1124,10 +1128,58 @@ fn comparison_census_covers_every_actual_owner_payment_and_lexical_forwarding_si
         );
     }
 
+    // Preserve the complete pre-affine census, including every old forwarding
+    // site. The shipping affine producer is audited separately below.
     let current = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_final_affine.rs"
+    ));
+    let shipping = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs"
     ));
+    let affine = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/final_affine.rs"
+    ));
+    assert_eq!(
+        (
+            phases(shipping, "paid!(", 4).len(),
+            shipping.matches("lexical_plan_next!(").count(),
+            shipping.matches("borrowed_right_value!(").count(),
+            shipping.matches("certified_left_value!(").count(),
+            shipping.matches("certified_right_value!(").count(),
+            shipping.matches("final_affine_driver!(").count(),
+        ),
+        (10, 0, 2, 1, 1, 2),
+    );
+    assert_eq!(
+        phases(affine, "paid!(", 4),
+        [
+            "ordinary plan affine flat HIR match",
+            "ordinary plan affine shared HIR match",
+            "ordinary plan affine HIR segment",
+            "ordinary plan history HIR cursor next",
+            "ordinary plan affine HIR tail",
+        ],
+    );
+    assert_eq!(affine.matches(".charge(").count(), 3);
+    assert_eq!(affine.matches(".reserve_bytes(").count(), 1);
+    let drivers = macro_arguments(shipping, "final_affine_driver!(");
+    assert_eq!(drivers.len(), 2);
+    assert_eq!(drivers[0].len(), 7);
+    assert_eq!(drivers[1].len(), 7);
+    assert_eq!(drivers[0][5], "flat");
+    assert_eq!(drivers[1][5], "shared");
+    for phase in phases(shipping, "paid!(", 4)
+        .into_iter()
+        .chain(phases(affine, "paid!(", 4))
+    {
+        assert!(
+            comparison_phase(phase).is_some(),
+            "unattributed affine payment: {phase}"
+        );
+    }
     let heads = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads.rs"
@@ -1281,3 +1333,6 @@ fn comparison_census_covers_every_actual_owner_payment_and_lexical_forwarding_si
         for phase in direct { assert!(comparison_phase(phase).is_some()); }
     }
 }
+
+// The retained main kernel keeps its independent source-type payment census.
+mod retained_main_289;

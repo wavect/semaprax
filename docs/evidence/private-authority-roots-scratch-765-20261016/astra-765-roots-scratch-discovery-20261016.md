@@ -1,5 +1,9 @@
 # Next optimization: reuse private-authority roots backing
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Discovery only, 2026-10-16. Observed ROOT `787f84774e935833cd0d8de17c6c8da21d7b4986` at `/Volumes/Semaprax/worktrees/large-next-implementation-integration/AI-Lang`; exact inspected source hashes are in adjacent `astra-765-roots-scratch-discovery-20261016-source.json`. Paths below are relative to that root. Graft markdown cards preceded bounded current-source reads. No compiler/repository edits, Cargo, tests, builds, Claude, or runtime measurements.
 
 **Recommend one next batch: retain and lease the private-authority roots Vec across sequential consumers, while regenerating its contents and work ledger on every use.** This is a bounded extension of #765, independent of #847. It removes real repeated storage acquisition without caching authority or changing the traversal.

@@ -1,5 +1,9 @@
 # OPT842 inline weighted successor — source-only candidate
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Private source basis: `7800b014151b6ce0709c351ccdfd52ae25832e07`.
 No Cargo, build, Rust tests, Clippy, Node, Claude or Graft CLI execution occurred.
 Focused executable qualification and actual current-source measurement remain

@@ -1,0 +1,8 @@
+{
+  "current_length": 11766,
+  "current_sha256": "2d51c6b69300d23950a780837f0ba865df703cc50a0b035192de2f86e1ef157b",
+  "old_length": 11670,
+  "old_sha256": "b07ecf1da889cf25e1b9296bf320070d49c58af316efe6036dce534fccd73fb7",
+  "exact_reverse_hunks": 28,
+  "old_full_source": "docs/evidence/runtime-history-20261021/typed-before.rs.txt"
+}

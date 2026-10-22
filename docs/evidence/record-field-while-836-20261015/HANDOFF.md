@@ -1,5 +1,9 @@
 # #836 while-field admission correction — source only
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source basis: `7a87b33115c0cd45b14cac64d7b37e5742503159`.
 No Cargo, Rust tests, Clippy, backend execution or benchmark ran in this lane.
 The #846 checkpoint e2521dac remains immutable on its separate branch.

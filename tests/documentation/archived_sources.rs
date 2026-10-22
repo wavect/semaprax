@@ -54,7 +54,12 @@ fn snapshot_registry_has_unique_canonical_paths_and_exact_existing_bytes() {
         }
         assert!(archive.starts_with("docs/evidence/"));
         assert!(archive.ends_with(".md"));
-        assert!(original.starts_with("docs/") || original == "CHANGELOG.md");
+        assert!(
+            original.starts_with("docs/")
+                || original.starts_with("benchmarks/")
+                || original.starts_with("examples/")
+                || original == "CHANGELOG.md"
+        );
         assert_eq!(digest.len(), 64);
         assert!(digest
             .bytes()

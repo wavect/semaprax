@@ -1,5 +1,9 @@
 # #836 actual677 compile correction — test only
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Immediate source677e658f6f3671fdcc5942c1f3522598d83ab7b2. The actual101 build
 failed with exit101 before any Rust test body ran; two reported E0599 errors
 were in the new test at lines247/248. `child_count`/`child` belong to

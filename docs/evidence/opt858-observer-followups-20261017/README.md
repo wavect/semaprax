@@ -1,5 +1,9 @@
 # OPT858 staged observation controls
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only correction for actual039 failures234/237/239, based on0bebc326e. No Rust build/test or cost gain is claimed.
 
 Complete scalar-field/work/materialization/growth and construction-through-Drop measurements remain. Independent DAG result roots are compared outside the allocation observer with the existing full bounded ordered structural comparator, including its hostile controls; flat equality stays exact. No production equality or replay changes.

@@ -1,5 +1,9 @@
 # Final NEXT source assembly — Main barrier eb13
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Merge this whole branch, retaining its actual Main ancestry, into the metadata-only ROOT successor; do not cherry-pick only the final custody commit. Main barrier is eb13ed02c3a3522f1ead1fd3bd53c58439a98da1. No further Main chasing or feature additions are included. The next focused selection is external and must register against the parent's actual merged clean HEAD.
 
 Included: independent Main beb0 five controls, real borrowed-alias Project graph/Image control, approved empty bitmap22fb, singleton path0d47, actual classifier/projection/large-comment/phase fixture fixes, exact saturating arithmetic lint correction, funded branch clone9fdc, and eb13 CI/browser merge6a7b. All old Main controls, modern and historical receivers stay independent; the latest Main live browser route is strict, while the35cc and older bridge controls retain full authenticated source domains. Existing intermediate pins are not guessed or silently recertified. Fresh final-head captures/consumers remain required after the actual build.

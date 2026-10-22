@@ -1,0 +1,5 @@
+{
+  "all_guard_configuration_fields_closed_scopes_and_membership_keys_preserved": true,
+  "original_guard_body_exact_except_two_required_sha_bindings": true,
+  "three_original_consumers_exact_except_the_required_guard_sha": true
+}

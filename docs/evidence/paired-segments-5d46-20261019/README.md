@@ -1,5 +1,9 @@
 # Ordinary independent-segment comparison transport
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The current comparator borrows two loaded immutable segment slices and compares a run of their observation pairs before returning to the existing boundary dispatch. It retains the original left-to-right cursor, segment, and comparison work sequence, terminal fallback, shared-link path, and independent HIR comparison. Every new lexical payment and work receiver has its complete primitive frame. No public quota or runtime plan is changed.
 
 The complete immediate comparator and macro are compiled as a test-only counterfactual with only enumerated namespace and observer-label changes. Existing runtime tests remain attached to the shipping comparator. New real-HIR tests compare values, complete diagnostics, work cuts, actual allocation/drop measurements, independent typed invoices, exact and one-short physical limits, floor handling, and sticky refusal. These new compiler unit tests still require the hosted compiler build; the local component result does not qualify them.

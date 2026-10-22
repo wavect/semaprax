@@ -1,5 +1,9 @@
 # Complete nested-byte merge composition
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only resolution of ours8ff299ba9 and incominga9a75e1. No Rust execution,
 Cargo, tests or runtime qualification. Parent owns the merge commit and final
 joined-source custody refresh. Existing complete three-arm preimages and both

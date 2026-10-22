@@ -1,5 +1,9 @@
 # Consolidated actual3220 compile corrections
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The actual producer unit compile selected zero test bodies and failed with Rust
 diagnostics. Four source files now receive only missing imports, visibility/signature
 formatting and an explicit Boolean inference annotation. Complete original3220 files

@@ -1,0 +1,49 @@
+{
+  "all_generated_classes_roles_chunk_members_and_edge_texts_preserved": true,
+  "domains": [
+    {
+      "domain": "hir",
+      "current_identities": [
+        {
+          "source": "src/source_reflows_merge/main_e177_overlay_compiled.rs",
+          "before": {
+            "length": 43896,
+            "sha256": "25c19c5eefc06d6856e23b60855176317ee7fcf20539a016ed58e183504bbe5f"
+          },
+          "current": {
+            "length": 45269,
+            "sha256": "613ad4fc56c6bef78acb57a358a2c6916f65d7a5a2c99d66960c5088f9b8f117"
+          }
+        },
+        {
+          "source": "src/source_reflows_merge/main_e177_overlay_v2.rs",
+          "before": {
+            "length": 68651,
+            "sha256": "888c6ceba1e24dae7937bd08bdcd76dbdbd1a15ea728458cb9a1c42738198f04"
+          },
+          "current": {
+            "length": 68651,
+            "sha256": "94ef52cd964244a028adb07d0a5fb8bc1d8a0a3edfe76a0de88bcb60c5873f0a"
+          }
+        },
+        {
+          "source": "src/source_reflows_merge/runtime_json/tests.rs",
+          "before": {
+            "length": 169740,
+            "sha256": "072667a0bf8d06eeb7cb635014a707b3adbb9e43845a289b9fcfdb688f678f2d"
+          },
+          "current": {
+            "length": 169832,
+            "sha256": "302308a09cbe937f2bfc7a8caa203b05087fe4cef59a93e8efd8aaeebefdef30"
+          }
+        }
+      ],
+      "exact_unchanged_edge_position_updates": []
+    },
+    {
+      "domain": "projection",
+      "current_identities": [],
+      "exact_unchanged_edge_position_updates": []
+    }
+  ]
+}

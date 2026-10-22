@@ -1,5 +1,9 @@
 # Reference coverage finite receiving cut
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only, no Rust execution. This checkpoint follows 9a3c4fb and keeps that
 profile/member-owner tranche independently available. The complete original
 reference receiver, insertion helper and legacy drivers remain. Paid lexical

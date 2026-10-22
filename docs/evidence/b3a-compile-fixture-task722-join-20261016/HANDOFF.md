@@ -1,5 +1,9 @@
 # Combined compiler-fixture and task-help successor
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only checkpoint. Run exactly these current entrypoints from the repository:
 
 ```sh

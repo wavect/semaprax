@@ -1,5 +1,9 @@
 # Starter invocation recovery (#837)
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 This is a source-only diagnostic continuation, not a replacement installer and
 not issue closure. The existing fresh application starter already owns plan
 replay, explicit profile/activation, canonical source checks and held-parent

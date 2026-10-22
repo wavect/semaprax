@@ -1,5 +1,9 @@
 # PLAN test type fixes after actual consolidated compilation
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base: `7827d3687da21e1093d40f8c8e3f7116edba1993`.
 
 The branch probes inherited the historical `before::plan_skeleton_paths` through `use super::*`. Qualifying all three newly added calls as `super::super::plan_skeleton_paths` selects the actual replay producer, including the generic receiving-frontier probe. The independent original producer and complete cross-generation content comparator remain unchanged. The original 204-line test prefix is byte exact. All work, physical allocation, complete Diagnostic, sticky failure, floor and Drop controls remain unchanged.

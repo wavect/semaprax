@@ -1,3 +1,9 @@
+# checked-hir-777-closure-20261015 COMMENT-777
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Implemented and qualified the immutable checked-HIR owner, including sparse local selections and final owning publication. Cold insertion moves HIR into the checked owner; warm lookup and core retention borrow its exact backing after full current replay. Public outputs still materialize at their owning boundary. Forecasts, limits, loan residuals and canonical cleanup order remain unchanged.
 
 Evidence is deliberately split by source subject: seven direct retention/frontier/publication controls passed at `033caf93`, the complete cold/warm Project lifecycle passed at `7a87b331`, and the exact body-pointer/source-guard/forged-stub/drop-order owner now passed using the existing source-bound `d8fadfb7` lib artifact. The bounded ownership cut confirms the incremental/cache modules and all direct test/fixture inputs remain byte-identical from d8 to e93; the separate #847 appended uncached selector helper and projected AST representation are disclosed rather than called whole-compiler equivalence. Historical persisted RequestViews, omitted-private-layout restoration, nonempty-loan replay, cache/source drift and full graph/Image controls retain their original actual PASS receipts and dates.

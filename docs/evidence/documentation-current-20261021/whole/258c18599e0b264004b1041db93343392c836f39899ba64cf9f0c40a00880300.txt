@@ -1,0 +1,7 @@
+# opt881-generic-predecessor-rename-fix-20261017 README
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
+Source-only generic-name adapter correction. The original `merged_suffixes<'s>` declaration escaped the literal name-plus-parenthesis adapter, causing a duplicate impl method in cfg(test). Renamed only that declaration and made the finite three-name custody inverse include generic declaration syntax. Whole a052 beforeimages and original packet remain unchanged; full immediate predecessor reconstructs exactly. No Cargo or test execution.

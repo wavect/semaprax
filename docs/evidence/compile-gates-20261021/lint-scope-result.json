@@ -1,0 +1,14 @@
+{
+  "status": "SCOPED_INTENTIONAL_DUPLICATION_LINT_BEHAVIOR_PASS",
+  "results": [
+    [
+      "scoped",
+      0
+    ],
+    [
+      "unscoped",
+      1
+    ]
+  ],
+  "does_not_claim_project_clippy_pass": true
+}

@@ -157,3 +157,37 @@ fn workspace_linked_typed_refuses_changed_imported_helper_before_host_call() {
     })
     .unwrap();
 }
+
+#[test]
+fn linked_workspace_cold_and_warm_frontend_rebuilds_preserve_revision() {
+    let (fixture, _) = linked_fixture();
+    semaprax::project::with_authenticated_project(&fixture.0.join("semaprax.toml"), |snapshot| {
+        let project = snapshot.retain_revision();
+        let sources = project
+            .sources()
+            .iter()
+            .map(|source| ProjectFrontendSource::new(source.path(), source.source()))
+            .collect::<Result<Vec<_>, _>>()?;
+        let mut cache = semaprax::project::ProjectFrontendCache::new_with_semantic_cache();
+        for _ in 0..2 {
+            let rebuilt = cache.build(project.manifest(), &sources)?.into_revision();
+            assert_eq!(
+                project.manifest().to_canonical_toml(),
+                rebuilt.manifest().to_canonical_toml()
+            );
+            assert_eq!(project.workspace_manifest(), rebuilt.workspace_manifest());
+            assert_eq!(project.workspace_revision(), rebuilt.workspace_revision());
+            assert_eq!(project.project_revision(), rebuilt.project_revision());
+            assert_eq!(project.sources().len(), rebuilt.sources().len());
+            for (left, right) in project.sources().iter().zip(rebuilt.sources()) {
+                assert_eq!(left.path(), right.path());
+                assert_eq!(left.source(), right.source());
+                assert_eq!(left.source_revision(), right.source_revision());
+                assert_eq!(left.source_digest(), right.source_digest());
+            }
+            assert_eq!(project.semantic_graph(), rebuilt.semantic_graph());
+        }
+        Ok(())
+    })
+    .unwrap();
+}

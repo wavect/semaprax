@@ -1,5 +1,7 @@
 # Compiled source-audit transport V1
 
+Audience: compiler contributors and reviewers.
+
 Status: source-only NEXT #798 component; executable qualification pending.
 
 The HIR boundary, workspace projection and native interop layout audits retain

@@ -1,5 +1,9 @@
 # Finite closure audit for827/828
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Read-only live issue audit. No GitHub mutation, source edit, build or test run.
 
 - `COMMENT-827-pending-runtime.md`: pending closure text; do not post before the two changed assertion/observer bodies execute. Historical evidence

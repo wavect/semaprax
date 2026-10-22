@@ -1,5 +1,9 @@
 # Exact Main0ab1 and singleton move successor
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Current source-only entrypoints:
 
 - `python3 docs/evidence/post-main0ab1-singleton-join-20261016/verify-source.py`

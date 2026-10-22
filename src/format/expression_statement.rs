@@ -15,7 +15,7 @@ pub(super) fn scope(root: &Expr) -> Scope {
             slot.set(Some(
                 crate::ast::expression_statement::projection_is_hygienic(
                     root,
-                    crate::bounded_output::reserve_active_required,
+                    scratch_reservations(),
                 ),
             ))
         });
@@ -30,7 +30,7 @@ pub(super) fn function_scope(root: &Expr, params: &[crate::ast::Param]) -> Scope
                 crate::ast::expression_statement::projection_with_bindings(
                     root,
                     params.iter().map(|p| p.name.as_str()),
-                    crate::bounded_output::reserve_active_required,
+                    scratch_reservations(),
                 ),
             ))
         });
@@ -89,9 +89,45 @@ pub(super) fn whole_function_scope(function: &crate::ast::Function) -> Scope {
             slot.set(Some(crate::ast::expression_statement::projection_roots(
                 roots,
                 names,
-                crate::bounded_output::reserve_active_required,
+                scratch_reservations(),
             )))
         });
     }
     Scope(old)
+}
+
+// Private writers already hold this scratch bank across both formatting passes.
+// Hygiene finishes and drops all its buffers before formatter stacks start, so
+// those sequential allocations may borrow the same reserved backing. Ordinary
+// writers have no credit; every excess byte still reaches the live ledger.
+fn scratch_reservations() -> impl FnMut(usize) -> bool {
+    let mut credit = super::PRIVATE_SCRATCH_CAPACITY
+        .with(|capacity| capacity.get().map_or(0, |capacity| capacity.bytes()));
+    move |bytes| {
+        if credit == 0 {
+            return crate::bounded_output::reserve_active_required(bytes);
+        }
+        // Prepaid storage cannot recover an already refused invocation.
+        if !crate::bounded_output::reserve_active_required(0) {
+            return false;
+        }
+        let prepaid = credit.min(bytes);
+        credit -= prepaid;
+        let excess = bytes - prepaid;
+        excess == 0 || crate::bounded_output::reserve_active_required(excess)
+    }
+}
+
+// The hygiene verifier retains its original fixed 129-pattern-frame bound.
+// Its largest slot is a slice/index payload plus a machine-word enum tag.
+// This storage is sequential with the formatter's recursive frame stacks.
+pub(super) fn pattern_scratch_bytes(pattern_depth: usize) -> Option<usize> {
+    if pattern_depth == 0 {
+        return Some(0);
+    }
+    129usize.checked_mul(std::mem::size_of::<(
+        &Expr,
+        &[crate::ast::RecordMatchPatternField],
+        usize,
+    )>())
 }

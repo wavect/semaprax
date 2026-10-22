@@ -1,5 +1,9 @@
 # Actual managed36 pin generation
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Producer source: `36c6deb98720e243b0daaf81e813fbe3ec3b0a2d`.
 All five focused builds and scoped production lib/bin Clippy passed on that source. The wider selected452 runtime finished368PASS/84FAIL; this capsule does not claim whole-batch success.
 

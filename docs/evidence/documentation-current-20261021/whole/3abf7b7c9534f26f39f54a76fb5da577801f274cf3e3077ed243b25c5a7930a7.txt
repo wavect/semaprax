@@ -1,0 +1,7 @@
+# main-c883-next-source-merge-20261017 README
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
+This source-only merge preserves real main-c883 ancestry and the next branch implementation. The 14 conflicting historical JSON packets and three additional existing capture/slot packets remain exact next inputs. Main packets and complete referenced source inputs are acquired separately with finite path membership, bounded whole physical and compiled-current authentication before exact whole main snapshots. Seven main controls preserve original assertions, loops, captures and inverse algorithms; only their explicit read acquisition expressions change. Complete original main and next source bytes and full source inverses are retained. The complete main plan enumerator is an independently compiled control; production keeps the funded fused route. Main capacity helper/probe are test-only controls. The real certified status path now freezes membership after all producer/proof checks, before publication and existing attempt completion. Current purity/source coverage verifies the complete405-input union and31 owned private-layout modules; all frozen90 inputs remain required. The final batch must place its independently authenticated complete current-to-this-checkpoint ingress before historical readers. No Cargo, runtime, Clippy, pin, stack, application cost, fit or closure result is established.

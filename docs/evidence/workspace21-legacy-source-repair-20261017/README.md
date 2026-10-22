@@ -1,3 +1,9 @@
+# workspace21-legacy-source-repair-20261017 README
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 This source-only repair retains ten complete legacy logical inputs from immutable main c883c2d3fff04a3e7afbb4afd5e0cae99ef91af4 through a closed ten-arm macro. Every existing current compiled owner remains in the original inventory. The separate full successor TSV makes exactly ten ordered path substitutions; its original table remains unchanged. The existing private-layout owner borrows the joined String and otherwise retains every assertion. Whole current and prior carrier/owner images and complete bootstrap inverses are retained.
 
 The strict successor authenticates the actual whole repaired carrier, owner, full TSV and closed alias manifest before restoring the complete 3f carrier for the unchanged strict algorithm and frozen bindings. It authenticates every entire legacy archive at use. All prior allowed tables, maxima, binding records and guard payloads remain unchanged. The public bootstrap recipe appends one reversible whole-wrapper successor and retains all prior edits. All 58 prior strict negatives plus ten new finite view controls pass as source-only Python checks. No Cargo, Rust execution, common refresh, qualification or pin result is claimed. The 174/FINAL6 and other coupled metadata must be refreshed separately; workspace owner bytes changed, requiring a fresh 107 source-chain proof after final freeze.

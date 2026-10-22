@@ -538,7 +538,7 @@ fn catalog_normalizer_public_workspace_reports_actual_paid_validation_phases() {
     }
     let _remove = Remove(root.clone());
     fs::write(root.join("semaprax.toml"), MANIFEST).unwrap();
-    let mut ordered = SOURCES.iter().copied().collect::<Vec<_>>();
+    let mut ordered = SOURCES.to_vec();
     ordered.sort_by(|left, right| left.0.cmp(right.0));
     let mut digest = Sha256::new();
     digest.update((MANIFEST.len() as u64).to_le_bytes());

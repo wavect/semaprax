@@ -1,5 +1,9 @@
 # Completed actual pin chain and focused consumers
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Actual producers ran at7a87b33115c0cd45b14cac64d7b37e5742503159 after its
 five successful focused builds. Strict readonly preparation authenticated ten
 complete old/current wires, all exact-byte inverses and all107 old full-source

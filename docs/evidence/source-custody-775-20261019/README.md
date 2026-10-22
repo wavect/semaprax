@@ -1,5 +1,9 @@
 # Complete source audit inputs and exact historical reads
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The source-locked coverage gate now joins the complete omitted ordinary-comparison modules and the CLI usages module into each owning audit. Existing source bytes remain in their original order. The actual coverage gate passes both tests without changing its baseline, exclusions or assertions.
 
 Two historical source acquisition sites were selecting raw or older Clippy bytes before acquiring the exact whole requested view. The existing closed source receiver now acquires that view before normalization or the unchanged bounded raw-file fallback. Every compiled/physical/archive identity, whole projection comparison, input bound and hostile-input predicate remains executable.

@@ -1,5 +1,9 @@
 # NEXT Main beb0 and function-alias graph/Image assembly
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only candidate based on `8bb9f5b7b99e1e71a797460c46180daf716b234b`.
 Main reconciliation `faebe78f4904c974c47baf410711e0960f336be1` was merged with its actual beb0 ancestry; graph/Image checkpoint `7b167b98bce5c7dd8042869712af6ca3ca51425d` was applied independently. No bitmap prototype is included.
 

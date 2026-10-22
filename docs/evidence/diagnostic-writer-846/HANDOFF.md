@@ -1,5 +1,9 @@
 # Source-only846 diagnostic writer candidate
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base7a87b33115c0cd45b14cac64d7b37e5742503159; isolated private branch codex/opt846-cli-diagnostic-writer-20261015. No ROOT mutation, Cargo/build/Rust tests/Clippy or target executable ran.845 implementation was stopped without source edits; its precise initial-funding/context blocker was posted at issue845 comment6198428875.825/845 remain OPEN.
 
 Actual adoption: source_execution::report_all locks stdout for JSON or stderr for human output and writes the same ordered diagnostic lines through diagnostic::writer. Empty reports retain the original no-stream/no-output route. report() still returns1; a failed writer never replaces selected compiler status. Existing WorkspaceReportFailure::Display uses the same human writer for already-owned reports; its owner selection, opaque fallback, framing and report borrowing stay byteexact otherwise. No new constructor channel, snapshot API or unused alternate endpoint is introduced.

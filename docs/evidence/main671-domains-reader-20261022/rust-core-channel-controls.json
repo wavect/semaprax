@@ -1,0 +1,52 @@
+{
+  "status": "ACTUAL_RUST_EXISTING_BASE_ROW_ALL_EIGHT_WARM_IO_REFUSALS_AND_FIVE_FOREIGN_INPUTS_PASS",
+  "io_controls": [
+    {
+      "channel": "physical current",
+      "mutation": "same length semantic whitespace",
+      "refused_after_same_process_warm_load": true
+    },
+    {
+      "channel": "physical current",
+      "mutation": "extra EOF byte",
+      "refused_after_same_process_warm_load": true
+    },
+    {
+      "channel": "current archive",
+      "mutation": "same length semantic whitespace",
+      "refused_after_same_process_warm_load": true
+    },
+    {
+      "channel": "current archive",
+      "mutation": "extra EOF byte",
+      "refused_after_same_process_warm_load": true
+    },
+    {
+      "channel": "complete selected old archive",
+      "mutation": "same length semantic whitespace",
+      "refused_after_same_process_warm_load": true
+    },
+    {
+      "channel": "complete selected old archive",
+      "mutation": "extra EOF byte",
+      "refused_after_same_process_warm_load": true
+    },
+    {
+      "channel": "extension after metadata load",
+      "mutation": "same length semantic whitespace",
+      "refused_after_same_process_warm_load": true
+    },
+    {
+      "channel": "extension after metadata load",
+      "mutation": "extra EOF byte",
+      "refused_after_same_process_warm_load": true
+    }
+  ],
+  "foreign_supplied_values_refused": 5,
+  "original_full_before_bytes_compared": true,
+  "all_changed_bytes_restored": true,
+  "peak_RSS_KiB": 42768,
+  "minimum_available_percent": 65,
+  "process_cap_KiB": 262144,
+  "python_overlay_scope_not_extended": true
+}

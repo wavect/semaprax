@@ -1,5 +1,9 @@
 # Actual828f certified-counter Clippy corrective
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Production changes only the slice for-loop driver to an explicit while-index
 using its same prepaid ordinal and borrowed row. The increment and its existing
 work charge remain after the complete fallible body. No new iterator, tuple,

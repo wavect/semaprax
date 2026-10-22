@@ -1,5 +1,4 @@
 //! Borrowed nominal lookup for metadata; the emitted declaration view stays local.
-use super::*;
 use crate::hir::items::{ItemSource, View};
 use crate::workspace_graph::source_schema::*;
 

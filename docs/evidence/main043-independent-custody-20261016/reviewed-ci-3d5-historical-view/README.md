@@ -1,5 +1,9 @@
 # Distinct reviewed-b452 CI view for incoming3d5
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Only Main043's historical reviewed-CI equality uses this finite view. Its exact
 b452 Git expectation, original immutable verifier archive and all preceding recipe
 edits remain unchanged. The complete pre-edit extended verifier and recipe are

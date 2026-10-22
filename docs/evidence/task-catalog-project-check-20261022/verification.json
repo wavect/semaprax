@@ -1,0 +1,27 @@
+{
+  "status": "FOCUSED_CATALOG_REGRESSION_PASS",
+  "base_head": "11996aee80978e8ab4ec5701bb0f25cbf1130b4d",
+  "test": "cargo test --locked --offline -p semaprax --test project --features unstable-workflow-profiling --jobs 1 standard_library::committed_catalogs_match_the_sources -- --nocapture --test-threads=1",
+  "test_result": "1 passed; 0 failed; 658 filtered out",
+  "actual_rustc": "1.97.1",
+  "peak_RSS_KiB": 5673200,
+  "minimum_observed_system_memory_available_percent": 55,
+  "process_limit_MiB": 6144,
+  "system_headroom_stop_floor_percent": 35,
+  "temporary_files_and_private_Cargo_target_on_external_SSD": true,
+  "full_ci_green_claimed": false,
+  "changes": [
+    "Canonical embedded manifest table separators",
+    "Pure main distinct from the actual streaming command",
+    "Resolve and validate complete authenticated owning projects, including their library modules"
+  ],
+  "source_custody": {
+    "both_complete_source_role_domains_and_all_six_original_hostile_controls": "PASS",
+    "all_original_sources_classes_roles_chains_edge_text_and_attributes_preserved": true,
+    "only_derive_source_pin_changed": true
+  },
+  "source_sha256": {
+    "src/cli/help/authoring/tasks/catalog.json": "9bf34c94ae3b83d278b32231588ed1daf7fc653977ffe313876b61dcf5a14ef1",
+    "src/cli/help/authoring/tasks/derive.rs": "4acb0f366231cfc1764e47035afef22c2e8bd0a3760ebe7f69f1f23053185ada"
+  }
+}

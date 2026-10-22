@@ -1,5 +1,9 @@
 # Preserve the selected SDK in cleared macOS native test environments
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 CI selects the Command Line Tools Clang and its SDK explicitly. Native C fixture commands then clear their environment, and the test-only environment binder previously restored only Windows INCLUDE/LIB. Consequently Apple Clang lost SDKROOT and could not find string.h.
 
 The cfg(test) binder now forwards exactly the already selected SDKROOT on macOS. Windows forwarding and every production toolchain function remain unchanged. A complete module inverse replaces only this one test helper with its full predecessor, preserving every other source byte.

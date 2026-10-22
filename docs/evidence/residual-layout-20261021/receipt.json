@@ -1,0 +1,36 @@
+{
+  "status": "LOCAL_ACTUAL_HIR_LAYOUT_GUARD_AND_SOURCE_GATES_PASS",
+  "before_head": "874b03052c6813cce9d6c0727b059cc6dbb6669f",
+  "measured_layout": {
+    "before_residual_payload": 40,
+    "after_residual_payload": 8,
+    "payload_saved": 32,
+    "before_try_payload": 128,
+    "after_try_payload": 96,
+    "before_enum": 128,
+    "after_enum": 104,
+    "before_tag_and_padding": 0,
+    "after_tag_and_padding": 8,
+    "complete_container_saved": 24
+  },
+  "checks": {
+    "actual_owning_test_body": "PASS against actual normal compiler types and complete retained predecessor",
+    "whole_containers": [
+      "kind",
+      "expression",
+      "statement",
+      "field initializer",
+      "match arm",
+      "closure capture"
+    ],
+    "actual_source_audit_tests": 34,
+    "actual_hir_boundary_tests": 11,
+    "clippy": "PASS warnings denied for actual layout body and source harness",
+    "cargo_fmt_all_check": "PASS",
+    "original_complete_source_domains_and_six_hostiles": "PASS"
+  },
+  "all_original_runtime_allocation_zero_exact_short_and_drop_tests_unchanged": true,
+  "all_prior_source_membership_roles_views_limits_and_codecs_retained": true,
+  "mandatory_original_base_current_view_added_for_first_current_byte_change": true,
+  "full_root_cfg_test_or_hosted_ci_green_claimed": false
+}

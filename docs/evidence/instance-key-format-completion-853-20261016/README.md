@@ -1,5 +1,9 @@
 # Checked instance-key format completion (#853)
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only repair from a82e00cc83f99b16249181c45710d962598577db. Rust
 compilation, owning runtime tests and application qualification are pending.
 No budget cap or first omitted-byte expectation is increased or reduced.

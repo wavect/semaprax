@@ -1,0 +1,52 @@
+{
+  "status": "SOURCE_ONLY_ORIGINAL_REGRESSION_AND_ALL_TWELVE_WARM_IO_CONTROLS_PASS",
+  "base_head": "cfa1638233bfc1b0c499c05c1d004f6f573bbbae",
+  "original_semantic_batch_regression": "15 original physical/compiled sources, every independent inverse and original forged-input assertions retained; PASS",
+  "complete_original_compiled_source_inverse_controls": "both PASS",
+  "only_logical_changes": [
+    {
+      "source": "src/cleanup_plan/replay/skeleton_work.rs",
+      "added_views": [
+        {
+          "archive": "docs/evidence/semantic162-compile-fixes-aaf-20261017/05.after.txt",
+          "length": 47594,
+          "name": "whole-semantic-batch-current-source",
+          "sha256": "2532173c152df743989e4afd5fc84ae4b3dd32bf45b0a72fe09039a832887c4b"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+      "added_views": [
+        {
+          "archive": "docs/evidence/next-semantic-source-views-20261017/objects/cdbced119fdcd161c437ef9ac83d8066caadae0eabdf5bee83ce95db260fd472.txt",
+          "length": 64942,
+          "name": "whole-semantic-batch-current-source",
+          "sha256": "cdbced119fdcd161c437ef9ac83d8066caadae0eabdf5bee83ce95db260fd472"
+        }
+      ]
+    },
+    {
+      "source": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
+      "added_views": [
+        {
+          "archive": "docs/evidence/semantic162-compile-fixes-aaf-20261017/07.after.txt",
+          "length": 28129,
+          "name": "whole-semantic-batch-current-source",
+          "sha256": "b2004e6eb3450ca8bc02c7822a3f258280ae3b248f6054f761cdd6567b8e52c8"
+        }
+      ]
+    }
+  ],
+  "all_original_697_rows_fields_views_compiled_flags_scopes_and_memberships_preserved": true,
+  "codec_and_loader_code_changes": "Only exact fixed-width policy SHA bindings changed in both original codecs; original bodies and closed scopes unchanged",
+  "page_bytes": 250804,
+  "page_cap_bytes": 262144,
+  "rust_root_lines": 1499,
+  "rust_root_cap_lines": 1499,
+  "original_complete_source_role_domains_and_six_hostile_controls": "PASS",
+  "source_harness_compile_peak_RSS_KiB": 784112,
+  "runtime_peak_RSS_KiB": 57024,
+  "all_work_and_temporary_files_on_external_SSD": true,
+  "compiler_product_or_full_ci_green_claimed": false
+}

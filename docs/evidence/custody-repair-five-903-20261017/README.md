@@ -1,5 +1,9 @@
 # Five exact custody repair checks at903
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Qualified source `9037153cb362d490d23e8bb325dea38bcc4c80b7`. One
 `semaprax --lib --no-run` owning build passed; all five exact, unignored owners
 then passed with source/artifact SHA binding and empty settled process groups.

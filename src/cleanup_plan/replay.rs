@@ -7008,7 +7008,7 @@ fn plan_skeleton_paths(
                     if !budget.pays_allocations() {
                         budget.reserve_bytes(
                             function,
-                            branch_clone::direct::inline_controls::<
+                            branch_clone::direct::compact_roles::<
                                 std::rc::Rc<SkeletonObservation>,
                                 SkeletonObservation,
                             >(),
@@ -7030,7 +7030,7 @@ fn plan_skeleton_paths(
                     } else if observations.len() < branch_clone::direct::SMALL_COPY_LIMIT {
                         budget.reserve_bytes(
                             function,
-                            branch_clone::inline_controls::<std::rc::Rc<SkeletonObservation>>(),
+                            branch_clone::compact_roles::<std::rc::Rc<SkeletonObservation>>(),
                             "branch clone receiving controls",
                         )?;
                         branch_clone::direct::copy_small_plan!(
@@ -7043,7 +7043,7 @@ fn plan_skeleton_paths(
                     } else {
                         budget.reserve_bytes(
                             function,
-                            branch_clone::direct::inline_controls::<
+                            branch_clone::direct::compact_roles::<
                                 std::rc::Rc<SkeletonObservation>,
                                 SkeletonObservation,
                             >(),
@@ -7189,7 +7189,7 @@ fn plan_skeleton_paths(
                     } else {
                         budget.reserve_bytes(
                             function,
-                            branch_clone::inline_controls::<std::rc::Rc<SkeletonObservation>>(),
+                            branch_clone::compact_roles::<std::rc::Rc<SkeletonObservation>>(),
                             "branch clone receiving controls",
                         )?;
                     }

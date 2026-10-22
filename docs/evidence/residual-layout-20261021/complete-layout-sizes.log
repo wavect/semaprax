@@ -1,0 +1,15 @@
+hir::ResolvedType=40
+hir::ResolvedResidualType=8
+hir::ResolvedExpr=192
+hir::before::ResolvedExpr=216
+hir::ResolvedExprKind=104
+hir::before::ResolvedExprKind=128
+hir::ResolvedStatement=376
+hir::before::ResolvedStatement=400
+hir::ResolvedFieldInitializer=208
+hir::before::ResolvedFieldInitializer=232
+hir::ResolvedMatchArm=360
+hir::before::ResolvedMatchArm=384
+hir::ResolvedClosureCapture=320
+hir::before::ResolvedClosureCapture=344
+hir::ResolvedFunction=960

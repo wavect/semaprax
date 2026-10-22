@@ -1,5 +1,9 @@
 # #780 bounded closure audit — source 9ccc0e2
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The feature is implemented and its original 24 exact owners have actual successful executions. This audit does not certify the whole current source tree. No command executed a Rust artifact or compiled code.
 
 `owner-pass-body-binding.json` records all 24 selected receipts and independently verified raw-log hashes. Twenty-three complete test function bodies are byte-exact at 9ccc; the remaining body has only the explicit `Mutation` type alias substitution for its unchanged nine malformed-receiver cases. The two real interpreter/native/Wasm differentials have Node v24.3.0 receipts; their clang and Node subprocesses are required and checked, with no backend-missing early-return branch. Earlier failures are retained in `receipt-candidates.json`, not overwritten.

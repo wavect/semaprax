@@ -55,8 +55,8 @@ fn run(
     )
 }
 #[test]
-fn borrowed_reader_composition_keeps_both_real_generations_complete_and_reconciles_every_typed_bill()
- {
+fn borrowed_reader_composition_keeps_both_real_generations_complete_and_reconciles_every_typed_bill(
+) {
     let program = super::super::super::super::super::tests::program();
     let function = &program.functions[0];
     for length in [0, 1, 4, 64] {
@@ -86,7 +86,7 @@ fn borrowed_reader_composition_keeps_both_real_generations_complete_and_reconcil
                     shared_hir,
                     true,
                 );
-                assert_eq!(old.observed.0.0, current.observed.0.0);
+                assert_eq!(old.observed.0 .0, current.observed.0 .0);
                 assert!(
                     old.observed.0.0.result.is_ok() && old.row.complete && current.row.complete,
                     "length={length} shape={shape} shared_hir={shared_hir}; pure2c={:?} current={:?}; rows pure2c={:?} current={:?}",
@@ -170,7 +170,7 @@ fn borrowed_reader_composition_keeps_every_work_cut_six_fields_terminal_and_swap
             true,
         );
         // This comparator spends ordinary work, not the reserved skeleton loan.
-        for units in 0..=MAX_REPLAY_WORK_UNITS - complete.observed.0.0.remaining {
+        for units in 0..=MAX_REPLAY_WORK_UNITS - complete.observed.0 .0.remaining {
             for shared_hir in [false, true] {
                 let old = run(
                     function,
@@ -197,7 +197,7 @@ fn borrowed_reader_composition_keeps_every_work_cut_six_fields_terminal_and_swap
                     true,
                 );
                 assert_eq!(
-                    old.observed.0.0, current.observed.0.0,
+                    old.observed.0 .0, current.observed.0 .0,
                     "all six diagnostic fields/work, shape={shape} fault={fault} units={units}"
                 );
                 assert_eq!(swaps(&old), swaps(&current));
@@ -224,9 +224,10 @@ fn borrowed_right_and_content_frontiers_are_real_exact_short_zero_floor_sticky_a
             false,
         );
         assert!(
-            complete.observed.0.0.result.is_ok() && complete.row.complete,
+            complete.observed.0 .0.result.is_ok() && complete.row.complete,
             "shape={shape}; outcome={:?}; row={:?}",
-            complete.observed.0.0, complete.row
+            complete.observed.0 .0,
+            complete.row
         );
         for (i, price, count) in [
             (0, paired_value::RIGHT_STEP, complete.row.pair_right_steps),
@@ -262,14 +263,14 @@ fn borrowed_right_and_content_frontiers_are_real_exact_short_zero_floor_sticky_a
                         false,
                         false,
                     );
-                    assert!(prefix.observed.1 && prefix.observed.0.0.result.is_err());
-                    assert!(prefix.observed.0.0.retry.is_some());
-                    assert!(!prefix.row.complete && !prefix.observed.0.1.invalid);
-                    assert_eq!(prefix.observed.0.1.live, 0);
-                    assert_eq!(prefix.observed.0.1.allocated, prefix.observed.0.1.freed);
+                    assert!(prefix.observed.1 && prefix.observed.0 .0.result.is_err());
+                    assert!(prefix.observed.0 .0.retry.is_some());
+                    assert!(!prefix.row.complete && !prefix.observed.0 .1.invalid);
+                    assert_eq!(prefix.observed.0 .1.live, 0);
+                    assert_eq!(prefix.observed.0 .1.allocated, prefix.observed.0 .1.freed);
                     if limit != 0 {
                         assert_eq!(
-                            prefix.observed.0.0.result.as_ref().unwrap_err(),
+                            prefix.observed.0 .0.result.as_ref().unwrap_err(),
                             &primitive_failure(function, *event, limit, floor)
                         );
                         assert_eq!(prefix.observed.3.unwrap().requested, price);
@@ -288,8 +289,8 @@ fn borrowed_right_and_content_frontiers_are_real_exact_short_zero_floor_sticky_a
                     false,
                 );
                 assert!(exact.observed.2 >= after);
-                assert!(!exact.observed.0.1.invalid && exact.observed.0.1.live == 0);
-                assert_eq!(exact.observed.0.1.allocated, exact.observed.0.1.freed);
+                assert!(!exact.observed.0 .1.invalid && exact.observed.0 .1.live == 0);
+                assert_eq!(exact.observed.0 .1.allocated, exact.observed.0 .1.freed);
             }
         }
     }

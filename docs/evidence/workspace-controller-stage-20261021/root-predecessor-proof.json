@@ -1,0 +1,20 @@
+{
+  "status": "COMPLETE_CURRENT_ROOT_AND_INDEPENDENT_GIT_PARENT_PROOF_PASS",
+  "source": "tests/workspace.rs",
+  "git_change": "6936f5f3a8",
+  "parent_file": "6936f5f3a8^:tests/workspace.rs",
+  "prior_length": 4657,
+  "prior_sha256": "b08e6a6ac41aea9919c08f4de0eeb8b7ec8802de278c3b6ef68c79af79604692",
+  "current_length": 4846,
+  "current_sha256": "e3f13bfdd172b6164a986bf09b991e9798118c6ea10e0e79c62433878d1e1ed9",
+  "complete_prior_prefix_retained": true,
+  "exact_byte_inverse": [
+    {
+      "start_byte": 4657,
+      "end_byte": 4846,
+      "after": "\n// Use the same real allocator/registry as the library test image.\n#[allow(dead_code, unused_imports)]\n#[path = \"../src/test_allocation_observer/backing.rs\"]\nmod test_allocation_observer;\n",
+      "before": ""
+    }
+  ],
+  "limits": "This proof authenticates the source versions only; original controller predicates remain required."
+}

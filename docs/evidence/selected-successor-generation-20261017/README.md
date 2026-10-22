@@ -1,5 +1,9 @@
 # OPT876 selected successor generation revision
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Private SOURCE-ONLY candidate based on `f6aeccc21d16e50a78d4f44522eaa5b028bd2cc0`.
 No Cargo, rustc, test executable, capture, pin application or benchmark ran.
 

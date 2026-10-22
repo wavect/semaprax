@@ -1,5 +1,9 @@
 # PaidMany lexical publication candidate, 2026-10-17
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base: `761351d847a3bd4d7d86bb81206aa1c89cdfb620`.
 
 The actual codec #808 diagnostic at this base first refused a 352-byte

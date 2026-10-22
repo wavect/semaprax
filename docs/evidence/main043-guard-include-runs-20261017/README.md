@@ -1,5 +1,9 @@
 # Strict additive include runs
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The original Main043 line-hunk parser refuses all three actual a097 inventories: multiple separated include insertions share one long physical line. This repair changes only `fragments` in `guard-extensions.py`. The complete old script is preserved under `before/`; `verify_guard`, required/maximum checks, unique-fragment checks, record binding, original controls and main entry remain byte-exact.
 
 The replacement lexes complete admitted include macros as indivisible tokens. Every other non-whitespace character is an exact original anchor. Between anchors, old whitespace must remain byte-exact after removing one complete added include run. The longest exact retained prefix chooses whitespace ownership deterministically. No whitespace/content normalization, line-hunk projection, original token removal/reorder, source rewriting, or generic source adapter occurs. Every fragment must satisfy the unchanged include grammar and occur exactly once, and removing all fragments must restore the WHOLE original string exactly. The existing outer verifier repeats full restoration and all required/maximum/foreign checks.

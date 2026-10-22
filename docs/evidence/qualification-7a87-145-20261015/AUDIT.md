@@ -1,5 +1,9 @@
 # Conditional closure audit: #833 and #835
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Subject: `7a87b33115c0cd45b14cac64d7b37e5742503159` only.
 Live issue bodies/comments are archived as `live-issue-{833,835}.json`.
 The completed focused round ran 145 bodies: **120 PASS, 25 FAIL**. All five owning

@@ -1,0 +1,37 @@
+{
+  "status": "ORIGINAL_CURRENT_CODEC_COMPOSITION_PASS_PENDING_PUBLICATION",
+  "base_head": "4f728b6a208ff5573e6ac8b3d886c54ab3b572b0",
+  "rows": 687,
+  "page_bytes": 228554,
+  "published_current_preserved_as_exact_views": [
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history.rs",
+      "view": {
+        "length": 20182,
+        "sha256": "442bbdc6fb6b96d0d73483c2d53f465f07ac901559cada8ba4fba7131a6e18f9",
+        "archive": "docs/evidence/merge-pr896-20261021/whole/442bbdc6fb6b96d0d73483c2d53f465f07ac901559cada8ba4fba7131a6e18f9.txt",
+        "name": "whole-pre-compile-gates-4f7a15bdd5"
+      }
+    },
+    {
+      "source": "src/workspace_graph/expected_projection/borrowed_imports/typed.rs",
+      "view": {
+        "length": 19919,
+        "sha256": "78e0166bad3ffd1a7a4594f52a9f4be0287dae4bf3d6d56f2964820df0a797f1",
+        "archive": "e/78e0166bad3ffd1a7a4594f52a9f4be0287dae4bf3d6d56f2964820df0a797f1",
+        "name": "whole-pre-compile-gates-4f7a15bdd5"
+      }
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/final_affine_tests.rs",
+      "view": {
+        "length": 18424,
+        "sha256": "c31dc10489c76a99d651ee33d20b2c33dc1893a87c2fbf614ef0fd6f8f4e8b34",
+        "archive": "docs/evidence/rustfmt-20261021/current/c31dc10489c76a99d651ee33d20b2c33dc1893a87c2fbf614ef0fd6f8f4e8b34.txt",
+        "name": "whole-pre-compile-gates-4f7a15bdd5"
+      }
+    }
+  ],
+  "all_previous_fields_views_memberships_and_fragment_edges_retained": true,
+  "all_original_codec_bodies_and_caps_unchanged": true
+}

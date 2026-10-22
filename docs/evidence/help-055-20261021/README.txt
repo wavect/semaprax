@@ -1,0 +1,1 @@
+Restore complete qualified full-host new grammar in standalone help, retaining dispatch authority and inert help. Restore exact Project profile guidance within the original 5000-byte topic bound. All original quick-reference code fences, CLI integration assertions, and historical changelog bytes remain. Local source validation passed; current-head hosted CI remains required.

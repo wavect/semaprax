@@ -1,5 +1,9 @@
 # Actual semantic162 compile repair
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only correction of the first aafda9f37 build. No compiler, Cargo or Rust test execution in this lane. Complete16 immediate-before and candidate-after files plus exact replacement coordinates are retained. Every original test and assertion count is unchanged; all files remain below1500 lines.
 
 Production fixes are missing physical_storage import, the Enumerate delimiter, removal of unused macro imports, and ordinary_union visibility restricted to its actual replay sibling caller. No prices, work requests, algorithms or limits change. Test-only fixes add Rc, initialize detached direct_anchor=None, and expose only a cfg(test) scratch-release method. Its body drops dag then ordinary scratch exactly where the old caller did; fields stay private. Borrowed ReplayBudget is dropped after the work tuple, preserving the intended left-to-right destruction sequence. Unused imports diagnosed by this exact compile are removed; mutable MAX test temporaries become separately reset named MAX locals.

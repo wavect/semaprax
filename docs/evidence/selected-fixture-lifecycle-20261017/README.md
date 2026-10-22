@@ -1,5 +1,9 @@
 # Selected fixture lifecycle repairs — source only
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base: `0acad3e05`. Isolated SSD worktree; parent ROOT was not edited. No Cargo,
 build, Rust compiler, test, benchmark, source verifier, or provider execution
 ran. Only Rustfmt parsing/formatting and `git diff --check` were performed.

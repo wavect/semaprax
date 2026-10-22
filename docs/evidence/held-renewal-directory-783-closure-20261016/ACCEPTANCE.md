@@ -1,5 +1,9 @@
 # OPT783 bounded acceptance audit
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Disposition: implementation/actual owning predicates appear met; parent source
 review and publication of the small fd2ac seven-owner original receipt/log are
 required before calling this close-ready publicly. No new execution is proposed.

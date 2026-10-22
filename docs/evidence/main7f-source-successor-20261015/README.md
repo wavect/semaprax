@@ -1,5 +1,9 @@
 # Strict main7f and compatibility source successor
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only assembly at production basis d5dd5e63da1429d4ec6cb6bd59c48a7b50129d42. No Cargo, Rust tests, Clippy, binary discovery or performance run. Product code is unchanged by this assembly; only the existing test helper and three full audit inventories change.
 
 Both empty_renewals source owners are included in full once in each audit. Interop stays exactly1500 lines by removing two blank separators strictly between closing braces and comments; assertions/literals remain intact.

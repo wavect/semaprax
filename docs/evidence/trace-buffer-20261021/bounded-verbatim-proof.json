@@ -1,0 +1,177 @@
+[
+  {
+    "source": "src/bounded_output.rs",
+    "length": 52413,
+    "sha256": "3775f83b8a94324511255f879dd6ba783a6ae83a7a8f764671ccfa17c85b6f1b"
+  },
+  {
+    "source": "src/bounded_output/format_acceptance.rs",
+    "length": 2297,
+    "sha256": "9de222661015b47b97bb385c6f19f09a024a8a223563845c263d838455f2944a"
+  },
+  {
+    "source": "src/bounded_output/resolution_stage_tests.rs",
+    "length": 4609,
+    "sha256": "024bfbe54d9d7b69ff81d78c1d5184ca656d05bfe2a0c7e47121781857291090"
+  },
+  {
+    "source": "src/bounded_output/classifier_string.rs",
+    "length": 23246,
+    "sha256": "93d81e987e4525c7d2d37dba7fef26898cd81792777ac2d625c80586e7dbd5ea"
+  },
+  {
+    "source": "src/bounded_output/identity_reservation.rs",
+    "length": 3961,
+    "sha256": "5d67d57bb12fe7d5d3f6669a9ecb306ec0d651ed0c772835ef4a74e58c6e67e4"
+  },
+  {
+    "source": "src/bounded_output/reservation_site_e47.rs",
+    "length": 4196,
+    "sha256": "195f1ec1e2d6489c803b1ff43e9f4dfcf3af0e9c01b738bdc188b6d739343f1a"
+  },
+  {
+    "source": "src/bounded_output/cfg_reservation.rs",
+    "length": 3873,
+    "sha256": "ecf425709b8c13b438cabeda37b2c7e11683ba0c17521b0ffcea2ee33aaff3f1"
+  },
+  {
+    "source": "src/bounded_output/source_owner_scope.rs",
+    "length": 2670,
+    "sha256": "dbbf0f53cd11e52219782792b7db2d12479a1195fa777b9a74ee68d99a582d55"
+  },
+  {
+    "source": "src/bounded_output/stage_debits.rs",
+    "length": 11427,
+    "sha256": "10d58a16ec8943f65d54b56f365c93c9edda40293408681ba7e580c13c4f331e"
+  },
+  {
+    "source": "src/bounded_output/prepaid.rs",
+    "length": 4494,
+    "sha256": "c99de1a410e0792957fecd035048dc0a59daa63e5f75ce1289b32aabafbd34b8"
+  },
+  {
+    "source": "src/bounded_output/invocation_binding.rs",
+    "length": 595,
+    "sha256": "e909bb7c272da23198192343dea4f185894318c85ae1d70263f3bc177195c8c2"
+  },
+  {
+    "source": "src/bounded_output/exclusive_debits.rs",
+    "length": 35344,
+    "sha256": "7d0347a5de731360c0cb2b82df0ba9823e85d65ecfba60bcad9c3c6252caa6ba"
+  },
+  {
+    "source": "src/bounded_output/key_directory.rs",
+    "length": 3939,
+    "sha256": "524be62afd97f136779521a24a9fa9cbd67c2f70be6863e5ecba9f49a28fbe64"
+  },
+  {
+    "source": "src/bounded_output/checked_string.rs",
+    "length": 7678,
+    "sha256": "fbdcbb79948dc45427b6c3fde57669eef8faca34a65e944740997935907baab4"
+  },
+  {
+    "source": "src/bounded_output/refusal_tests.rs",
+    "length": 9359,
+    "sha256": "9b2060b52bf47c6d6381a2c849b1abf394bff324bc62c683b9c955d785ad5163"
+  },
+  {
+    "source": "src/bounded_output/loan_inner_stage_tests.rs",
+    "length": 14231,
+    "sha256": "8fc7869389e4d5a9364fb78b843c4f49abb1493be7e503740a4de9d107c3118c"
+  },
+  {
+    "source": "src/bounded_output/canonical_stage_tests.rs",
+    "length": 13924,
+    "sha256": "efa1f4d50b7412c64e141aaef0d4c22ade9d6ee4265c7661c8f202de3c6aee96"
+  },
+  {
+    "source": "src/bounded_output/format_acceptance/tests.rs",
+    "length": 2005,
+    "sha256": "4cd75f6044cc86589c9981a1551df70b8a668011032fc12a81f2104fad285b28"
+  },
+  {
+    "source": "src/bounded_output/cfg_reservation/tests.rs",
+    "length": 3864,
+    "sha256": "145426712babbeb60be086427dce03097099cc29aff94381c9adf77f7684465f"
+  },
+  {
+    "source": "src/bounded_output/classifier_string/explicit.rs",
+    "length": 5741,
+    "sha256": "6389b81d6d7815840b8721ea6d9eba997c11d84dd96c503ac1a7dc08873d0f8d"
+  },
+  {
+    "source": "src/bounded_output/classifier_string/inventory_work.rs",
+    "length": 8065,
+    "sha256": "937beca7d333b6091c64b4af6c9e20ff9809e63f1bbf364d0399f7db0dc4d7dc"
+  },
+  {
+    "source": "src/bounded_output/classifier_string/tests.rs",
+    "length": 3482,
+    "sha256": "c13a56953e158f83404e8b22287760923c4ab96e034d81f6f321ae4ae6081008"
+  },
+  {
+    "source": "src/bounded_output/classifier_string/oracle_work.rs",
+    "length": 5255,
+    "sha256": "a88650efcd11e23b949e4c9d489d0127945b414890928293bd6f334ca555a34b"
+  },
+  {
+    "source": "src/bounded_output/identity_reservation/base_prelude.rs",
+    "length": 1354,
+    "sha256": "a0a56629b719a7d072a4013a5f5a7c725286e31ffff00f90a8489af99a8d6e79"
+  },
+  {
+    "source": "src/bounded_output/identity_reservation/producer_failure.rs",
+    "length": 478,
+    "sha256": "19837bd39430ad7935cc07451ecbaf5e3546d0c7a8b98fee26fdc725976e9828"
+  },
+  {
+    "source": "src/bounded_output/identity_reservation/function_cells.rs",
+    "length": 4669,
+    "sha256": "8825339dac4f7d902b3a0fc4d81eb7714646ca0c8a19dd9d74cb6dfb55e4b5ac"
+  },
+  {
+    "source": "src/bounded_output/identity_reservation/source_abort.rs",
+    "length": 1273,
+    "sha256": "dd92d2041bd8db505f14099637fe687bf9e24c3743c0dd345dd3bdfde534f879"
+  },
+  {
+    "source": "src/bounded_output/identity_reservation/tests.rs",
+    "length": 2764,
+    "sha256": "11fbd85caea6a3ddd9e7cf6aa508671f868c62c1bfefe4ff3a479601b5787955"
+  },
+  {
+    "source": "src/bounded_output/key_directory/tests.rs",
+    "length": 5295,
+    "sha256": "7e89ba70b1a79f9b4fce7629caca44dc0c3c289345ede02d713adf7b1ff3bdbc"
+  },
+  {
+    "source": "src/bounded_output/stage_debits/route_debits.rs",
+    "length": 47812,
+    "sha256": "805bb4afbc03a493fbdff4e267a84782e429cbf7545f37228034e992eeee345d"
+  },
+  {
+    "source": "src/bounded_output/stage_debits/tests.rs",
+    "length": 12575,
+    "sha256": "d81892e1cca7878eadfd74743e6b4610884312e08a446b53c2ffac1e67c05a06"
+  },
+  {
+    "source": "src/bounded_output/classifier_string/explicit/tests.rs",
+    "length": 6388,
+    "sha256": "9987e2eb8a5d4bc59c35f346709769c4b3133eba991702e2154f12d2aa8384af"
+  },
+  {
+    "source": "src/bounded_output/identity_reservation/base_prelude/tests.rs",
+    "length": 8108,
+    "sha256": "01b083d723f458cba2c9853ff5a7e22916f2fbab61b7df132e583ddd0f150344"
+  },
+  {
+    "source": "src/bounded_output/stage_debits/route_debits/retained_main_289.rs",
+    "length": 5037,
+    "sha256": "051797ccfc0fea98d81a9dde786a2a69537b3c1f897ff4b494f4df0152c18e18"
+  },
+  {
+    "source": "src/bounded_output/stage_debits/route_debits/json_codec_probe.rs",
+    "length": 3320,
+    "sha256": "4db43502a74a83c16ca79f6b9538672a16cf92c65c3d317e189990b899fbe62f"
+  }
+]

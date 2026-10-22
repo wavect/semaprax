@@ -1,5 +1,9 @@
 # Independent a3/e47 source custody
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only final join of actual Main a3/e47, the reviewed vector/leaf receivers,
 847 lazy directory, typed 781 initial receiving and 729 source example. Shipping
 changed since 55e: new producer/capture qualification is required. No Rust tests,

@@ -1,5 +1,9 @@
 # Main696 funded receiving join
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Current entrypoints (source-only):
 
 - `python3 docs/evidence/main696-funded-receiving-joined-20261016/verify-source.py`

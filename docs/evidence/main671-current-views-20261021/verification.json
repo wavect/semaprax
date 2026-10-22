@@ -1,0 +1,49 @@
+{
+  "status": "PASS_LOCAL_SOURCE_INGRESS_REPAIR",
+  "base_head": "ff933c37a14fd83d84a83ef4b7ce1565b4f5a23a",
+  "repair": "Admit the two previously unregistered actual compiled current sources and their exact complete frozen42/57 current views. All original historical readers, test bodies, schemas, hashes and archives unchanged.",
+  "source_rows": 696,
+  "page_bytes": 248552,
+  "complete_owning_ingress_cases": [
+    {
+      "name": "source_reflows_merge::main67107_inputs::accepted_whole_sources_authenticate_actual_owners_and_keep_every_prior_independent",
+      "status": "PASS",
+      "peakKiB": 61440
+    },
+    {
+      "name": "source_reflows_merge::main67107_inputs::before_future57::accepted_whole_sources_authenticate_actual_owners_and_keep_every_prior_independent",
+      "status": "PASS",
+      "peakKiB": 60272
+    }
+  ],
+  "original_readers_and_test_bodies_byte_identical": true,
+  "all_original_compiled_lookup_arms_retained": true,
+  "all_original_parent_child_inverse_and_hostile_checks_pass": true,
+  "all_original_complete_source_roles_and_six_hostile_controls": {
+    "status": "SOURCE_ONLY_ORIGINAL_FULL_DOMAIN_AND_HOSTILE_CONTROLS_PASS",
+    "domains": [
+      "hir",
+      "projection"
+    ],
+    "negative_controls": {
+      "dropped_actual_child_refused": true,
+      "coordinated_class_drop_not_original_generated_output": true,
+      "production_reclassification_refused": true,
+      "actual_source_drift_refused": true,
+      "whole_raw_drift_refused": true,
+      "foreign_path_child_cannot_escape": true
+    },
+    "generation_receipt_sha256": "9c65e76ad2c02ce56a8564536f7f87f539bacbe08ecda24c6b0bd8b7f3e8eb5e",
+    "complete_chain_receipt_sha256": "4bd8e7fa58ca83b96ce68de194b64c36d19082a1d8431f072a04a33338818745",
+    "peak_RSS_bytes": 141524992,
+    "no_Rust_or_hosted_qualification_claimed": true,
+    "must_refresh_if_header_or_other_source_changes": true
+  },
+  "actual_source_harness_clippy": {
+    "status": "PASS_ACTUAL_SOURCE_HARNESS_CLIPPY_WARNINGS_DENIED",
+    "peakKiB": 522768
+  },
+  "final_source_compile_peak_KiB": 703424,
+  "full_main_ci_status": "NOT_GREEN_NOT_CLAIMED",
+  "production_budget_optimization": "Separate candidate; no product recovery claim in this source-only change"
+}

@@ -1,5 +1,9 @@
 # Actual452 complete historical source input repairs
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only, after8b8f8f316 on frozen36c6. Three fixed whole-domain ingress stages; all original tables/rows/assertions/archives/caps remain unchanged.
 
 1. EB2 incoming physical_clone current const fn promotion -> exact wholeeb2 function source before the unchanged EB2 table, both actualowner input and completeincoming sourcecontrol.

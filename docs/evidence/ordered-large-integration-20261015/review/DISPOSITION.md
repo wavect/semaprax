@@ -1,5 +1,9 @@
 # Source-only integration review disposition
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 One actual tools-disabled Sonnet dispatch, 9,193-byte packet, terminal exit0 in
 94.31 seconds,323,452,928-byte process-group peak. Raw conditional findings and
 usage are preserved; provider list cost$0.14427 is not a billing receipt.

@@ -1,5 +1,7 @@
 # Direct branch capacity caller payment
 
+Audience: compiler contributors and reviewers.
+
 Status: source-only candidate; no Rust compilation, runtime or cost qualification.
 
 The direct generic copy and immediate-push call is funded by the existing

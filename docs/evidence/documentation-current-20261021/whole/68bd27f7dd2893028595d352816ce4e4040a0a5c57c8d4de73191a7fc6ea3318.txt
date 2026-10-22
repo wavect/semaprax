@@ -1,0 +1,11 @@
+# Alias Project provider fixture correction
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
+Actual364d owner25 passed the earlier manifest parser but refused G172 when rebuilding the test closure: importing `alias.current.main` makes alias.current a provider, and providers may not declare main. Project Manifest v1 lines75–76 requires entry and test main functions and no provider main. The admitted calculator Project uses distinct app/core/tests modules.
+
+The same Project parity fixture now uses that three-module shape: alias.app entry main and alias.tests test main both import alias.current.value, a scalar helper containing the exact original vector operations. Both roots and the public export name bind the same stable helper ID. Original core-only CALLER and the other test bodies are byte-exact. Runtime canonical parsing/formatting remains inside the existing build closure; no preparatory compile/cache warmup was added. Every borrowed-route, manifest/source/revision, graph/digest and Image/digest comparison remains verbatim.
+
+The full actual failed source and failure log are preserved. verify-source.py authenticates the unique inverse and static manifest/module/edge shape. This is not a language parser, build or runtime PASS. Final batch custody/authority needs a new whole current→ff7e input before earlier source guards; older Main696 packet tables remain immutable. The exact existing lib selector remains unchanged, with zero new test bodies or roles.

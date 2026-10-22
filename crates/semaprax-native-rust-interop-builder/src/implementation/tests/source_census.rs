@@ -476,3 +476,36 @@ fn declaration_dag_capacity_counts_layered_leaf_and_layout_expansion_once() {
 
 #[path = "source_census/lexical.rs"]
 mod lexical;
+
+#[test]
+fn prepaid_formatter_scratch_preserves_forged_marker_readers() {
+    let mut program = crate::parse(
+        "module formatter.hygiene; @id(\"f\") fn f() -> i64 { 1 } \
+         @id(\"main\") fn main() -> i64 { f(); 0 }",
+        Path::new("formatter-marker-reader.spx"),
+    )
+    .unwrap();
+    let body = &mut program.functions[1].body;
+    let crate::ast::ExprKind::Block { statements, tail } = &mut body.kind else {
+        panic!("statement fixture must be a block");
+    };
+    let crate::ast::Statement::Let { syntax, name, .. } = &statements[0] else {
+        panic!("expression statement must carry its parser marker");
+    };
+    assert_eq!(*syntax, crate::ast::LetSyntax::ExpressionStatement);
+    let marker = name.clone();
+    tail.kind = crate::ast::ExprKind::Var(marker.clone());
+    let canonical = crate::format::canonical(&program);
+    assert!(canonical.contains(&format!("let {marker} = f();")));
+    let scratch = canonical_format_scratch_capacity(&program).unwrap();
+    let exact = scratch.bytes().checked_add(canonical.len()).unwrap();
+    let (bounded, refused, consumed) =
+        crate::bounded_output::with_limit_usage(exact, || canonical_source_bounded(&program));
+    assert_eq!(bounded.unwrap(), canonical);
+    assert!(!refused);
+    assert_eq!(consumed, canonical.len());
+    let (short, _, consumed) =
+        crate::bounded_output::with_limit_usage(exact - 1, || canonical_source_bounded(&program));
+    assert_eq!(short.unwrap_err().code, "SPX-B109");
+    assert_eq!(consumed, 0);
+}

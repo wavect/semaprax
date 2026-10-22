@@ -1,5 +1,9 @@
 # Coherent ready batch: latest MAIN +844 +846 +836 + actual7a87 consumers
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 SOURCE ONLY. No Cargo, Rust tests, Clippy, runtime discovery, producers, pin
 capture or qualification ran during assembly. No ROOT edit/push occurred.
 

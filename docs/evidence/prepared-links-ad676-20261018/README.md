@@ -1,5 +1,9 @@
 # Consume prepared PLAN links once per segment — scratch candidate
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The before HEAD remains ad676a63ba3aa69b375d01a7616b235173f7bbee and its full CI is still running. The candidate is now applied locally; it has not yet been committed or pushed. Its inputs are complete exact before/current shipping comparison bodies, full original Cursor prepare/next bodies and original history structures. The independent complete 883 comparator/macro remain byte-exact in their second probe. Probe accessors append to the copies; they do not replace any shipping body.
 
 After Cursor::prepare succeeds, links contains reverse segment indices with an exact extent N. The owner stores N before consuming any link. At a new unloaded segment k<N, exactly k earlier indices have been popped, so the vector has N-k>0 entries and pop returns precisely the former links[N-k-1]. Loading occurs once, followed by the unchanged head/rest observation loop. The unchanged exhausted-segment update increments k and clears loaded. After k=N, the unchanged tail path runs. Every later prepare clears/refills the vector and resets its extent. No mutation occurs to an arena segment, History, PlanPath, observations, sorting schedule, terminal or runtime cleanup vector. Only consumed usize indices disappear from a private cursor vector; capacity remains. Original work calls/order and cursor segment/item counters remain exact. All old malformed-history checks run in the unchanged prepare before consumption. The new None branch is unreachable under this invariant, like the old indexing bound.

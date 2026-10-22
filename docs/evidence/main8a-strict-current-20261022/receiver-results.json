@@ -1,0 +1,12 @@
+[
+  {
+    "name": "source_reflows::semantic_receivers_main8a::every_receiver_inverse_preserves_the_entire_reflow_input_and_archive",
+    "status": "PASS",
+    "peakKiB": 69600
+  },
+  {
+    "name": "source_reflows::semantic_receivers_main8a::receiver_mutation_and_forged_predecessor_fail_closed",
+    "status": "PASS",
+    "peakKiB": 68720
+  }
+]

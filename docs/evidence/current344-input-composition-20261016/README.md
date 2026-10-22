@@ -1,5 +1,9 @@
 # Current344 direct-reader input composition
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base: `a82e00cc83f99b16249181c45710d962598577db`. This is a source-only repair of five actual owning-test failures from the current344 run. It grants no compiler admission, executable qualification, or production authority.
 
 The live failures identified missing composition at direct raw-input sites:

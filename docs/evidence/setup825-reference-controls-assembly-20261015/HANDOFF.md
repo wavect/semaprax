@@ -1,5 +1,9 @@
 # Corrected setup receiving controls: source-only successor
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Immutable predecessor:9cbdb5520a0ded38c5aece9f79e99c03e73e93fd.
 Authored fee correction:96c5548088f189c836a7e66081a26269dbf82cec.
 Private correction cherry:c0eca004d. No ROOT edits or Rust execution.

@@ -1,5 +1,9 @@
 # Finite PLAN acquisition at the complete e24 integration
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base: `e24e99787e8dec6cf5aed2930ff909cedc187f97`.
 
 This source-only repair retains the original six-row PLAN packet, every complete

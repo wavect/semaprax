@@ -1,5 +1,9 @@
 # Bind the parser allocation audit to the already locked dependency
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The manifest and Cargo.lock already select serde_json 1.0.154. The native builder allocation audit still expected 1.0.151 and its old package checksum, causing the original test to fail before exercising its near-limit escaped-string payload.
 
 The audit now pins the actual 1.0.154 version and registry checksum. Its complete near-limit string construction, recursive owned-string capacity helper, all assertions, and every descriptor/scratch limit remain unchanged. The owning capacity comment records the reviewed version. No dependency, production calculation, or runtime quota changes.

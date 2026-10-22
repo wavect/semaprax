@@ -1,0 +1,38 @@
+[
+  {
+    "subject": 0,
+    "before_capsule_sha256": "15b7a5498114ed439bd59a859463f0b21ce7c9ce5037192454888bca3ff2a580",
+    "current_capsule_sha256": "613142d72af1b44a8d341e3d9e86270177c43fc06d25e622a55fe3d855c00162",
+    "before_receipt_sha256": "8f1923c198ccd54913b4ff4d06f0c47ce7a5f0ebb9d4c189989d2b3058ec13ef",
+    "current_receipt_sha256": "b0912086b0d9ea0fea5995ac4a99f9391f31babe6f86b6b4b2fcfce2ad300022",
+    "historical0256_capsule_sha256": "790904aedd533c4aea59a2307b0ab56d12b74b113b677d8e9b16905caf66bf46",
+    "historical0256_receipt_sha256": "e9e432f5cd723ebb8c34144eeca8fb3951cb11d645b92874ff2b0fbbc17dd7b8",
+    "only_validator_report_and_its_two_derived_bindings_changed": true,
+    "actual_current_compiler_replay_pending": false,
+    "actual_full_owner_receipt_sha256": "5874bf8ac04a377a297b9c3d5583ccd8aeb41b436689ef49608cd8c04bb74069"
+  },
+  {
+    "subject": 1,
+    "before_capsule_sha256": "63ba569e82638b96f66e58e895919ff52f501105d6589a29867b0b8da777bcdb",
+    "current_capsule_sha256": "353c04e121100da5eac061f87a9e69f66b204ed183c2e5b6534f962ea85beb0a",
+    "before_receipt_sha256": "1698de1ae56067773403171b75cb1dd67b63f0f6557c3e780613bd5c253be0ae",
+    "current_receipt_sha256": "0a2b32e32b2fed3432f137e46fdd7f356ec540eff927be3c496bd3f3a47d7dfd",
+    "historical0256_capsule_sha256": "20df271ddbbcf56a20fa451745deabf3a48cdcc4d0e814c1a8a1fca76312b603",
+    "historical0256_receipt_sha256": "e31f1db2e8fc380b320616687621b15a2299e63802e6b18e00fa9e5a767e892d",
+    "only_validator_report_and_its_two_derived_bindings_changed": true,
+    "actual_current_compiler_replay_pending": false,
+    "actual_full_owner_receipt_sha256": "5874bf8ac04a377a297b9c3d5583ccd8aeb41b436689ef49608cd8c04bb74069"
+  },
+  {
+    "subject": 2,
+    "before_capsule_sha256": "589bd1817a5bfc9e58defb4c1e7b4d4368eced0ea5f1470a0fe786f422b6540e",
+    "current_capsule_sha256": "8e75eb08287236630052bb93fee984aaefca5baf969785e399b2f27d1ed61436",
+    "before_receipt_sha256": "9522729e30f236d03aaac8fe05ed8d5dfcfc9917e9f4666c4a1c6521d219b3e2",
+    "current_receipt_sha256": "74d5849442314a8ef0f79240f7deec0889045efc86fc106348e6bb6ab0981cad",
+    "historical0256_capsule_sha256": "51a98b0aab21bda7c39e0f4d9724e5a7c583f7447dd8636ffffd0d3edf6dcea2",
+    "historical0256_receipt_sha256": "379bc1669311f3bb08e2e4d028d82b561fa03502eac81defc9efe041f8fe86a3",
+    "only_validator_report_and_its_two_derived_bindings_changed": true,
+    "actual_current_compiler_replay_pending": false,
+    "actual_full_owner_receipt_sha256": "5874bf8ac04a377a297b9c3d5583ccd8aeb41b436689ef49608cd8c04bb74069"
+  }
+]

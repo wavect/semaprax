@@ -1,5 +1,9 @@
 # OPT877 ordinary enumerated HIR source candidate
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base: 36c6deb98720e243b0daaf81e813fbe3ec3b0a2d. No Cargo, compiler, test,
 benchmark, tokenizer, provider or full graph build was run in this lane.
 Standalone rustfmt parsed the changed/new Rust definitions; this does not

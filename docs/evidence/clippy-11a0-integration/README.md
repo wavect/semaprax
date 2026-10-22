@@ -1,5 +1,9 @@
 # Merge of the Clippy repair with main 11a0
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The local repair commit `a5c804e592ba330521d4f9dad0a9deab3ba2eb79`
 was composed with incoming main `11a0a46b70502896ba832ece6d9c3afb85ec5909`.
 Both branches' source changes are retained. The seven incoming files that

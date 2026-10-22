@@ -1,5 +1,9 @@
 # Review of #816 `StatusCases` / certified receiver (source only, nothing executed)
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 ## Blockers
 
 **B1. `Attempt::complete` does not authenticate or check the poison flag (lines in `impl Attempt`).**

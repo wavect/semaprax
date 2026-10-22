@@ -1,3 +1,9 @@
+# borrowed-single-exit-210-20261017 ROLE-LEDGER
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 This is a source ledger, not executable qualification. The complete old query/API/tariffs and every original strict owner remain unchanged.
 
 One atomic admission and fixed primitive place

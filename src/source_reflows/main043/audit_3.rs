@@ -54,6 +54,12 @@ fn complete_original_and_all_source_audit_receivers_are_byte_exact() {
         "/src/hir/validation/function_scope/lifecycle.rs"
     ))
     .to_owned();
+    legacy = crate::source_reflows::legacy_ci_expected_input(
+        "src/hir/validation/function_scope/lifecycle.rs",
+        "4359a3991e559f31cbb1ad650886ed3433270cbf17ce535169b3ff04fe64027a",
+        &legacy,
+    )
+    .into_owned();
     for (current, original) in [
         (
             "#[cfg(test)]\npub(super) fn extend_funded(",

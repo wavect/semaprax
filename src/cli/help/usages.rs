@@ -1,12 +1,10 @@
 //! Availability of mixed public/full-toolchain invocation shapes.
-use super::{CommandId, CommandSpec};
+use super::CommandSpec;
 
-pub(super) fn visible(spec: &CommandSpec, private: bool) -> &[&str] {
-    if spec.id == CommandId::New && !private {
-        &spec.usages[..1]
-    } else {
-        spec.usages
-    }
+pub(super) fn visible(spec: &CommandSpec, _private: bool) -> &[&str] {
+    // Qualified full-host grammar is discoverable in standalone help too.
+    // Dispatch, rather than printing usage, owns installer authority.
+    spec.usages
 }
 
 #[cfg(test)]
@@ -16,7 +14,7 @@ mod tests {
     fn new_help_preserves_exact_public_and_full_grammar() {
         let public = "Usage:\n  semaprax new <destination> [--name project-name] [--template calculator|library|service|stdin-stream-text|stdin-stream-data|stdin-stream-collection-record|source-command-file-text]\n";
         let full = "  semaprax-full new <fresh-directory> --from <project> --codec-plan <plan-json> --command-profile <exact-profile> [--command-path <declared-path> --command-source <source-file>]\n";
-        assert_eq!(scoped("new", false).unwrap(), public);
+        assert_eq!(scoped("new", false).unwrap(), format!("{public}{full}"));
         assert_eq!(scoped("new", true).unwrap(), format!("{public}{full}"));
     }
     #[test]

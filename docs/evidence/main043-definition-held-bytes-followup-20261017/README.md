@@ -1,5 +1,9 @@
 # Held-byte definition helper followup
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only followup to7b7b380a319ef9847a159c51190968e99ff8fff7.
 The wrapper now creates a ModuleType with an explicit __file__ and executes
 compile(raw, helperpath, 'exec') in its namespace, using ONLY the already

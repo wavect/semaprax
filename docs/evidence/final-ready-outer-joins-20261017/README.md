@@ -1,5 +1,9 @@
 # Final ready outer source inputs
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only candidate after `f054e375b2c754b95a09151df434a73fecd27020`.
 New endpoints were prepared against final production source
 `57f8758749efe32ebadf99149223dd8a8abba0f2`. They are unqualified until the

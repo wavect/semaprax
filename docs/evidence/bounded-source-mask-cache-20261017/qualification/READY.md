@@ -1,5 +1,7 @@
 # Pure-mask complete-output qualification
 
+Audience: compiler contributors and reviewers.
+
 Status: PASS for exact frozen aaebda72db0eeb611e610ef07ed5e35ee3ee2096. Shipping ROOT stayed clean and unchanged. All work, outputs and temporary files were on the external SSD; no Cargo/provider/RPC ran.
 
 The retained slow 0db generation output was checked against all 1,743 distinct referenced source entries at aaeb (complete byte lengths and SHA256), and all seven original scripts retained their pinned complete bytes. Cached generation reproduced the ENTIRE hir.json and projection.json byte for byte. Independently regenerating boundary generation and verification reproduced ENTIRE current-domains.json and final boundary-source-proof.json byte for byte, including original negative-control results. Original preservation proof also matched byte for byte. No output paths or fields were normalized. Output hashes, original commands, complete logs, timing and pressure samples are retained in result.json and adjacent files.

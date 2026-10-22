@@ -1,0 +1,7 @@
+# Allocation observation boundaries
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
+Source-only repairs following actual fade failures34/38; runtime qualification remains pending. All original production calls, allocation/Drop assertions, complete diagnostics and caps remain. Inventory reporting now runs after the complete producer/budget observation, avoiding console initialization as part of compiler allocation evidence. The DAG protocol case now drops suffixes, SkeletonWork (including retained memo backing), and caller within the original allocation observation before asserting complete balance. This expands lifetime coverage; it does not waive retained bytes or reset observer counters. Complete preimages and finite inverses are retained.

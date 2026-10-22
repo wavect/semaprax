@@ -1,0 +1,16 @@
+# Owning qualification corrections (67, 108, 104, 136)
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
+Basis: `8b438cdebdc04121a61131f8d87f1180bfa893db`, which contains the isolated #834 source checkpoint on 940fcf. Apply after #834. ROOT was not modified. No Cargo, Rust execution, Claude or heavy gates were run.
+
+- Owner 67: the full saved receiver's parent import includes `app_census`; the restoration adapter omitted it, so never replaced the complete parent module registration block. Correct only that exact adapter. Entire receiver, helpers and all seven original controls remain unchanged and restore byte for byte.
+- Owner 108: replace a stale current-module digest assertion with the complete current module archive plus its exact SHA256 binding. Keep original receiver-projection archives, hashes and full original-body checks. Explicitly reverse the moved helper qualification/added budget argument for the complete entry body projection. Production receiver is unchanged.
+- Owner 104: the old and current whole drivers genuinely have different Context acquisition costs. Retain both complete old drivers, compare the error policies using their existing original-Context facades, and separately execute both real Context constructors to check the actual whole-driver work/byte difference by exact cross-addition. Print all old/current absolute driver and constructor observations. No guessed fee, fee credit, refund, or changed expected count.
+- Owner 136: the raw SelectedChild legacy renderer bypassed the explicit test invocation's funding bridge. Ordinary production legacy rendering remains the complete old `reason.legacy()` route; matching explicit oracle authority now uses the existing raw funded/metered bridge before allocation. Stale subjects fail closed. The actual production paid path constructs a sealed receipt in Permit::refuse and retains it in Preparation::refuse_engine, which fills its prepaid fixed report without calling legacy rendering. New source bindings and a real public Session raw-depth child test verify that distinction. The original all-six-field Diagnostic adapter is byte exact, and `metrics.allocated <= scope.receipt().charged` is unchanged. New finite oracle controls cover exact, short, zero and foreign subjects.
+
+Static checks restore all ten preceding whole source files, validate the complete owning projections, and join all changed source owners into the three inventories. Metadata composition restores 577 original rows across 57 packets plus the complete 36-owner source dispatcher. Previous immutable archives remain unchanged. See source-only-proof.json and combined-source-proof.json.
+
+The supplied parent logs record failures on its prior 940 qualification, not results for this packet. All newly authored/changed Rust bodies, allocator assertions and Clippy remain UNEXECUTED. Exact owning selectors are in pending-selectors.json. #834, #832 and #781 remain open pending parent actual qualification, integration and push. No matrix/support promotion.

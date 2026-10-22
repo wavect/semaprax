@@ -1,5 +1,9 @@
 # OPT837 independent source review
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Reviewed checkpoint `604e7fb05203a6701be6bdbcda8a181c5b969df2` against `e3eb476838442b58c02ccc815aae4bbdfebfd50e`. Source-only: no build, tests, native execution, benchmark, paid call, or repository mutation. Context started from static Graft cards in the root checkout, followed by bounded changed files and relevant owner spans. This is not executable qualification.
 
 ## Finding: P2 — Bind the regular-file/non-symlink check to the opened input

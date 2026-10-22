@@ -1,5 +1,5 @@
 //! Loaded-segment remainder only. No graph walk, observation loan or content cmp.
-use super::{Ordering, PAYMENT_HEADER, Rc, SkeletonObservation, size_of};
+use super::{size_of, Ordering, Rc, SkeletonObservation, PAYMENT_HEADER};
 // The complete current owner size is already paid by OWNER_CONTROLS. Only
 // these three scalar initializers and mode initializer are additive here.
 // Seven distinct new reserve/work primitive sites remain independently paid.

@@ -1,5 +1,9 @@
 # Lexical vector receiving — source checkpoint
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The complete incoming Maina3 vector helper/current/predecessor and five original
 controls remain in `sequence_vector/main_a3`, with its amended path-array source
 owner retained separately. Shipping two controls compare the whole actual route

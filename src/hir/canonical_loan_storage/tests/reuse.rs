@@ -276,19 +276,35 @@ fn complete_old_callers_storage_and_tests_remain_exact_and_all_current_hooks_are
     // reverse only these exact optional observer adapters, then preserve every
     // original whole-before assertion and old inverse below. No page admission.
     assert_eq!(projected.len(), 17695);
-    assert_eq!(digest(&projected), "b9e11a029bbc1252cc80bd83eaae627bca19c3ca12b399ff2796b445b67f95c0");
+    assert_eq!(
+        digest(&projected),
+        "b9e11a029bbc1252cc80bd83eaae627bca19c3ca12b399ff2796b445b67f95c0"
+    );
     for (start, end, current, previous) in [
-        (7870, 8100, r########"    );
+        (
+            7870,
+            8100,
+            r########"    );
     #[cfg(feature = "unstable-workflow-profiling")]
     let _exclusive_operation = crate::bounded_output::exclusive_debits::operation_guard(
         crate::bounded_output::exclusive_debits::Operation::CanonicalLoanStorage,
-"########, r########""########),
-        (6007, 6253, r########"        );
+"########,
+            r########""########,
+        ),
+        (
+            6007,
+            6253,
+            r########"        );
         #[cfg(feature = "unstable-workflow-profiling")]
         let _exclusive_operation = crate::bounded_output::exclusive_debits::operation_guard(
             crate::bounded_output::exclusive_debits::Operation::ValidatorConstructor,
-"########, r########""########),
-        (5072, 5731, r########"    let helpers = {
+"########,
+            r########""########,
+        ),
+        (
+            5072,
+            5731,
+            r########"    let helpers = {
         #[cfg(feature = "unstable-workflow-profiling")]
         let _exclusive_constructor = crate::bounded_output::exclusive_debits::operation_guard(
             crate::bounded_output::exclusive_debits::Operation::ModuleIndex,
@@ -302,20 +318,30 @@ fn complete_old_callers_storage_and_tests_remain_exact_and_all_current_hooks_are
         );
         ConstructorSeed::authenticate(program, directory)?
     };
-"########, r########"    let helpers = crate::loop_calls::byte_writer::ModuleIndex::new(program)?;
+"########,
+            r########"    let helpers = crate::loop_calls::byte_writer::ModuleIndex::new(program)?;
     let seed = ConstructorSeed::authenticate(program, directory)?;
-"########),
-        (4607, 4831, r########"    #[cfg(feature = "unstable-workflow-profiling")]
+"########,
+        ),
+        (
+            4607,
+            4831,
+            r########"    #[cfg(feature = "unstable-workflow-profiling")]
     let _exclusive_operation = crate::bounded_output::exclusive_debits::operation_guard(
         crate::bounded_output::exclusive_debits::Operation::CoreValidation,
     );
-"########, r########""########),
+"########,
+            r########""########,
+        ),
     ] {
         assert_eq!(projected.get(start..end), Some(current));
         projected.replace_range(start..end, previous);
     }
     assert_eq!(projected.len(), 16481);
-    assert_eq!(digest(&projected), "86546a62bea117a0df58767a472d56825114a700966594acf91a65e354f3ef56");
+    assert_eq!(
+        digest(&projected),
+        "86546a62bea117a0df58767a472d56825114a700966594acf91a65e354f3ef56"
+    );
     // Exact later append-stage wrapper; preserve the complete old call and
     // every original hook/archive byte below rather than normalizing source.
     let append_stage = "            {\n                let _stage = crate::bounded_output::reservation_stage_guard(\n                    crate::bounded_output::ReservationStage::LoanCanonicalAppend,\n                );\n                append(&mut storage, plan, payer)?;\n            }";

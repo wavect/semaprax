@@ -1,0 +1,13 @@
+# Pure-mask complete-output qualification
+
+Audience: compiler contributors and reviewers.
+
+Status: PASS for exact frozen aaebda72db0eeb611e610ef07ed5e35ee3ee2096. Shipping ROOT stayed clean and unchanged. All work, outputs and temporary files were on the external SSD; no Cargo/provider/RPC ran.
+
+The retained slow 0db generation output was checked against all 1,743 distinct referenced source entries at aaeb (complete byte lengths and SHA256), and all seven original scripts retained their pinned complete bytes. Cached generation reproduced the ENTIRE hir.json and projection.json byte for byte. Independently regenerating boundary generation and verification reproduced ENTIRE current-domains.json and final boundary-source-proof.json byte for byte, including original negative-control results. Original preservation proof also matched byte for byte. No output paths or fields were normalized. Output hashes, original commands, complete logs, timing and pressure samples are retained in result.json and adjacent files.
+
+Original boundary hostile controls executed unchanged in both domains (dropped child/coordinated class removal/reclassification/source drift/raw drift/foreign-path child); the original three static verifier negatives per domain were additionally executed from their complete unchanged original block. The unchanged historical global-purity verifier still FAILS identically in direct and optional-entry arms: `AssertionError: ('projection', ['use super::*;', 'ACTIVE'])`. This is explicitly preserved, not claimed PASS. Ordinary exact boundary verification passed. Same-path/same-length fresh-file replacement was observed on the next read and produced complete original-equivalent masks. The 1,044 complete mask comparisons across 87 hostile/string/comment/raw/multiline/CRLF cases were rerun successfully.
+
+Resource guard: process-tree RSS ceiling512MiB and immediate system-free<30% stop; no stop occurred. Minimum sampled free78%. Detailed /usr/bin/time -l peak RSS and sampled tree peaks are separate in result.json. Cache retention stayed below4MiB. Observed cached phases were authority21.43s, boundary generation22.49s, boundary verification22.53s; the old slow log has no paired timing, so no speedup magnitude is claimed.
+
+The optional entry remains external and opt-in. Its per-invocation stats intentionally say full_manifest_parity_qualified=false; this separate head-bound receipt establishes the completed parity qualification. Original scripts, fresh source reads, membership/predicates, and original uncached entry remain available unchanged. A future source/script change must retain exact input binding and all existing controls; this receipt must not be relabeled as that future HEAD. No current generator import was changed.

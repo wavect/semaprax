@@ -1,5 +1,9 @@
 # Codec808 route attribution, unexecuted source candidate
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base: deec161142b2f3e882e50b4450338c69c137e586. This is private cfg(test) diagnostic instrumentation for the existing codec808 preparation owner. It changes no production algorithm or priced type, and makes no optimization, application-fit, native support or closure claim. No Cargo, Rust typechecking, test or capture ran.
 
 Actual deec library row29 exhausted the existing 67,108,864-byte cap during HIR final validation: that stage committed 52,632,920 bytes; the final CleanupReplay request was 240 with 8 remaining at replay.rs:6973:32. Actual native rows150/151 separately refused G171, requesting 232 with177 remaining during HIR final validation. Thus test-only cross-check ambiguity cannot explain away the production failure. The new observer executes only in the existing library diagnostic witness; its output must not be attributed to the production-built native harness.

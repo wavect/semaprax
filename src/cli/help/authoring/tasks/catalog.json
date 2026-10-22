@@ -162,11 +162,11 @@
         "path": "codec-plan.json"
       },
       {
-        "content": "schema = \"semaprax.manifest.v1\"\n[package]\nname = \"json-tool\"\nversion = \"0.1.0\"\nprofile = \"language-command-io.collection-record.v1\"\n[modules]\nentry = \"example.app\"\nsources = [\"src/app.spx\", \"src/request.spx\", \"src/response.spx\", \"src/tests.spx\"]\ntests = [\"example.tests\"]\n[exports]\nweb = [\"example.command\"]\n[command]\nfunction = \"example.command\"\ninput = \"argv-utf8+stdin-stream.v1\"\n[capabilities]\nrequired = [\"process.args.read\", \"process.stderr.write\", \"process.stdin.read\", \"process.stdout.write\"]\n[dependencies]\nstd.data.json.digits = \"=0.1.0\"\nstd.data.json.query = \"=0.1.0\"\nstd.data.json.scan = \"=0.1.0\"\nstd.data.json.token = \"=0.1.0\"\nstd.data.json.write = \"=0.1.0\"\n[targets]\nmatrix = [\"native64\"]\n",
+        "content": "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"json-tool\"\nversion = \"0.1.0\"\nprofile = \"language-command-io.collection-record.v1\"\n\n[modules]\nentry = \"example.app\"\nsources = [\"src/app.spx\", \"src/request.spx\", \"src/response.spx\", \"src/tests.spx\"]\ntests = [\"example.tests\"]\n\n[exports]\nweb = [\"example.command\"]\n\n[command]\nfunction = \"example.command\"\ninput = \"argv-utf8+stdin-stream.v1\"\n\n[capabilities]\nrequired = [\"process.args.read\", \"process.stderr.write\", \"process.stdin.read\", \"process.stdout.write\"]\n\n[dependencies]\nstd.data.json.digits = \"=0.1.0\"\nstd.data.json.query = \"=0.1.0\"\nstd.data.json.scan = \"=0.1.0\"\nstd.data.json.token = \"=0.1.0\"\nstd.data.json.write = \"=0.1.0\"\n\n[targets]\nmatrix = [\"native64\"]\n",
         "path": "semaprax.toml"
       },
       {
-        "content": "module example.app;\n\npermit { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }\n\n@id(\"example.command\")\nfn command() -> i64\n    uses { process.stdin.read, process.stdout.write, process.stderr.write }\n{\n    0\n}\n\n@id(\"example.main\")\nfn main() -> i64\n    uses { process.stdin.read, process.stdout.write, process.stderr.write }\n{\n    command()\n}\n",
+        "content": "module example.app;\n\npermit { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }\n\n@id(\"example.command\")\nfn command() -> i64\n    uses { process.stdin.read }\n{\n    let mut reader = stdin_stream_open();\n    while !stdin_stream_eof(reader) {\n        reader = stdin_stream_next(reader);\n        0\n    }\n    0\n}\n\n@id(\"example.main\")\nfn main() -> i64\n{\n    0\n}\n",
         "path": "src/app.spx"
       },
       {

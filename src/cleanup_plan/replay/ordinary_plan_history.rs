@@ -1,4 +1,11 @@
 //! Local immutable plan histories. HIR and retained/Oracle replay stay flat.
+#![cfg_attr(
+    test,
+    allow(
+        clippy::duplicate_mod,
+        reason = "Complete historical comparison receivers intentionally compile shared source in independent owner modules."
+    )
+)]
 use super::*;
 use std::cmp::Ordering;
 use std::mem::size_of;
@@ -210,6 +217,25 @@ fn eligible(function: &ResolvedFunction, budget: &ReplayBudget) -> bool {
         && !budget.merge_paths
         && function.cleanup_plan.lexical_control.is_none()
 }
+// Explicit test configuration, separate from reservation/trace observers. The
+// guard is created outside measured compiler windows and restores nesting.
+#[cfg(test)]
+thread_local! {
+    static TEST_CANDIDATE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+#[cfg(test)]
+pub(in crate::cleanup_plan::replay) struct TestCandidate(bool);
+#[cfg(test)]
+impl Drop for TestCandidate {
+    fn drop(&mut self) {
+        TEST_CANDIDATE.with(|selected| selected.set(self.0));
+    }
+}
+#[cfg(test)]
+pub(in crate::cleanup_plan::replay) fn enable_for_test() -> TestCandidate {
+    TestCandidate(TEST_CANDIDATE.with(|selected| selected.replace(true)))
+}
+
 pub(super) fn select(
     function: &ResolvedFunction,
     budget: &mut ReplayBudget,
@@ -221,19 +247,33 @@ pub(super) fn select(
     }
     budget.reserve_bytes(function, SELECT_CONTROLS, "ordinary plan history selection")?;
     budget.charge(function, 1, "ordinary plan history selection")?;
-    // Tiny and single-path functions retain their full old producer. The
-    // bounded scan has its own free-work debit, never the held skeleton loan.
-    if !eligible(function, budget) || function.cleanup_plan.blocks.len() < 8 {
-        return Ok(false);
+    // Keep the complete flat verifier as the ordinary default until the
+    // history candidate passes its owning application and physical gates.
+    // Candidate controls opt in explicitly; ordinary unit applications use
+    // the same default as normal builds. Observation never selects a route.
+    #[cfg(not(test))]
+    {
+        Ok(false)
     }
-    budget.charge(
-        function,
-        function.cleanup_plan.blocks.len(),
-        "ordinary plan history selection scan",
-    )?;
-    Ok(function.cleanup_plan.blocks.iter().any(
+    #[cfg(test)]
+    {
+        if !TEST_CANDIDATE.with(std::cell::Cell::get) {
+            return Ok(false);
+        }
+        // Tiny and single-path functions retain their full old producer. The
+        // bounded scan has its own free-work debit, never the held skeleton loan.
+        if !eligible(function, budget) || function.cleanup_plan.blocks.len() < 8 {
+            return Ok(false);
+        }
+        budget.charge(
+            function,
+            function.cleanup_plan.blocks.len(),
+            "ordinary plan history selection scan",
+        )?;
+        Ok(function.cleanup_plan.blocks.iter().any(
         |block| matches!(&block.terminator, CleanupTerminator::Branch(edges) if edges.len() > 1),
     ))
+    }
 }
 
 struct Cursor {

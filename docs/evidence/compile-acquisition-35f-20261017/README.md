@@ -1,5 +1,9 @@
 # Exact compile-input acquisition before frozen35f historical domains
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source only; no Cargo, build, Rust test, common refresh or runtime qualification.
 Seven fixed raw paths authenticate complete new bytes before restoring their full
 35f346ca79d0c0bd6d3d1c072cf82124d271451f predecessors. Every original before file

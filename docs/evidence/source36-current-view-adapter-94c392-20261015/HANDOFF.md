@@ -1,5 +1,9 @@
 # Authenticated current views for the original 36 source guards
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source basis: `94c392e9bd8b60edba497263d0267ec54a4dd728`.
 
 The replay input acquired two formatting changes and the authenticated vector-parameter receiver in OPT836. Its original source guard still expected the complete pre-change spelling. The new test-only helper authenticates the complete current file and projects it to the immutable complete e3eb checkpoint before every existing original undo/assertion executes. Adding the helper to the HIR source inventory also requires the same complete view from the amended inventory to its immutable 94c checkpoint. These are two named views, with no fallback or ignored mismatch.

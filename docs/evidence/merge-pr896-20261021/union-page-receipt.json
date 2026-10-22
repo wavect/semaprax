@@ -1,0 +1,20 @@
+{
+  "status": "PURE_ORIGINAL_V2_V9_COMPOSITION_PASS_NOT_PUBLISHED",
+  "main_rows": 544,
+  "release_rows": 680,
+  "merged_rows": 687,
+  "replacement_rows": 138,
+  "addition_rows": 168,
+  "new_private_sources": [
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/fixture_helpers.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/lexical_cursor.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/mod.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/pair_scope_census.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/pair_scope_tests.rs",
+    "src/bounded_output/stage_debits/route_debits/retained_main_289.rs"
+  ],
+  "page_bytes": 216336,
+  "all_original_parent_views_objects_retained": true,
+  "all_original_519_fields_and_positions_retained": true,
+  "original_caps_and_codec_algorithms_unchanged": true
+}

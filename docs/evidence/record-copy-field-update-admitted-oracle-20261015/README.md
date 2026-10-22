@@ -1,5 +1,9 @@
 # Admitted independent record-copy oracle
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only correction for actual35cc175 interpreter/native/Wasm/oldrow owners43/44/45/47. Their original T266 failures remain genuine; zero-based46 failure-boundary owner passed. No production admission, price, quota, payload or backend store changes.
 
 OLD_ROW_ORACLE remains byte-exact. Existing old-row source/backend owner now checks its original complete program as a negative, with exact code, severity, message, path, span and help. The new positive oracle still independently clones the row, clones both String and Bytes in the original left-to-right order, and replaces the row. An admitted consuming exact record pattern moves its fields into named owners before those existing borrows/copies. No vec_update_field shortcut, payload omission or asserted status/Drop/heap waiver is used. All eight other corpus builders and every previous positive assertion remain exact; canonical formatting round-trip is added to the existing owner.

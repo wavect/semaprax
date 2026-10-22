@@ -1,0 +1,37 @@
+{
+  "status": "ORIGINAL_CURRENT_CODEC_COMPOSITION_PASS_PENDING_PUBLICATION",
+  "base_head": "cfa1638233bfc1b0c499c05c1d004f6f573bbbae",
+  "rows": 697,
+  "page_bytes": 250804,
+  "published_current_preserved_as_exact_views": [
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared.rs",
+      "view": {
+        "archive": "docs/evidence/next-semantic-source-views-20261017/objects/cdbced119fdcd161c437ef9ac83d8066caadae0eabdf5bee83ce95db260fd472.txt",
+        "length": 64942,
+        "sha256": "cdbced119fdcd161c437ef9ac83d8066caadae0eabdf5bee83ce95db260fd472",
+        "name": "whole-semantic-batch-current-source"
+      }
+    },
+    {
+      "source": "src/cleanup_plan/replay/skeleton_work.rs",
+      "view": {
+        "archive": "docs/evidence/semantic162-compile-fixes-aaf-20261017/05.after.txt",
+        "length": 47594,
+        "sha256": "2532173c152df743989e4afd5fc84ae4b3dd32bf45b0a72fe09039a832887c4b",
+        "name": "whole-semantic-batch-current-source"
+      }
+    },
+    {
+      "source": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
+      "view": {
+        "archive": "docs/evidence/semantic162-compile-fixes-aaf-20261017/07.after.txt",
+        "length": 28129,
+        "sha256": "b2004e6eb3450ca8bc02c7822a3f258280ae3b248f6054f761cdd6567b8e52c8",
+        "name": "whole-semantic-batch-current-source"
+      }
+    }
+  ],
+  "all_previous_fields_views_memberships_and_fragment_edges_retained": true,
+  "all_original_codec_bodies_and_caps_unchanged": true
+}

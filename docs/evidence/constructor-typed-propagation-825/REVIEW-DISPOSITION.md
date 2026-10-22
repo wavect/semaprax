@@ -1,5 +1,9 @@
 # Bounded review disposition
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Both one-process Sonnet reviews are terminal, raw payload/result/receipt retained. Proposal: 9,508 bytes,57.96s,peak324,730,880 bytes, provider list USD0.089144. Implementation:9,744 bytes,70.57s,peak279,035,904 bytes, list USD0.111944; actual billing unknown. No tools, execution, delegation or retry. User subsequently stopped Claude; no process remained and none was dispatched afterward.
 
 Proposal findings: captured maximum, owner authentication on all physical exits and actual typed carrier names were implemented. The proposed change to let a secondary saved Budget replace an already selected semantic Diagnostic was rejected: the owning contract explicitly preserves that primary. ClassifierLedger has no custom Drop; dropping its Rc cannot reset ACTIVE or its held Budget. Many keeps its entire prior backing, unused paid receiver storage drops without credit. Current zero reservation checks sticky Budget; a legitimate empty string remains distinguishable by that check. Ordinary old Vec growth is preserved, not given an old-header credit.

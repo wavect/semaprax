@@ -1,5 +1,9 @@
 # Bounded closure audit: #786 and one #795 candidate
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Read-only source/receipt audit; no Cargo, test/artifact execution, GitHub write,
 ROOT modification or new body. Current source read at
 6444d6d950bc01be03720c33ad6cb175e62e8cc5. These findings are not a new qualification.

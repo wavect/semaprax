@@ -1,0 +1,21 @@
+{
+  "status": "UNPUBLISHED_CONSTRUCTION_CORRECTION_PENDING_FRESH_VERIFICATION",
+  "source": "src/source_reflows/incoming67107_semantic_receivers.rs",
+  "original_core_current_frame_acquired": true,
+  "original_project_function_and_wrong_stage_checks_byte_exact": true,
+  "before_unpublished_current": {
+    "archive": "docs/evidence/source-frames-67a-20261020/whole/d0ab00540a6ccd8a146cfea520b41dce6e800da58de641e2d0e2720a1289f284.txt",
+    "length": 35740,
+    "sha256": "d0ab00540a6ccd8a146cfea520b41dce6e800da58de641e2d0e2720a1289f284"
+  },
+  "current": {
+    "length": 36137,
+    "sha256": "accfc43c2516fa2438d427df69ba7ec3fefce31d588d8bb7d6a78f9425db75cf",
+    "archive": "docs/evidence/source-frames-67a-20261020/whole/accfc43c2516fa2438d427df69ba7ec3fefce31d588d8bb7d6a78f9425db75cf.txt"
+  },
+  "all_existing_view_prefixes_unchanged": true,
+  "unpublished_intermediate_not_added_as_a_view": true,
+  "page_bytes": 240608,
+  "before_page_sha256": "4ba3578dc8c028a434ac8c9ca1cd2323dcad47a536f9a999b1db84e782819639",
+  "current_page_sha256": "406ff78c7e4594ae34680b4b1d8c851b6be14007aa31f8c853ab52f7c86e517b"
+}

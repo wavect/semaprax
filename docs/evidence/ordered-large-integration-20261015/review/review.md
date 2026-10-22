@@ -1,3 +1,9 @@
+# review review
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 No blockers are provable from the pasted code alone, and I ran nothing. Quoted snippets stand in for line numbers, since compaction makes numbering unreliable.
 
 ## Likely blocker (depends on module layout)

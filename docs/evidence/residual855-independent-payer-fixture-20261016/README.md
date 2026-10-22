@@ -1,5 +1,9 @@
 # Residual855 independent-payer fixture correction
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only correction for actual344 index125, based on `a82e00cc83f99b16249181c45710d962598577db`. Runtime qualification remains pending. No macro, debit, production API, admission limit, or allocator behavior changed.
 
 The original inline HIR test entered `with_limit_usage(debit)` beneath an already-refused outer budget with zero remaining bytes. That API deliberately clamps its child to `min(requested, parent.remaining)` and later debits the parent; it is not an independent payer. The child therefore had zero bytes. `resolved_residual_type!(I64)` correctly returned `None` before evaluating its argument, and the fixture's success unwrap was invalid.

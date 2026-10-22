@@ -1,0 +1,19 @@
+{
+  "status": "ORIGINAL_CURRENT_CODEC_COMPOSITION_PASS_PENDING_PUBLICATION",
+  "base_head": "020cd508207e55315f7172af6a3196140e13a6c7",
+  "rows": 697,
+  "page_bytes": 250200,
+  "published_current_preserved_as_exact_views": [
+    {
+      "source": "src/source_reflows_merge/main67107_inputs.rs",
+      "view": {
+        "length": 49418,
+        "sha256": "fd2cb005e32293150541ca0efbc86482685781c2b9f5e152e42d51838005fd3f",
+        "archive": "docs/evidence/compile35f-reader-20261021/current/fd2cb005e32293150541ca0efbc86482685781c2b9f5e152e42d51838005fd3f.txt",
+        "name": "whole-pre-main671-nine-domains-020a6b5cc8"
+      }
+    }
+  ],
+  "all_previous_fields_views_memberships_and_fragment_edges_retained": true,
+  "all_original_codec_bodies_and_caps_unchanged": true
+}

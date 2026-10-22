@@ -1,0 +1,19 @@
+{
+  "status": "ORIGINAL_CURRENT_CODEC_COMPOSITION_PASS_PENDING_PUBLICATION",
+  "base_head": "7cf9f6751366ce1628a247ffd71d91ab0c400832",
+  "rows": 687,
+  "page_bytes": 238861,
+  "published_current_preserved_as_exact_views": [
+    {
+      "source": "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+      "view": {
+        "length": 10424,
+        "sha256": "95d7455b51806c8736bc083e752c934eb51d7f3bdd68b8bfcf80e5bd00792189",
+        "archive": "docs/evidence/browser-capture-7b46-20261021/current/95d7455b51806c8736bc083e752c934eb51d7f3bdd68b8bfcf80e5bd00792189.txt",
+        "name": "whole-pre-browser-f5b1a15bdd5"
+      }
+    }
+  ],
+  "all_previous_fields_views_memberships_and_fragment_edges_retained": true,
+  "all_original_codec_bodies_and_caps_unchanged": true
+}

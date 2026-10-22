@@ -1,0 +1,62 @@
+{
+  "status": "ACTUAL_RUST_TWO_CURRENT_ONLY_DOMAINS_TEN_WARM_IO_REFUSALS_PASS",
+  "io_controls": [
+    {
+      "channel": "unregistered physical current keys",
+      "mutation": "same length semantic whitespace",
+      "refused_after_same_process_warm_load": true
+    },
+    {
+      "channel": "unregistered physical current keys",
+      "mutation": "extra EOF byte",
+      "refused_after_same_process_warm_load": true
+    },
+    {
+      "channel": "registered physical current oracle",
+      "mutation": "same length semantic whitespace",
+      "refused_after_same_process_warm_load": true
+    },
+    {
+      "channel": "registered physical current oracle",
+      "mutation": "extra EOF byte",
+      "refused_after_same_process_warm_load": true
+    },
+    {
+      "channel": "fixed Compact7 metadata",
+      "mutation": "same length semantic whitespace",
+      "refused_after_same_process_warm_load": true
+    },
+    {
+      "channel": "fixed Compact7 metadata",
+      "mutation": "extra EOF byte",
+      "refused_after_same_process_warm_load": true
+    },
+    {
+      "channel": "fixed Receivers12 metadata",
+      "mutation": "same length semantic whitespace",
+      "refused_after_same_process_warm_load": true
+    },
+    {
+      "channel": "fixed Receivers12 metadata",
+      "mutation": "extra EOF byte",
+      "refused_after_same_process_warm_load": true
+    },
+    {
+      "channel": "warm overlay page",
+      "mutation": "same length semantic whitespace",
+      "refused_after_same_process_warm_load": true
+    },
+    {
+      "channel": "warm overlay page",
+      "mutation": "extra EOF byte",
+      "refused_after_same_process_warm_load": true
+    }
+  ],
+  "additional_foreign_supplied_value_checks": 0,
+  "original_full_before_bytes_compared": true,
+  "all_changed_bytes_restored": true,
+  "peak_RSS_KiB": 54208,
+  "minimum_available_percent": 65,
+  "process_cap_KiB": 262144,
+  "python_overlay_scope_not_extended": true
+}

@@ -1,5 +1,9 @@
 # Three benchmark accounting readiness corrections
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Isolated source candidate from frozen73a8f006988a68e28c6e2840ff08d46cf79650e4, owned by existing [OPT606](https://github.com/wavect/semaprax/issues/606). This does not complete606's paid measurement obligations.610 continues to own unavailable hidden context composition. No issue write, push, provider call, live benchmark, Cargo or ROOT edit occurred.
 
 Both Codex whole-trace readers now discover sessions under the existing configured CODEX_HOME, with the normal home/.codex fallback. Explicit fixture sessions_root still wins. Unique exact thread ID, session metadata ID, exact cwd, complete JSON decode and existing redaction remain unchanged. The helper does not replace HOME or CODEX_HOME or create account directories. Local installed CLI help identifies CODEX_HOME as the configuration/profile root; the existing configured root and sessions directory were read-only inspected. Official OpenAI troubleshooting documents session transcripts at $CODEX_HOME/sessions (default ~/.codex/sessions): https://learn.chatgpt.com/docs/reference/troubleshooting . No live CLI invocation was used to manufacture evidence; only local --help/static strings were inspected.

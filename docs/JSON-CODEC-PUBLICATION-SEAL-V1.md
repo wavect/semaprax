@@ -1,5 +1,7 @@
 # JSON codec publication seal v1
 
+Audience: compiler contributors and reviewers.
+
 Status: NEXT source candidate; executable qualification pending. This is one compiler-side step for [OPT869](https://github.com/wavect/semaprax/issues/869), linked to OPT606. Neither issue is completed by a stdout record. No host authentication flag changes here.
 
 ## Explicit selection

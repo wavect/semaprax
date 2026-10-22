@@ -288,10 +288,8 @@ fn root_unsafe_exceptions_are_confined_to_audited_authority_modules() {
         relaxing_unsafe_attributes("#[warn(unsafe_code)] fn lowered() {}").len(),
         1
     );
-    assert!(
-        relaxing_unsafe_attributes(
-            "const GENERATED: &str = r#\"#[allow(unsafe_code)]\"#; #![forbid(unsafe_code)]"
-        )
-        .is_empty()
-    );
+    assert!(relaxing_unsafe_attributes(
+        "const GENERATED: &str = r#\"#[allow(unsafe_code)]\"#; #![forbid(unsafe_code)]"
+    )
+    .is_empty());
 }

@@ -1,5 +1,9 @@
 # Private ff869 integration successor
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Exact isolated merge of frozen ae91fa963ecfe85f4cc830cda85fff2f5bdbe094 with requested main ff869dd96ef97f179078c08fca098398be2d8e8e. Fetch verified that literal snapshot; no later head was chased. ROOT was untouched. The only merge conflict was CHANGELOG.md: both complete sets are retained. `complete-merge-inputs.json` retains every full base/ours/theirs source, including explicit absent new files.
 
 Production is byte-exact to the isolated merge. The five assembly owners only add the two atomic sources to all three complete audits and extend existing test-only custody helpers. The 1500-line interop inventory keeps all original entries; adjacent new include expressions share the two existing empty-renewal include lines.

@@ -1,5 +1,9 @@
 # b5eca actual production compile correction
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base b5eca55b96890e1a815f0d8d9e7b42c78d743b07. Source-only private correction;
 no Cargo, Clippy, tests or ROOT changes. Actual prior core production Clippy
 ended101 with12 diagnostics and zero runtime bodies; its complete log and SHA

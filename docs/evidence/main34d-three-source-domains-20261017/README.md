@@ -1,5 +1,9 @@
 # Three incoming MAIN source domains
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 SOURCE ONLY. Rust controls are authored, uncompiled and unexecuted. This is a
 historical source-proof acquisition, not a production semantic normalization or
 an old-engine runtime result.

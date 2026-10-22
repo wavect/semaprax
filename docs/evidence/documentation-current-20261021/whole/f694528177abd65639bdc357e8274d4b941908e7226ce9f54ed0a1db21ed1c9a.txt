@@ -1,0 +1,15 @@
+# Source-helper IO versus measured ownership
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
+Audit source: exact9ccc plus transport-only draft, using the original v2 parser's unchanged string/comment masking to exclude embedded old-source strings. `actual-callsites.json` records all55 real qualified source_reflows_merge references in36 enclosing functions. None of those enclosing functions contains `measure` or `measure_with_capacity`. Neither transport nor project invokes measured compiler receivers. The only direct-call enclosing function that also enters a with_limit* child is builder_limits::identity_prebound_production_core_retry_preserves_phase_debit_and_nested_refusal: its source projection is before fixture construction and budget entry, not inside that child.
+
+`macro-call-functions.json` records53 enclosing functions with real ci_str!/source_str!/source_reflows references. The only function also containing measure is canonical_loan_storage/caller/stage_tests.rs::actual_shared_seal_stage_preserves_exact_short_zero_numeric_receipts_and_complete_drop. Its run closure contains measure at151; all invocations and assertions finish by241. The ci_str! expansions at243 and246 follow that loop, after the observer has restored its prior TLS state. No warm-before-measure assumption is needed.
+
+Indirect source-only wrappers were checked separately: source_reflows::restore is reachable through source() and ci_str!, and restore_main927 is used for source-inverse reconstruction. Physical-budget authentication::previous/previous_include feeds current_view::project and ordered_weights::amortized_source::{current40f,checkpoint}; their callers are complete-source assertion owners. Source36 a/b use current_view solely in their complete-source tests. tree_policy::view is used only by complete original source comparisons. selected-context prior_source and verify_runtime_source_custody run from full-source/hostile-IO owners; the old compressed_fixture loader/decoder and all assertions remain unchanged.
+
+The cache-billing source_reference OnceLock paths do not require prior warming: historical_root is called by its own complete_root_has_only_the_declared_shared_billing_hooks_and_prior_formatting test (no measure) and by the historical_inline_root initializer. historical_inline_root and historical_inline_inventory are currently only defined/re-exported, with no other real src/tests caller. Text occurrences inside immutable historical literals are not executable callers. Consequently their first initialization cannot enter a current allocation probe.
+
+This is a finite source call-site/control-flow audit, not an executable allocation measurement. New ordinary filesystem allocations are explicit test-fixture setup/control work, not compiler budget debits or source authority. The original project() already parsing serde JSON is NOT used as proof of observer separation. No cache or artificial warmup was added.

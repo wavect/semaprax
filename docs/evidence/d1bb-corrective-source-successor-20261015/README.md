@@ -1,5 +1,9 @@
 # Compact d1bb corrective source successor
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Production basis64222b83381c365c9e4af1e858640b8cf696bfe7 includes the actual held-slot strategy caller fix and the three warning/assertion corrections. This assembly changes no production behavior. Its only Rust edits are the existing test projection helper and a two-line prefix before the existing local scalar view assertions.
 
 current-to-d1bb.json authenticates five complete current source inputs before every existing d1bb/9365/842/843/9d historical hop. The live main87 tuple remains original. The actual four corrections retain their original full source packets; warning-source-view.json connects the current tree-policy prefix to its exact warning-branch predecessor. Complete immediate two-file inverses are retained.

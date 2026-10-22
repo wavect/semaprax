@@ -1,5 +1,9 @@
 # Foreign owner controls: ae91 corrections
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Exact immediate source: ae91fa963ecfe85f4cc830cda85fff2f5bdbe094.
 The complete wrong test sources and both actual95-round failure logs are retained.
 No production behavior changes, new test bodies, Cargo/build/test/Clippy execution

@@ -1,0 +1,15 @@
+# review DISPOSITION
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
+One9790-byte tools-disabled Sonnet source review completed59.1573s,320061440-byte peak,exit0. claude-sonnet-5-5 reported list-price$0.0906549; actual billing unknown. No runtime/final approval.
+
+Initial prototype had add()->Result<bool,Diagnostic> with new per-repeat paid receiving carrier. Review correctly identified changed refusal-before-overflow and repeated fee overhead. Corrected AFTER review: repeated-One and Many accumulation stay inline in actual successors under its existing Result. No new per-repeat helper/Result construction remains. Only distinct-child promotion has a new paid helper; zero-plus-new-weight cannot overflow. Checked addition/overflow now has the old ordering against later target acquisition. Full outer map/new value layout/initializer/receiving/finish/promotion carriers remain paid; no fee exemption.
+
+Both node acquisitions still precede either promotion insert and state replacement; failure leaves One intact. Actual One/Many size and target-node upper are observed without portable hardcoded values. Existing weighted_successor signature/body and0..4 exact-capacity contracts stay byte-exact. One finishes with the same exact precharged Vec(1)+Rc route and its separately prepaid Once iterator/carriers.
+
+Label::Observation owns Rc, so removed repeated label.clone calls do not hide copied string backing; removed Rc refcount activity supplies no work discount. Same enclosing subset/route/signature work requests remain, with no cap/fuel change. Surrounding exact Memo function/budget/ledger binding is unchanged; Targets is local ephemeral data, no token/provenance or payer authority. New caller executes within that authenticated immutable borrow; it has no callback/scope switch. LegacyUnobserved retains its explicit nonsticky raw counter policy. Physical/refused owners preserve original raw sticky behavior.
+
+No net byte/peak/app-recovery claim: new outer value/fees may regress small/many/repeated cases. Seven authored owners measure actual same-genuine-input complete before/current constructor tuples and conditional singleton allocation-count removal, preserve full old algebra/error/work, and cover actual One/promotion/finish acquisitions/Drop. All unexecuted. Complete before receiver and all original full weighted receivers remain independently compiled.

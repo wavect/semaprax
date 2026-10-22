@@ -1,5 +1,9 @@
 # Combined integration custody
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source basis: `8ad285b2d26a6adc017984bf1c75206665dab6c6`. This packet records source-only checks; no Cargo, Rust tests, producer execution, push, runtime gain, or current qualification is claimed.
 
 Integrated, in order: 331b382c689b8498ec02f140b713dfaf698001c2; 686d4389e24b1dea9c4a132d6aabd3da1588a34f; 36fe9f92b847db41f26c685b079d06acf60a22f4; aa43138d495c9ab0c94b51f18f3ff7b9415963a4; 97dbf12f2da025fff5e95a637b8df4435cc325e8; a62be8e6f062b651ce56144641e7deaf98dd56e2; a920309d8a37feb3fe021d36deb62881884f5aeb; 154cf86a3c4328448be6f2db65d588f06a5b7439.

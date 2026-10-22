@@ -1,0 +1,5 @@
+{
+  "artifact_record": "budget-4f7/actual-root-artifact.json",
+  "library": "/Volumes/Semaprax/worktrees/ci-format-26eeb/target/ci-private/debug/deps/libsemaprax-c54f786bd4edf29b.rlib",
+  "scope": "Current unchanged HIR boundary test source against the real previously built normal Root library. This batch changes only cfg(test) source and test lint annotations; no current full Root build claim."
+}

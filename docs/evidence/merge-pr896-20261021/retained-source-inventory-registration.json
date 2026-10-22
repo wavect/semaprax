@@ -1,0 +1,48 @@
+{
+  "status": "SOURCE_ONLY_UNTESTED",
+  "all_three_original_raw_source_scopes_extended": true,
+  "records": [
+    {
+      "source": "tests/hir_module_boundaries.rs",
+      "new_sources": [
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/fixture_helpers.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/lexical_cursor.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/mod.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/pair_scope_census.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/pair_scope_tests.rs",
+        "src/bounded_output/stage_debits/route_debits/retained_main_289.rs"
+      ],
+      "before_sha256": "6a0684cd6b15fd2036781cf3697f084142402b9ad36b187c17312b2f875eca79",
+      "current_sha256": "81617d33edb0ae12a017a55a88159113e3cc3d0bfe0a0fc43fc3901be45c5960",
+      "all_original_source_bytes_and_multiplicities_retained": true
+    },
+    {
+      "source": "tests/workspace/semantic_graph/source_inventory.rs",
+      "new_sources": [
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/fixture_helpers.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/lexical_cursor.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/mod.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/pair_scope_census.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/pair_scope_tests.rs",
+        "src/bounded_output/stage_debits/route_debits/retained_main_289.rs"
+      ],
+      "before_sha256": "48cbdcd2926043f25d53d5465bac429af14a0d99bacd1ee9c81bd249daadd8f5",
+      "current_sha256": "949eafef81d1d525a84d530c81101eced9a9ff87093032cbfc73c778308639dc",
+      "all_original_source_bytes_and_multiplicities_retained": true
+    },
+    {
+      "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "new_sources": [
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/fixture_helpers.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/lexical_cursor.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/mod.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/pair_scope_census.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/pair_scope_tests.rs",
+        "src/bounded_output/stage_debits/route_debits/retained_main_289.rs"
+      ],
+      "before_sha256": "cc0ab9eac411f0615c3c70c05d4e6b10f7b967386af331031413c6d53dd818c9",
+      "current_sha256": "70232170ffb1b0ba99518a871ca1d5e07d6197a1d7138db9cd99a5bc4811ff65",
+      "all_original_source_bytes_and_multiplicities_retained": true
+    }
+  ]
+}

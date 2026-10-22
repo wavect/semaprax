@@ -1,3 +1,9 @@
+# opt-844-845-846-closure-20261016 issue-844-closure-comment-20261016
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Implemented compact factored nodes with paid storage and independent old receivers. All nine direct acceptance checks PASS at `8bb9f5b7`: four in the 76-check batch, five in the separate supplement. Exhaustive language/path parity, work and diagnostic behavior, refusal/promotion, complete source controls and final Drop passed. Physical results are mixed and retained: fanout8 reservations 9,301→41,485; whole comparison reservations 738,518→740,218 and 1,392,176→1,386,606. No universal gain is claimed.
 
 The unchanged application owners were rerun and their budget failures remain disclosed; this closes the representation task, not application fit or #808.

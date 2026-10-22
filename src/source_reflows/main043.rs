@@ -8,55 +8,55 @@ fn metadata(fixture: Fixture) -> &'static str {
         Fixture::ExitPrefix => {
             static VALUE: OnceLock<String> = OnceLock::new();
             VALUE
-                .get_or_init(|| crate::source_reflows_merge::main043_metadata(fixture))
+                .get_or_init(|| crate::source_reflows_merge::main043_raw_metadata(fixture))
                 .as_str()
         }
         Fixture::ExitDirectory => {
             static VALUE: OnceLock<String> = OnceLock::new();
             VALUE
-                .get_or_init(|| crate::source_reflows_merge::main043_metadata(fixture))
+                .get_or_init(|| crate::source_reflows_merge::main043_raw_metadata(fixture))
                 .as_str()
         }
         Fixture::LegacyNominal => {
             static VALUE: OnceLock<String> = OnceLock::new();
             VALUE
-                .get_or_init(|| crate::source_reflows_merge::main043_metadata(fixture))
+                .get_or_init(|| crate::source_reflows_merge::main043_raw_metadata(fixture))
                 .as_str()
         }
         Fixture::Lifecycle => {
             static VALUE: OnceLock<String> = OnceLock::new();
             VALUE
-                .get_or_init(|| crate::source_reflows_merge::main043_metadata(fixture))
+                .get_or_init(|| crate::source_reflows_merge::main043_raw_metadata(fixture))
                 .as_str()
         }
         Fixture::Prefix => {
             static VALUE: OnceLock<String> = OnceLock::new();
             VALUE
-                .get_or_init(|| crate::source_reflows_merge::main043_metadata(fixture))
+                .get_or_init(|| crate::source_reflows_merge::main043_raw_metadata(fixture))
                 .as_str()
         }
         Fixture::Receiving => {
             static VALUE: OnceLock<String> = OnceLock::new();
             VALUE
-                .get_or_init(|| crate::source_reflows_merge::main043_metadata(fixture))
+                .get_or_init(|| crate::source_reflows_merge::main043_raw_metadata(fixture))
                 .as_str()
         }
         Fixture::Edge => {
             static VALUE: OnceLock<String> = OnceLock::new();
             VALUE
-                .get_or_init(|| crate::source_reflows_merge::main043_metadata(fixture))
+                .get_or_init(|| crate::source_reflows_merge::main043_raw_metadata(fixture))
                 .as_str()
         }
         Fixture::Selected => {
             static VALUE: OnceLock<String> = OnceLock::new();
             VALUE
-                .get_or_init(|| crate::source_reflows_merge::main043_metadata(fixture))
+                .get_or_init(|| crate::source_reflows_merge::main043_raw_metadata(fixture))
                 .as_str()
         }
         Fixture::Status => {
             static VALUE: OnceLock<String> = OnceLock::new();
             VALUE
-                .get_or_init(|| crate::source_reflows_merge::main043_metadata(fixture))
+                .get_or_init(|| crate::source_reflows_merge::main043_raw_metadata(fixture))
                 .as_str()
         }
         Fixture::Formatting => {

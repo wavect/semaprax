@@ -1,0 +1,6 @@
+
+running 1 test
+test source_reflows::main043::audit_4::complete_original_arena_and_every_added_source_join_have_exact_full_inverses ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 280 filtered out; finished in 0.45s
+

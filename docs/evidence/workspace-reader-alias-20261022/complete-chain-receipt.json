@@ -1,0 +1,15 @@
+{
+  "status": "ALL_EXISTING_COMPLETE_ACQUISITION_CHAINS_PRESERVED_AND_RECHECKED",
+  "domains": [
+    {
+      "domain": "hir",
+      "all_original_sources_classes_roles_exact_edges_and_attributes_preserved": true,
+      "actual_edges_verified": 8843
+    },
+    {
+      "domain": "projection",
+      "all_original_sources_classes_roles_exact_edges_and_attributes_preserved": true,
+      "actual_edges_verified": 9063
+    }
+  ]
+}

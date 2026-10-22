@@ -5,13 +5,13 @@
   "domains": {
     "hir": {
       "original_roots": 1046,
-      "current_boundary_members": 1244,
+      "current_boundary_members": 1248,
       "current_boundary_production": 445,
-      "outside_production_still_fully_authenticated": 111,
-      "full_role_production": 556,
-      "full_role_test_only": 1084,
-      "full_raw_sha256": "8f1baeff9e2d8268716fae7044477ef593e71ee072b92fce354d763b61aace8d",
-      "boundary_production_sha256": "1fbf719061dee3dcd265fed9f4069974cb41f13867aea7a2c5569fc5e3d0519d",
+      "outside_production_still_fully_authenticated": 144,
+      "full_role_production": 589,
+      "full_role_test_only": 1129,
+      "full_raw_sha256": "f05928aa0e6805a89033cea45020b7880606c61906cadea5cbde775fbd55252d",
+      "boundary_production_sha256": "88765c495407cd76d5fdb578808a64e9a99b24496e631a163dc04bbf476de77d",
       "exact_original_forbidden_tokens": [
         "struct Resolver",
         "impl Resolver",
@@ -35,9 +35,9 @@
       "current_boundary_production": 76,
       "outside_production_still_fully_authenticated": 594,
       "full_role_production": 670,
-      "full_role_test_only": 1129,
-      "full_raw_sha256": "d675c170e2a7be1440e351b4991089b0576b80e4466acb313b19adad70d9a8bc",
-      "boundary_production_sha256": "aaf2f55cb25236c9abdbb321f30ae5f5d51029f02b68a55bc3a4c4824e90a35d",
+      "full_role_test_only": 1141,
+      "full_raw_sha256": "8b80d6fda147fd1de8a57be3da8bdc2857bd2ab6ae6bd933175b4adb934becea",
+      "boundary_production_sha256": "3559e1932f9e80d1277f10f5327df7afc0ce30ad4e6487030e39a2d7c6c0862e",
       "exact_original_forbidden_tokens": [
         "use super::*;",
         "workspace::",
@@ -64,7 +64,5 @@
     "whole_raw_drift_refused": true,
     "foreign_path_child_cannot_escape": true
   },
-  "status": "SOURCE_ONLY_EXACT_BOUNDARIES_AND_COMPLETE_SOURCE_ROLE_CUSTODY_PASS",
-  "registration_update": "EXACT_NINECED_469_PREFIX_PLUS_TEN_REAL_TEST_ONLY_ORIGINAL_PARSER_CLASSES",
-  "global_polluted_purity_result_not_claimed": true
+  "status": "SOURCE_ONLY_MEMOIZED_FULL_ORIGINAL_PARSER_AND_BOUNDARY_PASS"
 }

@@ -1,1 +1,7 @@
+# source-custody162-input-boundaries-20261017 README
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 These three historical source inputs now acquire complete authenticated base851 views before existing strict assertions. All original assertion statements, archive bytes and tables remain unchanged. The sequence route accepts only the complete authenticated actual fragment or its exact prior RAW stage before the unchanged858 restoration. No raw production source inventory uses these views. The final batch must first add its exact complete current-to-previous ingress; this packet alone is not executable qualification. No Cargo or runtime check was run.

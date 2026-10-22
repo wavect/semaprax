@@ -1,4 +1,4 @@
-use super::{REFERENCE, SCHEMA_V8, expand_v8};
+use super::{expand_v8, REFERENCE, SCHEMA_V8};
 use serde_json::Value;
 // Positional transport is decoded only at the documented pin slots. Unknown
 // metadata, absent fields and reference objects never enter this pin decoder.

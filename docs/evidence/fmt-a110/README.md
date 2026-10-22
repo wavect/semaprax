@@ -1,3 +1,9 @@
+# fmt-a110 README
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 This change fixes the hosted formatting gate while retaining the source assertions that bind the compiler. Ten oversized formatted bodies move to same-scope fragments; their complete before images and reconstruction records remain available. Source audit inputs include every extracted body and the newly reachable lexical scratch children.
 
 The current packet retains all 124 published rows and every original field/view, then binds 433 actual sources and 534 complete predecessor views. A shortened parent authenticates its real compiled fragment bytes and complete archives before publishing a historical whole-root view. The prior packet functions and all their original checks remain intact. New archive filenames encode the complete SHA256 reversibly; hexadecimal digest fields and all preexisting archive paths remain unchanged.

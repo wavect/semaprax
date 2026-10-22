@@ -1,5 +1,9 @@
 # OPT843 actual miss control fixture repair
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The original initial closure query visits roots[3] and roots[0] by epsilon;
 roots[0] reaches sink by a movement, which closure deliberately does not follow.
 The actual frozen3d4b owner therefore failed its premature sink-cache assertion.

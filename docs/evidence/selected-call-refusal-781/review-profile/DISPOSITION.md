@@ -1,5 +1,9 @@
 # Proposal review disposition
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Single tools-disabled Sonnet process completed95.4111s, peak321929216 bytes, exit0; list cost$0.1351909, actualbilling unavailable. Full argv/prompt/raw preserved. No retry.
 
 Accepted: actual unknown-callee formatted diagnostic is narrow existing custody gap; typed forwarding must span calls and enclosing selected blocks to reach Session; clone only the existing immutable callee handle at original lookup-None point; retain full old bodies and fee/first-error/Drop controls. Check global Atom/Receipt/EngineError/result/optional layouts against complete same-host old definitions, including success. Prepay new actual controls before cursor/signature/validation entry. Avoid dynamic ok_or_else closure at missing target. Last-handle retention and both Drop orders require observation. No wholeSession allocation-freedom claim.

@@ -545,7 +545,7 @@ fn capsule_and_receipt_sha_kats_cover_patch_v1_v2_v3() {
             "patch evidence byte audit is bounded"
         );
         println!("SEMAPRAX_PATCH_EVIDENCE_BYTE_AUDIT={row}");
-        let previous_report = report.replace("0.259.0", "0.256.0");
+        let previous_report = report.replace("0.261.0", "0.256.0");
         let report_domain = b"semaprax.semantic-target-evidence.report-digest.v1\0";
         let artifact_domain = b"semaprax.semantic-patch-evidence.artifact-digest.v2\0";
         let report_digest = domain_digest(report_domain, report.as_bytes());
@@ -601,17 +601,17 @@ fn capsule_and_receipt_sha_kats_cover_patch_v1_v2_v3() {
     assert_eq!(
         capsule_hashes,
         [
-            "15b7a5498114ed439bd59a859463f0b21ce7c9ce5037192454888bca3ff2a580",
-            "63ba569e82638b96f66e58e895919ff52f501105d6589a29867b0b8da777bcdb",
-            "589bd1817a5bfc9e58defb4c1e7b4d4368eced0ea5f1470a0fe786f422b6540e",
+            "613142d72af1b44a8d341e3d9e86270177c43fc06d25e622a55fe3d855c00162",
+            "353c04e121100da5eac061f87a9e69f66b204ed183c2e5b6534f962ea85beb0a",
+            "8e75eb08287236630052bb93fee984aaefca5baf969785e399b2f27d1ed61436",
         ]
     );
     assert_eq!(
         receipt_hashes,
         [
-            "8f1923c198ccd54913b4ff4d06f0c47ce7a5f0ebb9d4c189989d2b3058ec13ef",
-            "1698de1ae56067773403171b75cb1dd67b63f0f6557c3e780613bd5c253be0ae",
-            "9522729e30f236d03aaac8fe05ed8d5dfcfc9917e9f4666c4a1c6521d219b3e2",
+            "b0912086b0d9ea0fea5995ac4a99f9391f31babe6f86b6b4b2fcfce2ad300022",
+            "0a2b32e32b2fed3432f137e46fdd7f356ec540eff927be3c496bd3f3a47d7dfd",
+            "74d5849442314a8ef0f79240f7deec0889045efc86fc106348e6bb6ab0981cad",
         ]
     );
 }

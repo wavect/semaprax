@@ -1,3 +1,9 @@
+# main-f1-prefix-lexical-subsumption-20261016 UPSTREAM-856
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The Main commit f1f8b5943d784043d24b39daa35bef91aafe02da adds `sequence_prefix::try_take` with six argument receivers and a `Result<Option<Observations>, Diagnostic>` boundary before the receiving bank inside that callee. Eligibility/bypass branches return `Ok(None)` before any receiving debit. The chosen branch's `reserve_array::<u8>` also forms its checked multiplication Option, checked-size Result and forwarding payment Result; these are absent from the declared receiving inventory.
 
 The earlier `SkeletonWork::clone_observations` receives an observation reference and phase, charges the original clone work, reserves clone ownership, and returns one `Result<Observations, Diagnostic>`. That existing boundary does not authenticate the additional helper arguments, optional transport, or eligibility receivers on the new route.

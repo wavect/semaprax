@@ -1,5 +1,9 @@
 # MAIN27424 + both actual677 compile corrections
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source integration only; no Cargo, test, Node, Clippy, producer or pin execution.
 Actual677/101 failed build is a zero-body failed subject; this checkpoint does
 not qualify it. Parent retains its complete actual fifteen-error archive.

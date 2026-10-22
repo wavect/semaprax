@@ -1,5 +1,9 @@
 # Main-f1 prefix transfer reconciliation — source only
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Main f1f8b5943 adds a `try_take` optional receiving boundary. Shipping b5eca already has a broader lexical single-successor transfer followed by `continue`; the new helper would run only in the remaining fanout loop, where it cannot transfer. The shipping sequence and call-sequence bodies are therefore retained byte-for-byte. No optimization is disabled, no receiving fee guessed, and no cap changes.
 
 The actual Main helper, full current sequence, previous clone sequence and five original controls remain independently compiled behind the real cfg(test) registration. Only explicit import, visibility and nominal path adapters differ. The existing exact Main696 capacity helper supplies Main's old minimum operation. Shared SkeletonWork and allocation bodies are exact Main; physical_budget differs only by the earlier authentication-module registration, with all original methods exact. A sixth owner compares the complete real Main corpus with shipping sequencing. Original path-array preflight and all assertions remain unchanged.

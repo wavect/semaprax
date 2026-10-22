@@ -21,7 +21,10 @@ enum Binding {
 
 type Scope<'a> = HashMap<&'a str, Binding>;
 
-#[allow(dead_code, reason = "Complete raw-function compatibility and independently compiled old producers remain intact.")]
+#[allow(
+    dead_code,
+    reason = "Complete raw-function compatibility and independently compiled old producers remain intact."
+)]
 pub(in crate::source_verify) fn function_value_targets(
     program: &dyn ProgramSource,
     functions: &crate::source_verify::function_map::FunctionMap<'_>,
@@ -48,7 +51,10 @@ pub(in crate::source_verify) fn function_value_targets(
     targets
 }
 
-#[allow(dead_code, reason = "Complete raw-function compatibility and independently compiled old producers remain intact.")]
+#[allow(
+    dead_code,
+    reason = "Complete raw-function compatibility and independently compiled old producers remain intact."
+)]
 pub(in crate::source_verify) fn calls(
     function: &Function,
     functions: &crate::source_verify::function_map::FunctionMap<'_>,

@@ -1,3 +1,9 @@
+# audit COMMENT-FINAL
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Implemented and qualified exact borrowed `str` Eq/Ne on the owning checked profile. [Evidence archive](https://github.com/wavect/semaprax/tree/wavect/v0-10-0/docs/evidence/borrowed-text-equality-767-closure-20261015).
 
 All five required owning bodies have actual PASS evidence: source/canonical graph and hostile type/root/loan controls; interpreter plus native O0/O2 exact-byte, allocation and late-failure cases; aggregate Wasm tagged-owner/failure/reentry cases; public text distinct-address, length, NUL/UTF-8, invalid second-root, exact/over-limit and reentry cases; and the independent owned/borrowed Vec-slot no-copy receiver. All four language owners now have filtered PASS runs on the authenticated successful6548 artifact with explicit clang/Node availability, no Cargo and confirmed-empty process groups. Aggregate Wasm was rerun specifically because its older receipt lacked backend-availability provenance. The Vec-slot owner has no silent backend skip: it requires clang O0/O2 and Node to execute successfully. The first public-text attempt was resource-admission refused before execution; that record remains intact alongside its later successful run.

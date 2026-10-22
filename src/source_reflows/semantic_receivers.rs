@@ -120,10 +120,20 @@ fn digest(source: &str) -> String {
 }
 
 fn invert(proof: &serde_json::Value, current: &str) -> String {
+    let current_view = crate::source_reflows_merge::main_e177_final_inputs::value(
+        proof["path"].as_str().unwrap(),
+        proof["after_sha256"].as_str().unwrap(),
+        current,
+    );
+    let current = current_view.as_str();
     let acquired = incoming_main21::ours_expected_input(proof, current);
     let current = acquired.as_str();
     let path = proof["path"].as_str().unwrap();
-    let joined = crate::source_reflows_merge::main8fb_input(path, current);
+    let joined = if digest(current) == proof["after_sha256"] {
+        current.to_owned()
+    } else {
+        crate::source_reflows_merge::main8fb_input(path, current)
+    };
     let current = joined.as_str();
     assert_eq!(
         digest(current),
@@ -373,8 +383,7 @@ fn complete_followup_receivers_keep_all_original_source_bytes() {
             std::fs::read_to_string(evidence.join(record["archive"].as_str().unwrap())).unwrap();
         assert_eq!(digest(&original), record["sha256"]);
         let current = std::fs::read_to_string(root.join(record["path"].as_str().unwrap())).unwrap();
-        let current = crate::source_reflows_merge::main7f8_source_inputs::source(
-            "source-followups",
+        let current = crate::source_reflows_merge::main7f8_source_inputs::complete_source_followup(
             record["path"].as_str().unwrap(),
             &current,
         );

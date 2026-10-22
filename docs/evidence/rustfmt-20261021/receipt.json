@@ -1,0 +1,1167 @@
+{
+  "status": "LOCAL_CURRENT_SOURCE_FORMAT_BATCH_58_PASS",
+  "before_head": "85f70a7cb7599a228b6800358ea7d1d386df7785",
+  "changes": [
+    {
+      "source": "src/bounded_output.rs",
+      "before_lines": 1487,
+      "after_lines": 1487
+    },
+    {
+      "source": "src/bounded_output/exclusive_debits.rs",
+      "before_lines": 1039,
+      "after_lines": 1040
+    },
+    {
+      "source": "src/bounded_output/stage_debits/route_debits.rs",
+      "before_lines": 1217,
+      "after_lines": 1217
+    },
+    {
+      "source": "src/cleanup_plan/replay/allocation.rs",
+      "before_lines": 283,
+      "after_lines": 283
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/census.rs",
+      "before_lines": 927,
+      "after_lines": 930
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs",
+      "before_lines": 659,
+      "after_lines": 662
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_event_prefix.rs",
+      "before_lines": 745,
+      "after_lines": 802
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_fused_flat.rs",
+      "before_lines": 511,
+      "after_lines": 510
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_identity_prefix.rs",
+      "before_lines": 664,
+      "after_lines": 664
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_retained_tail.rs",
+      "before_lines": 518,
+      "after_lines": 517
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_shared_steps.rs",
+      "before_lines": 584,
+      "after_lines": 621
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/borrowed_reader_composition_tests.rs",
+      "before_lines": 373,
+      "after_lines": 374
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads.rs",
+      "before_lines": 624,
+      "after_lines": 624
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads_tests.rs",
+      "before_lines": 1466,
+      "after_lines": 1466
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/combined_pair_scope_tests.rs",
+      "before_lines": 1498,
+      "after_lines": 1498
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/empty_selector_tests.rs",
+      "before_lines": 715,
+      "after_lines": 714
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/final_affine_tests.rs",
+      "before_lines": 508,
+      "after_lines": 513
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main99_pair_scope_tests.rs",
+      "before_lines": 1016,
+      "after_lines": 1029
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/matched_tail_tests.rs",
+      "before_lines": 1093,
+      "after_lines": 1093
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_link_composition_tests.rs",
+      "before_lines": 359,
+      "after_lines": 359
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_census.rs",
+      "before_lines": 1186,
+      "after_lines": 1190
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_tests.rs",
+      "before_lines": 1444,
+      "after_lines": 1444
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_tests/paired_segments.rs",
+      "before_lines": 412,
+      "after_lines": 421
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_tail_composition_tests.rs",
+      "before_lines": 553,
+      "after_lines": 552
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value.rs",
+      "before_lines": 307,
+      "after_lines": 307
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_event.rs",
+      "before_lines": 147,
+      "after_lines": 147
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_identity.rs",
+      "before_lines": 131,
+      "after_lines": 131
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix.rs",
+      "before_lines": 129,
+      "after_lines": 131
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_before_event.rs",
+      "before_lines": 120,
+      "after_lines": 120
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_event_tests.rs",
+      "before_lines": 539,
+      "after_lines": 539
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_tests.rs",
+      "before_lines": 1141,
+      "after_lines": 1139
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/source_format.rs",
+      "before_lines": 944,
+      "after_lines": 954
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/fused_readers.rs",
+      "before_lines": 473,
+      "after_lines": 496
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/shared_steps.rs",
+      "before_lines": 235,
+      "after_lines": 255
+    },
+    {
+      "source": "src/hir/canonical_loan_storage/tests/reuse.rs",
+      "before_lines": 488,
+      "after_lines": 514
+    },
+    {
+      "source": "src/hir/ids/declaration_tag.rs",
+      "before_lines": 743,
+      "after_lines": 746
+    },
+    {
+      "source": "src/hir/ids/fixed_operation_tests.rs",
+      "before_lines": 1045,
+      "after_lines": 1046
+    },
+    {
+      "source": "src/hir/ids/lowering_identity_tests.rs",
+      "before_lines": 331,
+      "after_lines": 617
+    },
+    {
+      "source": "src/hir/resolve_expr/sort_keys/identity_tests.rs",
+      "before_lines": 240,
+      "after_lines": 370
+    },
+    {
+      "source": "src/hir/resolve_statement/text_reference.rs",
+      "before_lines": 234,
+      "after_lines": 298
+    },
+    {
+      "source": "src/hir/validation/function_scope/lifecycle/completed/tests.rs",
+      "before_lines": 464,
+      "after_lines": 478
+    },
+    {
+      "source": "src/hir/validation/lexical_exit.rs",
+      "before_lines": 966,
+      "after_lines": 966
+    },
+    {
+      "source": "src/source_reflows_merge/final_ready_inputs.rs",
+      "before_lines": 664,
+      "after_lines": 710
+    },
+    {
+      "source": "src/source_reflows_merge/main8a_historical.rs",
+      "before_lines": 168,
+      "after_lines": 169
+    },
+    {
+      "source": "src/source_reflows_merge/main_e177_overlay_fragments_v3.rs",
+      "before_lines": 1308,
+      "after_lines": 1429
+    },
+    {
+      "source": "src/source_reflows_merge/main_e177_overlay_pins_v9.rs",
+      "before_lines": 248,
+      "after_lines": 248
+    },
+    {
+      "source": "src/source_reflows_merge/main_e177_packet_lookup.rs",
+      "before_lines": 716,
+      "after_lines": 814
+    },
+    {
+      "source": "src/source_reflows_merge/runtime_json.rs",
+      "before_lines": 907,
+      "after_lines": 919
+    },
+    {
+      "source": "src/source_verify/function_value_inventory.rs",
+      "before_lines": 382,
+      "after_lines": 388
+    },
+    {
+      "source": "src/test_allocation_observer/backing.rs",
+      "before_lines": 362,
+      "after_lines": 361
+    },
+    {
+      "source": "src/workflow_profile/plan_comparison.rs",
+      "before_lines": 1198,
+      "after_lines": 1196
+    },
+    {
+      "source": "src/workspace_graph/constructor_failure/before_scalar_dispatch.rs",
+      "before_lines": 154,
+      "after_lines": 165
+    },
+    {
+      "source": "src/workspace_graph/constructor_failure/receiving/typed/tests.rs",
+      "before_lines": 647,
+      "after_lines": 677
+    },
+    {
+      "source": "src/workspace_graph/expected_projection/call_carriers.rs",
+      "before_lines": 357,
+      "after_lines": 357
+    },
+    {
+      "source": "src/workspace_graph/expected_projection/call_carriers_before_directory.rs",
+      "before_lines": 342,
+      "after_lines": 342
+    },
+    {
+      "source": "src/workspace_graph/expected_projection/call_carriers_directory.rs",
+      "before_lines": 597,
+      "after_lines": 597
+    },
+    {
+      "source": "src/workspace_graph/initial_report/tests.rs",
+      "before_lines": 353,
+      "after_lines": 354
+    },
+    {
+      "source": "tests/root_unsafe_quarantine.rs",
+      "before_lines": 297,
+      "after_lines": 295
+    }
+  ],
+  "literal_preservation": [
+    {
+      "source": "src/bounded_output.rs",
+      "literals": 176,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/bounded_output/exclusive_debits.rs",
+      "literals": 69,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/bounded_output/stage_debits/route_debits.rs",
+      "literals": 194,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/allocation.rs",
+      "literals": 20,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/census.rs",
+      "literals": 20,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs",
+      "literals": 42,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_event_prefix.rs",
+      "literals": 81,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_fused_flat.rs",
+      "literals": 31,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_identity_prefix.rs",
+      "literals": 49,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_retained_tail.rs",
+      "literals": 31,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_shared_steps.rs",
+      "literals": 64,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/borrowed_reader_composition_tests.rs",
+      "literals": 34,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads.rs",
+      "literals": 85,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads_tests.rs",
+      "literals": 100,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/combined_pair_scope_tests.rs",
+      "literals": 124,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/empty_selector_tests.rs",
+      "literals": 51,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/final_affine_tests.rs",
+      "literals": 52,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main99_pair_scope_tests.rs",
+      "literals": 88,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/matched_tail_tests.rs",
+      "literals": 142,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_link_composition_tests.rs",
+      "literals": 33,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_census.rs",
+      "literals": 22,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_tests.rs",
+      "literals": 143,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_tests/paired_segments.rs",
+      "literals": 25,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_tail_composition_tests.rs",
+      "literals": 44,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value.rs",
+      "literals": 27,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_event.rs",
+      "literals": 13,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_identity.rs",
+      "literals": 12,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix.rs",
+      "literals": 21,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_before_event.rs",
+      "literals": 17,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_event_tests.rs",
+      "literals": 23,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_tests.rs",
+      "literals": 86,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/source_format.rs",
+      "literals": 2940,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/fused_readers.rs",
+      "literals": 198,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/shared_steps.rs",
+      "literals": 123,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/hir/canonical_loan_storage/tests/reuse.rs",
+      "literals": 70,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/hir/ids/declaration_tag.rs",
+      "literals": 123,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/hir/ids/fixed_operation_tests.rs",
+      "literals": 193,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/hir/ids/lowering_identity_tests.rs",
+      "literals": 146,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/hir/resolve_expr/sort_keys/identity_tests.rs",
+      "literals": 46,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/hir/resolve_statement/text_reference.rs",
+      "literals": 55,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/hir/validation/function_scope/lifecycle/completed/tests.rs",
+      "literals": 58,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/hir/validation/lexical_exit.rs",
+      "literals": 123,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/source_reflows_merge/final_ready_inputs.rs",
+      "literals": 209,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/source_reflows_merge/main8a_historical.rs",
+      "literals": 51,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/source_reflows_merge/main_e177_overlay_fragments_v3.rs",
+      "literals": 895,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/source_reflows_merge/main_e177_overlay_pins_v9.rs",
+      "literals": 132,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/source_reflows_merge/main_e177_packet_lookup.rs",
+      "literals": 265,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/source_reflows_merge/runtime_json.rs",
+      "literals": 394,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/source_verify/function_value_inventory.rs",
+      "literals": 3,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/test_allocation_observer/backing.rs",
+      "literals": 17,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/workflow_profile/plan_comparison.rs",
+      "literals": 21,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/workspace_graph/constructor_failure/before_scalar_dispatch.rs",
+      "literals": 3,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/workspace_graph/constructor_failure/receiving/typed/tests.rs",
+      "literals": 155,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/workspace_graph/expected_projection/call_carriers.rs",
+      "literals": 4,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/workspace_graph/expected_projection/call_carriers_before_directory.rs",
+      "literals": 0,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/workspace_graph/expected_projection/call_carriers_directory.rs",
+      "literals": 5,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "src/workspace_graph/initial_report/tests.rs",
+      "literals": 61,
+      "all_literal_bytes_preserved": true
+    },
+    {
+      "source": "tests/root_unsafe_quarantine.rs",
+      "literals": 46,
+      "all_literal_bytes_preserved": true
+    }
+  ],
+  "source_preservation": [
+    {
+      "domain": "hir",
+      "all_sources_classes_roles_and_chain_membership_preserved": true,
+      "formatted_acquisition_edges": [
+        {
+          "parent": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs",
+          "child": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor.rs",
+          "before": "#[allow(unused_macros, reason = \"complete immediate final Option producer remains a frozen control\")]\n#[macro_use]\nmod lexical_cursor;",
+          "after": "#[allow(\n    unused_macros,\n    reason = \"complete immediate final Option producer remains a frozen control\"\n)]\n#[macro_use]\nmod lexical_cursor;"
+        }
+      ],
+      "changed_source_pins": [
+        "src/bounded_output.rs",
+        "src/bounded_output/exclusive_debits.rs",
+        "src/bounded_output/stage_debits/route_debits.rs",
+        "src/cleanup_plan/replay/allocation.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/census.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_event_prefix.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_fused_flat.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_identity_prefix.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_retained_tail.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_shared_steps.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/borrowed_reader_composition_tests.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads_tests.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/combined_pair_scope_tests.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/empty_selector_tests.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/final_affine_tests.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main99_pair_scope_tests.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/matched_tail_tests.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_link_composition_tests.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_census.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_tests.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_tests/paired_segments.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_tail_composition_tests.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_event.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_identity.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_before_event.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_event_tests.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_tests.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/source_format.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/fused_readers.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/shared_steps.rs",
+        "src/hir/canonical_loan_storage/tests/reuse.rs",
+        "src/hir/ids/declaration_tag.rs",
+        "src/hir/ids/fixed_operation_tests.rs",
+        "src/hir/ids/lowering_identity_tests.rs",
+        "src/hir/resolve_expr/sort_keys/identity_tests.rs",
+        "src/hir/validation/function_scope/lifecycle/completed/tests.rs",
+        "src/hir/validation/lexical_exit.rs",
+        "src/source_reflows_merge/final_ready_inputs.rs",
+        "src/source_reflows_merge/main8a_historical.rs",
+        "src/source_reflows_merge/main_e177_overlay_fragments_v3.rs",
+        "src/source_reflows_merge/main_e177_overlay_pins_v9.rs",
+        "src/source_reflows_merge/main_e177_overlay_v2.rs",
+        "src/source_reflows_merge/main_e177_packet_lookup.rs",
+        "src/source_reflows_merge/runtime_json.rs",
+        "src/test_allocation_observer/backing.rs",
+        "src/workspace_graph/constructor_failure/before_scalar_dispatch.rs",
+        "src/workspace_graph/expected_projection/call_carriers.rs",
+        "src/workspace_graph/expected_projection/call_carriers_before_directory.rs",
+        "src/workspace_graph/expected_projection/call_carriers_directory.rs",
+        "src/workspace_graph/initial_report/tests.rs"
+      ]
+    },
+    {
+      "domain": "projection",
+      "all_sources_classes_roles_and_chain_membership_preserved": true,
+      "formatted_acquisition_edges": [
+        {
+          "parent": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs",
+          "child": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor.rs",
+          "before": "#[allow(unused_macros, reason = \"complete immediate final Option producer remains a frozen control\")]\n#[macro_use]\nmod lexical_cursor;",
+          "after": "#[allow(\n    unused_macros,\n    reason = \"complete immediate final Option producer remains a frozen control\"\n)]\n#[macro_use]\nmod lexical_cursor;"
+        }
+      ],
+      "changed_source_pins": [
+        "src/bounded_output.rs",
+        "src/bounded_output/stage_debits/route_debits.rs",
+        "src/cleanup_plan/replay/allocation.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/census.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_event_prefix.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_fused_flat.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_identity_prefix.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_retained_tail.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_shared_steps.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/borrowed_reader_composition_tests.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads_tests.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/combined_pair_scope_tests.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/empty_selector_tests.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/final_affine_tests.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main99_pair_scope_tests.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/matched_tail_tests.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_link_composition_tests.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_census.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_tests.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_tests/paired_segments.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_tail_composition_tests.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_event.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_identity.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_before_event.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_event_tests.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_tests.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/source_format.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/fused_readers.rs",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/shared_steps.rs",
+        "src/hir/canonical_loan_storage/tests/reuse.rs",
+        "src/hir/ids/declaration_tag.rs",
+        "src/hir/ids/fixed_operation_tests.rs",
+        "src/hir/ids/lowering_identity_tests.rs",
+        "src/hir/resolve_expr/sort_keys/identity_tests.rs",
+        "src/hir/resolve_statement/text_reference.rs",
+        "src/hir/validation/function_scope/lifecycle/completed/tests.rs",
+        "src/hir/validation/lexical_exit.rs",
+        "src/source_reflows_merge/final_ready_inputs.rs",
+        "src/source_reflows_merge/main_e177_overlay_v2.rs",
+        "src/workspace_graph/expected_projection/call_carriers.rs",
+        "src/workspace_graph/expected_projection/call_carriers_before_directory.rs",
+        "src/workspace_graph/expected_projection/call_carriers_directory.rs"
+      ]
+    }
+  ],
+  "page": {
+    "status": "ORIGINAL_CURRENT_CODEC_COMPOSITION_PASS_PENDING_PUBLICATION",
+    "base_head": "85f70a7cb7599a228b6800358ea7d1d386df7785",
+    "rows": 687,
+    "page_bytes": 226935,
+    "published_current_preserved_as_exact_views": [
+      {
+        "source": "src/bounded_output.rs",
+        "view": {
+          "length": 52412,
+          "sha256": "fa91c8eca4825931211d066d6ebde8c0ff157de1ec78b5950abe867c295e481f",
+          "archive": "e/fa91c8eca4825931211d066d6ebde8c0ff157de1ec78b5950abe867c295e481f",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/bounded_output/exclusive_debits.rs",
+        "view": {
+          "length": 35332,
+          "sha256": "9a4a2a5c7f297f12231521a279e0ef17cd70085ae6918ae30b1bd63ceaca2932",
+          "archive": "e/9a4a2a5c7f297f12231521a279e0ef17cd70085ae6918ae30b1bd63ceaca2932",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/bounded_output/stage_debits/route_debits.rs",
+        "view": {
+          "length": 47812,
+          "sha256": "6d218cb5b00fff3007238ec957de60a29c6e5421f738beda28874b09609d5644",
+          "archive": "docs/evidence/merge-pr896-20261021/whole/6d218cb5b00fff3007238ec957de60a29c6e5421f738beda28874b09609d5644.txt",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/census.rs",
+        "view": {
+          "length": 30030,
+          "sha256": "b139d4bd10fa8244c90a0f8aea56f159771fc2959b0589e1c076682daa69e00a",
+          "archive": "e/b139d4bd10fa8244c90a0f8aea56f159771fc2959b0589e1c076682daa69e00a",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs",
+        "view": {
+          "length": 28060,
+          "sha256": "e98bf0ffd40155974eeb159ffc5cb0a194c5c0b72f5735ad95381c3644d7dedd",
+          "archive": "e/e98bf0ffd40155974eeb159ffc5cb0a194c5c0b72f5735ad95381c3644d7dedd",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_event_prefix.rs",
+        "view": {
+          "length": 34204,
+          "sha256": "562c506a3064893f4799b778ae8fd6fc0f8ab28f918d32fc6c5cff88b4d12871",
+          "archive": "e/562c506a3064893f4799b778ae8fd6fc0f8ab28f918d32fc6c5cff88b4d12871",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_fused_flat.rs",
+        "view": {
+          "length": 21382,
+          "sha256": "de6628881d539bd95eb53d7ba260be5d7865babf59432890a4d6e91a2f6964f3",
+          "archive": "e/de6628881d539bd95eb53d7ba260be5d7865babf59432890a4d6e91a2f6964f3",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_identity_prefix.rs",
+        "view": {
+          "length": 28714,
+          "sha256": "f1458b012d31d958e5fb5cbb06cfc7b914ed5f10664f3ab654f99a9c3d6f16e9",
+          "archive": "e/f1458b012d31d958e5fb5cbb06cfc7b914ed5f10664f3ab654f99a9c3d6f16e9",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_retained_tail.rs",
+        "view": {
+          "length": 21776,
+          "sha256": "adea1ccc8383fdceab390253fcde53adcfc4223f395fc89efa76521c183b689d",
+          "archive": "e/adea1ccc8383fdceab390253fcde53adcfc4223f395fc89efa76521c183b689d",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_shared_steps.rs",
+        "view": {
+          "length": 25860,
+          "sha256": "1801e6dfb9e77d78c0547b710bda186cb382a022af36d6609901eb5f9020be26",
+          "archive": "e/1801e6dfb9e77d78c0547b710bda186cb382a022af36d6609901eb5f9020be26",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/borrowed_reader_composition_tests.rs",
+        "view": {
+          "length": 13860,
+          "sha256": "e4006e0c55c0ba9b9b6d214b8d142cbc9c279c63b9c392dc1b636fc600cc30ce",
+          "archive": "e/e4006e0c55c0ba9b9b6d214b8d142cbc9c279c63b9c392dc1b636fc600cc30ce",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads.rs",
+        "view": {
+          "length": 34172,
+          "sha256": "d1a229642405a06f2037a30470188c82d66ecb51913c40f30842428c3984a1d6",
+          "archive": "e/d1a229642405a06f2037a30470188c82d66ecb51913c40f30842428c3984a1d6",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads_tests.rs",
+        "view": {
+          "length": 56129,
+          "sha256": "bc46f1c86a89bfdef97abfd3381e27177c837e3dfce5d9ec50d718dc1234a2e2",
+          "archive": "e/bc46f1c86a89bfdef97abfd3381e27177c837e3dfce5d9ec50d718dc1234a2e2",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/combined_pair_scope_tests.rs",
+        "view": {
+          "length": 60089,
+          "sha256": "6fd9a05db6f849b7bba7f82c815493f2a6c031c84475eae8451e8680403d5351",
+          "archive": "e/6fd9a05db6f849b7bba7f82c815493f2a6c031c84475eae8451e8680403d5351",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/empty_selector_tests.rs",
+        "view": {
+          "length": 25645,
+          "sha256": "0934fe938e30310a2812c91b6c105bab6e511a214748613073be5343530064df",
+          "archive": "e/0934fe938e30310a2812c91b6c105bab6e511a214748613073be5343530064df",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/final_affine_tests.rs",
+        "view": {
+          "length": 18343,
+          "sha256": "263e2baf2761fd0eb175208e42406baccb00f7af1ee6514538110a3be6f8f612",
+          "archive": "e/263e2baf2761fd0eb175208e42406baccb00f7af1ee6514538110a3be6f8f612",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main99_pair_scope_tests.rs",
+        "view": {
+          "length": 43884,
+          "sha256": "cd73e40396090ee5fd3cb7a1c7f76e0dc3958e083e32611e4eef3e05432965e3",
+          "archive": "e/cd73e40396090ee5fd3cb7a1c7f76e0dc3958e083e32611e4eef3e05432965e3",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/matched_tail_tests.rs",
+        "view": {
+          "length": 48440,
+          "sha256": "3bcc9a83700d77eb24eacd0192f13f3254681459ff8841e0c4c38a95b785b79d",
+          "archive": "e/3bcc9a83700d77eb24eacd0192f13f3254681459ff8841e0c4c38a95b785b79d",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_link_composition_tests.rs",
+        "view": {
+          "length": 13652,
+          "sha256": "37dafd575afbf5444088af8142df92912133b56c8a3abc40170cbb46626a1a4f",
+          "archive": "e/37dafd575afbf5444088af8142df92912133b56c8a3abc40170cbb46626a1a4f",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_census.rs",
+        "view": {
+          "length": 42863,
+          "sha256": "1c0df0fbaa00c10ee174b435013c217b1a2f40b21f070cc4427e862da7898ea0",
+          "archive": "docs/evidence/merge-pr896-20261021/whole/1c0df0fbaa00c10ee174b435013c217b1a2f40b21f070cc4427e862da7898ea0.txt",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_tests.rs",
+        "view": {
+          "length": 58148,
+          "sha256": "ff93aa1d5126986ac294ced32a7f054b36f0f96f1ab5a4545f30baf47ab38602",
+          "archive": "e/ff93aa1d5126986ac294ced32a7f054b36f0f96f1ab5a4545f30baf47ab38602",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_tail_composition_tests.rs",
+        "view": {
+          "length": 19373,
+          "sha256": "b0080c5a674ba46cdbf266647436c54e6395e2f48babdfdd71a092f39b5c22de",
+          "archive": "e/b0080c5a674ba46cdbf266647436c54e6395e2f48babdfdd71a092f39b5c22de",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value.rs",
+        "view": {
+          "length": 15748,
+          "sha256": "0e289307a841d6ae175957fc9d0f510dc08ccf85959125748cf027b65a9b0de3",
+          "archive": "e/0e289307a841d6ae175957fc9d0f510dc08ccf85959125748cf027b65a9b0de3",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_event.rs",
+        "view": {
+          "length": 7075,
+          "sha256": "ca5747d15635434b22f7efa9375e2de495f2fc3895a2b54b3d8885fd235e2730",
+          "archive": "e/ca5747d15635434b22f7efa9375e2de495f2fc3895a2b54b3d8885fd235e2730",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_identity.rs",
+        "view": {
+          "length": 6267,
+          "sha256": "8f9fd563b7aca230f1a68f190973c80958b770ce7ea3ca91e71e80e38df95c0e",
+          "archive": "e/8f9fd563b7aca230f1a68f190973c80958b770ce7ea3ca91e71e80e38df95c0e",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix.rs",
+        "view": {
+          "length": 7420,
+          "sha256": "faf2391a83182d4b60d1be8561c404ac7af427fcd1f59ff2bfa45c85058244d0",
+          "archive": "e/faf2391a83182d4b60d1be8561c404ac7af427fcd1f59ff2bfa45c85058244d0",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_before_event.rs",
+        "view": {
+          "length": 6770,
+          "sha256": "b9f81fa616e8bfddfb89b76744b23c8e113ec69f526ed520628b257dd0b62cd2",
+          "archive": "e/b9f81fa616e8bfddfb89b76744b23c8e113ec69f526ed520628b257dd0b62cd2",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_event_tests.rs",
+        "view": {
+          "length": 20756,
+          "sha256": "dc422abd0e68fcb7cb563f09c35e5d0a5a1662309e0fe8f35223ac4ab9ae4943",
+          "archive": "e/dc422abd0e68fcb7cb563f09c35e5d0a5a1662309e0fe8f35223ac4ab9ae4943",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_tests.rs",
+        "view": {
+          "length": 43627,
+          "sha256": "b67dd4267223136222edf4508cd19f0a7e8c4fc43338a1aa616d55430a3792a5",
+          "archive": "e/b67dd4267223136222edf4508cd19f0a7e8c4fc43338a1aa616d55430a3792a5",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/source_format.rs",
+        "view": {
+          "length": 57313,
+          "sha256": "1382e002527db196ea28ac57f30ee964d1dfc3d233d3741f513e1e98ff5f018e",
+          "archive": "docs/evidence/merge-pr896-20261021/whole/1382e002527db196ea28ac57f30ee964d1dfc3d233d3741f513e1e98ff5f018e.txt",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/fused_readers.rs",
+        "view": {
+          "length": 44615,
+          "sha256": "6a803f908b40950adbc68c47589aa4170d6c54a8e3bb142b55de37e8058c3fe6",
+          "archive": "docs/evidence/merge-pr896-20261021/whole/6a803f908b40950adbc68c47589aa4170d6c54a8e3bb142b55de37e8058c3fe6.txt",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/shared_steps.rs",
+        "view": {
+          "length": 21023,
+          "sha256": "651542d472bf505cc7f9c5eacebaf31718b83f8043ab40ead8e90a706e0be3f4",
+          "archive": "e/651542d472bf505cc7f9c5eacebaf31718b83f8043ab40ead8e90a706e0be3f4",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/hir/ids/declaration_tag.rs",
+        "view": {
+          "length": 29891,
+          "sha256": "58a3bbec53e96e2f429cebfe3bfe66105293a15ffc8862afe3503e293fd26ba9",
+          "archive": "e/58a3bbec53e96e2f429cebfe3bfe66105293a15ffc8862afe3503e293fd26ba9",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/hir/ids/fixed_operation_tests.rs",
+        "view": {
+          "length": 41584,
+          "sha256": "175022aa6fcef54b04167456b8adf47df103891ad97133d6539c43ab303c4002",
+          "archive": "e/175022aa6fcef54b04167456b8adf47df103891ad97133d6539c43ab303c4002",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/hir/ids/lowering_identity_tests.rs",
+        "view": {
+          "length": 24400,
+          "sha256": "030374fddb446ebeed72e8c9fa862e72dc7e14c255262a6c40ade044ed714af6",
+          "archive": "e/030374fddb446ebeed72e8c9fa862e72dc7e14c255262a6c40ade044ed714af6",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/hir/resolve_expr/sort_keys/identity_tests.rs",
+        "view": {
+          "length": 13671,
+          "sha256": "8a34ae0c02a01252ea53fb730a10bd58d8d1229b24f556fd3917805b288518db",
+          "archive": "e/8a34ae0c02a01252ea53fb730a10bd58d8d1229b24f556fd3917805b288518db",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/source_reflows_merge/final_ready_inputs.rs",
+        "view": {
+          "length": 27824,
+          "sha256": "6f8a8bd0486db59be5cadc78a5b4346f14c542f126f3d6d20d5a77bfc94b0463",
+          "archive": "docs/evidence/merge-pr896-20261021/whole/6f8a8bd0486db59be5cadc78a5b4346f14c542f126f3d6d20d5a77bfc94b0463.txt",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/source_reflows_merge/main8a_historical.rs",
+        "view": {
+          "length": 6618,
+          "sha256": "0aa124c9506bbc48c3f58aacf33d1f96e85d5cb706f41afa4103338dd13987c9",
+          "archive": "e/0aa124c9506bbc48c3f58aacf33d1f96e85d5cb706f41afa4103338dd13987c9",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/source_reflows_merge/main_e177_overlay_fragments_v3.rs",
+        "view": {
+          "length": 61825,
+          "sha256": "f2d7a66a474f9b09204c3c03da4dc6aa617527298c7423ce6ce2ba63c795b135",
+          "archive": "e/f2d7a66a474f9b09204c3c03da4dc6aa617527298c7423ce6ce2ba63c795b135",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/source_reflows_merge/main_e177_overlay_pins_v9.rs",
+        "view": {
+          "length": 10093,
+          "sha256": "9f3a3343b8cb3230fbf78c23c9096b6bd43fb416f6cecf9aa4c0ef99e03b7112",
+          "archive": "e/9f3a3343b8cb3230fbf78c23c9096b6bd43fb416f6cecf9aa4c0ef99e03b7112",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/source_reflows_merge/main_e177_packet_lookup.rs",
+        "view": {
+          "length": 33840,
+          "sha256": "1f39f504cadbe0fbc994a9f7d9a98cecff52861068e7c4d97541c64deb2e1f73",
+          "archive": "docs/evidence/merge-pr896-20261021/whole/1f39f504cadbe0fbc994a9f7d9a98cecff52861068e7c4d97541c64deb2e1f73.txt",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/source_reflows_merge/runtime_json.rs",
+        "view": {
+          "length": 51802,
+          "sha256": "9cf025708f025f4b0794bf124cd79f03e68bfdadff073859096a0465e1f4c1a9",
+          "archive": "docs/evidence/merge-pr896-20261021/whole/9cf025708f025f4b0794bf124cd79f03e68bfdadff073859096a0465e1f4c1a9.txt",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/test_allocation_observer/backing.rs",
+        "view": {
+          "length": 13915,
+          "sha256": "926f916fc503ddd3270619ed6047bc540c36f0117de0b95680596d32be952e88",
+          "archive": "e/926f916fc503ddd3270619ed6047bc540c36f0117de0b95680596d32be952e88",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/workspace_graph/constructor_failure/before_scalar_dispatch.rs",
+        "view": {
+          "length": 7855,
+          "sha256": "5714624d03743341b609d3e1fb85bf575a1648d84c1c88d6f8324dd2f02fbfbc",
+          "archive": "e/5714624d03743341b609d3e1fb85bf575a1648d84c1c88d6f8324dd2f02fbfbc",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/workspace_graph/constructor_failure/receiving/typed/tests.rs",
+        "view": {
+          "length": 27662,
+          "sha256": "ddaa2f3c3d54bab731acb976de3a9482d71fa65a4d409a83c2036ed8f9ad1251",
+          "archive": "e/ddaa2f3c3d54bab731acb976de3a9482d71fa65a4d409a83c2036ed8f9ad1251",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/workspace_graph/expected_projection/call_carriers.rs",
+        "view": {
+          "length": 12395,
+          "sha256": "84802a57f88f708bbc10da608f169ebedba8307677b2e6858cd8e0850c505aaa",
+          "archive": "e/84802a57f88f708bbc10da608f169ebedba8307677b2e6858cd8e0850c505aaa",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/workspace_graph/expected_projection/call_carriers_before_directory.rs",
+        "view": {
+          "length": 12075,
+          "sha256": "87142dc1b3f98f9d381459f0f4f8925c807d28645aa0646ea453eea3c63cc512",
+          "archive": "e/87142dc1b3f98f9d381459f0f4f8925c807d28645aa0646ea453eea3c63cc512",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      },
+      {
+        "source": "src/workspace_graph/expected_projection/call_carriers_directory.rs",
+        "view": {
+          "length": 21794,
+          "sha256": "1a61d40677748f217a193754f9be21184a8dfbf7e9ca82550f28f3146c99d999",
+          "archive": "e/1a61d40677748f217a193754f9be21184a8dfbf7e9ca82550f28f3146c99d999",
+          "name": "whole-pre-rustfmt-85f70a7cb7"
+        }
+      }
+    ],
+    "all_previous_fields_views_memberships_and_fragment_edges_retained": true,
+    "all_original_codec_bodies_and_caps_unchanged": true
+  },
+  "checks": {
+    "original_full_source_domains_and_all_six_hostiles": "PASS",
+    "actual_source_audit_tests": 34,
+    "clippy": "PASS warnings denied",
+    "actual_hir_boundary_tests": 11
+  },
+  "complete_format_gate_or_hosted_green_claimed": false
+}

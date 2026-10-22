@@ -1,0 +1,28 @@
+{
+  "status": "ORIGINAL_CURRENT_CODEC_COMPOSITION_PASS_PENDING_PUBLICATION",
+  "base_head": "7b46f47b1ad934859984f65579d71f36b4f52921",
+  "rows": 687,
+  "page_bytes": 234796,
+  "published_current_preserved_as_exact_views": [
+    {
+      "source": "src/source_reflows_merge/runtime_json.rs",
+      "view": {
+        "length": 55045,
+        "sha256": "665058c8d8703501f365a10a5c3bea3ef4f646ccc0777765aca5ab8fb9aa9088",
+        "archive": "docs/evidence/raw-checkpoints-20261021/current/665058c8d8703501f365a10a5c3bea3ef4f646ccc0777765aca5ab8fb9aa9088.txt",
+        "name": "whole-pre-ci-small-7b46a15bdd5"
+      }
+    },
+    {
+      "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "view": {
+        "length": 209409,
+        "sha256": "540e2ae190c5fd004c8a3cb90b20e2892fe8776e1bb4f688cec2b51c71280729",
+        "archive": "docs/evidence/native-resolver-prefix-20261021/current/540e2ae190c5fd004c8a3cb90b20e2892fe8776e1bb4f688cec2b51c71280729.txt",
+        "name": "whole-pre-ci-small-7b46a15bdd5"
+      }
+    }
+  ],
+  "all_previous_fields_views_memberships_and_fragment_edges_retained": true,
+  "all_original_codec_bodies_and_caps_unchanged": true
+}

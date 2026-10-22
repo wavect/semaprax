@@ -1,4 +1,11 @@
 //! Complete overlay walk; only default and directory refusal custody changes.
+#![cfg_attr(
+    test,
+    allow(
+        clippy::duplicate_mod,
+        reason = "Current and retained import receivers run the same controls against independent owner types."
+    )
+)]
 #[path = "typed_cost.rs"]
 mod typed_cost;
 use super::{

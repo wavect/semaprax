@@ -1,5 +1,9 @@
 # f813 + held-auth source custody successor
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only evidence. No Cargo, build, Rust tests, Clippy, Node, Graft CLI or
 runtime qualification was executed. Production source basis is
 `0ccaeef55025e50dd7566273b1e70bae8f3e3dfa`; four existing test-only helpers have

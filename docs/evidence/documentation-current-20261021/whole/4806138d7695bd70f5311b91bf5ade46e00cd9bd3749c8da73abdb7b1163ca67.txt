@@ -1,0 +1,1 @@
+Source-only integration correction at37d06d7b7: keep all three newly joined #816 children in unchanged complete purity audit, replacing only their direct wildcard imports with explicit names. Whole original sources/inverses retained. No algorithm, assertion, authority or work change; no Cargo/runtime claim.

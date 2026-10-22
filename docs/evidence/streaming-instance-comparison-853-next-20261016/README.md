@@ -1,5 +1,9 @@
 # #853 streaming generic-instance comparison — source checkpoint
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base: `17b12c909916ce8671b43f208b59f3432144709a`.
 No Cargo, Rust compilation, test body, benchmark or application ran in this lane.
 

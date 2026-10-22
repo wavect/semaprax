@@ -1,5 +1,9 @@
 # Focused qualification at8bb9
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 All four required commands have authenticated successful records: original0/1 reused and only2/3 newly executed by the resume controller. Original130/UNCONFIRMED remains separate unchanged failure history; later empty inventories are independent evidence. The complete76-owner selection is terminal: **56 PASS / 20 FAIL / 0 invalid observations**. Both scoped Clippy phases are terminal, exit codes [101, 101]. Every original result/log, manifest, controller and observation is retained unfiltered in raw/. Integrity/resource/observation issues are recorded in terminal-audit.json; they never become PASS.
 
 Selected phase wall times sum to332.092 seconds; this excludes some setup/artifact hashing and is not a benchmark wall time or causal comparison. No full suite ran. Original35cc remains175 actual135PASS/40FAIL;31 prior failures were selected in this minimum, nine omitted failures remain NOT_FIXED/NOT_RETESTED, and new owners have no invented prior execution. Complete original prior receipts stay separately archived and hash-bound in supplemental history.

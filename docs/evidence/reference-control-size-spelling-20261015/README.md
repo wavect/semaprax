@@ -1,5 +1,9 @@
 # Explicit reference-control sizes
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Fourteen Clippy size_of_ref findings are replaced with explicit size_of::<T>(),
 where T is the actual reference binding type formerly inferred by
 size_of_val::<T>(&binding). Every T is Sized, including fat references to str

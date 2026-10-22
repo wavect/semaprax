@@ -1,4 +1,7 @@
-#![allow(dead_code, reason = "Whole immediate-old selector, hooks and invariant forwarding are an independent cfg-test oracle.")]
+#![allow(
+    dead_code,
+    reason = "Whole immediate-old selector, hooks and invariant forwarding are an independent cfg-test oracle."
+)]
 use super::*;
 /// A conservative negative prefilter, never provider or wrapper authority.
 /// Only these reserved identity families can reach FunctionEntry::Borrowed;
@@ -9,7 +12,9 @@ pub(in crate::workspace_graph) fn construct_selected_core<'a>(
     program: &'a crate::ast::Program,
     authored: &'a std::collections::BTreeMap<&'a str, super::super::super::AuthoredDeclaration<'a>>,
     programs: &'a [crate::ast::Program],
-    registry: &super::super::super::expected_projection::private_layout::registry::LayoutRegistry<'_>,
+    registry: &super::super::super::expected_projection::private_layout::registry::LayoutRegistry<
+        '_,
+    >,
     core: &mut super::super::super::expected_projection::CoreProviderProofs<'a>,
     allow_transient: bool,
     owner: &mut Receiver,
@@ -91,7 +96,9 @@ pub(in crate::workspace_graph) fn construct_transient_alias_core<'a>(
     program: &'a crate::ast::Program,
     authored: &'a std::collections::BTreeMap<&'a str, super::super::super::AuthoredDeclaration<'a>>,
     programs: &'a [crate::ast::Program],
-    registry: &super::super::super::expected_projection::private_layout::registry::LayoutRegistry<'_>,
+    registry: &super::super::super::expected_projection::private_layout::registry::LayoutRegistry<
+        '_,
+    >,
     core: &mut super::super::super::expected_projection::CoreProviderProofs<'a>,
     owner: &mut Receiver,
 ) -> Result<super::super::super::expected_projection::borrowed_leaf::Input<'a>, Failure> {
@@ -106,9 +113,13 @@ pub(in crate::workspace_graph) fn construct_transient_alias_core<'a>(
             >()
             + std::mem::size_of::<&[crate::ast::Program]>()
             + std::mem::size_of::<
-                &super::super::super::expected_projection::private_layout::registry::LayoutRegistry<'_>,
+                &super::super::super::expected_projection::private_layout::registry::LayoutRegistry<
+                    '_,
+                >,
             >()
-            + std::mem::size_of::<&mut super::super::super::expected_projection::CoreProviderProofs<'_>>()
+            + std::mem::size_of::<
+                &mut super::super::super::expected_projection::CoreProviderProofs<'_>,
+            >()
             + std::mem::size_of::<&mut Receiver>()
             + 2 * std::mem::size_of::<bool>(),
     )?;

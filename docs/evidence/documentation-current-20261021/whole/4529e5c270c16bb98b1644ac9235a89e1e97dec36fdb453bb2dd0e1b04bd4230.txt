@@ -1,0 +1,17 @@
+# Actual 3d4b source-consumer corrections
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
+Source-only successor to frozen 3d4b996c9a8cd2b100a3c594e741314c108b5591. No Rust build, test, Clippy, or runtime qualification was executed here. The parent actual round remains 263 passing / 47 failing bodies; unselected failures remain unresolved.
+
+Eight named consumer domains authenticate complete physical source inputs before running every existing historical hook and unchanged full-source equality. This fixes the observed 825, 831, 832, 833, 834, and 835 input drift without modifying their immutable manifests. Source36a now uses its existing live CI projection for canonical_before.rs, matching the independently restored original signature literal. The shared current-to-3d4b layer precedes all older CI/custody routes, with exact new-input SHA and complete inverse bytes; it does not accept an already projected input as current.
+
+The expected_projection purity owner now reads its complete owned namespace instead of unrelated compiled receiver namespaces. All 48 production paths registered by the unchanged original V2 source parser remain in that purity input. The complete 26-file private-layout subtree is joined. All 96 namespace files remain in the combined purity/custody union; six additional child files excluded from purity are individually proven cfg(test) by original registration chains. Five additional inline/default files and field_update.rs are newly included in purity. Every original broad compiled-control include remains in original order. No old receiver or assertion was removed.
+
+The private batch also includes the separately archived observer, cfg(test) entry-auth, and cold-miss fixture corrections, plus the authorized three production spelling owners. Their reference/control sizes and eager array traversal semantics are documented in their own immutable packets. No physical-cost frontier, G171 failure, admission, or fee was relaxed.
+
+`prepare.py` creates complete current-input packets; `verify.py` replays 57 historical consumer rows and all 87 live CI inverse rows, reconciles the three independent old branch views, checks complete immediate bytes, receiving831 whole controls/helpers, and exhaustive production namespace coverage. `source-only-proof.json` records only those static results. `review-scope-proposal.json` is a proposal requiring separate parent SHA authorization, with complete existing cfg(test) item regions and explicit production spelling exceptions. `changed-owning-selectors.json` lists 12 directly changed owning bodies, adds no test body, and does not reduce the parent's required frontier selection.
+
+All old runtime JSONs, archives, and assertion bodies remain byte-exact. New JSON inputs in this directory are runtime data and must be preserved as immutable domains by any future successor. The immediate full source inverse includes all 18 Rust owners, including the test-only source helper itself.

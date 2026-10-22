@@ -1,5 +1,9 @@
 # Retained imported-function alias view (#847)
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only checkpoint based on exact 7a87. No Rust build, test, physical measurement, gain or application-fit result is claimed. #847 remains open pending executable qualification and whole-owner observations.
 
 The actual uncached retained-output compiler route now lends a provider Function only after the unchanged retained-wrapper classifier succeeds, its alias equals its original name, and the exact Function pointer belongs to that provider. Renamed imports and every unproved shape retain the complete owning producer. The route is closed when frontend cache publication is possible and when imported type invariants need the owning transform. Source lifetimes hold provider, Function and alias references through resolution. Declaration order, payload identity, persistent IDs, contracts, spans, permissions and defaults remain those of the original clone.

@@ -1,0 +1,8 @@
+{
+  "exact_additions": [
+    "pub(crate) fn registered_file(source: &str, expected: &str, cap: usize) -> Option<String> {\n    packet_lookup::registered_file(source, expected, cap)\n}\n\n",
+    "\n#[test]\nfn registered_digest_reads_keep_current_history_and_each_original_file_bound() {\n    packet_lookup::registered_digest_reads_keep_current_history_and_each_original_file_bound();\n}\n"
+  ],
+  "original_release_length_assertion": 112797,
+  "all_original_digest_and_whole_body_assertions_retained": true
+}

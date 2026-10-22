@@ -1,5 +1,9 @@
 # Explicit direct receiver correction
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only correction of the 8ca candidate; no Cargo, Rust tests or binders.
 
 All newly introduced and_then/filter/map/is_some_and callback chains are gone.

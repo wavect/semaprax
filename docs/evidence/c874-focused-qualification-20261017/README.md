@@ -1,5 +1,9 @@
 # Frozen c874 focused qualification
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 This capsule records actual checks at c8740045e33126a4375aadd1dc524a25be9245fc. The complete batch has failures: core194/247, supplemental79/100, conditional parity0/2. Static selector counts match. This is not a full gate, application-fit result, or live token benchmark.
 
 All required exact owners for #853 (4), #855 (15), and #860 (18) pass. Production-library/binary Clippy with warnings denied passes. #853 remains subject to actual moved-pin obligations; #855 and #860 are closed on their own complete scopes.

@@ -1,5 +1,9 @@
 # Explicit frozen-head workflow; no capture performed by derivation
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Frozen head: `364d824194cd1df76b5c273aa0fb9cbafb602e29`. The generator requires the actual clean ROOT and actual
 registered round. It never supplies a future bill, invokes a producer, or
 applies the readonly plan. Managed published BEFORE remains actual35cc1209652;

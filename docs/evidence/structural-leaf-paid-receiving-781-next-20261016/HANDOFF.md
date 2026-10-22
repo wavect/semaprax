@@ -1,5 +1,9 @@
 # Selected structural families: source checkpoint only
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base: `83ca0e105e5f4eb6336ed04ff80df6ad0366e99f`.
 No Rust, Cargo, Clippy, runtime owner or benchmark was executed. Git metadata and this worktree reside on the external SSD. This checkpoint
 is source-only and is not integrated into the frozen qualification head.

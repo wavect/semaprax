@@ -660,3 +660,124 @@ fn small_copy_cutoff_uses_actual_full_receivers_without_a_backing_credit() {
     }
     assert!(inline + SMALL_SELECTION_CONTROLS + (SMALL_COPY_LIMIT - 1) * word >= old);
 }
+
+#[test]
+fn compact_branch_payments_keep_complete_first_refusals_floors_work_and_backing() {
+    let program = program();
+    let function = &program.functions[0];
+    let values = (0..8).map(Rc::new).collect::<Vec<_>>();
+    for limit in [0, 1, 511, 512, 1024, 8192] {
+        for floor in [0, 128] {
+            for request in [0, 1, 8, 128, usize::MAX] {
+                for operation in 0..4 {
+                    let run = |compact| {
+                        with_limit_usage_refusal(limit, || {
+                            measure(|| {
+                                let mut budget = ReplayBudget::with_skeleton_limit(500);
+                                assert_eq!(
+                                    crate::bounded_output::set_active_floor(floor),
+                                    floor <= limit
+                                );
+                                let result = match (compact, operation) {
+                                    (false, 0) => budget.reserve_bytes(
+                                        function,
+                                        request,
+                                        "paired byte payment",
+                                    ),
+                                    (true, 0) => budget
+                                        .reserve_compact_bytes(
+                                            function,
+                                            request,
+                                            "paired byte payment",
+                                        )
+                                        .map_err(physical_budget::ByteFailure::into_diagnostic),
+                                    (false, 1) => budget.reserve_array::<usize>(
+                                        function,
+                                        request,
+                                        "paired array payment",
+                                    ),
+                                    (true, 1) => budget
+                                        .reserve_compact_array::<usize>(
+                                            function,
+                                            request,
+                                            "paired array payment",
+                                        )
+                                        .map_err(physical_budget::ByteFailure::into_diagnostic),
+                                    (false, 2) => budget.reserve_clone(
+                                        function,
+                                        &values,
+                                        "paired clone payment",
+                                    ),
+                                    (true, 2) => budget
+                                        .reserve_compact_clone(
+                                            function,
+                                            &values,
+                                            "paired clone payment",
+                                        )
+                                        .map_err(physical_budget::ByteFailure::into_diagnostic),
+                                    (false, _) => budget.charge_skeleton(
+                                        function,
+                                        request,
+                                        "paired skeleton work",
+                                    ),
+                                    (true, _) => budget
+                                        .charge_compact_skeleton(
+                                            function,
+                                            request,
+                                            "paired skeleton work",
+                                        )
+                                        .map_err(physical_budget::ByteFailure::into_diagnostic),
+                                }
+                                .map_err(failure);
+                                let repeated = if result.is_err() {
+                                    Some(
+                                        if compact {
+                                            budget
+                                                .reserve_compact_bytes(
+                                                    function,
+                                                    0,
+                                                    "paired sticky authentication",
+                                                )
+                                                .map_err(
+                                                    physical_budget::ByteFailure::into_diagnostic,
+                                                )
+                                        } else {
+                                            budget.reserve_bytes(
+                                                function,
+                                                0,
+                                                "paired sticky authentication",
+                                            )
+                                        }
+                                        .map_err(failure),
+                                    )
+                                } else {
+                                    None
+                                };
+                                let state = (
+                                    budget.remaining,
+                                    budget.skeleton_remaining,
+                                    budget.skeleton_spent,
+                                    budget.refusal_spent,
+                                    budget.builder_clone_cursor_paid,
+                                );
+                                crate::bounded_output::clear_active_floor();
+                                drop(budget);
+                                (result, repeated, state)
+                            })
+                        })
+                    };
+                    let original = run(false);
+                    let compact = run(true);
+                    assert_eq!(
+                        compact, original,
+                        "operation={operation} request={request} limit={limit} floor={floor}"
+                    );
+                    assert!(!compact.0 .1.invalid);
+                    assert_eq!(compact.0 .1.live, 0);
+                    assert_eq!(compact.0 .1.allocated, compact.0 .1.freed);
+                    assert!(compact.0 .1.allocated <= compact.2);
+                }
+            }
+        }
+    }
+}

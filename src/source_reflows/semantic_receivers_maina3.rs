@@ -25,8 +25,18 @@ fn digest(source: &str) -> String {
 }
 
 fn invert(proof: &serde_json::Value, current: &str) -> String {
+    let requested = crate::source_reflows_merge::main_e177_final_inputs::value(
+        proof["path"].as_str().unwrap(),
+        proof["after_sha256"].as_str().unwrap(),
+        current,
+    );
+    let current = requested.as_str();
     let path = proof["path"].as_str().unwrap();
-    let main = crate::source_reflows_merge::maina3_input(path, current);
+    let main = if digest(current) == proof["after_sha256"] {
+        current.to_owned()
+    } else {
+        crate::source_reflows_merge::maina3_input(path, current)
+    };
     let current = main.as_str();
     assert_eq!(
         digest(current),

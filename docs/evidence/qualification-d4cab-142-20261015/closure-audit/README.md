@@ -1,5 +1,9 @@
 # Frozen d4cab closure audit
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Execution source: `d4cab900edac07fdcc4de0cdcb1bf3daafbef5ef`. Five focused compilation roles PASS, exit 0, 670.395s; this compiled the selected owners and executed no test bodies. Build-result SHA256 `879efd1d34936747fe0e6f4e5277de49218701f107a86c2d8295111795def4ce`.
 
 Runtime remains incomplete; all five comments are unposted conditional drafts. The exact positive owner groups (832:14, 834:15, 838:10, 839:31, 843:11) and ten unchanged application/builder executions are selected. No blanket unrelated sourceguard expansion is imposed. A genuine relevant source/receiver/dependency failure blocks its issue.

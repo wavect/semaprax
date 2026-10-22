@@ -1,5 +1,9 @@
 # Actual47f pin and precise fixture successor
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 TEST/EVIDENCE ONLY. Production source remains the complete frozen47f cut. No Main8fb, final-edge or other future production component is included. Parent-authorized actual13 literals (managed11/browser2) bind actual managed1106063 and browser3477789, never guessed. The original actual-inputs plan is retained byte-exact with SHA8b4d37221d8c8fa0d2aa796dfbd531ba236791938a272b6e895d9cc70b3771d0.
 
 Current finite entrypoints:

@@ -1,0 +1,6 @@
+
+running 1 test
+test source_reflows::ci_inputs::fourteen_complete_ci_input_inverses_keep_independent_git_bodies_and_refuse_stale_or_changed_source ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 276 filtered out; finished in 0.03s
+

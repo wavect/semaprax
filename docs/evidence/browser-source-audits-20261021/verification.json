@@ -1,0 +1,392 @@
+{
+  "status": "LOCAL_COMPLETE_BROWSER_SOURCE_ACQUISITION_AND_ALL_ORIGINAL_HISTORY_CONTROLS_PASS",
+  "base_head": "ef1836d25f8340ac3b9c158d0f7c1afae65a4bbf",
+  "browser_tests": {
+    "passed": 186,
+    "failed": 0,
+    "scope": "All actual scalar_browser_ci_contract browser history/control functions with actual edited checkout source images and real current source providers; includes complete captured Linux f5 wire bridge and drift controls. No new hosted Chromium or runtime compiler qualification claimed."
+  },
+  "source_roles": {
+    "status": "SOURCE_ONLY_ORIGINAL_FULL_DOMAIN_AND_HOSTILE_CONTROLS_PASS",
+    "domains": [
+      "hir",
+      "projection"
+    ],
+    "negative_controls": {
+      "dropped_actual_child_refused": true,
+      "coordinated_class_drop_not_original_generated_output": true,
+      "production_reclassification_refused": true,
+      "actual_source_drift_refused": true,
+      "whole_raw_drift_refused": true,
+      "foreign_path_child_cannot_escape": true
+    },
+    "generation_receipt_sha256": "72388950376f15c7122953da9c0677bc45df175fdac388655bb10d9eddd5f363",
+    "complete_chain_receipt_sha256": "611929570cc843af6a366591247511956a3ecea6b1e5dd723df117888c9c9d99",
+    "peak_RSS_bytes": 143441920,
+    "no_Rust_or_hosted_qualification_claimed": true,
+    "must_refresh_if_header_or_other_source_changes": true
+  },
+  "new_source_refusals": {
+    "status": "PASS_ACTUAL_ALL_FIVE_NEW_SOURCE_CHANNEL_AND_TUPLE_REFUSALS",
+    "checks": [
+      {
+        "source": "tests/wasm/scalar_browser_ci_contract/historical_main_c11.rs",
+        "refused": "live source"
+      },
+      {
+        "source": "tests/wasm/scalar_browser_ci_contract/historical_main_c11.rs",
+        "refused": "current archive"
+      },
+      {
+        "source": "tests/wasm/scalar_browser_ci_contract/historical_main_c11.rs",
+        "refused": "old archive"
+      },
+      {
+        "source": "tests/wasm/scalar_browser_ci_contract/historical_main_c11.rs",
+        "refused": "extension after module load"
+      },
+      {
+        "source": "tests/wasm/scalar_browser_ci_contract/historical_main_c11.rs",
+        "refused": "foreign tuple"
+      },
+      {
+        "source": "tests/wasm/scalar_browser_ci_contract/before_524.rs",
+        "refused": "live source"
+      },
+      {
+        "source": "tests/wasm/scalar_browser_ci_contract/before_524.rs",
+        "refused": "current archive"
+      },
+      {
+        "source": "tests/wasm/scalar_browser_ci_contract/before_524.rs",
+        "refused": "old archive"
+      },
+      {
+        "source": "tests/wasm/scalar_browser_ci_contract/before_524.rs",
+        "refused": "extension after module load"
+      },
+      {
+        "source": "tests/wasm/scalar_browser_ci_contract/before_524.rs",
+        "refused": "foreign tuple"
+      },
+      {
+        "source": "tests/wasm/scalar_browser_ci_contract/before_671.rs",
+        "refused": "live source"
+      },
+      {
+        "source": "tests/wasm/scalar_browser_ci_contract/before_671.rs",
+        "refused": "current archive"
+      },
+      {
+        "source": "tests/wasm/scalar_browser_ci_contract/before_671.rs",
+        "refused": "old archive"
+      },
+      {
+        "source": "tests/wasm/scalar_browser_ci_contract/before_671.rs",
+        "refused": "extension after module load"
+      },
+      {
+        "source": "tests/wasm/scalar_browser_ci_contract/before_671.rs",
+        "refused": "foreign tuple"
+      },
+      {
+        "source": "tests/wasm/scalar_browser_ci_contract/before_7d34.rs",
+        "refused": "live source"
+      },
+      {
+        "source": "tests/wasm/scalar_browser_ci_contract/before_7d34.rs",
+        "refused": "current archive"
+      },
+      {
+        "source": "tests/wasm/scalar_browser_ci_contract/before_7d34.rs",
+        "refused": "old archive"
+      },
+      {
+        "source": "tests/wasm/scalar_browser_ci_contract/before_7d34.rs",
+        "refused": "extension after module load"
+      },
+      {
+        "source": "tests/wasm/scalar_browser_ci_contract/before_7d34.rs",
+        "refused": "foreign tuple"
+      },
+      {
+        "source": "tests/wasm/scalar_browser_ci_contract/before_21abc.rs",
+        "refused": "live source"
+      },
+      {
+        "source": "tests/wasm/scalar_browser_ci_contract/before_21abc.rs",
+        "refused": "current archive"
+      },
+      {
+        "source": "tests/wasm/scalar_browser_ci_contract/before_21abc.rs",
+        "refused": "old archive"
+      },
+      {
+        "source": "tests/wasm/scalar_browser_ci_contract/before_21abc.rs",
+        "refused": "extension after module load"
+      },
+      {
+        "source": "tests/wasm/scalar_browser_ci_contract/before_21abc.rs",
+        "refused": "foreign tuple"
+      }
+    ],
+    "all_physical_source_archive_and_extension_bytes_restored": true,
+    "all_original_legacy_scope_function_bodies_unchanged": true
+  },
+  "original_browser_owner_preservation": {
+    "status": "ALL_TEN_COMPLETE_OLD_BROWSER_OWNERS_RECONSTRUCT_BYTE_EXACTLY_BY_REMOVING_ONLY_ADDED_ACQUISITION_LINES",
+    "owners": [
+      {
+        "source": "tests/wasm/scalar_browser_ci_contract/historical_main_7f8.rs",
+        "old_sha256": "f0099fedb7e8a27872b93e90f4d710b8f7d8c72a010e3642d5509febf4806b15",
+        "new_sha256": "c090f386834216a4def95227e144e7499a134c275b36c3a96f24a408cdf9e589",
+        "old_lines": 164,
+        "inserted_lines": 12,
+        "every_old_line_and_literal_unchanged": true
+      },
+      {
+        "source": "tests/wasm/scalar_browser_ci_contract/historical_main_c11.rs",
+        "old_sha256": "7379c3e2094ceba8a2e2f488679ba90a441706356f733bd837c240415ab70d98",
+        "new_sha256": "94704070849f68ffa9152441f48408f4f8f67ff4206612741b6deb5ae45945db",
+        "old_lines": 222,
+        "inserted_lines": 6,
+        "every_old_line_and_literal_unchanged": true
+      },
+      {
+        "source": "tests/wasm/scalar_browser_ci_contract/before_524.rs",
+        "old_sha256": "860467d2025f4c308399ebcfc3e5cb4d246a530920eb75abb387f9a42d9ed8d8",
+        "new_sha256": "e36a6ab2e2a31ca8a714f81c8d7d6ca60d0c716af732284b1d93e300a4e385ab",
+        "old_lines": 129,
+        "inserted_lines": 5,
+        "every_old_line_and_literal_unchanged": true
+      },
+      {
+        "source": "tests/wasm/scalar_browser_ci_contract/browser_custody.rs",
+        "old_sha256": "9c39a88b6975bdec098d16360e1dd01459a5e8928f2691b0c8e7755ce50adb81",
+        "new_sha256": "2ce27af8e04163c8a36741bea167c89c8279bdd3973c65e1ac7f7bd946067827",
+        "old_lines": 419,
+        "inserted_lines": 6,
+        "every_old_line_and_literal_unchanged": true
+      },
+      {
+        "source": "tests/wasm/scalar_browser_ci_contract/before_671.rs",
+        "old_sha256": "0f4e6a07c1f0487eb3163781bd60bdefc7daa4bbcee6b6deee255b9c911ab66d",
+        "new_sha256": "93da1a4754be1298f6fee2f777ddcea6ebad6dffe6ae73731b59bb1495d4792d",
+        "old_lines": 129,
+        "inserted_lines": 6,
+        "every_old_line_and_literal_unchanged": true
+      },
+      {
+        "source": "tests/wasm/scalar_browser_ci_contract/before_7d34.rs",
+        "old_sha256": "eb43b69f6a9deded48d37ed201bb2a3526ae70bf1f90446dfe57987ff80cc836",
+        "new_sha256": "5fa7167b7c9ff186d4fe451fff7b2ffe6db07d6f7892201884c5db7d8611e29e",
+        "old_lines": 129,
+        "inserted_lines": 6,
+        "every_old_line_and_literal_unchanged": true
+      },
+      {
+        "source": "tests/wasm/scalar_browser_ci_contract/before_21abc.rs",
+        "old_sha256": "97907d75b2d59588125458eb2a0603dadf6900854ee79139aa2271d9fcc82ed4",
+        "new_sha256": "e1b722e42907f93d9fd51e36af9eb65930382a84e8b47494be449941d69f0857",
+        "old_lines": 129,
+        "inserted_lines": 6,
+        "every_old_line_and_literal_unchanged": true
+      },
+      {
+        "source": "tests/wasm/scalar_browser_ci_contract/before_3e66.rs",
+        "old_sha256": "b052603b549318e45f3cae0e1f3afd1c385366dac535eb9cd1e9084d4a06cec2",
+        "new_sha256": "40740f94459a3cdcc807b43014cd3c0bf02062f69c2fa5f73c7379a996e12e8f",
+        "old_lines": 129,
+        "inserted_lines": 6,
+        "every_old_line_and_literal_unchanged": true
+      },
+      {
+        "source": "tests/wasm/scalar_browser_ci_contract/incoming_main3e66.rs",
+        "old_sha256": "e022a8ffcacaa3694673da21f6d4ed96269a57eac901da1b5e705dc1ab5483b5",
+        "new_sha256": "ed46e33e52eb0b7dcd60d44fa175cfc759261d149d749d3e41ced5e2933f2123",
+        "old_lines": 190,
+        "inserted_lines": 6,
+        "every_old_line_and_literal_unchanged": true
+      },
+      {
+        "source": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+        "old_sha256": "203ab382b5154094e971ca0192b8dd1bfb8dee9fa5df9f57b07ec103c5ca0761",
+        "new_sha256": "3022a54f2f22177c37d4ef4634dd4169d7ca8c4f799906f4e5e68a5d41c1c039",
+        "old_lines": 1150,
+        "inserted_lines": 18,
+        "every_old_line_and_literal_unchanged": true
+      }
+    ]
+  },
+  "comment_inverse": {
+    "status": "EXACT_COMPLETE_OLD_ROOT_RECONSTRUCTED_FROM_ALL_REMOVED_COMMENT_LINES",
+    "context": 20,
+    "unique_complete_context_patches": 6,
+    "original_assertions_untouched": true
+  },
+  "raw_source_consumer_closure": {
+    "reads": [
+      [
+        "before_671.rs",
+        "before_524.rs"
+      ],
+      [
+        "historical_main_7f8.rs",
+        "before_524.rs"
+      ],
+      [
+        "before_7d34.rs",
+        "before_671.rs"
+      ],
+      [
+        "before_21abc.rs",
+        "before_7d34.rs"
+      ],
+      [
+        "before_3e66.rs",
+        "before_21abc.rs"
+      ],
+      [
+        "incoming_main3e66.rs",
+        "before_3e66.rs"
+      ],
+      [
+        "historical_builder.rs",
+        "before_671.rs"
+      ],
+      [
+        "historical_builder.rs",
+        "before_7d34.rs"
+      ],
+      [
+        "historical_builder.rs",
+        "before_21abc.rs"
+      ]
+    ],
+    "added": [
+      "tests/wasm/scalar_browser_ci_contract/historical_main_c11.rs",
+      "tests/wasm/scalar_browser_ci_contract/before_524.rs",
+      "tests/wasm/scalar_browser_ci_contract/before_671.rs",
+      "tests/wasm/scalar_browser_ci_contract/before_7d34.rs",
+      "tests/wasm/scalar_browser_ci_contract/before_21abc.rs"
+    ],
+    "new_replacements": [
+      "tests/wasm/scalar_browser_ci_contract/historical_main_7f8.rs",
+      "tests/wasm/scalar_browser_ci_contract/browser_custody.rs",
+      "tests/wasm/scalar_browser_ci_contract/before_3e66.rs",
+      "tests/wasm/scalar_browser_ci_contract/incoming_main3e66.rs"
+    ],
+    "whole_comment_blocks_with_exact_inverse": [
+      [
+        "// Bound from the final original-parser source union; this draft grants no paths.\n",
+        "const REPLACEMENTS: &[&str] = &[\n"
+      ],
+      [
+        "// Canonical object keys only; arrays (including every inventory) keep their order.\n",
+        "fn canonical(value: &Value) -> Vec<u8> {\n"
+      ],
+      [
+        "    // This also rejects duplicate keys, alternate escaping, trailing bytes and alternate whitespace: none can reserialize to these exact complete bytes.\n",
+        "    require!(\n"
+      ],
+      [
+        "// One bounded immutable JSON DATA object, never a cached admission verdict. Callers still acquire fresh regular handles and authenticate every live byte before arriving here. Even hits repeat canonical equality on those new bytes.\n",
+        "struct PageData {\n"
+      ],
+      [
+        "        // Preserve the original complete parser and duplicate/canonical check. Failed or changed input can never receive the prior parsed object.\n",
+        "        let parsed = Arc::new(json(raw)?);\n"
+      ],
+      [
+        "    // Original metadata is read as metadata. It is never substituted for a changed physical Rust source, and it retains its original individual cap.\n",
+        "    let extension = include_str!(\"../../docs/evidence/fmt-local-441-20261018/extension.json\");\n"
+      ],
+      [
+        "    // Original metadata is read as metadata. It is never substituted for a\n    // changed physical Rust source, and it retains its original individual cap.\n",
+        "    let extension = include_str!(\"../../docs/evidence/fmt-local-441-20261018/extension.json\");\n"
+      ],
+      [
+        "    // Metadata replay precedes current validation. No old physical source is read to establish the current source; only the composed row is then admitted.\n",
+        "    let packet = compose_values(super::packet_before_overlay(), &policy, &page).unwrap();\n"
+      ]
+    ],
+    "all_original_assertions_and_source_fields_retained": true
+  },
+  "page": {
+    "status": "ORIGINAL_CURRENT_CODEC_COMPOSITION_PASS_PENDING_PUBLICATION",
+    "base_head": "ef1836d25f8340ac3b9c158d0f7c1afae65a4bbf",
+    "rows": 694,
+    "page_bytes": 246975,
+    "published_current_preserved_as_exact_views": [
+      {
+        "source": "tests/wasm/scalar_browser_ci_contract/historical_main_7f8.rs",
+        "view": {
+          "length": 6580,
+          "sha256": "f0099fedb7e8a27872b93e90f4d710b8f7d8c72a010e3642d5509febf4806b15",
+          "archive": "docs/evidence/fmt-a110/8Amf7bfoonhyuT6Q9NcQuPfYxyoBDjZC1VCf6_SAaxU.txt",
+          "name": "whole-pre-browser-source-ef1836d25f"
+        }
+      },
+      {
+        "source": "tests/wasm/scalar_browser_ci_contract/browser_custody.rs",
+        "view": {
+          "length": 15316,
+          "sha256": "9c39a88b6975bdec098d16360e1dd01459a5e8928f2691b0c8e7755ce50adb81",
+          "archive": "docs/evidence/fmt-a110/nDmoi2l1vewJjRY2Dh3QFFml6JKPJpGwyOd1XOUK24E.txt",
+          "name": "whole-pre-browser-source-ef1836d25f"
+        }
+      },
+      {
+        "source": "src/source_reflows_merge/main_e177_overlay_compiled.rs",
+        "view": {
+          "length": 50558,
+          "sha256": "bdfb5a864270afcc6ce464f109e2b6786699f80e8822466d802efb5f59029e60",
+          "archive": "docs/evidence/expression-facts-source-stage-20261021/current/bdfb5a864270afcc6ce464f109e2b6786699f80e8822466d802efb5f59029e60.txt",
+          "name": "whole-pre-browser-source-ef1836d25f"
+        }
+      },
+      {
+        "source": "tests/wasm/scalar_browser_ci_contract/before_3e66.rs",
+        "view": {
+          "length": 5295,
+          "sha256": "b052603b549318e45f3cae0e1f3afd1c385366dac535eb9cd1e9084d4a06cec2",
+          "archive": "docs/evidence/main-e177-final-source-binding-20261017/current/b052603b549318e45f3cae0e1f3afd1c385366dac535eb9cd1e9084d4a06cec2.txt",
+          "name": "whole-pre-browser-source-ef1836d25f"
+        }
+      },
+      {
+        "source": "tests/wasm/scalar_browser_ci_contract/incoming_main3e66.rs",
+        "view": {
+          "length": 7835,
+          "sha256": "e022a8ffcacaa3694673da21f6d4ed96269a57eac901da1b5e705dc1ab5483b5",
+          "archive": "docs/evidence/fmt-a110/4CKo_8rKo2lGc9oh9tTtliaaV-rJAdobXnBdwatUg7U.txt",
+          "name": "whole-pre-browser-source-ef1836d25f"
+        }
+      },
+      {
+        "source": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+        "view": {
+          "length": 49025,
+          "sha256": "203ab382b5154094e971ca0192b8dd1bfb8dee9fa5df9f57b07ec103c5ca0761",
+          "archive": "e/203ab382b5154094e971ca0192b8dd1bfb8dee9fa5df9f57b07ec103c5ca0761",
+          "name": "whole-pre-browser-source-ef1836d25f"
+        }
+      }
+    ],
+    "all_previous_fields_views_memberships_and_fragment_edges_retained": true,
+    "all_original_codec_bodies_and_caps_unchanged": true
+  },
+  "clippy": {
+    "status": "PASS_ACTUAL_SOURCE_HARNESS_CLIPPY_WARNINGS_DENIED",
+    "peakKiB": 520048
+  },
+  "extra_validation": [
+    "Actual browser harness Clippy with warnings denied passed; peak347008KiB.",
+    "All180 approved source reflows pass.",
+    "Both original complete compiled-lookup undo/hostile controls pass.",
+    "Finite-page physical/compiled/archive channel gate passes.",
+    "rustfmt and git diff --check pass."
+  ],
+  "full_ci_green_or_runtime_budget_recovery_claimed": false,
+  "all_original_budgets_caps_diagnostics_goldens_and_source_guard_predicates_unchanged": true
+}

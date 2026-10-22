@@ -1,5 +1,9 @@
 # Finite final acquisition for the complete MAIN21 Python checker
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 This is a read-only adapter for the complete original MAIN21 `check-source.py`.
 The original checker stays unchanged and is retained as a whole independently
 hashed preimage. Four exact substitutions acquire historical bytes at its

@@ -1,5 +1,9 @@
 # #854 acceptance controls (unexecuted)
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base: `2c4306e1b19c9899a4b11abe7ca1e604f91fde15`.
 
 The literal issue requires independently constructed equivalent roots; complete

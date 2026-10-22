@@ -1,5 +1,9 @@
 # Source-only review (nothing executed)
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 ## Blockers (verify first; each depends on code not pasted)
 
 1. **The new `Drop for DeclarationIndex` is not in the paste.** This is the code under review. I can't confirm any of these claims:

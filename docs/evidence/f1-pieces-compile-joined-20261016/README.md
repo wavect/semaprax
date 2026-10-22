@@ -1,5 +1,9 @@
 # Main-f1, paid compile corrections and audit-piece transport join
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 This finite checkpoint combines reviewed Main-f1 reconciliation253, the three bc6 compile corrections and #798 piece transport. Main24 is known later work and is outside this checkpoint. No Rust/Cargo run, memory benefit or new application admission is claimed.
 
 The outer runtime source frame restores the complete modified preexisting253 namespace before its independent Main/b5 source guards. Separate metadata views restore the complete modified preexisting798 namespace and exactly the three compile-correction inputs. These views do not serialize unrelated component histories. All original component packets remain immutable.

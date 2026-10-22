@@ -1,0 +1,102 @@
+{
+  "status": "PASS_ALL_CHANNELS_RESTORED",
+  "cases": [
+    {
+      "source": "src/workspace_graph/expected_projection/call_carriers.rs",
+      "channel": "physical-drift",
+      "path": "src/workspace_graph/expected_projection/call_carriers.rs",
+      "extension": false,
+      "status": "REJECTED",
+      "complete_original_restored_sha256": "d0f832f517a6037e1c3f8c7f5b1cca79af990ed2837b8c29b38903cb4baa6033"
+    },
+    {
+      "source": "src/workspace_graph/expected_projection/call_carriers.rs",
+      "channel": "physical-extension",
+      "path": "src/workspace_graph/expected_projection/call_carriers.rs",
+      "extension": true,
+      "status": "REJECTED",
+      "complete_original_restored_sha256": "d0f832f517a6037e1c3f8c7f5b1cca79af990ed2837b8c29b38903cb4baa6033"
+    },
+    {
+      "source": "src/workspace_graph/expected_projection/call_carriers.rs",
+      "channel": "current-archive",
+      "path": "docs/evidence/rustfmt-20261021/current/d0f832f517a6037e1c3f8c7f5b1cca79af990ed2837b8c29b38903cb4baa6033.txt",
+      "extension": false,
+      "status": "REJECTED",
+      "complete_original_restored_sha256": "d0f832f517a6037e1c3f8c7f5b1cca79af990ed2837b8c29b38903cb4baa6033"
+    },
+    {
+      "source": "src/workspace_graph/expected_projection/call_carriers.rs",
+      "channel": "complete-prior-archive",
+      "path": "e/84802a57f88f708bbc10da608f169ebedba8307677b2e6858cd8e0850c505aaa",
+      "extension": false,
+      "status": "REJECTED",
+      "complete_original_restored_sha256": "84802a57f88f708bbc10da608f169ebedba8307677b2e6858cd8e0850c505aaa"
+    },
+    {
+      "source": "src/workspace_graph/expected_projection/borrowed_imports/typed.rs",
+      "channel": "physical-drift",
+      "path": "src/workspace_graph/expected_projection/borrowed_imports/typed.rs",
+      "extension": false,
+      "status": "REJECTED",
+      "complete_original_restored_sha256": "ad172362be3655aacfef822c2834f76d08a2119d33f5774f611058ca7998792b"
+    },
+    {
+      "source": "src/workspace_graph/expected_projection/borrowed_imports/typed.rs",
+      "channel": "physical-extension",
+      "path": "src/workspace_graph/expected_projection/borrowed_imports/typed.rs",
+      "extension": true,
+      "status": "REJECTED",
+      "complete_original_restored_sha256": "ad172362be3655aacfef822c2834f76d08a2119d33f5774f611058ca7998792b"
+    },
+    {
+      "source": "src/workspace_graph/expected_projection/borrowed_imports/typed.rs",
+      "channel": "current-archive",
+      "path": "docs/evidence/compile-gates-20261021/current/ad172362be3655aacfef822c2834f76d08a2119d33f5774f611058ca7998792b.txt",
+      "extension": false,
+      "status": "REJECTED",
+      "complete_original_restored_sha256": "ad172362be3655aacfef822c2834f76d08a2119d33f5774f611058ca7998792b"
+    },
+    {
+      "source": "src/workspace_graph/expected_projection/borrowed_imports/typed.rs",
+      "channel": "complete-prior-archive",
+      "path": "e/78e0166bad3ffd1a7a4594f52a9f4be0287dae4bf3d6d56f2964820df0a797f1",
+      "extension": false,
+      "status": "REJECTED",
+      "complete_original_restored_sha256": "78e0166bad3ffd1a7a4594f52a9f4be0287dae4bf3d6d56f2964820df0a797f1"
+    },
+    {
+      "source": "src/workspace_graph/expected_projection/borrowed_imports/tests/full/publication.rs",
+      "channel": "physical-drift",
+      "path": "src/workspace_graph/expected_projection/borrowed_imports/tests/full/publication.rs",
+      "extension": false,
+      "status": "REJECTED",
+      "complete_original_restored_sha256": "f30d8ceea4d53421be07e2eec5610b9c5f0ac05ff06005f67c74028128157149"
+    },
+    {
+      "source": "src/workspace_graph/expected_projection/borrowed_imports/tests/full/publication.rs",
+      "channel": "physical-extension",
+      "path": "src/workspace_graph/expected_projection/borrowed_imports/tests/full/publication.rs",
+      "extension": true,
+      "status": "REJECTED",
+      "complete_original_restored_sha256": "f30d8ceea4d53421be07e2eec5610b9c5f0ac05ff06005f67c74028128157149"
+    },
+    {
+      "source": "src/workspace_graph/expected_projection/borrowed_imports/tests/full/publication.rs",
+      "channel": "current-archive",
+      "path": "docs/evidence/projection344-reader-20261021/current/f30d8ceea4d53421be07e2eec5610b9c5f0ac05ff06005f67c74028128157149.txt",
+      "extension": false,
+      "status": "REJECTED",
+      "complete_original_restored_sha256": "f30d8ceea4d53421be07e2eec5610b9c5f0ac05ff06005f67c74028128157149"
+    },
+    {
+      "source": "src/workspace_graph/expected_projection/borrowed_imports/tests/full/publication.rs",
+      "channel": "complete-prior-archive",
+      "path": "e/569dca7d1273c3c4cfbd1eda7b6ed9e3909db7cd607556eddb7c515838078a5f",
+      "extension": false,
+      "status": "REJECTED",
+      "complete_original_restored_sha256": "569dca7d1273c3c4cfbd1eda7b6ed9e3909db7cd607556eddb7c515838078a5f"
+    }
+  ],
+  "foreign_compiled_bytes_and_request_tuples": "Actual unchanged new regression test covers malformed, extended, truncated compiled bytes and each length/hash/source mismatch."
+}

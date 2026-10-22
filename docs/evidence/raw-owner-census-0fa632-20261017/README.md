@@ -1,5 +1,9 @@
 # Complete newly tracked Rust owner census
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only additive repair based on 0fa63204bc67d3c35245a8634b90c7ecd4984707. The original refresh owner definition is retained: tracked Rust paths below src/ or tests/wasm/ that did not exist in domain0's immutable 16c6b7f56b145ed085e4e7964caa3b1716159375 tree. All 159 subjects were checked against every actual raw inventory. Exactly two were missing from each: src/loop_calls/byte_writer/tests/string_slots.rs and tests/wasm/scalar_browser_ci_contract/before_21abc.rs.
 
 Both are inserted into the real first audit payload after incoming_flat_targets.rs, in the same physical line. Every original byte/order/include count and sentinel remains; native remains exactly 1500 lines. Main043 required/maximum add precisely one for each subject in each scope; every original entry is unchanged. The original strict guard parser is unchanged. The complete historical raw guards still restore exactly. Six actual added occurrences were each mutated with a duplicate and foreign token; all twelve refuse through the actual unchanged verifier.

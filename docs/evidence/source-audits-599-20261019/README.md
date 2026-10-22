@@ -1,5 +1,9 @@
 # Exact source views before unchanged historical audits
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The schema inventory source audit now requests its existing `before-a110-format` view before running the complete original inventory inverse and every original assertion. The incoming source route requests the two existing formatting views for the clone-cursor and Wasm semantic-work subjects before entering its unchanged earlier input selection. Unknown paths and supplied source drift retain their original refusal behavior.
 
 Every original statement and hostile case remains. Removing only the named inserted source-view acquisitions reconstructs the complete prior Rust modules. The 15-row incoming table, domain rules, full inverse offsets, hashes, reader caps, allocation checks, and runtime behavior are unchanged. The API authenticates the complete current physical and compiled sources and their archives before returning the exact registered view.

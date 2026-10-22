@@ -21,6 +21,16 @@ fn restore(current: &str, before: &str, length: usize, edits: &[(usize, &str, &s
     result
 }
 pub(super) fn previous_owner(current: &str) -> String {
+    if !exact_main_subject(
+        current,
+        22498,
+        "c8f66d4154fd2ed0bb830b4bcecb2c9153949b9c636ea2d4fc8977edfbf130f8",
+    ) {
+        return previous_owner_before_independent(current);
+    }
+    previous_owner_before_independent(&independent_segments::previous_owner(current))
+}
+fn previous_owner_before_independent(current: &str) -> String {
     let stage = super::super::incoming_stage(
         current,
         "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs",
@@ -50,6 +60,16 @@ const OWNER: &[(usize, &str, &str)] = &[
     (15182, "                    'paired_observations: loop {\n", "                    loop {\n"),
 ];
 pub(super) fn previous_macro(current: &str) -> String {
+    if !exact_main_subject(
+        current,
+        33725,
+        "768c23a10fcec91ef7dfdbd67dabd64885266291f236c66efd0e80ad21b29b6e",
+    ) {
+        return previous_macro_before_independent(current);
+    }
+    previous_macro_before_independent(&independent_segments::previous_macro(current))
+}
+fn previous_macro_before_independent(current: &str) -> String {
     let stage = super::super::incoming_stage(
         current,
         "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor.rs",
@@ -81,6 +101,16 @@ const MACRO: &[(usize, &str, &str)] = &[
     (261, "// Two final-HIR readers and three paired branches each retain every work site.\n// The paired branches transport plain immutable Rc loans without Option outputs.\n", "// Four expansions each have forward+segment work and STEP+LOAD+TAIL payment.\n"),
 ];
 pub(super) fn previous_census(current: &str) -> String {
+    if !exact_main_subject(
+        current,
+        22294,
+        "38549d9a47ec78e4f1153bdc27f04944a05a7a4d40ab284550f4b210d9cb0570",
+    ) {
+        return previous_census_before_independent(current);
+    }
+    previous_census_before_independent(&independent_segments::previous_census(current))
+}
+fn previous_census_before_independent(current: &str) -> String {
     let stage = super::super::incoming_stage(
         current,
         "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_census.rs",
@@ -109,6 +139,16 @@ const CENSUS: &[(usize, &str, &str)] = &[
     (592, "    pub pair_left_steps: usize,\n    pub pair_right_steps: usize,\n    pub pair_left_tails: usize,\n    pub pair_right_tails: usize,\n    pub pair_receivers: usize,\n", ""),
 ];
 pub(super) fn previous_pair_tests(current: &str) -> String {
+    if !exact_main_subject(
+        current,
+        55874,
+        "2ef71d1a1613cab3e894b35d5aa07f9207e81917557827e10bc84a2e988dda0a",
+    ) {
+        return previous_pair_tests_before_independent(current);
+    }
+    previous_pair_tests_before_independent(&independent_segments::previous_pair_tests(current))
+}
+fn previous_pair_tests_before_independent(current: &str) -> String {
     let stage = super::super::incoming_stage(
         current,
         "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_tests.rs",
@@ -137,6 +177,16 @@ const PAIR_TESTS: &[(usize, &str, &str)] = &[
     (7288, "    let (reader_removed, reader_retained) = fused_reader_prices(paths, row);\n", ""),
 ];
 pub(super) fn previous_route(current: &str) -> String {
+    if !exact_main_subject(
+        current,
+        36241,
+        "9e0b85cb25e817c7e7c87ef86455819f54c7b9657df6064165d41c99f5f0592d",
+    ) {
+        return previous_route_before_independent(current);
+    }
+    previous_route_before_independent(&independent_segments::previous_route(current))
+}
+fn previous_route_before_independent(current: &str) -> String {
     let stage = super::super::incoming_stage(
         current,
         "src/bounded_output/stage_debits/route_debits.rs",
@@ -433,4 +483,15 @@ mod tests {
             assert!(std::panic::catch_unwind(|| previous_controls(&outside)).is_err());
         }
     }
+}
+
+// Preserve both independently fixed source stages; unknown bodies are never
+// repaired by the main-only inverse before the ordinary full comparison.
+fn exact_main_subject(current: &str, length: usize, expected: &str) -> bool {
+    use sha2::{Digest, Sha256};
+    current.len() == length
+        && format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))
+        ) == expected
 }

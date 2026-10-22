@@ -1,0 +1,26 @@
+{
+  "status": "PASS",
+  "actual_selected_test_names": [
+    "source_reflows_merge::merge_projection_selects_only_the_requested_complete_current_view",
+    "source_reflows::a_changed_current_byte_is_refused_before_an_inverse_can_hide_it",
+    "source_reflows::semantic_receivers::receiver_mutation_and_forged_predecessor_fail_closed",
+    "source_reflows::incoming67107_semantic_receivers::complete_main34d_inputs_keep_all_domains_and_refuse_wrong_source_and_bounded_io",
+    "source_reflows::semantic_receivers::allocation_followup_preserves_the_complete_original_format_input"
+  ],
+  "actual_log": "focused.log",
+  "combined_run_result": [
+    "test result: FAILED. 44 passed; 9 failed; 0 ignored; 0 measured; 183 filtered out; finished in 599.39s"
+  ],
+  "known_remaining_failures": [
+    "source_reflows::incoming67107_semantic_receivers::complete_followup_receivers_keep_all_original_source_bytes",
+    "source_reflows::incoming67107_semantic_receivers::every_receiver_inverse_preserves_the_entire_reflow_input_and_archive",
+    "source_reflows::main_f247_controllers::held_status_views_preserve_complete_original_inputs_and_validation_loops",
+    "source_reflows::semantic_receivers::complete_followup_receivers_keep_all_original_source_bytes",
+    "source_reflows::semantic_receivers::incoming_main090::every_receiver_inverse_preserves_the_entire_reflow_input_and_archive",
+    "source_reflows::semantic_receivers::incoming_main090::receiver_mutation_and_forged_predecessor_fail_closed",
+    "source_reflows::semantic_receivers::incoming_main21::every_receiver_inverse_preserves_the_entire_reflow_input_and_archive",
+    "source_reflows::semantic_receivers::incoming_main21::receiver_mutation_and_forged_predecessor_fail_closed",
+    "source_reflows::semantic_receivers_maina3::every_receiver_inverse_preserves_the_entire_reflow_input_and_archive"
+  ],
+  "all_previously_passing_controls_retained": true
+}

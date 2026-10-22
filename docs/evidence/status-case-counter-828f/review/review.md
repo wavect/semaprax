@@ -1,3 +1,9 @@
+# review review
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 ## Findings (source-only; nothing compiled or run)
 
 ### Blockers

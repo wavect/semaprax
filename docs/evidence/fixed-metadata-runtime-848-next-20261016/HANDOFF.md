@@ -1,5 +1,9 @@
 # Fixed36 immutable source metadata — actual runtime-default source cut
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Successor of e204ec37dd0102c77da46139d106086e279e6c3e, ultimately0c942. Moves ONLY the remaining36 direct immutable JSON metadata files in source_reflows_merge (38literal occurrences): unique2,612,409B / occurrence-weighted2,808,359B. Source-only physical literal census, not compiler dedup/RSS causation. Main14 live/archive Rust inputs978,013B and browser6wire files59,364B remain untouched. No Cargo/runtime/build, no cap/fee/profile change.
 
 New metadata_json.rs is a private cfgtest child with36 fixed Fixture/Spec/path/length/SHA/key tables. No arbitrary-path entry, discovery/cache/global authority. runtime_json::metadata accepts ONLY that sealed sibling enum, then calls the original one-descriptor regular-file/exactmetadata-length/cap/read_exact/EOF/SHA/UTF8 reader. Full reader tail is byte-exact. All38 old project literal arguments mechanically become fixed-enum project calls; original pure project body, stage order, exact inverses/predecessor SHA/unique-edit assertions remain. Compiled exact key absence skips unused IO; matched routes authenticate full bytes before unchanged serde/project. Keys preserve duplicates and exact case/bytes, with no normalization. An all-file owner authenticates every fixed file's complete bytes and actual sorted key multiplicity, including all duplicate keys. It embeds no payload, only fixed metadata; missing/drifted files fail closed.

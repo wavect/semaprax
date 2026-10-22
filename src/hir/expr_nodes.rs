@@ -661,14 +661,61 @@ mod residual_payload_tests {
     #[test]
     fn residual_payload_compacts_the_complete_previous_expression_layout() {
         let saved = size_of::<ResolvedType>() - size_of::<Box<ResolvedType>>();
+        // These are the complete Try payloads: the operand, residual type and
+        // all five declaration identities. Boxing can remove the type's spare
+        // enum tags, so the enclosing enum may need a separate tag and padding.
+        let previous_payload =
+            size_of::<(Box<before::ResolvedExpr>, ResolvedType, [DeclarationId; 5])>();
+        let current_payload =
+            size_of::<(Box<ResolvedExpr>, ResolvedResidualType, [DeclarationId; 5])>();
+        assert_eq!(previous_payload - current_payload, saved);
         assert_eq!(
-            size_of::<before::ResolvedExprKind>() - size_of::<ResolvedExprKind>(),
-            saved
+            size_of::<ResolvedResidualType>(),
+            size_of::<Box<ResolvedType>>()
         );
-        assert_eq!(
-            size_of::<before::ResolvedExpr>() - size_of::<ResolvedExpr>(),
-            saved
-        );
+        let alignment = std::mem::align_of::<ResolvedExprKind>();
+        let previous_tag = size_of::<before::ResolvedExprKind>() - previous_payload;
+        let current_tag = size_of::<ResolvedExprKind>() - current_payload;
+        // Try must remain the largest payload. Its only possible extra storage
+        // is one aligned discriminant; an unrelated larger variant fails here.
+        assert!([0, alignment].contains(&previous_tag));
+        assert!([0, alignment].contains(&current_tag));
+        let complete_saved = saved + previous_tag - current_tag;
+        assert!(complete_saved > 0);
+        for (name, previous, current) in [
+            (
+                "expression kind",
+                size_of::<before::ResolvedExprKind>(),
+                size_of::<ResolvedExprKind>(),
+            ),
+            (
+                "expression",
+                size_of::<before::ResolvedExpr>(),
+                size_of::<ResolvedExpr>(),
+            ),
+            (
+                "statement",
+                size_of::<before::ResolvedStatement>(),
+                size_of::<super::ResolvedStatement>(),
+            ),
+            (
+                "field initializer",
+                size_of::<before::ResolvedFieldInitializer>(),
+                size_of::<super::ResolvedFieldInitializer>(),
+            ),
+            (
+                "match arm",
+                size_of::<before::ResolvedMatchArm>(),
+                size_of::<super::ResolvedMatchArm>(),
+            ),
+            (
+                "closure capture",
+                size_of::<before::ResolvedClosureCapture>(),
+                size_of::<super::ResolvedClosureCapture>(),
+            ),
+        ] {
+            assert_eq!(previous - current, complete_saved, "{name}");
+        }
         assert_eq!(
             std::mem::align_of::<before::ResolvedExpr>(),
             std::mem::align_of::<ResolvedExpr>()

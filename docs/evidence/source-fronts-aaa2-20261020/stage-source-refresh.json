@@ -1,0 +1,38 @@
+{
+  "source": "src/source_reflows/semantic_receivers_maina3.rs",
+  "before": {
+    "source": "src/source_reflows/semantic_receivers_maina3.rs",
+    "before": {
+      "length": 3739,
+      "sha256": "8dec599cd4b12121b968940b3de9e5af68735f626004b9839a508f677ac372ed",
+      "archive": "docs/evidence/clippy-4a6eb/jexZnNSxISG5aJQLPenlr2hzX2JgBLmDmlCPZ3rDcu0.txt"
+    },
+    "current": {
+      "length": 3871,
+      "sha256": "16b7d14b28a0c0700cdf1974751e18b8f4f26b10f17be110724128a71bd0cc4e",
+      "archive": "docs/evidence/clippy-4a6eb/FrfRSyigwHAM3xl0dR4YuPTyaxDxe-EQckEopxvQzE4.txt"
+    }
+  },
+  "current": {
+    "source": "src/source_reflows/semantic_receivers_maina3.rs",
+    "before": {
+      "length": 3739,
+      "sha256": "8dec599cd4b12121b968940b3de9e5af68735f626004b9839a508f677ac372ed",
+      "archive": "docs/evidence/clippy-4a6eb/jexZnNSxISG5aJQLPenlr2hzX2JgBLmDmlCPZ3rDcu0.txt"
+    },
+    "current": {
+      "length": 4203,
+      "sha256": "c0f63296ee66ae9fd95ef25e2d3e78d1caa3e58d38c629cce3e1bc203ac88ad4",
+      "archive": "docs/evidence/source-fronts-aaa2-20261020/whole/c0f63296ee66ae9fd95ef25e2d3e78d1caa3e58d38c629cce3e1bc203ac88ad4.txt"
+    },
+    "views": [
+      {
+        "name": "whole-aaa2-current",
+        "length": 3871,
+        "sha256": "16b7d14b28a0c0700cdf1974751e18b8f4f26b10f17be110724128a71bd0cc4e",
+        "archive": "docs/evidence/clippy-4a6eb/FrfRSyigwHAM3xl0dR4YuPTyaxDxe-EQckEopxvQzE4.txt"
+      }
+    ]
+  },
+  "original_121_row_contract_preserved": true
+}

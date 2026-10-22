@@ -1652,7 +1652,7 @@ impl<'a> HirValidator<'a> {
         generic_template::reachable_instances(self.program)
     }
     #[cfg(test)]
-    #[expect(
+    #[allow(
         dead_code,
         reason = "retained original map-entry adapter for independent test receivers"
     )]

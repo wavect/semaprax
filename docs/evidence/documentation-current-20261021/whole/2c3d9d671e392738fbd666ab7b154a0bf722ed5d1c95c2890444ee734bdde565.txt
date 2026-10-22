@@ -1,0 +1,11 @@
+# Exact source receiver namespace repair
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
+Base: ca5ffe48d442e59679eee2160f1903ceeae023c6. Three test-only Rust owners now select the requested, authenticated whole-source namespace before their original inverse or held-reader consumer. An already matching receiver input is not advanced into an older namespace. Five missing views are copied by exact length and SHA from the unchanged, independently sealed MAIN34d manifest. Every prior finite row/view and every original assertion and historical inverse remains present.
+
+Actual local execution: the original complete reflow reconstruction test, four original source/refusal/held-I/O tests, the new merge-boundary regression, and all nine original finite-page Rust tests pass. The actual source-root harness passes Clippy with warnings denied. Original source bodies, tests, hashes and low-level held readers are preserved by exact full-before edit inverses; only module/include path resolution changes in the isolated harness, with an exact byte inverse recorded.
+
+All project files, scratch, targets and test temporary files remain on the external SSD. One compiler ran at a time; final harness build peak 1,020,800 KiB, runtime checks at most 124,000 KiB. No production compiler selection, tariff, floor, bound, backend or authority changes. Hosted CI and the release PR merge remain required; this evidence is source-only and does not claim a green workflow.

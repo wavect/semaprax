@@ -1,5 +1,9 @@
 # Separate final PLAN source ingress
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 This source-only candidate adds one finite acquisition before the complete
 `787d9810480209532fa645b8cb97f2585ce5f426` PLAN stage. The six literal inputs
 are the existing `CURRENT` owners. Original 787 six-row stages, old six-row

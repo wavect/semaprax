@@ -1,0 +1,11 @@
+{
+  "status": "PASS_ORIGINAL_FULL_RECONSTRUCTION_TEST",
+  "test": "source_reflows::approved_reflows_authenticate_full_inputs_and_reconstruct_full_predecessors",
+  "runtime_peakKiB": 68448,
+  "compile_peakKiB": 1020800,
+  "minimum_available_percent": 71,
+  "seconds": 42.97,
+  "test_log_sha256": "0224b7e82144caf2b3a1fe2ee1313dcc84a5d90abb5a5532809385f89942d218",
+  "source_path_resolution_proof": "/Volumes/Semaprax/tmp/ci-38383508340/actual-source-harness-49ded/path-resolution-proof.json",
+  "full_CI_still_required": true
+}

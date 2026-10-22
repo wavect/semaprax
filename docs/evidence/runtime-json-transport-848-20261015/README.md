@@ -1,5 +1,9 @@
 # OPT848: bounded runtime projection JSON transport
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only successor of exact 9ccc0e2f18e15d4d72f46262b7a940a23a66500e. All 89 original distinct projection JSON fixtures remain byte-exact in Git: 93,590,460 bytes total. Their fixed path/length/SHA256 specs replace the 89 include_str! expressions in the test-only source helper. No original JSON, source-oracle assertion, old receiver, projection order, predecessor hash or unique-edit assertion is changed. `project()` itself is byte-exact. Eight match bindings now own a String and borrow it for the same project call.
 
 The loader has no production export and accepts only a private fixed enum. It opens one handle, requires regular-file metadata and the exact admitted length before buffer acquisition, enforces the5,081,115-byte fixed maximum, reserves once, reads exactly plus EOF, and validates the compiled SHA256 and UTF-8 before serde sees bytes. No global cache or fixture discovery. Each call releases its owned JSON text after the existing parser/project use. Runtime IO and its allocations are ordinary test setup, not compiler resource allowance or authority. Repeated reads are an explicit runtime filesystem dependency/tradeoff; there is no measured RAM/time/application-cap claim.

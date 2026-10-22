@@ -1,5 +1,9 @@
 # Production fused TAKE and copy traversal candidate
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 This is an unqualified source candidate for the production part of #879. It does not close the issue. The independently entered incoming direct clone helper has no production TAKE prepayment. Its original width-42, allocator, work and Drop assertions remain held unchanged in the external discovery packet; this candidate does not activate, rewrite, fund or claim to pass those tests.
 
 The existing ActiveBuilder call pays the complete original `TAKE_CALL_CONTROLS` plus `ADDITIONAL_CONTROLS` at its original reservation boundary. That reservation happens before TakeCandidate, the shape walk, Decision, or the copy-capacity receiver forms. There is no second capacity query after can_take. Non-ActiveBuilder callers continue through the original lexical clone. The old can_take method and its prices remain independently compiled, and before.rs compiles the whole original root producer with only test-module visibility added.

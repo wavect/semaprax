@@ -1,5 +1,9 @@
 # Ordinary schema summary adoption — source only
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Private implementation base: `c228bd6e184a02d7bbb2799b45154d4b4cd404e6`.
 The shipping parent owns ROOT. This candidate does not change paid constructors,
 Payer, inventory_summary's paid traversal, cleanup schema_summary's ordinary

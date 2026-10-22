@@ -1,5 +1,9 @@
 # Focused batch observation — 039b15f6
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Actual tested compiler source: `039b15f6a2a5e81110fefdc607dccf3478bf9263`. All five focused build commands passed (366.13 seconds). Exactly 258 selected test bodies ran: 204 passed, 54 failed. These results do not qualify the complete compiler batch. Full suites and quality gates were not run.
 
 The complete failure inventory is retained in `focused-summary.json`. Source reconstruction, physical receiving/work controls, unchanged-cap application admission, and identity retry still have failing owners; repairs are in private implementation lanes. No assertion, application requirement or resource cap was relaxed. No new live-agent comparison or token/cost advantage is claimed.

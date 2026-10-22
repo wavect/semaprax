@@ -1,5 +1,9 @@
 # Joined batch custody, 2026-10-16
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only integration of the complete incoming Main043 domain and the private
 current344 direct-reader, owning-fixture, residual855, cache call-site, bounded
 JSON task722 and checked-key853 fixes. All historical receipts and source

@@ -1,5 +1,9 @@
 # Accepted current source-role binding
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The live current owner inventory retains all 173 previous owners and adds the
 11 actual new physical Rust modules, including the existing workspace harness
 child. Current owners total 184. Frozen historical membership remains 174.

@@ -1,0 +1,21 @@
+[
+  {
+    "domain": "hir",
+    "changed_source_pins": [
+      "src/source_reflows_merge/main_e177_overlay_v2.rs"
+    ],
+    "rebound_existing_edges": 0,
+    "all_old_source_membership_roles_and_exact_edge_text_retained": true,
+    "module_function_and_include_registration_unchanged": true
+  },
+  {
+    "domain": "projection",
+    "changed_source_pins": [
+      "src/hir/expr_nodes.rs",
+      "src/source_reflows_merge/main_e177_overlay_v2.rs"
+    ],
+    "rebound_existing_edges": 0,
+    "all_old_source_membership_roles_and_exact_edge_text_retained": true,
+    "module_function_and_include_registration_unchanged": true
+  }
+]

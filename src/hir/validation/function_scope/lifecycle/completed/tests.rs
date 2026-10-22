@@ -345,21 +345,36 @@ fn complete_frozen_function_receiver_is_exact_named_projection_with_original_dig
     // Unregistered compiled source: authenticate the ENTIRE current input,
     // reverse only these exact optional observer adapters, then preserve every
     // original whole-before assertion and old inverse below. No page admission.
-    let debit_digest = |text: &str| format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(text.as_bytes())));
+    let debit_digest = |text: &str| {
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(text.as_bytes()))
+        )
+    };
     assert_eq!(legacy.len(), 3938);
-    assert_eq!(debit_digest(&legacy), "d043c680becb6e6385559f4d0d8e86e5eff79f5dbdca72cfbe97b058cc18d8bd");
-    for (start, end, current, previous) in [
-        (396, 615, r########"    );
+    assert_eq!(
+        debit_digest(&legacy),
+        "d043c680becb6e6385559f4d0d8e86e5eff79f5dbdca72cfbe97b058cc18d8bd"
+    );
+    {
+        let (start, end, current, previous) = (
+            396,
+            615,
+            r########"    );
     #[cfg(feature = "unstable-workflow-profiling")]
     let _exclusive_operation = crate::bounded_output::exclusive_debits::operation_guard(
         crate::bounded_output::exclusive_debits::Operation::Lifecycle,
-"########, r########""########),
-    ] {
+"########,
+            r########""########,
+        );
         assert_eq!(legacy.get(start..end), Some(current));
         legacy.replace_range(start..end, previous);
     }
     assert_eq!(legacy.len(), 3719);
-    assert_eq!(debit_digest(&legacy), "4359a3991e559f31cbb1ad650886ed3433270cbf17ce535169b3ff04fe64027a");
+    assert_eq!(
+        debit_digest(&legacy),
+        "4359a3991e559f31cbb1ad650886ed3433270cbf17ce535169b3ff04fe64027a"
+    );
     for (current, original) in [
         (
             "#[cfg(test)]\npub(super) fn extend_funded(",

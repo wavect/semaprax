@@ -1,5 +1,9 @@
 # Branch receiving constructor cut (source-only)
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base: `2d4b68d3a416cae5fba6ac08498cd56721878ba1`.
 No Rust compilation, test execution, application success, or measured saving is claimed.
 

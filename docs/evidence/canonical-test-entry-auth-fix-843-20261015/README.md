@@ -1,5 +1,9 @@
 # Test-only canonical entry owner ordering repair
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The actual frozen3d4b singleton foreign/nested owner control failed because the
 single-request cfg(test) id wrapper acquired a new ClosureReceiving before the
 held Memo rejected the foreign scope. It therefore queried and charged a payer

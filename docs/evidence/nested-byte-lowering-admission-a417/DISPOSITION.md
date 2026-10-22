@@ -1,5 +1,9 @@
 # Bounded review disposition
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only; no Cargo or test execution. One tool-disabled Sonnet process returned in 81.835s, peak319995904 bytes; raw payload/result/receipt preserved. Actual billing unknown (provider list cost0.121614USD).
 
 1. Stale entry-name/current shadow was a concrete defensive gap. The actual scheduler now independently requires an active byte ancestor's source to satisfy bytes::admits AND retain the exact outer-entry Binding.id. It selects the unchanged nested-for H006 before source type/mutability/body lowering. A new direct actual-schedule hostile control replaces the same-name current binding with another immutable Slice ID, scalar ID and mutable variants, asserting no body frames created; raw shadow source controls also remain. The outer scan still does not grant ownership authority: late full HIR census is unchanged.

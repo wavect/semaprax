@@ -1,5 +1,9 @@
 # Main531 reconciliation — source only
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 This private merge retains both2d4b and actualMain531 ancestry. Do not merge it into frozenROOT until the parent releases the active50-owner qualification. No current-round receipts or source were touched.
 
 Production keeps its complete direct singleton path. Main's alternative grouping path still constructs/drops a control key and pays a Groups carrier; the existing direct path removes those absent constructors while retaining join work, validators, transitions and scheduling. The production path_join root differs from2d4b only by a cfg(test) module registration. Complete Mainpath_join/grouping/key/oldboxed/previous receiver and original controls are compiled independently under path_join::main_single_groups. Main storage and branch_join plus all actual storage children remain physically byte-exactMain and use the same original PathState/ReturnedSource/conditional-variant types; explicit aliases avoid duplicating unchanged implementations. Mainboxed remains its independent free-function receiver, never routed through modern Insertions.

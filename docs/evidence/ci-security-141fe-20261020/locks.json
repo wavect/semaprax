@@ -1,0 +1,218 @@
+[
+  {
+    "path": "Cargo.lock",
+    "sha256": "73baeb3370060039fa884b5fbd6e4bbd506f86e8e3a9b926abdca2bcb856c443",
+    "patched_packages": [
+      {
+        "name": "rustls-webpki",
+        "version": "0.103.16"
+      },
+      {
+        "name": "webpki-root-certs",
+        "version": "1.0.10"
+      },
+      {
+        "name": "webpki-roots",
+        "version": "1.0.10"
+      }
+    ]
+  },
+  {
+    "path": "platform-tests/component-runtime/Cargo.lock",
+    "sha256": "27d797c831b545effabd23d90d131351dda3f61db5ead578056971dac9eeaa8f",
+    "patched_packages": [
+      {
+        "name": "rustls-webpki",
+        "version": "0.103.16"
+      },
+      {
+        "name": "wasmtime",
+        "version": "48.0.7"
+      },
+      {
+        "name": "webpki-root-certs",
+        "version": "1.0.10"
+      },
+      {
+        "name": "webpki-roots",
+        "version": "1.0.10"
+      }
+    ]
+  },
+  {
+    "path": "platform-tests/public-scalar-wit-interface/Cargo.lock",
+    "sha256": "816f677ce9e9837b7c63c2e11ad359c770dd8c53af4007e0ab305382c4508642",
+    "patched_packages": [
+      {
+        "name": "rustls-webpki",
+        "version": "0.103.16"
+      },
+      {
+        "name": "webpki-root-certs",
+        "version": "1.0.10"
+      },
+      {
+        "name": "webpki-roots",
+        "version": "1.0.10"
+      }
+    ]
+  },
+  {
+    "path": "examples/embedding-api/Cargo.lock",
+    "sha256": "c0d1cee849f11cd726bb1a25828be3637cd1c681e6fccf9d86d0bef11750e06e",
+    "patched_packages": [
+      {
+        "name": "rustls-webpki",
+        "version": "0.103.16"
+      },
+      {
+        "name": "webpki-root-certs",
+        "version": "1.0.10"
+      },
+      {
+        "name": "webpki-roots",
+        "version": "1.0.10"
+      }
+    ]
+  },
+  {
+    "path": "examples/owned-data-rust/Cargo.lock",
+    "sha256": "d0a578bfce5651cc3e0ee283db6752e2916774bef26b8a752ed9527b7cf060ef",
+    "patched_packages": [
+      {
+        "name": "rustls-webpki",
+        "version": "0.103.16"
+      },
+      {
+        "name": "webpki-root-certs",
+        "version": "1.0.10"
+      },
+      {
+        "name": "webpki-roots",
+        "version": "1.0.10"
+      }
+    ]
+  },
+  {
+    "path": "examples/ri13-combined-app/linked/Cargo.lock",
+    "sha256": "917f03289c5eea28b1882d4ce3fd9c5a93a44d1dca9f3b2b8ec7a18d95da4ff5",
+    "patched_packages": [
+      {
+        "name": "rustls-webpki",
+        "version": "0.103.16"
+      },
+      {
+        "name": "webpki-root-certs",
+        "version": "1.0.10"
+      },
+      {
+        "name": "webpki-roots",
+        "version": "1.0.10"
+      }
+    ]
+  },
+  {
+    "path": "examples/ri13-combined-app/linked/prepare/Cargo.lock",
+    "sha256": "c0870004e8ca868857744f6d495986cff0209b51b5f7dd9b023acb5a8e739974",
+    "patched_packages": [
+      {
+        "name": "rustls-webpki",
+        "version": "0.103.16"
+      },
+      {
+        "name": "webpki-root-certs",
+        "version": "1.0.10"
+      },
+      {
+        "name": "webpki-roots",
+        "version": "1.0.10"
+      }
+    ]
+  },
+  {
+    "path": "examples/ri13-m1-regex-url/prepare/Cargo.lock",
+    "sha256": "263e8b93c0aa3f85303963c3b57a026150f09bae377e2f3c3905a13bca6d3550",
+    "patched_packages": [
+      {
+        "name": "rustls-webpki",
+        "version": "0.103.16"
+      },
+      {
+        "name": "webpki-root-certs",
+        "version": "1.0.10"
+      },
+      {
+        "name": "webpki-roots",
+        "version": "1.0.10"
+      }
+    ]
+  },
+  {
+    "path": "examples/ri13-m2-record-iterator/Cargo.lock",
+    "sha256": "745b5a473811dd3305855f20d49e111653d4f88c93b97b72522288f30e18ee8c",
+    "patched_packages": [
+      {
+        "name": "rustls-webpki",
+        "version": "0.103.16"
+      },
+      {
+        "name": "webpki-root-certs",
+        "version": "1.0.10"
+      },
+      {
+        "name": "webpki-roots",
+        "version": "1.0.10"
+      }
+    ]
+  },
+  {
+    "path": "examples/calculator-rust/Cargo.lock",
+    "sha256": "3400049627e41c907d47c99d71f9b3619fab7e6d3a2e93454639b906605f363e",
+    "patched_packages": [
+      {
+        "name": "rustls-webpki",
+        "version": "0.103.16"
+      },
+      {
+        "name": "webpki-root-certs",
+        "version": "1.0.10"
+      },
+      {
+        "name": "webpki-roots",
+        "version": "1.0.10"
+      }
+    ]
+  },
+  {
+    "path": "examples/ri13-m3-local-http/Cargo.lock",
+    "sha256": "bbf1359d2a8b77025858839d776da3dbbef2d5ebeff3aeff12a1689f6754ad02",
+    "patched_packages": [
+      {
+        "name": "rustls-webpki",
+        "version": "0.103.16"
+      },
+      {
+        "name": "webpki-root-certs",
+        "version": "1.0.10"
+      },
+      {
+        "name": "webpki-roots",
+        "version": "1.0.10"
+      }
+    ]
+  },
+  {
+    "path": "crates/semaprax-native-rust-interop-builder/src/public_sdk/fixtures/ri09-reqwest/Cargo.lock",
+    "sha256": "4dd894c30aef427dd5791784874d539b9b2e905e03f467f657b13cc561664b7a",
+    "patched_packages": [
+      {
+        "name": "rustls-webpki",
+        "version": "0.103.16"
+      },
+      {
+        "name": "webpki-root-certs",
+        "version": "1.0.10"
+      }
+    ]
+  }
+]

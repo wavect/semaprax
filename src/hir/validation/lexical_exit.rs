@@ -180,9 +180,9 @@ pub(super) const WITNESS_JOIN: usize = PAYMENT
     + std::mem::size_of::<&ResolvedExpr>() // selected already-validated witness
     + std::mem::size_of::<Option<&ResolvedExpr>>() // replacement initializer
     + 4 * std::mem::size_of::<bool>(); // two Never tests, ownership, replacement test
-// Each immutable Vec field produces its pattern binding, then the actual and
-// formal Deref receiver and returned/received exact old slice view. Subsequent
-// len/index/substitution operations retain their original slice types.
+                                       // Each immutable Vec field produces its pattern binding, then the actual and
+                                       // formal Deref receiver and returned/received exact old slice view. Subsequent
+                                       // len/index/substitution operations retain their original slice types.
 const ARMS_VIEW: usize = 3 * std::mem::size_of::<&Vec<ResolvedMatchArm>>()
     + 2 * std::mem::size_of::<&[ResolvedMatchArm]>();
 const ARGUMENTS_VIEW: usize =

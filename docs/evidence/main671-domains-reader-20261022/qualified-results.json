@@ -1,0 +1,17 @@
+[
+  {
+    "name": "source_reflows_merge::main67107_inputs::complete_main_domains_and_both_unit_namespaces_are_preserved",
+    "status": "PASS",
+    "peakKiB": 53776
+  },
+  {
+    "name": "source_reflows_merge::main_e177_final_inputs::overlay_v2::compiled_sources::tests::compiled_lookup_split_preserves_the_complete_predecessor_and_every_old_mapping",
+    "status": "PASS",
+    "peakKiB": 2384
+  },
+  {
+    "name": "source_reflows_merge::main_e177_final_inputs::overlay_v2::compiled_sources::tests::compiled_lookup_split_refuses_child_parent_span_eof_and_duplicate_glue",
+    "status": "PASS",
+    "peakKiB": 3696
+  }
+]

@@ -1,0 +1,7 @@
+# Preserve the actual >1MiB comment in a canonical admitted source
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
+The owning builder uses parse_with_comments + canonical_comparison. The prior fixture canonicalized only the declaration then appended a blank line/comment; its whole source was not comment-canonical (actualG170 archived). The fixture now uses the existing canonical_with_comments on the complete comment-bearing source. It asserts one full1,048,576-byte comment, leaf length>1MiB, exact retained comment text after reparsing and canonical idempotence. Every original ordinary admission/HIR/schema/import/link assertion and selected static-helper refusal remains unchanged. No comment stripping, production change, cap change or new test selector. Full old fixture source remains immutable here. No Rust execution; final outer source custody/authority rebind pending.

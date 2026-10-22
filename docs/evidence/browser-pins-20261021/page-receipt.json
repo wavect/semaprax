@@ -1,0 +1,19 @@
+{
+  "status": "ORIGINAL_CURRENT_CODEC_COMPOSITION_PASS_PENDING_PUBLICATION",
+  "base_head": "8d4a15bdd5e00373401bf5d8905c668b45798054",
+  "rows": 687,
+  "page_bytes": 227870,
+  "published_current_preserved_as_exact_views": [
+    {
+      "source": "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+      "view": {
+        "length": 10423,
+        "sha256": "d38b924a6d83a6d77aaa71f2d20b879cba48b3d5db4f43beaf3e01f2dd4a70b6",
+        "archive": "docs/evidence/merge-pr896-20261021/whole/d38b924a6d83a6d77aaa71f2d20b879cba48b3d5db4f43beaf3e01f2dd4a70b6.txt",
+        "name": "whole-pre-browser-pins-8d4a15bdd5"
+      }
+    }
+  ],
+  "all_previous_fields_views_memberships_and_fragment_edges_retained": true,
+  "all_original_codec_bodies_and_caps_unchanged": true
+}

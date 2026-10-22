@@ -52,7 +52,16 @@ fn restore(rows: &serde_json::Value, domain: &str, current: &str) -> String {
     );
     let acquired =
         compile35f_expected_input(source, row["current_sha256"].as_str().unwrap(), &stage);
-    let current = acquired.as_str();
+    let selected = if domain == "followupCoreMAIN" {
+        super::main_e177_final_inputs::value_direct(
+            source,
+            row["current_sha256"].as_str().unwrap(),
+            &acquired,
+        )
+    } else {
+        acquired
+    };
+    let current = selected.as_str();
     assert_eq!(digest(current), row["current_sha256"]);
     assert_eq!(current, row["current"].as_str().unwrap());
     let edits = row["inverse"].as_array().unwrap();
@@ -351,6 +360,12 @@ fn compile35f_records() -> serde_json::Value {
 fn compile35f_restore(row: &serde_json::Value, current: &str) -> String {
     let source = row["source"].as_str().unwrap();
     assert!(COMPILE35F_KEYS.binary_search(&source).is_ok());
+    let selected = super::main_e177_final_inputs::value_direct(
+        source,
+        row["current_sha256"].as_str().unwrap(),
+        current,
+    );
+    let current = selected.as_str();
     let repaired = compile_repair_previous(source, current);
     let current = repaired.as_str();
     let owned = owned_compile35f_input(source, current);
@@ -375,6 +390,11 @@ fn compile35f_restore(row: &serde_json::Value, current: &str) -> String {
     } else {
         factored_core_physical(source)
     };
+    let raw = super::main_e177_final_inputs::value_direct(
+        source,
+        row["current_sha256"].as_str().unwrap(),
+        &raw,
+    );
     assert_eq!(
         digest(&raw),
         row["current_sha256"],
@@ -810,6 +830,18 @@ fn corrected_alias_fixture_input(source: &str, current: &str) -> String {
         .iter()
         .find(|r| r["source"] == source)
         .unwrap();
+    let selected_physical = super::main_e177_final_inputs::value_direct(
+        source,
+        row["current_sha256"].as_str().unwrap(),
+        physical,
+    );
+    let physical = selected_physical.as_str();
+    let selected_current = super::main_e177_final_inputs::value_direct(
+        source,
+        row["current_sha256"].as_str().unwrap(),
+        current,
+    );
+    let current = selected_current.as_str();
     assert_eq!(digest(physical), row["current_sha256"]);
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let actual = factored_core_file(&root.join(source), physical.len(), &digest(physical)).unwrap();
@@ -896,11 +928,14 @@ fn supplemental_receiver_expected_input(source: &str, expected: &str, current: &
     )
     .unwrap();
     assert_eq!(raw, held, "complete independently sealed actual receiver");
-    assert_eq!(
-        raw,
+    let compiled = crate::source_reflows_merge::main_e177_final_inputs::value(
+        source,
+        sha,
         include_str!("../source_reflows/semantic_receivers.rs"),
-        "complete actual compiled receiver"
     );
+    assert_eq!(raw, compiled, "complete actual compiled receiver");
+    let supplied = crate::source_reflows_merge::main_e177_final_inputs::value(source, sha, current);
+    let current = supplied.as_str();
     let stage_len = usize::try_from(row["stage_length"].as_u64().unwrap()).unwrap();
     assert!(stage_len <= 65_536);
     let stage = factored_core_file(

@@ -1,5 +1,9 @@
 # Actual677 failed focused build
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Frozen source677e658f6f3671fdcc5942c1f3522598d83ab7b2; proposed101checks.
 The first unit --no-run command stopped with Rust exit101 after83.311s.
 **Zero test bodies executed**; this is not a101-test failure result.

@@ -282,6 +282,14 @@ pub(crate) mod bounded_output {
     }
 
     pub(crate) fn reserve_active_required(length: usize) -> bool {
+        if ACTIVE.with(|active| {
+            active
+                .borrow()
+                .as_ref()
+                .is_some_and(|budget| budget.overflowed.get())
+        }) {
+            return false;
+        }
         reserve_active(length)
     }
 
@@ -341,6 +349,26 @@ pub(crate) mod bounded_output {
                 self.0.push_str(value);
             }
             Ok(())
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        #[test]
+        fn required_formatter_reservations_keep_failure_sticky_and_preserve_error_trailer() {
+            let ((zero, required, trailer), refused, used) =
+                crate::bounded_output::with_limit_usage(5, || {
+                    assert!(!crate::bounded_output::reserve_active_required(6));
+                    let remaining = crate::bounded_output::remaining_active();
+                    let zero = crate::bounded_output::reserve_active_required(0);
+                    let required = crate::bounded_output::reserve_active_required(1);
+                    assert_eq!(crate::bounded_output::remaining_active(), remaining);
+                    let trailer = crate::bounded_output::reserve_active(1);
+                    (zero, required, trailer)
+                });
+            assert!(!zero && !required && trailer);
+            assert!(refused);
+            assert_eq!(used, 1);
         }
     }
 }

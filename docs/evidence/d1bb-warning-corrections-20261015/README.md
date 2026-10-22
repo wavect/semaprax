@@ -1,5 +1,9 @@
 # Bounded d1bb warning corrections
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Predecessor d1bb8d4149e9ec96968ffbd8ec26a86d23ea9ae2. Exactly three source owners.
 Remove unnecessary mut from the first retained byte-census binding; preserve both
 real constructors and their moves. Discard the already-Copy inline test result

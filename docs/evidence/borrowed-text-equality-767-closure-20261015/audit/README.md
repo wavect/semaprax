@@ -1,5 +1,9 @@
 # Bounded #767 closure candidate
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 No execution, source modification or GitHub write by this audit. The parent
 executed all four language owners with backend availability bound and retained
 the earlier public-text admission refusal. Aggregate was rechecked specifically

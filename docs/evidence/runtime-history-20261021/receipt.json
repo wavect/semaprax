@@ -1,0 +1,23 @@
+{
+  "base_head": "dec7d236b90548cefbb5b6ffabba20fcce914a31",
+  "scope": "Only cfg(test) source/history adapters and test lint annotations; no runtime compiler budget or golden changed.",
+  "qualification": "53 current source-focused tests passed: runtime fixtures 6, overlay/current-reader 34, actual full affine guard 1, actual lifecycle guard 1, unchanged HIR boundaries 11. Focused Clippy denies warnings. Full Root Clippy is delegated to CI because its local compile hit the memory guard.",
+  "original_historical_assertions_and_source_hashes_unchanged": true,
+  "source_inverse_controls": "The complete compiled and fresh physical test inputs must agree; exact reverse hunks must reconstruct the complete original source with its original SHA-256. Trailing, truncated, old and foreign inputs remain rejected.",
+  "lint_changes": "Scope intentional comparison-harness argument matrices, byte-role invoices, retained item order and constant negative assertions to that module. Replace a single-item test loop with a block. Permit the retained test adapter to be used or unused in different feature profiles.",
+  "ci_observation": {
+    "run": 39550884804,
+    "head": "dec7d236b90548cefbb5b6ffabba20fcce914a31",
+    "windows_clippy_errors": 26,
+    "integration_diagnostics": {
+      "SPX-J141": 7,
+      "SPX-G257": 2,
+      "SPX-J115": 6,
+      "SPX-G171": 80,
+      "SPX-J100": 1
+    },
+    "full_CI_green_not_claimed": true
+  },
+  "page_bytes": 229666,
+  "all_work_and_caches_on_external_ssd": true
+}

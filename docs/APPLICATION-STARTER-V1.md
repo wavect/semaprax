@@ -1,5 +1,7 @@
 # Fresh application starter v1
 
+Audience: compiler contributors and reviewers.
+
 Status: source implementation; executable qualification pending. This does not
 qualify a runnable typed application while ordinary compiler admission refuses
 it (including the currently open source-capacity G171808 dependency).

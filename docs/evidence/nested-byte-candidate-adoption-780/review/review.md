@@ -1,5 +1,9 @@
 # Review of #780 early loan-candidate dispatch (source-only, nothing executed)
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The paste has its blank lines stripped, so I cite code anchors instead of line numbers. Several findings depend on signatures that are not in the packet, and I mark those as uncertain.
 
 ## Blockers (fix or justify before merge)

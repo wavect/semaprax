@@ -1,3 +1,9 @@
+# c874-lexical-promotion-input-20261017 README
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Closed compiled-source acquisition for the later lexical-exit production promotions. The complete c874 module restores the complete Git 2d87 checkpoint before the unchanged two-row promotion table. Both original rows, full original helper/test bodies, #810 inverses and prior archives stay unchanged. Production source is not changed. No runtime filesystem acquisition or current test PASS is claimed.
 
 Pending existing owners: source_custody::b full-source owner and current_view::production_promotion_views_restore_whole_modules_and_reject_drift. New owner: cleanup_plan::replay::live_oracle::source_custody::current_view::lexical_later_promotions_retain_complete_original_input_and_refuse_foreign_stages. All runtime UNEXECUTED.

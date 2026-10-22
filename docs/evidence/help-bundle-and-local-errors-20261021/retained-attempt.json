@@ -1,0 +1,6 @@
+{
+  "path": "docs/evidence/compact-byte-errors-20261021/separate-fee-banks.failed-attempt.txt",
+  "sha256": "d1074a92ae8bb83c1d51c035857e117dc1028a88f1c4c1a8de207da797b650c7",
+  "status": "FAILED_SUPERSEDED_OPERATOR_RECIPE_RETAINED_AS_TEXT",
+  "reason": "The actual Root inverse was produced using the corrected four-call, unique-context and UTF8-byte-offset steps. This initial recipe was not the successful generator."
+}

@@ -1,5 +1,9 @@
 # Boxed path-state receiving controls (#849)
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only successor of7f22/MAIN019d. No Rust/build/tests/runtime were executed. All new owners remain pending qualification.
 
 The real production route now acquires one invocation-local `Insertions<PathState>` after the original frontier construction and before its first insertion. Its complete initializer/receiver and cold Result, capture controls, arithmetic outputs and one terminal Diagnostic destination are paid before initialization. ClassifierLedger begins inert and captures the actual current invocation using its established paid capture gateway; this creates no new allowance. Initial acquisition refusal retains the ordinary unreceived cold error boundary, not a globally funded constructor ABI (#825 remains separate). LegacyUnobserved remains explicitly unfunded.

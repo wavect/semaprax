@@ -1,5 +1,9 @@
 # Main-dd0 and actual83ca pin successor
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The merge retains exact83ca and Main-dd0 ancestry. Shipping production and
 Cargo inputs stay byteexact83ca. All actual producer/capture receipts stay
 explicit83ca history; final consumers have NOT_EXECUTED status.

@@ -1,5 +1,9 @@
 # Review of the final-refusal publication seam (source only, nothing executed)
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 I found no definite compile-time or logic blocker in the pasted `report` and `attempt` code. Both listed blockers below depend on code that wasn't pasted.
 
 ## Blockers (conditional on unpasted code)

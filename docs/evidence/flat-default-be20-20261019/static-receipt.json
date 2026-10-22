@@ -1,0 +1,30 @@
+{
+  "status": "PASS_NORMAL_COMPILER_18_OF_19_REAL_APPLICATIONS_AND_ORIGINAL_ROOT_INVERSE_CONTROLS",
+  "rust_source_lines": {
+    "src/cleanup_plan/replay/ordinary_plan_history.rs": 536,
+    "src/cleanup_plan/replay/ordinary_plan_history/tests.rs": 267,
+    "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs": 1155,
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/source_format.rs": 885
+  },
+  "full_flat_PLAN_and_HIR_comparison_retained": true,
+  "all_original_candidate_producer_comparator_and_hostile_controls_retained": true,
+  "all_physical_caps_floors_and_work_limits_unchanged": true,
+  "normal_build": {
+    "status": "PASS_ACTUAL_DEFAULT_COMPILER_BUILD",
+    "peakKiB": 2915776,
+    "source": {
+      "source_sha256": {
+        "src/cleanup_plan/replay/ordinary_plan_history.rs": "b6b728c5226cd8c7b6cac5e470a385095bb4f852e8f8879c5942145ace41466d",
+        "src/cleanup_plan/replay/ordinary_plan_history/tests.rs": "432c69e344c5748c134fd8a8ee80b4de7e1f39d5108c44a7ba88878eda9348d9",
+        "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs": "98f113a569b64477ab45ee92c098718a210be1ff5df65b96fa38afa3f5fafe57",
+        "CHANGELOG.md": "c1603104c464539983a854c74143dd54726fd2a696a5f007da0dd2d8ea660072",
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/source_format.rs": "a68251696a3d686463b3089406c0f2d285d28eea7a8ebb22e2cdb47105d2ebe0"
+      }
+    }
+  },
+  "new_test_selection_control_authored_not_yet_executed": true,
+  "full_lib_unit_suite_and_hosted_CI_still_required": true,
+  "service_remaining_failure": "SPX-G171, factored canonicalization, not repaired by this batch",
+  "browser_pins_will_require_new_actual_Linux_run": true,
+  "clippy_status": "NOT_COMPLETED: first stopped at 3 GiB process cap (3153136 KiB); second stopped at 35% global reserve (2252800 KiB, global34%). Neither is a pass."
+}

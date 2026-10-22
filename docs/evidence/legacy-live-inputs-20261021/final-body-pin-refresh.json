@@ -1,0 +1,18 @@
+[
+  {
+    "domain": "hir",
+    "changed_source_pins": [
+      "src/source_reflows_merge/main_e177_overlay_compiled.rs",
+      "src/source_reflows_merge/main_e177_overlay_v2.rs"
+    ],
+    "all_registrations_roles_and_literal_edges_preserved": true
+  },
+  {
+    "domain": "projection",
+    "changed_source_pins": [
+      "src/source_reflows_merge/main_e177_overlay_compiled.rs",
+      "src/source_reflows_merge/main_e177_overlay_v2.rs"
+    ],
+    "all_registrations_roles_and_literal_edges_preserved": true
+  }
+]

@@ -1,5 +1,9 @@
 # Main b80 compact-source receiving correction
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only; no Cargo/build/test/Clippy execution. Preserve the entire immediate Main files in before/ and their exact inverses. All original Main assertions remain; its two direct constructor callsites now perform the same real caller admission as shipping. The complete old canonical staged comparator is retained cfg(test), byte-exact.
 
 Shipping callers use lexical prepare! before the new function arguments. A common bank pays the kind-query reference, common and selected payment results/amounts/phases, and payment/callee function+budget receivers. The source-kind match then admits only that constructor shape. Body pays the actual source parameter, owned field bindings, enum initializer/caller output and two enclosing Result values. Residual additionally owns its source@ binding, two actual Box headers, and nominal Residual initializer/receiving. Original canonical clone/census remains paid; residual backing is separately admitted before Box allocation. No refund, skipped old control, substituted Diagnostic owner or cap adjustment. The initial query-admission refusal remains the ordinary unreceived ABI boundary; later refusal retains earlier debit.

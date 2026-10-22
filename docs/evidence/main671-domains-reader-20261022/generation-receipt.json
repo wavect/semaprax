@@ -1,0 +1,6 @@
+{
+  "status": "BODY_ONLY_EXACT_ORIGINAL_REGISTRATION_PRESERVATION_PENDING_VERIFIER",
+  "prior_original_generator_receipt_sha256": "57320657d388ca0c933269140d47c8f404c487d78afe5a91a109b9be504430c7",
+  "no_new_source_module_or_selector": true,
+  "raw_original_registration_parser_not_rerun": true
+}

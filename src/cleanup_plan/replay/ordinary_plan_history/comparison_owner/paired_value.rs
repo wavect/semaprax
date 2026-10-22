@@ -10,7 +10,7 @@ pub(super) const STEP: usize = 2 * size_of::<usize>() + size_of::<bool>() // ret
     + 2 * size_of::<&[Rc<SkeletonObservation>]>() // rest pattern and assignment copy
     + 2 * size_of::<&Rc<SkeletonObservation>>() + size_of::<&SkeletonObservation>() // as_ref actual/formal/return
     + size_of::<usize>(); // original item increment
-// Only entering a new immutable segment forms these views/index receivers.
+                          // Only entering a new immutable segment forms these views/index receivers.
 pub(super) const LOAD: usize = 2 * size_of::<&mut Vec<usize>>()
     + size_of::<Option<usize>>()
     + size_of::<usize>()
@@ -21,8 +21,8 @@ pub(super) const LOAD: usize = 2 * size_of::<&mut Vec<usize>>()
     + 2 * size_of::<&Vec<Rc<SkeletonObservation>>>()
     + 2 * size_of::<&[Rc<SkeletonObservation>]>()
     + size_of::<bool>(); // loaded=true
-// Pair-local borrowed suffix: ref-rest pattern plus assignment, copied link,
-// failed-pattern branch and unchanged arena/index/view/loaded receivers.
+                         // Pair-local borrowed suffix: ref-rest pattern plus assignment, copied link,
+                         // failed-pattern branch and unchanged arena/index/view/loaded receivers.
 pub(super) const PAIR_LOAD: usize = 2 * size_of::<&[usize]>()
     + size_of::<usize>()
     + size_of::<bool>()

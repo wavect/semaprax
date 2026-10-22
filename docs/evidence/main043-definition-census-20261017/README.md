@@ -1,5 +1,9 @@
 # Main043 complete current-definition census repair — source only
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base197e7814c86f144804eaa65ef1143828c4fd39bd. After the semantic receiver acquisition repair, the actual parent common binder advanced and refused the current-definition row for src/source_reflows/main043/semantic_receivers.rs. This is a current-definition table: the unchanged verifier compares direct source bytes using both length and SHA. It is not a historical-stage projection. The one explicit automatic regeneration exception remains only main043_custody descriptors.
 
 All twelve ordered rows were audited together. Eleven already match their entire current definitions. The sole stale row still named the4,318-byte source before committed189a13a084dbbd0d847a3b4e60aff71a5b7cdfbb target44 correction. Its full preimage matches2ef2eb1a...d09d. The committed current6,160-byte definition is4bc99dc2...33b5; that earlier correction preserved the original nonidentity assertion but authenticated the historical comparison domain before it and added hostile controls. The full prior/current files and two complete line-inverse groups are archived here.

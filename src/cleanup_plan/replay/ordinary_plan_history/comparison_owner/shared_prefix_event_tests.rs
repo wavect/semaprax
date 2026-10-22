@@ -112,14 +112,14 @@ fn event_run(
     // The original call frame can refuse before begin; that is genuinely no row.
     let row = if rows.is_empty() {
         assert!(observed.1);
-        assert!(observed.0.0.result.is_err());
+        assert!(observed.0 .0.result.is_err());
         pair_scope_census::empty_for_test()
     } else {
         assert_eq!(rows.len(), 1);
         assert!(rows[0].ended && !rows[0].overflow && !rows[0].truncated && !rows[0].unwound);
         rows[0]
     };
-    balanced(observed.0.1);
+    balanced(observed.0 .1);
     Run {
         observed,
         events,
@@ -177,9 +177,9 @@ fn fresh_entry_suffix_has_independent_full_old_new_invoices_and_real_q_g_h() {
             let old = event_observe(function, length, shape, true, MAX_REPLAY_WORK_UNITS, false);
             let current =
                 event_observe(function, length, shape, false, MAX_REPLAY_WORK_UNITS, false);
-            assert_eq!(old.observed.0.0, current.observed.0.0);
-            assert!(current.observed.0.0.result.is_ok());
-            assert_eq!(old.observed.0.1, current.observed.0.1);
+            assert_eq!(old.observed.0 .0, current.observed.0 .0);
+            assert!(current.observed.0 .0.result.is_ok());
+            assert_eq!(old.observed.0 .1, current.observed.0 .1);
             assert_eq!(swaps(&old), swaps(&current));
             assert!(old.row.complete && current.row.complete);
             assert_eq!(current.row.identity_probes, current.row.shared_runs);
@@ -263,7 +263,7 @@ fn fresh_entry_suffix_asymmetric_empty_and_every_work_cut_preserve_immediate_six
     let function = &program.functions[0];
     for (length, shape) in [(2, 0), (2, 1), (2, 2), (0, 3), (8, 3)] {
         let complete = event_observe(function, length, shape, true, MAX_REPLAY_WORK_UNITS, false);
-        let ordinary_spent = MAX_REPLAY_WORK_UNITS - complete.observed.0.0.remaining;
+        let ordinary_spent = MAX_REPLAY_WORK_UNITS - complete.observed.0 .0.remaining;
         for units in 0..=ordinary_spent + 1 {
             let old = event_observe(function, length, shape, true, units, false);
             let current = event_observe(function, length, shape, false, units, false);
@@ -281,7 +281,7 @@ fn fresh_entry_suffix_refused_prefix_prices_admitted_bodies_independently_of_g()
     let function = &program.functions[0];
     let complete = event_observe(function, 2, 0, false, MAX_REPLAY_WORK_UNITS, true);
     let mut partial_body = false;
-    let ordinary_spent = MAX_REPLAY_WORK_UNITS - complete.observed.0.0.remaining;
+    let ordinary_spent = MAX_REPLAY_WORK_UNITS - complete.observed.0 .0.remaining;
     for units in 0..=ordinary_spent {
         let current = event_observe(function, 2, 0, false, units, true);
         let bytes = |phase| {
@@ -329,7 +329,7 @@ fn fresh_entry_suffix_refused_prefix_prices_admitted_bodies_independently_of_g()
             assert_eq!(current.row.shared_runs, current.row.shared_publishes);
         }
         if current.row.shared_turns > completed_turns {
-            assert!(!current.row.complete && current.observed.0.0.result.is_err());
+            assert!(!current.row.complete && current.observed.0 .0.result.is_err());
             partial_body = true;
         }
     }
@@ -418,14 +418,14 @@ fn main99_run(
     // The original call frame can refuse before begin; that is genuinely no row.
     let row = if rows.is_empty() {
         assert!(observed.1);
-        assert!(observed.0.0.result.is_err());
+        assert!(observed.0 .0.result.is_err());
         pair_scope_census::empty_for_test()
     } else {
         assert_eq!(rows.len(), 1);
         assert!(rows[0].ended && !rows[0].overflow && !rows[0].truncated && !rows[0].unwound);
         rows[0]
     };
-    balanced(observed.0.1);
+    balanced(observed.0 .1);
     Run {
         observed,
         events,
@@ -462,10 +462,10 @@ fn fresh_suffix_supersedes_complete_shared_step_generation_without_polling() {
                     hir_shared,
                     true,
                 );
-                assert_eq!(old.observed.0.0, current.observed.0.0);
-                assert!(current.observed.0.0.result.is_ok());
+                assert_eq!(old.observed.0 .0, current.observed.0 .0);
+                assert!(current.observed.0 .0.result.is_ok());
                 assert_eq!(swaps(&old), swaps(&current));
-                assert_eq!((old.observed.0.1.live, current.observed.0.1.live), (0, 0));
+                assert_eq!((old.observed.0 .1.live, current.observed.0 .1.live), (0, 0));
                 assert!(old.row.complete && current.row.complete);
                 assert_eq!(
                     (current.row.shared_patterns, current.row.shared_steps),
@@ -516,7 +516,7 @@ fn fresh_suffix_and_complete_shared_step_generation_keep_every_work_refusal_and_
             false,
             true,
         );
-        let ordinary_spent = MAX_REPLAY_WORK_UNITS - complete.observed.0.0.remaining;
+        let ordinary_spent = MAX_REPLAY_WORK_UNITS - complete.observed.0 .0.remaining;
         for units in 0..=ordinary_spent + 1 {
             let old = main99_run(function, length, shape, units, usize::MAX, 0, false, true);
             let current = event_run(
@@ -531,11 +531,11 @@ fn fresh_suffix_and_complete_shared_step_generation_keep_every_work_refusal_and_
                 true,
             );
             assert_eq!(
-                old.observed.0.0, current.observed.0.0,
+                old.observed.0 .0, current.observed.0 .0,
                 "six diagnostic fields, sticky result and remaining work: {length}/{shape}/{units}"
             );
             assert_eq!(swaps(&old), swaps(&current));
-            assert_eq!((old.observed.0.1.live, current.observed.0.1.live), (0, 0));
+            assert_eq!((old.observed.0 .1.live, current.observed.0 .1.live), (0, 0));
         }
     }
 }

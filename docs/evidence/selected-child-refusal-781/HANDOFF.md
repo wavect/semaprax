@@ -1,5 +1,9 @@
 # Finite selected child refusal cut (#781), source only
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Private basis ef0cb9602612ee736993ea2bada93242ec75d24b. No Cargo, Rust tests/build, Clippy, root mutation, remote publication or admission change. Parent current108 is separate; all new selectors future-only.
 
 Real Context::new_paid uses requires_inline and complete inline renewal/helper census/proof twins. Closed Refusal variants preserve raw lexical-depth/renewal/helper/probe diagnostics separately from function-prefixed renewal-work/lost-physical errors. Already-allocated Diagnostics are not translated or labelled prepaid.

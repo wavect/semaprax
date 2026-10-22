@@ -1,0 +1,20 @@
+[
+  {
+    "source": "src/bounded_output/classifier_string.rs",
+    "current": {
+      "length": 13634,
+      "sha256": "c0c85cc51b32418114866b49b58efed018b1032ad6e5231dcad67de94c4171b6",
+      "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/c0c85cc51b32418114866b49b58efed018b1032ad6e5231dcad67de94c4171b6.txt"
+    },
+    "descriptor": "earned-managed-pin42-source-coupling-20261017/inputs.json"
+  },
+  {
+    "source": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix.rs",
+    "current": {
+      "length": 31853,
+      "sha256": "fb5c395326c2343fb3983a8cc6129364479901dbc9b3d827cccf023e79701c99",
+      "archive": "docs/evidence/accepted-whole-source-ingress-20261017/blobs/fb5c395326c2343fb3983a8cc6129364479901dbc9b3d827cccf023e79701c99.txt"
+    },
+    "descriptor": "earned-managed-pin42-source-coupling-20261017/inputs.json"
+  }
+]

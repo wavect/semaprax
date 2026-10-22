@@ -12,6 +12,11 @@ on:
         type: boolean
         required: false
         default: false
+      resolved_core:
+        description: Capture production-algorithm project reservation totals on Linux
+        type: boolean
+        required: false
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -19,7 +24,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   cli:
-    if: ${{ ! inputs.linux_stack }}
+    if: ${{ ! inputs.linux_stack && ! inputs.resolved_core }}
     runs-on: macos-15
     timeout-minutes: 120
     env:
@@ -195,5 +200,46 @@ jobs:
         with:
           name: diagnostic-linux-stack-${{ github.sha }}
           path: diagnostic-linux-stack/
+          if-no-files-found: error
+          retention-days: 1
+
+  resolved-core:
+    if: inputs.resolved_core
+    name: Project reservation census (diagnostic only)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      CARGO_BUILD_JOBS: "1"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_INCREMENTAL: "0"
+      CARGO_TARGET_DIR: target/resolved-core-diagnostic
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          fetch-tags: false
+          lfs: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+        with:
+          toolchain: 1.97.1
+      - name: Fetch locked dependencies
+        run: cargo fetch --locked
+      - name: Build the actual instrumented production library
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo build --locked --offline -p semaprax --lib --features unstable-workflow-profiling --jobs 1 --message-format=json > resolved-core-build.jsonl
+      - name: Capture unchanged failure and exclusive reservation totals
+        run: python3 scripts/diagnose-resolved-core.py resolved-core-build.jsonl
+      - name: Retain the bound diagnostic report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: resolved-core-diagnostic-${{ github.sha }}
+          path: |
+            diagnostic-resolved-core/*.log
+            diagnostic-resolved-core/provenance.json
+            resolved-core-build.jsonl
           if-no-files-found: error
           retention-days: 1

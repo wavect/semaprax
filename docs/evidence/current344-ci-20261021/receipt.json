@@ -1,0 +1,13 @@
+{
+  "base_head": "f622ae240c63c03afbe4c28f606583af7af517fb",
+  "scope": "Test-only current codec and historical projection input authentication; original guards and historical hashes unchanged.",
+  "qualification": "47 focused tests passed: original current344 controls 1, overlay 29, packet lookup 4, registered digest 1, combined carrier 1, unchanged HIR boundary tests 11. Focused actual source Clippy passed with warnings denied. Full source role generation and both original domain verifiers plus six hostile controls passed.",
+  "source_files_authenticated": "Exact compiled bytes, fresh physical bytes and SHA-256 before complete inverse to each original historical input.",
+  "page_bytes": 230118,
+  "rows": 687,
+  "replacements": 138,
+  "additions": 168,
+  "compiler_runtime_budgets_and_goldens_unchanged": true,
+  "all_work_and_caches_on_external_ssd": true,
+  "full_CI_green_not_claimed": true
+}

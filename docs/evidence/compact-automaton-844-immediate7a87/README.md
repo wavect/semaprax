@@ -1,5 +1,9 @@
 # OPT844 immediate-parent source checkpoint
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only successor to a3a0859c4231a80dfb5379740226d8888782c7b1, merged with exact public 7a87b33115c0cd45b14cac64d7b37e5742503159. No Rust build, test, Clippy, runtime, timing, gain, or cap-fit result is claimed.
 
 The five independent old receivers now contain complete immediate 7a87 algorithms, including OPT831's direct receiving protocol. The old Node/Automaton remain two owning Vecs, independently built and dropped; only the byte-identical original two-variant Label is shared for dictionary nominal compatibility. The compact Node core remains byte-exact a3. Whole-builder comparisons therefore use the same OPT831 baseline on both sides. Historical c582 comparisons and eight original test bodies remain authenticated in the unchanged a3 packet; a ninth body authenticates this immediate baseline.

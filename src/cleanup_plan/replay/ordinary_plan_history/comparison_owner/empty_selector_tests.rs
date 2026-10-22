@@ -79,10 +79,10 @@ fn report(old: &Run, current: &Run, label: &str) {
         )
     );
     assert!(old.row.complete && current.row.complete);
-    assert_eq!(old.observed.0.0, current.observed.0.0);
+    assert_eq!(old.observed.0 .0, current.observed.0 .0);
     assert_eq!(swaps(old), swaps(current));
     assert_eq!(
-        old.observed.0.1, current.observed.0.1,
+        old.observed.0 .1, current.observed.0 .1,
         "no new owning layout: full allocator metrics through Drop"
     );
     assert_eq!(old.row.empty_selectors, 0);
@@ -160,9 +160,9 @@ fn lexical_empty_selector_complete_bills_keep_cold_losses_and_real_dense_net_for
                 let old = full(f, true, length, shape, shared, hir);
                 let current = full(f, false, length, shape, shared, hir);
                 assert!(
-                    current.observed.0.0.result.is_ok(),
+                    current.observed.0 .0.result.is_ok(),
                     "length={length} shape={shape} shared={shared} hir={hir} result={:?}",
-                    current.observed.0.0
+                    current.observed.0 .0
                 );
                 report(
                     &old,
@@ -206,8 +206,8 @@ fn lexical_empty_selector_keeps_every_original_work_cut_and_all_malformed_fallba
             (4, 6, true),
         ] {
             let success = full(f, false, length, shape, shared, hir);
-            assert!(success.observed.0.0.result.is_ok());
-            let used = MAX_REPLAY_WORK_UNITS - success.observed.0.0.remaining;
+            assert!(success.observed.0 .0.result.is_ok());
+            let used = MAX_REPLAY_WORK_UNITS - success.observed.0 .0.remaining;
             for work in 0..=used {
                 let old = observe(
                     f,
@@ -236,7 +236,7 @@ fn lexical_empty_selector_keeps_every_original_work_cut_and_all_malformed_fallba
                     false,
                 );
                 assert_eq!(
-                    old.observed.0.0, current.observed.0.0,
+                    old.observed.0 .0, current.observed.0 .0,
                     "all six sticky fields/order work={work} length={length} shape={shape}"
                 );
                 assert_eq!(swaps(&old), swaps(&current));
@@ -272,7 +272,7 @@ fn lexical_empty_selector_keeps_every_original_work_cut_and_all_malformed_fallba
                 false,
             );
             assert_eq!(
-                old.observed.0.0, current.observed.0.0,
+                old.observed.0 .0, current.observed.0 .0,
                 "malformed/terminal/content fault={fault}"
             );
             assert_eq!(swaps(&old), swaps(&current));
@@ -297,7 +297,7 @@ fn lexical_empty_selector_exact_short_zero_floor_and_mixed_frontiers_are_actual_
             0,
             true,
         );
-        assert!(success.observed.0.0.result.is_ok());
+        assert!(success.observed.0 .0.result.is_ok());
         let selectors: Vec<_> = success
             .events
             .iter()
@@ -325,8 +325,8 @@ fn lexical_empty_selector_exact_short_zero_floor_and_mixed_frontiers_are_actual_
                 );
                 assert!(
                     r.observed.1
-                        && r.observed.0.0.result.is_err()
-                        && r.observed.0.0.retry.is_some()
+                        && r.observed.0 .0.result.is_err()
+                        && r.observed.0 .0.retry.is_some()
                 );
                 let refusal = r.observed.3.unwrap();
                 assert_eq!(
@@ -355,11 +355,10 @@ fn lexical_empty_selector_exact_short_zero_floor_and_mixed_frontiers_are_actual_
                 0,
                 true,
             );
-            assert!(
-                exact.events.iter().any(|e| e.phase == SELECT
-                    && e.before == event.before
-                    && e.after == Some(after))
-            );
+            assert!(exact
+                .events
+                .iter()
+                .any(|e| e.phase == SELECT && e.before == event.before && e.after == Some(after)));
         }
         // Shape0 keeps all four observations in one segment: it reaches the
         // selector but never forms a boundary body. Exercise the independent
@@ -378,7 +377,7 @@ fn lexical_empty_selector_exact_short_zero_floor_and_mixed_frontiers_are_actual_
             0,
             true,
         );
-        assert!(body_success.observed.0.0.result.is_ok() && body_success.row.complete);
+        assert!(body_success.observed.0 .0.result.is_ok() && body_success.row.complete);
         let body_events: Vec<_> = body_success
             .events
             .iter()
@@ -406,8 +405,8 @@ fn lexical_empty_selector_exact_short_zero_floor_and_mixed_frontiers_are_actual_
                 );
                 assert!(
                     r.observed.1
-                        && r.observed.0.0.result.is_err()
-                        && r.observed.0.0.retry.is_some()
+                        && r.observed.0 .0.result.is_err()
+                        && r.observed.0 .0.retry.is_some()
                 );
                 let refusal = r.observed.3.unwrap();
                 assert_eq!(
@@ -433,7 +432,7 @@ fn lexical_empty_selector_exact_short_zero_floor_and_mixed_frontiers_are_actual_
                 && e.before == event.before
                 && e.after == Some(after)));
         }
-        let used = MAX_REPLAY_WORK_UNITS - success.observed.0.0.remaining;
+        let used = MAX_REPLAY_WORK_UNITS - success.observed.0 .0.remaining;
         for old in [false, true] {
             let complete = full(f, old, 4, 0, true, hir);
             let total = complete.observed.2;
@@ -451,18 +450,18 @@ fn lexical_empty_selector_exact_short_zero_floor_and_mixed_frontiers_are_actual_
                     0,
                     false,
                 );
-                assert_eq!(r.observed.0.0.result.is_ok(), bytes == total);
+                assert_eq!(r.observed.0 .0.result.is_ok(), bytes == total);
                 assert_eq!(r.observed.1, bytes != total);
                 if bytes != total {
-                    assert!(r.observed.0.0.retry.is_some());
+                    assert!(r.observed.0 .0.retry.is_some());
                 }
             }
             // Mixed physical/work refusal is observed per actual generation;
             // the added selector deliberately changes physical first refusal.
             for work in [0, 1, used / 2, used] {
                 let r = observe(f, old, 4, 0, true, hir, 0, work, total / 2, 0, false);
-                assert!(r.observed.0.0.result.is_err());
-                assert!(r.observed.0.0.retry.is_some());
+                assert!(r.observed.0 .0.result.is_err());
+                assert!(r.observed.0 .0.retry.is_some());
                 eprintln!(
                     "OPT905 mixed old={old} hir={hir} work={work} bytes={} outcome={:?} refusal={:?}",
                     total / 2,
@@ -512,11 +511,11 @@ fn lexical_empty_selector_real_producer_keeps_complete_old_current_caller_and_dr
             };
             let old = run(true);
             let current = run(false);
-            assert!(old.0.0.0.is_ok());
-            assert_eq!(old.0.0, current.0.0);
-            assert_eq!(old.0.1, current.0.1);
-            balanced(old.0.1);
-            balanced(current.0.1);
+            assert!(old.0 .0 .0.is_ok());
+            assert_eq!(old.0 .0, current.0 .0);
+            assert_eq!(old.0 .1, current.0 .1);
+            balanced(old.0 .1);
+            balanced(current.0 .1);
             eprintln!(
                 "OPT905 full real producer old/current paid={}/{} allocator={:?}/{:?}; complete source function {:?}, not whole32/app admission",
                 old.2, current.2, old.0.1, current.0.1, f.name

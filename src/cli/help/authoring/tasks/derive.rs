@@ -205,15 +205,14 @@ fn json_descriptor(catalog: &Value) -> Value {
         let path = file["path"].as_str().unwrap();
         if path.ends_with(".spx") {
             let source = file["content"].as_str().unwrap();
-            let (program, canonical) = semaprax::parse_canonical(source, path).unwrap();
+            let (_, canonical) = semaprax::parse_canonical(source, path).unwrap();
             assert_eq!(
                 source, canonical,
                 "canonical neutral JSON task source: {path}"
             );
-            let hir = semaprax::hir::resolve(&program).unwrap();
-            semaprax::hir::validate(&hir).unwrap();
         }
     }
+    check_descriptor_project(route["files"].as_array().unwrap());
     route
 }
 
@@ -248,8 +247,45 @@ fn selected_file_descriptor() -> Value {
             "canonical neutral selected-file task source: {path}"
         );
         assert!(program.module_uses.is_empty());
-        let hir = semaprax::hir::resolve(&program).unwrap();
-        semaprax::hir::validate(&hir).unwrap();
     }
+    check_descriptor_project(&[
+        serde_json::json!({"path":"semaprax.toml","content":route["manifest"]}),
+        serde_json::json!({"path":"main.spx","content":route["source"]}),
+        serde_json::json!({"path":"tests.spx","content":route["test_source"]}),
+    ]);
     route
+}
+
+// Library modules have no executable main. Validate every declaration and
+// import through the ordinary authenticated project owner, rather than asking
+// the standalone executable resolver to accept each library independently.
+fn check_descriptor_project(files: &[Value]) {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static NEXT: AtomicU64 = AtomicU64::new(0);
+    struct Directory(std::path::PathBuf);
+    impl Drop for Directory {
+        fn drop(&mut self) {
+            std::fs::remove_dir_all(&self.0).unwrap();
+        }
+    }
+    let directory_path = std::env::temp_dir().join(format!(
+        "semaprax-task-descriptor-{}-{}",
+        std::process::id(),
+        NEXT.fetch_add(1, Ordering::Relaxed)
+    ));
+    std::fs::create_dir(&directory_path).unwrap();
+    let directory = Directory(directory_path);
+    for file in files {
+        let path = std::path::Path::new(file["path"].as_str().unwrap());
+        assert!(path
+            .components()
+            .all(|part| matches!(part, std::path::Component::Normal(_))));
+        let path = directory.0.join(path);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(path, file["content"].as_str().unwrap()).unwrap();
+    }
+    semaprax::project::with_authenticated_project(&directory.0.join("semaprax.toml"), |project| {
+        project.check()
+    })
+    .unwrap();
 }

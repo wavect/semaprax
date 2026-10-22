@@ -1,5 +1,9 @@
 # #854 receiving correction and replacement-role correspondence
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The earlier private inventory's statement that there is no owned comparison result was too strong. Named Ordering and scalar search/mutation values do exist. This successor preserves both earlier checkpoints and corrects the boundary inventory; it grants no numeric credit for any removed std layout and makes no runtime cost claim.
 
 The new borrowed query is separately paid: its initializer/local pair, each caller &Vec initializer and Deref self receiver, and returned slice receivers. The borrowed child loop likewise pays both the caller &Vec initializer and IntoIterator-for-&Vec self receiver, retaining its existing slice and two iterator terms. Arena::new's two inner Vec::new initializer/field-header pairs are explicitly added to the caller constructor bank. Full Arena/Canonicalizer aggregates are not used as credit for those distinct constructor sites. The retained scalar scratch's existing two Vec header terms remain.

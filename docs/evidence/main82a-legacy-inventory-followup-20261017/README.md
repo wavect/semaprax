@@ -1,5 +1,9 @@
 # Fifteenth raw subject: exact new-main legacy supplemental owner
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Followup parent is immutablee55c4c1f9. The exact82a incoming legacy leaf is added byte-for-byte. Raw3 inventories each retain every prior include occurrence and add precisely this one; 043required/max each adds1 with alloldentries unchanged. Native remains1500lines. Before/after contain complete raw3+guard files and source-checks records fullmultisets and whole identities.
 
 The parent already merged the original9-file82a main change into9e84. Keep its production receiving.rs, test registrationmodlegacy and all three new work counters untouched; this followup copies only the exact leaf plus raw membership. It does not synthesize a new namespace or change the actual receiving algorithm. The private a2-based branch has the leaf for include dependency completeness; final registration uses the parent's original main wire. All original incoming production/test/source metadata preimages are retained under incoming/.

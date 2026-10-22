@@ -64,3 +64,12 @@ detached fields, depth512 and its zero-allocation assertion. A complete previous
 Drop body compiles independently through only a consuming-receiver/signature
 adapter. Corrective tests additionally cover multiple roots, function spines,
 branching settlement and unchanged sticky ledger state. All await execution.
+
+## Independent legacy constructor compatibility
+
+The active Legacy identity-payer route retains the complete original nominal
+constructor, including checking and allocation order. The funded source-cell
+route uses a separately named constructor with its existing debit and rollback
+behavior. Neither route lends funded provenance to the other. The immutable
+legacy source audit still checks the entire original constructor tail; the
+funded implementation and its helper remain in the same audited source file.

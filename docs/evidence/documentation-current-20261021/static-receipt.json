@@ -1,0 +1,10 @@
+{
+  "status": "PASS_WHOLE_ORIGINAL_DOCUMENT_BODIES_AND_ARCHIVES",
+  "before_files": 664,
+  "metadata_only_documents": 660,
+  "historical_original_bytes_retained": true,
+  "all_existing_archive_registry_rows_retained": true,
+  "new_explicit_named_archive_origins": 258,
+  "blanket_evidence_exemption_added": false,
+  "compiler_language_semantics_changed": false
+}

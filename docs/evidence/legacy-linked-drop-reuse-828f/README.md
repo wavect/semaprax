@@ -1,5 +1,9 @@
 # Actual828f legacy final-owner Drop corrective
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Basis: 828f258503ec98c6cc9b1b59d307ad604bcf681d. Source-only, no Cargo,
 compiler, tests, or runtime execution. Actual failing owner42/log retained with
 its recorded SHA. Its512-depth mixed coordinates/detached fields/both orders/

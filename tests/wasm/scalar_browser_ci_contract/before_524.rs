@@ -118,6 +118,11 @@ fn the_complete_old_bridge_changes_only_its_retained_runner_include() {
         );
     }
     let current = include_str!("before_75b.rs");
+    let staged = crate::scalar_browser_ci_contract::browser_custody::before_e47_input(
+        "tests/wasm/scalar_browser_ci_contract/before_75b.rs",
+        current,
+    );
+    let current = staged.as_str();
     let new = concat!(
         "include_str!(\n",
         "        \"../../../docs/evidence/browser-graph-pins-75b314f70/test-fixtures.before.mjs\"\n",

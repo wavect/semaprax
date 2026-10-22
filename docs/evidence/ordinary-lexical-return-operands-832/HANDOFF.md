@@ -1,5 +1,9 @@
 # Ordinary lexical return operands (#832)
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Private source-only checkpoint, dependent on accepted queued selected-call commit
 `d7ec339562b90d655340e315e3ab674ef4d24b12`. No Cargo, compiler, test, runtime,
 Clippy, Claude, external review process or ROOT edit was performed in this lane.

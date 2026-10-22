@@ -1,5 +1,9 @@
 # CI merge repair, 2026-10-18
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 This merge combines local browser capture repair `3a205c841` with main
 `e32be37755524c57e7205044935807aab71f2b0b`, preserving whole prior source
 packets, source views, and the canonical formatted dispatcher.

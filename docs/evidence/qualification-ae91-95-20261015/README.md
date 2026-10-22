@@ -1,5 +1,9 @@
 # Exact ae91 focused recheck receipts
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Execution source: ae91fa963ecfe85f4cc830cda85fff2f5bdbe094. Five focused build phases passed in569.5707985420013s, zero test bodies during build. Runtime finished95 exact owners:89PASS,6FAIL, no resource refusal; all95 groups settled empty and source bindings unchanged. This archive commit is evidence only and is not an execution source claim.
 
 Every selected log and memory sample is copied byte exact, as are completed build/runtime receipts, manifest, drivers and terminal Clippy receipts listed in archive-index.json. Original absolute paths inside receipts are retained; archive-index.json supplies copied-file locators/hashes. All three relevant scoped Clippy phases passed; each source binding stayed unchanged and its process group settled empty.

@@ -1,5 +1,9 @@
 # Review of the cfg(test) codec808 frontier witness
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 I reviewed only the pasted text and ran nothing. The pasted source has no line numbers, so I cite quoted fragments.
 
 ## Blockers

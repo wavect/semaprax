@@ -1,0 +1,31 @@
+{
+  "status": "PRIOR_HEAD_COMPLETE_PRODUCTION_GRAPH_CAPTURE_AND_EXACT_WIRE_PROOF_PASS",
+  "source_head": "f5b1bb7b5d5be8325c9d696543c3557397c3e959",
+  "run_id": 39635992656,
+  "job_id": 119347732188,
+  "checks": [
+    {
+      "file": "calculator-baseline.json",
+      "old_builder_bytes": 3751626,
+      "new_builder_bytes": 3683754,
+      "old_digest": "sha256:90c08f4187753c1872ddc2c4e86e410826b8821b93de363465c2588ccdd7d683",
+      "new_digest": "sha256:fd0bb71ce5d4bf0c2f7bf18fb7f502b6e06e2985fc7bd872c979c38029248eb1",
+      "old_sha256": "96a2414a073d1ea6f028734fdc802cddef0b1ed34760812df861251f74b3c596",
+      "captured_sha256": "db4dfa0d248f9b25c353df899c80397c8be74ccc645b7beaad20648573ca5ac8",
+      "production_domain_digest_independently_verified": true,
+      "all_other_wire_bytes_exact": true
+    },
+    {
+      "file": "calculator-renamed.json",
+      "old_builder_bytes": 3751626,
+      "new_builder_bytes": 3683754,
+      "old_digest": "sha256:7f57fae089991da9ccf3e6957c11e97abfd1d02faa6cb9b3dd7ddd7844c5a7ec",
+      "new_digest": "sha256:859c7ab287350f3bc8bdf4fb4d672b3e9b68ce0581145405a23db9c3435c0376",
+      "old_sha256": "bb6f1df6759157a1f0c1fd5af8bc4f185f542a7160b72d908a2057620205e507",
+      "captured_sha256": "11a870c5c88a6755447f8c0cff31667e4bb4e91fc11b8531e3a70779b72ef002",
+      "production_domain_digest_independently_verified": true,
+      "all_other_wire_bytes_exact": true
+    }
+  ],
+  "limits": "Capture step succeeded. Subsequent browser fixture gate failed against the prior pins. This is not Chromium or full CI success."
+}

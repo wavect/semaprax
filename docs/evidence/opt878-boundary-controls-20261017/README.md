@@ -1,5 +1,9 @@
 # OPT878 actual receiver boundary controls — unexecuted
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 This test-only followup adds two bounded lib owners to the existing physical
 merge-key and owned-suffix test modules. Every previous byte is retained as a
 prefix; all production algorithms, prices, tables and caps are unchanged.

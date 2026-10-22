@@ -1,5 +1,9 @@
 # Browser Project graph pin consumer: actual35cc capture
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Actual production CLI graph captures are retained in `actual-capture/`, including complete commands/controller,35cc source/build/artifactSHA bindings, original observed_phase guards, full telemetry and confirmed-empty owned groups, both complete new wires and all four immediate/original predecessor wires. Both graph commands exited0; this is capture evidence, not browser/owner test PASS. No Cargo/build/Node/web/test execution occurred for capture or this consumer update. Rustfmt was used only on the edited Rust helper.
 
 The actual browser Project bill is4032239, an INCREASE of101963 over3930276. It is a distinct fixture/domain from the separately captured managed-workspace decrease243092. Neither result attributes a performance change to one optimization or claims app cap fit.

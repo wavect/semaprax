@@ -1,0 +1,9 @@
+
+thread '<unnamed>' (68343728) panicked at /Volumes/Semaprax/worktrees/ci-format-26eeb/src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs:46:9:
+assertion `left == right` failed: frontier instrumentation must be prepared
+  left: 0
+ right: 4096
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'main' (68343569) panicked at /Volumes/Semaprax/tmp/ci-38383508340/trace-2aa/checks.rs:59:15:
+called `Result::unwrap()` on an `Err` value: Any { .. }

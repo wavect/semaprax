@@ -1,5 +1,9 @@
 # Private retained-wrapper rename source batch
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 This is NEXT source, not a completion or cost claim. The production
 producer now admits renamed canonical Vec/Box wrappers after the unchanged
 provider classifier. Unsupported wrappers, Bytes-return aliases and invariant

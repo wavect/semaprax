@@ -1,5 +1,9 @@
 # Next source-only setup publication and relative starter input assembly
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source basis: d4cab900edac07fdcc4de0cdcb1bf3daafbef5ef.
 Private branch: codex/next825-relative-starter-20261015.
 Private checkout: /Volumes/Semaprax/worktrees/main927-integration-20261015/AI-Lang.

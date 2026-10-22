@@ -1,3 +1,9 @@
+# closure-audit issue-838-closure-draft
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Ready for parent verification and archive publication before posting.
 
 Implemented directly prepaid ordered numeric closure/closed storage and authenticated borrowed singleton views. **All 10 direct owning gates PASS**, preserving complete independent old receivers, singleton epsilon sharing, work/numeric/order/overflow behavior, exact growth/refusal/Drop and full source histories. Relevant direct authority/source dependencies also PASS.

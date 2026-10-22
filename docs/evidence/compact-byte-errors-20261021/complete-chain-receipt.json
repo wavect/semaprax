@@ -1,0 +1,264 @@
+{
+  "status": "SOURCE_ONLY_GENERATOR_EXTENSION_PENDING_ORIGINAL_VERIFIER",
+  "reason": "The unchanged generator loses an inherited include_str acquisition when a newly extracted include! file itself acquires source data. Preserve every original edge and prepend its single actual same-root parent acquisition. No verifier predicate or actual source bytes change.",
+  "domains": [
+    {
+      "domain": "hir",
+      "original_generated_sha256": "55f91f79e61387fa627b4d3300351114279311554346b3964c65caff5237b44b",
+      "completed_sha256": "5a64952bbd2ccce69828a313cc471519db304dc394de6bfce39e5a4580674063",
+      "actual_acquisition_prefix_extensions": [
+        {
+          "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "original_chain_index": 26,
+          "root": "tests/hir_module_boundaries.rs",
+          "original_edges": [
+            {
+              "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+              "start": 116569,
+              "text": "include!(\"source_inventory_leaf_views.rs\")",
+              "attributes": [],
+              "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs"
+            }
+          ],
+          "actual_prefix_edges": [
+            {
+              "parent": "tests/hir_module_boundaries.rs",
+              "start": 7740,
+              "text": "include_str!(\"../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs\")",
+              "attributes": [],
+              "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+            }
+          ],
+          "complete_chain_edges": [
+            {
+              "parent": "tests/hir_module_boundaries.rs",
+              "start": 7740,
+              "text": "include_str!(\"../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs\")",
+              "attributes": [],
+              "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+            },
+            {
+              "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+              "start": 116569,
+              "text": "include!(\"source_inventory_leaf_views.rs\")",
+              "attributes": [],
+              "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs"
+            }
+          ],
+          "every_original_edge_retained_as_exact_suffix": true
+        },
+        {
+          "source": "tests/workspace/semantic_graph/source_inventory.rs",
+          "original_chain_index": 39,
+          "root": "tests/hir_module_boundaries.rs",
+          "original_edges": [
+            {
+              "parent": "src/source_reflows_merge/main67107_inputs_tail.rs",
+              "start": 33732,
+              "text": "include_str!(\"../../tests/workspace/semantic_graph/source_inventory.rs\")",
+              "attributes": [],
+              "child": "tests/workspace/semantic_graph/source_inventory.rs"
+            }
+          ],
+          "actual_prefix_edges": [
+            {
+              "parent": "tests/hir_module_boundaries.rs",
+              "start": 4451,
+              "text": "include_str!(\"../src/source_reflows_merge/main67107_inputs_tail.rs\")",
+              "attributes": [],
+              "child": "src/source_reflows_merge/main67107_inputs_tail.rs"
+            }
+          ],
+          "complete_chain_edges": [
+            {
+              "parent": "tests/hir_module_boundaries.rs",
+              "start": 4451,
+              "text": "include_str!(\"../src/source_reflows_merge/main67107_inputs_tail.rs\")",
+              "attributes": [],
+              "child": "src/source_reflows_merge/main67107_inputs_tail.rs"
+            },
+            {
+              "parent": "src/source_reflows_merge/main67107_inputs_tail.rs",
+              "start": 33732,
+              "text": "include_str!(\"../../tests/workspace/semantic_graph/source_inventory.rs\")",
+              "attributes": [],
+              "child": "tests/workspace/semantic_graph/source_inventory.rs"
+            }
+          ],
+          "every_original_edge_retained_as_exact_suffix": true
+        },
+        {
+          "source": "tests/workspace/semantic_graph/source_inventory.rs",
+          "original_chain_index": 45,
+          "root": "tests/hir_module_boundaries.rs",
+          "original_edges": [
+            {
+              "parent": "src/source_reflows_merge/main67107_inputs_tail.rs",
+              "start": 45952,
+              "text": "include_str!(\"../../tests/workspace/semantic_graph/source_inventory.rs\")",
+              "attributes": [],
+              "child": "tests/workspace/semantic_graph/source_inventory.rs"
+            }
+          ],
+          "actual_prefix_edges": [
+            {
+              "parent": "tests/hir_module_boundaries.rs",
+              "start": 4451,
+              "text": "include_str!(\"../src/source_reflows_merge/main67107_inputs_tail.rs\")",
+              "attributes": [],
+              "child": "src/source_reflows_merge/main67107_inputs_tail.rs"
+            }
+          ],
+          "complete_chain_edges": [
+            {
+              "parent": "tests/hir_module_boundaries.rs",
+              "start": 4451,
+              "text": "include_str!(\"../src/source_reflows_merge/main67107_inputs_tail.rs\")",
+              "attributes": [],
+              "child": "src/source_reflows_merge/main67107_inputs_tail.rs"
+            },
+            {
+              "parent": "src/source_reflows_merge/main67107_inputs_tail.rs",
+              "start": 45952,
+              "text": "include_str!(\"../../tests/workspace/semantic_graph/source_inventory.rs\")",
+              "attributes": [],
+              "child": "tests/workspace/semantic_graph/source_inventory.rs"
+            }
+          ],
+          "every_original_edge_retained_as_exact_suffix": true
+        }
+      ],
+      "only_identical_complete_paths_coalesced": 1,
+      "all_original_sources_roles_chunks_and_closure_members_retained": true
+    },
+    {
+      "domain": "projection",
+      "original_generated_sha256": "7c663bb80acc093a4e91fc29375990ef2b1b7f2ef8afaa54eba5265c0237ed91",
+      "completed_sha256": "e1a05a1ac5a181d1a73353569ab0837150553a1d0bebe449f4ed281bb7d1920f",
+      "actual_acquisition_prefix_extensions": [
+        {
+          "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+          "original_chain_index": 26,
+          "root": "tests/hir_module_boundaries.rs",
+          "original_edges": [
+            {
+              "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+              "start": 116569,
+              "text": "include!(\"source_inventory_leaf_views.rs\")",
+              "attributes": [],
+              "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs"
+            }
+          ],
+          "actual_prefix_edges": [
+            {
+              "parent": "tests/hir_module_boundaries.rs",
+              "start": 7740,
+              "text": "include_str!(\"../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs\")",
+              "attributes": [],
+              "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+            }
+          ],
+          "complete_chain_edges": [
+            {
+              "parent": "tests/hir_module_boundaries.rs",
+              "start": 7740,
+              "text": "include_str!(\"../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs\")",
+              "attributes": [],
+              "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+            },
+            {
+              "parent": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+              "start": 116569,
+              "text": "include!(\"source_inventory_leaf_views.rs\")",
+              "attributes": [],
+              "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs"
+            }
+          ],
+          "every_original_edge_retained_as_exact_suffix": true
+        },
+        {
+          "source": "tests/workspace/semantic_graph/source_inventory.rs",
+          "original_chain_index": 39,
+          "root": "tests/hir_module_boundaries.rs",
+          "original_edges": [
+            {
+              "parent": "src/source_reflows_merge/main67107_inputs_tail.rs",
+              "start": 33732,
+              "text": "include_str!(\"../../tests/workspace/semantic_graph/source_inventory.rs\")",
+              "attributes": [],
+              "child": "tests/workspace/semantic_graph/source_inventory.rs"
+            }
+          ],
+          "actual_prefix_edges": [
+            {
+              "parent": "tests/hir_module_boundaries.rs",
+              "start": 4451,
+              "text": "include_str!(\"../src/source_reflows_merge/main67107_inputs_tail.rs\")",
+              "attributes": [],
+              "child": "src/source_reflows_merge/main67107_inputs_tail.rs"
+            }
+          ],
+          "complete_chain_edges": [
+            {
+              "parent": "tests/hir_module_boundaries.rs",
+              "start": 4451,
+              "text": "include_str!(\"../src/source_reflows_merge/main67107_inputs_tail.rs\")",
+              "attributes": [],
+              "child": "src/source_reflows_merge/main67107_inputs_tail.rs"
+            },
+            {
+              "parent": "src/source_reflows_merge/main67107_inputs_tail.rs",
+              "start": 33732,
+              "text": "include_str!(\"../../tests/workspace/semantic_graph/source_inventory.rs\")",
+              "attributes": [],
+              "child": "tests/workspace/semantic_graph/source_inventory.rs"
+            }
+          ],
+          "every_original_edge_retained_as_exact_suffix": true
+        },
+        {
+          "source": "tests/workspace/semantic_graph/source_inventory.rs",
+          "original_chain_index": 45,
+          "root": "tests/hir_module_boundaries.rs",
+          "original_edges": [
+            {
+              "parent": "src/source_reflows_merge/main67107_inputs_tail.rs",
+              "start": 45952,
+              "text": "include_str!(\"../../tests/workspace/semantic_graph/source_inventory.rs\")",
+              "attributes": [],
+              "child": "tests/workspace/semantic_graph/source_inventory.rs"
+            }
+          ],
+          "actual_prefix_edges": [
+            {
+              "parent": "tests/hir_module_boundaries.rs",
+              "start": 4451,
+              "text": "include_str!(\"../src/source_reflows_merge/main67107_inputs_tail.rs\")",
+              "attributes": [],
+              "child": "src/source_reflows_merge/main67107_inputs_tail.rs"
+            }
+          ],
+          "complete_chain_edges": [
+            {
+              "parent": "tests/hir_module_boundaries.rs",
+              "start": 4451,
+              "text": "include_str!(\"../src/source_reflows_merge/main67107_inputs_tail.rs\")",
+              "attributes": [],
+              "child": "src/source_reflows_merge/main67107_inputs_tail.rs"
+            },
+            {
+              "parent": "src/source_reflows_merge/main67107_inputs_tail.rs",
+              "start": 45952,
+              "text": "include_str!(\"../../tests/workspace/semantic_graph/source_inventory.rs\")",
+              "attributes": [],
+              "child": "tests/workspace/semantic_graph/source_inventory.rs"
+            }
+          ],
+          "every_original_edge_retained_as_exact_suffix": true
+        }
+      ],
+      "only_identical_complete_paths_coalesced": 1,
+      "all_original_sources_roles_chunks_and_closure_members_retained": true
+    }
+  ]
+}

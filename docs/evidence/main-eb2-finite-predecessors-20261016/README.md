@@ -1,5 +1,9 @@
 # Exact main eb2 finite predecessor extension
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only layer bound to clean joined6db5964817b0c3e2a368074995c32fe00b5228fa. Python/JSON/evidence only: no Rust, raw guard, allowlist, source-reflow root or production changes. Parent may refresh Main043/Main44/overall authorities independently.
 
 All four complete prior scripts are archived. `script-extensions.json` contains exact before/after SHA identities and the sole additive recipes; inverse recipes restore every byte of each original script. Original capsules, archives and previous accepted choices are unchanged. The28 complete named input views authenticate exact6db bytes and restore exact previously authenticated owner inputs. Each row retains its exact old choice; unknown/mutated inputs still reach the original fail-closed predicates. Both ordinary-summary and859 add the single actual6db whole registry predecessor, retaining every prior predecessor. No wildcard source domain is added.

@@ -1,5 +1,9 @@
 # Two actual c874 fixture repairs — source-only
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The ordinary_project_import_as_vec_alias Project fixture now parses and formats
 its original unchanged RENAMED/PROVIDER/test inputs using the actual compiler
 canonical formatter BEFORE writing the Project sources. The original snapshot

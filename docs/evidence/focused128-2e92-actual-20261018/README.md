@@ -1,5 +1,9 @@
 # Actual focused qualification at 2e92f64f6
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 These are completed executions of source `2e92f64f640fe7f4495b3fffe6a17c5575e9f965`, tree `a80b60c7350b8a83e82253175503d4fdd926aedd`, on aarch64 macOS with Rust 1.97.1. They are prior-source evidence after subsequent changes, not current-head qualification.
 
 All six selected build commands passed and produced nine new artifacts. Exactly 128 registered tests ran: 94 passed, 34 failed. No full test suite or quality gate ran. Source-bound receipts retain exact commands, artifact hashes, log hashes, resource observations and settled process groups. The single separate native-disposal test and the single missing #887 helper control passed.

@@ -1,5 +1,9 @@
 # Joined receiving source checkpoint
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Run only these current entrypoints from the checkout:
 
 - `python3 docs/evidence/next-unit-branch-receiving-joined-20261016/verify-source.py`

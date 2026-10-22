@@ -1,5 +1,9 @@
 # Native disposal frame layout correction
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The Ubuntu Public Native Rust SDK job at commit 12adce failed with E0080 on
 the historical 56-byte disposal-frame pin. The closed compiler declaration
 tag representation reduces DeclarationId from 24 to 16 bytes, ResolvedType

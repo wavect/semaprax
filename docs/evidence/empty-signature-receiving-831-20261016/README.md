@@ -1,5 +1,9 @@
 # OPT831 empty-signature receiver, next source-only batch
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base: `d96247b3cb69282c3d1b835b2428779e8bde82c7`.
 This is a bounded actual-constructor improvement, not a weighted layout rewrite.
 The preserved a82 row17 failed at width0 (paid10829 ->11970, allocated1517 ->861).

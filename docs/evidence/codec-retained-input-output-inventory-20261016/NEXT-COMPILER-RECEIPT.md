@@ -1,5 +1,9 @@
 # Next compiler-owned authenticated receipt lane (design only)
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Actual owner: src/cli/json_codec.rs:84–98 calls project::with_authenticated_project, derives from snapshot.retain_revision(), and performs held-input recheck before publishing a new complete source artifact. src/cli/json_codec.rs:100–128 publishes through private write/sync/hard-link and refuses existing destinations. Current host proxy (base039b compiler_input_capture.py:484–517) runs the actual compiler only in the original agent sandbox, cwd, env, streams and group. Its runner broker has bounded read/retention authority, not permission to execute a second compiler outside that sandbox. Two observations before/after a mutable run do not prove exact input binding, even if their hashes agree.
 
 Before semantics, the next lane must read RFC0001, completion matrix, architecture, quality gates, APPLICATION-JSON-CODECS-V1, applicable Project snapshot/revision contracts and actual with_authenticated_project source graph. A compiler-exported receipt should be produced under that existing authority and identify the complete authenticated original input closure/revision (including manifest/dependencies and selected schema), exact compiler source/binary identity as authenticated by the runner, exact invocation/profile/bounds, full output SHA/length, and the no-overwrite publication result. Original source bytes must remain independently retainable; output carries both the original schema and generated helpers. No generated identity or mixed whole-file classification erases original input authorship.

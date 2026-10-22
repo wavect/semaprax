@@ -1,0 +1,16 @@
+{
+  "base_head": "d9039b42432430b1fbfd915987be1fa76cad834c",
+  "scope": "Test-only source/history projections; no compiler quota, golden, public language rule or production implementation changed.",
+  "change": "Use the existing registered_file API to route only already-registered exact source/hash views into the original historical projectors. Nine raw source paths outside that membership have a closed current-to-8c95 predecessor before their original CI formatting guards.",
+  "source_history": "Fourteen complete current compiled inputs and fresh regular physical files are pinned before exact whole inverses. The inverse metadata itself is compiled, digest-pinned and freshly read. Every returned predecessor equals the independent complete Git body at 8c95f77750. Five registered paths retain their original registered routing.",
+  "qualification": "46 focused tests passed. The original source audit authenticates and reconstructs all 180 records across both original tables. Fourteen source inverses, 42 stale/changed-input refusals, the unchanged original reader controls, 24 complete metadata inverses with 72 changed-input refusals, four oracle inverses with eight refusals, 41 transport/overlay tests and focused Clippy with warnings denied passed.",
+  "source_roles": "Fresh full source generation followed by exact body-only pin/edge-offset refresh when reusing the existing API. Both complete original source-domain verifiers and all six hostile controls passed; old sources, roles, chains, memberships, unknown fields and current endpoints retained.",
+  "page_bytes": 230788,
+  "rows": 687,
+  "replacements": 138,
+  "additions": 168,
+  "root_lines": 1500,
+  "all_work_and_caches_on_external_ssd": true,
+  "full_Root_build_and_full_CI_green_not_claimed": true,
+  "known_remaining": "An independent incoming67107 source receiver still needs the current HIR observation preimage. Full CI also has runtime-budget, native-invoice and target-loader issues under investigation."
+}

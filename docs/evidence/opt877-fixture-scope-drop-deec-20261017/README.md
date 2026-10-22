@@ -1,5 +1,9 @@
 # Two enumerated-prefix fixture corrections
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source candidate from exact deec161142b2f3e882e50b4450338c69c137e586. No Cargo, compilation or tests were run. The actual failed owning-selected-08.log and owning-selected-14.log are identified by digest in receipt.json. This changes only the existing enumerated_prefix/tests.rs owner; production bodies, prices, caps, independent old sequence receiver and oracle authority are unchanged.
 
 The physical frontier owner returned Result<(), Diagnostic> from measure, then required zero live backing while that returned Diagnostic still owned its measured refusal String. Its full-limit success has no escaping error. The correction explicitly drops the budget first, retaining the original budget-before-error order, then captures all six exact Diagnostic fields into fixed stack storage and drops the original Diagnostic before measure returns. The existing heap validity/live/freed/paid assertions, exact/short/zero assertions, stable code, and six-field repeated-error comparisons remain in their original order. Capture does not clone or format text, allocate, query a payer, truncate, or add compiler funding. The short fixture IDs and existing 512-byte prepaid refusal-text contract fit the checked 1024-byte observation-only field storage; an unexpected larger field fails the test explicitly. Optional fields preserve None versus Some(empty), their bytes, severity and span.

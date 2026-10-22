@@ -1,3 +1,9 @@
+# runtime-fixture-848-assembly-20261015 HANDOFF
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only848 integration, actual mergeparents999fa and reviewed8c974. No Cargo, build, Rust/IOtest, Node, Clippy, producer, capture or pin update run. #848 remains unqualified; no RAM/speed/token/appfit claim.
 
 Existing runtime loader is byte-exact reviewed8c974. It reads one fixed compiled repository path using one opened regular-file handle with exact metadata length/hardcap before allocation; exact read/EOF/SHA/UTF8 precede all original41JSON/source assertions. This owner now depends on repository fixture availability at test runtime. All five decoder functions/hostile controls, raw5,196,870-byte JSON, gzip sidecar and five devdependencies remain unchanged. Production and all three audit bodies unchanged.

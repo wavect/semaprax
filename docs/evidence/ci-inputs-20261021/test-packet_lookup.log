@@ -1,0 +1,9 @@
+
+running 4 tests
+test source_reflows_merge::main_e177_final_inputs::packet_lookup::combined_side_invocation_checks_current_and_complete_prior_before_returning ... ok
+test source_reflows_merge::main_e177_final_inputs::packet_lookup::tests::borrowed_lookup_rechecks_current_on_each_invocation_before_history ... ok
+test source_reflows_merge::main_e177_final_inputs::packet_lookup::tests::packet_borrowing_preserves_complete_old_root_and_both_fresh_fallbacks ... ok
+test source_reflows_merge::main_e177_final_inputs::packet_lookup::tests::same_invocation_file_context_reuses_metadata_and_keeps_fresh_reads_foreign_refusals_and_drop ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 273 filtered out; finished in 0.26s
+

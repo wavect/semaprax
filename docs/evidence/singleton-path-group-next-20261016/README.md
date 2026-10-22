@@ -1,5 +1,9 @@
 # Singleton path-state control group
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Private source-only implementation based on `8bb9f5b7b99e1e71a797460c46180daf716b234b`. No Cargo, Rust test, backend or allocation execution occurred. Three exact owning lib selectors remain pending.
 
 Actual 8bb codec808 failure is preserved in `/Volumes/Semaprax/lane-prompts/final-8bb9-76-resume-qualification-20261016/owning-selected-11.log`: final mode6 prebound13,022,440, CleanupReplay52,502,367, first refusal546/rem81 at boxed_states.rs161. That identifies a real grouping insertion frontier; it does not prove this patch recovers the application cap or quantify its new costs.

@@ -1,5 +1,9 @@
 # Canonical merge resolution candidates
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only external candidates for the in-progress 6e549d1ae +
 88884d148d9c148eed61bc3265eed955edf19346 merge. No ROOT source, index,
 refs or commits were changed. No Rust/Cargo/test/Clippy/Node execution.

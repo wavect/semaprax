@@ -1,5 +1,9 @@
 # MAIN927 source-only successor
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Private integration starts at frozen9b174d852798c99ce2d14b8170ec05e6c0f94b88
 and merges actual MAIN9279411a0c7e7cf12908457c5fe93289a7b19508, including
 paid-prelude cachebilling e484 and replayed public Wasm String-profile selection.

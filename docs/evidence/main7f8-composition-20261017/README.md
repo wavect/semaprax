@@ -1,5 +1,9 @@
 # Main7f8 conflict composition candidate — source only
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Candidate overlay: `candidate/`. ROOT was read only; no staging, commits, Cargo, rustc, pin producer, or GitHub writes. Sources are stage2 ca6f99e4bcfa93a5a5b138a871071b908e94393d and stage3 7f8e901da66015b09a25d3a1b96b2abebf21e92f. `ours/`, `incoming/`, and `base/` retain all four complete conflict preimages. `handoff.json` lists every candidate identity.
 
 ## Four resolutions

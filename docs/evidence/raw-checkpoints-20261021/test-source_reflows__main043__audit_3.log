@@ -1,0 +1,20 @@
+
+running 1 test
+test source_reflows::main043::audit_3::complete_original_and_all_source_audit_receivers_are_byte_exact ... FAILED
+
+failures:
+
+---- source_reflows::main043::audit_3::complete_original_and_all_source_audit_receivers_are_byte_exact stdout ----
+
+thread 'source_reflows::main043::audit_3::complete_original_and_all_source_audit_receivers_are_byte_exact' (69194164) panicked at /Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows/main043/audit_3.rs:73:5:
+assertion `left == right` failed
+  left: "eb2e0311dec7f631f4e0ff15e709414ad79b78b946d0e9b8b7c6d7db9f3c2e05"
+ right: "5fd13ff6c69920abbbfca62effa9b44be55a1ecbe8651cf163f5ad5ad561ad5b"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    source_reflows::main043::audit_3::complete_original_and_all_source_audit_receivers_are_byte_exact
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 276 filtered out; finished in 0.34s
+

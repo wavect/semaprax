@@ -145,6 +145,12 @@ fn digest(source: &str) -> String {
 }
 
 fn invert(proof: &serde_json::Value, current: &str) -> String {
+    let requested = crate::source_reflows_merge::main_e177_final_inputs::value(
+        proof["path"].as_str().unwrap(),
+        proof["after_sha256"].as_str().unwrap(),
+        current,
+    );
+    let current = requested.as_str();
     let staged = main090_expected(proof, current);
     let current = staged.as_str();
     let path = proof["path"].as_str().unwrap();
@@ -263,7 +269,11 @@ fn ordinary_setup_complete_sources_and_original_legacy_constructor_remain_exact(
         let before = invert(row, &current);
         assert_eq!(
             before,
-            main090_read(evidence.join(row["archive"].as_str().unwrap())).unwrap()
+            main090_archive(
+                evidence.join(row["archive"].as_str().unwrap()),
+                row["before_sha256"].as_str().unwrap()
+            )
+            .unwrap()
         );
         assert!(std::panic::catch_unwind(|| invert(row, &(current.clone() + "\n"))).is_err());
         if path == "src/cleanup_plan/replay/skeleton_work.rs" {
@@ -309,6 +319,65 @@ fn ordinary_setup_bridges_preserve_every_complete_original_format_input() {
     }
 }
 
+fn main090_proof_current(proof: &serde_json::Value) -> String {
+    assert!(
+        proofs().iter().any(|registered| registered == proof),
+        "closed original receiver proof"
+    );
+    let path = proof["path"].as_str().unwrap();
+    let expected = proof["after_sha256"].as_str().unwrap();
+    let live = match path {
+        "src/cleanup_plan/replay/selected_entry/tests/session_errors/source.rs" => Some((
+            "liveSessionMAIN",
+            include_str!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/cleanup_plan/replay/selected_entry/tests/session_errors/source.rs"
+            )),
+        )),
+        "src/hir/nominal_payload/legacy/source_tests.rs" => Some((
+            "liveNominalMAIN",
+            include_str!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/hir/nominal_payload/legacy/source_tests.rs"
+            )),
+        )),
+        _ => None,
+    };
+    if let Some((domain, compiled)) = live {
+        assert!(compiled.len() <= MAIN090_CAP);
+        let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+        let actual = main090_file(&root.join(path), compiled.len(), &digest(compiled))
+            .expect("complete current live-audit source");
+        assert_eq!(actual, compiled, "complete compiled live-audit source");
+        let stages = include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/main67107-fronts-6e45-20261017/stages.json"
+        ));
+        assert!(stages.len() <= 1_048_576);
+        assert_eq!(
+            digest(stages),
+            "bfbacf2777c310ee34ad6acd34352a9c58777ec11d39f2649be584711d72f120"
+        );
+        let held_stages = main090_file(
+            &root.join("docs/evidence/main67107-fronts-6e45-20261017/stages.json"),
+            stages.len(),
+            "bfbacf2777c310ee34ad6acd34352a9c58777ec11d39f2649be584711d72f120",
+        )
+        .expect("complete original live-audit archive table");
+        assert_eq!(held_stages, stages);
+        let live = crate::source_reflows_merge::main67107_inputs::project(domain, &actual);
+        assert!(live.len() <= MAIN090_CAP);
+        assert_eq!(digest(&live), expected);
+        return live;
+    }
+    crate::source_reflows_merge::main_e177_final_inputs::registered_file(
+        path,
+        expected,
+        MAIN090_CAP,
+    )
+    .unwrap_or_else(|| main090_read(Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap())
+}
+
 #[test]
 fn every_receiver_inverse_preserves_the_entire_reflow_input_and_archive() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
@@ -321,7 +390,7 @@ fn every_receiver_inverse_preserves_the_entire_reflow_input_and_archive() {
         if let Some(repair) = repair {
             assert_eq!(proof["before_sha256"], repair["after_sha256"]);
         }
-        let current = main090_read(root.join(path)).unwrap();
+        let current = main090_proof_current(proof);
         let restored = invert(proof, &current);
         let source_audits: Vec<serde_json::Value> = serde_json::from_str(LIVE_AUDITS).unwrap();
         let archive_root = if source_audits.iter().any(|audit| audit["path"] == path) {
@@ -332,7 +401,10 @@ fn every_receiver_inverse_preserves_the_entire_reflow_input_and_archive() {
         let archive = root
             .join(archive_root)
             .join(proof["archive"].as_str().unwrap());
-        assert_eq!(restored, main090_read(archive).unwrap());
+        assert_eq!(
+            restored,
+            main090_archive(archive, proof["before_sha256"].as_str().unwrap()).unwrap()
+        );
         assert_ne!(current, restored);
         // Execute the unchanged formatting inverse and its whole-file digest.
         if let Some(repair) = repair {
@@ -344,9 +416,8 @@ fn every_receiver_inverse_preserves_the_entire_reflow_input_and_archive() {
 
 #[test]
 fn receiver_mutation_and_forged_predecessor_fail_closed() {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     for proof in proofs() {
-        let current = main090_read(root.join(proof["path"].as_str().unwrap())).unwrap();
+        let current = main090_proof_current(proof);
         let changed = format!("{current} ");
         assert!(std::panic::catch_unwind(|| invert(proof, &changed)).is_err());
         let mut forged = proof.clone();
@@ -367,7 +438,10 @@ fn allocation_followup_preserves_the_complete_original_format_input() {
         let archive = root
             .join("docs/evidence/source-reader-followups-20261016")
             .join(proof["archive"].as_str().unwrap());
-        assert_eq!(restored, main090_read(archive).unwrap());
+        assert_eq!(
+            restored,
+            main090_archive(archive, proof["before_sha256"].as_str().unwrap()).unwrap()
+        );
         let format = records()
             .iter()
             .find(|record| record["path"] == path)
@@ -388,7 +462,11 @@ fn complete_followup_receivers_keep_all_original_source_bytes() {
     let records: serde_json::Value =
         serde_json::from_str(&main090_read(evidence.join("sources.json")).unwrap()).unwrap();
     for record in records.as_array().unwrap() {
-        let original = main090_read(evidence.join(record["archive"].as_str().unwrap())).unwrap();
+        let original = main090_archive(
+            evidence.join(record["archive"].as_str().unwrap()),
+            record["sha256"].as_str().unwrap(),
+        )
+        .unwrap();
         assert_eq!(digest(&original), record["sha256"]);
         let current = main090_read(root.join(record["path"].as_str().unwrap())).unwrap();
         let restore = |source: &str| -> Option<String> {
@@ -895,6 +973,20 @@ fn main090_manifest() -> serde_json::Value {
 }
 fn main090_checked(path: &Path, length: usize, sha: &str) -> String {
     assert!(length <= MAIN090_CAP);
+    if let Some(value) =
+        crate::source_reflows_merge::main_e177_final_inputs::file(path, length, sha)
+    {
+        return value;
+    }
+    if let Some(value) = crate::source_reflows_merge::next_big_batch_inputs::file(path, length, sha)
+    {
+        return value;
+    }
+    if let Some(value) =
+        crate::source_reflows_merge::main67107_inputs::accepted_expected_file(path, length, sha)
+    {
+        return value;
+    }
     main090_file(path, length, sha).unwrap()
 }
 fn main090_row<'a>(
@@ -909,6 +1001,12 @@ fn main090_row<'a>(
         .find(|r| r["path"] == path)
 }
 fn main090_entry(entry: &serde_json::Value, current: &str) -> String {
+    let selected = crate::source_reflows_merge::main_e177_final_inputs::value(
+        entry["path"].as_str().unwrap(),
+        entry["current_sha256"].as_str().unwrap(),
+        current,
+    );
+    let current = selected.as_str();
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     // Every staged value is authenticated against actual physical current input.
     let raw = main090_checked(
@@ -1232,4 +1330,55 @@ fn main090_sealed_domains_refuse_foreign_and_incomplete_inputs() {
         assert_eq!(main090_entry(row, &view), view);
         assert!(std::panic::catch_unwind(|| main090_entry(row, &(raw.clone() + "\n"))).is_err());
     }
+}
+
+// Immutable before-archives are RAW inputs, not members of the current-source
+// projection namespace. Keep every original before SHA and the held-reader cap.
+fn main090_archive(path: impl AsRef<Path>, expected: &str) -> std::io::Result<String> {
+    let path = path.as_ref();
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let relative = path.strip_prefix(root).map_err(|_| {
+        std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "foreign historical archive root",
+        )
+    })?;
+    if !relative.starts_with("docs/evidence")
+        || relative
+            .components()
+            .any(|part| !matches!(part, std::path::Component::Normal(_)))
+    {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "foreign archive subject",
+        ));
+    }
+    let metadata = std::fs::symlink_metadata(path)?;
+    if metadata.file_type().is_symlink() || !metadata.is_file() {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "nonregular archive",
+        ));
+    }
+    let length = usize::try_from(metadata.len())
+        .map_err(|_| std::io::Error::new(std::io::ErrorKind::InvalidInput, "archive length"))?;
+    if length > MAIN090_CAP {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "archive bound",
+        ));
+    }
+    main090_file(path, length, expected)
+        .map_err(|message| std::io::Error::new(std::io::ErrorKind::InvalidData, message))
+}
+
+#[test]
+fn proof_current_read_retains_the_complete_original_proof_domain() {
+    let mut foreign = proofs()[0].clone();
+    foreign["before_sha256"] = serde_json::Value::String("0".repeat(64));
+    assert!(std::panic::catch_unwind(|| main090_proof_current(&foreign)).is_err());
+    let mut foreign = proofs()[0].clone();
+    foreign["path"] =
+        serde_json::Value::String("src/source_reflows_merge/runtime_json.rs".to_owned());
+    assert!(std::panic::catch_unwind(|| main090_proof_current(&foreign)).is_err());
 }

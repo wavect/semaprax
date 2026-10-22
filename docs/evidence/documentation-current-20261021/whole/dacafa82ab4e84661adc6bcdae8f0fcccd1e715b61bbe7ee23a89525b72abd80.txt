@@ -1,0 +1,7 @@
+All eleven writer/CLI/report acceptance checks PASS at `8bb9f5b7`, covering exact JSON fields/escaping/null/order, human bytes and newlines, streams/status, first I/O failure and complete old-source custody. The writer removes intermediate JSON Strings on the actual route. Full unbounded probe allocations fall 25→3 (730→48 allocated bytes); bounded probes remain unchanged and are retained.
+
+Legacy JSON APIs remain available. This does not claim diagnostic-output funding, application fit or agent-token savings; #825 remains open.
+
+[Complete published evidence](https://github.com/wavect/semaprax/tree/2f03b2a2d50b06e34c8e5a5f1a4b7c4fad2cacda/docs/evidence/qualification-8bb9-76-resume-20261016): original 76 = 56 PASS / 20 FAIL; separate supplement = 9 PASS / 0 FAIL. Four build scopes qualify using the explicitly recorded two-command resumption; the original resource interruption remains archived. No full suite or full quality gate ran.
+
+Both consolidated scoped Clippy commands ran and returned 101 for the same **unrelated #849** `manual_saturating_arithmetic` lint at `path_join/boxed_states.rs:63`. This is not a Clippy-PASS claim. Its equivalent `saturating_add` correction is prepared in the next implementation batch. The issue's own acceptance is complete; an unrelated lint or stale graph-budget pins are not added as global closure gates. All 20 current failures remain in the linked archive.

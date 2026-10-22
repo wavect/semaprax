@@ -1,5 +1,9 @@
 # #780 connected candidate adoption
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Private basis: 828f258503ec98c6cc9b1b59d307ad604bcf681d. This packet is source-ready only. It corrects actual ordinary and retained candidate calls that still used the strict contextless v1 helper before the already-contextual plan builders could execute. Both use one paid lazy slot after unchanged complete discovery/alias passes. The strict v1 helper and original paid candidates remain unchanged; saved_planner now explicitly binds a byte-exact complete original candidate body instead of accidentally sharing the newly changed root.
 
 The connected funded classifier zero-authenticates its actual owner before choosing typed physical/semantic output. No text-based conversion, borrowed quota, refund, cap or work credit is used. The raw original child-ledger refusal remains first. No paid invocation or proof is reactivated outside its caller.

@@ -1,5 +1,9 @@
 # d6bf owning accounting / region / return fixture corrections
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Private basis `d6bf8151942190a956eb57350fa8b8892a8c68e5`. No ROOT edit, Cargo/Rust execution, Clippy, Claude or global history composition.
 
 The reported owner104 difference first occurs in scalar old-vs-paid-original, before Context comparison: new d7 block entry genuinely pays eleven controls. Both old and paid whole drivers remain real and retain all their actual costs. The owning helper now runs the complete independently compiled preceding block receiver and the current paid receiver under identical original Context/facts/storage/renewal setup, recording each real seam's work/bytes. A separate existing helper runs both actual Context constructors. Exact cross-addition checks the whole-driver difference against these independent seams, and logs all absolute old/current driver, context and block totals. The no-call scalar fixture additionally requires exactly eleven initializer units and the independent full eleven-field physical layout. The scalar Tree/Arena corpus uses the same equation, retaining the complete independent Tree driver, all identity/verdict checks and each route's actual exact/short/sticky/Drop frontiers. No predicted fee, padding, cap, credit or refund.

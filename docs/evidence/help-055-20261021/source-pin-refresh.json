@@ -1,0 +1,49 @@
+{
+  "status": "SOURCE_ONLY_FINITE544_PACKET_PREDICATES_PASS",
+  "before_head": "055f0c53e7",
+  "before_guard": {
+    "length": 11549,
+    "sha256": "a384967a2c82ef90058319447835c64a84831cd59d39340df8a75e03c4b19c6b",
+    "archive": "docs/evidence/help-055-20261021/whole/a384967a2c82ef90058319447835c64a84831cd59d39340df8a75e03c4b19c6b.txt"
+  },
+  "before_config": {
+    "length": 136469,
+    "sha256": "6c6f28a8d3bffbda4256a04ecffbcba34c168229c724b89f80486093987b452c",
+    "archive": "docs/evidence/help-055-20261021/whole/6c6f28a8d3bffbda4256a04ecffbcba34c168229c724b89f80486093987b452c.txt"
+  },
+  "before_helper": {
+    "length": 46606,
+    "sha256": "1c29b4b26b93d6f44d77669f1534ec94b704459d3ce169eff3b7fa8af686480c",
+    "archive": "docs/evidence/help-055-20261021/whole/1c29b4b26b93d6f44d77669f1534ec94b704459d3ce169eff3b7fa8af686480c.txt"
+  },
+  "before_python_overlay": {
+    "length": 14967,
+    "sha256": "48644ad5b1152cd0f21e1a331e2421c794d137be2a673f5513a78b15562da041",
+    "archive": "docs/evidence/help-055-20261021/whole/48644ad5b1152cd0f21e1a331e2421c794d137be2a673f5513a78b15562da041.txt"
+  },
+  "before_policy": {
+    "length": 17317,
+    "sha256": "355cde3ca04eb8a3f07996a8faec5011ac376ef9346729e8e9aa7515d88428e8",
+    "archive": "docs/evidence/help-055-20261021/whole/355cde3ca04eb8a3f07996a8faec5011ac376ef9346729e8e9aa7515d88428e8.txt"
+  },
+  "before_page": {
+    "length": 240608,
+    "sha256": "406ff78c7e4594ae34680b4b1d8c851b6be14007aa31f8c853ab52f7c86e517b",
+    "archive": "docs/evidence/help-055-20261021/whole/406ff78c7e4594ae34680b4b1d8c851b6be14007aa31f8c853ab52f7c86e517b.txt"
+  },
+  "changed_sources": [
+    "CHANGELOG.md"
+  ],
+  "module_pins_refreshed": [
+    "src/source_reflows_merge/main_e177_overlay_v2.rs"
+  ],
+  "carrier_pins_refreshed": [],
+  "all_544_rows_fields_view_prefixes_and_prior_current_wires_retained": true,
+  "new_literal_replacements_inserted_in_predecessor_source_order": true,
+  "original_519_extension_and_loader_unchanged": true,
+  "python_and_rust_overlay_bodies_unchanged_except_literal_membership_and_policy_seals": true,
+  "all_reader_source_program_and_runtime_caps_unchanged": true,
+  "page_bytes": 240848,
+  "policy_bytes": 17317,
+  "raw_owners": 342
+}

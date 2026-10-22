@@ -1,5 +1,9 @@
 # Independent latest MAIN ordinary-routes source domain
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 SOURCE ONLY: no Cargo, Rust owner, common refresh or authority generator ran.
 The initial13-input bindings use the private pre-merge production overlay and
 are unqualified. Rebind once all parent production resolutions are joined.

@@ -1,0 +1,28 @@
+{
+  "status": "SOURCE_ONLY_LOCAL_FOCUSED_AND_FULL_METADATA_CHECKS_PASS",
+  "base": "67a1a25a866fbc0b5dc38c8c63b7f2f6166a443a",
+  "changed_sources": [
+    "src/source_reflows_merge/main_e177_final_inputs.rs",
+    "src/source_reflows_merge/main_e177_overlay_v2.rs",
+    "src/source_reflows/incoming090_semantic_receivers.rs",
+    "src/source_reflows/incoming21_semantic_receivers.rs",
+    "src/source_reflows_merge/runtime_json.rs",
+    "src/source_reflows_merge.rs",
+    "src/source_reflows_merge/main7f8_source_inputs.rs",
+    "src/source_reflows/incoming67107_semantic_receivers.rs",
+    "src/source_reflows/semantic_receivers.rs",
+    "src/source_reflows/main_f247_controllers.rs",
+    "CHANGELOG.md"
+  ],
+  "registered_source_rows": 544,
+  "new_finite_views": 20,
+  "independent_original_proof_frames": 33,
+  "original_project_and_value_wrong_stage_functions_unchanged": true,
+  "unpublished_unused_alias_removed": true,
+  "original_caps_floors_and_tariffs_unchanged": true,
+  "production_code_changed": false,
+  "hosted_green_claimed": false,
+  "release_PR_merged": false,
+  "focused_tests_passed": 37,
+  "all_source_tests_run": false
+}

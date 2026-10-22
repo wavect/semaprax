@@ -1,5 +1,9 @@
 # Distinct Main043 historical semantic receiver
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The complete current receiver retains incoming allocation/source followups and the
 immutable99 source-input front. Main043 originally required exact old receiver
 bytes. Only that historical equality now consumes an authenticated finite inverse;

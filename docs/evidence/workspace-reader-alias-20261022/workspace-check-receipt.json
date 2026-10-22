@@ -1,0 +1,7 @@
+{
+  "status": "PASS_ACTUAL_WORKSPACE_INTEGRATION_CHECK",
+  "peakKiB": 5024768,
+  "global_headroom_floor_percent": 35,
+  "process_cap_MiB": 6144,
+  "worktree": "/Volumes/Semaprax/worktrees/ci-browser-ef1836"
+}

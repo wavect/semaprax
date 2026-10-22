@@ -1,5 +1,9 @@
 # Browser36 pin update prepared, not applied
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Only two exact graph-digest literals in `platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs` change. Complete original and proposed files, unified patch and whole-source inverse are retained here. No ROOT files were written. No Rust/browser owner tests ran.
 
 Actual baseline and renamed producer executions are bound to source36, the completed five-command build receipt and executable2a32644d…; both exited0 with unchanged source/executable and empty owned groups. Actual builder bill is9,297,395 in each complete wire. This is producer evidence, not a Wasm/browser gate pass.

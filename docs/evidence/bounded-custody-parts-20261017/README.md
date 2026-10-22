@@ -1,5 +1,9 @@
 # Bounded whole-row custody parts
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The failed88cc refresh wrote6,881,300 bytes/335rows to Previous16c, exceeding the unchanged5,081,115-byte sealed-file cap. Committed predecessor was3,099,260bytes/159rows;176new keys plus current receiver changes account for the growth. Compact JSON would still be6,848,630bytes.
 
 The joined generator now splits ONLY at whole ordered row boundaries. Each part has a fixed path, exact length/SHA and first/last/count; each must fit the unchanged cap. One semantic domain retains every sorted unique source key. Compiled source-boundary dispatch selects ONE physical Spec, then uses the unchanged single-file reader/cap and original projector. Known keys must occur exactly once in the selected part. No runtime concatenation or new Rust module exists. Original global nonmember passthrough is unchanged.

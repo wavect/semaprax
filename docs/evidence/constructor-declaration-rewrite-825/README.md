@@ -1,5 +1,9 @@
 # Original-owner declaration rewriting — next batch, source only
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Immediate semantic basis: b758c3cdc982905c2584d75520a425ee60099926. The private
 unqualified019 preservation checkpoint is included in this packet's final source
 and eight complete current-to-b758 inverses. This packet is explicitly excluded

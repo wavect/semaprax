@@ -1,0 +1,16 @@
+
+running 11 tests
+test core_validation_has_no_resolution_cleanup_build_or_physical_authority ... ok
+test oracle_source_inventory::complete_independent_cleanup_oracles_remain_registered_and_source_bound ... ok
+test production_source_inventory::accepted_raw_prefix_keeps_all_twenty_eight_subjects_old_guards_and_nonempty_tail ... ok
+test production_source_inventory::boundary::tests::complete_authentication_refuses_reclassification_source_drift_and_raw_drift ... ok
+test production_source_inventory::boundary::tests::complete_original_domains_and_current_roles_remain_separate_and_source_bound ... ok
+test production_source_inventory::boundary::tests::dropped_current_child_and_modified_typed_manifest_are_rejected ... ok
+test production_source_inventory::boundary::tests::old_test_roots_and_foreign_path_actual_children_cannot_escape_membership ... ok
+test production_source_inventory::current_accepted_prefix_keeps_nested_lexical_children_and_all_original_subjects ... ok
+test production_source_inventory::current_relocated_subjects_require_all_five_in_order_and_reject_old_or_duplicate_prefixes ... ok
+test production_source_inventory::relocated_subjects_must_reach_the_actual_owner_payload ... ok
+test production_source_inventory::semantic_batch_relocated_subjects_require_all_seventeen_and_keep_prior_three_five_guards ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.61s
+

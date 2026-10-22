@@ -19,8 +19,8 @@ native digests and byte counts for those subjects. The schema and digest
 domains do not change. String-free known answers remain frozen; this
 work does not refresh or establish execution of historical KATs.
 
-The wasmparser 0.258.0 dependency update changes `validator_version` from
-0.256.0 to 0.258.0. This intentionally changes whole-report hashes and the
+The locked wasmparser 0.261.0 dependency requires `validator_version`
+0.261.0. The CI repair updates the stale 0.259.0 report metadata to match it. This intentionally changes whole-report hashes and the
 Evidence v2 bindings that include them, including String-free subjects; emitted
 Graph, capability, native, and Wasm bytes are unchanged by this metadata update.
 Schemas, digest domains, limits, and authority remain unchanged. Regenerate
@@ -93,7 +93,7 @@ The native values are `native_c11_source` and
 `semaprax.native-c11.bootstrap.v1`. These bytes are production compiler-emitted
 C11 source, not compiled objects, machine code, ABI evidence, or toolchain
 attestation. The Wasm values are `wasm_core_module`, `semaprax.wasm-core.v1`,
-`wasmparser_structural`, `0.258.0`, and `all`. Structural validation is not
+`wasmparser_structural`, `0.261.0`, and `all`. Structural validation is not
 runtime execution or multi-engine conformance.
 
 ## Graph and capability facts
@@ -164,7 +164,7 @@ twice. That test also carries a triage rule for deciding whether a
 future movement is a legitimate re-take or an accounting defect.
 
 The table below is retained as **historical** evidence bound to the
-wasmparser 0.258.0 dependency update named in this section, not as a
+earlier wasmparser 0.258.0 dependency update, not as a
 description of the current head:
 
 | Patch schema | SHA-256 |

@@ -1,0 +1,7 @@
+# direct-lexical-fixture-145-20261017 REPORT
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
+The complete prior loop-free return fixture selects the documented acyclic compatibility route: parser lexical_exit.rs requires a loop plus return (or break/continue). Its FunctionReturn lookup therefore failed before any physical-budget probe. The old complete fixture remains a live canonical-roundtrip/HIR compatibility regression; a source-authored one-iteration loop selects the intended explicit lexical mode for the original positive control. All original96 statements, both branches, return payload, continuation cases, bound/work/cap/native-equivalence/lease/Drop assertions remain. No production changes. Complete old test file and exact inverse retained. Rust parse/source checks only; no Cargo, builds or tests.

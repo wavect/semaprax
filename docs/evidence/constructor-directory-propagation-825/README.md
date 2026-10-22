@@ -1,5 +1,9 @@
 # Typed overlay directory propagation — source only
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Immediate basis: bb6e11a1eb33c8604a9bd16005399d624cf68447. Three authored controls plus 27 required existing
 selectors remain unexecuted. No Cargo, compiler, runtime or funding claim.
 

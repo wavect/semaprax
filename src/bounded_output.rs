@@ -1,12 +1,12 @@
 pub(crate) mod cfg_reservation;
+#[cfg(feature = "unstable-workflow-profiling")]
+pub(crate) mod exclusive_debits;
 pub(crate) mod format_acceptance;
 pub(crate) mod identity_reservation;
 pub(crate) mod key_directory;
 pub(crate) mod prepaid;
 #[cfg(test)]
 pub(crate) mod stage_debits;
-#[cfg(feature = "unstable-workflow-profiling")]
-pub(crate) mod exclusive_debits;
 use std::cell::{Cell, RefCell};
 use std::fmt::{self, Write as _};
 use std::ops::Deref;
@@ -420,8 +420,8 @@ pub(crate) fn clear_active_floor() {
 
 // Read-only feature evidence; no ledger reference or reservation authority escapes.
 #[cfg(feature = "unstable-workflow-profiling")]
-pub(crate) fn active_ledger_snapshot()
--> Option<crate::workflow_profile::plan_comparison::LedgerSnapshot> {
+pub(crate) fn active_ledger_snapshot(
+) -> Option<crate::workflow_profile::plan_comparison::LedgerSnapshot> {
     ACTIVE.with(|active| {
         let active = active.try_borrow().ok()?;
         let budget = active.as_ref()?;

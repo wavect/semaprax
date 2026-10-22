@@ -1,5 +1,9 @@
 # Source36 successor after 838/839 and warning corrections
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Basis `5f1fecd42694c52fbdcec67f9ef3d3fd0b7d7f3b`. Source-only; no Rust compilation/execution or global composition.
 
 The four-view successor changes only the complete current `tests/hir_module_boundaries.rs` inverse to its same immutable94c392 checkpoint. The other three records remain object-identical. Both prior evidence packets, their JSON, runners, proofs and original archives are byte-identical; `prior-artifact-hashes.json` records every tracked artifact and the verifier compares each with the basis.

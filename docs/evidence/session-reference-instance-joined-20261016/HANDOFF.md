@@ -1,5 +1,9 @@
 # Consolidated Session/reference/identity source checkpoint
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Includes complete ROOT3c388 ancestry: actual17b failed build plus test-only
 compile fix3b14, driver-local receiving9a3, streaming identity comparisonb92f,
 and reference-coverage receivingeefb. No Cargo, runtime, capture or gain claim.

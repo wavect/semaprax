@@ -1,5 +1,7 @@
 # Shallow nominal type metadata cloning
 
+Audience: compiler contributors and reviewers.
+
 Status: private component evidence; original native-provider and complete current-head CI qualification pending.
 
 The current-head C/C++ package gate refused an 8,224-byte ownership type-copy census cursor. This bounded fast path recognizes only a nominal with exactly one or two immediate cursor-free scalar/type-parameter arguments. Those children own no recursive type backing. It reserves the exact Vec argument backing, then uses the unchanged derived Clone. Shared declaration identities remain shared. It does not set the recursive cursor-paid flag.

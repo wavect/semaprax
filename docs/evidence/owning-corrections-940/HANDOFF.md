@@ -1,5 +1,9 @@
 # Owning qualification corrections (67, 108, 104, 136)
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Basis: `8b438cdebdc04121a61131f8d87f1180bfa893db`, which contains the isolated #834 source checkpoint on 940fcf. Apply after #834. ROOT was not modified. No Cargo, Rust execution, Claude or heavy gates were run.
 
 - Owner 67: the full saved receiver's parent import includes `app_census`; the restoration adapter omitted it, so never replaced the complete parent module registration block. Correct only that exact adapter. Entire receiver, helpers and all seven original controls remain unchanged and restore byte for byte.

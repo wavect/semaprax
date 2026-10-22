@@ -1,5 +1,9 @@
 # #884 application census source successor
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 SOURCE ONLY; no compilation or execution. Parent source is immutable
 b7425f236863f37e5a8cd16d66996e7296f8ecfa. Its entire source packet is retained.
 The production lexical macros, frame loop, tariffs, flags, work and original

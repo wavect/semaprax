@@ -1,5 +1,9 @@
 # Same-source paired transport correction
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 This supersedes only the earlier11a paired comparison proposal. Keep that full packet unchanged as historical evidence. The comparison MUST use the SAME final source/lock/devdependency/helper/sourceguard fixes and CODEGEN64 profile. Derive both variants from the final common commit, changing exactly one include_bytes path literal in compressed_fixture.rs: gzip sidecar versus the immutable raw JSON. There is no851-raw versus unrelated-new-code comparison.
 
 The shared helper authenticates either transport. Compressed uses the existing bounded decoder; raw checks the exact output cap, length/hash and UTF-8 before copying. Both variants execute the same tiny raw/gzip positive/negative controls and all41 original assertions, with identical dependencies and no extra owner selector. Only one payload is compiled in either variant. This is a test-only transport switch, not a production feature or arbitrary fixture path.

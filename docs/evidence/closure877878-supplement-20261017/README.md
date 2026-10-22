@@ -1,5 +1,9 @@
 # Literal acceptance supplement for #877 and #878
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 All **23 exact checks passed**, using the existing library artifact compiled at `f1b24eda3f98e19c294f50eff388f642eabc7ccb`. The actual checkout was `9334eec5a785ed8b67a3698da019fbabd0cea01a`; every selected whole source file was byte-identical and the checkout delta consisted only of the preceding qualification documentation. No Cargo command, rebuild or full suite ran for this supplement. Each test ran serially with process-group resource monitoring and settlement.
 
 The original focused run remains 97/112; these results supplement it and do not erase its 15 failures. Actual application memory-limit outcomes remain failed. There is no new agent token, turn, billed-cost, wall-time speedup or application-fit claim.

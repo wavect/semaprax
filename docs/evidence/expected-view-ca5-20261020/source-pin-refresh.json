@@ -1,0 +1,52 @@
+{
+  "status": "SOURCE_ONLY_FINITE544_PACKET_PREDICATES_PASS",
+  "before_head": "ca5ffe48d442e59679eee2160f1903ceeae023c6",
+  "before_guard": {
+    "length": 11549,
+    "sha256": "7fd35c21b7519046763108f2340ca06c94ccaa7715261083e01aee348b7737e9",
+    "archive": "docs/evidence/expected-view-ca5-20261020/whole/7fd35c21b7519046763108f2340ca06c94ccaa7715261083e01aee348b7737e9.txt"
+  },
+  "before_config": {
+    "length": 136459,
+    "sha256": "682f3f61df4e6c7d1fe612e421d9cf0118886ae052557eefc5f58ebc5b569a2f",
+    "archive": "docs/evidence/expected-view-ca5-20261020/whole/682f3f61df4e6c7d1fe612e421d9cf0118886ae052557eefc5f58ebc5b569a2f.txt"
+  },
+  "before_helper": {
+    "length": 41806,
+    "sha256": "8e1fc3cf0d7f96160f1d1cd2c8abf9261d530c50f244dc7f0e9cbf394e9dbbf3",
+    "archive": "docs/evidence/expected-view-ca5-20261020/whole/8e1fc3cf0d7f96160f1d1cd2c8abf9261d530c50f244dc7f0e9cbf394e9dbbf3.txt"
+  },
+  "before_python_overlay": {
+    "length": 14077,
+    "sha256": "e61dd0dc1a1fcbcfbfa315336fa165606fb0f1c7356f29a2a405cf53a8a32811",
+    "archive": "docs/evidence/expected-view-ca5-20261020/whole/e61dd0dc1a1fcbcfbfa315336fa165606fb0f1c7356f29a2a405cf53a8a32811.txt"
+  },
+  "before_policy": {
+    "length": 16446,
+    "sha256": "b5009b8cbcb378f097d7feec6c2796eb6b40ac35ea5599e06e6cf2d8d888ebdc",
+    "archive": "docs/evidence/expected-view-ca5-20261020/whole/b5009b8cbcb378f097d7feec6c2796eb6b40ac35ea5599e06e6cf2d8d888ebdc.txt"
+  },
+  "before_page": {
+    "length": 202216,
+    "sha256": "979e862e52f346e221fc81cef7a60d7eaaed01ae363c096e73c3ed8cfff65fba",
+    "archive": "docs/evidence/expected-view-ca5-20261020/whole/979e862e52f346e221fc81cef7a60d7eaaed01ae363c096e73c3ed8cfff65fba.txt"
+  },
+  "changed_sources": [
+    "src/source_reflows_merge.rs",
+    "src/source_reflows/semantic_receivers.rs",
+    "src/source_reflows/incoming67107_semantic_receivers.rs",
+    "CHANGELOG.md"
+  ],
+  "module_pins_refreshed": [
+    "src/source_reflows_merge/main_e177_overlay_v2.rs"
+  ],
+  "carrier_pins_refreshed": [],
+  "all_544_rows_fields_view_prefixes_and_prior_current_wires_retained": true,
+  "new_literal_replacements_inserted_in_predecessor_source_order": true,
+  "original_519_extension_and_loader_unchanged": true,
+  "python_and_rust_overlay_bodies_unchanged_except_literal_membership_and_policy_seals": true,
+  "all_reader_source_program_and_runtime_caps_unchanged": true,
+  "page_bytes": 211425,
+  "policy_bytes": 16742,
+  "raw_owners": 342
+}

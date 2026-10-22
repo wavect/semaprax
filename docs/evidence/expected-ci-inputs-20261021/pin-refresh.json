@@ -1,0 +1,27 @@
+[
+  {
+    "domain": "hir",
+    "changed_source_pins": [
+      "src/source_reflows.rs",
+      "src/source_reflows/ci_inputs.rs",
+      "src/source_reflows/incoming67107_semantic_receivers.rs",
+      "src/source_reflows_merge.rs",
+      "src/source_reflows_merge/current344.rs",
+      "src/source_reflows_merge/main_e177_overlay_v2.rs"
+    ],
+    "rebound_existing_edges": 126,
+    "all_existing_sources_roles_chains_and_literal_registrations_unchanged": true
+  },
+  {
+    "domain": "projection",
+    "changed_source_pins": [
+      "src/source_reflows.rs",
+      "src/source_reflows/ci_inputs.rs",
+      "src/source_reflows/incoming67107_semantic_receivers.rs",
+      "src/source_reflows_merge.rs",
+      "src/source_reflows_merge/main_e177_overlay_v2.rs"
+    ],
+    "rebound_existing_edges": 75,
+    "all_existing_sources_roles_chains_and_literal_registrations_unchanged": true
+  }
+]

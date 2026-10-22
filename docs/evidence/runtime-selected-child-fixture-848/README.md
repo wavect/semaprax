@@ -1,5 +1,9 @@
 # Authenticated runtime evidence pilot (#848)
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only private pilot based on c37b7eea8b680ca4cb63c85758c6d7713745e8d3.
 Excluded from the current qualification batch. No build or test body has run;
 there is no memory, application-cap, token or speed benefit claim.

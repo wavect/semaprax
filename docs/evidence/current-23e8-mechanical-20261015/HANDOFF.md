@@ -1,5 +1,9 @@
 # Mechanical correction after actual23e8 compiler failure
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only patch based exactly on23e8f1d0a67cb2657bb4cdc963a2a2828c523c7c.
 The parent owns the complete failed build receipt and the semantic UpdateField
 match correction. This packet corrects the other four actual errors: one explicit

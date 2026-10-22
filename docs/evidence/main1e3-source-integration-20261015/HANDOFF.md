@@ -1,5 +1,9 @@
 # Latest MAIN1e3 private integration checkpoint
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Merge parents: public frozen source `7a87b33115c0cd45b14cac64d7b37e5742503159`
 and actual `origin/main` `1e3a14ce71c115595185c1ce4d9dae5d5f6e34ad`
 (two commits268cb0523 paid cursor and1e3 hosted pins, after66517).

@@ -1,5 +1,9 @@
 # Five issue-specific closures at frozen851
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Qualified source: `851f1293ce4ce0d35107637b9d4f78cb85e6293f`, tree
 `549bcf05536b2b912534dc682805aeba448496be`. This directory is a later
 evidence-only publication; it does not relabel the tested source.

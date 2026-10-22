@@ -1,3 +1,9 @@
+# review DISPOSITION
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 One tools-disabled source-only Sonnet review completed44.5582s,320421888-byte peak,exit0. Modelclaude-sonnet-5-5 reported list-price$0.0716369; actual billing unknown. No Rust execution or final approval. The review saw the risky entire variant/CaseFields seam plus concrete lifecycle/payment/baseline context, not every test body.
 
 - Exact ordinal belongs to the immutable currently borrowed cases element; Legacy Clone is the existing `Storage::Shared(v) => Shared(v.clone())` Arc clone. Pointer controls observe the same element. No additional debug operation, ID authority inference or reservation exemption is introduced. Funded/Legacy predicates are exclusive private immutable owner modes.

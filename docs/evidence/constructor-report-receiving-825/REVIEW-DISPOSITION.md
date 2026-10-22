@@ -1,5 +1,9 @@
 # Bounded receiver review disposition
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 One7375-byte tool-disabled Sonnet process returned80.995s, peak321110016bytes. Raw payload/result/receipt retained without retry. Provider list cost0.116644USD, actual billing unknown. This is source review only, never execution approval.
 
 B1 was concrete: setup incorrectly mapped unrelated storage/association failures to a byte-limit report. Corrected. Budget now captures the original maximum inline; other failures have distinct honest G173 forms at the explicitly unfunded compatibility boundary. Unreceived retains the complete primary, original owner and Detached kind; compatibility deliberately preserves primary priority. No new Budget receipt is fabricated for host allocation/layout/capacity/no-owner failures.

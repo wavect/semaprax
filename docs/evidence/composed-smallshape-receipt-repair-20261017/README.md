@@ -1,1 +1,7 @@
+# composed-smallshape-receipt-repair-20261017 README
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Owner222 source-only receipt correction. Both full physical observers, all widths/weights, exact/short/zero cuts, diagnostics, payment backing, and balanced Drop assertions remain intact. The independently completed unobserved canonical states count nonempty Exit executions, including overflow publishing none. Per Exit the current lexical scratch removes exactly one Result<(),Diagnostic> forwarding owner: SignatureQuery::EXIT_CONTROLS minus LEXICAL_EXIT_CONTROLS is that actual layout. The exact paid equation and equal work/heap remain strict. Full immediate test source is retained. No production change or execution. This correction precedes the separate single-signature optimization and does not claim postcomposition equality.

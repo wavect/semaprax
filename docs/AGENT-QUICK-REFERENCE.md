@@ -1452,7 +1452,7 @@ Bundled std.*: 0.1.0; unknown packages/ranges: SPX-J121; separate resolution.
 
 After `module`: `use function @id("calculator.add") from calculator.core as add;`.
 `entry`: main module. V1: Copy scalars; profiles add carriers. SPX-G174:
-unsupported aggregates stay local or require an admitting profile.
+Unsupported aggregates stay local or need an admitting profile.
 H006, 4096 loan points: extract admitted helpers; other causes differ.
 
 Test `main`: 0 succeeds; each `@id` fn test_<name>() -> i64 runs separately.
@@ -1460,10 +1460,11 @@ Failures: ID/outcome, contract clause/arguments. Projects interpret; v26/v28
 need authenticated native roots: `semaprax test <project> --target native`.
 [Bounds](PROJECT-NATIVE-TEST-V1.md); [cases](PROJECT-TEST-CASES-V1.md).
 
-Index: `help library`; exact lookup: `help library <module|name|stable-id>`
-(no fuzzy/prefix match). Search: `help language find:<word>:0`, then later pages.
-`help library all`: explicit full offline [catalog](STANDARD-LIBRARY-CATALOG.md)
-export only. Import IDs/dependencies.
+Start with `help library` for the module index; exact lookup:
+`help library <module|name|stable-id>` (no fuzzy/prefix match).
+Search: `help language find:<word>:0`, then pages.
+Use `help library all` only for an explicit full offline
+[catalog](STANDARD-LIBRARY-CATALOG.md) export. Import IDs/dependencies.
 Vec: `owned-data-api.v1`, `std.collections = "^0.1.0"`, exact
 std.collections.vec.* IDs, explicit Copy-scalar type args. Mutators transfer/return
 owners; no public/generic ABI.
@@ -1476,11 +1477,13 @@ text/staged output: [limits](PROJECT-MANIFEST-V28.md).
 
 `new <dir> --template stdin-stream-data`/`project-scaffold`: v27,
 `language-command-io.stream-data.v1`; main/command fn() -> i64.
-V27: immutable `borrow Vec<T>` for eight Copy scalars
-(`i64`, `i32`, `u8`, `usize`, `char`, `f32`, `f64`, `bool`).
-Pure `main`/test closures interpret without authority, stdin provider or command
-adapter. Web/Wasm/npm refuse v27. `stdin-stream-text`: v25 private owned-String
-helpers; v24/v25 helper boundaries stay closed.
+V27 admits immutable `borrow Vec<T>` for
+all eight Copy scalars
+(`i64`, `i32`, `u8`, `usize`, `char`, `f32`, `f64`, `bool`);
+pure `main`/test closures may interpret without
+authority, stdin provider, or command adapter. Web/Wasm/npm refuse v27.
+`stdin-stream-text` stays v25
+for private owned-String helpers. v24/v25 retain closed helper boundaries.
 [V27](STREAM-DATA-COMMAND-V1.md).
 
 V29: private Copy records/Vec<R>; v30 language-command-io.owned-data.v1:
@@ -1496,23 +1499,22 @@ no loop allocation/refund.
 [Renewal](CONSUMING-OWNED-RECORD-VEC-RENEWAL-V1.md).
 
 V31: private records/admitted Vecs, scoped field reads; qualification pending.
-Full boundaries: `help language detail:field-views`;
+Details: `help language detail:field-views`;
 `help language author:record-field-views`.
 
 `vec_sort_by<Row>(rows,"priority:desc,arrival:asc")`: 1..8 unique literal keys,
-one admitted explicit flat monomorphic record (SPX-T311). Consumes Vec; stable
+one admitted flat monomorphic record (SPX-T311). Consumes Vec; stable
 ties/payload owners. End loans first. Descending swaps operands (signed MIN safe).
 vec_sort_owned keeps declaration order. [Sort](EXPLICIT-RECORD-SORT-KEYS-V1.md).
 
 `vec_update_field<Row>(rows,index,value,"count")`: consume/renew Vec, write one
-exact Copy scalar. Last argument: literal field name. Invariant-free flat
-owned-leaf records only (SPX-T320); usize index, exact RHS type. End field loans
-first. No leaf clones/capacity change. Qualification pending:
+exact Copy scalar. Last arg: literal field name. Invariant-free flat
+owned-leaf records only (SPX-T320); usize index, exact RHS type. End field loans. No leaf clone/capacity change. Gate pending:
 [contract](OWNED-RECORD-SCALAR-FIELD-UPDATE-V1.md), `help language author:update-field`.
 
 `vec_unique_by<Row>(rows,"id")` -> bool: duplicate check on one literal String or
 i64/i32/u8/usize/bool/char field; named own/borrow record Vec (SPX-T319).
-Call borrows rows; no key copy/order/generation change. Floats, Bytes, paths
+Borrows rows; preserves keys/order/generation. Floats, Bytes, paths
 and temporaries refuse. [Uniqueness](BORROWED-RECORD-FIELD-UNIQUENESS-V1.md).
 
 `lock semaprax.toml --write`: identity/source/interface/targets/capabilities;

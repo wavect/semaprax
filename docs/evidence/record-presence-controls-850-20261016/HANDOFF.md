@@ -1,5 +1,9 @@
 # 850 RecordPresence receiving controls — source only
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Basis2a9059ed80f76ce0d6e5215f72fc8cd22053af15, including MAIN2691824. No Cargo/Rust tests/builds. No audit unions/sourcehelper changed here; final integrator owns current-source joins/classification. No work or byte cap changes, no baseline padding or gain claim.
 
 The production ModuleIndex now prepays acquisition Result/borrow controls before constructing RecordPresence. Its caller controls include the mapped Result and payment boundary. new() pays the actual initializer/receiving Self and named found bool, while the caller bank already owns its Result and reservation receiver even if construction refuses. get() keeps the exact MAIN reserve0→units1→pointer-Subject order. Presence holds immutable data, not a donor payer: its lexical actual factory derives it from program.declarations and passes current_members of that same program exactly once through Directory's FnOnce collector. No arbitrary foreign-payer claim is made.

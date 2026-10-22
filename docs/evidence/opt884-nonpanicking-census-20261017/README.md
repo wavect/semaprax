@@ -1,5 +1,9 @@
 # Nonpanicking successor application report
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Baseline: `7622b5b10e28e95f18a6710e99f3b552491977f6`.
 
 Independent source review found that `eprintln!` in the application Scope Drop

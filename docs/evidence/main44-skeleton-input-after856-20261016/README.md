@@ -1,5 +1,9 @@
 # Main44 historical skeleton input after ordinary constructor funding
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The full Main44 namespace proof requires every copied original include to read its existing full historical input. Its vector test retained one include of the current live skeleton_work.rs instead, accidentally passing while that file matched the old snapshot. The real #856 constructor change exposed the mismatch.
 
 Change only that copied fixture include to its preexisting complete Main44 raw snapshot. All original test predicates, push counts, code order and expected values remain unchanged. Its namespace binding updates only compiled text/hash; the complete original declaration/test source stays unchanged and the unchanged Main44 verifier restores every original include spelling. Live source inventory and the separate current-to-Main44 source-domain owner continue to read the actual complete new constructor source. This is historical input repair, not a claim that the old snapshot covers current constructor behavior; the independent new #856 owners cover that behavior.

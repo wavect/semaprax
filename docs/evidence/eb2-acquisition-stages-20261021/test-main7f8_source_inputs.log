@@ -1,0 +1,9 @@
+
+running 4 tests
+test source_reflows_merge::main7f8_source_inputs::closure92_walk_inputs_preserve_both_original_domains_and_refuse_wrong_stages ... ok
+test source_reflows_merge::main7f8_source_inputs::complete_presence_inventory_acquisition_preserves_both_domains_and_refuses_drift ... ok
+test source_reflows_merge::main7f8_source_inputs::later_452_source_inputs_preserve_complete_frozen_domains_and_refuse_wrong_stages ... ok
+test source_reflows_merge::main7f8_source_inputs::moderate_452_complete_metadata_inputs_preserve_original_clauses_and_refuse_wrong_stages ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 277 filtered out; finished in 16.76s
+

@@ -1,5 +1,9 @@
 # Admitted report fixtures: source-only correction
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Both actual35cc positive owners failed before generation because imported Point constructor expression types selected Graph v74. `workspace_graph/source_schema.rs:465` supplies module-local types to the classifier; `hir/collection_outcome/nested/profile.rs:85` conservatively treats an unknown noncompiler nominal as requiring that profile. Walking each imported record constructor therefore selects v74 despite the provider-only Copy-match rewrite.
 
 The two corrected fixtures keep Point/Metric and field stable IDs, local construction and Copy record extraction, all original type imports/aliases, effects, call values, candidate +1 body change and rename, and structural create/delete/move/replace operations. Their cross-module function argument becomes i64 so consumers no longer construct an imported nominal. Local Point construction has a locally authenticated declaration; the unchanged base lattice selects v13 for its record match. This is a bounded positive fixture change, not production admission of v74. All base and replacement callers are transformed consistently, with unique-source occurrence checks.

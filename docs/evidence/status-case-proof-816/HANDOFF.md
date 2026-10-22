@@ -1,5 +1,9 @@
 # #816 complete source-case proof checkpoint
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Private base d002903fef04cecff8919b604cb8e58e3cbeeeac. No Cargo, rustc,
 compiler, runtime or ROOT write. Independent old direct retained receiver is
 byte unchanged except its test registration. Complete ordinary source discovery

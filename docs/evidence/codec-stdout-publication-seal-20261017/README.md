@@ -1,5 +1,9 @@
 # Integration successor at ROOT 1bae9e890 (source only)
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Held commit `aa749f9842b390c045ec27b1f57f4ea86b6a2306` is joined in a new
 SSD worktree from `1bae9e890`. All three new Rust subjects are inserted after
 the existing leading three-subject block in the actual three raw carriers.

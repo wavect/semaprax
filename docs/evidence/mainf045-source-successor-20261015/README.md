@@ -1,5 +1,9 @@
 # MAIN f045 complete source domains
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only integration of MAIN f0455caf96706a0545e754957fcc903434a7f880 into prepared ff0bf3c1d04e627f9af226a805d773460596fa4d52. No Rust gates or runtime qualification executed.
 
 Old87 source JSON is retained byte-exact in historical-main87.json; existing old92 runtime table is untouched. New live-mainf045-ci93.json retains every old92 row and MAIN new ordinary-DAG row (actual MAIN table has88 rows). Eight whole current→0bf inputs feed the original ff/ae91 histories; the new f045 text-reference guard separately authenticates current whole resolve_statement into actual immutable f045 bytes. All four additive hook assertions and final complete predecessor equality remain. The sole regions conflict preserves BOTH fullcurrent f27 hash and MAIN completeoriginal327 hash/completebody assertions. No shortened assertion or production receiver mutation.

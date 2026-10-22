@@ -1,0 +1,38 @@
+# arity-dispatch-duplicate-arena-20261017 ROLE-AUDIT
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
+This is a SOURCE-ONLY candidate. No test, Cargo, compilation, metadata binder or runtime measurement has run for it. Original index8 arena source and original strict210 test bodies are unchanged; the observed886 failure remains actual evidence.
+
+Actual cause and structural removal
+
+The886 source executes a singleton COLD/WARM admission before its match for EVERY Exit, then executes the complete old general query/scratch/miss route too. Original duplicate arena shape0 has32 independent id_inner activations and33 completed Exits, all empty or128-edge signatures. Its observed old/current paid values4513594/4529660 regress16066; its immediate6ef current4512788 had strict806 gain. Physical allocation/peak tuples and balanced Drop are archived verbatim, never described as improvement of this candidate.
+
+This candidate has exactly one Vec::len at the original signature-work frontier. Its returned length is first received into an explicitly prepaid, uninitialized invocation-local usize place, then copied to the same original work argument. The work request remains before selection or signature acquisition. A bare `match exit_arity { 1 => ..., _ => {} }` reads that PLACE with literal nonbinding patterns. It has no by-value binding, function/callback/tuple/slice/Option/query or moved scrutinee temporary. Rust Reference match-expr scrutinee-behavior says a place match allocates no temporary location; by-value BINDINGS may copy/move. This justifies no extra scrutinee temporary only; it is not a fee credit.
+
+Exact root20 prepayment before formation
+
+- Original Vec::len actual/formal &Vec references and returned usize ABI remain the SAME call at the SAME work frontier. Original charge actual/formal function/budget/usize/text and Result transports remain unchanged. They are neither removed nor credited.
+- The one extra retained usize receiving place costs sizeof(usize)=8 on the observed host. There is NO initializer literal/value because its declaration has no initializer; every Exit assigns before either charge or match. The copied work argument uses its original argument receiver, while the extra retained scalar place is separately paid here. No getter, helper actual/formal or scalar-return function is added.
+- One conservative constant-pattern usize place costs8, and both overwritten primitive branch result/receiver bool slots cost2. The nonbinding place match constructs no additional named/moved usize or aggregate. These lexical primitive places are reused only within the same nonrecursive id_inner activation; no reference, lifetime, compound result or future authentication bank is retained.
+- The original initialized/received warm-flag bool places cost2 and remain separate. Total is2*sizeof(usize)+4*sizeof(bool)=20. The whole request is in the existing direct-root positive admission BEFORE the warm flag and uninitialized arity declaration. No Self/CanonicalFrame layout or constructor footprint changes.
+
+The singleton call remains one actual lexical reserve_bytes site with the FULL original conservative primitive bank:2*actual/formal argument tuple +2*returned/received unit Result. Success-only warm flag activation and every per-use SELECT operand remain unchanged. Every one-query, iterator, move, key backing, lookup compound result, label, scalar child, miss publication and Drop still exists/retains its full separate tariff. QUERY80+ITERATOR64+MOVE114=FRESH258. SELECT20 stays fresh per singleton. PRIMITIVE352 gives COLD630/WARM278. The obsolete GUARD36 is removed because its duplicate Vec::len receiver/return/branch production no longer occurs; the actual surviving arity/place/pattern roles are independently paid by root20, not waived.
+
+Empty/general branches never acquire singleton query/move/primitive banks. They retain the COMPLETE original BRANCH146 reserve call, actual is_empty predicate, EMPTY controls/zero key authentication or full general query/lexical scratch/child-array/miss Zip/ID-array/key and arena controls, in their original order and amounts. No shared query/API/arena tariff changes. No old baseline change. Existing id/receiving/Memo authentication and all owned/pure-identity scope roles are untouched. No callback or scope-switch entry is introduced.
+
+Conditional host arithmetic, not measured gain
+
+Archived shape0 coefficients independently come from32 distinct roots and33 published states, not paid subtraction. Current886 extra over its6ef body was32*666+314-33*146+32*2=16872. New empty/general overhead is32*20=640, predicting4513428 versus unchanged original4513594 (166strict margin). This is a conditional SOURCE equation; actual execution remains mandatory.
+
+Strict210 width1 has one empty and two nonempty one-label Exits.886 bank was2+666+2*314=1296; candidate20+146+630+278=1074,222 less. Width0 cold_dead_id still bypasses id_inner and no new request/field exists there. Widths2..4 original strict owner remains unchanged. No assertion is relaxed to allow a regression.
+
+Controls and source custody
+
+The complete immediate886 frame-loop method, current id_with_receiving wrapper, old independent query/fee module and complete auth macros compile in one added test-only child before_arity_dispatch.rs. Only namespace/module-registration/method-name/test-alias glue differs and the authored whole-source control reconstructs every byte after that glue. Complete old files/tests/canonical root and both original actual logs are archived. The old before_borrowed_single+b742 control and22af auth macro repair remain unchanged.
+
+Additional tests use the exact original arena corpus generator on ALL3 shapes, compare complete work/state/signature/checksum/child capacity and full allocation/reallocation/allocated/peak/freed/Drop tuples against immediate886, preserve own zero/exact-1/exact frontiers and assert a source-counted exact general bill equation. The old implementation-shaped3event control is retained whole in the archive; its live assertion now requires the actual2 singleton calls with unchanged six-field independent primitive checks. An additive empty/real2label control requires ZERO singleton events.222/286 equations count only physically replaced nonempty one-label admissions now; every result/work/heap/frontier/weight/width assertion and their complete old producers remain, with whole prior equation sources archived. No observed bill subtraction is used.
+
+One added module is TEST ONLY. Final source-controller/raw inventory/role metadata joins are intentionally not edited here and remain a required separate integration step before any qualification. No application fit, matched gain, cap admission, Clippy or live-agent claim is made.

@@ -1,0 +1,6 @@
+
+running 1 test
+test source_reflows::main043::audit_2::legacy_nominal_complete_original_sources_and_semantic_constructor_stay_exact ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 280 filtered out; finished in 0.65s
+

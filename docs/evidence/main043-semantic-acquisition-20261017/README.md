@@ -1,5 +1,9 @@
 # Exact Main043 receiver acquisition — source only
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base: aba40624537c8fa5f121aec3954de82d9714eedc. The final common source binder refused the old043 receiver self-source row: current raw semantic_receivers.rs is d19607ff...7589df, whereas the untouched old043 row expects the complete 7,228-byte stage457d115f...bc495c. The existing followupReceiverMAIN domain instead restores a distinct 12,874-byte stage68c95445...d28f and is deliberately untouched.
 
 A closed one-source bridge authenticates whole current bytes, the current preimage, five exact line inverse groups, the whole previous-stage hash and previous preimage. It runs only as an explicit acquisition at the start of old Python restore, BEFORE every unchanged historical algorithm/guard. The rest of restore and the entire historical function remain byte-for-byte. Raw-current/self-read, mutation and forged-predecessor controls remain meaningful; the forged old historical hash reaches the original final refusal after the new acquisition.

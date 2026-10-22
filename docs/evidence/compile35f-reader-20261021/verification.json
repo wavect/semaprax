@@ -1,0 +1,42 @@
+{
+  "status": "SOURCE_ONLY_ORIGINAL_SEVEN_SOURCE_REGRESSION_AND_COMPLETE_OLD_COMPILED_INVERSE_PASS",
+  "base_head": "15ea356d6fa74ad8e5af41d9e5eb7def4520a6b8",
+  "reader_changes": "Authenticate current complete source before selecting immutable compile35f and corrected-alias input stages. Every original row, expected digest, assertion, inverse and hostile case remains executable.",
+  "scope": "One actual compiled funded-tests source plus a complete existing prefix-fusion data view; all prior classifications, views, fields and exact acquisition chains retained.",
+  "checks": [
+    {
+      "name": "source_reflows_merge::main67107_inputs::complete_seven_compile_inputs_restore_35f_and_refuse_foreign_receivers",
+      "status": "PASS",
+      "peakKiB": 50240
+    },
+    {
+      "name": "source_reflows_merge::main67107_inputs::corrected_alias_fixtures_keep_complete_c874_sources_and_refuse_foreign_stages",
+      "status": "PASS",
+      "peakKiB": 43216
+    },
+    {
+      "name": "source_reflows_merge::main67107_inputs::factored_core_relocation_preserves_complete_seven_source_domain_and_refuses_drift",
+      "status": "PASS",
+      "peakKiB": 43200
+    },
+    {
+      "name": "source_reflows_merge::main_e177_final_inputs::overlay_v2::compiled_sources::tests::compiled_lookup_split_preserves_the_complete_predecessor_and_every_old_mapping",
+      "status": "PASS",
+      "peakKiB": 3840
+    },
+    {
+      "name": "source_reflows_merge::main_e177_final_inputs::overlay_v2::compiled_sources::tests::compiled_lookup_split_refuses_child_parent_span_eof_and_duplicate_glue",
+      "status": "PASS",
+      "peakKiB": 3920
+    }
+  ],
+  "mutation_controls": 10,
+  "root_lines": 1499,
+  "page_bytes": 249956,
+  "source_role_domains_and_six_original_hostiles": "PASS",
+  "rustc": "1.97.1",
+  "local_source_compile_peak_KiB": 753296,
+  "local_source_clippy_peak_KiB": 561744,
+  "production_product_budget_recovery_not_claimed": true,
+  "latest_main_CI_green_not_claimed": true
+}

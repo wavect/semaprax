@@ -1,5 +1,9 @@
 # Actual typed static lexical Session refusal observation
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 SOURCE ONLY. No Cargo, builds, tests, runtime measurements or final custody run.
 
 A real paid Session error now retains EngineError::Structural(SelectedChild),

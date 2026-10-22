@@ -1,5 +1,9 @@
 # MAIN09013 branch composition
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only candidate from OURS272655d6cdfd1b2c37fd768bee81880b4df6b193,
 composing MAIN09013dbfafbcb37db7c79a0622a56a0707e94e3b. The exact subsequent
 8c08e049247582871734136e5dcef0261c947d9b malformed-exit qualifier is included.

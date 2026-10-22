@@ -1,0 +1,24 @@
+{
+  "status": "LOCAL_COMPLETE_GRAPH_COMPARISON_PASS",
+  "local_compiler": "Rust 1.97.1 aarch64-apple-darwin",
+  "built_from_base_head": "8d4a15bdd5e00373401bf5d8905c668b45798054",
+  "local_changes": "browser fixture data and test-only source ledger coupling",
+  "subjects": [
+    {
+      "role": "baseline",
+      "linux_builder_bytes": 3684292,
+      "local_builder_bytes": 3684508,
+      "all_other_wire_bytes_identical": true,
+      "local_graph_sha256": "a41f298ee3e11785f4cb9be5a6dea240fd1a86724fbb945eb3135cbfb3339e9d"
+    },
+    {
+      "role": "renamed",
+      "linux_builder_bytes": 3684292,
+      "local_builder_bytes": 3684508,
+      "all_other_wire_bytes_identical": true,
+      "local_graph_sha256": "a92ccdffcd78541a10636b0b978590e52e9e3cf1fc9c02466742f67981fbd5bf"
+    }
+  ],
+  "linux_fixture_pins_remain_bound_to_actual_linux_capture": true,
+  "browser_runtime_pass_claimed": false
+}

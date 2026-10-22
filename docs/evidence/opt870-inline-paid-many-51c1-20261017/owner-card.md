@@ -1,5 +1,7 @@
 # OPT870 paid successor composition (private source checkpoint)
 
+Audience: compiler contributors and reviewers.
+
 Base: `51c1dfc49962e046566ad21ec31f20c6b3a9bdae`.
 Status: source-only, not compiled or runtime-qualified. No application gain is established.
 

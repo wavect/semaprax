@@ -1,5 +1,9 @@
 # #841 negative experiment: original raw default, source-only successor
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base56dc66694 (evidence-only child of e93f source). Exactly one fixture include
 literal in `compressed_fixture.rs` selects original immutable raw JSON. The
 ENTIRE resulting helper equals actual tested raw-arm57e1485ca695771d0f381ce20f4d740ee98f2b86,

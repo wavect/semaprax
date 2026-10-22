@@ -1,0 +1,8 @@
+{
+  "status": "PASS_ACTUAL_CATALOG_REGRESSION",
+  "peakKiB": 6069376,
+  "global_headroom_floor_percent": 35,
+  "process_cap_MiB": 6144,
+  "worktree": "/Volumes/Semaprax/worktrees/ci-browser-ef1836",
+  "no_full_test_or_product_success_claimed": true
+}

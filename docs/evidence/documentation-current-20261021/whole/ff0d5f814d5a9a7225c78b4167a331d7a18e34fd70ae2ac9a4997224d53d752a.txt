@@ -1,0 +1,13 @@
+# final-831841845796-assembly-20261015 HANDOFF
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
+Source-only final831/841/845/796 assembly. No Cargo, Rust tests, Node, Clippy, pin producer, or benchmark was run. #848 excluded.
+
+Four independent named branch checkpoints restore complete Git namespaces:79617 rows,83120,84121,84536 (94 total). A shared two-document frontier restores the complete896 ARCHITECTURE and CHANGELOG inputs with four exact unique edits; the runtime JSON is8725 bytes. Full before/after archives remain authenticated. Immediate796 inverse plus docs contains19 rows. All55 feature-packet artifacts stay byte-exact;11 new845 owners remain in all three source audits. Interop audit remains1500 lines.
+
+Actual pre-doc execution69985 completed the unchanged841,831 and845 scripts before the NEW final796 check failed on an incorrect archive-key assumption. The current proof fixes that schema, verifies all four complete checkpoint namespaces and script identities, and explicitly reuses those completed executions. It does not represent the pre-doc execution as a new post-doc replay. The first generator and root-precheck refusals are retained; pre-doc verifier and completion receipt are preserved. Current source-only command: python3 docs/evidence/final-831841845796-assembly-20261015/verify.py .
+
+Pending selection148: original122 +8317 +7962 +84510 +six existing public typed reporting consumers +one authorized786 backend owner,14 roles. Actual registration/freeze must use parent merge HEAD. Prior145120PASS/25FAIL, separate seven7PASS/3buildPASS,677 compiler failure0bodies and e93 resource refusal0bodies remain distinct histories. Strict831 comparison remains unchanged and may fail. Raw841 defaults to the exact prior tested payload helper; no RAM or current runtime claim.

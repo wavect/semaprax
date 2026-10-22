@@ -1,0 +1,22 @@
+[
+  {
+    "domain": "hir",
+    "all_sources_classes_roles_and_exact_edge_text_attributes_preserved": true,
+    "changed_source_pins": [
+      "src/cleanup_plan/replay/ordinary_plan_history.rs",
+      "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/final_affine_tests.rs",
+      "src/source_reflows_merge/main_e177_overlay_v2.rs",
+      "src/workspace_graph/expected_projection/borrowed_imports/typed.rs"
+    ]
+  },
+  {
+    "domain": "projection",
+    "all_sources_classes_roles_and_exact_edge_text_attributes_preserved": true,
+    "changed_source_pins": [
+      "src/cleanup_plan/replay/ordinary_plan_history.rs",
+      "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/final_affine_tests.rs",
+      "src/source_reflows_merge/main_e177_overlay_v2.rs",
+      "src/workspace_graph/expected_projection/borrowed_imports/typed.rs"
+    ]
+  }
+]

@@ -1,3 +1,9 @@
+# raw READY
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Fresh authorized final-source preparation: 72 exact bodies/9 roles; five original sequential unit-first commands, jobs1/CGU64/debug0. Six drivers byte-exact original. All previous scopes and failures remain separate. Nothing executed.
 
 Parent reviews then launches:

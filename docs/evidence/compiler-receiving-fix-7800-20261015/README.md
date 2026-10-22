@@ -1,5 +1,9 @@
 # Actual frozen7800 compiler correction
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The archived build terminated normally with exit101: seven of eight build phases passed; the final core unit-library compile produced three Rust name/privacy errors. Zero test bodies ran. This was not a RAM interruption. The complete actual failed round is retained at ../failed-build-7800-20261015, including its original expected counts and drivers; it is historical failed evidence, not a corrected-source receipt.
 
 Only three compile repairs are made in two Rust receiver files:

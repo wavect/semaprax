@@ -1,5 +1,9 @@
 # Static initial layout — narrow private successor
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base: `303d6d888b47d8bed4fbe94533b9346167895a89` (immutable).
 This cut DOES NOT CLOSE the initial primitive or raw-failure acquisition ABI.
 

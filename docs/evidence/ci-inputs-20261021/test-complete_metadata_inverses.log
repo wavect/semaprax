@@ -1,0 +1,6 @@
+
+running 1 test
+test source_reflows_merge::constructor_stage::complete_metadata_inverses_keep_original_outputs_and_refuse_changed_inputs ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 276 filtered out; finished in 9.16s
+

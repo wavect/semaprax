@@ -1,5 +1,9 @@
 # Warm canonical predicate, #876 follow-up
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source candidate based on accepted874-authd3b64d6; no Cargo, Rust tests or current application qualification. Actual source36 row21 is retained whole and still reports oldreserved4,513,318/current4,523,622 (+10,304); it is not relabeled as this candidate.
 
 That owner uses SelectedReservation/SelectedRetained, not ActiveBuilder. The current ordinary singleton receiving fee is not its source of cost. Both direct testid and productionid_for_comparison previously charged cold-root receiving on every invocation. After general scratch has been admitted, scratch_paid=true makes cold_dead_node false because that predicate requires !scratch_paid. A binding-free pattern on the EXISTING received self place bypasses only that impossible cold predicate and its receiving payment. It constructs no copied tag, boolean variable, reference, helper call, aggregate or Result; all surviving general-route receivers keep their original payment positions. No removed-fee credit funds a new role.

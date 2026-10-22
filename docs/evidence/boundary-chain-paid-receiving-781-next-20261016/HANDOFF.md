@@ -1,5 +1,9 @@
 # Boundary/chain #781 source component
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base428bc7802576ba3c6548608857594d0ce8d7391a; no Cargo/runtime.
 11 full before/inverse inputs, six new Rust owners, four pending lib owners.
 Run verify-source.py --repo CHECKOUT. Complete prior certificate/storage files

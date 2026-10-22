@@ -1,0 +1,96 @@
+{
+  "status": "LOCAL_ORIGINAL_LIFECYCLE_AND_COLD_WARM_REVISION_REGRESSIONS_PASS_SOURCE_DOMAINS_AND_SIX_HOSTILES_PASS",
+  "before_head": "361d5aef1d31783330b01a13a151034873ff8f6b",
+  "semantic_graph_comparison": "Complete graph bytes, source facts, manifests, project and workspace revisions agree for cold and warm semantic-cache rebuilds.",
+  "ordinary_scalar_producer_gates": "The negative prefilter mirrors the existing empty Agent, protocol and session-protocol requirements. Reserved wrapper IDs retain their full classifier; all import resolution and semantic checks remain authoritative.",
+  "budget_caps_floors_and_producer_fees": "unchanged; the new source-bound prefilter controls are explicitly reserved in both cache modes",
+  "tests": [
+    "linked_workspace_cold_and_warm_frontend_rebuilds_preserve_revision",
+    "workspace_linked_typed_runs_imported_roles_across_three_turns",
+    "workspace_linked_typed_refuses_changed_imported_helper_before_host_call"
+  ],
+  "source_verification": {
+    "status": "SOURCE_ONLY_ORIGINAL_FULL_DOMAIN_AND_HOSTILE_CONTROLS_PASS",
+    "domains": [
+      "hir",
+      "projection"
+    ],
+    "negative_controls": {
+      "dropped_actual_child_refused": true,
+      "coordinated_class_drop_not_original_generated_output": true,
+      "production_reclassification_refused": true,
+      "actual_source_drift_refused": true,
+      "whole_raw_drift_refused": true,
+      "foreign_path_child_cannot_escape": true
+    },
+    "generation_receipt_sha256": "5baa5dd6210920e446d0f28cbe1585b6dfd54c909d1d034ef621d2a17b147142",
+    "complete_chain_receipt_sha256": "19224b5f736558440a4e0c07be7ed4c8a45ce72916994669a4eb34abad6ccd0e",
+    "peak_RSS_bytes": 141426688,
+    "no_Rust_or_hosted_qualification_claimed": true,
+    "must_refresh_if_header_or_other_source_changes": true
+  },
+  "registration": {
+    "status": "NONSTRUCTURAL_CURRENT_SOURCE_IDENTITIES_AND_UNCHANGED_EDGE_RELOCATION",
+    "base_head": "361d5aef1d",
+    "all_prior_classes_roles_roots_edges_and_texts_preserved": true,
+    "domains": [
+      {
+        "domain": "hir",
+        "identities": [
+          {
+            "source": "src/workspace_graph/constructor_failure/typed.rs",
+            "before": {
+              "length": 11670,
+              "sha256": "b07ecf1da889cf25e1b9296bf320070d49c58af316efe6036dce534fccd73fb7"
+            },
+            "current": {
+              "length": 12474,
+              "sha256": "371ae248a8468c37edaa42a0791fb617a791e38f5fa56c6ad0583ac821fe60b4"
+            }
+          }
+        ],
+        "exact_unchanged_edge_offsets": [
+          {
+            "parent": "src/workspace_graph/constructor_failure/typed.rs",
+            "child": "src/workspace_graph/constructor_failure/before_scalar_dispatch.rs",
+            "before": 10927,
+            "current": 11731,
+            "text": "#[cfg(test)]\n#[path = \"before_scalar_dispatch.rs\"]\npub(in crate::workspace_graph) mod before_scalar_dispatch;"
+          },
+          {
+            "parent": "src/workspace_graph/constructor_failure/typed.rs",
+            "child": "src/workspace_graph/function_alias/before_core.rs",
+            "before": 10805,
+            "current": 11609,
+            "text": "#[cfg(test)]\n#[path = \"../function_alias/before_core.rs\"]\npub(in crate::workspace_graph) mod before_function_alias_core;"
+          },
+          {
+            "parent": "src/workspace_graph/constructor_failure/typed.rs",
+            "child": "src/workspace_graph/function_alias/before_core.rs",
+            "before": 10805,
+            "current": 11609,
+            "text": "#[cfg(test)]\n#[path = \"../function_alias/before_core.rs\"]\npub(in crate::workspace_graph) mod before_function_alias_core;"
+          }
+        ]
+      },
+      {
+        "domain": "projection",
+        "identities": [],
+        "exact_unchanged_edge_offsets": []
+      }
+    ]
+  },
+  "hosted_or_full_quality_green_claimed": false,
+  "actual_unchanged_hir_boundary_harness": {
+    "tests_passed": 11,
+    "compile_peakKiB": 1259616,
+    "run_peakKiB": 418368,
+    "minimum_system_free_percent": 68
+  },
+  "local_build_memory": {
+    "peakKiB": 6143408,
+    "minimum_system_free_percent": 62,
+    "single_compiler": true,
+    "external_ssd_only": true
+  }
+}

@@ -1,5 +1,9 @@
 # a417 joined purity / Session mirror correction
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Private source-only correction from a41774c0b. No Cargo/rustc/runtime or ROOT
 source write. Actual a417 failure logs14/124 are retained, never relabeled.
 

@@ -1,0 +1,26 @@
+//! Complete previous Drop body; only receiver/signature adapter.
+use super::super::{nominal_payload, DeclarationIndex, ResolvedType};
+impl DeclarationIndex {
+    pub(in super::super) fn drop_before_argument_reuse(mut self) {
+        if let Some(scratch) = self.nominal_drop_workspace.scratch.take() {
+            let mut scratch = scratch.lock().expect("construction disposal lock");
+            self.drain_recursive_types_for_private_contract(|ty| {
+                nominal_payload::dispose(ty, &mut scratch)
+            });
+            return;
+        }
+        let mut pending = Vec::new();
+        // Leaf fields have no recursive payload to queue. Move only nominal
+        // children into the iterative fallback, preserving bounded stack use.
+        self.drain_legacy_type_roots(|ty| {
+            if let ResolvedType::Nominal { arguments, .. } = ty {
+                pending.extend(arguments);
+            }
+        });
+        while let Some(ty) = pending.pop() {
+            if let ResolvedType::Nominal { arguments, .. } = ty {
+                pending.extend(arguments);
+            }
+        }
+    }
+}

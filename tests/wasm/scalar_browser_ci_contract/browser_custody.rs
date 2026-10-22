@@ -197,6 +197,12 @@ fn pin_project(rows: &str, source: &str, current: &str) -> String {
     let Some(row) = matching.first() else {
         return current.to_owned();
     };
+    let staged = crate::main_e177_final_inputs::value_direct(
+        source,
+        row["current_sha256"].as_str().unwrap(),
+        current,
+    );
+    let current = staged.as_str();
     assert_eq!(
         format!(
             "{:x}",

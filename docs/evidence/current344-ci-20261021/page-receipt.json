@@ -1,0 +1,28 @@
+{
+  "status": "ORIGINAL_CURRENT_CODEC_COMPOSITION_PASS_PENDING_PUBLICATION",
+  "base_head": "f622ae240c63c03afbe4c28f606583af7af517fb",
+  "rows": 687,
+  "page_bytes": 230118,
+  "published_current_preserved_as_exact_views": [
+    {
+      "source": "src/source_reflows_merge/current344.rs",
+      "view": {
+        "length": 11060,
+        "sha256": "e6cd584e82c456fadf1431de5934d22086d0196206cba17cc658e10d328038fa",
+        "archive": "docs/evidence/merge-pr896-20261021/whole/e6cd584e82c456fadf1431de5934d22086d0196206cba17cc658e10d328038fa.txt",
+        "name": "whole-pre-current344-f622a15bdd5"
+      }
+    },
+    {
+      "source": "src/source_reflows_merge/final_ready_inputs.rs",
+      "view": {
+        "length": 28317,
+        "sha256": "42a6ae14c96b8a2608deb0dca6869023c2d91cdacf329cde22cb35955eecb12f",
+        "archive": "docs/evidence/rustfmt-20261021/current/42a6ae14c96b8a2608deb0dca6869023c2d91cdacf329cde22cb35955eecb12f.txt",
+        "name": "whole-pre-current344-f622a15bdd5"
+      }
+    }
+  ],
+  "all_previous_fields_views_memberships_and_fragment_edges_retained": true,
+  "all_original_codec_bodies_and_caps_unchanged": true
+}

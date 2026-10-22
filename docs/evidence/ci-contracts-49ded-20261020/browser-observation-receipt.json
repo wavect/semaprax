@@ -1,0 +1,28 @@
+{
+  "status": "PASS_AUTHENTICATED_COMPLETE_LINUX188_CURRENT_GRAPH_PINS",
+  "run": 39249327458,
+  "head": "23b2f29378960ddd3c4202cd93b7696e32abb229",
+  "job": 118050033709,
+  "graphs": [
+    {
+      "subject": "calculator-baseline.json",
+      "before_graph_digest": "sha256:04c9688d262a1df657bfb8099069c953e127b42d6153ad885612f6cf31dc886b",
+      "current_graph_digest": "sha256:383323c2c8d76829ccb0600db4626d5214cfb475d6b765282e32cad0477e62c4",
+      "before_used_builder_bytes": 8635113,
+      "current_used_builder_bytes": 3760906,
+      "whole_graph_sha256": "fa2d8d9732a7331bcde1c8c7257a8532b51ccafadb919afc024f5ca1d2efcf07",
+      "all_other_graph_fields_identical": true
+    },
+    {
+      "subject": "calculator-renamed.json",
+      "before_graph_digest": "sha256:bc1907281fe1c765d1ccea7701444f0ee8e9ff967018932a62af849c052840fb",
+      "current_graph_digest": "sha256:27e4bb132413637de37dcebfb9532ad48b8661bbdd6c37c621db0d34dc05243d",
+      "before_used_builder_bytes": 8635113,
+      "current_used_builder_bytes": 3760906,
+      "whole_graph_sha256": "2289074fddb8ba54d75799d86e431fe4b83009bf33b94413cc03012f134a8cc6",
+      "all_other_graph_fields_identical": true
+    }
+  ],
+  "original_all_rename_revision_artifact_and_runtime_assertions_unchanged": true,
+  "actual_current_browser_runtime_still_requires_CI": true
+}

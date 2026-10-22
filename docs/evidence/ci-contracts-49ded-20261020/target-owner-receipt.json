@@ -1,0 +1,12 @@
+{
+  "status": "PASS_ACTUAL_COMPLETE_ORIGINAL_TARGET_EVIDENCE_AND_PATCH_EVIDENCE_V2_OWNER_MODULES",
+  "compile_peakKiB": 1125920,
+  "run_peakKiB": 173568,
+  "normal_current_compiler_sha256": "5d514b05fa3673cb6268700b4abe69979e44d27447a6d8dc2e224d84fc890cc8",
+  "all_three_actual_complete_reports_match_predicted_metadata_only_change": true,
+  "all_original_historical0256_hashes_retained": true,
+  "all_original_owner_assertions_preserved_except_correct_current_version_and_derived_KATs": true,
+  "full_quality_and_hosted_CI_still_required": true,
+  "original_tests_passed": 18,
+  "test_runtime_seconds": 13.55
+}

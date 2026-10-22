@@ -1,5 +1,9 @@
 # Source-only review disposition
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 One actual tools-disabled Sonnet dispatch, 9,836 payload bytes, 88.20 seconds,
 282,329,088-byte process-group peak, terminal exit 0. Full raw review and usage
 retained; provider list cost $0.13062 is not a billing receipt. An earlier local

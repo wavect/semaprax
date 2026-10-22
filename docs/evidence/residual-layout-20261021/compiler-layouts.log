@@ -1,0 +1,1405 @@
+print-type-size type: `semaprax::hir::ResolvedFunction`: 960 bytes, alignment: 8 bytes
+print-type-size     field `.name`: 24 bytes
+print-type-size     field `.params`: 24 bytes
+print-type-size     field `.effects`: 24 bytes
+print-type-size     field `.requires`: 24 bytes
+print-type-size     field `.ensures`: 24 bytes
+print-type-size     field `.cleanup`: 112 bytes
+print-type-size     field `.cleanup_plan`: 224 bytes
+print-type-size     field `.loan_plan`: 88 bytes
+print-type-size     field `.return_type`: 40 bytes
+print-type-size     field `.body`: 192 bytes
+print-type-size     field `.yields`: 112 bytes
+print-type-size     field `.result_id`: 24 bytes
+print-type-size     field `.id`: 16 bytes
+print-type-size     field `.span`: 32 bytes
+print-type-size type: `hir::before::ResolvedStatement`: 400 bytes, alignment: 8 bytes
+print-type-size     variant `Assign`: 400 bytes
+print-type-size         field `.field`: 24 bytes
+print-type-size         field `.binding`: 128 bytes
+print-type-size         field `.value`: 216 bytes
+print-type-size         field `.span`: 32 bytes
+print-type-size     variant `Let`: 385 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.binding`: 128 bytes, alignment: 8 bytes
+print-type-size         field `.value`: 216 bytes
+print-type-size         field `.span`: 32 bytes
+print-type-size         field `.mutable`: 1 bytes
+print-type-size     variant `CopyDiscard`: 256 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.value`: 216 bytes, alignment: 8 bytes
+print-type-size         field `.span`: 32 bytes
+print-type-size     variant `LexicalWhile`: 128 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.latch`: 72 bytes, alignment: 8 bytes
+print-type-size         field `.condition`: 8 bytes
+print-type-size         field `.body`: 8 bytes
+print-type-size         field `.span`: 32 bytes
+print-type-size     variant `Unsafe`: 72 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.audit`: 24 bytes, alignment: 8 bytes
+print-type-size         field `.body`: 8 bytes
+print-type-size         field `.span`: 32 bytes
+print-type-size     variant `While`: 56 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.condition`: 8 bytes, alignment: 8 bytes
+print-type-size         field `.body`: 8 bytes
+print-type-size         field `.span`: 32 bytes
+print-type-size type: `hir::before::ResolvedMatchArm`: 384 bytes, alignment: 8 bytes
+print-type-size     field `.pattern`: 128 bytes
+print-type-size     field `.value`: 216 bytes
+print-type-size     field `.guard`: 8 bytes
+print-type-size     field `.span`: 32 bytes
+print-type-size type: `semaprax::hir::ResolvedStatement`: 376 bytes, alignment: 8 bytes
+print-type-size     variant `Assign`: 376 bytes
+print-type-size         field `.field`: 24 bytes
+print-type-size         field `.binding`: 128 bytes
+print-type-size         field `.value`: 192 bytes
+print-type-size         field `.span`: 32 bytes
+print-type-size     variant `Let`: 361 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.binding`: 128 bytes, alignment: 8 bytes
+print-type-size         field `.value`: 192 bytes
+print-type-size         field `.span`: 32 bytes
+print-type-size         field `.mutable`: 1 bytes
+print-type-size     variant `CopyDiscard`: 232 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.value`: 192 bytes, alignment: 8 bytes
+print-type-size         field `.span`: 32 bytes
+print-type-size     variant `LexicalWhile`: 128 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.latch`: 72 bytes, alignment: 8 bytes
+print-type-size         field `.condition`: 8 bytes
+print-type-size         field `.body`: 8 bytes
+print-type-size         field `.span`: 32 bytes
+print-type-size     variant `Unsafe`: 72 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.audit`: 24 bytes, alignment: 8 bytes
+print-type-size         field `.body`: 8 bytes
+print-type-size         field `.span`: 32 bytes
+print-type-size     variant `While`: 56 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.condition`: 8 bytes, alignment: 8 bytes
+print-type-size         field `.body`: 8 bytes
+print-type-size         field `.span`: 32 bytes
+print-type-size type: `semaprax::hir::ResolvedMatchArm`: 360 bytes, alignment: 8 bytes
+print-type-size     field `.pattern`: 128 bytes
+print-type-size     field `.value`: 192 bytes
+print-type-size     field `.guard`: 8 bytes
+print-type-size     field `.span`: 32 bytes
+print-type-size type: `hir::before::ResolvedClosureCapture`: 344 bytes, alignment: 8 bytes
+print-type-size     field `.binding`: 128 bytes
+print-type-size     field `.value`: 216 bytes
+print-type-size type: `semaprax::hir::ResolvedClosureCapture`: 320 bytes, alignment: 8 bytes
+print-type-size     field `.binding`: 128 bytes
+print-type-size     field `.value`: 192 bytes
+print-type-size type: `hir::before::ResolvedFieldInitializer`: 232 bytes, alignment: 8 bytes
+print-type-size     field `.value`: 216 bytes
+print-type-size     field `.field`: 16 bytes
+print-type-size type: `semaprax::cleanup_plan::CleanupPlan`: 224 bytes, alignment: 8 bytes
+print-type-size     field `.entry_state`: 48 bytes
+print-type-size     field `.slots`: 24 bytes
+print-type-size     field `.status_sources`: 24 bytes
+print-type-size     field `.blocks`: 24 bytes
+print-type-size     field `.edges`: 24 bytes
+print-type-size     field `.regions`: 24 bytes
+print-type-size     field `.exits`: 24 bytes
+print-type-size     field `.schema`: 16 bytes
+print-type-size     field `.lexical_control`: 8 bytes
+print-type-size     field `.entry`: 4 bytes
+print-type-size     end padding: 4 bytes
+print-type-size type: `hir::before::ResolvedExpr`: 216 bytes, alignment: 8 bytes
+print-type-size     field `.ty`: 40 bytes
+print-type-size     field `.kind`: 128 bytes
+print-type-size     field `.id`: 8 bytes
+print-type-size     field `.span`: 32 bytes
+print-type-size     field `.ownership`: 1 bytes
+print-type-size     end padding: 7 bytes
+print-type-size type: `semaprax::hir::ResolvedFieldInitializer`: 208 bytes, alignment: 8 bytes
+print-type-size     field `.value`: 192 bytes
+print-type-size     field `.field`: 16 bytes
+print-type-size type: `semaprax::hir::ResolvedExpr`: 192 bytes, alignment: 8 bytes
+print-type-size     field `.ty`: 40 bytes
+print-type-size     field `.kind`: 104 bytes
+print-type-size     field `.id`: 8 bytes
+print-type-size     field `.span`: 32 bytes
+print-type-size     field `.ownership`: 1 bytes
+print-type-size     end padding: 7 bytes
+print-type-size type: `hir::before::ResolvedMatchPatternField`: 144 bytes, alignment: 8 bytes
+print-type-size     field `.binding`: 128 bytes
+print-type-size     field `.field`: 16 bytes
+print-type-size type: `hir::before::ResolvedRecordMatchPatternField`: 144 bytes, alignment: 8 bytes
+print-type-size     field `.pattern`: 128 bytes
+print-type-size     field `.field`: 16 bytes
+print-type-size type: `hir::before::ResolvedExprKind`: 128 bytes, alignment: 8 bytes
+print-type-size     variant `Try`: 128 bytes
+print-type-size         field `.residual_type`: 40 bytes
+print-type-size         field `.operand`: 8 bytes
+print-type-size         field `.result`: 16 bytes
+print-type-size         field `.ok_case`: 16 bytes
+print-type-size         field `.ok_field`: 16 bytes
+print-type-size         field `.err_case`: 16 bytes
+print-type-size         field `.err_field`: 16 bytes
+print-type-size     variant `TryOption`: 120 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.residual_type`: 40 bytes, alignment: 8 bytes
+print-type-size         field `.operand`: 8 bytes
+print-type-size         field `.option`: 16 bytes
+print-type-size         field `.some_case`: 16 bytes
+print-type-size         field `.some_field`: 16 bytes
+print-type-size         field `.none_case`: 16 bytes
+print-type-size     variant `Call`: 96 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.type_arguments`: 24 bytes, alignment: 8 bytes
+print-type-size         field `.args`: 24 bytes
+print-type-size         field `.instance`: 24 bytes
+print-type-size         field `.callee`: 16 bytes
+print-type-size     variant `VecFieldRead`: 90 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.args`: 24 bytes, alignment: 8 bytes
+print-type-size         field `.element`: 40 bytes
+print-type-size         field `.field`: 16 bytes
+print-type-size         field `.origin`: 1 bytes
+print-type-size         field `.bytes`: 1 bytes
+print-type-size     variant `VecConstructor`: 84 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.statements`: 24 bytes, alignment: 8 bytes
+print-type-size         field `.element`: 40 bytes
+print-type-size         field `.tail`: 8 bytes
+print-type-size         field `.count`: 4 bytes
+print-type-size     variant `NativeRustImportCall`: 80 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.0`: 72 bytes, alignment: 8 bytes
+print-type-size     variant `BorrowPlace`: 72 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.place`: 48 bytes, alignment: 8 bytes
+print-type-size         field `.operation`: 16 bytes
+print-type-size     variant `Closure`: 64 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.parameters`: 24 bytes, alignment: 8 bytes
+print-type-size         field `.captures`: 24 bytes
+print-type-size         field `.body`: 8 bytes
+print-type-size     variant `ConstructVariant`: 64 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.fields`: 24 bytes, alignment: 8 bytes
+print-type-size         field `.variant`: 16 bytes
+print-type-size         field `.case`: 16 bytes
+print-type-size     variant `Place`: 56 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.0`: 48 bytes, alignment: 8 bytes
+print-type-size     variant `LiteralFormat`: 56 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.template`: 24 bytes, alignment: 8 bytes
+print-type-size         field `.args`: 24 bytes
+print-type-size     variant `UpdateRecord`: 56 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.fields`: 24 bytes, alignment: 8 bytes
+print-type-size         field `.base`: 8 bytes
+print-type-size         field `.record`: 16 bytes
+print-type-size     variant `LexicalExit`: 49 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.target`: 32 bytes, alignment: 8 bytes
+print-type-size         field `.value`: 8 bytes
+print-type-size         field `.kind`: 1 bytes
+print-type-size     variant `ByteRange`: 48 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.source`: 8 bytes, alignment: 8 bytes
+print-type-size         field `.start`: 8 bytes
+print-type-size         field `.end`: 8 bytes
+print-type-size         field `.operation`: 16 bytes
+print-type-size     variant `HostCommandCall`: 48 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.0`: 40 bytes, alignment: 8 bytes
+print-type-size     variant `ConstructRecord`: 48 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.fields`: 24 bytes, alignment: 8 bytes
+print-type-size         field `.record`: 16 bytes
+print-type-size     variant `Match`: 41 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.arms`: 24 bytes, alignment: 8 bytes
+print-type-size         field `.scrutinee`: 8 bytes
+print-type-size         field `.mode`: 1 bytes
+print-type-size     variant `Invoke`: 40 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.args`: 24 bytes, alignment: 8 bytes
+print-type-size         field `.callable`: 8 bytes
+print-type-size     variant `RowLoan`: 40 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.args`: 24 bytes, alignment: 8 bytes
+print-type-size         field `.loan`: 8 bytes
+print-type-size     variant `Block`: 40 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.statements`: 24 bytes, alignment: 8 bytes
+print-type-size         field `.tail`: 8 bytes
+print-type-size     variant `ArrayU8`: 32 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.0`: 24 bytes, alignment: 8 bytes
+print-type-size     variant `String`: 32 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.0`: 24 bytes, alignment: 8 bytes
+print-type-size     variant `If`: 32 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.condition`: 8 bytes, alignment: 8 bytes
+print-type-size         field `.then_branch`: 8 bytes
+print-type-size         field `.else_branch`: 8 bytes
+print-type-size     variant `Project`: 32 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.base`: 8 bytes, alignment: 8 bytes
+print-type-size         field `.field`: 16 bytes
+print-type-size     variant `Binary`: 25 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.left`: 8 bytes, alignment: 8 bytes
+print-type-size         field `.right`: 8 bytes
+print-type-size         field `.op`: 1 bytes
+print-type-size     variant `FunctionReference`: 24 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.target`: 16 bytes, alignment: 8 bytes
+print-type-size     variant `Unary`: 17 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.value`: 8 bytes, alignment: 8 bytes
+print-type-size         field `.op`: 1 bytes
+print-type-size     variant `Int`: 16 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.0`: 8 bytes, alignment: 8 bytes
+print-type-size     variant `Usize`: 16 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.0`: 8 bytes, alignment: 8 bytes
+print-type-size     variant `Float64`: 16 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.0`: 8 bytes, alignment: 8 bytes
+print-type-size     variant `BorrowedUtf8Literal`: 16 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.0`: 8 bytes, alignment: 8 bytes
+print-type-size     variant `Upcast`: 16 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.source`: 8 bytes, alignment: 8 bytes
+print-type-size     variant `Yield`: 16 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.request`: 8 bytes, alignment: 8 bytes
+print-type-size     variant `RepeatArrayU8`: 13 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.count`: 4 bytes, alignment: 4 bytes
+print-type-size         field `.value`: 1 bytes
+print-type-size     variant `Int32`: 12 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.0`: 4 bytes, alignment: 4 bytes
+print-type-size     variant `Char`: 12 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.0`: 4 bytes, alignment: 4 bytes
+print-type-size     variant `Float32`: 12 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.0`: 4 bytes, alignment: 4 bytes
+print-type-size     variant `Uint8`: 9 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.0`: 1 bytes, alignment: 1 bytes
+print-type-size     variant `Bool`: 9 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.0`: 1 bytes, alignment: 1 bytes
+print-type-size type: `hir::before::ResolvedMatchPattern`: 128 bytes, alignment: 8 bytes
+print-type-size     variant `Binding`: 128 bytes
+print-type-size         field `.0`: 128 bytes
+print-type-size     variant `Record`: 88 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.fields`: 24 bytes, alignment: 8 bytes
+print-type-size         field `.instance`: 40 bytes
+print-type-size         field `.record`: 16 bytes
+print-type-size     variant `Variant`: 64 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.fields`: 24 bytes, alignment: 8 bytes
+print-type-size         field `.variant`: 16 bytes
+print-type-size         field `.case`: 16 bytes
+print-type-size     variant `Or`: 32 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.0`: 24 bytes, alignment: 8 bytes
+print-type-size     variant `Literal`: 24 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.0`: 16 bytes, alignment: 8 bytes
+print-type-size     variant `Wildcard`: 0 bytes
+print-type-size type: `hir::before::ResolvedRecordMatchFieldPattern`: 128 bytes, alignment: 8 bytes
+print-type-size     variant `Binding`: 128 bytes
+print-type-size         field `.0`: 128 bytes
+print-type-size     variant `Record`: 88 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.fields`: 24 bytes, alignment: 8 bytes
+print-type-size         field `.instance`: 40 bytes
+print-type-size         field `.record`: 16 bytes
+print-type-size     variant `Wildcard`: 0 bytes
+print-type-size type: `semaprax::hir::ResolvedBinding`: 128 bytes, alignment: 8 bytes
+print-type-size     field `.name`: 24 bytes
+print-type-size     field `.ty`: 40 bytes
+print-type-size     field `.id`: 24 bytes
+print-type-size     field `.span`: 32 bytes
+print-type-size     field `.ownership`: 1 bytes
+print-type-size     end padding: 7 bytes
+print-type-size type: `semaprax::hir::ResolvedMatchPattern`: 128 bytes, alignment: 8 bytes
+print-type-size     variant `Binding`: 128 bytes
+print-type-size         field `.0`: 128 bytes
+print-type-size     variant `Record`: 88 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.fields`: 24 bytes, alignment: 8 bytes
+print-type-size         field `.instance`: 40 bytes
+print-type-size         field `.record`: 16 bytes
+print-type-size     variant `Variant`: 64 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.fields`: 24 bytes, alignment: 8 bytes
+print-type-size         field `.variant`: 16 bytes
+print-type-size         field `.case`: 16 bytes
+print-type-size     variant `Or`: 32 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.0`: 24 bytes, alignment: 8 bytes
+print-type-size     variant `Literal`: 24 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.0`: 16 bytes, alignment: 8 bytes
+print-type-size     variant `Wildcard`: 0 bytes
+print-type-size type: `semaprax::cleanup::CleanupInventory`: 112 bytes, alignment: 8 bytes
+print-type-size     field `.entry_state`: 48 bytes
+print-type-size     field `.slots`: 24 bytes
+print-type-size     field `.flags`: 24 bytes
+print-type-size     field `.schema`: 16 bytes
+print-type-size type: `semaprax::hir::ResolvedYieldsClause`: 112 bytes, alignment: 8 bytes
+print-type-size     field `.request_type`: 40 bytes
+print-type-size     field `.response_type`: 40 bytes
+print-type-size     field `.span`: 32 bytes
+print-type-size type: `std::option::Option<semaprax::hir::ResolvedYieldsClause>`: 112 bytes, alignment: 8 bytes
+print-type-size     variant `Some`: 112 bytes
+print-type-size         field `.0`: 112 bytes
+print-type-size     variant `None`: 0 bytes
+print-type-size type: `semaprax::hir::ResolvedExprKind`: 104 bytes, alignment: 8 bytes
+print-type-size     discriminant: 1 bytes
+print-type-size     variant `Try`: 103 bytes
+print-type-size         padding: 7 bytes
+print-type-size         field `.result`: 16 bytes, alignment: 8 bytes
+print-type-size         field `.ok_case`: 16 bytes
+print-type-size         field `.ok_field`: 16 bytes
+print-type-size         field `.err_case`: 16 bytes
+print-type-size         field `.err_field`: 16 bytes
+print-type-size         field `.operand`: 8 bytes
+print-type-size         field `.residual_type`: 8 bytes
+print-type-size     variant `Call`: 95 bytes
+print-type-size         padding: 7 bytes
+print-type-size         field `.instance`: 24 bytes, alignment: 8 bytes
+print-type-size         field `.type_arguments`: 24 bytes
+print-type-size         field `.args`: 24 bytes
+print-type-size         field `.callee`: 16 bytes
+print-type-size     variant `VecFieldRead`: 87 bytes
+print-type-size         field `.origin`: 1 bytes
+print-type-size         field `.bytes`: 1 bytes
+print-type-size         padding: 5 bytes
+print-type-size         field `.field`: 16 bytes, alignment: 8 bytes
+print-type-size         field `.element`: 40 bytes
+print-type-size         field `.args`: 24 bytes
+print-type-size     variant `TryOption`: 87 bytes
+print-type-size         padding: 7 bytes
+print-type-size         field `.option`: 16 bytes, alignment: 8 bytes
+print-type-size         field `.some_case`: 16 bytes
+print-type-size         field `.some_field`: 16 bytes
+print-type-size         field `.none_case`: 16 bytes
+print-type-size         field `.operand`: 8 bytes
+print-type-size         field `.residual_type`: 8 bytes
+print-type-size     variant `VecConstructor`: 79 bytes
+print-type-size         padding: 3 bytes
+print-type-size         field `.count`: 4 bytes, alignment: 4 bytes
+print-type-size         field `.tail`: 8 bytes
+print-type-size         field `.element`: 40 bytes
+print-type-size         field `.statements`: 24 bytes
+print-type-size     variant `NativeRustImportCall`: 79 bytes
+print-type-size         padding: 7 bytes
+print-type-size         field `.0`: 72 bytes, alignment: 8 bytes
+print-type-size     variant `BorrowPlace`: 71 bytes
+print-type-size         padding: 7 bytes
+print-type-size         field `.operation`: 16 bytes, alignment: 8 bytes
+print-type-size         field `.place`: 48 bytes
+print-type-size     variant `Closure`: 63 bytes
+print-type-size         padding: 7 bytes
+print-type-size         field `.body`: 8 bytes, alignment: 8 bytes
+print-type-size         field `.parameters`: 24 bytes
+print-type-size         field `.captures`: 24 bytes
+print-type-size     variant `ConstructVariant`: 63 bytes
+print-type-size         padding: 7 bytes
+print-type-size         field `.variant`: 16 bytes, alignment: 8 bytes
+print-type-size         field `.case`: 16 bytes
+print-type-size         field `.fields`: 24 bytes
+print-type-size     variant `Place`: 55 bytes
+print-type-size         padding: 7 bytes
+print-type-size         field `.0`: 48 bytes, alignment: 8 bytes
+print-type-size     variant `LiteralFormat`: 55 bytes
+print-type-size         padding: 7 bytes
+print-type-size         field `.template`: 24 bytes, alignment: 8 bytes
+print-type-size         field `.args`: 24 bytes
+print-type-size     variant `UpdateRecord`: 55 bytes
+print-type-size         padding: 7 bytes
+print-type-size         field `.record`: 16 bytes, alignment: 8 bytes
+print-type-size         field `.base`: 8 bytes
+print-type-size         field `.fields`: 24 bytes
+print-type-size     variant `LexicalExit`: 47 bytes
+print-type-size         field `.kind`: 1 bytes
+print-type-size         padding: 6 bytes
+print-type-size         field `.value`: 8 bytes, alignment: 8 bytes
+print-type-size         field `.target`: 32 bytes
+print-type-size     variant `ByteRange`: 47 bytes
+print-type-size         padding: 7 bytes
+print-type-size         field `.operation`: 16 bytes, alignment: 8 bytes
+print-type-size         field `.source`: 8 bytes
+print-type-size         field `.start`: 8 bytes
+print-type-size         field `.end`: 8 bytes
+print-type-size     variant `HostCommandCall`: 47 bytes
+print-type-size         padding: 7 bytes
+print-type-size         field `.0`: 40 bytes, alignment: 8 bytes
+print-type-size     variant `ConstructRecord`: 47 bytes
+print-type-size         padding: 7 bytes
+print-type-size         field `.record`: 16 bytes, alignment: 8 bytes
+print-type-size         field `.fields`: 24 bytes
+print-type-size     variant `Invoke`: 39 bytes
+print-type-size         padding: 7 bytes
+print-type-size         field `.callable`: 8 bytes, alignment: 8 bytes
+print-type-size         field `.args`: 24 bytes
+print-type-size     variant `RowLoan`: 39 bytes
+print-type-size         padding: 7 bytes
+print-type-size         field `.loan`: 8 bytes, alignment: 8 bytes
+print-type-size         field `.args`: 24 bytes
+print-type-size     variant `Block`: 39 bytes
+print-type-size         padding: 7 bytes
+print-type-size         field `.tail`: 8 bytes, alignment: 8 bytes
+print-type-size         field `.statements`: 24 bytes
+print-type-size     variant `Match`: 39 bytes
+print-type-size         field `.mode`: 1 bytes
+print-type-size         padding: 6 bytes
+print-type-size         field `.scrutinee`: 8 bytes, alignment: 8 bytes
+print-type-size         field `.arms`: 24 bytes
+print-type-size     variant `ArrayU8`: 31 bytes
+print-type-size         padding: 7 bytes
+print-type-size         field `.0`: 24 bytes, alignment: 8 bytes
+print-type-size     variant `String`: 31 bytes
+print-type-size         padding: 7 bytes
+print-type-size         field `.0`: 24 bytes, alignment: 8 bytes
+print-type-size     variant `If`: 31 bytes
+print-type-size         padding: 7 bytes
+print-type-size         field `.condition`: 8 bytes, alignment: 8 bytes
+print-type-size         field `.then_branch`: 8 bytes
+print-type-size         field `.else_branch`: 8 bytes
+print-type-size     variant `Project`: 31 bytes
+print-type-size         padding: 7 bytes
+print-type-size         field `.field`: 16 bytes, alignment: 8 bytes
+print-type-size         field `.base`: 8 bytes
+print-type-size     variant `FunctionReference`: 23 bytes
+print-type-size         padding: 7 bytes
+print-type-size         field `.target`: 16 bytes, alignment: 8 bytes
+print-type-size     variant `Binary`: 23 bytes
+print-type-size         field `.op`: 1 bytes
+print-type-size         padding: 6 bytes
+print-type-size         field `.left`: 8 bytes, alignment: 8 bytes
+print-type-size         field `.right`: 8 bytes
+print-type-size     variant `Int`: 15 bytes
+print-type-size         padding: 7 bytes
+print-type-size         field `.0`: 8 bytes, alignment: 8 bytes
+print-type-size     variant `Usize`: 15 bytes
+print-type-size         padding: 7 bytes
+print-type-size         field `.0`: 8 bytes, alignment: 8 bytes
+print-type-size     variant `Float64`: 15 bytes
+print-type-size         padding: 7 bytes
+print-type-size         field `.0`: 8 bytes, alignment: 8 bytes
+print-type-size     variant `BorrowedUtf8Literal`: 15 bytes
+print-type-size         padding: 7 bytes
+print-type-size         field `.0`: 8 bytes, alignment: 8 bytes
+print-type-size     variant `Unary`: 15 bytes
+print-type-size         field `.op`: 1 bytes
+print-type-size         padding: 6 bytes
+print-type-size         field `.value`: 8 bytes, alignment: 8 bytes
+print-type-size     variant `Upcast`: 15 bytes
+print-type-size         padding: 7 bytes
+print-type-size         field `.source`: 8 bytes, alignment: 8 bytes
+print-type-size     variant `Yield`: 15 bytes
+print-type-size         padding: 7 bytes
+print-type-size         field `.request`: 8 bytes, alignment: 8 bytes
+print-type-size     variant `Int32`: 7 bytes
+print-type-size         padding: 3 bytes
+print-type-size         field `.0`: 4 bytes, alignment: 4 bytes
+print-type-size     variant `Char`: 7 bytes
+print-type-size         padding: 3 bytes
+print-type-size         field `.0`: 4 bytes, alignment: 4 bytes
+print-type-size     variant `RepeatArrayU8`: 7 bytes
+print-type-size         field `.value`: 1 bytes
+print-type-size         padding: 2 bytes
+print-type-size         field `.count`: 4 bytes, alignment: 4 bytes
+print-type-size     variant `Float32`: 7 bytes
+print-type-size         padding: 3 bytes
+print-type-size         field `.0`: 4 bytes, alignment: 4 bytes
+print-type-size     variant `Uint8`: 1 bytes
+print-type-size         field `.0`: 1 bytes
+print-type-size     variant `Bool`: 1 bytes
+print-type-size         field `.0`: 1 bytes
+print-type-size type: `semaprax::loan_plan::LoanPlan`: 88 bytes, alignment: 8 bytes
+print-type-size     field `.loans`: 24 bytes
+print-type-size     field `.endpoints`: 24 bytes
+print-type-size     field `.edges`: 24 bytes
+print-type-size     field `.schema`: 16 bytes
+print-type-size type: `semaprax::hir::LoopLatchKind`: 72 bytes, alignment: 8 bytes
+print-type-size     discriminant: 1 bytes
+print-type-size     variant `OwnedIteratorStep`: 71 bytes
+print-type-size         padding: 7 bytes
+print-type-size         field `.next`: 8 bytes, alignment: 8 bytes
+print-type-size         field `.assignment`: 8 bytes
+print-type-size         field `.step`: 24 bytes
+print-type-size         field `.remainder`: 24 bytes
+print-type-size     variant `SourceForStep`: 15 bytes
+print-type-size         field `.kind`: 1 bytes
+print-type-size         padding: 6 bytes
+print-type-size         field `.step`: 8 bytes, alignment: 8 bytes
+print-type-size     variant `Condition`: 0 bytes
+print-type-size type: `semaprax::hir::ResolvedNativeRustImportCall`: 72 bytes, alignment: 8 bytes
+print-type-size     field `.result`: 24 bytes
+print-type-size     field `.args`: 24 bytes
+print-type-size     field `.expression`: 8 bytes
+print-type-size     field `.import`: 16 bytes
+print-type-size type: `semaprax::cleanup::CleanupEntryState`: 48 bytes, alignment: 8 bytes
+print-type-size     field `.live_owned_parameters`: 24 bytes
+print-type-size     field `.conditional_owned_parameters`: 24 bytes
+print-type-size type: `semaprax::cleanup_plan::CleanupEntryState`: 48 bytes, alignment: 8 bytes
+print-type-size     field `.live_owned_parameters`: 24 bytes
+print-type-size     field `.conditional_owned_parameters`: 24 bytes
+print-type-size type: `semaprax::hir::Place`: 48 bytes, alignment: 8 bytes
+print-type-size     field `.projections`: 24 bytes
+print-type-size     field `.root`: 24 bytes
+print-type-size type: `semaprax::hir::ResolvedHostCommandCall`: 40 bytes, alignment: 8 bytes
+print-type-size     field `.args`: 24 bytes
+print-type-size     field `.expression`: 8 bytes
+print-type-size     field `.operation`: 1 bytes
+print-type-size     end padding: 7 bytes
+print-type-size type: `semaprax::hir::ResolvedType`: 40 bytes, alignment: 8 bytes
+print-type-size     variant `Function`: 40 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.parameters`: 24 bytes, alignment: 8 bytes
+print-type-size         field `.result`: 8 bytes
+print-type-size     variant `Nominal`: 40 bytes
+print-type-size         field `.arguments`: 24 bytes
+print-type-size         field `.declaration`: 16 bytes
+print-type-size     variant `TypeParameter`: 28 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.owner`: 16 bytes, alignment: 8 bytes
+print-type-size         field `.index`: 4 bytes
+print-type-size     variant `ArrayU8`: 12 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.0`: 4 bytes, alignment: 4 bytes
+print-type-size     variant `Never`: 0 bytes
+print-type-size     variant `OnceFunction`: 0 bytes
+print-type-size     variant `OnceFunctionI64`: 0 bytes
+print-type-size     variant `OnceFunctionI64Pair`: 0 bytes
+print-type-size     variant `MutFunctionI64`: 0 bytes
+print-type-size     variant `Unit`: 0 bytes
+print-type-size     variant `I64`: 0 bytes
+print-type-size     variant `I32`: 0 bytes
+print-type-size     variant `Char`: 0 bytes
+print-type-size     variant `U8`: 0 bytes
+print-type-size     variant `Usize`: 0 bytes
+print-type-size     variant `F32`: 0 bytes
+print-type-size     variant `F64`: 0 bytes
+print-type-size     variant `Bool`: 0 bytes
+print-type-size     variant `String`: 0 bytes
+print-type-size     variant `Bytes`: 0 bytes
+print-type-size     variant `Str`: 0 bytes
+print-type-size     variant `SliceU8`: 0 bytes
+print-type-size     variant `StringMap`: 0 bytes
+print-type-size type: `semaprax::ast::Span`: 32 bytes, alignment: 8 bytes
+print-type-size     field `.start`: 8 bytes
+print-type-size     field `.end`: 8 bytes
+print-type-size     field `.line`: 8 bytes
+print-type-size     field `.column`: 8 bytes
+print-type-size type: `semaprax::hir::ControlTarget`: 32 bytes, alignment: 8 bytes
+print-type-size     variant `Function`: 32 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.0`: 24 bytes, alignment: 8 bytes
+print-type-size     variant `Loop`: 32 bytes
+print-type-size         field `.owner`: 24 bytes
+print-type-size         field `.site`: 8 bytes
+print-type-size type: `hir::before::VariantCaseIter<'_>`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.alternatives`: 16 bytes
+print-type-size     field `.single`: 8 bytes
+print-type-size type: `semaprax::hir::FunctionExecutionId`: 24 bytes, alignment: 8 bytes
+print-type-size     variant `Monomorphic`: 24 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.0`: 16 bytes, alignment: 8 bytes
+print-type-size     variant `Generic`: 24 bytes
+print-type-size         field `.0`: 24 bytes
+print-type-size type: `semaprax::hir::FunctionInstanceId`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.0`: 24 bytes
+print-type-size type: `semaprax::hir::ResolvedImportResultKind`: 24 bytes, alignment: 8 bytes
+print-type-size     discriminant: 8 bytes
+print-type-size     variant `OwnedResultResourceI64`: 16 bytes
+print-type-size         field `.resource`: 16 bytes
+print-type-size     variant `BorrowedStr`: 16 bytes
+print-type-size         field `.resource`: 16 bytes
+print-type-size     variant `OwnedResource`: 16 bytes
+print-type-size         field `.resource`: 16 bytes
+print-type-size     variant `Unit`: 0 bytes
+print-type-size     variant `I64`: 0 bytes
+print-type-size     variant `Bool`: 0 bytes
+print-type-size     variant `ResultI64I64`: 0 bytes
+print-type-size     variant `OwnedString`: 0 bytes
+print-type-size     variant `OwnedOptionString`: 0 bytes
+print-type-size     variant `OwnedResultStringI64`: 0 bytes
+print-type-size     variant `OwnedResultStringOptionI64`: 0 bytes
+print-type-size type: `semaprax::hir::ValueId`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.0`: 16 bytes
+print-type-size     field `.1`: 8 bytes
+print-type-size type: `std::option::Option<hir::before::VariantCaseIter<'_>>`: 24 bytes, alignment: 8 bytes
+print-type-size     variant `Some`: 24 bytes
+print-type-size         field `.0`: 24 bytes
+print-type-size     variant `None`: 0 bytes
+print-type-size type: `std::option::Option<semaprax::hir::DeclarationId>`: 24 bytes, alignment: 8 bytes
+print-type-size     discriminant: 8 bytes
+print-type-size     variant `Some`: 16 bytes
+print-type-size         field `.0`: 16 bytes
+print-type-size     variant `None`: 0 bytes
+print-type-size type: `std::option::Option<semaprax::hir::FunctionInstanceId>`: 24 bytes, alignment: 8 bytes
+print-type-size     variant `Some`: 24 bytes
+print-type-size         field `.0`: 24 bytes
+print-type-size     variant `None`: 0 bytes
+print-type-size type: `std::option::Option<std::vec::Vec<&semaprax::hir::DeclarationId>>`: 24 bytes, alignment: 8 bytes
+print-type-size     variant `Some`: 24 bytes
+print-type-size         field `.0`: 24 bytes
+print-type-size     variant `None`: 0 bytes
+print-type-size type: `std::string::String`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.vec`: 24 bytes
+print-type-size type: `std::vec::Vec<&semaprax::hir::DeclarationId>`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.buf`: 16 bytes
+print-type-size     field `.len`: 8 bytes
+print-type-size type: `std::vec::Vec<hir::before::ResolvedClosureCapture>`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.buf`: 16 bytes
+print-type-size     field `.len`: 8 bytes
+print-type-size type: `std::vec::Vec<hir::before::ResolvedExpr>`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.buf`: 16 bytes
+print-type-size     field `.len`: 8 bytes
+print-type-size type: `std::vec::Vec<hir::before::ResolvedFieldInitializer>`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.buf`: 16 bytes
+print-type-size     field `.len`: 8 bytes
+print-type-size type: `std::vec::Vec<hir::before::ResolvedMatchArm>`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.buf`: 16 bytes
+print-type-size     field `.len`: 8 bytes
+print-type-size type: `std::vec::Vec<hir::before::ResolvedMatchPattern>`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.buf`: 16 bytes
+print-type-size     field `.len`: 8 bytes
+print-type-size type: `std::vec::Vec<hir::before::ResolvedMatchPatternField>`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.buf`: 16 bytes
+print-type-size     field `.len`: 8 bytes
+print-type-size type: `std::vec::Vec<hir::before::ResolvedRecordMatchPatternField>`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.buf`: 16 bytes
+print-type-size     field `.len`: 8 bytes
+print-type-size type: `std::vec::Vec<hir::before::ResolvedStatement>`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.buf`: 16 bytes
+print-type-size     field `.len`: 8 bytes
+print-type-size type: `std::vec::Vec<semaprax::cleanup::CleanupFlag>`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.buf`: 16 bytes
+print-type-size     field `.len`: 8 bytes
+print-type-size type: `std::vec::Vec<semaprax::cleanup::CleanupStorageId>`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.buf`: 16 bytes
+print-type-size     field `.len`: 8 bytes
+print-type-size type: `std::vec::Vec<semaprax::cleanup::CleanupStorageSlot>`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.buf`: 16 bytes
+print-type-size     field `.len`: 8 bytes
+print-type-size type: `std::vec::Vec<semaprax::cleanup::ConditionalVariantEntry>`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.buf`: 16 bytes
+print-type-size     field `.len`: 8 bytes
+print-type-size type: `std::vec::Vec<semaprax::cleanup_plan::CleanupBlock>`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.buf`: 16 bytes
+print-type-size     field `.len`: 8 bytes
+print-type-size type: `std::vec::Vec<semaprax::cleanup_plan::CleanupEdge>`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.buf`: 16 bytes
+print-type-size     field `.len`: 8 bytes
+print-type-size type: `std::vec::Vec<semaprax::cleanup_plan::CleanupPlace>`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.buf`: 16 bytes
+print-type-size     field `.len`: 8 bytes
+print-type-size type: `std::vec::Vec<semaprax::cleanup_plan::CleanupRegion>`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.buf`: 16 bytes
+print-type-size     field `.len`: 8 bytes
+print-type-size type: `std::vec::Vec<semaprax::cleanup_plan::CleanupSlot>`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.buf`: 16 bytes
+print-type-size     field `.len`: 8 bytes
+print-type-size type: `std::vec::Vec<semaprax::cleanup_plan::ConditionalVariantEntry>`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.buf`: 16 bytes
+print-type-size     field `.len`: 8 bytes
+print-type-size type: `std::vec::Vec<semaprax::cleanup_plan::ExitTarget>`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.buf`: 16 bytes
+print-type-size     field `.len`: 8 bytes
+print-type-size type: `std::vec::Vec<semaprax::cleanup_plan::StatusSource>`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.buf`: 16 bytes
+print-type-size     field `.len`: 8 bytes
+print-type-size type: `std::vec::Vec<semaprax::hir::PlaceProjection>`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.buf`: 16 bytes
+print-type-size     field `.len`: 8 bytes
+print-type-size type: `std::vec::Vec<semaprax::hir::ResolvedBinding>`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.buf`: 16 bytes
+print-type-size     field `.len`: 8 bytes
+print-type-size type: `std::vec::Vec<semaprax::hir::ResolvedClosureCapture>`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.buf`: 16 bytes
+print-type-size     field `.len`: 8 bytes
+print-type-size type: `std::vec::Vec<semaprax::hir::ResolvedExpr>`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.buf`: 16 bytes
+print-type-size     field `.len`: 8 bytes
+print-type-size type: `std::vec::Vec<semaprax::hir::ResolvedFieldInitializer>`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.buf`: 16 bytes
+print-type-size     field `.len`: 8 bytes
+print-type-size type: `std::vec::Vec<semaprax::hir::ResolvedMatchArm>`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.buf`: 16 bytes
+print-type-size     field `.len`: 8 bytes
+print-type-size type: `std::vec::Vec<semaprax::hir::ResolvedMatchPattern>`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.buf`: 16 bytes
+print-type-size     field `.len`: 8 bytes
+print-type-size type: `std::vec::Vec<semaprax::hir::ResolvedMatchPatternField>`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.buf`: 16 bytes
+print-type-size     field `.len`: 8 bytes
+print-type-size type: `std::vec::Vec<semaprax::hir::ResolvedParam>`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.buf`: 16 bytes
+print-type-size     field `.len`: 8 bytes
+print-type-size type: `std::vec::Vec<semaprax::hir::ResolvedRecordMatchPatternField>`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.buf`: 16 bytes
+print-type-size     field `.len`: 8 bytes
+print-type-size type: `std::vec::Vec<semaprax::hir::ResolvedStatement>`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.buf`: 16 bytes
+print-type-size     field `.len`: 8 bytes
+print-type-size type: `std::vec::Vec<semaprax::hir::ResolvedType>`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.buf`: 16 bytes
+print-type-size     field `.len`: 8 bytes
+print-type-size type: `std::vec::Vec<semaprax::loan_plan::Loan>`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.buf`: 16 bytes
+print-type-size     field `.len`: 8 bytes
+print-type-size type: `std::vec::Vec<semaprax::loan_plan::LoanEdge>`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.buf`: 16 bytes
+print-type-size     field `.len`: 8 bytes
+print-type-size type: `std::vec::Vec<semaprax::loan_plan::LoanEndpoint>`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.buf`: 16 bytes
+print-type-size     field `.len`: 8 bytes
+print-type-size type: `std::vec::Vec<std::string::String>`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.buf`: 16 bytes
+print-type-size     field `.len`: 8 bytes
+print-type-size type: `std::vec::Vec<u8>`: 24 bytes, alignment: 8 bytes
+print-type-size     field `.buf`: 16 bytes
+print-type-size     field `.len`: 8 bytes
+print-type-size type: `alloc::raw_vec::RawVec<&semaprax::hir::DeclarationId>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.inner`: 16 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `alloc::raw_vec::RawVec<hir::before::ResolvedClosureCapture>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.inner`: 16 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `alloc::raw_vec::RawVec<hir::before::ResolvedExpr>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.inner`: 16 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `alloc::raw_vec::RawVec<hir::before::ResolvedFieldInitializer>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.inner`: 16 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `alloc::raw_vec::RawVec<hir::before::ResolvedMatchArm>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.inner`: 16 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `alloc::raw_vec::RawVec<hir::before::ResolvedMatchPattern>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.inner`: 16 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `alloc::raw_vec::RawVec<hir::before::ResolvedMatchPatternField>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.inner`: 16 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `alloc::raw_vec::RawVec<hir::before::ResolvedRecordMatchPatternField>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.inner`: 16 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `alloc::raw_vec::RawVec<hir::before::ResolvedStatement>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.inner`: 16 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `alloc::raw_vec::RawVec<semaprax::cleanup::CleanupFlag>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.inner`: 16 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `alloc::raw_vec::RawVec<semaprax::cleanup::CleanupStorageId>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.inner`: 16 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `alloc::raw_vec::RawVec<semaprax::cleanup::CleanupStorageSlot>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.inner`: 16 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `alloc::raw_vec::RawVec<semaprax::cleanup::ConditionalVariantEntry>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.inner`: 16 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `alloc::raw_vec::RawVec<semaprax::cleanup_plan::CleanupBlock>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.inner`: 16 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `alloc::raw_vec::RawVec<semaprax::cleanup_plan::CleanupEdge>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.inner`: 16 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `alloc::raw_vec::RawVec<semaprax::cleanup_plan::CleanupPlace>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.inner`: 16 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `alloc::raw_vec::RawVec<semaprax::cleanup_plan::CleanupRegion>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.inner`: 16 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `alloc::raw_vec::RawVec<semaprax::cleanup_plan::CleanupSlot>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.inner`: 16 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `alloc::raw_vec::RawVec<semaprax::cleanup_plan::ConditionalVariantEntry>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.inner`: 16 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `alloc::raw_vec::RawVec<semaprax::cleanup_plan::ExitTarget>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.inner`: 16 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `alloc::raw_vec::RawVec<semaprax::cleanup_plan::StatusSource>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.inner`: 16 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `alloc::raw_vec::RawVec<semaprax::hir::PlaceProjection>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.inner`: 16 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `alloc::raw_vec::RawVec<semaprax::hir::ResolvedBinding>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.inner`: 16 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `alloc::raw_vec::RawVec<semaprax::hir::ResolvedClosureCapture>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.inner`: 16 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `alloc::raw_vec::RawVec<semaprax::hir::ResolvedExpr>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.inner`: 16 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `alloc::raw_vec::RawVec<semaprax::hir::ResolvedFieldInitializer>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.inner`: 16 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `alloc::raw_vec::RawVec<semaprax::hir::ResolvedMatchArm>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.inner`: 16 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `alloc::raw_vec::RawVec<semaprax::hir::ResolvedMatchPattern>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.inner`: 16 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `alloc::raw_vec::RawVec<semaprax::hir::ResolvedMatchPatternField>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.inner`: 16 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `alloc::raw_vec::RawVec<semaprax::hir::ResolvedParam>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.inner`: 16 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `alloc::raw_vec::RawVec<semaprax::hir::ResolvedRecordMatchPatternField>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.inner`: 16 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `alloc::raw_vec::RawVec<semaprax::hir::ResolvedStatement>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.inner`: 16 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `alloc::raw_vec::RawVec<semaprax::hir::ResolvedType>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.inner`: 16 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `alloc::raw_vec::RawVec<semaprax::loan_plan::Loan>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.inner`: 16 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `alloc::raw_vec::RawVec<semaprax::loan_plan::LoanEdge>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.inner`: 16 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `alloc::raw_vec::RawVec<semaprax::loan_plan::LoanEndpoint>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.inner`: 16 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `alloc::raw_vec::RawVec<std::string::String>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.inner`: 16 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `alloc::raw_vec::RawVec<u8>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.inner`: 16 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `alloc::raw_vec::RawVecInner`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.cap`: 8 bytes
+print-type-size     field `.ptr`: 8 bytes
+print-type-size     field `.alloc`: 0 bytes
+print-type-size type: `core::fmt::rt::Argument<'_>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.ty`: 16 bytes
+print-type-size type: `core::fmt::rt::ArgumentType<'_>`: 16 bytes, alignment: 8 bytes
+print-type-size     variant `Placeholder`: 16 bytes
+print-type-size         field `.value`: 8 bytes
+print-type-size         field `.formatter`: 8 bytes
+print-type-size         field `._lifetime`: 0 bytes
+print-type-size     variant `Count`: 10 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.0`: 2 bytes, alignment: 2 bytes
+print-type-size type: `hir::before::PatternValue`: 16 bytes, alignment: 8 bytes
+print-type-size     discriminant: 1 bytes
+print-type-size     variant `Int`: 15 bytes
+print-type-size         padding: 7 bytes
+print-type-size         field `.0`: 8 bytes, alignment: 8 bytes
+print-type-size     variant `Usize`: 15 bytes
+print-type-size         padding: 7 bytes
+print-type-size         field `.0`: 8 bytes, alignment: 8 bytes
+print-type-size     variant `Int32`: 7 bytes
+print-type-size         padding: 3 bytes
+print-type-size         field `.0`: 4 bytes, alignment: 4 bytes
+print-type-size     variant `Char`: 7 bytes
+print-type-size         padding: 3 bytes
+print-type-size         field `.0`: 4 bytes, alignment: 4 bytes
+print-type-size     variant `Uint8`: 1 bytes
+print-type-size         field `.0`: 1 bytes
+print-type-size     variant `Bool`: 1 bytes
+print-type-size         field `.0`: 1 bytes
+print-type-size type: `semaprax::ast::PatternLiteral`: 16 bytes, alignment: 8 bytes
+print-type-size     discriminant: 1 bytes
+print-type-size     variant `Int`: 15 bytes
+print-type-size         padding: 7 bytes
+print-type-size         field `.0`: 8 bytes, alignment: 8 bytes
+print-type-size     variant `Usize`: 15 bytes
+print-type-size         padding: 7 bytes
+print-type-size         field `.0`: 8 bytes, alignment: 8 bytes
+print-type-size     variant `Int32`: 7 bytes
+print-type-size         padding: 3 bytes
+print-type-size         field `.0`: 4 bytes, alignment: 4 bytes
+print-type-size     variant `Char`: 7 bytes
+print-type-size         padding: 3 bytes
+print-type-size         field `.0`: 4 bytes, alignment: 4 bytes
+print-type-size     variant `Uint8`: 1 bytes
+print-type-size         field `.0`: 1 bytes
+print-type-size     variant `Bool`: 1 bytes
+print-type-size         field `.0`: 1 bytes
+print-type-size type: `semaprax::hir::DeclarationId`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.0`: 16 bytes
+print-type-size type: `semaprax::hir::PatternValue`: 16 bytes, alignment: 8 bytes
+print-type-size     discriminant: 1 bytes
+print-type-size     variant `Int`: 15 bytes
+print-type-size         padding: 7 bytes
+print-type-size         field `.0`: 8 bytes, alignment: 8 bytes
+print-type-size     variant `Usize`: 15 bytes
+print-type-size         padding: 7 bytes
+print-type-size         field `.0`: 8 bytes, alignment: 8 bytes
+print-type-size     variant `Int32`: 7 bytes
+print-type-size         padding: 3 bytes
+print-type-size         field `.0`: 4 bytes, alignment: 4 bytes
+print-type-size     variant `Char`: 7 bytes
+print-type-size         padding: 3 bytes
+print-type-size         field `.0`: 4 bytes, alignment: 4 bytes
+print-type-size     variant `Uint8`: 1 bytes
+print-type-size         field `.0`: 1 bytes
+print-type-size     variant `Bool`: 1 bytes
+print-type-size         field `.0`: 1 bytes
+print-type-size type: `semaprax::hir::ids::DeclarationText`: 16 bytes, alignment: 8 bytes
+print-type-size     variant `Shared`: 16 bytes
+print-type-size         field `.0`: 16 bytes
+print-type-size     variant `CompilerStatic`: 10 bytes
+print-type-size         padding: 8 bytes
+print-type-size         field `.0`: 2 bytes, alignment: 1 bytes
+print-type-size type: `std::fmt::Arguments<'_>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.template`: 8 bytes
+print-type-size     field `.args`: 8 bytes
+print-type-size type: `std::iter::Map<std::slice::Iter<'_, hir::before::ResolvedMatchPattern>, {closure@/Volumes/Semaprax/worktrees/ci-format-26eeb/docs/evidence/receiver-source-custody-v1/src__hir__expr_nodes.rs.before.txt:316:22: 316:35}>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.iter`: 16 bytes
+print-type-size     field `.f`: 0 bytes
+print-type-size type: `std::option::Option<&str>`: 16 bytes, alignment: 8 bytes
+print-type-size     variant `Some`: 16 bytes
+print-type-size         field `.0`: 16 bytes
+print-type-size     variant `None`: 0 bytes
+print-type-size type: `std::option::Option<usize>`: 16 bytes, alignment: 8 bytes
+print-type-size     discriminant: 8 bytes
+print-type-size     variant `Some`: 8 bytes
+print-type-size         field `.0`: 8 bytes
+print-type-size     variant `None`: 0 bytes
+print-type-size type: `std::ptr::NonNull<alloc::sync::ArcInner<str>>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.pointer`: 16 bytes
+print-type-size type: `std::slice::Iter<'_, hir::before::ResolvedMatchPattern>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.ptr`: 8 bytes
+print-type-size     field `.end_or_len`: 8 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `std::sync::Arc<str>`: 16 bytes, alignment: 8 bytes
+print-type-size     field `.ptr`: 16 bytes
+print-type-size     field `.phantom`: 0 bytes
+print-type-size     field `.alloc`: 0 bytes
+print-type-size type: `core::num::niche_types::UsizeNoHighBit`: 8 bytes, alignment: 8 bytes
+print-type-size     field `.0`: 8 bytes
+print-type-size type: `semaprax::hir::ExpressionId`: 8 bytes, alignment: 8 bytes
+print-type-size     field `.0`: 8 bytes
+print-type-size type: `semaprax::hir::ResolvedResidualType`: 8 bytes, alignment: 8 bytes
+print-type-size     field `.0`: 8 bytes
+print-type-size type: `semaprax::hir::StaticUtf8`: 8 bytes, alignment: 8 bytes
+print-type-size     field `.0`: 8 bytes
+print-type-size type: `std::boxed::Box<hir::before::ResolvedExpr>`: 8 bytes, alignment: 8 bytes
+print-type-size     field `.0`: 8 bytes
+print-type-size     field `.1`: 0 bytes
+print-type-size type: `std::boxed::Box<semaprax::cleanup_plan::LexicalControlPlan>`: 8 bytes, alignment: 8 bytes
+print-type-size     field `.0`: 8 bytes
+print-type-size     field `.1`: 0 bytes
+print-type-size type: `std::boxed::Box<semaprax::hir::ResolvedExpr>`: 8 bytes, alignment: 8 bytes
+print-type-size     field `.0`: 8 bytes
+print-type-size     field `.1`: 0 bytes
+print-type-size type: `std::boxed::Box<semaprax::hir::ResolvedType>`: 8 bytes, alignment: 8 bytes
+print-type-size     field `.0`: 8 bytes
+print-type-size     field `.1`: 0 bytes
+print-type-size type: `std::boxed::Box<semaprax::hir::RowLoan>`: 8 bytes, alignment: 8 bytes
+print-type-size     field `.0`: 8 bytes
+print-type-size     field `.1`: 0 bytes
+print-type-size type: `std::boxed::Box<std::mem::MaybeUninit<[&semaprax::hir::DeclarationId; 1]>>`: 8 bytes, alignment: 8 bytes
+print-type-size     field `.0`: 8 bytes
+print-type-size     field `.1`: 0 bytes
+print-type-size type: `std::option::Option<&&hir::before::ResolvedExpr>`: 8 bytes, alignment: 8 bytes
+print-type-size     variant `Some`: 8 bytes
+print-type-size         field `.0`: 8 bytes
+print-type-size     variant `None`: 0 bytes
+print-type-size type: `std::option::Option<&hir::before::ResolvedExpr>`: 8 bytes, alignment: 8 bytes
+print-type-size     variant `Some`: 8 bytes
+print-type-size         field `.0`: 8 bytes
+print-type-size     variant `None`: 0 bytes
+print-type-size type: `std::option::Option<&hir::before::ResolvedMatchPattern>`: 8 bytes, alignment: 8 bytes
+print-type-size     variant `Some`: 8 bytes
+print-type-size         field `.0`: 8 bytes
+print-type-size     variant `None`: 0 bytes
+print-type-size type: `std::option::Option<&semaprax::hir::DeclarationId>`: 8 bytes, alignment: 8 bytes
+print-type-size     variant `Some`: 8 bytes
+print-type-size         field `.0`: 8 bytes
+print-type-size     variant `None`: 0 bytes
+print-type-size type: `std::option::Option<std::boxed::Box<hir::before::ResolvedExpr>>`: 8 bytes, alignment: 8 bytes
+print-type-size     variant `Some`: 8 bytes
+print-type-size         field `.0`: 8 bytes
+print-type-size     variant `None`: 0 bytes
+print-type-size type: `std::option::Option<std::boxed::Box<semaprax::cleanup_plan::LexicalControlPlan>>`: 8 bytes, alignment: 8 bytes
+print-type-size     variant `Some`: 8 bytes
+print-type-size         field `.0`: 8 bytes
+print-type-size     variant `None`: 0 bytes
+print-type-size type: `std::option::Option<std::boxed::Box<semaprax::hir::ResolvedExpr>>`: 8 bytes, alignment: 8 bytes
+print-type-size     variant `Some`: 8 bytes
+print-type-size         field `.0`: 8 bytes
+print-type-size     variant `None`: 0 bytes
+print-type-size type: `std::option::Option<std::sync::Arc<std::string::String>>`: 8 bytes, alignment: 8 bytes
+print-type-size     variant `Some`: 8 bytes
+print-type-size         field `.0`: 8 bytes
+print-type-size     variant `None`: 0 bytes
+print-type-size type: `std::ptr::DynMetadata<dyn std::fmt::Debug>`: 8 bytes, alignment: 8 bytes
+print-type-size     field `._vtable_ptr`: 8 bytes
+print-type-size     field `._phantom`: 0 bytes
+print-type-size type: `std::ptr::DynMetadata<dyn std::ops::Fn() -> i32 + std::marker::Sync + std::panic::RefUnwindSafe>`: 8 bytes, alignment: 8 bytes
+print-type-size     field `._vtable_ptr`: 8 bytes
+print-type-size     field `._phantom`: 0 bytes
+print-type-size type: `std::ptr::NonNull<()>`: 8 bytes, alignment: 8 bytes
+print-type-size     field `.pointer`: 8 bytes
+print-type-size type: `std::ptr::NonNull<alloc::sync::ArcInner<std::string::String>>`: 8 bytes, alignment: 8 bytes
+print-type-size     field `.pointer`: 8 bytes
+print-type-size type: `std::ptr::NonNull<core::fmt::rt::Argument<'_>>`: 8 bytes, alignment: 8 bytes
+print-type-size     field `.pointer`: 8 bytes
+print-type-size type: `std::ptr::NonNull<hir::before::ResolvedExpr>`: 8 bytes, alignment: 8 bytes
+print-type-size     field `.pointer`: 8 bytes
+print-type-size type: `std::ptr::NonNull<hir::before::ResolvedMatchPattern>`: 8 bytes, alignment: 8 bytes
+print-type-size     field `.pointer`: 8 bytes
+print-type-size type: `std::ptr::NonNull<semaprax::cleanup_plan::LexicalControlPlan>`: 8 bytes, alignment: 8 bytes
+print-type-size     field `.pointer`: 8 bytes
+print-type-size type: `std::ptr::NonNull<semaprax::hir::ResolvedExpr>`: 8 bytes, alignment: 8 bytes
+print-type-size     field `.pointer`: 8 bytes
+print-type-size type: `std::ptr::NonNull<semaprax::hir::ResolvedType>`: 8 bytes, alignment: 8 bytes
+print-type-size     field `.pointer`: 8 bytes
+print-type-size type: `std::ptr::NonNull<semaprax::hir::RowLoan>`: 8 bytes, alignment: 8 bytes
+print-type-size     field `.pointer`: 8 bytes
+print-type-size type: `std::ptr::NonNull<std::mem::MaybeUninit<[&semaprax::hir::DeclarationId; 1]>>`: 8 bytes, alignment: 8 bytes
+print-type-size     field `.pointer`: 8 bytes
+print-type-size type: `std::ptr::NonNull<std::ptr::metadata::VTable>`: 8 bytes, alignment: 8 bytes
+print-type-size     field `.pointer`: 8 bytes
+print-type-size type: `std::ptr::NonNull<u8>`: 8 bytes, alignment: 8 bytes
+print-type-size     field `.pointer`: 8 bytes
+print-type-size type: `std::ptr::Unique<hir::before::ResolvedExpr>`: 8 bytes, alignment: 8 bytes
+print-type-size     field `.pointer`: 8 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `std::ptr::Unique<semaprax::cleanup_plan::LexicalControlPlan>`: 8 bytes, alignment: 8 bytes
+print-type-size     field `.pointer`: 8 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `std::ptr::Unique<semaprax::hir::ResolvedExpr>`: 8 bytes, alignment: 8 bytes
+print-type-size     field `.pointer`: 8 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `std::ptr::Unique<semaprax::hir::ResolvedType>`: 8 bytes, alignment: 8 bytes
+print-type-size     field `.pointer`: 8 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `std::ptr::Unique<semaprax::hir::RowLoan>`: 8 bytes, alignment: 8 bytes
+print-type-size     field `.pointer`: 8 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `std::ptr::Unique<std::mem::MaybeUninit<[&semaprax::hir::DeclarationId; 1]>>`: 8 bytes, alignment: 8 bytes
+print-type-size     field `.pointer`: 8 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `std::ptr::Unique<u8>`: 8 bytes, alignment: 8 bytes
+print-type-size     field `.pointer`: 8 bytes
+print-type-size     field `._marker`: 0 bytes
+print-type-size type: `std::sync::Arc<std::string::String>`: 8 bytes, alignment: 8 bytes
+print-type-size     field `.ptr`: 8 bytes
+print-type-size     field `.phantom`: 0 bytes
+print-type-size     field `.alloc`: 0 bytes
+print-type-size type: `{closure@/Volumes/Semaprax/worktrees/ci-format-26eeb/docs/evidence/receiver-source-custody-v1/src__hir__expr_nodes.rs.before.txt:270:36: 270:38}`: 8 bytes, alignment: 8 bytes
+print-type-size     end padding: 8 bytes
+print-type-size type: `{closure@std::rt::lang_start<()>::{closure#0}}`: 8 bytes, alignment: 8 bytes
+print-type-size     end padding: 8 bytes
+print-type-size type: `semaprax::cleanup_plan::BlockId`: 4 bytes, alignment: 4 bytes
+print-type-size     field `.0`: 4 bytes
+print-type-size type: `unwind::libunwind::_Unwind_Reason_Code`: 4 bytes, alignment: 4 bytes
+print-type-size     discriminant: 4 bytes
+print-type-size     variant `_URC_NO_REASON`: 0 bytes
+print-type-size     variant `_URC_FOREIGN_EXCEPTION_CAUGHT`: 0 bytes
+print-type-size     variant `_URC_FATAL_PHASE2_ERROR`: 0 bytes
+print-type-size     variant `_URC_FATAL_PHASE1_ERROR`: 0 bytes
+print-type-size     variant `_URC_NORMAL_STOP`: 0 bytes
+print-type-size     variant `_URC_END_OF_STACK`: 0 bytes
+print-type-size     variant `_URC_HANDLER_FOUND`: 0 bytes
+print-type-size     variant `_URC_INSTALL_CONTEXT`: 0 bytes
+print-type-size     variant `_URC_CONTINUE_UNWIND`: 0 bytes
+print-type-size     variant `_URC_FAILURE`: 0 bytes
+print-type-size type: `semaprax::hir::ids::compiler::CompilerDeclaration`: 2 bytes, alignment: 1 bytes
+print-type-size     discriminant: 1 bytes
+print-type-size     variant `VecOperation`: 1 bytes
+print-type-size         field `.0`: 1 bytes
+print-type-size     variant `BoxOperation`: 1 bytes
+print-type-size         field `.0`: 1 bytes
+print-type-size     variant `StdinInspection`: 1 bytes
+print-type-size         field `.0`: 1 bytes
+print-type-size     variant `StrOperation`: 1 bytes
+print-type-size         field `.0`: 1 bytes
+print-type-size     variant `ByteOperation`: 1 bytes
+print-type-size         field `.0`: 1 bytes
+print-type-size     variant `Command`: 1 bytes
+print-type-size         field `.0`: 1 bytes
+print-type-size     variant `MapOperation`: 1 bytes
+print-type-size         field `.0`: 1 bytes
+print-type-size     variant `ListOperation`: 1 bytes
+print-type-size         field `.0`: 1 bytes
+print-type-size     variant `IteratorOperation`: 1 bytes
+print-type-size         field `.0`: 1 bytes
+print-type-size     variant `Vec`: 0 bytes
+print-type-size     variant `HostIoOperation`: 0 bytes
+print-type-size         field `.0`: 0 bytes
+print-type-size     variant `IterYield`: 0 bytes
+print-type-size     variant `IterDone`: 0 bytes
+print-type-size     variant `IterItem`: 0 bytes
+print-type-size     variant `IterRest`: 0 bytes
+print-type-size     variant `Box`: 0 bytes
+print-type-size     variant `Option`: 0 bytes
+print-type-size     variant `OptionNone`: 0 bytes
+print-type-size     variant `OptionSome`: 0 bytes
+print-type-size     variant `OptionSomeValue`: 0 bytes
+print-type-size     variant `List`: 0 bytes
+print-type-size     variant `ListStep`: 0 bytes
+print-type-size     variant `Iter`: 0 bytes
+print-type-size     variant `IterStep`: 0 bytes
+print-type-size     variant `Map`: 0 bytes
+print-type-size     variant `Set`: 0 bytes
+print-type-size     variant `StdinReader`: 0 bytes
+print-type-size     variant `ByteGet`: 0 bytes
+print-type-size     variant `FunctionInvoke`: 0 bytes
+print-type-size     variant `VecField`: 0 bytes
+print-type-size     variant `LiteralFormat`: 0 bytes
+print-type-size     variant `RowLoanUnbound`: 0 bytes
+print-type-size     variant `OnceConstruct`: 0 bytes
+print-type-size     variant `OnceInvoke`: 0 bytes
+print-type-size     variant `OnceMixedConstruct`: 0 bytes
+print-type-size     variant `OnceMixedInvoke`: 0 bytes
+print-type-size     variant `OncePairConstruct`: 0 bytes
+print-type-size     variant `OncePairInvoke`: 0 bytes
+print-type-size     variant `OnceDrop`: 0 bytes
+print-type-size     variant `OnceMixedDrop`: 0 bytes
+print-type-size     variant `OncePairDrop`: 0 bytes
+print-type-size     variant `BytesDrop`: 0 bytes
+print-type-size     variant `StringTake`: 0 bytes
+print-type-size     variant `StringDrop`: 0 bytes
+print-type-size     variant `StringMapDrop`: 0 bytes
+print-type-size     variant `CollectionDrop`: 0 bytes
+print-type-size     variant `StdinReaderDrop`: 0 bytes
+print-type-size     variant `VecDrop`: 0 bytes
+print-type-size type: `semaprax::ast::BinaryOp`: 1 bytes, alignment: 1 bytes
+print-type-size     discriminant: 1 bytes
+print-type-size     variant `Add`: 0 bytes
+print-type-size     variant `Sub`: 0 bytes
+print-type-size     variant `Mul`: 0 bytes
+print-type-size     variant `Div`: 0 bytes
+print-type-size     variant `Rem`: 0 bytes
+print-type-size     variant `Eq`: 0 bytes
+print-type-size     variant `Ne`: 0 bytes
+print-type-size     variant `Lt`: 0 bytes
+print-type-size     variant `Le`: 0 bytes
+print-type-size     variant `Gt`: 0 bytes
+print-type-size     variant `Ge`: 0 bytes
+print-type-size     variant `And`: 0 bytes
+print-type-size     variant `Or`: 0 bytes
+print-type-size type: `semaprax::ast::LexicalExitKind`: 1 bytes, alignment: 1 bytes
+print-type-size     discriminant: 1 bytes
+print-type-size     variant `Break`: 0 bytes
+print-type-size     variant `Continue`: 0 bytes
+print-type-size     variant `Return`: 0 bytes
+print-type-size type: `semaprax::ast::UnaryOp`: 1 bytes, alignment: 1 bytes
+print-type-size     discriminant: 1 bytes
+print-type-size     variant `Neg`: 0 bytes
+print-type-size     variant `Not`: 0 bytes
+print-type-size type: `semaprax::box_ops::BoxOp`: 1 bytes, alignment: 1 bytes
+print-type-size     discriminant: 1 bytes
+print-type-size     variant `New`: 0 bytes
+print-type-size     variant `Get`: 0 bytes
+print-type-size     variant `IntoInner`: 0 bytes
+print-type-size type: `semaprax::byte_ops::ByteOp`: 1 bytes, alignment: 1 bytes
+print-type-size     discriminant: 1 bytes
+print-type-size     variant `Partition`: 0 bytes
+print-type-size     variant `Len`: 0 bytes
+print-type-size     variant `Get`: 0 bytes
+print-type-size     variant `Range`: 0 bytes
+print-type-size     variant `Copy`: 0 bytes
+print-type-size     variant `BytesAsSlice`: 0 bytes
+print-type-size     variant `ArrayAsSlice`: 0 bytes
+print-type-size     variant `StrAsBytes`: 0 bytes
+print-type-size     variant `StringAsStr`: 0 bytes
+print-type-size     variant `Zeroed`: 0 bytes
+print-type-size     variant `ZeroedBounded`: 0 bytes
+print-type-size     variant `Set`: 0 bytes
+print-type-size     variant `Set5`: 0 bytes
+print-type-size     variant `Set1Or5`: 0 bytes
+print-type-size     variant `Set1Or6Or48`: 0 bytes
+print-type-size type: `semaprax::hir::OwnershipMode`: 1 bytes, alignment: 1 bytes
+print-type-size     discriminant: 1 bytes
+print-type-size     variant `Value`: 0 bytes
+print-type-size     variant `Own`: 0 bytes
+print-type-size     variant `Borrow`: 0 bytes
+print-type-size     variant `Shared`: 0 bytes
+print-type-size type: `semaprax::hir::ResolvedHostCommandOperation`: 1 bytes, alignment: 1 bytes
+print-type-size     discriminant: 1 bytes
+print-type-size     variant `ArgsLen`: 0 bytes
+print-type-size     variant `ArgUtf8`: 0 bytes
+print-type-size     variant `StdinRead`: 0 bytes
+print-type-size     variant `StdinStreamOpen`: 0 bytes
+print-type-size     variant `StdinStreamNext`: 0 bytes
+print-type-size     variant `StderrWrite`: 0 bytes
+print-type-size     variant `StdoutAppend`: 0 bytes
+print-type-size     variant `StderrAppend`: 0 bytes
+print-type-size     variant `NetConnect`: 0 bytes
+print-type-size     variant `NetSend`: 0 bytes
+print-type-size     variant `NetRecv`: 0 bytes
+print-type-size     variant `NetStreamStdout`: 0 bytes
+print-type-size     variant `NetWait`: 0 bytes
+print-type-size     variant `NetClose`: 0 bytes
+print-type-size     variant `NetTlsConnect`: 0 bytes
+print-type-size     variant `NetListen`: 0 bytes
+print-type-size     variant `NetAccept`: 0 bytes
+print-type-size     variant `NetCloseListener`: 0 bytes
+print-type-size     variant `NetTlsAccept`: 0 bytes
+print-type-size     variant `HttpsGet`: 0 bytes
+print-type-size     variant `HttpsPost`: 0 bytes
+print-type-size     variant `FileRead`: 0 bytes
+print-type-size     variant `FileWriteNew`: 0 bytes
+print-type-size     variant `FileStat`: 0 bytes
+print-type-size     variant `FileList`: 0 bytes
+print-type-size     variant `FileCreateDir`: 0 bytes
+print-type-size     variant `FileRemove`: 0 bytes
+print-type-size     variant `FileWriteAtomic`: 0 bytes
+print-type-size     variant `FileWriteAtomicChecked`: 0 bytes
+print-type-size     variant `EnvLen`: 0 bytes
+print-type-size     variant `EnvNameUtf8`: 0 bytes
+print-type-size     variant `EnvValueUtf8`: 0 bytes
+print-type-size     variant `ProcessRun`: 0 bytes
+print-type-size type: `semaprax::hir::ResolvedMatchMode`: 1 bytes, alignment: 1 bytes
+print-type-size     discriminant: 1 bytes
+print-type-size     variant `Value`: 0 bytes
+print-type-size     variant `Own`: 0 bytes
+print-type-size     variant `Borrow`: 0 bytes
+print-type-size type: `semaprax::hir::SourceForKind`: 1 bytes, alignment: 1 bytes
+print-type-size     discriminant: 1 bytes
+print-type-size     variant `Copy`: 0 bytes
+print-type-size     variant `BorrowRecord`: 0 bytes
+print-type-size     variant `OwnedIterator`: 0 bytes
+print-type-size     variant `BorrowBytes`: 0 bytes
+print-type-size type: `semaprax::hir::VecFieldReadOrigin`: 1 bytes, alignment: 1 bytes
+print-type-size     discriminant: 1 bytes
+print-type-size     variant `Explicit`: 0 bytes
+print-type-size     variant `Traversal`: 0 bytes
+print-type-size type: `semaprax::iterator_ops::IteratorOp`: 1 bytes, alignment: 1 bytes
+print-type-size     discriminant: 1 bytes
+print-type-size     variant `VecIntoIter`: 0 bytes
+print-type-size     variant `Next`: 0 bytes
+print-type-size type: `semaprax::list_ops::ListOp`: 1 bytes, alignment: 1 bytes
+print-type-size     discriminant: 1 bytes
+print-type-size     variant `Nil`: 0 bytes
+print-type-size     variant `Cons`: 0 bytes
+print-type-size     variant `Uncons`: 0 bytes
+print-type-size type: `semaprax::map_ops::MapOp`: 1 bytes, alignment: 1 bytes
+print-type-size     discriminant: 1 bytes
+print-type-size     variant `New`: 0 bytes
+print-type-size     variant `Add`: 0 bytes
+print-type-size     variant `Set`: 0 bytes
+print-type-size     variant `Remove`: 0 bytes
+print-type-size     variant `GetOr`: 0 bytes
+print-type-size     variant `Has`: 0 bytes
+print-type-size     variant `Len`: 0 bytes
+print-type-size     variant `KeyAt`: 0 bytes
+print-type-size     variant `ValueAt`: 0 bytes
+print-type-size     variant `SetNew`: 0 bytes
+print-type-size     variant `SetInsert`: 0 bytes
+print-type-size     variant `SetRemove`: 0 bytes
+print-type-size     variant `SetHas`: 0 bytes
+print-type-size     variant `SetLen`: 0 bytes
+print-type-size     variant `SetKeyAt`: 0 bytes
+print-type-size type: `semaprax::stdin_stream_ops::PureOp`: 1 bytes, alignment: 1 bytes
+print-type-size     discriminant: 1 bytes
+print-type-size     variant `Chunk`: 0 bytes
+print-type-size     variant `Eof`: 0 bytes
+print-type-size type: `semaprax::str_ops::StrOp`: 1 bytes, alignment: 1 bytes
+print-type-size     discriminant: 1 bytes
+print-type-size     variant `LenBytes`: 0 bytes
+print-type-size     variant `IsEmpty`: 0 bytes
+print-type-size     variant `StartsWith`: 0 bytes
+print-type-size     variant `Contains`: 0 bytes
+print-type-size     variant `ByteAt`: 0 bytes
+print-type-size type: `semaprax::vec_ops::VecOp`: 1 bytes, alignment: 1 bytes
+print-type-size     discriminant: 1 bytes
+print-type-size     variant `WithCapacity`: 0 bytes
+print-type-size     variant `Push`: 0 bytes
+print-type-size     variant `Len`: 0 bytes
+print-type-size     variant `Capacity`: 0 bytes
+print-type-size     variant `Get`: 0 bytes
+print-type-size     variant `ReserveExact`: 0 bytes
+print-type-size     variant `Set`: 0 bytes
+print-type-size     variant `Clear`: 0 bytes
+print-type-size     variant `Sort`: 0 bytes
+print-type-size     variant `CloneAt`: 0 bytes
+print-type-size     variant `Replace`: 0 bytes
+print-type-size     variant `ReserveOwned`: 0 bytes
+print-type-size     variant `SortOwned`: 0 bytes
+print-type-size     variant `SortBy`: 0 bytes
+print-type-size     variant `StrAt`: 0 bytes
+print-type-size     variant `UniqueBy`: 0 bytes
+print-type-size     variant `UpdateField`: 0 bytes
+print-type-size type: `std::process::ExitCode`: 1 bytes, alignment: 1 bytes
+print-type-size     field `.0`: 1 bytes
+print-type-size type: `std::result::Result<(), std::fmt::Error>`: 1 bytes, alignment: 1 bytes
+print-type-size     discriminant: 1 bytes
+print-type-size     variant `Ok`: 0 bytes
+print-type-size         field `.0`: 0 bytes
+print-type-size     variant `Err`: 0 bytes
+print-type-size         field `.0`: 0 bytes
+print-type-size type: `std::sys::process::unix::common::ExitCode`: 1 bytes, alignment: 1 bytes
+print-type-size     field `.0`: 1 bytes
+print-type-size type: `semaprax::host_io_ops::HostIoOp`: 0 bytes, alignment: 1 bytes
+print-type-size     variant `StdoutWrite`: 0 bytes
+print-type-size type: `std::alloc::Global`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::fmt::Error`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<&()>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<&hir::before::ResolvedMatchPattern>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<&semaprax::hir::DeclarationId>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<alloc::sync::ArcInner<std::string::String>>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<alloc::sync::ArcInner<str>>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<dyn std::fmt::Debug>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<dyn std::ops::Fn() -> i32 + std::marker::Sync + std::panic::RefUnwindSafe>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<hir::before::ResolvedClosureCapture>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<hir::before::ResolvedExpr>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<hir::before::ResolvedFieldInitializer>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<hir::before::ResolvedMatchArm>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<hir::before::ResolvedMatchPattern>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<hir::before::ResolvedMatchPatternField>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<hir::before::ResolvedRecordMatchPatternField>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<hir::before::ResolvedStatement>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<semaprax::cleanup::CleanupFlag>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<semaprax::cleanup::CleanupStorageId>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<semaprax::cleanup::CleanupStorageSlot>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<semaprax::cleanup::ConditionalVariantEntry>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<semaprax::cleanup_plan::CleanupBlock>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<semaprax::cleanup_plan::CleanupEdge>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<semaprax::cleanup_plan::CleanupPlace>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<semaprax::cleanup_plan::CleanupRegion>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<semaprax::cleanup_plan::CleanupSlot>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<semaprax::cleanup_plan::ConditionalVariantEntry>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<semaprax::cleanup_plan::ExitTarget>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<semaprax::cleanup_plan::LexicalControlPlan>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<semaprax::cleanup_plan::StatusSource>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<semaprax::hir::PlaceProjection>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<semaprax::hir::ResolvedBinding>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<semaprax::hir::ResolvedClosureCapture>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<semaprax::hir::ResolvedExpr>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<semaprax::hir::ResolvedFieldInitializer>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<semaprax::hir::ResolvedMatchArm>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<semaprax::hir::ResolvedMatchPattern>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<semaprax::hir::ResolvedMatchPatternField>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<semaprax::hir::ResolvedParam>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<semaprax::hir::ResolvedRecordMatchPatternField>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<semaprax::hir::ResolvedStatement>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<semaprax::hir::ResolvedType>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<semaprax::hir::RowLoan>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<semaprax::loan_plan::Loan>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<semaprax::loan_plan::LoanEdge>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<semaprax::loan_plan::LoanEndpoint>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<std::mem::MaybeUninit<[&semaprax::hir::DeclarationId; 1]>>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<std::string::String>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `std::marker::PhantomData<u8>`: 0 bytes, alignment: 1 bytes
+print-type-size type: `{closure@/Volumes/Semaprax/worktrees/ci-format-26eeb/docs/evidence/receiver-source-custody-v1/src__hir__expr_nodes.rs.before.txt:220:22: 220:35}`: 0 bytes, alignment: 1 bytes
+print-type-size type: `{closure@/Volumes/Semaprax/worktrees/ci-format-26eeb/docs/evidence/receiver-source-custody-v1/src__hir__expr_nodes.rs.before.txt:271:42: 271:51}`: 0 bytes, alignment: 1 bytes
+print-type-size type: `{closure@/Volumes/Semaprax/worktrees/ci-format-26eeb/docs/evidence/receiver-source-custody-v1/src__hir__expr_nodes.rs.before.txt:295:44: 295:53}`: 0 bytes, alignment: 1 bytes
+print-type-size type: `{closure@/Volumes/Semaprax/worktrees/ci-format-26eeb/docs/evidence/receiver-source-custody-v1/src__hir__expr_nodes.rs.before.txt:316:22: 316:35}`: 0 bytes, alignment: 1 bytes

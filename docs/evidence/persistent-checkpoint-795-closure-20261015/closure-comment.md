@@ -1,3 +1,9 @@
+# persistent-checkpoint-795-closure-20261015 closure-comment
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Implemented and qualified the paid persistent validator scope checkpoints on the owning source cut. [Evidence archive](https://github.com/wavect/semaprax/tree/wavect/v0-10-0/docs/evidence/persistent-checkpoint-795-closure-20261015).
 
 The focused history covers complete saved iterative/contract/map receivers, every Binding field, ordered generic checkpoints, transactional rotations and changed paths, contract flags and sibling isolation, late errors/unwind, exact/one-short/sticky refusal, actual requested/peak backing and final Drop. All historical failures remain archived with their corrective results: 126 verified log records, 119 PASS and seven FAIL, across 71 distinct owners.

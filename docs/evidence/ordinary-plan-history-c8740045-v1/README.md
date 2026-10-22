@@ -1,5 +1,9 @@
 # Private ordinary plan history candidate
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base: `c8740045e33126a4375aadd1dc524a25be9245fc`.
 
 The ordinary ActiveBuilder plan enumerator now has a private numeric-link arena.

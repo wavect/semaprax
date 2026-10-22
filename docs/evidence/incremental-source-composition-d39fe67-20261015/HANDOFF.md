@@ -1,5 +1,9 @@
 # Complete corrective-batch source composition
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Frozen Rust/source basis: `d39fe676a7c1df3323888b25c9481f7bbb65feaa`. All Rust, SEMAPRAX source and Cargo files remain byte-exact to that basis. This source-only proof does not claim compilation, runtime acceptance or benchmark gains. The actual failed 23e8 build (five errors, nine warnings, zero test bodies, no production compile) is preserved separately.
 
 The new bounded compositor starts from **all 84 previous active packets**, retaining the existing derived manifests, then adds the mechanical corrections, exact foreign diagnostic strengthening, selected Bytes classification, Source36 adapter and integration digest correction. Result: **90 packets / 795 rows**, 46 additive full authenticated checkpoint joins, every old original/hook preserved, and all 36 complete source inverses passing. The Git LRU peak was 16,775,517 bytes with its unchanged 16 MiB/128-entry bounds. Historical scripts, proofs and archives stay exact.

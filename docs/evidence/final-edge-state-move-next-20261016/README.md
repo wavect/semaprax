@@ -1,5 +1,9 @@
 # Final outgoing ownership-state move
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only component on exact b3a53367d4def76240d14dca25ee414785bed9d6.
 No Cargo, Rust execution, benchmark, reservation gain, app fit or closure claim.
 

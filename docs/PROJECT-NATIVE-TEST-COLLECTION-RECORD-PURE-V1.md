@@ -1,5 +1,7 @@
 # Native collection-record pure tests v1
 
+Audience: compiler contributors and reviewers.
+
 Status: authored source, focused execution pending. This is an explicit test
 protocol successor; the frozen [native test v1](PROJECT-NATIVE-TEST-V1.md)
 profile set, schema, output and v31 refusal remain unchanged.

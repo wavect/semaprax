@@ -1,0 +1,9 @@
+{
+  "status": "PASS_EXACT_ORIGINAL_SOURCE_AND_CONSTRUCTOR_BODY_CONTROLS",
+  "all_nine_original_raw_audit_bodies_unchanged": true,
+  "original_runtime_reader_prefix_unchanged": true,
+  "active_legacy_constructor_entire_tail_byte_exact": true,
+  "funded_constructor_and_helper_body_byte_exact": true,
+  "no_caps_floors_or_tariffs_changed": true,
+  "production_constructor_separation_requires_normal_build": true
+}

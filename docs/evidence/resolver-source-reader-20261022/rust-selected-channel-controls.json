@@ -1,0 +1,52 @@
+{
+  "status": "ACTUAL_RUST_TWO_CLOSED_RESOLVER_DOMAINS_EIGHT_WARM_IO_REFUSALS_PASS",
+  "io_controls": [
+    {
+      "channel": "physical current src/hir/borrowed_root_oracle/resolve_expr.rs",
+      "mutation": "same length semantic whitespace",
+      "refused_after_same_process_warm_load": true
+    },
+    {
+      "channel": "physical current src/hir/borrowed_root_oracle/resolve_expr.rs",
+      "mutation": "extra EOF byte",
+      "refused_after_same_process_warm_load": true
+    },
+    {
+      "channel": "physical current src/hir/closure/resolve.rs",
+      "mutation": "same length semantic whitespace",
+      "refused_after_same_process_warm_load": true
+    },
+    {
+      "channel": "physical current src/hir/closure/resolve.rs",
+      "mutation": "extra EOF byte",
+      "refused_after_same_process_warm_load": true
+    },
+    {
+      "channel": "sealed before src/hir/borrowed_root_oracle/resolve_expr.rs",
+      "mutation": "same length semantic whitespace",
+      "refused_after_same_process_warm_load": true
+    },
+    {
+      "channel": "sealed before src/hir/borrowed_root_oracle/resolve_expr.rs",
+      "mutation": "extra EOF byte",
+      "refused_after_same_process_warm_load": true
+    },
+    {
+      "channel": "sealed before src/hir/closure/resolve.rs",
+      "mutation": "same length semantic whitespace",
+      "refused_after_same_process_warm_load": true
+    },
+    {
+      "channel": "sealed before src/hir/closure/resolve.rs",
+      "mutation": "extra EOF byte",
+      "refused_after_same_process_warm_load": true
+    }
+  ],
+  "additional_foreign_supplied_value_checks": 0,
+  "original_full_before_bytes_compared": true,
+  "all_changed_bytes_restored": true,
+  "peak_RSS_KiB": 3280,
+  "minimum_available_percent": 64,
+  "process_cap_KiB": 262144,
+  "python_overlay_scope_not_extended": true
+}

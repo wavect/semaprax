@@ -1,0 +1,51 @@
+{
+  "status": "LOCAL_UNCHANGED_NATIVE_PREFIX_GUARD_AND_COMPLETE_SOURCE_GATES_PASS",
+  "before_head": "f2cefb21901973eb12b4588d231387fa5f4ddf92",
+  "change": "Prepend the three original required source subjects to the actual native HIR resolver audit receiver. No preceding receiver, raw source bytes, test assertion, numeric invoice or cap is removed or weakened.",
+  "checks": {
+    "native_layout_source_guard": "PASS unchanged",
+    "source_harness": {
+      "overlay": 29,
+      "packet_lookup": 3,
+      "registered_digest": 1,
+      "combined_side_invocation": 1,
+      "clippy": "PASS -D warnings"
+    },
+    "hir_boundary_harness": "PASS eleven actual unchanged tests",
+    "full_original_source_domains_and_six_hostiles": "PASS"
+  },
+  "page": {
+    "status": "ORIGINAL_CURRENT_CODEC_COMPOSITION_PASS_PENDING_PUBLICATION",
+    "base_head": "f2cefb21901973eb12b4588d231387fa5f4ddf92",
+    "rows": 687,
+    "page_bytes": 216583,
+    "published_current_preserved_as_exact_view": {
+      "length": 209093,
+      "sha256": "70232170ffb1b0ba99518a871ca1d5e07d6197a1d7138db9cd99a5bc4811ff65",
+      "archive": "docs/evidence/merge-pr896-20261021/whole/70232170ffb1b0ba99518a871ca1d5e07d6197a1d7138db9cd99a5bc4811ff65.txt",
+      "name": "whole-pre-native-resolver-prefix-f2cefb2190"
+    },
+    "all_previous_fields_views_memberships_and_fragment_edges_retained": true,
+    "all_original_codec_bodies_and_caps_unchanged": true
+  },
+  "source_preservation": [
+    {
+      "domain": "hir",
+      "current_source_changes": [
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "src/source_reflows_merge/main_e177_overlay_v2.rs"
+      ],
+      "all_previous_sources_classes_roles_and_complete_actual_chains_preserved": true
+    },
+    {
+      "domain": "projection",
+      "current_source_changes": [
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "src/source_reflows_merge/main_e177_overlay_v2.rs"
+      ],
+      "all_previous_sources_classes_roles_and_complete_actual_chains_preserved": true
+    }
+  ],
+  "all_caps_codec_bodies_and_membership_domains_unchanged": true,
+  "hosted_or_full_ci_green_claimed": false
+}

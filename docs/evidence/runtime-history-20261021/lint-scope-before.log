@@ -1,0 +1,54 @@
+error: items after a test module
+ --> /Volumes/Semaprax/tmp/ci-38383508340/runtime-history-dec7/lint-scope-before.rs:8:14
+  |
+8 | #[cfg(test)] mod tests {}
+  |              ^^^^^^^^^
+9 | fn after_test_controls() {}
+  | ^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#items_after_test_module
+  = note: `-D clippy::items-after-test-module` implied by `-D warnings`
+  = help: to override `-D warnings` add `#[allow(clippy::items_after_test_module)]`
+  = help: move the items to before the test module was defined
+
+error: this function has too many arguments (8/7)
+ --> /Volumes/Semaprax/tmp/ci-38383508340/runtime-history-dec7/lint-scope-before.rs:3:1
+  |
+3 | fn many(a: usize,b: usize,c: usize,d: usize,e: usize,f: usize,g: usize,h: usize) {}
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#too_many_arguments
+  = note: `-D clippy::too-many-arguments` implied by `-D warnings`
+  = help: to override `-D warnings` add `#[allow(clippy::too_many_arguments)]`
+
+error: usage of `size_of::<T>()` to obtain the size of `T` in bits
+ --> /Volumes/Semaprax/tmp/ci-38383508340/runtime-history-dec7/lint-scope-before.rs:5:24
+  |
+5 | const INVOICE: usize = 8 * size_of::<usize>();
+  |                        ^^^^^^^^^^^^^^^^^^^^^^ help: consider using: `usize::BITS as usize`
+  |
+  = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#manual_bits
+  = note: `-D clippy::manual-bits` implied by `-D warnings`
+  = help: to override `-D warnings` add `#[allow(clippy::manual_bits)]`
+
+error: usage of `size_of::<T>()` to obtain the size of `T` in bits
+ --> /Volumes/Semaprax/tmp/ci-38383508340/runtime-history-dec7/lint-scope-before.rs:6:25
+  |
+6 | fn invoice() -> usize { 8 * size_of::<u64>() }
+  |                         ^^^^^^^^^^^^^^^^^^^^ help: consider using: `u64::BITS as usize`
+  |
+  = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#manual_bits
+
+error: this assertion is always `false`
+ --> /Volumes/Semaprax/tmp/ci-38383508340/runtime-history-dec7/lint-scope-before.rs:7:22
+  |
+7 | fn negative_path() { assert!(false, "retained negative branch"); }
+  |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: replace this with `panic!()` or `unreachable!()`
+  = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#assertions_on_constants
+  = note: `-D clippy::assertions-on-constants` implied by `-D warnings`
+  = help: to override `-D warnings` add `#[allow(clippy::assertions_on_constants)]`
+
+error: aborting due to 5 previous errors
+

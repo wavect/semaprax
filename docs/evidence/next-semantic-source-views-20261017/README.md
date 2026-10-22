@@ -1,5 +1,9 @@
 # Composed semantic physical source views
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Actual compiled and physical semantic source is authenticated whole against an
 independent whole archive before a named prior source view is returned. Reverse
 byte edits reconstruct every prior whole file exactly. These are test-only

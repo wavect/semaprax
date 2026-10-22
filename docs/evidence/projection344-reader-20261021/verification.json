@@ -1,0 +1,67 @@
+{
+  "status": "PASS_LOCAL_REPAIR_AND_COMPLETE_SOURCE_CUSTODY",
+  "base_head": "18f2094438ef9eb54c051bbe0a4d0c72dfeedb50",
+  "repair": "Acquire three exact complete retained projection parts after authenticating actual source channels. Move the existing full live49 authentication before the old44 acceptance predicate; every original assertion and complete old44 reconstruction remain executable.",
+  "old_descriptors_and_source_predicates_unchanged": true,
+  "old_normalization_body_preserved": true,
+  "registered_sources": 694,
+  "policy_page_bytes": 247217,
+  "source_domains": {
+    "status": "SOURCE_ONLY_ORIGINAL_FULL_DOMAIN_AND_HOSTILE_CONTROLS_PASS",
+    "domains": [
+      "hir",
+      "projection"
+    ],
+    "negative_controls": {
+      "dropped_actual_child_refused": true,
+      "coordinated_class_drop_not_original_generated_output": true,
+      "production_reclassification_refused": true,
+      "actual_source_drift_refused": true,
+      "whole_raw_drift_refused": true,
+      "foreign_path_child_cannot_escape": true
+    },
+    "generation_receipt_sha256": "9dbc1e5b1c4ba353853779bd994d30a338bb643f6d040b510201a9753ee54581",
+    "complete_chain_receipt_sha256": "b5d5a2bdd5ceab45cd71bbc21cac9022d88d75f678600d43e49b1d6d15932066",
+    "peak_RSS_bytes": 144474112,
+    "no_Rust_or_hosted_qualification_claimed": true,
+    "must_refresh_if_header_or_other_source_changes": true
+  },
+  "source_harness_clippy": {
+    "status": "PASS_ACTUAL_SOURCE_HARNESS_CLIPPY_WARNINGS_DENIED",
+    "peakKiB": 522864
+  },
+  "no_complete_current_head_ci_or_production_budget_recovery_claimed": true,
+  "actual_published_source_harness_checks": [
+    {
+      "check": "observer-regression",
+      "passed": 1,
+      "log": "focused-1.log"
+    },
+    {
+      "check": "closed-current-and-prior-controls",
+      "passed": 1,
+      "log": "focused-2.log"
+    },
+    {
+      "check": "complete-reflows",
+      "passed": 1,
+      "log": "core-controls-1.log"
+    },
+    {
+      "check": "original-complete-compiled-source-inverses",
+      "passed": 2,
+      "log": "core-controls-2.log"
+    },
+    {
+      "check": "finite-source-channels",
+      "passed": 1,
+      "log": "core-controls-3.log"
+    }
+  ],
+  "final_serial_compile_peakKiB": 706704,
+  "global_memory_minimum_available_percent": 37,
+  "source_graph_original_verifier_peak_RSS_bytes": 144474112,
+  "all_twelve_new_physical_archive_mutations_refused_and_restored": true,
+  "formatted_workspace": true,
+  "full_current_head_ci": "PENDING_GITHUB_ACTIONS_NOT_CLAIMED"
+}

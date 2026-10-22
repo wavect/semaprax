@@ -282,7 +282,8 @@ fn complete_original_builder_mappers_and_all_current_owners_remain_authenticated
     let end = old[start..].find("\ntype ResolvedCore").unwrap() + start;
     let body = old[start..end].replace("fn build_owned_inner(", "pub(super) fn build_owned_inner(");
     let complete_before = crate::source_reflows_merge::initial845_input(
-        "src/workspace_graph/initial_report/before.rs", include_str!("before.rs"),
+        "src/workspace_graph/initial_report/before.rs",
+        include_str!("before.rs"),
     );
     assert!(complete_before.contains(&body));
     let legacy = std::fs::read_to_string(packet.join("before/src/bounded_output.rs")).unwrap();

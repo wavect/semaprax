@@ -1,5 +1,9 @@
 # Final calls / operands / capacity / formatter integration
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Exclusive ROOT custody was explicitly delegated by the parent after constructor8c692. Source scope is now frozen. Applied order: d7→699912d33; 2ee→96e0a4364; 8348b438→b36501d32; corrections70ca→b2a03a9a2; 835689ada→d6352fb76. Future declaration019/2bd and scratch833 are excluded.
 
 All 165 complete parallel metadata histories are retained under conflict-inputs with base/ROOT/incoming exact hashes. Retained incoming histories independently reconstruct2079 original rows from immutable Git; every source conflict also retains full three-side bytes. Active ROOT keeps its complete linear constructor histories and receives authenticated complete current-to-prior prefixes. No old hook, original archive or prior qualification proof is discarded. The final composer extends the60 constructor packets with d7,832,834,corrections,835 plus the constructor's immediate correction inverses and this integration's ten immediate source adapters:67 packets660 rows, plus all36 original source reconstructions. Both835 documentation originals and all five835 child hashes remain exact.

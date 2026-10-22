@@ -1,5 +1,9 @@
 # Closure92 finite source inputs — unexecuted source candidate
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Preserves every existing assertion and table. A two-domain complete851 walk-test
 input advances to the fixed Main7f8/EB2 checkpoint before the old readers. Raw,
 compiled and archived inputs are separate exact channels under the unchanged

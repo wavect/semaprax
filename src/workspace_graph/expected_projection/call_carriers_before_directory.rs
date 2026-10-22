@@ -1,7 +1,7 @@
 //! Authenticated authored ordinary calls. This proof owns no heap allocation.
 //! Scratch exhaustion, incomplete traversal and ambiguous headers keep the old
 //! charge. Synthetic/default/generic trees never enter this census.
-use super::{AuthoredDeclaration, call_identity};
+use super::{call_identity, AuthoredDeclaration};
 use crate::ast::{
     Expr, ExprKind, MatchPattern, ModuleUseKind, Program, RecordMatchFieldPattern, Statement,
 };

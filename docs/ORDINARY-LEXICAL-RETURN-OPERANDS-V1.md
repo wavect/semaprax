@@ -1,5 +1,7 @@
 # Ordinary lexical return-operand inventory v1
 
+Audience: compiler contributors and reviewers.
+
 Status: private source-only checkpoint. Rust compilation, owning tests, Clippy,
 source/graph/cache parity and application qualification remain pending. #832 is
 OPEN; this change establishes no whole-compiler funding or application recovery.

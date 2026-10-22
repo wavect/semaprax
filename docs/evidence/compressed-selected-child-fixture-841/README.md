@@ -1,5 +1,9 @@
 # #841 bounded immutable-evidence compression pilot
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only candidate based on 85142274c2f3e73bc1a4e5150672150c4d17d95f. No Rust compilation, tests, Clippy or compile/RSS comparison was executed. #841 remains OPEN: retain the pilot only after a meaningful paired measurement, not because of the compressed-byte ratio.
 
 The immutable selected-child-refusal-781 raw JSON stays byte-exact: 5,196,870 bytes, SHA256 2ff3e371c8bfde876ede4f5e7445a26067858e4a0d84610cca94d5b3ccc1240e. One actual compiled include is replaced by a local test-only decoder and deterministic gzip sidecar: 483,941 bytes, SHA256 6c7aab8b271e93151cd93c79eadf2955d8f0cf9fae3bdcdf816e181cf2bfca11. Generation uses Python gzip level 6, empty filename, mtime 0, OS 255; this is authoring only, never a build-time process. The raw fixture and every complete original assertion/receiver remain.

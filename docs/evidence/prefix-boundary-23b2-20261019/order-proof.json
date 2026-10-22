@@ -1,0 +1,24 @@
+{
+  "status": "PASS_ACTUAL_CLOSED_MACRO_GRAMMAR_SOURCE_ONLY",
+  "records": [
+    {
+      "domain": "hir",
+      "pieces": 1421,
+      "before_child_index": 1404,
+      "after_child_index": 19,
+      "all_original_fragments_and_counts_preserved": true,
+      "entire_32_piece_required_prefix_matches": true,
+      "all_other_pieces_preserve_exact_relative_order": true
+    },
+    {
+      "domain": "projection",
+      "pieces": 783,
+      "before_child_index": 766,
+      "after_child_index": 19,
+      "all_original_fragments_and_counts_preserved": true,
+      "entire_32_piece_required_prefix_matches": true,
+      "all_other_pieces_preserve_exact_relative_order": true
+    }
+  ],
+  "original_Rust_assertions_unchanged": true
+}

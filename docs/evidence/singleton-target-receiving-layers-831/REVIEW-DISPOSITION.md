@@ -1,5 +1,9 @@
 # Bounded receiving-layer review
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 One9899-byte tool-disabled Sonnet source review completed53.8066seconds,
 peak317472768bytes, exit0, listcost0.08264USD; actual billing unknown. Raw
 payload/verdict/receipt retained unchanged, no retry or Rust execution. No

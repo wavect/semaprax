@@ -1,0 +1,76 @@
+{
+  "mode": "SOURCE_ONLY_NO_RUST_EXECUTION",
+  "original_generator_definition_span_sha256": "fabc67d5447a0fe66a363782da7d578383ddc2f1cad504b332eeefe7cb7d6a5f",
+  "original_verifier_definition_span_sha256": "b02eca2b0f07e13c6478f511c2c0a9e2e865ca3f518626e19fe0f78a3eb50912",
+  "domains": {
+    "hir": {
+      "original_roots": 1046,
+      "current_boundary_members": 1224,
+      "current_boundary_production": 438,
+      "outside_production_still_fully_authenticated": 100,
+      "full_role_production": 538,
+      "full_role_test_only": 977,
+      "full_raw_sha256": "b336a17fa2aa098b8a509a6d79eccdfcf499e7f91146fc1a99a0b4f7faa76bce",
+      "boundary_production_sha256": "1a4543ffb1e7441df97aa65323d2277111db3927748b85003af3e22b9927f3c5",
+      "exact_original_forbidden_tokens": [
+        "struct Resolver",
+        "impl Resolver",
+        "fn scoped_identity(",
+        "fn materialize_function_template",
+        "fn specialize_source_function",
+        "pub fn resolve(",
+        "crate::cleanup::build_inventory",
+        "crate::cleanup_plan::build_plan",
+        "std::fs",
+        "std::process",
+        "platform::"
+      ],
+      "all_original_coverage_preserved": true,
+      "actual_current_registered_children_complete": true,
+      "global_polluted_purity_result_not_claimed": true
+    },
+    "projection": {
+      "original_roots": 179,
+      "current_boundary_members": 198,
+      "current_boundary_production": 73,
+      "outside_production_still_fully_authenticated": 584,
+      "full_role_production": 657,
+      "full_role_test_only": 1034,
+      "full_raw_sha256": "b4bc9ac1a9ea1b6619b5c51d4e46460d3bf3ae31fe0110a575ff27f51f186970",
+      "boundary_production_sha256": "1a0d0c9b78b63ae22b6e2d725d985139a114af6e778328096c4b0d5756b72e35",
+      "exact_original_forbidden_tokens": [
+        "use super::*;",
+        "workspace::",
+        "std::fs",
+        "std::process",
+        "snapshot(",
+        "build_authenticated",
+        "render_graph_json",
+        "write_file",
+        "create_dir",
+        "remove_file",
+        "ACTIVE"
+      ],
+      "all_original_coverage_preserved": true,
+      "actual_current_registered_children_complete": true,
+      "global_polluted_purity_result_not_claimed": true
+    }
+  },
+  "actual_acquisition_completion_sha256": "0fb925b26054ef495b5377444bdb4af6cc5a5c5cc5fb0f54413e14aba6f5b203",
+  "negative_controls": {
+    "dropped_actual_child_refused": true,
+    "coordinated_class_drop_not_original_generated_output": true,
+    "production_reclassification_refused": true,
+    "actual_source_drift_refused": true,
+    "whole_raw_drift_refused": true,
+    "foreign_path_child_cannot_escape": true
+  },
+  "status": "SOURCE_ONLY_EXACT_BOUNDARIES_AND_COMPLETE_SOURCE_ROLE_CUSTODY_PASS",
+  "registration_update": "EXACT_SOURCE_RECEIVER_NAMESPACE_ACQUISITION",
+  "before_head": "67a1a25a866fbc0b5dc38c8c63b7f2f6166a443a",
+  "incoming_main": "67a1a25a866fbc0b5dc38c8c63b7f2f6166a443a",
+  "global_polluted_purity_result_not_claimed": true,
+  "verification_storage": "Original verifier body and assertions unchanged; immutable UTF8 snapshots and exact concatenation on external SSD. Complete expected manifest compared as exact canonical bytes.",
+  "storage_controls_sha256": "448e67b57f94b7904976a5c2c0f448de40f2fade64363a818e8eb969d16a847e",
+  "storage_implementation_sha256": "653cf683557b582baa60790b78f00ee51c65e48f2bbea75818a888a437749a26"
+}

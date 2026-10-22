@@ -1,0 +1,7 @@
+[
+  [
+    12718,
+    "        \"src/workspace_graph/initial_report/before.rs\",\n        include_str!(\"before.rs\"),\n",
+    "        \"src/workspace_graph/initial_report/before.rs\", include_str!(\"before.rs\"),\n"
+  ]
+]

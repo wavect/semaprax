@@ -1,5 +1,9 @@
 # Ordinary replay receiving ABI v1
 
+Status: private source contract; executable qualification is pending.
+
+Audience: compiler contributors and reviewers.
+
 This source candidate owns OPT #892. It has not been compiled, run, benchmarked,
 qualified for adoption, or shown to improve an application. The existing
 [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) replay contract and

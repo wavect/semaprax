@@ -1,0 +1,37 @@
+{
+  "status": "ORIGINAL_CURRENT_CODEC_COMPOSITION_PASS_PENDING_PUBLICATION",
+  "base_head": "dec7d236b90548cefbb5b6ffabba20fcce914a31",
+  "rows": 687,
+  "page_bytes": 229666,
+  "published_current_preserved_as_exact_views": [
+    {
+      "source": "src/source_reflows_merge.rs",
+      "view": {
+        "length": 101565,
+        "sha256": "bd9c23059fe364da39d866de6361ce1f0a55b2b4a874c44950c171c2c6308e89",
+        "archive": "docs/evidence/rustfmt-complete-20261021/current/bd9c23059fe364da39d866de6361ce1f0a55b2b4a874c44950c171c2c6308e89.txt",
+        "name": "whole-pre-runtime-history-dec7a15bdd5"
+      }
+    },
+    {
+      "source": "src/hir/validation.rs",
+      "view": {
+        "length": 401448,
+        "sha256": "564b21a368d3199b4395675ee9eec7e384a485509c558ee8c366c57588377332",
+        "archive": "e/564b21a368d3199b4395675ee9eec7e384a485509c558ee8c366c57588377332",
+        "name": "whole-pre-runtime-history-dec7a15bdd5"
+      }
+    },
+    {
+      "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs",
+      "view": {
+        "length": 28720,
+        "sha256": "03599ff4193b1444f6f4ccea9418c0353ec03ed2211ecce519bc5f17d7501e6a",
+        "archive": "docs/evidence/rustfmt-20261021/current/03599ff4193b1444f6f4ccea9418c0353ec03ed2211ecce519bc5f17d7501e6a.txt",
+        "name": "whole-pre-runtime-history-dec7a15bdd5"
+      }
+    }
+  ],
+  "all_previous_fields_views_memberships_and_fragment_edges_retained": true,
+  "all_original_codec_bodies_and_caps_unchanged": true
+}

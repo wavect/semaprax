@@ -1,3 +1,9 @@
+# lazy-route-observation-20261018 README
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The test-only route observer embedded three 1,024-row banks in static thread-local storage. The owning Linux Component trace measured 6,524,800 total TLS bytes, leaving too little usable test stack. This change keeps the same banks and dimensions in backing acquired before observer activation. Inactive test threads retain only empty carriers. Callback, overflow, arithmetic, attribution and retained-report checks run with their original test bodies.
 
 The local harness checks all three original route tests and a new lazy preparation, exact-capacity overflow, nested-borrow and reuse regression under the unchanged 200 MiB process-tree cap. The original complete source is preserved in `whole-before.rs.txt`. Hosted Component success is still required to establish the Linux fix.

@@ -1,0 +1,13 @@
+{
+  "scope": "Catalog test-helper filesystem ownership correction; no whole CI or compiler-capacity qualification claimed.",
+  "before_head": "e91e9227033c60e34fcbe481c8b10eaf332199c2",
+  "problem": "Constructing the cleanup owner before create_dir made an AlreadyExists refusal delete the pre-existing directory during unwinding.",
+  "fix": "Create the directory successfully before constructing its cleanup owner.",
+  "baseline": "Actual unchanged helper body reproduced deletion of a sentinel inside a directory created by the private probe.",
+  "regression": "Exact current helper body preserves the complete existing sentinel and still refuses the collision. Private copied helper uses actual normal library public types; collision exits before compiler operations, so this is not layout, IR or capacity evidence.",
+  "actual_project_test": "standard_library::committed_catalogs_match_the_sources: 1 passed, 0 failed, 658 filtered; 2.91 seconds, actual complete normal Rust 1.97.1 compiler/project harness.",
+  "current_source_sha256": "4760a0cd1337f9edbdd4bce55871664aabb4868c803d2c112da9be8bc0f53643",
+  "format_check": true,
+  "all_original_source_role_scopes_roles_classes_and_acquisition_edges_preserved": true,
+  "global_overlay_before_after_identical": true
+}

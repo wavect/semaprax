@@ -1,5 +1,9 @@
 # Main696 source reconciliation — not shipping-ready
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Cutoff: frozen364d824194cd1df76b5c273aa0fb9cbafb602e29. Main barrier:6966765c965c8a5ad85ae3c2827653599826fb88 only. The current qualification remains independent and untouched.
 
 `verify-source.py` passes finite whole-source custody:27 complete predecessor inputs, three changed Main inputs plus one byte-identical Main oracle input, all four immutable Main semantic inverses and subsequent formatting inverses. Full prior90 runtime fixture identities and all prior JSON remain unchanged. New compiled tables are50,009 and86,527 bytes respectively; neither embeds an original large runtime JSON fixture. Complete old archives remain metadata-only.

@@ -1,0 +1,243 @@
+{
+  "commit": "c26a808986faaa98cbe01222d44ee1f08ebf4051",
+  "rows": [
+    {
+      "source": "src/hir/resolve_expr.rs",
+      "physical": "src/hir/borrowed_root_oracle/resolve_expr.rs",
+      "length": 140920,
+      "sha256": "8b9bc136d4bedd83e218f4f7cd1e6b316426a76063c794b1679c4056039ed40a",
+      "original_full_provenance_pass": true
+    },
+    {
+      "source": "src/hir/resolve_expr_frame.rs",
+      "physical": "src/hir/borrowed_root_oracle/resolve_expr_frame.rs",
+      "length": 25000,
+      "sha256": "73c6ef03b383a43ac7482d3752c1db4041516c743ed57405dfa01d6b3a75bb30",
+      "original_full_provenance_pass": true
+    },
+    {
+      "source": "src/hir/resolve_for.rs",
+      "physical": "src/hir/borrowed_root_oracle/resolve_for.rs",
+      "length": 19279,
+      "sha256": "fafb9b336ec940edef4165e162aec7d5ded109a3e6a2c74410515691006a61c5",
+      "original_full_provenance_pass": true
+    },
+    {
+      "source": "src/hir/resolve_for_own.rs",
+      "physical": "src/hir/borrowed_root_oracle/resolve_for_own.rs",
+      "length": 17367,
+      "sha256": "f73529c156b1539c0110d103843611c9a04d90a277ef1173e78e1bacb369fbb9",
+      "original_full_provenance_pass": true
+    },
+    {
+      "source": "src/hir/resolve_box_call.rs",
+      "physical": "src/hir/borrowed_root_oracle/resolve_box_call.rs",
+      "length": 10184,
+      "sha256": "6f7cbc1f4ca60f0aac9118c643d82e8be3a97c2c7e7ea23940631c7265e8ee50",
+      "original_full_provenance_pass": true
+    },
+    {
+      "source": "src/hir/resolve_vec_call.rs",
+      "physical": "src/hir/borrowed_root_oracle/resolve_vec_call.rs",
+      "length": 14872,
+      "sha256": "4666678e3aace39a7e26d4f2a7a6793658dba0d2f28284b6a78b3e193ba9e9e2",
+      "original_full_provenance_pass": true
+    },
+    {
+      "source": "src/hir/resolve_expr/sort_keys.rs",
+      "physical": "src/hir/borrowed_root_oracle/resolve_expr/sort_keys.rs",
+      "length": 4608,
+      "sha256": "dec5f94b0875fd92c5401b1f2133694bf9e1d1860e0138ad69c3f65e426b6053",
+      "original_full_provenance_pass": true
+    },
+    {
+      "source": "src/hir/resolve_expr/super_method.rs",
+      "physical": "src/hir/borrowed_root_oracle/resolve_expr/super_method.rs",
+      "length": 5071,
+      "sha256": "4591badc2f10f712e8e14a228eee46e73fbcb3ebf863e75aa28a73fb8af5e0ce",
+      "original_full_provenance_pass": true
+    },
+    {
+      "source": "src/hir/resolve_expr/capacity.rs",
+      "physical": "src/hir/borrowed_root_oracle/resolve_expr/capacity.rs",
+      "length": 2281,
+      "sha256": "76af4d03db05df8bab03d71a627673080843adf36f482189972adec34c04cbca",
+      "original_full_provenance_pass": true
+    },
+    {
+      "source": "src/hir/resolve_expr/vec_field.rs",
+      "physical": "src/hir/borrowed_root_oracle/resolve_expr/vec_field.rs",
+      "length": 5274,
+      "sha256": "e9b35c919172c364216e2efa9986408311fcb9b437ad8a52f28b901f78fa682a",
+      "original_full_provenance_pass": true
+    },
+    {
+      "source": "src/hir/resolve_expr/finish.rs",
+      "physical": "src/hir/borrowed_root_oracle/resolve_expr/finish.rs",
+      "length": 5102,
+      "sha256": "3e70aa00d1ffcb5d712727e35f4c06839f04f8d7a85de6684b48b915f452538c",
+      "original_full_provenance_pass": true
+    },
+    {
+      "source": "src/hir/resolve_expr/vec_constructor.rs",
+      "physical": "src/hir/borrowed_root_oracle/resolve_expr/vec_constructor.rs",
+      "length": 2630,
+      "sha256": "70ccbee7c7f9630cd61976e24ff5baa7ed51de308ad24a71f83ef1649f0888f6",
+      "original_full_provenance_pass": true
+    },
+    {
+      "source": "src/hir/resolve_expr/lexical_exit.rs",
+      "physical": "src/hir/borrowed_root_oracle/resolve_expr/lexical_exit.rs",
+      "length": 3176,
+      "sha256": "1ebbfbdf91f9588105f016e9e947b47bd5e43e5fbdff07bdce7aace987eecd24",
+      "original_full_provenance_pass": true
+    },
+    {
+      "source": "src/hir/resolve_expr/path_arena_regression_tests.rs",
+      "physical": "src/hir/borrowed_root_oracle/resolve_expr/path_arena_regression_tests.rs",
+      "length": 7898,
+      "sha256": "d74cdc3bf7ba9110abe91e879eff26402dead68118f2f595d1a5ae03d31274fd",
+      "original_full_provenance_pass": true
+    },
+    {
+      "source": "src/hir/resolve_expr/path_arena_tests.rs",
+      "physical": "src/hir/borrowed_root_oracle/resolve_expr/path_arena_tests.rs",
+      "length": 13658,
+      "sha256": "566b0ed62ca322b59a3bda3e0da205bf45021ae63476596ebfddcbdd698eaacd",
+      "original_full_provenance_pass": true
+    },
+    {
+      "source": "src/hir/resolve_expr/literal_format.rs",
+      "physical": "src/hir/borrowed_root_oracle/resolve_expr/literal_format.rs",
+      "length": 4367,
+      "sha256": "7b0d37229d2282ad3095c4a389ee15b4815e67e552d7574d92cea6bb7e57110b",
+      "original_full_provenance_pass": true
+    },
+    {
+      "source": "src/hir/resolve_expr/variable.rs",
+      "physical": "src/hir/borrowed_root_oracle/resolve_expr/variable.rs",
+      "length": 1286,
+      "sha256": "421e9edd81c65b89cef9dcaf7fcdb7c251afcb6f6f27e8bf5b6e824bf9258edd",
+      "original_full_provenance_pass": true
+    },
+    {
+      "source": "src/hir/resolve_expr/path_arena.rs",
+      "physical": "src/hir/borrowed_root_oracle/resolve_expr/path_arena.rs",
+      "length": 20176,
+      "sha256": "d3dcc7f0381204188023623fd1ab9cf90774f79cb22ae00a14ff81ebb695b210",
+      "original_full_provenance_pass": true
+    },
+    {
+      "source": "src/hir/resolve_expr/byte_view.rs",
+      "physical": "src/hir/borrowed_root_oracle/resolve_expr/byte_view.rs",
+      "length": 2083,
+      "sha256": "dbf07dc264949d7e18ce759ee9f053206600fe0e170f7db99893383c15693866",
+      "original_full_provenance_pass": true
+    },
+    {
+      "source": "src/hir/resolve_expr/capacity/tests.rs",
+      "physical": "src/hir/borrowed_root_oracle/resolve_expr/capacity/tests.rs",
+      "length": 3975,
+      "sha256": "15c9c83a71b52a20e16f5aef7a15b35db125b3537edd90f6aceebdfa0ec3caad",
+      "original_full_provenance_pass": true
+    },
+    {
+      "source": "src/hir/resolve_expr_frame/capacity_old.rs",
+      "physical": "src/hir/borrowed_root_oracle/resolve_expr_frame/capacity_old.rs",
+      "length": 9258,
+      "sha256": "612e6806a9833f2fa50bc6025014d02a3340015756c6678765efad10213ced4c",
+      "original_full_provenance_pass": true
+    },
+    {
+      "source": "src/hir/resolve_expr_frame/fixed_results.rs",
+      "physical": "src/hir/borrowed_root_oracle/resolve_expr_frame/fixed_results.rs",
+      "length": 2415,
+      "sha256": "fb5b1f780a108e91a483d33959610de169d9273e9c177b33505272a3cb688715",
+      "original_full_provenance_pass": true
+    },
+    {
+      "source": "src/hir/resolve_expr_frame/fixed_results/tests.rs",
+      "physical": "src/hir/borrowed_root_oracle/resolve_expr_frame/fixed_results/tests.rs",
+      "length": 5522,
+      "sha256": "192c298e9634e8fc814c54faccfd27c15ab55c2b0298877671fadae700756b61",
+      "original_full_provenance_pass": true
+    },
+    {
+      "source": "src/hir/resolve_for/bytes.rs",
+      "physical": "src/hir/borrowed_root_oracle/resolve_for/bytes.rs",
+      "length": 8415,
+      "sha256": "dd89658af0380e2475fe977ac89c581536de244e4d7320b3684f7b7952ac785e",
+      "original_full_provenance_pass": true
+    },
+    {
+      "source": "src/hir/resolve_for/record.rs",
+      "physical": "src/hir/borrowed_root_oracle/resolve_for/record.rs",
+      "length": 12786,
+      "sha256": "50fbd5e1baeb912eab4663d4b3d3fe99885524a88fa80d7756b06b556114584d",
+      "original_full_provenance_pass": true
+    },
+    {
+      "source": "src/hir/resolve_for/bytes/tests.rs",
+      "physical": "src/hir/borrowed_root_oracle/resolve_for/bytes/tests.rs",
+      "length": 10165,
+      "sha256": "68fdaed4cb7bf4075e4effef7ed7ed2c5ff2f326f252775dc25004f37550f4a5",
+      "original_full_provenance_pass": true
+    },
+    {
+      "source": "src/hir/resolve_box_call/list.rs",
+      "physical": "src/hir/borrowed_root_oracle/resolve_box_call/list.rs",
+      "length": 2861,
+      "sha256": "319cd8e850d9b9aee67563b0ec03a4c9f73aeb5ae6be0e5fb47d36f37f453da4",
+      "original_full_provenance_pass": true
+    },
+    {
+      "source": "src/hir/resolve_box_call/map.rs",
+      "physical": "src/hir/borrowed_root_oracle/resolve_box_call/map.rs",
+      "length": 3332,
+      "sha256": "7dabdee1de4b028dc878fa25d22a9f2b21e72a44326dadcf1f8a82210761adf8",
+      "original_full_provenance_pass": true
+    },
+    {
+      "source": "src/hir/resolve_box_call/iterator.rs",
+      "physical": "src/hir/borrowed_root_oracle/resolve_box_call/iterator.rs",
+      "length": 3873,
+      "sha256": "1749dd3c7c3ecfc22d6a89d53b1222f8622dcfaa242ecf4d04f7897e7d2c4ce6",
+      "original_full_provenance_pass": true
+    },
+    {
+      "source": "src/hir/closure/resolve.rs",
+      "physical": "src/hir/borrowed_root_oracle/closure/resolve.rs",
+      "length": 9515,
+      "sha256": "a8e6e3184e7b19c5bbdff7e1b17e5328db31f056c18e492133f5d01ac5d62df5",
+      "original_full_provenance_pass": true
+    },
+    {
+      "source": "src/hir/closure/once.rs",
+      "physical": "src/hir/borrowed_root_oracle/closure/once.rs",
+      "length": 17214,
+      "sha256": "09129edd97cdb27b4f4452b1d0119ead39a062cd432ff978041b044002b58561",
+      "original_full_provenance_pass": true
+    },
+    {
+      "source": "src/hir/closure/mutable.rs",
+      "physical": "src/hir/borrowed_root_oracle/closure/mutable.rs",
+      "length": 14882,
+      "sha256": "149e97047e27cbeac6d5edf6a62dc388a6943be3c238e6f67c252fb80d313fed",
+      "original_full_provenance_pass": true
+    },
+    {
+      "source": "src/hir/resolve_pattern.rs",
+      "physical": "src/hir/borrowed_root_oracle/resolve_pattern.rs",
+      "length": 22918,
+      "sha256": "46c1410155fa47ebf5699de32eb1b38e15f996b657b4057e1dd169a79f6b7bbb",
+      "original_full_provenance_pass": true
+    },
+    {
+      "source": "src/hir/resolve_statement.rs",
+      "physical": "src/hir/borrowed_root_oracle/resolve_statement.rs",
+      "length": 24567,
+      "sha256": "23a4ce456e3db8001e3255788dad2e75c0b9dd7ef23a0eb29f54bedb6d7c934a",
+      "original_full_provenance_pass": true
+    }
+  ]
+}

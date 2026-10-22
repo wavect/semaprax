@@ -1,5 +1,9 @@
 # Actual comparator-boundary numeric report (source only)
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 One appended test retains every original enumerated-prefix test byte. Two
 complete independently compiled validation-receiver copies preserve original
 statements and interfaces from the frozen pre877 receiver and the current EF

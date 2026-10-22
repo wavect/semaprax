@@ -119,6 +119,12 @@ fn every_original_bridge_byte_is_retained_except_its_frozen_runner_include() {
         );
     }
     let current = include_str!("before_3e66.rs");
+    let captured_source_stage = crate::main_e177_final_inputs::value_direct(
+        "tests/wasm/scalar_browser_ci_contract/before_3e66.rs",
+        "b052603b549318e45f3cae0e1f3afd1c385366dac535eb9cd1e9084d4a06cec2",
+        current,
+    );
+    let current = captured_source_stage.as_str();
     let new="include_str!(\n        \"../../../docs/evidence/browser-graph-pins-3e66c0116/platform-tests__wasm-scalar-browser-v1__test-fixtures.mjs.before.txt\"\n    )";
     let old = "include_str!(\"../../../platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs\")";
     assert_eq!(current.matches(new).count(), 1);

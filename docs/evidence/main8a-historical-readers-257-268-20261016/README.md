@@ -1,5 +1,9 @@
 # Main8a historical read domains, actual344 indices257/268
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only repair from787f84774. The actual a82e failure logs remain unchanged.
 No Cargo, build, Rust test, Clippy, application execution or qualification ran.
 

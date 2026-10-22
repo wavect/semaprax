@@ -14,8 +14,8 @@
     },
     {
       "path": "src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs",
-      "sha256": "e9191f522e39ce917ff31caf4794d0de88a3d00ecc8f4df726ea94ba6b49fb23",
-      "lines": 201
+      "sha256": "1a60e173fcb6c43de699fb2da70d93568dcc3a410157b9484391e271ef79257e",
+      "lines": 219
     },
     {
       "path": "src/cleanup_plan/replay/ordinary_plan_history/owned_tests.rs",
@@ -34,17 +34,17 @@
     },
     {
       "path": "src/cleanup_plan/replay/ordinary_plan_history/tests.rs",
-      "sha256": "c60b4814141b9467b3dfcd22f496f918c24d871d2343c2388b3fccafcaee40c4",
-      "lines": 241
+      "sha256": "432c69e344c5748c134fd8a8ee80b4de7e1f39d5108c44a7ba88878eda9348d9",
+      "lines": 267
     },
     {
       "path": "src/cleanup_plan/replay/ordinary_plan_history.rs",
-      "sha256": "c374ec0c0fecbc2be4ca666b3508b637fdff123532105c9006544ff199ec9ef0",
-      "lines": 508
+      "sha256": "fc6c640e517975d6155040cdaf42503d6564500cf3db4cebdb2a8dfb24f28e21",
+      "lines": 548
     },
     {
       "path": "src/source_reflows_merge/ordinary_plan_inputs.rs",
-      "sha256": "c7b046c3e039890183423f56e35b5aceafdf6482503e6f58ff83316da8abcde2",
+      "sha256": "bbf570734d597c486e09522b257130371140f60be7ca3b2ccdd9d861c42a409e",
       "lines": 520
     }
   ]

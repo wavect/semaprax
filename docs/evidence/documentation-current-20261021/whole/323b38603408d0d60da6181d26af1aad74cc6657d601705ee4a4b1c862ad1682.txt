@@ -1,0 +1,7 @@
+# main-unit-fixture-paths-5aac-20261016 HANDOFF
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
+Source-only compile correction from frozen5aac. Three existing fixture helpers now refer to actual replay::factored::lexical_plan_tests, registered factored.rs912–913. Each file changes exactly its two qualified names; all test assertions/bodies otherwise byte-exact. Removed only unused cfg(test) historical reexports from identity_resolution.rs; actual historical functions and every original runtime JSON remain untouched. No production behavior, test selector, fee, cap or receiver changed. Four whole before-images/inverses preserved. Final assembly must restore these four current inputs to5aac before inherited source guards and regenerate only NEW authority manifests. No Cargo/Rust execution.

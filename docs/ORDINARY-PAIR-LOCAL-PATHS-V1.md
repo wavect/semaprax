@@ -1,5 +1,7 @@
 # Ordinary pair-local PLAN paths v1
 
+Audience: compiler contributors and reviewers.
+
 Status: OPT886 source candidate only; uncompiled and unexecuted. No application
 admission, efficiency, production Clippy or shipping qualification is claimed.
 This is a successor to ORDINARY-LEXICAL-PLAN-CURSOR-V1, not a reinterpretation

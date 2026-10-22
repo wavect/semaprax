@@ -1,5 +1,9 @@
 # Scoped production Clippy correction
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only patch from exactdeec161142b2f3e882e50b4450338c69c137e586. No Cargo/compiler/tests. The private worktree contains only the two selected tracked files; all other baseline entries are skip-worktree rather than copied. ROOT and the active runtime source are untouched.
 
 At owned_suffix.rs308/386/451 each View already stores a borrowed Observations. Remove only the immediately dereferenced extra ampersand. The callee still receives exactly &Observations; no ownership/move/Drop/evaluation order or receiving price changes. We make no fee reduction or savings claim from the removed coercion syntax and do not repurpose a paid role.

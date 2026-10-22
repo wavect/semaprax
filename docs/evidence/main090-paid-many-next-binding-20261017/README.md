@@ -1,5 +1,9 @@
 # PaidMany finite MAIN090 successor
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 This source-only generation retains the whole prior manifest and complete original
 strict binder. Exactly five declared physical subjects may change; every other
 169 tuple remains byte-exact. The original immutable descriptor, source-body mask,

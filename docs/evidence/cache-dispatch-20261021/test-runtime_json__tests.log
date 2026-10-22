@@ -1,0 +1,11 @@
+
+running 6 tests
+test source_reflows_merge::runtime_json::tests::fixed_projection_json_transport_refuses_hostile_io_before_parsing ... ok
+test source_reflows_merge::runtime_json::tests::fixed_receiver_json_fixtures_keep_complete_inputs_inverses_and_hostile_io ... ok
+test source_reflows_merge::runtime_json::tests::maina3_known_part_source_refuses_gaps_duplicates_and_foreign_rows ... ok
+test source_reflows_merge::runtime_json::tests::maina3_parts_cover_every_fixed_key_once_under_the_original_reader_cap ... ok
+test source_reflows_merge::runtime_json::tests::six_large_historical_packets_keep_full_inputs_whole_consumers_and_fresh_hostile_reads ... ok
+test source_reflows_merge::runtime_json::tests::three_runtime_packets_keep_whole_consumers_and_refuse_each_fresh_hostile_read ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 268 filtered out; finished in 3.04s
+

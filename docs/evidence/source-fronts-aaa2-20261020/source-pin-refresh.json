@@ -1,0 +1,60 @@
+{
+  "status": "SOURCE_ONLY_FINITE544_PACKET_PREDICATES_PASS",
+  "before_head": "aaa2d21dd413ed2ab461965f4de3597f469e1c33",
+  "before_guard": {
+    "length": 11549,
+    "sha256": "a6e911b21e0bfa467feb197bf6781e8287fcd04754b20945b9874375c2f51db8",
+    "archive": "docs/evidence/source-fronts-aaa2-20261020/whole/a6e911b21e0bfa467feb197bf6781e8287fcd04754b20945b9874375c2f51db8.txt"
+  },
+  "before_config": {
+    "length": 136459,
+    "sha256": "fe0c4e4c751e92a8aaa7ffc2875b3261119821647f2c29506e14a94129b8926e",
+    "archive": "docs/evidence/source-fronts-aaa2-20261020/whole/fe0c4e4c751e92a8aaa7ffc2875b3261119821647f2c29506e14a94129b8926e.txt"
+  },
+  "before_helper": {
+    "length": 42127,
+    "sha256": "2f03815dd4b17a3b00478564fcfdb34ca8beac567da419d794e64af0f43cf831",
+    "archive": "docs/evidence/source-fronts-aaa2-20261020/whole/2f03815dd4b17a3b00478564fcfdb34ca8beac567da419d794e64af0f43cf831.txt"
+  },
+  "before_python_overlay": {
+    "length": 14378,
+    "sha256": "f1a4050a720ddb66001da826c7fb033040bb2f77815cff2ed5f2e8649322a980",
+    "archive": "docs/evidence/source-fronts-aaa2-20261020/whole/f1a4050a720ddb66001da826c7fb033040bb2f77815cff2ed5f2e8649322a980.txt"
+  },
+  "before_policy": {
+    "length": 16742,
+    "sha256": "3a68469210563a75caaae6209c02141fb6a0d9fab6aac27a19f82c4c64277971",
+    "archive": "docs/evidence/source-fronts-aaa2-20261020/whole/3a68469210563a75caaae6209c02141fb6a0d9fab6aac27a19f82c4c64277971.txt"
+  },
+  "before_page": {
+    "length": 214296,
+    "sha256": "dd6bc6d9f8b78fc9b97138eb40e75dbd08d44574f6822d1f89b3cbf1d89938db",
+    "archive": "docs/evidence/source-fronts-aaa2-20261020/whole/dd6bc6d9f8b78fc9b97138eb40e75dbd08d44574f6822d1f89b3cbf1d89938db.txt"
+  },
+  "changed_sources": [
+    "src/source_reflows_merge/runtime_json.rs",
+    "src/source_reflows_merge.rs",
+    "src/source_reflows/main043.rs",
+    "src/source_reflows_merge/main67107_inputs.rs",
+    "src/source_reflows/incoming67107_semantic_receivers.rs",
+    "src/source_reflows/incoming21_semantic_receivers.rs",
+    "src/source_reflows/incoming090_semantic_receivers.rs",
+    "src/source_reflows/semantic_receivers_mainb80.rs",
+    "src/source_reflows_merge/main7f8_source_inputs.rs",
+    "src/source_reflows/factored_sources.rs",
+    "src/hir/declaration_index/identity_payer.rs",
+    "CHANGELOG.md"
+  ],
+  "module_pins_refreshed": [
+    "src/source_reflows_merge/main_e177_overlay_v2.rs"
+  ],
+  "carrier_pins_refreshed": [],
+  "all_544_rows_fields_view_prefixes_and_prior_current_wires_retained": true,
+  "new_literal_replacements_inserted_in_predecessor_source_order": true,
+  "original_519_extension_and_loader_unchanged": true,
+  "python_and_rust_overlay_bodies_unchanged_except_literal_membership_and_policy_seals": true,
+  "all_reader_source_program_and_runtime_caps_unchanged": true,
+  "page_bytes": 227812,
+  "policy_bytes": 17102,
+  "raw_owners": 342
+}

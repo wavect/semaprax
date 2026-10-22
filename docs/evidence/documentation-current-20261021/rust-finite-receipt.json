@@ -1,0 +1,20 @@
+{
+  "status": "PASS",
+  "actual_selected_test_names": [
+    "source_reflows_merge::main_e177_final_inputs::overlay_v2::tests::finite_page_current_compiled_and_archive_channels_are_required_before_history",
+    "source_reflows_merge::main_e177_final_inputs::overlay_v2::tests::finite_page_exact_bound_compiled_physical_and_json_hostiles_are_independent",
+    "source_reflows_merge::main_e177_final_inputs::overlay_v2::tests::finite_page_literal_policy_replays_the_complete_519_metadata_inverse",
+    "source_reflows_merge::main_e177_final_inputs::overlay_v2::tests::finite_page_original_held_reader_keeps_nonregular_and_symlink_refusals",
+    "source_reflows_merge::main_e177_final_inputs::overlay_v2::tests::finite_page_refuses_lost_views_old_current_classification_and_unknown_fields",
+    "source_reflows_merge::main_e177_final_inputs::overlay_v2::tests::finite_page_refuses_nonleaf_duplicate_forged_and_undeclared_fragments",
+    "source_reflows_merge::main_e177_final_inputs::overlay_v2::tests::finite_page_refuses_wrong_schema_predecessor_scope_order_and_unknown_keys",
+    "source_reflows_merge::main_e177_final_inputs::overlay_v2::tests::finite_page_retains_the_entire_predecessor_object_and_unknown_fields",
+    "source_reflows_merge::main_e177_final_inputs::overlay_v2::tests::finite_page_source_cap_is_per_full_source_and_not_an_aggregate_budget"
+  ],
+  "actual_log": "focused.log",
+  "combined_run_result": [
+    "test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 225 filtered out; finished in 79.87s"
+  ],
+  "known_remaining_failures": [],
+  "all_previously_passing_controls_retained": true
+}

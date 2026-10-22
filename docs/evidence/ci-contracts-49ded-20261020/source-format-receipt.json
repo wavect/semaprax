@@ -1,0 +1,7 @@
+{
+  "status": "PASS_ACTUAL_COMPLETE_HELPER_CLIPPY_DENY_WARNINGS_AND_ORIGINAL_INVERSE_TESTS",
+  "clippy_peakKiB": 112512,
+  "compile_peakKiB": 193968,
+  "run_peakKiB": 32,
+  "original_test_bodies_and_inverse_records_unchanged": true
+}

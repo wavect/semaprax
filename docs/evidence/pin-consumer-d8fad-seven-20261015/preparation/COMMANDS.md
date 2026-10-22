@@ -1,5 +1,9 @@
 # Seven consumer checks at d8fad
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Prepared source is exact d8fadfb7cd5ece54504cda542575e5a154d3657c; its six live
 Rust changes equal reviewed 1cc exactly. All original 145 actual rows and 25
 failures remain bound and disclosed. Nothing relabels those failures PASS.

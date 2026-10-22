@@ -1,5 +1,9 @@
 # Actual CORE300 compile borrowing repair
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 SOURCE ONLY; no Cargo, compiler, tests, formatting, source binding or gates executed.
 
 The actual historical-source acquisition returns `&String`. Borrow the expected String in the existing equality assertion; its compared bytes, assertion message and every other assertion stay unchanged. Remove only the unused current status-prefix constant import. Preserve the historical status-owner re-export and complete old comparator import verbatim with exact-item `unused_imports` attributes. These test-only lexical bindings add no runtime role, charge, work, cap or Drop change.

@@ -1,5 +1,9 @@
 # Ordered integration handoff
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only integration from clean ROOT `4f8f598c7935d0a5cdd4a5d5ba5b49d164ae2cfc`. The immutable metadata input to the final composition is `ef0cb9602612ee736993ea2bada93242ec75d24b`; the final commit containing this record supplies the application context. Previous actual qualification receipts and pins remain historical and unchanged by this composition.
 
 Integrated in order: purity/Session `1343d0b9f`, application census `56395456e`, status-case proof `4316f5448`, Legacy final-link `37867b35a`, Legacy fixture `4a7da2229`, singleton successor `cba88e475`, nested fixture/guide `969e2b58d`, lowering `a0e8f7eff`, ancestry controls `903d01e45`, and codec frontier witness `b3ff8c551`. Integration commits also retain explicit imports, the requested String.take card/history wording, and the explicit nested sibling module import.

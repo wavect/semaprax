@@ -1206,5 +1206,8 @@ mod main_b692_pair_scope_tests;
 #[rustfmt::skip]
 mod main487_pair_scope_tests;
 
+/// Complete previous main generation retained beside the loaded-segment successor.
+#[path = "retained_main_289/mod.rs"]
+mod retained_main_289;
 #[path = "loaded_segment_composition_tests.rs"]
 mod loaded_segment_composition_tests;

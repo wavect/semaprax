@@ -1,5 +1,9 @@
 # Frozen2d4b pin workflow — preparation only
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 ROOT2d4b68d3a416cae5fba6ac08498cd56721878ba1; manifest db7076908874ab299285b9fe29dfd6e061acc1d800513af4a26bf288070a3968. No script here has captured or applied a pin. Run only after parent schedules the phases; do not overlap the build, selected runtime, scopedClippy or other heavy work.
 
 The unchanged role-fixed managed producer and original observed_phase/global guards are retained. The strict managed checker changes exactly one frozen-head literal. Its immediate published BEFORE is still the full actual35cc ten-wire capture (regular1209652, projection2977609); 8bb observations were never applied. The unchanged compositor replays current2d4b→391 and all107 immutable old source edits. All old JSON/archives remain unchanged.

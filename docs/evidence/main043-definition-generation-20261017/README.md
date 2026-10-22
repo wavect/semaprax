@@ -1,5 +1,9 @@
 # Fixed Main043 definition generation ingress
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only candidate based onf811df28beb74d1cfb4cf37c376b8a812c72b0ed.
 No Rust, Cargo, common refresh, verifier main, endpoint write or NEXT mutation.
 No new Rust source owner or raw inventory subject exists.

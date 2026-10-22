@@ -1,0 +1,27 @@
+[
+  {
+    "name": "source_reflows_merge::main67107_inputs::complete_seven_compile_inputs_restore_35f_and_refuse_foreign_receivers",
+    "status": "PASS",
+    "peakKiB": 50240
+  },
+  {
+    "name": "source_reflows_merge::main67107_inputs::corrected_alias_fixtures_keep_complete_c874_sources_and_refuse_foreign_stages",
+    "status": "PASS",
+    "peakKiB": 43216
+  },
+  {
+    "name": "source_reflows_merge::main67107_inputs::factored_core_relocation_preserves_complete_seven_source_domain_and_refuses_drift",
+    "status": "PASS",
+    "peakKiB": 43200
+  },
+  {
+    "name": "source_reflows_merge::main_e177_final_inputs::overlay_v2::compiled_sources::tests::compiled_lookup_split_preserves_the_complete_predecessor_and_every_old_mapping",
+    "status": "PASS",
+    "peakKiB": 3840
+  },
+  {
+    "name": "source_reflows_merge::main_e177_final_inputs::overlay_v2::compiled_sources::tests::compiled_lookup_split_refuses_child_parent_span_eof_and_duplicate_glue",
+    "status": "PASS",
+    "peakKiB": 3920
+  }
+]

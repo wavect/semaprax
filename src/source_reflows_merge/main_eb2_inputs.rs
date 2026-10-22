@@ -13,6 +13,17 @@ const DATA: &str = include_str!(concat!(
 const DATA_LENGTH: usize = 17256;
 const DATA_SHA256: &str = "805be510a86e46dfb8cd58b63eca7b89e347053674e3357e8cb3c48924ce4955";
 pub(crate) fn input(path: &str, current: &str) -> String {
+    let rows: serde_json::Value = serde_json::from_str(DATA).unwrap();
+    let stage = digest(current);
+    if rows.as_array().unwrap().iter().any(|row| {
+        row["domain"] == "incoming" && row["path"] == path && row["current_sha256"] == stage
+    }) {
+        return project("incoming", path, current);
+    }
+    let current = complete_incoming_input("incoming", path, current);
+    project("incoming", path, &current)
+}
+fn formatting_input(path: &str, current: &str) -> String {
     // Only these two complete formatting successors precede the immutable
     // incoming domains. The original source selection and inverses still run.
     let expected = match path {
@@ -26,10 +37,9 @@ pub(crate) fn input(path: &str, current: &str) -> String {
     };
     let projected = expected
         .map(|expected| super::main_e177_final_inputs::value_direct(path, expected, current));
-    let current = projected.as_deref().unwrap_or(current);
-    let current = super::main7f8_source_inputs::later_452_input("eb2-incoming", path, current);
-    project("incoming", path, &current)
+    projected.unwrap_or_else(|| current.to_owned())
 }
+
 pub(crate) fn presence(path: &str, current: &str) -> String {
     project("presence", path, current)
 }
@@ -82,8 +92,13 @@ mod tests {
             } else {
                 std::fs::read_to_string(root.join(path)).unwrap()
             };
+            let raw_source = source.clone();
             let source = complete_incoming_input(domain, path, &source);
             let incoming = project(domain, path, &source);
+            if domain == "incoming" {
+                assert_eq!(input(path, &raw_source), incoming);
+                assert_eq!(input(path, &source), incoming);
+            }
             assert_eq!(digest(&incoming), row["incoming_sha256"].as_str().unwrap());
             for wrong in [
                 String::new(),
@@ -107,8 +122,19 @@ fn complete_incoming_input(domain: &str, path: &str, current: &str) -> String {
     if domain != "incoming" {
         return current.to_owned();
     }
+    let formatted = formatting_input(path, current);
+    let current = formatted.as_str();
+    let normalized = if path == "src/cleanup_plan/replay/physical_budget.rs" {
+        super::main_e177_final_inputs::value_direct(
+            path,
+            "5ea16ac3902b45761e55635a694339537659ba0c33ad74b695648703c1905224",
+            current,
+        )
+    } else {
+        current.to_owned()
+    };
     let closure92 =
-        super::main7f8_source_inputs::closure92_walk_input("eb2-incoming-live", path, current);
+        super::main7f8_source_inputs::closure92_walk_input("eb2-incoming-live", path, &normalized);
     let acquired = super::main7f8_source_inputs::later_452_input("eb2-incoming", path, &closure92);
     let current = acquired.as_str();
     let presence =
@@ -160,8 +186,13 @@ fn later_incoming_bridges_preserve_complete_original_domains_and_refusals() {
     for row in rows.as_array().unwrap() {
         let path = row["path"].as_str().unwrap();
         let physical = std::fs::read_to_string(root.join(path)).unwrap();
+        let closure92 = super::main7f8_source_inputs::closure92_walk_input(
+            "eb2-incoming-live",
+            path,
+            &physical,
+        );
         let raw = super::main7f8_source_inputs::presence_before_later_inventory(
-            "incoming", path, &physical,
+            "incoming", path, &closure92,
         );
         assert_eq!(digest(&raw), row["current_sha256"]);
         let input = complete_incoming_input("incoming", path, &physical);

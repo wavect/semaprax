@@ -1,5 +1,9 @@
 # Certificate/precision #781 source component
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base: `836150d170dfdd6a9318459773066816ded5ff02`. Source only; no Cargo.
 13 complete before/inverse inputs and nine new Rust owners. Four exact pending
 lib selectors are in pending-selectors.json. Run verify-source.py --repo CHECKOUT.

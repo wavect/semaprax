@@ -1,0 +1,10 @@
+{
+  "scope": "Actual complete workspace integration harness check and Clippy; source-only preservation controls. No full CI pass claimed.",
+  "before_head": "34f19acf30f80bd1198a201c7c3f15fc611c2622",
+  "fix": "Import the root authenticated historical reader into semantic_graph, the parent namespace of the shared main67107_inputs module. This restores the same module resolution used by unit tests.",
+  "all_original_tests_and_inverses_retained": true,
+  "toolchain": "Rust 1.97.1, explicit external SSD toolchain PATH/RUSTC/RUSTDOC",
+  "single_cargo_job": true,
+  "process_tree_cap_MiB": 6144,
+  "minimum_global_headroom_percent": 35
+}

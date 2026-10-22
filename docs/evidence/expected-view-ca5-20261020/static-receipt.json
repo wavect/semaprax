@@ -1,0 +1,9 @@
+{
+  "status": "PASS_EXACT_SOURCE_EDIT_INVERSES",
+  "all_original_test_assertions_hash_pins_and_inverse_bodies_retained": true,
+  "original_low_level_held_reader_and_all_its_refusal_tests_unchanged": true,
+  "changed_Rust_sources": 3,
+  "added_regressions": 1,
+  "all_changes_test_only": true,
+  "no_caps_floors_tariffs_authority_or_backends_changed": true
+}

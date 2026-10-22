@@ -1,5 +1,7 @@
 # Compact residual HIR construction v1
 
+Audience: compiler contributors and reviewers.
+
 Status: source implementation only; executable qualification pending. OPT #855.
 
 `ResolvedResidualType` is a transparent owned Type box. Its raw public HIR field

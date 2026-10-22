@@ -1,0 +1,14 @@
+[
+  {
+    "domain": "hir",
+    "current_identity_refresh_only": [
+      "src/source_reflows_merge/main_e177_overlay_v2.rs"
+    ]
+  },
+  {
+    "domain": "projection",
+    "current_identity_refresh_only": [
+      "src/source_reflows_merge/main_e177_overlay_v2.rs"
+    ]
+  }
+]

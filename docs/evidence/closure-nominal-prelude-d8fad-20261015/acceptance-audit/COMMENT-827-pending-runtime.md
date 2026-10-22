@@ -1,3 +1,9 @@
+# acceptance-audit COMMENT-827-pending-runtime
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 PENDING: do not post before the two parent-approved existing827 bodies run in the actual source-bound supplement. They add ownership-state assertions and alter observer bookkeeping after their last actual historical PASS. The31 other exact owner bodies remain historical/current as individually mapped, not new executions.
 
 The nominal-payload ownership change has executable evidence within this issue’s scope. Complete old/current HIR, diagnostics, public IDs/order, physical allocation and iterative Drop/refusal controls retain their actual historical PASS receipts, including corrected 512-depth disposal. The nominal/index directories and owning resolver files are byte-identical from `3d4b996c` through `7a87b331` and `677e658f`; these historical observations are not being labelled as new runs.

@@ -1,5 +1,9 @@
 # Four observed ae91 source-consumer failures
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only corrective successor to ae91fa963ecfe85f4cc830cda85fff2f5bdbe094. The actual 95-body round produced six failures: the four source failures repaired here and two separately authored foreign-owner controls. This packet archives the four full actual source-failure logs; none is relabeled passing. No Rust build, test, Clippy, binary discovery, or heavy tool was run.
 
 The registry833 and cold835 historical owner loops already reconstructed full original files. Their later child-hash checks still read their newly edited test modules directly. New strict child inputs restore complete Git3d4b test source before those unchanged original hash assertions. No expected hash is replaced. The ordered838 full patch equality lacked the separately archived observer-fix inverse for ordered_weights/tests.rs. Its current40f gateway now authenticates the complete current tests file and restores the entire pre-observer source before both unchanged forward and reverse whole-file patch assertions.

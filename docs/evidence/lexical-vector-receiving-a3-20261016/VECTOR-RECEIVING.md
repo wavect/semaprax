@@ -1,5 +1,9 @@
 # Maina3 vector receiving correction, 2026-10-16 — source-only
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base actual merge16c6b7f56b145ed085e4e7964caa3b1716159375, incoming a3cdfa095db21055558099ecef5e051b8472f6a3. No Rust/Cargo execution. Existing limits unchanged. Complete incoming Main helper/current/before/five bodies remain independently registered.
 
 The existing count/first/single selection remains. One extra false initializer plus held `precharged` bool is admitted by the existing HIR selection payment. For eligible ordinary single outputs, the first borrowed IterMut/next replaces the first original consuming-loop acquisition. It performs the original stopped push work, or original prefix-sharing plus HIR move payment and clone work, before any optional query. The first materialization is recorded once. No Candidate/probe argument or new fallible helper precedes that frontier.

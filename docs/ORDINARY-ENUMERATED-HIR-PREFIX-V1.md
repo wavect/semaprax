@@ -1,5 +1,7 @@
 # Ordinary enumerated HIR prefix storage v1
 
+Audience: compiler contributors and reviewers.
+
 Status: source candidate; compilation, runtime, physical accounting and current
 application qualification pending. This does not promote a completion row.
 

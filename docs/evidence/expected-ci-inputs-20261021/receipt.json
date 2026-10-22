@@ -1,0 +1,16 @@
+{
+  "base_head": "858e78c3e75e89333dbbd7a3549923f32e4bb4c0",
+  "change": "Bind raw current source to an explicitly requested complete historical epoch before the original incoming receiver/projector guards. Already-projected inputs retain the original consumer checks. Correct current344 shared-reader dispatch to the existing crate-level namespace used by both library and workspace integration contexts.",
+  "qualification": "Both formerly failing incoming receiver guards and their mutation/forgery control pass. Fourteen current-source inverses also verify correct target, wrong target and already-projected input behavior. Existing metadata, oracle, overlay, packet, digest and runtime fixture tests pass; focused Clippy denies warnings; both original complete domain verifiers and all six hostile controls pass.",
+  "namespace_regression": "The full actual current344 reader and original sibling modules compile in the workspace-style namespace, without a sibling main_e177_final_inputs module. Its unchanged complete preimage/stale/truncated/historical regression passes in that context (444.09s, sampled peak 56544 KiB). This is not a whole workspace harness or current normal compiler build claim.",
+  "source_roles": "Existing full generation retained with exact body pins and literal edge offsets refreshed; all source memberships, roles, chains and registrations preserved.",
+  "page_bytes": 231701,
+  "rows": 687,
+  "replacements": 138,
+  "additions": 168,
+  "root_source_lines": 1500,
+  "all_work_and_caches_on_external_ssd": true,
+  "production_quotas_backends_goldens_and_original_assertions_unchanged": true,
+  "full_CI_green_not_claimed": true,
+  "known_remaining": "Ten independent source-audit failures share stale raw input tuples, plus runtime G171 limits, native invoices and target loader issues. Their original gates remain required."
+}

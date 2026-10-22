@@ -1,0 +1,15 @@
+{
+  "status": "PASS_ACTUAL_ORIGINAL_BASELINE_REFUSAL_AND_COMPLETE_SOURCE_ORDER_PROOF",
+  "rust_source_lines": {
+    "tests/hir_module_boundaries.rs": 932,
+    "tests/workspace/semantic_graph/source_inventory.rs": 840
+  },
+  "original_prefix_and_hostile_test_sources_byte_identical": true,
+  "ordinary_runtime_implementation_unchanged": true,
+  "all_original_fragments_and_multiplicities_preserved": true,
+  "all_other_fragment_relative_order_preserved": true,
+  "private_layout_capacity_table_namespace_unchanged": true,
+  "no_runtime_caps_floors_or_work_limits_changed": true,
+  "full_owning_hir_suite_requires_new_source_metadata_before_execution": true,
+  "normal_main_compiler_23b2_is_unchanged_by_test_inventory_reordering": true
+}

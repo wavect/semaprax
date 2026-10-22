@@ -1,0 +1,6 @@
+
+running 1 test
+test source_reflows::incoming67107_semantic_receivers::ordinary_setup_complete_sources_and_original_legacy_constructor_remain_exact ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 276 filtered out; finished in 3.84s
+

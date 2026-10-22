@@ -1,5 +1,9 @@
 # Prepaid short plan copies
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The exact prior native preparation trace refused a 3159-byte direct branch-copy receiving bank at replay.rs:6915. The full immediate root has identical bytes at this baseline. For short histories, even reducing doubled backing to len+1 cannot cover the additional direct-call and query controls. The current two-edge/spare route may instead run the complete original inline clone producer with its full unchanged fee bank. The moved uninitialized Vec, payer call/inequality and length predicate are acquired in the initial selection bank. The remaining backing, payload conversion and original clone/push work are still paid in order. The large-history direct query is unchanged. This changes a storage strategy, never an admission ceiling, cap, allowance, forecast or refund.
 
 The whole older 746-line oracle remains an exact prefix; the complete immediate 603-line producer remains independently compiled with only a private name change. Every original direct test remains an exact source prefix. New owning tests compare full paths, both work accounts, materialization events, complete six-field work refusals, complete allocation/Drop and exact/short/floor/sticky byte frontiers. These new runtime tests are authored but have not run locally under the 200 MiB constraint. The inline Vec can retain more spare backing than the query would choose; no universal heap, RSS or application-fit improvement is claimed.

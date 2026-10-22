@@ -1,5 +1,9 @@
 # 828: wait for one existing positive runtime owner
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The live body requires complete ownership/parity/frontier evidence and original
 application execution with failures disclosed. It does not require positive
 application-cap recovery. Existing actual historical base/extension/nominal and

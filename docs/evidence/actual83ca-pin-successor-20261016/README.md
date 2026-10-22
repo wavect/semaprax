@@ -1,5 +1,9 @@
 # Actual83ca managed/browser pin successor
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Producer source: `83ca0e105e5f4eb6336ed04ff80df6ad0366e99f`.
 Three serial producer-capable builds PASS; zero owning bodies in that build phase.
 All actual artifacts, source manifests, guards, group settlements and raw logs

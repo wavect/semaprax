@@ -1,5 +1,9 @@
 # OPT836 independent source review
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Reviewed 2026-10-15. Frontend/interpreter immutable chain: base e3eb476838442b58c02ccc815aae4bbdfebfd50e, 2677c34b3, 4855f3363e9f6db449433167e789c840203503d1, 6a3f309d101f84ad8a6673233eec474b83877156. Backend delta: a4c91d7aa..186854fff7cc556ac1852019f39420094adc9996. The backend interface parent is equivalent to 2677, not a second frontend adoption.
 
 Source-only review. No Cargo, build, tests, Clippy, benchmark, external model, paid call, GitHub comment or implementation edit. Static Graft cards in the supplied ROOT were consulted before bounded owning source. CLI Graft was not run. No compilation or execution approval is implied.

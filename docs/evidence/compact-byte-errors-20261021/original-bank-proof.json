@@ -1,0 +1,26 @@
+[
+  {
+    "source": "src/cleanup_plan/replay/branch_clone.rs",
+    "function": "inline_controls",
+    "entire_original_fee_body_retained_exact": true,
+    "sha256": "c1ae53cede692cf592e1678fb210c12b626fc228f7f518a6e87e2beb6f47b481"
+  },
+  {
+    "source": "src/cleanup_plan/replay/branch_clone.rs",
+    "function": "controls",
+    "entire_original_fee_body_retained_exact": true,
+    "sha256": "c4b1f44bd7624c4562b66bbd900dce7e42873d066d414645a1245164a5dd0cd5"
+  },
+  {
+    "source": "src/cleanup_plan/replay/branch_clone/direct.rs",
+    "function": "inline_controls",
+    "entire_original_fee_body_retained_exact": true,
+    "sha256": "1a7259040ff3af5ebf5cfc64667486a9081aeb4a7bc2cb8269603fda49784f9d"
+  },
+  {
+    "source": "src/cleanup_plan/replay/branch_clone/direct.rs",
+    "function": "small_inline_controls",
+    "entire_original_fee_body_retained_exact": true,
+    "sha256": "af9b99c74fcdebaefd6b16a3c9d49699e21c8ee5376e7af342e22e5bcc8766fb"
+  }
+]

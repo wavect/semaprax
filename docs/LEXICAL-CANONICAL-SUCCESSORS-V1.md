@@ -1,5 +1,9 @@
 # Lexical canonical successors v1
 
+Status: private source contract; executable qualification is pending.
+
+Audience: compiler contributors and reviewers.
+
 This source-only #884 candidate retains primitive receiving frames in the actual
 ordinary canonical traversal. Compilation, focused execution, application fit,
 and measured savings are pending. It changes neither language semantics nor

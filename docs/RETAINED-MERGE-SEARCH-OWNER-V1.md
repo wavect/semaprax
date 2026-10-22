@@ -1,5 +1,7 @@
 # Retained merge search owner v1 (#881)
 
+Audience: compiler contributors and reviewers.
+
 Status: isolated source candidate; no compiler, focused runtime, physical gain,
 application fit, pin update or closure claim. All existing limits remain fixed.
 

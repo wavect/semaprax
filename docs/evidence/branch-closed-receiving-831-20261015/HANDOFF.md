@@ -1,5 +1,9 @@
 # Branch-local closed owners (#831), source-only
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base e93f7169240520ad18613d38f3c51795ae696bfc. No ROOT changes, Cargo,
 compiler, Rust tests, Node or Clippy execution. This candidate removes a real
 constructor; it does not establish strict #831 acceptance or recover an app.

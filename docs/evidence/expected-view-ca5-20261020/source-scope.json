@@ -1,0 +1,14 @@
+{
+  "base": "ca5ffe48d442e59679eee2160f1903ceeae023c6",
+  "source_inputs": [
+    "src/source_reflows_merge.rs",
+    "src/source_reflows/semantic_receivers.rs",
+    "src/source_reflows/incoming67107_semantic_receivers.rs",
+    "CHANGELOG.md"
+  ],
+  "behavior": "Test-only whole-source namespace acquisition at existing historical receiver boundaries.",
+  "production_code_changed": false,
+  "retained": "Every original source assertion, inverse, known hash and low-level reader predicate.",
+  "new_views": "Five exact current images from the unchanged sealed MAIN34d manifest.",
+  "hosted_CI_pending": true
+}

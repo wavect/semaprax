@@ -1,5 +1,9 @@
 # Singleton weighted successor targets (#831)
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only successor on a417 plus ready827fixes; no Cargo/build/runtime. Each label's first actual move creates paid One(child,weight). A repeated same child keeps the original inline checked_add/overflow order, with no new per-repeat helper Result. A second distinct child pays its full new promotion controls and both old tree-node inserts BEFORE any tree allocation, then retains the existing sorted Many map. Many repeated/new-child addition order is unchanged.
 
 The outer label node uses full NEW Targets value layout; new initialized map/enum/helper/Option/Result/iterator/receiving carriers are paid separately. No old header credit, refund, quota/work/forecast change. One uses exact one-entry Vec capacity plus the existing paid Rc owner; old weighted_successor(BTreeMap) and all0..4 exact requested layouts remain unchanged. Targets stores no authority: actual call remains inside the same function/budget/ledger-authenticated canonical receiver.

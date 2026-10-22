@@ -1,5 +1,9 @@
 # Current-cutoff OPT838 whole-input adapter
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Basis:2b5cae170e13b16c4a5f57a619b302405e2934a6. Immutable expected source checkpoint:40f77262950e9dc4bb1da6626f441f2f504cfe59. External source-only candidate; no ROOT edits or Cargo/tests/build/Clippy/Node/Claude.
 
 Exactly four distinct source inputs drifted: HIR module boundary inventory, semantic_graph source_inventory, epsilon_alias/tests.rs and ARCHITECTURE.md. Runtime-projections.json binds each full current input to complete immutable40f bytes, with both hashes and full inverse. It is a protected runtime input and MUST NOT be physically recomposed or have its current hash rebound to an earlier domain. Keep local addition history separate from active physical rows.

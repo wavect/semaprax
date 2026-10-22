@@ -1,5 +1,7 @@
 # Transient owned-function directory v1
 
+Audience: compiler contributors and reviewers.
+
 Status: private source implementation and focused regressions authored;
 compiler/type checking and executable qualification pending. This is a bounded
 OPT847 representation change, not renamed-alias support or application fit.

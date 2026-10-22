@@ -51,3 +51,7 @@ docs/evidence/prelude-fixture-source-guard-4ec/historical-owning-selected-90.log
 
 # Preserve the actual old/current forecast comparison failure receipt.
 docs/evidence/core-proof-prelude-forecast-correction-4ec/historical-owning-selected-167.log -text -whitespace
+
+# Extensionless content-addressed source images retain their exact pinned bytes.
+e/** -text
+docs/evidence/w/** -text

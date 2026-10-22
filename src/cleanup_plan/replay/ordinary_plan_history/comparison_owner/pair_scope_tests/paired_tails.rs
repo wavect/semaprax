@@ -94,7 +94,7 @@ fn paired_tail_storage_invoice_contains_every_original_owner_field() {
 }
 #[test]
 fn paired_tail_complete_values_keep_every_883_work_cut_and_diagnostic() {
-    let program = super::super::super::super::tests::program();
+    let program = crate::cleanup_plan::replay::ordinary_plan_history::tests::program();
     let function = program
         .functions
         .iter()

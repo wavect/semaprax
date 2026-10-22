@@ -1,5 +1,9 @@
 # Cached-prelude report observer distinction (#796)
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only test observer correction based on 2cf33c156735bc644b933cd5a4c1e0f891649b9b. No production behavior or accounting change; no Cargo, test, build or Clippy executed.
 
 The d8 actual two cache attribution owners failed at the old no-acquisition assertion: 9 observed versus 6 before warm replay. The existing replay_cached_prelude actually acquires a report owner for each warm module. The earlier d20 observer repair made those existing acquisitions visible; hiding them would make the observer false. Both actual failed receipts/logs remain in /Volumes/Semaprax/provenance/closure-cache-d8fad-three-actual-20261015 and are not reclassified.

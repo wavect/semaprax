@@ -1,5 +1,9 @@
 # Source36 current-view adapter after actual 23e8 compiler corrections
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Basis: `2e116e4f243e161dff5a8cbc335ed71418cf74d7`. Source-only work; no Rust compilation or execution, tests, Clippy, registration binary, or global metadata composition.
 
 The initial census evaluated all 34 a/b source comparisons independently and found exactly two drifts: `src/string_ops.rs` and `src/string_ops/conditions.rs`. Their new named views restore complete immutable `23e8f1d0a67cb2657bb4cdc963a2a2828c523c7c` bytes before every existing undo/count/assertion. The combined JSON retains the prior two records exactly and adds only these two records. The actual Rust helper authenticates complete current and original source hashes and the unique complete inverse as before.

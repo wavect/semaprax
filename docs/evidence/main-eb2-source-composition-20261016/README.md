@@ -1,5 +1,9 @@
 # Incoming main eb2 complete-source composition
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only continuation of true merge92e9047 (parentsd713 and actualmaineb2c6d853). No production algorithm changes. Complete merged preimages, incoming capsule sources and assertion bodies remain authenticated; original inverse recipes still run unchanged after the named complete-input views.
 
 The15 finite choices comprise11 incoming whole-source inputs and4 explicit presence inputs (two paths, current-raw and retained historical-CI endpoints). Presence composition occurs only at its owning reader after the existing CI projection, before the unchanged incoming full inverse. Every path/domain/current SHA and complete target SHA is closed. The presence archive retains every prior before SHA and old inverse entry; the compact cursor adds its exact incoming inverse. These views never replace raw source audits.

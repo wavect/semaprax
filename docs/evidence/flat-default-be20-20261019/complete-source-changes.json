@@ -1,0 +1,67 @@
+[
+  {
+    "source": "src/cleanup_plan/replay/ordinary_plan_history.rs",
+    "before": {
+      "length": 18812,
+      "sha256": "0fb0e0b5e6fa8ae948bdcd68f441253e4314cd82ec77c48326b3d151e1c3889c",
+      "archive": "docs/evidence/flat-default-be20-20261019/whole/0fb0e0b5e6fa8ae948bdcd68f441253e4314cd82ec77c48326b3d151e1c3889c.txt"
+    },
+    "current": {
+      "length": 19991,
+      "sha256": "b6b728c5226cd8c7b6cac5e470a385095bb4f852e8f8879c5942145ace41466d",
+      "archive": "docs/evidence/flat-default-be20-20261019/whole/b6b728c5226cd8c7b6cac5e470a385095bb4f852e8f8879c5942145ace41466d.txt"
+    }
+  },
+  {
+    "source": "src/cleanup_plan/replay/ordinary_plan_history/tests.rs",
+    "before": {
+      "length": 9412,
+      "sha256": "c60b4814141b9467b3dfcd22f496f918c24d871d2343c2388b3fccafcaee40c4",
+      "archive": "docs/evidence/flat-default-be20-20261019/whole/c60b4814141b9467b3dfcd22f496f918c24d871d2343c2388b3fccafcaee40c4.txt"
+    },
+    "current": {
+      "length": 10497,
+      "sha256": "432c69e344c5748c134fd8a8ee80b4de7e1f39d5108c44a7ba88878eda9348d9",
+      "archive": "docs/evidence/flat-default-be20-20261019/whole/432c69e344c5748c134fd8a8ee80b4de7e1f39d5108c44a7ba88878eda9348d9.txt"
+    }
+  },
+  {
+    "source": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
+    "before": {
+      "length": 47197,
+      "sha256": "620ec9cd5b9519d9d0514ba6536f924d5a8e6f6ba7274ea8b6b887c1cddf490a",
+      "archive": "docs/evidence/flat-default-be20-20261019/whole/620ec9cd5b9519d9d0514ba6536f924d5a8e6f6ba7274ea8b6b887c1cddf490a.txt"
+    },
+    "current": {
+      "length": 47260,
+      "sha256": "98f113a569b64477ab45ee92c098718a210be1ff5df65b96fa38afa3f5fafe57",
+      "archive": "docs/evidence/flat-default-be20-20261019/whole/98f113a569b64477ab45ee92c098718a210be1ff5df65b96fa38afa3f5fafe57.txt"
+    }
+  },
+  {
+    "source": "CHANGELOG.md",
+    "before": {
+      "length": 583473,
+      "sha256": "48b2bb47eca6d764a0860320d10cadd37083a363b6c667ffe3096dce49efabde",
+      "archive": "docs/evidence/flat-default-be20-20261019/whole/48b2bb47eca6d764a0860320d10cadd37083a363b6c667ffe3096dce49efabde.txt"
+    },
+    "current": {
+      "length": 583854,
+      "sha256": "c1603104c464539983a854c74143dd54726fd2a696a5f007da0dd2d8ea660072",
+      "archive": "docs/evidence/flat-default-be20-20261019/whole/c1603104c464539983a854c74143dd54726fd2a696a5f007da0dd2d8ea660072.txt"
+    }
+  },
+  {
+    "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/source_format.rs",
+    "before": {
+      "length": 51240,
+      "sha256": "b71aa66664f48cf9c5d107007a6b50fa8303f275973f6c30c211e3a26da80678",
+      "archive": "docs/evidence/flat-default-be20-20261019/whole/b71aa66664f48cf9c5d107007a6b50fa8303f275973f6c30c211e3a26da80678.txt"
+    },
+    "current": {
+      "length": 54054,
+      "sha256": "a68251696a3d686463b3089406c0f2d285d28eea7a8ebb22e2cdb47105d2ebe0",
+      "archive": "docs/evidence/flat-default-be20-20261019/whole/a68251696a3d686463b3089406c0f2d285d28eea7a8ebb22e2cdb47105d2ebe0.txt"
+    }
+  }
+]

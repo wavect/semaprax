@@ -1,0 +1,17 @@
+# Lexical canonical child scratch, source candidate
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
+Base: `deec161142b2f3e882e50b4450338c69c137e586`. Actual deec whole-arena duplicate owner reserved 4,513,594 bytes before versus 4,517,140 current, allocated 745,221 versus 655,701, with complete Drop. This candidate is unexecuted. The unchanged strict owner determines whether the remaining deficit is removed.
+
+The nonempty canonical Exit currently calls `reserve_vec` through a Diagnostic-bearing forwarding Result. The lexical macro performs the same complete preparation algorithm directly in the existing unit-returning producer and publishes failure into its existing held receiving slot. It removes that one actual outer `Result<(), Diagnostic>`. It retains all allocator operations, growth arithmetic, authentication, zero-byte reservation, nested Result values and their prices. No work debit, owner layout, constructor fee, cap, allocator rule, cache key or strict assertion changes.
+
+The existing `EXIT_CONTROLS` remains byte exact. A distinct literal `LEXICAL_EXIT_CONTROLS` copies all its terms, with two real unit Results rather than three. The caller pays this entire inventory before clearing scratch or entering the macro. This is the disappearance of an actual forwarding value, not a refund or borrowed old-bank credit. The macro has no runtime helper ABI. Its `additional` scalar replaces the original evaluated argument/formal and is formed after the payment. Its payer query and required/capacity predicates are the original reserve_vec operations. Required/target arithmetic, closure results, reserve_array and allocator-error Results are unchanged. Replacing the original final capacity-error outer Err with assignment to the existing receiving.refusal removes the same outer carrier on that exit as on success.
+
+The complete deec entry, receiving wrapper and inner producer compile independently in `lexical_child_scratch/before.rs`. Only method names/calls and private method visibility change. The baseline uses the unchanged original `reserve_vec` and original EXIT price; it is not enlarged by this candidate. The whole old physical-budget module is archived here. The two modified files have complete before/current images and strict complete inverses. `arena_tests.rs`, `before_arena.rs`, the original prices and all #874 authentication controls remain unchanged.
+
+Two new existing-lib-harness owners compare all three existing arena shapes against the immediate deec producer, exact signatures/IDs/work, actual allocation/free/highwater metrics, all six diagnostic fields, repeated physical refusal and complete Drop. The full-success difference must equal exactly one absent Result per nonempty Exit. Fixed byte cuts include zero, below exact and exact; logical work cuts retain complete first-error comparisons. These controls have only been parsed, not typechecked or executed. The original strict whole-arena test must also execute unchanged.
+
+Three new Rust modules require joining every applicable raw-source/MAIN043 inventory in the later single source-coupling batch. This lane does not refresh source bindings or claim qualification.

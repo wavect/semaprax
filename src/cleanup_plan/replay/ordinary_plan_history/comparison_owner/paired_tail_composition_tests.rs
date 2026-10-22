@@ -119,8 +119,8 @@ fn paired_tail_composition_keeps_complete_real_generations_and_typed_invoices() 
                     current.row,
                     main.row
                 );
-                assert_eq!(old.observed.0.0, current.observed.0.0);
-                assert_eq!(main.observed.0.0, current.observed.0.0);
+                assert_eq!(old.observed.0 .0, current.observed.0 .0);
+                assert_eq!(main.observed.0 .0, current.observed.0 .0);
                 assert_eq!(swaps(&old), swaps(&current));
                 assert_eq!(swaps(&main), swaps(&current));
                 assert!(old.row.complete && main.row.complete && current.row.complete);
@@ -195,7 +195,7 @@ fn paired_tail_composition_preserves_every_individual_work_cut_and_six_field_ref
             false,
             true,
         );
-        for units in 0..=MAX_REPLAY_WORK_UNITS - full.observed.0.0.remaining {
+        for units in 0..=MAX_REPLAY_WORK_UNITS - full.observed.0 .0.remaining {
             let old = tail_run(
                 function,
                 5,
@@ -233,11 +233,11 @@ fn paired_tail_composition_preserves_every_individual_work_cut_and_six_field_ref
                 true,
             );
             assert_eq!(
-                old.observed.0.0, current.observed.0.0,
+                old.observed.0 .0, current.observed.0 .0,
                 "shape={shape} fault={fault} units={units}"
             );
             assert_eq!(
-                main.observed.0.0, current.observed.0.0,
+                main.observed.0 .0, current.observed.0 .0,
                 "pure main shape={shape} fault={fault} units={units}"
             );
             assert_eq!(swaps(&old), swaps(&current));
@@ -261,7 +261,7 @@ fn paired_tail_composition_exact_short_zero_floor_and_sticky_banks_keep_full_dro
         false,
         false,
     );
-    assert!(success.observed.0.0.result.is_ok() && success.row.complete);
+    assert!(success.observed.0 .0.result.is_ok() && success.row.complete);
     for (phase, count, price) in [
         (
             "ordinary plan paired tail selection",
@@ -299,8 +299,8 @@ fn paired_tail_composition_exact_short_zero_floor_and_sticky_banks_keep_full_dro
                     false,
                     false,
                 );
-                assert!(r.observed.1 && r.observed.0.0.result.is_err() && !r.row.complete);
-                assert!(r.observed.0.0.retry.is_some());
+                assert!(r.observed.1 && r.observed.0 .0.result.is_err() && !r.row.complete);
+                assert!(r.observed.0 .0.retry.is_some());
                 if limit != 0 {
                     let refusal = r.observed.3.unwrap();
                     assert_eq!(refusal.requested, price);
@@ -320,11 +320,10 @@ fn paired_tail_composition_exact_short_zero_floor_and_sticky_banks_keep_full_dro
                 false,
                 false,
             );
-            assert!(
-                exact.events.iter().any(|e| e.phase == phase
-                    && e.before == event.before
-                    && e.after == Some(after))
-            );
+            assert!(exact
+                .events
+                .iter()
+                .any(|e| e.phase == phase && e.before == event.before && e.after == Some(after)));
         }
     }
 }
@@ -439,7 +438,7 @@ fn paired_tail_composition_feature_counts_actual_admitted_banks_and_each_work_fr
         true,
     );
     let report = capture.finish().unwrap();
-    assert!(r.row.complete && r.observed.0.0.result.is_ok());
+    assert!(r.row.complete && r.observed.0 .0.result.is_ok());
     assert!(
         report.counts_complete
             && report.detail_complete
@@ -474,7 +473,7 @@ fn paired_tail_composition_feature_counts_actual_admitted_banks_and_each_work_fr
         );
     }
     let mut partial_work = false;
-    for units in 0..=(MAX_REPLAY_WORK_UNITS - r.observed.0.0.remaining) {
+    for units in 0..=(MAX_REPLAY_WORK_UNITS - r.observed.0 .0.remaining) {
         let capture =
             Capture::begin(Binding::caller_labelled("paired tail work-cut", [0; 32])).unwrap();
         let prefix = tail_run(function, 0, 4, 6, 0, units, usize::MAX, 0, false, true);
@@ -506,7 +505,7 @@ fn paired_tail_composition_feature_counts_actual_admitted_banks_and_each_work_fr
                 (count * amount) as u64
             );
         }
-        partial_work |= prefix.row.tail_work > 0 && prefix.observed.0.0.result.is_err();
+        partial_work |= prefix.row.tail_work > 0 && prefix.observed.0 .0.result.is_err();
     }
     assert!(
         partial_work,

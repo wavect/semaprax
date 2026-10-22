@@ -1,0 +1,7 @@
+{
+  "function": "complete_frozen_function_receiver_is_exact_named_projection_with_original_digest",
+  "source": "src/hir/validation/function_scope/lifecycle/completed/tests.rs",
+  "original_function_sha256": "552c9f6ec3e81cefa3de098613b9f13c241c78d3589207aa045fa6af17935391",
+  "only_path_resolution_changed": true,
+  "exact_inverse_proved": true
+}

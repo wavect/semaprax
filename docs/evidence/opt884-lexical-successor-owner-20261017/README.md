@@ -1,5 +1,9 @@
 # #884 source checkpoint
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 SOURCE ONLY: not compiled, registered, run, adopted, or measured. The baseline
 is complete shipping a6c92a197a21ed3e8c67c842b20886f2240cb0e2, never the
 unpublished #883 experiments. See the owning versioned specification and

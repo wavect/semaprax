@@ -1,0 +1,15 @@
+#![allow(dead_code,unused_imports,unused_variables,unused_mut,unused_macros)]
+#[path="/Volumes/Semaprax/worktrees/ci-format-26eeb/src/digest_hex.rs"] mod digest_hex;
+#[path="/Volumes/Semaprax/worktrees/ci-format-26eeb/src/test_allocation_observer/backing.rs"] mod test_allocation_observer;
+mod source_reflows_merge {
+#[path="/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows_merge/runtime_json/sealed_io.rs"] mod runtime_json;
+#[path="/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows_merge/main_e177_final_inputs.rs"] pub(crate) mod main_e177_final_inputs;
+#[path="/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows_merge/next_big_batch_inputs.rs"] pub(crate) mod next_big_batch_inputs;
+#[path="/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows_merge/final_ready_inputs.rs"] pub(crate) mod final_ready_inputs;
+#[path="/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows_merge/ordinary_plan_inputs.rs"] pub(crate) mod ordinary_plan_inputs;
+#[path="/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows_merge/main67107_inputs.rs"] pub(crate) mod main67107_inputs;
+#[path="/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows_merge/opt858_sequence_input.rs"] pub(crate) mod opt858_sequence_input;
+#[path="/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows_merge/main99f_inputs.rs"] pub(crate) mod main99f_inputs;
+#[path="/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows_merge/main_e177_inputs.rs"] pub(crate) mod main_e177_inputs;
+#[path="/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows_merge/main_c883_inputs.rs"] pub(crate) mod main_c883_inputs;
+}

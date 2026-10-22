@@ -1,3 +1,9 @@
+# producer-mainb80-closure3-retry1-20261016 READY
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Fresh authorized final-source preparation: 3 exact bodies/2 roles; THREE original sequential unit-first producer commands, jobs1/CGU64/debug0. Six drivers byte-exact original. All previous scopes and failures remain separate. Nothing executed.
 
 Parent reviews then launches:

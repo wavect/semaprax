@@ -1,3 +1,9 @@
+# review DISPOSITION
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 One9790-byte tools-disabled Sonnet source review completed59.1573s,320061440-byte peak,exit0. claude-sonnet-5-5 reported list-price$0.0906549; actual billing unknown. No runtime/final approval.
 
 Initial prototype had add()->Result<bool,Diagnostic> with new per-repeat paid receiving carrier. Review correctly identified changed refusal-before-overflow and repeated fee overhead. Corrected AFTER review: repeated-One and Many accumulation stay inline in actual successors under its existing Result. No new per-repeat helper/Result construction remains. Only distinct-child promotion has a new paid helper; zero-plus-new-weight cannot overflow. Checked addition/overflow now has the old ordering against later target acquisition. Full outer map/new value layout/initializer/receiving/finish/promotion carriers remain paid; no fee exemption.

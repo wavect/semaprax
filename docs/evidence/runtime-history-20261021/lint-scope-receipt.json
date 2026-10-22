@@ -1,0 +1,21 @@
+{
+  "status": "ACTUAL_SCOPED_ATTRIBUTES_ACCEPTED",
+  "actual_attribute_sha256": "c2bd7f6d8bb8dc35ba93e2d593f26b4624a2ef948fa0dd56533e86151f1ebccc",
+  "negative_shape_lints_observed": [
+    "too_many_arguments",
+    "manual_bits",
+    "items_after_test_module",
+    "assertions_on_constants"
+  ],
+  "scope": "Small compiler diagnostic shapes with the actual comparison module attributes; no full Root Clippy claim.",
+  "results": [
+    {
+      "name": "before",
+      "exit": 1
+    },
+    {
+      "name": "current",
+      "exit": 0
+    }
+  ]
+}

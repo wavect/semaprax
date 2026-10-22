@@ -1,5 +1,9 @@
 # PaidMany raw3 definition generation
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The prior raw3 generation remains unchanged. This distinct packet authenticates
 the three actual raw inventories after the two lexical child registrations.
 Only their full length/SHA pairs change in the copied seal. The fixed original

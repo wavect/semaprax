@@ -1,5 +1,9 @@
 # Matched OPT884 marginal equation and actual current composition
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 SOURCE ONLY. No tests, Cargo, build or final metadata execution.
 
 The original OPT884 whole before_lexical_successors owner and original numeric

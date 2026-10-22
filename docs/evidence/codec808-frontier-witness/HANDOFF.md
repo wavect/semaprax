@@ -1,5 +1,9 @@
 # OPT808 actual preparation diagnostic witness
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only, unexecuted, based4f8f598c7935d0a5cdd4a5d5ba5b49d164ae2cfc. No Cargo/build/test/runtime. One new cfg(test) library selector; no production telemetry/schema/fees/authority changes. Original seven integration owners untouched.
 
 IMPORTANT: cfg(test) library compiles complete independent old replay/cross-checks. Original integration owners link a non-cfg(test) library. The witness uses identical source/manifest/project call sequence, but may select a DIFFERENT budget frontier. No original failure has been attributed to an inner operation yet. Matching same-head numeric receipt/stage is necessary but not sufficient; exact source receiver/path and unambiguous same-owner operation evidence are required. If trace differs/absent/ambiguous, it is diagnostic-only; do not skip any oracle to force equality. A separately authorized outside scratch instrumented production-linked attempt is the fallback.

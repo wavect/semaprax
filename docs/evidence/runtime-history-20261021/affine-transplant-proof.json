@@ -1,0 +1,23 @@
+[
+  {
+    "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/final_affine_tests.rs",
+    "function": "whole_before",
+    "original_sha256": "506c17fca278dc6988221a793d7b2c2a32b2bdc985aa178c51bf93d3f7a57fdc",
+    "path_only_transplant_sha256": "466e9226d48d68d5b4d411dcdbc658b447f9623a389db371db66fa74ece2fdf6",
+    "exact_inverse_proved": true
+  },
+  {
+    "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/final_affine_tests.rs",
+    "function": "restore_exact_preformat_source",
+    "original_sha256": "7b93a4e7a72355fbe7635c1d7a5889b1ba9b94a48dcd7280aea1b5958f113418",
+    "path_only_transplant_sha256": "7b93a4e7a72355fbe7635c1d7a5889b1ba9b94a48dcd7280aea1b5958f113418",
+    "exact_inverse_proved": true
+  },
+  {
+    "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/final_affine_tests.rs",
+    "function": "affine_final_hir_preserves_entire_immediate_comparator_four_macros_and_all_old_source_guards",
+    "original_sha256": "f66c0f07dc432d0a1a991dce1bcc7362e770aad6daade04168a5dd01fd1a2fce",
+    "path_only_transplant_sha256": "33a79f2bcecd806809fbdb5fd60f5921908c66ec807d62035e13e6e21db28e62",
+    "exact_inverse_proved": true
+  }
+]

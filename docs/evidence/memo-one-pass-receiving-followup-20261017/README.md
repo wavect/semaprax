@@ -1,5 +1,9 @@
 # One-pass receiving and actual-composition follow-up
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 SOURCE ONLY; no Cargo/compiler/test/generator execution. Immediate predecessor87bd is retained whole with an exact fixed-file inverse. The original deec algorithms, prices and assertions remain untouched; no old baseline fee is increased, refunded or discounted.
 
 Fixes: physical_storage is imported only under cfg(test). Actual second distinct target promotion restores note_branch(true) immediately before the real paidMany::promote, after payment; no probe/failed acquisition manufactures a branch count. Distinct consuming publication now pays full new/received OnePassLabels, map, One tuple, Targets and borrowed-label bindings BEFORE match labels can move either payload. These are additional roles distinct from initial Empty construction.

@@ -77,10 +77,18 @@ fn digest(source: &str) -> String {
 }
 
 pub(super) fn invert_ordinary(proof: &serde_json::Value, current: &str) -> String {
+    let current_view = crate::source_reflows_merge::main_e177_final_inputs::value(
+        proof["path"].as_str().unwrap(),
+        proof["after_sha256"].as_str().unwrap(),
+        current,
+    );
+    let current = current_view.as_str();
     // Only these nine exact Main67107 entry tuples changed after this packet.
     // The full existing MAIN21 acquisition and every inverse below still run.
     let path = proof["path"].as_str().unwrap();
     let expected = proof["after_sha256"].as_str().unwrap();
+    let legacy = super::legacy_ci_expected_input(path, expected, current);
+    let current = legacy.as_ref();
     let entry = match (path, expected) {
         (
             "src/cleanup_plan/replay.rs",
@@ -364,7 +372,22 @@ fn followup_input(path: &str, current: &str) -> String {
         }
         _ => panic!("foreign MAIN followup source"),
     };
-    crate::source_reflows_merge::main67107_inputs::project(domain, current)
+    let registered =
+        if path == "src/workspace_graph/expected_projection/import_stub/core_proofs/tests.rs" {
+            crate::source_reflows_merge::main_e177_final_inputs::value(
+                path,
+                "bf59d79e6bcd513cf071c52112ded222e4561c785389f2723684d072c15d0fc2",
+                current,
+            )
+        } else {
+            current.to_owned()
+        };
+    let incoming = crate::source_reflows_merge::main67107_inputs::project(domain, &registered);
+    if path == "src/source_reflows/semantic_receivers.rs" {
+        crate::source_reflows_merge::complete_receiver_followup(&incoming)
+    } else {
+        incoming
+    }
 }
 
 #[test]
@@ -571,6 +594,12 @@ fn main34d_entry<'a>(
     entries[0]
 }
 fn main34d_project_entry(entry: &serde_json::Value, current: &str) -> String {
+    let current_view = crate::source_reflows_merge::main_e177_final_inputs::value(
+        entry["path"].as_str().unwrap(),
+        entry["current_sha256"].as_str().unwrap(),
+        current,
+    );
+    let current = current_view.as_str();
     assert_eq!(current.len() as u64, entry["current_len"].as_u64().unwrap());
     assert_eq!(digest(current), entry["current_sha256"]);
     let inverse = entry["whole_source_inverse"].as_array().unwrap();
@@ -602,12 +631,13 @@ pub(super) fn main34d_read(domain: &str, path: &Path) -> std::io::Result<String>
     let relative = relative.to_str().unwrap();
     let manifest = main34d_manifest();
     let entry = main34d_entry(&manifest, domain, relative);
-    let current = main34d_file(
-        path,
-        usize::try_from(entry["current_len"].as_u64().unwrap()).unwrap(),
-        entry["current_sha256"].as_str().unwrap(),
-    )
-    .expect("complete current raw MAIN input");
+    let length = usize::try_from(entry["current_len"].as_u64().unwrap()).unwrap();
+    let expected = entry["current_sha256"].as_str().unwrap();
+    assert!(length <= MAIN34D_CAP);
+    let current = crate::source_reflows_merge::main_e177_final_inputs::file(path, length, expected)
+        .map(Ok)
+        .unwrap_or_else(|| main34d_file(path, length, expected))
+        .expect("complete current raw MAIN input");
     Ok(main34d_project_entry(entry, &current))
 }
 pub(super) fn main34d_proofs() -> Vec<serde_json::Value> {
@@ -875,12 +905,13 @@ pub(super) fn mainbcc_read(path: &Path) -> std::io::Result<String> {
     let relative = path.strip_prefix(root).unwrap().to_str().unwrap();
     let manifest = mainbcc_manifest();
     let entry = mainbcc_entry(&manifest, relative);
-    let raw = main34d_file(
-        path,
-        usize::try_from(entry["current_len"].as_u64().unwrap()).unwrap(),
-        entry["current_sha256"].as_str().unwrap(),
-    )
-    .unwrap();
+    let length = usize::try_from(entry["current_len"].as_u64().unwrap()).unwrap();
+    let expected = entry["current_sha256"].as_str().unwrap();
+    assert!(length <= MAINBCC_CAP);
+    let raw = crate::source_reflows_merge::main_e177_final_inputs::file(path, length, expected)
+        .map(Ok)
+        .unwrap_or_else(|| main34d_file(path, length, expected))
+        .unwrap();
     Ok(main34d_project_entry(entry, &raw))
 }
 pub(super) fn mainbcc_invert(proof: &serde_json::Value, current: &str) -> String {

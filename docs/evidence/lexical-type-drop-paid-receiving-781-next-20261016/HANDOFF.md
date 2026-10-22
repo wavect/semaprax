@@ -1,5 +1,9 @@
 # Lexical selected type/drop #781 source component
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base3ef05f1c0c15f6f39019d3ed9794b1ee25941734; source-only, no Cargo.
 Nine complete before/inverse inputs, five new Rust owners, five whole immutable
 query-source archives, four pending lib owner tuples. Run verify-source.py.

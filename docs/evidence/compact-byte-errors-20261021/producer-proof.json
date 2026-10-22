@@ -1,0 +1,68 @@
+{
+  "status": "COMPLETE_PRODUCER_BODY_PROTOCOL_EQUIVALENCE_PASS",
+  "source": "src/cleanup_plan/replay/physical_budget.rs",
+  "current_source_sha256": "9acc129cf5a61a2aa7df75fa4d8fbed3c711ca3c8e51a9aa7f4878d716ca30ff",
+  "whole_original_impl_retained_verbatim": true,
+  "original_whole_source_sha256": "605546886e67904b9a9cb5bb5509ec1841b51eb9fd56aa95838ca1d24526b98f",
+  "root_work_source_sha256": "cc999fb9034687101cb5d34db54ed4ea58289ac6d9f9f7fae9f53e693231f74a",
+  "pairs": [
+    {
+      "original": "reserve_bytes",
+      "compact": "reserve_compact_bytes",
+      "all_tokens_equal_after_only_private_ABI_changes_and_optional_refusal_call_trailing_commas": true,
+      "all_complete_string_literals_exact": true,
+      "original_body_sha256": "dd12bd9d49d9bb2e4e9477bfcaa17230b5799e6293a59db3e8a6e2dc9f727c33",
+      "compact_body_sha256": "76f4b34f79eb0414a14737de5fa0aee946ffafe6e6cc680a9cbcf32c4b2ed2c1"
+    },
+    {
+      "original": "reserve_bytes",
+      "compact": "reserve_compact_bytes",
+      "all_tokens_equal_after_only_private_ABI_changes_and_optional_refusal_call_trailing_commas": true,
+      "all_complete_string_literals_exact": true,
+      "original_body_sha256": "02bfe146d67c68fcdbbd762104af0dbf5e30c8d7ddb9bff612ed91e317d16c03",
+      "compact_body_sha256": "1e580d3de1f9c90ec38183145d4010f5c52f8ef7a03ed2c6240dc9f00daf8516"
+    },
+    {
+      "original": "reserve_bytes_without_merge_census",
+      "compact": "reserve_compact_bytes_without_merge_census",
+      "all_tokens_equal_after_only_private_ABI_changes_and_optional_refusal_call_trailing_commas": true,
+      "all_complete_string_literals_exact": true,
+      "original_body_sha256": "1fb7795594b9a2a7fa462ab11b83346250525ec700517f89fc618bb8dce6f477",
+      "compact_body_sha256": "680cc379d7560b257d465b9feaec252f26b9cce26a1e652fdfc923a561113d3f"
+    },
+    {
+      "original": "reserve_clone",
+      "compact": "reserve_compact_clone",
+      "all_tokens_equal_after_only_private_ABI_changes_and_optional_refusal_call_trailing_commas": true,
+      "all_complete_string_literals_exact": true,
+      "original_body_sha256": "e304fbe0f43c089059d32689a613bcab855ba491bab4aeee122f66568a0b5d61",
+      "compact_body_sha256": "3f553f7c943b078fd2ce4302e94056faeed0ca7205f40e7959106b381a605153"
+    },
+    {
+      "original": "reserve_array",
+      "compact": "reserve_compact_array",
+      "all_tokens_equal_after_only_private_ABI_changes_and_optional_refusal_call_trailing_commas": true,
+      "all_complete_string_literals_exact": true,
+      "original_body_sha256": "290b4a9674e94bf4d523d7cb44499fc841a5a2903f403567be8f804830ed7adc",
+      "compact_body_sha256": "b4bdb15fa38584eb6cd177a5b1bc4909b09f207c6d2bbb13e3f4377674ecba28"
+    },
+    {
+      "original": "charge_skeleton",
+      "compact": "charge_compact_skeleton",
+      "all_tokens_equal_after_only_private_ABI_changes_and_optional_refusal_call_trailing_commas": true,
+      "all_complete_string_literals_exact": true,
+      "original_body_sha256": "247b20a1a26ab5c5ae8355108b6d91eac1b39a7a8cc21cded073acea625278f3",
+      "compact_body_sha256": "e8fc3c292a84aecfd082c002150c4ab129c022e43aa09f86be2ac239e8038055"
+    },
+    {
+      "original": "budget_refusal",
+      "compact": "compact_refusal",
+      "all_nonconstructor_tokens_and_all_complete_literals_exact": true,
+      "owned_message_constructor_relocated_to_the_existing_public_diagnostic_boundary": true,
+      "original_body_sha256": "4a141670a5c024fc2f2ca731824358ff1c2bf526bc49b1c8d6d178180d69480e",
+      "compact_body_sha256": "675f660d225193490f21a97dba1219fa0d906b7189b58637244abf3482e84be7"
+    }
+  ],
+  "normalization": "Private method names and result error type, explicit error-carrier conversion, and rustfmt optional trailing comma only at budget_refusal calls; every other token and every complete string literal is compared.",
+  "limit": "Structural producer proof and real public-Diagnostic carrier tests; actual branch-copy budget tests still require the full compiler test harness."
+}

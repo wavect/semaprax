@@ -1,5 +1,9 @@
 # Source-only retained registry assembly
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The private batch inherits public694/source13d, the complete841 pilot+paired source correction, and reviewed833 checkpointc3ecc303705334619b48aa64b79302f706afc44e. No ROOT changes, Rust build/tests, Cargo, Clippy or measurements ran.
 
 833 production and its three complete owning modules are exactc3 bytes. Only the shared test source adapter was reconciled. Final raw inputs take independent authenticated branches:11 whole inputs into381 for every inherited guard (including841), or11 whole inputs into c3 for833's new owning guard. The worker’s late serial current→0e hop was intentionally not inserted after newer13d domains. All three worker runtime JSONs remain immutable.

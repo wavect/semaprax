@@ -1,5 +1,9 @@
 # Current main formatting and exact dependency-pin repair
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The Windows build at ec77ae failed cargo fmt on the live source dispatcher and
 the byte-locked old declaration-identity producer. Canonical formatting is
 applied to the live dispatcher. Two named rustfmt skips retain the complete

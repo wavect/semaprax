@@ -1,5 +1,9 @@
 # Compiler-owned retained JSON codec receipt source candidate
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base: `7f8e901da66015b09a25d3a1b96b2abebf21e92f` (actual latest-main source cut, separate from ROOT and the ready831/host branches). Protocol: [JSON codec retained receipt v1](../../JSON-CODEC-RETAINED-RECEIPT-V1.md).
 
 This implements the next compiler-side protocol proposed by the f3f6 host handoff. It does not modify that host patch, benchmark task/baseline, runner, old accounting labels, live selection, or existing v1 output. No OPT606 closure or efficiency claim is made.

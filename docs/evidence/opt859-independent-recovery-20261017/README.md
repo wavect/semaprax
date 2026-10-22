@@ -1,5 +1,9 @@
 # Independent diagnostics after a rejected record shape (#859)
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source candidate based on `36c6deb98720e243b0daaf81e813fbe3ec3b0a2d`.
 No Rust compilation, tests, Clippy or application qualification has run.
 

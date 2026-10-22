@@ -1,3 +1,9 @@
+# opt886-pair-local-paths-20261018 ROLE-AUDIT
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 SOURCE ONLY. Base4624d6b6a; no build, test, Clippy, app execution, source binder or
 successful evidence is produced. Primary checkout Graft INDEX/cards were searched
 first; they contain no current ordinary-history owner card. Graft CLI was not

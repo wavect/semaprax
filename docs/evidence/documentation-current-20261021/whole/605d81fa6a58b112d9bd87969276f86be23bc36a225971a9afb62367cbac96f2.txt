@@ -1,0 +1,9 @@
+# Actual452 moderate complete historical metadata domain
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
+The original moderate table is newer than its retained joined checkpoint in two historical metadata rows. Old joined_checked correctly authenticates actual raw and returns its complete incoming archives; these b73/3695 views cannot satisfy the later independently retained original inverse clauses. Add a separate explicit moderate-original stage AFTER that exact joined input, authenticating its supplied whole view AND the physical raw separately, then return the complete9165/f4de predecessor required by every original assertion. Original tables, joins, archives and all hostile checks remain byte-exact. The full original joined_input body remains compiled with only its private name changed.
+
+New sealed1204-byte two-row metadata table, complete before/after/physical archives, unchanged2MiB bounded regular no-follow reader; no big JSON literal embedding or raw3/production/cap/newowner changes. Three moderate originals are reconstructed in full by sourceproof,14 stage/physical refusals pass. Existing helper/moderate_tests endpoint generation must be rebound by parent; old frozen rows must not be retargeted. No Rust/Cargo/common ran.

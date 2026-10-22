@@ -1033,13 +1033,11 @@ mod tests {
         assert_eq!(paid, 3);
         let report = capture.finish().unwrap();
         assert_eq!(report.row_count, 3);
-        assert!(
-            report.rows[..3]
-                .iter()
-                .all(|r| r.ledger_entry_remaining.is_none()
-                    && r.ledger_exit_remaining.is_none()
-                    && r.ledger_paid.is_none())
-        );
+        assert!(report.rows[..3]
+            .iter()
+            .all(|r| r.ledger_entry_remaining.is_none()
+                && r.ledger_exit_remaining.is_none()
+                && r.ledger_paid.is_none()));
     }
     #[test]
     fn reached_prefix_and_success_have_separate_exact_counts() {

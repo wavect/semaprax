@@ -1,0 +1,41 @@
+{
+  "status": "PRIOR_HEAD_LINUX_CAPTURE_AND_EXACT_WIRE_RECONSTRUCTION_PASS",
+  "head": "7b46f47b1ad934859984f65579d71f36b4f52921",
+  "run_id": 39606073000,
+  "job_id": 119243377523,
+  "checks": [
+    {
+      "file": "calculator-baseline.json",
+      "old_and_new_production_domain_digest_recomputed": true,
+      "replacing_only_bill_and_its_digest_reconstructs_complete_wire_exactly": true
+    },
+    {
+      "file": "calculator-renamed.json",
+      "old_and_new_production_domain_digest_recomputed": true,
+      "replacing_only_bill_and_its_digest_reconstructs_complete_wire_exactly": true
+    }
+  ],
+  "differences": [
+    {
+      "file": "calculator-baseline.json",
+      "previous_sha256": "30080b8bb1fc894b788edf507d01fcb2c3be1d639349f7bb9e2e2cbd5d066f48",
+      "captured_sha256": "96a2414a073d1ea6f028734fdc802cddef0b1ed34760812df861251f74b3c596",
+      "previous_builder_bytes": 3684292,
+      "captured_builder_bytes": 3751626,
+      "previous_digest": "sha256:cdabfb16f746aada56c1100fc074d1ccff0ced6fcf3926abd344c1f6560fd1b7",
+      "captured_digest": "sha256:90c08f4187753c1872ddc2c4e86e410826b8821b93de363465c2588ccdd7d683",
+      "all_other_graph_fields_exact": true
+    },
+    {
+      "file": "calculator-renamed.json",
+      "previous_sha256": "80fb2ec13bfc831e2627f144570cc42fe5a5232078e27277304474249d30c556",
+      "captured_sha256": "bb6f1df6759157a1f0c1fd5af8bc4f185f542a7160b72d908a2057620205e507",
+      "previous_builder_bytes": 3684292,
+      "captured_builder_bytes": 3751626,
+      "previous_digest": "sha256:f97d976350a8e162bb775fb390cd95c4cf40d78859b65183aacaf2809bd86bde",
+      "captured_digest": "sha256:7f57fae089991da9ccf3e6957c11e97abfd1d02faa6cb9b3dd7ddd7844c5a7ec",
+      "all_other_graph_fields_exact": true
+    }
+  ],
+  "limits": "The graph capture step succeeded; browser fixture comparison subsequently failed against the previous pins. This evidence does not claim Chromium execution or current-head full CI success."
+}

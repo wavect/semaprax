@@ -1,5 +1,9 @@
 # OPT872 public committed-generation pin admission
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 SOURCE-ONLY CANDIDATE. No new capture, producer, public main, pin application or consumer execution has occurred. Issue872 remains open until the final actual capture, apply and exact consumers qualify.
 
 The public scripts/update-prelude-forecast-pins.py defaults to the committed67b generation authenticated by the fixed whole transition-binding SHA and all10 whole canonical wire SHAs. Baseline bills/pins come from those authenticated bytes. No future amount is guessed. All42 original require guards and the exact stale-pin-only101 authorization remain; a finite13-edit inverse reconstructs the complete independently callable original227-line tool in this directory.

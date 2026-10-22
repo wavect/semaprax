@@ -1,3 +1,9 @@
+# opt870-current-stage-custody-20261017 README
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The Canonical344 runtime entry authenticates the complete current870 raw root, restores the complete51c1 stage, and executes the unchanged original endpoint/projected831/db2 algorithm. The original staged canonical row, full projected contracts, binder and all old assertions remain unchanged. Old51 bytes are refused at the new live entry.
 
 For the ONE later coordinated common refresh, dispatch `bind-staged-endpoints.py` IN PLACE OF `bind-new-endpoints.py`; do not run both or regenerate canonical344 from raw870. Preserve the original script unchanged. The new fork keeps actual raw870 in its start/end source-race binding and records it separately from staged51. Its only algorithm changes are the four exact edits in binder-finite-edits.json. Other raw endpoint domains retain their original algorithm and all source/HEAD/protected-file guards.

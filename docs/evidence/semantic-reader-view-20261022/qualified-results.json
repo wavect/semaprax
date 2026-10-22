@@ -1,0 +1,17 @@
+[
+  {
+    "name": "source_reflows_merge::main67107_inputs::semantic_batch_complete_physical_views_preserve_old_sources_and_refuse_supplied_drift",
+    "status": "PASS",
+    "peakKiB": 57024
+  },
+  {
+    "name": "source_reflows_merge::main_e177_final_inputs::overlay_v2::compiled_sources::tests::compiled_lookup_split_preserves_the_complete_predecessor_and_every_old_mapping",
+    "status": "PASS",
+    "peakKiB": 2864
+  },
+  {
+    "name": "source_reflows_merge::main_e177_final_inputs::overlay_v2::compiled_sources::tests::compiled_lookup_split_refuses_child_parent_span_eof_and_duplicate_glue",
+    "status": "PASS",
+    "peakKiB": 3728
+  }
+]

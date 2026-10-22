@@ -1,5 +1,9 @@
 # Actual graph-builder observations at 364d
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source `364d824194cd1df76b5c273aa0fb9cbafb602e29`; four qualified builds and matched source/artifact bindings precede capture. Three managed producer commands and two browser CLI captures completed. Complete wires, byte inverses, source projections, receipts, scripts and resource observations are retained here. Producer capture success is not consumer-test success.
 
 The regular managed reservation bill is 1,103,165, compared with the published35cc bill 1,209,652 and observed2d4b bill 1,105,469. Browser baseline and renamed graphs both report 3,472,870, compared with main2600 3,296,148, observed8bb 3,534,564, observed2d4b 3,558,886 and older35cc 4,032,239. These are different application shapes and source eras, not a single matched causal experiment. Every complete historical wire restoration remains separate.

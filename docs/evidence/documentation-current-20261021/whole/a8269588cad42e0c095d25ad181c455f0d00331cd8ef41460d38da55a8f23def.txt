@@ -1,0 +1,17 @@
+# closure-audit issue-834-closure-draft
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
+Ready for parent verification and archive publication before posting.
+
+Implemented capacity `min(first-pass occurrences, checked total workspace types)`, retaining original names/work/overflow order, both traversals and canonical semantics. **All 15 exact owning gates PASS**, including the mandatory cold measurement, full independent old/current receivers, diagnostics, byte/work frontiers, floor and foreign/restored authority and source custody.
+
+Removed entry bytes for none/one/sparse/dense/duplicates/imported-descendant: **0/12288/12384/0/11952/144**. Each exactly equals the actual reservation, allocated and freed-byte reduction. Work and allocation/reallocation counts are unchanged. Nonempty-fixture peak is unchanged at 30776 bytes; every case finishes live 0, freed=allocated, invalid=false. Cold log SHA256 `6845b2778b95e7898295763a3710e558a912e1647263208b2e0ee5ad08f3e725`.
+
+The unchanged retry/normalizer owners both ran and FAIL. Retry stops at its historical whole-source equality guard before the production retry predicate; no retry recovery or phase measurement is claimed. Normalizer reaches the 67108864-byte live cap and returns G171 (first request 4520, remaining 210, HIR final validation). This issue requires execution and disclosure, not application cap PASS.
+
+Execution source: `d4cab900edac07fdcc4de0cdcb1bf3daafbef5ef`. Five focused build roles PASS; runtime **124 PASS / 18 FAIL out of 142**, one genuine body per owner, unchanged source, no resource refusal and settled process groups. Runtime receipt SHA256 `39cac179bfa8cced54ce69f095f541b1680358cb9566026a41d81bbb9a30fd7a`. Evidence: [complete receipts and failure disclosure](https://github.com/wavect/semaprax/tree/wavect/v0-10-0/docs/evidence/qualification-d4cab-142-20261015). All 18 failures and earlier failed/not-retested outcomes remain disclosed. Core production lib/bin Clippy PASS (60.725s; receipt SHA256 `7edb38f1795af61dba676d0a86ffb106153ba37e09e4e6f1d0ec7904ee25b344`). Full-CLI production Clippy PASS (receipt SHA256 `9392cca232c032b97a1eb5a38ffbccfe13bf2f9b4190b80d6daa8fa61e88c1bb`). No pin was moved by these five changes. The separate producer-pin capture remains an actual outcome to disclose in the archive, not an inferred producer success.
+
+No application cap recovery, compiler RSS or matched-agent token/cost gain is claimed.

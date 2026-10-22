@@ -1,5 +1,9 @@
 # Selected call-local custody checkpoint (#781)
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Private source-only checkpoint from `7623acd670f0a25a21ed8c00c190b517e78c8945`.
 No Cargo, Rust compilation, Rust test, runtime, or Clippy command was executed
 in this recovery lane. Whole #781 remains OPEN.

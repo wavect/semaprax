@@ -1,5 +1,9 @@
 # Optional host retained-receipt adoption
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base: `37c771b08aa807365433d1beb23dcf138c216977`, the actual shipping source requested by the parent. No copied prerequisite overlay was used. Owning protocol: [host observation v1](../../HOST-COMPILER-RETAINED-RECEIPT-OBSERVATION-V1.md).
 
 The initial private842+f3/main7f worktree lacked shipping readiness's require_authored_source_tokenizer API. Its28-check invocation reported9 errors from that missing prerequisite. Rather than change tests or mock a nonexistent API, only the actual new three-file integration diff and new helper/tests were carried to a fresh37 worktree. Complete initial preimages, new helper/tests, diff and failed log remain under initial-main7f-f3. Nothing there was overwritten to look green.

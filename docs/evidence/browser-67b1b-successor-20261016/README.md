@@ -1,5 +1,9 @@
 # Local 67b browser graph successor
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Actual compiler subject: `67b1b02141f19040fdd1b45bc9bea16dcff5d74e`;
 source tree: `7896884ed715bdb0bfd51c7e273e4b1304fba5d8`.
 The two unmodified capture wires have builder bill `3468381`. This is historical

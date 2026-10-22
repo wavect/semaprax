@@ -1,0 +1,13 @@
+# Exact historical-source assertions across canonical formatting
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
+Three complete source assertion bodies now pass after explicit representation adapters; two original unadapted checks were executed and failed on the current source. Five complete namespace/root/macro bodies are byte-for-byte the canonical formatter output of their retained original bodies. Their complete inverse records restore every original byte before the old full-body assertions execute. Two retained test-prefix checks also enumerate the exact assertion adapters added to that prefix. All original immutable archives, old methods, tariffs and source assertions remain; the sole spelling-independent count still requires exactly four macro invocations.
+
+The fixed inverse records check every expected after span and input extent before restoring it. Unknown drift outside an edited span survives for the original full-body comparison to reject. Added negative tests exercise both outside-body drift and known-span/extent refusal. No general whitespace normalization, token erasure, test deletion, runtime allowance, compiler debit or work change is introduced. The small real Rust run compiles the three actual assertion bodies (only relative include locations are resolved to the same absolute files) and the two new controls. This is source-assertion execution, not the full comparator/compiler/runtime test suite.
+
+The new helper is test-only. Original 543-subject finite limits, 342 owner rows, historical views, compiled/data distinctions and full source-role verifiers remain required. Full current-head CI, original runtime/64 MiB fits and genuine Lean qualification remain separate unresolved gates.
+
+The same five isolated source tests also compile with CI-matching Clippy 1.97.1 and warnings denied; the complete compiler/historical runtime harness remains a CI gate. The canonical registration parser finds the helper at its actual default Rust module path and registers both controls. Literal inverse tables keep their deterministic grouping under rustfmt.

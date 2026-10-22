@@ -1,7 +1,7 @@
 //! Both first-head continuations keep the original popped links lexical.
-use super::{PAYMENT_HEADER, Rc, SkeletonObservation, size_of};
 #[cfg(test)]
 use super::Ordering;
+use super::{size_of, Rc, SkeletonObservation, PAYMENT_HEADER};
 // One extra right expansion (five sites), two duplicated first-equal work
 // sites, event/probe/body payment sites, and five suffix work sites. No new
 // owner fields, captures, len queries, reset flags or round-level detector.
@@ -13,8 +13,8 @@ pub(super) const PROBE: usize = 3 * size_of::<&[Rc<SkeletonObservation>]>();
 // Retain the two old successful-pattern reference invoices conservatively;
 // only two actual item increments and the Equal initializer remain here.
 #[cfg(test)]
-pub(super) const REPLAY: usize = 2 * size_of::<&SkeletonObservation>()
-    + 2 * size_of::<usize>() + size_of::<Ordering>();
+pub(super) const REPLAY: usize =
+    2 * size_of::<&SkeletonObservation>() + 2 * size_of::<usize>() + size_of::<Ordering>();
 
 macro_rules! shared_prefix_first_comparison {
     ($owner:ident, $left:ident, $right:ident, $function:ident, $budget:ident,
@@ -28,7 +28,9 @@ macro_rules! shared_prefix_first_comparison {
             $census.round();
             #[cfg(feature = "unstable-workflow-profiling")]
             $crate::workflow_profile::plan_comparison::event(
-                $crate::workflow_profile::plan_comparison::Site::Round, 0);
+                $crate::workflow_profile::plan_comparison::Site::Round,
+                0,
+            );
             $equal
         }
         break $paired;

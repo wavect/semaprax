@@ -1,5 +1,9 @@
 # Ordinary direct singleton successors — NEXT source checkpoint
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base: c8740045e33126a4375aadd1dc524a25be9245fc. No Cargo, Rust tests,
 models, runtime, provider calls, cap changes or ROOT writes were performed.
 This implementation and authored controls are not qualified application gains.

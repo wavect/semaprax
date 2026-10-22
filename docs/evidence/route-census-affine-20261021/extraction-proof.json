@@ -1,0 +1,17 @@
+{
+  "status": "COMPLETE_ACTUAL_FUNCTION_EXTRACTION_AND_OLD_GUARD_RETENTION_PASS",
+  "source": "src/bounded_output/stage_debits/route_debits.rs",
+  "source_sha256": "84e85e4c86b605463d1f7d49aca912a0d672a87b5a3ec754c0067b970353361f",
+  "old_sha256": "805bb4afbc03a493fbdff4e267a84782e429cbf7545f37228034e992eeee345d",
+  "complete_current_helper_and_census_function_bodies_unchanged": true,
+  "complete_old_census_body_restored_exactly_after_only_new_shipping_audit_and_checkpoint_acquisition_removal": true,
+  "all_original_phase_names_and_categories_exactly_retained": true,
+  "new_exact_aliases": [
+    "ordinary plan affine HIR segment",
+    "ordinary plan affine HIR tail",
+    "ordinary plan affine flat HIR match",
+    "ordinary plan affine shared HIR match"
+  ],
+  "new_alias_category": 9,
+  "new_alias_hostile_controls": 12
+}

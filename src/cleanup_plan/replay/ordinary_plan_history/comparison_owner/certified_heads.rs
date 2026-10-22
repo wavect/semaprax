@@ -1,5 +1,5 @@
 //! Two lexical first heads certify an immutable segment, never a saved verdict.
-use super::{Ordering, PAYMENT_HEADER, Rc, Segment, SkeletonObservation, size_of};
+use super::{size_of, Ordering, Rc, Segment, SkeletonObservation, PAYMENT_HEADER};
 // Additional actual reserve/work sites relative to the complete d458 owner:
 // split right producer +4, relocated MATCH +3, first-head certificate +1.
 pub(super) const OWNER: usize = 23 * PAYMENT_HEADER;

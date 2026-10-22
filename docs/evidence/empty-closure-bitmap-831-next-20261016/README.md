@@ -1,5 +1,9 @@
 # NEXT explicit-empty bitmap and unit query checkpoint
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only private successor from exact 2a9059ed80f76ce0d6e5215f72fc8cd22053af15. The rejected nested-enum prototype67d8dce remains immutable and is not a prerequisite implementation pick. No Cargo/build/test/Clippy/runtime execution or performance qualification occurred. Global source-custody frontdoors and all three audit joins are deliberately pending next-batch integration; existing source guard bodies and immutable JSONs are not rewritten.
 
 The ordinary memo.rs and memo/retained.rs files remain byteexact. A closure-specific copied memo retains their complete original cold/warm authentication bodies and their function/budget/ledger binding, first-refusal and payer order. Each existing8-slot chunk now owns an empty bitmap, not eight enlarged optional enums. The exact chunk initializer/backing controls are paid before allocation: two complete Chunk values, the distinct from_fn array initializer, and the named Box pointer. Directory storage retains its original payment. Full old receivers, including original bitmap-free chunk/backing and retained authentication, compile independently in before_empty. Its original warm-zero body remains byteexact and independently registered.

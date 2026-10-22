@@ -1,5 +1,9 @@
 # Private #854 source/authority join
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 This successor preserves the complete ab13bc4855ab9559e2e18725c4ce1147a5071bd0 prototype and every byte of its component packet. The three protected component inverses still describe exact 3c388 bytes. Eight new whole-input views first restore the exact ab13 physical inputs; `arena854_input` is the independent component front, and `arena854_previous` then enters the protected three-row table. The two Main-b80 raw frontiers receive the complete original 3c388 domain before their unchanged old algorithms/tables. Already-projected predecessors are never sent back through a raw frontier.
 
 All four complete Rust owners join all three existing raw source inventories. The unchanged authority generator/parser supplies new finite HIR/projection manifests; the existing forbidden predicates and all six classification/drift negatives remain exact. The source guard checks complete predecessor files and old BTree receiver body plus all four current source hashes. Two canonical-owner controls remain unchanged; the third body is custody only and runs outside all physical observers.

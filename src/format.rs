@@ -132,7 +132,8 @@ pub(crate) fn private_scratch_capacity(
             contains_record_slots.checked_mul(std::mem::size_of::<ContainsRecordFrame<'_>>())?,
         )?
         .checked_add(type_slots.checked_mul(std::mem::size_of::<TypeFormatFrame<'_>>())?)?
-        .checked_add(pattern_slots.checked_mul(std::mem::size_of::<PatternFormatFrame<'_>>())?)?;
+        .checked_add(pattern_slots.checked_mul(std::mem::size_of::<PatternFormatFrame<'_>>())?)?
+        .checked_add(expression_statement::pattern_scratch_bytes(pattern_depth)?)?;
     Some(PrivateScratchCapacity {
         expression_slots,
         contains_record_slots,

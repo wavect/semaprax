@@ -1,5 +1,9 @@
 # Arena854 first sticky diagnostic fixture
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only correction atop2d87a3b89; actual344 index113 failed before the new
 arena arm ran. The shared ordinary zero-auth path retains its complete prepaid
 "ordinary builder already failed" diagnostic on the first sticky call. The

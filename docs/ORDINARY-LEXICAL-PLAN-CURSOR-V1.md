@@ -1,5 +1,7 @@
 # Ordinary lexical PLAN cursor v1
 
+Audience: compiler contributors and reviewers.
+
 Status: uncompiled, unexecuted OPT883 source successor. The fd669/fa77 prototype
 was correctly funded but statically overpaid. It remains immutable audit
 history and is never the old measurement baseline. The independently compiled

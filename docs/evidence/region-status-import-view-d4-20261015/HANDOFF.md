@@ -1,5 +1,9 @@
 # Region entry complete-source runtime-domain correction
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only successor of immutablea0c1213695b475c585e94cb599fedc218aa37ef5.
 ROOT and its actual d4 qualification were not edited. No Cargo/build/test/Clippy.
 Actual d4 owner23 failure is copied whole, with its source subject/log SHA.

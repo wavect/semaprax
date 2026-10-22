@@ -1,5 +1,9 @@
 # Reviewed755, Main24 and854 source join
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only seal; no Rust gate or current runtime PASS is claimed. The previous2c producer preparation and155/160 selections were unexecuted and remain unchanged. The final external174 selection keeps the160 literal prefix and adds755 three plus Main24 eleven bodies, with the same eleven roles and five planner commands.
 
 The25 whole current-to2c rows preserve all inherited source fronts. Four independent complete component views replay the original755 reconciliation, Main24,854 and pre854 joint source algorithms without editing their packets or removing Git-scope assertions. Main24 has a separately scoped twelve-input view; its complete raw12 receiver and raw7 compact inverses, before archives and compiled prior expression model remain independently checked by the existing two Main-f1 source owners. This scope is not a claim of whole-tree equivalence to Main24.

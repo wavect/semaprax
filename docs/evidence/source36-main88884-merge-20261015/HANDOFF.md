@@ -1,5 +1,9 @@
 # MAIN88884 / ours6e Source36 merge
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 External candidate only. No ROOT write, Cargo, Rust execution or runtime qualification. Actual source hashes are in the external manifest.json; source-inverses.json carries all11 changed/new Rust source rows and complete immediate originals. Conflict-owner immediate originals are immutable6e; other originals are the exact staged merged input before this adapter, labeled merged-staged-input rather than pretending a Git revision.
 
 Keep original a/b complete original undo/count/assertion interiors. Only drifting raw input prefixes acquire a current_view projection; a.rs remains1500 lines. Ten complete actual-input views restore ours6e, then the original four named checkpoint views and all original assertions execute unchanged. A missing old four-view row is pass-through only after the new successor authentication, for the newly wrapped direct inputs.

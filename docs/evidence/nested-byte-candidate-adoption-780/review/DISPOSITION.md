@@ -1,5 +1,9 @@
 # Source-backed disposition; executable qualification pending
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 One tools-disabled Sonnet process reviewed the two actual candidate call changes, complete existing Slot implementation and then-current two new tests. It completed in 80.54 seconds with peak group RSS 321,683,456 bytes under the 120-second/768-MiB bound. Raw findings remain intact. The initial 10,548-byte packet was rejected before dispatch; one 9,202-byte packet was actually sent. No approval or execution claim follows from its terminal exit.
 
 B1: retain the existing complete trait-object identity guard. Duplicate-vtable false rejection is a conditional concern, not demonstrated new-path failure. Replacing it with data-address comparison would weaken identity, and is not done. Existing foreign/stale/function and warm-cache owners remain mandatory.

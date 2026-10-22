@@ -1,5 +1,9 @@
 # Borrowed text equality: #767 closure evidence
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Exact borrowed str Eq/Ne has actual acceptance evidence for all five owning bodies. Four supplemental language checks passed against the authenticated654846173bb90874779dfee44ab0832c03715e84 artifact: source/canonical graph/hostile modes, interpreter/native O0/O2/late failure, public text Wasm roots, and aggregate tagged-owner Wasm roots. Explicit clang and Node version probes succeeded on the actual PATH, preventing silent backend skips. All successful process groups were confirmed empty; no Cargo ran for these supplements.
 
 The first public-text attempt was NOT executed because available memory was28%, below the unchanged30% runtime admission floor. Its refusal and failing controller assertion are retained in actual-three/. actual-public/ records the separate successful attempt. actual-aggregate/ addresses a concrete provenance gap in the earlier aggregate PASS: the earlier receipt did not record Node availability. It does not erase or relabel that old receipt.

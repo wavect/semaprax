@@ -1,0 +1,54 @@
+[
+  {
+    "source": "src/source_reflows_merge.rs",
+    "before": {
+      "length": 47214,
+      "sha256": "2fc7516bf108a35387c3a4e32c7e15d2665a153c9aed9aea67cb72aeda8470e1",
+      "archive": "docs/evidence/expected-view-ca5-20261020/whole/2fc7516bf108a35387c3a4e32c7e15d2665a153c9aed9aea67cb72aeda8470e1.txt"
+    },
+    "current": {
+      "length": 48951,
+      "sha256": "d813d4cee641419aa2ddcd2b5aa57b2b00de7dfe132d59f5867bc7daa286cbce",
+      "archive": "docs/evidence/expected-view-ca5-20261020/whole/d813d4cee641419aa2ddcd2b5aa57b2b00de7dfe132d59f5867bc7daa286cbce.txt"
+    }
+  },
+  {
+    "source": "src/source_reflows/semantic_receivers.rs",
+    "before": {
+      "length": 38705,
+      "sha256": "5926337017992c1f9081f4632214736f6e34182334b2591b482e119fa5d4df22",
+      "archive": "docs/evidence/expected-view-ca5-20261020/whole/5926337017992c1f9081f4632214736f6e34182334b2591b482e119fa5d4df22.txt"
+    },
+    "current": {
+      "length": 39043,
+      "sha256": "c08266121e3770f5a13f8f8274c328d2488f5659eb732da6434ef58a520c7b1e",
+      "archive": "docs/evidence/expected-view-ca5-20261020/whole/c08266121e3770f5a13f8f8274c328d2488f5659eb732da6434ef58a520c7b1e.txt"
+    }
+  },
+  {
+    "source": "src/source_reflows/incoming67107_semantic_receivers.rs",
+    "before": {
+      "length": 34695,
+      "sha256": "2741ae801dcf4a4d2e416812576bcbf69f66e94ad69746ea81989a554f1cfd3f",
+      "archive": "docs/evidence/expected-view-ca5-20261020/whole/2741ae801dcf4a4d2e416812576bcbf69f66e94ad69746ea81989a554f1cfd3f.txt"
+    },
+    "current": {
+      "length": 35363,
+      "sha256": "cb351c306a7548e61424ab76e1c218d3fd9b211a4033ebae934f9208b7fe4283",
+      "archive": "docs/evidence/expected-view-ca5-20261020/whole/cb351c306a7548e61424ab76e1c218d3fd9b211a4033ebae934f9208b7fe4283.txt"
+    }
+  },
+  {
+    "source": "CHANGELOG.md",
+    "before": {
+      "length": 584866,
+      "sha256": "96fe768a5b1de1151219efb63d7deabc762e8196aee9db75ff0a970bb6dbc5cb",
+      "archive": "docs/evidence/expected-view-ca5-20261020/whole/96fe768a5b1de1151219efb63d7deabc762e8196aee9db75ff0a970bb6dbc5cb.txt"
+    },
+    "current": {
+      "length": 585080,
+      "sha256": "389920302666826923242909c526ac5854cd4f16548c2ae6f16c3825f70bf139",
+      "archive": "docs/evidence/expected-view-ca5-20261020/whole/389920302666826923242909c526ac5854cd4f16548c2ae6f16c3825f70bf139.txt"
+    }
+  }
+]

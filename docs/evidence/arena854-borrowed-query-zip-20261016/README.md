@@ -1,5 +1,9 @@
 # Arena854 warm rejection and borrowed query successor
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only NEXT batch from2d87a3b89. No Cargo, build, Rust execution, Clippy,
 application measurement or current paid-reduction result exists. Actual344
 indices113/114 are retained as full unchanged logs. The prior observation was

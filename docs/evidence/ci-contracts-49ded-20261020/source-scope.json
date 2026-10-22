@@ -1,0 +1,22 @@
+{
+  "base_head": "49dedb8bd7caac3255f6914693da2c190763723b",
+  "changed_sources": [
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/source_format.rs",
+    "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+    "src/target_evidence.rs",
+    "tests/semantic/target_evidence.rs",
+    "docs/SEMANTIC-TARGET-EVIDENCE-V1.md",
+    "CHANGELOG.md",
+    "tests/semantic/patch_evidence_v2.rs",
+    "src/project/candidate/wire.rs"
+  ],
+  "locked_wasmparser_version": "0.261.0",
+  "all_0256_historical_KAT_hashes_retained": true,
+  "all_original_browser_rename_revision_artifact_and_execution_assertions_retained": true,
+  "helper_transposition_retains_all_original_inverse_records_and_test_bodies": true,
+  "no_caps_floors_or_work_limits_changed": true,
+  "no_new_rust_classes": true,
+  "full_current_head_CI_still_required": true,
+  "only_validator_metadata_changes_in_normal_runtime": true,
+  "original_0256_report_capsule_and_receipt_KATs_unchanged": true
+}

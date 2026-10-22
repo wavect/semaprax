@@ -1,0 +1,9 @@
+{
+  "status": "PASS_ACTUAL_NORMAL_COMPILER_BUILD",
+  "peakKiB": 5875648,
+  "compiler_sha256": "b7e4f1f9b0f951049c4d9465a50a788f29bf0b83f0d521f366ea71e7a348cdf6",
+  "jobs": 1,
+  "private_external_ssd_target": true,
+  "global_reserve_percent": 40,
+  "process_cap_MiB": 7168
+}

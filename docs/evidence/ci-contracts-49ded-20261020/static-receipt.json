@@ -1,0 +1,51 @@
+{
+  "status": "PASS_EXACT_EIGHT_REVIEWED_INPUTS_AND_COMPLETE_ORIGINAL_ASSERTION_PRESERVATION",
+  "source_sha256": {
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/source_format.rs": "d0348f77bacb99ac3e6dbd4720a6fcca9e98cd1961d1e0a3730a5124df0cc25c",
+    "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs": "d38b924a6d83a6d77aaa71f2d20b879cba48b3d5db4f43beaf3e01f2dd4a70b6",
+    "src/target_evidence.rs": "bef8a7262ec49ab30b78ed274791c723c346b948243910379f3ed085cff4a43d",
+    "tests/semantic/target_evidence.rs": "80bcbca31cb8feb0d4835f083cfc0f829028fb98f6e6b2d42fcf6e6473a13d3c",
+    "docs/SEMANTIC-TARGET-EVIDENCE-V1.md": "4dd150d5d784ac257b3d5b9c88d645b6f6e38191e8be9f70bde6c71fc27c57b6",
+    "CHANGELOG.md": "96fe768a5b1de1151219efb63d7deabc762e8196aee9db75ff0a970bb6dbc5cb",
+    "tests/semantic/patch_evidence_v2.rs": "f5b4e2ea01b9e0b74d84240c036149a5cee50f8826a5517c07115a23e32f8df4",
+    "src/project/candidate/wire.rs": "a3189cb20eb761faae511d17c2132d7857952518faf6d6b21dcf5e19a6bd5a2a"
+  },
+  "rust_source_lines": {
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/source_format.rs": 885,
+    "src/target_evidence.rs": 531,
+    "tests/semantic/target_evidence.rs": 555,
+    "tests/semantic/patch_evidence_v2.rs": 617,
+    "src/project/candidate/wire.rs": 217
+  },
+  "helper_only_exact_transposition": true,
+  "browser_only_two_pins_and_provenance_comments": true,
+  "normal_runtime_only_two_validator_metadata_literals": true,
+  "tests_only_correct_current_version_and_derived_KAT_literals": true,
+  "all_historical0256_report_capsule_receipt_hashes_and_original_hostile_bodies_unchanged": true,
+  "all_existing_changelog_history_unchanged": true,
+  "all_original_caps_floors_work_schema_fields_unchanged": true,
+  "normal_build": {
+    "status": "PASS_ACTUAL_NORMAL_UPDATED_VALIDATOR_METADATA_COMPILER_BUILD",
+    "peakKiB": 6114736,
+    "process_cap_MiB": 6144,
+    "global_reserve_percent": 40,
+    "root_package_codegen_units": 512,
+    "cargo_jobs": 1,
+    "compiler_sha256": "5d514b05fa3673cb6268700b4abe69979e44d27447a6d8dc2e224d84fc890cc8",
+    "library": "libsemaprax-1709dda3e3d623ee.rlib",
+    "library_sha256": "209bfcf93cd41dff24f04ef4c6ba5487c805bb1c8a695c0d78bb3cebae1db4d9",
+    "source": {
+      "source_sha256": {
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/source_format.rs": "d0348f77bacb99ac3e6dbd4720a6fcca9e98cd1961d1e0a3730a5124df0cc25c",
+        "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs": "d38b924a6d83a6d77aaa71f2d20b879cba48b3d5db4f43beaf3e01f2dd4a70b6",
+        "src/target_evidence.rs": "bef8a7262ec49ab30b78ed274791c723c346b948243910379f3ed085cff4a43d",
+        "tests/semantic/target_evidence.rs": "80bcbca31cb8feb0d4835f083cfc0f829028fb98f6e6b2d42fcf6e6473a13d3c",
+        "docs/SEMANTIC-TARGET-EVIDENCE-V1.md": "4dd150d5d784ac257b3d5b9c88d645b6f6e38191e8be9f70bde6c71fc27c57b6",
+        "CHANGELOG.md": "96fe768a5b1de1151219efb63d7deabc762e8196aee9db75ff0a970bb6dbc5cb",
+        "tests/semantic/patch_evidence_v2.rs": "f5b4e2ea01b9e0b74d84240c036149a5cee50f8826a5517c07115a23e32f8df4",
+        "src/project/candidate/wire.rs": "a3189cb20eb761faae511d17c2132d7857952518faf6d6b21dcf5e19a6bd5a2a"
+      }
+    }
+  },
+  "full_quality_and_current_hosted_CI_still_required": true
+}

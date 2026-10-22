@@ -1,5 +1,9 @@
 # Checked HIR ownership closure and separate cache observer failures
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The missing #777 exact body-pointer/current-source/forged-stub/drop-order control passed using the existing hash-authenticated d8fad lib artifact, in a clean isolated d8fad checkout. No Cargo or compilation ran. The same supplement executed two #796 attribution controls: both FAILED at their aggregate identity-acquisition assertion, before graph/Image/stage equality. These are real failures, not PASS or resource refusals; #796 remains open.
 
 The crosswalk maps nine #777 direct owner PASS observations and nine required integration PASS observations to their original source subjects and authenticated receipt/log hashes. Root independently revalidated all18 actual log and receipt hashes plus one-body PASS summaries. Historical observations are not relabelled current. The source cut records47 exact d8/e93 files and six explicit later #847 representation/helper differences; no whole-current-compiler equivalence is claimed. See COMMENT-777.md for scope, allocation witnesses and original application failure disclosure.

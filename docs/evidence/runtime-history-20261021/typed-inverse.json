@@ -1,0 +1,17 @@
+[
+  [
+    4849,
+    "            + size_of::<&mut ()>() // mutable borrow of the source-bound predicate\n            + size_of::<[bool; 6]>() // three source gates, retained verdict and predicate argument/read\n            + size_of::<&Vec<crate::ast::SessionProtocolDeclaration>>()\n            + size_of::<&Vec<crate::ast::AgentDeclaration>>()\n            + size_of::<&Vec<crate::ast::ProtocolDeclaration>>(),\n",
+    "            + size_of::<&mut ()>(), // mutable borrow of the zero-capture predicate\n"
+  ],
+  [
+    5902,
+    "    // The finite scalar producer below requires all three source inventories\n    // to be empty. A function import alone cannot select it in an Agent or\n    // protocol module; retain the full producer without entering a dead probe.\n    // Reserved wrapper identities still run their independent full classifier.\n    let ordinary_signature_possible = program.session_protocols.is_empty()\n        && program.agents.is_empty()\n        && program.protocols.is_empty();\n",
+    ""
+  ],
+  [
+    6488,
+    "            || (ordinary_signature_possible && import.kind == crate::ast::ModuleUseKind::Function)\n",
+    "            || import.kind == crate::ast::ModuleUseKind::Function\n"
+  ]
+]

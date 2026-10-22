@@ -1,0 +1,20 @@
+{
+  "status": "PASS",
+  "actual_source_rows": 121,
+  "views_passed": 315,
+  "correct_oversize_refusals": 8,
+  "latest_source_public_route_rechecked": true,
+  "checks": [
+    "current source tamper blocks complete before view",
+    "current archive tamper blocks complete before view",
+    "before archive tamper refused",
+    "successor packet tamper after module load refused",
+    "complete105 predecessor tamper refused",
+    "whole immutable base packet tamper refused",
+    "CONFIG tamper after module load refused",
+    "CONFIG symlink refused",
+    "CONFIG FIFO refused",
+    "foreign named source refused"
+  ],
+  "original_bounds_unchanged": true
+}

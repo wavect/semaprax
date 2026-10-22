@@ -1,5 +1,7 @@
 # SEMAPRAX authoring guide
 
+Audience: authors.
+
 Status: executable qualification pending.
 
 ## Source

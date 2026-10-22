@@ -1,5 +1,7 @@
 # Deferred original-capacity owned-function directory v2
 
+Audience: compiler contributors and reviewers.
+
 Status: private source checkpoint; no compilation or executable qualification.
 This supersedes the unexecuted exact-growth policy in V1. The e8d2a7d8 private
 checkpoint, V1 document, evidence tables and complete old receiver stay intact.

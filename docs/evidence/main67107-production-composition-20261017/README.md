@@ -1,5 +1,9 @@
 # MAIN67107 production composition (source only)
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 This merge retains shipping40dd inline singleton/repeated-child handling, cold memo, arena and compact-node paths, and composes MAIN67107 borrowed sorted labels with existing paidMany promotion. Both actual paid successor entries acquire typed call receivers before entering the new directory. Directory headers, borrowed keys, actual Option<Targets> slots, search/shift work, promotion and publication are acquired through the live ReplayBudget before formation. Actual target slots can be wider than MAIN Vec headers; no old-header credit, cap increase or measured gain is claimed.
 
 The ordinary constructor retains the current with_index inventory/funding path, adds MAIN current-invocation affinity and uses MAIN requires_with_funded_cursor. MAIN complete Prepared constructor, shell and tests remain independently executable under cfg(test). Frozen full-head physical comparisons remain separate qualification: the preserved MAIN label test algorithm uses the joined compact node/shared leaf representation and is not a claim of frozen MAIN ABI equality.

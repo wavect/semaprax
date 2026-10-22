@@ -1,5 +1,9 @@
 # Bounded intermediate source review
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 One tools-disabled Sonnet process, 42.7108777 seconds, peak323616768 bytes, exit0. Full raw output and actual argv retained; no retry. CLI reported list cost $0.0750089; actual billing unavailable. Not final corrected-source approval or Rust evidence.
 
 Fixed: budget Diagnostic wrapper is sealed behind a private field and only real ReplayBudget methods construct it; append checks original sticky refusal before new fees; explicit lost/nonselected owner paths invoke complete unfunded legacy receivers; four profile control initializer units named. Existing append marker remains Copy and exhausted flag keeps old refusal priority. Full profile controls plus full Permit controls plus nested actual renewal controls are independently paid, without old-header credit.

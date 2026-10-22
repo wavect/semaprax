@@ -1,0 +1,12 @@
+{
+  "status": "LOCAL_SOURCE_BINDING_CHECKS_PASS",
+  "base": "055f0c53e7152b59d279b125542d2cba2a4546fe",
+  "changed_sources": [
+    "src/cli/help/usages.rs",
+    "docs/AGENT-QUICK-REFERENCE.md",
+    "CHANGELOG.md"
+  ],
+  "language_runtime_semantics_changed": false,
+  "all_CI_green_claimed": false,
+  "release_PR_merged": false
+}

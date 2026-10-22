@@ -1,5 +1,9 @@
 # OPT798 compiled source-audit pieces — NEXT only
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base b5eca55b96890e1a815f0d8d9e7b42c78d743b07. No Cargo, Rust, benchmark,
 ROOT, active-round or resource-limit change. This is integration/interop test
 transport, NOT an explanation of earlier library-unit 8/9GiB stops.

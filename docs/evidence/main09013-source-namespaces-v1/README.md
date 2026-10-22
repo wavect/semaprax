@@ -1,5 +1,9 @@
 # Frozen incoming source namespace
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 This source-only composition independently compiles the complete 884-line
 MAIN090 semantic receiver body, which is unchanged at frozen MAIN8c
 `8c08e049247582871734136e5dcef0261c947d9b`. It retains all previous OURS and

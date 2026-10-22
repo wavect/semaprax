@@ -557,28 +557,65 @@ pub(in crate::cleanup_plan::replay) fn compare(
     Ok(())
 }
 
-
 // Complete incoming99 generation; only the enumerated namespace glue differs.
 pub(super) fn whole_source() -> String {
-    let mut restored = include_str!("before_shared_steps.rs").split_once("\n// Complete incoming99 generation;").unwrap().0.to_owned();
+    let mut restored = include_str!("before_shared_steps.rs")
+        .split_once("\n// Complete incoming99 generation;")
+        .unwrap()
+        .0
+        .to_owned();
     assert_eq!(restored.matches("#[macro_use]\n#[path = \"lexical_cursor_shared_steps.rs\"]\nmod lexical_cursor;\nuse super::pair_scope_census;").count(), 1);
     restored = restored.replacen("#[macro_use]\n#[path = \"lexical_cursor_shared_steps.rs\"]\nmod lexical_cursor;\nuse super::pair_scope_census;", "#[macro_use]\nmod lexical_cursor;\n#[cfg(test)]\nmod before_lexical_cursor;\n#[cfg(test)]\nmod before_pair_scope;\n#[cfg(test)]\nmod pair_scope_census;", 1);
-    assert_eq!(restored.matches("pub(super) struct ComparisonOwner<").count(), 1);
-    restored = restored.replacen("pub(super) struct ComparisonOwner<", "struct ComparisonOwner<", 1);
-    assert_eq!(restored.matches("pub(super) const OWNER_CONTROLS:").count(), 1);
-    restored = restored.replacen("pub(super) const OWNER_CONTROLS:", "const OWNER_CONTROLS:", 1);
-    assert_eq!(restored.matches("pub(super) const PAYMENT_HEADER:").count(), 1);
-    restored = restored.replacen("pub(super) const PAYMENT_HEADER:", "const PAYMENT_HEADER:", 1);
+    assert_eq!(
+        restored
+            .matches("pub(super) struct ComparisonOwner<")
+            .count(),
+        1
+    );
+    restored = restored.replacen(
+        "pub(super) struct ComparisonOwner<",
+        "struct ComparisonOwner<",
+        1,
+    );
+    assert_eq!(
+        restored.matches("pub(super) const OWNER_CONTROLS:").count(),
+        1
+    );
+    restored = restored.replacen(
+        "pub(super) const OWNER_CONTROLS:",
+        "const OWNER_CONTROLS:",
+        1,
+    );
+    assert_eq!(
+        restored.matches("pub(super) const PAYMENT_HEADER:").count(),
+        1
+    );
+    restored = restored.replacen(
+        "pub(super) const PAYMENT_HEADER:",
+        "const PAYMENT_HEADER:",
+        1,
+    );
     assert_eq!(restored.matches("pub(super) const PATH_INDEX:").count(), 1);
     restored = restored.replacen("pub(super) const PATH_INDEX:", "const PATH_INDEX:", 1);
     assert_eq!(restored.matches("pub(super) const PAIR_SCOPE:").count(), 1);
     restored = restored.replacen("pub(super) const PAIR_SCOPE:", "const PAIR_SCOPE:", 1);
-    assert_eq!(restored.matches("pub(super) const PAIR_PRIMITIVE:").count(), 1);
-    restored = restored.replacen("pub(super) const PAIR_PRIMITIVE:", "const PAIR_PRIMITIVE:", 1);
+    assert_eq!(
+        restored.matches("pub(super) const PAIR_PRIMITIVE:").count(),
+        1
+    );
+    restored = restored.replacen(
+        "pub(super) const PAIR_PRIMITIVE:",
+        "const PAIR_PRIMITIVE:",
+        1,
+    );
     assert_eq!(restored.matches("pub(super) const PAIR_MATCH:").count(), 1);
     restored = restored.replacen("pub(super) const PAIR_MATCH:", "const PAIR_MATCH:", 1);
     restored.push_str("#[cfg(test)]\nmod tests;\n");
-    let admitted = super::reachable_stage("src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs", "a9b5037a2522c8e1bd7d24363894176aef29983900d48028b30fa86e6dabe5c8", include_str!("../comparison_owner.rs"));
+    let admitted = super::reachable_stage(
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs",
+        "a9b5037a2522c8e1bd7d24363894176aef29983900d48028b30fa86e6dabe5c8",
+        include_str!("../comparison_owner.rs"),
+    );
     assert_eq!(restored, admitted, "whole compiled incoming99 producer");
     restored
 }

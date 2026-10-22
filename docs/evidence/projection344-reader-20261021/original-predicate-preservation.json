@@ -1,0 +1,6 @@
+{
+  "status": "PASS",
+  "all_original_complete_assertion_calls_preserved": true,
+  "all_original_live_normalization_statements_retained_verbatim": true,
+  "ordering_fix": "Move complete authenticated live49 normalization ahead of original old44 acceptance predicate; every old44 source assertion still executes."
+}

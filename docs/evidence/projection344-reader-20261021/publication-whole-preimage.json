@@ -1,0 +1,7 @@
+{
+  "source": "src/workspace_graph/expected_projection/borrowed_imports/tests/full/publication.rs",
+  "git_parent": "cc08a1a7fc^",
+  "length": 7068,
+  "sha256": "569dca7d1273c3c4cfbd1eda7b6ed9e3909db7cd607556eddb7c515838078a5f",
+  "archive": "e/569dca7d1273c3c4cfbd1eda7b6ed9e3909db7cd607556eddb7c515838078a5f"
+}

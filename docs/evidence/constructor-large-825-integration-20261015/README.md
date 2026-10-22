@@ -1,5 +1,9 @@
 # Constructor 825 integrated source-custody checkpoint
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The ROOT owner explicitly authorized this integration. Incoming directory95,
 cost5ca, signatureb758 and fixture457 changes were applied after frozen940's
 qualification/lint/test corrections. The parent ProviderProofs authorization

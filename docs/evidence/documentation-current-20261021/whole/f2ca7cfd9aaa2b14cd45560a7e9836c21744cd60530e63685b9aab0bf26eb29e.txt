@@ -1,0 +1,13 @@
+# OPT 844, 845 and 846 acceptance
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
+Closed after the complete source8bb9 acceptance evidence was pushed in2f03b2a2d. Issue844 has9 current direct PASS results;845 has6 current real public-consumer PASS results and10 explicitly historical core controls whose bodies and six owning production files remain byte-identical;846 has11 current direct PASS results. The archived readiness document predates the closure decision and retains its old pending wording, so it is not a current status record. The actual closure actions and exact posted comments are preserved separately.
+
+The original selected76 remain56PASS/20FAIL and the separate supplement9 remain9PASS/0FAIL. No original scope is relabeled85. Full raw receipts/logs/observations, the original resource interruption, all observed application failures and all previous failure histories are retained in `../qualification-8bb9-76-resume-20261016/`.
+
+Both consolidated scoped production Clippy commands actually ran and returned101 for the same unrelated849 manual-saturating-arithmetic lint at boxed_states.rs63. No Clippy PASS is claimed. The equivalent correction is prepared in the next implementation batch. Actual issue contracts require their focused acceptance and scoped Clippy runs (844 has no Clippy predicate); they do not impose an unrelated global lint or budget-pin rebuild as a universal feature-closure gate. The earlier generic readiness precondition requiring universal green was stricter than those contracts and was not used to hold completed features open.
+
+These closures do not establish application fit, fully funded diagnostic output, process-RAM improvement or live-agent token savings. Other application/receiving issues remain open. All unfavorable physical cases remain visible in the exact posted comments and complete logs.

@@ -1,3 +1,9 @@
+# main83-source-join-20261015 HANDOFF
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only MAIN83f069 merge onto4f5b. Bothactualparent ancestries retained. Productionunchanged; both MAIN-changedRust files byte-exact83. SoleGitconflict CHANGLEGO union keeps both transport848/sourceonlyhistory andMAIN correction. NoCargo/Rust/IOtest/build/Clippy executed;170 preparedround remainsNOTRUN/staleaftermerge.
 
 Newseven-row wholecurrent→4f5b view precedes runtimeCustody andallold848/MAIN/doc/branch stages. New smallcompiledJSON exactly22,353bytes, separate from89originalruntimefiles/93,590,460bytes andexisting90thCustody51,472bytes. All90 runtimefiles/childloader/inventory/tests remain byte-exact4f. Alloldschemas/inverses preserved; MAINexplicitbefore-rustfmt archive isexactoriginal4f three-splice JSON.

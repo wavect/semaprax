@@ -1,0 +1,46 @@
+{
+  "status": "ORIGINAL_CURRENT_CODEC_COMPOSITION_PASS_PENDING_PUBLICATION",
+  "base_head": "15ea356d6fa74ad8e5af41d9e5eb7def4520a6b8",
+  "rows": 697,
+  "page_bytes": 249956,
+  "published_current_preserved_as_exact_views": [
+    {
+      "source": "src/source_reflows_merge/main67107_inputs.rs",
+      "view": {
+        "length": 48667,
+        "sha256": "3883baaba8e157c00ea7b3a964d95336c809ec689b171b5e6c76eb4f29a6c10d",
+        "archive": "docs/evidence/merge-pr896-20261021/whole/3883baaba8e157c00ea7b3a964d95336c809ec689b171b5e6c76eb4f29a6c10d.txt",
+        "name": "whole-pre-compile35f-reader-15ea6b5cc8"
+      }
+    },
+    {
+      "source": "src/source_reflows_merge/main_e177_overlay_compiled.rs",
+      "view": {
+        "length": 77903,
+        "sha256": "d6d8b7d0e87f9fb8260bc752b0b47f73d92eabcb4d64e5abc3e21503039424ba",
+        "archive": "docs/evidence/main671-current-views-20261021/current/d6d8b7d0e87f9fb8260bc752b0b47f73d92eabcb4d64e5abc3e21503039424ba.txt",
+        "name": "whole-pre-compile35f-reader-15ea6b5cc8"
+      }
+    },
+    {
+      "source": "src/cleanup_plan/replay/sequence_vector/funded_tests.rs",
+      "view": {
+        "archive": "docs/evidence/compile35f-reader-20261021/stages/0a177d36f88e5febf77558507f5bdf1f1a74f5851e000c3637512f1ec069fba1.txt",
+        "length": 21816,
+        "sha256": "0a177d36f88e5febf77558507f5bdf1f1a74f5851e000c3637512f1ec069fba1",
+        "name": "whole-compile35f-current-source"
+      }
+    },
+    {
+      "source": "src/cleanup_plan/replay/skeleton_work/prefix_fusion.rs",
+      "view": {
+        "archive": "docs/evidence/compile35f-reader-20261021/stages/575ba5edd5dee6ffe14ee3a936f56005f2729a22b77bfacc7ecd207b82265f9a.txt",
+        "length": 7468,
+        "sha256": "575ba5edd5dee6ffe14ee3a936f56005f2729a22b77bfacc7ecd207b82265f9a",
+        "name": "whole-compile35f-current-source"
+      }
+    }
+  ],
+  "all_previous_fields_views_memberships_and_fragment_edges_retained": true,
+  "all_original_codec_bodies_and_caps_unchanged": true
+}

@@ -1,0 +1,41 @@
+{
+  "status": "LOCAL_WORKING_MERGE_FOCUSED_SOURCE_CHECKS_PASS",
+  "parents": {
+    "main": "289e0543dc1d2645265901c8b90ddbcf97d8e9a1",
+    "release": "e544f89290fc997edc464e1f92caa69a029d61b4"
+  },
+  "source_test_groups": [
+    {
+      "group": "overlay_v2",
+      "passed": 29,
+      "log_sha256": "29ded2e0042f724f33f065a1680fc36fb1b372ac38646dcbade0bebe9fc13df6"
+    },
+    {
+      "group": "packet_lookup__tests",
+      "passed": 3,
+      "log_sha256": "2c248d0152fb6b3732256ca6f673845f7dfa5beb57c1ec79c5d30483b8bfe0a0"
+    },
+    {
+      "group": "registered_digest_reads",
+      "passed": 1,
+      "log_sha256": "62c7c597d68e004025d43153eb6f167b7cff88e553c7e94a96b7d806fcbe35f2"
+    },
+    {
+      "group": "combined_side_invocation",
+      "passed": 1,
+      "log_sha256": "583397e285ce57f7da114ce0ea0367cb3e078bc9ea2e1b2a9c208a8d393963d2"
+    }
+  ],
+  "actual_complete_hir_boundary_tests_passed": 11,
+  "total_focused_rust_tests_passed": 45,
+  "complete_source_role_domains": [
+    "hir",
+    "projection"
+  ],
+  "all_six_original_hostile_role_controls_pass": true,
+  "source_harness_clippy_warnings_denied": true,
+  "normal_production_build_receipt": "normal-working-merge-build-receipt.json",
+  "full_unit_suite_and_hosted_CI_not_qualified": true,
+  "full_local_unit_typecheck_stopped_at_global_memory_reserve": true,
+  "external_ssd_only": true
+}

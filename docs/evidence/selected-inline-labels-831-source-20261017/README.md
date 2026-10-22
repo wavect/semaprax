@@ -1,5 +1,9 @@
 # Selected outer labels #831 — source-only candidate
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base: `67046b952463786263d98df1d912be2ee4dd8e88`. Private next-batch branch;
 no compile, test, layout probe, measurement, final binding or generation ran.
 No current paid/allocated/peak improvement or application-fit claim follows.

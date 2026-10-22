@@ -1,3 +1,9 @@
+# implementation-review review
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 **Scope:** I reviewed the pasted source by reading only. I did not compile or run anything. The `tests` module is declared (`receiving/typed.rs` ≈L56) but not pasted, so I cannot confirm any claim about tests. Line numbers are approximate, counted from the top of each pasted file.
 
 ## Blockers

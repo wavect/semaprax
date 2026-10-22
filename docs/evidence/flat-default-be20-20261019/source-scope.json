@@ -1,0 +1,16 @@
+{
+  "base_head": "be20ab811123ac0fd2fde76dc99f95bcfa1ba9db",
+  "changed_sources": [
+    "src/cleanup_plan/replay/ordinary_plan_history.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/tests.rs",
+    "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
+    "CHANGELOG.md",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/source_format.rs"
+  ],
+  "full_flat_PLAN_and_HIR_multiset_validation_retained": true,
+  "all_original_candidate_controls_preserved": true,
+  "ordinary_history_selection_explicit_test_only": true,
+  "no_cap_or_floor_changes": true,
+  "no_new_rust_classes": true,
+  "full_current_head_CI_still_required": true
+}

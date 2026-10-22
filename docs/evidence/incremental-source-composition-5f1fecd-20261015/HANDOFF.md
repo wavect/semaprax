@@ -1,5 +1,9 @@
 # Final merged-source metadata custody
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Exact frozen Rust/SPX/Cargo source basis:
 `8967ab82fbd11758c1b68e064cfd42f66cfb01c7`.
 All six bounded metadata commands and both actual-current adapter verifiers

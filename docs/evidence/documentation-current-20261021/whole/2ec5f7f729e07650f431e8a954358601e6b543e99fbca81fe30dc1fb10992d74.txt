@@ -1,0 +1,17 @@
+# Actual new canonical receiving sites
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
+This inventory describes source constructors, not empirical deficits or a quota discount. Existing nested allocation primitives and their actual Results remain in the source.
+
+* Constructor caller: one Canonicalizer aggregate initializer and its returned caller owner; the retained scalar scratch Vec initializer/field receiver and each of the two new Arena constructors has its own initializer and field receiver. The positive reserve Result is explicit. New arena fields include their full Vec headers/root links through complete layout sizes. No Result<Canonicalizer> exists.
+* Each exit query: SignatureQuery aggregate initializer plus local receiver; two Vec borrows and two slice coercion receivers; the borrowed child traversal has its own iterator initializer/receiver plus Vec/slice borrow. Additional Results are the new positive query-bank admission, retained scalar scratch reserve_vec, and actual tuple admission. The original signature-vector reserve_array still occurs on misses; it is not credited to the new bank.
+* Each resolved child: actual usize initializer and Vec::push receiving scalar are paid separately from scratch capacity. Child get's Option result/argument replaces the original child get at the same ordered resolution site. All children resolve before query comparisons can stop early.
+* Each miss: original owning signature Vec/backing and move loop remain. A new explicit index initializer/local is admitted before construction; its actual indexing/increment operands are separately priced by three usize layouts per iteration. Two new Results for this index bank/array admission remain paid. No enumerate/zip wrapper is introduced.
+* Each absent directory insertion: Node initializer plus Vec::push receiving Node, additional positive reserve Result, its function/budget/phase/size arguments, two Vec borrow receivers and the actual legacy-allocation branch values. The original tree-reservation Result corresponds to the arena reserve_vec Result, which remains real. Full new Vec capacity, including replacement overlap, is separately admitted before insertion. The key/value insertion receiver replaces the original map insertion; there is no new Result-returning rotation/helper and no refund.
+
+The AVL search/rotations replace the former BTree search/mutation on the same key types; they add no owned comparison result, closure, allocator, persistent cursor or diagnostic wrapper. Query comparison is lexicographic on actual Label payloads and all pre-resolved child IDs. Test-only sorted iteration and BTree comparison views borrow each real owner and never collect a replacement baseline.
+
+Before readiness, this inventory and the current concrete source formulas require independent review. No assertion below or in the code is an executable accounting qualification.

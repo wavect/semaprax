@@ -13,7 +13,7 @@ pub(super) enum Kind {
 pub(super) fn restore(kind: Kind, current: &str) -> String {
     use sha2::{Digest, Sha256};
     let acquired_preparation;
-    let prepared;
+    let locally_prepared;
     let current = if matches!(kind, Kind::Tests880 | Kind::Tests883) {
         acquired_preparation = crate::source_reflows_merge::main_e177_final_inputs::value_direct(
             "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests.rs",
@@ -27,7 +27,34 @@ pub(super) fn restore(kind: Kind, current: &str) -> String {
         ) == "b55944ab8d0bf07f12819355431dcc7ff83732a1efa2be6a63e0cf6f4bf7d521"
         {
             assert_eq!(acquired.matches("    frontiers::prepare();\n").count(), 2);
-            prepared = acquired.replace("    frontiers::prepare();\n", "");
+            locally_prepared = acquired.replace("    frontiers::prepare();\n", "");
+            assert_eq!(
+                locally_prepared,
+                include_str!(concat!(
+                    env!("CARGO_MANIFEST_DIR"),
+                    "/docs/evidence/tls-traces-cf72-20261019/before-owner-tests.rs.txt"
+                )),
+                "whole test predecessor, including every assertion"
+            );
+            acquired
+        } else {
+            current
+        }
+    } else {
+        current
+    };
+    let default_predecessor;
+    let current = if matches!(kind, Kind::Root) && exact_main_input(kind, current) {
+        default_predecessor = before_default_selection(current);
+        default_predecessor.as_str()
+    } else {
+        current
+    };
+    let prepared;
+    let current =
+        if matches!(kind, Kind::Tests880 | Kind::Tests883) && exact_main_input(kind, current) {
+            assert_eq!(current.matches("    frontiers::prepare();\n").count(), 2);
+            prepared = current.replace("    frontiers::prepare();\n", "");
             assert_eq!(
                 prepared,
                 include_str!(concat!(
@@ -39,10 +66,7 @@ pub(super) fn restore(kind: Kind, current: &str) -> String {
             prepared.as_str()
         } else {
             current
-        }
-    } else {
-        current
-    };
+        };
     // Exact incoming stages are selected only through the live current-source
     // physical/compiled/archive front, before this unchanged formatter inverse.
     let (source, expected) = match kind {
@@ -858,6 +882,46 @@ const TESTS883: &[(usize, &str, &str)] = &[
     (795, "\n       ", ""), (90, ";\nmod source_format;\nmod tail_source", ""),
 ];
 
+// Exact semantic selection inverse precedes every unchanged old root check.
+fn before_default_selection(current: &str) -> String {
+    use sha2::{Digest, Sha256};
+    assert_eq!(current.len(), 19991);
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))
+        ),
+        "b6b728c5226cd8c7b6cac5e470a385095bb4f852e8f8879c5942145ace41466d"
+    );
+    let mut restored = current.to_owned();
+    let mut last = current.len();
+    for &(at, after, before) in DEFAULT_SELECTION {
+        let end = at.checked_add(after.len()).unwrap();
+        assert!(end <= last && restored.is_char_boundary(at) && restored.is_char_boundary(end));
+        assert_eq!(&restored[at..end], after);
+        restored.replace_range(at..end, before);
+        last = at;
+    }
+    assert_eq!(restored, include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/flat-default-be20-20261019/whole/0fb0e0b5e6fa8ae948bdcd68f441253e4314cd82ec77c48326b3d151e1c3889c.txt")));
+    restored
+}
+#[rustfmt::skip]
+const DEFAULT_SELECTION: &[(usize, &str, &str)] = &[
+    (11299, "\n    }", ""),
+    (11143, "    ", ""),
+    (11135, "    ", ""),
+    (11087, "    ", ""),
+    (11031, "    ", ""),
+    (11017, "    ", ""),
+    (10986, "    ", ""),
+    (10980, "    ", ""),
+    (10954, "    ", ""),
+    (10863, "    ", ""),
+    (10780, "    ", ""),
+    (10237, "Keep the complete flat verifier as the ordinary default until the\n    // history candidate passes its owning application and physical gates.\n    // Candidate controls opt in explicitly; ordinary unit applications use\n    // the same default as normal builds. Observation never selects a route.\n    #[cfg(not(test))]\n    {\n        Ok(false)\n    }\n    #[cfg(test)]\n    {\n        if !TEST_CANDIDATE.with(std::cell::Cell::get) {\n            return Ok(false);\n        }\n        // ", ""),
+    (9064, "// Explicit test configuration, separate from reservation/trace observers. The\n// guard is created outside measured compiler windows and restores nesting.\n#[cfg(test)]\nthread_local! {\n    static TEST_CANDIDATE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };\n}\n#[cfg(test)]\npub(in crate::cleanup_plan::replay) struct TestCandidate(bool);\n#[cfg(test)]\nimpl Drop for TestCandidate {\n    fn drop(&mut self) {\n        TEST_CANDIDATE.with(|selected| selected.set(self.0));\n    }\n}\n#[cfg(test)]\npub(in crate::cleanup_plan::replay) fn enable_for_test() -> TestCandidate {\n    TestCandidate(TEST_CANDIDATE.with(|selected| selected.replace(true)))\n}\n\n", ""),
+];
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -887,4 +951,36 @@ mod tests {
         let longer = format!("{CURRENT}\n");
         assert!(std::panic::catch_unwind(|| restore(Kind::Root, &longer)).is_err());
     }
+}
+
+// These two main-only inverses retain their exact immutable input domains.
+fn exact_main_input(kind: Kind, current: &str) -> bool {
+    use sha2::{Digest, Sha256};
+    let (length, expected) = match kind {
+        Kind::Root => (
+            19991,
+            "b6b728c5226cd8c7b6cac5e470a385095bb4f852e8f8879c5942145ace41466d",
+        ),
+        Kind::Tests880 | Kind::Tests883 => (
+            43059,
+            "b55944ab8d0bf07f12819355431dcc7ff83732a1efa2be6a63e0cf6f4bf7d521",
+        ),
+        _ => return false,
+    };
+    current.len() == length
+        && format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))
+        ) == expected
+}
+
+#[test]
+fn retained_main_default_inverse_keeps_its_exact_source_and_mutation_refusals() {
+    let current = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/merge-pr896-20261021/whole/b6b728c5226cd8c7b6cac5e470a385095bb4f852e8f8879c5942145ace41466d.txt"));
+    assert!(exact_main_input(Kind::Root, current));
+    let original = before_default_selection(current);
+    assert_eq!(original, include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/flat-default-be20-20261019/whole/0fb0e0b5e6fa8ae948bdcd68f441253e4314cd82ec77c48326b3d151e1c3889c.txt")));
+    let changed = format!("{current}\n");
+    assert!(!exact_main_input(Kind::Root, &changed));
+    assert!(std::panic::catch_unwind(|| before_default_selection(&changed)).is_err());
 }

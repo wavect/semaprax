@@ -1,0 +1,9 @@
+{
+  "status": "EXACT_INITIAL_PUBLISHED_ROOT_SHA_RECONSTRUCTED",
+  "source": "src/source_reflows_merge/main_e177_overlay_v2.rs",
+  "length": 68854,
+  "sha256": "e38e9544d138eedf6379f94598729f2f86f87efe514b7e33c62a0d334aebf3fd",
+  "policy_sha256": "43d516507e0e872db871d328a859f9c2409bda7d6877579d627d7afa8658970e",
+  "only_initial_policy_sha_restored": true,
+  "original_codec_reencoding_used": true
+}

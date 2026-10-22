@@ -1,0 +1,19 @@
+[
+  {
+    "domain": "hir",
+    "changed_source_pins": [
+      "src/source_reflows_merge/main_e177_overlay_v2.rs",
+      "src/source_reflows_merge/runtime_json.rs"
+    ],
+    "rebound_existing_edges": 19,
+    "all_existing_sources_roles_chains_and_literal_registrations_unchanged": true
+  },
+  {
+    "domain": "projection",
+    "changed_source_pins": [
+      "src/source_reflows_merge/main_e177_overlay_v2.rs"
+    ],
+    "rebound_existing_edges": 3,
+    "all_existing_sources_roles_chains_and_literal_registrations_unchanged": true
+  }
+]

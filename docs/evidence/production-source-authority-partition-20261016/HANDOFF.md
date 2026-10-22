@@ -1,5 +1,9 @@
 # Production authority partition (source-only component)
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Actual175 owners84/85 conflated complete compiled-control custody with production authority. The raw concatenations keep every original include in its original order, separators and multiplicity. The shared test helper authenticates every actual current source and each literal module registration, classifies production versus closed cfg(test) descendants, and checks the exact complete raw concatenation. All existing production forbidden predicates remain unchanged. Production descendants omitted by the older textual union are added to the scan; test descendants are authenticated without contributing test authority to that scan. No source substitution, token exception or historical source projection occurs here.
 
 Component source check: HIR336 production/434 test-only, projection58/56. Exact owning forbidden arrays and three static negatives per root pass. These are Python source checks, not Rust compilation or executed owning tests. Old actual failures remain failures.

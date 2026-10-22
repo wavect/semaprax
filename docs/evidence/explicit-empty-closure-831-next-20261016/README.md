@@ -1,5 +1,9 @@
 # Unqualified explicit-empty prototype checkpoint
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 This private NEXT checkpoint starts from exact 2a9059ed80f76ce0d6e5215f72fc8cd22053af15. Its five changed existing sources match the concurrent frozen production component byte-for-byte before this patch. No Cargo, Rust test, build, Clippy, or runtime probe was executed. No source-helper/audit-inventory integration is included; existing raw-source guards therefore require the normal next-batch authenticated composition before qualification.
 
 A non-sink leaf with no moves or epsilon edges publishes explicit Empty instead of constructing an OrderedWeights/Rc. The existing one-epsilon alias propagates Empty with each original work request. Multi-epsilon and all other shapes keep the complete general accumulator fallback. Overflow remains the enclosing None, distinct from present Empty memo success. New borrowed views and shared-enum constructors have explicit sizeof inventories; the iterator carries an optional original borrowed owner rather than constructing an empty map.

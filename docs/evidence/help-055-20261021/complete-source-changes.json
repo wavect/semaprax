@@ -1,0 +1,41 @@
+[
+  {
+    "source": "src/cli/help/usages.rs",
+    "before": {
+      "length": 1419,
+      "sha256": "0cf22eca09e868283b10765a49ffc0a680ed1b508dd24e3f3a624a4e0c6bdc3d",
+      "archive": "docs/evidence/help-055-20261021/whole/0cf22eca09e868283b10765a49ffc0a680ed1b508dd24e3f3a624a4e0c6bdc3d.txt"
+    },
+    "current": {
+      "length": 1476,
+      "sha256": "4a1c4941c14db7eb99961b65840ef43261ae52300b8ef380c88a6034d06dfc4c",
+      "archive": "docs/evidence/help-055-20261021/whole/4a1c4941c14db7eb99961b65840ef43261ae52300b8ef380c88a6034d06dfc4c.txt"
+    }
+  },
+  {
+    "source": "docs/AGENT-QUICK-REFERENCE.md",
+    "before": {
+      "length": 81839,
+      "sha256": "6f0e90440d64a4a77e345b0899e0ad9e099e5c159d9c991039ab4d756c7ad73e",
+      "archive": "docs/evidence/help-055-20261021/whole/6f0e90440d64a4a77e345b0899e0ad9e099e5c159d9c991039ab4d756c7ad73e.txt"
+    },
+    "current": {
+      "length": 81844,
+      "sha256": "2f09b143084e73ee1106584778a556083c91c79b6e49207eee8c87e876601ba1",
+      "archive": "docs/evidence/help-055-20261021/whole/2f09b143084e73ee1106584778a556083c91c79b6e49207eee8c87e876601ba1.txt"
+    }
+  },
+  {
+    "source": "CHANGELOG.md",
+    "before": {
+      "length": 585564,
+      "sha256": "e33b21a37c924c32e7665c80abf95049fa51557373688d30d2657ba586ef2c21",
+      "archive": "docs/evidence/help-055-20261021/whole/e33b21a37c924c32e7665c80abf95049fa51557373688d30d2657ba586ef2c21.txt"
+    },
+    "current": {
+      "length": 585698,
+      "sha256": "bb7b3ef0f3eacc2dc1498e20b6bed6b10b6d071848b4b5936f2d49d7891a5231",
+      "archive": "docs/evidence/help-055-20261021/whole/bb7b3ef0f3eacc2dc1498e20b6bed6b10b6d071848b4b5936f2d49d7891a5231.txt"
+    }
+  }
+]

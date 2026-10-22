@@ -1,0 +1,10 @@
+
+running 5 tests
+test source_reflows::ci_inputs::fourteen_complete_ci_input_inverses_keep_independent_git_bodies_and_refuse_stale_or_changed_source ... ok
+test source_reflows_merge::main67107_inputs::legacy_ci_inputs::fourteen_complete_ci_input_inverses_keep_independent_git_bodies_and_refuse_stale_or_changed_source ... ok
+test source_reflows_merge::main99f_inputs::legacy_ci_inputs::fourteen_complete_ci_input_inverses_keep_independent_git_bodies_and_refuse_stale_or_changed_source ... ok
+test source_reflows_merge::main_c883_inputs::legacy_ci_inputs::fourteen_complete_ci_input_inverses_keep_independent_git_bodies_and_refuse_stale_or_changed_source ... ok
+test source_reflows_merge::main_e177_inputs::legacy_ci_inputs::fourteen_complete_ci_input_inverses_keep_independent_git_bodies_and_refuse_stale_or_changed_source ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 276 filtered out; finished in 1.12s
+

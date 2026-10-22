@@ -16,7 +16,10 @@ fn restore(current: &str, length: usize, edits: &[(usize, &str, &str)]) -> Strin
 }
 pub(super) fn previous_macro(current: &str) -> String {
     let stage = super::super::super::super::super::reachable_stage(
-        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor.rs", "e3278dc29dcce665dd9d3a67ce048e552254a65c5a939f769b2b7c1eb86a9ded", current);
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor.rs",
+        "e3278dc29dcce665dd9d3a67ce048e552254a65c5a939f769b2b7c1eb86a9ded",
+        current,
+    );
     let current = stage.as_str();
     restore(current, 10841, MACRO)
 }
@@ -30,7 +33,10 @@ const MACRO: &[(usize, &str, &str)] = &[
 ];
 pub(super) fn previous_owner(current: &str) -> String {
     let stage = super::super::super::super::super::reachable_stage(
-        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs", "a9b5037a2522c8e1bd7d24363894176aef29983900d48028b30fa86e6dabe5c8", current);
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs",
+        "a9b5037a2522c8e1bd7d24363894176aef29983900d48028b30fa86e6dabe5c8",
+        current,
+    );
     let current = stage.as_str();
     restore(current, 23539, OWNER)
 }
@@ -43,7 +49,10 @@ const OWNER: &[(usize, &str, &str)] = &[
 ];
 pub(super) fn previous_pair_tests(current: &str) -> String {
     let stage = super::super::super::super::super::reachable_stage(
-        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_tests.rs", "10ecb901fd3ce0805b1fbc81f68ad221d9a4fc3ddf3f707ff05fc38fff5b13e5", current);
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_tests.rs",
+        "10ecb901fd3ce0805b1fbc81f68ad221d9a4fc3ddf3f707ff05fc38fff5b13e5",
+        current,
+    );
     let current = stage.as_str();
     restore(current, 42740, PAIR_TESTS)
 }
@@ -63,7 +72,10 @@ const PAIR_TESTS: &[(usize, &str, &str)] = &[
 ];
 pub(super) fn previous_census(current: &str) -> String {
     let stage = super::super::super::super::super::reachable_stage(
-        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_census.rs", "ced9cc53bd363653bcc182b443bcbc41b2be69c005d441e3c4a3599f20e90ef5", current);
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_census.rs",
+        "ced9cc53bd363653bcc182b443bcbc41b2be69c005d441e3c4a3599f20e90ef5",
+        current,
+    );
     let current = stage.as_str();
     restore(current, 12959, CENSUS)
 }
@@ -103,8 +115,8 @@ mod tests {
         // Public current-first acquisition must still reject physical drift.
         assert_eq!(inverse(current), before);
         assert!(std::panic::catch_unwind(|| inverse(&format!("{current} "))).is_err());
-        let acquired = super::super::super::super::super::super::reachable_stage(
-            stage.0, stage.1, current);
+        let acquired =
+            super::super::super::super::super::super::reachable_stage(stage.0, stage.1, current);
         assert_eq!(acquired.len(), stage.2);
         let current = acquired.as_str();
         // Archived inverse offsets apply to this authenticated complete stage,
@@ -189,7 +201,11 @@ mod tests {
                 "/docs/evidence/shared-pair-c79-20261018/before-macro.rs.txt"
             )),
             MACRO,
-            ("src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor.rs", "e3278dc29dcce665dd9d3a67ce048e552254a65c5a939f769b2b7c1eb86a9ded", 10841),
+            (
+                "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor.rs",
+                "e3278dc29dcce665dd9d3a67ce048e552254a65c5a939f769b2b7c1eb86a9ded",
+                10841,
+            ),
         );
         hostile(
             include_str!("../../../../../comparison_owner.rs"),
@@ -199,7 +215,11 @@ mod tests {
                 "/docs/evidence/shared-pair-c79-20261018/before-owner.rs.txt"
             )),
             OWNER,
-            ("src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs", "a9b5037a2522c8e1bd7d24363894176aef29983900d48028b30fa86e6dabe5c8", 23539),
+            (
+                "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs",
+                "a9b5037a2522c8e1bd7d24363894176aef29983900d48028b30fa86e6dabe5c8",
+                23539,
+            ),
         );
         hostile(
             include_str!("../../../../pair_scope_tests.rs"),

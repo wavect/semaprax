@@ -1,0 +1,217 @@
+{
+  "qualification": "actual normal final flat-default compiler on macOS; 18 pass, service G171 unresolved; hosted CI still required",
+  "results": [
+    {
+      "subject": "io_lines/test_bare_cr",
+      "exit": 0,
+      "peakKiB": 59664,
+      "report": {
+        "status": "verified",
+        "name": "std-io-lines",
+        "revision": "sha256:f670571df1f434b8cde7c7bd09c0452cda624815887e3a6a4eb4e09fcdaf4364"
+      },
+      "all_original_source_and_caps_retained": true
+    },
+    {
+      "subject": "io_lines/test_bare_cr_eof",
+      "exit": 0,
+      "peakKiB": 60880,
+      "report": {
+        "status": "verified",
+        "name": "std-io-lines",
+        "revision": "sha256:e04a6780ce82a9a9d89888e466d73fe99b4dfa80226f28062590b6edf7a2f83f"
+      },
+      "all_original_source_and_caps_retained": true
+    },
+    {
+      "subject": "io_lines/test_bare_cr_offset",
+      "exit": 0,
+      "peakKiB": 54976,
+      "report": {
+        "status": "verified",
+        "name": "std-io-lines",
+        "revision": "sha256:c8ffbfa435183da82a3c79276d2dca986fd374d689c6f3633f7baf67698c877a"
+      },
+      "all_original_source_and_caps_retained": true
+    },
+    {
+      "subject": "io_lines/test_crlf_line",
+      "exit": 0,
+      "peakKiB": 59872,
+      "report": {
+        "status": "verified",
+        "name": "std-io-lines",
+        "revision": "sha256:df05807f7c2fd64aadb87a30fd9c448dff86e334fc26966f004daaa31362359a"
+      },
+      "all_original_source_and_caps_retained": true
+    },
+    {
+      "subject": "io_lines/test_crlf_only",
+      "exit": 0,
+      "peakKiB": 60512,
+      "report": {
+        "status": "verified",
+        "name": "std-io-lines",
+        "revision": "sha256:3c17ff3a7a55cc6d8d0af1a2941b087a140d9f88a024a507252fea097a8e2b83"
+      },
+      "all_original_source_and_caps_retained": true
+    },
+    {
+      "subject": "io_lines/test_double_cr_eof",
+      "exit": 0,
+      "peakKiB": 60944,
+      "report": {
+        "status": "verified",
+        "name": "std-io-lines",
+        "revision": "sha256:6e5c424906a764ecd2ab9f9ef459f58a4c1cc407eebae3b0dee831f05d36f20a"
+      },
+      "all_original_source_and_caps_retained": true
+    },
+    {
+      "subject": "io_lines/test_empty_line",
+      "exit": 0,
+      "peakKiB": 60912,
+      "report": {
+        "status": "verified",
+        "name": "std-io-lines",
+        "revision": "sha256:fe491f5bbc1e3a78daf4ef7ed10acd3f5ad8160f85e495d6259aec9300190355"
+      },
+      "all_original_source_and_caps_retained": true
+    },
+    {
+      "subject": "io_lines/test_lf_line",
+      "exit": 0,
+      "peakKiB": 60896,
+      "report": {
+        "status": "verified",
+        "name": "std-io-lines",
+        "revision": "sha256:ae7139db77f7d417ec57445436a697d86690f7dd98897380c4454bacc139d538"
+      },
+      "all_original_source_and_caps_retained": true
+    },
+    {
+      "subject": "io_lines/test_lone_cr_eof",
+      "exit": 0,
+      "peakKiB": 60992,
+      "report": {
+        "status": "verified",
+        "name": "std-io-lines",
+        "revision": "sha256:9a4ff7515773ed0fc6279907c366950f4baee5063fd74e7e9ef3d91e47af3156"
+      },
+      "all_original_source_and_caps_retained": true
+    },
+    {
+      "subject": "io_lines/test_offset_write",
+      "exit": 0,
+      "peakKiB": 55088,
+      "report": {
+        "status": "verified",
+        "name": "std-io-lines",
+        "revision": "sha256:9280fe301d55073c151ee4ee9b22cf957bc244bec3ef02bab2e7f57771102b94"
+      },
+      "all_original_source_and_caps_retained": true
+    },
+    {
+      "subject": "io_lines/test_runtime_line_walk",
+      "exit": 0,
+      "peakKiB": 54656,
+      "report": {
+        "status": "verified",
+        "name": "std-io-lines",
+        "revision": "sha256:d49a2e77b39edd3c6f2e1ea3c2f7f688b71438658f41652ffacc506e17cd8219"
+      },
+      "all_original_source_and_caps_retained": true
+    },
+    {
+      "subject": "io_lines/test_runtime_many_line_walk",
+      "exit": 0,
+      "peakKiB": 56016,
+      "report": {
+        "status": "verified",
+        "name": "std-io-lines",
+        "revision": "sha256:0f939283bb88caca82ee6ad7fced047bb954a72a09ffae6219ae0c022f9e0893"
+      },
+      "all_original_source_and_caps_retained": true
+    },
+    {
+      "subject": "io_lines/test_runtime_zero_line_walk",
+      "exit": 0,
+      "peakKiB": 55328,
+      "report": {
+        "status": "verified",
+        "name": "std-io-lines",
+        "revision": "sha256:8fd6e4620677365857c7e81175e96c87b2b91cb044deec9e96bb753c8bf8216f"
+      },
+      "all_original_source_and_caps_retained": true
+    },
+    {
+      "subject": "io_lines/test_two_line_walk",
+      "exit": 0,
+      "peakKiB": 55504,
+      "report": {
+        "status": "verified",
+        "name": "std-io-lines",
+        "revision": "sha256:a7e5ab62f520eb2f9191c74ca5c9a19cafe8550b9a405689fcf8e6cedfeccc51"
+      },
+      "all_original_source_and_caps_retained": true
+    },
+    {
+      "subject": "io_lines/test_unterminated_tail",
+      "exit": 0,
+      "peakKiB": 59728,
+      "report": {
+        "status": "verified",
+        "name": "std-io-lines",
+        "revision": "sha256:6799b714895679c5c4ee79b5c51b47abb5f21a53bc9d9219cc449fc4adeb6467"
+      },
+      "all_original_source_and_caps_retained": true
+    },
+    {
+      "subject": "std/log",
+      "exit": 0,
+      "peakKiB": 62128,
+      "report": {
+        "status": "verified",
+        "name": "std-log",
+        "revision": "sha256:71482023bc9082991f7240d6e1e016be5c07cd7c1a2529971e54978e967659a3"
+      },
+      "all_original_source_and_caps_retained": true
+    },
+    {
+      "subject": "std/log-redact",
+      "exit": 0,
+      "peakKiB": 59856,
+      "report": {
+        "status": "verified",
+        "name": "std-log-redact",
+        "revision": "sha256:9a047be156b9fe574be1e820e6e42afce234a04daa8354c3f05aec3afd021ae2"
+      },
+      "all_original_source_and_caps_retained": true
+    },
+    {
+      "subject": "std/data-json-write",
+      "exit": 0,
+      "peakKiB": 58928,
+      "report": {
+        "status": "verified",
+        "name": "std-data-json-write",
+        "revision": "sha256:d14091a62f417f8ca450d24410f6ecd77022bb83af418843344d0ddad159423b"
+      },
+      "all_original_source_and_caps_retained": true
+    },
+    {
+      "subject": "examples/task-service-project",
+      "exit": 1,
+      "peakKiB": null,
+      "report": {
+        "code": "SPX-G171",
+        "severity": "error",
+        "message": "Workspace Semantic Graph `builder_bytes` exceeds 67108864",
+        "path": null,
+        "location": null,
+        "help": "live graph construction, not the static admission pre-charge, exceeded the budget: the pre-charge forecast 28925594 bytes for 19 module(s) and fit within 67108864, with `src/core.spx` the largest at 4939242 bytes. Reducing reachable source is the only lever; the forecast itself was not the refusing bound. resolved-core phase first sticky ledger refusal: requested 770 bytes with 526 remaining and 0 reserved floor. Authenticated internal stage: HIR final validation. These are cumulative reservation bytes, not a retained-memory forecast or process RSS; the exact inner operation is unknown."
+      },
+      "all_original_source_and_caps_retained": true
+    }
+  ]
+}

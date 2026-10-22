@@ -1,5 +1,9 @@
 # Independent Main043 custody
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The nine incoming tables, complete original owner files, formatting registry,
 12 receiver proofs and two live-audit proofs are retained byte for byte under
 `incoming/`. The nine root tables and five-proof helper remain the a82e domain.

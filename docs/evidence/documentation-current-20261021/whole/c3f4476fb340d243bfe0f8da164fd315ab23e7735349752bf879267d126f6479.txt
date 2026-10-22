@@ -1,0 +1,15 @@
+# main83-source-join-20261015 HANDOFF
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
+Source-only MAIN83f069 merge onto4f5b. Bothactualparent ancestries retained. Productionunchanged; both MAIN-changedRust files byte-exact83. SoleGitconflict CHANGLEGO union keeps both transport848/sourceonlyhistory andMAIN correction. NoCargo/Rust/IOtest/build/Clippy executed;170 preparedround remainsNOTRUN/staleaftermerge.
+
+Newseven-row wholecurrent→4f5b view precedes runtimeCustody andallold848/MAIN/doc/branch stages. New smallcompiledJSON exactly22,353bytes, separate from89originalruntimefiles/93,590,460bytes andexisting90thCustody51,472bytes. All90 runtimefiles/childloader/inventory/tests remain byte-exact4f. Alloldschemas/inverses preserved; MAINexplicitbefore-rustfmt archive isexactoriginal4f three-splice JSON.
+
+ActualMAINformatted retry domainseam fixednarrowly: existing owningguard calls newmain83_retry_fixture_input, authenticating fullcurrent→4f file beforeextractingtheexactformattedA1d fixture. Separatelyexecutes retained retry_fixture_input/F56 historicalpreformat chain. MAIN38position-boundsplices (originalfirst3unchanged+35formattingonly) nowrestorecompletefrozen4c8 fixture byte-exact; all runtime assertions/caps/predicates unchanged. Originalcallerline/fullbefore archived; no oracle replacement or hash substitution.
+
+verify.py passed7wholeGit/source/archives,all90data files, exact2MAINRust,actual38splice loop/frozenSHA. Firstnewcheckerincorrectlystartedatfn ratherthanexistingdoccommentmarker; refusalretainedandcorrected toexactRustmarker, no runtimebodyran. Complete4f namespace restoration supportspriorproofreusewithoutbroadreruns.
+
+Proposed172=prior170+2existingchanged MAINowners,15roles (newexistingproject_candidate target only). Noactualregistrationuntilparentmerge/freeze; no further scope. Currentpinprepdeferred; finalnewhead requireswhole-source-equivalence rebind, actualsuccessfulfivecommands/currentCLI artifacts+receiptSHA beforeproducers.

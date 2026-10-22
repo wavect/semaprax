@@ -1,0 +1,17 @@
+{
+  "base_head": "ffee93f4147136fd935ff968175e17cab98909ee",
+  "changed_source": "src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs",
+  "old_sha256": "cbe6f17984a61badfdf361d9e7fb6f90de6e0681fe389135dc008fdab5075150",
+  "new_sha256": "f6631dae5796aba642c9a9b294a0479ff45e984856ae836591e563888cae9dba",
+  "shared_regression_source": "src/cleanup_plan/replay/ordinary_plan_history/frontiers/initialization_tests.rs",
+  "regression_sha256": "d820ae64801b56e9bd56ccb162de3bb0031b751068aee4b13e3d283c8130dcdc",
+  "isolated_ledger": "The complete actual Budget ledger core and every used child are retained. Only the unused identity_reservation module registration is omitted from the private harness; its private AST/abort dependencies are not substituted. The repository ledger is unchanged. See the exact isolation and verbatim-copy receipts.",
+  "diagnostic_type": "Prior normal compiler Rlib supplies the real Diagnostic type; it is not a current normal compiler rebuild.",
+  "original_observer": "Complete current System-backed allocation observer and callbacks execute unmodified.",
+  "qualification": "Original trace reproduces the missing-preparation assertion. Current trace passes the shared fresh-thread regression with zero measured allocations/reallocations/bytes and zero consumed ledger bytes. All 4096 records, one-over refusal, normal/swap-only order and actual Drop remain checked. Focused Clippy denies warnings. Fresh complete source generation, both original domain verifiers and six hostile controls passed.",
+  "max_RSS_bytes": 7241728,
+  "all_source_roles_and_old_acquisition_chains_preserved": true,
+  "compiler_budgets_and_goldens_unchanged": true,
+  "all_work_and_caches_on_external_ssd": true,
+  "full_Root_build_and_full_CI_green_not_claimed": true
+}

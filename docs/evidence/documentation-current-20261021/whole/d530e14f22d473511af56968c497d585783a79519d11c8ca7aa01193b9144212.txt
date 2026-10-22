@@ -1,0 +1,9 @@
+# Main44 historical skeleton input after ordinary constructor funding
+
+The full Main44 namespace proof requires every copied original include to read its existing full historical input. Its vector test retained one include of the current live skeleton_work.rs instead, accidentally passing while that file matched the old snapshot. The real #856 constructor change exposed the mismatch.
+
+Change only that copied fixture include to its preexisting complete Main44 raw snapshot. All original test predicates, push counts, code order and expected values remain unchanged. Its namespace binding updates only compiled text/hash; the complete original declaration/test source stays unchanged and the unchanged Main44 verifier restores every original include spelling. Live source inventory and the separate current-to-Main44 source-domain owner continue to read the actual complete new constructor source. This is historical input repair, not a claim that the old snapshot covers current constructor behavior; the independent new #856 owners cover that behavior.
+
+Original compiled fixture and namespace bindings are archived beside this file. No Rust test or build was run. Re-execute the existing Main44 vector source owner, source-domain owner and new856 constructor controls in the focused batch.
+
+The exact original push-order predicate also remains executable against the entire actual current skeleton source in `source_reflows_merge::current344::live_push_source_tests::actual_skeleton_pushes_keep_work_before_materialization_and_growth` (and the shared workspace registration). This preserves the live source gate when the copied historical owner uses its own complete old snapshot. The existing Main44 `source_domain::every_current_source_has_the_exact_complete_incoming_main44_preimage` still checks the entire current source and drift refusals.

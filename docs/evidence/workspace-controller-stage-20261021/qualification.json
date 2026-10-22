@@ -1,0 +1,20 @@
+{
+  "status": "TARGETED_CURRENT_SOURCE_CUSTODY_CHECKS_PASS_NORMAL_CI_PENDING",
+  "before_head": "bbcfd1a837fe5d31afd66b1ba915d61f650ffdd5",
+  "new_scope": "Only tests/workspace.rs is appended to the finite overlay and compiled lookup; the unrelated legacy named-source scope remains unchanged and refuses this new path.",
+  "controller_archive_length": 4657,
+  "controller_archive_sha256": "b08e6a6ac41aea9919c08f4de0eeb8b7ec8802de278c3b6ef68c79af79604692",
+  "workspace_source_unchanged": true,
+  "all_old_source_fields_views_memberships_roles_and_edges_retained": true,
+  "physical_budget_change": "Exact top-level compact_try macro block moved before the test module, preserving all bodies and965lines; no lint allowance.",
+  "limitations": "Not complete CI, normal-compiler Clippy, runtime, or backend qualification.",
+  "focused_checks": [
+    "Original public-wire controller test: all6proofs and original rejection checks unchanged.",
+    "Complete compiled lookup predecessor and hostile controls.",
+    "Finite current physical/compiled/archive channel guard.",
+    "All180 original source reflows.",
+    "Six new workspace source controls, including unchanged legacy scope refusal.",
+    "Original complete HIR/projection role verifiers and all6original hostile controls.",
+    "Source-harness Clippy warnings denied and cargo fmt."
+  ]
+}

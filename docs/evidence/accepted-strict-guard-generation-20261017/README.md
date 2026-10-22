@@ -1,5 +1,9 @@
 # Accepted strict source generation
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 This separately named successor retains the entire original guard algorithm,
 allowed maximum table, three complete 5f carriers, and all three original
 bindings. The original guard remains independently runnable and rejects the

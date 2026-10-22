@@ -1,0 +1,17 @@
+
+running 12 tests
+test cli_authoring_card_search_is_bounded_exact_and_inert ... ok
+test cli_language_help_documents_run_string_fallback_and_json_schemas ... ok
+test cli_language_projects_distinguishes_the_private_stream_data_profile ... ok
+test cli_language_web_distinguishes_offline_runtime_checks_from_the_server_check ... ok
+test fmt_and_context_failures_keep_stable_diagnostic_codes ... ok
+test language_details::bounded_topics_name_exact_single_detail_queries_and_keep_full_reference ... ok
+test language_details::exact_language_details_preserve_all_complete_original_cli_sections ... ok
+test standalone_application_starter_options_explain_full_host_and_leave_no_files ... ok
+test standalone_help_is_exact_capability_aware_and_inert ... ok
+test standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert ... ok
+test task_pages::json_task_pages_keep_full_host_boundaries_and_complete_source_inventory_inert ... ok
+test task_pages::profile_task_pages_are_bounded_exact_complete_and_inert ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.04s
+

@@ -1,5 +1,9 @@
 # Actual production lexical caller correction —843 receiving
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The d1bb production-library build found two E0599 errors: this real strategy
 branch still called Canonicalizer::id, which843 intentionally keeps cfg(test).
 It now acquires one genuinely paid ClosureReceiving before its HIR root and

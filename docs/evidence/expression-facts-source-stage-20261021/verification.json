@@ -1,0 +1,80 @@
+{
+  "status": "LOCAL_COMPLETE_SOURCE_ADMISSION_AND_ORIGINAL_AUDIT_PASS",
+  "base_head": "54e85de6c070a952b97809aabdd34b6b4526fb1e",
+  "source": "src/cleanup_plan/replay/expression_facts.rs",
+  "current": {
+    "length": 24090,
+    "sha256": "8728d164bd61e2a7a8e8165bc5d0e1a1b6a652aafd56302406cc2db0a386864f"
+  },
+  "original_checkpoint": {
+    "path": "docs/evidence/main-1e-next-source-merge-20261017/main/053698df5f2f88f5e6fde6c2d3a0c47f7eb683cc34dca0365f4be56682da4ae5.txt",
+    "length": 23859,
+    "sha256": "053698df5f2f88f5e6fde6c2d3a0c47f7eb683cc34dca0365f4be56682da4ae5"
+  },
+  "exact_delta": "Only the complete 231-byte optional observer statement; source file unchanged by this repair.",
+  "production_or_full_ci_green_claimed": false,
+  "source_controls": {
+    "status": "PASS",
+    "checks": [
+      "live expression-facts source source drift blocks old view",
+      "current workspace archive drift blocks old view",
+      "old workspace view archive tamper",
+      "extension packet tamper after module load",
+      "foreign expression-facts source tuple refused",
+      "legacy named-source scope remains closed"
+    ],
+    "all_original_source_bytes_restored": true,
+    "old_and_current_exact_views_authenticate": true
+  },
+  "source_roles": {
+    "status": "SOURCE_ONLY_ORIGINAL_FULL_DOMAIN_AND_HOSTILE_CONTROLS_PASS",
+    "domains": [
+      "hir",
+      "projection"
+    ],
+    "negative_controls": {
+      "dropped_actual_child_refused": true,
+      "coordinated_class_drop_not_original_generated_output": true,
+      "production_reclassification_refused": true,
+      "actual_source_drift_refused": true,
+      "whole_raw_drift_refused": true,
+      "foreign_path_child_cannot_escape": true
+    },
+    "generation_receipt_sha256": "89e709c1897223d0f65567970de53b41beb94cceb902bb8e0602fc9d335c8f75",
+    "complete_chain_receipt_sha256": "ba95042c28f113e573b489791cb9f921579a5b35011554d3fb07438bf99a5af6",
+    "peak_RSS_bytes": 143310848,
+    "no_Rust_or_hosted_qualification_claimed": true,
+    "must_refresh_if_header_or_other_source_changes": true
+  },
+  "page": {
+    "status": "ORIGINAL_CURRENT_CODEC_COMPOSITION_PASS_PENDING_PUBLICATION",
+    "base_head": "54e85de6c070a952b97809aabdd34b6b4526fb1e",
+    "rows": 689,
+    "page_bytes": 241082,
+    "published_current_preserved_as_exact_views": [
+      {
+        "source": "src/source_reflows_merge/main_e177_overlay_compiled.rs",
+        "view": {
+          "length": 49291,
+          "sha256": "b2733b984bef480b803066411bc80904440698e799ade1eb4ee310b778e63300",
+          "archive": "docs/evidence/workspace-controller-stage-20261021/current/b2733b984bef480b803066411bc80904440698e799ade1eb4ee310b778e63300.txt",
+          "name": "whole-pre-expression-facts-54e85de6c0"
+        }
+      }
+    ],
+    "all_previous_fields_views_memberships_and_fragment_edges_retained": true,
+    "all_original_codec_bodies_and_caps_unchanged": true
+  },
+  "clippy": {
+    "status": "PASS_ACTUAL_SOURCE_HARNESS_CLIPPY_WARNINGS_DENIED",
+    "peakKiB": 560864
+  },
+  "original_tests_preserved_and_passed": [
+    "source_reflows::semantic_receivers::main_1e::replay_operation_totals_preserve_complete_predecessors_and_production_text",
+    "source_reflows::semantic_receivers::current_replay_operation_guards_bind_the_actual_receivers_without_production_changes",
+    "compiled_lookup_split_preserves_the_complete_predecessor_and_every_old_mapping",
+    "compiled_lookup_split_refuses_child_parent_span_eof_and_duplicate_glue",
+    "finite_page_current_compiled_and_archive_channels_are_required_before_history",
+    "approved_reflows_authenticate_full_inputs_and_reconstruct_full_predecessors"
+  ]
+}

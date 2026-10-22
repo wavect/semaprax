@@ -540,6 +540,12 @@ mod incoming_main671 {
             );
         }
         let current = include_str!("before_671.rs");
+        let captured_source_stage = crate::main_e177_final_inputs::value_direct(
+            "tests/wasm/scalar_browser_ci_contract/before_671.rs",
+            "0f4e6a07c1f0487eb3163781bd60bdefc7daa4bbcee6b6deee255b9c911ab66d",
+            current,
+        );
+        let current = captured_source_stage.as_str();
         let new = concat!(
         "include_str!(\n",
         "        \"../../../docs/evidence/browser-graph-pins-67107c7c5/test-fixtures.before.mjs\"\n",
@@ -889,6 +895,12 @@ mod incoming_main7d34 {
             );
         }
         let current = include_str!("before_7d34.rs");
+        let captured_source_stage = crate::main_e177_final_inputs::value_direct(
+            "tests/wasm/scalar_browser_ci_contract/before_7d34.rs",
+            "eb43b69f6a9deded48d37ed201bb2a3526ae70bf1f90446dfe57987ff80cc836",
+            current,
+        );
+        let current = captured_source_stage.as_str();
         let new = concat!(
         "include_str!(\n",
         "        \"../../../docs/evidence/browser-graph-pins-7d34f1269/test-fixtures.before.mjs\"\n",
@@ -1137,6 +1149,12 @@ mod incoming_main21abc {
             );
         }
         let current = include_str!("before_21abc.rs");
+        let captured_source_stage = crate::main_e177_final_inputs::value_direct(
+            "tests/wasm/scalar_browser_ci_contract/before_21abc.rs",
+            "97907d75b2d59588125458eb2a0603dadf6900854ee79139aa2271d9fcc82ed4",
+            current,
+        );
+        let current = captured_source_stage.as_str();
         let new = concat!(
         "include_str!(\n",
         "        \"../../../docs/evidence/browser-graph-pins-21abcda9b/test-fixtures.before.mjs\"\n",

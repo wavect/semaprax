@@ -1,5 +1,9 @@
 # Final source-only composition on e30e017
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Immutable source basis: `e30e017e503f8e0362a186ada126c48e6199d4d7`.
 
 The metadata-only composition covers all previous 68 packets and 666 rows, plus sixteen packets containing 108 rows: declaration rewrites, registry census scratch, OPT836 frontend/interpreter/backends/controls, precise lint and receiver corrections, the four region inverses, scalar guard views, source36 views/immediate originals, formatter correction, and the two documentation inverse owners. Total: 84 packets, 774 rows. Existing hooks and complete original fields are retained; 195 complete current-to-immutable-checkpoint inverses are additive. Independent joined verification authenticates 191 added checkpoints in existing packet files; the remaining four are in newly derived manifest packets.

@@ -1,5 +1,9 @@
 # #785 inference target identity reuse — source-only partial migration
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base d05c354dcb3470daf46308a6fd46dc9c493693e3. No Cargo, runtime, application comparison, live-agent measurement or issue closure. Public DeclarationId::new and pure-query compatibility behavior stay unchanged; full dynamic construction migration remains open.
 
 The two real generic_inference target constructors (owner at41 and template at386 in the base) clone the exact source stable-ID String then create a second Arc backing. Both now call the existing DeclarationIndex::held_identity with the same borrowed spelling. The initial index construction retains its original explicit payer and pays the complete backing once; no allowance is created or transferred, no old charge is refunded, and this change does not describe legacy-created indexes as paid.

@@ -1,0 +1,10 @@
+{
+  "status": "PASS_EXACT_ORIGINAL_READERS_VALUE_PROJECT_AND_RAW_AUDITS",
+  "original_before_files": 11,
+  "original_metadata_files_unchanged": 10,
+  "all_nine_original_raw_audit_bodies_and_23_raw_subjects_unchanged": true,
+  "original_low_level_readers_and_closed_current_namespaces_byte_exact": true,
+  "ordinary_value_wrong_stage_and_fifteen_row_project_functions_byte_exact": true,
+  "original_resource_constants_unchanged": true,
+  "all_changes_test_only": true
+}

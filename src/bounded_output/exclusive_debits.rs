@@ -1,5 +1,5 @@
 //! Optional exclusive debit observation. Never allocates or grants compiler authority.
-use super::{ACTIVE, Budget, ReservationStage};
+use super::{Budget, ReservationStage, ACTIVE};
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
@@ -223,7 +223,8 @@ impl Report {
         overflow: false,
         lost: false,
         invalid: false,
-        observer_storage_bytes: std::mem::size_of::<RefCell<State>>() + std::mem::size_of::<Cell<bool>>(),
+        observer_storage_bytes: std::mem::size_of::<RefCell<State>>()
+            + std::mem::size_of::<Cell<bool>>(),
         report_layout_bytes: std::mem::size_of::<Report>(),
         capture_report_layout_bytes: std::mem::size_of::<
             crate::workflow_profile::plan_comparison::Report,
@@ -708,7 +709,7 @@ mod tests {
         reserve_active_required, with_limit_usage_refusal, with_reservation_stage,
     };
     use crate::workflow_profile::plan_comparison::{Binding, Capture};
-    use std::panic::{AssertUnwindSafe, catch_unwind};
+    use std::panic::{catch_unwind, AssertUnwindSafe};
     fn capture() -> Capture {
         Capture::begin(Binding::caller_labelled(
             "exclusive actual ledger control",
@@ -766,8 +767,8 @@ mod tests {
         (observed.1, observed.2, observed.3, report)
     }
     #[test]
-    fn exclusive_core_attempts_keep_original_ledger_refusal_nested_settlement_and_fixed_zero_allocation()
-     {
+    fn exclusive_core_attempts_keep_original_ledger_refusal_nested_settlement_and_fixed_zero_allocation(
+    ) {
         for (limit, refused, unwind) in [
             (10, false, false),
             (6, false, false),
@@ -873,8 +874,8 @@ mod tests {
         );
     }
     #[test]
-    fn exclusive_core_attempts_keep_final_not_largest_retries_foreign_restored_unwind_drop_and_loss()
-     {
+    fn exclusive_core_attempts_keep_final_not_largest_retries_foreign_restored_unwind_drop_and_loss(
+    ) {
         exclusive_case_0();
         exclusive_case_1();
         exclusive_case_2();

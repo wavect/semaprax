@@ -1,5 +1,7 @@
 # #854 canonical interning arena — private source component
 
+Audience: compiler contributors and reviewers.
+
 Status: unexecuted source prototype on exact 3c3886620dff92f0d5ae8f9e5a7b097e3c3c73ad. No Rust compilation, owning test, application, Clippy, or measured savings result exists for this component. It is not part of the current frozen qualification.
 
 The two actual canonical directories are Vec-backed AVL arenas. Parent/left/right links are usize indices, so no numeric-key-space allocation or new compiler cap exists. Keys stay at insertion indices during rotations; stored values retain the original first-insertion ordinal. Growth uses the existing reserve_vec contract: the complete new allocation is charged while all prior backing remains charged. Insertions and rotations after admission allocate nothing and return unit.

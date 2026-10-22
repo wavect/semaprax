@@ -1,5 +1,9 @@
 # Source-only real canonical carrier removal
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Private base29750ef89f6823e8c8b0fde330342f585762bfb5; no ROOT mutation, Cargo, build, Rust test or Clippy. This is a partial reservation-overhead reduction candidate, not831 closure or proof of a measured gain.
 
 Five actual entries (canonical id/successors/closure compatibility entries and both ordinary/strategy production comparisons) prepay DIRECT_CONTROLS with the existing reserve_bytes Result, then construct a Self-returning ClosureReceiving. The complete original Result<Self,Diagnostic> acquire body and exact original control formula remain independently compiled cfg(test) for their original controls. Only production/direct calls cease constructing that large aggregate Result. Same two Self values, held Option/Diagnostic/Value and actual reserve Result stay paid before initialization; same pointer/ledger capture, authentication/admission order, diagnostics and sticky state. Existing two-root production owners retain one slot through both roots. No per-request production shim replaces them.

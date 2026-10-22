@@ -1,1 +1,7 @@
+# current-23e8-exact-foreign-diagnostic-20261015 HANDOFF
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only follow-up atop7beb6ec70254420646dfbe64b452312db3515b27. The existing expected Diagnostic is now used to compare every field of each foreign-function/facts/budget/nested-owner refusal and sticky retry, by reference. All original is_err, allocation, remaining-budget and Drop assertions remain. The static initializer and explicit result Drop remain. No JSON/clone/report allocation enters the observer. Complete immediate original and inverse are retained; initial mechanical packet/history is untouched. No Cargo/build/test/Clippy/C/Node/Claude ran. Parent must compose this new inverse after merging. Exact pending owner: cleanup_plan::replay::expression_facts::receiving::return_operands::tests::foreign_function_facts_budget_and_restored_nested_owner_never_reuse_backing.

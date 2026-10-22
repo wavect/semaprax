@@ -1,5 +1,9 @@
 # #833: registry-owned identifier census scratch, source-only checkpoint
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Basis: `940fcf220e47d1975f757e76f0b3401691db9358`. This packet changes only
 three identifier-census vectors, not all temporary private-layout storage.
 The current registry authenticates the exact caller, parsed-program slice and

@@ -538,6 +538,7 @@ src/hir/byte_slice_provenance/vec_field.rs
 src/hir/ordinary_scan.rs
 src/hir/static_text.rs
 src/hir/static_text/backing.rs
+src/test_allocation_observer/backing.rs
 src/hir/static_text/origin.rs
 src/hir/capacity_probe.rs
 src/hir/closure.rs
@@ -1126,6 +1127,12 @@ src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source
 src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/fused_readers.rs
 src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/json_ledger.rs
 src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/paired_tails.rs
+src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/fixture_helpers.rs
+src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/lexical_cursor.rs
+src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/mod.rs
+src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/pair_scope_census.rs
+src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/pair_scope_tests.rs
+src/bounded_output/stage_debits/route_debits/retained_main_289.rs
 src/source_reflows_merge/main_e177_packet_lookup.rs
 src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_empty_selector.rs
 src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads_before_empty.rs
@@ -1141,6 +1148,7 @@ src/hir/resolve_expr/sort_keys/identity_tests.rs
 src/hir/resolve_for/identity_before.rs
 src/hir/resolve_for_own/identity_before.rs
 src/source_reflows_merge/main_e177_overlay_pins_v9.rs
+src/source_reflows_merge/main_e177_overlay_pins_v10.rs
 src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_final_affine.rs
 src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads_before_final_affine.rs
 src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/final_affine.rs

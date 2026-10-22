@@ -1,0 +1,15 @@
+[
+  {
+    "domain": "hir",
+    "all_sources_classes_roles_and_exact_edge_text_attributes_preserved": true,
+    "changed_source_pins": [
+      "src/source_reflows_merge/constructor_stage.rs",
+      "src/workspace_graph/constructor_failure/typed.rs"
+    ]
+  },
+  {
+    "domain": "projection",
+    "all_sources_classes_roles_and_exact_edge_text_attributes_preserved": true,
+    "changed_source_pins": []
+  }
+]

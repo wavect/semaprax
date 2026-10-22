@@ -1,5 +1,9 @@
 # Repair independent old receiver test-module wiring
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Actual5aac unit no-run compilation reported four missing module files; no bodies ran. Explicitly path-loaded old files need explicit child paths. No old assertion/body is removed and no old algorithm is redirected through a new receiver.
 
 The old RetainedMemo instantiates the complete existing held_tests body by explicit path; lexical super binds this old owner and its old Memo. The two source-only ordered modules are instantiated from their original directories: they inspect complete current source domains through existing authenticated historical fronts, use no OrderedWeights/Memo payload type, and preserve every original source assertion and include resolution. They are exact5aac complete bodies, not falsely described as byteexact2a (later source-custody adapters are necessary).

@@ -1,5 +1,9 @@
 # Review of the pasted source only (nothing executed)
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 ## Blocker candidates
 
 **1. Flow-insensitive name lookup against a stale entry scope (resolve_statement.rs:236-239; resolve_for.rs:67; byte_ancestry.rs:43).**

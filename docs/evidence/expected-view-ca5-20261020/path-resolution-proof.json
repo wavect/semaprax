@@ -1,0 +1,300 @@
+[
+  {
+    "source": "src/source_reflows_merge.rs",
+    "original_sha256": "d813d4cee641419aa2ddcd2b5aa57b2b00de7dfe132d59f5867bc7daa286cbce",
+    "compiled_transplant_sha256": "83ec9adde7377bcca8281cfdcae647a191aef2a4ddb21d76d0b57de8e6c39309",
+    "only_path_resolution_adjusted": true,
+    "inverse": [
+      {
+        "start_byte": 171,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows_merge/joined_custody.rs\"",
+        "before": "\"source_reflows_merge/joined_custody.rs\"",
+        "reason": "module path only"
+      },
+      {
+        "start_byte": 290,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows_merge/prefix_custody.rs\"",
+        "before": "\"source_reflows_merge/prefix_custody.rs\"",
+        "reason": "module path only"
+      },
+      {
+        "start_byte": 409,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows_merge/release_custody.rs\"",
+        "before": "\"source_reflows_merge/release_custody.rs\"",
+        "reason": "module path only"
+      },
+      {
+        "start_byte": 530,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows_merge/successor_custody.rs\"",
+        "before": "\"source_reflows_merge/successor_custody.rs\"",
+        "reason": "module path only"
+      },
+      {
+        "start_byte": 683,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows_merge/final_custody.rs\"",
+        "before": "\"source_reflows_merge/final_custody.rs\"",
+        "reason": "module path only"
+      },
+      {
+        "start_byte": 800,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows_merge/metadata_json.rs\"",
+        "before": "\"source_reflows_merge/metadata_json.rs\"",
+        "reason": "module path only"
+      },
+      {
+        "start_byte": 917,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows_merge/runtime_json.rs\"",
+        "before": "\"source_reflows_merge/runtime_json.rs\"",
+        "reason": "module path only"
+      },
+      {
+        "start_byte": 35827,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/docs/evidence/arena854-borrowed-query-zip-20261016/current-to-2d87.json\"",
+        "before": "\"../docs/evidence/arena854-borrowed-query-zip-20261016/current-to-2d87.json\"",
+        "reason": "same included file only"
+      },
+      {
+        "start_byte": 40946,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/docs/evidence/prepaid-canonical-cursor-clippy-20261016/current-to-f766.json\"",
+        "before": "\"../docs/evidence/prepaid-canonical-cursor-clippy-20261016/current-to-f766.json\"",
+        "reason": "same included file only"
+      },
+      {
+        "start_byte": 42029,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/docs/evidence/main65-private-merge-20261016/current-to-75d8.json\"",
+        "before": "\"../docs/evidence/main65-private-merge-20261016/current-to-75d8.json\"",
+        "reason": "same included file only"
+      },
+      {
+        "start_byte": 42907,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/docs/evidence/test-compile-corrections-9ce9-20261016/current-to-9ce9.json\"",
+        "before": "\"../docs/evidence/test-compile-corrections-9ce9-20261016/current-to-9ce9.json\"",
+        "reason": "same included file only"
+      },
+      {
+        "start_byte": 43089,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows_merge/main8a_custody.rs\"",
+        "before": "\"source_reflows_merge/main8a_custody.rs\"",
+        "reason": "module path only"
+      },
+      {
+        "start_byte": 44086,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows_merge/maina3_custody.rs\"",
+        "before": "\"source_reflows_merge/maina3_custody.rs\"",
+        "reason": "module path only"
+      },
+      {
+        "start_byte": 45419,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows_merge/main44_custody.rs\"",
+        "before": "\"source_reflows_merge/main44_custody.rs\"",
+        "reason": "module path only"
+      },
+      {
+        "start_byte": 45820,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows_merge/main043_custody.rs\"",
+        "before": "\"source_reflows_merge/main043_custody.rs\"",
+        "reason": "module path only"
+      },
+      {
+        "start_byte": 46450,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows_merge/current344.rs\"",
+        "before": "\"source_reflows_merge/current344.rs\"",
+        "reason": "module path only"
+      },
+      {
+        "start_byte": 46827,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows_merge/main8a_historical.rs\"",
+        "before": "\"source_reflows_merge/main8a_historical.rs\"",
+        "reason": "module path only"
+      },
+      {
+        "start_byte": 46955,
+        "after": "#[path=\"/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows_merge/opt858_sequence_input.rs\"]\n",
+        "before": "",
+        "reason": "original module directory resolution"
+      },
+      {
+        "start_byte": 47087,
+        "after": "#[path=\"/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows_merge/main_eb2_inputs.rs\"]\n",
+        "before": "",
+        "reason": "original module directory resolution"
+      },
+      {
+        "start_byte": 47303,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows_merge/main7f8_presence.rs\"",
+        "before": "\"source_reflows_merge/main7f8_presence.rs\"",
+        "reason": "module path only"
+      },
+      {
+        "start_byte": 47437,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows_merge/main7f8_source_inputs.rs\"",
+        "before": "\"source_reflows_merge/main7f8_source_inputs.rs\"",
+        "reason": "module path only"
+      },
+      {
+        "start_byte": 47582,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows_merge/final_ready_inputs.rs\"",
+        "before": "\"source_reflows_merge/final_ready_inputs.rs\"",
+        "reason": "module path only"
+      },
+      {
+        "start_byte": 47710,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows_merge/main67107_inputs.rs\"",
+        "before": "\"source_reflows_merge/main67107_inputs.rs\"",
+        "reason": "module path only"
+      },
+      {
+        "start_byte": 47845,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows_merge/ordinary_plan_inputs.rs\"",
+        "before": "\"source_reflows_merge/ordinary_plan_inputs.rs\"",
+        "reason": "module path only"
+      },
+      {
+        "start_byte": 48247,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows_merge/main_c883_inputs.rs\"",
+        "before": "\"source_reflows_merge/main_c883_inputs.rs\"",
+        "reason": "module path only"
+      },
+      {
+        "start_byte": 48382,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows_merge/main99f_inputs.rs\"",
+        "before": "\"source_reflows_merge/main99f_inputs.rs\"",
+        "reason": "module path only"
+      },
+      {
+        "start_byte": 48513,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows_merge/main_e177_inputs.rs\"",
+        "before": "\"source_reflows_merge/main_e177_inputs.rs\"",
+        "reason": "module path only"
+      },
+      {
+        "start_byte": 48723,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows_merge/next_big_batch_inputs.rs\"",
+        "before": "\"source_reflows_merge/next_big_batch_inputs.rs\"",
+        "reason": "module path only"
+      },
+      {
+        "start_byte": 48868,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows_merge/main_e177_final_inputs.rs\"",
+        "before": "\"source_reflows_merge/main_e177_final_inputs.rs\"",
+        "reason": "module path only"
+      }
+    ]
+  },
+  {
+    "source": "src/source_reflows.rs",
+    "original_sha256": "b96c28c7547de7fa7d2096348278e16000c7e8e47324e066ad0ed620b9ee92e9",
+    "compiled_transplant_sha256": "f0fb9cb7624a0ea691bf97932761e7f167e4d79bc3559166a1870f307c5518f1",
+    "only_path_resolution_adjusted": true,
+    "inverse": [
+      {
+        "start_byte": 626,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/docs/evidence/mainf045-source-successor-20261015/live-mainf045-ci93.json\"",
+        "before": "\"../docs/evidence/mainf045-source-successor-20261015/live-mainf045-ci93.json\"",
+        "reason": "same included file only"
+      },
+      {
+        "start_byte": 1106,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows/incoming67107_semantic_receivers.rs\"",
+        "before": "\"source_reflows/incoming67107_semantic_receivers.rs\"",
+        "reason": "module path only"
+      },
+      {
+        "start_byte": 1255,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows/semantic_receivers.rs\"",
+        "before": "\"source_reflows/semantic_receivers.rs\"",
+        "reason": "module path only"
+      },
+      {
+        "start_byte": 1389,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows/semantic_receivers_mainb80.rs\"",
+        "before": "\"source_reflows/semantic_receivers_mainb80.rs\"",
+        "reason": "module path only"
+      },
+      {
+        "start_byte": 1527,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows/semantic_receivers_main7c6.rs\"",
+        "before": "\"source_reflows/semantic_receivers_main7c6.rs\"",
+        "reason": "module path only"
+      },
+      {
+        "start_byte": 1665,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows/nested_scope.rs\"",
+        "before": "\"source_reflows/nested_scope.rs\"",
+        "reason": "module path only"
+      },
+      {
+        "start_byte": 9535,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/docs/evidence/main927-source-successor-20261015/actual-main927-reflows.json\"",
+        "before": "\"../docs/evidence/main927-source-successor-20261015/actual-main927-reflows.json\"",
+        "reason": "same included file only"
+      },
+      {
+        "start_byte": 10773,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows/semantic_receivers_main_afba.rs\"",
+        "before": "\"source_reflows/semantic_receivers_main_afba.rs\"",
+        "reason": "module path only"
+      },
+      {
+        "start_byte": 10915,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows/semantic_receivers_main_f1.rs\"",
+        "before": "\"source_reflows/semantic_receivers_main_f1.rs\"",
+        "reason": "module path only"
+      },
+      {
+        "start_byte": 11066,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows/semantic_receivers_main8a.rs\"",
+        "before": "\"source_reflows/semantic_receivers_main8a.rs\"",
+        "reason": "module path only"
+      },
+      {
+        "start_byte": 11215,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows/semantic_receivers_maina3.rs\"",
+        "before": "\"source_reflows/semantic_receivers_maina3.rs\"",
+        "reason": "module path only"
+      },
+      {
+        "start_byte": 11364,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows/semantic_receivers_main44.rs\"",
+        "before": "\"source_reflows/semantic_receivers_main44.rs\"",
+        "reason": "module path only"
+      },
+      {
+        "start_byte": 11500,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows/main043.rs\"",
+        "before": "\"source_reflows/main043.rs\"",
+        "reason": "module path only"
+      },
+      {
+        "start_byte": 11600,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows/factored_sources.rs\"",
+        "before": "\"source_reflows/factored_sources.rs\"",
+        "reason": "module path only"
+      },
+      {
+        "start_byte": 11996,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows/main_f247_controllers.rs\"",
+        "before": "\"source_reflows/main_f247_controllers.rs\"",
+        "reason": "module path only"
+      },
+      {
+        "start_byte": 12135,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows/main99f_controllers.rs\"",
+        "before": "\"source_reflows/main99f_controllers.rs\"",
+        "reason": "module path only"
+      },
+      {
+        "start_byte": 12259,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows/main_e177_controllers.rs\"",
+        "before": "\"source_reflows/main_e177_controllers.rs\"",
+        "reason": "module path only"
+      },
+      {
+        "start_byte": 12386,
+        "after": "\"/Volumes/Semaprax/worktrees/ci-format-26eeb/src/source_reflows/main_e177_support.rs\"",
+        "before": "\"source_reflows/main_e177_support.rs\"",
+        "reason": "module path only"
+      }
+    ]
+  }
+]

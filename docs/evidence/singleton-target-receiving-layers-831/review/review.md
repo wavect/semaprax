@@ -1,5 +1,9 @@
 # Review of the successor body (source only, not executed)
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The paste has no line numbers, so I cite each point by the quoted statement or string. I can't see `Budget`, `Weighted`/`SharedWeighted`, `Label`, `weighted_successor` or `successor_targets`, and no tests were included. Everything below is conditional on those.
 
 ## Blockers

@@ -1,0 +1,6 @@
+{
+  "status": "REPRODUCED_ORIGINAL_HOSTED_PREFIX_FAILURE_ON_ACTUAL_FULL_HIR_HARNESS",
+  "compile_peakKiB": 946016,
+  "exit": 101,
+  "unchanged_complete_harness": true
+}

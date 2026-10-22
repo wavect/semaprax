@@ -1,0 +1,28 @@
+{
+  "status": "ORIGINAL_CURRENT_CODEC_COMPOSITION_PASS_PENDING_PUBLICATION",
+  "base_head": "bbcfd1a837fe5d31afd66b1ba915d61f650ffdd5",
+  "rows": 688,
+  "page_bytes": 240059,
+  "published_current_preserved_as_exact_views": [
+    {
+      "source": "src/source_reflows_merge/main_e177_overlay_compiled.rs",
+      "view": {
+        "length": 48204,
+        "sha256": "5486b736d0c4a2775fb5cd4a60f363153614a3b03103b51924176e343458088b",
+        "archive": "docs/evidence/compact-byte-errors-20261021/current/5486b736d0c4a2775fb5cd4a60f363153614a3b03103b51924176e343458088b.txt",
+        "name": "whole-pre-public-wire-bbcfda15bdd5"
+      }
+    },
+    {
+      "source": "src/cleanup_plan/replay/physical_budget.rs",
+      "view": {
+        "length": 35474,
+        "sha256": "723aa0bd05a3eba3bc02340ff7b8f1c81803dfe848398e9787cde8faa32cbea0",
+        "archive": "docs/evidence/help-bundle-and-local-errors-20261021/current/723aa0bd05a3eba3bc02340ff7b8f1c81803dfe848398e9787cde8faa32cbea0.txt",
+        "name": "whole-pre-public-wire-bbcfda15bdd5"
+      }
+    }
+  ],
+  "all_previous_fields_views_memberships_and_fragment_edges_retained": true,
+  "all_original_codec_bodies_and_caps_unchanged": true
+}

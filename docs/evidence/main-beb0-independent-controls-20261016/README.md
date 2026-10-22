@@ -1,5 +1,9 @@
 # Main beb0 independent controls
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only reconciliation of Main `beb0a8a508b2f8f30ca5277b8f88c687d859201d` with modern `8bb9f5b7b99e1e71a797460c46180daf716b234b`.
 
 The modern funded unit-weight route is unchanged. The older BTreeMap implementation is independently compiled only under `cfg(test)` in `canonical_shared::main_unit_weight`. All five Main controls retain complete assertion bodies and physical probes. Their old/current comparison describes the Main implementation domain, not a saving attributable to modern production or the NEXT empty-memo route.

@@ -1,0 +1,7 @@
+{
+  "status": "PASS_ACTUAL_COMPLETE_CLI_HELP_HARNESS",
+  "tests_passed": 12,
+  "test_peakKiB": 50832,
+  "standalone_authority_and_empty_directory_checks_retained": true,
+  "original_5000_byte_topic_limit_retained": true
+}

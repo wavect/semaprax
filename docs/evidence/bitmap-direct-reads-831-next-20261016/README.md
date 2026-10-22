@@ -1,5 +1,9 @@
 # Explicit empty closure memo: direct-read successor
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only successor to immutable `6f5fb17136b5b4a2763115d1bb30b69a4ea02c2a`. Six complete before/after sources restore that checkpoint, which retains its complete five-source inverse to `2a9059ed80f76ce0d6e5215f72fc8cd22053af15`. Both older prototype packets remain unchanged; the rejected enum prototype is not a shipping candidate.
 
 The original production OrderedWeights iterator is restored byte-for-byte. The new View forwarding and optional iterator owner are removed. Shared and general successor branches directly use their original get/iteration and complete grouping/vector bodies. Their existing constructor payments remain. Computed-empty skips the absent map/Rc/grouping constructors, authenticates reserve_array(0), and constructs the surviving empty Vec, tuple, Option and outer Result under the existing receiving contract; zero reservation is not presented as payment for these carriers. Bitmap publication drops the redundant immutable assertion traversal under the private producer's not-completed invariant.

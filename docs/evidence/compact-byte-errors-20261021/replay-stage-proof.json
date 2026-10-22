@@ -1,0 +1,49 @@
+{
+  "status": "COMPLETE_NEW_ROOT_TO_PREVIOUS_ROOT_BYTE_INVERSE_PASS",
+  "row": {
+    "source": "src/cleanup_plan/replay.rs",
+    "length": 326264,
+    "sha256": "cc999fb9034687101cb5d34db54ed4ea58289ac6d9f9f7fae9f53e693231f74a",
+    "checkpoint_length": 326272,
+    "checkpoint_sha256": "cf20e9132b5b94602777d4b1d70495da2c8411181a9f642919f6a0d4aa8c12c8",
+    "inverse": [
+      [
+        "                            branch_clone::production_capacity::production_inline_controls::<\n                                std::rc::Rc<SkeletonObservation>,\n                            >(),\n                            \"branch clone receiving controls\",\n                        )?;\n                    } else {\n                        budget.reserve_bytes(\n                            function,\n                            branch_clone::compact_roles::<std::rc::Rc<SkeletonObservation>>(),\n                            \"branch clone receiving controls\",\n                        )?;\n",
+        "                            branch_clone::production_capacity::production_inline_controls::<\n                                std::rc::Rc<SkeletonObservation>,\n                            >(),\n                            \"branch clone receiving controls\",\n                        )?;\n                    } else {\n                        budget.reserve_bytes(\n                            function,\n                            branch_clone::inline_controls::<std::rc::Rc<SkeletonObservation>>(),\n                            \"branch clone receiving controls\",\n                        )?;\n"
+      ],
+      [
+        "                            function,\n                            &mut branch,\n                            observation,\n                            \"plan branch observation push\",\n                        )?;\n                    } else if observations.len() < branch_clone::direct::SMALL_COPY_LIMIT {\n                        budget.reserve_bytes(\n                            function,\n                            branch_clone::compact_roles::<std::rc::Rc<SkeletonObservation>>(),\n                            \"branch clone receiving controls\",\n                        )?;\n                        branch_clone::direct::copy_small_plan!(\n                            branch,\n                            observations,\n                            observation,\n                            budget,\n                            function\n                        );\n                    } else {\n                        budget.reserve_bytes(\n                            function,\n                            branch_clone::direct::compact_roles::<\n                                std::rc::Rc<SkeletonObservation>,\n                                SkeletonObservation,\n                            >(),\n                            \"branch clone receiving controls\",\n                        )?;\n                        branch = branch_clone::direct::copy_prepaid(\n                            budget,\n                            function,\n",
+        "                            function,\n                            &mut branch,\n                            observation,\n                            \"plan branch observation push\",\n                        )?;\n                    } else if observations.len() < branch_clone::direct::SMALL_COPY_LIMIT {\n                        budget.reserve_bytes(\n                            function,\n                            branch_clone::inline_controls::<std::rc::Rc<SkeletonObservation>>(),\n                            \"branch clone receiving controls\",\n                        )?;\n                        branch_clone::direct::copy_small_plan!(\n                            branch,\n                            observations,\n                            observation,\n                            budget,\n                            function\n                        );\n                    } else {\n                        budget.reserve_bytes(\n                            function,\n                            branch_clone::direct::inline_controls::<\n                                std::rc::Rc<SkeletonObservation>,\n                                SkeletonObservation,\n                            >(),\n                            \"branch clone receiving controls\",\n                        )?;\n                        branch = branch_clone::direct::copy_prepaid(\n                            budget,\n                            function,\n"
+      ],
+      [
+        "                        budget.reserve_bytes(\n                            function,\n                            branch_clone::direct::compact_roles::<\n                                std::rc::Rc<SkeletonObservation>,\n                                SkeletonObservation,\n                            >(),\n                            \"branch clone receiving controls\",\n                        )?;\n                        branch = skeleton_clone(\n                            budget,\n                            function,\n",
+        "                        budget.reserve_bytes(\n                            function,\n                            branch_clone::direct::inline_controls::<\n                                std::rc::Rc<SkeletonObservation>,\n                                SkeletonObservation,\n                            >(),\n                            \"branch clone receiving controls\",\n                        )?;\n                        branch = skeleton_clone(\n                            budget,\n                            function,\n"
+      ]
+    ],
+    "indexed_inverse": [
+      [
+        289042,
+        "compact_roles",
+        "inline_controls"
+      ],
+      [
+        290063,
+        "compact_roles",
+        "inline_controls"
+      ],
+      [
+        290653,
+        "compact_roles",
+        "inline_controls"
+      ],
+      [
+        297512,
+        "compact_roles",
+        "inline_controls"
+      ]
+    ]
+  },
+  "unchanged_root_line_count": 7992,
+  "old_fee_bank_bodies_retained_exact": true,
+  "source_literals_not_rewritten": true
+}

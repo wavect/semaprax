@@ -1,5 +1,9 @@
 # Main696 first-output capacity correction
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Private source-only candidate from ff7e1afd945de67b0e51125168a273e6f93fc73c (364d + Main696). No Rust compilation, execution, gain, or application-fit claim.
 
 The shipping four receivers acquire their exact count/selection control bank before initializing count/selection. This is a new cold metadata frontier, including tiny/empty outputs. It retains the existing outer Diagnostic ABI on initial refusal; it does not claim to finish OPT825. The optional larger backing is acquired only after the original first actual output's path evaluation, work debit, and materialization observation. A lexical expansion avoids the added minimum helper's Diagnostic Result and forwarding arguments. All nested reserve_vec, prepare_builder, checked-size and reserve_bytes Results remain present and funded by their unchanged producer paths. Subsequent pushes remain the original push_expr_path call.

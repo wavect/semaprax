@@ -1,0 +1,8 @@
+{
+  "base": "74ab818c91afaeb97a23cd66b7687cdc81e34eb9",
+  "status": "EIGHT_RAW_AUDITS_AND_READER_CONTROLS_PASS",
+  "remaining_failure": "audit_3 independent lifecycle original hash changed by prior exclusive operation instrumentation; raw inverse now succeeds",
+  "current_source_binding": "Complete fresh physical and compiled source authenticated before exact registered whole checkpoint; pinned compact inverse checked back to complete checkpoint; every original fixture field and edit retained.",
+  "cap": 5081115,
+  "no_full_ci_green_claim": true
+}

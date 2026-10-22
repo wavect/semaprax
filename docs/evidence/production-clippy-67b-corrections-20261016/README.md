@@ -1,5 +1,9 @@
 # Production Clippy corrections from 67b
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The observed log contains 19 diagnostics. Seven shipping Rust files change;
 no test assertion, source guard, historical receiver, immutable table, accounting
 constant, limit, or diagnostic payload is weakened. The separate changelog entry

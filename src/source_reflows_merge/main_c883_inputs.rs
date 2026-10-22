@@ -1,5 +1,11 @@
 //! Closed acquisition for the complete main-c883 historical controllers.
 //! This read boundary is test-only and never feeds a current raw source audit.
+#[allow(
+    clippy::duplicate_mod,
+    reason = "The same closed reader must compile in independent library and integration harness namespaces."
+)]
+#[path = "../source_reflows/ci_inputs.rs"]
+mod legacy_ci_inputs;
 use sha2::{Digest, Sha256};
 use std::path::Path;
 const CAP: usize = 32 * 1024 * 1024;
@@ -10,6 +16,9 @@ fn held(path: &Path, length: usize, expected: &str) -> std::io::Result<String> {
     if let Some(value) =
         crate::source_reflows_merge::next_big_batch_inputs::file(path, length, expected)
     {
+        return Ok(value);
+    }
+    if let Some(value) = legacy_ci_inputs::file_expected(path, length, expected) {
         return Ok(value);
     }
     if let Some(value) = super::main67107_inputs::accepted_expected_file(path, length, expected) {
@@ -141,11 +150,32 @@ pub(crate) fn current_1e_value(source: &str, supplied: &str) -> String {
     let rows = packet["rows"].as_array().unwrap();
     assert_eq!(rows.iter().filter(|row| row["path"] == source).count(), 1);
     let row = rows.iter().find(|row| row["path"] == source).unwrap();
-    crate::source_reflows_merge::next_big_batch_inputs::value(
+    let current = crate::source_reflows_merge::next_big_batch_inputs::value(
         source,
         row["current_sha256"].as_str().unwrap(),
         supplied,
-    )
+    );
+    // This complete owner gained the optional observer after the 1e epoch.
+    // Invert only that exact addition; the old whole-source digest authenticates
+    // every remaining byte before the original guard-span assertions run.
+    if source == "src/cleanup_plan/replay/expression_facts.rs"
+        && digest(current.as_bytes()) != row["current_sha256"].as_str().unwrap()
+    {
+        assert_eq!(
+            digest(current.as_bytes()),
+            "8728d164bd61e2a7a8e8165bc5d0e1a1b6a652aafd56302406cc2db0a386864f"
+        );
+        let observer = "\n    #[cfg(feature = \"unstable-workflow-profiling\")]\n    let _exclusive_operation = crate::bounded_output::exclusive_debits::operation_guard(\n        crate::bounded_output::exclusive_debits::Operation::ReplayExpressionFacts,\n    );";
+        assert_eq!(current.matches(observer).count(), 1);
+        let previous = current.replacen(observer, "", 1);
+        assert_eq!(
+            digest(previous.as_bytes()),
+            row["current_sha256"].as_str().unwrap()
+        );
+        previous
+    } else {
+        current
+    }
 }
 fn read_packet(path: impl AsRef<Path>, packet: serde_json::Value) -> std::io::Result<String> {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
@@ -180,6 +210,11 @@ fn read_packet(path: impl AsRef<Path>, packet: serde_json::Value) -> std::io::Re
             relative,
             row["current_sha256"].as_str().unwrap(),
             compiled,
+        );
+        let compiled = legacy_ci_inputs::for_expected(
+            relative,
+            row["current_sha256"].as_str().unwrap(),
+            &compiled,
         );
         let compiled = super::main67107_inputs::accepted_expected_value(
             relative,
@@ -282,6 +317,12 @@ pub(crate) fn read_f247(path: impl AsRef<Path>) -> std::io::Result<String> {
     if let Some(compiled) =
         compiled(relative).or_else(|| super::main67107_inputs::accepted_physical_compiled(relative))
     {
+        let projected = legacy_ci_inputs::for_expected(
+            relative,
+            row["current_sha256"].as_str().unwrap(),
+            compiled,
+        );
+        let compiled = projected.as_ref();
         let compiled = crate::source_reflows_merge::next_big_batch_inputs::value(
             relative,
             row["current_sha256"].as_str().unwrap(),
@@ -319,6 +360,9 @@ pub(crate) fn f247_expected(path: &str, supplied: &str) -> String {
         row["current_sha256"].as_str().unwrap(),
     )
     .unwrap();
+    let projected =
+        legacy_ci_inputs::for_expected(path, row["current_sha256"].as_str().unwrap(), supplied);
+    let supplied = projected.as_ref();
     let supplied = crate::source_reflows_merge::next_big_batch_inputs::value(
         path,
         row["current_sha256"].as_str().unwrap(),

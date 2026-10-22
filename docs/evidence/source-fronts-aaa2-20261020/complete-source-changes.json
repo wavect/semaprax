@@ -1,0 +1,184 @@
+[
+  {
+    "source": "src/source_reflows_merge/runtime_json.rs",
+    "before": {
+      "length": 8140,
+      "sha256": "5a95fa1f07fac99c62f6572817df247695a4d2e274d5accc5ce231d7dc150bc4",
+      "archive": "docs/evidence/source-fronts-aaa2-20261020/whole/5a95fa1f07fac99c62f6572817df247695a4d2e274d5accc5ce231d7dc150bc4.txt"
+    },
+    "current": {
+      "length": 29728,
+      "sha256": "b448113a5113c01af4cee895ac81e52cc2ece69319e83cc813fb030a544b8bfd",
+      "archive": "docs/evidence/source-fronts-aaa2-20261020/whole/b448113a5113c01af4cee895ac81e52cc2ece69319e83cc813fb030a544b8bfd.txt"
+    }
+  },
+  {
+    "source": "src/source_reflows_merge.rs",
+    "before": {
+      "length": 48951,
+      "sha256": "d813d4cee641419aa2ddcd2b5aa57b2b00de7dfe132d59f5867bc7daa286cbce",
+      "archive": "docs/evidence/source-fronts-aaa2-20261020/whole/d813d4cee641419aa2ddcd2b5aa57b2b00de7dfe132d59f5867bc7daa286cbce.txt"
+    },
+    "current": {
+      "length": 49073,
+      "sha256": "39bfb5c8bb393d79ee0527f3a4ef7fdd082634bcf52a2f4979aa110a7dd53e85",
+      "archive": "docs/evidence/source-fronts-aaa2-20261020/whole/39bfb5c8bb393d79ee0527f3a4ef7fdd082634bcf52a2f4979aa110a7dd53e85.txt"
+    }
+  },
+  {
+    "source": "src/source_reflows/main043.rs",
+    "before": {
+      "length": 5202,
+      "sha256": "297cd1d0a9934d22d688abe6a0176c4e4cd44ae683ad9121eca8908e1da4ca35",
+      "archive": "docs/evidence/source-fronts-aaa2-20261020/whole/297cd1d0a9934d22d688abe6a0176c4e4cd44ae683ad9121eca8908e1da4ca35.txt"
+    },
+    "current": {
+      "length": 5238,
+      "sha256": "6ca61a93a350d88e41d56820bd7069dfba6f179411a4ae790fdd49da9b53e81d",
+      "archive": "docs/evidence/source-fronts-aaa2-20261020/whole/6ca61a93a350d88e41d56820bd7069dfba6f179411a4ae790fdd49da9b53e81d.txt"
+    }
+  },
+  {
+    "source": "src/source_reflows_merge/main67107_inputs.rs",
+    "before": {
+      "length": 48426,
+      "sha256": "b70bae63e6dbccdfe619efdc6a65193a05912f04fad6a378e9309dda1490ff04",
+      "archive": "docs/evidence/source-fronts-aaa2-20261020/whole/b70bae63e6dbccdfe619efdc6a65193a05912f04fad6a378e9309dda1490ff04.txt"
+    },
+    "current": {
+      "length": 48667,
+      "sha256": "3883baaba8e157c00ea7b3a964d95336c809ec689b171b5e6c76eb4f29a6c10d",
+      "archive": "docs/evidence/source-fronts-aaa2-20261020/whole/3883baaba8e157c00ea7b3a964d95336c809ec689b171b5e6c76eb4f29a6c10d.txt"
+    }
+  },
+  {
+    "source": "src/source_reflows/incoming67107_semantic_receivers.rs",
+    "before": {
+      "length": 35363,
+      "sha256": "cb351c306a7548e61424ab76e1c218d3fd9b211a4033ebae934f9208b7fe4283",
+      "archive": "docs/evidence/source-fronts-aaa2-20261020/whole/cb351c306a7548e61424ab76e1c218d3fd9b211a4033ebae934f9208b7fe4283.txt"
+    },
+    "current": {
+      "length": 35553,
+      "sha256": "a5407599d8fac75c3c0141b342e0f0fb683a3933306c0b34be006debdd9b4aa1",
+      "archive": "docs/evidence/source-fronts-aaa2-20261020/whole/a5407599d8fac75c3c0141b342e0f0fb683a3933306c0b34be006debdd9b4aa1.txt"
+    }
+  },
+  {
+    "source": "src/source_reflows/incoming21_semantic_receivers.rs",
+    "before": {
+      "length": 42956,
+      "sha256": "b2825ca5f79786578dd7853e8275386fcfd5a34478671c4547707ae50bae165b",
+      "archive": "docs/evidence/source-fronts-aaa2-20261020/whole/b2825ca5f79786578dd7853e8275386fcfd5a34478671c4547707ae50bae165b.txt"
+    },
+    "current": {
+      "length": 45839,
+      "sha256": "d1d939330c05b8c353fe5ade2022502344fd1cc5f596c0121a4f1b57329c8c79",
+      "archive": "docs/evidence/source-fronts-aaa2-20261020/whole/d1d939330c05b8c353fe5ade2022502344fd1cc5f596c0121a4f1b57329c8c79.txt"
+    }
+  },
+  {
+    "source": "src/source_reflows/incoming090_semantic_receivers.rs",
+    "before": {
+      "length": 49904,
+      "sha256": "3c3ac6c9bf889cf4eb7bf390992629b700c6c0ca81b0e463e01102ac78c8cf08",
+      "archive": "docs/evidence/source-fronts-aaa2-20261020/whole/3c3ac6c9bf889cf4eb7bf390992629b700c6c0ca81b0e463e01102ac78c8cf08.txt"
+    },
+    "current": {
+      "length": 52690,
+      "sha256": "439b59a19472686c04ab06046aa10605022cfa3b3ee178c8095834fbaa3ba104",
+      "archive": "docs/evidence/source-fronts-aaa2-20261020/whole/439b59a19472686c04ab06046aa10605022cfa3b3ee178c8095834fbaa3ba104.txt"
+    }
+  },
+  {
+    "source": "src/source_reflows/semantic_receivers_maina3.rs",
+    "before": {
+      "length": 3871,
+      "sha256": "16b7d14b28a0c0700cdf1974751e18b8f4f26b10f17be110724128a71bd0cc4e",
+      "archive": "docs/evidence/source-fronts-aaa2-20261020/whole/16b7d14b28a0c0700cdf1974751e18b8f4f26b10f17be110724128a71bd0cc4e.txt"
+    },
+    "current": {
+      "length": 4203,
+      "sha256": "c0f63296ee66ae9fd95ef25e2d3e78d1caa3e58d38c629cce3e1bc203ac88ad4",
+      "archive": "docs/evidence/source-fronts-aaa2-20261020/whole/c0f63296ee66ae9fd95ef25e2d3e78d1caa3e58d38c629cce3e1bc203ac88ad4.txt"
+    }
+  },
+  {
+    "source": "src/source_reflows/semantic_receivers_mainb80.rs",
+    "before": {
+      "length": 3829,
+      "sha256": "a63d7b93fc1910d2ca2211f3891c0d5ae6ac3571c499d3a794b9eb3bc78df35a",
+      "archive": "docs/evidence/source-fronts-aaa2-20261020/whole/a63d7b93fc1910d2ca2211f3891c0d5ae6ac3571c499d3a794b9eb3bc78df35a.txt"
+    },
+    "current": {
+      "length": 4161,
+      "sha256": "ad427475f708b82bb2617bce57c894b061dffd36f12c4963f1d04842bbd6700d",
+      "archive": "docs/evidence/source-fronts-aaa2-20261020/whole/ad427475f708b82bb2617bce57c894b061dffd36f12c4963f1d04842bbd6700d.txt"
+    }
+  },
+  {
+    "source": "src/source_reflows_merge/main7f8_source_inputs.rs",
+    "before": {
+      "length": 15917,
+      "sha256": "19bf6fb3e1bfcc131b197893434d3dc26c924319cafded7b704b3c5380c26d4a",
+      "archive": "docs/evidence/source-fronts-aaa2-20261020/whole/19bf6fb3e1bfcc131b197893434d3dc26c924319cafded7b704b3c5380c26d4a.txt"
+    },
+    "current": {
+      "length": 16100,
+      "sha256": "429852baad43a4c5b9da1b2614e927ad80096492bf1e3fbedb1c101785c242ee",
+      "archive": "docs/evidence/source-fronts-aaa2-20261020/whole/429852baad43a4c5b9da1b2614e927ad80096492bf1e3fbedb1c101785c242ee.txt"
+    }
+  },
+  {
+    "source": "src/source_reflows/factored_sources.rs",
+    "before": {
+      "length": 34759,
+      "sha256": "af9e933e5038fe7e213d3c958297640f3aba13462cb43afad7695b38a8f51cf9",
+      "archive": "docs/evidence/source-fronts-aaa2-20261020/whole/af9e933e5038fe7e213d3c958297640f3aba13462cb43afad7695b38a8f51cf9.txt"
+    },
+    "current": {
+      "length": 34628,
+      "sha256": "2968c7557f6acdfedf38b41193b61cafa8fdb011740382fd2a9ae40edbdcf106",
+      "archive": "docs/evidence/source-fronts-aaa2-20261020/whole/2968c7557f6acdfedf38b41193b61cafa8fdb011740382fd2a9ae40edbdcf106.txt"
+    }
+  },
+  {
+    "source": "src/hir/declaration_index/identity_payer.rs",
+    "before": {
+      "length": 36749,
+      "sha256": "2cd9880ed74cd5b4d5e7d160e7c7e97c82e80f9854ff98e17c491ef41856d70b",
+      "archive": "docs/evidence/source-fronts-aaa2-20261020/whole/2cd9880ed74cd5b4d5e7d160e7c7e97c82e80f9854ff98e17c491ef41856d70b.txt"
+    },
+    "current": {
+      "length": 64827,
+      "sha256": "0575cab5f032f3b6a8dcebc5cd1788625b997f99432f7ea4ec6964201367fcd5",
+      "archive": "docs/evidence/source-fronts-aaa2-20261020/whole/0575cab5f032f3b6a8dcebc5cd1788625b997f99432f7ea4ec6964201367fcd5.txt"
+    }
+  },
+  {
+    "source": "docs/IMMUTABLE-NOMINAL-PAYLOAD-V1.md",
+    "before": {
+      "length": 7393,
+      "sha256": "70d71122c614287dc739559c344dd14c7d011a3e5b48ed30827b18e9d54f19c3",
+      "archive": "docs/evidence/source-fronts-aaa2-20261020/whole/70d71122c614287dc739559c344dd14c7d011a3e5b48ed30827b18e9d54f19c3.txt"
+    },
+    "current": {
+      "length": 7904,
+      "sha256": "403c2f4ef09d7466ae785b4699ed3b20d0a2c453b8680cbd9eaa83e6a38e3d99",
+      "archive": "docs/evidence/source-fronts-aaa2-20261020/whole/403c2f4ef09d7466ae785b4699ed3b20d0a2c453b8680cbd9eaa83e6a38e3d99.txt"
+    }
+  },
+  {
+    "source": "CHANGELOG.md",
+    "before": {
+      "length": 585080,
+      "sha256": "389920302666826923242909c526ac5854cd4f16548c2ae6f16c3825f70bf139",
+      "archive": "docs/evidence/source-fronts-aaa2-20261020/whole/389920302666826923242909c526ac5854cd4f16548c2ae6f16c3825f70bf139.txt"
+    },
+    "current": {
+      "length": 585334,
+      "sha256": "687d2972786c875b9f888ef1f190f8f04f104755f0a4f5b3ee8a95a6818d6253",
+      "archive": "docs/evidence/source-fronts-aaa2-20261020/whole/687d2972786c875b9f888ef1f190f8f04f104755f0a4f5b3ee8a95a6818d6253.txt"
+    }
+  }
+]

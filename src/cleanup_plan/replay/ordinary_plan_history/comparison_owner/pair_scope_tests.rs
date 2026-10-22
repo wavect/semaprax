@@ -1,5 +1,5 @@
 //! Pair-local successor: real complete producer+comparison boundaries.
-use super::super::before_flat_view::{ComparisonOwner, compare};
+use super::super::before_flat_view::{compare, ComparisonOwner};
 use super::*;
 #[path = "pair_scope_tests/paired_segments.rs"]
 mod paired_segments;
@@ -254,10 +254,10 @@ fn pair_local_paths_own_exact_short_zero_floor_sticky_and_full_drop_frontiers() 
                         0,
                     );
                     frontiers::finish();
-                    assert_eq!(a.0.0, b.0.0);
+                    assert_eq!(a.0 .0, b.0 .0);
                     assert_eq!((a.1, a.2, a.3), (b.1, b.2, b.3));
-                    balanced(a.0.1);
-                    balanced(b.0.1);
+                    balanced(a.0 .1);
+                    balanced(b.0 .1);
                     if limit == end && floor == 0 {
                         assert_eq!(trace[ordinal].after, Some(end));
                     }
@@ -265,14 +265,14 @@ fn pair_local_paths_own_exact_short_zero_floor_sticky_and_full_drop_frontiers() 
                         || (limit == end && floor == 1)
                         || (limit == event.before && floor == 0)
                     {
-                        assert!(a.1 && a.0.0.result.is_err());
+                        assert!(a.1 && a.0 .0.result.is_err());
                         let first = a.3.unwrap();
                         assert_eq!(
                             (first.requested, first.remaining, first.floor),
                             (end - event.before, limit - event.before, floor)
                         );
                         assert_eq!(
-                            a.0.0.result.as_ref().unwrap_err(),
+                            a.0 .0.result.as_ref().unwrap_err(),
                             &primitive_failure(function, event, limit, floor)
                         );
                     }
@@ -729,8 +729,8 @@ fn pair_census_refused_prefix_keeps_original_failure_and_never_claims_full_compa
         MAX_REPLAY_WORK_UNITS,
         0,
     );
-    assert!(full.0.0.result.is_ok());
-    balanced(full.0.1);
+    assert!(full.0 .0.result.is_ok());
+    balanced(full.0 .1);
     let events = frontiers::finish();
     let event = *events
         .iter()
@@ -750,8 +750,8 @@ fn pair_census_refused_prefix_keeps_original_failure_and_never_claims_full_compa
     let (rows, lost) = pair_scope_census::finish();
     assert_eq!(lost, 0);
     assert_eq!(rows.len(), 1);
-    assert!(refused.1 && refused.0.0.result.is_err());
-    balanced(refused.0.1);
+    assert!(refused.1 && refused.0 .0.result.is_err());
+    balanced(refused.0 .1);
     assert!(
         rows[0].ended
             && !rows[0].unwound
@@ -765,7 +765,7 @@ fn pair_census_refused_prefix_keeps_original_failure_and_never_claims_full_compa
         "first work charge and both preparations precede the new acquisition"
     );
     assert_eq!(
-        refused.0.0.result.as_ref().unwrap_err(),
+        refused.0 .0.result.as_ref().unwrap_err(),
         &primitive_failure(function, event, event.before, 0)
     );
 }

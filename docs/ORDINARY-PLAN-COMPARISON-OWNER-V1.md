@@ -1,5 +1,7 @@
 # Ordinary PLAN comparison owner v1 (#880)
 
+Audience: compiler contributors and reviewers.
+
 Status: isolated source candidate. Compilation, focused runtime, physical
 measurements, source registration and application qualification are pending.
 No completion row or application-fit claim is promoted.

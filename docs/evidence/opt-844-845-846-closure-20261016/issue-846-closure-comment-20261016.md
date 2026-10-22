@@ -1,3 +1,9 @@
+# opt-844-845-846-closure-20261016 issue-846-closure-comment-20261016
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 All eleven writer/CLI/report acceptance checks PASS at `8bb9f5b7`, covering exact JSON fields/escaping/null/order, human bytes and newlines, streams/status, first I/O failure and complete old-source custody. The writer removes intermediate JSON Strings on the actual route. Full unbounded probe allocations fall 25→3 (730→48 allocated bytes); bounded probes remain unchanged and are retained.
 
 Legacy JSON APIs remain available. This does not claim diagnostic-output funding, application fit or agent-token savings; #825 remains open.

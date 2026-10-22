@@ -1,5 +1,9 @@
 # OPT852 exact compact-owner clone setup
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only NEXT candidate from `e9dd415b563412b160fd4737102b9cb5437b1008`.
 The actual historical a82e owner247 failed at the `floor source` setup clone,
 before any of the three intended compact-constructor/comparison floor attacks.

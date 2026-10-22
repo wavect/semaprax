@@ -1,5 +1,9 @@
 # d6bf capacity fixture, source boundary and control-slot correction
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Basis: `d6bf8151942190a956eb57350fa8b8892a8c68e5`. Source authored only. No Cargo, tests, Clippy, compiler, Node, Claude, or review execution. The archived actual failures describe the basis, not this correction.
 
 Actual selectors 59 and 60 failed while parsing their common imported-descendant fixture: the detail module had only type declarations, while the grammar requires a function. A minimal unimported zero-argument scalar function makes that module valid. It adds no types or signature roots. The original sparse padding, all observations, all assertions, and complete old capacity receiver remain unchanged. This is a fixture correction, not evidence of an allocation improvement.

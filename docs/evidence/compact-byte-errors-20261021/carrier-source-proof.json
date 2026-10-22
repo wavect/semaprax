@@ -1,0 +1,9 @@
+{
+  "source": "src/cleanup_plan/replay/physical_budget.rs",
+  "source_sha256": "68c72bc2423b5f4b3f65a03ffede8e4c2905677508005d5df0c455c022d58ea9",
+  "carrier_sha256": "c0cfc9798890fbee0c9b326ab5a6833f5bf0c7ca8531f002774ce160f2380419",
+  "tests_sha256": "db1d140a5fd732c61ac93fdb9fb1c6ba3fca4049bd6c15073fa3a3779872959a",
+  "changes": "Only visibility adjusted at the standalone crate root; actual complete normal public Diagnostic/Span and actual System allocation observer.",
+  "final_source_sha256": "9acc129cf5a61a2aa7df75fa4d8fbed3c711ca3c8e51a9aa7f4878d716ca30ff",
+  "compiled_carrier_and_all_three_test_bodies_remain_exact": true
+}

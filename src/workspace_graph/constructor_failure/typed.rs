@@ -63,9 +63,9 @@ pub(in crate::workspace_graph) fn construct_transient_core<'a>(
     }
 }
 /// A conservative negative prefilter, never provider or wrapper authority.
-/// Reserved wrappers and ordinary function imports can trigger a full probe;
-/// a positive still executes the unchanged full producer and classifier.
-/// Both cache modes pay and perform this same allocation-free selection.
+/// Reserved wrappers can trigger a full probe; a positive still executes the
+/// unchanged full producer and classifier. Ordinary imports use the constructor
+/// that supports retained frontend cache keys in both cold and warm builds.
 #[allow(clippy::too_many_arguments)]
 pub(in crate::workspace_graph) fn construct_selected_core<'a>(
     program: &'a crate::ast::Program,
@@ -114,7 +114,7 @@ pub(in crate::workspace_graph) fn construct_selected_core<'a>(
             + 2 * size_of::<&Vec<ModuleUse>>()
             + 2 * size_of::<std::slice::Iter<'_, ModuleUse>>()
             + 2 * size_of::<&mut std::slice::Iter<'_, ModuleUse>>()
-            + size_of::<&mut ()>(), // mutable borrow of the zero-capture predicate
+            + size_of::<&mut ()>(), // mutable borrow of the source-bound predicate
     )?;
     // Reserve all bounded scan roles before the first identity observation.
     // An early positive does not refund controls for later source entries.
@@ -123,13 +123,14 @@ pub(in crate::workspace_graph) fn construct_selected_core<'a>(
         + 2 * size_of::<&String>()
         + 12 * size_of::<&str>() // id return/receiver, predicate argument/formal, both prefix pairs
         + 6 * size_of::<bool>(); // prefix results, OR, helper return/receiver and predicate
-    owner.reserve(program.module_uses.len().saturating_mul(
-        PER_IMPORT_BYTES + 2 * size_of::<&crate::ast::ModuleUseKind>() + 2 * size_of::<bool>(),
-    ))?;
-    let possible = program.module_uses.iter().any(|import| {
-        may_borrow_wrapper(import.persistent_id.as_str())
-            || import.kind == crate::ast::ModuleUseKind::Function
-    });
+    owner.reserve(program.module_uses.len().saturating_mul(PER_IMPORT_BYTES))?;
+    // Transient scalar aliases cannot be persisted as frontend cache keys.
+    // Keep ordinary imports on the same retained constructor in both modes;
+    // reserved wrappers retain their independent full classifier below.
+    let possible = program
+        .module_uses
+        .iter()
+        .any(|import| may_borrow_wrapper(import.persistent_id.as_str()));
     if allow_transient && possible {
         construct_transient_alias_core(program, authored, programs, registry, core, owner)
     } else {

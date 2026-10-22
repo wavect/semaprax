@@ -1,5 +1,9 @@
 # Exact847 + Main7f8 source-front composition — source only
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The ready commit has exactly one parent: a2f1a3c7fa867728d58b78bcaafe639d12dbbdfa. It cherry-picks99b33b72d27a871942d214458c25563ef4c1dea3 onto that exact parent. Git merged all three raw inventories without conflicts. No incoming or847 production receiver, assertion, include, source-role guard, or sealed99 expected hash was edited to resolve the composition.
 
 `base/`,`847/`,`99/`,`combined/` retain complete raw3 and043 allowed-list preimages and results. `include-multiset-checks.json` records EVERY include_str call in all three inventories (all are literal calls): combined == maximum-count multiset union(847,99). Counts are1121/970/1562 for boundaries/workspace/native. This preserves every occurrence from both parents and all original occurrences. Native stays exactly1500lines. Required+maximum043 mappings are the exact union with no preexisting value change.

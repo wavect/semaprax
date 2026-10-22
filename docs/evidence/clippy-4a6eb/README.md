@@ -1,5 +1,9 @@
 # CI Clippy maintenance after 4a6eb
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The Linux and Windows build jobs for `4a6eb7a20eb117fda38211fbb128e3f742995262`
 passed formatting and then rejected the same denied Clippy warnings.
 

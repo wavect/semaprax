@@ -1,5 +1,9 @@
 # OPT858 staged sequencing-minimum probe candidate
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 NEXT source-only candidate based on `d96247b3cb69282c3d1b835b2428779e8bde82c7`.
 No Rust build, test, Clippy, full-quality run, or performance qualification was
 executed. The paid and physical effects below are assertions awaiting execution,

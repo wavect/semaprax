@@ -1,5 +1,9 @@
 # Review of the partial825 receiver (pasted source only, not executed)
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 ## Blockers to settle before wiring
 
 **B1. Setup failures are reported as `builder_bytes` limit errors, and only `Budget` sets sticky state.**

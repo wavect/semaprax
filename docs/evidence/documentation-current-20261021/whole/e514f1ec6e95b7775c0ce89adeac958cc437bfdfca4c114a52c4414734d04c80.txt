@@ -1,0 +1,34 @@
+# OPT836 independent source review
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
+Reviewed 2026-10-15. Frontend/interpreter immutable chain: base e3eb476838442b58c02ccc815aae4bbdfebfd50e, 2677c34b3, 4855f3363e9f6db449433167e789c840203503d1, 6a3f309d101f84ad8a6673233eec474b83877156. Backend delta: a4c91d7aa..186854fff7cc556ac1852019f39420094adc9996. The backend interface parent is equivalent to 2677, not a second frontend adoption.
+
+Source-only review. No Cargo, build, tests, Clippy, benchmark, external model, paid call, GitHub comment or implementation edit. Static Graft cards in the supplied ROOT were consulted before bounded owning source. CLI Graft was not run. No compilation or execution approval is implied.
+
+## Confirmed correctness findings
+
+None confirmed in this bounded review. This is not an executable-gate pass.
+
+## Audited boundaries
+
+- `src/vec_ops/field_update.rs:49-149` derives admission from explicit monomorphic owned-leaf layouts, forbids invariants, binds full layout plus persistent field identity and independently replays the descriptor. `:150-161` requires owning Vec, usize index, exact Copy RHS and value ownership.
+- `src/hir/resolve_expr/sort_keys.rs:119-149` authenticates field/RHS before lowering the ordinary call. Its iterative frames retain three runtime children in source order; the fourth selector is literal metadata. `src/hir/validation/vec_intrinsic.rs:140-152` repeats exact descriptor/RHS authentication independently. Reserved declarations/imports cannot gain operation authority merely from the prefix.
+- `src/source_verify/field_update.rs:9-26` independently derives field type from AST declarations. Workspace exact expression/descriptor replay and snapshot fresh source resolution reject coherent same-type field substitution; current tests author that cache mutation but were not executed here.
+- Cleanup build and replay use descriptor-specific params, the existing deferred one-owner commit, and the existing canonical failure cleanup. No new downstream cleanup vector sorting was found.
+- `src/interpreter/owned_vec.rs:199-219` evaluates the three operands once in order. `src/interpreter/owned_vec/field_update.rs:23-49` performs bounds, row authentication, generation-overflow preflight, fused-value preflight, unique vector/row checks, then one scalar replacement and generation increment. It does not clone/materialize a row or owned field.
+- Backend `src/codegen/native_emit/expression/vec_ops/field_update.rs:29-59` stages operands and uses the canonical source epoch; `src/codegen/native_vec/field_update.c:6-20` authenticates descriptor, kind, scalar encoding, index and next generation before one eight-byte store. Existing native field offsets allocate eight-byte slots even for narrow scalars.
+- Backend `src/wasm/aggregate/vec_owned_leaf/field_update.rs:33-63` evaluates operands before index preflight, uses the staged owner epoch and appends the six-i64 import. Existing scalar place evaluation materializes a snapshot, so RHS mutation of an index local does not reread the changed local. Private host `tests/owned_data/owned_leaf_vec/host.js:550-598` checks constructor-bound nominal/shape metadata and current generation via `bindSort` (`:291-311`, including exhaustion), then writes one slot and renews authority once.
+- Old source prelude selection remains unchanged unless this operation occurs. Backend old import ordering is retained; its new import is appended. Tag10 constructor descriptor binding is enabled only for programs reaching relevant field/update routes.
+
+## Missing owning controls / evidence limits
+
+These are coverage limitations, not demonstrated implementation defects; do not describe the implementation batch as meeting the issue's complete gate until the integration owner closes them.
+
+1. **Unrelated Copy bits are not observed by the added backend corpus.** `tests/support/record_copy_field_update.rs:29-36` has one selected scalar and two owned leaves. Native instrumentation (`tests/cleanup_backends/owned_leaf_collections/copy_field_update.rs:20-38`) and private-host instrumentation compare unrelated bytes/words, but this corpus supplies no unrelated scalar. Smallest additional control: a multi-scalar record, update one slot, and compare every other lane's raw bits including NaN payloads and signed zero.
+2. **The scalar cases are representative, not an exact floating-bit matrix.** `tests/support/record_copy_field_update.rs:3-27` uses f32 negative zero and f64 computed NaN; the f64 assertion only checks NaN-ness. It does not assert arbitrary NaN payload preservation, f32 NaNs, f64 negative zero or infinities. Smallest additional control: generate/observe exact bits through an owning trusted fixture, on every backend.
+3. **Same-source interpreter coverage is narrower than native/Wasm.** Frontend `src/vec_ops/field_update/tests.rs:110-136` runs the inventory example and bounds/RHS selection. The new eight-lane backend corpus is only called by the two backend harness modules. Add it to an appropriate existing interpreter owner, plus direct uniqueness/generation overflow refusal and no materialization/store counters where the interpreter contract requires them.
+4. **New hostile controls are asymmetric.** Private Wasm host probes stale token, wrong nominal, wrong shape and an owned ordinal (`host.js:555-580`). Added native tests exercise language bounds/RHS/index failure and successful store observations, but contain no direct forged descriptor/stale-generation/generation-exhaustion runtime probes. Add those controls at the native runtime authority boundary before claiming target agreement for hostile carriers. Live-loan frontend test (`src/vec_ops/field_update/tests.rs:74-83`) asserts any refusal, not a stable owning diagnostic.
+5. The five new backend test functions and frontend unit controls are authored source only in this review. ShiftSim15 acceptance, current pin regeneration, actual grouped selection and scoped Clippy remain the integration owner's work; no gain/cost result follows from source reduction.

@@ -1,3 +1,9 @@
+# raw READY
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Prepared only:175/175 resolved,15 roles,zero issues. Five original serial commands, unit first/production second/jobs1/CGU64/debug0. Core/fullCLI Clippy only after batch. All histories retained; no Cargo, producers or tests executed.
 
 Operator-only command:

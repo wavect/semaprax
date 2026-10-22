@@ -1,0 +1,26 @@
+[
+  {
+    "domain": "hir",
+    "post_generation_body_only_updates": [
+      "src/cleanup_plan/replay/branch_clone.rs",
+      "src/cleanup_plan/replay/branch_clone/direct.rs",
+      "src/cleanup_plan/replay/branch_clone/direct/tests.rs",
+      "src/cleanup_plan/replay/physical_budget.rs",
+      "src/source_reflows_merge/main_e177_overlay_v2.rs",
+      "tests/cli_help_surface_v1.rs"
+    ],
+    "all_acquisition_registrations_and_exact_edge_text_retained": true
+  },
+  {
+    "domain": "projection",
+    "post_generation_body_only_updates": [
+      "src/cleanup_plan/replay/branch_clone.rs",
+      "src/cleanup_plan/replay/branch_clone/direct.rs",
+      "src/cleanup_plan/replay/branch_clone/direct/tests.rs",
+      "src/cleanup_plan/replay/physical_budget.rs",
+      "src/source_reflows_merge/main_e177_overlay_v2.rs",
+      "tests/cli_help_surface_v1.rs"
+    ],
+    "all_acquisition_registrations_and_exact_edge_text_retained": true
+  }
+]

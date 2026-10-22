@@ -1,0 +1,19 @@
+
+running 14 tests
+test source_reflows::main043::audit_0::complete_before_exit_receiver_and_full_source_inverses_remain_exact ... ok
+test source_reflows::main043::audit_1::complete_original_owner_is_executed ... ok
+test source_reflows::main043::audit_2::legacy_nominal_complete_original_sources_and_semantic_constructor_stay_exact ... ok
+test source_reflows::main043::audit_3::complete_original_and_all_source_audit_receivers_are_byte_exact ... ok
+test source_reflows::main043::audit_4::complete_original_arena_and_every_added_source_join_have_exact_full_inverses ... ok
+test source_reflows::main043::audit_5::complete_original_owner_is_executed ... ok
+test source_reflows::main043::audit_6::complete_before_edge_receiver_and_current_full_source_remain_exact ... ok
+test source_reflows::main043::audit_7::selected_session_complete_source_inverses_and_old_layout_definitions_stay_bound ... ok
+test source_reflows::main043::audit_8::complete_before_status_fact_receiver_and_full_source_remain_exact ... ok
+test source_reflows::main043::semantic_receivers::complete_registered_helper_membership_is_preserved ... ok
+test source_reflows::main043::semantic_receivers::every_receiver_inverse_preserves_the_entire_reflow_input_and_archive ... ok
+test source_reflows::main043::semantic_receivers::nominal_audit_comparison_retains_complete_reviewed_afterimage_and_archive ... ok
+test source_reflows::main043::semantic_receivers::receiver_mutation_and_forged_predecessor_fail_closed ... ok
+test source_reflows::main043::semantic_receivers::selected_audit_comparison_uses_the_authenticated_historical_domain ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 267 filtered out; finished in 205.70s
+

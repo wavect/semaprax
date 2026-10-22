@@ -1,5 +1,9 @@
 # Actual receiving correspondence
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The bank is an actual-layout inventory, not a forecast of available allowance.
 Every successful bank/work debit remains spent on later failure. The initial
 metadata acquisition ABI itself is explicitly unreceived on failure; successful

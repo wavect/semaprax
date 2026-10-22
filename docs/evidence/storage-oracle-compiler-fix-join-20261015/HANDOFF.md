@@ -1,5 +1,9 @@
 # Storage-oracle / two compiler-fix source join
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only successor of d719ea241120655b618ca85a185d5fe5c575a2bf, with MAIN d6caf697, alias Drop correction and explicit old typed-teardown helper call. No Cargo or Rust tests executed.
 
 One 21,891-byte compiled table authenticates eleven complete current inputs back to d719 before the existing MAIN83 gateway. Both the independent formatted retry reader and all inherited views therefore enter their unchanged original domains. All90 runtime fixtures and three runtime-loader children remain exact. Complete immediate files and unique inverses are retained; no hash cycle or old packet rewriting.

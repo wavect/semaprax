@@ -1,5 +1,9 @@
 # Lexical canonical child scratch, source candidate
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base: `deec161142b2f3e882e50b4450338c69c137e586`. Actual deec whole-arena duplicate owner reserved 4,513,594 bytes before versus 4,517,140 current, allocated 745,221 versus 655,701, with complete Drop. This candidate is unexecuted. The unchanged strict owner determines whether the remaining deficit is removed.
 
 The nonempty canonical Exit currently calls `reserve_vec` through a Diagnostic-bearing forwarding Result. The lexical macro performs the same complete preparation algorithm directly in the existing unit-returning producer and publishes failure into its existing held receiving slot. It removes that one actual outer `Result<(), Diagnostic>`. It retains all allocator operations, growth arithmetic, authentication, zero-byte reservation, nested Result values and their prices. No work debit, owner layout, constructor fee, cap, allocator rule, cache key or strict assertion changes.

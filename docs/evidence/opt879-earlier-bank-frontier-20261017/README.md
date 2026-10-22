@@ -1,3 +1,9 @@
+# opt879-earlier-bank-frontier-20261017 README
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 #879 retained earlier-bank successor
 
 Source candidate only; no Cargo/compiler/Rust tests run. Supersedes the630 production placement defect without editing its immutable packet. The complete earlier inline_controls expression is copied into a same-zero-argument-ABI production_inline_controls successor and ADDITIONAL_CONTROLS is added. There is no forwarding call, new owned price-selector local or extra reservation ABI. Binding-free matching on the existing borrowed ReplayBudget place chooses that expression only in the actual generic branch's ActiveBuilder path. Other payers retain the exact prior inline payment. The source root has two inline control sites; ONLY the one immediately preceding the actual TAKE call changes.

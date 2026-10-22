@@ -1,5 +1,9 @@
 # Focused qualification at 940fcf2
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Historical source: `940fcf220e47d1975f757e76f0b3401691db9358` (tree `0a7e853aa6df60acdb838ab2a7a7d6e0dde025a6`). These receipts describe that source, not later corrections.
 
 The unit-first build completed all three stages: library unit-test compilation, production library, and the five selected integration harnesses. Build wall time was 750.955 seconds; maximum observed process-group RSS was 5.82 GiB. No test bodies ran during compilation.

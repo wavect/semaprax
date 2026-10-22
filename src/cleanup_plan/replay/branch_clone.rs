@@ -69,11 +69,23 @@ pub(super) fn with_observation<T: Clone + ClonePayload, V: physical_clone::IntoR
         )?;
         return Ok(branch);
     }
-    budget.charge_skeleton(function, 1, "cleanup-plan skeleton branch clone")?;
-    budget.reserve_clone(function, values, "cleanup-plan skeleton branch clone")?;
+    physical_budget::compact_try!(budget.charge_compact_skeleton(
+        function,
+        1,
+        "cleanup-plan skeleton branch clone"
+    ));
+    physical_budget::compact_try!(budget.reserve_compact_clone(
+        function,
+        values,
+        "cleanup-plan skeleton branch clone"
+    ));
     note_skeleton_materialization();
     // The original push work refusal must win before any extra capacity debit.
-    budget.charge_skeleton(function, 1, "plan branch observation push")?;
+    physical_budget::compact_try!(budget.charge_compact_skeleton(
+        function,
+        1,
+        "plan branch observation push"
+    ));
     note_skeleton_materialization();
     let capacity = if values.is_empty() {
         1
@@ -87,16 +99,16 @@ pub(super) fn with_observation<T: Clone + ClonePayload, V: physical_clone::IntoR
         }
         values.len() * 2
     };
-    budget.reserve_array::<T>(
+    physical_budget::compact_try!(budget.reserve_compact_array::<T>(
         function,
         capacity - values.len(),
         "plan branch observation push",
-    )?;
-    budget.reserve_bytes(
+    ));
+    physical_budget::compact_try!(budget.reserve_compact_bytes(
         function,
         physical_clone::conversion_bytes::<T, _>(&observation),
         "plan branch observation push",
-    )?;
+    ));
     let mut result = Vec::with_capacity(capacity);
     result.extend(values.iter().cloned());
     result.push(observation.into());
@@ -281,10 +293,18 @@ pub(super) fn for_plan_push<T: Clone + ClonePayload>(
     }
     // Retain the complete clone census and its independently funded work.
     // The extra probe state is paid in addition to every real backing byte.
-    budget.charge_skeleton(function, 1, phase)?;
-    budget.reserve_array::<u8>(function, PLAN_PROBE_BYTES, phase)?;
-    budget.reserve_clone(function, values, phase)?;
-    budget.reserve_array::<T>(function, capacity - values.len(), phase)?;
+    physical_budget::compact_try!(budget.charge_compact_skeleton(function, 1, phase));
+    physical_budget::compact_try!(budget.reserve_compact_array::<u8>(
+        function,
+        PLAN_PROBE_BYTES,
+        phase
+    ));
+    physical_budget::compact_try!(budget.reserve_compact_clone(function, values, phase));
+    physical_budget::compact_try!(budget.reserve_compact_array::<T>(
+        function,
+        capacity - values.len(),
+        phase
+    ));
     note_skeleton_materialization();
     let mut result = Vec::with_capacity(capacity);
     result.extend(values.iter().cloned());
@@ -408,3 +428,21 @@ mod before_inline;
 pub(in crate::cleanup_plan::replay) mod production_capacity;
 
 pub(in crate::cleanup_plan::replay) mod direct;
+
+// Current compact producer receiving roles; original banks above fund retained controls.
+pub(super) fn compact_roles<T: Clone>() -> usize {
+    size_of::<Result<(), Diagnostic>>() // caller payment result
+        + 4 * size_of::<Result<(), physical_budget::ByteFailure>>() // compact clone/push work, census/conversion
+        + 2 * size_of::<Result<(), physical_budget::ByteFailure>>() // backing wrapper and nested byte payment
+        + size_of::<Result<usize, physical_budget::ByteFailure>>() // checked array size conversion
+        + size_of::<Option<usize>>()
+        + 2 * size_of::<Vec<T>>() // initializer and the enumerator's named branch
+        + size_of::<&mut ReplayBudget>() + size_of::<&ResolvedFunction>()
+        + size_of::<&Vec<T>>() // direct clone census argument
+        + 2 * size_of::<&str>()
+        + 2 * size_of::<usize>()
+        + 2 * size_of::<bool>()
+        + 2 * size_of::<&mut Vec<T>>() + size_of::<&[T]>()
+        + 2 * size_of::<std::slice::Iter<'_, T>>()
+        + 2 * size_of::<std::iter::Cloned<std::slice::Iter<'_, T>>>()
+}

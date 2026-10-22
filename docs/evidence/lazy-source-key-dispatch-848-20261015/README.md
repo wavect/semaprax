@@ -1,5 +1,9 @@
 # Lazy exact-source dispatch for test-only projection fixtures
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only successor of79d5be03a898c00869aebd4efc62ec2d59088551 (model and observer remain separate ancestor commits). All90 immutable runtime fixtures/specs remain byte-exact:89 originals plus the fixed six-row custody capsule. The compiled index contains897 exact source-key entries, derived from those authenticated arrays without normalization or deduplication. An index only proves membership; it never performs an inverse or grants source authority.
 
 Each original load/project call now selects the same fixed Fixture and calls runtime_json::project. If its exact source string is absent in the compiled sorted key list, it returns the same owned unchanged source without opening/loading/parsing an unused fixture. If present, it calls the original bounded SHA/UTF8 loader then the BYTE-EXACT original project() body. Current/predecessor SHA checks, duplicate-row refusal, unique edits, field values, branch routing and stage order remain unchanged. Match bindings select a Fixture instead of allocating an owned JSON String before this decision. Only the membership directory is sorted; JSON payload/row order and all compiler cleanup plans are unchanged.

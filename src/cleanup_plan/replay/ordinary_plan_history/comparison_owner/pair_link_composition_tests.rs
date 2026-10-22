@@ -233,11 +233,11 @@ fn borrowed_pair_links_and_unit_driver_keep_complete_invoices_six_fields_work_sw
                 hir,
                 0,
             );
-            assert_eq!(old.observed.0.0, current.observed.0.0);
-            assert_eq!(incoming.observed.0.0, current.observed.0.0);
-            assert!(current.observed.0.0.result.is_ok());
+            assert_eq!(old.observed.0 .0, current.observed.0 .0);
+            assert_eq!(incoming.observed.0 .0, current.observed.0 .0);
+            assert!(current.observed.0 .0.result.is_ok());
             assert!(old.row.complete && current.row.complete && incoming.row.complete);
-            assert_eq!(old.observed.0.1, current.observed.0.1);
+            assert_eq!(old.observed.0 .1, current.observed.0 .1);
             assert_eq!(swaps(&old), swaps(&current));
             assert_eq!(
                 (
@@ -263,7 +263,7 @@ fn borrowed_pair_links_and_unit_driver_keep_complete_invoices_six_fields_work_sw
                 "OPT pair-links whole fd4c/current/pure001={}/{}/{} length={length} shape={shape}; no universal or application claim",
                 old.observed.2, current.observed.2, incoming.observed.2
             );
-            let spent = MAX_REPLAY_WORK_UNITS - old.observed.0.0.remaining;
+            let spent = MAX_REPLAY_WORK_UNITS - old.observed.0 .0.remaining;
             for fault in 0..=3 {
                 for cut in 0..=spent {
                     let old = observe(function, 3, length, shape, cut, usize::MAX, 0, hir, fault);
@@ -272,11 +272,11 @@ fn borrowed_pair_links_and_unit_driver_keep_complete_invoices_six_fields_work_sw
                     let incoming =
                         observe(function, 4, length, shape, cut, usize::MAX, 0, hir, fault);
                     assert_eq!(
-                        old.observed.0.0, current.observed.0.0,
+                        old.observed.0 .0, current.observed.0 .0,
                         "fd4c six fields/work cut={cut} fault={fault}"
                     );
                     assert_eq!(
-                        incoming.observed.0.0, current.observed.0.0,
+                        incoming.observed.0 .0, current.observed.0 .0,
                         "main001 six fields/work cut={cut} fault={fault}"
                     );
                     assert_eq!(swaps(&old), swaps(&current));
@@ -306,7 +306,7 @@ fn borrowed_pair_link_and_unit_driver_receiving_keeps_exact_short_zero_floor_sti
                 false,
                 shape,
             );
-            assert!(success.observed.0.0.result.is_ok());
+            assert!(success.observed.0 .0.result.is_ok());
             let total = success.observed.2;
             for (limit, floor, pass) in [
                 (total, 0, true),
@@ -325,10 +325,10 @@ fn borrowed_pair_link_and_unit_driver_receiving_keeps_exact_short_zero_floor_sti
                     false,
                     0,
                 );
-                assert_eq!(r.observed.0.0.result.is_ok(), pass);
+                assert_eq!(r.observed.0 .0.result.is_ok(), pass);
                 assert_eq!(r.observed.1, !pass);
                 if !pass {
-                    assert!(r.observed.0.0.retry.is_some());
+                    assert!(r.observed.0 .0.retry.is_some());
                 }
             }
             for event in &success.events {
@@ -354,9 +354,9 @@ fn borrowed_pair_link_and_unit_driver_receiving_keeps_exact_short_zero_floor_sti
                         false,
                         0,
                     );
-                    assert!(r.observed.1 && r.observed.0.0.retry.is_some());
+                    assert!(r.observed.1 && r.observed.0 .0.retry.is_some());
                     assert_eq!(
-                        r.observed.0.0.result.as_ref().unwrap_err(),
+                        r.observed.0 .0.result.as_ref().unwrap_err(),
                         &primitive_failure(function, *event, limit, floor)
                     );
                 }

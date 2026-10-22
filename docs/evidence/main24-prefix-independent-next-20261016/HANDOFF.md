@@ -1,5 +1,9 @@
 # Main24 independent reconciliation
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base 253bc2442d2c2c4023c95267caf6d607839f4f23; Main 24ffa85e83d06d71f8214fdae9f631d0baea894e.
 
 Shipping replay is byte-exact apart from one cfg(test) sibling registration suffix. The shipping lexical prefix transfer, path-array preflight, old f1 helper/current function and every prior control are unchanged. This component does not merge Main24's later-admission shipping route.

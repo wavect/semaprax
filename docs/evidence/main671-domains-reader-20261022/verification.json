@@ -1,0 +1,33 @@
+{
+  "status": "SOURCE_ONLY_COMPLETE_ORIGINAL_NINE_DOMAIN_REGRESSION_AND_WARMED_INPUT_CUSTODY_PASS",
+  "base_head": "020cd508207e55315f7172af6a3196140e13a6c7",
+  "change": "Only followupCoreMAIN selects its already registered complete old view after authenticating actual current bytes; every other domain keeps the original acquisition path.",
+  "all_original_hash_byte_comparison_inverse_and_domain_assertions_unchanged": true,
+  "original_nine_domain_and_both_complete_compiled_inverse_tests": [
+    {
+      "name": "source_reflows_merge::main67107_inputs::complete_main_domains_and_both_unit_namespaces_are_preserved",
+      "status": "PASS",
+      "peakKiB": 53776
+    },
+    {
+      "name": "source_reflows_merge::main_e177_final_inputs::overlay_v2::compiled_sources::tests::compiled_lookup_split_preserves_the_complete_predecessor_and_every_old_mapping",
+      "status": "PASS",
+      "peakKiB": 2384
+    },
+    {
+      "name": "source_reflows_merge::main_e177_final_inputs::overlay_v2::compiled_sources::tests::compiled_lookup_split_refuses_child_parent_span_eof_and_duplicate_glue",
+      "status": "PASS",
+      "peakKiB": 3696
+    }
+  ],
+  "warmed_io_controls": 8,
+  "forged_supplied_inputs": 5,
+  "all_mutated_bytes_restored": true,
+  "no_new_source_membership_role_scope_or_data_authority": true,
+  "source_role_both_complete_domains_and_six_original_hostiles": "PASS",
+  "root_lines": 1499,
+  "page_bytes": 250200,
+  "probe_source_sha256": "65c538c2f384a676d35bc88eb0cdea85849b24a8b0c000e8da54eb2fadeb0148",
+  "no_IR_layout_or_compiler_product_success_claimed": true,
+  "latest_main_CI_green_not_claimed": true
+}

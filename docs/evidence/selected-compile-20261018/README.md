@@ -1,5 +1,9 @@
 # Selected replay compiler repairs
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The genuine minimum-Rust job [117592632572](https://github.com/wavect/semaprax/actions/runs/39099470318/job/117592632572) and Chromium job [117592632421](https://github.com/wavect/semaprax/actions/runs/39099470318/job/117592632421) at `6465284748dbefaf89843b00158e85965ebc446b` failed with 52 compiler errors. The macOS build job [117592632538](https://github.com/wavect/semaprax/actions/runs/39099470318/job/117592632538) also found three formatting failures. The runtime gates had not run.
 
 The specific dynamic-iterator macro arm now precedes the expression-taking arm, preserving both complete receiving banks. Missing imports, macro visibility and module paths are repaired. Plan query types are fully qualified, the borrowed range selects its existing boxed key type, the retained Diagnostic propagates through the existing Error conversion, and the copied exit id is passed by value. Checked append-work computations precede the mutable budget call; both newly named usize locals have additional receiving bytes and fields reserved before formation. Existing arithmetic, checks, fields and charges remain. One unused import is removed. The three reported source files are formatted.

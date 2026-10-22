@@ -1,1 +1,7 @@
+# raw-inventory-tail-boundary-162-20261017 README
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The final-subject moved hostile is exactly the full prefix with no original inventory suffix. The current placement owner calls the complete unchanged old17 guard under a predecessor name, then rejects an empty tail before the complete unchanged original production owner authenticates all raw sources and role table. Original3/5 helpers/tests and original17 test including its moved hostile are unchanged. No historical projection grants raw authority. Complete old helper is held; no Cargo or runtime verification has run.

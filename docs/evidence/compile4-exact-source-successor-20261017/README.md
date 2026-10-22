@@ -1,5 +1,9 @@
 # Exact compiler-repair source successor
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 This finite successor binds the four compiler repairs from 065f248ada. Three
 existing current source records change; all original 41 subjects and 48 prior
 views remain. Three complete preceding current views are added, for 51 prior

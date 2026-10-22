@@ -23,7 +23,7 @@ fn demanded_serde_wire_rejects_invalid_values_drops_partial_owners_and_reports_c
     }
     let _cleanup = Temp(root.clone());
     fs::create_dir_all(root.join("src")).unwrap();
-    fs::write(root.join("Cargo.toml"),"[package]\nname=\"ri07-wire-control\"\nversion=\"0.0.1\"\nedition=\"2021\"\n[dependencies]\nserde={version=\"=1.0.229\",features=[\"derive\"]}\nserde_json=\"=1.0.151\"\n").unwrap();
+    fs::write(root.join("Cargo.toml"),"[package]\nname=\"ri07-wire-control\"\nversion=\"0.0.1\"\nedition=\"2021\"\n[dependencies]\nserde={version=\"=1.0.229\",features=[\"derive\"]}\nserde_json=\"=1.0.154\"\n").unwrap();
     let consumer = r#"
 use std::alloc::{GlobalAlloc,Layout,System};
 use std::sync::atomic::{AtomicUsize,Ordering::SeqCst};

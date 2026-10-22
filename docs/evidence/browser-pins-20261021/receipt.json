@@ -1,0 +1,22 @@
+{
+  "status": "EXACT_LINUX_BROWSER_PIN_DATA_AND_LOCAL_SOURCE_GATES_PASS",
+  "before_head": "8d4a15bdd5e00373401bf5d8905c668b45798054",
+  "captured_compiler_head": "85f70a7cb7599a228b6800358ea7d1d386df7785",
+  "checks": {
+    "actual_serial_cli_build": "PASS",
+    "cargo_fmt_all_check": "PASS",
+    "node_syntax": "PASS",
+    "actual_source_audit_tests": 34,
+    "actual_hir_boundary_tests": 11,
+    "clippy": "PASS warnings denied",
+    "original_full_source_domains_and_six_hostiles": "PASS",
+    "browser_source_tamper_and_foreign_tuple_controls": 5,
+    "complete_baseline_and_rename_graphs": "PASS exact wire equality except builder usage and self digest"
+  },
+  "memory": {
+    "cli_build_peakKiB": 6234928,
+    "minimum_system_free_percent": 60
+  },
+  "all_original_fixture_assertions_and_prior_graph_records_retained": true,
+  "current_head_full_ci_or_chromium_pass_claimed": false
+}

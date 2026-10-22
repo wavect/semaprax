@@ -1,5 +1,9 @@
 # Correct actual source and retained-command fixtures
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The 35cc focused round executed both original owners and both failed. The large-comment fixture passed its input through the shared canonical formatter, dropping the comment before source-provider capture. Its dedicated builder now canonicalizes ordinary declarations first and retains the actual oversized leaf source. Both original ordinary admission and selected-helper refusal assertions remain.
 
 The retained-HIR mutation fixture selected the entry-only program, whose checked closure correctly omits the independently selected command. It now obtains the actual retained revision export closure via the existing public API before applying the same hostile mutation and unchanged diagnostic assertions.

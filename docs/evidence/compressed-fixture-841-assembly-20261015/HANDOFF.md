@@ -1,5 +1,9 @@
 # Source-only #841 assembly
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Private assembly inherits public694 (source13d) and both immutable pilot commits11a+5f. No compiler, Cargo, Rust test, Clippy, or paired measurement ran. #841 remains OPEN.
 
 The new helper projection runs only after its five-path match. Unlisted inputs retain the exact original borrowed return; listed complete inputs authenticate into the fixed pilot5f SHA domain, then the unchanged pilot checkpoints feed all41 old JSON assertions. The new five-row runtime table must remain immutable after this checkpoint.

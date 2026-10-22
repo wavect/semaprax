@@ -1,0 +1,10 @@
+{
+  "status": "FOCUSED_ACTUAL_CENSUS_AND_EXACT_ALIAS_CONTROLS_PASS",
+  "before_head": "6847a8f726bbd214922f8499a810c1d01321277f",
+  "scope": "Complete actual comparison_phase and original census test functions compiled unchanged from the current source with real standard library and actual full source inputs.",
+  "old_guard": "Every original census assertion and helper category retained byte-for-byte; the old complete producer remains independently compiled in before_final_affine.rs. Shipping affine sites are additionally audited.",
+  "new_alias_category": 9,
+  "alias_negative_cases": 12,
+  "production_budget_caps_floors_and_allocation_credits_unchanged": true,
+  "limitations": "Not a full compiler, backend, hosted run, or whole CI pass. Remaining source audits and project budget refusals are unresolved."
+}

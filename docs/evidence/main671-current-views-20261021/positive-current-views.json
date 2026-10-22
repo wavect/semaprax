@@ -1,0 +1,14 @@
+[
+  {
+    "source": "src/bounded_output/classifier_string.rs",
+    "all_current_source_and_archive_bytes_bound": true,
+    "exact_complete_historical_current_bound": true,
+    "scope": "Python actual reader; Rust complete original42/57 tests still pending"
+  },
+  {
+    "source": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix.rs",
+    "all_current_source_and_archive_bytes_bound": true,
+    "exact_complete_historical_current_bound": true,
+    "scope": "Python actual reader; Rust complete original42/57 tests still pending"
+  }
+]

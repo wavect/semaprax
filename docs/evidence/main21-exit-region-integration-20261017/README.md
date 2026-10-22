@@ -1,5 +1,9 @@
 # MAIN21 NEXT integration — source-only
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 This private merge combines e031060ce138243b20792779a7f0a0ee4c7d2acb with
 21abcda9bc82864834914dc5b89c91bc5a9c94a5. It has not compiled or run.
 The current parent qualification is independent and remains untouched.

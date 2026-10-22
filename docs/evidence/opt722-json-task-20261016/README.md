@@ -1,5 +1,7 @@
 # Exact-profile JSON task help — source checkpoint
 
+Audience: compiler contributors and reviewers.
+
 Status: authored source only; compiler and executable qualification pending.
 Base: `a82e00cc83f99b16249181c45710d962598577db`.
 

@@ -1,5 +1,9 @@
 # c874 supplemental custody composition
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only repair for actual supplemental failures 6/7/35/41/44/45/47/48/53/67. No Rust owner has executed on this candidate.
 
 Historical semantic namespaces already authenticate complete formatting AFTERimages. Their namespace-local adapter calls the unchanged complete restore_formatting; raw root restore remains unchanged and live. Both complete BCC and Main34 source checkers retain their strict old body/suffix predicates behind the independently authenticated whole old namespace.

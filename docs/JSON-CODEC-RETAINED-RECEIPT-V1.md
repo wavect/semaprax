@@ -1,5 +1,7 @@
 # JSON codec retained-input receipt v1
 
+Audience: compiler contributors and reviewers.
+
 Status: source candidate; all executable qualification pending. This does not close OPT606 or establish measured token, cost, turn, memory or wall-time gains.
 
 The additive single-codec route is:

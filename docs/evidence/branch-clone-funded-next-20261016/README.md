@@ -1,5 +1,9 @@
 # Funded branch clone and immediate push
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only correction based on 2b17e4f2134de14baf4c34dbd9d1ad8b11e9df58, retaining Main9a8 ancestry. No Rust execution or saving claim.
 
 The actual caller prepays the new receiving/control layouts before the fused helper arguments. Clone census remains complete. The helper keeps clone work/census/materialization, then original push work/materialization before the extra backing reservation, then original observation conversion price. It allocates only the final capacity and appends the same observation. No semantic work is waived or double charged; no cap changes. Final unused capacity stays charged. Cold payment failure remains the ordinary initial unreceived Diagnostic boundary, not a claim to close825.

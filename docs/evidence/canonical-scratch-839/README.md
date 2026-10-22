@@ -1,5 +1,9 @@
 # OPT839: exact-comparison retained canonical scratch
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only NEXT batch, based on `94c392e9bd8b60edba497263d0267ec54a4dd728`.
 No Cargo, build, test, Clippy, C, or Node execution was performed for this lane.
 Static formatting and source/inverse checks are separate from qualification.

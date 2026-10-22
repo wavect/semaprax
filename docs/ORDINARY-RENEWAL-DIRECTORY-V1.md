@@ -111,3 +111,24 @@ both directory windows; presence and real directory owners drop inside them.
 The historical47f callable1024 refusal requested70176 with22717 remaining in
 HIR final validation. Its inner operation was unknown: this source change does
 not attribute that refusal, promise admission, or claim observed savings.
+
+
+## Loop-free consuming spines
+
+The consuming-record family needs a local While. Construction and independent
+validation may prove its absence directly from the immutable HIR on a spine
+with at most one nontrivial child. Scalar leaves and flat record/variant leaves
+are inspected explicitly. A loop or a second nontrivial child keeps the complete
+classifier. Closure traversal matches the existing consuming visitor.
+
+This precheck uses constant storage, pays its control bank before running, and
+charges observed nodes, statements and fields to the caller's existing work
+account. It creates no allowance and cannot clear a prior refusal. Other renewal
+families still run. The full consuming stack retains its 257-frame bound and
+258-frame refusal; the complete original classifier remains a byte-bound test
+oracle. A loop-free expression no longer has to enter that unrelated stack to
+satisfy the native interop contract's existing 512-depth admission.
+
+[Local qualification](evidence/loop-free-consuming-spine-20261021/receipt.json)
+records the unchanged 512/513 interop regression, exact/short/sticky component
+checks, and current source custody. It does not claim a green full CI profile.

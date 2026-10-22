@@ -228,14 +228,14 @@ pub(super) fn heads_run_generation(
     // The original call frame can refuse before begin; that is genuinely no row.
     let row = if rows.is_empty() {
         assert!(observed.1);
-        assert!(observed.0.0.result.is_err());
+        assert!(observed.0 .0.result.is_err());
         pair_scope_census::empty_for_test()
     } else {
         assert_eq!(rows.len(), 1);
         assert!(rows[0].ended && !rows[0].overflow && !rows[0].truncated && !rows[0].unwound);
         rows[0]
     };
-    balanced(observed.0.1);
+    balanced(observed.0 .1);
     Run {
         observed,
         events,
@@ -433,9 +433,9 @@ fn certified_heads_keep_complete_immediate_invoices_and_short_losses_for_both_hi
                     true,
                     shape,
                 );
-                assert_eq!(old.observed.0.0, current.observed.0.0);
-                assert!(current.observed.0.0.result.is_ok());
-                assert_eq!(old.observed.0.1, current.observed.0.1);
+                assert_eq!(old.observed.0 .0, current.observed.0 .0);
+                assert!(current.observed.0 .0.result.is_ok());
+                assert_eq!(old.observed.0 .1, current.observed.0 .1);
                 assert_eq!(swaps(&old), swaps(&current));
                 assert!(old.row.complete && current.row.complete);
                 assert_eq!(
@@ -510,8 +510,8 @@ fn certified_heads_keep_complete_immediate_invoices_and_short_losses_for_both_hi
                         shape,
                     );
                     assert!(before_affine.row.complete);
-                    assert_eq!(before_affine.observed.0.0, current.observed.0.0);
-                    assert_eq!(before_affine.observed.0.1, current.observed.0.1);
+                    assert_eq!(before_affine.observed.0 .0, current.observed.0 .0);
+                    assert_eq!(before_affine.observed.0 .1, current.observed.0 .1);
                     assert_eq!(swaps(&before_affine), swaps(&current));
                     assert_eq!(
                         before_affine.observed.2,
@@ -599,7 +599,7 @@ fn certified_heads_every_work_cut_retains_all_six_fields_swaps_and_malformed_pre
                     true,
                     shape,
                 );
-                for units in 0..=MAX_REPLAY_WORK_UNITS - complete.observed.0.0.remaining + 1 {
+                for units in 0..=MAX_REPLAY_WORK_UNITS - complete.observed.0 .0.remaining + 1 {
                     let old = heads_run(
                         function,
                         length,
@@ -682,7 +682,7 @@ fn certified_heads_every_new_packet_has_exact_short_zero_floor_sticky_and_drop_c
             MAX_REPLAY_WORK_UNITS,
             true,
         );
-        assert!(complete.observed.0.0.result.is_ok());
+        assert!(complete.observed.0 .0.result.is_ok());
         let total = complete.observed.2;
         for physical in [0, total - 1, total] {
             let r = heads_run(
@@ -699,10 +699,10 @@ fn certified_heads_every_new_packet_has_exact_short_zero_floor_sticky_and_drop_c
                 false,
                 shape,
             );
-            assert_eq!(r.observed.0.0.result.is_ok(), physical == total);
+            assert_eq!(r.observed.0 .0.result.is_ok(), physical == total);
             assert_eq!(r.observed.1, physical != total);
             if physical != total {
-                assert!(r.observed.0.0.retry.is_some());
+                assert!(r.observed.0 .0.retry.is_some());
             }
         }
         for event in &complete.events {
@@ -726,10 +726,10 @@ fn certified_heads_every_new_packet_has_exact_short_zero_floor_sticky_and_drop_c
                     false,
                     shape,
                 );
-                assert!(r.observed.1 && r.observed.0.0.result.is_err());
-                assert!(r.observed.0.0.retry.is_some());
+                assert!(r.observed.1 && r.observed.0 .0.result.is_err());
+                assert!(r.observed.0 .0.retry.is_some());
                 assert_eq!(
-                    r.observed.0.0.result.as_ref().unwrap_err(),
+                    r.observed.0 .0.result.as_ref().unwrap_err(),
                     &primitive_failure(function, *event, limit, floor)
                 );
             }
@@ -746,7 +746,7 @@ fn certified_heads_refused_prefix_distinguishes_admitted_first_banks_from_comple
     let function = &program.functions[0];
     let complete = observe_heads(function, 2, 1, true, 0, false, MAX_REPLAY_WORK_UNITS, true);
     let mut first_before_work = false;
-    for units in 0..=MAX_REPLAY_WORK_UNITS - complete.observed.0.0.remaining {
+    for units in 0..=MAX_REPLAY_WORK_UNITS - complete.observed.0 .0.remaining {
         let r = observe_heads(function, 2, 1, true, 0, false, units, true);
         let admitted = |phase| {
             r.events
@@ -795,7 +795,7 @@ fn certified_heads_refused_prefix_distinguishes_admitted_first_banks_from_comple
         }
         assert!(r.row.certified_firsts >= r.row.identity_hits);
         if r.row.certified_firsts > r.row.identity_hits {
-            assert!(!r.row.complete && r.observed.0.0.result.is_err());
+            assert!(!r.row.complete && r.observed.0 .0.result.is_err());
             first_before_work = true;
         }
     }
@@ -1079,8 +1079,8 @@ fn certified_heads_versioned_mixed_limits_expose_work_before_removed_physical_ma
     let success = observe_heads(function, 2, 1, true, 0, true, MAX_REPLAY_WORK_UNITS, true);
     let current_success =
         observe_heads(function, 2, 1, true, 0, false, MAX_REPLAY_WORK_UNITS, true);
-    assert!(success.observed.0.0.result.is_ok() && success.row.complete);
-    assert!(current_success.observed.0.0.result.is_ok() && current_success.row.complete);
+    assert!(success.observed.0 .0.result.is_ok() && success.row.complete);
+    assert!(current_success.observed.0 .0.result.is_ok() && current_success.row.complete);
     let old_matching = super::legacy_matching();
     let matching = success
         .events
@@ -1101,7 +1101,7 @@ fn certified_heads_versioned_mixed_limits_expose_work_before_removed_physical_ma
         })
         .expect("the actual current left STEP follows its unchanged forward-work frontier");
     let mut changed_priority = false;
-    for units in 0..=MAX_REPLAY_WORK_UNITS - success.observed.0.0.remaining {
+    for units in 0..=MAX_REPLAY_WORK_UNITS - success.observed.0 .0.remaining {
         let old = heads_run(
             function,
             2,
@@ -1134,11 +1134,11 @@ fn certified_heads_versioned_mixed_limits_expose_work_before_removed_physical_ma
         );
         if old.observed.1 && !current.observed.1 && current.row.pairs == 1 {
             assert_eq!(
-                old.observed.0.0.result.as_ref().unwrap_err(),
+                old.observed.0 .0.result.as_ref().unwrap_err(),
                 &primitive_failure(function, *matching, matching.before + old_matching - 1, 0)
             );
-            assert!(current.observed.0.0.result.is_err());
-            assert_eq!(current.observed.0.0.remaining, 0);
+            assert!(current.observed.0 .0.result.is_err());
+            assert_eq!(current.observed.0 .0.remaining, 0);
             assert!(!current.row.complete);
             changed_priority = true;
             break;
@@ -1163,7 +1163,7 @@ fn certified_heads_versioned_mixed_limits_expose_work_before_removed_physical_ma
         .nth(1)
         .unwrap();
     let mut split_priority = false;
-    for units in 0..=MAX_REPLAY_WORK_UNITS - success.observed.0.0.remaining {
+    for units in 0..=MAX_REPLAY_WORK_UNITS - success.observed.0 .0.remaining {
         let old = heads_run(
             function,
             2,
@@ -1194,7 +1194,7 @@ fn certified_heads_versioned_mixed_limits_expose_work_before_removed_physical_ma
         );
         if old.observed.1 && !current.observed.1 && current.row.certified_bases == 1 {
             assert_eq!(
-                old.observed.0.0.result.as_ref().unwrap_err(),
+                old.observed.0 .0.result.as_ref().unwrap_err(),
                 &primitive_failure(
                     function,
                     *right_step,
@@ -1202,8 +1202,8 @@ fn certified_heads_versioned_mixed_limits_expose_work_before_removed_physical_ma
                     0
                 )
             );
-            assert!(current.observed.0.0.result.is_err());
-            assert_eq!(current.observed.0.0.remaining, 0);
+            assert!(current.observed.0 .0.result.is_err());
+            assert_eq!(current.observed.0 .0.remaining, 0);
             assert_eq!(current.row.certified_pops, 0);
             split_priority = true;
             break;
@@ -1229,7 +1229,7 @@ fn certified_heads_opt_in_counts_every_real_new_packet_after_complete_teardown()
     .unwrap();
     let r = observe_heads(function, 8, 1, true, 0, false, MAX_REPLAY_WORK_UNITS, false);
     let report = capture.finish().unwrap();
-    assert!(r.row.complete && r.observed.0.0.result.is_ok());
+    assert!(r.row.complete && r.observed.0 .0.result.is_ok());
     assert!(
         report.counts_complete
             && report.detail_complete
@@ -1419,9 +1419,9 @@ fn composed_main7e_and_certified_heads_keep_full_actual_invoices_both_hir_and_al
             };
             let old = observe(2, MAX_REPLAY_WORK_UNITS, 0);
             let current = observe(0, MAX_REPLAY_WORK_UNITS, 0);
-            assert_eq!(old.observed.0.0, current.observed.0.0);
-            assert!(current.observed.0.0.result.is_ok());
-            assert_eq!(old.observed.0.1, current.observed.0.1);
+            assert_eq!(old.observed.0 .0, current.observed.0 .0);
+            assert!(current.observed.0 .0.result.is_ok());
+            assert_eq!(old.observed.0 .1, current.observed.0 .1);
             assert_eq!(swaps(&old), swaps(&current));
             assert!(old.row.complete && current.row.complete);
             // The shapes retain four paths except explicit two-path right tail.
@@ -1456,13 +1456,13 @@ fn composed_main7e_and_certified_heads_keep_full_actual_invoices_both_hir_and_al
                 "composite versus wholemain7e len={length} shape={shape}: old={} current={}; no universal or application claim",
                 old.observed.2, current.observed.2
             );
-            let spent = MAX_REPLAY_WORK_UNITS - old.observed.0.0.remaining;
+            let spent = MAX_REPLAY_WORK_UNITS - old.observed.0 .0.remaining;
             for fault in [0, 1, 2, 3] {
                 for cut in 0..=spent {
                     let old = observe(2, cut, fault);
                     let current = observe(0, cut, fault);
                     assert_eq!(
-                        old.observed.0.0, current.observed.0.0,
+                        old.observed.0 .0, current.observed.0 .0,
                         "six fields/work len={length} shape={shape} fault={fault} cut={cut}"
                     );
                     assert_eq!(swaps(&old), swaps(&current));

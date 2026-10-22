@@ -130,6 +130,12 @@ fn the_complete_old_bridge_changes_only_its_retained_runner_include() {
 }
 
 pub(super) fn c11_before2600_input(current: &str) -> String {
+    let staged = crate::main_e177_final_inputs::value_direct(
+        "tests/wasm/scalar_browser_ci_contract/c11_before_2600.rs",
+        "30cc9238ae44dfd6988023f1296eb5c7c32b084ed164b64a1c194e4c5a2b758b",
+        current,
+    );
+    let current = staged.as_str();
     assert_eq!(
         format!(
             "{:x}",

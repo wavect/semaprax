@@ -1,5 +1,9 @@
 # Canonical ShiftSim model fixture
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Actual35cc175 selected owners typed_record_shiftsim_derives_both_codecs_and_runs_retained_corpus and typed_vec_constructor_retains_exact_explicit_chain_application_control failed with G170 because src/model.spx was noncanonical. Their shared MODEL constant embeds this exact example file and write_example copies it verbatim. No other source is named in those two actual G170 diagnostics.
 
 The authenticated already-built35cc production CLI formatted only this929-byte file; a second `fmt <file> --check` returned0. No Cargo, test, build, application run or ROOT edit occurred. The sole formatter change moves the existing complete model_anchor function after the Worker type declaration, preserving every declaration/body token, all explicit stable IDs and the entire unchanged function body. This follows the canonical declaration grouping; no cap, source admission or test assertion is changed.

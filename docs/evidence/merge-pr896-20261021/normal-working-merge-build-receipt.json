@@ -1,0 +1,11 @@
+{
+  "status": "PASS_WORKING_MERGE_PRODUCTION_BUILD_ONLY",
+  "parents": {
+    "main": "289e0543dc1d2645265901c8b90ddbcf97d8e9a1",
+    "release": "e544f89290fc997edc464e1f92caa69a029d61b4"
+  },
+  "peakKiB": 6624528,
+  "jobs": 1,
+  "test_only_source_conflicts_still_pending": true,
+  "no_committed_head_or_CI_qualification_claimed": true
+}

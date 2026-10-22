@@ -1,0 +1,18 @@
+[
+  {
+    "domain": "hir",
+    "all_sources_classes_roles_and_exact_edge_text_attributes_preserved": true,
+    "changed_source_pins": [
+      "src/bounded_output/stage_debits/route_debits.rs",
+      "src/source_reflows_merge/main_e177_overlay_v2.rs"
+    ]
+  },
+  {
+    "domain": "projection",
+    "all_sources_classes_roles_and_exact_edge_text_attributes_preserved": true,
+    "changed_source_pins": [
+      "src/bounded_output/stage_debits/route_debits.rs",
+      "src/source_reflows_merge/main_e177_overlay_v2.rs"
+    ]
+  }
+]

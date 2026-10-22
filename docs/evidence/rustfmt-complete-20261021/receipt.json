@@ -1,0 +1,108 @@
+{
+  "status": "LOCAL_COMPLETE_FORMAT_AND_FOCUSED_SOURCE_AUDIT_GATES_PASS",
+  "before_head": "7d42ad08b79b80c9087077dca21fa4072ec0e5a6",
+  "changes": [
+    {
+      "source": "src/source_reflows_merge.rs",
+      "before_lines": 1496,
+      "after_lines": 1490
+    },
+    {
+      "source": "src/source_reflows_merge/main_e177_overlay_v2.rs",
+      "before_lines": 1499,
+      "after_lines": 1499
+    },
+    {
+      "source": "src/source_reflows_merge/runtime_json/tests.rs",
+      "before_lines": 1286,
+      "after_lines": 1428
+    },
+    {
+      "source": "tests/workspace/semantic_graph.rs",
+      "before_lines": 1496,
+      "after_lines": 1490
+    },
+    {
+      "source": "src/source_reflows_merge/main_e177_overlay_compiled.rs",
+      "before_lines": 406,
+      "after_lines": 426,
+      "change": "Exact authenticated inverse before all unchanged historical split assertions"
+    }
+  ],
+  "checks": {
+    "cargo_fmt_all_check": "PASS",
+    "clippy": "PASS warnings denied",
+    "actual_source_harness_tests": 34,
+    "original_complete_source_domains_and_all_six_hostile_controls": "PASS",
+    "actual_hir_boundary_tests": 11
+  },
+  "source_preservation": [
+    {
+      "domain": "hir",
+      "all_sources_classes_roles_and_exact_edge_text_attributes_preserved": true,
+      "changed_source_pins": [
+        "src/source_reflows_merge.rs",
+        "src/source_reflows_merge/main_e177_overlay_compiled.rs",
+        "src/source_reflows_merge/main_e177_overlay_v2.rs",
+        "src/source_reflows_merge/runtime_json/tests.rs",
+        "tests/workspace/semantic_graph.rs"
+      ]
+    },
+    {
+      "domain": "projection",
+      "all_sources_classes_roles_and_exact_edge_text_attributes_preserved": true,
+      "changed_source_pins": [
+        "src/source_reflows_merge.rs",
+        "src/source_reflows_merge/main_e177_overlay_compiled.rs",
+        "src/source_reflows_merge/main_e177_overlay_v2.rs",
+        "tests/workspace/semantic_graph.rs"
+      ]
+    }
+  ],
+  "page": {
+    "status": "ORIGINAL_CURRENT_CODEC_COMPOSITION_PASS_PENDING_PUBLICATION",
+    "base_head": "7d42ad08b79b80c9087077dca21fa4072ec0e5a6",
+    "rows": 687,
+    "page_bytes": 227644,
+    "published_current_preserved_as_exact_views": [
+      {
+        "source": "src/source_reflows_merge.rs",
+        "view": {
+          "length": 102516,
+          "sha256": "36c60ea70743cd33ceac3c9a88e2faa297c54501f1587b4a76d2321eeec5ef16",
+          "archive": "docs/evidence/merge-pr896-20261021/whole/36c60ea70743cd33ceac3c9a88e2faa297c54501f1587b4a76d2321eeec5ef16.txt",
+          "name": "whole-pre-rustfmt-completion-7d42ad08b7"
+        }
+      },
+      {
+        "source": "tests/workspace/semantic_graph.rs",
+        "view": {
+          "length": 59041,
+          "sha256": "d0f18ad50b14f5e6ac656c9a0c1a858e99c3ba21fa42d6465e32d8fb588209c3",
+          "archive": "e/d0f18ad50b14f5e6ac656c9a0c1a858e99c3ba21fa42d6465e32d8fb588209c3",
+          "name": "whole-pre-rustfmt-completion-7d42ad08b7"
+        }
+      },
+      {
+        "source": "src/source_reflows_merge/main_e177_overlay_compiled.rs",
+        "view": {
+          "length": 45269,
+          "sha256": "613ad4fc56c6bef78acb57a358a2c6916f65d7a5a2c99d66960c5088f9b8f117",
+          "archive": "docs/evidence/merge-pr896-20261021/whole/613ad4fc56c6bef78acb57a358a2c6916f65d7a5a2c99d66960c5088f9b8f117.txt",
+          "name": "whole-pre-rustfmt-completion-7d42ad08b7"
+        }
+      }
+    ],
+    "all_previous_fields_views_memberships_and_fragment_edges_retained": true,
+    "all_original_codec_bodies_and_caps_unchanged": true
+  },
+  "runtime_digest_arrays": "71 existing 32-byte decimal array constants encoded as equal [u8;32] byte-string arrays; values and expected hashes unchanged",
+  "root_hash_helper": "22 repeated hash expressions share the identical SHA256/LowerHex formatting implementation; owned String inputs remain borrowed",
+  "all_existing_source_limits_and_original_split_predicates_unchanged": true,
+  "full_ci_green_claimed": false,
+  "remaining_preexisting_runtime_source_history_failures": [
+    "fixed_receiver_json_fixtures_keep_complete_inputs_inverses_and_hostile_io",
+    "six_large_historical_packets_keep_full_inputs_whole_consumers_and_fresh_hostile_reads",
+    "three_runtime_packets_keep_whole_consumers_and_refuse_each_fresh_hostile_read"
+  ]
+}

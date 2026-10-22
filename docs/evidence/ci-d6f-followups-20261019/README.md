@@ -1,5 +1,9 @@
 # CI source-reader and record preflight repairs
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The shared final source reader now addresses the authenticated acquisition
 through `crate::source_reflows_merge`, which exists in both the library test
 crate and the independent workspace integration harness. Eight exact raw

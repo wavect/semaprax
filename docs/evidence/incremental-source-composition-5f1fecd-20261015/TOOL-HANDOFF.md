@@ -1,5 +1,9 @@
 # Successor source-custody tools — preparation checkpoint
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 These tools are authored for the pending merged source after main88884. They
 have not composed or independently verified that final source. Source-only
 Python syntax checking is not execution evidence. No Rust, Cargo, build, test,

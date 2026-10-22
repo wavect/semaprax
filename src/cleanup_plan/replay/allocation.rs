@@ -87,7 +87,7 @@ impl ReplayBudget {
         &self,
         phase: crate::workflow_profile::plan_comparison::PaidPhase,
     ) -> crate::workflow_profile::plan_comparison::PaidPhaseGuard {
-        use crate::workflow_profile::plan_comparison::{PhasePayer, paid_phase};
+        use crate::workflow_profile::plan_comparison::{paid_phase, PhasePayer};
         paid_phase(
             phase,
             match self.payer {

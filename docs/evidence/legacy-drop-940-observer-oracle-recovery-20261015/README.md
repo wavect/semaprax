@@ -1,5 +1,9 @@
 # Frozen 940 fixture and source-custody correction
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Basis: 940fcf220e47d1975f757e76f0b3401691db9358. This is a source-only
 correction for selected runtime owners 27, 33, 72 and 87. No Cargo, compiler,
 runtime, full gate or physical gain measurement was run for this packet.

@@ -515,4 +515,3 @@ pub(in crate::cleanup_plan::replay) fn compare(
     census.success();
     Ok(())
 }
-

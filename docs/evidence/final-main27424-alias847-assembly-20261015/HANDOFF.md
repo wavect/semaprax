@@ -1,5 +1,9 @@
 # Final whole batch: MAIN27424 +847 + both actual677 compile fixes
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 SOURCE ONLY. No Cargo, Rust tests, Node, Clippy, producer/capture, pin update or
 ROOT mutation occurred in this assembly. This checkpoint retains both actual
 MAIN27424 and public2bfd ancestry for mergeability.

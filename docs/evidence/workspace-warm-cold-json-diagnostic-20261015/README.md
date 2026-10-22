@@ -1,5 +1,9 @@
 # Fatal warm/cold graph field diagnostic
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 At exact77f90da5e00d533e40714d42369daed90661156a, the existing fatal refresh
 diagnostic already rebuilds its warm/cold graphs and parses both as JSON. Add
 only two observations over those existing values: first differing JSON pointer,

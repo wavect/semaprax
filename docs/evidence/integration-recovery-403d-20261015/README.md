@@ -1,5 +1,9 @@
 # Interrupted integration recovery
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only recovery of `403d8a409417baa8e99e6d488c567e6b9b6acc74` and typed constructor producer packet `bb6e11a1eb33c8604a9bd16005399d624cf68447`.
 
 Both sides of each metadata conflict are archived byte-for-byte in `inline-stage{2,3}.json` and `report-stage{2,3}.json`; every archived chain independently reconstructed its complete fixed original before resolution. Active chains retain all prior hooks and receive additive complete-source preinverses. No originals, older proofs, dispatcher hooks, or source guards were removed. Current constructor child hashes and prior bindings remain explicit.

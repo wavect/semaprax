@@ -1,5 +1,9 @@
 # Real caller probe prepayment control
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Private SOURCE-ONLY followup to609cbc2592a1ab9d6fbc81b72d1b2bac71dc85b5.
 The complete609 packet stays immutable. replay.rs is byte-exact609; only the
 existing helper and test source change. No Cargo, Rust executable or OS probe ran.

@@ -1,5 +1,9 @@
 # One-pass ordinary successor candidate
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 SOURCE ONLY, UNCOMPILED, UNREVIEWED. Based on separate factored candidate4bcffa778. No Cargo, tests, binders or source generation executed.
 
 The initial memo80 attribution of sixteen units to four selection calls was incomplete and is retracted. The first root visits terminal and sink. The actual new selection4 twice adds8; one-move borrowed census/search/header work adds7 relative to old subset2; empty census adds1 relative to old subset1. Total16. Original before_index performs no census/search prepass.

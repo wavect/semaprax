@@ -1,5 +1,9 @@
 # Initial typed workspace report policy (#845)
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only checkpoint based on 2bfd63d1610a89906bb6d4d03489aac7ed5c375b.
 No compiler, test body, Clippy, application or performance execution is claimed.
 Ten exact new lib selectors are in `pending-selectors.json`; all remain pending.

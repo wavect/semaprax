@@ -1,0 +1,5 @@
+# Actual452 strict helper inventory order generation
+
+The immutable115helper recipe has path-order inversions (dictionary/keys.rs precedes dictionary.rs). A distinct canonicalmetadata view permutes complete rows only. The originalrecipe bytes/SHA and all rowrawbytes remain preserved; exactwholeinverse restores them. Allotherrecipefields stay byteexact; originalstrictdomain/sorted assertions execute the canonicalview unchanged. This is sourceinventorymetadata, not runtimecleanupvectors. Newview bounded65536 and allphysicalsource/archive reads use existing2MiB no-follow reader. Full115read audit found one additional arena_tests source: exact56925-byte live→19645-byte51c1 helper input now enters the originalstricthelperread. Both originalsevenrow paidviewtable and frozenrecipe remain untouched. No production/newmodule/raw3/cap change.
+
+Source-only Python controls passed. No Rust/compiler/common executed. Complete beforeimages and finiteinverses are retained; executable qualification pending.

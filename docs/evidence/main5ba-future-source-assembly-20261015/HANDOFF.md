@@ -1,5 +1,9 @@
 # Coherent future source batch after d4 qualification and latest MAIN
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Parent source integration retained by ancestry:
 85142274c2f3e73bc1a4e5150672150c4d17d95f (MAIN5ba, parentd4/evidencef0ea).
 Private parent merge88635c26a. Fixture authorf6b4c2d64ddffc7fd1b42e18ff2b7a4c88aeb7b2,

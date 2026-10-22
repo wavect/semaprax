@@ -1,0 +1,19 @@
+{
+  "status": "ORIGINAL_CURRENT_CODEC_COMPOSITION_PASS_PENDING_PUBLICATION",
+  "base_head": "fbedc987ab85b6fca38ca77c5683cfd9dbf7a5f6",
+  "rows": 687,
+  "page_bytes": 230345,
+  "published_current_preserved_as_exact_views": [
+    {
+      "source": "src/source_reflows_merge.rs",
+      "view": {
+        "length": 101998,
+        "sha256": "016bfc03f75bbd100fc22297f2fb9b7aaa7fe40e5781feb105b7d0708d36537f",
+        "archive": "docs/evidence/runtime-history-20261021/current/016bfc03f75bbd100fc22297f2fb9b7aaa7fe40e5781feb105b7d0708d36537f.txt",
+        "name": "whole-pre-metadata-fbeda15bdd5"
+      }
+    }
+  ],
+  "all_previous_fields_views_memberships_and_fragment_edges_retained": true,
+  "all_original_codec_bodies_and_caps_unchanged": true
+}

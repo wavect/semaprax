@@ -1,0 +1,813 @@
+[
+  {
+    "source": "src/cleanup_plan/replay.rs",
+    "current_length": 326272,
+    "current_sha256": "cf20e9132b5b94602777d4b1d70495da2c8411181a9f642919f6a0d4aa8c12c8",
+    "before_length": 324477,
+    "before_sha256": "e688f57ac691a478b7c751ad69975d3ba447ffdc6ac8f71b018a5d438e8f3d0c",
+    "inverse": [
+      [
+        159,
+        "mod branch_clone;\n#[cfg(test)]\nuse crate::bounded_output::stage_debits::route_debits as debit_routes;\n#[cfg(feature = \"unstable-workflow-profiling\")]\nuse crate::workflow_profile::plan_comparison::PaidPhase;\n",
+        "mod branch_clone; #[cfg(test)] use crate::bounded_output::stage_debits::route_debits as debit_routes;\n"
+      ],
+      [
+        796,
+        "",
+        "pub(in crate::cleanup_plan) mod ordinary_status;\nmod ordinary_plan_history;\nmod physical_budget;\n"
+      ],
+      [
+        827,
+        "mod ordinary_plan_history;\npub(in crate::cleanup_plan) mod ordinary_status;\nmod physical_budget;\n",
+        ""
+      ],
+      [
+        4994,
+        "mod ordinary_receiving;\n",
+        ""
+      ],
+      [
+        17408,
+        "    let mut continuations = continuation_storage::Storage::for_program(full, &mut budget)?;\n    #[cfg(test)]\n    let mut diagnostic_ordinal = 0usize;\n    for function in program.functions() {\n        #[cfg(test)]\n        let _debit_function = {\n            let scope = debit_routes::function(diagnostic_ordinal, false, function.id.as_str());\n            diagnostic_ordinal = diagnostic_ordinal.saturating_add(1);\n            scope\n        };\n        #[cfg(feature = \"unstable-workflow-profiling\")]\n        let _paid_structure = budget.paid_phase(PaidPhase::ReplayStructure);\n",
+        "    let mut continuations = continuation_storage::Storage::for_program(full, &mut budget)?; #[cfg(test)] let mut diagnostic_ordinal = 0usize;\n    for function in program.functions() { #[cfg(test)] let _debit_function = { let scope = debit_routes::function(diagnostic_ordinal, false, function.id.as_str()); diagnostic_ordinal = diagnostic_ordinal.saturating_add(1); scope };\n"
+      ],
+      [
+        18177,
+        "    }\n    #[cfg(test)]\n    let mut diagnostic_instance = 0usize;\n    for instance in program.function_instances() {\n        #[cfg(test)]\n        let _debit_function = {\n            let scope =\n                debit_routes::function(diagnostic_instance, true, instance.function.id.as_str());\n            diagnostic_instance = diagnostic_instance.saturating_add(1);\n            scope\n        };\n        #[cfg(feature = \"unstable-workflow-profiling\")]\n        let _paid_structure = budget.paid_phase(PaidPhase::ReplayStructure);\n",
+        "    } #[cfg(test)] let mut diagnostic_instance = 0usize;\n    for instance in program.function_instances() { #[cfg(test)] let _debit_function = { let scope = debit_routes::function(diagnostic_instance, true, instance.function.id.as_str()); diagnostic_instance = diagnostic_instance.saturating_add(1); scope };\n"
+      ],
+      [
+        20560,
+        "use expression_facts::receiving::validate_structure_with_budget_storage;\n",
+        "fn validate_structure_with_budget_storage<'hir>(\n    program: &'hir dyn crate::cleanup::ReplayContext,\n    function: &'hir ResolvedFunction,\n    budget: &mut ReplayBudget,\n    helpers: Option<&crate::loop_calls::byte_writer::ModuleIndex<'hir>>,\n    continuations: Option<&mut continuation_storage::Storage<'hir>>,\n) -> Result<(), Diagnostic> {\n    #[cfg(test)]\n    let _operation = crate::bounded_output::stage_debits::operation_guard(\n        crate::bounded_output::stage_debits::Operation::ReplayStructure,\n    );\n    let plan = &function.cleanup_plan;\n    if helpers.is_some_and(|index| {\n        !program\n            .full_program()\n            .is_some_and(|full| index.matches_program(full))\n    }) {\n        return Err(replay_error(\n            function,\n            \"cleanup replay helper index belongs to a different typed program\",\n        ));\n    }\n    // Reconstruct the ordinary schema first, preserving all its current-source\n    // probes/error order. A private source-held projection adds allocation\n    // branches; neither its attached v20 string nor an ordinary context selects it.\n    let ordinary_schema =\n        schema::paid_summary::selected_with_budget(program, function, helpers, budget)?;\n    let expected_schema = if allocation_paths::current(program, function).is_some() {\n        super::CLEANUP_PLAN_SCHEMA_V20\n    } else {\n        ordinary_schema\n    };\n    if plan.schema != expected_schema {\n        return Err(replay_error(\n            function,\n            format_args!(\n                \"uses cleanup-plan schema `{}` instead of HIR-derived `{expected_schema}`\",\n                plan.schema\n            ),\n        ));\n    }\n\n    if lexical_cert::requires_lexical(function) {\n        return lexical_replay::validate_with_index(program, function, budget, helpers);\n    }\n    if plan.lexical_control.is_some() {\n        return Err(replay_error(\n            function,\n            \"function without lexical exits carries a lexical-control certificate\",\n        ));\n    }\n    validate_replay_size_budget(function)?;\n    budget.charge(\n        function,\n        plan_structure_units(plan),\n        \"structural validation\",\n    )?;\n\n    let expression_facts = expression_facts::with_budget(function, budget)?;\n    ordinary_inventory::validate_inventory_coverage(program, function, budget)?;\n    let status_cases =\n        expression_facts::receiving::StatusCases::validate(program, function, budget)?;\n    let storage = validate_slots_paid(function, budget)?;\n    let leaves = collect_leaves_paid(function, budget)?;\n    let statuses = expression_facts::receiving::validate_status_sources_certified(\n        function,\n        &expression_facts,\n        budget,\n        &status_cases,\n    )?;\n    expression_facts::receiving::validate_regions(function, &storage, budget)?;\n    expression_facts::receiving::validate_entry(function, &storage, &leaves, budget)?;\n    expression_facts::receiving::validate_blocks_and_edges_retained(\n        program,\n        function,\n        &expression_facts,\n        &storage,\n        &leaves,\n        helpers,\n        budget,\n        &statuses,\n    )?;\n    expression_facts::receiving::validate_exits_retained(\n        program,\n        function,\n        &storage,\n        &leaves,\n        &BTreeSet::new(),\n        budget,\n        &statuses,\n    )?;\n    structural_maps::validate_reference_coverage(function, budget)?;\n    structural_control::validate_ordinary_cfg(function, budget)?;\n    if !cleanup_inert_path_product_can_be_summarized(function)?\n        && !status_only_paths_can_be_summarized(function)\n        && !cleanup_inert_large_decisions_can_be_summarized(function)\n    {\n        validate_path_states::<Diagnostic>(\n            program, function, &storage, &leaves, budget, None, helpers,\n        )?;\n        validate_typed_control_skeleton_with_index(\n            program,\n            function,\n            budget,\n            helpers,\n            continuations,\n        )?;\n    }\n    Ok(())\n}\n"
+      ],
+      [
+        108585,
+        ") -> Result<(), Diagnostic> {\n    #[cfg(test)]\n    let _debit_phase = debit_routes::phase(debit_routes::Phase::OtherReplay);\n",
+        ") -> Result<(), Diagnostic> { #[cfg(test)] let _debit_phase = debit_routes::phase(debit_routes::Phase::OtherReplay);\n"
+      ],
+      [
+        108981,
+        "    }\n    #[cfg(test)]\n    let _debit_phase = debit_routes::phase(debit_routes::Phase::EnumeratedHIR);\n",
+        "    } #[cfg(test)] let _debit_phase = debit_routes::phase(debit_routes::Phase::EnumeratedHIR);\n"
+      ],
+      [
+        109107,
+        "        hir_skeleton_paths_with_index_storage(program, function, budget, helpers, continuations)?;\n    #[cfg(test)]\n    let _debit_phase = debit_routes::phase(debit_routes::Phase::OtherReplay);\n",
+        "        hir_skeleton_paths_with_index_storage(program, function, budget, helpers, continuations)?; #[cfg(test)] let _debit_phase = debit_routes::phase(debit_routes::Phase::OtherReplay);\n"
+      ],
+      [
+        109670,
+        "        if ordinary_plan_history::select(function, budget)? {\n            #[cfg(test)]\n            let _debit_phase = debit_routes::phase(debit_routes::Phase::HistoryPLAN);\n",
+        "        if ordinary_plan_history::select(function, budget)? { #[cfg(test)] let _debit_phase = debit_routes::phase(debit_routes::Phase::HistoryPLAN);\n"
+      ],
+      [
+        110046,
+        "            let actual = ordinary_plan_history::produce(function, budget)?;\n            #[cfg(test)]\n            let _debit_phase = debit_routes::phase(debit_routes::Phase::PathComparison);\n",
+        "            let actual = ordinary_plan_history::produce(function, budget)?; #[cfg(test)] let _debit_phase = debit_routes::phase(debit_routes::Phase::PathComparison);\n"
+      ],
+      [
+        110824,
+        "    }\n    #[cfg(test)]\n    let _debit_phase = debit_routes::phase(debit_routes::Phase::FlatPLAN);\n    let mut actual = plan_skeleton_paths(function, budget)?;\n    #[cfg(test)]\n    let _debit_phase = debit_routes::phase(debit_routes::Phase::PathComparison);\n    #[cfg(feature = \"unstable-workflow-profiling\")]\n    let _paid_comparison = budget.paid_phase(PaidPhase::Comparison);\n",
+        "    } #[cfg(test)] let _debit_phase = debit_routes::phase(debit_routes::Phase::FlatPLAN);\n    let mut actual = plan_skeleton_paths(function, budget)?; #[cfg(test)] let _debit_phase = debit_routes::phase(debit_routes::Phase::PathComparison);\n"
+      ],
+      [
+        113429,
+        "    #[cfg(feature = \"unstable-workflow-profiling\")]\n    let _paid_phase = budget.paid_phase(PaidPhase::HirPaths);\n\n",
+        ""
+      ],
+      [
+        113718,
+        "    #[cfg(feature = \"unstable-workflow-profiling\")]\n    let _exclusive_operation = crate::bounded_output::exclusive_debits::operation_guard(\n        crate::bounded_output::exclusive_debits::Operation::ReplayHirSkeleton,\n    );\n    #[cfg(test)]\n    if ordinary_receiving::saved() {\n        return ordinary_receiving::hir_skeleton_paths_with_index_storage_before(\n            program,\n            function,\n            budget,\n            helpers,\n            continuations,\n        );\n    }\n    #[cfg(test)]\n    let ordinary_oracle = budget.oracle_lease().is_some();\n    #[cfg(not(test))]\n    let ordinary_oracle = false;\n    let mut work = if budget.selected() || ordinary_oracle {\n        SkeletonWork::checked_with_index(program, function, budget, helpers)?\n    } else {\n        // Exactly the old ordinary bootstrap/cursor frontier. No new receiving\n        // owner exists before these earlier errors have been selected.\n        budget.prepare_builder(function)?;\n        budget.prepare_clone_cursor(function)?;\n        budget.reserve_bytes(\n            function,\n            skeleton_work::receiving::acquisition_bytes(),\n            \"ordinary skeleton receiving owner\",\n        )?;\n        #[cfg(test)]\n        ordinary_receiving::observe_site(0);\n        let mut failure = ordinary_receiving::Failure {\n            error: None,\n            function,\n            budget: &*budget,\n        };\n        let mut prepared = skeleton_work::receiving::Prepared {\n            owner: None,\n            requires: false,\n            reads: BTreeSet::new(),\n            moves: BTreeSet::new(),\n            renewals: crate::cleanup_plan::renewal_profile::RenewalBindings::empty(),\n        };\n        if !skeleton_work::receiving::prepare_into(\n            program,\n            function,\n            budget,\n            helpers.is_some(),\n            &mut prepared,\n            &mut failure,\n        ) {\n            return Err(failure\n                .error\n                .take()\n                .expect(\"ordinary setup selected first error\"));\n        }\n        SkeletonWork {\n            function,\n            budget,\n            continuations: None,\n            active_copy_region: None,\n            dag_scratch: None,\n            ordinary_scratch: None,\n            next_ordinary_dag: 0,\n            held_renewals: None,\n            ordinary_index: helpers,\n            ordinary_program: Some(program),\n            renewal_bindings: prepared.renewals,\n            string_owner_moves: prepared.moves,\n            string_condition_reads: prepared.reads,\n            owner: prepared.owner,\n        }\n    };\n",
+        "    let mut work = SkeletonWork::checked_with_index(program, function, budget, helpers)?;\n"
+      ],
+      [
+        125480,
+        "            work,\n            prefix.observations,\n            first_suffix.observations\n",
+        "            work, prefix.observations, first_suffix.observations\n"
+      ],
+      [
+        278600,
+        "    #[cfg(feature = \"unstable-workflow-profiling\")]\n    let _paid_phase = budget.paid_phase(PaidPhase::PlanPaths);\n\n",
+        ""
+      ],
+      [
+        278884,
+        "    );\n    #[cfg(feature = \"unstable-workflow-profiling\")]\n    let _exclusive_operation = crate::bounded_output::exclusive_debits::operation_guard(\n        crate::bounded_output::exclusive_debits::Operation::ReplayPlanSkeleton,\n",
+        ""
+      ],
+      [
+        288426,
+        "                    branch_clone::direct::PLAN_SMALL_SELECTION_CONTROLS,\n",
+        "                    final_output::PLAN_SELECTION_CONTROLS,\n"
+      ],
+      [
+        288820,
+        "",
+        "                    budget.reserve_bytes(\n                        function,\n                        branch_clone::direct::inline_controls::<std::rc::Rc<SkeletonObservation>, SkeletonObservation>(),\n                        \"branch clone receiving controls\",\n                    )?;\n                    // The direct generic call's actual/formal arguments and\n                    // Vec Result are funded above, before their formation.\n"
+      ],
+      [
+        288908,
+        "                        budget.reserve_bytes(\n                            function,\n                            branch_clone::direct::inline_controls::<\n                                std::rc::Rc<SkeletonObservation>,\n                                SkeletonObservation,\n                            >(),\n                            \"branch clone receiving controls\",\n                        )?;\n",
+        ""
+      ],
+      [
+        289847,
+        "                    } else if observations.len() < branch_clone::direct::SMALL_COPY_LIMIT {\n                        budget.reserve_bytes(\n                            function,\n                            branch_clone::inline_controls::<std::rc::Rc<SkeletonObservation>>(),\n                            \"branch clone receiving controls\",\n                        )?;\n                        branch_clone::direct::copy_small_plan!(\n                            branch,\n                            observations,\n                            observation,\n                            budget,\n                            function\n                        );\n",
+        ""
+      ],
+      [
+        290523,
+        "                        budget.reserve_bytes(\n                            function,\n                            branch_clone::direct::inline_controls::<\n                                std::rc::Rc<SkeletonObservation>,\n                                SkeletonObservation,\n                            >(),\n                            \"branch clone receiving controls\",\n                        )?;\n",
+        ""
+      ],
+      [
+        290988,
+        "                            budget,\n                            function,\n                            &observations,\n                            observation,\n                            \"cleanup-plan skeleton branch clone\",\n                            plan,\n                            edge.to,\n",
+        "                            budget, function, &observations, observation,\n                            \"cleanup-plan skeleton branch clone\", plan, edge.to,\n"
+      ],
+      [
+        296811,
+        "                    if let ReplayBudget {\n                        payer: AllocationPayer::ActiveBuilder,\n                        ..\n                    } = budget\n                    {\n                        budget.reserve_bytes(\n                            function,\n                            branch_clone::production_capacity::production_inline_controls::<\n                                std::rc::Rc<SkeletonObservation>,\n                            >(),\n                            \"branch clone receiving controls\",\n                        )?;\n",
+        "                    if let ReplayBudget { payer: AllocationPayer::ActiveBuilder, .. } = budget {\n                        budget.reserve_bytes(function, branch_clone::production_capacity::production_inline_controls::<std::rc::Rc<SkeletonObservation>>(),\n                            \"branch clone receiving controls\")?;\n"
+      ],
+      [
+        297392,
+        "                        budget.reserve_bytes(\n                            function,\n                            branch_clone::inline_controls::<std::rc::Rc<SkeletonObservation>>(),\n                            \"branch clone receiving controls\",\n                        )?;\n",
+        "                    budget.reserve_bytes(\n                        function,\n                        branch_clone::inline_controls::<std::rc::Rc<SkeletonObservation>>(),\n                        \"branch clone receiving controls\",\n                    )?;\n"
+      ],
+      [
+        299025,
+        "                        if let ReplayBudget {\n                            payer: AllocationPayer::ActiveBuilder,\n                            ..\n                        } = budget\n                        {\n                            budget.reserve_bytes(\n                                function,\n                                branch_clone::TAKE_CALL_CONTROLS,\n                                \"plan final branch probe receiving\",\n                            )?;\n                            branch_clone::production_capacity::produce!(\n                                budget,\n                                function,\n                                observations,\n                                observation,\n                                plan,\n                                edge,\n                                remaining_edges,\n                                edges,\n                                branch,\n                                queue\n                            );\n",
+        "                        if let ReplayBudget { payer: AllocationPayer::ActiveBuilder, .. } = budget {\n                            budget.reserve_bytes(function, branch_clone::TAKE_CALL_CONTROLS,\n                                \"plan final branch probe receiving\")?;\n                            branch_clone::production_capacity::produce!(budget, function, observations,\n                                observation, plan, edge, remaining_edges, edges, branch, queue);\n"
+      ],
+      [
+        325394,
+        "const _: () = assert!(\n    std::mem::size_of::<ReplayBudget>() == std::mem::size_of::<BeforeDirectAnchorBudgetLayout>()\n);\n",
+        "const _: () = assert!(std::mem::size_of::<ReplayBudget>() == std::mem::size_of::<BeforeDirectAnchorBudgetLayout>());\n"
+      ]
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/allocation.rs",
+    "current_length": 9890,
+    "current_sha256": "d3f844655708972aa9e089c39923ddced6891b6b776f483d4f0be07e43cceb59",
+    "before_length": 9123,
+    "before_sha256": "0ad98be164b6f5f2340e57f769f5dc6b2bdc33eee75df00d77abe5352eed98da",
+    "inverse": [
+      [
+        2809,
+        "    }\n\n    #[cfg(feature = \"unstable-workflow-profiling\")]\n    pub(in crate::cleanup_plan::replay) fn paid_phase(\n        &self,\n        phase: crate::workflow_profile::plan_comparison::PaidPhase,\n    ) -> crate::workflow_profile::plan_comparison::PaidPhaseGuard {\n        use crate::workflow_profile::plan_comparison::{paid_phase, PhasePayer};\n        paid_phase(\n            phase,\n            match self.payer {\n                AllocationPayer::LegacyUnobserved => PhasePayer::Unobserved,\n                AllocationPayer::ActiveBuilder => PhasePayer::ActiveBuilder,\n                AllocationPayer::SelectedReservation => PhasePayer::Selected,\n                #[cfg(test)]\n                AllocationPayer::Oracle(_) => PhasePayer::Oracle,\n            },\n        )\n",
+        ""
+      ]
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored.rs",
+    "current_length": 48612,
+    "current_sha256": "d3808da9519009c1a7b223a91a635bc94cdeb80a2c8bc40b22bcfc8b1f2f918c",
+    "before_length": 46852,
+    "before_sha256": "045b2a3e7c1872ead79cfdf897f7337764d555d0c1db9c9ebb280f7e6365ca39",
+    "inverse": [
+      [
+        1618,
+        "use super::skeleton_work::{ObservationDag, ObservationDagKind};\n",
+        "use super::skeleton_work::{ObservationDag, ObservationDagKind}; #[cfg(test)] use crate::bounded_output::stage_debits::route_debits as debit_routes;\n"
+      ],
+      [
+        1696,
+        "#[cfg(test)]\nuse crate::bounded_output::stage_debits::route_debits as debit_routes;\n",
+        ""
+      ],
+      [
+        1841,
+        "#[cfg(test)]\nmod before_inline_singleton;\n",
+        ""
+      ],
+      [
+        5871,
+        "    #[cfg(feature = \"unstable-workflow-profiling\")]\n    let _exclusive_operation = crate::bounded_output::exclusive_debits::operation_guard(\n        crate::bounded_output::exclusive_debits::Operation::ReplayFactored,\n    );\n",
+        ""
+      ],
+      [
+        9090,
+        "    #[cfg(feature = \"unstable-workflow-profiling\")]\n    let _paid_phase =\n        budget.paid_phase(crate::workflow_profile::plan_comparison::PaidPhase::FactoredComparison);\n\n",
+        ""
+      ],
+      [
+        9685,
+        "            borrowed_canonical::BorrowedCanonicalizer::new(function, &automaton, sink, budget)?;\n        #[cfg(test)]\n        let _debit_phase = debit_routes::phase(debit_routes::Phase::CanonicalHIR);\n        #[cfg(test)]\n        let _successor_phase = canonical_shared::lexical_successors::census::phase(true);\n",
+        "            borrowed_canonical::BorrowedCanonicalizer::new(function, &automaton, sink, budget)?; #[cfg(test)] let _debit_phase = debit_routes::phase(debit_routes::Phase::CanonicalHIR); #[cfg(test)] let _successor_phase = canonical_shared::lexical_successors::census::phase(true);\n"
+      ],
+      [
+        10198,
+        "        };\n        #[cfg(test)]\n        let _debit_phase = debit_routes::phase(debit_routes::Phase::CanonicalPLAN);\n        #[cfg(test)]\n        let _successor_phase = canonical_shared::lexical_successors::census::phase(false);\n",
+        "        }; #[cfg(test)] let _debit_phase = debit_routes::phase(debit_routes::Phase::CanonicalPLAN); #[cfg(test)] let _successor_phase = canonical_shared::lexical_successors::census::phase(false);\n"
+      ],
+      [
+        10850,
+        "            borrowed_canonical::BorrowedCanonicalizer::new(function, &automaton, sink, budget)?;\n        #[cfg(test)]\n        let _debit_phase = debit_routes::phase(debit_routes::Phase::CanonicalHIR);\n        #[cfg(test)]\n        let _successor_phase = canonical_shared::lexical_successors::census::phase(true);\n",
+        "            borrowed_canonical::BorrowedCanonicalizer::new(function, &automaton, sink, budget)?; #[cfg(test)] let _debit_phase = debit_routes::phase(debit_routes::Phase::CanonicalHIR); #[cfg(test)] let _successor_phase = canonical_shared::lexical_successors::census::phase(true);\n"
+      ],
+      [
+        11365,
+        "        };\n        #[cfg(test)]\n        let _debit_phase = debit_routes::phase(debit_routes::Phase::CanonicalPLAN);\n        #[cfg(test)]\n        let _successor_phase = canonical_shared::lexical_successors::census::phase(false);\n",
+        "        }; #[cfg(test)] let _debit_phase = debit_routes::phase(debit_routes::Phase::CanonicalPLAN); #[cfg(test)] let _successor_phase = canonical_shared::lexical_successors::census::phase(false);\n"
+      ],
+      [
+        11881,
+        "        function,\n        canonical_shared::inline_singleton::Canonicalizer::CONSTRUCTOR_CONTROLS,\n",
+        "        function, canonical_shared::Canonicalizer::CONSTRUCTOR_CONTROLS,\n"
+      ],
+      [
+        12044,
+        "    let mut canonical = canonical_shared::inline_singleton::Canonicalizer::new(&automaton, sink);\n",
+        "    let mut canonical = canonical_shared::Canonicalizer::new(&automaton, sink);\n"
+      ],
+      [
+        12177,
+        "        budget.reserve_bytes(\n            function,\n            canonical_shared::inline_singleton::Canonicalizer::COLD_NODE_CONTROLS,\n            \"factored cold terminal node predicate\",\n        )?;\n",
+        "        budget.reserve_bytes(function, canonical_shared::Canonicalizer::COLD_NODE_CONTROLS,\n            \"factored cold terminal node predicate\")?;\n"
+      ],
+      [
+        12383,
+        "    if canonical.cold_dead_node(hir_root) {\n        #[cfg(test)]\n        let _debit_phase = debit_routes::phase(debit_routes::Phase::CanonicalHIR);\n        #[cfg(test)]\n        let _successor_phase = canonical_shared::lexical_successors::census::phase(true);\n",
+        "    if canonical.cold_dead_node(hir_root) { #[cfg(test)] let _debit_phase = debit_routes::phase(debit_routes::Phase::CanonicalHIR); #[cfg(test)] let _successor_phase = canonical_shared::lexical_successors::census::phase(true);\n"
+      ],
+      [
+        12732,
+        "        let Some(hir) = canonical.id_for_comparison(function, vec![(hir_root, 1)], budget)? else {\n            return Ok(None);\n        };\n        #[cfg(test)]\n        let _debit_phase = debit_routes::phase(debit_routes::Phase::CanonicalPLAN);\n        #[cfg(test)]\n        let _successor_phase = canonical_shared::lexical_successors::census::phase(false);\n",
+        "        let Some(hir) = canonical.id_for_comparison(function, vec![(hir_root, 1)], budget)? else { return Ok(None); }; #[cfg(test)] let _debit_phase = debit_routes::phase(debit_routes::Phase::CanonicalPLAN); #[cfg(test)] let _successor_phase = canonical_shared::lexical_successors::census::phase(false);\n"
+      ],
+      [
+        13179,
+        "        let Some(plan) = canonical.id_for_comparison(function, vec![(plan_root, 1)], budget)?\n        else {\n            return Ok(None);\n        };\n",
+        "        let Some(plan) = canonical.id_for_comparison(function, vec![(plan_root, 1)], budget)? else { return Ok(None); };\n"
+      ],
+      [
+        13642,
+        "        canonical_shared::closure_receiving::ClosureReceiving::from_prepaid(function, budget);\n    #[cfg(test)]\n    let _debit_phase = debit_routes::phase(debit_routes::Phase::CanonicalHIR);\n    #[cfg(test)]\n    let _successor_phase = canonical_shared::lexical_successors::census::phase(true);\n",
+        "        canonical_shared::closure_receiving::ClosureReceiving::from_prepaid(function, budget); #[cfg(test)] let _debit_phase = debit_routes::phase(debit_routes::Phase::CanonicalHIR); #[cfg(test)] let _successor_phase = canonical_shared::lexical_successors::census::phase(true);\n"
+      ],
+      [
+        14170,
+        "    };\n    #[cfg(test)]\n    let _debit_phase = debit_routes::phase(debit_routes::Phase::CanonicalPLAN);\n    #[cfg(test)]\n    let _successor_phase = canonical_shared::lexical_successors::census::phase(false);\n",
+        "    }; #[cfg(test)] let _debit_phase = debit_routes::phase(debit_routes::Phase::CanonicalPLAN); #[cfg(test)] let _successor_phase = canonical_shared::lexical_successors::census::phase(false);\n"
+      ],
+      [
+        15309,
+        "    #[cfg(feature = \"unstable-workflow-profiling\")]\n    let _paid_phase = budget\n        .paid_phase(crate::workflow_profile::plan_comparison::PaidPhase::FactoredConstruction);\n\n",
+        ""
+      ],
+      [
+        15663,
+        "    );\n    #[cfg(feature = \"unstable-workflow-profiling\")]\n    let _exclusive_operation = crate::bounded_output::exclusive_debits::operation_guard(\n        crate::bounded_output::exclusive_debits::Operation::ReplayFactoredConstruction,\n",
+        ""
+      ],
+      [
+        16454,
+        "        budget.merge_paths = true;\n        #[cfg(test)]\n        let _debit_phase = debit_routes::phase(debit_routes::Phase::FactoredHIR);\n",
+        "        budget.merge_paths = true; #[cfg(test)] let _debit_phase = debit_routes::phase(debit_routes::Phase::FactoredHIR);\n"
+      ],
+      [
+        17050,
+        "        #[cfg(test)]\n        let _debit_phase = debit_routes::phase(debit_routes::Phase::HIRAutomaton);\n",
+        " #[cfg(test)] let _debit_phase = debit_routes::phase(debit_routes::Phase::HIRAutomaton);\n"
+      ],
+      [
+        18209,
+        "        instrumentation::phase(function, budget, \"HIR automaton\", None);\n        #[cfg(test)]\n        let _debit_phase = debit_routes::phase(debit_routes::Phase::PLANAutomaton);\n",
+        "        instrumentation::phase(function, budget, \"HIR automaton\", None); #[cfg(test)] let _debit_phase = debit_routes::phase(debit_routes::Phase::PLANAutomaton);\n"
+      ],
+      [
+        40705,
+        "fn cross_check(program: &dyn crate::cleanup::ReplayContext, function: &ResolvedFunction) {\n    let _debit_route = debit_routes::route(debit_routes::Route::UnoptedCrosscheck);\n    let _debit_phase = debit_routes::phase(debit_routes::Phase::EnumeratedHIR);\n",
+        "fn cross_check(program: &dyn crate::cleanup::ReplayContext, function: &ResolvedFunction) { let _debit_route = debit_routes::route(debit_routes::Route::UnoptedCrosscheck); let _debit_phase = debit_routes::phase(debit_routes::Phase::EnumeratedHIR);\n"
+      ],
+      [
+        41103,
+        "    #[cfg(feature = \"unstable-workflow-profiling\")]\n    let paid_enumeration = enumerating\n        .paid_phase(crate::workflow_profile::plan_comparison::PaidPhase::CrosscheckEnumerated);\n    let enumerated = hir_skeleton_paths(program, function, &mut enumerating).and_then(|mut hir| {\n        let _debit_phase = debit_routes::phase(debit_routes::Phase::FlatPLAN);\n        let mut plan = plan_skeleton_paths(function, &mut enumerating)?;\n        let _debit_phase = debit_routes::phase(debit_routes::Phase::PathComparison);\n",
+        "    let enumerated = hir_skeleton_paths(program, function, &mut enumerating).and_then(|mut hir| { let _debit_phase = debit_routes::phase(debit_routes::Phase::FlatPLAN);\n        let mut plan = plan_skeleton_paths(function, &mut enumerating)?; let _debit_phase = debit_routes::phase(debit_routes::Phase::PathComparison);\n"
+      ],
+      [
+        41690,
+        "    });\n    let _debit_phase = debit_routes::phase(debit_routes::Phase::OtherReplay);\n    #[cfg(feature = \"unstable-workflow-profiling\")]\n    drop(paid_enumeration);\n",
+        "    }); let _debit_phase = debit_routes::phase(debit_routes::Phase::OtherReplay);\n"
+      ],
+      [
+        41956,
+        "        #[cfg(feature = \"unstable-workflow-profiling\")]\n        let _paid_crosscheck = factored\n            .paid_phase(crate::workflow_profile::plan_comparison::PaidPhase::CrosscheckFactored);\n",
+        ""
+      ]
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/continuation_receiver.rs",
+    "current_length": 2587,
+    "current_sha256": "4d18c9761da6c9f3e8226706b5c5720ced45f845eda3d8d19d017f455af2a41d",
+    "before_length": 2098,
+    "before_sha256": "c6256e04224731110b5e1906169ec5e55139147f18433700825e18c982007794",
+    "inverse": [
+      [
+        279,
+        ") -> Result<(), Diagnostic> {\n    let _debit_route = debit_routes::route(debit_routes::Route::UnoptedCrosscheck);\n    let _debit_phase = debit_routes::phase(debit_routes::Phase::EnumeratedHIR);\n",
+        ") -> Result<(), Diagnostic> { let _debit_route = debit_routes::route(debit_routes::Route::UnoptedCrosscheck); let _debit_phase = debit_routes::phase(debit_routes::Phase::EnumeratedHIR);\n"
+      ],
+      [
+        616,
+        "    #[cfg(feature = \"unstable-workflow-profiling\")]\n    let paid_enumeration = enumerating\n        .paid_phase(crate::workflow_profile::plan_comparison::PaidPhase::CrosscheckEnumerated);\n    let enumerated = hir_skeleton_paths(program, function, &mut enumerating).and_then(|mut hir| {\n        let _debit_phase = debit_routes::phase(debit_routes::Phase::FlatPLAN);\n        let mut plan = plan_skeleton_paths(function, &mut enumerating)?;\n        let _debit_phase = debit_routes::phase(debit_routes::Phase::PathComparison);\n",
+        "    let enumerated = hir_skeleton_paths(program, function, &mut enumerating).and_then(|mut hir| { let _debit_phase = debit_routes::phase(debit_routes::Phase::FlatPLAN);\n        let mut plan = plan_skeleton_paths(function, &mut enumerating)?; let _debit_phase = debit_routes::phase(debit_routes::Phase::PathComparison);\n"
+      ],
+      [
+        1203,
+        "    });\n    let _debit_phase = debit_routes::phase(debit_routes::Phase::OtherReplay);\n    #[cfg(feature = \"unstable-workflow-profiling\")]\n    drop(paid_enumeration);\n",
+        "    }); let _debit_phase = debit_routes::phase(debit_routes::Phase::OtherReplay);\n"
+      ],
+      [
+        1469,
+        "        #[cfg(feature = \"unstable-workflow-profiling\")]\n        let _paid_crosscheck = factored\n            .paid_phase(crate::workflow_profile::plan_comparison::PaidPhase::CrosscheckFactored);\n",
+        ""
+      ]
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/oracle_hook.rs",
+    "current_length": 12521,
+    "current_sha256": "a0cf6a6604b1909859e78ecfe95f780ba1600072ae6ca9e259d2943c7dbebfa7",
+    "before_length": 12088,
+    "before_sha256": "8cb40146286217b0816abb9f576b9d72805b3a38c0e48d5b71e51fedead76800",
+    "inverse": [
+      [
+        5253,
+        ") {\n    let _debit_route = debit_routes::route(debit_routes::Route::OptedOracle);\n    let _debit_phase = debit_routes::phase(debit_routes::Phase::EnumeratedHIR);\n",
+        ") { let _debit_route = debit_routes::route(debit_routes::Route::OptedOracle); let _debit_phase = debit_routes::phase(debit_routes::Phase::EnumeratedHIR);\n"
+      ],
+      [
+        5676,
+        "        #[cfg(feature = \"unstable-workflow-profiling\")]\n        let _paid_crosscheck = enumerating\n            .paid_phase(crate::workflow_profile::plan_comparison::PaidPhase::CrosscheckEnumerated);\n        hir_skeleton_paths(program, function, &mut enumerating).and_then(|mut hir| {\n            let _debit_phase = debit_routes::phase(debit_routes::Phase::FlatPLAN);\n            let mut plan = plan_skeleton_paths(function, &mut enumerating)?;\n            let _debit_phase = debit_routes::phase(debit_routes::Phase::PathComparison);\n",
+        "        hir_skeleton_paths(program, function, &mut enumerating).and_then(|mut hir| { let _debit_phase = debit_routes::phase(debit_routes::Phase::FlatPLAN);\n            let mut plan = plan_skeleton_paths(function, &mut enumerating)?; let _debit_phase = debit_routes::phase(debit_routes::Phase::PathComparison);\n"
+      ],
+      [
+        6508,
+        "    let factored = receiver(program, function, lease, \"factored\", || {\n        let _debit_phase = debit_routes::phase(debit_routes::Phase::OtherReplay);\n",
+        "    let factored = receiver(program, function, lease, \"factored\", || { let _debit_phase = debit_routes::phase(debit_routes::Phase::OtherReplay);\n"
+      ],
+      [
+        6740,
+        "        #[cfg(feature = \"unstable-workflow-profiling\")]\n        let _paid_crosscheck = factored\n            .paid_phase(crate::workflow_profile::plan_comparison::PaidPhase::CrosscheckFactored);\n",
+        ""
+      ]
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs",
+    "current_length": 29078,
+    "current_sha256": "e2e5f1b98ed61bf5d897586ed06b4c9d15758ea7619a12a51d8a724e85dda2b2",
+    "before_length": 15751,
+    "before_sha256": "47bbb8f39825c8551a781ea89da0e9bf4a2257a2920ded4b44f3933dc78a8285",
+    "inverse": [
+      [
+        84,
+        "#![cfg_attr(\n    test,\n    allow(\n        clippy::too_many_arguments,\n        clippy::manual_bits,\n        clippy::items_after_test_module,\n        clippy::assertions_on_constants,\n        reason = \"Historical comparisons retain complete parameter matrices, byte-role invoices (not bit counts), source order, and constant negative-path assertions.\"\n    )\n)]\n",
+        ""
+      ],
+      [
+        456,
+        "#[allow(\n    unused_macros,\n    reason = \"complete immediate final Option producer remains a frozen control\"\n)]\n",
+        ""
+      ],
+      [
+        601,
+        "#[macro_use]\nmod final_affine;\n#[cfg(test)]\n#[rustfmt::skip]\nmod before_final_affine;\n#[macro_use]\nmod paired_value;\n#[allow(\n    unused_macros,\n    reason = \"complete immediate suffix macro remains available to frozen generations\"\n)]\n#[macro_use]\nmod shared_prefix;\n#[macro_use]\nmod certified_heads;\n#[cfg(test)]\n#[rustfmt::skip]\nmod before_empty_selector;\n#[cfg(test)]\n#[rustfmt::skip]\nmod before_paired_tail;\n#[cfg(test)]\n#[rustfmt::skip]\nmod before_main_b692;\n#[cfg(test)]\n#[rustfmt::skip]\nmod before_main487;\n#[cfg(test)]\n#[rustfmt::skip]\nmod before_pair_links;\n#[cfg(test)]\n#[rustfmt::skip]\nmod before_main001;\n#[cfg(test)]\n#[rustfmt::skip]\nmod before_certified_heads;\n#[cfg(test)]\nmod before_event_prefix;\n#[cfg(test)]\nmod before_shared_steps;\n#[cfg(test)]\n#[rustfmt::skip]\nmod before_shared_runs;\n#[cfg(test)]\n#[allow(unused_imports, reason = \"complete frozen generation retains its exact original namespace imports\")]\n#[rustfmt::skip]\nmod before_reachable_primitives;\n#[cfg(test)]\nmod before_flat_view;\n#[cfg(test)]\nmod before_fused_flat;\n#[cfg(test)]\nmod before_identity_prefix;\n",
+        ""
+      ],
+      [
+        1730,
+        "#[cfg(test)]\nmod before_pair_scope;\n#[cfg(test)]\n#[rustfmt::skip]\nmod before_prepared_pairing;\n#[cfg(test)]\nmod before_retained_tail;\n#[cfg(test)]\npub(super) mod pair_scope_census;\n",
+        ""
+      ],
+      [
+        1935,
+        "enum Step {\n    Build,\n    Drain,\n    Sift,\n    PairPrepare,\n    PairNext,\n    Siblings,\n    Root,\n}\n",
+        "enum Step { Build, Drain, Sift, PairPrepare, PairNext, Siblings, Root }\n"
+      ],
+      [
+        2257,
+        "    tail_mask: u8,\n",
+        ""
+      ],
+      [
+        2327,
+        "    left_segments: usize,\n    right_segments: usize,\n",
+        ""
+      ],
+      [
+        2981,
+        "    + 2 * size_of::<&mut ReplayBudget>()\n    + 2 * size_of::<&str>()\n    + 2 * size_of::<usize>()\n    + 2 * size_of::<Result<(), Diagnostic>>();\nconst PATH_INDEX: usize =\n    2 * size_of::<&Vec<PlanPath>>() + 2 * size_of::<usize>() + size_of::<&PlanPath>();\n// Two original index call/return tariffs plus two distinct local receiving refs.\nconst PAIR_SCOPE: usize = 2 * PATH_INDEX + 2 * size_of::<&PlanPath>();\n// Scope-reserve and additional inner-loop work sites: complete primitive frames.\nconst PAIR_PRIMITIVE: usize = 2 * PAYMENT_HEADER;\nconst PATH_SWAP: usize =\n    2 * size_of::<&mut Vec<PlanPath>>() + 3 * size_of::<&mut [PlanPath]>() + 4 * size_of::<usize>();\n// Both ordinary and certified fallback publish content through genuine main487\n// Rc loans. The left producer's legacy head/as_ref envelope remains paid.\nconst PAIR_MATCH: usize = paired_value::PAIR_CONTENT;\n#[cfg(any(test, feature = \"unstable-workflow-profiling\"))]\nconst NEW_PAIR_REFERENCES: usize = 2 * size_of::<&Rc<SkeletonObservation>>();\ntype FinalZip =\n    std::iter::Zip<std::slice::Iter<'static, PlanPath>, std::slice::Iter<'static, SkeletonPath>>;\n",
+        "    + 2 * size_of::<&mut ReplayBudget>() + 2 * size_of::<&str>()\n    + 2 * size_of::<usize>() + 2 * size_of::<Result<(), Diagnostic>>();\nconst PATH_INDEX: usize = 2 * size_of::<&Vec<PlanPath>>()\n    + 2 * size_of::<usize>() + size_of::<&PlanPath>();\nconst PATH_SWAP: usize = 2 * size_of::<&mut Vec<PlanPath>>()\n    + 3 * size_of::<&mut [PlanPath]>() + 4 * size_of::<usize>();\nconst PAIR_MATCH: usize = size_of::<(Option<&SkeletonObservation>, Option<&SkeletonObservation>)>()\n    + 2 * size_of::<&SkeletonObservation>() // successful match bindings\n    + 4 * size_of::<&SkeletonObservation>() // content cmp actual/formal pairs\n    + 4 * size_of::<&SkeletonTerminal>() // terminal cmp actual/formal pairs\n    + 2 * size_of::<Ordering>(); // two lexical cmp returns, received in owner\ntype FinalZip = std::iter::Zip<std::slice::Iter<'static, PlanPath>, std::slice::Iter<'static, SkeletonPath>>;\n"
+      ],
+      [
+        4769,
+        "#[cfg(test)]\n",
+        ""
+      ],
+      [
+        5125,
+        "    + 2 * size_of::<&[Rc<SkeletonObservation>]>() // retained slice get actual/formal\n",
+        "    + 2 * size_of::<&Observations>() + 3 * size_of::<&[Rc<SkeletonObservation>]>()\n"
+      ],
+      [
+        5313,
+        "// Borrow once per flat path: Vec::as_slice actual/formal, returned slice and\n// its distinct retained receiver. Dynamic get/Option/match payloads stay above.\nconst FLAT_VIEW: usize =\n    2 * size_of::<&Vec<Rc<SkeletonObservation>>>() + 2 * size_of::<&[Rc<SkeletonObservation>]>();\n#[cfg(test)]\nconst SHARED_MATCH: usize =\n    size_of::<(Option<&SkeletonObservation>, Option<&SkeletonObservation>)>()\n        + 2 * size_of::<&SkeletonObservation>()\n        + 4 * size_of::<&SkeletonObservation>()\n        + size_of::<bool>();\n",
+        "const SHARED_MATCH: usize = size_of::<(Option<&SkeletonObservation>, Option<&SkeletonObservation>)>()\n    + 2 * size_of::<&SkeletonObservation>()\n    + 4 * size_of::<&SkeletonObservation>() + size_of::<bool>();\n"
+      ],
+      [
+        5996,
+        "const LEN_QUERIES: usize = 2 * size_of::<&Vec<PlanPath>>()\n    + size_of::<usize>()\n    + 2 * size_of::<&[SkeletonPath]>()\n    + size_of::<usize>();\n",
+        "const LEN_QUERIES: usize = 2 * size_of::<&Vec<PlanPath>>() + size_of::<usize>()\n    + 2 * size_of::<&[SkeletonPath]>() + size_of::<usize>();\n"
+      ],
+      [
+        6631,
+        "const MISMATCH_CALL: usize =\n    2 * size_of::<&ResolvedFunction>() + 2 * size_of::<&str>() + size_of::<Diagnostic>(); // direct helper actual/formal + Diagnostic return, no closure\n",
+        "const MISMATCH_CALL: usize = 2 * size_of::<&ResolvedFunction>() + 2 * size_of::<&str>()\n    + size_of::<Diagnostic>(); // direct helper actual/formal + Diagnostic return, no closure\n"
+      ],
+      [
+        6909,
+        "                                                  // Retained primitive caller slots, not dynamic compound payload credit:\n                                                  // four charge sites + six original paid sites + three direct HIR reserve sites\n                                                  // + two swap payment sites + one Zip-next payment site = sixteen original sites.\n                                                  // The new flat-view payment adds a seventeenth site. Each is a\n                                                  // nonrecursive sequential Result<(), Diagnostic> receiving frame: success has\n                                                  // no owned payload, failure leaves the invocation immediately with one owned\n                                                  // Diagnostic. Function/budget places never change and no Result escapes or\n                                                  // overlaps another activation of its lexical site. Distinct compound Option,\n                                                  // tuple, comparison/index/swap payloads below are paid on EVERY execution.\n                                                  // Two explicit backing sites have distinct prepaid primitive frames; no\n                                                  // iterator, IterMut::next or Option<&mut Cursor> initializer remains.\n                                                  // The first acquisition replaces the identical old compare-entry call and is\n                                                  // already caller-received under COMPARE_CALL_CONTROLS; no new payment ABI.\n",
+        "// Retained primitive caller slots, not dynamic compound payload credit:\n// four charge sites + six original paid sites + three direct HIR reserve sites\n// + two swap payment sites + one Zip-next payment site = sixteen. Each is a\n// nonrecursive sequential Result<(), Diagnostic> receiving frame: success has\n// no owned payload, failure leaves the invocation immediately with one owned\n// Diagnostic. Function/budget places never change and no Result escapes or\n// overlaps another activation of its lexical site. Distinct compound Option,\n// tuple, comparison/index/swap payloads below are paid on EVERY execution.\n// Two explicit backing sites have distinct prepaid primitive frames; no\n// iterator, IterMut::next or Option<&mut Cursor> initializer remains.\n// The first acquisition replaces the identical old compare-entry call and is\n// already caller-received under COMPARE_CALL_CONTROLS; no new payment ABI.\n"
+      ],
+      [
+        8611,
+        "    + lexical_cursor::PRIMITIVE_SELECTION + paired_value::ADDITIONAL_PRIMITIVES\n    + lexical_cursor::INITIALIZERS + PAIR_PRIMITIVE\n",
+        "    + lexical_cursor::PRIMITIVE_FRAMES + lexical_cursor::INITIALIZERS\n"
+      ],
+      [
+        8901,
+        "    + PAYMENT_HEADER // one new sequential flat-view payment site, no dynamic payload credit\n",
+        ""
+      ],
+      [
+        9199,
+        "    + 2 * size_of::<usize>() // initial retained segment extents\n    + 3 * size_of::<Step>() // copied state transports at return/schedule sites\n    + shared_prefix::OWNER + certified_heads::OWNER + paired_value::TAIL_OWNER\n    + final_affine::OWNER; // actual initializers and new lexical primitive sites\n",
+        "    + 3 * size_of::<Step>(); // copied state transports at return/schedule sites\n"
+      ],
+      [
+        9755,
+        "",
+        "\n\n"
+      ],
+      [
+        9956,
+        "    #[cfg(feature = \"unstable-workflow-profiling\")]\n    let _paid_phase =\n        budget.paid_phase(crate::workflow_profile::plan_comparison::PaidPhase::Comparison);\n\n",
+        ""
+      ],
+      [
+        10289,
+        "    #[cfg(test)]\n    let census = pair_scope_census::begin(function, budget, false);\n    #[cfg(feature = \"unstable-workflow-profiling\")]\n    let mut diagnostic = crate::workflow_profile::plan_comparison::begin(\n        function.id.as_str(),\n        function.span,\n        match budget.payer {\n            AllocationPayer::LegacyUnobserved => {\n                crate::workflow_profile::plan_comparison::Payer::Unobserved\n            }\n            AllocationPayer::ActiveBuilder => {\n                crate::workflow_profile::plan_comparison::Payer::ActiveBuilder\n            }\n            AllocationPayer::SelectedReservation => {\n                crate::workflow_profile::plan_comparison::Payer::SelectedReservation\n            }\n            #[cfg(test)]\n            AllocationPayer::Oracle(_) => crate::workflow_profile::plan_comparison::Payer::Oracle,\n        },\n        budget.admission == allocation::AdmissionMode::SelectedRetained,\n        crate::workflow_profile::plan_comparison::Invoice {\n            payment_header: PAYMENT_HEADER,\n            owner: OWNER_CONTROLS,\n            pair_primitives: PAIR_PRIMITIVE,\n            paired_primitives: paired_value::ADDITIONAL_PRIMITIVES,\n            path_index: PATH_INDEX,\n            pair_scope: PAIR_SCOPE,\n            pair_match: PAIR_MATCH,\n            new_pair_references: NEW_PAIR_REFERENCES,\n            step: paired_value::STEP,\n            load: paired_value::LOAD,\n            empty: paired_value::EMPTY,\n            tail: paired_value::TAIL,\n        },\n    );\n    paid!(\n        budget,\n        function,\n        OWNER_CONTROLS,\n        \"ordinary plan retained comparison owner\"\n    )?;\n    #[cfg(test)]\n    census.owner_admitted();\n    #[cfg(feature = \"unstable-workflow-profiling\")]\n    crate::workflow_profile::plan_comparison::event(\n        crate::workflow_profile::plan_comparison::Site::OwnerAdmitted,\n        OWNER_CONTROLS,\n    );\n",
+        "    paid!(budget, function, OWNER_CONTROLS, \"ordinary plan retained comparison owner\")?;\n"
+      ],
+      [
+        12269,
+        "        left_items: &[],\n        right_items: &[],\n        left_loaded: false,\n        right_loaded: false,\n        tail_mask: 0,\n        left_cursor: Cursor {\n            links: Vec::new(),\n            segment: 0,\n            item: 0,\n        },\n        right_cursor: Cursor {\n            links: Vec::new(),\n            segment: 0,\n            item: 0,\n        },\n        left_segments: 0,\n        right_segments: 0,\n        step: Step::Build,\n        return_to: Step::Build,\n        after_pair: Step::Root,\n        len: actual.paths.len(),\n        build: 0,\n        drain: 0,\n        root: 0,\n        end: 0,\n        child: 0,\n        left: 0,\n        right: 0,\n        ordering: Ordering::Equal,\n",
+        "        left_items: &[], right_items: &[], left_loaded: false, right_loaded: false,\n        left_cursor: Cursor { links: Vec::new(), segment: 0, item: 0 },\n        right_cursor: Cursor { links: Vec::new(), segment: 0, item: 0 },\n        step: Step::Build, return_to: Step::Build, after_pair: Step::Root,\n        len: actual.paths.len(), build: 0, drain: 0, root: 0, end: 0, child: 0,\n        left: 0, right: 0, ordering: Ordering::Equal,\n"
+      ],
+      [
+        12975,
+        "    // Zero paths enter no cursor expansion. One path skips sorting and enters\n    // exactly one of the mutually exclusive flat/shared final expansions.\n    // Larger sets retain all four independent primitive-site banks. Every\n    // selected bank is acquired before any cursor expansion can execute.\n    let cursor_primitives = match owner.len {\n        0 => 0,\n        1 => lexical_cursor::SINGLE_PRIMITIVE_FRAMES,\n        _ => lexical_cursor::PRIMITIVE_FRAMES,\n    };\n    paid!(\n        budget,\n        function,\n        cursor_primitives,\n        \"ordinary plan reachable cursor primitive frames\"\n    )?;\n",
+        ""
+      ],
+      [
+        13648,
+        "    backing!(\n        budget,\n        function,\n        &mut owner.left_cursor.links,\n        actual.max_depth,\n        \"ordinary plan history cursor backing\"\n    )?;\n    backing!(\n        budget,\n        function,\n        &mut owner.right_cursor.links,\n        actual.max_depth,\n        \"ordinary plan history cursor backing\"\n    )?;\n",
+        "    backing!(budget, function, &mut owner.left_cursor.links, actual.max_depth, \"ordinary plan history cursor backing\")?;\n    backing!(budget, function, &mut owner.right_cursor.links, actual.max_depth, \"ordinary plan history cursor backing\")?;\n"
+      ],
+      [
+        14271,
+        "                if owner.build == 0 {\n                    owner.step = Step::Drain;\n                    continue;\n                }\n",
+        "                if owner.build == 0 { owner.step = Step::Drain; continue; }\n"
+      ],
+      [
+        14649,
+        "                if owner.drain <= 1 {\n                    break;\n                }\n",
+        "                if owner.drain <= 1 { break; }\n"
+      ],
+      [
+        14766,
+        "                paid!(\n                    budget,\n                    function,\n                    PATH_SWAP,\n                    \"ordinary plan retained drain swap receivers\"\n                )?;\n",
+        "                paid!(budget, function, PATH_SWAP, \"ordinary plan retained drain swap receivers\")?;\n"
+      ],
+      [
+        15015,
+        "                #[cfg(test)]\n                frontiers::swapped();\n",
+        "                #[cfg(test)] frontiers::swapped();\n"
+      ],
+      [
+        16073,
+        "                paid!(\n                    budget,\n                    function,\n                    PREPARE_CALL + PATH_INDEX + lexical_cursor::RESET + lexical_cursor::LIMIT,\n                    \"ordinary plan history left cursor prepare\"\n                )?;\n                #[cfg(feature = \"unstable-workflow-profiling\")]\n                crate::workflow_profile::plan_comparison::event(\n                    crate::workflow_profile::plan_comparison::Site::LeftPrepareAdmitted,\n                    PREPARE_CALL + PATH_INDEX + lexical_cursor::RESET + lexical_cursor::LIMIT,\n                );\n                owner.left_cursor.prepare(\n                    &actual.paths[owner.left].history,\n                    &actual.arena,\n                    function,\n                    budget,\n                )?;\n                #[cfg(feature = \"unstable-workflow-profiling\")]\n                crate::workflow_profile::plan_comparison::event(\n                    crate::workflow_profile::plan_comparison::Site::LeftResetCompleted,\n                    0,\n                );\n                owner.left_segments = owner.left_cursor.links.len();\n                owner.left_items = &[];\n                owner.left_loaded = false;\n                paid!(\n                    budget,\n                    function,\n                    PREPARE_CALL + PATH_INDEX + lexical_cursor::RESET + lexical_cursor::LIMIT,\n                    \"ordinary plan history right cursor prepare\"\n                )?;\n                #[cfg(feature = \"unstable-workflow-profiling\")]\n                crate::workflow_profile::plan_comparison::event(\n                    crate::workflow_profile::plan_comparison::Site::RightPrepareAdmitted,\n                    PREPARE_CALL + PATH_INDEX + lexical_cursor::RESET + lexical_cursor::LIMIT,\n                );\n                owner.right_cursor.prepare(\n                    &actual.paths[owner.right].history,\n                    &actual.arena,\n                    function,\n                    budget,\n                )?;\n                #[cfg(feature = \"unstable-workflow-profiling\")]\n                crate::workflow_profile::plan_comparison::event(\n                    crate::workflow_profile::plan_comparison::Site::RightResetCompleted,\n                    0,\n                );\n                owner.right_segments = owner.right_cursor.links.len();\n                owner.right_items = &[];\n                owner.right_loaded = false;\n                #[cfg(test)]\n                census.pair();\n                #[cfg(feature = \"unstable-workflow-profiling\")]\n                crate::workflow_profile::plan_comparison::event(\n                    crate::workflow_profile::plan_comparison::Site::PairPrepared,\n                    0,\n                );\n",
+        "                paid!(budget, function, PREPARE_CALL + PATH_INDEX + lexical_cursor::RESET, \"ordinary plan history left cursor prepare\")?;\n                owner.left_cursor.prepare(&actual.paths[owner.left].history, &actual.arena, function, budget)?;\n                owner.left_items = &[]; owner.left_loaded = false;\n                paid!(budget, function, PREPARE_CALL + PATH_INDEX + lexical_cursor::RESET, \"ordinary plan history right cursor prepare\")?;\n                owner.right_cursor.prepare(&actual.paths[owner.right].history, &actual.arena, function, budget)?;\n                owner.right_items = &[]; owner.right_loaded = false;\n"
+      ],
+      [
+        18914,
+        "                // Preserve the first original work refusal before acquiring\n                // references. The subsequent work site is separately prepaid.\n",
+        ""
+      ],
+      [
+        19163,
+        "                #[cfg(test)]\n                census.round();\n                #[cfg(feature = \"unstable-workflow-profiling\")]\n                crate::workflow_profile::plan_comparison::event(\n                    crate::workflow_profile::plan_comparison::Site::Round,\n                    0,\n                );\n                paid!(\n                    budget,\n                    function,\n                    PAIR_SCOPE\n                        + 2 * paired_value::TAIL_VIEW\n                        + 2 * paired_value::LINK_VIEW\n                        + size_of::<u8>(),\n                    \"ordinary plan history pair-local paths\"\n                )?;\n                #[cfg(feature = \"unstable-workflow-profiling\")]\n                crate::workflow_profile::plan_comparison::event(\n                    crate::workflow_profile::plan_comparison::Site::PairScopeAdmitted,\n                    PAIR_SCOPE\n                        + 2 * paired_value::TAIL_VIEW\n                        + 2 * paired_value::LINK_VIEW\n                        + size_of::<u8>(),\n                );\n                {\n                    owner.tail_mask = 0;\n                    let left_path = &actual.paths[owner.left];\n                    let right_path = &actual.paths[owner.right];\n                    let mut left_tail = left_path.history.tail.as_slice();\n                    let mut right_tail = right_path.history.tail.as_slice();\n                    let mut left_links = owner.left_cursor.links.as_slice();\n                    let mut right_links = owner.right_cursor.links.as_slice();\n                    'paired: loop {\n                        fused_plan_tails!(owner, left_path, right_path, left_tail, right_tail,\n                            function, budget, census, 'paired);\n                        'certificate: {\n                            certified_boundary!(owner, left_links, right_links, function, budget, census, 'certificate);\n                            // Both Some paths converge at the bare reference yield;\n                            // no Option/tuple or owner payload crosses this frontier.\n                            let left = certified_left_value!(\n                                owner,\n                                left_cursor,\n                                left_items,\n                                left_loaded,\n                                left_segments,\n                                fresh_left_link,\n                                [left_head => {\n                                    certified_right_value!(owner, left_head, fresh_left_link,\n                                        right_tail, right_links, function, budget, census, 'paired, 'certificate);\n                                }],\n                                left_tail,\n                                left_links,\n                                function,\n                                budget,\n                                \"ordinary plan history paired cursor next\",\n                                census,\n                                {\n                                    #[cfg(feature = \"unstable-workflow-profiling\")]\n                                    crate::workflow_profile::plan_comparison::event(\n                                        crate::workflow_profile::plan_comparison::Site::LeftExhausted,\n                                        0,\n                                    );\n                                    borrowed_right_value!(owner, right_tail, right_links,\n                                        function, budget, \"ordinary plan history paired cursor next\", census,\n                                        [_ => {\n                                            owner.ordering = Ordering::Less;\n                                            break 'paired;\n                                        }], {\n                                            #[cfg(feature = \"unstable-workflow-profiling\")]\n                                            crate::workflow_profile::plan_comparison::event(crate::workflow_profile::plan_comparison::Site::RightExhausted, 0);\n                                            #[cfg(feature = \"unstable-workflow-profiling\")]\n                                            crate::workflow_profile::plan_comparison::event(crate::workflow_profile::plan_comparison::Site::TerminalCompared, 0);\n                                            owner.ordering = left_path.terminal.cmp(&right_path.terminal);\n                                            break 'paired;\n                                        });\n                                }\n                            );\n                            borrowed_right_value!(owner, right_tail, right_links,\n                            function, budget, \"ordinary plan history paired cursor next\", census,\n                            [right => {\n                                owner.ordering = left.as_ref().cmp(right.as_ref());\n                                if owner.ordering == Ordering::Equal {\n                                    budget.charge(function, 1, \"ordinary plan history observation comparison\")?;\n                                    #[cfg(test)] census.round();\n                                    #[cfg(feature = \"unstable-workflow-profiling\")]\n                                    crate::workflow_profile::plan_comparison::event(crate::workflow_profile::plan_comparison::Site::Round, 0);\n                                    continue 'paired;\n                                }\n                                break 'paired;\n                            }], {\n                                #[cfg(feature = \"unstable-workflow-profiling\")]\n                                crate::workflow_profile::plan_comparison::event(crate::workflow_profile::plan_comparison::Site::RightExhausted, 0);\n                                owner.ordering = Ordering::Greater;\n                                break 'paired;\n                            });\n                        }\n                        certified_suffix!(owner, function, budget, census, 'paired);\n",
+        "                paid!(budget, function, 4 * PATH_INDEX + PAIR_MATCH, \"ordinary plan history paired cursor next\")?;\n                let left = lexical_plan_next!(owner, left_cursor, left_items, left_loaded, actual.paths[owner.left].history, function, budget, \"ordinary plan history paired cursor next\");\n                let right = lexical_plan_next!(owner, right_cursor, right_items, right_loaded, actual.paths[owner.right].history, function, budget, \"ordinary plan history paired cursor next\");\n                match (left, right) {\n                    (Some(left), Some(right)) => {\n                        owner.ordering = left.cmp(right);\n                        if owner.ordering == Ordering::Equal { continue; }\n"
+      ],
+      [
+        25219,
+        "                } // Both PlanPath loans end BEFORE any scheduling or swap.\n",
+        "                    (None, None) => owner.ordering = actual.paths[owner.left].terminal.cmp(&actual.paths[owner.right].terminal),\n                    (None, Some(_)) => owner.ordering = Ordering::Less,\n                    (Some(_), None) => owner.ordering = Ordering::Greater,\n                }\n"
+      ],
+      [
+        25388,
+        "                if owner.ordering == Ordering::Less {\n                    owner.child += 1;\n                }\n",
+        "                if owner.ordering == Ordering::Less { owner.child += 1; }\n"
+      ],
+      [
+        25871,
+        "                paid!(\n                    budget,\n                    function,\n                    PATH_SWAP,\n                    \"ordinary plan retained sift swap receivers\"\n                )?;\n",
+        "                paid!(budget, function, PATH_SWAP, \"ordinary plan retained sift swap receivers\")?;\n"
+      ],
+      [
+        26128,
+        "                #[cfg(test)]\n                frontiers::swapped();\n",
+        "                #[cfg(test)] frontiers::swapped();\n"
+      ],
+      [
+        26364,
+        "        return Err(replay_error(\n            function,\n            \"cleanup CFG decision or ownership-event sequence disagrees with typed HIR\",\n        ));\n",
+        "        return Err(replay_error(function, \"cleanup CFG decision or ownership-event sequence disagrees with typed HIR\"));\n"
+      ],
+      [
+        26592,
+        "",
+        "        paid!(budget, function, FINAL_NEXT, \"ordinary plan retained final Zip next receivers\")?;\n        let Some((path, flat)) = pairs.next() else { break; };\n"
+      ],
+      [
+        26649,
+        "            FINAL_NEXT,\n            \"ordinary plan retained final Zip next receivers\"\n        )?;\n        let Some((path, flat)) = pairs.next() else {\n            break;\n        };\n        paid!(\n            budget,\n            function,\n            PREPARE_CALL\n                + lexical_cursor::RESET\n                + lexical_cursor::TAIL_VIEW\n                + lexical_cursor::LIMIT,\n",
+        "            PREPARE_CALL + lexical_cursor::RESET,\n"
+      ],
+      [
+        27104,
+        "        owner\n            .left_cursor\n            .prepare(&path.history, &actual.arena, function, budget)?;\n        let mut plan_tail = path.history.tail.as_slice();\n        owner.left_segments = owner.left_cursor.links.len();\n        owner.left_items = &[];\n        owner.left_loaded = false;\n",
+        "        owner.left_cursor.prepare(&path.history, &actual.arena, function, budget)?;\n        owner.left_items = &[]; owner.left_loaded = false;\n"
+      ],
+      [
+        27637,
+        "            paid!(\n                budget,\n                function,\n                FLAT_VIEW,\n                \"ordinary plan history flat HIR retained slice\"\n            )?;\n            let mut hir_items = flat.observations.items.as_slice();\n            final_affine_driver!(owner, plan_tail, census, function, budget, flat, hir_items);\n",
+        "            let mut index = 0;\n            loop {\n                budget.charge(function, 1, \"ordinary plan history HIR comparison\")?;\n                paid!(\n                    budget,\n                    function,\n                    FLAT_MATCH,\n                    \"ordinary plan history HIR cursor next\"\n                )?;\n                match (\n                    lexical_plan_next!(owner, left_cursor, left_items, left_loaded, path.history, function, budget, \"ordinary plan history HIR cursor next\"),\n                    flat.observations.get(index),\n                ) {\n                    (Some(left), Some(right)) if left == right.as_ref() => {\n                        index += 1;\n                    }\n                    (None, None) => break,\n                    _ => return Err(replay_error(function, \"cleanup CFG decision or ownership-event sequence disagrees with typed HIR\")),\n                }\n            }\n"
+      ],
+      [
+        28415,
+        "            final_affine_driver!(owner, plan_tail, census, function, budget, shared, hir);\n",
+        "            loop {\n                budget.charge(function, 1, \"ordinary plan history HIR comparison\")?;\n                paid!(\n                    budget,\n                    function,\n                    SHARED_MATCH,\n                    \"ordinary plan history HIR cursor next\"\n                )?;\n                budget.reserve_bytes(\n                    function,\n                    skeleton_work::enumerated_prefix::CURSOR_CALL,\n                    \"ordinary PLAN shared HIR cursor next receivers\",\n                )?;\n                match (\n                    lexical_plan_next!(owner, left_cursor, left_items, left_loaded, path.history, function, budget, \"ordinary plan history HIR cursor next\"),\n                    hir.next(function, budget)?,\n                ) {\n                    (Some(left), Some(right)) if left == right => {}\n                    (None, None) => break,\n                    _ => return Err(replay_error(function, \"cleanup CFG decision or ownership-event sequence disagrees with typed HIR\")),\n                }\n            }\n"
+      ],
+      [
+        28560,
+        "            return Err(replay_error(\n                function,\n                \"cleanup CFG decision or ownership-event sequence disagrees with typed HIR\",\n            ));\n",
+        "            return Err(replay_error(function, \"cleanup CFG decision or ownership-event sequence disagrees with typed HIR\"));\n"
+      ],
+      [
+        28748,
+        "    #[cfg(test)]\n    census.success();\n    #[cfg(feature = \"unstable-workflow-profiling\")]\n    diagnostic.success();\n",
+        ""
+      ],
+      [
+        28903,
+        "\n#[cfg(test)]\nfn reachable_stage(path: &str, sha: &str, current: &str) -> String {\n    crate::source_reflows_merge::main_e177_final_inputs::value_direct(path, sha, current)\n}\n",
+        ""
+      ]
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/replay/ordinary_plan_history/producer.rs",
+    "current_length": 18220,
+    "current_sha256": "1626a4bd28426cc1e798e59346ccd6f6ce1b919f71b4685d5b477ec737f0ec2e",
+    "before_length": 18054,
+    "before_sha256": "39b563ae65f3cfbb62f944e84ac133435106412a0f6dddd3090a82fcdc00cdc2",
+    "inverse": [
+      [
+        236,
+        "    #[cfg(feature = \"unstable-workflow-profiling\")]\n    let _paid_phase =\n        budget.paid_phase(crate::workflow_profile::plan_comparison::PaidPhase::PlanPaths);\n\n",
+        ""
+      ]
+    ]
+  },
+  {
+    "source": "src/cleanup_plan/validate.rs",
+    "current_length": 4269,
+    "current_sha256": "794785605a074c9c2b80f48e665e6e0a03723a9ace4802c88561ca084bb7632e",
+    "before_length": 3564,
+    "before_sha256": "ca6b3e750717273c50887a6aa23aa72bc2f0c6a1d93af04228b77b63b2e16545",
+    "inverse": [
+      [
+        307,
+        "    #[cfg(feature = \"unstable-workflow-profiling\")]\n    let _paid_phase = crate::workflow_profile::plan_comparison::active_paid_phase(\n        crate::workflow_profile::plan_comparison::PaidPhase::CleanupValidation,\n    );\n\n",
+        ""
+      ],
+      [
+        671,
+        "        #[cfg(feature = \"unstable-workflow-profiling\")]\n        let _paid_canonical = crate::workflow_profile::plan_comparison::active_paid_phase(\n            crate::workflow_profile::plan_comparison::PaidPhase::CanonicalRebuild,\n        );\n",
+        ""
+      ],
+      [
+        1272,
+        "        #[cfg(feature = \"unstable-workflow-profiling\")]\n        let _paid_canonical = crate::workflow_profile::plan_comparison::active_paid_phase(\n            crate::workflow_profile::plan_comparison::PaidPhase::CanonicalRebuild,\n        );\n",
+        ""
+      ]
+    ]
+  },
+  {
+    "source": "src/hir.rs",
+    "current_length": 59503,
+    "current_sha256": "c1c11229c9dc431aea3939653a7ff611ed0207584ee26520c8a06506389f7797",
+    "before_length": 58967,
+    "before_sha256": "e3aaf1c870be500fa794ec24d393f8dc94fcd996990abf388222ce079f4e0b04",
+    "inverse": [
+      [
+        7312,
+        "    #[cfg(test)]\n    let _allocation_phase = crate::test_allocation_observer::function_phase_guard(\n        \"hir::validate_selected_with_static_text\",\n    );\n",
+        ""
+      ],
+      [
+        7516,
+        "    {\n        #[cfg(test)]\n        let _allocation_phase = crate::test_allocation_observer::function_phase_guard(\n            \"hir::agent_validation::validate\",\n        );\n        agent_validation::validate(program)?;\n    }\n",
+        "    agent_validation::validate(program)?;\n"
+      ],
+      [
+        7831,
+        "    {\n        #[cfg(test)]\n        let _allocation_phase = crate::test_allocation_observer::function_phase_guard(\n            \"hir::canonical_loan_storage::Deferred::finish\",\n        );\n        deferred.finish(program)?;\n    }\n",
+        "    deferred.finish(program)?;\n"
+      ]
+    ]
+  },
+  {
+    "source": "src/loop_calls/byte_writer/source_index.rs",
+    "current_length": 13653,
+    "current_sha256": "b9d6c88c410f5fbff4b9db94a895ac4324ba126d43d769afc67e6232b72cf8f6",
+    "before_length": 13505,
+    "before_sha256": "6b5d4943365b08b9418a95c28e1601e3240d9d43b1c9c686530f4568c515756d",
+    "inverse": [
+      [
+        12743,
+        "    #[allow(\n        dead_code,\n        reason = \"Retained compatibility entry for independently compiled historical and semantic controls.\"\n    )]\n",
+        ""
+      ]
+    ]
+  },
+  {
+    "source": "src/source_verify/declaration/functions.rs",
+    "current_length": 58445,
+    "current_sha256": "418aa8225de804374e76094940255fdef652fbdfb767e31b09dc8bdb539d464e",
+    "before_length": 58678,
+    "before_sha256": "9813f3255640ce6fd02167491582b4a7b6b141a0b472cf561de6e52abb25a79a",
+    "inverse": [
+      [
+        17995,
+        "                .requires()\n",
+        "                .payload()\n                .requires\n"
+      ],
+      [
+        18047,
+        "                .chain(function.ensures())\n",
+        "                .chain(&function.payload().ensures)\n"
+      ],
+      [
+        18184,
+        "            let invalid_body = !crate::source_verify::declared_type::generic_variant::body(\n                function.payload(),\n                types,\n                function.body(),\n            ) && !generic_result::body(function.payload(), function.body())\n                && !generic_function_expression_is_direct_scalar(function.body())\n                && !generic_function_expression_is_owned_record_composition(\n",
+        "            let invalid_body =\n                !crate::source_verify::declared_type::generic_variant::body(\n"
+      ],
+      [
+        18670,
+        "                    function.body(),\n                );\n",
+        "                    &function.payload().body,\n                ) && !generic_result::body(function.payload(), &function.payload().body)\n                    && !generic_function_expression_is_direct_scalar(&function.payload().body)\n                    && !generic_function_expression_is_owned_record_composition(\n                        function.payload(),\n                        types,\n                        &function.payload().body,\n                    );\n"
+      ],
+      [
+        18844,
+        "                && crate::source_verify::declared_type::generic_collection_expression_is_admitted(function.body()));\n",
+        "                && crate::source_verify::declared_type::generic_collection_expression_is_admitted(&function.payload().body));\n"
+      ],
+      [
+        20230,
+        "            .requires()\n",
+        "            .payload()\n            .requires\n"
+      ],
+      [
+        20274,
+        "            .chain(std::iter::once(function.body()))\n            .chain(function.ensures())\n",
+        "            .chain(std::iter::once(&function.payload().body))\n            .chain(&function.payload().ensures)\n"
+      ],
+      [
+        38237,
+        "        crate::source_verify::function_value_inventory::function_value_targets_in(\n            &cells[..program.functions().len()],\n            functions,\n        );\n",
+        "        crate::source_verify::function_value_inventory::function_value_targets(program, functions);\n"
+      ],
+      [
+        38475,
+        "        if let Some(payload) = template.classifier_payload() {\n            reject_function(program, payload, types, diagnostics);\n        }\n",
+        "        reject_function(program, template.payload(), types, diagnostics);\n"
+      ],
+      [
+        47651,
+        "            for contract in function.requires() {\n",
+        "            for contract in &function.payload().requires {\n"
+      ],
+      [
+        49065,
+        "                function.body(),\n",
+        "                &function.payload().body,\n"
+      ],
+      [
+        49500,
+        "                    reject_native_unit_value(program, function.body(), &actual, diagnostics);\n",
+        "                    reject_native_unit_value(\n                        program,\n                        &function.payload().body,\n                        &actual,\n                        diagnostics,\n                    );\n"
+      ],
+      [
+        50675,
+        "                        function.body().span,\n",
+        "                        function.payload().body.span,\n"
+      ],
+      [
+        51442,
+        "                            function.body().span,\n",
+        "                            function.payload().body.span,\n"
+      ],
+      [
+        51733,
+        "            for contract in function.ensures() {\n",
+        "            for contract in &function.payload().ensures {\n"
+      ],
+      [
+        53707,
+        "            for callee in crate::source_verify::function_value_inventory::calls_ref(\n                function,\n",
+        "            for callee in crate::source_verify::function_value_inventory::calls(\n                function.payload(),\n"
+      ],
+      [
+        55247,
+        "            for callee in crate::source_verify::function_value_inventory::calls_ref(\n                function,\n",
+        "            for callee in crate::source_verify::function_value_inventory::calls(\n                function.payload(),\n"
+      ],
+      [
+        55442,
+        "                let span = function.body().span;\n",
+        "                let span = function.payload().body.span;\n"
+      ]
+    ]
+  },
+  {
+    "source": "src/source_verify/declaration/functions/public_signature_before.rs",
+    "current_length": 57708,
+    "current_sha256": "1a55c2794cbbf0e6983345aa9688c8db9ec644ebee11a9e13b5e702d1fb623cf",
+    "before_length": 57266,
+    "before_sha256": "05cb069082838883c82b5b638e7acdbedd1a3ffc089894528c3b5105839217f8",
+    "inverse": [
+      [
+        1474,
+        "#[allow(\n    clippy::borrow_deref_ref,\n    reason = \"The complete saved control retains its original expressions for independent parity checks.\"\n)]\n",
+        ""
+      ],
+      [
+        23568,
+        "#[allow(\n    clippy::needless_borrow,\n    reason = \"The complete saved control retains its original expressions for independent parity checks.\"\n)]\n",
+        ""
+      ],
+      [
+        37746,
+        "#[allow(\n    clippy::needless_borrow,\n    reason = \"The complete saved control retains its original expressions for independent parity checks.\"\n)]\n",
+        ""
+      ]
+    ]
+  },
+  {
+    "source": "src/source_verify/iterative/enter.rs",
+    "current_length": 70662,
+    "current_sha256": "271df9b6184e4c97f2628a850a9c974b0a14fe1190a6bb5b26fc433c3889b134",
+    "before_length": 70699,
+    "before_sha256": "4d6e8b68b9de792aa588a9a6cc4815308dcb318cc1735a527b9b9da5506f7661",
+    "inverse": [
+      [
+        2132,
+        "                            .requires()\n",
+        "                            .payload()\n                            .requires\n"
+      ]
+    ]
+  },
+  {
+    "source": "src/source_verify/iterative/enter/enter_before_components.rs",
+    "current_length": 69820,
+    "current_sha256": "5ac3b02c8a15607c4a37759ebd32d0e49a93115b144bcc7758d41aac9d336f59",
+    "before_length": 69657,
+    "before_sha256": "b2ba677d2dce0ce94b974200ff62e8eb590cf39e65e1a1b1bdca99ff05394f47",
+    "inverse": [
+      [
+        1198,
+        "    #[allow(\n        clippy::needless_borrow,\n        reason = \"The complete saved control retains its original expressions for independent parity checks.\"\n    )]\n",
+        ""
+      ]
+    ]
+  }
+]

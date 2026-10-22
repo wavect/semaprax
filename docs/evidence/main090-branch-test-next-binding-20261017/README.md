@@ -1,3 +1,9 @@
+# main090-branch-test-next-binding-20261017 README
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 This finite generation starts only from the complete 241192-byte MAIN090
 manifest 178f06efa9e5ee2f63543c7a29bc6a3b09a7ae270d71b235b628283c98a04bc0,
 retained unchanged here. It executes the complete original strict 239-line binder

@@ -1,5 +1,9 @@
 # Main-afba and direct-presence successor
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 This is a source-only successor to sealed72432. Main-afba contributes the disposal/Option corrections and owned-data fixtures; the direct-presence component retains its exact reviewed three shipping files and complete previous optional controls. No Rust test, compiler build, memory reduction or application admission is claimed here.
 
 The 20-row complete modified preexisting namespace restores sealed72432 before inherited guards. The separate Main-afba scope authenticates all twelve current Main receiver inputs and their complete inverses/archives. The six-input presence view is metadata-only because its three direct source-reader inputs remain byte-exact to the reviewed component. These domains do not claim whole-tree equivalence to Main or to the presence component.

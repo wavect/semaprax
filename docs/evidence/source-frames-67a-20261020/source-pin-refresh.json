@@ -1,0 +1,59 @@
+{
+  "status": "SOURCE_ONLY_FINITE544_PACKET_PREDICATES_PASS",
+  "before_head": "67a1a25a866fbc0b5dc38c8c63b7f2f6166a443a",
+  "before_guard": {
+    "length": 11549,
+    "sha256": "dfe14dee449cc8164386b8d0067cd53144214546916ec238f6839ed09419742f",
+    "archive": "docs/evidence/source-frames-67a-20261020/whole/dfe14dee449cc8164386b8d0067cd53144214546916ec238f6839ed09419742f.txt"
+  },
+  "before_config": {
+    "length": 136469,
+    "sha256": "2184ad47d37862d7328411236b4437a62aedbfbad33249d312128eb230dc13bf",
+    "archive": "docs/evidence/source-frames-67a-20261020/whole/2184ad47d37862d7328411236b4437a62aedbfbad33249d312128eb230dc13bf.txt"
+  },
+  "before_helper": {
+    "length": 46361,
+    "sha256": "90cf2b516c209bc5ac38e9b96b0aea41fdae560b1633af4284f6e29f1d45a420",
+    "archive": "docs/evidence/source-frames-67a-20261020/whole/90cf2b516c209bc5ac38e9b96b0aea41fdae560b1633af4284f6e29f1d45a420.txt"
+  },
+  "before_python_overlay": {
+    "length": 14746,
+    "sha256": "6e341198180af79c437b1a6af425f591d3d68474cb35c7c6278e7a8b3e9ed82e",
+    "archive": "docs/evidence/source-frames-67a-20261020/whole/6e341198180af79c437b1a6af425f591d3d68474cb35c7c6278e7a8b3e9ed82e.txt"
+  },
+  "before_policy": {
+    "length": 17102,
+    "sha256": "49d61c0144744ab7f07a9a394fd233dfae5e0deaffbe6f436f5bf5f1f87eea70",
+    "archive": "docs/evidence/source-frames-67a-20261020/whole/49d61c0144744ab7f07a9a394fd233dfae5e0deaffbe6f436f5bf5f1f87eea70.txt"
+  },
+  "before_page": {
+    "length": 227812,
+    "sha256": "30a5557e0bd492391907361543806b797c4d0646fbce3e1b2292f2190fa1afa1",
+    "archive": "docs/evidence/source-frames-67a-20261020/whole/30a5557e0bd492391907361543806b797c4d0646fbce3e1b2292f2190fa1afa1.txt"
+  },
+  "changed_sources": [
+    "src/source_reflows/incoming090_semantic_receivers.rs",
+    "src/source_reflows/incoming21_semantic_receivers.rs",
+    "src/source_reflows_merge/runtime_json.rs",
+    "src/source_reflows_merge.rs",
+    "src/source_reflows_merge/main7f8_source_inputs.rs",
+    "src/source_reflows/incoming67107_semantic_receivers.rs",
+    "src/source_reflows/semantic_receivers.rs",
+    "src/source_reflows/main_f247_controllers.rs",
+    "CHANGELOG.md"
+  ],
+  "module_pins_refreshed": [
+    "src/source_reflows/main_f247_controllers.rs",
+    "src/source_reflows_merge/main_e177_final_inputs.rs",
+    "src/source_reflows_merge/main_e177_overlay_v2.rs"
+  ],
+  "carrier_pins_refreshed": [],
+  "all_544_rows_fields_view_prefixes_and_prior_current_wires_retained": true,
+  "new_literal_replacements_inserted_in_predecessor_source_order": true,
+  "original_519_extension_and_loader_unchanged": true,
+  "python_and_rust_overlay_bodies_unchanged_except_literal_membership_and_policy_seals": true,
+  "all_reader_source_program_and_runtime_caps_unchanged": true,
+  "page_bytes": 240608,
+  "policy_bytes": 17317,
+  "raw_owners": 342
+}

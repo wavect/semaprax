@@ -1,5 +1,9 @@
 # Nine PLAN owners: three exact raw source scopes
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Immutable preimage: `a75a82f035e401d372fb4714418334717042e99c`.
 
 All nine physical Rust owners from the PLAN source manifest now enter the

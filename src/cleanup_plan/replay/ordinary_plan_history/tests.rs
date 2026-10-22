@@ -239,3 +239,29 @@ fn malformed_private_links_fail_without_recursive_drop_or_indexing() {
         }
     });
 }
+
+#[test]
+fn ordinary_default_retains_flat_verifier_and_candidate_selection_is_scoped() {
+    let program = program();
+    let function = &program.functions[0];
+    with_limit_usage_refusal(usize::MAX, || {
+        let mut normal = budget(&program, function);
+        assert!(eligible(function, &normal));
+        assert!(!select(function, &mut normal).unwrap());
+        {
+            let _candidate = enable_for_test();
+            let mut selected = budget(&program, function);
+            assert!(select(function, &mut selected).unwrap());
+            {
+                let _nested = enable_for_test();
+                let mut selected = budget(&program, function);
+                assert!(select(function, &mut selected).unwrap());
+            }
+            let mut selected = budget(&program, function);
+            assert!(select(function, &mut selected).unwrap());
+            assert!(!select(function, &mut ReplayBudget::unobserved()).unwrap());
+        }
+        let mut normal = budget(&program, function);
+        assert!(!select(function, &mut normal).unwrap());
+    });
+}

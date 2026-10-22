@@ -1,0 +1,8 @@
+{
+  "status": "PASS",
+  "peakKiB": {
+    "root": 190928,
+    "component": 192128
+  },
+  "tool_version": "0.20.2"
+}

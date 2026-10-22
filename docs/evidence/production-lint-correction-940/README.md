@@ -1,5 +1,9 @@
 # Separate mechanical production lint correction
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The actual scoped940 production lib+CLI Clippy run failed with exactly three warnings promoted to errors. Its full receipt/log are preserved. This separate commit follows the780 fixture correction and changes only:
 
 1. `CensusRefusal { error: error }` to field shorthand `error`.

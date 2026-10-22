@@ -1,0 +1,9 @@
+# 850 final caller frontier placement
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
+Successor to immutablebdff54dfa3ddfb8736c3ddf93539b4069e69cd71. Parent review found that Some's caller borrow and factory parameter formed before the callee's transport debit. The single Some payment now occurs in ModuleIndex immediately before Directory::collect_current_with_presence argument evaluation. shared_caller_controls adds that actual new map_err Result and Refusal receiving value. The old transport reservation Result is relocated, not charged twice. None remains on its own common-only path. All original MAIN get authentication/work/Subject order and complete consuming bodies stay unchanged. The initial ordinary enclosing caller/Directory unreceived refusal ABI remains an explicit residual, not a broader825 funding claim.
+
+The existing source guard first authenticates three complete current→bdff sources, then the immutable four-source bdff→MAIN269 inputs, then every original MAIN inverse/assertion. runtime-inputs.json is protected. Four complete immediate before/current inverses include the test-only sourceguard adapter itself; no self-hash cycle. Prior850 packet, runtime JSON, proof and script remain byte-exact. verify.py checks the complete restored prior namespace and proves the actual Some payment precedes caller &record_presence formation. No Rust execution, no new selector/audit edit/production owner. Apply bdff then this successor; final integrator owns source audits and actual-parent purity manifest generation after joining.

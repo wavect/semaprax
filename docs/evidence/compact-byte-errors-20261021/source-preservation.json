@@ -1,0 +1,31 @@
+[
+  {
+    "domain": "hir",
+    "all_sources_classes_roles_and_exact_edge_text_attributes_preserved": true,
+    "changed_source_pins": [
+      "src/cleanup_plan/replay.rs",
+      "src/cleanup_plan/replay/branch_clone.rs",
+      "src/cleanup_plan/replay/branch_clone/direct.rs",
+      "src/cleanup_plan/replay/branch_clone/direct/tests.rs",
+      "src/cleanup_plan/replay/physical_budget.rs",
+      "src/source_reflows/ci_inputs.rs",
+      "src/source_reflows_merge/main_e177_overlay_compiled.rs",
+      "src/source_reflows_merge/main_e177_overlay_v2.rs",
+      "src/source_reflows_merge/runtime_json.rs"
+    ]
+  },
+  {
+    "domain": "projection",
+    "all_sources_classes_roles_and_exact_edge_text_attributes_preserved": true,
+    "changed_source_pins": [
+      "src/cleanup_plan/replay.rs",
+      "src/cleanup_plan/replay/branch_clone.rs",
+      "src/cleanup_plan/replay/branch_clone/direct.rs",
+      "src/cleanup_plan/replay/branch_clone/direct/tests.rs",
+      "src/cleanup_plan/replay/physical_budget.rs",
+      "src/source_reflows/ci_inputs.rs",
+      "src/source_reflows_merge/main_e177_overlay_compiled.rs",
+      "src/source_reflows_merge/main_e177_overlay_v2.rs"
+    ]
+  }
+]

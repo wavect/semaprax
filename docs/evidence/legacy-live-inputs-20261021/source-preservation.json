@@ -1,0 +1,28 @@
+[
+  {
+    "domain": "hir",
+    "all_sources_classes_roles_and_exact_edge_text_attributes_preserved": true,
+    "changed_source_pins": [
+      "src/source_reflows/ci_inputs.rs",
+      "src/source_reflows/main043/audit_3.rs",
+      "src/source_reflows_merge/main67107_inputs_tail.rs",
+      "src/source_reflows_merge/main99f_inputs.rs",
+      "src/source_reflows_merge/main_c883_inputs.rs",
+      "src/source_reflows_merge/main_e177_inputs.rs",
+      "src/source_reflows_merge/main_e177_overlay_compiled.rs",
+      "src/source_reflows_merge/main_e177_overlay_v2.rs"
+    ]
+  },
+  {
+    "domain": "projection",
+    "all_sources_classes_roles_and_exact_edge_text_attributes_preserved": true,
+    "changed_source_pins": [
+      "src/source_reflows/ci_inputs.rs",
+      "src/source_reflows/main043/audit_3.rs",
+      "src/source_reflows_merge/main67107_inputs_tail.rs",
+      "src/source_reflows_merge/main_c883_inputs.rs",
+      "src/source_reflows_merge/main_e177_overlay_compiled.rs",
+      "src/source_reflows_merge/main_e177_overlay_v2.rs"
+    ]
+  }
+]

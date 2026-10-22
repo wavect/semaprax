@@ -1,0 +1,73 @@
+{
+  "status": "ORIGINAL_CURRENT_CODEC_COMPOSITION_PASS_PENDING_PUBLICATION",
+  "base_head": "9bb8e9160f1728d9ef9f8d6cbce6247fe4b7a481",
+  "rows": 687,
+  "page_bytes": 237008,
+  "published_current_preserved_as_exact_views": [
+    {
+      "source": "src/cleanup_plan/replay/physical_budget.rs",
+      "view": {
+        "length": 17113,
+        "sha256": "605546886e67904b9a9cb5bb5509ec1841b51eb9fd56aa95838ca1d24526b98f",
+        "archive": "e/605546886e67904b9a9cb5bb5509ec1841b51eb9fd56aa95838ca1d24526b98f",
+        "name": "whole-pre-byte-error-9bb8a15bdd5"
+      }
+    },
+    {
+      "source": "src/cleanup_plan/replay/branch_clone.rs",
+      "view": {
+        "length": 17122,
+        "sha256": "7f639da343b5b88c60751510a27cd4f7cd8c97bccfa454d662e9c179057e9a4c",
+        "archive": "docs/evidence/fmt-a110/f2Odo0O1uIxgdRUQonzU982Ml7zPpFTWYunBeQV-mkw.txt",
+        "name": "whole-pre-byte-error-9bb8a15bdd5"
+      }
+    },
+    {
+      "source": "src/cleanup_plan/replay/branch_clone/direct.rs",
+      "view": {
+        "length": 18408,
+        "sha256": "a3cae733d7df5c7c912598ae99e996dfceebeea2f6d70d95adf1afd711262488",
+        "archive": "docs/evidence/merge646-bounded-overlay-20261018/whole/a3cae733d7df5c7c912598ae99e996dfceebeea2f6d70d95adf1afd711262488.txt",
+        "name": "whole-pre-byte-error-9bb8a15bdd5"
+      }
+    },
+    {
+      "source": "src/cleanup_plan/replay/branch_clone/direct/tests.rs",
+      "view": {
+        "length": 28500,
+        "sha256": "26a5bd2226dc2c7e701500c77a699436b78216c72c370d350a86ce305e73d57f",
+        "archive": "docs/evidence/merge646-bounded-overlay-20261018/whole/26a5bd2226dc2c7e701500c77a699436b78216c72c370d350a86ce305e73d57f.txt",
+        "name": "whole-pre-byte-error-9bb8a15bdd5"
+      }
+    },
+    {
+      "source": "src/source_reflows_merge/main_e177_overlay_compiled.rs",
+      "view": {
+        "length": 47819,
+        "sha256": "3df28a9560d039452c9d955219962799c700477e2e2c6bffc0a6e83039cc5094",
+        "archive": "docs/evidence/legacy-live-inputs-20261021/current/3df28a9560d039452c9d955219962799c700477e2e2c6bffc0a6e83039cc5094.txt",
+        "name": "whole-pre-byte-error-9bb8a15bdd5"
+      }
+    },
+    {
+      "source": "src/cleanup_plan/replay.rs",
+      "view": {
+        "length": 326272,
+        "sha256": "cf20e9132b5b94602777d4b1d70495da2c8411181a9f642919f6a0d4aa8c12c8",
+        "archive": "e/cf20e9132b5b94602777d4b1d70495da2c8411181a9f642919f6a0d4aa8c12c8",
+        "name": "whole-pre-byte-error-9bb8a15bdd5"
+      }
+    },
+    {
+      "source": "src/source_reflows_merge/runtime_json.rs",
+      "view": {
+        "length": 56711,
+        "sha256": "72e5387182b7907ee77a70b7ef7e6ba22b170cebe72301f94d31608834123f2c",
+        "archive": "docs/evidence/ci-small-fixes-20261021/current/72e5387182b7907ee77a70b7ef7e6ba22b170cebe72301f94d31608834123f2c.txt",
+        "name": "whole-pre-byte-error-9bb8a15bdd5"
+      }
+    }
+  ],
+  "all_previous_fields_views_memberships_and_fragment_edges_retained": true,
+  "all_original_codec_bodies_and_caps_unchanged": true
+}

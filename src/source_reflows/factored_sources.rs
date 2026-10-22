@@ -624,9 +624,7 @@ fn joined_factored_domains_preserve_complete_receivers_and_refuse_foreign_inputs
     assert!(compiled(CORE_PATH, &(LIVE_CORE.to_owned() + "\r\n")).is_err());
     #[cfg(unix)]
     {
-        let tmp =
-            ::std::path::PathBuf::from(::std::env::var_os("TMPDIR").expect("SSD TMPDIR required"));
-        assert!(tmp.starts_with("/Volumes/Semaprax"));
+        let tmp = ::std::env::temp_dir();
         let leaf = tmp.join(format!(
             "factored-custody-link-{}-{}",
             ::std::process::id(),

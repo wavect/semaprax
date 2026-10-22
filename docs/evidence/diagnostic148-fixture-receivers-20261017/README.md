@@ -1,5 +1,9 @@
 # Diagnostic 148 fixture receiver corrections
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only candidate after c09f8c8e5; no Cargo, compiler, runtime test, gate, graph refresh, source-binding generation or ROOT mutation.
 
 Actual 0f9 diagnostic owner 25 fails before comparison: neither original source has a borrowed UTF-8 literal, and static_text::retain returns None when its literal count is zero. The static-text fixture receiver therefore correctly refuses absent inventory. The new separate fixture method invokes the existing production owned-data linker on the actual validated workspace with every exact retained module function as a root. Existing linker authentication, provider closure, builtin selection, metadata rebuild and HIR validation remain intact. Both complete old/current comparisons receive the same resulting program. The original closed static receiver and every negative remain unchanged; no declaration index is invented and no profile is broadened. Setup is outside the original measured comparison windows.

@@ -1,5 +1,9 @@
 # Finite source custody overlay V2
 
+Status: private source contract; executable qualification is pending.
+
+Audience: compiler contributors and reviewers.
+
 This specification owns OPT#893's proof-only successor of the complete 519-row
 source-custody loader. It changes no compiler, target, ledger or application
 admission. Each source batch requires its own binding and executable qualification. No Rust
@@ -91,3 +95,24 @@ V3 equals the entire uncompressed V2 candidate. The original V2 composer remains
 executable and its complete body is checked; frozen full V2 page/policy fixtures
 exercise the old branch and exact canonical expansion. All original I/O,
 physical/compiled/archive, old-view, and hostile controls remain in force.
+
+## Archive-prefix transport (page V10)
+
+V10 is a structural transport for one complete V9 page. It preserves all V2
+through V9 composition and admission semantics. Its `archive_prefixes` table has
+at most 32 distinct, nonempty, normal directory prefixes, each ending in `/`.
+Only archive members in the explicit V9 pin slots may replace their literal path
+with `[prefix_index, suffix]`; objects, unknown fields, source order, fragment
+order and every other scalar remain unchanged.
+
+Expansion refuses an invalid index or suffix, an abnormal reconstructed path, a
+literal archive that matches a table prefix, and a reference that does not use
+the longest matching prefix. Every table prefix must be referenced at least
+twice. Canonical JSON spelling fixes table and reference order. Both readers
+expand the entire V10 value to a V9 value before entering the unchanged V9-to-V2
+reader chain. Encoding must prove that this expansion equals the complete input
+V9 value in canonical bytes.
+
+V10 adds no path discovery, archive read, compression or admission authority.
+The single-page 262144-byte bound and the 9753094-byte per-held-source bound stay
+unchanged, as do every physical, compiled, archive and historical-view check.

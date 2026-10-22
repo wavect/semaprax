@@ -1,5 +1,9 @@
 # #830 unchanged application event census
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only additive successor to explicit-import correction1343d0b9f. No
 Cargo/compiler/runtime/application scan or ROOT write. This does not close830:
 the actual future unchanged normalizer owner must produce the event evidence.

@@ -1,5 +1,9 @@
 # Prepared, unexecuted nine-owner supplement
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Run only after the parent76 round is terminal, with ROOT still frozen8bb and no other owned heavy phase. The original five-owner preparation remains immutable; use this combined nine-owner round once, not both.
 
 ```sh

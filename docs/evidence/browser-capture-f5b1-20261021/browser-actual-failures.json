@@ -1,0 +1,132 @@
+[
+  {
+    "name": "scalar_browser_ci_contract::historical_builder::before_21abc::before_7d34::before_671::before_524::before_75b::before_f82::before_c11::before_c451::the_complete_old_bridge_changes_only_its_retained_runner_include",
+    "panics": [
+      [
+        "/Volumes/Semaprax/worktrees/ci-format-26eeb/tests/wasm/scalar_browser_ci_contract/historical_main_c11.rs:133:5:",
+        "assertion `left == right` failed"
+      ]
+    ],
+    "last_excerpt": "\nthread 'scalar_browser_ci_contract::historical_builder::before_21abc::before_7d34::before_671::before_524::before_75b::before_f82::before_c11::before_c451::the_complete_old_bridge_changes_only_its_retained_runner_include' (70543509) panicked at /Volumes/Semaprax/worktrees/ci-format-26eeb/tests/wasm/scalar_browser_ci_contract/historical_main_c11.rs:133:5:\nassertion `left == right` failed\n  left: \"f370c88d8519e984947524ee7f93054e7be84c48921225a975596c82def754f4\"\n right: \"30cc9238ae44dfd6988023f1296eb5c7c32b084ed164b64a1c194e4c5a2b758b\"\n"
+  },
+  {
+    "name": "scalar_browser_ci_contract::historical_builder::before_21abc::before_7d34::before_671::before_524::the_complete_old_bridge_changes_only_its_retained_runner_include",
+    "panics": [
+      [
+        "/Volumes/Semaprax/worktrees/ci-format-26eeb/tests/wasm/scalar_browser_ci_contract/before_524.rs:128:5:",
+        "assertion `left == right` failed"
+      ]
+    ],
+    "last_excerpt": "n    for captured in CURRENT {\\n        let graph = captured.strip_suffix('\\\\n').unwrap();\\n        let field = \\\"\\\\\\\"used_call_sites\\\\\\\":10\\\";\\n        assert_eq!(graph.matches(field).count(), 1);\\n        let changed = graph.replacen(field, \\\"\\\\\\\"used_call_sites\\\\\\\":11\\\", 1);\\n        let parsed: serde_json::Value = serde_json::from_str(graph).unwrap();\\n        let changed = changed.replacen(\\n            &format!(\\\"\\\\\\\"graph_digest\\\\\\\":{}\\\", parsed[\\\"graph_digest\\\"]),\\n            &format!(\\\"\\\\\\\"graph_digest\\\\\\\":\\\\\\\"{}\\\\\\\"\\\", graph_digest(&changed)),\\n            1,\\n        );\\n        assert!(std::panic::catch_unwind(|| digest(&changed)).is_err());\\n    }\\n}\\n\\n#[test]\\nfn the_complete_old_bridge_changes_only_its_retained_runner_include() {\\n    let original = include_str!(\\n        \\\"../../../docs/evidence/browser-graph-pins-f82cec490/historical_builder.before.rs.txt\\\"\\n    );\\n    let runner = include_str!(\\n        \\\"../../../docs/evidence/browser-graph-pins-f82cec490/test-fixtures.before.mjs\\\"\\n    );\\n    for (source, expected) in [\\n        (\\n            original,\\n            \\\"ebe0031dd8e74c15c3666d0772a321501d593b8982d708ef973030cd937f79ee\\\",\\n        ),\\n        (\\n            runner,\\n            \\\"d7b15f2bdc93ee2fdbc118baddadfb6f888991b94550d1c048cb01d159ce6e02\\\",\\n        ),\\n    ] {\\n        assert_eq!(\\n            format!(\\n                \\\"{:x}\\\",\\n                semaprax::digest_hex::LowerHex(Sha256::digest(source.as_bytes()))\\n            ),\\n            expected\\n        );\\n    }\\n    let current = include_str!(\\\"before_f82.rs\\\");\\n    let new = concat!(\\n        \\\"include_str!(\\\\n\\\",\\n        \\\"        \\\\\\\"../../../docs/evidence/browser-graph-pins-f82cec490/test-fixtures.before.mjs\\\\\\\"\\\\n\\\",\\n        \\\"    )\\\"\\n    );\\n    let old = \\\"include_str!(\\\\\\\"../../../platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs\\\\\\\")\\\";\\n    assert_eq!(current.matches(new).count(), 1);\\n    assert_eq!(current.replacen(new, old, 1), original);\\n}\\n\"\n"
+  },
+  {
+    "name": "scalar_browser_ci_contract::historical_builder::before_671::before_524::before_75b::before_f82::before_c11::before_c451::the_complete_old_bridge_changes_only_its_retained_runner_include",
+    "panics": [
+      [
+        "/Volumes/Semaprax/worktrees/ci-format-26eeb/tests/wasm/scalar_browser_ci_contract/historical_main_c11.rs:133:5:",
+        "assertion `left == right` failed"
+      ]
+    ],
+    "last_excerpt": "\nthread 'scalar_browser_ci_contract::historical_builder::before_671::before_524::before_75b::before_f82::before_c11::before_c451::the_complete_old_bridge_changes_only_its_retained_runner_include' (70543608) panicked at /Volumes/Semaprax/worktrees/ci-format-26eeb/tests/wasm/scalar_browser_ci_contract/historical_main_c11.rs:133:5:\nassertion `left == right` failed\n  left: \"f370c88d8519e984947524ee7f93054e7be84c48921225a975596c82def754f4\"\n right: \"30cc9238ae44dfd6988023f1296eb5c7c32b084ed164b64a1c194e4c5a2b758b\"\n"
+  },
+  {
+    "name": "scalar_browser_ci_contract::historical_builder::before_671::before_524::the_complete_old_bridge_changes_only_its_retained_runner_include",
+    "panics": [
+      [
+        "/Volumes/Semaprax/worktrees/ci-format-26eeb/tests/wasm/scalar_browser_ci_contract/before_524.rs:128:5:",
+        "assertion `left == right` failed"
+      ]
+    ],
+    "last_excerpt": "n    for captured in CURRENT {\\n        let graph = captured.strip_suffix('\\\\n').unwrap();\\n        let field = \\\"\\\\\\\"used_call_sites\\\\\\\":10\\\";\\n        assert_eq!(graph.matches(field).count(), 1);\\n        let changed = graph.replacen(field, \\\"\\\\\\\"used_call_sites\\\\\\\":11\\\", 1);\\n        let parsed: serde_json::Value = serde_json::from_str(graph).unwrap();\\n        let changed = changed.replacen(\\n            &format!(\\\"\\\\\\\"graph_digest\\\\\\\":{}\\\", parsed[\\\"graph_digest\\\"]),\\n            &format!(\\\"\\\\\\\"graph_digest\\\\\\\":\\\\\\\"{}\\\\\\\"\\\", graph_digest(&changed)),\\n            1,\\n        );\\n        assert!(std::panic::catch_unwind(|| digest(&changed)).is_err());\\n    }\\n}\\n\\n#[test]\\nfn the_complete_old_bridge_changes_only_its_retained_runner_include() {\\n    let original = include_str!(\\n        \\\"../../../docs/evidence/browser-graph-pins-f82cec490/historical_builder.before.rs.txt\\\"\\n    );\\n    let runner = include_str!(\\n        \\\"../../../docs/evidence/browser-graph-pins-f82cec490/test-fixtures.before.mjs\\\"\\n    );\\n    for (source, expected) in [\\n        (\\n            original,\\n            \\\"ebe0031dd8e74c15c3666d0772a321501d593b8982d708ef973030cd937f79ee\\\",\\n        ),\\n        (\\n            runner,\\n            \\\"d7b15f2bdc93ee2fdbc118baddadfb6f888991b94550d1c048cb01d159ce6e02\\\",\\n        ),\\n    ] {\\n        assert_eq!(\\n            format!(\\n                \\\"{:x}\\\",\\n                semaprax::digest_hex::LowerHex(Sha256::digest(source.as_bytes()))\\n            ),\\n            expected\\n        );\\n    }\\n    let current = include_str!(\\\"before_f82.rs\\\");\\n    let new = concat!(\\n        \\\"include_str!(\\\\n\\\",\\n        \\\"        \\\\\\\"../../../docs/evidence/browser-graph-pins-f82cec490/test-fixtures.before.mjs\\\\\\\"\\\\n\\\",\\n        \\\"    )\\\"\\n    );\\n    let old = \\\"include_str!(\\\\\\\"../../../platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs\\\\\\\")\\\";\\n    assert_eq!(current.matches(new).count(), 1);\\n    assert_eq!(current.replacen(new, old, 1), original);\\n}\\n\"\n"
+  },
+  {
+    "name": "scalar_browser_ci_contract::historical_builder::before_7d34::before_671::before_524::before_75b::before_f82::before_c11::before_c451::the_complete_old_bridge_changes_only_its_retained_runner_include",
+    "panics": [
+      [
+        "/Volumes/Semaprax/worktrees/ci-format-26eeb/tests/wasm/scalar_browser_ci_contract/historical_main_c11.rs:133:5:",
+        "assertion `left == right` failed"
+      ]
+    ],
+    "last_excerpt": "\nthread 'scalar_browser_ci_contract::historical_builder::before_7d34::before_671::before_524::before_75b::before_f82::before_c11::before_c451::the_complete_old_bridge_changes_only_its_retained_runner_include' (70543693) panicked at /Volumes/Semaprax/worktrees/ci-format-26eeb/tests/wasm/scalar_browser_ci_contract/historical_main_c11.rs:133:5:\nassertion `left == right` failed\n  left: \"f370c88d8519e984947524ee7f93054e7be84c48921225a975596c82def754f4\"\n right: \"30cc9238ae44dfd6988023f1296eb5c7c32b084ed164b64a1c194e4c5a2b758b\"\n"
+  },
+  {
+    "name": "scalar_browser_ci_contract::historical_builder::before_7d34::before_671::before_524::the_complete_old_bridge_changes_only_its_retained_runner_include",
+    "panics": [
+      [
+        "/Volumes/Semaprax/worktrees/ci-format-26eeb/tests/wasm/scalar_browser_ci_contract/before_524.rs:128:5:",
+        "assertion `left == right` failed"
+      ]
+    ],
+    "last_excerpt": "n    for captured in CURRENT {\\n        let graph = captured.strip_suffix('\\\\n').unwrap();\\n        let field = \\\"\\\\\\\"used_call_sites\\\\\\\":10\\\";\\n        assert_eq!(graph.matches(field).count(), 1);\\n        let changed = graph.replacen(field, \\\"\\\\\\\"used_call_sites\\\\\\\":11\\\", 1);\\n        let parsed: serde_json::Value = serde_json::from_str(graph).unwrap();\\n        let changed = changed.replacen(\\n            &format!(\\\"\\\\\\\"graph_digest\\\\\\\":{}\\\", parsed[\\\"graph_digest\\\"]),\\n            &format!(\\\"\\\\\\\"graph_digest\\\\\\\":\\\\\\\"{}\\\\\\\"\\\", graph_digest(&changed)),\\n            1,\\n        );\\n        assert!(std::panic::catch_unwind(|| digest(&changed)).is_err());\\n    }\\n}\\n\\n#[test]\\nfn the_complete_old_bridge_changes_only_its_retained_runner_include() {\\n    let original = include_str!(\\n        \\\"../../../docs/evidence/browser-graph-pins-f82cec490/historical_builder.before.rs.txt\\\"\\n    );\\n    let runner = include_str!(\\n        \\\"../../../docs/evidence/browser-graph-pins-f82cec490/test-fixtures.before.mjs\\\"\\n    );\\n    for (source, expected) in [\\n        (\\n            original,\\n            \\\"ebe0031dd8e74c15c3666d0772a321501d593b8982d708ef973030cd937f79ee\\\",\\n        ),\\n        (\\n            runner,\\n            \\\"d7b15f2bdc93ee2fdbc118baddadfb6f888991b94550d1c048cb01d159ce6e02\\\",\\n        ),\\n    ] {\\n        assert_eq!(\\n            format!(\\n                \\\"{:x}\\\",\\n                semaprax::digest_hex::LowerHex(Sha256::digest(source.as_bytes()))\\n            ),\\n            expected\\n        );\\n    }\\n    let current = include_str!(\\\"before_f82.rs\\\");\\n    let new = concat!(\\n        \\\"include_str!(\\\\n\\\",\\n        \\\"        \\\\\\\"../../../docs/evidence/browser-graph-pins-f82cec490/test-fixtures.before.mjs\\\\\\\"\\\\n\\\",\\n        \\\"    )\\\"\\n    );\\n    let old = \\\"include_str!(\\\\\\\"../../../platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs\\\\\\\")\\\";\\n    assert_eq!(current.matches(new).count(), 1);\\n    assert_eq!(current.replacen(new, old, 1), original);\\n}\\n\"\n"
+  },
+  {
+    "name": "scalar_browser_ci_contract::historical_builder::main_75b::before_75b::before_f82::before_c11::before_c451::the_complete_old_bridge_changes_only_its_retained_runner_include",
+    "panics": [
+      [
+        "/Volumes/Semaprax/worktrees/ci-format-26eeb/tests/wasm/scalar_browser_ci_contract/historical_main_c11.rs:133:5:",
+        "assertion `left == right` failed"
+      ]
+    ],
+    "last_excerpt": "\nthread 'scalar_browser_ci_contract::historical_builder::main_75b::before_75b::before_f82::before_c11::before_c451::the_complete_old_bridge_changes_only_its_retained_runner_include' (70544029) panicked at /Volumes/Semaprax/worktrees/ci-format-26eeb/tests/wasm/scalar_browser_ci_contract/historical_main_c11.rs:133:5:\nassertion `left == right` failed\n  left: \"f370c88d8519e984947524ee7f93054e7be84c48921225a975596c82def754f4\"\n right: \"30cc9238ae44dfd6988023f1296eb5c7c32b084ed164b64a1c194e4c5a2b758b\"\n"
+  },
+  {
+    "name": "scalar_browser_ci_contract::historical_builder::main_7f8::before_524::before_75b::before_f82::before_c11::before_c451::the_complete_old_bridge_changes_only_its_retained_runner_include",
+    "panics": [
+      [
+        "/Volumes/Semaprax/worktrees/ci-format-26eeb/tests/wasm/scalar_browser_ci_contract/historical_main_c11.rs:133:5:",
+        "assertion `left == right` failed"
+      ]
+    ],
+    "last_excerpt": "\nthread 'scalar_browser_ci_contract::historical_builder::main_7f8::before_524::before_75b::before_f82::before_c11::before_c451::the_complete_old_bridge_changes_only_its_retained_runner_include' (70544089) panicked at /Volumes/Semaprax/worktrees/ci-format-26eeb/tests/wasm/scalar_browser_ci_contract/historical_main_c11.rs:133:5:\nassertion `left == right` failed\n  left: \"f370c88d8519e984947524ee7f93054e7be84c48921225a975596c82def754f4\"\n right: \"30cc9238ae44dfd6988023f1296eb5c7c32b084ed164b64a1c194e4c5a2b758b\"\n"
+  },
+  {
+    "name": "scalar_browser_ci_contract::historical_builder::main_7f8::before_524::the_complete_old_bridge_changes_only_its_retained_runner_include",
+    "panics": [
+      [
+        "/Volumes/Semaprax/worktrees/ci-format-26eeb/tests/wasm/scalar_browser_ci_contract/before_524.rs:128:5:",
+        "assertion `left == right` failed"
+      ]
+    ],
+    "last_excerpt": "n    for captured in CURRENT {\\n        let graph = captured.strip_suffix('\\\\n').unwrap();\\n        let field = \\\"\\\\\\\"used_call_sites\\\\\\\":10\\\";\\n        assert_eq!(graph.matches(field).count(), 1);\\n        let changed = graph.replacen(field, \\\"\\\\\\\"used_call_sites\\\\\\\":11\\\", 1);\\n        let parsed: serde_json::Value = serde_json::from_str(graph).unwrap();\\n        let changed = changed.replacen(\\n            &format!(\\\"\\\\\\\"graph_digest\\\\\\\":{}\\\", parsed[\\\"graph_digest\\\"]),\\n            &format!(\\\"\\\\\\\"graph_digest\\\\\\\":\\\\\\\"{}\\\\\\\"\\\", graph_digest(&changed)),\\n            1,\\n        );\\n        assert!(std::panic::catch_unwind(|| digest(&changed)).is_err());\\n    }\\n}\\n\\n#[test]\\nfn the_complete_old_bridge_changes_only_its_retained_runner_include() {\\n    let original = include_str!(\\n        \\\"../../../docs/evidence/browser-graph-pins-f82cec490/historical_builder.before.rs.txt\\\"\\n    );\\n    let runner = include_str!(\\n        \\\"../../../docs/evidence/browser-graph-pins-f82cec490/test-fixtures.before.mjs\\\"\\n    );\\n    for (source, expected) in [\\n        (\\n            original,\\n            \\\"ebe0031dd8e74c15c3666d0772a321501d593b8982d708ef973030cd937f79ee\\\",\\n        ),\\n        (\\n            runner,\\n            \\\"d7b15f2bdc93ee2fdbc118baddadfb6f888991b94550d1c048cb01d159ce6e02\\\",\\n        ),\\n    ] {\\n        assert_eq!(\\n            format!(\\n                \\\"{:x}\\\",\\n                semaprax::digest_hex::LowerHex(Sha256::digest(source.as_bytes()))\\n            ),\\n            expected\\n        );\\n    }\\n    let current = include_str!(\\\"before_f82.rs\\\");\\n    let new = concat!(\\n        \\\"include_str!(\\\\n\\\",\\n        \\\"        \\\\\\\"../../../docs/evidence/browser-graph-pins-f82cec490/test-fixtures.before.mjs\\\\\\\"\\\\n\\\",\\n        \\\"    )\\\"\\n    );\\n    let old = \\\"include_str!(\\\\\\\"../../../platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs\\\\\\\")\\\";\\n    assert_eq!(current.matches(new).count(), 1);\\n    assert_eq!(current.replacen(new, old, 1), original);\\n}\\n\"\n"
+  },
+  {
+    "name": "scalar_browser_ci_contract::historical_builder::main_7f8::whole_main7f8_receiver_and_runner_are_authenticated",
+    "panics": [
+      [
+        "/Volumes/Semaprax/worktrees/ci-format-26eeb/tests/wasm/scalar_browser_ci_contract/historical_main_7f8.rs:163:5:",
+        "assertion `left == right` failed"
+      ]
+    ],
+    "last_excerpt": "n    for captured in CURRENT {\\n        let graph = captured.strip_suffix('\\\\n').unwrap();\\n        let field = \\\"\\\\\\\"used_call_sites\\\\\\\":10\\\";\\n        assert_eq!(graph.matches(field).count(), 1);\\n        let changed = graph.replacen(field, \\\"\\\\\\\"used_call_sites\\\\\\\":11\\\", 1);\\n        let parsed: serde_json::Value = serde_json::from_str(graph).unwrap();\\n        let changed = changed.replacen(\\n            &format!(\\\"\\\\\\\"graph_digest\\\\\\\":{}\\\", parsed[\\\"graph_digest\\\"]),\\n            &format!(\\\"\\\\\\\"graph_digest\\\\\\\":\\\\\\\"{}\\\\\\\"\\\", graph_digest(&changed)),\\n            1,\\n        );\\n        assert!(std::panic::catch_unwind(|| digest(&changed)).is_err());\\n    }\\n}\\n\\n#[test]\\nfn the_complete_old_bridge_changes_only_its_retained_runner_include() {\\n    let original = include_str!(\\n        \\\"../../../docs/evidence/browser-graph-pins-524a80bc9/historical_builder.before.rs.txt\\\"\\n    );\\n    let runner = include_str!(\\n        \\\"../../../docs/evidence/browser-graph-pins-524a80bc9/test-fixtures.before.mjs\\\"\\n    );\\n    for (source, expected) in [\\n        (\\n            original,\\n            \\\"68cae5ac5707224f8c30ef6f2c9f27c5b93eaed97f25b71dcf98a1c82a0a5c36\\\",\\n        ),\\n        (\\n            runner,\\n            \\\"f2beafbf9f15748b204f77c90219ed99708929e17b7428d069321f9948594b45\\\",\\n        ),\\n    ] {\\n        assert_eq!(\\n            format!(\\n                \\\"{:x}\\\",\\n                semaprax::digest_hex::LowerHex(Sha256::digest(source.as_bytes()))\\n            ),\\n            expected\\n        );\\n    }\\n    let current = include_str!(\\\"before_524.rs\\\");\\n    let new = concat!(\\n        \\\"include_str!(\\\\n\\\",\\n        \\\"        \\\\\\\"../../../docs/evidence/browser-graph-pins-524a80bc9/test-fixtures.before.mjs\\\\\\\"\\\\n\\\",\\n        \\\"    )\\\"\\n    );\\n    let old = \\\"include_str!(\\\\\\\"../../../platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs\\\\\\\")\\\";\\n    assert_eq!(current.matches(new).count(), 1);\\n    assert_eq!(current.replacen(new, old, 1), original);\\n}\\n\"\n"
+  },
+  {
+    "name": "scalar_browser_ci_contract::historical_builder::main_f82::before_f82::before_c11::before_c451::the_complete_old_bridge_changes_only_its_retained_runner_include",
+    "panics": [
+      [
+        "/Volumes/Semaprax/worktrees/ci-format-26eeb/tests/wasm/scalar_browser_ci_contract/historical_main_c11.rs:133:5:",
+        "assertion `left == right` failed"
+      ]
+    ],
+    "last_excerpt": "\nthread 'scalar_browser_ci_contract::historical_builder::main_f82::before_f82::before_c11::before_c451::the_complete_old_bridge_changes_only_its_retained_runner_include' (70544171) panicked at /Volumes/Semaprax/worktrees/ci-format-26eeb/tests/wasm/scalar_browser_ci_contract/historical_main_c11.rs:133:5:\nassertion `left == right` failed\n  left: \"f370c88d8519e984947524ee7f93054e7be84c48921225a975596c82def754f4\"\n right: \"30cc9238ae44dfd6988023f1296eb5c7c32b084ed164b64a1c194e4c5a2b758b\"\n"
+  },
+  {
+    "name": "scalar_browser_ci_contract::historical_builder::next_actual::next_actual_source_inverse_preserves_every_complete_old_guard_input",
+    "panics": [
+      [
+        "/Volumes/Semaprax/worktrees/ci-format-26eeb/tests/wasm/scalar_browser_ci_contract/browser_custody.rs:200:5:",
+        "assertion `left == right` failed"
+      ]
+    ],
+    "last_excerpt": "\nthread 'scalar_browser_ci_contract::historical_builder::next_actual::next_actual_source_inverse_preserves_every_complete_old_guard_input' (70544218) panicked at /Volumes/Semaprax/worktrees/ci-format-26eeb/tests/wasm/scalar_browser_ci_contract/browser_custody.rs:200:5:\nassertion `left == right` failed\n  left: \"026360d167269ed5b9b2beab4a7cdb41284684434c20f21d0f3c7902d230ce19\"\n right: String(\"f15ae6925ae1c2a861726adaa0d54bc8e4bf670925627f3da2b43fb05909294f\")\n"
+  },
+  {
+    "name": "scalar_browser_ci_contract::main_c11::before_c11::before_c451::the_complete_old_bridge_changes_only_its_retained_runner_include",
+    "panics": [
+      [
+        "/Volumes/Semaprax/worktrees/ci-format-26eeb/tests/wasm/scalar_browser_ci_contract/historical_main_c11.rs:133:5:",
+        "assertion `left == right` failed"
+      ]
+    ],
+    "last_excerpt": "\nthread 'scalar_browser_ci_contract::main_c11::before_c11::before_c451::the_complete_old_bridge_changes_only_its_retained_runner_include' (70544269) panicked at /Volumes/Semaprax/worktrees/ci-format-26eeb/tests/wasm/scalar_browser_ci_contract/historical_main_c11.rs:133:5:\nassertion `left == right` failed\n  left: \"f370c88d8519e984947524ee7f93054e7be84c48921225a975596c82def754f4\"\n right: \"30cc9238ae44dfd6988023f1296eb5c7c32b084ed164b64a1c194e4c5a2b758b\"\n"
+  }
+]

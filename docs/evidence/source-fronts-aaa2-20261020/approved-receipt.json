@@ -1,0 +1,22 @@
+{
+  "status": "PASS",
+  "actual_selected_test_names": [
+    "source_reflows::approved_reflows_authenticate_full_inputs_and_reconstruct_full_predecessors"
+  ],
+  "actual_log": "focused.log",
+  "combined_run_result": [
+    "test result: FAILED. 44 passed; 9 failed; 0 ignored; 0 measured; 183 filtered out; finished in 599.39s"
+  ],
+  "known_remaining_failures": [
+    "source_reflows::incoming67107_semantic_receivers::complete_followup_receivers_keep_all_original_source_bytes",
+    "source_reflows::incoming67107_semantic_receivers::every_receiver_inverse_preserves_the_entire_reflow_input_and_archive",
+    "source_reflows::main_f247_controllers::held_status_views_preserve_complete_original_inputs_and_validation_loops",
+    "source_reflows::semantic_receivers::complete_followup_receivers_keep_all_original_source_bytes",
+    "source_reflows::semantic_receivers::incoming_main090::every_receiver_inverse_preserves_the_entire_reflow_input_and_archive",
+    "source_reflows::semantic_receivers::incoming_main090::receiver_mutation_and_forged_predecessor_fail_closed",
+    "source_reflows::semantic_receivers::incoming_main21::every_receiver_inverse_preserves_the_entire_reflow_input_and_archive",
+    "source_reflows::semantic_receivers::incoming_main21::receiver_mutation_and_forged_predecessor_fail_closed",
+    "source_reflows::semantic_receivers_maina3::every_receiver_inverse_preserves_the_entire_reflow_input_and_archive"
+  ],
+  "all_previously_passing_controls_retained": true
+}

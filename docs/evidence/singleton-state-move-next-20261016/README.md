@@ -1,5 +1,9 @@
 # Unique singleton ownership-state move
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only successor of `364d824194cd1df76b5c273aa0fb9cbafb602e29`.
 No Rust, Cargo, test, benchmark or allocation execution occurred. No numerical
 reservation recovery, application fit or issue closure is claimed.

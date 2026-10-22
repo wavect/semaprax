@@ -1,5 +1,9 @@
 # Four fixed current-to-3220 source views
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 These same four original source endpoints now bind the separate postpin218a phase.
 The complete qualified218a custody packet is preserved in Git and external provenance;
 its joined-refresh-receipt.json is unchanged. No prior result is relabeled as postpin.

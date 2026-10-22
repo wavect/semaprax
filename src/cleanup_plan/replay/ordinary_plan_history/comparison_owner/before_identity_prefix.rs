@@ -113,19 +113,19 @@ const SCALAR_TRANSPORT: usize = size_of::<usize>() // initial build quotient
 const MISMATCH_CALL: usize =
     2 * size_of::<&ResolvedFunction>() + 2 * size_of::<&str>() + size_of::<Diagnostic>(); // direct helper actual/formal + Diagnostic return, no closure
 const STATE_TESTS: usize = 9 * size_of::<bool>(); // build,drain,leaf2+OR,child,Eq,sibling,root
-// Retained primitive caller slots, not dynamic compound payload credit:
-// four charge sites + six original paid sites + three direct HIR reserve sites
-// + two swap payment sites + one Zip-next payment site = sixteen original sites.
-// The new flat-view payment adds a seventeenth site. Each is a
-// nonrecursive sequential Result<(), Diagnostic> receiving frame: success has
-// no owned payload, failure leaves the invocation immediately with one owned
-// Diagnostic. Function/budget places never change and no Result escapes or
-// overlaps another activation of its lexical site. Distinct compound Option,
-// tuple, comparison/index/swap payloads below are paid on EVERY execution.
-// Two explicit backing sites have distinct prepaid primitive frames; no
-// iterator, IterMut::next or Option<&mut Cursor> initializer remains.
-// The first acquisition replaces the identical old compare-entry call and is
-// already caller-received under COMPARE_CALL_CONTROLS; no new payment ABI.
+                                                  // Retained primitive caller slots, not dynamic compound payload credit:
+                                                  // four charge sites + six original paid sites + three direct HIR reserve sites
+                                                  // + two swap payment sites + one Zip-next payment site = sixteen original sites.
+                                                  // The new flat-view payment adds a seventeenth site. Each is a
+                                                  // nonrecursive sequential Result<(), Diagnostic> receiving frame: success has
+                                                  // no owned payload, failure leaves the invocation immediately with one owned
+                                                  // Diagnostic. Function/budget places never change and no Result escapes or
+                                                  // overlaps another activation of its lexical site. Distinct compound Option,
+                                                  // tuple, comparison/index/swap payloads below are paid on EVERY execution.
+                                                  // Two explicit backing sites have distinct prepaid primitive frames; no
+                                                  // iterator, IterMut::next or Option<&mut Cursor> initializer remains.
+                                                  // The first acquisition replaces the identical old compare-entry call and is
+                                                  // already caller-received under COMPARE_CALL_CONTROLS; no new payment ABI.
 const OWNER_CONTROLS: usize = size_of::<ComparisonOwner<'static>>()
     + lexical_cursor::PRIMITIVE_FRAMES + paired_value::ADDITIONAL_PRIMITIVES
     + lexical_cursor::INITIALIZERS + PAIR_PRIMITIVE

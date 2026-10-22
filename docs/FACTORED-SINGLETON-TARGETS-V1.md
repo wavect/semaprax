@@ -1,5 +1,9 @@
 # Factored singleton successor targets v1
 
+Status: private source contract; executable qualification is pending.
+
+Audience: compiler contributors and reviewers.
+
 This source-only optimization is pending combined executable qualification.
 Canonical label/child ordering, route multiplicity, checked overflow, signature
 algebra, physical refusal ownership and all existing replay-work ceilings remain

@@ -1,5 +1,9 @@
 # Parent handoff
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Private worktree: `/Volumes/Semaprax/worktrees/main927-integration-20261015/AI-Lang`.
 Original frozen source basis:9b174d852798c99ce2d14b8170ec05e6c0f94b88.
 Actual MAIN:9279411a0c7e7cf12908457c5fe93289a7b19508.

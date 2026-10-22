@@ -1,5 +1,9 @@
 # Direct singleton and selected-adapter authentication closure
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source candidate from `36c6deb98720e243b0daaf81e813fbe3ec3b0a2d`.
 No Cargo, compiler, Rust tests, Clippy or application qualification ran here.
 The original focused452 failures and all existing assertions remain unchanged.

@@ -1,0 +1,8 @@
+#![allow(dead_code,unused_imports,unused_macros)]
+mod diagnostic {pub use semaprax::diagnostic::Diagnostic;}
+mod bounded_output;
+#[path="/Volumes/Semaprax/worktrees/ci-format-26eeb/src/test_allocation_observer/backing.rs"] mod test_allocation_observer;
+#[path="/Volumes/Semaprax/worktrees/ci-format-26eeb/src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs"] mod frontiers;
+use frontiers::*;
+#[path="/Volumes/Semaprax/worktrees/ci-format-26eeb/src/cleanup_plan/replay/ordinary_plan_history/frontiers/initialization_tests.rs"] mod trace_checks;
+fn main(){ trace_checks::check_initial_reset_without_heap_allocation();println!("Actual fixed trace and original ledger/allocation observer passed");}

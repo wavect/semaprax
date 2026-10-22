@@ -1,0 +1,14 @@
+{
+  "status": "PASS_ACTUAL_FIXED_TLS_TRACE_ORIGINAL_LEDGER_CORE_AND_SYSTEM_OBSERVER",
+  "first_access_allocations": 0,
+  "first_access_reallocations": 0,
+  "first_access_requested_bytes": 0,
+  "retained_event_capacity": 4096,
+  "one_over_refused": true,
+  "normal_and_swap_only_streams_checked": true,
+  "compiler_budget_consumed": 0,
+  "shared_committed_regression_body_used": true,
+  "full_Root_build_not_claimed": true,
+  "time_max_RSS_bytes": 7241728,
+  "sampled_peakKiB": 5536
+}

@@ -1,3 +1,9 @@
+# opt870-observed-fixture-repair-20261017 README
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only repair for the two actual ef788 #870 failures. No Cargo or test execution.
 
 The original whole test module and complete inverse are retained. The original

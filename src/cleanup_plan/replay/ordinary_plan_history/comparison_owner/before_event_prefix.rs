@@ -697,7 +697,6 @@ pub(in crate::cleanup_plan::replay) fn compare(
     Ok(())
 }
 
-
 #[cfg(test)]
 fn reachable_stage(path: &str, sha: &str, current: &str) -> String {
     crate::source_reflows_merge::main_e177_final_inputs::value_direct(path, sha, current)
@@ -717,29 +716,87 @@ pub(super) mod shared_prefix_prices {
 pub(super) fn whole_source() -> String {
     use sha2::{Digest, Sha256};
     let whole = include_str!("before_event_prefix.rs");
-    let (body, _) = whole.split_once("\n// Exact generation witness glue.").unwrap();
+    let (body, _) = whole
+        .split_once("\n// Exact generation witness glue.")
+        .unwrap();
     let mut restored = body.to_owned();
-    assert_eq!(restored.matches("#[path = \"lexical_cursor.rs\"]\n").count(), 1);
+    assert_eq!(
+        restored
+            .matches("#[path = \"lexical_cursor.rs\"]\n")
+            .count(),
+        1
+    );
     restored = restored.replacen("#[path = \"lexical_cursor.rs\"]\n", "", 1);
-    assert_eq!(restored.matches("#[path = \"paired_value_before_event.rs\"]\n").count(), 1);
+    assert_eq!(
+        restored
+            .matches("#[path = \"paired_value_before_event.rs\"]\n")
+            .count(),
+        1
+    );
     restored = restored.replacen("#[path = \"paired_value_before_event.rs\"]\n", "", 1);
-    assert_eq!(restored.matches("#[path = \"shared_prefix_before_event.rs\"]\npub(super) mod shared_prefix;").count(), 1);
-    restored = restored.replacen("#[path = \"shared_prefix_before_event.rs\"]\npub(super) mod shared_prefix;", "mod shared_prefix;", 1);
-    assert_eq!(restored.matches("use super::pair_scope_census;\n").count(), 1);
+    assert_eq!(
+        restored
+            .matches("#[path = \"shared_prefix_before_event.rs\"]\npub(super) mod shared_prefix;")
+            .count(),
+        1
+    );
+    restored = restored.replacen(
+        "#[path = \"shared_prefix_before_event.rs\"]\npub(super) mod shared_prefix;",
+        "mod shared_prefix;",
+        1,
+    );
+    assert_eq!(
+        restored.matches("use super::pair_scope_census;\n").count(),
+        1
+    );
     restored = restored.replacen("use super::pair_scope_census;\n", "#[cfg(test)]\n#[rustfmt::skip]\nmod before_reachable_primitives;\n#[cfg(test)]\nmod before_flat_view;\n#[cfg(test)]\nmod before_fused_flat;\n#[cfg(test)]\nmod before_identity_prefix;\n#[cfg(test)]\nmod before_lexical_cursor;\n#[cfg(test)]\nmod before_pair_scope;\n#[cfg(test)]\n#[rustfmt::skip]\nmod before_prepared_pairing;\n#[cfg(test)]\nmod before_retained_tail;\n#[cfg(test)]\npub(super) mod pair_scope_census;\n", 1);
-    assert_eq!(restored.matches("pub(super) struct ComparisonOwner<").count(), 1);
-    restored = restored.replacen("pub(super) struct ComparisonOwner<", "struct ComparisonOwner<", 1);
-    assert_eq!(restored.matches("pub(super) const OWNER_CONTROLS:").count(), 1);
-    restored = restored.replacen("pub(super) const OWNER_CONTROLS:", "const OWNER_CONTROLS:", 1);
-    assert_eq!(restored.matches("\n\n#[cfg(test)]\nfn reachable_stage").count(), 1);
-    restored = restored.replacen("\n\n#[cfg(test)]\nfn reachable_stage", "\n#[cfg(test)]\nmod tests;\n\n#[cfg(test)]\nfn reachable_stage", 1);
-    let digest = Sha256::digest(restored.as_bytes()).iter()
-        .map(|b| format!("{b:02x}")).collect::<String>();
-    assert_eq!(digest, "5720e0df29c50e82f0059c04dd5747f5ac860f6b419a6fa79a1f2c13564cda67");
+    assert_eq!(
+        restored
+            .matches("pub(super) struct ComparisonOwner<")
+            .count(),
+        1
+    );
+    restored = restored.replacen(
+        "pub(super) struct ComparisonOwner<",
+        "struct ComparisonOwner<",
+        1,
+    );
+    assert_eq!(
+        restored.matches("pub(super) const OWNER_CONTROLS:").count(),
+        1
+    );
+    restored = restored.replacen(
+        "pub(super) const OWNER_CONTROLS:",
+        "const OWNER_CONTROLS:",
+        1,
+    );
+    assert_eq!(
+        restored
+            .matches("\n\n#[cfg(test)]\nfn reachable_stage")
+            .count(),
+        1
+    );
+    restored = restored.replacen(
+        "\n\n#[cfg(test)]\nfn reachable_stage",
+        "\n#[cfg(test)]\nmod tests;\n\n#[cfg(test)]\nfn reachable_stage",
+        1,
+    );
+    let digest = Sha256::digest(restored.as_bytes())
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect::<String>();
+    assert_eq!(
+        digest,
+        "5720e0df29c50e82f0059c04dd5747f5ac860f6b419a6fa79a1f2c13564cda67"
+    );
     let admitted = super::reachable_stage(
         "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs",
         "5720e0df29c50e82f0059c04dd5747f5ac860f6b419a6fa79a1f2c13564cda67",
-        include_str!("../comparison_owner.rs"));
-    assert_eq!(restored, admitted, "complete compiled immediate899 source and current-first historical acquisition");
+        include_str!("../comparison_owner.rs"),
+    );
+    assert_eq!(
+        restored, admitted,
+        "complete compiled immediate899 source and current-first historical acquisition"
+    );
     restored
 }

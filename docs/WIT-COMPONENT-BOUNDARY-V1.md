@@ -120,11 +120,11 @@ first-failure behavior, and executable add/subtract/multiply/divide/remainder/
 negate overflow and zero-divisor status paths. Wasmtime fuel exhaustion remains
 an out-of-band engine error rather than a forged typed SEMAPRAX status.
 
-The current isolated runner is pinned to Wasmtime 48.0.6, including its matching
-lockfile family, to address the October 14, 2026 security advisories fixed in
-[48.0.6](https://github.com/bytecodealliance/wasmtime/releases/tag/v48.0.6).
-The earlier 48.0.5 update and its local evidence below are historical; they do
-not qualify the 48.0.6 runner.
+The current isolated runner is pinned to Wasmtime 48.0.7, including its matching
+lockfile family, to address RUSTSEC-2026-0378 and RUSTSEC-2026-0379. The earlier
+48.0.6 and 48.0.5 pins and their local evidence are historical; they do not qualify
+the 48.0.7 runner. The exact pinned Linux runtime and dependency-policy gates
+must qualify the new patch version independently.
 
 The earlier isolated runner was pinned to Wasmtime 48.0.5, including its matching
 lockfile family, to address GHSA-x84v-gj2h-g759, GHSA-vqjp-4c8c-hfgg,

@@ -1,5 +1,9 @@
 # NEXT #781 sealed raw-inventory boundary (source only)
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base: `755c082541ffc8b724c7b932428b6bb80153ee6b`, kept separate from the
 parent's frozen current qualification. This successor does not rewrite any prior
 c7/836/428/3ef/09fb/755 source packet or immutable JSON table.

@@ -1,5 +1,9 @@
 # Browser subject capture at 8db669070
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 CI run 39086633619, job 117554944634 captured complete baseline and renamed
 Project graphs from 8db669070b657a1b8f3b3b68d80836c09eabcc2c with the actual
 Rust 1.88 Linux compiler and binary SHA in provenance. Strict base64, byte

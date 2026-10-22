@@ -1,0 +1,21 @@
+{
+  "status": "LOCAL_CARRIER_HELP_SOURCE_AND_CUSTODY_PASS_PENDING_FULL_PRODUCTION_CI",
+  "base_head": "74f71fb04f67370d479bdfa3fbc163932ef19553",
+  "fixes": [
+    "Remove both crate-wide conversion trait implementations that introduced unrelated Result inference ambiguities.",
+    "Local match expansion retains the compact successful Result and converts only its terminal error.",
+    "Preserve the complete scoped-help oracle while adding the four already implemented decode-only selectors.",
+    "Regenerate the agent bundle catalog identity and count using the real current build.rs and complete production identity functions; retain every other payload byte from the actual Linux output."
+  ],
+  "checks": {
+    "carrier_and_allocator_tests": 7,
+    "standalone_scoped_help_and_all_aliases": true,
+    "source_lookup_inverse_and_hostile_controls": 2,
+    "complete_180_entry_reflow_gate": true,
+    "both_original_source_domain_verifiers_and_all_six_hostile_controls": true,
+    "source_harness_Clippy_warnings_denied": true,
+    "rustfmt_and_module_size": true
+  },
+  "normal_local_CLI_qualification": "Actual existing normal artifact; the scoped-help implementation is unchanged. This is not a current-head full compiler build claim.",
+  "limits": "Full production compilation and current-head CI remain required. No quota, reserved floor, old fixture recipe, original fee bank, old assertion or source membership is weakened."
+}

@@ -1,5 +1,9 @@
 # Typed constructor propagation — future source batch
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Basis: a6a46a2cde6414611060e195b590377904e5a25e. Private, source-authored and unexecuted. OPT825 remains open. No application-fit, full-constructor funding, compiler or runtime claim.
 
 The actual resolved-core caller now passes its existing affine Receiver through typed overlay/stub/default/field successors. The original maximum and first Setup are held inline. Foreign identity is checked before even arithmetic/physical exits; it cannot donate ACTIVE. The same inherited physical maximum-size request remains selected after authentication. Semantic One remains primary despite a secondary sticky/detached association; Many moves its full original backing without paid reclassification.

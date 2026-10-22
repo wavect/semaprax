@@ -1,3 +1,9 @@
+# repaired-batch-checks-20261017 README
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Actual repaired-batch checks
 
 Scoped production Clippy passed at `6fb88632f73ea8aed713c5e22156c2d838cce7c5`. The changed CI trace Python module passed12 cases atd3d. Full source inputs, CargoJSON and memory samples remain in the exact external round named in summary.json.

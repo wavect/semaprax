@@ -1,0 +1,17 @@
+# closure-audit issue-843-closure-draft
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
+Ready for parent verification and archive publication before posting.
+
+Implemented one paid invocation closure-receiving owner shared across both roots and a genuine unit producer. **All 11 direct owning gates PASS**, including exact/short/zero and work frontiers, full old IDs/verdict/work/diagnostics, success/arithmetic-None/failure distinction, first sticky failure/floors, direct foreign/restored cached-view invalidation and complete independent immediate-old receiver/caller/source histories. Still-existing outer/scratch/root/nested Result payments remain.
+
+The genuine immediate-old versus shared-slot two-root control measures each route's actual paid frontier and allocation/peak/full-Drop predicates; it PASS (`21ff415730214077cb922d9e6c050cad2ac068520b0028d0b8b35a77bc355fb5`). It prints no numeric tuples, so none are invented. The producer-boundary counter control PASS (`2733a2f455672ab1483ae6c2d04f3ccef14d4d7ef1b76f40bd601ed8f456c0d1`): cold producer invocations are counted directly and cached reuse invokes none; memo insertions are not treated as misses or application frequency.
+
+The unchanged broader #163 fixture **FAILS** its strict reserved-gain assertion at width 0: earlier #831/current reservation 10829/12814, allocated 1517/1453, peak 1501/1453, live 0/freed=allocated/invalid=false. It is an earlier #831 versus current single-request/bootstrap composite, not the immediate #843 two-root comparison. No later widths execute after that first failure. Its assertion is intact, the actual failure is retained and #831 stays open. This issue explicitly permits one-time bootstrap cost to offset low-miss savings; no universal reservation reduction is claimed.
+
+Execution source: `d4cab900edac07fdcc4de0cdcb1bf3daafbef5ef`. Five focused build roles PASS; runtime **124 PASS / 18 FAIL out of 142**, one genuine body per owner, unchanged source, no resource refusal and settled process groups. Runtime receipt SHA256 `39cac179bfa8cced54ce69f095f541b1680358cb9566026a41d81bbb9a30fd7a`. Evidence: [complete receipts and failure disclosure](https://github.com/wavect/semaprax/tree/wavect/v0-10-0/docs/evidence/qualification-d4cab-142-20261015). All 18 failures and earlier failed/not-retested outcomes remain disclosed. Core production lib/bin Clippy PASS (60.725s; receipt SHA256 `7edb38f1795af61dba676d0a86ffb106153ba37e09e4e6f1d0ec7904ee25b344`). Full-CLI production Clippy PASS (receipt SHA256 `9392cca232c032b97a1eb5a38ffbccfe13bf2f9b4190b80d6daa8fa61e88c1bb`). No pin was moved by these five changes. The separate producer-pin capture remains an actual outcome to disclose in the archive, not an inferred producer success.
+
+No application cap recovery, compiler RSS or matched-agent token/cost gain is claimed.

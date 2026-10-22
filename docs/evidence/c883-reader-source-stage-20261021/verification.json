@@ -1,0 +1,100 @@
+{
+  "status": "LOCAL_ORIGINAL_CLOSED_FAMILY_AND_HOSTILE_CONTROLS_PASS",
+  "base_head": "920a6b5cc8",
+  "source": "src/source_reflows_merge/main_c883_inputs.rs",
+  "before_sha256": "d868ee63603f01ab24e736de05e0af0456a98cbec0773173c999cb05bcee5ff1",
+  "current_sha256": "28e7f79d5764b65ab6021bfe825fabb4cd03e4cb66fd0c8b0218e64f674695f9",
+  "change": "Route exact expected-file tuples and compiled input through the already imported complete CI inverse reader before the original strict physical/compiled equality. No new source scope or inverse recipe; every original guard remains unchanged.",
+  "exhaustive_before": {
+    "rows": 670,
+    "passing": 668,
+    "failures": [
+      {
+        "kind": 0,
+        "path": "src/hir.rs",
+        "result": {
+          "error_prefix": "held path=/Volumes/Semaprax/worktrees/ci-format-26eeb/src/hir.rs expected=58967 actual=59503",
+          "status": "FAIL"
+        },
+        "row": {
+          "current_length": 58967,
+          "current_sha256": "e3aaf1c870be500fa794ec24d393f8dc94fcd996990abf388222ce079f4e0b04",
+          "main_archive": "docs/evidence/main-c883-next-source-merge-20261017/main/78d497e9da9a2e0866e42ef48a2898aa67b525e9f9112a4c2872385d48b4514e.txt",
+          "main_length": 58403,
+          "main_sha256": "78d497e9da9a2e0866e42ef48a2898aa67b525e9f9112a4c2872385d48b4514e",
+          "path": "src/hir.rs"
+        },
+        "table": "docs/evidence/main-c883-next-source-merge-20261017/main-inputs.json"
+      },
+      {
+        "kind": 0,
+        "path": "src/prelude.rs",
+        "result": {
+          "error_prefix": "held path=/Volumes/Semaprax/worktrees/ci-format-26eeb/src/prelude.rs expected=46130 actual=46154",
+          "status": "FAIL"
+        },
+        "row": {
+          "current_length": 46130,
+          "current_sha256": "32a5461db85f2832bb788ed32efd1df82eb8f48ffe44c51c533ceb20a596b478",
+          "main_archive": "docs/evidence/main-c883-next-source-merge-20261017/main/fadacefebd87e160f4fe443ace46aef493a1c85d9522f4374f5026e11b292428.txt",
+          "main_length": 45797,
+          "main_sha256": "fadacefebd87e160f4fe443ace46aef493a1c85d9522f4374f5026e11b292428",
+          "path": "src/prelude.rs"
+        },
+        "table": "docs/evidence/main-c883-next-source-merge-20261017/main-inputs.json"
+      }
+    ]
+  },
+  "original_post_fix_checks": [
+    "All four historical_pin_capture_chains_restore_every_original_source cases pass.",
+    "closed_main_c883_acquisition_authenticates_all_complete_current_owners: all240 sealed rows pass.",
+    "closed_main_1e_acquisition_authenticates_all_complete_current_owners: all22 sealed rows pass.",
+    "closed_f247_acquisition_authenticates_whole_current_and_incoming_domains: all408 sealed rows pass.",
+    "The complete CI inverse regression with stale/changed/foreign controls passes in all five original namespaces.",
+    "All180 approved reflow packets, both complete compiled-lookup inverses and finite-page channel gate pass."
+  ],
+  "body_only_registration_preservation": [
+    {
+      "domain": "hir",
+      "post_generation_body_only_updates": [
+        "src/source_reflows_merge/main_c883_inputs.rs",
+        "src/source_reflows_merge/main_e177_overlay_v2.rs"
+      ],
+      "all_acquisition_registrations_and_exact_edge_text_retained": true
+    },
+    {
+      "domain": "projection",
+      "post_generation_body_only_updates": [
+        "src/source_reflows_merge/main_c883_inputs.rs",
+        "src/source_reflows_merge/main_e177_overlay_v2.rs"
+      ],
+      "all_acquisition_registrations_and_exact_edge_text_retained": true
+    }
+  ],
+  "source_roles": {
+    "status": "SOURCE_ONLY_ORIGINAL_FULL_DOMAIN_AND_HOSTILE_CONTROLS_PASS",
+    "domains": [
+      "hir",
+      "projection"
+    ],
+    "negative_controls": {
+      "dropped_actual_child_refused": true,
+      "coordinated_class_drop_not_original_generated_output": true,
+      "production_reclassification_refused": true,
+      "actual_source_drift_refused": true,
+      "whole_raw_drift_refused": true,
+      "foreign_path_child_cannot_escape": true
+    },
+    "generation_receipt_sha256": "89e709c1897223d0f65567970de53b41beb94cceb902bb8e0602fc9d335c8f75",
+    "complete_chain_receipt_sha256": "ba95042c28f113e573b489791cb9f921579a5b35011554d3fb07438bf99a5af6",
+    "peak_RSS_bytes": 139427840,
+    "no_Rust_or_hosted_qualification_claimed": true,
+    "must_refresh_if_header_or_other_source_changes": true
+  },
+  "clippy": {
+    "status": "PASS_ACTUAL_SOURCE_HARNESS_CLIPPY_WARNINGS_DENIED",
+    "peakKiB": 560848
+  },
+  "production_or_full_ci_green_claimed": false,
+  "no_budget_fees_quotas_limits_or_original_test_changes": true
+}

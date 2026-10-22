@@ -1,0 +1,7 @@
+{
+  "only_removed_registration": "pub(crate) mod identity_reservation;\n",
+  "reason": "Unused identity-reservation child depends on compiler-private AST and abort constructors. The complete actual Budget ledger core, every used child and every actual operation body remain unchanged.",
+  "actual_source_sha256": "3775f83b8a94324511255f879dd6ba783a6ae83a7a8f764671ccfa17c85b6f1b",
+  "isolated_sha256": "596eeed3bed2e2487a4cf779b8b6349eb714bcf19bb39c7751e270f20d5c619e",
+  "full_Root_build_not_claimed": true
+}

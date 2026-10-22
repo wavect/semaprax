@@ -1,3 +1,9 @@
+# sourceguard-input-domains-7a87 README
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Bounded test-only successor atop d20/7a87; no production help, admission, formatter, native profile or classifier implementation changes.
 
 Actual7a87 owner62 failed the old native help-line count; owner64 failed SourceA first whole classifier inverse. Both logs remain genuine failed receipts. SourceB passed at7a87 and its entire source remains unchanged; this source-only successor does not claim a new Rust PASS.

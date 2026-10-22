@@ -1,5 +1,9 @@
 # Compile-only canonical import generation
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Followup to 4821fe1a2 (actual consolidated7827 diagnostics). Exactly the missing AllocationPayer import changed the canonical source 014f04e6→22d0dcf5. The immutable Selected947 packet authenticates the prior complete root. Its existing arena source assertion also reads the current root directly, so that assertion now acquires the complete014f stage before its unchanged comparison; this changes only that arena source getter, creating the second finite source row (current arena→wholeba15 stage).
 
 Existing main67107_inputs.rs authenticates both actual compiled/physical sources and full current archives, bounded no-follow regular-handle reads, exact stage archive SHA/length and whole inverses. At the existing Selected ingress it stages actual compiled inputs before the original947 rows; historical before inputs still reach their original validation. All previous assertions remain, including physical/stage digest, complete predecessor methods and old arena work equality. Singleton ingress already goes through this Selected acquisition. The direct arena source audit gets the same authenticated stage. One new literal existing-lib control: source_reflows_merge::main67107_inputs::canonical_import_generation_authenticates_current_and_complete_selected_stages.

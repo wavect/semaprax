@@ -275,7 +275,8 @@ fn full_original_operation_sources_and_receivers_have_only_declared_identity_hoo
     );
     // Restore the entire later lowering stage before the unchanged tag inverse.
     let ids_before_lowering = super::lowering_identity_tests::prior_source(
-        "src/hir/ids.rs", ci_str!("../../../src/hir/ids.rs"),
+        "src/hir/ids.rs",
+        ci_str!("../../../src/hir/ids.rs"),
     );
     // Reuse the complete closed-tag inverse and its exact current/prior pins.
     let acquired = crate::source_reflows_merge::main_e177_final_inputs::value(

@@ -1,5 +1,9 @@
 # OPT839 held authentication successor — source-only
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base is exact `2b5cae170e13b16c4a5f57a619b302405e2934a6`; the protected
 `59976776de8d6c03eccc2415d5c06636b00f8b7d` predecessor adapter is a dependency,
 not another feature pick. No Cargo, Rust discovery, build, tests or Clippy ran.

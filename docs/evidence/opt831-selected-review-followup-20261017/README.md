@@ -1,5 +1,9 @@
 # #831 review follow-up (source only)
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Predecessor d075235f68b42125c8bf3592b999cebaa2a53163 remains complete in the two before files and reversible character-range edits. The entire original test file is an unchanged prefix. No original baseline, assertion, cap, work request, old receiver or source gate was changed.
 
 MOVEMENT now names the One mutable Label field binding separately from the actual/formal pair of immutable Label::eq operands. Many's mutable map field binding is separate from insert/get_mut's actual/formal mutable map receiver pair. This increases the candidate fee; no measured saving or fit is claimed.

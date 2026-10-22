@@ -1,5 +1,9 @@
 # Original-owner imported signature rewriting — source only
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Immediate basis: 5ca19ed2dae7543c2f8e87c4d48b7ba77d06ba3b. Five new and 36 required existing
 selectors are SOURCE_AUTHORED_UNEXECUTED. No Cargo/compiler/runtime/performance,
 application-fit, whole-constructor funding or OPT825 closure claim.

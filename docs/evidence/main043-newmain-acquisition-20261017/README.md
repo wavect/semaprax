@@ -1,5 +1,9 @@
 # NEWMAIN input before the complete old Main043 receiver view
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Python source-view qualification only. No Rust, Cargo, authority generation or
 common refresh is run by this packet.
 

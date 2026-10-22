@@ -1,5 +1,9 @@
 # Grouped correction after the e3eb compile attempt
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The exact unit-first attempt at `e3eb476838442b58c02ccc815aae4bbdfebfd50e` exited 101 after 127.584 seconds with nine compiler diagnostics and zero executed test bodies. The complete failed attempt is retained in `../failed-build-e3eb-20261015`; neither production success nor runtime acceptance is inferred.
 
 Six source files change together: use nested Rust-2021 conditions instead of a Rust-2024 let chain; explicitly locate both capacity-test child modules; expose only three existing replay-private helper functions through replay-private reexports instead of opening their child modules; render the digest through the existing LowerHex adapter; compare every ordered diagnostic's official six-field JSON instead of requiring a nonexistent serde Serialize implementation. Evaluation, charges, conditions, helper bodies, original module privacy and all diagnostic/settlement assertions remain intact. No language edition, limit, failure priority or test requirement is weakened.

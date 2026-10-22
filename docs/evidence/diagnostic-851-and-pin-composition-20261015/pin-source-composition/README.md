@@ -1,5 +1,9 @@
 # Strict pin-source composition proposal (external only)
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The preserved d4 pin producer succeeded. Its patch preparer failed at the legacy semantic_graph.rs include inverse. This is a real source-domain mismatch: all 106 forward legacy edits reconstruct the complete 49,886-byte input at immutable Git39130d9237121b61e40b47f95c072c09a456554e (SHA910cc41a86fb254e3aa36e2708b109ec91f7a309dd64aac051854cbf5806abab), whereas d4's later source is SHA8813a643fc82d29b09423cdb337f2161be800ff197ace2f66a3c8a81882950ee. The scalar-browser legacy row still matches. No guessed include deletion or selective assertion skip is used.
 
 `source_inverse_composition.py` is the generic repair. Explicit repository, actual capture head, legacy-input checkpoint head, immutable table path and already checked candidate bytes are its inputs. It checks regular immutable Git blobs and checkpoint ancestry, preserves the table and every original archive, executes every forward edit to authenticate the whole checkpoint against Git, authenticates complete candidate bytes, then executes EVERY old inverse (106 + 1 here) to exact archived originals. It returns a NEW full-source projection stage. It never substitutes a digest or appends hooks to the old table.

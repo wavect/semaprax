@@ -1,5 +1,9 @@
 # #785 remaining closed-operation allocation elimination — source-only
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base6d43cee05acb28677f4b7aff683961d0202e2705, disjoint from its generic-inference sites and resolver_held regression file. No Cargo, tests, Node, global source generation, pin capture or ROOT edits. This is a partial elimination of owned reconstruction; #785 stays open for remaining dynamic owning construction and its actual application/live-agent comparisons.
 
 The existing CompilerDeclaration closed set already represents Map/List/Iterator operation enums. VecOperation(VecOp), BoxOperation(BoxOp) and StdinInspection(PureOp) now carry the corresponding pre-existing closed enums. Their text arms call the same original const op.id() methods. No arbitrary String/str, source-authored or synthesized ID can enter these variants. They add neither validation nor prelude/borrow/ABI authority.

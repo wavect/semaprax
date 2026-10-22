@@ -1,5 +1,9 @@
 # Complete retained-context continuation
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Actual a82e selected owners 108 and 112 failed with SPX-G410 in the legacy fixture context before either independent route ran. This extends the previous boundary/certificate fixture correction to the status/scalar and owned-family controls. All three positive context callbacks use the existing complete prepared provider directory; the legacy callback and its closed negative owners remain unchanged. Original sources, hostile mutations, independent drivers, budgets, complete diagnostic comparisons and assertions remain byte-exact after reversing only these method names.
 
 The status/scalar signature owner is included because its identical positive callback uses the same fixture. No compiler production behavior changes. These source-only repairs are unexecuted and do not prove runtime success.

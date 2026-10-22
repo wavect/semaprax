@@ -1,3 +1,9 @@
+#[allow(
+    clippy::duplicate_mod,
+    reason = "The same closed reader must compile in independent library and integration harness namespaces."
+)]
+#[path = "../source_reflows/ci_inputs.rs"]
+mod legacy_ci_inputs;
 #[test]
 fn owned_compile35f_current_acquisition_preserves_complete_seven_subjects_and_refuses_foreign() {
     let source = OWNED_COMPILE35F_PATH;
@@ -1236,6 +1242,9 @@ pub(crate) fn main_f247_file_raw(
     length: usize,
     expected: &str,
 ) -> Result<String, &'static str> {
+    if let Some(value) = legacy_ci_inputs::file_expected(path, length, expected) {
+        return Ok(value);
+    }
     if let Some(value) =
         crate::source_reflows_merge::next_big_batch_inputs::file(path, length, expected)
     {

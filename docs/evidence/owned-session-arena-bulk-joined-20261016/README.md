@@ -1,5 +1,9 @@
 # Joined source-only checkpoint
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 This checkpoint combines the paid Session receiving families through type/drop, canonical arena, fixed runtime transport for 90 fixtures and 36 metadata tables, Main7c6 HIR receivers, and the residual constructor frontier correction. No Rust execution or memory improvement is claimed. Main afba is a known subsequent compiler correction and is not included here.
 
 The common and arena capsules restore their complete modified preexisting namespaces. The Main capsule covers exactly its twelve receiver inputs, and the residual correction capsule covers exactly its ten component inputs; neither claims whole-tree Main equivalence. Independent predecessor domains preserve all other feature differences and complete old receivers. All original fixture and protected component bytes remain bound.

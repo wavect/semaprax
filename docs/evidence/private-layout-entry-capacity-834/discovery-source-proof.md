@@ -1,5 +1,9 @@
 # Three cold-construction opportunities — discovery only
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Frozen inspected source commit: `940fcf220e47d1975f757e76f0b3401691db9358`. Locally verified published-link target: `4f8f598c7935d0a5cdd4a5d5ba5b49d164ae2cfc`. No benchmark, allocation census, implementation, or fresh gain claim. Source reachability establishes opportunities, not application frequency.
 
 ## 1. Reuse registry-owned temporary scratch across distinct cold callers

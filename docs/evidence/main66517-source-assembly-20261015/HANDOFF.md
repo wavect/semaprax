@@ -1,5 +1,9 @@
 # Latest MAIN source integration
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Private assembly merges publicc582 and actual latest MAIN66517a983 (db0e formatter scratch,8e01 CI/help,841efe Project native-law selection,66517 browser pin wires). CHANGELOG retains both branches. Production files changed by these main commits are byteexact MAIN. Two new main helper modules are joined once in all three source audits; interop stays1500 lines.
 
 All inherited guards, including833 and841, enter their complete397 domain through14 full predecessor inputs before their distinct immutable views. All old source/runtime JSON, scripts, archives, full independent receivers and41 selected-child assertions remain exact. MAIN's six new hygiene owners use actual raw main inputs; their full fixed-array original inverse is checked independently by the bounded Python proof. New main hosted/current/prior/historical browser evidence is kept byteexact.

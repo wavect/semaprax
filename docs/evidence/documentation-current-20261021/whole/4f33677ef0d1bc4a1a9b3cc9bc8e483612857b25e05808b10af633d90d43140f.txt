@@ -1,0 +1,7 @@
+# selected-smallshape-receipt-286-20261017 README
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
+Pre884 owner286 exact source-only receipt correction. Original complete test source is archived; the exact inverse restores it. The independently completed unobserved canonical states count nonempty Exit executions (including arithmetic refusal publishing none), never derive a delta from measured payment. The whole current/immediate physical outcomes retain exact six-field result equality, work equality and complete heap equality. Paid equality becomes the exact removed Result<(),Diagnostic> forwarding-layout equation. Each producer independently executes zero, exact-1 and exact own limits, with repeat equality of complete six-field snapshots, receipt, work and physical metrics; existing owner287 full/floor/sticky controls remain byte-exact. Complete before_paid_many producer and its original physical tariffs remain unchanged. No production changes, Cargo, tests, builds, binders or ROOT writes. Constructor layout changes and future valid optimizations require separate source-derived composition before qualification.

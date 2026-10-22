@@ -9,7 +9,7 @@ pub(super) const STEP: usize = 2 * size_of::<usize>() + size_of::<bool>() // ret
     + 2 * size_of::<&[Rc<SkeletonObservation>]>() // rest pattern and assignment copy
     + 2 * size_of::<&Rc<SkeletonObservation>>() + size_of::<&SkeletonObservation>() // as_ref actual/formal/return
     + size_of::<usize>(); // original item increment
-// Only entering a new immutable segment forms these views/index receivers.
+                          // Only entering a new immutable segment forms these views/index receivers.
 pub(super) const LOAD: usize = 2 * size_of::<&mut Vec<usize>>()
     + size_of::<Option<usize>>()
     + size_of::<usize>()
@@ -20,7 +20,7 @@ pub(super) const LOAD: usize = 2 * size_of::<&mut Vec<usize>>()
     + 2 * size_of::<&Vec<Rc<SkeletonObservation>>>()
     + 2 * size_of::<&[Rc<SkeletonObservation>]>()
     + size_of::<bool>(); // loaded=true
-// The original exhausted-segment update and fresh tail remain honestly paid.
+                         // The original exhausted-segment update and fresh tail remain honestly paid.
 pub(super) const EMPTY: usize = 2 * size_of::<usize>() + size_of::<bool>(); // segment increment, item=0, loaded=false
 pub(super) const TAIL_VIEW: usize =
     2 * size_of::<&Vec<Rc<SkeletonObservation>>>() + 2 * size_of::<&[Rc<SkeletonObservation>]>();

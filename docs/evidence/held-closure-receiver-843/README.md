@@ -1,5 +1,9 @@
 # OPT843 held closure receiving candidate
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only implementation against `7800b014151b6ce0709c351ccdfd52ae25832e07`.
 No Rust compilation, tests, Clippy, runtime allocation observations or performance
 measurements were executed for this candidate.

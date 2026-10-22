@@ -1,5 +1,9 @@
 # OPT881 focused closure
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The retained merge-query/step owner is qualified at published
 `0f9fb3766f0413694e4a12447538f7c7bb99627f`. All16 relevant owners passed,
 including complete immediate878 controls, original work, output/diagnostic

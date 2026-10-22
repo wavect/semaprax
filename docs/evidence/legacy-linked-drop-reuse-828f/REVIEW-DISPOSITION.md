@@ -1,5 +1,9 @@
 # Bounded reused-argument Drop review
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 One distinct8929-byte tool-disabled Sonnet process completed56.1131seconds,
 peak325943296bytes, exit0. Full raw payload/verdict/receipt retained unchanged.
 Provider listcost0.084822USD; actual billing unknown. No compiler or runtime

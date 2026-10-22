@@ -113,7 +113,7 @@ fn report_is_exact_typed_and_read_only() {
     assert_eq!(value["capabilities"]["added"], serde_json::json!([]));
     assert_eq!(value["capabilities"]["removed"], serde_json::json!([]));
     assert_eq!(value["targets"][1]["validation"], "wasmparser_structural");
-    assert_eq!(value["targets"][1]["validator_version"], "0.259.0");
+    assert_eq!(value["targets"][1]["validator_version"], "0.261.0");
     // Keep report metadata tied to the actual pinned dependency.
     assert!(include_str!("../../Cargo.toml").contains(&format!(
         "wasmparser = {{ version = \"={}\"",
@@ -537,7 +537,7 @@ fn whole_report_sha_kats_cover_patch_v1_v2_v3() {
     assert_eq!(
         reports
             .each_ref()
-            .map(|report| sha256(&report.replace("0.259.0", "0.256.0"))),
+            .map(|report| sha256(&report.replace("0.261.0", "0.256.0"))),
         [
             "b3d6417d4ebdd50c007405030b60d7ddc26e05e7bf503c2a469c46d82f8bd3c0".to_owned(),
             "5051b9c342761cf3990a1078adc50a81c044fe108e3c64ba40a3eba02b5461d3".to_owned(),
@@ -547,9 +547,9 @@ fn whole_report_sha_kats_cover_patch_v1_v2_v3() {
     assert_eq!(
         reports.each_ref().map(|report| sha256(report)),
         [
-            "f192bbd30d80416f47229850bb5cc4ba85ceddf2864fba63979c5a7f213cbbed".to_owned(),
-            "c9d6f9e58cc7c2c2604666873b1b152bc788e828828f03fbdf3d1c19a247c802".to_owned(),
-            "78de47706172a047e773a6d2fabb9b0bed736b85d80500efd489633a20eb6d75".to_owned(),
+            "9b46b1e71df506e4a2c63c60127b2bad1b5cdb01cc61b79d727704eaf0cb4758".to_owned(),
+            "5d82f23d7ab8c8157e70b6ca3e22f5edecfa952d4c703a3da1c1a2f33e3ae850".to_owned(),
+            "87e78393f6cff02e3c779d45988beade145c266c9cd82bfdee901b897d4ecca2".to_owned(),
         ]
     );
 }

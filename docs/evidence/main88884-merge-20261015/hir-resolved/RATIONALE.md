@@ -1,5 +1,9 @@
 # External three-file semantic merge
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Full resolved files are under this directory's src/hir paths; manifest.json records exact hashes. ROOT was read only. These files start from the actual conflicted merge working copies, retain all automatically merged non-conflict regions, then resolve five conflict chunks. No Cargo, tests, builds, formatting tools or runtime execution occurred.
 
 resolve_expr: retain the paid lexical byte_ancestry entry for BOTH while condition and body. MAIN's arbitrary current &scope body alternative would let a manually authored while manufacture byte ancestry. MAIN's strict condition alternative would incorrectly remove the established surrounding byte ancestry. The lexical entry exists only after EnterByteLoop and is unwound with loop depth; this is stronger contextual evidence than a scope containing a SliceU8.

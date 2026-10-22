@@ -1,5 +1,9 @@
 # Nested custody: independent OURS8fbb and MAINbcc source domains
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only composition; no Rust execution or completed qualification claim.
 
 Core HIR keeps its original three callable selectors, with filesystem custody

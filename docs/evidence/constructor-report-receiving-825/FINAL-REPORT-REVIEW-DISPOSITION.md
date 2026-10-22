@@ -1,5 +1,9 @@
 # Final-report seam bounded review
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 One distinct10339-byte tool-disabled Sonnet source review completed77.3168seconds, peak323977216bytes, exit0; raw payload/result/receipt retained unchanged. Provider list cost0.118992USD; actual billing unknown. No Rust compilation/runtime occurred and this is not whole825 approval.
 
 B1 omitted context resolved at diagnostic.rs60..70/98..100: Diagnostic::io stores static code and moves owned String into Cow::Owned; with_help moves its String into Option. Neither operation clones backing. The actual report owner precharges Diagnostic initializer separately from Vec slot. New whole-observer/pointer/sticky-at-stop controls still require execution.

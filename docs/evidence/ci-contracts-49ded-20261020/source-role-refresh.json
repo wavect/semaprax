@@ -1,0 +1,62 @@
+{
+  "status": "SOURCE_ONLY_ORIGINAL_FULL_VERIFIER_AND_SIX_HOSTILE_CONTROLS_PASS",
+  "files": [
+    {
+      "path": "docs/evidence/a3-e47-final-custody-20261016/hir.json",
+      "before": {
+        "length": 2511031,
+        "sha256": "b958f45042e308ef7141d7dae9fde2e19b07a6982c3cd12f7b5c366d1f7cce0e",
+        "archive": "docs/evidence/ci-contracts-49ded-20261020/whole/b958f45042e308ef7141d7dae9fde2e19b07a6982c3cd12f7b5c366d1f7cce0e.txt"
+      },
+      "current_length": 2511031,
+      "current_sha256": "12d7850bbeca4f9d6bba0334d2f71e2825da92373b86a26d5941bd35762f447b",
+      "all_original_classes_and_roles_unchanged": true,
+      "added_actual_registered_sources": []
+    },
+    {
+      "path": "docs/evidence/a3-e47-final-custody-20261016/projection.json",
+      "before": {
+        "length": 2796238,
+        "sha256": "55c10c166d778cba089bb435bfc1d7612a6b0b0f3bac601be255f5867478ea15",
+        "archive": "docs/evidence/ci-contracts-49ded-20261020/whole/55c10c166d778cba089bb435bfc1d7612a6b0b0f3bac601be255f5867478ea15.txt"
+      },
+      "current_length": 2796238,
+      "current_sha256": "45fe8b2f1b9e2778586ea96e56945e9c86b4130de368e2a224a601e250ea8026",
+      "all_original_classes_and_roles_unchanged": true,
+      "added_actual_registered_sources": []
+    },
+    {
+      "path": "docs/evidence/a3-e47-final-custody-20261016/new-owners.json",
+      "before": {
+        "length": 63761,
+        "sha256": "5f6cbb35ebcc667cef54864f3cdc494e9ae4b80033c7745da22e838ccf6d07d7",
+        "archive": "docs/evidence/ci-contracts-49ded-20261020/whole/5f6cbb35ebcc667cef54864f3cdc494e9ae4b80033c7745da22e838ccf6d07d7.txt"
+      },
+      "current_length": 63761,
+      "current_sha256": "a9b0efd3a33081107a643ab30be5fb85618e981f8ba5a65ed22c6e7805578f56",
+      "all_original_owner_fields_and_order_retained_except_current_identity": true
+    },
+    {
+      "path": "docs/evidence/source-boundary-domains-20261016/current-domains.json",
+      "before": {
+        "length": 249493,
+        "sha256": "842c914d581b3a7c9dd1d96bb8c6bd39b54fc0e544247b4b5d79fbb79c631b89",
+        "archive": "docs/evidence/ci-contracts-49ded-20261020/whole/842c914d581b3a7c9dd1d96bb8c6bd39b54fc0e544247b4b5d79fbb79c631b89.txt"
+      },
+      "current_length": 249493,
+      "current_sha256": "d01b762b90ad73803174486dddaafe98a6c14b22a34a1f3e6677f74c53833095"
+    },
+    {
+      "path": "docs/evidence/source-boundary-domains-20261016/boundary-source-proof.json",
+      "before": {
+        "length": 3398,
+        "sha256": "2af06228e1898ea1908c2af4b6a5a683d1b0cc10b725e88c094cb06bd2c7bc75",
+        "archive": "docs/evidence/ci-contracts-49ded-20261020/whole/2af06228e1898ea1908c2af4b6a5a683d1b0cc10b725e88c094cb06bd2c7bc75.txt"
+      },
+      "current_length": 3421,
+      "current_sha256": "0bd5908c03f2a7737c018c91b6f321d68dec258d0646f01084730c70dcdc51b5"
+    }
+  ],
+  "all_342_owner_rows_retained": true,
+  "original_authority_source_proof_unchanged": true
+}

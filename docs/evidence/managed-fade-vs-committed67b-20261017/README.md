@@ -1,5 +1,9 @@
 # Actual managed wire comparison at fade
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 The retained actual ten-wire capture is fully identical to the committed actual67b semantic output after restoring only explicit builder bills, graph bindings and independently checked nested artifact digests. Ten altered-declaration witnesses with recomputed digests are refused. This is historical fade evidence, not current-head qualification.
 
 The public graph builder bill rose from1,114,864 to1,160,532 bytes; the separate projection rose from2,933,905 to3,302,915. These are actual compiler reservation counters, not physical allocation measurements or agent tokens. No efficiency gain is claimed.

@@ -1,0 +1,46 @@
+{
+  "status": "PASS_ACTUAL_PRIOR_CURRENT_STANDALONE_NOMINAL_SEMANTICS_AND_COMPLETE_GRAPH",
+  "cases": [
+    {
+      "source": "examples/records.spx",
+      "operation": "check",
+      "exact_prior_output_sha256": "be9f8eb28cb268dabb49e3404ec39fb8dcf00da5e0c53c57f8c1e7ab50827594"
+    },
+    {
+      "source": "examples/records.spx",
+      "operation": "graph",
+      "exact_prior_output_sha256": "bd8e8ce8d9ab9f4a98d0feaec853a2840f4d4540fc44afcbdc2523ad2c266ec9"
+    },
+    {
+      "source": "examples/record_rules.spx",
+      "operation": "check",
+      "exact_prior_output_sha256": "d4d1abcd8bd8e2eb43b0c5c25e748f90f622dfac631b7aa99f472deb5ddddf66"
+    },
+    {
+      "source": "examples/record_rules.spx",
+      "operation": "graph",
+      "exact_prior_output_sha256": "5b07fbae987a2844a6409d79a51f3abf5fb57c85c78ec80d6f370a8c15d4662f"
+    },
+    {
+      "source": "examples/refutable_match.spx",
+      "operation": "check",
+      "exact_prior_output_sha256": "bc25731290275bf7bc9850afd68f853ecd19e138f1cea05cafa1a2b8257cab5b"
+    },
+    {
+      "source": "examples/refutable_match.spx",
+      "operation": "graph",
+      "exact_prior_output_sha256": "2164ff43ac9a2837c67f564dd72b3f6952f65d33ba2875492cf6f60e95a9dd91"
+    },
+    {
+      "source": "examples/inheritance.spx",
+      "operation": "check",
+      "exact_prior_output_sha256": "a0c308b8491939fdce500d9352ce671b57b7206f552d16bd0021a40fde07803b"
+    },
+    {
+      "source": "examples/inheritance.spx",
+      "operation": "graph",
+      "exact_prior_output_sha256": "a1547911cd66380c9b409153ae912255c31f2aca0eb3294f7d2311eec3d96767"
+    }
+  ],
+  "normal_build": true
+}

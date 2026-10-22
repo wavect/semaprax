@@ -1,5 +1,9 @@
 # MAIN927, actual facade compiler correction, and starter contracts
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only private assembly. ROOT was not edited. This packet retains the
 complete MAIN927 source domain, complete immutable9b domain, independent authored
 LowerHex correction, all prior evidence, and actual14th failed compiler round.

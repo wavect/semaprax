@@ -1,5 +1,9 @@
 # Isolated retained-alias / old-receiver compile repair join
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 This checkpoint joins exact parent2bfd (the #836 compile correction and full failed677 archive), #844 repair523, and #847 checkpoint453. MAIN27424 is deliberately separate. No Rust command, runtime body, gain measurement or application-fit check ran here.
 
 The actual #847 compiler changes and eight new owners retain their reviewed453 bytes, except the independent old core's test-loader path and unreachable Transient match accommodation. The original old factory cannot return that new shared enum variant. The same unreachable compatibility arm is added to the two earlier independent old core receivers; their original arms, assertions and ordinary factory implementations remain unchanged. Source checks bind these exact three adapters. The #844 old grow and CanonicalFrame definitions are still independently compiled, rather than imported from current compact storage.

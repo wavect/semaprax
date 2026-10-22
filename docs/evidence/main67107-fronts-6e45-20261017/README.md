@@ -1,5 +1,9 @@
 # Composed MAIN source fronts (unqualified)
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 This source-only batch starts from 6e45d10e874104ce6e745332f757c6ef1b21da0f. The canonical production bytes are unchanged. Tests and inventories have explicit acquisition/registration changes. stages.json authenticates complete private candidate input bytes; its base_source_head is ancestry, not a claim that the modified test inputs equal clean base bytes. Every target is a complete independently frozen MAIN or shipping870 source, retained as an archive.
 
 The nine finite domains are current canonical to870, current canonical toMAIN, current comparison tests toMAIN, two MAIN live-audit inputs, three MAIN followup inputs, and actual246/T283 owned_growth_tests to exactfd230. Hash, complete input equality, ordered edits and complete output hash/length are all checked. The two live raw sources equal an earlier archive in another namespace; MAIN's unchanged assert_ne executes in its actual historical MAIN domain after the explicit acquisition. Raw current source is separately authenticated. This does not fabricate a current semantic difference.

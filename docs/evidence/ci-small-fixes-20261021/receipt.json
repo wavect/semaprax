@@ -1,0 +1,13 @@
+{
+  "status": "FOCUSED_LOCAL_SOURCE_AUDITS_AND_FULL_CUSTODY_PASS_PENDING_HOSTED_CI",
+  "base_head": "7b46f47b1ad934859984f65579d71f36b4f52921",
+  "changes": [
+    "Allow for_ci to be unused in independently compiled exact-input namespaces.",
+    "Preserve all inventory include_str invocations while returning to the existing 1500-line limit.",
+    "Authenticate a complete exact successor inverse before the immutable previous RAW checkpoint.",
+    "Add explicit status, audience and catalog links to both evidence READMEs."
+  ],
+  "limits": "No runtime budget, diagnostic, fixture graph, historical recipe, source membership, hostile assertion, or module-size limit changed. No full CI pass claimed.",
+  "max_local_source_compile_RSS_KiB": 914000,
+  "minimum_free_memory_percent": 47
+}

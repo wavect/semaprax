@@ -1,5 +1,9 @@
 # Actual receiving boundaries
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 `instance_match::CONTROLS` admits two concrete Compare owners (initializer and
 named receiver), retained-ID method reference, three string references
 (as_str return, constructor parameter, as_bytes receiver), header fmt result

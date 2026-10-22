@@ -1,5 +1,9 @@
 # OPT838 sticky retry observation repair
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only successor to frozen `3d4b996c9a8cd2b100a3c594e741314c108b5591`.
 Actual owning check 159 panicked because its sticky retry read current_metrics
 outside an active allocation observation. The retry and both original metric

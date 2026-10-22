@@ -1,0 +1,76 @@
+{
+  "status": "LOCAL_DEPTH_BOUNDARY_AND_EXACT_COMPONENT_REGRESSIONS_PASS_FULL_SOURCE_DOMAINS_AND_HOSTILES_PASS",
+  "before_head": "f9cc03af8a567b8163d6c9d90a21727ae35207a5",
+  "source_scope_preservation": {
+    "base_head": "f9cc03af8a567b8163d6c9d90a21727ae35207a5",
+    "domains": [
+      {
+        "domain": "hir",
+        "changed_source_identities": [
+          "src/cleanup_plan/renewal_profile/ordinary/consuming.rs",
+          "src/cleanup_plan/renewal_profile/ordinary/consuming/tests.rs"
+        ],
+        "all_previous_classes_roles_sources_and_complete_chains_preserved": true
+      },
+      {
+        "domain": "projection",
+        "changed_source_identities": [],
+        "all_previous_classes_roles_sources_and_complete_chains_preserved": true
+      }
+    ]
+  },
+  "original_collector": {
+    "artifact": "collect.before.rs.txt",
+    "trimmed_function_sha256": "9e39cd078e4adcad6cc671259278fc06ab830be67bab70936a4d710f4ec995dd",
+    "original_generic_visitor_unchanged": true,
+    "original_257_258_stack_and_refusal_assertions_unchanged": true,
+    "test_only_copy": "collect_before_spine",
+    "full_root_unit_oracle_execution_claimed": false
+  },
+  "new_proof": {
+    "storage": "constant space; one nontrivial child or conservative full-collector fallback",
+    "controls_bytes_on_64_bit_hosts": 183,
+    "authority": "Only live immutable expression structure is read. No attached cleanup hint, persistent proof, or new allowance is consumed.",
+    "work": "Every observed node, statement and flat-record field uses the existing caller work ledger; backing and work refusals remain sticky."
+  },
+  "local_checks": {
+    "native_depth": "Unchanged every-expression-shape success at 512 and diagnostic refusal at 513: PASS",
+    "native_full": {
+      "passed": 243,
+      "failed": 4,
+      "ignored": 2,
+      "remaining_failures": "Pre-existing capacity invoices and native resolver source prefix; no golden or cap changed"
+    },
+    "component": "Five executed checks: three actual new owning tests, the actual original 257/258 stack boundary, and the exact original consuming-record source fixture through full public HIR resolution/replay: PASS",
+    "component_clippy": "PASS -D warnings",
+    "workspace_cache": "Cold/warm full graph equality and both existing linked lifecycle tests: PASS",
+    "hir_boundary_harness": "PASS: all eleven actual unchanged current-source boundary tests"
+  },
+  "source_verification": {
+    "status": "SOURCE_ONLY_ORIGINAL_FULL_DOMAIN_AND_HOSTILE_CONTROLS_PASS",
+    "domains": [
+      "hir",
+      "projection"
+    ],
+    "negative_controls": {
+      "dropped_actual_child_refused": true,
+      "coordinated_class_drop_not_original_generated_output": true,
+      "production_reclassification_refused": true,
+      "actual_source_drift_refused": true,
+      "whole_raw_drift_refused": true,
+      "foreign_path_child_cannot_escape": true
+    },
+    "generation_receipt_sha256": "7fc085756cca9b17813ed15fd88d4724d05ee6f5936d68081bdb104d5427eb4e",
+    "complete_chain_receipt_sha256": "daea6fbf0b16a85ba267efec8f7fa4d056c2db3324c2dc2af0838612e97cd94c",
+    "peak_RSS_bytes": 141770752,
+    "no_Rust_or_hosted_qualification_claimed": true,
+    "must_refresh_if_header_or_other_source_changes": true
+  },
+  "hosted_or_full_quality_green_claimed": false,
+  "local_memory": {
+    "build_peakKiB": 6369600,
+    "minimum_system_free_percent": 56,
+    "one_compiler_at_a_time": true,
+    "external_ssd_only": true
+  }
+}

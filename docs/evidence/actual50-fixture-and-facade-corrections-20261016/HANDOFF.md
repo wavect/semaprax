@@ -1,5 +1,9 @@
 # Actual50 fixture/source corrections
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 This successor includes the reviewed847 Project manifest correction (four canonical blank table separators), the two actual branch-clone fixture work failures, and the second projection-facade assertion failure. Production implementations are unchanged here. Parent/other lanes own future production rewrites; do not overwrite their files with predecessor source.
 
 Both old/current whole-plan observations now use the real `reserve_program_skeleton_work` caller preflight for the same function. The direct clone/push fixture reserves exactly one clone plus its actual push count through `reserve_skeleton`, inside the existing Result and full allocation observation; it asserts the allowance is fully consumed. The unchanged global32,000,000-unit cap funds this caller grant, rather than an arbitrary raised fixture cap. Every original assertion and complete old receiver remains. Zero/one-short/exact byte failures remain inside the observed error path.

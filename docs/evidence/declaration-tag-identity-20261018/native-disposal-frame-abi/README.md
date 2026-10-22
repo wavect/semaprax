@@ -1,5 +1,9 @@
 # Native resolved-disposal frame layout witness
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only correction after the c273 focused build reached the native SDK builder and refused its historical 56-byte frame assertion. No Cargo, compiler, or runtime gate was executed for this change.
 
 The complete thirteen-variant disposal frame and all teardown/capacity code remain unchanged. A layout-only copy retains the genuine 530073 DeclarationId, complete ResolvedType and recursive cleanup shape definitions. Its full historical frame must still equal 56 bytes. A separate complete frame witness uses the actual current payload types and must equal the shipping frame in size and alignment while remaining inside the historical envelope. No new current numeric size is asserted, no padding is introduced, and no fee is credited. Box and Vec alternatives witness their headers, without claiming the layout of old pointed-to HIR values.

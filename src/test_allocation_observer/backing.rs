@@ -359,4 +359,3 @@ pub(crate) fn measure_with_capacity<T>(
     });
     measure(operation)
 }
-

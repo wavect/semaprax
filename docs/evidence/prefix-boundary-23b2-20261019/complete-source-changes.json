@@ -1,0 +1,41 @@
+[
+  {
+    "source": "tests/hir_module_boundaries.rs",
+    "before": {
+      "length": 133992,
+      "sha256": "c8c2073abceb532bfd45a93b39b06318e79e11bec19414d054376dd5caddc735",
+      "archive": "docs/evidence/prefix-boundary-23b2-20261019/whole/c8c2073abceb532bfd45a93b39b06318e79e11bec19414d054376dd5caddc735.txt"
+    },
+    "current": {
+      "length": 134002,
+      "sha256": "fc913ecc7db54fa1e4ef480952e459b972a04171e40e7237964aff5d81be7e95",
+      "archive": "docs/evidence/prefix-boundary-23b2-20261019/whole/fc913ecc7db54fa1e4ef480952e459b972a04171e40e7237964aff5d81be7e95.txt"
+    }
+  },
+  {
+    "source": "tests/workspace/semantic_graph/source_inventory.rs",
+    "before": {
+      "length": 150766,
+      "sha256": "012bb87df7c59097cbc8337be3d773a977228616a6767d8a1072ad0cd3960fee",
+      "archive": "docs/evidence/prefix-boundary-23b2-20261019/whole/012bb87df7c59097cbc8337be3d773a977228616a6767d8a1072ad0cd3960fee.txt"
+    },
+    "current": {
+      "length": 150776,
+      "sha256": "68338a176c682de788c747003b39a6c030128da1c39275f72ae24b5651410d19",
+      "archive": "docs/evidence/prefix-boundary-23b2-20261019/whole/68338a176c682de788c747003b39a6c030128da1c39275f72ae24b5651410d19.txt"
+    }
+  },
+  {
+    "source": "CHANGELOG.md",
+    "before": {
+      "length": 583854,
+      "sha256": "c1603104c464539983a854c74143dd54726fd2a696a5f007da0dd2d8ea660072",
+      "archive": "docs/evidence/prefix-boundary-23b2-20261019/whole/c1603104c464539983a854c74143dd54726fd2a696a5f007da0dd2d8ea660072.txt"
+    },
+    "current": {
+      "length": 584142,
+      "sha256": "5528cafd20d6e2deffb7726be76b8ca26527d5a9d634ac8f61ec18e198460131",
+      "archive": "docs/evidence/prefix-boundary-23b2-20261019/whole/5528cafd20d6e2deffb7726be76b8ca26527d5a9d634ac8f61ec18e198460131.txt"
+    }
+  }
+]

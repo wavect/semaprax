@@ -1,5 +1,9 @@
 # Ordinary first-sibling prefix fusion candidate (source only)
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base: `fade6f4df00808a4f9b763fff22cd5f3898683f4`. Private source candidate;
 no Cargo, compiler, test, benchmark, application replay, graft indexing, or full
 quality gate was run. The parent integration checkout was not edited.

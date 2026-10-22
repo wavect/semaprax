@@ -474,7 +474,13 @@ fn held_status_views_preserve_complete_original_inputs_and_validation_loops() {
         .find(|p| p["path"] == "src/cleanup_plan/replay/expression_facts/receiving/retained.rs")
         .unwrap();
     let before = main_f247_read(root.join(proof["archive"].as_str().unwrap())).unwrap();
-    let current = main_f247_read(root.join(proof["path"].as_str().unwrap())).unwrap();
+    // This shape control owns the sealed original MAIN21 validator view.
+    let current = crate::source_reflows_merge::main_e177_final_inputs::registered_file(
+        proof["path"].as_str().unwrap(),
+        "7739c1324f612967d28bb4eb6fb87cdaa5354d743b4435d396d6f148c1354b31",
+        32 * 1024 * 1024,
+    )
+    .unwrap_or_else(|| main_f247_read(root.join(proof["path"].as_str().unwrap())).unwrap());
     // Reconstruct the authenticated predecessor dispatch before applying the
     // original complete-validator assertions below.
     let receiving_guard = "if function.cleanup_plan.status_sources.len() >= 3 {";

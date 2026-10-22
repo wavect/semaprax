@@ -73,7 +73,10 @@ fn add(slot: &mut usize, value: usize, complete: &mut bool) {
 pub(in crate::cleanup_plan::replay::factored::canonical_shared) struct Observation {
     previous: bool,
 }
-pub(in crate::cleanup_plan::replay::factored::canonical_shared) fn observe(function: &ResolvedFunction, budget: &ReplayBudget) -> Observation {
+pub(in crate::cleanup_plan::replay::factored::canonical_shared) fn observe(
+    function: &ResolvedFunction,
+    budget: &ReplayBudget,
+) -> Observation {
     STATE.with(|s| {
         let mut s = s.borrow_mut();
         let previous = s.enabled;

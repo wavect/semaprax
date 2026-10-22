@@ -1,0 +1,23 @@
+# Source-backed disposition; executable qualification pending
+
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
+One tools-disabled Sonnet process reviewed the two actual candidate call changes, complete existing Slot implementation and then-current two new tests. It completed in 80.54 seconds with peak group RSS 321,683,456 bytes under the 120-second/768-MiB bound. Raw findings remain intact. The initial 10,548-byte packet was rejected before dispatch; one 9,202-byte packet was actually sent. No approval or execution claim follows from its terminal exit.
+
+B1: retain the existing complete trait-object identity guard. Duplicate-vtable false rejection is a conditional concern, not demonstrated new-path failure. Replacing it with data-address comparison would weaken identity, and is not done. Existing foreign/stale/function and warm-cache owners remain mandatory.
+
+B2: the review omitted already-existing named slot controls. The mandatory nested census foreign/restored owner covers cold and warm proof states; full physical owner covers exact/short/zero/every site and disposal. Its external ledger setup measurement defect is now explicitly corrected: the complete observed wrapper tuple is retained against an independently observed real setup baseline; zero compiler allocation is asserted inside child/restored calls, with every original sticky/debit/remaining assertion retained. No whole-path zero allocation is claimed.
+
+B3: source inspection found a real independence dependency: saved_planner previously shared the root candidate through a glob import. The exact original complete candidate body is now separately compiled, with only its visibility header adapted, and explicitly imported by saved_planner. Its other bytes and bodies stay exact. New tests also compare complete strict contextless, paid_candidate_before and paid_candidate_legacy six-field refusals; those old complete files remain byte-identical. Original paid candidate signatures have three arguments, confirmed from source before adding these calls.
+
+U1/U5: Census::region returns Region tied to the existing function/expression lifetime, not its temporary self; Slot is the existing HIR reexport and ResolvedProgram already implements ReplayContext. No proof outlives candidate locals. Both callers pass references from the same held immutable function.
+
+U2/U3: a concrete connected classification gap was found. Census storage selects on the captured live Budget, whereas CFG classification previously consulted only its affine owner's first tag. The classifier now performs its actual owner's zero authentication before typed selection, latching the original first ledger receipt without text matching or new authority. New controls require exact original requested/remaining/floor/stage, no allocation during this transition, same Detached after foreign/restored scope, and complete six-field semantic preservation on a healthy ledger. Physical short/zero receiver controls now require the typed Physical variant. No error rendering runs after this selection inside classify.
+
+U4: lazy refers to full census construction, not the prepaid slot carrier. Storage/Self/Result initializer and receiver layouts remain their existing source-derived policy. Both newly adopting callers pay these fees, including non-byte functions; later plans separately pay their own slots. No free carrier, unchanged-byte claim, work credit or quota change is introduced. Small cases may regress.
+
+Post-review fixture changes are source-inspected, not represented as reviewed or executed: ancestry keeps full setup+compiler+Drop observations and its zero-heap receiver observation independently; both exact unreachable Break/Return sources remain six-field P209 negatives, with reachable conditional exit authority positives. The current old/new backend and hostile owners remain unchanged and required. No Cargo/compiler/runtime invocation occurred in this lane.
+
+The exact dispatched payload bytes are retained losslessly in payload-raw-base64.json (decode data as base64 to recover payload.txt); decoded SHA equals the actual receipt. This preserves literal diff whitespace without a modified evidence transcript. The historical runner is retained unchanged; no rerun is authorized by this archive.

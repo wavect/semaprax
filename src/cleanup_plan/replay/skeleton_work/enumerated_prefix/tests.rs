@@ -1028,6 +1028,7 @@ fn comparison_report_current_receiver<'hir>(
 
 #[test]
 fn complete_comparison_boundaries_report_real_old_current_work_paid_and_heap_after_drop() {
+    let _candidate = ordinary_plan_history::enable_for_test();
     // Same existing three-branch fixture as ordinary_plan_history::tests;
     // independent program storage is built for EVERY measured arm.
     let source = "module history; @id(\"f\") fn f(a:bool,b:bool,c:bool)->i64 {let n=if a {1}else{2};let m=if b {n+1}else{n+2};if c {m+1}else{m+2}} @id(\"main\") fn main()->i64 {f(true,false,true)}";

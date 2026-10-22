@@ -1,5 +1,9 @@
 # Source-helper IO versus measured ownership
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Audit source: exact9ccc plus transport-only draft, using the original v2 parser's unchanged string/comment masking to exclude embedded old-source strings. `actual-callsites.json` records all55 real qualified source_reflows_merge references in36 enclosing functions. None of those enclosing functions contains `measure` or `measure_with_capacity`. Neither transport nor project invokes measured compiler receivers. The only direct-call enclosing function that also enters a with_limit* child is builder_limits::identity_prebound_production_core_retry_preserves_phase_debit_and_nested_refusal: its source projection is before fixture construction and budget entry, not inside that child.
 
 `macro-call-functions.json` records53 enclosing functions with real ci_str!/source_str!/source_reflows references. The only function also containing measure is canonical_loan_storage/caller/stage_tests.rs::actual_shared_seal_stage_preserves_exact_short_zero_numeric_receipts_and_complete_drop. Its run closure contains measure at151; all invocations and assertions finish by241. The ci_str! expansions at243 and246 follow that loop, after the observer has restored its prior TLS state. No warm-before-measure assumption is needed.

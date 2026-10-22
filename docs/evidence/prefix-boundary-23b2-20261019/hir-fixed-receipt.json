@@ -1,0 +1,9 @@
+{
+  "status": "PASS_ACTUAL_COMPLETE_ORIGINAL_HIR_OWNING_INTEGRATION_HARNESS",
+  "compile_peakKiB": 1198816,
+  "run_peakKiB": 368464,
+  "whole_test_harness_source_unchanged_except_complete_physical_prefix": true,
+  "normal_main_library_23b2_digest_renderer": true,
+  "source_metadata_sealed_once_before_whole_gate": true,
+  "full_quality_and_hosted_CI_still_required": true
+}

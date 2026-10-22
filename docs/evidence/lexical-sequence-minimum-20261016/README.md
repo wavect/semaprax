@@ -1,5 +1,7 @@
 # Lexical sequencing minimum source checkpoint
 
+Audience: compiler contributors and reviewers.
+
 Status: source-only implementation; combined execution qualification pending.
 
 The shipping `path_array/sequence_minimum.rs` macro extends the first active

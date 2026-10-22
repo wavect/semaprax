@@ -1,5 +1,9 @@
 # Actual47 path-array fixture corrections
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Test/evidence-only successor of 47f80b0f7a06fde9b2388439a9c0bfe998a05af1.
 No shipping source, cap, work formula, old receiver, test body registration or
 acceptance assertion is removed or changed. No Cargo, Rust or fixture execution

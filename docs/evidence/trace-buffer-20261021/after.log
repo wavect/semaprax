@@ -1,0 +1,5 @@
+
+thread '<unnamed>' (68345952) panicked at /Volumes/Semaprax/worktrees/ci-format-26eeb/src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs:72:9:
+finite frontier observation capacity exhausted
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+Actual fixed trace and original ledger/allocation observer passed

@@ -1,0 +1,65 @@
+{
+  "status": "LOCAL_EXACT_HISTORICAL_OBSERVER_INVERSE_PASS",
+  "path": "src/source_reflows_merge/main_c883_inputs.rs",
+  "before_sha256": "c1a7c53b27e72ee9723f1f9c5dbcc8cbcffff53d6d497daa1aa1107d297056ff",
+  "observed_complete_owner_sha256": "8728d164bd61e2a7a8e8165bc5d0e1a1b6a652aafd56302406cc2db0a386864f",
+  "original_epoch_sha256": "053698df5f2f88f5e6fde6c2d3a0c47f7eb683cc34dca0365f4be56682da4ae5",
+  "original_assertions_unchanged": true,
+  "scope": "Test-only current-side 1e source acquisition. No compiler runtime, budget, work, fee, original guard test, archive, or diagnostic change.",
+  "actual_source": "src/cleanup_plan/replay/expression_facts.rs",
+  "verification": [
+    "Original failing current_replay_operation_guards_bind_the_actual_receivers_without_production_changes passes unchanged against rebuilt actual source modules.",
+    "Six external controls reject newline drift, truncation, changed operation, forged historical suffix, changed observer configuration, and a foreign path.",
+    "Both original complete source-role verifiers and all six original hostile controls pass.",
+    "Both original compiled lookup inverse tests and finite-page channel test pass."
+  ],
+  "full_ci_green_claimed": false,
+  "prior_suite_partial": {
+    "status": "PARTIAL_INTERRUPTED_TO_APPLY_CONFIRMED_FIX",
+    "passed": 143,
+    "failed": 1,
+    "interrupted_test": "source_reflows::semantic_receivers::incoming_main21::joined_main21_domains_preserve_full_current_inputs_and_refuse_foreign_stages",
+    "original_log": "/Volumes/Semaprax/tmp/ci-38383508340/source-all-after-77e/result.log"
+  },
+  "body_only_registration_preservation": [
+    {
+      "domain": "hir",
+      "post_generation_body_only_updates": [
+        "src/source_reflows_merge/main_c883_inputs.rs",
+        "src/source_reflows_merge/main_e177_overlay_v2.rs"
+      ],
+      "all_acquisition_registrations_and_exact_edge_text_retained": true
+    },
+    {
+      "domain": "projection",
+      "post_generation_body_only_updates": [
+        "src/source_reflows_merge/main_c883_inputs.rs",
+        "src/source_reflows_merge/main_e177_overlay_v2.rs"
+      ],
+      "all_acquisition_registrations_and_exact_edge_text_retained": true
+    }
+  ],
+  "page": {
+    "status": "ORIGINAL_CURRENT_CODEC_COMPOSITION_PASS_PENDING_PUBLICATION",
+    "base_head": "e5dfe907bf0b47bea6f99c93df757c595441219f",
+    "rows": 688,
+    "page_bytes": 240292,
+    "published_current_preserved_as_exact_views": [
+      {
+        "source": "src/source_reflows_merge/main_c883_inputs.rs",
+        "view": {
+          "length": 20905,
+          "sha256": "c1a7c53b27e72ee9723f1f9c5dbcc8cbcffff53d6d497daa1aa1107d297056ff",
+          "archive": "docs/evidence/legacy-live-inputs-20261021/current/c1a7c53b27e72ee9723f1f9c5dbcc8cbcffff53d6d497daa1aa1107d297056ff.txt",
+          "name": "whole-pre-guard-epoch-e5dfe907bf"
+        }
+      }
+    ],
+    "all_previous_fields_views_memberships_and_fragment_edges_retained": true,
+    "all_original_codec_bodies_and_caps_unchanged": true
+  },
+  "clippy": {
+    "status": "PASS_ACTUAL_SOURCE_HARNESS_CLIPPY_WARNINGS_DENIED",
+    "peakKiB": 515744
+  }
+}

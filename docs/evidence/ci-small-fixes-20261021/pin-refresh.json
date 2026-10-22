@@ -1,0 +1,23 @@
+[
+  {
+    "domain": "hir",
+    "changed_source_pins": [
+      "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "src/source_reflows/ci_inputs.rs",
+      "src/source_reflows_merge/main_e177_overlay_v2.rs",
+      "src/source_reflows_merge/runtime_json.rs"
+    ],
+    "rebound_existing_edges": 75,
+    "all_existing_sources_roles_chains_and_literal_registrations_unchanged": true
+  },
+  {
+    "domain": "projection",
+    "changed_source_pins": [
+      "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "src/source_reflows/ci_inputs.rs",
+      "src/source_reflows_merge/main_e177_overlay_v2.rs"
+    ],
+    "rebound_existing_edges": 59,
+    "all_existing_sources_roles_chains_and_literal_registrations_unchanged": true
+  }
+]

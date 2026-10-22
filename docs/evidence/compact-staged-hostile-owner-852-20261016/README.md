@@ -1,5 +1,9 @@
 # One actual compact receiving hostile owner (#852)
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Source-only additive owner on55e805c2f6e23dda58ce4c72223914ed511b117b. Only the existing factored/oracle_order/tests.rs child changes; its complete three-owner original is retained byte-for-byte as the prefix and archived with one unique suffix inverse. No shipping code, bank, threshold, fixture file, source helper, authority JSON or pin changes. Inline SPX fixture uses an actual checked Result try residual with its expression/instance/type fields.
 
 The new owner exercises real compact prepare/new query, real residual Box backing, and real compact comparison admission under a genuine reserved floor. Each would fit the absolute remaining bytes, but crosses the floor. It compares all six Diagnostic fields, observes the actual first positive request/floor/site after sticky zero retry, and destroys every new source/Box/budget/Diagnostic within its allocation window. It does not claim the old and new metadata frontiers have identical prices.

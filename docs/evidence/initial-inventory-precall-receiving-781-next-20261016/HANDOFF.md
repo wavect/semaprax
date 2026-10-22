@@ -1,5 +1,9 @@
 # Initial raw inventory precall receiving — source only
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 Base60ad preserved. The sole shipping selected lexical/scalar caller expands a physical debit on its SAME retained ReplayBudget, then invokes the SAME real checked/zeroing typed debit, before forming raw4args/Result. No added preflight helper/Result, temporary lease, allowance, retry, refund or Diagnostic relabelling. The cumulative physical debit persists across raw call, conversion, result and budget Drop. The first physical acquiring primitive keeps its explicit ordinary paid-Diagnostic/inline boundary; it does not return InventoryFailure before raw entry.
 
 Exact44-field inventory: prior42 minus2 first physical-result receivers minus2 byte amount receivers plus4 program/function argument/parameter references plus2 work-debit reborrow/parameter references. The same complete2 Kind +2 InventoryFailure slots pay actual enum MAX alternatives; a caller Permit<()> is never credited as raw inventory receiving. Existing per-method failure acquisition, schema/supplemental and other781 gaps remain explicit. No transitive781closure claim.

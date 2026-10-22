@@ -1,0 +1,16 @@
+{
+  "status": "PASS",
+  "actual_selected_test_names": [
+    "source_reflows_merge::merge_projection_selects_only_the_requested_complete_current_view",
+    "source_reflows::a_changed_current_byte_is_refused_before_an_inverse_can_hide_it",
+    "source_reflows::semantic_receivers::receiver_mutation_and_forged_predecessor_fail_closed",
+    "source_reflows::incoming67107_semantic_receivers::complete_main34d_inputs_keep_all_domains_and_refuse_wrong_source_and_bounded_io",
+    "source_reflows::semantic_receivers::allocation_followup_preserves_the_complete_original_format_input"
+  ],
+  "actual_log": "focused.log",
+  "combined_run_result": [
+    "test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 225 filtered out; finished in 78.18s"
+  ],
+  "known_remaining_failures": [],
+  "all_previously_passing_controls_retained": true
+}

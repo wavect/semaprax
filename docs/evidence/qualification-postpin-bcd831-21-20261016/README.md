@@ -1,5 +1,9 @@
 # Post-pin focused qualification at bcd831
 
+Status: historical source evidence; qualification is limited to the recorded revisions and results.
+
+Audience: compiler contributors and reviewers.
+
 At source `bcd83107ccda58800e9f2b848950cece03979de6`, the four serial focused build commands PASS. Actual21 runtime: **19 PASS / 2 FAIL**, every selected body discovered exactly once, zero count/observation mismatches. All owned groups settled empty in this successful-build/runtime round. Build wall times308.872/137.654/119.537/133.507s are build durations, not application or agent benchmark measurements.
 
 All original15 pin consumers PASS: the three managed graph/context/analysis owners, both complete historical browser branches, hostile non-budget mutations, full-source custody, and actual baseline/rename known answers. The exact input plan derives from real47f captures, managed ordinary reservation1,106,063 and browser3,477,789. All previous complete wires and independent inverses remain retained. Pins are now applied and qualified.

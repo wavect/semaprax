@@ -698,6 +698,15 @@ pub(super) fn finish() -> (Vec<Row>, usize) {
     (rows, lost)
 }
 
+// Test-only frontier adapter keeps the private row type inside its owner.
+pub(in crate::cleanup_plan::replay::ordinary_plan_history) fn reset_for_frontier_test() {
+    reset();
+}
+pub(in crate::cleanup_plan::replay::ordinary_plan_history) fn finish_empty_for_frontier_test() -> (bool, usize) {
+    let (rows, lost) = finish();
+    (rows.is_empty(), lost)
+}
+
 #[cfg(test)]
 mod controls {
     use super::*;

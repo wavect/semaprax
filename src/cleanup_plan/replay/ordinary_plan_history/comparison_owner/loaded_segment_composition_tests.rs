@@ -358,7 +358,7 @@ fn loaded_segments_preserve_exact_short_floor_zero_sticky_and_projection_refusal
                     3 => bad.overflow = true,
                     _ => bad.independent_runs = bad.independent_turns + 1,
                 }
-                assert!(std::panic::catch_unwind(|| predecessor_price_counts(&bad)).is_err());
+                assert!(std::panic::catch_unwind(|| super::pair_scope_tests::predecessor_price_counts(&bad)).is_err());
             }
         }
         for (limit, floor, success) in [

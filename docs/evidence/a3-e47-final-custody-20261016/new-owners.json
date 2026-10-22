@@ -281,7 +281,7 @@
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs",
-    "sha256": "1a60e173fcb6c43de699fb2da70d93568dcc3a410157b9484391e271ef79257e",
+    "sha256": "d3fceae648fa9cd0d1e7c6da947075f912731bb74f72f28f9341cae94c43f957",
     "lines": 219
   },
   {
@@ -1266,13 +1266,13 @@
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_census.rs",
-    "sha256": "05eeadd6521072730c61a8a36730f9e8ea4d58edcac17903df773c1949d9f48b",
-    "lines": 1224
+    "sha256": "3368d360e0ff967c383dfe5efe80ff549e7d7d80419b78b46ca24d1b85d8bd4d",
+    "lines": 1233
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_tests.rs",
-    "sha256": "bc384f7501acce6416ff97919c3cfb8e5f04a259a1b98a9f27d3313d53609c2c",
-    "lines": 1448
+    "sha256": "d76b1cfab1093db63bafcc4bfdeb889582250801cc6d4604df8207f7bbd09749",
+    "lines": 1452
   },
   {
     "source": "src/workspace_graph/shape_identity/before785.rs",
@@ -1701,7 +1701,7 @@
   },
   {
     "source": "src/source_reflows_merge/main_e177_overlay_v2.rs",
-    "sha256": "dd46016921dbe8051a7e23d40d9247116de0bb2ec3bb851d47553ac4e9a56a31",
+    "sha256": "75bc23e1018d100ca468c650cf92f29585244f860dfe5ed974c41eff3f669d75",
     "lines": 1495
   },
   {
@@ -2356,7 +2356,7 @@
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/loaded_segment_composition_tests.rs",
-    "sha256": "883d37ac0cb9857c5809678bec7d4962d58f787e5430135b733b9169feda3dc4",
+    "sha256": "5ea53dda7d0d9329da09438848f9951f191142cdbc8791047a007701f48f9783",
     "lines": 465
   },
   {

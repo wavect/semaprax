@@ -3,6 +3,10 @@ use super::super::before_flat_view::{compare, ComparisonOwner};
 use super::*;
 #[path = "pair_scope_tests/paired_segments.rs"]
 mod paired_segments;
+
+pub(super) fn predecessor_price_counts(row: &pair_scope_census::Row) -> pair_scope_census::Row {
+    paired_segments::predecessor_price_counts(row)
+}
 use crate::bounded_output::with_limit_usage_refusal;
 use crate::test_allocation_observer::{Metrics, measure};
 fn observe_pair(

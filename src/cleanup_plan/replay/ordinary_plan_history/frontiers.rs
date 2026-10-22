@@ -187,7 +187,7 @@ fn prepared_fixed_observers_keep_measured_resets_and_frontiers_allocation_free()
         crate::bounded_output::with_limit_usage_refusal(usize::MAX, || {
             measure(|| {
                 prepare();
-                super::comparison_owner::pair_scope_census::reset();
+                super::comparison_owner::pair_scope_census::reset_for_frontier_test();
                 reset();
                 before("prepared observer test");
                 after();
@@ -210,8 +210,8 @@ fn prepared_fixed_observers_keep_measured_resets_and_frontiers_allocation_free()
         ),
         ("prepared observer test", 0, Some(0), 0)
     );
-    let (rows, lost) = super::comparison_owner::pair_scope_census::finish();
-    assert!(rows.is_empty());
+    let (empty, lost) = super::comparison_owner::pair_scope_census::finish_empty_for_frontier_test();
+    assert!(empty);
     assert_eq!(lost, 0);
 }
 

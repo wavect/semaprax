@@ -3,6 +3,10 @@
 //! Factored admission retains the independently rebuilt observation languages.
 use super::*;
 
+#[cfg(test)]
+#[path = "strategy/compact_receiving.rs"]
+mod compact_receiving;
+
 /// Selected from actual lexical HIR before an enumerating census may refuse.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(in crate::cleanup_plan::replay) enum ResourceStrategy {
@@ -287,6 +291,16 @@ pub(in crate::cleanup_plan::replay) fn validate_authenticated(
     helpers: Option<&crate::loop_calls::byte_writer::ModuleIndex<'_>>,
     expression_count: usize,
 ) -> Result<(), Diagnostic> {
+    #[cfg(test)]
+    if compact_receiving::before_requested() {
+        return compact_receiving::before::validate_authenticated(
+            program,
+            function,
+            budget,
+            helpers,
+            expression_count,
+        );
+    }
     // Explicit test forcing retains the complete old double-enumeration receiver.
     // Shipping builds construct no forwarding Result or borrowed arguments here.
     #[cfg(test)]
@@ -382,12 +396,18 @@ pub(in crate::cleanup_plan::replay) fn validate_authenticated(
     let mut receiving =
         canonical_shared::closure_receiving::ClosureReceiving::from_prepaid(function, budget);
     budget.reserve_array::<(usize, u64)>(function, 1, "lexical HIR weighted root")?;
-    let hir = canonical.id_with_receiving(function, vec![(*hir_root, 1)], budget, &mut receiving);
+    let hir =
+        canonical.id_with_compact_receiving(function, vec![(*hir_root, 1)], budget, &mut receiving);
     #[cfg(test)]
     instrumentation::phase(function, budget, "HIR canonicalization", None);
     let hir = hir?;
     budget.reserve_array::<(usize, u64)>(function, 1, "lexical plan weighted root")?;
-    let plan = canonical.id_with_receiving(function, vec![(*plan_root, 1)], budget, &mut receiving);
+    let plan = canonical.id_with_compact_receiving(
+        function,
+        vec![(*plan_root, 1)],
+        budget,
+        &mut receiving,
+    );
     #[cfg(test)]
     instrumentation::phase(function, budget, "plan canonicalization", None);
     let plan = plan?;

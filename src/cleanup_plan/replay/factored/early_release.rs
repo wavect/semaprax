@@ -159,9 +159,16 @@ fn complete_constructor_drop_observes_both_old_and_released_owner_lifetimes() {
     let paths_transport =
         std::mem::size_of::<(Vec<SkeletonPath>, Vec<SkeletonPath>, Result<(), Diagnostic>)>();
     for source in [lexical_plan_tests::WHILE, lexical_plan_tests::GENERATED] {
-        let (program, function) = lexical_plan_tests::fixture(source);
-        let old = probe(&program, &function, true, 64 << 20);
-        let current = probe(&program, &function, false, 64 << 20);
+        let (program, _) = lexical_plan_tests::fixture(source);
+        // Selected physical replay authenticates the exact held member. The
+        // fixture's detached clone belongs to the ordinary comparison oracle.
+        let function = program
+            .functions()
+            .iter()
+            .find(|function| function.id.as_str() == "probe")
+            .unwrap();
+        let old = probe(&program, function, true, 64 << 20);
+        let current = probe(&program, function, false, 64 << 20);
         assert!(old.0 && current.0 && old.3.allocated > 0 && current.3.allocated > 0);
         assert_eq!(current.1, old.1 + memo_transport + paths_transport);
         let [Some(before_memo), Some(before_paths), Some(after_paths)] = current.2 else {
@@ -169,15 +176,15 @@ fn complete_constructor_drop_observes_both_old_and_released_owner_lifetimes() {
         };
         assert_eq!(before_paths - before_memo, memo_transport);
         assert_eq!(after_paths - before_paths, paths_transport);
-        assert!(probe(&program, &function, false, current.1).0);
-        assert!(!probe(&program, &function, false, current.1 - 1).0);
+        assert!(probe(&program, function, false, current.1).0);
+        assert!(!probe(&program, function, false, current.1 - 1).0);
         for (limit, memo_passed, paths_passed) in [
             (before_memo + memo_transport - 1, false, false),
             (before_memo + memo_transport, true, false),
             (before_paths + paths_transport - 1, true, false),
             (before_paths + paths_transport, true, true),
         ] {
-            let attempt = probe(&program, &function, false, limit);
+            let attempt = probe(&program, function, false, limit);
             assert_eq!(attempt.2[1].is_some(), memo_passed);
             assert_eq!(attempt.2[2].is_some(), paths_passed);
         }

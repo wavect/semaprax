@@ -34,6 +34,11 @@ mod call_carriers;
 mod call_carriers_original;
 #[path = "expected_projection/call_identity.rs"]
 mod call_identity;
+#[path = "expected_projection/shared_local_callees.rs"]
+mod shared_local_callees;
+#[cfg(test)]
+#[path = "expected_projection/shared_local_callees/before_projection.rs"]
+mod before_shared_local_projection;
 #[path = "expected_projection/call_sites.rs"]
 mod call_sites;
 #[path = "expected_projection/cost.rs"]

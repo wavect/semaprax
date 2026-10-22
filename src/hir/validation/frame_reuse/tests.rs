@@ -14,6 +14,15 @@ fn scalar_program() -> ResolvedProgram {
             "@id(\"reuse.{index}\") fn f{index}(v:i64)->i64 requires v>=0 ensures result>=0 {{if v>0 {{v+1}} else {{0}}}}\n"
         ));
     }
+    source.push_str("@id(\"reuse.main\") fn main()->i64 {f31(1)}\n");
+    program(&source)
+}
+fn decimal_program() -> ResolvedProgram {
+    // Preserve the entire library; executable resolution also needs an entry.
+    let source = format!(
+        "{}\n@id(\"reuse.decimal.main\") fn main()->i64 {{let value=add(\"1\",\"2\");string_len(value)}}\n",
+        include_str!("../../../../std/int-decimal/src/decimal.spx")
+    );
     program(&source)
 }
 
@@ -22,7 +31,7 @@ fn invocation_reuse_matches_complete_immediate_previous_function_chain_and_decim
     for program in [
         scalar_program(),
         program(crate::hir::iterative_validator_tests::SOURCE),
-        program(include_str!("../../../../std/int-decimal/src/decimal.spx")),
+        decimal_program(),
     ] {
         let mut current = HirValidator::new(&program).unwrap();
         let mut old = current.clone();
@@ -294,7 +303,7 @@ fn whole_ordinary_invocation_observes_complete_allocations_and_drop_against_inde
         ("tiny", program("module tiny.reuse; @id(\"main\") fn main()->i64 {0}"), false),
         ("shallow", program("module shallow.reuse; @id(\"f\") fn f(x:i64)->i64 {x+1} @id(\"main\") fn main()->i64 {f(1)}"), false),
         ("repeated", scalar_program(), true),
-        ("decimal", program(include_str!("../../../../std/int-decimal/src/decimal.spx")), true),
+        ("decimal", decimal_program(), true),
     ] {
         let (old, old_refused, old_paid) = whole_invocation(&program, false, LIMIT);
         let (current, refused, paid) = whole_invocation(&program, true, LIMIT);

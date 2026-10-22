@@ -1,5 +1,17 @@
 pub(super) fn compiled(source: &str) -> Option<&'static str> {
     match source {
+        "src/cleanup_plan/replay/factored/strategy/compact_receiving.rs" => Some(include_str!("../../src/cleanup_plan/replay/factored/strategy/compact_receiving.rs")),
+        "src/cleanup_plan/replay/factored/strategy/compact_receiving/before.rs" => Some(include_str!("../../src/cleanup_plan/replay/factored/strategy/compact_receiving/before.rs")),
+        "src/cleanup_plan/replay/factored/strategy/compact_receiving/tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/factored/strategy/compact_receiving/tests.rs")),
+        "src/cli/help/authoring/contract_owners.rs" => Some(include_str!("../../src/cli/help/authoring/contract_owners.rs")),
+        "src/cli/help/authoring/contract_owners/tests.rs" => Some(include_str!("../../src/cli/help/authoring/contract_owners/tests.rs")),
+        "src/source_reflows_merge/boxed_inputs.rs" => Some(include_str!("../../src/source_reflows_merge/boxed_inputs.rs")),
+        "src/workspace_graph/expected_projection/shared_local_callees.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/shared_local_callees.rs")),
+        "src/workspace_graph/expected_projection/shared_local_callees/before_projection.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/shared_local_callees/before_projection.rs")),
+        "src/workspace_graph/expected_projection/shared_local_callees/controls_tests.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/shared_local_callees/controls_tests.rs")),
+        "src/workspace_graph/expected_projection/shared_local_callees/invoice.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/shared_local_callees/invoice.rs")),
+        "src/workspace_graph/expected_projection/shared_local_callees/tests.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/shared_local_callees/tests.rs")),
+        "src/workspace_graph/expected_projection/shared_local_callees/walk.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/shared_local_callees/walk.rs")),
         "src/source_reflows_merge/final_ready_inputs/projection_publication.rs" => Some(include_str!("../../src/source_reflows_merge/final_ready_inputs/projection_publication.rs")),
         "src/cleanup_plan/replay/path_join/selected/before_frontier/finish.rs" => Some(include_str!("../../src/cleanup_plan/replay/path_join/selected/before_frontier/finish.rs")),
         "src/cleanup_plan/replay/path_join/selected/before_frontier/mod.rs" => Some(include_str!("../../src/cleanup_plan/replay/path_join/selected/before_frontier/mod.rs")),
@@ -441,6 +453,18 @@ mod tests {
             "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/flat_probe.rs",
             "tests/source_locked_contracts.rs",
             "src/source_reflows_merge/final_ready_inputs/projection_publication.rs",
+            "src/cleanup_plan/replay/factored/strategy/compact_receiving.rs",
+            "src/cleanup_plan/replay/factored/strategy/compact_receiving/before.rs",
+            "src/cleanup_plan/replay/factored/strategy/compact_receiving/tests.rs",
+            "src/cli/help/authoring/contract_owners.rs",
+            "src/cli/help/authoring/contract_owners/tests.rs",
+            "src/source_reflows_merge/boxed_inputs.rs",
+            "src/workspace_graph/expected_projection/shared_local_callees.rs",
+            "src/workspace_graph/expected_projection/shared_local_callees/before_projection.rs",
+            "src/workspace_graph/expected_projection/shared_local_callees/controls_tests.rs",
+            "src/workspace_graph/expected_projection/shared_local_callees/invoice.rs",
+            "src/workspace_graph/expected_projection/shared_local_callees/tests.rs",
+            "src/workspace_graph/expected_projection/shared_local_callees/walk.rs",
         ] {
             let declaration = format!("    {source:?},\n");
             assert_eq!(current_scope_root.matches(&declaration).count(), 1);
@@ -514,6 +538,18 @@ mod tests {
             "src/cleanup_plan/replay/sequence_vector.rs",
             "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/flat_probe.rs",
             "src/source_reflows_merge/final_ready_inputs/projection_publication.rs",
+            "src/cleanup_plan/replay/factored/strategy/compact_receiving.rs",
+            "src/cleanup_plan/replay/factored/strategy/compact_receiving/before.rs",
+            "src/cleanup_plan/replay/factored/strategy/compact_receiving/tests.rs",
+            "src/cli/help/authoring/contract_owners.rs",
+            "src/cli/help/authoring/contract_owners/tests.rs",
+            "src/source_reflows_merge/boxed_inputs.rs",
+            "src/workspace_graph/expected_projection/shared_local_callees.rs",
+            "src/workspace_graph/expected_projection/shared_local_callees/before_projection.rs",
+            "src/workspace_graph/expected_projection/shared_local_callees/controls_tests.rs",
+            "src/workspace_graph/expected_projection/shared_local_callees/invoice.rs",
+            "src/workspace_graph/expected_projection/shared_local_callees/tests.rs",
+            "src/workspace_graph/expected_projection/shared_local_callees/walk.rs",
         ] {
             let arm = format!("        {source:?} => Some(include_str!(\"../../{source}\")),\n");
             assert_eq!(current_scope_child.matches(&arm).count(), 1);

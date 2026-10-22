@@ -23,7 +23,20 @@ on:
         required: false
         default: false
       opt_batch:
-        description: Run the bounded 50-filter OPT qualification batch and production Clippy on Linux
+        description: Run the selected bounded OPT qualification batch and production Clippy on Linux
+        type: boolean
+        required: false
+        default: false
+      opt_batch_selection:
+        description: OPT profile (historical 50/153 or next 34/68); requires opt_batch
+        type: choice
+        required: false
+        default: historical
+        options:
+          - historical
+          - next
+      installed_bundle:
+        description: Generate the original installed agent bundle only (no tests or quality gates)
         type: boolean
         required: false
         default: false
@@ -35,11 +48,93 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: macos-cli-diagnostic-${{ github.ref }}${{ inputs.opt_batch && '-opt-batch' || '' }}
+  group: macos-cli-diagnostic-${{ github.ref }}${{ inputs.opt_batch && '-opt-batch' || '' }}${{ inputs.installed_bundle && '-installed-bundle' || '' }}
   cancel-in-progress: false
 jobs:
+  installed-bundle:
+    name: Original installed bundle producer
+    if: inputs.installed_bundle
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      CARGO_BUILD_JOBS: "1"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_DEV_OPT_LEVEL: "0"
+      CARGO_PROFILE_DEV_CODEGEN_UNITS: "64"
+      CARGO_PROFILE_DEV_DEBUG_ASSERTIONS: "true"
+      CARGO_PROFILE_DEV_OVERFLOW_CHECKS: "true"
+      CARGO_PROFILE_DEV_LTO: "false"
+      CARGO_INCREMENTAL: "0"
+      CARGO_TARGET_DIR: target/installed-bundle-producer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          fetch-tags: false
+          lfs: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+        with:
+          toolchain: 1.97.1
+      - name: Bind the producer to the immutable source tree
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain --untracked-files=no)"
+          git rev-parse HEAD^{tree} > producer-tree.txt
+      - name: Fetch locked dependencies before offline compilation
+        run: cargo fetch --locked
+      - name: Build the normal production compiler only
+        run: cargo build --locked --offline -p semaprax --bin semaprax --jobs 1
+      - name: Capture two byte-identical outputs from the original producer
+        shell: bash
+        run: |
+          python3 - <<'PYCODE'
+          import hashlib,json,os,pathlib,subprocess
+          def git(*args):
+              return subprocess.check_output(["git",*args],text=True).strip()
+          head=git("rev-parse","HEAD")
+          tree=git("rev-parse","HEAD^{tree}")
+          assert head==os.environ["GITHUB_SHA"]
+          assert tree==pathlib.Path("producer-tree.txt").read_text().strip()
+          assert not git("status","--porcelain","--untracked-files=no")
+          binary=pathlib.Path(os.environ["CARGO_TARGET_DIR"])/"debug/semaprax"
+          assert binary.is_file() and not binary.is_symlink()
+          command=[str(binary),"agent","skill"]
+          first=subprocess.check_output(command)
+          second=subprocess.check_output(command)
+          assert first==second, "original bundle producer is nondeterministic"
+          assert 0<len(first)<=1024*1024
+          json.loads(first)
+          assert git("rev-parse","HEAD")==head and git("rev-parse","HEAD^{tree}")==tree
+          assert not git("status","--porcelain","--untracked-files=no")
+          out=pathlib.Path("installed-bundle-artifact")
+          out.mkdir()
+          (out/"AGENT-SKILL-BUNDLE-V1.json").write_bytes(first)
+          digest=hashlib.sha256()
+          with binary.open("rb") as stream:
+              for chunk in iter(lambda:stream.read(65536),b""): digest.update(chunk)
+          (out/"receipt.json").write_text(json.dumps({
+              "schema":"semaprax.installed-bundle-production.v1",
+              "head":head,"tree":tree,"repository":os.environ["GITHUB_REPOSITORY"],
+              "run_id":os.environ["GITHUB_RUN_ID"],"command":command,
+              "build_command":["cargo","build","--locked","--offline","-p","semaprax","--bin","semaprax","--jobs","1"],
+              "features":"default","profile":"dev-opt0-debug0-codegen64-checked-incremental0-lto0",
+              "rustc":subprocess.check_output(["rustc","-vV"],text=True),
+              "binary_sha256":digest.hexdigest(),"bytes":len(first),
+              "sha256":hashlib.sha256(first).hexdigest(),"identical_invocations":2,
+              "qualification":"original installed-bundle generation only; source pins and runtime acceptance remain pending"
+          },indent=2)+"\n")
+          PYCODE
+      - name: Retain the original installed bundle and exact provenance
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: installed-bundle-${{ github.sha }}
+          path: installed-bundle-artifact/
+          if-no-files-found: error
+          retention-days: 3
   cli:
-    if: ${{ ! inputs.linux_stack && ! inputs.resolved_core && ! inputs.opt_batch && ! inputs.focused_controls }}
+    if: ${{ ! inputs.linux_stack && ! inputs.resolved_core && ! inputs.opt_batch && ! inputs.focused_controls && ! inputs.installed_bundle }}
     runs-on: macos-15
     timeout-minutes: 120
     env:
@@ -301,7 +396,7 @@ jobs:
           retention-days: 1
 
   opt-batch:
-    name: Focused OPT qualification (50 filters / 153 tests)
+    name: Focused OPT qualification (${{ inputs.opt_batch_selection == 'next' && '34 filters / 68 tests' || '50 filters / 153 tests' }})
     if: inputs.opt_batch
     runs-on: ubuntu-24.04
     timeout-minutes: 240
@@ -344,17 +439,32 @@ jobs:
           test -x "$opt_archiver"
           echo "CLANG=$(readlink -f "$opt_clang")" >> "$GITHUB_ENV"
           echo "SEMAPRAX_ARCHIVER=$(readlink -f "$opt_archiver")" >> "$GITHUB_ENV"
-      - name: Build the two owning test images once, run the exact selection, then production Clippy
-        run: python3 scripts/ci-opt-batch.py
+      - name: Build the selected owning images once, run exact controls, then production Clippy
+        env:
+          OPT_BATCH_SELECTION: ${{ inputs.opt_batch_selection == 'next' && 'next' || 'historical' }}
+        run: |
+          if [ "$OPT_BATCH_SELECTION" = next ]; then
+            python3 scripts/ci-opt-batch.py --selection next
+          else
+            python3 scripts/ci-opt-batch.py
+          fi
       - name: Qualify the changed LogLens references without a live agent campaign
         if: ${{ always() && inputs.loglens_refs }}
         shell: bash
+        env:
+          OPT_BATCH_SELECTION: ${{ inputs.opt_batch_selection == 'next' && 'next' || 'historical' }}
         run: |
           python3 - <<'PYCODE'
           import json,os,pathlib,subprocess
           receipt=json.loads(pathlib.Path("diagnostic-opt-batch/receipt.json").read_text())
           assert not receipt.get("execution_aborted"), "qualification batch aborted"
-          assert receipt.get("completed_filters")==50 and receipt.get("summary_counts_complete") is True
+          profile=os.environ["OPT_BATCH_SELECTION"]
+          expected_filters=34 if profile=="next" else 50
+          expected_tests=68 if profile=="next" else 153
+          assert receipt["selection"]["profile"]==profile
+          assert receipt["selection"]["expected_filters"]==expected_filters
+          assert receipt["selection"]["expected_tests"]==expected_tests
+          assert receipt.get("completed_filters")==expected_filters and receipt.get("summary_counts_complete") is True
           head=subprocess.check_output(["git","rev-parse","HEAD"],text=True).strip()
           tree=subprocess.check_output(["git","rev-parse","HEAD^{tree}"],text=True).strip()
           assert head==os.environ["GITHUB_SHA"]==receipt["head"]

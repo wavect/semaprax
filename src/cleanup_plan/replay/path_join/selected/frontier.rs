@@ -69,6 +69,10 @@ impl<T: Ord> Insertions<T> {
             + 2 * size_of::<&Incoming<T>>()
             + 2 * size_of::<&T>()
     }
+    #[allow(
+        clippy::manual_saturating_arithmetic,
+        reason = "retain the separately prepaid checked Option and unwrap receiver banks"
+    )]
     pub(super) fn acquire(
         function: &ResolvedFunction,
         budget: &mut ReplayBudget,
@@ -221,6 +225,10 @@ pub(super) enum Incoming<T> {
     One(Box<T>),
     Many(BTreeSet<Box<T>>),
 }
+#[allow(
+    clippy::derivable_impls,
+    reason = "unconditional Default preserves non-Default T and the paid callback receiver contract"
+)]
 impl<T> Default for Incoming<T> {
     fn default() -> Self {
         Self::Empty
@@ -293,6 +301,10 @@ impl<T: Ord> Incoming<T> {
         v
     }
 }
+#[allow(
+    clippy::borrowed_box,
+    reason = "borrow the exact boxed owner for held insertion and same-box transport"
+)]
 pub(super) enum Iter<'a, T> {
     One(std::option::IntoIter<&'a Box<T>>),
     Many(btree_set::Iter<'a, Box<T>>),

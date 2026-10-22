@@ -44,7 +44,7 @@ fn live_initialize_paid_session_retains_original_report_source_and_first_receipt
         let mut session = prepared
             .into_paid_session(&source, function)
             .unwrap_or_else(|_| panic!("held source constructor"));
-        let error = session.validate_scalar_paid(function).unwrap_err();
+        let error = session.validate_paid(function).unwrap_err();
         let Error::Structural(receipt) = &error else {
             panic!("path semantic must remain typed: {error:?}")
         };
@@ -58,7 +58,7 @@ fn live_initialize_paid_session_retains_original_report_source_and_first_receipt
             Kind::InitializeTransitionInitializesAnEmptyOrLiveCleanupPlace
         );
         assert_eq!(held.as_str().as_ptr(), function.body.id.as_str().as_ptr());
-        let (later, later_observed) = measure(|| session.validate_scalar_paid(function));
+        let (later, later_observed) = measure(|| session.validate_paid(function));
         assert!(matches!(later, Err(Error::Failed)));
         assert_eq!(
             (later_observed.allocations, later_observed.reallocations),

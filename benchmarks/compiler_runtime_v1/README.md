@@ -48,6 +48,18 @@ policy proof remains a separate required authority obligation.
 Compiler requests accept only the existing retained-codec selector grammar.
 The runner injects a fresh nonce and invokes the protected compiler ONCE via
 `command/exec`, observing the actual connection-scoped response/status/output.
+A runner-local completion channel binds the exact Session/authority objects,
+request ID, process ID, immutable argv/cwd, contract/runtime/compiler hashes,
+compiler path, workspace, environment and declared policy. It loans the live
+command object until Session has validated the matching response, then retains
+an immutable result and consumes its opaque token once before broker adoption.
+Mailbox dictionaries and copied/foreign/replayed tokens cannot replace it;
+mutated invocation or authority refuses. This is a Python runner custody boundary,
+not protection against arbitrary code executing inside the trusted runner.
+The new focused synthetic controls are authored but not executed in this batch;
+effective enforcement, immutable executable access and real runtime qualification
+remain unavailable, and `ExecutionAuthority.admit` continues to refuse.
+
 Mandatory `capReached` refuses truncation. The stdout stream must contain one
 complete <=512-byte publication seal matching the no-follow retained artifact.
 The full original v1 structural inventory/derivation kernel is retained separately

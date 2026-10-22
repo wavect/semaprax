@@ -200,10 +200,35 @@ fn complete_old_current_algorithm_delta_keeps_storage_children_and_cold_proof_fe
             (7, cached_exact::Retention::Semantic, 2),
         ] {
             let (old_hir, new_hir, old_total, new_total) = costs(&source, mode, retention);
-            assert_eq!(new_hir + copies * p.roots * carriers(), old_hir + p.bytes);
+            // Mode six additionally acquires its separate local-ID proof.
+            // Keep the complete pre-carrier formula, adding the exact new fee
+            // and removing only the independently certified callee slots.
+            let (local_fee, local_removed) = if mode == 6 {
+                let programs = vec![parse(&source)];
+                let authored = crate::workspace_graph::index_authored(&programs).unwrap();
+                let local = super::super::shared_local_callees::costs(
+                    super::super::shared_local_callees::Context {
+                        program: &programs[0],
+                        authored: &authored,
+                        programs: &programs,
+                    },
+                )
+                .unwrap();
+                let maximum = dependency_identity_max(&programs[0], &authored, &programs).unwrap();
+                (
+                    local.bytes,
+                    local.slots * maximum * super::super::HIR_IDENTITY_COPY_FACTOR,
+                )
+            } else {
+                (0, 0)
+            };
             assert_eq!(
-                new_total + copies * p.roots * carriers(),
-                old_total + p.bytes
+                new_hir + copies * p.roots * carriers() + local_removed,
+                old_hir + p.bytes + local_fee
+            );
+            assert_eq!(
+                new_total + copies * p.roots * carriers() + local_removed,
+                old_total + p.bytes + local_fee
             );
             // Cold repeated estimation must keep the same proof invoice.
             assert_eq!(

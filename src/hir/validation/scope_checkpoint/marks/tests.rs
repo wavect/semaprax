@@ -466,9 +466,15 @@ fn with_before<T>(old: bool, run: impl FnOnce() -> T) -> T {
 
 #[test]
 fn ordinary_function_callers_report_complete_old_current_bills_and_drop_without_gain_assumption() {
+    // The unmodified library remains the whole workload for both validators;
+    // executable resolution additionally requires this ordinary checked entry.
+    let decimal = format!(
+        "{}\n@id(\"move.decimal.main\") fn main()->i64 {{let value=add(\"1\",\"2\");string_len(value)}}\n",
+        include_str!("../../../../../std/int-decimal/src/decimal.spx")
+    );
     for source in [
         "module move.callers; @id(\"relay\") fn relay(s:string)->string {s} @id(\"main\") fn main()->i64 {let x=relay(\"owned\"); string_len(x)}",
-        include_str!("../../../../../std/int-decimal/src/decimal.spx"),
+        decimal.as_str(),
     ] {
         let program = crate::hir::resolve(
             &crate::parse(source, std::path::Path::new("move-callers.spx")).unwrap(),

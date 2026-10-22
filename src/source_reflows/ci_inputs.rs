@@ -824,8 +824,8 @@ pub(super) fn compact_frontier_entry(source: &str, supplied: &str) -> Option<Str
     };
     assert_eq!(supplied, compiled, "complete current compact frontier source");
     let encoded = include_str!("compact_frontier_inverse.json");
-    assert_eq!(encoded.len(), 28299);
-    assert_eq!(digest(encoded), "d187d79597d1c8028ab858e93bd229647d99caa3b8eb1e1f04e9ba6a39f15677");
+    assert_eq!(encoded.len(), 30712);
+    assert_eq!(digest(encoded), "f3c2c90ae071a1e777dbb007ef1ac80adccdfc140892177cabd4b022e0778645");
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     assert_eq!(reader::read(&root.join("src/source_reflows/compact_frontier_inverse.json"), encoded.len(), &digest(encoded), 2_097_152).unwrap(), encoded);
     let binding: serde_json::Value = serde_json::from_str(encoded).unwrap();
@@ -843,6 +843,11 @@ pub(super) fn compact_frontier_entry(source: &str, supplied: &str) -> Option<Str
         ("src/cleanup_plan/replay/path_join/selected/frontier_tests/lexical_before.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/frontier_tests/lexical_before.rs"))),
         ("src/cleanup_plan/replay/path_join/selected/frontier_tests/lexical_before/ordinary.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/frontier_tests/lexical_before/ordinary.rs"))),
         ("src/cleanup_plan/replay/path_join/selected/frontier_tests/scalar_before.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/frontier_tests/scalar_before.rs"))),
+        ("src/cleanup_plan/replay/cfg_bounds/tests/old.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/cfg_bounds/tests/old.rs"))),
+        ("src/cleanup_plan/replay/path_join/selected/tests/whole.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/tests/whole.rs"))),
+        ("src/cleanup_plan/replay/path_join/selected/tests/renewal.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/tests/renewal.rs"))),
+        ("src/cleanup_plan/replay/path_join/selected/tests/session.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/tests/session.rs"))),
+        ("src/cleanup_plan/replay/path_join/selected/tests/strings.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/tests/strings.rs"))),
     ] {
         let pin = &binding["children"][path];
         let length = usize::try_from(pin["length"].as_u64().unwrap()).unwrap();

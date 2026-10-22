@@ -184,11 +184,21 @@ fn complete_original_receiver_and_exact_current_source_inverse_stay_bound() {
         "/docs/evidence/boxed-path-states-v1/catalog-receipt.json"
     )))
     .unwrap();
-    let mut bundle = include_str!(concat!(
+    let raw_bundle = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/docs/AGENT-SKILL-BUNDLE-V1.json"
-    ))
-    .to_owned();
+    ));
+    let mut bundle =
+        crate::source_reflows_merge::boxed849_input("docs/AGENT-SKILL-BUNDLE-V1.json", raw_bundle);
+    let mut drifted = raw_bundle.to_owned();
+    drifted.push(' ');
+    assert!(
+        std::panic::catch_unwind(|| crate::source_reflows_merge::boxed849_input(
+            "docs/AGENT-SKILL-BUNDLE-V1.json",
+            &drifted
+        ))
+        .is_err()
+    );
     for (new, old) in [
         ("new_catalog", "old_catalog"),
         ("new_envelope", "old_envelope"),

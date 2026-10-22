@@ -8,7 +8,8 @@ const CONCAT: &str = r#"module oracle.concat;
   count=count+1;
   0
  }
- string_len(text)
+ return string_len(text);
+ 0
 }"#;
 #[test]
 fn genuine_string_append_success_preserves_complete_old_and_ordinary_routes() {

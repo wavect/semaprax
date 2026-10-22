@@ -3,63 +3,71 @@
   "children": {
     "src/cleanup_plan/replay/path_join/selected/before_frontier/finish.rs": {
       "length": 18467,
-      "sha256": "b864db59f35453a3991eb78f8dcb7d4c88b06c6731ef92cdde960ca18f4a90df",
-      "production": false
+      "sha256": "b864db59f35453a3991eb78f8dcb7d4c88b06c6731ef92cdde960ca18f4a90df"
     },
     "src/cleanup_plan/replay/path_join/selected/before_frontier/mod.rs": {
       "length": 7491,
-      "sha256": "06ed23f38a8b7404b5dba58f36bfaf476a34c7fd73d72c24cf71599f4226da78",
-      "production": false
+      "sha256": "06ed23f38a8b7404b5dba58f36bfaf476a34c7fd73d72c24cf71599f4226da78"
     },
     "src/cleanup_plan/replay/path_join/selected/before_frontier/queries.rs": {
       "length": 22878,
-      "sha256": "d1aa5cfe263f3412849d4d7818481e01a682aef3f0c3f07eeec6e196d2981909",
-      "production": false
+      "sha256": "d1aa5cfe263f3412849d4d7818481e01a682aef3f0c3f07eeec6e196d2981909"
     },
     "src/cleanup_plan/replay/path_join/selected/before_frontier/receiving.rs": {
       "length": 16518,
-      "sha256": "d0a1faed7d1d9a2d17b8b7983aa6fdc75f95f7636724cadb6bc4433a717e1e7e",
-      "production": false
+      "sha256": "d0a1faed7d1d9a2d17b8b7983aa6fdc75f95f7636724cadb6bc4433a717e1e7e"
     },
     "src/cleanup_plan/replay/path_join/selected/before_frontier/walk.rs": {
       "length": 61824,
-      "sha256": "a83992368a59d48c1d7cca887f9e184b5ec1457e985db6219efca294675302f4",
-      "production": false
+      "sha256": "a83992368a59d48c1d7cca887f9e184b5ec1457e985db6219efca294675302f4"
     },
     "src/cleanup_plan/replay/path_join/selected/boxed_flow.rs": {
       "length": 4257,
-      "sha256": "ce6dd3805e5577345ecd8aa1fde534d03ed44f73507e7e3ada38cc81b4406475",
-      "production": true
+      "sha256": "ce6dd3805e5577345ecd8aa1fde534d03ed44f73507e7e3ada38cc81b4406475"
     },
     "src/cleanup_plan/replay/path_join/selected/frontier.rs": {
-      "length": 11029,
-      "sha256": "3ed81bd49ac6c90cd3ad76c63b4f3e070756973329aa737339403c814521b334",
-      "production": true
+      "length": 11451,
+      "sha256": "070cce6ee64b01c273f546b82f332b266bf9e19a89d15e314a2e2c787a4e3aa2"
     },
     "src/cleanup_plan/replay/path_join/selected/frontier_tests.rs": {
-      "length": 20198,
-      "sha256": "2466dea4d1a33cbf7f36a80da2929e4a85fe308f4ec24737fbcab13c0a7e024c",
-      "production": false
+      "length": 20257,
+      "sha256": "0a5d4e362fa7fb3411325c93472d9f3ab90e04464d03a06a919d5e7bf40166c5"
     },
     "src/cleanup_plan/replay/path_join/selected/frontier_tests/full_callers.rs": {
       "length": 4254,
-      "sha256": "287203c0658e7f4ec5904bad11540716d2afbb2dc1ca3ff7030bd7e42dd40a50",
-      "production": false
+      "sha256": "287203c0658e7f4ec5904bad11540716d2afbb2dc1ca3ff7030bd7e42dd40a50"
     },
     "src/cleanup_plan/replay/path_join/selected/frontier_tests/lexical_before.rs": {
       "length": 8742,
-      "sha256": "059f257b657f161d7a32116cc5ce8164643fa8505c8d2755f303854b689773f6",
-      "production": false
+      "sha256": "059f257b657f161d7a32116cc5ce8164643fa8505c8d2755f303854b689773f6"
     },
     "src/cleanup_plan/replay/path_join/selected/frontier_tests/lexical_before/ordinary.rs": {
       "length": 3442,
-      "sha256": "d947a67e20af65598c445eecf30c19a797793e2ea45d9ca1d096976fa1111927",
-      "production": false
+      "sha256": "d947a67e20af65598c445eecf30c19a797793e2ea45d9ca1d096976fa1111927"
     },
     "src/cleanup_plan/replay/path_join/selected/frontier_tests/scalar_before.rs": {
       "length": 8515,
-      "sha256": "b333af09d8e38b1de4f5d8f783d2b63333a0cd8ff0fc1f676227bcb256a72868",
-      "production": false
+      "sha256": "b333af09d8e38b1de4f5d8f783d2b63333a0cd8ff0fc1f676227bcb256a72868"
+    },
+    "src/cleanup_plan/replay/cfg_bounds/tests/old.rs": {
+      "length": 5551,
+      "sha256": "dae232ff12e15f58497c9d527ed4be1ecbce25fd5cd7e5b8a1081e3155b09fcb"
+    },
+    "src/cleanup_plan/replay/path_join/selected/tests/whole.rs": {
+      "length": 6709,
+      "sha256": "ca6baf7aa6f1d54c1db98e394a427ff44ccd0546783db46228419c760c85654f"
+    },
+    "src/cleanup_plan/replay/path_join/selected/tests/renewal.rs": {
+      "length": 3050,
+      "sha256": "bea7a9dc0e5ceb55ae2f3647adcaf67a19f6a78b07d807f2e68f37b4fd022c83"
+    },
+    "src/cleanup_plan/replay/path_join/selected/tests/session.rs": {
+      "length": 3883,
+      "sha256": "1978ea6af6c6258fe97760e1d03e162cb6947cae5206735ca15ffb9799bfc3d2"
+    },
+    "src/cleanup_plan/replay/path_join/selected/tests/strings.rs": {
+      "length": 2311,
+      "sha256": "bfd078eea157329819cdbff84ed62bbeafc014542c97276cd4cc2b8becdfbe44"
     }
   },
   "rows": {
@@ -522,15 +530,87 @@
       ]
     },
     "src/cleanup_plan/replay/path_join/selected/tests/mod.rs": {
-      "current_length": 5019,
-      "current_sha256": "56b717c8e3281dc9465d06af51b8f843853b5a4c5a4a89a34a90b859842ec229",
+      "current_length": 5391,
+      "current_sha256": "ea6faf59b00eecded5f37db29cef4c7e20be12add32432a6de626803bbe07440",
       "before_length": 4413,
       "before_sha256": "b18cda52ab90e700d541b1158a2b01ccaba83d4958334e40191fb9bdc086a295",
       "edits": [
         {
-          "start": 3849,
-          "end": 4455,
-          "current": "    let ((immediate, bytes, work), observed) =\n        measure(|| super::frontier_tests::owner_cost(&source, function));\n    assert!(!observed.invalid);\n    eprintln!(\n        \"compact-frontier {} immediate-old physical={bytes} work={work}\",\n        function.id\n    );\n    assert_eq!(\n        outcomes[1], immediate,\n        \"complete immediate-old six-field diagnostic {id}\"\n    );\n    drop(immediate);\n    let (_, observed) = measure(|| drop(super::frontier_tests::owner_cost(&source, function)));\n    assert!(!observed.invalid && observed.live == 0);\n    assert_eq!(observed.allocated, observed.freed);\n",
+          "start": 865,
+          "end": 872,
+          "current": "return ",
+          "before": ""
+        },
+        {
+          "start": 924,
+          "end": 928,
+          "current": ";\n 0",
+          "before": ""
+        },
+        {
+          "start": 1570,
+          "end": 1570,
+          "current": "",
+          "before": "fun"
+        },
+        {
+          "start": 1571,
+          "end": 1572,
+          "current": "r",
+          "before": "tion.cle"
+        },
+        {
+          "start": 1573,
+          "end": 1582,
+          "current": "te::hir::",
+          "before": "nup_plan."
+        },
+        {
+          "start": 1590,
+          "end": 1608,
+          "current": "exit::requires(fun",
+          "before": ""
+        },
+        {
+          "start": 1609,
+          "end": 1611,
+          "current": "ti",
+          "before": ""
+        },
+        {
+          "start": 1613,
+          "end": 1623,
+          "current": ")\n        ",
+          "before": "trol"
+        },
+        {
+          "start": 1624,
+          "end": 1624,
+          "current": "",
+          "before": "is_som"
+        },
+        {
+          "start": 1625,
+          "end": 1630,
+          "current": "xpect",
+          "before": ""
+        },
+        {
+          "start": 1631,
+          "end": 1675,
+          "current": "\"genuine checked HIR lexical classification\"",
+          "before": ""
+        },
+        {
+          "start": 3923,
+          "end": 4529,
+          "current": "let ((immediate, bytes, work), observed) =\n        measure(|| super::frontier_tests::owner_cost(&source, function));\n    assert!(!observed.invalid);\n    eprintln!(\n        \"compact-frontier {} immediate-old physical={bytes} work={work}\",\n        function.id\n    );\n    assert_eq!(\n        outcomes[1], immediate,\n        \"complete immediate-old six-field diagnostic {id}\"\n    );\n    drop(immediate);\n    let (_, observed) = measure(|| drop(super::frontier_tests::owner_cost(&source, function)));\n    assert!(!observed.invalid && observed.live == 0);\n    assert_eq!(observed.allocated, observed.freed);\n    ",
+          "before": ""
+        },
+        {
+          "start": 5089,
+          "end": 5391,
+          "current": "\n// Compile the complete existing preflight owner without changing its bytes.\n// Nonlexical ordinary replay preflights before the selected scalar profile;\n// these intentionally distinct entry routes retain their own first refusal.\n#[path = \"../../../cfg_bounds/tests/old.rs\"]\nmod ordinary_cfg_before;\n",
           "before": ""
         }
       ]

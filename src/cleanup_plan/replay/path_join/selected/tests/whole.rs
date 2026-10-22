@@ -30,10 +30,25 @@ fn actual_held_unknown_entry_keeps_complete_old_diagnostic_and_prior_profile_ord
             selected.message.contains("cleanup entry block is unknown"),
             "{selected:?}"
         );
-        assert_eq!(
-            crate::cleanup_plan::replay::validate_program(&program).unwrap_err(),
-            selected
-        );
+        let ordinary = crate::cleanup_plan::replay::validate_program(&program).unwrap_err();
+        if crate::hir::lexical_exit::requires(function).unwrap() {
+            assert_eq!(ordinary, selected, "lexical ordinary first six fields");
+        } else {
+            // The ordinary nonlexical entry does CFG preflight before the
+            // selected scalar profile. Preserve its complete independent old
+            // owner and six fields instead of inventing cross-route precedence.
+            let old = ordinary_cfg_before::bounds(function)
+                .err()
+                .expect("original CFG must refuse unknown entry");
+            assert!(old
+                .message
+                .contains("cleanup replay preflight references an unknown id"));
+            assert_eq!(ordinary, old, "ordinary CFG first six fields");
+            assert_ne!(
+                ordinary, selected,
+                "the original entry routes have distinct first refusals"
+            );
+        }
     }
     let mut program = program(SCALAR);
     let function = program

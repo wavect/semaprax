@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Run only the committed 50-filter/153-test OPT batch and production Clippy."""
+"""Run one committed focused OPT selection and production Clippy."""
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import os
@@ -13,7 +14,10 @@ import sys
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
-SELECTION = ROOT / 'scripts/ci-opt-batch-selection.json'
+SELECTIONS = {
+    'historical': ('ci-opt-batch-selection.json', 50, 153, ('lib', 'hir_module_boundaries')),
+    'next': ('ci-opt-next-batch-selection.json', 34, 68, ('lib', 'owned_data', 'cli')),
+}
 OUT = ROOT / 'diagnostic-opt-batch'
 TARGET = ROOT / 'target/hosted-opt-batch'
 PROFILE = {
@@ -102,6 +106,11 @@ def settle(process: subprocess.Popen) -> None:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--selection', choices=tuple(SELECTIONS), default='historical')
+    options = parser.parse_args()
+    filename, expected_filters, expected_tests, image_names = SELECTIONS[options.selection]
+    selection = ROOT / 'scripts' / filename
     OUT.mkdir(exist_ok=False)
     receipt: dict = {
         'schema': 'semaprax.hosted-opt-batch.v1', 'status': 'running',
@@ -186,18 +195,27 @@ def main() -> int:
         receipt.update(state(expected))
         receipt['profile_environment'] = {**PROFILE, 'CARGO_TARGET_DIR': str(TARGET)}
         receipt['runner_sha256'] = sha(Path(__file__))
-        receipt['selection_sha256'] = sha(SELECTION)
+        receipt['selection'] = {'profile': options.selection, 'path': str(selection.relative_to(ROOT)),
+                                'expected_filters': expected_filters, 'expected_tests': expected_tests}
+        receipt['selection_sha256'] = sha(selection)
         receipt['rustc'] = text(['rustc', '-vV'])
         receipt['cargo'] = text(['cargo', '--version'])
         receipt['native_tools'] = {name: env[name] for name in ('CLANG', 'SEMAPRAX_ARCHIVER')}
         receipt['history_inputs'] = 'Selected historical-body owners read committed fixtures, not historical Git objects; shallow checkout retained.'
         if not receipt['rustc'].startswith('rustc 1.97.1 '):
             raise RuntimeError('the owning toolchain must remain Rust 1.97.1')
-        rows = json.loads(SELECTION.read_text())['commands']
-        if (len(rows) != 50 or sum(r['expected_tests'] for r in rows) != 153
-                or {r['binary'] for r in rows} != {'lib', 'hir_module_boundaries'}
-                or sum(r['binary'] == 'hir_module_boundaries' for r in rows) != 1):
-            raise RuntimeError('selection must remain 50 filters / 153 tests / 2 binaries')
+        selected = json.loads(selection.read_text())
+        rows = selected['commands']
+        if (selected.get('schema') != 'semaprax.hosted-opt-batch-selection.v1'
+                or selected.get('filters') != expected_filters
+                or selected.get('expected_tests') != expected_tests
+                or len(rows) != expected_filters
+                or sum(r['expected_tests'] for r in rows) != expected_tests
+                or {r['binary'] for r in rows} != set(image_names)):
+            raise RuntimeError('selection differs from its committed filter/test/image profile')
+        if options.selection == 'historical' and sum(
+                r['binary'] == 'hir_module_boundaries' for r in rows) != 1:
+            raise RuntimeError('historical boundary selector must remain unique')
         for row in rows:
             if (not isinstance(row['filter'], str) or not row['filter'].strip()
                     or row['filter'].startswith('-') or '\n' in row['filter']
@@ -205,33 +223,47 @@ def main() -> int:
                     or type(row['expected_tests']) is not int or row['expected_tests'] <= 0):
                 raise RuntimeError('empty or invalid test selector')
         run('fetch', ['cargo', 'fetch', '--locked'], 900)
-        build, _ = run('build', [
-            'cargo', 'test', '--locked', '--offline', '-p', 'semaprax',
-            '--lib', '--test', 'hir_module_boundaries', '--no-run', '--jobs', '1',
-            '--message-format=json-render-diagnostics',
-        ], 7200, sample_memory=True)
-        artifacts: dict[str, list[Path]] = {'lib': [], 'hir_module_boundaries': []}
-        finished = []
-        with build.open() as stream:
-            for line in stream:
-                try:
-                    message = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
-                if message.get('reason') == 'build-finished':
-                    finished.append(message.get('success'))
-                target = message.get('target', {})
-                executable = message.get('executable')
-                if (message.get('reason') != 'compiler-artifact' or not executable
-                        or not message.get('profile', {}).get('test')):
-                    continue
-                if target.get('name') == 'semaprax' and target.get('kind') == ['lib']:
-                    artifacts['lib'].append(Path(executable))
-                elif (target.get('name') == 'hir_module_boundaries'
-                      and target.get('kind') == ['test']):
-                    artifacts['hir_module_boundaries'].append(Path(executable))
-        if finished != [True] or any(len(paths) != 1 for paths in artifacts.values()):
-            raise RuntimeError('build did not emit exactly the two owning test binaries')
+        artifacts: dict[str, list[Path]] = {name: [] for name in image_names}
+        image_groups = [image_names] if options.selection == 'historical' else [
+            (name,) for name in image_names]
+        for group in image_groups:
+            # Keep the historical build command; next builds each owning harness
+            # once and serially with the same private target.
+            image_args = []
+            for image in group:
+                image_args.extend(['--lib'] if image == 'lib' else ['--bin', 'semaprax'] if image == 'cli' else ['--test', image])
+            label = 'build' if options.selection == 'historical' else f'build-{group[0]}'
+            build, _ = run(label, [
+                'cargo', 'test', '--locked', '--offline', '-p', 'semaprax',
+                *image_args, '--no-run', '--jobs', '1',
+                '--message-format=json-render-diagnostics',
+            ], 7200, sample_memory=True)
+            finished = []
+            with build.open() as stream:
+                for line in stream:
+                    try:
+                        message = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    if message.get('reason') == 'build-finished':
+                        finished.append(message.get('success'))
+                    target = message.get('target', {})
+                    executable = message.get('executable')
+                    if (message.get('reason') != 'compiler-artifact' or not executable
+                            or not message.get('profile', {}).get('test')):
+                        continue
+                    for image in group:
+                        if (image == 'lib' and target.get('name') == 'semaprax'
+                                and target.get('kind') == ['lib']):
+                            artifacts[image].append(Path(executable))
+                        elif (image == 'cli' and target.get('name') == 'semaprax'
+                              and target.get('kind') == ['bin']):
+                            artifacts[image].append(Path(executable))
+                        elif (image not in ('lib', 'cli') and target.get('name') == image
+                              and target.get('kind') == ['test']):
+                            artifacts[image].append(Path(executable))
+            if finished != [True] or any(len(artifacts[image]) != 1 for image in group):
+                raise RuntimeError('build did not emit exactly the selected owning test binaries')
         binaries = {}
         for kind, paths in artifacts.items():
             binary = paths[0]
@@ -320,12 +352,12 @@ def main() -> int:
         receipt['final_checkout'] = state(expected)
         for kind in binaries:
             unchanged_binary(kind)
-        if (receipt['completed_filters'] != 50 or receipt['failed_filters'] != 0
-                or receipt['observed_passed_tests'] != 153 or not receipt['clippy']['passed']):
+        if (receipt['completed_filters'] != expected_filters or receipt['failed_filters'] != 0
+                or receipt['observed_passed_tests'] != expected_tests or not receipt['clippy']['passed']):
             receipt['status'] = 'failed'
             receipt['error'] = 'one or more focused filters or production Clippy failed; see all collected outcomes'
             return 1
-        receipt['passed_tests'] = 153
+        receipt['passed_tests'] = expected_tests
         receipt['status'] = 'passed'
         return 0
     except Exception as error:
@@ -341,7 +373,7 @@ def main() -> int:
         receipt['observed_failed_tests'] = sum(row.get('failed', 0) for row in receipt['tests'])
         receipt['filters_without_unique_summary'] = [row['index'] for row in receipt['tests']
                                                      if len(row.get('summaries', [])) != 1]
-        receipt['summary_counts_complete'] = (receipt['completed_filters'] == 50 and not receipt['filters_without_unique_summary'])
+        receipt['summary_counts_complete'] = (receipt['completed_filters'] == expected_filters and not receipt['filters_without_unique_summary'])
         (OUT / 'receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
         print(f'OPT batch status: {receipt["status"]}; receipts/logs: {OUT.name}', flush=True)
 

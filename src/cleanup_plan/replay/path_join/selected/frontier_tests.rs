@@ -295,7 +295,8 @@ fn cost(
     function: &ResolvedFunction,
     old: bool,
 ) -> (Result<(), Diagnostic>, usize, usize) {
-    let lexical = function.cleanup_plan.lexical_control.is_some();
+    let lexical = crate::hir::lexical_exit::requires(function)
+        .expect("genuine checked HIR lexical classification");
     let mut b = ReplayBudget::with_physical(function, 64 * 1024 * 1024).unwrap();
     let initial = b.remaining;
     let context = crate::cleanup_plan::replay::selected_context::Context::new_paid(

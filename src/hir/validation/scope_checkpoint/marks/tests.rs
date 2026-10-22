@@ -157,7 +157,7 @@ fn inert_roots_keep_exact_scope_and_legacy_owned_route_including_forged_payloads
             if hostile {
                 expression.ty = ResolvedType::Never;
                 expression.ownership = OwnershipMode::Borrow;
-                expression.id = ExpressionId::new("forged\0expression".to_owned());
+                expression.id = ExpressionId::from_owned("forged\0expression".to_owned());
             }
             let mut current = seed();
             let mut old = current.clone();

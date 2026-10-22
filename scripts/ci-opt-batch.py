@@ -16,7 +16,7 @@ import time
 ROOT = Path(__file__).resolve().parents[1]
 SELECTIONS = {
     'historical': ('ci-opt-batch-selection.json', 50, 153, ('lib', 'hir_module_boundaries')),
-    'next': ('ci-opt-next-batch-selection.json', 17, 49, ('lib', 'owned_data')),
+    'next': ('ci-opt-next-batch-selection.json', 34, 68, ('lib', 'owned_data', 'cli')),
 }
 OUT = ROOT / 'diagnostic-opt-batch'
 TARGET = ROOT / 'target/hosted-opt-batch'
@@ -231,7 +231,7 @@ def main() -> int:
             # once and serially with the same private target.
             image_args = []
             for image in group:
-                image_args.extend(['--lib'] if image == 'lib' else ['--test', image])
+                image_args.extend(['--lib'] if image == 'lib' else ['--bin', 'semaprax'] if image == 'cli' else ['--test', image])
             label = 'build' if options.selection == 'historical' else f'build-{group[0]}'
             build, _ = run(label, [
                 'cargo', 'test', '--locked', '--offline', '-p', 'semaprax',
@@ -256,7 +256,10 @@ def main() -> int:
                         if (image == 'lib' and target.get('name') == 'semaprax'
                                 and target.get('kind') == ['lib']):
                             artifacts[image].append(Path(executable))
-                        elif (image != 'lib' and target.get('name') == image
+                        elif (image == 'cli' and target.get('name') == 'semaprax'
+                              and target.get('kind') == ['bin']):
+                            artifacts[image].append(Path(executable))
+                        elif (image not in ('lib', 'cli') and target.get('name') == image
                               and target.get('kind') == ['test']):
                             artifacts[image].append(Path(executable))
             if finished != [True] or any(len(artifacts[image]) != 1 for image in group):

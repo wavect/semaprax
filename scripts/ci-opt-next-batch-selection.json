@@ -1,7 +1,7 @@
 {
   "schema": "semaprax.hosted-opt-batch-selection.v1",
-  "filters": 17,
-  "expected_tests": 49,
+  "filters": 34,
+  "expected_tests": 68,
   "commands": [
     {
       "owner": "OPT899 unchanged default owning controls",
@@ -121,6 +121,125 @@
       "filter": "owned_leaf_vec::record_traversal::",
       "exact": false,
       "expected_tests": 16
+    },
+    {
+      "owner": "OPT742/743 contract-owner authoring card",
+      "binary": "cli",
+      "filter": "cli_driver::cli::help::authoring::contract_owners::tests::",
+      "exact": false,
+      "expected_tests": 3
+    },
+    {
+      "owner": "Exact failed prior owning check: HIR lowering identities",
+      "binary": "lib",
+      "filter": "hir::ids::lowering_identity_tests::complete_source_inverses_and_independent_old_lowering_bodies_remain_exact",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Exact failed prior owning check: OPT898 authenticated absent call carriers",
+      "binary": "lib",
+      "filter": "workspace_graph::expected_projection::call_carriers::tests::exact_one_short_zero_and_whole_allocation_drop_controls",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Exact failed prior owning check: OPT912 complete ordinary invocation frame reuse and exact predecessor custody",
+      "binary": "lib",
+      "filter": "hir::validation::frame_reuse::tests::invocation_reuse_matches_complete_immediate_previous_function_chain_and_decimal",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Exact failed prior owning check: OPT912 complete ordinary invocation frame reuse and exact predecessor custody",
+      "binary": "lib",
+      "filter": "hir::validation::frame_reuse::tests::late_errors_preserve_complete_diagnostics_partial_publication_and_auxiliary_state",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Exact failed prior owning check: OPT912 complete ordinary invocation frame reuse and exact predecessor custody",
+      "binary": "lib",
+      "filter": "hir::validation::frame_reuse::tests::whole_ordinary_invocation_observes_complete_allocations_and_drop_against_independent_old_driver",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Exact failed prior owning check: OPT903 early HIR scratch release with complete independent constructor and Drop",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::factored::early_release::complete_constructor_drop_observes_both_old_and_released_owner_lifetimes",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Exact failed prior owning check: OPT913 authenticated funded inert move roots and complete predecessor controls",
+      "binary": "lib",
+      "filter": "hir::validation::scope_checkpoint::marks::tests::ordinary_function_callers_report_complete_old_current_bills_and_drop_without_gain_assumption",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Exact failed prior owning check: OPT914 complete selected replay owner regressions",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::selected::tests::renewal::actual_same_owner_byte_renewal_preserves_original_binding_and_whole_owner",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Exact failed prior owning check: OPT914 complete selected replay owner regressions",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::selected::tests::session::live_initialize_paid_session_retains_original_report_source_and_first_receipt",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Exact failed prior owning check: OPT914 complete selected replay owner regressions",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::selected::tests::strings::genuine_string_append_success_preserves_complete_old_and_ordinary_routes",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Exact failed prior owning check: OPT914 complete selected replay owner regressions",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::selected::tests::strings::held_string_append_duplicate_reservation_preserves_first_full_old_diagnostic",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Exact failed prior owning check: OPT914 complete selected replay owner regressions",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::selected::tests::whole::actual_held_unknown_entry_keeps_complete_old_diagnostic_and_prior_profile_order",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Exact failed prior owning check: OPT914 complete selected replay owner regressions",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::selected::tests::whole::complete_scalar_and_lexical_success_keep_ordinary_and_immediate_old_owners",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Exact failed prior owning check: OPT914 complete selected replay owner regressions",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::selected::tests::whole::held_duplicate_initialize_is_closed_by_selected_path_receipt",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Exact failed prior owning check: OPT914 boxed state ownership and receiving controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::boxed_states::receiving_tests::actual_entry_and_box_layout_inventory_and_complete_main_receiver_sources_are_exact",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Exact failed prior owning check: OPT914 complete path replay receiver controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::receiver_tests::complete_original_receiver_and_exact_current_source_inverse_stay_bound",
+      "exact": true,
+      "expected_tests": 1
     }
   ]
 }

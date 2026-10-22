@@ -3057,6 +3057,12 @@ fn sequence_skeleton_paths(
     work: &mut SkeletonWork<'_, '_>,
 ) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
     #[cfg(test)]
+    if ordinary_plan_history::completed_fork::emission::selected() {
+        return ordinary_plan_history::completed_fork::emission::whole_sequence!(
+            prefixes, suffixes, work
+        );
+    }
+    #[cfg(test)]
     if skeleton_work::enumerated_prefix::original_selected() {
         return skeleton_work::enumerated_prefix::old_sequence(prefixes, suffixes, work);
     }

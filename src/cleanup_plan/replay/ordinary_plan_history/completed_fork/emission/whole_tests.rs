@@ -1,0 +1,282 @@
+//! Real nested HIR calls, independently constructed PLAN, and full owner Drop.
+use super::super::tests::fixture;
+use super::*;
+use crate::bounded_output::{set_active_floor, with_limit_usage_refusal};
+use crate::cleanup_plan::replay::ordinary_plan_history::producer::view;
+use crate::test_allocation_observer::measure;
+
+fn budget(program: &ResolvedProgram, function: &ResolvedFunction) -> ReplayBudget {
+    let mut budget = ReplayBudget::new();
+    reserve_program_skeleton_work(program, std::iter::once(function), &mut budget).unwrap();
+    budget
+}
+fn joint(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    budget: &mut ReplayBudget,
+) -> Result<(), Diagnostic> {
+    // The ordinary expression walker itself calls the new whole-fork receiver;
+    // no final history is synthesized from the independently produced PLAN.
+    let mut expected = with_emission(|| hir_skeleton_paths(program, function, budget))?;
+    budget.reserve_bytes(
+        function,
+        sequence::ENTRY_CALL,
+        "whole HIR complete content sort",
+    )?;
+    sequence::sort(&mut expected, function, budget)?;
+    budget.reserve_bytes(
+        function,
+        view::PRODUCE_CALL,
+        "whole independent PLAN producer",
+    )?;
+    let produced = view::produce(function, budget)?;
+    budget.reserve_bytes(
+        function,
+        view::COMPARE_CALL,
+        "whole independent history comparison",
+    )?;
+    view::compare(produced, &expected, budget)
+}
+
+#[test]
+fn complete_immediate_old_nested_receiver_and_production_gates_survive() {
+    let source = include_str!("../../../../replay.rs");
+    let start = source.find("fn sequence_skeleton_paths(").unwrap();
+    let end = source[start + 1..].find("\nfn ").unwrap() + start + 1;
+    let hook = concat!(
+        "    #[cfg(test)]\n",
+        "    if ordinary_plan_history::completed_fork::emission::selected() {\n",
+        "        return ordinary_plan_history::completed_fork::emission::whole_sequence!(\n",
+        "            prefixes, suffixes, work\n",
+        "        );\n",
+        "    }\n",
+    );
+    let current = &source[start..end];
+    assert_eq!(current.matches(hook).count(), 1);
+    assert_eq!(
+        current.replacen(hook, "", 1),
+        include_str!("../sequence.before.txt")
+    );
+    assert!(!selected());
+    with_emission(|| {
+        assert!(selected() && !before_selected());
+        with_before(|| assert!(selected() && before_selected()));
+        assert!(selected() && !before_selected());
+    });
+    assert!(!selected());
+}
+
+#[test]
+fn real_tiny_branch_and_full_nested_callers_keep_old_contents_work_and_independent_plan() {
+    let program = fixture();
+    for function in &program.functions {
+        // Both complete HIR construction paths are compiled independently: the
+        // original whole sequence body and the new immutable producer.
+        let mut old_budget = budget(&program, function);
+        let mut old =
+            with_before(|| hir_skeleton_paths(&program, function, &mut old_budget)).unwrap();
+        let mut new_budget = budget(&program, function);
+        let mut actual =
+            with_emission(|| hir_skeleton_paths(&program, function, &mut new_budget)).unwrap();
+        assert_eq!(actual.len(), old.len());
+        assert_eq!(new_budget.skeleton_spent, old_budget.skeleton_spent);
+        assert_eq!(new_budget.skeleton_remaining, old_budget.skeleton_remaining);
+        new_budget
+            .reserve_bytes(
+                function,
+                3 * sequence::ENTRY_CALL,
+                "whole paired HIR sort and equality",
+            )
+            .unwrap();
+        sequence::sort(&mut actual, function, &mut new_budget).unwrap();
+        sequence::sort(&mut old, function, &mut new_budget).unwrap();
+        assert!(sequence::equal(&actual, &old, function, &mut new_budget).unwrap());
+        if function.id.as_str() == "f" {
+            assert!(actual.iter().any(|path| path.observations.prefix.is_some()));
+        }
+        // The real public payer and funded ordinary payer both enter the same
+        // independent complete PLAN comparator, with no shared identity seal.
+        let mut public = budget(&program, function);
+        joint(&program, function, &mut public).unwrap();
+        with_limit_usage_refusal(usize::MAX, || {
+            let mut funded = budget(&program, function);
+            joint(&program, function, &mut funded).unwrap();
+        });
+    }
+}
+
+#[test]
+fn whole_nested_hir_plan_exact_short_sticky_floor_and_full_drop() {
+    let program = fixture();
+    let function = &program.functions[0];
+    let run = |limit, floor| {
+        with_limit_usage_refusal(limit, || {
+            measure(|| {
+                assert!(set_active_floor(floor));
+                let mut budget = ReplayBudget::new();
+                let result =
+                    reserve_program_skeleton_work(&program, std::iter::once(function), &mut budget)
+                        .and_then(|()| joint(&program, function, &mut budget));
+                if result.is_err() {
+                    assert!(
+                        budget
+                            .reserve_bytes(function, 0, "whole history sticky zero")
+                            .is_err()
+                    );
+                }
+                drop(budget);
+                result.map_err(|error| {
+                    let code = error.code;
+                    drop(error);
+                    code
+                })
+            })
+        })
+    };
+    let ((result, heap), refused, paid, _) = run(usize::MAX, 0);
+    result.unwrap();
+    assert!(!refused && !heap.invalid && heap.live == 0);
+    assert_eq!(heap.allocated, heap.freed);
+    assert!(heap.allocated <= paid);
+    for (limit, floor, success) in [
+        (paid, 0, true),
+        (paid - 1, 0, false),
+        (0, 0, false),
+        (paid, paid, false),
+    ] {
+        let ((result, heap), refused, _, first) = run(limit, floor);
+        assert_eq!(result.is_ok(), success);
+        assert!(!heap.invalid && heap.live == 0);
+        assert_eq!(heap.allocated, heap.freed);
+        if !success {
+            assert!(refused && first.is_some());
+            assert_eq!(result.unwrap_err(), "SPX-H006");
+        }
+    }
+}
+
+#[test]
+fn whole_nested_work_failures_preserve_all_six_diagnostic_fields() {
+    let program = fixture();
+    let function = &program.functions[0];
+    let attempt = |cut, prior| {
+        with_limit_usage_refusal(usize::MAX, || {
+            let mut budget = budget(&program, function);
+            budget.remaining = cut;
+            if prior {
+                with_before(|| hir_skeleton_paths(&program, function, &mut budget)).map(drop)
+            } else {
+                with_emission(|| hir_skeleton_paths(&program, function, &mut budget)).map(drop)
+            }
+        })
+        .0
+    };
+    // Added traversals have explicit free-work costs, so compare each complete
+    // producer with itself at identical cuts; a shared byte/work total grants
+    // no permission to substitute a different refusal or waive its fields.
+    for prior in [false, true] {
+        for cut in 0..128 {
+            match (attempt(cut, prior), attempt(cut, prior)) {
+                (Ok(()), Ok(())) => {}
+                (Err(a), Err(b)) => assert_eq!(
+                    (a.code, a.severity, a.message, a.path, a.span, a.help),
+                    (b.code, b.severity, b.message, b.path, b.span, b.help)
+                ),
+                _ => panic!("same whole caller and work cut changed result"),
+            }
+        }
+    }
+}
+
+#[test]
+fn actual_late_terminal_and_multiplicity_refusals_match_the_whole_old_comparator() {
+    let program = fixture();
+    let function = &program.functions[0];
+    with_limit_usage_refusal(usize::MAX, || {
+        for mutation in 0..3 {
+            let mut old_budget = budget(&program, function);
+            let mut old =
+                with_before(|| hir_skeleton_paths(&program, function, &mut old_budget)).unwrap();
+            let mut new_budget = budget(&program, function);
+            let mut current =
+                with_emission(|| hir_skeleton_paths(&program, function, &mut new_budget)).unwrap();
+            for (paths, budget) in [(&mut old, &mut old_budget), (&mut current, &mut new_budget)] {
+                budget
+                    .reserve_bytes(
+                        function,
+                        2 * sequence::ENTRY_CALL,
+                        "whole malformed HIR content sorts",
+                    )
+                    .unwrap();
+                sequence::sort(paths, function, budget).unwrap();
+                match mutation {
+                    0 => {
+                        paths.pop();
+                    }
+                    1 => {
+                        paths.last_mut().unwrap().terminal = SkeletonTerminal::Failure;
+                    }
+                    _ => {
+                        let mut work = SkeletonWork::new(&program, function, budget);
+                        let mut tail = skeleton_work::empty_expr_path();
+                        tail.observations =
+                            std::mem::take(&mut paths.last_mut().unwrap().observations);
+                        work.push_observation(
+                            &mut tail,
+                            SkeletonObservation::Boolean {
+                                expression: function.body.id.clone(),
+                                value: false,
+                            },
+                            "whole malformed HIR late observation",
+                        )
+                        .unwrap();
+                        paths.last_mut().unwrap().observations = tail.observations;
+                    }
+                }
+                sequence::sort(paths, function, budget).unwrap();
+            }
+            old_budget
+                .reserve_bytes(
+                    function,
+                    PRODUCE_CALL_CONTROLS + COMPARE_CALL_CONTROLS,
+                    "whole old PLAN and comparison receivers",
+                )
+                .unwrap();
+            let old_plan = super::super::super::produce(function, &mut old_budget).unwrap();
+            let before = super::super::super::before_comparison::compare(
+                function,
+                &mut old_budget,
+                old_plan,
+                &old,
+            )
+            .unwrap_err();
+            new_budget
+                .reserve_bytes(
+                    function,
+                    view::PRODUCE_CALL + view::COMPARE_CALL,
+                    "whole current PLAN and comparison receivers",
+                )
+                .unwrap();
+            let actual = view::produce(function, &mut new_budget).unwrap();
+            let current = view::compare(actual, &current, &mut new_budget).unwrap_err();
+            assert_eq!(
+                (
+                    before.code,
+                    before.severity,
+                    before.message,
+                    before.path,
+                    before.span,
+                    before.help
+                ),
+                (
+                    current.code,
+                    current.severity,
+                    current.message,
+                    current.path,
+                    current.span,
+                    current.help
+                )
+            );
+        }
+    });
+}

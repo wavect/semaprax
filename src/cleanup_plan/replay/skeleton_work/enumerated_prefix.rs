@@ -37,7 +37,7 @@ pub(super) const DISPATCH_CONTROLS: usize = 2 * size_of::<Option<&std::rc::Rc<Ob
     + 2 * size_of::<&mut ReplayBudget>()
     + 2 * size_of::<&ResolvedFunction>()
     + size_of::<Result<(), Diagnostic>>();
-pub(super) const EXTEND_CONTROLS: usize = 2 * NODE_CALL // at most Seq head and Cat join
+pub(in crate::cleanup_plan::replay) const EXTEND_CONTROLS: usize = 2 * NODE_CALL // at most Seq head and Cat join
     + 2 * size_of::<Observations>() // moved actual + formal target
     + 2 * size_of::<&Observations>() + 2 * size_of::<&mut SkeletonWork<'static, 'static>>()
     + size_of::<Result<Observations, Diagnostic>>()
@@ -496,7 +496,7 @@ mod source_custody;
 #[cfg(test)]
 mod tests;
 
-pub(super) fn extend(
+pub(in crate::cleanup_plan::replay) fn extend(
     work: &mut SkeletonWork<'_, '_>,
     target: Observations,
     suffix: &Observations,

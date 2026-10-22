@@ -10,10 +10,10 @@ fn call(
 ) -> Result<Outcome, Diagnostic> {
     produce!(prefixes, forks, work)
 }
-fn fixture() -> ResolvedProgram {
+pub(super) fn fixture() -> ResolvedProgram {
     super::super::tests::program()
 }
-fn seed(work: &mut SkeletonWork<'_, '_>, len: usize, offset: usize) -> ExprSkeletonPath {
+pub(super) fn seed(work: &mut SkeletonWork<'_, '_>, len: usize, offset: usize) -> ExprSkeletonPath {
     let mut path = skeleton_work::empty_expr_path();
     for index in 0..len {
         work.push_observation(
@@ -28,7 +28,7 @@ fn seed(work: &mut SkeletonWork<'_, '_>, len: usize, offset: usize) -> ExprSkele
     }
     path
 }
-fn inputs(
+pub(super) fn inputs(
     work: &mut SkeletonWork<'_, '_>,
     len: usize,
     count: usize,

@@ -103,6 +103,10 @@ macro_rules! history_path {
     }};
 }
 
+// Closed-family producer prerequisite. Shipping expression plumbing continues
+// using its independently retained receiver until complete caller qualification.
+#[allow(dead_code, reason = "completed-fork producer is not yet a shipping selector")]
+mod completed_fork;
 mod producer;
 pub(super) use producer::produce;
 #[cfg(test)]

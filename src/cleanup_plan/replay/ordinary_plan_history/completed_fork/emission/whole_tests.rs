@@ -44,18 +44,25 @@ fn complete_immediate_old_nested_receiver_and_production_gates_survive() {
     let start = source.find("fn sequence_skeleton_paths(").unwrap();
     let end = source[start + 1..].find("\nfn ").unwrap() + start + 1;
     let hook = concat!(
-        "    #[cfg(test)]\n",
-        "    if ordinary_plan_history::completed_fork::emission::selected() {\n",
-        "        return ordinary_plan_history::completed_fork::emission::whole_sequence!(\n",
-        "            prefixes, suffixes, work\n",
-        "        );\n",
-        "    }\n",
+        "    let prefixes = ordinary_plan_history::completed_fork::emission::dispatch!(\n",
+        "        prefixes, suffixes, work\n",
+        "    );\n",
     );
     let current = &source[start..end];
     assert_eq!(current.matches(hook).count(), 1);
     assert_eq!(
         current.replacen(hook, "", 1),
         include_str!("../sequence.before.txt")
+    );
+    let restored = source.replacen(hook, "", 1).replacen(
+        "    ordinary_plan_history::completed_fork::shipping::finish!(function, budget, expected);\n", "", 1);
+    use sha2::{Digest, Sha256};
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(restored.as_bytes()))
+        ),
+        "5b40d53c43ccf6335bd2fbaf33c3c57d75b5bcfab2a7d6ebbd03851d77ee6e9d"
     );
     assert!(!selected());
     with_emission(|| {
@@ -279,4 +286,19 @@ fn actual_late_terminal_and_multiplicity_refusals_match_the_whole_old_comparator
             );
         }
     });
+}
+
+#[test]
+fn actual_production_public_and_funded_whole_program_keep_independent_old_route() {
+    let program = fixture();
+    // No candidate flag selects the new production path. The explicit old
+    // control selects only the separately compiled whole predecessor sequence.
+    assert!(!selected());
+    with_before(|| validate_program(&program)).unwrap();
+    validate_program(&program).unwrap();
+    with_limit_usage_refusal(usize::MAX, || {
+        with_before(|| validate_program(&program)).unwrap();
+        validate_program(&program).unwrap();
+    });
+    assert!(!selected());
 }

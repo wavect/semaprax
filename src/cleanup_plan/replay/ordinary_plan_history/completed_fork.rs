@@ -324,3 +324,5 @@ mod tests;
 
 // Complete nested histories reuse the original immutable Seq/Cat carrier.
 pub(in crate::cleanup_plan::replay) mod emission;
+
+pub(in crate::cleanup_plan::replay) mod shipping;

@@ -147,7 +147,7 @@ macro_rules! emit {
     unused_imports,
     reason = "whole-caller qualification precedes shipping selection"
 )]
-pub(super) use emit;
+pub(in crate::cleanup_plan::replay) use emit;
 
 pub(in crate::cleanup_plan::replay) fn emit_prepaid(
     prefixes: Vec<ExprSkeletonPath>,
@@ -309,11 +309,51 @@ pub(in crate::cleanup_plan::replay) fn emit_prepaid(
     Ok(Emission::Complete(result))
 }
 
+// The original caller's actual-payer pattern is the authority boundary. It
+// neither consults nor debits a Selected/Oracle/lent/merged/lexical owner.
+pub(in crate::cleanup_plan::replay) const DISPATCH: usize = 2 * size_of::<&[ExprSkeletonPath]>()
+    + 2 * size_of::<Option<&ExprSkeletonPath>>()
+    + 2 * size_of::<&Option<Rc<ObservationDag>>>()
+    + 2 * size_of::<usize>()
+    + 8 * size_of::<bool>()
+    + PAYMENT;
+macro_rules! dispatch {
+    ($prefixes:ident, $suffixes:ident, $work:ident) => {{
+        #[cfg(test)]
+        if $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::before_selected() {
+            return $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::whole_sequence!($prefixes, $suffixes, $work);
+        }
+        if let $crate::cleanup_plan::replay::ReplayBudget {
+            admission: $crate::cleanup_plan::replay::AdmissionMode::Ordinary,
+            payer: $crate::cleanup_plan::replay::AllocationPayer::LegacyUnobserved
+                | $crate::cleanup_plan::replay::AllocationPayer::ActiveBuilder,
+            lent_skeleton: false, merge_paths: false, ..
+        } = $work.budget {
+            #[allow(clippy::redundant_pattern_matching,
+                reason = "Unsupported lexical callers retain their original payer; pattern matching creates no new is_none receiver or Boolean result before admission.")]
+            if let None = $work.function.cleanup_plan.lexical_control {
+            $work.budget.reserve_bytes($work.function,
+                $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::DISPATCH,
+                "complete HIR fork dispatch receivers")?;
+            if $suffixes.len() > 1 || match $suffixes.first() {
+                    Some(path) => path.observations.prefix.is_some(), None => false,
+                } {
+                match $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::emit!($prefixes, $suffixes, $work)? {
+                    $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::Emission::Complete(paths) => return Ok(paths),
+                    $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::Emission::Unsupported(paths) => paths,
+                }
+            } else { $prefixes }
+            } else { $prefixes }
+        } else { $prefixes }
+    }};
+}
+pub(in crate::cleanup_plan::replay) use dispatch;
+
 #[cfg(test)]
 mod tests;
 
-// Test-only whole-HIR receiver; production dispatch and its pending gate remain
-// byte-for-byte unchanged after removing the one explicit test seam.
+// Explicit independent old whole-HIR receiver. The default invokes actual
+// production dispatch; no observer or accounting callback selects either one.
 #[cfg(test)]
 thread_local! { static SELECTED: std::cell::Cell<u8> = const { std::cell::Cell::new(0) }; }
 #[cfg(test)]

@@ -103,9 +103,12 @@ macro_rules! history_path {
     }};
 }
 
-// Closed-family producer prerequisite. Shipping expression plumbing continues
-// using its independently retained receiver until complete caller qualification.
-#[allow(dead_code, reason = "completed-fork producer is not yet a shipping selector")]
+// Retain the flat arena precursor and its independent controls beside the
+// complete Seq/Cat fork successor; application qualification remains pending.
+#[allow(
+    dead_code,
+    reason = "flat arena precursor retained beside complete sequence successor"
+)]
 pub(super) mod completed_fork;
 mod producer;
 pub(super) use producer::produce;

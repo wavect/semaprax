@@ -2737,6 +2737,7 @@ fn validate_typed_control_skeleton_with_index<'hir>(
     let _debit_phase = debit_routes::phase(debit_routes::Phase::EnumeratedHIR);
     let mut expected =
         hir_skeleton_paths_with_index_storage(program, function, budget, helpers, continuations)?;
+    ordinary_plan_history::completed_fork::shipping::finish!(function, budget, expected);
     #[cfg(test)]
     let _debit_phase = debit_routes::phase(debit_routes::Phase::OtherReplay);
     // Match the existing received reference, with no new payer/tag/flag carrier.
@@ -3057,12 +3058,6 @@ fn sequence_skeleton_paths(
     work: &mut SkeletonWork<'_, '_>,
 ) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
     #[cfg(test)]
-    if ordinary_plan_history::completed_fork::emission::selected() {
-        return ordinary_plan_history::completed_fork::emission::whole_sequence!(
-            prefixes, suffixes, work
-        );
-    }
-    #[cfg(test)]
     if skeleton_work::enumerated_prefix::original_selected() {
         return skeleton_work::enumerated_prefix::old_sequence(prefixes, suffixes, work);
     }
@@ -3078,6 +3073,9 @@ fn sequence_skeleton_paths(
     if path_array::main696::selected() {
         return path_array::main696::sequence_skeleton_paths(prefixes, suffixes, work);
     }
+    let prefixes = ordinary_plan_history::completed_fork::emission::dispatch!(
+        prefixes, suffixes, work
+    );
     let mut prefixes = work.merged_paths(prefixes)?;
     let suffixes = work.merged_suffixes(suffixes)?;
     let share_prefix = work.prefix_tail_sharing(&suffixes)?;

@@ -33,9 +33,12 @@ use crate::ast::{Expr, ExprKind, Function, Program, Statement, Type};
 use crate::bounded_output::classifier_string::ClassifierLedger;
 use std::{cell::Cell, collections::BTreeMap, mem::size_of};
 
+#[path = "shared_local_callees/invoice.rs"]
 mod invoice;
 #[cfg(test)]
+#[path = "shared_local_callees/tests.rs"]
 mod tests;
+#[path = "shared_local_callees/walk.rs"]
 mod walk;
 use invoice::{Failure, Invoice};
 
@@ -242,9 +245,8 @@ impl<'p, 'a, 'b> Certificate<'p, 'a, 'b> {
             if !ordinary(function, invoice)? || !local(context, function, invoice)? {
                 continue;
             }
-            match walk::count(context, function, &headers, invoice)? {
-                Some(count) => slots = slots.checked_add(count).ok_or(Failure::Arithmetic)?,
-                None => {}
+            if let Some(count) = walk::count(context, function, &headers, invoice)? {
+                slots = slots.checked_add(count).ok_or(Failure::Arithmetic)?;
             }
         }
         Ok(Self {

@@ -145,8 +145,14 @@ class CompletionChannel:
             raise
 
     def consume(self, owner, token, argv, cwd):
+        # Only the rightful owner may burn its completion. Its first adoption
+        # attempt is terminal even when live owner authentication now refuses.
+        # A foreign session must leave the rightful owner's token untouched.
+        if owner is self._owner:
+            active, self._active = self._active, None
+        else:
+            active = None
         self._owner_only(owner)
-        active, self._active = self._active, None
         if (type(token) is not Completion or active is None or token is not active[0]
                 or active[2] is None):
             raise Refusal('completion is foreign, uncompleted or already consumed')

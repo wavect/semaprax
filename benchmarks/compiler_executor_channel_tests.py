@@ -129,6 +129,7 @@ class CompletionChannelChecks(unittest.TestCase):
                     session, sent = self.session()
                     owned = channel.CompletionChannel(session)
                     token = self.execute(session, owned)
+                    original_authority = session.authority
                     argv, cwd = self.argv(), '/candidate'
                     if attack == 'argv': argv = (*argv[:-1], 'f' * 64)
                     elif attack == 'cwd': cwd = '/foreign'
@@ -141,6 +142,11 @@ class CompletionChannelChecks(unittest.TestCase):
                     elif attack == 'authority': session.authority = copy.copy(session.authority)
                     else: session.closed = True
                     self.assertRaises(Refusal, owned.consume, session, token, argv, cwd)
+                    if attack == 'authority':
+                        session.authority = original_authority
+                    elif attack == 'closed':
+                        session.closed = False
+                    self.assertIsNone(owned._active)
                     self.assertRaises(Refusal, owned.consume, session, token, self.argv(), '/candidate')
                     self.assertEqual(len(sent), 1)
 

@@ -36,8 +36,8 @@
   },
   {
     "source": "src/bounded_output/stage_debits/route_debits.rs",
-    "sha256": "8e17938815d48662dc02a0f482f1174c3bda714c9aee830fd84cbbd73bf1adf0",
-    "lines": 1214
+    "sha256": "9e39579257537cb6568c0afbd7aab37aae05c8d39542ef1f9d36c30fc5a3e5a6",
+    "lines": 1283
   },
   {
     "source": "src/cleanup/inventory_builder/typed.rs",
@@ -276,13 +276,13 @@
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/frontier_tests.rs",
-    "sha256": "7b593a07f36c1f3cd6d80ff40584a68523902617574755feb34cfe175f38124e",
-    "lines": 214
+    "sha256": "0c097682f7dc4a7c0a23a9c2b16555bd212df31e0013a7581d3b58127b7d7119",
+    "lines": 215
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs",
-    "sha256": "0e72ccf74360792956022784b2249c92914883a70bd85b1fc779ae99a7504d7c",
-    "lines": 101
+    "sha256": "e9191f522e39ce917ff31caf4794d0de88a3d00ecc8f4df726ea94ba6b49fb23",
+    "lines": 201
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/owned_tests.rs",
@@ -611,7 +611,7 @@
   },
   {
     "source": "src/source_reflows/incoming090_semantic_receivers.rs",
-    "sha256": "0960b4160649f52800ede67602ce3ddefb46adb6c8dc81fabb8cdc6e3631ed7d",
+    "sha256": "a558f575a89fc1dcd751c51c6296568c88e66ec0e825b53e8da17b85069dc7ce",
     "lines": 1235
   },
   {
@@ -701,13 +701,13 @@
   },
   {
     "source": "src/source_reflows_merge/current344.rs",
-    "sha256": "890c9eb07651f01c2d1e68dbad28930b7a9107e79c375fab84f7541760e58bd6",
-    "lines": 208
+    "sha256": "e363e543f55f4882e1d0c64aae0608c0f747685ddec479a4b22afe41afca3309",
+    "lines": 281
   },
   {
     "source": "src/source_reflows_merge/final_ready_inputs.rs",
-    "sha256": "e1353ed4bba3c115983e5b78f1edba078b847aa2a7a804fb76fa2d44d92d84ec",
-    "lines": 641
+    "sha256": "ad374007920ee1a9ec601b2d4401946dd8c83feeafb90e52db7cd82f503db1aa",
+    "lines": 662
   },
   {
     "source": "src/source_reflows_merge/main043_custody.rs",
@@ -746,8 +746,8 @@
   },
   {
     "source": "src/source_reflows_merge/main_eb2_inputs.rs",
-    "sha256": "dacea2ef72952cd4d7aeba61c4e132ae7970daebd2f7fd74a661bfca1c4cf06e",
-    "lines": 180
+    "sha256": "4045d98a098f15b18b1f401c5f93f3b1f6fa6e38ed5c5879439fd12d2cc7bbb0",
+    "lines": 194
   },
   {
     "source": "src/source_reflows_merge/maina3_custody.rs",
@@ -761,7 +761,7 @@
   },
   {
     "source": "src/source_reflows_merge/ordinary_plan_inputs.rs",
-    "sha256": "6899a83ca67517bd24894fb53eeb328ce0586c96fb9cf6d0b01ce3dae59ed6bc",
+    "sha256": "c7b046c3e039890183423f56e35b5aceafdf6482503e6f58ff83316da8abcde2",
     "lines": 520
   },
   {
@@ -996,13 +996,13 @@
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs",
-    "sha256": "e98bf0ffd40155974eeb159ffc5cb0a194c5c0b72f5735ad95381c3644d7dedd",
-    "lines": 659
+    "sha256": "7f0399542b0427f151985e191dd838ad01df07eaf837f0bda8b38fb6f9b0e1eb",
+    "lines": 671
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests.rs",
-    "sha256": "8e4c6bf51e2a75743d313201bb12777fb4af4410a3405f146b220bec53e5e104",
-    "lines": 1205
+    "sha256": "c4cf7368a7231106f72289018b2cef97b2c18f13a7ec1996ab9f56f1d16b8410",
+    "lines": 1210
   },
   {
     "source": "src/cleanup_plan/replay/owned_suffix_878.rs",
@@ -1066,7 +1066,7 @@
   },
   {
     "source": "src/source_reflows_merge/main_e177_final_inputs.rs",
-    "sha256": "038f6b2515f59c4df7a11a8718b66f0904b2d07cb9544346eef2e3482a205467",
+    "sha256": "f8673dba4c0bda7d2a0de0e33bac2f3259ffe983f33533e5684ced8b5e406e75",
     "lines": 1471
   },
   {
@@ -1266,13 +1266,13 @@
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_census.rs",
-    "sha256": "51439cc9e25c2305e80129cc258ee3794a7cb2e1b73b27f8b2d7f25664f6c288",
-    "lines": 1184
+    "sha256": "503d7ddd959e46bab068c198491965f1e1de27c6c44368b9e516b9c5cccca2ea",
+    "lines": 1220
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_tests.rs",
-    "sha256": "ff93aa1d5126986ac294ced32a7f054b36f0f96f1ab5a4545f30baf47ab38602",
-    "lines": 1444
+    "sha256": "6cda7861139a30cdca75f978d857b88583ed1c97031ee9af884547ec3aa62630",
+    "lines": 1448
   },
   {
     "source": "src/workspace_graph/shape_identity/before785.rs",
@@ -1701,8 +1701,8 @@
   },
   {
     "source": "src/source_reflows_merge/main_e177_overlay_v2.rs",
-    "sha256": "bf5c7a17cdfd37217057fc06cd51c0c3e687b2b4d8800acb4f9cca1a9120bba3",
-    "lines": 1470
+    "sha256": "62eea6087e3ca1a22128bd5da33859aaab537048951733a4a7bfc9c255289eed",
+    "lines": 1500
   },
   {
     "source": "src/string_ops/conditions/funded_receiving.rs",
@@ -1761,8 +1761,8 @@
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value.rs",
-    "sha256": "0e289307a841d6ae175957fc9d0f510dc08ccf85959125748cf027b65a9b0de3",
-    "lines": 307
+    "sha256": "e6a020f22109aadd4ed40727cbc43be068e9922d7ad3e2520dd8f7cd6b35cbd6",
+    "lines": 394
   },
   {
     "source": "src/source_reflows_merge/runtime_json/sealed_io.rs",
@@ -1791,8 +1791,8 @@
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/combined_pair_scope_tests.rs",
-    "sha256": "6fd9a05db6f849b7bba7f82c815493f2a6c031c84475eae8451e8680403d5351",
-    "lines": 1498
+    "sha256": "1e53d6ad57241064451b63b4c5efb4ee93ac79f4733594f9b715de652771560e",
+    "lines": 1500
   },
   {
     "source": "src/workspace_graph/constructor_failure/before_scalar_dispatch.rs",
@@ -1826,8 +1826,8 @@
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/matched_tail_tests.rs",
-    "sha256": "3bcc9a83700d77eb24eacd0192f13f3254681459ff8841e0c4c38a95b785b79d",
-    "lines": 1093
+    "sha256": "f2838597e60f55f73bb178b911b7f218d5168a2c16011d44471fccd26ce012da",
+    "lines": 1094
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_tail.rs",
@@ -1836,8 +1836,8 @@
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/source_format.rs",
-    "sha256": "32d764df49070a2dfb8e6bf130c1f719a98d60da9855e0a18bb51222c628779c",
-    "lines": 858
+    "sha256": "9b4feba4529614fbcad59bbf5cb495c8abed427deafafb5a407baa56a7de24f2",
+    "lines": 890
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source.rs",
@@ -1911,8 +1911,8 @@
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/prepared_pairing_tests.rs",
-    "sha256": "f9e75926f5df0b6b7746a78cf3d2f705bf76d342356346c3581ddd8b6c04aba9",
-    "lines": 970
+    "sha256": "31b27bfb950df7e3f5591d6524552c12d9aee539ba4d376bd9c99b966b8832c4",
+    "lines": 971
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links.rs",
@@ -1956,8 +1956,8 @@
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_tests.rs",
-    "sha256": "b67dd4267223136222edf4508cd19f0a7e8c4fc43338a1aa616d55430a3792a5",
-    "lines": 1141
+    "sha256": "b048a4c63191ec1c3c36d9a5d4e1dccf892a88ac62089dc8d869c6121f361b97",
+    "lines": 1157
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_reachable_primitives.rs",
@@ -1971,8 +1971,8 @@
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/reachable_pair_scope_tests.rs",
-    "sha256": "218a90e31a351a47c984e889126beca53b1a7be512912499cc7fe7e85cd27f3c",
-    "lines": 962
+    "sha256": "9b786e2523cb356f757edce0ccbb4945501f69884b7cd363680556903ec0d0c5",
+    "lines": 963
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives.rs",
@@ -1996,8 +1996,8 @@
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main99_pair_scope_tests.rs",
-    "sha256": "cd73e40396090ee5fd3cb7a1c7f76e0dc3958e083e32611e4eef3e05432965e3",
-    "lines": 1016
+    "sha256": "9d0f72986ab4a3dd6feb17246ad1059eea259390cce978f299e83bddbd56cad0",
+    "lines": 1017
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_event.rs",
@@ -2011,13 +2011,13 @@
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_before_event_tests.rs",
-    "sha256": "ba5e80400489f1c4546b9e6c724a6ab9dcea707e74e02a50c329895775aa54db",
-    "lines": 891
+    "sha256": "994efff1e3a3ae707fa6c8c751455e98e4c18ac2099c0985036bb623449b3e79",
+    "lines": 893
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_event_tests.rs",
-    "sha256": "dc422abd0e68fcb7cb563f09c35e5d0a5a1662309e0fe8f35223ac4ab9ae4943",
-    "lines": 539
+    "sha256": "854f7afc6f05250560ecd39308c71fa0ac74e9d3ead96b93c33f5c23229a4887",
+    "lines": 541
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/shared_steps.rs",
@@ -2036,13 +2036,13 @@
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads.rs",
-    "sha256": "d1a229642405a06f2037a30470188c82d66ecb51913c40f30842428c3984a1d6",
-    "lines": 624
+    "sha256": "f49961e0e88ac319fdec5cc1aea76ccacc2be278e9ef54ebd00369e3baafff17",
+    "lines": 627
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads_tests.rs",
-    "sha256": "bc46f1c86a89bfdef97abfd3381e27177c837e3dfce5d9ec50d718dc1234a2e2",
-    "lines": 1466
+    "sha256": "7743335b8b42e200bba69239312dbfd0ef641517732ad461c9d507ae391912bb",
+    "lines": 1476
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_before_certified.rs",
@@ -2056,8 +2056,8 @@
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main7e_pair_scope_tests.rs",
-    "sha256": "287ce9abf3b7a74164c1f58008deb3a6b8be214afb1218e98a90e4c320d30c7c",
-    "lines": 1211
+    "sha256": "edab27beebe95397a37808ed2e8dce72d8b9c904237e117c546e405125fb793f",
+    "lines": 1212
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_certified.rs",
@@ -2111,7 +2111,7 @@
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/borrowed_reader_composition_tests.rs",
-    "sha256": "e4006e0c55c0ba9b9b6d214b8d142cbc9c279c63b9c392dc1b636fc600cc30ce",
+    "sha256": "3d3b3e3604a21bb753ede384e5c9f41f708d13089e05d519ab164dc6dcf8f442",
     "lines": 373
   },
   {
@@ -2151,18 +2151,18 @@
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main001_pair_scope_tests.rs",
-    "sha256": "b6f24502e16f6439d59c14ffe8700a84decc8c36876378e557e9245dc58e27bc",
-    "lines": 1215
+    "sha256": "982641a3ae21e6099e6d215ab357e84e293a43d55750b987075d3591642960e8",
+    "lines": 1216
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main487_pair_scope_tests.rs",
-    "sha256": "0a76af1059064eaeaef23136068d1a35cdc77e5ad931e28eb0ee304a5a8baaa6",
-    "lines": 1332
+    "sha256": "08cc360c6415ca022072075788d4aefd4cfcdf412f334832e5fbbf433a16e49d",
+    "lines": 1333
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main_b692_pair_scope_tests.rs",
-    "sha256": "0b92d66d8c5b903c6c2b949b2b74517bc5e45117bc9e6d6ef46036f2173c8d0e",
-    "lines": 1218
+    "sha256": "bf38318fee53f183827dbe88a2aabdd849ababa42a4d69194afe9594c3aa6e96",
+    "lines": 1219
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main_b692_paired_tails.rs",
@@ -2171,13 +2171,13 @@
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_link_composition_tests.rs",
-    "sha256": "37dafd575afbf5444088af8142df92912133b56c8a3abc40170cbb46626a1a4f",
-    "lines": 359
+    "sha256": "9cc26f5cfa6916341b6815b2ed77e338c148b4802098ed6abefbb00c0b24de78",
+    "lines": 366
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_tail_composition_tests.rs",
-    "sha256": "b0080c5a674ba46cdbf266647436c54e6395e2f48babdfdd71a092f39b5c22de",
-    "lines": 553
+    "sha256": "3dc1044e2901a21b7c2c257de8cbb631ea028963945a44e86bd840cf0976f83f",
+    "lines": 561
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_pair_links.rs",
@@ -2211,8 +2211,8 @@
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/fused_readers.rs",
-    "sha256": "e09551afc0701df358eb2a9df2144c71b3908d594417eb415bbdeb76fa53e1ef",
-    "lines": 434
+    "sha256": "b727294ff75dc4e305793cbedb6833342345341d5c9647cdc8b12f6cf9d966e6",
+    "lines": 436
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/json_ledger.rs",
@@ -2226,13 +2226,13 @@
   },
   {
     "source": "src/source_reflows_merge/main_e177_overlay_compiled.rs",
-    "sha256": "33d993dad98df1dbd2f8a9e9dcdcfa7b3ed832a8aea82672cd9fbf57ca4228d3",
-    "lines": 378
+    "sha256": "b4e06ea9c194272ff81b00fcceec07e5757822bcdfe1d0e75f2b333e36856c69",
+    "lines": 409
   },
   {
     "source": "src/source_reflows_merge/main_e177_packet_lookup.rs",
-    "sha256": "77148c5df837426bf23f2979974916de9ea6d29f3932c70d099101a85d3c42d3",
-    "lines": 582
+    "sha256": "59b8674afc833e10e007515c0cde5a6aea74c1fe401cb951584cca3f033ab7f2",
+    "lines": 1037
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_empty_selector.rs",
@@ -2246,8 +2246,8 @@
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/empty_selector_tests.rs",
-    "sha256": "0934fe938e30310a2812c91b6c105bab6e511a214748613073be5343530064df",
-    "lines": 715
+    "sha256": "bba2ef786c9a1d830b58af7d4e8d10e69b720edeafd19915ff811dd74548271b",
+    "lines": 718
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_before_empty.rs",
@@ -2301,8 +2301,8 @@
   },
   {
     "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/final_affine_tests.rs",
-    "sha256": "263e2baf2761fd0eb175208e42406baccb00f7af1ee6514538110a3be6f8f612",
-    "lines": 508
+    "sha256": "4cfc8aef5326dbfd6d2c80bffc1582f278378031014fd35867a0d22d409f7aa5",
+    "lines": 512
   },
   {
     "source": "src/bounded_output/exclusive_debits.rs",
@@ -2311,8 +2311,8 @@
   },
   {
     "source": "src/hir/ids/lowering_identity_tests.rs",
-    "sha256": "030374fddb446ebeed72e8c9fa862e72dc7e14c255262a6c40ade044ed714af6",
-    "lines": 331
+    "sha256": "d6777e97403ca0aa91417d046987906e7bc5cce5d62d751b192e308bfece242c",
+    "lines": 351
   },
   {
     "source": "src/hir/owned_collection_record/identity_before.rs",
@@ -2343,5 +2343,55 @@
     "source": "src/source_reflows_merge/main_e177_overlay_pins_v9.rs",
     "sha256": "9f3a3343b8cb3230fbf78c23c9096b6bd43fb416f6cecf9aa4c0ef99e03b7112",
     "lines": 248
+  },
+  {
+    "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_loaded_segments.rs",
+    "sha256": "f91faadf311588f04772f41ea82130605218be5b75a4f928ea361f63084c93e7",
+    "lines": 595
+  },
+  {
+    "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads_before_loaded_segments.rs",
+    "sha256": "d1a229642405a06f2037a30470188c82d66ecb51913c40f30842428c3984a1d6",
+    "lines": 624
+  },
+  {
+    "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/loaded_segment_composition_tests.rs",
+    "sha256": "883d37ac0cb9857c5809678bec7d4962d58f787e5430135b733b9169feda3dc4",
+    "lines": 465
+  },
+  {
+    "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main_loaded_segments.rs",
+    "sha256": "1cbf7a2a9153edb88cc768e60dbb024cdb1b30d6860de2928ba64a1b9ef2da99",
+    "lines": 532
+  },
+  {
+    "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main_loaded_segments_cursor.rs",
+    "sha256": "768c23a10fcec91ef7dfdbd67dabd64885266291f236c66efd0e80ad21b29b6e",
+    "lines": 770
+  },
+  {
+    "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_tests/paired_segments.rs",
+    "sha256": "a33e2f353662e4f6cee4e525d7befaef942c0e3fea2df4167aa798de6a50cc0a",
+    "lines": 414
+  },
+  {
+    "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_segments_before.rs",
+    "sha256": "c0bc775dc34da30d207204c3e738d261ca22b2f8645ee14a02e068f1b7214c62",
+    "lines": 530
+  },
+  {
+    "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_segments_before_cursor.rs",
+    "sha256": "b66e1c1f47583c8c687e352be56bcb01e49da9456b81c3e36862a359416e5583",
+    "lines": 687
+  },
+  {
+    "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_loaded_segments.rs",
+    "sha256": "0e289307a841d6ae175957fc9d0f510dc08ccf85959125748cf027b65a9b0de3",
+    "lines": 307
+  },
+  {
+    "source": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/independent_segments.rs",
+    "sha256": "c8a6f7ac205d777b3f3590a86f383284dd1c76bfa4c5e9e7cf3238a7425ca27c",
+    "lines": 273
   }
 ]

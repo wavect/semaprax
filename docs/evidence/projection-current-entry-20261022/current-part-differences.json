@@ -1,0 +1,33 @@
+[
+  {
+    "source": "src/workspace_graph/expected_projection/call_carriers.rs",
+    "length": 12395,
+    "sha256": "d0f832f517a6037e1c3f8c7f5b1cca79af990ed2837b8c29b38903cb4baa6033",
+    "previous": {
+      "source": "src/workspace_graph/expected_projection/call_carriers.rs",
+      "length": 12395,
+      "sha256": "84802a57f88f708bbc10da608f169ebedba8307677b2e6858cd8e0850c505aaa",
+      "archive": "e/84802a57f88f708bbc10da608f169ebedba8307677b2e6858cd8e0850c505aaa"
+    }
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/typed.rs",
+    "length": 20105,
+    "sha256": "ad172362be3655aacfef822c2834f76d08a2119d33f5774f611058ca7998792b",
+    "previous": {
+      "source": "src/workspace_graph/expected_projection/borrowed_imports/typed.rs",
+      "length": 19919,
+      "sha256": "78e0166bad3ffd1a7a4594f52a9f4be0287dae4bf3d6d56f2964820df0a797f1"
+    }
+  },
+  {
+    "source": "src/workspace_graph/expected_projection/borrowed_imports/tests/full/publication.rs",
+    "length": 9293,
+    "sha256": "f30d8ceea4d53421be07e2eec5610b9c5f0ac05ff06005f67c74028128157149",
+    "previous": {
+      "source": "src/workspace_graph/expected_projection/borrowed_imports/tests/full/publication.rs",
+      "length": 7068,
+      "sha256": "569dca7d1273c3c4cfbd1eda7b6ed9e3909db7cd607556eddb7c515838078a5f"
+    }
+  }
+]

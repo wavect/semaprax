@@ -40,6 +40,16 @@ const COVERAGE: &str = include_str!("source-locked-coverage.tsv");
 
 const ACKNOWLEDGED: &[(&str, &str, &str)] = &[
     (
+        "tests/support/production_source_inventory.rs",
+        "src/bounded_output/stage_debits/route_debits.rs",
+        "binds exact historical prefix placement; production delegates to original::production and boundary::production, which authenticate and join the complete current registered descendants from the full source manifest",
+    ),
+    (
+        "tests/support/production_source_inventory.rs",
+        "src/cleanup_plan/replay/skeleton_work/enumerated_prefix.rs",
+        "binds exact historical prefix placement; production delegates to original::production and boundary::production, which authenticate and join the complete current registered descendants from the full source manifest",
+    ),
+    (
         "tests/documentation/held_auth_sources.rs",
         "src/cleanup_plan/replay/allocation/oracle.rs",
         "checks the fixed owner path membership in three audit unions and nonempty owner bytes; production bodies are scanned by those complete unions",

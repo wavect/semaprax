@@ -1,0 +1,7 @@
+
+running 2 tests
+test a_contract_that_reads_a_module_root_also_reads_its_submodules ... ok
+test every_ignored_test_states_why_it_is_ignored ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.08s
+

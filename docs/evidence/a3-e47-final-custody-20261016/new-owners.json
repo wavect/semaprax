@@ -706,8 +706,8 @@
   },
   {
     "source": "src/source_reflows_merge/final_ready_inputs.rs",
-    "sha256": "74b722ec8239dbc35a2c003220ad759861971d4684320aec360eac53f321e7f6",
-    "lines": 864
+    "sha256": "7629352e99a35b3f5ab948639a59024d540d5e2bd3b5fe6dda68b87fb9c7519d",
+    "lines": 866
   },
   {
     "source": "src/source_reflows_merge/main043_custody.rs",
@@ -761,7 +761,7 @@
   },
   {
     "source": "src/source_reflows_merge/ordinary_plan_inputs.rs",
-    "sha256": "b14edb1418330fe55ef6714bedbd8b5b87fa8c77e436bf112add52b1ec1dddd6",
+    "sha256": "6547926089a08e522fbb63eaf753e4ef482682b9a8350a80a6ec89ea2b277e1e",
     "lines": 520
   },
   {
@@ -1701,7 +1701,7 @@
   },
   {
     "source": "src/source_reflows_merge/main_e177_overlay_v2.rs",
-    "sha256": "c7ad3ecbf1bfb0c79ec51569618d860fd6c3feab26df3f02d6ee62c654afede9",
+    "sha256": "de6ff91c5e5b4c95aa52e940fbc4e7ad6cf1072e1cd4a202dc318f72e2b57392",
     "lines": 1164
   },
   {
@@ -2226,8 +2226,8 @@
   },
   {
     "source": "src/source_reflows_merge/main_e177_overlay_compiled.rs",
-    "sha256": "987745471c03db40354cb2087e53c3bc50eb90146064bdc9727af18d7082f730",
-    "lines": 1221
+    "sha256": "75192bef56cb6e8b46d6068ffcfa92267259abaf641f0eed29fa29e1eaf189e8",
+    "lines": 1225
   },
   {
     "source": "src/source_reflows_merge/main_e177_packet_lookup.rs",
@@ -2653,5 +2653,35 @@
     "source": "src/hir/validation/scope_checkpoint/marks/tests.rs",
     "sha256": "7f07e20bdc0b2797f0c2f8abc2af9c5427fef9472bdf91fa87b5cfbb30f51994",
     "lines": 564
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/tests/compact_results.rs",
+    "sha256": "77b1a4e7bc4cd674e8a955daa57b42cb108499be8e364c1815e3bc18c5715cc7",
+    "lines": 312
+  },
+  {
+    "source": "src/cleanup_plan/replay/final_output/compact.rs",
+    "sha256": "06899734819f09c6bae62c9917ecb3f4b5f1b91fb42b09d1b462b8a4b7ba0ba6",
+    "lines": 214
+  },
+  {
+    "source": "src/cleanup_plan/replay/final_output/tests/compact_results.rs",
+    "sha256": "4b71c66590cce440299fd153f88dd8ad4ba9277ace3cd302af58bca99d136067",
+    "lines": 89
+  },
+  {
+    "source": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/flat_probe.rs",
+    "sha256": "5cab19b5b7c91dad5fe1240b586ac7a5f3c92896a8575b56a62bf0ed92c5b9f5",
+    "lines": 54
+  },
+  {
+    "source": "src/source_reflows_merge/constructor_stage.rs",
+    "sha256": "72674ce0503a378d67079268e0fe65fd6caa0462ef809be16eddf44c60eda512",
+    "lines": 331
+  },
+  {
+    "source": "src/source_reflows_merge/final_ready_inputs/projection_publication.rs",
+    "sha256": "107334dc314e99e7a3ca98a4079ae36f4f90b7b63398745d4cddbe9dd20c71fc",
+    "lines": 161
   }
 ]

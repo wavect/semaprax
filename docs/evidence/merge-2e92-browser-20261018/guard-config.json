@@ -749,8 +749,8 @@
       "sha256": "523afb818016e67c13a23c0f653a13f94d2015aaad95efbb74363efb64ef642c"
     },
     "src/source_reflows_merge/main_e177_overlay_v2.rs": {
-      "length": 72496,
-      "sha256": "c7ad3ecbf1bfb0c79ec51569618d860fd6c3feab26df3f02d6ee62c654afede9"
+      "length": 72603,
+      "sha256": "de6ff91c5e5b4c95aa52e940fbc4e7ad6cf1072e1cd4a202dc318f72e2b57392"
     },
     "src/string_ops/conditions/funded_receiving.rs": {
       "length": 1017,
@@ -1197,8 +1197,8 @@
       "sha256": "b137b062c8a91954441e84e9e77ed72b05c631a11608dab43eea8e5539f25cc2"
     },
     "src/source_reflows_merge/main_e177_overlay_compiled.rs": {
-      "length": 136336,
-      "sha256": "987745471c03db40354cb2087e53c3bc50eb90146064bdc9727af18d7082f730"
+      "length": 136736,
+      "sha256": "75192bef56cb6e8b46d6068ffcfa92267259abaf641f0eed29fa29e1eaf189e8"
     },
     "src/source_reflows_merge/main_e177_packet_lookup.rs": {
       "length": 67419,
@@ -1539,25 +1539,29 @@
     "src/cleanup_plan/replay/path_join/selected/frontier_tests/scalar_before.rs": {
       "length": 8515,
       "sha256": "b333af09d8e38b1de4f5d8f783d2b63333a0cd8ff0fc1f676227bcb256a72868"
+    },
+    "src/source_reflows_merge/final_ready_inputs/projection_publication.rs": {
+      "length": 15970,
+      "sha256": "107334dc314e99e7a3ca98a4079ae36f4f90b7b63398745d4cddbe9dd20c71fc"
     }
   },
   "carriers": {
     "tests/hir_module_boundaries.rs": {
       "path": "tests/hir_module_boundaries.rs",
-      "length": 141023,
-      "sha256": "ee0b380df24ce71deeeb2ad0b1d9666c284b172a23513a0afee45213af9392b3",
+      "length": 143774,
+      "sha256": "e2aec4068e1bd475048fe203e7c61d611d570e8c6b35ec1fef6180ea699ca899",
       "base": "../"
     },
     "tests/workspace/semantic_graph/source_inventory.rs": {
       "path": "tests/workspace/semantic_graph/source_inventory.rs",
-      "length": 170818,
-      "sha256": "1ee6cb2e98f55e7837aa4631e43adf2e496d3d523b728fca69d2d9aae3389410",
+      "length": 171346,
+      "sha256": "782d3d4be5b60f60dca17889ab2cfd12f4ed4409e249abafefd5f933df43269a",
       "base": "../../"
     },
     "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": {
       "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
-      "length": 214559,
-      "sha256": "6fac6afee71d5433aac72c95db6a7327575d22e59e7f82883b21561d73800504",
+      "length": 217719,
+      "sha256": "22c05099a24ef4e08e4ff9d5cc40ad207e66e41d47926f0b1d3697c996df80b5",
       "base": "../../../../../"
     }
   },
@@ -1585,8 +1589,8 @@
   },
   "table": {
     "path": "docs/evidence/main-e177-final-source-binding-20261017/current-projection-inputs.tsv",
-    "length": 69284,
-    "sha256": "94371ca854b1de5c36af2e96373b991ebe0852496108ed8277d78b4490e0fb9b",
+    "length": 69354,
+    "sha256": "d1056614aee63f431984c4e3ab8d7865874861163cace30432f730c8033b78ff",
     "prior": {
       "length": 26040,
       "sha256": "bf9d90d2e54bd7fc117b8f885f94fba383d74207e8833a62c8c3eaa7adeeb190",
@@ -4700,9 +4704,13 @@
       {
         "at": 1202,
         "path": "src/cleanup_plan/replay/path_join/selected/frontier_tests/scalar_before.rs"
+      },
+      {
+        "at": 1203,
+        "path": "src/source_reflows_merge/final_ready_inputs/projection_publication.rs"
       }
     ],
-    "rows": 1203
+    "rows": 1204
   },
   "closed_prior_sources": [
     "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
@@ -5469,14 +5477,15 @@
     "src/cleanup_plan/replay/path_join/selected/frontier_tests/full_callers.rs",
     "src/cleanup_plan/replay/path_join/selected/frontier_tests/lexical_before.rs",
     "src/cleanup_plan/replay/path_join/selected/frontier_tests/lexical_before/ordinary.rs",
-    "src/cleanup_plan/replay/path_join/selected/frontier_tests/scalar_before.rs"
+    "src/cleanup_plan/replay/path_join/selected/frontier_tests/scalar_before.rs",
+    "src/source_reflows_merge/final_ready_inputs/projection_publication.rs"
   ],
   "extension": {
     "path": "docs/evidence/fmt-local-441-20261018/extension.json",
     "length": 262076,
     "sha256": "2af7299253e5cfb027186ba4fc151011a937214ff381c9267bfc11ef7d0003b6"
   },
-  "logical_rows": 765,
+  "logical_rows": 766,
   "source_successor": {
     "path": "docs/evidence/clippy-11a0-integration/inputs.json",
     "length": 74925,

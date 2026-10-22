@@ -1201,3 +1201,4 @@ src/cleanup_plan/replay/path_join/selected/frontier_tests/full_callers.rs
 src/cleanup_plan/replay/path_join/selected/frontier_tests/lexical_before.rs
 src/cleanup_plan/replay/path_join/selected/frontier_tests/lexical_before/ordinary.rs
 src/cleanup_plan/replay/path_join/selected/frontier_tests/scalar_before.rs
+src/source_reflows_merge/final_ready_inputs/projection_publication.rs

@@ -1,0 +1,39 @@
+{
+  "status": "PARTIAL_CI_REPAIR_SOURCE_AUDITS_PASS",
+  "before_head": "173c8c1ed103bc335aed71b8ebb80d9db648073b",
+  "qualification": "No full-main CI or compiler/backend product qualification.",
+  "checks": {
+    "actual_full_hir_module_boundaries": {
+      "passed": 11,
+      "failed": 0
+    },
+    "actual_source_locked_contracts": {
+      "passed": 2,
+      "failed": 0
+    },
+    "original_metadata_overlay_controls": {
+      "passed": 29,
+      "failed": 0
+    },
+    "original_compiled_whole_predecessor_controls": {
+      "passed": 2,
+      "failed": 0
+    },
+    "unchanged_original_source_verifier": true,
+    "original_source_hostile_controls": 6,
+    "actual_hir_audit_clippy_warnings_denied": true,
+    "format_and_diff_checks": true
+  },
+  "limits": {
+    "source_metadata_page_bytes": 260338,
+    "unchanged_page_cap": 262144,
+    "sdk_source_inventory_lines": 1500,
+    "process_RSS_cap": null
+  },
+  "source_only": true,
+  "remaining_original_projection_facade_gate": {
+    "status": "FAILED_ENFORCED",
+    "error": "foreign historical projection input",
+    "qualification": "The complete current production purity scan succeeds before this separate old-facade entry refuses; no fallback or original predicate was relaxed."
+  }
+}

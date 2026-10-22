@@ -1,0 +1,9 @@
+{
+  "current_length": 650350,
+  "current_sha256": "cd2bd4c1065642e6494072f54cf6e627eaf778e234d144fe42f6877544e951e5",
+  "parts": 50,
+  "predecessor_length": 647939,
+  "predecessor_sha256": "fe42350bec2fc90ebd37d5aef11786020716c555df70c85c3bf7622a4b4b1e7b",
+  "predecessor_independently_reconstructed_from_original_descriptor_and_immutable_per_source_views": true,
+  "same_all_fifty_source_components_and_original_order_as_original_descriptor": true
+}

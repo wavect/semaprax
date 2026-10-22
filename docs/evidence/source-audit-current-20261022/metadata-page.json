@@ -1,0 +1,64 @@
+{
+  "status": "ORIGINAL_CURRENT_CODEC_COMPOSITION_PASS_PENDING_PUBLICATION",
+  "base_head": "39de740bd3",
+  "rows": 708,
+  "page_bytes": 260338,
+  "published_current_preserved_as_exact_views": [
+    {
+      "source": "docs/SUMMARY.md",
+      "view": {
+        "archive": "docs/evidence/merge-pr896-20261021/whole/7113f637ca038ad4faa7b0fd9b4caa859fd88798597334b78b4d1063ce15c196.txt",
+        "length": 159644,
+        "sha256": "7113f637ca038ad4faa7b0fd9b4caa859fd88798597334b78b4d1063ce15c196",
+        "name": "whole-pre-source-audit-173c8c1ed1"
+      }
+    },
+    {
+      "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "view": {
+        "archive": "docs/evidence/ci-small-fixes-20261021/current/3ddaeebfec59463ae0c78e955c06dffca9865357cd347d6036b538dc9e671b28.txt",
+        "length": 209317,
+        "sha256": "3ddaeebfec59463ae0c78e955c06dffca9865357cd347d6036b538dc9e671b28",
+        "name": "whole-pre-source-audit-173c8c1ed1"
+      }
+    },
+    {
+      "source": "tests/hir_module_boundaries.rs",
+      "view": {
+        "archive": "docs/evidence/merge-pr896-20261021/whole/ffe6016f0c7b317ce89103f9fbe72f888a31ce212efd0f22fcd26e62c73d8a79.txt",
+        "length": 136942,
+        "sha256": "ffe6016f0c7b317ce89103f9fbe72f888a31ce212efd0f22fcd26e62c73d8a79",
+        "name": "whole-pre-source-audit-173c8c1ed1"
+      }
+    },
+    {
+      "source": "tests/source_locked_contracts.rs",
+      "view": {
+        "archive": "docs/evidence/fmt-a110/9BlLrPFkzCsAhZoC1CvAiMrjTaZuIhn6fG0JQ-ocTyA.txt",
+        "length": 18980,
+        "sha256": "f4194bacf164cc2b00859a02d42bc088cae34da66e2219fa7c6d0943ea1c4f20",
+        "name": "whole-pre-source-audit-173c8c1ed1"
+      }
+    },
+    {
+      "source": "tests/workspace/semantic_graph/source_inventory.rs",
+      "view": {
+        "archive": "docs/evidence/merge-pr896-20261021/whole/949eafef81d1d525a84d530c81101eced9a9ff87093032cbfc73c778308639dc.txt",
+        "length": 166104,
+        "sha256": "949eafef81d1d525a84d530c81101eced9a9ff87093032cbfc73c778308639dc",
+        "name": "whole-pre-source-audit-173c8c1ed1"
+      }
+    },
+    {
+      "source": "src/source_reflows_merge/main_e177_overlay_compiled.rs",
+      "view": {
+        "archive": "e/afb62b9ef8dfaff9b09dce659eccffe06eed4a9c0ea4d9f6c6f070441033947a",
+        "length": 88836,
+        "sha256": "afb62b9ef8dfaff9b09dce659eccffe06eed4a9c0ea4d9f6c6f070441033947a",
+        "name": "whole-pre-source-audit-173c8c1ed1"
+      }
+    }
+  ],
+  "all_previous_fields_views_memberships_and_fragment_edges_retained": true,
+  "all_original_codec_bodies_and_caps_unchanged": true
+}

@@ -1,0 +1,34 @@
+
+running 29 tests
+test source_reflows_merge::main_e177_final_inputs::overlay_v2::compiled_sources::tests::compiled_lookup_split_preserves_the_complete_predecessor_and_every_old_mapping ... ok
+test source_reflows_merge::main_e177_final_inputs::overlay_v2::compiled_sources::tests::compiled_lookup_split_refuses_child_parent_span_eof_and_duplicate_glue ... ok
+test source_reflows_merge::main_e177_final_inputs::overlay_v2::fragments_v3::pins_v9::tests::v9_pin_slots_preserve_unknowns_nulls_literal_archives_and_refuse_wrong_tuples ... ok
+test source_reflows_merge::main_e177_final_inputs::overlay_v2::fragments_v3::pins_v9::tests::v9_positional_pins_restore_entire_frozen_v8_page_and_complete_composed_packet ... ok
+test source_reflows_merge::main_e177_final_inputs::overlay_v2::fragments_v3::tests::v3_exact_canonical_expansion_keeps_every_v2_field_order_and_inverse ... ok
+test source_reflows_merge::main_e177_final_inputs::overlay_v2::fragments_v3::tests::v3_refuses_foreign_missing_duplicate_nested_and_noncompiled_references ... ok
+test source_reflows_merge::main_e177_final_inputs::overlay_v2::fragments_v3::tests::v3_replays_the_complete_frozen_v2_page_through_unchanged_composer ... ok
+test source_reflows_merge::main_e177_final_inputs::overlay_v2::fragments_v3::tests::v4_fixed_old_rows_expand_to_every_original_field_and_whole_inverse ... ok
+test source_reflows_merge::main_e177_final_inputs::overlay_v2::fragments_v3::tests::v4_refuses_missing_foreign_duplicate_tampered_drift_and_unknown_version ... ok
+test source_reflows_merge::main_e177_final_inputs::overlay_v2::fragments_v3::tests::v5_fixed_extra_rows_expand_exactly_and_keep_complete_v4_and_old_inverse ... ok
+test source_reflows_merge::main_e177_final_inputs::overlay_v2::fragments_v3::tests::v5_refuses_missing_foreign_duplicate_tampered_drift_and_unknown_version ... ok
+test source_reflows_merge::main_e177_final_inputs::overlay_v2::fragments_v3::tests::v6_fixed_root_overrides_keep_original_v3_fragment_authority ... ok
+test source_reflows_merge::main_e177_final_inputs::overlay_v2::fragments_v3::tests::v6_general_indices_preserve_complete_boundary_rows_aliases_and_unknown_fields ... ok
+test source_reflows_merge::main_e177_final_inputs::overlay_v2::fragments_v3::tests::v6_refuses_foreign_indices_missing_rows_duplicates_and_changed_predecessors ... ok
+test source_reflows_merge::main_e177_final_inputs::overlay_v2::fragments_v3::tests::v7_numeric_addition_refs_keep_full_rows_unknowns_old_strings_and_complete_inverse ... ok
+test source_reflows_merge::main_e177_final_inputs::overlay_v2::fragments_v3::tests::v7_numeric_refs_refuse_types_old_foreign_duplicate_reordered_and_uncompiled_targets ... ok
+test source_reflows_merge::main_e177_final_inputs::overlay_v2::tests::finite_page_complete_old_load_and_every_live_check_remain_exact ... ok
+test source_reflows_merge::main_e177_final_inputs::overlay_v2::tests::finite_page_current_compiled_and_archive_channels_are_required_before_history ... ok
+test source_reflows_merge::main_e177_final_inputs::overlay_v2::tests::finite_page_exact_bound_compiled_physical_and_json_hostiles_are_independent ... ok
+test source_reflows_merge::main_e177_final_inputs::overlay_v2::tests::finite_page_literal_policy_replays_the_complete_519_metadata_inverse ... ok
+test source_reflows_merge::main_e177_final_inputs::overlay_v2::tests::finite_page_original_held_reader_keeps_nonregular_and_symlink_refusals ... ok
+test source_reflows_merge::main_e177_final_inputs::overlay_v2::tests::finite_page_parsed_data_reuses_only_exact_complete_bytes_and_rechecks_canonical_form ... ok
+test source_reflows_merge::main_e177_final_inputs::overlay_v2::tests::finite_page_refuses_lost_views_old_current_classification_and_unknown_fields ... ok
+test source_reflows_merge::main_e177_final_inputs::overlay_v2::tests::finite_page_refuses_nonleaf_duplicate_forged_and_undeclared_fragments ... ok
+test source_reflows_merge::main_e177_final_inputs::overlay_v2::tests::finite_page_refuses_wrong_schema_predecessor_scope_order_and_unknown_keys ... ok
+test source_reflows_merge::main_e177_final_inputs::overlay_v2::tests::finite_page_retains_the_entire_predecessor_object_and_unknown_fields ... ok
+test source_reflows_merge::main_e177_final_inputs::overlay_v2::tests::finite_page_source_cap_is_per_full_source_and_not_an_aggregate_budget ... ok
+test source_reflows_merge::main_e177_final_inputs::overlay_v2::tests::finite_page_warm_data_never_skips_fresh_regular_read_eof_utf8_or_digest_refusal ... ok
+test source_reflows_merge::main_e177_final_inputs::overlay_v2::tests::logical_current_view_precedes_stage_normalization_and_preserves_foreign_refusals ... ok
+
+test result: ok. 29 passed; 0 failed; 0 ignored; 0 measured; 266 filtered out; finished in 91.33s
+

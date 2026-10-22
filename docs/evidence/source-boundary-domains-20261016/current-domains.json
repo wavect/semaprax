@@ -2801,7 +2801,11 @@
         "src/ast.rs",
         "src/ast/expression_statement.rs",
         "src/ast/program_source.rs",
+        "src/ast/program_source/checked_key.rs",
+        "src/ast/program_source/checked_key/encode.rs",
         "src/ast/program_source/decl_slices.rs",
+        "src/ast/program_source/generated_roots.rs",
+        "src/ast/program_source/receiving_roots.rs",
         "src/bounded_output.rs",
         "src/bounded_output/classifier_string.rs",
         "src/bounded_output/exclusive_debits.rs",
@@ -2809,6 +2813,7 @@
         "src/bounded_output/identity_reservation/function_cells.rs",
         "src/bounded_output/identity_reservation/source_abort.rs",
         "src/bounded_output/invocation_binding.rs",
+        "src/bounded_output/key_directory.rs",
         "src/box_ops.rs",
         "src/box_ops/wrappers.rs",
         "src/byte_data_capacity.rs",
@@ -3092,9 +3097,9 @@
         "src/workspace_graph/validation.rs",
         "src/workspace_report.rs"
       ],
-      "full_manifest_sha256": "2f7d00877d24e069198741d690006fd5e727b8e9ab8a4eaaa0876b3fc2636ffa",
-      "full_raw_sha256": "82f9d178fa16b0899893515948abc7850f7bf6a44b708e56553f4fced2a7e773",
-      "full_authenticated_production_sha256": "61e49ce52d2c8aa77d3b0d75ae952c4164bb6cc8c13751ae9822653ee3b51cb9"
+      "full_manifest_sha256": "0b4b1ec07c21a3bf2bdaaf4f9540759ac0c305126ac2f980c55f94a96fc7956e",
+      "full_raw_sha256": "8f3c075c7d2c9059fd90df61fed802ea4223012c529d53af76bb9d200bc75016",
+      "full_authenticated_production_sha256": "5e493b8a7a84860ee5e628d17ebad3fec8e60de00debcd9aaed92699298aa60b"
     },
     "projection": {
       "baseline": "a82e00cc83f99b16249181c45710d962598577db",
@@ -4364,9 +4369,9 @@
         "src/workspace_report.rs",
         "src/workspace_report/initial.rs"
       ],
-      "full_manifest_sha256": "afd489788058652337744e20e93f8b8fe494817f3aaf0d13fb470ff012d03a43",
-      "full_raw_sha256": "29092a12456b9811690322421fa65ae4644cebd86b03b58ff52a3faa6f2cf3a0",
-      "full_authenticated_production_sha256": "18ebbe01f3232805b603b4d98397e3541254598119fdf4b94873d8ec9b6febf8"
+      "full_manifest_sha256": "40fa7a0c2b22a6e3d99f9329665821aea1095e197f70bbca24e6ff0e73fd2d08",
+      "full_raw_sha256": "5cc579c53efd9f95a1581412b94fabbecf9de141ca54fec4cacae6910a3e673b",
+      "full_authenticated_production_sha256": "f56fe35baaded69b0ec9e38d4ed00412082cfc32ac19e573781ba79188f1c974"
     }
   }
 }

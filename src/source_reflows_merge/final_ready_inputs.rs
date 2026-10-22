@@ -168,6 +168,8 @@ pub(crate) fn source_owner(domain: &str, source: &str, current: &str) -> String 
 fn projection344_stage(supplied: &str) -> String {
     let mut invocation =
         crate::source_reflows_merge::main_e177_final_inputs::ProjectionInvocation::new();
+    let current_audit = projection_publication::audit_join(supplied);
+    let supplied = current_audit.as_deref().unwrap_or(supplied);
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let data = include_str!(
         "../../docs/evidence/current339-source-custody-repair-20261017/projection344-stage.json"

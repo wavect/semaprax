@@ -1,0 +1,28 @@
+{
+  "status": "ORIGINAL_CURRENT_CODEC_COMPOSITION_PASS_PENDING_PUBLICATION",
+  "base_head": "39de740bd3",
+  "rows": 709,
+  "page_bytes": 260763,
+  "published_current_preserved_as_exact_views": [
+    {
+      "source": "src/source_reflows_merge/final_ready_inputs.rs",
+      "view": {
+        "archive": "docs/evidence/projection344-reader-20261021/current/af752bea888bba1a63550e53adcc94c77733bfaf192da48b4edd940dad8cdcad.txt",
+        "length": 34435,
+        "sha256": "af752bea888bba1a63550e53adcc94c77733bfaf192da48b4edd940dad8cdcad",
+        "name": "whole-pre-projection-entry-5f618547eb"
+      }
+    },
+    {
+      "source": "src/source_reflows_merge/main_e177_overlay_compiled.rs",
+      "view": {
+        "archive": "e/f34025fd7fe9c1ea651919764f78d09208bf950f5e3b4ded118ce94a6108b1c8",
+        "length": 88884,
+        "sha256": "f34025fd7fe9c1ea651919764f78d09208bf950f5e3b4ded118ce94a6108b1c8",
+        "name": "whole-pre-projection-entry-5f618547eb"
+      }
+    }
+  ],
+  "all_previous_fields_views_memberships_and_fragment_edges_retained": true,
+  "all_original_codec_bodies_and_caps_unchanged": true
+}

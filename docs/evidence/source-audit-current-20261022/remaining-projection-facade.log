@@ -1,0 +1,24 @@
+
+running 1 test
+test projected_gate::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root ... FAILED
+
+failures:
+
+---- projected_gate::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root stdout ----
+
+thread 'projected_gate::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root' (84121611) panicked at /Volumes/Semaprax/worktrees/ci-source-audit-173c/src/source_reflows_merge/final_ready_inputs.rs:234:5:
+foreign historical projection input
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'projected_gate::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root' (84121611) panicked at /Volumes/Semaprax/worktrees/ci-source-audit-173c/src/source_reflows_merge/final_ready_inputs.rs:234:5:
+foreign historical projection input
+
+thread 'projected_gate::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root' (84121611) panicked at /Volumes/Semaprax/worktrees/ci-source-audit-173c/src/source_reflows_merge/final_ready_inputs.rs:234:5:
+foreign historical projection input
+
+
+failures:
+    projected_gate::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 331 filtered out; finished in 2.12s
+

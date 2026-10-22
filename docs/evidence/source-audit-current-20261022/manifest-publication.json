@@ -1,0 +1,24 @@
+[
+  {
+    "domain": "hir",
+    "previous_sha256": "d25ce10656c800a7042d80ae141bfbcffe98a708cb4d9fa42c469546070fb376",
+    "previous_archive": "docs/evidence/source-audit-current-20261022/hir.before.json",
+    "current_sha256": "e659db15a32453f54371fd4f3ff95d835cc7549136f604993dfa2c8cc90dff8f",
+    "previous_classes": 1822,
+    "current_classes": 1822,
+    "all_old_sources_roles_chains_and_chunk_order_preserved": true,
+    "edge_offsets_rebased_to_exact_current_source": true,
+    "former_closure_members_still_fully_authenticated": true
+  },
+  {
+    "domain": "projection",
+    "previous_sha256": "d0a81317d7a9b19cea45adce85a0c777675d0cd5f9b92496f9e10d4ee81f1039",
+    "previous_archive": "docs/evidence/source-audit-current-20261022/projection.before.json",
+    "current_sha256": "2c7bdbe61642d49b47b73e3f0396a4aed6002c0921f997544527ade6e6cbd6e9",
+    "previous_classes": 1908,
+    "current_classes": 1909,
+    "all_old_sources_roles_chains_and_chunk_order_preserved": true,
+    "edge_offsets_rebased_to_exact_current_source": true,
+    "former_closure_members_still_fully_authenticated": true
+  }
+]

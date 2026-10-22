@@ -1,0 +1,25 @@
+{
+  "status": "PARTIAL_CI_REPAIR_SOURCE_ONLY_PASS",
+  "before_head": "5f618547ebd4d04e7049d7250ce4f8ec034b358d",
+  "qualification": "Original source gates and complete context/projectors executed. No complete main CI or backend product qualification.",
+  "checks": {
+    "original_projection_purity_and_facade_gate": 1,
+    "actual_complete_hir_source_harness": 11,
+    "new_actual_and_foreign_source_entry_controls": 2,
+    "original_metadata_controls": 29,
+    "original_whole_predecessor_controls": 2,
+    "unchanged_original_role_verifier": true,
+    "original_hostile_role_controls": 6,
+    "source_harness_clippy_warnings_denied": true,
+    "hir_harness_clippy_warnings_denied": true,
+    "format_and_diff_checks": true
+  },
+  "metadata": {
+    "rows": 709,
+    "page_bytes": 260763,
+    "unchanged_page_cap": 262144
+  },
+  "original_projectors_and_caps_unchanged": true,
+  "all_work_on_external_ssd": true,
+  "process_RSS_cap": null
+}

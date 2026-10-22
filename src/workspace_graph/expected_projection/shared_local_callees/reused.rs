@@ -83,6 +83,10 @@ impl<'p, 'a> Session<'p, 'a> {
         current.as_ref().map_or(0, |held| held.slots)
     }
 
+    // Closed caller prerequisite: owner and target come from this Context's
+    // actual Program.functions traversal/unique Source::Function lookup. This
+    // authenticates that loan; an arbitrary fabricated Index plus copied
+    // Function is not a membership witness for this internal entry.
     pub(in crate::workspace_graph::expected_projection) fn observe(
         current: &mut Option<Self>,
         context: Context<'p, 'a>,

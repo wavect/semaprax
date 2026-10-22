@@ -124,7 +124,74 @@ fn actual_uncached_tiny_repeated_shipping_path_and_complete_proof_drop_are_obser
             });
         assert!(!refused && first.is_none() && !allocation.invalid);
         assert_eq!(layout.order[0], 0);
-        assert!(layout.forecast > 0);
+        let maximum = dependency_identity_max(ctx.program, &authored, &programs).unwrap();
+        let estimate = |imports, predecessor| match predecessor {
+            0 => {
+                before::synthetic_builder_bytes_scoped_with_retention_with_registry(
+                    ctx.program,
+                    &authored,
+                    &programs,
+                    Some(maximum),
+                    imports,
+                    (6, cached_exact::Retention::Parsed),
+                    None,
+                )
+                .unwrap()
+                .retained_hir
+            }
+            1 => {
+                held_projection::synthetic_builder_bytes_scoped_with_retention_with_registry(
+                    ctx.program,
+                    &authored,
+                    &programs,
+                    Some(maximum),
+                    imports,
+                    (6, cached_exact::Retention::Parsed),
+                    None,
+                )
+                .unwrap()
+                .retained_hir
+            }
+            _ => {
+                held_projection::coupled_uncached_estimate(
+                    ctx.program,
+                    &authored,
+                    &programs,
+                    Some(maximum),
+                    6,
+                    imports,
+                    None,
+                )
+                .unwrap()
+                .retained_hir
+            }
+        };
+        // One module has no preceding retention: the real shipping peak is
+        // exactly max(full, retained), rather than merely a positive number.
+        let original = estimate(true, 0).max(estimate(false, 0));
+        let immediate = estimate(true, 1).max(estimate(false, 1));
+        let expected = estimate(true, 2).max(estimate(false, 2));
+        assert_eq!(layout.forecast, expected);
+        for limit in [expected, expected - 1, 0] {
+            let ((result, allocation), refused, _, first) = with_limit_usage_refusal(limit, || {
+                measure(|| {
+                    let result = uncached_peak::uncached_output_layout(&programs, &authored);
+                    let success = result.is_ok();
+                    drop(result);
+                    success
+                })
+            });
+            assert_eq!(result, limit == expected, "real shipping frontier {limit}");
+            assert!(!allocation.invalid && allocation.live == 0);
+            assert_eq!(allocation.allocated, allocation.freed);
+            if limit == 0 {
+                assert!(
+                    refused && first.is_some(),
+                    "physical zero refusal remains sticky"
+                );
+            }
+        }
+        eprintln!("actual-one-module-shipping calls={calls} pre916={original} immediate2a={immediate} candidate={expected}");
         assert_eq!(allocation.live, 0);
         assert_eq!(allocation.allocated, allocation.freed);
         eprintln!("uncached-local-reuse calls={calls} forecast={} actual_paid={charged} allocated={} highwater={} proof={} traversal={}",
@@ -385,5 +452,88 @@ fn coupled_estimate_retains_the_whole_old_algorithm_and_rejects_other_modes() {
             None
         )
         .is_err());
+    }
+}
+
+#[test]
+fn nested_zero_ambiguous_and_imported_calls_preserve_independent_censuses() {
+    for headers in [2, 64, 129] {
+        let plain = source(headers, 1);
+        let nested = plain.replace("{helper(1)}", "{helper(helper(1))}");
+        let programs = [crate::parse(&nested, "nested.spx").unwrap()];
+        let authored = crate::workspace_graph::index_authored(&programs).unwrap();
+        let ctx = context(&programs, &authored);
+        let (_, candidate) = count(ctx, true).unwrap();
+        assert_eq!(candidate.slots, 2);
+        assert_eq!(
+            candidate.slots,
+            shared_local_callees::costs(ctx).unwrap().slots
+        );
+
+        // Duplicate raw names have distinct authored identities. Neither the
+        // linear scan nor a sorted directory may select its first occurrence.
+        let mut programs = [crate::parse(&plain, "ambiguous.spx").unwrap()];
+        let mut duplicate = programs[0].functions[0].clone();
+        duplicate.stable_id = "loan.duplicate".into();
+        programs[0].functions.push(duplicate);
+        let authored = crate::workspace_graph::index_authored(&programs).unwrap();
+        let ctx = context(&programs, &authored);
+        for imports in [false, true] {
+            let (auxiliary, candidate) = count(ctx, imports).unwrap();
+            assert_eq!(candidate.slots, 0);
+            assert_eq!(candidate.bytes, 0, "no constructor is reached");
+            assert_eq!(shared_local_callees::costs(ctx).unwrap().slots, 0);
+            assert_eq!(
+                auxiliary.roots,
+                super::super::count(ctx.program, &authored, imports).roots
+            );
+        }
+    }
+    for body in [
+        "{0}",
+        "{helper<i64>(1)}",
+        "{let helper=1;helper(1)}",
+        "{let outer={let helper=1;helper(1)};0}",
+    ] {
+        let programs =
+            [crate::parse(&source(2, 1).replace("{helper(1)}", body), "excluded.spx").unwrap()];
+        let authored = crate::workspace_graph::index_authored(&programs).unwrap();
+        let ctx = context(&programs, &authored);
+        let (auxiliary, candidate) = count(ctx, true).unwrap();
+        assert_eq!((candidate.slots, candidate.bytes), (0, 0));
+        assert_eq!(shared_local_callees::costs(ctx).unwrap().slots, 0);
+        assert_eq!(
+            auxiliary.roots,
+            super::super::count(ctx.program, &authored, true).roots
+        );
+    }
+    let main = source(2, 1)
+        .replace(
+            "module loan.local;",
+            "module loan.local; use function @id(\"provider.remote\") from provider as remote;",
+        )
+        .replace("{helper(1)}", "{remote(1)+helper(1)}");
+    let programs = [
+        crate::parse(&main, "consumer.spx").unwrap(),
+        crate::parse(
+            "module provider; @id(\"provider.remote\") fn remote(x:i64)->i64{x}",
+            "provider.spx",
+        )
+        .unwrap(),
+    ];
+    let authored = crate::workspace_graph::index_authored(&programs).unwrap();
+    let ctx = context(&programs, &authored);
+    for imports in [false, true] {
+        let (auxiliary, candidate) = count(ctx, imports).unwrap();
+        assert_eq!(
+            (candidate.slots, candidate.bytes),
+            (0, 0),
+            "aliases exclude the callee certificate even when output omits imports"
+        );
+        assert!(candidate.slots <= shared_local_callees::costs(ctx).unwrap().slots);
+        assert_eq!(
+            auxiliary.roots,
+            super::super::count(ctx.program, &authored, imports).roots
+        );
     }
 }

@@ -254,10 +254,10 @@ fn late_alt_and_every_original_node_work_cut_cannot_publish_a_success_entry() {
 }
 
 #[test]
-fn foreign_scope_cannot_charge_or_consume_owner_and_restored_scope_still_authenticates() {
+fn foreign_scope_keeps_original_owner_sticky_without_charging_foreign_lender() {
     let program = fixture();
     let function = &program.functions[0];
-    with_limit_usage_refusal(usize::MAX, || {
+    let ((), owner_refused, _, owner_first) = with_limit_usage_refusal(usize::MAX, || {
         let mut budget = ReplayBudget::with_skeleton_limit(usize::MAX);
         let mut work = SkeletonWork::new(&program, function, &mut budget);
         let observations = tree(&mut work, 3).unwrap();
@@ -271,8 +271,20 @@ fn foreign_scope_cannot_charge_or_consume_owner_and_restored_scope_still_authent
         assert_eq!(paid, 0);
         assert_eq!(scope.work.budget.remaining, before);
         assert!(scope.last.is_some());
-        assert!(check(&mut scope, &observations).unwrap());
+        // current() poisons the held owner on a foreign ACTIVE scope. Merely
+        // restoring that scope cannot revive credit or reuse its certificate.
+        assert_eq!(
+            check(&mut scope, &observations).unwrap_err().code,
+            "SPX-H006"
+        );
+        assert_eq!(scope.work.budget.remaining, before);
+        assert!(Rc::ptr_eq(
+            &scope.last.as_ref().unwrap().root,
+            observations.prefix.as_ref().unwrap()
+        ));
+        assert!(!crate::bounded_output::reserve_active_required(0));
     });
+    assert!(owner_refused && owner_first.is_some());
 }
 
 #[test]

@@ -227,214 +227,7 @@ impl<'a> HirValidator<'a> {
         let mut interface_ids = identity_scratch::Ids::new();
         let mut import_ids = identity_scratch::Ids::new();
         let mut imports = identity_scratch::Imports::new();
-        for interface in &self.program.interfaces {
-            if !interface_ids.insert(&interface.id) {
-                return Err(hir_error(format!(
-                    "duplicate resolved interface identity `{}`",
-                    interface.id
-                )));
-            }
-            match self.program.declarations.declaration(&interface.id) {
-                Some(item)
-                    if item.kind == DeclarationKind::Interface
-                        && item.name == interface.name
-                        && item.owner.is_none() => {}
-                _ => {
-                    return Err(hir_error(format!(
-                        "resolved interface `{}` disagrees with its declaration index entry",
-                        interface.id
-                    )));
-                }
-            }
-            let permits = interface.permits.iter().collect::<BTreeSet<_>>();
-            if permits.len() != interface.permits.len() {
-                return Err(hir_error(format!(
-                    "interface `{}` has duplicate permits",
-                    interface.id
-                )));
-            }
-            for import in &interface.imports {
-                if import.selected_receiver.as_deref().is_some_and(|receiver| {
-                    !import.index_selected || match receiver {
-                        "shared" => {
-                            let scalar = matches!(import.parameters.first(), Some(p)
-                                if p.ty == ResolvedType::I64 && p.ownership == OwnershipMode::Value);
-                            let regex_loan = import.rust_path.as_deref()
-                                == Some("regex_alias::Regex::is_match")
-                                && matches!(import.parameters.as_slice(), [receiver, text]
-                                    if receiver.ownership == OwnershipMode::Borrow
-                                        && matches!(receiver.ty, ResolvedType::Nominal { ref declaration, ref arguments }
-                                            if arguments.is_empty() && self.program.declarations.declaration(declaration)
-                                                .is_some_and(|item| item.kind == DeclarationKind::Resource && item.name == "Regex"))
-                                        && text.ownership == OwnershipMode::Borrow
-                                        && text.ty == ResolvedType::String);
-                            !scalar && !regex_loan && !native_borrow::admitted(self.program, import)
-                        },
-                        "owned" => !matches!(import.parameters.first(), Some(p) if matches!(p.ty, ResolvedType::Nominal { .. }) && p.ownership == OwnershipMode::Own),
-                        _ => true,
-                    }
-                }) {
-                    return Err(hir_error(
-                        "selected Rust method receiver has an invalid ownership projection",
-                    ));
-                }
-                if import.index_selected
-                    && import
-                        .selected_index_digest
-                        .as_ref()
-                        .is_none_or(|digest| !digest.starts_with("sha256:") || digest.len() != 71)
-                {
-                    return Err(hir_error(
-                        "selected Rust import has no authenticated index digest",
-                    ));
-                }
-                if import.rust_path.as_ref().is_some_and(|path| {
-                    !import.native_rust || !crate::native_rust_binding::valid_rust_api_path(path)
-                }) {
-                    return Err(hir_error(
-                        "resolved Rust API path has an invalid declaration shape",
-                    ));
-                }
-                if crate::host_io_ops::by_id(import.id.as_str()).is_some() {
-                    return Err(hir_error(format!(
-                        "resolved import `{}` aliases a compiler-owned host I/O operation",
-                        import.id
-                    )));
-                }
-                if !import_ids.insert(&import.id) || imports.insert(&import.id, import).is_some() {
-                    return Err(hir_error(format!(
-                        "duplicate resolved import identity `{}`",
-                        import.id
-                    )));
-                }
-                if import.interface != interface.id
-                    || self.program.declarations.import_id(&import.import_key) != Some(&import.id)
-                {
-                    return Err(hir_error(format!(
-                        "import `{}` has an invalid owner or logical key",
-                        import.id
-                    )));
-                }
-                match self.program.declarations.declaration(&import.id) {
-                    Some(item)
-                        if item.kind == DeclarationKind::Import
-                            && item.name == import.name
-                            && item.owner.as_ref() == Some(&interface.id) => {}
-                    _ => {
-                        return Err(hir_error(format!(
-                            "resolved import `{}` disagrees with its declaration index entry",
-                            import.id
-                        )));
-                    }
-                }
-                let ri06_regex_borrow_shape = native_borrow::admitted(self.program, import);
-                let native_shape = import.native_rust
-                    && (!matches!(import.result.kind, ResolvedImportResultKind::BorrowedStr { .. }) || ri06_regex_borrow_shape)
-                    && import.parameters.len() <= 8
-                    && (ri06_regex_borrow_shape || import.parameters.iter().all(|parameter| {
-                        (parameter.ownership == OwnershipMode::Value
-                            && matches!(parameter.ty, ResolvedType::I64 | ResolvedType::Bool))
-                            || (parameter.ownership == OwnershipMode::Own
-                                && (parameter.ty == ResolvedType::String || ResolvedImportResultKind::is_owned_container_type(&parameter.ty, &self.program.declarations) || matches!(parameter.ty, ResolvedType::Nominal { ref declaration, ref arguments }
-                                    if arguments.is_empty() && self.program.declarations.declaration(declaration)
-                                        .is_some_and(|item| item.kind == DeclarationKind::Resource))))
-                    }))
-                    && matches!(
-                        &import.result.kind,
-                        ResolvedImportResultKind::Unit
-                            | ResolvedImportResultKind::I64
-                            | ResolvedImportResultKind::Bool
-                            | ResolvedImportResultKind::ResultI64I64
-                            | ResolvedImportResultKind::BorrowedStr { .. } | ResolvedImportResultKind::OwnedResource { .. } | ResolvedImportResultKind::OwnedResultResourceI64 { .. } | ResolvedImportResultKind::OwnedString | ResolvedImportResultKind::OwnedOptionString | ResolvedImportResultKind::OwnedResultStringI64 | ResolvedImportResultKind::OwnedResultStringOptionI64
-                    )
-                    && (!matches!(
-                        import.result.kind,
-                        ResolvedImportResultKind::ResultI64I64
-                            | ResolvedImportResultKind::OwnedResultResourceI64 { .. }
-                    ) || (import.index_selected && import.selected_index_digest.is_some()));
-                let lifecycle_shape = !import.native_rust
-                    && import.parameters.len() == 1
-                    && import.parameters[0].ownership == OwnershipMode::Own
-                    && import.parameters[0].consumes_on_failure
-                    && import.result.kind == ResolvedImportResultKind::Unit;
-                if (!native_shape && !lifecycle_shape)
-                    || import.result.ownership != import.result.kind.ownership()
-                    || import.result.producer != "callee"
-                    || import.result.out_slot_initialization != "success_only"
-                    || import.result.ownership_transfer != "final_zero_status_commit"
-                    || import.required_authority != import.effects
-                {
-                    return Err(hir_error(format!(
-                        "import `{}` has an invalid ownership or result contract",
-                        import.id
-                    )));
-                }
-                for parameter in &import.parameters {
-                    self.validate_type(&parameter.ty)?;
-                }
-                let parameter_is_resource = import.parameters.first().is_some_and(|parameter| {
-                    parameter
-                        .ty
-                        .nominal_id()
-                        .and_then(|id| self.program.declarations.declaration(id))
-                        .is_some_and(|item| item.kind == DeclarationKind::Resource)
-                });
-                let effects = import.effects.iter().collect::<BTreeSet<_>>();
-                let authority = import.required_authority.iter().collect::<BTreeSet<_>>();
-                if (!import.native_rust && !parameter_is_resource)
-                    || effects.len() != import.effects.len()
-                    || authority.len() != import.required_authority.len()
-                {
-                    return Err(hir_error(format!(
-                        "import `{}` has a noncanonical resource or authority contract",
-                        import.id
-                    )));
-                }
-                if import
-                    .effects
-                    .iter()
-                    .any(|effect| !permits.contains(effect))
-                {
-                    return Err(hir_error(format!(
-                        "import `{}` exceeds interface `{}` authority",
-                        import.id, interface.id
-                    )));
-                }
-                if let ResolvedImportFailure::Status {
-                    domain_id,
-                    normalization,
-                } = &import.failure
-                {
-                    let native_domain_valid = || {
-                        let bytes = domain_id.as_bytes();
-                        (2..=STATUS_DOMAIN_MAX_BYTES_V1).contains(&bytes.len())
-                            && bytes.first().is_some_and(|byte| {
-                                byte.is_ascii_lowercase() || byte.is_ascii_digit()
-                            })
-                            && bytes.last().is_some_and(|byte| {
-                                byte.is_ascii_lowercase() || byte.is_ascii_digit()
-                            })
-                            && bytes.iter().all(|byte| {
-                                byte.is_ascii_lowercase()
-                                    || byte.is_ascii_digit()
-                                    || matches!(byte, b'.' | b'-')
-                            })
-                    };
-                    if (import.native_rust && !native_domain_valid())
-                        || (!import.native_rust
-                            && (domain_id.is_empty()
-                                || domain_id.len() > STATUS_DOMAIN_MAX_BYTES_V1
-                                || domain_id.contains('\0')))
-                        || *normalization != "semaprax.status.v1"
-                    {
-                        return Err(hir_error(format!(
-                            "import `{}` has an invalid status contract",
-                            import.id
-                        )));
-                    }
-                }
-            }
-        }
+        self.validate_interface_imports(&mut interface_ids, &mut import_ids, &mut imports)?;
         let mut template_ids = BTreeSet::new();
         for template in &self.program.function_templates {
             let transparent_owned_wrapper =
@@ -1337,6 +1130,224 @@ impl<'a> HirValidator<'a> {
         self.finish_static_pool()
     }
 
+    #[inline(never)]
+    fn validate_interface_imports(
+        &self,
+        interface_ids: &mut identity_scratch::Ids<'a>,
+        import_ids: &mut identity_scratch::Ids<'a>,
+        imports: &mut identity_scratch::Imports<'a>,
+    ) -> Result<(), Diagnostic> {
+        for interface in &self.program.interfaces {
+            if !interface_ids.insert(&interface.id) {
+                return Err(hir_error(format!(
+                    "duplicate resolved interface identity `{}`",
+                    interface.id
+                )));
+            }
+            match self.program.declarations.declaration(&interface.id) {
+                Some(item)
+                    if item.kind == DeclarationKind::Interface
+                        && item.name == interface.name
+                        && item.owner.is_none() => {}
+                _ => {
+                    return Err(hir_error(format!(
+                        "resolved interface `{}` disagrees with its declaration index entry",
+                        interface.id
+                    )));
+                }
+            }
+            let permits = interface.permits.iter().collect::<BTreeSet<_>>();
+            if permits.len() != interface.permits.len() {
+                return Err(hir_error(format!(
+                    "interface `{}` has duplicate permits",
+                    interface.id
+                )));
+            }
+            for import in &interface.imports {
+                if import.selected_receiver.as_deref().is_some_and(|receiver| {
+                    !import.index_selected || match receiver {
+                        "shared" => {
+                            let scalar = matches!(import.parameters.first(), Some(p)
+                                if p.ty == ResolvedType::I64 && p.ownership == OwnershipMode::Value);
+                            let regex_loan = import.rust_path.as_deref()
+                                == Some("regex_alias::Regex::is_match")
+                                && matches!(import.parameters.as_slice(), [receiver, text]
+                                    if receiver.ownership == OwnershipMode::Borrow
+                                        && matches!(receiver.ty, ResolvedType::Nominal { ref declaration, ref arguments }
+                                            if arguments.is_empty() && self.program.declarations.declaration(declaration)
+                                                .is_some_and(|item| item.kind == DeclarationKind::Resource && item.name == "Regex"))
+                                        && text.ownership == OwnershipMode::Borrow
+                                        && text.ty == ResolvedType::String);
+                            !scalar && !regex_loan && !native_borrow::admitted(self.program, import)
+                        },
+                        "owned" => !matches!(import.parameters.first(), Some(p) if matches!(p.ty, ResolvedType::Nominal { .. }) && p.ownership == OwnershipMode::Own),
+                        _ => true,
+                    }
+                }) {
+                    return Err(hir_error(
+                        "selected Rust method receiver has an invalid ownership projection",
+                    ));
+                }
+                if import.index_selected
+                    && import
+                        .selected_index_digest
+                        .as_ref()
+                        .is_none_or(|digest| !digest.starts_with("sha256:") || digest.len() != 71)
+                {
+                    return Err(hir_error(
+                        "selected Rust import has no authenticated index digest",
+                    ));
+                }
+                if import.rust_path.as_ref().is_some_and(|path| {
+                    !import.native_rust || !crate::native_rust_binding::valid_rust_api_path(path)
+                }) {
+                    return Err(hir_error(
+                        "resolved Rust API path has an invalid declaration shape",
+                    ));
+                }
+                if crate::host_io_ops::by_id(import.id.as_str()).is_some() {
+                    return Err(hir_error(format!(
+                        "resolved import `{}` aliases a compiler-owned host I/O operation",
+                        import.id
+                    )));
+                }
+                if !import_ids.insert(&import.id) || imports.insert(&import.id, import).is_some() {
+                    return Err(hir_error(format!(
+                        "duplicate resolved import identity `{}`",
+                        import.id
+                    )));
+                }
+                if import.interface != interface.id
+                    || self.program.declarations.import_id(&import.import_key) != Some(&import.id)
+                {
+                    return Err(hir_error(format!(
+                        "import `{}` has an invalid owner or logical key",
+                        import.id
+                    )));
+                }
+                match self.program.declarations.declaration(&import.id) {
+                    Some(item)
+                        if item.kind == DeclarationKind::Import
+                            && item.name == import.name
+                            && item.owner.as_ref() == Some(&interface.id) => {}
+                    _ => {
+                        return Err(hir_error(format!(
+                            "resolved import `{}` disagrees with its declaration index entry",
+                            import.id
+                        )));
+                    }
+                }
+                let ri06_regex_borrow_shape = native_borrow::admitted(self.program, import);
+                let native_shape = import.native_rust
+                    && (!matches!(import.result.kind, ResolvedImportResultKind::BorrowedStr { .. }) || ri06_regex_borrow_shape)
+                    && import.parameters.len() <= 8
+                    && (ri06_regex_borrow_shape || import.parameters.iter().all(|parameter| {
+                        (parameter.ownership == OwnershipMode::Value
+                            && matches!(parameter.ty, ResolvedType::I64 | ResolvedType::Bool))
+                            || (parameter.ownership == OwnershipMode::Own
+                                && (parameter.ty == ResolvedType::String || ResolvedImportResultKind::is_owned_container_type(&parameter.ty, &self.program.declarations) || matches!(parameter.ty, ResolvedType::Nominal { ref declaration, ref arguments }
+                                    if arguments.is_empty() && self.program.declarations.declaration(declaration)
+                                        .is_some_and(|item| item.kind == DeclarationKind::Resource))))
+                    }))
+                    && matches!(
+                        &import.result.kind,
+                        ResolvedImportResultKind::Unit
+                            | ResolvedImportResultKind::I64
+                            | ResolvedImportResultKind::Bool
+                            | ResolvedImportResultKind::ResultI64I64
+                            | ResolvedImportResultKind::BorrowedStr { .. } | ResolvedImportResultKind::OwnedResource { .. } | ResolvedImportResultKind::OwnedResultResourceI64 { .. } | ResolvedImportResultKind::OwnedString | ResolvedImportResultKind::OwnedOptionString | ResolvedImportResultKind::OwnedResultStringI64 | ResolvedImportResultKind::OwnedResultStringOptionI64
+                    )
+                    && (!matches!(
+                        import.result.kind,
+                        ResolvedImportResultKind::ResultI64I64
+                            | ResolvedImportResultKind::OwnedResultResourceI64 { .. }
+                    ) || (import.index_selected && import.selected_index_digest.is_some()));
+                let lifecycle_shape = !import.native_rust
+                    && import.parameters.len() == 1
+                    && import.parameters[0].ownership == OwnershipMode::Own
+                    && import.parameters[0].consumes_on_failure
+                    && import.result.kind == ResolvedImportResultKind::Unit;
+                if (!native_shape && !lifecycle_shape)
+                    || import.result.ownership != import.result.kind.ownership()
+                    || import.result.producer != "callee"
+                    || import.result.out_slot_initialization != "success_only"
+                    || import.result.ownership_transfer != "final_zero_status_commit"
+                    || import.required_authority != import.effects
+                {
+                    return Err(hir_error(format!(
+                        "import `{}` has an invalid ownership or result contract",
+                        import.id
+                    )));
+                }
+                for parameter in &import.parameters {
+                    self.validate_type(&parameter.ty)?;
+                }
+                let parameter_is_resource = import.parameters.first().is_some_and(|parameter| {
+                    parameter
+                        .ty
+                        .nominal_id()
+                        .and_then(|id| self.program.declarations.declaration(id))
+                        .is_some_and(|item| item.kind == DeclarationKind::Resource)
+                });
+                let effects = import.effects.iter().collect::<BTreeSet<_>>();
+                let authority = import.required_authority.iter().collect::<BTreeSet<_>>();
+                if (!import.native_rust && !parameter_is_resource)
+                    || effects.len() != import.effects.len()
+                    || authority.len() != import.required_authority.len()
+                {
+                    return Err(hir_error(format!(
+                        "import `{}` has a noncanonical resource or authority contract",
+                        import.id
+                    )));
+                }
+                if import
+                    .effects
+                    .iter()
+                    .any(|effect| !permits.contains(effect))
+                {
+                    return Err(hir_error(format!(
+                        "import `{}` exceeds interface `{}` authority",
+                        import.id, interface.id
+                    )));
+                }
+                if let ResolvedImportFailure::Status {
+                    domain_id,
+                    normalization,
+                } = &import.failure
+                {
+                    let native_domain_valid = || {
+                        let bytes = domain_id.as_bytes();
+                        (2..=STATUS_DOMAIN_MAX_BYTES_V1).contains(&bytes.len())
+                            && bytes.first().is_some_and(|byte| {
+                                byte.is_ascii_lowercase() || byte.is_ascii_digit()
+                            })
+                            && bytes.last().is_some_and(|byte| {
+                                byte.is_ascii_lowercase() || byte.is_ascii_digit()
+                            })
+                            && bytes.iter().all(|byte| {
+                                byte.is_ascii_lowercase()
+                                    || byte.is_ascii_digit()
+                                    || matches!(byte, b'.' | b'-')
+                            })
+                    };
+                    if (import.native_rust && !native_domain_valid())
+                        || (!import.native_rust
+                            && (domain_id.is_empty()
+                                || domain_id.len() > STATUS_DOMAIN_MAX_BYTES_V1
+                                || domain_id.contains('\0')))
+                        || *normalization != "semaprax.status.v1"
+                    {
+                        return Err(hir_error(format!(
+                            "import `{}` has an invalid status contract",
+                            import.id
+                        )));
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
     fn validate_template_expr_with_context<'value>(
         &mut self,
         template: &'value ResolvedFunctionTemplate,
@@ -1728,7 +1739,6 @@ impl<'a> HirValidator<'a> {
         allow_moves: bool,
         allowed_effects: Option<effect_keys::Allowed<'_>>,
     ) -> Result<(), Diagnostic> {
-        let program = self.program;
         enum Frame<'e> {
             LexicalReturn {
                 expression: &'e ResolvedExpr,
@@ -2196,58 +2206,926 @@ impl<'a> HirValidator<'a> {
                 _ => 0,
             }
         }
-        let mut publication = scope_checkpoint::Publication::take(scope)?;
-        let initial_scope = publication.published.clone();
-        let mut frames = scope_checkpoint::Storage::new();
-        frames.push(Frame::Enter {
-            expression,
-            scope: initial_scope,
-            path,
-        })?;
-        let mut scopes = scope_checkpoint::Storage::new();
-        while let Some(frame) = frames.pop() {
-            #[cfg(test)]
-            note_iterative_phase_capacity(
-                1,
-                frames.capacity() * std::mem::size_of::<Frame<'_>>()
-                    + scopes.capacity() * std::mem::size_of::<scope_checkpoint::Scope>()
-                    + scopes
+        // Separate stack frames keep unoptimized arm temporaries below the
+        // existing 128 KiB validation contract without changing traversal.
+        #[inline(never)]
+        fn enter_phase_0<'a: 'e, 'e>(
+            validator: &mut HirValidator<'a>,
+            function: &FunctionExecutionId,
+            expression: &'e ResolvedExpr,
+            mut scope: scope_checkpoint::Scope,
+            path: &'e str,
+            frames: &mut scope_checkpoint::Storage<Frame<'e>>,
+            scopes: &mut scope_checkpoint::Storage<scope_checkpoint::Scope>,
+            allow_moves: bool,
+        ) -> Result<(), Diagnostic> {
+            match &expression.kind {
+                ResolvedExprKind::LexicalExit { value, .. } => {
+                    if let Some(operand) = value {
+                        frames.push(Frame::LexicalReturn {
+                            expression,
+                            operand,
+                        })?;
+                        frames.push(Frame::Enter {
+                            expression: operand,
+                            scope,
+                            path: path_label::Label::child(path, ".value", [0, 0])?,
+                        })?;
+                    } else {
+                        validator.finish_expr(
+                            expression,
+                            &ResolvedType::Never,
+                            OwnershipMode::Value,
+                        )?;
+                        scopes.push(scope)?;
+                    }
+                }
+                ResolvedExprKind::Closure { .. } => {
+                    validator.validate_closure(
+                        function,
+                        expression,
+                        &mut scope,
+                        path,
+                        allow_moves,
+                    )?;
+                    scopes.push(scope)?;
+                }
+                ResolvedExprKind::FunctionReference { target } => {
+                    super::function_value::validate_reference(
+                        validator.program,
+                        target,
+                        &expression.ty,
+                    )?;
+                    validator.finish_expr(expression, &expression.ty, OwnershipMode::Value)?;
+                    scopes.push(scope)?;
+                }
+                ResolvedExprKind::Invoke { .. } => {
+                    super::function_value::validate_invocation(expression)?;
+                    frames.push(Frame::InvokeNext {
+                        expression,
+                        index: 0,
+                        scope,
+                        path,
+                    })?;
+                }
+                ResolvedExprKind::Int(_) => {
+                    validator.finish_expr(expression, &ResolvedType::I64, OwnershipMode::Value)?;
+                    scopes.push(scope)?;
+                }
+                ResolvedExprKind::Int32(_) => {
+                    validator.finish_expr(expression, &ResolvedType::I32, OwnershipMode::Value)?;
+                    scopes.push(scope)?;
+                }
+                ResolvedExprKind::Char(value) => {
+                    if char::from_u32(*value).is_none() {
+                        return Err(hir_error(
+                            "char literal bits are not a Unicode scalar value",
+                        ));
+                    }
+                    validator.finish_expr(expression, &ResolvedType::Char, OwnershipMode::Value)?;
+                    scopes.push(scope)?;
+                }
+                ResolvedExprKind::Uint8(_) => {
+                    validator.finish_expr(expression, &ResolvedType::U8, OwnershipMode::Value)?;
+                    scopes.push(scope)?;
+                }
+                ResolvedExprKind::Usize(_) => {
+                    validator.finish_expr(
+                        expression,
+                        &ResolvedType::Usize,
+                        OwnershipMode::Value,
+                    )?;
+                    scopes.push(scope)?;
+                }
+                _ => unreachable!("expression was routed to its matching phase"),
+            }
+            Ok(())
+        }
+        #[inline(never)]
+        fn enter_phase_4<'a: 'e, 'e>(
+            validator: &mut HirValidator<'a>,
+            expression: &'e ResolvedExpr,
+            scope: scope_checkpoint::Scope,
+            path: &'e str,
+            frames: &mut scope_checkpoint::Storage<Frame<'e>>,
+            scopes: &mut scope_checkpoint::Storage<scope_checkpoint::Scope>,
+        ) -> Result<(), Diagnostic> {
+            match &expression.kind {
+                ResolvedExprKind::BorrowPlace { operation, place } => {
+                    let ty = validator.validate_borrowed_view(
+                        operation,
+                        place,
+                        expression.span,
+                        &scope,
+                    )?;
+                    validator.finish_expr(expression, &ty, OwnershipMode::Borrow)?;
+                    scopes.push(scope)?;
+                }
+                ResolvedExprKind::ByteRange {
+                    operation,
+                    source,
+                    start,
+                    end,
+                } => {
+                    if operation.as_str() != crate::byte_ops::RANGE_ID {
+                        return Err(hir_error(
+                            "byte range has an invalid compiler-owned operation",
+                        ));
+                    }
+                    validator.byte_range_origin(source, &scope)?;
+                    frames.push(Frame::ByteRangeAfterSource {
+                        expression,
+                        start,
+                        end,
+                        path,
+                    })?;
+                    frames.push(Frame::Enter {
+                        expression: source,
+                        scope,
+                        path: path_label::Label::child(path, ".arg.0", [0, 0])?,
+                    })?;
+                }
+                ResolvedExprKind::ArrayU8(values) => {
+                    let length = u32::try_from(values.len())
+                        .map_err(|_| hir_error("fixed-array literal length does not fit u32"))?;
+                    validator.finish_expr(
+                        expression,
+                        &ResolvedType::ArrayU8(length),
+                        OwnershipMode::Value,
+                    )?;
+                    scopes.push(scope)?;
+                }
+                ResolvedExprKind::RepeatArrayU8 { count, .. } => {
+                    if u64::from(*count) > crate::byte_data_capacity::MAX_ARRAY_BYTES {
+                        return Err(hir_error("fixed-array repeat exceeds the exact byte bound"));
+                    }
+                    validator.finish_expr(
+                        expression,
+                        &ResolvedType::ArrayU8(*count),
+                        OwnershipMode::Value,
+                    )?;
+                    scopes.push(scope)?;
+                }
+                ResolvedExprKind::Float32(bits) => {
+                    validator.validate_finite_f32(*bits)?;
+                    validator.finish_expr(expression, &ResolvedType::F32, OwnershipMode::Value)?;
+                    scopes.push(scope)?;
+                }
+                ResolvedExprKind::Float64(bits) => {
+                    validator.validate_finite_f64(*bits)?;
+                    validator.finish_expr(expression, &ResolvedType::F64, OwnershipMode::Value)?;
+                    scopes.push(scope)?;
+                }
+                ResolvedExprKind::Bool(_) => {
+                    validator.finish_expr(expression, &ResolvedType::Bool, OwnershipMode::Value)?;
+                    scopes.push(scope)?;
+                }
+                ResolvedExprKind::BorrowedUtf8Literal(value) => {
+                    validator.finish_static_text(expression, value)?;
+                    scopes.push(scope)?;
+                }
+                ResolvedExprKind::String(value) => {
+                    validator.record_static_pool(value.len(), false)?;
+                    validator.finish_expr(expression, &ResolvedType::String, OwnershipMode::Own)?;
+                    scopes.push(scope)?;
+                }
+                _ => unreachable!("expression was routed to its matching phase"),
+            }
+            Ok(())
+        }
+        #[inline(never)]
+        fn enter_phase_5<'a: 'e, 'e>(
+            validator: &mut HirValidator<'a>,
+            expression: &'e ResolvedExpr,
+            scope: scope_checkpoint::Scope,
+            path: &'e str,
+            frames: &mut scope_checkpoint::Storage<Frame<'e>>,
+            scopes: &mut scope_checkpoint::Storage<scope_checkpoint::Scope>,
+        ) -> Result<(), Diagnostic> {
+            match &expression.kind {
+                ResolvedExprKind::Place(place) => {
+                    let binding = scope.get(&place.root).ok_or_else(|| {
+                        scope_checkpoint::paths::diagnostic(format_args!(
+                            "resolved value `{}` is out of scope",
+                            place.root
+                        ))
+                    })?;
+                    match (place.projections.is_empty(), binding.availability) {
+                        (true, Availability::Available) => {
+                            match HirValidator::place_availability(binding, &[]) {
+                                Availability::Available => {}
+                                Availability::Moved => {
+                                    return Err(scope_checkpoint::paths::diagnostic(format_args!(
+                                        "resolved value `{}` is partially moved",
+                                        place.root
+                                    )));
+                                }
+                                Availability::MaybeMoved => {
+                                    return Err(scope_checkpoint::paths::diagnostic(format_args!(
+                                        "resolved value `{}` may be partially moved",
+                                        place.root
+                                    )));
+                                }
+                            }
+                        }
+                        (true, Availability::Moved) => {
+                            return Err(scope_checkpoint::paths::diagnostic(format_args!(
+                                "resolved value `{}` is used after it was moved",
+                                place.root
+                            )));
+                        }
+                        (true, Availability::MaybeMoved) => {
+                            return Err(scope_checkpoint::paths::diagnostic(format_args!(
+                                "resolved value `{}` may have been moved",
+                                place.root
+                            )));
+                        }
+                        (false, _) => {
+                            match HirValidator::place_availability(binding, &place.projections) {
+                                Availability::Available => {}
+                                Availability::Moved => {
+                                    return Err(scope_checkpoint::paths::diagnostic(format_args!(
+                                        "resolved place rooted at `{}` is partially moved",
+                                        place.root
+                                    )));
+                                }
+                                Availability::MaybeMoved => {
+                                    return Err(scope_checkpoint::paths::diagnostic(format_args!(
+                                        "resolved place rooted at `{}` may be conditionally moved",
+                                        place.root
+                                    )));
+                                }
+                            }
+                        }
+                    }
+                    let (ty, ownership) = validator.resolve_place(place, binding)?;
+                    validator.finish_expr(expression, &ty, ownership)?;
+                    scopes.push(scope)?;
+                }
+                ResolvedExprKind::Unary { op, value } => {
+                    frames.push(Frame::Unary {
+                        expression,
+                        op: *op,
+                    })?;
+                    frames.push(Frame::Enter {
+                        expression: value,
+                        scope,
+                        path: path_label::Label::child(path, ".value", [0, 0])?,
+                    })?;
+                }
+                _ => unreachable!("expression was routed to its matching phase"),
+            }
+            Ok(())
+        }
+        #[inline(never)]
+        fn enter_phase_1<'a: 'e, 'e>(
+            validator: &mut HirValidator<'a>,
+            function: &FunctionExecutionId,
+            expression: &'e ResolvedExpr,
+            scope: scope_checkpoint::Scope,
+            path: &'e str,
+            frames: &mut scope_checkpoint::Storage<Frame<'e>>,
+            allow_moves: bool,
+            allowed_effects: Option<effect_keys::Allowed<'_>>,
+        ) -> Result<(), Diagnostic> {
+            match &expression.kind {
+                ResolvedExprKind::Call {
+                    callee,
+                    type_arguments,
+                    instance,
+                    args,
+                } => {
+                    let owned_generic_intrinsic = box_intrinsic::is_call(callee, instance);
+                    match instance {
+                        None if !type_arguments.is_empty() && !owned_generic_intrinsic => {
+                            return Err(hir_error(
+                                "monomorphic resolved call carries generic type arguments",
+                            ));
+                        }
+                        Some(actual)
+                            if FunctionInstanceId::derive(callee, type_arguments) != *actual =>
+                        {
+                            return Err(hir_error(
+                                "resolved call instance disagrees with its template and arguments",
+                            ));
+                        }
+                        Some(_) if type_arguments.is_empty() => {
+                            return Err(hir_error(
+                                "generic resolved call has no concrete type arguments",
+                            ));
+                        }
+                        None | Some(_) => {}
+                    }
+                    if !owned_generic_intrinsic
+                        && !generic_instance_arguments_are_admitted(
+                            validator.program,
+                            callee,
+                            type_arguments,
+                        )
+                    {
+                        return Err(hir_error(
+                                    "resolved call has a generic type argument outside the direct-scalar or owned-record relay profile",
+                                ));
+                    }
+                    let mut intrinsic_parameters = None;
+                    let mut borrowed_parameters = None;
+                    let mut held_parameters = None;
+                    let retained_program = validator.program;
+                    let (params, return_type) = if let Some(signature) =
+                        validator.intrinsic_signature(callee, type_arguments, instance, args)?
+                    {
+                        (signature.0, call_signature::ResultType::Owned(signature.1))
+                    } else if let Some(op) = crate::string_ops::by_id(callee.as_str()) {
+                        string_intrinsic::take_shape(expression, allow_moves)?;
+                        if instance.is_some() || !type_arguments.is_empty() {
+                            return Err(hir_error("string operation call must be monomorphic"));
+                        }
+                        if args.len() != op.arity() {
+                            return Err(scope_checkpoint::paths::diagnostic(format_args!(
+                                "string operation `{}` expects {} arguments but received {}",
+                                op.name(),
+                                op.arity(),
+                                args.len()
+                            )));
+                        }
+                        intrinsic_parameters = Some(CallParameters::String(op));
+                        (
+                            Vec::new(),
+                            call_signature::ResultType::Owned(op.return_type()),
+                        )
+                    } else if let Some(op) = crate::str_ops::by_id(callee.as_str()) {
+                        if instance.is_some() || !type_arguments.is_empty() {
+                            return Err(hir_error(
+                                "borrowed string operation call must be monomorphic",
+                            ));
+                        }
+                        if args.len() != op.arity() {
+                            return Err(scope_checkpoint::paths::diagnostic(format_args!(
+                                        "borrowed string operation `{}` expects {} arguments but received {}",
+                                        op.name(),
+                                        op.arity(),
+                                        args.len()
+                                    )));
+                        }
+                        intrinsic_parameters = Some(CallParameters::Str(op));
+                        (
+                            Vec::new(),
+                            call_signature::ResultType::Owned(op.return_type()),
+                        )
+                    } else if let Some(op) = crate::byte_ops::by_id(callee.as_str()) {
+                        if instance.is_some() || !type_arguments.is_empty() {
+                            return Err(hir_error("byte operation call must be monomorphic"));
+                        }
+                        if args.len() != op.arity() {
+                            return Err(scope_checkpoint::paths::diagnostic(format_args!(
+                                "byte operation `{}` expects {} arguments but received {}",
+                                op.name(),
+                                op.arity(),
+                                args.len()
+                            )));
+                        }
+                        owned_buffer::require_admitted_chain(
+                            op,
+                            args,
+                            validator.buffer_reopen_sites.contains(&expression.id),
+                        )?;
+                        intrinsic_parameters = Some(CallParameters::Byte(op));
+                        (
+                            Vec::new(),
+                            call_signature::ResultType::Owned(op.return_type()),
+                        )
+                    } else if let Some(op) = crate::host_io_ops::by_id(callee.as_str()) {
+                        if instance.is_some() || !type_arguments.is_empty() {
+                            return Err(hir_error("host I/O operation call must be monomorphic"));
+                        }
+                        if args.len() != op.arity() {
+                            return Err(scope_checkpoint::paths::diagnostic(format_args!(
+                                "host I/O operation `{}` expects {} arguments but received {}",
+                                op.name(),
+                                op.arity(),
+                                args.len()
+                            )));
+                        }
+                        match allowed_effects {
+                            Some(allowed) if !allowed.contains(op.effect()) => {
+                                return Err(scope_checkpoint::paths::diagnostic(format_args!(
+                                    "call to `{callee}` requires undeclared effect `{}`",
+                                    op.effect()
+                                )));
+                            }
+                            None => {
+                                return Err(hir_error(
+                                    "contract calls effectful host I/O operation",
+                                ));
+                            }
+                            _ => {}
+                        }
+                        (
+                            crate::host_io_ops::resolved_params(op),
+                            call_signature::ResultType::Owned(op.return_type()),
+                        )
+                    } else {
+                        let retained_target = if validator.executable_profiles.is_bound() {
+                            held_parameters = validator
+                                .executable_profiles
+                                .call(callee, instance.as_ref());
+                            held_parameters.map(|call| call.function())
+                        } else {
+                            retained_program.resolve_call_target(callee, instance.as_ref())
+                        };
+                        let (params, return_type, target_effects) =
+                            if let Some(target) = retained_target {
+                                borrowed_parameters = Some(target.params.as_slice());
+                                (
+                                    Vec::new(),
+                                    call_signature::ResultType::Borrowed(&target.return_type),
+                                    std::borrow::Cow::Borrowed(target.effects.as_slice()),
+                                )
+                            } else if validator.proof_generic_calls {
+                                let (params, result, effects) = generic_template::proof_signature(
+                                    validator.program,
+                                    callee,
+                                    instance.as_ref(),
+                                    type_arguments,
+                                )?;
+                                (
+                                    params,
+                                    call_signature::ResultType::Owned(result),
+                                    std::borrow::Cow::Owned(effects),
+                                )
+                            } else {
+                                return Err(scope_checkpoint::paths::diagnostic(format_args!(
+                                    "resolved callee `{callee}` is not indexed"
+                                )));
+                            };
+                        let parameter_count =
+                            borrowed_parameters.map_or(params.len(), |parameters| parameters.len());
+                        if args.len() != parameter_count {
+                            return Err(scope_checkpoint::paths::diagnostic(format_args!(
+                                "call to `{callee}` has {} arguments but expects {}",
+                                args.len(),
+                                parameter_count
+                            )));
+                        }
+                        match allowed_effects {
+                            Some(allowed) => {
+                                for effect in target_effects.iter() {
+                                    if !allowed.contains(effect) {
+                                        return Err(scope_checkpoint::paths::diagnostic(
+                                                    format_args!(
+                                                        "call to `{callee}` requires undeclared effect `{effect}`"
+                                                    ),
+                                                ));
+                                    }
+                                }
+                            }
+                            None if !target_effects.is_empty() => {
+                                return Err(scope_checkpoint::paths::diagnostic(format_args!(
+                                    "contract calls effectful function `{callee}`"
+                                )));
+                            }
+                            None => {}
+                        }
+                        (params, return_type)
+                    };
+                    let params = if let Some(parameters) = borrowed_parameters {
+                        held_parameters
+                            .map_or(CallParameters::Borrowed(parameters), CallParameters::Held)
+                    } else {
+                        intrinsic_parameters.unwrap_or(CallParameters::Owned(params))
+                    };
+                    let return_ownership = if matches!(
+                        callee.as_str(),
+                        crate::vec_ops::string_slot::ID | crate::vec_ops::string_slot::BYTES_ID
+                    ) {
+                        OwnershipMode::Borrow
+                    } else {
+                        validator.expected_ownership(&return_type, OwnershipMode::Own)?
+                    };
+                    frames.push(Frame::CallNext {
+                        expression,
+                        args,
+                        params,
+                        return_type,
+                        return_ownership,
+                        index: 0,
+                        scope,
+                        path,
+                    })?;
+                }
+                ResolvedExprKind::VecFieldRead { args, .. }
+                | ResolvedExprKind::RowLoan { args, .. } => {
+                    let (return_type, return_ownership, _bytes) =
+                        validator.validate_scoped_vec_node(function, expression, &scope)?;
+                    frames.push(Frame::CallNext {
+                        expression,
+                        args,
+                        params: CallParameters::VecField(args),
+                        return_type: call_signature::ResultType::Owned(return_type),
+                        return_ownership,
+                        index: 0,
+                        scope,
+                        path,
+                    })?;
+                }
+                ResolvedExprKind::LiteralFormat { template, args } => {
+                    validator.record_static_pool(template.len(), false)?;
+                    validator.validate_literal_format_arguments(function, template, args)?;
+                    frames.push(Frame::CallNext {
+                        expression,
+                        args,
+                        params: CallParameters::LiteralFormat(args),
+                        return_type: call_signature::ResultType::Owned(ResolvedType::String),
+                        return_ownership: OwnershipMode::Own,
+                        index: 0,
+                        scope,
+                        path,
+                    })?;
+                }
+                ResolvedExprKind::HostCommandCall(call) => {
+                    if call.expression != expression.id
+                        || call.args.len() != crate::command_io_ops::arity(call.operation)
+                    {
+                        return Err(hir_error(
+                            "host-command call has a non-canonical identity or shape",
+                        ));
+                    }
+                    host_command::require_effects_view(call.operation, allowed_effects)?;
+                    frames.push(Frame::CallNext {
+                        expression,
+                        args: &call.args,
+                        params: CallParameters::Owned(crate::command_io_ops::resolved_params(
+                            call.operation,
+                        )),
+                        return_type: call_signature::ResultType::Owned(
+                            crate::command_io_ops::return_type(call.operation),
+                        ),
+                        return_ownership: crate::command_io_ops::result_ownership(call.operation),
+                        index: 0,
+                        scope,
+                        path,
+                    })?;
+                }
+                _ => unreachable!("expression was routed to its matching phase"),
+            }
+            Ok(())
+        }
+        #[inline(never)]
+        fn enter_phase_2<'a: 'e, 'e>(
+            validator: &mut HirValidator<'a>,
+            expression: &'e ResolvedExpr,
+            scope: scope_checkpoint::Scope,
+            path: &'e str,
+            frames: &mut scope_checkpoint::Storage<Frame<'e>>,
+            allowed_effects: Option<effect_keys::Allowed<'_>>,
+        ) -> Result<(), Diagnostic> {
+            let program = validator.program;
+            match &expression.kind {
+                ResolvedExprKind::NativeRustImportCall(call) => {
+                    if call.expression != expression.id {
+                        return Err(hir_error(
+                            "native Rust import call has a non-canonical expression identity",
+                        ));
+                    }
+                    let retained_program = validator.program;
+                    let import = retained_program
+                        .interfaces
                         .iter()
-                        .map(scope_checkpoint::Scope::retained_capacity)
-                        .sum::<usize>()
-                    + publication.published.retained_capacity()
-                    + frames.iter().map(frame_owned_capacity).sum::<usize>()
-                    + frame_owned_capacity(&frame)
-                    + self.nominal_facts.owned_capacity()
-                    + self.executable_profiles.owned_capacity()
-                    + self
-                        .byte_helpers
-                        .map_or(0, |index| index.owned_capacity_bytes())
-                    + self.expression_ids.len()
-                        * (std::mem::size_of::<ExpressionId>()
-                            + std::mem::size_of::<BTreeSet<ExpressionId>>())
-                    + self
-                        .expression_ids
-                        .iter()
-                        .map(|id| id.as_str().len())
-                        .sum::<usize>()
-                    + self.value_ids.len()
-                        * (std::mem::size_of::<ValueId>()
-                            + std::mem::size_of::<BTreeSet<ValueId>>())
-                    + self
-                        .value_ids
-                        .iter()
-                        .map(|id| id.as_str().len())
-                        .sum::<usize>()
-                    + self.functions.len()
-                        * (std::mem::size_of::<(DeclarationId, &ResolvedFunction)>()
-                            + std::mem::size_of::<BTreeMap<DeclarationId, &ResolvedFunction>>())
-                    + self
-                        .functions
-                        .keys()
-                        .map(|id| id.as_str().len())
-                        .sum::<usize>(),
-            );
+                        .flat_map(|interface| &interface.imports)
+                        .find(|import| import.id == call.import && import.native_rust)
+                        .ok_or_else(|| {
+                            hir_error("native Rust import call has an unknown target")
+                        })?;
+                    if import.parameters.len() != call.args.len()
+                        || import.result.kind != call.result
+                    {
+                        return Err(hir_error(
+                            "native Rust import call disagrees with its declaration",
+                        ));
+                    }
+                    match allowed_effects {
+                        Some(allowed)
+                            if import
+                                .effects
+                                .iter()
+                                .any(|effect| !allowed.contains(effect)) =>
+                        {
+                            return Err(hir_error(
+                                "native Rust import call requires an undeclared effect",
+                            ));
+                        }
+                        None if !import.effects.is_empty() => {
+                            return Err(hir_error(
+                                "contract calls an effectful native Rust import",
+                            ));
+                        }
+                        _ => {}
+                    }
+                    let result = call.result.value_type(&validator.program.declarations)?;
+                    frames.push(Frame::NativeNext {
+                        expression,
+                        args: &call.args,
+                        params: import.parameters.as_slice(),
+                        result,
+                        index: 0,
+                        scope,
+                        path,
+                    })?;
+                }
+                ResolvedExprKind::Binary { op, left, right } => {
+                    frames.push(Frame::BinaryLeft {
+                        expression,
+                        op: *op,
+                        right,
+                        path,
+                    })?;
+                    frames.push(Frame::Enter {
+                        expression: left,
+                        scope,
+                        path: path_label::Label::child(path, ".left", [0, 0])?,
+                    })?;
+                }
+                ResolvedExprKind::If {
+                    condition,
+                    then_branch,
+                    else_branch,
+                } => {
+                    frames.push(Frame::IfCondition {
+                        expression,
+                        then_branch,
+                        else_branch,
+                        path,
+                    })?;
+                    frames.push(Frame::Enter {
+                        expression: condition,
+                        scope,
+                        path: path_label::Label::child(path, ".condition", [0, 0])?,
+                    })?;
+                }
+                ResolvedExprKind::Block { statements, tail }
+                | ResolvedExprKind::VecConstructor {
+                    statements, tail, ..
+                } => {
+                    super::vec_constructor::authenticate(expression)?;
+                    validator.validate_record_traversal(expression, &scope)?;
+                    let outer_ids = scope.ids();
+                    let outer = scope.clone();
+                    frames.push(Frame::BlockNext {
+                        expression,
+                        statements,
+                        tail,
+                        index: 0,
+                        scope,
+                        outer,
+                        outer_ids,
+                        path,
+                    })?;
+                }
+                ResolvedExprKind::ConstructRecord { record, fields } => {
+                    if crate::map_ops::is_declaration(record.as_str())
+                        || record.as_str() == crate::iterator_ops::ITER_ID
+                        || record.as_str() == crate::list_ops::LIST_ID
+                    {
+                        return Err(hir_error("iterator owner cannot be authored as a record"));
+                    }
+                    let declaration = validator
+                        .program
+                        .declarations
+                        .declaration(record)
+                        .ok_or_else(|| {
+                            scope_checkpoint::paths::diagnostic(format_args!(
+                                "record `{record}` is not indexed"
+                            ))
+                        })?;
+                    if !matches!(
+                        declaration.kind,
+                        DeclarationKind::Record | DeclarationKind::Class
+                    ) {
+                        return Err(scope_checkpoint::paths::diagnostic(format_args!(
+                            "constructor target `{record}` is not a record or class"
+                        )));
+                    }
+                    let expected =
+                        aggregate_metadata::record_fields(program, record).ok_or_else(|| {
+                            scope_checkpoint::paths::diagnostic(format_args!(
+                                "record `{record}` has no fields"
+                            ))
+                        })?;
+                    let ResolvedType::Nominal {
+                        declaration: instance,
+                        arguments,
+                    } = &expression.ty
+                    else {
+                        return Err(hir_error("record constructor result is not nominal"));
+                    };
+                    let parameters = validator
+                        .program
+                        .declarations
+                        .type_parameters(record)
+                        .ok_or_else(|| {
+                            scope_checkpoint::paths::diagnostic(format_args!(
+                                "record `{record}` has no parameters"
+                            ))
+                        })?;
+                    if instance != record
+                        || arguments.len() != parameters.len()
+                        || !super::type_reachability::record_args_ok(
+                            &validator.program.declarations,
+                            record,
+                            arguments,
+                        )
+                    {
+                        return Err(scope_checkpoint::paths::diagnostic(format_args!(
+                            "constructor for `{record}` has an invalid concrete instance"
+                        )));
+                    }
+                    frames.push(Frame::RecordNext {
+                        expression,
+                        fields,
+                        expected,
+                        record,
+                        arguments,
+                        seen: BTreeSet::new(),
+                        index: 0,
+                        scope,
+                        path,
+                    })?;
+                }
+                ResolvedExprKind::ConstructVariant {
+                    variant,
+                    case,
+                    fields,
+                } => {
+                    if expression.ty.is_compiler_byte_option() {
+                        return Err(hir_error(
+                            "Option<u8> may be produced only by compiler-owned byte_get",
+                        ));
+                    }
+                    let ResolvedType::Nominal {
+                        declaration: instance,
+                        arguments,
+                    } = &expression.ty
+                    else {
+                        return Err(hir_error("variant constructor has a non-nominal result"));
+                    };
+                    if instance != variant {
+                        return Err(hir_error(
+                            "variant constructor result disagrees with its declaration",
+                        ));
+                    }
+                    let declaration = validator
+                        .program
+                        .declarations
+                        .declaration(variant)
+                        .ok_or_else(|| {
+                            scope_checkpoint::paths::diagnostic(format_args!(
+                                "variant `{variant}` is not indexed"
+                            ))
+                        })?;
+                    if declaration.kind != DeclarationKind::Variant {
+                        return Err(scope_checkpoint::paths::diagnostic(format_args!(
+                            "constructor target `{variant}` is not a variant"
+                        )));
+                    }
+                    let expected = aggregate_metadata::variant_cases(program, variant)
+                        .and_then(|cases| cases.iter().find(|item| item.id == *case))
+                        .ok_or_else(|| {
+                            scope_checkpoint::paths::diagnostic(format_args!(
+                                "constructor for `{variant}` contains foreign case `{case}`"
+                            ))
+                        })?
+                        .fields
+                        .as_slice();
+                    frames.push(Frame::VariantNext {
+                        expression,
+                        fields,
+                        expected,
+                        variant,
+                        case,
+                        arguments,
+                        seen: BTreeSet::new(),
+                        index: 0,
+                        scope,
+                        path,
+                    })?;
+                }
+                ResolvedExprKind::UpdateRecord {
+                    base,
+                    record,
+                    fields,
+                } => {
+                    frames.push(Frame::UpdateBase {
+                        expression,
+                        record,
+                        fields,
+                        path,
+                    })?;
+                    frames.push(Frame::Enter {
+                        expression: base,
+                        scope,
+                        path: path_label::Label::child(path, ".base", [0, 0])?,
+                    })?;
+                }
+                ResolvedExprKind::Match {
+                    scrutinee, arms, ..
+                } => {
+                    frames.push(Frame::MatchScrutinee {
+                        expression,
+                        arms,
+                        path,
+                    })?;
+                    frames.push(Frame::Enter {
+                        expression: scrutinee,
+                        scope,
+                        path: path_label::Label::child(path, ".scrutinee", [0, 0])?,
+                    })?;
+                }
+                ResolvedExprKind::Project { base, field } => {
+                    if matches!(&base.kind, ResolvedExprKind::Place(_)) {
+                        return Err(hir_error(
+                            "place field projections must use a resolved place path",
+                        ));
+                    }
+                    frames.push(Frame::Project { expression, field })?;
+                    frames.push(Frame::Enter {
+                        expression: base,
+                        scope,
+                        path: path_label::Label::child(path, ".base", [0, 0])?,
+                    })?;
+                }
+                // Class Inheritance v1: independently re-derive the
+                // upcast contract from the resolved source before the
+                // ancestor-typed result is accepted.
+                ResolvedExprKind::Upcast { source } => {
+                    frames.push(Frame::Upcast { expression })?;
+                    frames.push(Frame::Enter {
+                        expression: source,
+                        scope,
+                        path: path_label::Label::child(path, ".source", [0, 0])?,
+                    })?;
+                }
+                // Resumable Effects v1 (issue #204): the request
+                // resolves like any other child expression; its
+                // own type and the whole node's ownership are
+                // independently re-derived on the way back up,
+                // matching every other node here.
+                ResolvedExprKind::Yield { request } => {
+                    frames.push(Frame::Yield { expression })?;
+                    frames.push(Frame::Enter {
+                        expression: request,
+                        scope,
+                        path: path_label::Label::child(path, ".request", [0, 0])?,
+                    })?;
+                }
+                _ => unreachable!("expression was routed to its matching phase"),
+            }
+            Ok(())
+        }
+        #[inline(never)]
+        fn enter_phase_3<'a: 'e, 'e>(
+            expression: &'e ResolvedExpr,
+            scope: scope_checkpoint::Scope,
+            path: &'e str,
+            frames: &mut scope_checkpoint::Storage<Frame<'e>>,
+        ) -> Result<(), Diagnostic> {
+            match &expression.kind {
+                ResolvedExprKind::Try { operand, .. } => {
+                    frames.push(Frame::Try {
+                        expression,
+                        path,
+                        option: false,
+                    })?;
+                    frames.push(Frame::Enter {
+                        expression: operand,
+                        scope,
+                        path: path_label::Label::child(path, ".operand", [0, 0])?,
+                    })?;
+                }
+                ResolvedExprKind::TryOption { operand, .. } => {
+                    frames.push(Frame::Try {
+                        expression,
+                        path,
+                        option: true,
+                    })?;
+                    frames.push(Frame::Enter {
+                        expression: operand,
+                        scope,
+                        path: path_label::Label::child(path, ".operand", [0, 0])?,
+                    })?;
+                }
+                _ => unreachable!("expression was routed to its matching phase"),
+            }
+            Ok(())
+        }
+        #[inline(never)]
+        fn frame_phase_0<'a: 'e, 'e>(
+            validator: &mut HirValidator<'a>,
+            frame: Frame<'e>,
+            frames: &mut scope_checkpoint::Storage<Frame<'e>>,
+            scopes: &mut scope_checkpoint::Storage<scope_checkpoint::Scope>,
+            publication: &mut scope_checkpoint::Publication<'_>,
+            allow_moves: bool,
+        ) -> Result<(), Diagnostic> {
             match frame {
                 Frame::InvokeNext {
                     expression,
@@ -2280,7 +3158,7 @@ impl<'a> HirValidator<'a> {
                             path: child_path,
                         })?;
                     } else {
-                        self.finish_affine_invocation(expression, &mut scope, allow_moves)?;
+                        validator.finish_affine_invocation(expression, &mut scope, allow_moves)?;
                         scopes.push(scope)?;
                     }
                 }
@@ -2298,897 +3176,6 @@ impl<'a> HirValidator<'a> {
                     })?;
                 }
                 Frame::RestorePublication(enabled) => publication.enabled = enabled,
-                Frame::Enter {
-                    expression,
-                    mut scope,
-                    path,
-                } => {
-                    reject_nul_identity("resolved expression", expression.id.as_str())?;
-                    if !expression.id.matches_display(function, path.len(), path) {
-                        return Err(scope_checkpoint::paths::diagnostic(format_args!(
-                            "expression `{}` has a non-canonical identity",
-                            expression.id
-                        )));
-                    }
-                    if !identity_insert::expression(&mut self.expression_ids, &expression.id)? {
-                        return Err(scope_checkpoint::paths::diagnostic(format_args!(
-                            "duplicate resolved expression identity `{}`",
-                            expression.id
-                        )));
-                    }
-                    self.validate_type(&expression.ty)?;
-                    let expected_path = path;
-                    let path = continuation_path::after_header(expression, expected_path.len());
-                    match &expression.kind {
-                        ResolvedExprKind::LexicalExit { value, .. } => {
-                            if let Some(operand) = value {
-                                frames.push(Frame::LexicalReturn {
-                                    expression,
-                                    operand,
-                                })?;
-                                frames.push(Frame::Enter {
-                                    expression: operand,
-                                    scope,
-                                    path: path_label::Label::child(path, ".value", [0, 0])?,
-                                })?;
-                            } else {
-                                self.finish_expr(
-                                    expression,
-                                    &ResolvedType::Never,
-                                    OwnershipMode::Value,
-                                )?;
-                                scopes.push(scope)?;
-                            }
-                        }
-                        ResolvedExprKind::Closure { .. } => {
-                            self.validate_closure(
-                                function,
-                                expression,
-                                &mut scope,
-                                path,
-                                allow_moves,
-                            )?;
-                            scopes.push(scope)?;
-                        }
-                        ResolvedExprKind::FunctionReference { target } => {
-                            super::function_value::validate_reference(
-                                self.program,
-                                target,
-                                &expression.ty,
-                            )?;
-                            self.finish_expr(expression, &expression.ty, OwnershipMode::Value)?;
-                            scopes.push(scope)?;
-                        }
-                        ResolvedExprKind::Invoke { .. } => {
-                            super::function_value::validate_invocation(expression)?;
-                            frames.push(Frame::InvokeNext {
-                                expression,
-                                index: 0,
-                                scope,
-                                path,
-                            })?;
-                        }
-                        ResolvedExprKind::Int(_) => {
-                            self.finish_expr(expression, &ResolvedType::I64, OwnershipMode::Value)?;
-                            scopes.push(scope)?;
-                        }
-                        ResolvedExprKind::Int32(_) => {
-                            self.finish_expr(expression, &ResolvedType::I32, OwnershipMode::Value)?;
-                            scopes.push(scope)?;
-                        }
-                        ResolvedExprKind::Char(value) => {
-                            if char::from_u32(*value).is_none() {
-                                return Err(hir_error(
-                                    "char literal bits are not a Unicode scalar value",
-                                ));
-                            }
-                            self.finish_expr(
-                                expression,
-                                &ResolvedType::Char,
-                                OwnershipMode::Value,
-                            )?;
-                            scopes.push(scope)?;
-                        }
-                        ResolvedExprKind::Uint8(_) => {
-                            self.finish_expr(expression, &ResolvedType::U8, OwnershipMode::Value)?;
-                            scopes.push(scope)?;
-                        }
-                        ResolvedExprKind::Usize(_) => {
-                            self.finish_expr(
-                                expression,
-                                &ResolvedType::Usize,
-                                OwnershipMode::Value,
-                            )?;
-                            scopes.push(scope)?;
-                        }
-                        ResolvedExprKind::BorrowPlace { operation, place } => {
-                            let ty = self.validate_borrowed_view(
-                                operation,
-                                place,
-                                expression.span,
-                                &scope,
-                            )?;
-                            self.finish_expr(expression, &ty, OwnershipMode::Borrow)?;
-                            scopes.push(scope)?;
-                        }
-                        ResolvedExprKind::ByteRange {
-                            operation,
-                            source,
-                            start,
-                            end,
-                        } => {
-                            if operation.as_str() != crate::byte_ops::RANGE_ID {
-                                return Err(hir_error(
-                                    "byte range has an invalid compiler-owned operation",
-                                ));
-                            }
-                            self.byte_range_origin(source, &scope)?;
-                            frames.push(Frame::ByteRangeAfterSource {
-                                expression,
-                                start,
-                                end,
-                                path,
-                            })?;
-                            frames.push(Frame::Enter {
-                                expression: source,
-                                scope,
-                                path: path_label::Label::child(path, ".arg.0", [0, 0])?,
-                            })?;
-                        }
-                        ResolvedExprKind::ArrayU8(values) => {
-                            let length = u32::try_from(values.len()).map_err(|_| {
-                                hir_error("fixed-array literal length does not fit u32")
-                            })?;
-                            self.finish_expr(
-                                expression,
-                                &ResolvedType::ArrayU8(length),
-                                OwnershipMode::Value,
-                            )?;
-                            scopes.push(scope)?;
-                        }
-                        ResolvedExprKind::RepeatArrayU8 { count, .. } => {
-                            if u64::from(*count) > crate::byte_data_capacity::MAX_ARRAY_BYTES {
-                                return Err(hir_error(
-                                    "fixed-array repeat exceeds the exact byte bound",
-                                ));
-                            }
-                            self.finish_expr(
-                                expression,
-                                &ResolvedType::ArrayU8(*count),
-                                OwnershipMode::Value,
-                            )?;
-                            scopes.push(scope)?;
-                        }
-                        ResolvedExprKind::Float32(bits) => {
-                            self.validate_finite_f32(*bits)?;
-                            self.finish_expr(expression, &ResolvedType::F32, OwnershipMode::Value)?;
-                            scopes.push(scope)?;
-                        }
-                        ResolvedExprKind::Float64(bits) => {
-                            self.validate_finite_f64(*bits)?;
-                            self.finish_expr(expression, &ResolvedType::F64, OwnershipMode::Value)?;
-                            scopes.push(scope)?;
-                        }
-                        ResolvedExprKind::Bool(_) => {
-                            self.finish_expr(
-                                expression,
-                                &ResolvedType::Bool,
-                                OwnershipMode::Value,
-                            )?;
-                            scopes.push(scope)?;
-                        }
-                        ResolvedExprKind::BorrowedUtf8Literal(value) => {
-                            self.finish_static_text(expression, value)?;
-                            scopes.push(scope)?;
-                        }
-                        ResolvedExprKind::String(value) => {
-                            self.record_static_pool(value.len(), false)?;
-                            self.finish_expr(
-                                expression,
-                                &ResolvedType::String,
-                                OwnershipMode::Own,
-                            )?;
-                            scopes.push(scope)?;
-                        }
-                        ResolvedExprKind::Place(place) => {
-                            let binding = scope.get(&place.root).ok_or_else(|| {
-                                scope_checkpoint::paths::diagnostic(format_args!(
-                                    "resolved value `{}` is out of scope",
-                                    place.root
-                                ))
-                            })?;
-                            match (place.projections.is_empty(), binding.availability) {
-                                (true, Availability::Available) => {
-                                    match Self::place_availability(binding, &[]) {
-                                        Availability::Available => {}
-                                        Availability::Moved => {
-                                            return Err(scope_checkpoint::paths::diagnostic(
-                                                format_args!(
-                                                    "resolved value `{}` is partially moved",
-                                                    place.root
-                                                ),
-                                            ));
-                                        }
-                                        Availability::MaybeMoved => {
-                                            return Err(scope_checkpoint::paths::diagnostic(
-                                                format_args!(
-                                                    "resolved value `{}` may be partially moved",
-                                                    place.root
-                                                ),
-                                            ));
-                                        }
-                                    }
-                                }
-                                (true, Availability::Moved) => {
-                                    return Err(scope_checkpoint::paths::diagnostic(format_args!(
-                                        "resolved value `{}` is used after it was moved",
-                                        place.root
-                                    )));
-                                }
-                                (true, Availability::MaybeMoved) => {
-                                    return Err(scope_checkpoint::paths::diagnostic(format_args!(
-                                        "resolved value `{}` may have been moved",
-                                        place.root
-                                    )));
-                                }
-                                (false, _) => {
-                                    match Self::place_availability(binding, &place.projections) {
-                                        Availability::Available => {}
-                                        Availability::Moved => {
-                                            return Err(scope_checkpoint::paths::diagnostic(
-                                                format_args!(
-                                                "resolved place rooted at `{}` is partially moved",
-                                                place.root
-                                            ),
-                                            ));
-                                        }
-                                        Availability::MaybeMoved => {
-                                            return Err(scope_checkpoint::paths::diagnostic(
-                                                format_args!(
-                                                    "resolved place rooted at `{}` may be conditionally moved",
-                                                    place.root
-                                                ),
-                                            ));
-                                        }
-                                    }
-                                }
-                            }
-                            let (ty, ownership) = self.resolve_place(place, binding)?;
-                            self.finish_expr(expression, &ty, ownership)?;
-                            scopes.push(scope)?;
-                        }
-                        ResolvedExprKind::Unary { op, value } => {
-                            frames.push(Frame::Unary {
-                                expression,
-                                op: *op,
-                            })?;
-                            frames.push(Frame::Enter {
-                                expression: value,
-                                scope,
-                                path: path_label::Label::child(path, ".value", [0, 0])?,
-                            })?;
-                        }
-                        ResolvedExprKind::Call {
-                            callee,
-                            type_arguments,
-                            instance,
-                            args,
-                        } => {
-                            let owned_generic_intrinsic = box_intrinsic::is_call(callee, instance);
-                            match instance {
-                                None if !type_arguments.is_empty() && !owned_generic_intrinsic => {
-                                    return Err(hir_error(
-                                        "monomorphic resolved call carries generic type arguments",
-                                    ));
-                                }
-                                Some(actual)
-                                    if FunctionInstanceId::derive(callee, type_arguments)
-                                        != *actual =>
-                                {
-                                    return Err(hir_error(
-                                        "resolved call instance disagrees with its template and arguments",
-                                    ));
-                                }
-                                Some(_) if type_arguments.is_empty() => {
-                                    return Err(hir_error(
-                                        "generic resolved call has no concrete type arguments",
-                                    ));
-                                }
-                                None | Some(_) => {}
-                            }
-                            if !owned_generic_intrinsic
-                                && !generic_instance_arguments_are_admitted(
-                                    self.program,
-                                    callee,
-                                    type_arguments,
-                                )
-                            {
-                                return Err(hir_error(
-                                    "resolved call has a generic type argument outside the direct-scalar or owned-record relay profile",
-                                ));
-                            }
-                            let mut intrinsic_parameters = None;
-                            let mut borrowed_parameters = None;
-                            let mut held_parameters = None;
-                            let retained_program = self.program;
-                            let (params, return_type) = if let Some(signature) =
-                                self.intrinsic_signature(callee, type_arguments, instance, args)?
-                            {
-                                (signature.0, call_signature::ResultType::Owned(signature.1))
-                            } else if let Some(op) = crate::string_ops::by_id(callee.as_str()) {
-                                string_intrinsic::take_shape(expression, allow_moves)?;
-                                if instance.is_some() || !type_arguments.is_empty() {
-                                    return Err(hir_error(
-                                        "string operation call must be monomorphic",
-                                    ));
-                                }
-                                if args.len() != op.arity() {
-                                    return Err(scope_checkpoint::paths::diagnostic(format_args!(
-                                        "string operation `{}` expects {} arguments but received {}",
-                                        op.name(),
-                                        op.arity(),
-                                        args.len()
-                                    )));
-                                }
-                                intrinsic_parameters = Some(CallParameters::String(op));
-                                (
-                                    Vec::new(),
-                                    call_signature::ResultType::Owned(op.return_type()),
-                                )
-                            } else if let Some(op) = crate::str_ops::by_id(callee.as_str()) {
-                                if instance.is_some() || !type_arguments.is_empty() {
-                                    return Err(hir_error(
-                                        "borrowed string operation call must be monomorphic",
-                                    ));
-                                }
-                                if args.len() != op.arity() {
-                                    return Err(scope_checkpoint::paths::diagnostic(format_args!(
-                                        "borrowed string operation `{}` expects {} arguments but received {}",
-                                        op.name(),
-                                        op.arity(),
-                                        args.len()
-                                    )));
-                                }
-                                intrinsic_parameters = Some(CallParameters::Str(op));
-                                (
-                                    Vec::new(),
-                                    call_signature::ResultType::Owned(op.return_type()),
-                                )
-                            } else if let Some(op) = crate::byte_ops::by_id(callee.as_str()) {
-                                if instance.is_some() || !type_arguments.is_empty() {
-                                    return Err(hir_error(
-                                        "byte operation call must be monomorphic",
-                                    ));
-                                }
-                                if args.len() != op.arity() {
-                                    return Err(scope_checkpoint::paths::diagnostic(format_args!(
-                                        "byte operation `{}` expects {} arguments but received {}",
-                                        op.name(),
-                                        op.arity(),
-                                        args.len()
-                                    )));
-                                }
-                                owned_buffer::require_admitted_chain(
-                                    op,
-                                    args,
-                                    self.buffer_reopen_sites.contains(&expression.id),
-                                )?;
-                                intrinsic_parameters = Some(CallParameters::Byte(op));
-                                (
-                                    Vec::new(),
-                                    call_signature::ResultType::Owned(op.return_type()),
-                                )
-                            } else if let Some(op) = crate::host_io_ops::by_id(callee.as_str()) {
-                                if instance.is_some() || !type_arguments.is_empty() {
-                                    return Err(hir_error(
-                                        "host I/O operation call must be monomorphic",
-                                    ));
-                                }
-                                if args.len() != op.arity() {
-                                    return Err(scope_checkpoint::paths::diagnostic(format_args!(
-                                        "host I/O operation `{}` expects {} arguments but received {}",
-                                        op.name(),
-                                        op.arity(),
-                                        args.len()
-                                    )));
-                                }
-                                match allowed_effects {
-                                    Some(allowed) if !allowed.contains(op.effect()) => {
-                                        return Err(scope_checkpoint::paths::diagnostic(
-                                            format_args!(
-                                            "call to `{callee}` requires undeclared effect `{}`",
-                                            op.effect()
-                                        ),
-                                        ));
-                                    }
-                                    None => {
-                                        return Err(hir_error(
-                                            "contract calls effectful host I/O operation",
-                                        ));
-                                    }
-                                    _ => {}
-                                }
-                                (
-                                    crate::host_io_ops::resolved_params(op),
-                                    call_signature::ResultType::Owned(op.return_type()),
-                                )
-                            } else {
-                                let retained_target = if self.executable_profiles.is_bound() {
-                                    held_parameters =
-                                        self.executable_profiles.call(callee, instance.as_ref());
-                                    held_parameters.map(|call| call.function())
-                                } else {
-                                    retained_program.resolve_call_target(callee, instance.as_ref())
-                                };
-                                let (params, return_type, target_effects) = if let Some(target) =
-                                    retained_target
-                                {
-                                    borrowed_parameters = Some(target.params.as_slice());
-                                    (
-                                        Vec::new(),
-                                        call_signature::ResultType::Borrowed(&target.return_type),
-                                        std::borrow::Cow::Borrowed(target.effects.as_slice()),
-                                    )
-                                } else if self.proof_generic_calls {
-                                    let (params, result, effects) =
-                                        generic_template::proof_signature(
-                                            self.program,
-                                            callee,
-                                            instance.as_ref(),
-                                            type_arguments,
-                                        )?;
-                                    (
-                                        params,
-                                        call_signature::ResultType::Owned(result),
-                                        std::borrow::Cow::Owned(effects),
-                                    )
-                                } else {
-                                    return Err(scope_checkpoint::paths::diagnostic(format_args!(
-                                        "resolved callee `{callee}` is not indexed"
-                                    )));
-                                };
-                                let parameter_count = borrowed_parameters
-                                    .map_or(params.len(), |parameters| parameters.len());
-                                if args.len() != parameter_count {
-                                    return Err(scope_checkpoint::paths::diagnostic(format_args!(
-                                        "call to `{callee}` has {} arguments but expects {}",
-                                        args.len(),
-                                        parameter_count
-                                    )));
-                                }
-                                match allowed_effects {
-                                    Some(allowed) => {
-                                        for effect in target_effects.iter() {
-                                            if !allowed.contains(effect) {
-                                                return Err(scope_checkpoint::paths::diagnostic(
-                                                    format_args!(
-                                                        "call to `{callee}` requires undeclared effect `{effect}`"
-                                                    ),
-                                                ));
-                                            }
-                                        }
-                                    }
-                                    None if !target_effects.is_empty() => {
-                                        return Err(scope_checkpoint::paths::diagnostic(
-                                            format_args!(
-                                                "contract calls effectful function `{callee}`"
-                                            ),
-                                        ));
-                                    }
-                                    None => {}
-                                }
-                                (params, return_type)
-                            };
-                            let params = if let Some(parameters) = borrowed_parameters {
-                                held_parameters.map_or(
-                                    CallParameters::Borrowed(parameters),
-                                    CallParameters::Held,
-                                )
-                            } else {
-                                intrinsic_parameters.unwrap_or(CallParameters::Owned(params))
-                            };
-                            let return_ownership = if matches!(
-                                callee.as_str(),
-                                crate::vec_ops::string_slot::ID
-                                    | crate::vec_ops::string_slot::BYTES_ID
-                            ) {
-                                OwnershipMode::Borrow
-                            } else {
-                                self.expected_ownership(&return_type, OwnershipMode::Own)?
-                            };
-                            frames.push(Frame::CallNext {
-                                expression,
-                                args,
-                                params,
-                                return_type,
-                                return_ownership,
-                                index: 0,
-                                scope,
-                                path,
-                            })?;
-                        }
-                        ResolvedExprKind::VecFieldRead { args, .. }
-                        | ResolvedExprKind::RowLoan { args, .. } => {
-                            let (return_type, return_ownership, _bytes) =
-                                self.validate_scoped_vec_node(function, expression, &scope)?;
-                            frames.push(Frame::CallNext {
-                                expression,
-                                args,
-                                params: CallParameters::VecField(args),
-                                return_type: call_signature::ResultType::Owned(return_type),
-                                return_ownership,
-                                index: 0,
-                                scope,
-                                path,
-                            })?;
-                        }
-                        ResolvedExprKind::LiteralFormat { template, args } => {
-                            self.record_static_pool(template.len(), false)?;
-                            self.validate_literal_format_arguments(function, template, args)?;
-                            frames.push(Frame::CallNext {
-                                expression,
-                                args,
-                                params: CallParameters::LiteralFormat(args),
-                                return_type: call_signature::ResultType::Owned(
-                                    ResolvedType::String,
-                                ),
-                                return_ownership: OwnershipMode::Own,
-                                index: 0,
-                                scope,
-                                path,
-                            })?;
-                        }
-                        ResolvedExprKind::HostCommandCall(call) => {
-                            if call.expression != expression.id
-                                || call.args.len() != crate::command_io_ops::arity(call.operation)
-                            {
-                                return Err(hir_error(
-                                    "host-command call has a non-canonical identity or shape",
-                                ));
-                            }
-                            host_command::require_effects_view(call.operation, allowed_effects)?;
-                            frames.push(Frame::CallNext {
-                                expression,
-                                args: &call.args,
-                                params: CallParameters::Owned(
-                                    crate::command_io_ops::resolved_params(call.operation),
-                                ),
-                                return_type: call_signature::ResultType::Owned(
-                                    crate::command_io_ops::return_type(call.operation),
-                                ),
-                                return_ownership: crate::command_io_ops::result_ownership(
-                                    call.operation,
-                                ),
-                                index: 0,
-                                scope,
-                                path,
-                            })?;
-                        }
-                        ResolvedExprKind::NativeRustImportCall(call) => {
-                            if call.expression != expression.id {
-                                return Err(hir_error(
-                                    "native Rust import call has a non-canonical expression identity",
-                                ));
-                            }
-                            let retained_program = self.program;
-                            let import = retained_program
-                                .interfaces
-                                .iter()
-                                .flat_map(|interface| &interface.imports)
-                                .find(|import| import.id == call.import && import.native_rust)
-                                .ok_or_else(|| {
-                                    hir_error("native Rust import call has an unknown target")
-                                })?;
-                            if import.parameters.len() != call.args.len()
-                                || import.result.kind != call.result
-                            {
-                                return Err(hir_error(
-                                    "native Rust import call disagrees with its declaration",
-                                ));
-                            }
-                            match allowed_effects {
-                                Some(allowed)
-                                    if import
-                                        .effects
-                                        .iter()
-                                        .any(|effect| !allowed.contains(effect)) =>
-                                {
-                                    return Err(hir_error(
-                                        "native Rust import call requires an undeclared effect",
-                                    ));
-                                }
-                                None if !import.effects.is_empty() => {
-                                    return Err(hir_error(
-                                        "contract calls an effectful native Rust import",
-                                    ));
-                                }
-                                _ => {}
-                            }
-                            let result = call.result.value_type(&self.program.declarations)?;
-                            frames.push(Frame::NativeNext {
-                                expression,
-                                args: &call.args,
-                                params: import.parameters.as_slice(),
-                                result,
-                                index: 0,
-                                scope,
-                                path,
-                            })?;
-                        }
-                        ResolvedExprKind::Binary { op, left, right } => {
-                            frames.push(Frame::BinaryLeft {
-                                expression,
-                                op: *op,
-                                right,
-                                path,
-                            })?;
-                            frames.push(Frame::Enter {
-                                expression: left,
-                                scope,
-                                path: path_label::Label::child(path, ".left", [0, 0])?,
-                            })?;
-                        }
-                        ResolvedExprKind::If {
-                            condition,
-                            then_branch,
-                            else_branch,
-                        } => {
-                            frames.push(Frame::IfCondition {
-                                expression,
-                                then_branch,
-                                else_branch,
-                                path,
-                            })?;
-                            frames.push(Frame::Enter {
-                                expression: condition,
-                                scope,
-                                path: path_label::Label::child(path, ".condition", [0, 0])?,
-                            })?;
-                        }
-                        ResolvedExprKind::Block { statements, tail }
-                        | ResolvedExprKind::VecConstructor {
-                            statements, tail, ..
-                        } => {
-                            super::vec_constructor::authenticate(expression)?;
-                            self.validate_record_traversal(expression, &scope)?;
-                            let outer_ids = scope.ids();
-                            let outer = scope.clone();
-                            frames.push(Frame::BlockNext {
-                                expression,
-                                statements,
-                                tail,
-                                index: 0,
-                                scope,
-                                outer,
-                                outer_ids,
-                                path,
-                            })?;
-                        }
-                        ResolvedExprKind::ConstructRecord { record, fields } => {
-                            if crate::map_ops::is_declaration(record.as_str())
-                                || record.as_str() == crate::iterator_ops::ITER_ID
-                                || record.as_str() == crate::list_ops::LIST_ID
-                            {
-                                return Err(hir_error(
-                                    "iterator owner cannot be authored as a record",
-                                ));
-                            }
-                            let declaration = self
-                                .program
-                                .declarations
-                                .declaration(record)
-                                .ok_or_else(|| {
-                                    scope_checkpoint::paths::diagnostic(format_args!(
-                                        "record `{record}` is not indexed"
-                                    ))
-                                })?;
-                            if !matches!(
-                                declaration.kind,
-                                DeclarationKind::Record | DeclarationKind::Class
-                            ) {
-                                return Err(scope_checkpoint::paths::diagnostic(format_args!(
-                                    "constructor target `{record}` is not a record or class"
-                                )));
-                            }
-                            let expected = aggregate_metadata::record_fields(program, record)
-                                .ok_or_else(|| {
-                                    scope_checkpoint::paths::diagnostic(format_args!(
-                                        "record `{record}` has no fields"
-                                    ))
-                                })?;
-                            let ResolvedType::Nominal {
-                                declaration: instance,
-                                arguments,
-                            } = &expression.ty
-                            else {
-                                return Err(hir_error("record constructor result is not nominal"));
-                            };
-                            let parameters = self
-                                .program
-                                .declarations
-                                .type_parameters(record)
-                                .ok_or_else(|| {
-                                    scope_checkpoint::paths::diagnostic(format_args!(
-                                        "record `{record}` has no parameters"
-                                    ))
-                                })?;
-                            if instance != record
-                                || arguments.len() != parameters.len()
-                                || !super::type_reachability::record_args_ok(
-                                    &self.program.declarations,
-                                    record,
-                                    arguments,
-                                )
-                            {
-                                return Err(scope_checkpoint::paths::diagnostic(format_args!(
-                                    "constructor for `{record}` has an invalid concrete instance"
-                                )));
-                            }
-                            frames.push(Frame::RecordNext {
-                                expression,
-                                fields,
-                                expected,
-                                record,
-                                arguments,
-                                seen: BTreeSet::new(),
-                                index: 0,
-                                scope,
-                                path,
-                            })?;
-                        }
-                        ResolvedExprKind::ConstructVariant {
-                            variant,
-                            case,
-                            fields,
-                        } => {
-                            if expression.ty.is_compiler_byte_option() {
-                                return Err(hir_error(
-                                    "Option<u8> may be produced only by compiler-owned byte_get",
-                                ));
-                            }
-                            let ResolvedType::Nominal {
-                                declaration: instance,
-                                arguments,
-                            } = &expression.ty
-                            else {
-                                return Err(hir_error(
-                                    "variant constructor has a non-nominal result",
-                                ));
-                            };
-                            if instance != variant {
-                                return Err(hir_error(
-                                    "variant constructor result disagrees with its declaration",
-                                ));
-                            }
-                            let declaration =
-                                self.program.declarations.declaration(variant).ok_or_else(
-                                    || {
-                                        scope_checkpoint::paths::diagnostic(format_args!(
-                                            "variant `{variant}` is not indexed"
-                                        ))
-                                    },
-                                )?;
-                            if declaration.kind != DeclarationKind::Variant {
-                                return Err(scope_checkpoint::paths::diagnostic(format_args!(
-                                    "constructor target `{variant}` is not a variant"
-                                )));
-                            }
-                            let expected = aggregate_metadata::variant_cases(program, variant)
-                                .and_then(|cases| cases.iter().find(|item| item.id == *case))
-                                .ok_or_else(|| {
-                                    scope_checkpoint::paths::diagnostic(format_args!(
-                                        "constructor for `{variant}` contains foreign case `{case}`"
-                                    ))
-                                })?
-                                .fields
-                                .as_slice();
-                            frames.push(Frame::VariantNext {
-                                expression,
-                                fields,
-                                expected,
-                                variant,
-                                case,
-                                arguments,
-                                seen: BTreeSet::new(),
-                                index: 0,
-                                scope,
-                                path,
-                            })?;
-                        }
-                        ResolvedExprKind::UpdateRecord {
-                            base,
-                            record,
-                            fields,
-                        } => {
-                            frames.push(Frame::UpdateBase {
-                                expression,
-                                record,
-                                fields,
-                                path,
-                            })?;
-                            frames.push(Frame::Enter {
-                                expression: base,
-                                scope,
-                                path: path_label::Label::child(path, ".base", [0, 0])?,
-                            })?;
-                        }
-                        ResolvedExprKind::Match {
-                            scrutinee, arms, ..
-                        } => {
-                            frames.push(Frame::MatchScrutinee {
-                                expression,
-                                arms,
-                                path,
-                            })?;
-                            frames.push(Frame::Enter {
-                                expression: scrutinee,
-                                scope,
-                                path: path_label::Label::child(path, ".scrutinee", [0, 0])?,
-                            })?;
-                        }
-                        ResolvedExprKind::Project { base, field } => {
-                            if matches!(&base.kind, ResolvedExprKind::Place(_)) {
-                                return Err(hir_error(
-                                    "place field projections must use a resolved place path",
-                                ));
-                            }
-                            frames.push(Frame::Project { expression, field })?;
-                            frames.push(Frame::Enter {
-                                expression: base,
-                                scope,
-                                path: path_label::Label::child(path, ".base", [0, 0])?,
-                            })?;
-                        }
-                        // Class Inheritance v1: independently re-derive the
-                        // upcast contract from the resolved source before the
-                        // ancestor-typed result is accepted.
-                        ResolvedExprKind::Upcast { source } => {
-                            frames.push(Frame::Upcast { expression })?;
-                            frames.push(Frame::Enter {
-                                expression: source,
-                                scope,
-                                path: path_label::Label::child(path, ".source", [0, 0])?,
-                            })?;
-                        }
-                        // Resumable Effects v1 (issue #204): the request
-                        // resolves like any other child expression; its
-                        // own type and the whole node's ownership are
-                        // independently re-derived on the way back up,
-                        // matching every other node here.
-                        ResolvedExprKind::Yield { request } => {
-                            frames.push(Frame::Yield { expression })?;
-                            frames.push(Frame::Enter {
-                                expression: request,
-                                scope,
-                                path: path_label::Label::child(path, ".request", [0, 0])?,
-                            })?;
-                        }
-                        ResolvedExprKind::Try { operand, .. } => {
-                            frames.push(Frame::Try {
-                                expression,
-                                path,
-                                option: false,
-                            })?;
-                            frames.push(Frame::Enter {
-                                expression: operand,
-                                scope,
-                                path: path_label::Label::child(path, ".operand", [0, 0])?,
-                            })?;
-                        }
-                        ResolvedExprKind::TryOption { operand, .. } => {
-                            frames.push(Frame::Try {
-                                expression,
-                                path,
-                                option: true,
-                            })?;
-                            frames.push(Frame::Enter {
-                                expression: operand,
-                                scope,
-                                path: path_label::Label::child(path, ".operand", [0, 0])?,
-                            })?;
-                        }
-                    }
-                }
                 Frame::Unary { expression, op } => {
                     let scope = scopes.pop().expect("unary scope retained");
                     let ResolvedExprKind::Unary { value, .. } = &expression.kind else {
@@ -3211,10 +3198,22 @@ impl<'a> HirValidator<'a> {
                         UnaryOp::Neg => value.ty.clone(),
                         UnaryOp::Not => ResolvedType::Bool,
                     };
-                    self.require_type(&value.ty, &expected, "unary operand")?;
-                    self.finish_expr(expression, &expected, OwnershipMode::Value)?;
+                    validator.require_type(&value.ty, &expected, "unary operand")?;
+                    validator.finish_expr(expression, &expected, OwnershipMode::Value)?;
                     scopes.push(scope)?;
                 }
+                _ => unreachable!("frame was routed to its matching phase"),
+            }
+            Ok(())
+        }
+        #[inline(never)]
+        fn frame_phase_8<'a: 'e, 'e>(
+            validator: &mut HirValidator<'a>,
+            frame: Frame<'e>,
+            frames: &mut scope_checkpoint::Storage<Frame<'e>>,
+            scopes: &mut scope_checkpoint::Storage<scope_checkpoint::Scope>,
+        ) -> Result<(), Diagnostic> {
+            match frame {
                 Frame::ByteRangeAfterSource {
                     expression,
                     start,
@@ -3254,16 +3253,24 @@ impl<'a> HirValidator<'a> {
                     else {
                         unreachable!()
                     };
-                    self.require_type(&source.ty, &ResolvedType::SliceU8, "byte range source")?;
-                    self.require_type(&start.ty, &ResolvedType::Usize, "byte range start")?;
-                    self.require_type(&end.ty, &ResolvedType::Usize, "byte range end")?;
+                    validator.require_type(
+                        &source.ty,
+                        &ResolvedType::SliceU8,
+                        "byte range source",
+                    )?;
+                    validator.require_type(&start.ty, &ResolvedType::Usize, "byte range start")?;
+                    validator.require_type(&end.ty, &ResolvedType::Usize, "byte range end")?;
                     if source.ownership != OwnershipMode::Borrow
                         || start.ownership != OwnershipMode::Value
                         || end.ownership != OwnershipMode::Value
                     {
                         return Err(hir_error("byte range operands have invalid ownership"));
                     }
-                    self.finish_expr(expression, &ResolvedType::SliceU8, OwnershipMode::Borrow)?;
+                    validator.finish_expr(
+                        expression,
+                        &ResolvedType::SliceU8,
+                        OwnershipMode::Borrow,
+                    )?;
                     scopes.push(scope)?;
                 }
                 Frame::CallNext {
@@ -3277,7 +3284,7 @@ impl<'a> HirValidator<'a> {
                     path,
                 } => {
                     if index == args.len() {
-                        self.finish_expr(expression, &return_type, return_ownership)?;
+                        validator.finish_expr(expression, &return_type, return_ownership)?;
                         scopes.push(scope)?;
                     } else {
                         frames.push(Frame::CallAfterArg {
@@ -3296,6 +3303,20 @@ impl<'a> HirValidator<'a> {
                         })?;
                     }
                 }
+                _ => unreachable!("frame was routed to its matching phase"),
+            }
+            Ok(())
+        }
+        #[inline(never)]
+        fn frame_phase_9<'a: 'e, 'e>(
+            validator: &mut HirValidator<'a>,
+            frame: Frame<'e>,
+            frames: &mut scope_checkpoint::Storage<Frame<'e>>,
+            scopes: &mut scope_checkpoint::Storage<scope_checkpoint::Scope>,
+            publication: &mut scope_checkpoint::Publication<'_>,
+            allow_moves: bool,
+        ) -> Result<(), Diagnostic> {
+            match frame {
                 Frame::CallAfterArg {
                     expression,
                     args,
@@ -3309,10 +3330,10 @@ impl<'a> HirValidator<'a> {
                     publication.publish(&scope)?;
                     let argument = &args[index];
                     let param = params.parameter(index);
-                    self.require_type(&argument.ty, param.ty, "call argument")?;
-                    self.validate_argument_ownership_view(argument, param)?;
+                    validator.require_type(&argument.ty, param.ty, "call argument")?;
+                    validator.validate_argument_ownership_view(argument, param)?;
                     let param = params.parameter(index);
-                    self.validate_borrowed_bytes_call_argument_fields(
+                    validator.validate_borrowed_bytes_call_argument_fields(
                         expression,
                         argument,
                         (param.ty, param.ownership),
@@ -3320,9 +3341,9 @@ impl<'a> HirValidator<'a> {
                         &scope,
                     )?;
                     if *param.ty == ResolvedType::SliceU8 {
-                        self.validate_byte_slice_call_argument(argument, &scope)?;
+                        validator.validate_byte_slice_call_argument(argument, &scope)?;
                     }
-                    if self.is_owned_resource(param.ty, param.ownership)? {
+                    if validator.is_owned_resource(param.ty, param.ownership)? {
                         if !allow_moves && !contract_owners::local(argument, &scope) {
                             let callee = match &expression.kind {
                                 ResolvedExprKind::Call { callee, .. } => callee.as_str(),
@@ -3334,7 +3355,7 @@ impl<'a> HirValidator<'a> {
                                 "contract cannot transfer ownership to `{callee}`"
                             )));
                         }
-                        self.mark_value_sources_moved(argument, &mut scope)?;
+                        validator.mark_value_sources_moved(argument, &mut scope)?;
                         publication.publish(&scope)?;
                     }
                     frames.push(Frame::CallNext {
@@ -3365,7 +3386,7 @@ impl<'a> HirValidator<'a> {
                         } else {
                             OwnershipMode::Value
                         };
-                        self.finish_expr(expression, &result, ownership)?;
+                        validator.finish_expr(expression, &result, ownership)?;
                         scopes.push(scope)?;
                     } else {
                         frames.push(Frame::NativeAfterArg {
@@ -3399,7 +3420,11 @@ impl<'a> HirValidator<'a> {
                     publication.publish(&scope)?;
                     let argument = &args[index];
                     let parameter = &params[index];
-                    self.require_type(&argument.ty, &parameter.ty, "native Rust import argument")?;
+                    validator.require_type(
+                        &argument.ty,
+                        &parameter.ty,
+                        "native Rust import argument",
+                    )?;
                     if argument.ownership != parameter.ownership
                         && !(parameter.ownership == OwnershipMode::Borrow
                             && argument.ownership == OwnershipMode::Own
@@ -3415,7 +3440,7 @@ impl<'a> HirValidator<'a> {
                                 "contract cannot transfer ownership to native Rust",
                             ));
                         }
-                        self.mark_value_sources_moved(argument, &mut scope)?;
+                        validator.mark_value_sources_moved(argument, &mut scope)?;
                         publication.publish(&scope)?;
                     }
                     frames.push(Frame::NativeNext {
@@ -3461,6 +3486,20 @@ impl<'a> HirValidator<'a> {
                         path: path_label::Label::child(path, ".right", [0, 0])?,
                     })?;
                 }
+                _ => unreachable!("frame was routed to its matching phase"),
+            }
+            Ok(())
+        }
+        #[inline(never)]
+        fn frame_phase_1<'a: 'e, 'e>(
+            validator: &mut HirValidator<'a>,
+            frame: Frame<'e>,
+            frames: &mut scope_checkpoint::Storage<Frame<'e>>,
+            scopes: &mut scope_checkpoint::Storage<scope_checkpoint::Scope>,
+            publication: &mut scope_checkpoint::Publication<'_>,
+            allow_moves: bool,
+        ) -> Result<(), Diagnostic> {
+            match frame {
                 Frame::BinaryRight {
                     expression,
                     op,
@@ -3509,7 +3548,7 @@ impl<'a> HirValidator<'a> {
                                     "binary operand has inconsistent resolved types",
                                 ));
                             }
-                            self.require_type(&left.ty, &right.ty, "binary operand")?;
+                            validator.require_type(&left.ty, &right.ty, "binary operand")?;
                             left.ty.clone()
                         }
                         BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge => {
@@ -3530,12 +3569,20 @@ impl<'a> HirValidator<'a> {
                                     "comparison operand has inconsistent resolved types",
                                 ));
                             }
-                            self.require_type(&left.ty, &right.ty, "comparison operand")?;
+                            validator.require_type(&left.ty, &right.ty, "comparison operand")?;
                             ResolvedType::Bool
                         }
                         BinaryOp::And | BinaryOp::Or => {
-                            self.require_type(&left.ty, &ResolvedType::Bool, "boolean operand")?;
-                            self.require_type(&right.ty, &ResolvedType::Bool, "boolean operand")?;
+                            validator.require_type(
+                                &left.ty,
+                                &ResolvedType::Bool,
+                                "boolean operand",
+                            )?;
+                            validator.require_type(
+                                &right.ty,
+                                &ResolvedType::Bool,
+                                "boolean operand",
+                            )?;
                             ResolvedType::Bool
                         }
                         BinaryOp::Eq | BinaryOp::Ne => {
@@ -3544,11 +3591,11 @@ impl<'a> HirValidator<'a> {
                                     "function value equality is outside the admitted profile",
                                 ));
                             }
-                            self.require_type(&left.ty, &right.ty, "equality operands")?;
+                            validator.require_type(&left.ty, &right.ty, "equality operands")?;
                             ResolvedType::Bool
                         }
                     };
-                    self.finish_expr(expression, &output, OwnershipMode::Value)?;
+                    validator.finish_expr(expression, &output, OwnershipMode::Value)?;
                     scopes.push(scope)?;
                 }
                 Frame::LexicalReturn {
@@ -3556,8 +3603,12 @@ impl<'a> HirValidator<'a> {
                     operand,
                 } => {
                     let mut scope = scopes.pop().expect("return operand scope retained");
-                    self.validate_lexical_return_operand(operand, &mut scope)?;
-                    self.finish_expr(expression, &ResolvedType::Never, OwnershipMode::Value)?;
+                    validator.validate_lexical_return_operand(operand, &mut scope)?;
+                    validator.finish_expr(
+                        expression,
+                        &ResolvedType::Never,
+                        OwnershipMode::Value,
+                    )?;
                     scopes.push(scope)?;
                 }
                 Frame::IfCondition {
@@ -3571,7 +3622,7 @@ impl<'a> HirValidator<'a> {
                     let ResolvedExprKind::If { condition, .. } = &expression.kind else {
                         unreachable!()
                     };
-                    self.require_type(&condition.ty, &ResolvedType::Bool, "if condition")?;
+                    validator.require_type(&condition.ty, &ResolvedType::Bool, "if condition")?;
                     let outer_ids = outer.ids();
                     frames.push(Frame::IfThen {
                         expression,
@@ -3627,7 +3678,7 @@ impl<'a> HirValidator<'a> {
                     else {
                         unreachable!()
                     };
-                    self.finish_lexical_if_checkpoint(
+                    validator.finish_lexical_if_checkpoint(
                         expression,
                         then_branch,
                         else_branch,
@@ -3705,7 +3756,7 @@ impl<'a> HirValidator<'a> {
                             }
                             ResolvedStatement::Assign { binding, value, .. } => {
                                 if crate::byte_ops::is_same_owner_set_hir(value, &binding.id) {
-                                    self.buffer_reopen_sites.insert(value.id.clone());
+                                    validator.buffer_reopen_sites.insert(value.id.clone());
                                 }
                                 // The target must be a previously declared
                                 // mutable scalar binding in this block's scope.
@@ -3772,7 +3823,7 @@ impl<'a> HirValidator<'a> {
                                 // at the trust boundary and require an exact
                                 // `bool` condition before validating the body
                                 // like any nested block.
-                                self.validate_loop_pair(condition, body)?;
+                                validator.validate_loop_pair(condition, body)?;
                                 if condition.ty != ResolvedType::Bool {
                                     return Err(hir_error("`while` condition must be bool"));
                                 }
@@ -3841,6 +3892,21 @@ impl<'a> HirValidator<'a> {
                         path,
                     })?;
                 }
+                _ => unreachable!("frame was routed to its matching phase"),
+            }
+            Ok(())
+        }
+        #[inline(never)]
+        fn frame_phase_2<'a: 'e, 'e>(
+            validator: &mut HirValidator<'a>,
+            function: &FunctionExecutionId,
+            frame: Frame<'e>,
+            frames: &mut scope_checkpoint::Storage<Frame<'e>>,
+            scopes: &mut scope_checkpoint::Storage<scope_checkpoint::Scope>,
+            publication: &mut scope_checkpoint::Publication<'_>,
+            allow_moves: bool,
+        ) -> Result<(), Diagnostic> {
+            match frame {
                 Frame::BlockAfterWhileCondition {
                     expression,
                     statements,
@@ -3944,19 +4010,19 @@ impl<'a> HirValidator<'a> {
                             binding.id
                         )));
                     }
-                    self.insert_value(&binding.id)?;
-                    self.require_type(&binding.ty, &value.ty, "local binding")?;
+                    validator.insert_value(&binding.id)?;
+                    validator.require_type(&binding.ty, &value.ty, "local binding")?;
                     if binding.ownership != value.ownership {
                         return Err(scope_checkpoint::paths::diagnostic(format_args!(
                             "local `{}` has inconsistent ownership",
                             binding.id
                         )));
                     }
-                    self.validate_declared_ownership(&binding.ty, binding.ownership)?;
+                    validator.validate_declared_ownership(&binding.ty, binding.ownership)?;
                     if binding.ty == ResolvedType::SliceU8 {
                         let (place, origin) = match &value.kind {
                             ResolvedExprKind::Place(place) => {
-                                let origin = self.byte_slice_aliases.get(&place.root).cloned().ok_or_else(|| {
+                                let origin = validator.byte_slice_aliases.get(&place.root).cloned().ok_or_else(|| {
                                     hir_error("byte-slice local alias lacks symbolic parameter-root provenance")
                                 })?;
                                 (place, origin)
@@ -3976,7 +4042,7 @@ impl<'a> HirValidator<'a> {
                                 (place, place.clone())
                             }
                             ResolvedExprKind::ByteRange { source, .. } => {
-                                self.byte_range_origin(source, &scope)?
+                                validator.byte_range_origin(source, &scope)?
                             }
                             _ => {
                                 return Err(hir_error(
@@ -3996,7 +4062,8 @@ impl<'a> HirValidator<'a> {
                                 "byte-slice local alias must be immutable and unprojected",
                             ));
                         }
-                        self.byte_slice_aliases
+                        validator
+                            .byte_slice_aliases
                             .insert(binding.id.clone(), origin.clone());
                         let borrowed_origin = match &value.kind {
                             ResolvedExprKind::Call { .. }
@@ -4013,7 +4080,7 @@ impl<'a> HirValidator<'a> {
                             let owner = scope.get_mut(&origin.root)?.ok_or_else(|| {
                                 hir_error("byte view owner disappeared before lexical borrow")
                             })?;
-                            owner.active_loans.extend(self.exact_loan_id(
+                            owner.active_loans.extend(validator.exact_loan_id(
                                 function,
                                 &value.id,
                                 &LoanCause::SliceView,
@@ -4021,19 +4088,20 @@ impl<'a> HirValidator<'a> {
                         }
                     } else if binding.ty == ResolvedType::Str {
                         let (origin, creates_loan) =
-                            self.borrowed_str_let_origin(value, binding)?;
+                            validator.borrowed_str_let_origin(value, binding)?;
                         if *mutable {
                             return Err(hir_error(
                                 "borrowed-str local alias must be immutable and unprojected",
                             ));
                         }
-                        self.borrowed_str_aliases
+                        validator
+                            .borrowed_str_aliases
                             .insert(binding.id.clone(), origin.clone());
                         if creates_loan {
                             let owner = scope.get_mut(&origin.root)?.ok_or_else(|| {
                                 hir_error("String view owner disappeared before lexical borrow")
                             })?;
-                            owner.active_loans.extend(self.exact_loan_id(
+                            owner.active_loans.extend(validator.exact_loan_id(
                                 function,
                                 &value.id,
                                 &LoanCause::StrView,
@@ -4041,13 +4109,13 @@ impl<'a> HirValidator<'a> {
                         }
                     }
                     let contract_local = !allow_moves && contract_owners::fresh(value, &scope);
-                    if self.is_owned_resource(&binding.ty, binding.ownership)? {
+                    if validator.is_owned_resource(&binding.ty, binding.ownership)? {
                         if !allow_moves && !contract_owners::fresh(value, &scope) {
                             return Err(hir_error(
                                 "contract cannot transfer ownership into a local binding",
                             ));
                         }
-                        self.mark_value_sources_moved(value, &mut scope)?;
+                        validator.mark_value_sources_moved(value, &mut scope)?;
                     }
                     scope_checkpoint::charge::clone_type(&binding.ty)?;
                     scope.insert(
@@ -4116,7 +4184,7 @@ impl<'a> HirValidator<'a> {
                             ));
                         }
                         scope = assigned_scope;
-                        self.mark_value_sources_moved(assigned, &mut scope)?;
+                        validator.mark_value_sources_moved(assigned, &mut scope)?;
                         string_replacement::reopen(&mut scope, &binding.id)?;
                     }
                     let target = scope.get(&binding.id).cloned();
@@ -4130,7 +4198,7 @@ impl<'a> HirValidator<'a> {
                         root: binding.id.clone(),
                         projections: field.iter().cloned().map(PlaceProjection::Field).collect(),
                     };
-                    if self.binding_has_live_overlapping_loans(
+                    if validator.binding_has_live_overlapping_loans(
                         &target,
                         &assigned_place,
                         &assigned.id,
@@ -4147,7 +4215,7 @@ impl<'a> HirValidator<'a> {
                                     "field assignment base is not a value-owned aggregate",
                                 ));
                             }
-                            self.validate_assign_field(
+                            validator.validate_assign_field(
                                 &target.ty,
                                 field,
                                 assigned,
@@ -4155,13 +4223,13 @@ impl<'a> HirValidator<'a> {
                             )?;
                         }
                         None => {
-                            self.require_type(&target.ty, &assigned.ty, "assignment")?;
+                            validator.require_type(&target.ty, &assigned.ty, "assignment")?;
                             if (target.ownership != OwnershipMode::Value
                                 || !crate::hir::is_scalar_resolved_type(&target.ty))
                                 && !crate::string_ops::replacement::admitted(binding, assigned)
                                 && !owner_renewal::assignment_is_admitted(
-                                    self.program,
-                                    self.byte_helpers,
+                                    validator.program,
+                                    validator.byte_helpers,
                                     binding,
                                     assigned,
                                 )
@@ -4202,9 +4270,24 @@ impl<'a> HirValidator<'a> {
                     else {
                         unreachable!()
                     };
-                    self.finish_expr(expression, &tail.ty, tail.ownership)?;
+                    validator.finish_expr(expression, &tail.ty, tail.ownership)?;
                     scopes.push(outer)?;
                 }
+                _ => unreachable!("frame was routed to its matching phase"),
+            }
+            Ok(())
+        }
+        #[inline(never)]
+        fn frame_phase_3<'a: 'e, 'e>(
+            validator: &mut HirValidator<'a>,
+            frame: Frame<'e>,
+            frames: &mut scope_checkpoint::Storage<Frame<'e>>,
+            scopes: &mut scope_checkpoint::Storage<scope_checkpoint::Scope>,
+            publication: &mut scope_checkpoint::Publication<'_>,
+            allow_moves: bool,
+        ) -> Result<(), Diagnostic> {
+            let program = validator.program;
+            match frame {
                 Frame::RecordNext {
                     expression,
                     fields,
@@ -4223,8 +4306,8 @@ impl<'a> HirValidator<'a> {
                             )));
                         }
                         let ownership =
-                            self.expected_ownership(&expression.ty, OwnershipMode::Own)?;
-                        self.finish_expr(expression, &expression.ty, ownership)?;
+                            validator.expected_ownership(&expression.ty, OwnershipMode::Own)?;
+                        validator.finish_expr(expression, &expression.ty, ownership)?;
                         scopes.push(scope)?;
                     } else {
                         let initializer = &fields[index];
@@ -4276,8 +4359,8 @@ impl<'a> HirValidator<'a> {
                         .find(|field| field.id == initializer.field)
                         .expect("field authenticated before child");
                     let field_ty = substitute_type(&declared.ty, record, arguments)?;
-                    self.require_type(&initializer.value.ty, &field_ty, "record field")?;
-                    let ownership = self.expected_ownership(&field_ty, OwnershipMode::Own)?;
+                    validator.require_type(&initializer.value.ty, &field_ty, "record field")?;
+                    let ownership = validator.expected_ownership(&field_ty, OwnershipMode::Own)?;
                     if initializer.value.ownership != ownership {
                         return Err(scope_checkpoint::paths::diagnostic(format_args!(
                             "field `{}` has incompatible ownership",
@@ -4290,7 +4373,7 @@ impl<'a> HirValidator<'a> {
                                 "contract cannot transfer ownership into a record",
                             ));
                         }
-                        self.mark_value_sources_moved(&initializer.value, &mut scope)?;
+                        validator.mark_value_sources_moved(&initializer.value, &mut scope)?;
                         publication.publish(&scope)?;
                     }
                     frames.push(Frame::RecordNext {
@@ -4324,8 +4407,8 @@ impl<'a> HirValidator<'a> {
                             )));
                         }
                         let ownership =
-                            self.expected_ownership(&expression.ty, OwnershipMode::Own)?;
-                        self.finish_expr(expression, &expression.ty, ownership)?;
+                            validator.expected_ownership(&expression.ty, OwnershipMode::Own)?;
+                        validator.finish_expr(expression, &expression.ty, ownership)?;
                         scopes.push(scope)?;
                     } else {
                         let initializer = &fields[index];
@@ -4379,8 +4462,12 @@ impl<'a> HirValidator<'a> {
                         .find(|field| field.id == initializer.field)
                         .expect("variant field authenticated before child");
                     let field_ty = substitute_type(&declared.ty, variant, arguments)?;
-                    self.require_type(&initializer.value.ty, &field_ty, "variant payload field")?;
-                    let ownership = self.expected_ownership(&field_ty, OwnershipMode::Own)?;
+                    validator.require_type(
+                        &initializer.value.ty,
+                        &field_ty,
+                        "variant payload field",
+                    )?;
+                    let ownership = validator.expected_ownership(&field_ty, OwnershipMode::Own)?;
                     if initializer.value.ownership != ownership {
                         return Err(scope_checkpoint::paths::diagnostic(format_args!(
                             "variant payload field `{}` has incompatible ownership",
@@ -4393,7 +4480,7 @@ impl<'a> HirValidator<'a> {
                                 "contract cannot transfer ownership into a variant",
                             ));
                         }
-                        self.mark_value_sources_moved(&initializer.value, &mut scope)?;
+                        validator.mark_value_sources_moved(&initializer.value, &mut scope)?;
                         publication.publish(&scope)?;
                     }
                     frames.push(Frame::VariantNext {
@@ -4420,15 +4507,15 @@ impl<'a> HirValidator<'a> {
                     let ResolvedExprKind::UpdateRecord { base, .. } = &expression.kind else {
                         unreachable!()
                     };
-                    let declaration =
-                        self.program
-                            .declarations
-                            .declaration(record)
-                            .ok_or_else(|| {
-                                scope_checkpoint::paths::diagnostic(format_args!(
-                                    "record `{record}` is not indexed"
-                                ))
-                            })?;
+                    let declaration = validator
+                        .program
+                        .declarations
+                        .declaration(record)
+                        .ok_or_else(|| {
+                            scope_checkpoint::paths::diagnostic(format_args!(
+                                "record `{record}` is not indexed"
+                            ))
+                        })?;
                     if declaration.kind != DeclarationKind::Record {
                         return Err(scope_checkpoint::paths::diagnostic(format_args!(
                             "record update target `{record}` is not a record"
@@ -4441,7 +4528,7 @@ impl<'a> HirValidator<'a> {
                     else {
                         return Err(hir_error("record update base is not nominal"));
                     };
-                    let parameters = self
+                    let parameters = validator
                         .program
                         .declarations
                         .type_parameters(record)
@@ -4453,7 +4540,7 @@ impl<'a> HirValidator<'a> {
                     if instance != record
                         || arguments.len() != parameters.len()
                         || !super::type_reachability::record_args_ok(
-                            &self.program.declarations,
+                            &validator.program.declarations,
                             record,
                             arguments,
                         )
@@ -4462,8 +4549,8 @@ impl<'a> HirValidator<'a> {
                             "record update for `{record}` has an invalid concrete instance"
                         )));
                     }
-                    validate_nested_update_base_shape(self.program, base, expression.span)?;
-                    let ownership = self.expected_ownership(&base.ty, OwnershipMode::Own)?;
+                    validate_nested_update_base_shape(validator.program, base, expression.span)?;
+                    let ownership = validator.expected_ownership(&base.ty, OwnershipMode::Own)?;
                     if base.ownership != ownership {
                         return Err(scope_checkpoint::paths::diagnostic(format_args!(
                             "record update base for `{record}` has incompatible ownership"
@@ -4475,7 +4562,7 @@ impl<'a> HirValidator<'a> {
                                 "contract cannot transfer ownership from a record update base",
                             ));
                         }
-                        self.mark_value_sources_moved(base, &mut scope)?;
+                        validator.mark_value_sources_moved(base, &mut scope)?;
                         publication.publish(&scope)?;
                     }
                     let expected =
@@ -4513,7 +4600,7 @@ impl<'a> HirValidator<'a> {
                         let ResolvedExprKind::UpdateRecord { base, .. } = &expression.kind else {
                             unreachable!()
                         };
-                        self.finish_expr(expression, &base.ty, ownership)?;
+                        validator.finish_expr(expression, &base.ty, ownership)?;
                         scopes.push(scope)?;
                     } else {
                         let initializer = &fields[index];
@@ -4567,9 +4654,13 @@ impl<'a> HirValidator<'a> {
                         .find(|field| field.id == initializer.field)
                         .expect("update field authenticated before child");
                     let field_ty = substitute_type(&declared.ty, record, arguments)?;
-                    self.require_type(&initializer.value.ty, &field_ty, "record replacement")?;
+                    validator.require_type(
+                        &initializer.value.ty,
+                        &field_ty,
+                        "record replacement",
+                    )?;
                     let expected_ownership =
-                        self.expected_ownership(&field_ty, OwnershipMode::Own)?;
+                        validator.expected_ownership(&field_ty, OwnershipMode::Own)?;
                     if initializer.value.ownership != expected_ownership {
                         return Err(scope_checkpoint::paths::diagnostic(format_args!(
                             "replacement field `{}` has incompatible ownership",
@@ -4582,7 +4673,7 @@ impl<'a> HirValidator<'a> {
                                 "contract cannot transfer ownership into a record replacement",
                             ));
                         }
-                        self.mark_value_sources_moved(&initializer.value, &mut scope)?;
+                        validator.mark_value_sources_moved(&initializer.value, &mut scope)?;
                         publication.publish(&scope)?;
                     }
                     frames.push(Frame::UpdateNext {
@@ -4598,6 +4689,21 @@ impl<'a> HirValidator<'a> {
                         ownership,
                     })?;
                 }
+                _ => unreachable!("frame was routed to its matching phase"),
+            }
+            Ok(())
+        }
+        #[inline(never)]
+        fn frame_phase_4<'a: 'e, 'e>(
+            validator: &mut HirValidator<'a>,
+            function: &FunctionExecutionId,
+            frame: Frame<'e>,
+            frames: &mut scope_checkpoint::Storage<Frame<'e>>,
+            scopes: &mut scope_checkpoint::Storage<scope_checkpoint::Scope>,
+            publication: &mut scope_checkpoint::Publication<'_>,
+        ) -> Result<(), Diagnostic> {
+            let program = validator.program;
+            match frame {
                 Frame::MatchScrutinee {
                     expression,
                     arms,
@@ -4643,7 +4749,7 @@ impl<'a> HirValidator<'a> {
                             result: None,
                             path,
                         })?;
-                        continue;
+                        return Ok(());
                     }
                     let ResolvedType::Nominal {
                         declaration: matched,
@@ -4652,14 +4758,14 @@ impl<'a> HirValidator<'a> {
                     else {
                         return Err(hir_error("resolved match scrutinee is not nominal"));
                     };
-                    let kind = self
+                    let kind = validator
                         .program
                         .declarations
                         .declaration(matched)
                         .map(|item| item.kind);
                     let outer_ids = outer.ids();
                     if kind == Some(DeclarationKind::Record) {
-                        let facts = self
+                        let facts = validator
                             .program
                             .declarations
                             .type_flags(&scrutinee.ty)
@@ -4672,7 +4778,7 @@ impl<'a> HirValidator<'a> {
                                     && !facts.copy
                                     && scrutinee.ownership == OwnershipMode::Own
                                     && (!super::type_reachability::is_nested_nonflat_owned_byte_record(
-                                        &self.program.declarations,
+                                        &validator.program.declarations,
                                         &scrutinee.ty,
                                     ) || matches!(
                                         &scrutinee.kind,
@@ -4680,7 +4786,7 @@ impl<'a> HirValidator<'a> {
                                             if place.projections.is_empty()
                                     )) =>
                             {
-                                self.mark_value_sources_moved(scrutinee, &mut outer)?;
+                                validator.mark_value_sources_moved(scrutinee, &mut outer)?;
                             }
                             ResolvedMatchMode::Borrow
                                 if facts.needs_drop
@@ -4711,7 +4817,7 @@ impl<'a> HirValidator<'a> {
                                 unreachable!("borrow mode authenticated a place above")
                             };
                             if let Some(owner) = arm_scope.get_mut(&place.root)? {
-                                owner.active_loans.extend(self.exact_loan_id(
+                                owner.active_loans.extend(validator.exact_loan_id(
                                     function,
                                     &expression.id,
                                     &LoanCause::MatchBorrow { arm: 0 },
@@ -4732,7 +4838,7 @@ impl<'a> HirValidator<'a> {
                                 record,
                                 instance,
                                 fields,
-                            } => self
+                            } => validator
                                 .validate_record_match_pattern(
                                     function,
                                     &scrutinee.ty,
@@ -4781,7 +4887,7 @@ impl<'a> HirValidator<'a> {
                                 "resolved match scrutinee is not a concrete variant",
                             ));
                         }
-                        let facts = self
+                        let facts = validator
                             .program
                             .declarations
                             .type_flags(&scrutinee.ty)
@@ -4791,25 +4897,25 @@ impl<'a> HirValidator<'a> {
                                 if facts.copy && scrutinee.ownership == OwnershipMode::Value => {}
                             ResolvedMatchMode::Own
                                 if (resolved_type_is_flat_owned_byte_variant(
-                                    self.program,
+                                    validator.program,
                                     &scrutinee.ty,
                                 ) || resolved_type_is_direct_owned_variant(
-                                    self.program,
+                                    validator.program,
                                     &scrutinee.ty,
                                 )) && facts.needs_drop
                                     && !facts.copy
                                     && scrutinee.ownership == OwnershipMode::Own =>
                             {
-                                self.mark_value_sources_moved(scrutinee, &mut outer)?;
+                                validator.mark_value_sources_moved(scrutinee, &mut outer)?;
                             }
                             ResolvedMatchMode::Borrow
                                 if (resolved_type_is_flat_owned_byte_variant(
-                                    self.program,
+                                    validator.program,
                                     &scrutinee.ty,
                                 ) || resolved_type_is_direct_owned_variant(
-                                    self.program,
+                                    validator.program,
                                     &scrutinee.ty,
-                                ) || regex_result(self.program, &scrutinee.ty))
+                                ) || regex_result(validator.program, &scrutinee.ty))
                                     && facts.needs_drop
                                     && !facts.copy
                                     && matches!(
@@ -4857,7 +4963,7 @@ impl<'a> HirValidator<'a> {
                     let mut arm_scope = scopes.pop().expect("record match arm scope retained");
                     if let Some(root) = borrowed_root {
                         if let Some(owner) = arm_scope.get_mut(&root)? {
-                            if let Some(loan) = self.exact_loan_id(
+                            if let Some(loan) = validator.exact_loan_id(
                                 function,
                                 &expression.id,
                                 &LoanCause::MatchBorrow { arm: 0 },
@@ -4866,14 +4972,30 @@ impl<'a> HirValidator<'a> {
                             }
                         }
                     }
-                    self.validate_generic_record_match_result(function, expression, arm)?;
+                    validator.validate_generic_record_match_result(function, expression, arm)?;
                     for id in scope_checkpoint::Ids::ids(&outer_ids) {
                         outer.copy_binding_from(&arm_scope, id)?;
                     }
                     publication.publish(&outer)?;
-                    self.finish_expr(expression, &arm.value.ty, arm.value.ownership)?;
+                    validator.finish_expr(expression, &arm.value.ty, arm.value.ownership)?;
                     scopes.push(outer)?;
                 }
+                _ => unreachable!("frame was routed to its matching phase"),
+            }
+            Ok(())
+        }
+        #[inline(never)]
+        fn frame_phase_5<'a: 'e, 'e>(
+            validator: &mut HirValidator<'a>,
+            function: &FunctionExecutionId,
+            frame: Frame<'e>,
+            frames: &mut scope_checkpoint::Storage<Frame<'e>>,
+            scopes: &mut scope_checkpoint::Storage<scope_checkpoint::Scope>,
+            publication: &mut scope_checkpoint::Publication<'_>,
+            allow_moves: bool,
+            allowed_effects: Option<effect_keys::Allowed<'_>>,
+        ) -> Result<(), Diagnostic> {
+            match frame {
                 Frame::VariantMatchNext {
                     expression,
                     cases,
@@ -4912,7 +5034,7 @@ impl<'a> HirValidator<'a> {
                     if index == arms.len() {
                         if !wildcard_seen
                             && covered.len() != cases.len()
-                            && !self.observed_partial_byte_receiver(expression)
+                            && !validator.observed_partial_byte_receiver(expression)
                         {
                             return Err(hir_error("resolved match is not exhaustive"));
                         }
@@ -4948,7 +5070,7 @@ impl<'a> HirValidator<'a> {
                             )?;
                         }
                         publication.publish(&final_scope)?;
-                        self.finish_expr(expression, &witness.ty, witness.ownership)?;
+                        validator.finish_expr(expression, &witness.ty, witness.ownership)?;
                         scopes.push(final_scope)?;
                     } else {
                         let arm = &arms[index];
@@ -4958,7 +5080,7 @@ impl<'a> HirValidator<'a> {
                                 unreachable!()
                             };
                             if let Some(owner) = arm_scope.get_mut(&place.root)? {
-                                owner.active_loans.extend(self.exact_loan_id(
+                                owner.active_loans.extend(validator.exact_loan_id(
                                     function,
                                     &expression.id,
                                     &LoanCause::MatchBorrow {
@@ -5019,13 +5141,13 @@ impl<'a> HirValidator<'a> {
                                         })?;
                                     let binding_ty =
                                         substitute_type(&declared.ty, variant, arguments)?;
-                                    let facts = self
+                                    let facts = validator
                                         .program
                                         .declarations
                                         .type_flags(&binding_ty)
                                         .ok_or_else(|| {
-                                        hir_error("variant binding has no exact type facts")
-                                    })?;
+                                            hir_error("variant binding has no exact type facts")
+                                        })?;
                                     let binding_ownership = if facts.copy {
                                         OwnershipMode::Value
                                     } else if *mode == ResolvedMatchMode::Own {
@@ -5053,8 +5175,8 @@ impl<'a> HirValidator<'a> {
                                             "resolved match pattern field or binding is invalid",
                                         ));
                                     }
-                                    self.insert_value(&field.binding.id)?;
-                                    self.validate_type(&field.binding.ty)?;
+                                    validator.insert_value(&field.binding.id)?;
+                                    validator.validate_type(&field.binding.ty)?;
                                     if arm_scope.contains_key(&field.binding.id) {
                                         return Err(hir_error(
                                             "resolved match pattern binding shadows an existing value",
@@ -5109,7 +5231,7 @@ impl<'a> HirValidator<'a> {
                         }
                         if let Some(guard) = &arm.guard {
                             if !crate::variant_guards::admitted(
-                                &self.program.declarations,
+                                &validator.program.declarations,
                                 &scrutinee.ty,
                                 *mode,
                                 &arm.pattern,
@@ -5119,7 +5241,7 @@ impl<'a> HirValidator<'a> {
                                     "resolved Copy variant guard is outside its ordinary Boolean profile",
                                 ));
                             }
-                            self.validate_expr_iterative_effects(
+                            validator.validate_expr_iterative_effects(
                                 function,
                                 guard,
                                 &mut arm_scope,
@@ -5186,7 +5308,7 @@ impl<'a> HirValidator<'a> {
                             unreachable!()
                         };
                         if let Some(owner) = arm_scope.get_mut(&place.root)? {
-                            if let Some(loan) = self.exact_loan_id(
+                            if let Some(loan) = validator.exact_loan_id(
                                 function,
                                 &expression.id,
                                 &LoanCause::MatchBorrow {
@@ -5201,7 +5323,7 @@ impl<'a> HirValidator<'a> {
                     let arm = &arms[index];
                     if arm.value.ty != ResolvedType::Never
                         && !super::collection_outcome::match_arm_execution(
-                            self.program,
+                            validator.program,
                             function,
                             expression,
                             &arm.value,
@@ -5216,7 +5338,7 @@ impl<'a> HirValidator<'a> {
                     scope_checkpoint::charge::reserve(Some(lexical_exit::WITNESS_JOIN))?;
                     #[cfg(test)]
                     lexical_exit::observe_witness_role("join");
-                    self.join_lexical_match_witness(&mut result, &arm.value)?;
+                    validator.join_lexical_match_witness(&mut result, &arm.value)?;
                     #[cfg(test)]
                     lexical_exit::witness_unwind_point();
                     if !super::lexical_exit::returns_only(&arm.value) {
@@ -5235,6 +5357,20 @@ impl<'a> HirValidator<'a> {
                         path,
                     })?;
                 }
+                _ => unreachable!("frame was routed to its matching phase"),
+            }
+            Ok(())
+        }
+        #[inline(never)]
+        fn frame_phase_6<'a: 'e, 'e>(
+            validator: &mut HirValidator<'a>,
+            function: &FunctionExecutionId,
+            frame: Frame<'e>,
+            frames: &mut scope_checkpoint::Storage<Frame<'e>>,
+            scopes: &mut scope_checkpoint::Storage<scope_checkpoint::Scope>,
+            publication: &mut scope_checkpoint::Publication<'_>,
+        ) -> Result<(), Diagnostic> {
+            match frame {
                 Frame::ScalarMatchNext {
                     expression,
                     arms,
@@ -5294,9 +5430,9 @@ impl<'a> HirValidator<'a> {
                             )?;
                         }
                         publication.publish(&final_scope)?;
-                        self.finish_expr(expression, &witness.ty, witness.ownership)?;
+                        validator.finish_expr(expression, &witness.ty, witness.ownership)?;
                         scopes.push(final_scope)?;
-                        continue;
+                        return Ok(());
                     }
                     let arm = &arms[index];
                     let mut arm_scope = outer.clone();
@@ -5311,8 +5447,8 @@ impl<'a> HirValidator<'a> {
                             {
                                 return Err(hir_error("resolved scalar match binding is invalid"));
                             }
-                            self.insert_value(&binding.id)?;
-                            self.validate_type(&binding.ty)?;
+                            validator.insert_value(&binding.id)?;
+                            validator.validate_type(&binding.ty)?;
                             if arm_scope.contains_key(&binding.id) {
                                 return Err(hir_error(
                                     "resolved match pattern binding shadows an existing value",
@@ -5462,7 +5598,7 @@ impl<'a> HirValidator<'a> {
                     scope_checkpoint::charge::reserve(Some(lexical_exit::WITNESS_JOIN))?;
                     #[cfg(test)]
                     lexical_exit::observe_witness_role("join");
-                    self.join_lexical_match_witness(&mut result, &arm.value)?;
+                    validator.join_lexical_match_witness(&mut result, &arm.value)?;
                     #[cfg(test)]
                     lexical_exit::witness_unwind_point();
                     if !super::lexical_exit::returns_only(&arm.value) {
@@ -5484,9 +5620,9 @@ impl<'a> HirValidator<'a> {
                     let ResolvedExprKind::Project { base, .. } = &expression.kind else {
                         unreachable!()
                     };
-                    let projected = self.field_type_for_type(&base.ty, field)?;
-                    let ownership = self.expected_ownership(&projected, base.ownership)?;
-                    self.finish_expr(expression, &projected, ownership)?;
+                    let projected = validator.field_type_for_type(&base.ty, field)?;
+                    let ownership = validator.expected_ownership(&projected, base.ownership)?;
+                    validator.finish_expr(expression, &projected, ownership)?;
                     scopes.push(scope)?;
                 }
                 Frame::Upcast { expression } => {
@@ -5494,9 +5630,10 @@ impl<'a> HirValidator<'a> {
                     let ResolvedExprKind::Upcast { source } = &expression.kind else {
                         unreachable!()
                     };
-                    self.validate_upcast(expression, source)?;
-                    let ownership = self.expected_ownership(&expression.ty, OwnershipMode::Own)?;
-                    self.finish_expr(expression, &expression.ty, ownership)?;
+                    validator.validate_upcast(expression, source)?;
+                    let ownership =
+                        validator.expected_ownership(&expression.ty, OwnershipMode::Own)?;
+                    validator.finish_expr(expression, &expression.ty, ownership)?;
                     scopes.push(scope)?;
                 }
                 Frame::Yield { expression } => {
@@ -5506,15 +5643,15 @@ impl<'a> HirValidator<'a> {
                     }
                     // Re-derive `hir::resolve_yield`'s own admission: scalar,
                     // or (issue #296 R20) a bounded aggregate.
-                    let (d, ty) = (&self.program.declarations, &expression.ty);
+                    let (d, ty) = (&validator.program.declarations, &expression.ty);
                     let bounded = matches!(ty, ResolvedType::Nominal { .. })
                         && super::yield_aggregate::bounded_aggregate_refusal(d, ty).is_ok();
                     if !crate::hir::is_scalar_resolved_type(ty) && !bounded {
                         return Err(hir_error("resolved `yield` type is not scalar or bounded"));
                     }
                     let ownership =
-                        self.expected_ownership(&expression.ty, OwnershipMode::Value)?;
-                    self.finish_expr(expression, &expression.ty, ownership)?;
+                        validator.expected_ownership(&expression.ty, OwnershipMode::Value)?;
+                    validator.finish_expr(expression, &expression.ty, ownership)?;
                     scopes.push(scope)?;
                 }
                 Frame::Try {
@@ -5528,12 +5665,289 @@ impl<'a> HirValidator<'a> {
                             unreachable!()
                         };
                         if owned_result_try::expression_owns_exact_operand(operand) {
-                            self.mark_value_sources_moved(operand, &mut scope)?;
+                            validator.mark_value_sources_moved(operand, &mut scope)?;
                         }
                     }
-                    self.finish_try_expr(function, expression, &scope, path, option)?;
+                    validator.finish_try_expr(function, expression, &scope, path, option)?;
                     scopes.push(scope)?;
                 }
+                _ => unreachable!("frame was routed to its matching phase"),
+            }
+            Ok(())
+        }
+        #[inline(never)]
+        fn frame_phase_7<'a: 'e, 'e>(
+            validator: &mut HirValidator<'a>,
+            function: &FunctionExecutionId,
+            frame: Frame<'e>,
+            frames: &mut scope_checkpoint::Storage<Frame<'e>>,
+            scopes: &mut scope_checkpoint::Storage<scope_checkpoint::Scope>,
+            allow_moves: bool,
+            allowed_effects: Option<effect_keys::Allowed<'_>>,
+        ) -> Result<(), Diagnostic> {
+            match frame {
+                Frame::Enter {
+                    expression,
+                    scope,
+                    path,
+                } => {
+                    reject_nul_identity("resolved expression", expression.id.as_str())?;
+                    if !expression.id.matches_display(function, path.len(), path) {
+                        return Err(scope_checkpoint::paths::diagnostic(format_args!(
+                            "expression `{}` has a non-canonical identity",
+                            expression.id
+                        )));
+                    }
+                    if !identity_insert::expression(&mut validator.expression_ids, &expression.id)?
+                    {
+                        return Err(scope_checkpoint::paths::diagnostic(format_args!(
+                            "duplicate resolved expression identity `{}`",
+                            expression.id
+                        )));
+                    }
+                    validator.validate_type(&expression.ty)?;
+                    let expected_path = path;
+                    let path = continuation_path::after_header(expression, expected_path.len());
+                    match &expression.kind {
+                        ResolvedExprKind::LexicalExit { .. }
+                        | ResolvedExprKind::Closure { .. }
+                        | ResolvedExprKind::FunctionReference { .. }
+                        | ResolvedExprKind::Invoke { .. }
+                        | ResolvedExprKind::Int { .. }
+                        | ResolvedExprKind::Int32 { .. }
+                        | ResolvedExprKind::Char { .. }
+                        | ResolvedExprKind::Uint8 { .. }
+                        | ResolvedExprKind::Usize { .. } => enter_phase_0(
+                            validator,
+                            function,
+                            expression,
+                            scope,
+                            path,
+                            frames,
+                            scopes,
+                            allow_moves,
+                        )?,
+                        ResolvedExprKind::BorrowPlace { .. }
+                        | ResolvedExprKind::ByteRange { .. }
+                        | ResolvedExprKind::ArrayU8 { .. }
+                        | ResolvedExprKind::RepeatArrayU8 { .. }
+                        | ResolvedExprKind::Float32 { .. }
+                        | ResolvedExprKind::Float64 { .. }
+                        | ResolvedExprKind::Bool { .. }
+                        | ResolvedExprKind::BorrowedUtf8Literal { .. }
+                        | ResolvedExprKind::String { .. } => {
+                            enter_phase_4(validator, expression, scope, path, frames, scopes)?
+                        }
+                        ResolvedExprKind::Place { .. } | ResolvedExprKind::Unary { .. } => {
+                            enter_phase_5(validator, expression, scope, path, frames, scopes)?
+                        }
+                        ResolvedExprKind::Call { .. }
+                        | ResolvedExprKind::VecFieldRead { .. }
+                        | ResolvedExprKind::RowLoan { .. }
+                        | ResolvedExprKind::LiteralFormat { .. }
+                        | ResolvedExprKind::HostCommandCall { .. } => enter_phase_1(
+                            validator,
+                            function,
+                            expression,
+                            scope,
+                            path,
+                            frames,
+                            allow_moves,
+                            allowed_effects,
+                        )?,
+                        ResolvedExprKind::NativeRustImportCall { .. }
+                        | ResolvedExprKind::Binary { .. }
+                        | ResolvedExprKind::If { .. }
+                        | ResolvedExprKind::Block { .. }
+                        | ResolvedExprKind::VecConstructor { .. }
+                        | ResolvedExprKind::ConstructRecord { .. }
+                        | ResolvedExprKind::ConstructVariant { .. }
+                        | ResolvedExprKind::UpdateRecord { .. }
+                        | ResolvedExprKind::Match { .. }
+                        | ResolvedExprKind::Project { .. }
+                        | ResolvedExprKind::Upcast { .. }
+                        | ResolvedExprKind::Yield { .. } => enter_phase_2(
+                            validator,
+                            expression,
+                            scope,
+                            path,
+                            frames,
+                            allowed_effects,
+                        )?,
+                        ResolvedExprKind::Try { .. } | ResolvedExprKind::TryOption { .. } => {
+                            enter_phase_3(expression, scope, path, frames)?
+                        }
+                    }
+                }
+                _ => unreachable!("frame was routed to its matching phase"),
+            }
+            Ok(())
+        }
+        let mut publication = scope_checkpoint::Publication::take(scope)?;
+        let initial_scope = publication.published.clone();
+        let mut frames = scope_checkpoint::Storage::new();
+        frames.push(Frame::Enter {
+            expression,
+            scope: initial_scope,
+            path,
+        })?;
+        let mut scopes = scope_checkpoint::Storage::new();
+        while let Some(frame) = frames.pop() {
+            #[cfg(test)]
+            note_iterative_phase_capacity(
+                1,
+                frames.capacity() * std::mem::size_of::<Frame<'_>>()
+                    + scopes.capacity() * std::mem::size_of::<scope_checkpoint::Scope>()
+                    + scopes
+                        .iter()
+                        .map(scope_checkpoint::Scope::retained_capacity)
+                        .sum::<usize>()
+                    + publication.published.retained_capacity()
+                    + frames.iter().map(frame_owned_capacity).sum::<usize>()
+                    + frame_owned_capacity(&frame)
+                    + self.nominal_facts.owned_capacity()
+                    + self.executable_profiles.owned_capacity()
+                    + self
+                        .byte_helpers
+                        .map_or(0, |index| index.owned_capacity_bytes())
+                    + self.expression_ids.len()
+                        * (std::mem::size_of::<ExpressionId>()
+                            + std::mem::size_of::<BTreeSet<ExpressionId>>())
+                    + self
+                        .expression_ids
+                        .iter()
+                        .map(|id| id.as_str().len())
+                        .sum::<usize>()
+                    + self.value_ids.len()
+                        * (std::mem::size_of::<ValueId>()
+                            + std::mem::size_of::<BTreeSet<ValueId>>())
+                    + self
+                        .value_ids
+                        .iter()
+                        .map(|id| id.as_str().len())
+                        .sum::<usize>()
+                    + self.functions.len()
+                        * (std::mem::size_of::<(DeclarationId, &ResolvedFunction)>()
+                            + std::mem::size_of::<BTreeMap<DeclarationId, &ResolvedFunction>>())
+                    + self
+                        .functions
+                        .keys()
+                        .map(|id| id.as_str().len())
+                        .sum::<usize>(),
+            );
+            match frame {
+                frame @ Frame::Enter { .. } => frame_phase_7(
+                    self,
+                    function,
+                    frame,
+                    &mut frames,
+                    &mut scopes,
+                    allow_moves,
+                    allowed_effects,
+                )?,
+                frame @ (Frame::InvokeNext { .. }
+                | Frame::InvokeAfter { .. }
+                | Frame::RestorePublication(..)
+                | Frame::Unary { .. }) => frame_phase_0(
+                    self,
+                    frame,
+                    &mut frames,
+                    &mut scopes,
+                    &mut publication,
+                    allow_moves,
+                )?,
+                frame @ (Frame::ByteRangeAfterSource { .. }
+                | Frame::ByteRangeAfterStart { .. }
+                | Frame::ByteRangeAfterEnd { .. }
+                | Frame::CallNext { .. }) => frame_phase_8(self, frame, &mut frames, &mut scopes)?,
+                frame @ (Frame::CallAfterArg { .. }
+                | Frame::NativeNext { .. }
+                | Frame::NativeAfterArg { .. }
+                | Frame::BinaryLeft { .. }) => frame_phase_9(
+                    self,
+                    frame,
+                    &mut frames,
+                    &mut scopes,
+                    &mut publication,
+                    allow_moves,
+                )?,
+                frame @ (Frame::BinaryRight { .. }
+                | Frame::LexicalReturn { .. }
+                | Frame::IfCondition { .. }
+                | Frame::IfThen { .. }
+                | Frame::IfElse { .. }
+                | Frame::BlockNext { .. }
+                | Frame::BlockAfterUnsafe { .. }) => frame_phase_1(
+                    self,
+                    frame,
+                    &mut frames,
+                    &mut scopes,
+                    &mut publication,
+                    allow_moves,
+                )?,
+                frame @ (Frame::BlockAfterWhileCondition { .. }
+                | Frame::BlockAfterWhileBody { .. }
+                | Frame::BlockAfterLet { .. }
+                | Frame::BlockAfterAssign { .. }
+                | Frame::BlockTail { .. }) => frame_phase_2(
+                    self,
+                    function,
+                    frame,
+                    &mut frames,
+                    &mut scopes,
+                    &mut publication,
+                    allow_moves,
+                )?,
+                frame @ (Frame::RecordNext { .. }
+                | Frame::RecordAfterField { .. }
+                | Frame::VariantNext { .. }
+                | Frame::VariantAfterField { .. }
+                | Frame::UpdateBase { .. }
+                | Frame::UpdateNext { .. }
+                | Frame::UpdateAfterField { .. }) => frame_phase_3(
+                    self,
+                    frame,
+                    &mut frames,
+                    &mut scopes,
+                    &mut publication,
+                    allow_moves,
+                )?,
+                frame @ (Frame::MatchScrutinee { .. } | Frame::RecordMatchArm { .. }) => {
+                    frame_phase_4(
+                        self,
+                        function,
+                        frame,
+                        &mut frames,
+                        &mut scopes,
+                        &mut publication,
+                    )?
+                }
+                frame @ (Frame::VariantMatchNext { .. } | Frame::VariantMatchAfterArm { .. }) => {
+                    frame_phase_5(
+                        self,
+                        function,
+                        frame,
+                        &mut frames,
+                        &mut scopes,
+                        &mut publication,
+                        allow_moves,
+                        allowed_effects,
+                    )?
+                }
+                frame @ (Frame::ScalarMatchNext { .. }
+                | Frame::ScalarMatchAfterGuard { .. }
+                | Frame::ScalarMatchAfterArm { .. }
+                | Frame::Project { .. }
+                | Frame::Upcast { .. }
+                | Frame::Yield { .. }
+                | Frame::Try { .. }) => frame_phase_6(
+                    self,
+                    function,
+                    frame,
+                    &mut frames,
+                    &mut scopes,
+                    &mut publication,
+                )?,
             }
         }
         if scopes.len() != 1 {

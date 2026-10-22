@@ -31,7 +31,7 @@ pub(crate) mod renewal_profile;
 pub(crate) use renewal_profile::RenewalBindings as ReplayRenewalBindings;
 mod replay;
 #[cfg(test)]
-pub(crate) use replay::take_replay_work_refusal;
+pub(crate) use replay::{main44_current_source, take_replay_work_refusal};
 mod row_loan;
 #[cfg(test)]
 pub(crate) use replay::validate_retained_lexical_with_reservation;

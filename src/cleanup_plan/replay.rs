@@ -5,6 +5,8 @@ mod branch_clone;
 use crate::bounded_output::stage_debits::route_debits as debit_routes;
 #[cfg(feature = "unstable-workflow-profiling")]
 use crate::workflow_profile::plan_comparison::PaidPhase;
+#[cfg(test)]
+pub(crate) use path_array_main44::current_source as main44_current_source;
 mod compact_stage;
 mod constructed_variant;
 #[cfg(test)]
@@ -81,7 +83,6 @@ mod physical_observation_tests;
 mod primitive_fixture;
 use expression_children::replay_expression_child;
 use expression_facts::expression_facts;
-
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 #[cfg(test)]

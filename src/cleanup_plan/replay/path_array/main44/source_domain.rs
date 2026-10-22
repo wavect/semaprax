@@ -45,3 +45,9 @@ fn every_current_source_has_the_exact_complete_incoming_main44_preimage() {
         );
     }
 }
+
+pub(super) fn current(source: &str) -> Option<&'static str> {
+    INPUTS
+        .iter()
+        .find_map(|(path, current, _)| (*path == source).then_some(*current))
+}

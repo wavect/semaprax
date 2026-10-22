@@ -28,15 +28,59 @@ class InstrumentationSourceCustody(unittest.TestCase):
             "scripts/ci-low-stack-trace.py", "scripts/tests/test_ci_low_stack_trace.py",
         })
 
+    def _current_source(self, record, overrides=None):
+        overrides = overrides or {}
+        read = lambda path: overrides[path] if path in overrides else (self.root / path).read_text(encoding="utf-8")
+        value = read(record["path"])
+        revision = record.get("current_projection")
+        if revision is None:
+            return value
+        digest = lambda text: hashlib.sha256(text.encode()).hexdigest()
+        if digest(value) != revision["root_sha256"]:
+            raise ValueError("physical current source drift")
+        expected = (["src/test_allocation_observer/backing.rs"]
+                    if record["path"] == "src/test_allocation_observer.rs" else [])
+        if [item["path"] for item in revision["fragments"]] != expected:
+            raise ValueError("foreign or missing current source fragment")
+        for fragment in revision["fragments"]:
+            body = read(fragment["path"])
+            if digest(body) != fragment["sha256"] or len(body.encode()) != fragment["length"]:
+                raise ValueError("physical current fragment drift")
+            marker = 'include!("test_allocation_observer/backing.rs");'
+            if fragment["marker"] != marker or value.count(marker) != 1:
+                raise ValueError("nonunique current source fragment")
+            value = value.replace(marker, body, 1)
+        if digest(value) != revision["logical_sha256"]:
+            raise ValueError("complete current logical source drift")
+        return value
+
+    def _lazy_stage(self, record, value):
+        revision = record.get("current_projection")
+        if revision is not None:
+            if hashlib.sha256(value.encode()).hexdigest() != revision["logical_sha256"]:
+                raise ValueError("current source revision drift")
+            for change in revision["inverse"]:
+                if value.count(change["after"]) != 1:
+                    raise ValueError("nonunique current revision inverse")
+                value = value.replace(change["after"], change["before"], 1)
+        if hashlib.sha256(value.encode()).hexdigest() != record["after_sha256"]:
+            raise ValueError("original lazy-stage source drift")
+        return value
+
+    def _stage_for(self, path):
+        record = next(item for item in self.records if item["path"] == path)
+        return self._lazy_stage(record, self._current_source(record))
+
     def test_whole_predecessors_and_tampered_inputs_remain_bound(self):
         digest = lambda value: hashlib.sha256(value.encode()).hexdigest()
         for record in self.records:
             with self.subTest(path=record["path"]):
                 before = (self.evidence / record["archive"]).read_text()
-                current = (self.root / record["path"]).read_text()
+                current = self._current_source(record)
                 self.assertEqual(digest(before), record["before_sha256"])
 
                 def restore(value):
+                    value = self._lazy_stage(record, value)
                     if digest(value) != record["after_sha256"]:
                         raise ValueError("current source drift")
                     for change in record["inverse"]:
@@ -54,7 +98,7 @@ class InstrumentationSourceCustody(unittest.TestCase):
         originals = {record["path"]: (self.evidence / record["archive"]).read_text()
                      for record in self.records}
         path = "src/test_allocation_observer.rs"
-        before, current = originals[path], (self.root / path).read_text()
+        before, current = originals[path], self._stage_for(path)
         for start, end in [
             ("    fn allocated(", "\nthread_local!"),
             ("unsafe impl GlobalAlloc for ObservedSystem", "\nstruct Guard;"),
@@ -72,7 +116,7 @@ class InstrumentationSourceCustody(unittest.TestCase):
                 lines.pop()
             return "\n".join(lines)
 
-        self.assertEqual(callbacks(originals[path]), callbacks((self.root / path).read_text()))
+        self.assertEqual(callbacks(originals[path]), callbacks(self._stage_for(path)))
         path = "scripts/tests/test_ci_low_stack_trace.py"
 
         def cases(value):
@@ -92,6 +136,72 @@ class InstrumentationSourceCustody(unittest.TestCase):
         functions = [next(item for item in tree.body if isinstance(item, ast.FunctionDef)
                           and item.name == "select_executable") for tree in [old_tree, new_tree]]
         self.assertEqual(ast.dump(functions[0]), ast.dump(functions[1]))
+
+
+    def test_actual_allocator_callbacks_and_windows_still_match_complete_originals(self):
+        record = next(item for item in self.records if item["path"] == "src/test_allocation_observer.rs")
+        before = (self.evidence / record["archive"]).read_text()
+        self._current_source(record)  # Authenticate both actual current root and backing first.
+        current = (self.root / "src/test_allocation_observer/backing.rs").read_text()
+        for start, end in [
+            ("    fn allocated(", "\nthread_local!"),
+            ("unsafe impl GlobalAlloc for ObservedSystem", "\nstruct Guard;"),
+            ("struct Guard;", "// Keep instrumentation"),
+        ]:
+            self.assertEqual(before.split(start, 1)[1].split(end, 1)[0],
+                             current.split(start, 1)[1].split(end, 1)[0])
+        start = "fn finish_observation("
+        self.assertEqual(before.split(start, 1)[1].split("\n#[cfg(test)]\nmod tests", 1)[0],
+                         current.split(start, 1)[1])
+
+    def test_current_roots_and_relocated_backing_reject_independent_byte_drift(self):
+        for record in self.records:
+            if "current_projection" not in record:
+                continue
+            with self.subTest(path=record["path"]):
+                raw = (self.root / record["path"]).read_text()
+                with self.assertRaises(ValueError):
+                    self._current_source(record, {record["path"]: raw + "\n"})
+                for fragment in record["current_projection"]["fragments"]:
+                    raw = (self.root / fragment["path"]).read_text()
+                    with self.assertRaises(ValueError):
+                        self._current_source(record, {fragment["path"]: "!" + raw[1:]})
+                changed = dict(record, current_projection=dict(record["current_projection"], fragments=[dict(path="../foreign")]))
+                with self.assertRaises(ValueError):
+                    self._current_source(changed)
+
+    def test_real_forecast_capture_evidence_preserves_original_fields_and_stricter_publication(self):
+        path = self.root / "docs/evidence/lazy-test-instrumentation-current-20261022/callback-captures.json"
+        with path.open("rb") as source:
+            raw = source.read(123579 + 1)
+        self.assertEqual(len(raw), 123579)
+        self.assertEqual(hashlib.sha256(raw).hexdigest(), "43a0f965be961ce44bd15febbcc6d167a02415014b6ab30334d8bced76d85458")
+        data = json.loads(raw)
+        record = next(item for item in self.records if item["path"] == "src/workspace_graph/forecast_observation.rs")
+        self.assertEqual(data["old_complete_producer_sha256"], record["after_sha256"])
+        self.assertEqual(data["current_complete_producer_sha256"], hashlib.sha256(self._current_source(record).encode()).hexdigest())
+        self.assertEqual(data["pointer_bits"], 64)
+        self.assertEqual([row["case"] for row in data["cases"]], list(range(5)))
+        for row in data["cases"]:
+            before, current = row["old"], row["current"]
+            self.assertEqual({key: value for key, value in before.items() if key != "records"},
+                             {key: value for key, value in current.items() if key != "records"})
+            self.assertEqual(len(before["records"]), len(current["records"]))
+            for old, new in zip(before["records"], current["records"]):
+                self.assertEqual({key: value for key, value in old.items() if key != "values"},
+                                 {key: value for key, value in new.items() if key != "values"})
+                if old["global"]:
+                    self.assertEqual(old["values"][:4], new["values"][:4])
+                    self.assertEqual(old["values"][4:], [0] * 13)
+                    self.assertEqual(new["values"][4:6], [(1 << 64) - 1, 1] if old["values"][0] else [0, 0])
+                    self.assertEqual(new["values"][6:], [0] * 11)
+                else:
+                    self.assertEqual(old["values"], new["values"])
+            self.assertTrue(row["current_published_passes"])
+            for value in row["current_published_passes"]:
+                self.assertIsNone(value["global_peak"])
+                self.assertIsNone(value["retained_sum"])
+
 
 
 class ElfTlsLayouts(unittest.TestCase):

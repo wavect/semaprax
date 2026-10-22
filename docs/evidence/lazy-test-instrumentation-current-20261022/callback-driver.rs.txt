@@ -1,0 +1,37 @@
+#![allow(dead_code)]
+#[path="old-snapshot.rs"] mod old;
+#[path="current-snapshot.rs"] mod current;
+macro_rules! exercise {
+    ($m:ident, $scenario:expr) => {{
+        $m::record("inactive", 7, false, [0;17]);
+        $m::observe("compatibility", || {
+            $m::record("discarded-mode", 3, false, [0;17]);
+            let mut pass = $m::begin_pass(5);
+            let count = if $scenario == 1 { 300 } else { 8 };
+            for i in 0..count {
+                let mut v = [0;17];
+                for (j, n) in v.iter_mut().enumerate() { *n = i + j; }
+                v[13] = v[0] + v[10] + v[11] + v[12];
+                if $scenario == 3 { v[16] = usize::MAX; }
+                let path = if $scenario == 2 { "x".repeat(257) } else {format!("source-{i}")};
+                $m::record(&path, 4 + (i % 4) as u8, i % 2 != 0, v);
+            }
+            if $scenario != 4 { pass.complete(100, 60, 40); }
+            drop(pass);
+            $m::authority_index("authority", 3, 17, 51, Some(80));
+            $m::authority_index("authority-none", 0, 17, 0, None);
+            let incomplete = $m::begin_pass(6);
+            $m::record("refused-pass", 7, false, [0;17]);
+            drop(incomplete);
+            31
+        })
+    }};
+}
+fn main() {
+    let args: Vec<_> = std::env::args().collect();
+    let scenario: usize = args[2].parse().unwrap();
+    let result = match args[1].as_str() {"old" => exercise!(old,scenario), "current" => exercise!(current,scenario), _ => panic!("variant")};
+    assert_eq!(result,31);
+    let snapshot=match args[1].as_str(){"old"=>old::snapshot_original_fields(),"current"=>current::snapshot_original_fields(),_=>unreachable!()};
+    println!("CAPTURE {}",snapshot);
+}

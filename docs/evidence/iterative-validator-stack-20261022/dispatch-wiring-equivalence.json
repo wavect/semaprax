@@ -1,0 +1,6 @@
+{
+  "status": "ALL_43_ORIGINAL_FRAME_ARMS_ROUTED_TO_THEIR_EXACT_HELPERS_ONCE",
+  "all_helper_arguments_match_original_state_names_and_order": true,
+  "frames": 43,
+  "phase_functions": 10
+}

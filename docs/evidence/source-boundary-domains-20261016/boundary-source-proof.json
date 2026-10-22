@@ -11,8 +11,8 @@
       "outside_production_still_fully_authenticated": 144,
       "full_role_production": 589,
       "full_role_test_only": 1129,
-      "full_raw_sha256": "2d9b23c2e02f65b0b0de86b4322c0c347ebfc0098286ea83b03cac30159a9c30",
-      "boundary_production_sha256": "aae9529a5d0401b05fd53dcbc2ef422c713d74ce066a20170ebafcfc5502a8e5",
+      "full_raw_sha256": "215d6bcdb520449a3b93391e016b5b086bb5ab62cb6bc9ba7e6ef7a648f6ef67",
+      "boundary_production_sha256": "089f1ab2e5001924ea168ba7ee3951c7152a2bd46bfc3196e2d68d82da60f3b9",
       "exact_original_forbidden_tokens": [
         "struct Resolver",
         "impl Resolver",
@@ -37,7 +37,7 @@
       "outside_production_still_fully_authenticated": 595,
       "full_role_production": 671,
       "full_role_test_only": 1141,
-      "full_raw_sha256": "81b6fc47c558977f33db93f333f9d880ec9ef119614b347e2681c70c17b04b2b",
+      "full_raw_sha256": "19ec688ed3914d2b442d9eb81e4a998b40f32ba38c2d4406d3a365890e8259a4",
       "boundary_production_sha256": "3559e1932f9e80d1277f10f5327df7afc0ce30ad4e6487030e39a2d7c6c0862e",
       "exact_original_forbidden_tokens": [
         "use super::*;",
@@ -64,5 +64,554 @@
     "actual_source_drift_refused": true,
     "whole_raw_drift_refused": true,
     "foreign_path_child_cannot_escape": true
-  }
+  },
+  "prior_head_metadata": [
+    {
+      "parent": "main",
+      "head": "b60370fe3550f485707927eddf2ad5e266872a39",
+      "scope": "Prior-head metadata only; no current merged-source acquisition or runtime qualification is inferred.",
+      "fields": {
+        "actual_acquisition_completion_sha256": "a4fffcaab19b6e963e83951b76d035639e02b5af239b6ab9409d1c2609ad0661",
+        "status": "SOURCE_ONLY_EXACT_BOUNDARIES_AND_COMPLETE_SOURCE_ROLE_CUSTODY_PASS",
+        "registration_update": "EXACT_CODEC_FIXTURE_HISTORY_INPUT_STAGE",
+        "before_head": "29331e043aae0e7da8cfd798ba5082bf4c1efd15",
+        "global_polluted_purity_result_not_claimed": true,
+        "verification_storage": "Original verifier body and assertions unchanged; ordinary pathlib.Path and standard in-memory Python UTF8 strings. Complete expected manifest compared as exact canonical bytes.",
+        "verification_storage_mode": "STANDARD_PATH_UTF8"
+      }
+    }
+  ],
+  "prior_head_scope_corrections": [
+    {
+      "parent": "main",
+      "domain": "hir",
+      "original_roots": 1046,
+      "before_members": 1247,
+      "after_corrected_parent_members": 1245,
+      "fresh_actual_members": 1247,
+      "removed_test_only_spurious_members": [
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs"
+      ],
+      "production_members_before": 445,
+      "production_members_after": 445,
+      "malformed_module_target_edges": [
+        {
+          "parent": "src/source_reflows_merge.rs",
+          "start": 57001,
+          "text": "#[path = \"source_reflows_merge/ordinary_plan_inputs.rs\"]\nmod ordinary_plan_inputs;",
+          "attributes": [
+            "#[path = \"source_reflows_merge/ordinary_plan_inputs.rs\"]"
+          ],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "tests/workspace/semantic_graph.rs",
+          "start": 58538,
+          "text": "#[allow(dead_code, reason = \"Retained reader.\")]\n#[path = \"../../src/source_reflows_merge/ordinary_plan_inputs.rs\"]\nmod ordinary_plan_inputs;",
+          "attributes": [
+            "#[allow(dead_code, reason = \"Retained reader.\")]",
+            "#[path = \"../../src/source_reflows_merge/ordinary_plan_inputs.rs\"]"
+          ],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "src/source_reflows_merge.rs",
+          "start": 57686,
+          "text": "#[path = \"source_reflows_merge/next_big_batch_inputs.rs\"]\npub(crate) mod next_big_batch_inputs;",
+          "attributes": [
+            "#[path = \"source_reflows_merge/next_big_batch_inputs.rs\"]"
+          ],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "tests/workspace.rs",
+          "start": 4450,
+          "text": "#[path = \"../src/source_reflows_merge/next_big_batch_inputs.rs\"]\npub(crate) mod next_big_batch_inputs;",
+          "attributes": [
+            "#[path = \"../src/source_reflows_merge/next_big_batch_inputs.rs\"]"
+          ],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "tests/wasm.rs",
+          "start": 1737,
+          "text": "#[path = \"../src/source_reflows_merge/next_big_batch_inputs.rs\"]\npub(crate) mod next_big_batch_inputs;",
+          "attributes": [
+            "#[path = \"../src/source_reflows_merge/next_big_batch_inputs.rs\"]"
+          ],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "src/source_reflows_merge.rs",
+          "start": 57783,
+          "text": "#[path = \"source_reflows_merge/main_e177_final_inputs.rs\"]\npub(crate) mod main_e177_final_inputs;",
+          "attributes": [
+            "#[path = \"source_reflows_merge/main_e177_final_inputs.rs\"]"
+          ],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "tests/workspace.rs",
+          "start": 4345,
+          "text": "#[path = \"../src/source_reflows_merge/main_e177_final_inputs.rs\"]\npub(crate) mod main_e177_final_inputs;",
+          "attributes": [
+            "#[path = \"../src/source_reflows_merge/main_e177_final_inputs.rs\"]"
+          ],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "tests/wasm.rs",
+          "start": 1632,
+          "text": "#[path = \"../src/source_reflows_merge/main_e177_final_inputs.rs\"]\npub(crate) mod main_e177_final_inputs;",
+          "attributes": [
+            "#[path = \"../src/source_reflows_merge/main_e177_final_inputs.rs\"]"
+          ],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "src/cleanup_plan/replay/selected_context/child/tests.rs",
+          "start": 14601,
+          "text": "mod source;",
+          "attributes": [],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "src/cleanup_plan/replay/selected_entry/tests/session_errors.rs",
+          "start": 20425,
+          "text": "#[cfg(test)]\n#[path = \"session_errors/source_main8a.rs\"]\nmod source_main8a;",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"session_errors/source_main8a.rs\"]"
+          ],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "src/cleanup_plan/replay/selected_entry/tests/session_errors.rs",
+          "start": 20502,
+          "text": "#[cfg(test)]\n#[path = \"session_errors/source_maina3.rs\"]\nmod source_maina3;",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"session_errors/source_maina3.rs\"]"
+          ],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "src/cleanup_plan/replay/structural_control/calls/custody_tests.rs",
+          "start": 26024,
+          "text": "mod source;",
+          "attributes": [],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "src/cleanup_plan/replay/factored/canonical_shared/inline_weighted.rs",
+          "start": 3371,
+          "text": "#[cfg(test)]\npub(crate) mod source;",
+          "attributes": [
+            "#[cfg(test)]"
+          ],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "src/cleanup_plan/replay/lexical_replay/operand_tests.rs",
+          "start": 4349,
+          "text": "mod source;",
+          "attributes": [],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "src/diagnostic/writer.rs",
+          "start": 4145,
+          "text": "#[cfg(test)]\nmod tests;",
+          "attributes": [
+            "#[cfg(test)]"
+          ],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "src/hir/nominal_payload/legacy.rs",
+          "start": 1666,
+          "text": "#[cfg(test)]\n#[path = \"legacy/source_tests_main8a.rs\"]\nmod source_tests_main8a;",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"legacy/source_tests_main8a.rs\"]"
+          ],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "src/hir/nominal_payload/legacy.rs",
+          "start": 1747,
+          "text": "#[cfg(test)]\n#[path = \"legacy/source_tests_maina3.rs\"]\nmod source_tests_maina3;",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"legacy/source_tests_maina3.rs\"]"
+          ],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "src/hir/ids.rs",
+          "start": 23310,
+          "text": "#[cfg(test)]\n#[path = \"ids/declaration_tag.rs\"]\nmod declaration_tag;",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"ids/declaration_tag.rs\"]"
+          ],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "src/loan_plan/paid_live.rs",
+          "start": 3927,
+          "text": "#[cfg(test)]\n#[path = \"paid_live/reuse_tests.rs\"]\nmod reuse_tests;",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"paid_live/reuse_tests.rs\"]"
+          ],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "src/workspace_graph/expected_projection/import_stub/core_proofs.rs",
+          "start": 6317,
+          "text": "#[cfg(test)]\n#[path = \"core_proofs/tests.rs\"]\nmod tests;",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"core_proofs/tests.rs\"]"
+          ],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "src/workspace_graph/expected_projection/import_stub/core_proofs/tests.rs",
+          "start": 30200,
+          "text": "#[path = \"main7f8_provider.rs\"]\nmod main7f8_provider;",
+          "attributes": [
+            "#[path = \"main7f8_provider.rs\"]"
+          ],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "src/workspace_graph/expected_projection/private_layout/capacity_tests.rs",
+          "start": 14116,
+          "text": "#[path = \"capacity_tests/source.rs\"]\nmod source;",
+          "attributes": [
+            "#[path = \"capacity_tests/source.rs\"]"
+          ],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "src/source_reflows_merge.rs",
+          "start": 56733,
+          "text": "#[path = \"source_reflows_merge/main67107_inputs.rs\"]\npub(crate) mod main67107_inputs;",
+          "attributes": [
+            "#[path = \"source_reflows_merge/main67107_inputs.rs\"]"
+          ],
+          "child": "src/source_reflows_merge/main67107_inputs_tail.rs"
+        },
+        {
+          "parent": "tests/workspace/semantic_graph.rs",
+          "start": 58388,
+          "text": "#[allow(dead_code, unused_imports, reason = \"Retained reader.\")]\n#[path = \"../../src/source_reflows_merge/main67107_inputs.rs\"]\nmod main67107_inputs;",
+          "attributes": [
+            "#[allow(dead_code, unused_imports, reason = \"Retained reader.\")]",
+            "#[path = \"../../src/source_reflows_merge/main67107_inputs.rs\"]"
+          ],
+          "child": "src/source_reflows_merge/main67107_inputs_tail.rs"
+        },
+        {
+          "parent": "src/source_reflows_merge.rs",
+          "start": 57783,
+          "text": "#[path = \"source_reflows_merge/main_e177_final_inputs.rs\"]\npub(crate) mod main_e177_final_inputs;",
+          "attributes": [
+            "#[path = \"source_reflows_merge/main_e177_final_inputs.rs\"]"
+          ],
+          "child": "src/source_reflows_merge/main67107_inputs_tail.rs"
+        },
+        {
+          "parent": "tests/workspace.rs",
+          "start": 4345,
+          "text": "#[path = \"../src/source_reflows_merge/main_e177_final_inputs.rs\"]\npub(crate) mod main_e177_final_inputs;",
+          "attributes": [
+            "#[path = \"../src/source_reflows_merge/main_e177_final_inputs.rs\"]"
+          ],
+          "child": "src/source_reflows_merge/main67107_inputs_tail.rs"
+        },
+        {
+          "parent": "tests/wasm.rs",
+          "start": 1632,
+          "text": "#[path = \"../src/source_reflows_merge/main_e177_final_inputs.rs\"]\npub(crate) mod main_e177_final_inputs;",
+          "attributes": [
+            "#[path = \"../src/source_reflows_merge/main_e177_final_inputs.rs\"]"
+          ],
+          "child": "src/source_reflows_merge/main67107_inputs_tail.rs"
+        }
+      ],
+      "only_these_malformed_compiled_edges_removed_from_scope_graph": true,
+      "all_source_pins_and_classes_preserved": true,
+      "original_forbidden_tokens_and_six_negatives_unchanged": true
+    },
+    {
+      "parent": "main",
+      "domain": "projection",
+      "original_roots": 179,
+      "before_members": 212,
+      "after_corrected_parent_members": 210,
+      "fresh_actual_members": 210,
+      "removed_test_only_spurious_members": [
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs"
+      ],
+      "production_members_before": 76,
+      "production_members_after": 76,
+      "malformed_module_target_edges": [
+        {
+          "parent": "src/source_reflows_merge.rs",
+          "start": 57001,
+          "text": "#[path = \"source_reflows_merge/ordinary_plan_inputs.rs\"]\nmod ordinary_plan_inputs;",
+          "attributes": [
+            "#[path = \"source_reflows_merge/ordinary_plan_inputs.rs\"]"
+          ],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "tests/workspace/semantic_graph.rs",
+          "start": 58538,
+          "text": "#[allow(dead_code, reason = \"Retained reader.\")]\n#[path = \"../../src/source_reflows_merge/ordinary_plan_inputs.rs\"]\nmod ordinary_plan_inputs;",
+          "attributes": [
+            "#[allow(dead_code, reason = \"Retained reader.\")]",
+            "#[path = \"../../src/source_reflows_merge/ordinary_plan_inputs.rs\"]"
+          ],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "src/source_reflows_merge.rs",
+          "start": 57686,
+          "text": "#[path = \"source_reflows_merge/next_big_batch_inputs.rs\"]\npub(crate) mod next_big_batch_inputs;",
+          "attributes": [
+            "#[path = \"source_reflows_merge/next_big_batch_inputs.rs\"]"
+          ],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "tests/workspace.rs",
+          "start": 4450,
+          "text": "#[path = \"../src/source_reflows_merge/next_big_batch_inputs.rs\"]\npub(crate) mod next_big_batch_inputs;",
+          "attributes": [
+            "#[path = \"../src/source_reflows_merge/next_big_batch_inputs.rs\"]"
+          ],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "tests/wasm.rs",
+          "start": 1737,
+          "text": "#[path = \"../src/source_reflows_merge/next_big_batch_inputs.rs\"]\npub(crate) mod next_big_batch_inputs;",
+          "attributes": [
+            "#[path = \"../src/source_reflows_merge/next_big_batch_inputs.rs\"]"
+          ],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "src/source_reflows_merge.rs",
+          "start": 57783,
+          "text": "#[path = \"source_reflows_merge/main_e177_final_inputs.rs\"]\npub(crate) mod main_e177_final_inputs;",
+          "attributes": [
+            "#[path = \"source_reflows_merge/main_e177_final_inputs.rs\"]"
+          ],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "tests/workspace.rs",
+          "start": 4345,
+          "text": "#[path = \"../src/source_reflows_merge/main_e177_final_inputs.rs\"]\npub(crate) mod main_e177_final_inputs;",
+          "attributes": [
+            "#[path = \"../src/source_reflows_merge/main_e177_final_inputs.rs\"]"
+          ],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "tests/wasm.rs",
+          "start": 1632,
+          "text": "#[path = \"../src/source_reflows_merge/main_e177_final_inputs.rs\"]\npub(crate) mod main_e177_final_inputs;",
+          "attributes": [
+            "#[path = \"../src/source_reflows_merge/main_e177_final_inputs.rs\"]"
+          ],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "src/cleanup_plan/replay/selected_context/child/tests.rs",
+          "start": 14601,
+          "text": "mod source;",
+          "attributes": [],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "src/cleanup_plan/replay/selected_entry/tests/session_errors.rs",
+          "start": 20425,
+          "text": "#[cfg(test)]\n#[path = \"session_errors/source_main8a.rs\"]\nmod source_main8a;",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"session_errors/source_main8a.rs\"]"
+          ],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "src/cleanup_plan/replay/selected_entry/tests/session_errors.rs",
+          "start": 20502,
+          "text": "#[cfg(test)]\n#[path = \"session_errors/source_maina3.rs\"]\nmod source_maina3;",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"session_errors/source_maina3.rs\"]"
+          ],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "src/cleanup_plan/replay/structural_control/calls/custody_tests.rs",
+          "start": 26024,
+          "text": "mod source;",
+          "attributes": [],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "src/cleanup_plan/replay/factored/canonical_shared/inline_weighted.rs",
+          "start": 3371,
+          "text": "#[cfg(test)]\npub(crate) mod source;",
+          "attributes": [
+            "#[cfg(test)]"
+          ],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "src/cleanup_plan/replay/lexical_replay/operand_tests.rs",
+          "start": 4349,
+          "text": "mod source;",
+          "attributes": [],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "src/diagnostic/writer.rs",
+          "start": 4145,
+          "text": "#[cfg(test)]\nmod tests;",
+          "attributes": [
+            "#[cfg(test)]"
+          ],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "src/hir/nominal_payload/legacy.rs",
+          "start": 1666,
+          "text": "#[cfg(test)]\n#[path = \"legacy/source_tests_main8a.rs\"]\nmod source_tests_main8a;",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"legacy/source_tests_main8a.rs\"]"
+          ],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "src/hir/nominal_payload/legacy.rs",
+          "start": 1747,
+          "text": "#[cfg(test)]\n#[path = \"legacy/source_tests_maina3.rs\"]\nmod source_tests_maina3;",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"legacy/source_tests_maina3.rs\"]"
+          ],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "src/hir/ids.rs",
+          "start": 23310,
+          "text": "#[cfg(test)]\n#[path = \"ids/declaration_tag.rs\"]\nmod declaration_tag;",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"ids/declaration_tag.rs\"]"
+          ],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "src/loan_plan/paid_live.rs",
+          "start": 3927,
+          "text": "#[cfg(test)]\n#[path = \"paid_live/reuse_tests.rs\"]\nmod reuse_tests;",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"paid_live/reuse_tests.rs\"]"
+          ],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "src/workspace_graph/expected_projection/import_stub/core_proofs.rs",
+          "start": 6317,
+          "text": "#[cfg(test)]\n#[path = \"core_proofs/tests.rs\"]\nmod tests;",
+          "attributes": [
+            "#[cfg(test)]",
+            "#[path = \"core_proofs/tests.rs\"]"
+          ],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "src/workspace_graph/expected_projection/import_stub/core_proofs/tests.rs",
+          "start": 30200,
+          "text": "#[path = \"main7f8_provider.rs\"]\nmod main7f8_provider;",
+          "attributes": [
+            "#[path = \"main7f8_provider.rs\"]"
+          ],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "src/workspace_graph/expected_projection/private_layout/capacity_tests.rs",
+          "start": 14116,
+          "text": "#[path = \"capacity_tests/source.rs\"]\nmod source;",
+          "attributes": [
+            "#[path = \"capacity_tests/source.rs\"]"
+          ],
+          "child": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        },
+        {
+          "parent": "src/source_reflows_merge.rs",
+          "start": 56733,
+          "text": "#[path = \"source_reflows_merge/main67107_inputs.rs\"]\npub(crate) mod main67107_inputs;",
+          "attributes": [
+            "#[path = \"source_reflows_merge/main67107_inputs.rs\"]"
+          ],
+          "child": "src/source_reflows_merge/main67107_inputs_tail.rs"
+        },
+        {
+          "parent": "tests/workspace/semantic_graph.rs",
+          "start": 58388,
+          "text": "#[allow(dead_code, unused_imports, reason = \"Retained reader.\")]\n#[path = \"../../src/source_reflows_merge/main67107_inputs.rs\"]\nmod main67107_inputs;",
+          "attributes": [
+            "#[allow(dead_code, unused_imports, reason = \"Retained reader.\")]",
+            "#[path = \"../../src/source_reflows_merge/main67107_inputs.rs\"]"
+          ],
+          "child": "src/source_reflows_merge/main67107_inputs_tail.rs"
+        },
+        {
+          "parent": "src/source_reflows_merge.rs",
+          "start": 57783,
+          "text": "#[path = \"source_reflows_merge/main_e177_final_inputs.rs\"]\npub(crate) mod main_e177_final_inputs;",
+          "attributes": [
+            "#[path = \"source_reflows_merge/main_e177_final_inputs.rs\"]"
+          ],
+          "child": "src/source_reflows_merge/main67107_inputs_tail.rs"
+        },
+        {
+          "parent": "tests/workspace.rs",
+          "start": 4345,
+          "text": "#[path = \"../src/source_reflows_merge/main_e177_final_inputs.rs\"]\npub(crate) mod main_e177_final_inputs;",
+          "attributes": [
+            "#[path = \"../src/source_reflows_merge/main_e177_final_inputs.rs\"]"
+          ],
+          "child": "src/source_reflows_merge/main67107_inputs_tail.rs"
+        },
+        {
+          "parent": "tests/wasm.rs",
+          "start": 1632,
+          "text": "#[path = \"../src/source_reflows_merge/main_e177_final_inputs.rs\"]\npub(crate) mod main_e177_final_inputs;",
+          "attributes": [
+            "#[path = \"../src/source_reflows_merge/main_e177_final_inputs.rs\"]"
+          ],
+          "child": "src/source_reflows_merge/main67107_inputs_tail.rs"
+        }
+      ],
+      "only_these_malformed_compiled_edges_removed_from_scope_graph": true,
+      "all_source_pins_and_classes_preserved": true,
+      "original_forbidden_tokens_and_six_negatives_unchanged": true
+    }
+  ],
+  "status": "SOURCE_ONLY_EXACT_BOUNDARIES_AND_COMPLETE_SOURCE_ROLE_CUSTODY_PASS"
 }

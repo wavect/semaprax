@@ -2,216 +2,221 @@
   {
     "path": "src/cleanup_plan/replay.rs",
     "expected_sha256": "6db5b0ed361258023e3d7cad058c3de6d737b416b67e98e7113ecb0a993c86c1",
-    "current_length": 326264,
-    "current_sha256": "cc999fb9034687101cb5d34db54ed4ea58289ac6d9f9f7fae9f53e693231f74a",
-    "current_archive": "docs/evidence/ordinary-plan-final-ingress-20261017/current/cc999fb9034687101cb5d34db54ed4ea58289ac6d9f9f7fae9f53e693231f74a.txt",
+    "current_length": 326351,
+    "current_sha256": "c4eb6d914f71ea5ea5ec3cee2710b4c18fee4c45b2c9019e8b48b5fb46653bbb",
+    "current_archive": "docs/evidence/ordinary-plan-final-ingress-20261017/current/c4eb6d914f71ea5ea5ec3cee2710b4c18fee4c45b2c9019e8b48b5fb46653bbb.txt",
     "checkpoint_length": 318621,
     "checkpoint_sha256": "458260e9a3d66601d731b7bad8737efdfd5a4deb4e52bbb07adf0f0af150777b",
     "checkpoint_archive": "docs/evidence/ordinary-plan-final-ingress-20261017/before787/00.txt",
     "inverse": [
       {
-        "start_byte": 324489,
+        "start_byte": 324576,
         "after": "\n#[cfg(test)]\n#[allow(dead_code)]\nstruct BeforeDirectAnchorBudgetLayout {\n    admission: AdmissionMode,\n    payer: AllocationPayer,\n    remaining: usize,\n    skeleton_remaining: usize,\n    /// Actual successful skeleton debits, including deferred lexical walks.\n    skeleton_spent: usize,\n    /// Ordinary constructors share the temporarily lent skeleton allowance.\n    lent_skeleton: bool,\n    /// Factored replay: merge equal-state skeleton paths (`skeleton_work`).\n    merge_paths: bool,\n    /// Present only for the selected retained lexical replay entry.\n    physical: Option<Box<physical_storage::PhysicalReservation>>,\n    /// Prepaid selected-budget refusal text; consumed without a fresh allocation.\n    refusal_text: Option<String>,\n    refusal_spent: bool,\n    /// One reusable fixed clone census cursor on the ordinary builder path.\n    builder_clone_cursor_paid: bool,\n}\n#[cfg(test)]\nconst _: () = assert!(\n    std::mem::size_of::<ReplayBudget>() == std::mem::size_of::<BeforeDirectAnchorBudgetLayout>()\n);\n// Test diagnostics only. This POD record owns no HIR, text or heap allocation\n// and is never consulted by validation or a budget decision.\n#[cfg(test)]\n#[derive(Clone, Copy, Debug)]\npub(crate) struct ReplayWorkRefusal {\n    pub(crate) caller: &'static std::panic::Location<'static>,\n    pub(crate) requested: usize,\n    pub(crate) remaining: usize,\n    pub(crate) status_sources: usize,\n    pub(crate) first_status_bytes: usize,\n    pub(crate) payer: &'static str,\n}\n#[cfg(test)]\nthread_local! {\n    static REPLAY_WORK_REFUSAL: std::cell::Cell<Option<ReplayWorkRefusal>> = const { std::cell::Cell::new(None) };\n}\n#[cfg(test)]\npub(crate) fn take_replay_work_refusal() -> Option<ReplayWorkRefusal> {\n    REPLAY_WORK_REFUSAL.with(|record| record.take())\n}\n",
         "before": ""
       },
       {
-        "start_byte": 323814,
+        "start_byte": 323901,
         "after": "{EpsilonAppCensus, SuccessorAppCensus}",
         "before": "EpsilonAppCensus"
       },
       {
-        "start_byte": 298784,
+        "start_byte": 298871,
         "after": "                        // Original clone1 is charged above on both true and\n                        // false probe paths; this is a bounded implementation\n                        // detail of that materialization, not a CPU ledger.\n                        if let ReplayBudget {\n                            payer: AllocationPayer::ActiveBuilder,\n                            ..\n                        } = budget\n                        {\n                            budget.reserve_bytes(\n                                function,\n                                branch_clone::TAKE_CALL_CONTROLS,\n                                \"plan final branch probe receiving\",\n                            )?;\n                            branch_clone::production_capacity::produce!(\n                                budget,\n                                function,\n                                observations,\n                                observation,\n                                plan,\n                                edge,\n                                remaining_edges,\n                                edges,\n                                branch,\n                                queue\n                            );\n                        }\n",
         "before": ""
       },
       {
-        "start_byte": 296825,
+        "start_byte": 296912,
         "after": "if let ReplayBudget {\n                        payer: AllocationPayer::ActiveBuilder,\n                        ..\n                    } = budget\n                    {\n                        budget.reserve_bytes(\n                            function,\n                            branch_clone::production_capacity::production_inline_controls::<\n                                std::rc::Rc<SkeletonObservation>,\n                            >(),\n                            \"branch clone receiving controls\",\n                        )?;\n                    } else {\n                        budget.reserve_bytes(\n                            function,\n                            branch_clone::compact_roles::<std::rc::Rc<SkeletonObservation>>(),\n                            \"branch clone receiving controls\",\n                        )?;\n                    }",
         "before": "budget.reserve_bytes(\n                        function,\n                        branch_clone::inline_controls::<std::rc::Rc<SkeletonObservation>>(),\n                        \"branch clone receiving controls\",\n                    )?;"
       },
       {
-        "start_byte": 293294,
+        "start_byte": 293381,
         "after": "// Same slice iterator as the original for-loop, now named for the final-edge query.\n                let mut remaining_edges = edges.iter();\n                while let Some(edge) = remaining_edges.next()",
         "before": "for edge in edges"
       },
       {
-        "start_byte": 292233,
+        "start_byte": 292320,
         "after": "                    #[cfg(test)]\n                    branch_clone::note_take();\n",
         "before": ""
       },
       {
-        "start_byte": 290237,
+        "start_byte": 290324,
         "after": "_clone::direct::copy_small_plan!(\n                            branch,\n                            observations,\n                            observation,\n                            budget,\n                            function\n                        );\n                    } else {\n                        budget.reserve_bytes(\n                            function,\n                            branch_clone::direct::compact_roles::<\n                                std::rc::Rc<SkeletonObservation>,\n                                SkeletonObservation,\n                            >(),\n                            \"branch clone receiving controls\",\n                        )?;\n                        branch = branch_clone::direct::copy_prepaid(\n                            budget,\n                            function,\n                            &observations,\n                            observation,\n                            \"cleanup-plan skeleton branch clone\",\n                            plan,\n                            edge.to,\n                        )?",
         "before": " = Vec::with_capacity(capacity);\n                        branch.extend(observations.iter().cloned());\n                        branch.push(observation.into())"
       },
       {
-        "start_byte": 290049,
+        "start_byte": 290136,
         "after": "branch_clone::compact_roles::<std::rc::Rc<SkeletonObservation>>(),\n                            \"branch clone receiving controls",
         "before": "physical_clone::conversion_bytes::<std::rc::Rc<SkeletonObservation>, _>(\n                                &observation,\n                            ),\n                            \"plan branch observation push"
       },
       {
-        "start_byte": 289872,
+        "start_byte": 289959,
         "after": "if observations.len() < branch_clone::direct::SMALL_COPY_LIMIT {",
         "before": "{\n                        budget.charge_skeleton(\n                            function,\n                            1,\n                            \"cleanup-plan skeleton branch clone\",\n                        )?;\n                        budget.reserve_clone(\n                            function,\n                            &observations,\n                            \"cleanup-plan skeleton branch clone\",\n                        )?;\n                        note_skeleton_materialization();\n                        // Original push work precedes every extra backing debit.\n                        budget.charge_skeleton(function, 1, \"plan branch observation push\")?;\n                        note_skeleton_materialization();\n                        let capacity = if observations.is_empty() {\n                            1\n                        } else {\n                            if observations.len() > usize::MAX / 2 {\n                                return Err(budget.budget_refusal(\n                                    function,\n                                    \"cleanup replay branch capacity overflowed\",\n                                    \"\",\n                                ));\n                            }\n                            observations.len() * 2\n                        };\n                        budget.reserve_array::<std::rc::Rc<SkeletonObservation>>(\n                            function,\n                            capacity - observations.len(),\n                            \"plan branch observation push\",\n                        )?;"
       },
       {
-        "start_byte": 288908,
+        "start_byte": 288995,
         "after": "                        budget.reserve_bytes(\n                            function,\n                            branch_clone::direct::compact_roles::<\n                                std::rc::Rc<SkeletonObservation>,\n                                SkeletonObservation,\n                            >(),\n                            \"branch clone receiving controls\",\n                        )?;\n",
         "before": ""
       },
       {
-        "start_byte": 288820,
+        "start_byte": 288907,
         "after": "",
         "before": "                    budget.reserve_bytes(\n                        function,\n                        branch_clone::inline_controls::<std::rc::Rc<SkeletonObservation>>(),\n                        \"branch clone receiving controls\",\n                    )?;\n                    // The branch producer has no Result<Vec<_>, Diagnostic>\n                    // receiver or owned observation forwarding argument. Its\n                    // nested work/census/payment Results retain their charges.\n"
       },
       {
-        "start_byte": 288446,
+        "start_byte": 288533,
         "after": "branch_clone::direct::PLAN_SMALL",
         "before": "final_output::PLAN"
       },
       {
-        "start_byte": 278600,
+        "start_byte": 278687,
         "after": "    #[cfg(feature = \"unstable-workflow-profiling\")]\n    let _paid_phase = budget.paid_phase(PaidPhase::PlanPaths);\n\n    #[cfg(test)]\n    let _operation = crate::bounded_output::stage_debits::operation_guard(\n        crate::bounded_output::stage_debits::Operation::ReplayPlanSkeleton,\n    );\n    #[cfg(feature = \"unstable-workflow-profiling\")]\n    let _exclusive_operation = crate::bounded_output::exclusive_debits::operation_guard(\n        crate::bounded_output::exclusive_debits::Operation::ReplayPlanSkeleton,\n    );\n",
         "before": ""
       },
       {
-        "start_byte": 130703,
+        "start_byte": 130790,
         "after": "match work.budget {\n                ReplayBudget {\n                    payer: AllocationPayer::ActiveBuilder,\n                    lent_skeleton: false,\n                    ..\n                } => continuation_storage::fresh_receiving(function, work.budget)?,\n                // A factored constructor has lent its ordinary allowance to the\n                // original skeleton events. Keep its standalone fixed backing;\n                // incremental relocation needs an independent ordinary account.\n                _ => continuation_storage::fresh(function, work.budget)?,",
         "before": "if work.budget.payer == AllocationPayer::ActiveBuilder {\n                continuation_storage::fresh_receiving(function, work.budget)?\n            } else {\n                continuation_storage::fresh(function, work.budget)?"
       },
       {
-        "start_byte": 125497,
+        "start_byte": 125584,
         "after": "\n            prefix.observations,\n           ",
         "before": " prefix.observations,"
       },
       {
-        "start_byte": 125203,
+        "start_byte": 125290,
         "after": "        skeleton_work::enumerated_prefix::share!(work, prefix);\n",
         "before": ""
       },
       {
-        "start_byte": 120979,
+        "start_byte": 121066,
         "after": "    #[cfg(test)]\n    if skeleton_work::enumerated_prefix::original_selected() {\n        return skeleton_work::enumerated_prefix::old_sequence(prefixes, suffixes, work);\n    }\n",
         "before": ""
       },
       {
-        "start_byte": 120680,
+        "start_byte": 120767,
         "after": "    owned_suffix::dispatch!(prefixes, suffixes, work);\n",
         "before": ""
       },
       {
-        "start_byte": 113433,
+        "start_byte": 113520,
         "after": "#[cfg(feature = \"unstable-workflow-profiling\")]\n    let _paid_phase = budget.paid_phase(PaidPhase::HirPaths);\n\n    #[cfg(test)]\n    let _operation = crate::bounded_output::stage_debits::operation_guard(\n        crate::bounded_output::stage_debits::Operation::ReplayHirSkeleton,\n    );\n    #[cfg(feature = \"unstable-workflow-profiling\")]\n    let _exclusive_operation = crate::bounded_output::exclusive_debits::operation_guard(\n        crate::bounded_output::exclusive_debits::Operation::ReplayHirSkeleton,\n    );\n    #[cfg(test)]\n    if ordinary_receiving::saved() {\n        return ordinary_receiving::hir_skeleton_paths_with_index_storage_before(\n            program,\n            function,\n            budget,\n            helpers,\n            continuations,\n        );\n    }\n    #[cfg(test)]\n    let ordinary_oracle = budget.oracle_lease().is_some();\n    #[cfg(not(test))]\n    let ordinary_oracle = false;\n    let mut work = if budget.selected() || ordinary_oracle {\n        SkeletonWork::checked_with_index(program, function, budget, helpers)?\n    } else {\n        // Exactly the old ordinary bootstrap/cursor frontier. No new receiving\n        // owner exists before these earlier errors have been selected.\n        budget.prepare_builder(function)?;\n        budget.prepare_clone_cursor(function)?;\n        budget.reserve_bytes(\n            function,\n            skeleton_work::receiving::acquisition_bytes(),\n            \"ordinary skeleton receiving owner\",\n        )?;\n        #[cfg(test)]\n        ordinary_receiving::observe_site(0);\n        let mut failure = ordinary_receiving::Failure {\n            error: None,\n            function,\n            budget: &*budget,\n        };\n        let mut prepared = skeleton_work::receiving::Prepared {\n            owner: None,\n            requires: false,\n            reads: BTreeSet::new(),\n            moves: BTreeSet::new(),\n            renewals: crate::cleanup_plan::renewal_profile::RenewalBindings::empty(),\n        };\n        if !skeleton_work::receiving::prepare_into(\n            program,\n            function,\n            budget,\n            helpers.is_some(),\n            &mut prepared,\n            &mut failure,\n        ) {\n            return Err(failure\n                .error\n                .take()\n                .expect(\"ordinary setup selected first error\"));\n        }\n        SkeletonWork {\n            function,\n            budget,\n            continuations: None,\n            active_copy_region: None,\n            dag_scratch: None,\n            ordinary_scratch: None,\n            next_ordinary_dag: 0,\n            held_renewals: None,\n            ordinary_index: helpers,\n            ordinary_program: Some(program),\n            renewal_bindings: prepared.renewals,\n            string_owner_moves: prepared.moves,\n            string_condition_reads: prepared.reads,\n            owner: prepared.owner,\n        }\n    }",
         "before": "let mut work = SkeletonWork::checked_with_index(program, function, budget, helpers)?"
       },
       {
-        "start_byte": 111849,
+        "start_byte": 111936,
         "after": "\n            expected.sort();\n            actual.sort();\n            actual != expected\n        }\n    }",
         "before": "}\n    }\n    let mut actual = plan_skeleton_paths(function, budget)?;\n    expected.sort();\n    actual.sort();\n    if actual != expected"
       },
       {
-        "start_byte": 111632,
+        "start_byte": 111719,
         "after": "skeleton_work::enumerated_prefix::sort(&mut expected, function, budget)?;\n            actual.sort();\n            !skeleton_work::enumerated_prefix::equal(&expected, &actual, function, budget)?",
         "before": "if ordinary_plan_history::select(function, budget)? {\n                budget.reserve_bytes(\n                    function,\n                    ordinary_plan_history::PRODUCE_CALL_CONTROLS,\n                    \"ordinary plan history producer call receivers\",\n                )?;\n                let actual = ordinary_plan_history::produce(function, budget)?;\n                expected.sort();\n                budget.reserve_bytes(\n                    function,\n                    ordinary_plan_history::COMPARE_CALL_CONTROLS,\n                    \"ordinary plan history owned comparison call receivers\",\n                )?;\n                return ordinary_plan_history::compare(function, budget, actual, &expected);\n            }"
       },
       {
-        "start_byte": 111486,
+        "start_byte": 111573,
         "after": "2 * skeleton_work::enumerated_prefix::ENTRY_CALL,\n                \"enumerated HIR sort and equality entry",
         "before": "ordinary_plan_history::SELECT_CALL_CONTROLS,\n                \"ordinary plan history selector call"
       },
       {
-        "start_byte": 111298,
+        "start_byte": 111385,
         "after": "            admission: AdmissionMode::Ordinary,\n            lent_skeleton: false,\n",
         "before": ""
       },
       {
-        "start_byte": 109387,
+        "start_byte": 109474,
         "after": "if let ReplayBudget {\n        payer: AllocationPayer::ActiveBuilder,\n        ..\n    } = budget\n    {\n        budget.reserve_bytes(\n            function,\n            ordinary_plan_history::SELECT_CALL_CONTROLS,\n            \"ordinary plan history selector call receivers\",\n        )?;\n        if ordinary_plan_history::select(function, budget)? {\n            #[cfg(test)]\n            let _debit_phase = debit_routes::phase(debit_routes::Phase::HistoryPLAN);\n            budget.reserve_bytes(\n                function,\n                ordinary_plan_history::PRODUCE_CALL_CONTROLS,\n                \"ordinary plan history producer call receivers\",\n            )?;\n            let actual = ordinary_plan_history::produce(function, budget)?;\n            #[cfg(test)]\n            let _debit_phase = debit_routes::phase(debit_routes::Phase::PathComparison);\n            budget.reserve_bytes(\n                function,\n                skeleton_work::enumerated_prefix::ENTRY_CALL,\n                \"enumerated HIR sort entry receivers\",\n            )?;\n            skeleton_work::enumerated_prefix::sort(&mut expected, function, budget)?;\n            budget.reserve_bytes(\n                function,\n                ordinary_plan_history::COMPARE_CALL_CONTROLS,\n                \"ordinary plan history owned comparison call receivers\",\n            )?;\n            return ordinary_plan_history::compare(function, budget, actual, &expected);\n        }\n    }\n    #[cfg(test)]\n    let _debit_phase = debit_routes::phase(debit_routes::Phase::FlatPLAN);\n    let mut actual = plan_skeleton_paths(function, budget)?;\n    #[cfg(test)]\n    let _debit_phase = debit_routes::phase(debit_routes::Phase::PathComparison);\n    #[cfg(feature = \"unstable-workflow-profiling\")]\n    let _paid_comparison = budget.paid_phase(PaidPhase::Comparison);\n    if ",
         "before": ""
       },
       {
-        "start_byte": 109206,
+        "start_byte": 109293,
         "after": "    #[cfg(test)]\n    let _debit_phase = debit_routes::phase(debit_routes::Phase::OtherReplay);\n",
         "before": ""
       },
       {
-        "start_byte": 108987,
+        "start_byte": 109074,
         "after": "    #[cfg(test)]\n    let _debit_phase = debit_routes::phase(debit_routes::Phase::EnumeratedHIR);\n",
         "before": ""
       },
       {
-        "start_byte": 108615,
+        "start_byte": 108702,
         "after": "    #[cfg(test)]\n    let _debit_phase = debit_routes::phase(debit_routes::Phase::OtherReplay);\n",
         "before": ""
       },
       {
-        "start_byte": 20560,
+        "start_byte": 20647,
         "after": "use expression_facts::receiving::validate_structure_with_budget_storage;",
         "before": "fn validate_structure_with_budget_storage<'hir>(\n    program: &'hir dyn crate::cleanup::ReplayContext,\n    function: &'hir ResolvedFunction,\n    budget: &mut ReplayBudget,\n    helpers: Option<&crate::loop_calls::byte_writer::ModuleIndex<'hir>>,\n    continuations: Option<&mut continuation_storage::Storage<'hir>>,\n) -> Result<(), Diagnostic> {\n    let plan = &function.cleanup_plan;\n    if helpers.is_some_and(|index| {\n        !program\n            .full_program()\n            .is_some_and(|full| index.matches_program(full))\n    }) {\n        return Err(replay_error(\n            function,\n            \"cleanup replay helper index belongs to a different typed program\",\n        ));\n    }\n    // Reconstruct the ordinary schema first, preserving all its current-source\n    // probes/error order. A private source-held projection adds allocation\n    // branches; neither its attached v20 string nor an ordinary context selects it.\n    let ordinary_schema =\n        schema::paid_summary::selected_with_budget(program, function, helpers, budget)?;\n    let expected_schema = if allocation_paths::current(program, function).is_some() {\n        super::CLEANUP_PLAN_SCHEMA_V20\n    } else {\n        ordinary_schema\n    };\n    if plan.schema != expected_schema {\n        return Err(replay_error(\n            function,\n            format_args!(\n                \"uses cleanup-plan schema `{}` instead of HIR-derived `{expected_schema}`\",\n                plan.schema\n            ),\n        ));\n    }\n\n    if lexical_cert::requires_lexical(function) {\n        return lexical_replay::validate_with_index(program, function, budget, helpers);\n    }\n    if plan.lexical_control.is_some() {\n        return Err(replay_error(\n            function,\n            \"function without lexical exits carries a lexical-control certificate\",\n        ));\n    }\n    validate_replay_size_budget(function)?;\n    budget.charge(\n        function,\n        plan_structure_units(plan),\n        \"structural validation\",\n    )?;\n\n    let expression_facts = expression_facts::with_budget(function, budget)?;\n    ordinary_inventory::validate_inventory_coverage(program, function, budget)?;\n    let status_cases =\n        expression_facts::receiving::StatusCases::validate(program, function, budget)?;\n    let storage = validate_slots_paid(function, budget)?;\n    let leaves = collect_leaves_paid(function, budget)?;\n    let statuses = expression_facts::receiving::validate_status_sources_certified(\n        function,\n        &expression_facts,\n        budget,\n        &status_cases,\n    )?;\n    expression_facts::receiving::validate_regions(function, &storage, budget)?;\n    expression_facts::receiving::validate_entry(function, &storage, &leaves, budget)?;\n    expression_facts::receiving::validate_blocks_and_edges_retained(\n        program,\n        function,\n        &expression_facts,\n        &storage,\n        &leaves,\n        helpers,\n        budget,\n        &statuses,\n    )?;\n    expression_facts::receiving::validate_exits_retained(\n        program,\n        function,\n        &storage,\n        &leaves,\n        &BTreeSet::new(),\n        budget,\n        &statuses,\n    )?;\n    structural_maps::validate_reference_coverage(function, budget)?;\n    structural_control::validate_ordinary_cfg(function, budget)?;\n    if !cleanup_inert_path_product_can_be_summarized(function)?\n        && !status_only_paths_can_be_summarized(function)\n        && !cleanup_inert_large_decisions_can_be_summarized(function)\n    {\n        validate_path_states::<Diagnostic>(\n            program, function, &storage, &leaves, budget, None, helpers,\n        )?;\n        validate_typed_control_skeleton_with_index(\n            program,\n            function,\n            budget,\n            helpers,\n            continuations,\n        )?;\n    }\n    Ok(())\n}"
       },
       {
-        "start_byte": 18293,
+        "start_byte": 18380,
         "after": "        #[cfg(test)]\n        let _debit_function = {\n            let scope =\n                debit_routes::function(diagnostic_instance, true, instance.function.id.as_str());\n            diagnostic_instance = diagnostic_instance.saturating_add(1);\n            scope\n        };\n        #[cfg(feature = \"unstable-workflow-profiling\")]\n        let _paid_structure = budget.paid_phase(PaidPhase::ReplayStructure);\n",
         "before": ""
       },
       {
-        "start_byte": 18183,
+        "start_byte": 18270,
         "after": "    #[cfg(test)]\n    let mut diagnostic_instance = 0usize;\n",
         "before": ""
       },
       {
-        "start_byte": 17600,
+        "start_byte": 17687,
         "after": "        #[cfg(test)]\n        let _debit_function = {\n            let scope = debit_routes::function(diagnostic_ordinal, false, function.id.as_str());\n            diagnostic_ordinal = diagnostic_ordinal.saturating_add(1);\n            scope\n        };\n        #[cfg(feature = \"unstable-workflow-profiling\")]\n        let _paid_structure = budget.paid_phase(PaidPhase::ReplayStructure);\n",
         "before": ""
       },
       {
-        "start_byte": 17500,
+        "start_byte": 17587,
         "after": "    #[cfg(test)]\n    let mut diagnostic_ordinal = 0usize;\n",
         "before": ""
       },
       {
-        "start_byte": 8266,
+        "start_byte": 8353,
         "after": "            #[cfg(test)]\n            REPLAY_WORK_REFUSAL.with(|record| {\n                record.set(Some(ReplayWorkRefusal {\n                    caller,\n                    requested: units,\n                    remaining: self.remaining,\n                    status_sources: function.cleanup_plan.status_sources.len(),\n                    first_status_bytes: function\n                        .cleanup_plan\n                        .status_sources\n                        .first()\n                        .map_or(0, |source| source.id.expression.as_str().len()),\n                    payer: match self.payer {\n                        AllocationPayer::LegacyUnobserved => \"unobserved\",\n                        AllocationPayer::ActiveBuilder => \"builder\",\n                        AllocationPayer::SelectedReservation => \"selected\",\n                        AllocationPayer::Oracle(_) => \"oracle\",\n                    },\n                }))\n            });\n",
         "before": ""
       },
       {
-        "start_byte": 8117,
+        "start_byte": 8204,
         "after": "        #[cfg(test)]\n        let caller = std::panic::Location::caller();\n",
         "before": ""
       },
       {
-        "start_byte": 7585,
+        "start_byte": 7672,
         "after": "    #[cfg_attr(test, track_caller)]\n",
         "before": ""
       },
       {
-        "start_byte": 6430,
+        "start_byte": 6517,
         "after": "// Setup identity for the direct selected-budget compatibility receiver only.\n// General Session spending remains multi-function; this is not admission data.\nstruct SelectedDirectAnchor {\n    function: *const ResolvedFunction,\n    ledger: crate::bounded_output::classifier_string::ClassifierLedger,\n}\n\n",
         "before": ""
       },
       {
-        "start_byte": 4994,
+        "start_byte": 5081,
         "after": "mod ordinary_receiving;\n",
         "before": ""
       },
       {
-        "start_byte": 4112,
+        "start_byte": 4199,
         "after": "mod owned_suffix;\n#[cfg(test)]\nmod owned_suffix_878;\n",
         "before": ""
       },
       {
-        "start_byte": 854,
+        "start_byte": 2719,
+        "after": "",
+        "before": "\n"
+      },
+      {
+        "start_byte": 942,
         "after": "pub(in crate::cleanup_plan) mod ordinary_status;\n",
         "before": ""
       },
       {
-        "start_byte": 796,
+        "start_byte": 884,
         "after": "#[cfg(test)]\nmod merge_cens",
         "before": "pub(in crate::cleanup_plan) mod ordinary_stat"
       },
       {
         "start_byte": 177,
-        "after": "#[cfg(test)]\nuse crate::bounded_output::stage_debits::route_debits as debit_routes;\n#[cfg(feature = \"unstable-workflow-profiling\")]\nuse crate::workflow_profile::plan_comparison::PaidPhase;\n",
+        "after": "#[cfg(test)]\nuse crate::bounded_output::stage_debits::route_debits as debit_routes;\n#[cfg(feature = \"unstable-workflow-profiling\")]\nuse crate::workflow_profile::plan_comparison::PaidPhase;\n#[cfg(test)]\npub(crate) use path_array_main44::current_source as main44_current_source;\n",
         "before": ""
       }
     ]

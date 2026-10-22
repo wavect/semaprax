@@ -1,0 +1,11 @@
+
+pub(crate) fn snapshot_original_fields() -> serde_json::Value {
+    STATE.with(|state| {
+        let state = state.borrow();
+        let records: Vec<_> = state.entries.iter().enumerate().filter_map(|(index,row)| row.as_ref().map(|item| {
+
+            serde_json::json!({"index":index,"path":std::str::from_utf8(&item.path[..item.len]).unwrap(),"len":item.len,"mode":item.mode,"pass":item.pass,"global":item.global,"semantic":item.semantic,"authority_request":item.authority_request,"values":&item.values[..17]})
+        })).collect();
+        serde_json::json!({"count":state.count,"oversized_paths":state.oversized_paths,"forecasts":state.forecasts,"authority_requests":state.authority_requests,"current_pass":state.current_pass.map(|p|p),"ring_slots":state.entries.len(),"records":records})
+    })
+}

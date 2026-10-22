@@ -1,0 +1,5 @@
+{
+  "status": "ENTIRE_ORIGINAL_VALIDATE_DRIVER_TOKENS_PRESERVED_EXCEPT_EXACT_INTERFACE_LOOP_EXTRACTION",
+  "all_original_checks_diagnostics_order_and_map_ownership_preserved": true,
+  "entire_interface_loop_bytes_preserved": true
+}

@@ -1,0 +1,42 @@
+{
+  "status": "PASS_FOCUSED_SOURCE_GATES",
+  "source_bindings": {
+    "src/cleanup_plan.rs": "8025165ba93f59dd5da5d65c93b662da5a9b8297d0de810f640851eb1cb5523f",
+    "src/cleanup_plan/replay.rs": "c4eb6d914f71ea5ea5ec3cee2710b4c18fee4c45b2c9019e8b48b5fb46653bbb",
+    "src/cleanup_plan/replay/path_array/main44/mod.rs": "26665d0ca20671973ee50e0eaf8e86514bb929fe125ac6cb01e46506e7dbd8d6",
+    "src/cleanup_plan/replay/path_array/main44/source_domain.rs": "40e1e84dd96d2a6e189fb0094f086d51101039b0e80e3283b3cc47d7bda8c554",
+    "src/hir/validation.rs": "920615e565f4743cf5ed867ebe55e228d4f38c1f8c61c6edd0a98e2b4f4a246c",
+    "src/source_reflows_merge/main44_custody.rs": "ad7df65a1b2d9274361f5ee07db261032f30a589b7192d3832238d833e684146",
+    "src/source_reflows_merge/main_e177_overlay_compiled.rs": "292c35433afc72999d10e69c46cef1186d3e10d26c2fdce285b9a3fa21fd96d5",
+    "src/source_reflows_merge/main_e177_overlay_v2.rs": "b630ebc6fa41611ed4094dc1f74e9f09b2f74a28bd099f5dc61bef3cff0c176c"
+  },
+  "tests": [
+    {
+      "name": "source_reflows_merge::main_e177_final_inputs::overlay_v2::compiled_sources::tests::compiled_lookup_split_preserves_the_complete_predecessor_and_every_old_mapping",
+      "status": "PASS",
+      "actual_original_test_under_lldb": true,
+      "peak_RSS_telemetry_KiB": 101760,
+      "process_RSS_cap": null
+    },
+    {
+      "name": "source_reflows_merge::main_e177_final_inputs::overlay_v2::compiled_sources::tests::compiled_lookup_split_refuses_child_parent_span_eof_and_duplicate_glue",
+      "status": "PASS",
+      "actual_original_test_under_lldb": true,
+      "peak_RSS_telemetry_KiB": 84384,
+      "process_RSS_cap": null
+    },
+    {
+      "name": "cleanup_plan::replay::path_array_main44::source_domain::every_current_source_has_the_exact_complete_incoming_main44_preimage",
+      "status": "PASS",
+      "actual_original_test_under_lldb": true,
+      "peak_RSS_telemetry_KiB": 176992,
+      "process_RSS_cap": null
+    }
+  ],
+  "source_harness_clippy": "PASS_WARNINGS_DENIED",
+  "normal_compiler_native_build": "PENDING; paused local attempt released for device RAM",
+  "public_128_KiB_runtime": "PENDING_FOR_CURRENT_SOURCE",
+  "private_512_deep_gate": "PENDING",
+  "hosted_current_head": "PENDING",
+  "process_RSS_cap": null
+}

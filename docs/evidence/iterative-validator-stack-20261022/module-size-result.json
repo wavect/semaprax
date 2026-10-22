@@ -1,0 +1,45 @@
+{
+  "status": "PASS",
+  "sources": [
+    {
+      "source": "src/hir/validation.rs",
+      "lines": 8760,
+      "unchanged_limit": 8812
+    },
+    {
+      "source": "src/cleanup_plan.rs",
+      "lines": 910,
+      "unchanged_limit": 1500
+    },
+    {
+      "source": "src/cleanup_plan/replay.rs",
+      "lines": 7993,
+      "unchanged_limit": 7993
+    },
+    {
+      "source": "src/cleanup_plan/replay/path_array/main44/mod.rs",
+      "lines": 160,
+      "unchanged_limit": 1500
+    },
+    {
+      "source": "src/cleanup_plan/replay/path_array/main44/source_domain.rs",
+      "lines": 53,
+      "unchanged_limit": 1500
+    },
+    {
+      "source": "src/source_reflows_merge/main44_custody.rs",
+      "lines": 235,
+      "unchanged_limit": 1500
+    },
+    {
+      "source": "src/source_reflows_merge/main_e177_overlay_compiled.rs",
+      "lines": 595,
+      "unchanged_limit": 1500
+    },
+    {
+      "source": "src/source_reflows_merge/main_e177_overlay_v2.rs",
+      "lines": 1499,
+      "unchanged_limit": 1500
+    }
+  ]
+}

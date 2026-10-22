@@ -154,3 +154,7 @@ fn hir_skeleton_paths<'hir>(
 
 #[path = "source_domain.rs"]
 mod source_domain;
+
+pub(crate) fn current_source(source: &str) -> Option<&'static str> {
+    source_domain::current(source)
+}

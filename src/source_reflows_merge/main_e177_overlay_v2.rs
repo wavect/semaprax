@@ -16,6 +16,7 @@ pub(super) const REPLACEMENTS: &[&str] = &[
     "src/cleanup_plan/replay/branch_clone/direct/tests.rs",
     "src/cleanup_plan/replay/expression_facts/receiving/directory.rs",
     "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels.rs",
     "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs",
     "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests.rs",
     "src/cleanup_plan/replay/skeleton_work.rs",
@@ -34,13 +35,18 @@ pub(super) const REPLACEMENTS: &[&str] = &[
     "src/cleanup_plan/replay/branch_clone/tests.rs",
     "src/cleanup_plan/replay/expression_facts/receiving/retained.rs",
     "src/cleanup_plan/replay/factored/canonical_shared.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_selected_route.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs",
     "src/cleanup_plan/replay/factored/canonical_shared/paid_many/tests.rs",
     "src/cleanup_plan/replay/factored/continuation_receiver.rs",
     "src/cleanup_plan/replay/factored/oracle_hook.rs",
     "src/source_reflows/semantic_receivers.rs",
     "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
     "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+    "src/cleanup_plan.rs",
     "src/cleanup_plan/replay/factored.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_lexical_successors.rs",
     "src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/census.rs",
     "src/cleanup_plan/replay/ordinary_plan_history.rs",
     "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor.rs",
@@ -61,7 +67,10 @@ pub(super) const REPLACEMENTS: &[&str] = &[
     "src/cleanup_plan/replay/expression_facts/receiving/regions_entry/tests.rs",
     "src/cleanup_plan/replay/factored/canonical_shared/paid_many/source.rs",
     "src/cleanup_plan/replay/factored/strategy.rs",
+    "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
     "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+    "src/cleanup_plan/replay/path_array/main44/mod.rs",
+    "src/cleanup_plan/replay/path_array/main44/source_domain.rs",
     "src/cleanup_plan/replay/path_join.rs",
     "src/cleanup_plan/replay/physical_budget.rs",
     "src/cleanup_plan/replay/selected_entry/tests/session_errors.rs",
@@ -91,6 +100,7 @@ pub(super) const REPLACEMENTS: &[&str] = &[
     "src/source_reflows/semantic_receivers_mainb80.rs",
     "src/source_reflows_merge/current344.rs",
     "src/source_reflows_merge/final_ready_inputs.rs",
+    "src/source_reflows_merge/main44_custody.rs",
     "src/source_reflows_merge/main67107_inputs_tail.rs",
     "src/source_reflows_merge/main7f8_source_inputs.rs",
     "src/source_reflows_merge/main8a_historical.rs",
@@ -344,8 +354,8 @@ pub(super) const ADDITIONS: &[&str] = &[
 ];
 const POLICY_PATH: &str = "docs/evidence/finite-source-overlay-v2-20261018/policy.json";
 const PAGE_PATH: &str = "docs/evidence/finite-source-overlay-v2-20261018/page.json";
-const POLICY_LENGTH: usize = 114274; // Filled from the complete literal policy below.
-const POLICY_SHA256: &str = "c28b72da442d8a6ee10bb88f2e1e283d31094a4aac2983ab4a019a7d3dbc7e51";
+const POLICY_LENGTH: usize = 114885; // Filled from the complete literal policy below.
+const POLICY_SHA256: &str = "b58642e8fa513258f40a3ded8f2b8520ed60f1a520381d616affc6c759492125";
 const EXTENSION_PATH: &str = "docs/evidence/fmt-local-441-20261018/extension.json";
 const EXTENSION_LENGTH: usize = 262076;
 const EXTENSION_SHA256: &str = "2af7299253e5cfb027186ba4fc151011a937214ff381c9267bfc11ef7d0003b6";
@@ -954,8 +964,7 @@ pub(super) fn held_source_with_packet(
     let relative = path.strip_prefix(root).ok()?.to_str()?;
     if !normal(relative) {
         return None;
-    }
-    // compose() authenticated policy membership against these exact constants.
+    } // compose() authenticated policy membership against these exact constants.
     if !REPLACEMENTS.contains(&relative) && !ADDITIONS.contains(&relative) {
         return None;
     }
@@ -1037,8 +1046,7 @@ mod compiled_sources;
 pub(super) fn compiled(source: &str) -> Option<&'static str> {
     compiled_sources::compiled(source)
 }
-pub(super) fn value_direct(source: &str, expected: &str, supplied: &str) -> String {
-    // A whole logical-table view is selected only after its actual current physical, compiled and archive channels have authenticated. Preserve the complete historical stage fallback below for every other input.
+pub(super) fn value_direct(source: &str, expected: &str, supplied: &str) -> String { // A whole logical-table view is selected only after its actual current physical, compiled and archive channels have authenticated. Preserve the complete historical stage fallback below for every other input.
     let direct = super::value_direct_4a6eb(source, expected, supplied);
     if digest(direct.as_bytes()) == expected {
         return direct;
@@ -1063,8 +1071,7 @@ mod tests {
     use super::*;
     #[test]
     fn logical_current_view_precedes_stage_normalization_and_preserves_foreign_refusals() {
-        // Borrow immutable metadata only. Both independently compiled routes
-        // still acquire current/archive bytes afresh for every supplied input.
+        // Borrow immutable metadata only. Both independently compiled routes still acquire current/archive bytes afresh for every supplied input.
         let loads = (std::cell::Cell::new(0), std::cell::Cell::new(0));
         let mut invocation = super::super::ProjectionInvocation::with_loaders(|| {
             loads.0.set(loads.0.get() + 1);
@@ -1236,8 +1243,7 @@ mod tests {
             let mut p = page.clone();
             p["replacements"][0]["fragments"] = serde_json::json!([child]);
             assert!(compose_values(before.clone(), &policy, &p).is_err());
-        }
-        // A genuine declared leaf edge has to use the complete same-scope row.
+        } // A genuine declared leaf edge has to use the complete same-scope row.
         let mut p = page;
         p["additions"][0]["compiled"] = true.into();
         let child = p["additions"][0].clone();
@@ -1389,8 +1395,7 @@ mod tests {
         assert!(
             !Arc::ptr_eq(&first, &again),
             "evicted bytes really parse again"
-        );
-        // Even a same-key forged DATA object cannot substitute a verdict.
+        ); // Even a same-key forged DATA object cannot substitute a verdict.
         data.page = Some((a.to_owned(), Arc::new(serde_json::json!({"a":2}))));
         assert_eq!(data.parse(a).unwrap_err(), "noncanonical or duplicate JSON");
         let raw = format!(
@@ -1447,8 +1452,7 @@ mod tests {
             std::fs::remove_file(&source).unwrap();
         }
         std::fs::write(&source, raw).unwrap();
-        assert!(Arc::ptr_eq(&first, &read(&mut data).unwrap()));
-        // Matching physical bytes with foreign compiled bytes are still refused.
+        assert!(Arc::ptr_eq(&first, &read(&mut data).unwrap())); // Matching physical bytes with foreign compiled bytes are still refused.
         assert!(page_bytes("{\"a\":2}\n", raw, raw.len(), &sha).is_err());
         std::fs::remove_dir_all(path).unwrap();
     }

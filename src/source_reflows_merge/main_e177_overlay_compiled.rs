@@ -194,6 +194,7 @@ pub(super) fn compiled(source: &str) -> Option<&'static str> {
         "src/bounded_output/classifier_string.rs" => Some(include_str!("../../src/bounded_output/classifier_string.rs")),
         "src/cleanup_plan/replay/skeleton_work/enumerated_prefix.rs" => Some(include_str!("../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix.rs")),
         "src/cleanup_plan/replay/sequence_vector/funded_tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/sequence_vector/funded_tests.rs")),
+        "src/hir/selected_function.rs" => Some(include_str!("../../src/hir/selected_function.rs")),
         _ => None,
     }
 }
@@ -266,8 +267,6 @@ mod tests {
     fn root_before_invocation_metadata(root: &str) -> String {
         let mut restored = root.to_owned();
         for (after, before) in [
-            ("    compiled_sources::compiled(source)\n}\n#[cfg(test)]\nmod tests", "    compiled_sources::compiled(source)\n}\n\n#[cfg(test)]\nmod tests"),
-            ("use std::sync::{Arc, Mutex};\nconst PAGE_CAP:", "use std::sync::{Arc, Mutex};\n\nconst PAGE_CAP:"),
             ("        assert_eq!((loads.0.get(), loads.1.get()), (1, 1), \"both metadata loaders run once across both whole routes\");\n", ""),
             ("        // Borrow immutable metadata only. Both independently compiled routes\n        // still acquire current/archive bytes afresh for every supplied input.\n        let loads = (std::cell::Cell::new(0), std::cell::Cell::new(0));\n        let mut invocation = super::super::ProjectionInvocation::with_loaders(|| {\n            loads.0.set(loads.0.get() + 1);\n            super::super::packet()\n        }, || {\n            loads.1.set(loads.1.get() + 1);\n            super::super::clippy_stage::rows()\n        });\n        let mut value_direct = |source: &str, expected: &str, supplied: &str| {\n            let live = invocation.value_direct(source, expected, supplied);\n            let old = invocation.independent_old_value_direct(source, expected, supplied);\n            assert_eq!(live, old, \"complete old/live output or foreign refusal parity\");\n            live\n        };\n        super::super::packet_lookup::assert_independent_old_direct_source();\n", ""),
             ("pub(super) fn current(row: &Value) -> Result<String, &'static str> {\n", "fn current(row: &Value) -> Result<String, &'static str> {\n"),
@@ -286,6 +285,32 @@ mod tests {
         // source images, before any metadata or whole-source normalization.
         assert_eq!(root, ROOT);
         assert_eq!(child, CHILD);
+        // Reverse this exact later metadata scope and comment-only packing
+        // before every unchanged original span and whole-predecessor check.
+        let mut preceding_root = root.to_owned();
+        for source in [
+            "src/cleanup_plan.rs",
+            "src/cleanup_plan/replay/path_array/main44/mod.rs",
+            "src/cleanup_plan/replay/path_array/main44/source_domain.rs",
+            "src/source_reflows_merge/main44_custody.rs",
+        ] {
+            let declaration = format!("    {source:?},\n");
+            assert_eq!(preceding_root.matches(&declaration).count(), 1);
+            preceding_root = preceding_root.replacen(&declaration, "", 1);
+        }
+        for (packed, previous) in [
+            ("        // Borrow immutable metadata only. Both independently compiled routes still acquire current/archive bytes afresh for every supplied input.\n", "        // Borrow immutable metadata only. Both independently compiled routes\n        // still acquire current/archive bytes afresh for every supplied input.\n"),
+            ("pub(super) fn value_direct(source: &str, expected: &str, supplied: &str) -> String { // A whole logical-table view is selected only after its actual current physical, compiled and archive channels have authenticated. Preserve the complete historical stage fallback below for every other input.\n", "pub(super) fn value_direct(source: &str, expected: &str, supplied: &str) -> String {\n    // A whole logical-table view is selected only after its actual current physical, compiled and archive channels have authenticated. Preserve the complete historical stage fallback below for every other input.\n"),
+            ("    } // compose() authenticated policy membership against these exact constants.\n", "    }\n    // compose() authenticated policy membership against these exact constants.\n"),
+            ("        } // A genuine declared leaf edge has to use the complete same-scope row.\n", "        }\n        // A genuine declared leaf edge has to use the complete same-scope row.\n"),
+            ("        ); // Even a same-key forged DATA object cannot substitute a verdict.\n", "        );\n        // Even a same-key forged DATA object cannot substitute a verdict.\n"),
+            ("        assert!(Arc::ptr_eq(&first, &read(&mut data).unwrap())); // Matching physical bytes with foreign compiled bytes are still refused.\n", "        assert!(Arc::ptr_eq(&first, &read(&mut data).unwrap()));\n        // Matching physical bytes with foreign compiled bytes are still refused.\n"),
+        ] {
+            assert_eq!(preceding_root.matches(packed).count(), 1);
+            preceding_root = preceding_root.replacen(packed, previous, 1);
+        }
+        let preceding_root = root_before_invocation_metadata(&preceding_root);
+        let root = preceding_root.as_str();
         // Undo this exact later funded-test acquisition before the complete old inverses.
         let declaration = "    \"src/cleanup_plan/replay/sequence_vector/funded_tests.rs\",\n";
         assert_eq!(root.matches(declaration).count(), 1);
@@ -360,6 +385,15 @@ mod tests {
             assert_eq!(browser_child.matches(&arm).count(), 1);
             browser_child = browser_child.replacen(&arm, "", 1);
         }
+        let shared_canonical = "use fragments_v3::canonical;\n";
+        assert_eq!(browser_root.matches(shared_canonical).count(), 1);
+        let canonical_child = include_str!("main_e177_overlay_fragments_v3.rs");
+        let canonical_body = canonical_child.split_once("// Shared canonical metadata encoding; no source acquisition or authority.\n").unwrap().1;
+        assert_eq!(canonical_body.matches("pub(super) fn canonical(").count(), 1);
+        browser_root = browser_root.replacen(shared_canonical, &canonical_body.replacen("pub(super) fn canonical(", "fn canonical(", 1), 1);
+        let v10_dispatch = "    if page[\"schema\"] == fragments_v3::SCHEMA_V10 {\n        let expanded = fragments_v3::expand_v10(&before, policy, page)?;\n        compose_values_v2(before, policy, &expanded)\n    } else if page[\"schema\"] == fragments_v3::SCHEMA_V9 {";
+        assert_eq!(browser_root.matches(v10_dispatch).count(), 1);
+        browser_root = browser_root.replacen(v10_dispatch, "    if page[\"schema\"] == fragments_v3::SCHEMA_V9 {", 1);
         for (after, before) in [
             ("//! One fixed metadata overlay. Current source admission follows composition.\nuse super::{digest, held_4a6eb, SOURCE_CAP};\nuse serde_json::Value;\nuse std::collections::{BTreeMap, BTreeSet};\nuse std::path::Path;\nuse std::sync::{Arc, Mutex};\nconst PAGE_CAP: usize = 262144;\nconst REPLACEMENTS: &[&str] = &[\n    \"CHANGELOG.md\",\n    \"crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs\",\n    \"docs/ARCHITECTURE.md\",\n    \"docs/SUMMARY.md\",\n    \"src/cleanup_plan/replay.rs\",\n    \"src/cleanup_plan/replay/branch_clone/direct.rs\",\n    \"src/cleanup_plan/replay/branch_clone/direct/before.rs\",\n    \"src/cleanup_plan/replay/branch_clone/direct/tests.rs\",\n    \"src/cleanup_plan/replay/expression_facts/receiving/directory.rs\",\n    \"src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs\",\n    \"src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels.rs\",\n    \"src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs\",\n    \"src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests.rs\",\n    \"src/cleanup_plan/replay/skeleton_work.rs\",\n    \"src/source_reflows.rs\",\n    \"src/source_reflows/main_f247_controllers.rs\",\n    \"src/source_reflows_merge.rs\",\n    \"src/source_reflows_merge/main67107_inputs.rs\",\n    \"src/source_reflows_merge/main99f_inputs.rs\",\n", "//! One fixed metadata overlay. Current source admission follows composition.\nuse super::{digest, held_4a6eb, SOURCE_CAP};\nuse serde_json::Value;\nuse std::collections::{BTreeMap, BTreeSet};\nuse std::path::Path;\nuse std::sync::{Arc, Mutex};\nconst PAGE_CAP: usize = 262144;\n// Bound from the final original-parser source union; this draft grants no paths.\nconst REPLACEMENTS: &[&str] = &[\n    \"CHANGELOG.md\",\n    \"crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs\",\n    \"docs/ARCHITECTURE.md\",\n    \"docs/SUMMARY.md\",\n    \"src/cleanup_plan/replay.rs\",\n    \"src/cleanup_plan/replay/branch_clone/direct.rs\",\n    \"src/cleanup_plan/replay/branch_clone/direct/before.rs\",\n    \"src/cleanup_plan/replay/branch_clone/direct/tests.rs\",\n    \"src/cleanup_plan/replay/expression_facts/receiving/directory.rs\",\n    \"src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs\",\n    \"src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels.rs\",\n    \"src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs\",\n    \"src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests.rs\",\n    \"src/cleanup_plan/replay/skeleton_work.rs\",\n    \"src/source_reflows.rs\",\n    \"src/source_reflows/main_f247_controllers.rs\",\n    \"src/source_reflows_merge.rs\",\n    \"src/source_reflows_merge/main67107_inputs.rs\",\n    \"src/source_reflows_merge/main99f_inputs.rs\",\n"),
             ("fn normal(path: &str) -> bool {\n    !path.is_empty()\n        && !path.contains(['\\\\', ':', '\\0'])\n        && path\n            .split('/')\n            .all(|p| !p.is_empty() && p != \".\" && p != \"..\")\n}\nfn control(path: &str) -> bool {\n    [\n        POLICY_PATH,\n        PAGE_PATH,\n        EXTENSION_PATH,\n        \"src/source_reflows_merge/main_e177_final_inputs.rs\",\n        \"src/source_reflows_merge/main_e177_overlay_v2.rs\",\n        \"docs/evidence/finite-source-overlay-v2-20261018/overlay_page.py\",\n        \"docs/evidence/main-e177-final-source-binding-20261017/guard_payload.py\",\n        \"docs/evidence/merge-2e92-browser-20261018/guard-config.json\",\n    ]\n    .contains(&path)\n}\nfn canonical(value: &Value) -> Vec<u8> {\n    fn write(v: &Value, out: &mut String) {\n        match v {\n            Value::Object(map) => {\n                out.push('{');\n                for (i, (key, value)) in map.iter().collect::<BTreeMap<_, _>>().iter().enumerate() {\n                    if i != 0 {\n                        out.push(',');\n                    }\n                    out.push_str(&serde_json::to_string(key).unwrap());\n                    out.push(':');\n                    write(value, out);\n                }\n                out.push('}');\n            }\n            Value::Array(array) => {\n                out.push('[');\n                for (i, value) in array.iter().enumerate() {\n                    if i != 0 {\n                        out.push(',');\n                    }\n                    write(value, out);\n                }\n                out.push(']');\n            }\n            _ => out.push_str(&serde_json::to_string(v).unwrap()),\n        }\n    }\n    let mut result = String::new();\n    write(value, &mut result);\n    result.push('\\n');\n    result.into_bytes()\n}\nfn json(raw: &str) -> Result<Value, &'static str> {\n    let value: Value = serde_json::from_str(raw).map_err(|_| \"JSON syntax\")?;\n    require!(\n        canonical(&value) == raw.as_bytes(),\n        \"noncanonical or duplicate JSON\"\n    );\n    Ok(value)\n}\nfn pin(value: &Value) -> Result<(usize, &str, &str), &'static str> {\n    let length =\n        usize::try_from(value[\"length\"].as_u64().ok_or(\"length\")?).map_err(|_| \"length\")?;\n    let sha = value[\"sha256\"].as_str().ok_or(\"digest\")?;\n    let path = value[\"archive\"].as_str().ok_or(\"archive\")?;\n    require!(\n        length <= SOURCE_CAP && normal(path),\n        \"source bound or archive path\"\n    );\n    require!(\n        sha.len() == 64\n            && sha\n                .bytes()\n                .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)),\n", "fn normal(path: &str) -> bool {\n    !path.is_empty()\n        && !path.contains(['\\\\', ':', '\\0'])\n        && path\n            .split('/')\n            .all(|p| !p.is_empty() && p != \".\" && p != \"..\")\n}\nfn control(path: &str) -> bool {\n    [\n        POLICY_PATH,\n        PAGE_PATH,\n        EXTENSION_PATH,\n        \"src/source_reflows_merge/main_e177_final_inputs.rs\",\n        \"src/source_reflows_merge/main_e177_overlay_v2.rs\",\n        \"docs/evidence/finite-source-overlay-v2-20261018/overlay_page.py\",\n        \"docs/evidence/main-e177-final-source-binding-20261017/guard_payload.py\",\n        \"docs/evidence/merge-2e92-browser-20261018/guard-config.json\",\n    ]\n    .contains(&path)\n}\n// Canonical object keys only; arrays (including every inventory) keep their order.\nfn canonical(value: &Value) -> Vec<u8> {\n    fn write(v: &Value, out: &mut String) {\n        match v {\n            Value::Object(map) => {\n                out.push('{');\n                for (i, (key, value)) in map.iter().collect::<BTreeMap<_, _>>().iter().enumerate() {\n                    if i != 0 {\n                        out.push(',');\n                    }\n                    out.push_str(&serde_json::to_string(key).unwrap());\n                    out.push(':');\n                    write(value, out);\n                }\n                out.push('}');\n            }\n            Value::Array(array) => {\n                out.push('[');\n                for (i, value) in array.iter().enumerate() {\n                    if i != 0 {\n                        out.push(',');\n                    }\n                    write(value, out);\n                }\n                out.push(']');\n            }\n            _ => out.push_str(&serde_json::to_string(v).unwrap()),\n        }\n    }\n    let mut result = String::new();\n    write(value, &mut result);\n    result.push('\\n');\n    result.into_bytes()\n}\nfn json(raw: &str) -> Result<Value, &'static str> {\n    let value: Value = serde_json::from_str(raw).map_err(|_| \"JSON syntax\")?;\n    // This also rejects duplicate keys, alternate escaping, trailing bytes and alternate whitespace: none can reserialize to these exact complete bytes.\n    require!(\n        canonical(&value) == raw.as_bytes(),\n        \"noncanonical or duplicate JSON\"\n    );\n    Ok(value)\n}\nfn pin(value: &Value) -> Result<(usize, &str, &str), &'static str> {\n    let length =\n        usize::try_from(value[\"length\"].as_u64().ok_or(\"length\")?).map_err(|_| \"length\")?;\n    let sha = value[\"sha256\"].as_str().ok_or(\"digest\")?;\n    let path = value[\"archive\"].as_str().ok_or(\"archive\")?;\n    require!(\n        length <= SOURCE_CAP && normal(path),\n        \"source bound or archive path\"\n    );\n    require!(\n        sha.len() == 64\n            && sha\n                .bytes()\n                .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)),\n"),
@@ -436,19 +470,25 @@ mod tests {
         assert_eq!(root.matches(reader).count(), 1);
         let (head, tail) = root.split_once(reader).unwrap();
         let ordered_root = format!("{head}{tail}{reader}");
-        let root = ordered_root.as_str();
-        // Restore only the four token gaps removed to keep the current module
-        // within its source-size budget; every original inverse runs below.
-        let mut uncompressed_root = root.to_owned();
-        assert_eq!(&uncompressed_root[49557..49558], "\n");
-        uncompressed_root.replace_range(49557..49558, "\n\n");
-        assert_eq!(&uncompressed_root[49453..49454], "\n");
-        uncompressed_root.replace_range(49453..49454, "\n\n");
-        assert_eq!(&uncompressed_root[23915..23916], "\n");
-        uncompressed_root.replace_range(23915..23916, "\n\n");
-        assert_eq!(&uncompressed_root[239..240], "\n");
-        uncompressed_root.replace_range(239..240, "\n\n");
-        let root = uncompressed_root.as_str();
+        let mut ordered_root = ordered_root;
+        for (after, before) in [
+            ("    compiled_sources::compiled(source)\n}\n#[cfg(test)]\nmod tests", "    compiled_sources::compiled(source)\n}\n\n#[cfg(test)]\nmod tests"),
+            ("use std::sync::{Arc, Mutex};\nconst PAGE_CAP:", "use std::sync::{Arc, Mutex};\n\nconst PAGE_CAP:"),
+        ] {
+            assert_eq!(ordered_root.matches(after).count(), 1);
+            ordered_root = ordered_root.replacen(after, before, 1);
+        }
+        let mut joint_root = ordered_root.to_owned();
+        // The two branches restore these same gaps independently. Re-enter
+        // main's exact compact stage before its unchanged fixed-span checks.
+        for (expanded, packed) in [
+            ("    compiled_sources::compiled(source)\n}\n#[cfg(test)]\nmod tests", "    compiled_sources::compiled(source)\n}\n\n#[cfg(test)]\nmod tests"),
+            ("use std::sync::{Arc, Mutex};\nconst PAGE_CAP:", "use std::sync::{Arc, Mutex};\n\nconst PAGE_CAP:"),
+        ] {
+            assert_eq!(joint_root.matches(packed).count(), 1);
+            joint_root = joint_root.replacen(packed, expanded, 1);
+        }
+        let root = joint_root.as_str();
         let before = before();
         let old_additions = array(before, "ADDITIONS");
         let additions = array(root, "ADDITIONS");
@@ -470,6 +510,343 @@ mod tests {
             actual_lookup = actual_lookup.replacen(&arm, "", 1);
         }
         assert_eq!(actual_lookup, lookup(before), "ENTIRE old lookup body");
+        // The actual union inventories and ENTIRE lookup above precede this
+        // exact main-parent metadata projection. These literal declarations
+        // come from b60370fe3550f485707927eddf2ad5e266872a39's original
+        // restore_whole_before input stage immediately before its fixed gaps.
+        let mut historical_root = root.to_owned();
+        for (name, archived) in [
+            ("REPLACEMENTS", r#####"const REPLACEMENTS: &[&str] = &[
+    "CHANGELOG.md",
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "docs/ARCHITECTURE.md",
+    "docs/SUMMARY.md",
+    "src/cleanup_plan/replay.rs",
+    "src/cleanup_plan/replay/branch_clone/direct.rs",
+    "src/cleanup_plan/replay/branch_clone/direct/before.rs",
+    "src/cleanup_plan/replay/branch_clone/direct/tests.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/directory.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests.rs",
+    "src/cleanup_plan/replay/skeleton_work.rs",
+    "src/source_reflows.rs",
+    "src/source_reflows/main_f247_controllers.rs",
+    "src/source_reflows_merge.rs",
+    "src/source_reflows_merge/main67107_inputs.rs",
+    "src/source_reflows_merge/main99f_inputs.rs",
+    "src/source_reflows_merge/next_big_batch_inputs.rs",
+    "tests/hir_module_boundaries.rs",
+    "tests/workspace/semantic_graph.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs",
+    "src/cleanup_plan/replay/branch_clone/tests.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_selected_route.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/paid_many/tests.rs",
+    "src/cleanup_plan/replay/factored/continuation_receiver.rs",
+    "src/cleanup_plan/replay/factored/oracle_hook.rs",
+    "src/source_reflows/semantic_receivers.rs",
+    "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
+    "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+    "src/cleanup_plan/replay/factored.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_lexical_successors.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/census.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor.rs",
+    "src/workspace_graph/expected_projection/held_projection.rs",
+    "src/cleanup_plan/replay/expression_facts/arena/retained.rs",
+    "src/cleanup_plan/replay/expression_facts/arena/retained/tests.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/retained_lookup.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_census.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_tests.rs",
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity.rs",
+    "src/bounded_output.rs",
+    "src/cleanup/schema_summary/tests.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/tests.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/regions_entry/tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/paid_many/source.rs",
+    "src/cleanup_plan/replay/factored/strategy.rs",
+    "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+    "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+    "src/cleanup_plan/replay/path_join.rs",
+    "src/cleanup_plan/replay/physical_budget.rs",
+    "src/cleanup_plan/replay/selected_entry/tests/session_errors.rs",
+    "src/cleanup_plan/replay/semantic_refusal.rs",
+    "src/cleanup_plan/replay/semantic_refusal/tests.rs",
+    "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/before.rs",
+    "src/cleanup_plan/replay/structural_control/calls.rs",
+    "src/diagnostic/before_writer.rs",
+    "src/hir/declaration_index/identity_payer.rs",
+    "src/hir/expr_nodes.rs",
+    "src/hir/ids/fixed_operation_tests.rs",
+    "src/hir/lexical_exit.rs",
+    "src/hir/resolve_program.rs",
+    "src/hir/resolve_program_methods.rs",
+    "src/hir/validation.rs",
+    "src/loan_plan/paid_live.rs",
+    "src/loop_calls/byte_writer/resolved.rs",
+    "src/project/json_codec.rs",
+    "src/source_reflows/factored_sources.rs",
+    "src/source_reflows/incoming090_semantic_receivers.rs",
+    "src/source_reflows/incoming21_semantic_receivers.rs",
+    "src/source_reflows/incoming67107_semantic_receivers.rs",
+    "src/source_reflows/main043.rs",
+    "src/source_reflows/semantic_receivers_mainb80.rs",
+    "src/source_reflows_merge/current344.rs",
+    "src/source_reflows_merge/final_ready_inputs.rs",
+    "src/source_reflows_merge/main67107_inputs_tail.rs",
+    "src/source_reflows_merge/main7f8_source_inputs.rs",
+    "src/source_reflows_merge/main8a_historical.rs",
+    "src/source_reflows_merge/main_eb2_inputs.rs",
+    "src/source_reflows_merge/ordinary_plan_inputs.rs",
+    "src/source_reflows_merge/runtime_json.rs",
+    "src/source_verify/declaration.rs",
+    "src/workspace_graph.rs",
+    "src/workspace_graph/constructor_failure/receiving/typed/tests.rs",
+    "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/owned_growth_tests.rs",
+    "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
+    "src/workspace_graph/function_alias/before_core.rs",
+    "src/workspace_graph/function_alias/before_core/tests.rs",
+    "src/workspace_graph/source_schema/nominal_context/main8a.rs",
+    "src/workspace_graph/source_schema/static_text/tests.rs",
+    "src/workspace_graph/test_replay_context.rs",
+    "tests/doctor_production_provisioner_v1.rs",
+    "tests/project/standard_library/application_json.rs",
+    "tests/quality_routing.rs",
+    "tests/support/production_source_inventory.rs",
+    "tests/wasm/scalar_browser_ci_contract.rs",
+    "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+    "docs/evidence/main-e177-final-source-binding-20261017/current-projection-inputs.tsv",
+    "src/bounded_output/stage_debits/route_debits.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/matched_receiving_layers/successor_targets.rs",
+    "src/hir/ids/declaration_tag.rs",
+    "src/hir/ids/declaration_tag/before.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase_before.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase_tests.rs",
+    "src/cleanup_plan/replay/inventory_coverage/paid/queries.rs",
+    "src/cleanup_plan/replay/inventory_coverage/paid_before.rs",
+    "src/cleanup_plan/replay/inventory_coverage/typed_tests/selected_family.rs",
+    "src/cleanup_plan/replay/path_join/selected.rs",
+    "src/cleanup_plan/replay/path_join/selected/joins.rs",
+    "src/cleanup_plan/replay/path_join/selected/lexical_flow.rs",
+    "src/cleanup_plan/replay/path_join/selected/queries.rs",
+    "src/cleanup_plan/replay/path_join/selected/renewal.rs",
+    "src/cleanup_plan/replay/path_join/selected/strings.rs",
+    "src/cleanup_plan/replay/path_join/selected/tests/history.rs",
+    "src/cleanup_plan/replay/path_join/selected/tests/lookup.rs",
+    "src/cleanup_plan/replay/path_join/selected/walk.rs",
+    "src/cleanup_plan/replay/schema/selected_paid.rs",
+    "src/cleanup_plan/replay/selected_entry/tests/paid/selected_family.rs",
+    "src/cleanup_plan/replay/structural_control/selected.rs",
+    "src/cleanup_plan/replay/structural_control/selected/blocks.rs",
+    "src/cleanup_plan/replay/structural_control/selected/calls.rs",
+    "src/cleanup_plan/replay/structural_control/selected/helpers.rs",
+    "src/cleanup_plan/replay/structural_control/selected/place_before_formals.rs",
+    "src/cleanup_plan/replay/structural_control/selected/tests/boundary.rs",
+    "src/cleanup_plan/replay/inventory_coverage.rs",
+    "src/cleanup_plan/replay/inventory_coverage/paid.rs",
+    "src/cleanup_plan/replay/lexical_replay.rs",
+    "src/cleanup_plan/replay/scalar_replay.rs",
+    "src/iterator_ops.rs",
+];"#####),
+            ("ADDITIONS", r#####"const ADDITIONS: &[&str] = &[
+    "src/cleanup_plan/renewal_profile.rs",
+    "src/cleanup_plan/renewal_profile/funded.rs",
+    "src/cleanup_plan/renewal_profile/funded_receiving.rs",
+    "src/cleanup_plan/replay/expression_facts/arena/retained/into_tests.rs",
+    "src/cleanup_plan/replay/expression_facts/arena/retained_into.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests/receiving.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/retained_lookup_before_receiving.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase_before_receiving.rs",
+    "src/cleanup_plan/replay/ordinary_receiving.rs",
+    "src/cleanup_plan/replay/ordinary_receiving/caller_before.rs",
+    "src/cleanup_plan/replay/ordinary_receiving/tests.rs",
+    "src/cleanup_plan/replay/skeleton_work/dag_storage.rs",
+    "src/cleanup_plan/replay/skeleton_work/receiving.rs",
+    "src/hir/lexical_exit/owner_funded.rs",
+    "src/hir/lexical_exit/owner_funded_receiving.rs",
+    "src/literal_format.rs",
+    "src/literal_format/funded.rs",
+    "src/literal_format/funded_receiving.rs",
+    "src/string_ops/conditions.rs",
+    "src/string_ops/conditions/funded.rs",
+    "src/string_ops/conditions/funded_receiving.rs",
+    "src/cleanup_plan/replay/expression_facts/errors.rs",
+    "docs/ORDINARY-REPLAY-RECEIVING-V1.md",
+    "src/hir/ids/declaration_backing_tests.rs",
+    "src/cleanup_plan/replay/factored/before_inline_singleton.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/inline_exit.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/inline_exit/census.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/borrowed_single.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/terminal_leaf.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_paired.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value.rs",
+    "src/source_reflows_merge/runtime_json/sealed_io.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_flat_view.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_fused_flat.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/combined_pair_scope_tests.rs",
+    "src/ast/program_source/function_alias/scalar_signature.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_block_before.rs",
+    "src/workspace_graph/constructor_failure/before_scalar_dispatch.rs",
+    "src/workspace_graph/expected_projection/borrowed_imports/typed/before_scalar_signature.rs",
+    "src/workspace_graph/expected_projection/borrowed_imports/typed/scalar_signature_tests.rs",
+    "src/ast/program_source/function_alias/before_string.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_retained_tail.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_before_tail.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/matched_tail_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_tail.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/source_format.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source.rs",
+    "src/source_reflows_merge/main_e177_historical_before_data.rs",
+    "src/source_reflows_merge/main_e177_historical_data.rs",
+    "src/source_reflows_merge/main_e177_historical_data_tests.rs",
+    "src/source_reflows_merge/main_e177_overlay_fragments_v3.rs",
+    "src/workspace_graph/expected_projection/borrowed_imports/typed/before_string_signature.rs",
+    "src/workspace_graph/expected_projection/borrowed_imports/typed/string_signature_tests.rs",
+    "src/workspace_graph/expected_projection/call_carriers.rs",
+    "src/workspace_graph/expected_projection/call_carriers_historical_tests.rs",
+    "src/workspace_graph/expected_projection/call_carriers_inverse.rs",
+    "src/workspace_graph/expected_projection/call_carriers_original.rs",
+    "src/workspace_graph/expected_projection/call_carriers_tests.rs",
+    "src/ast/program_source/decl_slices.rs",
+    "src/workspace_graph/expected_projection/borrowed_imports/typed.rs",
+    "src/workspace_graph/expected_projection/borrowed_imports/typed/alias.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_prepared_pairing.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_before_prepared_links.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/prepared_pairing_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links.rs",
+    "src/workspace_graph/expected_projection/call_carriers_before_directory.rs",
+    "src/workspace_graph/expected_projection/call_carriers_directory.rs",
+    "src/workspace_graph/expected_projection/call_carriers_directory_tests.rs",
+    "src/workspace_graph/expected_projection.rs",
+    "src/workspace_graph/expected_projection/prelude_forecast_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_identity_prefix.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_before_identity.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_identity.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_reachable_primitives.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_reachable_before.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/reachable_pair_scope_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_event_prefix.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_shared_steps.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_shared_steps.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main99_pair_scope_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_event.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_before_event.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_before_event_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_event_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/shared_steps.rs",
+    "src/cleanup_plan/replay/lexical_replay/operand_tests/source.rs",
+    "src/workspace_graph/expected_projection/private_layout/capacity_tests/source.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_certified_heads.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_shared_runs.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_before_certified.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_shared_runs.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main7e_pair_scope_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_certified.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_before_certified.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/shared_steps/shared_boundaries.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/shared_steps/shared_boundaries/shared_runs.rs",
+    "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs",
+    "src/workspace_graph/cold_canonical/tests.rs",
+    "src/workspace_graph/expected_projection/cost.rs",
+    "src/bounded_output/stage_debits/route_debits/json_codec_probe.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_main001.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_main487.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_main_b692.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_pair_links.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_paired_tail.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/borrowed_reader_composition_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads_pair_links.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads_paired_tail.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_main001.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_main487.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_main_b692.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_pair_links.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_paired_tail.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main001_pair_scope_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main487_pair_scope_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main_b692_pair_scope_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main_b692_paired_tails.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_link_composition_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_tail_composition_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_pair_links.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_paired_tail.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_pair_links.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_paired_tail.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/constructor.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/fused_readers.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/json_ledger.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/paired_tails.rs",
+    "src/source_reflows_merge/main_e177_overlay_compiled.rs",
+    "src/source_reflows_merge/main_e177_packet_lookup.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_empty_selector.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads_before_empty.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/empty_selector_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_before_empty.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_empty.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_before_empty.rs",
+    "src/test_allocation_observer/backing.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_final_affine.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads_before_final_affine.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/final_affine.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/final_affine_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_before_final_affine.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_final_affine.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_before_final_affine.rs",
+    "src/bounded_output/exclusive_debits.rs",
+    "src/hir/ids/lowering_identity_tests.rs",
+    "src/hir/owned_collection_record/identity_before.rs",
+    "src/hir/resolve_expr/sort_keys/identity_before.rs",
+    "src/hir/resolve_expr/sort_keys/identity_tests.rs",
+    "src/hir/resolve_for/identity_before.rs",
+    "src/hir/resolve_for_own/identity_before.rs",
+    "src/source_reflows_merge/main_e177_overlay_pins_v9.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/frontier_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/fixture_helpers.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/lexical_cursor.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/mod.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/pair_scope_census.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/pair_scope_tests.rs",
+    "src/bounded_output/stage_debits/route_debits/retained_main_289.rs",
+];"#####),
+            ("POLICY_LENGTH", r#####"const POLICY_LENGTH: usize = 106728;"#####),
+            ("POLICY_SHA256", r#####"const POLICY_SHA256: &str = "4f331f9b8e0dab9f71fa0e722354c8f1cc52fc3b8e7b9a1fac4902836a8bd3b3";"#####),
+        ] {
+            let at = constant(&historical_root, name);
+            historical_root.replace_range(at, archived);
+        }
+        assert_eq!(historical_root.len(), 68651);
+        assert_eq!(super::super::digest(historical_root.as_bytes()), "d1e54d6502b6ee61b2f33541de88a897340693cd5d810bffaea4fac29c2f46d1");
+        let root = historical_root.as_str();
+        // Restore only the four token gaps removed to keep the current module
+        // within its source-size budget; every original inverse runs below.
+        let mut uncompressed_root = root.to_owned();
+        assert_eq!(&uncompressed_root[49557..49558], "\n");
+        uncompressed_root.replace_range(49557..49558, "\n\n");
+        assert_eq!(&uncompressed_root[49453..49454], "\n");
+        uncompressed_root.replace_range(49453..49454, "\n\n");
+        assert_eq!(&uncompressed_root[23915..23916], "\n");
+        uncompressed_root.replace_range(23915..23916, "\n\n");
+        assert_eq!(&uncompressed_root[239..240], "\n");
+        uncompressed_root.replace_range(239..240, "\n\n");
+        let root = uncompressed_root.as_str();
         assert_eq!(root.matches(GLUE).count(), 1);
         let mut restored = root.replacen(GLUE, &actual_lookup, 1);
         // The later same-invocation reader is a complete additive function.
@@ -511,15 +888,6 @@ mod tests {
 "####;
         assert_eq!(restored.matches(context_reader).count(), 1);
         restored = restored.replacen(context_reader, "", 1);
-        let shared_canonical = "use fragments_v3::canonical;\n";
-        assert_eq!(restored.matches(shared_canonical).count(), 1);
-        let canonical_child = include_str!("main_e177_overlay_fragments_v3.rs");
-        let canonical_body = canonical_child.split_once("// Shared canonical metadata encoding; no source acquisition or authority.\n").unwrap().1;
-        assert_eq!(canonical_body.matches("pub(super) fn canonical(").count(), 1);
-        restored = restored.replacen(shared_canonical, &canonical_body.replacen("pub(super) fn canonical(", "fn canonical(", 1), 1);
-        let v10_dispatch = "    if page[\"schema\"] == fragments_v3::SCHEMA_V10 {\n        let expanded = fragments_v3::expand_v10(&before, policy, page)?;\n        compose_values_v2(before, policy, &expanded)\n    } else if page[\"schema\"] == fragments_v3::SCHEMA_V9 {";
-        assert_eq!(restored.matches(v10_dispatch).count(), 1);
-        restored = restored.replacen(v10_dispatch, "    if page[\"schema\"] == fragments_v3::SCHEMA_V9 {", 1);
         let v9_dispatch = "    if page[\"schema\"] == fragments_v3::SCHEMA_V9 {\n        let expanded = fragments_v3::expand_v9(&before, policy, page)?;\n        compose_values_v2(before, policy, &expanded)\n    } else if page[\"schema\"] == fragments_v3::SCHEMA_V8 {";
         assert_eq!(restored.matches(v9_dispatch).count(), 1);
         restored = restored.replacen(

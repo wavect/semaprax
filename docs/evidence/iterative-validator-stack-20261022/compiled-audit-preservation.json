@@ -1,0 +1,6 @@
+{
+  "status": "ALL_ORIGINAL_COMPILED_LOOKUP_AUDIT_BYTES_PRESERVED",
+  "added_normalization": "Exact four source declarations and four comment-only line packings; original current root/child binding assertions run first; every original fixed span and whole-source inverse runs unchanged",
+  "current_sha256": "292c35433afc72999d10e69c46cef1186d3e10d26c2fdce285b9a3fa21fd96d5",
+  "before_sha256": "97a1ffca7ff784709bd3a500590a50e5dc71cf0d5e79a684678bfbede3083f53"
+}

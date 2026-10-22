@@ -1,0 +1,73 @@
+{
+  "status": "ORIGINAL_CURRENT_CODEC_COMPOSITION_PASS_PENDING_PUBLICATION",
+  "base_head": "29331e043aae0e7da8cfd798ba5082bf4c1efd15",
+  "rows": 697,
+  "page_bytes": 254402,
+  "published_current_preserved_as_exact_views": [
+    {
+      "source": "src/hir/validation.rs",
+      "view": {
+        "length": 401447,
+        "sha256": "e55ab44dd3716bddef9e34df4554673c76a040ceef05d96bbda7c3c958c3f780",
+        "archive": "docs/evidence/runtime-history-20261021/current/e55ab44dd3716bddef9e34df4554673c76a040ceef05d96bbda7c3c958c3f780.txt",
+        "name": "whole-pre-iterative-stack-293a6b5cc8"
+      }
+    },
+    {
+      "source": "src/cleanup_plan.rs",
+      "view": {
+        "length": 33726,
+        "sha256": "144f255bb216245a2ef49c197b60659e2b725c45c0ca05209ebe16feb3e34920",
+        "archive": "docs/evidence/fmt-a110/FE8lW7IWJFou9JwZe2BlnityXEXAygUgnr4W_rPjSSA.txt",
+        "name": "whole-pre-iterative-stack-293a6b5cc8"
+      }
+    },
+    {
+      "source": "src/cleanup_plan/replay.rs",
+      "view": {
+        "length": 326264,
+        "sha256": "cc999fb9034687101cb5d34db54ed4ea58289ac6d9f9f7fae9f53e693231f74a",
+        "archive": "docs/evidence/compact-byte-errors-20261021/current/cc999fb9034687101cb5d34db54ed4ea58289ac6d9f9f7fae9f53e693231f74a.txt",
+        "name": "whole-pre-iterative-stack-293a6b5cc8"
+      }
+    },
+    {
+      "source": "src/cleanup_plan/replay/path_array/main44/mod.rs",
+      "view": {
+        "length": 4989,
+        "sha256": "6e06fd0183131f8ce84e1e06c75dc59f73924cdda75b0847a703ae82873a4d70",
+        "archive": "docs/evidence/fmt-a110/bgb9AYMTH4zoTh4Gx13Fn3OSTN2nWwhHpwOugoc6TXA.txt",
+        "name": "whole-pre-iterative-stack-293a6b5cc8"
+      }
+    },
+    {
+      "source": "src/cleanup_plan/replay/path_array/main44/source_domain.rs",
+      "view": {
+        "length": 8715,
+        "sha256": "bd3601dd89c378fc55acae9c2af6a2fc281e29f080482db377e5199e6192440d",
+        "archive": "docs/evidence/fmt-a110/vTYB3YnDePxVrK6cKvai_CgeKfCASC2zd-UZnmGSRA0.txt",
+        "name": "whole-pre-iterative-stack-293a6b5cc8"
+      }
+    },
+    {
+      "source": "src/source_reflows_merge/main44_custody.rs",
+      "view": {
+        "length": 3553,
+        "sha256": "e3f376464d8d9044c1c474e0e41d684ca0cb5fdbbbeb6e0a3a5debd90fb7aec2",
+        "archive": "docs/evidence/fmt-a110/4_N2Rk2NkETBxHTg5B1oTKDLX9u7624KOl3r2Q-3rsI.txt",
+        "name": "whole-pre-iterative-stack-293a6b5cc8"
+      }
+    },
+    {
+      "source": "src/source_reflows_merge/main_e177_overlay_compiled.rs",
+      "view": {
+        "length": 79793,
+        "sha256": "97a1ffca7ff784709bd3a500590a50e5dc71cf0d5e79a684678bfbede3083f53",
+        "archive": "docs/evidence/compile35f-reader-20261021/current/97a1ffca7ff784709bd3a500590a50e5dc71cf0d5e79a684678bfbede3083f53.txt",
+        "name": "whole-pre-iterative-stack-293a6b5cc8"
+      }
+    }
+  ],
+  "all_previous_fields_views_memberships_and_fragment_edges_retained": true,
+  "all_original_codec_bodies_and_caps_unchanged": true
+}

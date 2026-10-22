@@ -1,0 +1,23 @@
+[
+  {
+    "name": "source_reflows_merge::main_e177_final_inputs::overlay_v2::compiled_sources::tests::compiled_lookup_split_preserves_the_complete_predecessor_and_every_old_mapping",
+    "status": "PASS",
+    "actual_original_test_under_lldb": true,
+    "peak_RSS_telemetry_KiB": 101760,
+    "process_RSS_cap": null
+  },
+  {
+    "name": "source_reflows_merge::main_e177_final_inputs::overlay_v2::compiled_sources::tests::compiled_lookup_split_refuses_child_parent_span_eof_and_duplicate_glue",
+    "status": "PASS",
+    "actual_original_test_under_lldb": true,
+    "peak_RSS_telemetry_KiB": 84384,
+    "process_RSS_cap": null
+  },
+  {
+    "name": "cleanup_plan::replay::path_array_main44::source_domain::every_current_source_has_the_exact_complete_incoming_main44_preimage",
+    "status": "PASS",
+    "actual_original_test_under_lldb": true,
+    "peak_RSS_telemetry_KiB": 176992,
+    "process_RSS_cap": null
+  }
+]

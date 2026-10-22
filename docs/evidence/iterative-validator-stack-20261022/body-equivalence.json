@@ -1,0 +1,14 @@
+{
+  "status": "ALL_ORIGINAL_ARM_TOKENS_AND_FRAME_LAYOUT_DECLARATION_PRESERVED",
+  "frame_arms": 43,
+  "expression_arms": 37,
+  "outer_loop_continues_converted_to_successful_phase_return": 2,
+  "all_original_diagnostics_checks_order_and_literals_preserved": true,
+  "optional_rustfmt_trailing_commas_normalized": true,
+  "receiver_self_spelled_validator": true,
+  "static_place_availability_type_spelled_HirValidator": true,
+  "enter_scope_mutability_owned_by_inner_phase_parameter": true,
+  "before_sha256": "e55ab44dd3716bddef9e34df4554673c76a040ceef05d96bbda7c3c958c3f780",
+  "current_sha256": "920615e565f4743cf5ed867ebe55e228d4f38c1f8c61c6edd0a98e2b4f4a246c",
+  "scope": "mechanical body extraction only; executable qualification separate"
+}

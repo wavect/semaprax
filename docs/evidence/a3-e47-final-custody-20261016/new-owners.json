@@ -346,8 +346,8 @@
   },
   {
     "source": "src/cleanup_plan/replay/path_array/main44/mod.rs",
-    "sha256": "6e06fd0183131f8ce84e1e06c75dc59f73924cdda75b0847a703ae82873a4d70",
-    "lines": 156
+    "sha256": "26665d0ca20671973ee50e0eaf8e86514bb929fe125ac6cb01e46506e7dbd8d6",
+    "lines": 160
   },
   {
     "source": "src/cleanup_plan/replay/path_array/main44/sequence.rs",
@@ -366,8 +366,8 @@
   },
   {
     "source": "src/cleanup_plan/replay/path_array/main44/source_domain.rs",
-    "sha256": "bd3601dd89c378fc55acae9c2af6a2fc281e29f080482db377e5199e6192440d",
-    "lines": 47
+    "sha256": "40e1e84dd96d2a6e189fb0094f086d51101039b0e80e3283b3cc47d7bda8c554",
+    "lines": 53
   },
   {
     "source": "src/cleanup_plan/replay/path_array/main44/tests.rs",
@@ -716,8 +716,8 @@
   },
   {
     "source": "src/source_reflows_merge/main44_custody.rs",
-    "sha256": "e3f376464d8d9044c1c474e0e41d684ca0cb5fdbbbeb6e0a3a5debd90fb7aec2",
-    "lines": 87
+    "sha256": "ad7df65a1b2d9274361f5ee07db261032f30a589b7192d3832238d833e684146",
+    "lines": 235
   },
   {
     "source": "src/source_reflows_merge/main67107_inputs.rs",
@@ -761,7 +761,7 @@
   },
   {
     "source": "src/source_reflows_merge/ordinary_plan_inputs.rs",
-    "sha256": "904b1dacb5cd5c6f944a8dbfb9d59a6a76bf2480f937cf3f5c9ab86896a33254",
+    "sha256": "e1427e64cb253d1ce05ea58ba4e7562b1719a1f317b17ef56328d7253eb85352",
     "lines": 520
   },
   {
@@ -1701,8 +1701,8 @@
   },
   {
     "source": "src/source_reflows_merge/main_e177_overlay_v2.rs",
-    "sha256": "32404349372ecb4543b8f5f0435b3781b356434c5220c5ed70a2fbb0cef2ab7a",
-    "lines": 1496
+    "sha256": "1dbd3dc097320de9c494607781a8bf862130215e03558638ebb38e08381b1e95",
+    "lines": 1500
   },
   {
     "source": "src/string_ops/conditions/funded_receiving.rs",
@@ -2226,8 +2226,8 @@
   },
   {
     "source": "src/source_reflows_merge/main_e177_overlay_compiled.rs",
-    "sha256": "e9881c82a2e50c4a0031cc90550873d88107d46d868055351a5de4505528bf42",
-    "lines": 610
+    "sha256": "bbfd84f7363a1909cd70682cdc60d2c0dd7092c472f128cf59da2b5729988668",
+    "lines": 978
   },
   {
     "source": "src/source_reflows_merge/main_e177_packet_lookup.rs",

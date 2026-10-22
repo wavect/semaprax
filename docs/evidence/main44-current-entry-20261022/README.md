@@ -1,5 +1,9 @@
 # Fixed Main44 entry custody
 
+Status: partial CI repair evidence; qualification is limited to the checks recorded below.
+
+Audience: compiler maintainers and CI reviewers.
+
 The original 26-key owner and authenticated immutable inverse table remain
 unchanged. Each sealed entry is reconstructed from its complete original source
 by reversing every original inverse step. All 26 entries then replay every

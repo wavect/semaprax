@@ -1,5 +1,9 @@
 # Intrinsic constructor snapshot entry after profile iteration
 
+Status: partial CI repair evidence; qualification is limited to the checks recorded below.
+
+Audience: compiler maintainers and CI reviewers.
+
 The original constructor snapshot audit at main 39de740bd3 compared current
 profile iteration against a complete earlier source fixture. The dedicated
 entry adapter authenticates whole supplied, compiled, and fresh physical

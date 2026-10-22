@@ -1,5 +1,9 @@
 # Exact entry stages for legacy CI source inverses
 
+Status: partial CI repair evidence; qualification is limited to the checks recorded below.
+
+Audience: compiler maintainers and CI reviewers.
+
 The unchanged ordinary-setup audit failed at main dbf6fed71b because its
 CI input inventory received the later replay and factored source bodies.
 Both required inputs already exist as exact named whole views in the current

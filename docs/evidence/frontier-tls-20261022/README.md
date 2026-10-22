@@ -1,5 +1,9 @@
 # Allocation-free frontier observations outside static TLS
 
+Status: partial CI repair evidence; qualification is limited to the checks recorded below.
+
+Audience: compiler maintainers and CI reviewers.
+
 The exact original 128 KiB constructor test still faulted in Linux run
 39826150007 at dbf6fed71b after removing optional PLAN rows from static TLS.
 The actual ELF TLS segment was 0x39570 bytes (234864). The remaining test-only

@@ -1,5 +1,9 @@
 # Optional PLAN profiling storage and low-stack diagnosis
 
+Status: partial CI repair evidence; qualification is limited to the checks recorded below.
+
+Audience: compiler maintainers and CI reviewers.
+
 The original Linux unit-profile run 39816691203 at main 86c08798e7
 faulted in lexical_exit::walk::scan during HirValidator::new inside the
 unchanged 128 KiB indexed-match admission test. This capture is a failing

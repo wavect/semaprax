@@ -1860,3 +1860,21 @@ Audience: all documentation readers.
 - [Linux browser graph pin capture](evidence/browser-pins-20261021/README.md)
 
 - [Residual payload layout evidence](evidence/residual-layout-20261021/README.md)
+
+- [Current source custody and compact byte transports](evidence/canonical-byte-source-20261022/README.md)
+
+- [Exact entry stages for legacy CI source inverses](evidence/ci-history-entry-20261022/README.md)
+
+- [Allocation-free frontier observations outside static TLS](evidence/frontier-tls-20261022/README.md)
+
+- [Intrinsic constructor snapshot entry after profile iteration](evidence/intrinsic-profile-entry-20261022/README.md)
+
+- [Iterative validator stack boundaries](evidence/iterative-validator-stack-20261022/README.md)
+
+- [Current instrumentation source custody](evidence/lazy-test-instrumentation-current-20261022/README.md)
+
+- [Fixed Main44 entry custody](evidence/main44-current-entry-20261022/README.md)
+
+- [Optional PLAN profiling storage and low-stack diagnosis](evidence/optional-profile-tls-20261022/README.md)
+
+- [Paid constructor snapshot entry after diagnostic and profile changes](evidence/paid-constructor-entry-20261022/README.md)

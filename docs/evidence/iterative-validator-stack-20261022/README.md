@@ -1,5 +1,9 @@
 # Iterative validator stack boundaries
 
+Status: partial CI repair evidence; qualification is limited to the checks recorded below.
+
+Audience: compiler maintainers and CI reviewers.
+
 An actual normal compiler reproduction of the original complete `INDEXED_LOOP`
 source aborts during public HIR validation on a 128 KiB thread. The original
 unoptimized iterative dispatcher reserves approximately 288 KiB. This public

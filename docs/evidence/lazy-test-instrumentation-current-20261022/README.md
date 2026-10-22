@@ -1,5 +1,9 @@
 # Current instrumentation source custody
 
+Status: partial CI repair evidence; qualification is limited to the checks recorded below.
+
+Audience: compiler maintainers and CI reviewers.
+
 The CI diagnostic preflight had three source-audit errors after allocator backing
 moved and forecast instrumentation acquired module/step attribution. The audit
 now authenticates the whole current root and the allocator's explicit shared

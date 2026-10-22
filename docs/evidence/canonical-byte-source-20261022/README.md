@@ -1,5 +1,9 @@
 # Source custody and compact byte transports at 1a4385642
 
+Status: partial CI repair evidence; qualification is limited to the checks recorded below.
+
+Audience: compiler maintainers and CI reviewers.
+
 This records the incremental CI repair captured at `1a4385642bb412366957085a9b917cbbc0c60495`. It does not qualify the full main CI suite.
 
 The historical additive generator uses the byte-identical sealed registration parser and

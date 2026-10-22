@@ -1,5 +1,9 @@
 # Paid constructor snapshot entry after diagnostic and profile changes
 
+Status: partial CI repair evidence; qualification is limited to the checks recorded below.
+
+Audience: compiler maintainers and CI reviewers.
+
 The original paid-custody source audit failed on a later directory observer
 block and two current stdin traversal expressions. Two exact whole-source
 entry inverses now belong only to the original paid-custody controller.

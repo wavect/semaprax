@@ -761,7 +761,7 @@
   },
   {
     "source": "src/source_reflows_merge/ordinary_plan_inputs.rs",
-    "sha256": "bbf570734d597c486e09522b257130371140f60be7ca3b2ccdd9d861c42a409e",
+    "sha256": "904b1dacb5cd5c6f944a8dbfb9d59a6a76bf2480f937cf3f5c9ab86896a33254",
     "lines": 520
   },
   {
@@ -1701,8 +1701,8 @@
   },
   {
     "source": "src/source_reflows_merge/main_e177_overlay_v2.rs",
-    "sha256": "86227b4977040ef96b04f28471a6ba96feba1045080d9d21b3c6e46177e4373a",
-    "lines": 1493
+    "sha256": "a57742d0cfc57465dff4d7f4e649b6454e9c262259a79c4cc56e5039ddab519b",
+    "lines": 1495
   },
   {
     "source": "src/string_ops/conditions/funded_receiving.rs",
@@ -2311,8 +2311,8 @@
   },
   {
     "source": "src/hir/ids/lowering_identity_tests.rs",
-    "sha256": "5fe9e681d8ebda189c26c436b56e675f7ad7b915c7e767dfe3b84103a54a1d2f",
-    "lines": 637
+    "sha256": "9abd8bea4e7ea9c8c8df8976510f9f281f45dcb5827c56a02889446f37810512",
+    "lines": 735
   },
   {
     "source": "src/hir/owned_collection_record/identity_before.rs",
@@ -2428,5 +2428,10 @@
     "source": "src/source_reflows_merge/main_e177_overlay_pins_v10.rs",
     "sha256": "328669b88dbafd489e7efaba97b2fd42e48f3d6661e475b02020b4752ea89672",
     "lines": 367
+  },
+  {
+    "source": "src/hir/selected_function.rs",
+    "sha256": "42c22aa886c0b7774ecbe123524417443e47ff3eab7639821bc2d62b7869eff0",
+    "lines": 122
   }
 ]

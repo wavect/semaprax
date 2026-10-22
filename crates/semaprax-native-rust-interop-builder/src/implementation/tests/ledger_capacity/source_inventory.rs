@@ -637,7 +637,7 @@ macro_rules! hir_resolver_source_inventory {
                 "\n",
                 include_str!("../../../../../src/hir/byte_capacity/fused_selection.rs"),
                 "\n",
-                include_str!("../../../../../src/hir/selected_fused_candidate.rs"),
+                include_str!("../../../../../src/hir/selected_fused_candidate.rs"), include_str!("../../../../../src/hir/selected_function.rs"),
                 "\n",
                 include_str!("../../../../../src/hir/selected_fused_candidate/resolution.rs"),
                 "\n",
@@ -987,7 +987,6 @@ macro_rules! hir_validator_source_inventory {
             include_str!("../../../../../src/hir/validation/variant_or.rs"),
             include_str!("../../../../../src/hir/validation/variant_or/covered.rs"),
             include_str!("../../../../../src/hir/validation/variant_or/covered/tests.rs"),
-
             include_str!("../../../../../src/hir/validation/iterative_while_admission_tests.rs"),
         )
     };

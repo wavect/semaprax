@@ -1054,8 +1054,6 @@
         "tests/wasm/scalar_browser_ci_contract/next_actual.rs"
       ],
       "current_members": [
-        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
-        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
         "docs/evidence/compact-staged-hostile-owner-852-20261016/before/oracle-order-tests.rs",
         "docs/evidence/format-hygiene-scratch-v1/expression_statement.before.rs.txt",
         "docs/evidence/receiver-source-custody-v1/src__hir__expr_nodes.rs.before.txt",
@@ -2217,6 +2215,7 @@
         "src/string_ops/take.rs",
         "src/string_ops/take/tests.rs",
         "src/test_allocation_observer.rs",
+        "src/test_allocation_observer/backing.rs",
         "src/test_allocation_observer/free_order.rs",
         "src/workspace_graph/diagnostics/initial.rs",
         "src/workspace_graph/diagnostics/initial/context.rs",
@@ -2896,9 +2895,9 @@
         "src/workspace_graph/expected_projection/uncached_peak.rs",
         "src/workspace_graph/expected_projection/vec_constructor.rs"
       ],
-      "full_manifest_sha256": "83e369206b865a84fd283c0ed294f878ed31da6ae130660d569f05bef0c8a2b2",
-      "full_raw_sha256": "f05928aa0e6805a89033cea45020b7880606c61906cadea5cbde775fbd55252d",
-      "full_authenticated_production_sha256": "180fe49c0ee81426b2d8e0871a0582ed88836f80113f7658787812fc1dc08bfb"
+      "full_manifest_sha256": "792d517debc9ab1dcd17b8fa6aaf9fd398382102183de00483918acc2d0a7790",
+      "full_raw_sha256": "053cc92ea174343596cda4543cf570e4ad08cbfa085d8601cdccc767cf0f19ba",
+      "full_authenticated_production_sha256": "6431cdab18934eb2d3bff3fe2c65074ebc6df52ddae01ee6c429082455cfa9a1"
     },
     "projection": {
       "baseline": "a82e00cc83f99b16249181c45710d962598577db",
@@ -3085,8 +3084,6 @@
         "tests/wasm/scalar_browser_ci_contract/main_c451_before_2600.rs"
       ],
       "current_members": [
-        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
-        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
         "docs/evidence/receiver-source-custody-v1/src__hir__expr_nodes.rs.before.txt",
         "src/ast/program_source.rs",
         "src/ast/program_source/checked_key.rs",
@@ -3836,6 +3833,7 @@
         "src/hir/row_loan/validate.rs",
         "src/hir/row_loan/validate/budget.rs",
         "src/hir/row_loan/validate/comparisons.rs",
+        "src/hir/selected_function.rs",
         "src/hir/selected_fused_candidate.rs",
         "src/hir/selected_fused_candidate/resolution.rs",
         "src/hir/static_text.rs",
@@ -3972,9 +3970,9 @@
         "src/source_verify/declaration/identity.rs",
         "src/source_verify/declaration/record_shape.rs"
       ],
-      "full_manifest_sha256": "521e1f50bdb39bfdc3849260d25aac613a4b9ffd8106c0cb1a0719da93dc9ec4",
-      "full_raw_sha256": "8b80d6fda147fd1de8a57be3da8bdc2857bd2ab6ae6bd933175b4adb934becea",
-      "full_authenticated_production_sha256": "2c0b9133987809d43d89d6777f52115609cb603b1bfecf48be25bd62b4cfd2fd"
+      "full_manifest_sha256": "8c4d0e1c4f6b91f46697e32a8227fb74448c224be562e99ab73e7ccc4d43db56",
+      "full_raw_sha256": "73d3ad8a39f8a94a31f12d832265d55be4b83c21e31ada4dacad507d0b9670eb",
+      "full_authenticated_production_sha256": "6df29864f748dcfbc4957379d956f87579921ccfa22f47afff2d56cfee20a60d"
     }
   }
 }

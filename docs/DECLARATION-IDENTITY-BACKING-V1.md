@@ -41,6 +41,8 @@ remain separate; unchanged outer Diagnostic rendering is not claimed funded. The
 private static representation is not serialized, so a decode returns ordinary
 shared text without transferring compiler authority.
 
+Ordinary stream-command receivers borrow the exact matching function identity already held by their resolved program. Missing selections retain the legacy detached constructor and pass through the original admission checks and diagnostic order. This reuse grants no command authority. Record-invariant presence probes borrow the existing index key instead of constructing a suffixed identity. Closed list, iterator, Option, Result and cleanup spellings use compiler tags; source-authored equal text remains shared. Current-head executable and application qualification remains pending.
+
 Graph set lookup/removal borrows str keys directly. Existing source association,
 canonical replay, cache equality, failure priority, ceilings and forecasts are
 unchanged. Shared clones allocate no identity payload; existing conservative clone

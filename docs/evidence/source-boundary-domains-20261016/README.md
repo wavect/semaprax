@@ -20,18 +20,28 @@ that authentication does `new_boundary_module.rs` select separately typed
 boundary membership. Full manifest, raw and production hashes bind that step.
 
 The original generator, verifier and module-parser definitions are archived and
-remain byte-identical at their original paths. The additive tools execute the
-original generator registration logic and full verifier definitions unchanged.
+remain byte-identical at their original paths. The additive current producer retains the original parser rules and executes
+the full verifier definitions unchanged.
 They require supplied full manifests to equal freshly enumerated actual source,
 then apply the exact original HIR/projection forbidden lists to the actual
 owning boundaries. The original verifier main has the known global scope bug;
 this packet **does not claim that old main passed**.
 
+`current_generation.py` is the declared current producer used by
+`boundary_tools.original_generated`. It retains the sealed parser rules and
+output schema, snapshots each source read for one invocation, and represents
+literal compiled includes as an ordered trail. This keeps a test-data alias
+separate from an actual production registration and preserves continuity across
+nested includes. Before publication it freshly rereads every cached source and
+requires the initial, post-read, and final file identities and bytes to agree.
+The protected original tools remain the independently checked legacy baseline.
+
 ## Final joined refresh hook
 
-After all source joins, run the existing unchanged full authority generator
-once using its normal `--repo`/`--out` arguments. Keep its complete role/source
-manifests; do not replace them with smaller scoped manifests. Then run:
+After all source joins, run `current_generation.py` once using its
+`--repo`/`--out` arguments. Keep its complete role/source manifests. The boundary
+commands independently run that same producer and require exact model equality.
+Then run:
 
 ```sh
 TMPDIR=/Volumes/Semaprax/runtime-tmp PYTHONDONTWRITEBYTECODE=1 /opt/homebrew/bin/python3 docs/evidence/source-boundary-domains-20261016/generate-boundary.py --repo "$REPO" --full-dir "$FULL_AUTHORITY_OUTPUT" --out "$REPO/docs/evidence/source-boundary-domains-20261016"

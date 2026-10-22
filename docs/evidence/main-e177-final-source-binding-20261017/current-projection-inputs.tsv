@@ -668,6 +668,7 @@ src/hir/resolve_variant_or.rs
 src/hir/resolve_vec_call.rs
 src/hir/resolve_yield.rs
 src/hir/selected_fused_candidate.rs
+src/hir/selected_function.rs
 src/hir/type_reachability.rs
 src/hir/type_reachability/nested_generic_function.rs
 src/hir/type_reachability/owned_oracle.rs

@@ -1,3 +1,4 @@
+- Reuse held stream-command identities, borrowed invariant keys, and closed list/iterator/Option/Result/cleanup identities without changing wire text or admission order.
 - Preserve complete joined source-custody histories within the fixed metadata page limit through canonical V10 archive-prefix references.
 - Reuse closed compiler declaration identities and fund dynamic sort-key identity backing through its existing payer, preserving wire identities and diagnostic precedence.
 - Add optional fixed-storage captures of exclusive resolved-core debits alongside the existing inclusive phase observations, retaining compiler budgets and complete historical source checks.

@@ -1,7 +1,7 @@
 //! Checked native lowering for compiler-owned immutable List operations.
 
 use crate::diagnostic::Diagnostic;
-use crate::hir::{ResolvedExpr, ResolvedType};
+use crate::hir::{CompilerDeclaration, DeclarationId, ResolvedExpr, ResolvedType};
 use crate::list_ops::{self, ListOp};
 
 use super::super::{backend_error, c_case_symbol, c_field_symbol, CEmitter, COutput, CValue};
@@ -59,9 +59,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 self.line(&format!("if ({} != NULL) {{", list.code));
                 self.indent += 1;
                 self.line(&format!("{destination}.spx_tag = UINT32_C(1);"));
-                let case = c_case_symbol(&crate::hir::DeclarationId::new(list_ops::CONS_CASE_ID));
-                let head = c_field_symbol(&crate::hir::DeclarationId::new(list_ops::HEAD_ID));
-                let tail = c_field_symbol(&crate::hir::DeclarationId::new(list_ops::TAIL_ID));
+                let case = c_case_symbol(&DeclarationId::compiler(CompilerDeclaration::ListCons));
+                let head = c_field_symbol(&DeclarationId::compiler(CompilerDeclaration::ListHead));
+                let tail = c_field_symbol(&DeclarationId::compiler(CompilerDeclaration::ListTail));
                 self.line(&format!(
                     "{destination}.spx_payload.{case}.{head} = {}->head;",
                     list.code

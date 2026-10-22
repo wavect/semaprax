@@ -43,9 +43,10 @@ pub(super) fn network_command(program: &ResolvedProgram, command: &str) -> Resul
 }
 
 pub(super) fn https_command(program: &ResolvedProgram, command: &str) -> Result<(), Diagnostic> {
+    let command = program.selected_function_id(command);
     crate::command_io_ops::validate_operation_profile(
         program,
-        &crate::hir::DeclarationId::new(command),
+        command.as_ref(),
         crate::command_io_ops::CommandOperationProfile::HttpV1,
     )
 }

@@ -164,6 +164,7 @@ mod resolve_variant_or;
 mod resolve_vec_call;
 mod resolve_yield;
 pub(crate) mod selected_fused_candidate;
+mod selected_function;
 mod type_reachability;
 pub(crate) mod vec_constructor;
 pub(crate) use resolve_expr::path_arena::ExprPath;

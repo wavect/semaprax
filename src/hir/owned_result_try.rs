@@ -51,11 +51,11 @@ pub(super) fn resolve_result(
     (
         ResolvedExprKind::Try {
             operand: Box::new(operand),
-            result: DeclarationId::new(crate::prelude::RESULT_ID),
-            ok_case: DeclarationId::new(crate::prelude::RESULT_OK_ID),
-            ok_field: DeclarationId::new(crate::prelude::RESULT_OK_VALUE_ID),
-            err_case: DeclarationId::new(crate::prelude::RESULT_ERR_ID),
-            err_field: DeclarationId::new(crate::prelude::RESULT_ERR_ERROR_ID),
+            result: DeclarationId::compiler(super::CompilerDeclaration::Result),
+            ok_case: DeclarationId::compiler(super::CompilerDeclaration::ResultOk),
+            ok_field: DeclarationId::compiler(super::CompilerDeclaration::ResultOkValue),
+            err_case: DeclarationId::compiler(super::CompilerDeclaration::ResultErr),
+            err_field: DeclarationId::compiler(super::CompilerDeclaration::ResultErrError),
             residual_type,
         },
         ok_type.clone(),

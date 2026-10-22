@@ -113,6 +113,10 @@ fn flat_fanout_preserves_complete_ordered_paths_duplicates_and_stopped_prefixes(
             )
             .unwrap();
             let expected = prefix.observations.items.clone();
+            // Distinct owned-source groups remain independently active after
+            // merged_paths; one gate decision must fund BOTH actual shares.
+            let mut second = prefix.clone();
+            second.owned_source = Some(CleanupPlace::whole(StorageId::ProvisionalResult));
             let mut stopped = empty_expr_path();
             stopped.failed = true;
             let normal = empty_expr_path();
@@ -124,7 +128,7 @@ fn flat_fanout_preserves_complete_ordered_paths_duplicates_and_stopped_prefixes(
             reset_skeleton_materializations();
             let before_work = work.budget.skeleton_spent;
             let paths = sequence_skeleton_paths(
-                vec![prefix, stopped],
+                vec![prefix, second, stopped],
                 &[normal, failed.clone(), failed, residual],
                 &mut work,
             )
@@ -144,8 +148,8 @@ fn flat_fanout_preserves_complete_ordered_paths_duplicates_and_stopped_prefixes(
                     )
                 })
                 .collect::<Vec<_>>();
-            assert_eq!(result.len(), 5);
-            for path in &result[..4] {
+            assert_eq!(result.len(), 9);
+            for path in &result[..8] {
                 assert_eq!(path.0, vec![expected.clone()]);
             }
             assert_eq!(
@@ -153,7 +157,7 @@ fn flat_fanout_preserves_complete_ordered_paths_duplicates_and_stopped_prefixes(
                 "duplicate failures retain multiplicity"
             );
             assert!(result[3].2 && result[3].3.is_some());
-            assert!(result[4].1 && result[4].0 == vec![vec![]]);
+            assert!(result[8].1 && result[8].0 == vec![vec![]]);
             (result, materialized, charged_work)
         })
     };
@@ -166,13 +170,13 @@ fn flat_fanout_preserves_complete_ordered_paths_duplicates_and_stopped_prefixes(
     );
     // Leaf Seq owns zero child edges: two constructor/release units and one
     // authentic ordinal are additional work, never waived or hidden.
-    assert_eq!(current.2, old.2 + 3);
+    assert_eq!(current.2, old.2 + 6);
 }
 
 // Independent typed invoice for this real leaf Seq(None, items): no edge means
 // zero pending slots. The moved Vec is acquired once; the unchanged selected
 // constructor pays its shared scratch Rc and node Rc before publishing either.
-fn invoice() -> usize {
+fn invoice(copies: usize) -> usize {
     fn rc<T>() -> usize {
         std::alloc::Layout::new::<[Cell<usize>; 2]>()
             .extend(std::alloc::Layout::new::<T>())
@@ -182,19 +186,22 @@ fn invoice() -> usize {
             .size()
     }
     let receivers = 2 * size_of::<(&mut SkeletonWork<'static, 'static>, &mut Observations)>()
+        + 2 * size_of::<&mut Option<Rc<ObservationDag>>>()
+        + 2 * size_of::<&mut Vec<Observation>>()
         + 2 * size_of::<(Option<Rc<ObservationDag>>, Vec<Observation>)>()
+        + 2 * size_of::<&mut SkeletonWork<'static, 'static>>()
         + 2 * size_of::<ObservationDagKind>()
         + 2 * size_of::<Result<Rc<ObservationDag>, Diagnostic>>()
         + 2 * size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>()
+        + 2 * size_of::<Result<(), Diagnostic>>()
         + 2 * size_of::<Result<(), Diagnostic>>();
-    receivers
-        + 4 * size_of::<Observation>()
+    copies * (receivers + 4 * size_of::<Observation>() + rc::<ObservationDag>())
         + rc::<RefCell<DestructionScratch>>()
-        + rc::<ObservationDag>()
 }
 fn storage_probe(
     program: &ResolvedProgram,
     limit: usize,
+    copies: usize,
 ) -> (bool, usize, crate::test_allocation_observer::Metrics) {
     let function = &program.functions()[0];
     let label = Rc::new(SkeletonObservation::Boolean {
@@ -208,25 +215,29 @@ fn storage_probe(
     let initial = work.budget.physical.as_ref().unwrap().charged();
     let ((success, charged), metrics) = crate::test_allocation_observer::measure(|| {
         let result = (|| {
-            work.budget
-                .reserve_array::<Observation>(function, 4, "fanout input tail")?;
-            let mut items = Vec::with_capacity(4);
-            for _ in 0..4 {
-                items.push(label.clone());
+            for _ in 0..copies {
+                work.budget
+                    .reserve_array::<Observation>(function, 4, "fanout input tail")?;
+                let mut items = Vec::with_capacity(4);
+                for _ in 0..4 {
+                    items.push(label.clone());
+                }
+                let mut observations = Observations {
+                    prefix: None,
+                    items,
+                };
+                let sharing = work.prefix_tail_sharing(&[empty_expr_path(), empty_expr_path()])?;
+                assert!(matches!(sharing, PrefixSharing::Flat));
+                share_prefix!(work, sharing, observations);
+                assert!(observations.items.is_empty());
+                let ObservationDagKind::Seq(None, moved) =
+                    &observations.prefix.as_ref().unwrap().kind
+                else {
+                    panic!("exact leaf sequence receiver");
+                };
+                assert_eq!(moved.len(), 4);
+                drop(observations);
             }
-            let mut observations = Observations {
-                prefix: None,
-                items,
-            };
-            assert!(work.shares_prefix_tail(&[empty_expr_path(), empty_expr_path()])?);
-            work.share_prefix_tail(&mut observations)?;
-            assert!(observations.items.is_empty());
-            let ObservationDagKind::Seq(None, moved) = &observations.prefix.as_ref().unwrap().kind
-            else {
-                panic!("exact leaf sequence receiver");
-            };
-            assert_eq!(moved.len(), 4);
-            drop(observations);
             Ok::<(), Diagnostic>(())
         })();
         let success = result.is_ok();
@@ -259,13 +270,15 @@ fn flat_fanout_typed_storage_invoice_exact_short_zero_and_complete_drop() {
     let work = SkeletonWork::new(&program, function, &mut budget);
     let admission = work.budget.physical.as_ref().unwrap().charged();
     drop(work);
-    let abundant = storage_probe(&program, 1 << 24);
-    assert!(abundant.0);
-    assert_eq!(abundant.1, invoice());
-    assert!(abundant.2.allocated <= invoice() && abundant.2.highwater <= invoice());
-    assert!(storage_probe(&program, admission + invoice()).0);
-    assert!(!storage_probe(&program, admission + invoice() - 1).0);
-    assert!(!storage_probe(&program, admission).0);
+    for copies in [1, 2] {
+        let abundant = storage_probe(&program, 1 << 24, copies);
+        assert!(abundant.0);
+        assert_eq!(abundant.1, invoice(copies));
+        assert!(abundant.2.allocated <= invoice(copies) && abundant.2.highwater <= invoice(copies));
+        assert!(storage_probe(&program, admission + invoice(copies), copies).0);
+        assert!(!storage_probe(&program, admission + invoice(copies) - 1, copies).0);
+        assert!(!storage_probe(&program, admission, copies).0);
+    }
 }
 
 #[test]
@@ -284,7 +297,7 @@ fn flat_fanout_keeps_earlier_work_and_semantic_refusals_first() {
             work.budget.remaining = 0;
             let paid = work.budget.physical.as_ref().unwrap().charged();
             let error = work
-                .shares_prefix_tail(&[empty_expr_path(), empty_expr_path()])
+                .prefix_tail_sharing(&[empty_expr_path(), empty_expr_path()])
                 .unwrap_err();
             assert!(error.message.contains("factored suffix fanout inspection"));
             assert_eq!(work.budget.physical.as_ref().unwrap().charged(), paid);
@@ -329,42 +342,102 @@ fn flat_fanout_preserves_complete_old_owner_predicate_and_constructor_sources() 
         "08b5b67b03b2e80391e9a2ed4ccb936937481c88b38da9cc18fae79da2418d66"
     );
     let current = include_str!("../dag_storage.rs");
-    let old = "        Ok(suffixes\n            .iter()\n            .any(|suffix| suffix.observations.prefix.is_some()))";
-    let new = r###"        if suffixes
+    // Full token layout substitutes the same original Boolean/Result slots;
+    // no independent constructor receiver is credited from this decision.
+    assert_eq!(size_of::<PrefixSharing>(), size_of::<bool>());
+    assert_eq!(
+        size_of::<Result<PrefixSharing, Diagnostic>>(),
+        size_of::<Result<bool, Diagnostic>>()
+    );
+    let method = r#####"    /// Decide current sharing without changing historical Boolean callers.
+    pub(in crate::cleanup_plan::replay) fn prefix_tail_sharing(
+        &mut self,
+        suffixes: &[ExprSkeletonPath],
+    ) -> Result<PrefixSharing, Diagnostic> {
+        #[cfg(test)]
+        if flat_fanout::before_requested() {
+            return flat_fanout::before(self, suffixes).map(|share| {
+                if share {
+                    PrefixSharing::Existing
+                } else {
+                    PrefixSharing::Disabled
+                }
+            });
+        }
+        if !self.budget.merge_paths || suffixes.len() < 2 {
+            return Ok(PrefixSharing::Disabled);
+        }
+        self.charge(suffixes.len(), "factored suffix fanout inspection")?;
+        if suffixes
             .iter()
             .any(|suffix| suffix.observations.prefix.is_some())
         {
-            return Ok(true);
+            return Ok(PrefixSharing::Existing);
         }
-        // Flat success/failure siblings also clone the same owned prefix.
-        // Its existing Vec can move into the already charged DAG receiver.
-        self.budget.reserve_bytes(
-            self.function,
-            FLAT_FANOUT_CONTROLS,
-            "flat fanout shared-prefix receivers",
-        )?;
-        Ok(true)"###;
-    let dispatch = "        #[cfg(test)]\n        if flat_fanout::before_requested() {\n            return flat_fanout::before(self, suffixes);\n        }\n";
-    assert_eq!(current.matches(new).count(), 1);
-    assert_eq!(current.matches(dispatch).count(), 1);
-    let controls = r###"// New flat-only gate pays the actual/formal prefix receiver, moved kind and
+        // A decision is not an allocation bank: each actual Flat share below
+        // must acquire FLAT_FANOUT_CONTROLS independently before its call.
+        Ok(PrefixSharing::Flat)
+    }
+
+"#####;
+    let header = r#####"// This replaces the old Boolean decision in the same caller-local slot. Its
+// Flat arm alone acquires the additional real sharing receivers PER PREFIX.
+#[derive(Clone, Copy, Debug)]
+#[repr(u8)]
+pub(in crate::cleanup_plan::replay) enum PrefixSharing {
+    Disabled,
+    Existing,
+    Flat,
+}
+
+// Reusing the old decision slots is permitted only for an identical target
+// layout, independently of whether the owning runtime tests are selected.
+const _: () = assert!(
+    std::mem::size_of::<PrefixSharing>() == std::mem::size_of::<bool>()
+        && std::mem::size_of::<Result<PrefixSharing, Diagnostic>>()
+            == std::mem::size_of::<Result<bool, Diagnostic>>()
+);
+
+// New flat-only gate pays the actual/formal prefix receiver, moved kind and
 // result carriers, including its own explicit reservation call, before either
 // control flow or construction can acquire those receivers on this new arm.
-const FLAT_FANOUT_CONTROLS: usize = 2 * std::mem::size_of::<(
-    &mut SkeletonWork<'static, 'static>,
-    &mut Observations,
-)>() + 2 * std::mem::size_of::<(Option<Rc<ObservationDag>>, Vec<Observation>)>()
-    + 2 * std::mem::size_of::<ObservationDagKind>()
-    + 2 * std::mem::size_of::<Result<Rc<ObservationDag>, Diagnostic>>()
-    + 2 * std::mem::size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>()
-    + 2 * std::mem::size_of::<Result<(), Diagnostic>>();
+pub(in crate::cleanup_plan::replay) const FLAT_FANOUT_CONTROLS: usize = 2 * std::mem::size_of::<(&mut SkeletonWork<'static, 'static>, &mut Observations)>()
+        + 2 * std::mem::size_of::<&mut Option<Rc<ObservationDag>>>() // Option::take actual + formal
+        + 2 * std::mem::size_of::<&mut Vec<Observation>>() // mem::take actual + formal
+        + 2 * std::mem::size_of::<(Option<Rc<ObservationDag>>, Vec<Observation>)>()
+        + 2 * std::mem::size_of::<&mut SkeletonWork<'static, 'static>>() // charged_dag actual + formal
+        + 2 * std::mem::size_of::<ObservationDagKind>()
+        + 2 * std::mem::size_of::<Result<Rc<ObservationDag>, Diagnostic>>()
+        + 2 * std::mem::size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>()
+        + 2 * std::mem::size_of::<Result<(), Diagnostic>>() // reserve actual + returned receiver
+        + 2 * std::mem::size_of::<Result<(), Diagnostic>>(); // share return + caller receiver
 
-"###;
-    assert_eq!(current.matches(controls).count(), 1);
-    let restored = current
-        .replacen(new, old, 1)
-        .replacen(dispatch, "", 1)
-        .replacen(controls, "", 1);
+// A macro keeps the exact original sharing call in the caller's lexical frame;
+// there is no new callee whose actual receiver could precede this payment.
+macro_rules! share_prefix {
+    ($work:ident, $sharing:ident, $observations:expr) => {{
+        match $sharing {
+            $crate::cleanup_plan::replay::skeleton_work::dag_storage::PrefixSharing::Disabled => {}
+            $crate::cleanup_plan::replay::skeleton_work::dag_storage::PrefixSharing::Existing => {
+                $work.share_prefix_tail(&mut $observations)?;
+            }
+            $crate::cleanup_plan::replay::skeleton_work::dag_storage::PrefixSharing::Flat => {
+                $work.budget.reserve_bytes(
+                    $work.function,
+                    $crate::cleanup_plan::replay::skeleton_work::dag_storage::FLAT_FANOUT_CONTROLS,
+                    "flat fanout shared-prefix receivers",
+                )?;
+                $work.share_prefix_tail(&mut $observations)?;
+            }
+        }
+    }};
+}
+pub(in crate::cleanup_plan::replay) use share_prefix;
+
+"#####;
+    assert_eq!(current.matches(method).count(), 1);
+    assert_eq!(current.matches(header).count(), 1);
+    let restored = current.replacen(method, "", 1).replacen(header, "", 1);
     let restored = restored
         .strip_suffix("\n#[cfg(test)]\nmod flat_fanout;\n")
         .unwrap();
@@ -392,4 +465,62 @@ const FLAT_FANOUT_CONTROLS: usize = 2 * std::mem::size_of::<(
         .collect::<Vec<_>>()
         .join("\n");
     assert_eq!(saved, body);
+}
+
+#[test]
+fn complete_current_callers_restore_whole_predecessors_without_touching_old_routes() {
+    use sha2::{Digest, Sha256};
+    let hash = |raw: &str| {
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(raw.as_bytes()))
+        )
+    };
+    let mut root = include_str!("../../../replay.rs").to_owned();
+    let current = r#####"let share_prefix = work.prefix_tail_sharing(&suffixes)?;"#####;
+    let old = r#####"let share_prefix = work.shares_prefix_tail(&suffixes)?;"#####;
+    assert_eq!(root.matches(current).count(), 2);
+    root = root.replace(current, old);
+    let current = r#####"sequence_vector::reuse!(prefixes, suffixes, work, token share_prefix, minimum, precharged);"#####;
+    let old = r#####"sequence_vector::reuse!(prefixes, suffixes, work, share_prefix, minimum, precharged);"#####;
+    assert_eq!(root.matches(current).count(), 1);
+    root = root.replace(current, old);
+    let current = r#####"        if !precharged {
+            skeleton_work::dag_storage::share_prefix!(work, share_prefix, prefix.observations);
+        }"#####;
+    let old = r#####"        if !precharged && share_prefix {
+            work.share_prefix_tail(&mut prefix.observations)?;
+        }"#####;
+    assert_eq!(root.matches(current).count(), 1);
+    root = root.replace(current, old);
+    let current = r#####"        skeleton_work::dag_storage::share_prefix!(work, share_prefix, prefix.observations);
+
+"#####;
+    let old = r#####"        if share_prefix {
+            work.share_prefix_tail(&mut prefix.observations)?;
+        }
+"#####;
+    assert_eq!(root.matches(current).count(), 1);
+    root = root.replace(current, old);
+    assert_eq!(
+        hash(&root),
+        "5b40d53c43ccf6335bd2fbaf33c3c57d75b5bcfab2a7d6ebbd03851d77ee6e9d"
+    );
+    let sequence = include_str!("../../sequence_vector.rs");
+    let added_arm = r#####"    ($prefixes:ident, $suffixes:ident, $work:ident, token $sharing:ident, $minimum:ident, $precharged:ident) => {{
+        $crate::cleanup_plan::replay::sequence_vector::reuse!(
+            $prefixes, $suffixes, $work,
+            matches!($sharing, $crate::cleanup_plan::replay::skeleton_work::dag_storage::PrefixSharing::Existing),
+            $minimum, $precharged);
+    }};
+"#####;
+    assert_eq!(sequence.matches(added_arm).count(), 1);
+    assert_eq!(sequence.matches("$share:expr").count(), 2);
+    let restored = sequence
+        .replacen(added_arm, "", 1)
+        .replace("$share:expr", "$share:ident");
+    assert_eq!(
+        hash(&restored),
+        "7a1f98ebe875f5f9e7e18882722f5e7db5bf259466c99c9d2884f7584be300bb"
+    );
 }

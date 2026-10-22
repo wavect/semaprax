@@ -16,17 +16,59 @@ pub(in crate::cleanup_plan::replay) struct DestructionScratch {
     pub(super) next_ordinal: usize,
 }
 
+// This replaces the old Boolean decision in the same caller-local slot. Its
+// Flat arm alone acquires the additional real sharing receivers PER PREFIX.
+#[derive(Clone, Copy, Debug)]
+#[repr(u8)]
+pub(in crate::cleanup_plan::replay) enum PrefixSharing {
+    Disabled,
+    Existing,
+    Flat,
+}
+
+// Reusing the old decision slots is permitted only for an identical target
+// layout, independently of whether the owning runtime tests are selected.
+const _: () = assert!(
+    std::mem::size_of::<PrefixSharing>() == std::mem::size_of::<bool>()
+        && std::mem::size_of::<Result<PrefixSharing, Diagnostic>>()
+            == std::mem::size_of::<Result<bool, Diagnostic>>()
+);
+
 // New flat-only gate pays the actual/formal prefix receiver, moved kind and
 // result carriers, including its own explicit reservation call, before either
 // control flow or construction can acquire those receivers on this new arm.
-const FLAT_FANOUT_CONTROLS: usize = 2 * std::mem::size_of::<(
-    &mut SkeletonWork<'static, 'static>,
-    &mut Observations,
-)>() + 2 * std::mem::size_of::<(Option<Rc<ObservationDag>>, Vec<Observation>)>()
-    + 2 * std::mem::size_of::<ObservationDagKind>()
-    + 2 * std::mem::size_of::<Result<Rc<ObservationDag>, Diagnostic>>()
-    + 2 * std::mem::size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>()
-    + 2 * std::mem::size_of::<Result<(), Diagnostic>>();
+pub(in crate::cleanup_plan::replay) const FLAT_FANOUT_CONTROLS: usize = 2 * std::mem::size_of::<(&mut SkeletonWork<'static, 'static>, &mut Observations)>()
+        + 2 * std::mem::size_of::<&mut Option<Rc<ObservationDag>>>() // Option::take actual + formal
+        + 2 * std::mem::size_of::<&mut Vec<Observation>>() // mem::take actual + formal
+        + 2 * std::mem::size_of::<(Option<Rc<ObservationDag>>, Vec<Observation>)>()
+        + 2 * std::mem::size_of::<&mut SkeletonWork<'static, 'static>>() // charged_dag actual + formal
+        + 2 * std::mem::size_of::<ObservationDagKind>()
+        + 2 * std::mem::size_of::<Result<Rc<ObservationDag>, Diagnostic>>()
+        + 2 * std::mem::size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>()
+        + 2 * std::mem::size_of::<Result<(), Diagnostic>>() // reserve actual + returned receiver
+        + 2 * std::mem::size_of::<Result<(), Diagnostic>>(); // share return + caller receiver
+
+// A macro keeps the exact original sharing call in the caller's lexical frame;
+// there is no new callee whose actual receiver could precede this payment.
+macro_rules! share_prefix {
+    ($work:ident, $sharing:ident, $observations:expr) => {{
+        match $sharing {
+            $crate::cleanup_plan::replay::skeleton_work::dag_storage::PrefixSharing::Disabled => {}
+            $crate::cleanup_plan::replay::skeleton_work::dag_storage::PrefixSharing::Existing => {
+                $work.share_prefix_tail(&mut $observations)?;
+            }
+            $crate::cleanup_plan::replay::skeleton_work::dag_storage::PrefixSharing::Flat => {
+                $work.budget.reserve_bytes(
+                    $work.function,
+                    $crate::cleanup_plan::replay::skeleton_work::dag_storage::FLAT_FANOUT_CONTROLS,
+                    "flat fanout shared-prefix receivers",
+                )?;
+                $work.share_prefix_tail(&mut $observations)?;
+            }
+        }
+    }};
+}
+pub(in crate::cleanup_plan::replay) use share_prefix;
 
 impl ObservationDagKind {
     pub(super) fn edges(&self) -> usize {
@@ -140,28 +182,43 @@ impl SkeletonWork<'_, '_> {
         &mut self,
         suffixes: &[ExprSkeletonPath],
     ) -> Result<bool, Diagnostic> {
-        #[cfg(test)]
-        if flat_fanout::before_requested() {
-            return flat_fanout::before(self, suffixes);
-        }
         if !self.budget.merge_paths || suffixes.len() < 2 {
             return Ok(false);
+        }
+        self.charge(suffixes.len(), "factored suffix fanout inspection")?;
+        Ok(suffixes
+            .iter()
+            .any(|suffix| suffix.observations.prefix.is_some()))
+    }
+
+    /// Decide current sharing without changing historical Boolean callers.
+    pub(in crate::cleanup_plan::replay) fn prefix_tail_sharing(
+        &mut self,
+        suffixes: &[ExprSkeletonPath],
+    ) -> Result<PrefixSharing, Diagnostic> {
+        #[cfg(test)]
+        if flat_fanout::before_requested() {
+            return flat_fanout::before(self, suffixes).map(|share| {
+                if share {
+                    PrefixSharing::Existing
+                } else {
+                    PrefixSharing::Disabled
+                }
+            });
+        }
+        if !self.budget.merge_paths || suffixes.len() < 2 {
+            return Ok(PrefixSharing::Disabled);
         }
         self.charge(suffixes.len(), "factored suffix fanout inspection")?;
         if suffixes
             .iter()
             .any(|suffix| suffix.observations.prefix.is_some())
         {
-            return Ok(true);
+            return Ok(PrefixSharing::Existing);
         }
-        // Flat success/failure siblings also clone the same owned prefix.
-        // Its existing Vec can move into the already charged DAG receiver.
-        self.budget.reserve_bytes(
-            self.function,
-            FLAT_FANOUT_CONTROLS,
-            "flat fanout shared-prefix receivers",
-        )?;
-        Ok(true)
+        // A decision is not an allocation bank: each actual Flat share below
+        // must acquire FLAT_FANOUT_CONTROLS independently before its call.
+        Ok(PrefixSharing::Flat)
     }
 
     /// Move one authentic prefix tail into one immutable node before fanout.

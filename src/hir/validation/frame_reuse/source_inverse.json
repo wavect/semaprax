@@ -1,0 +1,153 @@
+{
+  "root_current_sha256": "e4090fcaa5564cc2f72185030378b56903e564bbd806d06851d9b5b45a66aa06",
+  "receiver_current_sha256": "d2c08888899988688a438b4ec7b2464b490ca5f9f62e04ee71262a5e978d2dac",
+  "receiver_before_sha256": "a196bc426e3a95ec539f6455673f077c50b2500b292cc476760215316f3dd6fc",
+  "root_before_sha256": "2cb5bf4ab361f172241d1c148788a5db09fdb264471818091ea1d83a1be41426",
+  "wrapper_current": "    pub(in crate::hir) fn validate_function(\n        &mut self,\n        function: &ResolvedFunction,\n        execution: &FunctionExecutionId,\n    ) -> Result<(), Diagnostic> {\n        frame_reuse::argument()?;\n        self.validate_function_with_frames(function, execution, None)\n    }\n",
+  "edits": [
+    {
+      "start": 0,
+      "end": 174,
+      "current": "//! Ordinary invocation function receiver, retaining every preflight and phase.\nuse super::super::*;\nuse super::super::function_scope::lifecycle;\nimpl<'a> HirValidator<'a> {\n",
+      "before": ""
+    },
+    {
+      "start": 217,
+      "end": 233,
+      "current": "_with_frames<'e>",
+      "before": ""
+    },
+    {
+      "start": 273,
+      "end": 276,
+      "current": "'e ",
+      "before": ""
+    },
+    {
+      "start": 339,
+      "end": 399,
+      "current": "    mut scratch: Option<&mut frame_reuse::Scratch<'e>>,\n    ",
+      "before": ""
+    },
+    {
+      "start": 426,
+      "end": 457,
+      "current": " \n    where\n        'a: 'e,\n   ",
+      "before": ""
+    },
+    {
+      "start": 8133,
+      "end": 8167,
+      "current": "frame_reuse::argument()?;\n        ",
+      "before": ""
+    },
+    {
+      "start": 8191,
+      "end": 8192,
+      "current": "w",
+      "before": "pers"
+    },
+    {
+      "start": 8193,
+      "end": 8193,
+      "current": "",
+      "before": "s"
+    },
+    {
+      "start": 8194,
+      "end": 8200,
+      "current": "h_fram",
+      "before": ""
+    },
+    {
+      "start": 8201,
+      "end": 8202,
+      "current": "s",
+      "before": "nt"
+    },
+    {
+      "start": 8252,
+      "end": 8310,
+      "current": ", scratch.as_deref_mut())?;\n        frame_reuse::argument(",
+      "before": ""
+    },
+    {
+      "start": 8341,
+      "end": 8342,
+      "current": "w",
+      "before": "pers"
+    },
+    {
+      "start": 8343,
+      "end": 8343,
+      "current": "",
+      "before": "s"
+    },
+    {
+      "start": 8344,
+      "end": 8350,
+      "current": "h_fram",
+      "before": ""
+    },
+    {
+      "start": 8351,
+      "end": 8352,
+      "current": "s",
+      "before": "nt"
+    },
+    {
+      "start": 8447,
+      "end": 8454,
+      "current": ".into()",
+      "before": ""
+    },
+    {
+      "start": 8540,
+      "end": 8576,
+      "current": "),\n            scratch.as_deref_mut(",
+      "before": ""
+    },
+    {
+      "start": 10025,
+      "end": 10059,
+      "current": "frame_reuse::argument()?;\n        ",
+      "before": ""
+    },
+    {
+      "start": 10083,
+      "end": 10084,
+      "current": "w",
+      "before": "pers"
+    },
+    {
+      "start": 10085,
+      "end": 10085,
+      "current": "",
+      "before": "s"
+    },
+    {
+      "start": 10086,
+      "end": 10092,
+      "current": "h_fram",
+      "before": ""
+    },
+    {
+      "start": 10093,
+      "end": 10094,
+      "current": "s",
+      "before": "nt"
+    },
+    {
+      "start": 10209,
+      "end": 10230,
+      "current": "    scratch,\n        ",
+      "before": ""
+    },
+    {
+      "start": 10255,
+      "end": 10258,
+      "current": "\n}\n",
+      "before": ""
+    }
+  ]
+}

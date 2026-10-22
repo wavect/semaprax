@@ -12,6 +12,8 @@ mod contracts;
 mod tests;
 #[cfg(test)]
 mod custody;
+#[cfg(test)]
+pub(in crate::hir::validation) mod source_inverse;
 
 type Directories<'e> = (
     scope_checkpoint::Storage<Frame<'e>>,

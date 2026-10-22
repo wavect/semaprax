@@ -118,7 +118,7 @@ pub(in crate::workspace_graph::expected_projection) fn estimate<'a>(
                 programs,
                 &mut default_memo,
                 &mut BTreeSet::new(),
-                super::super::super::super::owned_function_import::admitted_with_layout(
+                super::super::super::owned_function_import::admitted_with_layout(
                     program, target, authored, programs, layout,
                 ),
                 import_stub::byte_helper_authorized(
@@ -138,7 +138,7 @@ pub(in crate::workspace_graph::expected_projection) fn estimate<'a>(
                 identity_slots,
                 ast_type_declaration_identity_slots(declaration)?,
             )?;
-            super::super::super::super::generic_type_import::rewrite_declaration_runtime_cost_with_layout(
+            super::super::super::generic_type_import::rewrite_declaration_runtime_cost_with_layout(
                 declaration,
                 target.module,
                 program,

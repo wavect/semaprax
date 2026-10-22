@@ -3,6 +3,7 @@
 use super::super::producer::view;
 use super::*;
 use skeleton_work::enumerated_prefix;
+use crate::cleanup_plan::CleanupBlock;
 
 const PAYMENT: usize = 2 * size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>()
     + 2 * size_of::<Result<(), Diagnostic>>();

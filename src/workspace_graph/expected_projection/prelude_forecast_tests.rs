@@ -220,6 +220,13 @@ fn complete_receiving_sources_reconstruct_pinned_originals() {
             digest
         );
         assert_eq!(record["sha256"].as_str().unwrap(), digest);
+        let current_stage =
+            if record["path"] == "src/workspace_graph/expected_projection/held_projection.rs" {
+                super::super::call_carriers::inverse::pre916_held(current)
+            } else {
+                current.to_owned()
+            };
+        let current = current_stage.as_str();
         let mut restored = super::super::call_carriers::inverse::pre898(current);
         for edit in record["edits"].as_array().unwrap().iter().rev() {
             let after = edit["after"].as_str().unwrap();

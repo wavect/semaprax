@@ -1,7 +1,7 @@
 {
   "schema": "semaprax.hosted-opt-batch-selection.v1",
-  "filters": 48,
-  "expected_tests": 114,
+  "filters": 50,
+  "expected_tests": 116,
   "commands": [
     {
       "owner": "OPT899 unchanged default owning controls",
@@ -338,6 +338,20 @@
       "filter": "workspace_graph::expected_projection::shared_local_callees::reused::tests::",
       "exact": false,
       "expected_tests": 3
+    },
+    {
+      "owner": "Complete unchanged pre898 and prelude source oracles through exact pre916 acquisition",
+      "binary": "lib",
+      "filter": "workspace_graph::expected_projection::call_carriers::inverse::complete_forecaster_inverse_reconstructs_entire_pre898_algorithm",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Complete unchanged pre898 and prelude source oracles through exact pre916 acquisition",
+      "binary": "lib",
+      "filter": "workspace_graph::expected_projection::prelude_forecast::tests::complete_receiving_sources_reconstruct_pinned_originals",
+      "exact": true,
+      "expected_tests": 1
     }
   ]
 }

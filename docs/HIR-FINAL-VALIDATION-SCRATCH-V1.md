@@ -82,3 +82,36 @@ attributes and retains the original SHA for all remaining bytes. Production
 uses the funded receiver; no unpriced fallback or lint waiver is introduced.
 The saved lifecycle extension and its private import likewise have test-only
 ownership. Their complete original comparison body remains unchanged.
+
+
+## Invocation-local continuation backing (#912)
+
+Ordinary monomorphic function validation shares empty typed continuation and
+scope-directory backing for the exact immutable invocation. Every function,
+contract and expression still executes all checks. A successful root publishes
+its final scope and removes the sole result scope before returning either
+backing. Errors and unwinds destroy live scopes and continuations before the
+Publication guard, in the original order. The owner is dropped after the ordinary
+function loop; it carries no validation verdict or cross-invocation authority.
+
+The lifetime-bearing Frame enum lives in `validation/continuation_frame.rs`.
+`validation/frame_reuse` owns the empty directories and optional-argument
+transport. New owners, replacement/result transports and leases pay before
+formation; every growth still uses the existing full actual-capacity payer.
+Reuse authenticates the active payer even when no allocation is needed. The
+literal limit, reserved floor, sticky first refusal and absence of refunds remain.
+
+Temporary generic proof functions, retained generic instances and nested variant
+guard validation use fresh backing in the same production dispatch kernel.
+Nested guards can run with outer frames live; they never borrow that active
+lease. The complete immediate previous driver, function and contract receivers
+remain independently executable under `cfg(test)`, alongside all older controls.
+The previous driver is byte-bound to its complete source, including every local
+definition and literal. Production has one expression dispatch body.
+
+The owning `hir::validation::frame_reuse` controls cover full old/current state
+and diagnostic equality, direct map publication, guarded reentry, decimal and
+repeated scalar function/contract invocations, physical allocations through Drop,
+exact/one-short and floor limits, and sticky retry without reacquisition. They
+are source-authored and unexecuted pending the combined focused qualification.
+No measured saving, complete funding, or application-fit claim is made here.

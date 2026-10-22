@@ -2,6 +2,14 @@
 - Preserve complete joined source-custody histories within the fixed metadata page limit through canonical V10 archive-prefix references.
 - Reuse closed compiler declaration identities and fund dynamic sort-key identity backing through its existing payer, preserving wire identities and diagnostic precedence.
 - Add optional fixed-storage captures of exclusive resolved-core debits alongside the existing inclusive phase observations, retaining compiler budgets and complete historical source checks.
+
+## HIR continuation backing reuse (#912, 2026-10-22)
+
+- Reuse drained typed continuation directories across ordinary functions and
+  contracts in one immutable validation invocation. Retain fresh generic and
+  nested-guard backing, exact publication, the original growth payer and full
+  independent predecessor controls. Focused execution qualification is pending.
+
 ## CI source-view boundary repair (2026-10-20)
 
 - Complete document metadata and navigation; bind named historical snapshots to their original link locations with exact-byte registration.

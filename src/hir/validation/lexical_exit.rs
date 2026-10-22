@@ -1012,17 +1012,10 @@ mod witness_tests {
             drift[0] ^= 1;
             assert!(restore(row, &drift).is_none());
         }
-        let body = sources[0]
-            .split_once("    fn validate_expr_iterative_effects(")
+        let frame = include_str!("continuation_frame.rs")
+            .split_once("        pub(super) enum Frame<'e> {")
             .unwrap()
             .1;
-        let frame = body
-            .split_once("        enum Frame<'e> {")
-            .unwrap()
-            .1
-            .split_once("        const {")
-            .unwrap()
-            .0;
         assert!(
             !frame.contains("#[cfg"),
             "instrumentation cannot change shipping frame layout"
@@ -1037,4 +1030,34 @@ mod witness_tests {
             .0;
         assert_eq!(storage, "\n    values: Vec<T>,\n");
     }
+    #[test]
+    fn invocation_reuse_unwinds_live_scopes_and_witness_before_publication_drop() {
+        let checked = crate::check(SCALAR, "reuse-witness-unwind.spx").unwrap();
+        let program = crate::hir::resolve(&checked).unwrap();
+        let function = program.functions.iter().find(|f| f.id.as_str() == "w.f").unwrap();
+        let validator = HirValidator::new(&program).unwrap();
+        let capture = Capture::begin();
+        let (((), metrics), refused, _, receipt) =
+            crate::bounded_output::with_limit_usage_refusal(64 << 20, || {
+                crate::test_allocation_observer::measure_with_capacity(1 << 16, || {
+                    PANIC_AFTER_WITNESS.with(|flag| flag.set(true));
+                    let caught = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                        let mut validator = validator;
+                        let mut scratch = frame_reuse::Scratch::new().unwrap();
+                        frame_reuse::argument().unwrap();
+                        validator.validate_function_with_frames(function,
+                            &FunctionExecutionId::Monomorphic(function.id.clone()),
+                            Some(&mut scratch)).unwrap();
+                    }));
+                    assert!(caught.is_err());
+                    drop(caught);
+                    PANIC_AFTER_WITNESS.with(|flag| flag.set(false));
+                })
+            });
+        let report = capture.finish();
+        assert!(!refused && receipt.is_none() && report.joins > 0 && !report.overflow);
+        assert!(!metrics.invalid && metrics.live == 0 && metrics.allocated == metrics.freed);
+        crate::hir::validate(&program).unwrap();
+    }
+
 }

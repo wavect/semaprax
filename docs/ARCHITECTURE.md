@@ -5040,7 +5040,12 @@ owns inline frames with unchanged Vec fallback. Nominal fact preparation now
 borrows cache-key bytes; Array/scalar Function flag misses project full original
 facts. Paid flag Storage initializes in a separate non-inlined miss constructor;
 known leaves and exact cache hits retain the existing payer's sticky zero-byte
-check. Complete original receivers and the fixed builder cap remain. The bounded
+check. Complete original receivers and the fixed builder cap remain. The ordinary function loop lends one invocation-local empty typed continuation
+owner from `hir/validation/frame_reuse` to the single expression dispatch kernel;
+`continuation_frame.rs` owns the lifetime-bearing enum. Scope publication and
+result removal precede returning backing. Fresh generic and nested-guard calls
+use the same kernel without borrowing an active lease; complete predecessor
+receivers remain test-only. The bounded
 contract and pending qualification are in [HIR final-validation scratch v1](HIR-FINAL-VALIDATION-SCRATCH-V1.md).
 
 `cleanup_plan/renewal_profile/ordinary/record_presence.rs` owns the phase-local

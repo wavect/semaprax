@@ -1,7 +1,7 @@
 {
   "schema": "semaprax.hosted-opt-batch-selection.v1",
-  "filters": 19,
-  "expected_tests": 66,
+  "filters": 24,
+  "expected_tests": 79,
   "commands": [
     {
       "owner": "OPT893 complete finite page admission predecessor inverse and independent I/O hostiles",
@@ -133,6 +133,41 @@
       "owner": "OPT919 complete joined HIR source trust boundary",
       "binary": "hir_module_boundaries",
       "filter": "core_validation_has_no_resolution_cleanup_build_or_physical_authority",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT903 complete immutable PLAN prefix constructor and source custody",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::plan_prefix::tests::",
+      "exact": false,
+      "expected_tests": 9
+    },
+    {
+      "owner": "Exact remaining failure from combined qualification40013931943; preserve original acceptance",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::factored::continuation_receiver::tests::complete_prior_receiver_and_funded_disagreement_assertion_remain_byte_exact",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Exact remaining failure from combined qualification40013931943; preserve original acceptance",
+      "binary": "lib",
+      "filter": "hir::validation::lexical_exit::witness_tests::complete_public_caller_reports_real_backing_replacement_bill_and_drop_for_matched_sources",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Exact remaining failure from combined qualification40013931943; preserve original acceptance",
+      "binary": "lib",
+      "filter": "hir::validation::lexical_exit::witness_tests::real_new_witness_frontiers_exact_short_zero_floor_sticky_and_drop_are_not_layout_guesses",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Exact remaining failure from combined qualification40013931943; preserve original acceptance",
+      "binary": "lib",
+      "filter": "hir::validation::lexical_exit::witness_tests::whole_immediate_production_frame_dispatch_helper_and_invoice_restore_and_refuse_drift",
       "exact": true,
       "expected_tests": 1
     }

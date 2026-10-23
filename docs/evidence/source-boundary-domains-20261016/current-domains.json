@@ -1317,6 +1317,7 @@
         "src/cleanup_plan/replay/factored/canonical_shared/held_auth_tests.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/incoming_flat_targets.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/hir_last_use.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/inline_exit.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/inline_exit/census.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors.rs",
@@ -1740,6 +1741,7 @@
         "src/cleanup_plan/replay/skeleton_work/ordinary_dag/saved.rs",
         "src/cleanup_plan/replay/skeleton_work/ordinary_dag/saved_receiver.rs",
         "src/cleanup_plan/replay/skeleton_work/ordinary_dag/tests.rs",
+        "src/cleanup_plan/replay/skeleton_work/plan_prefix.rs",
         "src/cleanup_plan/replay/skeleton_work/prefix_fusion.rs",
         "src/cleanup_plan/replay/skeleton_work/prefix_fusion/before.rs",
         "src/cleanup_plan/replay/skeleton_work/prefix_fusion/tests.rs",
@@ -2464,6 +2466,7 @@
         "src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/empty_signature.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/hir_last_use.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/inline_exit.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop.rs",
@@ -2578,6 +2581,7 @@
         "src/cleanup_plan/replay/skeleton_work/merge_search.rs",
         "src/cleanup_plan/replay/skeleton_work/ordinary_dag.rs",
         "src/cleanup_plan/replay/skeleton_work/ordinary_dag/frontier.rs",
+        "src/cleanup_plan/replay/skeleton_work/plan_prefix.rs",
         "src/cleanup_plan/replay/skeleton_work/prefix_fusion.rs",
         "src/cleanup_plan/replay/skeleton_work/receiving.rs",
         "src/cleanup_plan/replay/status_construction/paid.rs",
@@ -2936,6 +2940,7 @@
         "src/cleanup_plan/replay/path_join/selected/walk.rs",
         "src/cleanup_plan/replay/path_join/storage.rs",
         "src/cleanup_plan/replay/path_summary.rs",
+        "src/cleanup_plan/replay/plan_prefix.rs",
         "src/cleanup_plan/replay/renewal.rs",
         "src/cleanup_plan/replay/resolved_call.rs",
         "src/cleanup_plan/replay/resolved_call/param_view.rs",
@@ -3164,9 +3169,9 @@
         "src/workspace_graph/validation.rs",
         "src/workspace_report.rs"
       ],
-      "full_manifest_sha256": "3eef1f5431607f3f90d4a7d10c721f90b50ae06dee30335d04371d82ec8b64ba",
-      "full_raw_sha256": "1145a29b23c1085fd65af14939860b319a686a111ab20767ff29dd5aa00d0b6d",
-      "full_authenticated_production_sha256": "260e4a53b7fe704a3f1d78458e87477a1e516105dc6568a35d1e884e07fb8413"
+      "full_manifest_sha256": "815d08df3b81d7de2a7bfa6d82b833e8c26fbf2e8ea3aa1f4d95d34ed1d9db70",
+      "full_raw_sha256": "8fe99e768864c81a47292fa3951394faae13ae44d6158a0c424ecac1218647d5",
+      "full_authenticated_production_sha256": "4c40cd4bece0da82617c2d40d857179a8d51ba48c9ea2ecc313661baf3dd8ee2"
     },
     "projection": {
       "baseline": "a82e00cc83f99b16249181c45710d962598577db",
@@ -3814,6 +3819,7 @@
         "src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/empty_signature.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton.rs",
+        "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/hir_last_use.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/inline_exit.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors.rs",
         "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop.rs",
@@ -3949,6 +3955,7 @@
         "src/cleanup_plan/replay/physical_budget/setup.rs",
         "src/cleanup_plan/replay/physical_clone.rs",
         "src/cleanup_plan/replay/physical_storage.rs",
+        "src/cleanup_plan/replay/plan_prefix.rs",
         "src/cleanup_plan/replay/record_destructure.rs",
         "src/cleanup_plan/replay/record_destructure/update.rs",
         "src/cleanup_plan/replay/renewal.rs",
@@ -3998,6 +4005,7 @@
         "src/cleanup_plan/replay/skeleton_work/merge_search.rs",
         "src/cleanup_plan/replay/skeleton_work/ordinary_dag.rs",
         "src/cleanup_plan/replay/skeleton_work/ordinary_dag/frontier.rs",
+        "src/cleanup_plan/replay/skeleton_work/plan_prefix.rs",
         "src/cleanup_plan/replay/skeleton_work/prefix_fusion.rs",
         "src/cleanup_plan/replay/skeleton_work/receiving.rs",
         "src/cleanup_plan/replay/status_construction.rs",
@@ -4501,9 +4509,9 @@
         "src/workspace_report.rs",
         "src/workspace_report/initial.rs"
       ],
-      "full_manifest_sha256": "90e4eef5c445b7ac2cbfa09e4be9edfbbf639c633686a76cf1fd33d92e410928",
-      "full_raw_sha256": "817dff25210551da5d51f66e65f9ec26e5cd4c29824752efd84f39af4071daf3",
-      "full_authenticated_production_sha256": "60ae732ccee870f6721faede003bdf48e556b32e71fec380a067f08befc1e499"
+      "full_manifest_sha256": "f4a5987199db41077b94526d822c8841c73f8ec838921a9ce14da2075ea6780e",
+      "full_raw_sha256": "c1497c9c4fec07bc66197fadecd5e62e98203007f766d9b911099394f3ba51af",
+      "full_authenticated_production_sha256": "ac6e8f633682a9dfa8197efd96f715b64152b9059335923df0692c38451c8fa5"
     }
   }
 }

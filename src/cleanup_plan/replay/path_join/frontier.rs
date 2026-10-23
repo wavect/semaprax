@@ -6,7 +6,7 @@ use std::{collections::BTreeSet, marker::PhantomData, mem::size_of};
 
 pub(super) struct Insertions<T> {
     pub(super) failed: bool,
-    refusal: Option<Diagnostic>,
+    refusal: Option<ByteFailure>,
     entry: bool,
     group_entry: bool,
     function: *const ResolvedFunction,
@@ -18,16 +18,20 @@ pub(super) struct Insertions<T> {
 impl<T: Ord> Insertions<T> {
     // Aggregate initializer, named mutable result and caller receiving owner;
     // the Result<Self> wrapper remains separate, plus constructor/payment Results,
-    // inert ledger return, refusal None/Some/take and terminal Diagnostic moves.
+    // inert ledger return, compact refusal None/Some/take and terminal Diagnostic moves.
+    // Every full Diagnostic/ByteFailure terminal bank remains: positive failures
+    // retain their actual ByteFailure until failure() moves its identical Cow into
+    // the Diagnostic. Foreign rejection still constructs its original Diagnostic
+    // first and compacts only after the actual held ledger rejected storage.
     pub(super) fn controls() -> usize {
         3 * size_of::<Self>()
             + size_of::<Result<Self, Diagnostic>>()
             + size_of::<Result<(), Diagnostic>>()
             + size_of::<ClassifierLedger>()
-            + 3 * size_of::<Option<Diagnostic>>()
+            + 3 * size_of::<Option<ByteFailure>>()
             + 2 * size_of::<Diagnostic>()
             + size_of::<&mut Self>()
-            + size_of::<&mut Option<Diagnostic>>()
+            + size_of::<&mut Option<ByteFailure>>()
             + ClassifierLedger::capture_into_controls()
             + ClassifierLedger::insertion_terminal_controls()
             // One independent tree-group entry bank shares the exact held
@@ -38,6 +42,12 @@ impl<T: Ord> Insertions<T> {
             // once, before any entry; sticky failure forbids reuse.
             + 2 * size_of::<ByteFailure>()
             + 2 * size_of::<Diagnostic>()
+            // A foreign/function/budget rejection still constructs the actual
+            // original Diagnostic before compacting it. This NEW affine call
+            // owns a Diagnostic actual/formal and returned compact carriers;
+            // its bank is separate from the retained failure() conversion.
+            + 2 * size_of::<Diagnostic>()
+            + 2 * size_of::<ByteFailure>()
     }
     // A single entry's actual method/gateway/positive-reservation receivers.
     // Each entry consumes this bank and pays the next bank afresh. The final
@@ -45,7 +55,7 @@ impl<T: Ord> Insertions<T> {
     const ENTRY_CONTROLS: usize = 2 * size_of::<&mut Self>()
             + 4 * size_of::<&ResolvedFunction>()
             + 4 * size_of::<&mut ReplayBudget>()
-            + size_of::<&mut Option<Diagnostic>>()
+            + size_of::<&mut Option<ByteFailure>>()
             + size_of::<Result<(), ByteFailure>>()
             + ClassifierLedger::current_receiving_controls()
             + 6 * size_of::<Incoming<T>>()
@@ -67,7 +77,7 @@ impl<T: Ord> Insertions<T> {
     pub(super) const GROUP_ENTRY_CONTROLS: usize = 2 * size_of::<&mut Self>()
         + 4 * size_of::<&ResolvedFunction>()
         + 4 * size_of::<&mut ReplayBudget>()
-        + size_of::<&mut Option<Diagnostic>>()
+        + size_of::<&mut Option<ByteFailure>>()
         + size_of::<Result<(), ByteFailure>>()
         + ClassifierLedger::current_receiving_controls();
     const NODE: usize = match const_node_upper::<Box<T>, ()>() {
@@ -119,11 +129,14 @@ impl<T: Ord> Insertions<T> {
             || !self.ledger.current()
         {
             self.ledger.reject_storage();
-            self.refusal = Some(Diagnostic::io("SPX-H006", String::new()));
+            self.refusal = Some(ByteFailure::from_budget(Diagnostic::io(
+                "SPX-H006",
+                String::new(),
+            )));
             self.failed = true;
             return;
         }
-        budget.authenticate_zero_into(
+        budget.authenticate_zero_compact_into(
             function,
             "incoming ownership state authority",
             &mut self.refusal,
@@ -158,7 +171,7 @@ impl<T: Ord> Insertions<T> {
             bytes,
             "compact incoming owned state and publication renewal",
         ) {
-            self.refusal = Some(error.into_diagnostic());
+            self.refusal = Some(error);
             self.failed = true;
             return;
         }
@@ -203,7 +216,7 @@ impl<T: Ord> Insertions<T> {
             bytes,
             "compact incoming held state and publication renewal",
         ) {
-            self.refusal = Some(error.into_diagnostic());
+            self.refusal = Some(error);
             self.failed = true;
             return;
         }
@@ -236,11 +249,14 @@ impl<T: Ord> Insertions<T> {
             || !self.ledger.current()
         {
             self.ledger.reject_storage();
-            self.refusal = Some(Diagnostic::io("SPX-H006", String::new()));
+            self.refusal = Some(ByteFailure::from_budget(Diagnostic::io(
+                "SPX-H006",
+                String::new(),
+            )));
             self.failed = true;
             return;
         }
-        budget.authenticate_zero_into(
+        budget.authenticate_zero_compact_into(
             function,
             "incoming ownership state authority",
             &mut self.refusal,
@@ -264,7 +280,7 @@ impl<T: Ord> Insertions<T> {
                 Self::GROUP_ENTRY_CONTROLS,
                 "ownership held duplicate receiving renewal",
             ) {
-                self.refusal = Some(error.into_diagnostic());
+                self.refusal = Some(error);
                 self.failed = true;
                 return;
             }
@@ -274,7 +290,7 @@ impl<T: Ord> Insertions<T> {
                 Self::GROUP_HELD,
                 "incoming held ownership state node and receiving renewal",
             ) {
-                self.refusal = Some(error.into_diagnostic());
+                self.refusal = Some(error);
                 self.failed = true;
                 return;
             }
@@ -299,6 +315,7 @@ impl<T: Ord> Insertions<T> {
         self.refusal
             .take()
             .expect("ownership insertion report moves once")
+            .into_diagnostic()
     }
 }
 

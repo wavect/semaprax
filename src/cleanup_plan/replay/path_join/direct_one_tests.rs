@@ -91,8 +91,8 @@ fn only_deleted_singleton_iterator_carriers_leave_each_actual_paid_bank() {
         [
             size_of::<frontier::Incoming<PathState>>(),
             align_of::<frontier::Incoming<PathState>>(),
-            size_of::<frontier::Insertions<PathState>>(),
-            align_of::<frontier::Insertions<PathState>>()
+            size_of::<compact_failure_before::Insertions<PathState>>(),
+            align_of::<compact_failure_before::Insertions<PathState>>()
         ]
     );
     // Constructor, directory backing, held authority, entry/group banks and
@@ -141,9 +141,13 @@ fn complete_cold_driver_invoices_follow_actual_bank_count_with_same_physical_dro
             let removed = banks
                 .checked_mul(direct_one_before::removed_iterator_controls())
                 .unwrap();
-            assert_eq!(current.2.checked_add(removed), Some(before.2));
+            let setup_removed = compact_failure_tests::setup_delta::<PathState>();
+            assert_eq!(
+                current.2.checked_add(removed).and_then(|n| n.checked_add(setup_removed)),
+                Some(before.2)
+            );
             assert!(current.2 < before.2);
-            eprintln!("direct-one {} immediate8caff={} current={} banks={} removed={} physical_before={:?} physical_current={:?}", f.id,before.2,current.2,banks,removed,before.0.1,current.0.1);
+            eprintln!("direct-one {} immediate8caff={} current={} banks={} iterator_removed={} setup_removed={} physical_before={:?} physical_current={:?}", f.id,before.2,current.2,banks,removed,setup_removed,before.0.1,current.0.1);
             for o in [&before, &current] {
                 let a = &o.0 .1;
                 assert!(!a.invalid && a.live == 0 && a.allocated <= o.2);
@@ -304,7 +308,9 @@ fn complete_immediate_driver_receivers_and_original_controls_keep_whole_bytes() 
         let read = |path: &str| {
             std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap()
         };
-        let mut actual = String::from_utf8(read(row["current"].as_str().unwrap())).unwrap();
+        let path = row["current"].as_str().unwrap();
+        let mut actual =
+            compact_failure_tests::before_source(path, String::from_utf8(read(path)).unwrap());
         assert_eq!(
             digest(actual.as_bytes()),
             row["current_sha256"].as_str().unwrap()

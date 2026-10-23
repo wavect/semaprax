@@ -1,30 +1,95 @@
 //! Guarded last use of HIR-private closure payloads between exact root proofs.
 use super::super::super::{Node, SkeletonTerminal};
 use super::*;
+use crate::bounded_output::classifier_string::{ClassifierLedger, StorageParent};
 use std::mem::size_of;
 
+// Fresh between-root authentication cannot spend an old canonical-call bank.
+// current_receiving_controls binds current()->ACTIVE's cloned Rc/TLS/Option
+// roles. StorageParent::TERMINAL_CONTROLS is exactly one record_refusal's
+// receipt/site/stage/floor/remaining/overflow bank (classifier_string.rs).
+// Its borrowed Budget receiver excludes current()'s held Option/Rc bindings
+// and two Rc::deref actual/formal/output triples. All eight are thin loans to
+// Sized fields; &() prices their target-layout reference width without forming
+// a proxy runtime owner or depending on the private Budget type's layout.
+// preflight_owned's successful paid arm ALSO calls active_refused()->active().
+// The following source-bound inventory pays that second clone/TLS transport,
+// moved Option::is_some_and receiver/callback and sticky Cell::get separately.
+// Budget is Sized and private: Rc<()> and loans to () are layout proxies for
+// its thin pointer carriers only; no proxy runtime object is constructed.
+const STICKY_ACTIVE_CONTROLS: usize = {
+    use std::cell::{Cell, Ref, RefCell};
+    use std::thread::LocalKey;
+    type Active = RefCell<Option<Rc<()>>>;
+    type Loan = Ref<'static, Option<Rc<()>>>;
+    2 * size_of::<&ReplayBudget>()
+        + 2 * size_of::<bool>()
+        + 2 * size_of::<&LocalKey<Active>>()
+        + 4 * size_of::<&Active>()
+        + size_of::<Loan>()
+        + 2 * size_of::<&Loan>()
+        + 3 * size_of::<&Option<Rc<()>>>()
+        + 6 * size_of::<Option<Rc<()>>>()
+        + 5 * size_of::<Rc<()>>()
+        + 6 * size_of::<&Rc<()>>()
+        + size_of::<&()>()
+        + 2 * size_of::<&Cell<bool>>()
+        + 4 * size_of::<bool>()
+};
+const AUTHENTICATION: usize = STICKY_ACTIVE_CONTROLS
+    + ClassifierLedger::current_receiving_controls()
+    + StorageParent::TERMINAL_CONTROLS
+    + 8 * size_of::<&()>()
+    + 2 * size_of::<(&mut empty_memo::Memo<Rc<ordered_weights::OrderedWeights>>, &ResolvedFunction, &ReplayBudget)>()
+    + 6 * size_of::<&empty_memo::Memo<Rc<ordered_weights::OrderedWeights>>>()
+    + 2 * size_of::<&mut empty_memo::Memo<Rc<ordered_weights::OrderedWeights>>>()
+    + 8 * size_of::<bool>()
+    // One immediate terminal creates empty String, actual/formal io arguments,
+    // Diagnostic result and its caller receiver; the Result bank is below.
+    + 3 * size_of::<String>()
+    + 2 * size_of::<(&'static str, String)>()
+    + 2 * size_of::<Diagnostic>();
+
 // Caller pays before constructing the new invocation's actual/formal carriers.
-pub(in crate::cleanup_plan::replay::factored) const CALL: usize =
-    4 * size_of::<(
+pub(in crate::cleanup_plan::replay::factored) const CALL: usize = AUTHENTICATION
+    + 4 * size_of::<(
         &mut Canonicalizer<'static>,
         &ResolvedFunction,
         &mut ReplayBudget,
         usize,
         usize,
-    )>() + 4 * size_of::<Result<bool, Diagnostic>>()
-        + 2 * size_of::<&Result<bool, Diagnostic>>()
-        + 2 * size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>()
-        + 2 * size_of::<Result<(), Diagnostic>>()
-        + empty_memo::Memo::<Rc<ordered_weights::OrderedWeights>>::RELEASE_CALL
-        + 4 * size_of::<bool>()
-        + 4 * size_of::<usize>()
-        + 2 * size_of::<[SkeletonTerminal; 3]>()
-        + 2 * size_of::<std::iter::Enumerate<std::array::IntoIter<SkeletonTerminal, 3>>>()
-        + 2 * size_of::<Option<(usize, SkeletonTerminal)>>()
-        + 2 * size_of::<(usize, SkeletonTerminal)>();
-const STEP: usize = 2 * size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>()
+    )>()
+    + 4 * size_of::<Result<bool, Diagnostic>>()
+    + 2 * size_of::<&Result<bool, Diagnostic>>()
+    + 2 * size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>()
+    + 2 * size_of::<Result<(), Diagnostic>>()
+    + empty_memo::Memo::<Rc<ordered_weights::OrderedWeights>>::RELEASE_CALL
+    + 4 * size_of::<bool>()
+    + 4 * size_of::<usize>()
+    + 2 * size_of::<[SkeletonTerminal; 3]>()
+    + 2 * size_of::<std::iter::Enumerate<std::array::IntoIter<SkeletonTerminal, 3>>>()
+    + 2 * size_of::<&mut std::iter::Enumerate<std::array::IntoIter<SkeletonTerminal, 3>>>()
+    + 2 * size_of::<Option<(usize, SkeletonTerminal)>>()
+    + 2 * size_of::<(usize, SkeletonTerminal)>();
+// Each step constructs reserve_bytes AND charge actual/formal arguments.
+const STEP: usize = 4 * size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>()
     + 4 * size_of::<Result<(), Diagnostic>>()
-    + 2 * size_of::<&Node>()
+    // Terminal entry pays first next; each terminal step renews the next probe,
+    // including the final None, without reusing its previous return receiver.
+    + 2 * size_of::<Option<(usize, SkeletonTerminal)>>()
+    + 2 * size_of::<(usize, SkeletonTerminal)>()
+    + 2 * size_of::<&mut std::iter::Enumerate<std::array::IntoIter<SkeletonTerminal, 3>>>()
+    + 2 * size_of::<&mut std::slice::Iter<'static, Node>>()
+    + 2 * size_of::<&mut std::slice::Iter<'static, (Label, usize)>>()
+    + 2 * size_of::<&mut std::slice::Iter<'static, usize>>()
+    // First/next iterator probes are prepaid by entry/the preceding step.
+    + 4 * size_of::<&Node>()
+    + 2 * size_of::<&[(Label, usize)]>()
+    + 2 * size_of::<&[usize]>()
+    + 2 * size_of::<Option<&Node>>()
+    + 2 * size_of::<Option<&(Label, usize)>>()
+    + 2 * size_of::<Option<&usize>>()
+    + 2 * size_of::<(&Label, &usize)>()
     + 2 * size_of::<std::slice::Iter<'static, Node>>()
     + 2 * size_of::<std::slice::Iter<'static, (Label, usize)>>()
     + 2 * size_of::<std::slice::Iter<'static, usize>>()

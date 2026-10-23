@@ -270,7 +270,10 @@ impl<T> Memo<T> {
         &mut ReplayBudget,
         usize,
         usize,
-    )>() + 2 * size_of::<Result<(), Diagnostic>>();
+    )>() + 2 * size_of::<Result<(), Diagnostic>>()
+        + size_of::<std::ops::Range<usize>>()
+        + 2 * size_of::<&mut std::ops::Range<usize>>()
+        + 2 * size_of::<Option<usize>>();
     // Caller holds a certificate that no later root can query these keys.
     // Directory length/capacity, payload arrays, empty bits and authority remain.
     pub(super) fn release_private_payloads(
@@ -283,18 +286,18 @@ impl<T> Memo<T> {
         for key in first..end {
             budget.reserve_bytes(
                 function,
-                2 * size_of::<(
-                    &mut Self,
-                    &ResolvedFunction,
-                    &mut ReplayBudget,
-                    usize,
-                    usize,
-                )>() + 4 * size_of::<usize>()
+                // Both the reservation and ordinary-work call form their own
+                // actual/formal arguments; the outer method was paid at entry.
+                4 * size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>()
+                    + 4 * size_of::<usize>()
+                    // Entry pays the first next; this step prepays the next one.
+                    + 2 * size_of::<&mut std::ops::Range<usize>>()
+                    + 2 * size_of::<Option<usize>>()
                     + 2 * size_of::<Option<&mut Chunk<T>>>()
                     + 2 * size_of::<Option<&mut Box<[Option<T>; WIDTH]>>>()
                     + 2 * size_of::<Option<T>>()
                     + 2 * size_of::<T>()
-                    + 2 * size_of::<Result<(), Diagnostic>>(),
+                    + 4 * size_of::<Result<(), Diagnostic>>(),
                 "factored HIR-private memo payload release receiving",
             )?;
             budget.charge(function, 1, "factored HIR-private memo payload release")?;

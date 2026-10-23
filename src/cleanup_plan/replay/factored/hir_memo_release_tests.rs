@@ -400,6 +400,31 @@ fn release_foreign_and_new_work_refusals_keep_one_sticky_owner_and_full_diagnost
 #[test]
 fn complete_before_caller_and_all_old_canonical_memo_bytes_remain_exact() {
     let digest = |b: &[u8]| format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(b)));
+    // The new authentication bank binds the complete immutable helper source,
+    // including authoritative current() and the one-terminal typed inventory.
+    assert_eq!(
+        digest(include_bytes!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/bounded_output/classifier_string.rs"
+        ))),
+        "0fd752c50adec4ffe2269581cc7c7d2cc1e6d873d43a6bb47d35e6be9d826550"
+    );
+    assert_eq!(
+        std::mem::size_of::<&crate::bounded_output::classifier_string::ClassifierLedger>(),
+        std::mem::size_of::<&()>()
+    );
+    let bounded = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/bounded_output.rs"
+    ));
+    assert_eq!(
+        digest(bounded.as_bytes()),
+        "f9b2a1c5f5b7d9608071ab2f8c5bbdff4a4e2555caa2416d2ac4c75867b83c4c"
+    );
+    for body in [
+        "fn active() -> Option<Rc<Budget>> {\n    ACTIVE.with(|active| active.borrow().clone())\n}\n",
+        "pub(crate) fn active_refused() -> bool {\n    active().is_some_and(|budget| budget.overflowed.get())\n}\n",
+    ] { assert_eq!(bounded.matches(body).count(), 1); }
     let saved = include_str!("hir_memo_release/compare.before.txt");
     let current = include_str!("hir_memo_release_tests.rs");
     let marker = "fn compare_before_memo_release<'hir>(";
@@ -418,7 +443,7 @@ fn complete_before_caller_and_all_old_canonical_memo_bytes_remain_exact() {
     let encoded = include_str!("hir_memo_release/source_inverse.json");
     assert_eq!(
         digest(encoded.as_bytes()),
-        "83e344607710eef8375d8c69bdd13ba6bbdcca8fd4771f9f3a6cd7af3780e986"
+        "b95476b5097b4d7c822d71dcb4f6c6ba021ade26713e7923b34dec5886953954"
     );
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     assert_eq!(
@@ -594,42 +619,63 @@ fn complete_release_work_and_physical_frontiers() {
                     for key in built.hir_root..built.plan_root {
                         owner.seed_private_release_test(function, &mut budget, key);
                     }
-                    budget
-                        .reserve_bytes(
-                            function,
-                            hir_last_use::CALL,
-                            "release cut invocation receiving",
-                        )
-                        .unwrap();
                     let before = crate::bounded_output::active_remaining().unwrap();
                     if let Some(allowance) = allowance {
                         assert!(crate::bounded_output::set_active_floor(before - allowance));
                     }
-                    let actual = owner.release_hir_private(
+                    let actual = match budget.reserve_bytes(
                         function,
-                        &mut budget,
-                        built.hir_root,
-                        built.plan_root,
-                    );
+                        hir_last_use::CALL,
+                        "factored HIR-private release call receiving",
+                    ) {
+                        Ok(()) => owner.release_hir_private(
+                            function,
+                            &mut budget,
+                            built.hir_root,
+                            built.plan_root,
+                        ),
+                        Err(error) => Err(error),
+                    };
                     let paid = before - crate::bounded_output::active_remaining().unwrap();
                     crate::bounded_output::clear_active_floor();
                     if let Err(error) = &actual {
-                        let phase = if allowance == Some(0) {
+                        let phase = if allowance.is_some_and(|bytes| bytes < hir_last_use::CALL) {
+                            "factored HIR-private release call receiving"
+                        } else if allowance == Some(hir_last_use::CALL) {
                             "factored HIR-private partition guard receiving"
                         } else {
                             "factored HIR-private memo payload release receiving"
                         };
                         assert_eq!(error.json(), Diagnostic::io("SPX-H006", format!("cleanup plan for function `{}` failed independent replay: cleanup replay physical reservation exhausted during {phase}", function.id.as_str())).json());
-                        assert_eq!(owner.private_release_state(built.hir_root).0, 0);
+                        let before_entry =
+                            allowance.is_some_and(|bytes| bytes < hir_last_use::CALL);
                         assert_eq!(
-                            owner.release_hir_private(
-                                function,
-                                &mut budget,
-                                built.hir_root,
-                                built.plan_root
-                            ),
-                            Err(Diagnostic::io("SPX-H006", String::new()))
+                            owner.private_release_state(built.hir_root).0,
+                            if before_entry { 2 } else { 0 }
                         );
+                        if before_entry {
+                            // Failed caller payment never enters the helper or
+                            // spends its unpaid authentication bank on retry.
+                            assert!(budget.refusal_spent);
+                            assert_eq!(
+                                budget.reserve_bytes(
+                                    function,
+                                    0,
+                                    "already refused release invocation"
+                                ),
+                                Err(Diagnostic::io("SPX-H006", String::new()))
+                            );
+                        } else {
+                            assert_eq!(
+                                owner.release_hir_private(
+                                    function,
+                                    &mut budget,
+                                    built.hir_root,
+                                    built.plan_root
+                                ),
+                                Err(Diagnostic::io("SPX-H006", String::new()))
+                            );
+                        }
                     }
                     drop(owner);
                     drop(budget);
@@ -647,7 +693,7 @@ fn complete_release_work_and_physical_frontiers() {
     let ((success, exact), _) = run(Some(full));
     assert!(success);
     assert_eq!(exact, full);
-    for allowance in [0, full - 1] {
+    for allowance in [0, hir_last_use::CALL - 1, hir_last_use::CALL, full - 1] {
         let ((success, _), _) = run(Some(allowance));
         assert!(!success);
     }

@@ -64,7 +64,7 @@ const FRAME_STEP: usize = 3 * PAYMENT
     + 4 * size_of::<&ObservationDagKind>()
     + 4 * size_of::<&[Observation]>()
     + 4 * size_of::<&Option<Rc<ObservationDag>>>()
-    + 8 * size_of::<usize>()
+    + size_of::<[usize; 8]>()
     + 8 * size_of::<bool>();
 // A Cat can have arbitrarily many children even while the pending Vec is
 // warm. Pay every iterator attempt, including its final None, and the actual

@@ -7,6 +7,7 @@ use std::mem::size_of;
 #[path = "enumerated_prefix/flat_probe/before.rs"]
 mod before_flat_probe;
 mod flat_probe;
+mod receiving_sort;
 use crate::cleanup_plan::replay::physical_budget::compact_try;
 
 // Actual selector, moved node kind, result, payment and borrowed receivers.
@@ -350,41 +351,6 @@ const SORT_CALL: usize = 2 * size_of::<&mut [SkeletonPath]>()
     + 4 * size_of::<bool>()
     + 2 * size_of::<std::iter::Rev<std::ops::Range<usize>>>()
     + size_of::<Result<(), Diagnostic>>();
-fn sift(
-    paths: &mut [SkeletonPath],
-    mut root: usize,
-    end: usize,
-    function: &ResolvedFunction,
-    budget: &mut ReplayBudget,
-) -> Result<(), Diagnostic> {
-    loop {
-        budget.charge(function, 1, "enumerated HIR content sort traversal")?;
-        if end < 2 || root > (end - 2) / 2 {
-            return Ok(());
-        }
-        let mut child = root * 2 + 1;
-        if child + 1 < end {
-            budget.reserve_bytes(
-                function,
-                ORDER_CALL,
-                "enumerated HIR sibling order call receivers",
-            )?;
-            if order(&paths[child], &paths[child + 1], function, budget)? == Ordering::Less {
-                child += 1;
-            }
-        }
-        budget.reserve_bytes(
-            function,
-            ORDER_CALL,
-            "enumerated HIR parent order call receivers",
-        )?;
-        if order(&paths[root], &paths[child], function, budget)? != Ordering::Less {
-            return Ok(());
-        }
-        paths.swap(root, child);
-        root = child;
-    }
-}
 pub(in crate::cleanup_plan::replay) const ENTRY_CALL: usize = 4 * size_of::<&[SkeletonPath]>()
     + 2 * size_of::<&mut [SkeletonPath]>()
     + 2 * size_of::<&ResolvedFunction>()
@@ -414,19 +380,9 @@ pub(in crate::cleanup_plan::replay) fn sort(
         paths.sort();
         return Ok(());
     }
-    budget.reserve_bytes(function, SORT_CALL, "enumerated HIR content sort receivers")?;
-    let len = paths.len();
-    for root in (0..len / 2).rev() {
-        budget.reserve_bytes(function, SORT_CALL, "enumerated HIR sift call receivers")?;
-        sift(paths, root, len, function, budget)?;
-    }
-    for end in (1..len).rev() {
-        paths.swap(0, end);
-        budget.reserve_bytes(function, SORT_CALL, "enumerated HIR sift call receivers")?;
-        sift(paths, 0, end, function, budget)?;
-    }
-    Ok(())
+    receiving_sort::sort(paths, function, budget).map_err(|failure| failure.into_diagnostic())
 }
+
 pub(in crate::cleanup_plan::replay) fn equal(
     left: &[SkeletonPath],
     right: &[SkeletonPath],

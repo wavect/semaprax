@@ -1,7 +1,7 @@
 {
   "schema": "semaprax.hosted-opt-batch-selection.v1",
-  "filters": 64,
-  "expected_tests": 169,
+  "filters": 65,
+  "expected_tests": 171,
   "commands": [
     {
       "owner": "OPT899 unchanged default owning controls",
@@ -450,6 +450,13 @@
       "filter": "standard_library::decimal::decimal_does_not_claim_the_frozen_standalone_string_wasm_profile",
       "exact": true,
       "expected_tests": 1
+    },
+    {
+      "owner": "Ordinary history unobserved cursor backing and malformed depth regressions",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::tests::unobserved_",
+      "exact": false,
+      "expected_tests": 2
     }
   ]
 }

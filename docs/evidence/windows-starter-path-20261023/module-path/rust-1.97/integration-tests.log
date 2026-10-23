@@ -1,0 +1,12 @@
+
+running 7 tests
+test new_project::application::held_input_path::tests::device_and_verbatim_prefixes_are_not_reinterpreted ... ok
+test new_project::application::held_input_path::tests::drive_prefix_and_separators_are_lexical_and_lossless ... ok
+test new_project::application::held_input_path::tests::drive_relative_and_parent_traversal_are_refused ... ok
+test new_project::application::held_input_path::tests::existing_verbatim_parent_is_borrowed_without_rewriting ... ok
+test new_project::application::held_input_path::tests::unc_prefix_keeps_the_exact_server_share_and_names ... ok
+test new_project::application::starter_input_held_regular_reader_preserves_exact_bytes_and_bounds ... ok
+test new_project::application::starter_reader_refuses_parent_rebinding_after_the_held_open ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

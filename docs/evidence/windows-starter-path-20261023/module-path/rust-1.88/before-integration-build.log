@@ -1,0 +1,12 @@
+error[E0583]: file not found for module `held_input_path`
+ --> /Volumes/Semaprax/worktrees/ci-canonical-54e/target/ci-private/starter-module-layout-msrv-1.88/tests/../src/new_project/application.rs:5:1
+  |
+5 | mod held_input_path;
+  | ^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: to create the module `held_input_path`, create file "/Volumes/Semaprax/worktrees/ci-canonical-54e/target/ci-private/starter-module-layout-msrv-1.88/tests/../src/new_project/held_input_path.rs" or "/Volumes/Semaprax/worktrees/ci-canonical-54e/target/ci-private/starter-module-layout-msrv-1.88/tests/../src/new_project/held_input_path/mod.rs"
+  = note: if there is a `mod held_input_path` elsewhere in the crate already, import it with `use crate::...` instead
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0583`.

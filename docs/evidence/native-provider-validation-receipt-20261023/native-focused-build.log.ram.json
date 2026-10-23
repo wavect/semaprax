@@ -1,0 +1,87 @@
+{
+  "exit": 0,
+  "process_RSS_cap": null,
+  "minimum_device_physical_available_GiB": 3.626129150390625,
+  "minimum_pressure_free_percent": 41,
+  "compiler_pauses": 0,
+  "peak_process_tree_RSS_telemetry_KiB": 5089920,
+  "samples": [
+    {
+      "physical_available_GiB": 7.6003875732421875,
+      "pressure_free_percent": 56,
+      "compiler_paused": false,
+      "process_tree_RSS_telemetry_KiB": 38960,
+      "swap": "vm.swapusage: total = 10240.00M  used = 8747.50M  free = 1492.50M  (encrypted)"
+    },
+    {
+      "physical_available_GiB": 5.83721923828125,
+      "pressure_free_percent": 66,
+      "compiler_paused": false,
+      "process_tree_RSS_telemetry_KiB": 3560784,
+      "swap": "vm.swapusage: total = 10240.00M  used = 8747.50M  free = 1492.50M  (encrypted)"
+    },
+    {
+      "physical_available_GiB": 6.33441162109375,
+      "pressure_free_percent": 67,
+      "compiler_paused": false,
+      "process_tree_RSS_telemetry_KiB": 3948672,
+      "swap": "vm.swapusage: total = 10240.00M  used = 8747.50M  free = 1492.50M  (encrypted)"
+    },
+    {
+      "physical_available_GiB": 5.9637908935546875,
+      "pressure_free_percent": 68,
+      "compiler_paused": false,
+      "process_tree_RSS_telemetry_KiB": 4713872,
+      "swap": "vm.swapusage: total = 10240.00M  used = 8747.50M  free = 1492.50M  (encrypted)"
+    },
+    {
+      "physical_available_GiB": 5.4726409912109375,
+      "pressure_free_percent": 62,
+      "compiler_paused": false,
+      "process_tree_RSS_telemetry_KiB": 4869040,
+      "swap": "vm.swapusage: total = 10240.00M  used = 8747.50M  free = 1492.50M  (encrypted)"
+    },
+    {
+      "physical_available_GiB": 4.9503021240234375,
+      "pressure_free_percent": 56,
+      "compiler_paused": false,
+      "process_tree_RSS_telemetry_KiB": 3461632,
+      "swap": "vm.swapusage: total = 10240.00M  used = 8731.50M  free = 1508.50M  (encrypted)"
+    },
+    {
+      "physical_available_GiB": 4.582855224609375,
+      "pressure_free_percent": 52,
+      "compiler_paused": false,
+      "process_tree_RSS_telemetry_KiB": 3536112,
+      "swap": "vm.swapusage: total = 10240.00M  used = 8731.50M  free = 1508.50M  (encrypted)"
+    },
+    {
+      "physical_available_GiB": 4.32659912109375,
+      "pressure_free_percent": 49,
+      "compiler_paused": false,
+      "process_tree_RSS_telemetry_KiB": 3180768,
+      "swap": "vm.swapusage: total = 10240.00M  used = 8723.50M  free = 1516.50M  (encrypted)"
+    },
+    {
+      "physical_available_GiB": 3.877593994140625,
+      "pressure_free_percent": 44,
+      "compiler_paused": false,
+      "process_tree_RSS_telemetry_KiB": 1506752,
+      "swap": "vm.swapusage: total = 10240.00M  used = 8715.50M  free = 1524.50M  (encrypted)"
+    },
+    {
+      "physical_available_GiB": 3.8528594970703125,
+      "pressure_free_percent": 43,
+      "compiler_paused": false,
+      "process_tree_RSS_telemetry_KiB": 1961568,
+      "swap": "vm.swapusage: total = 10240.00M  used = 8699.50M  free = 1540.50M  (encrypted)"
+    },
+    {
+      "physical_available_GiB": 3.8273162841796875,
+      "pressure_free_percent": 43,
+      "compiler_paused": false,
+      "process_tree_RSS_telemetry_KiB": 1617200,
+      "swap": "vm.swapusage: total = 10240.00M  used = 8699.50M  free = 1540.50M  (encrypted)"
+    }
+  ]
+}

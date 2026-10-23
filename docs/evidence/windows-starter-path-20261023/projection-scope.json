@@ -1,0 +1,7 @@
+{
+  "original_function": "expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root",
+  "body_preserved_except_literal_acquisition_paths": true,
+  "no_mock_ir_or_layout": true,
+  "original_source_inventory_macros": true,
+  "scope": "original source-only projection gate; no compiler/backend product qualification"
+}

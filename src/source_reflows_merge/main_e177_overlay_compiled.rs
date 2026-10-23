@@ -1,5 +1,9 @@
 pub(super) fn compiled(source: &str) -> Option<&'static str> {
     match source {
+        "src/call_index/validation_before.rs" => Some(include_str!("../../src/call_index/validation_before.rs")),
+        "src/call_index/validation_receipt_tests.rs" => Some(include_str!("../../src/call_index/validation_receipt_tests.rs")),
+        "src/codegen/native_owned_data_provider/emit_provider_before.rs" => Some(include_str!("../../src/codegen/native_owned_data_provider/emit_provider_before.rs")),
+        "src/codegen/native_owned_data_provider/validation_reuse_tests.rs" => Some(include_str!("../../src/codegen/native_owned_data_provider/validation_reuse_tests.rs")),
         "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/flat_probe/before.rs" => Some(include_str!("../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix/flat_probe/before.rs")),
         "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/flat_probe/receiving_tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix/flat_probe/receiving_tests.rs")),
         "src/workspace_graph/expected_projection/private_layout/names/interface_census.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/private_layout/names/interface_census.rs")),
@@ -559,6 +563,10 @@ mod tests {
             "src/workspace_graph/expected_projection/private_layout/names/interface_tests.rs",
             "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/flat_probe/before.rs",
             "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/flat_probe/receiving_tests.rs",
+            "src/call_index/validation_before.rs",
+            "src/call_index/validation_receipt_tests.rs",
+            "src/codegen/native_owned_data_provider/emit_provider_before.rs",
+            "src/codegen/native_owned_data_provider/validation_reuse_tests.rs",
         ] {
             let declaration = format!("    {source:?},\n");
             assert_eq!(current_scope_root.matches(&declaration).count(), 1);
@@ -688,6 +696,10 @@ mod tests {
             "src/workspace_graph/expected_projection/private_layout/names/interface_tests.rs",
             "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/flat_probe/before.rs",
             "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/flat_probe/receiving_tests.rs",
+            "src/call_index/validation_before.rs",
+            "src/call_index/validation_receipt_tests.rs",
+            "src/codegen/native_owned_data_provider/emit_provider_before.rs",
+            "src/codegen/native_owned_data_provider/validation_reuse_tests.rs",
         ] {
             let arm = format!("        {source:?} => Some(include_str!(\"../../{source}\")),\n");
             assert_eq!(current_scope_child.matches(&arm).count(), 1);

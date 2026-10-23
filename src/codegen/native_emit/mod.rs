@@ -3,6 +3,7 @@ mod emission;
 use emission::emit_hir_c_with_options;
 pub(in crate::codegen) use emission::{
     emit_partition_source, emit_selected_fused_row_prelude, emit_validated_fused_row_prelude,
+    emit_validated_owned_provider,
 };
 mod owned_moves;
 pub(crate) mod public_generic_bridge;
@@ -899,7 +900,6 @@ fn emit_variant_declaration(
 }
 
 use owned_carrier::{c_value_type, record_declaration_id, variant_declaration_id};
-
 fn is_aggregate_type(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagnostic> {
     Ok(matches!(ty, ResolvedType::ArrayU8(length) if *length != 0)
         || crate::iterator_ops::is_step(ty)

@@ -249,6 +249,27 @@ pub fn derive_public_api_descriptor(
     selected: &[String],
     subject: PublicApiSubject<'_>,
 ) -> Result<PublicApiDescriptor, Diagnostic> {
+    derive_public_api_descriptor_input(DescriptorProgram::Raw(program), selected, subject)
+}
+
+enum DescriptorProgram<'a, 'p> {
+    Raw(&'p ResolvedProgram),
+    Validated(&'a crate::call_index::OrdinaryValidatedProgram<'p>),
+}
+impl<'p> DescriptorProgram<'_, 'p> {
+    fn program(&self) -> &'p ResolvedProgram {
+        match self {
+            Self::Raw(program) => program,
+            Self::Validated(owner) => owner.program(),
+        }
+    }
+}
+fn derive_public_api_descriptor_input(
+    input: DescriptorProgram<'_, '_>,
+    selected: &[String],
+    subject: PublicApiSubject<'_>,
+) -> Result<PublicApiDescriptor, Diagnostic> {
+    let program = input.program();
     validate_subject(subject)?;
     validate_selected(selected)?;
     if program.functions.is_empty() || program.functions.len() > MAX_PUBLIC_API_CLOSURE_FUNCTIONS {
@@ -256,7 +277,10 @@ pub fn derive_public_api_descriptor(
             "public API linked executable inventory must contain 1..={MAX_PUBLIC_API_CLOSURE_FUNCTIONS} functions"
         )));
     }
-    let call_index = PersistentCallIndex::build(program)?;
+    let call_index = match input {
+        DescriptorProgram::Raw(program) => PersistentCallIndex::build(program)?,
+        DescriptorProgram::Validated(owner) => PersistentCallIndex::build_validated(owner)?,
+    };
     let functions = program
         .functions
         .iter()
@@ -377,11 +401,42 @@ pub fn replay_public_api_descriptor(
     submitted: &[u8],
     submitted_digest: &str,
 ) -> Result<PublicApiDescriptor, Diagnostic> {
+    replay_public_api_descriptor_input(
+        DescriptorProgram::Raw(program),
+        selected,
+        subject,
+        submitted,
+        submitted_digest,
+    )
+}
+
+pub(crate) fn replay_public_api_descriptor_validated(
+    validated: &crate::call_index::OrdinaryValidatedProgram<'_>,
+    selected: &[String],
+    subject: PublicApiSubject<'_>,
+    submitted: &[u8],
+    submitted_digest: &str,
+) -> Result<PublicApiDescriptor, Diagnostic> {
+    replay_public_api_descriptor_input(
+        DescriptorProgram::Validated(validated),
+        selected,
+        subject,
+        submitted,
+        submitted_digest,
+    )
+}
+fn replay_public_api_descriptor_input(
+    input: DescriptorProgram<'_, '_>,
+    selected: &[String],
+    subject: PublicApiSubject<'_>,
+    submitted: &[u8],
+    submitted_digest: &str,
+) -> Result<PublicApiDescriptor, Diagnostic> {
     let parsed = parse_descriptor(submitted)?;
     if domain_digest(descriptor_digest_domain(parsed.schema)?, submitted) != submitted_digest {
         return Err(api_error("public API descriptor digest does not match"));
     }
-    let rebuilt = derive_public_api_descriptor(program, selected, subject)?;
+    let rebuilt = derive_public_api_descriptor_input(input, selected, subject)?;
     if parsed != ParsedDescriptor::from_descriptor(&rebuilt)
         || submitted != rebuilt.canonical_bytes().as_slice()
         || submitted_digest != rebuilt.digest()

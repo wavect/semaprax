@@ -1,0 +1,28 @@
+{
+  "command": [
+    "/Volumes/Semaprax/internal-cache-offload-20261016/rustup-home/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc",
+    "--edition=2021",
+    "--test",
+    "-Cdebuginfo=0",
+    "-Ccodegen-units=64",
+    "-Zthreads=1",
+    "-Zno-parallel-backend",
+    "-L",
+    "dependency=/Volumes/Semaprax/worktrees/ci-canonical-54e/target/ci-private/clippy-1.97/debug/deps",
+    "-L",
+    "dependency=/Volumes/Semaprax/worktrees/ci-canonical-54e/target/ci-private/source-gate-release-1.97/release/deps",
+    "--extern",
+    "semaprax_native_rust_interop_platform=/Volumes/Semaprax/worktrees/ci-canonical-54e/target/ci-private/source-gate-release-1.97/release/libsemaprax_native_rust_interop_platform.rlib",
+    "/Volumes/Semaprax/tmp/ci-38383508340/windows-starter-7a252/reader-current.rs",
+    "-o",
+    "/Volumes/Semaprax/tmp/ci-38383508340/windows-starter-7a252/reader-current"
+  ],
+  "actual_reader_functions_and_original_test_bodies_preserved": true,
+  "actual_failure_type": true,
+  "genuine_platform": "/Volumes/Semaprax/worktrees/ci-canonical-54e/target/ci-private/source-gate-release-1.97/release/libsemaprax_native_rust_interop_platform.rlib",
+  "compiler_IR": "not involved in reader; unrelated application operations not qualified",
+  "no_mock_platform_or_IR": true,
+  "qualification": "native current reader and portable Windows-prefix construction; actual Windows OS execution remains hosted",
+  "application_sha256": "c2b62e01d7ca56ad42905bc54574866c3982f0a4c4bbb2bfd170b5b1c73f1c70",
+  "prefix_sha256": "24933f5136618f769a36d88fcf094cb35fccfd4ce77fd41b0de4f0fdfa5ed814"
+}

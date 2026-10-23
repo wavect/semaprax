@@ -283,6 +283,18 @@
           "prior": "//! Invocation-local immutable classification DATA, never content authority.\nuse super::*;\n\nstruct Entry {\n    root: Rc<ObservationDag>,\n    visits: usize,\n"
         }
       ]
+    },
+    "src/workspace_graph/expected_projection/call_carriers_directory.rs": {
+      "current_bytes": 22124,
+      "current_sha256": "c53859b526468fee76990379a23d269a65c37d8d3ff39d05091698ca404c2fb6",
+      "prior_bytes": 22083,
+      "prior_sha256": "02a23bf1dbd18cdb4fa5df6d21f113ca5451a1719d014664b2bbbaae71e9ec92",
+      "splices": [
+        {
+          "current": "pub(in crate::workspace_graph::expected_projection) use modular::indexed_loan as indexed_modular_loan;",
+          "prior": "pub(super) use modular::indexed_loan as indexed_modular_loan;"
+        }
+      ]
     }
   }
 }

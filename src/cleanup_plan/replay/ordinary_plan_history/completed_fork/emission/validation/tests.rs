@@ -1,6 +1,9 @@
 //! Independently executable old classifier, immutable identity and full Drop.
+use super::super::{sequence, VALIDATE};
 use super::*;
 use crate::bounded_output::{set_active_floor, with_limit_usage_refusal};
+use crate::cleanup_plan::replay::ReplayBudget;
+use crate::hir::ResolvedProgram;
 use crate::test_allocation_observer::measure;
 
 fn fixture() -> ResolvedProgram {
@@ -63,7 +66,14 @@ fn fields(
     Option<crate::ast::Span>,
     Option<String>,
 ) {
-    (d.code, d.severity, d.message, d.path, d.span, d.help)
+    (
+        d.code,
+        d.severity,
+        d.message.to_string(),
+        d.path,
+        d.span,
+        d.help,
+    )
 }
 
 #[test]

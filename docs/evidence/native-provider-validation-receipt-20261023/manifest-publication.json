@@ -1,0 +1,14 @@
+[
+  {
+    "domain": "hir",
+    "previous_archive": "e/d553a3b605c88a76e657b44b4dbcdff2025a292b7c5d9c1aaac1158838011729",
+    "current_sha256": "85f7224e050415a9e35a3279fe207ef474b9cf6f8950326c28ac190125ac235f",
+    "all_old_sources_roles_chains_and_ordered_chunks_preserved": true
+  },
+  {
+    "domain": "projection",
+    "previous_archive": "e/97b42d60653663be0ca3aa0ee30fae0c321d3277b3d8882b8676debd28cd3f24",
+    "current_sha256": "79fa79b9c74690b58ad6ea4eed4fd6635a8ad9baa835c10ea46c12456ed35317",
+    "all_old_sources_roles_chains_and_ordered_chunks_preserved": true
+  }
+]

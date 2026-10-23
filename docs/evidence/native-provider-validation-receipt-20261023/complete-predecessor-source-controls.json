@@ -1,0 +1,16 @@
+[
+  {
+    "source": "src/codegen/native_owned_data_provider.rs",
+    "head": "295c73b48f00a75eadf1f859c98bd41845dd7b0a",
+    "original_body_sha256": "8ba92683352cbba318e212108cbd1831825bccf8b6ad21bedd375eec338794eb",
+    "complete_retained_path": "src/codegen/native_owned_data_provider/emit_provider_before.rs",
+    "only_name_or_visibility_changed": true
+  },
+  {
+    "source": "src/call_index.rs",
+    "head": "295c73b48f00a75eadf1f859c98bd41845dd7b0a",
+    "original_body_sha256": "ab6fc5876637d7821423f515829f69ccc9f5c13e15b99cd4ac0a583274af9448",
+    "complete_retained_path": "src/call_index/validation_before.rs",
+    "only_name_or_visibility_changed": true
+  }
+]

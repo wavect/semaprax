@@ -28,7 +28,7 @@ on:
         required: false
         default: false
       opt_batch_selection:
-        description: OPT profile (historical 50/153, next 64/169, or language-followup 2/7); requires opt_batch
+        description: OPT profile (historical 50/153, next 65/171, or language-followup 2/7); requires opt_batch
         type: choice
         required: false
         default: historical
@@ -397,7 +397,7 @@ jobs:
           retention-days: 1
 
   opt-batch:
-    name: Focused OPT qualification (${{ inputs.opt_batch_selection == 'language-followup' && '2 filters / 7 tests' || inputs.opt_batch_selection == 'next' && '64 filters / 169 tests' || '50 filters / 153 tests' }})
+    name: Focused OPT qualification (${{ inputs.opt_batch_selection == 'language-followup' && '2 filters / 7 tests' || inputs.opt_batch_selection == 'next' && '65 filters / 171 tests' || '50 filters / 153 tests' }})
     if: inputs.opt_batch
     runs-on: ubuntu-24.04
     timeout-minutes: 240
@@ -462,8 +462,8 @@ jobs:
           receipt=json.loads(pathlib.Path("diagnostic-opt-batch/receipt.json").read_text())
           assert not receipt.get("execution_aborted"), "qualification batch aborted"
           profile=os.environ["OPT_BATCH_SELECTION"]
-          expected_filters=64 if profile=="next" else 50
-          expected_tests=169 if profile=="next" else 153
+          expected_filters=65 if profile=="next" else 50
+          expected_tests=171 if profile=="next" else 153
           if profile=="language-followup":
               expected_filters,expected_tests=2,7
           assert receipt["selection"]["profile"]==profile

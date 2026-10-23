@@ -1,0 +1,91 @@
+{
+  "status": "FOCUSED_LOCAL_PASS_HOSTED_CI_PENDING",
+  "base_head": "295c73b48f00a75eadf1f859c98bd41845dd7b0a",
+  "normal_compiler": "actual complete current production compiler; normal cfg; all features; original default limits and genuine IR; no overlays or forced diagnostic modes",
+  "native_test_scope": "complete genuine compiler and IR; only unrelated test registration attributes disabled; 68 selected registrations plus four external registrations, 29 tests executed",
+  "native_provider_account_bytes": 4194304,
+  "reserved_wrapper_floor_bytes": 2097152,
+  "validation_debit_delta": "exactly two measured complete HIR validators for each Bytes and UTF8 provider fixture",
+  "provider_publication": "required child allowance excludes the existing parent floor; actual child debit settles; refused output is discarded and first requested amount/stage propagate sticky refusal",
+  "results": [
+    {
+      "log": "provider-validation-controls.log",
+      "passed": 2,
+      "scope": "focused original or added controls; see scope and command acquisitions"
+    },
+    {
+      "log": "native-validation-controls.log",
+      "passed": 6,
+      "scope": "focused original or added controls; see scope and command acquisitions"
+    },
+    {
+      "log": "call-index-validation-controls.log",
+      "passed": 2,
+      "scope": "focused original or added controls; see scope and command acquisitions"
+    },
+    {
+      "log": "native-resource-controls.log",
+      "passed": 10,
+      "scope": "focused original or added controls; see scope and command acquisitions"
+    },
+    {
+      "log": "owned-string-controls.log",
+      "passed": 9,
+      "scope": "focused original or added controls; see scope and command acquisitions"
+    },
+    {
+      "log": "all-original-cxx-controls.log",
+      "passed": 8,
+      "scope": "focused original or added controls; see scope and command acquisitions"
+    },
+    {
+      "log": "docs-controls.log",
+      "passed": 3,
+      "scope": "focused original or added controls; see scope and command acquisitions"
+    },
+    {
+      "log": "overlay-controls.log",
+      "passed": 32,
+      "scope": "focused original or added controls; see scope and command acquisitions"
+    },
+    {
+      "log": "compiled-whole-predecessor-controls.log",
+      "passed": 2,
+      "scope": "focused original or added controls; see scope and command acquisitions"
+    },
+    {
+      "log": "new-entry-controls.log",
+      "passed": 2,
+      "scope": "focused original or added controls; see scope and command acquisitions"
+    },
+    {
+      "log": "hir-test.log",
+      "passed": 11,
+      "scope": "focused original or added controls; see scope and command acquisitions"
+    },
+    {
+      "log": "projection-test.log",
+      "passed": 1,
+      "scope": "focused original or added controls; see scope and command acquisitions"
+    }
+  ],
+  "changed_rust_source_sha256": {
+    "src/call_index/validation_before.rs": "50097cb04d8577afd15d0209fd11f14e1ff2d3d60c5bb692b8128c753b201472",
+    "src/call_index/validation_receipt_tests.rs": "0cb673d2f420230bc3b49fa90937d83302bfd29dec44aac4e95515c758297ce7",
+    "src/bounded_output.rs": "3682df2a672cdec90c19932b3dbbd3b74196245980322c85c46a0b7953cec588",
+    "src/call_index.rs": "9204eaf197dedd69653e952d59d198da02828c717f28da95e9fa49777b45eb6f",
+    "src/codegen.rs": "01e07e6ac3e59dfc414dfc3e07210f66fda922dc0402141d4671e5d89648867a",
+    "src/codegen/native_emit/emission.rs": "59306eaf4d4e7beac974478b2cfe7374be2df64ed31c5007045a0b87ad45dca7",
+    "src/codegen/native_emit/mod.rs": "422095751bd3ba6f42c51a2d37c3088ab990545c9715482b7d8f9fade9062f7e",
+    "src/codegen/native_emit/validation_reuse_tests.rs": "f29c812aee71d067a01354a4d024fb407c214c843fa6f03524c811fb44e9a0c4",
+    "src/codegen/native_owned_data_provider.rs": "e1dc23211e8f2b9fe4a9cae3996d2a04e067506c4e14d8b168a4ff32a83abc9e",
+    "src/codegen/native_owned_data_provider/emit_provider_before.rs": "a4a17ce516c1c360d12f7ca0855ff5c049dfdd2248dc22c03bdc0cd25b5fe4ab",
+    "src/codegen/native_owned_data_provider/validation_reuse_tests.rs": "7be64c6d4e3bd6796950665838c6e30010b499ab3ee4d00911e99b262220cf63",
+    "src/codegen/native_resource.rs": "9570f62e2210514ae738bb9db1870917b06ab868c88e3b108852312fcaac8514",
+    "src/project/mod.rs": "5df08297b41a6b5c8fb335fefc38f8f20c1ed345126b39ad95714c6b84515927",
+    "src/project/public_api.rs": "16defe3ace515814481811eae88ecc059f5e354b5a8734aa16009a222597c107",
+    "src/source_reflows_merge/main_e177_overlay_v2.rs": "d84d9b317d81c5f590a24ca1aa04cff3f810ca28af833b6e16b948dfadd8b098"
+  },
+  "full_cargo_or_hosted_qualification": false,
+  "process_RSS_cap": null
+}

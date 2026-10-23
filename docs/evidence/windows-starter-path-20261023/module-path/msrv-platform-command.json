@@ -1,0 +1,13 @@
+[
+  "/Volumes/Semaprax/tmp/ci-38383508340/rustup-home/toolchains/1.88.0-aarch64-apple-darwin/bin/cargo",
+  "build",
+  "--offline",
+  "--locked",
+  "--release",
+  "--lib",
+  "--message-format=json-render-diagnostics",
+  "-j",
+  "1",
+  "-p",
+  "semaprax-native-rust-interop-platform"
+]

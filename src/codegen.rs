@@ -95,13 +95,11 @@ pub use native_callable_bundle::{
 use crate::ast::Program;
 use crate::diagnostic::Diagnostic;
 use crate::hir::{self, DeclarationId, ExpressionId, ResolvedProgram};
-
 macro_rules! format {
     ($($argument:tt)*) => {
         crate::bounded_output::budgeted_format(format_args!($($argument)*))
     };
 }
-
 mod native_emit;
 pub(crate) use native_emit::public_generic_bridge::{
     emit_public_generic_allocating_bridge, emit_public_generic_identity_bridge,
@@ -328,6 +326,7 @@ fn emit_hir_c_for_owned_data_provider(program: &ResolvedProgram) -> Result<Strin
     )
 }
 
+#[cfg(test)]
 fn emit_hir_c_for_owned_utf8_provider(program: &ResolvedProgram) -> Result<String, Diagnostic> {
     reject_native_rust_for_native(program)?;
     emit_hir_c_with_labels(
@@ -337,7 +336,6 @@ fn emit_hir_c_for_owned_utf8_provider(program: &ResolvedProgram) -> Result<Strin
         None,
     )
 }
-
 /// Emit the bounded native stdout-transcript profile from validated HIR.
 ///
 /// The generated C exposes `spx_stdout_transcript_run_v1` and performs no

@@ -1,0 +1,11 @@
+
+running 6 tests
+test codegen::native_emit::emission::validation_reuse_tests::active_budget_removes_exactly_the_duplicate_validator_debits ... ok
+test codegen::native_emit::emission::validation_reuse_tests::hostile_hir_and_profile_diagnostics_keep_original_precedence ... ok
+test codegen::native_emit::emission::validation_reuse_tests::inherited_ordinary_provider_receipt_refuses_foreign_programs_and_selected_profiles ... ok
+test codegen::native_emit::emission::validation_reuse_tests::initial_h006_refusal_is_unchanged_and_never_reaches_abi ... ok
+test codegen::native_emit::emission::validation_reuse_tests::ordinary_receivers_replay_loan_inventory_cleanup_status_and_identity ... ok
+test codegen::native_emit::emission::validation_reuse_tests::ordinary_route_matches_complete_previous_emission_and_removes_one_validation ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 66 filtered out; finished in 0.12s
+

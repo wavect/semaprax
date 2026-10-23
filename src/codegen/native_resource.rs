@@ -183,15 +183,23 @@ pub(super) fn build_resource_abi(
 /// Fields stay private to this module; selected/proof owners cannot mint it.
 /// No program clone, allocation, hash, cache, or publication authority is held.
 pub(super) struct OrdinaryValidatedProgram<'a> {
-    program: &'a ResolvedProgram,
+    validation: crate::call_index::OrdinaryValidatedProgram<'a>,
 }
 
 impl<'a> OrdinaryValidatedProgram<'a> {
+    pub(super) fn program(&self) -> &'a ResolvedProgram {
+        self.validation.program()
+    }
+    pub(super) fn proof(&self) -> &crate::call_index::OrdinaryValidatedProgram<'a> {
+        &self.validation
+    }
+
     pub(super) fn validate(program: &'a ResolvedProgram) -> Result<Self, Diagnostic> {
         #[cfg(test)]
         record_ordinary_validation();
-        hir::validate(program)?;
-        Ok(Self { program })
+        Ok(Self {
+            validation: crate::call_index::OrdinaryValidatedProgram::validate(program)?,
+        })
     }
 }
 
@@ -200,7 +208,7 @@ impl<'a> OrdinaryValidatedProgram<'a> {
 pub(super) fn build_ordinary_validated_resource_abi(
     validated: OrdinaryValidatedProgram<'_>,
 ) -> Result<NativeResourceAbi, Diagnostic> {
-    build_validated_resource_abi(validated.program)
+    build_validated_resource_abi(validated.program())
 }
 
 /// Selected fused owner receiving. Ordinary validation necessarily refuses

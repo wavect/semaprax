@@ -1,0 +1,4 @@
+{
+  "CARGO_PROFILE_RELEASE_LTO": "false",
+  "RUSTC": "/Volumes/Semaprax/internal-cache-offload-20261016/rustup-home/toolchains/1.97.1-aarch64-apple-darwin/bin/rustc"
+}

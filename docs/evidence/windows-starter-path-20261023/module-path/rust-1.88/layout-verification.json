@@ -1,0 +1,95 @@
+{
+  "base_head": "53664cbe079f1ae93d3c105f54052efded7ffde1",
+  "source_sha256": "69eb52ec3674d428164d455f3d0f44798a0c4f28299fcdec10a0270814911a21",
+  "actual_parent_and_integration_module_paths_preserved": true,
+  "no_child_module_path_rebasing": true,
+  "actual_complete_reader_functions_and_failure_type": true,
+  "no_mock_platform_or_IR": true,
+  "scope": "same seven controls in production and integration module layouts; genuine native platform; no hosted Windows or full application qualification",
+  "rows": [
+    {
+      "state": "before",
+      "layout": "production",
+      "command": [
+        "/Volumes/Semaprax/tmp/ci-38383508340/rustup-home/toolchains/1.88.0-aarch64-apple-darwin/bin/rustc",
+        "--edition=2021",
+        "--test",
+        "-Cdebuginfo=0",
+        "-Ccodegen-units=16",
+        "-L",
+        "dependency=/Volumes/Semaprax/worktrees/ci-canonical-54e/target/ci-private/msrv-platform-1.88/release/deps",
+        "-L",
+        "dependency=/Volumes/Semaprax/worktrees/ci-canonical-54e/target/ci-private/msrv-platform-1.88/release/deps",
+        "--extern",
+        "semaprax_native_rust_interop_platform=/Volumes/Semaprax/worktrees/ci-canonical-54e/target/ci-private/msrv-platform-1.88/release/libsemaprax_native_rust_interop_platform.rlib",
+        "/Volumes/Semaprax/worktrees/ci-canonical-54e/target/ci-private/starter-module-layout-msrv-1.88/src/main.rs",
+        "-o",
+        "/Volumes/Semaprax/tmp/ci-38383508340/module-path-536/msrv-1.88/before-production"
+      ],
+      "result": "EXPECTED_MODULE_DISCOVERY_REFUSAL"
+    },
+    {
+      "state": "before",
+      "layout": "integration",
+      "command": [
+        "/Volumes/Semaprax/tmp/ci-38383508340/rustup-home/toolchains/1.88.0-aarch64-apple-darwin/bin/rustc",
+        "--edition=2021",
+        "--test",
+        "-Cdebuginfo=0",
+        "-Ccodegen-units=16",
+        "-L",
+        "dependency=/Volumes/Semaprax/worktrees/ci-canonical-54e/target/ci-private/msrv-platform-1.88/release/deps",
+        "-L",
+        "dependency=/Volumes/Semaprax/worktrees/ci-canonical-54e/target/ci-private/msrv-platform-1.88/release/deps",
+        "--extern",
+        "semaprax_native_rust_interop_platform=/Volumes/Semaprax/worktrees/ci-canonical-54e/target/ci-private/msrv-platform-1.88/release/libsemaprax_native_rust_interop_platform.rlib",
+        "/Volumes/Semaprax/worktrees/ci-canonical-54e/target/ci-private/starter-module-layout-msrv-1.88/tests/layout.rs",
+        "-o",
+        "/Volumes/Semaprax/tmp/ci-38383508340/module-path-536/msrv-1.88/before-integration"
+      ],
+      "result": "EXPECTED_MODULE_DISCOVERY_REFUSAL"
+    },
+    {
+      "state": "current",
+      "layout": "production",
+      "command": [
+        "/Volumes/Semaprax/tmp/ci-38383508340/rustup-home/toolchains/1.88.0-aarch64-apple-darwin/bin/rustc",
+        "--edition=2021",
+        "--test",
+        "-Cdebuginfo=0",
+        "-Ccodegen-units=16",
+        "-L",
+        "dependency=/Volumes/Semaprax/worktrees/ci-canonical-54e/target/ci-private/msrv-platform-1.88/release/deps",
+        "-L",
+        "dependency=/Volumes/Semaprax/worktrees/ci-canonical-54e/target/ci-private/msrv-platform-1.88/release/deps",
+        "--extern",
+        "semaprax_native_rust_interop_platform=/Volumes/Semaprax/worktrees/ci-canonical-54e/target/ci-private/msrv-platform-1.88/release/libsemaprax_native_rust_interop_platform.rlib",
+        "/Volumes/Semaprax/worktrees/ci-canonical-54e/target/ci-private/starter-module-layout-msrv-1.88/src/main.rs",
+        "-o",
+        "/Volumes/Semaprax/tmp/ci-38383508340/module-path-536/msrv-1.88/current-production"
+      ],
+      "result": "SEVEN_GENUINE_READER_AND_PREFIX_TESTS_PASS"
+    },
+    {
+      "state": "current",
+      "layout": "integration",
+      "command": [
+        "/Volumes/Semaprax/tmp/ci-38383508340/rustup-home/toolchains/1.88.0-aarch64-apple-darwin/bin/rustc",
+        "--edition=2021",
+        "--test",
+        "-Cdebuginfo=0",
+        "-Ccodegen-units=16",
+        "-L",
+        "dependency=/Volumes/Semaprax/worktrees/ci-canonical-54e/target/ci-private/msrv-platform-1.88/release/deps",
+        "-L",
+        "dependency=/Volumes/Semaprax/worktrees/ci-canonical-54e/target/ci-private/msrv-platform-1.88/release/deps",
+        "--extern",
+        "semaprax_native_rust_interop_platform=/Volumes/Semaprax/worktrees/ci-canonical-54e/target/ci-private/msrv-platform-1.88/release/libsemaprax_native_rust_interop_platform.rlib",
+        "/Volumes/Semaprax/worktrees/ci-canonical-54e/target/ci-private/starter-module-layout-msrv-1.88/tests/layout.rs",
+        "-o",
+        "/Volumes/Semaprax/tmp/ci-38383508340/module-path-536/msrv-1.88/current-integration"
+      ],
+      "result": "SEVEN_GENUINE_READER_AND_PREFIX_TESTS_PASS"
+    }
+  ]
+}

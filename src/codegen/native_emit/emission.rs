@@ -110,6 +110,72 @@ fn emit_hir_c_with_receiving(
     >,
     allocation: Option<&checked_allocation::Projection<'_, '_>>,
 ) -> Result<String, Diagnostic> {
+    emit_hir_c_with_validation(
+        program,
+        contract_labels,
+        output_profile,
+        selected_command,
+        semantic,
+        selected,
+        partition,
+        allocation,
+        None,
+    )
+}
+
+pub(in crate::codegen) fn emit_validated_owned_provider(
+    validated: native_resource::OrdinaryValidatedProgram<'_>,
+    owned_utf8: bool,
+) -> Result<String, Diagnostic> {
+    let program = validated.program();
+    super::super::reject_native_rust_for_native(program)?;
+    emit_hir_c_with_validation(
+        program,
+        &HashMap::new(),
+        if owned_utf8 {
+            NativeOutputProfile::OwnedUtf8Provider
+        } else {
+            NativeOutputProfile::OwnedDataProvider
+        },
+        None,
+        None,
+        None,
+        None,
+        None,
+        Some(validated),
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn emit_hir_c_with_validation(
+    program: &ResolvedProgram,
+    contract_labels: &HashMap<ExpressionId, String>,
+    output_profile: NativeOutputProfile,
+    selected_command: Option<&DeclarationId>,
+    semantic: Option<&NativeSemanticMetering>,
+    selected: Option<&super::super::selected_final_utf8::Selection>,
+    partition: Option<
+        &super::super::native_byte_data::native_shared_bytes::source::Projection<'_, '_>,
+    >,
+    allocation: Option<&checked_allocation::Projection<'_, '_>>,
+    inherited: Option<native_resource::OrdinaryValidatedProgram<'_>>,
+) -> Result<String, Diagnostic> {
+    if inherited.as_ref().is_some_and(|owner| {
+        !std::ptr::eq(program, owner.program())
+            || !matches!(
+                output_profile,
+                NativeOutputProfile::OwnedDataProvider | NativeOutputProfile::OwnedUtf8Provider
+            )
+            || selected_command.is_some()
+            || semantic.is_some()
+            || selected.is_some()
+            || partition.is_some()
+            || allocation.is_some()
+    }) {
+        return Err(backend_error(
+            "ordinary provider validation subject or profile is not current",
+        ));
+    }
     let ordinary_validation;
     if let Some(projection) = allocation {
         if partition.is_some()
@@ -142,9 +208,10 @@ fn emit_hir_c_with_receiving(
                 "native emission requires its exact sealed source projection",
             ));
         }
-        ordinary_validation = Some(native_resource::OrdinaryValidatedProgram::validate(
-            program,
-        )?);
+        ordinary_validation = Some(match inherited {
+            Some(owner) => owner,
+            None => native_resource::OrdinaryValidatedProgram::validate(program)?,
+        });
     }
     // This remains the authoritative complete program. The selected view
     // intentionally omits ordinary main and cannot pass public HIR validation.

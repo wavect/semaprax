@@ -86,6 +86,7 @@ mod profile;
 mod program_root;
 mod project_lock;
 mod public_api;
+pub(crate) use public_api::replay_public_api_descriptor_validated;
 mod public_utf8_api;
 #[cfg(test)]
 mod publication_tests;

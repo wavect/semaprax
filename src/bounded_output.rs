@@ -236,7 +236,7 @@ fn record_refusal(budget: &Budget, length: usize) {
         #[cfg(test)]
         stage_debits::refusal(budget, length);
         #[cfg(feature = "unstable-workflow-profiling")]
-        exclusive_debits::refusal(budget, length);
+        exclusive_debits::refusal(budget, length, std::panic::Location::caller());
         budget.first_site.set(Some(std::panic::Location::caller()));
         budget.first_refusal.set(Some(ReservationRefusal {
             requested: length,
@@ -434,6 +434,11 @@ pub(crate) fn active_ledger_snapshot(
 
 pub(crate) fn active_remaining() -> Option<usize> {
     active().map(|budget| budget.remaining.get())
+}
+
+/// Read-only allowance outside the reserved trailer lane; grants no storage.
+pub(crate) fn active_usable_remaining() -> Option<usize> {
+    active().map(|budget| budget.remaining.get().saturating_sub(budget.floor.get()))
 }
 
 /// Infallible bounded helpers may return an empty carrier after refusal.

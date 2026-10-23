@@ -65,9 +65,35 @@ pub(crate) struct PersistentCallIndex {
     origins_by_owner: BTreeMap<DeclarationId, IdentityOrigin>,
 }
 
+/// Complete ordinary HIR validation of this exact immutable program borrow.
+/// This is a live compiler receipt, with no serialized or unchecked constructor.
+/// It carries no allocation or publication authority.
+pub(crate) struct OrdinaryValidatedProgram<'a> {
+    program: &'a ResolvedProgram,
+}
+impl<'a> OrdinaryValidatedProgram<'a> {
+    pub(crate) fn validate(program: &'a ResolvedProgram) -> Result<Self, Diagnostic> {
+        hir::validate(program)?;
+        Ok(Self { program })
+    }
+    pub(crate) fn program(&self) -> &'a ResolvedProgram {
+        self.program
+    }
+}
+
 impl PersistentCallIndex {
     pub(crate) fn build(program: &ResolvedProgram) -> Result<Self, Diagnostic> {
-        hir::validate(program)?;
+        let validated = OrdinaryValidatedProgram::validate(program)?;
+        Self::build_validated(&validated)
+    }
+    pub(crate) fn build_validated(
+        validated: &OrdinaryValidatedProgram<'_>,
+    ) -> Result<Self, Diagnostic> {
+        // Reusing semantic validation never clears or bypasses a sticky account.
+        if !crate::bounded_output::reserve_active_required(0) {
+            return Err(Diagnostic::io("SPX-H006", String::new()));
+        }
+        let program = validated.program();
         let mut index = Self {
             sites_by_expression: BTreeMap::new(),
             calls_by_owner: BTreeMap::new(),
@@ -449,3 +475,6 @@ mod tests {
         assert!(index.site(&format!("{expression}.suffix")).is_none());
     }
 }
+
+#[cfg(test)]
+mod validation_receipt_tests;

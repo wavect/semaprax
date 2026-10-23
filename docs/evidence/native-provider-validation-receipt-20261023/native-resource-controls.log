@@ -1,0 +1,15 @@
+
+running 10 tests
+test codegen::native_resource::tests::display_renames_do_not_change_the_resource_abi ... ok
+test codegen::native_resource::tests::distinct_resource_ids_produce_distinct_wrapper_types ... ok
+test codegen::native_resource::tests::emission_is_deterministic ... ok
+test codegen::native_resource::tests::generated_identifiers_fit_the_portable_internal_identifier_budget ... ok
+test codegen::native_resource::tests::identifier_registration_rejects_collisions ... ok
+test codegen::native_resource::tests::imported_and_trivial_lifecycles_have_distinct_descriptors ... ok
+test codegen::native_resource::tests::ordinary_receipt_cannot_carry_validation_across_mutation ... ok
+test codegen::native_resource::tests::ordinary_receipt_preserves_complete_resource_scaffold ... ok
+test codegen::native_resource::tests::type_selection_rejects_unknown_record_and_generic_shapes ... ok
+test codegen::native_resource::tests::zero_payload_is_never_emitted_as_a_liveness_test ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 62 filtered out; finished in 0.05s
+

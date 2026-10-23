@@ -1,0 +1,7 @@
+
+running 2 tests
+test call_index::validation_receipt_tests::checked_index_preserves_every_map_and_only_removes_duplicate_hir_validation ... ok
+test call_index::validation_receipt_tests::sealed_index_cannot_clear_sticky_refusal_or_admit_mutated_hir ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 70 filtered out; finished in 0.03s
+

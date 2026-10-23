@@ -10,8 +10,7 @@ use crate::aggregate_layout::{AggregateFieldValueKind, AggregateLayout, Aggregat
 use crate::diagnostic::Diagnostic;
 use crate::hir::{CompilerDeclaration, DeclarationId, ResolvedProgram, ResolvedType};
 use crate::project::{
-    replay_public_api_descriptor, PublicApiParameterType, PublicApiResultType, PublicApiSubject,
-    PUBLIC_OWNED_UTF8_PROJECT_SCHEMA,
+    PublicApiParameterType, PublicApiResultType, PublicApiSubject, PUBLIC_OWNED_UTF8_PROJECT_SCHEMA,
 };
 use crate::variant_layout::{VariantLayout, VariantTarget};
 
@@ -272,9 +271,52 @@ fn emit_provider(
     descriptor_digest: &str,
     project_v8: bool,
 ) -> Result<NativeOwnedDataProviderArtifact, Diagnostic> {
-    crate::hir::validate(program)?;
-    let descriptor = replay_public_api_descriptor(
-        program,
+    let validated = super::native_resource::OrdinaryValidatedProgram::validate(program)?;
+    let emit = || {
+        emit_validated_provider(
+            validated,
+            selected,
+            subject,
+            descriptor_bytes,
+            descriptor_digest,
+            project_v8,
+        )
+    };
+    let Some(allowance) = crate::bounded_output::active_usable_remaining() else {
+        return emit();
+    };
+    // Provider text is required output. Use the same remaining byte allowance
+    // without a soft trailer lane, so a refused append cannot publish partial C.
+    // The child settles its actual debit into the existing parent account.
+    let (output, refused, _, receipt) =
+        crate::bounded_output::with_limit_usage_refusal(allowance, emit);
+    if refused {
+        let refuse = || {
+            crate::bounded_output::refuse_active_required(receipt.map_or(0, |r| r.requested));
+        };
+        if let Some(stage) = receipt.and_then(|r| r.stage) {
+            crate::bounded_output::with_reservation_stage(stage, refuse);
+        } else {
+            refuse();
+        }
+        return Err(provider_error(
+            "native provider required output exceeds its builder allowance",
+        ));
+    }
+    output
+}
+
+fn emit_validated_provider(
+    validated: super::native_resource::OrdinaryValidatedProgram<'_>,
+    selected: &[String],
+    subject: PublicApiSubject<'_>,
+    descriptor_bytes: &[u8],
+    descriptor_digest: &str,
+    project_v8: bool,
+) -> Result<NativeOwnedDataProviderArtifact, Diagnostic> {
+    let program = validated.program();
+    let descriptor = crate::project::replay_public_api_descriptor_validated(
+        validated.proof(),
         selected,
         subject,
         descriptor_bytes,
@@ -304,11 +346,7 @@ fn emit_provider(
         )
         .expect("writing provider descriptor binding cannot fail");
     }
-    let semantic_source = if owned_utf8 {
-        super::emit_hir_c_for_owned_utf8_provider(program)?
-    } else {
-        super::emit_hir_c_for_owned_data_provider(program)?
-    };
+    let semantic_source = super::native_emit::emit_validated_owned_provider(validated, owned_utf8)?;
     source.push_str(&semantic_source);
     source.push('\n');
     let mut runtime = String::new();
@@ -711,3 +749,6 @@ pub(super) fn public_provider_call_symbol(rust_method: &str) -> String {
 fn provider_error(message: impl Into<String>) -> Diagnostic {
     Diagnostic::io("SPX-B113", message)
 }
+
+#[cfg(test)]
+mod validation_reuse_tests;

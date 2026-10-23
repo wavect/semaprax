@@ -1,0 +1,52 @@
+warning: unused macro definition: `run`
+   --> /Volumes/Semaprax/worktrees/ci-canonical-54e/src/cleanup_plan/renewal_profile/ordinary/consuming/tests.rs:157:14
+    |
+157 | macro_rules! run {
+    |              ^^^
+    |
+    = note: `#[warn(unused_macros)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused macro definition: `receive_observed`
+  --> /Volumes/Semaprax/worktrees/ci-canonical-54e/src/cleanup_plan/replay/inventory_coverage/paid.rs:24:14
+   |
+24 | macro_rules! receive_observed {
+   |              ^^^^^^^^^^^^^^^^
+
+warning: unused macro definition: `include_str`
+  --> /Volumes/Semaprax/worktrees/ci-canonical-54e/src/cleanup_plan/replay/factored/canonical_shared/paid_many/source.rs:30:14
+   |
+30 | macro_rules! include_str {
+   |              ^^^^^^^^^^^
+
+warning: unused macro definition: `include_bytes`
+  --> /Volumes/Semaprax/worktrees/ci-canonical-54e/src/cleanup_plan/replay/factored/canonical_shared/paid_many/source.rs:80:14
+   |
+80 | macro_rules! include_bytes {
+   |              ^^^^^^^^^^^^^
+
+warning: unused macro definition: `assert_complete_diagnostic_controls`
+   --> /Volumes/Semaprax/worktrees/ci-canonical-54e/src/cleanup_plan/replay/oracle_controls.rs:124:18
+    |
+124 |     macro_rules! assert_complete_diagnostic_controls {
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused macro definition: `assert_not_impl`
+ --> /Volumes/Semaprax/worktrees/ci-canonical-54e/src/codegen/native_capability_authority/tests.rs:6:14
+  |
+6 | macro_rules! assert_not_impl {
+  |              ^^^^^^^^^^^^^^^
+
+warning: unused macro definition: `assert_not_impl`
+ --> /Volumes/Semaprax/worktrees/ci-canonical-54e/src/codegen/native_module_lease/tests.rs:6:14
+  |
+6 | macro_rules! assert_not_impl {
+  |              ^^^^^^^^^^^^^^^
+
+warning: unused macro definition: `assert_not_impl`
+ --> /Volumes/Semaprax/worktrees/ci-canonical-54e/src/native_settlement/tests.rs:3:14
+  |
+3 | macro_rules! assert_not_impl {
+  |              ^^^^^^^^^^^^^^^
+
+warning: 8 warnings emitted
+

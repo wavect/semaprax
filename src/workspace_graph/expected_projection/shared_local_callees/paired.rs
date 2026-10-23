@@ -248,8 +248,8 @@ pub(in crate::workspace_graph::expected_projection) fn read_or_count<'p, 'a>(
     }
 }
 
-pub(in crate::workspace_graph::expected_projection) fn estimates<'p, 'a>(
-    program: &'p Program,
+pub(in crate::workspace_graph::expected_projection) fn estimates<'a>(
+    program: &Program,
     authored: &'a Index<'a>,
     programs: &'a [Program],
     maximum: Option<usize>,

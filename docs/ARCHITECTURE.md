@@ -1251,6 +1251,11 @@ boundary. Existing codec derivation remains the only source candidate consumer.
 with an explicit same-profile command activation, canonical authored inventory
 and exact original/generated source receipts. It performs full ordinary Project
 construction without filesystem or native execution authority. The full host's
+`new_project/application/held_input_path` supplies only lexical Windows drive/UNC
+verbatim spelling for the held input parent. It performs no filesystem resolution;
+the original selected spelling still owns metadata and final identity rechecks,
+and the platform retains its strict canonical-path and no-follow checks.
+
 `new_project/application` invokes the original scaffold `publish_files` held-parent
 sequence; `project_publication/application` supplies a bounded owned-name source
 inventory to that same authority. Static template inventories and frozen capsules
@@ -4423,15 +4428,27 @@ ordinary HIR/cleanup replay. Record-match results use the same transfer before
 settlement across verifier, HIR, interpreter, C11, and Wasm. No target repairs
 the canonical plan.
 
-`codegen/native_resource.rs` owns a private ordinary validation receipt containing
-one shared `ResolvedProgram` reference. Ordinary native emission constructs it
+`call_index.rs` owns a sealed ordinary validation receipt containing one shared
+`ResolvedProgram` reference; its only constructor runs complete live HIR
+validation. Its read-only index builder still rebuilds every map and authenticates
+sticky budget state. `codegen/native_resource.rs` wraps that same receipt for
+ordinary native receiving. Ordinary native emission constructs it
 at its complete HIR validation boundary and consumes it at resource ABI
 construction, over the same immutable authoritative program rather than an
 emission view. Raw builders still validate independently; selected fused,
 partition and checked-allocation owners retain their own replay routes. The
-receipt retains no allocated backing or publication authority. Its pointer-sized
-carrier replaces the preceding authoritative-program reference across that
-interval. The complete previous receiving function remains test-only in
+receipt retains no allocated backing or publication authority. Owned Bytes and
+UTF-8 providers acquire the same sealed receipt at their original upfront full
+HIR validation boundary, independently replay the descriptor and rebuild its
+call index through that same sealed proof, then consume the native receipt through
+semantic-C emission over that exact immutable borrow. Required provider rendering
+uses only the remaining parent allowance above its reserved wrapper floor. A
+child account has no soft trailer lane, settles its actual debit into the parent,
+and discards refused output while propagating sticky failure. The reserved floor
+and total account limit remain unchanged. This
+handoff refuses foreign program identities and non-provider profiles. Its
+pointer-sized carrier replaces the preceding authoritative-program reference
+across that interval. The complete previous receiving function remains test-only in
 `codegen/native_emit/emission_before.rs`; invocation-count, byte-debit, diagnostic
 and carrier-layout controls are authored, with execution qualification pending.
 

@@ -1,0 +1,20 @@
+
+running 8 tests
+test cxx_owned_data_package::exact_input_and_output_limit_succeeds_plus_one_rejects_and_recovers ... ok
+test cxx_owned_data_package::generated_c11_boundary_exposes_and_executes_owned_variant_tags ... ok
+test cxx_owned_data_package::generated_provider_and_c11_consumer_compile_link_and_settle_owned_bytes ... ok
+test cxx_owned_data_package::generated_provider_and_wrapper_compile_separately_at_o0_and_o2 ... ok
+test cxx_owned_data_package::maximum_export_inventory_fits_the_provider_wrapper_reserve ... ok
+test cxx_owned_data_package::package_is_exact_replayed_bounded_and_v8_only ... ok
+test cxx_owned_data_package::synthetic_provider_exercises_poison_handles_and_settlement_uncertainty ... libc++abi: terminating
+libc++abi: terminating
+libc++abi: terminating
+libc++abi: terminating
+libc++abi: terminating
+ok
+test cxx_owned_data_package::synthetic_scalar_provider_preserves_poison_and_rejects_unknown_status ... libc++abi: terminating
+libc++abi: terminating
+ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 12.31s
+

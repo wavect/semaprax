@@ -1,0 +1,24 @@
+{
+  "exit": 0,
+  "process_RSS_cap": null,
+  "minimum_device_physical_available_GiB": 4.844024658203125,
+  "minimum_pressure_free_percent": 55,
+  "compiler_pauses": 0,
+  "peak_process_tree_RSS_telemetry_KiB": 1823872,
+  "samples": [
+    {
+      "physical_available_GiB": 5.534027099609375,
+      "pressure_free_percent": 61,
+      "compiler_paused": false,
+      "process_tree_RSS_telemetry_KiB": 24592,
+      "swap": "vm.swapusage: total = 9216.00M  used = 7512.06M  free = 1703.94M  (encrypted)"
+    },
+    {
+      "physical_available_GiB": 5.28759765625,
+      "pressure_free_percent": 60,
+      "compiler_paused": false,
+      "process_tree_RSS_telemetry_KiB": 722880,
+      "swap": "vm.swapusage: total = 9216.00M  used = 7512.06M  free = 1703.94M  (encrypted)"
+    }
+  ]
+}

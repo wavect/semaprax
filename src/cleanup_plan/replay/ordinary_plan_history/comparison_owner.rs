@@ -356,6 +356,15 @@ pub(in crate::cleanup_plan::replay) fn compare(
         actual.max_depth,
         "ordinary plan history cursor backing"
     )?;
+    // reserve_vec deliberately leaves ordinary unobserved storage to its
+    // caller. Unlike the producer's push-grown vectors, prepare must find all
+    // links allocated before traversal: capacity is a hard validation guard.
+    // Funded owners already acquired this backing above; keep their exact
+    // reservations and refusal order unchanged.
+    if budget.payer == AllocationPayer::LegacyUnobserved {
+        owner.left_cursor.links.reserve_exact(actual.max_depth);
+        owner.right_cursor.links.reserve_exact(actual.max_depth);
+    }
     // These states replace the old two sift call sites and their two order
     // call sites. Each transition is the corresponding old call/return/loop
     // branch; no graph traversal or work request is added/removed.

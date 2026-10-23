@@ -27,6 +27,8 @@
 
 ## CI reservation transport and append-only label maps (2026-10-23)
 
+- Normalize ordinary Windows starter-input parent paths to their lexical verbatim spelling before the strict held open; retain symlink refusal, byte bounds and the original-path identity recheck.
+- Carry the native owned-data provider's complete upfront HIR validation through independent descriptor replay, call-index rebuilding and emission using one sealed immutable receipt; retain raw-builder validation, sticky refusal and foreign-program/profile refusals. Render required provider text above the existing wrapper floor in a settling child account, discarding any refused partial output.
 - Arm the test-only byte-traversal refusal recorder only inside its actual heap observation; ordinary bounded calls keep their original refusal, while exact/one-short heap and unwind controls remain enforced.
 - Refresh both browser graph pins from complete hosted Linux 1.88 captures at `909f0a4763`; verify the complete previous graphs differ only in accounting bytes and their digests. Keep a separate exact native Rust 1.97 receipt, with one-byte billing, semantic, role and boundary drift refusals; the hosted browser profile remains the default.
 - Retain one paid frame for the nonrecursive HIR flat-path probe, with sticky authentication before every original work event. Preserve the complete prior producer and exact reservation, floor, work-cut and lent-work controls.

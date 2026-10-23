@@ -121,6 +121,11 @@ pub struct Refusal {
     pub floor: usize,
     pub stage: usize,
     pub operation: usize,
+    /// Compiler source location of this ledger's actual first refusal.
+    /// Observation only: never an expression identity or admission authority.
+    pub source_file: &'static str,
+    pub source_line: u32,
+    pub source_column: u32,
 }
 #[derive(Clone, Copy, Debug)]
 pub struct Attempt {
@@ -517,7 +522,7 @@ fn record_debit(budget: &Budget, bytes: usize, exceptional: bool) {
         }
     });
 }
-pub(super) fn refusal(budget: &Budget, requested: usize) {
+pub(super) fn refusal(budget: &Budget, requested: usize, site: super::ReservationSite) {
     let owner = budget as *const Budget as usize;
     access(|s| {
         if !s.enabled {
@@ -534,6 +539,9 @@ pub(super) fn refusal(budget: &Budget, requested: usize) {
                     floor: budget.floor.get(),
                     stage: budget.stage.get().map_or(0, |v| v as usize + 1),
                     operation: frame.operation.map_or(0, |v| v as usize + 1),
+                    source_file: site.file(),
+                    source_line: site.line(),
+                    source_column: site.column(),
                 });
             }
         }
@@ -710,6 +718,51 @@ mod tests {
     };
     use crate::workflow_profile::plan_comparison::{Binding, Capture};
     use std::panic::{catch_unwind, AssertUnwindSafe};
+    #[test]
+    fn exact_first_refusal_source_site_preserves_floor_sticky_and_original_ledger() {
+        use crate::bounded_output::{set_active_floor, with_limit_usage_refusal_site};
+        for floor in [0, 1] {
+            let requested = 3 - floor;
+            let c = capture();
+            let (line, refused, used, refusal, site) = with_limit_usage_refusal_site(3, || {
+                let mut a = attempt(0, 0, 0);
+                let _operation = operation_guard(Operation::CoreValidation);
+                assert!(set_active_floor(floor));
+                assert!(reserve_active_required(1));
+                let line = line!() + 1;
+                assert!(!reserve_active_required(requested));
+                assert!(!reserve_active_required(0));
+                assert!(!reserve_active_required(17));
+                a.complete(false);
+                line
+            });
+            let report = c.finish().unwrap().resolved_core;
+            assert!(report.complete && !report.invalid && !report.overflow && !report.lost);
+            let observed = report.attempts[0];
+            let first = observed.first_refusal.unwrap();
+            assert!(refused && observed.refused);
+            assert_eq!(used, 1);
+            assert_eq!(observed.consumed, used);
+            assert_eq!(observed.stage_sum(), Some(used));
+            assert_eq!(observed.operation_sum(), Some(used));
+            let old = refusal.unwrap();
+            assert_eq!(
+                (first.requested, first.remaining, first.floor),
+                (requested, 2, floor)
+            );
+            assert_eq!(
+                (first.requested, first.remaining, first.floor),
+                (old.requested, old.remaining, old.floor)
+            );
+            assert_eq!(first.operation, Operation::CoreValidation as usize + 1);
+            assert_eq!((first.source_file, first.source_line), (file!(), line));
+            let site = site.unwrap();
+            assert_eq!(
+                (first.source_file, first.source_line, first.source_column),
+                (site.file(), site.line(), site.column())
+            );
+        }
+    }
     fn capture() -> Capture {
         Capture::begin(Binding::caller_labelled(
             "exclusive actual ledger control",

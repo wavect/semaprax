@@ -1,0 +1,45 @@
+{
+  "status": "FOCUSED_NATIVE_AND_PORTABLE_PREFIX_CONTROLS_PASS_WINDOWS_RUNTIME_PENDING",
+  "base_head": "7a2524e637d48b6d257b10d13a57931876b87197",
+  "results": [
+    {
+      "log": "reader-tests.log",
+      "passed": 7
+    },
+    {
+      "log": "overlay-controls.log",
+      "passed": 32
+    },
+    {
+      "log": "compiled-whole-predecessor-controls.log",
+      "passed": 2
+    },
+    {
+      "log": "new-entry-controls.log",
+      "passed": 2
+    },
+    {
+      "log": "hir-test.log",
+      "passed": 11
+    },
+    {
+      "log": "projection-test.log",
+      "passed": 1
+    },
+    {
+      "log": "docs-controls.log",
+      "passed": 3
+    }
+  ],
+  "source_sha256": {
+    "crates/semaprax-toolchain/src/new_project/application.rs": "c2b62e01d7ca56ad42905bc54574866c3982f0a4c4bbb2bfd170b5b1c73f1c70",
+    "crates/semaprax-toolchain/src/new_project/application/held_input_path.rs": "24933f5136618f769a36d88fcf094cb35fccfd4ce77fd41b0de4f0fdfa5ed814",
+    "src/codegen/native_owned_data_provider/validation_reuse_tests.rs": "bbe03233559921346ef3456859eda8f60842efa28563d6d44c9e1946fccc3cbd",
+    "src/source_reflows_merge/main_e177_overlay_v2.rs": "16b3a6935a9f77d417791b13607fcf043dd52aa3a9383c4230c168acc1a588e6"
+  },
+  "source_authority": "unchanged verifier and all six original hostile controls passed; every previous role/chunk/view retained",
+  "provider_import_repair": "explicit dependencies replace wildcard imports; complete predecessor function body unchanged; focused actual cfg(test) compiler metadata lint adds forbid(unused_imports) to this module so private registration allowances cannot hide its warnings",
+  "platform_profile": "genuine current platform facade, Rust1.97.1, release optimization, LTO disabled for local Apple linker compatibility",
+  "qualification": "seven native reader/prefix tests plus source and documentation regressions; metadata lint only for provider import repair; no new full-Cargo or hosted Windows qualification",
+  "process_RSS_cap": null
+}

@@ -605,4 +605,4 @@ mod modular;
 pub(super) use modular::count as count_modular;
 
 #[cfg(test)]
-pub(super) use modular::indexed_loan as indexed_modular_loan;
+pub(in crate::workspace_graph::expected_projection) use modular::indexed_loan as indexed_modular_loan;

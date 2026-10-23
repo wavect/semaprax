@@ -192,3 +192,35 @@ fn assert_hostile_receivers(program: &ResolvedProgram) {
     }
     assert_eq!(crate::codegen::emit_hir_c(program).unwrap_err(), expected);
 }
+
+#[test]
+fn inherited_ordinary_provider_receipt_refuses_foreign_programs_and_selected_profiles() {
+    let program = resolve("@id(\"app.main\") fn main() -> i64 { 42 }");
+    let foreign = resolve("@id(\"app.main\") fn main() -> i64 { 43 }");
+    for (subject, profile) in [
+        (&foreign, NativeOutputProfile::OwnedDataProvider),
+        (&program, NativeOutputProfile::Legacy),
+        (&program, NativeOutputProfile::SelectedFinalUtf8),
+        (&program, NativeOutputProfile::SelectedPartition),
+        (&program, NativeOutputProfile::CheckedAllocation),
+    ] {
+        let receipt = native_resource::OrdinaryValidatedProgram::validate(&program)
+            .unwrap_or_else(|error| panic!("{error:?}"));
+        let error = emit_hir_c_with_validation(
+            subject,
+            &HashMap::new(),
+            profile,
+            None,
+            None,
+            None,
+            None,
+            None,
+            Some(receipt),
+        )
+        .unwrap_err();
+        assert_eq!(
+            error,
+            backend_error("ordinary provider validation subject or profile is not current")
+        );
+    }
+}

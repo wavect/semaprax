@@ -248,8 +248,8 @@ pub(in crate::workspace_graph::expected_projection) fn read_or_count<'p, 'a>(
     }
 }
 
-pub(in crate::workspace_graph::expected_projection) fn estimates<'p, 'a>(
-    program: &'p Program,
+pub(in crate::workspace_graph::expected_projection) fn estimates<'a>(
+    program: &Program,
     authored: &'a Index<'a>,
     programs: &'a [Program],
     maximum: Option<usize>,
@@ -303,8 +303,8 @@ const SELECT: usize = 2 * size_of::<(
     + 2 * size_of::<usize>()
     + 2 * size_of::<Result<(), Vec<Diagnostic>>>();
 
-pub(in crate::workspace_graph::expected_projection) fn selected_estimates<'p, 'a>(
-    program: &'p Program,
+pub(in crate::workspace_graph::expected_projection) fn selected_estimates<'a>(
+    program: &Program,
     authored: &'a Index<'a>,
     programs: &'a [Program],
     maximum: Option<usize>,

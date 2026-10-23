@@ -1,0 +1,14 @@
+
+running 9 tests
+test codegen::native_emit::owned_strings::tests::direct_sink_preserves_bytes_and_exact_budget_charges ... ok
+test codegen::native_emit::owned_strings::tests::exhausted_or_duplicate_cell_identity_is_diagnostic_not_panic ... ok
+test codegen::native_emit::owned_strings::tests::instance_only_string_view_includes_borrowed_carrier_before_view_helper ... ok
+test codegen::native_emit::owned_strings::tests::length_aware_runtime_groups_do_not_grant_provider_carriers ... ok
+test codegen::native_emit::owned_strings::tests::ordinary_and_provider_discovery_include_instantiated_string_runtime_groups ... ok
+test codegen::native_emit::owned_strings::tests::planned_string_slots_guard_initialization_and_finalize_once ... ok
+test codegen::native_emit::owned_strings::tests::presence_checks_signature_body_and_both_contract_phases ... ok
+test codegen::native_emit::owned_strings::tests::string_free_function_emission_matches_frozen_route_bytes_and_budget ... ok
+test codegen::native_emit::owned_strings::tests::string_free_owned_bytes_provider_retains_frozen_prelude_and_budget ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 63 filtered out; finished in 0.07s
+

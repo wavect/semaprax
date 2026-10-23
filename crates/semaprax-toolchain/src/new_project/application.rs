@@ -2,6 +2,9 @@
 use super::*;
 use semaprax_native_rust_interop_platform as platform;
 
+#[path = "application/held_input_path.rs"]
+mod held_input_path;
+
 fn failure(message: impl Into<String>) -> NewProjectFailure {
     NewProjectFailure::creation(message)
 }
@@ -42,7 +45,8 @@ fn read_bound_with_hook(
     let name = path
         .file_name()
         .ok_or_else(|| failure("starter input must name one regular file"))?;
-    let parent = platform::hold_directory(parent_path)
+    let held_parent_path = held_input_path::parent_spelling(parent_path)?;
+    let parent = platform::hold_directory(&held_parent_path)
         .map_err(|_| failure("cannot hold starter input parent"))?;
     // This early inspection is a convenience refusal only. The actual file
     // classification and no-follow/nonblocking open belong to the held owner.
@@ -430,6 +434,29 @@ mod tests {
         assert_eq!(read_bound(&input, 6).unwrap(), b"stable");
         assert!(read_bound(&input, 5).is_err());
         assert_eq!(fs::read(&input).unwrap(), b"stable");
+        fs::remove_dir_all(parent).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn starter_reader_refuses_parent_rebinding_after_the_held_open() {
+        let parent = root();
+        let held = parent.with_extension("held");
+        let input = parent.join("plan.json");
+        fs::write(&input, b"stable").unwrap();
+        let result = read_bound_with_hook(&input, 6, &|_| {
+            fs::rename(&parent, &held).unwrap();
+            fs::create_dir(&parent).unwrap();
+            fs::write(parent.join("plan.json"), b"forged").unwrap();
+            Ok(())
+        });
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "starter input parent binding changed"
+        );
+        assert_eq!(fs::read(held.join("plan.json")).unwrap(), b"stable");
+        assert_eq!(fs::read(&input).unwrap(), b"forged");
+        fs::remove_dir_all(held).unwrap();
         fs::remove_dir_all(parent).unwrap();
     }
 

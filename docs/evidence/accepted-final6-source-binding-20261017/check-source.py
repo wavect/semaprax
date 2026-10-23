@@ -1,3 +1,4 @@
+"""Run the complete original FINAL checker with optional pure derived reuse."""
 from pathlib import Path
 import hashlib,sys,os,stat
 R=Path(__file__).resolve().parents[3];D=Path(__file__).resolve().parent
@@ -14,28 +15,19 @@ def bounded(path,length,digest):
   assert hashlib.sha256(raw).hexdigest()==digest
   raw.decode('utf8');return raw
  finally:os.close(fd)
-P=R/'docs/evidence/ordinary-plan-final-ingress-20261017/verify-source.py'
-raw=bounded(P,7938,'8186f62cb05b263c051f1581db8fd2bacb6722506ef94588ace11749ef6e8635')
-assert raw==bounded(D/'before/verify-source.py',7938,'8186f62cb05b263c051f1581db8fd2bacb6722506ef94588ace11749ef6e8635')
-old="template=b.read(R/recipe['helper_template'],digest=recipe['helper_template_sha256']).decode();assert b.scrub(helper)==b.scrub(template)"
-new='template=b.read(R/recipe[\'helper_template\'],digest=recipe[\'helper_template_sha256\']).decode();template=b.custody_source_template(template);prior_helper=b.read(R/\'docs/evidence/fmt-a110/v8M15AIpSv-8kL6VHWd_Go87kMGIdJ7QfMfFIMH5XH4.txt\',18589,\'bfc335e402294affbc90be951d677f1a8f3b90c188749ed07cc7c520c1f95c7e\').decode();assert b.scrub(prior_helper)==b.scrub(template);assert len(helper.encode())==19828 and sha(helper.encode())==\'799eee227e9d57fb000d75cbf018e0faf3b9bc03cd592f0405d3050479a12871\';_strict_pins=b.pins;b.pins=lambda code:_strict_pins(code.replace(\'const FINAL_INGRESS_SHA256: &str =\\n    \\"\',\'const FINAL_INGRESS_SHA256: &str = \\"\'))'
-assert raw.decode().count(old)==1
-current=raw.decode().replace(old,new,1)
-old_fmt='assert restored.count(hook)==1;restored=restored.replace(hook,old,1);assert restored.encode()==original'
-new_fmt='assert restored.count(hook)==1;prior_restored=prior_helper.split(marker)[0];assert prior_restored.count(hook)==1;prior_restored=prior_restored.replace(hook,old,1);assert prior_restored.encode()==original'
-assert current.count(old_fmt)==1
-current=current.replace(old_fmt,new_fmt,1)
-old_dirty="raw=b.read(R/row['path']);assert raw==git('show',a.expected_head+':'+row['path'])"
-new_dirty="raw=b.read(R/row['path']);assert (len(raw),sha(raw))==(row['current_length'],row['current_sha256'])"
-assert current.count(old_dirty)==1
-current=current.replace(old_dirty,new_dirty,1)
-assert current.replace(new_dirty,old_dirty,1).replace(new_fmt,old_fmt,1).replace(new,old,1).encode()==raw
-helper=R/'docs/evidence/main-e177-final-source-binding-20261017/guard_payload.py'
-helper_raw=bounded(helper,19144,'af70eaeeb1cc0da02460858f9e7ddb39086582add858c74138c4d989644e11f3')
-ns={'__file__':str(helper),'_AUTHENTICATED_PROGRAM':helper_raw};exec(compile(helper_raw,str(helper),'exec'),ns)
-old_guard='guard=runpy.run_path(str(guard_path))'
-new_guard='guard=_accepted_guard_extensions(R)'
-assert current.count(old_guard)==1
-current=current.replace(old_guard,new_guard,1)
-assert current.replace(new_guard,old_guard,1).replace(new_dirty,old_dirty,1).replace(new_fmt,old_fmt,1).replace(new,old,1).encode()==raw
-exec(compile(current,str(P),'exec'),{'__file__':str(P),'__name__':'__main__','_accepted_guard_extensions':ns['accepted_guard_extensions']})
+original=bounded(D/'before/check-source.original.py',3542,'63e0399384c8a6ccdc56b138504e4989a59cb274c0976169c69592f2e0e4917f')
+uncached='--original-checker' in sys.argv
+if uncached:sys.argv.remove('--original-checker')
+namespace={}
+if not uncached:
+ helper=bounded(D/'derived_compose.py',2728,'e5881a10f486f17fe89cd830415baa3261965ac9e24487878b0c519be6fbcd08')
+ namespace={'__file__':str(D/'derived_compose.py')}
+ exec(compile(helper,namespace['__file__'],'exec'),namespace)
+program=original.decode()
+anchor="ns={'__file__':str(helper),'_AUTHENTICATED_PROGRAM':helper_raw};exec(compile(helper_raw,str(helper),'exec'),ns)"
+assert program.count(anchor)==1
+if not uncached:
+ replacement=anchor+";_install_derived(ns)"
+ program=program.replace(anchor,replacement,1)
+ assert program.replace(replacement,anchor,1).encode()==original
+exec(compile(program,str(D/'check-source.py'),'exec'),{'__file__':str(D/'check-source.py'),'__name__':'__main__','_install_derived':namespace.get('install')})

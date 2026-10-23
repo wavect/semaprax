@@ -1206,6 +1206,10 @@ impl WorkspaceGraphBuild {
         profile: crate::project::ProjectProfile,
         dependency_anchors: bool,
     ) -> Result<hir::ResolvedProgram, Vec<Diagnostic>> {
+        #[cfg(test)]
+        let _allocation_phase = crate::test_allocation_observer::function_phase_guard(
+            "workspace_graph::linked_project_program",
+        );
         if profile.is_owned_api() {
             let mut linked = self.linked_owned_data_api_program_with_roots(entry_module, &[])?;
             self.attach_project_agents(&mut linked)?;
@@ -3949,6 +3953,10 @@ fn build_resolved_core_current(
     layouts: &expected_projection::private_layout::registry::LayoutRegistry<'_>,
     compact_order: Option<&[usize]>,
 ) -> Result<ResolvedCore, constructor_failure::receiving::CoreFailure> {
+    #[cfg(test)]
+    let _allocation_phase = crate::test_allocation_observer::function_phase_guard(
+        "workspace_graph::build_resolved_core_current",
+    );
     #[cfg(test)]
     let _component = constructor_failure::typed::before_function_alias_core::observe_component(
         programs,

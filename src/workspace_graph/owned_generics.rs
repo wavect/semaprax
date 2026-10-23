@@ -918,6 +918,10 @@ impl super::WorkspaceGraphBuild {
         entry_module: &str,
         additional_roots: &[String],
     ) -> Result<hir::ResolvedProgram, Vec<Diagnostic>> {
+        #[cfg(test)]
+        let _allocation_phase = crate::test_allocation_observer::function_phase_guard(
+            "workspace_graph::linked_owned_data_api_program_with_roots",
+        );
         self.linked_owned_data_with_type_roots(entry_module, additional_roots, &[])
     }
 

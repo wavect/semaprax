@@ -13,6 +13,10 @@ pub(super) struct Inventory {
 
 impl Inventory {
     pub(super) fn rebuild(program: &ResolvedProgram) -> Result<Self, Diagnostic> {
+        #[cfg(test)]
+        let _allocation_phase = crate::test_allocation_observer::function_phase_guard(
+            "hir::canonical_loans::Inventory::rebuild",
+        );
         let mut inventory = Self {
             ids: BTreeMap::new(),
             liveness: BTreeMap::new(),
@@ -26,12 +30,22 @@ impl Inventory {
         ) {
             // Reconstruct independently from the exact current body. Attached
             // plans remain checked by the ordinary validator, not trusted here.
+            // The entry baseline includes every earlier function's canonical
+            // inventory. Its measured peak includes this function's planner.
+            #[cfg(test)]
+            let _allocation_phase = crate::test_allocation_observer::function_phase_guard(
+                "hir::canonical_loans::Inventory::next_function",
+            );
             inventory.append(crate::loan_plan::build_plan(program, function)?)?;
         }
         Ok(inventory)
     }
 
     fn append(&mut self, plan: crate::loan_plan::LoanPlan) -> Result<(), Diagnostic> {
+        #[cfg(test)]
+        let _allocation_phase = crate::test_allocation_observer::function_phase_guard(
+            "hir::canonical_loans::Inventory::append",
+        );
         let base = self.origins.len();
         let origins = plan
             .loans

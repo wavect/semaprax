@@ -4,9 +4,16 @@ use super::*;
 use crate::cleanup_plan::replay::expression_facts::arena::retained::Session;
 use crate::cleanup_plan::replay::ordinary_receiving;
 
-fn run(
+#[derive(Clone, Copy)]
+enum Driver {
+    BeforeReceiving,
+    ImmediateReceiving,
+    Current,
+}
+
+fn run_driver(
     program: &ResolvedProgram,
-    old: bool,
+    driver: Driver,
     limit: usize,
 ) -> (Result<(), Diagnostic>, bool, usize) {
     crate::bounded_output::with_limit_usage(limit, || {
@@ -15,28 +22,39 @@ fn run(
         reserve_program_skeleton_work(program, program.functions.iter(), &mut budget)?;
         let mut continuations = continuation_storage::Storage::for_program(program, &mut budget)?;
         for function in &program.functions {
-            if old {
-                ordinary_receiving::with_before(|| {
+            match driver {
+                Driver::BeforeReceiving => ordinary_receiving::with_before(|| {
                     validate_structure_with_budget_storage_before_receiving(
-                        program,
-                        function,
-                        &mut budget,
-                        Some(&helpers),
-                        Some(&mut continuations),
+                        program, function, &mut budget, Some(&helpers), Some(&mut continuations),
                     )
-                })?;
-            } else {
-                validate_structure_with_budget_storage(
-                    program,
-                    function,
-                    &mut budget,
-                    Some(&helpers),
-                    Some(&mut continuations),
-                )?;
+                })?,
+                Driver::ImmediateReceiving =>
+                    super::super::super::ordinary_block_before::validate_structure_with_budget_storage(
+                        program, function, &mut budget, Some(&helpers), Some(&mut continuations),
+                    )?,
+                Driver::Current => validate_structure_with_budget_storage(
+                    program, function, &mut budget, Some(&helpers), Some(&mut continuations),
+                )?,
             }
         }
         Ok(())
     })
+}
+
+fn run(
+    program: &ResolvedProgram,
+    old: bool,
+    limit: usize,
+) -> (Result<(), Diagnostic>, bool, usize) {
+    run_driver(
+        program,
+        if old {
+            Driver::BeforeReceiving
+        } else {
+            Driver::Current
+        },
+        limit,
+    )
 }
 
 #[test]
@@ -47,8 +65,15 @@ fn whole_immediate_ordinary_result_exact_short_zero_and_real_nm_are_observed() {
         let program = checked_program(rows);
         let old = run(&program, true, 64 * 1024 * 1024);
         ordinary_receiving::take_census();
-        let current = run(&program, false, 64 * 1024 * 1024);
+        // The complete immediate #892 image remains compiled independently.
+        // Later transition retention (#889) and early scratch release (#903)
+        // have their own real fees, so cannot enter the #892-only equation.
+        let immediate = run_driver(&program, Driver::ImmediateReceiving, 64 * 1024 * 1024);
         let census = ordinary_receiving::take_census();
+        let current = run(&program, false, 64 * 1024 * 1024);
+        ordinary_receiving::take_census();
+        assert_eq!(immediate.0, old.0); // complete six-field diagnostics
+        assert!(immediate.0.is_ok() && !immediate.1);
         assert_eq!(current.0, old.0); // complete Result and all six error fields
         assert!(
             current.0.is_ok() && !old.1 && !current.1,
@@ -71,13 +96,13 @@ fn whole_immediate_ordinary_result_exact_short_zero_and_real_nm_are_observed() {
                     - Session::added_edge_query_bytes() as i128)
             - census.reached[1] as i128 * ordinary_receiving::Failure::acquisition_bytes() as i128;
         assert_eq!(
-            old.2 as i128 - current.2 as i128,
+            old.2 as i128 - immediate.2 as i128,
             expected,
-            "complete same-source byte equation must include every new owner and reached query"
+            "complete immediate same-source byte equation must include every new owner and reached query"
         );
         eprintln!(
-            "ordinary receiving rows={rows} old={} current={} census={census:?} delta={expected}",
-            old.2, current.2
+            "ordinary receiving rows={rows} old={} immediate={} current={} census={census:?} immediate_delta={expected} composed_delta={}",
+            old.2, immediate.2, current.2, old.2 as i128 - current.2 as i128
         );
         // This is an executable adoption gate, not an unrun performance claim.
         // Empty/short fees are recorded independently; no cross-fixture credit.
@@ -86,6 +111,15 @@ fn whole_immediate_ordinary_result_exact_short_zero_and_real_nm_are_observed() {
                 current.2 < old.2,
                 "whole current composition must improve after all new owners/ABI costs: {census:?}"
             );
+        }
+        assert!(
+            run_driver(&program, Driver::ImmediateReceiving, immediate.2)
+                .0
+                .is_ok()
+        );
+        for limit in [0, immediate.2 - 1] {
+            let short = run_driver(&program, Driver::ImmediateReceiving, limit);
+            assert!(short.0.is_err() && short.1);
         }
         assert!(run(&program, false, current.2).0.is_ok());
         for limit in [0, current.2 - 1] {

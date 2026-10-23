@@ -74,7 +74,9 @@ fn complete_direct_collectors_match_full_immediate_constructor_and_drop_at_all_c
         let held = crate::loop_calls::byte_writer::ModuleIndex::new(&program).unwrap();
         for function in &program.functions {
             for index in [None, Some(&held)] {
-                let mut old_budget = ReplayBudget::unobserved();
+                // Match the current receiver's initial work allowances. A
+                // detached unobserved budget starts skeleton_remaining at zero.
+                let mut old_budget = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
                 // Full immediate funded constructor, not pre-funding predecessor.
                 let old =
                     SkeletonWork::with_index(&program, function, &mut old_budget, index).unwrap();
@@ -183,6 +185,10 @@ fn complete_direct_collectors_match_full_immediate_constructor_and_drop_at_all_c
                                     assert_eq!(
                                         current.budget.skeleton_remaining,
                                         old.budget.skeleton_remaining
+                                    );
+                                    assert_eq!(
+                                        current.budget.skeleton_spent,
+                                        old.budget.skeleton_spent
                                     );
                                     drop(current);
                                     Ok::<_, Diagnostic>(())

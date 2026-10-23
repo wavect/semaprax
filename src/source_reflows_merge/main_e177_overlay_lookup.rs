@@ -1,5 +1,15 @@
 pub(crate) fn compiled(source: &str) -> Option<&'static str> {
     match source {
+        "src/cleanup_plan/replay/path_join/compact_failure_before.rs" => Some(include_str!("../../src/cleanup_plan/replay/path_join/compact_failure_before.rs")),
+        "src/cleanup_plan/replay/path_join/compact_failure_tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/path_join/compact_failure_tests.rs")),
+        "src/cleanup_plan/replay/path_join/contains_before.rs" => Some(include_str!("../../src/cleanup_plan/replay/path_join/contains_before.rs")),
+        "src/cleanup_plan/replay/path_join/contains_tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/path_join/contains_tests.rs")),
+        "src/cleanup_plan/replay/path_join/selected/tests/fixture_scope.rs" => Some(include_str!("../../src/cleanup_plan/replay/path_join/selected/tests/fixture_scope.rs")),
+        "src/source_reflows_merge/main_e177_overlay_digests_v13.rs" => Some(include_str!("../../src/source_reflows_merge/main_e177_overlay_digests_v13.rs")),
+        "src/source_reflows_merge/main_e177_overlay_digests_v13/logical_v12.rs" => Some(include_str!("../../src/source_reflows_merge/main_e177_overlay_digests_v13/logical_v12.rs")),
+        "src/source_reflows_merge/main_e177_overlay_digests_v13/tests.rs" => Some(include_str!("../../src/source_reflows_merge/main_e177_overlay_digests_v13/tests.rs")),
+        "src/source_reflows_merge/main_e177_overlay_digests_v13/controller_transport.rs" => Some(include_str!("../../src/source_reflows_merge/main_e177_overlay_digests_v13/controller_transport.rs")),
+        "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs")),
         "src/cleanup_plan/replay/expression_facts/capacity/before_types.rs" => Some(include_str!("../../src/cleanup_plan/replay/expression_facts/capacity/before_types.rs")),
         "src/cleanup_plan/replay/expression_facts/capacity/cursor_tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/expression_facts/capacity/cursor_tests.rs")),
         "src/cleanup_plan/replay/expression_facts/capacity/type_cursor_tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/expression_facts/capacity/type_cursor_tests.rs")),

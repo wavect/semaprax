@@ -2,6 +2,9 @@ use super::*;
 use serde_json::json;
 use sha2::{Digest, Sha256};
 
+#[path = "controller_transport.rs"]
+mod controller_transport;
+
 fn hash(bytes: &[u8]) -> String {
     format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)))
 }
@@ -345,8 +348,20 @@ pub(in super::super::super) fn before_source(source: &str, supplied: &str) -> St
     assert_eq!(
         supplied,
         current(source),
+        "actual complete caller source acquisition"
+    );
+    controller_transport::caller(source, supplied)
+        .unwrap_or_else(|| original_before_source(source, supplied))
+}
+
+fn original_before_source(source: &str, supplied: &str) -> String {
+    assert_eq!(
+        supplied,
+        current(source),
         "actual complete source acquisition"
     );
+    let transported = controller_transport::original(source, supplied);
+    let supplied = transported.as_str();
     let rows: Value = serde_json::from_str(include_str!("inverse.json")).unwrap();
     let rows = rows.as_array().unwrap();
     let records: Vec<_> = rows.iter().filter(|row| row["source"] == source).collect();
@@ -386,7 +401,7 @@ fn complete_prior_v12_compiled_body_and_all_parent_inverses_remain_byte_exact() 
     assert_eq!(rows.as_array().unwrap().len(), 7);
     for row in rows.as_array().unwrap() {
         let source = row["source"].as_str().unwrap();
-        before_source(source, current(source));
+        original_before_source(source, current(source));
     }
     let python = current("docs/evidence/finite-source-overlay-v2-20261018/overlay_page_codecs.py");
     let old = before("parent-5.before.txt");

@@ -935,5 +935,243 @@
         "before": "    assert!(CAPACITY.starts_with(OLD_CAPACITY.trim_end().strip_suffix('}').unwrap()));\n"
       }
     ]
+  },
+  "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs": {
+    "before_length": 21426,
+    "before_sha256": "39066bd925af09bf9c98a6f6f824b7cc134f4773236484d1d2c76fec81ac85e0",
+    "length": 21662,
+    "sha256": "3855041bbbc1fb905e64a4009e5c72d162c80683ee294339a083cbed0a8179fd",
+    "edits": [
+      {
+        "start": 13941,
+        "end": 14177,
+        "current": "    let current = crate::source_reflows::source(\n        file!(),\n        concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/src/cleanup_plan/replay/expression_facts/receiving/retained.rs\"\n        ),\n        current,\n    );\n",
+        "before": ""
+      }
+    ]
+  },
+  "src/cleanup_plan/replay/expression_facts/receiving/tests.rs": {
+    "before_length": 26808,
+    "before_sha256": "cbd3a2d682d627abbe63b9e4b8ec5b8c1f2fb7811b7c5a492fb691fcf50aac40",
+    "length": 28833,
+    "sha256": "c835954bd5ab1f2c1581e61e20fe7067164039a14790425183758fddbb933855",
+    "edits": [
+      {
+        "start": 19786,
+        "end": 19932,
+        "current": "        if path == \"src/cleanup_plan/replay/expression_facts.rs\" {\n            projected = before_expression_fact_observer(&projected);\n        }\n",
+        "before": ""
+      },
+      {
+        "start": 26954,
+        "end": 28833,
+        "current": "\n// Profiling adds observation scopes around the original receiver. Authenticate\n// this complete projected generation before inverting only those exact scopes.\nfn before_expression_fact_observer(current: &str) -> String {\n    use sha2::{Digest, Sha256};\n    assert_eq!(\n        format!(\n            \"{:x}\",\n            crate::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))\n        ),\n        \"d5a01217bb7550905972a7ab06980bfd4580e3e361c8c50e33cf3ff39eed98f6\"\n    );\n    let observer = \"    #[cfg(test)]\\n    let _operation = crate::bounded_output::stage_debits::operation_guard(\\n        crate::bounded_output::stage_debits::Operation::ReplayExpressionFacts,\\n    );\\n    #[cfg(feature = \\\"unstable-workflow-profiling\\\")]\\n    let _exclusive_operation = crate::bounded_output::exclusive_debits::operation_guard(\\n        crate::bounded_output::exclusive_debits::Operation::ReplayExpressionFacts,\\n    );\\n\";\n    assert_eq!(current.matches(observer).count(), 1);\n    let restored = current.replacen(observer, \"\", 1);\n    assert_eq!(restored, include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"),\n        \"/docs/evidence/paid-receiving-directories/src__cleanup_plan__replay__expression_facts.rs.before.txt\")));\n    restored\n}\n\n#[test]\nfn expression_fact_observer_inverse_refuses_whole_source_drift_and_old_inputs() {\n    let current = include_str!(concat!(\n        env!(\"CARGO_MANIFEST_DIR\"),\n        \"/docs/evidence/expression-fact-observer-source-v1/projected-current.txt\"\n    ));\n    let original = before_expression_fact_observer(current);\n    for foreign in [\n        String::new(),\n        current[..current.len() - 1].to_owned(),\n        format!(\"{current}\\n\"),\n        current.replacen(\"ReplayExpressionFacts\", \"ReplayPathStates\", 1),\n        original,\n    ] {\n        assert!(std::panic::catch_unwind(|| before_expression_fact_observer(&foreign)).is_err());\n    }\n}\n",
+        "before": ""
+      }
+    ]
+  },
+  "src/cleanup_plan/replay/path_join/selected/tests/mod.rs": {
+    "before_length": 5391,
+    "before_sha256": "ea6faf59b00eecded5f37db29cef4c7e20be12add32432a6de626803bbe07440",
+    "length": 5917,
+    "sha256": "6841c3bcacf89644d14286efdd323ed45acd56b2b717d0cff793f0a7383ec52f",
+    "edits": [
+      {
+        "start": 926,
+        "end": 1432,
+        "current": " 0\n}\n\"#;\n// These are genuinely different selected domains. SCALAR above remains the\n// complete original owning-Bytes refusal subject, not a Copy scalar witness.\nconst COPY_SCALAR: &str = r#\"module selected.schema.copy;\n@id(\"family.one\") fn one(n:i64)->i64 {n+1}\n@id(\"family.main\") fn main()->i64 {one(3)}\n\"#;\nconst OWNED_LEXICAL: &str = r#\"module selected.schema.owned_lexical;\n@id(\"family.bytes\") fn bytes()->i64 {\n let data=bytes_zeroed(1usize);\n if byte_len(bytes_as_slice(data))==1usize {return 7;};\n",
+        "before": ""
+      },
+      {
+        "start": 5897,
+        "end": 5917,
+        "current": "\nmod fixture_scope;\n",
+        "before": ""
+      }
+    ]
+  },
+  "src/cleanup_plan/replay/path_join/selected/tests/renewal.rs": {
+    "before_length": 3050,
+    "before_sha256": "bea7a9dc0e5ceb55ae2f3647adcaf67a19f6a78b07d807f2e68f37b4fd022c83",
+    "length": 3785,
+    "sha256": "aa3c30ddfa793212c983c3fa54e265ad119b662e633b8b3de130ba7b4a298042",
+    "edits": [
+      {
+        "start": 432,
+        "end": 889,
+        "current": "const LEXICAL_SOURCE: &str = r#\"module test.byte_renewal;\n@id(\"app.main\") fn main()->i64 {\n let mut buffer=bytes_zeroed(2usize);\n let untouched=bytes_zeroed(1usize);\n let mut index=0usize;\n while index<2usize {\n  if index==0usize {buffer=bytes_set(buffer,index,65u8);0}else{0}\n  index=index+1usize;\n  if index<2usize {continue;};\n  0\n }\n return if byte_len(bytes_as_slice(buffer))==2usize && byte_len(bytes_as_slice(untouched))==1usize {7}else{0};\n 0\n}\n\"#;\n",
+        "before": ""
+      },
+      {
+        "start": 978,
+        "end": 1076,
+        "current": "    fixture_scope::original_scope(SOURCE, \"app.main\");\n    let program = program(LEXICAL_SOURCE);\n",
+        "before": "    let program = program(SOURCE);\n"
+      },
+      {
+        "start": 1334,
+        "end": 1402,
+        "current": "    assert!(crate::hir::lexical_exit::requires(function).unwrap());\n",
+        "before": ""
+      },
+      {
+        "start": 2868,
+        "end": 3767,
+        "current": "    for source in [SOURCE, LEXICAL_SOURCE] {\n        for case in 0..2 {\n            let mut program = program(source);\n            let function = program\n                .functions\n                .iter_mut()\n                .find(|f| f.id.as_str() == \"app.main\")\n                .unwrap();\n            let place = function\n                .cleanup_plan\n                .blocks\n                .iter_mut()\n                .flat_map(|b| &mut b.transitions)\n                .find_map(|t| match t {\n                    CleanupTransition::ReserveRenewal { binding, .. } => Some(binding),\n                    _ => None,\n                })\n                .unwrap();\n            if case == 0 {\n                place.storage = StorageId::ProvisionalResult;\n            } else {\n                place.projections.push(function.id.clone());\n            }\n            same_owner(&program, \"app.main\", false);\n",
+        "before": "    for case in 0..2 {\n        let mut program = program(SOURCE);\n        let function = program\n            .functions\n            .iter_mut()\n            .find(|f| f.id.as_str() == \"app.main\")\n            .unwrap();\n        let place = function\n            .cleanup_plan\n            .blocks\n            .iter_mut()\n            .flat_map(|b| &mut b.transitions)\n            .find_map(|t| match t {\n                CleanupTransition::ReserveRenewal { binding, .. } => Some(binding),\n                _ => None,\n            })\n            .unwrap();\n        if case == 0 {\n            place.storage = StorageId::ProvisionalResult;\n        } else {\n            place.projections.push(function.id.clone());\n"
+      },
+      {
+        "start": 3777,
+        "end": 3777,
+        "current": "",
+        "before": "        same_owner(&program, \"app.main\", false);\n"
+      }
+    ]
+  },
+  "src/cleanup_plan/replay/path_join/selected/tests/session.rs": {
+    "before_length": 3883,
+    "before_sha256": "1978ea6af6c6258fe97760e1d03e162cb6947cae5206735ca15ffb9799bfc3d2",
+    "length": 5646,
+    "sha256": "c30b5f5192a4a1092085901c652366433a1ec02ac8cbf7c6377445083ca85e13",
+    "edits": [
+      {
+        "start": 271,
+        "end": 5644,
+        "current": "    for text in [SCALAR, OWNED_LEXICAL] {\n        let mut program = program(text);\n        let function = program\n            .functions\n            .iter_mut()\n            .find(|f| f.id.as_str() == \"family.bytes\")\n            .unwrap();\n        let block = function\n            .cleanup_plan\n            .blocks\n            .iter_mut()\n            .find(|b| {\n                b.transitions\n                    .iter()\n                    .any(|t| matches!(t, CleanupTransition::Initialize { .. }))\n            })\n            .unwrap();\n        let index = block\n            .transitions\n            .iter()\n            .position(|t| matches!(t, CleanupTransition::Initialize { .. }))\n            .unwrap();\n        block\n            .transitions\n            .insert(index + 1, block.transitions[index].clone());\n        let source = primitive_fixture::Context::new(&program);\n        let function = program\n            .functions\n            .iter()\n            .find(|f| f.id.as_str() == \"family.bytes\")\n            .unwrap();\n        let old = owner(&source, function, true).unwrap_err();\n        if text == SCALAR {\n            assert_eq!(\n                old,\n                replay_error(\n                    function,\n                    \"selected scalar helper body contains non-Copy storage\"\n                )\n            );\n            assert_eq!(owner(&source, function, false), Err(old.clone()));\n        }\n        let (_, observed) =\n            measure(|| {\n                let acquired = Acquired::try_acquire(PhysicalReservation::new(LIMIT), FORM)\n                    .unwrap_or_else(|_| panic!(\"ample report carrier\"));\n                let backing = acquired.backing();\n                let prepared = acquired\n                    .prepare(function)\n                    .unwrap_or_else(|_| panic!(\"ample preparation\"));\n                let mut session = prepared\n                    .into_paid_session(&source, function)\n                    .unwrap_or_else(|_| panic!(\"held source constructor\"));\n                let error = session.validate_paid(function).unwrap_err();\n                let Error::Structural(receipt) = &error else {\n                    panic!(\"path semantic must remain typed: {error:?}\")\n                };\n                if text == SCALAR {\n                    assert!(\n                        receipt.borrowed_control_receipt().is_none(),\n                        \"original scalar refusal precedes owned path state\"\n                    );\n                } else {\n                    let (\n                        held,\n                        structural_control::selected::reason::Reason::Path(Reason::Finite(kind)),\n                    ) = receipt.borrowed_control_receipt().unwrap()\n                    else {\n                        panic!(\"nested path reason\")\n                    };\n                    assert_eq!(\n                        *kind,\n                        Kind::InitializeTransitionInitializesAnEmptyOrLiveCleanupPlace\n                    );\n                    assert_eq!(held.as_str().as_ptr(), function.body.id.as_str().as_ptr());\n                }\n                let (later, later_observed) = measure(|| session.validate_paid(function));\n                assert!(matches!(later, Err(Error::Failed)));\n                assert_eq!(\n                    (later_observed.allocations, later_observed.reallocations),\n                    (0, 0)\n                );\n                let (mut refusal, publish) =\n                    measure(|| session.into_failed_preparation().refuse_engine(error));\n                assert_eq!((publish.allocations, publish.reallocations), (0, 0));\n                let report = refusal.report().unwrap();\n                assert_eq!((report.len(), report.capacity()), (1, 1));\n                assert_eq!(report.as_ptr(), backing.0);\n                assert_eq!(report[0].message.as_ptr(), backing.1);\n                assert_eq!(\n                    (report[0].code, report[0].message.as_ref()),\n                    (FORM.code(), FORM.message())\n                );\n                assert!(\n                    refusal.receipt().is_none(),\n                    \"no owned semantic Diagnostic transport\"\n                );\n                assert!(refusal.structural_receipt().is_some());\n                let ledger = refusal.ledger_mut().unwrap();\n                let charged = ledger.charged();\n                let first = ledger.reserve(0).unwrap_err();\n                assert_eq!(ledger.reserve(1).unwrap_err(), first);\n                assert_eq!(ledger.charged(), charged);\n                // Full detailed legacy observation is separately exercised by owner().\n                if text == OWNED_LEXICAL {\n                    assert!(old.message.contains(\n                        \"initialize transition initializes an empty or live cleanup place\"\n                    ));\n                } else {\n                    // Full six-field equality was checked before this physical\n                    // observation; do not allocate an expected Diagnostic here.\n                    assert!(\n                        old.message\n                            .contains(\"selected scalar helper body contains non-Copy storage\")\n                    );\n                }\n            });\n        assert!(!observed.invalid && observed.live == 0);\n        assert_eq!(observed.allocated, observed.freed);\n    }\n",
+        "before": "    let mut program = program(SCALAR);\n    let function = program\n        .functions\n        .iter_mut()\n        .find(|f| f.id.as_str() == \"family.bytes\")\n        .unwrap();\n    let block = function\n        .cleanup_plan\n        .blocks\n        .iter_mut()\n        .find(|b| {\n            b.transitions\n                .iter()\n                .any(|t| matches!(t, CleanupTransition::Initialize { .. }))\n        })\n        .unwrap();\n    let index = block\n        .transitions\n        .iter()\n        .position(|t| matches!(t, CleanupTransition::Initialize { .. }))\n        .unwrap();\n    block\n        .transitions\n        .insert(index + 1, block.transitions[index].clone());\n    let source = primitive_fixture::Context::new(&program);\n    let function = program\n        .functions\n        .iter()\n        .find(|f| f.id.as_str() == \"family.bytes\")\n        .unwrap();\n    let old = owner(&source, function, true).unwrap_err();\n    let (_, observed) = measure(|| {\n        let acquired = Acquired::try_acquire(PhysicalReservation::new(LIMIT), FORM)\n            .unwrap_or_else(|_| panic!(\"ample report carrier\"));\n        let backing = acquired.backing();\n        let prepared = acquired\n            .prepare(function)\n            .unwrap_or_else(|_| panic!(\"ample preparation\"));\n        let mut session = prepared\n            .into_paid_session(&source, function)\n            .unwrap_or_else(|_| panic!(\"held source constructor\"));\n        let error = session.validate_paid(function).unwrap_err();\n        let Error::Structural(receipt) = &error else {\n            panic!(\"path semantic must remain typed: {error:?}\")\n        };\n        let (held, structural_control::selected::reason::Reason::Path(Reason::Finite(kind))) =\n            receipt.borrowed_control_receipt().unwrap()\n        else {\n            panic!(\"nested path reason\")\n        };\n        assert_eq!(\n            *kind,\n            Kind::InitializeTransitionInitializesAnEmptyOrLiveCleanupPlace\n        );\n        assert_eq!(held.as_str().as_ptr(), function.body.id.as_str().as_ptr());\n        let (later, later_observed) = measure(|| session.validate_paid(function));\n        assert!(matches!(later, Err(Error::Failed)));\n        assert_eq!(\n            (later_observed.allocations, later_observed.reallocations),\n            (0, 0)\n        );\n        let (mut refusal, publish) =\n            measure(|| session.into_failed_preparation().refuse_engine(error));\n        assert_eq!((publish.allocations, publish.reallocations), (0, 0));\n        let report = refusal.report().unwrap();\n        assert_eq!((report.len(), report.capacity()), (1, 1));\n        assert_eq!(report.as_ptr(), backing.0);\n        assert_eq!(report[0].message.as_ptr(), backing.1);\n        assert_eq!(\n            (report[0].code, report[0].message.as_ref()),\n            (FORM.code(), FORM.message())\n        );\n        assert!(\n            refusal.receipt().is_none(),\n            \"no owned semantic Diagnostic transport\"\n        );\n        assert!(refusal.structural_receipt().is_some());\n        let ledger = refusal.ledger_mut().unwrap();\n        let charged = ledger.charged();\n        let first = ledger.reserve(0).unwrap_err();\n        assert_eq!(ledger.reserve(1).unwrap_err(), first);\n        assert_eq!(ledger.charged(), charged);\n        // Full detailed legacy observation is separately exercised by owner().\n        assert!(old\n            .message\n            .contains(\"initialize transition initializes an empty or live cleanup place\"));\n    });\n    assert!(!observed.invalid && observed.live == 0);\n    assert_eq!(observed.allocated, observed.freed);\n"
+      }
+    ]
+  },
+  "src/cleanup_plan/replay/path_join/selected/tests/strings.rs": {
+    "before_length": 2311,
+    "before_sha256": "bfd078eea157329819cdbff84ed62bbeafc014542c97276cd4cc2b8becdfbe44",
+    "length": 2803,
+    "sha256": "55a922c9a03ae180c6212c644e5086c261e03d02ed4caab5f9dc663ebb10aaf8",
+    "edits": [
+      {
+        "start": 250,
+        "end": 520,
+        "current": "const LEXICAL_CONCAT: &str = r#\"module oracle.concat;\n@id(\"o.main\") fn main()->i64 {\n let mut text=string_from_i64(1);\n let mut count=0;\n while count<2 {\n  text=string_concat(text,\"x\");\n  count=count+1;\n  if count<2 {continue;};\n  0\n }\n return string_len(text);\n 0\n}\"#;\n",
+        "before": ""
+      },
+      {
+        "start": 608,
+        "end": 704,
+        "current": "    fixture_scope::original_scope(CONCAT, \"o.main\");\n    let program = program(LEXICAL_CONCAT);\n",
+        "before": "    let program = program(CONCAT);\n"
+      },
+      {
+        "start": 774,
+        "end": 855,
+        "current": "    assert!(crate::hir::lexical_exit::requires(&program.functions[0]).unwrap());\n",
+        "before": ""
+      },
+      {
+        "start": 991,
+        "end": 1038,
+        "current": "    let mut program = program(LEXICAL_CONCAT);\n",
+        "before": "    let mut program = program(CONCAT);\n"
+      },
+      {
+        "start": 1263,
+        "end": 1335,
+        "current": "        assert!(crate::hir::lexical_exit::requires(function).unwrap());\n",
+        "before": ""
+      }
+    ]
+  },
+  "src/cleanup_plan/replay/path_join/selected/tests/whole.rs": {
+    "before_length": 6709,
+    "before_sha256": "ca6baf7aa6f1d54c1db98e394a427ff44ccd0546783db46228419c760c85654f",
+    "length": 8152,
+    "sha256": "d7d68f8b047ea1abc4f182b604478f459ecdd397c74ab532957cbd5532cf2d6e",
+    "edits": [
+      {
+        "start": 104,
+        "end": 200,
+        "current": "    fixture_scope::source_custody();\n    fixture_scope::original_scope(SCALAR, \"family.bytes\");\n",
+        "before": ""
+      },
+      {
+        "start": 270,
+        "end": 431,
+        "current": "        (SCALAR, &[\"family.one\", \"family.main\"][..]),\n        (COPY_SCALAR, &[\"family.one\", \"family.main\"][..]),\n        (OWNED_LEXICAL, &[\"family.bytes\"][..]),\n",
+        "before": "        (SCALAR, &[\"family.one\", \"family.main\", \"family.bytes\"][..]),\n"
+      },
+      {
+        "start": 576,
+        "end": 1095,
+        "current": "            let f = program\n                .functions\n                .iter()\n                .find(|f| f.id.as_str() == *id)\n                .unwrap();\n            if source == COPY_SCALAR {\n                assert!(!crate::hir::lexical_exit::requires(f).unwrap());\n                assert!(f.cleanup_plan.slots.is_empty());\n            } else if source == OWNED_LEXICAL {\n                assert!(crate::hir::lexical_exit::requires(f).unwrap());\n                assert!(!f.cleanup_plan.slots.is_empty());\n            }\n",
+        "before": ""
+      },
+      {
+        "start": 1252,
+        "end": 1385,
+        "current": "    for (source, id) in [\n        (LEXICAL, \"probe\"),\n        (SCALAR, \"family.main\"),\n        (COPY_SCALAR, \"family.main\"),\n    ] {\n",
+        "before": "    for (source, id) in [(LEXICAL, \"probe\"), (SCALAR, \"family.main\")] {\n"
+      },
+      {
+        "start": 2636,
+        "end": 2783,
+        "current": "            assert!(\n                old.message\n                    .contains(\"cleanup replay preflight references an unknown id\")\n            );\n",
+        "before": "            assert!(old\n                .message\n                .contains(\"cleanup replay preflight references an unknown id\"));\n"
+      },
+      {
+        "start": 5173,
+        "end": 6428,
+        "current": "    for source in [SCALAR, OWNED_LEXICAL] {\n        for case in 0..4 {\n            let mut program = program(source);\n            let function = program\n                .functions\n                .iter_mut()\n                .find(|f| f.id.as_str() == \"family.bytes\")\n                .unwrap();\n            let exit = function\n                .cleanup_plan\n                .exits\n                .iter_mut()\n                .find(|e| !e.finalize_in_order.is_empty())\n                .unwrap();\n            match case {\n                0 => exit.finalize_in_order[0].lifecycle_id = function.id.clone(),\n                1 => exit.finalize_in_order[0].guard_flag = LivenessFlagId(u32::MAX),\n                2 => exit.finalize_in_order[0]\n                    .source\n                    .projections\n                    .push(function.id.clone()),\n                3 => exit\n                    .finalize_in_order\n                    .push(exit.finalize_in_order[0].clone()),\n                _ => unreachable!(),\n            }\n            same_owner(&program, \"family.bytes\", false);\n        }\n    }\n}\n#[test]\nfn held_duplicate_initialize_is_closed_by_selected_path_receipt() {\n    for text in [SCALAR, OWNED_LEXICAL] {\n        let mut program = program(text);\n",
+        "before": "    for case in 0..4 {\n        let mut program = program(SCALAR);\n"
+      },
+      {
+        "start": 6584,
+        "end": 6613,
+        "current": "        let block = function\n",
+        "before": "        let exit = function\n"
+      },
+      {
+        "start": 6639,
+        "end": 6659,
+        "current": "            .blocks\n",
+        "before": "            .exits\n"
+      },
+      {
+        "start": 6683,
+        "end": 6860,
+        "current": "            .find(|b| {\n                b.transitions\n                    .iter()\n                    .any(|t| matches!(t, CleanupTransition::Initialize { .. }))\n            })\n",
+        "before": "            .find(|e| !e.finalize_in_order.is_empty())\n"
+      },
+      {
+        "start": 6883,
+        "end": 7324,
+        "current": "        let index = block\n            .transitions\n            .iter()\n            .position(|t| matches!(t, CleanupTransition::Initialize { .. }))\n            .unwrap();\n        block\n            .transitions\n            .insert(index + 1, block.transitions[index].clone());\n        // Structural checks independently authenticate both copies. State replay\n        // must still reject the second live initialization on its existing route.\n",
+        "before": "        match case {\n            0 => exit.finalize_in_order[0].lifecycle_id = function.id.clone(),\n            1 => exit.finalize_in_order[0].guard_flag = LivenessFlagId(u32::MAX),\n            2 => exit.finalize_in_order[0]\n                .source\n                .projections\n                .push(function.id.clone()),\n            3 => exit\n                .finalize_in_order\n                .push(exit.finalize_in_order[0].clone()),\n            _ => unreachable!(),\n        }\n"
+      },
+      {
+        "start": 7377,
+        "end": 8144,
+        "current": "        let source = primitive_fixture::Context::new(&program);\n        let function = program\n            .functions\n            .iter()\n            .find(|f| f.id.as_str() == \"family.bytes\")\n            .unwrap();\n        let error = owner(&source, function, false).unwrap_err();\n        if text == SCALAR {\n            assert_eq!(\n                error,\n                replay_error(\n                    function,\n                    \"selected scalar helper body contains non-Copy storage\"\n                )\n            );\n        } else {\n            assert!(\n                error\n                    .message\n                    .contains(\"initialize transition initializes an empty or live cleanup place\"),\n                \"{error:?}\"\n            );\n        }\n",
+        "before": ""
+      },
+      {
+        "start": 8152,
+        "end": 8152,
+        "current": "",
+        "before": "#[test]\nfn held_duplicate_initialize_is_closed_by_selected_path_receipt() {\n    let mut program = program(SCALAR);\n    let function = program\n        .functions\n        .iter_mut()\n        .find(|f| f.id.as_str() == \"family.bytes\")\n        .unwrap();\n    let block = function\n        .cleanup_plan\n        .blocks\n        .iter_mut()\n        .find(|b| {\n            b.transitions\n                .iter()\n                .any(|t| matches!(t, CleanupTransition::Initialize { .. }))\n        })\n        .unwrap();\n    let index = block\n        .transitions\n        .iter()\n        .position(|t| matches!(t, CleanupTransition::Initialize { .. }))\n        .unwrap();\n    block\n        .transitions\n        .insert(index + 1, block.transitions[index].clone());\n    // Structural checks independently authenticate both copies. State replay\n    // must still reject the second live initialization on its existing route.\n    same_owner(&program, \"family.bytes\", false);\n    let source = primitive_fixture::Context::new(&program);\n    let function = program\n        .functions\n        .iter()\n        .find(|f| f.id.as_str() == \"family.bytes\")\n        .unwrap();\n    let error = owner(&source, function, false).unwrap_err();\n    assert!(\n        error\n            .message\n            .contains(\"initialize transition initializes an empty or live cleanup place\"),\n        \"{error:?}\"\n    );\n}\n"
+      }
+    ]
+  },
+  "src/cleanup_plan/replay/physical_budget/authentication.rs": {
+    "before_length": 1956,
+    "before_sha256": "9d2023ce10c1ece44943958a34a0de3f040be553b330e7c674a4472ce4d92c7c",
+    "length": 4022,
+    "sha256": "94aa393a6f0cfc4937f0c59a013cd705aa76eea260b35d4a7c572c2d8ffcc112",
+    "edits": [
+      {
+        "start": 1956,
+        "end": 4022,
+        "current": "\n// Ordinary frontier stores the actual compact refusal, not a Diagnostic wrapper.\n// The complete original gateway above remains independently compiled and unchanged.\n// This is its direct payer/authentication body; no old gateway is called and no\n// authority, String allocator, positive bootstrap, or allowance is introduced.\nimpl ReplayBudget {\n    pub(in crate::cleanup_plan::replay) fn authenticate_zero_compact_into(\n        &mut self,\n        function: &ResolvedFunction,\n        phase: &str,\n        refusal: &mut Option<ByteFailure>,\n    ) {\n        if refusal.is_some() {\n            return;\n        }\n        match self.payer {\n            AllocationPayer::LegacyUnobserved => return,\n            AllocationPayer::ActiveBuilder => {\n                if self.refusal_spent || crate::bounded_output::active_refused() {\n                    *refusal =\n                        Some(self.compact_refusal(function, \"ordinary builder already failed\", \"\"));\n                    return;\n                }\n                if crate::bounded_output::reserve_active_required(0) {\n                    return;\n                }\n            }\n            AllocationPayer::SelectedReservation => {\n                if self\n                    .physical\n                    .as_deref_mut()\n                    .expect(\"selected reservation payer\")\n                    .authenticate_zero()\n                {\n                    return;\n                }\n            }\n            #[cfg(test)]\n            AllocationPayer::Oracle(lease) => {\n                if self.refusal_spent || lease.refused_zero() {\n                    *refusal =\n                        Some(self.compact_refusal(function, \"ordinary builder already failed\", \"\"));\n                    return;\n                }\n                if lease.authenticate_zero() {\n                    return;\n                }\n            }\n        }\n        *refusal = Some(self.compact_refusal(\n            function,\n            \"cleanup replay physical reservation exhausted during \",\n            phase,\n        ));\n    }\n}\n",
+        "before": ""
+      }
+    ]
   }
 }

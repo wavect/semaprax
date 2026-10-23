@@ -1,7 +1,7 @@
 {
   "schema": "semaprax.hosted-opt-batch-selection.v1",
-  "filters": 35,
-  "expected_tests": 139,
+  "filters": 45,
+  "expected_tests": 191,
   "commands": [
     {
       "owner": "OPT893 complete finite page admission predecessor inverse and independent I/O hostiles",
@@ -247,6 +247,76 @@
       "filter": "cleanup_plan::replay::path_join::shared_insertions_tests::",
       "exact": false,
       "expected_tests": 5
+    },
+    {
+      "owner": "OPT914 complete original selected caller regressions previously seven failures; preserve full six-field diagnostic order",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::selected::tests::",
+      "exact": false,
+      "expected_tests": 19
+    },
+    {
+      "owner": "OPT912 complete drained-frame reuse owners including three corrected invocation fixtures",
+      "binary": "lib",
+      "filter": "hir::validation::frame_reuse::",
+      "exact": false,
+      "expected_tests": 10
+    },
+    {
+      "owner": "OPT912 exact invocation publication unwind and physical Drop control",
+      "binary": "lib",
+      "filter": "hir::validation::lexical_exit::witness_tests::invocation_reuse_unwinds_live_scopes_and_witness_before_publication_drop",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT913 original complete caller invoice regression corrected fixture",
+      "binary": "lib",
+      "filter": "hir::validation::scope_checkpoint::marks::tests::ordinary_function_callers_report_complete_old_current_bills_and_drop_without_gain_assumption",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT919 compact pending failure complete authority Diagnostic Cow Drop old-source controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::compact_failure_tests::",
+      "exact": false,
+      "expected_tests": 8
+    },
+    {
+      "owner": "OPT919 lexical contains exact removed formal retained banks complete immediate old and Drop",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::contains_tests::",
+      "exact": false,
+      "expected_tests": 3
+    },
+    {
+      "owner": "OPT924 repeated-only digest V13 parity complete V12 inverse canonical hostile and cap controls",
+      "binary": "lib",
+      "filter": "source_reflows_merge::main_e177_final_inputs::overlay_v2::fragments_v3::digests_v13::tests::",
+      "exact": false,
+      "expected_tests": 7
+    },
+    {
+      "owner": "Paired encoder/parser compiler-produced Core/Component SDK artifact and source-bound hostile replay",
+      "binary": "public_generic_wasm_adapter_v1",
+      "filter": "compiler_provider_artifact::compiler_provider_artifact_is_deterministic_closed_and_binding_normalized",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Paired encoder/parser compiler-produced Core/Component SDK artifact and source-bound hostile replay",
+      "binary": "public_generic_wasm_adapter_v1",
+      "filter": "component_artifact::retained_component_replays_deterministically_and_rejects_tampered_identity",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Paired encoder/parser compiler-produced Core/Component SDK artifact and source-bound hostile replay",
+      "binary": "public_generic_wasm_adapter_v1",
+      "filter": "component_artifact::retained_component_refuses_source_drift_before_runtime_and_accepts_new_revision",
+      "exact": true,
+      "expected_tests": 1
     }
   ]
 }

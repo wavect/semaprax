@@ -68,10 +68,10 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
         assert_eq!(std::fs::read(root.join("src/cleanup_plan/replay/path_join/before_frontier/custody/main_d227_transport.json")).unwrap(), encoded.as_bytes());
         assert_eq!(
             digest(encoded.as_bytes()),
-            "c33e4cd530ceea3cb92f8162e5e08d1c4c60b4c35b558227311c7e3d37135371"
+            "046a313e58da6a509699409d479b83147b511c5c6693d28d7c0b93c537350c5c"
         );
         let packet: serde_json::Value = serde_json::from_str(encoded).unwrap();
-        assert_eq!(packet.as_object().unwrap().len(), 33);
+        assert_eq!(packet.as_object().unwrap().len(), 41);
         if let Some(row) = packet.get(&path) {
             let compiled = match path.as_str() {
                 "src/cleanup_plan/replay/branch_clone/inline_tests.rs" => include_bytes!(concat!(
@@ -139,6 +139,14 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
                 "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase_tests.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase_tests.rs")).as_slice(),
                 "src/cleanup_plan/replay/expression_facts/receiving/return_operands/tests.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/return_operands/tests.rs")).as_slice(),
                 "src/cleanup_plan/replay/expression_facts/tests/arena.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/tests/arena.rs")).as_slice(),
+                "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs")).as_slice(),
+                "src/cleanup_plan/replay/expression_facts/receiving/tests.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/tests.rs")).as_slice(),
+                "src/cleanup_plan/replay/path_join/selected/tests/mod.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/tests/mod.rs")).as_slice(),
+                "src/cleanup_plan/replay/path_join/selected/tests/renewal.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/tests/renewal.rs")).as_slice(),
+                "src/cleanup_plan/replay/path_join/selected/tests/session.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/tests/session.rs")).as_slice(),
+                "src/cleanup_plan/replay/path_join/selected/tests/strings.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/tests/strings.rs")).as_slice(),
+                "src/cleanup_plan/replay/path_join/selected/tests/whole.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/tests/whole.rs")).as_slice(),
+                "src/cleanup_plan/replay/physical_budget/authentication.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/physical_budget/authentication.rs")).as_slice(),
                 _ => panic!("unadmitted main transport path"),
             };
             assert_eq!(actual.as_slice(), compiled);
@@ -185,7 +193,7 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
                 // fixture. No production dependency receives this inverse.
                 assert_eq!(
                     digest(&actual),
-                    "3488dffc097d20eaf58ec844db9887a4cb4bf0a2eb881f6f668d01aa51b19b57"
+                    "11b5a876b7ae91cab5b1c4607d6a8c988d7e46d0144ad68863543edbbb84d705"
                 );
                 let before = include_bytes!(concat!(
                     env!("CARGO_MANIFEST_DIR"),

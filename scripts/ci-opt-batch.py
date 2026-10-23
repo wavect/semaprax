@@ -22,7 +22,7 @@ SELECTIONS = {
     'final-source-closure': ('ci-opt-final-source-closure-selection.json', 15, 52, ('lib', 'project')),
     'composed-closure': ('ci-opt-composed-closure-selection.json', 25, 130, ('lib',)),
     'observed-census': ('ci-opt-observed-census-selection.json', 3, 5, ('lib',)),
-    'query-closure': ('ci-opt-query-closure-selection.json', 25, 91, ('lib', 'project', 'hir_module_boundaries')),
+    'query-closure': ('ci-opt-query-closure-selection.json', 35, 139, ('lib', 'project', 'hir_module_boundaries')),
 }
 OUT = ROOT / 'diagnostic-opt-batch'
 TARGET = ROOT / 'target/hosted-opt-batch'

@@ -1,7 +1,7 @@
 {
   "schema": "semaprax.hosted-opt-batch-selection.v1",
-  "filters": 25,
-  "expected_tests": 91,
+  "filters": 35,
+  "expected_tests": 139,
   "commands": [
     {
       "owner": "OPT893 complete finite page admission predecessor inverse and independent I/O hostiles",
@@ -177,6 +177,76 @@
       "filter": "cleanup_plan::replay::path_join::selected::frontier_tests::",
       "exact": false,
       "expected_tests": 12
+    },
+    {
+      "owner": "Incoming main funded type cursor immediate predecessor and actual boundary controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::expression_facts::capacity::",
+      "exact": false,
+      "expected_tests": 13
+    },
+    {
+      "owner": "Incoming main complete cursor caller allocation source and layout controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::expression_facts::arena::cursor_tests::",
+      "exact": false,
+      "expected_tests": 4
+    },
+    {
+      "owner": "Incoming main intentional operator refusal corpus with complete independent oracle",
+      "binary": "lib",
+      "filter": "source_verify::constructor_tests::corpus::scalar_frame_machine_matches_recursive_oracle",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Incoming main intentional operator refusal corpus with complete independent oracle",
+      "binary": "lib",
+      "filter": "source_verify::constructor_tests::corpus::generic_inference_v2_frame_machine_matches_recursive_oracle",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Incoming main complete operator source inverse and hostile drift controls",
+      "binary": "lib",
+      "filter": "source_verify::recovery_tests::operators_799::complete_original_operator_source_is_preserved_by_exact_named_inverse",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Incoming main complete operator source inverse and hostile drift controls",
+      "binary": "lib",
+      "filter": "source_verify::recovery_tests::operators_799::operator_source_inverse_refuses_truncation_and_one_byte_drift",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT919 direct singleton carrier removal whole immediate invoices and original work diagnostics",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::direct_one_tests::",
+      "exact": false,
+      "expected_tests": 5
+    },
+    {
+      "owner": "OPT919 complete original frontier caller invoices ownership and allocation controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::frontier_tests::",
+      "exact": false,
+      "expected_tests": 14
+    },
+    {
+      "owner": "OPT919 complete original frontier caller invoices ownership and allocation controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::receiver_tests::",
+      "exact": false,
+      "expected_tests": 3
+    },
+    {
+      "owner": "OPT919 complete original frontier caller invoices ownership and allocation controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::shared_insertions_tests::",
+      "exact": false,
+      "expected_tests": 5
     }
   ]
 }

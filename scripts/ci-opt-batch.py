@@ -21,6 +21,7 @@ SELECTIONS = {
     'closure': ('ci-opt-closure-selection.json', 22, 114, ('lib',)),
     'final-source-closure': ('ci-opt-final-source-closure-selection.json', 15, 52, ('lib', 'project')),
     'composed-closure': ('ci-opt-composed-closure-selection.json', 25, 130, ('lib',)),
+    'observed-census': ('ci-opt-observed-census-selection.json', 3, 5, ('lib',)),
 }
 OUT = ROOT / 'diagnostic-opt-batch'
 TARGET = ROOT / 'target/hosted-opt-batch'
@@ -257,6 +258,9 @@ def main() -> int:
     options = parser.parse_args()
     filename, expected_filters, expected_tests, image_names = SELECTIONS[options.selection]
     selection = ROOT / 'scripts' / filename
+    # Only the five new census controls need this diagnostic feature.
+    features = ('unstable-workflow-profiling',) if options.selection == 'observed-census' else ()
+    feature_args = ['--features', ','.join(features)] if features else []
     OUT.mkdir(exist_ok=False)
     receipt: dict = {
         'schema': 'semaprax.hosted-opt-batch.v1', 'status': 'running',
@@ -348,6 +352,7 @@ def main() -> int:
         receipt['selection'] = {'profile': options.selection, 'path': str(selection.relative_to(ROOT)),
                                 'expected_filters': expected_filters, 'expected_tests': expected_tests}
         receipt['selection_sha256'] = sha(selection)
+        receipt['features'] = list(features)
         receipt['rustc'] = text(['rustc', '-vV'])
         receipt['cargo'] = text(['cargo', '--version'])
         receipt['native_tools'] = {name: env[name] for name in ('CLANG', 'SEMAPRAX_ARCHIVER')}
@@ -387,7 +392,7 @@ def main() -> int:
             try:
                 build, command = run(label, [
                     'cargo', 'test', '--locked', '--offline', '-p', 'semaprax',
-                    *image_args, '--no-run', '--jobs', '1',
+                    *feature_args, *image_args, '--no-run', '--jobs', '1',
                     f'--message-format={message_format}',
                 ], 7200, allow_failure=True, sample_memory=True)
                 result = build_images(build, command, group, ROOT, TARGET)
@@ -499,7 +504,7 @@ def main() -> int:
             unchanged_binary(kind)
         _, clippy = run('clippy-production', [
             'cargo', 'clippy', '--locked', '--offline', '-p', 'semaprax',
-            '--lib', '--bin', 'semaprax', '--jobs', '1', '--', '-D', 'warnings',
+            *feature_args, '--lib', '--bin', 'semaprax', '--jobs', '1', '--', '-D', 'warnings',
         ], 7200, allow_failure=True, sample_memory=True)
         receipt['clippy'] = {'scope': 'production lib + semaprax binary; warnings denied',
                             'passed': clippy['exit_code'] == 0 and not clippy.get('timed_out')}

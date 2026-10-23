@@ -38,7 +38,7 @@ on:
         required: false
         default: false
       opt_batch_selection:
-        description: OPT profile (historical 50/153, next 65/171, language-followup 2/7, closure 22/114, final-source-closure 15/52, or composed-closure 25/130); requires opt_batch
+        description: OPT profile (historical 50/153, next 65/171, language-followup 2/7, closure 22/114, final-source-closure 15/52, composed-closure 25/130, or observed-census 3/5); requires opt_batch
         type: choice
         required: false
         default: historical
@@ -49,6 +49,7 @@ on:
           - closure
           - final-source-closure
           - composed-closure
+          - observed-census
       installed_bundle:
         description: Generate the original installed agent bundle only (no tests or quality gates)
         type: boolean
@@ -562,7 +563,7 @@ jobs:
           retention-days: 1
 
   opt-batch:
-    name: Focused OPT qualification (${{ inputs.opt_batch_selection == 'composed-closure' && '25 filters / 130 tests' || inputs.opt_batch_selection == 'final-source-closure' && '15 filters / 52 tests' || inputs.opt_batch_selection == 'closure' && '22 filters / 114 tests' || inputs.opt_batch_selection == 'language-followup' && '2 filters / 7 tests' || inputs.opt_batch_selection == 'next' && '65 filters / 171 tests' || '50 filters / 153 tests' }})
+    name: Focused OPT qualification (${{ inputs.opt_batch_selection == 'observed-census' && '3 filters / 5 tests' || inputs.opt_batch_selection == 'composed-closure' && '25 filters / 130 tests' || inputs.opt_batch_selection == 'final-source-closure' && '15 filters / 52 tests' || inputs.opt_batch_selection == 'closure' && '22 filters / 114 tests' || inputs.opt_batch_selection == 'language-followup' && '2 filters / 7 tests' || inputs.opt_batch_selection == 'next' && '65 filters / 171 tests' || '50 filters / 153 tests' }})
     if: inputs.opt_batch
     runs-on: ubuntu-24.04
     timeout-minutes: 240
@@ -607,9 +608,11 @@ jobs:
           echo "SEMAPRAX_ARCHIVER=$(readlink -f "$opt_archiver")" >> "$GITHUB_ENV"
       - name: Build the selected owning images once, run exact controls, then production Clippy
         env:
-          OPT_BATCH_SELECTION: ${{ inputs.opt_batch_selection == 'composed-closure' && 'composed-closure' || inputs.opt_batch_selection == 'final-source-closure' && 'final-source-closure' || inputs.opt_batch_selection == 'closure' && 'closure' || inputs.opt_batch_selection == 'language-followup' && 'language-followup' || inputs.opt_batch_selection == 'next' && 'next' || 'historical' }}
+          OPT_BATCH_SELECTION: ${{ inputs.opt_batch_selection == 'observed-census' && 'observed-census' || inputs.opt_batch_selection == 'composed-closure' && 'composed-closure' || inputs.opt_batch_selection == 'final-source-closure' && 'final-source-closure' || inputs.opt_batch_selection == 'closure' && 'closure' || inputs.opt_batch_selection == 'language-followup' && 'language-followup' || inputs.opt_batch_selection == 'next' && 'next' || 'historical' }}
         run: |
-          if [ "$OPT_BATCH_SELECTION" = composed-closure ]; then
+          if [ "$OPT_BATCH_SELECTION" = observed-census ]; then
+            python3 scripts/ci-opt-batch.py --selection observed-census
+          elif [ "$OPT_BATCH_SELECTION" = composed-closure ]; then
             python3 scripts/ci-opt-batch.py --selection composed-closure
           elif [ "$OPT_BATCH_SELECTION" = final-source-closure ]; then
             python3 scripts/ci-opt-batch.py --selection final-source-closure
@@ -623,7 +626,7 @@ jobs:
             python3 scripts/ci-opt-batch.py
           fi
       - name: Qualify the changed LogLens references without a live agent campaign
-        if: ${{ always() && inputs.loglens_refs && inputs.opt_batch_selection != 'closure' && inputs.opt_batch_selection != 'final-source-closure' && inputs.opt_batch_selection != 'composed-closure' }}
+        if: ${{ always() && inputs.loglens_refs && inputs.opt_batch_selection != 'closure' && inputs.opt_batch_selection != 'final-source-closure' && inputs.opt_batch_selection != 'composed-closure' && inputs.opt_batch_selection != 'observed-census' }}
         shell: bash
         env:
           OPT_BATCH_SELECTION: ${{ inputs.opt_batch_selection == 'closure' && 'closure' || inputs.opt_batch_selection == 'language-followup' && 'language-followup' || inputs.opt_batch_selection == 'next' && 'next' || 'historical' }}

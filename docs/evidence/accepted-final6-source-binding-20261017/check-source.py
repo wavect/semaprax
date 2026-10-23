@@ -27,16 +27,20 @@ program=original.decode()
 # The immutable old wrapper retains its complete authenticated original bytes.
 # This exact input-pin transport applies equally to cached and uncached execution.
 old_binding="helper_raw=bounded(helper,19144,'af70eaeeb1cc0da02460858f9e7ddb39086582add858c74138c4d989644e11f3')"
-current_binding="helper_raw=bounded(helper,19144,'51040a772a0d0a929655adb87913b1fdf1ccb86e6daac91cd6209812ee098379')"
+current_binding="helper_raw=bounded(helper,19149,'7d12cd04c7208a2db73afc495d1314d2d93b77847a31e8501577d655842a0fab')"
 assert program.count(old_binding)==1
 program=program.replace(old_binding,current_binding,1)
+old_ingress_sha='799eee227e9d57fb000d75cbf018e0faf3b9bc03cd592f0405d3050479a12871'
+current_ingress_sha='702a8e06327e90652bdc4d0812b5da0e9b74b18f46f6357e2006a9184266afa1'
+assert program.count(old_ingress_sha)==1
+program=program.replace(old_ingress_sha,current_ingress_sha,1)
 bound_program=program
-assert bound_program.replace(current_binding,old_binding,1).encode()==original
+assert bound_program.replace(current_ingress_sha,old_ingress_sha,1).replace(current_binding,old_binding,1).encode()==original
 anchor="ns={'__file__':str(helper),'_AUTHENTICATED_PROGRAM':helper_raw};exec(compile(helper_raw,str(helper),'exec'),ns)"
 assert program.count(anchor)==1
 if not uncached:
  replacement=anchor+";_install_derived(ns)"
  program=program.replace(anchor,replacement,1)
  assert program.replace(replacement,anchor,1)==bound_program
-assert bound_program.replace(current_binding,old_binding,1).encode()==original
+assert bound_program.replace(current_ingress_sha,old_ingress_sha,1).replace(current_binding,old_binding,1).encode()==original
 exec(compile(program,str(D/'check-source.py'),'exec'),{'__file__':str(D/'check-source.py'),'__name__':'__main__','_install_derived':namespace.get('install')})

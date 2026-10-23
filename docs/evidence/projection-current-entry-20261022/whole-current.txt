@@ -789,7 +789,7 @@ pub(in crate::cleanup_plan::replay) fn custody(path: &str, current: &[u8]) -> Ve
     let digest = |bytes: &[u8]| format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)));
     assert_eq!(
         digest(include_bytes!("ordinary/inverse.json")),
-        "6426e24c75df550056d08b9097ee2416a1f0cf8f17322ead07ba960af630d060"
+        "7d5b5ca5d41ead1f4f38e9fa616bfb8922a07085dd3eb4aa57a24db246ebdcaa"
     );
     let binding: serde_json::Value =
         serde_json::from_str(include_str!("ordinary/inverse.json")).unwrap();
@@ -8003,39 +8003,33 @@ pub(super) fn reserve_directory(
 }
 
 // Direct lexical producers remove the two forwarding Result wrappers and
-// owned Box/Result<Box> edge boundary; every other original bank is retained.
+// owned Box/Result<Box> edge boundary. Direct singleton fields also remove the
+// frontier iterator/forwarded next and consuming IntoIter carriers. Every
+// remaining Box, Incoming, authority, selector, and terminal bank is retained.
 pub(super) const BLOCK_CONTROLS: usize = 4 * size_of::<frontier::Incoming<PathState>>()
-            + 3 * size_of::<frontier::Iter<'_, PathState>>()
-            // Only Empty/One uses the frontier iterator in the join fold.
-            // Pay both next calls, including exhaustion, and each forwarded
-            // Option/receiver before forming them. Many uses the original
-            // direct tree iterator and introduces no per-visit forwarding.
-            + 4 * size_of::<Option<&Box<PathState>>>()
-            + 4 * size_of::<&mut frontier::Iter<'_, PathState>>()
-            + 2 * size_of::<bool>()
-            + 2 * size_of::<&frontier::Incoming<PathState>>()
-            + 2 * size_of::<&BTreeSet<Box<PathState>>>()
-            + 3 * size_of::<std::option::IntoIter<Box<PathState>>>()
-            + 8 * size_of::<Box<PathState>>()
-            + 6 * size_of::<&Box<PathState>>()
-            + 4 * size_of::<&PathState>()
-            + 2 * size_of::<&ResolvedFunction>()
-            + 2 * size_of::<&mut ReplayBudget>()
-            + 4 * size_of::<usize>()
-            + 4 * size_of::<bool>()
-            + size_of::<std::iter::Empty<&PathState>>()
-            + size_of::<BlockId>()
-            + size_of::<(
-                &ResolvedFunction,
-                &EdgeCondition,
-                &BTreeMap<ExpressionId, StatusSourceId>,
-                &mut ReplayBudget,
-                &ExpressionId,
-                &StatusSourceId,
-                StatusSourceId,
-                Option<&StatusSourceId>,
-                bool,
-            )>();
+    + 2 * size_of::<bool>()
+    + 2 * size_of::<&frontier::Incoming<PathState>>()
+    + 2 * size_of::<&BTreeSet<Box<PathState>>>()
+    + 8 * size_of::<Box<PathState>>()
+    + 6 * size_of::<&Box<PathState>>()
+    + 4 * size_of::<&PathState>()
+    + 2 * size_of::<&ResolvedFunction>()
+    + 2 * size_of::<&mut ReplayBudget>()
+    + 4 * size_of::<usize>()
+    + 4 * size_of::<bool>()
+    + size_of::<std::iter::Empty<&PathState>>()
+    + size_of::<BlockId>()
+    + size_of::<(
+        &ResolvedFunction,
+        &EdgeCondition,
+        &BTreeMap<ExpressionId, StatusSourceId>,
+        &mut ReplayBudget,
+        &ExpressionId,
+        &StatusSourceId,
+        StatusSourceId,
+        Option<&StatusSourceId>,
+        bool,
+    )>();
 
 // One terminal local Diagnostic and its conversion operand, plus the actual
 // and formal Box of explicit drop before converting the selected error.
@@ -8237,7 +8231,17 @@ impl<T: Ord> Insertions<T> {
             self.failed = true;
             return;
         }
+        #[cfg(feature = "unstable-workflow-profiling")]
+        if duplicate {
+            crate::bounded_output::exclusive_debits::path_census::event(
+                crate::bounded_output::exclusive_debits::path_census::Event::Duplicate,
+            );
+        }
         if !duplicate {
+            #[cfg(feature = "unstable-workflow-profiling")]
+            crate::bounded_output::exclusive_debits::path_census::event(
+                crate::bounded_output::exclusive_debits::path_census::Event::OwnedBox,
+            );
             target.publish(Box::new(value));
         }
         self.entry = true;
@@ -8272,7 +8276,17 @@ impl<T: Ord> Insertions<T> {
             self.failed = true;
             return;
         }
+        #[cfg(feature = "unstable-workflow-profiling")]
+        if duplicate {
+            crate::bounded_output::exclusive_debits::path_census::event(
+                crate::bounded_output::exclusive_debits::path_census::Event::Duplicate,
+            );
+        }
         if !duplicate {
+            #[cfg(feature = "unstable-workflow-profiling")]
+            crate::bounded_output::exclusive_debits::path_census::event(
+                crate::bounded_output::exclusive_debits::path_census::Event::HeldTransfer,
+            );
             target.publish(value);
         }
         self.entry = true;
@@ -8410,6 +8424,7 @@ pub(super) const fn const_node_upper<K, V>() -> Option<usize> {
 }
 
 // Invocation-local incoming states: singleton ownership does not allocate a tree node.
+#[cfg(test)]
 use std::collections::btree_set;
 #[derive(Debug)]
 pub(super) enum Incoming<T> {
@@ -8444,6 +8459,15 @@ impl<T: Ord> Incoming<T> {
             Self::Many(v) => v.len(),
         }
     }
+    #[cfg(feature = "unstable-workflow-profiling")]
+    pub(super) fn observe_incoming(&self) {
+        use crate::bounded_output::exclusive_debits::path_census::{event, Event};
+        event(match self {
+            Self::Empty => Event::InputEmpty,
+            Self::One(_) => Event::InputOne,
+            Self::Many(_) => Event::InputMany,
+        });
+    }
     pub(super) fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -8458,21 +8482,53 @@ impl<T: Ord> Incoming<T> {
     // roles have been acquired. On a refused payment no target is taken.
     fn publish(&mut self, value: Box<T>) {
         match self {
-            Self::Empty => *self = Self::One(value),
+            Self::Empty => {
+                #[cfg(feature = "unstable-workflow-profiling")]
+                crate::bounded_output::exclusive_debits::path_census::event(
+                    crate::bounded_output::exclusive_debits::path_census::Event::Empty,
+                );
+                *self = Self::One(value);
+            }
             Self::One(_) => {
+                #[cfg(feature = "unstable-workflow-profiling")]
+                {
+                    crate::bounded_output::exclusive_debits::path_census::event(
+                        crate::bounded_output::exclusive_debits::path_census::Event::One,
+                    );
+                    crate::bounded_output::exclusive_debits::path_census::event(
+                        crate::bounded_output::exclusive_debits::path_census::Event::Promotion,
+                    );
+                }
                 let Self::One(old) = std::mem::take(self) else {
                     unreachable!()
                 };
                 let mut tree = BTreeSet::new();
+                #[cfg(feature = "unstable-workflow-profiling")]
+                crate::bounded_output::exclusive_debits::path_census::event(
+                    crate::bounded_output::exclusive_debits::path_census::Event::TreeInsert,
+                );
                 tree.insert(old);
+                #[cfg(feature = "unstable-workflow-profiling")]
+                crate::bounded_output::exclusive_debits::path_census::event(
+                    crate::bounded_output::exclusive_debits::path_census::Event::TreeInsert,
+                );
                 tree.insert(value);
                 *self = Self::Many(tree);
             }
             Self::Many(tree) => {
+                #[cfg(feature = "unstable-workflow-profiling")]
+                crate::bounded_output::exclusive_debits::path_census::event(
+                    crate::bounded_output::exclusive_debits::path_census::Event::Many,
+                );
+                #[cfg(feature = "unstable-workflow-profiling")]
+                crate::bounded_output::exclusive_debits::path_census::event(
+                    crate::bounded_output::exclusive_debits::path_census::Event::TreeInsert,
+                );
                 tree.insert(value);
             }
         }
     }
+    #[cfg(test)]
     pub(super) fn iter(&self) -> Iter<'_, T> {
         match self {
             Self::Empty => Iter::One(None.into_iter()),
@@ -8480,6 +8536,7 @@ impl<T: Ord> Incoming<T> {
             Self::Many(v) => Iter::Many(v.iter()),
         }
     }
+    #[cfg(test)]
     pub(super) fn into_one(self) -> std::option::IntoIter<Box<T>> {
         let Self::One(v) = self else {
             unreachable!("singleton frontier")
@@ -8497,10 +8554,12 @@ impl<T: Ord> Incoming<T> {
     clippy::borrowed_box,
     reason = "borrow the exact boxed owner for held insertion and same-box transport"
 )]
+#[cfg(test)]
 pub(super) enum Iter<'a, T> {
     One(std::option::IntoIter<&'a Box<T>>),
     Many(btree_set::Iter<'a, Box<T>>),
 }
+#[cfg(test)]
 impl<'a, T> Iterator for Iter<'a, T> {
     type Item = &'a Box<T>;
     fn next(&mut self) -> Option<Self::Item> {
@@ -9000,6 +9059,53 @@ fn many_keeps_full_sorted_prefix_validation_and_join_in_both_promotion_orders() 
         assert_eq!(current.skeleton_remaining, old.skeleton_remaining);
     }
 }
+
+#[cfg(feature = "unstable-workflow-profiling")]
+#[test]
+fn actual_ordinary_driver_reports_bound_body_frontier_and_complete_terminal_arity() {
+    use crate::bounded_output::exclusive_debits::{attempt, path_census::Event};
+    use crate::workflow_profile::plan_comparison::{Binding, Capture};
+    let program=crate::hir::resolve(&crate::check(
+        "module census; @id(\"f\") fn f(flag:bool)->i64 {if flag {1}else{2}} @id(\"main\") fn main()->i64 {f(false)}",
+        "census.spx").unwrap()).unwrap();
+    let function = program.functions.iter().find(|f| f.name == "main").unwrap();
+    let c = Capture::begin(Binding::caller_labelled(
+        "actual ordinary path census",
+        [0; 32],
+    ))
+    .unwrap();
+    let ((outcome, remaining), refused, paid, _) =
+        crate::bounded_output::with_limit_usage_refusal(64 << 20, || {
+            let mut a = attempt(0, 0, 0);
+            let mut budget = ReplayBudget::new();
+            let outcome = (|| {
+                let storage = validate_slots_paid(function, &mut budget)?;
+                let leaves = collect_leaves_paid(function, &mut budget)?;
+                validate_path_states::<Diagnostic>(
+                    &program,
+                    function,
+                    &storage,
+                    &leaves,
+                    &mut budget,
+                    None,
+                    None,
+                )
+            })();
+            let remaining = budget.remaining;
+            a.complete(outcome.is_ok());
+            (outcome, remaining)
+        });
+    assert!(outcome.is_ok() && !refused && remaining < MAX_REPLAY_WORK_UNITS && paid > 0);
+    let r = c.finish().unwrap().resolved_core;
+    assert!(r.complete && !r.invalid);
+    let row = r.attempts[0].path_census[1];
+    assert_eq!(
+        (row.entries, row.successes, row.events[Event::Body as usize]),
+        (1, 1, 1)
+    );
+    assert!(row.events[Event::InputOne as usize] > 0 && row.events[Event::OwnedBox as usize] > 0);
+    assert!(row.terminal_paths > 0 && row.successful_paths > 0 && row.admitted_requests > 0);
+}
 //! Whole-source inverse and immutable shared dependency binding for the oracle.
 use sha2::{Digest, Sha256};
 fn digest(bytes: &[u8]) -> String {
@@ -9062,17 +9168,18 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
         before.split_once(marker).unwrap().1
     );
     for (path, expected) in rows {
-        let mut actual = std::fs::read(root.join(&path)).unwrap();
+        let mut actual =
+            crate::bounded_output::census_before(&path, &std::fs::read(root.join(&path)).unwrap());
         // Finite inventory transport only: the main scalar classifier changes
         // the measured common lexical prefix. This is not old execution restoration.
         let encoded = include_str!("../before_frontier/custody/main_d227_transport.json");
         assert_eq!(std::fs::read(root.join("src/cleanup_plan/replay/path_join/before_frontier/custody/main_d227_transport.json")).unwrap(), encoded.as_bytes());
         assert_eq!(
             digest(encoded.as_bytes()),
-            "c0ebac882a164a7058db70b5914c533678d5886a261a3236b2124e0d0e1ee527"
+            "c33e4cd530ceea3cb92f8162e5e08d1c4c60b4c35b558227311c7e3d37135371"
         );
         let packet: serde_json::Value = serde_json::from_str(encoded).unwrap();
-        assert_eq!(packet.as_object().unwrap().len(), 16);
+        assert_eq!(packet.as_object().unwrap().len(), 33);
         if let Some(row) = packet.get(&path) {
             let compiled = match path.as_str() {
                 "src/cleanup_plan/replay/branch_clone/inline_tests.rs" => include_bytes!(concat!(
@@ -9123,6 +9230,23 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
                 "src/cleanup_plan/replay/skeleton_work.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work.rs")).as_slice(),
                 "src/cleanup_plan/replay/ordinary_receiving/tests.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_receiving/tests.rs")).as_slice(),
                 "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests/receiving.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests/receiving.rs")).as_slice(),
+                "src/cleanup_plan/replay/factored/continuation_receiver/tests.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/continuation_receiver/tests.rs")).as_slice(),
+                "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission.rs")).as_slice(),
+                "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs")).as_slice(),
+                "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs")).as_slice(),
+                "src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs")).as_slice(),
+                "src/cleanup_plan/replay/expression_facts/arena/prefix/source_main8a.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/arena/prefix/source_main8a.rs")).as_slice(),
+                "src/cleanup_plan/replay/expression_facts/arena/prefix/source_maina3.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/arena/prefix/source_maina3.rs")).as_slice(),
+                "src/cleanup_plan/replay/expression_facts/arena/prefix/tests.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/arena/prefix/tests.rs")).as_slice(),
+                "src/cleanup_plan/replay/expression_facts/capacity.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/capacity.rs")).as_slice(),
+                "src/cleanup_plan/replay/expression_facts/capacity/cursor_tests.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/capacity/cursor_tests.rs")).as_slice(),
+                "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/tests.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/tests.rs")).as_slice(),
+                "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/counter_tests.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/counter_tests.rs")).as_slice(),
+                "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests.rs")).as_slice(),
+                "src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs")).as_slice(),
+                "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase_tests.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase_tests.rs")).as_slice(),
+                "src/cleanup_plan/replay/expression_facts/receiving/return_operands/tests.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/return_operands/tests.rs")).as_slice(),
+                "src/cleanup_plan/replay/expression_facts/tests/arena.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/tests/arena.rs")).as_slice(),
                 _ => panic!("unadmitted main transport path"),
             };
             assert_eq!(actual.as_slice(), compiled);
@@ -9169,7 +9293,7 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
                 // fixture. No production dependency receives this inverse.
                 assert_eq!(
                     digest(&actual),
-                    "4754c42c45e47bdb7f065751e67a0d5c4045c26630303fc9945e377ff6e5059f"
+                    "3488dffc097d20eaf58ec844db9887a4cb4bf0a2eb881f6f668d01aa51b19b57"
                 );
                 let before = include_bytes!(concat!(
                     env!("CARGO_MANIFEST_DIR"),
@@ -11587,6 +11711,21 @@ impl Validation<'_, '_, '_> {
     }
 
     fn classify(&mut self, root: &Rc<ObservationDag>) -> Result<(bool, usize), Diagnostic> {
+        self.work.queries.selector(self.work.function, &mut *self.work.budget,
+            crate::cleanup_plan::replay::skeleton_work::query_proof::SELECTOR,
+            "shared sequence cold partition receivers")?;
+        if matches!(self.work.budget.payer,
+            crate::cleanup_plan::replay::allocation::AllocationPayer::ActiveBuilder
+                | crate::cleanup_plan::replay::allocation::AllocationPayer::LegacyUnobserved)
+            && self.work.budget.admission == crate::cleanup_plan::replay::AdmissionMode::Ordinary
+            && !self.work.budget.lent_skeleton && !self.work.budget.merge_paths
+            && self.work.function.cleanup_plan.lexical_control.is_none()
+        {
+            self.work.queries.preflight(self.work.function, &mut *self.work.budget,
+                crate::cleanup_plan::replay::skeleton_work::query_proof::CLASSIFY_CALL,
+                "shared sequence classifier call receivers")?;
+            return crate::cleanup_plan::replay::skeleton_work::query_proof::classify_paid(root, self.work);
+        }
         let mut pending = Vec::new();
         let mut visits = 0usize;
         self.work.budget.reserve_vec(
@@ -11747,7 +11886,9 @@ fn exact_whole_7082_source_and_complete_old_classifier_remain_executable() {
         ),
         "93d8038785b042f61b5d6bd100b24930d800d0ccc1ae6dfa7b9c6884bb814cc7"
     );
-    let combined = include_str!("../../emission.rs");
+    let restored = crate::cleanup_plan::replay::skeleton_work::query_proof::before_emission(
+        include_str!("../../emission.rs"));
+    let combined = restored.as_str();
     // Exact additive flat-admission test visibility stage; the whole memo and
     // every original source/body assertion below retain their original target.
     assert_eq!(

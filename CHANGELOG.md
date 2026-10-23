@@ -1,3 +1,9 @@
+## Tokio I/O safety dependency repair (2026-10-23)
+
+- Pin both public and full-host `new` help shapes in the standalone CLI integration regression, matching the existing qualified help contract.
+
+- Pin Tokio 1.53.3 in active manifests, generated consumers and lockfiles to address RUSTSEC-2026-0386. Preserve historical evidence locks and all unrelated locked packages.
+
 - Reuse held stream-command identities, borrowed invariant keys, and closed list/iterator/Option/Result/cleanup identities without changing wire text or admission order.
 - Preserve complete joined source-custody histories within the fixed metadata page limit through canonical V10 archive-prefix references.
 - Reuse closed compiler declaration identities and fund dynamic sort-key identity backing through its existing payer, preserving wire identities and diagnostic precedence.

@@ -452,7 +452,7 @@ fn standalone_new_is_listed_by_help_and_describes_its_grammar() {
     assert!(scoped.status.success());
     assert_eq!(
         stdout(&scoped),
-        "Usage:\n  semaprax new <destination> [--name project-name] [--template calculator|library|service|stdin-stream-text|stdin-stream-data|stdin-stream-collection-record|source-command-file-text]\n"
+        "Usage:\n  semaprax new <destination> [--name project-name] [--template calculator|library|service|stdin-stream-text|stdin-stream-data|stdin-stream-collection-record|source-command-file-text]\n  semaprax-full new <fresh-directory> --from <project> --codec-plan <plan-json> --command-profile <exact-profile> [--command-path <declared-path> --command-source <source-file>]\n"
     );
     let guided = cli(&fixture.root, &["--help"]);
     assert!(stdout(&guided).contains("\n  new <destination>"));

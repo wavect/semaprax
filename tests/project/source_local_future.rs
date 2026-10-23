@@ -361,7 +361,7 @@ fn generated_project_future_module_registers_source_import_and_refuses_stale_pro
     std::fs::create_dir_all(consumer.join("src")).unwrap();
     let checkout_toml = serde_json::to_string(&checkout.display().to_string()).unwrap();
     let manifest = format!(
-        "[package]\nname = \"semaprax-ri09-generated-project-sdk\"\nversion = \"0.1.0\"\nedition = \"2021\"\npublish = false\n\n[workspace]\n\n[dependencies]\nsemaprax = {{ path = {checkout_toml}, version = \"=0.7.0\" }}\ntokio = {{ version = \"=1.53.1\", features = [\"rt\", \"time\"] }}\n"
+        "[package]\nname = \"semaprax-ri09-generated-project-sdk\"\nversion = \"0.1.0\"\nedition = \"2021\"\npublish = false\n\n[workspace]\n\n[dependencies]\nsemaprax = {{ path = {checkout_toml}, version = \"=0.7.0\" }}\ntokio = {{ version = \"=1.53.3\", features = [\"rt\", \"time\"] }}\n"
     );
     std::fs::write(consumer.join("Cargo.toml"), manifest).unwrap();
     let consumer_lock = include_str!("ri09_generated_consumer.Cargo.lock");

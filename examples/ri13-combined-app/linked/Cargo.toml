@@ -19,4 +19,4 @@ ri06-regex-owner = { path = "generated/regex", version = "=0.1.0" }
 ri06-url-owner = { path = "generated/url", version = "=0.1.0" }
 serde = { version = "=1.0.229", features = ["derive"] }
 serde_json = "=1.0.151"
-tokio = { version = "=1.53.1", features = ["rt"] }
+tokio = { version = "=1.53.3", features = ["rt"] }

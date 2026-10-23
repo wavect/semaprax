@@ -116,3 +116,34 @@ V9 value in canonical bytes.
 V10 adds no path discovery, archive read, compression or admission authority.
 The single-page 262144-byte bound and the 9753094-byte per-held-source bound stay
 unchanged, as do every physical, compiled, archive and historical-view check.
+
+## V13 repeated positional digest transport
+
+V13 is an explicit opt-in transport of the complete logical V12 object. Its
+closed envelope adds `digest_table` and changes only the schema to
+`semaprax.finite-source-overlay-page.v13`. The table is a unique array of
+canonical V11 digest strings (43 unpadded URL-safe base64 characters, including
+canonical zero pad bits). Only current/named-view positional pin digest slots
+in literal rows, indexed old-519 rows and literal fragments may contain integer
+references to that table. Object pins, canonical-source references, unknown
+metadata, names, archive references, ordered arrays and multiplicity are opaque
+and retained in full.
+
+Each declaration must be referenced at least twice. Declaration order is exact
+first-use order across replacements then additions and their existing slot
+order. Every repeated positional digest must be interned; singleton digests
+remain literal. Duplicate or unused declarations, single-use declarations,
+literal/reference aliases, repeated uninterned literals, noninteger or invalid
+indices, malformed digests and malformed slot arities refuse. No recursive
+metadata substitution, dictionary discovery or additional page is admitted.
+
+The physical V13 page remains at most 262,144 canonical bytes. Before publishing
+any expanded digest, the decoder checks the complete logical V12 byte length
+against the existing 9,753,094-byte source bound. That unpublished logical value
+uses an explicit internal V12 entry bounded by the same source limit; the public
+V12 entry retains its original 262,144-byte limit and complete implementation.
+The entire canonical V12 value must reconstruct exactly. All subsequent V12,
+V11 and older validation, source/compiled/archive authority and limits remain in
+force. Python/Rust parity, every original codec control and a complete independent
+V12 source inverse are required; wire reduction alone establishes no source
+admission or application performance claim.

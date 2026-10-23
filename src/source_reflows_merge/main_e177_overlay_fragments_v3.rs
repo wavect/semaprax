@@ -1474,3 +1474,9 @@ pub(super) fn canonical(value: &Value) -> Vec<u8> {
     result.push('\n');
     result.into_bytes()
 }
+
+#[path = "main_e177_overlay_digests_v13.rs"]
+mod digests_v13;
+pub(super) use digests_v13::{expand_v13, SCHEMA_V13};
+#[cfg(test)]
+pub(super) use digests_v13::{before_source as v13_before, verify_current_v13};

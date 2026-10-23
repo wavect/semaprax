@@ -1,0 +1,89 @@
+{
+  "scope": "Source-test repair only; no compiler behavior, budget cap or backend qualification claimed. Original test body and all original raw source acquisitions, inverse loops, hash assertions and complete source comparisons retained; one exact lexical entry epoch inserted.",
+  "base_head": "573623043cc03a96e3c8961e567cd8f7ef2a016a",
+  "old_owner_sha256": "e6d9241f9287e8e00d5c8413623383b53b46e5efbe6da50e576dcf6bbd642db4",
+  "current_owner_sha256": "95d80e4bba07596a11ce78fea840d4e8909d61622f0cdbf5a4bf5fbcc80addca",
+  "focused_checks": {
+    "receiver_tests": 2,
+    "overlay_controls": 32,
+    "compiled_whole_predecessor": 2,
+    "current_entry_controls": 2,
+    "prefix_source_controls": 3,
+    "capacity_source_guard": 1,
+    "hir_boundaries": 11,
+    "projection_boundary": 1,
+    "documentation": 3,
+    "clippy": "source harness and HIR boundary harness passed"
+  },
+  "all_builds_and_artifacts_on_external_ssd": true,
+  "process_RSS_cap": null,
+  "remaining_failures": "Default64MiB graph budget and browser fingerprints still need fixes; CI is not green.",
+  "log_rendering": [
+    {
+      "path": "docs-controls.log",
+      "raw_sha256": "aaf6c841b508bff43423aad9874c7c09add3c4868655d3c53c3fb9495ef4fec9",
+      "rendered_sha256": "aaf6c841b508bff43423aad9874c7c09add3c4868655d3c53c3fb9495ef4fec9",
+      "rendering": "Only trailing line whitespace removed; original complete raw tool output retained on external SSD."
+    },
+    {
+      "path": "remaining-source-results.log",
+      "raw_sha256": "bc18438c71bf01ce27cf74e58614e3ec15b80b1862d9addd4f9a000cc05283e6",
+      "rendered_sha256": "8fe4b2b07d550b1f5a6fa4a8e5e6e092ecea0b105cd89b8fba57ab92f2dd5f5f",
+      "rendering": "Only trailing line whitespace removed; original complete raw tool output retained on external SSD."
+    },
+    {
+      "path": "final-prefix-source-controls.log",
+      "raw_sha256": "a84846dddede6853d2505d7ee9b967d273ce76b820f40b2ce0b4782505a204af",
+      "rendered_sha256": "a84846dddede6853d2505d7ee9b967d273ce76b820f40b2ce0b4782505a204af",
+      "rendering": "Only trailing line whitespace removed; original complete raw tool output retained on external SSD."
+    },
+    {
+      "path": "hir-clippy.log",
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "rendered_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "rendering": "Only trailing line whitespace removed; original complete raw tool output retained on external SSD."
+    },
+    {
+      "path": "hir-test.log",
+      "raw_sha256": "a0fbf999317a2d32a455e3c23de3f6ebae3f07ef4a51e018eb29ef2d44b8d30b",
+      "rendered_sha256": "a0fbf999317a2d32a455e3c23de3f6ebae3f07ef4a51e018eb29ef2d44b8d30b",
+      "rendering": "Only trailing line whitespace removed; original complete raw tool output retained on external SSD."
+    },
+    {
+      "path": "overlay-controls.log",
+      "raw_sha256": "8b7631cd93f57e6413d8495b9865631813ec520753b803000dd19898c24fac88",
+      "rendered_sha256": "8b7631cd93f57e6413d8495b9865631813ec520753b803000dd19898c24fac88",
+      "rendering": "Only trailing line whitespace removed; original complete raw tool output retained on external SSD."
+    },
+    {
+      "path": "remaining-source-clippy.log",
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "rendered_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "rendering": "Only trailing line whitespace removed; original complete raw tool output retained on external SSD."
+    },
+    {
+      "path": "projection-test.log",
+      "raw_sha256": "4a4880d47356576733b713669c914858ecf78da9d760f231b3d801d67787f7ac",
+      "rendered_sha256": "4a4880d47356576733b713669c914858ecf78da9d760f231b3d801d67787f7ac",
+      "rendering": "Only trailing line whitespace removed; original complete raw tool output retained on external SSD."
+    },
+    {
+      "path": "compiled-whole-predecessor-controls.log",
+      "raw_sha256": "eeaf5293037511119409f2f8ddb19c591e565d443b27a9741088872f8d353f2e",
+      "rendered_sha256": "eeaf5293037511119409f2f8ddb19c591e565d443b27a9741088872f8d353f2e",
+      "rendering": "Only trailing line whitespace removed; original complete raw tool output retained on external SSD."
+    },
+    {
+      "path": "new-entry-controls.log",
+      "raw_sha256": "86ced82a34d1b955331a161d5b94757fa69ded374f37e19d104c7e9019a8f179",
+      "rendered_sha256": "86ced82a34d1b955331a161d5b94757fa69ded374f37e19d104c7e9019a8f179",
+      "rendering": "Only trailing line whitespace removed; original complete raw tool output retained on external SSD."
+    },
+    {
+      "path": "final-cursor-source-guard.log",
+      "raw_sha256": "ce4f106d4c946ccb5e241a89c60dbb50bb6a85f915d0097a3f1837745213f648",
+      "rendered_sha256": "ce4f106d4c946ccb5e241a89c60dbb50bb6a85f915d0097a3f1837745213f648",
+      "rendering": "Only trailing line whitespace removed; original complete raw tool output retained on external SSD."
+    }
+  ]
+}

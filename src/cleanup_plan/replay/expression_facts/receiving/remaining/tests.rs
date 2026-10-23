@@ -372,6 +372,9 @@ fn complete_root_receivers_and_only_named_paid_caller_projections_keep_original_
             record["sha256"].as_str().unwrap()
         );
         let mut current = current.to_owned();
+        if record["source"] == "src/cleanup_plan/replay/lexical_replay.rs" {
+            current = previous_lexical_entry();
+        }
         for edit in record["edits"].as_array().unwrap().iter().rev() {
             let after = edit["after"].as_str().unwrap();
             assert_eq!(current.matches(after).count(), 1);
@@ -415,5 +418,104 @@ fn complete_root_receivers_and_only_named_paid_caller_projections_keep_original_
             .count(),
             1
         );
+    }
+}
+
+// Restore the exact lexical caller epoch before the original complete inverses.
+fn previous_lexical_entry() -> String {
+    use sha2::{Digest, Sha256};
+    let path = "src/cleanup_plan/replay/lexical_replay.rs";
+    let raw = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/cleanup_plan/replay/lexical_replay.rs"
+    ));
+    let mut stage = crate::source_reflows_merge::consumer_input("lexical832", path, raw);
+    let rows: serde_json::Value =
+        serde_json::from_str(&crate::source_reflows_merge::receiver_fixture(
+            crate::source_reflows_merge::ReceiverFixture::LexicalOperands,
+        ))
+        .unwrap();
+    let row = rows
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|x| x["source"] == path)
+        .unwrap();
+    for edit in row["edits"].as_array().unwrap() {
+        let new = edit["new"].as_str().unwrap();
+        assert_eq!(stage.matches(new).count(), 1);
+        stage = stage.replacen(new, edit["before"].as_str().unwrap(), 1);
+    }
+    assert_eq!(stage, row["original_bytes"].as_str().unwrap());
+    assert_eq!(
+        stage,
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/cleanup_plan/replay/lexical_replay/before_operands.rs"
+        ))
+    );
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(stage.as_bytes()))
+        ),
+        "d7d0dae07dee44527c398580580a0937b0ef7ab894af0f36611a67f51704b139"
+    );
+
+    before_paid_lexical_call_receiving(&stage)
+}
+
+fn before_paid_lexical_call_receiving(current: &str) -> String {
+    use sha2::{Digest, Sha256};
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))
+        ),
+        "d7d0dae07dee44527c398580580a0937b0ef7ab894af0f36611a67f51704b139"
+    );
+    let mut stage = current.to_owned();
+    for (new, old) in [
+        (
+            "E: structural_control::call_receiving::Policy",
+            "E: semantic_refusal::Error",
+        ),
+        (
+            "structural_control::validate_blocks_and_edges_paid::<E>(",
+            "structural_control::validate_blocks_and_edges(",
+        ),
+    ] {
+        assert_eq!(stage.matches(new).count(), 1);
+        stage = stage.replacen(new, old, 1);
+    }
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(stage.as_bytes()))
+        ),
+        "3560d28ecefd32dfefd1c7ae1db2d847e84b3e44fe1c02c23e7e7568c3013288"
+    );
+    stage
+}
+
+#[test]
+fn paid_lexical_call_inverse_rejects_whole_source_drift_and_old_inputs() {
+    let current = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/cleanup_plan/replay/lexical_replay/before_operands.rs"
+    ));
+    let original = before_paid_lexical_call_receiving(current);
+    for foreign in [
+        String::new(),
+        current[..current.len() - 1].to_owned(),
+        format!("{current}\n"),
+        current.replacen(
+            "E: structural_control::call_receiving::Policy",
+            "E: semantic_refusal::Error",
+            1,
+        ),
+        original,
+    ] {
+        assert!(std::panic::catch_unwind(|| before_paid_lexical_call_receiving(&foreign)).is_err());
     }
 }

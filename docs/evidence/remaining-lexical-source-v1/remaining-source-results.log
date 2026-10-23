@@ -1,0 +1,33 @@
+
+running 2 tests
+test remaining_source_fixes::complete_root_receivers_and_only_named_paid_caller_projections_keep_original_bytes ... ok
+test remaining_source_fixes::paid_lexical_call_inverse_rejects_whole_source_drift_and_old_inputs ...
+thread 'remaining_source_fixes::paid_lexical_call_inverse_rejects_whole_source_drift_and_old_inputs' (93886066) panicked at /Volumes/Semaprax/tmp/ci-38383508340/remaining-source-573/harness/remaining-source.rs:46:5:
+assertion `left == right` failed
+  left: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ right: "d7d0dae07dee44527c398580580a0937b0ef7ab894af0f36611a67f51704b139"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'remaining_source_fixes::paid_lexical_call_inverse_rejects_whole_source_drift_and_old_inputs' (93886066) panicked at /Volumes/Semaprax/tmp/ci-38383508340/remaining-source-573/harness/remaining-source.rs:46:5:
+assertion `left == right` failed
+  left: "1c2adefa5a6e8a3c1a36dbbb54542a84d9d422e6aba3eae0aa801d5141b2ad59"
+ right: "d7d0dae07dee44527c398580580a0937b0ef7ab894af0f36611a67f51704b139"
+
+thread 'remaining_source_fixes::paid_lexical_call_inverse_rejects_whole_source_drift_and_old_inputs' (93886066) panicked at /Volumes/Semaprax/tmp/ci-38383508340/remaining-source-573/harness/remaining-source.rs:46:5:
+assertion `left == right` failed
+  left: "c3710a898f6bde96f47a3c1a4a40f801f68759c9f5136379321f1e32f3a08788"
+ right: "d7d0dae07dee44527c398580580a0937b0ef7ab894af0f36611a67f51704b139"
+
+thread 'remaining_source_fixes::paid_lexical_call_inverse_rejects_whole_source_drift_and_old_inputs' (93886066) panicked at /Volumes/Semaprax/tmp/ci-38383508340/remaining-source-573/harness/remaining-source.rs:46:5:
+assertion `left == right` failed
+  left: "d94c67f2c63a58b8ac4169e19e3e63ec7ac7bbbbdf3a36909a4a2c835f80ab5f"
+ right: "d7d0dae07dee44527c398580580a0937b0ef7ab894af0f36611a67f51704b139"
+
+thread 'remaining_source_fixes::paid_lexical_call_inverse_rejects_whole_source_drift_and_old_inputs' (93886066) panicked at /Volumes/Semaprax/tmp/ci-38383508340/remaining-source-573/harness/remaining-source.rs:46:5:
+assertion `left == right` failed
+  left: "3560d28ecefd32dfefd1c7ae1db2d847e84b3e44fe1c02c23e7e7568c3013288"
+ right: "d7d0dae07dee44527c398580580a0937b0ef7ab894af0f36611a67f51704b139"
+ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 302 filtered out; finished in 13.52s
+

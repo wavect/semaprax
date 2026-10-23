@@ -1,0 +1,15 @@
+{
+  "input_sha256": "d7d0dae07dee44527c398580580a0937b0ef7ab894af0f36611a67f51704b139",
+  "output_sha256": "3560d28ecefd32dfefd1c7ae1db2d847e84b3e44fe1c02c23e7e7568c3013288",
+  "whole_input": "src/cleanup_plan/replay/lexical_replay/before_operands.rs",
+  "hooks": [
+    [
+      "E: structural_control::call_receiving::Policy",
+      "E: semantic_refusal::Error"
+    ],
+    [
+      "structural_control::validate_blocks_and_edges_paid::<E>(",
+      "structural_control::validate_blocks_and_edges("
+    ]
+  ]
+}

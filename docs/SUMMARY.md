@@ -1889,3 +1889,5 @@ Audience: all documentation readers.
 
 - [Expression-fact type cursor](evidence/expression-fact-type-cursor-v1/README.md)
 - [Expression-fact source test entries](evidence/expression-fact-observer-source-v1/README.md)
+
+- [Remaining receiver lexical source epoch](evidence/remaining-lexical-source-v1/README.md)

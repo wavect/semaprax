@@ -1,5 +1,7 @@
 //! Fund the complete legacy owner search before its first owned construction.
-use super::super::*;
+use crate::cleanup_plan::replay::ReplayBudget;
+use crate::diagnostic::Diagnostic;
+use crate::hir::ResolvedFunction;
 use std::mem::size_of;
 
 // The independently retained owner helper calls validate_owner for every

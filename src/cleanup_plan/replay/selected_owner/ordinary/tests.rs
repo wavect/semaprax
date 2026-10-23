@@ -1,6 +1,7 @@
 //! Full original search remains the independent result/diagnostic oracle.
 use super::*;
 use crate::bounded_output::with_limit_usage_refusal;
+use crate::hir::{ExpressionId, ResolvedProgram};
 use crate::test_allocation_observer::measure;
 
 const SOURCE: &str = r#"module ordinary.owner;

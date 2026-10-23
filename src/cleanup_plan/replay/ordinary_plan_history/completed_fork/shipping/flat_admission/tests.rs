@@ -1,5 +1,5 @@
 //! Authored owning controls, not an executed application or saving claim.
-use super::{current, try_compare, AUTH, CALL};
+use super::{current_into, try_compare, Failure, AUTH, CALL, OWNER};
 use crate::bounded_output::classifier_string::ClassifierLedger;
 use crate::bounded_output::{set_active_floor, with_limit_usage_refusal};
 use crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission;
@@ -282,14 +282,28 @@ fn unsupported_payers_and_lexical_exits_keep_hir_unchanged_and_foreign_auth_is_s
         budget
             .reserve_bytes(
                 function,
-                AUTH + ClassifierLedger::capture_into_controls()
+                AUTH + OWNER
+                    + ClassifierLedger::capture_into_controls()
                     + ClassifierLedger::current_receiving_controls(),
                 "held flat auth test",
             )
             .unwrap();
         let mut ledger = ClassifierLedger::empty_receiving();
         ledger.capture_current_into();
-        let inner = with_limit_usage_refusal(usize::MAX, || current(&ledger));
+        let mut failure = Failure {
+            error: None,
+            function,
+            budget: &budget,
+        };
+        let mut authenticated = false;
+        let inner = with_limit_usage_refusal(usize::MAX, || {
+            current_into(&ledger, &mut authenticated, &mut failure);
+            if authenticated {
+                Ok(())
+            } else {
+                Err(failure.error.take().unwrap())
+            }
+        });
         assert!(inner.0.is_err() && !inner.1 && inner.2 == 0 && inner.3.is_none());
         let restored = budget.reserve_bytes(function, 0, "flat auth restored sticky owner");
         (inner, restored)
@@ -372,4 +386,141 @@ fn complete_old_root_bypass_and_source_inverse_survive_actual_whole_callers() {
         emission::with_before(|| validate_program(&program)).unwrap();
         validate_program(&program).unwrap();
     });
+}
+
+#[test]
+fn immediate_flat_driver_and_every_helper_binding_are_exact_source_controls() {
+    let captured = include_str!("immediate_before.rs.txt");
+    use sha2::{Digest, Sha256};
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(captured.as_bytes()))
+        ),
+        "4392abffc59dee7596e750e1523f0e2b0f4c23a5f35c67caa475de5785c4f568"
+    );
+    let executable = include_str!("immediate_before.rs");
+    let tail = "\n#[cfg(test)]\n#[path = \"flat_admission/tests.rs\"]\nmod tests;\n";
+    assert!(captured.ends_with(tail));
+    let rebound = captured
+        .strip_suffix(tail)
+        .unwrap()
+        .replacen("use super::{", "use super::super::{", 1)
+        .replace("super::view::", "super::super::view::")
+        .replace(
+            "super::enumerated_prefix::",
+            "super::super::enumerated_prefix::",
+        );
+    assert_eq!(executable, rebound);
+    // The old authentication producer and each old returning payment remain
+    // independently compiled; no successor macro or output owner is shared.
+    assert!(executable.contains("fn current(ledger: &ClassifierLedger) -> Result<(), Diagnostic>"));
+    assert_eq!(executable.matches("current(&ledger)?;").count(), 4);
+    assert_eq!(executable.matches("budget.charge(function, 1,").count(), 2);
+    assert!(!executable.contains("reserve_into!"));
+    assert!(!executable.contains("charge_into!"));
+    assert!(!executable.contains("current_into"));
+}
+
+#[test]
+fn every_immediate_flat_work_cut_and_malformed_fallback_keep_exact_outputs() {
+    let program = dense(4);
+    let original = program
+        .functions
+        .iter()
+        .find(|f| f.id.as_str() == "ordinary.main")
+        .unwrap();
+    let expected = flat(&program, original);
+    for malformed in 0..5 {
+        let mut function = original.clone();
+        match malformed {
+            0 => {}
+            1 => function.cleanup_plan.blocks.clear(),
+            2 => function.cleanup_plan.exits.clear(),
+            3 => function.cleanup_plan.blocks[0].transitions.push(
+                crate::cleanup_plan::CleanupTransition::ReserveRenewal {
+                    at: function.body.id.clone(),
+                    binding: crate::cleanup_plan::CleanupPlace {
+                        storage: crate::cleanup_plan::StorageId::ProvisionalResult,
+                        projections: Vec::new(),
+                    },
+                },
+            ),
+            _ => {
+                function.cleanup_plan.exits[0].continuation = ExitContinuation::LoopLatch {
+                    target: crate::hir::ControlTarget::Function(
+                        crate::hir::FunctionExecutionId::Monomorphic(function.id.clone()),
+                    ),
+                }
+            }
+        }
+        let mut unlimited = budget(&program, &function);
+        let mut old_expected = expected.clone();
+        super::immediate_before::try_compare(&function, &mut unlimited, &mut old_expected).unwrap();
+        for cut in 0..=unlimited.skeleton_spent {
+            let mut old_budget = budget(&program, &function);
+            let mut new_budget = budget(&program, &function);
+            old_budget.skeleton_remaining = cut;
+            new_budget.skeleton_remaining = cut;
+            let mut old_expected = expected.clone();
+            let mut new_expected = expected.clone();
+            let old =
+                super::immediate_before::try_compare(&function, &mut old_budget, &mut old_expected);
+            let current = call(&function, &mut new_budget, &mut new_expected);
+            assert_eq!(old_budget.skeleton_spent, new_budget.skeleton_spent);
+            assert_eq!(old_budget.skeleton_remaining, new_budget.skeleton_remaining);
+            assert_eq!(old_expected, new_expected);
+            match (old, current) {
+                (Ok(a), Ok(b)) => assert_eq!(a, b),
+                (Err(a), Err(b)) => same_error(a, b),
+                _ => panic!("immediate flat driver changed work or fallback result"),
+            }
+        }
+    }
+}
+
+#[test]
+fn authored_paid_flat_receiver_reduction_includes_complete_cold_drop() {
+    let program = dense(64);
+    let function = program
+        .functions
+        .iter()
+        .find(|f| f.id.as_str() == "ordinary.main")
+        .unwrap();
+    let expected = flat(&program, function);
+    let run = |old: bool| {
+        let mut paths = expected.clone();
+        with_limit_usage_refusal(usize::MAX, || {
+            measure(|| {
+                let mut budget = budget(&program, function);
+                let result = if old {
+                    budget
+                        .reserve_bytes(
+                            function,
+                            super::immediate_before::CALL,
+                            "immediate flat test caller",
+                        )
+                        .unwrap();
+                    super::immediate_before::try_compare(function, &mut budget, &mut paths)
+                } else {
+                    call(function, &mut budget, &mut paths)
+                };
+                assert!(matches!(result, Ok(true)));
+                drop(result);
+                // ReplayBudget, its complete refusal backing and all driver locals
+                // drop within the allocation observer on both independently run arms.
+            })
+        })
+    };
+    let (((), old_alloc), old_refused, old_paid, old_first) = run(true);
+    let (((), new_alloc), new_refused, new_paid, new_first) = run(false);
+    assert!(!old_refused && !new_refused && old_first.is_none() && new_first.is_none());
+    assert!(
+        new_paid < old_paid,
+        "new fixed owner must earn its complete renewed receiver invoice"
+    );
+    for allocation in [old_alloc, new_alloc] {
+        assert!(!allocation.invalid && allocation.live == 0);
+        assert_eq!(allocation.allocated, allocation.freed);
+    }
 }

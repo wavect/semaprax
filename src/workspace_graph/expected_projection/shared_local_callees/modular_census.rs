@@ -2,7 +2,7 @@
 use super::super::super::shared_local_callees::modular_session::Session;
 use super::{
     call_identity, size_of, Context, Costs, Error, Expr, ExprKind, Function, Linear, Lookup, Names,
-    Program, Proof, Statement, Type,
+    Proof, Statement, Type,
 };
 fn plain(ty: &Type) -> bool {
     matches!(

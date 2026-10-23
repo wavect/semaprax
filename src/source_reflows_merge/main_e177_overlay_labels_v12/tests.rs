@@ -51,6 +51,10 @@ fn v12_complete_frozen_v11_inverse_keeps_every_row_view_prefix_and_canonical_byt
             .unwrap();
     assert!(page_bytes.len() <= PAGE_CAP);
     let page: Value = serde_json::from_slice(&page_bytes).unwrap();
+    if page["schema"] == super::super::SCHEMA_V13 {
+        super::super::verify_current_v13(&page);
+        return;
+    }
     let expanded = expand_to_v11(&page).unwrap();
     let expanded_bytes = canonical(&expanded);
     assert!(expanded_bytes.len() <= SOURCE_CAP);
@@ -194,10 +198,14 @@ fn v12_full_original_controller_dispatch_and_old_v11_source_inverses_are_exact()
         hash(before.as_bytes()),
         "1bae91431b48d61bd482028a99fc30f967d4b153e8e68acdf8d25e45aa20719e"
     );
+    let v13_root = super::super::v13_before(
+        "src/source_reflows_merge/main_e177_overlay_v2.rs",
+        include_str!("../main_e177_overlay_v2.rs"),
+    );
     let acquired = crate::source_reflows::next_custody_before(
         "v12-root",
         "src/source_reflows_merge/main_e177_overlay_v2.rs",
-        include_str!("../main_e177_overlay_v2.rs"),
+        &v13_root,
     );
     let current = acquired.as_str();
     let new = "    if page[\"schema\"] == fragments_v3::SCHEMA_V12 {\n        let expanded = fragments_v3::expand_v12(&before, policy, page)?;\n        compose_values_v2(before, policy, &expanded)\n    } else if page[\"schema\"] == fragments_v3::SCHEMA_V11 {\n";
@@ -210,6 +218,11 @@ fn v12_full_original_controller_dispatch_and_old_v11_source_inverses_are_exact()
         "af953cf250bc63c7e102ac0ed9c4014432c60aab5878bd1094b27353f128c60c"
     );
     let current = include_str!("../main_e177_overlay_fragments_v3.rs");
+    let prior = super::super::v13_before(
+        "src/source_reflows_merge/main_e177_overlay_fragments_v3.rs",
+        current,
+    );
+    let current = prior.as_str();
     let acquired = crate::source_reflows::next_custody_before(
         "main295-v12-fragments",
         "src/source_reflows_merge/main_e177_overlay_fragments_v3.rs",

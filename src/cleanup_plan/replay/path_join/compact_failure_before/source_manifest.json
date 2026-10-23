@@ -1,0 +1,26 @@
+[
+  {
+    "path": "src/cleanup_plan/replay/path_join.rs",
+    "before": "src/cleanup_plan/replay/path_join/compact_failure_before/path_join.rs.txt",
+    "length": 54041,
+    "sha256": "d47a9d6f08367242e6ec3212bce30190baec3240241a082bcc27903a5d3b3e36"
+  },
+  {
+    "path": "src/cleanup_plan/replay/path_join/frontier.rs",
+    "before": "src/cleanup_plan/replay/path_join/compact_failure_before/frontier.rs.txt",
+    "length": 18749,
+    "sha256": "a0cb34d597eb284342addb9ee75ffc605a31d6ce3993672f4427703aada6652d"
+  },
+  {
+    "path": "src/cleanup_plan/replay/physical_budget/authentication.rs",
+    "before": "src/cleanup_plan/replay/path_join/compact_failure_before/authentication.rs.txt",
+    "length": 1956,
+    "sha256": "9d2023ce10c1ece44943958a34a0de3f040be553b330e7c674a4472ce4d92c7c"
+  },
+  {
+    "path": "src/cleanup_plan/replay/path_join/direct_one_tests.rs",
+    "before": "src/cleanup_plan/replay/path_join/compact_failure_before/direct_one_tests.rs.txt",
+    "length": 12792,
+    "sha256": "2e55843cb1df6cb79e6bf0a9cc2b4e7471174acf50d00a8b669dc0af43e15dcf"
+  }
+]

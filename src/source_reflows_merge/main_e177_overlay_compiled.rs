@@ -94,6 +94,10 @@ mod tests {
         // CURRENT_SCOPE_NORMALIZATION_BEGIN
         // Reverse only the exact current literal-list packing and new scope.
         // Actual current root/child equality above precedes every inverse.
+        let prior_root = super::super::fragments_v3::v13_before(
+            "src/source_reflows_merge/main_e177_overlay_v2.rs", root,
+        );
+        let root = prior_root.as_str();
         let mut current_scope_root = root.to_owned();
         let label_dispatch = "    if page[\"schema\"] == fragments_v3::SCHEMA_V12 {\n        let expanded = fragments_v3::expand_v12(&before, policy, page)?;\n        compose_values_v2(before, policy, &expanded)\n    } else if page[\"schema\"] == fragments_v3::SCHEMA_V11 {\n";
         assert_eq!(current_scope_root.matches(label_dispatch).count(), 1);
@@ -1253,6 +1257,10 @@ del _load_fixed_codecs
     pub(super) fn parent_for_current_scope(parent: &str, lookup: &str) -> String {
         assert_eq!(parent, ROOT);
         assert_eq!(lookup, LOOKUP);
+        let prior_parent = super::super::fragments_v3::v13_before(
+            "src/source_reflows_merge/main_e177_overlay_compiled.rs", parent,
+        );
+        let parent = prior_parent.as_str();
         let marker = concat!("\n// ", "CENSUS_LOOKUP_SPLIT_CUSTODY: additive controls; complete old parents above.\n");
         assert_eq!(parent.matches(marker).count(), 1);
         let (prefix, _) = parent.split_once(marker).unwrap();
@@ -1300,6 +1308,14 @@ del _load_fixed_codecs
             digest(PYTHON_BEFORE),
             "ab489a4486a46998595d993477806bed9e21ace1874774c64433debeb2be6c72"
         );
+        let prior_parent = super::super::fragments_v3::v13_before(
+            "docs/evidence/finite-source-overlay-v2-20261018/overlay_page.py", parent,
+        );
+        let prior_child = super::super::fragments_v3::v13_before(
+            "docs/evidence/finite-source-overlay-v2-20261018/overlay_page_codecs.py", child,
+        );
+        let parent = prior_parent.as_str();
+        let child = prior_child.as_str();
         assert_eq!(parent.matches(LOADER).count(), 1);
         let mut restored = parent.to_owned();
         for &inserted in PY_SCOPE_INSERTIONS {

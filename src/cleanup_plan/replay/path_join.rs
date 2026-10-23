@@ -1264,3 +1264,15 @@ pub(in crate::cleanup_plan::replay) mod selected;
 mod direct_one_before;
 #[cfg(test)]
 mod direct_one_tests;
+
+#[cfg(test)]
+#[allow(dead_code, reason = "complete independently compiled immediate-a6 frontier owner")]
+mod compact_failure_before;
+#[cfg(test)]
+mod compact_failure_tests;
+
+#[cfg(test)]
+#[allow(dead_code, reason = "complete independently compiled immediate-compact frontier owner")]
+mod contains_before;
+#[cfg(test)]
+mod contains_tests;

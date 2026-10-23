@@ -1,0 +1,152 @@
+[
+  {
+    "before_file": "parent-0.before.txt",
+    "before_length": 81849,
+    "before_sha256": "7654a455022f459ac8df262eab10b992911e622dc5ddcfe7dbb52cd3b00fc0bc",
+    "edits": [
+      {
+        "after": "mod fragments_v3;\nfn compose_values(before: Value, policy: &Value, page: &Value) -> Result<Value, &'static str> {\n    if page[\"schema\"] == fragments_v3::SCHEMA_V13 {\n        let expanded = fragments_v3::expand_v13(&before, policy, page)?;\n        compose_values_v2(before, policy, &expanded)\n    } else if page[\"schema\"] == fragments_v3::SCHEMA_V12 {\n        let expanded = fragments_v3::expand_v12(&before, policy, page)?;\n        compose_values_v2(before, policy, &expanded)\n",
+        "before": "mod fragments_v3;\nfn compose_values(before: Value, policy: &Value, page: &Value) -> Result<Value, &'static str> {\n    if page[\"schema\"] == fragments_v3::SCHEMA_V12 {\n        let expanded = fragments_v3::expand_v12(&before, policy, page)?;\n        compose_values_v2(before, policy, &expanded)\n",
+        "count": 1
+      }
+    ],
+    "length": 82034,
+    "sha256": "0d63a071051b2999125e7c9b3f7232a554e10309125b74f8d621975563a46ddb",
+    "source": "src/source_reflows_merge/main_e177_overlay_v2.rs"
+  },
+  {
+    "before_file": "parent-1.before.txt",
+    "before_length": 65050,
+    "before_sha256": "61ab077a1bb9bda1aac5e35b047ab8c2c503b2b94da90ace608b2010147d0035",
+    "edits": [
+      {
+        "after": "    result.into_bytes()\n}\n\n#[path = \"main_e177_overlay_digests_v13.rs\"]\nmod digests_v13;\npub(super) use digests_v13::{expand_v13, SCHEMA_V13};\n#[cfg(test)]\npub(super) use digests_v13::{before_source as v13_before, verify_current_v13};\n",
+        "before": "    result.into_bytes()\n}\n",
+        "count": 1
+      }
+    ],
+    "length": 65259,
+    "sha256": "151d0e9ceefb1992736b51af7f80795c716813cde70406cbd1ff2cb869a4b72f",
+    "source": "src/source_reflows_merge/main_e177_overlay_fragments_v3.rs"
+  },
+  {
+    "before_file": "parent-2.before.txt",
+    "before_length": 121867,
+    "before_sha256": "6d7073b01ce6b7193a101b918d3efb44dbc9b75b11839e3dc47b8c898cf2d25c",
+    "edits": [
+      {
+        "after": "        // Reverse only the exact current literal-list packing and new scope.\n        // Actual current root/child equality above precedes every inverse.\n        let prior_root = super::super::fragments_v3::v13_before(\n            \"src/source_reflows_merge/main_e177_overlay_v2.rs\", root,\n        );\n        let root = prior_root.as_str();\n        let mut current_scope_root = root.to_owned();\n        let label_dispatch = \"    if page[\\\"schema\\\"] == fragments_v3::SCHEMA_V12 {\\n        let expanded = fragments_v3::expand_v12(&before, policy, page)?;\\n        compose_values_v2(before, policy, &expanded)\\n    } else if page[\\\"schema\\\"] == fragments_v3::SCHEMA_V11 {\\n\";\n",
+        "before": "        // Reverse only the exact current literal-list packing and new scope.\n        // Actual current root/child equality above precedes every inverse.\n        let mut current_scope_root = root.to_owned();\n        let label_dispatch = \"    if page[\\\"schema\\\"] == fragments_v3::SCHEMA_V12 {\\n        let expanded = fragments_v3::expand_v12(&before, policy, page)?;\\n        compose_values_v2(before, policy, &expanded)\\n    } else if page[\\\"schema\\\"] == fragments_v3::SCHEMA_V11 {\\n\";\n",
+        "count": 1
+      },
+      {
+        "after": "        assert_eq!(parent, ROOT);\n        assert_eq!(lookup, LOOKUP);\n        let prior_parent = super::super::fragments_v3::v13_before(\n            \"src/source_reflows_merge/main_e177_overlay_compiled.rs\", parent,\n        );\n        let parent = prior_parent.as_str();\n        let marker = concat!(\"\\n// \", \"CENSUS_LOOKUP_SPLIT_CUSTODY: additive controls; complete old parents above.\\n\");\n        assert_eq!(parent.matches(marker).count(), 1);\n",
+        "before": "        assert_eq!(parent, ROOT);\n        assert_eq!(lookup, LOOKUP);\n        let marker = concat!(\"\\n// \", \"CENSUS_LOOKUP_SPLIT_CUSTODY: additive controls; complete old parents above.\\n\");\n        assert_eq!(parent.matches(marker).count(), 1);\n",
+        "count": 1
+      },
+      {
+        "after": "            \"ab489a4486a46998595d993477806bed9e21ace1874774c64433debeb2be6c72\"\n        );\n        let prior_parent = super::super::fragments_v3::v13_before(\n            \"docs/evidence/finite-source-overlay-v2-20261018/overlay_page.py\", parent,\n        );\n        let prior_child = super::super::fragments_v3::v13_before(\n            \"docs/evidence/finite-source-overlay-v2-20261018/overlay_page_codecs.py\", child,\n        );\n        let parent = prior_parent.as_str();\n        let child = prior_child.as_str();\n        assert_eq!(parent.matches(LOADER).count(), 1);\n        let mut restored = parent.to_owned();\n",
+        "before": "            \"ab489a4486a46998595d993477806bed9e21ace1874774c64433debeb2be6c72\"\n        );\n        assert_eq!(parent.matches(LOADER).count(), 1);\n        let mut restored = parent.to_owned();\n",
+        "count": 1
+      }
+    ],
+    "length": 122674,
+    "sha256": "133cd92e6c9e02a39e07abd778df9f8fb66eeb48cbea7230027be1410f1b0f55",
+    "source": "src/source_reflows_merge/main_e177_overlay_compiled.rs"
+  },
+  {
+    "before_file": "parent-3.before.txt",
+    "before_length": 9000,
+    "before_sha256": "4b7909d105a26db233ae03b3a3386c1bbd43b981500764dbea2d31bdebe6ee81",
+    "edits": [
+      {
+        "after": "    assert!(page_bytes.len() <= PAGE_CAP);\n    let page: Value = serde_json::from_slice(&page_bytes).unwrap();\n    if page[\"schema\"] == super::super::SCHEMA_V13 {\n        super::super::verify_current_v13(&page);\n        return;\n    }\n    let expanded = expand_to_v11(&page).unwrap();\n    let expanded_bytes = canonical(&expanded);\n",
+        "before": "    assert!(page_bytes.len() <= PAGE_CAP);\n    let page: Value = serde_json::from_slice(&page_bytes).unwrap();\n    let expanded = expand_to_v11(&page).unwrap();\n    let expanded_bytes = canonical(&expanded);\n",
+        "count": 1
+      },
+      {
+        "after": "        \"1bae91431b48d61bd482028a99fc30f967d4b153e8e68acdf8d25e45aa20719e\"\n    );\n    let v13_root = super::super::v13_before(\n        \"src/source_reflows_merge/main_e177_overlay_v2.rs\",\n        include_str!(\"../main_e177_overlay_v2.rs\"),\n    );\n    let acquired = crate::source_reflows::next_custody_before(\n        \"v12-root\",\n        \"src/source_reflows_merge/main_e177_overlay_v2.rs\",\n        &v13_root,\n    );\n    let current = acquired.as_str();\n",
+        "before": "        \"1bae91431b48d61bd482028a99fc30f967d4b153e8e68acdf8d25e45aa20719e\"\n    );\n    let acquired = crate::source_reflows::next_custody_before(\n        \"v12-root\",\n        \"src/source_reflows_merge/main_e177_overlay_v2.rs\",\n        include_str!(\"../main_e177_overlay_v2.rs\"),\n    );\n    let current = acquired.as_str();\n",
+        "count": 1
+      },
+      {
+        "after": "    );\n    let current = include_str!(\"../main_e177_overlay_fragments_v3.rs\");\n    let prior = super::super::v13_before(\n        \"src/source_reflows_merge/main_e177_overlay_fragments_v3.rs\",\n        current,\n    );\n    let current = prior.as_str();\n    let acquired = crate::source_reflows::next_custody_before(\n        \"main295-v12-fragments\",\n",
+        "before": "    );\n    let current = include_str!(\"../main_e177_overlay_fragments_v3.rs\");\n    let acquired = crate::source_reflows::next_custody_before(\n        \"main295-v12-fragments\",\n",
+        "count": 1
+      }
+    ],
+    "length": 9424,
+    "sha256": "6b316023a1d5f99cec3300b78bd84cd93077e1a806c774ab349aaea6356920e6",
+    "source": "src/source_reflows_merge/main_e177_overlay_labels_v12/tests.rs"
+  },
+  {
+    "before_file": "parent-4.before.txt",
+    "before_length": 56136,
+    "before_sha256": "d1025bd5bd9634dbb4c37144bc11b6a1f9b949cb19fd8e4976e46919e584c42b",
+    "edits": [
+      {
+        "after": " from pathlib import Path\n path=Path(__file__).with_name('overlay_page_codecs.py')\n length=16207\n fd=os.open(path,os.O_RDONLY|os.O_CLOEXEC|os.O_NOFOLLOW|os.O_NONBLOCK)\n try:\n",
+        "before": " from pathlib import Path\n path=Path(__file__).with_name('overlay_page_codecs.py')\n length=10905\n fd=os.open(path,os.O_RDONLY|os.O_CLOEXEC|os.O_NOFOLLOW|os.O_NONBLOCK)\n try:\n",
+        "count": 1
+      },
+      {
+        "after": "  assert stat.S_ISREG(after.st_mode) and stat.S_ISREG(named.st_mode), 'codec postread regularity'\n  assert identity(info)==identity(after)==identity(named), 'codec postread identity'\n  assert len(raw)==length and hashlib.sha256(raw).hexdigest()=='36caf4ad467086e1b1be44917472751d359088fe01e3930f4042d69dacb537f8', 'codec fixed bytes'\n finally:os.close(fd)\n exec(compile(raw,str(path),'exec'),globals())\n",
+        "before": "  assert stat.S_ISREG(after.st_mode) and stat.S_ISREG(named.st_mode), 'codec postread regularity'\n  assert identity(info)==identity(after)==identity(named), 'codec postread identity'\n  assert len(raw)==length and hashlib.sha256(raw).hexdigest()=='a0f906f11a8c7205a2124e5cd9c1909fa1a53a12731a0775d3e360d844bab794', 'codec fixed bytes'\n finally:os.close(fd)\n exec(compile(raw,str(path),'exec'),globals())\n",
+        "count": 1
+      },
+      {
+        "after": "def compose_values(before, policy, page):\n if page[\"schema\"]==V10_SCHEMA and \"archive_prefixes\" not in page:page=expand_v10_pins(before,policy,page)\n if page['schema']==V13_SCHEMA:page=_expand_v12_logical_view_labels(expand_v13_digest_table(page))\n if page['schema']==V12_SCHEMA:page=expand_v12_view_labels(page)\n if page['schema']==V11_SCHEMA:page=expand_v11_digest_pins(page)\n",
+        "before": "def compose_values(before, policy, page):\n if page[\"schema\"]==V10_SCHEMA and \"archive_prefixes\" not in page:page=expand_v10_pins(before,policy,page)\n if page['schema']==V12_SCHEMA:page=expand_v12_view_labels(page)\n if page['schema']==V11_SCHEMA:page=expand_v11_digest_pins(page)\n",
+        "count": 1
+      }
+    ],
+    "length": 56235,
+    "sha256": "76ee3831d978a9b81fb30724b27c4943889f32d6bda3045748d6bcf9a4673c03",
+    "source": "docs/evidence/finite-source-overlay-v2-20261018/overlay_page.py"
+  },
+  {
+    "before_file": "parent-5.before.txt",
+    "before_length": 10905,
+    "before_sha256": "a0f906f11a8c7205a2124e5cd9c1909fa1a53a12731a0775d3e360d844bab794",
+    "edits": [
+      {
+        "after": " assert canonical(expand_v12_view_labels(result))==canonical(page), 'v12 ENTIRE V11 page inverse'\n return result\n\n# V13 transports only repeated digests in V12's known positional pin slots.\nV13_SCHEMA = 'semaprax.finite-source-overlay-page.v13'\ndef v13_digest_slots(page, convert):\n def pin(value,named):\n  if type(value) is dict:return\n  offset=int(named)\n  assert type(value) is list and len(value) in (offset+2,offset+3), 'v13 pin arity'\n  assert type(value[offset]) is int and 0<=value[offset]<=SOURCE_CAP, 'v13 pin length'\n  value[offset+1]=convert(value[offset+1])\n def row(value):\n  assert type(value) is dict, 'v13 literal row'\n  if 'current' in value:pin(value['current'],False)\n  if 'views' in value:\n   assert type(value['views']) is list, 'v13 views'\n   for view in value['views']:pin(view,True)\n def fragments(value):\n  if value is None:return\n  assert type(value) is list, 'v13 fragments'\n  for fragment in value:\n   assert type(fragment) is dict, 'v13 fragment row'\n   if 'canonical_source' not in fragment:row(fragment)\n for group in ('replacements','additions'):\n  assert type(page[group]) is list, 'v13 rows'\n  for value in page[group]:\n   assert type(value) is dict, 'v13 row'\n   if 'old519_index' in value:\n    assert group=='replacements' and keys(value,('old519_index',)), 'v13 indexed row'\n    ref=value['old519_index']\n    assert type(ref) is list and len(ref)==4, 'v13 old519 arity'\n    pin(ref[1],False)\n    assert type(ref[2]) is list, 'v13 views'\n    for view in ref[2]:pin(view,True)\n    fragments(ref[3])\n   else:\n    row(value)\n    if 'fragments' in value:fragments(value['fragments'])\n\ndef expand_v13_digest_table(page):\n assert keys(page,(*V12_KEYS,'view_labels','digest_table')) and page['schema']==V13_SCHEMA, 'v13 envelope'\n assert len(canonical(page))<=PAGE_CAP, 'v13 same one-page cap'\n declarations=page['digest_table']\n assert type(declarations) is list, 'v13 dictionary'\n unique=set()\n for value in declarations:\n  v11_digest(value)\n  assert value not in unique, 'v13 duplicate declaration'\n  unique.add(value)\n result=copy.deepcopy(page);del result['digest_table'];result['schema']=V12_SCHEMA\n expanded=len(canonical(result));uses=[0]*len(declarations);next_index=0;literals=set()\n def index(value):\n  assert type(value) is int and 0<=value<len(declarations), 'v13 unknown digest index'\n  return value\n def validate(value):\n  nonlocal expanded,next_index\n  if type(value) is str:\n   v11_digest(value)\n   assert value not in unique and value not in literals, 'v13 uninterned or aliased digest'\n   literals.add(value)\n  else:\n   position=index(value)\n   if uses[position]==0:\n    assert position==next_index, 'v13 noncanonical first-use order'\n    next_index+=1\n   uses[position]+=1;expanded+=46-len(canonical(value))\n  assert expanded<=SOURCE_CAP, 'v13 expanded bound'\n  return value\n v13_digest_slots(result,validate)\n assert all(count>=2 for count in uses), 'v13 declaration requires repeated use'\n v13_digest_slots(result,lambda value:value if type(value)is str else declarations[index(value)])\n assert len(canonical(result))==expanded and expanded<=SOURCE_CAP, 'v13 expanded bound'\n return result\n\ndef encode_v13_digest_table(page):\n assert keys(page,(*V12_KEYS,'view_labels')) and page['schema']==V12_SCHEMA, 'v13 input envelope'\n assert len(canonical(page))<=SOURCE_CAP, 'v13 logical input bound'\n result=copy.deepcopy(page);counts={}\n def count(value):\n  v11_digest(value);counts[value]=counts.get(value,0)+1\n  return value\n v13_digest_slots(result,count)\n indices={};table=[]\n def encode(value):\n  if counts[value]<2:return value\n  if value not in indices:indices[value]=len(table);table.append(value)\n  return indices[value]\n v13_digest_slots(result,encode)\n result['schema']=V13_SCHEMA;result['digest_table']=table\n assert len(canonical(result))<=PAGE_CAP, 'v13 same one-page cap'\n assert canonical(expand_v13_digest_table(result))==canonical(page), 'v13 ENTIRE V12 page inverse'\n return result\n\n# Internal V13-only logical frontier; public V12 remains byte-identical above.\ndef _expand_v12_logical_view_labels(page):\n assert keys(page,(*V12_KEYS,'view_labels')) and page['schema']==V12_SCHEMA, 'v12 envelope'\n assert len(canonical(page))<=SOURCE_CAP, 'v12 same one-page cap'\n declarations=page['view_labels']\n assert type(declarations) is list, 'v12 dictionary'\n labels=[];unique=set()\n for index,declaration in enumerate(declarations):\n  assert type(declaration) is list and len(declaration)==2, 'v12 declaration arity'\n  assert type(declaration[0]) is int and declaration[0]==index, 'v12 duplicate or noncontiguous index'\n  label=declaration[1]\n  assert type(label) is str and label not in unique, 'v12 duplicate or nonstring label'\n  unique.add(label);labels.append(label)\n seen=set();expanded=0\n def validate(index):\n  nonlocal expanded\n  assert type(index) is int and 0<=index<len(labels), 'v12 unknown label index'\n  if index not in seen:\n   assert index==len(seen), 'v12 noncanonical first-use order'\n   seen.add(index)\n  expanded+=len(canonical(labels[index]))-1\n  assert expanded<=SOURCE_CAP, 'v12 expanded label bound'\n  return index\n # First pass bounds expansion without publishing even one expanded label.\n result=copy.deepcopy(page);v12_view_slots(result,validate)\n assert len(seen)==len(labels), 'v12 unreferenced declaration'\n v12_view_slots(result,lambda index:labels[index])\n del result['view_labels'];result['schema']=V11_SCHEMA\n return result\n",
+        "before": " assert canonical(expand_v12_view_labels(result))==canonical(page), 'v12 ENTIRE V11 page inverse'\n return result\n",
+        "count": 1
+      }
+    ],
+    "length": 16207,
+    "sha256": "36caf4ad467086e1b1be44917472751d359088fe01e3930f4042d69dacb537f8",
+    "source": "docs/evidence/finite-source-overlay-v2-20261018/overlay_page_codecs.py"
+  },
+  {
+    "before_file": "v12.before.rs.txt",
+    "before_length": 7219,
+    "before_sha256": "260cfb1eb837f15415a05f769e0d6554f6c26a3eeecf01a58eff16e8a2bf2446",
+    "edits": [
+      {
+        "after": "//! V12 interns only named positional views, then restores the entire V11 value.\nuse super::super::{expand_v11, SCHEMA_V11};\nuse super::{canonical, SOURCE_CAP};\nuse serde_json::Value;\nuse std::collections::{BTreeMap, BTreeSet};\n",
+        "before": "//! V12 interns only named positional views, then restores the entire V11 value.\nuse super::super::{canonical, SOURCE_CAP};\nuse super::{expand_v11, SCHEMA_V11};\nuse serde_json::Value;\nuse std::collections::{BTreeMap, BTreeSet};\n",
+        "count": 1
+      },
+      {
+        "after": "            return Err(\"v12 fragment row\");\n        }\n        if fragment.get(super::super::REFERENCE).is_none() {\n            row(fragment, convert)?;\n        }\n",
+        "before": "            return Err(\"v12 fragment row\");\n        }\n        if fragment.get(super::REFERENCE).is_none() {\n            row(fragment, convert)?;\n        }\n",
+        "count": 1
+      },
+      {
+        "after": "}\n\npub(super) fn expand_to_v11(page: &Value) -> Result<Value, &'static str> {\n    envelope(page, SCHEMA_V12, true)?;\n    if canonical(page).len() > SOURCE_CAP {\n        return Err(\"v12 same one-page cap\");\n    }\n",
+        "before": "}\n\nfn expand_to_v11(page: &Value) -> Result<Value, &'static str> {\n    envelope(page, SCHEMA_V12, true)?;\n    if canonical(page).len() > PAGE_CAP {\n        return Err(\"v12 same one-page cap\");\n    }\n",
+        "count": 1
+      },
+      {
+        "after": "    expand_v11(before, policy, &expand_to_v11(page)?)\n}\n",
+        "before": "    expand_v11(before, policy, &expand_to_v11(page)?)\n}\n\n#[cfg(test)]\n#[path = \"main_e177_overlay_labels_v12/tests.rs\"]\nmod tests;\n",
+        "count": 1
+      }
+    ],
+    "length": 7164,
+    "sha256": "2afc8edbfa95b8551b366ffdfde2dbdb7881ad5bfda1821f1ddbac064823f6e6",
+    "source": "logical-v12"
+  }
+]

@@ -87,13 +87,25 @@ fn counted(
 }
 
 fn expression_count(expression: &ResolvedExpr) -> usize {
-    let mut total = 1;
-    let mut index = 0;
-    while let Some(child) = expression.child(index) {
-        total += expression_count(child);
-        index += 1;
+    // Closed independent census of the authored boundary family. Refuse a
+    // new/desugared variant rather than borrow the production child iterator.
+    match &expression.kind {
+        ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Place(_)
+        | ResolvedExprKind::BorrowPlace { .. } => 1,
+        ResolvedExprKind::Call { args, .. } => 1 + args.iter().map(expression_count).sum::<usize>(),
+        ResolvedExprKind::Block { statements, tail } => {
+            let mut total = 1 + expression_count(tail);
+            for statement in statements {
+                let ResolvedStatement::Let { value, .. } = statement else {
+                    panic!("uncovered boundary-family statement")
+                };
+                total += expression_count(value);
+            }
+            total
+        }
+        _ => panic!("uncovered boundary-family expression"),
     }
-    total
 }
 
 fn whole(program: &ResolvedProgram, function: &ResolvedFunction) {
@@ -306,13 +318,16 @@ fn complete_immediate_old_sources_are_exact_inverses_with_common_helper_custody(
     assert_eq!(current, include_str!("before_reachability_release.rs"));
     let current = include_str!("../funded_flat.rs");
     let current = &current[..current.find("\n#[cfg(test)]\n#[allow(").unwrap()];
-    let compact = |text: &str| text.split_whitespace().collect::<String>();
-    let old = compact(include_str!(
-        "../funded_flat/before_reachability_release.rs"
-    ))
-    .replace(
-        "paid_plan::before_reachability_release::build(program,function,&mutwork,inventory)",
-        "paid_plan::build_retained(program,function,&mutwork,inventory)",
+    let old = include_str!("../funded_flat/before_reachability_release.rs");
+    let redirect =
+        "paid_plan::before_reachability_release::build(program, function, &mut work, inventory)";
+    assert_eq!(old.matches(redirect).count(), 1);
+    let old = old.replace(
+        redirect,
+        "paid_plan::build_retained(program, function, &mut work, inventory)",
     );
-    assert_eq!(compact(current), old);
+    assert_eq!(
+        current, old,
+        "complete bytes, including whitespace in diagnostic literals"
+    );
 }

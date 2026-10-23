@@ -73,7 +73,9 @@ fn whole_immediate_ordinary_result_exact_short_zero_and_real_nm_are_observed() {
         let current = run(&program, false, 64 * 1024 * 1024);
         ordinary_receiving::take_census();
         assert_eq!(immediate.0, old.0); // complete six-field diagnostics
-        assert!(immediate.0.is_ok() && !immediate.1);
+        assert!(immediate.0.is_ok() && !immediate.1,
+            "rows={rows} immediate_error={:?} immediate_refused={} immediate_paid={}",
+            immediate.0.as_ref().err(), immediate.1, immediate.2);
         assert_eq!(current.0, old.0); // complete Result and all six error fields
         assert!(
             current.0.is_ok() && !old.1 && !current.1,

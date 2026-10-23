@@ -625,6 +625,9 @@ mod witness_tests {
                         let resolved = match crate::hir::resolve(checked) {
                             Ok(resolved) => resolved,
                             Err(errors) => {
+                                for error in &errors {
+                                    eprintln!("OPT904_DIAGNOSTIC phase=hir::resolve code={:?} severity={:?} message={:?} path={:?} span={:?} help={:?}", error.code, error.severity, error.message, error.path, error.span, error.help);
+                                }
                                 assert!(errors.iter().all(|error| error.code == "SPX-H006"));
                                 drop(errors);
                                 return false;
@@ -633,6 +636,7 @@ mod witness_tests {
                         phase.set("second hir::validate");
                         let outcome = crate::hir::validate(&resolved);
                         if let Err(error) = &outcome {
+                            eprintln!("OPT904_DIAGNOSTIC phase=hir::validate code={:?} severity={:?} message={:?} path={:?} span={:?} help={:?}", error.code, error.severity, error.message, error.path, error.span, error.help);
                             assert_eq!(error.code, "SPX-H006");
                         }
                         let success = outcome.is_ok();

@@ -105,6 +105,116 @@ def settle(process: subprocess.Popen) -> None:
         process.wait()
 
 
+def binary_snapshot(binary: Path, root: Path, target: Path) -> dict:
+    """Authenticate only a Cargo-emitted artifact from this private target."""
+    resolved = binary.resolve()
+    if (binary.is_symlink() or not binary.is_file()
+            or not target.resolve().is_relative_to(root.resolve())
+            or not resolved.is_relative_to((target / 'debug/deps').resolve())
+            or not os.access(binary, os.X_OK)):
+        raise RuntimeError('unexpected test executable identity')
+    before = binary.stat()
+    digest = sha(binary)
+    after = binary.stat()
+    identity = lambda stat: (stat.st_dev, stat.st_ino, stat.st_size, stat.st_mtime_ns)
+    if before.st_size <= 0 or identity(before) != identity(after):
+        raise RuntimeError('test executable changed during authentication')
+    return {'path': str(binary.relative_to(root)), 'bytes': after.st_size,
+            'sha256': digest, 'device': after.st_dev, 'inode': after.st_ino}
+
+
+def verify_binary(snapshot: dict, root: Path, target: Path) -> None:
+    if binary_snapshot(root / snapshot['path'], root, target) != snapshot:
+        raise RuntimeError('test executable drift')
+
+
+def build_images(log: Path, command: dict, images: tuple[str, ...],
+                 root: Path, target: Path) -> dict:
+    """A failed Cargo invocation grants no artifact, even if an old file exists."""
+    artifacts: dict[str, list[Path]] = {image: [] for image in images}
+    finished = []
+    with log.open() as stream:
+        for line in stream:
+            try:
+                message = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if not isinstance(message, dict):
+                continue
+            if message.get('reason') == 'build-finished':
+                finished.append(message.get('success'))
+            executable = message.get('executable')
+            cargo_target = message.get('target', {})
+            if (message.get('reason') != 'compiler-artifact' or not executable
+                    or not message.get('profile', {}).get('test')
+                    or message.get('manifest_path') != str(root / 'Cargo.toml')):
+                continue
+            for image in images:
+                name, kind, source = ('semaprax', ['lib'], 'src/lib.rs') if image == 'lib' else (
+                    ('semaprax', ['bin'], 'src/main.rs') if image == 'cli' else
+                    (image, ['test'], f'tests/{image}.rs'))
+                if (cargo_target.get('name') == name and cargo_target.get('kind') == kind
+                        and cargo_target.get('src_path') == str(root / source)):
+                    artifacts[image].append(Path(executable))
+    successful = (command.get('exit_code') == 0 and not command.get('timed_out')
+                  and finished == [True])
+    results = {}
+    for image in images:
+        item = {'status': 'unavailable', 'build': command['label'],
+                'build_log': command['log'], 'build_log_sha256': command['log_sha256'],
+                'build_exit_code': command.get('exit_code'),
+                'build_timed_out': command.get('timed_out', False),
+                'build_finished_events': finished,
+                'emitted_candidates': [str(path) for path in artifacts[image]]}
+        if not successful:
+            item['error'] = 'Cargo failed, timed out, or lacked one successful build-finished event'
+        elif len(artifacts[image]) != 1:
+            item['error'] = 'Cargo did not emit exactly one matching owning artifact'
+        else:
+            try:
+                item.update(status='available', binary=binary_snapshot(artifacts[image][0], root, target))
+            except (OSError, RuntimeError, ValueError) as error:
+                item['error'] = str(error)
+        results[image] = item
+    return results
+
+
+def collect_images(images: tuple[str, ...], historical: bool, build_once) -> tuple[dict, list]:
+    # The historical successful command stays byte-for-byte the same. Only a
+    # failed combined invocation adds serial owning-image recovery attempts;
+    # the failed attempt remains an overall failure even if recovery succeeds.
+    groups = [images] if historical else [(image,) for image in images]
+    results = {}
+    attempts = []
+    while groups:
+        group = groups.pop(0)
+        result = build_once(group)
+        attempts.append({'images': list(group), 'outcomes': result})
+        results.update(result)
+        if historical and len(group) > 1 and any(
+                item['status'] != 'available' for item in result.values()):
+            groups.extend((image,) for image in group)
+    return results, attempts
+
+
+def unavailable_filter(row: dict, index: int, image: dict) -> dict:
+    return {**row, 'index': index, 'status': 'not-executed', 'attempted': False,
+            'executed': False, 'completed': False, 'discovered_count': None,
+            'observed_test_count': None, 'summaries': [],
+            'error': 'owning image unavailable; counts unknown; filter not executed',
+            'image_error': image.get('error'), 'image_build': image.get('build')}
+
+
+def qualification_passed(receipt: dict, filters: int, tests: int) -> bool:
+    return (all(image['status'] == 'available' for image in receipt['images'].values())
+            and all(item['status'] == 'available'
+                    for attempt in receipt['build_attempts'] for item in attempt['outcomes'].values())
+            and len(receipt['tests']) == filters
+            and all(row['status'] == 'passed' and row.get('completed') for row in receipt['tests'])
+            and sum(row.get('passed', 0) for row in receipt['tests']) == tests
+            and receipt['clippy']['passed'])
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--selection', choices=tuple(SELECTIONS), default='historical')
@@ -118,7 +228,7 @@ def main() -> int:
         'run_id': os.environ.get('GITHUB_RUN_ID'),
         'run_attempt': os.environ.get('GITHUB_RUN_ATTEMPT'),
         'qualification': 'focused OPT batch only; not the full quality profile',
-        'commands': [], 'tests': [], 'binaries': {},
+        'commands': [], 'tests': [], 'binaries': {}, 'images': {}, 'build_attempts': [],
     }
     env = os.environ.copy()
     env.update(PROFILE)
@@ -172,6 +282,10 @@ def main() -> int:
             item['exit_code'] = code
             if (code or item.get('timed_out')) and not allow_failure:
                 raise RuntimeError(f'{label} exited {code}; timeout={item.get("timed_out", False)}; see {log.name}')
+        except OSError as error:
+            item.update(exit_code=None, spawn_error=f'{type(error).__name__}: {error}')
+            if not allow_failure:
+                raise
         finally:
             item['wall_seconds'] = time.monotonic() - started
             item['log_sha256'] = sha(log)
@@ -223,70 +337,66 @@ def main() -> int:
                     or type(row['expected_tests']) is not int or row['expected_tests'] <= 0):
                 raise RuntimeError('empty or invalid test selector')
         run('fetch', ['cargo', 'fetch', '--locked'], 900)
-        artifacts: dict[str, list[Path]] = {name: [] for name in image_names}
-        image_groups = [image_names] if options.selection == 'historical' else [
-            (name,) for name in image_names]
-        for group in image_groups:
-            # Keep the historical build command; next builds each owning harness
-            # once and serially with the same private target.
+        def build_once(group: tuple[str, ...]) -> dict:
+            state(expected)
             image_args = []
             for image in group:
                 image_args.extend(['--lib'] if image == 'lib' else ['--bin', 'semaprax'] if image == 'cli' else ['--test', image])
-            label = 'build' if options.selection == 'historical' else f'build-{group[0]}'
-            build, _ = run(label, [
-                'cargo', 'test', '--locked', '--offline', '-p', 'semaprax',
-                *image_args, '--no-run', '--jobs', '1',
-                '--message-format=json-render-diagnostics',
-            ], 7200, sample_memory=True)
-            finished = []
-            with build.open() as stream:
-                for line in stream:
-                    try:
-                        message = json.loads(line)
-                    except json.JSONDecodeError:
-                        continue
-                    if message.get('reason') == 'build-finished':
-                        finished.append(message.get('success'))
-                    target = message.get('target', {})
-                    executable = message.get('executable')
-                    if (message.get('reason') != 'compiler-artifact' or not executable
-                            or not message.get('profile', {}).get('test')):
-                        continue
-                    for image in group:
-                        if (image == 'lib' and target.get('name') == 'semaprax'
-                                and target.get('kind') == ['lib']):
-                            artifacts[image].append(Path(executable))
-                        elif (image == 'cli' and target.get('name') == 'semaprax'
-                              and target.get('kind') == ['bin']):
-                            artifacts[image].append(Path(executable))
-                        elif (image not in ('lib', 'cli') and target.get('name') == image
-                              and target.get('kind') == ['test']):
-                            artifacts[image].append(Path(executable))
-            if finished != [True] or any(len(artifacts[image]) != 1 for image in group):
-                raise RuntimeError('build did not emit exactly the selected owning test binaries')
+            label = 'build' if len(group) > 1 else f'build-{group[0]}'
+            try:
+                build, command = run(label, [
+                    'cargo', 'test', '--locked', '--offline', '-p', 'semaprax',
+                    *image_args, '--no-run', '--jobs', '1',
+                    '--message-format=json-render-diagnostics',
+                ], 7200, allow_failure=True, sample_memory=True)
+                result = build_images(build, command, group, ROOT, TARGET)
+            except Exception as error:
+                result = {image: {'status': 'unavailable', 'build': label,
+                                  'build_log': f'{label}.log',
+                                  'error': f'{type(error).__name__}: {error}'} for image in group}
+            # Source drift is a global authority failure, never an independent
+            # image failure that permits more compiler or test execution.
+            state(expected)
+            return result
+
+        images, attempts = collect_images(image_names, options.selection == 'historical', build_once)
+        receipt['images'] = images
+        receipt['build_attempts'] = attempts
         binaries = {}
-        for kind, paths in artifacts.items():
-            binary = paths[0]
-            if (binary.is_symlink() or not binary.is_file()
-                    or not binary.resolve().is_relative_to((TARGET / 'debug/deps').resolve())
-                    or binary.stat().st_size <= 0):
-                raise RuntimeError('unexpected test executable identity')
-            binaries[kind] = binary.resolve()
-            receipt['binaries'][kind] = {
-                'path': str(binary.relative_to(ROOT)), 'bytes': binary.stat().st_size,
-                'sha256': sha(binary),
-            }
-        def unchanged_binary(kind: str) -> None:
-            binary = binaries[kind]
-            if binary.is_symlink() or sha(binary) != receipt['binaries'][kind]['sha256']:
-                raise RuntimeError(f'{kind} executable drift; aborting remaining execution')
+        for kind, image in images.items():
+            if image['status'] == 'available':
+                snapshot = image['binary']
+                receipt['binaries'][kind] = snapshot
+                binaries[kind] = ROOT / snapshot['path']
+
+        def unchanged_binary(kind: str) -> bool:
+            try:
+                verify_binary(receipt['binaries'][kind], ROOT, TARGET)
+                return True
+            except (OSError, RuntimeError, ValueError) as error:
+                images[kind].update(status='unavailable', error=f'executable identity failure: {error}')
+                binaries.pop(kind, None)
+                # Keep exact logs, but never retain a positive qualification
+                # verdict or authoritative counts for a tampered executable.
+                for record in receipt['tests']:
+                    if record['binary'] == kind:
+                        record.update(status='binary-identity-failed', completed=False,
+                                      error=images[kind]['error'])
+                        record['unverified_summaries'] = record.pop('summaries', [])
+                        for key in ('result', 'passed', 'failed', 'ignored', 'measured', 'filtered_out'):
+                            record.pop(key, None)
+                return False
 
         for index, row in enumerate(rows):
             state(expected)
-            unchanged_binary(row['binary'])
-            binary = binaries[row['binary']]
+            kind = row['binary']
+            if kind not in binaries or not unchanged_binary(kind):
+                receipt['tests'].append(unavailable_filter(row, index, images[kind]))
+                continue
+            binary = binaries[kind]
             record = {**row, 'index': index, 'status': 'discovery-pending',
-                      'binary_sha256': receipt['binaries'][row['binary']]['sha256']}
+                      'attempted': True, 'executed': False,
+                      'binary_sha256': receipt['binaries'][kind]['sha256']}
             receipt['tests'].append(record)
             prefix = [str(binary), row['filter']]
             if row['exact']:
@@ -294,7 +404,9 @@ def main() -> int:
             listed, discovery = run(f'{index:02d}-list', prefix + ['--list', '--format', 'terse'],
                                     120, allow_failure=True)
             state(expected)
-            unchanged_binary(row['binary'])
+            if not unchanged_binary(kind):
+                record.update(discovery=discovery, discovery_log=listed.name)
+                continue
             names = [line.removesuffix(': test').strip()
                      for line in listed.read_text(errors='replace').splitlines() if line.endswith(': test')]
             record.update(listed_tests=names, discovered_count=len(names), discovery=discovery)
@@ -304,13 +416,14 @@ def main() -> int:
                 record['error'] = 'failed discovery or exact nonzero count mismatch; filter not executed'
                 record['completed'] = True
                 continue
-            record['status'] = 'failed'
+            record.update(status='failed', executed=True)
             log, command = run(f'{index:02d}-test', prefix + ['--nocapture', '--test-threads=1'],
                                900, allow_failure=True)
             state(expected)
-            unchanged_binary(row['binary'])
             record.update(log=log.name, exit_code=command['exit_code'],
                           timed_out=command.get('timed_out', False))
+            if not unchanged_binary(kind):
+                continue
             summaries = []
             with log.open(errors='replace') as stream:
                 for line in stream:
@@ -341,7 +454,7 @@ def main() -> int:
         receipt['filters_without_unique_summary'] = [row['index'] for row in receipt['tests']
                                                      if len(row.get('summaries', [])) != 1]
         state(expected)
-        for kind in binaries:
+        for kind in tuple(binaries):
             unchanged_binary(kind)
         _, clippy = run('clippy-production', [
             'cargo', 'clippy', '--locked', '--offline', '-p', 'semaprax',
@@ -350,12 +463,11 @@ def main() -> int:
         receipt['clippy'] = {'scope': 'production lib + semaprax binary; warnings denied',
                             'passed': clippy['exit_code'] == 0 and not clippy.get('timed_out')}
         receipt['final_checkout'] = state(expected)
-        for kind in binaries:
+        for kind in tuple(binaries):
             unchanged_binary(kind)
-        if (receipt['completed_filters'] != expected_filters or receipt['failed_filters'] != 0
-                or receipt['observed_passed_tests'] != expected_tests or not receipt['clippy']['passed']):
+        if not qualification_passed(receipt, expected_filters, expected_tests):
             receipt['status'] = 'failed'
-            receipt['error'] = 'one or more focused filters or production Clippy failed; see all collected outcomes'
+            receipt['error'] = 'one or more image builds, binary identities, focused filters or production Clippy failed; see all collected outcomes'
             return 1
         receipt['passed_tests'] = expected_tests
         receipt['status'] = 'passed'
@@ -365,7 +477,7 @@ def main() -> int:
         print(receipt['error'], file=sys.stderr)
         return 1
     finally:
-        receipt['attempted_filters'] = len(receipt['tests'])
+        receipt['attempted_filters'] = sum(row.get('attempted', False) for row in receipt['tests'])
         receipt['completed_filters'] = sum(row.get('completed', False) for row in receipt['tests'])
         receipt['passed_filters'] = sum(row['status'] == 'passed' for row in receipt['tests'])
         receipt['failed_filters'] = sum(row['status'] != 'passed' for row in receipt['tests'])
@@ -373,6 +485,8 @@ def main() -> int:
         receipt['observed_failed_tests'] = sum(row.get('failed', 0) for row in receipt['tests'])
         receipt['filters_without_unique_summary'] = [row['index'] for row in receipt['tests']
                                                      if len(row.get('summaries', [])) != 1]
+        receipt['unavailable_images'] = [kind for kind, image in receipt['images'].items() if image['status'] != 'available']
+        receipt['not_executed_filters'] = [row['index'] for row in receipt['tests'] if not row.get('executed', False)]
         receipt['summary_counts_complete'] = (receipt['completed_filters'] == expected_filters and not receipt['filters_without_unique_summary'])
         (OUT / 'receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
         print(f'OPT batch status: {receipt["status"]}; receipts/logs: {OUT.name}', flush=True)

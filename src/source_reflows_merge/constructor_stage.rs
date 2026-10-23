@@ -60,10 +60,16 @@ pub(super) fn typed(source: &str, current: &str) -> Option<String> {
 
 pub(super) fn owner(source: &str, current: &str) -> Option<String> {
     let (compiled, expected) = match source {
-        "src/bounded_output.rs" => (
-            include_str!("../bounded_output.rs"),
-            "fa91c8eca4825931211d066d6ebde8c0ff157de1ec78b5950abe867c295e481f",
-        ),
+        "src/bounded_output.rs" => {
+            crate::bounded_output::census_before(
+                "src/bounded_output/request_reservation.rs",
+                include_bytes!("../bounded_output/request_reservation.rs"),
+            );
+            (
+                include_str!("../bounded_output.rs"),
+                "fa91c8eca4825931211d066d6ebde8c0ff157de1ec78b5950abe867c295e481f",
+            )
+        }
         "src/workspace_graph/initial_report/build.rs" => (
             include_str!("../workspace_graph/initial_report/build.rs"),
             "48b56f916c25d00004bf6d8bc13e56a0972d07f531fceda2c7c94b57d2af20e1",

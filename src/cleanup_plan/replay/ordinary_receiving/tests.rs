@@ -135,7 +135,9 @@ fn complete_direct_collectors_match_full_immediate_constructor_and_drop_at_all_c
                                             "owner_into writes the actual execution owner"
                                         );
                                     }
+                                    budget.reserve_bytes(function, skeleton_work::query_proof::HEADER, "skeleton query neutral slot receivers")?;
                                     let current = SkeletonWork {
+            queries: skeleton_work::query_proof::Slot::new(function, &budget),
                                         function,
                                         budget: &mut budget,
                                         continuations: None,

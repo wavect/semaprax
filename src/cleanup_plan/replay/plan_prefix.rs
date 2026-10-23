@@ -11,6 +11,14 @@ pub(super) const QUERY_CONTROLS: usize = 2 * std::mem::size_of::<bool>()
     + 2 * std::mem::size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>()
     + 2 * std::mem::size_of::<Result<(), Diagnostic>>();
 
+// Direct .iter() already formed the slice iterator. The restored &Vec
+// IntoIterator adapter additionally receives its actual/formal Vec loan and
+// returns/forwards the Iter; no per-next role or work is introduced.
+const EDGE_ITERATOR_CONTROLS: usize = 2 * std::mem::size_of::<&Vec<EdgeId>>()
+    + 2 * std::mem::size_of::<std::slice::Iter<'static, EdgeId>>()
+    + 2 * std::mem::size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>()
+    + 2 * std::mem::size_of::<Result<(), Diagnostic>>();
+
 #[rustfmt::skip]
 pub(super) fn build(
     function: &ResolvedFunction,
@@ -308,9 +316,12 @@ pub(super) fn build(
                     )?;
                     continue;
                 }
-                // Same slice iterator as the original for-loop, now named for the final-edge query.
-                let mut remaining_edges = edges.iter();
-                while let Some(edge) = remaining_edges.next() {
+                // No remaining-edge query survives on this Legacy-only path.
+                // Restore the original for-loop; fund its extra IntoIterator
+                // actual/formal Vec loans and returned/forwarded Iter owners
+                // before formation. Existing next/body/work order is unchanged.
+                budget.reserve_bytes(function, EDGE_ITERATOR_CONTROLS, "PLAN branch iterator receiving")?;
+                for edge in edges {
                     let edge = &plan.edges[edge.0 as usize];
                     let observation = match &edge.condition {
                         EdgeCondition::BooleanResult(expression, value) => {

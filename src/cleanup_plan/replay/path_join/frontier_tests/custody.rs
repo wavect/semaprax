@@ -60,17 +60,18 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
         before.split_once(marker).unwrap().1
     );
     for (path, expected) in rows {
-        let mut actual = std::fs::read(root.join(&path)).unwrap();
+        let mut actual =
+            crate::bounded_output::census_before(&path, &std::fs::read(root.join(&path)).unwrap());
         // Finite inventory transport only: the main scalar classifier changes
         // the measured common lexical prefix. This is not old execution restoration.
         let encoded = include_str!("../before_frontier/custody/main_d227_transport.json");
         assert_eq!(std::fs::read(root.join("src/cleanup_plan/replay/path_join/before_frontier/custody/main_d227_transport.json")).unwrap(), encoded.as_bytes());
         assert_eq!(
             digest(encoded.as_bytes()),
-            "c0ebac882a164a7058db70b5914c533678d5886a261a3236b2124e0d0e1ee527"
+            "f3ead7d594ff4bb9b913a080425812b348c626886bf5a8a7effddef4e0f0a5ce"
         );
         let packet: serde_json::Value = serde_json::from_str(encoded).unwrap();
-        assert_eq!(packet.as_object().unwrap().len(), 16);
+        assert_eq!(packet.as_object().unwrap().len(), 20);
         if let Some(row) = packet.get(&path) {
             let compiled = match path.as_str() {
                 "src/cleanup_plan/replay/branch_clone/inline_tests.rs" => include_bytes!(concat!(
@@ -121,6 +122,10 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
                 "src/cleanup_plan/replay/skeleton_work.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work.rs")).as_slice(),
                 "src/cleanup_plan/replay/ordinary_receiving/tests.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_receiving/tests.rs")).as_slice(),
                 "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests/receiving.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests/receiving.rs")).as_slice(),
+                "src/cleanup_plan/replay/factored/continuation_receiver/tests.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/continuation_receiver/tests.rs")).as_slice(),
+                "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission.rs")).as_slice(),
+                "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs")).as_slice(),
+                "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs")).as_slice(),
                 _ => panic!("unadmitted main transport path"),
             };
             assert_eq!(actual.as_slice(), compiled);
@@ -167,7 +172,7 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
                 // fixture. No production dependency receives this inverse.
                 assert_eq!(
                     digest(&actual),
-                    "4754c42c45e47bdb7f065751e67a0d5c4045c26630303fc9945e377ff6e5059f"
+                    "b19c2dc75004f49c113ba8895a2e54a8a816ad95aadf8519665df43064fe2c17"
                 );
                 let before = include_bytes!(concat!(
                     env!("CARGO_MANIFEST_DIR"),

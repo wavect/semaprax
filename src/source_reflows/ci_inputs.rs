@@ -873,9 +873,17 @@ pub(super) fn batch_913_entry(source: &str, supplied: &str) -> Option<String> {
             ("    assert_eq!(\n        TRACE.with(|trace| trace\n            .borrow()\n            .as_ref()\n            .expect(\"active trace lease\")\n            .events\n            .len()),\n        4096\n    );\n", "    assert_eq!(TRACE.with(|trace| trace.borrow().events.len()), 4096);\n"),
             ("    let (empty, lost) =\n        super::comparison_owner::pair_scope_census::finish_empty_for_frontier_test();\n", "    let (empty, lost) = super::comparison_owner::pair_scope_census::finish_empty_for_frontier_test();\n"),
         ]),
-        "src/hir/validation/frame_reuse/tests.rs" => (include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/frame_reuse/tests.rs")), 13608, "a6968006a29a11d4fdcb2adc75c34c0142c2e51166636c77b1b285b5ffdbe6bb", 13594, "2d874d35d5139662abf9a10e0fe45abbd666136349eae390220f134da2c8ebc9", &[
+        "src/hir/validation/frame_reuse/tests.rs" => (include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/frame_reuse/tests.rs")), 13930, "11c3145c9b06cbde60f592bcf4def6403ea5b30e7f442381becd1c4324999de8", 13594, "2d874d35d5139662abf9a10e0fe45abbd666136349eae390220f134da2c8ebc9", &[
             ("            root.id = ExpressionId::from_owned(\"forged.trailing.identity\".to_owned());\n", "            root.id = ExpressionId::new(\"forged.trailing.identity\".to_owned());\n"),
             ("                    tail.id = ExpressionId::from_owned(\"forged.tail\".to_owned());\n", "                    tail.id = ExpressionId::new(\"forged.tail\".to_owned());\n"),
+        ]),
+        "src/hir/validation/lexical_exit.rs" => (include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/lexical_exit.rs")), 47750, "5610b10bf134638d5a30dbee84058895d40263d46ac07057f154d47ff8487c0e", 47202, "ed95841d0c0bb977e8120046a0182ff2dcef8731f443d0d1c17af2233ce15bc4", &[
+            ("                                for error in &errors {\n                                    eprintln!(\"OPT904_DIAGNOSTIC phase=hir::resolve code={:?} severity={:?} message={:?} path={:?} span={:?} help={:?}\", error.code, error.severity, error.message, error.path, error.span, error.help);\n                                }\n", ""),
+            ("                            eprintln!(\"OPT904_DIAGNOSTIC phase=hir::validate code={:?} severity={:?} message={:?} path={:?} span={:?} help={:?}\", error.code, error.severity, error.message, error.path, error.span, error.help);\n", ""),
+        ]),
+        "src/hir/validation/frame_reuse/source_inverse.rs" => (include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/frame_reuse/source_inverse.rs")), 10055, "1b9b6134ab855b3396f602949c7a681efe6bf840189712f326b22917a803ec82", 9708, "4432050d6538ee4469137dc7f147256591d256c569f1e49a0727e6a223fe7f38", &[
+            ("    let observed;\n    let current = if source == \"src/hir/validation/lexical_exit.rs\" {\n        observed = crate::source_reflows::batch_913_entry(source, current)\n            .expect(\"complete diagnostic observer ingress\");\n        observed.as_str()\n    } else {\n        current\n    };\n", ""),
+            ("        let predecessor = if matches!(path, \"src/hir/validation/frame_reuse/tests.rs\" | \"src/hir/validation/frame_reuse/source_inverse.rs\") {", "        let predecessor = if path == \"src/hir/validation/frame_reuse/tests.rs\" {"),
         ]),
         _ => return None,
     };
@@ -917,6 +925,21 @@ pub(super) fn batch_913_entry(source: &str, supplied: &str) -> Option<String> {
         }
     }
     let mut before = compiled.to_owned();
+    if source == "src/hir/validation/frame_reuse/tests.rs" {
+        // Complete current executable-entry fixture transport, then the exact
+        // unchanged #913 identifier inverse below. Neither old endpoint moves.
+        assert_eq!(before.matches("    source.push_str(\"@id(\\\"reuse.main\\\") fn main()->i64 {f31(1)}\\n\");\n    program(&source)\n}\nfn decimal_program() -> ResolvedProgram {\n    // Preserve the entire library; executable resolution also needs an entry.\n    let source = format!(\n        \"{}\\n@id(\\\"reuse.decimal.main\\\") fn main()->i64 {{let value=add(\\\"1\\\",\\\"2\\\");string_len(value)}}\\n\",\n        include_str!(\"../../../../std/int-decimal/src/decimal.spx\")\n    );\n").count(), 1);
+        before = before.replacen("    source.push_str(\"@id(\\\"reuse.main\\\") fn main()->i64 {f31(1)}\\n\");\n    program(&source)\n}\nfn decimal_program() -> ResolvedProgram {\n    // Preserve the entire library; executable resolution also needs an entry.\n    let source = format!(\n        \"{}\\n@id(\\\"reuse.decimal.main\\\") fn main()->i64 {{let value=add(\\\"1\\\",\\\"2\\\");string_len(value)}}\\n\",\n        include_str!(\"../../../../std/int-decimal/src/decimal.spx\")\n    );\n", "", 1);
+        assert_eq!(before.matches("        decimal_program(),\n").count(), 1);
+        before = before.replacen("        decimal_program(),\n", "        program(include_str!(\"../../../../std/int-decimal/src/decimal.spx\")),\n", 1);
+        assert_eq!(before.matches("        (\"decimal\", decimal_program(), true),\n").count(), 1);
+        before = before.replacen("        (\"decimal\", decimal_program(), true),\n", "        (\"decimal\", program(include_str!(\"../../../../std/int-decimal/src/decimal.spx\")), true),\n", 1);
+        const MIDDLE: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/a6968006a29a11d4fdcb2adc75c34c0142c2e51166636c77b1b285b5ffdbe6bb"));
+        assert_eq!(MIDDLE.len(), 13608);
+        assert_eq!(digest(MIDDLE), "a6968006a29a11d4fdcb2adc75c34c0142c2e51166636c77b1b285b5ffdbe6bb");
+        assert_eq!(reader::read(&root.join("e/a6968006a29a11d4fdcb2adc75c34c0142c2e51166636c77b1b285b5ffdbe6bb"), 13608, "a6968006a29a11d4fdcb2adc75c34c0142c2e51166636c77b1b285b5ffdbe6bb", 2_097_152).unwrap(), MIDDLE);
+        assert_eq!(before, MIDDLE, "ENTIRE unchanged pre-fixture current source");
+    }
     for &(after, prior) in edits {
         assert_eq!(before.matches(after).count(), 1);
         before = before.replacen(after, prior, 1);

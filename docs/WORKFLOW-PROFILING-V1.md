@@ -202,3 +202,35 @@ remain unchanged. Counts and admitted bytes record successful actual banks,
 including exhaustion visits; they do not relabel these as PLAN-sort packets.
 The separate100-row paid-phase bank and its10×5×2 ordering remain unchanged.
 Matched old/current arms must retain this same additive observer API and hooks.
+
+
+## Path-family request census v1
+
+The feature-only resolved-core report additionally carries three fixed rows per
+attempt: residual, ordinary path-state replay, and selected path-state replay.
+The additive diagnostic line schema is `semaprax.path-family-census.v1`.
+Existing attempt ordinals, operation/stage labels, exclusive debit buckets and
+first-refusal ownership remain unchanged. Family debit bytes independently
+partition the same attempt's consumed bytes; family totals do not replace the
+existing operation attribution. Selected scope includes its caller receiving
+fees before body entry, which can therefore refuse with zero body entries.
+
+Rows count actual entered/ended/error/refused/unwound scopes, full successful
+terminal arities, Empty/One/Many incoming observations, admitted Box formations,
+held transfers, equal duplicates, promotions and tree insertion requests.
+Request counts and requested/admitted bytes describe real ledger requests;
+they are **not physical allocator counts or B-tree node allocations**.
+Known descendant ledgers without a separate attempt are recorded in the nearest
+owning attempt with explicit descendant subsets. Raw descendant request bytes
+must not be added to the parent's eventual settlement debit. Separate attempt
+rows must not be summed as disjoint application work.
+
+Tags bind only telemetry to the actual live ledger, capture generation and
+checked ledger-install serial; no pointer survives teardown. Missing/stale
+owners, unbalanced scopes, reentrant access or checked overflow make evidence
+incomplete. Counter updates never choose a compiler result, acquire authority,
+change invoices or limits, or allocate dynamic storage. The fixed observer
+storage/layout report includes these rows. Formatting happens after teardown.
+The six unchanged application inputs still require exact plain/observed product
+equality and complete final-attempt receipts before any application attribution;
+fixture allocator metrics alone supply no application-family allocation census.

@@ -488,3 +488,50 @@ fn many_keeps_full_sorted_prefix_validation_and_join_in_both_promotion_orders() 
         assert_eq!(current.skeleton_remaining, old.skeleton_remaining);
     }
 }
+
+#[cfg(feature = "unstable-workflow-profiling")]
+#[test]
+fn actual_ordinary_driver_reports_bound_body_frontier_and_complete_terminal_arity() {
+    use crate::bounded_output::exclusive_debits::{attempt, path_census::Event};
+    use crate::workflow_profile::plan_comparison::{Binding, Capture};
+    let program=crate::hir::resolve(&crate::check(
+        "module census; @id(\"f\") fn f(flag:bool)->i64 {if flag {1}else{2}} @id(\"main\") fn main()->i64 {f(false)}",
+        "census.spx").unwrap()).unwrap();
+    let function = program.functions.iter().find(|f| f.name == "main").unwrap();
+    let c = Capture::begin(Binding::caller_labelled(
+        "actual ordinary path census",
+        [0; 32],
+    ))
+    .unwrap();
+    let ((outcome, remaining), refused, paid, _) =
+        crate::bounded_output::with_limit_usage_refusal(64 << 20, || {
+            let mut a = attempt(0, 0, 0);
+            let mut budget = ReplayBudget::new();
+            let outcome = (|| {
+                let storage = validate_slots_paid(function, &mut budget)?;
+                let leaves = collect_leaves_paid(function, &mut budget)?;
+                validate_path_states::<Diagnostic>(
+                    &program,
+                    function,
+                    &storage,
+                    &leaves,
+                    &mut budget,
+                    None,
+                    None,
+                )
+            })();
+            let remaining = budget.remaining;
+            a.complete(outcome.is_ok());
+            (outcome, remaining)
+        });
+    assert!(outcome.is_ok() && !refused && remaining < MAX_REPLAY_WORK_UNITS && paid > 0);
+    let r = c.finish().unwrap().resolved_core;
+    assert!(r.complete && !r.invalid);
+    let row = r.attempts[0].path_census[1];
+    assert_eq!(
+        (row.entries, row.successes, row.events[Event::Body as usize]),
+        (1, 1, 1)
+    );
+    assert!(row.events[Event::InputOne as usize] > 0 && row.events[Event::OwnedBox as usize] > 0);
+    assert!(row.terminal_paths > 0 && row.successful_paths > 0 && row.admitted_requests > 0);
+}

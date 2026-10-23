@@ -451,6 +451,7 @@ fn complete_prior_receiver_and_funded_disagreement_assertion_remain_byte_exact()
         original.strip_suffix("#[cfg(test)]\nmod tests;\n").unwrap()
     );
     let changes = [
+        ("        if matches!(enumerating.payer, AllocationPayer::LegacyUnobserved)\n            && !ordinary_plan_history::completed_fork::emission::before_selected()\n        {\n            plan_prefix::equal_paths(function, &mut enumerating, &mut hir, &mut plan)\n        } else {\n            hir.sort();\n            plan.sort();\n            Ok(hir == plan)\n        }\n", "        hir.sort();\n        plan.sort();\n        Ok(hir == plan)\n"),
         ("    let _debit_route = debit_routes::route(debit_routes::Route::UnoptedCrosscheck);\n    let _debit_phase = debit_routes::phase(debit_routes::Phase::EnumeratedHIR);\n", ""),
         ("    #[cfg(feature = \"unstable-workflow-profiling\")]\n    let paid_enumeration = enumerating\n        .paid_phase(crate::workflow_profile::plan_comparison::PaidPhase::CrosscheckEnumerated);\n", ""),
         ("        let _debit_phase = debit_routes::phase(debit_routes::Phase::FlatPLAN);\n", ""),

@@ -1310,3 +1310,9 @@ src/cleanup_plan/replay/plan_prefix.rs
 src/cleanup_plan/replay/plan_prefix/before.rs
 src/cleanup_plan/replay/plan_prefix/tests.rs
 src/cleanup_plan/replay/skeleton_work/plan_prefix.rs
+src/cleanup_plan/replay/skeleton_work/query_proof.rs
+src/cleanup_plan/replay/skeleton_work/query_proof/before.rs
+src/cleanup_plan/replay/skeleton_work/query_proof/tests.rs
+src/bounded_output/exclusive_debits/path_census.rs
+src/bounded_output/request_reservation.rs
+src/source_reflows_merge/main_e177_overlay_lookup.rs

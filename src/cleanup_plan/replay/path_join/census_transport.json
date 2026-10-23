@@ -1,0 +1,463 @@
+{
+  "schema": "semaprax.path-census-source-composition.v1",
+  "e912": "e9124c411f445ed80200460f2beb40cbdaa625df",
+  "predecessor": "bd8a94fac",
+  "rows": [
+    {
+      "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "length": 229080,
+      "sha256": "a0a8ae0596cae5ee3f8e985c22a67343496c136fc29a60c9c2c093a0a84670ee",
+      "e912": {
+        "file": "e912_00.txt",
+        "length": 227742,
+        "sha256": "a89396ad310b42c99c219473d6744eee8efb7e498f1275c460673b38427fc2ca",
+        "edits": [
+          [
+            294,
+            "include_str!(\"../../../../../src/bounded_output/exclusive_debits/path_census.rs\"),include_str!(\"../../../../../src/bounded_output/request_reservation.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/ordinary_receiving_tests.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/ordinary_receiving_before.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/ordinary_receiving_before.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/path_join/held_edge_before.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/path_join/held_edge_tests.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/hir_last_use.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/factored/hir_memo_release_tests.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/path_join/shared_insertions_before.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/path_join/shared_insertions_before/boxed_flow.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/path_join/shared_insertions_before/boxed_states.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/path_join/shared_insertions_before/frontier.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/path_join/shared_insertions_tests.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/plan_prefix.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/plan_prefix/before.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/plan_prefix/tests.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/skeleton_work/plan_prefix.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/skeleton_work/query_proof.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/skeleton_work/query_proof/before.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/skeleton_work/query_proof/tests.rs\"),include_str!(\"../../../../../src/source_reflows_merge/main_e177_overlay_lookup",
+            "\n        include_str!(\"../../../../../src/bounded_output/exclusive_debits/path_census.rs\"),\n        include_str!(\"../../../../../src/bounded_output/request_reservation.rs\"),\ninclude_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/ordinary_receiving_tests.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/ordinary_receiving_before.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/ordinary_receiving_before.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/path_join/held_edge_before.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/path_join/held_edge_tests"
+          ]
+        ]
+      }
+    },
+    {
+      "path": "src/bounded_output.rs",
+      "length": 52376,
+      "sha256": "f81439f62393e8be2096408f90a229197b1efa402cda00b5c4cf250addd3142c",
+      "e912": {
+        "file": "e912_01.txt",
+        "length": 52350,
+        "sha256": "b964e4a5ddffbf9d8e61d37eeb2cbf819b96c2dd204c91bca0755dc08c8a9664",
+        "edits": [
+          [
+            47697,
+            "{census_before, census_original_before}",
+            "census_before"
+          ]
+        ]
+      }
+    },
+    {
+      "path": "src/bounded_output/canonical_stage_tests.rs",
+      "length": 27664,
+      "sha256": "652e4ba521f44276cc52356d767ff19b3de133d8906614bc1cb119b9b45dec8c",
+      "e912": {
+        "file": "e912_02.txt",
+        "length": 19983,
+        "sha256": "2119b3931a91be3727ca3962c2c01e76f73e7f371b15cdc6635f46b3a206a8bb",
+        "edits": [
+          [
+            14361,
+            "original_",
+            ""
+          ],
+          [
+            14897,
+            "",
+            "    assert_eq!(current.len() as u64, row[\"length\"].as_u64().unwrap());\n    assert_eq!(digest(current), row[\"sha256\"].as_str().unwrap());\n"
+          ],
+          [
+            18812,
+            "    let normalized = census_stage(path, current, false);\n    let current = normalized.as_deref().unwrap_or(current);\n    assert_eq!(current.len() as u64, row[\"length\"].as_u64().unwrap());\n    assert_eq!(digest(current), row[\"sha256\"].as_str().unwrap());\n",
+            ""
+          ],
+          [
+            19783,
+            "original_",
+            ""
+          ],
+          [
+            20118,
+            "\n// Separate source acquisition composition: never feed the old82b5 image to a\n// later fixed shared-insertions inverse that expects the complete bd8 source.\npub(crate) fn census_before(path: &str, current: &[u8]) -> Vec<u8> {\n    let original = census_original_before(path, current);\n    census_stage(path, current, true).unwrap_or(original)\n}\nfn census_stage(path: &str, current: &[u8], predecessor: bool) -> Option<Vec<u8>> {\n    use sha2::{Digest, Sha256};\n    let digest = |bytes: &[u8]| format!(\"{:x}\", crate::digest_hex::LowerHex(Sha256::digest(bytes)));\n    let data: serde_json::Value = serde_json::from_str(include_str!(\n        \"../cleanup_plan/replay/path_join/census_transport.json\"\n    ))\n    .unwrap();\n    assert_eq!(data[\"schema\"], \"semaprax.path-census-source-composition.v1\");\n    assert_eq!(data[\"e912\"], \"e9124c411f445ed80200460f2beb40cbdaa625df\");\n    assert_eq!(data[\"predecessor\"], \"bd8a94fac\");\n    let row = data[\"rows\"]\n        .as_array()\n        .unwrap()\n        .iter()\n        .find(|r| r[\"path\"] == path)?;\n    let kind = if predecessor { \"predecessor\" } else { \"e912\" };\n    let target = &row[kind];\n    if target.is_null() {\n        return None;\n    }\n    let compiled: &[u8] = match path {\n        \"crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs\")),\n        \"src/bounded_output.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/bounded_output.rs\")),\n        \"src/bounded_output/canonical_stage_tests.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/bounded_output/canonical_stage_tests.rs\")),\n        \"src/cleanup_plan/replay/path_join.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/path_join.rs\")),\n        \"src/cleanup_plan/replay/path_join/frontier.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/path_join/frontier.rs\")),\n        \"src/cleanup_plan/replay/path_join/frontier_tests/custody.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/path_join/frontier_tests/custody.rs\")),\n        \"src/cleanup_plan/replay/path_join/held_edge_tests.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/path_join/held_edge_tests.rs\")),\n        \"src/cleanup_plan/replay/path_join/shared_insertions_tests.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/path_join/shared_insertions_tests.rs\")),\n        \"tests/hir_module_boundaries.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/tests/hir_module_boundaries.rs\")),\n        \"tests/workspace/semantic_graph/source_inventory.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/tests/workspace/semantic_graph/source_inventory.rs\")),\n        _ => panic!(\"undeclared census composition source\"),\n    };\n    assert_eq!(current, compiled);\n    assert_eq!(current.len() as u64, row[\"length\"].as_u64().unwrap());\n    assert_eq!(digest(current), row[\"sha256\"].as_str().unwrap());\n    let (file, length, sha, fixture): (&str, usize, &str, &[u8]) = match (path, predecessor) {\n        (\"crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs\", false) => (\"e912_00.txt\", 227742, \"a89396ad310b42c99c219473d6744eee8efb7e498f1275c460673b38427fc2ca\", include_bytes!(\"../cleanup_plan/replay/path_join/census_transport/e912_00.txt\")),\n        (\"src/bounded_output.rs\", false) => (\"e912_01.txt\", 52350, \"b964e4a5ddffbf9d8e61d37eeb2cbf819b96c2dd204c91bca0755dc08c8a9664\", include_bytes!(\"../cleanup_plan/replay/path_join/census_transport/e912_01.txt\")),\n        (\"src/bounded_output/canonical_stage_tests.rs\", false) => (\"e912_02.txt\", 19983, \"2119b3931a91be3727ca3962c2c01e76f73e7f371b15cdc6635f46b3a206a8bb\", include_bytes!(\"../cleanup_plan/replay/path_join/census_transport/e912_02.txt\")),\n        (\"src/cleanup_plan/replay/path_join.rs\", false) => (\"e912_03.txt\", 53255, \"e66afaf7a9241c178c4800d325fdb20a7ff6a6715bf016c839fdb031148b83c9\", include_bytes!(\"../cleanup_plan/replay/path_join/census_transport/e912_03.txt\")),\n        (\"src/cleanup_plan/replay/path_join.rs\", true) => (\"predecessor_00.txt\", 52645, \"63b056cf5042a971c20eb8eca2cd6934446362c9b6e140b09bf4cb52e34720a6\", include_bytes!(\"../cleanup_plan/replay/path_join/census_transport/predecessor_00.txt\")),\n        (\"src/cleanup_plan/replay/path_join/frontier.rs\", false) => (\"e912_04.txt\", 14589, \"2a6bb7f4c53fd303d7b8ae581e0d210b8a9ecdfc8e0b36e8334cd681681b667d\", include_bytes!(\"../cleanup_plan/replay/path_join/census_transport/e912_04.txt\")),\n        (\"src/cleanup_plan/replay/path_join/frontier.rs\", true) => (\"predecessor_01.txt\", 15531, \"0f9c07072519396de6d9aecd059e095c8cbe853a2269ed404dccb00838f91570\", include_bytes!(\"../cleanup_plan/replay/path_join/census_transport/predecessor_01.txt\")),\n        (\"src/cleanup_plan/replay/path_join/frontier_tests/custody.rs\", false) => (\"e912_05.txt\", 13248, \"bc0f17e4753b893a398e71c9739d1e165236c3bfcc14f0622e2cd2e6174d27a6\", include_bytes!(\"../cleanup_plan/replay/path_join/census_transport/e912_05.txt\")),\n        (\"src/cleanup_plan/replay/path_join/frontier_tests/custody.rs\", true) => (\"predecessor_02.txt\", 15127, \"bdcd62df062f799a561dbaa937d42a0d790ed6b3216648b711da07a263440318\", include_bytes!(\"../cleanup_plan/replay/path_join/census_transport/predecessor_02.txt\")),\n        (\"src/cleanup_plan/replay/path_join/held_edge_tests.rs\", true) => (\"predecessor_03.txt\", 6878, \"5b7af349b0c28fb3dbe9fd4adbd58343e45aaf4511f0a8f5ca3a3e2dbce06dfa\", include_bytes!(\"../cleanup_plan/replay/path_join/census_transport/predecessor_03.txt\")),\n        (\"src/cleanup_plan/replay/path_join/shared_insertions_tests.rs\", true) => (\"predecessor_04.txt\", 19690, \"acec70169bd33476ef5386646a977ba5a2c098a2c9bb26824cd6e0f3c8da5224\", include_bytes!(\"../cleanup_plan/replay/path_join/census_transport/predecessor_04.txt\")),\n        (\"tests/hir_module_boundaries.rs\", false) => (\"e912_06.txt\", 153194, \"29a37b470efcab74c13779e9dcd1b2fac6cd548d7325d2cd1a9a4081afb3af96\", include_bytes!(\"../cleanup_plan/replay/path_join/census_transport/e912_06.txt\")),\n        (\"tests/workspace/semantic_graph/source_inventory.rs\", false) => (\"e912_07.txt\", 181075, \"36ae99b2e4319a83f688797315600c1c7f6dcfacbebcc0f5d21637c26155ff9e\", include_bytes!(\"../cleanup_plan/replay/path_join/census_transport/e912_07.txt\")),\n        _ => panic!(\"undeclared census composition target\"),\n    };\n    assert_eq!(target[\"file\"], file);\n    assert_eq!(target[\"length\"], length);\n    assert_eq!(target[\"sha256\"], sha);\n    assert_eq!(fixture.len(), length);\n    assert_eq!(digest(fixture), sha);\n    assert_eq!(\n        std::fs::read(\n            std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\"))\n                .join(\"src/cleanup_plan/replay/path_join/census_transport\")\n                .join(file)\n        )\n        .unwrap(),\n        fixture\n    );\n    let mut bytes = current.to_vec();\n    for edit in target[\"edits\"].as_array().unwrap().iter().rev() {\n        let at = edit[0].as_u64().unwrap() as usize;\n        let after = edit[1].as_str().unwrap().as_bytes();\n        assert_eq!(bytes.get(at..at + after.len()), Some(after));\n        bytes.splice(at..at + after.len(), edit[2].as_str().unwrap().bytes());\n    }\n    assert_eq!(\n        bytes, fixture,\n        \"complete independently bound census predecessor\"\n    );\n    Some(bytes)\n}\n",
+            ""
+          ]
+        ]
+      }
+    },
+    {
+      "path": "src/cleanup_plan/replay/path_join.rs",
+      "length": 53395,
+      "sha256": "18a2986eafe23dc5eacb7521b890fcde987cca568218eee421f87e1e0bdfe806",
+      "e912": {
+        "file": "e912_03.txt",
+        "length": 53255,
+        "sha256": "e66afaf7a9241c178c4800d325fdb20a7ff6a6715bf016c839fdb031148b83c9",
+        "edits": [
+          [
+            807,
+            "#[cfg(test)]\n#[allow(\n    dead_code,\n    reason = \"complete independently executable immediate-92d insertion predecessors\"\n)]\nmod shared_insertions_before;\n#[cfg(test)]\nmod shared_insertions_tests;\n",
+            ""
+          ],
+          [
+            6847,
+            "",
+            "    let mut insertions = boxed_states::Insertions::<PathState>::acquire(function, budget)?;"
+          ],
+          [
+            27163,
+            "coming_insertions.insert_group_held(function, group, state, budget);\n            if incoming_insertions.failed {\n                return Err(incoming_",
+            "sertions.insert_held(function, group, state, budget);\n            if insertions.failed {\n                return Err("
+          ]
+        ]
+      },
+      "predecessor": {
+        "file": "predecessor_00.txt",
+        "length": 52645,
+        "sha256": "63b056cf5042a971c20eb8eca2cd6934446362c9b6e140b09bf4cb52e34720a6",
+        "edits": [
+          [
+            1886,
+            "    );\n    #[cfg(feature = \"unstable-workflow-profiling\")]\n    let mut path_census = crate::bounded_output::exclusive_debits::path_census::enter(\n        crate::bounded_output::exclusive_debits::path_census::Family::Ordinary,\n    );\n    #[cfg(feature = \"unstable-workflow-profiling\")]\n    crate::bounded_output::exclusive_debits::path_census::event(\n        crate::bounded_output::exclusive_debits::path_census::Event::Body,\n",
+            ""
+          ],
+          [
+            8388,
+            "        #[cfg(feature = \"unstable-workflow-profiling\")]\n        states.observe_incoming();\n",
+            ""
+          ],
+          [
+            43597,
+            "    #[cfg(feature = \"unstable-workflow-profiling\")]\n    {\n        crate::bounded_output::exclusive_debits::path_census::finish(\n            terminal_paths,\n            successful_paths,\n        );\n        path_census.success();\n    }\n",
+            ""
+          ]
+        ]
+      }
+    },
+    {
+      "path": "src/cleanup_plan/replay/path_join/frontier.rs",
+      "length": 18676,
+      "sha256": "bf59b03e66773bb7ab3aa216a21631eb6e6b7468fdc02cb95d31d8b8b4992663",
+      "e912": {
+        "file": "e912_04.txt",
+        "length": 14589,
+        "sha256": "2a6bb7f4c53fd303d7b8ae581e0d210b8a9ecdfc8e0b36e8334cd681681b667d",
+        "edits": [
+          [
+            78,
+            "",
+            "use super::super::physical_storage::btree_node_upper;\n"
+          ],
+          [
+            402,
+            "    group_entry: bool,\n",
+            ""
+          ],
+          [
+            527,
+            "",
+            "    owned_empty: usize,\n    held_empty: usize,\n    owned_one: usize,\n    held_one: usize,\n    owned_many: usize,\n    held_many: usize,\n"
+          ],
+          [
+            1236,
+            "",
+            "            + 5 * size_of::<Option<usize>>()\n            // Eight checked amount producers: operand actual/formal values,\n            // checked result/unwrap receiver, default and returned usize.\n            // No per-entry Option callbacks or forwarding fee helper exists.\n            + size_of::<[(usize,usize,Option<usize>,Option<usize>,usize,usize);8]>()\n"
+          ],
+          [
+            1354,
+            "            // One independent tree-group entry bank shares the exact held\n            // authority/error owner. The original node/renewal tariff remains.\n            + Self::GROUP_ENTRY_CONTROLS\n",
+            ""
+          ],
+          [
+            2107,
+            "const ENTRY_CONTROLS: usize =",
+            "pub(super) fn entry_controls() -> usize {\n       "
+          ],
+          [
+            2949,
+            ";\n    pub(super) fn entry_controls() -> usize {\n        Self::ENTRY_CONTROLS",
+            ""
+          ],
+          [
+            3036,
+            "// Exact original tree entry price; only borrowed Self references depend on\n    // the receiver type, and both remain thin references to a sized owner.\n    pub(super) const GROUP_ENTRY_CONTROLS: usize = 2 * size_of::<&mut Self>()\n        + 4 * size_of::<&ResolvedFunction>()\n        + 4 * size_of::<&mut ReplayBudget>()\n        + size_of::<&mut Option<Diagnostic>>()\n        + size_of::<Result<(), ByteFailure>>()\n        + ClassifierLedger::current_receiving_controls();\n    const NODE: usize = match const_node_upper::<Box<T>, ()>() {\n        Some(bytes) => bytes,\n        None => usize::MAX,\n    };\n    const BOXED: usize = size_of::<T>().saturating_add(2 * size_of::<Box<T>>());\n    const OWNED_EMPTY: usize = Self::ENTRY_CONTROLS.saturating_add(Self::BOXED);\n    const TWO_NODES: usize = Self::NODE.saturating_mul(2);\n    const HELD_ONE: usize = Self::TWO_NODES.saturating_add(Self::ENTRY_CONTROLS);\n    const OWNED_ONE: usize = Self::HELD_ONE.saturating_add(Self::BOXED);\n    const HELD_MANY: usize = Self::NODE.saturating_add(Self::ENTRY_CONTROLS);\n    const OWNED_MANY: usize = Self::HELD_MANY.saturating_add(Self::BOXED);\n    const GROUP_HELD: usize = Self::NODE.saturating_add(Self::GROUP_ENTRY_CONTROLS);",
+            "#[allow(\n        clippy::manual_saturating_arithmetic,\n        reason = \"retain the separately prepaid checked Option and unwrap receiver banks\"\n    )]"
+          ],
+          [
+            4629,
+            "",
+            "        let node = btree_node_upper::<Box<T>, ()>().unwrap_or(usize::MAX);\n        let boxed = size_of::<T>()\n            .checked_add(2 * size_of::<Box<T>>())\n            .unwrap_or(usize::MAX);\n        let held_empty = Self::entry_controls();\n        let owned_empty = held_empty.checked_add(boxed).unwrap_or(usize::MAX);\n        let two_nodes = node.checked_mul(2).unwrap_or(usize::MAX);\n        let held_one = two_nodes.checked_add(held_empty).unwrap_or(usize::MAX);\n        let owned_one = held_one.checked_add(boxed).unwrap_or(usize::MAX);\n        let held_many = node.checked_add(held_empty).unwrap_or(usize::MAX);\n        let owned_many = held_many.checked_add(boxed).unwrap_or(usize::MAX);\n"
+          ],
+          [
+            4740,
+            "            group_entry: true,\n",
+            ""
+          ],
+          [
+            4928,
+            "",
+            "            owned_empty,\n            held_empty,\n            owned_one,\n            held_one,\n            owned_many,\n            held_many,\n"
+          ],
+          [
+            6482,
+            "Self::ENTRY_CONTROLS",
+            "self.held_empty"
+          ],
+          [
+            6582,
+            "Self::OWNED_EMPTY,\n                Incoming::One(_) => Self::OWNED_ONE,\n                Incoming::Many(_) => Self::OWNED_MANY",
+            "self.owned_empty,\n                Incoming::One(_) => self.owned_one,\n                Incoming::Many(_) => self.owned_many"
+          ],
+          [
+            8036,
+            "Self::ENTRY_CONTROLS",
+            "self.held_empty"
+          ],
+          [
+            8136,
+            "Self::ENTRY_CONTROLS,\n                Incoming::One(_) => Self::HELD_ONE,\n                Incoming::Many(_) => Self::HELD_MANY",
+            "self.held_empty,\n                Incoming::One(_) => self.held_one,\n                Incoming::Many(_) => self.held_many"
+          ],
+          [
+            9193,
+            "    // Complete original held-tree producer, sharing only retained ownership.\n    fn authenticate_group(&mut self, function: &ResolvedFunction, budget: &mut ReplayBudget) {\n        if self.failed {\n            return;\n        }\n        assert!(self.group_entry);\n        self.group_entry = false;\n        // Compare exact receiver identity before querying a possibly foreign\n        // payer. The held ledger poisons only its original owner on mismatch.\n        if self.function != std::ptr::from_ref(function)\n            || self.budget != std::ptr::from_ref(budget)\n            || !self.ledger.current()\n        {\n            self.ledger.reject_storage();\n            self.refusal = Some(Diagnostic::io(\"SPX-H006\", String::new()));\n            self.failed = true;\n            return;\n        }\n        budget.authenticate_zero_into(\n            function,\n            \"incoming ownership state authority\",\n            &mut self.refusal,\n        );\n        self.failed = self.refusal.is_some();\n    }\n    pub(super) fn insert_group_held(\n        &mut self,\n        function: &ResolvedFunction,\n        target: &mut BTreeSet<Box<T>>,\n        value: Box<T>,\n        budget: &mut ReplayBudget,\n    ) {\n        self.authenticate_group(function, budget);\n        if self.failed {\n            return;\n        }\n        if target.contains(value.as_ref()) {\n            if let Err(error) = budget.reserve_compact_bytes(\n                function,\n                Self::GROUP_ENTRY_CONTROLS,\n                \"ownership held duplicate receiving renewal\",\n            ) {\n                self.refusal = Some(error.into_diagnostic());\n                self.failed = true;\n                return;\n            }\n        } else {\n            if let Err(error) = budget.reserve_compact_bytes(\n                function,\n                Self::GROUP_HELD,\n                \"incoming held ownership state node and receiving renewal\",\n            ) {\n                self.refusal = Some(error.into_diagnostic());\n                self.failed = true;\n                return;\n            }\n            target.insert(value);\n        }\n        self.group_entry = true;\n    }\n    #[cfg(test)]\n    pub(super) fn observed_prices() -> [usize; 7] {\n        [\n            Self::OWNED_EMPTY,\n            Self::ENTRY_CONTROLS,\n            Self::OWNED_ONE,\n            Self::HELD_ONE,\n            Self::OWNED_MANY,\n            Self::HELD_MANY,\n            Self::GROUP_HELD,\n        ]\n    }\n",
+            ""
+          ],
+          [
+            11836,
+            "}\n\n// Exact original B-tree layout algorithm, evaluated only by NODE above.\n// Its six independently rounded fields and every checked failure keep the\n// complete original usize::MAX fallback; no aggregate is formed per entry.\n#[allow(\n    clippy::manual_saturating_arithmetic,\n    reason = \"retain exact original checked layout/sentinel semantics\"\n)]\npub(super) const fn const_node_upper<K, V>() -> Option<usize> {\n    use std::mem::align_of;\n    let mut alignment = align_of::<K>();\n    if align_of::<V>() > alignment {\n        alignment = align_of::<V>();\n    }\n    if align_of::<usize>() > alignment {\n        alignment = align_of::<usize>();\n    }\n    let keys = match size_of::<K>().checked_mul(11) {\n        Some(bytes) => bytes,\n        None => return None,\n    };\n    let values = match size_of::<V>().checked_mul(11) {\n        Some(bytes) => bytes,\n        None => return None,\n    };\n    let children = match size_of::<usize>().checked_mul(12) {\n        Some(bytes) => bytes,\n        None => return None,\n    };\n    let fields = [\n        size_of::<Option<std::ptr::NonNull<()>>>(),\n        size_of::<u16>(),\n        size_of::<u16>(),\n        keys,\n        values,\n        children,\n    ];\n    let mut total = 0usize;\n    let mut index = 0usize;\n    while index < fields.len() {\n        let rounded = match fields[index].checked_add(alignment - 1) {\n            Some(bytes) => bytes / alignment * alignment,\n            None => return None,\n        };\n        total = match total.checked_add(rounded) {\n            Some(bytes) => bytes,\n            None => return None,\n        };\n        index += 1;\n    }\n    Some(total)\n",
+            ""
+          ]
+        ]
+      },
+      "predecessor": {
+        "file": "predecessor_01.txt",
+        "length": 15531,
+        "sha256": "0f9c07072519396de6d9aecd059e095c8cbe853a2269ed404dccb00838f91570",
+        "edits": [
+          [
+            7033,
+            "        #[cfg(feature = \"unstable-workflow-profiling\")]\n        if duplicate {\n            crate::bounded_output::exclusive_debits::path_census::event(\n                crate::bounded_output::exclusive_debits::path_census::Event::Duplicate,\n            );\n        }\n",
+            ""
+          ],
+          [
+            7322,
+            "            #[cfg(feature = \"unstable-workflow-profiling\")]\n            crate::bounded_output::exclusive_debits::path_census::event(\n                crate::bounded_output::exclusive_debits::path_census::Event::OwnedBox,\n            );\n",
+            ""
+          ],
+          [
+            8587,
+            "        #[cfg(feature = \"unstable-workflow-profiling\")]\n        if duplicate {\n            crate::bounded_output::exclusive_debits::path_census::event(\n                crate::bounded_output::exclusive_debits::path_census::Event::Duplicate,\n            );\n        }\n",
+            ""
+          ],
+          [
+            8876,
+            "            #[cfg(feature = \"unstable-workflow-profiling\")]\n            crate::bounded_output::exclusive_debits::path_census::event(\n                crate::bounded_output::exclusive_debits::path_census::Event::HeldTransfer,\n            );\n",
+            ""
+          ],
+          [
+            14423,
+            "    #[cfg(feature = \"unstable-workflow-profiling\")]\n    pub(super) fn observe_incoming(&self) {\n        use crate::bounded_output::exclusive_debits::path_census::{event, Event};\n        event(match self {\n            Self::Empty => Event::InputEmpty,\n            Self::One(_) => Event::InputOne,\n            Self::Many(_) => Event::InputMany,\n        });\n    }\n",
+            ""
+          ],
+          [
+            15351,
+            "{\n                #[cfg(feature = \"unstable-workflow-profiling\")]\n                crate::bounded_output::exclusive_debits::path_census::event(\n                    crate::bounded_output::exclusive_debits::path_census::Event::Empty,\n                );\n                *self = Self::One(value);\n            }",
+            "*self = Self::One(value),"
+          ],
+          [
+            15687,
+            "                #[cfg(feature = \"unstable-workflow-profiling\")]\n                {\n                    crate::bounded_output::exclusive_debits::path_census::event(\n                        crate::bounded_output::exclusive_debits::path_census::Event::One,\n                    );\n                    crate::bounded_output::exclusive_debits::path_census::event(\n                        crate::bounded_output::exclusive_debits::path_census::Event::Promotion,\n                    );\n                }\n",
+            ""
+          ],
+          [
+            16348,
+            "                #[cfg(feature = \"unstable-workflow-profiling\")]\n                crate::bounded_output::exclusive_debits::path_census::event(\n                    crate::bounded_output::exclusive_debits::path_census::Event::TreeInsert,\n                );\n",
+            ""
+          ],
+          [
+            16635,
+            "                #[cfg(feature = \"unstable-workflow-profiling\")]\n                crate::bounded_output::exclusive_debits::path_census::event(\n                    crate::bounded_output::exclusive_debits::path_census::Event::TreeInsert,\n                );\n",
+            ""
+          ],
+          [
+            17014,
+            "                #[cfg(feature = \"unstable-workflow-profiling\")]\n                crate::bounded_output::exclusive_debits::path_census::event(\n                    crate::bounded_output::exclusive_debits::path_census::Event::Many,\n                );\n                #[cfg(feature = \"unstable-workflow-profiling\")]\n                crate::bounded_output::exclusive_debits::path_census::event(\n                    crate::bounded_output::exclusive_debits::path_census::Event::TreeInsert,\n                );\n",
+            ""
+          ]
+        ]
+      }
+    },
+    {
+      "path": "src/cleanup_plan/replay/path_join/frontier_tests/custody.rs",
+      "length": 16163,
+      "sha256": "e622e8ac72756bff5f907a1c411023e2cfd5a4179bd6a393eff81a88e42d18d9",
+      "e912": {
+        "file": "e912_05.txt",
+        "length": 13248,
+        "sha256": "bc0f17e4753b893a398e71c9739d1e165236c3bfcc14f0622e2cd2e6174d27a6",
+        "edits": [
+          [
+            3534,
+            "            \"f3ead7d594ff4bb9b913a080425812b348c626886bf5a8a7effddef4e0f0a5ce\"\n",
+            "            \"d7722e374a576ea9e7fc654a7dee36f8a97282e8f4e96fc1fb0ef8d298477804\"\n"
+          ],
+          [
+            3704,
+            "        assert_eq!(packet.as_object().unwrap().len(), 20);\n",
+            "        assert_eq!(packet.as_object().unwrap().len(), 9);\n"
+          ],
+          [
+            6375,
+            "                \"src/cleanup_plan/replay/factored.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/factored.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/factored/canonical_shared/inline_singleton.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/factored/continuation_receiver.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/factored/continuation_receiver.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/skeleton_work.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/skeleton_work.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/ordinary_receiving/tests.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/ordinary_receiving/tests.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests/receiving.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests/receiving.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/factored/continuation_receiver/tests.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/factored/continuation_receiver/tests.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs\")).as_slice(),\n",
+            ""
+          ],
+          [
+            9779,
+            "            if path == \"src/cleanup_plan/replay/factored/canonical_shared/inline_singleton.rs\" {\n                // This one endpoint is the complete643f intermediate. The\n                // original ordinary-labels stage below still proves fixed946.\n                assert_eq!(actual.as_slice(), row[\"before_text\"].as_str().unwrap().as_bytes());\n                assert_eq!(actual.len(), 55813);\n                assert_eq!(digest(&actual), \"87257e50e24a64d047eff17fd2ef9de7e1ed4c1049697222223947c62b28f514\");\n            } else {\n                assert_eq!(digest(&actual), expected);\n            }\n",
+            "            assert_eq!(digest(&actual), expected);\n"
+          ],
+          [
+            11340,
+            "                    \"b19c2dc75004f49c113ba8895a2e54a8a816ad95aadf8519665df43064fe2c17\"\n",
+            "                    \"d28020bab1ef4f782d82b8353e72a4d8e0a92bf088213ce6e3809f70d5f29345\"\n"
+          ],
+          [
+            15220,
+            "                assert_eq!(actual.as_slice(), packet[&path][\"before_text\"].as_str().unwrap().as_bytes());\n",
+            "                assert_eq!(actual.as_slice(), include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton.rs\")).as_slice());\n"
+          ]
+        ]
+      },
+      "predecessor": {
+        "file": "predecessor_02.txt",
+        "length": 15127,
+        "sha256": "bdcd62df062f799a561dbaa937d42a0d790ed6b3216648b711da07a263440318",
+        "edits": [
+          [
+            2932,
+            "        let mut actual =\n            crate::bounded_output::census_before(&path, &std::fs::read(root.join(&path)).unwrap());\n",
+            "        let mut actual = std::fs::read(root.join(&path)).unwrap();\n"
+          ],
+          [
+            3534,
+            "            \"f3ead7d594ff4bb9b913a080425812b348c626886bf5a8a7effddef4e0f0a5ce\"\n",
+            "            \"c0ebac882a164a7058db70b5914c533678d5886a261a3236b2124e0d0e1ee527\"\n"
+          ],
+          [
+            3704,
+            "        assert_eq!(packet.as_object().unwrap().len(), 20);\n",
+            "        assert_eq!(packet.as_object().unwrap().len(), 16);\n"
+          ],
+          [
+            7842,
+            "                \"src/cleanup_plan/replay/factored/continuation_receiver/tests.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/factored/continuation_receiver/tests.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs\")).as_slice(),\n",
+            ""
+          ],
+          [
+            11340,
+            "                    \"b19c2dc75004f49c113ba8895a2e54a8a816ad95aadf8519665df43064fe2c17\"\n",
+            "                    \"4754c42c45e47bdb7f065751e67a0d5c4045c26630303fc9945e377ff6e5059f\"\n"
+          ]
+        ]
+      }
+    },
+    {
+      "path": "src/cleanup_plan/replay/path_join/held_edge_tests.rs",
+      "length": 8779,
+      "sha256": "96eacd0bb05c9bebb2fc8df02dd80f5da5678e999f6d5b4f5e04507f236cf5dc",
+      "predecessor": {
+        "file": "predecessor_03.txt",
+        "length": 6878,
+        "sha256": "5b7af349b0c28fb3dbe9fd4adbd58343e45aaf4511f0a8f5ca3a3e2dbce06dfa",
+        "edits": [
+          [
+            5883,
+            "path = row[\"path\"].as_str().unwrap();\n        let mut actual =\n            crate::bounded_output::census_before(path, &std::fs::read(root.join(path)).unwrap());\n        actual = super::shared_insertions_tests::prior_source(path",
+            "mut actual = std::fs::read(root.join(row[\"path\"].as_str().unwrap())).unwrap();\n        actual =\n            super::shared_insertions_tests::prior_source(row[\"path\"].as_str().unwrap()"
+          ],
+          [
+            6923,
+            "\n#[test]\nfn feature_only_census_full_source_inverses_preserve_each_complete_immediate_owner() {\n    assert_eq!(\n        digest(include_bytes!(\"path_census_inverse.json\")),\n        \"01afde7a0c1a3c5b98ad8730abaf50d7ee61cb240d6cafee5eaedeb2b5fb5744\"\n    );\n    let rows: serde_json::Value =\n        serde_json::from_str(include_str!(\"path_census_inverse.json\")).unwrap();\n    assert_eq!(rows[\"base\"], \"82b5d3f2b8e33e625b6e5d002d37d244b5a71dd3\");\n    let root = std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\"));\n    for row in rows[\"rows\"].as_array().unwrap() {\n        let path = row[\"path\"].as_str().unwrap();\n        let current = std::fs::read(root.join(path)).unwrap();\n        crate::bounded_output::census_original_before(path, &current);\n        let mut drift = current.clone();\n        drift.push(0);\n        assert!(\n            std::panic::catch_unwind(|| crate::bounded_output::census_original_before(\n                path, &drift\n            ))\n            .is_err()\n        );\n    }\n    let transport: serde_json::Value =\n        serde_json::from_str(include_str!(\"census_transport.json\")).unwrap();\n    for row in transport[\"rows\"].as_array().unwrap() {\n        if row[\"predecessor\"].is_null() {\n            continue;\n        }\n        let path = row[\"path\"].as_str().unwrap();\n        let current = std::fs::read(root.join(path)).unwrap();\n        let actual = crate::bounded_output::census_before(path, &current);\n        let full = root\n            .join(\"src/cleanup_plan/replay/path_join/census_transport\")\n            .join(row[\"predecessor\"][\"file\"].as_str().unwrap());\n        assert_eq!(actual, std::fs::read(full).unwrap());\n        let mut drift = current;\n        drift.push(0);\n        assert!(\n            std::panic::catch_unwind(|| crate::bounded_output::census_before(path, &drift))\n                .is_err()\n        );\n    }\n}\n",
+            ""
+          ]
+        ]
+      }
+    },
+    {
+      "path": "src/cleanup_plan/replay/path_join/shared_insertions_tests.rs",
+      "length": 19862,
+      "sha256": "5145bc43c588fe8e464ca0a916d5217dbcd95de0a880a1a420879aff08fc39b7",
+      "predecessor": {
+        "file": "predecessor_04.txt",
+        "length": 19690,
+        "sha256": "acec70169bd33476ef5386646a977ba5a2c098a2c9bb26824cd6e0f3c8da5224",
+        "edits": [
+          [
+            1793,
+            "             ",
+            ""
+          ],
+          [
+            12336,
+            " .0 && current.0 ",
+            ".0 && current.0"
+          ],
+          [
+            12953,
+            " .1.allocated <= before.0 ",
+            ".1.allocated <= before.0"
+          ],
+          [
+            13065,
+            " ",
+            ""
+          ],
+          [
+            13342,
+            " ",
+            ""
+          ],
+          [
+            13512,
+            " ",
+            ""
+          ],
+          [
+            16578,
+            "let compiled = crate::bounded_output::census_before(path, compiled);\n    assert_eq!(bytes.as_slice(), compiled.as_slice()",
+            "assert_eq!(bytes.as_slice(), compiled"
+          ],
+          [
+            18081,
+            "let raw = std::fs::read(root.join(path)).unwrap();\n        prior_source(path, crate::bounded_output::census_before(path, &raw",
+            "prior_source(path, std::fs::read(root.join(path)).unwrap("
+          ]
+        ]
+      }
+    },
+    {
+      "path": "tests/hir_module_boundaries.rs",
+      "length": 154352,
+      "sha256": "0da499151073247115e90fb690babab096ee9643a85912e4162922d3f73938a8",
+      "e912": {
+        "file": "e912_06.txt",
+        "length": 153194,
+        "sha256": "29a37b470efcab74c13779e9dcd1b2fac6cd548d7325d2cd1a9a4081afb3af96",
+        "edits": [
+          [
+            244,
+            "\"\", \"\u03b1\", \"\\0\", \"\\r\\n\", \"\u03b2\"), \"\u03b1\\0\\r\\n\u03b2\");\n    let validation_raw = audit_source_join!(include_str!(\"../src/bounded_output/exclusive_debits/path_census.rs\"),include_str!(\"../src/bounded_output/request_reservation.rs\"),include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/ordinary_receiving_tests.rs\"),include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/ordinary_receiving_before.rs\"),include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/ordinary_receiving_before.rs\"),include_str!(\"../src/cleanup_plan/replay/path_join/held_edge_before.rs\"),include_str!(\"../src/cleanup_plan/replay/path_join/held_edge_tests.rs\"),include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/hir_last_use.rs\"),include_str!(\"../src/cleanup_plan/replay/factored/hir_memo_release_tests.rs\"),include_str!(\"../src/cleanup_plan/replay/path_join/shared_insertions_before.rs\"),include_str!(\"../src/cleanup_plan/replay/path_join/shared_insertions_before/boxed_flow.rs\"),include_str!(\"../src/cleanup_plan/replay/path_join/shared_insertions_before/boxed_states.rs\"),include_str!(\"../src/cleanup_plan/replay/path_join/shared_insertions_before/frontier.rs\"),include_str!(\"../src/cleanup_plan/replay/path_join/shared_insertions_tests.rs\"),include_str!(\"../src/cleanup_plan/replay/plan_prefix.rs\"),include_str!(\"../src/cleanup_plan/replay/plan_prefix/before.rs\"),include_str!(\"../src/cleanup_plan/replay/plan_prefix/tests.rs\"),include_str!(\"../src/cleanup_plan/replay/skeleton_work/plan_prefix.rs\"),include_str!(\"../src/cleanup_plan/replay/skeleton_work/query_proof.rs\"),include_str!(\"../src/cleanup_plan/replay/skeleton_work/query_proof/before.rs\"),include_str!(\"../src/cleanup_plan/replay/skeleton_work/query_proof/tests.rs\"),include_str!(\"../src/source_reflows_merge/main_e177_overlay_lookup",
+            "\n        include_str!(\"../src/bounded_output/exclusive_debits/path_census.rs\"),\n        include_str!(\"../src/bounded_output/request_reservation.rs\"),\n\"\", \"\u03b1\", \"\\0\", \"\\r\\n\", \"\u03b2\"), \"\u03b1\\0\\r\\n\u03b2\");\n    let validation_raw = audit_source_join!(include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/ordinary_receiving_tests.rs\"),include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/ordinary_receiving_before.rs\"),include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/ordinary_receiving_before.rs\"),include_str!(\"../src/cleanup_plan/replay/path_join/held_edge_before.rs\"),include_str!(\"../src/cleanup_plan/replay/path_join/held_edge_tests"
+          ]
+        ]
+      }
+    },
+    {
+      "path": "tests/workspace/semantic_graph/source_inventory.rs",
+      "length": 182297,
+      "sha256": "8544b92618c1bc2cdfbde9c6874f592abc74f72fe7f07257f0b1408aa84a6463",
+      "e912": {
+        "file": "e912_07.txt",
+        "length": 181075,
+        "sha256": "36ae99b2e4319a83f688797315600c1c7f6dcfacbebcc0f5d21637c26155ff9e",
+        "edits": [
+          [
+            11555,
+            "factored/canonical_shared/inline_singleton/hir_last_use.rs\"),include_str!(\"../../src/cleanup_plan/replay/factored/hir_memo_release_tests.rs\"),include_str!(\"../../src/cleanup_plan/replay/path_join/shared_insertions_before.rs\"),include_str!(\"../../src/cleanup_plan/replay/path_join/shared_insertions_before/boxed_flow.rs\"),include_str!(\"../../src/cleanup_plan/replay/path_join/shared_insertions_before/boxed_states.rs\"),include_str!(\"../../src/cleanup_plan/replay/path_join/shared_insertions_before/frontier.rs\"),include_str!(\"../../src/cleanup_plan/replay/path_join/shared_insertions_tests.rs\"),include_str!(\"../../src/cleanup_plan/replay/plan_prefix.rs\"),include_str!(\"../../src/cleanup_plan/replay/plan_prefix/before.rs\"),include_str!(\"../../src/cleanup_plan/replay/plan_prefix/tests.rs\"),include_str!(\"../../src/cleanup_plan/replay/skeleton_work/plan_prefix.rs\"),include_str!(\"../../src/cleanup_plan/replay/skeleton_work/query_proof.rs\"),include_str!(\"../../src/cleanup_plan/replay/skeleton_work/query_proof/before.rs\"),include_str!(\"../../src/cleanup_plan/replay/skeleton_work/query_proof/tests.rs\"),include_str!(\"../../src/source_reflows_merge/main_e177_overlay_lookup.rs\"),include_str!(\"../../src/cleanup_plan/replay/",
+            ""
+          ]
+        ]
+      }
+    }
+  ]
+}

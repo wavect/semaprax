@@ -5,6 +5,8 @@ pub(crate) mod format_acceptance;
 pub(crate) mod identity_reservation;
 pub(crate) mod key_directory;
 pub(crate) mod prepaid;
+mod request_reservation;
+use request_reservation::reserve_optional;
 #[cfg(test)]
 pub(crate) mod stage_debits;
 use std::cell::{Cell, RefCell};
@@ -303,40 +305,11 @@ pub(crate) use staged;
 #[track_caller]
 fn reserve(budget: Option<&Budget>, length: usize) -> bool {
     if budget.is_some_and(|budget| budget.overflowed.get()) {
+        #[cfg(feature = "unstable-workflow-profiling")]
+        exclusive_debits::path_census::request(budget, length, false);
         return false;
     }
     reserve_optional(budget, length)
-}
-
-#[track_caller]
-fn reserve_optional(budget: Option<&Budget>, length: usize) -> bool {
-    let Some(budget) = budget else {
-        return true;
-    };
-    // A zero-sized retry cannot authenticate an already refused account.
-    // Positive optional writes can still consume a reserved error trailer;
-    // they never clear the selected refusal or restore required admission.
-    if length == 0 && budget.overflowed.get() {
-        return false;
-    }
-    let remaining = budget.remaining.get();
-    if length > remaining {
-        record_refusal(budget, length);
-        budget.overflowed.set(true);
-        return false;
-    }
-    if length
-        .checked_add(budget.floor.get())
-        .is_none_or(|required| required > remaining)
-    {
-        return false;
-    }
-    budget.remaining.set(remaining - length);
-    #[cfg(test)]
-    stage_debits::debit(budget, length);
-    #[cfg(feature = "unstable-workflow-profiling")]
-    exclusive_debits::debit(budget, length);
-    true
 }
 
 pub(crate) fn reserve_active(length: usize) -> bool {
@@ -364,6 +337,8 @@ pub(crate) fn reserve_active_required(length: usize) -> bool {
         .as_ref()
         .is_some_and(|budget| budget.overflowed.get())
     {
+        #[cfg(feature = "unstable-workflow-profiling")]
+        exclusive_debits::path_census::request(budget.as_deref(), length, false);
         return false;
     }
     let admitted = reserve(budget.as_deref(), length);
@@ -393,9 +368,13 @@ pub(crate) fn reserve_active_preserving(length: usize, floor: usize) -> bool {
     };
     let floor = floor.max(budget.floor.get());
     let Some(required) = length.checked_add(floor) else {
+        #[cfg(feature = "unstable-workflow-profiling")]
+        exclusive_debits::path_census::request(Some(budget), length, false);
         return false;
     };
     if required > budget.remaining.get() {
+        #[cfg(feature = "unstable-workflow-profiling")]
+        exclusive_debits::path_census::request(Some(budget), length, false);
         return false;
     }
     reserve_optional(Some(budget), length)
@@ -1377,6 +1356,8 @@ pub(crate) use source_owner_scope::source_owner_scope;
 
 #[cfg(test)]
 mod canonical_stage_tests;
+#[cfg(test)]
+pub(crate) use canonical_stage_tests::{census_before, census_original_before};
 
 #[cfg(test)]
 mod loan_inner_stage_tests;

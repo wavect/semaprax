@@ -181,7 +181,10 @@ mod constructor_funding_tests {
     }
 }
 
+pub(in crate::cleanup_plan::replay) mod query_proof;
+
 pub(super) struct SkeletonWork<'a, 'b> {
+    pub(super) queries: query_proof::Slot<'a>,
     pub(super) continuations: Option<&'b mut continuation_storage::Storage<'a>>,
     pub(super) function: &'a ResolvedFunction,
     pub(super) budget: &'b mut ReplayBudget,
@@ -320,7 +323,9 @@ impl<'a, 'b> SkeletonWork<'a, 'b> {
         } else {
             None
         };
+        budget.reserve_bytes(function, query_proof::HEADER, "skeleton query neutral slot receivers")?;
         Ok(Self {
+            queries: query_proof::Slot::new(function, budget),
             function,
             budget,
             continuations: None,
@@ -350,7 +355,9 @@ impl<'a, 'b> SkeletonWork<'a, 'b> {
         if let Some(lease) = budget.oracle_lease() {
             return Self::oracle_with_index(program, function, budget, index, lease);
         }
+        budget.reserve_bytes(function, query_proof::HEADER, "skeleton query neutral slot receivers")?;
         Ok(Self {
+            queries: query_proof::Slot::new(function, budget),
             function,
             budget,
             continuations: None,
@@ -384,7 +391,9 @@ impl<'a, 'b> SkeletonWork<'a, 'b> {
         index: Option<&'b crate::loop_calls::byte_writer::ModuleIndex<'a>>,
     ) -> Result<Self, Diagnostic> {
         let prepared = ordinary_entry::prepare(program, function, budget, index.is_some())?;
+        budget.reserve_bytes(function, query_proof::HEADER, "skeleton query neutral slot receivers")?;
         Ok(Self {
+            queries: query_proof::Slot::new(function, budget),
             function,
             budget,
             continuations: None,
@@ -423,7 +432,9 @@ impl<'a, 'b> SkeletonWork<'a, 'b> {
         // are rebuilt under this same ledger before their index is published.
         let string_condition_reads = selected_profile::conditions::reads(function, budget)?;
         let string_owner_moves = selected_profile::conditions::moves(function, budget)?;
+        budget.reserve_bytes(function, query_proof::HEADER, "skeleton query neutral slot receivers")?;
         Ok(Self {
+            queries: query_proof::Slot::new(function, budget),
             function,
             budget,
             continuations: None,

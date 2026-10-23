@@ -45,7 +45,7 @@ fn const_prices_equal_every_original_tariff_and_checked_layout_including_sentine
     // Stay below rustc/LLVM's object-size bound while 11 keys overflow usize.
     type Huge = [u8; isize::MAX as usize / 4];
     same!(Huge); // Actual insertion keys are Box<Huge>, hence pointer-sized.
-    // Exercise the generic node algorithm's real checked overflow separately.
+                 // Exercise the generic node algorithm's real checked overflow separately.
     assert_eq!(frontier::const_node_upper::<Huge, ()>(), None);
     assert_eq!(
         crate::cleanup_plan::replay::physical_storage::btree_node_upper::<Huge, ()>(),
@@ -311,7 +311,7 @@ fn complete_immediate_receiver_composition_lowers_cold_invoice_with_full_drop_an
             };
             let before = observe(true, usize::MAX);
             let current = observe(false, usize::MAX);
-            assert!(before.0.0 && current.0.0 && !before.1 && !current.1);
+            assert!(before.0 .0 && current.0 .0 && !before.1 && !current.1);
             let old_controls = prices::<PathState>(f).1;
             let removed = old_controls[0] + old_controls[2] + old_controls[3]
                 - Insertions::<PathState>::controls();
@@ -321,18 +321,18 @@ fn complete_immediate_receiver_composition_lowers_cold_invoice_with_full_drop_an
             );
             assert_eq!(current.2 + removed, before.2);
             every_invoice_lower &= current.2 < before.2;
-            assert!(current.0.1.allocated <= before.0.1.allocated);
+            assert!(current.0 .1.allocated <= before.0 .1.allocated);
             for o in [&before, &current] {
-                let a = &o.0.1;
+                let a = &o.0 .1;
                 assert!(!a.invalid && a.live == 0 && a.allocated <= o.2);
                 assert_eq!(a.allocated, a.freed);
             }
             for limit in [0, current.2 - 1, current.2] {
                 let o = observe(false, limit);
-                assert_eq!(o.0.0, limit == current.2);
+                assert_eq!(o.0 .0, limit == current.2);
                 assert_eq!(o.1, limit != current.2);
                 assert_eq!(o.3.is_some(), limit != current.2);
-                let a = &o.0.1;
+                let a = &o.0 .1;
                 assert!(!a.invalid && a.live == 0);
                 assert_eq!(a.allocated, a.freed);
                 assert!(a.allocated <= o.2 && o.2 <= limit);
@@ -405,7 +405,8 @@ pub(super) fn prior_source(path: &str, bytes: Vec<u8>) -> Vec<u8> {
         }
         _ => panic!("unadmitted shared insertion inverse"),
     };
-    assert_eq!(bytes.as_slice(), compiled);
+    let compiled = crate::bounded_output::census_before(path, compiled);
+    assert_eq!(bytes.as_slice(), compiled.as_slice());
     assert_eq!(bytes.len() as u64, row["length"].as_u64().unwrap());
     assert_eq!(digest(&bytes), row["sha256"].as_str().unwrap());
     let mut actual = bytes;
@@ -435,7 +436,8 @@ fn complete_immediate_driver_and_receivers_keep_exact_whole_preimages_and_shared
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     for row in rows.as_array().unwrap() {
         let path = row["path"].as_str().unwrap();
-        prior_source(path, std::fs::read(root.join(path)).unwrap());
+        let raw = std::fs::read(root.join(path)).unwrap();
+        prior_source(path, crate::bounded_output::census_before(path, &raw));
     }
     let marker = "fn validate_control_group_with_budget";
     assert_eq!(

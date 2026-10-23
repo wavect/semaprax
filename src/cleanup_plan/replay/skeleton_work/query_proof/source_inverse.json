@@ -1,0 +1,197 @@
+[
+  {
+    "path": "src/cleanup_plan/replay.rs",
+    "current_length": 327435,
+    "current_sha256": "0aeeb9967f3272bfc1371131cba43dc39e5bb7b155eae28500512de0c34af387",
+    "before_file": "replay.before.txt",
+    "before_length": 327251,
+    "before_sha256": "6ac23252b3207a753b7f65940c17cd515de6cc7ebe4988d8a37fb775ae6034e4",
+    "edits": [
+      [
+        116424,
+        "        budget.reserve_bytes(function, skeleton_work::query_proof::HEADER, \"skeleton query neutral slot receivers\")?;\n        SkeletonWork { queries: skeleton_work::query_proof::Slot::new(function, budget),\n",
+        "        SkeletonWork {\n"
+      ]
+    ]
+  },
+  {
+    "path": "src/cleanup_plan/replay/skeleton_work.rs",
+    "current_length": 49003,
+    "current_sha256": "750eec1e79b50c25ea990bc5d3dc88d2225d271b8dfbdebba258709d0f39d9ff",
+    "before_file": "work.before.txt",
+    "before_length": 48238,
+    "before_sha256": "22f4de0b3fe49f2446588917440ad0beaa9473cfe0c638197149cdcf210d011f",
+    "edits": [
+      [
+        8284,
+        "pub(in crate::cleanup_plan::replay) mod query_proof;\n\n",
+        ""
+      ],
+      [
+        8379,
+        "    pub(super) queries: query_proof::Slot<'a>,\n",
+        ""
+      ],
+      [
+        14522,
+        "        budget.reserve_bytes(function, query_proof::HEADER, \"skeleton query neutral slot receivers\")?;\n",
+        ""
+      ],
+      [
+        14643,
+        "            queries: query_proof::Slot::new(function, budget),\n",
+        ""
+      ],
+      [
+        15718,
+        "        budget.reserve_bytes(function, query_proof::HEADER, \"skeleton query neutral slot receivers\")?;\n",
+        ""
+      ],
+      [
+        15839,
+        "            queries: query_proof::Slot::new(function, budget),\n",
+        ""
+      ],
+      [
+        17288,
+        "        budget.reserve_bytes(function, query_proof::HEADER, \"skeleton query neutral slot receivers\")?;\n",
+        ""
+      ],
+      [
+        17409,
+        "            queries: query_proof::Slot::new(function, budget),\n",
+        ""
+      ],
+      [
+        19124,
+        "        budget.reserve_bytes(function, query_proof::HEADER, \"skeleton query neutral slot receivers\")?;\n",
+        ""
+      ],
+      [
+        19245,
+        "            queries: query_proof::Slot::new(function, budget),\n",
+        ""
+      ]
+    ]
+  },
+  {
+    "path": "src/cleanup_plan/replay/skeleton_work/oracle_entry.rs",
+    "current_length": 4808,
+    "current_sha256": "f777e46fa5353874691fe42ffa3b5b223281c6b816dc8e6f2fa79c13c449b369",
+    "before_file": "oracle.before.txt",
+    "before_length": 4628,
+    "before_sha256": "9ccc81b3f79c93b7330f3cbe8013c05424e95b2808b51dc06bbb18f9bfa6f7b7",
+    "edits": [
+      [
+        4147,
+        "        budget.reserve_bytes(function, super::query_proof::HEADER, \"skeleton query neutral slot receivers\")?;\n",
+        ""
+      ],
+      [
+        4275,
+        "            queries: super::query_proof::Slot::new(function, budget),\n",
+        ""
+      ]
+    ]
+  },
+  {
+    "path": "src/cleanup_plan/replay/ordinary_receiving/tests.rs",
+    "current_length": 17392,
+    "current_sha256": "091fecb5106fc46e0f267b347d2388efe1091e0bbc9aefd3fa43d72d4f88eddf",
+    "before_file": "receiving_tests.before.txt",
+    "before_length": 17167,
+    "before_sha256": "e377740ef20ff2c581038797439e6eaab13f7f3953b7719603c7977f59b70393",
+    "edits": [
+      [
+        6922,
+        "                                    budget.reserve_bytes(function, skeleton_work::query_proof::HEADER, \"skeleton query neutral slot receivers\")?;\n",
+        ""
+      ],
+      [
+        7133,
+        "            queries: skeleton_work::query_proof::Slot::new(function, &budget),\n",
+        ""
+      ]
+    ]
+  },
+  {
+    "path": "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission.rs",
+    "current_length": 20575,
+    "current_sha256": "d7db6c7fc49140f9dabec3e647bf64b50571ee71a8478aae1c03acd92bba6c5f",
+    "before_file": "emission.before.txt",
+    "before_length": 20133,
+    "before_sha256": "879722873041c2bdd8f390c91e39c14418d6d09550d5ffacd6cef9a7e6102d17",
+    "edits": [
+      [
+        3533,
+        "#[allow(dead_code, reason = \"complete immediate-old sequence classifier stays independently executable\")]\n",
+        ""
+      ],
+      [
+        16162,
+        "                if $crate::cleanup_plan::replay::skeleton_work::query_proof::sequence!(&$target, $work)?\n                    && $crate::cleanup_plan::replay::skeleton_work::query_proof::sequence!(&$suffix.observations, $work)? {\n",
+        "                if $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::sequence_only(&$target, $work)?\n                    && $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::sequence_only(&$suffix.observations, $work)? {\n"
+      ],
+      [
+        20189,
+        "\n#[cfg(test)]\npub(in crate::cleanup_plan::replay) fn shared_query_inputs_for_test(\n    prefixes: &[ExprSkeletonPath], suffixes: &[ExprSkeletonPath],\n    work: &mut SkeletonWork<'_, '_>,\n) -> Result<bool, Diagnostic> {\n    work.budget.reserve_bytes(work.function, validation::CALL,\n        \"test complete sequence validation caller\")?;\n    validation::inputs(prefixes, suffixes, work)\n}\n",
+        ""
+      ]
+    ]
+  },
+  {
+    "path": "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs",
+    "current_length": 11246,
+    "current_sha256": "1f55c14d5d7fe41614e045fc680d5df8a93d4e29e4698e47bdb7e39ce8203c68",
+    "before_file": "validation.before.txt",
+    "before_length": 10194,
+    "before_sha256": "52299d69ae04653546366d2eb220e0acbfc590c823e0a7819d29a1b47e7be134",
+    "edits": [
+      [
+        7640,
+        "        self.work.queries.selector(self.work.function, &mut *self.work.budget,\n            crate::cleanup_plan::replay::skeleton_work::query_proof::SELECTOR,\n            \"shared sequence cold partition receivers\")?;\n        if matches!(self.work.budget.payer,\n            crate::cleanup_plan::replay::allocation::AllocationPayer::ActiveBuilder\n                | crate::cleanup_plan::replay::allocation::AllocationPayer::LegacyUnobserved)\n            && self.work.budget.admission == crate::cleanup_plan::replay::AdmissionMode::Ordinary\n            && !self.work.budget.lent_skeleton && !self.work.budget.merge_paths\n            && self.work.function.cleanup_plan.lexical_control.is_none()\n        {\n            self.work.queries.preflight(self.work.function, &mut *self.work.budget,\n                crate::cleanup_plan::replay::skeleton_work::query_proof::CLASSIFY_CALL,\n                \"shared sequence classifier call receivers\")?;\n            return crate::cleanup_plan::replay::skeleton_work::query_proof::classify_paid(root, self.work);\n        }\n",
+        ""
+      ]
+    ]
+  },
+  {
+    "path": "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs",
+    "current_length": 18010,
+    "current_sha256": "066f042491018f63adfa22bb4f0754bdbd9938f6941b5fc32a1c9c13b5f6ba41",
+    "before_file": "validation_tests.before.txt",
+    "before_length": 17889,
+    "before_sha256": "24506f3ae2705ba0274d20f43f261948f06cba5c70cd955e99907e82918a9899",
+    "edits": [
+      [
+        2531,
+        "    let restored = crate::cleanup_plan::replay::skeleton_work::query_proof::before_emission(\n        include_str!(\"../../emission.rs\"));\n    let combined = restored.as_str();\n",
+        "    let combined = include_str!(\"../../emission.rs\");\n"
+      ]
+    ]
+  },
+  {
+    "path": "src/cleanup_plan/replay/skeleton_work/query_proof/before.rs",
+    "current_length": 12614,
+    "current_sha256": "8f6ef6e6b50a9cf884c0436ac3d0799cabe883036b91138977e67b4014adaac7",
+    "before_file": "validation.before.txt",
+    "before_length": 10194,
+    "before_sha256": "52299d69ae04653546366d2eb220e0acbfc590c823e0a7819d29a1b47e7be134",
+    "edits": [
+      [
+        77,
+        "pub(super) const PAYMENT: usize = 2 * size_of::<&mut ReplayBudget>()\n    + 2 * size_of::<&ResolvedFunction>()\n    + 2 * size_of::<&str>()\n    + 2 * size_of::<usize>()\n    + 2 * size_of::<Result<(), Diagnostic>>();\npub(super) const VALIDATE: usize = 2 * size_of::<(&Observations, &mut SkeletonWork<'static, 'static>)>()\n    + size_of::<Result<bool, Diagnostic>>()\n    + size_of::<Vec<&ObservationDag>>()\n    + 2 * size_of::<&mut Vec<&ObservationDag>>()\n    + 2 * size_of::<&ObservationDag>()\n    + 4 * size_of::<usize>()\n    + 4 * size_of::<Option<&ObservationDag>>()\n    + 2 * size_of::<&ObservationDagKind>()\n    + size_of::<std::slice::Iter<'static, Rc<ObservationDag>>>()\n    + 2 * size_of::<Option<&Rc<ObservationDag>>>()\n    + 4 * size_of::<bool>()\n    + PAYMENT;\n",
+        ""
+      ],
+      [
+        954,
+        "    ObservationDagKind, Observations, Rc, SkeletonWork,\n",
+        "    ObservationDagKind, Observations, Rc, SkeletonWork, PAYMENT,\n"
+      ],
+      [
+        10930,
+        "\npub(in crate::cleanup_plan::replay) fn sequence_only(\n    observations: &Observations,\n    work: &mut SkeletonWork<'_, '_>,\n) -> Result<bool, Diagnostic> {\n    let mut pending = Vec::new();\n    if let Some(root) = &observations.prefix {\n        work.budget.reserve_vec(\n            work.function,\n            &mut pending,\n            1,\n            \"complete HIR sequence validation backing\",\n        )?;\n        pending.push(root.as_ref());\n    }\n    while let Some(node) = pending.pop() {\n        work.budget\n            .charge(work.function, 1, \"complete HIR sequence validation\")?;\n        work.budget.reserve_bytes(\n            work.function,\n            VALIDATE,\n            \"complete HIR sequence validation step\",\n        )?;\n        match &node.kind {\n            ObservationDagKind::Alt(_) => return Ok(false),\n            ObservationDagKind::Seq(prefix, _) => {\n                if let Some(prefix) = prefix {\n                    work.budget.reserve_vec(\n                        work.function,\n                        &mut pending,\n                        1,\n                        \"complete HIR sequence ancestor backing\",\n                    )?;\n                    pending.push(prefix.as_ref());\n                }\n            }\n            ObservationDagKind::Cat(children) => {\n                work.budget.reserve_vec(\n                    work.function,\n                    &mut pending,\n                    children.len(),\n                    \"complete HIR sequence concatenation backing\",\n                )?;\n                for child in children {\n                    pending.push(child.as_ref());\n                }\n            }\n        }\n    }\n    Ok(true)\n}\n\n",
+        "#[cfg(test)]\nmod tests;\n"
+      ]
+    ]
+  }
+]

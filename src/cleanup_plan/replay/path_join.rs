@@ -59,6 +59,14 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
     let _exclusive_operation = crate::bounded_output::exclusive_debits::operation_guard(
         crate::bounded_output::exclusive_debits::Operation::ReplayPathStates,
     );
+    #[cfg(feature = "unstable-workflow-profiling")]
+    let mut path_census = crate::bounded_output::exclusive_debits::path_census::enter(
+        crate::bounded_output::exclusive_debits::path_census::Family::Ordinary,
+    );
+    #[cfg(feature = "unstable-workflow-profiling")]
+    crate::bounded_output::exclusive_debits::path_census::event(
+        crate::bounded_output::exclusive_debits::path_census::Event::Body,
+    );
     // Authenticate the absence once before path traversal. The source/HIR
     // wrapper certificate identifies a conditional Step transfer, which must
     // never acquire the one-leaf renewal authority of another profile.
@@ -214,6 +222,8 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
             "ordinary frontier block and singleton receiving",
         )?;
         let states = std::mem::take(&mut incoming[block_id.0 as usize]);
+        #[cfg(feature = "unstable-workflow-profiling")]
+        states.observe_incoming();
         if states.is_empty() {
             return Err(replay_error(
                 function,
@@ -933,6 +943,14 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
             "cleanup CFG has no replayable terminal success path",
         )
         .into());
+    }
+    #[cfg(feature = "unstable-workflow-profiling")]
+    {
+        crate::bounded_output::exclusive_debits::path_census::finish(
+            terminal_paths,
+            successful_paths,
+        );
+        path_census.success();
     }
     Ok(())
 }

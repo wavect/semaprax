@@ -2914,7 +2914,8 @@ fn hir_skeleton_paths_with_index_storage<'hir>(
                 .take()
                 .expect("ordinary setup selected first error"));
         }
-        SkeletonWork {
+        budget.reserve_bytes(function, skeleton_work::query_proof::HEADER, "skeleton query neutral slot receivers")?;
+        SkeletonWork { queries: skeleton_work::query_proof::Slot::new(function, budget),
             function,
             budget,
             continuations: None,

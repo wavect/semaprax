@@ -2,6 +2,9 @@
 //! Fixed-capacity backing is prepared by explicit Capture::begin, outside the
 //! compiler's allocation ledger. Inactive callbacks never allocate. No timings,
 //! allocations, admission decisions, or default-shipping performance are measured.
+pub use crate::bounded_output::exclusive_debits::path_census::{
+    Row as PathFamilyCensus, EVENTS as PATH_EVENTS, LABELS as PATH_FAMILIES,
+};
 pub use crate::bounded_output::exclusive_debits::{
     Algorithm as CoreDebitAlgorithm, Attempt as CoreDebitAttempt, Operation as CoreDebitOperation,
     Outcome as CoreDebitOutcome, Refusal as CoreDebitRefusal, Report as ResolvedCoreDebits,

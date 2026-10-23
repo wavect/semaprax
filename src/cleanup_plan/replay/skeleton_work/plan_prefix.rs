@@ -99,7 +99,21 @@ impl From<History> for Observations {
         history.observations
     }
 }
-pub(in crate::cleanup_plan::replay) const FREEZE_CONTROLS: usize = 6 * size_of::<History>()
+// Moved Option/Vec/Rc values do not pay their method receiver loans. This
+// lexical bank covers the freeze and following History clone independently.
+const RECEIVER_CONTROLS: usize = 2 * size_of::<&mut Option<Rc<ObservationDag>>>()
+    + 2 * size_of::<&mut Vec<Observation>>()
+    + 2 * size_of::<&Vec<Observation>>() // freeze is_empty actual/formal
+    + 6 * size_of::<&Option<Scratch>>() // is_none and two Option::clone calls
+    + 6 * size_of::<&Scratch>() // two clone Some bindings and Rc receiver pairs
+    + 2 * size_of::<&History>()
+    + 2 * size_of::<&Observations>()
+    + 2 * size_of::<&Option<Rc<ObservationDag>>>()
+    + 2 * size_of::<&Vec<Observation>>() // Observations clone items receiver
+    + 3 * size_of::<&Rc<ObservationDag>>() // prefix binding and clone pair
+    + 4 * size_of::<bool>(); // is_empty/is_none return and caller predicates
+pub(in crate::cleanup_plan::replay) const FREEZE_CONTROLS: usize = RECEIVER_CONTROLS
+    + 6 * size_of::<History>()
     + 2 * size_of::<ObservationDag>()
     + 2 * size_of::<ObservationDagKind>()
     + 4 * size_of::<Rc<ObservationDag>>()

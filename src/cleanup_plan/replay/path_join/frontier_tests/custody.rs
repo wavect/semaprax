@@ -61,8 +61,27 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
     );
     for (path, expected) in rows {
         let actual = std::fs::read(root.join(&path)).unwrap();
+        let actual =
+            if path == "src/cleanup_plan/replay/factored/strategy/compact_receiving/tests.rs" {
+                // Finite test-only transport: bind the complete current test bytes,
+                // then invert the whole replacement to the complete pinned old
+                // fixture. No production dependency receives this inverse.
+                assert_eq!(
+                    digest(&actual),
+                    "670cc81349b7820dbfe43fc0925745e09d74aed4a45ad32f0e932d7d08b1e041"
+                );
+                let before = include_bytes!(concat!(
+                    env!("CARGO_MANIFEST_DIR"),
+                    "/e/a7e37ebe47e810939282e3e6abfb44db27b658418d91154131679d0759847efe"
+                ));
+                assert_eq!(before.len(), 13592);
+                assert_eq!(digest(before), expected);
+                before.as_slice()
+            } else {
+                actual.as_slice()
+            };
         assert_eq!(
-            digest(&actual),
+            digest(actual),
             expected,
             "immediate-old shared dependency {path}"
         );

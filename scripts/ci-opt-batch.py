@@ -20,6 +20,7 @@ SELECTIONS = {
     'language-followup': ('ci-opt-language-followup-selection.json', 2, 7, ('lib', 'project')),
     'closure': ('ci-opt-closure-selection.json', 22, 114, ('lib',)),
     'final-source-closure': ('ci-opt-final-source-closure-selection.json', 15, 52, ('lib', 'project')),
+    'composed-closure': ('ci-opt-composed-closure-selection.json', 25, 130, ('lib',)),
 }
 OUT = ROOT / 'diagnostic-opt-batch'
 TARGET = ROOT / 'target/hosted-opt-batch'

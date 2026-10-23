@@ -468,3 +468,107 @@ fn singleton_shared_sort_never_acquires_a_cursor_or_receiving_bank() {
     assert_eq!(exact.paid, new.paid);
     assert_eq!(exact.remaining, 0);
 }
+
+#[test]
+fn every_deep_empty_frame_and_warm_cat_child_attempt_renews_its_actual_invoice() {
+    let program = program();
+    let function = &program.functions[0];
+    for depth in [0, 1, 17, 257] {
+        for children in [0, 1, 33, 129] {
+            let mut prefix = dag(ObservationDagKind::Cat(
+                (0..children)
+                    .map(|_| dag(ObservationDagKind::Seq(None, Vec::new())))
+                    .collect(),
+            ));
+            for _ in 0..depth {
+                prefix = dag(ObservationDagKind::Seq(Some(prefix), Vec::new()));
+            }
+            let observations = Observations {
+                prefix: Some(prefix),
+                items: Vec::new(),
+            };
+            // Each Seq has a node and an exhausted item frame. The Cat node
+            // and exhausted root-items frame add two; pop also attempts None.
+            let frames = 2 * depth + 2 * children + 2;
+            let attempts = frames + 1;
+            let child_attempts = children + 1;
+            let ((), refused, _, _) = with_limit_usage_refusal(usize::MAX, || {
+                let mut budget = ReplayBudget::with_skeleton_limit(usize::MAX);
+                budget
+                    .reserve_compact_bytes(
+                        function,
+                        RECEIVERS + PREPARE_CALL + ADVANCE_CALL,
+                        "test structural cursor ownership",
+                    )
+                    .unwrap();
+                let mut cursor = Cursor::new();
+                cursor
+                    .prepare(&observations, function, &mut budget)
+                    .unwrap();
+                cursor.next(&observations, function, &mut budget).unwrap();
+                assert!(cursor.pending.is_empty() && cursor.yielded.is_none());
+                budget
+                    .reserve_compact_bytes(
+                        function,
+                        PREPARE_CALL,
+                        "test warm structural cursor prepare",
+                    )
+                    .unwrap();
+                cursor
+                    .prepare(&observations, function, &mut budget)
+                    .unwrap();
+                let capacity = cursor.pending.capacity();
+                let pointer = cursor.pending.as_ptr();
+                let bytes = crate::bounded_output::active_remaining().unwrap();
+                let work = budget.remaining;
+                let ((), heap) = measure(|| {
+                    budget
+                        .reserve_compact_bytes(
+                            function,
+                            ADVANCE_CALL,
+                            "test warm structural cursor invocation",
+                        )
+                        .unwrap();
+                    cursor.next(&observations, function, &mut budget).unwrap();
+                });
+                assert!(!heap.invalid);
+                assert_eq!(heap.allocated, 0, "all pending backing is already warm");
+                assert_eq!(cursor.pending.capacity(), capacity);
+                assert_eq!(cursor.pending.as_ptr(), pointer);
+                assert_eq!(work - budget.remaining, frames);
+                assert_eq!(
+                    bytes - crate::bounded_output::active_remaining().unwrap(),
+                    ADVANCE_CALL + attempts * FRAME_STEP + child_attempts * CAT_CHILD_STEP
+                );
+                assert!(
+                    cursor.pending.is_empty()
+                        && cursor.current.is_none()
+                        && cursor.yielded.is_none()
+                );
+
+                let mut old_budget = ReplayBudget::with_skeleton_limit(usize::MAX);
+                old_budget
+                    .reserve_bytes(
+                        function,
+                        CURSOR_STORAGE + CURSOR_CALL,
+                        "test original structural cursor ownership",
+                    )
+                    .unwrap();
+                let mut old = before::Cursor::new();
+                old.prepare(&observations, function, &mut old_budget)
+                    .unwrap();
+                old_budget
+                    .reserve_bytes(
+                        function,
+                        CURSOR_CALL,
+                        "test original structural cursor invocation",
+                    )
+                    .unwrap();
+                let old_work = old_budget.remaining;
+                assert!(old.next(function, &mut old_budget).unwrap().is_none());
+                assert_eq!(old_work - old_budget.remaining, frames);
+            });
+            assert!(!refused);
+        }
+    }
+}

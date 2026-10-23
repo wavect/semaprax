@@ -42,10 +42,17 @@ const PREPARE_CALL: usize = 2 * PAYMENT
     + 4 * size_of::<Option<&Rc<ObservationDag>>>()
     + 4 * size_of::<Frame>()
     + 4 * size_of::<bool>();
-const ADVANCE_CALL: usize = 3 * PAYMENT
+// Method receivers and completion/lent-refusal transports occur once per
+// invocation. They cannot pay for the unbounded structural loop below.
+const ADVANCE_CALL: usize = PAYMENT
     + 4 * size_of::<&mut Cursor>()
     + 4 * size_of::<&Observations>()
-    + 2 * size_of::<Result<(), ByteFailure>>()
+    + 2 * size_of::<Result<(), ByteFailure>>();
+// Every other former ADVANCE_CALL role is renewed before each actual pop,
+// including exhaustion. The two explicit mutable receiving views are new.
+const FRAME_STEP: usize = 3 * PAYMENT
+    + 2 * size_of::<&mut Vec<Frame>>()
+    + 2 * size_of::<&mut Option<Frame>>()
     + 2 * size_of::<Frame>() // moved match and resumed-frame constructor
     + 2 * size_of::<Option<Frame>>() // pop/take transports; retained slot is separate
     + 4 * size_of::<Rc<ObservationDag>>() // clone input/return and moved handles
@@ -59,6 +66,19 @@ const ADVANCE_CALL: usize = 3 * PAYMENT
     + 4 * size_of::<&Option<Rc<ObservationDag>>>()
     + 8 * size_of::<usize>()
     + 8 * size_of::<bool>();
+// A Cat can have arbitrarily many children even while the pending Vec is
+// warm. Pay every iterator attempt, including its final None, and the actual
+// clone, moved frame, push and handle teardown transports before forming them.
+type Children<'a> = std::iter::Rev<std::slice::Iter<'a, Rc<ObservationDag>>>;
+const CAT_CHILD_STEP: usize = PAYMENT
+    + 2 * size_of::<&mut Children<'static>>()
+    + 2 * size_of::<Option<&Rc<ObservationDag>>>()
+    + 4 * size_of::<&Rc<ObservationDag>>()
+    + 4 * size_of::<Rc<ObservationDag>>()
+    + 2 * size_of::<Frame>()
+    + 2 * size_of::<&mut Vec<Frame>>()
+    + 4 * size_of::<usize>()
+    + 4 * size_of::<bool>();
 const COMPARE_CALL: usize = 2 * size_of::<(
     &mut Pair,
     &SkeletonPath,
@@ -124,6 +144,11 @@ impl Cursor {
             ));
         }
         loop {
+            budget.reserve_compact_bytes(
+                function,
+                FRAME_STEP,
+                "enumerated HIR cursor frame receiving renewal",
+            )?;
             self.current = self.pending.pop();
             if self.current.is_none() {
                 break;
@@ -173,7 +198,16 @@ impl Cursor {
                             children.len(),
                             "enumerated HIR concatenation cursor backing",
                         )?;
-                        for child in children.iter().rev() {
+                        let mut children = children.iter().rev();
+                        loop {
+                            budget.reserve_compact_bytes(
+                                function,
+                                CAT_CHILD_STEP,
+                                "enumerated HIR concatenation child receiving renewal",
+                            )?;
+                            let Some(child) = children.next() else {
+                                break;
+                            };
                             self.pending.push(Frame::Node(Rc::clone(child)));
                         }
                     }
@@ -228,8 +262,8 @@ impl Pair {
         self.left.prepare(&a.observations, function, budget)?;
         self.right.prepare(&b.observations, function, budget)?;
         loop {
-            // Retained fields survive; new primitive-call, clone and match
-            // transports are paid again before each actual invocation.
+            // Retained fields survive. Pay invocation transports here; next
+            // separately renews every dynamic frame and Cat-child attempt.
             budget.reserve_compact_bytes(
                 function,
                 2 * ADVANCE_CALL,

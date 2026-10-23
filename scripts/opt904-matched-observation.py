@@ -47,19 +47,19 @@ def available_memory():
         return None
 
 
-def logged_cargo(argv, worktree, env, log, lock):
+def logged_process(argv, worktree, env, log, lock):
     memory_log = log.with_suffix(".memory.jsonl")
     minimum = None
     samples = 0
     with log.open("xb") as stream, memory_log.open("x") as memory:
-        # Cargo retains the same lock if the coordinating parent dies.
+        # The build or test image retains the lock if the coordinating parent dies.
         with subprocess.Popen(argv, cwd=worktree, env=env, stdout=stream,
                               stderr=subprocess.STDOUT, pass_fds=(lock,)) as process:
             while True:
                 available = available_memory()
                 memory.write(json.dumps({
                     "utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-                    "cargo_pid": process.pid, "host_available_memory_bytes": available,
+                    "process_pid": process.pid, "host_available_memory_bytes": available,
                 }) + "\n")
                 memory.flush()
                 samples += 1
@@ -74,6 +74,49 @@ def logged_cargo(argv, worktree, env, log, lock):
             "host_memory_log": memory_log.name, "host_memory_log_sha256": file_digest(memory_log),
             "host_memory_samples": samples, "minimum_sampled_host_available_memory_bytes": minimum,
             "host_memory_sample_interval_seconds": 5}
+
+
+def binary_snapshot(binary, worktree, target, host):
+    resolved = binary.resolve(strict=True)
+    require(not binary.is_symlink() and binary.is_file() and os.access(binary, os.X_OK)
+            and target.resolve().is_relative_to(worktree.resolve())
+            and resolved.is_relative_to((target / host / "debug" / "deps").resolve()),
+            "unexpected library test executable identity")
+    before = binary.stat()
+    sha256 = file_digest(binary)
+    after = binary.stat()
+    identity = lambda value: (value.st_dev, value.st_ino, value.st_size, value.st_mtime_ns)
+    require(before.st_size > 0 and identity(before) == identity(after),
+            "test executable changed during authentication")
+    return {"path": str(binary.relative_to(worktree)), "bytes": after.st_size,
+            "sha256": sha256, "device": after.st_dev, "inode": after.st_ino,
+            "mtime_ns": after.st_mtime_ns}
+
+
+def emitted_library_test(log, worktree, target, host):
+    candidates = []
+    finished = []
+    with log.open(encoding="utf-8") as stream:
+        for line in stream:
+            try:
+                message = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if not isinstance(message, dict):
+                continue
+            if message.get("reason") == "build-finished":
+                finished.append(message.get("success"))
+            artifact = message.get("target", {})
+            if (message.get("reason") == "compiler-artifact" and message.get("executable")
+                    and message.get("profile", {}).get("test")
+                    and message.get("manifest_path") == str(worktree / "Cargo.toml")
+                    and artifact.get("name") == "semaprax" and artifact.get("kind") == ["lib"]
+                    and artifact.get("src_path") == str(worktree / "src/lib.rs")):
+                candidates.append(Path(message["executable"]))
+    require(finished == [True] and len(candidates) == 1,
+            "need one successful build and exactly one emitted ordinary library test image")
+    binary = candidates[0]
+    return binary, binary_snapshot(binary, worktree, target, host)
 
 
 def command(argv, **kwargs):
@@ -266,16 +309,28 @@ def main():
                 fetch_env = env.copy()
                 fetch_env["CARGO_NET_OFFLINE"] = "false"
                 fetch_log = args.output / f"{image['name']}-dependency-fetch.log"
-                image_result["dependency_fetch"] = logged_cargo(
+                image_result["dependency_fetch"] = logged_process(
                     ["rustup", "run", manifest["rust"], "cargo", "fetch", "--locked", "--target", host],
                     worktree, fetch_env, fetch_log, lock,
                 )
                 require(image_result["dependency_fetch"]["status"] == 0,
                         f"{image['name']} locked dependency provisioning failed; separate log retained")
-            log = args.output / f"{image['name']}-cargo.log"
+            build_log = args.output / f"{image['name']}-build.log"
             argv = ["rustup", "run", manifest["rust"], "cargo", "test", "--locked", "--offline", "-p", "semaprax",
-                    "--lib", manifest["selector"], "--", "--test-threads=1", "--nocapture"]
-            image_result.update(logged_cargo(argv, worktree, env, log, lock))
+                    "--lib", "--no-run", "--message-format=json"]
+            image_result["build"] = logged_process(argv, worktree, env, build_log, lock)
+            require(image_result["build"]["status"] == 0,
+                    f"{image['name']} library test build failed; complete build log retained")
+            target = Path(env["CARGO_TARGET_DIR"])
+            binary, snapshot = emitted_library_test(build_log, worktree, target, host)
+            image_result["executed_test_image"] = snapshot
+            log = args.output / f"{image['name']}-test.log"
+            require(binary_snapshot(binary, worktree, target, host) == snapshot, "test executable drift before execution")
+            image_result.update(logged_process(
+                [str(binary), manifest["selector"], "--test-threads=1", "--nocapture"],
+                worktree, env, log, lock,
+            ))
+            require(binary_snapshot(binary, worktree, target, host) == snapshot, "test executable drift after execution")
             require(image_result["status"] == 0, f"{image['name']} selected tests failed; complete log retained")
             verify_image(worktree, image)
             groups[image["name"]] = read_records(log, image, manifest)

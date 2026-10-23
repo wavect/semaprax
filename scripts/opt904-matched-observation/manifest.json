@@ -18,7 +18,9 @@
     "CARGO_PROFILE_DEV_DEBUG": "0",
     "CARGO_PROFILE_TEST_DEBUG": "0",
     "CARGO_PROFILE_DEV_OPT_LEVEL": "0",
-    "CARGO_PROFILE_TEST_OPT_LEVEL": "0"
+    "CARGO_PROFILE_TEST_OPT_LEVEL": "0",
+    "CARGO_PROFILE_DEV_CODEGEN_UNITS": "64",
+    "CARGO_PROFILE_TEST_CODEGEN_UNITS": "64"
   },
   "old_later_borrowed_witness_runtime_suite_qualified": false,
   "application_admission_proven": false,

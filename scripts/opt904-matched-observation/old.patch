@@ -821,7 +821,7 @@ index 0000000000000000000000000000000000000000..ff02175542ddae305f6adba924836028
 +}
 diff --git a/src/hir/validation/lexical_exit/matched_observation.rs b/src/hir/validation/lexical_exit/matched_observation.rs
 new file mode 100644
-index 0000000000000000000000000000000000000000..712c141713a1175f0475b52fd60abf3891c902f1
+index 0000000000000000000000000000000000000000..23f28086f9d0c6e8d62022e6f6fd10392642b156
 --- /dev/null
 +++ b/src/hir/validation/lexical_exit/matched_observation.rs
 @@ -0,0 +1,491 @@
@@ -1070,11 +1070,11 @@ index 0000000000000000000000000000000000000000..712c141713a1175f0475b52fd60abf38
 +    assert_eq!(frame.requests, requests.requests);
 +    assert_eq!(
 +        frame.requested_capacity,
-+        requests.requested[..requests.requests].iter().sum()
++        requests.requested[..requests.requests].iter().sum::<usize>()
 +    );
 +    assert_eq!(
 +        frame.acquired_capacity,
-+        requests.acquired[..requests.acquisitions].iter().sum()
++        requests.acquired[..requests.acquisitions].iter().sum::<usize>()
 +    );
 +    Run {
 +        outcome,

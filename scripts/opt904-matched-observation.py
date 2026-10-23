@@ -292,52 +292,70 @@ def main():
         result["cargo_verbose"] = command(["rustup", "run", manifest["rust"], "cargo", "--version", "--verbose"], stdout=subprocess.PIPE).stdout.decode()
         session = Path(tempfile.mkdtemp(prefix="opt904-actual-images-", dir=scratch))
         groups = {}
+        result["attempted_images"] = []
+        result["failed_images"] = []
         for image in manifest["images"]:
             worktree = session / image["name"]
-            created.append(worktree)
-            prepare(repo, worktree, image, manifest, args.fetch_missing)
-            env = os.environ.copy()
-            for key in ("RUSTC", "RUSTDOC", "RUSTC_WRAPPER", "RUSTC_WORKSPACE_WRAPPER", "CARGO_ENCODED_RUSTFLAGS"):
-                env.pop(key, None)
-            env.update(manifest["environment"])
-            env.update({"RUSTUP_TOOLCHAIN": manifest["rust"], "CARGO_BUILD_TARGET": host,
-                        "CARGO_TARGET_DIR": str(worktree / "target" / "opt904-private")})
             image_result = {"base": image["base"], "base_tree": image["base_tree"],
-                            "patched_tree": image["patched_tree"], "patch_sha256": image["patch"]["sha256"]}
+                            "patched_tree": image["patched_tree"], "patch_sha256": image["patch"]["sha256"],
+                            "qualified": False}
             result[image["name"]] = image_result
-            if args.fetch_dependencies:
-                fetch_env = env.copy()
-                fetch_env["CARGO_NET_OFFLINE"] = "false"
-                fetch_log = args.output / f"{image['name']}-dependency-fetch.log"
-                image_result["dependency_fetch"] = logged_process(
-                    ["rustup", "run", manifest["rust"], "cargo", "fetch", "--locked", "--target", host],
-                    worktree, fetch_env, fetch_log, lock,
-                )
-                require(image_result["dependency_fetch"]["status"] == 0,
-                        f"{image['name']} locked dependency provisioning failed; separate log retained")
-            build_log = args.output / f"{image['name']}-build.log"
-            argv = ["rustup", "run", manifest["rust"], "cargo", "test", "--locked", "--offline", "-p", "semaprax",
-                    "--lib", "--no-run", "--message-format=json"]
-            image_result["build"] = logged_process(argv, worktree, env, build_log, lock)
-            require(image_result["build"]["status"] == 0,
-                    f"{image['name']} library test build failed; complete build log retained")
-            target = Path(env["CARGO_TARGET_DIR"])
-            binary, snapshot = emitted_library_test(build_log, worktree, target, host)
-            image_result["executed_test_image"] = snapshot
-            log = args.output / f"{image['name']}-test.log"
-            require(binary_snapshot(binary, worktree, target, host) == snapshot, "test executable drift before execution")
-            image_result.update(logged_process(
-                [str(binary), manifest["selector"], "--test-threads=1", "--nocapture"],
-                worktree, env, log, lock,
-            ))
-            require(binary_snapshot(binary, worktree, target, host) == snapshot, "test executable drift after execution")
-            require(image_result["status"] == 0, f"{image['name']} selected tests failed; complete log retained")
-            verify_image(worktree, image)
-            groups[image["name"]] = read_records(log, image, manifest)
-            git(repo, "worktree", "remove", "--force", str(worktree))
-            created.remove(worktree)
-            image_result["worktree_and_private_target_removed"] = True
-            # Release this image's build storage before preparing the next image.
+            result["attempted_images"].append(image["name"])
+            try:
+                created.append(worktree)
+                prepare(repo, worktree, image, manifest, args.fetch_missing)
+                env = os.environ.copy()
+                for key in ("RUSTC", "RUSTDOC", "RUSTC_WRAPPER", "RUSTC_WORKSPACE_WRAPPER", "CARGO_ENCODED_RUSTFLAGS"):
+                    env.pop(key, None)
+                env.update(manifest["environment"])
+                env.update({"RUSTUP_TOOLCHAIN": manifest["rust"], "CARGO_BUILD_TARGET": host,
+                            "CARGO_TARGET_DIR": str(worktree / "target" / "opt904-private")})
+                if args.fetch_dependencies:
+                    fetch_env = env.copy()
+                    fetch_env["CARGO_NET_OFFLINE"] = "false"
+                    fetch_log = args.output / f"{image['name']}-dependency-fetch.log"
+                    image_result["dependency_fetch"] = logged_process(
+                        ["rustup", "run", manifest["rust"], "cargo", "fetch", "--locked", "--target", host],
+                        worktree, fetch_env, fetch_log, lock,
+                    )
+                    require(image_result["dependency_fetch"]["status"] == 0,
+                            f"{image['name']} locked dependency provisioning failed; separate log retained")
+                build_log = args.output / f"{image['name']}-build.log"
+                argv = ["rustup", "run", manifest["rust"], "cargo", "test", "--locked", "--offline", "-p", "semaprax",
+                        "--lib", "--no-run", "--message-format=json"]
+                image_result["build"] = logged_process(argv, worktree, env, build_log, lock)
+                require(image_result["build"]["status"] == 0,
+                        f"{image['name']} library test build failed; complete build log retained")
+                target = Path(env["CARGO_TARGET_DIR"])
+                binary, snapshot = emitted_library_test(build_log, worktree, target, host)
+                image_result["executed_test_image"] = snapshot
+                log = args.output / f"{image['name']}-test.log"
+                require(binary_snapshot(binary, worktree, target, host) == snapshot, "test executable drift before execution")
+                image_result.update(logged_process(
+                    [str(binary), manifest["selector"], "--test-threads=1", "--nocapture"],
+                    worktree, env, log, lock,
+                ))
+                require(binary_snapshot(binary, worktree, target, host) == snapshot, "test executable drift after execution")
+                require(image_result["status"] == 0, f"{image['name']} selected tests failed; complete log retained")
+                verify_image(worktree, image)
+                groups[image["name"]] = read_records(log, image, manifest)
+                image_result["qualified"] = True
+            except Exception as error:
+                # A failed arm earns no qualification. Still attempt the other
+                # independent image to collect all failures in this same batch.
+                image_result["error"] = f"{type(error).__name__}: {error}"
+                result["failed_images"].append(image["name"])
+            finally:
+                # Never overlap builds or retain the first image's target.
+                # Cleanup failure aborts before another heavy command starts.
+                if worktree.exists():
+                    git(repo, "worktree", "remove", "--force", str(worktree))
+                if worktree in created:
+                    created.remove(worktree)
+                image_result["worktree_and_private_target_removed"] = True
+        require(not result["failed_images"],
+                "one or more independent image qualifications failed; all attempted logs retained")
+        require(set(groups) == {"old", "current"}, "both complete qualified record groups required")
         compare(groups["old"], groups["current"])
         result["paired_observation_complete"] = True
         result["records_per_image"] = manifest["records_per_image"]

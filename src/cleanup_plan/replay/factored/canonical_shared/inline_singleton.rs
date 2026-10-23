@@ -698,7 +698,7 @@ impl<'a> Canonicalizer<'a> {
             let closed = &*borrowed;
             let accepted = closed.get(&self.sink).copied().unwrap_or(0);
             match &budget.payer {
-                AllocationPayer::ActiveBuilder => {
+                AllocationPayer::ActiveBuilder | AllocationPayer::LegacyUnobserved => {
                     budget.reserve_bytes(
                         function,
                         borrowed_labels::one_pass_receiving(),
@@ -713,7 +713,6 @@ impl<'a> Canonicalizer<'a> {
                     );
                 }
                 AllocationPayer::SelectedReservation => {}
-                AllocationPayer::LegacyUnobserved => {}
                 _ => {
                     budget.reserve_bytes(
                         function,
@@ -967,7 +966,7 @@ impl<'a> Canonicalizer<'a> {
         let closed = &owned;
         let accepted = closed.get(&self.sink).copied().unwrap_or(0);
         match &budget.payer {
-            AllocationPayer::ActiveBuilder => {
+            AllocationPayer::ActiveBuilder | AllocationPayer::LegacyUnobserved => {
                 budget.reserve_bytes(
                     function,
                     borrowed_labels::one_pass_receiving(),
@@ -982,7 +981,6 @@ impl<'a> Canonicalizer<'a> {
                 );
             }
             AllocationPayer::SelectedReservation => {}
-            AllocationPayer::LegacyUnobserved => {}
             _ => {
                 budget.reserve_bytes(
                     function,
@@ -1281,3 +1279,6 @@ const _: () = assert!(
 );
 const _: () =
     assert!(Canonicalizer::CONSTRUCTOR_CONTROLS == super::Canonicalizer::CONSTRUCTOR_CONTROLS);
+
+#[cfg(test)]
+mod ordinary_labels;

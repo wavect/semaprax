@@ -621,6 +621,20 @@ pub(crate) fn program_uses_owned_payload(program: &dyn ProgramSource) -> bool {
                 })
     };
     program.functions().profile_iter().any(function_uses)
+        || program
+            .types()
+            .iter()
+            .any(|declaration| match &declaration.kind {
+                crate::ast::TypeDeclarationKind::Record { fields }
+                | crate::ast::TypeDeclarationKind::Class { fields, .. } => {
+                    fields.iter().any(|field| has_vec_bytes(&field.ty))
+                }
+                crate::ast::TypeDeclarationKind::Variant { cases } => cases
+                    .iter()
+                    .flat_map(|case| &case.fields)
+                    .any(|field| has_vec_bytes(&field.ty)),
+                crate::ast::TypeDeclarationKind::Resource { .. } => false,
+            })
 }
 
 pub(crate) fn resolved_program_uses_owned_payload(program: &crate::hir::ResolvedProgram) -> bool {
@@ -660,6 +674,20 @@ pub(crate) fn resolved_program_uses_owned_payload(program: &crate::hir::Resolved
                 .map(|instance| &instance.function),
         )
         .any(function_uses)
+        || program
+            .types
+            .iter()
+            .any(|declaration| match &declaration.kind {
+                crate::hir::ResolvedTypeDeclarationKind::Record { fields }
+                | crate::hir::ResolvedTypeDeclarationKind::Class { fields, .. } => {
+                    fields.iter().any(|field| has_vec_bytes(&field.ty))
+                }
+                crate::hir::ResolvedTypeDeclarationKind::Variant { cases } => cases
+                    .iter()
+                    .flat_map(|case| &case.fields)
+                    .any(|field| has_vec_bytes(&field.ty)),
+                crate::hir::ResolvedTypeDeclarationKind::Resource { .. } => false,
+            })
 }
 
 pub(crate) fn is_same_owner_reassignment_source(

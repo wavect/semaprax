@@ -381,6 +381,14 @@ fn complete_direct_receiver_and_independent_source_discovery_remain_byte_exact()
         "/docs/evidence/status-case-proof-816/src__cleanup_plan__replay__expression_facts__receiving__retained.rs.before.txt"
     ));
     let current = include_str!("../../retained.rs");
+    let current = crate::source_reflows::source(
+        file!(),
+        concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/cleanup_plan/replay/expression_facts/receiving/retained.rs"
+        ),
+        current,
+    );
     let start = "pub(in crate::cleanup_plan::replay) fn validate_status_sources_retained";
     let end = "// The retained key proof";
     assert_eq!(

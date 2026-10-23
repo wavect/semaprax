@@ -1,0 +1,7 @@
+{
+  "scope": "Test-only inversion after every original full_current_projection hook. Complete input and complete original comparison retained. No compiler semantic or runtime accounting change.",
+  "current_sha256": "d5a01217bb7550905972a7ab06980bfd4580e3e361c8c50e33cf3ff39eed98f6",
+  "before_sha256": "bd26157302dd48bc3df7b8635ac9d277a64978a23e2c438a0865dfdd88ccd2ea",
+  "removed": "    #[cfg(test)]\n    let _operation = crate::bounded_output::stage_debits::operation_guard(\n        crate::bounded_output::stage_debits::Operation::ReplayExpressionFacts,\n    );\n    #[cfg(feature = \"unstable-workflow-profiling\")]\n    let _exclusive_operation = crate::bounded_output::exclusive_debits::operation_guard(\n        crate::bounded_output::exclusive_debits::Operation::ReplayExpressionFacts,\n    );\n",
+  "original_archive": "docs/evidence/paid-receiving-directories/src__cleanup_plan__replay__expression_facts.rs.before.txt"
+}

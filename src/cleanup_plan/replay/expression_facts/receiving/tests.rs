@@ -489,6 +489,9 @@ fn full_original_receiving_and_helpers_are_byte_exact_and_all_current_hooks_boun
             assert_eq!(projected.matches(from).count(), 1, "{}", hook["name"]);
             projected = projected.replace(from, to);
         }
+        if path == "src/cleanup_plan/replay/expression_facts.rs" {
+            projected = before_expression_fact_observer(&projected);
+        }
         assert_eq!(projected, archived);
     }
     assert_eq!(
@@ -656,4 +659,41 @@ fn full_original_corpora_keep_arithmetic_cases_and_transfer_failure_priority() {
         }
     }
     assert!(saw_cases && saw_transfer);
+}
+
+// Profiling adds observation scopes around the original receiver. Authenticate
+// this complete projected generation before inverting only those exact scopes.
+fn before_expression_fact_observer(current: &str) -> String {
+    use sha2::{Digest, Sha256};
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))
+        ),
+        "d5a01217bb7550905972a7ab06980bfd4580e3e361c8c50e33cf3ff39eed98f6"
+    );
+    let observer = "    #[cfg(test)]\n    let _operation = crate::bounded_output::stage_debits::operation_guard(\n        crate::bounded_output::stage_debits::Operation::ReplayExpressionFacts,\n    );\n    #[cfg(feature = \"unstable-workflow-profiling\")]\n    let _exclusive_operation = crate::bounded_output::exclusive_debits::operation_guard(\n        crate::bounded_output::exclusive_debits::Operation::ReplayExpressionFacts,\n    );\n";
+    assert_eq!(current.matches(observer).count(), 1);
+    let restored = current.replacen(observer, "", 1);
+    assert_eq!(restored, include_str!(concat!(env!("CARGO_MANIFEST_DIR"),
+        "/docs/evidence/paid-receiving-directories/src__cleanup_plan__replay__expression_facts.rs.before.txt")));
+    restored
+}
+
+#[test]
+fn expression_fact_observer_inverse_refuses_whole_source_drift_and_old_inputs() {
+    let current = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/docs/evidence/expression-fact-observer-source-v1/projected-current.txt"
+    ));
+    let original = before_expression_fact_observer(current);
+    for foreign in [
+        String::new(),
+        current[..current.len() - 1].to_owned(),
+        format!("{current}\n"),
+        current.replacen("ReplayExpressionFacts", "ReplayPathStates", 1),
+        original,
+    ] {
+        assert!(std::panic::catch_unwind(|| before_expression_fact_observer(&foreign)).is_err());
+    }
 }

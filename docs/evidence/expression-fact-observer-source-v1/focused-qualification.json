@@ -1,0 +1,73 @@
+{
+  "status": "FOCUSED_SOURCE_CHECKS_PASS_FULL_CI_PENDING",
+  "scope": "Actual original complete source functions and new five-case hostile-input regression; actual source readers. Literal paths rooted to real SSD checkout; no mock IR or production runtime claim.",
+  "original_raw_acquisition_retained": true,
+  "all_original_source_role_classes_chains_and_ordered_chunks_retained": true,
+  "original_verifier_six_hostile_controls_pass": true,
+  "unchanged_limits": {
+    "base_rows": 519,
+    "current_rows": 715,
+    "page_cap": 262144,
+    "page_bytes": 226908
+  },
+  "remaining": "SPX-G171 default builder budget failures remain in bundled JSON decode/scan and other large graph builds. Historical transitive/exit/remaining source guards and hosted wire KAT failures remain under investigation.",
+  "logs": [
+    {
+      "name": "observer-source-results.log",
+      "sha256": "9732b5e2a99756d126090ee46e216d2b1293b7434df8fa85c9b509785e599f75",
+      "results": [
+        "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 303 filtered out; finished in 6.68s"
+      ]
+    },
+    {
+      "name": "case-proof-source-result.log",
+      "sha256": "61033c1a08ca162e77309e7bcc58d15173bf8020886d7dd4ac4ca98c7262d955",
+      "results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 304 filtered out; finished in 1.37s"
+      ]
+    },
+    {
+      "name": "overlay-controls.log",
+      "sha256": "6709c1df1223bfa60cdd46fbc777e427acf1804a91df12e06a3b59a72e314a67",
+      "results": [
+        "test result: ok. 32 passed; 0 failed; 0 ignored; 0 measured; 271 filtered out; finished in 110.45s"
+      ]
+    },
+    {
+      "name": "compiled-whole-predecessor-controls.log",
+      "sha256": "8570eeb2d1477a96079fd7be3ae62832f02171a3f33b36aefdc3c89370e50381",
+      "results": [
+        "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 301 filtered out; finished in 0.03s"
+      ]
+    },
+    {
+      "name": "new-entry-controls.log",
+      "sha256": "75d9fd1dc94936bed2ac6ea0b18a147d39def668e67191ad2645c0cbdb196079",
+      "results": [
+        "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 301 filtered out; finished in 0.06s"
+      ]
+    },
+    {
+      "name": "final-prefix-source-controls.log",
+      "sha256": "262651d4056d5a1655ada708aec6f5462d855f95c1a6c029519f2178c24b4e83",
+      "results": [
+        "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 300 filtered out; finished in 4.36s"
+      ]
+    },
+    {
+      "name": "hir-test.log",
+      "sha256": "c351f9ef572b9353547f7f91bbe2fd46b7518454e28bc733cf8e001678adfe7a",
+      "results": [
+        "test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 17.97s"
+      ]
+    },
+    {
+      "name": "projection-test.log",
+      "sha256": "28613ca80602aa3e401dbd5aaa88fb276038f762fe9070614c4b9e7a5e958b1b",
+      "results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 338 filtered out; finished in 6.43s"
+      ]
+    }
+  ],
+  "clippy": "Actual source-only functions and current source reader Clippy metadata passed with warnings denied; original HIR gate Clippy passed. No whole compiler rebuild required or claimed for these test-only changes."
+}

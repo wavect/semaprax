@@ -1888,3 +1888,4 @@ Audience: all documentation readers.
 - [Exact verifier refusal corpus and manifest source custody](evidence/verifier-corpus-20261023/README.md)
 
 - [Expression-fact type cursor](evidence/expression-fact-type-cursor-v1/README.md)
+- [Expression-fact source test entries](evidence/expression-fact-observer-source-v1/README.md)

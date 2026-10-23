@@ -1,5 +1,9 @@
 ## Offline registry SDK setup repair (2026-10-23)
 
+## Historical expression-fact source entries
+
+- Preserve complete receiving and case-proof source comparisons across profiling and authenticated source-reader changes; reject drifted and already-old inverse inputs.
+
 - Fetch the frozen RI-06 Url SDK dependency closure during CI setup, before its locked offline build. Preserve the generated package manifest, historical lockfile and physical owner/view checks.
 
 ## Compiler cursor and source-entry accounting repairs (2026-10-23)

@@ -135,6 +135,100 @@ jobs:
           path: installed-bundle-artifact/
           if-no-files-found: error
           retention-days: 3
+      - name: Resolve the existing native tools for optional CLI49 references
+        if: inputs.loglens_refs
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          opt_clang="$(command -v clang)"
+          opt_archiver="$(command -v ar)"
+          test -x "$opt_clang"
+          test -x "$opt_archiver"
+          echo "CLANG=$(readlink -f "$opt_clang")" >> "$GITHUB_ENV"
+          echo "SEMAPRAX_ARCHIVER=$(readlink -f "$opt_archiver")" >> "$GITHUB_ENV"
+      - name: Qualify both unchanged CLI49 references with the installed-bundle compiler
+        if: inputs.loglens_refs
+        shell: bash
+        run: |
+          export SEMAPRAX_BIN="$PWD/target/installed-bundle-producer/debug/semaprax"
+          export LOGLENS_SAMPLE="$PWD/benchmarks/cli-tokens-v1/sample.log"
+          python3 - <<'PYCODE'
+          import hashlib,json,os,pathlib,subprocess
+          def git(*args):
+              return subprocess.check_output(["git",*args],text=True).strip()
+          def sha(path):
+              digest=hashlib.sha256()
+              with path.open("rb") as stream:
+                  for chunk in iter(lambda:stream.read(65536),b""): digest.update(chunk)
+              return digest.hexdigest()
+          head=git("rev-parse","HEAD")
+          tree=git("rev-parse","HEAD^{tree}")
+          original=pathlib.Path("installed-bundle-artifact/receipt.json")
+          bundle=json.loads(original.read_text())
+          binary=pathlib.Path(os.environ["SEMAPRAX_BIN"])
+          assert bundle["schema"]=="semaprax.installed-bundle-production.v1"
+          assert head==os.environ["GITHUB_SHA"]==bundle["head"]
+          assert tree==bundle["tree"]
+          assert bundle["features"]=="default"
+          assert bundle["repository"]==os.environ["GITHUB_REPOSITORY"]
+          assert bundle["run_id"]==os.environ["GITHUB_RUN_ID"]
+          assert not git("status","--porcelain","--untracked-files=no")
+          assert binary.is_file() and not binary.is_symlink() and os.access(binary,os.X_OK)
+          binary_sha=sha(binary)
+          assert binary_sha==bundle["binary_sha256"], "reuse the exact original bundle producer"
+          tools={name:os.environ[name] for name in ("CLANG","SEMAPRAX_ARCHIVER")}
+          assert all(pathlib.Path(path).is_absolute() and os.access(path,os.X_OK) for path in tools.values())
+          out=pathlib.Path("installed-bundle-cli49")
+          out.mkdir()
+          receipt={
+              "schema":"semaprax.installed-bundle-cli49.v1",
+              "head":head,"tree":tree,"repository":os.environ["GITHUB_REPOSITORY"],
+              "run_id":os.environ["GITHUB_RUN_ID"],"binary":str(binary),
+              "binary_sha256":binary_sha,"original_bundle_receipt_sha256":sha(original),
+              "compiler_build_reused":True,"features":"default","native_tools":tools,
+              "native_optimization":"compiler_default_O2",
+              "sample":os.environ["LOGLENS_SAMPLE"],"references":[],
+              "qualification":"unchanged CLI49 native references only; no live agent campaign or benchmark"
+          }
+          failed=False
+          for name,candidate in (
+              ("loglens-selected","experiments/selected-file-input/loglens"),
+              ("loglens-matcher","experiments/ascii-pattern-source/loglens-reference/matcher-package-adapted"),
+          ):
+              output=out/name
+              command=["python3","benchmarks/cli-tokens-v1/selected_file_adoption.py",
+                  "--candidate",candidate,"--output",str(output)]
+              with (out/f"{name}.log").open("wb") as log:
+                  result=subprocess.run(command,stdout=log,stderr=subprocess.STDOUT,check=False)
+              row={"command":command,"exit_code":result.returncode,"accepted":False}
+              if result.returncode==0:
+                  try:
+                      report=json.loads((output/"qualification.json").read_text())
+                      assert report["accepted"] is True
+                      assert len(report["checks"])==33 and len(report["boundary_checks"])==16
+                      assert all(check["status"]=="passed" for check in report["checks"]+report["boundary_checks"])
+                      assert report["execution"]["mode"]=="native_executable_via_wrapper"
+                      row.update(accepted=True,historical_checks=33,boundary_checks=16)
+                  except (OSError,ValueError,KeyError,TypeError,AssertionError) as error:
+                      row["receipt_error"]=str(error) or type(error).__name__
+              failed=failed or not row["accepted"]
+              receipt["references"].append(row)
+          receipt["final_checkout"]={"head":git("rev-parse","HEAD"),"tree":git("rev-parse","HEAD^{tree}")}
+          receipt["tracked_source_unchanged"]=not git("status","--porcelain","--untracked-files=no")
+          receipt["compiler_unchanged"]=sha(binary)==binary_sha
+          receipt["original_bundle_receipt_unchanged"]=sha(original)==receipt["original_bundle_receipt_sha256"]
+          receipt["accepted"]=not failed and receipt["final_checkout"]=={"head":head,"tree":tree} and receipt["tracked_source_unchanged"] and receipt["compiler_unchanged"] and receipt["original_bundle_receipt_unchanged"]
+          (out/"receipt.json").write_text(json.dumps(receipt,indent=2)+"\n")
+          raise SystemExit(0 if receipt["accepted"] else 1)
+          PYCODE
+      - name: Retain separate optional CLI49 results and failed logs
+        if: ${{ always() && inputs.loglens_refs }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: installed-bundle-cli49-${{ github.sha }}-${{ github.run_attempt }}
+          path: installed-bundle-cli49/
+          if-no-files-found: error
+          retention-days: 7
   cli:
     if: ${{ ! inputs.linux_stack && ! inputs.resolved_core && ! inputs.opt_batch && ! inputs.focused_controls && ! inputs.installed_bundle }}
     runs-on: macos-15

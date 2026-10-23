@@ -319,6 +319,9 @@ fn complete_immediate_old_sources_are_exact_inverses_with_common_helper_custody(
     let current = include_str!("../funded_flat.rs");
     let current = &current[..current.find("\n#[cfg(test)]\n#[allow(").unwrap()];
     let old = include_str!("../funded_flat/before_reachability_release.rs");
+    let visibility = "pub(in crate::loan_plan) fn build(";
+    assert_eq!(old.matches(visibility).count(), 1);
+    let old = old.replace(visibility, "pub(super) fn build(");
     let redirect =
         "paid_plan::before_reachability_release::build(program, function, &mut work, inventory)";
     assert_eq!(old.matches(redirect).count(), 1);

@@ -5,7 +5,7 @@ use super::storage::{classify, PlannerError};
 use super::*;
 use crate::bounded_output::cfg_reservation::CfgReservation;
 
-pub(super) fn build(
+pub(in crate::loan_plan) fn build(
     program: &ResolvedProgram,
     function: &ResolvedFunction,
     payer: &CfgReservation,

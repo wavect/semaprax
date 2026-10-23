@@ -23,6 +23,19 @@ const SCALAR: &str = r#"module selected.schema.family;
  0
 }
 "#;
+// These are genuinely different selected domains. SCALAR above remains the
+// complete original owning-Bytes refusal subject, not a Copy scalar witness.
+const COPY_SCALAR: &str = r#"module selected.schema.copy;
+@id("family.one") fn one(n:i64)->i64 {n+1}
+@id("family.main") fn main()->i64 {one(3)}
+"#;
+const OWNED_LEXICAL: &str = r#"module selected.schema.owned_lexical;
+@id("family.bytes") fn bytes()->i64 {
+ let data=bytes_zeroed(1usize);
+ if byte_len(bytes_as_slice(data))==1usize {return 7;};
+ 0
+}
+"#;
 fn program(source: &str) -> ResolvedProgram {
     crate::hir::resolve(&crate::check(source, "selected-path-family.spx").unwrap()).unwrap()
 }
@@ -153,3 +166,5 @@ mod strings;
 // these intentionally distinct entry routes retain their own first refusal.
 #[path = "../../../cfg_bounds/tests/old.rs"]
 mod ordinary_cfg_before;
+
+mod fixture_scope;

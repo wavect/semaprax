@@ -2836,6 +2836,7 @@
         "src/byte_data_capacity.rs",
         "src/byte_data_capacity/witnesses.rs",
         "src/byte_ops.rs",
+        "src/call_index.rs",
         "src/cleanup.rs",
         "src/cleanup/generic_record.rs",
         "src/cleanup/inventory_builder.rs",
@@ -3138,9 +3139,9 @@
         "src/workspace_graph/validation.rs",
         "src/workspace_report.rs"
       ],
-      "full_manifest_sha256": "7bcdfe7a9dc57b6e2a7f1589a47bb11450be34163a90449c2685eb74219ddf30",
-      "full_raw_sha256": "739074d1628a4b5e579aed47ddb77d5a444a6c81ed809c30051786f50f91f3ab",
-      "full_authenticated_production_sha256": "6c92c8f99b2006b45712f3ef32c88ce2a27752f3c6bae109d1ee8152405d24ed"
+      "full_manifest_sha256": "ff86fe277fa3bbfc2fb65ad6f01f75566770852b6e8709200e985d18c25266c1",
+      "full_raw_sha256": "0d045e9fee00ff1315c6b3c9dfa685af65c9dbebd1f446211bcff80f9953d6c6",
+      "full_authenticated_production_sha256": "26fe5d4c51d3c2219eee1bbd527f3757b7a1984e1e5099c09717323a1e92e5c1"
     },
     "projection": {
       "baseline": "a82e00cc83f99b16249181c45710d962598577db",
@@ -3684,6 +3685,7 @@
         "src/byte_data_capacity/witnesses.rs",
         "src/byte_ops.rs",
         "src/byte_ops/funded.rs",
+        "src/call_index.rs",
         "src/cleanup.rs",
         "src/cleanup/generic_record.rs",
         "src/cleanup/inventory_builder.rs",
@@ -4467,9 +4469,9 @@
         "src/workspace_report.rs",
         "src/workspace_report/initial.rs"
       ],
-      "full_manifest_sha256": "123d5b358df2f58f0999eabf08082a045ab454b1c2b2a408744d56499c4ae658",
-      "full_raw_sha256": "ab0e81b13b33cb04573774eae8fd283d5285dcd2798ae2e6bf5f69c27ae1f9aa",
-      "full_authenticated_production_sha256": "6126951f21f08bc51158ae12bcbae779dbefc800bba34303cab4a1222d58623b"
+      "full_manifest_sha256": "15c3d29087a05c6ac0b5361c02e725eab08aad5995b971870dbe279da5bf0a69",
+      "full_raw_sha256": "ac16bfdbd76bbe361899554eef7f85a61ecbdaf06d919d4d2b003a2bc6d09216",
+      "full_authenticated_production_sha256": "7c8ea506f2a0698a03d887e2ace5b29bbfbc6b33a0d0f9aff775a3eff40b07db"
     }
   }
 }

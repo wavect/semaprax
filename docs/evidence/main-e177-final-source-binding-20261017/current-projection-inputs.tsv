@@ -1258,3 +1258,7 @@ src/workspace_graph/expected_projection/private_layout/names/interface_before.rs
 src/workspace_graph/expected_projection/private_layout/names/interface_tests.rs
 src/cleanup_plan/replay/skeleton_work/enumerated_prefix/flat_probe/before.rs
 src/cleanup_plan/replay/skeleton_work/enumerated_prefix/flat_probe/receiving_tests.rs
+src/call_index/validation_before.rs
+src/call_index/validation_receipt_tests.rs
+src/codegen/native_owned_data_provider/emit_provider_before.rs
+src/codegen/native_owned_data_provider/validation_reuse_tests.rs

@@ -34,8 +34,8 @@
     },
     {
       "path": "src/cleanup_plan/replay/ordinary_plan_history/tests.rs",
-      "sha256": "432c69e344c5748c134fd8a8ee80b4de7e1f39d5108c44a7ba88878eda9348d9",
-      "lines": 267
+      "sha256": "3eef3160fd02d6740db55d2706d5594350b55bde90524864fba344ce586eddd0",
+      "lines": 302
     },
     {
       "path": "src/cleanup_plan/replay/ordinary_plan_history.rs",
@@ -44,7 +44,7 @@
     },
     {
       "path": "src/source_reflows_merge/ordinary_plan_inputs.rs",
-      "sha256": "a28396bbe45866327f84c78c072d52ef2fd8b6f6e8c3c99ec7bc23657240680e",
+      "sha256": "fe0a9ac6fff72d8d5d5d0305589b8529091f44f18c54e25dadcdc74f1c51de87",
       "lines": 520
     }
   ]

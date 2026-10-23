@@ -43,8 +43,8 @@ pub(super) fn previous(path: &str, length: usize, sha: &str) -> Option<String> {
 // before this historical facade route, and every original phase inverse runs
 // after it. No source component is omitted from the current input.
 pub(super) fn audit_join(supplied: &str) -> Option<String> {
-    if supplied.len() != 1075674
-        || digest(supplied) != "219e16f4747029e2892352c22179eff0cee86b784aca49cb6fe3810d23f225f9"
+    if supplied.len() != 1093492
+        || digest(supplied) != "75636e3cdcc75852c377e0b3e183e675ae289f71931cd9f3c47a6068514e6417"
     {
         return None;
     }
@@ -53,25 +53,29 @@ pub(super) fn audit_join(supplied: &str) -> Option<String> {
     // Literal generated from the actual owning macro, in original order.
     // Data pieces remain read-only source evidence, never compiled authority.
     const PARTS: &[(&str, &str, usize, &str)] = &[
+        ("src/call_index/validation_before.rs", include_str!("../../call_index/validation_before.rs"), 3463, "50097cb04d8577afd15d0209fd11f14e1ff2d3d60c5bb692b8128c753b201472"),
+        ("src/call_index/validation_receipt_tests.rs", include_str!("../../call_index/validation_receipt_tests.rs"), 4015, "0cb673d2f420230bc3b49fa90937d83302bfd29dec44aac4e95515c758297ce7"),
+        ("src/codegen/native_owned_data_provider/emit_provider_before.rs", include_str!("../../codegen/native_owned_data_provider/emit_provider_before.rs"), 2513, "a4a17ce516c1c360d12f7ca0855ff5c049dfdd2248dc22c03bdc0cd25b5fe4ab"),
+        ("src/codegen/native_owned_data_provider/validation_reuse_tests.rs", include_str!("../../codegen/native_owned_data_provider/validation_reuse_tests.rs"), 7661, "bbe03233559921346ef3456859eda8f60842efa28563d6d44c9e1946fccc3cbd"),
         ("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/flat_probe/before.rs", include_str!("../../cleanup_plan/replay/skeleton_work/enumerated_prefix/flat_probe/before.rs"), 2168, "5cab19b5b7c91dad5fe1240b586ac7a5f3c92896a8575b56a62bf0ed92c5b9f5"),
         ("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/flat_probe/receiving_tests.rs", include_str!("../../cleanup_plan/replay/skeleton_work/enumerated_prefix/flat_probe/receiving_tests.rs"), 6801, "2c6e246527ec365687dbc3bd8339184b8ff4367c9e7ae546bda2d1920777ff60"),
         ("src/workspace_graph/expected_projection/private_layout/names/interface_census.rs", include_str!("../../workspace_graph/expected_projection/private_layout/names/interface_census.rs"), 5132, "5122d3abd1d880fb1598104c2d7367a747c668b00fa971383d38e7ff55bdee75"),
         ("src/workspace_graph/expected_projection/private_layout/names/interface_before.rs", include_str!("../../workspace_graph/expected_projection/private_layout/names/interface_before.rs"), 24587, "58dd9a33aa98e22cb8d89fbf3d47512e68dac56c10952cba055da265f5078dd8"),
         ("src/workspace_graph/expected_projection/private_layout/names/interface_tests.rs", include_str!("../../workspace_graph/expected_projection/private_layout/names/interface_tests.rs"), 14300, "141dc56360504411f085f21117ee757eee43d8e1dca7a21854a01f45f53afdeb"),
         ("src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs", include_str!("../../cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs"), 10194, "52299d69ae04653546366d2eb220e0acbfc590c823e0a7819d29a1b47e7be134"),
-        ("src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs", include_str!("../../cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs"), 17702, "fbe3581e9ad195dffd21bf7cadec4d6dd9b0b0031535342359d4839db2d32399"),
+        ("src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs", include_str!("../../cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs"), 17889, "24506f3ae2705ba0274d20f43f261948f06cba5c70cd955e99907e82918a9899"),
         ("src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission.rs", include_str!("../../cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission.rs"), 7942, "4392abffc59dee7596e750e1523f0e2b0f4c23a5f35c67caa475de5785c4f568"),
         ("src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/tests.rs", include_str!("../../cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/tests.rs"), 15818, "2890943d20f5ac052889f50340039fb6c4467ff5d686334796438a5b242bdf55"),
         ("src/source_reflows_merge/main_e177_overlay_labels_v12.rs", include_str!("../../source_reflows_merge/main_e177_overlay_labels_v12.rs"), 7219, "260cfb1eb837f15415a05f769e0d6554f6c26a3eeecf01a58eff16e8a2bf2446"),
         ("src/source_reflows_merge/main_e177_overlay_labels_v12/tests.rs", include_str!("../../source_reflows_merge/main_e177_overlay_labels_v12/tests.rs"), 6958, "33fec76e5c50a7954a6d480012eb17a662db2f45e7bcd7025aad5ccafc26db68"),
         ("src/workspace_graph/expected_projection/call_carriers_directory/modular.rs", include_str!("../../workspace_graph/expected_projection/call_carriers_directory/modular.rs"), 3536, "894b8a45279a1afb3b8a2e10e07888f1567ae6fb30a5f0c860ee39a5cd107d62"),
         ("src/workspace_graph/expected_projection/shared_local_callees/modular_census.rs", include_str!("../../workspace_graph/expected_projection/shared_local_callees/modular_census.rs"), 9819, "b5032e96c21ae66a011e08938a5dda8b366a9b495b6d421f7eb259c9e4ae3098"),
-        ("src/workspace_graph/expected_projection/shared_local_callees/modular_pair.rs", include_str!("../../workspace_graph/expected_projection/shared_local_callees/modular_pair.rs"), 10091, "0df2e9bba3767c423e7ce9367fd9702f8673bbce3385e059fd8ca71eb6f37e0b"),
+        ("src/workspace_graph/expected_projection/shared_local_callees/modular_pair.rs", include_str!("../../workspace_graph/expected_projection/shared_local_callees/modular_pair.rs"), 10077, "8031e83e8bdbe63b08131016dbee7c9cf3b6614bff75090dc88cc8f706a51167"),
         ("src/workspace_graph/expected_projection/shared_local_callees/modular_pair_tests.rs", include_str!("../../workspace_graph/expected_projection/shared_local_callees/modular_pair_tests.rs"), 9105, "c7a201a333ce54f18ee0982beeb3fcc13d14517804710989a832de87209e1e3b"),
         ("src/workspace_graph/expected_projection/shared_local_callees/modular_projection.rs", include_str!("../../workspace_graph/expected_projection/shared_local_callees/modular_projection.rs"), 14818, "8d2fe0047c5e0f8e4359e4f2916ed0cd52e2f6d7a66e816ba2e91fb9556e01cf"),
         ("src/workspace_graph/expected_projection/shared_local_callees/modular_session.rs", include_str!("../../workspace_graph/expected_projection/shared_local_callees/modular_session.rs"), 12946, "342ca60956a62f93878ae04b67aab70a971012aa38839a0a307cbf37001746ba"),
         ("src/workspace_graph/expected_projection/shared_local_callees/modular_tests.rs", include_str!("../../workspace_graph/expected_projection/shared_local_callees/modular_tests.rs"), 12708, "2c3de671500f78caa65b3341f65ea930b50a63066773037fa42ee31c3495b0bf"),
-        ("src/workspace_graph/expected_projection/shared_local_callees/paired.rs", include_str!("../../workspace_graph/expected_projection/shared_local_callees/paired.rs"), 8613, "34c49f546d5972aec731c3e92bdcf2477a8bb15ccc198e38850b9f4e5b129420"),
+        ("src/workspace_graph/expected_projection/shared_local_callees/paired.rs", include_str!("../../workspace_graph/expected_projection/shared_local_callees/paired.rs"), 8606, "fe826f4e36cccd454d198513f640998934f963d136359d3063883cbb797d2c3d"),
         ("src/workspace_graph/expected_projection/shared_local_callees/paired_projection.rs", include_str!("../../workspace_graph/expected_projection/shared_local_callees/paired_projection.rs"), 14766, "a997eed41a794bb5d0e80db0703fd07c480cd40c06dc1f51b1124e023a82cbc2"),
         ("src/workspace_graph/expected_projection/shared_local_callees/paired_tests.rs", include_str!("../../workspace_graph/expected_projection/shared_local_callees/paired_tests.rs"), 11212, "1c34ee37bc564a908bc38cc58cc1b55a560c0f566fcc8770e6464febdab25a19"),
         ("src/workspace_graph/expected_projection/shared_local_callees/record_before.rs", include_str!("../../workspace_graph/expected_projection/shared_local_callees/record_before.rs"), 12593, "f472fe9bc7bea0097f6ae0323fcf5fa593790ec229c8499f75fb2a14deff050a"),

@@ -146,10 +146,11 @@ impl<'hir> Canonicalizer<'hir> {
                             }};
                         }
                         // Keep the complete general API and its old result/error
-                        // order for every non-ActiveBuilder payer.
+                        // order for every payer outside the ordinary routes.
                         match budget {
                             ReplayBudget {
-                                payer: AllocationPayer::ActiveBuilder,
+                                payer:
+                                    AllocationPayer::ActiveBuilder | AllocationPayer::LegacyUnobserved,
                                 ..
                             } => {}
                             _ => {
@@ -679,3 +680,10 @@ pub(in crate::cleanup_plan::replay::factored::canonical_shared::inline_singleton
         lexical_successors::ONE_PASS_NODE_ABI,
     ]
 }
+
+#[cfg(test)]
+#[allow(
+    dead_code,
+    reason = "Compile the complete immediate-old compact owner independently."
+)]
+mod ordinary_receiving_before;

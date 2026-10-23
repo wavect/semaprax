@@ -1,7 +1,7 @@
 {
   "schema": "semaprax.hosted-opt-batch-selection.v1",
-  "filters": 53,
-  "expected_tests": 134,
+  "filters": 55,
+  "expected_tests": 145,
   "commands": [
     {
       "owner": "OPT899 unchanged default owning controls",
@@ -373,6 +373,20 @@
       "filter": "source_reflows_merge::main_e177_final_inputs::overlay_v2::fragments_v3::labels_v12::tests::",
       "exact": false,
       "expected_tests": 6
+    },
+    {
+      "owner": "OPT916 modular local callee authority, alias refusal and independent census controls",
+      "binary": "lib",
+      "filter": "workspace_graph::expected_projection::shared_local_callees::modular_session::tests::",
+      "exact": false,
+      "expected_tests": 6
+    },
+    {
+      "owner": "OPT916 modular local callee authority, alias refusal and independent census controls",
+      "binary": "lib",
+      "filter": "workspace_graph::expected_projection::shared_local_callees::modular_pair::tests::",
+      "exact": false,
+      "expected_tests": 5
     }
   ]
 }

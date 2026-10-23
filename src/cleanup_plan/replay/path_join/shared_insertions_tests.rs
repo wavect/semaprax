@@ -310,7 +310,9 @@ fn complete_immediate_receiver_composition_lowers_cold_invoice_with_full_drop_an
                 })
             };
             let before = observe(true, usize::MAX);
+            direct_one_tests::reset_banks();
             let current = observe(false, usize::MAX);
+            let direct_banks = direct_one_tests::paid_banks();
             assert!(before.0 .0 && current.0 .0 && !before.1 && !current.1);
             let old_controls = prices::<PathState>(f).1;
             let removed = old_controls[0] + old_controls[2] + old_controls[3]
@@ -319,7 +321,10 @@ fn complete_immediate_receiver_composition_lowers_cold_invoice_with_full_drop_an
                 "shared-frontier {} immediate92d_invoice={} current_invoice={} removed_setup={} before={:?} current={:?}",
                 f.id, before.2, current.2, removed, before.0.1, current.0.1
             );
-            assert_eq!(current.2 + removed, before.2);
+            assert_eq!(
+                current.2 + removed + direct_banks * direct_one_before::removed_iterator_controls(),
+                before.2
+            );
             every_invoice_lower &= current.2 < before.2;
             assert!(current.0 .1.allocated <= before.0 .1.allocated);
             for o in [&before, &current] {

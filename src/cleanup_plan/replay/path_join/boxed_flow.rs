@@ -36,39 +36,33 @@ pub(super) fn reserve_directory(
 }
 
 // Direct lexical producers remove the two forwarding Result wrappers and
-// owned Box/Result<Box> edge boundary; every other original bank is retained.
+// owned Box/Result<Box> edge boundary. Direct singleton fields also remove the
+// frontier iterator/forwarded next and consuming IntoIter carriers. Every
+// remaining Box, Incoming, authority, selector, and terminal bank is retained.
 pub(super) const BLOCK_CONTROLS: usize = 4 * size_of::<frontier::Incoming<PathState>>()
-            + 3 * size_of::<frontier::Iter<'_, PathState>>()
-            // Only Empty/One uses the frontier iterator in the join fold.
-            // Pay both next calls, including exhaustion, and each forwarded
-            // Option/receiver before forming them. Many uses the original
-            // direct tree iterator and introduces no per-visit forwarding.
-            + 4 * size_of::<Option<&Box<PathState>>>()
-            + 4 * size_of::<&mut frontier::Iter<'_, PathState>>()
-            + 2 * size_of::<bool>()
-            + 2 * size_of::<&frontier::Incoming<PathState>>()
-            + 2 * size_of::<&BTreeSet<Box<PathState>>>()
-            + 3 * size_of::<std::option::IntoIter<Box<PathState>>>()
-            + 8 * size_of::<Box<PathState>>()
-            + 6 * size_of::<&Box<PathState>>()
-            + 4 * size_of::<&PathState>()
-            + 2 * size_of::<&ResolvedFunction>()
-            + 2 * size_of::<&mut ReplayBudget>()
-            + 4 * size_of::<usize>()
-            + 4 * size_of::<bool>()
-            + size_of::<std::iter::Empty<&PathState>>()
-            + size_of::<BlockId>()
-            + size_of::<(
-                &ResolvedFunction,
-                &EdgeCondition,
-                &BTreeMap<ExpressionId, StatusSourceId>,
-                &mut ReplayBudget,
-                &ExpressionId,
-                &StatusSourceId,
-                StatusSourceId,
-                Option<&StatusSourceId>,
-                bool,
-            )>();
+    + 2 * size_of::<bool>()
+    + 2 * size_of::<&frontier::Incoming<PathState>>()
+    + 2 * size_of::<&BTreeSet<Box<PathState>>>()
+    + 8 * size_of::<Box<PathState>>()
+    + 6 * size_of::<&Box<PathState>>()
+    + 4 * size_of::<&PathState>()
+    + 2 * size_of::<&ResolvedFunction>()
+    + 2 * size_of::<&mut ReplayBudget>()
+    + 4 * size_of::<usize>()
+    + 4 * size_of::<bool>()
+    + size_of::<std::iter::Empty<&PathState>>()
+    + size_of::<BlockId>()
+    + size_of::<(
+        &ResolvedFunction,
+        &EdgeCondition,
+        &BTreeMap<ExpressionId, StatusSourceId>,
+        &mut ReplayBudget,
+        &ExpressionId,
+        &StatusSourceId,
+        StatusSourceId,
+        Option<&StatusSourceId>,
+        bool,
+    )>();
 
 // One terminal local Diagnostic and its conversion operand, plus the actual
 // and formal Box of explicit drop before converting the selected error.

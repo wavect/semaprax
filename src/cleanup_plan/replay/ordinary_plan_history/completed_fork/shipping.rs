@@ -5,6 +5,9 @@ use super::*;
 use skeleton_work::enumerated_prefix;
 use crate::cleanup_plan::CleanupBlock;
 
+#[path = "shipping/flat_admission.rs"]
+pub(in crate::cleanup_plan::replay) mod flat_admission;
+
 const PAYMENT: usize = 2 * size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>()
     + 2 * size_of::<Result<(), Diagnostic>>();
 // Setup owns the iterator and the first advance's reservation transport.
@@ -165,6 +168,11 @@ macro_rules! finish_current {
                     return $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::shipping::compare(
                         $function, $budget, &mut $expected);
                 }
+                $budget.reserve_bytes($function,
+                    $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::shipping::flat_admission::CALL,
+                    "flat HIR independent PLAN admission caller")?;
+                if $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::shipping::flat_admission::try_compare(
+                    $function, $budget, &mut $expected)? { return Ok(()); }
             }
         }
     }};

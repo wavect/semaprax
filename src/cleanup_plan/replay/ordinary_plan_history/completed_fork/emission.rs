@@ -448,7 +448,7 @@ fn with_emission<T>(operation: impl FnOnce() -> T) -> T {
     with_route(1, operation)
 }
 #[cfg(test)]
-fn with_before<T>(operation: impl FnOnce() -> T) -> T {
+pub(in crate::cleanup_plan::replay) fn with_before<T>(operation: impl FnOnce() -> T) -> T {
     with_route(2, operation)
 }
 

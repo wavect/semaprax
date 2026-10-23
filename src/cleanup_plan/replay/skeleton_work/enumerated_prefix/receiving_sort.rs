@@ -50,7 +50,7 @@ const ADVANCE_CALL: usize = PAYMENT
     + 2 * size_of::<Result<(), ByteFailure>>();
 // Every other former ADVANCE_CALL role is renewed before each actual pop,
 // including exhaustion. The two explicit mutable receiving views are new.
-const FRAME_STEP: usize = 3 * PAYMENT
+const FRAME_STEP: usize = 2 * PAYMENT
     + 2 * size_of::<&mut Vec<Frame>>()
     + 2 * size_of::<&mut Option<Frame>>()
     + 2 * size_of::<Frame>() // moved match and resumed-frame constructor
@@ -66,6 +66,10 @@ const FRAME_STEP: usize = 3 * PAYMENT
     + 4 * size_of::<&Option<Rc<ObservationDag>>>()
     + size_of::<[usize; 8]>()
     + 8 * size_of::<bool>();
+// Only a Node can invoke the backing-reservation producer. Pay its actual
+// call plus this new renewal call at that branch, before either can form its
+// transports. Item/resume/exhaustion frames never invoke the growth producer.
+const NODE_STEP: usize = 2 * PAYMENT;
 // A Cat can have arbitrarily many children even while the pending Vec is
 // warm. Pay every iterator attempt, including its final None, and the actual
 // clone, moved frame, push and handle teardown transports before forming them.
@@ -175,50 +179,57 @@ impl Cursor {
                         return Ok(());
                     }
                 }
-                Frame::Node(node) => match &node.kind {
-                    ObservationDagKind::Seq(prefix, _) => {
-                        budget.reserve_compact_vec(
-                            function,
-                            &mut self.pending,
-                            2,
-                            "enumerated HIR sequence cursor backing",
-                        )?;
-                        let prefix = prefix.as_ref().map(Rc::clone);
-                        // Move this handle into the resume frame; do not clone
-                        // the Seq node merely to remember its items.
-                        self.pending.push(Frame::SeqItems { node, next: 0 });
-                        if let Some(prefix) = prefix {
-                            self.pending.push(Frame::Node(prefix));
-                        }
-                    }
-                    ObservationDagKind::Cat(children) => {
-                        budget.reserve_compact_vec(
-                            function,
-                            &mut self.pending,
-                            children.len(),
-                            "enumerated HIR concatenation cursor backing",
-                        )?;
-                        let mut children = children.iter().rev();
-                        loop {
-                            budget.reserve_compact_bytes(
+                Frame::Node(node) => {
+                    budget.reserve_compact_bytes(
+                        function,
+                        NODE_STEP,
+                        "enumerated HIR node growth receiving renewal",
+                    )?;
+                    match &node.kind {
+                        ObservationDagKind::Seq(prefix, _) => {
+                            budget.reserve_compact_vec(
                                 function,
-                                CAT_CHILD_STEP,
-                                "enumerated HIR concatenation child receiving renewal",
+                                &mut self.pending,
+                                2,
+                                "enumerated HIR sequence cursor backing",
                             )?;
-                            let Some(child) = children.next() else {
-                                break;
-                            };
-                            self.pending.push(Frame::Node(Rc::clone(child)));
+                            let prefix = prefix.as_ref().map(Rc::clone);
+                            // Move this handle into the resume frame; do not clone
+                            // the Seq node merely to remember its items.
+                            self.pending.push(Frame::SeqItems { node, next: 0 });
+                            if let Some(prefix) = prefix {
+                                self.pending.push(Frame::Node(prefix));
+                            }
+                        }
+                        ObservationDagKind::Cat(children) => {
+                            budget.reserve_compact_vec(
+                                function,
+                                &mut self.pending,
+                                children.len(),
+                                "enumerated HIR concatenation cursor backing",
+                            )?;
+                            let mut children = children.iter().rev();
+                            loop {
+                                budget.reserve_compact_bytes(
+                                    function,
+                                    CAT_CHILD_STEP,
+                                    "enumerated HIR concatenation child receiving renewal",
+                                )?;
+                                let Some(child) = children.next() else {
+                                    break;
+                                };
+                                self.pending.push(Frame::Node(Rc::clone(child)));
+                            }
+                        }
+                        ObservationDagKind::Alt(_) => {
+                            return Err(budget.compact_refusal(
+                                function,
+                                "enumerated HIR history cannot contain merged alternatives",
+                                "",
+                            ))
                         }
                     }
-                    ObservationDagKind::Alt(_) => {
-                        return Err(budget.compact_refusal(
-                            function,
-                            "enumerated HIR history cannot contain merged alternatives",
-                            "",
-                        ))
-                    }
-                },
+                }
             }
         }
         Ok(())
@@ -380,3 +391,8 @@ pub(super) fn sort(
 mod before;
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+#[allow(dead_code, unused_imports, reason = "complete immediate-old bank and independent invoice control")]
+#[rustfmt::skip]
+mod before_frame_pricing;

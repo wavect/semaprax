@@ -222,7 +222,7 @@ fn real_backings_are_reused_across_swaps_and_early_mismatches() {
     same_work(&old, &new);
     assert!(new.heap.allocations < old.heap.allocations);
     assert!(new.heap.allocated < old.heap.allocated);
-    assert!(new.paid < old.paid);
+    assert!(new.paid < old.paid, "old={old:?} new={new:?}");
     assert!(ADVANCE_CALL < CURSOR_CALL);
     assert!(2 * PREPARE_CALL + COMPARE_CALL < 2 * CURSOR_STORAGE + 2 * CURSOR_CALL);
     // Both executions use the exact same real ActiveBuilder cap. The old
@@ -538,12 +538,23 @@ fn every_deep_empty_frame_and_warm_cat_child_attempt_renews_its_actual_invoice()
                 assert_eq!(work - budget.remaining, frames);
                 assert_eq!(
                     bytes - crate::bounded_output::active_remaining().unwrap(),
-                    ADVANCE_CALL + attempts * FRAME_STEP + child_attempts * CAT_CHILD_STEP
+                    ADVANCE_CALL
+                        + attempts * FRAME_STEP
+                        + child_attempts * CAT_CHILD_STEP
+                        + (depth + children + 1) * NODE_STEP
                 );
                 assert!(
                     cursor.pending.is_empty()
                         && cursor.current.is_none()
                         && cursor.yielded.is_none()
+                );
+
+                before_frame_pricing::verify_original_warm_invoice(
+                    &observations,
+                    function,
+                    frames,
+                    attempts,
+                    child_attempts,
                 );
 
                 let mut old_budget = ReplayBudget::with_skeleton_limit(usize::MAX);
@@ -571,4 +582,37 @@ fn every_deep_empty_frame_and_warm_cat_child_attempt_renews_its_actual_invoice()
             assert!(!refused);
         }
     }
+}
+
+#[test]
+fn complete_immediate_old_bank_and_original_structural_invoice_are_source_bound() {
+    use sha2::{Digest, Sha256};
+    let captured = include_str!("before_frame_pricing.rs.txt");
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(captured.as_bytes()))
+        ),
+        "fb4060791d4d5b729e06411e1177b8e923dea4084c1904c1ce9785c33b800eea"
+    );
+    let compiled = include_str!("before_frame_pricing.rs");
+    let (body, shim) = compiled
+        .split_once("\n// TEST_ONLY_ORIGINAL_WARM_INVOICE\n")
+        .unwrap();
+    let (prefix, _) = captured.split_once("\n#[cfg(test)]\n#[allow(").unwrap();
+    assert_eq!(
+        body.replace("use super::super::*;", "use super::*;"),
+        prefix
+    );
+    assert!(shim.contains("ADVANCE_CALL + attempts * FRAME_STEP + child_attempts * CAT_CHILD_STEP"));
+    let original_tests = include_str!("tests.before_frame_pricing.rs.txt");
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(original_tests.as_bytes()))
+        ),
+        "7a0f709097a80bb15783c0d031716847bcb49d8cf749f3fc701855618c6220c4"
+    );
+    assert!(original_tests
+        .contains("ADVANCE_CALL + attempts * FRAME_STEP + child_attempts * CAT_CHILD_STEP"));
 }

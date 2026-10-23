@@ -11,7 +11,7 @@ use super::{
     SyntheticBuilderCosts, HIR_IDENTITY_COPY_FACTOR, HIR_STRING_COPY_FACTOR,
     HIR_STRUCTURE_EXPANSION_FACTOR,
 };
-use crate::ast::{Expr, ModuleUseKind, Program};
+use crate::ast::{ModuleUseKind, Program};
 use crate::diagnostic::Diagnostic;
 use crate::{hir, prelude};
 use std::collections::{BTreeMap, BTreeSet};

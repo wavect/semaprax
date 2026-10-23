@@ -559,6 +559,7 @@ pub(in crate::workspace_graph) fn synthetic_program_with_registry_using<'a>(
 
 #[path = "shared_local_callees/coupled_projection.rs"]
 mod coupled_projection;
+#[cfg(test)]
 pub(super) use coupled_projection::estimate as coupled_uncached_estimate;
 
 #[path = "shared_local_callees/paired_projection.rs"]

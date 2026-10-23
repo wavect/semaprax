@@ -20,6 +20,7 @@ pub(super) mod merge_search;
 #[cfg(test)]
 mod oracle_entry;
 mod ordinary_dag;
+pub(super) mod plan_prefix;
 pub(super) mod prefix_fusion;
 pub(super) mod receiving;
 

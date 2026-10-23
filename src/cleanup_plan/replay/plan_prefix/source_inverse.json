@@ -1,0 +1,82 @@
+[
+  {
+    "path": "src/cleanup_plan/replay.rs",
+    "current_length": 327155,
+    "current_sha256": "bb82ba8ed87c88509af6543d03ec0ec5161e8ac13e6a347c354ea6ebdf4b75bf",
+    "before_file": "replay.before.txt",
+    "before_length": 326598,
+    "before_sha256": "c0cb32a0e049277a41ba007b61023260bccc7d48cb0ec11c4ff3a59b74582d5d",
+    "edits": [
+      [
+        1097,
+        "mod plan_prefix;\n",
+        ""
+      ],
+      [
+        108404,
+        "#[rustfmt::skip]\n",
+        ""
+      ],
+      [
+        112083,
+        "        ReplayBudget { payer: AllocationPayer::LegacyUnobserved, .. } if !ordinary_plan_history::completed_fork::emission::before_selected() => !plan_prefix::equal_paths(function, budget, &mut expected, &mut actual)?,\n",
+        ""
+      ],
+      [
+        278934,
+        "#[rustfmt::skip]\n",
+        ""
+      ],
+      [
+        279084,
+        "    budget.reserve_bytes(function, plan_prefix::QUERY_CONTROLS, \"PLAN prefix eligibility receivers\")?;\n    if matches!(budget.payer, AllocationPayer::LegacyUnobserved) && !ordinary_plan_history::completed_fork::emission::before_selected() { return plan_prefix::build(function, budget); }\n",
+        ""
+      ]
+    ]
+  },
+  {
+    "path": "src/cleanup_plan/replay/factored.rs",
+    "current_length": 50781,
+    "current_sha256": "ebfa584f4bc1fc2e33ef27a31902893293dd147bb90fd767b97308a747b60d49",
+    "before_file": "1.before.txt",
+    "before_length": 50566,
+    "before_sha256": "bac67f10c6a201d825ad67fc2ab10ff7ef0a5abe1174625107a7700dfff32629",
+    "edits": [
+      [
+        43331,
+        "            if matches!(enumerating.payer, AllocationPayer::LegacyUnobserved) {\n                skeleton_work::enumerated_prefix::sort(&mut plan, function, &mut enumerating)?;\n            } else {\n                plan.sort();\n            }\n",
+        "            plan.sort();\n"
+      ]
+    ]
+  },
+  {
+    "path": "src/cleanup_plan/replay/factored/continuation_receiver.rs",
+    "current_length": 3211,
+    "current_sha256": "57fb8fa2a03008f6088a2891972a8c3ff17d4eea9eec508809e898eb85a5e60b",
+    "before_file": "2.before.txt",
+    "before_length": 2919,
+    "before_sha256": "f8720b0acb29fe38df16c4c0c2f9baf69c220f99db81b8637b766c9f02529b4a",
+    "edits": [
+      [
+        1285,
+        "        if matches!(enumerating.payer, AllocationPayer::LegacyUnobserved)\n            && !ordinary_plan_history::completed_fork::emission::before_selected()\n        {\n            plan_prefix::equal_paths(function, &mut enumerating, &mut hir, &mut plan)\n        } else {\n            hir.sort();\n            plan.sort();\n            Ok(hir == plan)\n        }\n",
+        "        hir.sort();\n        plan.sort();\n        Ok(hir == plan)\n"
+      ]
+    ]
+  },
+  {
+    "path": "src/cleanup_plan/replay/skeleton_work.rs",
+    "current_length": 48238,
+    "current_sha256": "22f4de0b3fe49f2446588917440ad0beaa9473cfe0c638197149cdcf210d011f",
+    "before_file": "3.before.txt",
+    "before_length": 48210,
+    "before_sha256": "087f973c5c08945976d8e0ebb4fc7efc8a98e9d01da0229ee7e1305654424f3b",
+    "edits": [
+      [
+        734,
+        "pub(super) mod plan_prefix;\n",
+        ""
+      ]
+    ]
+  }
+]

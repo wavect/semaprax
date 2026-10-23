@@ -1075,7 +1075,11 @@ fn cross_check(program: &dyn crate::cleanup::ReplayContext, function: &ResolvedF
                 "factored cross-check complete enumerated content receivers",
             )?;
             skeleton_work::enumerated_prefix::sort(&mut hir, function, &mut enumerating)?;
-            plan.sort();
+            if matches!(enumerating.payer, AllocationPayer::LegacyUnobserved) {
+                skeleton_work::enumerated_prefix::sort(&mut plan, function, &mut enumerating)?;
+            } else {
+                plan.sort();
+            }
             skeleton_work::enumerated_prefix::equal(&hir, &plan, function, &mut enumerating)
         }
     });

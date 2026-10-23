@@ -1,7 +1,7 @@
 {
   "schema": "semaprax.hosted-opt-batch-selection.v1",
-  "filters": 11,
-  "expected_tests": 64,
+  "filters": 12,
+  "expected_tests": 65,
   "commands": [
     {
       "owner": "OPT915 compact lexical receiving complete immediate-old caller",
@@ -79,6 +79,13 @@
       "filter": "test_allocation_observer::tests::",
       "exact": false,
       "expected_tests": 13
+    },
+    {
+      "owner": "OPT903 unchanged dense64 whole public validation forecast and complete Drop gate",
+      "binary": "lib",
+      "filter": "workspace_graph::expected_projection::call_carriers::tests::exact_one_short_zero_and_whole_allocation_drop_controls",
+      "exact": true,
+      "expected_tests": 1
     }
   ]
 }

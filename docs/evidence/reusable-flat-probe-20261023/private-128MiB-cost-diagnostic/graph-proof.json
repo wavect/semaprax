@@ -1,0 +1,26 @@
+[
+  {
+    "subject": "decode",
+    "old": 72691282,
+    "new": 70576690,
+    "saved": 2114592,
+    "still_over_default": 3467826,
+    "complete_graph_only_bill_and_domain_digest_changed": true
+  },
+  {
+    "subject": "scan",
+    "old": 76829769,
+    "new": 75700161,
+    "saved": 1129608,
+    "still_over_default": 8591297,
+    "complete_graph_only_bill_and_domain_digest_changed": true
+  },
+  {
+    "subject": "task",
+    "old": 86542599,
+    "new": 83808093,
+    "saved": 2734506,
+    "still_over_default": 16699229,
+    "complete_graph_only_bill_and_domain_digest_changed": true
+  }
+]

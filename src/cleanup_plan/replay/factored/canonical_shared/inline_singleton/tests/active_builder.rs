@@ -131,13 +131,14 @@ fn run(
 
 #[test]
 fn full_graphs_keep_ids_work_heap_and_exact_removed_successor_receivers() {
-    let _actual_producer_result: fn(
+    type ActualProducer = fn(
         &mut Canonicalizer<'static>,
         &ResolvedFunction,
         &SharedWeighted,
         &mut ReplayBudget,
         &mut closure_receiving::ClosureReceiving,
-    ) -> Result<Option<Successors>, Diagnostic> =
+    ) -> Result<Option<Successors>, Diagnostic>;
+    let _actual_producer_result: ActualProducer =
         Canonicalizer::<'static>::successors_with_receiving;
     let f = function();
     let removed = 2 * size_of::<(

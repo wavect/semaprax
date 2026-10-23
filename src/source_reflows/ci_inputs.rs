@@ -1072,6 +1072,8 @@ pub(super) fn next_custody_before(owner: &str, source: &str, supplied: &str) -> 
         "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/whole_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/whole_tests.rs")),
         "src/cleanup_plan/replay/ordinary_plan_history/producer_joint_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/producer_joint_tests.rs")),
         "src/cleanup_plan/replay/skeleton_work/dag_storage/flat_fanout.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/dag_storage/flat_fanout.rs")),
+        "src/source_reflows_merge/main_e177_overlay_fragments_v3.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_reflows_merge/main_e177_overlay_fragments_v3.rs")),
+        "src/source_reflows_merge/main_e177_overlay_pins_v10.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_reflows_merge/main_e177_overlay_pins_v10.rs")),
         "src/source_reflows_merge/main_e177_overlay_v2.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_reflows_merge/main_e177_overlay_v2.rs")),
         "src/workspace_graph/expected_projection/call_carriers_inverse.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/call_carriers_inverse.rs")),
         "src/workspace_graph/expected_projection/held_projection.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/held_projection.rs")),

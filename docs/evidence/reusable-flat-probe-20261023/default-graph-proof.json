@@ -1,0 +1,9 @@
+{
+  "subject": "std/io-lines/semaprax.toml",
+  "scope": "Actual normal production all-feature library; unchanged default 64 MiB accounting limit and full snapshot.check; no observer or private cap",
+  "previous_builder_bytes": 21869602,
+  "current_builder_bytes": 21511906,
+  "saved": 357696,
+  "complete_graph_only_bill_and_domain_digest_changed": true,
+  "both_full_domain_separated_graph_digests_recomputed": true
+}

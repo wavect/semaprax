@@ -15,6 +15,7 @@ const ROOTED: &str = r#"module nested.freeze;
 thread_local! {
     static REQUESTS: RefCell<Option<Vec<usize>>> = const { RefCell::new(None) };
     static FAILED_AT: Cell<Option<usize>> = const { Cell::new(None) };
+    static CAPTURE_FAILURE: Cell<bool> = const { Cell::new(false) };
 }
 pub(super) fn record_request(bytes: usize) {
     REQUESTS.with(|slot| {
@@ -27,7 +28,26 @@ pub(super) fn record_request(bytes: usize) {
         }
     });
 }
+// Only an explicitly armed heap gate reads the observer. Ordinary bounded
+// compiler calls also refuse here and must retain their original failure.
+struct FailureCapture;
+impl FailureCapture {
+    fn begin() -> Self {
+        let _ = current_metrics(); // An armed gate still requires a real observation.
+        CAPTURE_FAILURE.with(|slot| assert!(!slot.replace(true), "failure captures cannot nest"));
+        FAILED_AT.with(|slot| slot.set(None));
+        Self
+    }
+}
+impl Drop for FailureCapture {
+    fn drop(&mut self) {
+        CAPTURE_FAILURE.with(|slot| slot.set(false));
+    }
+}
 pub(super) fn record_failure() {
+    if !CAPTURE_FAILURE.with(Cell::get) {
+        return;
+    }
     FAILED_AT.with(|slot| {
         if slot.get().is_none() {
             slot.set(Some(current_metrics().allocated));
@@ -494,6 +514,7 @@ fn nested_byte_census_funds_exact_short_zero_every_frontier_sticky_and_complete_
             FAILED_AT.with(|slot| slot.set(None));
             let ((failed, metrics), refused, used, first) = with_limit_usage_refusal(cap, || {
                 measure(|| {
+                    let _capture = FailureCapture::begin();
                     let result = operation();
                     let failed = result.is_err();
                     drop(result);
@@ -733,3 +754,46 @@ mod ci_scope {
 
 #[path = "tests/source_composition.rs"]
 mod source_composition;
+
+#[test]
+fn inactive_failure_recorder_keeps_real_budget_refusals_without_an_observation() {
+    assert!(!CAPTURE_FAILURE.with(Cell::get));
+    FAILED_AT.with(|slot| slot.set(None));
+    let (result, refused, _, first) = with_limit_usage_refusal(0, Storage::acquire);
+    assert!(matches!(result, Err(storage::Refused::Budget)));
+    assert!(refused && first.is_some());
+    assert_eq!(FAILED_AT.with(Cell::get), None);
+    // An unrelated observation does not arm this dedicated failure recorder.
+    let ((result, refused, _, _), metrics) =
+        measure(|| with_limit_usage_refusal(0, Storage::acquire));
+    assert!(matches!(result, Err(storage::Refused::Budget)));
+    assert!(refused);
+    assert!(!metrics.invalid);
+    assert_eq!(metrics.allocated, metrics.freed);
+    assert_eq!(FAILED_AT.with(Cell::get), None);
+}
+#[test]
+fn failure_capture_unwinds_before_the_observer_and_rearms_with_real_metrics() {
+    let result = std::panic::catch_unwind(|| {
+        measure(|| {
+            let _capture = FailureCapture::begin();
+            panic!("exercise failure-capture unwind");
+        })
+    });
+    assert!(result.is_err());
+    assert!(!CAPTURE_FAILURE.with(Cell::get));
+    // The observer remains deliberately strict outside its real lifetime.
+    assert!(std::panic::catch_unwind(current_metrics).is_err());
+    let ((result, refused, _, _), metrics) = measure(|| {
+        let _capture = FailureCapture::begin();
+        with_limit_usage_refusal(0, Storage::acquire)
+    });
+    assert!(matches!(result, Err(storage::Refused::Budget)));
+    assert!(refused);
+    assert!(!metrics.invalid);
+    assert_eq!(metrics.allocated, metrics.freed);
+    assert_eq!(FAILED_AT.with(Cell::get), Some(metrics.allocated));
+    assert!(!CAPTURE_FAILURE.with(Cell::get));
+    let (result, refused, _, _) = with_limit_usage_refusal(0, Storage::acquire);
+    assert!(matches!(result, Err(storage::Refused::Budget)) && refused);
+}

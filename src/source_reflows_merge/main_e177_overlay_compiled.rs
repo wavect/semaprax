@@ -1,5 +1,7 @@
 pub(super) fn compiled(source: &str) -> Option<&'static str> {
     match source {
+        "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/flat_probe/before.rs" => Some(include_str!("../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix/flat_probe/before.rs")),
+        "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/flat_probe/receiving_tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix/flat_probe/receiving_tests.rs")),
         "src/workspace_graph/expected_projection/private_layout/names/interface_census.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/private_layout/names/interface_census.rs")),
         "src/workspace_graph/expected_projection/private_layout/names/interface_before.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/private_layout/names/interface_before.rs")),
         "src/workspace_graph/expected_projection/private_layout/names/interface_tests.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/private_layout/names/interface_tests.rs")),
@@ -400,6 +402,12 @@ mod tests {
         // Reverse only the exact current literal-list packing and new scope.
         // Actual current root/child equality above precedes every inverse.
         let mut current_scope_root = root.to_owned();
+        let label_dispatch = "    if page[\"schema\"] == fragments_v3::SCHEMA_V12 {\n        let expanded = fragments_v3::expand_v12(&before, policy, page)?;\n        compose_values_v2(before, policy, &expanded)\n    } else if page[\"schema\"] == fragments_v3::SCHEMA_V11 {\n";
+        assert_eq!(current_scope_root.matches(label_dispatch).count(), 1);
+        current_scope_root = current_scope_root.replacen(label_dispatch, "    if page[\"schema\"] == fragments_v3::SCHEMA_V11 {\n", 1);
+        let compatibility = "fragments_v3::expand_v10_compatible(&before, policy, page)?";
+        assert_eq!(current_scope_root.matches(compatibility).count(), 1);
+        current_scope_root = current_scope_root.replacen(compatibility, "fragments_v3::expand_v10(&before, policy, page)?", 1);
         let digest_dispatch = "    if page[\"schema\"] == fragments_v3::SCHEMA_V11 {\n        let expanded = fragments_v3::expand_v11(&before, policy, page)?;\n        compose_values_v2(before, policy, &expanded)\n    } else if page[\"schema\"] == fragments_v3::SCHEMA_V10 {\n";
         assert_eq!(current_scope_root.matches(digest_dispatch).count(), 1);
         current_scope_root = current_scope_root.replacen(digest_dispatch, "    if page[\"schema\"] == fragments_v3::SCHEMA_V10 {\n", 1);
@@ -549,6 +557,8 @@ mod tests {
             "src/workspace_graph/expected_projection/private_layout/names/interface_census.rs",
             "src/workspace_graph/expected_projection/private_layout/names/interface_before.rs",
             "src/workspace_graph/expected_projection/private_layout/names/interface_tests.rs",
+            "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/flat_probe/before.rs",
+            "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/flat_probe/receiving_tests.rs",
         ] {
             let declaration = format!("    {source:?},\n");
             assert_eq!(current_scope_root.matches(&declaration).count(), 1);
@@ -676,6 +686,8 @@ mod tests {
             "src/workspace_graph/expected_projection/private_layout/names/interface_census.rs",
             "src/workspace_graph/expected_projection/private_layout/names/interface_before.rs",
             "src/workspace_graph/expected_projection/private_layout/names/interface_tests.rs",
+            "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/flat_probe/before.rs",
+            "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/flat_probe/receiving_tests.rs",
         ] {
             let arm = format!("        {source:?} => Some(include_str!(\"../../{source}\")),\n");
             assert_eq!(current_scope_child.matches(&arm).count(), 1);

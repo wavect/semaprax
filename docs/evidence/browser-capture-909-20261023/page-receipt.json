@@ -1,0 +1,46 @@
+{
+  "status": "ORIGINAL_CURRENT_CODEC_COMPOSITION_PASS_PENDING_PUBLICATION",
+  "base_head": "909f0a4763a562d9771c4115154952d16cd487d7",
+  "rows": 711,
+  "page_bytes": 221924,
+  "published_current_preserved_as_exact_views": [
+    {
+      "source": "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+      "view": {
+        "archive": "e/e01590e06c1ebc71a6672cccecb66fbe427fab76d4b6f8ad0a41dc4ac3963e65",
+        "length": 10575,
+        "sha256": "e01590e06c1ebc71a6672cccecb66fbe427fab76d4b6f8ad0a41dc4ac3963e65",
+        "name": "909-browser"
+      }
+    },
+    {
+      "source": "CHANGELOG.md",
+      "view": {
+        "archive": "e/d8434aa684a77f16028ee566c497cb2a18bab3ede15c5a37a460d0a4dd7d98bb",
+        "length": 588049,
+        "sha256": "d8434aa684a77f16028ee566c497cb2a18bab3ede15c5a37a460d0a4dd7d98bb",
+        "name": "909-browser"
+      }
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract.rs",
+      "view": {
+        "archive": "e/569332cbdaa6bafdcf23e8a7dbdd2feb3e285dca997764da0e199167567cc244",
+        "length": 10562,
+        "sha256": "569332cbdaa6bafdcf23e8a7dbdd2feb3e285dca997764da0e199167567cc244",
+        "name": "909-browser"
+      }
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+      "view": {
+        "archive": "docs/evidence/browser-source-audits-20261021/current/3022a54f2f22177c37d4ef4634dd4169d7ca8c4f799906f4e5e68a5d41c1c039.txt",
+        "length": 49970,
+        "sha256": "3022a54f2f22177c37d4ef4634dd4169d7ca8c4f799906f4e5e68a5d41c1c039",
+        "name": "909-browser"
+      }
+    }
+  ],
+  "all_previous_fields_views_memberships_and_fragment_edges_retained": true,
+  "all_original_codec_bodies_and_caps_unchanged": true
+}

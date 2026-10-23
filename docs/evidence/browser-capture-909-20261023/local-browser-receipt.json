@@ -1,0 +1,6 @@
+{
+  "scope": "Actual normal Rust1.97 production compiler generated direct-source, baseline and renamed web artifacts; all three actual TypeScript consumers checked; primary shipping test-fixtures.mjs executed with explicit exact native-rust-1.97 profile and real repository-pinned Chromium headless shell serially. Default hosted and unknown profiles refuse these native receipts. Hosted Linux1.88 execution remains the CI gate.",
+  "compiler_sha256": "7f06a8fda0ffee02a4a21382653c3099950ec8873804392b32ffa893986e9d1e",
+  "all_build_temp_dependency_and_browser_paths_on_external_ssd": true,
+  "process_RSS_cap": null
+}

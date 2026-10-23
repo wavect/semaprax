@@ -1,0 +1,64 @@
+{
+  "status": "ORIGINAL_CURRENT_CODEC_COMPOSITION_PASS_PENDING_PUBLICATION",
+  "base_head": "39de740bd3",
+  "rows": 711,
+  "page_bytes": 221316,
+  "published_current_preserved_as_exact_views": [
+    {
+      "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "view": {
+        "archive": "e/d57ebef0e05c022e19751d769962425ced305d64ff6b5dc65ec951077a85e01d",
+        "length": 213083,
+        "sha256": "d57ebef0e05c022e19751d769962425ced305d64ff6b5dc65ec951077a85e01d",
+        "name": "437b"
+      }
+    },
+    {
+      "source": "src/cleanup_plan/replay/physical_budget.rs",
+      "view": {
+        "archive": "e/6efe242c9e412bd06946b7c6fd6245911ecddb1f40402e3c713c6a7da6c7a05e",
+        "length": 42671,
+        "sha256": "6efe242c9e412bd06946b7c6fd6245911ecddb1f40402e3c713c6a7da6c7a05e",
+        "name": "437b"
+      }
+    },
+    {
+      "source": "src/source_reflows_merge/main_e177_overlay_compiled.rs",
+      "view": {
+        "archive": "e/f5944380e5fee421e48789423916bac9bd300c71d20c7c66d65bff4749655269",
+        "length": 89768,
+        "sha256": "f5944380e5fee421e48789423916bac9bd300c71d20c7c66d65bff4749655269",
+        "name": "437b"
+      }
+    },
+    {
+      "source": "src/source_reflows_merge/main_e177_overlay_fragments_v3.rs",
+      "view": {
+        "archive": "docs/evidence/rustfmt-20261021/current/37de568d18cef01e211c9fd627cc2bd848d7ba6d75529f856f3ed7bb87f867e1.txt",
+        "length": 63514,
+        "sha256": "37de568d18cef01e211c9fd627cc2bd848d7ba6d75529f856f3ed7bb87f867e1",
+        "name": "437b"
+      }
+    },
+    {
+      "source": "tests/hir_module_boundaries.rs",
+      "view": {
+        "archive": "e/03fb078055a148b20beb88451b4e072f1db8a37dc9afdde36efbb1faf584c4f4",
+        "length": 140239,
+        "sha256": "03fb078055a148b20beb88451b4e072f1db8a37dc9afdde36efbb1faf584c4f4",
+        "name": "437b"
+      }
+    },
+    {
+      "source": "tests/workspace/semantic_graph/source_inventory.rs",
+      "view": {
+        "archive": "e/caa8979edba27c9334fd5624e0744a128cfe9bc7ef664270bc9661781c4d30ae",
+        "length": 167193,
+        "sha256": "caa8979edba27c9334fd5624e0744a128cfe9bc7ef664270bc9661781c4d30ae",
+        "name": "437b"
+      }
+    }
+  ],
+  "all_previous_fields_views_memberships_and_fragment_edges_retained": true,
+  "all_original_codec_bodies_and_caps_unchanged": true
+}

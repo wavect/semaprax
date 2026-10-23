@@ -1,0 +1,16 @@
+[
+  {
+    "domain": "hir",
+    "previous_archive": "e/fa5f5358459a35de3491b0cee1ef558b7bb263166cd5b86c3e9c595f97776fff",
+    "current_sha256": "80d9773622a5940c45bf600927ebb17af925ac3981ba05256def7923565fcf83",
+    "only_changed_source": "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/tests/active_builder.rs",
+    "all_source_roles_chunks_and_registration_chains_unchanged": true
+  },
+  {
+    "domain": "projection",
+    "previous_archive": "e/0a428551ca11cdb997c4e1bee4db9b4e322bac31917e2667fa18a400a32d5d9b",
+    "current_sha256": "e4f62b6d52e8d1af8e1be335c5f75f55a366e89f750bff09094d509be694dc45",
+    "only_changed_source": "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/tests/active_builder.rs",
+    "all_source_roles_chunks_and_registration_chains_unchanged": true
+  }
+]

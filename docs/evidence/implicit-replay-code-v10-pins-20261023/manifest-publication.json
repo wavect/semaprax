@@ -1,0 +1,18 @@
+[
+  {
+    "domain": "hir",
+    "previous_archive": "e/1e135bddc0d78a4d2ceb722d014eb86e0e53c8964120b87225fa005980b09705",
+    "previous_sha256": "1e135bddc0d78a4d2ceb722d014eb86e0e53c8964120b87225fa005980b09705",
+    "current_sha256": "fa5f5358459a35de3491b0cee1ef558b7bb263166cd5b86c3e9c595f97776fff",
+    "all_old_sources_roles_chains_and_ordered_chunks_preserved": true,
+    "original_closure_members_still_fully_authenticated": true
+  },
+  {
+    "domain": "projection",
+    "previous_archive": "e/a44f520b262e326b9ac95d545b2dcaf7c14e7adc417b85f4933581765ddcbf35",
+    "previous_sha256": "a44f520b262e326b9ac95d545b2dcaf7c14e7adc417b85f4933581765ddcbf35",
+    "current_sha256": "0a428551ca11cdb997c4e1bee4db9b4e322bac31917e2667fa18a400a32d5d9b",
+    "all_old_sources_roles_chains_and_ordered_chunks_preserved": true,
+    "original_closure_members_still_fully_authenticated": true
+  }
+]

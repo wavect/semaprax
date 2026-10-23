@@ -1,0 +1,46 @@
+{
+  "status": "FOCUSED_LOCAL_PASS_FULL_CI_PENDING",
+  "base_head": "437b693d24",
+  "fixed_error_identity": "SPX-H006",
+  "actual_carrier_contains_only_the_actual_variable_Cow_message": true,
+  "all_constructor_enforcement_and_public_diagnostic_fields_preserved": true,
+  "original_message_pointer_capacity_and_borrowed_owned_tests_preserved": true,
+  "original_hostile_extended_diagnostic_fields_rejected": true,
+  "existing_layout_gate_strengthened": true,
+  "normal_build_and_clippy_passed": true,
+  "actual_complete_crate_focused_tests": 16,
+  "existing_four_external_codec_tests_filtered": true,
+  "no_full_suite_qualification": true,
+  "original_source_verifier_and_six_hostile_controls_passed": true,
+  "source_overlay_tests": {
+    "original": 29,
+    "new_lossless_codec_controls": 3,
+    "complete_predecessor": 2,
+    "current_audit_entry": 2
+  },
+  "codec": {
+    "schema": "semaprax.finite-source-overlay-page.v10",
+    "frozen_previous_page_bytes": 262067,
+    "lossless_frozen_encoding_bytes": 220641,
+    "current_page_bytes": 221316,
+    "wire_cap_unchanged": 262144,
+    "complete_previous_page_and_composed_packet_inverse_passed": true,
+    "unknown_fields_and_nonminimal_literals_preserved": true,
+    "current_source_admission_unchanged": true
+  },
+  "source_harness_clippy_passed": true,
+  "default_builder_and_work_limits_unchanged": true,
+  "external_ssd_only": true,
+  "actual_device_available_ram_monitored": true,
+  "process_RSS_cap": false,
+  "remaining_product_refusals": [
+    "data-json-dec",
+    "data-json-scan",
+    "task-service-project"
+  ],
+  "full_ci_qualified": false,
+  "hir_source_tests_passed": 11,
+  "source_coverage_tests_passed": 2,
+  "original_projection_purity_passed": true,
+  "whole_workspace_rustfmt_check_passed": true
+}

@@ -1,0 +1,12 @@
+{
+  "scope": "Actual normal compiler and unchanged io-lines project on macOS aarch64; private candidate. No Linux or full CI qualification.",
+  "only_json_differences": [
+    "/graph_digest",
+    "/budget/used_builder_bytes"
+  ],
+  "before": 22084690,
+  "after": 21869602,
+  "saved": 215088,
+  "both_complete_domain_separated_artifact_digests_verified": true,
+  "full_ci_qualified": false
+}

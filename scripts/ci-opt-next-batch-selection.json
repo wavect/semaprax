@@ -1,7 +1,7 @@
 {
   "schema": "semaprax.hosted-opt-batch-selection.v1",
-  "filters": 57,
-  "expected_tests": 158,
+  "filters": 61,
+  "expected_tests": 166,
   "commands": [
     {
       "owner": "OPT899 unchanged default owning controls",
@@ -401,6 +401,34 @@
       "filter": "cleanup_plan::replay::ordinary_plan_history::completed_fork::shipping::flat_admission::tests::",
       "exact": false,
       "expected_tests": 6
+    },
+    {
+      "owner": "incoming MAIN reusable flat probe frame receivers",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::skeleton_work::enumerated_prefix::flat_probe::receiving_tests::",
+      "exact": false,
+      "expected_tests": 2
+    },
+    {
+      "owner": "dual V10 codec parent compatibility and fail-closed envelope dispatch",
+      "binary": "lib",
+      "filter": "source_reflows_merge::main_e177_final_inputs::overlay_v2::fragments_v3::pins_v10::old519_tests::",
+      "exact": false,
+      "expected_tests": 4
+    },
+    {
+      "owner": "nested byte-traversal inactive failure recorder",
+      "binary": "lib",
+      "filter": "hir::validation::byte_traversal::nested::tests::inactive_failure_recorder_keeps_real_budget_refusals_without_an_observation",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "nested byte-traversal failure capture unwind and rearm",
+      "binary": "lib",
+      "filter": "hir::validation::byte_traversal::nested::tests::failure_capture_unwinds_before_the_observer_and_rearms_with_real_metrics",
+      "exact": true,
+      "expected_tests": 1
     }
   ]
 }

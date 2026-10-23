@@ -1,0 +1,6 @@
+{
+  "production_head": "909f0a4763a562d9771c4115154952d16cd487d7",
+  "scope": "Actual local normal all-feature compiler; default accounting cap; dirty checkout differs only in closed source-control metadata, docs and browser tests; production compiler code unchanged from this head",
+  "binary_sha256": "7f06a8fda0ffee02a4a21382653c3099950ec8873804392b32ffa893986e9d1e",
+  "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: aarch64-apple-darwin\nrelease: 1.97.1\nLLVM version: 22.1.6\n"
+}

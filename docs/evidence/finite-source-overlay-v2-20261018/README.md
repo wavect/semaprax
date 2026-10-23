@@ -117,3 +117,22 @@ V11 page and whole old controller sources remain independent controls. A static
 prototype on the separate frozen 797-row V11 page counted 1490 positional views
 and 193 labels: 254079 bytes became 227431 bytes. That is source-capacity evidence
 for that input, not current-page adoption, runtime, RSS or agent-token evidence.
+
+V10 transports repeated exact current pins by their positions in the same
+whole authenticated 519-row predecessor. A current pin reference is `[index]`;
+a named view reference is `[name, index]`. Only the existing positional pin
+slots participate. Literal pins, extra fields, nonminimal literal tuples,
+reference objects, unknown metadata, and ordering remain unchanged. Decoding
+reconstructs the entire canonical V9 page before invoking the unchanged V9
+through V2 readers. The predecessor digest, index range, pin shape and name
+are checked; no path is opened or admitted by the codec. The single wire-page
+cap remains 262144 bytes, and current physical, compiled and archive channels
+still require their ordinary authentication. The executable frozen-page
+inverse, complete-packet equality and hostile controls live in
+`src/source_reflows_merge/main_e177_overlay_pins_v10.rs`; their run-specific
+results are recorded separately and confer no runtime qualification.
+
+The two independently authored V10 transports have disjoint envelopes. A
+present `archive_prefixes` field selects the original prefix decoder, including
+its refusals; its absence selects the authenticated old519 pin-reference
+decoder only for standalone V10 pages. V11 and V12 retain the prefix chain.

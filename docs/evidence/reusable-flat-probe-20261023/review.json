@@ -1,0 +1,16 @@
+{
+  "result": "PASS",
+  "review": "Manual source and invariant review",
+  "no_subagents": true,
+  "items": [
+    "Bank precedes the actual Frame initializer and original iterator formation.",
+    "Frame, iterator and path borrows stay within the synchronous nonrecursive probe; no user callback, detached owner or verdict cache.",
+    "Separate initial-reservation, zero-authentication and work primitive lexical call frames are prepaid.",
+    "Positive payment occurs once; zero-byte authentication still precedes every original one-unit work event.",
+    "The direct lent-work rejection remains before the new bank.",
+    "All result/error values are consumed before reusing their receiving slots.",
+    "Whole former compact producer is byte-identical in a closed test module; former wide producer and both existing flat-probe tests remain unchanged.",
+    "Actual IR/DAG types used throughout; no synthetic layout stand-ins.",
+    "Scope remains partial: default product budgets still fail; private 128MiB graphs only quantify reduction."
+  ]
+}

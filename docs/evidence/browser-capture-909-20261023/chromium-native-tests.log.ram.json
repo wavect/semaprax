@@ -1,0 +1,17 @@
+{
+  "exit": 0,
+  "process_RSS_cap": null,
+  "minimum_device_physical_available_GiB": 8.01611328125,
+  "minimum_pressure_free_percent": 75,
+  "compiler_pauses": 0,
+  "peak_process_tree_RSS_telemetry_KiB": 953728,
+  "samples": [
+    {
+      "physical_available_GiB": 8.694686889648438,
+      "pressure_free_percent": 75,
+      "compiler_paused": false,
+      "process_tree_RSS_telemetry_KiB": 1056,
+      "swap": "vm.swapusage: total = 7168.00M  used = 5651.38M  free = 1516.62M  (encrypted)"
+    }
+  ]
+}

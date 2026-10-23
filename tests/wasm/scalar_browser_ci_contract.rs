@@ -125,15 +125,22 @@ fn browser_known_answers_match_authenticated_baseline_and_rename_graphs() {
                     file.write_all(revision.semantic_graph().as_bytes())
                         .expect("capture complete actual calculator graph");
                 }
+                assert_eq!(
+                    revision.semantic_graph_digest(),
+                    historical_builder::profile_graph_digest(revision.semantic_graph())
+                );
+                let fixture_graph =
+                    historical_builder::pinned_fixture_graph(revision.semantic_graph(), name);
                 previous_digests.push(historical_builder::current_browser_digest(
-                    revision.semantic_graph(),
+                    fixture_graph,
                     name,
                 ));
-                historical_builder::current_browser_drift_controls(revision.semantic_graph(), name);
+                historical_builder::current_browser_drift_controls(fixture_graph, name);
+                let fixture_digest = historical_builder::profile_graph_digest(fixture_graph);
                 let actual = [
                     revision.project_revision(),
                     revision.workspace_revision(),
-                    revision.semantic_graph_digest(),
+                    fixture_digest.as_str(),
                 ];
                 for (field, value) in actual.into_iter().enumerate() {
                     assert_eq!(

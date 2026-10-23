@@ -1,0 +1,24 @@
+{
+  "source_head": "909f0a4763a562d9771c4115154952d16cd487d7",
+  "run": 39894187280,
+  "job": 120221350676,
+  "scope": "Actual hosted Linux 1.88 full graph captures; graph artifacts are evidence, browser execution remains an independent executable gate",
+  "graphs": [
+    {
+      "fixture": "calculator-baseline.json",
+      "previous_digest": "sha256:4a9d59d3f063fe1deb02506c7c89f3453e3758b9154035b7b47230d7a056f3f1",
+      "current_digest": "sha256:4fb7f079823914af14237eaf7e9b2f8eab2bb560116447cce7963033d3aab1f6",
+      "previous_builder_bytes": 3470026,
+      "current_builder_bytes": 3225466,
+      "complete_previous_wire_restored": true
+    },
+    {
+      "fixture": "calculator-renamed.json",
+      "previous_digest": "sha256:53472ae99bbe2076a8c958c963e0c6330c8dff0fe29f8081ef2ae3f0a2678804",
+      "current_digest": "sha256:ef6ae3561ac646386e27326b43b48508ef5c8160e74595fca3b22727dfb0c5db",
+      "previous_builder_bytes": 3470026,
+      "current_builder_bytes": 3225466,
+      "complete_previous_wire_restored": true
+    }
+  ]
+}

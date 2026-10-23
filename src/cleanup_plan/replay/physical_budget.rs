@@ -9,7 +9,9 @@ pub(crate) use setup::{SetupFailure, SetupReason};
 // the existing semantic Result boundary; no success path constructs them.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) struct ByteFailure {
-    pub(super) code: &'static str,
+    // Every constructor enforces SPX-H006; only the message varies. Keeping
+    // its fixed identity implicit avoids copying a redundant string slice in
+    // every successful compact Result. The public boundary restores it below.
     pub(super) message: std::borrow::Cow<'static, str>,
 }
 impl ByteFailure {
@@ -25,16 +27,13 @@ impl ByteFailure {
         else {
             panic!("byte reservation diagnostic representation changed");
         };
-        Self {
-            code: "SPX-H006",
-            message,
-        }
+        Self { message }
     }
 }
 impl ByteFailure {
     pub(super) fn into_diagnostic(self) -> Diagnostic {
         Diagnostic {
-            code: self.code,
+            code: "SPX-H006",
             severity: crate::diagnostic::Severity::Error,
             message: self.message,
             path: None,
@@ -930,7 +929,6 @@ impl ReplayBudget {
             // A selected budget is sticky; no second diagnostic allocation can
             // spend a consumed reservation. The stable error identity remains.
             return ByteFailure {
-                code: "SPX-H006",
                 message: std::borrow::Cow::Owned(String::new()),
             };
         };
@@ -957,7 +955,6 @@ impl ReplayBudget {
             text.push_str("cleanup replay internal refusal text exceeds its prepaid backing");
         }
         ByteFailure {
-            code: "SPX-H006",
             message: std::borrow::Cow::Owned(text),
         }
     }
@@ -1036,6 +1033,19 @@ mod byte_failure_tests {
     #[test]
     fn compact_byte_error_result_layout_is_smaller_than_the_unchanged_public_diagnostic() {
         use std::mem::{align_of, size_of};
+        // The real carrier contains exactly its actual variable message.
+        // These strengthen the existing layout gate; all public-field,
+        // message-ownership and hostile diagnostic tests remain unchanged.
+        assert_eq!(size_of::<ByteFailure>(), size_of::<Cow<'static, str>>());
+        assert_eq!(align_of::<ByteFailure>(), align_of::<Cow<'static, str>>());
+        assert_eq!(
+            size_of::<Result<(), ByteFailure>>(),
+            size_of::<Result<(), Cow<'static, str>>>()
+        );
+        assert_eq!(
+            size_of::<Result<usize, ByteFailure>>(),
+            size_of::<Result<usize, Cow<'static, str>>>()
+        );
         assert!(size_of::<ByteFailure>() < size_of::<Diagnostic>());
         assert!(align_of::<ByteFailure>() <= align_of::<Diagnostic>());
         assert!(size_of::<Result<(), ByteFailure>>() < size_of::<Result<(), Diagnostic>>());

@@ -1,0 +1,20 @@
+[WebServer] (node:18267) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:18269) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:18272) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 3 tests using 1 worker
+
+(node:18273) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [direct-source] › tests/calculator.spec.mjs:11:1 › loopback Chromium calculator preserves the same four-operation stable-ID workflow, failure, and re-entry (1.2s)
+(node:18297) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  2 [project-baseline] › tests/calculator.spec.mjs:11:1 › loopback Chromium calculator preserves the same four-operation stable-ID workflow, failure, and re-entry (360ms)
+(node:18309) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  3 [project-renamed] › tests/calculator.spec.mjs:11:1 › loopback Chromium calculator preserves the same four-operation stable-ID workflow, failure, and re-entry (402ms)
+
+  3 passed (5.2s)

@@ -1166,3 +1166,134 @@ mod incoming_main21abc {
         assert_eq!(current.replacen(new, old, 1), original);
     }
 }
+
+// The graph's physical accounting reflects the compiler's Rust layout. Keep
+// each supported current producer as a complete exact wire; this is not a
+// wildcard for a different bill or a different semantic field.
+const HOSTED909: [&str; 2] = [
+    include_str!("../../../docs/evidence/browser-capture-909-20261023/calculator-baseline.json"),
+    include_str!("../../../docs/evidence/browser-capture-909-20261023/calculator-renamed.json"),
+];
+const NATIVE909: [&str; 2] = [
+    include_str!(
+        "../../../docs/evidence/browser-capture-909-20261023/native-calculator-baseline.json"
+    ),
+    include_str!(
+        "../../../docs/evidence/browser-capture-909-20261023/native-calculator-renamed.json"
+    ),
+];
+pub(super) fn profile_graph_digest(graph: &str) -> String {
+    graph_digest(graph)
+}
+pub(super) fn pinned_fixture_graph(graph: &str, role: &str) -> &'static str {
+    let index = match role {
+        "baseline" => 0,
+        "renamed" => 1,
+        _ => panic!("unknown current fixture role"),
+    };
+    let hosted = HOSTED909[index].strip_suffix('\n').unwrap();
+    let native = NATIVE909[index].strip_suffix('\n').unwrap();
+    let actual: serde_json::Value = serde_json::from_str(graph).unwrap();
+    assert_eq!(graph_digest(graph), actual["graph_digest"]);
+    assert!(
+        graph == hosted || graph == native,
+        "complete exact current compiler-profile wire required"
+    );
+    let h: serde_json::Value = serde_json::from_str(hosted).unwrap();
+    let n: serde_json::Value = serde_json::from_str(native).unwrap();
+    assert_eq!(graph_digest(hosted), h["graph_digest"]);
+    assert_eq!(graph_digest(native), n["graph_digest"]);
+    let field = format!(
+        "\"used_builder_bytes\":{}",
+        n["budget"]["used_builder_bytes"]
+    );
+    assert_eq!(native.matches(&field).count(), 1);
+    let restored = native.replacen(
+        &field,
+        &format!(
+            "\"used_builder_bytes\":{}",
+            h["budget"]["used_builder_bytes"]
+        ),
+        1,
+    );
+    let field = format!("\"graph_digest\":{}", n["graph_digest"]);
+    assert_eq!(restored.matches(&field).count(), 1);
+    let restored = restored.replacen(
+        &field,
+        &format!("\"graph_digest\":{}", h["graph_digest"]),
+        1,
+    );
+    assert_eq!(
+        restored, hosted,
+        "every semantic field, limit and other budget stays exact"
+    );
+    hosted
+}
+#[test]
+fn exact_current_profiles_keep_both_raw_roles_and_all_complete_historical_bridges() {
+    for (index, role) in ["baseline", "renamed"].into_iter().enumerate() {
+        let hosted = HOSTED909[index].strip_suffix('\n').unwrap();
+        for raw in [HOSTED909[index], NATIVE909[index]] {
+            let raw = raw.strip_suffix('\n').unwrap();
+            assert_eq!(pinned_fixture_graph(raw, role), hosted);
+            assert_eq!(
+                current_browser_digest(hosted, role),
+                [
+                    "sha256:489f02ed298c2d35433d6c9f811ccc26c50ce90117b3976a862b40aff11129b8",
+                    "sha256:ccb0ec81a00f3890ec2fe87af8d0f801970a1a397eeb55fe115e83dab02188ba",
+                ][index]
+            );
+        }
+    }
+}
+#[test]
+fn exact_current_profiles_refuse_rehashed_bill_semantic_limit_role_and_boundary_drift() {
+    for (index, role) in ["baseline", "renamed"].into_iter().enumerate() {
+        for raw in [HOSTED909[index], NATIVE909[index]] {
+            let graph = raw.strip_suffix('\n').unwrap();
+            let parsed: serde_json::Value = serde_json::from_str(graph).unwrap();
+            for (field, value) in [
+                (
+                    "used_builder_bytes",
+                    parsed["budget"]["used_builder_bytes"].as_u64().unwrap(),
+                ),
+                ("used_call_sites", 10),
+            ] {
+                let before = format!("\"{field}\":{value}");
+                assert_eq!(graph.matches(&before).count(), 1);
+                let changed = graph.replacen(&before, &format!("\"{field}\":{}", value + 1), 1);
+                let before = format!("\"graph_digest\":{}", parsed["graph_digest"]);
+                let changed = changed.replacen(
+                    &before,
+                    &format!("\"graph_digest\":\"{}\"", graph_digest(&changed)),
+                    1,
+                );
+                assert!(std::panic::catch_unwind(|| pinned_fixture_graph(&changed, role)).is_err());
+            }
+            // Project graphs do not emit a limit field. An injected larger
+            // limit is unknown data and must still fail after a valid rehash.
+            let changed = graph.replacen(
+                "\"budget\":{",
+                "\"budget\":{\"max_builder_bytes\":67108865,",
+                1,
+            );
+            assert_ne!(changed, graph);
+            let before = format!("\"graph_digest\":{}", parsed["graph_digest"]);
+            let changed = changed.replacen(
+                &before,
+                &format!("\"graph_digest\":\"{}\"", graph_digest(&changed)),
+                1,
+            );
+            assert!(std::panic::catch_unwind(|| pinned_fixture_graph(&changed, role)).is_err());
+            for wrong in ["other", if index == 0 { "renamed" } else { "baseline" }] {
+                assert!(std::panic::catch_unwind(|| pinned_fixture_graph(graph, wrong)).is_err());
+            }
+            assert!(std::panic::catch_unwind(|| pinned_fixture_graph(raw, role)).is_err());
+            assert!(std::panic::catch_unwind(|| pinned_fixture_graph(
+                &graph[..graph.len() - 1],
+                role
+            ))
+            .is_err());
+        }
+    }
+}

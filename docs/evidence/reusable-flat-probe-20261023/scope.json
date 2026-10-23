@@ -1,0 +1,23 @@
+{
+  "before_head": "68f00c780564dd39156136d274ed345519a01339",
+  "change": "Pay and retain one invocation-local nonrecursive flat-probe frame. Keep a zero-byte sticky payer/floor authentication before each original one-unit work event. No default limit, work limit, verifier or source rule changes.",
+  "checks": {
+    "actual_native_focused_tests": 20,
+    "source_hir_tests": 11,
+    "source_coverage_tests": 2,
+    "whole_projection_gate": 1,
+    "finite_overlay_tests": 32,
+    "complete_predecessor_tests": 2,
+    "current_entry_tests": 2,
+    "original_hostile_source_controls": 6,
+    "normal_all_feature_cargo_clippy": "PASS",
+    "normal_all_feature_cargo_build": "PASS",
+    "selected_native_test_clippy": "PASS; Cargo lint levels reproduced; only disabled-test-registration unused macros and items-after-test-module artifacts suppressed in private driver",
+    "full_workspace_format": "PASS"
+  },
+  "native_scope": "Actual complete production compiler and actual IR/layout types; unrelated test registrations disabled for focused native linking. Closed source coupling metadata was refreshed subsequently and independently qualified by final source tests and unchanged source verifier.",
+  "remaining": "All three larger default-cap products still report SPX-G171. Browser pins remain stale. This is not green-CI or full-workspace qualification.",
+  "all_work_and_build_outputs_on_external_ssd": true,
+  "per_process_ram_caps": null,
+  "device_available_ram_monitored": true
+}

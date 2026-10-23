@@ -1,0 +1,24 @@
+{
+  "before_head": "909f0a4763a562d9771c4115154952d16cd487d7",
+  "scope": "CI fixture portability correction; no production compiler code, graph protocol, budget, limit or authority changes",
+  "hosted": "Complete actual Linux Rust1.88 captures at run39894187280/job120221350676; this remains the exact Node default profile. New hosted execution must be verified by ensuing CI.",
+  "native": "Actual local normal all-feature Rust1.97 compiler, default limits, complete exact graph captures; explicit native Node profile; no arbitrary caller-supplied graph digest or budget accepted",
+  "checks": {
+    "original_full_wasm_crate_browser_tests": 227,
+    "real_serial_chromium_calculators": 3,
+    "real_generated_typescript_consumers": 3,
+    "full_wasm_test_clippy": "PASS with Cargo.toml lint levels, no filtering or added lint suppression",
+    "normal_current_cli_build": "PASS",
+    "source_hir_tests": 11,
+    "whole_projection_gate": 1,
+    "finite_overlay_controls": 32,
+    "whole_predecessor_controls": 2,
+    "current_entry_controls": 2,
+    "unchanged_original_hostile_source_controls": 6,
+    "full_workspace_format": "PASS",
+    "wrong_and_hosted_profile_refusal_against_native_receipts": "PASS"
+  },
+  "source": "Complete old helper prefix and all old assertions retained; current compiler graph digest independently verified; strict complete membership precedes hosted transport. All old source roles, ordered chunks and complete views preserved.",
+  "ram": "Actual available device RAM monitored; no per-process RSS cap; all cache, source, build, browser, profile, fixture and temp outputs external SSD",
+  "remaining": "Large default compiler accounting failures remain; this does not claim CI green or hosted browser runtime qualification."
+}

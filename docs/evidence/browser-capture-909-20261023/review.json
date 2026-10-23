@@ -1,0 +1,14 @@
+{
+  "result": "PASS",
+  "review": "Manual review of exact-profile boundary and complete retained source",
+  "items": [
+    "No production compiler Rust code changed; public graph schema, budgets, limits and digest domains unchanged.",
+    "The actual native revision digest is independently recomputed before exact current raw-capture membership.",
+    "Supported native/hosted wires are exact complete captures; a correctly rehashed one-byte bill, semantic counter, added limit field, role, EOF or boundary drift is rejected.",
+    "Current hosted wire is reconstructed from native only after exact membership; byte equality proves all semantic fields and other budgets unchanged.",
+    "Every original historical bridge, raw hosted role pin and drift control still executes; whole previous helper prefix is byte-identical.",
+    "Node default stays one exact hosted Rust1.88 profile; explicit native profile uses one separate exact current receipt, not a caller-supplied digest. Unknown/default-profile mismatch controls passed.",
+    "All original Node fixture artifact, capability, role, stable-ID, manifest and generated-consumer assertions remain.",
+    "Native runtime qualification is actual local Rust1.97 plus real Chromium; hosted Linux execution must be proved by current CI, not inferred from local results."
+  ]
+}

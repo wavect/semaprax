@@ -1,0 +1,11 @@
+file:///Volumes/Semaprax/worktrees/ci-canonical-54e/platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs:66
+  throw new Error(`unknown exact compiler graph profile: ${graphProfile}`);
+        ^
+
+Error: unknown exact compiler graph profile: wrong-profile
+    at file:///Volumes/Semaprax/worktrees/ci-canonical-54e/platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs:66:9
+    at ModuleJob.run (node:internal/modules/esm/module_job:365:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:99:5)
+
+Node.js v24.3.0

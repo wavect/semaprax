@@ -1,0 +1,10 @@
+{
+  "whole_old_browser_helper_prefix_identical": true,
+  "whole_old_known_answer_test_reconstructed_by_one_explicit_current_profile_block_inverse": true,
+  "all_existing_known_answer_assertions_and_historical_drift_calls_retained": true,
+  "whole_old_node_runner_reconstructed_by_removing_explicit_profile_block_and_restoring_two_hosted_pins_and_capture_note": true,
+  "hosted_profile": "hosted-rust-1.88 (default; unchanged strict single receipt)",
+  "native_profile": "native-rust-1.97 (explicit opt-in; unchanged strict single receipt)",
+  "arbitrary_digest_input_not_accepted": true,
+  "unknown_profile_is_error": true
+}

@@ -3,6 +3,9 @@
 use super::*;
 use std::cmp::Ordering;
 use std::mem::size_of;
+#[cfg(test)]
+#[path = "enumerated_prefix/flat_probe/before.rs"]
+mod before_flat_probe;
 mod flat_probe;
 use crate::cleanup_plan::replay::physical_budget::compact_try;
 

@@ -161,6 +161,12 @@ fn v12_full_original_controller_dispatch_and_old_v11_source_inverses_are_exact()
         "af953cf250bc63c7e102ac0ed9c4014432c60aab5878bd1094b27353f128c60c"
     );
     let current = include_str!("../main_e177_overlay_fragments_v3.rs");
+    let acquired = crate::source_reflows::next_custody_before(
+        "main295-v12-fragments",
+        "src/source_reflows_merge/main_e177_overlay_fragments_v3.rs",
+        current,
+    );
+    let current = acquired.as_str();
     let added = "\n#[path = \"main_e177_overlay_labels_v12.rs\"]\nmod labels_v12;\npub(super) use labels_v12::{expand_v12, SCHEMA_V12};\n";
     assert_eq!(current.matches(added).count(), 1);
     assert_eq!(current.replacen(added, "", 1), before);

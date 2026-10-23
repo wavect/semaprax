@@ -1,0 +1,9 @@
+{
+  "base_head": "437b693d24",
+  "change": "Eliminate the redundant constant SPX-H006 field from the actual ByteFailure carrier; all constructor enforcement and complete public reconstruction are retained.",
+  "existing_three_error_tests_retained": true,
+  "existing_layout_gate_strengthened": true,
+  "no_new_ir_types_or_layout_standins": true,
+  "no_caps_or_work_limits_changed": true,
+  "full_ci_qualified": false
+}

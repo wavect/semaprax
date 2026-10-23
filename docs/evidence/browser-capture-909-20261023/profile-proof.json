@@ -1,0 +1,19 @@
+{
+  "profiles": [
+    {
+      "role": "baseline",
+      "hosted_builder_bytes": 3225466,
+      "native_builder_bytes": 3225682,
+      "complete_hosted_wire_reproduced": true,
+      "both_complete_domain_separated_digests_verified": true
+    },
+    {
+      "role": "renamed",
+      "hosted_builder_bytes": 3225466,
+      "native_builder_bytes": 3225682,
+      "complete_hosted_wire_reproduced": true,
+      "both_complete_domain_separated_digests_verified": true
+    }
+  ],
+  "policy": "Closed complete captures; not arbitrary budget normalization; each Node invocation selects one exact profile, hosted Rust1.88 remains default"
+}

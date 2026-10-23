@@ -1,0 +1,8 @@
+{
+  "source": "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/tests/active_builder.rs",
+  "source_sha256": "22caab60e727447954664f10c6484fc3b9ef8d47818c1ddb2bc5ba92e1b05d0e",
+  "change": "Name the unchanged exact function-pointer signature with a local type alias. Preserve every test assertion and all production code.",
+  "clippy_scope": "Actual full compiler with sixteen selected original test registrations. Cargo.toml lint levels reproduced. Only unused-macro and items-after-test-module warnings induced by disabled unrelated test registrations suppressed in this private driver. Type-complexity and other warnings remain errors. This is not a full workspace Clippy qualification.",
+  "source_roles": "Regenerated with the unchanged registration parser; source/class/chunk/closure sets identical; only this closed test source length and digest changed; unchanged verifier plus six original hostile controls passed.",
+  "remaining_failures": "Current main CI still has cumulative builder_bytes refusals and browser pins requiring an actual hosted receipt update; no CI green claim."
+}

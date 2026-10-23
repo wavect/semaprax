@@ -1,0 +1,13 @@
+file:///Volumes/Semaprax/worktrees/ci-canonical-54e/platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs:190
+    throw new Error(
+          ^
+
+Error: Project fixture does not match its exact rename known-answer subject: /Volumes/Semaprax/tmp/ci-38383508340/browser-pins-909/fixtures/project-baseline; actual=["sha256:8576caa566cb7f0d265354927c5bc7b481146f05e616f76917f340b4af26f053","sha256:f0454397a2b339677bc49c9ccd8e8491917426202c6aba2475221879e02ae3f6","sha256:0e89531754449a635a8aafbe5864e0006eb0d103b8706081a7df6ff86a2220c1"]; expected=["sha256:8576caa566cb7f0d265354927c5bc7b481146f05e616f76917f340b4af26f053","sha256:f0454397a2b339677bc49c9ccd8e8491917426202c6aba2475221879e02ae3f6","sha256:4fb7f079823914af14237eaf7e9b2f8eab2bb560116447cce7963033d3aab1f6"]
+    at file:///Volumes/Semaprax/worktrees/ci-canonical-54e/platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs:190:11
+    at Array.map (<anonymous>)
+    at file:///Volumes/Semaprax/worktrees/ci-canonical-54e/platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs:126:24
+    at ModuleJob.run (node:internal/modules/esm/module_job:365:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:99:5)
+
+Node.js v24.3.0

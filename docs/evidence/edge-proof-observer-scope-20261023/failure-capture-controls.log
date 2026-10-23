@@ -1,0 +1,19 @@
+
+running 14 tests
+test hir::validation::byte_traversal::nested::tests::byte_slot_preserves_context_identity_across_trait_object_coercions ... ok
+test hir::validation::byte_traversal::nested::tests::ci_scope::nested_empty_budget_scope_records_only_its_real_ledger_allocation ... ok
+test hir::validation::byte_traversal::nested::tests::ci_scope::nested_scope_correction_retains_complete_original_hostile_and_loan_controls ... ok
+test hir::validation::byte_traversal::nested::tests::ci_scope::nested_storage_foreign_restore_has_no_allocation_beyond_test_scope ... ok
+test hir::validation::byte_traversal::nested::tests::failure_capture_unwinds_before_the_observer_and_rearms_with_real_metrics ... ok
+test hir::validation::byte_traversal::nested::tests::inactive_failure_recorder_keeps_real_budget_refusals_without_an_observation ... ok
+test hir::validation::byte_traversal::nested::tests::nested_byte_ancestor_freezes_cover_every_inner_subtree_and_same_root_after_inner_exit ... ok
+test hir::validation::byte_traversal::nested::tests::nested_byte_census_funds_exact_short_zero_every_frontier_sticky_and_complete_drop ... ok
+test hir::validation::byte_traversal::nested::tests::nested_byte_census_uses_exact_owner_and_first_refusal_on_foreign_then_restored_scope ... ok
+test hir::validation::byte_traversal::nested::tests::nested_byte_full_source_hir_graph_and_cache_replay_preserves_v1_receiver_independence ... ok
+test hir::validation::byte_traversal::nested::tests::nested_byte_same_root_release_does_not_allow_outer_move_or_renewal ... ok
+test hir::validation::byte_traversal::nested::tests::nested_byte_while_bridge_and_inner_only_exits_replay_exact_nearest_targets ... ok
+test hir::validation::byte_traversal::nested::tests::source_composition::joined_nested_source_keeps_full_live_union_and_both_complete_parent_custodies ... ok
+test hir::validation::byte_traversal::nested::tests::source_composition::joined_nested_source_refuses_foreign_truncated_drifted_predicates_and_partial_recipes ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 29 filtered out; finished in 2.42s
+

@@ -1,0 +1,37 @@
+{
+  "status": "ORIGINAL_CURRENT_CODEC_COMPOSITION_PASS_PENDING_PUBLICATION",
+  "base_head": "68f00c780564dd39156136d274ed345519a01339",
+  "rows": 711,
+  "page_bytes": 221567,
+  "published_current_preserved_as_exact_views": [
+    {
+      "source": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix.rs",
+      "view": {
+        "archive": "e/7eb11974f5b6a76c98d820d64e7f10fb630e0119f2a4df29945c72e6e65a98da",
+        "length": 32413,
+        "sha256": "7eb11974f5b6a76c98d820d64e7f10fb630e0119f2a4df29945c72e6e65a98da",
+        "name": "68f00c"
+      }
+    },
+    {
+      "source": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/flat_probe.rs",
+      "view": {
+        "archive": "e/5cab19b5b7c91dad5fe1240b586ac7a5f3c92896a8575b56a62bf0ed92c5b9f5",
+        "length": 2168,
+        "sha256": "5cab19b5b7c91dad5fe1240b586ac7a5f3c92896a8575b56a62bf0ed92c5b9f5",
+        "name": "68f00c"
+      }
+    },
+    {
+      "source": "CHANGELOG.md",
+      "view": {
+        "archive": "docs/evidence/merge-pr896-20261021/whole/5a5a053e2ad0ba5b8d8ff39c4b429e6f87e12fdede121885faec0b46fe34401e.txt",
+        "length": 586944,
+        "sha256": "5a5a053e2ad0ba5b8d8ff39c4b429e6f87e12fdede121885faec0b46fe34401e",
+        "name": "68f00c"
+      }
+    }
+  ],
+  "all_previous_fields_views_memberships_and_fragment_edges_retained": true,
+  "all_original_codec_bodies_and_caps_unchanged": true
+}

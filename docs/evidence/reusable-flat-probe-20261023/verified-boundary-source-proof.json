@@ -1,0 +1,72 @@
+{
+  "mode": "SOURCE_ONLY_NO_RUST_EXECUTION",
+  "original_verifier_definition_span_sha256": "b02eca2b0f07e13c6478f511c2c0a9e2e865ca3f518626e19fe0f78a3eb50912",
+  "domains": {
+    "hir": {
+      "original_roots": 1046,
+      "current_boundary_members": 1266,
+      "current_boundary_production": 452,
+      "outside_production_still_fully_authenticated": 232,
+      "full_role_production": 684,
+      "full_role_test_only": 1153,
+      "full_raw_sha256": "98c6f30fd1de01e624753f2cfa17185d733a8d11d83eb08812936ca306814aed",
+      "boundary_production_sha256": "1beae87d63a540d17603d8bd9704a75cc204a47782be4e957b13cf3b5ceb8006",
+      "exact_original_forbidden_tokens": [
+        "struct Resolver",
+        "impl Resolver",
+        "fn scoped_identity(",
+        "fn materialize_function_template",
+        "fn specialize_source_function",
+        "pub fn resolve(",
+        "crate::cleanup::build_inventory",
+        "crate::cleanup_plan::build_plan",
+        "std::fs",
+        "std::process",
+        "platform::"
+      ],
+      "all_original_coverage_preserved": true,
+      "actual_current_registered_children_complete": true,
+      "global_polluted_purity_result_not_claimed": true
+    },
+    "projection": {
+      "original_roots": 179,
+      "current_boundary_members": 216,
+      "current_boundary_production": 77,
+      "outside_production_still_fully_authenticated": 661,
+      "full_role_production": 738,
+      "full_role_test_only": 1180,
+      "full_raw_sha256": "afae0c3d440001601e732231cbd69ab63bb57d4628c97b12f8764252b592216a",
+      "boundary_production_sha256": "1050071d771cb174e175e09ac918901928493fbf971fccdccb77878f32da22b9",
+      "exact_original_forbidden_tokens": [
+        "use super::*;",
+        "workspace::",
+        "std::fs",
+        "std::process",
+        "snapshot(",
+        "build_authenticated",
+        "render_graph_json",
+        "write_file",
+        "create_dir",
+        "remove_file",
+        "ACTIVE"
+      ],
+      "all_original_coverage_preserved": true,
+      "actual_current_registered_children_complete": true,
+      "global_polluted_purity_result_not_claimed": true
+    }
+  },
+  "successor_generator_sha256": "4ce8946ad3fcf89f5876868683457ab03f2915855ae22a5413b1ecf13edc854c",
+  "sealed_original_generator_definition_span_sha256": "fabc67d5447a0fe66a363782da7d578383ddc2f1cad504b332eeefe7cb7d6a5f",
+  "generator_execution": "Additive current-source-authority.py; unchanged sealed registration parser; sealed original generator was not executed.",
+  "negative_controls": {
+    "dropped_actual_child_refused": true,
+    "coordinated_class_drop_not_original_generated_output": true,
+    "production_reclassification_refused": true,
+    "actual_source_drift_refused": true,
+    "whole_raw_drift_refused": true,
+    "foreign_path_child_cannot_escape": true
+  },
+  "status": "SOURCE_ONLY_EXACT_BOUNDARIES_AND_COMPLETE_SOURCE_ROLE_CUSTODY_PASS",
+  "before_head": "68f00c780564dd39156136d274ed345519a01339",
+  "peak_RSS_bytes": 594837504
+}

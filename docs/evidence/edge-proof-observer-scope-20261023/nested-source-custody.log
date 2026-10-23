@@ -1,0 +1,9 @@
+
+running 4 tests
+test source_reflows::nested_scope::complete_joined_nested_domains_preserve_both_full_receivers_and_refuse_foreign_inputs ... ok
+test source_reflows::nested_scope::complete_nested_custody_assertions_remain_executable_and_byte_exact ... ok
+test source_reflows::nested_scope::source_composition::joined_nested_source_keeps_full_live_union_and_both_complete_parent_custodies ... ok
+test source_reflows::nested_scope::source_composition::joined_nested_source_refuses_foreign_truncated_drifted_predicates_and_partial_recipes ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 39 filtered out; finished in 0.06s
+

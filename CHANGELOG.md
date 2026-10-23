@@ -27,6 +27,10 @@
 
 ## CI reservation transport and append-only label maps (2026-10-23)
 
+- Arm the test-only byte-traversal refusal recorder only inside its actual heap observation; ordinary bounded calls keep their original refusal, while exact/one-short heap and unwind controls remain enforced.
+- Refresh both browser graph pins from complete hosted Linux 1.88 captures at `909f0a4763`; verify the complete previous graphs differ only in accounting bytes and their digests. Keep a separate exact native Rust 1.97 receipt, with one-byte billing, semantic, role and boundary drift refusals; the hosted browser profile remains the default.
+- Retain one paid frame for the nonrecursive HIR flat-path probe, with sticky authentication before every original work event. Preserve the complete prior producer and exact reservation, floor, work-cut and lent-work controls.
+- Keep the fixed replay error identity implicit while preserving all diagnostic fields and message ownership. Compress repeated source pins through exact references to the immutable predecessor; all source fields and existing bounds remain unchanged.
 - Reduce active canonical and PLAN payment transport to compact byte failures while preserving complete diagnostics, canonical output, work limits and allocation ownership.
 - Fund fresh append-only label maps with a pinned B-tree occupancy bound and a leaf upper for the first allocation, checked against actual allocations at every prefix and split boundaries. The compiler accounting limits are unchanged.
 - Preserve every prior source role, complete source view and ordered raw inventory; join the new children into all existing source-coverage readers.

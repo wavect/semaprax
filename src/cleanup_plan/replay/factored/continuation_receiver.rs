@@ -19,9 +19,15 @@ pub(super) fn cross_check<'hir>(
         let _debit_phase = debit_routes::phase(debit_routes::Phase::FlatPLAN);
         let mut plan = plan_skeleton_paths(function, &mut enumerating)?;
         let _debit_phase = debit_routes::phase(debit_routes::Phase::PathComparison);
-        hir.sort();
-        plan.sort();
-        Ok(hir == plan)
+        if matches!(enumerating.payer, AllocationPayer::LegacyUnobserved)
+            && !ordinary_plan_history::completed_fork::emission::before_selected()
+        {
+            plan_prefix::equal_paths(function, &mut enumerating, &mut hir, &mut plan)
+        } else {
+            hir.sort();
+            plan.sort();
+            Ok(hir == plan)
+        }
     });
     drop(enumeration_phase);
     let _debit_phase = debit_routes::phase(debit_routes::Phase::OtherReplay);

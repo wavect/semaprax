@@ -31,6 +31,14 @@ mod held_edge_before;
 mod held_edge_tests;
 #[cfg(test)]
 mod receiver_tests;
+#[cfg(test)]
+#[allow(
+    dead_code,
+    reason = "complete independently executable immediate-92d insertion predecessors"
+)]
+mod shared_insertions_before;
+#[cfg(test)]
+mod shared_insertions_tests;
 pub(super) mod storage;
 
 #[allow(clippy::too_many_arguments)] // Keep the independently held phase index explicit.
@@ -170,7 +178,7 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
     let mut incoming = Vec::with_capacity(plan.blocks.len());
     incoming.resize_with(plan.blocks.len(), frontier::Incoming::default);
     let mut incoming_insertions = frontier::Insertions::<PathState>::acquire(function, budget)?;
-    let mut insertions = boxed_states::Insertions::<PathState>::acquire(function, budget)?;
+
     incoming_insertions.insert_owned(
         function,
         &mut incoming[plan.entry.0 as usize],
@@ -587,9 +595,9 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                 )?;
             }
             let group = groups.entry(key).or_default();
-            insertions.insert_held(function, group, state, budget);
-            if insertions.failed {
-                return Err(insertions.failure().into());
+            incoming_insertions.insert_group_held(function, group, state, budget);
+            if incoming_insertions.failed {
+                return Err(incoming_insertions.failure().into());
             }
         }
         let block = &plan.blocks[block_id.0 as usize];

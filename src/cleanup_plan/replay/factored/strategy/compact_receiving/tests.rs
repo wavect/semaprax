@@ -385,9 +385,9 @@ fn immediate_old_entire_caller_and_unchanged_dependencies_are_source_bound() {
             "3e627c55e743f541f5787c64c47af8e31690a002907db35a435f0ce57fc9c72a") {
             let encoded = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/before_frontier/custody/main_d227_transport.json"));
             assert_eq!(std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/cleanup_plan/replay/path_join/before_frontier/custody/main_d227_transport.json")).unwrap(), encoded.as_bytes());
-            assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(encoded.as_bytes()))), "d7722e374a576ea9e7fc654a7dee36f8a97282e8f4e96fc1fb0ef8d298477804");
+            assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(encoded.as_bytes()))), "c0ebac882a164a7058db70b5914c533678d5886a261a3236b2124e0d0e1ee527");
             let packet: serde_json::Value = serde_json::from_str(encoded).unwrap();
-            assert_eq!(packet.as_object().unwrap().len(), 9);
+            assert_eq!(packet.as_object().unwrap().len(), 16);
             let path = if hash == "2a64ea81fe25ac38ad7d3060cb1dae31de835e46c4572c5bf425ea979a477917" { "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop.rs" } else { "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact.rs" };
             assert_eq!(std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap(), source.as_bytes());
             let row = &packet[path];
@@ -404,6 +404,18 @@ fn immediate_old_entire_caller_and_unchanged_dependencies_are_source_bound() {
             assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(restored.as_bytes()))), row["before_sha256"].as_str().unwrap());
             std::borrow::Cow::Owned(restored)
         } else { std::borrow::Cow::Borrowed(source) };
+        let transformed = if hash == "b6471558eaf00c76a99472843a9d96a58a11fe9e5779f50fdccbfc6f0011aa51" {
+            let current = transformed.as_ref();
+            assert_eq!(std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/cleanup_plan/replay/factored/canonical_shared/inline_singleton.rs")).unwrap(), current.as_bytes());
+            assert_eq!(current.len(), 55878);
+            assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))), "9ae1b6828a1fab4818043a53e3f73062dc1484ac851b2c06fec50b300c8ff732");
+            let addition = "\npub(in crate::cleanup_plan::replay::factored) mod hir_last_use;\n";
+            assert_eq!(current.matches(addition).count(), 1);
+            let restored = current.strip_suffix(addition).unwrap().to_owned();
+            assert_eq!(restored.len(), 55813);
+            assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(restored.as_bytes()))), "87257e50e24a64d047eff17fd2ef9de7e1ed4c1049697222223947c62b28f514");
+            std::borrow::Cow::Owned(restored)
+        } else { transformed };
         let source = transformed.as_ref();
         let original = if hash == "3e627c55e743f541f5787c64c47af8e31690a002907db35a435f0ce57fc9c72a" {
             // The complete existing compact entry is unchanged. Its later

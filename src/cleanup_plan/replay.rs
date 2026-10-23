@@ -32,6 +32,7 @@ pub(in crate::cleanup_plan) mod ordinary_status;
 mod physical_budget;
 mod physical_clone;
 mod physical_storage;
+mod plan_prefix;
 mod scalar_match;
 mod scalar_replay;
 #[cfg(test)]
@@ -2713,6 +2714,7 @@ fn region_chain_to_root(
     Ok(chain)
 }
 
+#[rustfmt::skip]
 fn validate_typed_control_skeleton_with_index<'hir>(
     program: &'hir dyn crate::cleanup::ReplayContext,
     function: &'hir ResolvedFunction,
@@ -2799,6 +2801,7 @@ fn validate_typed_control_skeleton_with_index<'hir>(
             actual.sort();
             !skeleton_work::enumerated_prefix::equal(&expected, &actual, function, budget)?
         }
+        ReplayBudget { payer: AllocationPayer::LegacyUnobserved, .. } if { #[cfg(test)] { !ordinary_plan_history::completed_fork::emission::before_selected() } #[cfg(not(test))] { true } } => !plan_prefix::equal_paths(function, budget, &mut expected, &mut actual)?,
         _ => {
             expected.sort();
             actual.sort();
@@ -6754,10 +6757,13 @@ fn cleanup_place_from_hir(
     })
 }
 
+#[rustfmt::skip]
 fn plan_skeleton_paths(
     function: &ResolvedFunction,
     budget: &mut ReplayBudget,
 ) -> Result<Vec<SkeletonPath>, Diagnostic> {
+    budget.reserve_bytes(function, plan_prefix::QUERY_CONTROLS, "PLAN prefix eligibility receivers")?;
+    if matches!(budget.payer, AllocationPayer::LegacyUnobserved) && { #[cfg(test)] { !ordinary_plan_history::completed_fork::emission::before_selected() } #[cfg(not(test))] { true } } { return plan_prefix::build(function, budget); }
     #[cfg(test)]
     let _allocation_phase =
         crate::test_allocation_observer::function_phase_guard("cleanup_plan::replay::plan_paths");

@@ -311,6 +311,12 @@ fn compare_with_index_storage<'hir>(
         let Some(hir) = canonical.id_for_comparison(function, vec![(hir_root, 1)], budget)? else {
             return Ok(None);
         };
+        budget.reserve_bytes(
+            function,
+            canonical_shared::inline_singleton::hir_last_use::CALL,
+            "factored HIR-private release call receiving",
+        )?;
+        canonical.release_hir_private(function, budget, hir_root, plan_root)?;
         #[cfg(test)]
         let _debit_phase = debit_routes::phase(debit_routes::Phase::CanonicalPLAN);
         #[cfg(test)]
@@ -348,6 +354,12 @@ fn compare_with_index_storage<'hir>(
     else {
         return Ok(None);
     };
+    budget.reserve_bytes(
+        function,
+        canonical_shared::inline_singleton::hir_last_use::CALL,
+        "factored HIR-private release call receiving",
+    )?;
+    canonical.release_hir_private(function, budget, hir_root, plan_root)?;
     #[cfg(test)]
     let _debit_phase = debit_routes::phase(debit_routes::Phase::CanonicalPLAN);
     #[cfg(test)]
@@ -1075,7 +1087,11 @@ fn cross_check(program: &dyn crate::cleanup::ReplayContext, function: &ResolvedF
                 "factored cross-check complete enumerated content receivers",
             )?;
             skeleton_work::enumerated_prefix::sort(&mut hir, function, &mut enumerating)?;
-            plan.sort();
+            if matches!(enumerating.payer, AllocationPayer::LegacyUnobserved) {
+                skeleton_work::enumerated_prefix::sort(&mut plan, function, &mut enumerating)?;
+            } else {
+                plan.sort();
+            }
             skeleton_work::enumerated_prefix::equal(&hir, &plan, function, &mut enumerating)
         }
     });
@@ -1242,3 +1258,6 @@ pub(crate) use canonical_shared::lexical_successors::census::Scope as SuccessorA
 
 #[cfg(test)]
 mod moderate_tests;
+
+#[cfg(test)]
+mod hir_memo_release_tests;

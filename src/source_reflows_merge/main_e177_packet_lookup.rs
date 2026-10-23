@@ -817,7 +817,22 @@ pub(super) fn assert_independent_old_direct_source() {
             .replace("requested_context(authenticated, stage, source, expected, supplied)", "super::clippy_stage::requested(source, expected, supplied)")
             .replace("normalize_context(authenticated, stage, source, supplied)", "super::clippy_stage::normalize(source, supplied)");
         let current = include_str!("main_e177_overlay_v2.rs");
-        assert_eq!(restored, current.rsplit_once("// Nondelegating current/prior view front, followed by the entire old stage path.\n").unwrap().1);
+        // The declaration moved before the test module; the old delimiter remains at EOF.
+        // Reverse only the two exact layout edits, then compare the complete old body.
+        let signature = "pub(super) fn value_direct(source: &str, expected: &str, supplied: &str) -> String {";
+        assert_eq!(current.matches(signature).count(), 1);
+        assert!(current.ends_with("// Nondelegating current/prior view front, followed by the entire old stage path.\n"));
+        let mut current_wrapper = signature.to_owned()
+            + current.split_once(signature).unwrap().1.split_once("#[cfg(test)]\nmod tests {").unwrap().0;
+        for (after, before) in [
+            ("{ // A whole logical-table view is selected only after its actual current physical, compiled and archive channels have authenticated. Preserve the complete historical stage fallback below for every other input.\n",
+             "{\n    // A whole logical-table view is selected only after its actual current\n    // physical, compiled and archive channels have authenticated. Preserve the\n    // complete historical stage fallback below for every other input.\n"),
+            ("        return direct;\n    }\n    if let Some(value)", "        return direct;\n    }\n\n    if let Some(value)"),
+        ] {
+            assert_eq!(current_wrapper.matches(after).count(), 1);
+            current_wrapper = current_wrapper.replacen(after, before, 1);
+        }
+        assert_eq!(restored, current_wrapper);
         let borrowed_row = child.split_once("// BEGIN BORROWED INDEPENDENT OLD ROW CONTROL\n").unwrap().1.split_once("// END BORROWED INDEPENDENT OLD ROW CONTROL").unwrap().0;
         let restored_row = borrowed_row.strip_prefix("#[cfg(test)]\n").unwrap()
             .replacen("fn independent_old_row(authenticated: &serde_json::Value, stage: Option<&serde_json::Value>, source:", "fn value_direct_4a6eb(source:", 1)

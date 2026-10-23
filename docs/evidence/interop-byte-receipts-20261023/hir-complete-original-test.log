@@ -1,0 +1,7 @@
+
+running 1 test
+test implementation::tests::ledger_capacity::hir_complete_reservation_is_exact_and_one_less_prevents_resolution ... HIR_CAPACITY_PIN_CANDIDATE {"retained_upper":51574,"scratch_upper":15698,"phase_peaks":[4612, 12468, 4502, 3104, 5408, 3072, 15698, 1194],"complete":67272}
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.40s
+

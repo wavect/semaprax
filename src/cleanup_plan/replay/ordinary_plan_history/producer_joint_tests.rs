@@ -27,7 +27,7 @@ fn shared_expected(program: &ResolvedProgram, function: &ResolvedFunction) -> Ve
             )
             .unwrap();
         work.budget
-            .reserve_array::<Observation>(function, cut, "joint HIR head items")
+            .reserve_array::<Rc<SkeletonObservation>>(function, cut, "joint HIR head items")
             .unwrap();
         let head = enumerated_prefix::node(
             &mut work,
@@ -42,7 +42,7 @@ fn shared_expected(program: &ResolvedProgram, function: &ResolvedFunction) -> Ve
             )
             .unwrap();
         work.budget
-            .reserve_array::<Observation>(function, count - cut, "joint HIR tail items")
+            .reserve_array::<Rc<SkeletonObservation>>(function, count - cut, "joint HIR tail items")
             .unwrap();
         let tail = enumerated_prefix::node(
             &mut work,

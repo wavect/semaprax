@@ -1,5 +1,8 @@
 pub(super) fn compiled(source: &str) -> Option<&'static str> {
     match source {
+        "src/workspace_graph/expected_projection/private_layout/names/interface_census.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/private_layout/names/interface_census.rs")),
+        "src/workspace_graph/expected_projection/private_layout/names/interface_before.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/private_layout/names/interface_before.rs")),
+        "src/workspace_graph/expected_projection/private_layout/names/interface_tests.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/private_layout/names/interface_tests.rs")),
         "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs" => Some(include_str!("../../src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs")),
         "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs")),
         "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission.rs" => Some(include_str!("../../src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission.rs")),
@@ -50,6 +53,7 @@ pub(super) fn compiled(source: &str) -> Option<&'static str> {
         "src/workspace_graph/expected_projection/shared_local_callees/invoice.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/shared_local_callees/invoice.rs")),
         "src/workspace_graph/expected_projection/shared_local_callees/tests.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/shared_local_callees/tests.rs")),
         "src/workspace_graph/expected_projection/shared_local_callees/walk.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/shared_local_callees/walk.rs")),
+        "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/active.rs" => Some(include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/active.rs")),
         "src/source_reflows_merge/final_ready_inputs/projection_publication.rs" => Some(include_str!("../../src/source_reflows_merge/final_ready_inputs/projection_publication.rs")),
         "src/cleanup_plan/replay/path_join/selected/before_frontier/finish.rs" => Some(include_str!("../../src/cleanup_plan/replay/path_join/selected/before_frontier/finish.rs")),
         "src/cleanup_plan/replay/path_join/selected/before_frontier/mod.rs" => Some(include_str!("../../src/cleanup_plan/replay/path_join/selected/before_frontier/mod.rs")),
@@ -475,6 +479,7 @@ mod tests {
             "src/hir/validation/frame_reuse/function_before.rs",
             "src/hir/validation/frame_reuse/source_inverse.rs",
             "src/hir/validation/frame_reuse/tests.rs",
+            "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/active.rs",
             "src/cleanup_plan/replay/owned_suffix.rs",
             "src/cleanup_plan/replay/final_output/current_observation_tests.rs",
             "src/cleanup_plan/replay/final_output/tests.rs",
@@ -541,6 +546,9 @@ mod tests {
             "src/workspace_graph/expected_projection/shared_local_callees/record_before.rs",
             "src/workspace_graph/expected_projection/shared_local_callees/record_signature_tests.rs",
             "src/workspace_graph/expected_projection/shared_local_callees/record_signatures.rs",
+            "src/workspace_graph/expected_projection/private_layout/names/interface_census.rs",
+            "src/workspace_graph/expected_projection/private_layout/names/interface_before.rs",
+            "src/workspace_graph/expected_projection/private_layout/names/interface_tests.rs",
         ] {
             let declaration = format!("    {source:?},\n");
             assert_eq!(current_scope_root.matches(&declaration).count(), 1);
@@ -602,6 +610,7 @@ mod tests {
             "src/hir/validation/frame_reuse/function_before.rs",
             "src/hir/validation/frame_reuse/source_inverse.rs",
             "src/hir/validation/frame_reuse/tests.rs",
+            "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/active.rs",
             "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact.rs",
             "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/compact_targets.rs",
             "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/payments.rs",
@@ -664,6 +673,9 @@ mod tests {
             "src/workspace_graph/expected_projection/shared_local_callees/record_before.rs",
             "src/workspace_graph/expected_projection/shared_local_callees/record_signature_tests.rs",
             "src/workspace_graph/expected_projection/shared_local_callees/record_signatures.rs",
+            "src/workspace_graph/expected_projection/private_layout/names/interface_census.rs",
+            "src/workspace_graph/expected_projection/private_layout/names/interface_before.rs",
+            "src/workspace_graph/expected_projection/private_layout/names/interface_tests.rs",
         ] {
             let arm = format!("        {source:?} => Some(include_str!(\"../../{source}\")),\n");
             assert_eq!(current_scope_child.matches(&arm).count(), 1);

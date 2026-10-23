@@ -1,0 +1,118 @@
+{
+  "status": "ORIGINAL_CURRENT_CODEC_COMPOSITION_PASS_PENDING_PUBLICATION",
+  "base_head": "39de740bd3",
+  "rows": 710,
+  "page_bytes": 261987,
+  "published_current_preserved_as_exact_views": [
+    {
+      "source": "src/cleanup_plan/replay.rs",
+      "view": {
+        "archive": "e/31941c8aa4b76ffeae1d14af1fb07ccfe5fe0a7723d3d39c3a91815d6b68989a",
+        "length": 326145,
+        "sha256": "31941c8aa4b76ffeae1d14af1fb07ccfe5fe0a7723d3d39c3a91815d6b68989a",
+        "name": "cfde"
+      }
+    },
+    {
+      "source": "src/cleanup_plan/replay/branch_clone.rs",
+      "view": {
+        "archive": "docs/evidence/help-bundle-and-local-errors-20261021/current/6f03ee87c9b871bc4738d33e5973c6325777066022f40395dd3c22bb0a5e718a.txt",
+        "length": 18682,
+        "sha256": "6f03ee87c9b871bc4738d33e5973c6325777066022f40395dd3c22bb0a5e718a",
+        "name": "cfde"
+      }
+    },
+    {
+      "source": "src/cleanup_plan/replay/branch_clone/direct.rs",
+      "view": {
+        "archive": "docs/evidence/help-bundle-and-local-errors-20261021/current/856febdd75b7bdfbea132187849877d9d5c9711e63f75ba04a174a48c3db18a0.txt",
+        "length": 22560,
+        "sha256": "856febdd75b7bdfbea132187849877d9d5c9711e63f75ba04a174a48c3db18a0",
+        "name": "cfde"
+      }
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored.rs",
+      "view": {
+        "archive": "e/55c2dd3c028751290948d5e61a0c02150b0bcbd971190da5fe4e19303e64dd17",
+        "length": 48690,
+        "sha256": "55c2dd3c028751290948d5e61a0c02150b0bcbd971190da5fe4e19303e64dd17",
+        "name": "cfde"
+      }
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact.rs",
+      "view": {
+        "archive": "e/3e627c55e743f541f5787c64c47af8e31690a002907db35a435f0ce57fc9c72a",
+        "length": 32517,
+        "sha256": "3e627c55e743f541f5787c64c47af8e31690a002907db35a435f0ce57fc9c72a",
+        "name": "cfde"
+      }
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/tests.rs",
+      "view": {
+        "archive": "e/c8e1ee615fb6a8547bb5807f7259dc516d114dbf0f1dd7798369d3e3cdd22f27",
+        "length": 30940,
+        "sha256": "c8e1ee615fb6a8547bb5807f7259dc516d114dbf0f1dd7798369d3e3cdd22f27",
+        "name": "cfde"
+      }
+    },
+    {
+      "source": "src/cleanup_plan/replay/final_output.rs",
+      "view": {
+        "archive": "e/22918d35843a1a276264c6d44ef13cba27ed85b4c3b03d328f90ebba611b97c6",
+        "length": 9286,
+        "sha256": "22918d35843a1a276264c6d44ef13cba27ed85b4c3b03d328f90ebba611b97c6",
+        "name": "cfde"
+      }
+    },
+    {
+      "source": "src/cleanup_plan/replay/final_output/compact.rs",
+      "view": {
+        "archive": "e/06899734819f09c6bae62c9917ecb3f4b5f1b91fb42b09d1b462b8a4b7ba0ba6",
+        "length": 9598,
+        "sha256": "06899734819f09c6bae62c9917ecb3f4b5f1b91fb42b09d1b462b8a4b7ba0ba6",
+        "name": "cfde"
+      }
+    },
+    {
+      "source": "src/source_reflows_merge/main_e177_overlay_compiled.rs",
+      "view": {
+        "archive": "e/c980ba0e85291ba91fb044d55fc05a04b4ea36a9e8d6a1513eb86938da03b413",
+        "length": 89236,
+        "sha256": "c980ba0e85291ba91fb044d55fc05a04b4ea36a9e8d6a1513eb86938da03b413",
+        "name": "cfde"
+      }
+    },
+    {
+      "source": "tests/hir_module_boundaries.rs",
+      "view": {
+        "archive": "e/4025420fbf9748241121bc6c815e8c36d664b9709676a51d5f7607382c5b757d",
+        "length": 139693,
+        "sha256": "4025420fbf9748241121bc6c815e8c36d664b9709676a51d5f7607382c5b757d",
+        "name": "cfde"
+      }
+    },
+    {
+      "source": "tests/workspace/semantic_graph/source_inventory.rs",
+      "view": {
+        "archive": "e/91b3e9f6026b02c39c3c9db9b72a0d439d48a116eac9a07f6b534c223559d110",
+        "length": 166632,
+        "sha256": "91b3e9f6026b02c39c3c9db9b72a0d439d48a116eac9a07f6b534c223559d110",
+        "name": "cfde"
+      }
+    },
+    {
+      "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "view": {
+        "archive": "e/86671af49080563d9f3a5aad0bd89ec73e3a0efcf3f156d5b84de76fbb2eafd7",
+        "length": 212477,
+        "sha256": "86671af49080563d9f3a5aad0bd89ec73e3a0efcf3f156d5b84de76fbb2eafd7",
+        "name": "cfde"
+      }
+    }
+  ],
+  "all_previous_fields_views_memberships_and_fragment_edges_retained": true,
+  "all_original_codec_bodies_and_caps_unchanged": true
+}

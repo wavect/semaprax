@@ -349,3 +349,7 @@ mod main99f_controllers;
 mod main_e177_controllers;
 #[path = "source_reflows/main_e177_support.rs"]
 mod main_e177_support;
+
+pub(crate) fn next_custody_before(owner: &str, source: &str, current: &str) -> String {
+    ci_inputs::next_custody_before(owner, source, current)
+}

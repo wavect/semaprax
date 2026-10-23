@@ -7,6 +7,14 @@ use super::*;
 use crate::bounded_output::{reserve_active_required, with_limit_usage_refusal};
 use crate::test_allocation_observer::measure;
 
+fn hash_explicit_import_stage(source: &str) -> String {
+    use sha2::{Digest, Sha256};
+    format!(
+        "{:x}",
+        crate::digest_hex::LowerHex(Sha256::digest(source.as_bytes()))
+    )
+}
+
 fn source(headers: usize, calls: usize) -> String {
     let mut source =
         String::from("module loan.local; @id(\"loan.helper\") fn helper(x:i64)->i64{x}\n");
@@ -278,6 +286,28 @@ fn unknown_shadow_generic_contract_and_default_routes_never_inflate_local_slots(
 
 #[test]
 fn all_current_source_entries_reconstruct_the_complete_immediate_predecessors() {
+    for (path, current) in [
+        (
+            "call_carriers_joint.rs",
+            include_str!("../call_carriers_joint.rs"),
+        ),
+        (
+            "call_carriers_directory/reused.rs",
+            include_str!("../call_carriers_directory/reused.rs"),
+        ),
+        (
+            "shared_local_callees/invoice.rs",
+            include_str!("invoice.rs"),
+        ),
+        ("shared_local_callees/walk.rs", include_str!("walk.rs")),
+        ("shared_local_callees/reused.rs", include_str!("reused.rs")),
+        (
+            "shared_local_callees/coupled_projection.rs",
+            include_str!("coupled_projection.rs"),
+        ),
+    ] {
+        shared_local_callees::modular_session::tests::imports_before(path, current);
+    }
     use sha2::{Digest, Sha256};
     let hash = |raw: &str| {
         format!(
@@ -353,7 +383,33 @@ pub(super) use reused::Session;
         hash(&restored),
         "43ba5052c503b1560b6568853ff5e9929728f468f59a186f21226c95bea4ddef"
     );
+    let explicit = shared_local_callees::modular_session::tests::imports_before(
+        "shared_local_callees/invoice.rs",
+        include_str!("invoice.rs"),
+    );
+    let _historical_invoice = explicit.as_str();
     let current = include_str!("invoice.rs");
+    assert_eq!(
+        (current.len(), hash_explicit_import_stage(current)),
+        (
+            9314,
+            "50bfe2c1d81e5bd637a542d4254198bcd6132293c5826231fa9d08865f94643c".to_owned()
+        )
+    );
+    let declaration = r######"use super::{
+    size_of, AuthoredDeclaration, Cell, Certificate, ClassifierLedger, Context, Costs, Function,
+    Headers, Index, Program, Type, WORK,
+};"######;
+    assert_eq!(current.matches(declaration).count(), 1);
+    let acquired = current.replacen(declaration, "use super::*;", 1);
+    assert_eq!(
+        (acquired.len(), hash_explicit_import_stage(&acquired)),
+        (
+            9174,
+            "4ec6e2c9027878139558775038736bf8f1978844e056a5b1e89da3a9416732c5".to_owned()
+        )
+    );
+    let current = acquired.as_str();
     let method = r#####"    // A distinct same-invocation constructor pays its own actual/formal and
     // returned owners before formation; the original certificate is unchanged.
     pub(super) fn acquire_with<T>() -> Result<Self, Failure> {
@@ -403,7 +459,43 @@ fn coupled_estimate_retains_the_whole_old_algorithm_and_rejects_other_modes() {
         "shared_local_callees/coupled_projection.rs",
         include_str!("coupled_projection.rs"),
     );
-    let source = source_owned.as_str();
+    let _historical_coupled = source_owned.as_str();
+    let source = include_str!("coupled_projection.rs");
+    assert_eq!(
+        (source.len(), hash_explicit_import_stage(source)),
+        (
+            14427,
+            "f95beb41205dc47d5707ed4f189bf04dacde802016039e6b335be04b3bf213ef".to_owned()
+        )
+    );
+    let declaration = r######"use super::{
+    active_builder_limit, ast_function_contract_cost, ast_function_cost,
+    ast_function_identity_slots, ast_function_signature_cost, ast_program_cost,
+    ast_program_identity_slots, ast_type_declaration_cost, ast_type_declaration_identity_slots,
+    ast_type_identity_slots, cached_exact, call_identity, checked_builder_sum, checked_usage, cost,
+    generic_instance_source_cost, hir, import_stub, limit_error, prelude, private_layout,
+    synthetic_main_runtime_cost, type_rewrite, AuthoredDeclaration, BTreeMap, BTreeSet, Diagnostic,
+    ModuleUseKind, Program, StructuralCost, SyntheticBuilderCosts, HIR_IDENTITY_COPY_FACTOR,
+    HIR_STRING_COPY_FACTOR, HIR_STRUCTURE_EXPANSION_FACTOR,
+};"######;
+    assert_eq!(source.matches(declaration).count(), 1);
+    let mut acquired = source.replacen(declaration, "use super::*;", 1);
+    let compact = r######"                        .and_then(|n| n.checked_mul(super::super::super::HIR_EXPR_FIXED_BUNDLE))
+"######;
+    let expanded = r######"                        .and_then(|n| {
+                            n.checked_mul(super::super::super::HIR_EXPR_FIXED_BUNDLE)
+                        })
+"######;
+    assert_eq!(acquired.matches(compact).count(), 1);
+    acquired = acquired.replacen(compact, expanded, 1);
+    assert_eq!(
+        (acquired.len(), hash_explicit_import_stage(&acquired)),
+        (
+            13789,
+            "398e439602aab6dcfb3835923c9e9db42c9f5556b7167fd45be00d93eed3113e".to_owned()
+        )
+    );
+    let source = acquired.as_str();
     let start = source.find("    if layout_mode != 6 {").unwrap();
     let end = source.rfind("\n}").unwrap();
     let mut body = source[start..end].replace("super::super::", "super::");

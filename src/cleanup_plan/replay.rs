@@ -6991,24 +6991,20 @@ fn plan_skeleton_paths(
                 )?;
             }
             CleanupTerminator::Branch(edges) => {
-                budget.reserve_bytes(
-                    function,
-                    branch_clone::direct::PLAN_SMALL_SELECTION_CONTROLS,
-                    "plan final-output selection controls",
-                )?;
+                compact_path::plan_selection!(budget, function);
                 if edges.len() == 2 && observations.len() < observations.capacity() {
                     let edge = &plan.edges[edges[0].0 as usize];
                     let observation = final_output::observation!(edge, budget, function);
                     let mut branch;
                     if !budget.pays_allocations() {
-                        budget.reserve_bytes(
+                        physical_budget::compact_try!(budget.reserve_compact_bytes(
                             function,
-                            branch_clone::direct::compact_roles::<
+                            branch_clone::direct::plan_compact_roles::<
                                 std::rc::Rc<SkeletonObservation>,
                                 SkeletonObservation,
                             >(),
                             "branch clone receiving controls",
-                        )?;
+                        ));
                         branch = skeleton_clone(
                             budget,
                             function,
@@ -7023,11 +7019,11 @@ fn plan_skeleton_paths(
                             "plan branch observation push",
                         )?;
                     } else if observations.len() < branch_clone::direct::SMALL_COPY_LIMIT {
-                        budget.reserve_bytes(
+                        physical_budget::compact_try!(budget.reserve_compact_bytes(
                             function,
-                            branch_clone::compact_roles::<std::rc::Rc<SkeletonObservation>>(),
+                            branch_clone::plan_compact_roles::<std::rc::Rc<SkeletonObservation>>(),
                             "branch clone receiving controls",
-                        )?;
+                        ));
                         branch_clone::direct::copy_small_plan!(
                             branch,
                             observations,
@@ -7036,14 +7032,14 @@ fn plan_skeleton_paths(
                             function
                         );
                     } else {
-                        budget.reserve_bytes(
+                        physical_budget::compact_try!(budget.reserve_compact_bytes(
                             function,
-                            branch_clone::direct::compact_roles::<
+                            branch_clone::direct::plan_compact_roles::<
                                 std::rc::Rc<SkeletonObservation>,
                                 SkeletonObservation,
                             >(),
                             "branch clone receiving controls",
-                        )?;
+                        ));
                         branch = branch_clone::direct::copy_prepaid(
                             budget,
                             function,
@@ -7063,28 +7059,22 @@ fn plan_skeleton_paths(
                     )?;
                     let edge = &plan.edges[edges[1].0 as usize];
                     let observation = final_output::observation!(edge, budget, function);
-                    budget.reserve_bytes(
+                    compact_path::plan_move!(budget, function);
+                    compact_path::plan_work!(
+                        budget,
                         function,
-                        final_output::PLAN_MOVE_CONTROLS,
-                        "plan final-output move controls",
-                    )?;
-                    budget.charge_skeleton(function, 1, "cleanup-plan skeleton branch clone")?;
+                        "cleanup-plan skeleton branch clone"
+                    );
                     note_skeleton_materialization();
                     #[cfg(test)]
                     final_output::record_move(observations.len(), observations.capacity());
                     #[cfg(test)]
                     branch_clone::note_take();
                     let mut branch = observations;
-                    budget.charge_skeleton(function, 1, "plan branch observation push")?;
+                    compact_path::plan_work!(budget, function, "plan branch observation push");
                     note_skeleton_materialization();
-                    budget.reserve_bytes(function, 0, "plan branch observation push")?;
-                    budget.reserve_bytes(
-                        function,
-                        physical_clone::conversion_bytes::<std::rc::Rc<SkeletonObservation>, _>(
-                            &observation,
-                        ),
-                        "plan branch observation push",
-                    )?;
+                    compact_path::plan_auth!(budget, function);
+                    compact_path::plan_conversion!(budget, function, observation);
                     branch.push(observation.into());
                     skeleton_queue_push(
                         budget,

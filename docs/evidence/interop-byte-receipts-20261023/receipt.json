@@ -1,0 +1,98 @@
+{
+  "head": "d83e633d5ac65ba1b7d8b721949386824c949d28",
+  "run": 39850947779,
+  "job": 120077613083,
+  "scope": "actual unchanged Linux CI tests at d83; expected numeric receipts lag current compiler type layout; no fixture, producer, digest, bound, refusal or success predicate changed",
+  "replacements": {
+    "hir_traversal.rs": [
+      [
+        220112355,
+        219912987
+      ],
+      [
+        438721360,
+        438524768
+      ],
+      [
+        658833715,
+        658437755
+      ],
+      [
+        147082410,
+        146948578
+      ],
+      [
+        293108482,
+        292977426
+      ],
+      [
+        440190892,
+        439926004
+      ],
+      [
+        42049904,
+        41967512
+      ],
+      [
+        80998578,
+        80998546
+      ],
+      [
+        123048482,
+        122966058
+      ],
+      [
+        10529690104,
+        10529599504
+      ],
+      [
+        21056211778,
+        21056203538
+      ],
+      [
+        31585901882,
+        31585803042
+      ]
+    ],
+    "cleanup_regions.rs": [
+      [
+        3363048,
+        3041128
+      ],
+      [
+        38760,
+        34392
+      ],
+      [
+        3401808,
+        3075520
+      ],
+      [
+        261848,
+        278936
+      ],
+      [
+        3624896,
+        3320064
+      ]
+    ]
+  },
+  "local_scope": "Actual complete unpublished interoperability builder compiled with Rust 1.97.1 for aarch64-apple-darwin against the actual SEMAPRAX rlib. The linked private candidate changes canonical producers but retains the complete d83 AST/HIR types and these capacity producers. Only test registration attributes change in its source mirror; both original test bodies run complete.",
+  "local_result": "2 passed; 0 failed",
+  "full_ci_qualified": false,
+  "fixtures_digests_producers_bounds_and_refusal_predicates_unchanged": true,
+  "files": [
+    {
+      "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/hir_traversal.rs",
+      "before_sha256": "ebf271928e6f3aa2e86b77c20851f56bf4bfe9025b7715bd48fa1ea44be0bc57",
+      "after_sha256": "e7a5782be064c84ef6991900984b8050242b10d40881a19a5d294b5909266057",
+      "only_numeric_receipts_and_explanatory_comment_changed": true
+    },
+    {
+      "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/cleanup_regions.rs",
+      "before_sha256": "ff460d3afc7926a65a4e40b899dd054c06a2814391e6f960540e0df495d392b2",
+      "after_sha256": "f7a2e3984cd3a4a6aea380556aeb05a60a716bb2ba81378bd1ef1e73a7ae9d65",
+      "only_numeric_receipts_and_explanatory_comment_changed": true
+    }
+  ]
+}

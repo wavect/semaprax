@@ -446,3 +446,21 @@ pub(super) fn compact_roles<T: Clone>() -> usize {
         + 2 * size_of::<std::slice::Iter<'_, T>>()
         + 2 * size_of::<std::iter::Cloned<std::slice::Iter<'_, T>>>()
 }
+
+// Complete current bank with only its new caller payment Result narrowed.
+pub(super) fn plan_compact_roles<T: Clone>() -> usize {
+    size_of::<Result<(), physical_budget::ByteFailure>>() // actual compact caller payment result
+        + 4 * size_of::<Result<(), physical_budget::ByteFailure>>() // compact clone/push work, census/conversion
+        + 2 * size_of::<Result<(), physical_budget::ByteFailure>>() // backing wrapper and nested byte payment
+        + size_of::<Result<usize, physical_budget::ByteFailure>>() // checked array size conversion
+        + size_of::<Option<usize>>()
+        + 2 * size_of::<Vec<T>>() // initializer and the enumerator's named branch
+        + size_of::<&mut ReplayBudget>() + size_of::<&ResolvedFunction>()
+        + size_of::<&Vec<T>>() // direct clone census argument
+        + 2 * size_of::<&str>()
+        + 2 * size_of::<usize>()
+        + 2 * size_of::<bool>()
+        + 2 * size_of::<&mut Vec<T>>() + size_of::<&[T]>()
+        + 2 * size_of::<std::slice::Iter<'_, T>>()
+        + 2 * size_of::<std::iter::Cloned<std::slice::Iter<'_, T>>>()
+}

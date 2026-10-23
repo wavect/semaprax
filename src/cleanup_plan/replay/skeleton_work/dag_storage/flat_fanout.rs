@@ -90,7 +90,10 @@ fn words(observations: &Observations) -> Vec<Vec<Observation>> {
 #[test]
 fn flat_fanout_preserves_complete_ordered_paths_duplicates_and_stopped_prefixes() {
     let program = fixture();
-    let function = &program.functions()[0];
+    let function = program
+        .functions()
+        .get(0)
+        .expect("flat fanout fixture function");
     let run = |old| {
         with_before(old, || {
             let mut budget = ReplayBudget::with_physical(function, 1 << 24).unwrap();
@@ -203,7 +206,10 @@ fn storage_probe(
     limit: usize,
     copies: usize,
 ) -> (bool, usize, crate::test_allocation_observer::Metrics) {
-    let function = &program.functions()[0];
+    let function = program
+        .functions()
+        .get(0)
+        .expect("flat fanout fixture function");
     let label = Rc::new(SkeletonObservation::Boolean {
         expression: function.body.id.clone(),
         value: true,
@@ -262,7 +268,10 @@ fn storage_probe(
 #[test]
 fn flat_fanout_typed_storage_invoice_exact_short_zero_and_complete_drop() {
     let program = fixture();
-    let function = &program.functions()[0];
+    let function = program
+        .functions()
+        .get(0)
+        .expect("flat fanout fixture function");
     // Compute admission independently; it is outside the new storage invoice.
     let mut budget = ReplayBudget::with_physical(function, 1 << 24).unwrap();
     budget.skeleton_remaining = MAX_REPLAY_WORK_UNITS;
@@ -284,7 +293,10 @@ fn flat_fanout_typed_storage_invoice_exact_short_zero_and_complete_drop() {
 #[test]
 fn flat_fanout_keeps_earlier_work_and_semantic_refusals_first() {
     let program = fixture();
-    let function = &program.functions()[0];
+    let function = program
+        .functions()
+        .get(0)
+        .expect("flat fanout fixture function");
     for old in [true, false] {
         with_before(old, || {
             let mut budget = ReplayBudget::with_physical(function, 1 << 24).unwrap();

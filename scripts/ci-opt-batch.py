@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SELECTIONS = {
     'historical': ('ci-opt-batch-selection.json', 50, 153, ('lib', 'hir_module_boundaries')),
     'next': ('ci-opt-next-batch-selection.json', 57, 158, ('lib', 'owned_data', 'cli', 'project')),
+    'language-followup': ('ci-opt-language-followup-selection.json', 2, 7, ('lib', 'project')),
 }
 OUT = ROOT / 'diagnostic-opt-batch'
 TARGET = ROOT / 'target/hosted-opt-batch'
@@ -375,11 +376,16 @@ def main() -> int:
             for image in group:
                 image_args.extend(['--lib'] if image == 'lib' else ['--bin', 'semaprax'] if image == 'cli' else ['--test', image])
             label = 'build' if len(group) > 1 else f'build-{group[0]}'
+            # Rendered diagnostics suppress Cargo's compiler-message JSON.
+            # Keep the historical argv, but retain structured diagnostics for
+            # the new independent-image dependency-failure witness.
+            message_format = ('json-render-diagnostics'
+                              if options.selection == 'historical' else 'json')
             try:
                 build, command = run(label, [
                     'cargo', 'test', '--locked', '--offline', '-p', 'semaprax',
                     *image_args, '--no-run', '--jobs', '1',
-                    '--message-format=json-render-diagnostics',
+                    f'--message-format={message_format}',
                 ], 7200, allow_failure=True, sample_memory=True)
                 result = build_images(build, command, group, ROOT, TARGET)
             except Exception as error:

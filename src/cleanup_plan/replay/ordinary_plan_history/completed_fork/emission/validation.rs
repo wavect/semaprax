@@ -1,5 +1,8 @@
 //! Invocation-local immutable classification DATA, never content authority.
-use super::*;
+use super::{
+    lexical_skeleton, size_of, ClassifierLedger, Diagnostic, ExprSkeletonPath, ObservationDag,
+    ObservationDagKind, Observations, Rc, SkeletonWork, PAYMENT,
+};
 
 struct Entry {
     root: Rc<ObservationDag>,

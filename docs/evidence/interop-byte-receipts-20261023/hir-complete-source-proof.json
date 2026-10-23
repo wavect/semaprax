@@ -1,0 +1,6 @@
+{
+  "only_four_exact_expected_receipts_and_obsolete_comment_changed": true,
+  "fixture_producer_bounds_and_all_refusal_checks_unchanged": true,
+  "linux_current_head": "cfde46b857dfacb0253f91c613116373145d188e",
+  "actual_linux_job": 120124625425
+}

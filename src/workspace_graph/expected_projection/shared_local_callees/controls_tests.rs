@@ -83,7 +83,12 @@ fn local_plain_call_certificate_excludes_shadow_prelude_generic_default_and_impo
     assert_eq!(counted(&p, &i), 0);
     let p = [parsed(&SOURCE.replace("helper", "string_len"))];
     let i = index(&p);
-    assert!(compiler("string_len"));
+    let (is_compiler, refused, _, first) = with_limit_usage_refusal(usize::MAX, || {
+        let invoice = Invoice::acquire().unwrap();
+        compiler("string_len", &invoice).unwrap()
+    });
+    assert!(!refused && first.is_none());
+    assert!(is_compiler);
     assert_eq!(counted(&p, &i), 0);
     // Generated/default prototypes are not explicitly authored local bodies.
     let mut p = [parsed(SOURCE)];

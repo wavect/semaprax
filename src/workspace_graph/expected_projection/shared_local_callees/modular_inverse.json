@@ -102,5 +102,187 @@
         }
       ]
     }
+  },
+  "import_entry_stages": {
+    "src/workspace_graph/expected_projection/call_carriers_directory/reused.rs": {
+      "current_bytes": 7029,
+      "current_sha256": "3c7b99b469a4bc0cf8f1b24f0acaa721bc8be22c89fba139628b8be450a22d7a",
+      "prior_bytes": 6680,
+      "prior_sha256": "69ef30b1e9e683f24915b5cbf2622bf5d4f50923fa3ca6d9c46cf9ed3db4e600",
+      "splices": [
+        {
+          "current": "//! Reuse immutable directory DATA while a separate callee certificate is live.\nuse super::super::super::shared_local_callees::{Context, Costs, Failure};\nuse super::super::joint::{self, Loan, Lookup};\nuse super::{\n    compiler_dispatch, size_of, AuthoredDeclaration, Directory, Function, Header,\n    ImportDeclaration, Index, InterfaceDeclaration, ModuleUse, ModuleUseKind, Program, Proof,\n    Source, SELECTOR,\n};\n#[cfg(test)]\nuse super::{note, Event};\ntype Error = Failure;\n\n#[allow(\n    clippy::manual_range_contains,\n    reason = \"keep the explicitly invoiced scalar comparisons\"\n)]\npub(in crate::workspace_graph::expected_projection) fn count(\n    context: Context<'_, '_>,\n    imports: bool,\n) -> Result<(Proof, Costs), Error> {\n",
+          "prior": "//! Reuse immutable directory DATA while a separate callee certificate is live.\nuse super::super::super::shared_local_callees::{Context, Costs, Failure};\nuse super::super::joint::{self, Loan, Lookup};\nuse super::*;\ntype Error = Failure;\n\npub(in crate::workspace_graph::expected_projection) fn count(\n    context: Context<'_, '_>,\n    imports: bool,\n) -> Result<(Proof, Costs), Error> {\n"
+        }
+      ]
+    },
+    "src/workspace_graph/expected_projection/call_carriers_joint.rs": {
+      "current_bytes": 12510,
+      "current_sha256": "b0bc1737feb13d8936a41b2767fa6ace0b674dbe3316b6ba4371c2ad29afe8a6",
+      "prior_bytes": 12370,
+      "prior_sha256": "79d661789f706c083f70af0adbe9f529ad0aed6ba4fa215a35a4950a39eef48e",
+      "splices": [
+        {
+          "current": "//! One source traversal, separate auxiliary and local-callee results.\nuse super::super::shared_local_callees::{Context, Costs, Failure, Session};\nuse super::{\n    call_identity, compiler_dispatch, AuthoredDeclaration, BTreeMap, Expr, ExprKind, ModuleUseKind,\n    Names, Program, Proof, Statement,\n};\nuse crate::ast::{Function, Type};\nuse std::mem::size_of;\ntype Error = Failure;\ntype Index<'a> = BTreeMap<&'a str, AuthoredDeclaration<'a>>;\n",
+          "prior": "//! One source traversal, separate auxiliary and local-callee results.\nuse super::super::shared_local_callees::{Context, Costs, Failure, Session};\nuse super::*;\nuse crate::ast::{Function, Type};\nuse std::mem::size_of;\ntype Error = Failure;\ntype Index<'a> = BTreeMap<&'a str, AuthoredDeclaration<'a>>;\n"
+        }
+      ]
+    },
+    "src/workspace_graph/expected_projection/shared_local_callees/coupled_projection.rs": {
+      "current_bytes": 14427,
+      "current_sha256": "f95beb41205dc47d5707ed4f189bf04dacde802016039e6b335be04b3bf213ef",
+      "prior_bytes": 13733,
+      "prior_sha256": "154acb58b9ea4e03b6d7ad2284a7ac8def958e943f2fc14fd856c7599c9117cf",
+      "splices": [
+        {
+          "current": "//! Uncached coupled census; the complete immediate-old estimate stays live.\n//! Only local-callee acquisition changes. Fixed/nominal/expression/writer and\n//! all sixteen identity copies retain their original independent equations.\nuse super::{\n    active_builder_limit, ast_function_contract_cost, ast_function_cost,\n    ast_function_identity_slots, ast_function_signature_cost, ast_program_cost,\n    ast_program_identity_slots, ast_type_declaration_cost, ast_type_declaration_identity_slots,\n    ast_type_identity_slots, cached_exact, call_identity, checked_builder_sum, checked_usage, cost,\n    generic_instance_source_cost, hir, import_stub, limit_error, prelude, private_layout,\n    synthetic_main_runtime_cost, type_rewrite, AuthoredDeclaration, BTreeMap, BTreeSet, Diagnostic,\n    ModuleUseKind, Program, StructuralCost, SyntheticBuilderCosts, HIR_IDENTITY_COPY_FACTOR,\n    HIR_STRING_COPY_FACTOR, HIR_STRUCTURE_EXPANSION_FACTOR,\n};\n\npub(in crate::workspace_graph::expected_projection) fn estimate<'a>(\n    program: &Program,\n    authored: &'a BTreeMap<&'a str, AuthoredDeclaration<'a>>,\n",
+          "prior": "//! Uncached coupled census; the complete immediate-old estimate stays live.\n//! Only local-callee acquisition changes. Fixed/nominal/expression/writer and\n//! all sixteen identity copies retain their original independent equations.\nuse super::*;\n\npub(in crate::workspace_graph::expected_projection) fn estimate<'a>(\n    program: &Program,\n    authored: &'a BTreeMap<&'a str, AuthoredDeclaration<'a>>,\n"
+        }
+      ]
+    },
+    "src/workspace_graph/expected_projection/shared_local_callees/invoice.rs": {
+      "current_bytes": 9314,
+      "current_sha256": "50bfe2c1d81e5bd637a542d4254198bcd6132293c5826231fa9d08865f94643c",
+      "prior_bytes": 9174,
+      "prior_sha256": "4ec6e2c9027878139558775038736bf8f1978844e056a5b1e89da3a9416732c5",
+      "splices": [
+        {
+          "current": "//! New proof storage and every receiving bank are paid before use.\nuse super::{\n    size_of, AuthoredDeclaration, Cell, Certificate, ClassifierLedger, Context, Costs, Function,\n    Headers, Index, Program, Type, WORK,\n};\n\n#[derive(Clone, Copy, Debug, Eq, PartialEq)]\npub(in crate::workspace_graph::expected_projection) enum Failure {\n    Physical,\n",
+          "prior": "//! New proof storage and every receiving bank are paid before use.\nuse super::*;\n\n#[derive(Clone, Copy, Debug, Eq, PartialEq)]\npub(in crate::workspace_graph::expected_projection) enum Failure {\n    Physical,\n"
+        }
+      ]
+    },
+    "src/workspace_graph/expected_projection/shared_local_callees/modular_tests.rs": {
+      "current_bytes": 12248,
+      "current_sha256": "3a5f0d3c447cf16e05c1e0b762a6a570ea8a3b3c4dc3cb6e5f3b6870a183836d",
+      "prior_bytes": 10525,
+      "prior_sha256": "23041fdc6a6a5009de9242193e0e1fcfe292495196a4973b26b621e29f69a89c",
+      "splices": [
+        {
+          "current": "        );\n        restore(&path, current);\n    }\n}\n\n// Exact entry only: explicit imports and the two scoped compiler annotations\n// precede the record/modular/paired historical stages. Unknown scopes are not\n// rewritten, and a known scope must authenticate its COMPLETE current bytes.\npub(in crate::workspace_graph::expected_projection) fn imports_before(\n    path: &str,\n    source: &str,\n) -> String {\n    let packet: serde_json::Value =\n        serde_json::from_str(include_str!(\"modular_inverse.json\")).unwrap();\n    let canonical = if path.starts_with(\"src/\") {\n        path.to_owned()\n    } else {\n        format!(\"src/workspace_graph/expected_projection/{path}\")\n    };\n    let Some(entry) = packet[\"import_entry_stages\"].get(&canonical) else {\n        return source.to_owned();\n    };\n    let hash = |raw: &str| {\n        format!(\n            \"{:x}\",\n            crate::digest_hex::LowerHex(Sha256::digest(raw.as_bytes()))\n        )\n    };\n    assert_eq!(\n        (source.len(), hash(source)),\n        (\n            entry[\"current_bytes\"].as_u64().unwrap() as usize,\n            entry[\"current_sha256\"].as_str().unwrap().to_owned()\n        )\n    );\n    let mut restored = source.to_owned();\n    for splice in entry[\"splices\"].as_array().unwrap() {\n        let current = splice[\"current\"].as_str().unwrap();\n        assert_eq!(restored.matches(current).count(), 1);\n        restored = restored.replacen(current, splice[\"prior\"].as_str().unwrap(), 1);\n    }\n    assert_eq!(\n        (restored.len(), hash(&restored)),\n        (\n            entry[\"prior_bytes\"].as_u64().unwrap() as usize,\n            entry[\"prior_sha256\"].as_str().unwrap().to_owned()\n        )\n    );\n    restored\n}\n",
+          "prior": "        );\n        restore(&path, current);\n    }\n}\n"
+        },
+        {
+          "current": "    }\n}\n\npub(in crate::workspace_graph::expected_projection) fn restore(path: &str, source: &str) -> String {\n    let imports = imports_before(path, source);\n    let source = imports.as_str();\n    let record = super::record_signatures::tests::restore(path, source);\n    let source = record.as_str();\n    let packet: serde_json::Value =\n        serde_json::from_str(include_str!(\"modular_inverse.json\")).unwrap();\n",
+          "prior": "    }\n}\n\npub(in crate::workspace_graph::expected_projection) fn restore(path: &str, source: &str) -> String {\n    let record = super::record_signatures::tests::restore(path, source);\n    let source = record.as_str();\n    let packet: serde_json::Value =\n        serde_json::from_str(include_str!(\"modular_inverse.json\")).unwrap();\n"
+        }
+      ]
+    },
+    "src/workspace_graph/expected_projection/shared_local_callees/reuse_tests.rs": {
+      "current_bytes": 24205,
+      "current_sha256": "12d17ed702601ea4448d0d2f8429cbf05d0d6016168597e0bf438f8333fdf44e",
+      "prior_bytes": 23293,
+      "prior_sha256": "21b6536db8287e70652b8f864e6c5f9ad4573ffb7ddbcc5df2a95852c9769ae4",
+      "splices": [
+        {
+          "current": "    assert_eq!(\n        hash(&restored),\n        \"43ba5052c503b1560b6568853ff5e9929728f468f59a186f21226c95bea4ddef\"\n    );\n    let explicit = shared_local_callees::modular_session::tests::imports_before(\n        \"shared_local_callees/invoice.rs\",\n        include_str!(\"invoice.rs\"),\n    );\n    let current = explicit.as_str();\n    let method = r#####\"    // A distinct same-invocation constructor pays its own actual/formal and\n    // returned owners before formation; the original certificate is unchanged.\n    pub(super) fn acquire_with<T>() -> Result<Self, Failure> {\n        let bytes = Self::setup_bytes()\n",
+          "prior": "    assert_eq!(\n        hash(&restored),\n        \"43ba5052c503b1560b6568853ff5e9929728f468f59a186f21226c95bea4ddef\"\n    );\n    let current = include_str!(\"invoice.rs\");\n    let method = r#####\"    // A distinct same-invocation constructor pays its own actual/formal and\n    // returned owners before formation; the original certificate is unchanged.\n    pub(super) fn acquire_with<T>() -> Result<Self, Failure> {\n        let bytes = Self::setup_bytes()\n"
+        },
+        {
+          "current": "}\n\n#[test]\nfn all_current_source_entries_reconstruct_the_complete_immediate_predecessors() {\n    for (path, current) in [\n        (\n            \"call_carriers_joint.rs\",\n            include_str!(\"../call_carriers_joint.rs\"),\n        ),\n        (\n            \"call_carriers_directory/reused.rs\",\n            include_str!(\"../call_carriers_directory/reused.rs\"),\n        ),\n        (\n            \"shared_local_callees/invoice.rs\",\n            include_str!(\"invoice.rs\"),\n        ),\n        (\"shared_local_callees/walk.rs\", include_str!(\"walk.rs\")),\n        (\"shared_local_callees/reused.rs\", include_str!(\"reused.rs\")),\n        (\n            \"shared_local_callees/coupled_projection.rs\",\n            include_str!(\"coupled_projection.rs\"),\n        ),\n    ] {\n        shared_local_callees::modular_session::tests::imports_before(path, current);\n    }\n    use sha2::{Digest, Sha256};\n    let hash = |raw: &str| {\n        format!(\n            \"{:x}\",\n",
+          "prior": "}\n\n#[test]\nfn all_current_source_entries_reconstruct_the_complete_immediate_predecessors() {\n    use sha2::{Digest, Sha256};\n    let hash = |raw: &str| {\n        format!(\n            \"{:x}\",\n"
+        }
+      ]
+    },
+    "src/workspace_graph/expected_projection/shared_local_callees/reused.rs": {
+      "current_bytes": 10317,
+      "current_sha256": "ed964ba39e51dfd7dbdd8c391b831260adba376c6f8dad5b035e8df36ab59fd7",
+      "prior_bytes": 10068,
+      "prior_sha256": "d04b3e01390597648508188368a1f34059ad0866c3617badc52f7ef7e69bb94e",
+      "splices": [
+        {
+          "current": "        }\n        Ok(())\n    }\n\n    #[allow(\n        clippy::let_and_return,\n        reason = \"retain the separately invoiced receiving and returned Result owners\"\n    )]\n    pub(in crate::workspace_graph::expected_projection) fn finish(\n        current: Option<Self>,\n        context: Context<'p, 'a>,\n    ) -> Result<Costs, Error> {\n",
+          "prior": "        }\n        Ok(())\n    }\n\n    pub(in crate::workspace_graph::expected_projection) fn finish(\n        current: Option<Self>,\n        context: Context<'p, 'a>,\n    ) -> Result<Costs, Error> {\n"
+        },
+        {
+          "current": "//! Distinct callee-constructor certificate on a borrowed lookup result.\n//! No auxiliary-carrier count, name index or pointer alone grants identity scope.\nuse super::{\n    compiler, local, ordinary, Context, Costs, Failure, Function, Index, Invoice, Program,\n    MAX_HEADERS,\n};\ntype Error = Failure;\n\n// These loans can only be formed after the full ordinary/local source check.\n// The surrounding Session owns their exact immutable Context and Invoice.\n",
+          "prior": "//! Distinct callee-constructor certificate on a borrowed lookup result.\n//! No auxiliary-carrier count, name index or pointer alone grants identity scope.\nuse super::*;\ntype Error = Failure;\n\n// These loans can only be formed after the full ordinary/local source check.\n// The surrounding Session owns their exact immutable Context and Invoice.\n"
+        }
+      ]
+    },
+    "src/workspace_graph/expected_projection/shared_local_callees/walk.rs": {
+      "current_bytes": 9350,
+      "current_sha256": "fafdcb7e6743647fcd1ad787ea98731a159fc155e0a8d35b02541f60dd74ce17",
+      "prior_bytes": 9195,
+      "prior_sha256": "7979deb755119b87de616556a112fc9cbd96d489bdbbd0a3b1905eadec9f693f",
+      "splices": [
+        {
+          "current": "//! Explicit lexical scopes; unfamiliar lowerings keep the complete old charge.\nuse super::{\n    compiler, invoice, local, ordinary, plain, Context, Expr, ExprKind, Failure, Function, Headers,\n    Invoice, Statement, Type, MAX_FRAMES, MAX_NAMES,\n};\n\n#[derive(Clone, Copy)]\nenum Frame<'a> {\n    Expr(&'a Expr),\n",
+          "prior": "//! Explicit lexical scopes; unfamiliar lowerings keep the complete old charge.\nuse super::*;\n\n#[derive(Clone, Copy)]\nenum Frame<'a> {\n    Expr(&'a Expr),\n"
+        }
+      ]
+    },
+    "src/workspace_graph/expected_projection/shared_local_callees/modular_pair.rs": {
+      "current_bytes": 10091,
+      "current_sha256": "0df2e9bba3767c423e7ce9367fd9702f8673bbce3385e059fd8ca71eb6f37e0b",
+      "prior_bytes": 9939,
+      "prior_sha256": "10a4d9295c1dd8db59b0c6c79a2fb6ce272cc86b39908e010a8fac16bba3bad1",
+      "splices": [
+        {
+          "current": "            failed: false,\n        })\n    }\n\n    #[allow(\n        clippy::redundant_pattern_matching,\n        reason = \"direct discriminants preserve separately prepaid receiver boundaries\"\n    )]\n    fn read(&mut self, context: Context<'p, 'a>, imports: bool) -> ReadResult {\n        // The live Invoice checks the real current lender BEFORE either use.\n        // Its cumulative paid bytes remain in both conservative forecasts;\n        // retaining a scalar fee does not debit a second census in the ledger.\n",
+          "prior": "            failed: false,\n        })\n    }\n\n    fn read(&mut self, context: Context<'p, 'a>, imports: bool) -> ReadResult {\n        // The live Invoice checks the real current lender BEFORE either use.\n        // Its cumulative paid bytes remain in both conservative forecasts;\n        // retaining a scalar fee does not debit a second census in the ledger.\n"
+        }
+      ]
+    },
+    "src/workspace_graph/expected_projection/shared_local_callees/paired.rs": {
+      "current_bytes": 8613,
+      "current_sha256": "34c49f546d5972aec731c3e92bdcf2477a8bb15ccc198e38850b9f4e5b129420",
+      "prior_bytes": 8412,
+      "prior_sha256": "8fed6ddc93bd1e2b69802a67c77de4adcc581f845dd53bbb621439e7eb6c0b36",
+      "splices": [
+        {
+          "current": "            failed: false,\n        })\n    }\n\n    #[allow(\n        clippy::redundant_pattern_matching,\n        reason = \"direct discriminants preserve separately prepaid receiver boundaries\"\n    )]\n    fn read(&mut self, context: Context<'p, 'a>, imports: bool) -> ReadResult {\n        // The live Invoice checks the real current lender BEFORE either use.\n        // Its cumulative paid bytes remain in both conservative forecasts;\n        // retaining a scalar fee does not debit a second census in the ledger.\n",
+          "prior": "            failed: false,\n        })\n    }\n\n    fn read(&mut self, context: Context<'p, 'a>, imports: bool) -> ReadResult {\n        // The live Invoice checks the real current lender BEFORE either use.\n        // Its cumulative paid bytes remain in both conservative forecasts;\n        // retaining a scalar fee does not debit a second census in the ledger.\n"
+        },
+        {
+          "current": "//! Two bounded consumers of one invocation's immutable literal census.\n//! The finished certificate remains DATA; every handoff has its own lender fee.\nuse super::super::{call_carriers, held_projection, private_layout, SyntheticBuilderCosts};\nuse super::{Context, Costs, Failure, Index, Invoice, Program};\nuse crate::diagnostic::Diagnostic;\n\ntype ResultPair = Result<(call_carriers::Proof, Costs), Vec<Diagnostic>>;\n// Internal lender rejection must not format/debit a diagnostic in a foreign\n",
+          "prior": "//! Two bounded consumers of one invocation's immutable literal census.\n//! The finished certificate remains DATA; every handoff has its own lender fee.\nuse super::super::{call_carriers, held_projection, private_layout, SyntheticBuilderCosts};\nuse super::*;\nuse crate::diagnostic::Diagnostic;\n\ntype ResultPair = Result<(call_carriers::Proof, Costs), Vec<Diagnostic>>;\n// Internal lender rejection must not format/debit a diagnostic in a foreign\n"
+        }
+      ]
+    },
+    "src/workspace_graph/expected_projection/shared_local_callees/paired_projection.rs": {
+      "current_bytes": 14772,
+      "current_sha256": "fdbdd20cb63d8bf8f32e8244e96be2526df769614f1ed325c9b515d7fd67e722",
+      "prior_bytes": 13868,
+      "prior_sha256": "7539f91ca688a592aa66eba74c6dee4b3a721e29fbab9367b7043f8036e4cec9",
+      "splices": [
+        {
+          "current": "//! Uncached coupled census; the complete immediate-old estimate stays live.\n//! Only local-callee acquisition changes. Fixed/nominal/expression/writer and\n//! all sixteen identity copies retain their original independent equations.\nuse super::{\n    active_builder_limit, ast_function_contract_cost, ast_function_cost,\n    ast_function_identity_slots, ast_function_signature_cost, ast_program_cost,\n    ast_program_identity_slots, ast_type_declaration_cost, ast_type_declaration_identity_slots,\n    ast_type_identity_slots, cached_exact, call_identity, checked_builder_sum, checked_usage, cost,\n    generic_instance_source_cost, import_stub, limit_error, private_layout,\n    synthetic_main_runtime_cost, type_rewrite, AuthoredDeclaration, StructuralCost,\n    SyntheticBuilderCosts, HIR_IDENTITY_COPY_FACTOR, HIR_STRING_COPY_FACTOR,\n    HIR_STRUCTURE_EXPANSION_FACTOR,\n};\nuse crate::ast::{Expr, ModuleUseKind, Program};\nuse crate::diagnostic::Diagnostic;\nuse crate::{hir, prelude};\nuse std::collections::{BTreeMap, BTreeSet};\n\n#[allow(\n    clippy::too_many_arguments,\n    reason = \"complete original forecast inputs plus same-invocation census loan\"\n)]\npub(in crate::workspace_graph::expected_projection) fn estimate_with_census<'p, 'a>(\n    program: &'p Program,\n    authored: &'a BTreeMap<&'a str, AuthoredDeclaration<'a>>,\n    programs: &'a [Program],\n",
+          "prior": "//! Uncached coupled census; the complete immediate-old estimate stays live.\n//! Only local-callee acquisition changes. Fixed/nominal/expression/writer and\n//! all sixteen identity copies retain their original independent equations.\nuse super::*;\n\npub(in crate::workspace_graph::expected_projection) fn estimate_with_census<'p, 'a>(\n    program: &'p Program,\n    authored: &'a BTreeMap<&'a str, AuthoredDeclaration<'a>>,\n    programs: &'a [Program],\n"
+        }
+      ]
+    },
+    "src/workspace_graph/expected_projection/shared_local_callees/record_signatures.rs": {
+      "current_bytes": 11968,
+      "current_sha256": "d588429142af0102d9d3cde1f9c2ee50f76661efe22b19c2b44a7e6d1dc95f52",
+      "prior_bytes": 11560,
+      "prior_sha256": "094c7f05180c07d41c1d4a69394fe80030dae0f08bee3b1ebcefb0c082921763",
+      "splices": [
+        {
+          "current": "    ancestry[depth] = None;\n    Ok(true)\n}\n\n#[allow(\n    clippy::redundant_pattern_matching,\n    reason = \"direct discriminants preserve separately prepaid receiver boundaries\"\n)]\nfn authenticate(\n    context: Context<'_, '_>,\n    declaration: &TypeDeclaration,\n    invoice: &Invoice,\n",
+          "prior": "    ancestry[depth] = None;\n    Ok(true)\n}\n\nfn authenticate(\n    context: Context<'_, '_>,\n    declaration: &TypeDeclaration,\n    invoice: &Invoice,\n"
+        },
+        {
+          "current": "        }\n    }\n}\n\n#[allow(\n    clippy::redundant_pattern_matching,\n    reason = \"direct discriminants preserve separately prepaid receiver boundaries\"\n)]\nfn visit<'p>(\n    context: Context<'p, '_>,\n    ty: &Type,\n    invoice: &Invoice,\n",
+          "prior": "        }\n    }\n}\n\nfn visit<'p>(\n    context: Context<'p, '_>,\n    ty: &Type,\n    invoice: &Invoice,\n"
+        },
+        {
+          "current": "    ResultBool,\n    ResultBool,\n);\n\n#[allow(\n    clippy::redundant_pattern_matching,\n    reason = \"direct discriminants preserve separately prepaid receiver boundaries\"\n)]\npub(super) fn ordinary(\n    context: Context<'_, '_>,\n    function: &Function,\n    invoice: &Invoice,\n",
+          "prior": "    ResultBool,\n    ResultBool,\n);\n\npub(super) fn ordinary(\n    context: Context<'_, '_>,\n    function: &Function,\n    invoice: &Invoice,\n"
+        }
+      ]
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs": {
+      "current_bytes": 10194,
+      "current_sha256": "52299d69ae04653546366d2eb220e0acbfc590c823e0a7819d29a1b47e7be134",
+      "prior_bytes": 10032,
+      "prior_sha256": "7d496d91ae725cecf7b104f51930b4f7f9c23e0a3dc96192e987bc19b2da6765",
+      "splices": [
+        {
+          "current": "//! Invocation-local immutable classification DATA, never content authority.\nuse super::{\n    lexical_skeleton, size_of, ClassifierLedger, Diagnostic, ExprSkeletonPath, ObservationDag,\n    ObservationDagKind, Observations, Rc, SkeletonWork, PAYMENT,\n};\n\nstruct Entry {\n    root: Rc<ObservationDag>,\n    visits: usize,\n",
+          "prior": "//! Invocation-local immutable classification DATA, never content authority.\nuse super::*;\n\nstruct Entry {\n    root: Rc<ObservationDag>,\n    visits: usize,\n"
+        }
+      ]
+    }
   }
 }

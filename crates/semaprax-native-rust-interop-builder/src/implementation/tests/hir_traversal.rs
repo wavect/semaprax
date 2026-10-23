@@ -321,18 +321,9 @@ fn type_facts_hostile_envelopes_are_bound_to_canonical_fixtures() {
     }
     chain.push_str("@id(\"app.main\")\nfn main() -> i64 { 0 }\n");
 
-    // The `retained_upper` component of each tuple (and the sum that
-    // includes it) moved by exactly 128 bytes when 24c1d166 ("admit a
-    // minimal `yield` slice") added `yields: Option<ResolvedYieldsClause>`
-    // to `ResolvedFunction` (src/hir/nodes.rs), growing
-    // `size_of::<ResolvedFunction>()` by 128 bytes (two `ResolvedType` at
-    // 48 bytes plus a 32-byte `Span`, with the `Option` costing nothing
-    // extra via a spare niche). Each of the four fixtures above has
-    // exactly one top-level function (`app.main`) and no generics, so
-    // `hir_pre_resolve.rs`'s `resolved_function_headers` term -- and
-    // therefore `retained_upper` -- grew by `1 * 128 == 128` in every
-    // fixture. `type_facts_phase` (the third element) is unaffected: it
-    // does not read `size_of::<ResolvedFunction>()`.
+    // Exact Rust 1.97.1 receipts from the complete current compiler types.
+    // Keep the authored fixture, canonical digest, capacity producer, all phase
+    // terms and subsequent exact/short admission checks bound together.
     assert_eq!(
         [
             envelope(&scalar, "typefacts-layered-scalar.spx"),
@@ -344,30 +335,30 @@ fn type_facts_hostile_envelopes_are_bound_to_canonical_fixtures() {
             (
                 "sha256:cfa16985be87d169c3fb81d5958126347ec82b4c1afed878e2d98d1fbfe72c80"
                     .to_owned(),
-                220_112_355,
-                438_721_360,
-                658_833_715,
+                219_912_987,
+                438_524_768,
+                658_437_755,
             ),
             (
                 "sha256:461611e4315e312330af0285273568e5d09cd8e5770a35dcf66a82783aa15ae6"
                     .to_owned(),
-                147_082_410,
-                293_108_482,
-                440_190_892,
+                146_948_578,
+                292_977_426,
+                439_926_004,
             ),
             (
                 "sha256:dc19474b86def3eaf6e3c60cc2224694e6aa7cf2811cca6115943c11102f95fc"
                     .to_owned(),
-                42_049_904,
-                80_998_578,
-                123_048_482,
+                41_967_512,
+                80_998_546,
+                122_966_058,
             ),
             (
                 "sha256:d2692d4883957575ee95df8f9ee7057343599e1da945c386cedea714c716f66d"
                     .to_owned(),
-                10_529_690_104,
-                21_056_211_778,
-                31_585_901_882,
+                10_529_599_504,
+                21_056_203_538,
+                31_585_803_042,
             ),
         ],
         "canonical fixture or independently computed envelope terms drifted"

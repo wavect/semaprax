@@ -1,0 +1,7 @@
+
+running 2 tests
+test implementation::tests::cleanup_regions::inventory_and_cleanup_hostile_envelopes_bind_the_shared_fixture ... ok
+test implementation::tests::hir_traversal::type_facts_hostile_envelopes_are_bound_to_canonical_fixtures ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.36s
+

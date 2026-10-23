@@ -1,6 +1,7 @@
 """Lossless V12 transport controls; no source admission or runtime claims."""
 import copy
 import hashlib
+import json
 from pathlib import Path
 import runpy
 import unittest
@@ -101,6 +102,17 @@ class ViewLabels(unittest.TestCase):
         self.assertEqual(hashlib.sha256(before).hexdigest(),
                          '5834ed5afd8ddaf3be4229b2a3a97edf2420b92b46ee195e44d48ea8844c71ec')
         current = (Path(__file__).parent / 'overlay_page.py').read_text()
+        packet = json.loads((ROOT / 'src/source_reflows/next_custody_inverse.json').read_text())
+        row = next(row for row in packet['owners'] if row['owner'] == 'v12-python')
+        self.assertEqual(len(current.encode()), row['current_length'])
+        self.assertEqual(hashlib.sha256(current.encode()).hexdigest(), row['current_sha256'])
+        raw = current.encode()
+        for edit in reversed(row['edits']):
+            self.assertEqual(raw[edit['start']:edit['end']], edit['after'].encode())
+            raw = raw[:edit['start']] + edit['before'].encode() + raw[edit['end']:]
+        self.assertEqual(raw, row['before_text'].encode())
+        self.assertEqual(hashlib.sha256(raw).hexdigest(), row['before_sha256'])
+        current = raw.decode()
         start = current.index("V12_SCHEMA = 'semaprax.finite-source-overlay-page.v12'\n")
         end = current.index('def compose_values(before, policy, page):\n', start)
         restored = (current[:start] + current[end:]).replace(

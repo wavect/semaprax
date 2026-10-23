@@ -5,6 +5,8 @@
 use super::super::skeleton_work::SkeletonWork;
 use super::*;
 use crate::bounded_output::classifier_string::ClassifierLedger;
+#[cfg(test)]
+use crate::cleanup_plan::CleanupBlock;
 
 #[cfg(test)]
 struct Chunk {
@@ -326,6 +328,7 @@ pub(super) fn produce_prepaid(
 }
 
 #[cfg(test)]
+#[allow(unused_imports, reason = "the complete executable predecessor retains its exact original imports")]
 #[rustfmt::skip]
 mod before;
 #[cfg(test)]

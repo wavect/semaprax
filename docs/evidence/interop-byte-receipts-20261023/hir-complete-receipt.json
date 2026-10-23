@@ -1,0 +1,24 @@
+{
+  "status": "PASS",
+  "scope": "Actual complete interoperability builder; one unchanged original test registered; all original test bodies and real AST/HIR types retained. Linked against the actual normal compiler candidate; AST and HIR declarations unchanged from cfde46b857.",
+  "linux_current_main_head": "cfde46b857dfacb0253f91c613116373145d188e",
+  "linux_job": 120124625425,
+  "local_original_test": "hir_complete_reservation_is_exact_and_one_less_prevents_resolution",
+  "retained_upper": 51574,
+  "scratch_upper": 15698,
+  "phase_peaks": [
+    4612,
+    12468,
+    4502,
+    3104,
+    5408,
+    3072,
+    15698,
+    1194
+  ],
+  "complete": 67272,
+  "all_existing_exact_and_one_byte_short_refusal_checks_preserved": true,
+  "source_only_numeric_expected_receipts_and_obsolete_comment_changed": true,
+  "checks_run_on_external_ssd": true,
+  "device_free_ram_monitored_without_process_rss_caps": true
+}

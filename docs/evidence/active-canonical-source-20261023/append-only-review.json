@@ -1,0 +1,17 @@
+{
+  "skill": "/Users/kevin/.codex/skills/code-reviewer/SKILL.md",
+  "scope": "Manual review of the append-only label-node bound and complete predecessor/ABI tests before qualification",
+  "proof": [
+    "Pinned existing model B=6 implies each nonroot node has at least five keys; a nonempty root has at least one, hence nodes <= 1 + floor((N-1)/5).",
+    "This freshly constructed map has no clear/removal or key replacement, and no externally shared mutable map reference. Node allocation during insertion/splitting is monotone; cumulative allocations are bounded by the final node count at every prefix.",
+    "Cardinality arguments 0 and 1 precede the two distinct initial entries; later arguments are the actual map.len(), after contains_key proves a new key. Credits never cross map lifetimes.",
+    "Skipped node payments still call the original zero-byte sticky authentication. The complete original node API/frame remains funded for positive calls; the new wrapper, scalar operations, len and zero-auth frames are acquired before use.",
+    "No language semantics, canonical plan order, original tests, work bound, default builder cap, or admission authority is replaced."
+  ],
+  "required_verification": [
+    "Actual BTreeMap<&Label, Targets> allocation measurements over every prefix through 128 and split boundaries through 1024 in four insertion orders.",
+    "Complete current-versus-retained canonical IDs, heap, work and exact byte-delta tests, expanded to 12/32-label graph states.",
+    "Original normal build, Clippy, project checks and current source custody gates remain required."
+  ],
+  "full_ci_qualified": false
+}

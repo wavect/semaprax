@@ -1,0 +1,18 @@
+
+running 13 tests
+test cleanup_plan::replay::factored::canonical_shared::inline_singleton::lexical_successors::frame_loop::compact::active::active_targets::tests::append_label_bound_covers_actual_allocations_at_every_prefix_and_split_order ... ok
+test cleanup_plan::replay::factored::canonical_shared::inline_singleton::lexical_successors::frame_loop::compact::active::active_targets::tests::inline_targets_keep_all_work_cuts_overflow_exact_short_zero_and_reserved_floor ... ok
+test cleanup_plan::replay::factored::canonical_shared::inline_singleton::lexical_successors::frame_loop::compact::active::active_targets::tests::inline_targets_match_complete_old_weights_work_heap_and_exact_removed_transport ... ok
+test cleanup_plan::replay::factored::canonical_shared::inline_singleton::lexical_successors::frame_loop::compact::active::active_targets::tests::moved_weighted_finish_keeps_complete_old_owner_heap_and_exact_typed_transport ... ok
+test cleanup_plan::replay::factored::canonical_shared::inline_singleton::tests::active_builder::active_work_cuts_cycles_exact_short_zero_and_floor_keep_original_controls ... ok
+test cleanup_plan::replay::factored::canonical_shared::inline_singleton::tests::active_builder::full_graphs_keep_ids_work_heap_and_exact_removed_successor_receivers ... ok
+test cleanup_plan::replay::factored::canonical_shared::inline_singleton::tests::compact_results::compact_general_work_keeps_lending_every_work_cut_and_complete_errors ... ok
+test cleanup_plan::replay::factored::canonical_shared::inline_singleton::tests::compact_results::compact_tree_payments_keep_complete_refusals_sticky_state_and_work ... ok
+test cleanup_plan::replay::factored::canonical_shared::inline_singleton::tests::compact_results::every_small_work_cut_cycle_exact_short_zero_and_floor_refusal_release_owners ... ok
+test cleanup_plan::replay::factored::canonical_shared::inline_singleton::tests::compact_results::real_byte_result_layout_and_mixed_primitive_bank_delta_are_exact ... ok
+test cleanup_plan::replay::factored::canonical_shared::inline_singleton::tests::compact_results::zero_single_many_and_overflow_keep_complete_results_work_and_backing ... ok
+test cleanup_plan::replay::final_output::plan_compact_tests::complete_plan_paths_work_heap_and_exact_compact_result_delta_match_predecessor ... ok
+test cleanup_plan::replay::final_output::plan_compact_tests::every_plan_work_cut_complete_errors_exact_short_zero_and_floor_keep_sticky_owners ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 1.83s
+

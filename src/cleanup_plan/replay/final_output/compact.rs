@@ -1,6 +1,7 @@
 //! Actual compact Result receivers at the unchanged HIR payment frontiers.
 use super::{
-    Diagnostic, ExprSkeletonPath, Observations, ReplayBudget, ResolvedFunction, SkeletonWork,
+    Diagnostic, EdgeId, ExprSkeletonPath, Observations, ReplayBudget, ResolvedFunction,
+    SkeletonObservation, SkeletonWork,
 };
 use crate::cleanup_plan::replay::physical_budget::ByteFailure;
 use std::mem::size_of;
@@ -212,3 +213,98 @@ macro_rules! push {
 }
 
 pub(in crate::cleanup_plan::replay) use push;
+
+// Actual compact primitive Results in the complete PLAN final-sibling producer.
+pub(in crate::cleanup_plan::replay) const PLAN_SELECTION_CONTROLS: usize = size_of::<Result<(), ByteFailure>>()
+    + size_of::<&mut ReplayBudget>() + size_of::<&ResolvedFunction>() + size_of::<&str>()
+    + 6 * size_of::<usize>() // price, edge len, observation len/capacity, two indices
+    + 2 * size_of::<bool>() // two-edge and spare predicates
+    + 3 * size_of::<&Vec<EdgeId>>() // len and two index receivers
+    + 2 * size_of::<&Vec<std::rc::Rc<SkeletonObservation>>>(); // len/capacity
+
+// These are real direct payment/work/auth/conversion receivers, not a helper
+// return. No checked growth or replacement array exists in the proven spare slot.
+pub(in crate::cleanup_plan::replay) const PLAN_MOVE_CONTROLS: usize = 5 * size_of::<Result<(), ByteFailure>>()
+    + size_of::<Vec<std::rc::Rc<SkeletonObservation>>>() // moved named receiver
+    + 5 * size_of::<&mut ReplayBudget>() + 5 * size_of::<&ResolvedFunction>()
+    + 5 * size_of::<&str>()
+    + 2 * size_of::<usize>() // price and conversion byte count
+    + size_of::<&SkeletonObservation>() // conversion census argument
+    + size_of::<&mut Vec<std::rc::Rc<SkeletonObservation>>>(); // actual push receiver
+
+pub(in crate::cleanup_plan::replay) const PLAN_SMALL_SELECTION_CONTROLS: usize =
+    PLAN_SELECTION_CONTROLS + super::super::branch_clone::direct::SMALL_SELECTION_CONTROLS;
+const _: () = assert!(
+    super::PLAN_SELECTION_CONTROLS - PLAN_SELECTION_CONTROLS
+        == size_of::<Result<(), Diagnostic>>() - size_of::<Result<(), ByteFailure>>()
+);
+const _: () = assert!(
+    super::PLAN_MOVE_CONTROLS - PLAN_MOVE_CONTROLS
+        == 5 * (size_of::<Result<(), Diagnostic>>() - size_of::<Result<(), ByteFailure>>())
+);
+macro_rules! plan_selection {
+    ($budget:ident,$function:ident) => {
+        $crate::cleanup_plan::replay::physical_budget::compact_try!($budget.reserve_compact_bytes(
+            $function,
+            $crate::cleanup_plan::replay::final_output::compact::PLAN_SMALL_SELECTION_CONTROLS,
+            "plan final-output selection controls"
+        ))
+    };
+}
+pub(in crate::cleanup_plan::replay) use plan_selection;
+macro_rules! plan_move {
+    ($budget:ident,$function:ident) => {
+        $crate::cleanup_plan::replay::physical_budget::compact_try!($budget.reserve_compact_bytes(
+            $function,
+            $crate::cleanup_plan::replay::final_output::compact::PLAN_MOVE_CONTROLS,
+            "plan final-output move controls"
+        ))
+    };
+}
+pub(in crate::cleanup_plan::replay) use plan_move;
+macro_rules! plan_work {
+    ($budget:ident,$function:ident,$phase:expr) => {
+        $crate::cleanup_plan::replay::physical_budget::compact_try!(
+            $budget.charge_compact_skeleton($function, 1, $phase)
+        )
+    };
+}
+pub(in crate::cleanup_plan::replay) use plan_work;
+macro_rules! plan_auth {
+    ($budget:ident,$function:ident) => {
+        $crate::cleanup_plan::replay::physical_budget::compact_try!($budget.reserve_compact_bytes(
+            $function,
+            0,
+            "plan branch observation push"
+        ))
+    };
+}
+pub(in crate::cleanup_plan::replay) use plan_auth;
+macro_rules! plan_conversion {
+    ($budget:ident,$function:ident,$observation:ident) => {
+        $crate::cleanup_plan::replay::physical_budget::compact_try!($budget.reserve_compact_bytes(
+            $function,
+            $crate::cleanup_plan::replay::physical_clone::conversion_bytes::<
+                std::rc::Rc<$crate::cleanup_plan::replay::SkeletonObservation>,
+                _,
+            >(&$observation),
+            "plan branch observation push"
+        ))
+    };
+}
+pub(in crate::cleanup_plan::replay) use plan_conversion;
+
+const _: () = assert!(
+    super::super::branch_clone::direct::PLAN_SMALL_SELECTION_CONTROLS
+        - PLAN_SMALL_SELECTION_CONTROLS
+        == size_of::<Result<(), Diagnostic>>() - size_of::<Result<(), ByteFailure>>()
+);
+const _: () = assert!(
+    super::super::branch_clone::direct::compact_roles::<
+        std::rc::Rc<super::super::SkeletonObservation>,
+        super::super::SkeletonObservation,
+    >() - super::super::branch_clone::direct::plan_compact_roles::<
+        std::rc::Rc<super::super::SkeletonObservation>,
+        super::super::SkeletonObservation,
+    >() == size_of::<Result<(), Diagnostic>>() - size_of::<Result<(), ByteFailure>>()
+);

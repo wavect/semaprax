@@ -1,6 +1,8 @@
 //! Constructor/lender controls use real loans; no forged certificate constructor.
+use super::super::WORK;
 use super::*;
 use crate::bounded_output::{reserve_active_required, with_limit_usage_refusal};
+use crate::workspace_graph::AuthoredDeclaration;
 const SOURCE: &str = "module constructor.loan; @id(\"helper\") fn helper(x:i64)->i64{x} @id(\"other\") fn other()->i64{0} @id(\"main\") fn main()->i64{helper(1)}";
 fn index(programs: &[Program]) -> Index<'_> {
     let mut result = Index::new();
@@ -116,9 +118,9 @@ fn incomplete_body_rollback_and_exhausted_optional_work_cannot_create_credit() {
 fn direct_constructor_rejects_alias_and_forged_authored_source() {
     let mut programs = [crate::parse(SOURCE, "constructor.spx").unwrap()];
     // Copy a real parsed alias declaration rather than inventing an authority.
-    let imported = crate::parse("module alias.guard; use function @id(\"external.helper\") from x.y as hidden; @id(\"m\") fn main()->i64{0}", "alias.spx").unwrap();
+    let mut imported = crate::parse("module alias.guard; use function @id(\"external.helper\") from x.y as hidden; @id(\"m\") fn main()->i64{0}", "alias.spx").unwrap();
     {
-        programs[0].module_uses = imported.module_uses;
+        programs[0].module_uses = std::mem::take(&mut imported.module_uses);
         assert!(!programs[0].module_uses.is_empty());
         let authored = index(&programs);
         let ctx = Context {

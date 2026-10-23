@@ -218,3 +218,8 @@ pub(super) fn record_final_frontier(at: usize, work: &SkeletonWork<'_, '_>) {
 #[cfg(test)]
 #[path = "final_output/fanout_tests.rs"]
 mod fanout_tests;
+
+#[cfg(test)]
+mod before_plan_compact;
+#[cfg(test)]
+mod plan_compact_tests;

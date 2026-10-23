@@ -325,21 +325,24 @@ fn compare_with_index_storage<'hir>(
     if budget.pays_allocations() {
         budget.reserve_bytes(
             function,
-            canonical_shared::closure_receiving::ClosureReceiving::DIRECT_CONTROLS,
+            canonical_shared::closure_receiving::ClosureReceiving::DIRECT_CONTROLS
+                + canonical_shared::inline_singleton::Canonicalizer::ACTIVE_DISPATCH_CONTROLS,
             "factored held closure invocation controls",
         )?;
     }
     let mut receiving =
         canonical_shared::closure_receiving::ClosureReceiving::from_prepaid(function, budget);
+    let canonical_id = canonical.canonical_dispatch(&budget.payer);
     #[cfg(test)]
     let _debit_phase = debit_routes::phase(debit_routes::Phase::CanonicalHIR);
     #[cfg(test)]
     let _successor_phase = canonical_shared::lexical_successors::census::phase(true);
     budget.reserve_array::<(usize, u64)>(function, 1, "factored HIR weighted root")?;
-    let Some(hir) = canonical.id_with_compact_receiving(
+    let Some(hir) = canonical_id(
+        &mut canonical,
         function,
         vec![(hir_root, 1)],
-        budget,
+        &mut *budget,
         &mut receiving,
     )?
     else {
@@ -350,10 +353,11 @@ fn compare_with_index_storage<'hir>(
     #[cfg(test)]
     let _successor_phase = canonical_shared::lexical_successors::census::phase(false);
     budget.reserve_array::<(usize, u64)>(function, 1, "factored plan weighted root")?;
-    let Some(plan) = canonical.id_with_compact_receiving(
+    let Some(plan) = canonical_id(
+        &mut canonical,
         function,
         vec![(plan_root, 1)],
-        budget,
+        &mut *budget,
         &mut receiving,
     )?
     else {

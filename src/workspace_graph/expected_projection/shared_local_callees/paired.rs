@@ -1,7 +1,7 @@
 //! Two bounded consumers of one invocation's immutable literal census.
 //! The finished certificate remains DATA; every handoff has its own lender fee.
 use super::super::{call_carriers, held_projection, private_layout, SyntheticBuilderCosts};
-use super::*;
+use super::{Context, Costs, Failure, Index, Invoice, Program};
 use crate::diagnostic::Diagnostic;
 
 type ResultPair = Result<(call_carriers::Proof, Costs), Vec<Diagnostic>>;
@@ -170,6 +170,10 @@ impl<'p, 'a> Census<'p, 'a> {
         })
     }
 
+    #[allow(
+        clippy::redundant_pattern_matching,
+        reason = "direct discriminants preserve separately prepaid receiver boundaries"
+    )]
     fn read(&mut self, context: Context<'p, 'a>, imports: bool) -> ReadResult {
         // The live Invoice checks the real current lender BEFORE either use.
         // Its cumulative paid bytes remain in both conservative forecasts;

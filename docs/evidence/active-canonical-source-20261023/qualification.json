@@ -1,0 +1,33 @@
+{
+  "status": "FOCUSED_LOCAL_PASS_FULL_CI_PENDING",
+  "base_head": "389867b1a2e61edae4b3b5b07fd396ebcd13b4f0",
+  "changes": [
+    "Dedicated complete active canonical producer omits the unreachable legacy successor transport and uses compact byte failure returns for actual payment calls.",
+    "Active flat target collection preserves weighted output, work cuts and real allocation ownership.",
+    "The complete PLAN producer uses compact failure transport at its actual payment boundaries.",
+    "Fresh append-only label maps fund a pinned B-tree node upper at every five-key interval; skipped intervals still authenticate the sticky budget through the original zero-byte primitive."
+  ],
+  "verification": [
+    "Actual normal compiler build and Clippy with warnings denied.",
+    "Thirteen tests from the real complete library compare exact results, complete errors, allocation ownership, work cuts, exact and one-short limits, zero and reserved floors.",
+    "Actual BTreeMap allocations checked at every prefix through 128, then split boundaries through 1024, in four insertion orders.",
+    "Unchanged source-role verifier and all six hostile controls.",
+    "Current HIR source-boundary harness: eleven original tests pass.",
+    "Current source-coverage harness: both original tests pass with all three readers joining every new child.",
+    "Original projection purity gate passes against current published manifests.",
+    "Whole workspace rustfmt check passes.",
+    "Source harness Clippy with warnings denied passes.",
+    "Twenty-nine original overlay/source authentication tests pass.",
+    "Both complete predecessor and both current audit-entry hostile controls pass."
+  ],
+  "limits_and_work_bounds_unchanged": true,
+  "all_work_and_builds_on_external_ssd": true,
+  "device_available_ram_monitored": true,
+  "process_rss_cap": false,
+  "known_remaining_product_refusals": [
+    "data-json-dec",
+    "data-json-scan",
+    "task-service-project"
+  ],
+  "full_ci_qualified": false
+}

@@ -1,7 +1,16 @@
 //! Uncached coupled census; the complete immediate-old estimate stays live.
 //! Only local-callee acquisition changes. Fixed/nominal/expression/writer and
 //! all sixteen identity copies retain their original independent equations.
-use super::*;
+use super::{
+    active_builder_limit, ast_function_contract_cost, ast_function_cost,
+    ast_function_identity_slots, ast_function_signature_cost, ast_program_cost,
+    ast_program_identity_slots, ast_type_declaration_cost, ast_type_declaration_identity_slots,
+    ast_type_identity_slots, cached_exact, call_identity, checked_builder_sum, checked_usage, cost,
+    generic_instance_source_cost, hir, import_stub, limit_error, prelude, private_layout,
+    synthetic_main_runtime_cost, type_rewrite, AuthoredDeclaration, BTreeMap, BTreeSet, Diagnostic,
+    ModuleUseKind, Program, StructuralCost, SyntheticBuilderCosts, HIR_IDENTITY_COPY_FACTOR,
+    HIR_STRING_COPY_FACTOR, HIR_STRUCTURE_EXPANSION_FACTOR,
+};
 
 pub(in crate::workspace_graph::expected_projection) fn estimate<'a>(
     program: &Program,

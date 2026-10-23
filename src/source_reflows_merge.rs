@@ -140,7 +140,9 @@ fn post21_input(source: &str, current: &str) -> String {
 // Exact historical ENTRY stages precede the complete compile35f front and its inverses.
 fn historical_project_entry(source: &str, expected: &str, current: &str) -> String {
     let legacy = crate::source_reflows::legacy_ci_expected_input(source, expected, current);
-    let current = legacy.as_ref(); let probes = phase_probe_stage(source, expected, current); let current = probes.as_ref();
+    let current = legacy.as_ref();
+    let probes = phase_probe_stage(source, expected, current);
+    let current = probes.as_ref();
     // The preceding authentic a3 projector already restored this complete stage.
     let restored_receiving_stage = source
         == "src/workspace_graph/constructor_failure/receiving/before.rs"
@@ -395,6 +397,8 @@ pub(crate) fn receiver_fixture_entry(
     entry
 }
 pub(crate) fn consumer_input(domain: &str, source: &str, current: &str) -> String {
+    let interface = crate::source_reflows::next_custody_before("interface754", source, current);
+    let current = interface.as_str();
     let entry = if domain == "lexical832" {
         receiver_fixture_entry(ReceiverFixture::LexicalOperands, source, current)
     } else {
@@ -651,6 +655,8 @@ pub(crate) fn retained833_input(source: &str, current: &str) -> String {
 }
 // Latest MAIN source enters the immutable combined833/841 checkpoint first.
 fn before_main66517(source: &str, current: &str) -> String {
+    let interface = crate::source_reflows::next_custody_before("interface754", source, current);
+    let current = interface.as_str();
     let previous = before_retry_guard(source, current);
     let current = previous.as_str();
     runtime_json::project(runtime_json::Fixture::F54, source, current)
@@ -1116,7 +1122,6 @@ pub(crate) use main8a_custody::Fixture as Main8aFixture;
 pub(crate) fn main8a_metadata(fixture: Main8aFixture) -> String {
     runtime_json::main8a_metadata(fixture)
 }
-
 // Independent current raw domains: never serialize Main predecessors through old raw guards.
 pub(crate) fn main8a_previous(source: &str, current: &str) -> String {
     let previous = maina3_previous(source, current);
@@ -1150,7 +1155,6 @@ pub(crate) fn maina3_847_input(source: &str, current: &str) -> String {
     let normalized = maina3_custody::normalize(source, current);
     maina3_custody::input(maina3_custody::Input::Alias1ae, source, &normalized)
 }
-
 // The incoming test-only e47 owning inputs form their own raw domain.
 pub(crate) fn main_e47_input(source: &str, current: &str) -> String {
     let normalized = maina3_custody::normalize(source, current);
@@ -1158,7 +1162,7 @@ pub(crate) fn main_e47_input(source: &str, current: &str) -> String {
 }
 #[path = "source_reflows_merge/main44_custody.rs"]
 mod main44_custody;
-pub(crate) use main44_custody::{Fixture as Main44Fixture, before_phase_probes, phase_probe_stage};
+pub(crate) use main44_custody::{before_phase_probes, phase_probe_stage, Fixture as Main44Fixture};
 pub(crate) fn main44_metadata(fixture: Main44Fixture) -> String {
     runtime_json::main44_metadata(fixture)
 }
@@ -1187,13 +1191,11 @@ pub(crate) fn release_current_input(source: &str, current: &str) -> String {
     let previous = main65_previous(source, current);
     cursor_clippy_input(source, &previous)
 }
-
 // Exact after-inputs for the two original Main8a historical metadata owners.
 #[path = "source_reflows_merge/main8a_historical.rs"]
 pub(crate) mod main8a_historical;
 pub(crate) mod main_eb2_inputs;
 mod opt858_sequence_input;
-
 // Distinct closed Main7f8 historical input domains; no compiler authority.
 #[path = "source_reflows_merge/final_ready_inputs.rs"]
 mod final_ready_inputs;
@@ -1205,7 +1207,6 @@ pub(crate) mod main7f8_presence;
 pub(crate) mod main7f8_source_inputs;
 #[path = "source_reflows_merge/ordinary_plan_inputs.rs"]
 mod ordinary_plan_inputs;
-
 // Only the historical PLAN source test receives this exact root checkpoint.
 pub(crate) fn ordinary_plan_history_root_checkpoint(
     current: &str,
@@ -1221,7 +1222,6 @@ pub(crate) mod main99f_inputs;
 
 #[path = "source_reflows_merge/main_e177_inputs.rs"]
 pub(crate) mod main_e177_inputs;
-
 // Distinct complete final-batch views precede both frozen parent readers.
 #[path = "source_reflows_merge/next_big_batch_inputs.rs"]
 pub(crate) mod next_big_batch_inputs;

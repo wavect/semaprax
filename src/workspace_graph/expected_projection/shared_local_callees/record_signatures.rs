@@ -134,6 +134,10 @@ type NameStep<'p, T> = (
     ResultBool,
 );
 
+#[allow(
+    clippy::redundant_pattern_matching,
+    reason = "direct discriminants preserve separately prepaid receiver boundaries"
+)]
 pub(super) fn ordinary(
     context: Context<'_, '_>,
     function: &Function,
@@ -164,6 +168,10 @@ pub(super) fn ordinary(
     }
 }
 
+#[allow(
+    clippy::redundant_pattern_matching,
+    reason = "direct discriminants preserve separately prepaid receiver boundaries"
+)]
 fn visit<'p>(
     context: Context<'p, '_>,
     ty: &Type,
@@ -300,6 +308,10 @@ fn visit<'p>(
     Ok(true)
 }
 
+#[allow(
+    clippy::redundant_pattern_matching,
+    reason = "direct discriminants preserve separately prepaid receiver boundaries"
+)]
 fn authenticate(
     context: Context<'_, '_>,
     declaration: &TypeDeclaration,

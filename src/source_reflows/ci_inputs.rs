@@ -200,11 +200,15 @@ fn rows() -> serde_json::Value {
     assert_eq!(row["current_length"], successor["checkpoint_length"]);
     assert_eq!(row["current_sha256"], successor["checkpoint_sha256"]);
     let actual = compiled(row["source"].as_str().unwrap()).unwrap().1;
-    let probe_before = crate::source_reflows_merge::before_phase_probes(row["source"].as_str().unwrap(), actual);
+    let probe_before =
+        crate::source_reflows_merge::before_phase_probes(row["source"].as_str().unwrap(), actual);
     let current = probe_before.as_ref();
     // Restore the exact pre-Main44 adapter input before its immutable inverses.
     assert_eq!(current.len(), 326351);
-    assert_eq!(digest(current), "c4eb6d914f71ea5ea5ec3cee2710b4c18fee4c45b2c9019e8b48b5fb46653bbb");
+    assert_eq!(
+        digest(current),
+        "c4eb6d914f71ea5ea5ec3cee2710b4c18fee4c45b2c9019e8b48b5fb46653bbb"
+    );
     let main44: serde_json::Value = serde_json::from_str("[[366,\"#[cfg(test)]\\npub(crate) use path_array_main44::current_source as main44_current_source;\\n\",\"\"],[2719,\"\",\"\\n\"]]").unwrap();
 
     let mut checkpoint = current.to_owned();
@@ -243,7 +247,10 @@ fn rows() -> serde_json::Value {
             .iter()
             .cloned(),
     );
-    row["inverse"].as_array_mut().unwrap().extend(main44.as_array().unwrap().iter().cloned());
+    row["inverse"]
+        .as_array_mut()
+        .unwrap()
+        .extend(main44.as_array().unwrap().iter().cloned());
     row["current_length"] = serde_json::json!(current.len());
     row["current_sha256"] = serde_json::json!(digest(current));
     // Authenticate subsequent complete source inputs before replaying the same
@@ -252,7 +259,10 @@ fn rows() -> serde_json::Value {
         let row = &mut rows[5];
         let current = compiled(row["source"].as_str().unwrap()).unwrap().1;
         assert_eq!(current.len(), 29371);
-        assert_eq!(digest(current), "9dffc2821b02990bea08f9434b911c9dca98e52af5be26013bc1702916118742");
+        assert_eq!(
+            digest(current),
+            "9dffc2821b02990bea08f9434b911c9dca98e52af5be26013bc1702916118742"
+        );
         let edits: serde_json::Value = serde_json::from_str("[[1911,\"\\n#[cfg(test)]\\n#[rustfmt::skip]\\nmod before_loaded_segments;\\n#[cfg(test)]\\n#[rustfmt::skip]\\nmod main_loaded_segments;\\n#[cfg(test)]\\n#[rustfmt::skip]\\nmod paired_segments_before;\\n\",\"\"],[13567,\"        _ => lexical_cursor::PRIMITIVE_FRAMES + paired_value::INDEPENDENT_PRIMITIVES,\\n\",\"        _ => lexical_cursor::PRIMITIVE_FRAMES,\\n\"],[13798,\"    #[cfg(test)]\\n    if owner.len >= 2 { census.independent_frames(); }\\n\",\"\"],[21245,\"                            certified_boundary!(owner, left_links, right_links, function, budget, census, 'certificate, 'paired);\\n\",\"                            certified_boundary!(owner, left_links, right_links, function, budget, census, 'certificate);\\n\"]]").unwrap();
         let mut checkpoint = current.to_owned();
         for edit in edits.as_array().unwrap().iter().rev() {
@@ -263,7 +273,10 @@ fn rows() -> serde_json::Value {
         }
         assert_eq!(checkpoint.len() as u64, row["current_length"]);
         assert_eq!(digest(&checkpoint), row["current_sha256"]);
-        row["inverse"].as_array_mut().unwrap().extend(edits.as_array().unwrap().iter().cloned());
+        row["inverse"]
+            .as_array_mut()
+            .unwrap()
+            .extend(edits.as_array().unwrap().iter().cloned());
         row["current_length"] = serde_json::json!(current.len());
         row["current_sha256"] = serde_json::json!(digest(current));
     }
@@ -271,8 +284,12 @@ fn rows() -> serde_json::Value {
         let row = &mut rows[8];
         let current = compiled(row["source"].as_str().unwrap()).unwrap().1;
         assert_eq!(current.len(), 59526);
-        assert_eq!(digest(current), "96f77aa63800b15888434dde208ea6ed3f9bf3294297bcc371b8dfacfc9c7cf3");
-        let edits: serde_json::Value = serde_json::from_str("[[5156,\"mod selected_function;\\n\",\"\"]]").unwrap();
+        assert_eq!(
+            digest(current),
+            "96f77aa63800b15888434dde208ea6ed3f9bf3294297bcc371b8dfacfc9c7cf3"
+        );
+        let edits: serde_json::Value =
+            serde_json::from_str("[[5156,\"mod selected_function;\\n\",\"\"]]").unwrap();
         let mut checkpoint = current.to_owned();
         for edit in edits.as_array().unwrap().iter().rev() {
             let at = usize::try_from(edit[0].as_u64().unwrap()).unwrap();
@@ -282,7 +299,10 @@ fn rows() -> serde_json::Value {
         }
         assert_eq!(checkpoint.len() as u64, row["current_length"]);
         assert_eq!(digest(&checkpoint), row["current_sha256"]);
-        row["inverse"].as_array_mut().unwrap().extend(edits.as_array().unwrap().iter().cloned());
+        row["inverse"]
+            .as_array_mut()
+            .unwrap()
+            .extend(edits.as_array().unwrap().iter().cloned());
         row["current_length"] = serde_json::json!(current.len());
         row["current_sha256"] = serde_json::json!(digest(current));
     }
@@ -296,10 +316,16 @@ fn rows() -> serde_json::Value {
         let probe = &mut probes[2];
         assert_eq!(probe["source"], "src/cleanup_plan/replay/factored.rs");
         assert_eq!(probe["length"], 49022);
-        assert_eq!(probe["sha256"], "3e3835bc69e3029d4fbfb03639dab27573e3bdd3d8c02ea286a0cc53ea94ea02");
+        assert_eq!(
+            probe["sha256"],
+            "3e3835bc69e3029d4fbfb03639dab27573e3bdd3d8c02ea286a0cc53ea94ea02"
+        );
         let current = compiled(probe["source"].as_str().unwrap()).unwrap().1;
         assert_eq!(current.len(), 49837);
-        assert_eq!(digest(current), "ffca82dfababa42ad8f21b57a51c42d313a769c17dc14115e1a2ac60a103e5c8");
+        assert_eq!(
+            digest(current),
+            "ffca82dfababa42ad8f21b57a51c42d313a769c17dc14115e1a2ac60a103e5c8"
+        );
         let extra: serde_json::Value = serde_json::from_str("[[2039,\"#[cfg(test)]\\nmod early_release;\\n\",\"\"],[18392,\"        // Automaton labels now own every retained observation. Each explicit\\n        // release pays its argument/formal and reservation-result transport.\\n        #[cfg(test)]\\n        early_release::frontier(0, budget);\\n        budget.reserve_array::<(dag_memo::Memo, dag_memo::Memo, Result<(), Diagnostic>)>(\\n            function,\\n            1,\\n            \\\"factored DAG memo release transport\\\",\\n        )?;\\n        drop(memo);\\n        #[cfg(test)]\\n        early_release::frontier(1, budget);\\n        budget.reserve_array::<(Vec<SkeletonPath>, Vec<SkeletonPath>, Result<(), Diagnostic>)>(\\n            function,\\n            1,\\n            \\\"factored HIR paths release transport\\\",\\n        )?;\\n        drop(hir_paths);\\n        #[cfg(test)]\\n        early_release::frontier(2, budget);\\n\",\"\"]]").unwrap();
         let mut restored = current.to_owned();
         for edit in extra.as_array().unwrap().iter().rev() {
@@ -310,19 +336,33 @@ fn rows() -> serde_json::Value {
         }
         assert_eq!(restored.len() as u64, probe["length"]);
         assert_eq!(digest(&restored), probe["sha256"]);
-        probe["inverse"].as_array_mut().unwrap().extend(extra.as_array().unwrap().iter().cloned());
+        probe["inverse"]
+            .as_array_mut()
+            .unwrap()
+            .extend(extra.as_array().unwrap().iter().cloned());
         probe["length"] = serde_json::json!(current.len());
         probe["sha256"] = serde_json::json!(digest(current));
     }
     for probe in probes.as_array().unwrap() {
-        let row = rows.as_array_mut().unwrap().iter_mut().find(|row| row["source"] == probe["source"]).unwrap();
+        let row = rows
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|row| row["source"] == probe["source"])
+            .unwrap();
         let actual = compiled(row["source"].as_str().unwrap()).unwrap().1;
         assert_eq!(actual.len() as u64, probe["length"]);
         assert_eq!(digest(actual), probe["sha256"]);
-        let prior = crate::source_reflows_merge::before_phase_probes(row["source"].as_str().unwrap(), actual);
+        let prior = crate::source_reflows_merge::before_phase_probes(
+            row["source"].as_str().unwrap(),
+            actual,
+        );
         assert_eq!(prior.len() as u64, row["current_length"]);
         assert_eq!(digest(&prior), row["current_sha256"]);
-        row["inverse"].as_array_mut().unwrap().extend(probe["inverse"].as_array().unwrap().iter().cloned());
+        row["inverse"]
+            .as_array_mut()
+            .unwrap()
+            .extend(probe["inverse"].as_array().unwrap().iter().cloned());
         row["current_length"] = probe["length"].clone();
         row["current_sha256"] = probe["sha256"].clone();
     }
@@ -330,13 +370,19 @@ fn rows() -> serde_json::Value {
     // remain the predecessor of this exact private visibility repair.
     {
         let row = &mut rows[16];
-        assert_eq!(row["source"], "src/hir/validation/function_scope/lifecycle.rs");
+        assert_eq!(
+            row["source"],
+            "src/hir/validation/function_scope/lifecycle.rs"
+        );
         let current = compiled(row["source"].as_str().unwrap()).unwrap().1;
         let before = lifecycle_visibility_entry(row["source"].as_str().unwrap(), current).unwrap();
         assert_eq!(before.len() as u64, row["current_length"]);
         assert_eq!(digest(&before), row["current_sha256"]);
         let extra: serde_json::Value = serde_json::from_str("[[1296,\"pub(in crate::hir::validation) fn declared_effects(effects: &[String]) -> Result<BTreeSet<&str>, Diagnostic> {\\n\",\"pub(super) fn declared_effects(effects: &[String]) -> Result<BTreeSet<&str>, Diagnostic> {\\n\"],[3932,\"pub(in crate::hir::validation) mod completed;\\n\",\"pub(super) mod completed;\\n\"]]").unwrap();
-        row["inverse"].as_array_mut().unwrap().extend(extra.as_array().unwrap().iter().cloned());
+        row["inverse"]
+            .as_array_mut()
+            .unwrap()
+            .extend(extra.as_array().unwrap().iter().cloned());
         row["current_length"] = serde_json::json!(current.len());
         row["current_sha256"] = serde_json::json!(digest(current));
     }
@@ -475,40 +521,80 @@ fn fourteen_complete_ci_input_inverses_keep_independent_git_bodies_and_refuse_st
     }
     assert_eq!(prior("foreign.rs", "unlisted input"), "unlisted input");
     for (source, current) in [
-        ("src/hir/validation/function_scope/lifecycle.rs",
-            include_str!("../hir/validation/function_scope/lifecycle.rs")),
-        ("src/hir/validation/function_scope/lifecycle/completed.rs",
-            include_str!("../hir/validation/function_scope/lifecycle/completed.rs")),
+        (
+            "src/hir/validation/function_scope/lifecycle.rs",
+            include_str!("../hir/validation/function_scope/lifecycle.rs"),
+        ),
+        (
+            "src/hir/validation/function_scope/lifecycle/completed.rs",
+            include_str!("../hir/validation/function_scope/lifecycle/completed.rs"),
+        ),
     ] {
         let before = lifecycle_visibility_entry(source, current).unwrap();
         assert_ne!(before, current);
-        for bad in [format!("{current} "), current[..current.len()-1].to_owned(), before] {
+        for bad in [
+            format!("{current} "),
+            current[..current.len() - 1].to_owned(),
+            before,
+        ] {
             assert!(std::panic::catch_unwind(|| lifecycle_visibility_entry(source, &bad)).is_err());
         }
     }
     assert!(lifecycle_visibility_entry("foreign.rs", "unlisted input").is_none());
     for (source, current) in [
-        ("src/hir/validation/scope_checkpoint/marks.rs", include_str!("../hir/validation/scope_checkpoint/marks.rs")),
-        ("src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs", include_str!("../cleanup_plan/replay/ordinary_plan_history/frontiers.rs")),
-        ("src/hir/validation/frame_reuse/tests.rs", include_str!("../hir/validation/frame_reuse/tests.rs")),
+        (
+            "src/hir/validation/scope_checkpoint/marks.rs",
+            include_str!("../hir/validation/scope_checkpoint/marks.rs"),
+        ),
+        (
+            "src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs",
+            include_str!("../cleanup_plan/replay/ordinary_plan_history/frontiers.rs"),
+        ),
+        (
+            "src/hir/validation/frame_reuse/tests.rs",
+            include_str!("../hir/validation/frame_reuse/tests.rs"),
+        ),
     ] {
         let before = batch_913_entry(source, current).unwrap();
         assert_ne!(before, current);
-        for bad in [format!("{current} "), current[..current.len()-1].to_owned(), before] {
+        for bad in [
+            format!("{current} "),
+            current[..current.len() - 1].to_owned(),
+            before,
+        ] {
             assert!(std::panic::catch_unwind(|| batch_913_entry(source, &bad)).is_err());
         }
     }
     assert!(batch_913_entry("foreign.rs", "unlisted input").is_none());
     for (source, current) in [
-        ("src/cleanup_plan/replay/path_join/selected.rs", include_str!("../cleanup_plan/replay/path_join/selected.rs")),
-        ("src/cleanup_plan/replay/path_join/selected/walk.rs", include_str!("../cleanup_plan/replay/path_join/selected/walk.rs")),
-        ("src/cleanup_plan/replay/path_join/selected/queries.rs", include_str!("../cleanup_plan/replay/path_join/selected/queries.rs")),
-        ("src/cleanup_plan/replay/path_join/selected/receiving.rs", include_str!("../cleanup_plan/replay/path_join/selected/receiving.rs")),
-        ("src/cleanup_plan/replay/path_join/selected/tests/mod.rs", include_str!("../cleanup_plan/replay/path_join/selected/tests/mod.rs")),
+        (
+            "src/cleanup_plan/replay/path_join/selected.rs",
+            include_str!("../cleanup_plan/replay/path_join/selected.rs"),
+        ),
+        (
+            "src/cleanup_plan/replay/path_join/selected/walk.rs",
+            include_str!("../cleanup_plan/replay/path_join/selected/walk.rs"),
+        ),
+        (
+            "src/cleanup_plan/replay/path_join/selected/queries.rs",
+            include_str!("../cleanup_plan/replay/path_join/selected/queries.rs"),
+        ),
+        (
+            "src/cleanup_plan/replay/path_join/selected/receiving.rs",
+            include_str!("../cleanup_plan/replay/path_join/selected/receiving.rs"),
+        ),
+        (
+            "src/cleanup_plan/replay/path_join/selected/tests/mod.rs",
+            include_str!("../cleanup_plan/replay/path_join/selected/tests/mod.rs"),
+        ),
     ] {
         let before = compact_frontier_entry(source, current).unwrap();
         assert_ne!(before, current);
-        for bad in [format!("{current} "), current[..current.len()-1].to_owned(), before] {
+        for bad in [
+            format!("{current} "),
+            current[..current.len() - 1].to_owned(),
+            before,
+        ] {
             assert!(std::panic::catch_unwind(|| compact_frontier_entry(source, &bad)).is_err());
         }
     }
@@ -750,11 +836,17 @@ pub(super) fn lifecycle_visibility_entry(source: &str, supplied: &str) -> Option
         ]),
         _ => return None,
     };
-    assert_eq!(supplied, compiled, "complete current lifecycle visibility source");
+    assert_eq!(
+        supplied, compiled,
+        "complete current lifecycle visibility source"
+    );
     assert_eq!(compiled.len(), length);
     assert_eq!(digest(compiled), expected);
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    assert_eq!(reader::read(&root.join(source), length, expected, 2_097_152).unwrap(), compiled);
+    assert_eq!(
+        reader::read(&root.join(source), length, expected, 2_097_152).unwrap(),
+        compiled
+    );
     let mut before = compiled.to_owned();
     for &(at, current, previous) in edits.iter().rev() {
         assert_eq!(&before[at..at + current.len()], current);
@@ -791,15 +883,37 @@ pub(super) fn batch_913_entry(source: &str, supplied: &str) -> Option<String> {
     assert_eq!(compiled.len(), length);
     assert_eq!(digest(compiled), expected);
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    assert_eq!(reader::read(&root.join(source), length, expected, 2_097_152).unwrap(), compiled);
+    assert_eq!(
+        reader::read(&root.join(source), length, expected, 2_097_152).unwrap(),
+        compiled
+    );
     if source == "src/hir/validation/scope_checkpoint/marks.rs" {
         for (path, child, child_length, child_sha) in [
-        ("src/hir/validation/scope_checkpoint/marks/before.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/scope_checkpoint/marks/before.rs")), 10603, "429e331bf13d326e4ea5e26185f0d4d6945c2ad13dbadc5c457da65f4867140c"),
-        ("src/hir/validation/scope_checkpoint/marks/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/scope_checkpoint/marks/tests.rs")), 20658, "7f07e20bdc0b2797f0c2f8abc2af9c5427fef9472bdf91fa87b5cfbb30f51994"),
+            (
+                "src/hir/validation/scope_checkpoint/marks/before.rs",
+                include_str!(concat!(
+                    env!("CARGO_MANIFEST_DIR"),
+                    "/src/hir/validation/scope_checkpoint/marks/before.rs"
+                )),
+                10603,
+                "429e331bf13d326e4ea5e26185f0d4d6945c2ad13dbadc5c457da65f4867140c",
+            ),
+            (
+                "src/hir/validation/scope_checkpoint/marks/tests.rs",
+                include_str!(concat!(
+                    env!("CARGO_MANIFEST_DIR"),
+                    "/src/hir/validation/scope_checkpoint/marks/tests.rs"
+                )),
+                20658,
+                "7f07e20bdc0b2797f0c2f8abc2af9c5427fef9472bdf91fa87b5cfbb30f51994",
+            ),
         ] {
             assert_eq!(child.len(), child_length);
             assert_eq!(digest(child), child_sha);
-            assert_eq!(reader::read(&root.join(path), child_length, child_sha, 2_097_152).unwrap(), child);
+            assert_eq!(
+                reader::read(&root.join(path), child_length, child_sha, 2_097_152).unwrap(),
+                child
+            );
         }
     }
     let mut before = compiled.to_owned();
@@ -815,21 +929,54 @@ pub(super) fn batch_913_entry(source: &str, supplied: &str) -> Option<String> {
 // Enter the immutable selected-path predecessor only through complete live images.
 pub(super) fn compact_frontier_entry(source: &str, supplied: &str) -> Option<String> {
     let compiled = match source {
-        "src/cleanup_plan/replay/path_join/selected.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected.rs")),
-        "src/cleanup_plan/replay/path_join/selected/walk.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/walk.rs")),
-        "src/cleanup_plan/replay/path_join/selected/queries.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/queries.rs")),
-        "src/cleanup_plan/replay/path_join/selected/receiving.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/receiving.rs")),
-        "src/cleanup_plan/replay/path_join/selected/tests/mod.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/tests/mod.rs")),
+        "src/cleanup_plan/replay/path_join/selected.rs" => include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/cleanup_plan/replay/path_join/selected.rs"
+        )),
+        "src/cleanup_plan/replay/path_join/selected/walk.rs" => include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/cleanup_plan/replay/path_join/selected/walk.rs"
+        )),
+        "src/cleanup_plan/replay/path_join/selected/queries.rs" => include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/cleanup_plan/replay/path_join/selected/queries.rs"
+        )),
+        "src/cleanup_plan/replay/path_join/selected/receiving.rs" => include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/cleanup_plan/replay/path_join/selected/receiving.rs"
+        )),
+        "src/cleanup_plan/replay/path_join/selected/tests/mod.rs" => include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/cleanup_plan/replay/path_join/selected/tests/mod.rs"
+        )),
         _ => return None,
     };
-    assert_eq!(supplied, compiled, "complete current compact frontier source");
+    assert_eq!(
+        supplied, compiled,
+        "complete current compact frontier source"
+    );
     let encoded = include_str!("compact_frontier_inverse.json");
     assert_eq!(encoded.len(), 30712);
-    assert_eq!(digest(encoded), "f3c2c90ae071a1e777dbb007ef1ac80adccdfc140892177cabd4b022e0778645");
+    assert_eq!(
+        digest(encoded),
+        "f3c2c90ae071a1e777dbb007ef1ac80adccdfc140892177cabd4b022e0778645"
+    );
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    assert_eq!(reader::read(&root.join("src/source_reflows/compact_frontier_inverse.json"), encoded.len(), &digest(encoded), 2_097_152).unwrap(), encoded);
+    assert_eq!(
+        reader::read(
+            &root.join("src/source_reflows/compact_frontier_inverse.json"),
+            encoded.len(),
+            &digest(encoded),
+            2_097_152
+        )
+        .unwrap(),
+        encoded
+    );
     let binding: serde_json::Value = serde_json::from_str(encoded).unwrap();
-    assert_eq!(binding["schema"], "semaprax.compact-frontier-whole-source-ingress.v1");
+    assert_eq!(
+        binding["schema"],
+        "semaprax.compact-frontier-whole-source-ingress.v1"
+    );
     for (path, child) in [
         ("src/cleanup_plan/replay/path_join/selected/before_frontier/finish.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/before_frontier/finish.rs"))),
         ("src/cleanup_plan/replay/path_join/selected/before_frontier/mod.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/before_frontier/mod.rs"))),
@@ -861,16 +1008,114 @@ pub(super) fn compact_frontier_entry(source: &str, supplied: &str) -> Option<Str
     let expected = row["current_sha256"].as_str().unwrap();
     assert_eq!(compiled.len(), length);
     assert_eq!(digest(compiled), expected);
-    assert_eq!(reader::read(&root.join(source), length, expected, 2_097_152).unwrap(), compiled);
+    assert_eq!(
+        reader::read(&root.join(source), length, expected, 2_097_152).unwrap(),
+        compiled
+    );
     let mut before = compiled.as_bytes().to_vec();
     for edit in row["edits"].as_array().unwrap().iter().rev() {
         let start = usize::try_from(edit["start"].as_u64().unwrap()).unwrap();
         let end = usize::try_from(edit["end"].as_u64().unwrap()).unwrap();
-        assert_eq!(before.get(start..end).unwrap(), edit["current"].as_str().unwrap().as_bytes());
-        before.splice(start..end, edit["before"].as_str().unwrap().as_bytes().iter().copied());
+        assert_eq!(
+            before.get(start..end).unwrap(),
+            edit["current"].as_str().unwrap().as_bytes()
+        );
+        before.splice(
+            start..end,
+            edit["before"].as_str().unwrap().as_bytes().iter().copied(),
+        );
     }
     let before = String::from_utf8(before).unwrap();
     assert_eq!(before.len() as u64, row["before_length"].as_u64().unwrap());
     assert_eq!(digest(&before), row["before_sha256"].as_str().unwrap());
     Some(before)
+}
+
+// Exact finite source entry only; no compiler, budget or execution authority.
+pub(super) fn next_custody_before(owner: &str, source: &str, supplied: &str) -> String {
+    const PACKET: &str = include_str!("next_custody_inverse.json");
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    assert_eq!(
+        reader::read(
+            &root.join("src/source_reflows/next_custody_inverse.json"),
+            PACKET.len(),
+            &digest(PACKET),
+            2_097_152
+        )
+        .unwrap(),
+        PACKET
+    );
+    let packet: serde_json::Value = serde_json::from_str(PACKET).unwrap();
+    let owners = packet["owners"].as_array().unwrap();
+    for (index, row) in owners.iter().enumerate() {
+        assert!(
+            !owners[..index]
+                .iter()
+                .any(|prior| prior["owner"] == row["owner"] && prior["source"] == row["source"]),
+            "duplicate finite source pair"
+        );
+    }
+    let row = packet["owners"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["owner"] == owner && row["source"] == source);
+    let Some(row) = row else {
+        return supplied.to_owned();
+    };
+    let compiled = match source {
+        "docs/PRIVATE-NOMINAL-LAYOUT-CLOSURE-V1.md" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/PRIVATE-NOMINAL-LAYOUT-CLOSURE-V1.md")),
+        "docs/evidence/finite-source-overlay-v2-20261018/overlay_page.py" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/finite-source-overlay-v2-20261018/overlay_page.py")),
+        "src/cleanup_plan/replay/ordinary_plan_history/completed_fork.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/completed_fork.rs")),
+        "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/tests.rs")),
+        "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/whole_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/whole_tests.rs")),
+        "src/cleanup_plan/replay/ordinary_plan_history/producer_joint_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/producer_joint_tests.rs")),
+        "src/cleanup_plan/replay/skeleton_work/dag_storage/flat_fanout.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work/dag_storage/flat_fanout.rs")),
+        "src/source_reflows_merge/main_e177_overlay_v2.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_reflows_merge/main_e177_overlay_v2.rs")),
+        "src/workspace_graph/expected_projection/call_carriers_inverse.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/call_carriers_inverse.rs")),
+        "src/workspace_graph/expected_projection/held_projection.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/held_projection.rs")),
+        "src/workspace_graph/expected_projection/private_layout.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/private_layout.rs")),
+        "src/workspace_graph/expected_projection/private_layout/names.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/private_layout/names.rs")),
+        "src/workspace_graph/expected_projection/private_layout/names/interface_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/private_layout/names/interface_tests.rs")),
+        "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs")),
+        "src/workspace_graph/expected_projection/shared_local_callees/controls_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/controls_tests.rs")),
+        "src/workspace_graph/expected_projection/shared_local_callees/modular_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/modular_tests.rs")),
+        "src/workspace_graph/expected_projection/shared_local_callees/reuse_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/reuse_tests.rs")),
+        "src/workspace_graph/expected_projection/shared_local_callees/reused_controls.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/reused_controls.rs")),
+        "tests/workspace/semantic_graph/source_inventory.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/workspace/semantic_graph/source_inventory.rs")),
+        _ => unreachable!("closed finite source entry"),
+    };
+    assert_eq!(supplied, compiled, "complete compiled source channel");
+    assert_eq!(compiled.len() as u64, row["current_length"]);
+    assert_eq!(digest(compiled), row["current_sha256"]);
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    assert_eq!(
+        reader::read(
+            &root.join(source),
+            compiled.len(),
+            row["current_sha256"].as_str().unwrap(),
+            2_097_152
+        )
+        .unwrap(),
+        compiled
+    );
+    let mut prior_end = 0;
+    for edit in row["edits"].as_array().unwrap() {
+        let start = usize::try_from(edit["start"].as_u64().unwrap()).unwrap();
+        let end = usize::try_from(edit["end"].as_u64().unwrap()).unwrap();
+        assert!(prior_end <= start && start <= end && end <= compiled.len());
+        assert!(compiled.is_char_boundary(start) && compiled.is_char_boundary(end));
+        prior_end = end;
+    }
+    let mut restored = compiled.to_owned();
+    for edit in row["edits"].as_array().unwrap().iter().rev() {
+        let start = usize::try_from(edit["start"].as_u64().unwrap()).unwrap();
+        let end = usize::try_from(edit["end"].as_u64().unwrap()).unwrap();
+        assert_eq!(&restored[start..end], edit["after"].as_str().unwrap());
+        restored.replace_range(start..end, edit["before"].as_str().unwrap());
+    }
+    assert_eq!(restored, row["before_text"].as_str().unwrap());
+    assert_eq!(restored.len() as u64, row["before_length"]);
+    assert_eq!(digest(&restored), row["before_sha256"]);
+    restored
 }

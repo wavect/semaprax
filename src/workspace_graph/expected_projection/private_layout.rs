@@ -1103,3 +1103,7 @@ mod capacity_before;
 #[cfg(test)]
 #[path = "private_layout/capacity_tests.rs"]
 mod capacity_tests;
+
+#[cfg(test)]
+#[path = "private_layout/names/interface_before.rs"]
+mod before_interface_census;

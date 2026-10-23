@@ -115,7 +115,8 @@ fn nested_suffix_contents_order_multiplicity_and_distinct_identity_are_preserved
         let actual = call(vec![a], &nested, &mut work).unwrap();
         let b = seed(&mut work, 5, 1);
         assert!(!Rc::ptr_eq(&original, &b.observations.items[0]));
-        let old = super::super::before::sequence_skeleton_paths(vec![b], &flat, &mut work).unwrap();
+        let mut old =
+            super::super::before::sequence_skeleton_paths(vec![b], &flat, &mut work).unwrap();
         assert!(equal_paths(&actual, &old, &mut work));
         assert!(actual.iter().any(|path| matches!(
             path.observations.prefix.as_deref().map(|node| &node.kind),
@@ -151,8 +152,11 @@ fn unsupported_alternative_even_with_sequence_marker_keeps_original_owners() {
                 node.ordinal = Some(sequence::SEQUENCE_MARKER);
                 path.observations.prefix = Some(Rc::new(node));
             }
-            let result =
-                (|| -> Result<Emission, Diagnostic> { emit!(vec![path], &[], work) })().unwrap();
+            let result = (|| -> Result<Emission, Diagnostic> {
+                let work = &mut work;
+                emit!(vec![path], &[], work)
+            })()
+            .unwrap();
             match result {
                 Emission::Unsupported(paths) => {
                     assert!(Rc::ptr_eq(&owner, &paths[0].observations.items[0]))

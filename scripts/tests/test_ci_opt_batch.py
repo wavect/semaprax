@@ -172,6 +172,8 @@ class FocusedBatch(unittest.TestCase):
                     self.returncode = 0
                     output = ''
                     if args[:2] == ['cargo', 'test']:
+                        test.assertIn('--message-format=json', args)
+                        test.assertNotIn('--message-format=json-render-diagnostics', args)
                         image = 'lib' if '--lib' in args else 'owned_data'
                         _, artifact = test.artifact(root, target, image)
                         self.returncode = 101 if image == failed_image else 0

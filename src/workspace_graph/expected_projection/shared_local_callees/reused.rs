@@ -1,6 +1,9 @@
 //! Distinct callee-constructor certificate on a borrowed lookup result.
 //! No auxiliary-carrier count, name index or pointer alone grants identity scope.
-use super::*;
+use super::{
+    compiler, local, ordinary, Context, Costs, Failure, Function, Index, Invoice, Program,
+    MAX_HEADERS,
+};
 type Error = Failure;
 
 // These loans can only be formed after the full ordinary/local source check.
@@ -252,6 +255,10 @@ impl<'p, 'a> Session<'p, 'a> {
         Ok(())
     }
 
+    #[allow(
+        clippy::let_and_return,
+        reason = "retain the separately invoiced receiving and returned Result owners"
+    )]
     pub(in crate::workspace_graph::expected_projection) fn finish(
         current: Option<Self>,
         context: Context<'p, 'a>,

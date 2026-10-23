@@ -185,7 +185,7 @@ fn whole_nested_hir_plan_exact_short_sticky_floor_and_full_drop() {
                 let mut budget = ReplayBudget::new();
                 let result =
                     reserve_program_skeleton_work(&program, std::iter::once(function), &mut budget)
-                        .and_then(|()| joint(&program, function, &mut budget));
+                        .and_then(|_reserved| joint(&program, function, &mut budget));
                 if result.is_err() {
                     assert!(
                         budget

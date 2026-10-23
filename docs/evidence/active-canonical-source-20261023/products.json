@@ -1,0 +1,60 @@
+{
+  "qualification": "private uncommitted candidate; actual production library; no full CI claim",
+  "rows": [
+    {
+      "subject": "std/io-lines/semaprax.toml",
+      "result": {
+        "ok": true,
+        "diagnostics": []
+      }
+    },
+    {
+      "subject": "std/data-json-dec/semaprax.toml",
+      "result": {
+        "ok": false,
+        "diagnostics": [
+          {
+            "code": "SPX-G171",
+            "severity": "error",
+            "message": "Workspace Semantic Graph `builder_bytes` exceeds 67108864",
+            "path": null,
+            "location": null,
+            "help": "live graph construction, not the static admission pre-charge, exceeded the budget: the pre-charge forecast 16273092 bytes for 4 module(s) and fit within 67108864, with `src/tests.spx` the largest at 8604684 bytes. Reducing reachable source is the only lever; the forecast itself was not the refusing bound. resolved-core phase first sticky ledger refusal: requested 386 bytes with 360 remaining and 0 reserved floor. Authenticated internal stage: HIR final validation. These are cumulative reservation bytes, not a retained-memory forecast or process RSS; the exact inner operation is unknown."
+          }
+        ]
+      }
+    },
+    {
+      "subject": "std/data-json-scan/semaprax.toml",
+      "result": {
+        "ok": false,
+        "diagnostics": [
+          {
+            "code": "SPX-G171",
+            "severity": "error",
+            "message": "Workspace Semantic Graph `builder_bytes` exceeds 67108864",
+            "path": null,
+            "location": null,
+            "help": "live graph construction, not the static admission pre-charge, exceeded the budget: the pre-charge forecast 19879038 bytes for 7 module(s) and fit within 67108864, with `src/scan.spx` the largest at 5005159 bytes. Reducing reachable source is the only lever; the forecast itself was not the refusing bound. resolved-core phase first sticky ledger refusal: requested 667 bytes with 298 remaining and 0 reserved floor. Authenticated internal stage: HIR final validation. These are cumulative reservation bytes, not a retained-memory forecast or process RSS; the exact inner operation is unknown."
+          }
+        ]
+      }
+    },
+    {
+      "subject": "examples/task-service-project/semaprax.toml",
+      "result": {
+        "ok": false,
+        "diagnostics": [
+          {
+            "code": "SPX-G171",
+            "severity": "error",
+            "message": "Workspace Semantic Graph `builder_bytes` exceeds 67108864",
+            "path": null,
+            "location": null,
+            "help": "live graph construction, not the static admission pre-charge, exceeded the budget: the pre-charge forecast 30866139 bytes for 19 module(s) and fit within 67108864, with `src/core.spx` the largest at 5300221 bytes. Reducing reachable source is the only lever; the forecast itself was not the refusing bound. resolved-core phase first sticky ledger refusal: requested 31935 bytes with 27083 remaining and 0 reserved floor. Authenticated internal stage: retained loan sidecar capacity. These are cumulative reservation bytes, not a retained-memory forecast or process RSS; the exact inner operation is unknown."
+          }
+        ]
+      }
+    }
+  ]
+}

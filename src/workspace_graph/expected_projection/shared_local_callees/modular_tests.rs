@@ -27,6 +27,8 @@ pub(in crate::workspace_graph::expected_projection) fn context<'a>(
 }
 
 pub(in crate::workspace_graph::expected_projection) fn restore(path: &str, source: &str) -> String {
+    let imports = imports_before(path, source);
+    let source = imports.as_str();
     let record = super::record_signatures::tests::restore(path, source);
     let source = record.as_str();
     let packet: serde_json::Value =
@@ -283,4 +285,57 @@ fn all_old_source_entries_reconstruct_complete_558_without_reinterpreting_oracle
         );
         restore(&path, current);
     }
+}
+
+// Exact entry only: explicit imports and the two scoped compiler annotations
+// precede the record/modular/paired historical stages. Unknown scopes are not
+// rewritten, and a known scope must authenticate its COMPLETE current bytes.
+pub(in crate::workspace_graph::expected_projection) fn imports_before(
+    path: &str,
+    source: &str,
+) -> String {
+    let canonical_entry = if path.starts_with("src/") {
+        path.to_owned()
+    } else {
+        format!("src/workspace_graph/expected_projection/{path}")
+    };
+    let entry = crate::source_reflows::next_custody_before("modular916", &canonical_entry, source);
+    let source = entry.as_str();
+    let packet: serde_json::Value =
+        serde_json::from_str(include_str!("modular_inverse.json")).unwrap();
+    let canonical = if path.starts_with("src/") {
+        path.to_owned()
+    } else {
+        format!("src/workspace_graph/expected_projection/{path}")
+    };
+    let Some(entry) = packet["import_entry_stages"].get(&canonical) else {
+        return source.to_owned();
+    };
+    let hash = |raw: &str| {
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(raw.as_bytes()))
+        )
+    };
+    assert_eq!(
+        (source.len(), hash(source)),
+        (
+            entry["current_bytes"].as_u64().unwrap() as usize,
+            entry["current_sha256"].as_str().unwrap().to_owned()
+        )
+    );
+    let mut restored = source.to_owned();
+    for splice in entry["splices"].as_array().unwrap() {
+        let current = splice["current"].as_str().unwrap();
+        assert_eq!(restored.matches(current).count(), 1);
+        restored = restored.replacen(current, splice["prior"].as_str().unwrap(), 1);
+    }
+    assert_eq!(
+        (restored.len(), hash(&restored)),
+        (
+            entry["prior_bytes"].as_u64().unwrap() as usize,
+            entry["prior_sha256"].as_str().unwrap().to_owned()
+        )
+    );
+    restored
 }

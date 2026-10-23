@@ -145,7 +145,12 @@ fn v12_full_original_controller_dispatch_and_old_v11_source_inverses_are_exact()
         hash(before.as_bytes()),
         "1bae91431b48d61bd482028a99fc30f967d4b153e8e68acdf8d25e45aa20719e"
     );
-    let current = include_str!("../main_e177_overlay_v2.rs");
+    let acquired = crate::source_reflows::next_custody_before(
+        "v12-root",
+        "src/source_reflows_merge/main_e177_overlay_v2.rs",
+        include_str!("../main_e177_overlay_v2.rs"),
+    );
+    let current = acquired.as_str();
     let new = "    if page[\"schema\"] == fragments_v3::SCHEMA_V12 {\n        let expanded = fragments_v3::expand_v12(&before, policy, page)?;\n        compose_values_v2(before, policy, &expanded)\n    } else if page[\"schema\"] == fragments_v3::SCHEMA_V11 {\n";
     let old = "    if page[\"schema\"] == fragments_v3::SCHEMA_V11 {\n";
     assert_eq!(current.matches(new).count(), 1);

@@ -170,6 +170,10 @@ impl<'p, 'a> Census<'p, 'a> {
         })
     }
 
+    #[allow(
+        clippy::redundant_pattern_matching,
+        reason = "direct discriminants preserve separately prepaid receiver boundaries"
+    )]
     fn read(&mut self, context: Context<'p, 'a>, imports: bool) -> ReadResult {
         // The live Invoice checks the real current lender BEFORE either use.
         // Its cumulative paid bytes remain in both conservative forecasts;

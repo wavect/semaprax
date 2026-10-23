@@ -28,13 +28,14 @@ on:
         required: false
         default: false
       opt_batch_selection:
-        description: OPT profile (historical 50/153 or next 57/158); requires opt_batch
+        description: OPT profile (historical 50/153, next 57/158, or language-followup 2/7); requires opt_batch
         type: choice
         required: false
         default: historical
         options:
           - historical
           - next
+          - language-followup
       installed_bundle:
         description: Generate the original installed agent bundle only (no tests or quality gates)
         type: boolean
@@ -396,7 +397,7 @@ jobs:
           retention-days: 1
 
   opt-batch:
-    name: Focused OPT qualification (${{ inputs.opt_batch_selection == 'next' && '57 filters / 158 tests' || '50 filters / 153 tests' }})
+    name: Focused OPT qualification (${{ inputs.opt_batch_selection == 'language-followup' && '2 filters / 7 tests' || inputs.opt_batch_selection == 'next' && '57 filters / 158 tests' || '50 filters / 153 tests' }})
     if: inputs.opt_batch
     runs-on: ubuntu-24.04
     timeout-minutes: 240
@@ -441,9 +442,11 @@ jobs:
           echo "SEMAPRAX_ARCHIVER=$(readlink -f "$opt_archiver")" >> "$GITHUB_ENV"
       - name: Build the selected owning images once, run exact controls, then production Clippy
         env:
-          OPT_BATCH_SELECTION: ${{ inputs.opt_batch_selection == 'next' && 'next' || 'historical' }}
+          OPT_BATCH_SELECTION: ${{ inputs.opt_batch_selection == 'language-followup' && 'language-followup' || inputs.opt_batch_selection == 'next' && 'next' || 'historical' }}
         run: |
-          if [ "$OPT_BATCH_SELECTION" = next ]; then
+          if [ "$OPT_BATCH_SELECTION" = language-followup ]; then
+            python3 scripts/ci-opt-batch.py --selection language-followup
+          elif [ "$OPT_BATCH_SELECTION" = next ]; then
             python3 scripts/ci-opt-batch.py --selection next
           else
             python3 scripts/ci-opt-batch.py
@@ -452,7 +455,7 @@ jobs:
         if: ${{ always() && inputs.loglens_refs }}
         shell: bash
         env:
-          OPT_BATCH_SELECTION: ${{ inputs.opt_batch_selection == 'next' && 'next' || 'historical' }}
+          OPT_BATCH_SELECTION: ${{ inputs.opt_batch_selection == 'language-followup' && 'language-followup' || inputs.opt_batch_selection == 'next' && 'next' || 'historical' }}
         run: |
           python3 - <<'PYCODE'
           import json,os,pathlib,subprocess
@@ -461,6 +464,8 @@ jobs:
           profile=os.environ["OPT_BATCH_SELECTION"]
           expected_filters=57 if profile=="next" else 50
           expected_tests=158 if profile=="next" else 153
+          if profile=="language-followup":
+              expected_filters,expected_tests=2,7
           assert receipt["selection"]["profile"]==profile
           assert receipt["selection"]["expected_filters"]==expected_filters
           assert receipt["selection"]["expected_tests"]==expected_tests

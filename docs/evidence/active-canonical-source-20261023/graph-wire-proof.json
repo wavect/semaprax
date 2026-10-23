@@ -1,0 +1,11 @@
+{
+  "scope": "actual normal compiler on macOS aarch64; unchanged full io-lines graph except the authenticated budget receipt and consequent graph digest",
+  "only_json_differences": [
+    "/graph_digest",
+    "/budget/used_builder_bytes"
+  ],
+  "before": 22370498,
+  "after": 22094338,
+  "saved": 276160,
+  "full_ci_qualified": false
+}

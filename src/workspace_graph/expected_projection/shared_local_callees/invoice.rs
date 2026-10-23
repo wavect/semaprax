@@ -1,5 +1,8 @@
 //! New proof storage and every receiving bank are paid before use.
-use super::*;
+use super::{
+    size_of, AuthoredDeclaration, Cell, Certificate, ClassifierLedger, Context, Costs, Function,
+    Headers, Index, Program, Type, WORK,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(in crate::workspace_graph::expected_projection) enum Failure {

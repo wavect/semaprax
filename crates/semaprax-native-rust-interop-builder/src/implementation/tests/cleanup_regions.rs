@@ -860,20 +860,9 @@ fn inventory_and_cleanup_hostile_envelopes_bind_the_shared_fixture() {
     let mut stack = [None; MAX_SEMANTIC_EXPRESSION_DEPTH + 1];
     let capacity = hir_pre_resolve_capacity(&program, canonical.len(), &mut stack).unwrap();
     let peaks = capacity.phase_peaks();
-    // `retained_upper` (and the sums that include it) moved by exactly
-    // 3_200 bytes when 24c1d166 ("admit a minimal `yield` slice") added
-    // `yields: Option<ResolvedYieldsClause>` to `ResolvedFunction`
-    // (src/hir/nodes.rs), growing `size_of::<ResolvedFunction>()` by 128
-    // bytes (two `ResolvedType` at 48 bytes plus a 32-byte `Span`, with
-    // the `Option` costing nothing extra via a spare niche). This
-    // fixture (`tests/fixtures/native_rust_hir_capacity.spx`) has 19
-    // top-level functions plus 6 reachable monomorphized calls to the
-    // generic `generic_identity<T>` (3x `<i64>`, 3x `<bool>`) that
-    // `hir_pre_resolve.rs`'s `resolved_function_headers` term also
-    // charges a header for, so `retained_upper` grew by
-    // `(19 + 6) * 128 == 3_200` (2_928_343 -> 2_931_543). `peaks[3]` and
-    // `peaks[4]` are unaffected: those cleanup phases read cleanup/type
-    // facts sizes, not `size_of::<ResolvedFunction>()`.
+    // Exact Rust 1.97.1 receipts from the complete current compiler types.
+    // Keep the authored fixture, canonical digest, capacity producer, all phase
+    // terms and subsequent exact/short admission checks bound together.
     assert_eq!(
         [
             capacity.retained_upper,
@@ -882,7 +871,7 @@ fn inventory_and_cleanup_hostile_envelopes_bind_the_shared_fixture() {
             peaks[4],
             capacity.retained_upper.checked_add(peaks[4]).unwrap(),
         ],
-        [3_363_048, 38_760, 3_401_808, 261_848, 3_624_896],
+        [3_041_128, 34_392, 3_075_520, 278_936, 3_320_064],
         "retained/inventory/cleanup envelope terms drifted"
     );
     let complete = capacity.complete().unwrap();

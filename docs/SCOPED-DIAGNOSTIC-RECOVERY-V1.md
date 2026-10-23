@@ -40,8 +40,14 @@ spans and duplicate parameter names cannot substitute another binding/type.
 
 ## Intentional changes and retained boundaries
 
-- String arithmetic already refused by `SPX-T250` and unary operands already
-  refused by `SPX-T206` provide no fabricated operator result.
+- Refused unary and binary operators provide no fabricated checked result.
+  This includes string arithmetic (`SPX-T250`), unary operand mismatches
+  (`SPX-T206`), binary operand mismatches (`SPX-T208`), equality mismatches
+  (`SPX-T207`) and missing operands. The complete saved operator receiver and
+  recursive oracle retain their original results as independent controls;
+  original primary diagnostic fields remain exact. The inference corpus's
+  original `first(1,true)+identity(false)` fixture additionally pins all six
+  fields of its unchanged `SPX-T208` while requiring no current checked type.
 - A missing local read or alias of a completed refused initializer adds no
   repeated `SPX-T202`. Other names retain their independent errors.
 - `SPX-O104` is judged only when the real body type matched the declared result,

@@ -2,6 +2,54 @@
 use std::borrow::Cow;
 use std::path::Path;
 
+// Walk selected names relative to held directory handles. Windows temporary
+// paths may contain an 8.3 name; canonical string equality at the full path
+// would reject that spelling even though every component is an ordinary name.
+// Each child open independently refuses reparse points before the next step.
+pub(super) fn hold_parent(
+    path: &Path,
+) -> Result<semaprax_native_rust_interop_platform::HeldDirectory, super::NewProjectFailure> {
+    use semaprax_native_rust_interop_platform as platform;
+    let spelling = parent_spelling(path)?;
+    #[cfg(windows)]
+    {
+        use std::path::{Component, Prefix};
+        let mut components = spelling.components();
+        let Some(Component::Prefix(prefix)) = components.next() else {
+            return Err(super::failure("starter input parent must be absolute"));
+        };
+        let root_prefix = match prefix.kind() {
+            Prefix::VerbatimDisk(drive) => Prefix::Disk(drive),
+            Prefix::VerbatimUNC(server, share) => Prefix::UNC(server, share),
+            _ => {
+                return Err(super::failure(
+                    "starter input parent prefix is not admitted",
+                ))
+            }
+        };
+        if components.next() != Some(Component::RootDir) {
+            return Err(super::failure("starter input parent must be absolute"));
+        }
+        let root = from_prefix(root_prefix, [Component::RootDir].into_iter())
+            .ok_or_else(|| super::failure("starter input parent root is not admitted"))?;
+        let mut directory = platform::hold_directory(&root)
+            .map_err(|_| super::failure("cannot hold starter input root"))?;
+        for component in components {
+            let Component::Normal(name) = component else {
+                return Err(super::failure(
+                    "starter input parent component is not admitted",
+                ));
+            };
+            directory = platform::hold_child_directory(&directory, name)
+                .map_err(|_| super::failure("cannot hold starter input parent component"))?;
+        }
+        Ok(directory)
+    }
+    #[cfg(not(windows))]
+    platform::hold_directory(&spelling)
+        .map_err(|_| super::failure("cannot hold starter input parent"))
+}
+
 pub(super) fn parent_spelling(path: &Path) -> Result<Cow<'_, Path>, super::NewProjectFailure> {
     #[cfg(any(windows, test))]
     {

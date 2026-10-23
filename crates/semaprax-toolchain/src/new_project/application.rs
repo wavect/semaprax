@@ -45,9 +45,7 @@ fn read_bound_with_hook(
     let name = path
         .file_name()
         .ok_or_else(|| failure("starter input must name one regular file"))?;
-    let held_parent_path = held_input_path::parent_spelling(parent_path)?;
-    let parent = platform::hold_directory(&held_parent_path)
-        .map_err(|_| failure("cannot hold starter input parent"))?;
+    let parent = held_input_path::hold_parent(parent_path)?;
     // This early inspection is a convenience refusal only. The actual file
     // classification and no-follow/nonblocking open belong to the held owner.
     let metadata = fs::symlink_metadata(path)
@@ -434,6 +432,28 @@ mod tests {
         assert_eq!(read_bound(&input, 6).unwrap(), b"stable");
         assert!(read_bound(&input, 5).is_err());
         assert_eq!(fs::read(&input).unwrap(), b"stable");
+        fs::remove_dir_all(parent).unwrap();
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn starter_reader_refuses_a_junction_in_the_selected_parent_walk() {
+        let parent = root();
+        let real = parent.join("real");
+        let junction = parent.join("junction");
+        fs::create_dir(&real).unwrap();
+        fs::write(real.join("plan.json"), b"stable").unwrap();
+        let linked = std::process::Command::new("cmd")
+            .args(["/d", "/c", "mklink", "/J"])
+            .arg(&junction)
+            .arg(&real)
+            .output()
+            .unwrap();
+        assert!(linked.status.success(), "{linked:?}");
+        assert_eq!(read_bound(&real.join("plan.json"), 6).unwrap(), b"stable");
+        assert!(read_bound(&junction.join("plan.json"), 6).is_err());
+        assert_eq!(fs::read(real.join("plan.json")).unwrap(), b"stable");
+        fs::remove_dir(&junction).unwrap();
         fs::remove_dir_all(parent).unwrap();
     }
 

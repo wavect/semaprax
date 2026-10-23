@@ -448,7 +448,7 @@ pub(super) fn compact_roles<T: Clone>() -> usize {
 }
 
 // Complete current bank with only its new caller payment Result narrowed.
-pub(super) fn plan_compact_roles<T: Clone>() -> usize {
+pub(super) const fn plan_compact_roles<T: Clone>() -> usize {
     size_of::<Result<(), physical_budget::ByteFailure>>() // actual compact caller payment result
         + 4 * size_of::<Result<(), physical_budget::ByteFailure>>() // compact clone/push work, census/conversion
         + 2 * size_of::<Result<(), physical_budget::ByteFailure>>() // backing wrapper and nested byte payment
@@ -464,3 +464,5 @@ pub(super) fn plan_compact_roles<T: Clone>() -> usize {
         + 2 * size_of::<std::slice::Iter<'_, T>>()
         + 2 * size_of::<std::iter::Cloned<std::slice::Iter<'_, T>>>()
 }
+
+pub(in crate::cleanup_plan::replay) mod short_plan;

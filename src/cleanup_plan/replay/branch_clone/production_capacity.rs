@@ -32,7 +32,7 @@ pub(in crate::cleanup_plan::replay) const ADDITIONAL_CONTROLS: usize = 2 * size_
                               // Same zero-argument ABI and complete literal old pricing expression; no
                               // forwarding call/Result is introduced. The earlier reserve retains this bank
                               // on the same budget/function/invocation until the actual probe is entered.
-pub(in crate::cleanup_plan::replay) fn production_inline_controls<T: Clone>() -> usize {
+pub(in crate::cleanup_plan::replay) const fn production_inline_controls<T: Clone>() -> usize {
     size_of::<Result<(), Diagnostic>>() // caller payment result
         + 4 * size_of::<Result<(), Diagnostic>>() // clone/push work, clone census, conversion
         + 2 * size_of::<Result<(), Diagnostic>>() // backing wrapper and nested byte payment
@@ -253,3 +253,6 @@ macro_rules! produce {
     }};
 }
 pub(in crate::cleanup_plan::replay) use produce;
+
+#[cfg(test)]
+mod before_short;

@@ -27,6 +27,8 @@
 
 ## CI reservation transport and append-only label maps (2026-10-23)
 
+- Skip continuation-allocation queries when their complete receiving cost exceeds the greatest possible backing saving; retain exact path/work behavior and independently prepaid short-copy controls.
+- Avoid temporary cleanup traversal vectors for ordinary `i64` and `bool` probes; preserve their classifier results and complete owned-type fallback.
 - Normalize ordinary Windows starter-input parent paths to their lexical verbatim spelling before the strict held open; retain symlink refusal, byte bounds and the original-path identity recheck.
 - Carry the native owned-data provider's complete upfront HIR validation through independent descriptor replay, call-index rebuilding and emission using one sealed immutable receipt; retain raw-builder validation, sticky refusal and foreign-program/profile refusals. Render required provider text above the existing wrapper floor in a settling child account, discarding any refused partial output.
 - Arm the test-only byte-traversal refusal recorder only inside its actual heap observation; ordinary bounded calls keep their original refusal, while exact/one-short heap and unwind controls remain enforced.

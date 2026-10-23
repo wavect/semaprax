@@ -136,3 +136,13 @@ The two independently authored V10 transports have disjoint envelopes. A
 present `archive_prefixes` field selects the original prefix decoder, including
 its refusals; its absence selects the authenticated old519 pin-reference
 decoder only for standalone V10 pages. V11 and V12 retain the prefix chain.
+
+The Python controller may factor only its static `REPLACEMENTS` and `ADDITIONS`
+path lists through four literal directory-prefix globals. Each ordered entry is
+either a literal string or one known literal prefix plus a literal suffix; the
+expanded lists retain their exact types, order, multiplicity and full paths.
+Current binding preserves this closed prefix representation, and its AST
+declaration preflight accepts only that grammar without calls, evaluation,
+policy-derived scope or external loading. Earlier qualification writers remain
+historical and are not claimed compatible with this current source layout. This source layout does
+not change a page schema, codec body, source admission or any existing cap.

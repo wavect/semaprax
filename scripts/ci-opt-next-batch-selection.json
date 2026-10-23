@@ -1,7 +1,7 @@
 {
   "schema": "semaprax.hosted-opt-batch-selection.v1",
-  "filters": 61,
-  "expected_tests": 166,
+  "filters": 64,
+  "expected_tests": 169,
   "commands": [
     {
       "owner": "OPT899 unchanged default owning controls",
@@ -427,6 +427,27 @@
       "owner": "nested byte-traversal failure capture unwind and rearm",
       "binary": "lib",
       "filter": "hir::validation::byte_traversal::nested::tests::failure_capture_unwinds_before_the_observer_and_rearms_with_real_metrics",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT911 decimal package admitted backend and contract conformance",
+      "binary": "project",
+      "filter": "standard_library::decimal::decimal_executes_on_admitted_backends",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT911 decimal package admitted backend and contract conformance",
+      "binary": "project",
+      "filter": "standard_library::decimal::bundled_decimal_consumer_checks_contract_failures_before_arithmetic",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT911 decimal package admitted backend and contract conformance",
+      "binary": "project",
+      "filter": "standard_library::decimal::decimal_does_not_claim_the_frozen_standalone_string_wasm_profile",
       "exact": true,
       "expected_tests": 1
     }

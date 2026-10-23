@@ -94,7 +94,7 @@ fn bundle(current: &str) -> String {
         current,
         include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"),
         5544,
-        "51c95c8f2849633d9abfd66812f57429d8ff9c72b2d9882af01179bdbd9862dc",
+        "12698588bbf09117e96fe8f8f62f74b1290f37fc7d8d0e6e20dfe54f8bc02c65",
     );
     let receipt = include_str!("../../docs/evidence/boxed-path-states-v1/catalog-receipt.json");
     authenticate(
@@ -105,6 +105,20 @@ fn bundle(current: &str) -> String {
         "bb2d89942ce7b5ad759a787bcb1a0c5a0f1def93075fb70966089d30d1fdc279",
     );
     let mut before = current.to_owned();
+    // Restore the entire authenticated 56fb bundle before its unchanged old stages.
+    replace(
+        &mut before,
+        "sha256:d9abead8fcb85521d6ca6183d62f885ba3b85558f81384c960b0db01b948add8",
+        "sha256:e894c9102dfb2fc1b29d48ee64265786dd18ec9491417cea9725aaac3a40d96f",
+        1,
+    );
+    replace(
+        &mut before,
+        "sha256:7f4788567710a86259ceb3621963db6ca499ad6ac5323d1b4497f313b52c635b",
+        "sha256:19cb70ce2a043430d6fd71b60ff203ce2cf26390ed4ca01339c8259efb7d36ed",
+        1,
+    );
+    assert_eq!(digest(&before), "51c95c8f2849633d9abfd66812f57429d8ff9c72b2d9882af01179bdbd9862dc");
     replace(
         &mut before,
         "sha256:19cb70ce2a043430d6fd71b60ff203ce2cf26390ed4ca01339c8259efb7d36ed",

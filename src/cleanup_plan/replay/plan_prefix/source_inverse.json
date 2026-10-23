@@ -36,16 +36,31 @@
   },
   {
     "path": "src/cleanup_plan/replay/factored.rs",
-    "current_length": 50781,
-    "current_sha256": "ebfa584f4bc1fc2e33ef27a31902893293dd147bb90fd767b97308a747b60d49",
+    "current_length": 51339,
+    "current_sha256": "809181e23ff2dd185ba0f28504fa05eea592aa40e94144714c884d997d00d8cc",
     "before_file": "1.before.txt",
     "before_length": 50566,
     "before_sha256": "bac67f10c6a201d825ad67fc2ab10ff7ef0a5abe1174625107a7700dfff32629",
     "edits": [
       [
-        43331,
+        12903,
+        "        budget.reserve_bytes(\n            function,\n            canonical_shared::inline_singleton::hir_last_use::CALL,\n            \"factored HIR-private release call receiving\",\n        )?;\n        canonical.release_hir_private(function, budget, hir_root, plan_root)?;\n",
+        ""
+      ],
+      [
+        14687,
+        "    budget.reserve_bytes(\n        function,\n        canonical_shared::inline_singleton::hir_last_use::CALL,\n        \"factored HIR-private release call receiving\",\n    )?;\n    canonical.release_hir_private(function, budget, hir_root, plan_root)?;\n",
+        ""
+      ],
+      [
+        43847,
         "            if matches!(enumerating.payer, AllocationPayer::LegacyUnobserved) {\n                skeleton_work::enumerated_prefix::sort(&mut plan, function, &mut enumerating)?;\n            } else {\n                plan.sort();\n            }\n",
         "            plan.sort();\n"
+      ],
+      [
+        51297,
+        "\n#[cfg(test)]\nmod hir_memo_release_tests;\n",
+        ""
       ]
     ]
   },

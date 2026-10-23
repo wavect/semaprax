@@ -1282,3 +1282,5 @@ const _: () =
 
 #[cfg(test)]
 mod ordinary_labels;
+
+pub(in crate::cleanup_plan::replay::factored) mod hir_last_use;

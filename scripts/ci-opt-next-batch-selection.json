@@ -1,7 +1,7 @@
 {
   "schema": "semaprax.hosted-opt-batch-selection.v1",
-  "filters": 55,
-  "expected_tests": 145,
+  "filters": 57,
+  "expected_tests": 158,
   "commands": [
     {
       "owner": "OPT899 unchanged default owning controls",
@@ -387,6 +387,20 @@
       "filter": "workspace_graph::expected_projection::shared_local_callees::modular_pair::tests::",
       "exact": false,
       "expected_tests": 5
+    },
+    {
+      "owner": "OPT916 exact local record signature authority and complete old constructor controls",
+      "binary": "lib",
+      "filter": "workspace_graph::expected_projection::shared_local_callees::record_signatures::tests::",
+      "exact": false,
+      "expected_tests": 7
+    },
+    {
+      "owner": "OPT899 independent persistent PLAN admission for supported flat HIR callers",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::completed_fork::shipping::flat_admission::tests::",
+      "exact": false,
+      "expected_tests": 6
     }
   ]
 }

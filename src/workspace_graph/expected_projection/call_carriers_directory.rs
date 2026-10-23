@@ -599,3 +599,10 @@ mod tests;
 #[path = "call_carriers_directory/reused.rs"]
 mod reused;
 pub(super) use reused::count as count_joint;
+
+#[path = "call_carriers_directory/modular.rs"]
+mod modular;
+pub(super) use modular::count as count_modular;
+
+#[cfg(test)]
+pub(super) use modular::indexed_loan as indexed_modular_loan;

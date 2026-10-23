@@ -285,7 +285,11 @@ fn all_current_source_entries_reconstruct_the_complete_immediate_predecessors() 
             crate::digest_hex::LowerHex(Sha256::digest(raw.as_bytes()))
         )
     };
-    let current = include_str!("../call_carriers.rs");
+    let modular = shared_local_callees::modular_session::tests::restore(
+        "src/workspace_graph/expected_projection/call_carriers.rs",
+        include_str!("../call_carriers.rs"),
+    );
+    let current = modular.as_str();
     let wiring = r#####"
 #[path = "call_carriers_joint.rs"]
 mod joint;
@@ -297,7 +301,11 @@ pub(super) use joint::count as count_joint;
         hash(&restored),
         "d0f832f517a6037e1c3f8c7f5b1cca79af990ed2837b8c29b38903cb4baa6033"
     );
-    let current = include_str!("../call_carriers_directory.rs");
+    let modular = shared_local_callees::modular_session::tests::restore(
+        "src/workspace_graph/expected_projection/call_carriers_directory.rs",
+        include_str!("../call_carriers_directory.rs"),
+    );
+    let current = modular.as_str();
     let wiring = r#####"
 #[path = "call_carriers_directory/reused.rs"]
 mod reused;

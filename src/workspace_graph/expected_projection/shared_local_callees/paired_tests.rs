@@ -28,6 +28,8 @@ pub(in crate::workspace_graph::expected_projection) fn restore(
     path: &str,
     current: &str,
 ) -> String {
+    let modular = super::super::modular_session::tests::restore(path, current);
+    let current = modular.as_str();
     let packet: serde_json::Value =
         serde_json::from_str(include_str!("paired_inverse.json")).unwrap();
     let entry = &packet["entries"][path];

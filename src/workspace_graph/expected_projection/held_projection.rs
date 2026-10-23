@@ -563,3 +563,6 @@ pub(super) use coupled_projection::estimate as coupled_uncached_estimate;
 
 #[path = "shared_local_callees/paired_projection.rs"]
 pub(super) mod paired_projection;
+
+#[path = "shared_local_callees/modular_projection.rs"]
+pub(super) mod modular_projection;

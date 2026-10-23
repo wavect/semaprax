@@ -1,0 +1,106 @@
+{
+  "schema": "semaprax.exact-local-modular-inverse.v1",
+  "prior_commit": "55875d7fc24d889d876a7b56cd2d6f88c66f8e7e",
+  "entries": {
+    "src/workspace_graph/expected_projection/call_carriers.rs": {
+      "current_bytes": 12722,
+      "current_sha256": "09a4f25c50527acf2be98d6f7cfcf4b41544340dc3bad24af858f7c8c6a077c7",
+      "prior_bytes": 12486,
+      "prior_sha256": "33215311b715633780ade87b45cbe28d7b19b6e6c0f9ababcf43c579836a7e6b",
+      "splices": [
+        {
+          "current": "\n#[path = \"call_carriers_joint.rs\"]\nmod joint;\npub(super) use joint::count as count_joint;\n\npub(super) use joint::modular_census::count as count_modular;\n\n#[cfg(test)]\npub(super) use joint::modular_census::linear_loan as modular_linear_loan;\n#[cfg(test)]\npub(super) use directory::indexed_modular_loan as modular_indexed_loan;\n",
+          "prior": "\n#[path = \"call_carriers_joint.rs\"]\nmod joint;\npub(super) use joint::count as count_joint;\n"
+        }
+      ]
+    },
+    "src/workspace_graph/expected_projection/call_carriers_directory.rs": {
+      "current_bytes": 22083,
+      "current_sha256": "02a23bf1dbd18cdb4fa5df6d21f113ca5451a1719d014664b2bbbaae71e9ec92",
+      "prior_bytes": 21898,
+      "prior_sha256": "f4c73ac6029b6872b32a5c02a5f5f29a7f2ffbc16ae9aa86bcfdbc1990d6446c",
+      "splices": [
+        {
+          "current": "\n#[path = \"call_carriers_directory/reused.rs\"]\nmod reused;\npub(super) use reused::count as count_joint;\n\n#[path = \"call_carriers_directory/modular.rs\"]\nmod modular;\npub(super) use modular::count as count_modular;\n\n#[cfg(test)]\npub(super) use modular::indexed_loan as indexed_modular_loan;\n",
+          "prior": "\n#[path = \"call_carriers_directory/reused.rs\"]\nmod reused;\npub(super) use reused::count as count_joint;\n"
+        }
+      ]
+    },
+    "src/workspace_graph/expected_projection/call_carriers_joint.rs": {
+      "current_bytes": 12370,
+      "current_sha256": "79d661789f706c083f70af0adbe9f529ad0aed6ba4fa215a35a4950a39eef48e",
+      "prior_bytes": 12246,
+      "prior_sha256": "35a3be6db9c77626bf8d01259d244f09bd1e6eb97261fe7c7f4d7f3555f50f2d",
+      "splices": [
+        {
+          "current": "\n#[cfg(test)]\n#[path = \"shared_local_callees/reuse_tests.rs\"]\nmod tests;\n\n#[path = \"shared_local_callees/modular_census.rs\"]\npub(in crate::workspace_graph::expected_projection) mod modular_census;\n",
+          "prior": "\n#[cfg(test)]\n#[path = \"shared_local_callees/reuse_tests.rs\"]\nmod tests;\n"
+        }
+      ]
+    },
+    "src/workspace_graph/expected_projection/held_projection.rs": {
+      "current_bytes": 23069,
+      "current_sha256": "19dd7ed0772d873ba5d7854b3c8c16c298009c2c0454d12b538524cbc7b56e29",
+      "prior_bytes": 22978,
+      "prior_sha256": "3ed8aad0bf741fb853e477ff3c9642d422419ec1f24102b2bec802bb3c551980",
+      "splices": [
+        {
+          "current": "pub(super) use coupled_projection::estimate as coupled_uncached_estimate;\n\n#[path = \"shared_local_callees/paired_projection.rs\"]\npub(super) mod paired_projection;\n\n#[path = \"shared_local_callees/modular_projection.rs\"]\npub(super) mod modular_projection;\n",
+          "prior": "pub(super) use coupled_projection::estimate as coupled_uncached_estimate;\n\n#[path = \"shared_local_callees/paired_projection.rs\"]\npub(super) mod paired_projection;\n"
+        }
+      ]
+    },
+    "src/workspace_graph/expected_projection/shared_local_callees.rs": {
+      "current_bytes": 11552,
+      "current_sha256": "99ab34b44805b5129051c18a14c2dcc6aa107a2ff786a53c2c2fa161c667820a",
+      "prior_bytes": 11389,
+      "prior_sha256": "367f69717375d66490f9c8d1d578bd31f4ce95c260a7c0a9da96c2ed43d144a4",
+      "splices": [
+        {
+          "current": "pub(super) use reused::Session;\n\n#[path = \"shared_local_callees/paired.rs\"]\npub(super) mod paired;\n\n#[path = \"shared_local_callees/modular_session.rs\"]\npub(super) mod modular_session;\n#[path = \"shared_local_callees/modular_pair.rs\"]\npub(super) mod modular_pair;\n",
+          "prior": "pub(super) use reused::Session;\n\n#[path = \"shared_local_callees/paired.rs\"]\npub(super) mod paired;\n"
+        }
+      ]
+    },
+    "src/workspace_graph/expected_projection/shared_local_callees/paired_tests.rs": {
+      "current_bytes": 11212,
+      "current_sha256": "1c34ee37bc564a908bc38cc58cc1b55a560c0f566fcc8770e6464febdab25a19",
+      "prior_bytes": 11096,
+      "prior_sha256": "2e12420eeac1da90a71d05899a5ca1b989cc79671aa77f5fd9dcd2359e842ea3",
+      "splices": [
+        {
+          "current": "pub(in crate::workspace_graph::expected_projection) fn restore(\n    path: &str,\n    current: &str,\n) -> String {\n    let modular = super::super::modular_session::tests::restore(path, current);\n    let current = modular.as_str();\n    let packet: serde_json::Value =\n        serde_json::from_str(include_str!(\"paired_inverse.json\")).unwrap();\n    let entry = &packet[\"entries\"][path];\n    let hash = |raw: &str| {\n",
+          "prior": "pub(in crate::workspace_graph::expected_projection) fn restore(\n    path: &str,\n    current: &str,\n) -> String {\n    let packet: serde_json::Value =\n        serde_json::from_str(include_str!(\"paired_inverse.json\")).unwrap();\n    let entry = &packet[\"entries\"][path];\n    let hash = |raw: &str| {\n"
+        }
+      ]
+    },
+    "src/workspace_graph/expected_projection/shared_local_callees/reuse_tests.rs": {
+      "current_bytes": 23293,
+      "current_sha256": "21b6536db8287e70652b8f864e6c5f9ad4573ffb7ddbcc5df2a95852c9769ae4",
+      "prior_bytes": 22935,
+      "prior_sha256": "5044de766b504395dd14430aeb936ec361f7e1d25d561e61e7cda059481dc1b2",
+      "splices": [
+        {
+          "current": "    assert_eq!(\n        hash(&restored),\n        \"d0f832f517a6037e1c3f8c7f5b1cca79af990ed2837b8c29b38903cb4baa6033\"\n    );\n    let modular = shared_local_callees::modular_session::tests::restore(\n        \"src/workspace_graph/expected_projection/call_carriers_directory.rs\",\n        include_str!(\"../call_carriers_directory.rs\"),\n    );\n    let current = modular.as_str();\n    let wiring = r#####\"\n#[path = \"call_carriers_directory/reused.rs\"]\nmod reused;\npub(super) use reused::count as count_joint;\n",
+          "prior": "    assert_eq!(\n        hash(&restored),\n        \"d0f832f517a6037e1c3f8c7f5b1cca79af990ed2837b8c29b38903cb4baa6033\"\n    );\n    let current = include_str!(\"../call_carriers_directory.rs\");\n    let wiring = r#####\"\n#[path = \"call_carriers_directory/reused.rs\"]\nmod reused;\npub(super) use reused::count as count_joint;\n"
+        },
+        {
+          "current": "            \"{:x}\",\n            crate::digest_hex::LowerHex(Sha256::digest(raw.as_bytes()))\n        )\n    };\n    let modular = shared_local_callees::modular_session::tests::restore(\n        \"src/workspace_graph/expected_projection/call_carriers.rs\",\n        include_str!(\"../call_carriers.rs\"),\n    );\n    let current = modular.as_str();\n    let wiring = r#####\"\n#[path = \"call_carriers_joint.rs\"]\nmod joint;\npub(super) use joint::count as count_joint;\n",
+          "prior": "            \"{:x}\",\n            crate::digest_hex::LowerHex(Sha256::digest(raw.as_bytes()))\n        )\n    };\n    let current = include_str!(\"../call_carriers.rs\");\n    let wiring = r#####\"\n#[path = \"call_carriers_joint.rs\"]\nmod joint;\npub(super) use joint::count as count_joint;\n"
+        }
+      ]
+    },
+    "src/workspace_graph/expected_projection/uncached_peak.rs": {
+      "current_bytes": 14438,
+      "current_sha256": "c13e65826746e3c90358755a935d87006bbe81374876c52bddb583161ffa80b6",
+      "prior_bytes": 14423,
+      "prior_sha256": "19abaa4641883629d999ad2f197ed4f4a4e462349425566b16cc1eb05858319e",
+      "splices": [
+        {
+          "current": "        #[cfg(test)]\n        observation.module(index);\n        super::super::diagnostics::begin_precharge_module(&program.path);\n        let maximum = Some(dependency_identity_max(program, authored, programs)?);\n        let (full, retained) = super::shared_local_callees::modular_pair::selected_estimates(\n            program, authored, programs, maximum, 6, true, registry,\n        )?;\n        full_costs[index] = full.retained_hir;\n        retained_costs[index] = retained.retained_hir;\n",
+          "prior": "        #[cfg(test)]\n        observation.module(index);\n        super::super::diagnostics::begin_precharge_module(&program.path);\n        let maximum = Some(dependency_identity_max(program, authored, programs)?);\n        let (full, retained) = super::shared_local_callees::paired::estimates(\n            program, authored, programs, maximum, 6, true, registry,\n        )?;\n        full_costs[index] = full.retained_hir;\n        retained_costs[index] = retained.retained_hir;\n"
+        }
+      ]
+    }
+  }
+}

@@ -48,7 +48,7 @@ pub(in crate::workspace_graph) fn uncached_output_layout_with_registry(
         observation.module(index);
         super::super::diagnostics::begin_precharge_module(&program.path);
         let maximum = Some(dependency_identity_max(program, authored, programs)?);
-        let (full, retained) = super::shared_local_callees::paired::estimates(
+        let (full, retained) = super::shared_local_callees::modular_pair::selected_estimates(
             program, authored, programs, maximum, 6, true, registry,
         )?;
         full_costs[index] = full.retained_hir;

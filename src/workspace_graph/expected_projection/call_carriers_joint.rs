@@ -384,3 +384,6 @@ fn visit<'p, 'a, L: Lookup<'p>>(
 #[cfg(test)]
 #[path = "shared_local_callees/reuse_tests.rs"]
 mod tests;
+
+#[path = "shared_local_callees/modular_census.rs"]
+pub(in crate::workspace_graph::expected_projection) mod modular_census;

@@ -592,6 +592,10 @@ pub(super) use pins_v10::{expand_v10, SCHEMA_V10};
 mod pins_v11;
 pub(super) use pins_v11::{expand_v11, SCHEMA_V11};
 
+#[path = "main_e177_overlay_labels_v12.rs"]
+mod labels_v12;
+pub(super) use labels_v12::{expand_v12, SCHEMA_V12};
+
 #[cfg(test)]
 mod tests {
     use super::super::{canonical, compose_values, compose_values_v2, digest, held_4a6eb};

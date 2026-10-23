@@ -90,3 +90,30 @@ remains 262144 bytes, the source cap remains 9753094 bytes, and the prefix limit
 remains 32. The owning Python and Rust controls round-trip the complete frozen
 V10 logical fixture and reject malformed and noncanonical inputs; these codec
 controls make no runtime qualification claim.
+
+V12 is an optional view-label dictionary transport over a complete V11 value.
+Its closed envelope adds only `view_labels`, an ordered array of
+`[index, label]` declarations. Indices must equal their contiguous positions,
+labels must be distinct strings, every declaration must be used, and first
+uses must follow declaration order. Repeated references are required to remain
+legal: they preserve distinct occurrences of the same historical view. Only
+the first member of documented positional named-view tuples becomes an integer
+reference. Full object pins and their unknown fields, canonical references,
+current pins, literal row metadata, order and multiplicity remain unchanged.
+
+The decoder first validates every reference and checked-sums the expanded
+quoted JSON label bytes against the existing 9753094-byte source bound, before
+publishing expanded label strings. The physical page still has its unchanged
+262144-byte cap. Expansion restores the entire V11 canonical value, including
+the unchanged archive-prefix table, before the original V11 through V2 chain.
+Duplicate declaration indices or labels, unknown indices, noncanonical first
+use, unused declarations, invalid arities and extra envelope fields refuse.
+The V11 encoder and all older readers remain unchanged and independent; V12
+encoding is explicitly requested and does not change default serialization.
+
+The V12 Python and Rust controls are authored, not executed. Shared fixed vectors
+cover complete canonical equality and opaque metadata; the full immutable a966
+V11 page and whole old controller sources remain independent controls. A static
+prototype on the separate frozen 797-row V11 page counted 1490 positional views
+and 193 labels: 254079 bytes became 227431 bytes. That is source-capacity evidence
+for that input, not current-page adoption, runtime, RSS or agent-token evidence.

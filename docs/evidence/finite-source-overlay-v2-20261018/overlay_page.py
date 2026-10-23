@@ -476,7 +476,82 @@ def encode_v11_digest_pins(page):
  assert len(canonical(result))<=PAGE_CAP, 'v11 same one-page cap'
  return result
 
+V12_SCHEMA = 'semaprax.finite-source-overlay-page.v12'
+V12_KEYS = ('schema','index','total_pages','predecessor','replacements','additions','archive_prefixes')
+def v12_view_slots(page, convert):
+ # Exactly V11's named positional pin slots; no recursive metadata rewrite.
+ def views(value):
+  assert type(value) is list, 'v12 views'
+  for view in value:
+   if type(view) is dict:continue
+   assert type(view) is list and len(view) in (3,4), 'v12 named pin arity'
+   view[0]=convert(view[0])
+ def row(value):
+  assert type(value) is dict, 'v12 literal row'
+  if 'views' in value:views(value['views'])
+ def fragments(value):
+  if value is None:return
+  assert type(value) is list, 'v12 fragments'
+  for fragment in value:
+   assert type(fragment) is dict, 'v12 fragment row'
+   if 'canonical_source' not in fragment:row(fragment)
+ for group in ('replacements','additions'):
+  assert type(page[group]) is list, 'v12 rows'
+  for value in page[group]:
+   assert type(value) is dict, 'v12 row'
+   if 'old519_index' in value:
+    assert group=='replacements' and keys(value,('old519_index',)), 'v12 indexed row'
+    ref=value['old519_index']
+    assert type(ref) is list and len(ref)==4, 'v12 old519 arity'
+    views(ref[2]);fragments(ref[3])
+   else:
+    row(value)
+    if 'fragments' in value:fragments(value['fragments'])
+
+def expand_v12_view_labels(page):
+ assert keys(page,(*V12_KEYS,'view_labels')) and page['schema']==V12_SCHEMA, 'v12 envelope'
+ assert len(canonical(page))<=PAGE_CAP, 'v12 same one-page cap'
+ declarations=page['view_labels']
+ assert type(declarations) is list, 'v12 dictionary'
+ labels=[];unique=set()
+ for index,declaration in enumerate(declarations):
+  assert type(declaration) is list and len(declaration)==2, 'v12 declaration arity'
+  assert type(declaration[0]) is int and declaration[0]==index, 'v12 duplicate or noncontiguous index'
+  label=declaration[1]
+  assert type(label) is str and label not in unique, 'v12 duplicate or nonstring label'
+  unique.add(label);labels.append(label)
+ seen=set();expanded=0
+ def validate(index):
+  nonlocal expanded
+  assert type(index) is int and 0<=index<len(labels), 'v12 unknown label index'
+  if index not in seen:
+   assert index==len(seen), 'v12 noncanonical first-use order'
+   seen.add(index)
+  expanded+=len(canonical(labels[index]))-1
+  assert expanded<=SOURCE_CAP, 'v12 expanded label bound'
+  return index
+ # First pass bounds expansion without publishing even one expanded label.
+ result=copy.deepcopy(page);v12_view_slots(result,validate)
+ assert len(seen)==len(labels), 'v12 unreferenced declaration'
+ v12_view_slots(result,lambda index:labels[index])
+ del result['view_labels'];result['schema']=V11_SCHEMA
+ return result
+
+def encode_v12_view_labels(page):
+ assert keys(page,V12_KEYS) and page['schema']==V11_SCHEMA, 'v12 input envelope'
+ result=copy.deepcopy(page);labels=[];indices={}
+ def encode(label):
+  assert type(label) is str, 'v12 V11 named label'
+  if label not in indices:indices[label]=len(labels);labels.append(label)
+  return indices[label]
+ v12_view_slots(result,encode)
+ result['schema']=V12_SCHEMA;result['view_labels']=[[i,label]for i,label in enumerate(labels)]
+ assert len(canonical(result))<=PAGE_CAP, 'v12 same one-page cap'
+ assert canonical(expand_v12_view_labels(result))==canonical(page), 'v12 ENTIRE V11 page inverse'
+ return result
+
 def compose_values(before, policy, page):
+ if page['schema']==V12_SCHEMA:page=expand_v12_view_labels(page)
  if page['schema']==V11_SCHEMA:page=expand_v11_digest_pins(page)
  if page['schema']==V10_SCHEMA:page=expand_v10_archive_prefixes(page)
  if page['schema']==V9_SCHEMA:page=expand_v9_pins(page)

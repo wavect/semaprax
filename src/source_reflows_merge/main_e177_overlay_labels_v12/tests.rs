@@ -1,0 +1,168 @@
+use super::*;
+use serde_json::json;
+
+fn pair() -> (Value, Value) {
+    (
+        serde_json::from_str(include_str!("parity-v11.json")).unwrap(),
+        serde_json::from_str(include_str!("parity-v12.json")).unwrap(),
+    )
+}
+
+#[test]
+fn v12_exact_python_rust_vector_preserves_repeated_occurrences_and_unknown_metadata() {
+    let (full, compact) = pair();
+    assert_eq!(encode_v12(&full).unwrap(), compact);
+    assert_eq!(
+        canonical(&encode_v12(&full).unwrap()).as_slice(),
+        include_bytes!("parity-v12.json")
+    );
+    assert_eq!(expand_to_v11(&compact).unwrap(), full);
+    assert_eq!(compact["view_labels"], json!([[0, "same"], [1, "other"]]));
+    let views = &compact["replacements"][0]["old519_index"][2];
+    assert_eq!(views[0][0], 0);
+    assert_eq!(views[1][0], 0); // repeated references preserve both occurrences
+    assert_eq!(views[2], full["replacements"][0]["old519_index"][2][2]);
+    assert_eq!(
+        compact["additions"][0]["extra"],
+        full["additions"][0]["extra"]
+    );
+}
+
+#[test]
+fn v12_complete_frozen_v11_inverse_keeps_every_row_view_prefix_and_canonical_byte() {
+    const FULL: &[u8] = include_bytes!("v11.before.json");
+    let full: Value = serde_json::from_slice(FULL).unwrap();
+    let compact = encode_v12(&full).unwrap();
+    let restored = expand_to_v11(&compact).unwrap();
+    assert_eq!(restored, full);
+    assert_eq!(canonical(&restored).as_slice(), FULL);
+    assert_eq!(compact["archive_prefixes"], full["archive_prefixes"]);
+    assert_eq!(full["archive_prefixes"].as_array().unwrap().len(), 23);
+    assert!(canonical(&compact).len() < FULL.len());
+    assert!(canonical(&compact).len() <= PAGE_CAP);
+}
+
+#[test]
+fn v12_duplicate_declarations_unknown_indices_unreferenced_and_noncanonical_order_refuse() {
+    let (_, compact) = pair();
+    for bad in [
+        json!([0, "other"]),
+        json!([1, "same"]),
+        json!([true, "other"]),
+        json!({"index":1,"name":"other","unknown":true}),
+        json!([1, 17]),
+    ] {
+        let mut hostile = compact.clone();
+        hostile["view_labels"][1] = bad;
+        assert!(expand_to_v11(&hostile).is_err());
+    }
+    let mut unused = compact.clone();
+    unused["view_labels"]
+        .as_array_mut()
+        .unwrap()
+        .push(json!([2, "unused"]));
+    assert_eq!(
+        expand_to_v11(&unused).unwrap_err(),
+        "v12 unreferenced declaration"
+    );
+    for bad in [
+        json!(true),
+        json!(false),
+        json!(-1),
+        json!(2),
+        json!(u64::MAX),
+        json!("unknown"),
+        json!(null),
+        json!({}),
+        json!([]),
+    ] {
+        let mut hostile = compact.clone();
+        hostile["replacements"][0]["old519_index"][2][0][0] = bad;
+        assert_eq!(
+            expand_to_v11(&hostile).unwrap_err(),
+            "v12 unknown label index"
+        );
+    }
+    let mut out_of_order = compact;
+    out_of_order["replacements"][0]["old519_index"][2][0][0] = json!(1);
+    assert_eq!(
+        expand_to_v11(&out_of_order).unwrap_err(),
+        "v12 noncanonical first-use order"
+    );
+}
+
+#[test]
+fn v12_closed_envelope_and_slot_arity_do_not_rewrite_literal_object_pins() {
+    let (_, compact) = pair();
+    let mut unknown = compact.clone();
+    unknown["unknown"] = true.into();
+    assert_eq!(expand_to_v11(&unknown).unwrap_err(), "v12 envelope");
+    let mut missing = compact.clone();
+    missing.as_object_mut().unwrap().remove("view_labels");
+    assert_eq!(expand_to_v11(&missing).unwrap_err(), "v12 envelope");
+    let mut wrong = compact.clone();
+    wrong["schema"] = SCHEMA_V11.into();
+    assert_eq!(expand_to_v11(&wrong).unwrap_err(), "v12 envelope");
+    for bad in [json!(false), json!([[0]]), json!([[0, 1, "digest", 0, 0]])] {
+        let mut hostile = compact.clone();
+        hostile["additions"][0]["views"] = bad;
+        assert!(expand_to_v11(&hostile).is_err());
+    }
+    let mut indexed_extra = compact;
+    indexed_extra["replacements"][0]["unknown"] = true.into();
+    assert_eq!(
+        expand_to_v11(&indexed_extra).unwrap_err(),
+        "v12 indexed row"
+    );
+}
+
+#[test]
+fn v12_checked_expansion_bound_precedes_label_publication_and_utf8_is_lossless() {
+    let (mut full, mut compact) = pair();
+    compact["view_labels"] = json!([[0, "x".repeat(131072)]]);
+    compact["replacements"][0]["old519_index"][2] = vec![json!([0, 1, "A".repeat(43)]); 100].into();
+    compact["replacements"][0]["old519_index"][3] = Value::Null;
+    compact["additions"] = json!([]);
+    assert!(canonical(&compact).len() < PAGE_CAP);
+    assert_eq!(
+        expand_to_v11(&compact).unwrap_err(),
+        "v12 expanded label bound"
+    );
+    full["replacements"] = json!([]);
+    let name = "é\0\"\\💚";
+    full["additions"][0]["views"] = json!([[name, 0, "A".repeat(43)], [name, 0, "A".repeat(43)]]);
+    assert_eq!(expand_to_v11(&encode_v12(&full).unwrap()).unwrap(), full);
+}
+
+#[test]
+fn v12_full_original_controller_dispatch_and_old_v11_source_inverses_are_exact() {
+    use sha2::{Digest, Sha256};
+    fn hash(bytes: &[u8]) -> String {
+        format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)))
+    }
+    let before = include_str!("root.before.rs.txt");
+    assert_eq!(
+        hash(before.as_bytes()),
+        "1bae91431b48d61bd482028a99fc30f967d4b153e8e68acdf8d25e45aa20719e"
+    );
+    let current = include_str!("../main_e177_overlay_v2.rs");
+    let new = "    if page[\"schema\"] == fragments_v3::SCHEMA_V12 {\n        let expanded = fragments_v3::expand_v12(&before, policy, page)?;\n        compose_values_v2(before, policy, &expanded)\n    } else if page[\"schema\"] == fragments_v3::SCHEMA_V11 {\n";
+    let old = "    if page[\"schema\"] == fragments_v3::SCHEMA_V11 {\n";
+    assert_eq!(current.matches(new).count(), 1);
+    assert_eq!(current.replacen(new, old, 1), before);
+    let before = include_str!("fragments.before.rs.txt");
+    assert_eq!(
+        hash(before.as_bytes()),
+        "af953cf250bc63c7e102ac0ed9c4014432c60aab5878bd1094b27353f128c60c"
+    );
+    let current = include_str!("../main_e177_overlay_fragments_v3.rs");
+    let added = "\n#[path = \"main_e177_overlay_labels_v12.rs\"]\nmod labels_v12;\npub(super) use labels_v12::{expand_v12, SCHEMA_V12};\n";
+    assert_eq!(current.matches(added).count(), 1);
+    assert_eq!(current.replacen(added, "", 1), before);
+    assert_eq!(
+        hash(include_bytes!("../main_e177_overlay_pins_v11.rs")),
+        "09c2917ac3709e570b12478de503049d383bfde84e1dd57fa8bbc18dc9352c9e"
+    );
+    assert_eq!(PAGE_CAP, 262144);
+    assert_eq!(SOURCE_CAP, 9753094);
+}

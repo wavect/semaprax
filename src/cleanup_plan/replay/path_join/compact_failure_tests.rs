@@ -41,16 +41,18 @@ pub(super) fn setup_delta<T: Ord>() -> usize {
     );
     assert_eq!(
         compact_failure_before::Insertions::<T>::entry_controls(),
-        frontier::Insertions::<T>::entry_controls()
+        frontier::Insertions::<T>::entry_controls() + contains_tests::entry_delta::<T>()
     );
     assert_eq!(
         compact_failure_before::Insertions::<T>::GROUP_ENTRY_CONTROLS,
         frontier::Insertions::<T>::GROUP_ENTRY_CONTROLS
     );
-    assert_eq!(
-        compact_failure_before::Insertions::<T>::observed_prices(),
-        frontier::Insertions::<T>::observed_prices()
-    );
+    let old_entry_prices = compact_failure_before::Insertions::<T>::observed_prices();
+    let new_entry_prices = frontier::Insertions::<T>::observed_prices();
+    for i in 0..6 {
+        assert_eq!(old_entry_prices[i], new_entry_prices[i] + contains_tests::entry_delta::<T>());
+    }
+    assert_eq!(old_entry_prices[6], new_entry_prices[6]);
     net
 }
 #[test]
@@ -83,7 +85,7 @@ fn complete_owner_result_option_layouts_remove_only_net_new_conversion_funded_by
     };
     let old = invoice(true);
     let new = invoice(false);
-    assert_eq!(new.0 + net, old.0);
+    assert_eq!(new.0 + net + contains_tests::entry_delta::<PathState>(), old.0);
     assert_eq!(new.1, old.1);
     for prior in [false, true] {
         let exact = if prior { old.0 } else { new.0 };
@@ -564,7 +566,8 @@ fn pending_or_taken_refusal_frees_identical_backing_in_the_same_box_and_cow_orde
 fn digest(raw: &[u8]) -> String {
     format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(raw)))
 }
-pub(super) fn before_source(path: &str, mut actual: String) -> String {
+pub(super) fn before_source(path: &str, actual: String) -> String {
+    let mut actual = contains_tests::before_source(path, actual);
     let inverse = include_bytes!("compact_failure_before/inverse.json");
     assert_eq!(inverse.len(), INVERSE_LENGTH);
     assert_eq!(digest(inverse), INVERSE_SHA);

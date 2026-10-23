@@ -135,6 +135,7 @@ fn complete_cold_driver_invoices_follow_actual_bank_count_with_same_physical_dro
             };
             let before = observe(true, usize::MAX);
             reset_banks();
+            contains_tests::reset_banks();
             let current = observe(false, usize::MAX);
             let banks = paid_banks();
             assert!(before.0 .0 && current.0 .0 && !before.1 && !current.1 && banks > 0);
@@ -142,12 +143,14 @@ fn complete_cold_driver_invoices_follow_actual_bank_count_with_same_physical_dro
                 .checked_mul(direct_one_before::removed_iterator_controls())
                 .unwrap();
             let setup_removed = compact_failure_tests::setup_delta::<PathState>();
+            let entry_removed = contains_tests::paid_banks()
+                .checked_mul(contains_tests::entry_delta::<PathState>()).unwrap();
             assert_eq!(
-                current.2.checked_add(removed).and_then(|n| n.checked_add(setup_removed)),
+                current.2.checked_add(removed).and_then(|n| n.checked_add(setup_removed)).and_then(|n| n.checked_add(entry_removed)),
                 Some(before.2)
             );
             assert!(current.2 < before.2);
-            eprintln!("direct-one {} immediate8caff={} current={} banks={} iterator_removed={} setup_removed={} physical_before={:?} physical_current={:?}", f.id,before.2,current.2,banks,removed,setup_removed,before.0.1,current.0.1);
+            eprintln!("direct-one {} immediate8caff={} current={} banks={} iterator_removed={} setup_removed={} entry_removed={} physical_before={:?} physical_current={:?}", f.id,before.2,current.2,banks,removed,setup_removed,entry_removed,before.0.1,current.0.1);
             for o in [&before, &current] {
                 let a = &o.0 .1;
                 assert!(!a.invalid && a.live == 0 && a.allocated <= o.2);

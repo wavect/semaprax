@@ -28,7 +28,12 @@ fn const_prices_equal_every_original_tariff_and_checked_layout_including_sentine
     let f = function();
     macro_rules! same {
         ($t:ty) => {{
-            assert_eq!(Insertions::<$t>::observed_prices(), prices::<$t>(&f).0);
+            let original = prices::<$t>(&f).0;
+            let current = Insertions::<$t>::observed_prices();
+            for i in 0..6 {
+                assert_eq!(current[i].checked_add(contains_tests::entry_delta::<$t>()), Some(original[i]));
+            }
+            assert_eq!(current[6], original[6]);
             assert_eq!(
                 frontier::const_node_upper::<Box<$t>, ()>(),
                 crate::cleanup_plan::replay::physical_storage::btree_node_upper::<Box<$t>, ()>()
@@ -56,7 +61,7 @@ fn const_prices_equal_every_original_tariff_and_checked_layout_including_sentine
         crate::cleanup_plan::replay::physical_storage::btree_node_upper::<Aligned, [u64; 3]>()
     );
     let before = prices::<State>(&f).1;
-    assert_eq!(Insertions::<State>::entry_controls(), before[1]);
+    assert_eq!(Insertions::<State>::entry_controls() + contains_tests::entry_delta::<State>(), before[1]);
     assert_eq!(Insertions::<State>::GROUP_ENTRY_CONTROLS, before[3]);
     let removed = before[0] + before[2] + before[3] - Insertions::<State>::controls();
     assert!(removed > 0);
@@ -73,7 +78,7 @@ fn const_prices_equal_every_original_tariff_and_checked_layout_including_sentine
         assert!(!refused && first.is_none());
         paid
     };
-    assert_eq!(invoice(false) + removed, invoice(true));
+    assert_eq!(invoice(false) + removed + contains_tests::entry_delta::<State>(), invoice(true));
 }
 #[test]
 fn shared_group_entry_keeps_original_box_duplicate_drop_and_each_paid_frontier() {
@@ -311,8 +316,10 @@ fn complete_immediate_receiver_composition_lowers_cold_invoice_with_full_drop_an
             };
             let before = observe(true, usize::MAX);
             direct_one_tests::reset_banks();
+            contains_tests::reset_banks();
             let current = observe(false, usize::MAX);
             let direct_banks = direct_one_tests::paid_banks();
+            let entry_removed = contains_tests::paid_banks().checked_mul(contains_tests::entry_delta::<PathState>()).unwrap();
             assert!(before.0 .0 && current.0 .0 && !before.1 && !current.1);
             let old_controls = prices::<PathState>(f).1;
             let removed = old_controls[0] + old_controls[2] + old_controls[3]
@@ -322,7 +329,7 @@ fn complete_immediate_receiver_composition_lowers_cold_invoice_with_full_drop_an
                 f.id, before.2, current.2, removed, before.0.1, current.0.1
             );
             assert_eq!(
-                current.2 + removed + direct_banks * direct_one_before::removed_iterator_controls(),
+                current.2 + removed + direct_banks * direct_one_before::removed_iterator_controls() + entry_removed,
                 before.2
             );
             every_invoice_lower &= current.2 < before.2;

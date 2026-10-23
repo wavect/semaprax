@@ -67,7 +67,9 @@ impl<T: Ord> Insertions<T> {
             + 8 * size_of::<bool>()
             + 2 * size_of::<Option<usize>>()
             + 2 * size_of::<&mut Incoming<T>>()
-            + 2 * size_of::<&Incoming<T>>()
+            // The lexical match keeps its actual &Incoming view. The old
+            // contains callee's independent formal &Incoming no longer exists.
+            + size_of::<&Incoming<T>>()
             + 2 * size_of::<&T>();
     pub(super) fn entry_controls() -> usize {
         Self::ENTRY_CONTROLS
@@ -102,6 +104,8 @@ impl<T: Ord> Insertions<T> {
                 Self::controls() + Self::entry_controls(),
                 "ownership insertion receiving controls",
             )?;
+            #[cfg(test)]
+            contains_tests::record_entry_bank();
         }
         let mut result = Self {
             failed: false,
@@ -156,7 +160,11 @@ impl<T: Ord> Insertions<T> {
         if self.failed {
             return;
         }
-        let duplicate = target.contains(&value);
+        let duplicate = match &*target {
+            Incoming::Empty => false,
+            Incoming::One(old) => old.as_ref().cmp(&value) == std::cmp::Ordering::Equal,
+            Incoming::Many(v) => v.contains(&value),
+        };
         let bytes = if duplicate {
             Self::ENTRY_CONTROLS
         } else {
@@ -174,6 +182,10 @@ impl<T: Ord> Insertions<T> {
             self.refusal = Some(error);
             self.failed = true;
             return;
+        }
+        #[cfg(test)]
+        if budget.pays_allocations() {
+            contains_tests::record_entry_bank();
         }
         #[cfg(feature = "unstable-workflow-profiling")]
         if duplicate {
@@ -201,7 +213,11 @@ impl<T: Ord> Insertions<T> {
         if self.failed {
             return;
         }
-        let duplicate = target.contains(value.as_ref());
+        let duplicate = match &*target {
+            Incoming::Empty => false,
+            Incoming::One(old) => old.as_ref().cmp(value.as_ref()) == std::cmp::Ordering::Equal,
+            Incoming::Many(v) => v.contains(value.as_ref()),
+        };
         let bytes = if duplicate {
             Self::ENTRY_CONTROLS
         } else {
@@ -219,6 +235,10 @@ impl<T: Ord> Insertions<T> {
             self.refusal = Some(error);
             self.failed = true;
             return;
+        }
+        #[cfg(test)]
+        if budget.pays_allocations() {
+            contains_tests::record_entry_bank();
         }
         #[cfg(feature = "unstable-workflow-profiling")]
         if duplicate {
@@ -418,13 +438,6 @@ impl<T: Ord> Incoming<T> {
     }
     pub(super) fn is_empty(&self) -> bool {
         self.len() == 0
-    }
-    fn contains(&self, value: &T) -> bool {
-        match self {
-            Self::Empty => false,
-            Self::One(old) => old.as_ref().cmp(value) == std::cmp::Ordering::Equal,
-            Self::Many(v) => v.contains(value),
-        }
     }
     // Called only after all box, node/split, move, empty replacement and Result
     // roles have been acquired. On a refused payment no target is taken.

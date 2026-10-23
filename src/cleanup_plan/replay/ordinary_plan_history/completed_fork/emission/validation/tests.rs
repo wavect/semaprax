@@ -78,7 +78,27 @@ fn exact_whole_7082_source_and_complete_old_classifier_remain_executable() {
         ),
         "93d8038785b042f61b5d6bd100b24930d800d0ccc1ae6dfa7b9c6884bb814cc7"
     );
-    let actual = include_str!("../../emission.rs");
+    let combined = include_str!("../../emission.rs");
+    // Exact additive flat-admission test visibility stage; the whole memo and
+    // every original source/body assertion below retain their original target.
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(combined.as_bytes()))
+        ),
+        "879722873041c2bdd8f390c91e39c14418d6d09550d5ffacd6cef9a7e6102d17"
+    );
+    let visible = "pub(in crate::cleanup_plan::replay) fn with_before<T>";
+    assert_eq!(combined.matches(visible).count(), 1);
+    let memo = combined.replacen(visible, "fn with_before<T>", 1);
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(memo.as_bytes()))
+        ),
+        "32620bdd298e9c6a5df9246ec302f75ae65df486076bbc72341884015d9144b8"
+    );
+    let actual = memo.as_str();
     let start = "pub(in crate::cleanup_plan::replay) fn sequence_only(";
     let end = "\n#[allow(\n    unused_macros,";
     let body = |s: &str| {

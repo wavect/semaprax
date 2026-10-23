@@ -198,7 +198,7 @@ fn exact_short_zero_floor_and_complete_drop_charge_every_new_owner() {
                 let mut budget = ReplayBudget::new();
                 let result =
                     reserve_program_skeleton_work(&program, std::iter::once(function), &mut budget)
-                        .and_then(|()| call(function, &mut budget, &mut changed));
+                        .and_then(|_reserved| call(function, &mut budget, &mut changed));
                 if result.is_err() {
                     assert!(budget
                         .reserve_bytes(function, 0, "flat admission sticky zero")
@@ -328,14 +328,43 @@ fn complete_old_root_bypass_and_source_inverse_survive_actual_whole_callers() {
     assert_eq!(current.matches(hook).count(), 1);
     assert_eq!(current.replacen(hook, "", 1), before);
     let current = include_str!("../../emission.rs");
+    let visible = "pub(in crate::cleanup_plan::replay) fn with_before<T>";
+    assert_eq!(current.matches(visible).count(), 1);
+    let memo = current.replacen(visible, "fn with_before<T>", 1);
+    // Preserve the entire independently captured memo producer, then compose
+    // its three finite original stages to the same complete a966 predecessor.
+    assert_eq!(memo, include_str!("memo_emission.rs.txt"));
     assert_eq!(
-        current.replacen(
-            "pub(in crate::cleanup_plan::replay) fn with_before<T>",
-            "fn with_before<T>",
-            1
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(memo.as_bytes()))
         ),
-        include_str!("before_emission.rs.txt")
+        "32620bdd298e9c6a5df9246ec302f75ae65df486076bbc72341884015d9144b8"
     );
+    let before_emission = include_str!("before_emission.rs.txt");
+    let old_loop = &before_emission[before_emission
+        .find("    for path in prefixes.iter().chain(suffixes.iter()) {")
+        .unwrap()
+        ..before_emission
+            .find("    let mut result = Vec::new();")
+            .unwrap()];
+    let new_loop = &memo[memo
+        .find("    work.budget.reserve_bytes(\n        work.function,\n        validation::CALL,")
+        .unwrap()..memo.find("    let mut result = Vec::new();").unwrap()];
+    let bank_start = before_emission
+        .find("    + 2 * size_of::<std::slice::Iter<'static, ExprSkeletonPath>>()")
+        .unwrap();
+    let bank_end = bank_start
+        + before_emission[bank_start..]
+            .find("    + 2 * size_of::<ClassifierLedger>()")
+            .unwrap();
+    assert_eq!(before_emission.matches(old_loop).count(), 1);
+    let expected_memo = before_emission.replacen(old_loop, new_loop, 1).replacen(
+        &before_emission[bank_start..bank_end],
+        "",
+        1,
+    ) + "\nmod validation;\n";
+    assert_eq!(memo, expected_memo);
     let program = dense(8);
     emission::with_before(|| validate_program(&program)).unwrap();
     validate_program(&program).unwrap();

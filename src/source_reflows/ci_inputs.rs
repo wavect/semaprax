@@ -1066,6 +1066,7 @@ pub(super) fn next_custody_before(owner: &str, source: &str, supplied: &str) -> 
     let compiled = match source {
         "docs/PRIVATE-NOMINAL-LAYOUT-CLOSURE-V1.md" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/PRIVATE-NOMINAL-LAYOUT-CLOSURE-V1.md")),
         "docs/evidence/finite-source-overlay-v2-20261018/overlay_page.py" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/finite-source-overlay-v2-20261018/overlay_page.py")),
+        "src/bounded_output/classifier_string.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/bounded_output/classifier_string.rs")),
         "src/cleanup_plan/replay/ordinary_plan_history/completed_fork.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/completed_fork.rs")),
         "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/tests.rs")),
         "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/whole_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/whole_tests.rs")),
@@ -1079,7 +1080,9 @@ pub(super) fn next_custody_before(owner: &str, source: &str, supplied: &str) -> 
         "src/workspace_graph/expected_projection/private_layout/names/interface_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/private_layout/names/interface_tests.rs")),
         "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs")),
         "src/workspace_graph/expected_projection/shared_local_callees/controls_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/controls_tests.rs")),
+        "src/workspace_graph/expected_projection/shared_local_callees/modular_projection.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/modular_projection.rs")),
         "src/workspace_graph/expected_projection/shared_local_callees/modular_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/modular_tests.rs")),
+        "src/workspace_graph/expected_projection/shared_local_callees/paired_projection.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/paired_projection.rs")),
         "src/workspace_graph/expected_projection/shared_local_callees/reuse_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/reuse_tests.rs")),
         "src/workspace_graph/expected_projection/shared_local_callees/reused_controls.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/reused_controls.rs")),
         "tests/workspace/semantic_graph/source_inventory.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/workspace/semantic_graph/source_inventory.rs")),

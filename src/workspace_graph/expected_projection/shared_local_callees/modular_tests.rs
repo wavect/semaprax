@@ -299,7 +299,13 @@ pub(in crate::workspace_graph::expected_projection) fn imports_before(
     } else {
         format!("src/workspace_graph/expected_projection/{path}")
     };
-    let entry = crate::source_reflows::next_custody_before("modular916", &canonical_entry, source);
+    let production =
+        crate::source_reflows::next_custody_before("production7834", &canonical_entry, source);
+    let entry = crate::source_reflows::next_custody_before(
+        "modular916",
+        &canonical_entry,
+        production.as_str(),
+    );
     let source = entry.as_str();
     let packet: serde_json::Value =
         serde_json::from_str(include_str!("modular_inverse.json")).unwrap();

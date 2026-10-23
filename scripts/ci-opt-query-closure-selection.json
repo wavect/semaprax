@@ -1,7 +1,7 @@
 {
   "schema": "semaprax.hosted-opt-batch-selection.v1",
-  "filters": 24,
-  "expected_tests": 79,
+  "filters": 25,
+  "expected_tests": 91,
   "commands": [
     {
       "owner": "OPT893 complete finite page admission predecessor inverse and independent I/O hostiles",
@@ -170,6 +170,13 @@
       "filter": "hir::validation::lexical_exit::witness_tests::whole_immediate_production_frame_dispatch_helper_and_invoice_restore_and_refuse_drift",
       "exact": true,
       "expected_tests": 1
+    },
+    {
+      "owner": "OPT914 original compact selected frontier immediate-old callers for nearest issue closure",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::selected::frontier_tests::",
+      "exact": false,
+      "expected_tests": 12
     }
   ]
 }

@@ -1,0 +1,124 @@
+[
+  {
+    "current": "src/cleanup_plan/replay/path_join.rs",
+    "current_sha256": "d47a9d6f08367242e6ec3212bce30190baec3240241a082bcc27903a5d3b3e36",
+    "before": "src/cleanup_plan/replay/path_join/direct_one_before/path_join.rs.txt",
+    "edits": [
+      {
+        "from": "pub(in crate::cleanup_plan::replay) mod before_path_boundary;\n\npub(in crate::cleanup_plan::replay) mod selected;\n\n#[cfg(test)]\n#[allow(\n    dead_code,\n    reason = \"complete immediate old singleton receiving driver and helpers\"\n)]\nmod direct_one_before;\n#[cfg(test)]\nmod direct_one_tests;\n",
+        "to": "pub(in crate::cleanup_plan::replay) mod before_path_boundary;\n\npub(in crate::cleanup_plan::replay) mod selected;\n"
+      },
+      {
+        "from": "                boxed_flow::BLOCK_CONTROLS,\n                \"ordinary frontier block and singleton receiving\",\n            )?;\n            #[cfg(test)]\n            direct_one_tests::record_bank();\n            // An owning break's fragment rejoins its wrapper's parent: every\n            // incoming state must agree exactly, with no ownership or history\n            // repair by the generic join below.\n",
+        "to": "                boxed_flow::BLOCK_CONTROLS,\n                \"ordinary frontier block and singleton receiving\",\n            )?;\n            // An owning break's fragment rejoins its wrapper's parent: every\n            // incoming state must agree exactly, with no ownership or history\n            // repair by the generic join below.\n"
+      },
+      {
+        "from": "            // The validated singleton already owns the complete joined fields.\n            // Consume it once; neither original vector nor any nested identity\n            // is cloned, replaced from a clone, or temporarily reinitialized.\n            // Move into the same named Box slot previously filled by expect;\n            // no Option, iterator, replacement or additional owner is formed.\n            let frontier::Incoming::One(mut state) = states else {\n                unreachable!(\"singleton frontier already selected\")\n            };\n            // Identical branch arms still require their original normalization.\n            // Move the original vector into that same producer and receive its\n            // result back into the same field. Partial failure drops the moved\n",
+        "to": "            // The validated singleton already owns the complete joined fields.\n            // Consume it once; neither original vector nor any nested identity\n            // is cloned, replaced from a clone, or temporarily reinitialized.\n            let mut state = states\n                .into_one()\n                .next()\n                .expect(\"replay control group is non-empty\");\n            // Identical branch arms still require their original normalization.\n            // Move the original vector into that same producer and receive its\n            // result back into the same field. Partial failure drops the moved\n"
+      },
+      {
+        "from": "                            .saturating_add(renewal::retained_units(state))\n                    }))\n            }\n            // The field binding replaces the old fold's &Box callback formal.\n            // Its existing Box/PathState borrow banks remain fully paid.\n            frontier::Incoming::One(state) => 1_usize\n                .saturating_add(state.live_order.len())\n                .saturating_add(renewal::retained_units(state)),\n            frontier::Incoming::Empty => unreachable!(\"empty frontier already refused\"),\n        };\n        budget.charge(function, join_units, \"all-path ownership replay\")?;\n        // A single incoming state is already its complete unique control group.\n",
+        "to": "                            .saturating_add(renewal::retained_units(state))\n                    }))\n            }\n            _ => states\n                .len()\n                .saturating_mul(states.iter().fold(1_usize, |total, state| {\n                    total\n                        .saturating_add(state.live_order.len())\n                        .saturating_add(renewal::retained_units(state))\n                })),\n        };\n        budget.charge(function, join_units, \"all-path ownership replay\")?;\n        // A single incoming state is already its complete unique control group.\n"
+      },
+      {
+        "from": "        }\n        // Many retains the original direct tree iterator, including its\n        // exhaustion: no per-state frontier dispatch or forwarded Option is\n        // introduced. One reads the same borrowed fields directly; it forms\n        // neither an iterator nor a forwarded next/exhaustion Option.\n        let join_units = match &states {\n            frontier::Incoming::Many(states) => {\n                states\n",
+        "to": "        }\n        // Many retains the original direct tree iterator, including its\n        // exhaustion: no per-state frontier dispatch or forwarded Option is\n        // introduced. The at-most-one alternative uses the fixed block bank.\n        let join_units = match &states {\n            frontier::Incoming::Many(states) => {\n                states\n"
+      },
+      {
+        "from": "            boxed_flow::BLOCK_CONTROLS,\n            \"ordinary frontier block and singleton receiving\",\n        )?;\n        #[cfg(test)]\n        direct_one_tests::record_bank();\n        let states = std::mem::take(&mut incoming[block_id.0 as usize]);\n        #[cfg(feature = \"unstable-workflow-profiling\")]\n        states.observe_incoming();\n",
+        "to": "            boxed_flow::BLOCK_CONTROLS,\n            \"ordinary frontier block and singleton receiving\",\n        )?;\n        let states = std::mem::take(&mut incoming[block_id.0 as usize]);\n        #[cfg(feature = \"unstable-workflow-profiling\")]\n        states.observe_incoming();\n"
+      }
+    ]
+  },
+  {
+    "current": "src/cleanup_plan/replay/path_join/boxed_flow.rs",
+    "current_sha256": "e60f54339ffc357e805c8466ea21272bfef62531405ba2f06c0026a3ad390154",
+    "before": "src/cleanup_plan/replay/path_join/direct_one_before/boxed_flow.rs.txt",
+    "edits": [
+      {
+        "from": "}\n\n// Direct lexical producers remove the two forwarding Result wrappers and\n// owned Box/Result<Box> edge boundary. Direct singleton fields also remove the\n// frontier iterator/forwarded next and consuming IntoIter carriers. Every\n// remaining Box, Incoming, authority, selector, and terminal bank is retained.\npub(super) const BLOCK_CONTROLS: usize = 4 * size_of::<frontier::Incoming<PathState>>()\n    + 2 * size_of::<bool>()\n    + 2 * size_of::<&frontier::Incoming<PathState>>()\n    + 2 * size_of::<&BTreeSet<Box<PathState>>>()\n    + 8 * size_of::<Box<PathState>>()\n    + 6 * size_of::<&Box<PathState>>()\n    + 4 * size_of::<&PathState>()\n    + 2 * size_of::<&ResolvedFunction>()\n    + 2 * size_of::<&mut ReplayBudget>()\n    + 4 * size_of::<usize>()\n    + 4 * size_of::<bool>()\n    + size_of::<std::iter::Empty<&PathState>>()\n    + size_of::<BlockId>()\n    + size_of::<(\n        &ResolvedFunction,\n        &EdgeCondition,\n        &BTreeMap<ExpressionId, StatusSourceId>,\n        &mut ReplayBudget,\n        &ExpressionId,\n        &StatusSourceId,\n        StatusSourceId,\n        Option<&StatusSourceId>,\n        bool,\n    )>();\n\n// One terminal local Diagnostic and its conversion operand, plus the actual\n// and formal Box of explicit drop before converting the selected error.\n",
+        "to": "}\n\n// Direct lexical producers remove the two forwarding Result wrappers and\n// owned Box/Result<Box> edge boundary; every other original bank is retained.\npub(super) const BLOCK_CONTROLS: usize = 4 * size_of::<frontier::Incoming<PathState>>()\n            + 3 * size_of::<frontier::Iter<'_, PathState>>()\n            // Only Empty/One uses the frontier iterator in the join fold.\n            // Pay both next calls, including exhaustion, and each forwarded\n            // Option/receiver before forming them. Many uses the original\n            // direct tree iterator and introduces no per-visit forwarding.\n            + 4 * size_of::<Option<&Box<PathState>>>()\n            + 4 * size_of::<&mut frontier::Iter<'_, PathState>>()\n            + 2 * size_of::<bool>()\n            + 2 * size_of::<&frontier::Incoming<PathState>>()\n            + 2 * size_of::<&BTreeSet<Box<PathState>>>()\n            + 3 * size_of::<std::option::IntoIter<Box<PathState>>>()\n            + 8 * size_of::<Box<PathState>>()\n            + 6 * size_of::<&Box<PathState>>()\n            + 4 * size_of::<&PathState>()\n            + 2 * size_of::<&ResolvedFunction>()\n            + 2 * size_of::<&mut ReplayBudget>()\n            + 4 * size_of::<usize>()\n            + 4 * size_of::<bool>()\n            + size_of::<std::iter::Empty<&PathState>>()\n            + size_of::<BlockId>()\n            + size_of::<(\n                &ResolvedFunction,\n                &EdgeCondition,\n                &BTreeMap<ExpressionId, StatusSourceId>,\n                &mut ReplayBudget,\n                &ExpressionId,\n                &StatusSourceId,\n                StatusSourceId,\n                Option<&StatusSourceId>,\n                bool,\n            )>();\n\n// One terminal local Diagnostic and its conversion operand, plus the actual\n// and formal Box of explicit drop before converting the selected error.\n"
+      }
+    ]
+  },
+  {
+    "current": "src/cleanup_plan/replay/path_join/frontier.rs",
+    "current_sha256": "a0cb34d597eb284342addb9ee75ffc605a31d6ce3993672f4427703aada6652d",
+    "before": "src/cleanup_plan/replay/path_join/direct_one_before/frontier.rs.txt",
+    "edits": [
+      {
+        "from": "    clippy::borrowed_box,\n    reason = \"borrow the exact boxed owner for held insertion and same-box transport\"\n)]\n#[cfg(test)]\npub(super) enum Iter<'a, T> {\n    One(std::option::IntoIter<&'a Box<T>>),\n    Many(btree_set::Iter<'a, Box<T>>),\n}\n#[cfg(test)]\nimpl<'a, T> Iterator for Iter<'a, T> {\n    type Item = &'a Box<T>;\n    fn next(&mut self) -> Option<Self::Item> {\n",
+        "to": "    clippy::borrowed_box,\n    reason = \"borrow the exact boxed owner for held insertion and same-box transport\"\n)]\npub(super) enum Iter<'a, T> {\n    One(std::option::IntoIter<&'a Box<T>>),\n    Many(btree_set::Iter<'a, Box<T>>),\n}\nimpl<'a, T> Iterator for Iter<'a, T> {\n    type Item = &'a Box<T>;\n    fn next(&mut self) -> Option<Self::Item> {\n"
+      },
+      {
+        "from": "            Self::Many(v) => Iter::Many(v.iter()),\n        }\n    }\n    #[cfg(test)]\n    pub(super) fn into_one(self) -> std::option::IntoIter<Box<T>> {\n        let Self::One(v) = self else {\n            unreachable!(\"singleton frontier\")\n",
+        "to": "            Self::Many(v) => Iter::Many(v.iter()),\n        }\n    }\n    pub(super) fn into_one(self) -> std::option::IntoIter<Box<T>> {\n        let Self::One(v) = self else {\n            unreachable!(\"singleton frontier\")\n"
+      },
+      {
+        "from": "            }\n        }\n    }\n    #[cfg(test)]\n    pub(super) fn iter(&self) -> Iter<'_, T> {\n        match self {\n            Self::Empty => Iter::One(None.into_iter()),\n",
+        "to": "            }\n        }\n    }\n    pub(super) fn iter(&self) -> Iter<'_, T> {\n        match self {\n            Self::Empty => Iter::One(None.into_iter()),\n"
+      },
+      {
+        "from": "}\n\n// Invocation-local incoming states: singleton ownership does not allocate a tree node.\n#[cfg(test)]\nuse std::collections::btree_set;\n#[derive(Debug)]\npub(super) enum Incoming<T> {\n",
+        "to": "}\n\n// Invocation-local incoming states: singleton ownership does not allocate a tree node.\nuse std::collections::btree_set;\n#[derive(Debug)]\npub(super) enum Incoming<T> {\n"
+      }
+    ]
+  },
+  {
+    "current": "src/cleanup_plan/replay/path_join/held_edge_tests.rs",
+    "current_sha256": "43a18801a4a7cebaa771b18f53260a4d331ce3d855880e1239dca29030ed4cb3",
+    "before": "src/cleanup_plan/replay/path_join/direct_one_before/held_edge_tests.rs.txt",
+    "edits": [
+      {
+        "from": "        Option<&StatusSourceId>,\n        bool,\n    )>();\n    let removed = 2 * size_of::<Result<(), Diagnostic>>() + old_tuple - new_tuple\n        + direct_one_before::removed_iterator_controls();\n    assert_eq!(\n        boxed_flow::HELD_EDGE_TERMINAL,\n        2 * size_of::<Diagnostic>() + 2 * size_of::<Box<PathState>>()\n",
+        "to": "        Option<&StatusSourceId>,\n        bool,\n    )>();\n    let removed = 2 * size_of::<Result<(), Diagnostic>>() + old_tuple - new_tuple;\n    assert_eq!(\n        boxed_flow::HELD_EDGE_TERMINAL,\n        2 * size_of::<Diagnostic>() + 2 * size_of::<Box<PathState>>()\n"
+      }
+    ]
+  },
+  {
+    "current": "src/cleanup_plan/replay/path_join/shared_insertions_tests.rs",
+    "current_sha256": "88e797cc0764b2322c71f800c4a62069aa1ead7114c03c205609bb4ca5594bcf",
+    "before": "src/cleanup_plan/replay/path_join/direct_one_before/shared_insertions_tests.rs.txt",
+    "edits": [
+      {
+        "from": "                \"shared-frontier {} immediate92d_invoice={} current_invoice={} removed_setup={} before={:?} current={:?}\",\n                f.id, before.2, current.2, removed, before.0.1, current.0.1\n            );\n            assert_eq!(\n                current.2 + removed + direct_banks * direct_one_before::removed_iterator_controls(),\n                before.2\n            );\n            every_invoice_lower &= current.2 < before.2;\n            assert!(current.0 .1.allocated <= before.0 .1.allocated);\n            for o in [&before, &current] {\n",
+        "to": "                \"shared-frontier {} immediate92d_invoice={} current_invoice={} removed_setup={} before={:?} current={:?}\",\n                f.id, before.2, current.2, removed, before.0.1, current.0.1\n            );\n            assert_eq!(current.2 + removed, before.2);\n            every_invoice_lower &= current.2 < before.2;\n            assert!(current.0 .1.allocated <= before.0 .1.allocated);\n            for o in [&before, &current] {\n"
+      },
+      {
+        "from": "                })\n            };\n            let before = observe(true, usize::MAX);\n            direct_one_tests::reset_banks();\n            let current = observe(false, usize::MAX);\n            let direct_banks = direct_one_tests::paid_banks();\n            assert!(before.0 .0 && current.0 .0 && !before.1 && !current.1);\n            let old_controls = prices::<PathState>(f).1;\n            let removed = old_controls[0] + old_controls[2] + old_controls[3]\n",
+        "to": "                })\n            };\n            let before = observe(true, usize::MAX);\n            let current = observe(false, usize::MAX);\n            assert!(before.0 .0 && current.0 .0 && !before.1 && !current.1);\n            let old_controls = prices::<PathState>(f).1;\n            let removed = old_controls[0] + old_controls[2] + old_controls[3]\n"
+      }
+    ]
+  },
+  {
+    "current": "src/cleanup_plan/replay/path_join/direct_one_before.rs",
+    "current_sha256": "e08e3bf1f1583ea9311899eaf4f5412cd38448ee4d70f6d0910952aaffd29508",
+    "before": "src/cleanup_plan/replay/path_join/direct_one_before/path_join.rs.txt",
+    "edits": [
+      {
+        "from": "    Ok(joined)\n}\n\n// Observation-only entries; the complete preceding driver and helpers are old.\npub(super) const BLOCK_CONTROLS: usize = boxed_flow::BLOCK_CONTROLS;\npub(super) fn removed_iterator_controls() -> usize {\n    use std::mem::size_of;\n    3 * size_of::<frontier::Iter<'_, PathState>>()\n        + 4 * size_of::<Option<&Box<PathState>>>()\n        + 4 * size_of::<&mut frontier::Iter<'_, PathState>>()\n        + 3 * size_of::<std::option::IntoIter<Box<PathState>>>()\n}\npub(super) fn receiver_layouts() -> [usize; 4] {\n    use std::mem::{align_of, size_of};\n    [\n        size_of::<frontier::Incoming<PathState>>(),\n        align_of::<frontier::Incoming<PathState>>(),\n        size_of::<frontier::Insertions<PathState>>(),\n        align_of::<frontier::Insertions<PathState>>(),\n    ]\n}\n",
+        "to": "    Ok(joined)\n}\n\n#[cfg(test)]\nmod before_singleton;\n#[cfg(test)]\nmod singleton_tests;\n\n#[cfg(test)]\n#[path = \"path_join/main_single_groups/mod.rs\"]\nmod main_single_groups;\n\n#[cfg(test)]\nmod before_state_move;\n#[cfg(test)]\nmod state_move_tests;\n\n#[cfg(test)]\nmod before_final_edge;\n#[cfg(test)]\nmod final_edge_tests;\n\n#[cfg(test)]\n#[allow(dead_code, reason = \"complete immediate old path boundary receiver\")]\npub(in crate::cleanup_plan::replay) mod before_path_boundary;\n\npub(in crate::cleanup_plan::replay) mod selected;\n"
+      },
+      {
+        "from": "    Ok(())\n}\n\nfn joined_ownership_state<K: Ord + Borrow<PathState>>(\n    program: &dyn crate::cleanup::ReplayContext,\n    function: &ResolvedFunction,\n",
+        "to": "    Ok(())\n}\n\n#[cfg(test)]\nmod tests;\n\nfn joined_ownership_state<K: Ord + Borrow<PathState>>(\n    program: &dyn crate::cleanup::ReplayContext,\n    function: &ResolvedFunction,\n"
+      },
+      {
+        "from": "//! Complete immediate-8caff ordinary replay; only module bindings are adapted.\nuse super::*;\nuse super::{branch_join, storage};\nuse std::borrow::Borrow;\nmod boxed_flow;\nmod frontier;\n#[allow(clippy::too_many_arguments)] // Keep the independently held phase index explicit.\npub(super) fn validate_path_states<E: semantic_refusal::Error>(\n    program: &dyn crate::cleanup::ReplayContext,\n",
+        "to": "//! Topological cleanup-CFG replay and ownership-only join normalization.\n\nuse super::*;\nuse std::borrow::Borrow;\n#[cfg(test)]\n#[allow(dead_code, reason = \"complete original path-state replay receiver\")]\nmod before;\n#[cfg(test)]\n#[allow(\n    dead_code,\n    reason = \"complete immediate-old ordinary frontier and direct dependencies\"\n)]\nmod before_frontier;\n#[cfg(test)]\n#[allow(dead_code, reason = \"complete MAIN019d callback receiver\")]\n#[path = \"path_join/before_receiving.rs\"]\nmod before_receiving;\nmod boxed_flow;\nmod boxed_states;\nmod branch_join;\nmod frontier;\n#[cfg(test)]\nmod frontier_tests;\n#[cfg(test)]\n#[allow(\n    dead_code,\n    reason = \"complete independently compiled pre-inline receiving producers\"\n)]\nmod held_edge_before;\n#[cfg(test)]\nmod held_edge_tests;\n#[cfg(test)]\nmod receiver_tests;\n#[cfg(test)]\n#[allow(\n    dead_code,\n    reason = \"complete independently executable immediate-92d insertion predecessors\"\n)]\nmod shared_insertions_before;\n#[cfg(test)]\nmod shared_insertions_tests;\npub(super) mod storage;\n\n#[allow(clippy::too_many_arguments)] // Keep the independently held phase index explicit.\npub(super) fn validate_path_states<E: semantic_refusal::Error>(\n    program: &dyn crate::cleanup::ReplayContext,\n"
+      }
+    ]
+  },
+  {
+    "current": "src/cleanup_plan/replay/path_join/direct_one_before/boxed_flow.rs",
+    "current_sha256": "6632ceeabe694a459ac118deeb68d858ac2dfa75e6d3ab6dccd3fc7c24e91c3d",
+    "before": "src/cleanup_plan/replay/path_join/direct_one_before/boxed_flow.rs.txt",
+    "edits": []
+  },
+  {
+    "current": "src/cleanup_plan/replay/path_join/direct_one_before/frontier.rs",
+    "current_sha256": "bf59b03e66773bb7ab3aa216a21631eb6e6b7468fdc02cb95d31d8b8b4992663",
+    "before": "src/cleanup_plan/replay/path_join/direct_one_before/frontier.rs.txt",
+    "edits": []
+  }
+]

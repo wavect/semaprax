@@ -113,7 +113,8 @@ fn only_removed_forwarding_roles_leave_the_block_invoice_with_one_terminal_bank(
         Option<&StatusSourceId>,
         bool,
     )>();
-    let removed = 2 * size_of::<Result<(), Diagnostic>>() + old_tuple - new_tuple;
+    let removed = 2 * size_of::<Result<(), Diagnostic>>() + old_tuple - new_tuple
+        + direct_one_before::removed_iterator_controls();
     assert_eq!(
         boxed_flow::HELD_EDGE_TERMINAL,
         2 * size_of::<Diagnostic>() + 2 * size_of::<Box<PathState>>()

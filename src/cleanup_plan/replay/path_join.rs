@@ -221,6 +221,8 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
             boxed_flow::BLOCK_CONTROLS,
             "ordinary frontier block and singleton receiving",
         )?;
+        #[cfg(test)]
+        direct_one_tests::record_bank();
         let states = std::mem::take(&mut incoming[block_id.0 as usize]);
         #[cfg(feature = "unstable-workflow-profiling")]
         states.observe_incoming();
@@ -233,7 +235,8 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
         }
         // Many retains the original direct tree iterator, including its
         // exhaustion: no per-state frontier dispatch or forwarded Option is
-        // introduced. The at-most-one alternative uses the fixed block bank.
+        // introduced. One reads the same borrowed fields directly; it forms
+        // neither an iterator nor a forwarded next/exhaustion Option.
         let join_units = match &states {
             frontier::Incoming::Many(states) => {
                 states
@@ -244,13 +247,12 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                             .saturating_add(renewal::retained_units(state))
                     }))
             }
-            _ => states
-                .len()
-                .saturating_mul(states.iter().fold(1_usize, |total, state| {
-                    total
-                        .saturating_add(state.live_order.len())
-                        .saturating_add(renewal::retained_units(state))
-                })),
+            // The field binding replaces the old fold's &Box callback formal.
+            // Its existing Box/PathState borrow banks remain fully paid.
+            frontier::Incoming::One(state) => 1_usize
+                .saturating_add(state.live_order.len())
+                .saturating_add(renewal::retained_units(state)),
+            frontier::Incoming::Empty => unreachable!("empty frontier already refused"),
         };
         budget.charge(function, join_units, "all-path ownership replay")?;
         // A single incoming state is already its complete unique control group.
@@ -279,10 +281,11 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
             // The validated singleton already owns the complete joined fields.
             // Consume it once; neither original vector nor any nested identity
             // is cloned, replaced from a clone, or temporarily reinitialized.
-            let mut state = states
-                .into_one()
-                .next()
-                .expect("replay control group is non-empty");
+            // Move into the same named Box slot previously filled by expect;
+            // no Option, iterator, replacement or additional owner is formed.
+            let frontier::Incoming::One(mut state) = states else {
+                unreachable!("singleton frontier already selected")
+            };
             // Identical branch arms still require their original normalization.
             // Move the original vector into that same producer and receive its
             // result back into the same field. Partial failure drops the moved
@@ -617,6 +620,8 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                 boxed_flow::BLOCK_CONTROLS,
                 "ordinary frontier block and singleton receiving",
             )?;
+            #[cfg(test)]
+            direct_one_tests::record_bank();
             // An owning break's fragment rejoins its wrapper's parent: every
             // incoming state must agree exactly, with no ownership or history
             // repair by the generic join below.
@@ -1250,3 +1255,12 @@ mod final_edge_tests;
 pub(in crate::cleanup_plan::replay) mod before_path_boundary;
 
 pub(in crate::cleanup_plan::replay) mod selected;
+
+#[cfg(test)]
+#[allow(
+    dead_code,
+    reason = "complete immediate old singleton receiving driver and helpers"
+)]
+mod direct_one_before;
+#[cfg(test)]
+mod direct_one_tests;

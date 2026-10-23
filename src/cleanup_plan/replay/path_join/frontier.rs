@@ -355,6 +355,7 @@ pub(super) const fn const_node_upper<K, V>() -> Option<usize> {
 }
 
 // Invocation-local incoming states: singleton ownership does not allocate a tree node.
+#[cfg(test)]
 use std::collections::btree_set;
 #[derive(Debug)]
 pub(super) enum Incoming<T> {
@@ -458,6 +459,7 @@ impl<T: Ord> Incoming<T> {
             }
         }
     }
+    #[cfg(test)]
     pub(super) fn iter(&self) -> Iter<'_, T> {
         match self {
             Self::Empty => Iter::One(None.into_iter()),
@@ -465,6 +467,7 @@ impl<T: Ord> Incoming<T> {
             Self::Many(v) => Iter::Many(v.iter()),
         }
     }
+    #[cfg(test)]
     pub(super) fn into_one(self) -> std::option::IntoIter<Box<T>> {
         let Self::One(v) = self else {
             unreachable!("singleton frontier")
@@ -482,10 +485,12 @@ impl<T: Ord> Incoming<T> {
     clippy::borrowed_box,
     reason = "borrow the exact boxed owner for held insertion and same-box transport"
 )]
+#[cfg(test)]
 pub(super) enum Iter<'a, T> {
     One(std::option::IntoIter<&'a Box<T>>),
     Many(btree_set::Iter<'a, Box<T>>),
 }
+#[cfg(test)]
 impl<'a, T> Iterator for Iter<'a, T> {
     type Item = &'a Box<T>;
     fn next(&mut self) -> Option<Self::Item> {

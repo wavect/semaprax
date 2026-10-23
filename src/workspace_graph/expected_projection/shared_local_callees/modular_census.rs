@@ -7,6 +7,9 @@ use super::{
 fn plain(ty: &Type) -> bool {
     matches!(
         ty,
+        Type::Named { arguments, .. } if arguments.is_empty()
+    ) || matches!(
+        ty,
         Type::I64
             | Type::I32
             | Type::U8
@@ -40,6 +43,7 @@ fn supported(expression: &Expr, proof: &mut Proof) -> bool {
         | ExprKind::If { .. }
         | ExprKind::Unary { .. }
         | ExprKind::Binary { .. }
+        | ExprKind::Project { .. }
         | ExprKind::Var(_)
         | ExprKind::Int(_)
         | ExprKind::Int32(_)

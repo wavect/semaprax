@@ -1,8 +1,7 @@
 //! Distinct local constructor proof in an imported module; no import discount.
 //! No auxiliary-carrier count, name index or pointer alone grants identity scope.
 use super::{
-    compiler, local, ordinary, Context, Costs, Failure, Function, Index, Invoice, Program,
-    MAX_HEADERS,
+    compiler, local, Context, Costs, Failure, Function, Index, Invoice, Program, MAX_HEADERS,
 };
 type Error = Failure;
 
@@ -183,7 +182,7 @@ impl<'p, 'a> Session<'p, 'a> {
             // never its creation. No result escapes this exact lender/context;
             // both immutable source owners remain borrowed until finish.
             if !matches!(&held.owner, Some(checked) if std::ptr::eq(checked.function, owner)) {
-                if !ordinary(owner, &held.invoice)?
+                if !record_signatures::ordinary(context, owner, &held.invoice)?
                     || !local(context, owner, &held.invoice)?
                     || !unaliased(context, owner, &held.invoice)?
                 {
@@ -195,7 +194,7 @@ impl<'p, 'a> Session<'p, 'a> {
                 });
             }
             if !matches!(&held.target, Some(checked) if std::ptr::eq(checked.function, target)) {
-                if !ordinary(target, &held.invoice)?
+                if !record_signatures::ordinary(context, target, &held.invoice)?
                     || !local(context, target, &held.invoice)?
                     || compiler(&target.name, &held.invoice)?
                     || !unaliased(context, target, &held.invoice)?
@@ -396,3 +395,12 @@ fn unaliased(
 #[cfg(test)]
 #[path = "modular_tests.rs"]
 pub(in crate::workspace_graph::expected_projection) mod tests;
+
+#[path = "record_signatures.rs"]
+mod record_signatures;
+
+#[cfg(test)]
+use super::ordinary;
+#[cfg(test)]
+#[path = "record_before.rs"]
+pub(in crate::workspace_graph::expected_projection) mod record_before;

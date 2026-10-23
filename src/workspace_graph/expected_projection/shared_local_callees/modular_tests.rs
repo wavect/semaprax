@@ -27,6 +27,8 @@ pub(in crate::workspace_graph::expected_projection) fn context<'a>(
 }
 
 pub(in crate::workspace_graph::expected_projection) fn restore(path: &str, source: &str) -> String {
+    let record = super::record_signatures::tests::restore(path, source);
+    let source = record.as_str();
     let packet: serde_json::Value =
         serde_json::from_str(include_str!("modular_inverse.json")).unwrap();
     let canonical = if path.starts_with("src/") {

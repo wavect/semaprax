@@ -8,6 +8,10 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
     lexical: Option<&lexical_cert::LexicalAuth>,
     helpers: Option<&crate::loop_calls::byte_writer::ModuleIndex<'_>>,
 ) -> Result<(), Error> {
+    #[cfg(feature = "unstable-workflow-profiling")]
+    crate::bounded_output::exclusive_debits::path_census::event(
+        crate::bounded_output::exclusive_debits::path_census::Event::Body,
+    );
     budget.reserve_array::<receiving::WalkBody<'_>>(
         function,
         1,
@@ -365,6 +369,8 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
             incoming,
             block_id.0 as usize
         ));
+        #[cfg(feature = "unstable-workflow-profiling")]
+        states.observe_incoming();
         if states.is_empty() {
             return Err(path_error!(
                 permit,
@@ -1469,6 +1475,8 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
             Reason::Finite(Kind::CleanupCfgHasNoReplayableTerminalSuccessPath,)
         ));
     }
+    #[cfg(feature = "unstable-workflow-profiling")]
+    crate::bounded_output::exclusive_debits::path_census::finish(terminal_paths, successful_paths);
     Ok(())
 }
 

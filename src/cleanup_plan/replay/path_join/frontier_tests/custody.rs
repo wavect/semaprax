@@ -60,7 +60,8 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
         before.split_once(marker).unwrap().1
     );
     for (path, expected) in rows {
-        let mut actual = std::fs::read(root.join(&path)).unwrap();
+        let mut actual =
+            crate::bounded_output::census_before(&path, &std::fs::read(root.join(&path)).unwrap());
         // Finite inventory transport only: the main scalar classifier changes
         // the measured common lexical prefix. This is not old execution restoration.
         let encoded = include_str!("../before_frontier/custody/main_d227_transport.json");

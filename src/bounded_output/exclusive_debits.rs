@@ -2,6 +2,7 @@
 use super::{Budget, ReservationStage, ACTIVE};
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
+pub mod path_census;
 
 pub const ATTEMPT_CAPACITY: usize = 16;
 const DEPTH: usize = 64;
@@ -139,6 +140,7 @@ pub struct Attempt {
     pub consumed: usize,
     pub stage_debits: [usize; STAGE_COUNT],
     pub operation_debits: [usize; OPERATION_COUNT],
+    pub path_census: [path_census::Row; 3],
     /// Immediate-child debits (including their real descendant settlements)
     /// stay separate from this ledger's exclusive sum. Deeper raw events are
     /// not counted again before they settle into that immediate child.
@@ -167,6 +169,7 @@ impl Attempt {
         consumed: 0,
         stage_debits: [0; STAGE_COUNT],
         operation_debits: [0; OPERATION_COUNT],
+        path_census: [path_census::Row::EMPTY; 3],
         nested_ledger_debits: 0,
         foreign_ledger_debits: 0,
         parent_settlement_debits: 0,
@@ -243,12 +246,18 @@ struct Ledger {
     owner: usize,
     initial: usize,
     remaining: usize,
+    path_family: Option<path_census::Family>,
+    path_depth: usize,
+    serial: usize,
 }
 impl Ledger {
     const EMPTY: Self = Self {
         owner: 0,
         initial: 0,
         remaining: 0,
+        path_family: None,
+        path_depth: 0,
+        serial: 0,
     };
 }
 #[derive(Clone, Copy)]
@@ -256,12 +265,14 @@ struct Frame {
     owner: usize,
     operation: Option<Operation>,
     operation_depth: usize,
+    path_base_depth: usize,
 }
 impl Frame {
     const EMPTY: Self = Self {
         owner: 0,
         operation: None,
         operation_depth: 0,
+        path_base_depth: 0,
     };
 }
 struct State {
@@ -274,6 +285,7 @@ struct State {
     stack: [usize; ATTEMPT_CAPACITY],
     depth: usize,
     pending_settlement: Option<(usize, usize)>,
+    next_ledger: usize,
 }
 impl State {
     const fn new() -> Self {
@@ -287,6 +299,7 @@ impl State {
             stack: [0; ATTEMPT_CAPACITY],
             depth: 0,
             pending_settlement: None,
+            next_ledger: 0,
         }
     }
     fn invalid(&mut self) {
@@ -357,6 +370,7 @@ pub(crate) fn begin(generation: u64) {
         s.ledger_depth = 0;
         s.depth = 0;
         s.pending_settlement = None;
+        s.next_ledger = 0;
         s.generation = generation;
         s.enabled = true;
     });
@@ -412,6 +426,12 @@ pub(crate) fn transition() {
             .position(|x| x.owner == owner)
         {
             if index + 1 < s.ledger_depth {
+                if s.ledgers[index + 1..s.ledger_depth]
+                    .iter()
+                    .any(|ledger| ledger.path_depth != 0)
+                {
+                    s.invalid();
+                }
                 // One actual Restore settles its direct child. No debit is
                 // manufactured here: only the later real subtraction counts.
                 let child = s.ledgers[index + 1];
@@ -426,10 +446,19 @@ pub(crate) fn transition() {
             s.ledger_depth = index + 1;
             s.ledgers[index].remaining = budget.remaining.get();
         } else if s.ledger_depth < DEPTH {
+            let Some(serial) = s.next_ledger.checked_add(1) else {
+                s.report.overflow = true;
+                s.invalid();
+                return;
+            };
+            s.next_ledger = serial;
             s.ledgers[s.ledger_depth] = Ledger {
                 owner,
                 initial: budget.remaining.get(),
                 remaining: budget.remaining.get(),
+                path_family: None,
+                path_depth: 0,
+                serial,
             };
             s.ledger_depth += 1;
         } else {
@@ -479,6 +508,7 @@ fn record_debit(budget: &Budget, bytes: usize, exceptional: bool) {
                     .map_or(0, |operation| operation as usize + 1);
                 s.add(index, Some((true, stage)), bytes);
                 s.add(index, Some((false, operation)), bytes);
+                path_census::add_debit(s, index, bytes);
                 if exceptional {
                     let row = &mut s.report.attempts[index];
                     if let Some(value) = row.exceptional_parent_settlement_debits.checked_add(bytes)
@@ -591,8 +621,14 @@ pub(crate) fn attempt(prebound: usize, layouts: usize, mode: u8) -> AttemptGuard
             remaining: budget.remaining.get(),
             ..Attempt::EMPTY
         };
+        let owner = Rc::as_ptr(&budget) as usize;
+        let path_base_depth = s.ledgers[..s.ledger_depth]
+            .iter()
+            .find(|ledger| ledger.owner == owner)
+            .map_or(0, |ledger| ledger.path_depth);
         s.frames[index] = Frame {
-            owner: Rc::as_ptr(&budget) as usize,
+            owner,
+            path_base_depth,
             ..Frame::EMPTY
         };
         s.stack[s.depth] = index;
@@ -628,7 +664,11 @@ impl Drop for AttemptGuard {
             }
             let ordered = s.depth == depth
                 && s.stack[depth - 1] == index
-                && s.frames[index].operation_depth == 0;
+                && s.frames[index].operation_depth == 0
+                && s.ledgers[..s.ledger_depth]
+                    .iter()
+                    .find(|ledger| ledger.owner == s.frames[index].owner)
+                    .is_some_and(|ledger| ledger.path_depth == s.frames[index].path_base_depth);
             let owner = s.frames[index].owner;
             let row = &mut s.report.attempts[index];
             row.unwound = unwound;
@@ -652,7 +692,8 @@ impl Drop for AttemptGuard {
             }
             row.invalid |= !ordered
                 || row.stage_sum() != Some(row.consumed)
-                || row.operation_sum() != Some(row.consumed);
+                || row.operation_sum() != Some(row.consumed)
+                || !path_census::balanced(&row.path_census, row.consumed);
             row.complete = !row.invalid && row.outcome != Outcome::Pending;
             s.report.invalid |= row.invalid;
             s.report.complete &= row.complete;

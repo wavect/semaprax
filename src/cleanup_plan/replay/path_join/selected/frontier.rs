@@ -169,7 +169,17 @@ impl<T: Ord> Insertions<T> {
             self.failed = true;
             return;
         }
+        #[cfg(feature = "unstable-workflow-profiling")]
+        if duplicate {
+            crate::bounded_output::exclusive_debits::path_census::event(
+                crate::bounded_output::exclusive_debits::path_census::Event::Duplicate,
+            );
+        }
         if !duplicate {
+            #[cfg(feature = "unstable-workflow-profiling")]
+            crate::bounded_output::exclusive_debits::path_census::event(
+                crate::bounded_output::exclusive_debits::path_census::Event::OwnedBox,
+            );
             target.publish(Box::new(value));
         }
         self.entry = true;
@@ -204,7 +214,17 @@ impl<T: Ord> Insertions<T> {
             self.failed = true;
             return;
         }
+        #[cfg(feature = "unstable-workflow-profiling")]
+        if duplicate {
+            crate::bounded_output::exclusive_debits::path_census::event(
+                crate::bounded_output::exclusive_debits::path_census::Event::Duplicate,
+            );
+        }
         if !duplicate {
+            #[cfg(feature = "unstable-workflow-profiling")]
+            crate::bounded_output::exclusive_debits::path_census::event(
+                crate::bounded_output::exclusive_debits::path_census::Event::HeldTransfer,
+            );
             target.publish(value);
         }
         self.entry = true;
@@ -252,6 +272,15 @@ impl<T: Ord> Incoming<T> {
             Self::Many(v) => v.len(),
         }
     }
+    #[cfg(feature = "unstable-workflow-profiling")]
+    pub(super) fn observe_incoming(&self) {
+        use crate::bounded_output::exclusive_debits::path_census::{event, Event};
+        event(match self {
+            Self::Empty => Event::InputEmpty,
+            Self::One(_) => Event::InputOne,
+            Self::Many(_) => Event::InputMany,
+        });
+    }
     pub(super) fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -266,17 +295,48 @@ impl<T: Ord> Incoming<T> {
     // roles have been acquired. On a refused payment no target is taken.
     fn publish(&mut self, value: Box<T>) {
         match self {
-            Self::Empty => *self = Self::One(value),
+            Self::Empty => {
+                #[cfg(feature = "unstable-workflow-profiling")]
+                crate::bounded_output::exclusive_debits::path_census::event(
+                    crate::bounded_output::exclusive_debits::path_census::Event::Empty,
+                );
+                *self = Self::One(value);
+            }
             Self::One(_) => {
+                #[cfg(feature = "unstable-workflow-profiling")]
+                {
+                    crate::bounded_output::exclusive_debits::path_census::event(
+                        crate::bounded_output::exclusive_debits::path_census::Event::One,
+                    );
+                    crate::bounded_output::exclusive_debits::path_census::event(
+                        crate::bounded_output::exclusive_debits::path_census::Event::Promotion,
+                    );
+                }
                 let Self::One(old) = std::mem::take(self) else {
                     unreachable!()
                 };
                 let mut tree = BTreeSet::new();
+                #[cfg(feature = "unstable-workflow-profiling")]
+                crate::bounded_output::exclusive_debits::path_census::event(
+                    crate::bounded_output::exclusive_debits::path_census::Event::TreeInsert,
+                );
                 tree.insert(old);
+                #[cfg(feature = "unstable-workflow-profiling")]
+                crate::bounded_output::exclusive_debits::path_census::event(
+                    crate::bounded_output::exclusive_debits::path_census::Event::TreeInsert,
+                );
                 tree.insert(value);
                 *self = Self::Many(tree);
             }
             Self::Many(tree) => {
+                #[cfg(feature = "unstable-workflow-profiling")]
+                crate::bounded_output::exclusive_debits::path_census::event(
+                    crate::bounded_output::exclusive_debits::path_census::Event::Many,
+                );
+                #[cfg(feature = "unstable-workflow-profiling")]
+                crate::bounded_output::exclusive_debits::path_census::event(
+                    crate::bounded_output::exclusive_debits::path_census::Event::TreeInsert,
+                );
                 tree.insert(value);
             }
         }

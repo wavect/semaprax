@@ -311,7 +311,15 @@ fn reservation_site_layout_binds_both_complete_original_controls_and_the_full_cu
     let field = "    first_site: Cell<Option<ReservationSite>>,\n";
     assert_eq!(current.matches(field).count(), 1);
     assert_eq!(current.replacen(field, "", 1), before);
-    let live = include_str!("../bounded_output.rs");
+    census_before(
+        "src/bounded_output/request_reservation.rs",
+        include_bytes!("request_reservation.rs"),
+    );
+    let restored = census_before(
+        "src/bounded_output.rs",
+        include_bytes!("../bounded_output.rs"),
+    );
+    let live = std::str::from_utf8(&restored).unwrap();
     assert_eq!(live.matches(current).count(), 1);
     assert_eq!(
         live.matches("pub(crate) type ReservationSite = &'static std::panic::Location<'static>;")
@@ -357,3 +365,70 @@ fn reservation_site_layout_binds_both_complete_original_controls_and_the_full_cu
 
 #[path = "reservation_site_e47.rs"]
 mod reservation_site_e47;
+
+// Finite feature-only source transport, before any earlier immutable inverse.
+// Raw/default and compiled channels must agree; no caller accepts this as proof.
+pub(crate) fn census_before(path: &str, current: &[u8]) -> Vec<u8> {
+    use sha2::{Digest, Sha256};
+    let digest = |bytes: &[u8]| format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)));
+    let encoded = include_str!("../cleanup_plan/replay/path_join/path_census_inverse.json");
+    let rows: serde_json::Value = serde_json::from_str(encoded).unwrap();
+    let Some(row) = rows["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["path"] == path)
+    else {
+        return current.to_vec();
+    };
+    assert_eq!(current.len() as u64, row["length"].as_u64().unwrap());
+    assert_eq!(digest(current), row["sha256"].as_str().unwrap());
+    let compiled: &[u8] = match path {
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs")).as_slice(),
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs")).as_slice(),
+        "scripts/diagnose-resolved-core.py" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/scripts/diagnose-resolved-core.py")).as_slice(),
+        "scripts/diagnose-resolved-core.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/scripts/diagnose-resolved-core.rs")).as_slice(),
+        "src/bounded_output.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/bounded_output.rs")).as_slice(),
+        "src/bounded_output/canonical_stage_tests.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/bounded_output/canonical_stage_tests.rs")).as_slice(),
+        "src/bounded_output/exclusive_debits.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/bounded_output/exclusive_debits.rs")).as_slice(),
+        "src/cleanup_plan/replay/lexical_replay.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/lexical_replay.rs")).as_slice(),
+        "src/cleanup_plan/replay/path_join.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join.rs")).as_slice(),
+        "src/cleanup_plan/replay/path_join/frontier.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/frontier.rs")).as_slice(),
+        "src/cleanup_plan/replay/path_join/frontier_tests.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/frontier_tests.rs")).as_slice(),
+        "src/cleanup_plan/replay/path_join/frontier_tests/custody.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/frontier_tests/custody.rs")).as_slice(),
+        "src/cleanup_plan/replay/path_join/selected/frontier.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/frontier.rs")).as_slice(),
+        "src/cleanup_plan/replay/path_join/selected/walk.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/walk.rs")).as_slice(),
+        "src/cleanup_plan/replay/scalar_replay.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/scalar_replay.rs")).as_slice(),
+        "src/source_reflows_merge/constructor_stage.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_reflows_merge/constructor_stage.rs")).as_slice(),
+        "src/workflow_profile/plan_comparison.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workflow_profile/plan_comparison.rs")).as_slice(),
+        "src/workspace_graph/shape_identity/source_controls.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/shape_identity/source_controls.rs")).as_slice(),
+        "tests/hir_module_boundaries.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/hir_module_boundaries.rs")).as_slice(),
+        "tests/workspace/semantic_graph/source_inventory.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/workspace/semantic_graph/source_inventory.rs")).as_slice(),
+        "src/bounded_output/request_reservation.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/bounded_output/request_reservation.rs")).as_slice(),
+        _ => panic!("undeclared census source"),
+    };
+    assert_eq!(current, compiled);
+    let mut bytes = current.to_vec();
+    for edit in row["edits"].as_array().unwrap().iter().rev() {
+        let start = edit[0].as_u64().unwrap() as usize;
+        let after = edit[1].as_str().unwrap().as_bytes();
+        assert_eq!(bytes.get(start..start + after.len()), Some(after));
+        bytes.splice(
+            start..start + after.len(),
+            edit[2].as_str().unwrap().bytes(),
+        );
+    }
+    assert_eq!(bytes.len() as u64, row["before_length"].as_u64().unwrap());
+    assert_eq!(digest(&bytes), row["before_sha256"].as_str().unwrap());
+    if path == "src/bounded_output/request_reservation.rs" {
+        assert_eq!(row["before_owner"], "src/bounded_output.rs");
+        let parent = census_before(
+            "src/bounded_output.rs",
+            include_bytes!("../bounded_output.rs"),
+        );
+        let start = row["before_start"].as_u64().unwrap() as usize;
+        let end = row["before_end"].as_u64().unwrap() as usize;
+        assert_eq!(parent.get(start..end), Some(bytes.as_slice()));
+    }
+    bytes
+}

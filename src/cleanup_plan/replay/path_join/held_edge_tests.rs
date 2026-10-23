@@ -168,9 +168,10 @@ fn whole_pre_inline_driver_helpers_and_original_direct_tests_are_retained_exactl
         serde_json::from_str(include_str!("held_edge_inverse.json")).unwrap();
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     for row in rows.as_array().unwrap() {
-        let mut actual = std::fs::read(root.join(row["path"].as_str().unwrap())).unwrap();
-        actual =
-            super::shared_insertions_tests::prior_source(row["path"].as_str().unwrap(), actual);
+        let path = row["path"].as_str().unwrap();
+        let mut actual =
+            crate::bounded_output::census_before(path, &std::fs::read(root.join(path)).unwrap());
+        actual = super::shared_insertions_tests::prior_source(path, actual);
         assert_eq!(actual.len() as u64, row["length"].as_u64().unwrap());
         assert_eq!(digest(&actual), row["sha256"].as_str().unwrap());
         for edit in row["edits"].as_array().unwrap().iter().rev() {
@@ -184,5 +185,28 @@ fn whole_pre_inline_driver_helpers_and_original_direct_tests_are_retained_exactl
         if let Some(path) = row["full_before"].as_str() {
             assert_eq!(actual, std::fs::read(root.join(path)).unwrap());
         }
+    }
+}
+
+#[test]
+fn feature_only_census_full_source_inverses_preserve_each_complete_immediate_owner() {
+    assert_eq!(
+        digest(include_bytes!("path_census_inverse.json")),
+        "01afde7a0c1a3c5b98ad8730abaf50d7ee61cb240d6cafee5eaedeb2b5fb5744"
+    );
+    let rows: serde_json::Value =
+        serde_json::from_str(include_str!("path_census_inverse.json")).unwrap();
+    assert_eq!(rows["base"], "82b5d3f2b8e33e625b6e5d002d37d244b5a71dd3");
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    for row in rows["rows"].as_array().unwrap() {
+        let path = row["path"].as_str().unwrap();
+        let current = std::fs::read(root.join(path)).unwrap();
+        crate::bounded_output::census_before(path, &current);
+        let mut drift = current.clone();
+        drift.push(0);
+        assert!(
+            std::panic::catch_unwind(|| crate::bounded_output::census_before(path, &drift))
+                .is_err()
+        );
     }
 }

@@ -92,7 +92,29 @@ def final_attempt(log):
     consumed = int(re.search(r" consumed=(\d+) ", detail[0]).group(1))
     for prefix in ("stage ", "operation "):
         assert sum(int(line.rsplit(": ", 1)[1]) for line in detail if line.startswith(prefix)) == consumed
+    families = [json.loads(line.removeprefix("path-census:"))
+                for line in detail if line.startswith("path-census:")]
+    assert [row["family"] for row in families] == ["residual", "ordinary", "selected"]
+    assert sum(row["debit_bytes"] for row in families) == consumed
+    for row in families:
+        assert row["schema"] == "semaprax.path-family-census.v1"
+        assert set(row) == set("schema family entries successes errors unwinds refusals requests requested_bytes admitted_requests admitted_bytes debits debit_bytes terminal_paths successful_paths events event_labels foreign_events descendant_requests descendant_requested_bytes descendant_admitted_requests descendant_admitted_bytes descendant_entries descendant_events physical_allocator_census".split())
+        for key, value in row.items():
+            if key not in {"schema", "family", "events", "event_labels", "descendant_events", "physical_allocator_census"}:
+                assert type(value) is int and value >= 0
+        assert row["entries"] == sum(row[key] for key in ("successes", "errors", "unwinds", "refusals"))
+        assert 0 <= row["admitted_requests"] <= row["requests"]
+        assert 0 <= row["admitted_bytes"] <= row["requested_bytes"]
+        assert row["foreign_events"] == 0 and row["physical_allocator_census"] is False
+        assert len(row["events"]) == len(row["event_labels"]) == 12
+        assert row["event_labels"] == ["body", "empty_publication", "one_promotion", "many_publication", "owned_box_formation", "held_box_transfer", "promotion", "equal_duplicate", "tree_insert_request", "incoming_empty", "incoming_one", "incoming_many"]
+        for key in ("requests", "requested_bytes", "admitted_requests", "admitted_bytes", "entries"):
+            assert 0 <= row["descendant_" + key] <= row[key]
+        assert len(row["descendant_events"]) == 12
+        assert all(type(n) is int and 0 <= n <= total for n, total in zip(row["descendant_events"], row["events"]))
+        assert all(type(n) is int and n >= 0 for n in row["events"])
     return {"ordinal": ordinal, "entered": entered, "stored": stored,
+            "path_family_request_and_source_event_census": families,
             "complete_exclusive_attempt_lines": detail}
 
 def product(path):

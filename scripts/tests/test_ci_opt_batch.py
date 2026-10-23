@@ -30,13 +30,69 @@ class FocusedBatch(unittest.TestCase):
             'profile': {'test': True}, 'executable': str(binary),
         }
 
-    def build_record(self, root, target, messages, exit_code=0, timed_out=False):
+    def build_record(self, root, target, messages, exit_code=0, timed_out=False, images=('lib',)):
         log = root / 'build.log'
         log.write_text(''.join(json.dumps(message) + '\n' for message in messages))
         command = {'label': 'build-lib', 'log': log.name,
                    'log_sha256': RUNNER['sha'](log), 'exit_code': exit_code,
                    'timed_out': timed_out}
-        return RUNNER['build_images'](log, command, ('lib',), root, target)['lib']
+        return RUNNER['build_images'](log, command, images, root, target)[images[0]]
+
+    def test_only_exact_failed_production_dependency_blocks_other_images(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); target = root / 'target/private'
+            diagnostic = {
+                'reason': 'compiler-message', 'manifest_path': str(root / 'Cargo.toml'),
+                'target': {'name': 'semaprax', 'kind': ['lib'],
+                           'src_path': str(root / 'src/lib.rs')},
+                'message': {'level': 'error', 'message': 'unresolved production import'},
+            }
+            def record(message, images=('owned_data',), code=101, timeout=False):
+                return self.build_record(root, target, [message, {
+                    'reason': 'build-finished', 'success': False}], code, timeout, images)
+            actual = record(diagnostic)
+            self.assertEqual(actual['status'], 'unavailable')
+            witness = actual['production_dependency_failure']
+            self.assertEqual(witness['diagnostics'], [diagnostic['message']])
+            self.assertEqual(witness['log_sha256'], RUNNER['sha'](root / 'build.log'))
+            for images, code, timeout in [(('lib',), 101, False),
+                                         (('lib', 'owned_data'), 101, False),
+                                         (('owned_data',), 0, False),
+                                         (('owned_data',), 101, True)]:
+                self.assertNotIn('production_dependency_failure',
+                                 record(diagnostic, images, code, timeout))
+            for replacement in [
+                {'manifest_path': str(root / 'other/Cargo.toml')},
+                {'target': {'name': 'owned_data', 'kind': ['test'],
+                            'src_path': str(root / 'tests/owned_data.rs')}},
+                {'message': {'level': 'warning', 'message': 'a warning'}},
+            ]:
+                self.assertNotIn('production_dependency_failure',
+                                 record({**diagnostic, **replacement}))
+
+    def test_failed_dependency_skips_redundant_builds_without_claiming_execution(self):
+        calls = []
+        witness = {'build': 'build-owned_data', 'log': 'build-owned_data.log',
+                   'log_sha256': 'a' * 64, 'diagnostics': [{'level': 'error'}]}
+        def build(group):
+            calls.append(group)
+            if group == ('lib',):
+                return {'lib': {'status': 'available'}}
+            self.assertEqual(group, ('owned_data',))
+            return {'owned_data': {'status': 'unavailable',
+                                   'production_dependency_failure': witness}}
+        images, attempts = RUNNER['collect_images'](
+            ('lib', 'owned_data', 'cli', 'project'), False, build)
+        self.assertEqual(calls, [('lib',), ('owned_data',)])
+        self.assertEqual([item['attempted'] for item in attempts], [True, True, False, False])
+        for name in ('cli', 'project'):
+            self.assertEqual(images[name]['status'], 'unavailable')
+            self.assertFalse(images[name]['attempted'])
+            self.assertIsNone(images[name]['build'])
+            self.assertEqual(images[name]['production_dependency_failure'], witness)
+            row = RUNNER['unavailable_filter']({'binary': name}, 0, images[name])
+            self.assertFalse(row['executed'])
+            self.assertIsNone(row['observed_test_count'])
 
     def test_failed_build_cannot_adopt_even_an_emitted_existing_binary(self):
         with tempfile.TemporaryDirectory() as directory:

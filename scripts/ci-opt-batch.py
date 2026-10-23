@@ -133,6 +133,7 @@ def build_images(log: Path, command: dict, images: tuple[str, ...],
     """A failed Cargo invocation grants no artifact, even if an old file exists."""
     artifacts: dict[str, list[Path]] = {image: [] for image in images}
     finished = []
+    production_errors = []
     with log.open() as stream:
         for line in stream:
             try:
@@ -145,6 +146,19 @@ def build_images(log: Path, command: dict, images: tuple[str, ...],
                 finished.append(message.get('success'))
             executable = message.get('executable')
             cargo_target = message.get('target', {})
+            # A lib-test error may be cfg(test)-only. An integration/bin-only
+            # invocation, however, compiles this exact library as a dependency.
+            # Preserve its real diagnostics rather than rebuilding the same
+            # failed dependency for every remaining owning image.
+            if ('lib' not in images and command.get('exit_code') not in (None, 0)
+                    and not command.get('timed_out')
+                    and message.get('reason') == 'compiler-message'
+                    and message.get('manifest_path') == str(root / 'Cargo.toml')
+                    and cargo_target.get('name') == 'semaprax'
+                    and cargo_target.get('kind') == ['lib']
+                    and cargo_target.get('src_path') == str(root / 'src/lib.rs')
+                    and message.get('message', {}).get('level') == 'error'):
+                production_errors.append(message['message'])
             if (message.get('reason') != 'compiler-artifact' or not executable
                     or not message.get('profile', {}).get('test')
                     or message.get('manifest_path') != str(root / 'Cargo.toml')):
@@ -168,6 +182,12 @@ def build_images(log: Path, command: dict, images: tuple[str, ...],
                 'emitted_candidates': [str(path) for path in artifacts[image]]}
         if not successful:
             item['error'] = 'Cargo failed, timed out, or lacked one successful build-finished event'
+            if production_errors:
+                item['production_dependency_failure'] = {
+                    'build': command['label'], 'log': command['log'],
+                    'log_sha256': command['log_sha256'],
+                    'diagnostics': production_errors,
+                }
         elif len(artifacts[image]) != 1:
             item['error'] = 'Cargo did not emit exactly one matching owning artifact'
         else:
@@ -186,11 +206,23 @@ def collect_images(images: tuple[str, ...], historical: bool, build_once) -> tup
     groups = [images] if historical else [(image,) for image in images]
     results = {}
     attempts = []
+    blocked = None
     while groups:
         group = groups.pop(0)
-        result = build_once(group)
-        attempts.append({'images': list(group), 'outcomes': result})
+        if blocked is None:
+            result = build_once(group)
+        else:
+            result = {image: {
+                'status': 'unavailable', 'build': None, 'attempted': False,
+                'error': 'not built: exact current production dependency already failed',
+                'production_dependency_failure': blocked,
+            } for image in group}
+        attempts.append({'images': list(group), 'attempted': blocked is None,
+                         'outcomes': result})
         results.update(result)
+        if blocked is None:
+            blocked = next((item['production_dependency_failure'] for item in result.values()
+                            if item.get('production_dependency_failure')), None)
         if historical and len(group) > 1 and any(
                 item['status'] != 'available' for item in result.values()):
             groups.extend((image,) for image in group)

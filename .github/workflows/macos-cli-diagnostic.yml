@@ -28,7 +28,7 @@ on:
         required: false
         default: false
       opt_batch_selection:
-        description: OPT profile (historical 50/153, next 65/171, language-followup 2/7, or closure 8/46); requires opt_batch
+        description: OPT profile (historical 50/153, next 65/171, language-followup 2/7, or closure 11/64); requires opt_batch
         type: choice
         required: false
         default: historical
@@ -398,7 +398,7 @@ jobs:
           retention-days: 1
 
   opt-batch:
-    name: Focused OPT qualification (${{ inputs.opt_batch_selection == 'closure' && '8 filters / 46 tests' || inputs.opt_batch_selection == 'language-followup' && '2 filters / 7 tests' || inputs.opt_batch_selection == 'next' && '65 filters / 171 tests' || '50 filters / 153 tests' }})
+    name: Focused OPT qualification (${{ inputs.opt_batch_selection == 'closure' && '11 filters / 64 tests' || inputs.opt_batch_selection == 'language-followup' && '2 filters / 7 tests' || inputs.opt_batch_selection == 'next' && '65 filters / 171 tests' || '50 filters / 153 tests' }})
     if: inputs.opt_batch
     runs-on: ubuntu-24.04
     timeout-minutes: 240

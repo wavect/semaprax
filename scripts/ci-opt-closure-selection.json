@@ -1,7 +1,7 @@
 {
   "schema": "semaprax.hosted-opt-batch-selection.v1",
-  "filters": 8,
-  "expected_tests": 46,
+  "filters": 11,
+  "expected_tests": 64,
   "commands": [
     {
       "owner": "OPT915 compact lexical receiving complete immediate-old caller",
@@ -58,6 +58,27 @@
       "filter": "cleanup_plan::replay::ordinary_plan_history::completed_fork::shipping::flat_admission::tests::",
       "exact": false,
       "expected_tests": 9
+    },
+    {
+      "owner": "OPT903 paid reachability release complete old constructor parity and cold Drop",
+      "binary": "lib",
+      "filter": "loan_plan::paid_plan::reachability_release_tests::",
+      "exact": false,
+      "expected_tests": 4
+    },
+    {
+      "owner": "OPT903 cold public validation allocation overlap without forecast discount",
+      "binary": "lib",
+      "filter": "workspace_graph::loan_retention::overlap_tests::",
+      "exact": false,
+      "expected_tests": 1
+    },
+    {
+      "owner": "allocation observer interval peaks and existing physical accounting invariants",
+      "binary": "lib",
+      "filter": "test_allocation_observer::tests::",
+      "exact": false,
+      "expected_tests": 13
     }
   ]
 }

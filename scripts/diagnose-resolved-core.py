@@ -95,11 +95,80 @@ def final_attempt(log):
     return {"ordinal": ordinal, "entered": entered, "stored": stored,
             "complete_exclusive_attempt_lines": detail}
 
+def product(path):
+    values = [line.removeprefix("product-json:") for line in path.read_text().splitlines()
+              if line.startswith("product-json:")]
+    assert len(values) == 1
+    json.loads(values[0])
+    return values[0]
+
+def application_capture(i, subject):
+    manifest = root / subject
+    log = out / f"subject-{i}.log"
+    baseline = out / f"subject-{i}-plain.log"
+    row = {"manifest": subject, "log": log.name, "plain_log": baseline.name, "errors": []}
+
+    def attempt(stage, action):
+        try:
+            return action()
+        except Exception as error:
+            detail = {"stage": stage, "type": type(error).__name__, "message": str(error)}
+            if isinstance(error, subprocess.CalledProcessError):
+                detail["process_exit_status"] = error.returncode
+            if isinstance(error, subprocess.TimeoutExpired):
+                detail["timeout_seconds"] = error.timeout
+            row["errors"].append(detail)
+            return None
+
+    before = attempt("declared_source_inventory_before", lambda: declared_sources(manifest))
+    if before is not None:
+        row["declared_manifest_and_module_sources"] = before
+        row["manifest_sha256"] = before[0]["sha256"]
+    for label, path, extra in (("plain", baseline, ["plain"]), ("observed", log, [])):
+        def run_capture():
+            with path.open("w") as stream:
+                return subprocess.run([str(binary), str(manifest), *extra], stdout=stream,
+                                      stderr=subprocess.STDOUT, timeout=240, check=True).returncode
+        status = attempt(label + "_process", run_capture)
+        row[label + "_process_exit_status"] = status
+        if path.exists():
+            row["plain_log_sha256" if label == "plain" else "log_sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+    plain = attempt("plain_product", lambda: product(baseline))
+    observed = attempt("observed_product", lambda: product(log))
+    if plain is not None and observed is not None:
+        row["complete_products_equal"] = plain == observed
+        def require_equality():
+            assert plain == observed, "observer changed complete diagnostic bytes"
+        attempt("complete_product_equality", require_equality)
+    if observed is not None:
+        def record_product():
+            actual = json.loads(observed)
+            assert set(actual) == {"ok", "diagnostics"}
+            assert type(actual["ok"]) is bool and isinstance(actual["diagnostics"], list)
+            row.update(complete_product_sha256=hashlib.sha256(observed.encode()).hexdigest(),
+                       accepted=actual["ok"], product_status="accepted" if actual["ok"] else "rejected",
+                       complete_product=actual)
+        attempt("observed_product_schema", record_product)
+    census = attempt("final_exclusive_attempt", lambda: final_attempt(log))
+    row["final_exclusive_attempt_available"] = census is not None
+    if census is not None:
+        row["final_exclusive_attempt"] = census
+    after = attempt("declared_source_inventory_after", lambda: declared_sources(manifest))
+    if before is not None and after is not None:
+        def require_same_sources():
+            assert before == after, "application authored source drift"
+        attempt("declared_source_equality", require_same_sources)
+    if log.exists():
+        attempt("print_observed_log", lambda: print(log.read_text(), flush=True))
+    row["capture_complete"] = not row["errors"]
+    return row
+
 rows = []
 for i, subject in enumerate(subjects):
-    manifest = root / subject
     if args.applications:
-        before_sources = declared_sources(manifest)
+        rows.append(application_capture(i, subject))
+        continue
+    manifest = root / subject
     log = out / f"subject-{i}.log"
     baseline = out / f"subject-{i}-plain.log"
     with baseline.open("w") as stream:
@@ -108,29 +177,10 @@ for i, subject in enumerate(subjects):
     with log.open("w") as stream:
         subprocess.run([str(binary), str(manifest)], stdout=stream, stderr=subprocess.STDOUT,
                        timeout=240, check=True)
-    def product(path):
-        values = [line.removeprefix("product-json:") for line in path.read_text().splitlines()
-                  if line.startswith("product-json:")]
-        assert len(values) == 1
-        json.loads(values[0])
-        return values[0]
     assert product(log) == product(baseline), "observer changed complete diagnostic bytes"
     print(log.read_text(), flush=True)
     rows.append({"manifest": subject, "manifest_sha256": hashlib.sha256(manifest.read_bytes()).hexdigest(),
                  "log": log.name, "log_sha256": hashlib.sha256(log.read_bytes()).hexdigest()})
-    if args.applications:
-        assert declared_sources(manifest) == before_sources, "application authored source drift"
-        actual_product = json.loads(product(log))
-        assert set(actual_product) == {"ok", "diagnostics"}
-        assert type(actual_product["ok"]) is bool and isinstance(actual_product["diagnostics"], list)
-        rows[-1].update(declared_manifest_and_module_sources=before_sources,
-                        plain_log=baseline.name,
-                        plain_log_sha256=hashlib.sha256(baseline.read_bytes()).hexdigest(),
-                        complete_product_sha256=hashlib.sha256(product(log).encode()).hexdigest(),
-                        accepted=actual_product["ok"],
-                        product_status="accepted" if actual_product["ok"] else "rejected",
-                        complete_product=actual_product,
-                        final_exclusive_attempt=final_attempt(log))
 subprocess.run(["git", "diff", "--exit-code"], check=True)
 def digest(path):
     value = hashlib.sha256()
@@ -148,5 +198,8 @@ if args.applications:
     provenance.update(schema="semaprax.resolved-core-application-census.v1",
                       tree=subprocess.check_output(["git", "rev-parse", "HEAD^{tree}"], text=True).strip(),
                       profile="applications", original_caps_unchanged=True,
+                      all_captures_complete=all(row["capture_complete"] for row in rows),
                       application_execution_or_cli49_acceptance_proven=False)
 (out / "provenance.json").write_text(json.dumps(provenance, indent=2) + "\n")
+if args.applications and not provenance["all_captures_complete"]:
+    raise SystemExit(1)

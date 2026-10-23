@@ -1,0 +1,192 @@
+{
+  "schema": "semaprax.opt904-paired-observation-runner.v1",
+  "rust": "1.97.1",
+  "origins": [
+    "git@github.com:wavect/semaprax.git",
+    "https://github.com/wavect/semaprax.git",
+    "https://github.com/wavect/semaprax"
+  ],
+  "selector": "hir::validation::lexical_exit::matched_observation::",
+  "fixtures": 11,
+  "records_per_image": 66,
+  "environment": {
+    "CARGO_BUILD_JOBS": "1",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_NET_OFFLINE": "true",
+    "RUST_TEST_THREADS": "1",
+    "RUSTFLAGS": "-C debuginfo=0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CARGO_PROFILE_DEV_OPT_LEVEL": "0",
+    "CARGO_PROFILE_TEST_OPT_LEVEL": "0"
+  },
+  "old_later_borrowed_witness_runtime_suite_qualified": false,
+  "application_admission_proven": false,
+  "opt904_only_total_invoice_savings_proven": false,
+  "old_source_proof": {
+    "path": "src/hir/validation.rs",
+    "bytes": 399157,
+    "sha256": "85a730c701db6b3031fecd84499aa1f2dff5f5c07d0498612bdcd1284dd0b271",
+    "driver": {
+      "start": 82232,
+      "end": 267376,
+      "lines": 3790,
+      "sha256": "295cce0ada0c10802c08fb0bc6a2f88bc28d150c38015b046330937ec043f063"
+    },
+    "frame": {
+      "start": 82595,
+      "end": 95691,
+      "lines": 335,
+      "sha256": "0753b0a149b4e3f1f235037be0a664efffa6002d1308230311046a2e71b4c3b3"
+    },
+    "observer_inverse": "src/hir/validation/lexical_exit/matched_observation.json"
+  },
+  "images": [
+    {
+      "name": "old",
+      "base": "8446e3a1794ede157a336cbe1969cfab3aac30ab",
+      "base_tree": "274b1018cccccd7102175c9b8efb8642c241d1ca",
+      "public_base_url": "https://github.com/wavect/semaprax/commit/8446e3a1794ede157a336cbe1969cfab3aac30ab",
+      "observation_commit": "cc5c97cee18c390e569f371abaababe4ab089c9d",
+      "record_base": "9a5cc397b1660606bce94b468b0f917ca0d6d5c0",
+      "patched_tree": "eca528825c8c6362b76aedf646b6738935a4aa58",
+      "tests": 3,
+      "patch": {
+        "path": "old.patch",
+        "bytes": 554394,
+        "sha256": "367ccb2712802c236bb4820d07b105382e0d8ecd8cc70097483385214f9a241b"
+      },
+      "sources": [
+        {
+          "path": "src/hir/validation.rs",
+          "bytes": 399301,
+          "sha256": "144d7ee74039dea42f4af38e989504951f6d8cb2f5103352ac1fe60384194bf5"
+        },
+        {
+          "path": "src/hir/validation/lexical_exit.rs",
+          "bytes": 36284,
+          "sha256": "af2f4c5ede90e2b2336f828395bc3e9e07a3e781616b3dac948e520a8214f3d9"
+        },
+        {
+          "path": "src/hir/validation/lexical_exit/matched_observation.json",
+          "bytes": 2697,
+          "sha256": "7329c0558facc0ba6381b83dcbaca42f1f700e1fa03c87ee14443e69af7933e7"
+        },
+        {
+          "path": "src/hir/validation/lexical_exit/matched_observation.rs",
+          "bytes": 19762,
+          "sha256": "7ba141e14be0a2ccd51565317ae03b247c6fc6dd29edcdd9544f1082ec28ad8b"
+        },
+        {
+          "path": "src/hir/validation/lexical_exit/matched_observation_lexical_before.rs.txt",
+          "bytes": 36104,
+          "sha256": "0e0d4d5aaf09380e74d2440873a3c4f1a5312e68b6d261336826f31028f2fc3a"
+        },
+        {
+          "path": "src/hir/validation/lexical_exit/matched_observation_original_root.rs.txt",
+          "bytes": 399157,
+          "sha256": "85a730c701db6b3031fecd84499aa1f2dff5f5c07d0498612bdcd1284dd0b271"
+        },
+        {
+          "path": "src/hir/validation/lexical_exit/matched_observation_original_storage.rs.txt",
+          "bytes": 4073,
+          "sha256": "b6bdc77ba0bbacf17d7481a0cf5028ed17c795e5f44b361079fc4d1d31e6d64f"
+        },
+        {
+          "path": "src/hir/validation/match_witness_inverse.json",
+          "bytes": 46833,
+          "sha256": "5b48866bca9c4d73f8e0438dd76fe019dce4a81b729413b71f50987407d664c5"
+        },
+        {
+          "path": "src/hir/validation/scope_checkpoint/storage.rs",
+          "bytes": 4258,
+          "sha256": "266cf3d058566e4b0234b4af734c5b8bd72bfa34abb169675cec213cceb0202b"
+        }
+      ],
+      "record_bindings": {
+        "observation_source_sha256": "7ba141e14be0a2ccd51565317ae03b247c6fc6dd29edcdd9544f1082ec28ad8b",
+        "source_binding_sha256": "7329c0558facc0ba6381b83dcbaca42f1f700e1fa03c87ee14443e69af7933e7",
+        "compiled_primary_source_sha256": "144d7ee74039dea42f4af38e989504951f6d8cb2f5103352ac1fe60384194bf5",
+        "compiled_storage_source_sha256": "266cf3d058566e4b0234b4af734c5b8bd72bfa34abb169675cec213cceb0202b",
+        "no_clone_payload_credit": true,
+        "observation_overhead_is_test_only": true,
+        "intervening_changes_preclude_opt904_only_total_invoice_credit": true,
+        "scope": "cold hir::resolve + second hir::validate + complete owned Drop",
+        "graph_scope": "separate accepted resolved-program graph after all six measured runs"
+      }
+    },
+    {
+      "name": "current",
+      "base": "1fc1dc11f113b995ceaa971dcf3c9d2bcca1aeb5",
+      "base_tree": "597bc4836957bf5197574ac26c5bb7ae8287a619",
+      "public_base_url": "https://github.com/wavect/semaprax/commit/1fc1dc11f113b995ceaa971dcf3c9d2bcca1aeb5",
+      "observation_commit": "c6ce7a26b2c822a0a9d7f5274190709b4555ddd4",
+      "record_base": "1fc1dc11f113b995ceaa971dcf3c9d2bcca1aeb5",
+      "patched_tree": "c7daaf3be6a3607261725b229af187fcbaf5e782",
+      "tests": 2,
+      "patch": {
+        "path": "current.patch",
+        "bytes": 86700,
+        "sha256": "f8f1b86c521747c27136d803b30729062db7a2121b9f4dd26be389f1ea7eda1a"
+      },
+      "sources": [
+        {
+          "path": "src/hir/validation.rs",
+          "bytes": 402658,
+          "sha256": "eb94eb5416ff01aa4cbbeeb00cb5151be862d04be2d6879a98be021ccf6dc59a"
+        },
+        {
+          "path": "src/hir/validation/continuation_frame.rs",
+          "bytes": 10227,
+          "sha256": "90697bfe244ed26e53921f87406726708e44293073c130edfbd7c431e3f89fa7"
+        },
+        {
+          "path": "src/hir/validation/frame_reuse/source_inverse.rs",
+          "bytes": 10140,
+          "sha256": "490a85f077ebae277ac4885b19d56b62c35efbe3a8605ea8636e792290037b20"
+        },
+        {
+          "path": "src/hir/validation/lexical_exit.rs",
+          "bytes": 47437,
+          "sha256": "832f92a3f157e345ac119dd60a4f1fa3961c5e1c0739ac841501dbf57f10e911"
+        },
+        {
+          "path": "src/hir/validation/lexical_exit/matched_observation.json",
+          "bytes": 4123,
+          "sha256": "6ebe1ca7a582db7f317f06f70bb2a0c667bccce72899b5a4550c4958918b49c3"
+        },
+        {
+          "path": "src/hir/validation/lexical_exit/matched_observation.rs",
+          "bytes": 19459,
+          "sha256": "27c5f4c6b5345e2ba41d0246d0214704fc218ed5bf6aa1afd98191ab12de5ec4"
+        },
+        {
+          "path": "src/hir/validation/lexical_exit/matched_observation_lexical_before.rs.txt",
+          "bytes": 47202,
+          "sha256": "ed95841d0c0bb977e8120046a0182ff2dcef8731f443d0d1c17af2233ce15bc4"
+        },
+        {
+          "path": "src/hir/validation/lexical_exit/matched_observation_source_inverse_before.rs.txt",
+          "bytes": 9708,
+          "sha256": "4432050d6538ee4469137dc7f147256591d256c569f1e49a0727e6a223fe7f38"
+        },
+        {
+          "path": "src/hir/validation/scope_checkpoint/storage.rs",
+          "bytes": 4258,
+          "sha256": "266cf3d058566e4b0234b4af734c5b8bd72bfa34abb169675cec213cceb0202b"
+        }
+      ],
+      "record_bindings": {
+        "observation_source_sha256": "27c5f4c6b5345e2ba41d0246d0214704fc218ed5bf6aa1afd98191ab12de5ec4",
+        "source_binding_sha256": "6ebe1ca7a582db7f317f06f70bb2a0c667bccce72899b5a4550c4958918b49c3",
+        "compiled_primary_source_sha256": "eb94eb5416ff01aa4cbbeeb00cb5151be862d04be2d6879a98be021ccf6dc59a",
+        "compiled_storage_source_sha256": "266cf3d058566e4b0234b4af734c5b8bd72bfa34abb169675cec213cceb0202b",
+        "no_clone_payload_credit": true,
+        "observation_overhead_is_test_only": true,
+        "intervening_changes_preclude_opt904_only_total_invoice_credit": true,
+        "scope": "cold hir::resolve + second hir::validate + complete owned Drop",
+        "graph_scope": "separate accepted resolved-program graph after all six measured runs"
+      }
+    }
+  ]
+}

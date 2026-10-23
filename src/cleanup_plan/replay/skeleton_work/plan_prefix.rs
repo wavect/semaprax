@@ -158,7 +158,7 @@ pub(in crate::cleanup_plan::replay) fn scratch(
         next_ordinal: 0,
     })))
 }
-pub(in crate::cleanup_plan::replay) fn push(
+pub(in crate::cleanup_plan::replay) fn push_suffix(
     budget: &mut ReplayBudget,
     function: &ResolvedFunction,
     target: &mut History,
@@ -198,7 +198,7 @@ macro_rules! push {
             $crate::cleanup_plan::replay::skeleton_work::plan_prefix::FREEZE_CONTROLS,
             "PLAN mutable suffix receiving",
         )?;
-        $crate::cleanup_plan::replay::skeleton_work::plan_prefix::push(
+        $crate::cleanup_plan::replay::skeleton_work::plan_prefix::push_suffix(
             $budget, $function, $target, $value, $phase,
         )
     }};

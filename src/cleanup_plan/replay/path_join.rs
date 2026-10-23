@@ -22,6 +22,14 @@ mod frontier;
 #[cfg(test)]
 mod frontier_tests;
 #[cfg(test)]
+#[allow(
+    dead_code,
+    reason = "complete independently compiled pre-inline receiving producers"
+)]
+mod held_edge_before;
+#[cfg(test)]
+mod held_edge_tests;
+#[cfg(test)]
 mod receiver_tests;
 pub(super) mod storage;
 
@@ -192,7 +200,11 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
     let mut branch_joins = branch_join::BranchJoins::default();
 
     while let Some(block_id) = queue.pop_front() {
-        boxed_flow::reserve_block(function, budget)?;
+        budget.reserve_bytes(
+            function,
+            boxed_flow::BLOCK_CONTROLS,
+            "ordinary frontier block and singleton receiving",
+        )?;
         let states = std::mem::take(&mut incoming[block_id.0 as usize]);
         if states.is_empty() {
             return Err(replay_error(
@@ -239,7 +251,13 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                 )
                 .into());
             }
-            boxed_flow::validate_singleton(function, states.one(), block_id, budget)?;
+            validate_join_compatibility(
+                function,
+                std::iter::empty(),
+                states.one().as_ref(),
+                block_id,
+                budget,
+            )?;
             // The validated singleton already owns the complete joined fields.
             // Consume it once; neither original vector nor any nested identity
             // is cloned, replaced from a clone, or temporarily reinitialized.
@@ -281,13 +299,7 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                 CleanupTerminator::Goto(edge) => {
                     require_normal_flow_state(function, &state, block_id)?;
                     let edge = &plan.edges[edge.0 as usize];
-                    let state = boxed_flow::state_for_edge(
-                        function,
-                        state,
-                        &edge.condition,
-                        &contract_sources,
-                        budget,
-                    )?;
+                    boxed_flow::held_edge!(function, state, &edge.condition, contract_sources);
                     incoming_insertions.insert_held(
                         function,
                         &mut incoming[edge.to.0 as usize],
@@ -367,13 +379,8 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                             renewal::retained_units(&state),
                             "renewal branch history clone",
                         )?;
-                        let next = boxed_flow::state_for_edge(
-                            function,
-                            state,
-                            &edge.condition,
-                            &contract_sources,
-                            budget,
-                        )?;
+                        boxed_flow::held_edge!(function, state, &edge.condition, contract_sources);
+                        let next = state;
                         if let Some(auth) = lexical {
                             lexical_flow::capture_loop_entry(
                                 function,
@@ -587,7 +594,11 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
         }
         let block = &plan.blocks[block_id.0 as usize];
         for states in groups.into_values() {
-            boxed_flow::reserve_block(function, budget)?;
+            budget.reserve_bytes(
+                function,
+                boxed_flow::BLOCK_CONTROLS,
+                "ordinary frontier block and singleton receiving",
+            )?;
             // An owning break's fragment rejoins its wrapper's parent: every
             // incoming state must agree exactly, with no ownership or history
             // repair by the generic join below.
@@ -642,13 +653,7 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                 CleanupTerminator::Goto(edge) => {
                     require_normal_flow_state(function, &state, block_id)?;
                     let edge = &plan.edges[edge.0 as usize];
-                    let state = boxed_flow::state_for_edge(
-                        function,
-                        state,
-                        &edge.condition,
-                        &contract_sources,
-                        budget,
-                    )?;
+                    boxed_flow::held_edge!(function, state, &edge.condition, contract_sources);
                     incoming_insertions.insert_held(
                         function,
                         &mut incoming[edge.to.0 as usize],
@@ -728,13 +733,8 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                             renewal::retained_units(&state),
                             "renewal branch history clone",
                         )?;
-                        let next = boxed_flow::state_for_edge(
-                            function,
-                            state,
-                            &edge.condition,
-                            &contract_sources,
-                            budget,
-                        )?;
+                        boxed_flow::held_edge!(function, state, &edge.condition, contract_sources);
+                        let next = state;
                         if let Some(auth) = lexical {
                             lexical_flow::capture_loop_entry(
                                 function,

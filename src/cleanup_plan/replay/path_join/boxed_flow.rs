@@ -10,15 +10,19 @@ pub(super) fn reserve_directory(
     count: usize,
     budget: &mut ReplayBudget,
 ) -> Result<(), Diagnostic> {
-    budget.reserve_array::<(
-        &ResolvedFunction,
-        usize,
-        &mut ReplayBudget,
-        Result<(), Diagnostic>,
-        Vec<frontier::Incoming<PathState>>,
-        &mut Vec<frontier::Incoming<PathState>>,
-        fn() -> frontier::Incoming<PathState>,
-    )>(function, 1, "ordinary frontier directory receiving")?;
+    budget.reserve_bytes(
+        function,
+        size_of::<(
+            &ResolvedFunction,
+            usize,
+            &mut ReplayBudget,
+            Result<(), Diagnostic>,
+            Vec<frontier::Incoming<PathState>>,
+            &mut Vec<frontier::Incoming<PathState>>,
+            fn() -> frontier::Incoming<PathState>,
+        )>() + HELD_EDGE_TERMINAL,
+        "ordinary frontier directory receiving",
+    )?;
     budget.reserve_array::<(
         frontier::Incoming<PathState>,
         frontier::Incoming<PathState>,
@@ -31,15 +35,9 @@ pub(super) fn reserve_directory(
     )
 }
 
-pub(super) fn reserve_block(
-    function: &ResolvedFunction,
-    budget: &mut ReplayBudget,
-) -> Result<(), Diagnostic> {
-    // Charge every dynamic control group as well as the outer block. The
-    // single incoming branch uses its block bank; a Many group pays again.
-    budget.reserve_bytes(
-        function,
-        4 * size_of::<frontier::Incoming<PathState>>()
+// Direct lexical producers remove the two forwarding Result wrappers and
+// owned Box/Result<Box> edge boundary; every other original bank is retained.
+pub(super) const BLOCK_CONTROLS: usize = 4 * size_of::<frontier::Incoming<PathState>>()
             + 3 * size_of::<frontier::Iter<'_, PathState>>()
             // Only Empty/One uses the frontier iterator in the join fold.
             // Pay both next calls, including exhaustion, and each forwarded
@@ -54,7 +52,6 @@ pub(super) fn reserve_block(
             + 8 * size_of::<Box<PathState>>()
             + 6 * size_of::<&Box<PathState>>()
             + 4 * size_of::<&PathState>()
-            + 2 * size_of::<Result<(), Diagnostic>>()
             + 2 * size_of::<&ResolvedFunction>()
             + 2 * size_of::<&mut ReplayBudget>()
             + 4 * size_of::<usize>()
@@ -63,66 +60,49 @@ pub(super) fn reserve_block(
             + size_of::<BlockId>()
             + size_of::<(
                 &ResolvedFunction,
-                Box<PathState>,
                 &EdgeCondition,
                 &BTreeMap<ExpressionId, StatusSourceId>,
                 &mut ReplayBudget,
-                Result<Box<PathState>, Diagnostic>,
                 &ExpressionId,
                 &StatusSourceId,
                 StatusSourceId,
                 Option<&StatusSourceId>,
                 bool,
-            )>(),
-        "ordinary frontier block and singleton receiving",
-    )
-}
+            )>();
 
-pub(super) fn state_for_edge(
-    function: &ResolvedFunction,
-    mut state: Box<PathState>,
-    condition: &EdgeCondition,
-    contract_sources: &BTreeMap<ExpressionId, StatusSourceId>,
-    budget: &mut ReplayBudget,
-) -> Result<Box<PathState>, Diagnostic> {
-    // The owning block/group bank precedes formation of this call and its
-    // Box argument. A refused edge drops that same allocation.
-    let _ = budget;
-    if state.pending_failure.is_some() || state.selected_failure.is_some() || state.published {
-        return Err(replay_error(
-            function,
-            "conditional edge follows pending, selected, or published state",
-        ));
-    }
-    match condition {
-        EdgeCondition::Always => {}
-        EdgeCondition::BooleanResult(expression, false) => {
-            if let Some(source) = contract_sources.get(expression) {
-                state.pending_failure = Some(source.clone());
+// One terminal local Diagnostic and its conversion operand, plus the actual
+// and formal Box of explicit drop before converting the selected error.
+pub(super) const HELD_EDGE_TERMINAL: usize =
+    2 * size_of::<Diagnostic>() + 2 * size_of::<Box<PathState>>();
+
+macro_rules! held_edge {
+    ($function:expr, $state:ident, $condition:expr, $sources:ident) => {{
+        if $state.pending_failure.is_some() || $state.selected_failure.is_some() || $state.published
+        {
+            let error = replay_error(
+                $function,
+                "conditional edge follows pending, selected, or published state",
+            );
+            // The removed callee dropped its owned Box before returning its
+            // Diagnostic to the caller for E conversion. Keep that exact order.
+            drop($state);
+            return Err(error.into());
+        }
+        match $condition {
+            EdgeCondition::Always => {}
+            EdgeCondition::BooleanResult(expression, false) => {
+                if let Some(source) = $sources.get(expression) {
+                    $state.pending_failure = Some(source.clone());
+                }
+            }
+            EdgeCondition::BooleanResult(_, true)
+            | EdgeCondition::VariantCase { .. }
+            | EdgeCondition::ArmSelected { .. }
+            | EdgeCondition::StatusZero(_) => {}
+            EdgeCondition::StatusNonzero(source) => {
+                $state.pending_failure = Some(source.clone());
             }
         }
-        EdgeCondition::BooleanResult(_, true)
-        | EdgeCondition::VariantCase { .. }
-        | EdgeCondition::ArmSelected { .. }
-        | EdgeCondition::StatusZero(_) => {}
-        EdgeCondition::StatusNonzero(source) => {
-            state.pending_failure = Some(source.clone());
-        }
-    }
-    Ok(state)
+    }};
 }
-
-#[allow(
-    clippy::borrowed_box,
-    reason = "validate the exact retained Box without rebuilding a tree"
-)]
-pub(super) fn validate_singleton(
-    function: &ResolvedFunction,
-    state: &Box<PathState>,
-    block: BlockId,
-    budget: &mut ReplayBudget,
-) -> Result<(), Diagnostic> {
-    // The complete original validator sees precisely the empty sorted prefix
-    // of the singleton. It still validates the history union and every field.
-    validate_join_compatibility(function, std::iter::empty(), state.as_ref(), block, budget)
-}
+pub(super) use held_edge;

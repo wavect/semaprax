@@ -1,6 +1,8 @@
 //! Compact storage controls; every measurement includes the final owning Drop.
 use super::frontier::{Incoming, Insertions};
 use super::*;
+// Keep every original direct helper control against its complete old producer.
+use super::held_edge_before as boxed_flow;
 use crate::bounded_output::{
     active_remaining, reserve_active_required, set_active_floor, with_limit_usage_refusal,
 };

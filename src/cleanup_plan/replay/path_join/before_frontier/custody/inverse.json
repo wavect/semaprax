@@ -1,0 +1,151 @@
+[
+  {
+    "compiled": "src/cleanup_plan/replay/path_join/before_frontier/boxed_states.rs",
+    "before": "src/cleanup_plan/replay/path_join/before_frontier/custody/boxed_states.rs.txt",
+    "sha256": "1cb644157ccf8246f6a81011d0dd099a64f1809cffae15bb3e993c1d64eb93c5",
+    "inverse": [
+      [
+        78,
+        "use crate::cleanup_plan::replay::physical_storage::btree_node_upper;\n",
+        "use super::super::physical_storage::btree_node_upper;\n"
+      ],
+      [
+        7076,
+        "",
+        "#[cfg(test)]\n#[path = \"boxed_states/before.rs\"]\nmod before;\n#[cfg(test)]\nuse before::{insert_held, insert_owned};\n#[cfg(test)]\n#[path = \"boxed_states/receiving_tests.rs\"]\nmod receiving_tests;\n#[cfg(test)]\nmod tests;\n"
+      ]
+    ]
+  },
+  {
+    "compiled": "src/cleanup_plan/replay/path_join/before_frontier/branch_join.rs",
+    "before": "src/cleanup_plan/replay/path_join/before_frontier/custody/branch_join.rs.txt",
+    "sha256": "d3633b8f9fd25ed9036c7387541961e94147743613423e2f945051be3c434a54",
+    "inverse": [
+      [
+        10801,
+        "\n",
+        "#[cfg(test)]\nmod tests;\n"
+      ]
+    ]
+  },
+  {
+    "compiled": "src/cleanup_plan/replay/path_join/before_frontier/mod.rs",
+    "before": "src/cleanup_plan/replay/path_join/before_frontier/custody/mod.rs.txt",
+    "sha256": "ee3c7311af04a3e88e4e795a654b6b0a09a3812c8b6328ddc2116e08802a63a4",
+    "inverse": [
+      [
+        114,
+        "",
+        "#[cfg(test)]\n#[allow(dead_code, reason = \"complete original path-state replay receiver\")]\nmod before;\n#[cfg(test)]\n#[allow(dead_code, reason = \"complete MAIN019d callback receiver\")]\n#[path = \"path_join/before_receiving.rs\"]\nmod before_receiving;\n"
+      ],
+      [
+        149,
+        "mod storage;\nmod transition;\nuse transition::{\n    append_dead_flags, execute_replay_transition, replay_exit, require_normal_flow_state,\n    state_for_edge, ExitFlow,\n};\n",
+        "#[cfg(test)]\nmod receiver_tests;\npub(super) mod storage;\n\n"
+      ],
+      [
+        49385,
+        "// Test entry to the complete independently compiled edge receiver.\npub(super) fn edge_before(\n    function: &ResolvedFunction,\n    state: PathState,\n    condition: &EdgeCondition,\n    contract_sources: &BTreeMap<ExpressionId, StatusSourceId>,\n) -> Result<PathState, Diagnostic> {\n    transition::state_for_edge(function, state, condition, contract_sources)\n}\n",
+        "#[cfg(test)]\nmod before_singleton;\n#[cfg(test)]\nmod singleton_tests;\n"
+      ],
+      [
+        49746,
+        "pub(super) fn validate_group_before(\n    function: &ResolvedFunction,\n    states: &BTreeSet<Box<PathState>>,\n    block: BlockId,\n    budget: &mut ReplayBudget,\n) -> Result<(), Diagnostic> {\n    validate_control_group_with_budget(function, states, block, budget)\n}\npub(super) fn join_before(\n    program: &dyn crate::cleanup::ReplayContext,\n    function: &ResolvedFunction,\n    states: &BTreeSet<Box<PathState>>,\n    budget: &mut ReplayBudget,\n) -> Result<(Vec<LivenessFlagId>, Vec<ReplayConditionalVariant>), Diagnostic> {\n    joined_ownership_state(program, function, states, budget)\n}\n",
+        "#[cfg(test)]\n#[path = \"path_join/main_single_groups/mod.rs\"]\nmod main_single_groups;\n\n#[cfg(test)]\nmod before_state_move;\n#[cfg(test)]\nmod state_move_tests;\n\n#[cfg(test)]\nmod before_final_edge;\n#[cfg(test)]\nmod final_edge_tests;\n\n#[cfg(test)]\n#[allow(dead_code, reason = \"complete immediate old path boundary receiver\")]\npub(in crate::cleanup_plan::replay) mod before_path_boundary;\n\npub(in crate::cleanup_plan::replay) mod selected;\n"
+      ]
+    ]
+  },
+  {
+    "compiled": "src/cleanup_plan/replay/path_join/before_frontier/storage/atomic_controls.rs",
+    "before": "src/cleanup_plan/replay/path_join/before_frontier/custody/storage__atomic_controls.rs.txt",
+    "sha256": "81d09f6b20ab45c49948e5282f56dcd9842cc1eac7740b263ddd2646e194e9c7",
+    "inverse": [
+      [
+        2719,
+        "\n",
+        "#[cfg(test)]\nmod tests;\n"
+      ]
+    ]
+  },
+  {
+    "compiled": "src/cleanup_plan/replay/path_join/before_frontier/storage/empty_renewals.rs",
+    "before": "src/cleanup_plan/replay/path_join/before_frontier/custody/storage__empty_renewals.rs.txt",
+    "sha256": "b65045d69e6727f782183ba1f30cebf976b431a8ef34c4af6ed410e857a82d59",
+    "inverse": [
+      [
+        5188,
+        "\n",
+        "#[cfg(test)]\npub(super) mod tests;\n"
+      ]
+    ]
+  },
+  {
+    "compiled": "src/cleanup_plan/replay/path_join/before_frontier/storage.rs",
+    "before": "src/cleanup_plan/replay/path_join/before_frontier/custody/storage.rs.txt",
+    "sha256": "671900b2a5b62cba38ad34777f69d8f7fa2169bacac174a4237e1a24fbaf07c5",
+    "inverse": [
+      [
+        3742,
+        "    let node = crate::cleanup_plan::replay::physical_storage::btree_node_upper::<\n",
+        "    let node = super::super::physical_storage::btree_node_upper::<\n"
+      ],
+      [
+        4934,
+        "        crate::cleanup_plan::replay::physical_storage::btree_node_upper::<K, V>().unwrap_or(usize::MAX),\n",
+        "        super::super::physical_storage::btree_node_upper::<K, V>().unwrap_or(usize::MAX),\n"
+      ],
+      [
+        8847,
+        "        return crate::cleanup_plan::replay::validate_place(function, place, known, leaves);\n",
+        "        return super::super::validate_place(function, place, known, leaves);\n"
+      ],
+      [
+        8981,
+        "        return crate::cleanup_plan::replay::validate_place(function, place, known, leaves);\n",
+        "        return super::super::validate_place(function, place, known, leaves);\n"
+      ],
+      [
+        9079,
+        "    let matches = |leaf: &crate::cleanup_plan::replay::Leaf| {\n",
+        "    let matches = |leaf: &super::super::Leaf| {\n"
+      ],
+      [
+        11045,
+        "        let root = crate::cleanup_plan::replay::physical_storage::btree_node_upper::<\n",
+        "        let root = super::super::super::physical_storage::btree_node_upper::<\n"
+      ],
+      [
+        11157,
+        "            crate::cleanup_plan::renewal_history::RenewalHistory,\n",
+        "            super::super::super::super::renewal_history::RenewalHistory,\n"
+      ],
+      [
+        11384,
+        "        let history = crate::cleanup_plan::renewal_history::RenewalHistory::new(\n",
+        "        let history = super::super::super::super::renewal_history::RenewalHistory::new(\n"
+      ],
+      [
+        14376,
+        "            crate::cleanup_plan::replay::physical_storage::PhysicalReservation::new(bytes),\n",
+        "            super::super::super::physical_storage::PhysicalReservation::new(bytes),\n"
+      ],
+      [
+        14815,
+        "            crate::cleanup_plan::replay::physical_storage::PhysicalReservation::new(bytes - 1),\n",
+        "            super::super::super::physical_storage::PhysicalReservation::new(bytes - 1),\n"
+      ]
+    ]
+  },
+  {
+    "compiled": "src/cleanup_plan/replay/path_join/before_frontier/tests.rs",
+    "before": "src/cleanup_plan/replay/path_join/before_frontier/custody/tests.rs.txt",
+    "sha256": "d7841a842bf900a756905b56623fca40766ae1c3344bfb1dc4e1f86efe396df0",
+    "inverse": []
+  },
+  {
+    "compiled": "src/cleanup_plan/replay/path_join/before_frontier/transition.rs",
+    "before": "src/cleanup_plan/replay/path_join/before_frontier/custody/transition.rs.txt",
+    "sha256": "6f90748e5cae2c16e44eedb83232fc19c33fbe6e01abf574c7efb93be47be983",
+    "inverse": []
+  }
+]

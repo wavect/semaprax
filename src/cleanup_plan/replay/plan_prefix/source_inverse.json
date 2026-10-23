@@ -1,8 +1,8 @@
 [
   {
     "path": "src/cleanup_plan/replay.rs",
-    "current_length": 327155,
-    "current_sha256": "bb82ba8ed87c88509af6543d03ec0ec5161e8ac13e6a347c354ea6ebdf4b75bf",
+    "current_length": 327251,
+    "current_sha256": "6ac23252b3207a753b7f65940c17cd515de6cc7ebe4988d8a37fb775ae6034e4",
     "before_file": "replay.before.txt",
     "before_length": 326598,
     "before_sha256": "c0cb32a0e049277a41ba007b61023260bccc7d48cb0ec11c4ff3a59b74582d5d",
@@ -19,17 +19,17 @@
       ],
       [
         112083,
-        "        ReplayBudget { payer: AllocationPayer::LegacyUnobserved, .. } if !ordinary_plan_history::completed_fork::emission::before_selected() => !plan_prefix::equal_paths(function, budget, &mut expected, &mut actual)?,\n",
+        "        ReplayBudget { payer: AllocationPayer::LegacyUnobserved, .. } if { #[cfg(test)] { !ordinary_plan_history::completed_fork::emission::before_selected() } #[cfg(not(test))] { true } } => !plan_prefix::equal_paths(function, budget, &mut expected, &mut actual)?,\n",
         ""
       ],
       [
-        278934,
+        278982,
         "#[rustfmt::skip]\n",
         ""
       ],
       [
-        279084,
-        "    budget.reserve_bytes(function, plan_prefix::QUERY_CONTROLS, \"PLAN prefix eligibility receivers\")?;\n    if matches!(budget.payer, AllocationPayer::LegacyUnobserved) && !ordinary_plan_history::completed_fork::emission::before_selected() { return plan_prefix::build(function, budget); }\n",
+        279132,
+        "    budget.reserve_bytes(function, plan_prefix::QUERY_CONTROLS, \"PLAN prefix eligibility receivers\")?;\n    if matches!(budget.payer, AllocationPayer::LegacyUnobserved) && { #[cfg(test)] { !ordinary_plan_history::completed_fork::emission::before_selected() } #[cfg(not(test))] { true } } { return plan_prefix::build(function, budget); }\n",
         ""
       ]
     ]

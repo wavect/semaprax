@@ -241,10 +241,13 @@ fn shared_invalid_or_different_entry_partitions_keep_the_complete_old_memo() {
         let mut canonical = canonical(&built);
         canonical.seed_private_release_test(&function, &mut budget, built.hir_root);
         let before = canonical.private_release_receipt();
+        let work_before = budget.remaining;
         assert!(!canonical
             .release_hir_private(&function, &mut budget, hir_root, built.plan_root)
             .unwrap());
         assert_eq!(canonical.private_release_receipt(), before);
+        // Only the actual checked prefix is charged; all payloads remain intact.
+        assert_eq!(work_before - budget.remaining, [0, 0, 0, 5, 1, 5][case]);
         assert_eq!(canonical.private_release_state(built.hir_root).0, 2);
     }
 }
@@ -355,6 +358,7 @@ fn complete_before_caller_and_current_cold_comparison_keep_verdicts_and_final_dr
 }
 #[test]
 fn release_foreign_and_new_work_refusals_keep_one_sticky_owner_and_full_diagnostic() {
+    complete_release_work_and_physical_frontiers();
     let program = fixture(8);
     let function = program.functions.last().unwrap();
     for foreign in [false, true] {
@@ -518,5 +522,133 @@ fn foreign_budget_and_nested_active_scope_cannot_pay_or_revive_release_authority
                 Err(Diagnostic::io("SPX-H006", String::new()))
             );
         });
+    }
+}
+
+// Independent authored work sequence: the certificate must complete before any
+// payload is removed. Invalid partitions keep the old algorithm, while paying
+// the actual prefix of this new proof; they do not promise old same-cut bills.
+fn complete_release_work_and_physical_frontiers() {
+    let program = fixture(2);
+    let function = program.functions.last().unwrap();
+    let mut build_budget = ReplayBudget::unobserved();
+    let built = build_comparison(&program, function, &mut build_budget, None, None).unwrap();
+    let mut phases = vec!["factored common terminal partition proof"; 3];
+    for node in &built.automaton.nodes[built.plan_root..] {
+        phases.push("factored PLAN partition node proof");
+        for _ in node.moves() {
+            phases.push("factored PLAN movement partition proof");
+        }
+        for _ in node.epsilon() {
+            phases.push("factored PLAN epsilon partition proof");
+        }
+    }
+    phases.extend(std::iter::repeat_n(
+        "factored HIR-private memo payload release",
+        built.plan_root - built.hir_root,
+    ));
+    for cut in 0..=phases.len() {
+        let ((), metrics) = measure(|| {
+            let mut budget = ReplayBudget::unobserved();
+            let mut owner = canonical(&built);
+            for key in built.hir_root..built.plan_root {
+                owner.seed_private_release_test(function, &mut budget, key);
+            }
+            budget.remaining = cut;
+            let actual =
+                owner.release_hir_private(function, &mut budget, built.hir_root, built.plan_root);
+            let mut expected = ReplayBudget::unobserved();
+            expected.remaining = cut;
+            let expected = phases
+                .iter()
+                .try_for_each(|phase| expected.charge(function, 1, phase));
+            match (actual, expected) {
+                (Ok(true), Ok(())) => assert_eq!(cut, phases.len()),
+                (Err(actual), Err(expected)) => {
+                    assert_eq!(actual.json(), expected.json());
+                    assert_eq!(owner.private_release_state(built.hir_root).0, 0);
+                    assert_eq!(
+                        owner.release_hir_private(
+                            function,
+                            &mut budget,
+                            built.hir_root,
+                            built.plan_root
+                        ),
+                        Err(Diagnostic::io("SPX-H006", String::new()))
+                    );
+                }
+                pair => panic!("new release work frontier differs: {pair:?}"),
+            }
+            drop(owner);
+            drop(budget);
+        });
+        assert!(!metrics.invalid && metrics.live == 0);
+        assert_eq!(metrics.allocated, metrics.freed);
+    }
+    let run = |allowance: Option<usize>| {
+        let ((result, metrics), refused, _, first) =
+            crate::bounded_output::with_limit_usage_refusal(1 << 28, || {
+                measure(|| {
+                    let mut budget = ReplayBudget::new();
+                    let mut owner = canonical(&built);
+                    for key in built.hir_root..built.plan_root {
+                        owner.seed_private_release_test(function, &mut budget, key);
+                    }
+                    budget
+                        .reserve_bytes(
+                            function,
+                            hir_last_use::CALL,
+                            "release cut invocation receiving",
+                        )
+                        .unwrap();
+                    let before = crate::bounded_output::active_remaining().unwrap();
+                    if let Some(allowance) = allowance {
+                        assert!(crate::bounded_output::set_active_floor(before - allowance));
+                    }
+                    let actual = owner.release_hir_private(
+                        function,
+                        &mut budget,
+                        built.hir_root,
+                        built.plan_root,
+                    );
+                    let paid = before - crate::bounded_output::active_remaining().unwrap();
+                    crate::bounded_output::clear_active_floor();
+                    if let Err(error) = &actual {
+                        let phase = if allowance == Some(0) {
+                            "factored HIR-private partition guard receiving"
+                        } else {
+                            "factored HIR-private memo payload release receiving"
+                        };
+                        assert_eq!(error.json(), Diagnostic::io("SPX-H006", format!("cleanup plan for function `{}` failed independent replay: cleanup replay physical reservation exhausted during {phase}", function.id.as_str())).json());
+                        assert_eq!(owner.private_release_state(built.hir_root).0, 0);
+                        assert_eq!(
+                            owner.release_hir_private(
+                                function,
+                                &mut budget,
+                                built.hir_root,
+                                built.plan_root
+                            ),
+                            Err(Diagnostic::io("SPX-H006", String::new()))
+                        );
+                    }
+                    drop(owner);
+                    drop(budget);
+                    (actual.is_ok(), paid)
+                })
+            });
+        assert!(!metrics.invalid && metrics.live == 0);
+        assert_eq!(metrics.allocated, metrics.freed);
+        assert_eq!(refused, !result.0);
+        assert_eq!(first.is_some(), refused);
+        (result, first)
+    };
+    let ((success, full), _) = run(None);
+    assert!(success && full > 1);
+    let ((success, exact), _) = run(Some(full));
+    assert!(success);
+    assert_eq!(exact, full);
+    for allowance in [0, full - 1] {
+        let ((success, _), _) = run(Some(allowance));
+        assert!(!success);
     }
 }

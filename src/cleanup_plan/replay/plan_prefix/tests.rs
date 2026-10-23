@@ -184,7 +184,7 @@ fn all_four_whole_changed_owners_restore_fixed_immediate_old_bytes() {
     let encoded = include_str!("source_inverse.json");
     assert_eq!(
         digest(encoded.as_bytes()),
-        "86f0a731a74da6427d3b8b9dfabad03a8c5b9edc647cbceae87f3bdeb32b609c"
+        "35a08d66bf0aae06bcd57c04104406391b1db57a1a95a7abcc12b5621154e345"
     );
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     assert_eq!(

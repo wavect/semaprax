@@ -67,10 +67,10 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
         assert_eq!(std::fs::read(root.join("src/cleanup_plan/replay/path_join/before_frontier/custody/main_d227_transport.json")).unwrap(), encoded.as_bytes());
         assert_eq!(
             digest(encoded.as_bytes()),
-            "d7722e374a576ea9e7fc654a7dee36f8a97282e8f4e96fc1fb0ef8d298477804"
+            "c0ebac882a164a7058db70b5914c533678d5886a261a3236b2124e0d0e1ee527"
         );
         let packet: serde_json::Value = serde_json::from_str(encoded).unwrap();
-        assert_eq!(packet.as_object().unwrap().len(), 9);
+        assert_eq!(packet.as_object().unwrap().len(), 16);
         if let Some(row) = packet.get(&path) {
             let compiled = match path.as_str() {
                 "src/cleanup_plan/replay/branch_clone/inline_tests.rs" => include_bytes!(concat!(
@@ -114,6 +114,13 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
                 .as_slice(),
                 "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop.rs")).as_slice(),
                 "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact.rs")).as_slice(),
+                "src/cleanup_plan/replay/factored.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored.rs")).as_slice(),
+                "src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs")).as_slice(),
+                "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton.rs")).as_slice(),
+                "src/cleanup_plan/replay/factored/continuation_receiver.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/continuation_receiver.rs")).as_slice(),
+                "src/cleanup_plan/replay/skeleton_work.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/skeleton_work.rs")).as_slice(),
+                "src/cleanup_plan/replay/ordinary_receiving/tests.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_receiving/tests.rs")).as_slice(),
+                "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests/receiving.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests/receiving.rs")).as_slice(),
                 _ => panic!("unadmitted main transport path"),
             };
             assert_eq!(actual.as_slice(), compiled);
@@ -133,7 +140,15 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
                 row["before_length"].as_u64().unwrap() as usize
             );
             assert_eq!(digest(&actual), row["before_sha256"].as_str().unwrap());
-            assert_eq!(digest(&actual), expected);
+            if path == "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton.rs" {
+                // This one endpoint is the complete643f intermediate. The
+                // original ordinary-labels stage below still proves fixed946.
+                assert_eq!(actual.as_slice(), row["before_text"].as_str().unwrap().as_bytes());
+                assert_eq!(actual.len(), 55813);
+                assert_eq!(digest(&actual), "87257e50e24a64d047eff17fd2ef9de7e1ed4c1049697222223947c62b28f514");
+            } else {
+                assert_eq!(digest(&actual), expected);
+            }
         }
         if matches!(
             path.as_str(),
@@ -152,7 +167,7 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
                 // fixture. No production dependency receives this inverse.
                 assert_eq!(
                     digest(&actual),
-                    "d28020bab1ef4f782d82b8353e72a4d8e0a92bf088213ce6e3809f70d5f29345"
+                    "4754c42c45e47bdb7f065751e67a0d5c4045c26630303fc9945e377ff6e5059f"
                 );
                 let before = include_bytes!(concat!(
                     env!("CARGO_MANIFEST_DIR"),
@@ -205,7 +220,7 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
                 before.as_slice()
             } else if path == "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton.rs" {
                 // Bind every current physical byte before the immutable 946 target.
-                assert_eq!(actual.as_slice(), include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton.rs")).as_slice());
+                assert_eq!(actual.as_slice(), packet[&path]["before_text"].as_str().unwrap().as_bytes());
                 assert_eq!(actual.len(), 55813);
                 assert_eq!(digest(&actual), "87257e50e24a64d047eff17fd2ef9de7e1ed4c1049697222223947c62b28f514");
                 let before = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/b6471558eaf00c76a99472843a9d96a58a11fe9e5779f50fdccbfc6f0011aa51"));

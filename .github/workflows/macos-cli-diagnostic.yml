@@ -38,7 +38,7 @@ on:
         required: false
         default: false
       opt_batch_selection:
-        description: OPT profile (historical 50/153, next 65/171, language-followup 2/7, or closure 22/114); requires opt_batch
+        description: OPT profile (historical 50/153, next 65/171, language-followup 2/7, closure 22/114, or final-source-closure 15/52); requires opt_batch
         type: choice
         required: false
         default: historical
@@ -47,6 +47,7 @@ on:
           - next
           - language-followup
           - closure
+          - final-source-closure
       installed_bundle:
         description: Generate the original installed agent bundle only (no tests or quality gates)
         type: boolean
@@ -560,7 +561,7 @@ jobs:
           retention-days: 1
 
   opt-batch:
-    name: Focused OPT qualification (${{ inputs.opt_batch_selection == 'closure' && '22 filters / 114 tests' || inputs.opt_batch_selection == 'language-followup' && '2 filters / 7 tests' || inputs.opt_batch_selection == 'next' && '65 filters / 171 tests' || '50 filters / 153 tests' }})
+    name: Focused OPT qualification (${{ inputs.opt_batch_selection == 'final-source-closure' && '15 filters / 52 tests' || inputs.opt_batch_selection == 'closure' && '22 filters / 114 tests' || inputs.opt_batch_selection == 'language-followup' && '2 filters / 7 tests' || inputs.opt_batch_selection == 'next' && '65 filters / 171 tests' || '50 filters / 153 tests' }})
     if: inputs.opt_batch
     runs-on: ubuntu-24.04
     timeout-minutes: 240
@@ -605,9 +606,11 @@ jobs:
           echo "SEMAPRAX_ARCHIVER=$(readlink -f "$opt_archiver")" >> "$GITHUB_ENV"
       - name: Build the selected owning images once, run exact controls, then production Clippy
         env:
-          OPT_BATCH_SELECTION: ${{ inputs.opt_batch_selection == 'closure' && 'closure' || inputs.opt_batch_selection == 'language-followup' && 'language-followup' || inputs.opt_batch_selection == 'next' && 'next' || 'historical' }}
+          OPT_BATCH_SELECTION: ${{ inputs.opt_batch_selection == 'final-source-closure' && 'final-source-closure' || inputs.opt_batch_selection == 'closure' && 'closure' || inputs.opt_batch_selection == 'language-followup' && 'language-followup' || inputs.opt_batch_selection == 'next' && 'next' || 'historical' }}
         run: |
-          if [ "$OPT_BATCH_SELECTION" = closure ]; then
+          if [ "$OPT_BATCH_SELECTION" = final-source-closure ]; then
+            python3 scripts/ci-opt-batch.py --selection final-source-closure
+          elif [ "$OPT_BATCH_SELECTION" = closure ]; then
             python3 scripts/ci-opt-batch.py --selection closure
           elif [ "$OPT_BATCH_SELECTION" = language-followup ]; then
             python3 scripts/ci-opt-batch.py --selection language-followup
@@ -617,7 +620,7 @@ jobs:
             python3 scripts/ci-opt-batch.py
           fi
       - name: Qualify the changed LogLens references without a live agent campaign
-        if: ${{ always() && inputs.loglens_refs && inputs.opt_batch_selection != 'closure' }}
+        if: ${{ always() && inputs.loglens_refs && inputs.opt_batch_selection != 'closure' && inputs.opt_batch_selection != 'final-source-closure' }}
         shell: bash
         env:
           OPT_BATCH_SELECTION: ${{ inputs.opt_batch_selection == 'closure' && 'closure' || inputs.opt_batch_selection == 'language-followup' && 'language-followup' || inputs.opt_batch_selection == 'next' && 'next' || 'historical' }}

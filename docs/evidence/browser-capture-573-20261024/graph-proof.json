@@ -1,0 +1,37 @@
+{
+  "scope": "Complete observed actual wires; no compiler funding or fresh current-head root-library build inferred from captures. Only builder bill and self-digest differ.",
+  "records": [
+    {
+      "file": "calculator-baseline.json",
+      "previous_sha256": "4f3961c17844b43ab324b69d185ca77f68f2ba79bb664beeab9bccc75df49ecd",
+      "current_sha256": "2b11f588ef2d9ed2847e6d9c06a95e98842e9beeb466c7b38b6201ed4298d053",
+      "old_builder_bytes": 3225466,
+      "new_builder_bytes": 2997308,
+      "complete_previous_wire_restored": true
+    },
+    {
+      "file": "calculator-renamed.json",
+      "previous_sha256": "59bd8f30650532ec1bf3649b5d952cdcc3e42bbb8abd36bfad694ef87cbbe3a2",
+      "current_sha256": "9395b9c8b9aae42fecd765847dbef84a243e59213cd7b8dd6297ef8a4bc68a64",
+      "old_builder_bytes": 3225466,
+      "new_builder_bytes": 2997308,
+      "complete_previous_wire_restored": true
+    },
+    {
+      "file": "native-calculator-baseline.json",
+      "previous_sha256": "b53e3ecf77caace8280b43b02821b5b96a60cb6fd604afd32c925a4c05c4423c",
+      "current_sha256": "2274220aa73b7862570f8916d7b36d00a832355c1aaee8a8b150a597195d799b",
+      "old_builder_bytes": 3225682,
+      "new_builder_bytes": 2997524,
+      "complete_previous_wire_restored": true
+    },
+    {
+      "file": "native-calculator-renamed.json",
+      "previous_sha256": "c24343780f48a3dc951338e367c79fb07c92b5a3bc911cd0d25a1eb167680110",
+      "current_sha256": "cc9cc69bd03a3210667452c2289264b41a61d87bf1b22b6dab418a910266db49",
+      "old_builder_bytes": 3225682,
+      "new_builder_bytes": 2997524,
+      "complete_previous_wire_restored": true
+    }
+  ]
+}

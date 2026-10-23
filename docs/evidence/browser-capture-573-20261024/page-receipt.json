@@ -1,0 +1,46 @@
+{
+  "status": "ORIGINAL_CURRENT_CODEC_COMPOSITION_PASS_PENDING_PUBLICATION",
+  "base_head": "396bdb277f46fd2672f120aa7607ec4f0ef6af4b",
+  "rows": 717,
+  "page_bytes": 228024,
+  "published_current_preserved_as_exact_views": [
+    {
+      "source": "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+      "view": {
+        "archive": "e/e7efd4c71b4c1c442f11189756a24f9b75e0ca8887ce6d34f242ed18fbdb394e",
+        "length": 11219,
+        "sha256": "e7efd4c71b4c1c442f11189756a24f9b75e0ca8887ce6d34f242ed18fbdb394e",
+        "name": "396-before-browser-profile"
+      }
+    },
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+      "view": {
+        "archive": "e/a314d671c4e652cc97e336852f45433ad439454c5266b591389e6d66ce68aca2",
+        "length": 55566,
+        "sha256": "a314d671c4e652cc97e336852f45433ad439454c5266b591389e6d66ce68aca2",
+        "name": "396-before-browser-profile"
+      }
+    },
+    {
+      "source": "docs/SUMMARY.md",
+      "view": {
+        "archive": "e/1f9df1f7cf10947b951a5ca24a270d2613c3fcd7cceb9f9fc442a5da0f246e51",
+        "length": 161517,
+        "sha256": "1f9df1f7cf10947b951a5ca24a270d2613c3fcd7cceb9f9fc442a5da0f246e51",
+        "name": "396-before-browser-profile"
+      }
+    },
+    {
+      "source": "src/source_reflows_merge/main_e177_overlay_compiled.rs",
+      "view": {
+        "archive": "e/a3e49b15e9d2c9d1dbadcfaa3a1c419f53e60161ea70de4f95004f39b7a35c3f",
+        "length": 91790,
+        "sha256": "a3e49b15e9d2c9d1dbadcfaa3a1c419f53e60161ea70de4f95004f39b7a35c3f",
+        "name": "396-before-browser-profile"
+      }
+    }
+  ],
+  "all_previous_fields_views_memberships_and_fragment_edges_retained": true,
+  "all_original_codec_bodies_and_caps_unchanged": true
+}

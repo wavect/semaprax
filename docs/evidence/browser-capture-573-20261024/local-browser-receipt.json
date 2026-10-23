@@ -1,0 +1,6 @@
+{
+  "scope": "Current CLI linked to cached genuine normal compiler library; source changes since that library are test-only/metadata/docs. Actual native compiler binary generated direct-source, baseline and renamed Project web artifacts; all three real TypeScript consumers checked; unchanged shipping test-fixtures.mjs and real repository-pinned Chromium headless shell executed serially",
+  "compiler_sha256": "1dc8511d771d82a16ca6f0ced9c68d2954afc61b4c433ab490c3cf71a6a361ee",
+  "all_build_temp_dependency_and_browser_paths_on_external_ssd": true,
+  "process_RSS_cap": null
+}

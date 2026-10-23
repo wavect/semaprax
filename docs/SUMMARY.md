@@ -1891,3 +1891,5 @@ Audience: all documentation readers.
 - [Expression-fact source test entries](evidence/expression-fact-observer-source-v1/README.md)
 
 - [Remaining receiver lexical source epoch](evidence/remaining-lexical-source-v1/README.md)
+
+- [Exact calculator graph captures after the type cursor change](evidence/browser-capture-573-20261024/README.md)

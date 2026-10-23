@@ -1,0 +1,7 @@
+{
+  "cli_source_head": "396bdb277f46fd2672f120aa7607ec4f0ef6af4b",
+  "compiler_library": "Cached genuine normal default-cap production Rlib from c907 build; later changes confined to tests, source inventories and documentation. Not a fresh current-head root-library build.",
+  "cli_sha256": "1dc8511d771d82a16ca6f0ced9c68d2954afc61b4c433ab490c3cf71a6a361ee",
+  "library_sha256": "a877f8f705ff8297cc27906af3fcfc795a6e1f039d640737b815edb73d4a5f6a",
+  "rustc": "Rust1.97.1 macOS arm64"
+}

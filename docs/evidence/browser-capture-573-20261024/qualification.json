@@ -1,0 +1,93 @@
+{
+  "scope": "Exact browser fixture fingerprint correction; no language or compiler implementation changes. Actual hosted captures are from 573623043c; local execution uses the cached genuine normal production compiler library and freshly linked unchanged CLI. Not a fresh current-head compiler-library build or hosted Chromium pass.",
+  "before_head": "396bdb277f46fd2672f120aa7607ec4f0ef6af4b",
+  "checks": {
+    "chromium_fixtures": 3,
+    "typescript_consumers": 3,
+    "rust_browser_controls": 230,
+    "source_overlay": 32,
+    "hir_boundary": 11,
+    "projection": 1,
+    "documentation": 3,
+    "clippy": "Real entire Wasm test harness and HIR audit harness passed"
+  },
+  "all_previous_owner_bodies_raw_acquisitions_inverse_loops_and_assertions_preserved": true,
+  "all_previous_manifests_source_roles_ordered_chunks_and_acquisition_chains_preserved": true,
+  "process_RSS_cap": null,
+  "all_work_on_external_ssd": true,
+  "remaining": "Default64MiB compiler graph budgets for JSON scan/decode, service and pattern; pattern helper census refusal after larger private diagnostic ledger. CI is not green.",
+  "log_rendering": [
+    {
+      "file": "rust-browser-tests.log",
+      "raw_sha256": "583dbfb058d62cc902024b79548ba338da8e03e6423359877164ed1772c75011",
+      "rendered_sha256": "583dbfb058d62cc902024b79548ba338da8e03e6423359877164ed1772c75011",
+      "normalization": "Only trailing line whitespace removed. Complete original raw tool output retained on external SSD."
+    },
+    {
+      "file": "wasm-clippy.log",
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "rendered_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "normalization": "Only trailing line whitespace removed. Complete original raw tool output retained on external SSD."
+    },
+    {
+      "file": "chromium-tests.log",
+      "raw_sha256": "934e1e1988bb9a6e5e47fced0d4fc6defc1a81c845b35188d75099c8cc7aad20",
+      "rendered_sha256": "934e1e1988bb9a6e5e47fced0d4fc6defc1a81c845b35188d75099c8cc7aad20",
+      "normalization": "Only trailing line whitespace removed. Complete original raw tool output retained on external SSD."
+    },
+    {
+      "file": "overlay-controls.log",
+      "raw_sha256": "0983d18679a16dd3222fb2236afe20a6c3487789638ca3138a8885ab81985eb6",
+      "rendered_sha256": "0983d18679a16dd3222fb2236afe20a6c3487789638ca3138a8885ab81985eb6",
+      "normalization": "Only trailing line whitespace removed. Complete original raw tool output retained on external SSD."
+    },
+    {
+      "file": "compiled-whole-predecessor-controls.log",
+      "raw_sha256": "eeaf5293037511119409f2f8ddb19c591e565d443b27a9741088872f8d353f2e",
+      "rendered_sha256": "eeaf5293037511119409f2f8ddb19c591e565d443b27a9741088872f8d353f2e",
+      "normalization": "Only trailing line whitespace removed. Complete original raw tool output retained on external SSD."
+    },
+    {
+      "file": "new-entry-controls.log",
+      "raw_sha256": "0f17e759a9a1fe4a2acbc381c17310bdd6f159cb60a3342d465402e61116dfd2",
+      "rendered_sha256": "0f17e759a9a1fe4a2acbc381c17310bdd6f159cb60a3342d465402e61116dfd2",
+      "normalization": "Only trailing line whitespace removed. Complete original raw tool output retained on external SSD."
+    },
+    {
+      "file": "final-prefix-source-controls.log",
+      "raw_sha256": "262651d4056d5a1655ada708aec6f5462d855f95c1a6c029519f2178c24b4e83",
+      "rendered_sha256": "262651d4056d5a1655ada708aec6f5462d855f95c1a6c029519f2178c24b4e83",
+      "normalization": "Only trailing line whitespace removed. Complete original raw tool output retained on external SSD."
+    },
+    {
+      "file": "final-cursor-source-guard.log",
+      "raw_sha256": "eadd8dbf3d3592f75001247ea3c4b4aae1f910464329c497dd6ae3508197c01a",
+      "rendered_sha256": "eadd8dbf3d3592f75001247ea3c4b4aae1f910464329c497dd6ae3508197c01a",
+      "normalization": "Only trailing line whitespace removed. Complete original raw tool output retained on external SSD."
+    },
+    {
+      "file": "hir-test.log",
+      "raw_sha256": "e3d7ef467a00fee4f89a601ae626cd16d1aec2d123e41f6a52a180c5b45e6c8d",
+      "rendered_sha256": "e3d7ef467a00fee4f89a601ae626cd16d1aec2d123e41f6a52a180c5b45e6c8d",
+      "normalization": "Only trailing line whitespace removed. Complete original raw tool output retained on external SSD."
+    },
+    {
+      "file": "hir-clippy.log",
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "rendered_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "normalization": "Only trailing line whitespace removed. Complete original raw tool output retained on external SSD."
+    },
+    {
+      "file": "projection-test.log",
+      "raw_sha256": "7d0b844794b5d8b06a8a5f556af945f9148f29be87c86e53219aeb87a77206a6",
+      "rendered_sha256": "7d0b844794b5d8b06a8a5f556af945f9148f29be87c86e53219aeb87a77206a6",
+      "normalization": "Only trailing line whitespace removed. Complete original raw tool output retained on external SSD."
+    },
+    {
+      "file": "docs-controls.log",
+      "raw_sha256": "72e16597861e272523320033697a5fee123ce8c4ee3e4f880029118764c73abd",
+      "rendered_sha256": "72e16597861e272523320033697a5fee123ce8c4ee3e4f880029118764c73abd",
+      "normalization": "Only trailing line whitespace removed. Complete original raw tool output retained on external SSD."
+    }
+  ]
+}

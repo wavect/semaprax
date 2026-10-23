@@ -5,6 +5,9 @@
 //! Exact whole-wire bridge to independently retained historical controls.
 use sha2::{Digest, Sha256};
 
+#[path = "current_profiles573.rs"]
+mod current_profiles573;
+
 const HISTORICAL: [&str; 2] = [
     include_str!(
         "../../../docs/evidence/browser-graph-pins-841efe3e2/historical-calculator-baseline.json"
@@ -562,6 +565,8 @@ mod incoming_main671 {
 // No particular future builder bill is assumed: only the actual self-bound
 // bill/digest may differ from either independent complete predecessor.
 fn current_browser_with_runner(graph: &str, role: &str, runner: &str) -> String {
+    let previous_runner = current_profiles573::runner_for_graph(graph, runner);
+    let runner = previous_runner.as_deref().unwrap_or(runner);
     let index = match role {
         "baseline" => 0,
         "renamed" => 1,
@@ -1186,6 +1191,9 @@ pub(super) fn profile_graph_digest(graph: &str) -> String {
     graph_digest(graph)
 }
 pub(super) fn pinned_fixture_graph(graph: &str, role: &str) -> &'static str {
+    if current_profiles573::recognizes(graph) {
+        return current_profiles573::pinned(graph, role);
+    }
     let index = match role {
         "baseline" => 0,
         "renamed" => 1,

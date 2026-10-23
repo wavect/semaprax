@@ -401,8 +401,8 @@
       "sha256": "f8bc3f4cb82c2192478c74a09f9f35d9da054b033757c7600611f1979071f355"
     },
     "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase.rs": {
-      "length": 86698,
-      "sha256": "fa232cdadb3ff7ea321caa04554d8dc2c237928b976af5890f6ed555c276b1ec"
+      "length": 86537,
+      "sha256": "08c7336a5435b02aed14820e57b7ec6c48ddc9b311363d09c05b3447c0ad6246"
     },
     "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase_before.rs": {
       "length": 4051,
@@ -749,8 +749,8 @@
       "sha256": "523afb818016e67c13a23c0f653a13f94d2015aaad95efbb74363efb64ef642c"
     },
     "src/source_reflows_merge/main_e177_overlay_v2.rs": {
-      "length": 80541,
-      "sha256": "289f98e6d3f02aa539943363a8f12d72f1a5b2d19e0a4d732d39033268e9fd1f"
+      "length": 80590,
+      "sha256": "b5e1f94932da5bd59d64801bea9b830e77088f4db6115b19e677c3a8495b78e6"
     },
     "src/string_ops/conditions/funded_receiving.rs": {
       "length": 1017,
@@ -761,8 +761,8 @@
       "sha256": "8810bad4566b3c46b2b3d0b4a7c55679137fd4b82ccf6c975cd59d5271652b1d"
     },
     "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton.rs": {
-      "length": 55814,
-      "sha256": "b6471558eaf00c76a99472843a9d96a58a11fe9e5779f50fdccbfc6f0011aa51"
+      "length": 55813,
+      "sha256": "87257e50e24a64d047eff17fd2ef9de7e1ed4c1049697222223947c62b28f514"
     },
     "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/inline_exit.rs": {
       "length": 3388,
@@ -777,8 +777,8 @@
       "sha256": "39412583a543bf0b2d2f3f38c11d882183d89abfef4b8ae650f827142a3d2470"
     },
     "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop.rs": {
-      "length": 25929,
-      "sha256": "2a64ea81fe25ac38ad7d3060cb1dae31de835e46c4572c5bf425ea979a477917"
+      "length": 26203,
+      "sha256": "db228c19e3e1c50cb196b01c0eb1f9f372fe61f4a0cd191057abd53c50cdabd8"
     },
     "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/borrowed_single.rs": {
       "length": 5325,
@@ -1197,8 +1197,8 @@
       "sha256": "b137b062c8a91954441e84e9e77ed72b05c631a11608dab43eea8e5539f25cc2"
     },
     "src/source_reflows_merge/main_e177_overlay_compiled.rs": {
-      "length": 159330,
-      "sha256": "390c92b11c4f55336b3765608bc4932a1bb130a4f1b33449df06526564ac1059"
+      "length": 172900,
+      "sha256": "6f1570e56d352895ab2619553fbbdf4c971e601f85cef7df6721a18ba784fe3c"
     },
     "src/source_reflows_merge/main_e177_packet_lookup.rs": {
       "length": 67419,
@@ -1357,8 +1357,8 @@
       "sha256": "f2553a15d94b09d7af9c55b4950da139cfa7ffd7f4dd8bc21cbbced698408a7f"
     },
     "src/test_allocation_observer/backing.rs": {
-      "length": 13914,
-      "sha256": "ac3208cd57a802c55194bedc9fdb6caf95cc20b9a9ea0c8ccdf0125a39fa4ec8"
+      "length": 14091,
+      "sha256": "b94bca9d5f9b9432012f1e4cdbe943e93d1a962f6a7e0a917d756ffae952f519"
     },
     "src/hir/selected_function.rs": {
       "length": 4565,
@@ -1541,8 +1541,8 @@
       "sha256": "b333af09d8e38b1de4f5d8f783d2b63333a0cd8ff0fc1f676227bcb256a72868"
     },
     "src/source_reflows_merge/final_ready_inputs/projection_publication.rs": {
-      "length": 25985,
-      "sha256": "d1677488c7d073692e85002fe283b5796a5f9a169049e0ef3eed3b5678fa91b0"
+      "length": 31522,
+      "sha256": "0ff98ae47b4c15689bd4598aedd594a57ab0d49f25da32e071fc6efa5b325cc1"
     },
     "src/cleanup_plan/replay/factored/strategy/compact_receiving.rs": {
       "length": 700,
@@ -1553,8 +1553,8 @@
       "sha256": "4becde14fd14ce77bad9c31765f8aae0cb7edcc2b5104b211cd95743448c2817"
     },
     "src/cleanup_plan/replay/factored/strategy/compact_receiving/tests.rs": {
-      "length": 13592,
-      "sha256": "a7e37ebe47e810939282e3e6abfb44db27b658418d91154131679d0759847efe"
+      "length": 22184,
+      "sha256": "d28020bab1ef4f782d82b8353e72a4d8e0a92bf088213ce6e3809f70d5f29345"
     },
     "src/cli/help/authoring/contract_owners.rs": {
       "length": 1930,
@@ -1565,8 +1565,8 @@
       "sha256": "75ddb76fff8a815fe53fc874f575f37cf4b13543679d94ea2198ba2ff4b2268f"
     },
     "src/source_reflows_merge/boxed_inputs.rs": {
-      "length": 5920,
-      "sha256": "4be801ec104496a78a04dd20e8d25f100ba0b9dbb0550e396798e4a3a04f84c3"
+      "length": 6542,
+      "sha256": "27a3b1620dfadba92fe52860b86e6e900234d83cd7e71da5ccf7e96b3c56ebbf"
     },
     "src/workspace_graph/expected_projection/shared_local_callees.rs": {
       "length": 11552,
@@ -1681,20 +1681,20 @@
       "sha256": "24506f3ae2705ba0274d20f43f261948f06cba5c70cd955e99907e82918a9899"
     },
     "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission.rs": {
-      "length": 7942,
-      "sha256": "4392abffc59dee7596e750e1523f0e2b0f4c23a5f35c67caa475de5785c4f568"
+      "length": 10932,
+      "sha256": "792be2624414510de96336103ccc964f39ff7c474581aa90521be539b8e21d2d"
     },
     "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/tests.rs": {
-      "length": 15818,
-      "sha256": "2890943d20f5ac052889f50340039fb6c4467ff5d686334796438a5b242bdf55"
+      "length": 24843,
+      "sha256": "d4757425643d96a03c1c6a05f31d7018cb5653c71a921bb736335e9102edf6f6"
     },
     "src/source_reflows_merge/main_e177_overlay_labels_v12.rs": {
       "length": 7219,
       "sha256": "260cfb1eb837f15415a05f769e0d6554f6c26a3eeecf01a58eff16e8a2bf2446"
     },
     "src/source_reflows_merge/main_e177_overlay_labels_v12/tests.rs": {
-      "length": 6958,
-      "sha256": "33fec76e5c50a7954a6d480012eb17a662db2f45e7bcd7025aad5ccafc26db68"
+      "length": 9000,
+      "sha256": "4b7909d105a26db233ae03b3a3386c1bbd43b981500764dbea2d31bdebe6ee81"
     },
     "src/workspace_graph/expected_projection/call_carriers_directory/modular.rs": {
       "length": 3536,
@@ -1783,25 +1783,177 @@
     "src/codegen/native_owned_data_provider/validation_reuse_tests.rs": {
       "length": 7661,
       "sha256": "bbe03233559921346ef3456859eda8f60842efa28563d6d44c9e1946fccc3cbd"
+    },
+    "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort.rs": {
+      "length": 15369,
+      "sha256": "56a40d51a09c3bf21f7b4683aee142dbe29524c2c97cac97e685bf2773747549"
+    },
+    "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before.rs": {
+      "length": 32385,
+      "sha256": "e2d7bb7fc687c471da74528e29568efcc6eb8f48b0661778d051ba2a8652b293"
+    },
+    "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/tests.rs": {
+      "length": 24146,
+      "sha256": "a71bd98e617a681d232f9f5dc80e59db39cf0dea461a313c077f80754e1fceff"
+    },
+    "src/cleanup_plan/replay/path_join/before_frontier/boxed_states.rs": {
+      "length": 7076,
+      "sha256": "59e698eea731be50e9d9ecd35a5d817ec1be5aaa482444b6df38aa2ee70f18b3"
+    },
+    "src/cleanup_plan/replay/path_join/before_frontier/branch_join.rs": {
+      "length": 10802,
+      "sha256": "34be6ba09bb7bac7123a1039df67948f0ab5e49bdab69d7c2da55ba8cd07b90c"
+    },
+    "src/cleanup_plan/replay/path_join/before_frontier/mod.rs": {
+      "length": 50333,
+      "sha256": "749400ec833f546f5c2f88c913c6c2ff5ba7fa5bea179de50d660411f9919211"
+    },
+    "src/cleanup_plan/replay/path_join/before_frontier/storage.rs": {
+      "length": 15694,
+      "sha256": "06fe50c24fcbb7db7763761387f990681acfa2c7963361bf6c8ed25260dbca79"
+    },
+    "src/cleanup_plan/replay/path_join/before_frontier/storage/atomic_controls.rs": {
+      "length": 2720,
+      "sha256": "ab46c653becc07f401aa8aba33fe13b39992f41491f58bc43ff608056a011b10"
+    },
+    "src/cleanup_plan/replay/path_join/before_frontier/storage/empty_renewals.rs": {
+      "length": 5189,
+      "sha256": "7313a9413f4e954ccc583034119763928dcd9445d595373ccf297f065a5be8cf"
+    },
+    "src/cleanup_plan/replay/path_join/before_frontier/tests.rs": {
+      "length": 5325,
+      "sha256": "d7841a842bf900a756905b56623fca40766ae1c3344bfb1dc4e1f86efe396df0"
+    },
+    "src/cleanup_plan/replay/path_join/before_frontier/transition.rs": {
+      "length": 35563,
+      "sha256": "628c1c134e179b8e8ca0db4646b6219e4c3a939968598ac2935ac500de996616"
+    },
+    "src/cleanup_plan/replay/path_join/boxed_flow.rs": {
+      "length": 4467,
+      "sha256": "6632ceeabe694a459ac118deeb68d858ac2dfa75e6d3ab6dccd3fc7c24e91c3d"
+    },
+    "src/cleanup_plan/replay/path_join/frontier.rs": {
+      "length": 11444,
+      "sha256": "6d4c82e64f917d2a729b97b7da5d7fa2a691d035d9d4d9e2347d6858ee9f7360"
+    },
+    "src/cleanup_plan/replay/path_join/frontier_tests.rs": {
+      "length": 19986,
+      "sha256": "d6fddcc766fc297e99577b23225cd482bcc7a11223291f9cbb11fd347f339f62"
+    },
+    "src/cleanup_plan/replay/path_join/frontier_tests/custody.rs": {
+      "length": 13190,
+      "sha256": "624579489df9e6ab2aa43b2cf8a96ebc62a68c108faa753008a14b2158234465"
+    },
+    "src/cleanup_plan/replay/path_join/frontier_tests/whole.rs": {
+      "length": 10925,
+      "sha256": "da179f47f2f3f41eb14350b137d2468f5ac241445d6ae04d131c927da1c09908"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/immediate_before.rs": {
+      "length": 7930,
+      "sha256": "8b567655ee460ab15bc548b7386feaee50c17b6691a70d65f4fcfabeaec3fdbe"
+    },
+    "src/test_allocation_observer/phase_peaks.rs": {
+      "length": 1404,
+      "sha256": "0df28ffd48241050b448231b02ac62e303aac95fa141a7546d3700638f9086b3"
+    },
+    "src/loan_plan/paid_plan/before_reachability_release.rs": {
+      "length": 13165,
+      "sha256": "34baddee5e4c0e97cc35c101747e1f5bec8b7f09f9a149185a95685f3667855a"
+    },
+    "src/loan_plan/paid_plan/reachability_release_tests.rs": {
+      "length": 14279,
+      "sha256": "c1ba818afd6ca1ed7406ce53f5cb2e774c68abee1c9af46436e3da85270a8928"
+    },
+    "src/loan_plan/funded_flat/before_reachability_release.rs": {
+      "length": 3448,
+      "sha256": "28d065ee79a8e287433094f53ef2714a1145733cefd9c0d1219634f6afeb74eb"
+    },
+    "src/workspace_graph/loan_retention/overlap_tests.rs": {
+      "length": 3943,
+      "sha256": "cbe5365d225c08c150f5f9bc0d343708fefd946b2c702f393bcbc07e9017f2c5"
+    },
+    "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_frame_pricing.rs": {
+      "length": 15950,
+      "sha256": "e4ad639ff6378b8d37a89fdddd90798d5aa7bd420f5ea2755a76c904d1d46602"
+    },
+    "src/cleanup_plan/replay/selected_owner/ordinary.rs": {
+      "length": 4718,
+      "sha256": "d0b8e7e4a2c222cb987ba09eca8f76bfa2715c31c46797ce4337fd93832cbafe"
+    },
+    "src/cleanup_plan/replay/selected_owner/ordinary/tests.rs": {
+      "length": 6987,
+      "sha256": "5bdf7210f9343246d20abc64d29ef049d632c1c991d92aff03ad29a443061302"
+    },
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/last_use.rs": {
+      "length": 2424,
+      "sha256": "0916bc3f12ad83a9600fb2009a4ca09fafea8c4a4cc25e6d88d712e9209c851d"
+    },
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/before.rs": {
+      "length": 86308,
+      "sha256": "755306bc0932240e81f62d01f1ec556235756c816d013d5d7f81417c4ba40417"
+    },
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/tests.rs": {
+      "length": 7677,
+      "sha256": "6b870fe2d27431eade32b09e8f25703efe2ac56fbef286b544278682105ec89d"
+    },
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/ordinary_labels.rs": {
+      "length": 10205,
+      "sha256": "900af30a08f96959e6f9c553d28e6f82f3104473cf23dbbb3090436310a22669"
+    },
+    "src/cleanup_plan/replay/branch_clone/production_capacity/before_short.rs": {
+      "length": 28136,
+      "sha256": "13430c913b81f293c721b7c6180d4baa6eb24016e0384149571fd994c11da55d"
+    },
+    "src/cleanup_plan/replay/branch_clone/short_plan.rs": {
+      "length": 2721,
+      "sha256": "f7f057266e8c97a6cb9aa91905c68ea5b8fe3656335cc68cada6d154e121380c"
+    },
+    "src/cleanup_plan/replay/nested_shape.rs": {
+      "length": 23761,
+      "sha256": "9a9114bc5333ad25f883f20e719b5c22a3f7c4d09a502b26acf5908d89c326b7"
+    },
+    "src/cleanup_plan/replay/nested_shape/scalar_tests.rs": {
+      "length": 1868,
+      "sha256": "93bb6d9718bff767e225ed0af004cb34523c6a958bb5a45fe523c04078f0f3d5"
+    },
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/ordinary_receiving_tests.rs": {
+      "length": 25083,
+      "sha256": "a6ac6074ae4223099b5c35935d1def42286b49af42f73a70bbef3c3c9230d945"
+    },
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/ordinary_receiving_before.rs": {
+      "length": 28926,
+      "sha256": "18be91c3df5496bc0fdd5eec0697d079a11521c920e2eda2c99b5188a4dd840a"
+    },
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/ordinary_receiving_before.rs": {
+      "length": 32474,
+      "sha256": "6d76b23119a7ef237abd576d1ea4406577dff86908fa05c44cc1efcf1b6db0c0"
+    },
+    "src/cleanup_plan/replay/path_join/held_edge_before.rs": {
+      "length": 4976,
+      "sha256": "7a65cb189abb3084ad8c14f4a207f6a6b8abea4f4eeb19d3082b355154039db1"
+    },
+    "src/cleanup_plan/replay/path_join/held_edge_tests.rs": {
+      "length": 6764,
+      "sha256": "8372b23995ef305b396061458e28b85a86f9796fed8183ed8a3837d38179cace"
     }
   },
   "carriers": {
     "tests/hir_module_boundaries.rs": {
       "path": "tests/hir_module_boundaries.rs",
-      "length": 149763,
-      "sha256": "6358bfda96f84e423b389687859d35fe9c5ad2e038d50b74823a009a6d2ec65b",
+      "length": 153044,
+      "sha256": "338db3b855fe3fe22df94003ded7ede52ae63f5338cab873ef7b19a230c2cb50",
       "base": "../"
     },
     "tests/workspace/semantic_graph/source_inventory.rs": {
       "path": "tests/workspace/semantic_graph/source_inventory.rs",
-      "length": 177527,
-      "sha256": "fc1c04cad3675a22d73858f456b4fe369b5a801b37fb97b7ba62e9388db0a028",
+      "length": 180919,
+      "sha256": "59e4e0626cde83ab4e741c080019d9e30c5792625ed2ee3d48a30cacdfca36dc",
       "base": "../../"
     },
     "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": {
       "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
-      "length": 224476,
-      "sha256": "6788b925d46c59e71b7a2b75001914e60c0499be6781edf1b4b875dd6fa43250",
+      "length": 228201,
+      "sha256": "8371f1de8fc08fe7920f341acc9e09edc04a015ed1c934c233eadfd853726e78",
       "base": "../../../../../"
     }
   },
@@ -1829,8 +1981,8 @@
   },
   "table": {
     "path": "docs/evidence/main-e177-final-source-binding-20261017/current-projection-inputs.tsv",
-    "length": 73727,
-    "sha256": "12b3fd2bb4d746bb111332ef9a4c35e28aff35e6fcc83706db263263ac9d3bb2",
+    "length": 76305,
+    "sha256": "2f5e03eb0a4302d79b144cad6e535584d896656cdd155d8e453343ed70a81c3d",
     "prior": {
       "length": 26040,
       "sha256": "bf9d90d2e54bd7fc117b8f885f94fba383d74207e8833a62c8c3eaa7adeeb190",
@@ -5188,9 +5340,157 @@
       {
         "at": 1263,
         "path": "src/codegen/native_owned_data_provider/validation_reuse_tests.rs"
+      },
+      {
+        "at": 1264,
+        "path": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort.rs"
+      },
+      {
+        "at": 1265,
+        "path": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before.rs"
+      },
+      {
+        "at": 1266,
+        "path": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/tests.rs"
+      },
+      {
+        "at": 1267,
+        "path": "src/cleanup_plan/replay/path_join/before_frontier/boxed_states.rs"
+      },
+      {
+        "at": 1268,
+        "path": "src/cleanup_plan/replay/path_join/before_frontier/branch_join.rs"
+      },
+      {
+        "at": 1269,
+        "path": "src/cleanup_plan/replay/path_join/before_frontier/mod.rs"
+      },
+      {
+        "at": 1270,
+        "path": "src/cleanup_plan/replay/path_join/before_frontier/storage.rs"
+      },
+      {
+        "at": 1271,
+        "path": "src/cleanup_plan/replay/path_join/before_frontier/storage/atomic_controls.rs"
+      },
+      {
+        "at": 1272,
+        "path": "src/cleanup_plan/replay/path_join/before_frontier/storage/empty_renewals.rs"
+      },
+      {
+        "at": 1273,
+        "path": "src/cleanup_plan/replay/path_join/before_frontier/tests.rs"
+      },
+      {
+        "at": 1274,
+        "path": "src/cleanup_plan/replay/path_join/before_frontier/transition.rs"
+      },
+      {
+        "at": 1275,
+        "path": "src/cleanup_plan/replay/path_join/boxed_flow.rs"
+      },
+      {
+        "at": 1276,
+        "path": "src/cleanup_plan/replay/path_join/frontier.rs"
+      },
+      {
+        "at": 1277,
+        "path": "src/cleanup_plan/replay/path_join/frontier_tests.rs"
+      },
+      {
+        "at": 1278,
+        "path": "src/cleanup_plan/replay/path_join/frontier_tests/custody.rs"
+      },
+      {
+        "at": 1279,
+        "path": "src/cleanup_plan/replay/path_join/frontier_tests/whole.rs"
+      },
+      {
+        "at": 1280,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/immediate_before.rs"
+      },
+      {
+        "at": 1281,
+        "path": "src/test_allocation_observer/phase_peaks.rs"
+      },
+      {
+        "at": 1282,
+        "path": "src/loan_plan/paid_plan/before_reachability_release.rs"
+      },
+      {
+        "at": 1283,
+        "path": "src/loan_plan/paid_plan/reachability_release_tests.rs"
+      },
+      {
+        "at": 1284,
+        "path": "src/loan_plan/funded_flat/before_reachability_release.rs"
+      },
+      {
+        "at": 1285,
+        "path": "src/workspace_graph/loan_retention/overlap_tests.rs"
+      },
+      {
+        "at": 1286,
+        "path": "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_frame_pricing.rs"
+      },
+      {
+        "at": 1287,
+        "path": "src/cleanup_plan/replay/selected_owner/ordinary.rs"
+      },
+      {
+        "at": 1288,
+        "path": "src/cleanup_plan/replay/selected_owner/ordinary/tests.rs"
+      },
+      {
+        "at": 1289,
+        "path": "src/cleanup_plan/replay/expression_facts/receiving/retained/last_use.rs"
+      },
+      {
+        "at": 1290,
+        "path": "src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/before.rs"
+      },
+      {
+        "at": 1291,
+        "path": "src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/tests.rs"
+      },
+      {
+        "at": 1292,
+        "path": "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/ordinary_labels.rs"
+      },
+      {
+        "at": 1293,
+        "path": "src/cleanup_plan/replay/branch_clone/production_capacity/before_short.rs"
+      },
+      {
+        "at": 1294,
+        "path": "src/cleanup_plan/replay/branch_clone/short_plan.rs"
+      },
+      {
+        "at": 1295,
+        "path": "src/cleanup_plan/replay/nested_shape/scalar_tests.rs"
+      },
+      {
+        "at": 1296,
+        "path": "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/ordinary_receiving_tests.rs"
+      },
+      {
+        "at": 1297,
+        "path": "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/ordinary_receiving_before.rs"
+      },
+      {
+        "at": 1298,
+        "path": "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/ordinary_receiving_before.rs"
+      },
+      {
+        "at": 1299,
+        "path": "src/cleanup_plan/replay/path_join/held_edge_before.rs"
+      },
+      {
+        "at": 1300,
+        "path": "src/cleanup_plan/replay/path_join/held_edge_tests.rs"
       }
     ],
-    "rows": 1264
+    "rows": 1301
   },
   "closed_prior_sources": [
     "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
@@ -6018,14 +6318,52 @@
     "src/call_index/validation_before.rs",
     "src/call_index/validation_receipt_tests.rs",
     "src/codegen/native_owned_data_provider/emit_provider_before.rs",
-    "src/codegen/native_owned_data_provider/validation_reuse_tests.rs"
+    "src/codegen/native_owned_data_provider/validation_reuse_tests.rs",
+    "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort.rs",
+    "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before.rs",
+    "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/tests.rs",
+    "src/cleanup_plan/replay/path_join/before_frontier/boxed_states.rs",
+    "src/cleanup_plan/replay/path_join/before_frontier/branch_join.rs",
+    "src/cleanup_plan/replay/path_join/before_frontier/mod.rs",
+    "src/cleanup_plan/replay/path_join/before_frontier/storage.rs",
+    "src/cleanup_plan/replay/path_join/before_frontier/storage/atomic_controls.rs",
+    "src/cleanup_plan/replay/path_join/before_frontier/storage/empty_renewals.rs",
+    "src/cleanup_plan/replay/path_join/before_frontier/tests.rs",
+    "src/cleanup_plan/replay/path_join/before_frontier/transition.rs",
+    "src/cleanup_plan/replay/path_join/boxed_flow.rs",
+    "src/cleanup_plan/replay/path_join/frontier.rs",
+    "src/cleanup_plan/replay/path_join/frontier_tests.rs",
+    "src/cleanup_plan/replay/path_join/frontier_tests/custody.rs",
+    "src/cleanup_plan/replay/path_join/frontier_tests/whole.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/immediate_before.rs",
+    "src/test_allocation_observer/phase_peaks.rs",
+    "src/loan_plan/paid_plan/before_reachability_release.rs",
+    "src/loan_plan/paid_plan/reachability_release_tests.rs",
+    "src/loan_plan/funded_flat/before_reachability_release.rs",
+    "src/workspace_graph/loan_retention/overlap_tests.rs",
+    "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_frame_pricing.rs",
+    "src/cleanup_plan/replay/selected_owner/ordinary.rs",
+    "src/cleanup_plan/replay/selected_owner/ordinary/tests.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/last_use.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/before.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/ordinary_labels.rs",
+    "src/cleanup_plan/replay/branch_clone/production_capacity/before_short.rs",
+    "src/cleanup_plan/replay/branch_clone/short_plan.rs",
+    "src/cleanup_plan/replay/nested_shape.rs",
+    "src/cleanup_plan/replay/nested_shape/scalar_tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/ordinary_receiving_tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/ordinary_receiving_before.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/ordinary_receiving_before.rs",
+    "src/cleanup_plan/replay/path_join/held_edge_before.rs",
+    "src/cleanup_plan/replay/path_join/held_edge_tests.rs"
   ],
   "extension": {
     "path": "docs/evidence/fmt-local-441-20261018/extension.json",
     "length": 262076,
     "sha256": "2af7299253e5cfb027186ba4fc151011a937214ff381c9267bfc11ef7d0003b6"
   },
-  "logical_rows": 826,
+  "logical_rows": 864,
   "source_successor": {
     "path": "docs/evidence/clippy-11a0-integration/inputs.json",
     "length": 74925,

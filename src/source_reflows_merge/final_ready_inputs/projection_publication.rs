@@ -43,8 +43,8 @@ pub(super) fn previous(path: &str, length: usize, sha: &str) -> Option<String> {
 // before this historical facade route, and every original phase inverse runs
 // after it. No source component is omitted from the current input.
 pub(super) fn audit_join(supplied: &str) -> Option<String> {
-    if supplied.len() != 1093492
-        || digest(supplied) != "75636e3cdcc75852c377e0b3e183e675ae289f71931cd9f3c47a6068514e6417"
+    if supplied.len() != 1506432
+        || digest(supplied) != "81375b3f3933b570193a3197fc7a4aec33f909461fa4f10017289d1f321d68a4"
     {
         return None;
     }
@@ -53,6 +53,29 @@ pub(super) fn audit_join(supplied: &str) -> Option<String> {
     // Literal generated from the actual owning macro, in original order.
     // Data pieces remain read-only source evidence, never compiled authority.
     const PARTS: &[(&str, &str, usize, &str)] = &[
+        ("src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/ordinary_labels.rs", include_str!("../../cleanup_plan/replay/factored/canonical_shared/inline_singleton/ordinary_labels.rs"), 10205, "900af30a08f96959e6f9c553d28e6f82f3104473cf23dbbb3090436310a22669"),
+        ("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_frame_pricing.rs", include_str!("../../cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_frame_pricing.rs"), 15950, "e4ad639ff6378b8d37a89fdddd90798d5aa7bd420f5ea2755a76c904d1d46602"),
+        ("src/cleanup_plan/replay/selected_owner/ordinary.rs", include_str!("../../cleanup_plan/replay/selected_owner/ordinary.rs"), 4718, "d0b8e7e4a2c222cb987ba09eca8f76bfa2715c31c46797ce4337fd93832cbafe"),
+        ("src/cleanup_plan/replay/selected_owner/ordinary/tests.rs", include_str!("../../cleanup_plan/replay/selected_owner/ordinary/tests.rs"), 6987, "5bdf7210f9343246d20abc64d29ef049d632c1c991d92aff03ad29a443061302"),
+        ("src/cleanup_plan/replay/expression_facts/receiving/retained/last_use.rs", include_str!("../../cleanup_plan/replay/expression_facts/receiving/retained/last_use.rs"), 2424, "0916bc3f12ad83a9600fb2009a4ca09fafea8c4a4cc25e6d88d712e9209c851d"),
+        ("src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/before.rs", include_str!("../../cleanup_plan/replay/expression_facts/receiving/retained/last_use/before.rs"), 86308, "755306bc0932240e81f62d01f1ec556235756c816d013d5d7f81417c4ba40417"),
+        ("src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/tests.rs", include_str!("../../cleanup_plan/replay/expression_facts/receiving/retained/last_use/tests.rs"), 7677, "6b870fe2d27431eade32b09e8f25703efe2ac56fbef286b544278682105ec89d"),
+        ("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort.rs", include_str!("../../cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort.rs"), 15369, "56a40d51a09c3bf21f7b4683aee142dbe29524c2c97cac97e685bf2773747549"),
+        ("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before.rs", include_str!("../../cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before.rs"), 32385, "e2d7bb7fc687c471da74528e29568efcc6eb8f48b0661778d051ba2a8652b293"),
+        ("src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/tests.rs", include_str!("../../cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/tests.rs"), 24146, "a71bd98e617a681d232f9f5dc80e59db39cf0dea461a313c077f80754e1fceff"),
+        ("src/cleanup_plan/replay/path_join/before_frontier/boxed_states.rs", include_str!("../../cleanup_plan/replay/path_join/before_frontier/boxed_states.rs"), 7076, "59e698eea731be50e9d9ecd35a5d817ec1be5aaa482444b6df38aa2ee70f18b3"),
+        ("src/cleanup_plan/replay/path_join/before_frontier/branch_join.rs", include_str!("../../cleanup_plan/replay/path_join/before_frontier/branch_join.rs"), 10802, "34be6ba09bb7bac7123a1039df67948f0ab5e49bdab69d7c2da55ba8cd07b90c"),
+        ("src/cleanup_plan/replay/path_join/before_frontier/mod.rs", include_str!("../../cleanup_plan/replay/path_join/before_frontier/mod.rs"), 50333, "749400ec833f546f5c2f88c913c6c2ff5ba7fa5bea179de50d660411f9919211"),
+        ("src/cleanup_plan/replay/path_join/before_frontier/storage.rs", include_str!("../../cleanup_plan/replay/path_join/before_frontier/storage.rs"), 15694, "06fe50c24fcbb7db7763761387f990681acfa2c7963361bf6c8ed25260dbca79"),
+        ("src/cleanup_plan/replay/path_join/before_frontier/storage/atomic_controls.rs", include_str!("../../cleanup_plan/replay/path_join/before_frontier/storage/atomic_controls.rs"), 2720, "ab46c653becc07f401aa8aba33fe13b39992f41491f58bc43ff608056a011b10"),
+        ("src/cleanup_plan/replay/path_join/before_frontier/storage/empty_renewals.rs", include_str!("../../cleanup_plan/replay/path_join/before_frontier/storage/empty_renewals.rs"), 5189, "7313a9413f4e954ccc583034119763928dcd9445d595373ccf297f065a5be8cf"),
+        ("src/cleanup_plan/replay/path_join/before_frontier/tests.rs", include_str!("../../cleanup_plan/replay/path_join/before_frontier/tests.rs"), 5325, "d7841a842bf900a756905b56623fca40766ae1c3344bfb1dc4e1f86efe396df0"),
+        ("src/cleanup_plan/replay/path_join/before_frontier/transition.rs", include_str!("../../cleanup_plan/replay/path_join/before_frontier/transition.rs"), 35563, "628c1c134e179b8e8ca0db4646b6219e4c3a939968598ac2935ac500de996616"),
+        ("src/cleanup_plan/replay/path_join/boxed_flow.rs", include_str!("../../cleanup_plan/replay/path_join/boxed_flow.rs"), 4467, "6632ceeabe694a459ac118deeb68d858ac2dfa75e6d3ab6dccd3fc7c24e91c3d"),
+        ("src/cleanup_plan/replay/path_join/frontier.rs", include_str!("../../cleanup_plan/replay/path_join/frontier.rs"), 11444, "6d4c82e64f917d2a729b97b7da5d7fa2a691d035d9d4d9e2347d6858ee9f7360"),
+        ("src/cleanup_plan/replay/path_join/frontier_tests.rs", include_str!("../../cleanup_plan/replay/path_join/frontier_tests.rs"), 19986, "d6fddcc766fc297e99577b23225cd482bcc7a11223291f9cbb11fd347f339f62"),
+        ("src/cleanup_plan/replay/path_join/frontier_tests/custody.rs", include_str!("../../cleanup_plan/replay/path_join/frontier_tests/custody.rs"), 13190, "624579489df9e6ab2aa43b2cf8a96ebc62a68c108faa753008a14b2158234465"),
+        ("src/cleanup_plan/replay/path_join/frontier_tests/whole.rs", include_str!("../../cleanup_plan/replay/path_join/frontier_tests/whole.rs"), 10925, "da179f47f2f3f41eb14350b137d2468f5ac241445d6ae04d131c927da1c09908"),
         ("src/call_index/validation_before.rs", include_str!("../../call_index/validation_before.rs"), 3463, "50097cb04d8577afd15d0209fd11f14e1ff2d3d60c5bb692b8128c753b201472"),
         ("src/call_index/validation_receipt_tests.rs", include_str!("../../call_index/validation_receipt_tests.rs"), 4015, "0cb673d2f420230bc3b49fa90937d83302bfd29dec44aac4e95515c758297ce7"),
         ("src/codegen/native_owned_data_provider/emit_provider_before.rs", include_str!("../../codegen/native_owned_data_provider/emit_provider_before.rs"), 2513, "a4a17ce516c1c360d12f7ca0855ff5c049dfdd2248dc22c03bdc0cd25b5fe4ab"),
@@ -64,10 +87,10 @@ pub(super) fn audit_join(supplied: &str) -> Option<String> {
         ("src/workspace_graph/expected_projection/private_layout/names/interface_tests.rs", include_str!("../../workspace_graph/expected_projection/private_layout/names/interface_tests.rs"), 14300, "141dc56360504411f085f21117ee757eee43d8e1dca7a21854a01f45f53afdeb"),
         ("src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs", include_str!("../../cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs"), 10194, "52299d69ae04653546366d2eb220e0acbfc590c823e0a7819d29a1b47e7be134"),
         ("src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs", include_str!("../../cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs"), 17889, "24506f3ae2705ba0274d20f43f261948f06cba5c70cd955e99907e82918a9899"),
-        ("src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission.rs", include_str!("../../cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission.rs"), 7942, "4392abffc59dee7596e750e1523f0e2b0f4c23a5f35c67caa475de5785c4f568"),
-        ("src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/tests.rs", include_str!("../../cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/tests.rs"), 15818, "2890943d20f5ac052889f50340039fb6c4467ff5d686334796438a5b242bdf55"),
+        ("src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission.rs", include_str!("../../cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission.rs"), 10932, "792be2624414510de96336103ccc964f39ff7c474581aa90521be539b8e21d2d"),
+        ("src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/tests.rs", include_str!("../../cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/tests.rs"), 24843, "d4757425643d96a03c1c6a05f31d7018cb5653c71a921bb736335e9102edf6f6"),
         ("src/source_reflows_merge/main_e177_overlay_labels_v12.rs", include_str!("../../source_reflows_merge/main_e177_overlay_labels_v12.rs"), 7219, "260cfb1eb837f15415a05f769e0d6554f6c26a3eeecf01a58eff16e8a2bf2446"),
-        ("src/source_reflows_merge/main_e177_overlay_labels_v12/tests.rs", include_str!("../../source_reflows_merge/main_e177_overlay_labels_v12/tests.rs"), 6958, "33fec76e5c50a7954a6d480012eb17a662db2f45e7bcd7025aad5ccafc26db68"),
+        ("src/source_reflows_merge/main_e177_overlay_labels_v12/tests.rs", include_str!("../../source_reflows_merge/main_e177_overlay_labels_v12/tests.rs"), 9000, "4b7909d105a26db233ae03b3a3386c1bbd43b981500764dbea2d31bdebe6ee81"),
         ("src/workspace_graph/expected_projection/call_carriers_directory/modular.rs", include_str!("../../workspace_graph/expected_projection/call_carriers_directory/modular.rs"), 3536, "894b8a45279a1afb3b8a2e10e07888f1567ae6fb30a5f0c860ee39a5cd107d62"),
         ("src/workspace_graph/expected_projection/shared_local_callees/modular_census.rs", include_str!("../../workspace_graph/expected_projection/shared_local_callees/modular_census.rs"), 9819, "b5032e96c21ae66a011e08938a5dda8b366a9b495b6d421f7eb259c9e4ae3098"),
         ("src/workspace_graph/expected_projection/shared_local_callees/modular_pair.rs", include_str!("../../workspace_graph/expected_projection/shared_local_callees/modular_pair.rs"), 10077, "8031e83e8bdbe63b08131016dbee7c9cf3b6614bff75090dc88cc8f706a51167"),

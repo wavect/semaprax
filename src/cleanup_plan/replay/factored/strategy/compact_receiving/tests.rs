@@ -1,7 +1,10 @@
 //! Complete caller comparisons; all allocation measurements include final Drop.
 use super::super::*;
 use super::*;
-use crate::bounded_output::{active_remaining, set_active_floor, with_limit_usage_refusal};
+use crate::bounded_output::{
+    active_refused, active_remaining, classifier_string::ClassifierLedger, set_active_floor,
+    with_limit_usage_refusal, ReservationRefusal,
+};
 use crate::cleanup_plan::replay::primitive_fixture;
 use crate::test_allocation_observer::{measure, Metrics};
 
@@ -72,6 +75,7 @@ struct Run {
     spent: usize,
     paid: usize,
     refused: bool,
+    first: Option<ReservationRefusal>,
     heap: Metrics,
 }
 fn run(
@@ -87,13 +91,35 @@ fn run(
     // preparation is excluded identically. Actual paid selected Context creation
     // and every production caller allocation below remain inside measurement.
     let source = primitive_fixture::Context::new(p);
-    let ((result, heap), refused, paid, _first) = with_limit_usage_refusal(bytes, || {
+    let ((result, heap), refused, paid, first) = with_limit_usage_refusal(bytes, || {
         measure(|| {
             assert!(set_active_floor(floor));
+            // Test-only observation clones the existing Rc handle: it allocates
+            // no backing and makes no production reservation or invoice entry.
+            let ledger = ClassifierLedger::capture();
             let mut b = if selected {
-                match ReplayBudget::with_physical(f, usize::MAX) {
+                match ReplayBudget::try_from_reservation(
+                    f,
+                    physical_storage::PhysicalReservation::new(usize::MAX),
+                ) {
                     Ok(b) => b,
-                    Err(d) => return (Err(failure(d)), 0, 0, 0),
+                    Err(setup) => {
+                        // Keep the actual failed setup ledger alive through its
+                        // retry and final Drop. Reconstruct the same compatibility
+                        // Diagnostic as with_physical, after checking sticky state.
+                        let (mut physical, reason) = setup.into_parts();
+                        let first = ledger.first_refusal();
+                        let remaining = active_remaining();
+                        let charged = physical.charged();
+                        assert!(physical.reserve(0).is_err());
+                        assert!(physical.reserve(1).is_err());
+                        assert_eq!(physical.charged(), charged);
+                        assert_eq!(ledger.first_refusal(), first);
+                        assert_eq!(active_remaining(), remaining);
+                        drop(physical);
+                        let diagnostic = replay_error(f, reason.message());
+                        return (Err(failure(diagnostic)), 0, 0, 0);
+                    }
                 }
             } else {
                 ReplayBudget::new()
@@ -123,12 +149,21 @@ fn run(
             let spent = work - b.remaining;
             let held = b.skeleton_remaining;
             let skeleton = b.skeleton_spent;
-            if b.refusal_spent {
+            if b.refusal_spent || active_refused() {
+                let first = ledger.first_refusal();
                 let remaining = active_remaining();
-                let retry = b.reserve_bytes(f, 0, "lexical compact sticky retry");
-                assert!(retry.is_err());
-                drop(retry);
-                assert_eq!(active_remaining(), remaining);
+                let charged = b.physical.as_ref().map(|physical| physical.charged());
+                for bytes in [0, 1] {
+                    let retry = b.reserve_bytes(f, bytes, "lexical compact sticky retry");
+                    assert!(retry.is_err());
+                    drop(retry);
+                    assert_eq!(ledger.first_refusal(), first);
+                    assert_eq!(active_remaining(), remaining);
+                    assert_eq!(
+                        b.physical.as_ref().map(|physical| physical.charged()),
+                        charged
+                    );
+                }
             }
             drop(b);
             (result, spent, held, skeleton)
@@ -141,11 +176,18 @@ fn run(
         spent: result.3,
         paid,
         refused,
+        first,
         heap,
     }
 }
 fn balanced(r: &Run) {
     assert!(!r.heap.invalid && r.heap.live == 0);
+    // Work/semantic refusal need not select an enclosing byte receipt. Keep
+    // that distinction: only an actual enclosing refusal requires one here.
+    assert_eq!(r.first.is_some(), r.refused);
+    if r.result.is_ok() {
+        assert!(r.first.is_none());
+    }
     assert_eq!(r.heap.allocated, r.heap.freed);
     if r.result.is_ok() {
         assert!(
@@ -177,6 +219,7 @@ fn tiny_branch_and_full_lexical_callers_preserve_results_work_and_report_actual_
                 let repeat = run(&p, f, false, selected, MAX_REPLAY_WORK_UNITS, usize::MAX, 0);
                 assert_eq!(repeat.result, current.result);
                 assert_eq!(repeat.paid, current.paid);
+                assert_eq!(repeat.first, current.first);
                 balanced(&repeat);
             }
         }
@@ -185,45 +228,71 @@ fn tiny_branch_and_full_lexical_callers_preserve_results_work_and_report_actual_
 }
 #[test]
 fn exact_short_zero_work_bytes_floor_and_sticky_refusal_keep_full_drop() {
-    let p = fixture(TINY);
-    let f = probe(&p);
-    for old in [false, true] {
-        let full = run(&p, f, old, false, MAX_REPLAY_WORK_UNITS, usize::MAX, 0);
-        assert!(full.result.is_ok());
-        balanced(&full);
-        assert!(full.work > 0 && full.paid > 0);
-        for (work, bytes, floor, success) in [
-            (full.work, full.paid, 0, true),
-            (full.work - 1, full.paid, 0, false),
-            (0, full.paid, 0, false),
-            (full.work, full.paid - 1, 0, false),
-            (full.work, 0, 0, false),
-            (full.work, full.paid, full.paid, false),
-        ] {
-            let r = run(&p, f, old, false, work, bytes, floor);
-            balanced(&r);
-            assert_eq!(
-                r.result.is_ok() && !r.refused,
-                success,
-                "old={old} work={work} bytes={bytes} floor={floor}"
-            );
-            if let Err(d) = &r.result {
-                assert_eq!(d.code, "SPX-H006");
+    for source in [TINY, BRANCH, FULL] {
+        let p = fixture(source);
+        let f = probe(&p);
+        for selected in [false, true] {
+            for old in [false, true] {
+                let full = run(&p, f, old, selected, MAX_REPLAY_WORK_UNITS, usize::MAX, 0);
+                assert!(full.result.is_ok());
+                balanced(&full);
+                assert!(full.work > 0 && full.paid > 0);
+                for (cut, (work, bytes, floor, success)) in [
+                    (full.work, full.paid, 0, true),
+                    (full.work - 1, full.paid, 0, false),
+                    (0, full.paid, 0, false),
+                    (full.work, full.paid - 1, 0, false),
+                    (full.work, 0, 0, false),
+                    (full.work, full.paid, full.paid, false),
+                ]
+                .into_iter()
+                .enumerate()
+                {
+                    // TINY retains every original cut in both payer modes.
+                    // Branch/full add exact, byte-short and floor cuts around
+                    // their complete successful invoice, without repeating
+                    // the tiny caller's work/zero admission matrix.
+                    if source != TINY && matches!(cut, 1 | 2 | 4) {
+                        continue;
+                    }
+                    let r = run(&p, f, old, selected, work, bytes, floor);
+                    balanced(&r);
+                    assert_eq!(
+                        r.result.is_ok() && !r.refused,
+                        success,
+                        "old={old} selected={selected} work={work} bytes={bytes} floor={floor}"
+                    );
+                    if let Err(d) = &r.result {
+                        assert_eq!(d.code, "SPX-H006");
+                    }
+                    if let Some(first) = r.first {
+                        assert_eq!(first.floor, floor);
+                        assert!(first.remaining <= bytes);
+                        assert!(first
+                            .requested
+                            .checked_add(first.floor)
+                            .is_none_or(|required| required > first.remaining));
+                    }
+                }
+            }
+            if source != TINY {
+                continue;
+            }
+            // Equal work frontiers compare the actual six-field Diagnostic,
+            // including selected cold setup, rather than only the error code.
+            let full = run(&p, f, false, selected, MAX_REPLAY_WORK_UNITS, usize::MAX, 0);
+            for work in [0, 1, full.work / 2, full.work - 1, full.work] {
+                let old = run(&p, f, true, selected, work, usize::MAX, 0);
+                let current = run(&p, f, false, selected, work, usize::MAX, 0);
+                assert_eq!(old.result, current.result);
+                assert_eq!(
+                    (old.work, old.held, old.spent),
+                    (current.work, current.held, current.spent)
+                );
+                balanced(&old);
+                balanced(&current);
             }
         }
-    }
-    // Equal work frontiers compare the actual six-field Diagnostic, not its code.
-    let full = run(&p, f, false, false, MAX_REPLAY_WORK_UNITS, usize::MAX, 0);
-    for work in [0, 1, full.work / 2, full.work - 1, full.work] {
-        let old = run(&p, f, true, false, work, usize::MAX, 0);
-        let current = run(&p, f, false, false, work, usize::MAX, 0);
-        assert_eq!(old.result, current.result);
-        assert_eq!(
-            (old.work, old.held, old.spent),
-            (current.work, current.held, current.spent)
-        );
-        balanced(&old);
-        balanced(&current);
     }
 }
 #[test]
@@ -308,5 +377,21 @@ fn immediate_old_entire_caller_and_unchanged_dependencies_are_source_bound() {
   (include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact.rs")),"3e627c55e743f541f5787c64c47af8e31690a002907db35a435f0ce57fc9c72a"),
   (include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/payments.rs")),"9d7181c923df3c53a31ebdd1571d3c1f9eac990f605345b06a708dc19d251e8c"),
   (include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/compact_targets.rs")),"75270c55c77ae6ea0697f52348e7c6ad78c5dbbca706bdd4b8faabd3849d1e10"),
- ] {assert_eq!(format!("{:x}",crate::digest_hex::LowerHex(Sha256::digest(source.as_bytes()))),hash);}
+ ] {
+        let original = if hash == "3e627c55e743f541f5787c64c47af8e31690a002907db35a435f0ce57fc9c72a" {
+            // The complete existing compact entry is unchanged. Its later
+            // active-builder sibling is independently source-bound below.
+            assert_eq!(source.matches("mod active;\n").count(), 1);
+            std::borrow::Cow::Owned(source.replacen("mod active;\n", "", 1))
+        } else {
+            std::borrow::Cow::Borrowed(source)
+        };
+        assert_eq!(format!("{:x}",crate::digest_hex::LowerHex(Sha256::digest(original.as_bytes()))),hash);
+    }
+    assert_eq!(
+        format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(include_bytes!(
+            "../../canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/active.rs"
+        )))),
+        "991492eeee4ed2c8783ed2bf0bffddd661f76633738074ad78b4301b032ab75e"
+    );
 }

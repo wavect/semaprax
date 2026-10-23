@@ -1,0 +1,6 @@
+
+running 1 test
+test projected_gate::expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 335 filtered out; finished in 6.55s
+

@@ -1,4 +1,3 @@
-
 use super::super::active_targets;
 use super::*;
 use crate::bounded_output::with_limit_usage_refusal;
@@ -287,6 +286,7 @@ fn append_label_bound_covers_actual_allocations_at_every_prefix_and_split_order(
         paid_many::Targets,
     >()
     .unwrap();
+    assert_eq!(FIRST_LABEL_LEAF_LAYOUT.0 + FIRST_LABEL_LEAF_LAYOUT.1, node);
     let counts: Vec<_> = (0..=128)
         .chain([129, 255, 256, 511, 512, 1023, 1024])
         .collect();
@@ -343,6 +343,15 @@ fn append_label_bound_covers_actual_allocations_at_every_prefix_and_split_order(
                 heap.allocated <= nodes * node,
                 "order={order} count={count}: {heap:?} bound={}",
                 nodes * node
+            );
+            let leaf_bound = if nodes == 0 {
+                0
+            } else {
+                FIRST_LABEL_LEAF_LAYOUT.0 + (nodes - 1) * node
+            };
+            assert!(
+                heap.allocated <= leaf_bound,
+                "first leaf order={order} count={count}: {heap:?} bound={leaf_bound}"
             );
         }
     }

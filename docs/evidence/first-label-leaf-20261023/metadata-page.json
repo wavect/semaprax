@@ -1,0 +1,19 @@
+{
+  "status": "ORIGINAL_CURRENT_CODEC_COMPOSITION_PASS_PENDING_PUBLICATION",
+  "base_head": "39de740bd3",
+  "rows": 710,
+  "page_bytes": 262067,
+  "published_current_preserved_as_exact_views": [
+    {
+      "source": "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/active.rs",
+      "view": {
+        "archive": "e/286f86f9e42d17181b58c7cc532cdca5cabab2827e266bb5e858acd08b3e2058",
+        "length": 67232,
+        "sha256": "286f86f9e42d17181b58c7cc532cdca5cabab2827e266bb5e858acd08b3e2058",
+        "name": "6aa"
+      }
+    }
+  ],
+  "all_previous_fields_views_memberships_and_fragment_edges_retained": true,
+  "all_original_codec_bodies_and_caps_unchanged": true
+}

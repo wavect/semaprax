@@ -1,0 +1,7 @@
+{
+  "base_head": "6aa17d61fc62073e92389879d055168a7d8990dc",
+  "changes": "Only the first fresh label-map allocation uses the pinned leaf upper; all later nodes retain the full internal upper. The original cumulative node and allocation assertions remain and a tighter leaf assertion is added.",
+  "new_runtime_abi": "First node primitive now uses actual compact byte-call ABI; the complete receiving bank replaces exactly that node-call ABI.",
+  "no_caps_or_work_limits_changed": true,
+  "full_ci_qualified": false
+}

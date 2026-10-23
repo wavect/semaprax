@@ -121,18 +121,18 @@ mod payments {
                             add!(targets, child, weight);
                         }
                         lexical_successors::OnePassLabels::One(_, _) => {
-                            // All receiving and both new label nodes precede moving
+                            // All receivers and the first leaf allocation precede moving
                             // the existing inline entry. A refusal retains that entry.
                             $compact_attempt!($budget.reserve_compact_bytes(
                                 $function,
                                 compact_successors::ONE_PASS_PROMOTION,
                                 "factored one-pass label promotion receivers"
                             ));
-                            $compact_attempt!($budget
-                                .reserve_compact_btree_node::<&Label, paid_many::Targets>(
-                                    $function,
-                                    "factored one-pass first label node"
-                                ));
+                            $compact_attempt!($budget.reserve_compact_bytes(
+                                $function,
+                                active_targets::FIRST_LABEL_LEAF_LAYOUT.0,
+                                "factored one-pass first label node"
+                            ));
                             $compact_attempt!($budget.reserve_compact_bytes(
                                 $function,
                                 0,
@@ -148,6 +148,9 @@ mod payments {
                                 .expect("zero plus u64 cannot overflow");
                             #[cfg(test)]
                             active_targets::AVOIDED_LABEL_NODES
+                                .with(|count| count.set(count.get() + 1));
+                            #[cfg(test)]
+                            active_targets::INITIAL_LABEL_MAPS
                                 .with(|count| count.set(count.get() + 1));
                             let mut many = BTreeMap::new();
                             let lexical_successors::OnePassLabels::One(first, targets) =
@@ -560,13 +563,47 @@ mod active_targets {
         + 2 * size_of::<GrowthCall<'static>>()
         + 2 * size_of::<Result<(), ByteFailure>>();
 
+    // A fresh BTreeMap first allocates one leaf, before any internal node.
+    // Preserve the pinned B=6 field-by-field alignment upper from physical_storage,
+    // omitting only the twelve child pointers absent from that first allocation.
+    // Const evaluation introduces no runtime layout helper or receiving packet.
+    pub(super) const FIRST_LABEL_LEAF_LAYOUT: (usize, usize) = {
+        let key_alignment = std::mem::align_of::<&Label>();
+        let value_alignment = std::mem::align_of::<paid_many::Targets>();
+        let mut alignment = if key_alignment > value_alignment {
+            key_alignment
+        } else {
+            value_alignment
+        };
+        if std::mem::align_of::<usize>() > alignment {
+            alignment = std::mem::align_of::<usize>();
+        }
+        let fields = [
+            size_of::<Option<std::ptr::NonNull<()>>>(),
+            size_of::<u16>(),
+            size_of::<u16>(),
+            size_of::<&Label>() * 11,
+            size_of::<paid_many::Targets>() * 11,
+        ];
+        let mut index = 0;
+        let mut leaf = 0;
+        while index < fields.len() {
+            leaf += fields[index].div_ceil(alignment) * alignment;
+            index += 1;
+        }
+        let links = (size_of::<usize>() * 12).div_ceil(alignment) * alignment;
+        (leaf, links)
+    };
+    #[cfg(test)]
+    thread_local! {pub(super) static INITIAL_LABEL_MAPS:std::cell::Cell<usize>=const{std::cell::Cell::new(0)};}
+
     // Only the fresh append-only label map in active_one_pass_successors calls
     // this helper. It has no removal, clear, replacement of a key, or retained empty
     // root. The existing pinned B=6 model gives every non-root node >=5 keys and a
     // nonempty root >=1: nodes <= 1 + (entries-1)/5. Insertion allocates nodes but
     // never deallocates them, so the same bound covers cumulative node allocation
     // and every intermediate split. The first pair is financed directly by one
-    // node plus zero-byte authentication before insertion. This helper serves only
+    // leaf plus zero-byte authentication before insertion. This helper serves only
     // later entries and reads the real map.len() supplied by its private caller.
     type AppendLabelCall<'a> = (&'a mut ReplayBudget, &'a ResolvedFunction, usize, &'a str);
     #[allow(
@@ -766,7 +803,16 @@ type Dispatch<'hir> = fn(
     &mut closure_receiving::ClosureReceiving,
 ) -> Result<Option<usize>, Diagnostic>;
 impl<'hir> Canonicalizer<'hir> {
-    pub(in crate::cleanup_plan::replay::factored::canonical_shared) const ACTIVE_APPEND_LABEL_FRAMES: usize = active_targets::APPEND_LABEL_FRAMES + legacy_payments::ONE_PASS_UNIT_ABI - legacy_payments::ONE_PASS_NODE_ABI;
+    pub(in crate::cleanup_plan::replay::factored::canonical_shared) const ACTIVE_APPEND_LABEL_FRAMES: usize = active_targets::APPEND_LABEL_FRAMES + 2 * legacy_payments::ONE_PASS_UNIT_ABI - 2 * legacy_payments::ONE_PASS_NODE_ABI;
+    #[cfg(test)]
+    pub(in crate::cleanup_plan::replay::factored::canonical_shared) fn active_initial_label_maps(
+        reset: bool,
+    ) -> usize {
+        active_targets::INITIAL_LABEL_MAPS
+            .with(|count| if reset { count.replace(0) } else { count.get() })
+    }
+    #[cfg(test)]
+    pub(in crate::cleanup_plan::replay::factored::canonical_shared) const ACTIVE_FIRST_LABEL_LINK_BYTES: usize = active_targets::FIRST_LABEL_LEAF_LAYOUT.1;
     #[cfg(test)]
     pub(in crate::cleanup_plan::replay::factored::canonical_shared) fn active_avoided_label_nodes(
         reset: bool,

@@ -28,7 +28,7 @@
 ## CI reservation transport and append-only label maps (2026-10-23)
 
 - Reduce active canonical and PLAN payment transport to compact byte failures while preserving complete diagnostics, canonical output, work limits and allocation ownership.
-- Fund fresh append-only label maps with a pinned B-tree occupancy bound, checked against actual allocations at every prefix and split boundaries. The compiler accounting limits are unchanged.
+- Fund fresh append-only label maps with a pinned B-tree occupancy bound and a leaf upper for the first allocation, checked against actual allocations at every prefix and split boundaries. The compiler accounting limits are unchanged.
 - Preserve every prior source role, complete source view and ordered raw inventory; join the new children into all existing source-coverage readers.
 
 ## CI source-view boundary repair (2026-10-20)

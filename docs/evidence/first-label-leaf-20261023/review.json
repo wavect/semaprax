@@ -1,0 +1,17 @@
+{
+  "scope": "Manual review of first fresh label-map leaf reservation; actual compiler types and existing pinned B=6 layout model.",
+  "proof": [
+    "A newly constructed empty BTreeMap allocates a leaf for its first insertion. No internal child-pointer array exists in that allocation.",
+    "Each field remains independently rounded to the maximum actual key/value/usize alignment, exactly as in the existing node upper. The only omission is the twelve absent child pointers.",
+    "All later allocations retain the full existing internal-node upper and the established append-only five-key occupancy bound.",
+    "The first primitive is now a compact byte call. Both actual/formal argument banks are funded by replacing precisely the first old node-call bank with the real byte-call bank.",
+    "The original allocation inequality is retained, and a second tighter first-leaf inequality is added for all measured prefixes and insertion orders."
+  ],
+  "required": [
+    "Normal Clippy and build",
+    "Thirteen real-root predecessor, allocator, boundary and work-cut tests",
+    "Focused product checks with unchanged caps",
+    "Fresh source-role publication and unchanged hostile/source coverage controls"
+  ],
+  "full_ci_qualified": false
+}

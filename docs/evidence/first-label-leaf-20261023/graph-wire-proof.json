@@ -1,0 +1,12 @@
+{
+  "scope": "Actual normal compiler and original io-lines project; no full CI qualification.",
+  "only_json_differences": [
+    "/graph_digest",
+    "/budget/used_builder_bytes"
+  ],
+  "before": 22094338,
+  "after": 22084690,
+  "saved": 9648,
+  "all_semantic_fields_unchanged": true,
+  "full_ci_qualified": false
+}

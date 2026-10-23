@@ -77,6 +77,7 @@ fn run(
 ) -> Run {
     Canonicalizer::active_finish_calls(true);
     Canonicalizer::active_avoided_label_nodes(true);
+    Canonicalizer::active_initial_label_maps(true);
     let ((result, remaining, skeleton, spent, heap, shapes, successors), refused, paid, _) =
         with_limit_usage_refusal(limit, || {
             let ((result, remaining, skeleton, spent, shapes, successors), heap) = measure(|| {
@@ -205,6 +206,8 @@ fn full_graphs_keep_ids_work_heap_and_exact_removed_successor_receivers() {
                             paid_many::Targets,
                         >()
                         .unwrap();
+                    let initial_leaf_links = Canonicalizer::active_initial_label_maps(false)
+                        * Canonicalizer::ACTIVE_FIRST_LABEL_LINK_BYTES;
                     let retained = new_banks
                         * (Canonicalizer::ACTIVE_TARGET_FRAMES
                             + Canonicalizer::ACTIVE_APPEND_LABEL_FRAMES);
@@ -223,7 +226,8 @@ fn full_graphs_keep_ids_work_heap_and_exact_removed_successor_receivers() {
                             + new_count * removed
                             + removed_nodes
                             + removed_finish
-                            + avoided_label_nodes,
+                            + avoided_label_nodes
+                            + initial_leaf_links,
                         old.paid + retained,
                         "total length={length} width={width} weight={weight}"
                     );

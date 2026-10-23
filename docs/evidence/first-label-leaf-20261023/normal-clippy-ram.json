@@ -1,0 +1,59 @@
+{
+  "exit": 0,
+  "process_RSS_cap": null,
+  "minimum_device_physical_available_GiB": 2.9607391357421875,
+  "minimum_pressure_free_percent": 33,
+  "compiler_pauses": 0,
+  "peak_process_tree_RSS_telemetry_KiB": 2693200,
+  "samples": [
+    {
+      "physical_available_GiB": 6.724212646484375,
+      "pressure_free_percent": 76,
+      "compiler_paused": false,
+      "process_tree_RSS_telemetry_KiB": 2032,
+      "swap": "vm.swapusage: total = 7168.00M  used = 5729.06M  free = 1438.94M  (encrypted)"
+    },
+    {
+      "physical_available_GiB": 6.786407470703125,
+      "pressure_free_percent": 76,
+      "compiler_paused": false,
+      "process_tree_RSS_telemetry_KiB": 499232,
+      "swap": "vm.swapusage: total = 7168.00M  used = 5729.06M  free = 1438.94M  (encrypted)"
+    },
+    {
+      "physical_available_GiB": 5.563568115234375,
+      "pressure_free_percent": 63,
+      "compiler_paused": false,
+      "process_tree_RSS_telemetry_KiB": 2304448,
+      "swap": "vm.swapusage: total = 7168.00M  used = 5729.06M  free = 1438.94M  (encrypted)"
+    },
+    {
+      "physical_available_GiB": 5.0117950439453125,
+      "pressure_free_percent": 57,
+      "compiler_paused": false,
+      "process_tree_RSS_telemetry_KiB": 2414928,
+      "swap": "vm.swapusage: total = 7168.00M  used = 5729.06M  free = 1438.94M  (encrypted)"
+    },
+    {
+      "physical_available_GiB": 4.38336181640625,
+      "pressure_free_percent": 50,
+      "compiler_paused": false,
+      "process_tree_RSS_telemetry_KiB": 2480688,
+      "swap": "vm.swapusage: total = 7168.00M  used = 5729.06M  free = 1438.94M  (encrypted)"
+    },
+    {
+      "physical_available_GiB": 3.2600250244140625,
+      "pressure_free_percent": 37,
+      "compiler_paused": false,
+      "process_tree_RSS_telemetry_KiB": 1868384,
+      "swap": "vm.swapusage: total = 7168.00M  used = 5729.06M  free = 1438.94M  (encrypted)"
+    },
+    {
+      "physical_available_GiB": 3.21759033203125,
+      "pressure_free_percent": 36,
+      "compiler_paused": false,
+      "process_tree_RSS_telemetry_KiB": 1349984,
+      "swap": "vm.swapusage: total = 7168.00M  used = 5791.25M  free = 1376.75M  (encrypted)"
+    }
+  ]
+}

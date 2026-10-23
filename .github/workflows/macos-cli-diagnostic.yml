@@ -22,6 +22,16 @@ on:
         type: boolean
         required: false
         default: false
+      census_only:
+        description: Capture only the unchanged application reservation census; no test suites or journey
+        type: boolean
+        required: false
+        default: false
+      matched_904:
+        description: Run only the authenticated old/current OPT904 observation selectors sequentially
+        type: boolean
+        required: false
+        default: false
       opt_batch:
         description: Run the selected bounded OPT qualification batch and production Clippy on Linux
         type: boolean
@@ -229,8 +239,59 @@ jobs:
           path: installed-bundle-cli49/
           if-no-files-found: error
           retention-days: 7
+  matched-904:
+    name: OPT904 matched historical images (3 old / 2 current tests)
+    if: inputs.matched_904
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          fetch-tags: false
+          lfs: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+        with:
+          toolchain: 1.97.1
+      - name: Bind the paired observation package to this source tree
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain --untracked-files=no)"
+          mkdir opt904-paired-artifact
+          mkdir -p "$RUNNER_TEMP/opt904-images"
+          python3 - <<'PYCODE'
+          import hashlib,json,os,pathlib,subprocess
+          def sha(path):
+              return hashlib.sha256(pathlib.Path(path).read_bytes()).hexdigest()
+          git=lambda *args:subprocess.check_output(["git",*args],text=True).strip()
+          assert git("rev-parse","HEAD")==os.environ["GITHUB_SHA"]
+          pathlib.Path("opt904-paired-artifact/job.json").write_text(json.dumps({
+              "head":os.environ["GITHUB_SHA"],"tree":git("rev-parse","HEAD^{tree}"),
+              "repository":os.environ["GITHUB_REPOSITORY"],"run_id":os.environ["GITHUB_RUN_ID"],
+              "runner_sha256":sha("scripts/opt904-matched-observation.py"),
+              "manifest_sha256":sha("scripts/opt904-matched-observation/manifest.json"),
+              "qualification":"historical image observation only; no current-head application or OPT904-only total invoice gain"
+          },indent=2)+"\n")
+          PYCODE
+      - name: Observe the two exact images with one heavy build at a time
+        shell: bash
+        run: >-
+          python3 scripts/opt904-matched-observation.py
+          --scratch-root "$RUNNER_TEMP/opt904-images"
+          --output "$PWD/opt904-paired-artifact/observations"
+          --fetch-missing --fetch-dependencies
+      - name: Retain complete records, failures, executable hashes and host RAM samples
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: opt904-paired-observation-${{ github.sha }}-${{ github.run_attempt }}
+          path: opt904-paired-artifact/
+          if-no-files-found: error
+          retention-days: 7
   cli:
-    if: ${{ ! inputs.linux_stack && ! inputs.resolved_core && ! inputs.opt_batch && ! inputs.focused_controls && ! inputs.installed_bundle }}
+    if: ${{ ! inputs.linux_stack && ! inputs.resolved_core && ! inputs.opt_batch && ! inputs.focused_controls && ! inputs.installed_bundle && ! inputs.matched_904 && ! inputs.census_only }}
     runs-on: macos-15
     timeout-minutes: 120
     env:
@@ -413,8 +474,8 @@ jobs:
           retention-days: 1
 
   resolved-core:
-    if: inputs.resolved_core
-    name: Project reservation census (diagnostic only)
+    if: inputs.resolved_core || inputs.census_only
+    name: ${{ inputs.census_only && 'Focused application reservation census' || 'Project reservation census (diagnostic only)' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     env:
@@ -445,9 +506,16 @@ jobs:
         run: |
           set -euo pipefail
           cargo build --locked --offline -p semaprax --lib --features unstable-workflow-profiling --jobs 1 --message-format=json > resolved-core-build.jsonl
-      - name: Capture unchanged failure and exclusive reservation totals
-        run: python3 scripts/diagnose-resolved-core.py resolved-core-build.jsonl
+      - name: Capture unchanged products and exclusive reservation totals
+        shell: bash
+        run: |
+          if [ "${{ inputs.census_only }}" = "true" ]; then
+            python3 scripts/diagnose-resolved-core.py resolved-core-build.jsonl --applications
+          else
+            python3 scripts/diagnose-resolved-core.py resolved-core-build.jsonl
+          fi
       - name: Check complete canonical predecessor and compact Result controls
+        if: ${{ ! inputs.census_only }}
         id: focused_controls
         env:
           CARGO_PROFILE_TEST_DEBUG: "0"
@@ -464,7 +532,7 @@ jobs:
           done
           exit "$result"
       - name: Run the complete default-profile bundled-library project suite
-        if: ${{ !cancelled() && steps.production_build.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.production_build.outcome == 'success' && ! inputs.census_only }}
         env:
           CARGO_PROFILE_TEST_DEBUG: "0"
           CARGO_PROFILE_TEST_OPT_LEVEL: "0"
@@ -473,7 +541,7 @@ jobs:
           cargo test --locked --offline -p semaprax --test project
           standard_library:: -- --nocapture --test-threads=1
       - name: Run the original installed-toolchain journey
-        if: ${{ !cancelled() && steps.production_build.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.production_build.outcome == 'success' && ! inputs.census_only }}
         env:
           CARGO_PROFILE_TEST_DEBUG: "0"
           CARGO_PROFILE_TEST_OPT_LEVEL: "0"

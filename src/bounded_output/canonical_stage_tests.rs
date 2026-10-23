@@ -368,7 +368,7 @@ mod reservation_site_e47;
 
 // Finite feature-only source transport, before any earlier immutable inverse.
 // Raw/default and compiled channels must agree; no caller accepts this as proof.
-pub(crate) fn census_before(path: &str, current: &[u8]) -> Vec<u8> {
+pub(crate) fn census_original_before(path: &str, current: &[u8]) -> Vec<u8> {
     use sha2::{Digest, Sha256};
     let digest = |bytes: &[u8]| format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)));
     let encoded = include_str!("../cleanup_plan/replay/path_join/path_census_inverse.json");
@@ -381,8 +381,6 @@ pub(crate) fn census_before(path: &str, current: &[u8]) -> Vec<u8> {
     else {
         return current.to_vec();
     };
-    assert_eq!(current.len() as u64, row["length"].as_u64().unwrap());
-    assert_eq!(digest(current), row["sha256"].as_str().unwrap());
     let compiled: &[u8] = match path {
         "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs")).as_slice(),
         "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs")).as_slice(),
@@ -408,6 +406,10 @@ pub(crate) fn census_before(path: &str, current: &[u8]) -> Vec<u8> {
         _ => panic!("undeclared census source"),
     };
     assert_eq!(current, compiled);
+    let normalized = census_stage(path, current, false);
+    let current = normalized.as_deref().unwrap_or(current);
+    assert_eq!(current.len() as u64, row["length"].as_u64().unwrap());
+    assert_eq!(digest(current), row["sha256"].as_str().unwrap());
     let mut bytes = current.to_vec();
     for edit in row["edits"].as_array().unwrap().iter().rev() {
         let start = edit[0].as_u64().unwrap() as usize;
@@ -422,7 +424,7 @@ pub(crate) fn census_before(path: &str, current: &[u8]) -> Vec<u8> {
     assert_eq!(digest(&bytes), row["before_sha256"].as_str().unwrap());
     if path == "src/bounded_output/request_reservation.rs" {
         assert_eq!(row["before_owner"], "src/bounded_output.rs");
-        let parent = census_before(
+        let parent = census_original_before(
             "src/bounded_output.rs",
             include_bytes!("../bounded_output.rs"),
         );
@@ -431,4 +433,90 @@ pub(crate) fn census_before(path: &str, current: &[u8]) -> Vec<u8> {
         assert_eq!(parent.get(start..end), Some(bytes.as_slice()));
     }
     bytes
+}
+
+// Separate source acquisition composition: never feed the old82b5 image to a
+// later fixed shared-insertions inverse that expects the complete bd8 source.
+pub(crate) fn census_before(path: &str, current: &[u8]) -> Vec<u8> {
+    let original = census_original_before(path, current);
+    census_stage(path, current, true).unwrap_or(original)
+}
+fn census_stage(path: &str, current: &[u8], predecessor: bool) -> Option<Vec<u8>> {
+    use sha2::{Digest, Sha256};
+    let digest = |bytes: &[u8]| format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)));
+    let data: serde_json::Value = serde_json::from_str(include_str!(
+        "../cleanup_plan/replay/path_join/census_transport.json"
+    ))
+    .unwrap();
+    assert_eq!(data["schema"], "semaprax.path-census-source-composition.v1");
+    assert_eq!(data["e912"], "e9124c411f445ed80200460f2beb40cbdaa625df");
+    assert_eq!(data["predecessor"], "bd8a94fac");
+    let row = data["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| r["path"] == path)?;
+    let kind = if predecessor { "predecessor" } else { "e912" };
+    let target = &row[kind];
+    if target.is_null() {
+        return None;
+    }
+    let compiled: &[u8] = match path {
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs")),
+        "src/bounded_output.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/bounded_output.rs")),
+        "src/bounded_output/canonical_stage_tests.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/bounded_output/canonical_stage_tests.rs")),
+        "src/cleanup_plan/replay/path_join.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join.rs")),
+        "src/cleanup_plan/replay/path_join/frontier.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/frontier.rs")),
+        "src/cleanup_plan/replay/path_join/frontier_tests/custody.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/frontier_tests/custody.rs")),
+        "src/cleanup_plan/replay/path_join/held_edge_tests.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/held_edge_tests.rs")),
+        "src/cleanup_plan/replay/path_join/shared_insertions_tests.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/shared_insertions_tests.rs")),
+        "tests/hir_module_boundaries.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/hir_module_boundaries.rs")),
+        "tests/workspace/semantic_graph/source_inventory.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/workspace/semantic_graph/source_inventory.rs")),
+        _ => panic!("undeclared census composition source"),
+    };
+    assert_eq!(current, compiled);
+    assert_eq!(current.len() as u64, row["length"].as_u64().unwrap());
+    assert_eq!(digest(current), row["sha256"].as_str().unwrap());
+    let (file, length, sha, fixture): (&str, usize, &str, &[u8]) = match (path, predecessor) {
+        ("crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs", false) => ("e912_00.txt", 227742, "a89396ad310b42c99c219473d6744eee8efb7e498f1275c460673b38427fc2ca", include_bytes!("../cleanup_plan/replay/path_join/census_transport/e912_00.txt")),
+        ("src/bounded_output.rs", false) => ("e912_01.txt", 52350, "b964e4a5ddffbf9d8e61d37eeb2cbf819b96c2dd204c91bca0755dc08c8a9664", include_bytes!("../cleanup_plan/replay/path_join/census_transport/e912_01.txt")),
+        ("src/bounded_output/canonical_stage_tests.rs", false) => ("e912_02.txt", 19983, "2119b3931a91be3727ca3962c2c01e76f73e7f371b15cdc6635f46b3a206a8bb", include_bytes!("../cleanup_plan/replay/path_join/census_transport/e912_02.txt")),
+        ("src/cleanup_plan/replay/path_join.rs", false) => ("e912_03.txt", 53255, "e66afaf7a9241c178c4800d325fdb20a7ff6a6715bf016c839fdb031148b83c9", include_bytes!("../cleanup_plan/replay/path_join/census_transport/e912_03.txt")),
+        ("src/cleanup_plan/replay/path_join.rs", true) => ("predecessor_00.txt", 52645, "63b056cf5042a971c20eb8eca2cd6934446362c9b6e140b09bf4cb52e34720a6", include_bytes!("../cleanup_plan/replay/path_join/census_transport/predecessor_00.txt")),
+        ("src/cleanup_plan/replay/path_join/frontier.rs", false) => ("e912_04.txt", 14589, "2a6bb7f4c53fd303d7b8ae581e0d210b8a9ecdfc8e0b36e8334cd681681b667d", include_bytes!("../cleanup_plan/replay/path_join/census_transport/e912_04.txt")),
+        ("src/cleanup_plan/replay/path_join/frontier.rs", true) => ("predecessor_01.txt", 15531, "0f9c07072519396de6d9aecd059e095c8cbe853a2269ed404dccb00838f91570", include_bytes!("../cleanup_plan/replay/path_join/census_transport/predecessor_01.txt")),
+        ("src/cleanup_plan/replay/path_join/frontier_tests/custody.rs", false) => ("e912_05.txt", 13248, "bc0f17e4753b893a398e71c9739d1e165236c3bfcc14f0622e2cd2e6174d27a6", include_bytes!("../cleanup_plan/replay/path_join/census_transport/e912_05.txt")),
+        ("src/cleanup_plan/replay/path_join/frontier_tests/custody.rs", true) => ("predecessor_02.txt", 15127, "bdcd62df062f799a561dbaa937d42a0d790ed6b3216648b711da07a263440318", include_bytes!("../cleanup_plan/replay/path_join/census_transport/predecessor_02.txt")),
+        ("src/cleanup_plan/replay/path_join/held_edge_tests.rs", true) => ("predecessor_03.txt", 6878, "5b7af349b0c28fb3dbe9fd4adbd58343e45aaf4511f0a8f5ca3a3e2dbce06dfa", include_bytes!("../cleanup_plan/replay/path_join/census_transport/predecessor_03.txt")),
+        ("src/cleanup_plan/replay/path_join/shared_insertions_tests.rs", true) => ("predecessor_04.txt", 19690, "acec70169bd33476ef5386646a977ba5a2c098a2c9bb26824cd6e0f3c8da5224", include_bytes!("../cleanup_plan/replay/path_join/census_transport/predecessor_04.txt")),
+        ("tests/hir_module_boundaries.rs", false) => ("e912_06.txt", 153194, "29a37b470efcab74c13779e9dcd1b2fac6cd548d7325d2cd1a9a4081afb3af96", include_bytes!("../cleanup_plan/replay/path_join/census_transport/e912_06.txt")),
+        ("tests/workspace/semantic_graph/source_inventory.rs", false) => ("e912_07.txt", 181075, "36ae99b2e4319a83f688797315600c1c7f6dcfacbebcc0f5d21637c26155ff9e", include_bytes!("../cleanup_plan/replay/path_join/census_transport/e912_07.txt")),
+        _ => panic!("undeclared census composition target"),
+    };
+    assert_eq!(target["file"], file);
+    assert_eq!(target["length"], length);
+    assert_eq!(target["sha256"], sha);
+    assert_eq!(fixture.len(), length);
+    assert_eq!(digest(fixture), sha);
+    assert_eq!(
+        std::fs::read(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("src/cleanup_plan/replay/path_join/census_transport")
+                .join(file)
+        )
+        .unwrap(),
+        fixture
+    );
+    let mut bytes = current.to_vec();
+    for edit in target["edits"].as_array().unwrap().iter().rev() {
+        let at = edit[0].as_u64().unwrap() as usize;
+        let after = edit[1].as_str().unwrap().as_bytes();
+        assert_eq!(bytes.get(at..at + after.len()), Some(after));
+        bytes.splice(at..at + after.len(), edit[2].as_str().unwrap().bytes());
+    }
+    assert_eq!(
+        bytes, fixture,
+        "complete independently bound census predecessor"
+    );
+    Some(bytes)
 }

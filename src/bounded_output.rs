@@ -1357,7 +1357,7 @@ pub(crate) use source_owner_scope::source_owner_scope;
 #[cfg(test)]
 mod canonical_stage_tests;
 #[cfg(test)]
-pub(crate) use canonical_stage_tests::census_before;
+pub(crate) use canonical_stage_tests::{census_before, census_original_before};
 
 #[cfg(test)]
 mod loan_inner_stage_tests;

@@ -201,8 +201,30 @@ fn feature_only_census_full_source_inverses_preserve_each_complete_immediate_own
     for row in rows["rows"].as_array().unwrap() {
         let path = row["path"].as_str().unwrap();
         let current = std::fs::read(root.join(path)).unwrap();
-        crate::bounded_output::census_before(path, &current);
+        crate::bounded_output::census_original_before(path, &current);
         let mut drift = current.clone();
+        drift.push(0);
+        assert!(
+            std::panic::catch_unwind(|| crate::bounded_output::census_original_before(
+                path, &drift
+            ))
+            .is_err()
+        );
+    }
+    let transport: serde_json::Value =
+        serde_json::from_str(include_str!("census_transport.json")).unwrap();
+    for row in transport["rows"].as_array().unwrap() {
+        if row["predecessor"].is_null() {
+            continue;
+        }
+        let path = row["path"].as_str().unwrap();
+        let current = std::fs::read(root.join(path)).unwrap();
+        let actual = crate::bounded_output::census_before(path, &current);
+        let full = root
+            .join("src/cleanup_plan/replay/path_join/census_transport")
+            .join(row["predecessor"]["file"].as_str().unwrap());
+        assert_eq!(actual, std::fs::read(full).unwrap());
+        let mut drift = current;
         drift.push(0);
         assert!(
             std::panic::catch_unwind(|| crate::bounded_output::census_before(path, &drift))

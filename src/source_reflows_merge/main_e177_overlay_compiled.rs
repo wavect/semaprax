@@ -1,5 +1,16 @@
 pub(super) fn compiled(source: &str) -> Option<&'static str> {
     match source {
+        "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/hir_last_use.rs" => Some(include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/hir_last_use.rs")),
+        "src/cleanup_plan/replay/factored/hir_memo_release_tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/factored/hir_memo_release_tests.rs")),
+        "src/cleanup_plan/replay/path_join/shared_insertions_before.rs" => Some(include_str!("../../src/cleanup_plan/replay/path_join/shared_insertions_before.rs")),
+        "src/cleanup_plan/replay/path_join/shared_insertions_before/boxed_flow.rs" => Some(include_str!("../../src/cleanup_plan/replay/path_join/shared_insertions_before/boxed_flow.rs")),
+        "src/cleanup_plan/replay/path_join/shared_insertions_before/boxed_states.rs" => Some(include_str!("../../src/cleanup_plan/replay/path_join/shared_insertions_before/boxed_states.rs")),
+        "src/cleanup_plan/replay/path_join/shared_insertions_before/frontier.rs" => Some(include_str!("../../src/cleanup_plan/replay/path_join/shared_insertions_before/frontier.rs")),
+        "src/cleanup_plan/replay/path_join/shared_insertions_tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/path_join/shared_insertions_tests.rs")),
+        "src/cleanup_plan/replay/plan_prefix.rs" => Some(include_str!("../../src/cleanup_plan/replay/plan_prefix.rs")),
+        "src/cleanup_plan/replay/plan_prefix/before.rs" => Some(include_str!("../../src/cleanup_plan/replay/plan_prefix/before.rs")),
+        "src/cleanup_plan/replay/plan_prefix/tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/plan_prefix/tests.rs")),
+        "src/cleanup_plan/replay/skeleton_work/plan_prefix.rs" => Some(include_str!("../../src/cleanup_plan/replay/skeleton_work/plan_prefix.rs")),
         "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/ordinary_receiving_tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/ordinary_receiving_tests.rs")),
         "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/ordinary_receiving_before.rs" => Some(include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/ordinary_receiving_before.rs")),
         "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/ordinary_receiving_before.rs" => Some(include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/ordinary_receiving_before.rs")),
@@ -457,12 +468,13 @@ mod tests {
             assert_eq!(current_scope_root.matches(&packed).count(), 1);
             current_scope_root = current_scope_root.replacen(&packed, &expanded, 1);
         }
-        for source in ["src/cleanup_plan/replay/branch_clone/inline_tests.rs", "src/cleanup_plan/replay/branch_clone/production_capacity.rs", "src/cleanup_plan/replay/branch_clone/production_capacity/tests.rs"] {
+        for source in ["src/cleanup_plan/replay/branch_clone/inline_tests.rs", "src/cleanup_plan/replay/branch_clone/production_capacity.rs", "src/cleanup_plan/replay/branch_clone/production_capacity/tests.rs", "src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs"] {
             let declaration = format!("    {source:?},\n");
             assert_eq!(current_scope_root.matches(&declaration).count(), 1);
             current_scope_root = current_scope_root.replacen(&declaration, "", 1);
         }
         for source in [
+            "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/hir_last_use.rs", "src/cleanup_plan/replay/factored/hir_memo_release_tests.rs", "src/cleanup_plan/replay/path_join/shared_insertions_before.rs", "src/cleanup_plan/replay/path_join/shared_insertions_before/boxed_flow.rs", "src/cleanup_plan/replay/path_join/shared_insertions_before/boxed_states.rs", "src/cleanup_plan/replay/path_join/shared_insertions_before/frontier.rs", "src/cleanup_plan/replay/path_join/shared_insertions_tests.rs", "src/cleanup_plan/replay/plan_prefix.rs", "src/cleanup_plan/replay/plan_prefix/before.rs", "src/cleanup_plan/replay/plan_prefix/tests.rs", "src/cleanup_plan/replay/skeleton_work/plan_prefix.rs",
             "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/ordinary_receiving_tests.rs", "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/ordinary_receiving_before.rs", "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/ordinary_receiving_before.rs", "src/cleanup_plan/replay/path_join/held_edge_before.rs", "src/cleanup_plan/replay/path_join/held_edge_tests.rs",
             "src/cleanup_plan/replay/branch_clone/production_capacity/before_short.rs", "src/cleanup_plan/replay/branch_clone/short_plan.rs", "src/cleanup_plan/replay/nested_shape.rs", "src/cleanup_plan/replay/nested_shape/scalar_tests.rs",
             "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/ordinary_labels.rs",
@@ -631,6 +643,7 @@ mod tests {
         assert_eq!(current_scope_child.matches(packed_separator).count(), 24);
         current_scope_child = current_scope_child.replace(packed_separator, ")),\n        \"src/");
         for source in [
+            "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/hir_last_use.rs", "src/cleanup_plan/replay/factored/hir_memo_release_tests.rs", "src/cleanup_plan/replay/path_join/shared_insertions_before.rs", "src/cleanup_plan/replay/path_join/shared_insertions_before/boxed_flow.rs", "src/cleanup_plan/replay/path_join/shared_insertions_before/boxed_states.rs", "src/cleanup_plan/replay/path_join/shared_insertions_before/frontier.rs", "src/cleanup_plan/replay/path_join/shared_insertions_tests.rs", "src/cleanup_plan/replay/plan_prefix.rs", "src/cleanup_plan/replay/plan_prefix/before.rs", "src/cleanup_plan/replay/plan_prefix/tests.rs", "src/cleanup_plan/replay/skeleton_work/plan_prefix.rs",
             "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/ordinary_receiving_tests.rs", "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/ordinary_receiving_before.rs", "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/ordinary_receiving_before.rs", "src/cleanup_plan/replay/path_join/held_edge_before.rs", "src/cleanup_plan/replay/path_join/held_edge_tests.rs",
             "src/cleanup_plan/replay/branch_clone/production_capacity/before_short.rs", "src/cleanup_plan/replay/branch_clone/short_plan.rs", "src/cleanup_plan/replay/nested_shape.rs", "src/cleanup_plan/replay/nested_shape/scalar_tests.rs",
             "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/ordinary_labels.rs",

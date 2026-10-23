@@ -1299,3 +1299,14 @@ src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_succe
 src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/ordinary_receiving_before.rs
 src/cleanup_plan/replay/path_join/held_edge_before.rs
 src/cleanup_plan/replay/path_join/held_edge_tests.rs
+src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/hir_last_use.rs
+src/cleanup_plan/replay/factored/hir_memo_release_tests.rs
+src/cleanup_plan/replay/path_join/shared_insertions_before.rs
+src/cleanup_plan/replay/path_join/shared_insertions_before/boxed_flow.rs
+src/cleanup_plan/replay/path_join/shared_insertions_before/boxed_states.rs
+src/cleanup_plan/replay/path_join/shared_insertions_before/frontier.rs
+src/cleanup_plan/replay/path_join/shared_insertions_tests.rs
+src/cleanup_plan/replay/plan_prefix.rs
+src/cleanup_plan/replay/plan_prefix/before.rs
+src/cleanup_plan/replay/plan_prefix/tests.rs
+src/cleanup_plan/replay/skeleton_work/plan_prefix.rs

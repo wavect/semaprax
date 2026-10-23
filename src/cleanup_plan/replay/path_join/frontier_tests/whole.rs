@@ -144,7 +144,7 @@ const LEXICAL: &str = r#"module ordinary.lexical;
 }
 @id("main") fn main()->i64 {probe(false)}
 "#;
-const RENEWAL: &str = r#"module ordinary.byte_renewal;
+const RENEWAL_UNREACHABLE: &str = r#"module ordinary.byte_renewal;
 @id("app.main") fn main()->i64 {
  let mut buffer=bytes_zeroed(2usize);
  let untouched=bytes_zeroed(1usize);
@@ -156,6 +156,19 @@ const RENEWAL: &str = r#"module ordinary.byte_renewal;
  }
  return if byte_len(bytes_as_slice(buffer))==2usize && byte_len(bytes_as_slice(untouched))==1usize {7}else{0};
  0
+}
+"#;
+const RENEWAL: &str = r#"module ordinary.byte_renewal;
+@id("app.main") fn main()->i64 {
+ let mut buffer=bytes_zeroed(2usize);
+ let untouched=bytes_zeroed(1usize);
+ let mut index=0usize;
+ while index<2usize {
+  if index==0usize {buffer=bytes_set(buffer,index,65u8);0}else{0}
+  index=index+1usize;
+  0
+ }
+ return if byte_len(bytes_as_slice(buffer))==2usize && byte_len(bytes_as_slice(untouched))==1usize {7}else{0};
 }
 "#;
 fn ordinary_replay(
@@ -199,6 +212,28 @@ fn ordinary_replay(
 }
 #[test]
 fn ordinary_complete_cold_tiny_branch_and_lexical_costs_include_final_drop_and_exact_refusal() {
+    // Keep the original invalid fixture as a full diagnostic control. The
+    // successful renewal case below keeps its return and every ownership use;
+    // only the unreachable trailing expression is absent.
+    let errors = crate::check(RENEWAL_UNREACHABLE, "ordinary-frontier.spx").unwrap_err();
+    assert_eq!(errors.len(), 1);
+    let error = &errors[0];
+    assert_eq!(error.code, "SPX-P209");
+    assert_eq!(format!("{:?}", error.severity), "Error");
+    assert_eq!(
+        error.message,
+        "code after an unconditional return is unreachable"
+    );
+    assert_eq!(error.path.as_deref(), Some("ordinary-frontier.spx"));
+    let span = error.span.as_ref().unwrap();
+    assert_eq!(
+        (span.start, span.end, span.line, span.column),
+        (390, 391, 12, 2)
+    );
+    assert_eq!(
+        error.help.as_deref(),
+        Some("remove the unreachable code or put it on a non-returning guard path")
+    );
     for source in [TINY, SOURCE, LEXICAL, RENEWAL] {
         let program =
             crate::hir::resolve(&crate::check(source, "ordinary-frontier.spx").unwrap()).unwrap();

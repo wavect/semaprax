@@ -383,6 +383,32 @@ fn immediate_old_entire_caller_and_unchanged_dependencies_are_source_bound() {
             // active-builder sibling is independently source-bound below.
             assert_eq!(source.matches("mod active;\n").count(), 1);
             std::borrow::Cow::Owned(source.replacen("mod active;\n", "", 1))
+        } else if hash == "b6471558eaf00c76a99472843a9d96a58a11fe9e5779f50fdccbfc6f0011aa51" {
+            // Exact two-arm dispatch/source registration transport; fixed whole predecessor is unchanged.
+            assert_eq!(source.len(), 55813);
+            assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(source.as_bytes()))), "87257e50e24a64d047eff17fd2ef9de7e1ed4c1049697222223947c62b28f514");
+    let mut restored = source
+        .strip_suffix("\n#[cfg(test)]\nmod ordinary_labels;\n")
+        .unwrap()
+        .to_owned();
+    assert_eq!(
+        restored
+            .matches("AllocationPayer::ActiveBuilder | AllocationPayer::LegacyUnobserved => {")
+            .count(),
+        2
+    );
+    restored = restored.replace(
+        "AllocationPayer::ActiveBuilder | AllocationPayer::LegacyUnobserved => {",
+        "AllocationPayer::ActiveBuilder => {",
+    );
+    for indent in ["                ", "            "] {
+        let marker =
+            format!("{indent}AllocationPayer::SelectedReservation => {{}}\n{indent}_ => {{");
+        assert_eq!(restored.matches(&marker).count(), 1);
+        restored = restored.replacen(&marker, &format!("{indent}AllocationPayer::SelectedReservation => {{}}\n{indent}AllocationPayer::LegacyUnobserved => {{}}\n{indent}_ => {{"), 1);
+    }
+    assert_eq!(restored.as_bytes(), include_bytes!("../../canonical_shared/inline_singleton/ordinary_labels.before.txt"));
+    std::borrow::Cow::Owned(restored)
         } else {
             std::borrow::Cow::Borrowed(source)
         };

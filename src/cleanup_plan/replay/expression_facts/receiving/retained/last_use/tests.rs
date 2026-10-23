@@ -16,22 +16,31 @@ fn run(program: &ResolvedProgram, old: bool, work: usize) -> (Option<String>, us
     let function = program.functions.iter().find(|f| f.name == "main").unwrap();
     let mut budget = ReplayBudget::new();
     budget.remaining = work;
-    let result = if old {
-        super::super::before_structure_release::validate_structure_with_budget_storage(
-            program,
-            function,
-            &mut budget,
-            None,
-            None,
-        )
-    } else {
-        super::super::ordinary_cross_phase::validate_structure_with_budget_storage(
-            program,
-            function,
-            &mut budget,
-            None,
-            None,
-        )
+    let result = match crate::cleanup_plan::replay::reserve_program_skeleton_work(
+        program,
+        std::iter::once(function),
+        &mut budget,
+    ) {
+        Err(error) => Err(error),
+        Ok(_) => {
+            if old {
+                super::super::before_structure_release::validate_structure_with_budget_storage(
+                    program,
+                    function,
+                    &mut budget,
+                    None,
+                    None,
+                )
+            } else {
+                super::super::ordinary_cross_phase::validate_structure_with_budget_storage(
+                    program,
+                    function,
+                    &mut budget,
+                    None,
+                    None,
+                )
+            }
+        }
     };
     (
         result.err().map(|d| d.json()),
@@ -130,10 +139,20 @@ fn independent_release_invoice_and_exact_short_zero_sticky_full_drop() {
         2 * size_of::<Attempt<'static, 'static>>() + payment
     );
     let program = fixture();
+    let (old_ample, old_refused, _) =
+        crate::bounded_output::with_limit_usage(CAP, || run(&program, true, MAX_REPLAY_WORK_UNITS));
+    assert!(
+        old_ample.0.is_none() && !old_refused,
+        "complete immediate-old ample result={old_ample:?}, refused={old_refused}"
+    );
     let (ample, refused, paid) = crate::bounded_output::with_limit_usage(CAP, || {
         run(&program, false, MAX_REPLAY_WORK_UNITS)
     });
-    assert!(ample.0.is_none() && !refused);
+    assert!(
+        ample.0.is_none() && !refused,
+        "complete current ample result={ample:?}, refused={refused}"
+    );
+    assert_eq!(ample, old_ample);
     for cap in [paid, paid - 1, 0] {
         let ((result, retry), refused, used) = crate::bounded_output::with_limit_usage(cap, || {
             let result = run(&program, false, MAX_REPLAY_WORK_UNITS);

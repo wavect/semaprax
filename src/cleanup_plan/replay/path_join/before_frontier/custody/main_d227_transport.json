@@ -1,0 +1,226 @@
+{
+  "src/cleanup_plan/replay/branch_clone/inline_tests.rs": {
+    "length": 8219,
+    "sha256": "55d347135876e944149c9db23db4017739b134694f7cc154bf8d90d17e20151f",
+    "before_length": 8010,
+    "before_sha256": "0b111a895ef7c48762edc4471c83cce52dc567d3742285c9d3a5bafe8b3ad4f0",
+    "edits": [
+      {
+        "start": 7544,
+        "end": 7807,
+        "current": "    let current = crate::source_reflows_merge::main_e177_final_inputs::value_direct(\n        \"src/cleanup_plan/replay/branch_clone.rs\",\n        \"4ff120ef24b54cc98d956f3548a76b4a7f0ca9f4393044356f47ea1e51cefbc5\",\n        include_str!(\"../branch_clone.rs\"),\n    );\n",
+        "before": "    let current = include_str!(\"../branch_clone.rs\");\n"
+      }
+    ]
+  },
+  "src/cleanup_plan/replay/branch_clone/production_capacity/tests.rs": {
+    "length": 32359,
+    "sha256": "1f970b3d573f176695d265528b748418dcc4fdf4792052ef982dc9419272cba6",
+    "before_length": 21419,
+    "before_sha256": "f3d7537478217593f2ef363386cd349add440fd5dd43c7bfe8cede6e2da53e87",
+    "edits": [
+      {
+        "start": 591,
+        "end": 2799,
+        "current": "}\n// Checked arithmetic emits real status observations; constant let bindings do\n// not lengthen a branch history and cannot exercise the surviving full bank.\nfn checked_prefix_program(prefix: usize) -> ResolvedProgram {\n    let mut source = String::from(\"module long879; @id(\\\"f\\\") fn f(a:bool,b:bool,x:i64)->i64 {\");\n    for index in 0..prefix {\n        let input = if index == 0 {\n            \"x\".to_owned()\n        } else {\n            format!(\"x{}\", index - 1)\n        };\n        source.push_str(&format!(\"let x{index}={input}+1;\"));\n    }\n    source.push_str(\"let n=if a {1}else{2}; if b {n+\");\n    source.push_str(&format!(\"x{}\", prefix - 1));\n    source.push_str(\"}else{n+2}} @id(\\\"main\\\") fn main()->i64 {f(true,false,0)}\");\n    let checked = crate::check(&source, \"long879.spx\").unwrap();\n    let canonical = crate::format::canonical(&checked);\n    let checked = crate::check(&canonical, \"long879.spx\").unwrap();\n    assert_eq!(crate::format::canonical(&checked), canonical);\n    let mut program = crate::hir::resolve(&checked).unwrap();\n    // The ordinary two-edge route moves spare capacity and can avoid both\n    // generic banks even on this long history. As in the existing three-edge\n    // controls, retain every checked edge and append one final edge to exercise\n    // the general receiving path using the real compiler-owned CFG types.\n    let function = program\n        .functions\n        .iter_mut()\n        .find(|f| f.id.as_str() == \"f\")\n        .unwrap();\n    let block = function.cleanup_plan.blocks.iter().rposition(|block|\n        matches!(&block.terminator, CleanupTerminator::Branch(edges) if edges.len() == 2)\n    ).unwrap();\n    let CleanupTerminator::Branch(edges) = &function.cleanup_plan.blocks[block].terminator else {\n        unreachable!()\n    };\n    let mut edge = function.cleanup_plan.edges[edges[edges.len() - 1].0 as usize].clone();\n    let id = crate::cleanup_plan::EdgeId(u32::try_from(function.cleanup_plan.edges.len()).unwrap());\n    edge.id = id;\n    function.cleanup_plan.edges.push(edge);\n    let CleanupTerminator::Branch(edges) = &mut function.cleanup_plan.blocks[block].terminator\n    else {\n        unreachable!()\n    };\n    edges.push(id);\n    program\n",
+        "before": ""
+      },
+      {
+        "start": 18293,
+        "end": 18372,
+        "current": "    let program = checked_prefix_program(branch_clone::short_plan::LIMIT + 1);\n",
+        "before": "    let program = program(42);\n"
+      },
+      {
+        "start": 18414,
+        "end": 18548,
+        "current": "    assert!(!cleanup_inert_large_decisions_can_be_summarized(function));\n    assert!(!status_only_paths_can_be_summarized(function));\n",
+        "before": ""
+      },
+      {
+        "start": 18641,
+        "end": 19009,
+        "current": "        (\n            \"branch_clone::production_capacity::production_inline_controls::<\",\n            production_inline_controls::<Rc<SkeletonObservation>>(),\n            \"branch clone receiving controls\",\n        ),\n        (\n            \"branch_clone::TAKE_CALL_CONTROLS,\",\n            TAKE_CALL_CONTROLS,\n            \"plan final branch probe receiving\",\n        ),\n",
+        "before": "        (\"budget.reserve_bytes(function, branch_clone::production_capacity::production_inline_controls::<std::rc::Rc<SkeletonObservation>>(),\",\n            production_inline_controls::<Rc<SkeletonObservation>>(), \"branch clone receiving controls\"),\n        (\"budget.reserve_bytes(function, branch_clone::TAKE_CALL_CONTROLS,\",\n            TAKE_CALL_CONTROLS, \"plan final branch probe receiving\"),\n"
+      },
+      {
+        "start": 19017,
+        "end": 19675,
+        "current": "        assert_eq!(\n            source.lines().filter(|line| line.contains(needle)).count(),\n            1\n        );\n        let member = source\n            .lines()\n            .position(|line| line.contains(needle))\n            .unwrap();\n        let target_line = u32::try_from(\n            source\n                .lines()\n                .take(member + 1)\n                .enumerate()\n                .filter(|(_, line)| line.contains(\"budget.reserve_bytes(\"))\n                .map(|(i, _)| i)\n                .last()\n                .expect(\"the actual bank belongs to the preceding reservation call\")\n                + 1,\n        )\n        .unwrap();\n",
+        "before": "        assert_eq!(source.lines().filter(|line| line.contains(needle)).count(), 1);\n        let target_line = u32::try_from(source.lines().position(|line| line.contains(needle)).unwrap() + 1).unwrap();\n"
+      },
+      {
+        "start": 19927,
+        "end": 20137,
+        "current": "            assert!(refused && outcome.0.result.is_err(), \"required bank {phase}, function {}, blocks {}, paid {paid}, limit {limit}, outcome {:?}\", function.id, function.cleanup_plan.blocks.len(), outcome.0);\n",
+        "before": "            assert!(refused && outcome.0.result.is_err());\n"
+      },
+      {
+        "start": 20181,
+        "end": 20457,
+        "current": "            if receipt.requested == requested\n                && site.is_some_and(|(path, line)| {\n                    path.ends_with(\"cleanup_plan/replay.rs\") && line == target_line\n                })\n            {\n                prefix = Some(paid);\n                break;\n",
+        "before": "            if receipt.requested == requested && site.is_some_and(|(path, line)|\n                path.ends_with(\"cleanup_plan/replay.rs\") && line == target_line) {\n                prefix = Some(paid); break;\n"
+      },
+      {
+        "start": 20540,
+        "end": 20673,
+        "current": "            assert!(\n                next > limit,\n                \"each real refused request advances the staircase\"\n            );\n",
+        "before": "            assert!(next > limit, \"each real refused request advances the staircase\");\n"
+      },
+      {
+        "start": 20942,
+        "end": 21057,
+        "current": "        assert!(\n            paid >= exact,\n            \"this exact bank admits before a later refusal\"\n        );\n",
+        "before": "        assert!(paid >= exact, \"this exact bank admits before a later refusal\");\n"
+      },
+      {
+        "start": 21080,
+        "end": 21241,
+        "current": "        for (limit, floor, remaining) in [\n            (prefix, 0, 0),\n            (exact - 1, 0, requested - 1),\n            (exact, 1, requested),\n        ] {\n",
+        "before": "        for (limit, floor, remaining) in [(prefix, 0, 0), (exact - 1, 0, requested - 1), (exact, 1, requested)] {\n"
+      },
+      {
+        "start": 21451,
+        "end": 21756,
+        "current": "            assert_eq!(\n                (receipt.requested, receipt.remaining, receipt.floor),\n                (requested, remaining, floor)\n            );\n            assert!(site.is_some_and(\n                |(path, line)| path.ends_with(\"cleanup_plan/replay.rs\") && line == target_line\n            ));\n",
+        "before": "            assert_eq!((receipt.requested, receipt.remaining, receipt.floor), (requested, remaining, floor));\n            assert!(site.is_some_and(|(path, line)| path.ends_with(\"cleanup_plan/replay.rs\") && line == target_line));\n"
+      },
+      {
+        "start": 21848,
+        "end": 22732,
+        "current": "            assert_eq!(\n                first.0.result.as_ref().err(),\n                Some(&expected.0),\n                \"all six original primitive diagnostic fields\"\n            );\n            assert_eq!(\n                first.0.sticky.as_ref(),\n                Some(&expected.1),\n                \"all six sticky diagnostic fields\"\n            );\n            let (again, again_refused, again_paid, again_receipt, again_site) =\n                frontier_observe(function, limit, floor);\n            assert_eq!(\n                again, first,\n                \"complete Diagnostic, work, allocation, peak and Drop snapshots\"\n            );\n            assert_eq!(\n                (again_refused, again_paid, again_receipt, again_site),\n                (refused, paid, Some(receipt), site),\n                \"the first receipt, stage and tracked caller site remain sticky\"\n            );\n",
+        "before": "            assert_eq!(first.0.result.as_ref().err(), Some(&expected.0), \"all six original primitive diagnostic fields\");\n            assert_eq!(first.0.sticky.as_ref(), Some(&expected.1), \"all six sticky diagnostic fields\");\n            let (again, again_refused, again_paid, again_receipt, again_site) = frontier_observe(function, limit, floor);\n            assert_eq!(again, first, \"complete Diagnostic, work, allocation, peak and Drop snapshots\");\n            assert_eq!((again_refused, again_paid, again_receipt, again_site), (refused, paid, Some(receipt), site),\n                \"the first receipt, stage and tracked caller site remain sticky\");\n"
+      },
+      {
+        "start": 24891,
+        "end": 32359,
+        "current": "\nfn observe_main_a73(\n    old: bool,\n    function: &ResolvedFunction,\n    work: usize,\n    limit: usize,\n    floor: usize,\n) -> (Outcome, Metrics, bool, usize) {\n    let ((outcome, allocation), refused, paid, _) = with_limit_usage_refusal(limit, || {\n        measure(|| {\n            let mut budget = ReplayBudget::with_skeleton_limit(work);\n            assert!(crate::bounded_output::set_active_floor(floor));\n            let begin = skeleton_materializations();\n            let result = if old {\n                before_short::plan_skeleton_paths(function, &mut budget)\n            } else {\n                crate::cleanup_plan::replay::plan_skeleton_paths(function, &mut budget)\n            };\n            let result = result\n                .map(|paths| {\n                    let n = paths.len();\n                    drop(paths);\n                    n\n                })\n                .map_err(failure);\n            let events = skeleton_materializations() - begin;\n            let remaining = budget.remaining;\n            let skeleton = budget.skeleton_remaining;\n            crate::bounded_output::clear_active_floor();\n            let sticky = if result.is_err() {\n                let bytes = crate::bounded_output::active_remaining();\n                let error = budget\n                    .reserve_bytes(function, 0, \"fused879 sticky refusal\")\n                    .err()\n                    .unwrap();\n                assert_eq!(crate::bounded_output::active_remaining(), bytes);\n                Some(failure(error))\n            } else {\n                None\n            };\n            drop(budget);\n            Outcome {\n                result,\n                remaining,\n                skeleton,\n                events,\n                sticky,\n            }\n        })\n    });\n    assert!(!allocation.invalid);\n    assert_eq!(allocation.live, 0);\n    assert_eq!(allocation.allocated, allocation.freed);\n    (outcome, allocation, refused, paid)\n}\n\n#[test]\nfn short_copy_matches_whole_main_a73_paths_work_and_materializations_with_less_debit() {\n    let mut saved = false;\n    for prefix in [0, 42, 96] {\n        let program = program(prefix);\n        for function in &program.functions {\n            let (before, old_heap, old_refused, old_paid) =\n                observe_main_a73(true, function, MAX_REPLAY_WORK_UNITS, 1 << 29, 0);\n            let (current, heap, refused, paid) =\n                observe_main_a73(false, function, MAX_REPLAY_WORK_UNITS, 1 << 29, 0);\n            assert_eq!(current, before);\n            assert!(!old_refused && !refused);\n            assert!(heap.allocated <= paid && old_heap.allocated <= old_paid);\n            assert!(heap.highwater <= paid && old_heap.highwater <= old_paid);\n            saved |= paid < old_paid;\n            let spent = MAX_REPLAY_WORK_UNITS - current.skeleton;\n            for work in [0, 1, spent / 2, spent.saturating_sub(1), spent] {\n                assert_eq!(\n                    observe_main_a73(true, function, work, 1 << 29, 0).0,\n                    observe_main_a73(false, function, work, 1 << 29, 0).0,\n                    \"all six original work diagnostic fields and sticky state\"\n                );\n            }\n            assert_eq!(\n                observe_main_a73(false, function, MAX_REPLAY_WORK_UNITS, paid, 0).0,\n                current\n            );\n            for limit in [0, 1, paid / 2, paid - 1] {\n                let (value, _, _, _) =\n                    observe_main_a73(false, function, MAX_REPLAY_WORK_UNITS, limit, 0);\n                assert!(value.result.is_err() && value.sticky.is_some());\n            }\n            let (value, _, refused, _) =\n                observe_main_a73(false, function, MAX_REPLAY_WORK_UNITS, paid, 1);\n            assert!(value.result.is_err() && value.sticky.is_some() && refused);\n            eprintln!(\n                \"short-history main-a73/current paid={old_paid}/{paid}; heap={}/{}\",\n                old_heap.allocated, heap.allocated\n            );\n        }\n    }\n    assert!(\n        saved,\n        \"the actual complete new enumerator must save reservations\"\n    );\n}\n\n#[test]\nfn short_copy_cutoff_covers_maximum_possible_old_backing_saving() {\n    eprintln!(\n        \"actual short-copy cutoff {}\",\n        super::super::short_plan::LIMIT\n    );\n    let full = production_inline_controls::<Rc<SkeletonObservation>>() + TAKE_CALL_CONTROLS;\n    let new = branch_clone::short_plan::COPY + branch_clone::short_plan::SELECT;\n    let width = size_of::<Rc<SkeletonObservation>>();\n    for length in 0..branch_clone::short_plan::LIMIT {\n        let backing = if length == 0 {\n            width\n        } else {\n            2 * length * width\n        };\n        assert!(\n            new + backing < full,\n            \"length={length}, full={full}, new={new}, backing={backing}\"\n        );\n    }\n    assert!(new + 2 * branch_clone::short_plan::LIMIT * width >= full);\n}\n\n#[test]\nfn short_copy_receiving_banks_keep_six_primitive_fields_first_receipt_floor_and_drop() {\n    let program = program(42);\n    let function = &program.functions[0];\n    for (requested, phase) in [\n        (\n            branch_clone::short_plan::SELECT,\n            \"branch short-history selection controls\",\n        ),\n        (\n            branch_clone::short_plan::COPY,\n            \"branch short-history copy controls\",\n        ),\n    ] {\n        let mut limit = 0;\n        let mut frontier = None;\n        for _ in 0..100_000 {\n            let (value, refused, paid, receipt, site) = frontier_observe(function, limit, 0);\n            assert!(refused && value.0.result.is_err());\n            let receipt = receipt.unwrap();\n            let failure = value.0.result.as_ref().unwrap_err();\n            let message = &failure.message.0[..failure.message.1];\n            if receipt.requested == requested && message.ends_with(phase.as_bytes()) {\n                frontier = Some((paid, site));\n                break;\n            }\n            let next = paid.checked_add(receipt.requested).unwrap();\n            assert!(next > limit);\n            limit = next;\n        }\n        let (prefix, actual_site) = frontier.expect(\"the actual short-history bank must execute\");\n        assert!(actual_site.is_some());\n        let exact = prefix + requested;\n        {\n            let (_value, _, paid, _, _) = frontier_observe(function, exact, 0);\n            assert!(paid >= exact);\n        }\n        for (limit, floor, remaining) in [\n            (prefix, 0, 0),\n            (exact - 1, 0, requested - 1),\n            (exact, 1, requested),\n        ] {\n            let (value, refused, paid, receipt, site) = frontier_observe(function, limit, floor);\n            assert!(refused);\n            assert_eq!(paid, prefix);\n            let receipt = receipt.unwrap();\n            assert_eq!(\n                (receipt.requested, receipt.remaining, receipt.floor),\n                (requested, remaining, floor)\n            );\n            assert_eq!(site, actual_site);\n            let expected = frontier_expected(function, requested, remaining, floor, phase);\n            assert_eq!(value.0.result.as_ref().err(), Some(&expected.0));\n            assert_eq!(value.0.sticky.as_ref(), Some(&expected.1));\n            let again = frontier_observe(function, limit, floor);\n            assert_eq!(again.0, value);\n            assert_eq!(\n                (again.1, again.2, again.3, again.4),\n                (refused, paid, Some(receipt), site)\n            );\n        }\n    }\n}\n",
+        "before": ""
+      }
+    ]
+  },
+  "src/cleanup_plan/replay/branch_clone/production_capacity.rs": {
+    "length": 10564,
+    "sha256": "cab94c1e35e49d1f2b82d4afbe182f04fcfce1209e1b007ce6d69c38dbc2b1cf",
+    "before_length": 10526,
+    "before_sha256": "e1219f79e18cc7856efe9e7bfd15d942f29cf5d3dc3ecbb9f6c3b978e083f5aa",
+    "edits": [
+      {
+        "start": 1651,
+        "end": 1746,
+        "current": "pub(in crate::cleanup_plan::replay) const fn production_inline_controls<T: Clone>() -> usize {\n",
+        "before": "pub(in crate::cleanup_plan::replay) fn production_inline_controls<T: Clone>() -> usize {\n"
+      },
+      {
+        "start": 10532,
+        "end": 10564,
+        "current": "\n#[cfg(test)]\nmod before_short;\n",
+        "before": ""
+      }
+    ]
+  },
+  "src/cleanup_plan/replay/branch_clone/tests.rs": {
+    "length": 38071,
+    "sha256": "f83c169f4477e28a6a67c63bed76d6e7d348ce1fb53e53ad80db63a39ea68dbd",
+    "before_length": 35928,
+    "before_sha256": "28c1f3469009b7307fb8ecaa36c383bbbf270ccc2ce88f1d0adefb823b55080e",
+    "edits": [
+      {
+        "start": 2747,
+        "end": 2921,
+        "current": "    assert!(\n        allocation.allocated <= paid,\n        \"actual allocation {allocation:?}; cumulative paid {paid}; short-copy cutoff {}\",\n        short_plan::LIMIT\n    );\n",
+        "before": "    assert!(allocation.allocated <= paid);\n"
+      },
+      {
+        "start": 14814,
+        "end": 15822,
+        "current": "    // Retain the complete original 48-operation source and its whole-path/work\n    // comparison; the longer real checked-arithmetic source also reaches TAKE.\n    for prefix in [48, short_plan::LIMIT + 48] {\n        let mut source = String::from(\"module three_prefix; @id(\\\"f\\\") fn f(x:i64)->i64 {\");\n        for index in 0..prefix {\n            let value = if index == 0 {\n                \"x\".to_owned()\n            } else {\n                format!(\"x{}\", index - 1)\n            };\n            source.push_str(&format!(\"let x{index}={value}+1;\"));\n        }\n        source.push_str(&format!(\"x{}\", prefix - 1));\n        source.push_str(\"} @id(\\\"main\\\") fn main()->i64 {f(0)}\");\n        let checked = crate::check(&source, \"three-prefix.spx\").unwrap();\n        let mut program = crate::hir::resolve(&checked).unwrap();\n        let function = program\n            .functions\n            .iter_mut()\n            .find(|function| function.id.as_str() == \"f\")\n            .unwrap();\n        let block = function\n",
+        "before": "    let mut source = String::from(\"module three_prefix; @id(\\\"f\\\") fn f(x:i64)->i64 {\");\n    for index in 0..48 {\n        let value = if index == 0 {\n            \"x\".to_owned()\n        } else {\n            format!(\"x{}\", index - 1)\n        };\n        source.push_str(&format!(\"let x{index}={value}+1;\"));\n    }\n    source.push_str(\"x47} @id(\\\"main\\\") fn main()->i64 {f(0)}\");\n    let checked = crate::check(&source, \"three-prefix.spx\").unwrap();\n    let mut program = crate::hir::resolve(&checked).unwrap();\n    let function = program\n        .functions\n        .iter_mut()\n        .find(|function| function.id.as_str() == \"f\")\n        .unwrap();\n    let block = function\n"
+      },
+      {
+        "start": 16025,
+        "end": 18390,
+        "current": "        let CleanupTerminator::Branch(edges) = &function.cleanup_plan.blocks[block].terminator\n        else {\n            unreachable!()\n        };\n        let mut edge = function.cleanup_plan.edges[edges[edges.len() - 1].0 as usize].clone();\n        let id = EdgeId(u32::try_from(function.cleanup_plan.edges.len()).unwrap());\n        edge.id = id;\n        function.cleanup_plan.edges.push(edge);\n        let CleanupTerminator::Branch(edges) = &mut function.cleanup_plan.blocks[block].terminator\n        else {\n            unreachable!()\n        };\n        edges.push(id);\n        let (((), allocation), refused, paid, first) = with_limit_usage_refusal(usize::MAX, || {\n            measure(|| {\n                let mut old = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);\n                let mut current = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);\n                let before = skeleton_materializations();\n                let expected =\n                    with_original(|| compact_stage::original_paths(function, &mut old)).unwrap();\n                let count = skeleton_materializations() - before;\n                let before = skeleton_materializations();\n                let takes = GENERIC_TAKES.with(Cell::get);\n                let actual = super::super::plan_skeleton_paths(function, &mut current).unwrap();\n                if prefix == 48 {\n                    assert_eq!(\n                        GENERIC_TAKES.with(Cell::get),\n                        takes,\n                        \"the short route never constructs a generic query\"\n                    );\n                } else {\n                    assert!(GENERIC_TAKES.with(Cell::get) > takes);\n                }\n                assert!(compact_stage::paths_match(&actual, &expected));\n                assert_eq!(skeleton_materializations() - before, count);\n                assert_eq!(current.remaining, old.remaining);\n                assert_eq!(current.skeleton_remaining, old.skeleton_remaining);\n                drop(actual);\n                drop(expected);\n                drop(current);\n                drop(old);\n            })\n        });\n        assert!(!refused && first.is_none());\n        assert!(\n            !allocation.invalid && allocation.live == 0 && allocation.allocated == allocation.freed\n        );\n        assert!(allocation.allocated <= paid);\n    }\n",
+        "before": "    let CleanupTerminator::Branch(edges) = &function.cleanup_plan.blocks[block].terminator else {\n        unreachable!()\n    };\n    let mut edge = function.cleanup_plan.edges[edges[edges.len() - 1].0 as usize].clone();\n    let id = EdgeId(u32::try_from(function.cleanup_plan.edges.len()).unwrap());\n    edge.id = id;\n    function.cleanup_plan.edges.push(edge);\n    let CleanupTerminator::Branch(edges) = &mut function.cleanup_plan.blocks[block].terminator\n    else {\n        unreachable!()\n    };\n    edges.push(id);\n    let (((), allocation), refused, paid, first) = with_limit_usage_refusal(usize::MAX, || {\n        measure(|| {\n            let mut old = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);\n            let mut current = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);\n            let before = skeleton_materializations();\n            let expected =\n                with_original(|| compact_stage::original_paths(function, &mut old)).unwrap();\n            let count = skeleton_materializations() - before;\n            let before = skeleton_materializations();\n            let takes = GENERIC_TAKES.with(Cell::get);\n            let actual = super::super::plan_skeleton_paths(function, &mut current).unwrap();\n            assert!(GENERIC_TAKES.with(Cell::get) > takes);\n            assert!(compact_stage::paths_match(&actual, &expected));\n            assert_eq!(skeleton_materializations() - before, count);\n            assert_eq!(current.remaining, old.remaining);\n            assert_eq!(current.skeleton_remaining, old.skeleton_remaining);\n            drop(actual);\n            drop(expected);\n            drop(current);\n            drop(old);\n        })\n    });\n    assert!(!refused && first.is_none());\n    assert!(\n        !allocation.invalid && allocation.live == 0 && allocation.allocated == allocation.freed\n    );\n    assert!(allocation.allocated <= paid);\n"
+      },
+      {
+        "start": 21967,
+        "end": 22980,
+        "current": "    // Retain the complete original 48-operation source and its whole-path/work\n    // comparison; the longer real checked-arithmetic source also reaches TAKE.\n    for prefix in [48, short_plan::LIMIT + 48] {\n        let mut source = String::from(\"module physical_prefix; @id(\\\"f\\\") fn f(x:i64)->i64 {\");\n        for index in 0..prefix {\n            let value = if index == 0 {\n                \"x\".to_owned()\n            } else {\n                format!(\"x{}\", index - 1)\n            };\n            source.push_str(&format!(\"let x{index}={value}+1;\"));\n        }\n        source.push_str(&format!(\"x{}\", prefix - 1));\n        source.push_str(\"} @id(\\\"main\\\") fn main()->i64 {f(0)}\");\n        let checked = crate::check(&source, \"physical-prefix.spx\").unwrap();\n        let mut program = crate::hir::resolve(&checked).unwrap();\n        let function = program\n            .functions\n            .iter_mut()\n            .find(|function| function.id.as_str() == \"f\")\n            .unwrap();\n        let last = function\n",
+        "before": "    let mut source = String::from(\"module physical_prefix; @id(\\\"f\\\") fn f(x:i64)->i64 {\");\n    for index in 0..48 {\n        let value = if index == 0 {\n            \"x\".to_owned()\n        } else {\n            format!(\"x{}\", index - 1)\n        };\n        source.push_str(&format!(\"let x{index}={value}+1;\"));\n    }\n    source.push_str(\"x47} @id(\\\"main\\\") fn main()->i64 {f(0)}\");\n    let checked = crate::check(&source, \"physical-prefix.spx\").unwrap();\n    let mut program = crate::hir::resolve(&checked).unwrap();\n    let function = program\n        .functions\n        .iter_mut()\n        .find(|function| function.id.as_str() == \"f\")\n        .unwrap();\n    let last = function\n"
+      },
+      {
+        "start": 23183,
+        "end": 24447,
+        "current": "        // Preserve the checked status branches and their real observations. A Goto\n        // does not emit a Status observation, and selecting its first edge can\n        // terminate before this final branch. Only append the third final edge.\n        let CleanupTerminator::Branch(edges) = &function.cleanup_plan.blocks[last].terminator\n        else {\n            unreachable!()\n        };\n        let mut edge = function.cleanup_plan.edges[edges[edges.len() - 1].0 as usize].clone();\n        let id = EdgeId(u32::try_from(function.cleanup_plan.edges.len()).unwrap());\n        edge.id = id;\n        function.cleanup_plan.edges.push(edge);\n        let CleanupTerminator::Branch(edges) = &mut function.cleanup_plan.blocks[last].terminator\n        else {\n            unreachable!()\n        };\n        edges.push(id);\n        let before = GENERIC_TAKES.with(Cell::get);\n        let (success, refused, _, first, _) = observe_generic_probe(function, usize::MAX, 0);\n        assert!(success.0.failure.is_none() && !refused && first.is_none());\n        if prefix == 48 {\n            assert_eq!(\n                GENERIC_TAKES.with(Cell::get),\n                before,\n                \"the short route never constructs a generic query\"\n            );\n            continue;\n",
+        "before": "    // Preserve the checked status branches and their real observations. A Goto\n    // does not emit a Status observation, and selecting its first edge can\n    // terminate before this final branch. Only append the third final edge.\n    let CleanupTerminator::Branch(edges) = &function.cleanup_plan.blocks[last].terminator else {\n        unreachable!()\n    };\n    let mut edge = function.cleanup_plan.edges[edges[edges.len() - 1].0 as usize].clone();\n    let id = EdgeId(u32::try_from(function.cleanup_plan.edges.len()).unwrap());\n    edge.id = id;\n    function.cleanup_plan.edges.push(edge);\n    let CleanupTerminator::Branch(edges) = &mut function.cleanup_plan.blocks[last].terminator\n    else {\n        unreachable!()\n    };\n    edges.push(id);\n    let before = GENERIC_TAKES.with(Cell::get);\n    let (success, refused, _, first, _) = observe_generic_probe(function, usize::MAX, 0);\n    assert!(success.0.failure.is_none() && !refused && first.is_none());\n    assert!(GENERIC_TAKES.with(Cell::get) > before);\n    let target_line = u32::try_from(\n        include_str!(\"../../replay.rs\")\n            .lines()\n            .position(|line| {\n                line.contains(\"budget.reserve_bytes(function, branch_clone::TAKE_CALL_CONTROLS,\")\n            })\n            .unwrap()\n            + 1,\n    )\n    .unwrap();\n    // Walk actual reservation receipts, never an old bill or guessed offset.\n    // Each rerun admits precisely the preceding refused request. The first\n    // target receipt therefore identifies this new caller's real prepayment.\n    let mut limit = 0;\n    let mut found = None;\n    for _ in 0..100_000 {\n        let (outcome, refused, paid, first, site) = observe_generic_probe(function, limit, 0);\n        assert!(refused && outcome.0.failure.is_some());\n        let first = first.unwrap();\n        if first.requested == TAKE_CALL_CONTROLS\n            && site.is_some_and(|(path, line)| {\n                path.ends_with(\"cleanup_plan/replay.rs\") && line == target_line\n            })\n        {\n            found = Some(paid);\n            break;\n"
+      },
+      {
+        "start": 24457,
+        "end": 26479,
+        "current": "        assert!(GENERIC_TAKES.with(Cell::get) > before);\n        let source = include_str!(\"../../replay.rs\");\n        let member = source\n            .lines()\n            .position(|line| line.contains(\"branch_clone::TAKE_CALL_CONTROLS,\"))\n            .unwrap();\n        let target_line = u32::try_from(\n            source\n                .lines()\n                .take(member + 1)\n                .enumerate()\n                .filter(|(_, line)| line.contains(\"budget.reserve_bytes(\"))\n                .map(|(i, _)| i)\n                .last()\n                .expect(\"actual TAKE reservation call\")\n                + 1,\n        )\n        .unwrap();\n        // Walk actual reservation receipts, never an old bill or guessed offset.\n        // Each rerun admits precisely the preceding refused request. The first\n        // target receipt therefore identifies this new caller's real prepayment.\n        let mut limit = 0;\n        let mut found = None;\n        for _ in 0..100_000 {\n            let (outcome, refused, paid, first, site) = observe_generic_probe(function, limit, 0);\n            assert!(refused && outcome.0.failure.is_some());\n            let first = first.unwrap();\n            if first.requested == TAKE_CALL_CONTROLS\n                && site.is_some_and(|(path, line)| {\n                    path.ends_with(\"cleanup_plan/replay.rs\") && line == target_line\n                })\n            {\n                found = Some(paid);\n                break;\n            }\n            let next = paid.checked_add(first.requested).unwrap();\n            assert!(next > limit, \"actual reservation staircase must advance\");\n            limit = next;\n        }\n        let prefix = found.expect(\"the real three-edge caller must expose its receiving frontier\");\n        let end = prefix.checked_add(TAKE_CALL_CONTROLS).unwrap();\n        let (exact, _, paid, _, _) = observe_generic_probe(function, end, 0);\n        assert!(\n            paid >= end,\n            \"the exact real request is admitted before any later refusal\"\n",
+        "before": "        let next = paid.checked_add(first.requested).unwrap();\n        assert!(next > limit, \"actual reservation staircase must advance\");\n        limit = next;\n    }\n    let prefix = found.expect(\"the real three-edge caller must expose its receiving frontier\");\n    let end = prefix.checked_add(TAKE_CALL_CONTROLS).unwrap();\n    let (exact, _, paid, _, _) = observe_generic_probe(function, end, 0);\n    assert!(\n        paid >= end,\n        \"the exact real request is admitted before any later refusal\"\n    );\n    drop(exact);\n    for (limit, floor, remaining) in [\n        (prefix, 0, 0),\n        (end - 1, 0, TAKE_CALL_CONTROLS - 1),\n        (end, 1, TAKE_CALL_CONTROLS),\n    ] {\n        let (first, refused, paid, receipt, site) = observe_generic_probe(function, limit, floor);\n        assert!(refused && first.0.failure.is_some());\n        assert_eq!(paid, prefix);\n        let receipt = receipt.unwrap();\n        assert_eq!(\n            (receipt.requested, receipt.remaining, receipt.floor),\n            (TAKE_CALL_CONTROLS, remaining, floor)\n"
+      },
+      {
+        "start": 26490,
+        "end": 27878,
+        "current": "        drop(exact);\n        for (limit, floor, remaining) in [\n            (prefix, 0, 0),\n            (end - 1, 0, TAKE_CALL_CONTROLS - 1),\n            (end, 1, TAKE_CALL_CONTROLS),\n        ] {\n            let (first, refused, paid, receipt, site) =\n                observe_generic_probe(function, limit, floor);\n            assert!(refused && first.0.failure.is_some());\n            assert_eq!(paid, prefix);\n            let receipt = receipt.unwrap();\n            assert_eq!(\n                (receipt.requested, receipt.remaining, receipt.floor),\n                (TAKE_CALL_CONTROLS, remaining, floor)\n            );\n            assert!(site.is_some_and(\n                |(path, line)| path.ends_with(\"cleanup_plan/replay.rs\") && line == target_line\n            ));\n            let (again, again_refused, again_paid, again_receipt, again_site) =\n                observe_generic_probe(function, limit, floor);\n            assert_eq!(\n                again.0, first.0,\n                \"all six Diagnostic fields and both sticky work accounts\"\n            );\n            assert_eq!(\n                again.1, first.1,\n                \"actual allocation count, cumulative bytes, peak and whole Drop\"\n            );\n            assert_eq!(\n                (again_refused, again_paid, again_receipt, again_site),\n                (refused, paid, Some(receipt), site)\n            );\n        }\n",
+        "before": "        assert!(site.is_some_and(\n            |(path, line)| path.ends_with(\"cleanup_plan/replay.rs\") && line == target_line\n        ));\n        let (again, again_refused, again_paid, again_receipt, again_site) =\n            observe_generic_probe(function, limit, floor);\n        assert_eq!(\n            again.0, first.0,\n            \"all six Diagnostic fields and both sticky work accounts\"\n        );\n        assert_eq!(\n            again.1, first.1,\n            \"actual allocation count, cumulative bytes, peak and whole Drop\"\n        );\n        assert_eq!(\n            (again_refused, again_paid, again_receipt, again_site),\n            (refused, paid, Some(receipt), site)\n        );\n"
+      }
+    ]
+  },
+  "src/cleanup_plan/replay/branch_clone.rs": {
+    "length": 19832,
+    "sha256": "316d36d3e34238a788dbcf74cb6bebfdc81f8d462378355ceb84f68fe96b7c83",
+    "before_length": 19773,
+    "before_sha256": "3e758d57e9bd8b69c13ac2c239e3b518a54f08e0276910d3348af2e139daab94",
+    "edits": [
+      {
+        "start": 18758,
+        "end": 18820,
+        "current": "pub(super) const fn plan_compact_roles<T: Clone>() -> usize {\n",
+        "before": "pub(super) fn plan_compact_roles<T: Clone>() -> usize {\n"
+      },
+      {
+        "start": 19779,
+        "end": 19832,
+        "current": "\npub(in crate::cleanup_plan::replay) mod short_plan;\n",
+        "before": ""
+      }
+    ]
+  },
+  "src/cleanup_plan/replay/nested_shape.rs": {
+    "length": 23761,
+    "sha256": "9a9114bc5333ad25f883f20e719b5c22a3f7c4d09a502b26acf5908d89c326b7",
+    "before_length": 23402,
+    "before_sha256": "41bd91c1941d903c60191c21250776ee336bdfb37fa34161ee42629791d12e4c",
+    "edits": [
+      {
+        "start": 21149,
+        "end": 21476,
+        "current": "    // These closed primitive facts require no traversal. Keep the ordinary\n    // classifier below complete for every type that can own nested storage.\n    // In particular, do not allocate its initial Vec just to discard a scalar.\n    if matches!(ty, ResolvedType::I64 | ResolvedType::Bool) {\n        return Ok(false);\n    }\n",
+        "before": ""
+      },
+      {
+        "start": 23729,
+        "end": 23761,
+        "current": "\n#[cfg(test)]\nmod scalar_tests;\n",
+        "before": ""
+      }
+    ]
+  },
+  "src/cleanup_plan/replay.rs": {
+    "length": 326598,
+    "sha256": "c0cb32a0e049277a41ba007b61023260bccc7d48cb0ec11c4ff3a59b74582d5d",
+    "before_length": 326286,
+    "before_sha256": "891e29c5d36c7b236305f28beb5cc141abf0f30027d0e15061475002a7d892d0",
+    "edits": [
+      {
+        "start": 297012,
+        "end": 297324,
+        "current": "                        branch_clone::short_plan::produce!(\n                            budget,\n                            function,\n                            observations,\n                            observation,\n                            edge,\n                            queue\n                        );\n",
+        "before": ""
+      }
+    ]
+  }
+}

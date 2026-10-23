@@ -520,6 +520,12 @@ pub(super) fn type_needs_drop(
     if program.selected_flat_records() {
         return crate::cleanup::selected_inventory_needs_drop_in(program, ty);
     }
+    // These closed primitive facts require no traversal. Keep the ordinary
+    // classifier below complete for every type that can own nested storage.
+    // In particular, do not allocate its initial Vec just to discard a scalar.
+    if matches!(ty, ResolvedType::I64 | ResolvedType::Bool) {
+        return Ok(false);
+    }
     crate::cleanup::type_needs_resource_cleanup(program, ty)
         .map_err(|message| replay_error(function, message))
 }
@@ -582,3 +588,6 @@ pub(super) fn substitute_type_current(
     let _ = (program, function);
     crate::hir::substitute_type(template, owner, arguments)
 }
+
+#[cfg(test)]
+mod scalar_tests;

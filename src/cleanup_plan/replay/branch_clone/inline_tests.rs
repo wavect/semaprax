@@ -182,7 +182,11 @@ fn assert_complete_old_sources() {
             )
         )
     );
-    let current = include_str!("../branch_clone.rs");
+    let current = crate::source_reflows_merge::main_e177_final_inputs::value_direct(
+        "src/cleanup_plan/replay/branch_clone.rs",
+        "4ff120ef24b54cc98d956f3548a76b4a7f0ca9f4393044356f47ea1e51cefbc5",
+        include_str!("../branch_clone.rs"),
+    );
     for original in [
         include_str!(concat!(env!("CARGO_MANIFEST_DIR"),
             "/docs/evidence/branch-inline-receiving-next-808-20261016/controls.before.rs.txt")),

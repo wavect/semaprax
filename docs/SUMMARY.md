@@ -1884,3 +1884,4 @@ Audience: all documentation readers.
 - [Owned-provider validation receipt](evidence/native-provider-validation-receipt-20261023/README.md)
 
 - [Windows starter-input parent spelling](evidence/windows-starter-path-20261023/README.md)
+- [Short-history branch allocation](evidence/short-history-branch-20261023/README.md)

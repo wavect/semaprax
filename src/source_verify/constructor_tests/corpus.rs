@@ -194,6 +194,11 @@ fn diagnostics_key(
         .collect()
 }
 
+// The complete original inference fixture is retained. Operator-refusal #799
+// intentionally removes its fabricated checked result; the original T208 and
+// every binding observation remain independently compared below.
+const GENERIC_OPERATOR_REFUSAL_SOURCE: &str = "module t; fn first<T,U>(a:T,b:U)->T{a} fn identity<T>(v:T)->T{v} fn declared()->i64{7} fn main()->i64{first(1,true)+identity(false)}";
+
 fn compare_scalar_receivers(source: &str, intentional: bool) {
     if intentional {
         super::compare_public_intentional(source);
@@ -263,6 +268,15 @@ fn compare_scalar_receivers(source: &str, intentional: bool) {
         &mut iterative_diagnostics,
     );
     let actual = iterative.run(expression).unwrap();
+    if source == GENERIC_OPERATOR_REFUSAL_SOURCE {
+        let original = CheckedValue::value(Type::I64);
+        assert_eq!(
+            oracle.as_ref().map(|value| (&value.ty, value.mode, value.native_unit)),
+            Some((&original.ty, original.mode, original.native_unit)),
+            "the complete recursive receiver retains its original result"
+        );
+        assert!(actual.is_none(), "a refused operator must publish no checked type");
+    } else {
     assert_eq!(
         oracle
             .as_ref()
@@ -271,6 +285,7 @@ fn compare_scalar_receivers(source: &str, intentional: bool) {
             .as_ref()
             .map(|value| (&value.ty, value.mode, value.native_unit))
     );
+    }
     assert_eq!(oracle_scope.len(), iterative.scopes[0].bindings.len());
     for (name, expected) in oracle_scope {
         let actual = &iterative.scopes[0].bindings[&name];
@@ -293,6 +308,17 @@ fn compare_scalar_receivers(source: &str, intentional: bool) {
             diagnostics_key(&oracle_diagnostics),
             diagnostics_key(&iterative_diagnostics)
         );
+        if source == GENERIC_OPERATOR_REFUSAL_SOURCE {
+            let expression = "first(1,true)+identity(false)";
+            let start = source.find(expression).unwrap();
+            let expected = Diagnostic::error(
+                "SPX-T208",
+                "operator `+` expects i64 operands",
+                crate::ast::Span { start, end: start + expression.len(), line: 1, column: start + 1 },
+            ).at_path("iterative-verifier.spx");
+            assert_eq!(oracle_diagnostics.as_slice(), std::slice::from_ref(&expected));
+            assert_eq!(iterative_diagnostics.as_slice(), std::slice::from_ref(&expected));
+        }
     }
 }
 

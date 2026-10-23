@@ -7,7 +7,7 @@ const CAP: usize = 64 * 1024 * 1024;
 fn function() -> ResolvedFunction {
     crate::hir::resolve(
         &crate::check(
-            "module ordinary.labels; @id(\"f\") fn f()->i64 {1}",
+            "module ordinary.labels; @id(\"f\") fn main()->i64 {1}",
             "labels.spx",
         )
         .unwrap(),

@@ -1,5 +1,9 @@
 pub(super) fn compiled(source: &str) -> Option<&'static str> {
     match source {
+        "src/cleanup_plan/replay/branch_clone/production_capacity/before_short.rs" => Some(include_str!("../../src/cleanup_plan/replay/branch_clone/production_capacity/before_short.rs")),
+        "src/cleanup_plan/replay/branch_clone/short_plan.rs" => Some(include_str!("../../src/cleanup_plan/replay/branch_clone/short_plan.rs")),
+        "src/cleanup_plan/replay/nested_shape.rs" => Some(include_str!("../../src/cleanup_plan/replay/nested_shape.rs")),
+        "src/cleanup_plan/replay/nested_shape/scalar_tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/nested_shape/scalar_tests.rs")),
         "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/ordinary_labels.rs" => Some(include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/ordinary_labels.rs")),
         "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_frame_pricing.rs" => Some(include_str!("../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_frame_pricing.rs")),
         "src/cleanup_plan/replay/selected_owner/ordinary.rs" => Some(include_str!("../../src/cleanup_plan/replay/selected_owner/ordinary.rs")),
@@ -472,7 +476,13 @@ mod tests {
             assert_eq!(current_scope_root.matches(&packed).count(), 1);
             current_scope_root = current_scope_root.replacen(&packed, &expanded, 1);
         }
+        for source in ["src/cleanup_plan/replay/branch_clone/inline_tests.rs", "src/cleanup_plan/replay/branch_clone/production_capacity.rs", "src/cleanup_plan/replay/branch_clone/production_capacity/tests.rs"] {
+            let declaration = format!("    {source:?},\n");
+            assert_eq!(current_scope_root.matches(&declaration).count(), 1);
+            current_scope_root = current_scope_root.replacen(&declaration, "", 1);
+        }
         for source in [
+            "src/cleanup_plan/replay/branch_clone/production_capacity/before_short.rs", "src/cleanup_plan/replay/branch_clone/short_plan.rs", "src/cleanup_plan/replay/nested_shape.rs", "src/cleanup_plan/replay/nested_shape/scalar_tests.rs",
             "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/ordinary_labels.rs",
             "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_frame_pricing.rs", "src/cleanup_plan/replay/selected_owner/ordinary.rs", "src/cleanup_plan/replay/selected_owner/ordinary/tests.rs", "src/cleanup_plan/replay/expression_facts/receiving/retained/last_use.rs", "src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/before.rs", "src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/tests.rs",
             "src/cleanup_plan/replay/path_join/selected/receiving.rs",
@@ -636,6 +646,7 @@ mod tests {
         }
         let mut current_scope_child = child.to_owned();
         for source in [
+            "src/cleanup_plan/replay/branch_clone/production_capacity/before_short.rs", "src/cleanup_plan/replay/branch_clone/short_plan.rs", "src/cleanup_plan/replay/nested_shape.rs", "src/cleanup_plan/replay/nested_shape/scalar_tests.rs",
             "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/ordinary_labels.rs",
             "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_frame_pricing.rs", "src/cleanup_plan/replay/selected_owner/ordinary.rs", "src/cleanup_plan/replay/selected_owner/ordinary/tests.rs", "src/cleanup_plan/replay/expression_facts/receiving/retained/last_use.rs", "src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/before.rs", "src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/tests.rs",
             "src/cleanup_plan/replay/path_join/selected/before_frontier/finish.rs",

@@ -31,7 +31,7 @@ assert current.count(old_dirty)==1
 current=current.replace(old_dirty,new_dirty,1)
 assert current.replace(new_dirty,old_dirty,1).replace(new_fmt,old_fmt,1).replace(new,old,1).encode()==raw
 helper=R/'docs/evidence/main-e177-final-source-binding-20261017/guard_payload.py'
-helper_raw=bounded(helper,19141,'cbb13bd5542bfc08900b2d5050e148184bf70131d6302de66295a7e3ed86247d')
+helper_raw=bounded(helper,19141,'f9e6b6f2751790b1c6b506410ec8e49448e1b41791e9544246d26500d50bbb85')
 ns={'__file__':str(helper),'_AUTHENTICATED_PROGRAM':helper_raw};exec(compile(helper_raw,str(helper),'exec'),ns)
 old_guard='guard=runpy.run_path(str(guard_path))'
 new_guard='guard=_accepted_guard_extensions(R)'

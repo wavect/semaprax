@@ -378,6 +378,33 @@ fn immediate_old_entire_caller_and_unchanged_dependencies_are_source_bound() {
   (include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/payments.rs")),"9d7181c923df3c53a31ebdd1571d3c1f9eac990f605345b06a708dc19d251e8c"),
   (include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/compact_targets.rs")),"75270c55c77ae6ea0697f52348e7c6ad78c5dbbca706bdd4b8faabd3849d1e10"),
  ] {
+        // Restore the two finite ordinary-frame source changes before the
+        // original active-module inverse and every unchanged whole-source target.
+        let transformed = if matches!(hash,
+            "2a64ea81fe25ac38ad7d3060cb1dae31de835e46c4572c5bf425ea979a477917" |
+            "3e627c55e743f541f5787c64c47af8e31690a002907db35a435f0ce57fc9c72a") {
+            let encoded = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/before_frontier/custody/main_d227_transport.json"));
+            assert_eq!(std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/cleanup_plan/replay/path_join/before_frontier/custody/main_d227_transport.json")).unwrap(), encoded.as_bytes());
+            assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(encoded.as_bytes()))), "d7722e374a576ea9e7fc654a7dee36f8a97282e8f4e96fc1fb0ef8d298477804");
+            let packet: serde_json::Value = serde_json::from_str(encoded).unwrap();
+            assert_eq!(packet.as_object().unwrap().len(), 9);
+            let path = if hash == "2a64ea81fe25ac38ad7d3060cb1dae31de835e46c4572c5bf425ea979a477917" { "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop.rs" } else { "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact.rs" };
+            assert_eq!(std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap(), source.as_bytes());
+            let row = &packet[path];
+            assert_eq!(source.len(), row["length"].as_u64().unwrap() as usize);
+            assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(source.as_bytes()))), row["sha256"].as_str().unwrap());
+            let mut restored = source.to_owned();
+            for edit in row["edits"].as_array().unwrap().iter().rev() {
+                let start = edit["start"].as_u64().unwrap() as usize;
+                let end = edit["end"].as_u64().unwrap() as usize;
+                assert_eq!(&restored[start..end], edit["current"].as_str().unwrap());
+                restored.replace_range(start..end, edit["before"].as_str().unwrap());
+            }
+            assert_eq!(restored.len(), row["before_length"].as_u64().unwrap() as usize);
+            assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(restored.as_bytes()))), row["before_sha256"].as_str().unwrap());
+            std::borrow::Cow::Owned(restored)
+        } else { std::borrow::Cow::Borrowed(source) };
+        let source = transformed.as_ref();
         let original = if hash == "3e627c55e743f541f5787c64c47af8e31690a002907db35a435f0ce57fc9c72a" {
             // The complete existing compact entry is unchanged. Its later
             // active-builder sibling is independently source-bound below.

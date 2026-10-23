@@ -67,10 +67,10 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
         assert_eq!(std::fs::read(root.join("src/cleanup_plan/replay/path_join/before_frontier/custody/main_d227_transport.json")).unwrap(), encoded.as_bytes());
         assert_eq!(
             digest(encoded.as_bytes()),
-            "487e8b657c016d1bb0c51a211b5add33e504aee34ff95053032edd5843de171f"
+            "d7722e374a576ea9e7fc654a7dee36f8a97282e8f4e96fc1fb0ef8d298477804"
         );
         let packet: serde_json::Value = serde_json::from_str(encoded).unwrap();
-        assert_eq!(packet.as_object().unwrap().len(), 7);
+        assert_eq!(packet.as_object().unwrap().len(), 9);
         if let Some(row) = packet.get(&path) {
             let compiled = match path.as_str() {
                 "src/cleanup_plan/replay/branch_clone/inline_tests.rs" => include_bytes!(concat!(
@@ -112,6 +112,8 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
                     "/src/cleanup_plan/replay.rs"
                 ))
                 .as_slice(),
+                "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop.rs")).as_slice(),
+                "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact.rs")).as_slice(),
                 _ => panic!("unadmitted main transport path"),
             };
             assert_eq!(actual.as_slice(), compiled);
@@ -150,7 +152,7 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
                 // fixture. No production dependency receives this inverse.
                 assert_eq!(
                     digest(&actual),
-                    "c94ed2862e672d7a3cd4f09272cb5e823e3a0ec61610ef5d40a49dfb9f5211a7"
+                    "d28020bab1ef4f782d82b8353e72a4d8e0a92bf088213ce6e3809f70d5f29345"
                 );
                 let before = include_bytes!(concat!(
                     env!("CARGO_MANIFEST_DIR"),

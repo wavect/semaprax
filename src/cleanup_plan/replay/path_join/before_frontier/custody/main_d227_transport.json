@@ -222,5 +222,57 @@
         "before": ""
       }
     ]
+  },
+  "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop.rs": {
+    "length": 26203,
+    "sha256": "db228c19e3e1c50cb196b01c0eb1f9f372fe61f4a0cd191057abd53c50cdabd8",
+    "before_length": 25929,
+    "before_sha256": "2a64ea81fe25ac38ad7d3060cb1dae31de835e46c4572c5bf425ea979a477917",
+    "edits": [
+      {
+        "start": 6238,
+        "end": 6316,
+        "current": "                        // order for every payer outside the ordinary routes.\n",
+        "before": "                        // order for every non-ActiveBuilder payer.\n"
+      },
+      {
+        "start": 6398,
+        "end": 6541,
+        "current": "                                payer:\n                                    AllocationPayer::ActiveBuilder | AllocationPayer::LegacyUnobserved,\n",
+        "before": "                                payer: AllocationPayer::ActiveBuilder,\n"
+      },
+      {
+        "start": 26011,
+        "end": 26203,
+        "current": "\n#[cfg(test)]\n#[allow(\n    dead_code,\n    reason = \"Compile the complete immediate-old frame owner independently.\"\n)]\nmod ordinary_receiving_before;\n#[cfg(test)]\nmod ordinary_receiving_tests;\n",
+        "before": ""
+      }
+    ]
+  },
+  "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact.rs": {
+    "length": 32762,
+    "sha256": "48ad1d1a51b75a6a214ca07cb5cfea33bcfc5a0ba46e94f2238ca9c3bc309de9",
+    "before_length": 32529,
+    "before_sha256": "28e518f87a134120e82218483bcd731ac25faf41e13243493e60c0bb500f9104",
+    "edits": [
+      {
+        "start": 6639,
+        "end": 6717,
+        "current": "                        // order for every payer outside the ordinary routes.\n",
+        "before": "                        // order for every non-ActiveBuilder payer.\n"
+      },
+      {
+        "start": 6799,
+        "end": 6942,
+        "current": "                                payer:\n                                    AllocationPayer::ActiveBuilder | AllocationPayer::LegacyUnobserved,\n",
+        "before": "                                payer: AllocationPayer::ActiveBuilder,\n"
+      },
+      {
+        "start": 32611,
+        "end": 32762,
+        "current": "\n#[cfg(test)]\n#[allow(\n    dead_code,\n    reason = \"Compile the complete immediate-old compact owner independently.\"\n)]\nmod ordinary_receiving_before;\n",
+        "before": ""
+      }
+    ]
   }
 }

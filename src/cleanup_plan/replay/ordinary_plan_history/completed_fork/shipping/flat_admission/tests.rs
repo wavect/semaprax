@@ -455,18 +455,30 @@ fn every_immediate_flat_work_cut_and_malformed_fallback_keep_exact_outputs() {
             }
         }
         let mut unlimited = budget(&program, &function);
+        let initial_remaining = unlimited.remaining;
         let mut old_expected = expected.clone();
         super::immediate_before::try_compare(&function, &mut unlimited, &mut old_expected).unwrap();
-        for cut in 0..=unlimited.skeleton_spent {
+        let normal_work = initial_remaining - unlimited.remaining;
+        // Retain every original held-skeleton cut. Independently cut ordinary
+        // scan work as well: it uses remaining rather than skeleton_remaining.
+        let cuts = (0..=unlimited.skeleton_spent)
+            .map(|cut| (cut, None))
+            .chain((0..=normal_work).map(|cut| (unlimited.skeleton_spent, Some(cut))));
+        for (skeleton_cut, normal_cut) in cuts {
             let mut old_budget = budget(&program, &function);
             let mut new_budget = budget(&program, &function);
-            old_budget.skeleton_remaining = cut;
-            new_budget.skeleton_remaining = cut;
+            old_budget.skeleton_remaining = skeleton_cut;
+            new_budget.skeleton_remaining = skeleton_cut;
+            if let Some(cut) = normal_cut {
+                old_budget.remaining = cut;
+                new_budget.remaining = cut;
+            }
             let mut old_expected = expected.clone();
             let mut new_expected = expected.clone();
             let old =
                 super::immediate_before::try_compare(&function, &mut old_budget, &mut old_expected);
             let current = call(&function, &mut new_budget, &mut new_expected);
+            assert_eq!(old_budget.remaining, new_budget.remaining);
             assert_eq!(old_budget.skeleton_spent, new_budget.skeleton_spent);
             assert_eq!(old_budget.skeleton_remaining, new_budget.skeleton_remaining);
             assert_eq!(old_expected, new_expected);

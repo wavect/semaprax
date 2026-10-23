@@ -269,4 +269,5 @@ mod tests;
 
 #[cfg(test)]
 #[path = "flat_admission/immediate_before.rs"]
+#[rustfmt::skip]
 mod immediate_before;

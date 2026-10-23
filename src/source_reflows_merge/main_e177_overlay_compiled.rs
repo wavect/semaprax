@@ -89,7 +89,7 @@ mod tests {
         // source images, before any metadata or whole-source normalization.
         assert_eq!(root, ROOT);
         assert_eq!(child, CHILD);
-        let rebound = super::census_split::parent_before(child, include_str!("main_e177_overlay_lookup.rs"));
+        let rebound = super::census_split::parent_for_current_scope(child, include_str!("main_e177_overlay_lookup.rs"));
         let child = rebound.as_str();
         // CURRENT_SCOPE_NORMALIZATION_BEGIN
         // Reverse only the exact current literal-list packing and new scope.
@@ -132,12 +132,13 @@ mod tests {
             assert_eq!(current_scope_root.matches(&packed).count(), 1);
             current_scope_root = current_scope_root.replacen(&packed, &expanded, 1);
         }
-        for source in ["src/cleanup_plan/replay/branch_clone/inline_tests.rs", "src/cleanup_plan/replay/branch_clone/production_capacity.rs", "src/cleanup_plan/replay/branch_clone/production_capacity/tests.rs", "src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs"] {
+        for source in ["src/cleanup_plan/replay/branch_clone/inline_tests.rs", "src/cleanup_plan/replay/branch_clone/production_capacity.rs", "src/cleanup_plan/replay/branch_clone/production_capacity/tests.rs", "src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs", "src/workspace_graph/shape_identity/source_controls.rs", "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs"] {
             let declaration = format!("    {source:?},\n");
             assert_eq!(current_scope_root.matches(&declaration).count(), 1);
             current_scope_root = current_scope_root.replacen(&declaration, "", 1);
         }
         for source in [
+            "src/cleanup_plan/replay/skeleton_work/query_proof.rs", "src/cleanup_plan/replay/skeleton_work/query_proof/before.rs", "src/cleanup_plan/replay/skeleton_work/query_proof/tests.rs", "src/bounded_output/exclusive_debits/path_census.rs", "src/bounded_output/request_reservation.rs", "src/source_reflows_merge/main_e177_overlay_lookup.rs",
             "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/hir_last_use.rs", "src/cleanup_plan/replay/factored/hir_memo_release_tests.rs", "src/cleanup_plan/replay/path_join/shared_insertions_before.rs", "src/cleanup_plan/replay/path_join/shared_insertions_before/boxed_flow.rs", "src/cleanup_plan/replay/path_join/shared_insertions_before/boxed_states.rs", "src/cleanup_plan/replay/path_join/shared_insertions_before/frontier.rs", "src/cleanup_plan/replay/path_join/shared_insertions_tests.rs", "src/cleanup_plan/replay/plan_prefix.rs", "src/cleanup_plan/replay/plan_prefix/before.rs", "src/cleanup_plan/replay/plan_prefix/tests.rs", "src/cleanup_plan/replay/skeleton_work/plan_prefix.rs",
             "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/ordinary_receiving_tests.rs", "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/ordinary_receiving_before.rs", "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/ordinary_receiving_before.rs", "src/cleanup_plan/replay/path_join/held_edge_before.rs", "src/cleanup_plan/replay/path_join/held_edge_tests.rs",
             "src/cleanup_plan/replay/branch_clone/production_capacity/before_short.rs", "src/cleanup_plan/replay/branch_clone/short_plan.rs", "src/cleanup_plan/replay/nested_shape.rs", "src/cleanup_plan/replay/nested_shape/scalar_tests.rs",
@@ -307,6 +308,7 @@ mod tests {
         assert_eq!(current_scope_child.matches(packed_separator).count(), 24);
         current_scope_child = current_scope_child.replace(packed_separator, ")),\n        \"src/");
         for source in [
+            "src/cleanup_plan/replay/skeleton_work/query_proof.rs", "src/cleanup_plan/replay/skeleton_work/query_proof/before.rs", "src/cleanup_plan/replay/skeleton_work/query_proof/tests.rs", "src/bounded_output/exclusive_debits/path_census.rs", "src/bounded_output/request_reservation.rs", "src/source_reflows_merge/main_e177_overlay_lookup.rs",
             "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/hir_last_use.rs", "src/cleanup_plan/replay/factored/hir_memo_release_tests.rs", "src/cleanup_plan/replay/path_join/shared_insertions_before.rs", "src/cleanup_plan/replay/path_join/shared_insertions_before/boxed_flow.rs", "src/cleanup_plan/replay/path_join/shared_insertions_before/boxed_states.rs", "src/cleanup_plan/replay/path_join/shared_insertions_before/frontier.rs", "src/cleanup_plan/replay/path_join/shared_insertions_tests.rs", "src/cleanup_plan/replay/plan_prefix.rs", "src/cleanup_plan/replay/plan_prefix/before.rs", "src/cleanup_plan/replay/plan_prefix/tests.rs", "src/cleanup_plan/replay/skeleton_work/plan_prefix.rs",
             "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/ordinary_receiving_tests.rs", "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/ordinary_receiving_before.rs", "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/ordinary_receiving_before.rs", "src/cleanup_plan/replay/path_join/held_edge_before.rs", "src/cleanup_plan/replay/path_join/held_edge_tests.rs",
             "src/cleanup_plan/replay/branch_clone/production_capacity/before_short.rs", "src/cleanup_plan/replay/branch_clone/short_plan.rs", "src/cleanup_plan/replay/nested_shape.rs", "src/cleanup_plan/replay/nested_shape/scalar_tests.rs",
@@ -1186,7 +1188,7 @@ mod lookup;
 pub(super) use lookup::compiled;
 
 "####;
-    const BRIDGE: &str = r####"        let rebound = super::census_split::parent_before(child, include_str!("main_e177_overlay_lookup.rs"));
+    const BRIDGE: &str = r####"        let rebound = super::census_split::parent_for_current_scope(child, include_str!("main_e177_overlay_lookup.rs"));
         let child = rebound.as_str();
 "####;
     const LOADER: &str = r####"# Fixed local codec source; authenticate bytes before Python evaluates them.
@@ -1219,40 +1221,51 @@ del _load_fixed_codecs
         "src/bounded_output/request_reservation.rs",
         "src/source_reflows_merge/main_e177_overlay_lookup.rs",
     ];
+    const SCOPE_ADDITIONS_LINE: &str = r####"            "src/cleanup_plan/replay/skeleton_work/query_proof.rs", "src/cleanup_plan/replay/skeleton_work/query_proof/before.rs", "src/cleanup_plan/replay/skeleton_work/query_proof/tests.rs", "src/bounded_output/exclusive_debits/path_census.rs", "src/bounded_output/request_reservation.rs", "src/source_reflows_merge/main_e177_overlay_lookup.rs",
+"####;
+    const SCOPE_REPLACEMENTS_BEFORE: &str = r####"        for source in ["src/cleanup_plan/replay/branch_clone/inline_tests.rs", "src/cleanup_plan/replay/branch_clone/production_capacity.rs", "src/cleanup_plan/replay/branch_clone/production_capacity/tests.rs", "src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs"] {
+"####;
+    const SCOPE_REPLACEMENTS_AFTER: &str = r####"        for source in ["src/cleanup_plan/replay/branch_clone/inline_tests.rs", "src/cleanup_plan/replay/branch_clone/production_capacity.rs", "src/cleanup_plan/replay/branch_clone/production_capacity/tests.rs", "src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs", "src/workspace_graph/shape_identity/source_controls.rs", "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs"] {
+"####;
+    const PY_SCOPE_INSERTIONS: &[&str] = &[
+        "'src/workspace_graph/shape_identity/source_controls.rs',",
+        "'crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs',",
+        ",_REPLAY+'skeleton_work/query_proof.rs',_REPLAY+'skeleton_work/query_proof/before.rs',_REPLAY+'skeleton_work/query_proof/tests.rs','src/bounded_output/exclusive_debits/path_census.rs','src/bounded_output/request_reservation.rs',_REFLOWS+'main_e177_overlay_lookup.rs'",
+    ];
     fn digest(value: &str) -> String {
         format!(
             "{:x}",
             crate::digest_hex::LowerHex(Sha256::digest(value.as_bytes()))
         )
     }
-    pub(super) fn parent_before(parent: &str, lookup: &str) -> String {
+    pub(super) fn parent_for_current_scope(parent: &str, lookup: &str) -> String {
         assert_eq!(parent, ROOT);
         assert_eq!(lookup, LOOKUP);
-        assert_eq!(BEFORE.len(), 176187);
-        assert_eq!(
-            digest(BEFORE),
-            "8dacf765e1d67f7b25d368dc740c80c9987af7155fd9a54c99bd3258a275b8db"
-        );
-        let marker = concat!(
-            "\n// ",
-            "CENSUS_LOOKUP_SPLIT_CUSTODY: additive controls; complete old parents above.\n"
-        );
+        let marker = concat!("\n// ", "CENSUS_LOOKUP_SPLIT_CUSTODY: additive controls; complete old parents above.\n");
         assert_eq!(parent.matches(marker).count(), 1);
         let (prefix, _) = parent.split_once(marker).unwrap();
         let mut restored = prefix.to_owned();
         assert_eq!(restored.matches(GLUE).count(), 1);
         assert_eq!(restored.matches(BRIDGE).count(), 1);
-        let mut table = format!("{lookup}\n");
+        let visibility = "pub(crate) fn compiled";
+        assert_eq!(lookup.matches(visibility).count(), 1);
+        let table = format!("{lookup}\n").replacen(visibility, "pub(super) fn compiled", 1);
+        restored = restored.replacen(GLUE, &table, 1);
+        restored.replacen(BRIDGE, "", 1)
+    }
+    pub(super) fn parent_before(parent: &str, lookup: &str) -> String {
+        let mut restored = parent_for_current_scope(parent, lookup);
+        assert_eq!(BEFORE.len(), 176187);
+        assert_eq!(digest(BEFORE), "8dacf765e1d67f7b25d368dc740c80c9987af7155fd9a54c99bd3258a275b8db");
         for key in KEYS {
             let arm = format!("        {key:?} => Some(include_str!(\"../../{key}\")),\n");
-            assert_eq!(table.matches(&arm).count(), 1);
-            table = table.replacen(&arm, "", 1);
+            assert_eq!(restored.matches(&arm).count(), 1);
+            restored = restored.replacen(&arm, "", 1);
         }
-        let visibility = "pub(crate) fn compiled";
-        assert_eq!(table.matches(visibility).count(), 1);
-        table = table.replacen(visibility, "pub(super) fn compiled", 1);
-        restored = restored.replacen(GLUE, &table, 1);
-        restored = restored.replacen(BRIDGE, "", 1);
+        assert_eq!(restored.matches(SCOPE_ADDITIONS_LINE).count(), 2);
+        restored = restored.replace(SCOPE_ADDITIONS_LINE, "");
+        assert_eq!(restored.matches(SCOPE_REPLACEMENTS_AFTER).count(), 1);
+        restored = restored.replacen(SCOPE_REPLACEMENTS_AFTER, SCOPE_REPLACEMENTS_BEFORE, 1);
         assert_eq!(restored, BEFORE, "ENTIRE published pre-split parent");
         restored
     }
@@ -1265,23 +1278,79 @@ del _load_fixed_codecs
             "ab489a4486a46998595d993477806bed9e21ace1874774c64433debeb2be6c72"
         );
         assert_eq!(parent.matches(LOADER).count(), 1);
-        let restored = parent.replacen(LOADER, &format!("{child}\n"), 1);
+        let mut restored = parent.to_owned();
+        for &inserted in PY_SCOPE_INSERTIONS {
+            assert_eq!(restored.matches(inserted).count(), 1);
+            restored = restored.replacen(inserted, "", 1);
+        }
+        let restored = restored.replacen(LOADER, &format!("{child}\n"), 1);
         assert_eq!(
             restored, PYTHON_BEFORE,
             "ENTIRE published pre-split Python parent"
         );
         restored
     }
+    fn physical_codec_loader(hostile: bool) {
+        const PROBE: &str = r####"import os, pathlib, subprocess, sys, tempfile
+parent, child, mode = sys.argv[1:]
+probe = "import runpy,sys; ns=runpy.run_path(sys.argv[1],run_name='codec_fixture'); assert callable(ns['encode_v12_view_labels']); assert ns['PAGE_CAP']==262144 and ns['SOURCE_CAP']==9753094"
+with tempfile.TemporaryDirectory(prefix='semaprax-codec-loader-') as temporary:
+ directory=pathlib.Path(temporary)
+ program=directory/'overlay_page.py'; codec=directory/'overlay_page_codecs.py'
+ program.write_text(parent); codec.write_text(child)
+ def invoke(code=probe):
+  return subprocess.run([sys.executable,'-B','-c',code,str(program)],capture_output=True,timeout=3)
+ result=invoke()
+ assert result.returncode==0,result.stderr.decode()
+ if mode=='hostile':
+  for case in ('missing','length','hash','symlink','directory','fifo','drift'):
+   if codec.is_dir() and not codec.is_symlink():codec.rmdir()
+   elif codec.exists() or codec.is_symlink():codec.unlink()
+   if case=='length':codec.write_text(child+' ')
+   elif case=='hash':codec.write_text(('x' if child[0]!='x' else 'y')+child[1:])
+   elif case=='symlink':
+    target=directory/'real-codec.py';target.write_text(child);codec.symlink_to(target)
+   elif case=='directory':codec.mkdir()
+   elif case=='fifo':os.mkfifo(codec)
+   elif case=='drift':codec.write_text(child)
+   code=probe
+   if case=='drift':
+    code="""import os,pathlib,runpy,sys
+original=os.fstat
+calls=0
+def replace_after_read(fd):
+ global calls
+ calls+=1
+ if calls==2:
+  path=pathlib.Path(sys.argv[1]).with_name('overlay_page_codecs.py')
+  replacement=path.with_name('replacement.py')
+  replacement.write_bytes(path.read_bytes())
+  os.replace(replacement,path)
+ return original(fd)
+os.fstat=replace_after_read
+runpy.run_path(sys.argv[1],run_name='codec_fixture')
+"""
+   result=invoke(code)
+   assert result.returncode!=0,case
+   if case=='drift':assert b'codec postread identity' in result.stderr,result.stderr.decode()
+"####;
+        let output = std::process::Command::new("python3")
+            .args(["-B", "-c", PROBE, PYTHON, CODECS, if hostile { "hostile" } else { "positive" }])
+            .output().expect("run fixed codec loader controls");
+        assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    }
     #[test]
     fn census_lookup_and_codec_split_preserve_complete_published_parents_and_all_mappings() {
         assert_eq!(parent_before(ROOT, LOOKUP), BEFORE);
         assert_eq!(python_before(PYTHON, CODECS), PYTHON_BEFORE);
+        physical_codec_loader(false);
         for key in KEYS {
             assert!(super::compiled(key).is_some(), "missing new source {key}");
         }
     }
     #[test]
     fn census_lookup_and_codec_split_refuse_every_source_seam_drift() {
+        physical_codec_loader(true);
         for parent in [
             format!("{ROOT} "),
             ROOT.replacen(GLUE, "", 1),

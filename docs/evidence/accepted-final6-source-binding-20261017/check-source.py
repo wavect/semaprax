@@ -24,10 +24,19 @@ if not uncached:
  namespace={'__file__':str(D/'derived_compose.py')}
  exec(compile(helper,namespace['__file__'],'exec'),namespace)
 program=original.decode()
+# The immutable old wrapper retains its complete authenticated original bytes.
+# This exact input-pin transport applies equally to cached and uncached execution.
+old_binding="helper_raw=bounded(helper,19144,'af70eaeeb1cc0da02460858f9e7ddb39086582add858c74138c4d989644e11f3')"
+current_binding="helper_raw=bounded(helper,19144,'c7709b56bd0cec65f46d81b94118ea99464132abf64f80178b12ec114d314e05')"
+assert program.count(old_binding)==1
+program=program.replace(old_binding,current_binding,1)
+bound_program=program
+assert bound_program.replace(current_binding,old_binding,1).encode()==original
 anchor="ns={'__file__':str(helper),'_AUTHENTICATED_PROGRAM':helper_raw};exec(compile(helper_raw,str(helper),'exec'),ns)"
 assert program.count(anchor)==1
 if not uncached:
  replacement=anchor+";_install_derived(ns)"
  program=program.replace(anchor,replacement,1)
- assert program.replace(replacement,anchor,1).encode()==original
+ assert program.replace(replacement,anchor,1)==bound_program
+assert bound_program.replace(current_binding,old_binding,1).encode()==original
 exec(compile(program,str(D/'check-source.py'),'exec'),{'__file__':str(D/'check-source.py'),'__name__':'__main__','_install_derived':namespace.get('install')})

@@ -48,6 +48,18 @@ class Controls(unittest.TestCase):
                 target = node.targets[0]
                 if isinstance(target, ast.Name) and target.id == 'anchor':
                     bindings['anchor'] = ast.literal_eval(node.value)
+        pin_bindings = {
+            node.targets[0].id: ast.literal_eval(node.value)
+            for node in tree.body if isinstance(node, ast.Assign)
+            and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name)
+            and node.targets[0].id in ('old_binding', 'current_binding')
+        }
+        guard = (R / 'docs/evidence/main-e177-final-source-binding-20261017/guard_payload.py').read_bytes()
+        self.assertEqual(pin_bindings['current_binding'],
+                         f"helper_raw=bounded(helper,{len(guard)},'{hashlib.sha256(guard).hexdigest()}')")
+        self.assertEqual(raw.decode().count(pin_bindings['old_binding']), 1)
+        bound = raw.decode().replace(pin_bindings['old_binding'], pin_bindings['current_binding'], 1)
+        self.assertEqual(bound.replace(pin_bindings['current_binding'], pin_bindings['old_binding'], 1).encode(), raw)
         anchor = bindings['anchor']
         self.assertEqual(raw.decode().count(anchor), 1)
         replacement = anchor + ';_install_derived(ns)'

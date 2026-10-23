@@ -5,7 +5,7 @@ use crate::bounded_output::{set_active_floor, with_limit_usage_refusal};
 use crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission;
 use crate::cleanup_plan::replay::{
     hir_skeleton_paths, ordinary_plan_history, reserve_program_skeleton_work, validate_program,
-    AdmissionMode, Diagnostic, ReplayBudget, SkeletonPath, SkeletonTerminal,
+    AdmissionMode, AllocationPayer, Diagnostic, ReplayBudget, SkeletonPath, SkeletonTerminal,
 };
 use crate::cleanup_plan::{CleanupTerminator, ExitContinuation};
 use crate::hir::{ResolvedFunction, ResolvedProgram};
@@ -133,16 +133,46 @@ fn full_old_comparator_rejects_the_same_late_content_terminal_and_multiplicity()
             }
         }
         changed.sort();
+        // This frozen history comparator predates public unobserved backing:
+        // its reserve_vec receiver requires the original ActiveBuilder owner.
+        // Keep its complete bytes and every six-field diagnostic comparison.
+        let ((), refused, _, first) = with_limit_usage_refusal(usize::MAX, || {
+            let mut old_budget = budget(&program, function);
+            assert_eq!(old_budget.payer, AllocationPayer::ActiveBuilder);
+            let produced = ordinary_plan_history::produce(function, &mut old_budget).unwrap();
+            let old = ordinary_plan_history::before_comparison::compare(
+                function,
+                &mut old_budget,
+                produced,
+                &changed,
+            )
+            .unwrap_err();
+            let mut actual_budget = budget(&program, function);
+            assert_eq!(actual_budget.payer, AllocationPayer::ActiveBuilder);
+            let mut actual_expected = changed.clone();
+            let actual = call(function, &mut actual_budget, &mut actual_expected).unwrap_err();
+            same_error(actual, old);
+        });
+        assert!(!refused && first.is_none());
+
+        // The complete immediate-old flat admission caller already admits
+        // LegacyUnobserved and supplies real public cursor backing. Compare
+        // the actual public route for ALL of the same hostile mutations too.
         let mut old_budget = budget(&program, function);
-        let produced = ordinary_plan_history::produce(function, &mut old_budget).unwrap();
-        let old = ordinary_plan_history::before_comparison::compare(
-            function,
-            &mut old_budget,
-            produced,
-            &changed,
-        )
-        .unwrap_err();
+        assert_eq!(old_budget.payer, AllocationPayer::LegacyUnobserved);
+        old_budget
+            .reserve_bytes(
+                function,
+                super::immediate_before::CALL,
+                "flat admission test caller",
+            )
+            .unwrap();
+        let mut old_expected = changed.clone();
+        let old =
+            super::immediate_before::try_compare(function, &mut old_budget, &mut old_expected)
+                .unwrap_err();
         let mut actual_budget = budget(&program, function);
+        assert_eq!(actual_budget.payer, AllocationPayer::LegacyUnobserved);
         let actual = call(function, &mut actual_budget, &mut changed).unwrap_err();
         same_error(actual, old);
     }
@@ -419,7 +449,15 @@ fn immediate_flat_driver_and_every_helper_binding_are_exact_source_controls() {
     assert_eq!(executable.matches("budget.charge(function, 1,").count(), 2);
     assert!(!executable.contains("reserve_into!"));
     assert!(!executable.contains("charge_into!"));
-    assert!(!executable.contains("current_into"));
+    // Match the successor producer's complete identifier. The immutable old
+    // source already calls capture_current_into(), a distinct ledger API.
+    assert_eq!(
+        executable.matches("ledger.capture_current_into();").count(),
+        1
+    );
+    assert!(!executable
+        .split(|character: char| !(character.is_ascii_alphanumeric() || character == '_'))
+        .any(|identifier| identifier == "current_into"));
 }
 
 #[test]

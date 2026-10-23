@@ -40,6 +40,55 @@ fn v12_complete_frozen_v11_inverse_keeps_every_row_view_prefix_and_canonical_byt
     assert_eq!(full["archive_prefixes"].as_array().unwrap().len(), 23);
     assert!(canonical(&compact).len() < FULL.len());
     assert!(canonical(&compact).len() <= PAGE_CAP);
+
+    // The live page includes this test's source identity. Compare complete
+    // bytes through both real codecs rather than creating a circular hash pin.
+    use std::io::Read;
+    use std::process::{Command, Stdio};
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let page_bytes =
+        std::fs::read(root.join("docs/evidence/finite-source-overlay-v2-20261018/page.json"))
+            .unwrap();
+    assert!(page_bytes.len() <= PAGE_CAP);
+    let page: Value = serde_json::from_slice(&page_bytes).unwrap();
+    let expanded = expand_to_v11(&page).unwrap();
+    let expanded_bytes = canonical(&expanded);
+    assert!(expanded_bytes.len() <= SOURCE_CAP);
+    assert_eq!(canonical(&encode_v12(&expanded).unwrap()), page_bytes);
+    let mut python = Command::new("python3")
+        .args(["-B", "-c", r#"
+from pathlib import Path
+import runpy
+import sys
+root = Path(sys.argv[1])
+codec = runpy.run_path(str(root / 'docs/evidence/finite-source-overlay-v2-20261018/overlay_page.py'), run_name='v12_current_page_parity')
+raw = (root / 'docs/evidence/finite-source-overlay-v2-20261018/page.json').read_bytes()
+page = codec['parse'](raw)
+sys.stdout.buffer.write(codec['canonical'](codec['expand_v12_view_labels'](page)))
+"#])
+        .arg(root)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .expect("current-page parity requires standard-library Python 3");
+    let mut python_bytes = Vec::new();
+    // Drop the pipe before waiting even if a hostile producer exceeds the
+    // bound, so an overfull pipe cannot leave the child blocked in write.
+    let read = python
+        .stdout
+        .take()
+        .unwrap()
+        .take((SOURCE_CAP + 1) as u64)
+        .read_to_end(&mut python_bytes);
+    let status = python.wait().unwrap();
+    read.unwrap();
+    assert!(
+        status.success(),
+        "current-page Python decoder failed: {status}"
+    );
+    assert!(python_bytes.len() <= SOURCE_CAP);
+    assert_eq!(python_bytes, expanded_bytes);
 }
 
 #[test]

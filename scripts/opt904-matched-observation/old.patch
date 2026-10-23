@@ -821,10 +821,10 @@ index 0000000000000000000000000000000000000000..ff02175542ddae305f6adba924836028
 +}
 diff --git a/src/hir/validation/lexical_exit/matched_observation.rs b/src/hir/validation/lexical_exit/matched_observation.rs
 new file mode 100644
-index 0000000000000000000000000000000000000000..23f28086f9d0c6e8d62022e6f6fd10392642b156
+index 0000000000000000000000000000000000000000..e1908eed707ccaafe9273d5101ad8fc612d196df
 --- /dev/null
 +++ b/src/hir/validation/lexical_exit/matched_observation.rs
-@@ -0,0 +1,491 @@
+@@ -0,0 +1,498 @@
 +//! Evaluation-image observation only. This does not qualify application admission.
 +use super::*;
 +use sha2::{Digest, Sha256};
@@ -1188,7 +1188,14 @@ index 0000000000000000000000000000000000000000..23f28086f9d0c6e8d62022e6f6fd1039
 +            for source in sources() {
 +                let checked = crate::check(&source, "904-matched-observation.spx").unwrap();
 +                let full = run(&checked, false, LIMIT, 0);
-+                assert_eq!(full.outcome.count, 0);
++                assert_eq!(
++                    full.outcome.count, 0,
++                    "source={source}; diagnostics={}; refused={}; paid={}; first={:?}",
++                    serde_json::to_string(&full.outcome.errors[..full.outcome.count]
++                        .iter().map(|error| error.as_ref().unwrap().json())
++                        .collect::<Vec<_>>()).unwrap(),
++                    full.refused, full.paid, full.first,
++                );
 +                assert!(!full.refused && full.first.is_none() && full.paid > 0);
 +                assert!(full.frame.size > 0 && full.frame.alignment.is_power_of_two());
 +                assert_eq!(full.frame.size % full.frame.alignment, 0);

@@ -49,14 +49,14 @@
       "base": "8446e3a1794ede157a336cbe1969cfab3aac30ab",
       "base_tree": "274b1018cccccd7102175c9b8efb8642c241d1ca",
       "public_base_url": "https://github.com/wavect/semaprax/commit/8446e3a1794ede157a336cbe1969cfab3aac30ab",
-      "observation_commit": "020f26eaeabcce26d936f052ad02e219f5d13d8d",
+      "observation_commit": "d3a085171558018da376250403a4f0fcebea1fad",
       "record_base": "9a5cc397b1660606bce94b468b0f917ca0d6d5c0",
-      "patched_tree": "90d189de78ee843bcf1d512e7e050000e2b65528",
+      "patched_tree": "70bce409ade6df1af133c2e357132212aacf6f63",
       "tests": 3,
       "patch": {
         "path": "old.patch",
-        "bytes": 554671,
-        "sha256": "e27af6c0d6727f4334780005cccab6c851cfde09b0a169ff7c17c69800446ab5"
+        "bytes": 555079,
+        "sha256": "f542c9b64fe7b90f71ebc653ab7af3623d7d10bd9acf3c0af456f001851ee870"
       },
       "sources": [
         {
@@ -76,8 +76,8 @@
         },
         {
           "path": "src/hir/validation/lexical_exit/matched_observation.rs",
-          "bytes": 20034,
-          "sha256": "bd870ea9227f69c68274d965c3d13a4799168be537f553dcb8214b2af6ba4734"
+          "bytes": 20435,
+          "sha256": "e21fcaf58c5a9c484b6670fd931f77677cf70b3902bd7ff083f9a52090157821"
         },
         {
           "path": "src/hir/validation/lexical_exit/matched_observation_lexical_before.rs.txt",
@@ -106,7 +106,7 @@
         }
       ],
       "record_bindings": {
-        "observation_source_sha256": "bd870ea9227f69c68274d965c3d13a4799168be537f553dcb8214b2af6ba4734",
+        "observation_source_sha256": "e21fcaf58c5a9c484b6670fd931f77677cf70b3902bd7ff083f9a52090157821",
         "source_binding_sha256": "7329c0558facc0ba6381b83dcbaca42f1f700e1fa03c87ee14443e69af7933e7",
         "compiled_primary_source_sha256": "144d7ee74039dea42f4af38e989504951f6d8cb2f5103352ac1fe60384194bf5",
         "compiled_storage_source_sha256": "266cf3d058566e4b0234b4af734c5b8bd72bfa34abb169675cec213cceb0202b",
@@ -122,14 +122,14 @@
       "base": "1fc1dc11f113b995ceaa971dcf3c9d2bcca1aeb5",
       "base_tree": "597bc4836957bf5197574ac26c5bb7ae8287a619",
       "public_base_url": "https://github.com/wavect/semaprax/commit/1fc1dc11f113b995ceaa971dcf3c9d2bcca1aeb5",
-      "observation_commit": "469be5e7b6757d86aa65e85fd046949643e6a815",
+      "observation_commit": "b9e5fb18d25035623f5079ae0e6a849725572b05",
       "record_base": "1fc1dc11f113b995ceaa971dcf3c9d2bcca1aeb5",
-      "patched_tree": "9ca3a2eeff2135a43f8880a99dc606a2cfa74a72",
+      "patched_tree": "20872eba3d44107b712c4843a847cfd473d0448a",
       "tests": 2,
       "patch": {
         "path": "current.patch",
-        "bytes": 86977,
-        "sha256": "acd2606f4623e4db897bd417f29d1edf3ed051c628da2e906080e188b837b8e2"
+        "bytes": 87385,
+        "sha256": "f9b2835d4ff22b665a2e8967783c659c6ab13be3b3d7eb12a52fb6129454a0d0"
       },
       "sources": [
         {
@@ -159,8 +159,8 @@
         },
         {
           "path": "src/hir/validation/lexical_exit/matched_observation.rs",
-          "bytes": 19731,
-          "sha256": "6037e3eae73e3f70cf3403173c85a3d8b42dff38f99d39226c977eba96bf05a3"
+          "bytes": 20132,
+          "sha256": "98e274ca1d2026bf1fb7cfbeec1ec1d9b22096936b44af16272125bc32f936b0"
         },
         {
           "path": "src/hir/validation/lexical_exit/matched_observation_lexical_before.rs.txt",
@@ -179,7 +179,7 @@
         }
       ],
       "record_bindings": {
-        "observation_source_sha256": "6037e3eae73e3f70cf3403173c85a3d8b42dff38f99d39226c977eba96bf05a3",
+        "observation_source_sha256": "98e274ca1d2026bf1fb7cfbeec1ec1d9b22096936b44af16272125bc32f936b0",
         "source_binding_sha256": "6ebe1ca7a582db7f317f06f70bb2a0c667bccce72899b5a4550c4958918b49c3",
         "compiled_primary_source_sha256": "eb94eb5416ff01aa4cbbeeb00cb5151be862d04be2d6879a98be021ccf6dc59a",
         "compiled_storage_source_sha256": "266cf3d058566e4b0234b4af734c5b8bd72bfa34abb169675cec213cceb0202b",

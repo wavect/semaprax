@@ -1,5 +1,12 @@
 pub(super) fn compiled(source: &str) -> Option<&'static str> {
     match source {
+        "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/ordinary_labels.rs" => Some(include_str!("../../src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/ordinary_labels.rs")),
+        "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_frame_pricing.rs" => Some(include_str!("../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_frame_pricing.rs")),
+        "src/cleanup_plan/replay/selected_owner/ordinary.rs" => Some(include_str!("../../src/cleanup_plan/replay/selected_owner/ordinary.rs")),
+        "src/cleanup_plan/replay/selected_owner/ordinary/tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/selected_owner/ordinary/tests.rs")),
+        "src/cleanup_plan/replay/expression_facts/receiving/retained/last_use.rs" => Some(include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/retained/last_use.rs")),
+        "src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/before.rs" => Some(include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/before.rs")),
+        "src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/tests.rs")),
         "src/test_allocation_observer/phase_peaks.rs" => Some(include_str!("../../src/test_allocation_observer/phase_peaks.rs")),
         "src/loan_plan/paid_plan/before_reachability_release.rs" => Some(include_str!("../../src/loan_plan/paid_plan/before_reachability_release.rs")),
         "src/loan_plan/paid_plan/reachability_release_tests.rs" => Some(include_str!("../../src/loan_plan/paid_plan/reachability_release_tests.rs")),
@@ -466,6 +473,8 @@ mod tests {
             current_scope_root = current_scope_root.replacen(&packed, &expanded, 1);
         }
         for source in [
+            "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/ordinary_labels.rs",
+            "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_frame_pricing.rs", "src/cleanup_plan/replay/selected_owner/ordinary.rs", "src/cleanup_plan/replay/selected_owner/ordinary/tests.rs", "src/cleanup_plan/replay/expression_facts/receiving/retained/last_use.rs", "src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/before.rs", "src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/tests.rs",
             "src/cleanup_plan/replay/path_join/selected/receiving.rs",
             "src/cleanup_plan/replay/path_join/selected/tests/mod.rs",
             "src/cleanup_plan/replay/path_join/selected/before_frontier/finish.rs",
@@ -627,6 +636,8 @@ mod tests {
         }
         let mut current_scope_child = child.to_owned();
         for source in [
+            "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/ordinary_labels.rs",
+            "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_frame_pricing.rs", "src/cleanup_plan/replay/selected_owner/ordinary.rs", "src/cleanup_plan/replay/selected_owner/ordinary/tests.rs", "src/cleanup_plan/replay/expression_facts/receiving/retained/last_use.rs", "src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/before.rs", "src/cleanup_plan/replay/expression_facts/receiving/retained/last_use/tests.rs",
             "src/cleanup_plan/replay/path_join/selected/before_frontier/finish.rs",
             "src/cleanup_plan/replay/path_join/selected/before_frontier/mod.rs",
             "src/cleanup_plan/replay/path_join/selected/before_frontier/queries.rs",

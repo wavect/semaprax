@@ -61,7 +61,11 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
     );
     for (path, expected) in rows {
         let mut actual = std::fs::read(root.join(&path)).unwrap();
-        if matches!(path.as_str(), "src/cleanup_plan/replay/selected_owner.rs" | "src/cleanup_plan/replay/selected_owner/paid.rs") {
+        if matches!(
+            path.as_str(),
+            "src/cleanup_plan/replay/selected_owner.rs"
+                | "src/cleanup_plan/replay/selected_owner/paid.rs"
+        ) {
             // Both complete drivers share this external authentication prefix.
             // Its new funding wrapper executes the exact bound original owner
             // search; the fixed old source targets below are not repinned.
@@ -98,13 +102,40 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
             } else if path == "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/tests.rs" {
                 // Exact whole-source transport for OPT892; the complete
                 // immediate-old dependency remains the fixed 946-row target.
-                assert_eq!(actual.len(), 22805);
-                assert_eq!(digest(&actual), "6d49caf39c9627fd0dc9c9749fef1e3e91a868c2e08d8f09765831b2478c8922");
+                assert_eq!(actual.len(), 24843);
+                assert_eq!(digest(&actual), "d4757425643d96a03c1c6a05f31d7018cb5653c71a921bb736335e9102edf6f6");
                 let before = include_bytes!(concat!(
                     env!("CARGO_MANIFEST_DIR"),
                     "/e/2890943d20f5ac052889f50340039fb6c4467ff5d686334796438a5b242bdf55"
                 ));
                 assert_eq!(before.len(), 15818);
+                assert_eq!(digest(before), expected);
+                before.as_slice()
+            } else if path == "src/cleanup_plan/replay/expression_facts/receiving/retained.rs" {
+                // Bind every current physical byte before the immutable 946 target.
+                assert_eq!(actual.as_slice(), include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained.rs")).as_slice());
+                assert_eq!(actual.len(), 37215);
+                assert_eq!(digest(&actual), "24a7b0034088ef2db45d969ef4320a931e5f724b14732dfdf56073a818cd0081");
+                let before = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/912a91d979144205750367d55e7aa9b74a4b3f4a1afc8472c010cf26af2677e8"));
+                assert_eq!(before.len(), 37088);
+                assert_eq!(digest(before), expected);
+                before.as_slice()
+            } else if path == "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase.rs" {
+                // Bind every current physical byte before the immutable 946 target.
+                assert_eq!(actual.as_slice(), include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase.rs")).as_slice());
+                assert_eq!(actual.len(), 86537);
+                assert_eq!(digest(&actual), "08c7336a5435b02aed14820e57b7ec6c48ddc9b311363d09c05b3447c0ad6246");
+                let before = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/fa232cdadb3ff7ea321caa04554d8dc2c237928b976af5890f6ed555c276b1ec"));
+                assert_eq!(before.len(), 86698);
+                assert_eq!(digest(before), expected);
+                before.as_slice()
+            } else if path == "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton.rs" {
+                // Bind every current physical byte before the immutable 946 target.
+                assert_eq!(actual.as_slice(), include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton.rs")).as_slice());
+                assert_eq!(actual.len(), 55813);
+                assert_eq!(digest(&actual), "87257e50e24a64d047eff17fd2ef9de7e1ed4c1049697222223947c62b28f514");
+                let before = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/b6471558eaf00c76a99472843a9d96a58a11fe9e5779f50fdccbfc6f0011aa51"));
+                assert_eq!(before.len(), 55814);
                 assert_eq!(digest(before), expected);
                 before.as_slice()
             } else {

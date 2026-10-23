@@ -2,6 +2,7 @@
 //!
 //! Relocated verbatim from `replay.rs`, which has a recorded size ceiling; the
 //! lexical exit continuations added by cleanup plan v18 live here with the rest.
+pub(super) use super::super::super::transition::ExitFlow;
 use super::*;
 
 #[allow(
@@ -895,7 +896,7 @@ pub(super) fn finish_exit(
 }
 
 /// How one replayed exit continues the proof flow of its domain.
-pub(super) enum ExitFlow {
+pub(super) enum FrozenExitFlow {
     /// A published result or returned failure ends the path.
     Terminal,
     /// A CFG edge carries the settled state to its target block.

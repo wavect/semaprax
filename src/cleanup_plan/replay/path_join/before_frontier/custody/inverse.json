@@ -146,6 +146,17 @@
     "compiled": "src/cleanup_plan/replay/path_join/before_frontier/transition.rs",
     "before": "src/cleanup_plan/replay/path_join/before_frontier/custody/transition.rs.txt",
     "sha256": "6f90748e5cae2c16e44eedb83232fc19c33fbe6e01abf574c7efb93be47be983",
-    "inverse": []
+    "inverse": [
+      [
+        236,
+        "pub(super) use super::super::super::transition::ExitFlow;\n",
+        ""
+      ],
+      [
+        33829,
+        "pub(super) enum FrozenExitFlow {",
+        "pub(super) enum ExitFlow {"
+      ]
+    ]
   }
 ]

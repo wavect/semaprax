@@ -8,7 +8,7 @@ fn complete_immediate_old_driver_and_each_helper_restore_their_whole_preimages()
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     assert_eq!(
         digest(include_bytes!("../before_frontier/custody/inverse.json")),
-        "522a451f88422fff1f931b183d753bf121ca9e14fbbef12fd3d087c5352fb595"
+        "86a572cc73c1b4981a710e5d7fba725ef9723f62586a30c38fb2bc4b9f0fe510"
     );
     let rows: serde_json::Value =
         serde_json::from_str(include_str!("../before_frontier/custody/inverse.json")).unwrap();
@@ -86,5 +86,8 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
             "immediate-old shared dependency {path}"
         );
     }
-    assert!(std::mem::size_of::<super::Incoming<super::PathState>>() >= std::mem::size_of::<std::collections::BTreeSet<Box<super::PathState>>>>());
+    assert!(
+        std::mem::size_of::<super::Incoming<super::PathState>>()
+            >= std::mem::size_of::<std::collections::BTreeSet<Box<super::PathState>>>()
+    );
 }

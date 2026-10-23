@@ -94,7 +94,7 @@ fn bundle(current: &str) -> String {
         current,
         include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"),
         5544,
-        "11d24f97cac3095b4995eb789108f3d2f0588ec71351cf9a8f64f92a669b25b2",
+        "51c95c8f2849633d9abfd66812f57429d8ff9c72b2d9882af01179bdbd9862dc",
     );
     let receipt = include_str!("../../docs/evidence/boxed-path-states-v1/catalog-receipt.json");
     authenticate(
@@ -107,17 +107,23 @@ fn bundle(current: &str) -> String {
     let mut before = current.to_owned();
     replace(
         &mut before,
-        "sha256:232db0c55ab98a09264d0cd816d6e0c01cbf162cbfa8290138adbe14ac5c71c7",
+        "sha256:19cb70ce2a043430d6fd71b60ff203ce2cf26390ed4ca01339c8259efb7d36ed",
         "sha256:023c0d3ea1823196a2f5d44e3b10a862df939f834e98d7a164b3245af340a73c",
         1,
     );
     replace(
         &mut before,
-        "sha256:b181f78350e5b2294341e84f136d9e07abb65f4d9b74b4d89a45a3560ba7bb10",
+        "sha256:e894c9102dfb2fc1b29d48ee64265786dd18ec9491417cea9725aaac3a40d96f",
         "sha256:479c7de1c209061d5706e405ffea92358aef690d02a536dd1f9162c13c977e85",
         1,
     );
     replace(&mut before, "\"code_count\":1517", "\"code_count\":1513", 1);
+    replace(
+        &mut before,
+        "sha256:bad33c1869a184361663b0a9f4b5d46a6fb9a52433c94d66289c8456ced75b67",
+        "sha256:cb620f216f1fe93bad2c50db7e07448679497e73857a0104c499f3d22238ea3c",
+        1,
+    );
     assert_eq!(
         digest(&before),
         "bb1d335ef40cff2cf81d08ddcf0943b168d04721ee1e7de1b3d809d3b9600d2f"

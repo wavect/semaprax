@@ -1,6 +1,9 @@
 //! One source traversal, separate auxiliary and local-callee results.
 use super::super::shared_local_callees::{Context, Costs, Failure, Session};
-use super::*;
+use super::{
+    call_identity, compiler_dispatch, AuthoredDeclaration, BTreeMap, Expr, ExprKind, ModuleUseKind,
+    Names, Program, Proof, Statement,
+};
 use crate::ast::{Function, Type};
 use std::mem::size_of;
 type Error = Failure;

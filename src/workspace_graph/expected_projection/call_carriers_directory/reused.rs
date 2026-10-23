@@ -1,9 +1,19 @@
 //! Reuse immutable directory DATA while a separate callee certificate is live.
 use super::super::super::shared_local_callees::{Context, Costs, Failure};
 use super::super::joint::{self, Loan, Lookup};
-use super::*;
+use super::{
+    compiler_dispatch, size_of, AuthoredDeclaration, Directory, Function, Header,
+    ImportDeclaration, Index, InterfaceDeclaration, ModuleUse, ModuleUseKind, Program, Proof,
+    Source, SELECTOR,
+};
+#[cfg(test)]
+use super::{note, Event};
 type Error = Failure;
 
+#[allow(
+    clippy::manual_range_contains,
+    reason = "keep the explicitly invoiced scalar comparisons"
+)]
 pub(in crate::workspace_graph::expected_projection) fn count(
     context: Context<'_, '_>,
     imports: bool,

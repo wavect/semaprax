@@ -296,10 +296,7 @@ fn immediate_old_entire_caller_and_unchanged_dependencies_are_source_bound() {
         .unwrap();
     let end = whole[start..].find("\n/// Add this function").unwrap() + start;
     let independently_compiled=include_str!("before.rs").strip_prefix("//! Complete immediate-old authenticated lexical comparison caller.\nuse super::super::*;\n\n").unwrap();
-    assert_eq!(
-        independently_compiled,
-        &whole[start..end]
-    );
+    assert_eq!(independently_compiled, &whole[start..end]);
     for (source,hash) in [
   (include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors.rs")),"39412583a543bf0b2d2f3f38c11d882183d89abfef4b8ae650f827142a3d2470"),
   (include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/src/cleanup_plan/replay/factored/canonical_shared/closure_receiving.rs")),"006a2efb76b4d30c6062d0af713a7d2b4f650c01b43a6e0a3b80c11c3b986a66"),

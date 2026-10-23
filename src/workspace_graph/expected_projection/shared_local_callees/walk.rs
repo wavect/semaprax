@@ -1,5 +1,8 @@
 //! Explicit lexical scopes; unfamiliar lowerings keep the complete old charge.
-use super::*;
+use super::{
+    compiler, invoice, local, ordinary, plain, Context, Expr, ExprKind, Failure, Function, Headers,
+    Invoice, Statement, Type, MAX_FRAMES, MAX_NAMES,
+};
 
 #[derive(Clone, Copy)]
 enum Frame<'a> {

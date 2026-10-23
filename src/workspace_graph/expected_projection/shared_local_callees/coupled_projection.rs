@@ -1,7 +1,16 @@
 //! Uncached coupled census; the complete immediate-old estimate stays live.
 //! Only local-callee acquisition changes. Fixed/nominal/expression/writer and
 //! all sixteen identity copies retain their original independent equations.
-use super::*;
+use super::{
+    active_builder_limit, ast_function_contract_cost, ast_function_cost,
+    ast_function_identity_slots, ast_function_signature_cost, ast_program_cost,
+    ast_program_identity_slots, ast_type_declaration_cost, ast_type_declaration_identity_slots,
+    ast_type_identity_slots, cached_exact, call_identity, checked_builder_sum, checked_usage, cost,
+    generic_instance_source_cost, hir, import_stub, limit_error, prelude, private_layout,
+    synthetic_main_runtime_cost, type_rewrite, AuthoredDeclaration, BTreeMap, BTreeSet, Diagnostic,
+    ModuleUseKind, Program, StructuralCost, SyntheticBuilderCosts, HIR_IDENTITY_COPY_FACTOR,
+    HIR_STRING_COPY_FACTOR, HIR_STRUCTURE_EXPANSION_FACTOR,
+};
 
 pub(in crate::workspace_graph::expected_projection) fn estimate<'a>(
     program: &Program,
@@ -257,7 +266,7 @@ pub(in crate::workspace_graph::expected_projection) fn estimate<'a>(
         .checked_add(runtime.exact_expressions)
         .and_then(|count| {
             count
-                .checked_mul(super::super::super::super::HIR_FIXED_EXPANSION_FACTOR)
+                .checked_mul(super::super::super::HIR_FIXED_EXPANSION_FACTOR)
                 .and_then(|n| n.checked_mul(std::mem::size_of::<crate::ast::Expr>()))
                 .and_then(|old| prior_fixed_hir_upper.checked_sub(old))
                 .and_then(|base| {
@@ -267,15 +276,13 @@ pub(in crate::workspace_graph::expected_projection) fn estimate<'a>(
                         } else {
                             1
                         })
-                        .and_then(|n| {
-                            n.checked_mul(super::super::super::super::HIR_EXPR_FIXED_BUNDLE)
-                        })
+                        .and_then(|n| n.checked_mul(super::super::super::HIR_EXPR_FIXED_BUNDLE))
                         .and_then(|exact| base.checked_add(exact))
                 })
         })
         .unwrap_or(usize::MAX);
     #[cfg(test)]
-    super::super::super::super::forecast_observation::record_components(
+    super::super::super::forecast_observation::record_components(
         &program.path,
         layout_mode,
         retention == cached_exact::Retention::Semantic,

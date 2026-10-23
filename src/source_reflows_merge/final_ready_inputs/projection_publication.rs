@@ -43,8 +43,8 @@ pub(super) fn previous(path: &str, length: usize, sha: &str) -> Option<String> {
 // before this historical facade route, and every original phase inverse runs
 // after it. No source component is omitted from the current input.
 pub(super) fn audit_join(supplied: &str) -> Option<String> {
-    if supplied.len() != 650350
-        || digest(supplied) != "cd2bd4c1065642e6494072f54cf6e627eaf778e234d144fe42f6877544e951e5"
+    if supplied.len() != 805856
+        || digest(supplied) != "8184cb3400f5e0d5e212b25bb03718ec6a6349bb8666989f52f10346ffa63cf8"
     {
         return None;
     }
@@ -53,16 +53,27 @@ pub(super) fn audit_join(supplied: &str) -> Option<String> {
     // Literal generated from the actual owning macro, in original order.
     // Data pieces remain read-only source evidence, never compiled authority.
     const PARTS: &[(&str, &str, usize, &str)] = &[
-        ("src/workspace_graph/expected_projection.rs", include_str!("../../workspace_graph/expected_projection.rs"), 59698, "cdd35c1e31d513032b5f4943ee86efdb7cce9dd4a8b77e152b4640d2ba094ab4"),
+        ("src/workspace_graph/expected_projection.rs", include_str!("../../workspace_graph/expected_projection.rs"), 59903, "6c6e07a5bc02662dbc273eac0bb9fa2cb3f580134dd208f58212fc6f64528f5e"),
+        ("src/workspace_graph/expected_projection/shared_local_callees.rs", include_str!("../../workspace_graph/expected_projection/shared_local_callees.rs"), 11322, "d282c57cfbfbffe5f26826e574576682549dfd98c9008e1894569c6f0bb6ff95"),
+        ("src/workspace_graph/expected_projection/shared_local_callees/coupled_projection.rs", include_str!("../../workspace_graph/expected_projection/shared_local_callees/coupled_projection.rs"), 14427, "f95beb41205dc47d5707ed4f189bf04dacde802016039e6b335be04b3bf213ef"),
+        ("src/workspace_graph/expected_projection/shared_local_callees/reuse_tests.rs", include_str!("../../workspace_graph/expected_projection/shared_local_callees/reuse_tests.rs"), 24967, "7f94781ad055eb7c899706aaa1a81e6c346d63c006e8ee2f73c79987dea4ece9"),
+        ("src/workspace_graph/expected_projection/shared_local_callees/reused.rs", include_str!("../../workspace_graph/expected_projection/shared_local_callees/reused.rs"), 10317, "ed964ba39e51dfd7dbdd8c391b831260adba376c6f8dad5b035e8df36ab59fd7"),
+        ("src/workspace_graph/expected_projection/shared_local_callees/reused_controls.rs", include_str!("../../workspace_graph/expected_projection/shared_local_callees/reused_controls.rs"), 6466, "721df26a16a534acefc26db15e6b6cd73e9337048157250805e314843410661f"),
+        ("src/workspace_graph/expected_projection/shared_local_callees/before_projection.rs", include_str!("../../workspace_graph/expected_projection/shared_local_callees/before_projection.rs"), 21916, "3e0d38a5c01f87a8b05815d9831f80b2604df5e37c15d0dcbf0cf0055656e942"),
+        ("src/workspace_graph/expected_projection/shared_local_callees/controls_tests.rs", include_str!("../../workspace_graph/expected_projection/shared_local_callees/controls_tests.rs"), 12902, "9f125e910fc4635332b2f9525dc3d544f1325b922d969bb2b25c13fa254b399b"),
+        ("src/workspace_graph/expected_projection/shared_local_callees/invoice.rs", include_str!("../../workspace_graph/expected_projection/shared_local_callees/invoice.rs"), 9314, "50bfe2c1d81e5bd637a542d4254198bcd6132293c5826231fa9d08865f94643c"),
+        ("src/workspace_graph/expected_projection/shared_local_callees/tests.rs", include_str!("../../workspace_graph/expected_projection/shared_local_callees/tests.rs"), 9590, "a3079d6e5f427d20801582413905630ac9106a189bce6d49af977cf8a2133099"),
+        ("src/workspace_graph/expected_projection/shared_local_callees/walk.rs", include_str!("../../workspace_graph/expected_projection/shared_local_callees/walk.rs"), 9350, "fafdcb7e6743647fcd1ad787ea98731a159fc155e0a8d35b02541f60dd74ce17"),
         ("src/workspace_graph/expected_projection/vec_constructor.rs", include_str!("../../workspace_graph/expected_projection/vec_constructor.rs"), 13779, "4831e29cce4d39b5c263ffd3743d3cb2227ffc9c57f94e28763994cd78721e10"),
-        ("src/workspace_graph/expected_projection/held_projection.rs", include_str!("../../workspace_graph/expected_projection/held_projection.rs"), 21916, "3e0d38a5c01f87a8b05815d9831f80b2604df5e37c15d0dcbf0cf0055656e942"),
-        ("src/workspace_graph/expected_projection/call_carriers.rs", include_str!("../../workspace_graph/expected_projection/call_carriers.rs"), 12395, "d0f832f517a6037e1c3f8c7f5b1cca79af990ed2837b8c29b38903cb4baa6033"),
-        ("src/workspace_graph/expected_projection/call_carriers_tests.rs", include_str!("../../workspace_graph/expected_projection/call_carriers_tests.rs"), 23994, "04baeff68abf890ab6bfa855969786876b0b91ef59cf685f898b829e14e0c047"),
-        ("src/workspace_graph/expected_projection/call_carriers_inverse.rs", include_str!("../../workspace_graph/expected_projection/call_carriers_inverse.rs"), 4106, "5a0c22d81a09e58528af9e394df7313cb79198961b6de14a9159af360666f62f"),
+        ("src/workspace_graph/expected_projection/held_projection.rs", include_str!("../../workspace_graph/expected_projection/held_projection.rs"), 22889, "8443e4086088b9a623df9f7b7cd9755a0e69664fc4a60066bf5e8da2e6797710"),
+        ("src/workspace_graph/expected_projection/call_carriers.rs", include_str!("../../workspace_graph/expected_projection/call_carriers.rs"), 12486, "33215311b715633780ade87b45cbe28d7b19b6e6c0f9ababcf43c579836a7e6b"),
+        ("src/workspace_graph/expected_projection/call_carriers_joint.rs", include_str!("../../workspace_graph/expected_projection/call_carriers_joint.rs"), 12386, "76ccfc4bb7c5252b15864a764c221187e3e2a9c2e0e5b8c357b93faaf0c20c94"),
+        ("src/workspace_graph/expected_projection/call_carriers_tests.rs", include_str!("../../workspace_graph/expected_projection/call_carriers_tests.rs"), 25183, "d5f1f5027b904e45143b0a65d05a7027d987c69dce23392f06fb134aa66d75a9"),
+        ("src/workspace_graph/expected_projection/call_carriers_inverse.rs", include_str!("../../workspace_graph/expected_projection/call_carriers_inverse.rs"), 7145, "19b35869b9438236bc14672cd51bb11dd919de2929c3ec10b23283666a1a37b9"),
         ("src/workspace_graph/expected_projection/call_carriers_original.rs", include_str!("../../workspace_graph/expected_projection/call_carriers_original.rs"), 23564, "90f8c704f7a8eeb72cfc5318123b27febe80ce5bbba39b7b6a1952ec6e058f58"),
         ("src/workspace_graph/expected_projection/call_carriers_historical_tests.rs", include_str!("../../workspace_graph/expected_projection/call_carriers_historical_tests.rs"), 30577, "30ee9b7d27da7985809d73823ad6b2297548873c76731723659b4464c9c49170"),
         ("src/workspace_graph/expected_projection/prelude_forecast.rs", include_str!("../../workspace_graph/expected_projection/prelude_forecast.rs"), 3225, "9c1b5e17bb19fe44d33a043c157b853168d2680e02eb4dac79c3e3ba2fdd09f2"),
-        ("src/workspace_graph/expected_projection/prelude_forecast_tests.rs", include_str!("../../workspace_graph/expected_projection/prelude_forecast_tests.rs"), 12973, "1118299b35a0009ce7476507741ea9f1495b0d12191af673a852a6da7cb771af"),
+        ("src/workspace_graph/expected_projection/prelude_forecast_tests.rs", include_str!("../../workspace_graph/expected_projection/prelude_forecast_tests.rs"), 20025, "8e41b4ce5b9708f95080e19393444caf5b2a9bea5f7164bd0b78e6974e49d2da"),
         ("src/workspace_graph/expected_projection/prelude_forecast_original.rs", include_str!("../../workspace_graph/expected_projection/prelude_forecast_original.rs"), 21032, "78952cede1ba2ad17dddc43fb22a3e3c423154755721f34f3e58c6bcad62f187"),
         ("src/workspace_graph/expected_projection/held_projection_original.rs", include_str!("../../workspace_graph/expected_projection/held_projection_original.rs"), 18237, "b976530c05c01bb64e685f1ed12b36d1305032cda8560778ce0f832bcc88e6f6"),
         ("src/workspace_graph/expected_projection/borrowed_leaf.rs", include_str!("../../workspace_graph/expected_projection/borrowed_leaf.rs"), 13625, "ec70684eeead756b71ac2643a36d56af6548645621349458f217b3b7397dc1dc"),

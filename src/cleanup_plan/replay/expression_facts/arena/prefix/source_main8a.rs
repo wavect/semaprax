@@ -26,10 +26,11 @@ fn complete_original_arena_and_every_added_source_join_have_exact_full_inverses(
             record["source"].as_str().unwrap(),
             current,
         );
-        let current_main = crate::source_reflows_merge::main8a_input(
-            record["source"].as_str().unwrap(),
-            &before_885,
-        );
+        // Keep the complete original 885 proof. The current-source entry
+        // separately acquires the exact current compiled source bytes.
+        drop(before_885);
+        let current_main =
+            crate::source_reflows_merge::main8a_input(record["source"].as_str().unwrap(), current);
         let mut restored = current_main;
         for edit in record["edits"].as_array().unwrap().iter().rev() {
             let after = edit["after"].as_str().unwrap();

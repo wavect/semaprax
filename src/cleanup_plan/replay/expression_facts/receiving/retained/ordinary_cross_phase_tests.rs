@@ -85,12 +85,15 @@ fn actual_status_to_initial_edge_owner_has_full_typed_net_and_unchanged_work() {
     let current = run(&program, false, CAP, MAX_REPLAY_WORK_UNITS);
     assert_eq!(current.0, old.0);
     assert!(current.0.is_ok() && !current.1 && !old.1);
-    let s = Session::OLD_SCRATCH;
-    let r = Session::EDGE_QUERY_BYTES;
+    let s = Session::OLD_SCRATCH
+        + 2 * std::mem::size_of::<Result<Option<&Option<CallFact<'_>>>, Diagnostic>>();
+    let r = Session::into_edge_local_bytes() + Session::into_edge_query_bytes();
     assert!(s > r);
     assert_eq!(current.3, old.3, "all original work cuts remain");
     // Existing status acquisition remains fully paid; no second owner or
-    // transported continuation is formed. Both old compound Results remain.
+    // transported continuation is formed. The old whole lookup includes both
+    // compound Results; the current output/error-slot ABI pays both argument
+    // packets and its complete local receiving bank on every edge query.
     assert_eq!(old.2.checked_sub(current.2), Some(q * (s - r)));
     eprintln!("cross-phase actual status={} edge_queries={q} old={old:?} current={current:?} S={s} R={r} M_new=0 A_new=0", function.cleanup_plan.status_sources.len());
     let exact = run(&program, false, current.2, MAX_REPLAY_WORK_UNITS);

@@ -1,0 +1,109 @@
+{
+  "status": "FOCUSED_LOCAL_PASS_FULL_CI_PENDING",
+  "production_runtime_scope": "32 original and new targeted native controls on the actual type cursor and accounting implementation. Original receipt walker unchanged. Later changes affect source tests/metadata only.",
+  "source_scope": "Original complete source guards, all 32 overlay controls, 11 HIR inventory controls, projection purity, and all three prefix entries. Complete original manifest verifier and its six hostile controls also passed.",
+  "limits": "Original public 64 MiB builder limit, work/depth limits, 519 source base, 715 rows and 262144 byte page cap unchanged.",
+  "remaining": "Default graph builds of task-service, JSON decode, JSON scan and pattern still refuse with SPX-G171; additional historical receiver source guards and hosted wire KAT failures remain. No all-CI pass claimed.",
+  "logs": [
+    {
+      "log": "qualified-cursors.log",
+      "sha256": "5321feb26c03c27f5e90dca10f2c551b5d496fa0d05ed6a0ba8cb77bcc919660",
+      "results": [
+        "test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 222 filtered out; finished in 0.04s"
+      ]
+    },
+    {
+      "log": "qualified-arena-cursors.log",
+      "sha256": "02dc630c4b1b757cc66e707388af1a728a53d4e61befbe835333ee2426a008de",
+      "results": [
+        "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 231 filtered out; finished in 2.73s"
+      ]
+    },
+    {
+      "log": "qualified-return-operands.log",
+      "sha256": "11fe7d7f386b1a0b065915c1eb3bc2e127f7db5868d1638b03ffd2ddf835204a",
+      "results": [
+        "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 229 filtered out; finished in 0.03s"
+      ]
+    },
+    {
+      "log": "qualified-frozen-layout.log",
+      "sha256": "9126f2da2befa9bf09f7f4e16f68871f01583ce0dadc29c61029456ca6ed78fb",
+      "results": [
+        "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 233 filtered out; finished in 0.00s"
+      ]
+    },
+    {
+      "log": "qualified-whole-ordinary.log",
+      "sha256": "cac3197494a6cb26127d5a05ea76b9f476406db29548765bb7a8bf1e5551d607",
+      "results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 234 filtered out; finished in 2.12s"
+      ]
+    },
+    {
+      "log": "qualified-cross-phase.log",
+      "sha256": "f5921b4f2cb5d9b8ddeff87e30145efe2eb59bb8a3c9f7b69a06514eef9934ba",
+      "results": [
+        "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 233 filtered out; finished in 1.97s"
+      ]
+    },
+    {
+      "log": "qualified-exit-fallback.log",
+      "sha256": "76111503ee1714b9235777275350b427c4b6d40010b1d0c1c688ddebdf4fbb8f",
+      "results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 234 filtered out; finished in 0.01s"
+      ]
+    },
+    {
+      "log": "qualified-receipt-walk.log",
+      "sha256": "69d43faed237bf9b7e326ecda541b76c3e2e32d317a7bb57be45b8d9dcb97ea4",
+      "results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 234 filtered out; finished in 0.06s"
+      ]
+    },
+    {
+      "log": "qualified-certified-counter.log",
+      "sha256": "77d014006ecd734c2fddd0346b2e496a7f33757217a0dbb6332d058af536b356",
+      "results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 234 filtered out; finished in 2.26s"
+      ]
+    },
+    {
+      "log": "qualified-retained-frontier.log",
+      "sha256": "eb174b3a03f5b837b0c16509166879a439d2e61352cc8287be6da13372fe3845",
+      "results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 234 filtered out; finished in 0.33s"
+      ]
+    },
+    {
+      "log": "overlay-controls.log",
+      "sha256": "bd58b83ecaee006f9c7a43b86312751ed94762e23e0e124c54afede2261757d9",
+      "results": [
+        "test result: ok. 32 passed; 0 failed; 0 ignored; 0 measured; 271 filtered out; finished in 99.14s"
+      ]
+    },
+    {
+      "log": "hir-test.log",
+      "sha256": "e502b11e451162dca0d84494b60af72983788574ddfa063e28c3451a6b474af5",
+      "results": [
+        "test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 16.33s"
+      ]
+    },
+    {
+      "log": "projection-test.log",
+      "sha256": "779b2676f855e88df44378739d6ae785330f1add4c64bd47ccf9e51f759f602c",
+      "results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 338 filtered out; finished in 5.93s"
+      ]
+    },
+    {
+      "log": "final-prefix-source-controls.log",
+      "sha256": "cebe4d4c2f47fd5bb3a75ddd4281ea7886fabaa063d816d05a9bf78c11f6fa5a",
+      "results": [
+        "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 300 filtered out; finished in 4.05s"
+      ]
+    }
+  ],
+  "clippy": "Actual affected compiler/test bodies, with literal source acquisition rooted to the SSD checkout and caller line numbers preserved: Clippy metadata passed with warnings denied. No mock IR or invoice instrumentation.",
+  "ram": "Final Clippy device available minimum 2.60 GiB, no pauses needed, no process RSS cap; one compiler. Source checks stayed above 5.45 GiB. All build/temp/cache paths on external SSD."
+}

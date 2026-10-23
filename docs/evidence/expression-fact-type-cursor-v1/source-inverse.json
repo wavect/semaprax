@@ -1,0 +1,97 @@
+{
+  "before_head": "78419a6ca560928f6b948375566a1a4b887b3fef",
+  "previous_sha256": "2d4b918d10c8c6a00340c294c7f5d8d2458ffb7ab01f9c770d366a1d0efdcfca",
+  "current_sha256": "70b1f6c41f811ca7a0a8f44a8abc87568119c00e945c58a0b97c0d9e73691cee",
+  "inverse": [
+    {
+      "begin": 1266,
+      "end": 1267,
+      "current": "F",
+      "previous": "Cu"
+    },
+    {
+      "begin": 1268,
+      "end": 1271,
+      "current": "ame",
+      "previous": "sor"
+    },
+    {
+      "begin": 1278,
+      "end": 1278,
+      "current": "",
+      "previous": "["
+    },
+    {
+      "begin": 1312,
+      "end": 1317,
+      "current": "\ntype",
+      "previous": ""
+    },
+    {
+      "begin": 1318,
+      "end": 1353,
+      "current": "TypeCursor<'a> = Vec<TypeFrame<'a>>",
+      "previous": "514]"
+    },
+    {
+      "begin": 1539,
+      "end": 2236,
+      "current": "\n    // Positive banks for the new selector and cold growth ABI. The original\n    // cursor/header and payload charges never pay for these receiving packets.\n    const TYPE_SELECTOR: usize = 2 * size_of::<(&mut Self, usize)>()\n        + 2 * size_of::<Result<(), Failure>>()\n        + 4 * size_of::<usize>()\n        + 2 * size_of::<bool>()\n        + 2 * size_of::<&TypeCursor<'_>>();\n    const TYPE_GROW_CALL: usize = 2 * size_of::<(&mut Self, usize)>()\n        + 4 * size_of::<Result<(), Failure>>()\n        + size_of::<[usize; 8]>()\n        + 4 * size_of::<bool>()\n        + 2 * size_of::<&mut TypeCursor<'_>>()\n        + 2 * size_of::<TypeCursor<'_>>()\n        + 2 * size_of::<TypeFrame<'_>>();\n",
+      "previous": ""
+    },
+    {
+      "begin": 2805,
+      "end": 2810,
+      "current": "Vec::",
+      "previous": "[No"
+    },
+    {
+      "begin": 2812,
+      "end": 2815,
+      "current": "w()",
+      "previous": "; 514]"
+    },
+    {
+      "begin": 3541,
+      "end": 4969,
+      "current": "\n    // The same owner retains this cursor; each replacement is paid while the\n    // previous allocation remains live. Reuse still authenticates sticky refusal.\n    fn grow_types(&mut self, needed: usize) -> Result<(), Failure> {\n        self.reserve(0)?;\n        if needed > 514 {\n            return Err(Failure {\n                detail: \"expression-fact type depth exceeds limit\",\n                physical: false,\n            });\n        }\n        if needed <= self.types.len() {\n            return Ok(());\n        }\n        let target = self\n            .types\n            .len()\n            .max(1)\n            .saturating_mul(2)\n            .min(514)\n            .max(needed);\n        self.arena_work(target)?;\n        self.reserve(2 * size_of::<TypeCursor<'_>>() + size_of::<TypeFrame<'_>>())?;\n        self.array::<TypeFrame<'_>>(target)?;\n        let mut replacement = Vec::new();\n        replacement.try_reserve_exact(target).map_err(|_| Failure {\n            detail: \"physical expression-fact cursor allocation refused\",\n            physical: true,\n        })?;\n        if replacement.capacity() != target {\n            return Err(Failure {\n                detail: \"physical expression-fact cursor capacity differs\",\n                physical: true,\n            });\n        }\n        replacement.append(&mut self.types);\n        replacement.resize(target, None);\n        self.types = replacement;\n        Ok(())\n    }\n",
+      "previous": ""
+    },
+    {
+      "begin": 5041,
+      "end": 5212,
+      "current": "\n        self.reserve(Self::TYPE_SELECTOR)?;\n        if self.types.is_empty() {\n            self.reserve(Self::TYPE_GROW_CALL)?;\n            self.grow_types(1)?;\n        }",
+      "previous": ""
+    },
+    {
+      "begin": 7705,
+      "end": 7708,
+      "current": "514",
+      "previous": "self.types.len()"
+    },
+    {
+      "begin": 7891,
+      "end": 8110,
+      "current": ";\n                }\n                self.reserve(Self::TYPE_SELECTOR)?;\n                if len == self.types.len() {\n                    self.reserve(Self::TYPE_GROW_CALL)?;\n                    self.grow_types(len + 1)?",
+      "previous": ""
+    },
+    {
+      "begin": 15983,
+      "end": 15988,
+      "current": "Vec::",
+      "previous": "[No"
+    },
+    {
+      "begin": 15990,
+      "end": 15993,
+      "current": "w()",
+      "previous": "; 514]"
+    },
+    {
+      "begin": 19192,
+      "end": 19351,
+      "current": "\n#[cfg(test)]\n#[path = \"capacity/before_types.rs\"]\nmod before_types;\n\n#[cfg(test)]\n#[path = \"capacity/type_cursor_tests.rs\"]\npub(super) mod type_cursor_tests;\n",
+      "previous": ""
+    }
+  ]
+}

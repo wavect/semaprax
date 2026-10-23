@@ -55,3 +55,6 @@ docs/evidence/core-proof-prelude-forecast-correction-4ec/historical-owning-selec
 # Extensionless content-addressed source images retain their exact pinned bytes.
 e/** -text
 docs/evidence/w/** -text
+
+# Frozen operator receiver keeps its exact historical source bytes.
+docs/evidence/operator-refusal-799/src__source_verify__iterative__operators.rs.before -text

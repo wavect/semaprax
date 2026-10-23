@@ -104,9 +104,32 @@ fn admitted_operator_results_and_lazy_owned_call_joins_match_full_saved_receiver
     assert_eq!(current, old);
 }
 
-#[test]
-fn complete_original_operator_source_is_preserved_by_exact_named_inverse() {
-    let mut original = include_str!("../iterative/operators/before_799.rs").to_owned();
+fn restore_original_operator_source(current: &str) -> String {
+    use sha2::{Digest as _, Sha256};
+    // Authenticate the complete compiled control before undoing its later
+    // verifier lifetime and rustfmt adaptations. The historical image stays exact.
+    assert_eq!(
+        &Sha256::digest(current.as_bytes())[..],
+        &[
+            0xf2, 0x05, 0x91, 0x09, 0xd4, 0x08, 0xa2, 0x5c, 0x03, 0x69, 0xe1, 0x44, 0x33, 0xf4,
+            0x8a, 0xac, 0x63, 0xd9, 0xfa, 0x54, 0xa4, 0xe9, 0x26, 0xf7, 0x98, 0x58, 0x84, 0x0a,
+            0xd8, 0x6d, 0x79, 0xdb
+        ]
+    );
+    let mut original = current
+        .replace(
+            "impl<'a, 'v, 'p> IterativeVerifier<'a, 'v, 'p> {",
+            "impl<'a, 'p> IterativeVerifier<'a, 'p> {",
+        )
+        .replace("use crate::source_verify::IterativeVerifier;\n", "")
+        .replace(
+            "use crate::diagnostic::Diagnostic;\n",
+            "use crate::diagnostic::Diagnostic;\nuse crate::source_verify::IterativeVerifier;\n",
+        )
+        .replace(
+            "        self.before_799_finish_if_values(\n            expression,\n            then_branch,\n            else_branch,\n            then_value,\n            else_value,\n        );",
+            "        self.before_799_finish_if_values(expression, then_branch, else_branch, then_value, else_value);",
+        );
     original = original
         .replace("                condition_admitted: true,\n", "")
         .replace("            condition_admitted: true,\n", "");
@@ -126,5 +149,23 @@ fn complete_original_operator_source_is_preserved_by_exact_named_inverse() {
             "self.before_799_finish_if_values(",
             "self.finish_if_values(",
         );
+    original
+}
+
+#[test]
+fn complete_original_operator_source_is_preserved_by_exact_named_inverse() {
+    let original =
+        restore_original_operator_source(include_str!("../iterative/operators/before_799.rs"));
     assert_eq!(original, include_str!("../../../docs/evidence/operator-refusal-799/src__source_verify__iterative__operators.rs.before"));
+}
+
+#[test]
+fn operator_source_inverse_refuses_truncation_and_one_byte_drift() {
+    let current = include_str!("../iterative/operators/before_799.rs");
+    let truncated = &current[..current.len() - 1];
+    let drifted = current.replacen("Unary, binary", "Unary; binary", 1);
+    assert_ne!(drifted, current);
+    for foreign in [truncated, drifted.as_str()] {
+        assert!(std::panic::catch_unwind(|| restore_original_operator_source(foreign)).is_err());
+    }
 }

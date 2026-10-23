@@ -1351,3 +1351,13 @@ fn frozen_membership_keeps_the_complete_old_comparison_fee_after_early_mismatch(
     });
     assert!(!overflow && refusal.is_none());
 }
+
+#[test]
+fn empty_frozen_lookup_receiving_slots_have_the_exact_pointer_layout() {
+    // This is the actual owned field type initialized by Directory::new,
+    // independently constraining return-operand constructor expectations.
+    assert_eq!(
+        std::mem::size_of::<Option<Box<super::FrozenStatusIndex>>>(),
+        std::mem::size_of::<usize>()
+    );
+}

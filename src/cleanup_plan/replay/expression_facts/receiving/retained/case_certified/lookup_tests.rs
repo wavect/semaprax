@@ -114,7 +114,20 @@ fn retained_first_frontier_has_no_new_owner_before_original_row_guard() {
     let selection = current.find("retained_lookup::SELECT_BYTES").unwrap();
     let acquire = current.find("retained_lookup::complete_rows(").unwrap();
     assert!(guard < receive && receive < selection && selection < acquire);
-    let closed = include_str!("retained_lookup.rs");
+    let closed_current = include_str!("retained_lookup.rs");
+    // Preserve the entire original returning-ABI guard on its registered whole
+    // image; independently bind the current output/error-slot continuation.
+    let closed = crate::source_reflows_merge::main_e177_final_inputs::value_direct(
+        "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/retained_lookup.rs",
+        "4444834e368473fb3a213c900280cd7777a93fc64c423f88ca9ffe3985199e3d",
+        closed_current,
+    );
+    assert!(closed_current
+        .contains("session.fact_into(&source.id.expression, &mut received, &mut failure)"));
+    assert!(closed_current.contains("Session::into_query_bytes()"));
+    assert!(closed_current.contains("Failure::acquisition_bytes()"));
+    assert!(closed_current.contains("prefix_owner.insert(function, &source.id, budget)?"));
+    assert!(closed_current.contains("retained status fact receiving assignment"));
     for forbidden in [
         "with_limit(",
         "with_limit_usage(",
@@ -124,6 +137,10 @@ fn retained_first_frontier_has_no_new_owner_before_original_row_guard() {
         "RefCell",
         "guard_bank",
     ] {
+        assert!(
+            !closed_current.contains(forbidden),
+            "current closed continuation cannot admit {forbidden}"
+        );
         assert!(
             !closed.contains(forbidden),
             "closed continuation cannot admit {forbidden}"

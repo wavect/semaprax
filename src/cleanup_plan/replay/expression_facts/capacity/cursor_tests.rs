@@ -1,3 +1,7 @@
+#![allow(
+    clippy::duplicate_mod,
+    reason = "Current and complete immediate-before owners independently compile the original cursor tests."
+)]
 use super::*;
 use crate::test_allocation_observer::measure;
 

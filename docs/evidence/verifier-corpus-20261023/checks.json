@@ -1,0 +1,20 @@
+{
+  "before_head": "6f14ee2b4d0a57d1189762dad89178b80198ff66",
+  "source_boundaries": "PASS: original unchanged verifier, both complete source domains and six original hostile controls",
+  "small_native": "PASS: full source inverse, truncation/one-byte refusals, actual typed pinned diagnostic construction",
+  "full_verifier": "PASS: 31 original/new verifier corpus and operator799 tests; all selected source files exactly match repository bytes",
+  "scoped_clippy": "PASS: actual all-feature cfg(test) compiler metadata; only preexisting private registration-harness unused macro and items-after-test exceptions, no repository lint exceptions",
+  "whole_graph_default_64MiB": "UNRESOLVED",
+  "diagnostic_observation": "PRIVATE ONLY; equality assertions logged rather than failed; not test qualification",
+  "source_overlay": "PASS: 32 hostile/positive overlay controls, two whole predecessor and two current entries; no source-reader bounds changed",
+  "ram": {
+    "native_minimum_available_device_GiB": 2.62,
+    "clippy_minimum_available_device_GiB": 2.05,
+    "clippy_device_ram_pauses": 1,
+    "process_rss_cap": null
+  },
+  "hir_source_boundaries": "PASS: 11 original tests and scoped Clippy",
+  "projection_source_boundary": "PASS: original complete purity gate",
+  "documentation": "PASS: all three original metadata/catalog, archived-source and local-link controls",
+  "windows_checkout_filter": "PASS: real Git core.autocrlf=true rewrites 600 historical lines before the narrow attribute; exact original bytes after it. No Windows runtime claim."
+}

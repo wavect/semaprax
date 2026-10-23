@@ -250,6 +250,7 @@ fn complete_original_producers_receivers_and_full_arena_dispatch_are_source_lock
         include_str!("../../../../../docs/evidence/expression-fact-arena/original_receivers.txt");
     const CURRENT: &str = include_str!("../../expression_facts.rs");
     const CAPACITY: &str = include_str!("../capacity.rs");
+    let capacity_before_types = capacity::type_cursor_tests::immediate_before(CAPACITY);
     const SAVED: &str = include_str!("../saved.rs");
     const REPLAY: &str = include_str!("../../../replay.rs");
     const PRODUCER: &str = include_str!("../arena/producer.rs");
@@ -280,7 +281,7 @@ fn complete_original_producers_receivers_and_full_arena_dispatch_are_source_lock
             "complete original receiving clause changed"
         );
     }
-    assert!(CAPACITY.starts_with(OLD_CAPACITY.trim_end().strip_suffix('}').unwrap()));
+    assert!(capacity_before_types.starts_with(OLD_CAPACITY.trim_end().strip_suffix('}').unwrap()));
     let old_dispatch = item(OLD, "fn collect_expression_facts<'a");
     let old_match = old_dispatch
         .split("let fact = match &current.kind {")

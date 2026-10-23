@@ -141,7 +141,8 @@ fn complete_original_capacity_entry_and_producer_are_byte_bound() {
         sha(arena_old),
         "836f873c4a23a62dcb52eb1768b08f36581c7212c1b047cd06561791961dfb4b"
     );
-    let capacity_now = include_str!("../capacity.rs");
+    let capacity_now =
+        capacity::type_cursor_tests::immediate_before(include_str!("../capacity.rs"));
     assert!(capacity_now.starts_with(capacity_old));
     let owner_start = capacity_now.find("/// One funded function owns").unwrap();
     let owner_end = capacity_now

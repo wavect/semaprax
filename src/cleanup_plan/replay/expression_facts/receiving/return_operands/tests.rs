@@ -19,6 +19,13 @@ fn function(program: &ResolvedProgram) -> &ResolvedFunction {
     );
     function
 }
+// Directory::new initializes both receiving slots for its optional frozen
+// lookup. Option<Box<T>> has the documented one-pointer null niche; the owning
+// directory test pins that actual FrozenStatusIndex layout independently.
+fn directory_receivers() -> usize {
+    2 * std::mem::size_of::<usize>()
+}
+
 fn controls() -> usize {
     std::mem::size_of::<(
         ReturnOperands<'static, 'static>,
@@ -50,10 +57,13 @@ fn exact_one_short_zero_bytes_and_work_pay_actual_controls_and_first_node_throug
     assert_eq!(facts.exits.len(), 1);
     let key = &facts.exits[0].value.unwrap().id;
     let setup = f.id.as_str().len() + 512;
-    let bytes = setup + controls() + Directory::<&ExpressionId>::node_layout_bytes();
-    // 14 control initializers, one fact visit, one relocation slot, one node
+    let bytes = setup
+        + controls()
+        + directory_receivers()
+        + Directory::<&ExpressionId>::node_layout_bytes();
+    // 14 control initializers, one directory setup, one fact visit, one relocation slot, one node
     // initialization (the existing directory's VISIT_UNITS = 3).
-    let work = 14 + 1 + 1 + 3;
+    let work = 14 + 1 + 1 + 1 + 3;
     for allowance in [bytes, bytes - 1, 0] {
         let (((), observed), refused, used, first) = with_limit_usage_refusal(allowance, || {
             measure(|| {
@@ -232,12 +242,14 @@ fn empty_and_duplicate_absolute_frontiers_follow_actual_control_node_and_compari
         let expected_bytes = f.id.as_str().len()
             + 512
             + controls()
+            + directory_receivers()
             + if count == 0 {
                 0
             } else {
                 Directory::<&ExpressionId>::node_layout_bytes()
             };
         let expected_work = 14
+            + 1
             + count
             + if count == 0 { 0 } else { 1 + 3 }
             + if count == 2 { key_bytes + 1 + 3 } else { 0 };

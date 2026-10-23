@@ -1,6 +1,8 @@
 use super::*;
 use std::path::Path;
 
+mod operator_refusals;
+
 fn source_diagnostics(source: &str) -> Vec<Diagnostic> {
     let program = crate::parse(source, Path::new("borrowed-bytes-call-source-v1.spx"))
         .expect("fixture parses");
@@ -268,7 +270,16 @@ fn compare_scalar_receivers(source: &str, intentional: bool) {
         &mut iterative_diagnostics,
     );
     let actual = iterative.run(expression).unwrap();
-    if source == GENERIC_OPERATOR_REFUSAL_SOURCE {
+    let operator_refusal = operator_refusals::expected(source);
+    if let Some((original_type, _)) = &operator_refusal {
+        let original = CheckedValue::value(original_type.clone());
+        assert_eq!(
+            oracle.as_ref().map(|value| (&value.ty, value.mode, value.native_unit)),
+            Some((&original.ty, original.mode, original.native_unit)),
+            "the complete recursive receiver retains its original result: {source}"
+        );
+        assert!(actual.is_none(), "a refused operator must publish no checked type: {source}");
+    } else if source == GENERIC_OPERATOR_REFUSAL_SOURCE {
         let original = CheckedValue::value(Type::I64);
         assert_eq!(
             oracle.as_ref().map(|value| (&value.ty, value.mode, value.native_unit)),
@@ -308,6 +319,10 @@ fn compare_scalar_receivers(source: &str, intentional: bool) {
             diagnostics_key(&oracle_diagnostics),
             diagnostics_key(&iterative_diagnostics)
         );
+        if let Some((_, expected)) = operator_refusal {
+            assert_eq!(oracle_diagnostics, expected, "complete original diagnostics: {source}");
+            assert_eq!(iterative_diagnostics, expected, "complete current diagnostics: {source}");
+        }
         if source == GENERIC_OPERATOR_REFUSAL_SOURCE {
             let expression = "first(1,true)+identity(false)";
             let start = source.find(expression).unwrap();

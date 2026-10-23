@@ -26,10 +26,16 @@ fn complete_original_arena_and_every_added_source_join_have_exact_full_inverses(
             record["source"].as_str().unwrap(),
             current,
         );
-        let current_main = crate::source_reflows_merge::maina3_input(
-            record["source"].as_str().unwrap(),
-            &before_885,
-        );
+        // Keep the complete original 885 proof. The current-source entry
+        // separately acquires the exact current compiled source bytes.
+        drop(before_885);
+        let source = record["source"].as_str().unwrap();
+        let current_main = if source == "src/cleanup_plan/replay/expression_facts/arena.rs" {
+            // This source belongs to the original Previous16c input capsule.
+            crate::source_reflows_merge::maina3_previous(source, current)
+        } else {
+            crate::source_reflows_merge::maina3_input(source, current)
+        };
         let mut restored = current_main;
         for edit in record["edits"].as_array().unwrap().iter().rev() {
             let after = edit["after"].as_str().unwrap();

@@ -474,7 +474,12 @@ fn exit_status_full_receivers_keep_exact_short_zero_work_bytes_and_tree_fallback
         costs.push((work, bytes));
     }
     assert_eq!(costs[1].0, costs[0].0 + BORROW_UNITS);
-    assert_eq!(costs[1].1, costs[0].1 + BORROW_BYTES);
+    // The selector runs once before borrowing and again in the complete tree
+    // fallback. Its full receiving bank remains paid in addition to the loan.
+    assert_eq!(
+        costs[1].1,
+        costs[0].1 + BORROW_BYTES + helpers::EXIT_SELECTOR_BYTES
+    );
 }
 
 #[test]

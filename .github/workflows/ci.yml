@@ -1581,6 +1581,8 @@ jobs:
         run: cargo fetch --locked
       - name: Fetch the standalone owned-data Rust setup dependency closure
         run: cargo fetch --locked --manifest-path examples/owned-data-rust/Cargo.toml
+      - name: Fetch the frozen registry SDK dependency closure
+        run: python3 scripts/ci-fetch-registry-sdk.py
       - name: Require nested generic-owned relay and forwarding on every internal backend
         if: runner.os == 'Linux'
         env:
@@ -1894,6 +1896,8 @@ jobs:
         run: cargo fetch --locked
       - name: Fetch the standalone owned-data Rust setup dependency closure
         run: cargo fetch --locked --manifest-path examples/owned-data-rust/Cargo.toml
+      - name: Fetch the frozen registry SDK dependency closure
+        run: python3 scripts/ci-fetch-registry-sdk.py
       - run: cargo fmt --all --check
       - shell: bash
         run: |
@@ -2087,6 +2091,8 @@ jobs:
         run: cargo fetch --locked
       - name: Fetch the standalone owned-data Rust setup dependency closure
         run: cargo fetch --locked --manifest-path examples/owned-data-rust/Cargo.toml
+      - name: Fetch the frozen registry SDK dependency closure
+        run: python3 scripts/ci-fetch-registry-sdk.py
       - name: Fetch standalone lockfile-check dependencies
         shell: bash
         run: |

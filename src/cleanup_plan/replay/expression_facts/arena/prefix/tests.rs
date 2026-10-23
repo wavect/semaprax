@@ -281,6 +281,56 @@ fn full_initialized_lookup_and_comparison_carriers_are_paid_exact_short_zero_and
     }
 }
 
+// Authenticate the live source before selecting this original inverse's entry stage.
+// The 885 proof runs independently; its restored bytes are not current-root input.
+fn prefix_inverse_entry(
+    caller: &'static str,
+    included: &'static str,
+    current: &'static str,
+) -> String {
+    let source = included
+        .strip_prefix(env!("CARGO_MANIFEST_DIR"))
+        .unwrap()
+        .strip_prefix('/')
+        .unwrap();
+    let _ = super::super::retained::tests::before_885_source(source, current);
+    let expected = match source {
+        "tests/hir_module_boundaries.rs" => {
+            "055a8f7ddd8b9f5b2d12122154de053a0a6823b75c298580cd4770628c4e8851"
+        }
+        "src/cleanup_plan/replay/live_oracle/source_custody/b.rs" => {
+            "4d534b5433078d8d65ec9f09c7f763614a177cd743aa02465de64c023e509173"
+        }
+        "src/cleanup_plan/replay/expression_facts/arena.rs" => {
+            use sha2::{Digest, Sha256};
+            let stage = super::super::retained::tests::before_885_ci(caller, included, current);
+            assert_eq!(
+                format!(
+                    "{:x}",
+                    crate::digest_hex::LowerHex(Sha256::digest(stage.as_bytes()))
+                ),
+                "680eb344e1bf236550eb3ae7725a981fe19898a52192635905771863c01a6d23"
+            );
+            let registration = "\n#[cfg(test)]\n#[path = \"arena/cursor_tests.rs\"]\nmod cursor_tests;\n#[cfg(test)]\n#[path = \"arena/producer_before_cursor.rs\"]\nmod producer_before_cursor;\n\n#[cfg(test)]\n#[path = \"arena/before_cursor.rs\"]\nmod before_cursor;\n";
+            assert_eq!(stage.matches(registration).count(), 1);
+            let restored = stage.replace(registration, "").replace(
+                "capacity::ArenaCapacity::new(function, payer)",
+                "capacity::FactCapacity::with_payer(function, payer)",
+            );
+            assert_eq!(
+                restored,
+                include_str!(concat!(
+                    env!("CARGO_MANIFEST_DIR"),
+                    "/docs/evidence/expression-fact-arena-cursor-v1/arena.before.rs.txt"
+                ))
+            );
+            return restored;
+        }
+        _ => panic!("foreign prefix inverse source"),
+    };
+    crate::source_reflows_merge::main_e177_final_inputs::value_direct(source, expected, current)
+}
+
 #[test]
 fn complete_original_arena_and_every_added_source_join_have_exact_full_inverses() {
     use sha2::{Digest, Sha256};
@@ -290,9 +340,9 @@ fn complete_original_arena_and_every_added_source_join_have_exact_full_inverses(
     )))
     .unwrap();
     let sources = [
-        (super::super::retained::tests::before_885_ci(file!(), concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/arena.rs"), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/arena.rs"))), ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/prefix-certified-expression-lookup/arena.rs.before.txt")), "94e056acbccb322afa35d42ba81af4672725b036bb4cf730c9495a8bbbb44d17"),
-        (super::super::retained::tests::before_885_ci(file!(), concat!(env!("CARGO_MANIFEST_DIR"), "/tests/hir_module_boundaries.rs"), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/hir_module_boundaries.rs"))), ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/prefix-certified-expression-lookup/hir_module_boundaries.rs.before.txt")), "57db1e409226dc2ddf5c9519071ad69822e646d6f71d11cfd16e88d51ad8c4fc"),
-        (super::super::retained::tests::before_885_ci(file!(), concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/live_oracle/source_custody/b.rs"), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/live_oracle/source_custody/b.rs"))), ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/prefix-certified-expression-lookup/source_custody_b.rs.before.txt")), "ead6bb549f1bd85d904eecbf182f14103639489320ec8ad09f0d29232f2fe90b"),
+        (prefix_inverse_entry(file!(), concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/arena.rs"), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/arena.rs"))), ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/prefix-certified-expression-lookup/arena.rs.before.txt")), "94e056acbccb322afa35d42ba81af4672725b036bb4cf730c9495a8bbbb44d17"),
+        (prefix_inverse_entry(file!(), concat!(env!("CARGO_MANIFEST_DIR"), "/tests/hir_module_boundaries.rs"), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/hir_module_boundaries.rs"))), ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/prefix-certified-expression-lookup/hir_module_boundaries.rs.before.txt")), "57db1e409226dc2ddf5c9519071ad69822e646d6f71d11cfd16e88d51ad8c4fc"),
+        (prefix_inverse_entry(file!(), concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/live_oracle/source_custody/b.rs"), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/live_oracle/source_custody/b.rs"))), ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/prefix-certified-expression-lookup/source_custody_b.rs.before.txt")), "ead6bb549f1bd85d904eecbf182f14103639489320ec8ad09f0d29232f2fe90b"),
     ];
     assert_eq!(sources.len(), records.as_array().unwrap().len());
     for ((current, original, fixed), record) in sources.into_iter().zip(records.as_array().unwrap())

@@ -1306,7 +1306,7 @@ macro_rules! lower_source_inventory {
             concat!(include_str!("../../../../../src/cleanup_plan/replay/expression_facts/arena.rs"), include_str!("../../../../../src/cleanup_plan/replay/expression_facts/arena/prefix/retained_before.rs"), concat!(include_str!("../../../../../src/cleanup_plan/replay/expression_facts/arena/retained.rs"),include_str!("../../../../../src/cleanup_plan/replay/expression_facts/arena/retained_into.rs"),include_str!("../../../../../src/cleanup_plan/replay/expression_facts/arena/retained/into_tests.rs")), include_str!("../../../../../src/cleanup_plan/replay/expression_facts/arena/retained/tests.rs"), include_str!("../../../../../src/cleanup_plan/replay/expression_facts/arena/prefix.rs")),
             include_str!("../../../../../src/cleanup_plan/replay/expression_facts/borrowed/tests.rs"),
             include_str!("../../../../../src/cleanup_plan/replay/expression_facts/borrowed.rs"),
-            include_str!("../../../../../src/cleanup_plan/replay/expression_facts/capacity.rs"),
+            include_str!("../../../../../src/cleanup_plan/replay/expression_facts/capacity.rs"), include_str!("../../../../../src/cleanup_plan/replay/expression_facts/capacity/before_types.rs"),
             include_str!("../../../../../src/cleanup_plan/replay/expression_facts/errors.rs"),
             audit_source_join!(include_str!("../../../../../src/cleanup_plan/replay/expression_facts/receiving.rs"),
             include_str!("../../../../../src/cleanup_plan/replay/expression_facts/receiving/retained.rs"),

@@ -1,0 +1,21 @@
+{
+  "scope": "Source-only prefix regression correction: current-root entry APIs receive raw compiled bytes, all original885 proof calls and complete source inverse/hash assertions remain. The A3 arena selects the existing Previous16c namespace, whose immutable target is the exact required prefix predecessor.",
+  "changes": [
+    {
+      "source": "src/cleanup_plan/replay/expression_facts/arena/prefix/source_main8a.rs",
+      "before_sha256": "a3dac64d77644219430c4d10ca0a785928214e314960d93b0ebf3220b516800c",
+      "finite_member": false,
+      "before_archive": "docs/evidence/expression-fact-type-cursor-v1/source_main8a.before.txt",
+      "current_sha256": "6df87f3f10aef5c58bcc74aacf7cd518edb0fb4356a02cc37b7d28b8da93050e",
+      "original_885_proof_still_executed": true
+    },
+    {
+      "source": "src/cleanup_plan/replay/expression_facts/arena/prefix/source_maina3.rs",
+      "before_sha256": "88b77d4757d1ce99d04e13e7ff2bac6565f58b038b124e05c0fee069eb4073fe",
+      "finite_member": false,
+      "before_archive": "docs/evidence/expression-fact-type-cursor-v1/source_maina3.before.txt",
+      "current_sha256": "b46a313db7810eb365df0168b0fdb1d079ebbfbf9037422e5002700d12a49211",
+      "original_885_proof_still_executed": true
+    }
+  ]
+}

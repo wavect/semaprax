@@ -48,6 +48,10 @@ spans and duplicate parameter names cannot substitute another binding/type.
   original primary diagnostic fields remain exact. The inference corpus's
   original `first(1,true)+identity(false)` fixture additionally pins all six
   fields of its unchanged `SPX-T208` while requiring no current checked type.
+  The scalar corpus binds nine further exact malformed sources to their old
+  synthesized result and current refusal, while independently pinning every
+  diagnostic field and preserving the original binding comparisons. A refused
+  `if` branch join (`SPX-T211`) likewise publishes no checked result.
 - A missing local read or alias of a completed refused initializer adds no
   repeated `SPX-T202`. Other names retain their independent errors.
 - `SPX-O104` is judged only when the real body type matched the declared result,

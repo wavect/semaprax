@@ -39,7 +39,8 @@ impl Payer<'_> {
         }
     }
 }
-type TypeCursor<'a> = [Option<(&'a ResolvedType, usize)>; 514];
+type TypeFrame<'a> = Option<(&'a ResolvedType, usize)>;
+type TypeCursor<'a> = Vec<TypeFrame<'a>>;
 pub(super) struct FactCapacity<'a, 'p> {
     _function: &'a ResolvedFunction,
     physical: Payer<'p>,
@@ -47,6 +48,21 @@ pub(super) struct FactCapacity<'a, 'p> {
     work: usize,
 }
 impl<'a, 'p> FactCapacity<'a, 'p> {
+    // Positive banks for the new selector and cold growth ABI. The original
+    // cursor/header and payload charges never pay for these receiving packets.
+    const TYPE_SELECTOR: usize = 2 * size_of::<(&mut Self, usize)>()
+        + 2 * size_of::<Result<(), Failure>>()
+        + 4 * size_of::<usize>()
+        + 2 * size_of::<bool>()
+        + 2 * size_of::<&TypeCursor<'_>>();
+    const TYPE_GROW_CALL: usize = 2 * size_of::<(&mut Self, usize)>()
+        + 4 * size_of::<Result<(), Failure>>()
+        + size_of::<[usize; 8]>()
+        + 4 * size_of::<bool>()
+        + 2 * size_of::<&mut TypeCursor<'_>>()
+        + 2 * size_of::<TypeCursor<'_>>()
+        + 2 * size_of::<TypeFrame<'_>>();
+
     pub(super) fn with_payer(
         function: &'a ResolvedFunction,
         mut physical: Payer<'p>,
@@ -61,7 +77,7 @@ impl<'a, 'p> FactCapacity<'a, 'p> {
         Ok(Self {
             _function: function,
             physical,
-            types: [None; 514],
+            types: Vec::new(),
             work: MAX_REPLAY_WORK_UNITS,
         })
     }
@@ -81,7 +97,52 @@ impl<'a, 'p> FactCapacity<'a, 'p> {
             physical: true,
         })
     }
+
+    // The same owner retains this cursor; each replacement is paid while the
+    // previous allocation remains live. Reuse still authenticates sticky refusal.
+    fn grow_types(&mut self, needed: usize) -> Result<(), Failure> {
+        self.reserve(0)?;
+        if needed > 514 {
+            return Err(Failure {
+                detail: "expression-fact type depth exceeds limit",
+                physical: false,
+            });
+        }
+        if needed <= self.types.len() {
+            return Ok(());
+        }
+        let target = self
+            .types
+            .len()
+            .max(1)
+            .saturating_mul(2)
+            .min(514)
+            .max(needed);
+        self.arena_work(target)?;
+        self.reserve(2 * size_of::<TypeCursor<'_>>() + size_of::<TypeFrame<'_>>())?;
+        self.array::<TypeFrame<'_>>(target)?;
+        let mut replacement = Vec::new();
+        replacement.try_reserve_exact(target).map_err(|_| Failure {
+            detail: "physical expression-fact cursor allocation refused",
+            physical: true,
+        })?;
+        if replacement.capacity() != target {
+            return Err(Failure {
+                detail: "physical expression-fact cursor capacity differs",
+                physical: true,
+            });
+        }
+        replacement.append(&mut self.types);
+        replacement.resize(target, None);
+        self.types = replacement;
+        Ok(())
+    }
     fn types(&mut self, root: &'a ResolvedType) -> Result<(), Failure> {
+        self.reserve(Self::TYPE_SELECTOR)?;
+        if self.types.is_empty() {
+            self.reserve(Self::TYPE_GROW_CALL)?;
+            self.grow_types(1)?;
+        }
         self.types[0] = Some((root, 0));
         let mut len = 1;
         while len != 0 {
@@ -140,11 +201,16 @@ impl<'a, 'p> FactCapacity<'a, 'p> {
                 _ => None,
             };
             if let Some(child) = child {
-                if len == self.types.len() {
+                if len == 514 {
                     return Err(Failure {
                         detail: "expression-fact type depth exceeds limit",
                         physical: false,
                     });
+                }
+                self.reserve(Self::TYPE_SELECTOR)?;
+                if len == self.types.len() {
+                    self.reserve(Self::TYPE_GROW_CALL)?;
+                    self.grow_types(len + 1)?;
                 }
                 self.types[len - 1] = Some((ty, next + 1));
                 self.types[len] = Some((child, 0));
@@ -334,7 +400,7 @@ impl<'a, 'p> ArenaCapacity<'a, 'p> {
             base: FactCapacity {
                 _function: function,
                 physical,
-                types: [None; 514],
+                types: Vec::new(),
                 work: MAX_REPLAY_WORK_UNITS,
             },
             frames: Vec::new(),
@@ -432,3 +498,11 @@ impl<'a, 'p> ArenaCapacity<'a, 'p> {
 #[cfg(test)]
 #[path = "capacity/cursor_tests.rs"]
 mod cursor_tests;
+
+#[cfg(test)]
+#[path = "capacity/before_types.rs"]
+mod before_types;
+
+#[cfg(test)]
+#[path = "capacity/type_cursor_tests.rs"]
+pub(super) mod type_cursor_tests;

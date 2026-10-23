@@ -79,7 +79,12 @@ fn certified_while_counter_preserves_complete_before_fields_work_and_receiving_d
             "all six error fields and exact counters at every physical cut"
         );
     }
-    let saved = include_str!("counter_before.rs")
+    let acquired = crate::source_reflows_merge::main_e177_final_inputs::value_direct(
+        "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/counter_before.rs",
+        "5b405e3e106b8b81bf653bb292b4e62f4363837b7264fbaa2829569cea3e5e37",
+        include_str!("counter_before.rs"),
+    );
+    let saved = acquired
         .replacen("use super::super::{", "use super::{", 1)
         .replacen(
             "super::super::super::super::super::validate_status_sources",

@@ -1,0 +1,9 @@
+{
+  "path": "docs/evidence/operator-refusal-799/src__source_verify__iterative__operators.rs.before",
+  "git_configuration": "core.autocrlf=true",
+  "original_sha256": "ec4715b548d41361e7798adfa3c5fd64cb8a105fe4a963422852cc1547a86174",
+  "before_exact": false,
+  "before_crlf": 600,
+  "after_exact": true,
+  "scope": "Real Git checkout-filter bytes under Windows autocrlf configuration; not Windows runtime execution"
+}

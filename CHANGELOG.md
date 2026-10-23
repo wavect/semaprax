@@ -1,3 +1,20 @@
+## Offline registry SDK setup repair (2026-10-23)
+
+- Fetch the frozen RI-06 Url SDK dependency closure during CI setup, before its locked offline build. Preserve the generated package manifest, historical lockfile and physical owner/view checks.
+
+## Compiler cursor and source-entry accounting repairs (2026-10-23)
+
+- Grow each function's type cursor only as needed, preserving the 514-slot depth limit, existing work account, exact allocation checks and sticky refusal. Charge new selector and growth receivers independently.
+- Preserve complete predecessor cursor code and historical source guards; authenticate the whole current source before applying its exact inverse.
+- Include the directory's frozen-lookup receiving slots and setup work in exact return-operand regressions, with an independent owning-type layout check.
+- Keep the original 885 source proof while passing current bytes to current-root prefix entry APIs; select the existing Previous16c input domain for the A3 arena fixture.
+
+## Verifier refusal corpus and historical operator control (2026-10-23)
+
+- Preserve the recursive oracle's original results for nine exact malformed scalar fixtures while requiring current refusal and independently pinned complete diagnostics.
+- Authenticate the complete saved operator receiver before reversing its later verifier lifetime and formatting adaptations; retain the exact historical image and reject truncated or drifted source.
+- Preserve the frozen operator image byte for byte under Windows Git checkout; reproduce and reject the original CRLF conversion with real Git filters.
+
 ## Tokio I/O safety dependency repair (2026-10-23)
 
 - Pin both public and full-host `new` help shapes in the standalone CLI integration regression, matching the existing qualified help contract.

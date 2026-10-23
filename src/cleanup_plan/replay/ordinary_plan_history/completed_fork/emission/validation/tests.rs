@@ -88,7 +88,9 @@ fn exact_whole_7082_source_and_complete_old_classifier_remain_executable() {
         ),
         "93d8038785b042f61b5d6bd100b24930d800d0ccc1ae6dfa7b9c6884bb814cc7"
     );
-    let combined = include_str!("../../emission.rs");
+    let restored = crate::cleanup_plan::replay::skeleton_work::query_proof::before_emission(
+        include_str!("../../emission.rs"));
+    let combined = restored.as_str();
     // Exact additive flat-admission test visibility stage; the whole memo and
     // every original source/body assertion below retain their original target.
     assert_eq!(

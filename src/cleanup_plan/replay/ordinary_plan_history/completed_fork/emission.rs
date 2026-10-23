@@ -68,6 +68,7 @@ const VALIDATE: usize = 2 * size_of::<(&Observations, &mut SkeletonWork<'static,
 // Inspect real node kinds, never a representation marker or shared identity.
 // Each borrowed traversal slot/backing is paid before publication. No recursive
 // traversal, observation copy, target scan or reusable classification authority.
+#[allow(dead_code, reason = "complete immediate-old sequence classifier stays independently executable")]
 pub(in crate::cleanup_plan::replay) fn sequence_only(
     observations: &Observations,
     work: &mut SkeletonWork<'_, '_>,
@@ -359,8 +360,8 @@ macro_rules! extend_call_current {
                 $work.budget.reserve_bytes($work.function,
                     $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::CALL_BRIDGE,
                     "shared call argument bridge receivers")?;
-                if $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::sequence_only(&$target, $work)?
-                    && $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::sequence_only(&$suffix.observations, $work)? {
+                if $crate::cleanup_plan::replay::skeleton_work::query_proof::sequence!(&$target, $work)?
+                    && $crate::cleanup_plan::replay::skeleton_work::query_proof::sequence!(&$suffix.observations, $work)? {
                     $work.charge(1, "call suffix clone")?;
                     $crate::cleanup_plan::replay::note_skeleton_materialization();
                     $work.budget.reserve_bytes($work.function,
@@ -453,3 +454,13 @@ pub(in crate::cleanup_plan::replay) fn with_before<T>(operation: impl FnOnce() -
 }
 
 mod validation;
+
+#[cfg(test)]
+pub(in crate::cleanup_plan::replay) fn shared_query_inputs_for_test(
+    prefixes: &[ExprSkeletonPath], suffixes: &[ExprSkeletonPath],
+    work: &mut SkeletonWork<'_, '_>,
+) -> Result<bool, Diagnostic> {
+    work.budget.reserve_bytes(work.function, validation::CALL,
+        "test complete sequence validation caller")?;
+    validation::inputs(prefixes, suffixes, work)
+}

@@ -77,6 +77,30 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
                 assert_eq!(before.len(), 13592);
                 assert_eq!(digest(before), expected);
                 before.as_slice()
+            } else if path == "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission.rs" {
+                // Exact whole-source transport for OPT892; the complete
+                // immediate-old dependency remains the fixed 946-row target.
+                assert_eq!(actual.len(), 10932);
+                assert_eq!(digest(&actual), "792be2624414510de96336103ccc964f39ff7c474581aa90521be539b8e21d2d");
+                let before = include_bytes!(concat!(
+                    env!("CARGO_MANIFEST_DIR"),
+                    "/e/4392abffc59dee7596e750e1523f0e2b0f4c23a5f35c67caa475de5785c4f568"
+                ));
+                assert_eq!(before.len(), 7942);
+                assert_eq!(digest(before), expected);
+                before.as_slice()
+            } else if path == "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/tests.rs" {
+                // Exact whole-source transport for OPT892; the complete
+                // immediate-old dependency remains the fixed 946-row target.
+                assert_eq!(actual.len(), 22805);
+                assert_eq!(digest(&actual), "6d49caf39c9627fd0dc9c9749fef1e3e91a868c2e08d8f09765831b2478c8922");
+                let before = include_bytes!(concat!(
+                    env!("CARGO_MANIFEST_DIR"),
+                    "/e/2890943d20f5ac052889f50340039fb6c4467ff5d686334796438a5b242bdf55"
+                ));
+                assert_eq!(before.len(), 15818);
+                assert_eq!(digest(before), expected);
+                before.as_slice()
             } else {
                 actual.as_slice()
             };

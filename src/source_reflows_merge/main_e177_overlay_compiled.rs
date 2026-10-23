@@ -138,6 +138,7 @@ mod tests {
             current_scope_root = current_scope_root.replacen(&declaration, "", 1);
         }
         for source in [
+            "src/cleanup_plan/replay/expression_facts/capacity/before_types.rs", "src/cleanup_plan/replay/expression_facts/capacity/cursor_tests.rs", "src/cleanup_plan/replay/expression_facts/capacity/type_cursor_tests.rs", "src/source_verify/constructor_tests/corpus/operator_refusals.rs", "src/cleanup_plan/replay/path_join/direct_one_before.rs", "src/cleanup_plan/replay/path_join/direct_one_before/boxed_flow.rs", "src/cleanup_plan/replay/path_join/direct_one_before/frontier.rs", "src/cleanup_plan/replay/path_join/direct_one_tests.rs",
             "src/cleanup_plan/replay/skeleton_work/query_proof.rs", "src/cleanup_plan/replay/skeleton_work/query_proof/before.rs", "src/cleanup_plan/replay/skeleton_work/query_proof/tests.rs", "src/bounded_output/exclusive_debits/path_census.rs", "src/bounded_output/request_reservation.rs", "src/source_reflows_merge/main_e177_overlay_lookup.rs",
             "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/hir_last_use.rs", "src/cleanup_plan/replay/factored/hir_memo_release_tests.rs", "src/cleanup_plan/replay/path_join/shared_insertions_before.rs", "src/cleanup_plan/replay/path_join/shared_insertions_before/boxed_flow.rs", "src/cleanup_plan/replay/path_join/shared_insertions_before/boxed_states.rs", "src/cleanup_plan/replay/path_join/shared_insertions_before/frontier.rs", "src/cleanup_plan/replay/path_join/shared_insertions_tests.rs", "src/cleanup_plan/replay/plan_prefix.rs", "src/cleanup_plan/replay/plan_prefix/before.rs", "src/cleanup_plan/replay/plan_prefix/tests.rs", "src/cleanup_plan/replay/skeleton_work/plan_prefix.rs",
             "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/ordinary_receiving_tests.rs", "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/ordinary_receiving_before.rs", "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/ordinary_receiving_before.rs", "src/cleanup_plan/replay/path_join/held_edge_before.rs", "src/cleanup_plan/replay/path_join/held_edge_tests.rs",
@@ -310,6 +311,7 @@ mod tests {
         assert_eq!(current_scope_child.matches(packed_separator).count(), 24);
         current_scope_child = current_scope_child.replace(packed_separator, ")),\n        \"src/");
         for source in [
+            "src/cleanup_plan/replay/expression_facts/capacity/before_types.rs", "src/cleanup_plan/replay/expression_facts/capacity/cursor_tests.rs", "src/cleanup_plan/replay/expression_facts/capacity/type_cursor_tests.rs", "src/source_verify/constructor_tests/corpus/operator_refusals.rs", "src/cleanup_plan/replay/path_join/direct_one_before.rs", "src/cleanup_plan/replay/path_join/direct_one_before/boxed_flow.rs", "src/cleanup_plan/replay/path_join/direct_one_before/frontier.rs", "src/cleanup_plan/replay/path_join/direct_one_tests.rs",
             "src/cleanup_plan/replay/skeleton_work/query_proof.rs", "src/cleanup_plan/replay/skeleton_work/query_proof/before.rs", "src/cleanup_plan/replay/skeleton_work/query_proof/tests.rs", "src/bounded_output/exclusive_debits/path_census.rs", "src/bounded_output/request_reservation.rs", "src/source_reflows_merge/main_e177_overlay_lookup.rs",
             "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/hir_last_use.rs", "src/cleanup_plan/replay/factored/hir_memo_release_tests.rs", "src/cleanup_plan/replay/path_join/shared_insertions_before.rs", "src/cleanup_plan/replay/path_join/shared_insertions_before/boxed_flow.rs", "src/cleanup_plan/replay/path_join/shared_insertions_before/boxed_states.rs", "src/cleanup_plan/replay/path_join/shared_insertions_before/frontier.rs", "src/cleanup_plan/replay/path_join/shared_insertions_tests.rs", "src/cleanup_plan/replay/plan_prefix.rs", "src/cleanup_plan/replay/plan_prefix/before.rs", "src/cleanup_plan/replay/plan_prefix/tests.rs", "src/cleanup_plan/replay/skeleton_work/plan_prefix.rs",
             "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/ordinary_receiving_tests.rs", "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/ordinary_receiving_before.rs", "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact/ordinary_receiving_before.rs", "src/cleanup_plan/replay/path_join/held_edge_before.rs", "src/cleanup_plan/replay/path_join/held_edge_tests.rs",
@@ -1229,7 +1231,14 @@ del _load_fixed_codecs
 "####;
     const SCOPE_REPLACEMENTS_AFTER: &str = r####"        for source in ["src/cleanup_plan/replay/branch_clone/inline_tests.rs", "src/cleanup_plan/replay/branch_clone/production_capacity.rs", "src/cleanup_plan/replay/branch_clone/production_capacity/tests.rs", "src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs", "src/workspace_graph/shape_identity/source_controls.rs", "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs"] {
 "####;
+    const MAIN_C907_KEYS: &[&str] = &["src/cleanup_plan/replay/expression_facts/capacity/before_types.rs","src/cleanup_plan/replay/expression_facts/capacity/cursor_tests.rs","src/cleanup_plan/replay/expression_facts/capacity/type_cursor_tests.rs","src/source_verify/constructor_tests/corpus/operator_refusals.rs","src/cleanup_plan/replay/path_join/direct_one_before.rs","src/cleanup_plan/replay/path_join/direct_one_before/boxed_flow.rs","src/cleanup_plan/replay/path_join/direct_one_before/frontier.rs","src/cleanup_plan/replay/path_join/direct_one_tests.rs"];
+    const MAIN_C907_SCOPE_LINE: &str = r####"            "src/cleanup_plan/replay/expression_facts/capacity/before_types.rs", "src/cleanup_plan/replay/expression_facts/capacity/cursor_tests.rs", "src/cleanup_plan/replay/expression_facts/capacity/type_cursor_tests.rs", "src/source_verify/constructor_tests/corpus/operator_refusals.rs", "src/cleanup_plan/replay/path_join/direct_one_before.rs", "src/cleanup_plan/replay/path_join/direct_one_before/boxed_flow.rs", "src/cleanup_plan/replay/path_join/direct_one_before/frontier.rs", "src/cleanup_plan/replay/path_join/direct_one_tests.rs",
+"####;
+    const MAIN_C907_REPLACEMENT_LINES: &[&str] = &["            \"src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/counter_tests.rs\",\n","            \"src/cleanup_plan/replay/expression_facts/arena/prefix/tests.rs\",\n"];
     const PY_SCOPE_INSERTIONS: &[&str] = &[
+        ",_REPLAY+'expression_facts/capacity/before_types.rs',_REPLAY+'expression_facts/capacity/cursor_tests.rs',_REPLAY+'expression_facts/capacity/type_cursor_tests.rs','src/source_verify/constructor_tests/corpus/operator_refusals.rs',_REPLAY+'path_join/direct_one_before.rs',_REPLAY+'path_join/direct_one_before/boxed_flow.rs',_REPLAY+'path_join/direct_one_before/frontier.rs',_REPLAY+'path_join/direct_one_tests.rs'",
+        "_REPLAY+'expression_facts/arena/prefix/tests.rs',",
+        "_REPLAY+'expression_facts/receiving/retained/case_certified/counter_tests.rs',",
         "'src/workspace_graph/shape_identity/source_controls.rs',",
         "'crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs',",
         ",_REPLAY+'skeleton_work/query_proof.rs',_REPLAY+'skeleton_work/query_proof/before.rs',_REPLAY+'skeleton_work/query_proof/tests.rs','src/bounded_output/exclusive_debits/path_census.rs','src/bounded_output/request_reservation.rs',_REFLOWS+'main_e177_overlay_lookup.rs'",
@@ -1257,6 +1266,17 @@ del _load_fixed_codecs
     }
     pub(super) fn parent_before(parent: &str, lookup: &str) -> String {
         let mut restored = parent_for_current_scope(parent, lookup);
+        for key in MAIN_C907_KEYS {
+            let arm = format!("        {key:?} => Some(include_str!(\"../../{key}\")),\n");
+            assert_eq!(restored.matches(&arm).count(), 1);
+            restored = restored.replacen(&arm, "", 1);
+        }
+        assert_eq!(restored.matches(MAIN_C907_SCOPE_LINE).count(), 2);
+        restored = restored.replace(MAIN_C907_SCOPE_LINE, "");
+        for inserted in MAIN_C907_REPLACEMENT_LINES {
+            assert_eq!(restored.matches(inserted).count(), 1);
+            restored = restored.replacen(inserted, "", 1);
+        }
         assert_eq!(BEFORE.len(), 176187);
         assert_eq!(digest(BEFORE), "8dacf765e1d67f7b25d368dc740c80c9987af7155fd9a54c99bd3258a275b8db");
         for key in KEYS {

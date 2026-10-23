@@ -64,7 +64,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: macos-cli-diagnostic-${{ github.ref }}${{ inputs.opt_batch && '-opt-batch' || '' }}${{ inputs.installed_bundle && '-installed-bundle' || '' }}
+  group: macos-cli-diagnostic-${{ github.ref }}${{ inputs.opt_batch && format('-opt-batch-{0}', inputs.opt_batch_selection) || '' }}${{ inputs.installed_bundle && '-installed-bundle' || '' }}
   cancel-in-progress: false
 jobs:
   installed-bundle:

@@ -475,81 +475,117 @@
     ]
   },
   "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests/receiving.rs": {
-    "length": 12916,
-    "sha256": "7fd5bf0961d3cede1a747ea6f4dc80f7598d547c012c3394a5539d9690794515",
+    "length": 22841,
+    "sha256": "65861b445085c1ca7bd04663bc3d35c5d1fbe0597581467117d4693697f7a3b8",
     "before_length": 11316,
     "before_sha256": "ab2c1f29a0442e3784a885811ec6b8babb037d21c22471487b4728e6f46674b4",
     "edits": [
       {
-        "start": 345,
-        "end": 458,
-        "current": "#[derive(Clone, Copy)]\nenum Driver {\n    BeforeReceiving,\n    ImmediateReceiving,\n    Current,\n}\n\nfn run_driver(\n",
+        "start": 214,
+        "end": 275,
+        "current": "use crate::bounded_output::classifier_string::StorageParent;\n",
+        "before": ""
+      },
+      {
+        "start": 406,
+        "end": 544,
+        "current": "#[derive(Clone, Copy)]\nenum Driver {\n    BeforeReceiving,\n    ImmediateReceiving,\n    TransitionReceiving,\n    Current,\n}\n\nfn run_driver(\n",
         "before": "fn run(\n"
       },
       {
-        "start": 489,
-        "end": 509,
+        "start": 575,
+        "end": 595,
         "current": "    driver: Driver,\n",
         "before": "    old: bool,\n"
       },
       {
-        "start": 977,
-        "end": 1084,
+        "start": 1063,
+        "end": 1170,
         "current": "            match driver {\n                Driver::BeforeReceiving => ordinary_receiving::with_before(|| {\n",
         "before": "            if old {\n                ordinary_receiving::with_before(|| {\n"
       },
       {
-        "start": 1161,
-        "end": 1259,
+        "start": 1247,
+        "end": 1345,
         "current": "                        program, function, &mut budget, Some(&helpers), Some(&mut continuations),\n",
         "before": "                        program,\n                        function,\n                        &mut budget,\n                        Some(&helpers),\n                        Some(&mut continuations),\n"
       },
       {
-        "start": 1281,
-        "end": 1763,
-        "current": "                })?,\n                Driver::ImmediateReceiving =>\n                    super::super::super::ordinary_block_before::validate_structure_with_budget_storage(\n                        program, function, &mut budget, Some(&helpers), Some(&mut continuations),\n                    )?,\n                Driver::Current => validate_structure_with_budget_storage(\n                    program, function, &mut budget, Some(&helpers), Some(&mut continuations),\n                )?,\n",
+        "start": 1367,
+        "end": 2125,
+        "current": "                })?,\n                Driver::ImmediateReceiving =>\n                    super::super::super::ordinary_block_before::validate_structure_with_budget_storage(\n                        program, function, &mut budget, Some(&helpers), Some(&mut continuations),\n                    )?,\n                Driver::TransitionReceiving =>\n                    super::super::super::before_structure_release::validate_structure_with_budget_storage(\n                        program, function, &mut budget, Some(&helpers), Some(&mut continuations),\n                    )?,\n                Driver::Current => validate_structure_with_budget_storage(\n                    program, function, &mut budget, Some(&helpers), Some(&mut continuations),\n                )?,\n",
         "before": "                })?;\n            } else {\n                validate_structure_with_budget_storage(\n                    program,\n                    function,\n                    &mut budget,\n                    Some(&helpers),\n                    Some(&mut continuations),\n                )?;\n"
       },
       {
-        "start": 1809,
-        "end": 2092,
-        "current": "}\n\nfn run(\n    program: &ResolvedProgram,\n    old: bool,\n    limit: usize,\n) -> (Result<(), Diagnostic>, bool, usize) {\n    run_driver(\n        program,\n        if old {\n            Driver::BeforeReceiving\n        } else {\n            Driver::Current\n        },\n        limit,\n    )\n",
+        "start": 2174,
+        "end": 2457,
+        "current": "fn run(\n    program: &ResolvedProgram,\n    old: bool,\n    limit: usize,\n) -> (Result<(), Diagnostic>, bool, usize) {\n    run_driver(\n        program,\n        if old {\n            Driver::BeforeReceiving\n        } else {\n            Driver::Current\n        },\n        limit,\n    )\n}\n\n",
         "before": ""
       },
       {
-        "start": 2489,
-        "end": 2813,
+        "start": 2546,
+        "end": 2587,
+        "current": "    complete_receiving_parent_sources();\n",
+        "before": ""
+      },
+      {
+        "start": 2892,
+        "end": 3216,
         "current": "        // The complete immediate #892 image remains compiled independently.\n        // Later transition retention (#889) and early scratch release (#903)\n        // have their own real fees, so cannot enter the #892-only equation.\n        let immediate = run_driver(&program, Driver::ImmediateReceiving, 64 * 1024 * 1024);\n",
         "before": "        let current = run(&program, false, 64 * 1024 * 1024);\n"
       },
       {
-        "start": 2869,
-        "end": 3255,
-        "current": "        let current = run(&program, false, 64 * 1024 * 1024);\n        ordinary_receiving::take_census();\n        assert_eq!(immediate.0, old.0); // complete six-field diagnostics\n        assert!(immediate.0.is_ok() && !immediate.1,\n            \"rows={rows} immediate_error={:?} immediate_refused={} immediate_paid={}\",\n            immediate.0.as_ref().err(), immediate.1, immediate.2);\n",
+        "start": 3272,
+        "end": 4023,
+        "current": "        // Independently compiled complete transition receiver, before #903's\n        // scratch release; this arm actually owns the incoming transition ABI.\n        let transition = run_driver(&program, Driver::TransitionReceiving, 64 * 1024 * 1024);\n        let transition_census = ordinary_receiving::take_census();\n        let current = run(&program, false, 64 * 1024 * 1024);\n        ordinary_receiving::take_census();\n        assert_eq!(immediate.0, old.0); // complete six-field diagnostics\n        assert!(\n            immediate.0.is_ok() && !immediate.1,\n            \"rows={rows} immediate_error={:?} immediate_refused={} immediate_paid={}\",\n            immediate.0.as_ref().err(),\n            immediate.1,\n            immediate.2\n        );\n",
         "before": ""
       },
       {
-        "start": 4433,
-        "end": 4482,
+        "start": 5201,
+        "end": 5250,
         "current": "            old.2 as i128 - immediate.2 as i128,\n",
         "before": "            old.2 as i128 - current.2 as i128,\n"
       },
       {
-        "start": 4504,
-        "end": 4610,
-        "current": "            \"complete immediate same-source byte equation must include every new owner and reached query\"\n",
+        "start": 5272,
+        "end": 8796,
+        "current": "            \"complete immediate same-source byte equation must include every new owner and reached query\"\n        );\n        assert_eq!(transition.0, old.0); // complete Result and all six error fields\n        assert!(\n            transition.0.is_ok() && !transition.1,\n            \"rows={rows} transition_error={:?} transition_refused={} transition_paid={}\",\n            transition.0.as_ref().err(),\n            transition.1,\n            transition.2\n        );\n        assert!(!transition_census.incomplete);\n        assert!(transition_census.reached[0] > 0);\n        if transition_census.reached[1] > 0 {\n            assert!(transition_census.reached[2] > 0);\n        }\n        // The retained owner now continues into the transition receiver. Count\n        // those genuine HIR queries and callback guards independently rather\n        // than pricing every edge/transition query as the earlier edge ABI.\n        let mut transition_queries = 0usize;\n        let mut transition_callbacks = 0usize;\n        let mut transition_owners = 0usize;\n        for function in &program.functions {\n            if function.cleanup_plan.status_sources.len() >= retained_lookup::MIN_ROWS {\n                let (queries, callbacks) = receiving_transition_counts(function);\n                transition_queries += queries;\n                transition_callbacks += callbacks;\n                transition_owners += 1;\n            }\n        }\n        assert_eq!(transition_owners, transition_census.reached[1]);\n        assert!(transition_queries <= transition_census.reached[3]);\n        let initial_edge_queries = transition_census.reached[3] - transition_queries;\n        let callback_packet = std::mem::size_of::<usize>()\n            + 3 * std::mem::size_of::<&str>()\n            + std::mem::size_of::<bool>();\n        let transition_expected = transition_census.reached[0] as i128\n            * (old_setup_invoice() as i128 - skeleton_work::receiving::acquisition_bytes() as i128)\n            + transition_census.reached[2] as i128\n                * (2 * std::mem::size_of::<Result<Option<&Option<CallFact<'_>>>, Diagnostic>>()\n                    as i128\n                    - Session::added_status_query_bytes() as i128)\n            + initial_edge_queries as i128\n                * (2 * std::mem::size_of::<Result<Option<&Option<CallFact<'_>>>, Diagnostic>>()\n                    as i128\n                    - Session::added_edge_query_bytes() as i128)\n            + transition_queries as i128\n                * ((Session::OLD_SCRATCH\n                    + 2 * std::mem::size_of::<Result<Option<&Option<CallFact<'_>>>, Diagnostic>>())\n                    as i128\n                    - (Session::into_edge_local_bytes()\n                        + Session::into_edge_query_bytes()\n                        + std::mem::size_of::<Option<&Option<CallFact<'_>>>>())\n                        as i128)\n            - transition_callbacks as i128\n                * (StorageParent::CURRENT_CONTROLS + callback_packet) as i128\n            - transition_owners as i128\n                * (StorageParent::ACQUISITION_CONTROLS\n                    + StorageParent::TERMINAL_CONTROLS\n                    + callback_packet) as i128\n            - transition_census.reached[1] as i128\n                * ordinary_receiving::Failure::acquisition_bytes() as i128;\n        assert_eq!(\n            old.2 as i128 - transition.2 as i128,\n            transition_expected,\n            \"complete transition receiver equation must include every new owner and reached query\"\n",
         "before": "            \"complete same-source byte equation must include every new owner and reached query\"\n"
       },
       {
-        "start": 4640,
-        "end": 4857,
-        "current": "            \"ordinary receiving rows={rows} old={} immediate={} current={} census={census:?} immediate_delta={expected} composed_delta={}\",\n            old.2, immediate.2, current.2, old.2 as i128 - current.2 as i128\n",
+        "start": 8826,
+        "end": 9565,
+        "current": "            \"ordinary transition rows={rows} old={} transition={} census={transition_census:?} delta={transition_expected}\",\n            old.2, transition.2\n        );\n        assert!(\n            run_driver(&program, Driver::TransitionReceiving, transition.2)\n                .0\n                .is_ok()\n        );\n        for limit in [0, transition.2 - 1] {\n            let short = run_driver(&program, Driver::TransitionReceiving, limit);\n            assert!(short.0.is_err() && short.1);\n        }\n        eprintln!(\n            \"ordinary receiving rows={rows} old={} immediate={} current={} census={census:?} immediate_delta={expected} composed_delta={}\",\n            old.2, immediate.2, current.2, old.2 as i128 - current.2 as i128\n",
         "before": "            \"ordinary receiving rows={rows} old={} current={} census={census:?} delta={expected}\",\n            old.2, current.2\n"
       },
       {
-        "start": 5224,
-        "end": 5555,
-        "current": "        }\n        assert!(\n            run_driver(&program, Driver::ImmediateReceiving, immediate.2)\n                .0\n                .is_ok()\n        );\n        for limit in [0, immediate.2 - 1] {\n            let short = run_driver(&program, Driver::ImmediateReceiving, limit);\n            assert!(short.0.is_err() && short.1);\n",
+        "start": 9942,
+        "end": 10273,
+        "current": "        assert!(\n            run_driver(&program, Driver::ImmediateReceiving, immediate.2)\n                .0\n                .is_ok()\n        );\n        for limit in [0, immediate.2 - 1] {\n            let short = run_driver(&program, Driver::ImmediateReceiving, limit);\n            assert!(short.0.is_err() && short.1);\n        }\n",
+        "before": ""
+      },
+      {
+        "start": 10488,
+        "end": 11219,
+        "current": "        for driver in [\n            Driver::ImmediateReceiving,\n            Driver::TransitionReceiving,\n            Driver::Current,\n        ] {\n            let ((ok, heap), refused, _) =\n                crate::bounded_output::with_limit_usage(64 * 1024 * 1024, || {\n                    crate::test_allocation_observer::measure(|| {\n                        let result = run_driver(&program, driver, 64 * 1024 * 1024);\n                        let ok = result.0.is_ok();\n                        drop(result);\n                        ok\n                    })\n                });\n            assert!(ok && !refused);\n            assert!(!heap.invalid && heap.live == 0);\n            assert_eq!(heap.allocated, heap.freed);\n        }\n",
+        "before": "        let ((ok, heap), refused, _) =\n            crate::bounded_output::with_limit_usage(64 * 1024 * 1024, || {\n                crate::test_allocation_observer::measure(|| {\n                    let result = run(&program, false, 64 * 1024 * 1024);\n                    let ok = result.0.is_ok();\n                    drop(result);\n                    ok\n                })\n            });\n        assert!(ok && !refused);\n        assert!(!heap.invalid && heap.live == 0);\n        assert_eq!(heap.allocated, heap.freed);\n"
+      },
+      {
+        "start": 12328,
+        "end": 12625,
+        "current": "        for driver in [Driver::ImmediateReceiving, Driver::TransitionReceiving] {\n            let counterpart = run_driver(&program, driver, 64 * 1024 * 1024);\n            assert!(counterpart.0.is_err());\n            assert_eq!(counterpart.0, old.0); // all six fields, same first error\n        }\n",
+        "before": ""
+      },
+      {
+        "start": 13684,
+        "end": 14690,
+        "current": "    for driver in [Driver::ImmediateReceiving, Driver::TransitionReceiving] {\n        let mut counterpart_budget = ReplayBudget::unobserved();\n        let counterpart = match driver {\n            Driver::ImmediateReceiving =>\n                super::super::super::ordinary_block_before::validate_structure_with_budget_storage(\n                    &program, function, &mut counterpart_budget, Some(&index), None,\n                ),\n            Driver::TransitionReceiving =>\n                super::super::super::before_structure_release::validate_structure_with_budget_storage(\n                    &program, function, &mut counterpart_budget, Some(&index), None,\n                ),\n            _ => unreachable!(),\n        };\n        assert_eq!(counterpart, old); // complete first diagnostic\n        assert_eq!(counterpart_budget.remaining, old_budget.remaining);\n        let census = ordinary_receiving::take_census();\n        assert_eq!(census.reached, [0; 4]);\n        assert!(!census.incomplete);\n    }\n",
+        "before": ""
+      },
+      {
+        "start": 19139,
+        "end": 22841,
+        "current": "\n// Same structural census as the independent transition ABI regression.\nfn receiving_transition_counts(function: &ResolvedFunction) -> (usize, usize) {\n    let mut lookups = 0;\n    let mut callbacks = 0;\n    for block in &function.cleanup_plan.blocks {\n        for transition in &block.transitions {\n            match transition {\n                CleanupTransition::Initialize { .. }\n                | CleanupTransition::Transfer { .. }\n                | CleanupTransition::TransferVariant { .. }\n                | CleanupTransition::InitializeVariant { .. } => lookups += 1,\n                CleanupTransition::ReserveRenewal { .. }\n                | CleanupTransition::Renew { .. }\n                | CleanupTransition::AuthenticateVariantCase { .. }\n                | CleanupTransition::CallCommit { .. } => {\n                    lookups += 1;\n                    callbacks += 1;\n                }\n                CleanupTransition::StageCopyResult {\n                    source:\n                        StagedCopyResultSource::TryResidual { .. }\n                        | StagedCopyResultSource::TryOptionNone { .. },\n                    ..\n                } => lookups += 2,\n                _ => {}\n            }\n        }\n    }\n    (lookups, callbacks)\n}\n\n// Complete literal source custody for both independently preserved merge parents.\nfn complete_receiving_parent_sources() {\n    use sha2::{Digest, Sha256};\n    let hash = |bytes: &[u8]| format!(\"{:x}\", crate::digest_hex::LowerHex(Sha256::digest(bytes)));\n    let root = std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\"));\n    let path = \"src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests/receiving.rs\";\n    let raw = std::fs::read(root.join(path)).unwrap();\n    assert_eq!(raw.as_slice(), include_bytes!(\"receiving.rs\").as_slice());\n    let encoded = include_bytes!(\"receiving_predecessors.json\");\n    assert_eq!(std::fs::read(root.join(\"src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests/receiving_predecessors.json\")).unwrap().as_slice(), encoded.as_slice());\n    let packet: serde_json::Value = serde_json::from_slice(encoded).unwrap();\n    assert_eq!(packet[\"current_length\"].as_u64().unwrap() as usize, raw.len());\n    assert_eq!(packet[\"current_sha256\"].as_str().unwrap(), hash(&raw));\n    let rows = packet[\"parents\"].as_array().unwrap();\n    assert_eq!(rows.len(), 2);\n    let fixed = [\n        (\"8caff6ada4d0b65bb0875ab49a874797e9f653d4\", 12916usize, \"7fd5bf0961d3cede1a747ea6f4dc80f7598d547c012c3394a5539d9690794515\"),\n        (\"c90764eebdf0d1db8a35742c39b8831530de1966\", 14483usize, \"fcd3a360eaf7681316cc2432e0165729766a29ea18ce80424cef798cfc421e38\"),\n    ];\n    for (row, (head, length, digest)) in rows.iter().zip(fixed) {\n        assert_eq!(row[\"head\"].as_str().unwrap(), head);\n        assert_eq!(row[\"before_length\"].as_u64().unwrap() as usize, length);\n        assert_eq!(row[\"before_sha256\"].as_str().unwrap(), digest);\n        let mut restored = raw.clone();\n        for change in row[\"edits\"].as_array().unwrap().iter().rev() {\n            let start = change[\"start\"].as_u64().unwrap() as usize;\n            let end = change[\"end\"].as_u64().unwrap() as usize;\n            assert_eq!(&restored[start..end], change[\"current\"].as_str().unwrap().as_bytes());\n            drop(restored.splice(start..end, change[\"before\"].as_str().unwrap().bytes()));\n        }\n        let expected = row[\"full_before\"].as_str().unwrap().as_bytes();\n        assert_eq!(restored.as_slice(), expected);\n        assert_eq!(row[\"before_length\"].as_u64().unwrap() as usize, restored.len());\n        assert_eq!(row[\"before_sha256\"].as_str().unwrap(), hash(&restored));\n    }\n}\n",
         "before": ""
       }
     ]
@@ -619,6 +655,284 @@
         "end": 2706,
         "current": "    let restored = crate::cleanup_plan::replay::skeleton_work::query_proof::before_emission(\n        include_str!(\"../../emission.rs\"));\n    let combined = restored.as_str();\n",
         "before": "    let combined = include_str!(\"../../emission.rs\");\n"
+      }
+    ]
+  },
+  "src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs": {
+    "before_length": 8127,
+    "before_sha256": "fdb672ec67714810ba990a306ec8b282ce7c628d627b272b322d21e51293da34",
+    "length": 8182,
+    "sha256": "2c91db9d0da06846703b41d7221a5daf16b56aa73933f0a88b714d23d08552a2",
+    "edits": [
+      {
+        "start": 5079,
+        "end": 5189,
+        "current": "    let capacity_now =\n        capacity::type_cursor_tests::immediate_before(include_str!(\"../capacity.rs\"));\n",
+        "before": "    let capacity_now = include_str!(\"../capacity.rs\");\n"
+      }
+    ]
+  },
+  "src/cleanup_plan/replay/expression_facts/arena/prefix/source_main8a.rs": {
+    "before_length": 2420,
+    "before_sha256": "a3dac64d77644219430c4d10ca0a785928214e314960d93b0ebf3220b516800c",
+    "length": 2565,
+    "sha256": "6df87f3f10aef5c58bcc74aacf7cd518edb0fb4356a02cc37b7d28b8da93050e",
+    "edits": [
+      {
+        "start": 1893,
+        "end": 2192,
+        "current": "        // Keep the complete original 885 proof. The current-source entry\n        // separately acquires the exact current compiled source bytes.\n        drop(before_885);\n        let current_main =\n            crate::source_reflows_merge::main8a_input(record[\"source\"].as_str().unwrap(), current);\n",
+        "before": "        let current_main = crate::source_reflows_merge::main8a_input(\n            record[\"source\"].as_str().unwrap(),\n            &before_885,\n        );\n"
+      }
+    ]
+  },
+  "src/cleanup_plan/replay/expression_facts/arena/prefix/source_maina3.rs": {
+    "before_length": 2420,
+    "before_sha256": "88b77d4757d1ce99d04e13e7ff2bac6565f58b038b124e05c0fee069eb4073fe",
+    "length": 2840,
+    "sha256": "b46a313db7810eb365df0168b0fdb1d079ebbfbf9037422e5002700d12a49211",
+    "edits": [
+      {
+        "start": 1893,
+        "end": 2467,
+        "current": "        // Keep the complete original 885 proof. The current-source entry\n        // separately acquires the exact current compiled source bytes.\n        drop(before_885);\n        let source = record[\"source\"].as_str().unwrap();\n        let current_main = if source == \"src/cleanup_plan/replay/expression_facts/arena.rs\" {\n            // This source belongs to the original Previous16c input capsule.\n            crate::source_reflows_merge::maina3_previous(source, current)\n        } else {\n            crate::source_reflows_merge::maina3_input(source, current)\n        };\n",
+        "before": "        let current_main = crate::source_reflows_merge::maina3_input(\n            record[\"source\"].as_str().unwrap(),\n            &before_885,\n        );\n"
+      }
+    ]
+  },
+  "src/cleanup_plan/replay/expression_facts/arena/prefix/tests.rs": {
+    "before_length": 22683,
+    "before_sha256": "4ffcb44224a5b00256919b26e96c7b721a152b240b08c28aea49f091a7d0cdd9",
+    "length": 24940,
+    "sha256": "a0e16706fe0f3651621768fac7b91f6430bc1aea7017d39773e3b11d459d73e1",
+    "edits": [
+      {
+        "start": 10568,
+        "end": 12897,
+        "current": "// Authenticate the live source before selecting this original inverse's entry stage.\n// The 885 proof runs independently; its restored bytes are not current-root input.\nfn prefix_inverse_entry(\n    caller: &'static str,\n    included: &'static str,\n    current: &'static str,\n) -> String {\n    let source = included\n        .strip_prefix(env!(\"CARGO_MANIFEST_DIR\"))\n        .unwrap()\n        .strip_prefix('/')\n        .unwrap();\n    let _ = super::super::retained::tests::before_885_source(source, current);\n    let expected = match source {\n        \"tests/hir_module_boundaries.rs\" => {\n            \"055a8f7ddd8b9f5b2d12122154de053a0a6823b75c298580cd4770628c4e8851\"\n        }\n        \"src/cleanup_plan/replay/live_oracle/source_custody/b.rs\" => {\n            \"4d534b5433078d8d65ec9f09c7f763614a177cd743aa02465de64c023e509173\"\n        }\n        \"src/cleanup_plan/replay/expression_facts/arena.rs\" => {\n            use sha2::{Digest, Sha256};\n            let stage = super::super::retained::tests::before_885_ci(caller, included, current);\n            assert_eq!(\n                format!(\n                    \"{:x}\",\n                    crate::digest_hex::LowerHex(Sha256::digest(stage.as_bytes()))\n                ),\n                \"680eb344e1bf236550eb3ae7725a981fe19898a52192635905771863c01a6d23\"\n            );\n            let registration = \"\\n#[cfg(test)]\\n#[path = \\\"arena/cursor_tests.rs\\\"]\\nmod cursor_tests;\\n#[cfg(test)]\\n#[path = \\\"arena/producer_before_cursor.rs\\\"]\\nmod producer_before_cursor;\\n\\n#[cfg(test)]\\n#[path = \\\"arena/before_cursor.rs\\\"]\\nmod before_cursor;\\n\";\n            assert_eq!(stage.matches(registration).count(), 1);\n            let restored = stage.replace(registration, \"\").replace(\n                \"capacity::ArenaCapacity::new(function, payer)\",\n                \"capacity::FactCapacity::with_payer(function, payer)\",\n            );\n            assert_eq!(\n                restored,\n                include_str!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/docs/evidence/expression-fact-arena-cursor-v1/arena.before.rs.txt\"\n                ))\n            );\n            return restored;\n        }\n        _ => panic!(\"foreign prefix inverse source\"),\n    };\n    crate::source_reflows_merge::main_e177_final_inputs::value_direct(source, expected, current)\n}\n\n",
+        "before": ""
+      },
+      {
+        "start": 13262,
+        "end": 14535,
+        "current": "        (prefix_inverse_entry(file!(), concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/arena.rs\"), include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/arena.rs\"))), ci_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/prefix-certified-expression-lookup/arena.rs.before.txt\")), \"94e056acbccb322afa35d42ba81af4672725b036bb4cf730c9495a8bbbb44d17\"),\n        (prefix_inverse_entry(file!(), concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/tests/hir_module_boundaries.rs\"), include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/tests/hir_module_boundaries.rs\"))), ci_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/prefix-certified-expression-lookup/hir_module_boundaries.rs.before.txt\")), \"57db1e409226dc2ddf5c9519071ad69822e646d6f71d11cfd16e88d51ad8c4fc\"),\n        (prefix_inverse_entry(file!(), concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/live_oracle/source_custody/b.rs\"), include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/live_oracle/source_custody/b.rs\"))), ci_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/prefix-certified-expression-lookup/source_custody_b.rs.before.txt\")), \"ead6bb549f1bd85d904eecbf182f14103639489320ec8ad09f0d29232f2fe90b\"),\n",
+        "before": "        (super::super::retained::tests::before_885_ci(file!(), concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/arena.rs\"), include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/arena.rs\"))), ci_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/prefix-certified-expression-lookup/arena.rs.before.txt\")), \"94e056acbccb322afa35d42ba81af4672725b036bb4cf730c9495a8bbbb44d17\"),\n        (super::super::retained::tests::before_885_ci(file!(), concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/tests/hir_module_boundaries.rs\"), include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/tests/hir_module_boundaries.rs\"))), ci_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/prefix-certified-expression-lookup/hir_module_boundaries.rs.before.txt\")), \"57db1e409226dc2ddf5c9519071ad69822e646d6f71d11cfd16e88d51ad8c4fc\"),\n        (super::super::retained::tests::before_885_ci(file!(), concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/live_oracle/source_custody/b.rs\"), include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/live_oracle/source_custody/b.rs\"))), ci_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/docs/evidence/prefix-certified-expression-lookup/source_custody_b.rs.before.txt\")), \"ead6bb549f1bd85d904eecbf182f14103639489320ec8ad09f0d29232f2fe90b\"),\n"
+      }
+    ]
+  },
+  "src/cleanup_plan/replay/expression_facts/capacity.rs": {
+    "before_length": 16658,
+    "before_sha256": "2d4b918d10c8c6a00340c294c7f5d8d2458ffb7ab01f9c770d366a1d0efdcfca",
+    "length": 19351,
+    "sha256": "70b1f6c41f811ca7a0a8f44a8abc87568119c00e945c58a0b97c0d9e73691cee",
+    "edits": [
+      {
+        "start": 1257,
+        "end": 1355,
+        "current": "type TypeFrame<'a> = Option<(&'a ResolvedType, usize)>;\ntype TypeCursor<'a> = Vec<TypeFrame<'a>>;\n",
+        "before": "type TypeCursor<'a> = [Option<(&'a ResolvedType, usize)>; 514];\n"
+      },
+      {
+        "start": 1540,
+        "end": 2237,
+        "current": "    // Positive banks for the new selector and cold growth ABI. The original\n    // cursor/header and payload charges never pay for these receiving packets.\n    const TYPE_SELECTOR: usize = 2 * size_of::<(&mut Self, usize)>()\n        + 2 * size_of::<Result<(), Failure>>()\n        + 4 * size_of::<usize>()\n        + 2 * size_of::<bool>()\n        + 2 * size_of::<&TypeCursor<'_>>();\n    const TYPE_GROW_CALL: usize = 2 * size_of::<(&mut Self, usize)>()\n        + 4 * size_of::<Result<(), Failure>>()\n        + size_of::<[usize; 8]>()\n        + 4 * size_of::<bool>()\n        + 2 * size_of::<&mut TypeCursor<'_>>()\n        + 2 * size_of::<TypeCursor<'_>>()\n        + 2 * size_of::<TypeFrame<'_>>();\n\n",
+        "before": ""
+      },
+      {
+        "start": 2786,
+        "end": 2817,
+        "current": "            types: Vec::new(),\n",
+        "before": "            types: [None; 514],\n"
+      },
+      {
+        "start": 3541,
+        "end": 4969,
+        "current": "\n    // The same owner retains this cursor; each replacement is paid while the\n    // previous allocation remains live. Reuse still authenticates sticky refusal.\n    fn grow_types(&mut self, needed: usize) -> Result<(), Failure> {\n        self.reserve(0)?;\n        if needed > 514 {\n            return Err(Failure {\n                detail: \"expression-fact type depth exceeds limit\",\n                physical: false,\n            });\n        }\n        if needed <= self.types.len() {\n            return Ok(());\n        }\n        let target = self\n            .types\n            .len()\n            .max(1)\n            .saturating_mul(2)\n            .min(514)\n            .max(needed);\n        self.arena_work(target)?;\n        self.reserve(2 * size_of::<TypeCursor<'_>>() + size_of::<TypeFrame<'_>>())?;\n        self.array::<TypeFrame<'_>>(target)?;\n        let mut replacement = Vec::new();\n        replacement.try_reserve_exact(target).map_err(|_| Failure {\n            detail: \"physical expression-fact cursor allocation refused\",\n            physical: true,\n        })?;\n        if replacement.capacity() != target {\n            return Err(Failure {\n                detail: \"physical expression-fact cursor capacity differs\",\n                physical: true,\n            });\n        }\n        replacement.append(&mut self.types);\n        replacement.resize(target, None);\n        self.types = replacement;\n        Ok(())\n    }\n",
+        "before": ""
+      },
+      {
+        "start": 5042,
+        "end": 5213,
+        "current": "        self.reserve(Self::TYPE_SELECTOR)?;\n        if self.types.is_empty() {\n            self.reserve(Self::TYPE_GROW_CALL)?;\n            self.grow_types(1)?;\n        }\n",
+        "before": ""
+      },
+      {
+        "start": 7679,
+        "end": 7711,
+        "current": "                if len == 514 {\n",
+        "before": "                if len == self.types.len() {\n"
+      },
+      {
+        "start": 7893,
+        "end": 8112,
+        "current": "                }\n                self.reserve(Self::TYPE_SELECTOR)?;\n                if len == self.types.len() {\n                    self.reserve(Self::TYPE_GROW_CALL)?;\n                    self.grow_types(len + 1)?;\n",
+        "before": ""
+      },
+      {
+        "start": 15960,
+        "end": 15995,
+        "current": "                types: Vec::new(),\n",
+        "before": "                types: [None; 514],\n"
+      },
+      {
+        "start": 19192,
+        "end": 19351,
+        "current": "\n#[cfg(test)]\n#[path = \"capacity/before_types.rs\"]\nmod before_types;\n\n#[cfg(test)]\n#[path = \"capacity/type_cursor_tests.rs\"]\npub(super) mod type_cursor_tests;\n",
+        "before": ""
+      }
+    ]
+  },
+  "src/cleanup_plan/replay/expression_facts/capacity/cursor_tests.rs": {
+    "before_length": 8600,
+    "before_sha256": "15aadafa89d000708fcf0d773b71937c8f4baa9a29b1343cdec48480ac5c974a",
+    "length": 8749,
+    "sha256": "3702d6373047e373d3d1d55af1cab9a8d99a724e045fad07e21b9d1b72fdfd24",
+    "edits": [
+      {
+        "start": 0,
+        "end": 149,
+        "current": "#![allow(\n    clippy::duplicate_mod,\n    reason = \"Current and complete immediate-before owners independently compile the original cursor tests.\"\n)]\n",
+        "before": ""
+      }
+    ]
+  },
+  "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/tests.rs": {
+    "before_length": 54932,
+    "before_sha256": "96f3344239af80ebe85eb637e5933bd596afde32f88c2e2184bd8edf32c96375",
+    "length": 55295,
+    "sha256": "0ce35fceadaf762eb89c6d9ad510652222e5a08ae9bc53a579a3b729533893e1",
+    "edits": [
+      {
+        "start": 54932,
+        "end": 55295,
+        "current": "\n#[test]\nfn empty_frozen_lookup_receiving_slots_have_the_exact_pointer_layout() {\n    // This is the actual owned field type initialized by Directory::new,\n    // independently constraining return-operand constructor expectations.\n    assert_eq!(\n        std::mem::size_of::<Option<Box<super::FrozenStatusIndex>>>(),\n        std::mem::size_of::<usize>()\n    );\n}\n",
+        "before": ""
+      }
+    ]
+  },
+  "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/counter_tests.rs": {
+    "before_length": 12490,
+    "before_sha256": "34f136b13ec3478c215ac1ecc1bc43839c8ddff56265215d7fe927907bc96b90",
+    "length": 12781,
+    "sha256": "e86d6a07b809f54cc38285e69ac49529179d1978774c5d3f80ae2e112cc0aa56",
+    "edits": [
+      {
+        "start": 3139,
+        "end": 3480,
+        "current": "    let acquired = crate::source_reflows_merge::main_e177_final_inputs::value_direct(\n        \"src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/counter_before.rs\",\n        \"5b405e3e106b8b81bf653bb292b4e62f4363837b7264fbaa2829569cea3e5e37\",\n        include_str!(\"counter_before.rs\"),\n    );\n    let saved = acquired\n",
+        "before": "    let saved = include_str!(\"counter_before.rs\")\n"
+      }
+    ]
+  },
+  "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests.rs": {
+    "before_length": 14407,
+    "before_sha256": "10b7aadc7f271ead518a33d6929eaf4a02dd7fe75172709e9ea9a0b0ccabc3a1",
+    "length": 15446,
+    "sha256": "2bd12be9b146263f0c7c66f5c0cf07c3a91715a8dabb808162dca62ef5237bf2",
+    "edits": [
+      {
+        "start": 4647,
+        "end": 5595,
+        "current": "    let closed_current = include_str!(\"retained_lookup.rs\");\n    // Preserve the entire original returning-ABI guard on its registered whole\n    // image; independently bind the current output/error-slot continuation.\n    let closed = crate::source_reflows_merge::main_e177_final_inputs::value_direct(\n        \"src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/retained_lookup.rs\",\n        \"4444834e368473fb3a213c900280cd7777a93fc64c423f88ca9ffe3985199e3d\",\n        closed_current,\n    );\n    assert!(closed_current\n        .contains(\"session.fact_into(&source.id.expression, &mut received, &mut failure)\"));\n    assert!(closed_current.contains(\"Session::into_query_bytes()\"));\n    assert!(closed_current.contains(\"Failure::acquisition_bytes()\"));\n    assert!(closed_current.contains(\"prefix_owner.insert(function, &source.id, budget)?\"));\n    assert!(closed_current.contains(\"retained status fact receiving assignment\"));\n",
+        "before": "    let closed = include_str!(\"retained_lookup.rs\");\n"
+      },
+      {
+        "start": 5777,
+        "end": 5921,
+        "current": "        assert!(\n            !closed_current.contains(forbidden),\n            \"current closed continuation cannot admit {forbidden}\"\n        );\n",
+        "before": ""
+      }
+    ]
+  },
+  "src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs": {
+    "before_length": 25806,
+    "before_sha256": "c149185dca8edd769caf94b5d810b157701ac060f9081ca8cfbbdbc8f8a4fda2",
+    "length": 26016,
+    "sha256": "9e706c834040fcb816fb6e765134b5e84cdf52d6c975364b8338d42bf1630ec4",
+    "edits": [
+      {
+        "start": 16874,
+        "end": 17139,
+        "current": "    // The selector runs once before borrowing and again in the complete tree\n    // fallback. Its full receiving bank remains paid in addition to the loan.\n    assert_eq!(\n        costs[1].1,\n        costs[0].1 + BORROW_BYTES + helpers::EXIT_SELECTOR_BYTES\n    );\n",
+        "before": "    assert_eq!(costs[1].1, costs[0].1 + BORROW_BYTES);\n"
+      }
+    ]
+  },
+  "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase_tests.rs": {
+    "before_length": 34775,
+    "before_sha256": "01839373f37c9da3aec1e57906bcf9f1544868e9884248929a3036214d44a4a2",
+    "length": 35057,
+    "sha256": "0d7baf71c215dfc2c927a1992025e6cc76ddfa1604879585aa62f8fb31ec7450",
+    "edits": [
+      {
+        "start": 3118,
+        "end": 3320,
+        "current": "    let s = Session::OLD_SCRATCH\n        + 2 * std::mem::size_of::<Result<Option<&Option<CallFact<'_>>>, Diagnostic>>();\n    let r = Session::into_edge_local_bytes() + Session::into_edge_query_bytes();\n",
+        "before": "    let s = Session::OLD_SCRATCH;\n    let r = Session::EDGE_QUERY_BYTES;\n"
+      },
+      {
+        "start": 3481,
+        "end": 3711,
+        "current": "    // transported continuation is formed. The old whole lookup includes both\n    // compound Results; the current output/error-slot ABI pays both argument\n    // packets and its complete local receiving bank on every edge query.\n",
+        "before": "    // transported continuation is formed. Both old compound Results remain.\n"
+      }
+    ]
+  },
+  "src/cleanup_plan/replay/expression_facts/receiving/return_operands/tests.rs": {
+    "before_length": 13987,
+    "before_sha256": "c44fa798acede93f7914b99b6a5526569414edf2a5bc03c439a28406f332cc22",
+    "length": 14418,
+    "sha256": "651ddbd39851e8a55a0a459ea4a11c374f3597ced31c56534959e02536deb943",
+    "edits": [
+      {
+        "start": 802,
+        "end": 1108,
+        "current": "// Directory::new initializes both receiving slots for its optional frozen\n// lookup. Option<Box<T>> has the documented one-pointer null niche; the owning\n// directory test pins that actual FrozenStatusIndex layout independently.\nfn directory_receivers() -> usize {\n    2 * std::mem::size_of::<usize>()\n}\n\n",
+        "before": ""
+      },
+      {
+        "start": 2327,
+        "end": 2560,
+        "current": "    let bytes = setup\n        + controls()\n        + directory_receivers()\n        + Directory::<&ExpressionId>::node_layout_bytes();\n    // 14 control initializers, one directory setup, one fact visit, one relocation slot, one node\n",
+        "before": "    let bytes = setup + controls() + Directory::<&ExpressionId>::node_layout_bytes();\n    // 14 control initializers, one fact visit, one relocation slot, one node\n"
+      },
+      {
+        "start": 2626,
+        "end": 2661,
+        "current": "    let work = 14 + 1 + 1 + 1 + 3;\n",
+        "before": "    let work = 14 + 1 + 1 + 3;\n"
+      },
+      {
+        "start": 10321,
+        "end": 10357,
+        "current": "            + directory_receivers()\n",
+        "before": ""
+      },
+      {
+        "start": 10536,
+        "end": 10552,
+        "current": "            + 1\n",
+        "before": ""
+      }
+    ]
+  },
+  "src/cleanup_plan/replay/expression_facts/tests/arena.rs": {
+    "before_length": 13112,
+    "before_sha256": "2885db6402ef58382423cde7bb1ad3dfd0706ac7c6ba76146d34d9765b722609",
+    "length": 13214,
+    "sha256": "0a009738110c5b184a053c8e9b2c079407b83f3832994803defa196f3af3cc88",
+    "edits": [
+      {
+        "start": 9591,
+        "end": 9680,
+        "current": "    let capacity_before_types = capacity::type_cursor_tests::immediate_before(CAPACITY);\n",
+        "before": ""
+      },
+      {
+        "start": 10865,
+        "end": 10965,
+        "current": "    assert!(capacity_before_types.starts_with(OLD_CAPACITY.trim_end().strip_suffix('}').unwrap()));\n",
+        "before": "    assert!(CAPACITY.starts_with(OLD_CAPACITY.trim_end().strip_suffix('}').unwrap()));\n"
       }
     ]
   }

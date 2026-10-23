@@ -1,5 +1,13 @@
 pub(crate) fn compiled(source: &str) -> Option<&'static str> {
     match source {
+        "src/cleanup_plan/replay/expression_facts/capacity/before_types.rs" => Some(include_str!("../../src/cleanup_plan/replay/expression_facts/capacity/before_types.rs")),
+        "src/cleanup_plan/replay/expression_facts/capacity/cursor_tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/expression_facts/capacity/cursor_tests.rs")),
+        "src/cleanup_plan/replay/expression_facts/capacity/type_cursor_tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/expression_facts/capacity/type_cursor_tests.rs")),
+        "src/source_verify/constructor_tests/corpus/operator_refusals.rs" => Some(include_str!("../../src/source_verify/constructor_tests/corpus/operator_refusals.rs")),
+        "src/cleanup_plan/replay/path_join/direct_one_before.rs" => Some(include_str!("../../src/cleanup_plan/replay/path_join/direct_one_before.rs")),
+        "src/cleanup_plan/replay/path_join/direct_one_before/boxed_flow.rs" => Some(include_str!("../../src/cleanup_plan/replay/path_join/direct_one_before/boxed_flow.rs")),
+        "src/cleanup_plan/replay/path_join/direct_one_before/frontier.rs" => Some(include_str!("../../src/cleanup_plan/replay/path_join/direct_one_before/frontier.rs")),
+        "src/cleanup_plan/replay/path_join/direct_one_tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/path_join/direct_one_tests.rs")),
         "src/cleanup_plan/replay/skeleton_work/query_proof.rs" => Some(include_str!("../../src/cleanup_plan/replay/skeleton_work/query_proof.rs")),
         "src/cleanup_plan/replay/skeleton_work/query_proof/before.rs" => Some(include_str!("../../src/cleanup_plan/replay/skeleton_work/query_proof/before.rs")),
         "src/cleanup_plan/replay/skeleton_work/query_proof/tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/skeleton_work/query_proof/tests.rs")),

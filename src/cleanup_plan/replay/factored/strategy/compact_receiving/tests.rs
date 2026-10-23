@@ -385,9 +385,9 @@ fn immediate_old_entire_caller_and_unchanged_dependencies_are_source_bound() {
             "3e627c55e743f541f5787c64c47af8e31690a002907db35a435f0ce57fc9c72a") {
             let encoded = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/before_frontier/custody/main_d227_transport.json"));
             assert_eq!(std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/cleanup_plan/replay/path_join/before_frontier/custody/main_d227_transport.json")).unwrap(), encoded.as_bytes());
-            assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(encoded.as_bytes()))), "f3ead7d594ff4bb9b913a080425812b348c626886bf5a8a7effddef4e0f0a5ce");
+            assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(encoded.as_bytes()))), "c33e4cd530ceea3cb92f8162e5e08d1c4c60b4c35b558227311c7e3d37135371");
             let packet: serde_json::Value = serde_json::from_str(encoded).unwrap();
-            assert_eq!(packet.as_object().unwrap().len(), 20);
+            assert_eq!(packet.as_object().unwrap().len(), 33);
             let path = if hash == "2a64ea81fe25ac38ad7d3060cb1dae31de835e46c4572c5bf425ea979a477917" { "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop.rs" } else { "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact.rs" };
             assert_eq!(std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap(), source.as_bytes());
             let row = &packet[path];

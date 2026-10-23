@@ -65,6 +65,7 @@ fn run(
 
 #[test]
 fn whole_immediate_ordinary_result_exact_short_zero_and_real_nm_are_observed() {
+    complete_receiving_parent_sources();
     let _complete_old_certified_rows =
         super::super::retained_lookup_before_receiving::complete_rows_before_receiving;
     for rows in [0, 1, 32, 64] {
@@ -456,4 +457,41 @@ fn receiving_transition_counts(function: &ResolvedFunction) -> (usize, usize) {
         }
     }
     (lookups, callbacks)
+}
+
+// Complete literal source custody for both independently preserved merge parents.
+fn complete_receiving_parent_sources() {
+    use sha2::{Digest, Sha256};
+    let hash = |bytes: &[u8]| format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)));
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let path = "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests/receiving.rs";
+    let raw = std::fs::read(root.join(path)).unwrap();
+    assert_eq!(raw.as_slice(), include_bytes!("receiving.rs").as_slice());
+    let encoded = include_bytes!("receiving_predecessors.json");
+    assert_eq!(std::fs::read(root.join("src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests/receiving_predecessors.json")).unwrap().as_slice(), encoded.as_slice());
+    let packet: serde_json::Value = serde_json::from_slice(encoded).unwrap();
+    assert_eq!(packet["current_length"].as_u64().unwrap() as usize, raw.len());
+    assert_eq!(packet["current_sha256"].as_str().unwrap(), hash(&raw));
+    let rows = packet["parents"].as_array().unwrap();
+    assert_eq!(rows.len(), 2);
+    let fixed = [
+        ("8caff6ada4d0b65bb0875ab49a874797e9f653d4", 12916usize, "7fd5bf0961d3cede1a747ea6f4dc80f7598d547c012c3394a5539d9690794515"),
+        ("c90764eebdf0d1db8a35742c39b8831530de1966", 14483usize, "fcd3a360eaf7681316cc2432e0165729766a29ea18ce80424cef798cfc421e38"),
+    ];
+    for (row, (head, length, digest)) in rows.iter().zip(fixed) {
+        assert_eq!(row["head"].as_str().unwrap(), head);
+        assert_eq!(row["before_length"].as_u64().unwrap() as usize, length);
+        assert_eq!(row["before_sha256"].as_str().unwrap(), digest);
+        let mut restored = raw.clone();
+        for change in row["edits"].as_array().unwrap().iter().rev() {
+            let start = change["start"].as_u64().unwrap() as usize;
+            let end = change["end"].as_u64().unwrap() as usize;
+            assert_eq!(&restored[start..end], change["current"].as_str().unwrap().as_bytes());
+            drop(restored.splice(start..end, change["before"].as_str().unwrap().bytes()));
+        }
+        let expected = row["full_before"].as_str().unwrap().as_bytes();
+        assert_eq!(restored.as_slice(), expected);
+        assert_eq!(row["before_length"].as_u64().unwrap() as usize, restored.len());
+        assert_eq!(row["before_sha256"].as_str().unwrap(), hash(&restored));
+    }
 }

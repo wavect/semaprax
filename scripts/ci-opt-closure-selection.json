@@ -1,7 +1,7 @@
 {
   "schema": "semaprax.hosted-opt-batch-selection.v1",
-  "filters": 12,
-  "expected_tests": 65,
+  "filters": 13,
+  "expected_tests": 69,
   "commands": [
     {
       "owner": "OPT915 compact lexical receiving complete immediate-old caller",
@@ -22,7 +22,7 @@
       "binary": "lib",
       "filter": "cleanup_plan::replay::skeleton_work::enumerated_prefix::receiving_sort::tests::",
       "exact": false,
-      "expected_tests": 10
+      "expected_tests": 11
     },
     {
       "owner": "OPT919 ordinary frontier owning controls including whole and custody",
@@ -30,6 +30,13 @@
       "filter": "cleanup_plan::replay::path_join::frontier_tests::",
       "exact": false,
       "expected_tests": 14
+    },
+    {
+      "owner": "OPT919 ordinary lexical owner original search allocation and full diagnostic custody",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::selected_owner::ordinary::tests::",
+      "exact": false,
+      "expected_tests": 3
     },
     {
       "owner": "incoming main owned payload positive collection record profile",

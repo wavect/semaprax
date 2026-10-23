@@ -68,12 +68,13 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
         assert_eq!(std::fs::read(root.join("src/cleanup_plan/replay/path_join/before_frontier/custody/main_d227_transport.json")).unwrap(), encoded.as_bytes());
         assert_eq!(
             digest(encoded.as_bytes()),
-            "046a313e58da6a509699409d479b83147b511c5c6693d28d7c0b93c537350c5c"
+            "bb3054bcefde53fb800ca082cd2a9de658ec40a38b6da5c51c4ad7c43af3090f"
         );
         let packet: serde_json::Value = serde_json::from_str(encoded).unwrap();
-        assert_eq!(packet.as_object().unwrap().len(), 41);
+        assert_eq!(packet.as_object().unwrap().len(), 42);
         if let Some(row) = packet.get(&path) {
             let compiled = match path.as_str() {
+                "src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs")).as_slice(),
                 "src/cleanup_plan/replay/branch_clone/inline_tests.rs" => include_bytes!(concat!(
                     env!("CARGO_MANIFEST_DIR"),
                     "/src/cleanup_plan/replay/branch_clone/inline_tests.rs"
@@ -193,7 +194,7 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
                 // fixture. No production dependency receives this inverse.
                 assert_eq!(
                     digest(&actual),
-                    "11b5a876b7ae91cab5b1c4607d6a8c988d7e46d0144ad68863543edbbb84d705"
+                    "130785078147912db8f850bd5f5ff7ea09c847ce31a8706ddf566662542147ee"
                 );
                 let before = include_bytes!(concat!(
                     env!("CARGO_MANIFEST_DIR"),

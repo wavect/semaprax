@@ -1377,3 +1377,4 @@ src/source_reflows_merge/main_e177_overlay_digests_v13/parent-4.before.txt
 src/source_reflows_merge/main_e177_overlay_digests_v13/parent-5.before.txt
 src/source_reflows_merge/main_e177_overlay_digests_v13/v12.before.rs.txt
 src/source_reflows_merge/main_e177_overlay_digests_v13/controller_transport.json
+tests/wasm/scalar_browser_ci_contract/current_profiles573.rs

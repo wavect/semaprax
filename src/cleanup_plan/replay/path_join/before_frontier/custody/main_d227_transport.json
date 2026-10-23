@@ -1173,5 +1173,25 @@
         "before": ""
       }
     ]
+  },
+  "src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs": {
+    "before_length": 17171,
+    "before_sha256": "e6d9241f9287e8e00d5c8413623383b53b46e5efbe6da50e576dcf6bbd642db4",
+    "length": 20568,
+    "sha256": "95d80e4bba07596a11ce78fea840d4e8909d61622f0cdbf5a4bf5fbcc80addca",
+    "edits": [
+      {
+        "start": 15502,
+        "end": 15637,
+        "current": "if record[\"source\"] == \"src/cleanup_plan/replay/lexical_replay.rs\" {\n            current = previous_lexical_entry();\n        }\n        ",
+        "before": ""
+      },
+      {
+        "start": 17306,
+        "end": 20568,
+        "current": "\n// Restore the exact lexical caller epoch before the original complete inverses.\nfn previous_lexical_entry() -> String {\n    use sha2::{Digest, Sha256};\n    let path = \"src/cleanup_plan/replay/lexical_replay.rs\";\n    let raw = include_str!(concat!(\n        env!(\"CARGO_MANIFEST_DIR\"),\n        \"/src/cleanup_plan/replay/lexical_replay.rs\"\n    ));\n    let mut stage = crate::source_reflows_merge::consumer_input(\"lexical832\", path, raw);\n    let rows: serde_json::Value =\n        serde_json::from_str(&crate::source_reflows_merge::receiver_fixture(\n            crate::source_reflows_merge::ReceiverFixture::LexicalOperands,\n        ))\n        .unwrap();\n    let row = rows\n        .as_array()\n        .unwrap()\n        .iter()\n        .find(|x| x[\"source\"] == path)\n        .unwrap();\n    for edit in row[\"edits\"].as_array().unwrap() {\n        let new = edit[\"new\"].as_str().unwrap();\n        assert_eq!(stage.matches(new).count(), 1);\n        stage = stage.replacen(new, edit[\"before\"].as_str().unwrap(), 1);\n    }\n    assert_eq!(stage, row[\"original_bytes\"].as_str().unwrap());\n    assert_eq!(\n        stage,\n        include_str!(concat!(\n            env!(\"CARGO_MANIFEST_DIR\"),\n            \"/src/cleanup_plan/replay/lexical_replay/before_operands.rs\"\n        ))\n    );\n    assert_eq!(\n        format!(\n            \"{:x}\",\n            crate::digest_hex::LowerHex(Sha256::digest(stage.as_bytes()))\n        ),\n        \"d7d0dae07dee44527c398580580a0937b0ef7ab894af0f36611a67f51704b139\"\n    );\n\n    before_paid_lexical_call_receiving(&stage)\n}\n\nfn before_paid_lexical_call_receiving(current: &str) -> String {\n    use sha2::{Digest, Sha256};\n    assert_eq!(\n        format!(\n            \"{:x}\",\n            crate::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))\n        ),\n        \"d7d0dae07dee44527c398580580a0937b0ef7ab894af0f36611a67f51704b139\"\n    );\n    let mut stage = current.to_owned();\n    for (new, old) in [\n        (\n            \"E: structural_control::call_receiving::Policy\",\n            \"E: semantic_refusal::Error\",\n        ),\n        (\n            \"structural_control::validate_blocks_and_edges_paid::<E>(\",\n            \"structural_control::validate_blocks_and_edges(\",\n        ),\n    ] {\n        assert_eq!(stage.matches(new).count(), 1);\n        stage = stage.replacen(new, old, 1);\n    }\n    assert_eq!(\n        format!(\n            \"{:x}\",\n            crate::digest_hex::LowerHex(Sha256::digest(stage.as_bytes()))\n        ),\n        \"3560d28ecefd32dfefd1c7ae1db2d847e84b3e44fe1c02c23e7e7568c3013288\"\n    );\n    stage\n}\n\n#[test]\nfn paid_lexical_call_inverse_rejects_whole_source_drift_and_old_inputs() {\n    let current = include_str!(concat!(\n        env!(\"CARGO_MANIFEST_DIR\"),\n        \"/src/cleanup_plan/replay/lexical_replay/before_operands.rs\"\n    ));\n    let original = before_paid_lexical_call_receiving(current);\n    for foreign in [\n        String::new(),\n        current[..current.len() - 1].to_owned(),\n        format!(\"{current}\\n\"),\n        current.replacen(\n            \"E: structural_control::call_receiving::Policy\",\n            \"E: semantic_refusal::Error\",\n            1,\n        ),\n        original,\n    ] {\n        assert!(std::panic::catch_unwind(|| before_paid_lexical_call_receiving(&foreign)).is_err());\n    }\n}\n",
+        "before": ""
+      }
+    ]
   }
 }

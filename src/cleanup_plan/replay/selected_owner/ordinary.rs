@@ -86,7 +86,7 @@ pub(in crate::cleanup_plan::replay) fn custody(path: &str, current: &[u8]) -> Ve
     let digest = |bytes: &[u8]| format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)));
     assert_eq!(
         digest(include_bytes!("ordinary/inverse.json")),
-        "31b422b59b3d10e7b2f0bab5c009f5d3477734c375d2ce723f9c0d2335447575"
+        "dd9b6a121d156cccb031c1646dc7b0adcb1ac43155de43a9cd23871b5f5599ca"
     );
     let binding: serde_json::Value =
         serde_json::from_str(include_str!("ordinary/inverse.json")).unwrap();

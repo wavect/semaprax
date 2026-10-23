@@ -1,5 +1,7 @@
 pub(crate) fn compiled(source: &str) -> Option<&'static str> {
     match source {
+        "src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs")),
+        "tests/wasm/scalar_browser_ci_contract/current_profiles573.rs" => Some(include_str!("../../tests/wasm/scalar_browser_ci_contract/current_profiles573.rs")),
         "src/cleanup_plan/replay/path_join/compact_failure_before.rs" => Some(include_str!("../../src/cleanup_plan/replay/path_join/compact_failure_before.rs")),
         "src/cleanup_plan/replay/path_join/compact_failure_tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/path_join/compact_failure_tests.rs")),
         "src/cleanup_plan/replay/path_join/contains_before.rs" => Some(include_str!("../../src/cleanup_plan/replay/path_join/contains_before.rs")),

@@ -34,33 +34,189 @@
     ]
   },
   "src/cleanup_plan/replay/path_join/frontier_tests/custody.rs": {
-    "length": 20918,
-    "sha256": "8dffb1b3c3451cb50bd87f2913763a087f80fec07af3098f5af566c29f5b31a2",
+    "length": 21147,
+    "sha256": "7ff8a657d3aa720a8285752dadd221b272fcf27ef443a78344f0eb4181381290",
     "before_length": 5828,
     "before_sha256": "7f50ea1bdad01332b3a8beb33755517f14fe12bdb13041759de3069d3e16767d",
     "edits": [
       {
-        "start": 2932,
-        "end": 15672,
-        "current": "        let mut actual =\n            crate::bounded_output::census_before(&path, &std::fs::read(root.join(&path)).unwrap());\n        // Finite inventory transport only: the main scalar classifier changes\n        // the measured common lexical prefix. This is not old execution restoration.\n        let encoded = include_str!(\"../before_frontier/custody/main_d227_transport.json\");\n        assert_eq!(std::fs::read(root.join(\"src/cleanup_plan/replay/path_join/before_frontier/custody/main_d227_transport.json\")).unwrap(), encoded.as_bytes());\n        assert_eq!(\n            digest(encoded.as_bytes()),\n            \"046a313e58da6a509699409d479b83147b511c5c6693d28d7c0b93c537350c5c\"\n        );\n        let packet: serde_json::Value = serde_json::from_str(encoded).unwrap();\n        assert_eq!(packet.as_object().unwrap().len(), 41);\n        if let Some(row) = packet.get(&path) {\n            let compiled = match path.as_str() {\n                \"src/cleanup_plan/replay/branch_clone/inline_tests.rs\" => include_bytes!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/src/cleanup_plan/replay/branch_clone/inline_tests.rs\"\n                ))\n                .as_slice(),\n                \"src/cleanup_plan/replay/branch_clone/production_capacity/tests.rs\" => {\n                    include_bytes!(concat!(\n                        env!(\"CARGO_MANIFEST_DIR\"),\n                        \"/src/cleanup_plan/replay/branch_clone/production_capacity/tests.rs\"\n                    ))\n                    .as_slice()\n                }\n                \"src/cleanup_plan/replay/branch_clone/production_capacity.rs\" => {\n                    include_bytes!(concat!(\n                        env!(\"CARGO_MANIFEST_DIR\"),\n                        \"/src/cleanup_plan/replay/branch_clone/production_capacity.rs\"\n                    ))\n                    .as_slice()\n                }\n                \"src/cleanup_plan/replay/branch_clone/tests.rs\" => include_bytes!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/src/cleanup_plan/replay/branch_clone/tests.rs\"\n                ))\n                .as_slice(),\n                \"src/cleanup_plan/replay/branch_clone.rs\" => include_bytes!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/src/cleanup_plan/replay/branch_clone.rs\"\n                ))\n                .as_slice(),\n                \"src/cleanup_plan/replay/nested_shape.rs\" => include_bytes!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/src/cleanup_plan/replay/nested_shape.rs\"\n                ))\n                .as_slice(),\n                \"src/cleanup_plan/replay.rs\" => include_bytes!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/src/cleanup_plan/replay.rs\"\n                ))\n                .as_slice(),\n                \"src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/factored.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/factored.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/factored/canonical_shared/inline_singleton.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/factored/continuation_receiver.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/factored/continuation_receiver.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/skeleton_work.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/skeleton_work.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/ordinary_receiving/tests.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/ordinary_receiving/tests.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests/receiving.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests/receiving.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/factored/continuation_receiver/tests.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/factored/continuation_receiver/tests.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/expression_facts/arena/prefix/source_main8a.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/arena/prefix/source_main8a.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/expression_facts/arena/prefix/source_maina3.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/arena/prefix/source_maina3.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/expression_facts/arena/prefix/tests.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/arena/prefix/tests.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/expression_facts/capacity.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/capacity.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/expression_facts/capacity/cursor_tests.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/capacity/cursor_tests.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/tests.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/tests.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/counter_tests.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/counter_tests.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase_tests.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase_tests.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/expression_facts/receiving/return_operands/tests.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/receiving/return_operands/tests.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/expression_facts/tests/arena.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/tests/arena.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/expression_facts/receiving/tests.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/receiving/tests.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/path_join/selected/tests/mod.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/path_join/selected/tests/mod.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/path_join/selected/tests/renewal.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/path_join/selected/tests/renewal.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/path_join/selected/tests/session.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/path_join/selected/tests/session.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/path_join/selected/tests/strings.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/path_join/selected/tests/strings.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/path_join/selected/tests/whole.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/path_join/selected/tests/whole.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/physical_budget/authentication.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/physical_budget/authentication.rs\")).as_slice(),\n                _ => panic!(\"unadmitted main transport path\"),\n            };\n            assert_eq!(actual.as_slice(), compiled);\n            assert_eq!(actual.len(), row[\"length\"].as_u64().unwrap() as usize);\n            assert_eq!(digest(&actual), row[\"sha256\"].as_str().unwrap());\n            for edit in row[\"edits\"].as_array().unwrap().iter().rev() {\n                let start = edit[\"start\"].as_u64().unwrap() as usize;\n                let end = edit[\"end\"].as_u64().unwrap() as usize;\n                assert_eq!(\n                    &actual[start..end],\n                    edit[\"current\"].as_str().unwrap().as_bytes()\n                );\n                actual.splice(start..end, edit[\"before\"].as_str().unwrap().bytes());\n            }\n            assert_eq!(\n                actual.len(),\n                row[\"before_length\"].as_u64().unwrap() as usize\n            );\n            assert_eq!(digest(&actual), row[\"before_sha256\"].as_str().unwrap());\n            if path == \"src/cleanup_plan/replay/factored/canonical_shared/inline_singleton.rs\" {\n                // This one endpoint is the complete643f intermediate. The\n                // original ordinary-labels stage below still proves fixed946.\n                assert_eq!(actual.as_slice(), row[\"before_text\"].as_str().unwrap().as_bytes());\n                assert_eq!(actual.len(), 55813);\n                assert_eq!(digest(&actual), \"87257e50e24a64d047eff17fd2ef9de7e1ed4c1049697222223947c62b28f514\");\n            } else {\n                assert_eq!(digest(&actual), expected);\n            }\n        }\n        if matches!(\n            path.as_str(),\n            \"src/cleanup_plan/replay/selected_owner.rs\"\n                | \"src/cleanup_plan/replay/selected_owner/paid.rs\"\n        ) {\n            // Both complete drivers share this external authentication prefix.\n            // Its new funding wrapper executes the exact bound original owner\n            // search; the fixed old source targets below are not repinned.\n            actual = crate::cleanup_plan::replay::selected_owner::ordinary::custody(&path, &actual);\n        }\n",
-        "before": "        let actual = std::fs::read(root.join(&path)).unwrap();\n"
+        "start": 2944,
+        "end": 2948,
+        "current": "mut ",
+        "before": ""
       },
       {
-        "start": 16095,
-        "end": 16182,
-        "current": "                    \"11b5a876b7ae91cab5b1c4607d6a8c988d7e46d0144ad68863543edbbb84d705\"\n",
-        "before": "                    \"670cc81349b7820dbfe43fc0925745e09d74aed4a45ad32f0e932d7d08b1e041\"\n"
+        "start": 2956,
+        "end": 2957,
+        "current": "\n",
+        "before": ""
       },
       {
-        "start": 17610,
-        "end": 17772,
-        "current": "                assert_eq!(actual.len(), 24843);\n                assert_eq!(digest(&actual), \"d4757425643d96a03c1c6a05f31d7018cb5653c71a921bb736335e9102edf6f6\");\n",
-        "before": "                assert_eq!(actual.len(), 22805);\n                assert_eq!(digest(&actual), \"6d49caf39c9627fd0dc9c9749fef1e3e91a868c2e08d8f09765831b2478c8922\");\n"
+        "start": 2958,
+        "end": 3014,
+        "current": "           crate::bounded_output::census_before(&path, &",
+        "before": ""
       },
       {
-        "start": 18032,
-        "end": 20445,
-        "current": "                assert_eq!(digest(before), expected);\n                before.as_slice()\n            } else if path == \"src/cleanup_plan/replay/expression_facts/receiving/retained.rs\" {\n                // Bind every current physical byte before the immutable 946 target.\n                assert_eq!(actual.as_slice(), include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/receiving/retained.rs\")).as_slice());\n                assert_eq!(actual.len(), 37215);\n                assert_eq!(digest(&actual), \"24a7b0034088ef2db45d969ef4320a931e5f724b14732dfdf56073a818cd0081\");\n                let before = include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/e/912a91d979144205750367d55e7aa9b74a4b3f4a1afc8472c010cf26af2677e8\"));\n                assert_eq!(before.len(), 37088);\n                assert_eq!(digest(before), expected);\n                before.as_slice()\n            } else if path == \"src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase.rs\" {\n                // Bind every current physical byte before the immutable 946 target.\n                assert_eq!(actual.as_slice(), include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase.rs\")).as_slice());\n                assert_eq!(actual.len(), 86537);\n                assert_eq!(digest(&actual), \"08c7336a5435b02aed14820e57b7ec6c48ddc9b311363d09c05b3447c0ad6246\");\n                let before = include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/e/fa232cdadb3ff7ea321caa04554d8dc2c237928b976af5890f6ed555c276b1ec\"));\n                assert_eq!(before.len(), 86698);\n                assert_eq!(digest(before), expected);\n                before.as_slice()\n            } else if path == \"src/cleanup_plan/replay/factored/canonical_shared/inline_singleton.rs\" {\n                // Bind every current physical byte before the immutable 946 target.\n                assert_eq!(actual.as_slice(), packet[&path][\"before_text\"].as_str().unwrap().as_bytes());\n                assert_eq!(actual.len(), 55813);\n                assert_eq!(digest(&actual), \"87257e50e24a64d047eff17fd2ef9de7e1ed4c1049697222223947c62b28f514\");\n                let before = include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/e/b6471558eaf00c76a99472843a9d96a58a11fe9e5779f50fdccbfc6f0011aa51\"));\n                assert_eq!(before.len(), 55814);\n",
+        "start": 3054,
+        "end": 3055,
+        "current": ")",
+        "before": ""
+      },
+      {
+        "start": 3056,
+        "end": 15900,
+        "current": "\n        // Finite inventory transport only: the main scalar classifier changes\n        // the measured common lexical prefix. This is not old execution restoration.\n        let encoded = include_str!(\"../before_frontier/custody/main_d227_transport.json\");\n        assert_eq!(std::fs::read(root.join(\"src/cleanup_plan/replay/path_join/before_frontier/custody/main_d227_transport.json\")).unwrap(), encoded.as_bytes());\n        assert_eq!(\n            digest(encoded.as_bytes()),\n            \"bb3054bcefde53fb800ca082cd2a9de658ec40a38b6da5c51c4ad7c43af3090f\"\n        );\n        let packet: serde_json::Value = serde_json::from_str(encoded).unwrap();\n        assert_eq!(packet.as_object().unwrap().len(), 42);\n        if let Some(row) = packet.get(&path) {\n            let compiled = match path.as_str() {\n                \"src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/branch_clone/inline_tests.rs\" => include_bytes!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/src/cleanup_plan/replay/branch_clone/inline_tests.rs\"\n                ))\n                .as_slice(),\n                \"src/cleanup_plan/replay/branch_clone/production_capacity/tests.rs\" => {\n                    include_bytes!(concat!(\n                        env!(\"CARGO_MANIFEST_DIR\"),\n                        \"/src/cleanup_plan/replay/branch_clone/production_capacity/tests.rs\"\n                    ))\n                    .as_slice()\n                }\n                \"src/cleanup_plan/replay/branch_clone/production_capacity.rs\" => {\n                    include_bytes!(concat!(\n                        env!(\"CARGO_MANIFEST_DIR\"),\n                        \"/src/cleanup_plan/replay/branch_clone/production_capacity.rs\"\n                    ))\n                    .as_slice()\n                }\n                \"src/cleanup_plan/replay/branch_clone/tests.rs\" => include_bytes!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/src/cleanup_plan/replay/branch_clone/tests.rs\"\n                ))\n                .as_slice(),\n                \"src/cleanup_plan/replay/branch_clone.rs\" => include_bytes!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/src/cleanup_plan/replay/branch_clone.rs\"\n                ))\n                .as_slice(),\n                \"src/cleanup_plan/replay/nested_shape.rs\" => include_bytes!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/src/cleanup_plan/replay/nested_shape.rs\"\n                ))\n                .as_slice(),\n                \"src/cleanup_plan/replay.rs\" => include_bytes!(concat!(\n                    env!(\"CARGO_MANIFEST_DIR\"),\n                    \"/src/cleanup_plan/replay.rs\"\n                ))\n                .as_slice(),\n                \"src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/compact.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/factored.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/factored.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/factored/canonical_shared/inline_singleton.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/factored/continuation_receiver.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/factored/continuation_receiver.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/skeleton_work.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/skeleton_work.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/ordinary_receiving/tests.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/ordinary_receiving/tests.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests/receiving.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests/receiving.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/factored/continuation_receiver/tests.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/factored/continuation_receiver/tests.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/expression_facts/arena/prefix/source_main8a.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/arena/prefix/source_main8a.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/expression_facts/arena/prefix/source_maina3.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/arena/prefix/source_maina3.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/expression_facts/arena/prefix/tests.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/arena/prefix/tests.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/expression_facts/capacity.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/capacity.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/expression_facts/capacity/cursor_tests.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/capacity/cursor_tests.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/tests.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/tests.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/counter_tests.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/counter_tests.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase_tests.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase_tests.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/expression_facts/receiving/return_operands/tests.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/receiving/return_operands/tests.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/expression_facts/tests/arena.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/tests/arena.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/expression_facts/receiving/tests.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/receiving/tests.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/path_join/selected/tests/mod.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/path_join/selected/tests/mod.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/path_join/selected/tests/renewal.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/path_join/selected/tests/renewal.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/path_join/selected/tests/session.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/path_join/selected/tests/session.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/path_join/selected/tests/strings.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/path_join/selected/tests/strings.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/path_join/selected/tests/whole.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/path_join/selected/tests/whole.rs\")).as_slice(),\n                \"src/cleanup_plan/replay/physical_budget/authentication.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/physical_budget/authentication.rs\")).as_slice(),\n                _ => panic!(\"unadmitted main transport path\"),\n            };\n            assert_eq!(actual.as_slice(), compiled);\n            assert_eq!(actual.len(), row[\"length\"].as_u64().unwrap() as usize);\n            assert_eq!(digest(&actual), row[\"sha256\"].as_str().unwrap());\n            for edit in row[\"edits\"].as_array().unwrap().iter().rev() {\n                let start = edit[\"start\"].as_u64().unwrap() as usize;\n                let end = edit[\"end\"].as_u64().unwrap() as usize;\n                assert_eq!(\n                    &actual[start..end],\n                    edit[\"current\"].as_str().unwrap().as_bytes()\n                );\n                actual.splice(start..end, edit[\"before\"].as_str().unwrap().bytes());\n            }\n            assert_eq!(\n                actual.len(),\n                row[\"before_length\"].as_u64().unwrap() as usize\n            );\n            assert_eq!(digest(&actual), row[\"before_sha256\"].as_str().unwrap());\n            if path == \"src/cleanup_plan/replay/factored/canonical_shared/inline_singleton.rs\" {\n                // This one endpoint is the complete643f intermediate. The\n                // original ordinary-labels stage below still proves fixed946.\n                assert_eq!(actual.as_slice(), row[\"before_text\"].as_str().unwrap().as_bytes());\n                assert_eq!(actual.len(), 55813);\n                assert_eq!(digest(&actual), \"87257e50e24a64d047eff17fd2ef9de7e1ed4c1049697222223947c62b28f514\");\n            } else {\n                assert_eq!(digest(&actual), expected);\n            }\n        }\n        if matches!(\n            path.as_str(),\n            \"src/cleanup_plan/replay/selected_owner.rs\"\n                | \"src/cleanup_plan/replay/selected_owner/paid.rs\"\n        ) {\n            // Both complete drivers share this external authentication prefix.\n            // Its new funding wrapper executes the exact bound original owner\n            // search; the fixed old source targets below are not repinned.\n            actual = crate::cleanup_plan::replay::selected_owner::ordinary::custody(&path, &actual);\n        }",
+        "before": ""
+      },
+      {
+        "start": 16345,
+        "end": 16389,
+        "current": "130785078147912db8f850bd5f5ff7ea09c847ce31a8",
+        "before": "6"
+      },
+      {
+        "start": 16391,
+        "end": 16392,
+        "current": "6",
+        "before": "cc81349b7820"
+      },
+      {
+        "start": 16393,
+        "end": 16394,
+        "current": "d",
+        "before": "b"
+      },
+      {
+        "start": 16395,
+        "end": 16400,
+        "current": "56666",
+        "before": "e43fc09"
+      },
+      {
+        "start": 16402,
+        "end": 16406,
+        "current": "4214",
+        "before": ""
+      },
+      {
+        "start": 16407,
+        "end": 16407,
+        "current": "",
+        "before": "45"
+      },
+      {
+        "start": 16408,
+        "end": 16408,
+        "current": "",
+        "before": "09d74a"
+      },
+      {
+        "start": 16409,
+        "end": 16409,
+        "current": "",
+        "before": "d4a45ad32f0e932d7d08b1e041"
+      },
+      {
+        "start": 17881,
+        "end": 17882,
+        "current": "4",
+        "before": "2"
+      },
+      {
+        "start": 17883,
+        "end": 17885,
+        "current": "43",
+        "before": "05"
+      },
+      {
+        "start": 17933,
+        "end": 17933,
+        "current": "",
+        "before": "6"
+      },
+      {
+        "start": 17935,
+        "end": 17945,
+        "current": "757425643d",
+        "before": ""
+      },
+      {
+        "start": 17946,
+        "end": 17950,
+        "current": "6a03",
+        "before": ""
+      },
+      {
+        "start": 17951,
+        "end": 17954,
+        "current": "1c6",
+        "before": ""
+      },
+      {
+        "start": 17955,
+        "end": 17957,
+        "current": "05",
+        "before": ""
+      },
+      {
+        "start": 17959,
+        "end": 17975,
+        "current": "1d7018cb5653c71a",
+        "before": ""
+      },
+      {
+        "start": 17976,
+        "end": 17982,
+        "current": "21bb73",
+        "before": "c9"
+      },
+      {
+        "start": 17983,
+        "end": 17983,
+        "current": "",
+        "before": "27fd0dc9c9749fef1e"
+      },
+      {
+        "start": 17984,
+        "end": 17986,
+        "current": "35",
+        "before": ""
+      },
+      {
+        "start": 17989,
+        "end": 17990,
+        "current": "0",
+        "before": "a868c"
+      },
+      {
+        "start": 17992,
+        "end": 17992,
+        "current": "",
+        "before": "08"
+      },
+      {
+        "start": 17993,
+        "end": 17993,
+        "current": "",
+        "before": "8"
+      },
+      {
+        "start": 17994,
+        "end": 17994,
+        "current": "",
+        "before": "097"
+      },
+      {
+        "start": 17995,
+        "end": 17997,
+        "current": "f6",
+        "before": "5831b2478c8922"
+      },
+      {
+        "start": 18258,
+        "end": 20671,
+        "current": ");\n                assert_eq!(digest(before), expected);\n                before.as_slice()\n            } else if path == \"src/cleanup_plan/replay/expression_facts/receiving/retained.rs\" {\n                // Bind every current physical byte before the immutable 946 target.\n                assert_eq!(actual.as_slice(), include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/receiving/retained.rs\")).as_slice());\n                assert_eq!(actual.len(), 37215);\n                assert_eq!(digest(&actual), \"24a7b0034088ef2db45d969ef4320a931e5f724b14732dfdf56073a818cd0081\");\n                let before = include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/e/912a91d979144205750367d55e7aa9b74a4b3f4a1afc8472c010cf26af2677e8\"));\n                assert_eq!(before.len(), 37088);\n                assert_eq!(digest(before), expected);\n                before.as_slice()\n            } else if path == \"src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase.rs\" {\n                // Bind every current physical byte before the immutable 946 target.\n                assert_eq!(actual.as_slice(), include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase.rs\")).as_slice());\n                assert_eq!(actual.len(), 86537);\n                assert_eq!(digest(&actual), \"08c7336a5435b02aed14820e57b7ec6c48ddc9b311363d09c05b3447c0ad6246\");\n                let before = include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/e/fa232cdadb3ff7ea321caa04554d8dc2c237928b976af5890f6ed555c276b1ec\"));\n                assert_eq!(before.len(), 86698);\n                assert_eq!(digest(before), expected);\n                before.as_slice()\n            } else if path == \"src/cleanup_plan/replay/factored/canonical_shared/inline_singleton.rs\" {\n                // Bind every current physical byte before the immutable 946 target.\n                assert_eq!(actual.as_slice(), packet[&path][\"before_text\"].as_str().unwrap().as_bytes());\n                assert_eq!(actual.len(), 55813);\n                assert_eq!(digest(&actual), \"87257e50e24a64d047eff17fd2ef9de7e1ed4c1049697222223947c62b28f514\");\n                let before = include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/e/b6471558eaf00c76a99472843a9d96a58a11fe9e5779f50fdccbfc6f0011aa51\"));\n                assert_eq!(before.len(), 55814",
         "before": ""
       }
     ]

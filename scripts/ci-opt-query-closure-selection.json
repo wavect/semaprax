@@ -1,7 +1,7 @@
 {
   "schema": "semaprax.hosted-opt-batch-selection.v1",
-  "filters": 45,
-  "expected_tests": 191,
+  "filters": 47,
+  "expected_tests": 193,
   "commands": [
     {
       "owner": "OPT893 complete finite page admission predecessor inverse and independent I/O hostiles",
@@ -315,6 +315,20 @@
       "owner": "Paired encoder/parser compiler-produced Core/Component SDK artifact and source-bound hostile replay",
       "binary": "public_generic_wasm_adapter_v1",
       "filter": "component_artifact::retained_component_refuses_source_drift_before_runtime_and_accepts_new_revision",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Incoming396 exact paid lexical source epoch and complete original caller custody",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::expression_facts::receiving::remaining::tests::complete_root_receivers_and_only_named_paid_caller_projections_keep_original_bytes",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Incoming396 exact paid lexical source epoch and complete original caller custody",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::expression_facts::receiving::remaining::tests::paid_lexical_call_inverse_rejects_whole_source_drift_and_old_inputs",
       "exact": true,
       "expected_tests": 1
     }

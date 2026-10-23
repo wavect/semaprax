@@ -18,7 +18,7 @@ SELECTIONS = {
     'historical': ('ci-opt-batch-selection.json', 50, 153, ('lib', 'hir_module_boundaries')),
     'next': ('ci-opt-next-batch-selection.json', 65, 171, ('lib', 'owned_data', 'cli', 'project')),
     'language-followup': ('ci-opt-language-followup-selection.json', 2, 7, ('lib', 'project')),
-    'closure': ('ci-opt-closure-selection.json', 14, 73, ('lib',)),
+    'closure': ('ci-opt-closure-selection.json', 15, 78, ('lib',)),
 }
 OUT = ROOT / 'diagnostic-opt-batch'
 TARGET = ROOT / 'target/hosted-opt-batch'

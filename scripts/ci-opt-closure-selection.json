@@ -1,7 +1,7 @@
 {
   "schema": "semaprax.hosted-opt-batch-selection.v1",
-  "filters": 14,
-  "expected_tests": 73,
+  "filters": 15,
+  "expected_tests": 78,
   "commands": [
     {
       "owner": "OPT915 compact lexical receiving complete immediate-old caller",
@@ -100,6 +100,13 @@
       "filter": "cleanup_plan::replay::expression_facts::receiving::retained::last_use::tests::",
       "exact": false,
       "expected_tests": 4
+    },
+    {
+      "owner": "OPT903 ordinary immutable-label canonical owner full states and weighted diagnostic parity",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::factored::canonical_shared::inline_singleton::ordinary_labels::",
+      "exact": false,
+      "expected_tests": 5
     }
   ]
 }

@@ -37,10 +37,43 @@ def file_digest(path):
 
 
 def available_memory():
+    if Path("/proc/meminfo").exists():
+        for line in Path("/proc/meminfo").read_text().splitlines():
+            if line.startswith("MemAvailable:"):
+                return int(line.split()[1]) * 1024
     try:
         return os.sysconf("SC_AVPHYS_PAGES") * os.sysconf("SC_PAGE_SIZE")
     except (ValueError, OSError):
         return None
+
+
+def logged_cargo(argv, worktree, env, log, lock):
+    memory_log = log.with_suffix(".memory.jsonl")
+    minimum = None
+    samples = 0
+    with log.open("xb") as stream, memory_log.open("x") as memory:
+        # Cargo retains the same lock if the coordinating parent dies.
+        with subprocess.Popen(argv, cwd=worktree, env=env, stdout=stream,
+                              stderr=subprocess.STDOUT, pass_fds=(lock,)) as process:
+            while True:
+                available = available_memory()
+                memory.write(json.dumps({
+                    "utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                    "cargo_pid": process.pid, "host_available_memory_bytes": available,
+                }) + "\n")
+                memory.flush()
+                samples += 1
+                if available is not None:
+                    minimum = available if minimum is None else min(minimum, available)
+                try:
+                    status = process.wait(timeout=5)
+                    break
+                except subprocess.TimeoutExpired:
+                    pass
+    return {"status": status, "log_sha256": file_digest(log),
+            "host_memory_log": memory_log.name, "host_memory_log_sha256": file_digest(memory_log),
+            "host_memory_samples": samples, "minimum_sampled_host_available_memory_bytes": minimum,
+            "host_memory_sample_interval_seconds": 5}
 
 
 def command(argv, **kwargs):
@@ -186,6 +219,8 @@ def main():
     parser.add_argument("--scratch-root", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--fetch-missing", action="store_true")
+    parser.add_argument("--fetch-dependencies", action="store_true",
+                        help="explicitly provision locked Cargo dependencies before each offline test invocation")
     args = parser.parse_args()
     repo = args.repo.resolve(strict=True)
     scratch = args.scratch_root.resolve(strict=True)
@@ -203,6 +238,7 @@ def main():
               "runner_sha256": digest(Path(__file__).read_bytes()), "manifest_sha256": digest(manifest_bytes),
               "host": platform.platform(), "host_lock": "/tmp/semaprax-heavy-job.lock",
               "available_physical_pages_bytes_before_jobs": available_memory(),
+              "dependency_fetch_opted_in": args.fetch_dependencies,
               "application_admission_proven": False, "opt904_only_total_invoice_savings_proven": False}
     try:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -223,20 +259,30 @@ def main():
             env.update(manifest["environment"])
             env.update({"RUSTUP_TOOLCHAIN": manifest["rust"], "CARGO_BUILD_TARGET": host,
                         "CARGO_TARGET_DIR": str(worktree / "target" / "opt904-private")})
+            image_result = {"base": image["base"], "base_tree": image["base_tree"],
+                            "patched_tree": image["patched_tree"], "patch_sha256": image["patch"]["sha256"]}
+            result[image["name"]] = image_result
+            if args.fetch_dependencies:
+                fetch_env = env.copy()
+                fetch_env["CARGO_NET_OFFLINE"] = "false"
+                fetch_log = args.output / f"{image['name']}-dependency-fetch.log"
+                image_result["dependency_fetch"] = logged_cargo(
+                    ["rustup", "run", manifest["rust"], "cargo", "fetch", "--locked", "--target", host],
+                    worktree, fetch_env, fetch_log, lock,
+                )
+                require(image_result["dependency_fetch"]["status"] == 0,
+                        f"{image['name']} locked dependency provisioning failed; separate log retained")
             log = args.output / f"{image['name']}-cargo.log"
             argv = ["rustup", "run", manifest["rust"], "cargo", "test", "--locked", "--offline", "-p", "semaprax",
                     "--lib", manifest["selector"], "--", "--test-threads=1", "--nocapture"]
-            with log.open("xb") as stream:
-                # Cargo retains the same lock if the coordinating parent dies.
-                status = subprocess.run(argv, cwd=worktree, env=env, stdout=stream,
-                                        stderr=subprocess.STDOUT, pass_fds=(lock,)).returncode
-            result[image["name"]] = {"base": image["base"], "base_tree": image["base_tree"],
-                                      "patched_tree": image["patched_tree"], "patch_sha256": image["patch"]["sha256"],
-                                      "status": status, "log_sha256": file_digest(log)}
-            require(status == 0, f"{image['name']} selected tests failed; complete log retained")
+            image_result.update(logged_cargo(argv, worktree, env, log, lock))
+            require(image_result["status"] == 0, f"{image['name']} selected tests failed; complete log retained")
             verify_image(worktree, image)
             groups[image["name"]] = read_records(log, image, manifest)
-            # Each image finishes before the next Cargo invocation starts.
+            git(repo, "worktree", "remove", "--force", str(worktree))
+            created.remove(worktree)
+            image_result["worktree_and_private_target_removed"] = True
+            # Release this image's build storage before preparing the next image.
         compare(groups["old"], groups["current"])
         result["paired_observation_complete"] = True
         result["records_per_image"] = manifest["records_per_image"]

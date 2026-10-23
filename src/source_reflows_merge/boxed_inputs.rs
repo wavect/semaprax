@@ -94,7 +94,7 @@ fn bundle(current: &str) -> String {
         current,
         include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"),
         5544,
-        "9f49e2011de221c6da0ed781cf6c04ea2176b1b1972bddd42ffbdc48e2f8ed71",
+        "ac6508eb6f2512eeb79c548d60e92f92cfb95c01e4d79a7b76e2e3971ca15524",
     );
     let receipt = include_str!("../../docs/evidence/boxed-path-states-v1/catalog-receipt.json");
     authenticate(
@@ -105,6 +105,20 @@ fn bundle(current: &str) -> String {
         "bb2d89942ce7b5ad759a787bcb1a0c5a0f1def93075fb70966089d30d1fdc279",
     );
     let mut before = current.to_owned();
+    // Restore the entire authenticated Git3e seed bundle before its unchanged old stages.
+    replace(
+        &mut before,
+        "sha256:8fb19f233cda3a16e72d4f7eadc1704a919cff1b26f8c7f5c09c097c14b375b7",
+        "sha256:fcc27b3427068e199c2c7b34dd3bcbcdfabb73c92c96c475f3e860aa7ded9d4d",
+        1,
+    );
+    replace(
+        &mut before,
+        "sha256:b79a3992d9e09d405e0a40cb918a4966f5495aef408ab045e345b34aaca9f7da",
+        "sha256:f74d1c326025cdcbce2ee7775ad58fe5fb6f902744d6f07bb349beab65748d5a",
+        1,
+    );
+    assert_eq!(digest(&before), "9f49e2011de221c6da0ed781cf6c04ea2176b1b1972bddd42ffbdc48e2f8ed71");
     // Restore the entire authenticated Git5d seed bundle before its unchanged old stages.
     replace(
         &mut before,

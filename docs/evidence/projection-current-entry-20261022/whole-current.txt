@@ -789,7 +789,7 @@ pub(in crate::cleanup_plan::replay) fn custody(path: &str, current: &[u8]) -> Ve
     let digest = |bytes: &[u8]| format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)));
     assert_eq!(
         digest(include_bytes!("ordinary/inverse.json")),
-        "7d5b5ca5d41ead1f4f38e9fa616bfb8922a07085dd3eb4aa57a24db246ebdcaa"
+        "31b422b59b3d10e7b2f0bab5c009f5d3477734c375d2ce723f9c0d2335447575"
     );
     let binding: serde_json::Value =
         serde_json::from_str(include_str!("ordinary/inverse.json")).unwrap();
@@ -8075,7 +8075,7 @@ use std::{collections::BTreeSet, marker::PhantomData, mem::size_of};
 
 pub(super) struct Insertions<T> {
     pub(super) failed: bool,
-    refusal: Option<Diagnostic>,
+    refusal: Option<ByteFailure>,
     entry: bool,
     group_entry: bool,
     function: *const ResolvedFunction,
@@ -8087,16 +8087,20 @@ pub(super) struct Insertions<T> {
 impl<T: Ord> Insertions<T> {
     // Aggregate initializer, named mutable result and caller receiving owner;
     // the Result<Self> wrapper remains separate, plus constructor/payment Results,
-    // inert ledger return, refusal None/Some/take and terminal Diagnostic moves.
+    // inert ledger return, compact refusal None/Some/take and terminal Diagnostic moves.
+    // Every full Diagnostic/ByteFailure terminal bank remains: positive failures
+    // retain their actual ByteFailure until failure() moves its identical Cow into
+    // the Diagnostic. Foreign rejection still constructs its original Diagnostic
+    // first and compacts only after the actual held ledger rejected storage.
     pub(super) fn controls() -> usize {
         3 * size_of::<Self>()
             + size_of::<Result<Self, Diagnostic>>()
             + size_of::<Result<(), Diagnostic>>()
             + size_of::<ClassifierLedger>()
-            + 3 * size_of::<Option<Diagnostic>>()
+            + 3 * size_of::<Option<ByteFailure>>()
             + 2 * size_of::<Diagnostic>()
             + size_of::<&mut Self>()
-            + size_of::<&mut Option<Diagnostic>>()
+            + size_of::<&mut Option<ByteFailure>>()
             + ClassifierLedger::capture_into_controls()
             + ClassifierLedger::insertion_terminal_controls()
             // One independent tree-group entry bank shares the exact held
@@ -8107,6 +8111,12 @@ impl<T: Ord> Insertions<T> {
             // once, before any entry; sticky failure forbids reuse.
             + 2 * size_of::<ByteFailure>()
             + 2 * size_of::<Diagnostic>()
+            // A foreign/function/budget rejection still constructs the actual
+            // original Diagnostic before compacting it. This NEW affine call
+            // owns a Diagnostic actual/formal and returned compact carriers;
+            // its bank is separate from the retained failure() conversion.
+            + 2 * size_of::<Diagnostic>()
+            + 2 * size_of::<ByteFailure>()
     }
     // A single entry's actual method/gateway/positive-reservation receivers.
     // Each entry consumes this bank and pays the next bank afresh. The final
@@ -8114,7 +8124,7 @@ impl<T: Ord> Insertions<T> {
     const ENTRY_CONTROLS: usize = 2 * size_of::<&mut Self>()
             + 4 * size_of::<&ResolvedFunction>()
             + 4 * size_of::<&mut ReplayBudget>()
-            + size_of::<&mut Option<Diagnostic>>()
+            + size_of::<&mut Option<ByteFailure>>()
             + size_of::<Result<(), ByteFailure>>()
             + ClassifierLedger::current_receiving_controls()
             + 6 * size_of::<Incoming<T>>()
@@ -8126,7 +8136,9 @@ impl<T: Ord> Insertions<T> {
             + 8 * size_of::<bool>()
             + 2 * size_of::<Option<usize>>()
             + 2 * size_of::<&mut Incoming<T>>()
-            + 2 * size_of::<&Incoming<T>>()
+            // The lexical match keeps its actual &Incoming view. The old
+            // contains callee's independent formal &Incoming no longer exists.
+            + size_of::<&Incoming<T>>()
             + 2 * size_of::<&T>();
     pub(super) fn entry_controls() -> usize {
         Self::ENTRY_CONTROLS
@@ -8136,7 +8148,7 @@ impl<T: Ord> Insertions<T> {
     pub(super) const GROUP_ENTRY_CONTROLS: usize = 2 * size_of::<&mut Self>()
         + 4 * size_of::<&ResolvedFunction>()
         + 4 * size_of::<&mut ReplayBudget>()
-        + size_of::<&mut Option<Diagnostic>>()
+        + size_of::<&mut Option<ByteFailure>>()
         + size_of::<Result<(), ByteFailure>>()
         + ClassifierLedger::current_receiving_controls();
     const NODE: usize = match const_node_upper::<Box<T>, ()>() {
@@ -8161,6 +8173,8 @@ impl<T: Ord> Insertions<T> {
                 Self::controls() + Self::entry_controls(),
                 "ownership insertion receiving controls",
             )?;
+            #[cfg(test)]
+            contains_tests::record_entry_bank();
         }
         let mut result = Self {
             failed: false,
@@ -8188,11 +8202,14 @@ impl<T: Ord> Insertions<T> {
             || !self.ledger.current()
         {
             self.ledger.reject_storage();
-            self.refusal = Some(Diagnostic::io("SPX-H006", String::new()));
+            self.refusal = Some(ByteFailure::from_budget(Diagnostic::io(
+                "SPX-H006",
+                String::new(),
+            )));
             self.failed = true;
             return;
         }
-        budget.authenticate_zero_into(
+        budget.authenticate_zero_compact_into(
             function,
             "incoming ownership state authority",
             &mut self.refusal,
@@ -8212,7 +8229,11 @@ impl<T: Ord> Insertions<T> {
         if self.failed {
             return;
         }
-        let duplicate = target.contains(&value);
+        let duplicate = match &*target {
+            Incoming::Empty => false,
+            Incoming::One(old) => old.as_ref().cmp(&value) == std::cmp::Ordering::Equal,
+            Incoming::Many(v) => v.contains(&value),
+        };
         let bytes = if duplicate {
             Self::ENTRY_CONTROLS
         } else {
@@ -8227,9 +8248,13 @@ impl<T: Ord> Insertions<T> {
             bytes,
             "compact incoming owned state and publication renewal",
         ) {
-            self.refusal = Some(error.into_diagnostic());
+            self.refusal = Some(error);
             self.failed = true;
             return;
+        }
+        #[cfg(test)]
+        if budget.pays_allocations() {
+            contains_tests::record_entry_bank();
         }
         #[cfg(feature = "unstable-workflow-profiling")]
         if duplicate {
@@ -8257,7 +8282,11 @@ impl<T: Ord> Insertions<T> {
         if self.failed {
             return;
         }
-        let duplicate = target.contains(value.as_ref());
+        let duplicate = match &*target {
+            Incoming::Empty => false,
+            Incoming::One(old) => old.as_ref().cmp(value.as_ref()) == std::cmp::Ordering::Equal,
+            Incoming::Many(v) => v.contains(value.as_ref()),
+        };
         let bytes = if duplicate {
             Self::ENTRY_CONTROLS
         } else {
@@ -8272,9 +8301,13 @@ impl<T: Ord> Insertions<T> {
             bytes,
             "compact incoming held state and publication renewal",
         ) {
-            self.refusal = Some(error.into_diagnostic());
+            self.refusal = Some(error);
             self.failed = true;
             return;
+        }
+        #[cfg(test)]
+        if budget.pays_allocations() {
+            contains_tests::record_entry_bank();
         }
         #[cfg(feature = "unstable-workflow-profiling")]
         if duplicate {
@@ -8305,11 +8338,14 @@ impl<T: Ord> Insertions<T> {
             || !self.ledger.current()
         {
             self.ledger.reject_storage();
-            self.refusal = Some(Diagnostic::io("SPX-H006", String::new()));
+            self.refusal = Some(ByteFailure::from_budget(Diagnostic::io(
+                "SPX-H006",
+                String::new(),
+            )));
             self.failed = true;
             return;
         }
-        budget.authenticate_zero_into(
+        budget.authenticate_zero_compact_into(
             function,
             "incoming ownership state authority",
             &mut self.refusal,
@@ -8333,7 +8369,7 @@ impl<T: Ord> Insertions<T> {
                 Self::GROUP_ENTRY_CONTROLS,
                 "ownership held duplicate receiving renewal",
             ) {
-                self.refusal = Some(error.into_diagnostic());
+                self.refusal = Some(error);
                 self.failed = true;
                 return;
             }
@@ -8343,7 +8379,7 @@ impl<T: Ord> Insertions<T> {
                 Self::GROUP_HELD,
                 "incoming held ownership state node and receiving renewal",
             ) {
-                self.refusal = Some(error.into_diagnostic());
+                self.refusal = Some(error);
                 self.failed = true;
                 return;
             }
@@ -8368,6 +8404,7 @@ impl<T: Ord> Insertions<T> {
         self.refusal
             .take()
             .expect("ownership insertion report moves once")
+            .into_diagnostic()
     }
 }
 
@@ -8470,13 +8507,6 @@ impl<T: Ord> Incoming<T> {
     }
     pub(super) fn is_empty(&self) -> bool {
         self.len() == 0
-    }
-    fn contains(&self, value: &T) -> bool {
-        match self {
-            Self::Empty => false,
-            Self::One(old) => old.as_ref().cmp(value) == std::cmp::Ordering::Equal,
-            Self::Many(v) => v.contains(value),
-        }
     }
     // Called only after all box, node/split, move, empty replacement and Result
     // roles have been acquired. On a refused payment no target is taken.
@@ -9176,10 +9206,10 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
         assert_eq!(std::fs::read(root.join("src/cleanup_plan/replay/path_join/before_frontier/custody/main_d227_transport.json")).unwrap(), encoded.as_bytes());
         assert_eq!(
             digest(encoded.as_bytes()),
-            "c33e4cd530ceea3cb92f8162e5e08d1c4c60b4c35b558227311c7e3d37135371"
+            "046a313e58da6a509699409d479b83147b511c5c6693d28d7c0b93c537350c5c"
         );
         let packet: serde_json::Value = serde_json::from_str(encoded).unwrap();
-        assert_eq!(packet.as_object().unwrap().len(), 33);
+        assert_eq!(packet.as_object().unwrap().len(), 41);
         if let Some(row) = packet.get(&path) {
             let compiled = match path.as_str() {
                 "src/cleanup_plan/replay/branch_clone/inline_tests.rs" => include_bytes!(concat!(
@@ -9247,6 +9277,14 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
                 "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase_tests.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase_tests.rs")).as_slice(),
                 "src/cleanup_plan/replay/expression_facts/receiving/return_operands/tests.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/return_operands/tests.rs")).as_slice(),
                 "src/cleanup_plan/replay/expression_facts/tests/arena.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/tests/arena.rs")).as_slice(),
+                "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs")).as_slice(),
+                "src/cleanup_plan/replay/expression_facts/receiving/tests.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/tests.rs")).as_slice(),
+                "src/cleanup_plan/replay/path_join/selected/tests/mod.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/tests/mod.rs")).as_slice(),
+                "src/cleanup_plan/replay/path_join/selected/tests/renewal.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/tests/renewal.rs")).as_slice(),
+                "src/cleanup_plan/replay/path_join/selected/tests/session.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/tests/session.rs")).as_slice(),
+                "src/cleanup_plan/replay/path_join/selected/tests/strings.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/tests/strings.rs")).as_slice(),
+                "src/cleanup_plan/replay/path_join/selected/tests/whole.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/tests/whole.rs")).as_slice(),
+                "src/cleanup_plan/replay/physical_budget/authentication.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/physical_budget/authentication.rs")).as_slice(),
                 _ => panic!("unadmitted main transport path"),
             };
             assert_eq!(actual.as_slice(), compiled);
@@ -9293,7 +9331,7 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
                 // fixture. No production dependency receives this inverse.
                 assert_eq!(
                     digest(&actual),
-                    "3488dffc097d20eaf58ec844db9887a4cb4bf0a2eb881f6f668d01aa51b19b57"
+                    "11b5a876b7ae91cab5b1c4607d6a8c988d7e46d0144ad68863543edbbb84d705"
                 );
                 let before = include_bytes!(concat!(
                     env!("CARGO_MANIFEST_DIR"),
@@ -13362,6 +13400,10 @@ fn v12_complete_frozen_v11_inverse_keeps_every_row_view_prefix_and_canonical_byt
             .unwrap();
     assert!(page_bytes.len() <= PAGE_CAP);
     let page: Value = serde_json::from_slice(&page_bytes).unwrap();
+    if page["schema"] == super::super::SCHEMA_V13 {
+        super::super::verify_current_v13(&page);
+        return;
+    }
     let expanded = expand_to_v11(&page).unwrap();
     let expanded_bytes = canonical(&expanded);
     assert!(expanded_bytes.len() <= SOURCE_CAP);
@@ -13505,10 +13547,14 @@ fn v12_full_original_controller_dispatch_and_old_v11_source_inverses_are_exact()
         hash(before.as_bytes()),
         "1bae91431b48d61bd482028a99fc30f967d4b153e8e68acdf8d25e45aa20719e"
     );
+    let v13_root = super::super::v13_before(
+        "src/source_reflows_merge/main_e177_overlay_v2.rs",
+        include_str!("../main_e177_overlay_v2.rs"),
+    );
     let acquired = crate::source_reflows::next_custody_before(
         "v12-root",
         "src/source_reflows_merge/main_e177_overlay_v2.rs",
-        include_str!("../main_e177_overlay_v2.rs"),
+        &v13_root,
     );
     let current = acquired.as_str();
     let new = "    if page[\"schema\"] == fragments_v3::SCHEMA_V12 {\n        let expanded = fragments_v3::expand_v12(&before, policy, page)?;\n        compose_values_v2(before, policy, &expanded)\n    } else if page[\"schema\"] == fragments_v3::SCHEMA_V11 {\n";
@@ -13521,6 +13567,11 @@ fn v12_full_original_controller_dispatch_and_old_v11_source_inverses_are_exact()
         "af953cf250bc63c7e102ac0ed9c4014432c60aab5878bd1094b27353f128c60c"
     );
     let current = include_str!("../main_e177_overlay_fragments_v3.rs");
+    let prior = super::super::v13_before(
+        "src/source_reflows_merge/main_e177_overlay_fragments_v3.rs",
+        current,
+    );
+    let current = prior.as_str();
     let acquired = crate::source_reflows::next_custody_before(
         "main295-v12-fragments",
         "src/source_reflows_merge/main_e177_overlay_fragments_v3.rs",

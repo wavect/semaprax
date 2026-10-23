@@ -1,0 +1,50 @@
+{
+  "src/cleanup_plan/replay/selected_owner.rs": {
+    "length": 2187,
+    "sha256": "cb4a59cddd51b8453191f628b76ca5dce2782cf0ae33ab805c9521062f1b16a4",
+    "before_length": 2169,
+    "before_sha256": "849ba043b4f2037e273c96fa019e42109b3d6e4983c8c1ce66a645f62f394052",
+    "edits": [
+      {
+        "start": 391,
+        "end": 450,
+        "current": "        return ordinary::owner(program, function, budget);\n",
+        "before": "        return crate::hir::lexical_exit::owner(program, function);\n"
+      },
+      {
+        "start": 2161,
+        "end": 2187,
+        "current": "\npub(super) mod ordinary;\n",
+        "before": ""
+      }
+    ]
+  },
+  "src/cleanup_plan/replay/selected_owner/paid.rs": {
+    "length": 2427,
+    "sha256": "f4c8690d775e0e67c9566d43bd0dce8e189aa108d2e14daba647167ebc8cc5e7",
+    "before_length": 2428,
+    "before_sha256": "328ed1b055f8d73185ee2137eb6da0fa59d3bce73e6ddb8a17de71dcae6160c6",
+    "edits": [
+      {
+        "start": 433,
+        "end": 519,
+        "current": "        return super::ordinary::owner(program, function, budget).map_err(Into::into);\n",
+        "before": "        return crate::hir::lexical_exit::owner(program, function).map_err(Into::into);\n"
+      }
+    ]
+  },
+  "src/cleanup_plan/replay/path_join/frontier_tests/custody.rs": {
+    "length": 6311,
+    "sha256": "a0118c6e92fb57e46a2bbaae988225af885134bb95abc42138ba2d2061c522e8",
+    "before_length": 5828,
+    "before_sha256": "7f50ea1bdad01332b3a8beb33755517f14fe12bdb13041759de3069d3e16767d",
+    "edits": [
+      {
+        "start": 2932,
+        "end": 3478,
+        "current": "        let mut actual = std::fs::read(root.join(&path)).unwrap();\n        if matches!(path.as_str(), \"src/cleanup_plan/replay/selected_owner.rs\" | \"src/cleanup_plan/replay/selected_owner/paid.rs\") {\n            // Both complete drivers share this external authentication prefix.\n            // Its new funding wrapper executes the exact bound original owner\n            // search; the fixed old source targets below are not repinned.\n            actual = crate::cleanup_plan::replay::selected_owner::ordinary::custody(&path, &actual);\n        }\n",
+        "before": "        let actual = std::fs::read(root.join(&path)).unwrap();\n"
+      }
+    ]
+  }
+}

@@ -7,7 +7,7 @@ pub(in super::super) fn owner(
     budget: &mut ReplayBudget,
 ) -> Result<crate::hir::FunctionExecutionId, expression_facts::errors::EngineError> {
     if !budget.selected() {
-        return crate::hir::lexical_exit::owner(program, function).map_err(Into::into);
+        return super::ordinary::owner(program, function, budget).map_err(Into::into);
     }
     if !program.function_templates().is_empty() || !program.function_instances().is_empty() {
         return Err(refusal(

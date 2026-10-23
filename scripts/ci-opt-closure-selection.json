@@ -1,0 +1,35 @@
+{
+  "schema": "semaprax.hosted-opt-batch-selection.v1",
+  "filters": 4,
+  "expected_tests": 34,
+  "commands": [
+    {
+      "owner": "OPT915 compact lexical receiving complete immediate-old caller",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::factored::strategy::compact_receiving::tests::",
+      "exact": false,
+      "expected_tests": 4
+    },
+    {
+      "owner": "OPT917 canonical lossless view-label codec parity and hostile input controls",
+      "binary": "lib",
+      "filter": "source_reflows_merge::main_e177_final_inputs::overlay_v2::fragments_v3::labels_v12::tests::",
+      "exact": false,
+      "expected_tests": 6
+    },
+    {
+      "owner": "OPT918 receiving sort owning controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::skeleton_work::enumerated_prefix::receiving_sort::tests::",
+      "exact": false,
+      "expected_tests": 10
+    },
+    {
+      "owner": "OPT919 ordinary frontier owning controls including whole and custody",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::frontier_tests::",
+      "exact": false,
+      "expected_tests": 14
+    }
+  ]
+}

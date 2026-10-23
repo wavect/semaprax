@@ -1,7 +1,7 @@
 {
   "schema": "semaprax.hosted-opt-batch-selection.v1",
-  "filters": 13,
-  "expected_tests": 69,
+  "filters": 14,
+  "expected_tests": 73,
   "commands": [
     {
       "owner": "OPT915 compact lexical receiving complete immediate-old caller",
@@ -93,6 +93,13 @@
       "filter": "workspace_graph::expected_projection::call_carriers::tests::exact_one_short_zero_and_whole_allocation_drop_controls",
       "exact": true,
       "expected_tests": 1
+    },
+    {
+      "owner": "OPT903 complete immediate-old structure last-use receiver and paid release",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::expression_facts::receiving::retained::last_use::tests::",
+      "exact": false,
+      "expected_tests": 4
     }
   ]
 }

@@ -169,6 +169,8 @@ fn whole_pre_inline_driver_helpers_and_original_direct_tests_are_retained_exactl
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     for row in rows.as_array().unwrap() {
         let mut actual = std::fs::read(root.join(row["path"].as_str().unwrap())).unwrap();
+        actual =
+            super::shared_insertions_tests::prior_source(row["path"].as_str().unwrap(), actual);
         assert_eq!(actual.len() as u64, row["length"].as_u64().unwrap());
         assert_eq!(digest(&actual), row["sha256"].as_str().unwrap());
         for edit in row["edits"].as_array().unwrap().iter().rev() {

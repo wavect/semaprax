@@ -1,5 +1,4 @@
 //! One invocation's explicitly paid insertion receivers and terminal report.
-use super::super::physical_storage::btree_node_upper;
 use super::*;
 use crate::bounded_output::classifier_string::ClassifierLedger;
 use crate::cleanup_plan::replay::physical_budget::ByteFailure;
@@ -9,15 +8,10 @@ pub(super) struct Insertions<T> {
     pub(super) failed: bool,
     refusal: Option<Diagnostic>,
     entry: bool,
+    group_entry: bool,
     function: *const ResolvedFunction,
     budget: *const ReplayBudget,
     ledger: ClassifierLedger,
-    owned_empty: usize,
-    held_empty: usize,
-    owned_one: usize,
-    held_one: usize,
-    owned_many: usize,
-    held_many: usize,
 
     marker: PhantomData<fn() -> T>,
 }
@@ -34,13 +28,11 @@ impl<T: Ord> Insertions<T> {
             + 2 * size_of::<Diagnostic>()
             + size_of::<&mut Self>()
             + size_of::<&mut Option<Diagnostic>>()
-            + 5 * size_of::<Option<usize>>()
-            // Eight checked amount producers: operand actual/formal values,
-            // checked result/unwrap receiver, default and returned usize.
-            // No per-entry Option callbacks or forwarding fee helper exists.
-            + size_of::<[(usize,usize,Option<usize>,Option<usize>,usize,usize);8]>()
             + ClassifierLedger::capture_into_controls()
             + ClassifierLedger::insertion_terminal_controls()
+            // One independent tree-group entry bank shares the exact held
+            // authority/error owner. The original node/renewal tariff remains.
+            + Self::GROUP_ENTRY_CONTROLS
             // At most one positive-payment failure reaches conversion. Pay its
             // actual/formal compact values and Diagnostic construction/return
             // once, before any entry; sticky failure forbids reuse.
@@ -50,8 +42,7 @@ impl<T: Ord> Insertions<T> {
     // A single entry's actual method/gateway/positive-reservation receivers.
     // Each entry consumes this bank and pays the next bank afresh. The final
     // unused entry remains reserved: no reset, refund or allowance donation.
-    pub(super) fn entry_controls() -> usize {
-        2 * size_of::<&mut Self>()
+    const ENTRY_CONTROLS: usize = 2 * size_of::<&mut Self>()
             + 4 * size_of::<&ResolvedFunction>()
             + 4 * size_of::<&mut ReplayBudget>()
             + size_of::<&mut Option<Diagnostic>>()
@@ -67,12 +58,30 @@ impl<T: Ord> Insertions<T> {
             + 2 * size_of::<Option<usize>>()
             + 2 * size_of::<&mut Incoming<T>>()
             + 2 * size_of::<&Incoming<T>>()
-            + 2 * size_of::<&T>()
+            + 2 * size_of::<&T>();
+    pub(super) fn entry_controls() -> usize {
+        Self::ENTRY_CONTROLS
     }
-    #[allow(
-        clippy::manual_saturating_arithmetic,
-        reason = "retain the separately prepaid checked Option and unwrap receiver banks"
-    )]
+    // Exact original tree entry price; only borrowed Self references depend on
+    // the receiver type, and both remain thin references to a sized owner.
+    pub(super) const GROUP_ENTRY_CONTROLS: usize = 2 * size_of::<&mut Self>()
+        + 4 * size_of::<&ResolvedFunction>()
+        + 4 * size_of::<&mut ReplayBudget>()
+        + size_of::<&mut Option<Diagnostic>>()
+        + size_of::<Result<(), ByteFailure>>()
+        + ClassifierLedger::current_receiving_controls();
+    const NODE: usize = match const_node_upper::<Box<T>, ()>() {
+        Some(bytes) => bytes,
+        None => usize::MAX,
+    };
+    const BOXED: usize = size_of::<T>().saturating_add(2 * size_of::<Box<T>>());
+    const OWNED_EMPTY: usize = Self::ENTRY_CONTROLS.saturating_add(Self::BOXED);
+    const TWO_NODES: usize = Self::NODE.saturating_mul(2);
+    const HELD_ONE: usize = Self::TWO_NODES.saturating_add(Self::ENTRY_CONTROLS);
+    const OWNED_ONE: usize = Self::HELD_ONE.saturating_add(Self::BOXED);
+    const HELD_MANY: usize = Self::NODE.saturating_add(Self::ENTRY_CONTROLS);
+    const OWNED_MANY: usize = Self::HELD_MANY.saturating_add(Self::BOXED);
+    const GROUP_HELD: usize = Self::NODE.saturating_add(Self::GROUP_ENTRY_CONTROLS);
     pub(super) fn acquire(
         function: &ResolvedFunction,
         budget: &mut ReplayBudget,
@@ -84,30 +93,14 @@ impl<T: Ord> Insertions<T> {
                 "ownership insertion receiving controls",
             )?;
         }
-        let node = btree_node_upper::<Box<T>, ()>().unwrap_or(usize::MAX);
-        let boxed = size_of::<T>()
-            .checked_add(2 * size_of::<Box<T>>())
-            .unwrap_or(usize::MAX);
-        let held_empty = Self::entry_controls();
-        let owned_empty = held_empty.checked_add(boxed).unwrap_or(usize::MAX);
-        let two_nodes = node.checked_mul(2).unwrap_or(usize::MAX);
-        let held_one = two_nodes.checked_add(held_empty).unwrap_or(usize::MAX);
-        let owned_one = held_one.checked_add(boxed).unwrap_or(usize::MAX);
-        let held_many = node.checked_add(held_empty).unwrap_or(usize::MAX);
-        let owned_many = held_many.checked_add(boxed).unwrap_or(usize::MAX);
         let mut result = Self {
             failed: false,
             refusal: None,
             entry: true,
+            group_entry: true,
             function: std::ptr::from_ref(function),
             budget: std::ptr::from_ref(budget),
             ledger: ClassifierLedger::empty_receiving(),
-            owned_empty,
-            held_empty,
-            owned_one,
-            held_one,
-            owned_many,
-            held_many,
             marker: PhantomData,
         };
         result.ledger.capture_current_into();
@@ -152,12 +145,12 @@ impl<T: Ord> Insertions<T> {
         }
         let duplicate = target.contains(&value);
         let bytes = if duplicate {
-            self.held_empty
+            Self::ENTRY_CONTROLS
         } else {
             match target {
-                Incoming::Empty => self.owned_empty,
-                Incoming::One(_) => self.owned_one,
-                Incoming::Many(_) => self.owned_many,
+                Incoming::Empty => Self::OWNED_EMPTY,
+                Incoming::One(_) => Self::OWNED_ONE,
+                Incoming::Many(_) => Self::OWNED_MANY,
             }
         };
         if let Err(error) = budget.reserve_compact_bytes(
@@ -187,12 +180,12 @@ impl<T: Ord> Insertions<T> {
         }
         let duplicate = target.contains(value.as_ref());
         let bytes = if duplicate {
-            self.held_empty
+            Self::ENTRY_CONTROLS
         } else {
             match target {
-                Incoming::Empty => self.held_empty,
-                Incoming::One(_) => self.held_one,
-                Incoming::Many(_) => self.held_many,
+                Incoming::Empty => Self::ENTRY_CONTROLS,
+                Incoming::One(_) => Self::HELD_ONE,
+                Incoming::Many(_) => Self::HELD_MANY,
             }
         };
         if let Err(error) = budget.reserve_compact_bytes(
@@ -209,12 +202,136 @@ impl<T: Ord> Insertions<T> {
         }
         self.entry = true;
     }
+    // Complete original held-tree producer, sharing only retained ownership.
+    fn authenticate_group(&mut self, function: &ResolvedFunction, budget: &mut ReplayBudget) {
+        if self.failed {
+            return;
+        }
+        assert!(self.group_entry);
+        self.group_entry = false;
+        // Compare exact receiver identity before querying a possibly foreign
+        // payer. The held ledger poisons only its original owner on mismatch.
+        if self.function != std::ptr::from_ref(function)
+            || self.budget != std::ptr::from_ref(budget)
+            || !self.ledger.current()
+        {
+            self.ledger.reject_storage();
+            self.refusal = Some(Diagnostic::io("SPX-H006", String::new()));
+            self.failed = true;
+            return;
+        }
+        budget.authenticate_zero_into(
+            function,
+            "incoming ownership state authority",
+            &mut self.refusal,
+        );
+        self.failed = self.refusal.is_some();
+    }
+    pub(super) fn insert_group_held(
+        &mut self,
+        function: &ResolvedFunction,
+        target: &mut BTreeSet<Box<T>>,
+        value: Box<T>,
+        budget: &mut ReplayBudget,
+    ) {
+        self.authenticate_group(function, budget);
+        if self.failed {
+            return;
+        }
+        if target.contains(value.as_ref()) {
+            if let Err(error) = budget.reserve_compact_bytes(
+                function,
+                Self::GROUP_ENTRY_CONTROLS,
+                "ownership held duplicate receiving renewal",
+            ) {
+                self.refusal = Some(error.into_diagnostic());
+                self.failed = true;
+                return;
+            }
+        } else {
+            if let Err(error) = budget.reserve_compact_bytes(
+                function,
+                Self::GROUP_HELD,
+                "incoming held ownership state node and receiving renewal",
+            ) {
+                self.refusal = Some(error.into_diagnostic());
+                self.failed = true;
+                return;
+            }
+            target.insert(value);
+        }
+        self.group_entry = true;
+    }
+    #[cfg(test)]
+    pub(super) fn observed_prices() -> [usize; 7] {
+        [
+            Self::OWNED_EMPTY,
+            Self::ENTRY_CONTROLS,
+            Self::OWNED_ONE,
+            Self::HELD_ONE,
+            Self::OWNED_MANY,
+            Self::HELD_MANY,
+            Self::GROUP_HELD,
+        ]
+    }
     pub(super) fn failure(&mut self) -> Diagnostic {
         assert!(self.failed);
         self.refusal
             .take()
             .expect("ownership insertion report moves once")
     }
+}
+
+// Exact original B-tree layout algorithm, evaluated only by NODE above.
+// Its six independently rounded fields and every checked failure keep the
+// complete original usize::MAX fallback; no aggregate is formed per entry.
+#[allow(
+    clippy::manual_saturating_arithmetic,
+    reason = "retain exact original checked layout/sentinel semantics"
+)]
+pub(super) const fn const_node_upper<K, V>() -> Option<usize> {
+    use std::mem::align_of;
+    let mut alignment = align_of::<K>();
+    if align_of::<V>() > alignment {
+        alignment = align_of::<V>();
+    }
+    if align_of::<usize>() > alignment {
+        alignment = align_of::<usize>();
+    }
+    let keys = match size_of::<K>().checked_mul(11) {
+        Some(bytes) => bytes,
+        None => return None,
+    };
+    let values = match size_of::<V>().checked_mul(11) {
+        Some(bytes) => bytes,
+        None => return None,
+    };
+    let children = match size_of::<usize>().checked_mul(12) {
+        Some(bytes) => bytes,
+        None => return None,
+    };
+    let fields = [
+        size_of::<Option<std::ptr::NonNull<()>>>(),
+        size_of::<u16>(),
+        size_of::<u16>(),
+        keys,
+        values,
+        children,
+    ];
+    let mut total = 0usize;
+    let mut index = 0usize;
+    while index < fields.len() {
+        let rounded = match fields[index].checked_add(alignment - 1) {
+            Some(bytes) => bytes / alignment * alignment,
+            None => return None,
+        };
+        total = match total.checked_add(rounded) {
+            Some(bytes) => bytes,
+            None => return None,
+        };
+        index += 1;
+    }
+    Some(total)
 }
 
 // Invocation-local incoming states: singleton ownership does not allocate a tree node.

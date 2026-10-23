@@ -150,10 +150,10 @@ index 0000000000000000000000000000000000000000..960b239526d2e522b100c0583fe9fb5b
 +}
 diff --git a/src/hir/validation/lexical_exit/matched_observation.rs b/src/hir/validation/lexical_exit/matched_observation.rs
 new file mode 100644
-index 0000000000000000000000000000000000000000..b0a2ce534cb3fc623d20c368b94f612229cd31e7
+index 0000000000000000000000000000000000000000..79303d4d2a0e2d4adc2ab03f8ac46914b0514781
 --- /dev/null
 +++ b/src/hir/validation/lexical_exit/matched_observation.rs
-@@ -0,0 +1,464 @@
+@@ -0,0 +1,469 @@
 +//! Evaluation-image observation only. This does not qualify application admission.
 +use super::*;
 +use sha2::{Digest, Sha256};
@@ -467,9 +467,7 @@ index 0000000000000000000000000000000000000000..b0a2ce534cb3fc623d20c368b94f6122
 +        .iter()
 +        .map(|error| error.as_ref().unwrap().json())
 +        .collect();
-+    eprintln!(
-+        "OPT904_MATCHED_JSON {}",
-+        serde_json::json!({
++    let mut record = serde_json::json!({
 +            "image_base": IMAGE, "owning_immediate_old": OLD_IMAGE,
 +        "observation_source_sha256": hash(include_bytes!("matched_observation.rs")),
 +        "source_binding_sha256": SOURCE_BINDING_SHA,
@@ -484,6 +482,8 @@ index 0000000000000000000000000000000000000000..b0a2ce534cb3fc623d20c368b94f6122
 +            "scope": "cold hir::resolve + second hir::validate + complete owned Drop",
 +            "limit": limit, "floor": floor, "diagnostics": diagnostics,
 +            "refused": run.refused, "paid": run.paid, "first_refusal": first,
++    });
++    let serde_json::Value::Object(tail) = serde_json::json!({
 +            "frame_size": f.size, "frame_align": f.alignment,
 +            "requested_capacities": run.requests.requested[..run.requests.requests],
 +            "acquired_capacities": run.requests.acquired[..run.requests.acquisitions],
@@ -498,8 +498,13 @@ index 0000000000000000000000000000000000000000..b0a2ce534cb3fc623d20c368b94f6122
 +            "allocations": run.metrics.allocations, "reallocations": run.metrics.reallocations,
 +            "matched_old_image_required": true, "application_admission_proven": false,
 +            "intervening_changes_preclude_opt904_only_total_invoice_credit": true,
-+        })
-+    );
++    }) else {
++        unreachable!("literal observation object");
++    };
++    for (key, value) in tail {
++        assert!(record.as_object_mut().unwrap().insert(key, value).is_none());
++    }
++    eprintln!("OPT904_MATCHED_JSON {}", record);
 +}
 +
 +#[test]

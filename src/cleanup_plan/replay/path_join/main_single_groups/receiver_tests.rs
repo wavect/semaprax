@@ -181,11 +181,16 @@ fn complete_original_receiver_and_exact_current_source_inverse_stay_bound() {
         "/docs/evidence/boxed-path-states-v1/catalog-receipt.json"
     )))
     .unwrap();
-    let mut bundle = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/docs/AGENT-SKILL-BUNDLE-V1.json"
-    ))
-    .to_owned();
+    // Bind the live bundle before acquiring the complete frozen catalog input.
+    // The original digest substitutions and whole predecessor assertion follow.
+    let mut bundle = crate::source_reflows_merge::main_e177_final_inputs::value_direct(
+        "docs/AGENT-SKILL-BUNDLE-V1.json",
+        "bb1d335ef40cff2cf81d08ddcf0943b168d04721ee1e7de1b3d809d3b9600d2f",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/AGENT-SKILL-BUNDLE-V1.json"
+        )),
+    );
     for (new, old) in [
         ("new_catalog", "old_catalog"),
         ("new_envelope", "old_envelope"),

@@ -1,0 +1,6 @@
+{
+  "source": "src/cleanup_plan/replay/path_join/before_singleton.rs",
+  "previous_sha256": "483bcb24037968638c01bedfe2c675dc55b3ef4dadb74540c8637a720a6a44dd",
+  "restored_sha256": "125599019c6bb7cdffe1e0742a90812a6a2f398ab1e599eed49b7ac34341f4c7",
+  "derivation": "Complete immutable path_join.before.rs.txt minus only the original seven module registration strings asserted by the unchanged gate. Exactly one empty line restored; no interior string or code changed. Parent module prevents formatter from altering immutable receiver."
+}

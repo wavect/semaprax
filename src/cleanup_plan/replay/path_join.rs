@@ -3,6 +3,10 @@
 use super::*;
 use std::borrow::Borrow;
 #[cfg(test)]
+use super::transition;
+#[cfg(test)]
+mod main3d81_before;
+#[cfg(test)]
 #[allow(dead_code, reason = "complete original path-state replay receiver")]
 mod before;
 #[cfg(test)]
@@ -1235,6 +1239,7 @@ fn join_conditional_variants(
 }
 
 #[cfg(test)]
+#[rustfmt::skip] // Preserve the complete immutable receiver, including whitespace.
 mod before_singleton;
 #[cfg(test)]
 mod singleton_tests;

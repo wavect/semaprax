@@ -61,6 +61,9 @@ impl<O: COutput> CEmitter<'_, O> {
                             ..
                         } => {
                             let resource_text_view = self.produces_resource_text_view(value);
+                            let validated_str_view = matches!(&value.kind,
+                                ResolvedExprKind::BorrowPlace { operation, .. }
+                                    if operation.as_str() == crate::byte_ops::STRING_AS_STR_ID);
                             if *mutable {
                                 self.mutable_bindings.insert(binding.id.clone());
                             }
@@ -150,8 +153,9 @@ impl<O: COutput> CEmitter<'_, O> {
                                     binding.id
                                 )));
                             }
-                            if resource_text_view && !*mutable {
-                                self.resource_text_views.insert(binding.id.clone());
+                            if (resource_text_view || validated_str_view) && !*mutable {
+                                self.resource_text_views
+                                    .insert(binding.id.clone(), validated_str_view);
                             }
                         }
                         ResolvedStatement::Assign {

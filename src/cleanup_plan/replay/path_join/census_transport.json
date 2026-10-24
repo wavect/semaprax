@@ -2004,11 +2004,16 @@
   "field_local_source_fronts": [
     {
       "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
-      "length": 233111,
-      "sha256": "efd27c7b797d0f0414bc7ae292be0c518455d6f1dbef4f849350318181b20b60",
+      "length": 233195,
+      "sha256": "0e793e87c5913d29d090949527031177cf4ed760e1051bb1f032f21580f1782c",
       "before_length": 232648,
       "before_sha256": "208348c0444014d05129580b71eef50e9837425c6b9cb7286cf21bc90c9d1e3f",
       "edits": [
+        [
+          21622,
+          ",include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main3d81_before.rs\")",
+          ""
+        ],
         [
           43268,
           ",include_str!(\"../../../../../src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/retained.rs\")",
@@ -2038,15 +2043,76 @@
           ]
         ],
         "review_sha256": "ae8e21f12e34f8648e8f277a315e344df162e488da05f1d2dc3b8f4e6d97d043"
+      },
+      "retained_pre_main3d81_front": {
+        "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "length": 233111,
+        "sha256": "efd27c7b797d0f0414bc7ae292be0c518455d6f1dbef4f849350318181b20b60",
+        "before_length": 232648,
+        "before_sha256": "208348c0444014d05129580b71eef50e9837425c6b9cb7286cf21bc90c9d1e3f",
+        "edits": [
+          [
+            43268,
+            ",include_str!(\"../../../../../src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/retained.rs\")",
+            ""
+          ],
+          [
+            21623,
+            "include_str!(\"../../../../../src/cleanup_plan/replay/path_join/field_local/mod.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/path_join/field_local/frontier.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/path_join/field_local/boxed_flow.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/path_join/field_local/tests.rs\"),",
+            ""
+          ]
+        ],
+        "central_registration_epoch": {
+          "length": 232761,
+          "sha256": "0f8b4dff2deb10dc0989ddf58723fb7137442cacffc18870d9e2afe566c8d3d0",
+          "from_current": [
+            [
+              21622,
+              ",include_str!(\"../../../../../src/cleanup_plan/replay/path_join/field_local/mod.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/path_join/field_local/frontier.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/path_join/field_local/boxed_flow.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/path_join/field_local/tests.rs\")",
+              ""
+            ]
+          ],
+          "to_b23": [
+            [
+              42918,
+              ",include_str!(\"../../../../../src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/retained.rs\")",
+              ""
+            ]
+          ],
+          "review_sha256": "ae8e21f12e34f8648e8f277a315e344df162e488da05f1d2dc3b8f4e6d97d043"
+        }
+      },
+      "main3d81_epoch": {
+        "length": 233195,
+        "sha256": "0e793e87c5913d29d090949527031177cf4ed760e1051bb1f032f21580f1782c",
+        "before_length": 233111,
+        "before_sha256": "efd27c7b797d0f0414bc7ae292be0c518455d6f1dbef4f849350318181b20b60",
+        "edits": [
+          [
+            21622,
+            ",include_str!(\"../../../../../src/cleanup_plan/replay/path_join/main3d81_before.rs\")",
+            ""
+          ]
+        ]
       }
     },
     {
       "path": "src/bounded_output/canonical_stage_tests.rs",
       "length": 42793,
-      "sha256": "640eaa36d57e0d3450932bd5ef826efa2a614400f6ec560c6b09d6d12fce199d",
+      "sha256": "ea037a2768a40a2c23a08c7e03769ac869d0cf37160d62d5cfee5a51b506f52a",
       "before_length": 37409,
       "before_sha256": "a345676a7143c19e83750c3fcdde1d200babf4bf18716c216a08d0a89e679d32",
       "edits": [
+        [
+          40970,
+          "70a2555913c105aef3d8b2f65293f5142f527ae5ff00c6070a2b560e92c6d8c5",
+          "6415776b855c30091e61ce3b3b44d0e5a585bbe141be3b0fbc40e2a597d0dd40"
+        ],
+        [
+          40887,
+          "assert_eq!(packet.len(), 168718);",
+          "assert_eq!(packet.len(), 167505);"
+        ],
         [
           40970,
           "6415776b855c30091e61ce3b3b44d0e5a585bbe141be3b0fbc40e2a597d0dd40",
@@ -2244,15 +2310,244 @@
             ]
           ]
         }
+      },
+      "retained_pre_main3d81_front": {
+        "path": "src/bounded_output/canonical_stage_tests.rs",
+        "length": 42793,
+        "sha256": "640eaa36d57e0d3450932bd5ef826efa2a614400f6ec560c6b09d6d12fce199d",
+        "before_length": 37409,
+        "before_sha256": "a345676a7143c19e83750c3fcdde1d200babf4bf18716c216a08d0a89e679d32",
+        "edits": [
+          [
+            40970,
+            "6415776b855c30091e61ce3b3b44d0e5a585bbe141be3b0fbc40e2a597d0dd40",
+            "43190f3981e24710d933ee27a211a0c9f7bb842b9334227ed9c2bff159719d53"
+          ],
+          [
+            40887,
+            "assert_eq!(packet.len(), 167505);",
+            "assert_eq!(packet.len(), 88868);"
+          ],
+          [
+            40969,
+            "43190f3981e24710d933ee27a211a0c9f7bb842b9334227ed9c2bff159719d53",
+            "1b4669774150209c555179917fcbb6b4e783a58513d471099800095b79b0ea98"
+          ],
+          [
+            40887,
+            "assert_eq!(packet.len(), 88868);",
+            "assert_eq!(packet.len(), 50066);"
+          ],
+          [
+            39769,
+            "\n// Only these two full-current owners changed at the field-local boundary.\n// The complete fixed packet and physical source authenticate before projection;\n// older packets/targets remain authoritative for every subsequent inverse.\nfn field_local_census_before(path: &str, current: &[u8]) -> Vec<u8> {\n    use sha2::{Digest, Sha256};\n    let digest = |bytes: &[u8]| format!(\"{:x}\", crate::digest_hex::LowerHex(Sha256::digest(bytes)));\n    let compiled: &[u8] = match path {\n        \"src/cleanup_plan/replay/path_join.rs\" => {\n            include_bytes!(\"../cleanup_plan/replay/path_join.rs\")\n        }\n        \"src/cleanup_plan/replay/path_join/shared_insertions_tests.rs\" => {\n            include_bytes!(\"../cleanup_plan/replay/path_join/shared_insertions_tests.rs\")\n        }\n        _ => return current.to_vec(),\n    };\n    let root = std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\"));\n    let physical = std::fs::read(root.join(path)).unwrap();\n    assert_eq!(physical, compiled);\n    assert_eq!(current, compiled);\n    let packet = include_bytes!(\"../cleanup_plan/replay/path_join/field_local/inverse.json\");\n    assert_eq!(packet.len(), 50066);\n    assert_eq!(\n        digest(packet),\n        \"1b4669774150209c555179917fcbb6b4e783a58513d471099800095b79b0ea98\"\n    );\n    assert_eq!(\n        std::fs::read(root.join(\"src/cleanup_plan/replay/path_join/field_local/inverse.json\"))\n            .unwrap(),\n        packet\n    );\n    let data: serde_json::Value = serde_json::from_slice(packet).unwrap();\n    assert_eq!(data[\"schema\"], \"semaprax.ordinary-field-local-source.v1\");\n    assert_eq!(data[\"base\"], \"b23f09dd902d2fd79078acd9f07ff35d70e06a21\");\n    let rows = data[\"acquisitions\"].as_array().unwrap();\n    let owners = [\n        \"src/cleanup_plan/replay/path_join.rs\",\n        \"src/cleanup_plan/replay/path_join/fused_tests.rs\",\n        \"src/cleanup_plan/replay/path_join/direct_one_tests.rs\",\n        \"src/cleanup_plan/replay/path_join/shared_insertions_tests.rs\",\n    ];\n    assert_eq!(rows.len(), owners.len());\n    for (row, owner) in rows.iter().zip(owners) {\n        assert_eq!(row[\"path\"], owner);\n    }\n    let row = rows.iter().find(|r| r[\"path\"] == path).unwrap();\n    assert_eq!(physical.len() as u64, row[\"length\"]);\n    assert_eq!(digest(&physical), row[\"sha256\"].as_str().unwrap());\n    let mut before = physical.clone();\n    for edit in row[\"edits\"].as_array().unwrap() {\n        let at = edit[0].as_u64().unwrap() as usize;\n        let from = edit[1].as_str().unwrap().as_bytes();\n        assert_eq!(before.get(at..at + from.len()), Some(from));\n        before.splice(at..at + from.len(), edit[2].as_str().unwrap().bytes());\n    }\n    assert_eq!(before.len() as u64, row[\"before_length\"]);\n    assert_eq!(digest(&before), row[\"before_sha256\"].as_str().unwrap());\n    assert_eq!(std::fs::read(root.join(path)).unwrap(), compiled);\n    assert_eq!(\n        std::fs::read(root.join(\"src/cleanup_plan/replay/path_join/field_local/inverse.json\"))\n            .unwrap(),\n        packet\n    );\n    before\n}\n",
+            ""
+          ],
+          [
+            39493,
+            "    assert_eq!(std::fs::read(root.join(path)).unwrap(), physical_full);\n",
+            "    assert_eq!(std::fs::read(root.join(path)).unwrap(), physical);\n"
+          ],
+          [
+            35931,
+            "    // Four finite current fronts compose before the ENTIRE unchanged older\n    // post-c189 records. The complete previous row objects remain in place.\n    let fronts = packet[\"field_local_source_fronts\"].as_array().unwrap();\n    let front_paths = [\"crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs\", \"src/bounded_output/canonical_stage_tests.rs\", \"tests/hir_module_boundaries.rs\", \"tests/workspace/semantic_graph/source_inventory.rs\"];\n    assert_eq!(fronts.len(), front_paths.len());\n    for (front, expected) in fronts.iter().zip(front_paths) {\n        assert_eq!(front[\"path\"], expected);\n    }\n    if let Some(front) = fronts.iter().find(|f| f[\"path\"] == path) {\n        let prior = stages.iter().find(|r| r[\"path\"] == path).unwrap();\n        assert_eq!(physical.len() as u64, front[\"length\"]);\n        assert_eq!(digest(&physical), front[\"sha256\"].as_str().unwrap());\n        assert_eq!(front[\"before_length\"], prior[\"length\"]);\n        assert_eq!(front[\"before_sha256\"], prior[\"sha256\"]);\n        for e in front[\"edits\"].as_array().unwrap() {\n            let at = e[0].as_u64().unwrap() as usize;\n            let from = e[1].as_str().unwrap().as_bytes();\n            assert_eq!(physical.get(at..at + from.len()), Some(from));\n            physical.splice(at..at + from.len(), e[2].as_str().unwrap().bytes());\n        }\n        assert_eq!(physical.len() as u64, prior[\"length\"]);\n        assert_eq!(digest(&physical), prior[\"sha256\"].as_str().unwrap());\n    }\n    let supplied = if supplied == physical_full.as_slice() {\n        physical.as_slice()\n    } else {\n        supplied\n    };\n",
+            ""
+          ],
+          [
+            35059,
+            "    // The shared-insertion source retains its entire independently compiled\n    // b23 predecessor before entering the unchanged older census rows.\n    let physical_full = physical.clone();\n    let mut physical = field_local_census_before(path, &physical);\n",
+            ""
+          ],
+          [
+            32546,
+            "        assert_eq!(std::fs::read(root.join(path)).unwrap(), physical_full);\n",
+            "        assert_eq!(std::fs::read(root.join(path)).unwrap(), physical);\n"
+          ],
+          [
+            30648,
+            "        // Acquire only the closed field-local root epoch after authenticating\n        // complete actual bytes. All original fusion rows remain untouched.\n        let physical_full = physical.clone();\n        let physical = field_local_census_before(path, &physical);\n        let supplied = if supplied == physical_full.as_slice() {\n            physical.as_slice()\n        } else {\n            supplied\n        };\n",
+            ""
+          ],
+          [
+            18812,
+            "    let normalized = census_stage(path, current, false).or_else(|| {\n        (path == \"src/cleanup_plan/replay/path_join/frontier_tests.rs\")\n            .then(|| census_source_before(path, current))\n    });\n",
+            "    let normalized = census_stage(path, current, false).or_else(|| (path == \"src/cleanup_plan/replay/path_join/frontier_tests.rs\").then(|| census_source_before(path, current)));\n"
+          ]
+        ],
+        "retained_precompile_front": {
+          "path": "src/bounded_output/canonical_stage_tests.rs",
+          "length": 42792,
+          "sha256": "da1ee81a5b712c047a5e1205f968c02341871fa6f8ec1cbf08f7e8186c0dfb57",
+          "before_length": 37409,
+          "before_sha256": "a345676a7143c19e83750c3fcdde1d200babf4bf18716c216a08d0a89e679d32",
+          "edits": [
+            [
+              39769,
+              "\n// Only these two full-current owners changed at the field-local boundary.\n// The complete fixed packet and physical source authenticate before projection;\n// older packets/targets remain authoritative for every subsequent inverse.\nfn field_local_census_before(path: &str, current: &[u8]) -> Vec<u8> {\n    use sha2::{Digest, Sha256};\n    let digest = |bytes: &[u8]| format!(\"{:x}\", crate::digest_hex::LowerHex(Sha256::digest(bytes)));\n    let compiled: &[u8] = match path {\n        \"src/cleanup_plan/replay/path_join.rs\" => {\n            include_bytes!(\"../cleanup_plan/replay/path_join.rs\")\n        }\n        \"src/cleanup_plan/replay/path_join/shared_insertions_tests.rs\" => {\n            include_bytes!(\"../cleanup_plan/replay/path_join/shared_insertions_tests.rs\")\n        }\n        _ => return current.to_vec(),\n    };\n    let root = std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\"));\n    let physical = std::fs::read(root.join(path)).unwrap();\n    assert_eq!(physical, compiled);\n    assert_eq!(current, compiled);\n    let packet = include_bytes!(\"../cleanup_plan/replay/path_join/field_local/inverse.json\");\n    assert_eq!(packet.len(), 50066);\n    assert_eq!(\n        digest(packet),\n        \"1b4669774150209c555179917fcbb6b4e783a58513d471099800095b79b0ea98\"\n    );\n    assert_eq!(\n        std::fs::read(root.join(\"src/cleanup_plan/replay/path_join/field_local/inverse.json\"))\n            .unwrap(),\n        packet\n    );\n    let data: serde_json::Value = serde_json::from_slice(packet).unwrap();\n    assert_eq!(data[\"schema\"], \"semaprax.ordinary-field-local-source.v1\");\n    assert_eq!(data[\"base\"], \"b23f09dd902d2fd79078acd9f07ff35d70e06a21\");\n    let rows = data[\"acquisitions\"].as_array().unwrap();\n    let owners = [\n        \"src/cleanup_plan/replay/path_join.rs\",\n        \"src/cleanup_plan/replay/path_join/fused_tests.rs\",\n        \"src/cleanup_plan/replay/path_join/direct_one_tests.rs\",\n        \"src/cleanup_plan/replay/path_join/shared_insertions_tests.rs\",\n    ];\n    assert_eq!(rows.len(), owners.len());\n    for (row, owner) in rows.iter().zip(owners) {\n        assert_eq!(row[\"path\"], owner);\n    }\n    let row = rows.iter().find(|r| r[\"path\"] == path).unwrap();\n    assert_eq!(physical.len() as u64, row[\"length\"]);\n    assert_eq!(digest(&physical), row[\"sha256\"].as_str().unwrap());\n    let mut before = physical.clone();\n    for edit in row[\"edits\"].as_array().unwrap() {\n        let at = edit[0].as_u64().unwrap() as usize;\n        let from = edit[1].as_str().unwrap().as_bytes();\n        assert_eq!(before.get(at..at + from.len()), Some(from));\n        before.splice(at..at + from.len(), edit[2].as_str().unwrap().bytes());\n    }\n    assert_eq!(before.len() as u64, row[\"before_length\"]);\n    assert_eq!(digest(&before), row[\"before_sha256\"].as_str().unwrap());\n    assert_eq!(std::fs::read(root.join(path)).unwrap(), compiled);\n    assert_eq!(\n        std::fs::read(root.join(\"src/cleanup_plan/replay/path_join/field_local/inverse.json\"))\n            .unwrap(),\n        packet\n    );\n    before\n}\n",
+              ""
+            ],
+            [
+              39493,
+              "    assert_eq!(std::fs::read(root.join(path)).unwrap(), physical_full);\n",
+              "    assert_eq!(std::fs::read(root.join(path)).unwrap(), physical);\n"
+            ],
+            [
+              35931,
+              "    // Four finite current fronts compose before the ENTIRE unchanged older\n    // post-c189 records. The complete previous row objects remain in place.\n    let fronts = packet[\"field_local_source_fronts\"].as_array().unwrap();\n    let front_paths = [\"crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs\", \"src/bounded_output/canonical_stage_tests.rs\", \"tests/hir_module_boundaries.rs\", \"tests/workspace/semantic_graph/source_inventory.rs\"];\n    assert_eq!(fronts.len(), front_paths.len());\n    for (front, expected) in fronts.iter().zip(front_paths) {\n        assert_eq!(front[\"path\"], expected);\n    }\n    if let Some(front) = fronts.iter().find(|f| f[\"path\"] == path) {\n        let prior = stages.iter().find(|r| r[\"path\"] == path).unwrap();\n        assert_eq!(physical.len() as u64, front[\"length\"]);\n        assert_eq!(digest(&physical), front[\"sha256\"].as_str().unwrap());\n        assert_eq!(front[\"before_length\"], prior[\"length\"]);\n        assert_eq!(front[\"before_sha256\"], prior[\"sha256\"]);\n        for e in front[\"edits\"].as_array().unwrap() {\n            let at = e[0].as_u64().unwrap() as usize;\n            let from = e[1].as_str().unwrap().as_bytes();\n            assert_eq!(physical.get(at..at + from.len()), Some(from));\n            physical.splice(at..at + from.len(), e[2].as_str().unwrap().bytes());\n        }\n        assert_eq!(physical.len() as u64, prior[\"length\"]);\n        assert_eq!(digest(&physical), prior[\"sha256\"].as_str().unwrap());\n    }\n    let supplied = if supplied == physical_full.as_slice() {\n        physical.as_slice()\n    } else {\n        supplied\n    };\n",
+              ""
+            ],
+            [
+              35059,
+              "    // The shared-insertion source retains its entire independently compiled\n    // b23 predecessor before entering the unchanged older census rows.\n    let physical_full = physical.clone();\n    let mut physical = field_local_census_before(path, &physical);\n",
+              ""
+            ],
+            [
+              32546,
+              "        assert_eq!(std::fs::read(root.join(path)).unwrap(), physical_full);\n",
+              "        assert_eq!(std::fs::read(root.join(path)).unwrap(), physical);\n"
+            ],
+            [
+              30648,
+              "        // Acquire only the closed field-local root epoch after authenticating\n        // complete actual bytes. All original fusion rows remain untouched.\n        let physical_full = physical.clone();\n        let physical = field_local_census_before(path, &physical);\n        let supplied = if supplied == physical_full.as_slice() {\n            physical.as_slice()\n        } else {\n            supplied\n        };\n",
+              ""
+            ],
+            [
+              18812,
+              "    let normalized = census_stage(path, current, false).or_else(|| {\n        (path == \"src/cleanup_plan/replay/path_join/frontier_tests.rs\")\n            .then(|| census_source_before(path, current))\n    });\n",
+              "    let normalized = census_stage(path, current, false).or_else(|| (path == \"src/cleanup_plan/replay/path_join/frontier_tests.rs\").then(|| census_source_before(path, current)));\n"
+            ]
+          ]
+        },
+        "retained_preclippy_front": {
+          "path": "src/bounded_output/canonical_stage_tests.rs",
+          "length": 42792,
+          "sha256": "3e8b04da1d5e85a4f0adfe135f9b92605eff2adb094c09bce86734cb5a754a89",
+          "before_length": 37409,
+          "before_sha256": "a345676a7143c19e83750c3fcdde1d200babf4bf18716c216a08d0a89e679d32",
+          "edits": [
+            [
+              40969,
+              "43190f3981e24710d933ee27a211a0c9f7bb842b9334227ed9c2bff159719d53",
+              "1b4669774150209c555179917fcbb6b4e783a58513d471099800095b79b0ea98"
+            ],
+            [
+              40887,
+              "assert_eq!(packet.len(), 88868);",
+              "assert_eq!(packet.len(), 50066);"
+            ],
+            [
+              39769,
+              "\n// Only these two full-current owners changed at the field-local boundary.\n// The complete fixed packet and physical source authenticate before projection;\n// older packets/targets remain authoritative for every subsequent inverse.\nfn field_local_census_before(path: &str, current: &[u8]) -> Vec<u8> {\n    use sha2::{Digest, Sha256};\n    let digest = |bytes: &[u8]| format!(\"{:x}\", crate::digest_hex::LowerHex(Sha256::digest(bytes)));\n    let compiled: &[u8] = match path {\n        \"src/cleanup_plan/replay/path_join.rs\" => {\n            include_bytes!(\"../cleanup_plan/replay/path_join.rs\")\n        }\n        \"src/cleanup_plan/replay/path_join/shared_insertions_tests.rs\" => {\n            include_bytes!(\"../cleanup_plan/replay/path_join/shared_insertions_tests.rs\")\n        }\n        _ => return current.to_vec(),\n    };\n    let root = std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\"));\n    let physical = std::fs::read(root.join(path)).unwrap();\n    assert_eq!(physical, compiled);\n    assert_eq!(current, compiled);\n    let packet = include_bytes!(\"../cleanup_plan/replay/path_join/field_local/inverse.json\");\n    assert_eq!(packet.len(), 50066);\n    assert_eq!(\n        digest(packet),\n        \"1b4669774150209c555179917fcbb6b4e783a58513d471099800095b79b0ea98\"\n    );\n    assert_eq!(\n        std::fs::read(root.join(\"src/cleanup_plan/replay/path_join/field_local/inverse.json\"))\n            .unwrap(),\n        packet\n    );\n    let data: serde_json::Value = serde_json::from_slice(packet).unwrap();\n    assert_eq!(data[\"schema\"], \"semaprax.ordinary-field-local-source.v1\");\n    assert_eq!(data[\"base\"], \"b23f09dd902d2fd79078acd9f07ff35d70e06a21\");\n    let rows = data[\"acquisitions\"].as_array().unwrap();\n    let owners = [\n        \"src/cleanup_plan/replay/path_join.rs\",\n        \"src/cleanup_plan/replay/path_join/fused_tests.rs\",\n        \"src/cleanup_plan/replay/path_join/direct_one_tests.rs\",\n        \"src/cleanup_plan/replay/path_join/shared_insertions_tests.rs\",\n    ];\n    assert_eq!(rows.len(), owners.len());\n    for (row, owner) in rows.iter().zip(owners) {\n        assert_eq!(row[\"path\"], owner);\n    }\n    let row = rows.iter().find(|r| r[\"path\"] == path).unwrap();\n    assert_eq!(physical.len() as u64, row[\"length\"]);\n    assert_eq!(digest(&physical), row[\"sha256\"].as_str().unwrap());\n    let mut before = physical.clone();\n    for edit in row[\"edits\"].as_array().unwrap() {\n        let at = edit[0].as_u64().unwrap() as usize;\n        let from = edit[1].as_str().unwrap().as_bytes();\n        assert_eq!(before.get(at..at + from.len()), Some(from));\n        before.splice(at..at + from.len(), edit[2].as_str().unwrap().bytes());\n    }\n    assert_eq!(before.len() as u64, row[\"before_length\"]);\n    assert_eq!(digest(&before), row[\"before_sha256\"].as_str().unwrap());\n    assert_eq!(std::fs::read(root.join(path)).unwrap(), compiled);\n    assert_eq!(\n        std::fs::read(root.join(\"src/cleanup_plan/replay/path_join/field_local/inverse.json\"))\n            .unwrap(),\n        packet\n    );\n    before\n}\n",
+              ""
+            ],
+            [
+              39493,
+              "    assert_eq!(std::fs::read(root.join(path)).unwrap(), physical_full);\n",
+              "    assert_eq!(std::fs::read(root.join(path)).unwrap(), physical);\n"
+            ],
+            [
+              35931,
+              "    // Four finite current fronts compose before the ENTIRE unchanged older\n    // post-c189 records. The complete previous row objects remain in place.\n    let fronts = packet[\"field_local_source_fronts\"].as_array().unwrap();\n    let front_paths = [\"crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs\", \"src/bounded_output/canonical_stage_tests.rs\", \"tests/hir_module_boundaries.rs\", \"tests/workspace/semantic_graph/source_inventory.rs\"];\n    assert_eq!(fronts.len(), front_paths.len());\n    for (front, expected) in fronts.iter().zip(front_paths) {\n        assert_eq!(front[\"path\"], expected);\n    }\n    if let Some(front) = fronts.iter().find(|f| f[\"path\"] == path) {\n        let prior = stages.iter().find(|r| r[\"path\"] == path).unwrap();\n        assert_eq!(physical.len() as u64, front[\"length\"]);\n        assert_eq!(digest(&physical), front[\"sha256\"].as_str().unwrap());\n        assert_eq!(front[\"before_length\"], prior[\"length\"]);\n        assert_eq!(front[\"before_sha256\"], prior[\"sha256\"]);\n        for e in front[\"edits\"].as_array().unwrap() {\n            let at = e[0].as_u64().unwrap() as usize;\n            let from = e[1].as_str().unwrap().as_bytes();\n            assert_eq!(physical.get(at..at + from.len()), Some(from));\n            physical.splice(at..at + from.len(), e[2].as_str().unwrap().bytes());\n        }\n        assert_eq!(physical.len() as u64, prior[\"length\"]);\n        assert_eq!(digest(&physical), prior[\"sha256\"].as_str().unwrap());\n    }\n    let supplied = if supplied == physical_full.as_slice() {\n        physical.as_slice()\n    } else {\n        supplied\n    };\n",
+              ""
+            ],
+            [
+              35059,
+              "    // The shared-insertion source retains its entire independently compiled\n    // b23 predecessor before entering the unchanged older census rows.\n    let physical_full = physical.clone();\n    let mut physical = field_local_census_before(path, &physical);\n",
+              ""
+            ],
+            [
+              32546,
+              "        assert_eq!(std::fs::read(root.join(path)).unwrap(), physical_full);\n",
+              "        assert_eq!(std::fs::read(root.join(path)).unwrap(), physical);\n"
+            ],
+            [
+              30648,
+              "        // Acquire only the closed field-local root epoch after authenticating\n        // complete actual bytes. All original fusion rows remain untouched.\n        let physical_full = physical.clone();\n        let physical = field_local_census_before(path, &physical);\n        let supplied = if supplied == physical_full.as_slice() {\n            physical.as_slice()\n        } else {\n            supplied\n        };\n",
+              ""
+            ],
+            [
+              18812,
+              "    let normalized = census_stage(path, current, false).or_else(|| {\n        (path == \"src/cleanup_plan/replay/path_join/frontier_tests.rs\")\n            .then(|| census_source_before(path, current))\n    });\n",
+              "    let normalized = census_stage(path, current, false).or_else(|| (path == \"src/cleanup_plan/replay/path_join/frontier_tests.rs\").then(|| census_source_before(path, current)));\n"
+            ]
+          ],
+          "retained_precompile_front": {
+            "path": "src/bounded_output/canonical_stage_tests.rs",
+            "length": 42792,
+            "sha256": "da1ee81a5b712c047a5e1205f968c02341871fa6f8ec1cbf08f7e8186c0dfb57",
+            "before_length": 37409,
+            "before_sha256": "a345676a7143c19e83750c3fcdde1d200babf4bf18716c216a08d0a89e679d32",
+            "edits": [
+              [
+                39769,
+                "\n// Only these two full-current owners changed at the field-local boundary.\n// The complete fixed packet and physical source authenticate before projection;\n// older packets/targets remain authoritative for every subsequent inverse.\nfn field_local_census_before(path: &str, current: &[u8]) -> Vec<u8> {\n    use sha2::{Digest, Sha256};\n    let digest = |bytes: &[u8]| format!(\"{:x}\", crate::digest_hex::LowerHex(Sha256::digest(bytes)));\n    let compiled: &[u8] = match path {\n        \"src/cleanup_plan/replay/path_join.rs\" => {\n            include_bytes!(\"../cleanup_plan/replay/path_join.rs\")\n        }\n        \"src/cleanup_plan/replay/path_join/shared_insertions_tests.rs\" => {\n            include_bytes!(\"../cleanup_plan/replay/path_join/shared_insertions_tests.rs\")\n        }\n        _ => return current.to_vec(),\n    };\n    let root = std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\"));\n    let physical = std::fs::read(root.join(path)).unwrap();\n    assert_eq!(physical, compiled);\n    assert_eq!(current, compiled);\n    let packet = include_bytes!(\"../cleanup_plan/replay/path_join/field_local/inverse.json\");\n    assert_eq!(packet.len(), 50066);\n    assert_eq!(\n        digest(packet),\n        \"1b4669774150209c555179917fcbb6b4e783a58513d471099800095b79b0ea98\"\n    );\n    assert_eq!(\n        std::fs::read(root.join(\"src/cleanup_plan/replay/path_join/field_local/inverse.json\"))\n            .unwrap(),\n        packet\n    );\n    let data: serde_json::Value = serde_json::from_slice(packet).unwrap();\n    assert_eq!(data[\"schema\"], \"semaprax.ordinary-field-local-source.v1\");\n    assert_eq!(data[\"base\"], \"b23f09dd902d2fd79078acd9f07ff35d70e06a21\");\n    let rows = data[\"acquisitions\"].as_array().unwrap();\n    let owners = [\n        \"src/cleanup_plan/replay/path_join.rs\",\n        \"src/cleanup_plan/replay/path_join/fused_tests.rs\",\n        \"src/cleanup_plan/replay/path_join/direct_one_tests.rs\",\n        \"src/cleanup_plan/replay/path_join/shared_insertions_tests.rs\",\n    ];\n    assert_eq!(rows.len(), owners.len());\n    for (row, owner) in rows.iter().zip(owners) {\n        assert_eq!(row[\"path\"], owner);\n    }\n    let row = rows.iter().find(|r| r[\"path\"] == path).unwrap();\n    assert_eq!(physical.len() as u64, row[\"length\"]);\n    assert_eq!(digest(&physical), row[\"sha256\"].as_str().unwrap());\n    let mut before = physical.clone();\n    for edit in row[\"edits\"].as_array().unwrap() {\n        let at = edit[0].as_u64().unwrap() as usize;\n        let from = edit[1].as_str().unwrap().as_bytes();\n        assert_eq!(before.get(at..at + from.len()), Some(from));\n        before.splice(at..at + from.len(), edit[2].as_str().unwrap().bytes());\n    }\n    assert_eq!(before.len() as u64, row[\"before_length\"]);\n    assert_eq!(digest(&before), row[\"before_sha256\"].as_str().unwrap());\n    assert_eq!(std::fs::read(root.join(path)).unwrap(), compiled);\n    assert_eq!(\n        std::fs::read(root.join(\"src/cleanup_plan/replay/path_join/field_local/inverse.json\"))\n            .unwrap(),\n        packet\n    );\n    before\n}\n",
+                ""
+              ],
+              [
+                39493,
+                "    assert_eq!(std::fs::read(root.join(path)).unwrap(), physical_full);\n",
+                "    assert_eq!(std::fs::read(root.join(path)).unwrap(), physical);\n"
+              ],
+              [
+                35931,
+                "    // Four finite current fronts compose before the ENTIRE unchanged older\n    // post-c189 records. The complete previous row objects remain in place.\n    let fronts = packet[\"field_local_source_fronts\"].as_array().unwrap();\n    let front_paths = [\"crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs\", \"src/bounded_output/canonical_stage_tests.rs\", \"tests/hir_module_boundaries.rs\", \"tests/workspace/semantic_graph/source_inventory.rs\"];\n    assert_eq!(fronts.len(), front_paths.len());\n    for (front, expected) in fronts.iter().zip(front_paths) {\n        assert_eq!(front[\"path\"], expected);\n    }\n    if let Some(front) = fronts.iter().find(|f| f[\"path\"] == path) {\n        let prior = stages.iter().find(|r| r[\"path\"] == path).unwrap();\n        assert_eq!(physical.len() as u64, front[\"length\"]);\n        assert_eq!(digest(&physical), front[\"sha256\"].as_str().unwrap());\n        assert_eq!(front[\"before_length\"], prior[\"length\"]);\n        assert_eq!(front[\"before_sha256\"], prior[\"sha256\"]);\n        for e in front[\"edits\"].as_array().unwrap() {\n            let at = e[0].as_u64().unwrap() as usize;\n            let from = e[1].as_str().unwrap().as_bytes();\n            assert_eq!(physical.get(at..at + from.len()), Some(from));\n            physical.splice(at..at + from.len(), e[2].as_str().unwrap().bytes());\n        }\n        assert_eq!(physical.len() as u64, prior[\"length\"]);\n        assert_eq!(digest(&physical), prior[\"sha256\"].as_str().unwrap());\n    }\n    let supplied = if supplied == physical_full.as_slice() {\n        physical.as_slice()\n    } else {\n        supplied\n    };\n",
+                ""
+              ],
+              [
+                35059,
+                "    // The shared-insertion source retains its entire independently compiled\n    // b23 predecessor before entering the unchanged older census rows.\n    let physical_full = physical.clone();\n    let mut physical = field_local_census_before(path, &physical);\n",
+                ""
+              ],
+              [
+                32546,
+                "        assert_eq!(std::fs::read(root.join(path)).unwrap(), physical_full);\n",
+                "        assert_eq!(std::fs::read(root.join(path)).unwrap(), physical);\n"
+              ],
+              [
+                30648,
+                "        // Acquire only the closed field-local root epoch after authenticating\n        // complete actual bytes. All original fusion rows remain untouched.\n        let physical_full = physical.clone();\n        let physical = field_local_census_before(path, &physical);\n        let supplied = if supplied == physical_full.as_slice() {\n            physical.as_slice()\n        } else {\n            supplied\n        };\n",
+                ""
+              ],
+              [
+                18812,
+                "    let normalized = census_stage(path, current, false).or_else(|| {\n        (path == \"src/cleanup_plan/replay/path_join/frontier_tests.rs\")\n            .then(|| census_source_before(path, current))\n    });\n",
+                "    let normalized = census_stage(path, current, false).or_else(|| (path == \"src/cleanup_plan/replay/path_join/frontier_tests.rs\").then(|| census_source_before(path, current)));\n"
+              ]
+            ]
+          }
+        }
+      },
+      "main3d81_epoch": {
+        "length": 42793,
+        "sha256": "ea037a2768a40a2c23a08c7e03769ac869d0cf37160d62d5cfee5a51b506f52a",
+        "before_length": 42793,
+        "before_sha256": "640eaa36d57e0d3450932bd5ef826efa2a614400f6ec560c6b09d6d12fce199d",
+        "edits": [
+          [
+            40970,
+            "70a2555913c105aef3d8b2f65293f5142f527ae5ff00c6070a2b560e92c6d8c5",
+            "6415776b855c30091e61ce3b3b44d0e5a585bbe141be3b0fbc40e2a597d0dd40"
+          ],
+          [
+            40887,
+            "assert_eq!(packet.len(), 168718);",
+            "assert_eq!(packet.len(), 167505);"
+          ]
+        ]
       }
     },
     {
       "path": "tests/hir_module_boundaries.rs",
-      "length": 157415,
-      "sha256": "e87ebb6b23bbc1c6c262205df5ddc3577ed33c75682ecec422c0b75f378c03ad",
+      "length": 157487,
+      "sha256": "a6887b3653e1573e39d774f1d9c27b9ac1bc70b335b53e715257fbbf45b31469",
       "before_length": 157012,
       "before_sha256": "1a0c8e2b6be6fe98bf7a2ebc840654704581910076ec54a9e90e3771682893c8",
       "edits": [
+        [
+          19441,
+          ",include_str!(\"../src/cleanup_plan/replay/path_join/main3d81_before.rs\")",
+          ""
+        ],
         [
           24405,
           ",include_str!(\"../src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/retained.rs\")",
@@ -2282,15 +2577,71 @@
           ]
         ],
         "review_sha256": "ae8e21f12e34f8648e8f277a315e344df162e488da05f1d2dc3b8f4e6d97d043"
+      },
+      "retained_pre_main3d81_front": {
+        "path": "tests/hir_module_boundaries.rs",
+        "length": 157415,
+        "sha256": "e87ebb6b23bbc1c6c262205df5ddc3577ed33c75682ecec422c0b75f378c03ad",
+        "before_length": 157012,
+        "before_sha256": "1a0c8e2b6be6fe98bf7a2ebc840654704581910076ec54a9e90e3771682893c8",
+        "edits": [
+          [
+            24405,
+            ",include_str!(\"../src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/retained.rs\")",
+            ""
+          ],
+          [
+            19442,
+            "include_str!(\"../src/cleanup_plan/replay/path_join/field_local/mod.rs\"),include_str!(\"../src/cleanup_plan/replay/path_join/field_local/frontier.rs\"),include_str!(\"../src/cleanup_plan/replay/path_join/field_local/boxed_flow.rs\"),include_str!(\"../src/cleanup_plan/replay/path_join/field_local/tests.rs\"),",
+            ""
+          ]
+        ],
+        "central_registration_epoch": {
+          "length": 157113,
+          "sha256": "5d20b3746717b1d5040181a6030215540b6ab6333ed2b074da093e06d71ccc7d",
+          "from_current": [
+            [
+              19441,
+              ",include_str!(\"../src/cleanup_plan/replay/path_join/field_local/mod.rs\"),include_str!(\"../src/cleanup_plan/replay/path_join/field_local/frontier.rs\"),include_str!(\"../src/cleanup_plan/replay/path_join/field_local/boxed_flow.rs\"),include_str!(\"../src/cleanup_plan/replay/path_join/field_local/tests.rs\")",
+              ""
+            ]
+          ],
+          "to_b23": [
+            [
+              24103,
+              ",include_str!(\"../src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/retained.rs\")",
+              ""
+            ]
+          ],
+          "review_sha256": "ae8e21f12e34f8648e8f277a315e344df162e488da05f1d2dc3b8f4e6d97d043"
+        }
+      },
+      "main3d81_epoch": {
+        "length": 157487,
+        "sha256": "a6887b3653e1573e39d774f1d9c27b9ac1bc70b335b53e715257fbbf45b31469",
+        "before_length": 157415,
+        "before_sha256": "e87ebb6b23bbc1c6c262205df5ddc3577ed33c75682ecec422c0b75f378c03ad",
+        "edits": [
+          [
+            19441,
+            ",include_str!(\"../src/cleanup_plan/replay/path_join/main3d81_before.rs\")",
+            ""
+          ]
+        ]
       }
     },
     {
       "path": "tests/workspace/semantic_graph/source_inventory.rs",
-      "length": 185615,
-      "sha256": "64d4773e65cee56079940e1d3575e76ad5e6ac15958a77e3d4b5bcefef1b9009",
+      "length": 185690,
+      "sha256": "94b59ca2ea2a74191b9d08cb6218da23bf698883f691dc56ffbf7d51be1155d8",
       "before_length": 185197,
       "before_sha256": "cc040c5c2b46080d6d22f8ed33c99b376b94623aa37612d8bb2f63fe123f587e",
       "edits": [
+        [
+          25881,
+          ",include_str!(\"../../src/cleanup_plan/replay/path_join/main3d81_before.rs\")",
+          ""
+        ],
         [
           32110,
           ",include_str!(\"../../src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/retained.rs\")",
@@ -2320,6 +2671,57 @@
           ]
         ],
         "review_sha256": "ae8e21f12e34f8648e8f277a315e344df162e488da05f1d2dc3b8f4e6d97d043"
+      },
+      "retained_pre_main3d81_front": {
+        "path": "tests/workspace/semantic_graph/source_inventory.rs",
+        "length": 185615,
+        "sha256": "64d4773e65cee56079940e1d3575e76ad5e6ac15958a77e3d4b5bcefef1b9009",
+        "before_length": 185197,
+        "before_sha256": "cc040c5c2b46080d6d22f8ed33c99b376b94623aa37612d8bb2f63fe123f587e",
+        "edits": [
+          [
+            32110,
+            ",include_str!(\"../../src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/retained.rs\")",
+            ""
+          ],
+          [
+            25882,
+            "include_str!(\"../../src/cleanup_plan/replay/path_join/field_local/mod.rs\"),include_str!(\"../../src/cleanup_plan/replay/path_join/field_local/frontier.rs\"),include_str!(\"../../src/cleanup_plan/replay/path_join/field_local/boxed_flow.rs\"),include_str!(\"../../src/cleanup_plan/replay/path_join/field_local/tests.rs\"),",
+            ""
+          ]
+        ],
+        "central_registration_epoch": {
+          "length": 185301,
+          "sha256": "a169545dfe973945058d119bc8788f0d2b9426de07c01bf930eaac1aaa26e101",
+          "from_current": [
+            [
+              25881,
+              ",include_str!(\"../../src/cleanup_plan/replay/path_join/field_local/mod.rs\"),include_str!(\"../../src/cleanup_plan/replay/path_join/field_local/frontier.rs\"),include_str!(\"../../src/cleanup_plan/replay/path_join/field_local/boxed_flow.rs\"),include_str!(\"../../src/cleanup_plan/replay/path_join/field_local/tests.rs\")",
+              ""
+            ]
+          ],
+          "to_b23": [
+            [
+              31796,
+              ",include_str!(\"../../src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/retained.rs\")",
+              ""
+            ]
+          ],
+          "review_sha256": "ae8e21f12e34f8648e8f277a315e344df162e488da05f1d2dc3b8f4e6d97d043"
+        }
+      },
+      "main3d81_epoch": {
+        "length": 185690,
+        "sha256": "94b59ca2ea2a74191b9d08cb6218da23bf698883f691dc56ffbf7d51be1155d8",
+        "before_length": 185615,
+        "before_sha256": "64d4773e65cee56079940e1d3575e76ad5e6ac15958a77e3d4b5bcefef1b9009",
+        "edits": [
+          [
+            25881,
+            ",include_str!(\"../../src/cleanup_plan/replay/path_join/main3d81_before.rs\")",
+            ""
+          ]
+        ]
       }
     }
   ]

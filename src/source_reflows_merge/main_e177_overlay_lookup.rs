@@ -1,5 +1,9 @@
 pub(crate) fn compiled(source: &str) -> Option<&'static str> {
     match source {
+        "src/cleanup_plan/replay/transition.rs" => Some(include_str!("../../src/cleanup_plan/replay/transition.rs")),
+        "src/workspace_graph/initial_report/build.rs" => Some(include_str!("../../src/workspace_graph/initial_report/build.rs")),
+        "src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs")),
+        "src/cleanup_plan/replay/path_join/main3d81_before.rs" => Some(include_str!("../../src/cleanup_plan/replay/path_join/main3d81_before.rs")),
         "src/cleanup_plan/replay/path_join/field_local/mod.rs" => Some(include_str!("../../src/cleanup_plan/replay/path_join/field_local/mod.rs")),
         "src/cleanup_plan/replay/path_join/field_local/frontier.rs" => Some(include_str!("../../src/cleanup_plan/replay/path_join/field_local/frontier.rs")),
         "src/cleanup_plan/replay/path_join/field_local/boxed_flow.rs" => Some(include_str!("../../src/cleanup_plan/replay/path_join/field_local/boxed_flow.rs")),

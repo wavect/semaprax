@@ -555,6 +555,37 @@ pub(super) fn state_for_edge(
     Ok(state)
 }
 
+#[cfg(test)]
+pub(super) fn state_for_held_edge(
+    function: &ResolvedFunction,
+    state: &mut PathState,
+    condition: &EdgeCondition,
+    contract_sources: &BTreeMap<ExpressionId, StatusSourceId>,
+) -> Result<(), Diagnostic> {
+    if state.pending_failure.is_some() || state.selected_failure.is_some() || state.published {
+        return Err(replay_error(
+            function,
+            "conditional edge follows pending, selected, or published state",
+        ));
+    }
+    match condition {
+        EdgeCondition::Always => {}
+        EdgeCondition::BooleanResult(expression, false) => {
+            if let Some(source) = contract_sources.get(expression) {
+                state.pending_failure = Some(source.clone());
+            }
+        }
+        EdgeCondition::BooleanResult(_, true)
+        | EdgeCondition::VariantCase { .. }
+        | EdgeCondition::ArmSelected { .. }
+        | EdgeCondition::StatusZero(_) => {}
+        EdgeCondition::StatusNonzero(source) => {
+            state.pending_failure = Some(source.clone());
+        }
+    }
+    Ok(())
+}
+
 #[allow(
     clippy::too_many_arguments,
     reason = "keep independent held authority and canonical replay inputs explicit"

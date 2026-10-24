@@ -75,7 +75,14 @@ fn the_entire_older_receiver_test_only_adds_the_certified_source_inverse() {
         raw_hash(original),
         "ffc6d94bbf586ccfc9ef094e87e8b4934ba59dbc89d2fc11841f56a35c7ffa39"
     );
-    let current = include_str!("../receiver_tests.rs");
+    // Authenticate the complete live receiver, then retain this guard's exact
+    // predecessor input, including every original assertion below.
+    let acquired = crate::source_reflows_merge::main_e177_final_inputs::value_direct(
+        "src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs",
+        "c8fb85cd100993b405851fdcfbbc5605e3641da56438d5924f253957ece45d0a",
+        include_str!("../receiver_tests.rs"),
+    );
+    let current = acquired.as_str();
     let new = "    let mut restored = grouping::source_custody::restore_root();";
     let old = "    let mut restored = include_str!(\"../path_join.rs\").to_owned();";
     assert_eq!(current.matches(new).count(), 1);

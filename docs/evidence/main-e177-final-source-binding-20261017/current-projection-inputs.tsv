@@ -1429,3 +1429,5 @@ src/cleanup_plan/replay/path_join/field_local/frontier.rs
 src/cleanup_plan/replay/path_join/field_local/boxed_flow.rs
 src/cleanup_plan/replay/path_join/field_local/tests.rs
 src/cleanup_plan/replay/path_join/field_local/inverse.json
+docs/AGENT-SKILL-BUNDLE-V1.json
+src/cleanup_plan/replay/path_join/main3d81_before.rs

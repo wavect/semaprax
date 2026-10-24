@@ -78,7 +78,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         let temporary = self.temporary(&op.return_type())?;
         match op {
             crate::str_ops::StrOp::ByteAt => {
-                self.line(&format!("spx_str_require_valid({});", arguments[0].code));
+                self.str_byte_check(&args[0], &arguments[0].code);
                 self.emit_option_byte_read(
                     result_type,
                     &arguments[0].code,

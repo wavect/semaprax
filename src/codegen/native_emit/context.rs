@@ -19,7 +19,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             resource_abi: emission.resource_abi,
             variables,
             mutable_bindings: BTreeSet::new(),
-            resource_text_views: BTreeSet::new(),
+            resource_text_views: std::collections::BTreeMap::new(),
             function,
             execution,
             functions: emission.functions,

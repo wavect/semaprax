@@ -1,0 +1,138 @@
+{
+  "status": "SCOPED_FIXES_VERIFIED_CI_STILL_FAILING",
+  "base_commit": "e8ffe6ad58ff5cf0c3143454218e050c0762ebcc",
+  "created_at": "2026-10-24T13:47:12.268377+00:00",
+  "changes": [
+    "Hold singleton path-state boxes through borrowed edge validation; preserve whole old by-value helper and multi-state receiver; pay each owning transfer.",
+    "Retain a positive UTF-8 producer fact only for a direct immutable String-as-Str local; aliased, projected, mutable and foreign views keep full checks.",
+    "Repair missing complete initial-report historical input without modifying the frozen secondary packet or old assertions.",
+    "Regenerate the exact installed Agent Skill bundle from the real current normal compiler; preserve frozen catalog and receiver assertions through authenticated complete input acquisition.",
+    "Restore the complete immutable singleton receiver from its exact archived original after removing only the original seven module registrations; one blank line was restored, and rustfmt is skipped for that immutable module."
+  ],
+  "checks": [
+    {
+      "log": "overlay-controls.log",
+      "passed": 33,
+      "sha256": "0b61496396e8cd9ba2f31587194801971abae04569fddd2dc430f4097b3d0e67"
+    },
+    {
+      "log": "compiled-whole-predecessor-controls.log",
+      "passed": 2,
+      "sha256": "469758b8e8765f62d055df166aea098d6117da023369aa94385d0979a2daa26f"
+    },
+    {
+      "log": "new-entry-controls.log",
+      "passed": 2,
+      "sha256": "500641e11ecb0b15352bb35b94304d8d63b4e114bbb42bfcec5386df22234358"
+    },
+    {
+      "log": "final-prefix-source-controls.log",
+      "passed": 3,
+      "sha256": "71e6bfe3861fc4f52b6cf34ab9007a80176915ab12a15a47518298c6cb65123d"
+    },
+    {
+      "log": "final-cursor-source-guard.log",
+      "passed": 1,
+      "sha256": "ef2aef96473cb8446d5d7a6b85a113d46d4e7090e21c529f4eb7931506bded7d"
+    },
+    {
+      "log": "path-source-tests.log",
+      "passed": 5,
+      "sha256": "c2f1b398ef55da1250bb8a932919435ba4290ba55984b1c207d664236d8953fc"
+    },
+    {
+      "log": "hir-test.log",
+      "passed": 11,
+      "sha256": "d87243c05a062cfe7b36e8e8094d30276e83c7887faaa8464d0881751d522710"
+    },
+    {
+      "log": "projection-test.log",
+      "passed": 1,
+      "sha256": "0fa98c6d25e2dbf5fe202ebda8e7051cc67ef62b226731875b941963c8142fd5"
+    },
+    {
+      "log": "docs-controls.log",
+      "passed": 3,
+      "sha256": "fd0c372cde34b764d619389d4de421bcc62b06b7729c9d6f93026444e45180cb"
+    },
+    {
+      "log": "bundle-pin-test.log",
+      "passed": 1,
+      "sha256": "ca09cc68af6f415df480c8c6ee277738377a344f60afff01c6aed8c9a88eeeff"
+    },
+    {
+      "log": "language-tests/focused-external-ssd.log",
+      "passed": 10,
+      "sha256": "306b7215f41f432e770b8e1538c51a57bc2de0bf772e0fa55b7fd94485aa59e9"
+    }
+  ],
+  "full_normal_compiler": {
+    "actual_production_types": true,
+    "cfg_test": false,
+    "cli_and_daemon_built": true,
+    "all_writable_artifacts_external_ssd": true,
+    "generated_diagnostic_inputs_reproduced_and_unchanged_after_test_only_changes": true,
+    "clippy": "PASS using Cargo.toml result_large_err allowance; no blanket lint exemption"
+  },
+  "runtime_original71": {
+    "passed": 22,
+    "failed": 49,
+    "recovered": [
+      "standard_library::application_json::collection_response::multi_string::collection_response_refuses_an_overbound_second_string_before_emitting_output",
+      "standard_library::application_json::collection_response::physical::generated_writer_reserves_once_and_copies_once_across_full_row_counts_unlike_legacy_concat"
+    ],
+    "regressions": [],
+    "unchanged_original_fixtures_and_assertions": true,
+    "unchanged_public_builder_bytes": 67108864,
+    "unchanged_helper_work": 32000000
+  },
+  "focused_native_unit": {
+    "passed": 74,
+    "failed": 9,
+    "remaining_failed_names": [
+      "cleanup_plan::replay::path_join::boxed_states::receiving_tests::actual_entry_and_box_layout_inventory_and_complete_main_receiver_sources_are_exact",
+      "cleanup_plan::replay::path_join::selected::tests::renewal::actual_same_owner_byte_renewal_preserves_original_binding_and_whole_owner",
+      "cleanup_plan::replay::path_join::selected::tests::session::live_initialize_paid_session_retains_original_report_source_and_first_receipt",
+      "cleanup_plan::replay::path_join::selected::tests::strings::genuine_string_append_success_preserves_complete_old_and_ordinary_routes",
+      "cleanup_plan::replay::path_join::selected::tests::strings::held_string_append_duplicate_reservation_preserves_first_full_old_diagnostic",
+      "cleanup_plan::replay::path_join::selected::tests::whole::actual_held_unknown_entry_keeps_complete_old_diagnostic_and_prior_profile_order",
+      "cleanup_plan::replay::path_join::selected::tests::whole::complete_scalar_and_lexical_success_keep_ordinary_and_immediate_old_owners",
+      "cleanup_plan::replay::path_join::selected::tests::whole::held_duplicate_initialize_is_closed_by_selected_path_receipt",
+      "workspace_graph::tests::codec808_frontier::primitive_string_codec_actual_preparation_reports_existing_first_operation_without_replacing_failure"
+    ],
+    "all_failures_also_observed_in_actual_baseline_ci": true,
+    "no_test_assertions_or_ir_layouts_substituted": true,
+    "raw_source_reads_rebased_to_complete_actual_files": true,
+    "unrelated_test_registration_attributes_omitted": true
+  },
+  "source_parent54": {
+    "status": "PASS",
+    "snapshot_rows": 724,
+    "runtime_seconds": 3037.99,
+    "scope": "Original complete parent test before the subsequent additive bundle and formatter-custody rows. This is not a claim that the full 726-row parent test was run."
+  },
+  "source_history": {
+    "final_rows": 726,
+    "all_old_rows_and_views_retained": true,
+    "all_original_caps_and_hostile_controls_retained": true,
+    "new_page_bytes": 233684
+  },
+  "limits": {
+    "no_process_rss_cap": true,
+    "device_physical_available_ram_monitored": true,
+    "only_owned_compilers_paused": true
+  },
+  "remaining": "All current main CI must still be fixed and verified green. The 49 original JSON budget failures, seven selected replay failures, boxed source-custody failure and codec allocation failure are not resolved by this commit. Full scripts/quality.sh full has not passed; no whole-CI success claim.",
+  "frozen_final_source_pins": {
+    "src/cleanup_plan/replay/path_join.rs": "18127f538186267d50e714d81076482f6bb89c3d41e7186e4d8c1de45b36929c",
+    "src/cleanup_plan/replay/transition.rs": "f6dde35ec1c2056e0d7ff0053821cb682c8023c0e6d88032c359fc8eec51b995",
+    "src/cleanup_plan/replay/path_join/before_singleton.rs": "125599019c6bb7cdffe1e0742a90812a6a2f398ab1e599eed49b7ac34341f4c7",
+    "src/cleanup_plan/replay/path_join/receiver_tests.rs": "98ca49176be9dd9acec18c2a887391b63cb7e7241ac80dad90d6a6a65616a1e1",
+    "src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs": "14e55b7aed08bf21d933de2a4237e727f57b0e48cb447a63819276628ba2922e",
+    "src/cleanup_plan/replay/path_join/main_single_groups/grouping/source_custody.rs": "97820c51d910676f0d3e9fb266623032b639c5f129df72ff847569fce3f54f65",
+    "src/source_reflows_merge/main_e177_overlay_v2.rs": "3b0680b4396eb69bc404c4d3ed61625d42287dc92a15ee3ef276fcbe50171efd",
+    "src/source_reflows_merge/main_e177_overlay_compiled.rs": "764c7bd57141c7ae439dab004b55ab752bfaeb6868f207231ba66de778adab57",
+    "docs/evidence/finite-source-overlay-v2-20261018/page.json": "97d8040f838bf11f71d5ff8df87ae1e1f89674556dd61bf08d05911acb6f8d95",
+    "docs/evidence/finite-source-overlay-v2-20261018/policy.json": "f1b1645ceb581521cb96786e7c9f8bf4ab45c5e2cf2ee422fbb4c60a55d945ea"
+  }
+}

@@ -6,6 +6,21 @@ use crate::hir::{self, ResolvedExpr, ResolvedExprKind, ResolvedType};
 use super::super::{CEmitter, COutput, CValue};
 
 impl<O: COutput> CEmitter<'_, O> {
+    // Only a direct immutable String-as-Str local carries this positive bit.
+    // Its producer emitted the full UTF-8 check before the local was published.
+    // Aliases, mutable values, projected inputs and foreign parameters keep
+    // their full check. Scope restoration and assignments revoke these facts.
+    pub(super) fn str_byte_check(&mut self, expression: &ResolvedExpr, code: &str) {
+        let checked = expression.ty == ResolvedType::Str
+            && matches!(&expression.kind, ResolvedExprKind::Place(place)
+                if place.projections.is_empty()
+                    && self.resource_text_views.get(&place.root) == Some(&true)
+                    && !self.mutable_bindings.contains(&place.root));
+        if !checked {
+            self.line(&format!("spx_str_require_valid({code});"));
+        }
+    }
+
     pub(super) fn emit_str_as_bytes_view(
         &mut self,
         destination: &str,
@@ -48,7 +63,7 @@ impl<O: COutput> CEmitter<'_, O> {
             ResolvedExprKind::Place(place)
                 if place.projections.is_empty()
                     && matches!(expression.ty, ResolvedType::Str | ResolvedType::SliceU8)
-                    && self.resource_text_views.contains(&place.root) =>
+                    && self.resource_text_views.contains_key(&place.root) =>
             {
                 return true;
             }
@@ -61,7 +76,7 @@ impl<O: COutput> CEmitter<'_, O> {
             ResolvedExprKind::BorrowPlace { operation, place } => {
                 if operation.as_str() == crate::byte_ops::STR_AS_BYTES_ID
                     && place.projections.is_empty()
-                    && self.resource_text_views.contains(&place.root)
+                    && self.resource_text_views.contains_key(&place.root)
                 {
                     return true;
                 }

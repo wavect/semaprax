@@ -1,0 +1,2397 @@
+use super::{
+    backend_error, c_case_symbol, c_field_symbol, c_i32, c_i64, c_pattern_literal, c_string,
+    c_value_type, is_aggregate_type, is_direct_plan_owned, record_declaration_id,
+    variant_declaration_id, CBinding, CEmitter, COutput, CValue,
+};
+use crate::aggregate_layout::AggregateLayout;
+use crate::ast::{BinaryOp, UnaryOp};
+use crate::bounded_output::BudgetedJoin as _;
+use crate::codegen::native_bytes::NativeBytesProducer as _;
+use crate::codegen::NativeOutputProfile;
+use crate::diagnostic::Diagnostic;
+use crate::hir::{
+    self, DeclarationId, ExpressionId, FunctionExecutionId, PlaceProjection, ResolvedExpr,
+    ResolvedExprKind, ResolvedStatement, ResolvedType,
+};
+use crate::variant_layout::VariantLayout;
+use std::collections::BTreeSet;
+mod box_ops;
+mod host_command;
+mod iterator_ops;
+mod lexical_block;
+mod lexical_break;
+mod lexical_exit;
+mod lexical_lookup;
+mod list_ops;
+mod nested_owned;
+mod owned_buffer;
+mod owned_try;
+mod owned_values;
+mod partition;
+mod places;
+mod record_iterator_item;
+mod resource_text;
+pub(super) mod row_loan;
+mod scalar_match;
+mod stdin_stream;
+mod str_equality;
+mod unary;
+mod variant_equality;
+mod variant_if;
+mod vec_ops;
+#[derive(Clone)]
+struct RecordMatchBindingMode<'a> {
+    mode: hir::ResolvedMatchMode,
+    source_storage: Option<&'a crate::cleanup_plan::StorageId>,
+    source_path: Vec<DeclarationId>,
+}
+// `format!` resolves to the bounded codegen macro declared before
+// `mod native_emit`; it must never fall back to `std::format!` here.
+impl<'a, O: COutput> CEmitter<'a, O> {
+    fn emit_str_op(
+        &mut self,
+        op: crate::str_ops::StrOp,
+        args: &[ResolvedExpr],
+        result_type: &ResolvedType,
+    ) -> Result<CValue, Diagnostic> {
+        // A borrowed view is copied as a two-word carrier only. Operations do
+        // not allocate, clone, retain, consume, or drop either source view.
+        let mut arguments = Vec::with_capacity(args.len());
+        if args.len() != op.arity() {
+            return Err(backend_error(format!(
+                "borrowed str operation `{}` has {} arguments; expected {}",
+                op.id(),
+                args.len(),
+                op.arity()
+            )));
+        }
+        for (argument, expected) in args.iter().zip(op.param_types()) {
+            let value = self.emit_expr(argument)?;
+            self.require_type(&value.ty, expected, "borrowed str operation argument")?;
+            arguments.push(value);
+        }
+        self.require_type(
+            result_type,
+            &op.return_type(),
+            "borrowed str operation result",
+        )?;
+        let temporary = self.temporary(&op.return_type())?;
+        match op {
+            crate::str_ops::StrOp::ByteAt => {
+                self.line(&format!("spx_str_require_valid({});", arguments[0].code));
+                self.emit_option_byte_read(
+                    result_type,
+                    &arguments[0].code,
+                    "data",
+                    &arguments[1].code,
+                    &temporary,
+                )?;
+            }
+            crate::str_ops::StrOp::LenBytes => self.line(&format!(
+                "{temporary} = spx_str_len_bytes({});",
+                arguments[0].code
+            )),
+            crate::str_ops::StrOp::IsEmpty => self.line(&format!(
+                "{temporary} = spx_str_is_empty({});",
+                arguments[0].code
+            )),
+            crate::str_ops::StrOp::StartsWith => self.line(&format!(
+                "{temporary} = spx_str_starts_with({}, {});",
+                arguments[0].code, arguments[1].code
+            )),
+            crate::str_ops::StrOp::Contains => self.line(&format!(
+                "{temporary} = spx_str_contains({}, {});",
+                arguments[0].code, arguments[1].code
+            )),
+        }
+        Ok(CValue {
+            code: temporary,
+            ty: op.return_type(),
+        })
+    }
+    /// Own String temporary descendants in scalar-match guards and arm values
+    /// are each scoped by their own canonical child region. The cleanup plan
+    /// determines both the region and its finalizer order; lowering only
+    /// supplies the anchors and emits that exit after the expression's output
+    /// has been consumed by the parent match region.
+    fn scalar_match_string_temporary_anchors(
+        &self,
+        expression: &ResolvedExpr,
+    ) -> BTreeSet<crate::cleanup_plan::StorageId> {
+        let Some(plan) = self.bytes_plan else {
+            return BTreeSet::new();
+        };
+        let mut anchors = BTreeSet::new();
+        let mut pending = vec![expression];
+        while let Some(expression) = pending.pop() {
+            if matches!(expression.ty, ResolvedType::String) {
+                let storage = crate::cleanup_plan::StorageId::Temporary(expression.id.clone());
+                if plan.value(&storage).is_ok() && plan.has_runtime_lifecycle(&storage) {
+                    anchors.insert(storage);
+                }
+            }
+            pending.extend(super::resolved_expr_children(expression));
+        }
+        anchors
+    }
+
+    fn emit_scalar_match_guard_scope_exit(
+        &mut self,
+        guard: &ResolvedExpr,
+    ) -> Result<(), Diagnostic> {
+        let anchors = self.scalar_match_string_temporary_anchors(guard);
+        if anchors.is_empty() {
+            return Ok(());
+        }
+        let cleanup = self
+            .bytes_plan
+            .ok_or_else(|| backend_error("String match guard has no cleanup plan"))?
+            .scalar_match_guard_scope_exit(&guard.id, &anchors)?;
+        for line in cleanup.lines() {
+            self.line(line);
+        }
+        Ok(())
+    }
+
+    fn emit_scalar_match_value_scope_exit(
+        &mut self,
+        scalar_scrutinee: &ExpressionId,
+        value: &ResolvedExpr,
+    ) -> Result<(), Diagnostic> {
+        let anchors = self.scalar_match_string_temporary_anchors(value);
+        if anchors.is_empty() {
+            return Ok(());
+        }
+        let cleanup = self
+            .bytes_plan
+            .ok_or_else(|| backend_error("String match arm value has no cleanup plan"))?
+            .scalar_match_value_scope_exit(scalar_scrutinee, &anchors)?;
+        for line in cleanup.lines() {
+            self.line(line);
+        }
+        Ok(())
+    }
+
+    fn emit_byte_op(
+        &mut self,
+        op: crate::byte_ops::ByteOp,
+        args: &[ResolvedExpr],
+        result_type: &ResolvedType,
+        expression: &ExpressionId,
+    ) -> Result<CValue, Diagnostic> {
+        if args.len() != op.arity() {
+            return Err(backend_error(format!(
+                "byte operation `{}` has {} arguments; expected {}",
+                op.id(),
+                args.len(),
+                op.arity()
+            )));
+        }
+        let mut arguments = Vec::with_capacity(args.len());
+        for (argument, expected) in args.iter().zip(op.param_types()) {
+            let value = self.emit_expr(argument)?;
+            self.require_type(&value.ty, expected, "byte operation argument")?;
+            arguments.push(value);
+        }
+        // `bytes_set` stages its owned buffer in the canonical call-argument
+        // epoch. A write-once chain link has already transferred into that
+        // exact slot; a loop-carried fill names the binding instead, and the
+        // plan owns the one remaining transfer out of it.
+        if matches!(
+            op,
+            crate::byte_ops::ByteOp::Partition
+                | crate::byte_ops::ByteOp::Set
+                | crate::byte_ops::ByteOp::Set5
+                | crate::byte_ops::ByteOp::Set1Or5
+                | crate::byte_ops::ByteOp::Set1Or6Or48
+        ) {
+            let staged = arguments.remove(0);
+            let staged = self.stage_bytes_call_argument(
+                expression,
+                0,
+                &args[0],
+                hir::OwnershipMode::Own,
+                staged,
+            )?;
+            arguments.insert(0, staged);
+        }
+        let return_type = op.return_type();
+        self.require_type(result_type, &return_type, "byte operation result")?;
+        let temporary = if op.return_type() == ResolvedType::Bytes
+            || (op == crate::byte_ops::ByteOp::Partition
+                && self.output_profile == super::NativeOutputProfile::SelectedPartition)
+        {
+            self.bytes_plan
+                .as_ref()
+                .ok_or_else(|| {
+                    backend_error(format!("`{}` has no canonical cleanup plan", op.id()))
+                })?
+                .value(&crate::cleanup_plan::StorageId::Temporary(
+                    expression.clone(),
+                ))?
+                .to_owned()
+        } else {
+            self.temporary(&return_type)?
+        };
+        match op {
+            crate::byte_ops::ByteOp::Partition => {
+                self.emit_partition_call(expression, &arguments, &temporary)?;
+            }
+            crate::byte_ops::ByteOp::Len => {
+                let helper = self.resource_text_len_helper(&args[0]);
+                self.line(&format!("{temporary} = {helper}({});", arguments[0].code));
+            }
+            crate::byte_ops::ByteOp::Get => {
+                let slice = &arguments[0].code;
+                let validator = self.resource_text_read_validator(&args[0]);
+                self.line(&format!("{validator}({slice});"));
+                self.emit_option_byte_read(
+                    &return_type,
+                    slice,
+                    "ptr",
+                    &arguments[1].code,
+                    &temporary,
+                )?;
+            }
+            crate::byte_ops::ByteOp::ZeroedBounded => {
+                self.emit_owned_buffer_bounded_allocation(&arguments, &temporary)?;
+            }
+            crate::byte_ops::ByteOp::Copy | crate::byte_ops::ByteOp::Zeroed => {
+                let (allocator, context) = self.output_profile.byte_allocator(op);
+                if self.output_profile == NativeOutputProfile::CheckedAllocation {
+                    let (operation, constructor) = if op == crate::byte_ops::ByteOp::Copy {
+                        (crate::cleanup_plan::AllocationOperation::BytesCopy, "copy")
+                    } else {
+                        (
+                            crate::cleanup_plan::AllocationOperation::BytesZeroed,
+                            "zeroed",
+                        )
+                    };
+                    self.checked_string_constructor(
+                        expression,
+                        operation,
+                        &format!(
+                            "spx_checked_native_bytes_{constructor}_v1(spx_ctx, {}, &{temporary})",
+                            arguments[0].code
+                        ),
+                        false,
+                    )?;
+                } else {
+                    self.line(&format!(
+                        "{temporary} = {allocator}({context}{});",
+                        arguments[0].code
+                    ));
+                }
+            }
+            crate::byte_ops::ByteOp::Set => {
+                self.emit_owned_buffer_set(expression, &arguments, &temporary)?;
+            }
+            crate::byte_ops::ByteOp::Set5 => {
+                self.emit_owned_buffer_set5(expression, &arguments, &temporary)?;
+            }
+            crate::byte_ops::ByteOp::Set1Or5 => {
+                self.emit_owned_buffer_set1_or5(expression, &arguments, &temporary)?;
+            }
+            crate::byte_ops::ByteOp::Set1Or6Or48 => {
+                self.emit_owned_buffer_set1_or6_or48(expression, &arguments, &temporary)?;
+            }
+            crate::byte_ops::ByteOp::Range => {
+                return Err(backend_error(
+                    "byte_range reached native lowering as an ordinary call",
+                ));
+            }
+            crate::byte_ops::ByteOp::BytesAsSlice
+            | crate::byte_ops::ByteOp::ArrayAsSlice
+            | crate::byte_ops::ByteOp::StrAsBytes
+            | crate::byte_ops::ByteOp::StringAsStr => {
+                return Err(backend_error(format!(
+                    "borrowed view `{}` reached native lowering without authenticated BorrowPlace HIR",
+                    op.id()
+                )));
+            }
+        }
+        let mut code = temporary;
+        if let Some(plan) = self.bytes_plan {
+            let transitions = plan.apply_at(expression)?;
+            for line in transitions.lines() {
+                self.line(line);
+            }
+            if matches!(return_type, ResolvedType::Bytes)
+                || op == crate::byte_ops::ByteOp::Partition
+            {
+                code = plan
+                    .result_at(expression)
+                    .ok_or_else(|| {
+                        backend_error(format!("`{}` has no initialized result slot", op.id()))
+                    })?
+                    .to_owned();
+            }
+        }
+        Ok(CValue {
+            code,
+            ty: return_type,
+        })
+    }
+
+    fn emit_leaf_expr(&mut self, expr: &ResolvedExpr) -> Result<CValue, Diagnostic> {
+        let value = match &expr.kind {
+            ResolvedExprKind::Int(value) => {
+                self.require_type(&expr.ty, &ResolvedType::I64, "integer literal")?;
+                CValue {
+                    code: c_i64(*value),
+                    ty: ResolvedType::I64,
+                }
+            }
+            ResolvedExprKind::Int32(value) => {
+                self.require_type(&expr.ty, &ResolvedType::I32, "i32 literal")?;
+                CValue {
+                    code: c_i32(*value),
+                    ty: ResolvedType::I32,
+                }
+            }
+            ResolvedExprKind::Char(value) => {
+                self.require_type(&expr.ty, &ResolvedType::Char, "char literal")?;
+                CValue {
+                    code: format!("UINT32_C(0x{value:x})"),
+                    ty: ResolvedType::Char,
+                }
+            }
+            ResolvedExprKind::Uint8(value) => {
+                self.require_type(&expr.ty, &ResolvedType::U8, "u8 literal")?;
+                CValue {
+                    code: format!("UINT8_C({value})"),
+                    ty: ResolvedType::U8,
+                }
+            }
+            ResolvedExprKind::Usize(value) => {
+                self.require_type(&expr.ty, &ResolvedType::Usize, "usize literal")?;
+                CValue {
+                    code: format!("UINT64_C({value})"),
+                    ty: ResolvedType::Usize,
+                }
+            }
+            ResolvedExprKind::ArrayU8(values) => {
+                let expected = ResolvedType::ArrayU8(
+                    u32::try_from(values.len())
+                        .map_err(|_| backend_error("fixed byte array length exceeds u32"))?,
+                );
+                self.require_type(&expr.ty, &expected, "fixed byte array literal")?;
+                if values.is_empty() {
+                    return Ok(CValue {
+                        code: "UINT8_C(0)".to_owned(),
+                        ty: expr.ty.clone(),
+                    });
+                } else {
+                    let temporary = self.temporary(&expr.ty)?;
+                    let bytes = values
+                        .iter()
+                        .map(|value| format!("UINT8_C({value})"))
+                        .collect::<Vec<_>>()
+                        .budgeted_join(", ");
+                    self.line(&format!(
+                        "{temporary} = (struct spx_array_u8_{}) {{ .spx_bytes = {{ {bytes} }} }};",
+                        values.len()
+                    ));
+                    CValue {
+                        code: temporary,
+                        ty: expr.ty.clone(),
+                    }
+                }
+            }
+            ResolvedExprKind::RepeatArrayU8 { value, count } => {
+                let expected = ResolvedType::ArrayU8(*count);
+                self.require_type(&expr.ty, &expected, "repeated fixed byte array literal")?;
+                if *count == 0 {
+                    return Ok(CValue {
+                        code: "UINT8_C(0)".to_owned(),
+                        ty: expr.ty.clone(),
+                    });
+                } else {
+                    let temporary = self.temporary(&expr.ty)?;
+                    self.line(&format!(
+                        "memset({temporary}.spx_bytes, UINT8_C({value}), UINT32_C({count}));"
+                    ));
+                    CValue {
+                        code: temporary,
+                        ty: expr.ty.clone(),
+                    }
+                }
+            }
+            ResolvedExprKind::Float32(bits) => {
+                self.require_type(&expr.ty, &ResolvedType::F32, "float literal")?;
+                CValue {
+                    code: format!("{}f", crate::format::canonical_f32_bits(*bits)),
+                    ty: ResolvedType::F32,
+                }
+            }
+            ResolvedExprKind::Float64(bits) => {
+                self.require_type(&expr.ty, &ResolvedType::F64, "float literal")?;
+                CValue {
+                    code: crate::format::canonical_f64_bits(*bits),
+                    ty: ResolvedType::F64,
+                }
+            }
+            ResolvedExprKind::Bool(value) => {
+                self.require_type(&expr.ty, &ResolvedType::Bool, "boolean literal")?;
+                CValue {
+                    code: value.to_string(),
+                    ty: ResolvedType::Bool,
+                }
+            }
+            ResolvedExprKind::BorrowedUtf8Literal(value) => {
+                self.require_type(
+                    &expr.ty,
+                    &ResolvedType::Str,
+                    "static borrowed UTF-8 literal",
+                )?;
+                CValue {
+                    code: format!(
+                        "(spx_str_v1){{ .data = (const uint8_t *)\"{}\", .len = UINT64_C({}) }}",
+                        c_string(value.as_str()),
+                        value.len()
+                    ),
+                    ty: ResolvedType::Str,
+                }
+            }
+            ResolvedExprKind::String(value) => {
+                self.require_type(&expr.ty, &ResolvedType::String, "string literal")?;
+                let temporary = self
+                    .bytes_plan
+                    .ok_or_else(|| backend_error("owned String literal has no cleanup plan"))?
+                    .value(&crate::cleanup_plan::StorageId::Temporary(expr.id.clone()))?
+                    .to_owned();
+                if self.output_profile == NativeOutputProfile::CheckedAllocation {
+                    self.checked_string_constructor(&expr.id,
+                        crate::cleanup_plan::AllocationOperation::StringLiteral,
+                        &format!("spx_checked_string_adapter_from_literal_v1(spx_checked_native_adapter_v1(spx_ctx), \"{}\", UINT64_C({}), &{temporary})", c_string(value), value.len()), false)?;
+                } else {
+                    self.line(&format!(
+                        "{temporary} = spx_string_from_literal(\"{}\", UINT64_C({}));",
+                        c_string(value),
+                        value.len()
+                    ));
+                }
+                let value = CValue {
+                    code: temporary,
+                    ty: ResolvedType::String,
+                };
+                self.apply_owned_plan_at_value(&expr.id, &value)?;
+                CValue {
+                    code: self
+                        .bytes_plan
+                        .and_then(|plan| plan.result_at(&expr.id))
+                        .ok_or_else(|| {
+                            backend_error("owned String literal has no canonical result transfer")
+                        })?
+                        .to_owned(),
+                    ty: ResolvedType::String,
+                }
+            }
+            ResolvedExprKind::Place(place) => {
+                let value = self.emit_place(place)?;
+                self.require_type(&expr.ty, &value.ty, "place expression")?;
+                // An owning String read yields a fresh buffer so the source
+                // place keeps its unique owner. A borrowed String place is
+                // already an authenticated view of its carrier and must stay
+                // an alias: cloning it would create an unplanned owner.
+                if matches!(value.ty, ResolvedType::String)
+                    && expr.ownership == hir::OwnershipMode::Own
+                    && !self.string_owner_moves.contains(&expr.id)
+                    && !self.string_condition_reads.contains(&expr.id)
+                {
+                    let temporary = self
+                        .bytes_plan
+                        .ok_or_else(|| {
+                            backend_error("owned String place read has no cleanup plan")
+                        })?
+                        .value(&crate::cleanup_plan::StorageId::Temporary(expr.id.clone()))?
+                        .to_owned();
+                    if self.output_profile == NativeOutputProfile::CheckedAllocation {
+                        self.checked_string_constructor(&expr.id,
+                            crate::cleanup_plan::AllocationOperation::StringClone,
+                            &format!("spx_checked_string_adapter_clone_v1(spx_checked_native_adapter_v1(spx_ctx), {}, &{temporary})", value.code), false)?;
+                    } else {
+                        self.line(&format!("{temporary} = spx_string_clone({});", value.code));
+                    }
+                    self.apply_owned_plan_at_value(
+                        &expr.id,
+                        &CValue {
+                            code: temporary,
+                            ty: ResolvedType::String,
+                        },
+                    )?;
+                    return Ok(CValue {
+                        code: self
+                            .bytes_plan
+                            .and_then(|plan| plan.result_at(&expr.id))
+                            .ok_or_else(|| {
+                                backend_error(
+                                    "owned String place read has no canonical result transfer",
+                                )
+                            })?
+                            .to_owned(),
+                        ty: value.ty,
+                    });
+                }
+                if is_aggregate_type(self.program, &value.ty)? {
+                    self.apply_owned_plan_at_value(&expr.id, &value)?;
+                }
+                // Read a `let mut` Copy value before later operands run (#561).
+                self.snapshot_mutable_copy_read(&place.root, value)?
+            }
+            ResolvedExprKind::BorrowPlace { operation, place } => {
+                if operation.as_str() == crate::stdin_stream_ops::CHUNK_ID {
+                    return self.emit_stdin_stream_chunk(expr, place);
+                }
+                let op = crate::byte_ops::by_id(operation.as_str()).ok_or_else(|| {
+                    backend_error(format!(
+                        "unknown compiler-owned byte view identity `{operation}`"
+                    ))
+                })?;
+                if !op.is_view() {
+                    return Err(backend_error(format!(
+                        "non-view byte operation `{operation}` used BorrowPlace HIR"
+                    )));
+                }
+                let source = self.emit_place(place)?;
+                let temporary = self.temporary(&expr.ty)?;
+                match op {
+                    crate::byte_ops::ByteOp::BytesAsSlice => {
+                        self.require_type(
+                            &source.ty,
+                            &ResolvedType::Bytes,
+                            "owned byte borrow source",
+                        )?;
+                        self.line(&format!(
+                            "{temporary} = spx_bytes_as_slice(&({}));",
+                            source.code
+                        ));
+                    }
+                    crate::byte_ops::ByteOp::ArrayAsSlice => {
+                        let ResolvedType::ArrayU8(length) = source.ty else {
+                            return Err(backend_error(
+                                "fixed byte array borrow has a non-array source",
+                            ));
+                        };
+                        if length == 0 {
+                            self.line(&format!(
+                                "{temporary} = (spx_slice_u8_v1) {{ .ptr = NULL, .len = UINT64_C(0) }};"
+                            ));
+                        } else {
+                            self.line(&format!(
+                                "{temporary} = (spx_slice_u8_v1) {{ .ptr = ({}).spx_bytes, .len = UINT64_C({length}) }};",
+                                source.code
+                            ));
+                        }
+                        self.line(&format!("spx_slice_u8_require_valid({temporary});"));
+                    }
+                    crate::byte_ops::ByteOp::StrAsBytes => {
+                        self.emit_str_as_bytes_view(&temporary, &source, expr)?;
+                    }
+                    crate::byte_ops::ByteOp::StringAsStr => {
+                        self.require_type(
+                            &source.ty,
+                            &ResolvedType::String,
+                            "owned UTF-8 borrow source",
+                        )?;
+                        self.line(&format!(
+                            "{temporary} = spx_string_as_str({});",
+                            source.code
+                        ));
+                        self.line(&format!("spx_str_require_valid({temporary});"));
+                    }
+                    crate::byte_ops::ByteOp::Partition
+                    | crate::byte_ops::ByteOp::Len
+                    | crate::byte_ops::ByteOp::Get
+                    | crate::byte_ops::ByteOp::Range
+                    | crate::byte_ops::ByteOp::Copy
+                    | crate::byte_ops::ByteOp::Zeroed
+                    | crate::byte_ops::ByteOp::ZeroedBounded
+                    | crate::byte_ops::ByteOp::Set
+                    | crate::byte_ops::ByteOp::Set5
+                    | crate::byte_ops::ByteOp::Set1Or5
+                    | crate::byte_ops::ByteOp::Set1Or6Or48 => unreachable!(),
+                }
+                CValue {
+                    code: temporary,
+                    ty: expr.ty.clone(),
+                }
+            }
+            _ => unreachable!("non-leaf expression reached native leaf lowering"),
+        };
+        self.require_type(&value.ty, &expr.ty, "expression")?;
+        Ok(value)
+    }
+
+    pub(super) fn emit_expr(&mut self, expr: &ResolvedExpr) -> Result<CValue, Diagnostic> {
+        let previous = self.active_expression.replace(expr.id.clone());
+        let result = self.emit_expr_in_context(expr);
+        self.active_expression = previous;
+        result
+    }
+
+    fn emit_expr_in_context(&mut self, expr: &ResolvedExpr) -> Result<CValue, Diagnostic> {
+        self.emit_lexical_step_label(&expr.id)?;
+        match &expr.kind {
+            ResolvedExprKind::LexicalExit {
+                kind,
+                target,
+                value,
+            } => self.emit_lexical_exit(expr, *kind, target, value.as_deref()),
+            ResolvedExprKind::Int(_)
+            | ResolvedExprKind::Int32(_)
+            | ResolvedExprKind::Char(_)
+            | ResolvedExprKind::Uint8(_)
+            | ResolvedExprKind::Usize(_)
+            | ResolvedExprKind::ArrayU8(_)
+            | ResolvedExprKind::RepeatArrayU8 { .. }
+            | ResolvedExprKind::Float32(_)
+            | ResolvedExprKind::Float64(_)
+            | ResolvedExprKind::Bool(_)
+            | ResolvedExprKind::String(_)
+            | ResolvedExprKind::BorrowedUtf8Literal(_)
+            | ResolvedExprKind::Place(_)
+            | ResolvedExprKind::BorrowPlace { .. } => self.emit_leaf_expr(expr),
+            ResolvedExprKind::VecFieldRead {
+                origin: _,
+                element,
+                field,
+                bytes,
+                args,
+            } => self.emit_vec_field_read(expr, element, field, *bytes, args),
+            ResolvedExprKind::RowLoan { loan, args } => self.emit_row_loan(expr, loan, args),
+            ResolvedExprKind::ByteRange {
+                operation,
+                source,
+                start,
+                end,
+            } => self.emit_byte_range_expr(expr, operation, source, start, end),
+            ResolvedExprKind::HostCommandCall(_) => self.emit_host_command_expr(expr),
+            ResolvedExprKind::LiteralFormat { template, args } => {
+                self.emit_literal_format(expr, template, args)
+            }
+            ResolvedExprKind::Call { .. } => self.emit_call_expr(expr),
+            ResolvedExprKind::Closure { .. } if expr.ty.is_once_function() => {
+                super::once::construct(self, expr)
+            }
+            ResolvedExprKind::Closure { captures, .. } => {
+                super::closure::construct(self, expr, captures)
+            }
+            ResolvedExprKind::FunctionReference { .. } => {
+                super::function_value::emit_reference(self, expr)
+            }
+            ResolvedExprKind::Invoke { callable, args } => {
+                super::function_value::emit_invoke(self, expr, callable, args)
+            }
+            ResolvedExprKind::NativeRustImportCall(call) => Err(backend_error(format!(
+                "native Rust import `{}` is unavailable in the ordinary native backend",
+                call.import
+            ))),
+            ResolvedExprKind::Unary { op, value } => self.emit_unary_expr(expr, *op, value),
+            ResolvedExprKind::Binary { op, left, right } => {
+                self.emit_binary(*op, left, right, &expr.ty)
+            }
+            ResolvedExprKind::Block { statements, .. }
+            | ResolvedExprKind::VecConstructor { statements, .. }
+                if statements.is_empty() =>
+            {
+                self.emit_empty_block_expr(expr)
+            }
+            ResolvedExprKind::Block { .. } | ResolvedExprKind::VecConstructor { .. } => {
+                self.emit_block_expr(expr)
+            }
+            ResolvedExprKind::If { .. } => self.emit_if_expr(expr),
+            ResolvedExprKind::ConstructRecord { .. } => self.emit_construct_record_expr(expr),
+            ResolvedExprKind::ConstructVariant { .. } => self.emit_construct_variant_expr(expr),
+            ResolvedExprKind::Match { .. } => self.emit_match_expr(expr),
+            ResolvedExprKind::Try { .. } => self.emit_try_expr(expr),
+            ResolvedExprKind::TryOption { .. } => self.emit_try_option_expr(expr),
+            ResolvedExprKind::Project { .. } => self.emit_project_expr(expr),
+            ResolvedExprKind::Upcast { .. } => self.emit_upcast_expr(expr),
+            ResolvedExprKind::UpdateRecord { .. } => self.emit_update_record_expr(expr),
+            // Resumable Effects v1 (issue #204): explicit, tested refusal.
+            // A `yield` suspends the whole function and hands control back
+            // to a caller outside this translation unit; the native C11
+            // backend has no such control-transfer mechanism, so a
+            // `yields`-declaring function is not admitted for this target
+            // at all -- see `docs/RESUMABLE-EFFECTS-V1.md`.
+            ResolvedExprKind::Yield { .. } => Err(Diagnostic::io(
+                "SPX-B116",
+                "`yield` is not yet lowered by the native backend; a `yields`-declaring \
+                 function is not admitted for this target",
+            )),
+        }
+    }
+
+    fn emit_byte_range_expr(
+        &mut self,
+        expr: &ResolvedExpr,
+        operation: &DeclarationId,
+        source: &ResolvedExpr,
+        start: &ResolvedExpr,
+        end: &ResolvedExpr,
+    ) -> Result<CValue, Diagnostic> {
+        if operation.as_str() != crate::byte_ops::RANGE_ID {
+            return Err(backend_error(
+                "byte_range HIR has an unknown operation identity",
+            ));
+        }
+        let source = self.emit_expr(source)?;
+        self.require_type(&source.ty, &ResolvedType::SliceU8, "byte_range source")?;
+        let start = self.emit_expr(start)?;
+        self.require_type(&start.ty, &ResolvedType::Usize, "byte_range start")?;
+        let end = self.emit_expr(end)?;
+        self.require_type(&end.ty, &ResolvedType::Usize, "byte_range end")?;
+        self.require_type(&expr.ty, &ResolvedType::SliceU8, "byte_range result")?;
+        let temporary = self.temporary(&ResolvedType::SliceU8)?;
+        let helper = self.resource_text_range_helper(expr);
+        self.line(&format!(
+            "spx_status = {helper}(spx_ctx, {}, {}, {}, &{temporary});",
+            source.code, start.code, end.code
+        ));
+        self.emit_operation_failure_check()?;
+        if let Some(plan) = self.bytes_plan {
+            let transitions = plan.apply_at(&expr.id)?;
+            for line in transitions.lines() {
+                self.line(line);
+            }
+        }
+        Ok(CValue {
+            code: temporary,
+            ty: ResolvedType::SliceU8,
+        })
+    }
+
+    fn emit_call_expr(&mut self, expr: &ResolvedExpr) -> Result<CValue, Diagnostic> {
+        match &expr.kind {
+            ResolvedExprKind::Call {
+                callee,
+                instance,
+                args,
+                type_arguments,
+            } => {
+                if instance.is_none() {
+                    if callee.as_str() == crate::stdin_stream_ops::EOF_ID {
+                        return self.emit_stdin_stream_eof(expr, args, type_arguments);
+                    }
+                    if let Some(op) = crate::list_ops::by_id(callee.as_str()) {
+                        return self.emit_list_op(expr, op, type_arguments, args);
+                    }
+                    if let Some(op) = crate::vec_ops::by_id(callee.as_str()) {
+                        return self.emit_vec_op(expr, op, type_arguments, args);
+                    }
+                    if let Some(op) = crate::iterator_ops::by_id(callee.as_str()) {
+                        return self.emit_iterator_op(expr, op, type_arguments, args);
+                    }
+                    if let Some(op) = crate::box_ops::by_id(callee.as_str()) {
+                        return self.emit_box_op(expr, op, type_arguments, args);
+                    }
+                    if crate::host_io_ops::by_id(callee.as_str()).is_some() {
+                        if !self.output_profile.supports_stdout_transcript() {
+                            return Err(backend_error(
+                                "host stdout write requires the native stdout-transcript profile",
+                            ));
+                        }
+                        if args.len() != 1 {
+                            return Err(backend_error(
+                                "host stdout write arity disagrees with resolved HIR",
+                            ));
+                        }
+                        let value = self.emit_expr(&args[0])?;
+                        self.require_type(
+                            &value.ty,
+                            &ResolvedType::SliceU8,
+                            "host stdout write argument",
+                        )?;
+                        self.require_type(
+                            &expr.ty,
+                            &ResolvedType::Usize,
+                            "host stdout write result",
+                        )?;
+                        let temporary = self.temporary(&ResolvedType::Usize)?;
+                        self.emit_stdout_write(&args[0], &value.code, &temporary)?;
+                        return Ok(CValue {
+                            code: temporary,
+                            ty: ResolvedType::Usize,
+                        });
+                    }
+                    if let Some(op) = crate::str_ops::by_id(callee.as_str()) {
+                        return self.emit_str_op(op, args, &expr.ty);
+                    }
+                    if let Some(op) = crate::byte_ops::by_id(callee.as_str()) {
+                        return self.emit_byte_op(op, args, &expr.ty, &expr.id);
+                    }
+                    if let Some(op) = crate::map_ops::by_id(callee.as_str()) {
+                        return self.emit_typed_map_op(
+                            op,
+                            type_arguments,
+                            args,
+                            &expr.ty,
+                            &expr.id,
+                        );
+                    }
+                    if let Some(op) = crate::string_ops::by_id(callee.as_str()) {
+                        return self.emit_string_op(op, args, &expr.ty, &expr.id);
+                    }
+                }
+                self.emit_user_call_expr(expr, callee, instance.as_ref(), args)
+            }
+            _ => unreachable!("non-Call expression reached emit_call_expr"),
+        }
+    }
+
+    fn emit_user_call_expr(
+        &mut self,
+        expr: &ResolvedExpr,
+        callee: &hir::DeclarationId,
+        instance: Option<&hir::FunctionInstanceId>,
+        args: &[ResolvedExpr],
+    ) -> Result<CValue, Diagnostic> {
+        struct PendingCall<'a> {
+            expr: &'a ResolvedExpr,
+            args: &'a [ResolvedExpr],
+            target: super::CFunction,
+        }
+
+        let mut pending = Vec::new();
+        let mut current_expr = expr;
+        let mut current_callee = callee;
+        let mut current_instance = instance;
+        let mut current_args = args;
+        let mut value = loop {
+            let execution = current_instance.map_or_else(
+                || FunctionExecutionId::Monomorphic(current_callee.clone()),
+                |instance| FunctionExecutionId::Generic(instance.clone()),
+            );
+            let target = self.functions.get(&execution).cloned().ok_or_else(|| {
+                backend_error(format!("resolved callee `{current_callee}` is not indexed"))
+            })?;
+            if current_args.len() != target.params.len() {
+                return Err(backend_error(format!(
+                    "resolved call to `{current_callee}` has {} arguments; expected {}",
+                    current_args.len(),
+                    target.params.len()
+                )));
+            }
+            pending.push(PendingCall {
+                expr: current_expr,
+                args: current_args,
+                target,
+            });
+            let Some(first) = current_args.first() else {
+                break None;
+            };
+            let ResolvedExprKind::Call {
+                callee,
+                instance,
+                args,
+                ..
+            } = &first.kind
+            else {
+                break Some(self.emit_expr(first)?);
+            };
+            let execution = instance.as_ref().map_or_else(
+                || FunctionExecutionId::Monomorphic(callee.clone()),
+                |instance| FunctionExecutionId::Generic(instance.clone()),
+            );
+            if !self.functions.contains_key(&execution) {
+                break Some(self.emit_expr(first)?);
+            }
+            current_expr = first;
+            current_callee = callee;
+            current_instance = instance.as_ref();
+            current_args = args;
+        };
+
+        while let Some(call) = pending.pop() {
+            let mut values = Vec::with_capacity(call.args.len());
+            if let Some(first) = value.take() {
+                values.push(self.stage_bytes_call_argument(
+                    &call.expr.id,
+                    0,
+                    &call.args[0],
+                    call.target.param_ownerships[0],
+                    first,
+                )?);
+            }
+            for (index, argument) in call.args.iter().enumerate().skip(values.len()) {
+                let value = self.emit_expr(argument)?;
+                values.push(self.stage_bytes_call_argument(
+                    &call.expr.id,
+                    index,
+                    argument,
+                    call.target.param_ownerships[index],
+                    value,
+                )?);
+            }
+            value = Some(self.emit_user_call_values(call.expr, &call.target, call.args, values)?);
+        }
+        value.ok_or_else(|| backend_error("user-call traversal produced no result"))
+    }
+
+    fn emit_user_call_values(
+        &mut self,
+        expr: &ResolvedExpr,
+        target: &super::CFunction,
+        args: &[ResolvedExpr],
+        values: Vec<CValue>,
+    ) -> Result<CValue, Diagnostic> {
+        let mut arguments = Vec::with_capacity(args.len());
+        for (index, (expected, argument)) in target.params.iter().zip(values).enumerate() {
+            self.require_type(&argument.ty, expected, &format!("call argument {index}"))?;
+            if target.lent.get(index) == Some(&true) {
+                arguments.push(self.row_loan_argument(&args[index], &argument)?);
+                continue;
+            }
+            arguments.push(if is_direct_plan_owned(self.program, expected) {
+                match target.param_ownerships[index] {
+                    hir::OwnershipMode::Own => {
+                        let plan = self.bytes_plan.ok_or_else(|| {
+                            backend_error("owned call has no canonical cleanup plan")
+                        })?;
+                        let parameter_index = u32::try_from(index)
+                            .map_err(|_| backend_error("native call has too many parameters"))?;
+                        let (value, _, is_vec) = plan.call_argument(&expr.id, parameter_index)?;
+                        if argument.code != value {
+                            return Err(backend_error(
+                                "owned call argument was not staged in its canonical epoch",
+                            ));
+                        }
+                        if crate::stdin_stream_ops::is_reader(expected) {
+                            format!("spx_stdin_stream_move_v1(spx_ctx, &{value})")
+                        } else if crate::iterator_ops::is_iter(expected) {
+                            format!("spx_iter_move(spx_ctx, &{value})")
+                        } else if crate::cleanup::is_owned_bounded_box_type(expected) {
+                            format!("spx_box_move(spx_ctx, &{value})")
+                        } else if is_vec {
+                            format!("spx_vec_move(spx_ctx, &{value})")
+                        } else if expected.is_once_function() {
+                            super::owned_moves::owned_move(expected, &value)
+                        } else if matches!(expected, ResolvedType::String)
+                            || crate::map_ops::is_collection(expected)
+                        {
+                            value.to_owned()
+                        } else {
+                            format!("spx_bytes_move(&{value})")
+                        }
+                    }
+                    hir::OwnershipMode::Borrow => format!("&({})", argument.code),
+                    _ => {
+                        return Err(backend_error(
+                            "owned call argument lacks validated ownership classification",
+                        ));
+                    }
+                }
+            } else if is_aggregate_type(self.program, expected)? {
+                if target.param_ownerships[index] == hir::OwnershipMode::Own {
+                    if let Some(plan) = self.bytes_plan {
+                        let parameter_index = u32::try_from(index)
+                            .map_err(|_| backend_error("native call has too many parameters"))?;
+                        let storage = plan.call_argument_storage(&expr.id, parameter_index)?;
+                        let materialize = if plan.has_variant_leaves(&storage) {
+                            let layout = self.variant_layout(expected)?;
+                            plan.materialize_variant_carrier(
+                                &storage,
+                                &argument.code,
+                                &argument.code,
+                                &layout,
+                            )?
+                        } else {
+                            plan.materialize_record_carrier(&storage, &argument.code)?
+                        };
+                        for line in materialize.lines() {
+                            self.line(line);
+                        }
+                    }
+                }
+                format!("&({})", argument.code)
+            } else {
+                argument.code
+            });
+            if is_aggregate_type(self.program, expected)?
+                && target.param_ownerships[index] == hir::OwnershipMode::Borrow
+            {
+                let ResolvedExprKind::Place(place) = &args[index].kind else {
+                    return Err(backend_error(
+                        "borrowed owned-record argument is not one authenticated place",
+                    ));
+                };
+                if !place.projections.is_empty() {
+                    return Err(backend_error(
+                        "borrowed owned-record argument is not one root place",
+                    ));
+                }
+                let storage = crate::cleanup_plan::StorageId::Value(place.root.clone());
+                for path in super::borrowed_aggregate_byte_paths(
+                    self.program,
+                    self.record_layouts,
+                    self.variant_layouts,
+                    expected,
+                )? {
+                    let alias = self
+                        .bytes_plan
+                        .and_then(|plan| {
+                            plan.value_at(&crate::cleanup_plan::CleanupPlace {
+                                storage: storage.clone(),
+                                projections: path.clone(),
+                            })
+                            .ok()
+                            .map(str::to_owned)
+                        })
+                        .or_else(|| {
+                            self.borrowed_aggregate_bytes
+                                .get(&(place.root.clone(), path.clone()))
+                                .cloned()
+                        })
+                        .ok_or_else(|| {
+                            backend_error(
+                                "borrowed owned-record call has no authenticated field alias",
+                            )
+                        })?;
+                    arguments.push(format!("&({alias})"));
+                }
+            }
+        }
+        self.require_type(&expr.ty, &target.return_type, "call result")?;
+        let temporary = if is_direct_plan_owned(self.program, &target.return_type) {
+            self.bytes_plan
+                .ok_or_else(|| backend_error("owned Bytes call result has no cleanup plan"))?
+                .value(&crate::cleanup_plan::StorageId::Temporary(expr.id.clone()))?
+                .to_owned()
+        } else {
+            self.call_result_temporary(&target.return_type)?
+        };
+        self.line(&format!(
+            "spx_status = {}(spx_ctx{}{}, &{temporary});",
+            target.symbol,
+            if arguments.is_empty() { "" } else { ", " },
+            arguments.budgeted_join(", ")
+        ));
+        if let Some(plan) = self.bytes_plan {
+            for (index, expected) in target.params.iter().enumerate() {
+                if is_direct_plan_owned(self.program, expected)
+                    && target.param_ownerships[index] == hir::OwnershipMode::Own
+                {
+                    let (_, flag, _) = plan.call_argument(
+                        &expr.id,
+                        u32::try_from(index)
+                            .map_err(|_| backend_error("native call has too many parameters"))?,
+                    )?;
+                    self.line(&format!("{flag} = false;"));
+                }
+            }
+        }
+        self.emit_operation_failure_check_at(&expr.id)?;
+        if matches!(target.return_type, ResolvedType::String)
+            && !is_direct_plan_owned(self.program, &target.return_type)
+        {
+            self.string_initialize(&temporary);
+        }
+        if is_aggregate_type(self.program, &target.return_type)? {
+            if let Some(plan) = self.bytes_plan {
+                let storage = crate::cleanup_plan::StorageId::Temporary(expr.id.clone());
+                if plan.has_projected_leaves(&storage) {
+                    let initialize = if plan.has_variant_leaves(&storage) {
+                        plan.initialize_variant_result_at(
+                            &expr.id,
+                            &temporary,
+                            &self.variant_layout(&target.return_type)?,
+                        )?
+                    } else {
+                        plan.initialize_record_result_at(&expr.id, &temporary)?
+                    };
+                    for line in initialize.lines() {
+                        self.line(line);
+                    }
+                }
+            }
+        }
+        let result = CValue {
+            code: if is_direct_plan_owned(self.program, &target.return_type) {
+                self.bytes_plan
+                    .and_then(|plan| plan.result_at(&expr.id))
+                    .ok_or_else(|| backend_error("owned call has no canonical result transfer"))?
+                    .to_owned()
+            } else {
+                temporary
+            },
+            ty: target.return_type.clone(),
+        };
+        self.apply_owned_plan_at_value(&expr.id, &result)?;
+        Ok(result)
+    }
+
+    fn emit_empty_block_expr(&mut self, expr: &ResolvedExpr) -> Result<CValue, Diagnostic> {
+        let mut blocks = Vec::new();
+        let mut current = expr;
+        loop {
+            let (ResolvedExprKind::Block { statements, tail }
+            | ResolvedExprKind::VecConstructor {
+                statements, tail, ..
+            }) = &current.kind
+            else {
+                unreachable!("non-Block expression reached emit_empty_block_expr")
+            };
+            debug_assert!(statements.is_empty());
+            blocks.push(current);
+            match &tail.kind {
+                ResolvedExprKind::Block { statements, .. }
+                | ResolvedExprKind::VecConstructor { statements, .. }
+                    if statements.is_empty() =>
+                {
+                    current = tail;
+                }
+                _ => {
+                    current = tail;
+                    break;
+                }
+            }
+        }
+
+        let mut value = self.emit_expr(current)?;
+        if value.ty == ResolvedType::Never {
+            return Ok(value);
+        }
+        while let Some(block) = blocks.pop() {
+            self.require_flow_type(&value.ty, &block.ty, "block result")?;
+            if is_direct_plan_owned(self.program, &value.ty) {
+                let plan = self.bytes_plan.ok_or_else(|| {
+                    backend_error("owned Bytes block has no canonical cleanup plan")
+                })?;
+                let transitions = plan.apply_at(&block.id)?;
+                for line in transitions.lines() {
+                    self.line(line);
+                }
+                value.code = plan
+                    .result_at(&block.id)
+                    .ok_or_else(|| {
+                        backend_error("owned Bytes block has no canonical result transfer")
+                    })?
+                    .to_owned();
+            } else if is_aggregate_type(self.program, &value.ty)? {
+                if self.lexical_variant_block(block)? {
+                    self.emit_lexical_variant_block_result(block, &value)?;
+                } else {
+                    self.apply_owned_plan_at_value(&block.id, &value)?;
+                }
+            }
+            self.emit_block_plan_scope_exit(block)?;
+            if self.lexical_variant_block(block)? {
+                self.finish_variant_join(block, &value.code)?;
+            }
+        }
+        Ok(value)
+    }
+
+    fn emit_construct_record_expr(&mut self, expr: &ResolvedExpr) -> Result<CValue, Diagnostic> {
+        let value = match &expr.kind {
+            ResolvedExprKind::ConstructRecord { record, fields } => {
+                let layout = self.record_layout(&expr.ty)?;
+                if layout.record != *record {
+                    return Err(backend_error(format!(
+                        "native record constructor `{record}` has result type `{}`",
+                        expr.ty.identity_key()
+                    )));
+                }
+                let temporary = self.temporary(&expr.ty)?;
+                self.initialize_record_carrier(&temporary, &layout);
+                if self.record_contains_owned_bytes(&expr.ty)? {
+                    self.zero_owned_record_bytes(&temporary, &expr.ty)?;
+                }
+                for initializer in fields {
+                    let field = layout.field(&initializer.field).cloned().ok_or_else(|| {
+                        backend_error(format!(
+                            "native record `{record}` has no field `{}`",
+                            initializer.field
+                        ))
+                    })?;
+                    let value = self.emit_expr(&initializer.value)?;
+                    self.require_type(&value.ty, &field.ty, "record field initializer")?;
+                    if matches!(field.ty, ResolvedType::Bytes | ResolvedType::String)
+                        || crate::map_ops::is_collection(&field.ty)
+                        || crate::hir::owned_collection_record::vector(
+                            &self.program.declarations,
+                            &field.ty,
+                        )
+                    {
+                        let plan = self.bytes_plan.ok_or_else(|| {
+                            backend_error("owned Bytes record field has no cleanup plan")
+                        })?;
+                        let transitions = plan.transfer_field_at(
+                            &initializer.value.id,
+                            &value.code,
+                            &crate::cleanup_plan::CleanupPlace {
+                                storage: crate::cleanup_plan::StorageId::Temporary(expr.id.clone()),
+                                projections: vec![field.field.clone()],
+                            },
+                        )?;
+                        for line in transitions.lines() {
+                            self.line(line);
+                        }
+                    }
+                    if field.size != 0 && self.record_contains_owned_bytes(&field.ty)? {
+                        let destination = format!("{temporary}.{}", c_field_symbol(&field.field));
+                        self.move_owned_record_fields(&destination, &value.code, &field.ty)?;
+                    } else if field.size != 0 && !is_direct_plan_owned(self.program, &field.ty) {
+                        self.line(&format!(
+                            "{temporary}.{} = {};",
+                            c_field_symbol(&field.field),
+                            value.code
+                        ));
+                    }
+                }
+                if let Some(plan) = self.bytes_plan {
+                    let transitions = plan.apply_at(&expr.id)?;
+                    for line in transitions.lines() {
+                        self.line(line);
+                    }
+                }
+                CValue {
+                    code: temporary,
+                    ty: expr.ty.clone(),
+                }
+            }
+            _ => unreachable!("non-ConstructRecord expression reached emit_construct_record_expr"),
+        };
+        self.require_type(&value.ty, &expr.ty, "expression")?;
+        Ok(value)
+    }
+
+    fn emit_construct_variant_expr(&mut self, expr: &ResolvedExpr) -> Result<CValue, Diagnostic> {
+        let value = match &expr.kind {
+            ResolvedExprKind::ConstructVariant {
+                variant,
+                case,
+                fields,
+            } => {
+                let layout = self.variant_layout(&expr.ty)?;
+                if layout.variant != *variant {
+                    return Err(backend_error(format!(
+                        "native variant constructor `{variant}` has result type `{}`",
+                        expr.ty.identity_key()
+                    )));
+                }
+                let case_layout = layout.case(case).cloned().ok_or_else(|| {
+                    backend_error(format!("native variant `{variant}` has no case `{case}`"))
+                })?;
+                let mut values = Vec::with_capacity(fields.len());
+                for initializer in fields {
+                    let field =
+                        case_layout
+                            .field(&initializer.field)
+                            .cloned()
+                            .ok_or_else(|| {
+                                backend_error(format!(
+                                    "native variant case `{case}` has no field `{}`",
+                                    initializer.field
+                                ))
+                            })?;
+                    let value = self.emit_expr(&initializer.value)?;
+                    self.require_type(&value.ty, &field.ty, "variant field initializer")?;
+                    if is_direct_plan_owned(self.program, &field.ty)
+                        || crate::iterator_ops::is_iter(&field.ty)
+                    {
+                        let plan = self.bytes_plan.ok_or_else(|| {
+                            backend_error("owned Bytes variant field has no cleanup plan")
+                        })?;
+                        let transitions = plan.transfer_field_at(
+                            &initializer.value.id,
+                            &value.code,
+                            &crate::cleanup_plan::CleanupPlace {
+                                storage: crate::cleanup_plan::StorageId::Temporary(expr.id.clone()),
+                                projections: vec![case.clone(), field.field.clone()],
+                            },
+                        )?;
+                        for line in transitions.lines() {
+                            self.line(line);
+                        }
+                    }
+                    values.push((field, value));
+                }
+                let temporary = self.temporary(&expr.ty)?;
+                self.line(&format!("memset(&{temporary}, 0, sizeof({temporary}));"));
+                let case_symbol = c_case_symbol(case);
+                for (field, value) in values {
+                    if field.value_kind == crate::variant_layout::VariantFieldValueKind::OwnedRecord
+                    {
+                        let destination = format!(
+                            "{temporary}.spx_payload.{case_symbol}.{}",
+                            c_field_symbol(&field.field)
+                        );
+                        self.move_owned_record_fields(&destination, &value.code, &field.ty)?;
+                        continue;
+                    }
+                    if field.size != 0
+                        && !is_direct_plan_owned(self.program, &field.ty)
+                        && !crate::iterator_ops::is_iter(&field.ty)
+                    {
+                        self.line(&format!(
+                            "{temporary}.spx_payload.{case_symbol}.{} = {};",
+                            c_field_symbol(&field.field),
+                            if crate::iterator_ops::is_step(&expr.ty) {
+                                super::super::native_iter::item_bits(&value.code, &value.ty)
+                            } else {
+                                value.code
+                            }
+                        ));
+                    }
+                }
+                self.line(&format!(
+                    "{temporary}.spx_tag = UINT32_C({});",
+                    case_layout.tag
+                ));
+                if let Some(plan) = self.bytes_plan {
+                    let transitions = plan.apply_variant_case_at(&expr.id, case)?;
+                    for line in transitions.lines() {
+                        self.line(line);
+                    }
+                }
+                CValue {
+                    code: temporary,
+                    ty: expr.ty.clone(),
+                }
+            }
+            _ => {
+                unreachable!("non-ConstructVariant expression reached emit_construct_variant_expr")
+            }
+        };
+        self.require_type(&value.ty, &expr.ty, "expression")?;
+        Ok(value)
+    }
+
+    fn emit_match_expr(&mut self, expr: &ResolvedExpr) -> Result<CValue, Diagnostic> {
+        let value = match &expr.kind {
+            ResolvedExprKind::Match {
+                mode,
+                scrutinee,
+                arms,
+            } => {
+                let aggregate_result = is_aggregate_type(self.program, &expr.ty)?;
+                if aggregate_result && !self.match_result_is_admitted(expr, *mode, &scrutinee.ty) {
+                    return Err(backend_error("copy match arms must produce i64 or bool"));
+                }
+                let source_storage = match &scrutinee.kind {
+                    ResolvedExprKind::Place(place) if place.projections.is_empty() => {
+                        Some(crate::cleanup_plan::StorageId::Value(place.root.clone()))
+                    }
+                    _ => None,
+                };
+                let scalar_scrutinee = scrutinee.id.clone();
+                let scrutinee = self.emit_expr(scrutinee)?;
+                // Refutable Match v1: Copy-scalar scrutinees lower to the
+                // literal/guard decision chain; aggregates keep the exact
+                // pre-feature lowering below.
+                if crate::hir::is_refutable_match_scalar(&scrutinee.ty) {
+                    return self.emit_scalar_match(expr, &scalar_scrutinee, &scrutinee, arms);
+                }
+                if let Some(record) = record_declaration_id(self.program, &scrutinee.ty)?.cloned() {
+                    let [arm] = arms.as_slice() else {
+                        return Err(backend_error(
+                            "irrefutable record match must have exactly one arm",
+                        ));
+                    };
+                    let anchors = match &arm.pattern {
+                        hir::ResolvedMatchPattern::Record { fields, .. } => {
+                            nested_owned::owned_record_pattern_anchors(self.program, fields)?
+                        }
+                        _ => Default::default(),
+                    };
+                    if *mode == hir::ResolvedMatchMode::Own {
+                        let preflight = self
+                            .bytes_plan
+                            .ok_or_else(|| backend_error("owned record match has no cleanup plan"))?
+                            .record_match_phase(&expr.id, &anchors, true, true)?;
+                        for line in preflight.lines() {
+                            self.line(line);
+                        }
+                    }
+                    let contains_owned_bytes = self.record_contains_owned_bytes(&scrutinee.ty)?;
+                    let staged = match mode {
+                        hir::ResolvedMatchMode::Own => {
+                            let staged = self.temporary(&scrutinee.ty)?;
+                            if contains_owned_bytes {
+                                self.zero_owned_record_bytes(&staged, &scrutinee.ty)?;
+                                self.move_owned_record_fields(
+                                    &staged,
+                                    &scrutinee.code,
+                                    &scrutinee.ty,
+                                )?;
+                            } else {
+                                self.line(&format!("{staged} = {};", scrutinee.code));
+                            }
+                            self.line(&format!("(void){staged};"));
+                            staged
+                        }
+                        hir::ResolvedMatchMode::Borrow => {
+                            // A borrow match retains the caller's authoritative
+                            // carrier. Bytes leaves bind through separately
+                            // authenticated full-path aliases below; Copy leaves
+                            // read directly from this carrier.
+                            scrutinee.code.clone()
+                        }
+                        hir::ResolvedMatchMode::Value => {
+                            if contains_owned_bytes {
+                                return Err(backend_error(
+                                    "Value record match cannot copy owned Bytes",
+                                ));
+                            }
+                            let staged = self.temporary(&scrutinee.ty)?;
+                            self.line(&format!("{staged} = {};", scrutinee.code));
+                            staged
+                        }
+                    };
+                    if *mode == hir::ResolvedMatchMode::Own {
+                        let transitions = self
+                            .bytes_plan
+                            .expect("owned match plan checked above")
+                            .record_match_phase(&expr.id, &anchors, true, false)?;
+                        for line in transitions.lines() {
+                            self.line(line);
+                        }
+                    }
+                    let saved = self.variables.clone();
+                    match &arm.pattern {
+                        hir::ResolvedMatchPattern::Wildcard => {}
+                        hir::ResolvedMatchPattern::Record {
+                            record: pattern_record,
+                            instance,
+                            fields,
+                        } => self.bind_record_match_pattern(
+                            &staged,
+                            &scrutinee.ty,
+                            pattern_record,
+                            instance,
+                            fields,
+                            &RecordMatchBindingMode {
+                                mode: *mode,
+                                source_storage: source_storage.as_ref(),
+                                source_path: Vec::new(),
+                            },
+                        )?,
+                        hir::ResolvedMatchPattern::Variant { .. } => {
+                            return Err(backend_error(
+                                "variant pattern has a record match scrutinee",
+                            ));
+                        }
+                        hir::ResolvedMatchPattern::Literal(_)
+                        | hir::ResolvedMatchPattern::Or(_)
+                        | hir::ResolvedMatchPattern::Binding(_) => {
+                            return Err(backend_error(
+                                "refutable pattern has an aggregate record match scrutinee",
+                            ));
+                        }
+                    }
+                    if record_declaration_id(self.program, &scrutinee.ty)? != Some(&record) {
+                        return Err(backend_error(
+                            "record match scrutinee identity changed during lowering",
+                        ));
+                    }
+                    // Aggregate arm values apply their arm-value-keyed
+                    // transfer while `emit_expr` materializes the exact
+                    // constructor/update. That commit must precede the arm
+                    // scope exit below so moved bindings are not finalized.
+                    let mut value = self.emit_expr(&arm.value)?;
+                    self.require_flow_type(&value.ty, &expr.ty, "record match arm result")?;
+                    if value.ty == ResolvedType::Never {
+                        self.variables = saved;
+                        return Ok(value);
+                    }
+                    if aggregate_result || is_direct_plan_owned(self.program, &expr.ty) {
+                        self.finish_generic_owned_match_result(expr, &arm.value, &mut value)?;
+                    }
+                    if *mode == hir::ResolvedMatchMode::Own {
+                        let hir::ResolvedMatchPattern::Record { fields, .. } = &arm.pattern else {
+                            return Err(backend_error(
+                                "owned record match requires one exact record pattern",
+                            ));
+                        };
+                        let _ = fields;
+                        let cleanup = self
+                            .bytes_plan
+                            .expect("owned match plan checked above")
+                            .scope_exit(&anchors)?;
+                        for line in cleanup.lines() {
+                            self.line(line);
+                        }
+                    }
+                    if *mode == hir::ResolvedMatchMode::Own {
+                        self.finish_record_match_phase(expr, &anchors, &mut value)?;
+                    }
+                    self.variables = saved;
+                    return Ok(CValue {
+                        code: value.code,
+                        ty: expr.ty.clone(),
+                    });
+                }
+                let layout = self.variant_layout(&scrutinee.ty)?;
+                let staged = if *mode == hir::ResolvedMatchMode::Value {
+                    // Preserve the frozen Copy-variant projection exactly.
+                    let staged = self.temporary(&scrutinee.ty)?;
+                    self.line(&format!("{staged} = {};", scrutinee.code));
+                    staged
+                } else {
+                    // Owned/borrowed variants retain one authoritative carrier;
+                    // a shallow union assignment would forge a second Bytes owner.
+                    scrutinee.code.clone()
+                };
+                self.line(&format!(
+                    "if ({staged}.spx_tag >= UINT32_C({})) spx_runtime_invariant_failure(\"invalid variant tag\");",
+                    layout.cases.len()
+                ));
+                let result = if expr.ty == ResolvedType::Never {
+                    String::new()
+                } else if is_direct_plan_owned(self.program, &expr.ty) {
+                    self.bytes_plan
+                        .ok_or_else(|| backend_error("owned Bytes match has no cleanup plan"))?
+                        .value(&crate::cleanup_plan::StorageId::Temporary(expr.id.clone()))?
+                        .to_owned()
+                } else {
+                    self.temporary(&expr.ty)?
+                };
+                let matched = self.temporary(&ResolvedType::Bool)?;
+                self.line(&format!("{matched} = false;"));
+                let yield_only = self.iterator_true_match.as_ref() == Some(&expr.id);
+                let mut normal = false;
+                for (index, arm) in arms.iter().enumerate() {
+                    if yield_only && index != 1 {
+                        continue;
+                    }
+                    let saved = self.variables.clone();
+                    match &arm.pattern {
+                        hir::ResolvedMatchPattern::Variant {
+                            variant,
+                            case,
+                            fields,
+                        } => {
+                            if *variant != layout.variant {
+                                return Err(backend_error(format!(
+                                    "match arm variant `{variant}` disagrees with `{}`",
+                                    layout.variant
+                                )));
+                            }
+                            let case_layout = layout.case(case).cloned().ok_or_else(|| {
+                                backend_error(format!("match arm references unknown case `{case}`"))
+                            })?;
+                            self.line(&format!(
+                                "if (!{matched} && {staged}.spx_tag == UINT32_C({})) {{",
+                                case_layout.tag
+                            ));
+                            self.indent += 1;
+                            self.line(&format!("{matched} = true;"));
+                            if *mode == hir::ResolvedMatchMode::Own {
+                                let transitions = self
+                                    .bytes_plan
+                                    .ok_or_else(|| {
+                                        backend_error("owned variant match has no cleanup plan")
+                                    })?
+                                    .apply_variant_match_destructure_at(&expr.id, case)?;
+                                for line in transitions.lines() {
+                                    self.line(line);
+                                }
+                            }
+                            let case_symbol = c_case_symbol(case);
+                            for pattern_field in fields {
+                                let field = case_layout
+                                    .field(&pattern_field.field)
+                                    .cloned()
+                                    .ok_or_else(|| {
+                                        backend_error(format!(
+                                            "match case `{case}` has no field `{}`",
+                                            pattern_field.field
+                                        ))
+                                    })?;
+                                self.require_type(
+                                    &pattern_field.binding.ty,
+                                    &field.ty,
+                                    "match payload binding",
+                                )?;
+                                let record_iterator_item = record_iterator_item::is_exact(
+                                    self.program,
+                                    &scrutinee.ty,
+                                    case,
+                                    &field.field,
+                                    &field.ty,
+                                );
+                                let name = if is_direct_plan_owned(self.program, &field.ty)
+                                    || crate::iterator_ops::is_iter(&field.ty)
+                                {
+                                    match (*mode, pattern_field.binding.ownership) {
+                                        (hir::ResolvedMatchMode::Own, hir::OwnershipMode::Own) => {
+                                            self.bytes_plan
+                                                .ok_or_else(|| {
+                                                    backend_error(
+                                                        "owned variant binding has no cleanup plan",
+                                                    )
+                                                })?
+                                                .value(&crate::cleanup_plan::StorageId::Value(
+                                                    pattern_field.binding.id.clone(),
+                                                ))?
+                                                .to_owned()
+                                        }
+                                        (
+                                            hir::ResolvedMatchMode::Borrow,
+                                            hir::OwnershipMode::Borrow,
+                                        ) if matches!(field.ty, ResolvedType::String) => format!(
+                                            "({staged}).spx_payload.{case_symbol}.{}",
+                                            c_field_symbol(&field.field)
+                                        ),
+                                        (
+                                            hir::ResolvedMatchMode::Borrow,
+                                            hir::OwnershipMode::Borrow,
+                                        ) => source_storage
+                                            .as_ref()
+                                            .and_then(|storage| {
+                                                self.bytes_plan.and_then(|plan| {
+                                                    plan.variant_value_if_present(
+                                                        storage, case, &field.field,
+                                                    )
+                                                })
+                                            })
+                                            .map(str::to_owned)
+                                            .or_else(|| {
+                                                let crate::cleanup_plan::StorageId::Value(root) =
+                                                    source_storage.as_ref()?
+                                                else { return None; };
+                                                self.borrowed_aggregate_bytes
+                                                    .get(&(root.clone(), vec![case.clone(), field.field.clone()]))
+                                                    .cloned()
+                                            })
+                                            .ok_or_else(|| backend_error(
+                                                "borrowed variant Bytes field has no authenticated alias",
+                                            ))?,
+                                        _ => {
+                                            return Err(backend_error(
+                                                "variant Bytes binding ownership disagrees with match mode",
+                                            ));
+                                        }
+                                    }
+                                } else if record_iterator_item {
+                                    record_iterator_item::bind(
+                                        self,
+                                        &staged,
+                                        (case, &field.field),
+                                        &field.ty,
+                                        &pattern_field.binding,
+                                        *mode,
+                                        source_storage.as_ref(),
+                                    )?
+                                } else if pattern_field.binding.ownership
+                                    == hir::OwnershipMode::Value
+                                    && crate::iterator_ops::is_step(&scrutinee.ty)
+                                {
+                                    super::super::native_iter::item_read(&staged, &field.ty)
+                                } else if pattern_field.binding.ownership
+                                    == hir::OwnershipMode::Value
+                                {
+                                    format!(
+                                        "({staged}).spx_payload.{case_symbol}.{}",
+                                        c_field_symbol(&field.field)
+                                    )
+                                } else {
+                                    return Err(backend_error(
+                                        "variant Copy binding has non-Value ownership",
+                                    ));
+                                };
+                                self.variables.insert(
+                                    pattern_field.binding.id.clone(),
+                                    CBinding { name, ty: field.ty },
+                                );
+                            }
+                        }
+                        hir::ResolvedMatchPattern::Wildcard => {
+                            if *mode == hir::ResolvedMatchMode::Own {
+                                return Err(backend_error(
+                                    "owned variant wildcard cannot hide a live payload",
+                                ));
+                            }
+                            self.line(&format!("if (!{matched}) {{"));
+                            self.indent += 1;
+                            self.line(&format!("{matched} = true;"));
+                        }
+                        hir::ResolvedMatchPattern::Record { .. } => {
+                            return Err(backend_error(
+                                "record pattern has a variant match scrutinee",
+                            ));
+                        }
+                        hir::ResolvedMatchPattern::Or(alternatives) => {
+                            self.open_case_or_arm(*mode, &layout, &staged, &matched, alternatives)?
+                        }
+                        hir::ResolvedMatchPattern::Literal(_)
+                        | hir::ResolvedMatchPattern::Binding(_) => {
+                            return Err(backend_error(
+                                "refutable pattern has an aggregate variant match scrutinee",
+                            ));
+                        }
+                    }
+                    self.open_variant_guard(arm.guard.as_deref(), &matched)?;
+                    let value = self.emit_expr(&arm.value)?;
+                    self.require_flow_type(&value.ty, &expr.ty, "match arm result")?;
+                    normal |= value.ty != ResolvedType::Never;
+                    if value.ty != ResolvedType::Never {
+                        if is_direct_plan_owned(self.program, &expr.ty) {
+                            if expr.ty == ResolvedType::String
+                                && matches!(arm.value.kind, ResolvedExprKind::If { .. })
+                            {
+                                // The If settled its selected branch into its own
+                                // result slot. Replay only that slot's handoff to
+                                // this match, not the already applied branch joins.
+                                let transitions =
+                                    self.bytes_plan.expect("checked above").transfer_field_at(
+                                        &arm.value.id,
+                                        &value.code,
+                                        &crate::cleanup_plan::CleanupPlace {
+                                            storage: crate::cleanup_plan::StorageId::Temporary(
+                                                expr.id.clone(),
+                                            ),
+                                            projections: Vec::new(),
+                                        },
+                                    )?;
+                                for line in transitions.lines() {
+                                    self.line(line);
+                                }
+                            }
+                            // An owned place needs its arm-to-join transfer here.
+                            // Producers replay that same transition in `emit_expr`;
+                            // replaying it again would move from a dead source.
+                            // An owning `string` place read is such a producer:
+                            // its clone already applied the arm transfer.
+                            if matches!(arm.value.kind, ResolvedExprKind::Place(_))
+                                && arm.value.ty != ResolvedType::String
+                            {
+                                let transitions = self
+                                    .bytes_plan
+                                    .expect("checked above")
+                                    .apply_at(&arm.value.id)?;
+                                for line in transitions.lines() {
+                                    self.line(line);
+                                }
+                            }
+                        } else if aggregate_result && expr.ownership == hir::OwnershipMode::Own {
+                            self.copy_variant_join_carrier(&result, &value.code, &expr.ty)?;
+                        } else {
+                            self.line(&format!("{result} = {};", value.code));
+                        }
+                        if *mode == hir::ResolvedMatchMode::Own {
+                            let anchors = match &arm.pattern {
+                                hir::ResolvedMatchPattern::Variant { case, fields, .. } => fields
+                                    .iter()
+                                    .filter(|own| {
+                                        is_direct_plan_owned(self.program, &own.binding.ty)
+                                            || record_iterator_item::is_exact(
+                                                self.program,
+                                                &scrutinee.ty,
+                                                case,
+                                                &own.field,
+                                                &own.binding.ty,
+                                            )
+                                    })
+                                    .map(|field| {
+                                        crate::cleanup_plan::StorageId::Value(
+                                            field.binding.id.clone(),
+                                        )
+                                    })
+                                    .collect::<BTreeSet<_>>(),
+                                _ => BTreeSet::new(),
+                            };
+                            let cleanup = self
+                                .bytes_plan
+                                .ok_or_else(|| {
+                                    backend_error("owned variant match has no cleanup plan")
+                                })?
+                                .scope_exit(&anchors)?;
+                            for line in cleanup.lines() {
+                                self.line(line);
+                            }
+                        }
+                    }
+                    self.close_variant_guard(arm.guard.is_some());
+                    self.variables = saved;
+                    self.indent -= 1;
+                    self.line("}");
+                }
+                self.line(&format!(
+                    "if (!{matched}) spx_runtime_invariant_failure(\"exhaustive variant match selected no arm\");"
+                ));
+                if yield_only && !normal {
+                    return Ok(CValue {
+                        code: String::new(),
+                        ty: ResolvedType::Never,
+                    });
+                }
+                if expr.ty != ResolvedType::Never {
+                    self.finish_variant_join(expr, &result)?;
+                }
+                CValue {
+                    code: result,
+                    ty: expr.ty.clone(),
+                }
+            }
+            _ => unreachable!("non-Match expression reached emit_match_expr"),
+        };
+        self.require_type(&value.ty, &expr.ty, "expression")?;
+        Ok(value)
+    }
+
+    fn emit_try_option_expr(&mut self, expr: &ResolvedExpr) -> Result<CValue, Diagnostic> {
+        let value = match &expr.kind {
+            ResolvedExprKind::TryOption {
+                operand,
+                option,
+                some_case,
+                some_field,
+                none_case,
+                residual_type,
+            } => {
+                if !self.try_target_enabled {
+                    return Err(backend_error(
+                        "copy-Option propagation is allowed only in a function body",
+                    ));
+                }
+                self.require_type(
+                    residual_type,
+                    self.return_type,
+                    "copy-Option residual target",
+                )?;
+                let operand_layout = self.variant_layout(&operand.ty)?;
+                let residual_layout = self.variant_layout(residual_type)?;
+                if operand_layout.variant != *option || residual_layout.variant != *option {
+                    return Err(backend_error(
+                        "copy-Option propagation does not reference its resolved Option declaration",
+                    ));
+                }
+                let operand_some = operand_layout
+                    .case(some_case)
+                    .and_then(|case| case.field(some_field).map(|field| (case, field)))
+                    .ok_or_else(|| {
+                        backend_error("copy-Option propagation has no resolved Some payload")
+                    })?;
+                let operand_none = operand_layout.case(none_case).ok_or_else(|| {
+                    backend_error("copy-Option propagation has no resolved None case")
+                })?;
+                let residual_none = residual_layout.case(none_case).ok_or_else(|| {
+                    backend_error("copy-Option residual has no resolved None case")
+                })?;
+                if !operand_none.fields.is_empty() || !residual_none.fields.is_empty() {
+                    return Err(backend_error(
+                        "copy-Option None case unexpectedly has a payload",
+                    ));
+                }
+                self.require_type(&operand_some.1.ty, &expr.ty, "copy-Option Some payload")?;
+
+                let operand_value = self.emit_expr(operand)?;
+                self.require_type(&operand_value.ty, &operand.ty, "copy-Option operand")?;
+                let operand_stage = self.temporary(&operand.ty)?;
+                self.line(&format!("{operand_stage} = {};", operand_value.code));
+                self.line(&format!(
+                    "if ({operand_stage}.spx_tag >= UINT32_C({})) spx_runtime_invariant_failure(\"invalid variant tag\");",
+                    operand_layout.cases.len()
+                ));
+                self.line(&format!(
+                    "if ({operand_stage}.spx_tag == UINT32_C({})) {{",
+                    operand_none.tag
+                ));
+                self.indent += 1;
+                self.line("memset(&spx_result, 0, sizeof(spx_result));");
+                self.line(&format!(
+                    "spx_result.spx_tag = UINT32_C({});",
+                    residual_none.tag
+                ));
+                self.line("spx_result_staged = true;");
+                self.line("goto spx_postconditions;");
+                self.indent -= 1;
+                self.line("}");
+                self.line(&format!(
+                    "if ({operand_stage}.spx_tag != UINT32_C({})) spx_runtime_invariant_failure(\"invalid Option tag\");",
+                    operand_some.0.tag
+                ));
+                let output = self.temporary(&expr.ty)?;
+                self.line(&format!(
+                    "{output} = {operand_stage}.spx_payload.{}.{};",
+                    c_case_symbol(some_case),
+                    c_field_symbol(some_field),
+                ));
+                CValue {
+                    code: output,
+                    ty: expr.ty.clone(),
+                }
+            }
+            _ => unreachable!("non-TryOption expression reached emit_try_option_expr"),
+        };
+        self.require_type(&value.ty, &expr.ty, "expression")?;
+        Ok(value)
+    }
+
+    fn emit_project_expr(&mut self, expr: &ResolvedExpr) -> Result<CValue, Diagnostic> {
+        let value = match &expr.kind {
+            ResolvedExprKind::Project { base, field } => {
+                let base = self.emit_expr(base)?;
+                let layout = self.record_layout(&base.ty)?;
+                let field = layout.field(field).cloned().ok_or_else(|| {
+                    backend_error(format!(
+                        "native record `{}` has no projected field `{field}`",
+                        layout.record
+                    ))
+                })?;
+                self.require_type(&expr.ty, &field.ty, "record projection")?;
+                if is_direct_plan_owned(self.program, &field.ty) {
+                    let plan = self.bytes_plan.ok_or_else(|| {
+                        backend_error("owned Bytes projection has no canonical cleanup plan")
+                    })?;
+                    // The plan owns the projected leaf, not the aggregate's
+                    // C field expression. Apply its field-to-result chain once
+                    // before handing the canonical slot to the consumer.
+                    let transitions = plan.apply_at(&expr.id)?;
+                    for line in transitions.lines() {
+                        self.line(line);
+                    }
+                    CValue {
+                        code: plan
+                            .result_at(&expr.id)
+                            .ok_or_else(|| {
+                                backend_error("owned Bytes projection has no canonical result")
+                            })?
+                            .to_owned(),
+                        ty: field.ty,
+                    }
+                } else if field.size == 0 {
+                    self.emit_erased_record_field_value(&field.ty)?
+                } else {
+                    CValue {
+                        code: format!("({}).{}", base.code, c_field_symbol(&field.field)),
+                        ty: field.ty,
+                    }
+                }
+            }
+            _ => unreachable!("non-Project expression reached emit_project_expr"),
+        };
+        self.require_type(&value.ty, &expr.ty, "expression")?;
+        Ok(value)
+    }
+
+    fn emit_upcast_expr(&mut self, expr: &ResolvedExpr) -> Result<CValue, Diagnostic> {
+        let value = match &expr.kind {
+            ResolvedExprKind::Upcast { source } => {
+                // Class Inheritance v1: the ancestor prefix moves
+                // field-by-field from the consumed descendant value; the
+                // canonical layouts guarantee identical offsets.
+                let source = self.emit_expr(source)?;
+                let target_layout = self.record_layout(&expr.ty)?;
+                let source_layout = self.record_layout(&source.ty)?;
+                if target_layout.record == source_layout.record {
+                    return Err(backend_error(format!(
+                        "native upcast `{}` requires a descendant source",
+                        expr.ty.identity_key()
+                    )));
+                }
+                for field in &target_layout.fields {
+                    let source_field =
+                        source_layout.field(&field.field).cloned().ok_or_else(|| {
+                            backend_error(format!(
+                                "native upcast source `{}` has no inherited field `{}`",
+                                source_layout.record, field.field
+                            ))
+                        })?;
+                    if (source_field.offset, source_field.size, source_field.align)
+                        != (field.offset, field.size, field.align)
+                    {
+                        return Err(backend_error(format!(
+                            "native upcast field `{}` disagrees with the ancestor prefix layout",
+                            field.field
+                        )));
+                    }
+                }
+                let temporary = self.temporary(&expr.ty)?;
+                self.initialize_record_carrier(&temporary, &target_layout);
+                for field in &target_layout.fields {
+                    if field.size != 0 {
+                        self.line(&format!(
+                            "{temporary}.{} = ({}).{};",
+                            c_field_symbol(&field.field),
+                            source.code,
+                            c_field_symbol(&field.field)
+                        ));
+                    }
+                }
+                CValue {
+                    code: temporary,
+                    ty: expr.ty.clone(),
+                }
+            }
+            _ => unreachable!("non-Upcast expression reached emit_upcast_expr"),
+        };
+        self.require_type(&value.ty, &expr.ty, "expression")?;
+        Ok(value)
+    }
+
+    pub(super) fn record_layout(&self, ty: &ResolvedType) -> Result<AggregateLayout, Diagnostic> {
+        record_declaration_id(self.program, ty)?.ok_or_else(|| {
+            backend_error(format!(
+                "native aggregate operation requires a record, found `{}`",
+                ty.identity_key()
+            ))
+        })?;
+        let layout = self.record_layouts.layout(ty)?.clone();
+        layout.validate(self.program)?;
+        Ok(layout)
+    }
+
+    pub(super) fn initialize_record_carrier(&mut self, temporary: &str, layout: &AggregateLayout) {
+        if layout.fields.is_empty() {
+            // Empty products own one frozen semantic byte on every target.
+            self.line(&format!(
+                "{temporary}.spx_empty_record_padding = UINT8_C(0);"
+            ));
+        } else if layout.size == 0 {
+            // Nonempty records whose semantic fields are all zero-sized need
+            // one physical C byte without acquiring semantic storage.
+            self.line(&format!(
+                "{temporary}.spx_zero_sized_record_carrier = UINT8_C(0);"
+            ));
+        }
+    }
+
+    fn emit_erased_record_field_value(&mut self, ty: &ResolvedType) -> Result<CValue, Diagnostic> {
+        if matches!(ty, ResolvedType::ArrayU8(0)) {
+            return Ok(CValue {
+                code: "UINT8_C(0)".to_owned(),
+                ty: ty.clone(),
+            });
+        }
+        let layout = self.record_layout(ty)?;
+        if layout.size != 0 || layout.fields.is_empty() {
+            return Err(backend_error(format!(
+                "erased native record field `{}` has a nonzero physical layout",
+                ty.identity_key()
+            )));
+        }
+        let temporary = self.temporary(ty)?;
+        self.initialize_record_carrier(&temporary, &layout);
+        Ok(CValue {
+            code: temporary,
+            ty: ty.clone(),
+        })
+    }
+
+    pub(super) fn variant_layout(&self, ty: &ResolvedType) -> Result<VariantLayout, Diagnostic> {
+        variant_declaration_id(self.program, ty)?.ok_or_else(|| {
+            backend_error(format!(
+                "native variant operation requires a variant, found `{}`",
+                ty.identity_key()
+            ))
+        })?;
+        let layout = self.variant_layouts.layout(ty)?.clone();
+        layout.validate(self.program)?;
+        Ok(layout)
+    }
+
+    fn bind_record_match_pattern(
+        &mut self,
+        base: &str,
+        expected: &ResolvedType,
+        record: &DeclarationId,
+        instance: &ResolvedType,
+        fields: &[hir::ResolvedRecordMatchPatternField],
+        binding_mode: &RecordMatchBindingMode<'_>,
+    ) -> Result<(), Diagnostic> {
+        nested_owned::bind_record_match_pattern(
+            self,
+            base,
+            expected,
+            record,
+            instance,
+            fields,
+            binding_mode,
+        )
+    }
+
+    fn emit_binary(
+        &mut self,
+        op: BinaryOp,
+        left: &ResolvedExpr,
+        right: &ResolvedExpr,
+        result_type: &ResolvedType,
+    ) -> Result<CValue, Diagnostic> {
+        if matches!(op, BinaryOp::And | BinaryOp::Or) {
+            return self.emit_lazy_binary(op, left, right, result_type);
+        }
+        let left = self.emit_expr(left)?;
+        if matches!(op, BinaryOp::Eq | BinaryOp::Ne) && left.ty == ResolvedType::Str {
+            return self.emit_str_equality(op, left, right, result_type);
+        }
+        if matches!(op, BinaryOp::Eq | BinaryOp::Ne)
+            && self.program.is_payload_free_variant(&left.ty)
+        {
+            return self.emit_case_equality(op, left, right, result_type);
+        }
+        if matches!(op, BinaryOp::Eq | BinaryOp::Ne) && is_aggregate_type(self.program, &left.ty)? {
+            return Err(backend_error(
+                "aggregate equality is outside executable copy variants v1",
+            ));
+        }
+        // Owned strings compare by UTF-8 contents; their canonical plan
+        // regions retain cleanup responsibility after the comparison.
+        if matches!(op, BinaryOp::Eq | BinaryOp::Ne) && matches!(left.ty, ResolvedType::String) {
+            let right = self.emit_expr(right)?;
+            self.require_type(&right.ty, &ResolvedType::String, "binary right operand")?;
+            self.require_type(result_type, &ResolvedType::Bool, "binary result")?;
+            let temporary = self.temporary(&ResolvedType::Bool)?;
+            let comparison = if op == BinaryOp::Eq {
+                format!("spx_string_eq({}, {})", left.code, right.code)
+            } else {
+                format!("!spx_string_eq({}, {})", left.code, right.code)
+            };
+            self.line(&format!("{temporary} = {comparison};"));
+            return Ok(CValue {
+                code: temporary,
+                ty: ResolvedType::Bool,
+            });
+        }
+        if matches!(
+            op,
+            BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge
+        ) && left.ty == ResolvedType::String
+        {
+            let right = self.emit_expr(right)?;
+            self.require_type(&right.ty, &ResolvedType::String, "String ordering operand")?;
+            self.require_type(result_type, &ResolvedType::Bool, "String ordering result")?;
+            let temporary = self.temporary(&ResolvedType::Bool)?;
+            self.line(&format!(
+                "{temporary} = spx_string_compare_ordered({}, {}) {} 0;",
+                left.code,
+                right.code,
+                op.text()
+            ));
+            return Ok(CValue {
+                code: temporary,
+                ty: ResolvedType::Bool,
+            });
+        }
+        if !matches!(op, BinaryOp::Eq | BinaryOp::Ne) && matches!(left.ty, ResolvedType::String) {
+            return Err(backend_error(
+                "string operands only support equality comparison",
+            ));
+        }
+        let float_operand = matches!(left.ty, ResolvedType::F32 | ResolvedType::F64);
+        // Chars compare by Unicode scalar value; C unsigned comparison on
+        // uint32_t matches the verified ordering exactly.
+        let char_operand = matches!(left.ty, ResolvedType::Char);
+        let int32_operand = matches!(left.ty, ResolvedType::I32);
+        let narrow_operand = matches!(left.ty, ResolvedType::U8);
+        let usize_operand = matches!(left.ty, ResolvedType::Usize);
+        let operand_type = match op {
+            BinaryOp::And | BinaryOp::Or => ResolvedType::Bool,
+            BinaryOp::Eq | BinaryOp::Ne => left.ty.clone(),
+            _ if float_operand
+                || char_operand
+                || int32_operand
+                || narrow_operand
+                || usize_operand =>
+            {
+                left.ty.clone()
+            }
+            _ => ResolvedType::I64,
+        };
+        self.require_type(&left.ty, &operand_type, "binary left operand")?;
+        let expected_result = match op {
+            BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem
+                if float_operand || int32_operand =>
+            {
+                left.ty.clone()
+            }
+            BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem
+                if narrow_operand =>
+            {
+                ResolvedType::U8
+            }
+            BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem
+                if usize_operand =>
+            {
+                ResolvedType::Usize
+            }
+            BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem => {
+                ResolvedType::I64
+            }
+            _ => ResolvedType::Bool,
+        };
+        self.require_type(result_type, &expected_result, "binary result")?;
+        if float_operand && op == BinaryOp::Rem {
+            return Err(backend_error(
+                "floating-point remainder has no admitted native lowering",
+            ));
+        }
+        if char_operand
+            && matches!(
+                op,
+                BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem
+            )
+        {
+            return Err(backend_error(
+                "char arithmetic has no admitted native lowering",
+            ));
+        }
+        let right = self.emit_expr(right)?;
+        self.require_type(&right.ty, &operand_type, "binary right operand")?;
+        let temporary = self.temporary(&expected_result)?;
+        if float_operand
+            && matches!(
+                op,
+                BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div
+            )
+        {
+            // IEEE-754 semantics are total: overflow, signed zero, and
+            // division by zero follow the hardware rules and never select a
+            // failure status.
+            self.line(&format!(
+                "{temporary} = ({} {} {});",
+                left.code,
+                op.text(),
+                right.code
+            ));
+        } else if narrow_operand
+            && matches!(
+                op,
+                BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem
+            )
+        {
+            // Checked u8 arithmetic computes in int64_t and range-checks the
+            // 0..=255 result before narrowing to the uint8_t temporary.
+            let helper = match op {
+                BinaryOp::Add => "spx_rt_u8_add",
+                BinaryOp::Sub => "spx_rt_u8_sub",
+                BinaryOp::Mul => "spx_rt_u8_mul",
+                BinaryOp::Div => "spx_rt_u8_div",
+                BinaryOp::Rem => "spx_rt_u8_rem",
+                _ => unreachable!("u8 arithmetic operation was matched above"),
+            };
+            self.line(&format!(
+                "spx_status = {helper}(spx_ctx, {}, {}, &{temporary});",
+                left.code, right.code
+            ));
+            self.emit_operation_failure_check()?;
+        } else if usize_operand
+            && matches!(
+                op,
+                BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem
+            )
+        {
+            let helper = match op {
+                BinaryOp::Add => "spx_rt_usize_add",
+                BinaryOp::Sub => "spx_rt_usize_sub",
+                BinaryOp::Mul => "spx_rt_usize_mul",
+                BinaryOp::Div => "spx_rt_usize_div",
+                BinaryOp::Rem => "spx_rt_usize_rem",
+                _ => unreachable!("usize arithmetic operation was matched above"),
+            };
+            self.line(&format!(
+                "spx_status = {helper}(spx_ctx, {}, {}, &{temporary});",
+                left.code, right.code
+            ));
+            self.emit_operation_failure_check()?;
+        } else if matches!(
+            op,
+            BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem
+        ) {
+            let helper = match op {
+                BinaryOp::Add if int32_operand => "spx_rt_add_i32",
+                BinaryOp::Sub if int32_operand => "spx_rt_sub_i32",
+                BinaryOp::Mul if int32_operand => "spx_rt_mul_i32",
+                BinaryOp::Div if int32_operand => "spx_rt_div_i32",
+                BinaryOp::Rem if int32_operand => "spx_rt_rem_i32",
+                BinaryOp::Add => "spx_rt_add",
+                BinaryOp::Sub => "spx_rt_sub",
+                BinaryOp::Mul => "spx_rt_mul",
+                BinaryOp::Div => "spx_rt_div",
+                BinaryOp::Rem => "spx_rt_rem",
+                _ => unreachable!("checked arithmetic operation was matched above"),
+            };
+            self.line(&format!(
+                "spx_status = {helper}(spx_ctx, {}, {}, &{temporary});",
+                left.code, right.code
+            ));
+            self.emit_operation_failure_check()?;
+        } else {
+            self.line(&format!(
+                "{temporary} = ({} {} {});",
+                left.code,
+                op.text(),
+                right.code
+            ));
+        }
+        Ok(CValue {
+            code: temporary,
+            ty: expected_result,
+        })
+    }
+
+    fn emit_lazy_binary(
+        &mut self,
+        op: BinaryOp,
+        left: &ResolvedExpr,
+        right: &ResolvedExpr,
+        result_type: &ResolvedType,
+    ) -> Result<CValue, Diagnostic> {
+        struct Continuation {
+            op: BinaryOp,
+            temporary: String,
+        }
+
+        self.require_type(result_type, &ResolvedType::Bool, "binary result")?;
+        let mut continuations = Vec::new();
+        let mut current_op = op;
+        let mut current_left = left;
+        let mut current_right = right;
+        loop {
+            let left = self.emit_expr(current_left)?;
+            self.require_type(&left.ty, &ResolvedType::Bool, "binary left operand")?;
+            let temporary = self.temporary(&ResolvedType::Bool)?;
+            self.line(&format!("if ({}) {{", left.code));
+            self.indent += 1;
+            if current_op == BinaryOp::Or {
+                self.line(&format!("{temporary} = true;"));
+                self.indent -= 1;
+                self.line("} else {");
+                self.indent += 1;
+            }
+            continuations.push(Continuation {
+                op: current_op,
+                temporary,
+            });
+            match &current_right.kind {
+                ResolvedExprKind::Binary {
+                    op: next_op,
+                    left: next_left,
+                    right: next_right,
+                } if matches!(next_op, BinaryOp::And | BinaryOp::Or) => {
+                    self.require_type(&current_right.ty, &ResolvedType::Bool, "binary result")?;
+                    current_op = *next_op;
+                    current_left = next_left;
+                    current_right = next_right;
+                }
+                _ => break,
+            }
+        }
+
+        let mut value = self.emit_expr(current_right)?;
+        self.require_type(&value.ty, &ResolvedType::Bool, "lazy right operand")?;
+        while let Some(continuation) = continuations.pop() {
+            self.line(&format!("{} = {};", continuation.temporary, value.code));
+            if continuation.op == BinaryOp::And {
+                self.indent -= 1;
+                self.line("} else {");
+                self.indent += 1;
+                self.line(&format!("{} = false;", continuation.temporary));
+            }
+            self.indent -= 1;
+            self.line("}");
+            value = CValue {
+                code: continuation.temporary,
+                ty: ResolvedType::Bool,
+            };
+        }
+        Ok(value)
+    }
+}
+
+#[cfg(test)]
+#[path = "expression/tests.rs"]
+mod tests;

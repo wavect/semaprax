@@ -2231,7 +2231,7 @@ struct CEmitter<'a, O: COutput> {
     mutable_bindings: BTreeSet<ValueId>,
     /// Exact local `str`/Slice roots derived from an owned resource-profile
     /// String. Carrier shape alone never enters this set.
-    resource_text_views: BTreeSet<ValueId>,
+    resource_text_views: std::collections::BTreeMap<ValueId, bool>,
     function: &'a ResolvedFunction,
     execution: &'a FunctionExecutionId,
     functions: &'a HashMap<FunctionExecutionId, CFunction>,

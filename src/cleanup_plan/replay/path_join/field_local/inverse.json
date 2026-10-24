@@ -4,11 +4,21 @@
   "acquisitions": [
     {
       "path": "src/cleanup_plan/replay/path_join.rs",
-      "length": 54823,
-      "sha256": "150a45a41255d3460b3955901c60b6b743db50071866fb530d511d89df01c32a",
+      "length": 54977,
+      "sha256": "fbbfd17b03bb93ac6e7f8137858a9441a646b065f4521d11072600cc232d7429",
       "before_length": 54697,
       "before_sha256": "d0cd46333a1f4feba0d875e80e53063a4020d7390cb9735f97765d0578637648",
       "edits": [
+        [
+          53502,
+          "#[rustfmt::skip] // Preserve the complete immutable receiver, including whitespace.\n",
+          ""
+        ],
+        [
+          114,
+          "#[cfg(test)]\nuse super::transition;\n#[cfg(test)]\nmod main3d81_before;\n",
+          ""
+        ],
         [
           54755,
           "\nmod field_local;\npub(super) use field_local::validate_path_states;\n",
@@ -29,7 +39,36 @@
           "#[cfg(test)]\n",
           ""
         ]
-      ]
+      ],
+      "retained_pre_main3d81_record": {
+        "path": "src/cleanup_plan/replay/path_join.rs",
+        "length": 54823,
+        "sha256": "150a45a41255d3460b3955901c60b6b743db50071866fb530d511d89df01c32a",
+        "before_length": 54697,
+        "before_sha256": "d0cd46333a1f4feba0d875e80e53063a4020d7390cb9735f97765d0578637648",
+        "edits": [
+          [
+            54755,
+            "\nmod field_local;\npub(super) use field_local::validate_path_states;\n",
+            ""
+          ],
+          [
+            1146,
+            "#[cfg(test)]\npub(super) fn validate_path_states_before_field_local<E: semantic_refusal::Error>(\n",
+            "pub(super) fn validate_path_states<E: semantic_refusal::Error>(\n"
+          ],
+          [
+            566,
+            "#[cfg(test)]\n",
+            ""
+          ],
+          [
+            502,
+            "#[cfg(test)]\n",
+            ""
+          ]
+        ]
+      }
     },
     {
       "path": "src/cleanup_plan/replay/path_join/fused_tests.rs",

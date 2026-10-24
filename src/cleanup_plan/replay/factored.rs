@@ -88,29 +88,6 @@ fn representation_candidate(
             && plan.entry_state.conditional_owned_parameters.is_empty())
 }
 
-// The synchronous paid comparator changes the ordinary representation cost.
-// This threshold is not an admission limit. Selected/reference payers retain
-// their complete original selector and canonical comparison routes below.
-const BUILDER_FACTORED_PATH_THRESHOLD: usize = 128;
-
-fn selected_builder_paid(
-    function: &ResolvedFunction,
-    cfg_paths: usize,
-    semantic_paths: usize,
-    budget: &mut ReplayBudget,
-) -> Result<bool, Diagnostic> {
-    if cfg_paths <= BUILDER_FACTORED_PATH_THRESHOLD
-        && semantic_paths <= BUILDER_FACTORED_PATH_THRESHOLD
-    {
-        return Ok(false);
-    }
-    match structural_control::validate_ordinary_cfg(function, budget) {
-        Ok(()) => Ok(true),
-        Err(error) if budget.refusal_spent || crate::bounded_output::active_refused() => Err(error),
-        Err(_) => Ok(false),
-    }
-}
-
 /// Semantic nonselection remains false; a physical scratch refusal is sticky
 /// and must reach the caller instead of becoming enumerating-route authority.
 pub(super) fn selected_paid(

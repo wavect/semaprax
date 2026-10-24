@@ -136,7 +136,7 @@ mod tests {
             assert_eq!(current_scope_root.matches(&packed).count(), 1);
             current_scope_root = current_scope_root.replacen(&packed, &expanded, 1);
         }
-        for source in ["src/cleanup_plan/replay/factored/moderate_tests.rs", "src/cleanup_plan/replay/factored/paired.rs", "src/cleanup_plan/replay/factored/paired/tests.rs", "src/workspace_graph/tests.rs", "src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs", "src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs", "src/cleanup_plan/replay/workspace_oracle.rs", "src/cleanup_plan/replay/branch_clone/inline_tests.rs", "src/cleanup_plan/replay/branch_clone/production_capacity.rs", "src/cleanup_plan/replay/branch_clone/production_capacity/tests.rs", "src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs", "src/workspace_graph/shape_identity/source_controls.rs", "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs"] {
+        for source in ["src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/tests.rs", "src/cleanup_plan/replay/factored/canonical_shared/intern_arena.rs", "src/cleanup_plan/replay_tests/factored.rs", "src/cleanup_plan/replay/factored/moderate_tests.rs", "src/cleanup_plan/replay/factored/paired.rs", "src/cleanup_plan/replay/factored/paired/tests.rs", "src/workspace_graph/tests.rs", "src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs", "src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs", "src/cleanup_plan/replay/workspace_oracle.rs", "src/cleanup_plan/replay/branch_clone/inline_tests.rs", "src/cleanup_plan/replay/branch_clone/production_capacity.rs", "src/cleanup_plan/replay/branch_clone/production_capacity/tests.rs", "src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs", "src/workspace_graph/shape_identity/source_controls.rs", "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs"] {
             let declaration = format!("    {source:?},\n");
             assert_eq!(current_scope_root.matches(&declaration).count(), 1);
             current_scope_root = current_scope_root.replacen(&declaration, "", 1);
@@ -1265,6 +1265,7 @@ del _load_fixed_codecs
         "src/cleanup_plan/replay/path_join/fused_before.rs",
         "src/cleanup_plan/replay/path_join/fused_before_frontier.rs",
         "src/cleanup_plan/replay/path_join/fused_tests.rs",
+        "src/cleanup_plan/replay_tests/factored.rs",
 ];
     const SCOPE_ADDITIONS_LINE: &str = r####"            "src/cleanup_plan/replay/skeleton_work/query_proof.rs", "src/cleanup_plan/replay/skeleton_work/query_proof/before.rs", "src/cleanup_plan/replay/skeleton_work/query_proof/tests.rs", "src/bounded_output/exclusive_debits/path_census.rs", "src/bounded_output/request_reservation.rs", "src/source_reflows_merge/main_e177_overlay_lookup.rs",
 "####;
@@ -1280,6 +1281,7 @@ del _load_fixed_codecs
 "####;
     const MAIN_C907_REPLACEMENT_LINES: &[&str] = &["            \"src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/counter_tests.rs\",\n","            \"src/cleanup_plan/replay/expression_facts/arena/prefix/tests.rs\",\n"];
     const PY_SCOPE_INSERTIONS: &[&str] = &[
+        "_REPLAY+'factored/canonical_shared/lexical_successors/tests.rs',", "_REPLAY+'factored/canonical_shared/intern_arena.rs',", "'src/cleanup_plan/replay_tests/factored.rs',",
         "_REPLAY+'physical_budget/authentication.rs',", "_REPLAY+'factored/moderate_tests.rs',",
         ",_REPLAY+'path_join/compact_failure_before.rs',_REPLAY+'path_join/compact_failure_tests.rs',_REPLAY+'path_join/contains_before.rs',_REPLAY+'path_join/contains_tests.rs',_REPLAY+'path_join/selected/tests/fixture_scope.rs',_REFLOWS+'main_e177_overlay_digests_v13.rs',_REFLOWS+'main_e177_overlay_digests_v13/logical_v12.rs',_REFLOWS+'main_e177_overlay_digests_v13/tests.rs',_REFLOWS+'main_e177_overlay_digests_v13/controller_transport.rs',_REPLAY+'expression_facts/receiving/remaining/tests.rs','tests/wasm/scalar_browser_ci_contract/current_profiles573.rs'",
         "_REPLAY+'expression_facts/receiving/retained/case_proof/tests.rs',",
@@ -1359,7 +1361,7 @@ del _load_fixed_codecs
         let main99_scope = "            \"src/cleanup_plan.rs\",\n            \"src/workspace_graph/tests.rs\",\n            \"src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs\",\n            \"src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs\",\n            \"src/cleanup_plan/replay/workspace_oracle.rs\",\n";
         assert_eq!(restored.matches(main99_scope).count(), 1);
         restored = restored.replacen(main99_scope, "", 1);
-        let financed_scope = "        for source in [\"src/cleanup_plan/replay/factored/moderate_tests.rs\", \"src/cleanup_plan/replay/factored/paired.rs\", \"src/cleanup_plan/replay/factored/paired/tests.rs\", \"src/workspace_graph/tests.rs\", \"src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs\", \"src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs\", \"src/cleanup_plan/replay/workspace_oracle.rs\", ";
+        let financed_scope = "        for source in [\"src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/tests.rs\", \"src/cleanup_plan/replay/factored/canonical_shared/intern_arena.rs\", \"src/cleanup_plan/replay_tests/factored.rs\", \"src/cleanup_plan/replay/factored/moderate_tests.rs\", \"src/cleanup_plan/replay/factored/paired.rs\", \"src/cleanup_plan/replay/factored/paired/tests.rs\", \"src/workspace_graph/tests.rs\", \"src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs\", \"src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs\", \"src/cleanup_plan/replay/workspace_oracle.rs\", ";
         assert_eq!(restored.matches(financed_scope).count(), 1);
         restored = restored.replacen(financed_scope, "        for source in [", 1);
         assert_eq!(restored.matches(SCOPE_REPLACEMENTS_AFTER).count(), 1);

@@ -1,5 +1,6 @@
 pub(crate) fn compiled(source: &str) -> Option<&'static str> {
     match source {
+        "src/cleanup_plan/replay_tests/factored.rs" => Some(include_str!("../../src/cleanup_plan/replay_tests/factored.rs")),
         "src/hir/inspection/paid_nul.rs" => Some(include_str!("../../src/hir/inspection/paid_nul.rs")),
         "src/hir/inspection/paid_nul/pending.rs" => Some(include_str!("../../src/hir/inspection/paid_nul/pending.rs")),
         "src/hir/inspection/paid_nul/tests.rs" => Some(include_str!("../../src/hir/inspection/paid_nul/tests.rs")),

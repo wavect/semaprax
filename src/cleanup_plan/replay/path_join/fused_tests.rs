@@ -881,5 +881,5 @@ fn full_immediate_driver_and_helpers_are_independent_and_all_preceding_sources_r
         assert_eq!(digest(&raw), row["sha256"].as_str().unwrap());
     }
 }
-const INVERSE_SHA: &str = "527aa7af5be458224121c174e267eed3fb2f67a7483d6b1ea104a0c1bf9e738f";
+const INVERSE_SHA: &str = "28f93eaa36346c448364693789c91e0feb9cc8e70196b835fb765c0a2a78b2cf";
 const HELPERS_SHA: &str = "34904cb227034c500763ffde1e1eb4534254d724778add8dc82d609ec5973d25";

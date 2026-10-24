@@ -81,12 +81,17 @@
   },
   {
     "path": "src/cleanup_plan/replay/path_join/contains_tests.rs",
-    "length": 13861,
-    "sha256": "209e8df77e31f719bb2ce9df981b8e206ecd27beeb143b8028b719490ebc43df",
+    "length": 14004,
+    "sha256": "02066f004df0ed5aef116ed56c4db5d84c32b26af141ba0243ac1149010e7be9",
     "before": "src/cleanup_plan/replay/path_join/fused_before/contains_tests.rs.txt",
     "before_length": 13596,
     "before_sha256": "fa4d4122654ffbdff57700e81f1d5d608fb405db6d6ad6f0290297b89d67f177",
     "edits": [
+      [
+        10721,
+        "    let actual = fused_tests::before_source(path, actual);\n    let mut actual = String::from_utf8(crate::bounded_output::census_source_before(\n        path,\n        actual.as_bytes(),\n    ))\n    .unwrap();\n",
+        "    let mut actual = fused_tests::before_source(path, actual);\n"
+      ],
       [
         10653,
         "pub(super) fn before_source(path: &str, actual: String) -> String {\n    let mut actual = fused_tests::before_source(path, actual);\n",
@@ -112,16 +117,56 @@
         "    fused_tests::reset_promotions();\n",
         ""
       ]
-    ]
+    ],
+    "exact_prior_fusion_record": {
+      "path": "src/cleanup_plan/replay/path_join/contains_tests.rs",
+      "length": 13861,
+      "sha256": "209e8df77e31f719bb2ce9df981b8e206ecd27beeb143b8028b719490ebc43df",
+      "before": "src/cleanup_plan/replay/path_join/fused_before/contains_tests.rs.txt",
+      "before_length": 13596,
+      "before_sha256": "fa4d4122654ffbdff57700e81f1d5d608fb405db6d6ad6f0290297b89d67f177",
+      "edits": [
+        [
+          10653,
+          "pub(super) fn before_source(path: &str, actual: String) -> String {\n    let mut actual = fused_tests::before_source(path, actual);\n",
+          "pub(super) fn before_source(path: &str, mut actual: String) -> String {\n    actual = String::from_utf8(crate::bounded_output::census_source_before(\n        path,\n        actual.as_bytes(),\n    ))\n    .unwrap();\n"
+        ],
+        [
+          9996,
+          "        new.2\n            .checked_add(new.3 * entry_delta::<State>())\n            .and_then(|n| n.checked_sub(2 * fused_tests::promotion::<State>())),\n",
+          "        new.2.checked_add(new.3 * entry_delta::<State>()),\n"
+        ],
+        [
+          1621,
+          "        assert_eq!(\n            old[i].checked_add(if i == 2 || i == 3 {\n                fused_tests::promotion::<T>()\n            } else {\n                0\n            }),\n            new[i].checked_add(removed)\n        );\n",
+          "        assert_eq!(old[i], new[i] + removed);\n"
+        ],
+        [
+          972,
+          "    let removed = size_of::<&frontier::Incoming<T>>() + fused_tests::common_saving::<T>();\n",
+          "    let removed = size_of::<&frontier::Incoming<T>>();\n"
+        ],
+        [
+          820,
+          "    fused_tests::reset_promotions();\n",
+          ""
+        ]
+      ]
+    }
   },
   {
     "path": "src/cleanup_plan/replay/path_join/shared_insertions_tests.rs",
-    "length": 20953,
-    "sha256": "4c9dc6a817b74cd8f056694ce277298fe5bc3d082258a8e8c8d538a7e3db53c8",
+    "length": 22645,
+    "sha256": "490659072c201cbf7fe83c7e274dfee5bcd355dfddb15306f16e838ae5712f1e",
     "before": "src/cleanup_plan/replay/path_join/fused_before/shared_insertions_tests.rs.txt",
     "before_length": 20946,
     "before_sha256": "17d6edc4cfeca1b7e67167d321d031a31473599c5c83cf7508ccdf3ef1887b91",
     "edits": [
+      [
+        20865,
+        "        let physical = std::fs::read(root.join(path)).unwrap();\n        let before = if path == \"src/cleanup_plan/replay/path_join/boxed_flow.rs\" {\n            assert_eq!(\n                physical.as_slice(),\n                include_bytes!(\"boxed_flow.rs\").as_slice()\n            );\n            let packet = include_bytes!(\"direct_one_before/inverse.json\");\n            assert_eq!(packet.len(), 19485);\n            assert_eq!(\n                digest(packet),\n                \"027cc73210897771d444e422df2c31c2356d9db4f5e6bc2590d1214263fede51\"\n            );\n            let rows: serde_json::Value = serde_json::from_slice(packet).unwrap();\n            let row = rows\n                .as_array()\n                .unwrap()\n                .iter()\n                .find(|r| r[\"current\"] == path)\n                .unwrap();\n            assert_eq!(digest(&physical), row[\"current_sha256\"].as_str().unwrap());\n            let mut text = String::from_utf8(physical.clone()).unwrap();\n            for e in row[\"edits\"].as_array().unwrap() {\n                let from = e[\"from\"].as_str().unwrap();\n                assert_eq!(text.matches(from).count(), 1);\n                text = text.replacen(from, e[\"to\"].as_str().unwrap(), 1);\n            }\n            let fixture = include_bytes!(\"direct_one_before/boxed_flow.rs.txt\");\n            assert_eq!(text.as_bytes(), fixture);\n            assert_eq!(fixture.len(), 4467);\n            assert_eq!(\n                digest(fixture),\n                \"6632ceeabe694a459ac118deeb68d858ac2dfa75e6d3ab6dccd3fc7c24e91c3d\"\n            );\n            text.into_bytes()\n        } else {\n            physical.clone()\n        };\n        assert_eq!(std::fs::read(root.join(path)).unwrap(), physical);\n        assert_eq!(digest(&before), expected);\n",
+        "        assert_eq!(digest(&std::fs::read(root.join(path)).unwrap()), expected);\n"
+      ],
       [
         19280,
         "        fused_tests::before_source(\n            \"src/cleanup_plan/replay/path_join.rs\",\n            include_str!(\"../path_join.rs\").to_owned()\n        )\n        .split_once(marker)\n        .unwrap()\n        .1,\n",
@@ -142,7 +187,37 @@
         "                    original[i].checked_add(if i == 2 || i == 3 {\n                        fused_tests::promotion::<$t>()\n                    } else {\n                        0\n                    })\n",
         "                    Some(original[i])\n"
       ]
-    ]
+    ],
+    "exact_prior_fusion_record": {
+      "path": "src/cleanup_plan/replay/path_join/shared_insertions_tests.rs",
+      "length": 20953,
+      "sha256": "4c9dc6a817b74cd8f056694ce277298fe5bc3d082258a8e8c8d538a7e3db53c8",
+      "before": "src/cleanup_plan/replay/path_join/fused_before/shared_insertions_tests.rs.txt",
+      "before_length": 20946,
+      "before_sha256": "17d6edc4cfeca1b7e67167d321d031a31473599c5c83cf7508ccdf3ef1887b91",
+      "edits": [
+        [
+          19280,
+          "        fused_tests::before_source(\n            \"src/cleanup_plan/replay/path_join.rs\",\n            include_str!(\"../path_join.rs\").to_owned()\n        )\n        .split_once(marker)\n        .unwrap()\n        .1,\n",
+          "        std::str::from_utf8(&current)\n            .unwrap()\n            .split_once(marker)\n            .unwrap()\n            .1,\n"
+        ],
+        [
+          19206,
+          "",
+          "    let current = crate::bounded_output::census_before(\n        \"src/cleanup_plan/replay/path_join.rs\",\n        include_bytes!(\"../path_join.rs\"),\n    );\n"
+        ],
+        [
+          13032,
+          "            let entry_removed = fused_tests::prior_entry_saving::<PathState>();\n",
+          "            let entry_removed = contains_tests::paid_banks()\n                .checked_mul(contains_tests::entry_delta::<PathState>())\n                .unwrap();\n"
+        ],
+        [
+          1365,
+          "                    original[i].checked_add(if i == 2 || i == 3 {\n                        fused_tests::promotion::<$t>()\n                    } else {\n                        0\n                    })\n",
+          "                    Some(original[i])\n"
+        ]
+      ]
+    }
   },
   {
     "path": "src/cleanup_plan/replay/path_join/compact_failure_tests.rs",

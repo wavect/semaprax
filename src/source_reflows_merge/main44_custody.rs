@@ -19,7 +19,7 @@ impl Fixture {
         supplied: &'a str,
     ) -> (
         std::borrow::Cow<'a, str>,
-        &'static [(usize, &'static str, &'static str)],
+        Vec<(usize, &'static str, &'static str)>,
     ) {
         type Edit = (usize, &'static str, &'static str);
         let (compiled, length, sha, prior, prior_length, edits):
@@ -72,16 +72,54 @@ impl Fixture {
                     (44367, "            \"src/hir/validation.rs\",\n            include_str!(\"../validation.rs\"),\n        );\n", "            \"src/hir/validation.rs\", include_str!(\"../validation.rs\"));\n"),
                     (44533, "            \"src/hir/validation/lexical_exit.rs\",\n            include_str!(\"lexical_exit.rs\"),\n        );\n", "            \"src/hir/validation/lexical_exit.rs\", include_str!(\"lexical_exit.rs\"));\n"),
                 ][..]),
-            _ => return (std::borrow::Cow::Borrowed(supplied), &[]),
+            ("src/cleanup_plan/replay/factored.rs", "82353ce21ba46fb5ae1746e30f837d9f251da7a17bdc53c9ba53355c13d9f4a0") => (
+                include_str!("../../src/cleanup_plan/replay/factored.rs"), 52726, "8249547ae7f6fa877064e583e65415f6b9e65931c22eaba8cbb848f687935dc4",
+                include_str!("../../e/82353ce21ba46fb5ae1746e30f837d9f251da7a17bdc53c9ba53355c13d9f4a0"), 52363, &[
+                    (2105, "mod paired;\n", ""),
+                    (9481, "    let built = build_comparison(program, function, budget, helpers, continuations)?;\n    if budget.payer == AllocationPayer::ActiveBuilder {\n        budget.reserve_bytes(\n            function,\n            paired::entry_controls(),\n            \"paired weighted comparison entry\",\n        )?;\n        if paired::positive(function, &built, budget)? == Some(true) {\n            return Ok(Some(true));\n        }\n    }\n", ""),
+                    (9991, "    } = built;\n", "    } = build_comparison(program, function, budget, helpers, continuations)?;\n"),
+                ][..]),
+            _ => return (std::borrow::Cow::Borrowed(supplied), Vec::new()),
         };
-        assert_eq!(supplied, compiled, "complete current closure epoch");
+        let physical_compiled = compiled;
+        // Compose this complete new main epoch before the unchanged four
+        // acquisition records; the recursively selected fifth record is finite.
+        let has_paired_epoch = source == "src/cleanup_plan/replay/factored.rs"
+            && matches!(
+                expected,
+                "809181e23ff2dd185ba0f28504fa05eea592aa40e94144714c884d997d00d8cc"
+                    | "ffca82dfababa42ad8f21b57a51c42d313a769c17dc14115e1a2ac60a103e5c8"
+            );
+        let (paired_epoch, prefix_edits) = if has_paired_epoch {
+            Self::closure_epoch(
+                source,
+                "82353ce21ba46fb5ae1746e30f837d9f251da7a17bdc53c9ba53355c13d9f4a0",
+                supplied,
+            )
+        } else {
+            (std::borrow::Cow::Borrowed(compiled), Vec::new())
+        };
+        let compiled = paired_epoch.as_ref();
+        assert_eq!(
+            supplied, physical_compiled,
+            "complete current closure epoch"
+        );
         assert_eq!(compiled.len(), length);
         assert_eq!(super::source_sha(compiled), sha);
         assert_eq!(prior.len(), prior_length);
         assert_eq!(super::source_sha(prior), expected);
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
         assert_eq!(
-            current_file(&root.join(source), length, sha).unwrap(),
+            current_file(
+                &if has_paired_epoch {
+                    root.join("e/82353ce21ba46fb5ae1746e30f837d9f251da7a17bdc53c9ba53355c13d9f4a0")
+                } else {
+                    root.join(source)
+                },
+                length,
+                sha,
+            )
+            .unwrap(),
             compiled
         );
         assert_eq!(
@@ -94,7 +132,9 @@ impl Fixture {
             restored.replace_range(at..at + after.len(), before);
         }
         assert_eq!(restored, prior, "entire fixed closure predecessor");
-        (std::borrow::Cow::Owned(restored), edits)
+        let mut composed = edits.to_vec();
+        composed.extend(prefix_edits);
+        (std::borrow::Cow::Owned(restored), composed)
     }
     pub(super) fn spec(self) -> Spec {
         match self {

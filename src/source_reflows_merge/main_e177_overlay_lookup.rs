@@ -383,6 +383,9 @@ pub(crate) fn compiled(source: &str) -> Option<&'static str> {
         "src/hir/validation/frame_reuse/tests.rs" => Some(include_str!("../../src/hir/validation/frame_reuse/tests.rs")),
         "src/cleanup_plan/replay/factored/early_release.rs" => Some(include_str!("../../src/cleanup_plan/replay/factored/early_release.rs")),
         "src/cleanup_plan/replay/factored/early_release/before.rs" => Some(include_str!("../../src/cleanup_plan/replay/factored/early_release/before.rs")),
+        "src/cleanup_plan/replay/path_join/fused_before.rs" => Some(include_str!("../../src/cleanup_plan/replay/path_join/fused_before.rs")),
+        "src/cleanup_plan/replay/path_join/fused_before_frontier.rs" => Some(include_str!("../../src/cleanup_plan/replay/path_join/fused_before_frontier.rs")),
+        "src/cleanup_plan/replay/path_join/fused_tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/path_join/fused_tests.rs")),
         _ => None,
     }
 }

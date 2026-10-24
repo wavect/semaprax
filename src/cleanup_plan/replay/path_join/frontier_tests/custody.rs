@@ -72,7 +72,7 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
         assert_eq!(std::fs::read(root.join("src/cleanup_plan/replay/path_join/before_frontier/custody/main_d227_transport.json")).unwrap(), encoded.as_bytes());
         assert_eq!(
             digest(encoded.as_bytes()),
-            "bb3054bcefde53fb800ca082cd2a9de658ec40a38b6da5c51c4ad7c43af3090f"
+            "a45ca685dd5d58087205b82584411860c1cc7d1ba2beb1ff2d64154043338eeb"
         );
         let packet: serde_json::Value = serde_json::from_str(encoded).unwrap();
         assert_eq!(packet.as_object().unwrap().len(), 42);
@@ -197,7 +197,48 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
             // search; the fixed old source targets below are not repinned.
             actual = crate::cleanup_plan::replay::selected_owner::ordinary::custody(&path, &actual);
         }
-        let actual =
+        let continuation_before = if path == "src/cleanup_plan/replay/continuation_storage/tests.rs"
+        {
+            assert_eq!(
+                actual.as_slice(),
+                include_bytes!("../../continuation_storage/tests.rs").as_slice()
+            );
+            let packet = include_bytes!("../../continuation_storage/reached_before/inverse.json");
+            assert_eq!(
+                digest(packet),
+                "1e1188c81b5bc515eca82e8a04a74d9ecb117d9ec3eef2632c241c804f612472"
+            );
+            let rows: serde_json::Value = serde_json::from_slice(packet).unwrap();
+            let row = rows
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|r| r["path"] == path)
+                .unwrap();
+            assert_eq!(actual.len() as u64, row["current_length"]);
+            assert_eq!(digest(&actual), row["current_sha256"].as_str().unwrap());
+            let mut before = actual.clone();
+            for e in row["edits"].as_array().unwrap().iter().rev() {
+                let start = e["start"].as_u64().unwrap() as usize;
+                let end = e["end"].as_u64().unwrap() as usize;
+                assert_eq!(
+                    &before[start..end],
+                    e["current"].as_str().unwrap().as_bytes()
+                );
+                before.splice(start..end, e["before"].as_str().unwrap().bytes());
+            }
+            let fixture = include_bytes!("../../continuation_storage/reached_before/tests.rs.txt");
+            assert_eq!(before.as_slice(), fixture.as_slice());
+            assert_eq!(before.len(), 27342);
+            assert_eq!(
+                digest(&before),
+                "ef071c7def7542ab0365cdd9566779a4b37270365bf6c147df7e87122debbdc2"
+            );
+            Some(before)
+        } else {
+            None
+        };
+        let actual = if let Some(before)=continuation_before.as_ref() {before.as_slice()} else
             if path == "src/cleanup_plan/replay/factored/strategy/compact_receiving/tests.rs" {
                 // Finite test-only transport: bind the complete current test bytes,
                 // then invert the whole replacement to the complete pinned old

@@ -511,6 +511,44 @@ fn complete_immediate_driver_and_receivers_keep_exact_whole_preimages_and_shared
             "86a572cc73c1b4981a710e5d7fba725ef9723f62586a30c38fb2bc4b9f0fe510",
         ),
     ] {
-        assert_eq!(digest(&std::fs::read(root.join(path)).unwrap()), expected);
+        let physical = std::fs::read(root.join(path)).unwrap();
+        let before = if path == "src/cleanup_plan/replay/path_join/boxed_flow.rs" {
+            assert_eq!(
+                physical.as_slice(),
+                include_bytes!("boxed_flow.rs").as_slice()
+            );
+            let packet = include_bytes!("direct_one_before/inverse.json");
+            assert_eq!(packet.len(), 19485);
+            assert_eq!(
+                digest(packet),
+                "027cc73210897771d444e422df2c31c2356d9db4f5e6bc2590d1214263fede51"
+            );
+            let rows: serde_json::Value = serde_json::from_slice(packet).unwrap();
+            let row = rows
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|r| r["current"] == path)
+                .unwrap();
+            assert_eq!(digest(&physical), row["current_sha256"].as_str().unwrap());
+            let mut text = String::from_utf8(physical.clone()).unwrap();
+            for e in row["edits"].as_array().unwrap() {
+                let from = e["from"].as_str().unwrap();
+                assert_eq!(text.matches(from).count(), 1);
+                text = text.replacen(from, e["to"].as_str().unwrap(), 1);
+            }
+            let fixture = include_bytes!("direct_one_before/boxed_flow.rs.txt");
+            assert_eq!(text.as_bytes(), fixture);
+            assert_eq!(fixture.len(), 4467);
+            assert_eq!(
+                digest(fixture),
+                "6632ceeabe694a459ac118deeb68d858ac2dfa75e6d3ab6dccd3fc7c24e91c3d"
+            );
+            text.into_bytes()
+        } else {
+            physical.clone()
+        };
+        assert_eq!(std::fs::read(root.join(path)).unwrap(), physical);
+        assert_eq!(digest(&before), expected);
     }
 }

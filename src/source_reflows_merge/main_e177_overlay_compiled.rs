@@ -142,7 +142,7 @@ mod tests {
             current_scope_root = current_scope_root.replacen(&declaration, "", 1);
         }
         for source in [
-            "src/hir/inspection/paid_nul.rs", "src/hir/inspection/paid_nul/pending.rs", "src/hir/inspection/paid_nul/tests.rs", "src/hir/inspection/paid_nul/reuse_before.rs", "src/hir/inspection/paid_nul/reuse_before/pending.rs", "src/hir/inspection/paid_nul/type_scratch.rs", "src/cleanup_plan/replay/continuation_storage.rs", "src/cleanup_plan/replay/continuation_storage/tests.rs", "src/cleanup_plan/replay/continuation_storage/reached.rs", "src/cleanup_plan/replay/continuation_storage/reached_before.rs", "src/cleanup_plan/replay/continuation_storage/reached_tests.rs",
+            "src/hir/inspection/paid_nul.rs", "src/hir/inspection/paid_nul/pending.rs", "src/hir/inspection/paid_nul/tests.rs", "src/hir/inspection/paid_nul/reuse_before.rs", "src/hir/inspection/paid_nul/reuse_before/pending.rs", "src/hir/inspection/paid_nul/type_scratch.rs", "src/cleanup_plan/replay/continuation_storage.rs", "src/cleanup_plan/replay/continuation_storage/tests.rs", "src/cleanup_plan/replay/continuation_storage/reached.rs", "src/cleanup_plan/replay/continuation_storage/reached_before.rs", "src/cleanup_plan/replay/continuation_storage/reached_tests.rs","src/cleanup_plan/replay/path_join/fused_before.rs", "src/cleanup_plan/replay/path_join/fused_before_frontier.rs", "src/cleanup_plan/replay/path_join/fused_tests.rs",
             "src/cleanup_plan/replay/path_join/compact_failure_before.rs", "src/cleanup_plan/replay/path_join/compact_failure_tests.rs", "src/cleanup_plan/replay/path_join/contains_before.rs", "src/cleanup_plan/replay/path_join/contains_tests.rs", "src/cleanup_plan/replay/path_join/selected/tests/fixture_scope.rs", "src/source_reflows_merge/main_e177_overlay_digests_v13.rs", "src/source_reflows_merge/main_e177_overlay_digests_v13/logical_v12.rs", "src/source_reflows_merge/main_e177_overlay_digests_v13/tests.rs", "src/source_reflows_merge/main_e177_overlay_digests_v13/controller_transport.rs", "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs", "src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs", "tests/wasm/scalar_browser_ci_contract/current_profiles573.rs",
             "src/cleanup_plan/replay/expression_facts/capacity/before_types.rs", "src/cleanup_plan/replay/expression_facts/capacity/cursor_tests.rs", "src/cleanup_plan/replay/expression_facts/capacity/type_cursor_tests.rs", "src/source_verify/constructor_tests/corpus/operator_refusals.rs", "src/cleanup_plan/replay/path_join/direct_one_before.rs", "src/cleanup_plan/replay/path_join/direct_one_before/boxed_flow.rs", "src/cleanup_plan/replay/path_join/direct_one_before/frontier.rs", "src/cleanup_plan/replay/path_join/direct_one_tests.rs",
             "src/cleanup_plan/replay/skeleton_work/query_proof.rs", "src/cleanup_plan/replay/skeleton_work/query_proof/before.rs", "src/cleanup_plan/replay/skeleton_work/query_proof/tests.rs", "src/bounded_output/exclusive_debits/path_census.rs", "src/bounded_output/request_reservation.rs", "src/source_reflows_merge/main_e177_overlay_lookup.rs",
@@ -319,7 +319,7 @@ mod tests {
         current_scope_child = current_scope_child.replace(packed_separator, ")),\n        \"src/");
         for source in [
             "src/cleanup_plan/replay/factored.rs", "src/cleanup_plan/replay/factored/strategy.rs", "src/cleanup_plan/replay/factored/paired.rs", "src/cleanup_plan/replay/factored/paired/tests.rs",
-            "src/hir/inspection/paid_nul.rs", "src/hir/inspection/paid_nul/pending.rs", "src/hir/inspection/paid_nul/tests.rs", "src/hir/inspection/paid_nul/reuse_before.rs", "src/hir/inspection/paid_nul/reuse_before/pending.rs", "src/hir/inspection/paid_nul/type_scratch.rs", "src/cleanup_plan/replay/continuation_storage.rs", "src/cleanup_plan/replay/continuation_storage/tests.rs", "src/cleanup_plan/replay/continuation_storage/reached.rs", "src/cleanup_plan/replay/continuation_storage/reached_before.rs", "src/cleanup_plan/replay/continuation_storage/reached_tests.rs",
+            "src/hir/inspection/paid_nul.rs", "src/hir/inspection/paid_nul/pending.rs", "src/hir/inspection/paid_nul/tests.rs", "src/hir/inspection/paid_nul/reuse_before.rs", "src/hir/inspection/paid_nul/reuse_before/pending.rs", "src/hir/inspection/paid_nul/type_scratch.rs", "src/cleanup_plan/replay/continuation_storage.rs", "src/cleanup_plan/replay/continuation_storage/tests.rs", "src/cleanup_plan/replay/continuation_storage/reached.rs", "src/cleanup_plan/replay/continuation_storage/reached_before.rs", "src/cleanup_plan/replay/continuation_storage/reached_tests.rs","src/cleanup_plan/replay/path_join/fused_before.rs", "src/cleanup_plan/replay/path_join/fused_before_frontier.rs", "src/cleanup_plan/replay/path_join/fused_tests.rs",
             "src/cleanup_plan.rs",
             "src/workspace_graph/tests.rs",
             "src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs",
@@ -1253,6 +1253,18 @@ del _load_fixed_codecs
         "src/cleanup_plan/replay/continuation_storage/reached.rs",
         "src/cleanup_plan/replay/continuation_storage/reached_before.rs",
         "src/cleanup_plan/replay/continuation_storage/reached_tests.rs",
+        "src/cleanup_plan.rs",
+        "src/workspace_graph/tests.rs",
+        "src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs",
+        "src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs",
+        "src/cleanup_plan/replay/workspace_oracle.rs",
+        "src/cleanup_plan/replay/factored.rs",
+        "src/cleanup_plan/replay/factored/strategy.rs",
+        "src/cleanup_plan/replay/factored/paired.rs",
+        "src/cleanup_plan/replay/factored/paired/tests.rs",
+        "src/cleanup_plan/replay/path_join/fused_before.rs",
+        "src/cleanup_plan/replay/path_join/fused_before_frontier.rs",
+        "src/cleanup_plan/replay/path_join/fused_tests.rs",
 ];
     const SCOPE_ADDITIONS_LINE: &str = r####"            "src/cleanup_plan/replay/skeleton_work/query_proof.rs", "src/cleanup_plan/replay/skeleton_work/query_proof/before.rs", "src/cleanup_plan/replay/skeleton_work/query_proof/tests.rs", "src/bounded_output/exclusive_debits/path_census.rs", "src/bounded_output/request_reservation.rs", "src/source_reflows_merge/main_e177_overlay_lookup.rs",
 "####;
@@ -1308,7 +1320,7 @@ del _load_fixed_codecs
     }
     pub(super) fn parent_before(parent: &str, lookup: &str) -> String {
         let mut restored = parent_for_current_scope(parent, lookup);
-        let family_scope = "            \"src/hir/inspection/paid_nul.rs\", \"src/hir/inspection/paid_nul/pending.rs\", \"src/hir/inspection/paid_nul/tests.rs\", \"src/hir/inspection/paid_nul/reuse_before.rs\", \"src/hir/inspection/paid_nul/reuse_before/pending.rs\", \"src/hir/inspection/paid_nul/type_scratch.rs\", \"src/cleanup_plan/replay/continuation_storage.rs\", \"src/cleanup_plan/replay/continuation_storage/tests.rs\", \"src/cleanup_plan/replay/continuation_storage/reached.rs\", \"src/cleanup_plan/replay/continuation_storage/reached_before.rs\", \"src/cleanup_plan/replay/continuation_storage/reached_tests.rs\",\n";
+        let family_scope = "            \"src/hir/inspection/paid_nul.rs\", \"src/hir/inspection/paid_nul/pending.rs\", \"src/hir/inspection/paid_nul/tests.rs\", \"src/hir/inspection/paid_nul/reuse_before.rs\", \"src/hir/inspection/paid_nul/reuse_before/pending.rs\", \"src/hir/inspection/paid_nul/type_scratch.rs\", \"src/cleanup_plan/replay/continuation_storage.rs\", \"src/cleanup_plan/replay/continuation_storage/tests.rs\", \"src/cleanup_plan/replay/continuation_storage/reached.rs\", \"src/cleanup_plan/replay/continuation_storage/reached_before.rs\", \"src/cleanup_plan/replay/continuation_storage/reached_tests.rs\",\"src/cleanup_plan/replay/path_join/fused_before.rs\", \"src/cleanup_plan/replay/path_join/fused_before_frontier.rs\", \"src/cleanup_plan/replay/path_join/fused_tests.rs\",\n";
         assert_eq!(restored.matches(family_scope).count(), 2);
         restored = restored.replace(family_scope, "");
         for key in COMBINED_9664_KEYS {
@@ -1341,6 +1353,15 @@ del _load_fixed_codecs
         }
         assert_eq!(restored.matches(SCOPE_ADDITIONS_LINE).count(), 2);
         restored = restored.replace(SCOPE_ADDITIONS_LINE, "");
+        let paired_scope = "            \"src/cleanup_plan/replay/factored.rs\", \"src/cleanup_plan/replay/factored/strategy.rs\", \"src/cleanup_plan/replay/factored/paired.rs\", \"src/cleanup_plan/replay/factored/paired/tests.rs\",\n";
+        assert_eq!(restored.matches(paired_scope).count(), 1);
+        restored = restored.replacen(paired_scope, "", 1);
+        let main99_scope = "            \"src/cleanup_plan.rs\",\n            \"src/workspace_graph/tests.rs\",\n            \"src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs\",\n            \"src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs\",\n            \"src/cleanup_plan/replay/workspace_oracle.rs\",\n";
+        assert_eq!(restored.matches(main99_scope).count(), 1);
+        restored = restored.replacen(main99_scope, "", 1);
+        let financed_scope = "        for source in [\"src/cleanup_plan/replay/factored/paired.rs\", \"src/cleanup_plan/replay/factored/paired/tests.rs\", \"src/workspace_graph/tests.rs\", \"src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs\", \"src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs\", \"src/cleanup_plan/replay/workspace_oracle.rs\", ";
+        assert_eq!(restored.matches(financed_scope).count(), 1);
+        restored = restored.replacen(financed_scope, "        for source in [", 1);
         assert_eq!(restored.matches(SCOPE_REPLACEMENTS_AFTER).count(), 1);
         restored = restored.replacen(SCOPE_REPLACEMENTS_AFTER, SCOPE_REPLACEMENTS_BEFORE, 1);
         assert_eq!(restored, BEFORE, "ENTIRE published pre-split parent");

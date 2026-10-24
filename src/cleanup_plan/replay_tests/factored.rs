@@ -172,8 +172,9 @@ fn fitting_probe(
     crate::bounded_output::with_limit_usage_refusal(limit, || {
         crate::test_allocation_observer::measure(|| {
             let mut budget = ReplayBudget::new();
-            // The unchanged preflight owns this pool. The fitting comparison
-            // must restore it even on failure; only ordinary free work pays.
+            // The unchanged preflight owns this pool while replay is live.
+            // A terminal sticky refusal poisons both work counters, as in the
+            // original budget API; it does not refund held work to a retry.
             budget.skeleton_remaining = 17;
             let result = fitting_select(function, cfg, hir, &mut budget).and_then(|selected| {
                 assert!(selected);
@@ -186,6 +187,8 @@ fn fitting_probe(
                 assert!(budget
                     .reserve_bytes(function, 0, "retry fitting proof")
                     .is_err());
+                assert!(budget.refusal_spent);
+                assert_eq!((budget.remaining, budget.skeleton_remaining), (0, 0));
             }
             let outcome = FittingOutcome {
                 success,
@@ -231,6 +234,41 @@ fn fitting_scalar_comparison_keeps_admission_and_independent_enumerator() {
         });
     assert!(selected && !refused, "the actual comparison entry selects");
 
+    // Independently execute the original budget refusal API. Legacy supplies
+    // the full six-field first diagnostic; the Active budget must keep it on
+    // its prepaid text, then poison BOTH counters and refuse even a zero retry.
+    let mut original = ReplayBudget::unobserved();
+    original.remaining = 0;
+    original.skeleton_remaining = 17;
+    let expected = original
+        .charge(&main, 1, "fitting prior work refusal")
+        .unwrap_err();
+    let (((), metrics), refused, paid, receipt) =
+        crate::bounded_output::with_limit_usage_refusal(1 << 20, || {
+            crate::test_allocation_observer::measure(|| {
+                let mut budget = ReplayBudget::new();
+                budget.remaining = 0;
+                budget.skeleton_remaining = 17;
+                let first = budget
+                    .charge(&main, 1, "fitting prior work refusal")
+                    .unwrap_err();
+                assert_eq!(first, expected, "all six original diagnostic fields");
+                assert!(budget.refusal_spent);
+                assert_eq!((budget.remaining, budget.skeleton_remaining), (0, 0));
+                let retry = budget
+                    .reserve_bytes(&main, 0, "fitting prior zero retry")
+                    .unwrap_err();
+                assert_eq!(retry, Diagnostic::io("SPX-H006", String::new()));
+                assert_eq!(first, expected, "retry cannot replace the first diagnostic");
+                assert_eq!((budget.remaining, budget.skeleton_remaining), (0, 0));
+                drop((first, retry, budget));
+            })
+        });
+    assert!(!refused && receipt.is_none(), "work refusal is local, not a byte charge");
+    assert!(!metrics.invalid && metrics.allocated <= paid);
+    assert_eq!(metrics.live, 0);
+    assert_eq!(metrics.allocated, metrics.freed);
+
     let ((baseline, metrics), refused, charged, _) =
         fitting_probe(&program, &main, cfg, hir, 1 << 29);
     assert!(baseline.success && !refused);
@@ -248,7 +286,9 @@ fn fitting_scalar_comparison_keeps_admission_and_independent_enumerator() {
         let ((short, metrics), refused, paid, receipt) =
             fitting_probe(&program, &main, cfg, hir, cut);
         assert!(!short.success && refused && receipt.is_some());
-        assert_eq!(short.held, 17);
+        // The explicit zero retry above has the original terminal poison
+        // contract, not the successful comparison's live held allowance.
+        assert_eq!(short.held, 0);
         assert!(paid <= cut && !metrics.invalid && metrics.allocated <= paid);
         assert_eq!(metrics.live, 0);
         assert_eq!(metrics.allocated, metrics.freed);

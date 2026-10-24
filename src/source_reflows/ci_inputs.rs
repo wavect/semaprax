@@ -392,6 +392,28 @@ fn rows() -> serde_json::Value {
         probe["length"] = serde_json::json!(actual_current.len());
         probe["sha256"] = serde_json::json!(digest(actual_current));
     }
+    {
+        let probe = &mut probes[3];
+        let prior_record = probe.clone();
+        assert_eq!(probe["source"], "src/cleanup_plan/replay/factored/continuation_receiver.rs");
+        assert_eq!(probe["length"], 2919);
+        assert_eq!(probe["sha256"], "f8720b0acb29fe38df16c4c0c2f9baf69c220f99db81b8637b766c9f02529b4a");
+        let actual = compiled(probe["source"].as_str().unwrap()).unwrap().1;
+        assert_eq!(actual.len(), 3211); assert_eq!(digest(actual), "57fb8fa2a03008f6088a2891972a8c3ff17d4eea9eec508809e898eb85a5e60b");
+        let extra: serde_json::Value = serde_json::from_str("[[1293,\"if matches!(enumerating.payer, AllocationPayer::LegacyUnobserved)\\n            && !ordinary_plan_history::completed_fork::emission::before_selected()\\n        {\\n            plan_prefix::equal_paths(function, &mut enumerating, &mut hir, &mut plan)\\n        } else {\\n            \",\"\"],[1579,\"    \",\"\"],[1612,\"    \",\"\"],[1631,\"\\n        }\",\"\"]]").unwrap();
+        let mut prior = actual.to_owned();
+        for edit in extra.as_array().unwrap().iter().rev() {
+            let at = edit[0].as_u64().unwrap() as usize; let after = edit[1].as_str().unwrap();
+            assert_eq!(prior.get(at..at + after.len()), Some(after));
+            prior.replace_range(at..at + after.len(), edit[2].as_str().unwrap());
+        }
+        let fixture = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/f8720b0acb29fe38df16c4c0c2f9baf69c220f99db81b8637b766c9f02529b4a"));
+        assert_eq!(prior.as_bytes(), fixture.as_slice()); assert_eq!(prior.len(), 2919);
+        assert_eq!(digest(&prior), "f8720b0acb29fe38df16c4c0c2f9baf69c220f99db81b8637b766c9f02529b4a");
+        probe["inverse"].as_array_mut().unwrap().extend(extra.as_array().unwrap().iter().cloned());
+        probe["length"] = serde_json::json!(actual.len()); probe["sha256"] = serde_json::json!(digest(actual));
+        probe["retained_prior_record"] = prior_record;
+    }
     for probe in probes.as_array().unwrap() {
         let row = rows
             .as_array_mut()

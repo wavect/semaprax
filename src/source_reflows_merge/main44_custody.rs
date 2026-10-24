@@ -92,6 +92,11 @@ impl Fixture {
                     (17680, "    #[cfg(test)]\n    drop(hir_phase);\n    if let ReplayBudget {\n        payer: AllocationPayer::LegacyUnobserved,\n        ..\n    } = budget\n    {\n        budget.reserve_bytes(\n            function,\n            canonical_shared::inline_singleton::hir_last_use::STORAGE_CALL,\n            \"factored HIR-private release call receiving\",\n        )?;\n        canonical.release_hir_storage(function, budget, hir_root, plan_root)?;\n    } else {\n        budget.reserve_bytes(\n            function,\n            canonical_shared::inline_singleton::hir_last_use::CALL,\n            \"factored HIR-private release call receiving\",\n        )?;\n        canonical.release_hir_private(function, budget, hir_root, plan_root)?;\n    }\n", "    budget.reserve_bytes(\n        function,\n        canonical_shared::inline_singleton::hir_last_use::CALL,\n        \"factored HIR-private release call receiving\",\n    )?;\n    canonical.release_hir_private(function, budget, hir_root, plan_root)?;\n"),
                     (18681, "    #[cfg(test)]\n    let _plan_phase =\n        crate::test_allocation_observer::function_phase_guard(\"factored::canonical_plan_root\");\n", ""),
                 ][..]),
+            ("src/cleanup_plan/replay/factored.rs", "1b28726cdb885c1d07033f71d0e22ae38a8c29ec04c0e314e9f2ecd3a85fa9a2") => (
+                include_str!("../../src/cleanup_plan/replay/factored.rs"), 55919, "a707ba025d94fa1dfcd81f44b1984ee945c3479e4e0bae6f5f5cda2dde010269",
+                include_str!("../../e/1b28726cdb885c1d07033f71d0e22ae38a8c29ec04c0e314e9f2ecd3a85fa9a2"), 55786, &[
+                    (2115, ";\n#[cfg(test)]\npub(super) use paired::tests::{\n    authenticate_prefitting_dispatch, prefitting_selected_paid, prefitting_validate,\n}", ""),
+                ][..]),
             _ => return (std::borrow::Cow::Borrowed(supplied), Vec::new()),
         };
         let physical_compiled = compiled;
@@ -105,6 +110,8 @@ impl Fixture {
             );
         let has_current_epoch = source == "src/cleanup_plan/replay/factored.rs"
             && expected == "82353ce21ba46fb5ae1746e30f837d9f251da7a17bdc53c9ba53355c13d9f4a0";
+        let has_export_epoch = source == "src/cleanup_plan/replay/factored.rs"
+            && expected == "8249547ae7f6fa877064e583e65415f6b9e65931c22eaba8cbb848f687935dc4";
         let (paired_epoch, prefix_edits) = if has_paired_epoch {
             Self::closure_epoch(
                 source,
@@ -117,6 +124,8 @@ impl Fixture {
                 "8249547ae7f6fa877064e583e65415f6b9e65931c22eaba8cbb848f687935dc4",
                 supplied,
             )
+        } else if has_export_epoch {
+            Self::closure_epoch(source, "1b28726cdb885c1d07033f71d0e22ae38a8c29ec04c0e314e9f2ecd3a85fa9a2", supplied)
         } else {
             (std::borrow::Cow::Borrowed(compiled), Vec::new())
         };
@@ -136,6 +145,8 @@ impl Fixture {
                     root.join("e/82353ce21ba46fb5ae1746e30f837d9f251da7a17bdc53c9ba53355c13d9f4a0")
                 } else if has_current_epoch {
                     root.join("e/8249547ae7f6fa877064e583e65415f6b9e65931c22eaba8cbb848f687935dc4")
+                } else if has_export_epoch {
+                    root.join("e/1b28726cdb885c1d07033f71d0e22ae38a8c29ec04c0e314e9f2ecd3a85fa9a2")
                 } else {
                     root.join(source)
                 },
@@ -441,6 +452,25 @@ pub(crate) fn before_phase_probes<'a>(
         std::borrow::Cow::Borrowed(compiled)
     };
     let compiled = workspace_epoch.as_ref();
+    let receiving_epoch = if source == "src/cleanup_plan/replay/factored/continuation_receiver.rs" {
+        assert_eq!(compiled.len(), 3211);
+        assert_eq!(super::source_sha(compiled), "57fb8fa2a03008f6088a2891972a8c3ff17d4eea9eec508809e898eb85a5e60b");
+        let mut prior = compiled.to_owned();
+        for &(at, after, before) in &[
+            (1631, "\n        }", ""),
+            (1612, "    ", ""),
+            (1579, "    ", ""),
+            (1293, "if matches!(enumerating.payer, AllocationPayer::LegacyUnobserved)\n            && !ordinary_plan_history::completed_fork::emission::before_selected()\n        {\n            plan_prefix::equal_paths(function, &mut enumerating, &mut hir, &mut plan)\n        } else {\n            ", ""),
+        ] {
+            assert_eq!(prior.get(at..at + after.len()), Some(after));
+            prior.replace_range(at..at + after.len(), before);
+        }
+        let fixture = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/f8720b0acb29fe38df16c4c0c2f9baf69c220f99db81b8637b766c9f02529b4a"));
+        assert_eq!(prior, fixture); assert_eq!(prior.len(), 2919);
+        assert_eq!(super::source_sha(&prior), "f8720b0acb29fe38df16c4c0c2f9baf69c220f99db81b8637b766c9f02529b4a");
+        std::borrow::Cow::Owned(prior)
+    } else { std::borrow::Cow::Borrowed(compiled) };
+    let compiled = receiving_epoch.as_ref();
     // Each later implementation is acquired in full before the unchanged
     // incoming-main and diagnostic-probe epochs below. Fixed endpoints remain
     // the complete independently retained Git source images.

@@ -302,6 +302,14 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
                 assert_eq!(before.len(), 55814);
                 assert_eq!(digest(before), expected);
                 before.as_slice()
+            } else if path == "src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs" {
+                assert_eq!(actual.as_slice(), include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs" )).as_slice());
+                assert_eq!(actual.len(), 19806);
+                assert_eq!(digest(&actual), "6745c50ef06c4bab501efe623044c0044977a946df0aff8c95873a0c92de0fd1");
+                let before = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/1d31e1bf8377e7a1d7dd1d5a8844faa974cefa6cf94bd3029283647f70d2a51c"));
+                assert_eq!(before.len(), 15284);
+                assert_eq!(digest(before), expected);
+                before.as_slice()
             } else {
                 actual.as_slice()
             };

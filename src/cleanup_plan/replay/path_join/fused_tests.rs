@@ -725,6 +725,18 @@ fn both_promotion_orders_tree_splits_and_partial_promotion_unwind_preserve_owner
             DROPS.with(|n| n.set(n.get() + 1));
         }
     }
+    // Rust1.97 Darwin's default panic report lazily Box::pins its static
+    // backtrace pthread mutex (8-byte signature +56-byte payload). Initialize
+    // that process-global harness owner before BOTH compiler observations;
+    // measured publication faults still use the unchanged default hook.
+    let report = std::panic::catch_unwind(|| {
+        assert_ne!(
+            2usize, 2usize,
+            "initialize default panic reporting outside observation"
+        );
+    });
+    assert!(report.is_err());
+    drop(report);
     for old in [false, true] {
         PANIC_COMPARES.with(|n| n.set(0));
         DROPS.with(|n| n.set(0));

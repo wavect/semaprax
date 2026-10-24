@@ -694,10 +694,17 @@ pub(in crate::cleanup_plan::replay::factored) fn authenticate_preprivate_compare
     use sha2::{Digest, Sha256};
     fn definition<'a>(source: &'a str, marker: &str) -> &'a str {
         let start = source.find(marker).expect("complete source definition");
-        let end = start + source[start..].find("\n}").expect("complete definition end") + 2;
+        let end = start
+            + source[start..]
+                .find("\n}")
+                .expect("complete definition end")
+            + 2;
         &source[start..end]
     }
-    let paid_original = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/82353ce21ba46fb5ae1746e30f837d9f251da7a17bdc53c9ba53355c13d9f4a0"));
+    let paid_original = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/e/82353ce21ba46fb5ae1746e30f837d9f251da7a17bdc53c9ba53355c13d9f4a0"
+    ));
     let mut original = paid_original.to_owned();
     for added in [
         "    #[cfg(test)]\n    let _canonical_allocation_phase = crate::test_allocation_observer::function_phase_guard(\n        \"cleanup_plan::factored::comparison_complete\",\n    );\n",
@@ -714,10 +721,30 @@ pub(in crate::cleanup_plan::replay::factored) fn authenticate_preprivate_compare
         original = original.replacen(added, "", 1);
     }
     assert_eq!(original.len(), 50_781);
-    assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(original.as_bytes()))), "ebfa584f4bc1fc2e33ef27a31902893293dd147bb90fd767b97308a747b60d49");
-    let compiled = definition(include_str!("tests.rs"), "pub(in crate::cleanup_plan::replay::factored) fn preprivate_compare<'hir>(");
-    assert_eq!(compiled.replacen("pub(in crate::cleanup_plan::replay::factored) fn preprivate_compare<'hir>(", "fn compare_with_index_storage<'hir>(", 1), definition(&original, "fn compare_with_index_storage<'hir>("));
-    let mut build = definition(include_str!("../../factored.rs"), "fn build_comparison<'hir>(").to_owned();
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(original.as_bytes()))
+        ),
+        "ebfa584f4bc1fc2e33ef27a31902893293dd147bb90fd767b97308a747b60d49"
+    );
+    let compiled = definition(
+        include_str!("tests.rs"),
+        "pub(in crate::cleanup_plan::replay::factored) fn preprivate_compare<'hir>(",
+    );
+    assert_eq!(
+        compiled.replacen(
+            "pub(in crate::cleanup_plan::replay::factored) fn preprivate_compare<'hir>(",
+            "fn compare_with_index_storage<'hir>(",
+            1
+        ),
+        definition(&original, "fn compare_with_index_storage<'hir>(")
+    );
+    let mut build = definition(
+        include_str!("../../factored.rs"),
+        "fn build_comparison<'hir>(",
+    )
+    .to_owned();
     for added in [
         "    #[cfg(test)]\n    let _construction_allocation_phase = crate::test_allocation_observer::function_phase_guard(\n        \"cleanup_plan::factored::build_comparison\",\n    );\n",
         "        #[cfg(test)]\n        let hir_allocation_phase = crate::test_allocation_observer::function_phase_guard(\n            \"cleanup_plan::factored::construct_hir_paths\",\n        );\n",
@@ -729,4 +756,193 @@ pub(in crate::cleanup_plan::replay::factored) fn authenticate_preprivate_compare
         build = build.replacen(added, "", 1);
     }
     assert_eq!(build, definition(&original, "fn build_comparison<'hir>("));
+}
+
+// Full pre-builder-crossover/pre-fitting generation, including its reference hook.
+#[rustfmt::skip]
+fn prefitting_representation_candidate(
+    function: &ResolvedFunction,
+    cfg_paths: usize,
+    semantic_paths: usize,
+) -> bool {
+    if cfg_paths <= FACTORED_PATH_THRESHOLD && semantic_paths <= FACTORED_PATH_THRESHOLD {
+        return false;
+    }
+    let plan = &function.cleanup_plan;
+    cfg_paths > ENUMERATION_CROSS_CHECK_THRESHOLD
+        || semantic_paths > ENUMERATION_CROSS_CHECK_THRESHOLD
+        || (plan.slots.is_empty()
+            && plan.entry_state.live_owned_parameters.is_empty()
+            && plan.entry_state.conditional_owned_parameters.is_empty())
+}
+
+#[rustfmt::skip]
+pub(in crate::cleanup_plan::replay) fn prefitting_selected_paid(
+    function: &ResolvedFunction,
+    cfg_paths: usize,
+    semantic_paths: usize,
+    budget: &mut ReplayBudget,
+) -> Result<bool, Diagnostic> {
+    if !prefitting_representation_candidate(function, cfg_paths, semantic_paths) {
+        return Ok(false);
+    }
+    match structural_control::validate_ordinary_cfg(function, budget) {
+        Ok(()) => Ok(true),
+        Err(error) if budget.refusal_spent || crate::bounded_output::active_refused() => Err(error),
+        Err(_) => Ok(false),
+    }
+}
+
+#[rustfmt::skip]
+pub(in crate::cleanup_plan::replay) fn prefitting_validate<'hir>(
+    program: &'hir dyn crate::cleanup::ReplayContext,
+    function: &'hir ResolvedFunction,
+    budget: &mut ReplayBudget,
+    helpers: Option<&crate::loop_calls::byte_writer::ModuleIndex<'hir>>,
+    continuations: Option<&mut continuation_storage::Storage<'hir>>,
+) -> Result<bool, Diagnostic> {
+    #[cfg(test)]
+    let _operation = crate::bounded_output::stage_debits::operation_guard(
+        crate::bounded_output::stage_debits::Operation::ReplayFactored,
+    );
+    #[cfg(feature = "unstable-workflow-profiling")]
+    let _exclusive_operation = crate::bounded_output::exclusive_debits::operation_guard(
+        crate::bounded_output::exclusive_debits::Operation::ReplayFactored,
+    );
+    let cfg_paths = branch_sensitive_cfg_bounds(function)?.terminal_paths;
+    let semantic_paths = hir_terminal_path_bound(function)?;
+    let selected = prefitting_selected_paid(
+        function,
+        cfg_paths,
+        semantic_paths,
+        &mut ReplayBudget::new(),
+    )?;
+    #[cfg(test)]
+    let continuations = {
+        let mut continuations = continuations;
+        if !selected
+            || (cfg_paths <= ENUMERATION_CROSS_CHECK_THRESHOLD
+                && semantic_paths <= ENUMERATION_CROSS_CHECK_THRESHOLD)
+        {
+            oracle_hook::cross_check_with_storage(
+                program,
+                function,
+                budget,
+                continuations.as_deref_mut(),
+            )?;
+        }
+        continuations
+    };
+    if !selected {
+        return Ok(false);
+    }
+    match prepaired_compare(program, function, budget, helpers, continuations) {
+        Ok(Some(true)) => Ok(true),
+        Ok(Some(false)) => Err(skeleton_mismatch(function)),
+        Err(error)
+            if cfg_paths <= MAX_REPLAY_PATHS
+                && semantic_paths <= MAX_REPLAY_PATHS
+                && (budget.refusal_spent || crate::bounded_output::active_refused()) =>
+        {
+            Err(error)
+        }
+        verdict => {
+            if cfg_paths <= MAX_REPLAY_PATHS && semantic_paths <= MAX_REPLAY_PATHS {
+                // Enumeration still fits; an attempted factored comparison
+                // keeps every work and physical debit already spent.
+                return Ok(false);
+            }
+            match verdict {
+                Err(error) if !error.message.contains("budget") => Err(error),
+                _ => path_summary::path_budget_errors(function, cfg_paths, semantic_paths)
+                    .map(|()| false),
+            }
+        }
+    }
+}
+
+pub(in crate::cleanup_plan::replay) fn authenticate_prefitting_dispatch() {
+    authenticate_prepaired_compare();
+    use sha2::{Digest, Sha256};
+    fn definition<'a>(source: &'a str, marker: &str) -> &'a str {
+        let start = source.find(marker).expect("complete source definition");
+        let end = start
+            + source[start..]
+                .find("\n}")
+                .expect("complete definition end")
+            + 2;
+        &source[start..end]
+    }
+    let old = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/e/82353ce21ba46fb5ae1746e30f837d9f251da7a17bdc53c9ba53355c13d9f4a0"
+    ));
+    assert_eq!(old.len(), 52363);
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(old.as_bytes()))
+        ),
+        "82353ce21ba46fb5ae1746e30f837d9f251da7a17bdc53c9ba53355c13d9f4a0"
+    );
+    let current = include_str!("tests.rs");
+    assert_eq!(
+        definition(current, "fn prefitting_representation_candidate(").replacen(
+            "fn prefitting_representation_candidate(",
+            "fn representation_candidate(",
+            1
+        ),
+        definition(old, "fn representation_candidate(")
+    );
+    assert_eq!(
+        definition(
+            current,
+            "pub(in crate::cleanup_plan::replay) fn prefitting_selected_paid("
+        )
+        .replacen(
+            "pub(in crate::cleanup_plan::replay) fn prefitting_selected_paid(",
+            "pub(super) fn selected_paid(",
+            1
+        )
+        .replacen(
+            "prefitting_representation_candidate(",
+            "representation_candidate(",
+            1
+        ),
+        definition(old, "pub(super) fn selected_paid(")
+    );
+    assert_eq!(
+        definition(
+            current,
+            "pub(in crate::cleanup_plan::replay) fn prefitting_validate<'hir>("
+        )
+        .replacen(
+            "pub(in crate::cleanup_plan::replay) fn prefitting_validate<'hir>(",
+            "pub(super) fn validate_with_index_storage<'hir>(",
+            1
+        )
+        .replacen(
+            "let selected = prefitting_selected_paid(",
+            "let selected = selected_paid(",
+            1
+        )
+        .replacen(
+            "match prepaired_compare(",
+            "match compare_with_index_storage(",
+            1
+        ),
+        definition(old, "pub(super) fn validate_with_index_storage<'hir>(")
+    );
+    for declaration in [
+        "const FACTORED_PATH_THRESHOLD: usize = 256;",
+        "const ENUMERATION_CROSS_CHECK_THRESHOLD: usize = 4_096;",
+    ] {
+        assert_eq!(old.matches(declaration).count(), 1);
+        assert_eq!(
+            include_str!("../../factored.rs")
+                .matches(declaration)
+                .count(),
+            1
+        );
+    }
 }

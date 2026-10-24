@@ -1366,7 +1366,7 @@ del _load_fixed_codecs
         restored = restored.replacen(financed_scope, "        for source in [", 1);
         assert_eq!(restored.matches(SCOPE_REPLACEMENTS_AFTER).count(), 1);
         restored = restored.replacen(SCOPE_REPLACEMENTS_AFTER, SCOPE_REPLACEMENTS_BEFORE, 1);
-        assert_eq!(restored, BEFORE, "ENTIRE published pre-split parent");
+        let fitting_adapter = " let fitting_leaf_arm = \"        \\\"src/cleanup_plan/replay_tests/factored.rs\\\" => Some(include_str!(\\\"../../src/cleanup_plan/replay_tests/factored.rs\\\")),\\n\"; assert_eq!(child.matches(fitting_leaf_arm).count(), 1, \"exact new fitting-leaf lookup arm\"); let fitting_prior_child = child.replacen(fitting_leaf_arm, \"\", 1); let child = fitting_prior_child.as_str();"; assert_eq!(restored.matches(fitting_adapter).count(), 1); restored = restored.replacen(fitting_adapter, "", 1); assert_eq!(restored, BEFORE, "ENTIRE published pre-split parent");
         restored
     }
     fn python_before(parent: &str, child: &str) -> String {
@@ -1483,9 +1483,9 @@ runpy.run_path(sys.argv[1],run_name='codec_fixture')
         ] {
             assert!(std::panic::catch_unwind(|| parent_before(ROOT, &child)).is_err());
         }
-        for parent in [
+        let current_loader = LOADER.replacen(" length=10905\n", " length=16207\n", 1).replacen("a0f906f11a8c7205a2124e5cd9c1909fa1a53a12731a0775d3e360d844bab794", "36caf4ad467086e1b1be44917472751d359088fe01e3930f4042d69dacb537f8", 1); assert_eq!(PYTHON.matches(&current_loader).count(), 1); for parent in [
             format!("{PYTHON} "),
-            PYTHON.replacen(LOADER, "", 1),
+            PYTHON.replacen(&current_loader, "", 1),
             PYTHON.replacen("os.O_NOFOLLOW", "0", 1),
         ] {
             assert!(std::panic::catch_unwind(|| python_before(&parent, CODECS)).is_err());

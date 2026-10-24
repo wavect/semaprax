@@ -46,6 +46,10 @@ mod early_release;
 #[cfg(test)]
 mod instrumentation;
 mod paired;
+#[cfg(test)]
+pub(super) use paired::tests::{
+    authenticate_prefitting_dispatch, prefitting_selected_paid, prefitting_validate,
+};
 mod storage;
 #[cfg(test)]
 use canonical_before::Receiver as Canonicalizer;

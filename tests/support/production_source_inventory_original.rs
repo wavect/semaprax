@@ -13,13 +13,29 @@ fn current_source(path: &str, row: &serde_json::Value) -> String {
     let mut file = std::fs::File::open(Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap();
     let metadata = file.metadata().unwrap();
     assert!(metadata.is_file());
-    assert_eq!(metadata.len(), length as u64);
+    let interop_epoch = path == Path::new("crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs");
+    let read_length = if interop_epoch {
+        assert_eq!(length, 229209);
+        assert_eq!(row["sha256"], "d1edee35f9a7a97e9478264a44b7e77e4b3903bcbb87bb327602053f22afa6c8");
+        232648
+    } else { length };
+    assert_eq!(metadata.len(), read_length as u64);
     let mut bytes = Vec::new();
-    bytes.try_reserve_exact(length).unwrap();
-    bytes.resize(length, 0);
+    bytes.try_reserve_exact(read_length).unwrap();
+    bytes.resize(read_length, 0);
     file.read_exact(&mut bytes).unwrap();
     let mut tail = [0];
     assert_eq!(file.read(&mut tail).unwrap(), 0);
+    if interop_epoch {
+        let compiled = include_bytes!("../../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs");
+        assert_eq!(bytes.as_slice(), compiled.as_slice());
+        assert_eq!(format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(&bytes))), "208348c0444014d05129580b71eef50e9837425c6b9cb7286cf21bc90c9d1e3f");
+        let original = include_bytes!("../../e/d1edee35f9a7a97e9478264a44b7e77e4b3903bcbb87bb327602053f22afa6c8");
+        assert_eq!(original.len(), length);
+        assert_eq!(format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(original))), row["sha256"].as_str().unwrap());
+        bytes = original.to_vec();
+        assert_eq!(std::fs::read(Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap().as_slice(), compiled.as_slice());
+    }
     if path == Path::new("Cargo.toml") {
         // Acquire the complete physical/compiled dependency-update epoch first.
         assert_eq!(bytes.as_slice(), include_bytes!("../../Cargo.toml").as_slice());

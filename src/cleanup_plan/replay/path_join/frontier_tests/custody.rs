@@ -197,7 +197,7 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
             // search; the fixed old source targets below are not repinned.
             actual = crate::cleanup_plan::replay::selected_owner::ordinary::custody(&path, &actual);
         }
-        let continuation_before = if matches!(path, "src/cleanup_plan/replay/continuation_storage/tests.rs" | "src/cleanup_plan/replay/continuation_storage.rs")
+        let continuation_before = if matches!(path.as_str(), "src/cleanup_plan/replay/continuation_storage/tests.rs" | "src/cleanup_plan/replay/continuation_storage.rs")
         {
             let compiled = if path == "src/cleanup_plan/replay/continuation_storage.rs" { include_bytes!("../../continuation_storage.rs").as_slice() } else { include_bytes!("../../continuation_storage/tests.rs").as_slice() };
             assert_eq!(actual.as_slice(), compiled);

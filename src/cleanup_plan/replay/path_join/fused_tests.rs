@@ -6,7 +6,12 @@ use crate::bounded_output::{
 use crate::test_allocation_observer::measure;
 use sha2::{Digest, Sha256};
 use std::{cell::Cell, mem::size_of};
-thread_local! { static PROMOTIONS: Cell<usize> = const { Cell::new(0) }; }
+thread_local! {
+    static PROMOTIONS: Cell<usize> = const { Cell::new(0) };
+    static DROPS: Cell<usize> = const { Cell::new(0) };
+    static COMPARES: Cell<[(u64, u64); 128]> = const { Cell::new([(0, 0); 128]) };
+    static COMPARE_COUNT: Cell<usize> = const { Cell::new(0) };
+}
 pub(super) fn record_promotion() {
     PROMOTIONS.with(|n| n.set(n.get().checked_add(1).unwrap()));
 }
@@ -844,10 +849,68 @@ fn full_immediate_driver_and_helpers_are_independent_and_all_preceding_sources_r
         ))
         .is_err());
     }
+    let independent = include_str!("fused_before_frontier.rs");
+    let header = "\n// FUSED_COMPLETE_INDEPENDENT_STORAGE: namespace-only compile adaptation.\n#[path = \"storage\"]\n#[rustfmt::skip]\npub(super) mod storage {\n";
+    assert_eq!(independent.matches(header).count(), 1);
+    let (frontier, source) = independent.split_once(header).unwrap();
     assert_eq!(
-        include_bytes!("fused_before_frontier.rs"),
+        frontier.as_bytes(),
         include_bytes!("fused_before/frontier.rs.txt")
     );
+    let mut source = source.strip_suffix("}\n").unwrap().to_owned();
+    let child_header = "// FUSED_COMPLETE_EMPTY_RENEWALS\npub(in crate::cleanup_plan::replay::path_join) mod empty_renewals {\n";
+    let child_end = "}\n// END_FUSED_EMPTY_RENEWALS\n";
+    assert_eq!(source.matches(child_header).count(), 1);
+    assert_eq!(source.matches(child_end).count(), 1);
+    let start = source.find(child_header).unwrap();
+    let finish = source.find(child_end).unwrap() + child_end.len();
+    let mut child = source[start + child_header.len()..finish - child_end.len()].to_owned();
+    let tests_header = "#[cfg(test)]\npub(super) mod tests {\n";
+    let tests_end = "}\n// END_FUSED_EMPTY_RENEWALS_TESTS\n";
+    assert_eq!(child.matches(tests_header).count(), 1);
+    assert_eq!(child.matches(tests_end).count(), 1);
+    let lo = child.find(tests_header).unwrap();
+    let hi = child.find(tests_end).unwrap() + tests_end.len();
+    let tests = &child[lo + tests_header.len()..hi - tests_end.len()];
+    assert_eq!(
+        tests
+            .matches("pub(in crate::cleanup_plan::replay::path_join)")
+            .count(),
+        2
+    );
+    let tests = tests.replace(
+        "pub(in crate::cleanup_plan::replay::path_join)",
+        "pub(in crate::cleanup_plan::replay::path_join::storage)",
+    );
+    assert_eq!(
+        tests.as_bytes(),
+        include_bytes!("storage/empty_renewals/tests.rs")
+    );
+    assert_eq!(
+        digest(tests.as_bytes()),
+        "0642e437f6e107f81bf1c5ef3425d93075683417d7303754ce7494915b5d1dc0"
+    );
+    child.replace_range(lo..hi, "#[cfg(test)]\npub(super) mod tests;\n");
+    assert_eq!(
+        child.as_bytes(),
+        include_bytes!("storage/empty_renewals.rs")
+    );
+    source.replace_range(
+        start..finish,
+        "pub(in crate::cleanup_plan::replay::path_join) mod empty_renewals;\n",
+    );
+    for (adapted, original, count) in [("pub(in crate::cleanup_plan::replay::path_join) mod atomic_controls;", "pub(super) mod atomic_controls;", 1),
+        ("pub(in crate::cleanup_plan::replay::path_join) mod empty_renewals;", "pub(super) mod empty_renewals;", 1),
+        ("pub(in crate::cleanup_plan::replay::path_join) fn reserve_ownership_clone(", "pub(super) fn reserve_ownership_clone(", 1),
+        ("pub(in crate::cleanup_plan::replay::path_join) fn reserve_control_clone(", "pub(super) fn reserve_control_clone(", 1),
+        ("pub(in crate::cleanup_plan::replay::path_join) fn reserve_variant_identity(", "pub(super) fn reserve_variant_identity(", 1),
+        ("pub(in crate::cleanup_plan::replay::path_join) fn storage_regions(", "pub(super) fn storage_regions(", 1),
+        ("            crate::cleanup_plan::renewal_history::RenewalHistory,", "            super::super::super::super::renewal_history::RenewalHistory,", 1),
+        ("        let history = crate::cleanup_plan::renewal_history::RenewalHistory::new(", "        let history = super::super::super::super::renewal_history::RenewalHistory::new(", 1)] {
+        assert_eq!(source.matches(adapted).count(), count);
+        source = source.replace(adapted, original);
+    }
+    assert_eq!(source.as_bytes(), include_bytes!("storage.rs"));
     let old = include_str!("fused_before.rs");
     assert!(old.contains("use super::fused_before_frontier as frontier;"));
     assert!(!old.contains("mod frontier;"));
@@ -881,5 +944,5 @@ fn full_immediate_driver_and_helpers_are_independent_and_all_preceding_sources_r
         assert_eq!(digest(&raw), row["sha256"].as_str().unwrap());
     }
 }
-const INVERSE_SHA: &str = "28f93eaa36346c448364693789c91e0feb9cc8e70196b835fb765c0a2a78b2cf";
+const INVERSE_SHA: &str = "893cb13d032a61903df9646967e4bc042128e22989e89be7e130a7acdbc64f12";
 const HELPERS_SHA: &str = "34904cb227034c500763ffde1e1eb4534254d724778add8dc82d609ec5973d25";

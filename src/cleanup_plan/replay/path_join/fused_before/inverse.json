@@ -281,12 +281,17 @@
   },
   {
     "path": "src/cleanup_plan/replay/path_join/fused_before.rs",
-    "length": 52598,
-    "sha256": "e2e7a160aa00f2c672ea02142168f99b3d7fdb5a6a91b1f9cdf736c93b3f5006",
+    "length": 52605,
+    "sha256": "96eab2b154a2a3960085161335f832ff516143895b886fa4f16894bf773b92f2",
     "before": "src/cleanup_plan/replay/path_join/fused_before/path_join.rs.txt",
     "before_length": 54380,
     "before_sha256": "c87e4c4f061f25fedde76f64119ef1a0ece0961f8e411ceff5961d41cc4ab7e2",
     "edits": [
+      [
+        256,
+        "use super::fused_before_frontier::storage;\n",
+        "#[path = \"storage.rs\"]\nmod storage;\n"
+      ],
       [
         52598,
         "",
@@ -317,6 +322,46 @@
         "//! Complete immediate-c189 ordinary driver; its frontier is independently compiled.\nuse super::fused_before_frontier as frontier;\n",
         "//! Topological cleanup-CFG replay and ownership-only join normalization.\n\n"
       ]
-    ]
+    ],
+    "exact_prior_compile_driver_record": {
+      "path": "src/cleanup_plan/replay/path_join/fused_before.rs",
+      "length": 52598,
+      "sha256": "e2e7a160aa00f2c672ea02142168f99b3d7fdb5a6a91b1f9cdf736c93b3f5006",
+      "before": "src/cleanup_plan/replay/path_join/fused_before/path_join.rs.txt",
+      "before_length": 54380,
+      "before_sha256": "c87e4c4f061f25fedde76f64119ef1a0ece0961f8e411ceff5961d41cc4ab7e2",
+      "edits": [
+        [
+          52598,
+          "",
+          "\n#[cfg(test)]\nmod before_singleton;\n#[cfg(test)]\nmod singleton_tests;\n\n#[cfg(test)]\n#[path = \"path_join/main_single_groups/mod.rs\"]\nmod main_single_groups;\n\n#[cfg(test)]\nmod before_state_move;\n#[cfg(test)]\nmod state_move_tests;\n\n#[cfg(test)]\nmod before_final_edge;\n#[cfg(test)]\nmod final_edge_tests;\n\n#[cfg(test)]\n#[allow(dead_code, reason = \"complete immediate old path boundary receiver\")]\npub(in crate::cleanup_plan::replay) mod before_path_boundary;\n\npub(in crate::cleanup_plan::replay) mod selected;\n\n#[cfg(test)]\n#[allow(\n    dead_code,\n    reason = \"complete immediate old singleton receiving driver and helpers\"\n)]\nmod direct_one_before;\n#[cfg(test)]\nmod direct_one_tests;\n\n#[cfg(test)]\n#[allow(dead_code, reason = \"complete independently compiled immediate-a6 frontier owner\")]\nmod compact_failure_before;\n#[cfg(test)]\nmod compact_failure_tests;\n\n#[cfg(test)]\n#[allow(dead_code, reason = \"complete independently compiled immediate-compact frontier owner\")]\nmod contains_before;\n#[cfg(test)]\nmod contains_tests;\n"
+        ],
+        [
+          44667,
+          "",
+          "#[cfg(test)]\nmod tests;\n\n"
+        ],
+        [
+          256,
+          "#[path = \"storage.rs\"]\nmod storage;\n",
+          "mod frontier;\n#[cfg(test)]\nmod frontier_tests;\n#[cfg(test)]\n#[allow(\n    dead_code,\n    reason = \"complete independently compiled pre-inline receiving producers\"\n)]\nmod held_edge_before;\n#[cfg(test)]\nmod held_edge_tests;\n#[cfg(test)]\nmod receiver_tests;\n#[cfg(test)]\n#[allow(\n    dead_code,\n    reason = \"complete independently executable immediate-92d insertion predecessors\"\n)]\nmod shared_insertions_before;\n#[cfg(test)]\nmod shared_insertions_tests;\npub(super) mod storage;\n"
+        ],
+        [
+          212,
+          "#[path = \"branch_join.rs\"]\n",
+          "mod boxed_states;\n"
+        ],
+        [
+          170,
+          "#[path = \"boxed_flow.rs\"]\n",
+          "#[cfg(test)]\n#[allow(dead_code, reason = \"complete original path-state replay receiver\")]\nmod before;\n#[cfg(test)]\n#[allow(\n    dead_code,\n    reason = \"complete immediate-old ordinary frontier and direct dependencies\"\n)]\nmod before_frontier;\n#[cfg(test)]\n#[allow(dead_code, reason = \"complete MAIN019d callback receiver\")]\n#[path = \"path_join/before_receiving.rs\"]\nmod before_receiving;\n"
+        ],
+        [
+          0,
+          "//! Complete immediate-c189 ordinary driver; its frontier is independently compiled.\nuse super::fused_before_frontier as frontier;\n",
+          "//! Topological cleanup-CFG replay and ownership-only join normalization.\n\n"
+        ]
+      ]
+    }
   }
 ]

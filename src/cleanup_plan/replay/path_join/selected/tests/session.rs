@@ -3,13 +3,18 @@ use crate::cleanup_plan::replay::selected_entry::{Acquired, ReportForm};
 const FORM: ReportForm = ReportForm::new("SPX-T781", "selected path paid report control");
 #[test]
 fn live_initialize_paid_session_retains_original_report_source_and_first_receipt() {
-    for text in [SCALAR, OWNED_LEXICAL] {
+    for text in [SCALAR, OWNED_LEXICAL, OWNED_LEXICAL_LOOP] {
         let mut program = program(text);
         let function = program
             .functions
             .iter_mut()
             .find(|f| f.id.as_str() == "family.bytes")
             .unwrap();
+        assert_eq!(
+            crate::hir::lexical_exit::requires(function).unwrap(),
+            text == OWNED_LEXICAL_LOOP,
+            "the real loop escape determines the selected route"
+        );
         let block = function
             .cleanup_plan
             .blocks
@@ -35,7 +40,7 @@ fn live_initialize_paid_session_retains_original_report_source_and_first_receipt
             .find(|f| f.id.as_str() == "family.bytes")
             .unwrap();
         let old = owner(&source, function, true).unwrap_err();
-        if text == SCALAR {
+        if text != OWNED_LEXICAL_LOOP {
             assert_eq!(
                 old,
                 replay_error(
@@ -59,7 +64,7 @@ fn live_initialize_paid_session_retains_original_report_source_and_first_receipt
             let Error::Structural(receipt) = &error else {
                 panic!("path semantic must remain typed: {error:?}")
             };
-            if text == SCALAR {
+            if text != OWNED_LEXICAL_LOOP {
                 assert!(
                     receipt.borrowed_control_receipt().is_none(),
                     "original scalar refusal precedes owned path state"
@@ -120,7 +125,7 @@ fn live_initialize_paid_session_retains_original_report_source_and_first_receipt
             assert_eq!(ledger.reserve(1).unwrap_err(), first);
             assert_eq!(ledger.charged(), charged);
             // Full detailed legacy observation is separately exercised by owner().
-            if text == OWNED_LEXICAL {
+            if text == OWNED_LEXICAL_LOOP {
                 assert!(old
                     .message
                     .contains("initialize transition initializes an empty or live cleanup place"));

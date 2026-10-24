@@ -6,8 +6,7 @@ use std::borrow::Borrow;
 mod boxed_flow;
 #[path = "branch_join.rs"]
 mod branch_join;
-#[path = "storage.rs"]
-mod storage;
+use super::fused_before_frontier::storage;
 
 #[allow(clippy::too_many_arguments)] // Keep the independently held phase index explicit.
 pub(super) fn validate_path_states<E: semantic_refusal::Error>(

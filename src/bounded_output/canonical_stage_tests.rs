@@ -550,10 +550,10 @@ pub(crate) fn census_source_before(path: &str, supplied: &[u8]) -> Vec<u8> {
             | "src/cleanup_plan/replay/path_join/frontier_tests.rs"
     ) {
         let data = include_bytes!("../cleanup_plan/replay/path_join/fused_before/inverse.json");
-        assert_eq!(data.len(), 32022);
+        assert_eq!(data.len(), 35334);
         assert_eq!(
             digest(data),
-            "28f93eaa36346c448364693789c91e0feb9cc8e70196b835fb765c0a2a78b2cf"
+            "893cb13d032a61903df9646967e4bc042128e22989e89be7e130a7acdbc64f12"
         );
         assert_eq!(
             std::fs::read(root.join("src/cleanup_plan/replay/path_join/fused_before/inverse.json"))

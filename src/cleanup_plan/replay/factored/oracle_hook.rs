@@ -90,7 +90,7 @@ impl Drop for Run {
 /// Runs one fresh receiver under its own invocation authority and balanced
 /// start/complete pair, then makes any account, work or physical refusal
 /// visible before the verdict is read.
-fn receiver<T>(
+fn receiver<T: std::fmt::Debug>(
     program: &dyn crate::cleanup::ReplayContext,
     function: &ResolvedFunction,
     lease: OracleLease,
@@ -115,9 +115,10 @@ fn receiver<T>(
     run.finish(function);
     assert!(
         !lease.refused(),
-        "oracle account refused the {name} comparison for `{}` (physical: {:?})",
+        "oracle account refused the {name} comparison for `{}` (physical: {:?}); complete verdict={verdict:?}; reference={:?}",
         function.id,
-        lease.physical_failure()
+        lease.physical_failure(),
+        lease.receipt()
     );
     verdict
 }

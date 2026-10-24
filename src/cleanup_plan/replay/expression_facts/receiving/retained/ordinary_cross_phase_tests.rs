@@ -410,11 +410,17 @@ fn block_run_driver(
 ) -> (Result<(), Diagnostic>, bool, usize, usize) {
     // The comparison hook is an independent test reference, not part of the
     // ordinary builder invoice. Both real arms retain the original byte limit.
-    // This finite 128Mi-unit private reference allowance is not an exhaustive
-    // derived bound; the receipt must fit and every receiver keeps its old MAX.
+    // The single checked function invokes the two original receivers.
+    // Preserve declared physical funding and derive work from both unchanged
+    // work domains for each receiver.
     use crate::cleanup_plan::replay::allocation::{opt_in, OracleScope};
-    let reference = OracleScope::open_with_work(1 << 28, 1 << 27)
+    use crate::cleanup_plan::replay::workspace_oracle::{
+        reference_work_bound, ReferenceReceiptOnUnwind,
+    };
+    const RECEIVERS: usize = 2;
+    let reference = OracleScope::open_with_work(1 << 28, reference_work_bound(RECEIVERS))
         .expect("finite independent ordinary replay reference account");
+    let trace = ReferenceReceiptOnUnwind::new(&reference, RECEIVERS);
     let selected = opt_in(reference.lease()).expect("one ordinary replay reference lease");
     let _ = crate::cleanup_plan::replay::ordinary_receiving::take_census();
     let ((result, work), refused, paid) = crate::bounded_output::with_limit_usage(cap, || {
@@ -458,7 +464,10 @@ fn block_run_driver(
         (result, work - budget.remaining)
     });
     drop(selected);
+    drop(trace);
     let reference = reference.finish();
+    assert!(reference.started <= RECEIVERS, "{reference:?}");
+    eprintln!("block reference max_receivers={RECEIVERS} complete_receipt={reference:?}");
     assert_eq!(reference.started, reference.completed);
     assert!(
         reference.first_refusal.is_none()
@@ -767,8 +776,14 @@ fn callback_run(
     // and mode1's nested real call. Do not create a nested OracleScope inside
     // the callback; every receiver retains its original individual work MAX.
     use crate::cleanup_plan::replay::allocation::{opt_in, OracleScope};
-    let reference = OracleScope::open_with_work(1 << 28, 1 << 27)
+    use crate::cleanup_plan::replay::workspace_oracle::{
+        reference_work_bound, ReferenceReceiptOnUnwind,
+    };
+    // The fired Cell permits at most one nested validation, only in mode 1.
+    let receivers = if mode == 1 { 4 } else { 2 };
+    let reference = OracleScope::open_with_work(1 << 28, reference_work_bound(receivers))
         .expect("finite independent callback replay reference account");
+    let trace = ReferenceReceiptOnUnwind::new(&reference, receivers);
     let selected = opt_in(reference.lease()).expect("one callback replay reference lease");
     let _ = crate::cleanup_plan::replay::ordinary_receiving::take_census();
     let result = crate::bounded_output::with_limit_usage(CAP, || {
@@ -814,7 +829,10 @@ fn callback_run(
         (result, context.fired_at.get())
     });
     drop(selected);
+    drop(trace);
     let reference = reference.finish();
+    assert!(reference.started <= receivers, "{reference:?}");
+    eprintln!("callback reference max_receivers={receivers} complete_receipt={reference:?}");
     assert_eq!(reference.started, reference.completed);
     assert!(
         reference.first_refusal.is_none()

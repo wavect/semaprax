@@ -24,14 +24,31 @@ fn ordinary_driver(
     before_release: bool,
     bytes: usize,
 ) -> (Result<(), Diagnostic>, bool, usize) {
+    ordinary_driver_reference(program, old, before_release, bytes).0
+}
+fn ordinary_driver_reference(
+    program: &ResolvedProgram,
+    old: bool,
+    before_release: bool,
+    bytes: usize,
+) -> (
+    (Result<(), Diagnostic>, bool, usize),
+    crate::cleanup_plan::replay::allocation::OracleReceipt,
+) {
     let function = program.functions.iter().find(|f| f.name == "main").unwrap();
     // The comparison hook is an independent test reference, not part of the
     // ordinary builder invoice. Both real arms retain the original byte limit.
-    // This finite 128Mi-unit private reference allowance is not an exhaustive
-    // derived bound; the receipt must fit and every receiver keeps its old MAX.
+    // One main-function comparison invokes the two original receivers.
+    // Physical funding stays at its previous finite declaration; work is the
+    // checked product of both original work domains and the two receivers.
     use crate::cleanup_plan::replay::allocation::{opt_in, OracleScope};
-    let reference = OracleScope::open_with_work(1 << 28, 1 << 27)
+    use crate::cleanup_plan::replay::workspace_oracle::{
+        reference_work_bound, ReferenceReceiptOnUnwind,
+    };
+    const RECEIVERS: usize = 2;
+    let reference = OracleScope::open_with_work(1 << 28, reference_work_bound(RECEIVERS))
         .expect("finite independent ordinary replay reference account");
+    let trace = ReferenceReceiptOnUnwind::new(&reference, RECEIVERS);
     let selected = opt_in(reference.lease()).expect("one ordinary replay reference lease");
     let result = crate::bounded_output::with_limit_usage(bytes, || {
         let mut budget = ReplayBudget::new();
@@ -59,7 +76,10 @@ fn ordinary_driver(
         }
     });
     drop(selected);
+    drop(trace);
     let reference = reference.finish();
+    assert!(reference.started <= RECEIVERS, "{reference:?}");
+    eprintln!("ordinary reference max_receivers={RECEIVERS} complete_receipt={reference:?}");
     assert_eq!(reference.started, reference.completed);
     assert!(
         reference.first_refusal.is_none()
@@ -67,7 +87,7 @@ fn ordinary_driver(
             && reference.physical_failure.is_none(),
         "{reference:?}"
     );
-    result
+    (result, reference)
 }
 // Complete immediate old helper: intentionally lacks the production preflight.
 fn ordinary_without_skeleton_preflight(
@@ -78,11 +98,17 @@ fn ordinary_without_skeleton_preflight(
     let function = program.functions.iter().find(|f| f.name == "main").unwrap();
     // The comparison hook is an independent test reference, not part of the
     // ordinary builder invoice. Both real arms retain the original byte limit.
-    // This finite 128Mi-unit private reference allowance is not an exhaustive
-    // derived bound; the receipt must fit and every receiver keeps its old MAX.
+    // One main-function comparison invokes the two original receivers.
+    // Physical funding stays at its previous finite declaration; work is the
+    // checked product of both original work domains and the two receivers.
     use crate::cleanup_plan::replay::allocation::{opt_in, OracleScope};
-    let reference = OracleScope::open_with_work(1 << 28, 1 << 27)
+    use crate::cleanup_plan::replay::workspace_oracle::{
+        reference_work_bound, ReferenceReceiptOnUnwind,
+    };
+    const RECEIVERS: usize = 2;
+    let reference = OracleScope::open_with_work(1 << 28, reference_work_bound(RECEIVERS))
         .expect("finite independent ordinary replay reference account");
+    let trace = ReferenceReceiptOnUnwind::new(&reference, RECEIVERS);
     let selected = opt_in(reference.lease()).expect("one ordinary replay reference lease");
     let result = crate::bounded_output::with_limit_usage(bytes, || {
         let mut budget = ReplayBudget::new();
@@ -99,7 +125,10 @@ fn ordinary_without_skeleton_preflight(
         }
     });
     drop(selected);
+    drop(trace);
     let reference = reference.finish();
+    assert!(reference.started <= RECEIVERS, "{reference:?}");
+    eprintln!("ordinary reference max_receivers={RECEIVERS} complete_receipt={reference:?}");
     assert_eq!(reference.started, reference.completed);
     assert!(
         reference.first_refusal.is_none()

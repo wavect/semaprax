@@ -3,11 +3,12 @@ use super::*;
 fn complete_scalar_and_lexical_success_keep_ordinary_and_immediate_old_owners() {
     fixture_scope::source_custody();
     fixture_scope::original_scope(SCALAR, "family.bytes");
+    fixture_scope::original_scope(OWNED_LEXICAL, "family.bytes");
     for (source, ids) in [
         (LEXICAL, &["probe", "main"][..]),
         (SCALAR, &["family.one", "family.main"][..]),
         (COPY_SCALAR, &["family.one", "family.main"][..]),
-        (OWNED_LEXICAL, &["family.bytes"][..]),
+        (OWNED_LEXICAL_LOOP, &["family.bytes"][..]),
     ] {
         let program = program(source);
         crate::cleanup_plan::replay::validate_program(&program).unwrap();
@@ -20,7 +21,7 @@ fn complete_scalar_and_lexical_success_keep_ordinary_and_immediate_old_owners() 
             if source == COPY_SCALAR {
                 assert!(!crate::hir::lexical_exit::requires(f).unwrap());
                 assert!(f.cleanup_plan.slots.is_empty());
-            } else if source == OWNED_LEXICAL {
+            } else if source == OWNED_LEXICAL_LOOP {
                 assert!(crate::hir::lexical_exit::requires(f).unwrap());
                 assert!(!f.cleanup_plan.slots.is_empty());
             }
@@ -60,10 +61,9 @@ fn actual_held_unknown_entry_keeps_complete_old_diagnostic_and_prior_profile_ord
             let old = ordinary_cfg_before::bounds(function)
                 .err()
                 .expect("original CFG must refuse unknown entry");
-            assert!(
-                old.message
-                    .contains("cleanup replay preflight references an unknown id")
-            );
+            assert!(old
+                .message
+                .contains("cleanup replay preflight references an unknown id"));
             assert_eq!(ordinary, old, "ordinary CFG first six fields");
             assert_ne!(
                 ordinary, selected,
@@ -126,7 +126,7 @@ fn complete_lexical_hostile_structure_keeps_all_six_fields_and_full_drop() {
 
 #[test]
 fn whole_scalar_finalizer_hostiles_keep_first_six_fields_and_complete_drop() {
-    for source in [SCALAR, OWNED_LEXICAL] {
+    for source in [SCALAR, OWNED_LEXICAL, OWNED_LEXICAL_LOOP] {
         for case in 0..4 {
             let mut program = program(source);
             let function = program
@@ -158,13 +158,18 @@ fn whole_scalar_finalizer_hostiles_keep_first_six_fields_and_complete_drop() {
 }
 #[test]
 fn held_duplicate_initialize_is_closed_by_selected_path_receipt() {
-    for text in [SCALAR, OWNED_LEXICAL] {
+    for text in [SCALAR, OWNED_LEXICAL, OWNED_LEXICAL_LOOP] {
         let mut program = program(text);
         let function = program
             .functions
             .iter_mut()
             .find(|f| f.id.as_str() == "family.bytes")
             .unwrap();
+        assert_eq!(
+            crate::hir::lexical_exit::requires(function).unwrap(),
+            text == OWNED_LEXICAL_LOOP,
+            "the real loop escape determines the selected route"
+        );
         let block = function
             .cleanup_plan
             .blocks
@@ -193,7 +198,7 @@ fn held_duplicate_initialize_is_closed_by_selected_path_receipt() {
             .find(|f| f.id.as_str() == "family.bytes")
             .unwrap();
         let error = owner(&source, function, false).unwrap_err();
-        if text == SCALAR {
+        if text != OWNED_LEXICAL_LOOP {
             assert_eq!(
                 error,
                 replay_error(

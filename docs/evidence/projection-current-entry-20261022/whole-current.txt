@@ -8326,6 +8326,30 @@ use crate::bounded_output::classifier_string::ClassifierLedger;
 use crate::cleanup_plan::replay::physical_budget::ByteFailure;
 use std::{collections::BTreeSet, marker::PhantomData, mem::size_of};
 
+// Lexical renewal has the original payment and one-shot failure frontier.
+// No helper call, result packet, or new argument transport is introduced.
+macro_rules! admit_entry {
+    ($owner:ident, $function:ident, $budget:ident, $bytes:expr, $phase:literal) => {
+        if let Err(error) = $budget.reserve_compact_bytes($function, $bytes, $phase) {
+            $owner.refusal = Some(error);
+            $owner.failed = true;
+            return;
+        }
+        #[cfg(test)]
+        if $budget.pays_allocations() {
+            contains_tests::record_entry_bank();
+        }
+    };
+}
+macro_rules! insertion_event {
+    ($event:ident) => {
+        #[cfg(feature = "unstable-workflow-profiling")]
+        crate::bounded_output::exclusive_debits::path_census::event(
+            crate::bounded_output::exclusive_debits::path_census::Event::$event,
+        );
+    };
+}
+
 pub(super) struct Insertions<T> {
     pub(super) failed: bool,
     refusal: Option<ByteFailure>,
@@ -8380,9 +8404,18 @@ impl<T: Ord> Insertions<T> {
             + size_of::<&mut Option<ByteFailure>>()
             + size_of::<Result<(), ByteFailure>>()
             + ClassifierLedger::current_receiving_controls()
-            + 6 * size_of::<Incoming<T>>()
-            + 6 * size_of::<Box<T>>()
-            + 2 * size_of::<BTreeSet<Box<T>>>()
+            // Empty/Many aggregate publication and the surviving insertion
+            // value transports. The publish formal disappears; owned Box creation
+            // now binds a lexical local, so only one Box carrier is removed.
+            // The One promotion's take/tree carriers are paid in its arm.
+            + 2 * size_of::<Incoming<T>>()
+            + 5 * size_of::<Box<T>>()
+            // The fused mutable variant binds One/Many receivers. Their shared
+            // cmp/contains reborrows are distinct from the retained old loans.
+            + size_of::<&mut Box<T>>()
+            + size_of::<&mut BTreeSet<Box<T>>>()
+            + 2 * size_of::<&Box<T>>()
+            + 2 * size_of::<&BTreeSet<Box<T>>>()
             + 3 * size_of::<usize>()
             // contains result + named duplicate, each branch predicate and
             // match selector. The renewed bank precedes all warm hits too.
@@ -8393,6 +8426,15 @@ impl<T: Ord> Insertions<T> {
             // contains callee's independent formal &Incoming no longer exists.
             + size_of::<&Incoming<T>>()
             + 2 * size_of::<&T>();
+    // Paid only after a distinct One value has been compared and before
+    // mem::take/default, its moved Incoming and the new/moved BTreeSet exist.
+    // No old NODE/BOXED payment or unused common entry is credited/refunded.
+    const PROMOTION_CONTROLS: usize =
+        4 * size_of::<Incoming<T>>() + 2 * size_of::<BTreeSet<Box<T>>>();
+    #[cfg(test)]
+    pub(super) fn promotion_controls() -> usize {
+        Self::PROMOTION_CONTROLS
+    }
     pub(super) fn entry_controls() -> usize {
         Self::ENTRY_CONTROLS
     }
@@ -8411,7 +8453,9 @@ impl<T: Ord> Insertions<T> {
     const BOXED: usize = size_of::<T>().saturating_add(2 * size_of::<Box<T>>());
     const OWNED_EMPTY: usize = Self::ENTRY_CONTROLS.saturating_add(Self::BOXED);
     const TWO_NODES: usize = Self::NODE.saturating_mul(2);
-    const HELD_ONE: usize = Self::TWO_NODES.saturating_add(Self::ENTRY_CONTROLS);
+    const HELD_ONE: usize = Self::TWO_NODES
+        .saturating_add(Self::ENTRY_CONTROLS)
+        .saturating_add(Self::PROMOTION_CONTROLS);
     const OWNED_ONE: usize = Self::HELD_ONE.saturating_add(Self::BOXED);
     const HELD_MANY: usize = Self::NODE.saturating_add(Self::ENTRY_CONTROLS);
     const OWNED_MANY: usize = Self::HELD_MANY.saturating_add(Self::BOXED);
@@ -8482,45 +8526,82 @@ impl<T: Ord> Insertions<T> {
         if self.failed {
             return;
         }
-        let duplicate = match &*target {
-            Incoming::Empty => false,
-            Incoming::One(old) => old.as_ref().cmp(&value) == std::cmp::Ordering::Equal,
-            Incoming::Many(v) => v.contains(&value),
-        };
-        let bytes = if duplicate {
-            Self::ENTRY_CONTROLS
-        } else {
-            match target {
-                Incoming::Empty => Self::OWNED_EMPTY,
-                Incoming::One(_) => Self::OWNED_ONE,
-                Incoming::Many(_) => Self::OWNED_MANY,
+        match target {
+            Incoming::Empty => {
+                admit_entry!(
+                    self,
+                    function,
+                    budget,
+                    Self::OWNED_EMPTY,
+                    "compact incoming owned state and publication renewal"
+                );
+                insertion_event!(OwnedBox);
+                let value = Box::new(value);
+                insertion_event!(Empty);
+                *target = Incoming::One(value);
             }
-        };
-        if let Err(error) = budget.reserve_compact_bytes(
-            function,
-            bytes,
-            "compact incoming owned state and publication renewal",
-        ) {
-            self.refusal = Some(error);
-            self.failed = true;
-            return;
-        }
-        #[cfg(test)]
-        if budget.pays_allocations() {
-            contains_tests::record_entry_bank();
-        }
-        #[cfg(feature = "unstable-workflow-profiling")]
-        if duplicate {
-            crate::bounded_output::exclusive_debits::path_census::event(
-                crate::bounded_output::exclusive_debits::path_census::Event::Duplicate,
-            );
-        }
-        if !duplicate {
-            #[cfg(feature = "unstable-workflow-profiling")]
-            crate::bounded_output::exclusive_debits::path_census::event(
-                crate::bounded_output::exclusive_debits::path_census::Event::OwnedBox,
-            );
-            target.publish(Box::new(value));
+            Incoming::One(old) => {
+                if old.as_ref().cmp(&value) == std::cmp::Ordering::Equal {
+                    admit_entry!(
+                        self,
+                        function,
+                        budget,
+                        Self::ENTRY_CONTROLS,
+                        "compact incoming owned state and publication renewal"
+                    );
+                    insertion_event!(Duplicate);
+                } else {
+                    admit_entry!(
+                        self,
+                        function,
+                        budget,
+                        Self::OWNED_ONE,
+                        "compact incoming owned state and publication renewal"
+                    );
+                    insertion_event!(OwnedBox);
+                    // Original owned argument construction preceded entering
+                    // publish(), hence also preceded taking the old One owner.
+                    let value = Box::new(value);
+                    insertion_event!(One);
+                    insertion_event!(Promotion);
+                    #[cfg(test)]
+                    fused_tests::record_promotion();
+                    let Incoming::One(old) = std::mem::take(target) else {
+                        unreachable!()
+                    };
+                    let mut tree = BTreeSet::new();
+                    insertion_event!(TreeInsert);
+                    tree.insert(old);
+                    insertion_event!(TreeInsert);
+                    tree.insert(value);
+                    *target = Incoming::Many(tree);
+                }
+            }
+            Incoming::Many(tree) => {
+                if tree.contains(&value) {
+                    admit_entry!(
+                        self,
+                        function,
+                        budget,
+                        Self::ENTRY_CONTROLS,
+                        "compact incoming owned state and publication renewal"
+                    );
+                    insertion_event!(Duplicate);
+                } else {
+                    admit_entry!(
+                        self,
+                        function,
+                        budget,
+                        Self::OWNED_MANY,
+                        "compact incoming owned state and publication renewal"
+                    );
+                    insertion_event!(OwnedBox);
+                    let value = Box::new(value);
+                    insertion_event!(Many);
+                    insertion_event!(TreeInsert);
+                    tree.insert(value);
+                }
+            }
         }
         self.entry = true;
     }
@@ -8535,45 +8616,77 @@ impl<T: Ord> Insertions<T> {
         if self.failed {
             return;
         }
-        let duplicate = match &*target {
-            Incoming::Empty => false,
-            Incoming::One(old) => old.as_ref().cmp(value.as_ref()) == std::cmp::Ordering::Equal,
-            Incoming::Many(v) => v.contains(value.as_ref()),
-        };
-        let bytes = if duplicate {
-            Self::ENTRY_CONTROLS
-        } else {
-            match target {
-                Incoming::Empty => Self::ENTRY_CONTROLS,
-                Incoming::One(_) => Self::HELD_ONE,
-                Incoming::Many(_) => Self::HELD_MANY,
+        match target {
+            Incoming::Empty => {
+                admit_entry!(
+                    self,
+                    function,
+                    budget,
+                    Self::ENTRY_CONTROLS,
+                    "compact incoming held state and publication renewal"
+                );
+                insertion_event!(HeldTransfer);
+                insertion_event!(Empty);
+                *target = Incoming::One(value);
             }
-        };
-        if let Err(error) = budget.reserve_compact_bytes(
-            function,
-            bytes,
-            "compact incoming held state and publication renewal",
-        ) {
-            self.refusal = Some(error);
-            self.failed = true;
-            return;
-        }
-        #[cfg(test)]
-        if budget.pays_allocations() {
-            contains_tests::record_entry_bank();
-        }
-        #[cfg(feature = "unstable-workflow-profiling")]
-        if duplicate {
-            crate::bounded_output::exclusive_debits::path_census::event(
-                crate::bounded_output::exclusive_debits::path_census::Event::Duplicate,
-            );
-        }
-        if !duplicate {
-            #[cfg(feature = "unstable-workflow-profiling")]
-            crate::bounded_output::exclusive_debits::path_census::event(
-                crate::bounded_output::exclusive_debits::path_census::Event::HeldTransfer,
-            );
-            target.publish(value);
+            Incoming::One(old) => {
+                if old.as_ref().cmp(value.as_ref()) == std::cmp::Ordering::Equal {
+                    admit_entry!(
+                        self,
+                        function,
+                        budget,
+                        Self::ENTRY_CONTROLS,
+                        "compact incoming held state and publication renewal"
+                    );
+                    insertion_event!(Duplicate);
+                } else {
+                    admit_entry!(
+                        self,
+                        function,
+                        budget,
+                        Self::HELD_ONE,
+                        "compact incoming held state and publication renewal"
+                    );
+                    insertion_event!(HeldTransfer);
+                    insertion_event!(One);
+                    insertion_event!(Promotion);
+                    #[cfg(test)]
+                    fused_tests::record_promotion();
+                    let Incoming::One(old) = std::mem::take(target) else {
+                        unreachable!()
+                    };
+                    let mut tree = BTreeSet::new();
+                    insertion_event!(TreeInsert);
+                    tree.insert(old);
+                    insertion_event!(TreeInsert);
+                    tree.insert(value);
+                    *target = Incoming::Many(tree);
+                }
+            }
+            Incoming::Many(tree) => {
+                if tree.contains(value.as_ref()) {
+                    admit_entry!(
+                        self,
+                        function,
+                        budget,
+                        Self::ENTRY_CONTROLS,
+                        "compact incoming held state and publication renewal"
+                    );
+                    insertion_event!(Duplicate);
+                } else {
+                    admit_entry!(
+                        self,
+                        function,
+                        budget,
+                        Self::HELD_MANY,
+                        "compact incoming held state and publication renewal"
+                    );
+                    insertion_event!(HeldTransfer);
+                    insertion_event!(Many);
+                    insertion_event!(TreeInsert);
+                    tree.insert(value);
+                }
+            }
         }
         self.entry = true;
     }
@@ -8761,56 +8874,6 @@ impl<T: Ord> Incoming<T> {
     pub(super) fn is_empty(&self) -> bool {
         self.len() == 0
     }
-    // Called only after all box, node/split, move, empty replacement and Result
-    // roles have been acquired. On a refused payment no target is taken.
-    fn publish(&mut self, value: Box<T>) {
-        match self {
-            Self::Empty => {
-                #[cfg(feature = "unstable-workflow-profiling")]
-                crate::bounded_output::exclusive_debits::path_census::event(
-                    crate::bounded_output::exclusive_debits::path_census::Event::Empty,
-                );
-                *self = Self::One(value);
-            }
-            Self::One(_) => {
-                #[cfg(feature = "unstable-workflow-profiling")]
-                {
-                    crate::bounded_output::exclusive_debits::path_census::event(
-                        crate::bounded_output::exclusive_debits::path_census::Event::One,
-                    );
-                    crate::bounded_output::exclusive_debits::path_census::event(
-                        crate::bounded_output::exclusive_debits::path_census::Event::Promotion,
-                    );
-                }
-                let Self::One(old) = std::mem::take(self) else {
-                    unreachable!()
-                };
-                let mut tree = BTreeSet::new();
-                #[cfg(feature = "unstable-workflow-profiling")]
-                crate::bounded_output::exclusive_debits::path_census::event(
-                    crate::bounded_output::exclusive_debits::path_census::Event::TreeInsert,
-                );
-                tree.insert(old);
-                #[cfg(feature = "unstable-workflow-profiling")]
-                crate::bounded_output::exclusive_debits::path_census::event(
-                    crate::bounded_output::exclusive_debits::path_census::Event::TreeInsert,
-                );
-                tree.insert(value);
-                *self = Self::Many(tree);
-            }
-            Self::Many(tree) => {
-                #[cfg(feature = "unstable-workflow-profiling")]
-                crate::bounded_output::exclusive_debits::path_census::event(
-                    crate::bounded_output::exclusive_debits::path_census::Event::Many,
-                );
-                #[cfg(feature = "unstable-workflow-profiling")]
-                crate::bounded_output::exclusive_debits::path_census::event(
-                    crate::bounded_output::exclusive_debits::path_census::Event::TreeInsert,
-                );
-                tree.insert(value);
-            }
-        }
-    }
     #[cfg(test)]
     pub(super) fn iter(&self) -> Iter<'_, T> {
         match self {
@@ -8993,7 +9056,8 @@ fn each_constructor_one_and_promotion_payment_frontier_preserves_partial_drop_an
     let promotion =
         2 * crate::cleanup_plan::replay::physical_storage::btree_node_upper::<Box<State>, ()>()
             .unwrap()
-            + one;
+            + one
+            + Insertions::<State>::promotion_controls();
     for limit in [
         0,
         acquisition - 1,
@@ -9463,7 +9527,7 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
         assert_eq!(std::fs::read(root.join("src/cleanup_plan/replay/path_join/before_frontier/custody/main_d227_transport.json")).unwrap(), encoded.as_bytes());
         assert_eq!(
             digest(encoded.as_bytes()),
-            "bb3054bcefde53fb800ca082cd2a9de658ec40a38b6da5c51c4ad7c43af3090f"
+            "a45ca685dd5d58087205b82584411860c1cc7d1ba2beb1ff2d64154043338eeb"
         );
         let packet: serde_json::Value = serde_json::from_str(encoded).unwrap();
         assert_eq!(packet.as_object().unwrap().len(), 42);
@@ -9588,7 +9652,48 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
             // search; the fixed old source targets below are not repinned.
             actual = crate::cleanup_plan::replay::selected_owner::ordinary::custody(&path, &actual);
         }
-        let actual =
+        let continuation_before = if path == "src/cleanup_plan/replay/continuation_storage/tests.rs"
+        {
+            assert_eq!(
+                actual.as_slice(),
+                include_bytes!("../../continuation_storage/tests.rs").as_slice()
+            );
+            let packet = include_bytes!("../../continuation_storage/reached_before/inverse.json");
+            assert_eq!(
+                digest(packet),
+                "1e1188c81b5bc515eca82e8a04a74d9ecb117d9ec3eef2632c241c804f612472"
+            );
+            let rows: serde_json::Value = serde_json::from_slice(packet).unwrap();
+            let row = rows
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|r| r["path"] == path)
+                .unwrap();
+            assert_eq!(actual.len() as u64, row["current_length"]);
+            assert_eq!(digest(&actual), row["current_sha256"].as_str().unwrap());
+            let mut before = actual.clone();
+            for e in row["edits"].as_array().unwrap().iter().rev() {
+                let start = e["start"].as_u64().unwrap() as usize;
+                let end = e["end"].as_u64().unwrap() as usize;
+                assert_eq!(
+                    &before[start..end],
+                    e["current"].as_str().unwrap().as_bytes()
+                );
+                before.splice(start..end, e["before"].as_str().unwrap().bytes());
+            }
+            let fixture = include_bytes!("../../continuation_storage/reached_before/tests.rs.txt");
+            assert_eq!(before.as_slice(), fixture.as_slice());
+            assert_eq!(before.len(), 27342);
+            assert_eq!(
+                digest(&before),
+                "ef071c7def7542ab0365cdd9566779a4b37270365bf6c147df7e87122debbdc2"
+            );
+            Some(before)
+        } else {
+            None
+        };
+        let actual = if let Some(before)=continuation_before.as_ref() {before.as_slice()} else
             if path == "src/cleanup_plan/replay/factored/strategy/compact_receiving/tests.rs" {
                 // Finite test-only transport: bind the complete current test bytes,
                 // then invert the whole replacement to the complete pinned old
@@ -42203,7 +42308,11 @@ pub(crate) fn with_financed_workspace_test_oracles<T>(
     // A 1,024-function fixture executes 2,052 complete reference receivers.
     // A private aarch64 Rust 1.97.1 control measured 194,083,774 bytes. Use a finite
     // 256 MiB account up front; the ordinary builder never draws from it.
-    let scope = OracleScope::open_with_work(1 << 28, 1 << 25)
+    // The finite cumulative reference work account covers the complete batch
+    // of comparisons, rather than sharing one receiver's allowance across
+    // all 2,052 runs. Every original per-receiver work ceiling remains intact;
+    // completion still rejects any exhausted cumulative account.
+    let scope = OracleScope::open_with_work(1 << 28, 1 << 27)
         .expect("explicit independent workspace reference account");
     let lease = scope.lease();
     let selected = opt_in(lease).expect("one explicit workspace reference account");
@@ -42520,6 +42629,34 @@ fn borrowed_execution_text_has_exact_serialized_nul_verdict_without_key_acquisit
     }
 }
 
+// Complete physical sources precede the unchanged four original audit inverses.
+fn audit_source_before(path: &str, supplied: &str) -> String {
+    use sha2::{Digest, Sha256};
+    let hash = |b: &[u8]| format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(b)));
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let packet = include_str!("reuse_before/audit_acquisition.json");
+    assert_eq!(std::fs::read(root.join("src/hir/inspection/paid_nul/reuse_before/audit_acquisition.json")).unwrap(), packet.as_bytes());
+    assert_eq!(hash(packet.as_bytes()), "e5fd4db07611e7a45a3b7dd9ee35fa946f74a30b05685c7b57ecdfd69c85692c");
+    let packet: serde_json::Value = serde_json::from_str(packet).unwrap();
+    assert_eq!(packet["schema"], "semaprax.paid-nul-audit-source-acquisition.v1");
+    let targets = [("src/hir/inspection.rs", 52939u64, "5c80d0017ee96a092a80b7fe9c5b2ed263d0a91fe13cfca9a56f9674f27a1252"), ("src/hir/validation/constructor_seed/original.rs", 2250u64, "7869bcbceeee788e1fc5e7b5afba51a39c41e69561dcdb4b802a57d11dbf7804"), ("src/hir/validation/function_lookup/paid_custody.rs", 11113u64, "fa1983be234c53278d09665f762ba44feb15f88240ebd950df4d7f399c7a47ca")];
+    let rows = packet["rows"].as_array().unwrap(); assert_eq!(rows.len(), targets.len());
+    for (row, (name, length, sha)) in rows.iter().zip(targets) { assert_eq!(row["path"], name); assert_eq!(row["before_length"], length); assert_eq!(row["before_sha256"], sha); }
+    let row = rows.iter().find(|r| r["path"] == path).expect("fixed original audit acquisition");
+    let compiled = match path {
+        "src/hir/inspection.rs" => ci_str!("../../inspection.rs"),
+        "src/hir/validation/constructor_seed/original.rs" => ci_str!("../../validation/constructor_seed/original.rs"),
+        "src/hir/validation/function_lookup/paid_custody.rs" => ci_str!("../../validation/function_lookup/paid_custody.rs"),
+        _ => panic!("foreign original audit acquisition"),
+    };
+    assert_eq!(supplied, compiled); assert_eq!(std::fs::read(root.join(path)).unwrap(), compiled.as_bytes());
+    assert_eq!(compiled.len() as u64, row["current_length"]); assert_eq!(hash(compiled.as_bytes()), row["current_sha256"].as_str().unwrap());
+    let mut restored = compiled.to_owned();
+    for e in row["edits"].as_array().unwrap().iter().rev() { let start=e["start"].as_u64().unwrap() as usize; let end=e["end"].as_u64().unwrap() as usize; assert_eq!(&restored[start..end], e["current"].as_str().unwrap()); restored.replace_range(start..end, e["before"].as_str().unwrap()); }
+    assert_eq!(restored, row["full_before"].as_str().unwrap()); assert_eq!(restored.len() as u64, row["before_length"]); assert_eq!(hash(restored.as_bytes()), row["before_sha256"].as_str().unwrap());
+    assert_eq!(std::fs::read(root.join(path)).unwrap(), compiled.as_bytes()); restored
+}
+
 #[test]
 fn complete_nul_receiving_and_saved_constructor_sources_preserve_every_original_byte() {
     use sha2::{Digest, Sha256};
@@ -42530,12 +42667,12 @@ fn complete_nul_receiving_and_saved_constructor_sources_preserve_every_original_
     .unwrap();
     let paid_nul_before =
         reuse_source_before("src/hir/inspection/paid_nul.rs", ci_str!("../paid_nul.rs"));
-    let currents = [
-        ci_str!("../../inspection.rs"),
-        ci_str!("../../validation/constructor_seed/original.rs"),
-        ci_str!("../../validation/function_lookup/paid_custody.rs"),
-        paid_nul_before.as_str(),
+    let acquired = [
+        audit_source_before("src/hir/inspection.rs", ci_str!("../../inspection.rs")),
+        audit_source_before("src/hir/validation/constructor_seed/original.rs", ci_str!("../../validation/constructor_seed/original.rs")),
+        audit_source_before("src/hir/validation/function_lookup/paid_custody.rs", ci_str!("../../validation/function_lookup/paid_custody.rs")),
     ];
+    let currents = [acquired[0].as_str(), acquired[1].as_str(), acquired[2].as_str(), paid_nul_before.as_str()];
     let originals = [
         ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/paid-nul-audit-824/src__hir__inspection.rs.before.txt")),
         ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/paid-nul-audit-824/src__hir__validation__constructor_seed__original.rs.before.txt")),
@@ -42820,7 +42957,13 @@ fn invocation_pending_reuse_exact_short_zero_sticky_and_scope_isolation() {
         measure(|| {
             validate_nul_free_identities(&p).unwrap();
             let child = with_limit_usage_refusal(exact, || validate_nul_free_identities(&p));
-            assert!(child.0.is_ok() && !child.1 && child.2 == exact && child.3.is_none());
+            // The child inherits min(requested, parent remaining), which is
+            // zero after the parent's exact audit. Retain this real refusal.
+            assert_eq!(child.0.unwrap_err(), text::refused());
+            assert!(child.1 && child.2 == 0);
+            let first = child.3.unwrap();
+            assert_eq!(first.requested, REUSE_SELECTION + type_scratch::HEADER);
+            assert_eq!((first.remaining, first.floor), (0, 0));
             assert!(!crate::bounded_output::reserve_active_required(1));
             assert_eq!(
                 validate_nul_free_identities(&p).unwrap_err(),
@@ -42829,6 +42972,23 @@ fn invocation_pending_reuse_exact_short_zero_sticky_and_scope_isolation() {
         })
     });
     assert!(refused && paid == exact && first.unwrap().requested == 1);
+    assert!(!physical.invalid && physical.live == 0 && physical.allocated == physical.freed);
+    // Separately fund both actual audits to exercise successful nested scope
+    // restoration. This is their exact summed invoice, not a larger quota.
+    let both = exact.checked_mul(2).unwrap();
+    let (((), physical), refused, paid, first) = with_limit_usage_refusal(both, || {
+        measure(|| {
+            validate_nul_free_identities(&p).unwrap();
+            let child = with_limit_usage_refusal(exact, || validate_nul_free_identities(&p));
+            assert!(child.0.is_ok() && !child.1 && child.2 == exact && child.3.is_none());
+            assert!(!crate::bounded_output::reserve_active_required(1));
+            assert_eq!(
+                validate_nul_free_identities(&p).unwrap_err(),
+                text::refused()
+            );
+        })
+    });
+    assert!(refused && paid == both && first.unwrap().requested == 1);
     assert!(!physical.invalid && physical.live == 0 && physical.allocated == physical.freed);
     assert_eq!(reuse_observe(&p, false, exact).3, exact);
 }

@@ -92,6 +92,35 @@ pub(super) fn source_custody() {
         assert_eq!(raw.len(), row["current_length"].as_u64().unwrap() as usize);
         assert_eq!(digest(&raw), row["current_sha256"].as_str().unwrap());
         let mut actual = String::from_utf8(raw).unwrap();
+        if let Some(prior) = row.get("exact_prior_current_record") {
+            assert_eq!(prior["current"], row["current"]);
+            let edits = row["edits"].as_array().unwrap();
+            let count = row["current_acquisition_count"].as_u64().unwrap() as usize;
+            assert!((1..=2).contains(&count));
+            assert_eq!(edits[0]["from"].as_str().unwrap(), actual);
+            let immediate = edits[0]["to"].as_str().unwrap();
+            assert_eq!(
+                immediate.len(),
+                row["immediate_before_length"].as_u64().unwrap() as usize
+            );
+            assert_eq!(
+                digest(immediate.as_bytes()),
+                row["immediate_before_sha256"].as_str().unwrap()
+            );
+            if count == 2 {
+                assert_eq!(edits[1]["from"].as_str().unwrap(), immediate);
+            }
+            let prior_current = edits[count - 1]["to"].as_str().unwrap();
+            assert_eq!(
+                prior_current.len(),
+                prior["current_length"].as_u64().unwrap() as usize
+            );
+            assert_eq!(
+                digest(prior_current.as_bytes()),
+                prior["current_sha256"].as_str().unwrap()
+            );
+            assert_eq!(&edits[count..], prior["edits"].as_array().unwrap());
+        }
         for edit in row["edits"].as_array().unwrap() {
             let from = edit["from"].as_str().unwrap();
             assert_eq!(actual.matches(from).count(), 1);
@@ -105,5 +134,5 @@ pub(super) fn source_custody() {
 }
 const MANIFEST_LENGTH: usize = 1426;
 const MANIFEST_SHA: &str = "a36d7cb733abcec14387f901e543b56afb2b6e34777a9e1f59415e0129948aef";
-const INVERSE_LENGTH: usize = 35730;
-const INVERSE_SHA: &str = "4c21b2c951cf5eb3972b9efa22685a186bda2f098fd824da26227506c1859167";
+const INVERSE_LENGTH: usize = 136427;
+const INVERSE_SHA: &str = "f05591a38207b1df416e13eee8d1904225522471b361b1bbfb9ca83eaa03824b";

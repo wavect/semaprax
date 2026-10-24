@@ -664,4 +664,4 @@ pub(super) fn positive(
 }
 
 #[cfg(test)]
-mod tests;
+pub(in crate::cleanup_plan::replay::factored) mod tests;

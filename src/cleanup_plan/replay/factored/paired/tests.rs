@@ -324,6 +324,7 @@ fn overflow_and_width(f: &ResolvedFunction) {
 }
 #[test]
 fn paired_complete_legacy_semantics_and_every_byte_work_cut() {
+    authenticate_prepaired_compare();
     scalar_cases(&fixture());
 }
 #[test]
@@ -333,4 +334,212 @@ fn paired_malformed_cycles_work_and_stale_foreign_sticky_receivers_fail_closed()
 #[test]
 fn paired_duplicate_overflow_and_wide_utf8_nul_labels_keep_complete_order() {
     overflow_and_width(&fixture());
+}
+
+// Complete immediate pre-paired shipping receiver from Git 6b935c0a3.
+// The only source adaptation is this function name and visibility.
+pub(in crate::cleanup_plan::replay::factored) fn prepaired_compare<'hir>(
+    program: &'hir dyn crate::cleanup::ReplayContext,
+    function: &'hir ResolvedFunction,
+    budget: &mut ReplayBudget,
+    helpers: Option<&crate::loop_calls::byte_writer::ModuleIndex<'hir>>,
+    continuations: Option<&mut continuation_storage::Storage<'hir>>,
+) -> Result<Option<bool>, Diagnostic> {
+    #[cfg(feature = "unstable-workflow-profiling")]
+    let _paid_phase =
+        budget.paid_phase(crate::workflow_profile::plan_comparison::PaidPhase::FactoredComparison);
+
+    #[cfg(test)]
+    let _canonical_allocation_phase = crate::test_allocation_observer::function_phase_guard(
+        "cleanup_plan::factored::comparison_complete",
+    );
+    let BuiltComparison {
+        automaton,
+        sink,
+        hir_root,
+        plan_root,
+    } = build_comparison(program, function, budget, helpers, continuations)?;
+
+    #[cfg(test)]
+    if budget.oracle_lease().is_some() {
+        // The exact reconstructed automaton is unchanged. An Oracle account
+        // pays the full general label order; it grants no borrowed-helper lease.
+        let mut canonical =
+            borrowed_canonical::BorrowedCanonicalizer::new(function, &automaton, sink, budget)?;
+        #[cfg(test)]
+        let _debit_phase = debit_routes::phase(debit_routes::Phase::CanonicalHIR);
+        #[cfg(test)]
+        let _successor_phase = canonical_shared::lexical_successors::census::phase(true);
+        budget.reserve_array::<(usize, u64)>(function, 1, "oracle HIR weighted root")?;
+        let Some(hir) = canonical.id(function, vec![(hir_root, 1)], budget)? else {
+            return Ok(None);
+        };
+        #[cfg(test)]
+        let _debit_phase = debit_routes::phase(debit_routes::Phase::CanonicalPLAN);
+        #[cfg(test)]
+        let _successor_phase = canonical_shared::lexical_successors::census::phase(false);
+        budget.reserve_array::<(usize, u64)>(function, 1, "oracle plan weighted root")?;
+        let Some(plan) = canonical.id(function, vec![(plan_root, 1)], budget)? else {
+            return Ok(None);
+        };
+        return Ok(Some(hir == plan));
+    }
+
+    #[cfg(test)]
+    if let Some(lease) = program.borrowed_helper_lease(function) {
+        lease.validate(program, function, budget)?;
+        let mut canonical =
+            borrowed_canonical::BorrowedCanonicalizer::new(function, &automaton, sink, budget)?;
+        #[cfg(test)]
+        let _debit_phase = debit_routes::phase(debit_routes::Phase::CanonicalHIR);
+        #[cfg(test)]
+        let _successor_phase = canonical_shared::lexical_successors::census::phase(true);
+        budget.reserve_array::<(usize, u64)>(function, 1, "borrowed HIR weighted root")?;
+        let Some(hir) = canonical.id(function, vec![(hir_root, 1)], budget)? else {
+            return Ok(None);
+        };
+        #[cfg(test)]
+        let _debit_phase = debit_routes::phase(debit_routes::Phase::CanonicalPLAN);
+        #[cfg(test)]
+        let _successor_phase = canonical_shared::lexical_successors::census::phase(false);
+        budget.reserve_array::<(usize, u64)>(function, 1, "borrowed plan weighted root")?;
+        let Some(plan) = canonical.id(function, vec![(plan_root, 1)], budget)? else {
+            return Ok(None);
+        };
+        return Ok(Some(hir == plan));
+    }
+
+    budget.reserve_bytes(
+        function,
+        canonical_shared::inline_singleton::Canonicalizer::CONSTRUCTOR_CONTROLS,
+        "canonical ordered dictionary owner receiving",
+    )?;
+    let mut canonical = canonical_shared::inline_singleton::Canonicalizer::new(&automaton, sink);
+    if budget.pays_allocations() {
+        budget.reserve_bytes(
+            function,
+            canonical_shared::inline_singleton::Canonicalizer::COLD_NODE_CONTROLS,
+            "factored cold terminal node predicate",
+        )?;
+    }
+    if canonical.cold_dead_node(hir_root) {
+        #[cfg(test)]
+        let _debit_phase = debit_routes::phase(debit_routes::Phase::CanonicalHIR);
+        #[cfg(test)]
+        let _successor_phase = canonical_shared::lexical_successors::census::phase(true);
+        budget.reserve_array::<(usize, u64)>(function, 1, "factored HIR weighted root")?;
+        let Some(hir) = canonical.id_for_comparison(function, vec![(hir_root, 1)], budget)? else {
+            return Ok(None);
+        };
+        budget.reserve_bytes(
+            function,
+            canonical_shared::inline_singleton::hir_last_use::CALL,
+            "factored HIR-private release call receiving",
+        )?;
+        canonical.release_hir_private(function, budget, hir_root, plan_root)?;
+        #[cfg(test)]
+        let _debit_phase = debit_routes::phase(debit_routes::Phase::CanonicalPLAN);
+        #[cfg(test)]
+        let _successor_phase = canonical_shared::lexical_successors::census::phase(false);
+        budget.reserve_array::<(usize, u64)>(function, 1, "factored plan weighted root")?;
+        let Some(plan) = canonical.id_for_comparison(function, vec![(plan_root, 1)], budget)?
+        else {
+            return Ok(None);
+        };
+        return Ok(Some(hir == plan));
+    }
+    if budget.pays_allocations() {
+        budget.reserve_bytes(
+            function,
+            canonical_shared::closure_receiving::ClosureReceiving::DIRECT_CONTROLS
+                + canonical_shared::inline_singleton::Canonicalizer::ACTIVE_DISPATCH_CONTROLS,
+            "factored held closure invocation controls",
+        )?;
+    }
+    let mut receiving =
+        canonical_shared::closure_receiving::ClosureReceiving::from_prepaid(function, budget);
+    let canonical_id = canonical.canonical_dispatch(&budget.payer);
+    #[cfg(test)]
+    let _debit_phase = debit_routes::phase(debit_routes::Phase::CanonicalHIR);
+    #[cfg(test)]
+    let _successor_phase = canonical_shared::lexical_successors::census::phase(true);
+    budget.reserve_array::<(usize, u64)>(function, 1, "factored HIR weighted root")?;
+    let Some(hir) = canonical_id(
+        &mut canonical,
+        function,
+        vec![(hir_root, 1)],
+        &mut *budget,
+        &mut receiving,
+    )?
+    else {
+        return Ok(None);
+    };
+    budget.reserve_bytes(
+        function,
+        canonical_shared::inline_singleton::hir_last_use::CALL,
+        "factored HIR-private release call receiving",
+    )?;
+    canonical.release_hir_private(function, budget, hir_root, plan_root)?;
+    #[cfg(test)]
+    let _debit_phase = debit_routes::phase(debit_routes::Phase::CanonicalPLAN);
+    #[cfg(test)]
+    let _successor_phase = canonical_shared::lexical_successors::census::phase(false);
+    budget.reserve_array::<(usize, u64)>(function, 1, "factored plan weighted root")?;
+    let Some(plan) = canonical_id(
+        &mut canonical,
+        function,
+        vec![(plan_root, 1)],
+        &mut *budget,
+        &mut receiving,
+    )?
+    else {
+        return Ok(None);
+    };
+    Ok(Some(hir == plan))
+}
+
+// The complete archive remains authoritative; extract full definitions rather
+// than matching a crux, prefix or a rewritten projection of the old source.
+pub(in crate::cleanup_plan::replay::factored) fn authenticate_prepaired_compare() {
+    use sha2::{Digest, Sha256};
+    let original = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/e/82353ce21ba46fb5ae1746e30f837d9f251da7a17bdc53c9ba53355c13d9f4a0"
+    ));
+    assert_eq!(original.len(), 52_363);
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(original.as_bytes()))
+        ),
+        "82353ce21ba46fb5ae1746e30f837d9f251da7a17bdc53c9ba53355c13d9f4a0"
+    );
+    fn definition<'a>(source: &'a str, marker: &str) -> &'a str {
+        let start = source.find(marker).expect("complete source definition");
+        let end = start
+            + source[start..]
+                .find("\n}")
+                .expect("complete definition end")
+            + 2;
+        &source[start..end]
+    }
+    let compiled = definition(
+        include_str!("tests.rs"),
+        "pub(in crate::cleanup_plan::replay::factored) fn prepaired_compare<'hir>(",
+    );
+    assert_eq!(
+        compiled.replacen(
+            "pub(in crate::cleanup_plan::replay::factored) fn prepaired_compare<'hir>(",
+            "fn compare_with_index_storage<'hir>(",
+            1
+        ),
+        definition(original, "fn compare_with_index_storage<'hir>(")
+    );
+    assert_eq!(
+        definition(
+            include_str!("../../factored.rs"),
+            "fn build_comparison<'hir>("
+        ),
+        definition(original, "fn build_comparison<'hir>(")
+    );
 }

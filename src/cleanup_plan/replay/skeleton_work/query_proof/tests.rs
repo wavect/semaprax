@@ -39,6 +39,12 @@ pub(super) fn restore(current: &str, path: &str) -> String {
     assert_eq!(row["before_length"], old_length);
     assert_eq!(row["before_sha256"], old_hash);
     assert_eq!(std::fs::read(root.join(path)).unwrap(), current.as_bytes());
+    // Acquire the complete #925 parent epoch before the original query inverse.
+    // The physical/compiled comparison above remains on the raw current file.
+    let retained_epoch = if path == "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission.rs" {
+        Some(crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::retained::before_emission(current))
+    } else { None };
+    let current = retained_epoch.as_deref().unwrap_or(current);
     // Preserve the complete pre-workspace source epoch before the unchanged
     // query inverse; the actual raw/compiled acquisition above remains current.
     let workspace_epoch = if path == "src/cleanup_plan/replay.rs" {

@@ -266,3 +266,173 @@ fn new_work_frontiers_keep_deterministic_six_field_diagnostics() {
         }
     }
 }
+
+#[test]
+fn retained_fork_receivers_preserve_immediate_emitter_and_singleton_allocation() {
+    let program = fixture();
+    let function = &program.functions[0];
+    with_limit_usage_refusal(usize::MAX, || {
+        for len in [0, 1, 7, 127] {
+            for count in [0, 1, 2, 5] {
+                let mut old_budget = ReplayBudget::with_skeleton_limit(usize::MAX);
+                let mut old_work = SkeletonWork::new(&program, function, &mut old_budget);
+                let (prefixes, suffixes) = inputs(&mut old_work, len, count);
+                let old = with_immediate(|| call(prefixes, &suffixes, &mut old_work)).unwrap();
+                let old_spent = old_work.budget.skeleton_spent;
+                let mut new_budget = ReplayBudget::with_skeleton_limit(usize::MAX);
+                let mut new_work = SkeletonWork::new(&program, function, &mut new_budget);
+                let (prefixes, suffixes) = inputs(&mut new_work, len, count);
+                let pointer = prefixes.as_ptr();
+                let capacity = prefixes.capacity();
+                let actual = call(prefixes, &suffixes, &mut new_work).unwrap();
+                assert_eq!(old_spent, new_work.budget.skeleton_spent);
+                if count == 1 {
+                    assert_eq!(actual.as_ptr(), pointer);
+                    assert_eq!(actual.capacity(), capacity);
+                }
+                assert!(equal_paths(&actual, &old, &mut new_work));
+            }
+        }
+        // A real shared singleton, both stopped states and a flat empty suffix
+        // all use the same cardinality proof; no empty input is manufactured.
+        let mut budget = ReplayBudget::with_skeleton_limit(usize::MAX);
+        let mut work = SkeletonWork::new(&program, function, &mut budget);
+        let (prefixes, suffixes) = inputs(&mut work, 7, 2);
+        let shared = with_immediate(|| call(prefixes, &suffixes, &mut work)).unwrap();
+        let (prefixes, _) = inputs(&mut work, 3, 0);
+        let mut prefixes = prefixes;
+        prefixes[1].failed = false;
+        prefixes[1].residual = true;
+        let pointer = prefixes.as_ptr();
+        let actual = call(prefixes, &shared[..1], &mut work).unwrap();
+        assert_eq!(actual.as_ptr(), pointer);
+        let (mut prefixes, _) = inputs(&mut work, 3, 0);
+        prefixes[1].failed = false;
+        prefixes[1].residual = true;
+        let old = with_immediate(|| call(prefixes, &shared[..1], &mut work)).unwrap();
+        assert!(equal_paths(&actual, &old, &mut work));
+    });
+}
+
+#[test]
+fn retained_fork_immediate_work_cuts_and_all_diagnostic_fields_match() {
+    let program = fixture();
+    let function = &program.functions[0];
+    // Cuts apply after the same complete paid setup. Both independent emitters
+    // retain the held skeleton loan, including stopped and final-output events.
+    for count in [0, 1, 2, 5] {
+        let attempt = |cut, immediate| {
+            let mut budget = ReplayBudget::with_skeleton_limit(usize::MAX);
+            let mut work = SkeletonWork::new(&program, function, &mut budget);
+            let (prefixes, suffixes) = inputs(&mut work, 7, count);
+            work.budget.skeleton_remaining = cut;
+            let before = work.budget.skeleton_spent;
+            let result = if immediate {
+                with_immediate(|| call(prefixes, &suffixes, &mut work))
+            } else {
+                call(prefixes, &suffixes, &mut work)
+            }
+            .map(drop);
+            (result, work.budget.skeleton_spent - before)
+        };
+        for cut in 0..32 {
+            let (old, old_work) = attempt(cut, true);
+            let (new, new_work) = attempt(cut, false);
+            assert_eq!(old_work, new_work);
+            match (old, new) {
+                (Ok(()), Ok(())) => {}
+                (Err(a), Err(b)) => assert_eq!(
+                    (a.code, a.severity, a.message, a.path, a.span, a.help),
+                    (b.code, b.severity, b.message, b.path, b.span, b.help)
+                ),
+                _ => panic!("immediate held-work refusal frontier changed"),
+            }
+        }
+    }
+}
+
+#[test]
+fn retained_fork_keeps_the_entire_immediate_parent_and_old_producer() {
+    let current = include_str!("../emission.rs");
+    let before = retained::before_emission(current);
+    let body = |s: &str| {
+        let begin = s
+            .find("pub(in crate::cleanup_plan::replay) fn emit_prepaid(")
+            .unwrap();
+        let end = s[begin..]
+            .find("\n// The original caller's actual-payer pattern")
+            .unwrap()
+            + begin;
+        s[begin..end].to_owned()
+    };
+    assert_eq!(body(current), body(&before));
+    // Both the original public receiver invoice and the complete STEP inventory
+    // stay compiled with the old body; no candidate discounts reach that arm.
+    let banks = |s: &str| {
+        let begin = s
+            .find("pub(in crate::cleanup_plan::replay) const ENTRY:")
+            .unwrap();
+        let end = s.find("const FREEZE:").unwrap();
+        s[begin..end].to_owned()
+    };
+    assert_eq!(banks(current), banks(&before));
+}
+
+#[test]
+fn retained_fork_cold_empty_tiny_and_repeated_packets_disclose_actual_costs() {
+    let program = fixture();
+    let function = &program.functions[0];
+    // Direct emitter boundary: deliberately includes cold/unsupported-empty
+    // shapes that the shipping dispatcher can avoid. No app inference follows.
+    for (empty, len, count, repeats) in [
+        (true, 0, 0, 1),
+        (false, 0, 1, 1),
+        (false, 1, 2, 1),
+        (false, 127, 1, 3),
+        (false, 127, 5, 3),
+    ] {
+        let run = |immediate| {
+            with_limit_usage_refusal(usize::MAX, || {
+                measure(|| {
+                    let mut budget = ReplayBudget::with_skeleton_limit(usize::MAX);
+                    let mut work = SkeletonWork::new(&program, function, &mut budget);
+                    let result = (|| {
+                        let (mut paths, suffixes) = inputs(&mut work, len, count);
+                        if empty {
+                            paths.clear();
+                        }
+                        for _ in 0..repeats {
+                            paths = if immediate {
+                                with_immediate(|| call(paths, &suffixes, &mut work))
+                            } else {
+                                call(paths, &suffixes, &mut work)
+                            }?;
+                        }
+                        drop(paths);
+                        drop(suffixes);
+                        Ok::<_, Diagnostic>(())
+                    })();
+                    let work_used = work.budget.skeleton_spent;
+                    drop(work);
+                    drop(budget);
+                    result.map(|()| work_used).map_err(|error| {
+                        let code = error.code;
+                        drop(error);
+                        code
+                    })
+                })
+            })
+        };
+        let ((old, old_heap), old_refused, old_paid, _) = run(true);
+        let ((new, new_heap), new_refused, new_paid, _) = run(false);
+        assert_eq!(old.unwrap(), new.unwrap());
+        assert!(!old_refused && !new_refused);
+        for (heap, paid) in [(old_heap, old_paid), (new_heap, new_paid)] {
+            assert!(!heap.invalid && heap.live == 0);
+            assert_eq!(heap.allocated, heap.freed);
+            assert!(heap.allocated <= paid);
+        }
+        eprintln!("925 direct empty={} len={} suffixes={} repeats={} old_paid={} new_paid={} old_heap={:?} new_heap={:?}",
+            empty,len,count,repeats,old_paid,new_paid,old_heap,new_heap);
+    }
+}

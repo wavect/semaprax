@@ -47,7 +47,7 @@
       "owner": "v12-root",
       "source": "src/source_reflows_merge/main_e177_overlay_v2.rs",
       "length": 84852,
-      "sha256": "13d1ef2b3ac514c81538da4c2b36bd9d1002d1831704399c232ddbda099b4689",
+      "sha256": "343ef212e4247b4b245748b0f86c458c4450103a42a8f325f82ca66dc8f6bc88",
       "target": {
         "length": 82530,
         "sha256": "5e8977dd878a256b52af8f26f2e21b0d137c02bb30b9b676584c7657dde52430",
@@ -67,7 +67,7 @@
           {
             "start": 39785,
             "end": 39968,
-            "after": "const POLICY_LENGTH: usize = 136074; // Filled from the complete literal policy below.\nconst POLICY_SHA256: &str = \"7b7a831a8c7def389d9dcdfe57bcab3827229eecdc9412d7316c32050901eafe\";\n",
+            "after": "const POLICY_LENGTH: usize = 136074; // Filled from the complete literal policy below.\nconst POLICY_SHA256: &str = \"98c659a9041d91d3da67b98f165d931a2efe11808f4e7ea5f4efd21c4987e210\";\n",
             "before": "const POLICY_LENGTH: usize = 133100; // Filled from the complete literal policy below.\nconst POLICY_SHA256: &str = \"d3edc2781d148376cf689928fd2c29ac66206714aea06450013eb14bd75f813f\";\n"
           },
           {
@@ -80,7 +80,7 @@
       },
       "middle": {
         "length": 84667,
-        "sha256": "9493a6934d11861fcbb3d05b551d47daf72e58f49c003c3464466d870e1376d9",
+        "sha256": "238ee1007ae1024649ac33b1e4c65a4c8f50d11af6ed50684e7a9ebea11036a2",
         "edits": [
           {
             "start": 50765,
@@ -95,7 +95,7 @@
       "owner": "v12-python",
       "source": "docs/evidence/finite-source-overlay-v2-20261018/overlay_page.py",
       "length": 58523,
-      "sha256": "fedd9e789b7c6be56668874efa6186096c92efdb70c21943493285a5c9caccfc",
+      "sha256": "84ddb34811f5546c821cc6565b32f629aa118d01003a8788c7fc4a6551bc9e4a",
       "target": {
         "length": 56673,
         "sha256": "81019932108fc3cf99b73f4d74e9cae3bcfc6d6795d3048d1ab5ea3dc92eac69",
@@ -103,7 +103,7 @@
           {
             "start": 308,
             "end": 414,
-            "after": "POLICY_LENGTH = 136074\nPOLICY_SHA256 = '7b7a831a8c7def389d9dcdfe57bcab3827229eecdc9412d7316c32050901eafe'\n",
+            "after": "POLICY_LENGTH = 136074\nPOLICY_SHA256 = '98c659a9041d91d3da67b98f165d931a2efe11808f4e7ea5f4efd21c4987e210'\n",
             "before": "POLICY_LENGTH = 133100\nPOLICY_SHA256 = 'd3edc2781d148376cf689928fd2c29ac66206714aea06450013eb14bd75f813f'\n"
           },
           {
@@ -134,7 +134,7 @@
       },
       "middle": {
         "length": 58424,
-        "sha256": "1c2321392f3152776ab4bcfcbbbc1526a2cc023a72b09b056c55004bc601a0a9",
+        "sha256": "3ab9e3cd96832f6492518f0e01e47f6920af1dc9d8777e5f825535fec39319f6",
         "edits": [
           {
             "start": 47879,

@@ -126,14 +126,35 @@ pub(in crate::cleanup_plan::replay) fn sequence_only(
 )]
 macro_rules! emit {
     ($prefixes:expr, $suffixes:expr, $work:ident) => {{
-        $work.budget.reserve_bytes(
-            $work.function,
-            $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::ENTRY,
-            "complete HIR fork caller receivers",
-        )?;
-        $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::emit_prepaid(
-            $prefixes, $suffixes, $work,
-        )
+        #[cfg(test)]
+        {
+            if $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::immediate_selected() {
+                $work.budget.reserve_bytes($work.function,
+                    $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::ENTRY,
+                    "complete HIR fork caller receivers")?;
+                $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::emit_prepaid(
+                    $prefixes, $suffixes, $work,
+                )
+            } else {
+                $work.budget.reserve_bytes($work.function,
+                    $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::ENTRY
+                        + $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::retained::ACQUIRE,
+                    "complete HIR fork caller receivers")?;
+                $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::retained::emit_prepaid(
+                    $prefixes, $suffixes, $work,
+                )
+            }
+        }
+        #[cfg(not(test))]
+        {
+            $work.budget.reserve_bytes($work.function,
+                $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::ENTRY
+                    + $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::retained::ACQUIRE,
+                "complete HIR fork caller receivers")?;
+            $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::retained::emit_prepaid(
+                $prefixes, $suffixes, $work,
+            )
+        }
     }};
 }
 #[allow(
@@ -142,6 +163,7 @@ macro_rules! emit {
 )]
 pub(in crate::cleanup_plan::replay) use emit;
 
+#[cfg(test)]
 pub(in crate::cleanup_plan::replay) fn emit_prepaid(
     prefixes: Vec<ExprSkeletonPath>,
     suffixes: &[ExprSkeletonPath],
@@ -463,4 +485,17 @@ pub(in crate::cleanup_plan::replay) fn shared_query_inputs_for_test(
     work.budget.reserve_bytes(work.function, validation::CALL,
         "test complete sequence validation caller")?;
     validation::inputs(prefixes, suffixes, work)
+}
+
+// The complete immediate emitter, STEP/ENTRY invoices and dispatch above stay
+// independently executable. Only the selected shipping producer owns this frame.
+pub(in crate::cleanup_plan::replay) mod retained;
+
+#[cfg(test)]
+pub(in crate::cleanup_plan::replay) fn immediate_selected() -> bool {
+    SELECTED.with(|selected| selected.get() == 3)
+}
+#[cfg(test)]
+fn with_immediate<T>(operation: impl FnOnce() -> T) -> T {
+    with_route(3, operation)
 }

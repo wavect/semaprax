@@ -178,27 +178,24 @@ pub(super) fn validate_with_index_storage<'hir>(
             &mut ReplayBudget::new(),
         )?
     };
-    // Keep both existing selectors above unchanged. Match their received
-    // bool and the payer place without producing a new equality/guard value.
-    // Every new fitting header read happens only after this bank is paid;
-    // nonselection (including tiny functions) honestly retains its new charge.
-    match selected {
-        false => {
-            if let ReplayBudget {
-                payer: AllocationPayer::ActiveBuilder,
-                ..
-            } = budget
-            {
-                budget.reserve_bytes(
-                    function,
-                    FITTING_SELECTOR_CONTROLS,
-                    "fitting factored comparison selector receivers",
-                )?;
-                selected =
-                    fitting_comparison_selected_paid(function, cfg_paths, semantic_paths, budget)?;
-            }
+    // Keep both existing selectors above unchanged. Only the ordinary builder
+    // evaluates this nonselection guard; its two bool roles were prepaid in
+    // BUILDER_SELECTOR_CONTROLS before entering the initial selector.
+    if let ReplayBudget {
+        payer: AllocationPayer::ActiveBuilder,
+        ..
+    } = budget
+    {
+        if !selected {
+            // Every fitting header read follows payment of its own bank.
+            budget.reserve_bytes(
+                function,
+                FITTING_SELECTOR_CONTROLS,
+                "fitting factored comparison selector receivers",
+            )?;
+            selected =
+                fitting_comparison_selected_paid(function, cfg_paths, semantic_paths, budget)?;
         }
-        true => {}
     }
     #[cfg(test)]
     let continuations = {

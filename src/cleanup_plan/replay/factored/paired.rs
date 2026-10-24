@@ -711,7 +711,7 @@ pub(in crate::cleanup_plan::replay) const FITTING_SELECTOR_CONTROLS: usize = {
         + 4 * size_of::<&Vec<crate::cleanup_plan::ConditionalVariantEntry>>()
         // Status len and the three empty-check length return/receivers;
         // three threshold and three inner zero operands; seven predicate/result pairs.
-        + 8 * size_of::<usize>() + 6 * size_of::<usize>()
+        + size_of::<[usize; 8]>() + 6 * size_of::<usize>()
         + 14 * size_of::<bool>() + FITTING_REFUSAL_PROBE_CONTROLS
 };
 
@@ -723,7 +723,7 @@ pub(super) const BUILDER_SELECTOR_CONTROLS: usize = {
     4 * size_of::<&ResolvedFunction>()
         + 4 * size_of::<&mut ReplayBudget>()
         + 6 * size_of::<usize>() // two path argument/formal pairs and two threshold operands
-        + 6 * size_of::<bool>()
+        + size_of::<[bool; 8]>() // selector six roles plus !selected argument/result
         + 2 * size_of::<Result<bool, Diagnostic>>()
         + 4 * size_of::<Result<(), Diagnostic>>()
         + 2 * size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>()

@@ -1,0 +1,65 @@
+{
+  "schema": "semaprax.complete-current-source-records.local-qualification.v1",
+  "base_head": "173f3cec73d0007cb0ae799b5c1fa6455b8b0c03",
+  "scope": "Focused local source-custody repair. Not complete quality-profile or hosted CI qualification. Original full historical-view tests are still running separately.",
+  "current_rows": 722,
+  "current_physical_source_mismatches": [],
+  "page_bytes": 231726,
+  "page_cap": 262144,
+  "old_views_roles_edges_codec_bodies_and_caps_preserved": true,
+  "six_original_hostile_controls_pass": true,
+  "focused_checks": {
+    "overlay-controls.log": {
+      "passed": 33,
+      "log_sha256": "53e9592ad8e00bf0fb9ae8dc3a1ee6bb08fa4cba6c1abf857a5a194d6d314e9a"
+    },
+    "compiled-whole-predecessor-controls.log": {
+      "passed": 2,
+      "log_sha256": "469758b8e8765f62d055df166aea098d6117da023369aa94385d0979a2daa26f"
+    },
+    "new-entry-controls.log": {
+      "passed": 2,
+      "log_sha256": "7ef9eaf11d38d5dfa2aa3ce3210488e6eab5c4a38da27d21ae10fcbaf1c93c3d"
+    },
+    "final-prefix-source-controls.log": {
+      "passed": 3,
+      "log_sha256": "8dd86133e0302e56b1f38b8f49a21b120e3ee62c0f597fe22ed034737fd2ad0e"
+    },
+    "final-cursor-source-guard.log": {
+      "passed": 1,
+      "log_sha256": "edc1b84cc9e799ec99971c52bc9939a0f238e735238c073a8815752f997b0d24"
+    },
+    "hir-test.log": {
+      "passed": 11,
+      "log_sha256": "dc32571609102c3d20cee1a4ab4aebbbcd42d180376f57fccaf61302989337b1"
+    },
+    "projection-test.log": {
+      "passed": 1,
+      "log_sha256": "284671cee8d8178d699471e00cd83977e5fa58f2b0f77c0f33b74885880e9a0f"
+    },
+    "final-source-clippy.log": {
+      "scope": "Local source-only Clippy",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "hir-clippy.log": {
+      "scope": "Local source-only Clippy",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "documentation": {
+      "passed": 3,
+      "scope": "Fresh runtime checks of original documentation catalogue, links and source archive registry."
+    }
+  },
+  "full_three_original_controls": {
+    "status": "RUNNING",
+    "first_original_fourteen_ci_inverses_passed": true,
+    "remaining": [
+      "latest_main_and_afa_complete_views_preserve_all_prior_controls_and_refuse_wrong_stages",
+      "complete_current_and_parent_views_refuse_foreign_truncated_duplicate_and_wrong_stages"
+    ],
+    "scope": "Fresh source-only native harness; all original complete bodies/fixtures/assertions retained; original exact test names, serial. No passing claim while process remains live."
+  },
+  "memory_policy": "External SSD only; actual device free+inactive+speculative RAM and pressure monitored, with no process RSS cap. Full original source gate uses about60MiB, no compiler process left running.",
+  "remaining_ci_goal": "Active; builder G171, application and hosted CI failures remain.",
+  "explanation": "# Complete current source records\n\nStatus: focused local source-custody repair; hosted CI and the complete quality profile remain pending.\n\nAudience: compiler maintainers and source-custody reviewers.\n\nThe full original source-view test rejected five stale current records even though narrower overlay controls passed. This refreshes those exact current images and preserves every historical view, preceding physical image, role, acquisition edge, and unchanged source/codec bound. The existing `src/project/mod.rs` row joins the replacement membership while keeping its original `compiled: false` status. Its membership is reversed before the unchanged historical byte-span assertions; no new compiled acquisition arm or exemption is added.\n\nAll 722 current source records now match physical source bytes. Every one of the 2,468 current and historical archive pins was checked for exact length and SHA-256. The original full source-view controls are running separately; their outcome must be checked before claiming completion. This source-only repair makes no compiler/backend, hosted, or complete-CI success claim. Task outputs stay on the external SSD, and actual available device RAM is monitored without process RSS caps.\n"
+}

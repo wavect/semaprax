@@ -1,0 +1,32 @@
+{
+  "CHANGELOG.md": {
+    "archive": "e/7a9363e4be11aa39d8592bab4c4ef874e1850b07f841b1987a796cf79ff6c72c",
+    "length": 592761,
+    "sha256": "7a9363e4be11aa39d8592bab4c4ef874e1850b07f841b1987a796cf79ff6c72c"
+  },
+  "docs/ARCHITECTURE.md": {
+    "archive": "e/ab8b9cf0bf553ad8958cb329c25237fcad55a9ede70233bba0045b48e412f8f2",
+    "length": 393457,
+    "sha256": "ab8b9cf0bf553ad8958cb329c25237fcad55a9ede70233bba0045b48e412f8f2"
+  },
+  "docs/SUMMARY.md": {
+    "archive": "e/789387adcf33dede71dd1dd5a9263d8f79fd7bf7b7ceb171a7a9d716fb3ffdce",
+    "length": 161700,
+    "sha256": "789387adcf33dede71dd1dd5a9263d8f79fd7bf7b7ceb171a7a9d716fb3ffdce"
+  },
+  "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity.rs": {
+    "archive": "e/0879245bca020946257d2ddc525129a520f7985b2d429e04fedede4c264bea3c",
+    "length": 37907,
+    "sha256": "0879245bca020946257d2ddc525129a520f7985b2d429e04fedede4c264bea3c"
+  },
+  "src/project/mod.rs": {
+    "archive": "e/5df08297b41a6b5c8fb335fefc38f8f20c1ed345126b39ad95714c6b84515927",
+    "length": 66539,
+    "sha256": "5df08297b41a6b5c8fb335fefc38f8f20c1ed345126b39ad95714c6b84515927"
+  },
+  "src/source_reflows_merge/main_e177_overlay_compiled.rs": {
+    "archive": "e/050a32a7a803f1c70bdb71b71dfef77347f958c824e40c62d532d505bfd2e8de",
+    "length": 95484,
+    "sha256": "050a32a7a803f1c70bdb71b71dfef77347f958c824e40c62d532d505bfd2e8de"
+  }
+}

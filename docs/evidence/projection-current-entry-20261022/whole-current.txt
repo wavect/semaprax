@@ -9610,6 +9610,7 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
                 _ => panic!("unadmitted main transport path"),
             };
             assert_eq!(actual.as_slice(), compiled);
+            actual = retained_fork_source_before(&path, &actual);
             assert_eq!(actual.len(), row["length"].as_u64().unwrap() as usize);
             assert_eq!(digest(&actual), row["sha256"].as_str().unwrap());
             for edit in row["edits"].as_array().unwrap().iter().rev() {
@@ -9652,16 +9653,14 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
             // search; the fixed old source targets below are not repinned.
             actual = crate::cleanup_plan::replay::selected_owner::ordinary::custody(&path, &actual);
         }
-        let continuation_before = if path == "src/cleanup_plan/replay/continuation_storage/tests.rs"
+        let continuation_before = if matches!(path.as_str(), "src/cleanup_plan/replay/continuation_storage/tests.rs" | "src/cleanup_plan/replay/continuation_storage.rs")
         {
-            assert_eq!(
-                actual.as_slice(),
-                include_bytes!("../../continuation_storage/tests.rs").as_slice()
-            );
+            let compiled = if path == "src/cleanup_plan/replay/continuation_storage.rs" { include_bytes!("../../continuation_storage.rs").as_slice() } else { include_bytes!("../../continuation_storage/tests.rs").as_slice() };
+            assert_eq!(actual.as_slice(), compiled);
             let packet = include_bytes!("../../continuation_storage/reached_before/inverse.json");
             assert_eq!(
                 digest(packet),
-                "1e1188c81b5bc515eca82e8a04a74d9ecb117d9ec3eef2632c241c804f612472"
+                "502ce5028fe9c180ff71c8e7f19ad6724f5a729244d828dadcc8ccdf1e59d129"
             );
             let rows: serde_json::Value = serde_json::from_slice(packet).unwrap();
             let row = rows
@@ -9682,13 +9681,12 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
                 );
                 before.splice(start..end, e["before"].as_str().unwrap().bytes());
             }
-            let fixture = include_bytes!("../../continuation_storage/reached_before/tests.rs.txt");
-            assert_eq!(before.as_slice(), fixture.as_slice());
-            assert_eq!(before.len(), 27342);
-            assert_eq!(
-                digest(&before),
-                "ef071c7def7542ab0365cdd9566779a4b37270365bf6c147df7e87122debbdc2"
-            );
+            let (fixture, length, sha): (&[u8], usize, &str) = if path == "src/cleanup_plan/replay/continuation_storage.rs" {
+                (include_bytes!("../../continuation_storage/reached_before/continuation_storage.rs.txt"), 14296, "50e0fcee065b5222376f153597daa16ffc1044875e286c0bfc92ecf50e88a25f")
+            } else { (include_bytes!("../../continuation_storage/reached_before/tests.rs.txt"), 27342, "ef071c7def7542ab0365cdd9566779a4b37270365bf6c147df7e87122debbdc2") };
+            assert_eq!(before.as_slice(), fixture);
+            assert_eq!(before.len(), length);
+            assert_eq!(digest(&before), sha);
             Some(before)
         } else {
             None
@@ -9722,6 +9720,7 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
                 assert_eq!(digest(before), expected);
                 before.as_slice()
             } else if path == "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/tests.rs" {
+                actual = retained_fork_source_before(&path, &actual);
                 // Exact whole-source transport for OPT892; the complete
                 // immediate-old dependency remains the fixed 946-row target.
                 assert_eq!(actual.len(), 24843);
@@ -9760,6 +9759,14 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
                 assert_eq!(before.len(), 55814);
                 assert_eq!(digest(before), expected);
                 before.as_slice()
+            } else if path == "src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs" {
+                assert_eq!(actual.as_slice(), include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs" )).as_slice());
+                assert_eq!(actual.len(), 19806);
+                assert_eq!(digest(&actual), "6745c50ef06c4bab501efe623044c0044977a946df0aff8c95873a0c92de0fd1");
+                let before = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/1d31e1bf8377e7a1d7dd1d5a8844faa974cefa6cf94bd3029283647f70d2a51c"));
+                assert_eq!(before.len(), 15284);
+                assert_eq!(digest(before), expected);
+                before.as_slice()
             } else {
                 actual.as_slice()
             };
@@ -9773,6 +9780,86 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
         std::mem::size_of::<super::Incoming<super::PathState>>()
             >= std::mem::size_of::<std::collections::BTreeSet<Box<super::PathState>>>()
     );
+}
+
+// Acquire only these five complete physical epochs before the unchanged
+// fixed946/main42 source contracts. No inventory target or old edit is repinned.
+fn retained_fork_source_before(path: &str, current: &[u8]) -> Vec<u8> {
+    if path == "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests/receiving.rs" {
+        let compiled = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests/receiving.rs")).as_slice();
+        let physical = std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap();
+        assert_eq!(physical.as_slice(), compiled);
+        assert_eq!(current, compiled);
+        assert_eq!(current.len(), 31154);
+        assert_eq!(digest(current), "5e0da04b5e6373c30f7b31799f36a484477ccc0f9d79c98af4f91cd6a4d0e335");
+        // Entire already-retained main42 input, before its unchanged old edits.
+        let before = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/fc7a3fe35db9670affa2d479fea6e0a9eadf50afed410e729c7d956124d1c7f5"));
+        assert_eq!(before.len(), 24273);
+        assert_eq!(digest(before), "fc7a3fe35db9670affa2d479fea6e0a9eadf50afed410e729c7d956124d1c7f5");
+        assert_eq!(std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap(), physical);
+        return before.to_vec();
+    }
+    let (compiled, length, expected, before_length, before_digest, edits):
+        (&[u8], usize, &str, usize, &str, &[(usize, &str, &str)]) = match path {
+        "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission.rs" => (include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission.rs")).as_slice(), 22365, "9b32edd9e75c3199c9b1b3c01a5bcdc9689872795e3222b6f684f4e967c08834", 20575, "d7db6c7fc49140f9dabec3e647bf64b50571ee71a8478aae1c03acd92bba6c5f", &[
+        ]),
+        "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs" => (include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs")).as_slice(), 11753, "7944d10f5515da0a4e9c4b6ed49882bb3e20ccf9cfc96fc4c20372370ebf955f", 11246, "1f55c14d5d7fe41614e045fc680d5df8a93d4e29e4698e47bdb7e39ce8203c68", &[
+            (637, "    failed: bool,\n", ""),
+            (1047, "in crate::clean", "s"),
+            (1064, "_plan::", "e"),
+            (1072, "eplay", ""),
+            (1562, "size_of::<bool>() // initialized invocation-local sticky terminal state\n    + ", ""),
+            (2004, "\n    + 3 * size_of::<bool>()", ""),
+            (2033, " // sticky read, guard, and first terminal publication", ""),
+            (4590, "", "!"),
+            (4597, "fai", ""),
+            (4603, "", "ger.current()"),
+            (4691, "if !", ""),
+            (4701, ".ledger.current() {", ""),
+            (4733, "$sc", ".w"),
+            (4737, "pe.failed = t", ""),
+            (4751, "ue;", "k"),
+            (4767, "r", ".budg"),
+            (4770, "urn Err(Diagnostic::io(\"SPX-H006\", String::new()));", ""),
+            (4830, "}\n", ""),
+            (4836, "    match $scope.work.budget", ""),
+            (4923, " {\n            Ok(()) => {},\n            Err(error) => {\n                $scope.failed = true", "?"),
+            (5017, "\n                return Err(error);\n            }\n        }", ""),
+            (5092, "in crate::clean", "s"),
+            (5109, "_plan::", "e"),
+            (5117, "eplay", ""),
+            (5447, "e,\n        failed: fals", ""),
+        ]),
+        "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs" => (include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs")).as_slice(), 18414, "074d4939f7c6a2c278f482219eb7e66419b3dfe66929602c8ab6cc942c826165", 18010, "066f042491018f63adfa22bb4f0754bdbd9938f6941b5fc32a1c9c13b5f6ba41", &[
+            (778, "e,\n        failed: fals", ""),
+            (6214, ";\n        // Isolate the validation owner's Rc lifetime from the fixture's\n        // destruction scratch, which otherwise retains its own strong/weak owners.\n        work.release_observation_scratch_for_test()", ""),
+            (8110, "        drop(scope);\n        // Classification also lends b to work's private query scratch. End\n        // that owner before testing exclusive access to the fixture's Rc.\n        drop(work);\n        assert!(Rc::get_mut(b.prefix.as_mut().unwrap()).is_some());", "        drop(scope);\n        assert!(Rc::get_mut(b.prefix.as_mut().unwrap()).is_some());"),
+        ]),
+        "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/tests.rs" => (include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/tests.rs")).as_slice(), 24967, "703b8e31e2c34896382513d8e4cff5d900d8c5990ccbdb96aad3dc363aed3e05", 24843, "d4757425643d96a03c1c6a05f31d7018cb5653c71a921bb736335e9102edf6f6", &[
+            (15815, "", "cur"),
+            (15817, "", "n"),
+            (15818, "ained_epoch", ""),
+            (15832, "crate::cleanup_plan::replay::skeleton_work::query_proof::before_emission(", ""),
+            (15937, "));\n    let current = retained_epoch.as_str(", ""),
+        ]),
+        _ => return current.to_vec(),
+    };
+    let physical = std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap();
+    assert_eq!(physical.as_slice(), compiled);
+    assert_eq!(current, compiled);
+    assert_eq!(current.len(), length);
+    assert_eq!(digest(current), expected);
+    let mut before = if path == "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission.rs" {
+        crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::retained::before_emission(std::str::from_utf8(current).unwrap()).into_bytes()
+    } else { current.to_vec() };
+    for &(at, after, prior) in edits.iter().rev() {
+        assert_eq!(before.get(at..at + after.len()), Some(after.as_bytes()));
+        before.splice(at..at + after.len(), prior.bytes());
+    }
+    assert_eq!(before.len(), before_length);
+    assert_eq!(digest(&before), before_digest);
+    assert_eq!(std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap(), physical);
+    before
 }
 //! Complete immediate-old/current replay over the same checked fixtures.
 use super::*;
@@ -11941,6 +12028,7 @@ struct Validation<'scope, 'function, 'budget> {
     work: &'scope mut SkeletonWork<'function, 'budget>,
     ledger: ClassifierLedger,
     last: Option<Entry>,
+    failed: bool,
 }
 type Scope = Validation<'static, 'static, 'static>;
 type Pending = Vec<&'static ObservationDag>;
@@ -11951,7 +12039,7 @@ type Paths = std::iter::Chain<
 
 // Actual/formal loans, live/moved/returned owners, setup iterators and complete
 // error/Drop receivers. Dynamic Vec backing is separately acquired below.
-pub(super) const CALL: usize = 8 * size_of::<&[ExprSkeletonPath]>()
+pub(in crate::cleanup_plan::replay) const CALL: usize = 8 * size_of::<&[ExprSkeletonPath]>()
     + 2 * size_of::<&mut SkeletonWork<'static, 'static>>()
     + 2 * size_of::<Result<bool, Diagnostic>>()
     + 2 * size_of::<Scope>()
@@ -11961,6 +12049,7 @@ pub(super) const CALL: usize = 8 * size_of::<&[ExprSkeletonPath]>()
     + 2 * size_of::<Paths>()
     + ClassifierLedger::capture_into_controls()
     + AUTH
+    + size_of::<bool>() // initialized invocation-local sticky terminal state
     + PAYMENT;
 // CALL prepays the first guard. Every successful reserve renews the next
 // guard's borrowed receivers and minimal foreign-error return before use.
@@ -11968,7 +12057,8 @@ const AUTH: usize = ClassifierLedger::current_receiving_controls()
     + 2 * size_of::<Diagnostic>()
     + 2 * size_of::<String>()
     + 4 * size_of::<&str>()
-    + 2 * size_of::<Result<bool, Diagnostic>>();
+    + 2 * size_of::<Result<bool, Diagnostic>>()
+    + 3 * size_of::<bool>(); // sticky read, guard, and first terminal publication
 const INPUT_STEP: usize = 2 * size_of::<&mut Paths>()
     + 2 * size_of::<Option<&ExprSkeletonPath>>()
     + 2 * size_of::<&ExprSkeletonPath>()
@@ -12026,17 +12116,24 @@ const PUBLISH: usize = 2 * size_of::<Entry>()
 // Foreign lenders are rejected before any reserve/diagnostic renderer on them.
 macro_rules! pay {
     ($scope:ident, $bytes:expr, $phase:literal) => {{
-        if !$scope.ledger.current() {
+        if $scope.failed {
             return Err(Diagnostic::io("SPX-H006", String::new()));
         }
-        $scope
-            .work
-            .budget
-            .reserve_bytes($scope.work.function, $bytes + AUTH, $phase)?;
+        if !$scope.ledger.current() {
+            $scope.failed = true;
+            return Err(Diagnostic::io("SPX-H006", String::new()));
+        }
+        match $scope.work.budget.reserve_bytes($scope.work.function, $bytes + AUTH, $phase) {
+            Ok(()) => {},
+            Err(error) => {
+                $scope.failed = true;
+                return Err(error);
+            }
+        }
     }};
 }
 
-pub(super) fn inputs(
+pub(in crate::cleanup_plan::replay) fn inputs(
     prefixes: &[ExprSkeletonPath],
     suffixes: &[ExprSkeletonPath],
     work: &mut SkeletonWork<'_, '_>,
@@ -12047,6 +12144,7 @@ pub(super) fn inputs(
         work,
         ledger,
         last: None,
+        failed: false,
     };
     let mut paths = prefixes.iter().chain(suffixes.iter());
     loop {
@@ -12226,6 +12324,7 @@ fn scope<'s, 'f, 'b>(
         work,
         ledger,
         last: None,
+        failed: false,
     })
 }
 fn check(
@@ -12385,6 +12484,9 @@ fn repeated_shared_and_equal_disjoint_roots_keep_real_logical_visit_multiplicity
             ),
             items: Vec::new(),
         };
+        // Isolate the validation owner's Rc lifetime from the fixture's
+        // destruction scratch, which otherwise retains its own strong/weak owners.
+        work.release_observation_scratch_for_test();
         let before = work.budget.remaining;
         assert!(old(&mut work, &shared).unwrap());
         let visits = before - work.budget.remaining;
@@ -12423,6 +12525,9 @@ fn repeated_shared_and_equal_disjoint_roots_keep_real_logical_visit_multiplicity
         assert_eq!(COUNTS.with(std::cell::Cell::get), (7, 8));
         assert!(Rc::get_mut(b.prefix.as_mut().unwrap()).is_none());
         drop(scope);
+        // Classification also lends b to work's private query scratch. End
+        // that owner before testing exclusive access to the fixture's Rc.
+        drop(work);
         assert!(Rc::get_mut(b.prefix.as_mut().unwrap()).is_some());
     });
 }
@@ -13303,7 +13408,8 @@ fn complete_old_root_bypass_and_source_inverse_survive_actual_whole_callers() {
         "                    $function, $budget, &mut $expected)? { return Ok(()); }\n");
     assert_eq!(current.matches(hook).count(), 1);
     assert_eq!(current.replacen(hook, "", 1), before);
-    let current = include_str!("../../emission.rs");
+    let retained_epoch = crate::cleanup_plan::replay::skeleton_work::query_proof::before_emission(include_str!("../../emission.rs"));
+    let current = retained_epoch.as_str();
     let visible = "pub(in crate::cleanup_plan::replay) fn with_before<T>";
     assert_eq!(current.matches(visible).count(), 1);
     let memo = current.replacen(visible, "fn with_before<T>", 1);
@@ -13769,6 +13875,10 @@ fn v12_complete_frozen_v11_inverse_keeps_every_row_view_prefix_and_canonical_byt
             .unwrap();
     assert!(page_bytes.len() <= PAGE_CAP);
     let page: Value = serde_json::from_slice(&page_bytes).unwrap();
+    if page["schema"] == super::super::SCHEMA_V14 {
+        super::super::verify_current_v14(&page);
+        return;
+    }
     if page["schema"] == super::super::SCHEMA_V13 {
         super::super::verify_current_v13(&page);
         return;
@@ -42684,9 +42794,9 @@ fn audit_source_before(path: &str, supplied: &str) -> String {
     for (row, (name, length, sha)) in rows.iter().zip(targets) { assert_eq!(row["path"], name); assert_eq!(row["before_length"], length); assert_eq!(row["before_sha256"], sha); }
     let row = rows.iter().find(|r| r["path"] == path).expect("fixed original audit acquisition");
     let compiled = match path {
-        "src/hir/inspection.rs" => ci_str!("../../inspection.rs"),
-        "src/hir/validation/constructor_seed/original.rs" => ci_str!("../../validation/constructor_seed/original.rs"),
-        "src/hir/validation/function_lookup/paid_custody.rs" => ci_str!("../../validation/function_lookup/paid_custody.rs"),
+        "src/hir/inspection.rs" => include_str!("../../inspection.rs"),
+        "src/hir/validation/constructor_seed/original.rs" => include_str!("../../validation/constructor_seed/original.rs"),
+        "src/hir/validation/function_lookup/paid_custody.rs" => include_str!("../../validation/function_lookup/paid_custody.rs"),
         _ => panic!("foreign original audit acquisition"),
     };
     assert_eq!(supplied, compiled); assert_eq!(std::fs::read(root.join(path)).unwrap(), compiled.as_bytes());
@@ -42708,9 +42818,9 @@ fn complete_nul_receiving_and_saved_constructor_sources_preserve_every_original_
     let paid_nul_before =
         reuse_source_before("src/hir/inspection/paid_nul.rs", ci_str!("../paid_nul.rs"));
     let acquired = [
-        audit_source_before("src/hir/inspection.rs", ci_str!("../../inspection.rs")),
-        audit_source_before("src/hir/validation/constructor_seed/original.rs", ci_str!("../../validation/constructor_seed/original.rs")),
-        audit_source_before("src/hir/validation/function_lookup/paid_custody.rs", ci_str!("../../validation/function_lookup/paid_custody.rs")),
+        audit_source_before("src/hir/inspection.rs", include_str!("../../inspection.rs")),
+        audit_source_before("src/hir/validation/constructor_seed/original.rs", include_str!("../../validation/constructor_seed/original.rs")),
+        audit_source_before("src/hir/validation/function_lookup/paid_custody.rs", include_str!("../../validation/function_lookup/paid_custody.rs")),
     ];
     let currents = [acquired[0].as_str(), acquired[1].as_str(), acquired[2].as_str(), paid_nul_before.as_str()];
     let originals = [
@@ -43117,6 +43227,22 @@ fn invocation_pending_reuse_authenticates_both_complete_immediate_old_sources() 
     let (prefix, _) = harness
         .split_once("// BEGIN INVOCATION EXPRESSION PENDING REUSE CONTROLS")
         .unwrap();
+    // Both raw channels cover the whole current harness before any inverse.
+    assert_eq!(std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/hir/inspection/paid_nul/tests.rs")).unwrap(), harness.as_bytes());
+    let added_start = prefix.find("// Complete physical sources precede the unchanged four original audit inverses.\n").unwrap();
+    let added_end = added_start + prefix[added_start..].find("#[test]\nfn complete_nul_receiving_and_saved_constructor_sources_preserve_every_original_byte()").unwrap();
+    let added = &prefix[added_start..added_end];
+    assert_eq!(added.len(), 2863);
+    assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(added.as_bytes()))), "fd8138e752f2ab846d3a3ff670199ffc11542a3f99e1df6a3613e7036651e24a");
+    assert_eq!(prefix.matches(added).count(), 1);
+    let prefix = prefix.replacen(added, "", 1);
+    let acquired = "    let acquired = [\n        audit_source_before(\"src/hir/inspection.rs\", include_str!(\"../../inspection.rs\")),\n        audit_source_before(\"src/hir/validation/constructor_seed/original.rs\", include_str!(\"../../validation/constructor_seed/original.rs\")),\n        audit_source_before(\"src/hir/validation/function_lookup/paid_custody.rs\", include_str!(\"../../validation/function_lookup/paid_custody.rs\")),\n    ];\n    let currents = [acquired[0].as_str(), acquired[1].as_str(), acquired[2].as_str(), paid_nul_before.as_str()];\n";
+    let before_calls = "    let currents = [\n        ci_str!(\"../../inspection.rs\"),\n        ci_str!(\"../../validation/constructor_seed/original.rs\"),\n        ci_str!(\"../../validation/function_lookup/paid_custody.rs\"),\n        paid_nul_before.as_str(),\n    ];\n";
+    assert_eq!(prefix.matches(acquired).count(), 1);
+    let prefix = prefix.replacen(acquired, before_calls, 1);
+    // Complete immediate pre-acquisition prefix; original four-byte inverses follow.
+    assert_eq!(prefix.len(), 14917);
+    assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(prefix.as_bytes()))), "7878af4d95b891250a995f9e77b4be02d1c5cef96f6d761c167e394faa788a73");
     let prefix = prefix.replace(
         "    let paid_nul_before =\n        reuse_source_before(\"src/hir/inspection/paid_nul.rs\", ci_str!(\"../paid_nul.rs\"));\n",
         "",
@@ -43125,6 +43251,7 @@ fn invocation_pending_reuse_authenticates_both_complete_immediate_old_sources() 
         prefix.strip_suffix('\n').unwrap(),
         include_str!("reuse_before/tests.rs.txt")
     );
+    assert_eq!(std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/hir/inspection/paid_nul/tests.rs")).unwrap(), harness.as_bytes());
     let current = include_str!("../paid_nul.rs");
     let mutated = current.replacen("const REUSE_CALL", "const FOREIGN_CALL", 1);
     assert!(std::panic::catch_unwind(|| reuse_source_before(
@@ -45804,7 +45931,7 @@ fn source_before(path: &str, supplied: &str) -> String {
     let packet = include_bytes!("reached_before/inverse.json");
     assert_eq!(
         hash(packet),
-        "1e1188c81b5bc515eca82e8a04a74d9ecb117d9ec3eef2632c241c804f612472"
+        "502ce5028fe9c180ff71c8e7f19ad6724f5a729244d828dadcc8ccdf1e59d129"
     );
     let packet_path =
         root.join("src/cleanup_plan/replay/continuation_storage/reached_before/inverse.json");
@@ -46139,8 +46266,9 @@ fn fitting_probe(
     crate::bounded_output::with_limit_usage_refusal(limit, || {
         crate::test_allocation_observer::measure(|| {
             let mut budget = ReplayBudget::new();
-            // The unchanged preflight owns this pool. The fitting comparison
-            // must restore it even on failure; only ordinary free work pays.
+            // The unchanged preflight owns this pool while replay is live.
+            // A terminal sticky refusal poisons both work counters, as in the
+            // original budget API; it does not refund held work to a retry.
             budget.skeleton_remaining = 17;
             let result = fitting_select(function, cfg, hir, &mut budget).and_then(|selected| {
                 assert!(selected);
@@ -46153,6 +46281,8 @@ fn fitting_probe(
                 assert!(budget
                     .reserve_bytes(function, 0, "retry fitting proof")
                     .is_err());
+                assert!(budget.refusal_spent);
+                assert_eq!((budget.remaining, budget.skeleton_remaining), (0, 0));
             }
             let outcome = FittingOutcome {
                 success,
@@ -46180,9 +46310,14 @@ fn fitting_scalar_comparison_keeps_admission_and_independent_enumerator() {
     let mut control = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
     let mut expected = hir_skeleton_paths(&program, &main, &mut control).unwrap();
     let mut actual = plan_skeleton_paths(&main, &mut control).unwrap();
-    expected.sort();
-    actual.sort();
-    assert_eq!(expected, actual);
+    control.reserve_bytes(
+        &main,
+        3 * skeleton_work::enumerated_prefix::ENTRY_CALL,
+        "independent fitting full-content comparison entries",
+    ).unwrap();
+    skeleton_work::enumerated_prefix::sort(&mut expected, &main, &mut control).unwrap();
+    skeleton_work::enumerated_prefix::sort(&mut actual, &main, &mut control).unwrap();
+    assert!(skeleton_work::enumerated_prefix::equal(&expected, &actual, &main, &mut control).unwrap());
     let (selected, refused, _, _) =
         crate::bounded_output::with_limit_usage_refusal(1 << 29, || {
             let mut budget = ReplayBudget::new();
@@ -46192,6 +46327,41 @@ fn fitting_scalar_comparison_keeps_admission_and_independent_enumerator() {
             selected
         });
     assert!(selected && !refused, "the actual comparison entry selects");
+
+    // Independently execute the original budget refusal API. Legacy supplies
+    // the full six-field first diagnostic; the Active budget must keep it on
+    // its prepaid text, then poison BOTH counters and refuse even a zero retry.
+    let mut original = ReplayBudget::unobserved();
+    original.remaining = 0;
+    original.skeleton_remaining = 17;
+    let expected = original
+        .charge(&main, 1, "fitting prior work refusal")
+        .unwrap_err();
+    let (((), metrics), refused, paid, receipt) =
+        crate::bounded_output::with_limit_usage_refusal(1 << 20, || {
+            crate::test_allocation_observer::measure(|| {
+                let mut budget = ReplayBudget::new();
+                budget.remaining = 0;
+                budget.skeleton_remaining = 17;
+                let first = budget
+                    .charge(&main, 1, "fitting prior work refusal")
+                    .unwrap_err();
+                assert_eq!(first, expected, "all six original diagnostic fields");
+                assert!(budget.refusal_spent);
+                assert_eq!((budget.remaining, budget.skeleton_remaining), (0, 0));
+                let retry = budget
+                    .reserve_bytes(&main, 0, "fitting prior zero retry")
+                    .unwrap_err();
+                assert_eq!(retry, Diagnostic::io("SPX-H006", String::new()));
+                assert_eq!(first, expected, "retry cannot replace the first diagnostic");
+                assert_eq!((budget.remaining, budget.skeleton_remaining), (0, 0));
+                drop((first, retry, budget));
+            })
+        });
+    assert!(!refused && receipt.is_none(), "work refusal is local, not a byte charge");
+    assert!(!metrics.invalid && metrics.allocated <= paid);
+    assert_eq!(metrics.live, 0);
+    assert_eq!(metrics.allocated, metrics.freed);
 
     let ((baseline, metrics), refused, charged, _) =
         fitting_probe(&program, &main, cfg, hir, 1 << 29);
@@ -46210,7 +46380,9 @@ fn fitting_scalar_comparison_keeps_admission_and_independent_enumerator() {
         let ((short, metrics), refused, paid, receipt) =
             fitting_probe(&program, &main, cfg, hir, cut);
         assert!(!short.success && refused && receipt.is_some());
-        assert_eq!(short.held, 17);
+        // The explicit zero retry above has the original terminal poison
+        // contract, not the successful comparison's live held allowance.
+        assert_eq!(short.held, 0);
         assert!(paid <= cut && !metrics.invalid && metrics.allocated <= paid);
         assert_eq!(metrics.live, 0);
         assert_eq!(metrics.allocated, metrics.freed);

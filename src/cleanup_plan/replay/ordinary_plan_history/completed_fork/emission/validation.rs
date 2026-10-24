@@ -15,6 +15,7 @@ struct Validation<'scope, 'function, 'budget> {
     work: &'scope mut SkeletonWork<'function, 'budget>,
     ledger: ClassifierLedger,
     last: Option<Entry>,
+    failed: bool,
 }
 type Scope = Validation<'static, 'static, 'static>;
 type Pending = Vec<&'static ObservationDag>;
@@ -25,7 +26,7 @@ type Paths = std::iter::Chain<
 
 // Actual/formal loans, live/moved/returned owners, setup iterators and complete
 // error/Drop receivers. Dynamic Vec backing is separately acquired below.
-pub(super) const CALL: usize = 8 * size_of::<&[ExprSkeletonPath]>()
+pub(in crate::cleanup_plan::replay) const CALL: usize = 8 * size_of::<&[ExprSkeletonPath]>()
     + 2 * size_of::<&mut SkeletonWork<'static, 'static>>()
     + 2 * size_of::<Result<bool, Diagnostic>>()
     + 2 * size_of::<Scope>()
@@ -35,6 +36,7 @@ pub(super) const CALL: usize = 8 * size_of::<&[ExprSkeletonPath]>()
     + 2 * size_of::<Paths>()
     + ClassifierLedger::capture_into_controls()
     + AUTH
+    + size_of::<bool>() // initialized invocation-local sticky terminal state
     + PAYMENT;
 // CALL prepays the first guard. Every successful reserve renews the next
 // guard's borrowed receivers and minimal foreign-error return before use.
@@ -42,7 +44,8 @@ const AUTH: usize = ClassifierLedger::current_receiving_controls()
     + 2 * size_of::<Diagnostic>()
     + 2 * size_of::<String>()
     + 4 * size_of::<&str>()
-    + 2 * size_of::<Result<bool, Diagnostic>>();
+    + 2 * size_of::<Result<bool, Diagnostic>>()
+    + 3 * size_of::<bool>(); // sticky read, guard, and first terminal publication
 const INPUT_STEP: usize = 2 * size_of::<&mut Paths>()
     + 2 * size_of::<Option<&ExprSkeletonPath>>()
     + 2 * size_of::<&ExprSkeletonPath>()
@@ -100,17 +103,24 @@ const PUBLISH: usize = 2 * size_of::<Entry>()
 // Foreign lenders are rejected before any reserve/diagnostic renderer on them.
 macro_rules! pay {
     ($scope:ident, $bytes:expr, $phase:literal) => {{
-        if !$scope.ledger.current() {
+        if $scope.failed {
             return Err(Diagnostic::io("SPX-H006", String::new()));
         }
-        $scope
-            .work
-            .budget
-            .reserve_bytes($scope.work.function, $bytes + AUTH, $phase)?;
+        if !$scope.ledger.current() {
+            $scope.failed = true;
+            return Err(Diagnostic::io("SPX-H006", String::new()));
+        }
+        match $scope.work.budget.reserve_bytes($scope.work.function, $bytes + AUTH, $phase) {
+            Ok(()) => {},
+            Err(error) => {
+                $scope.failed = true;
+                return Err(error);
+            }
+        }
     }};
 }
 
-pub(super) fn inputs(
+pub(in crate::cleanup_plan::replay) fn inputs(
     prefixes: &[ExprSkeletonPath],
     suffixes: &[ExprSkeletonPath],
     work: &mut SkeletonWork<'_, '_>,
@@ -121,6 +131,7 @@ pub(super) fn inputs(
         work,
         ledger,
         last: None,
+        failed: false,
     };
     let mut paths = prefixes.iter().chain(suffixes.iter());
     loop {

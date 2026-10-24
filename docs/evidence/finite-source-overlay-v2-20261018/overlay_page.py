@@ -4,8 +4,8 @@ PAGE_CAP = 262144
 SOURCE_CAP = 9753094
 POLICY_PATH = 'docs/evidence/finite-source-overlay-v2-20261018/policy.json'
 PAGE_PATH = 'docs/evidence/finite-source-overlay-v2-20261018/page.json'
-POLICY_LENGTH = 136074
-POLICY_SHA256 = '98c659a9041d91d3da67b98f165d931a2efe11808f4e7ea5f4efd21c4987e210'
+POLICY_LENGTH = 136967
+POLICY_SHA256 = '3f2c630bc4fc7d8e9006ba106e9021a405100f8f0f100702fd0b20f3c9458a99'
 EXTENSION_PATH = 'docs/evidence/fmt-local-441-20261018/extension.json'
 EXTENSION_LENGTH = 262076
 EXTENSION_SHA256 = '2af7299253e5cfb027186ba4fc151011a937214ff381c9267bfc11ef7d0003b6'
@@ -312,7 +312,7 @@ def _load_fixed_codecs():
  import os, stat
  from pathlib import Path
  path=Path(__file__).with_name('overlay_page_codecs.py')
- length=16207
+ length=23065
  fd=os.open(path,os.O_RDONLY|os.O_CLOEXEC|os.O_NOFOLLOW|os.O_NONBLOCK)
  try:
   info=os.fstat(fd)
@@ -322,7 +322,7 @@ def _load_fixed_codecs():
   identity=lambda value:(value.st_dev,value.st_ino,value.st_mode,value.st_size,value.st_mtime_ns,value.st_ctime_ns)
   assert stat.S_ISREG(after.st_mode) and stat.S_ISREG(named.st_mode), 'codec postread regularity'
   assert identity(info)==identity(after)==identity(named), 'codec postread identity'
-  assert len(raw)==length and hashlib.sha256(raw).hexdigest()=='36caf4ad467086e1b1be44917472751d359088fe01e3930f4042d69dacb537f8', 'codec fixed bytes'
+  assert len(raw)==length and hashlib.sha256(raw).hexdigest()=='9cae8c3b1db0d54de8ce9d66639dab5de6c16c9e5772d1503b922482b1b2a1fb', 'codec fixed bytes'
  finally:os.close(fd)
  exec(compile(raw,str(path),'exec'),globals())
 _load_fixed_codecs()
@@ -403,6 +403,7 @@ def encode_v10_pins(before,policy,page):
 
 def compose_values(before, policy, page):
  if page["schema"]==V10_SCHEMA and "archive_prefixes" not in page:page=expand_v10_pins(before,policy,page)
+ if page['schema']==V14_SCHEMA:page=_expand_v12_logical_view_labels(_expand_v13_logical_digest_table(expand_v14_pin_tails(page)))
  if page['schema']==V13_SCHEMA:page=_expand_v12_logical_view_labels(expand_v13_digest_table(page))
  if page['schema']==V12_SCHEMA:page=expand_v12_view_labels(page)
  if page['schema']==V11_SCHEMA:page=expand_v11_digest_pins(page)

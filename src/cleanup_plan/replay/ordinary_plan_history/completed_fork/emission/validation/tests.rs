@@ -21,6 +21,7 @@ fn scope<'s, 'f, 'b>(
         work,
         ledger,
         last: None,
+        failed: false,
     })
 }
 fn check(
@@ -180,6 +181,9 @@ fn repeated_shared_and_equal_disjoint_roots_keep_real_logical_visit_multiplicity
             ),
             items: Vec::new(),
         };
+        // Isolate the validation owner's Rc lifetime from the fixture's
+        // destruction scratch, which otherwise retains its own strong/weak owners.
+        work.release_observation_scratch_for_test();
         let before = work.budget.remaining;
         assert!(old(&mut work, &shared).unwrap());
         let visits = before - work.budget.remaining;
@@ -218,6 +222,9 @@ fn repeated_shared_and_equal_disjoint_roots_keep_real_logical_visit_multiplicity
         assert_eq!(COUNTS.with(std::cell::Cell::get), (7, 8));
         assert!(Rc::get_mut(b.prefix.as_mut().unwrap()).is_none());
         drop(scope);
+        // Classification also lends b to work's private query scratch. End
+        // that owner before testing exclusive access to the fixture's Rc.
+        drop(work);
         assert!(Rc::get_mut(b.prefix.as_mut().unwrap()).is_some());
     });
 }

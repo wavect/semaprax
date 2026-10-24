@@ -146,3 +146,23 @@ declaration preflight accepts only that grammar without calls, evaluation,
 policy-derived scope or external loading. Earlier qualification writers remain
 historical and are not claimed compatible with this current source layout. This source layout does
 not change a page schema, codec body, source admission or any existing cap.
+
+V14 adds a closed `pin_tails` dictionary over the entire V13 value. In exactly
+the existing positional pin slots, a current `[length,digest,optional_archive]`
+tail may become `[tail_index]`; a named view retains its label followed by that
+same reference. Declarations are complete literal tails, unique and ordered by
+first use. Every declaration must be used at least twice; declared tails left
+literal, repeated literal tails, invalid indices, extra envelope keys and
+noncanonical first use refuse. Object pins, unknown metadata, canonical fragment
+references, view/fragment multiplicity and order remain untouched.
+
+The public V14 page retains the 262144-byte wire cap. Its complete V13 inverse
+is bounded by the unchanged 9753094-byte source cap before expansion, then
+passes a private logical V13 frontier containing every original V13 dictionary,
+digest, alias and order check, followed by the existing logical V12 and older
+readers. Standalone public V13 encoding and decoding keep their original wire
+cap and exact implementations. V14 opens no source/archive path, changes no
+admission, and confers no runtime qualification. The Python encoder requires
+canonical equality with the entire V13 inverse; the Rust and Python controls
+cover unknown metadata, malformed references, duplicate/unused declarations,
+aliases, first-use ordering and both bounds independently.

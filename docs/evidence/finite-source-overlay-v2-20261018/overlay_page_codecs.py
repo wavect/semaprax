@@ -365,3 +365,164 @@ def _expand_v12_logical_view_labels(page):
  v12_view_slots(result,lambda index:labels[index])
  del result['view_labels'];result['schema']=V11_SCHEMA
  return result
+
+# Private V14 intermediate only; public V13 functions above retain exact caps.
+def _expand_v13_logical_digest_table(page):
+ assert keys(page,(*V12_KEYS,'view_labels','digest_table')) and page['schema']==V13_SCHEMA, 'v13 envelope'
+ assert len(canonical(page))<=SOURCE_CAP, 'v13 same one-page cap'
+ declarations=page['digest_table']
+ assert type(declarations) is list, 'v13 dictionary'
+ unique=set()
+ for value in declarations:
+  v11_digest(value)
+  assert value not in unique, 'v13 duplicate declaration'
+  unique.add(value)
+ result=copy.deepcopy(page);del result['digest_table'];result['schema']=V12_SCHEMA
+ expanded=len(canonical(result));uses=[0]*len(declarations);next_index=0;literals=set()
+ def index(value):
+  assert type(value) is int and 0<=value<len(declarations), 'v13 unknown digest index'
+  return value
+ def validate(value):
+  nonlocal expanded,next_index
+  if type(value) is str:
+   v11_digest(value)
+   assert value not in unique and value not in literals, 'v13 uninterned or aliased digest'
+   literals.add(value)
+  else:
+   position=index(value)
+   if uses[position]==0:
+    assert position==next_index, 'v13 noncanonical first-use order'
+    next_index+=1
+   uses[position]+=1;expanded+=46-len(canonical(value))
+  assert expanded<=SOURCE_CAP, 'v13 expanded bound'
+  return value
+ v13_digest_slots(result,validate)
+ assert all(count>=2 for count in uses), 'v13 declaration requires repeated use'
+ v13_digest_slots(result,lambda value:value if type(value)is str else declarations[index(value)])
+ assert len(canonical(result))==expanded and expanded<=SOURCE_CAP, 'v13 expanded bound'
+ return result
+
+
+def _encode_v13_logical_digest_table(page):
+ assert keys(page,(*V12_KEYS,'view_labels')) and page['schema']==V12_SCHEMA, 'v13 input envelope'
+ assert len(canonical(page))<=SOURCE_CAP, 'v13 logical input bound'
+ result=copy.deepcopy(page);counts={}
+ def count(value):
+  v11_digest(value);counts[value]=counts.get(value,0)+1
+  return value
+ v13_digest_slots(result,count)
+ indices={};table=[]
+ def encode(value):
+  if counts[value]<2:return value
+  if value not in indices:indices[value]=len(table);table.append(value)
+  return indices[value]
+ v13_digest_slots(result,encode)
+ result['schema']=V13_SCHEMA;result['digest_table']=table
+ assert len(canonical(result))<=SOURCE_CAP, 'v13 same one-page cap'
+ assert canonical(_expand_v13_logical_digest_table(result))==canonical(page), 'v13 ENTIRE V12 page inverse'
+ return result
+
+
+# V14 interns whole positional pin tails. Object pins/unknown metadata are opaque.
+V14_SCHEMA = 'semaprax.finite-source-overlay-page.v14'
+def v14_pin_slots(page, convert):
+ def pin(value,named):
+  if type(value) is dict:return value
+  assert type(value) is list, 'v14 pin arity'
+  offset=int(named)
+  assert len(value) in (offset+1,offset+2,offset+3), 'v14 pin arity'
+  return value[:offset]+convert(value[offset:])
+ def row(value):
+  assert type(value) is dict, 'v14 literal row'
+  if 'current' in value:value['current']=pin(value['current'],False)
+  if 'views' in value:
+   assert type(value['views']) is list, 'v14 views'
+   value['views']=[pin(view,True) for view in value['views']]
+ def fragments(value):
+  if value is None:return
+  assert type(value) is list, 'v14 fragments'
+  for fragment in value:
+   assert type(fragment) is dict, 'v14 fragment row'
+   if 'canonical_source' not in fragment:row(fragment)
+ for group in ('replacements','additions'):
+  assert type(page[group]) is list, 'v14 rows'
+  for value in page[group]:
+   assert type(value) is dict, 'v14 row'
+   if 'old519_index' in value:
+    assert group=='replacements' and keys(value,('old519_index',)), 'v14 indexed row'
+    ref=value['old519_index']
+    assert type(ref) is list and len(ref)==4, 'v14 old519 arity'
+    ref[1]=pin(ref[1],False)
+    assert type(ref[2]) is list, 'v14 views'
+    ref[2]=[pin(view,True) for view in ref[2]]
+    fragments(ref[3])
+   else:
+    row(value)
+    if 'fragments' in value:fragments(value['fragments'])
+
+def _v14_tail(value):
+ assert type(value) is list and len(value) in (2,3), 'v14 tail arity'
+ assert type(value[0]) is int and 0<=value[0]<=SOURCE_CAP, 'v14 tail length'
+ # Full digest semantics are checked by logical V13; archives by unchanged older readers.
+ assert type(value[1]) in (int,str), 'v14 tail digest type'
+ return canonical(value)
+
+def expand_v14_pin_tails(page):
+ assert keys(page,(*V12_KEYS,'view_labels','digest_table','pin_tails')) and page['schema']==V14_SCHEMA, 'v14 envelope'
+ assert len(canonical(page))<=PAGE_CAP, 'v14 same one-page cap'
+ declarations=page['pin_tails']
+ assert type(declarations) is list, 'v14 dictionary'
+ unique=set()
+ for value in declarations:
+  key=_v14_tail(value)
+  assert key not in unique, 'v14 duplicate declaration'
+  unique.add(key)
+ result=copy.deepcopy(page);del result['pin_tails'];result['schema']=V13_SCHEMA
+ uses=[0]*len(declarations);next_index=0;literals=set();expanded=len(canonical(result))
+ def validate(value):
+  nonlocal next_index,expanded
+  if len(value)==1:
+   position=value[0]
+   assert type(position) is int and 0<=position<len(declarations), 'v14 unknown tail index'
+   if uses[position]==0:
+    assert position==next_index, 'v14 noncanonical first-use order'
+    next_index+=1
+   uses[position]+=1
+   expanded+=len(canonical(declarations[position]))-len(canonical(value))
+  else:
+   key=_v14_tail(value)
+   assert key not in unique and key not in literals, 'v14 uninterned or aliased tail'
+   literals.add(key)
+  assert expanded<=SOURCE_CAP, 'v14 expanded bound'
+  return value
+ v14_pin_slots(result,validate)
+ assert all(count>=2 for count in uses), 'v14 declaration requires repeated use'
+ assert expanded<=SOURCE_CAP, 'v14 expanded bound'
+ v14_pin_slots(result,lambda value:copy.deepcopy(declarations[value[0]]) if len(value)==1 else value)
+ assert len(canonical(result))==expanded, 'v14 expanded bound'
+ _expand_v13_logical_digest_table(result)
+ return result
+
+def encode_v14_pin_tails(page):
+ assert keys(page,(*V12_KEYS,'view_labels','digest_table')) and page['schema']==V13_SCHEMA, 'v14 input envelope'
+ assert len(canonical(page))<=SOURCE_CAP, 'v14 logical input bound'
+ _expand_v13_logical_digest_table(page)
+ result=copy.deepcopy(page);counts={}
+ def count(value):
+  key=_v14_tail(value);counts[key]=counts.get(key,0)+1
+  return value
+ v14_pin_slots(result,count)
+ table=[];indices={}
+ def encode(value):
+  key=_v14_tail(value)
+  if counts[key]<2:return value
+  if key not in indices:indices[key]=len(table);table.append(copy.deepcopy(value))
+  return [indices[key]]
+ v14_pin_slots(result,encode)
+ result['schema']=V14_SCHEMA;result['pin_tails']=table
+ assert len(canonical(result))<=PAGE_CAP, 'v14 same one-page cap'
+ assert canonical(expand_v14_pin_tails(result))==canonical(page), 'v14 ENTIRE V13 page inverse'
+ return result
+
+def encode_v14(page):
+ return encode_v14_pin_tails(_encode_v13_logical_digest_table(page))

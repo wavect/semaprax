@@ -774,10 +774,10 @@ fn field_local_census_before(path: &str, current: &[u8]) -> Vec<u8> {
     assert_eq!(physical, compiled);
     assert_eq!(current, compiled);
     let packet = include_bytes!("../cleanup_plan/replay/path_join/field_local/inverse.json");
-    assert_eq!(packet.len(), 168718);
+    assert_eq!(packet.len(), 492721);
     assert_eq!(
         digest(packet),
-        "70a2555913c105aef3d8b2f65293f5142f527ae5ff00c6070a2b560e92c6d8c5"
+        "0bdc59ae516de9e1678b998e6b8d4fdb54c4bc5db08607acbd5fd788a3d9e98a"
     );
     assert_eq!(
         std::fs::read(root.join("src/cleanup_plan/replay/path_join/field_local/inverse.json"))

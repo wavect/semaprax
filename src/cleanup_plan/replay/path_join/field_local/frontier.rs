@@ -234,6 +234,32 @@ macro_rules! authenticate_lexical {
         $owner.failed = $owner.refusal.is_some();
     };
 }
+// No receiver publication, field take, comparison or forwarded Box forms
+// on a carry. Initial full ENTRY and all unused slots remain reserved.
+macro_rules! admit_carry {
+    ($label:lifetime, $owner:ident, $function:ident, $budget:ident) => {
+        // Never overwrite a refusal selected by the live zero check.
+        if $owner.failed {
+            break $label;
+        }
+        if let Err(error) = $budget.reserve_compact_bytes(
+            $function,
+            frontier::ShippingInsertions::<PathState>::CARRY_AUTH + boxed_flow::CARRY_BLOCK,
+            "ready singleton retained ownership and next block controls",
+        ) {
+            $owner.refusal = Some(error);
+            $owner.failed = true;
+            break $label;
+        }
+        $owner.entry = true;
+        #[cfg(test)]
+        if $budget.pays_allocations() {
+            tests::carry_block();
+        }
+    };
+}
+pub(super) use admit_carry;
+
 macro_rules! insert_owned {
     ($ty:ty, $owner:ident, $function:ident, $target:expr, $value:expr, $budget:ident $(,)?) => {{
         // These are the original target/value receiving locals. No owning
@@ -339,6 +365,23 @@ impl<T: Ord, const LEXICAL: bool> Receiving<T, LEXICAL> {
     // A single entry's actual method/gateway/positive-reservation receivers.
     // Each entry consumes this bank and pays the next bank afresh. The final
     // unused entry remains reserved: no reset, refund or allowance donation.
+    // Full actual from_ref/zero/positive fn loans; zero/positive mutable
+    // budget loans and from_ref shared budget loans are distinct types.
+    // Each pointer comparison retains its raw operands and PartialEq loans.
+    // Sixteen bools conservatively cover failed/entry/assert/false, authority
+    // predicates/negation/ORs, zero is_some/failed, failed stop, Err selection,
+    // and entry/failed publication. Unused predicate roles are not refunded.
+    pub(super) const CARRY_AUTH: usize = 6 * size_of::<&ResolvedFunction>()
+        + 4 * size_of::<&mut ReplayBudget>()
+        + 2 * size_of::<&ReplayBudget>()
+        + 4 * size_of::<*const ResolvedFunction>()
+        + 4 * size_of::<*const ReplayBudget>()
+        + 4 * size_of::<&*const ResolvedFunction>()
+        + 4 * size_of::<&*const ReplayBudget>()
+        + size_of::<&mut Option<ByteFailure>>()
+        + size_of::<Result<(), ByteFailure>>()
+        + ClassifierLedger::current_receiving_controls()
+        + 16 * size_of::<bool>();
     pub(super) const ENTRY_CONTROLS: usize = if LEXICAL { 0 } else { 2 * size_of::<&mut Self>() }
             + 4 * size_of::<&ResolvedFunction>()
             + 4 * size_of::<&mut ReplayBudget>()

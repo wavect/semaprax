@@ -68,7 +68,7 @@ fn report(old: &Run, current: &Run) {
     let (loaded_added, loaded_removed) = loaded::complete_loaded_delta(&current.row);
     assert_eq!(current.observed.2 + removed + loaded_removed, old.observed.2 + added + loaded_added);
     eprintln!(
-        "OPT907 complete old={} current={} added={} removed={} flat={} shared={} steps={} tails={}; independent content, full heap/Drop, cold losses retained; no app admission claim",
+        "OPT907 complete old={} current={} added={} removed={} flat={} shared={} steps={} tails={} loaded_added={} loaded_removed={} old_heap={:?} current_heap={:?} old_outcome={:?} current_outcome={:?}; independent content, full heap/Drop, cold losses retained; no app admission claim",
         old.observed.2,
         current.observed.2,
         added,
@@ -76,7 +76,13 @@ fn report(old: &Run, current: &Run) {
         current.row.final_flat,
         current.row.final_shared,
         current.row.final_steps,
-        current.row.final_tails
+        current.row.final_tails,
+        loaded_added,
+        loaded_removed,
+        old.observed.0 .1,
+        current.observed.0 .1,
+        old.observed.0 .0,
+        current.observed.0 .0
     );
 }
 #[test]

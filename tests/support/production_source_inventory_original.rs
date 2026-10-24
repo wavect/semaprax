@@ -13,7 +13,12 @@ fn current_source(path: &str, row: &serde_json::Value) -> String {
     let mut file = std::fs::File::open(Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap();
     let metadata = file.metadata().unwrap();
     assert!(metadata.is_file());
-    let interop_epoch = path == Path::new("crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs");
+    let interop_path = path == Path::new("crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs");
+    let interop_epoch = interop_path && row["sha256"] == "d1edee35f9a7a97e9478264a44b7e77e4b3903bcbb87bb327602053f22afa6c8";
+    if interop_path && !interop_epoch {
+        assert_eq!(length, 233195);
+        assert_eq!(row["sha256"], "0e793e87c5913d29d090949527031177cf4ed760e1051bb1f032f21580f1782c");
+    }
     let read_length = if interop_epoch {
         assert_eq!(length, 229209);
         assert_eq!(row["sha256"], "d1edee35f9a7a97e9478264a44b7e77e4b3903bcbb87bb327602053f22afa6c8");
@@ -26,6 +31,9 @@ fn current_source(path: &str, row: &serde_json::Value) -> String {
     file.read_exact(&mut bytes).unwrap();
     let mut tail = [0];
     assert_eq!(file.read(&mut tail).unwrap(), 0);
+    if interop_path {
+        assert_eq!(bytes.as_slice(), include_bytes!("../../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs").as_slice());
+    }
     if interop_epoch {
         let compiled = include_bytes!("../../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs");
         assert_eq!(bytes.as_slice(), compiled.as_slice());
@@ -62,6 +70,8 @@ fn current_source(path: &str, row: &serde_json::Value) -> String {
         assert_eq!(bytes.as_slice(), include_bytes!("../../Cargo.toml").as_slice());
         assert_eq!(bytes.len(), 4411);
         assert_eq!(format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(&bytes))), "206f6e4ac63533b6f1e136ffe44c3d80f580a1009cc05688c771ab4ea4e5e99b");
+        if row["sha256"] != "206f6e4ac63533b6f1e136ffe44c3d80f580a1009cc05688c771ab4ea4e5e99b" {
+        assert_eq!(row["sha256"], "4a04317123051b85eecd20f4840e760fa9494c4d3e59d5146669cd5916348a67");
         let mut manifest = String::from_utf8(bytes).unwrap();
         for (current, before) in [
             ("wasmparser = { version = \"=0.262.0\", default-features = false, features = [\"component-model\", \"features\", \"validate\"] }\nwasm-encoder = { version = \"=0.262.0\", default-features = false, features = [\"std\", \"component-model\"] }\n", "wasmparser = { version = \"=0.261.0\", default-features = false, features = [\"component-model\", \"features\", \"validate\"] }\nwasm-encoder = { version = \"=0.261.0\", default-features = false, features = [\"std\", \"component-model\"] }\n"),
@@ -72,6 +82,7 @@ fn current_source(path: &str, row: &serde_json::Value) -> String {
         }
         bytes = manifest.into_bytes();
         assert_eq!(bytes.len(), length);
+        }
         assert_eq!(std::fs::read(Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap().as_slice(), include_bytes!("../../Cargo.toml").as_slice());
     }
     let digest = format!(

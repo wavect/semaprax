@@ -40,7 +40,45 @@ fn joint(
 
 #[test]
 fn complete_immediate_old_nested_receiver_and_production_gates_survive() {
-    let mut source = include_str!("../../../../replay.rs").to_owned();
+    let raw_source = include_str!("../../../../replay.rs");
+    assert_eq!(std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/cleanup_plan/replay.rs")).unwrap(), raw_source.as_bytes());
+    let digest = |bytes: &[u8]| { use sha2::{Digest, Sha256}; format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes))) };
+    assert_eq!(raw_source.len(), 327551);
+    assert_eq!(digest(raw_source.as_bytes()), "751c95561915a9b99ebec0bdf702dc9c7448d411f0f80ac58d244bc7df20dde5");
+    let mut source = raw_source.to_owned();
+    let prefix_edits: &[(usize, &str, &str)] = &[
+        (1097, "mod plan_prefix;\n", ""),
+        (108404, "#[rustfmt::skip]\n", ""),
+        (112083, "        ReplayBudget { payer: AllocationPayer::LegacyUnobserved, .. } if { #[cfg(test)] { !ordinary_plan_history::completed_fork::emission::before_selected() } #[cfg(not(test))] { true } } => !plan_prefix::equal_paths(function, budget, &mut expected, &mut actual)?,\n", ""),
+        (116424, "        budget.reserve_bytes(function, skeleton_work::query_proof::HEADER, \"skeleton query neutral slot receivers\")?;\n        SkeletonWork { queries: skeleton_work::query_proof::Slot::new(function, budget),\n", "        SkeletonWork {\n"),
+        (279166, "#[rustfmt::skip]\n", ""),
+        (279316, "    budget.reserve_bytes(function, plan_prefix::QUERY_CONTROLS, \"PLAN prefix eligibility receivers\")?;\n    if matches!(budget.payer, AllocationPayer::LegacyUnobserved) && { #[cfg(test)] { !ordinary_plan_history::completed_fork::emission::before_selected() } #[cfg(not(test))] { true } } { return plan_prefix::build(function, budget); }\n", ""),
+        (289554, "                compact_path::plan_selection!(budget, function);\n", "                budget.reserve_bytes(\n                    function,\n                    branch_clone::direct::PLAN_SMALL_SELECTION_CONTROLS,\n                    \"plan final-output selection controls\",\n                )?;\n"),
+        (289948, "                        physical_budget::compact_try!(budget.reserve_compact_bytes(\n", "                        budget.reserve_bytes(\n"),
+        (290070, "                            branch_clone::direct::plan_compact_roles::<\n", "                            branch_clone::direct::compact_roles::<\n"),
+        (290357, "                        ));\n", "                        )?;\n"),
+        (291020, "                        physical_budget::compact_try!(budget.reserve_compact_bytes(\n", "                        budget.reserve_bytes(\n"),
+        (291142, "                            branch_clone::plan_compact_roles::<std::rc::Rc<SkeletonObservation>>(),\n", "                            branch_clone::compact_roles::<std::rc::Rc<SkeletonObservation>>(),\n"),
+        (291305, "                        ));\n", "                        )?;\n"),
+        (291645, "                        physical_budget::compact_try!(budget.reserve_compact_bytes(\n", "                        budget.reserve_bytes(\n"),
+        (291767, "                            branch_clone::direct::plan_compact_roles::<\n", "                            branch_clone::direct::compact_roles::<\n"),
+        (292054, "                        ));\n", "                        )?;\n"),
+        (292911, "                    compact_path::plan_move!(budget, function);\n                    compact_path::plan_work!(\n                        budget,\n", "                    budget.reserve_bytes(\n"),
+        (293087, "                        \"cleanup-plan skeleton branch clone\"\n                    );\n", "                        final_output::PLAN_MOVE_CONTROLS,\n                        \"plan final-output move controls\",\n                    )?;\n                    budget.charge_skeleton(function, 1, \"cleanup-plan skeleton branch clone\")?;\n"),
+        (293480, "                    compact_path::plan_work!(budget, function, \"plan branch observation push\");\n", "                    budget.charge_skeleton(function, 1, \"plan branch observation push\")?;\n"),
+        (293629, "                    compact_path::plan_auth!(budget, function);\n                    compact_path::plan_conversion!(budget, function, observation);\n", "                    budget.reserve_bytes(function, 0, \"plan branch observation push\")?;\n                    budget.reserve_bytes(\n                        function,\n                        physical_clone::conversion_bytes::<std::rc::Rc<SkeletonObservation>, _>(\n                            &observation,\n                        ),\n                        \"plan branch observation push\",\n                    )?;\n"),
+        (297849, "                        branch_clone::short_plan::produce!(\n                            budget,\n                            function,\n                            observations,\n                            observation,\n                            edge,\n                            queue\n                        );\n", ""),
+        (324946, "#[cfg(test)]\nmod workspace_oracle;\n", "\n"),
+        (325059, "#[cfg(test)]\npub(crate) use workspace_oracle::with_financed_workspace_test_oracles;\n", "\n"),
+        (325167, "", "\n"),
+    ];
+    for &(at, current, previous) in prefix_edits.iter().rev() {
+        assert_eq!(source.get(at..at + current.len()), Some(current));
+        source.replace_range(at..at + current.len(), previous);
+    }
+    assert_eq!(source.len(), 326623);
+    assert_eq!(digest(source.as_bytes()), "027903ce7f76fd0a9883e2736adfa1214bdb1e687303d939c0e40751c6130320");
+    assert_eq!(std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/cleanup_plan/replay.rs")).unwrap(), raw_source.as_bytes());
     // Reverse exactly the new public shared-call receiver before composing
     // the independent DAG and HIR feature inverses (full f1d66/3666 root).
     let current_call = r#####"            let observations = ordinary_plan_history::completed_fork::emission::extend_call!(

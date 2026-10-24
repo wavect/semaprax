@@ -178,8 +178,8 @@ fn original_payer_exact_short_zero_floor_and_all_partial_owners_drop() {
             measure(|| {
                 assert!(set_active_floor(floor));
                 let mut budget = ReplayBudget::with_skeleton_limit(usize::MAX);
-                let mut work = SkeletonWork::new(&program, function, &mut budget);
                 let result = (|| {
+                    let mut work = SkeletonWork::with_index(&program, function, &mut budget, None)?;
                     let mut prefix = skeleton_work::empty_expr_path();
                     work.push_observation(
                         &mut prefix,
@@ -204,12 +204,11 @@ fn original_payer_exact_short_zero_floor_and_all_partial_owners_drop() {
                     // Even a zero reservation must authenticate the already-refused
                     // original lender; cleanup cannot replace the first refusal.
                     assert!(
-                        work.budget
+                        budget
                             .reserve_bytes(function, 0, "complete emitter sticky zero")
                             .is_err()
                     );
                 }
-                drop(work);
                 drop(budget);
                 result.map_err(|error| {
                     let code = error.code;

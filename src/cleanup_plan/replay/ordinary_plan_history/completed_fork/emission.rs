@@ -140,7 +140,7 @@ macro_rules! emit {
                     $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::ENTRY
                         + $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::retained::ACQUIRE,
                     "complete HIR fork caller receivers")?;
-                $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::retained::emit_prepaid(
+                $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::retained::emit!(
                     $prefixes, $suffixes, $work,
                 )
             }
@@ -151,7 +151,7 @@ macro_rules! emit {
                 $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::ENTRY
                     + $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::retained::ACQUIRE,
                 "complete HIR fork caller receivers")?;
-            $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::retained::emit_prepaid(
+            $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::retained::emit!(
                 $prefixes, $suffixes, $work,
             )
         }
@@ -475,7 +475,7 @@ pub(in crate::cleanup_plan::replay) fn with_before<T>(operation: impl FnOnce() -
     with_route(2, operation)
 }
 
-mod validation;
+pub(in crate::cleanup_plan::replay) mod validation;
 
 #[cfg(test)]
 pub(in crate::cleanup_plan::replay) fn shared_query_inputs_for_test(

@@ -1,36 +1,26 @@
-//! Invocation-owned fork output and error receivers (#925).
+//! Lexical invocation-owned fork output and sticky error places (#925).
 //! The input allocation is retained only for a true singleton Cartesian suffix.
 use super::*;
-use crate::cleanup_plan::replay::ordinary_receiving::Failure;
 
-struct Output<'a> {
-    paths: Vec<ExprSkeletonPath>,
-    observations: Observations,
-    failure: Failure<'a>,
-}
-// ENTRY still pays the complete existing public argument/result boundary. This
-// bank is additional: inline owners, initializers, exclusive producer loans,
-// status return/receive, publication/reset and terminal Diagnostic ownership.
-pub(in crate::cleanup_plan::replay) const ACQUIRE: usize = size_of::<Output<'static>>()
-    + size_of::<Observations>()
-    + Failure::acquisition_bytes()
-    + 2 * size_of::<(
-        &mut Output<'static>,
-        &[ExprSkeletonPath],
-        &mut SkeletonWork<'static, 'static>,
-    )>()
+// Full original ENTRY remains prepaid. Only the retained-only Output/Failure
+// owners and helper argument boundaries physically removed below are retired.
+// The lexical completion block still constructs/receives its Boolean, and the
+// observations/error/reset/take owners remain paid before formation.
+pub(in crate::cleanup_plan::replay) const FREEZE_RECEIVERS: usize = FREEZE;
+pub(in crate::cleanup_plan::replay) const PAYMENT_RECEIVERS: usize = PAYMENT;
+
+pub(in crate::cleanup_plan::replay) const ACQUIRE: usize = size_of::<Vec<ExprSkeletonPath>>() // lexical paths receiver, not an aggregate credit
+    + 2 * size_of::<Observations>() // default initializer and lexical owner
+    + 5 * size_of::<Option<Diagnostic>>() // None initializer/slot, Some publication/receive and terminal carrier
+    + size_of::<Diagnostic>()
+    + size_of::<std::borrow::Cow<'static, str>>() // retain the complete first terminal bank
     + 2 * size_of::<bool>()
-    + 2 * size_of::<&ClassifierLedger>()
     + 2 * size_of::<&mut Observations>()
-    + 4 * size_of::<Vec<ExprSkeletonPath>>() // paths take: default/replacement and returned/received owner
-    + 2 * size_of::<Option<Diagnostic>>()
+    + 4 * size_of::<Vec<ExprSkeletonPath>>() // complete general take/reset carrier bank
     + PAYMENT;
-// The prefix no longer constructs an output, enumerated suffix iterator,
-// Option<Observations>, clone result or owned-source result. Freeze backing and
-// its complete original call bank remain separately charged before formation.
-const PREFIX: usize = 2 * size_of::<ExprSkeletonPath>()
+// Prefix/output iterator, backing, clone, work and publication banks survive.
+pub(in crate::cleanup_plan::replay) const PREFIX: usize = 2 * size_of::<ExprSkeletonPath>()
     + 2 * size_of::<&ExprSkeletonPath>()
-    + 2 * size_of::<&mut Output<'static>>()
     + 2 * size_of::<&mut SkeletonWork<'static, 'static>>()
     + 2 * size_of::<Result<(), Diagnostic>>()
     + 4 * size_of::<usize>()
@@ -47,7 +37,8 @@ const PREFIX: usize = 2 * size_of::<ExprSkeletonPath>()
 // Keep every surviving original clone/node/owned-source/publication transport
 // paid. Only the actually absent Option/take/expect roles and Enumerate/index
 // transport are removed; the new borrowed split/slot/swap roles are explicit.
-const OUTPUT: usize = STEP
+pub(in crate::cleanup_plan::replay) const OUTPUT: usize = STEP
+    - 2 * size_of::<Result<Observations, Diagnostic>>() // old returning extension + caller receiver; lexical places form neither
     - 4 * size_of::<Option<Observations>>()
     - 2 * size_of::<&Option<Observations>>()
     - 2 * size_of::<&mut Option<Observations>>()
@@ -59,34 +50,17 @@ const OUTPUT: usize = STEP
     + 2 * size_of::<Option<&ExprSkeletonPath>>()
     + 8 * size_of::<&mut Observations>() // two swaps, two operands, actual/formal
     + 2 * size_of::<&mut ExprSkeletonPath>()
-    + 2 * size_of::<&mut Output<'static>>()
-    + 2 * size_of::<&mut Failure<'static>>()
     + 2 * size_of::<Observations>()
-    + 2 * size_of::<(
-        &mut Output<'static>,
-        &ExprSkeletonPath,
-        &lexical_skeleton::Continuation,
-        &mut SkeletonWork<'static, 'static>,
-    )>()
-    + 2 * size_of::<(
-        &mut Observations,
-        &Observations,
-        &mut SkeletonWork<'static, 'static>,
-        &mut Failure<'static>,
-    )>()
-    + 4 * size_of::<bool>();
-const SELECT: usize = 2 * size_of::<&[ExprSkeletonPath]>()
+    // Inline match scrutinee loan and Some(prefix) binding precede shared payment.
+    + size_of::<&Option<Rc<ObservationDag>>>()
+    + size_of::<&Rc<ObservationDag>>()
+; // The append/extension Boolean return/receive boundaries are absent.
+pub(in crate::cleanup_plan::replay) const SELECT: usize = 2 * size_of::<&[ExprSkeletonPath]>()
     + 2 * size_of::<&Vec<ExprSkeletonPath>>()
     + 2 * size_of::<Option<(&ExprSkeletonPath, &[ExprSkeletonPath])>>()
     + 2 * size_of::<(&ExprSkeletonPath, &[ExprSkeletonPath])>()
-    + 2 * size_of::<(
-        &mut Output<'static>,
-        &ExprSkeletonPath,
-        &mut SkeletonWork<'static, 'static>,
-        &ClassifierLedger,
-    )>()
     + 2 * size_of::<&mut Vec<ExprSkeletonPath>>()
-    + 2 * size_of::<bool>()
+    + 2 * size_of::<&ExprSkeletonPath>() // singleton borrowed slot: actual and local receiver
     + 2 * size_of::<std::slice::IterMut<'static, ExprSkeletonPath>>()
     + 2 * size_of::<Option<&mut ExprSkeletonPath>>()
     + 4 * size_of::<usize>()
@@ -94,155 +68,284 @@ const SELECT: usize = 2 * size_of::<&[ExprSkeletonPath]>()
     + PAYMENT;
 // The extension changes only the output ABI. No credit is taken from the old
 // sequence EXTEND_CONTROLS: every node/backing/clone bank remains complete.
-const EXTEND: usize = sequence::EXTEND_CONTROLS
-    + 2 * size_of::<(
-        &mut Observations,
-        &Observations,
-        &mut SkeletonWork<'static, 'static>,
-        &mut Failure<'static>,
-    )>()
+pub(in crate::cleanup_plan::replay) const EXTEND: usize = sequence::EXTEND_CONTROLS
     + 4 * size_of::<&mut Option<Rc<ObservationDag>>>()
     + 4 * size_of::<&mut Vec<Rc<SkeletonObservation>>>()
     + 4 * size_of::<Vec<Rc<SkeletonObservation>>>() // take: default, moved replacement and taken return/receive
     + 2 * size_of::<Observations>()
-    + 2 * size_of::<bool>();
+; // Lexical extension has no returned status owner.
 
-// A retained first error is never replaced. Existing returning callees still
-// receive their complete original Result tariff; this is not an adapter credit.
+// A retained first error never crosses an Output/Failure forwarding ABI.
+// Every existing returning callee keeps its full original Result tariff.
 macro_rules! receive {
-    ($failure:expr, $operation:expr) => {{
+    ($error:ident, $exit:lifetime, $operation:expr) => {{
         match $operation {
             Ok(value) => value,
             Err(error) => {
-                $failure.error = Some(error);
-                return false;
+                $error = Some(error);
+                break $exit false;
             }
         }
     }};
 }
+pub(in crate::cleanup_plan::replay) use receive;
 macro_rules! pay {
-    ($output:ident, $work:ident, $bytes:expr, $phase:literal) => {{
-        receive!(
-            $output.failure,
-            $work.budget.reserve_bytes($work.function, $bytes, $phase)
+    ($error:ident, $exit:lifetime, $work:ident, $bytes:expr, $phase:literal) => {{
+        $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::retained::receive!(
+            $error, $exit, $work.budget.reserve_bytes($work.function, $bytes, $phase)
         );
     }};
 }
-
-pub(in crate::cleanup_plan::replay) fn emit_prepaid(
-    prefixes: Vec<ExprSkeletonPath>,
-    suffixes: &[ExprSkeletonPath],
-    work: &mut SkeletonWork<'_, '_>,
-) -> Result<Emission, Diagnostic> {
-    let mut output = Output {
-        paths: prefixes,
-        observations: Observations::default(),
-        failure: Failure {
-            error: None,
-            function: work.function,
-            budget: &*work.budget,
-        },
+pub(in crate::cleanup_plan::replay) use pay;
+macro_rules! extend {
+    ($target:ident, $suffix:ident, $work:ident, $error:ident, $exit:lifetime) => {{
+        use $crate::cleanup_plan::replay::note_skeleton_materialization;
+        use $crate::cleanup_plan::replay::skeleton_work::{ObservationDag, ObservationDagKind};
+        use $crate::cleanup_plan::replay::skeleton_work::enumerated_prefix as sequence;
+        use $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::retained;
+        use std::rc::Rc;
+    match &$suffix.observations.prefix {
+    None => {
+        retained::receive!($error, $exit, $work.charge(1, "skeleton suffix clone"));
+        note_skeleton_materialization();
+        retained::receive!($error, $exit,
+            $work.budget.reserve_vec(
+                $work.function,
+                &mut $target.items,
+                $suffix.observations.items.len(),
+                "ordinary flat suffix"
+            )
+        );
+        $target.items.extend_from_slice(&$suffix.observations.items);
+    },
+    Some(prefix) => {
+    retained::receive!($error, $exit, $work.charge(1, "skeleton suffix clone"));
+    note_skeleton_materialization();
+    retained::receive!($error, $exit,
+        $work.budget.reserve_bytes(
+            $work.function,
+            retained::EXTEND,
+            "complete HIR shared suffix call receivers"
+        )
+    );
+    let head = if $target.items.is_empty() {
+        $target.prefix.take()
+    } else {
+        Some(retained::receive!($error, $exit,
+            sequence::node(
+                $work,
+                ObservationDagKind::Seq($target.prefix.take(), std::mem::take(&mut $target.items))
+            )
+        ))
     };
-    let complete = emit_into(&mut output, suffixes, work);
-    match output.failure.error {
-        Some(error) => Err(error),
-        None if complete => Ok(Emission::Complete(output.paths)),
-        None => Ok(Emission::Unsupported(output.paths)),
+    let joined = match head {
+        None => prefix.clone(),
+        Some(head) => {
+            retained::receive!($error, $exit,
+                $work.budget.reserve_array::<Rc<ObservationDag>>(
+                    $work.function,
+                    2,
+                    "enumerated HIR concatenation backing"
+                )
+            );
+            retained::receive!($error, $exit,
+                sequence::node($work, ObservationDagKind::Cat(vec![head, prefix.clone()]))
+            )
+        }
+    };
+    retained::receive!($error, $exit,
+        $work.budget
+            .reserve_clone($work.function, &$suffix.observations.items, "ordinary DAG suffix tail")
+    );
+    $target.prefix = Some(joined);
+    $target.items = $suffix.observations.items.clone();
+    },
     }
+    }};
 }
+pub(in crate::cleanup_plan::replay) use extend;
+macro_rules! append {
+    ($paths:ident, $observations:ident, $suffix:ident, $continuation:expr, $work:ident, $error:ident, $exit:lifetime) => {{
+        use $crate::cleanup_plan::replay::{ExprSkeletonPath, MAX_REPLAY_PATHS, lexical_skeleton};
+        use $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::retained;
+    retained::extend!($observations, $suffix, $work, $error, $exit);
+    let owned_source = retained::receive!($error, $exit,
+        $work.clone_owned(
+            &$suffix.owned_source,
+            "sequenced skeleton owned-source clone"
+        )
+    );
+    if $paths.len() >= MAX_REPLAY_PATHS {
+        $error = Some($work.budget.budget_refusal(
+            $work.function,
+            "complete HIR fork exceeds finite path profile",
+            "",
+        ));
+        break $exit false;
+    }
+    retained::receive!($error, $exit,
+        $work.push_expr_path(
+            &mut $paths,
+            ExprSkeletonPath {
+                observations: std::mem::take(&mut $observations),
+                owned_source,
+                failed: $suffix.failed,
+                residual: $suffix.residual,
+                continuation: lexical_skeleton::Continuation::sequenced(
+                    $continuation,
+                    &$suffix.continuation
+                ),
+            },
+            "sequenced skeleton path"
+        )
+    );
 
-fn emit_into(
-    output: &mut Output<'_>,
-    suffixes: &[ExprSkeletonPath],
-    work: &mut SkeletonWork<'_, '_>,
-) -> bool {
-    receive!(
-        output.failure,
-        work.budget.reserve_bytes(
-            work.function,
+    }};
+}
+pub(in crate::cleanup_plan::replay) use append;
+// Places stay in the caller's lexical invocation. No Output, Failure,
+// emit_into, append_into, extend_into or singleton_into value gateways remain.
+macro_rules! emit {
+    ($prefixes:expr, $suffixes:expr, $work:ident $(,)?) => {{
+        use $crate::cleanup_plan::replay::{AdmissionMode, AllocationPayer, MAX_REPLAY_PATHS, note_skeleton_materialization};
+        use $crate::cleanup_plan::replay::skeleton_work::{Observations, ObservationDagKind};
+        use $crate::cleanup_plan::replay::skeleton_work::enumerated_prefix as sequence;
+        use $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::{retained, validation, Emission};
+        use $crate::cleanup_plan::replay::lexical_skeleton;
+        use $crate::bounded_output::classifier_string::ClassifierLedger;
+        use $crate::diagnostic::Diagnostic;
+        // Reverse declaration order preserves Output's original field Drop
+        // order on every error and unwind: paths, observations, then error.
+        let mut error: Option<Diagnostic> = None;
+        let mut observations = Observations::default();
+        let mut paths = $prefixes;
+        let suffixes: &[$crate::cleanup_plan::replay::ExprSkeletonPath] = $suffixes;
+        let complete = 'retained: {
+    retained::receive!(error, 'retained,
+        $work.budget.reserve_bytes(
+            $work.function,
             ClassifierLedger::capture_into_controls()
                 + ClassifierLedger::current_receiving_controls()
-                + PAYMENT,
+                + retained::PAYMENT_RECEIVERS,
             "complete HIR fork exact ledger receivers",
         )
     );
     let mut ledger = ClassifierLedger::empty_receiving();
     ledger.capture_current_into();
-    if work.budget.admission != AdmissionMode::Ordinary
+    if $work.budget.admission != AdmissionMode::Ordinary
         || !matches!(
-            work.budget.payer,
+            $work.budget.payer,
             AllocationPayer::LegacyUnobserved | AllocationPayer::ActiveBuilder
         )
-        || work.budget.lent_skeleton
-        || work.budget.merge_paths
-        || work.function.cleanup_plan.lexical_control.is_some()
+        || $work.budget.lent_skeleton
+        || $work.budget.merge_paths
+        || $work.function.cleanup_plan.lexical_control.is_some()
     {
-        return false;
+        break 'retained false;
     }
-    receive!(
-        output.failure,
-        work.budget.reserve_bytes(
-            work.function,
+    retained::receive!(error, 'retained,
+        $work.budget.reserve_bytes(
+            $work.function,
             sequence::SHARE_CONTROLS,
             "complete HIR renewal selection receivers"
         )
     );
-    if !receive!(output.failure, sequence::without_renewal(work)) {
-        return false;
+    if !retained::receive!(error, 'retained, sequence::without_renewal($work)) {
+        break 'retained false;
     }
-    receive!(
-        output.failure,
-        work.budget.reserve_bytes(
-            work.function,
+    retained::receive!(error, 'retained,
+        $work.budget.reserve_bytes(
+            $work.function,
             validation::CALL,
             "complete HIR validation scope receivers"
         )
     );
-    if !receive!(
-        output.failure,
-        validation::inputs(&output.paths, suffixes, work)
+    if !retained::receive!(error, 'retained,
+        validation::inputs(&paths, suffixes, $work)
     ) {
-        return false;
+        break 'retained false;
     }
-    pay!(
-        output,
-        work,
-        SELECT,
+    retained::pay!(error, 'retained, $work,
+        retained::SELECT,
         "retained HIR fork cardinality receivers"
     );
     // This proof uses the real suffix cardinality, including stopped prefixes.
     // No allocation/capacity prediction, filtered output count or refunded bank.
-    if suffixes.len() == 1 && output.paths.len() <= MAX_REPLAY_PATHS {
-        return singleton_into(output, &suffixes[0], work, &ledger);
+    if suffixes.len() == 1 && paths.len() <= MAX_REPLAY_PATHS {
+        let suffix = &suffixes[0];
+    for path in &mut paths {
+        // Split field loans keep the owned Vec in this invocation and never
+        // expose a reusable selector or arbitrary output sink to another payer.
+        retained::receive!(error, 'retained,
+            $work.budget
+                .reserve_bytes($work.function, retained::PREFIX, "complete HIR fork prefix receivers")
+        );
+        if path.failed || path.residual {
+            retained::receive!(error, 'retained,
+                $work.charge(1, "short-circuited skeleton path")
+            );
+            note_skeleton_materialization();
+            continue;
+        }
+        retained::receive!(error, 'retained, $work.charge(1, "skeleton prefix clone"));
+        if !ledger.current() {
+            error = Some(Diagnostic::io("SPX-H006", String::new()));
+            break 'retained false;
+        }
+        retained::receive!(error, 'retained,
+            $work.budget.reserve_bytes(
+                $work.function,
+                retained::OUTPUT + ClassifierLedger::current_receiving_controls(),
+                "complete HIR fork output receivers"
+            )
+        );
+        note_skeleton_materialization();
+        std::mem::swap(&mut path.observations, &mut observations);
+        retained::extend!(observations, suffix, $work, error, 'retained);
+        let owned_source = retained::receive!(error, 'retained,
+            $work.clone_owned(
+                &suffix.owned_source,
+                "sequenced skeleton owned-source clone"
+            )
+        );
+        let continuation =
+            lexical_skeleton::Continuation::sequenced(&path.continuation, &suffix.continuation);
+        retained::receive!(error, 'retained, $work.charge(1, "sequenced skeleton path"));
+        note_skeleton_materialization();
+        std::mem::swap(&mut path.observations, &mut observations);
+        path.owned_source = owned_source;
+        path.failed = suffix.failed;
+        path.residual = suffix.residual;
+        path.continuation = continuation;
     }
-    let prefixes = std::mem::take(&mut output.paths);
+        break 'retained true;
+    }
+    let prefixes = std::mem::take(&mut paths);
     for mut prefix in prefixes {
-        pay!(output, work, PREFIX, "complete HIR fork prefix receivers");
+        retained::pay!(error, 'retained, $work, retained::PREFIX, "complete HIR fork prefix receivers");
         if prefix.failed || prefix.residual {
-            if output.paths.len() >= MAX_REPLAY_PATHS {
-                output.failure.error = Some(work.budget.budget_refusal(
-                    work.function,
+            if paths.len() >= MAX_REPLAY_PATHS {
+                error = Some($work.budget.budget_refusal(
+                    $work.function,
                     "complete HIR fork exceeds finite path profile",
                     "",
                 ));
-                return false;
+                break 'retained false;
             }
-            receive!(
-                output.failure,
-                work.push_expr_path(&mut output.paths, prefix, "short-circuited skeleton path")
+            retained::receive!(error, 'retained,
+                $work.push_expr_path(&mut paths, prefix, "short-circuited skeleton path")
             );
             continue;
         }
         let Some((last, earlier)) = suffixes.split_last() else {
             continue;
         };
-        receive!(output.failure, work.charge(1, "skeleton prefix clone"));
+        retained::receive!(error, 'retained, $work.charge(1, "skeleton prefix clone"));
         if !earlier.is_empty() && !prefix.observations.items.is_empty() {
-            receive!(
-                output.failure,
-                work.budget.reserve_bytes(
-                    work.function,
-                    sequence::SHARE_CONTROLS + FREEZE,
+            retained::receive!(error, 'retained,
+                $work.budget.reserve_bytes(
+                    $work.function,
+                    sequence::SHARE_CONTROLS + retained::FREEZE_RECEIVERS,
                     "complete HIR immutable fork publication"
                 )
             );
@@ -251,9 +354,8 @@ fn emit_into(
                 items,
             } = prefix.observations;
             prefix.observations = Observations {
-                prefix: Some(receive!(
-                    output.failure,
-                    sequence::node(work, ObservationDagKind::Seq(previous, items))
+                prefix: Some(retained::receive!(error, 'retained,
+                    sequence::node($work, ObservationDagKind::Seq(previous, items))
                 )),
                 items: Vec::new(),
             };
@@ -261,246 +363,55 @@ fn emit_into(
         let mut first = true;
         for suffix in earlier {
             if !ledger.current() {
-                output.failure.error = Some(Diagnostic::io("SPX-H006", String::new()));
-                return false;
+                error = Some(Diagnostic::io("SPX-H006", String::new()));
+                break 'retained false;
             }
-            pay!(
-                output,
-                work,
-                OUTPUT + ClassifierLedger::current_receiving_controls(),
+            retained::pay!(error, 'retained, $work,
+                retained::OUTPUT + ClassifierLedger::current_receiving_controls(),
                 "complete HIR fork output receivers"
             );
             if !first {
-                receive!(output.failure, work.charge(1, "skeleton prefix clone"));
+                retained::receive!(error, 'retained, $work.charge(1, "skeleton prefix clone"));
             }
             first = false;
-            receive!(
-                output.failure,
-                work.budget.reserve_clone(
-                    work.function,
+            retained::receive!(error, 'retained,
+                $work.budget.reserve_clone(
+                    $work.function,
                     &prefix.observations,
                     "skeleton prefix clone"
                 )
             );
             note_skeleton_materialization();
-            output.observations = prefix.observations.clone();
-            if !append_into(output, suffix, &prefix.continuation, work) {
-                return false;
-            }
+            observations = prefix.observations.clone();
+            retained::append!(paths, observations, suffix, &prefix.continuation, $work, error, 'retained);
         }
         if !ledger.current() {
-            output.failure.error = Some(Diagnostic::io("SPX-H006", String::new()));
-            return false;
+            error = Some(Diagnostic::io("SPX-H006", String::new()));
+            break 'retained false;
         }
-        pay!(
-            output,
-            work,
-            OUTPUT + ClassifierLedger::current_receiving_controls(),
+        retained::pay!(error, 'retained, $work,
+            retained::OUTPUT + ClassifierLedger::current_receiving_controls(),
             "complete HIR fork output receivers"
         );
         if !first {
-            receive!(output.failure, work.charge(1, "skeleton prefix clone"));
+            retained::receive!(error, 'retained, $work.charge(1, "skeleton prefix clone"));
         }
         note_skeleton_materialization();
         // The final unique suffix directly receives the remaining observation
         // owner. No Some/take/expect or speculative cloned tail is constructed.
-        output.observations = prefix.observations;
-        if !append_into(output, last, &prefix.continuation, work) {
-            return false;
-        }
+        observations = prefix.observations;
+        retained::append!(paths, observations, last, &prefix.continuation, $work, error, 'retained);
     }
     true
-}
-
-fn extend_into(
-    target: &mut Observations,
-    suffix: &Observations,
-    work: &mut SkeletonWork<'_, '_>,
-    failure: &mut Failure<'_>,
-) -> bool {
-    if suffix.prefix.is_none() {
-        receive!(failure, work.charge(1, "skeleton suffix clone"));
-        note_skeleton_materialization();
-        receive!(
-            failure,
-            work.budget.reserve_vec(
-                work.function,
-                &mut target.items,
-                suffix.items.len(),
-                "ordinary flat suffix"
-            )
-        );
-        target.items.extend_from_slice(&suffix.items);
-        return true;
-    }
-    receive!(failure, work.charge(1, "skeleton suffix clone"));
-    note_skeleton_materialization();
-    receive!(
-        failure,
-        work.budget.reserve_bytes(
-            work.function,
-            EXTEND,
-            "complete HIR shared suffix call receivers"
-        )
-    );
-    let prefix = suffix
-        .prefix
-        .as_ref()
-        .expect("shared suffix observed by caller");
-    let head = if target.items.is_empty() {
-        target.prefix.take()
-    } else {
-        Some(receive!(
-            failure,
-            sequence::node(
-                work,
-                ObservationDagKind::Seq(target.prefix.take(), std::mem::take(&mut target.items))
-            )
-        ))
-    };
-    let joined = match head {
-        None => prefix.clone(),
-        Some(head) => {
-            receive!(
-                failure,
-                work.budget.reserve_array::<Rc<ObservationDag>>(
-                    work.function,
-                    2,
-                    "enumerated HIR concatenation backing"
-                )
-            );
-            receive!(
-                failure,
-                sequence::node(work, ObservationDagKind::Cat(vec![head, prefix.clone()]))
-            )
+        };
+        match error {
+            Some(error) => Err(error),
+            None if complete => Ok(Emission::Complete(paths)),
+            None => Ok(Emission::Unsupported(paths)),
         }
-    };
-    receive!(
-        failure,
-        work.budget
-            .reserve_clone(work.function, &suffix.items, "ordinary DAG suffix tail")
-    );
-    target.prefix = Some(joined);
-    target.items = suffix.items.clone();
-    true
+    }};
 }
-
-// Called only after OUTPUT is acquired. Each output owns its independent source
-// and continuation; error exit retains all partial owners for ordinary Drop.
-fn append_into(
-    output: &mut Output<'_>,
-    suffix: &ExprSkeletonPath,
-    continuation: &lexical_skeleton::Continuation,
-    work: &mut SkeletonWork<'_, '_>,
-) -> bool {
-    if !extend_into(
-        &mut output.observations,
-        &suffix.observations,
-        work,
-        &mut output.failure,
-    ) {
-        return false;
-    }
-    let owned_source = receive!(
-        output.failure,
-        work.clone_owned(
-            &suffix.owned_source,
-            "sequenced skeleton owned-source clone"
-        )
-    );
-    if output.paths.len() >= MAX_REPLAY_PATHS {
-        output.failure.error = Some(work.budget.budget_refusal(
-            work.function,
-            "complete HIR fork exceeds finite path profile",
-            "",
-        ));
-        return false;
-    }
-    receive!(
-        output.failure,
-        work.push_expr_path(
-            &mut output.paths,
-            ExprSkeletonPath {
-                observations: std::mem::take(&mut output.observations),
-                owned_source,
-                failed: suffix.failed,
-                residual: suffix.residual,
-                continuation: lexical_skeleton::Continuation::sequenced(
-                    continuation,
-                    &suffix.continuation
-                ),
-            },
-            "sequenced skeleton path"
-        )
-    );
-    true
-}
-
-fn singleton_into(
-    output: &mut Output<'_>,
-    suffix: &ExprSkeletonPath,
-    work: &mut SkeletonWork<'_, '_>,
-    ledger: &ClassifierLedger,
-) -> bool {
-    for path in &mut output.paths {
-        // Split field loans keep the owned Vec in this invocation and never
-        // expose a reusable selector or arbitrary output sink to another payer.
-        receive!(
-            output.failure,
-            work.budget
-                .reserve_bytes(work.function, PREFIX, "complete HIR fork prefix receivers")
-        );
-        if path.failed || path.residual {
-            receive!(
-                output.failure,
-                work.charge(1, "short-circuited skeleton path")
-            );
-            note_skeleton_materialization();
-            continue;
-        }
-        receive!(output.failure, work.charge(1, "skeleton prefix clone"));
-        if !ledger.current() {
-            output.failure.error = Some(Diagnostic::io("SPX-H006", String::new()));
-            return false;
-        }
-        receive!(
-            output.failure,
-            work.budget.reserve_bytes(
-                work.function,
-                OUTPUT + ClassifierLedger::current_receiving_controls(),
-                "complete HIR fork output receivers"
-            )
-        );
-        note_skeleton_materialization();
-        std::mem::swap(&mut path.observations, &mut output.observations);
-        if !extend_into(
-            &mut output.observations,
-            &suffix.observations,
-            work,
-            &mut output.failure,
-        ) {
-            return false;
-        }
-        let owned_source = receive!(
-            output.failure,
-            work.clone_owned(
-                &suffix.owned_source,
-                "sequenced skeleton owned-source clone"
-            )
-        );
-        let continuation =
-            lexical_skeleton::Continuation::sequenced(&path.continuation, &suffix.continuation);
-        receive!(output.failure, work.charge(1, "sequenced skeleton path"));
-        note_skeleton_materialization();
-        std::mem::swap(&mut path.observations, &mut output.observations);
-        path.owned_source = owned_source;
-        path.failed = suffix.failed;
-        path.residual = suffix.residual;
-        path.continuation = continuation;
-    }
-    true
-}
-
+pub(in crate::cleanup_plan::replay) use emit;
 // Full physical/compiled parent acquisition precedes its entire unchanged old
 // source inverse. No truncated-body authentication or new expected endpoint.
 #[cfg(test)]
@@ -520,6 +431,13 @@ pub(in crate::cleanup_plan::replay) fn before_emission(current: &str) -> String 
         .unwrap(),
         current.as_bytes()
     );
+    assert_eq!(current.len(), 22365);
+    assert_eq!(digest(current), "9b32edd9e75c3199c9b1b3c01a5bcdc9689872795e3222b6f684f4e967c08834");
+    let mut immediate = current.to_owned();
+    assert_eq!(immediate.get(21476..21528), Some("pub(in crate::cleanup_plan::replay) mod validation;\n")); immediate.replace_range(21476..21528, "mod validation;\n");
+    assert_eq!(immediate.get(6988..7096), Some("            $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::retained::emit!(\n")); immediate.replace_range(6988..7096, "            $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::retained::emit_prepaid(\n");
+    assert_eq!(immediate.get(6417..6529), Some("                $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::retained::emit!(\n")); immediate.replace_range(6417..6529, "                $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::retained::emit_prepaid(\n");
+    let current = immediate.as_str();
     assert_eq!(current.len(), 22343);
     assert_eq!(
         digest(current),

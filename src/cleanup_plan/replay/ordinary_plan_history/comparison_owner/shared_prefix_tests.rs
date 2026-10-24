@@ -545,9 +545,12 @@ fn shared_identity_replay_has_exact_complete_cold_hot_invoices_and_actual_k() {
                 ),
                 (0, 0)
             );
+            // Reconstruct the complete immediate generation's retired independent
+            // cursor steps before applying the identity-replay equation below.
+            let immediate_counts = loaded::complete_immediate438_invoice_counts(&current.row);
             assert_eq!(
                 old.row.value_steps,
-                current.row.value_steps
+                immediate_counts.value_steps
                     + current.row.certified_bases
                     + 2 * current.row.identity_observations
                     + 4 * current.row.shared_boundary_complete
@@ -555,7 +558,7 @@ fn shared_identity_replay_has_exact_complete_cold_hot_invoices_and_actual_k() {
             );
             assert_eq!(
                 old.row.pair_matches_admitted,
-                current.row.pair_matches_admitted
+                immediate_counts.pair_matches_admitted
                     + current.row.certified_firsts
                     + current.row.identity_observations
                     + current.row.shared_boundary_complete

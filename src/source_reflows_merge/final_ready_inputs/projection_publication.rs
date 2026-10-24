@@ -39,17 +39,84 @@ pub(super) fn previous(path: &str, length: usize, sha: &str) -> Option<String> {
     Some(original)
 }
 
+// Exact current component fronts precede the unchanged complete ordered join.
+// Exact post83 current components acquire the complete successful852 input.
+fn post83_part_before(path: &str, supplied: &str) -> String {
+    let (length, sha, edits): (usize, &str, &[(usize, &str, &str)]) = match path {
+        "src/cleanup_plan/replay/path_join/frontier_tests/custody.rs" => (31169, "39b4b81288ffce7460fa764ea526348258d4546ca8f22b24d93d26bba4cd2ebb", &[
+            (29032, "            (8110, \"        drop(scope);\\n        // Classification also lends b to work's private query scratch. End\\n        // that owner before testing exclusive access to the fixture's Rc.\\n        drop(work);\\n        assert!(Rc::get_mut(b.prefix.as_mut().unwrap()).is_some());\", \"        drop(scope);\\n        assert!(Rc::get_mut(b.prefix.as_mut().unwrap()).is_some());\"),\n", ""),
+            (28325, "        \"src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs\" => (include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs\")).as_slice(), 18414, \"074d4939f7c6a2c278f482219eb7e66419b3dfe66929602c8ab6cc942c826165\", 18010, \"066f042491018f63adfa22bb4f0754bdbd9938f6941b5fc32a1c9c13b5f6ba41\", &[\n", "        \"src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs\" => (include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs\")).as_slice(), 18243, \"f2219248dd29ce8f0b9ce4c1a545b545f6a740a9d0e09c8dded8c903e9585090\", 18010, \"066f042491018f63adfa22bb4f0754bdbd9938f6941b5fc32a1c9c13b5f6ba41\", &[\n"),
+            (24907, "    if path == \"src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests/receiving.rs\" {\n        let compiled = include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests/receiving.rs\")).as_slice();\n        let physical = std::fs::read(std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\")).join(path)).unwrap();\n        assert_eq!(physical.as_slice(), compiled);\n        assert_eq!(current, compiled);\n        assert_eq!(current.len(), 31154);\n        assert_eq!(digest(current), \"5e0da04b5e6373c30f7b31799f36a484477ccc0f9d79c98af4f91cd6a4d0e335\");\n        // Entire already-retained main42 input, before its unchanged old edits.\n        let before = include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/e/fc7a3fe35db9670affa2d479fea6e0a9eadf50afed410e729c7d956124d1c7f5\"));\n        assert_eq!(before.len(), 24273);\n        assert_eq!(digest(before), \"fc7a3fe35db9670affa2d479fea6e0a9eadf50afed410e729c7d956124d1c7f5\");\n        assert_eq!(std::fs::read(std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\")).join(path)).unwrap(), physical);\n        return before.to_vec();\n    }\n", ""),
+            (24680, "// Acquire only these five complete physical epochs before the unchanged\n", "// Acquire only these four complete physical epochs before the unchanged\n"),
+        ]),
+        "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs" => (18414, "074d4939f7c6a2c278f482219eb7e66419b3dfe66929602c8ab6cc942c826165", &[
+            (8131, "        // Classification also lends b to work's private query scratch. End\n        // that owner before testing exclusive access to the fixture's Rc.\n        drop(work);\n", ""),
+        ]),
+        _ => return supplied.to_owned(),
+    };
+    assert_eq!(supplied.len(), length);
+    assert_eq!(digest(supplied), sha);
+    let mut prior = supplied.to_owned();
+    for &(at, after, before) in edits {
+        assert!(prior.is_char_boundary(at) && prior.is_char_boundary(at + after.len()));
+        assert_eq!(&prior[at..at + after.len()], after);
+        prior.replace_range(at..at + after.len(), before);
+    }
+    prior
+}
+
+fn current_part_before(path: &str, supplied: &str) -> String {
+    let (length, sha, edits): (usize, &str, &[(usize, usize, &str, &str)]) = match path {
+        "src/cleanup_plan/replay/path_join/frontier_tests/custody.rs" => (29608, "793b4c291463fce1d4e102b2ebc029da527e8a13666344e9c522bb56d7da54fd", &[
+            (24679, 29608, "\n// Acquire only these four complete physical epochs before the unchanged\n// fixed946/main42 source contracts. No inventory target or old edit is repinned.\nfn retained_fork_source_before(path: &str, current: &[u8]) -> Vec<u8> {\n    let (compiled, length, expected, before_length, before_digest, edits):\n        (&[u8], usize, &str, usize, &str, &[(usize, &str, &str)]) = match path {\n        \"src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission.rs\" => (include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission.rs\")).as_slice(), 22365, \"9b32edd9e75c3199c9b1b3c01a5bcdc9689872795e3222b6f684f4e967c08834\", 20575, \"d7db6c7fc49140f9dabec3e647bf64b50571ee71a8478aae1c03acd92bba6c5f\", &[\n        ]),\n        \"src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs\" => (include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs\")).as_slice(), 11753, \"7944d10f5515da0a4e9c4b6ed49882bb3e20ccf9cfc96fc4c20372370ebf955f\", 11246, \"1f55c14d5d7fe41614e045fc680d5df8a93d4e29e4698e47bdb7e39ce8203c68\", &[\n            (637, \"    failed: bool,\\n\", \"\"),\n            (1047, \"in crate::clean\", \"s\"),\n            (1064, \"_plan::\", \"e\"),\n            (1072, \"eplay\", \"\"),\n            (1562, \"size_of::<bool>() // initialized invocation-local sticky terminal state\\n    + \", \"\"),\n            (2004, \"\\n    + 3 * size_of::<bool>()\", \"\"),\n            (2033, \" // sticky read, guard, and first terminal publication\", \"\"),\n            (4590, \"\", \"!\"),\n            (4597, \"fai\", \"\"),\n            (4603, \"\", \"ger.current()\"),\n            (4691, \"if !\", \"\"),\n            (4701, \".ledger.current() {\", \"\"),\n            (4733, \"$sc\", \".w\"),\n            (4737, \"pe.failed = t\", \"\"),\n            (4751, \"ue;\", \"k\"),\n            (4767, \"r\", \".budg\"),\n            (4770, \"urn Err(Diagnostic::io(\\\"SPX-H006\\\", String::new()));\", \"\"),\n            (4830, \"}\\n\", \"\"),\n            (4836, \"    match $scope.work.budget\", \"\"),\n            (4923, \" {\\n            Ok(()) => {},\\n            Err(error) => {\\n                $scope.failed = true\", \"?\"),\n            (5017, \"\\n                return Err(error);\\n            }\\n        }\", \"\"),\n            (5092, \"in crate::clean\", \"s\"),\n            (5109, \"_plan::\", \"e\"),\n            (5117, \"eplay\", \"\"),\n            (5447, \"e,\\n        failed: fals\", \"\"),\n        ]),\n        \"src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs\" => (include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs\")).as_slice(), 18243, \"f2219248dd29ce8f0b9ce4c1a545b545f6a740a9d0e09c8dded8c903e9585090\", 18010, \"066f042491018f63adfa22bb4f0754bdbd9938f6941b5fc32a1c9c13b5f6ba41\", &[\n            (778, \"e,\\n        failed: fals\", \"\"),\n            (6214, \";\\n        // Isolate the validation owner's Rc lifetime from the fixture's\\n        // destruction scratch, which otherwise retains its own strong/weak owners.\\n        work.release_observation_scratch_for_test()\", \"\"),\n        ]),\n        \"src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/tests.rs\" => (include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/tests.rs\")).as_slice(), 24967, \"703b8e31e2c34896382513d8e4cff5d900d8c5990ccbdb96aad3dc363aed3e05\", 24843, \"d4757425643d96a03c1c6a05f31d7018cb5653c71a921bb736335e9102edf6f6\", &[\n            (15815, \"\", \"cur\"),\n            (15817, \"\", \"n\"),\n            (15818, \"ained_epoch\", \"\"),\n            (15832, \"crate::cleanup_plan::replay::skeleton_work::query_proof::before_emission(\", \"\"),\n            (15937, \"));\\n    let current = retained_epoch.as_str(\", \"\"),\n        ]),\n        _ => return current.to_vec(),\n    };\n    let physical = std::fs::read(std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\")).join(path)).unwrap();\n    assert_eq!(physical.as_slice(), compiled);\n    assert_eq!(current, compiled);\n    assert_eq!(current.len(), length);\n    assert_eq!(digest(current), expected);\n    let mut before = if path == \"src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission.rs\" {\n        crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::retained::before_emission(std::str::from_utf8(current).unwrap()).into_bytes()\n    } else { current.to_vec() };\n    for &(at, after, prior) in edits.iter().rev() {\n        assert_eq!(before.get(at..at + after.len()), Some(after.as_bytes()));\n        before.splice(at..at + after.len(), prior.bytes());\n    }\n    assert_eq!(before.len(), before_length);\n    assert_eq!(digest(&before), before_digest);\n    assert_eq!(std::fs::read(std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\")).join(path)).unwrap(), physical);\n    before\n}\n", ""),
+            (20412, 20482, "                actual = retained_fork_source_before(&path, &actual);\n", ""),
+            (14096, 14162, "            actual = retained_fork_source_before(&path, &actual);\n", ""),
+        ]),
+        "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs" => (11753, "7944d10f5515da0a4e9c4b6ed49882bb3e20ccf9cfc96fc4c20372370ebf955f", &[
+            (5450, 5473, "        failed: false,\n", ""),
+            (5088, 5135, "pub(in crate::cleanup_plan::replay) fn inputs(\n", "pub(super) fn inputs(\n"),
+            (4683, 5077, "        if !$scope.ledger.current() {\n            $scope.failed = true;\n            return Err(Diagnostic::io(\"SPX-H006\", String::new()));\n        }\n        match $scope.work.budget.reserve_bytes($scope.work.function, $bytes + AUTH, $phase) {\n            Ok(()) => {},\n            Err(error) => {\n                $scope.failed = true;\n                return Err(error);\n            }\n        }\n", "        $scope\n            .work\n            .budget\n            .reserve_bytes($scope.work.function, $bytes + AUTH, $phase)?;\n"),
+            (4579, 4606, "        if $scope.failed {\n", "        if !$scope.ledger.current() {\n"),
+            (1957, 2088, "    + 2 * size_of::<Result<bool, Diagnostic>>()\n    + 3 * size_of::<bool>(); // sticky read, guard, and first terminal publication\n", "    + 2 * size_of::<Result<bool, Diagnostic>>();\n"),
+            (1556, 1634, "    + size_of::<bool>() // initialized invocation-local sticky terminal state\n", ""),
+            (1043, 1136, "pub(in crate::cleanup_plan::replay) const CALL: usize = 8 * size_of::<&[ExprSkeletonPath]>()\n", "pub(super) const CALL: usize = 8 * size_of::<&[ExprSkeletonPath]>()\n"),
+            (637, 655, "    failed: bool,\n", ""),
+        ]),
+        "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs" => (18243, "f2219248dd29ce8f0b9ce4c1a545b545f6a740a9d0e09c8dded8c903e9585090", &[
+            (6216, 6426, "        // Isolate the validation owner's Rc lifetime from the fixture's\n        // destruction scratch, which otherwise retains its own strong/weak owners.\n        work.release_observation_scratch_for_test();\n", ""),
+            (781, 804, "        failed: false,\n", ""),
+        ]),
+        "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/tests.rs" => (24967, "703b8e31e2c34896382513d8e4cff5d900d8c5990ccbdb96aad3dc363aed3e05", &[
+            (15807, 15941, "    let retained_epoch = crate::cleanup_plan::replay::skeleton_work::query_proof::before_emission(include_str!(\"../../emission.rs\"));\n", "    let retained_epoch = crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::retained::before_emission(include_str!(\"../../emission.rs\"));\n"),
+        ]),
+        "src/source_reflows_merge/main_e177_overlay_labels_v12/tests.rs" => (9547, "652294002414f8f91534668666c28bec3954d1ce250cffc7fd0f3522a1356a8e", &[
+            (2203, 2326, "    if page[\"schema\"] == super::super::SCHEMA_V14 {\n        super::super::verify_current_v14(&page);\n        return;\n    }\n", ""),
+        ]),
+        _ => return supplied.to_owned(),
+    };
+    assert_eq!(supplied.len(), length);
+    assert_eq!(digest(supplied), sha);
+    let mut previous = supplied.to_owned();
+    for &(start, end, after, before) in edits {
+        assert!(previous.is_char_boundary(start) && previous.is_char_boundary(end));
+        assert_eq!(&previous[start..end], after);
+        previous.replace_range(start..end, before);
+    }
+    previous
+}
+
 // Whole current audit join only. The original production purity check runs
 // before this historical facade route, and every original phase inverse runs
 // after it. No source component is omitted from the current input.
 pub(super) fn audit_join(supplied: &str) -> Option<String> {
-    if supplied.len() != 1829495
-        || digest(supplied) != "fa031a0e836ba2512e8a21ab23993fb19e075fbb4a895dd5f59a5dad68b9fb26"
+    if supplied.len() != 1843345
+        || digest(supplied) != "36cbb7835efaf67056aa5b3d13769d59fa92bcbb1b678a61ea646149890575bf"
     {
         return None;
     }
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let mut complete = String::new();
+    let mut previous_complete = String::new();
     // Literal generated from the actual owning macro, in original order.
     // Data pieces remain read-only source evidence, never compiled authority.
     const PARTS: &[(&str, &str, usize, &str)] = &[
@@ -75,7 +142,7 @@ pub(super) fn audit_join(supplied: &str) -> Option<String> {
         ("src/cleanup_plan/replay/path_join/boxed_flow.rs", include_str!("../../cleanup_plan/replay/path_join/boxed_flow.rs"), 3885, "e60f54339ffc357e805c8466ea21272bfef62531405ba2f06c0026a3ad390154"),
         ("src/cleanup_plan/replay/path_join/frontier.rs", include_str!("../../cleanup_plan/replay/path_join/frontier.rs"), 22575, "54dc6f27a755399709247f182124d7cd3a8f25070f07c865412587c4c0d93587"),
         ("src/cleanup_plan/replay/path_join/frontier_tests.rs", include_str!("../../cleanup_plan/replay/path_join/frontier_tests.rs"), 22107, "7423729bfe25901a69b6bebbdb7f954b55a15e350975a9cd6adfe0b8a51d53bf"),
-        ("src/cleanup_plan/replay/path_join/frontier_tests/custody.rs", include_str!("../../cleanup_plan/replay/path_join/frontier_tests/custody.rs"), 23350, "c94f939621bdc4cd961cb481e5ba14905ac940375cd77c59a9c8faeeccfd6143"),
+        ("src/cleanup_plan/replay/path_join/frontier_tests/custody.rs", include_str!("../../cleanup_plan/replay/path_join/frontier_tests/custody.rs"), 24543, "03c5e4fe51f2925421a899860e90976665d45664c999c07b174c0233d138b747"),
         ("src/cleanup_plan/replay/path_join/frontier_tests/whole.rs", include_str!("../../cleanup_plan/replay/path_join/frontier_tests/whole.rs"), 10925, "da179f47f2f3f41eb14350b137d2468f5ac241445d6ae04d131c927da1c09908"),
         ("src/call_index/validation_before.rs", include_str!("../../call_index/validation_before.rs"), 3463, "50097cb04d8577afd15d0209fd11f14e1ff2d3d60c5bb692b8128c753b201472"),
         ("src/call_index/validation_receipt_tests.rs", include_str!("../../call_index/validation_receipt_tests.rs"), 4015, "0cb673d2f420230bc3b49fa90937d83302bfd29dec44aac4e95515c758297ce7"),
@@ -89,7 +156,7 @@ pub(super) fn audit_join(supplied: &str) -> Option<String> {
         ("src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs", include_str!("../../cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs"), 11246, "1f55c14d5d7fe41614e045fc680d5df8a93d4e29e4698e47bdb7e39ce8203c68"),
         ("src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs", include_str!("../../cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs"), 18010, "066f042491018f63adfa22bb4f0754bdbd9938f6941b5fc32a1c9c13b5f6ba41"),
         ("src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission.rs", include_str!("../../cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission.rs"), 10932, "792be2624414510de96336103ccc964f39ff7c474581aa90521be539b8e21d2d"),
-        ("src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/tests.rs", include_str!("../../cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/tests.rs"), 24843, "d4757425643d96a03c1c6a05f31d7018cb5653c71a921bb736335e9102edf6f6"),
+        ("src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/tests.rs", include_str!("../../cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/tests.rs"), 24998, "a017f356ed78def8d10cdcf98287cc7e30a797413fd955d9bbfb0824e712cb5a"),
         ("src/source_reflows_merge/main_e177_overlay_labels_v12.rs", include_str!("../../source_reflows_merge/main_e177_overlay_labels_v12.rs"), 7219, "260cfb1eb837f15415a05f769e0d6554f6c26a3eeecf01a58eff16e8a2bf2446"),
         ("src/source_reflows_merge/main_e177_overlay_labels_v12/tests.rs", include_str!("../../source_reflows_merge/main_e177_overlay_labels_v12/tests.rs"), 9424, "6b316023a1d5f99cec3300b78bd84cd93077e1a806c774ab349aaea6356920e6"),
         ("src/workspace_graph/expected_projection/call_carriers_directory/modular.rs", include_str!("../../workspace_graph/expected_projection/call_carriers_directory/modular.rs"), 3536, "894b8a45279a1afb3b8a2e10e07888f1567ae6fb30a5f0c860ee39a5cd107d62"),
@@ -170,25 +237,32 @@ pub(super) fn audit_join(supplied: &str) -> Option<String> {
         ("src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs", include_str!("../../cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs"), 19806, "6745c50ef06c4bab501efe623044c0044977a946df0aff8c95873a0c92de0fd1"),
         ("src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs", include_str!("../../cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs"), 30467, "79db9e907b352fe8cc96eaa3a1e87c97795436a3d566f0809af85986c118d92a"),
         ("src/cleanup_plan/replay/workspace_oracle.rs", include_str!("../../cleanup_plan/replay/workspace_oracle.rs"), 3669, "0cbd9a3eadf60e9611493e161e4c8692165231eaaf8c60d757070273d62a5ed0"),
-        ("src/hir/inspection/paid_nul/tests.rs", include_str!("../../hir/inspection/paid_nul/tests.rs"), 41244, "b8c2a0dad0f763094418506a1c1aab82c4ca93898f6620b7b78fc98d97822c7f"),
+        ("src/hir/inspection/paid_nul/tests.rs", include_str!("../../hir/inspection/paid_nul/tests.rs"), 43550, "d7bc8c78fe1f8e1bed6730376ec571db9eb60c49f896304585e05ff34282ef08"),
         ("src/hir/inspection/paid_nul/reuse_before.rs", include_str!("../../hir/inspection/paid_nul/reuse_before.rs"), 38440, "f244990419557597356086d2b3e6005f84c1d471160eb4b2e1506b1727e1ca3f"),
         ("src/hir/inspection/paid_nul/reuse_before/pending.rs", include_str!("../../hir/inspection/paid_nul/reuse_before/pending.rs"), 2490, "27622dc1bce1918fa8366f1ec97267692a655758907e270ff032156b385b0ebd"),
         ("src/hir/inspection/paid_nul/type_scratch.rs", include_str!("../../hir/inspection/paid_nul/type_scratch.rs"), 8271, "43bebbb4746fbd9182793e37806790df77bf590983657b1653568aed31435e5e"),
         ("src/cleanup_plan/replay/continuation_storage/tests.rs", include_str!("../../cleanup_plan/replay/continuation_storage/tests.rs"), 27358, "17bb6b512db22de653583ba59d27f2f682f66dd2bca1583510e513b7688565a6"),
         ("src/cleanup_plan/replay/continuation_storage/reached.rs", include_str!("../../cleanup_plan/replay/continuation_storage/reached.rs"), 6399, "bf60981f88a31c20b7151d010bc1360461048573b9164e00dd8c9124305d9278"),
         ("src/cleanup_plan/replay/continuation_storage/reached_before.rs", include_str!("../../cleanup_plan/replay/continuation_storage/reached_before.rs"), 9194, "980ab986d43f41e0e3f4d7aae59190c0f6ece37ce354ad967536341911782ceb"),
-        ("src/cleanup_plan/replay/continuation_storage/reached_tests.rs", include_str!("../../cleanup_plan/replay/continuation_storage/reached_tests.rs"), 19239, "ca3c73d0f810d4c794daf877315fdc225f0670826159a734a22a9a88d21cd628"),
-        ("src/cleanup_plan/replay_tests/factored.rs", include_str!("../../cleanup_plan/replay_tests/factored.rs"), 13408, "32eafee0eb73a68bcd8b5535e5047c9c6b85c1397607b4a495f3973702303b00"),
+        ("src/cleanup_plan/replay/continuation_storage/reached_tests.rs", include_str!("../../cleanup_plan/replay/continuation_storage/reached_tests.rs"), 19239, "ee9bebd2537779b373c67a2e16334664cb13d594ef97761d3f987257c1f4c101"),
+        ("src/cleanup_plan/replay_tests/factored.rs", include_str!("../../cleanup_plan/replay_tests/factored.rs"), 15975, "e70cd4f9a85d0711d5ab9bb84c8be8730a46e1ab506eb5fa4a9c0ee16a8f71a7"),
     ];
     for &(path, compiled, length, sha) in PARTS {
-        assert_eq!((compiled.len(), digest(compiled)), (length, sha.to_owned()));
+        // Authenticate complete physical/compiled current before acquiring its
+        // named historical input. Foreign current bytes cannot reach an inverse.
         if !path.is_empty() {
-            let physical = reader::read(&root.join(path), length, sha, 2_097_152)
+            let physical = reader::read(&root.join(path), compiled.len(), &digest(compiled), 2_097_152)
                 .expect("fresh complete current projection audit part");
             assert_eq!(physical, compiled);
         }
+        let prior_current = post83_part_before(path, compiled);
+        let previous = current_part_before(path, &prior_current);
+        assert_eq!((previous.len(), digest(&previous)), (length, sha.to_owned()));
         complete.push_str(compiled);
+        previous_complete.push_str(&previous);
     }
+    assert_eq!(previous_complete.len(), 1835716);
+    assert_eq!(digest(&previous_complete), "2d23fd56d8bf76d9c6f5b995d4a18bb593e2cc58d00fd0fc4f009614d75b50ef");
     assert_eq!(
         complete, supplied,
         "every actual current audit part and join byte"

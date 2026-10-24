@@ -155,6 +155,7 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
                 _ => panic!("unadmitted main transport path"),
             };
             assert_eq!(actual.as_slice(), compiled);
+            actual = retained_fork_source_before(&path, &actual);
             assert_eq!(actual.len(), row["length"].as_u64().unwrap() as usize);
             assert_eq!(digest(&actual), row["sha256"].as_str().unwrap());
             for edit in row["edits"].as_array().unwrap().iter().rev() {
@@ -264,6 +265,7 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
                 assert_eq!(digest(before), expected);
                 before.as_slice()
             } else if path == "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/tests.rs" {
+                actual = retained_fork_source_before(&path, &actual);
                 // Exact whole-source transport for OPT892; the complete
                 // immediate-old dependency remains the fixed 946-row target.
                 assert_eq!(actual.len(), 24843);
@@ -323,4 +325,84 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
         std::mem::size_of::<super::Incoming<super::PathState>>()
             >= std::mem::size_of::<std::collections::BTreeSet<Box<super::PathState>>>()
     );
+}
+
+// Acquire only these five complete physical epochs before the unchanged
+// fixed946/main42 source contracts. No inventory target or old edit is repinned.
+fn retained_fork_source_before(path: &str, current: &[u8]) -> Vec<u8> {
+    if path == "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests/receiving.rs" {
+        let compiled = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests/receiving.rs")).as_slice();
+        let physical = std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap();
+        assert_eq!(physical.as_slice(), compiled);
+        assert_eq!(current, compiled);
+        assert_eq!(current.len(), 31154);
+        assert_eq!(digest(current), "5e0da04b5e6373c30f7b31799f36a484477ccc0f9d79c98af4f91cd6a4d0e335");
+        // Entire already-retained main42 input, before its unchanged old edits.
+        let before = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/fc7a3fe35db9670affa2d479fea6e0a9eadf50afed410e729c7d956124d1c7f5"));
+        assert_eq!(before.len(), 24273);
+        assert_eq!(digest(before), "fc7a3fe35db9670affa2d479fea6e0a9eadf50afed410e729c7d956124d1c7f5");
+        assert_eq!(std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap(), physical);
+        return before.to_vec();
+    }
+    let (compiled, length, expected, before_length, before_digest, edits):
+        (&[u8], usize, &str, usize, &str, &[(usize, &str, &str)]) = match path {
+        "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission.rs" => (include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission.rs")).as_slice(), 22365, "9b32edd9e75c3199c9b1b3c01a5bcdc9689872795e3222b6f684f4e967c08834", 20575, "d7db6c7fc49140f9dabec3e647bf64b50571ee71a8478aae1c03acd92bba6c5f", &[
+        ]),
+        "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs" => (include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs")).as_slice(), 11753, "7944d10f5515da0a4e9c4b6ed49882bb3e20ccf9cfc96fc4c20372370ebf955f", 11246, "1f55c14d5d7fe41614e045fc680d5df8a93d4e29e4698e47bdb7e39ce8203c68", &[
+            (637, "    failed: bool,\n", ""),
+            (1047, "in crate::clean", "s"),
+            (1064, "_plan::", "e"),
+            (1072, "eplay", ""),
+            (1562, "size_of::<bool>() // initialized invocation-local sticky terminal state\n    + ", ""),
+            (2004, "\n    + 3 * size_of::<bool>()", ""),
+            (2033, " // sticky read, guard, and first terminal publication", ""),
+            (4590, "", "!"),
+            (4597, "fai", ""),
+            (4603, "", "ger.current()"),
+            (4691, "if !", ""),
+            (4701, ".ledger.current() {", ""),
+            (4733, "$sc", ".w"),
+            (4737, "pe.failed = t", ""),
+            (4751, "ue;", "k"),
+            (4767, "r", ".budg"),
+            (4770, "urn Err(Diagnostic::io(\"SPX-H006\", String::new()));", ""),
+            (4830, "}\n", ""),
+            (4836, "    match $scope.work.budget", ""),
+            (4923, " {\n            Ok(()) => {},\n            Err(error) => {\n                $scope.failed = true", "?"),
+            (5017, "\n                return Err(error);\n            }\n        }", ""),
+            (5092, "in crate::clean", "s"),
+            (5109, "_plan::", "e"),
+            (5117, "eplay", ""),
+            (5447, "e,\n        failed: fals", ""),
+        ]),
+        "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs" => (include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs")).as_slice(), 18414, "074d4939f7c6a2c278f482219eb7e66419b3dfe66929602c8ab6cc942c826165", 18010, "066f042491018f63adfa22bb4f0754bdbd9938f6941b5fc32a1c9c13b5f6ba41", &[
+            (778, "e,\n        failed: fals", ""),
+            (6214, ";\n        // Isolate the validation owner's Rc lifetime from the fixture's\n        // destruction scratch, which otherwise retains its own strong/weak owners.\n        work.release_observation_scratch_for_test()", ""),
+            (8110, "        drop(scope);\n        // Classification also lends b to work's private query scratch. End\n        // that owner before testing exclusive access to the fixture's Rc.\n        drop(work);\n        assert!(Rc::get_mut(b.prefix.as_mut().unwrap()).is_some());", "        drop(scope);\n        assert!(Rc::get_mut(b.prefix.as_mut().unwrap()).is_some());"),
+        ]),
+        "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/tests.rs" => (include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/tests.rs")).as_slice(), 24967, "703b8e31e2c34896382513d8e4cff5d900d8c5990ccbdb96aad3dc363aed3e05", 24843, "d4757425643d96a03c1c6a05f31d7018cb5653c71a921bb736335e9102edf6f6", &[
+            (15815, "", "cur"),
+            (15817, "", "n"),
+            (15818, "ained_epoch", ""),
+            (15832, "crate::cleanup_plan::replay::skeleton_work::query_proof::before_emission(", ""),
+            (15937, "));\n    let current = retained_epoch.as_str(", ""),
+        ]),
+        _ => return current.to_vec(),
+    };
+    let physical = std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap();
+    assert_eq!(physical.as_slice(), compiled);
+    assert_eq!(current, compiled);
+    assert_eq!(current.len(), length);
+    assert_eq!(digest(current), expected);
+    let mut before = if path == "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission.rs" {
+        crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::retained::before_emission(std::str::from_utf8(current).unwrap()).into_bytes()
+    } else { current.to_vec() };
+    for &(at, after, prior) in edits.iter().rev() {
+        assert_eq!(before.get(at..at + after.len()), Some(after.as_bytes()));
+        before.splice(at..at + after.len(), prior.bytes());
+    }
+    assert_eq!(before.len(), before_length);
+    assert_eq!(digest(&before), before_digest);
+    assert_eq!(std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap(), physical);
+    before
 }

@@ -45,6 +45,43 @@ pub(super) fn restore(current: &str, path: &str) -> String {
         Some(crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::retained::before_emission(current))
     } else { None };
     let current = retained_epoch.as_deref().unwrap_or(current);
+    // Exact runtime-correctness successor, before the immutable query packet.
+    let validation_epoch = match path {
+        "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs" => {
+            assert_eq!(current.len(), 11753);
+            assert_eq!(digest(current.as_bytes()), "7944d10f5515da0a4e9c4b6ed49882bb3e20ccf9cfc96fc4c20372370ebf955f");
+            let mut prior=current.to_owned();
+            let edits: &[(usize,&str,&str)] = &[
+                (637,"    failed: bool,\n",""),
+                (1043,"pub(in crate::cleanup_plan::replay) const CALL: usize = 8 * size_of::<&[ExprSkeletonPath]>()\n","pub(super) const CALL: usize = 8 * size_of::<&[ExprSkeletonPath]>()\n"),
+                (1556,"    + size_of::<bool>() // initialized invocation-local sticky terminal state\n",""),
+                (1957,"    + 2 * size_of::<Result<bool, Diagnostic>>()\n    + 3 * size_of::<bool>(); // sticky read, guard, and first terminal publication\n","    + 2 * size_of::<Result<bool, Diagnostic>>();\n"),
+                (4579,"        if $scope.failed {\n","        if !$scope.ledger.current() {\n"),
+                (4683,"        if !$scope.ledger.current() {\n            $scope.failed = true;\n            return Err(Diagnostic::io(\"SPX-H006\", String::new()));\n        }\n        match $scope.work.budget.reserve_bytes($scope.work.function, $bytes + AUTH, $phase) {\n            Ok(()) => {},\n            Err(error) => {\n                $scope.failed = true;\n                return Err(error);\n            }\n        }\n","        $scope\n            .work\n            .budget\n            .reserve_bytes($scope.work.function, $bytes + AUTH, $phase)?;\n"),
+                (5088,"pub(in crate::cleanup_plan::replay) fn inputs(\n","pub(super) fn inputs(\n"),
+                (5450,"        failed: false,\n",""),
+            ];
+            for &(at,post,pre) in edits.iter().rev() { assert_eq!(prior.get(at..at+post.len()),Some(post)); prior.replace_range(at..at+post.len(),pre); }
+            assert_eq!(prior.len(), 11246);
+            assert_eq!(digest(prior.as_bytes()), "1f55c14d5d7fe41614e045fc680d5df8a93d4e29e4698e47bdb7e39ce8203c68");
+            std::borrow::Cow::Owned(prior)
+        }
+        "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs" => {
+            assert_eq!(current.len(), 18243);
+            assert_eq!(digest(current.as_bytes()), "f2219248dd29ce8f0b9ce4c1a545b545f6a740a9d0e09c8dded8c903e9585090");
+            let mut prior=current.to_owned();
+            let edits: &[(usize,&str,&str)] = &[
+                (781,"        failed: false,\n",""),
+                (6216,"        // Isolate the validation owner's Rc lifetime from the fixture's\n        // destruction scratch, which otherwise retains its own strong/weak owners.\n        work.release_observation_scratch_for_test();\n",""),
+            ];
+            for &(at,post,pre) in edits.iter().rev() { assert_eq!(prior.get(at..at+post.len()),Some(post)); prior.replace_range(at..at+post.len(),pre); }
+            assert_eq!(prior.len(), 18010);
+            assert_eq!(digest(prior.as_bytes()), "066f042491018f63adfa22bb4f0754bdbd9938f6941b5fc32a1c9c13b5f6ba41");
+            std::borrow::Cow::Owned(prior)
+        }
+        _ => std::borrow::Cow::Borrowed(current),
+    };
+    let current=validation_epoch.as_ref();
     // Preserve the complete pre-workspace source epoch before the unchanged
     // query inverse; the actual raw/compiled acquisition above remains current.
     let workspace_epoch = if path == "src/cleanup_plan/replay.rs" {

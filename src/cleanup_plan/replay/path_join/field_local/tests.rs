@@ -11,8 +11,12 @@ struct Counts {
     one: usize,
     many: usize,
     groups: usize,
+    carries: usize,
+    history_saving: i128,
+    trivial_histories: usize,
+    history_calls: usize,
 }
-thread_local! { static COUNTS:Cell<Counts>=const {Cell::new(Counts{directory:0,entries:0,promotions:0,one:0,many:0,groups:0})}; }
+thread_local! { static COUNTS:Cell<Counts>=const {Cell::new(Counts{directory:0,entries:0,promotions:0,one:0,many:0,groups:0,carries:0,history_saving:0,trivial_histories:0,history_calls:0})}; }
 pub(super) fn begin(directory: usize) {
     COUNTS.with(|c| {
         c.set(Counts {
@@ -41,6 +45,48 @@ pub(super) fn one_block() {
 pub(super) fn many_block() {
     bump(|n| &mut n.many);
 }
+pub(super) fn carry_block() {
+    bump(|n| &mut n.carries);
+}
+pub(super) fn history_call() { bump(|n| &mut n.history_calls); }
+pub(super) fn trivial_history(count: usize) {
+    assert!(count <= 1);
+    let node = crate::cleanup_plan::replay::physical_storage::btree_node_upper::<LivenessFlagId, ()>().unwrap();
+    let successors = crate::cleanup_plan::replay::physical_storage::btree_node_upper::<LivenessFlagId, BTreeSet<LivenessFlagId>>().unwrap();
+    let degrees = crate::cleanup_plan::replay::physical_storage::btree_node_upper::<LivenessFlagId, usize>().unwrap();
+    // Full old history-reference backing and flags/successor/degree/ready nodes
+    // physically do not form. Selector/zero payment remains in the block bank.
+    let saving = size_of::<&Vec<LivenessFlagId>>() as i128
+        + count as i128 * (node + successors + degrees + node) as i128;
+    COUNTS.with(|c| { let mut n=c.get(); n.trivial_histories+=1; n.history_saving+=saving; c.set(n); });
+}
+pub(super) fn unique_history(count: usize) {
+    // The original algorithm always allocates one history-reference slot.
+    // With unique flags it inserts one successor+indegree entry per flag,
+    // one edge per adjacent pair, and each flag once into the ready set.
+    // Every original flags-set node/insert remains in shipping and cancels.
+    let node = |map: usize| map as i128;
+    let set =
+        crate::cleanup_plan::replay::physical_storage::btree_node_upper::<LivenessFlagId, ()>()
+            .unwrap();
+    let successors = crate::cleanup_plan::replay::physical_storage::btree_node_upper::<
+        LivenessFlagId,
+        BTreeSet<LivenessFlagId>,
+    >()
+    .unwrap();
+    let degrees =
+        crate::cleanup_plan::replay::physical_storage::btree_node_upper::<LivenessFlagId, usize>()
+            .unwrap();
+    let saving = size_of::<&Vec<LivenessFlagId>>() as i128
+        + count as i128 * (node(successors) + node(degrees) + node(set))
+        + count.saturating_sub(1) as i128 * node(set)
+        - (count + 1) as i128 * boxed_flow::SINGLE_HISTORY_STEP as i128;
+    COUNTS.with(|c| {
+        let mut n = c.get();
+        n.history_saving += saving;
+        c.set(n);
+    });
+}
 pub(super) fn group_block() {
     bump(|n| &mut n.groups);
 }
@@ -68,9 +114,26 @@ pub(in crate::cleanup_plan::replay::path_join) fn immediate_saving() -> i128 {
         usize,
         bool,
         bool,
+        &VecDeque<BlockId>,
+        &VecDeque<BlockId>,
+        &Option<Box<PathState>>,
+        &Option<Box<BTreeSet<Box<PathState>>>>,
+        &usize,
+        &usize,
+        usize,
+        usize,
+        bool,
+        bool,
+        bool,
+        bool,
+        bool,
+        bool,
+        bool,
+        bool,
     )>();
     let d = |a: usize, b: usize| a as i128 - b as i128;
-    d(Old::controls(), New::controls())
+    n.history_saving - n.history_calls as i128 * boxed_flow::SINGLE_HISTORY_CALL as i128
+        + d(Old::controls(), New::controls())
         + n.entries as i128 * d(Old::entry_controls(), New::entry_controls())
         + n.promotions as i128 * d(Old::promotion_controls(), New::promotion_controls())
         + n.directory as i128
@@ -85,6 +148,14 @@ pub(in crate::cleanup_plan::replay::path_join) fn immediate_saving() -> i128 {
                 super::super::boxed_flow::BLOCK_CONTROLS,
                 boxed_flow::BLOCK_MANY,
             )
+        // Each carried edge existed in the independent immediate driver as
+        // one full held ENTRY renewal and one One block. Shipping retains
+        // the actual auth/common block bank and the full cold selectors.
+        + n.carries as i128
+            * (Old::entry_controls() as i128
+                + super::super::boxed_flow::BLOCK_CONTROLS as i128
+                - New::CARRY_AUTH as i128
+                - boxed_flow::CARRY_BLOCK as i128)
         + n.groups as i128
             * d(
                 super::super::boxed_flow::BLOCK_CONTROLS,
@@ -174,6 +245,7 @@ fn complete_original_and_immediate_callers_require_net_invoice_improvement_inclu
     dense.push_str(
         "if byte_len(view)==3usize {next+7}else{0}} @id(\"main\") fn main()->i64 {f(false)}",
     );
+    let mut actual_carry = false;
     let mut positive_dense = false;
     for source in [TINY, SOURCE, LEXICAL, RENEWAL, dense.as_str()] {
         let p = crate::hir::resolve(&crate::check(source, "field-local.spx").unwrap()).unwrap();
@@ -216,10 +288,19 @@ fn complete_original_and_immediate_callers_require_net_invoice_improvement_inclu
                 assert_eq!(a.allocated, a.freed);
                 assert!(a.allocated <= row.2);
             }
+            eprintln!("919 field-local function={} original_reservations={} immediate_reservations={} current_reservations={} original_allocator={:?} immediate_allocator={:?} current_allocator={:?} counts={:?}",f.id.as_str(),old.2,immediate.2,current.2,old.0.1,immediate.0.1,current.0.1,COUNTS.with(Cell::get));
             // Cold losses remain visible in the full receipts. Positive net
             // must be earned on the whole ORIGINAL ordinary composition, not
             // inferred from an isolated receiver or immediate-fusion bank.
+            if f.id.as_str() == "probe" {
+                assert!(COUNTS.with(Cell::get).carries > 0, "probe caller executes retained Box carry");
+                actual_carry = true;
+            }
             if f.id.as_str() == "dense.f" {
+                assert!(
+                    COUNTS.with(Cell::get).trivial_histories > 0,
+                    "dense caller executes the actual trivial-history owner elimination"
+                );
                 assert!(
                     current.2 < old.2 && current.2 < immediate.2,
                     "dense complete caller must earn original net: original={} immediate={} current={}",
@@ -227,7 +308,6 @@ fn complete_original_and_immediate_callers_require_net_invoice_improvement_inclu
                 );
                 positive_dense = true;
             }
-            eprintln!("919 field-local function={} original_reservations={} immediate_reservations={} current_reservations={} original_allocator={:?} immediate_allocator={:?} current_allocator={:?} counts={:?}",f.id.as_str(),old.2,immediate.2,current.2,old.0.1,immediate.0.1,current.0.1,COUNTS.with(Cell::get));
             for (kind, paid) in [(0, old.2), (1, immediate.2), (2, current.2)] {
                 for (limit, floor, success) in [
                     (paid, 0, true),
@@ -247,6 +327,7 @@ fn complete_original_and_immediate_callers_require_net_invoice_improvement_inclu
             assert_eq!(f.cleanup_plan, original);
         }
     }
+    assert!(actual_carry, "the actual eligible probe carry was executed");
     assert!(
         positive_dense,
         "the actual dense ordinary caller was executed"
@@ -396,7 +477,7 @@ fn direct_field_publication_keeps_compare_order_boxes_and_partial_drop_at_every_
                 let budget = &mut budget_owner;
                 macro_rules! execute {
                     ($module:ident,$receiver:ident,$old:tt) => {{
-                        let mut target = $module::Incoming::default();
+                        let mut target = $module::Incoming::<Key>::default();
                         let mut receiver =
                             match $module::$receiver::<Key>::acquire(function, budget) {
                                 Ok(r) => r,
@@ -539,7 +620,7 @@ fn foreign_function_first_diagnostic_and_sticky_zero_remain_the_complete_old_con
             } else {
                 let mut receiver =
                     frontier::ShippingInsertions::<u64>::acquire(function, budget).unwrap();
-                let mut target = frontier::Incoming::default();
+                let mut target = frontier::Incoming::<u64>::default();
                 frontier::insert_owned!(u64, receiver, foreign, &mut target, 1, budget);
                 assert!(receiver.failed && target.is_empty());
                 let error = receiver.failure();
@@ -609,7 +690,7 @@ fn shipping_ordinary_and_group_entries_keep_all_six_authority_and_restored_ledge
                     macro_rules! run {
                         ($module:ident,$receiving:ident,$lexical:tt) => {{
                             let mut receiver = $module::$receiving::acquire(&f, &mut b).unwrap();
-                            let mut incoming = $module::Incoming::default();
+                            let mut incoming = $module::Incoming::<AuthorityState>::default();
                             let mut group = BTreeSet::new();
                             let mut held = if grouped {
                                 owned!(
@@ -625,7 +706,7 @@ fn shipping_ordinary_and_group_entries_keep_all_six_authority_and_restored_ledge
                             } else {
                                 None
                             };
-                            let mut incoming = $module::Incoming::default();
+                            let mut incoming = $module::Incoming::<AuthorityState>::default();
                             match scenario {
                                 1 => {
                                     assert!(set_active_floor(
@@ -728,7 +809,7 @@ fn shipping_ordinary_and_group_entries_keep_all_six_authority_and_restored_ledge
                                 assert!(error.is_some());
                                 let at = crate::bounded_output::active_remaining();
                                 // An already-failed owner must neither query nor publish on retry.
-                                let mut retry = $module::Incoming::default();
+                                let mut retry = $module::Incoming::<AuthorityState>::default();
                                 owned!(
                                     $lexical,
                                     receiver,
@@ -819,7 +900,7 @@ fn real_shipping_partial_promotion_unwind_drops_both_original_owners() {
                     ($module:ident,$receiver:ident,$old:tt) => {{
                         let mut owner =
                             $module::$receiver::<Unwind>::acquire(function, budget).unwrap();
-                        let mut target = $module::Incoming::default();
+                        let mut target = $module::Incoming::<Unwind>::default();
                         macro_rules! owned {
                             (true,$value:expr) => {
                                 owner.insert_owned(function, &mut target, $value, budget)
@@ -863,7 +944,7 @@ fn real_shipping_partial_promotion_unwind_drops_both_original_owners() {
     }
 }
 
-const SOURCE_PACKET_SHA: &str = "70a2555913c105aef3d8b2f65293f5142f527ae5ff00c6070a2b560e92c6d8c5";
+const SOURCE_PACKET_SHA: &str = "0bdc59ae516de9e1678b998e6b8d4fdb54c4bc5db08607acbd5fd788a3d9e98a";
 fn source_digest(bytes: &[u8]) -> String {
     use sha2::{Digest, Sha256};
     format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)))
@@ -1054,5 +1135,98 @@ fn shipping_malformed_branch_arity_keeps_full_original_semantics_and_work_fronti
                 );
             }
         }
+    }
+}
+
+#[test]
+fn unique_single_history_retires_only_absent_graphs_and_duplicates_keep_the_whole_old_algorithm() {
+    let owner = function();
+    let function = &owner;
+    for ids in [
+        &[][..],
+        &[9][..],
+        &[9, 2, 7][..],
+        &[9, 9][..],
+        &[9, 2, 9][..],
+    ] {
+        let state = PathState {
+            renewals: BTreeMap::new(),
+            live_order: ids.iter().copied().map(LivenessFlagId).collect(),
+            conditional_variants: Vec::new(),
+            pending_failure: None,
+            selected_failure: None,
+            staged_copy_result: None,
+            published: false,
+            returned: None,
+        };
+        let old_state = state.clone();
+        let original = {
+            let mut b = ReplayBudget::unobserved();
+            let result = validate_join_compatibility(
+                function,
+                std::iter::empty(),
+                &state,
+                BlockId(0),
+                &mut b,
+            );
+            (result, b.remaining, b.skeleton_remaining, b.skeleton_spent)
+        };
+        let current = {
+            let mut b = ReplayBudget::unobserved();
+            let result =
+                boxed_flow::validate_singleton_history(function, &state, BlockId(0), &mut b);
+            (result, b.remaining, b.skeleton_remaining, b.skeleton_spent)
+        };
+        assert_eq!(
+            original, current,
+            "entire old result/diagnostic and work: {ids:?}"
+        );
+        assert_eq!(state, old_state);
+        let run = |limit| {
+            with_limit_usage_refusal(limit, || {
+                measure(|| {
+                    let mut b = ReplayBudget::new();
+                    let result = match b.reserve_bytes(
+                        function,
+                        boxed_flow::SINGLE_HISTORY_CALL,
+                        "ordinary singleton history call controls",
+                    ) {
+                        Ok(()) => boxed_flow::validate_singleton_history(
+                            function,
+                            &state,
+                            BlockId(0),
+                            &mut b,
+                        ),
+                        Err(error) => Err(error),
+                    };
+                    let success = result.is_ok();
+                    if b.refusal_spent || crate::bounded_output::active_refused() {
+                        assert!(b
+                            .reserve_bytes(function, 0, "single history sticky zero")
+                            .is_err());
+                    }
+                    drop(result);
+                    drop(b);
+                    success
+                })
+            })
+        };
+        let full = run(64 * 1024 * 1024);
+        assert_eq!(full.0 .0, original.0.is_ok());
+        assert!(!full.0 .1.invalid && full.0 .1.live == 0);
+        assert_eq!(full.0 .1.allocated, full.0 .1.freed);
+        assert!(full.0 .1.allocated <= full.2);
+        for (limit, succeeds) in [
+            (full.2, original.0.is_ok()),
+            (full.2 - 1, false),
+            (0, false),
+        ] {
+            let row = run(limit);
+            assert_eq!(row.0 .0, succeeds);
+            assert!(!row.0 .1.invalid && row.0 .1.live == 0);
+            assert_eq!(row.0 .1.allocated, row.0 .1.freed);
+            assert!(row.0 .1.allocated <= row.2 && row.2 <= limit);
+        }
+        assert_eq!(state, old_state);
     }
 }

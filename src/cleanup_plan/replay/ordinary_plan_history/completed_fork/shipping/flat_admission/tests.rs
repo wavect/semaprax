@@ -371,7 +371,7 @@ fn complete_old_root_bypass_and_source_inverse_survive_actual_whole_callers() {
         "                    $function, $budget, &mut $expected)? { return Ok(()); }\n");
     assert_eq!(current.matches(hook).count(), 1);
     assert_eq!(current.replacen(hook, "", 1), before);
-    let retained_epoch = crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::retained::before_emission(include_str!("../../emission.rs"));
+    let retained_epoch = crate::cleanup_plan::replay::skeleton_work::query_proof::before_emission(include_str!("../../emission.rs"));
     let current = retained_epoch.as_str();
     let visible = "pub(in crate::cleanup_plan::replay) fn with_before<T>";
     assert_eq!(current.matches(visible).count(), 1);

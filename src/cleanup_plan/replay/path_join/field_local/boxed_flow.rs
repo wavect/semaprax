@@ -43,6 +43,25 @@ pub(super) fn reserve_directory(
         usize,
         bool,
         bool,
+        // One selector per acyclic block, including unused directory slots.
+        // Queue actual/formal receivers, field place loans, indices and all
+        // short-circuit predicates are paid before the first selection.
+        &VecDeque<BlockId>,
+        &VecDeque<BlockId>,
+        &Option<Box<PathState>>,
+        &Option<Box<BTreeSet<Box<PathState>>>>,
+        &usize,
+        &usize,
+        usize,
+        usize,
+        bool,
+        bool,
+        bool,
+        bool,
+        bool,
+        bool,
+        bool,
+        bool,
     )>(
         function,
         count,
@@ -77,10 +96,16 @@ const BLOCK_COMMON: usize = 2 * size_of::<&BTreeSet<Box<PathState>>>()
         bool,
     )>();
 
+// Same local Box, complete unchanged non-frontier block controls. No
+// incoming Option take or mutable Incoming receiver exists on this route.
+pub(super) const CARRY_BLOCK: usize =
+    BLOCK_COMMON + 2 * size_of::<BlockId>() + 2 * size_of::<bool>() + SINGLE_HISTORY_SELECT;
+
 // One consumes only its Option field. The nonbinding Some pattern removes
 // expect's owning formal and returned Box; its Box binding uses the unchanged
 // Box bank above. The old whole-Incoming take/default/result carriers are gone.
 pub(super) const BLOCK_ONE: usize = BLOCK_COMMON
+    + SINGLE_HISTORY_SELECT
     + 4 * size_of::<Option<Box<PathState>>>()
     + 2 * size_of::<&mut Option<Box<PathState>>>()
     + size_of::<&mut frontier::Incoming<PathState>>();
@@ -150,3 +175,135 @@ macro_rules! held_edge {
     }};
 }
 pub(super) use held_edge;
+
+// The selector and one actual zero-or-positive payment are funded by the
+// block bank before forming this borrowed local, len receiver or Result.
+pub(super) const SINGLE_HISTORY_SELECT: usize = size_of::<(
+    &Box<PathState>, &Box<PathState>, // Box::as_ref actual/formal
+    &PathState, &PathState, // returned borrow and lexical receiver
+    &ResolvedFunction, &ResolvedFunction,
+    &mut ReplayBudget, &mut ReplayBudget,
+    &str, &str,
+    &Vec<LivenessFlagId>, &Vec<LivenessFlagId>,
+    usize, usize, usize, usize, usize, usize, // len, threshold, payment amount pairs
+    &usize, &usize, &usize, &usize, // comparison operands actual/formal
+    bool, bool,
+    Result<(), Diagnostic>, Result<(), Diagnostic>,
+)>();
+macro_rules! singleton_history {
+    ($function:ident, $incoming:expr, $block:ident, $budget:ident) => {{
+        let incoming = $incoming;
+        if incoming.live_order.len() <= 1 {
+            // Empty or one-element histories are already unique acyclic chains.
+            // No flags Set, iterator, helper arguments or result is formed.
+            // The disappeared positive scratch request retains live zero auth.
+            $budget.reserve_bytes($function, 0, "trivial singleton history authority")?;
+            #[cfg(test)]
+            tests::trivial_history(incoming.live_order.len());
+        } else {
+            $budget.reserve_bytes(
+                $function, boxed_flow::SINGLE_HISTORY_CALL,
+                "ordinary singleton history call and scratch controls",
+            )?;
+            #[cfg(test)]
+            tests::history_call();
+            boxed_flow::validate_singleton_history($function, incoming, $block, $budget)?;
+        }
+    }};
+}
+pub(super) use singleton_history;
+
+// Full caller/payment/result carriers and owned scratch are paid before the
+// exclusive helper receives them. The old block's remaining banks survive.
+pub(super) const SINGLE_HISTORY_CALL: usize = size_of::<(
+    &ResolvedFunction,
+    &ResolvedFunction,
+    &ResolvedFunction,
+    &ResolvedFunction,
+    &str,
+    &str,
+    &PathState,
+    &PathState,
+    &mut ReplayBudget,
+    &mut ReplayBudget,
+    &mut ReplayBudget,
+    &mut ReplayBudget,
+    usize,
+    usize,
+    BlockId,
+    BlockId,
+    Result<(), Diagnostic>,
+    Result<(), Diagnostic>,
+    Result<(), Diagnostic>,
+    Result<(), Diagnostic>,
+    BTreeSet<LivenessFlagId>,
+    BTreeSet<LivenessFlagId>,
+    BTreeSet<LivenessFlagId>,
+    &Vec<LivenessFlagId>,
+    &Vec<LivenessFlagId>,
+    &Vec<LivenessFlagId>,
+    &Vec<LivenessFlagId>,
+    std::slice::Iter<'static, LivenessFlagId>,
+    std::slice::Iter<'static, LivenessFlagId>,
+    usize,
+    usize,
+    usize,
+    usize,
+    bool,
+    bool,
+    bool,
+    bool,
+)>();
+type SingleHistoryStep = (
+    Option<&'static LivenessFlagId>,
+    Option<&'static LivenessFlagId>,
+    Option<&'static LivenessFlagId>,
+    Option<&'static LivenessFlagId>,
+    &'static mut std::slice::Iter<'static, LivenessFlagId>,
+    &'static mut std::slice::Iter<'static, LivenessFlagId>,
+    &'static LivenessFlagId,
+    &'static LivenessFlagId,
+    LivenessFlagId,
+    LivenessFlagId,
+    bool,
+    bool,
+    bool,
+    bool,
+);
+#[cfg(test)]
+pub(super) const SINGLE_HISTORY_STEP: usize = size_of::<SingleHistoryStep>();
+
+pub(super) fn validate_singleton_history(
+    function: &ResolvedFunction,
+    incoming: &PathState,
+    block: BlockId,
+    budget: &mut ReplayBudget,
+) -> Result<(), Diagnostic> {
+    // Vec's valid allocation length is <= isize::MAX, so its extra terminal
+    // iterator slot fits usize. All slots stay paid on an early duplicate.
+    budget.reserve_array::<SingleHistoryStep>(
+        function,
+        incoming.live_order.len() + 1,
+        "ordinary singleton history iterator controls",
+    )?;
+    let mut flags = BTreeSet::new();
+    for flag in &incoming.live_order {
+        // This is the original complete flags-set insertion and node tariff.
+        // A single unique chain is already a topological initialization order:
+        // no histories Vec, successor/indegree maps or ready set is formed.
+        if !storage::insert_set(function, &mut flags, *flag, budget, "join union flags")? {
+            // Do not repair or reinterpret a malformed repeated history. Keep
+            // the original complete algorithm and diagnostic in that case.
+            return validate_join_compatibility(
+                function,
+                std::iter::empty(),
+                incoming,
+                block,
+                budget,
+            );
+        }
+    }
+    #[cfg(test)]
+    tests::unique_history(incoming.live_order.len());
+    Ok(())
+}

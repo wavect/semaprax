@@ -638,6 +638,10 @@ pub(super) struct Incoming<T> {
     // Exactly one field can own states. During promotion both fields remain
     // empty until the same original sorted tree is completely constructed.
     pub(super) one: Option<Box<T>>,
+    #[allow(
+        clippy::box_collection,
+        reason = "keep cold directory slots thin; the promotion-only tree allocation is prepaid"
+    )]
     pub(super) many: Option<Box<BTreeSet<Box<T>>>>,
 }
 impl<T> Default for Incoming<T> {

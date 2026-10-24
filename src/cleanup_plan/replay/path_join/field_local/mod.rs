@@ -184,6 +184,10 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states<E: semantic_refusal:
     let mut successful_paths = 0_usize;
     let mut branch_joins = branch_join::BranchJoins::default();
 
+    #[allow(
+        clippy::redundant_pattern_matching,
+        reason = "retain prepaid nonbinding field selection without new Option method receiver roles"
+    )]
     while let Some(block_id) = queue.pop_front() {
         budget.reserve_bytes(
             function,

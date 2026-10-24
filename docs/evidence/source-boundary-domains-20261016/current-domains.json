@@ -2374,6 +2374,7 @@
         "tests/wasm/scalar_browser_ci_contract/browser_75b_controls.rs",
         "tests/wasm/scalar_browser_ci_contract/browser_custody.rs",
         "tests/wasm/scalar_browser_ci_contract/c11_before_2600.rs",
+        "tests/wasm/scalar_browser_ci_contract/current_profiles3d81.rs",
         "tests/wasm/scalar_browser_ci_contract/current_profiles573.rs",
         "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
         "tests/wasm/scalar_browser_ci_contract/historical_main2600.rs",
@@ -3191,9 +3192,9 @@
         "src/workspace_graph/validation.rs",
         "src/workspace_report.rs"
       ],
-      "full_manifest_sha256": "1115043e6e12327ba397e19c5195e2847ab3e67b85ac145c57cbbf62b29b5ca0",
-      "full_raw_sha256": "cafff75ec7d0119f70e38418332444d241ec009d517fedba6958cf626b18c1ab",
-      "full_authenticated_production_sha256": "9637959086d3a1dbe8f8fd6544f9a78d0898afea9a9dd5858ffca351cb8b5dc7"
+      "full_manifest_sha256": "08ea17108c1e65e12e5f1c905dbab55c28c668d49c061425a59bb71ff37712ef",
+      "full_raw_sha256": "db4d9f3d3b9eb2a9808e29c62fe119e0f7842969d7cb347e7ef967a56032ee33",
+      "full_authenticated_production_sha256": "932d564ae41f93c405e442ef18895f1bb17ad81f5b074ffb9b701d1dbf1729bd"
     },
     "projection": {
       "baseline": "a82e00cc83f99b16249181c45710d962598577db",
@@ -4539,9 +4540,9 @@
         "src/workspace_report.rs",
         "src/workspace_report/initial.rs"
       ],
-      "full_manifest_sha256": "a9fe185ba917be260ba8a3eeacce342d1aa05523d12040097d5a06c8f763d259",
-      "full_raw_sha256": "d7766c1a58bc48860f06ce83d9c63c7ec0839df2fe84c50167762d764b97ab13",
-      "full_authenticated_production_sha256": "371f47df979384ef7456d455c55981aecabbde83a80e119aca005a30c8f0af83"
+      "full_manifest_sha256": "f72e22dbae28a85ab16b91c0009703db745f722980d5c1b47f8fc86229ad48cc",
+      "full_raw_sha256": "7af75f3556444e389047a0700adc6b8b03ea262faffb4bd9103dbacf33a749c0",
+      "full_authenticated_production_sha256": "16c7b19cbb57bf3432f209e928efd195e3e6c49af5ee7fec305d7ae3fd21c510"
     }
   }
 }

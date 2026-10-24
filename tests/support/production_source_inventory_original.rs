@@ -16,13 +16,13 @@ fn current_source(path: &str, row: &serde_json::Value) -> String {
     let interop_path = path == Path::new("crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs");
     let interop_epoch = interop_path && row["sha256"] == "d1edee35f9a7a97e9478264a44b7e77e4b3903bcbb87bb327602053f22afa6c8";
     if interop_path && !interop_epoch {
-        assert_eq!(length, 233195);
-        assert_eq!(row["sha256"], "0e793e87c5913d29d090949527031177cf4ed760e1051bb1f032f21580f1782c");
+        assert_eq!(length, 233409);
+        assert_eq!(row["sha256"], "760872c3ea2924d4accd70e0b42b8573debaa312cfa4cd8a11cd61455b4701c5");
     }
     let read_length = if interop_epoch {
         assert_eq!(length, 229209);
         assert_eq!(row["sha256"], "d1edee35f9a7a97e9478264a44b7e77e4b3903bcbb87bb327602053f22afa6c8");
-        233195
+        233409
     } else { length };
     assert_eq!(metadata.len(), read_length as u64);
     let mut bytes = Vec::new();
@@ -37,6 +37,15 @@ fn current_source(path: &str, row: &serde_json::Value) -> String {
     if interop_epoch {
         let compiled = include_bytes!("../../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs");
         assert_eq!(bytes.as_slice(), compiled.as_slice());
+        // Complete two-child raw epoch precedes every unchanged historical leg.
+        assert_eq!(format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(&bytes))), "760872c3ea2924d4accd70e0b42b8573debaa312cfa4cd8a11cd61455b4701c5");
+        let mut next_epoch = String::from_utf8(bytes).unwrap();
+        assert_eq!(next_epoch.matches(",include_str!(\"../../../../../tests/wasm/scalar_browser_ci_contract/current_profiles3d81.rs\")").count(), 1);
+        next_epoch = next_epoch.replacen(",include_str!(\"../../../../../tests/wasm/scalar_browser_ci_contract/current_profiles3d81.rs\")", "", 1);
+        assert_eq!(next_epoch.matches(",include_str!(\"../../../../../src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/immediate_before.rs\")").count(), 1);
+        next_epoch = next_epoch.replacen(",include_str!(\"../../../../../src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/immediate_before.rs\")", "", 1);
+        bytes = next_epoch.into_bytes();
+        assert_eq!(bytes.len(), 233195);
         assert_eq!(format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(&bytes))), "0e793e87c5913d29d090949527031177cf4ed760e1051bb1f032f21580f1782c");
         let mut main3d81_epoch = String::from_utf8(bytes).unwrap();
         let main3d81_raw_arm = "main3d81_before.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/path_join/";

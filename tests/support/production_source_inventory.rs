@@ -540,10 +540,23 @@ fn current_projection_leading_acquisitions() -> &'static str {
         include_str!("../../src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/immediate_before.rs"),
     )
 }
+fn current_hir_browser_leading_acquisitions() -> String {
+    let first = include_str!("../../tests/wasm/scalar_browser_ci_contract/current_profiles573.rs");
+    let browser = include_str!("../../tests/wasm/scalar_browser_ci_contract/current_profiles3d81.rs");
+    let original = current_hir_leading_acquisitions();
+    assert!(!first.is_empty() && !browser.is_empty());
+    assert_eq!(original.matches(first).count(), 1);
+    assert_eq!(original.matches(browser).count(), 0);
+    let rest = original
+        .strip_prefix(first)
+        .expect("complete original HIR first acquisition before the browser child");
+    format!("{first}{browser}{rest}")
+}
 fn assert_current_full_raw_relocated_prefix(raw: &str) {
     let moved_child = include_str!("../../src/cleanup_plan/replay/branch_clone/production_capacity/before_short.rs");
     assert_eq!(raw.matches(moved_child).count(), 1, "the complete moved lexical child must remain present exactly once in actual raw");
-    for leading in [current_hir_leading_acquisitions(), current_projection_leading_acquisitions()] {
+    let next_hir = current_hir_browser_leading_acquisitions();
+    for leading in [current_hir_leading_acquisitions(), current_projection_leading_acquisitions(), next_hir.as_str()] {
         if let Some(original_tail) = raw.strip_prefix(leading) {
             let original = current_accepted_batch_relocated_prefix();
             let moved_child = include_str!("../../src/cleanup_plan/replay/branch_clone/production_capacity/before_short.rs");
@@ -583,9 +596,11 @@ fn assert_current_accepted_batch_relocated_prefix(raw: &str) {
 #[test]
 fn current_accepted_prefix_keeps_nested_lexical_children_and_all_original_subjects() {
     let prefix = current_accepted_batch_relocated_prefix();
+    let next_hir = current_hir_browser_leading_acquisitions();
     for (leading, first, second) in [
         (current_hir_leading_acquisitions(), include_str!("../../tests/wasm/scalar_browser_ci_contract/current_profiles573.rs"), include_str!("../../src/cleanup_plan/replay/path_join/compact_failure_before.rs")),
         (current_projection_leading_acquisitions(), include_str!("../../src/cleanup_plan/replay/path_join/compact_failure_before.rs"), include_str!("../../src/cleanup_plan/replay/path_join/compact_failure_tests.rs")),
+        (next_hir.as_str(), include_str!("../../tests/wasm/scalar_browser_ci_contract/current_profiles573.rs"), include_str!("../../tests/wasm/scalar_browser_ci_contract/current_profiles3d81.rs")),
     ] {
         let first_two = format!("{first}{second}");
         let rest = leading.strip_prefix(first_two.as_str()).unwrap();
@@ -602,6 +617,7 @@ fn current_accepted_prefix_keeps_nested_lexical_children_and_all_original_subjec
             format!("{second}{rest}"),
             format!("{second}{first}{rest}"),
             format!("{first}{first}{second}{rest}"),
+            format!("{first}{second}{second}{rest}"),
             format!("foreign{leading}"),
         ] {
             assert_ne!(changed, leading);

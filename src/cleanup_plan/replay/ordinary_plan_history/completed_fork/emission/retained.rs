@@ -431,6 +431,20 @@ pub(in crate::cleanup_plan::replay) fn before_emission(current: &str) -> String 
         .unwrap(),
         current.as_bytes()
     );
+    // Full new cfg-test oracle epoch, before the unchanged immediate input.
+    assert_eq!(current.len(), 23389);
+    assert_eq!(digest(current), "f2539cb9f7408df422dd81ddf360625e2a54fcc4ca9c330288e81147ffa894eb");
+    let physical_current = current;
+    let mut parent_epoch = current.to_owned();
+    let epoch_edits: &[(usize, &str, &str)] = &[
+        (5530, "            if $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::frozen_immediate_selected() {\n                $work.budget.reserve_bytes($work.function,\n                    $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::immediate_before::ENTRY,\n                    \"complete HIR fork caller receivers\")?;\n                $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::immediate_before::emit_prepaid(\n                    $prefixes, $suffixes, $work,\n                )\n            } else if $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::immediate_selected() {\n", "            if $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::immediate_selected() {\n"),
+        (22933, "\n#[cfg(test)]\n#[allow(dead_code, reason = \"complete independently executable frozen immediate emitter and validation invoices\")]\n#[rustfmt::skip]\npub(in crate::cleanup_plan::replay) mod immediate_before;\n#[cfg(test)]\npub(in crate::cleanup_plan::replay) fn frozen_immediate_selected() -> bool {\n    SELECTED.with(|selected| selected.get() == 4)\n}\n#[cfg(test)]\nfn with_frozen_immediate<T>(operation: impl FnOnce() -> T) -> T {\n    with_route(4, operation)\n}\n", ""),
+    ];
+    for &(at, after, before) in epoch_edits.iter().rev() {
+        assert_eq!(parent_epoch.get(at..at + after.len()), Some(after));
+        parent_epoch.replace_range(at..at + after.len(), before);
+    }
+    let current = parent_epoch.as_str();
     assert_eq!(current.len(), 22365);
     assert_eq!(digest(current), "9b32edd9e75c3199c9b1b3c01a5bcdc9689872795e3222b6f684f4e967c08834");
     let mut immediate = current.to_owned();
@@ -466,5 +480,6 @@ pub(in crate::cleanup_plan::replay) fn before_emission(current: &str) -> String 
         digest(&restored),
         "d7db6c7fc49140f9dabec3e647bf64b50571ee71a8478aae1c03acd92bba6c5f"
     );
+    assert_eq!(std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission.rs")).unwrap(), physical_current.as_bytes());
     restored
 }

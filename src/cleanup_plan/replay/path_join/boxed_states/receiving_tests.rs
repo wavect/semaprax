@@ -286,7 +286,17 @@ fn actual_entry_and_box_layout_inventory_and_complete_main_receiver_sources_are_
     ];
     use sha2::{Digest, Sha256};
     for (source, raw) in sources {
-        let current = crate::source_reflows_merge::boxed849_input(source, raw);
+        let current = if source == "src/bounded_output/classifier_string.rs" {
+            // Bind today's complete physical/compiled input before selecting
+            // this guard's unchanged whole pre-StorageParent catalog stage.
+            crate::source_reflows_merge::main_e177_final_inputs::value_direct(
+                source,
+                "88389f912f0bd6c275a8cee2bec309210bb0c575c7b449547606d8449dfdb9cc",
+                raw,
+            )
+        } else {
+            crate::source_reflows_merge::boxed849_input(source, raw)
+        };
         if source.ends_with("/boxed_states.rs") {
             let mut drifted = raw.to_owned();
             drifted.push(' ');
@@ -329,6 +339,12 @@ fn actual_entry_and_box_layout_inventory_and_complete_main_receiver_sources_are_
             "use super::super::super::physical_storage::btree_node_upper;",
         )
         .replace("#[cfg(test)]\nmod tests;\n", "");
+    // The whole independent receiver adds only this closed lint annotation;
+    // rustfmt also removes one empty line at EOF. Every body byte stays exact.
+    let lint = "#![allow(\n    clippy::duplicate_mod,\n    reason = \"The complete fixture intentionally compiles independently against current and predecessor owner types.\"\n)]\n";
+    assert_eq!(compiled.matches(lint).count(), 1);
+    assert!(expected.ends_with("\n\n"));
+    let expected = format!("{lint}{}", expected.strip_suffix('\n').unwrap());
     assert_eq!(compiled, expected);
     let mut complete_main = rows["rows"]
         .as_array()
@@ -344,6 +360,11 @@ fn actual_entry_and_box_layout_inventory_and_complete_main_receiver_sources_are_
         assert_eq!(complete_main.matches(old).count(), 1);
         complete_main = complete_main.replacen(old, edit["new"].as_str().unwrap(), 1);
     }
+    // Restore only the one token gap removed by rustfmt in the receiving copy.
+    let old_gap = "\n\n\nfn joined_ownership_state";
+    let formatted_gap = "\n\nfn joined_ownership_state";
+    assert_eq!(complete_main.matches(old_gap).count(), 1);
+    complete_main = complete_main.replacen(old_gap, formatted_gap, 1);
     assert_eq!(include_str!("../before_receiving.rs"), complete_main);
 
     assert_eq!(

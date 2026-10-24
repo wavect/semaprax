@@ -93,13 +93,18 @@ pub(super) fn runner_for_graph(graph: &str, runner: &str) -> Option<String> {
     {
         return None;
     }
-    if runner != include_str!("../../../platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs") {
+    let expected_runner = super::current_profiles3d81::prior_runner(include_str!(
+        "../../../platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs"
+    ));
+    if runner != expected_runner.as_ref() {
         return None;
     }
     Some(before_runner(runner))
 }
 
 fn before_runner(current: &str) -> String {
+    let acquired = super::current_profiles3d81::prior_runner(current);
+    let current = acquired.as_ref();
     assert_eq!(sha(current), RUNNER_SHA);
     let mut restored = current.to_owned();
     for (new, old) in RUNNER_INVERSES {
@@ -121,6 +126,8 @@ fn sha(text: &str) -> String {
 }
 
 fn before_owner(current: &str) -> String {
+    let acquired = super::current_profiles3d81::prior_owner(current);
+    let current = acquired.as_ref();
     assert_eq!(sha(current), OWNER_SHA);
     let mut restored = current.to_owned();
     for (new, old) in OWNER_INVERSES {

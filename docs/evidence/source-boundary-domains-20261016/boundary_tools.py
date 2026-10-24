@@ -153,11 +153,21 @@ def _interop_model_epoch_before(actual):
  assert len(restored)==11317 and sha(restored)=='59fca51f35bc95418f9091c90237e7dd42453b0eb8ee346f3db5d953e0d03841', 'entire preceding model-aware helper'
  return restored
 
+def _next_raw_registration_helper_before(actual):
+ # Closed current helper epoch only; the entire preceding helper is unchanged.
+ assert len(actual)==12873 and sha(actual)=='4fa434fcfb95738842c6ed0ef8a90d8c81ee02414328d5f3fd365c26d83bbd59', 'complete next raw registration helper'
+ restored=actual
+ for at,after,before in reversed([[1036, '        assert_eq!(length, 233409);\n        assert_eq!(row["sha256"], "760872c3ea2924d4accd70e0b42b8573debaa312cfa4cd8a11cd61455b4701c5");\n', '        assert_eq!(length, 233195);\n        assert_eq!(row["sha256"], "0e793e87c5913d29d090949527031177cf4ed760e1051bb1f032f21580f1782c");\n'], [1361, '        233409\n', '        233195\n'], [2126, '        // Complete two-child raw epoch precedes every unchanged historical leg.\n        assert_eq!(format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(&bytes))), "760872c3ea2924d4accd70e0b42b8573debaa312cfa4cd8a11cd61455b4701c5");\n        let mut next_epoch = String::from_utf8(bytes).unwrap();\n        assert_eq!(next_epoch.matches(",include_str!(\\"../../../../../tests/wasm/scalar_browser_ci_contract/current_profiles3d81.rs\\")").count(), 1);\n        next_epoch = next_epoch.replacen(",include_str!(\\"../../../../../tests/wasm/scalar_browser_ci_contract/current_profiles3d81.rs\\")", "", 1);\n        assert_eq!(next_epoch.matches(",include_str!(\\"../../../../../src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/immediate_before.rs\\")").count(), 1);\n        next_epoch = next_epoch.replacen(",include_str!(\\"../../../../../src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/immediate_before.rs\\")", "", 1);\n        bytes = next_epoch.into_bytes();\n        assert_eq!(bytes.len(), 233195);\n', '']]):
+  after=after.encode();assert restored[at:at+len(after)]==after, 'exact helper epoch byte inverse'
+  restored=restored[:at]+before.encode()+restored[at+len(after):]
+ assert len(restored)==11833 and sha(restored)=='5851468b37ae14800e0edc14c91cc3eb7bc158b85417e954ab0c32030aa5a301', 'entire preceding helper'
+ return restored
+
 def _protected_helper(repo,j):
  path='tests/support/production_source_inventory_original.rs'
  assert j['helper_original']==path and j['helper_before_sha256']=='d51a124525e3d41469c1db223a0b4526faa3faff1c757b9526ca0b2233358e8c'
  actual=(repo/path).read_bytes()
- epoch=_inventory_model_epoch_before(_interop_model_epoch_before(actual))
+ epoch=_inventory_model_epoch_before(_interop_model_epoch_before(_next_raw_registration_helper_before(actual)))
  assert epoch==git(repo,'424e9611a87e66f43a82a7ce7c9b4bb56a4ec64b',path), 'complete helper source epoch'
  restored=_restore_protected_helper(epoch)
  assert (repo/path).read_bytes()==actual, 'protected helper source drift'

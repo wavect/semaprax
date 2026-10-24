@@ -89,13 +89,68 @@ pub(in crate::source_reflows_merge) fn input(source: &str, current: &str) -> Str
     super::super::compile_fixture_input(source, &normalized)
 }
 fn bundle(current: &str) -> String {
-    authenticate(
-        "docs/AGENT-SKILL-BUNDLE-V1.json",
-        current,
-        include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"),
-        5544,
-        "d4099b09009b4a1fcd2afffabee894ab4adf6d0608e416c95d0d6615db561270",
+    let physical_current = current;
+    let projected_current;
+    let current =
+        if digest(current) == "29ad234d3e02654130c56d0facfa568d8113d67fb9779ede8fd87a4aad04127d" {
+            authenticate(
+                "docs/AGENT-SKILL-BUNDLE-V1.json",
+                current,
+                include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"),
+                5544,
+                "29ad234d3e02654130c56d0facfa568d8113d67fb9779ede8fd87a4aad04127d",
+            );
+            // Named historical INPUT view; the public producer must confirm this epoch.
+            let mut prior = current.to_owned();
+            replace(
+                &mut prior,
+                "sha256:91f9c6c07e143a11d4b9c837395c775f143d438d163f8474aa7356998125fb07",
+                "sha256:698207edde124e92d551bea1eaad72f317aeaa20b912d711226fa943254af497",
+                1,
+            );
+            replace(
+                &mut prior,
+                "sha256:68bf89cdc667b569778de5905df8ebd4c4cf4d1a5f76774b734fa2d74d15cfde",
+                "sha256:24c7df3eb5fbb4cbc37b2b2f791d3bc60ada5ae75b8bb374cb75eb182c50e72d",
+                1,
+            );
+            assert_eq!(prior.len(), 5544);
+            assert_eq!(
+                digest(&prior),
+                "95f46ebd3476911f26ab508995fc436f958a62a77a348cf0672dbbd2aec00f0e"
+            );
+            projected_current = prior;
+            projected_current.as_str()
+        } else {
+            authenticate(
+                "docs/AGENT-SKILL-BUNDLE-V1.json",
+                current,
+                include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"),
+                5544,
+                "95f46ebd3476911f26ab508995fc436f958a62a77a348cf0672dbbd2aec00f0e",
+            );
+            current
+        };
+    // Explicit historical INPUT view only; physical/current bytes above stay fresh.
+    let mut prior_bundle = current.to_owned();
+    replace(
+        &mut prior_bundle,
+        "sha256:698207edde124e92d551bea1eaad72f317aeaa20b912d711226fa943254af497",
+        "sha256:a628a4b1184603fceb6a85f63e8e44176cb7a253db701c03440f5f3420cd72e3",
+        1,
     );
+    replace(
+        &mut prior_bundle,
+        "sha256:24c7df3eb5fbb4cbc37b2b2f791d3bc60ada5ae75b8bb374cb75eb182c50e72d",
+        "sha256:4a38fc585ee4e86c00aabc5f4c11c2760d809c7e0dcbae9c6ea5938a26e3039b",
+        1,
+    );
+    assert_eq!(prior_bundle.len(), 5544);
+    assert_eq!(
+        digest(&prior_bundle),
+        "d4099b09009b4a1fcd2afffabee894ab4adf6d0608e416c95d0d6615db561270"
+    );
+    let current = prior_bundle.as_str();
     let receipt = include_str!("../../docs/evidence/boxed-path-states-v1/catalog-receipt.json");
     authenticate(
         "docs/evidence/boxed-path-states-v1/catalog-receipt.json",
@@ -118,9 +173,15 @@ fn bundle(current: &str) -> String {
         "sha256:5a10694f4e1872ce61d0e2c6b16e7c9c7685a91bc65016855dae42f2ae59af5f",
         1,
     );
-    assert_eq!(digest(&before), "708991a555c4d082f6dfe12670238ab1dff76267ca841fc318e9106de0a4b5a4");
+    assert_eq!(
+        digest(&before),
+        "708991a555c4d082f6dfe12670238ab1dff76267ca841fc318e9106de0a4b5a4"
+    );
     // Restore the entire authenticated source-cut seed bundle before its unchanged old stages.
-    assert_eq!(digest(&before), "708991a555c4d082f6dfe12670238ab1dff76267ca841fc318e9106de0a4b5a4");
+    assert_eq!(
+        digest(&before),
+        "708991a555c4d082f6dfe12670238ab1dff76267ca841fc318e9106de0a4b5a4"
+    );
     // Restore the entire authenticated Git89df seed bundle before its unchanged old stages.
     replace(
         &mut before,
@@ -134,7 +195,10 @@ fn bundle(current: &str) -> String {
         "sha256:d71f8b7129ad920130746efb90c50f1d01193564dc877714dba88570f4eb0751",
         1,
     );
-    assert_eq!(digest(&before), "b89cb859f6fdf0a95f783a26145331fbc45f47ee45dd18c048337f8c08f3493f");
+    assert_eq!(
+        digest(&before),
+        "b89cb859f6fdf0a95f783a26145331fbc45f47ee45dd18c048337f8c08f3493f"
+    );
     // Restore the entire authenticated Git89df seed bundle before its unchanged old stages.
     replace(
         &mut before,
@@ -148,9 +212,15 @@ fn bundle(current: &str) -> String {
         "sha256:b79a3992d9e09d405e0a40cb918a4966f5495aef408ab045e345b34aaca9f7da",
         1,
     );
-    assert_eq!(digest(&before), "ac6508eb6f2512eeb79c548d60e92f92cfb95c01e4d79a7b76e2e3971ca15524");
+    assert_eq!(
+        digest(&before),
+        "ac6508eb6f2512eeb79c548d60e92f92cfb95c01e4d79a7b76e2e3971ca15524"
+    );
     // Restore the entire authenticated Git89df seed bundle before its unchanged old stages.
-    assert_eq!(digest(&before), "ac6508eb6f2512eeb79c548d60e92f92cfb95c01e4d79a7b76e2e3971ca15524");
+    assert_eq!(
+        digest(&before),
+        "ac6508eb6f2512eeb79c548d60e92f92cfb95c01e4d79a7b76e2e3971ca15524"
+    );
     // Restore the entire authenticated Git3e seed bundle before its unchanged old stages.
     replace(
         &mut before,
@@ -164,7 +234,10 @@ fn bundle(current: &str) -> String {
         "sha256:f74d1c326025cdcbce2ee7775ad58fe5fb6f902744d6f07bb349beab65748d5a",
         1,
     );
-    assert_eq!(digest(&before), "9f49e2011de221c6da0ed781cf6c04ea2176b1b1972bddd42ffbdc48e2f8ed71");
+    assert_eq!(
+        digest(&before),
+        "9f49e2011de221c6da0ed781cf6c04ea2176b1b1972bddd42ffbdc48e2f8ed71"
+    );
     // Restore the entire authenticated Git5d seed bundle before its unchanged old stages.
     replace(
         &mut before,
@@ -178,7 +251,10 @@ fn bundle(current: &str) -> String {
         "sha256:bb992492efa1a070766040e0adb0943c032fd051ec132d5444a1e1f478fb5342",
         1,
     );
-    assert_eq!(digest(&before), "a140b4074a80af47f3615831ac01354a851f0789b9f03265526f2d457ffc05a9");
+    assert_eq!(
+        digest(&before),
+        "a140b4074a80af47f3615831ac01354a851f0789b9f03265526f2d457ffc05a9"
+    );
     // Restore the entire authenticated 2837 bundle before its unchanged old stages.
     replace(
         &mut before,
@@ -192,7 +268,10 @@ fn bundle(current: &str) -> String {
         "sha256:7413596845b7d232f8ff8c7b9c3d9318acd4b7b5324d6deb64d8e0f8b891c86e",
         1,
     );
-    assert_eq!(digest(&before), "f4031b6b357499122748e9d0c5de0d3641f45855566ed899ff600347688210c8");
+    assert_eq!(
+        digest(&before),
+        "f4031b6b357499122748e9d0c5de0d3641f45855566ed899ff600347688210c8"
+    );
     // Restore the entire authenticated 2837 bundle before its unchanged old stages.
     replace(
         &mut before,
@@ -206,7 +285,10 @@ fn bundle(current: &str) -> String {
         "sha256:bb7816577dde8feaf180dfa647195c9abd4a1dfac194ddfa55c9b7ae3e22b134",
         1,
     );
-    assert_eq!(digest(&before), "77cc2280493407e6f3a1c4247f778cceaf09be14f1421f6f23787f8c4f0dabf7");
+    assert_eq!(
+        digest(&before),
+        "77cc2280493407e6f3a1c4247f778cceaf09be14f1421f6f23787f8c4f0dabf7"
+    );
     // Restore the entire authenticated 2837 bundle before its unchanged old stages.
     replace(
         &mut before,
@@ -220,7 +302,10 @@ fn bundle(current: &str) -> String {
         "sha256:7f4788567710a86259ceb3621963db6ca499ad6ac5323d1b4497f313b52c635b",
         1,
     );
-    assert_eq!(digest(&before), "12698588bbf09117e96fe8f8f62f74b1290f37fc7d8d0e6e20dfe54f8bc02c65");
+    assert_eq!(
+        digest(&before),
+        "12698588bbf09117e96fe8f8f62f74b1290f37fc7d8d0e6e20dfe54f8bc02c65"
+    );
     // Restore the entire authenticated 56fb bundle before its unchanged old stages.
     replace(
         &mut before,
@@ -234,7 +319,10 @@ fn bundle(current: &str) -> String {
         "sha256:19cb70ce2a043430d6fd71b60ff203ce2cf26390ed4ca01339c8259efb7d36ed",
         1,
     );
-    assert_eq!(digest(&before), "51c95c8f2849633d9abfd66812f57429d8ff9c72b2d9882af01179bdbd9862dc");
+    assert_eq!(
+        digest(&before),
+        "51c95c8f2849633d9abfd66812f57429d8ff9c72b2d9882af01179bdbd9862dc"
+    );
     replace(
         &mut before,
         "sha256:19cb70ce2a043430d6fd71b60ff203ce2cf26390ed4ca01339c8259efb7d36ed",
@@ -257,6 +345,14 @@ fn bundle(current: &str) -> String {
     assert_eq!(
         digest(&before),
         "bb1d335ef40cff2cf81d08ddcf0943b168d04721ee1e7de1b3d809d3b9600d2f"
+    );
+    assert_eq!(
+        std::fs::read_to_string(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("docs/AGENT-SKILL-BUNDLE-V1.json")
+        )
+        .unwrap(),
+        physical_current,
     );
     before
 }

@@ -155,6 +155,7 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
                 _ => panic!("unadmitted main transport path"),
             };
             assert_eq!(actual.as_slice(), compiled);
+            actual = current_shared_input_before(&path, &actual);
             actual = retained_fork_source_before(&path, &actual);
             assert_eq!(actual.len(), row["length"].as_u64().unwrap() as usize);
             assert_eq!(digest(&actual), row["sha256"].as_str().unwrap());
@@ -187,6 +188,9 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
             } else {
                 assert_eq!(digest(&actual), expected);
             }
+        }
+        if packet.get(&path).is_none() {
+            actual = current_shared_input_before(&path, &actual);
         }
         if matches!(
             path.as_str(),
@@ -346,7 +350,7 @@ fn retained_fork_source_before(path: &str, current: &[u8]) -> Vec<u8> {
     }
     let (compiled, length, expected, before_length, before_digest, edits):
         (&[u8], usize, &str, usize, &str, &[(usize, &str, &str)]) = match path {
-        "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission.rs" => (include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission.rs")).as_slice(), 22365, "9b32edd9e75c3199c9b1b3c01a5bcdc9689872795e3222b6f684f4e967c08834", 20575, "d7db6c7fc49140f9dabec3e647bf64b50571ee71a8478aae1c03acd92bba6c5f", &[
+        "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission.rs" => (include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission.rs")).as_slice(), 23389, "f2539cb9f7408df422dd81ddf360625e2a54fcc4ca9c330288e81147ffa894eb", 20575, "d7db6c7fc49140f9dabec3e647bf64b50571ee71a8478aae1c03acd92bba6c5f", &[
         ]),
         "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs" => (include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs")).as_slice(), 11753, "7944d10f5515da0a4e9c4b6ed49882bb3e20ccf9cfc96fc4c20372370ebf955f", 11246, "1f55c14d5d7fe41614e045fc680d5df8a93d4e29e4698e47bdb7e39ce8203c68", &[
             (637, "    failed: bool,\n", ""),
@@ -405,4 +409,166 @@ fn retained_fork_source_before(path: &str, current: &[u8]) -> Vec<u8> {
     assert_eq!(digest(&before), before_digest);
     assert_eq!(std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap(), physical);
     before
+}
+// Finite exact successor inputs; original42 packet and all946 targets stay whole.
+fn current_shared_input_before(path: &str, current: &[u8]) -> Vec<u8> {
+    let (compiled, length, sha, before, before_length, before_sha):
+        (&[u8], usize, &str, &[u8], usize, &str) = match path {
+        "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests.rs" => (
+            include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests.rs")).as_slice(),
+            39177,
+            "48ba251872ba4bf83424e95f78cbadcd11636432a03da7ec8e700e78425a353d",
+            include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/c2b55aa5990962e7cd33994ec25ff30217f7067770c92458f4d6fce8c20ecb6a")).as_slice(),
+            20898,
+            "c2b55aa5990962e7cd33994ec25ff30217f7067770c92458f4d6fce8c20ecb6a",
+        ),
+        "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase_tests.rs" => (
+            include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase_tests.rs")).as_slice(),
+            40157,
+            "96e28c2a55d4153e2c8195606c0d2b3236b873136f99092abe8158fb49f898c5",
+            include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/b3540b1d35fbe4ea954d6f5ee2cf38eeedc27c0c5635d79a123883d0e6d5481c")).as_slice(),
+            39198,
+            "b3540b1d35fbe4ea954d6f5ee2cf38eeedc27c0c5635d79a123883d0e6d5481c",
+        ),
+        "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/tests.rs" => (
+            include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/tests.rs")).as_slice(),
+            36455,
+            "8f1327c88ae23e83819566e674c5c3cd983aec05a4e7f4d9815ebb8b0c3c9f54",
+            include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/61478bcc50bb3c4a2d640abb3cf8a05cf2a42816d1af80a9a01f7974633c6ba2")).as_slice(),
+            30961,
+            "61478bcc50bb3c4a2d640abb3cf8a05cf2a42816d1af80a9a01f7974633c6ba2",
+        ),
+        "src/cleanup_plan/replay/factored/canonical_shared/intern_arena.rs" => (
+            include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/intern_arena.rs")).as_slice(),
+            17605,
+            "a6a8ba1ef8cdd1793bf1a7d6ddce7ffa9dd7ebf1834ee14fbdf1df357a9efec1",
+            include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/fmt-a110/ph_EVlWF6lq-xy2YIfGpPharqGOy-vsL7RIM7R2B49k.txt")).as_slice(),
+            11649,
+            "a61fc4565585ea5abec72d9821f1a93e16aba863b2fafb0bed120ced1d81e3d9",
+        ),
+        "src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/tests.rs" => (
+            include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/tests.rs")).as_slice(),
+            42390,
+            "64e89c8d153fa9a970434c45abe3dab0e58690103ad2c388a64168781f174f11",
+            include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/fmt-local-441-20261018/whole/3a690560fa0fed1ce01cffed9cefab0753a4660cc6774f9dd68375759790b00a.txt")).as_slice(),
+            37623,
+            "3a690560fa0fed1ce01cffed9cefab0753a4660cc6774f9dd68375759790b00a",
+        ),
+        "src/cleanup_plan/replay/factored/moderate_tests.rs" => (
+            include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/moderate_tests.rs")).as_slice(),
+            19377,
+            "4c32d91e8bc3d5567f19984cb289471e285a0ae14b42a9909ca8dba489aa8224",
+            include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/0e3c100eef6708ff77be409f9d9299ab1d1cce3cfc96c22c1677cebda56d543b")).as_slice(),
+            12894,
+            "0e3c100eef6708ff77be409f9d9299ab1d1cce3cfc96c22c1677cebda56d543b",
+        ),
+        "src/cleanup_plan/replay/factored/oracle_hook.rs" => (
+            include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/oracle_hook.rs")).as_slice(),
+            13225,
+            "926a833bbcf34fd7c826dfb91498565b683d6d9c1118a1c23e94c8f446f099d4",
+            include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/a0cf6a6604b1909859e78ecfe95f780ba1600072ae6ca9e259d2943c7dbebfa7")).as_slice(),
+            12521,
+            "a0cf6a6604b1909859e78ecfe95f780ba1600072ae6ca9e259d2943c7dbebfa7",
+        ),
+        "src/cleanup_plan/replay/factored/strategy.rs" => (
+            include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/strategy.rs")).as_slice(),
+            16924,
+            "ce09eb553cc2041e7dd56621a7371b401207f80eabd2ee68542d9b766a7fc7c9",
+            include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/15654f12e2893a35782117e9876fdc8745a6a69cde17608e1797310d7a093579")).as_slice(),
+            16594,
+            "15654f12e2893a35782117e9876fdc8745a6a69cde17608e1797310d7a093579",
+        ),
+        "src/cleanup_plan/replay/factored.rs" => (
+            include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored.rs")).as_slice(),
+            55919,
+            "a707ba025d94fa1dfcd81f44b1984ee945c3479e4e0bae6f5f5cda2dde010269",
+            include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/8249547ae7f6fa877064e583e65415f6b9e65931c22eaba8cbb848f687935dc4")).as_slice(),
+            52726,
+            "8249547ae7f6fa877064e583e65415f6b9e65931c22eaba8cbb848f687935dc4",
+        ),
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/final_affine_tests.rs" => (
+            include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/final_affine_tests.rs")).as_slice(),
+            22359,
+            "09c98cb0c881bdc947d5926c48af3cd75af7f2643f3de69d4a95ad691b9e01ea",
+            include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/6ab4e3e2ac19b71c15e10acb82747ff91e2d7f2e631ed6f6da16c2e946bc3fc2")).as_slice(),
+            22093,
+            "6ab4e3e2ac19b71c15e10acb82747ff91e2d7f2e631ed6f6da16c2e946bc3fc2",
+        ),
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_tests.rs" => (
+            include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_tests.rs")).as_slice(),
+            44699,
+            "553a7a669cf2a7606c9cb205f252027fb83b515cb9fc43de39fd9abe3589a152",
+            include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/db5bafe83cfc9c0f9ccd195df7b006a19fc7a1475f82dbb302c6c0f11d05dbaf")).as_slice(),
+            44431,
+            "db5bafe83cfc9c0f9ccd195df7b006a19fc7a1475f82dbb302c6c0f11d05dbaf",
+        ),
+        "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/tests.rs" => (
+            include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/tests.rs")).as_slice(),
+            17977,
+            "f483721064e9e81524fdf22c6b41e07d045edfab0d9f4d0627e35e8c470bc33e",
+            include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/5534698ffa877cfeff74d028d5cd23ef13e100c0a361a14245512f9530e23745")).as_slice(),
+            10327,
+            "5534698ffa877cfeff74d028d5cd23ef13e100c0a361a14245512f9530e23745",
+        ),
+        "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/whole_tests.rs" => (
+            include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/whole_tests.rs")).as_slice(),
+            35081,
+            "5d34472a0f59197c69d691fd9cc9b2dc90424ad09c74287b31ea42b2df263eb6",
+            include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/67b827f40e61c90022e48c1c234b9f3f667dd5dc0ab799c57ee249bfbbfae93d")).as_slice(),
+            20122,
+            "67b827f40e61c90022e48c1c234b9f3f667dd5dc0ab799c57ee249bfbbfae93d",
+        ),
+        "src/cleanup_plan/replay/path_join/selected/frontier_tests.rs" => (
+            include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/frontier_tests.rs")).as_slice(),
+            20580,
+            "3a5463e01040f296252142a47869022af5ddb2877b83ee805806ef7e9e4784d7",
+            include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/0a5d4e362fa7fb3411325c93472d9f3ab90e04464d03a06a919d5e7bf40166c5")).as_slice(),
+            20257,
+            "0a5d4e362fa7fb3411325c93472d9f3ab90e04464d03a06a919d5e7bf40166c5",
+        ),
+        "src/cleanup_plan/replay/path_join/selected/tests/mod.rs" => (
+            include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/tests/mod.rs")).as_slice(),
+            9062,
+            "7b1f8e69bcb7e577260e3568267b54c717e2a18949c6bff8da0b5a37f6a13a46",
+            include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/2a24be44491fea179ef26ff63c8fc5ad33b575a0204bdaf07975a0e2267852a2")).as_slice(),
+            8585,
+            "2a24be44491fea179ef26ff63c8fc5ad33b575a0204bdaf07975a0e2267852a2",
+        ),
+        "src/cleanup_plan/replay/path_join/selected/tests/session.rs" => (
+            include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/tests/session.rs")).as_slice(),
+            6270,
+            "c2a7426a13a310ac42c5ea718713c4bed6d573ebd8acc49c16ba2eafe4595380",
+            include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/a716f34c0e96b8917650e3f70d8526a91aff74ac50b09fe7f349c0c8da045dfa")).as_slice(),
+            6018,
+            "a716f34c0e96b8917650e3f70d8526a91aff74ac50b09fe7f349c0c8da045dfa",
+        ),
+        "src/cleanup_plan/replay/path_join/selected/tests/whole.rs" => (
+            include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/path_join/selected/tests/whole.rs")).as_slice(),
+            8466,
+            "7be8da3cfc5b711340bb346680d1d73aa8ff3a35cfad6398c86849839f81f539",
+            include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/d7d68f8b047ea1abc4f182b604478f459ecdd397c74ab532957cbd5532cf2d6e")).as_slice(),
+            8152,
+            "d7d68f8b047ea1abc4f182b604478f459ecdd397c74ab532957cbd5532cf2d6e",
+        ),
+        "src/cleanup_plan/replay/transition.rs" => (
+            include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/transition.rs")).as_slice(),
+            36569,
+            "1f07539f75b8884294fe1cf86ffeaffd1509f736d19be503f94afeb0ba94c455",
+            include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/6f90748e5cae2c16e44eedb83232fc19c33fbe6e01abf574c7efb93be47be983")).as_slice(),
+            35499,
+            "6f90748e5cae2c16e44eedb83232fc19c33fbe6e01abf574c7efb93be47be983",
+        ),
+        _ => return current.to_vec(),
+    };
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let physical = std::fs::read(root.join(path)).unwrap();
+    assert_eq!(physical.as_slice(), compiled);
+    assert_eq!(current, compiled);
+    assert_eq!(current.len(), length);
+    assert_eq!(digest(current), sha);
+    assert_eq!(before.len(), before_length);
+    assert_eq!(digest(before), before_sha);
+    let result = before.to_vec();
+    assert_eq!(std::fs::read(root.join(path)).unwrap(), physical);
+    result
 }

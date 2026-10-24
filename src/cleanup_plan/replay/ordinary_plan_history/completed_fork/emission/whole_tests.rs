@@ -627,3 +627,112 @@ fn retained_fork_whole_hir_sort_plan_net_invoice_and_cold_tiny_are_disclosed() {
         "complete composed receiver must earn a positive net invoice"
     );
 }
+
+// Exact pre-sticky validation participates in this full caller boundary.
+fn joint_frozen_immediate(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    budget: &mut ReplayBudget,
+) -> Result<(), Diagnostic> {
+    let mut expected = with_frozen_immediate(|| hir_skeleton_paths(program, function, budget))?;
+    budget.reserve_bytes(
+        function,
+        sequence::ENTRY_CALL,
+        "whole HIR complete content sort",
+    )?;
+    sequence::sort(&mut expected, function, budget)?;
+    budget.reserve_bytes(
+        function,
+        view::PRODUCE_CALL,
+        "whole independent PLAN producer",
+    )?;
+    let produced = view::produce(function, budget)?;
+    budget.reserve_bytes(
+        function,
+        view::COMPARE_CALL,
+        "whole independent history comparison",
+    )?;
+    view::compare(produced, &expected, budget)
+}
+
+#[test]
+fn retained_fork_true_frozen_immediate_whole_net_and_cold_costs_are_disclosed() {
+    let mut improvement = false;
+    for program in [fixture(), nested_call_program()] {
+        for function in &program.functions {
+            let run = |immediate, limit, floor| {
+                with_limit_usage_refusal(limit, || {
+                    measure(|| {
+                        assert!(set_active_floor(floor));
+                        let mut budget = ReplayBudget::new();
+                        let result = reserve_program_skeleton_work(
+                            &program,
+                            std::iter::once(function),
+                            &mut budget,
+                        )
+                        .and_then(|_reserved| {
+                            if immediate {
+                                joint_frozen_immediate(&program, function, &mut budget)
+                            } else {
+                                joint(&program, function, &mut budget)
+                            }
+                        });
+                        let work = (
+                            budget.skeleton_spent,
+                            budget.skeleton_remaining,
+                            budget.remaining,
+                        );
+                        if result.is_err() {
+                            assert!(budget
+                                .reserve_bytes(function, 0, "retained whole fork sticky zero")
+                                .is_err());
+                        }
+                        drop(budget);
+                        result.map(|()| work).map_err(|error| {
+                            let code = error.code;
+                            drop(error);
+                            code
+                        })
+                    })
+                })
+            };
+            let ((before, old_heap), old_refused, old_paid, _) = run(true, usize::MAX, 0);
+            let ((after, new_heap), new_refused, new_paid, _) = run(false, usize::MAX, 0);
+            let old_work = before.unwrap();
+            let new_work = after.unwrap();
+            assert_eq!(old_work, new_work);
+            assert!(!old_refused && !new_refused);
+            for (heap, paid) in [(old_heap, old_paid), (new_heap, new_paid)] {
+                assert!(!heap.invalid && heap.live == 0);
+                assert_eq!(heap.allocated, heap.freed);
+                assert!(heap.allocated <= paid);
+            }
+            improvement |= new_paid < old_paid;
+            eprintln!("925 true_immediate_whole function={} old_paid={} new_paid={} old_heap={:?} new_heap={:?} work={:?}",
+                function.id.as_str(), old_paid, new_paid, old_heap, new_heap, new_work);
+            // Exact/short/floor/zero are independently determined for each full
+            // producer. A changed net invoice never becomes a cap increase.
+            for (immediate, paid) in [(true, old_paid), (false, new_paid)] {
+                for (limit, floor, success) in [
+                    (paid, 0, true),
+                    (paid - 1, 0, false),
+                    (0, 0, false),
+                    (paid, paid, false),
+                ] {
+                    let ((result, heap), refused, _, first) = run(immediate, limit, floor);
+                    assert_eq!(result.is_ok(), success);
+                    assert!(!heap.invalid && heap.live == 0);
+                    assert_eq!(heap.allocated, heap.freed);
+                    if !success {
+                        assert!(refused && first.is_some());
+                        assert_eq!(result.unwrap_err(), "SPX-H006");
+                    }
+                }
+            }
+        }
+    }
+    assert!(
+        improvement,
+        "complete composed receiver must earn a positive net invoice"
+    );
+}

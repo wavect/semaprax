@@ -128,7 +128,14 @@ macro_rules! emit {
     ($prefixes:expr, $suffixes:expr, $work:ident) => {{
         #[cfg(test)]
         {
-            if $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::immediate_selected() {
+            if $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::frozen_immediate_selected() {
+                $work.budget.reserve_bytes($work.function,
+                    $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::immediate_before::ENTRY,
+                    "complete HIR fork caller receivers")?;
+                $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::immediate_before::emit_prepaid(
+                    $prefixes, $suffixes, $work,
+                )
+            } else if $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::immediate_selected() {
                 $work.budget.reserve_bytes($work.function,
                     $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::ENTRY,
                     "complete HIR fork caller receivers")?;
@@ -498,4 +505,17 @@ pub(in crate::cleanup_plan::replay) fn immediate_selected() -> bool {
 #[cfg(test)]
 fn with_immediate<T>(operation: impl FnOnce() -> T) -> T {
     with_route(3, operation)
+}
+
+#[cfg(test)]
+#[allow(dead_code, reason = "complete independently executable frozen immediate emitter and validation invoices")]
+#[rustfmt::skip]
+pub(in crate::cleanup_plan::replay) mod immediate_before;
+#[cfg(test)]
+pub(in crate::cleanup_plan::replay) fn frozen_immediate_selected() -> bool {
+    SELECTED.with(|selected| selected.get() == 4)
+}
+#[cfg(test)]
+fn with_frozen_immediate<T>(operation: impl FnOnce() -> T) -> T {
+    with_route(4, operation)
 }

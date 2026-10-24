@@ -1431,3 +1431,5 @@ src/cleanup_plan/replay/path_join/field_local/tests.rs
 src/cleanup_plan/replay/path_join/field_local/inverse.json
 docs/AGENT-SKILL-BUNDLE-V1.json
 src/cleanup_plan/replay/path_join/main3d81_before.rs
+src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/immediate_before.rs
+tests/wasm/scalar_browser_ci_contract/current_profiles3d81.rs

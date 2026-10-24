@@ -45,6 +45,35 @@ pub(super) fn restore(current: &str, path: &str) -> String {
         Some(crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::retained::before_emission(current))
     } else { None };
     let current = retained_epoch.as_deref().unwrap_or(current);
+    // Complete current fixture epoch precedes the unchanged old query input.
+    let fixture_epoch = if path
+        == "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs"
+    {
+        assert_eq!(current.len(), 18414);
+        assert_eq!(
+            digest(current.as_bytes()),
+            "074d4939f7c6a2c278f482219eb7e66419b3dfe66929602c8ab6cc942c826165"
+        );
+        let mut prior = current.to_owned();
+        let edits: &[(usize, &str, &str)] = &[(
+            8131,
+            "        // Classification also lends b to work's private query scratch. End\n        // that owner before testing exclusive access to the fixture's Rc.\n        drop(work);\n",
+            "",
+        )];
+        for &(at, after, before) in edits.iter().rev() {
+            assert_eq!(prior.get(at..at + after.len()), Some(after));
+            prior.replace_range(at..at + after.len(), before);
+        }
+        assert_eq!(prior.len(), 18243);
+        assert_eq!(
+            digest(prior.as_bytes()),
+            "f2219248dd29ce8f0b9ce4c1a545b545f6a740a9d0e09c8dded8c903e9585090"
+        );
+        std::borrow::Cow::Owned(prior)
+    } else {
+        std::borrow::Cow::Borrowed(current)
+    };
+    let current = fixture_epoch.as_ref();
     // Exact runtime-correctness successor, before the immutable query packet.
     let validation_epoch = match path {
         "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs" => {

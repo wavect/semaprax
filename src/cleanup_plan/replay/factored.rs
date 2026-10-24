@@ -392,20 +392,41 @@ fn compare_with_index_storage<'hir>(
         #[cfg(test)]
         let _successor_phase = canonical_shared::lexical_successors::census::phase(true);
         budget.reserve_array::<(usize, u64)>(function, 1, "factored HIR weighted root")?;
+        #[cfg(test)]
+        let hir_phase =
+            crate::test_allocation_observer::function_phase_guard("factored::canonical_hir_root");
         let Some(hir) = canonical.id_for_comparison(function, vec![(hir_root, 1)], budget)? else {
             return Ok(None);
         };
-        budget.reserve_bytes(
-            function,
-            canonical_shared::inline_singleton::hir_last_use::CALL,
-            "factored HIR-private release call receiving",
-        )?;
-        canonical.release_hir_private(function, budget, hir_root, plan_root)?;
+        #[cfg(test)]
+        drop(hir_phase);
+        if let ReplayBudget {
+            payer: AllocationPayer::LegacyUnobserved,
+            ..
+        } = budget
+        {
+            budget.reserve_bytes(
+                function,
+                canonical_shared::inline_singleton::hir_last_use::STORAGE_CALL,
+                "factored HIR-private release call receiving",
+            )?;
+            canonical.release_hir_storage(function, budget, hir_root, plan_root)?;
+        } else {
+            budget.reserve_bytes(
+                function,
+                canonical_shared::inline_singleton::hir_last_use::CALL,
+                "factored HIR-private release call receiving",
+            )?;
+            canonical.release_hir_private(function, budget, hir_root, plan_root)?;
+        }
         #[cfg(test)]
         let _debit_phase = debit_routes::phase(debit_routes::Phase::CanonicalPLAN);
         #[cfg(test)]
         let _successor_phase = canonical_shared::lexical_successors::census::phase(false);
         budget.reserve_array::<(usize, u64)>(function, 1, "factored plan weighted root")?;
+        #[cfg(test)]
+        let _plan_phase =
+            crate::test_allocation_observer::function_phase_guard("factored::canonical_plan_root");
         let Some(plan) = canonical.id_for_comparison(function, vec![(plan_root, 1)], budget)?
         else {
             return Ok(None);
@@ -428,6 +449,9 @@ fn compare_with_index_storage<'hir>(
     #[cfg(test)]
     let _successor_phase = canonical_shared::lexical_successors::census::phase(true);
     budget.reserve_array::<(usize, u64)>(function, 1, "factored HIR weighted root")?;
+    #[cfg(test)]
+    let hir_phase =
+        crate::test_allocation_observer::function_phase_guard("factored::canonical_hir_root");
     let Some(hir) = canonical_id(
         &mut canonical,
         function,
@@ -438,17 +462,35 @@ fn compare_with_index_storage<'hir>(
     else {
         return Ok(None);
     };
-    budget.reserve_bytes(
-        function,
-        canonical_shared::inline_singleton::hir_last_use::CALL,
-        "factored HIR-private release call receiving",
-    )?;
-    canonical.release_hir_private(function, budget, hir_root, plan_root)?;
+    #[cfg(test)]
+    drop(hir_phase);
+    if let ReplayBudget {
+        payer: AllocationPayer::LegacyUnobserved,
+        ..
+    } = budget
+    {
+        budget.reserve_bytes(
+            function,
+            canonical_shared::inline_singleton::hir_last_use::STORAGE_CALL,
+            "factored HIR-private release call receiving",
+        )?;
+        canonical.release_hir_storage(function, budget, hir_root, plan_root)?;
+    } else {
+        budget.reserve_bytes(
+            function,
+            canonical_shared::inline_singleton::hir_last_use::CALL,
+            "factored HIR-private release call receiving",
+        )?;
+        canonical.release_hir_private(function, budget, hir_root, plan_root)?;
+    }
     #[cfg(test)]
     let _debit_phase = debit_routes::phase(debit_routes::Phase::CanonicalPLAN);
     #[cfg(test)]
     let _successor_phase = canonical_shared::lexical_successors::census::phase(false);
     budget.reserve_array::<(usize, u64)>(function, 1, "factored plan weighted root")?;
+    #[cfg(test)]
+    let _plan_phase =
+        crate::test_allocation_observer::function_phase_guard("factored::canonical_plan_root");
     let Some(plan) = canonical_id(
         &mut canonical,
         function,

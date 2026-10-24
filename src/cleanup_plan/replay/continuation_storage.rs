@@ -30,6 +30,105 @@ pub(super) enum Lease {
     Local,
 }
 impl<'hir> Storage<'hir> {
+    // Only the mandatory unopted test crosscheck ignored this nonreceiving
+    // Legacy owner. No live/paid lease is retired, and later actual use must
+    // reacquire through the complete original fresh() reservation and carrier.
+    #[cfg(test)]
+    pub(super) const IDLE_RETIRE_CALL: usize = {
+        use std::mem::size_of;
+        4 * size_of::<(
+            &mut Self,
+            &dyn crate::cleanup::ReplayContext,
+            &ResolvedFunction,
+            &mut ReplayBudget,
+        )>() + 4 * size_of::<Result<bool, Diagnostic>>()
+            // Authentication's terminal transport and fixed same-program
+            // identity loans; no ACTIVE Rc probe on a nonreceiving owner.
+            + 4 * size_of::<Diagnostic>() + 4 * size_of::<String>()
+            + 2 * size_of::<(&Self, &dyn crate::cleanup::ReplayContext)>()
+            + 2 * size_of::<&dyn crate::cleanup::ReplayContext>()
+            + 2 * size_of::<Option<&ResolvedProgram>>()
+            + 6 * size_of::<&ResolvedProgram>()
+            + 2 * size_of::<Result<(), Diagnostic>>()
+            + 3 * size_of::<Option<Vec<Frame<'static>>>>()
+            + 3 * size_of::<Vec<Frame<'static>>>()
+            + 3 * size_of::<Vec<Option<Vec<Frame<'static>>>>>()
+            + 4 * size_of::<&Option<Vec<Frame<'static>>>>()
+            + 4 * size_of::<&Vec<Frame<'static>>>()
+            + 4 * size_of::<&mut Self>()
+            + 4 * size_of::<&Self>()
+            + 4 * size_of::<&Nested<'static>>()
+            + 4 * size_of::<&Option<Box<Nested<'static>>>>()
+            + 4 * size_of::<&Box<Nested<'static>>>()
+            + 4 * size_of::<&mut Option<Box<Nested<'static>>>>()
+            + 4 * size_of::<&mut Box<Nested<'static>>>()
+            + 4 * size_of::<&mut Nested<'static>>()
+            + 2 * size_of::<std::slice::Iter<'static, Option<Vec<Frame<'static>>>>>()
+            + 2 * size_of::<&mut std::slice::Iter<'static, Option<Vec<Frame<'static>>>>>()
+            + 2 * size_of::<Option<&Option<Vec<Frame<'static>>>>>()
+            + 12 * size_of::<bool>()
+            + 4 * size_of::<usize>()
+    };
+    #[cfg(test)]
+    const IDLE_RETIRE_STEP: usize = {
+        use std::mem::size_of;
+        2 * size_of::<&mut std::slice::Iter<'static, Option<Vec<Frame<'static>>>>>()
+            + 2 * size_of::<Option<&Option<Vec<Frame<'static>>>>>()
+            + 4 * size_of::<&Option<Vec<Frame<'static>>>>()
+            + 2 * size_of::<&Vec<Frame<'static>>>()
+            + 2 * size_of::<Option<Vec<Frame<'static>>>>()
+            + 3 * size_of::<Vec<Frame<'static>>>()
+            + 4 * size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>()
+            + 4 * size_of::<Result<(), Diagnostic>>()
+            + 4 * size_of::<bool>()
+    };
+    #[cfg(test)]
+    pub(super) fn retire_legacy_idle(
+        &mut self,
+        program: &dyn crate::cleanup::ReplayContext,
+        function: &ResolvedFunction,
+        budget: &mut ReplayBudget,
+    ) -> Result<bool, Diagnostic> {
+        if self.receiving_owner.is_some() {
+            return Ok(false);
+        }
+        if let ReplayBudget {
+            payer: AllocationPayer::LegacyUnobserved,
+            ..
+        } = budget
+        {
+        } else {
+            return Ok(false);
+        }
+        self.authenticate(program, function, budget)?;
+        if !matches!(&self.frames, Some(frames) if frames.is_empty()) {
+            return Ok(false);
+        }
+        if let Some(nested) = &self.nested {
+            if nested.depth != 0 {
+                return Ok(false);
+            }
+            for slot in &nested.slots {
+                budget.reserve_bytes(
+                    function,
+                    Self::IDLE_RETIRE_STEP,
+                    "idle continuation slot retirement receiving",
+                )?;
+                budget.charge(function, 1, "idle continuation slot retirement proof")?;
+                if !matches!(slot, Some(frames) if frames.is_empty()) {
+                    return Ok(false);
+                }
+            }
+        }
+        // Every possible leased/nonempty slot was rejected before any Drop.
+        // No old reservation is refunded or transferred to a new allocation.
+        self.frames = Some(Vec::new());
+        if let Some(nested) = &mut self.nested {
+            nested.slots = Vec::new();
+        }
+        Ok(true)
+    }
+
     pub(super) fn new(program: &'hir ResolvedProgram) -> Self {
         Self {
             program,
@@ -469,4 +568,84 @@ pub(super) fn reserve_push(
     replacement.append(frames);
     *frames = replacement;
     Ok(())
+}
+
+#[cfg(test)]
+mod idle_retirement_tests {
+    use super::*;
+    #[test]
+    fn idle_only_retirement_keeps_leases_and_original_fresh_reacquisition() {
+        let program = crate::hir::resolve(
+            &crate::check("module idle; @id(\"main\") fn main()->i64 {0}", "idle.spx").unwrap(),
+        )
+        .unwrap();
+        let function = &program.functions[0];
+        let mut budget = ReplayBudget::unobserved();
+        let mut storage = Storage::new(&program);
+        let (lease, frames) = storage.acquire(function, &mut budget).unwrap();
+        assert_eq!(frames.capacity(), FRAME_CAPACITY);
+        assert!(!storage
+            .retire_legacy_idle(&program, function, &mut budget)
+            .unwrap());
+        assert!(storage.frames.is_none());
+        storage.release(lease, frames);
+        assert!(storage
+            .retire_legacy_idle(&program, function, &mut budget)
+            .unwrap());
+        assert_eq!(storage.frames.as_ref().unwrap().capacity(), 0);
+        let (lease, frames) = storage.acquire(function, &mut budget).unwrap();
+        assert_eq!(
+            frames.capacity(),
+            FRAME_CAPACITY,
+            "full original fresh allocation, no credit"
+        );
+        storage.release(lease, frames);
+        let retained = storage.frames.as_ref().unwrap().capacity();
+        storage.nested = Some(Box::new(Nested {
+            depth: 1,
+            slots: vec![None],
+        }));
+        assert!(!storage
+            .retire_legacy_idle(&program, function, &mut budget)
+            .unwrap());
+        assert_eq!(storage.frames.as_ref().unwrap().capacity(), retained);
+        let nested = storage.nested.as_mut().unwrap();
+        nested.depth = 0;
+        nested.slots[0] = Some(Vec::new());
+        assert!(storage
+            .retire_legacy_idle(&program, function, &mut budget)
+            .unwrap());
+        assert_eq!(storage.nested.as_ref().unwrap().slots.capacity(), 0);
+        let (lease, frames) = storage.acquire(function, &mut budget).unwrap();
+        storage.release(lease, frames);
+        let foreign = crate::hir::resolve(
+            &crate::check(
+                "module foreign; @id(\"main\") fn main()->i64 {0}",
+                "foreign.spx",
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        let capacity = storage.frames.as_ref().unwrap().capacity();
+        let mut original = Storage::new(&program);
+        let mut original_budget = ReplayBudget::unobserved();
+        let expected = original
+            .authenticate(&foreign, function, &mut original_budget)
+            .unwrap_err();
+        let actual = storage
+            .retire_legacy_idle(&foreign, function, &mut budget)
+            .unwrap_err();
+        assert_eq!(
+            actual.json(),
+            expected.json(),
+            "complete original foreign Diagnostic"
+        );
+        assert_eq!(storage.frames.as_ref().unwrap().capacity(), capacity);
+        assert!(
+            storage
+                .retire_legacy_idle(&program, function, &mut budget)
+                .is_err(),
+            "foreign refusal remains sticky"
+        );
+    }
 }

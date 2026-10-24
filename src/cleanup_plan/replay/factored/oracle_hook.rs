@@ -30,7 +30,22 @@ pub(super) fn cross_check_with_storage<'hir>(
                 storage.authenticate(program, function, budget)?;
                 super::continuation_receiver::cross_check(program, function, storage)?;
             }
-            _ => super::cross_check(program, function),
+            Some(storage) => {
+                if let ReplayBudget {
+                    payer: AllocationPayer::LegacyUnobserved,
+                    ..
+                } = budget
+                {
+                    budget.reserve_bytes(
+                        function,
+                        continuation_storage::Storage::IDLE_RETIRE_CALL,
+                        "idle Legacy continuation retirement call receiving",
+                    )?;
+                    storage.retire_legacy_idle(program, function, budget)?;
+                }
+                super::cross_check(program, function);
+            }
+            None => super::cross_check(program, function),
         },
         Ok(Some(lease)) => cross_check_oracle(program, function, lease),
         Err(refusal) => panic!("opted oracle lease is not live: {refusal:?}"),

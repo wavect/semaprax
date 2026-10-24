@@ -698,3 +698,76 @@ fn complete_release_work_and_physical_frontiers() {
         assert!(!success);
     }
 }
+
+#[test]
+fn private_state_key_retirement_keeps_signatures_common_ids_and_plan_result() {
+    let program = fixture(8);
+    for function in &program.functions {
+        let mut build_budget = ReplayBudget::with_skeleton_limit(0);
+        let built = build_comparison(&program, function, &mut build_budget, None, None).unwrap();
+        let mut old = canonical(&built);
+        let mut new = canonical(&built);
+        let mut a = ReplayBudget::unobserved();
+        let mut b = ReplayBudget::unobserved();
+        let mut ra = receiving(function, &a);
+        let mut rb = receiving(function, &b);
+        let left = old
+            .id_with_compact_receiving(function, vec![(built.hir_root, 1)], &mut a, &mut ra)
+            .unwrap();
+        let right = new
+            .id_with_compact_receiving(function, vec![(built.hir_root, 1)], &mut b, &mut rb)
+            .unwrap();
+        assert_eq!(left, right);
+        let before = new.private_release_receipt();
+        assert!(old
+            .release_hir_private(function, &mut a, built.hir_root, built.plan_root)
+            .unwrap());
+        assert!(new
+            .release_hir_storage(function, &mut b, built.hir_root, built.plan_root)
+            .unwrap());
+        let after = new.private_release_receipt();
+        assert!(new.retirement_matches_old(&old, built.hir_root, built.plan_root));
+        assert_eq!(
+            &before[6..8],
+            &after[6..8],
+            "Signature arena retained exactly"
+        );
+        assert!(after[4] <= before[4]);
+        assert_eq!(
+            after[5], before[5],
+            "state arena backing reused without allocation"
+        );
+        assert_eq!(&after[8..], &[0, 0, 0, 0]);
+        let mut short = canonical(&built);
+        let mut short_budget = ReplayBudget::unobserved();
+        let mut short_receiving = receiving(function, &short_budget);
+        short
+            .id_with_compact_receiving(
+                function,
+                vec![(built.hir_root, 1)],
+                &mut short_budget,
+                &mut short_receiving,
+            )
+            .unwrap();
+        let full_release_work =
+            MAX_REPLAY_WORK_UNITS - b.remaining - (MAX_REPLAY_WORK_UNITS - short_budget.remaining);
+        assert!(full_release_work > 0);
+        short_budget.remaining = full_release_work - 1;
+        assert!(short
+            .release_hir_storage(function, &mut short_budget, built.hir_root, built.plan_root)
+            .is_err());
+        short_budget.remaining = MAX_REPLAY_WORK_UNITS;
+        assert_eq!(
+            short.release_hir_storage(function, &mut short_budget, built.hir_root, built.plan_root),
+            Err(Diagnostic::io("SPX-H006", String::new()))
+        );
+        drop(short); // Vec Drop never follows partially rebuilt AVL links.
+
+        assert_eq!(
+            old.id_with_compact_receiving(function, vec![(built.plan_root, 1)], &mut a, &mut ra)
+                .unwrap(),
+            new.id_with_compact_receiving(function, vec![(built.plan_root, 1)], &mut b, &mut rb)
+                .unwrap()
+        );
+    }
+}

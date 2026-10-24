@@ -96,7 +96,60 @@ const STEP: usize = 4 * size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, 
     + 4 * size_of::<usize>()
     + 4 * size_of::<bool>();
 
+// Preserve the original complete release method below as an independent
+// entry. Shipping additionally retires only proven-dead exact-key payloads and
+// empty scratch; the Signature arena and its stable values are never modified.
+pub(in crate::cleanup_plan::replay::factored) const STORAGE_CALL: usize =
+    CALL + 4 * size_of::<(
+        &mut Canonicalizer<'static>,
+        &ResolvedFunction,
+        &mut ReplayBudget,
+        usize,
+        usize,
+    )>() + 4 * size_of::<Result<bool, Diagnostic>>()
+        + intern_arena::Arena::<SharedWeighted>::RELEASE_CONTROLS
+        + 3 * size_of::<Vec<usize>>()
+        + 3 * size_of::<Vec<(usize, bool)>>()
+        + 3 * size_of::<Vec<CanonicalFrame<'static>>>()
+        + 3 * size_of::<Vec<SharedWeighted>>()
+        + 4 * size_of::<&mut Canonicalizer<'static>>()
+        + 4 * size_of::<bool>();
+
 impl Canonicalizer<'_> {
+    pub(in crate::cleanup_plan::replay::factored) fn release_hir_storage(
+        &mut self,
+        function: &ResolvedFunction,
+        budget: &mut ReplayBudget,
+        hir_root: usize,
+        plan_root: usize,
+    ) -> Result<bool, Diagnostic> {
+        if !self.release_hir_private(function, budget, hir_root, plan_root)? {
+            return Ok(false);
+        }
+        if let ReplayBudget {
+            payer: AllocationPayer::LegacyUnobserved,
+            ..
+        } = budget
+        {
+        } else {
+            return Ok(true);
+        }
+        // The old proof established empty scratch and forbids every PLAN edge
+        // into [hir_root,plan_root), including epsilon and unreachable nodes.
+        // Exact weighted keys containing one forbidden node cannot be PLAN hits.
+        if let Err(error) = self
+            .states
+            .release_private_keys(function, budget, hir_root, plan_root)
+        {
+            self.closures.reject_after_error();
+            return Err(error);
+        }
+        self.child_ids = Vec::new();
+        self.cursor = Vec::new();
+        self.frames = Vec::new();
+        self.open = Vec::new();
+        Ok(true)
+    }
     /// The actual builder first allocates sink0/End1..3/HIR-root4, completes
     /// every HIR chain and DAG join, then allocates every PLAN entry followed
     /// by its transitions. PLAN targets are entries, fresh nodes or End1..3.
@@ -233,6 +286,18 @@ impl Canonicalizer<'_> {
 
 #[cfg(test)]
 impl Canonicalizer<'_> {
+    pub(in crate::cleanup_plan::replay::factored) fn retirement_matches_old(
+        &self,
+        old: &Self,
+        first: usize,
+        end: usize,
+    ) -> bool {
+        self.ids.iter().eq(old.ids.iter())
+            && self.states.iter().eq(old
+                .states
+                .iter()
+                .filter(|(key, _)| !key.iter().any(|(node, _)| *node >= first && *node < end)))
+    }
     pub(in crate::cleanup_plan::replay::factored) fn seed_private_release_test(
         &mut self,
         function: &ResolvedFunction,

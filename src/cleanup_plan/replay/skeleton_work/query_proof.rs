@@ -547,6 +547,12 @@ mod before;
 mod tests;
 
 #[cfg(test)]
+pub(in crate::cleanup_plan::replay) fn before_owner(current: &str, path: &str) -> String {
+    assert!(matches!(path, "src/cleanup_plan/replay.rs" | "src/cleanup_plan/replay/skeleton_work.rs"));
+    tests::restore(current, path)
+}
+
+#[cfg(test)]
 pub(in crate::cleanup_plan::replay) fn before_emission(current: &str) -> String {
     tests::restore(
         current,

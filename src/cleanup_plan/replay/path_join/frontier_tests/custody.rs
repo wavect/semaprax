@@ -52,7 +52,11 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
     // compiled inverse above. Its shared helper bodies and selected module
     // declaration remain exactly the immediate-old suffix, while all selected
     // implementation files retain their own unchanged readset bindings.
-    let current = include_str!("../../path_join.rs");
+    let current = crate::bounded_output::census_before(
+        "src/cleanup_plan/replay/path_join.rs",
+        include_bytes!("../../path_join.rs"),
+    );
+    let current = std::str::from_utf8(&current).unwrap();
     let before = include_str!("../before_frontier/whole.rs.txt");
     let marker = "fn validate_control_group_with_budget";
     assert_eq!(
@@ -170,9 +174,15 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
             if path == "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton.rs" {
                 // This one endpoint is the complete643f intermediate. The
                 // original ordinary-labels stage below still proves fixed946.
-                assert_eq!(actual.as_slice(), row["before_text"].as_str().unwrap().as_bytes());
+                assert_eq!(
+                    actual.as_slice(),
+                    row["before_text"].as_str().unwrap().as_bytes()
+                );
                 assert_eq!(actual.len(), 55813);
-                assert_eq!(digest(&actual), "87257e50e24a64d047eff17fd2ef9de7e1ed4c1049697222223947c62b28f514");
+                assert_eq!(
+                    digest(&actual),
+                    "87257e50e24a64d047eff17fd2ef9de7e1ed4c1049697222223947c62b28f514"
+                );
             } else {
                 assert_eq!(digest(&actual), expected);
             }

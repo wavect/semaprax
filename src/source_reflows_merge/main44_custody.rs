@@ -265,6 +265,91 @@ pub(crate) fn before_phase_probes<'a>(source: &str, supplied: &'a str) -> std::b
     // Authenticate the exact early-release epoch before the unchanged incoming
     // main and diagnostic-probe inverses; no predecessor pins move.
     let physical_compiled = compiled;
+    let workspace_epoch = if source == "src/cleanup_plan/replay.rs" {
+        assert_eq!(compiled.len(), 327551);
+        assert_eq!(super::source_sha(compiled), "751c95561915a9b99ebec0bdf702dc9c7448d411f0f80ac58d244bc7df20dde5");
+        let addition = "#[cfg(test)]\nmod workspace_oracle;\n#[cfg(test)]\npub(crate) use factored::{EpsilonAppCensus, SuccessorAppCensus};\n#[cfg(test)]\npub(crate) use workspace_oracle::with_financed_workspace_test_oracles;\nmod selected_type_drop;\n";
+        assert_eq!(compiled.matches(addition).count(), 1);
+        let prior = compiled.replacen(addition, "\n#[cfg(test)]\npub(crate) use factored::{EpsilonAppCensus, SuccessorAppCensus};\n\nmod selected_type_drop;\n\n", 1);
+        assert_eq!(prior.len(), 327435);
+        assert_eq!(super::source_sha(&prior), "0aeeb9967f3272bfc1371131cba43dc39e5bb7b155eae28500512de0c34af387");
+        std::borrow::Cow::Owned(prior)
+    } else {
+        std::borrow::Cow::Borrowed(compiled)
+    };
+    let compiled = workspace_epoch.as_ref();
+    // Each later implementation is acquired in full before the unchanged
+    // incoming-main and diagnostic-probe epochs below. Fixed endpoints remain
+    // the complete independently retained Git source images.
+    let implementation_epoch = match source {
+        "src/cleanup_plan/replay.rs" => {
+            assert_eq!(compiled.len(), 327435);
+            assert_eq!(super::source_sha(compiled), "0aeeb9967f3272bfc1371131cba43dc39e5bb7b155eae28500512de0c34af387");
+            let mut prior = compiled.to_owned();
+            for &(at, after, before) in [
+                (1097, "mod plan_prefix;\n", ""),
+                (108404, "#[rustfmt::skip]\n", ""),
+                (109364, "    ordinary_plan_history::completed_fork::shipping::finish!(function, budget, expected);\n", ""),
+                (112083, "        ReplayBudget { payer: AllocationPayer::LegacyUnobserved, .. } if { #[cfg(test)] { !ordinary_plan_history::completed_fork::emission::before_selected() } #[cfg(not(test))] { true } } => !plan_prefix::equal_paths(function, budget, &mut expected, &mut actual)?,\n", ""),
+                (116424, "        budget.reserve_bytes(function, skeleton_work::query_proof::HEADER, \"skeleton query neutral slot receivers\")?;\n        SkeletonWork { queries: skeleton_work::query_proof::Slot::new(function, budget),\n", "        SkeletonWork {\n"),
+                (122436, "    let prefixes = ordinary_plan_history::completed_fork::emission::dispatch!(\n        prefixes, suffixes, work\n    );\n", ""),
+                (122660, "    let share_prefix = work.prefix_tail_sharing(&suffixes)?;\n", "    let share_prefix = work.shares_prefix_tail(&suffixes)?;\n"),
+                (123169, "        sequence_vector::reuse!(prefixes, suffixes, work, token share_prefix, minimum, precharged);\n", "        sequence_vector::reuse!(prefixes, suffixes, work, share_prefix, minimum, precharged);\n"),
+                (123805, "        if !precharged {\n            skeleton_work::dag_storage::share_prefix!(work, share_prefix, prefix.observations);\n", "        if !precharged && share_prefix {\n            work.share_prefix_tail(&mut prefix.observations)?;\n"),
+                (269073, "    let share_prefix = work.prefix_tail_sharing(&suffixes)?;\n", "    let share_prefix = work.shares_prefix_tail(&suffixes)?;\n"),
+                (269543, "        skeleton_work::dag_storage::share_prefix!(work, share_prefix, prefix.observations);\n\n", "        if share_prefix {\n            work.share_prefix_tail(&mut prefix.observations)?;\n        }\n"),
+                (269792, "            let observations = ordinary_plan_history::completed_fork::emission::extend_call!(\n                observations, suffix, work\n", "            let observations = work.extend_owned_observations(\n                observations,\n                &suffix.observations,\n                \"call suffix clone\",\n"),
+                (279166, "#[rustfmt::skip]\n", ""),
+                (279316, "    budget.reserve_bytes(function, plan_prefix::QUERY_CONTROLS, \"PLAN prefix eligibility receivers\")?;\n    if matches!(budget.payer, AllocationPayer::LegacyUnobserved) && { #[cfg(test)] { !ordinary_plan_history::completed_fork::emission::before_selected() } #[cfg(not(test))] { true } } { return plan_prefix::build(function, budget); }\n", ""),
+                (289554, "                compact_path::plan_selection!(budget, function);\n", "                budget.reserve_bytes(\n                    function,\n                    branch_clone::direct::PLAN_SMALL_SELECTION_CONTROLS,\n                    \"plan final-output selection controls\",\n                )?;\n"),
+                (289948, "                        physical_budget::compact_try!(budget.reserve_compact_bytes(\n", "                        budget.reserve_bytes(\n"),
+                (290070, "                            branch_clone::direct::plan_compact_roles::<\n", "                            branch_clone::direct::compact_roles::<\n"),
+                (290357, "                        ));\n", "                        )?;\n"),
+                (291020, "                        physical_budget::compact_try!(budget.reserve_compact_bytes(\n", "                        budget.reserve_bytes(\n"),
+                (291142, "                            branch_clone::plan_compact_roles::<std::rc::Rc<SkeletonObservation>>(),\n", "                            branch_clone::compact_roles::<std::rc::Rc<SkeletonObservation>>(),\n"),
+                (291305, "                        ));\n", "                        )?;\n"),
+                (291645, "                        physical_budget::compact_try!(budget.reserve_compact_bytes(\n", "                        budget.reserve_bytes(\n"),
+                (291767, "                            branch_clone::direct::plan_compact_roles::<\n", "                            branch_clone::direct::compact_roles::<\n"),
+                (292054, "                        ));\n", "                        )?;\n"),
+                (292911, "                    compact_path::plan_move!(budget, function);\n                    compact_path::plan_work!(\n                        budget,\n", "                    budget.reserve_bytes(\n"),
+                (293087, "                        \"cleanup-plan skeleton branch clone\"\n                    );\n", "                        final_output::PLAN_MOVE_CONTROLS,\n                        \"plan final-output move controls\",\n                    )?;\n                    budget.charge_skeleton(function, 1, \"cleanup-plan skeleton branch clone\")?;\n"),
+                (293480, "                    compact_path::plan_work!(budget, function, \"plan branch observation push\");\n", "                    budget.charge_skeleton(function, 1, \"plan branch observation push\")?;\n"),
+                (293629, "                    compact_path::plan_auth!(budget, function);\n                    compact_path::plan_conversion!(budget, function, observation);\n", "                    budget.reserve_bytes(function, 0, \"plan branch observation push\")?;\n                    budget.reserve_bytes(\n                        function,\n                        physical_clone::conversion_bytes::<std::rc::Rc<SkeletonObservation>, _>(\n                            &observation,\n                        ),\n                        \"plan branch observation push\",\n                    )?;\n"),
+                (297849, "                        branch_clone::short_plan::produce!(\n                            budget,\n                            function,\n                            observations,\n                            observation,\n                            edge,\n                            queue\n                        );\n", ""),
+            ].iter().rev() {
+                assert_eq!(prior.get(at..at + after.len()), Some(after));
+                prior.replace_range(at..at + after.len(), before);
+            }
+            assert_eq!(prior.len(), 326426);
+            assert_eq!(super::source_sha(&prior), "5b40d53c43ccf6335bd2fbaf33c3c57d75b5bcfab2a7d6ebbd03851d77ee6e9d");
+            std::borrow::Cow::Owned(prior)
+        },
+        "src/cleanup_plan/replay/factored.rs" => {
+            assert_eq!(compiled.len(), 51339);
+            assert_eq!(super::source_sha(compiled), "809181e23ff2dd185ba0f28504fa05eea592aa40e94144714c884d997d00d8cc");
+            let mut prior = compiled.to_owned();
+            for &(at, after, before) in [
+                (12903, "        budget.reserve_bytes(\n            function,\n            canonical_shared::inline_singleton::hir_last_use::CALL,\n            \"factored HIR-private release call receiving\",\n        )?;\n        canonical.release_hir_private(function, budget, hir_root, plan_root)?;\n", ""),
+                (13761, "            canonical_shared::closure_receiving::ClosureReceiving::DIRECT_CONTROLS\n                + canonical_shared::inline_singleton::Canonicalizer::ACTIVE_DISPATCH_CONTROLS,\n", "            canonical_shared::closure_receiving::ClosureReceiving::DIRECT_CONTROLS,\n"),
+                (14133, "    let canonical_id = canonical.canonical_dispatch(&budget.payer);\n", ""),
+                (14486, "    let Some(hir) = canonical_id(\n        &mut canonical,\n", "    let Some(hir) = canonical.id_with_compact_receiving(\n"),
+                (14591, "        &mut *budget,\n", "        budget,\n"),
+                (14687, "    budget.reserve_bytes(\n        function,\n        canonical_shared::inline_singleton::hir_last_use::CALL,\n        \"factored HIR-private release call receiving\",\n    )?;\n    canonical.release_hir_private(function, budget, hir_root, plan_root)?;\n", ""),
+                (15221, "    let Some(plan) = canonical_id(\n        &mut canonical,\n", "    let Some(plan) = canonical.id_with_compact_receiving(\n"),
+                (15328, "        &mut *budget,\n", "        budget,\n"),
+                (43357, "        if ordinary_plan_history::completed_fork::emission::before_selected() {\n            hir.sort();\n            plan.sort();\n            Ok(hir == plan)\n        } else {\n            enumerating.reserve_bytes(\n                function,\n                2 * skeleton_work::enumerated_prefix::ENTRY_CALL,\n                \"factored cross-check complete enumerated content receivers\",\n            )?;\n            skeleton_work::enumerated_prefix::sort(&mut hir, function, &mut enumerating)?;\n            if matches!(enumerating.payer, AllocationPayer::LegacyUnobserved) {\n                skeleton_work::enumerated_prefix::sort(&mut plan, function, &mut enumerating)?;\n            } else {\n                plan.sort();\n            }\n            skeleton_work::enumerated_prefix::equal(&hir, &plan, function, &mut enumerating)\n        }\n", "        hir.sort();\n        plan.sort();\n        Ok(hir == plan)\n"),
+                (51297, "\n#[cfg(test)]\nmod hir_memo_release_tests;\n", ""),
+            ].iter().rev() {
+                assert_eq!(prior.get(at..at + after.len()), Some(after));
+                prior.replace_range(at..at + after.len(), before);
+            }
+            assert_eq!(prior.len(), 49837);
+            assert_eq!(super::source_sha(&prior), "ffca82dfababa42ad8f21b57a51c42d313a769c17dc14115e1a2ac60a103e5c8");
+            std::borrow::Cow::Owned(prior)
+        },
+        _ => std::borrow::Cow::Borrowed(compiled),
+    };
+    let compiled = implementation_epoch.as_ref();
     let early_release_epoch = if source == "src/cleanup_plan/replay/factored.rs" {
         assert_eq!(compiled.len(), 49837);
         assert_eq!(super::source_sha(compiled), "ffca82dfababa42ad8f21b57a51c42d313a769c17dc14115e1a2ac60a103e5c8");

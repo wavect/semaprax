@@ -173,6 +173,45 @@ fn whole_pre_inline_driver_helpers_and_original_direct_tests_are_retained_exactl
         let mut actual =
             crate::bounded_output::census_before(path, &std::fs::read(root.join(path)).unwrap());
         actual = super::shared_insertions_tests::prior_source(path, actual);
+        if path == "src/cleanup_plan/replay/path_join/boxed_flow.rs" {
+            // The later direct-One fold owns this exact source delta. Restore
+            // it before the unchanged held-edge predecessor's full assertions.
+            assert_eq!(
+                actual.as_slice(),
+                include_bytes!("boxed_flow.rs").as_slice()
+            );
+            let encoded = include_bytes!("direct_one_before/inverse.json");
+            assert_eq!(encoded.len(), 19485);
+            assert_eq!(
+                digest(encoded),
+                "027cc73210897771d444e422df2c31c2356d9db4f5e6bc2590d1214263fede51"
+            );
+            let direct: serde_json::Value = serde_json::from_slice(encoded).unwrap();
+            let matches: Vec<_> = direct
+                .as_array()
+                .unwrap()
+                .iter()
+                .filter(|entry| entry["current"] == path)
+                .collect();
+            assert_eq!(matches.len(), 1);
+            let direct = matches[0];
+            assert_eq!(digest(&actual), direct["current_sha256"].as_str().unwrap());
+            let mut restored = String::from_utf8(actual).unwrap();
+            for edit in direct["edits"].as_array().unwrap() {
+                let from = edit["from"].as_str().unwrap();
+                assert_eq!(restored.matches(from).count(), 1);
+                restored = restored.replacen(from, edit["to"].as_str().unwrap(), 1);
+            }
+            actual = restored.into_bytes();
+            let before = include_bytes!("direct_one_before/boxed_flow.rs.txt");
+            assert_eq!(
+                std::fs::read(root.join(direct["before"].as_str().unwrap()))
+                    .unwrap()
+                    .as_slice(),
+                before.as_slice()
+            );
+            assert_eq!(actual.as_slice(), before.as_slice());
+        }
         assert_eq!(actual.len() as u64, row["length"].as_u64().unwrap());
         assert_eq!(digest(&actual), row["sha256"].as_str().unwrap());
         for edit in row["edits"].as_array().unwrap().iter().rev() {
@@ -231,5 +270,32 @@ fn feature_only_census_full_source_inverses_preserve_each_complete_immediate_own
             std::panic::catch_unwind(|| crate::bounded_output::census_before(path, &drift))
                 .is_err()
         );
+    }
+
+    // The later front phase refuses foreign supplied bytes without granting a
+    // generic old-source or field-normalization route.
+    let acquisitions = transport["acquisitions"].as_array().unwrap();
+    assert_eq!(acquisitions.len(), 8);
+    for row in acquisitions {
+        let path = row["path"].as_str().unwrap();
+        let current = std::fs::read(root.join(path)).unwrap();
+        let prior = crate::bounded_output::census_source_before(path, &current);
+        assert_eq!(prior.len() as u64, row["before_length"].as_u64().unwrap());
+        assert_eq!(digest(&prior), row["before_sha256"].as_str().unwrap());
+        let mut altered = current.clone();
+        altered[0] ^= 1;
+        let extended = [current.as_slice(), b"\n"].concat();
+        for supplied in [
+            &current[..current.len() - 1],
+            altered.as_slice(),
+            extended.as_slice(),
+        ] {
+            assert!(
+                std::panic::catch_unwind(|| crate::bounded_output::census_source_before(
+                    path, supplied
+                ))
+                .is_err()
+            );
+        }
     }
 }

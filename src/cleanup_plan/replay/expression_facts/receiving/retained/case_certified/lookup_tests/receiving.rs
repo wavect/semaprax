@@ -17,8 +17,14 @@ fn run_driver(
     program: &ResolvedProgram,
     driver: Driver,
     limit: usize,
-) -> (Result<(), Diagnostic>, bool, usize) {
-    crate::bounded_output::with_limit_usage(limit, || {
+) -> (Result<(), Diagnostic>, bool, usize, crate::cleanup_plan::replay::allocation::OracleReceipt) {
+    // Reference-only comparison has its own finite account. The actual driver
+    // remains ActiveBuilder under the exact ordinary caller limit below.
+    use crate::cleanup_plan::replay::allocation::{opt_in, OracleScope};
+    let scope = OracleScope::open_with_work(1 << 28, 1 << 25)
+        .expect("explicit independent receiving reference account");
+    let selected = opt_in(scope.lease()).expect("one receiving reference account");
+    let (result, refused, paid) = crate::bounded_output::with_limit_usage(limit, || {
         let mut budget = ReplayBudget::new();
         let helpers = ordinary_renewals::index(program, &mut budget)?;
         reserve_program_skeleton_work(program, program.functions.iter(), &mut budget)?;
@@ -44,14 +50,21 @@ fn run_driver(
             }
         }
         Ok(())
-    })
+    });
+    drop(selected);
+    let reference = scope.finish();
+    assert_eq!(reference.started, reference.completed);
+    assert!(reference.first_refusal.is_none()
+        && reference.first_work_refusal.is_none()
+        && reference.physical_failure.is_none(), "{reference:?}");
+    (result, refused, paid, reference)
 }
 
 fn run(
     program: &ResolvedProgram,
     old: bool,
     limit: usize,
-) -> (Result<(), Diagnostic>, bool, usize) {
+) -> (Result<(), Diagnostic>, bool, usize, crate::cleanup_plan::replay::allocation::OracleReceipt) {
     run_driver(
         program,
         if old {
@@ -83,6 +96,13 @@ fn whole_immediate_ordinary_result_exact_short_zero_and_real_nm_are_observed() {
         let transition_census = ordinary_receiving::take_census();
         let current = run(&program, false, 64 * 1024 * 1024);
         ordinary_receiving::take_census();
+        for (name, value) in [
+            ("before", &old), ("immediate", &immediate),
+            ("transition", &transition), ("current", &current),
+        ] {
+            assert!(value.3.started > 0, "{name} must execute its independent reference");
+            eprintln!("OPT892_REFERENCE rows={rows} arm={name} reference={:?} ordinary_paid={}", value.3, value.2);
+        }
         assert_eq!(immediate.0, old.0); // complete six-field diagnostics
         assert!(
             immediate.0.is_ok() && !immediate.1,

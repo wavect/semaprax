@@ -475,6 +475,8 @@ fn census_stage(path: &str, current: &[u8], predecessor: bool) -> Option<Vec<u8>
         _ => panic!("undeclared census composition source"),
     };
     assert_eq!(current, compiled);
+    let acquired = census_source_before(path, current);
+    let current = acquired.as_slice();
     assert_eq!(current.len() as u64, row["length"].as_u64().unwrap());
     assert_eq!(digest(current), row["sha256"].as_str().unwrap());
     let (file, length, sha, fixture): (&str, usize, &str, &[u8]) = match (path, predecessor) {
@@ -519,4 +521,88 @@ fn census_stage(path: &str, current: &[u8], predecessor: bool) -> Option<Vec<u8>
         "complete independently bound census predecessor"
     );
     Some(bytes)
+}
+
+// A closed later test/source-front acquisition. The complete actual physical
+// and compiled bytes authenticate before any original census stage is entered.
+pub(crate) fn census_source_before(path: &str, supplied: &[u8]) -> Vec<u8> {
+    use sha2::{Digest, Sha256};
+    let digest = |bytes: &[u8]| format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)));
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let encoded = include_bytes!("../cleanup_plan/replay/path_join/census_transport.json");
+    assert_eq!(
+        std::fs::read(root.join("src/cleanup_plan/replay/path_join/census_transport.json"))
+            .unwrap()
+            .as_slice(),
+        encoded.as_slice()
+    );
+    let packet: serde_json::Value = serde_json::from_slice(encoded).unwrap();
+    assert_eq!(
+        packet["schema"],
+        "semaprax.path-census-source-composition.v1"
+    );
+    assert_eq!(packet["e912"], "e9124c411f445ed80200460f2beb40cbdaa625df");
+    assert_eq!(packet["predecessor"], "bd8a94fac");
+    let owners = [
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        "src/bounded_output.rs",
+        "src/bounded_output/canonical_stage_tests.rs",
+        "src/cleanup_plan/replay/path_join/frontier_tests/custody.rs",
+        "src/cleanup_plan/replay/path_join/held_edge_tests.rs",
+        "src/cleanup_plan/replay/path_join/shared_insertions_tests.rs",
+        "tests/hir_module_boundaries.rs",
+        "tests/workspace/semantic_graph/source_inventory.rs",
+    ];
+    let rows = packet["acquisitions"].as_array().unwrap();
+    assert_eq!(rows.len(), owners.len());
+    for (row, owner) in rows.iter().zip(owners) {
+        assert_eq!(row["path"], owner);
+    }
+    let Some(row) = rows.iter().find(|row| row["path"] == path) else {
+        return supplied.to_vec();
+    };
+    let physical = std::fs::read(root.join(path)).unwrap();
+    let compiled: &[u8] = match path {
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs")),
+        "src/bounded_output.rs" => include_bytes!("../bounded_output.rs"),
+        "src/bounded_output/canonical_stage_tests.rs" => include_bytes!("canonical_stage_tests.rs"),
+        "src/cleanup_plan/replay/path_join/frontier_tests/custody.rs" => include_bytes!("../cleanup_plan/replay/path_join/frontier_tests/custody.rs"),
+        "src/cleanup_plan/replay/path_join/held_edge_tests.rs" => include_bytes!("../cleanup_plan/replay/path_join/held_edge_tests.rs"),
+        "src/cleanup_plan/replay/path_join/shared_insertions_tests.rs" => include_bytes!("../cleanup_plan/replay/path_join/shared_insertions_tests.rs"),
+        "tests/hir_module_boundaries.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/hir_module_boundaries.rs")),
+        "tests/workspace/semantic_graph/source_inventory.rs" => include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/workspace/semantic_graph/source_inventory.rs")),
+        _ => unreachable!(),
+    };
+    assert_eq!(supplied, physical.as_slice());
+    assert_eq!(physical.as_slice(), compiled);
+    assert_eq!(physical.len() as u64, row["length"].as_u64().unwrap());
+    assert_eq!(digest(&physical), row["sha256"].as_str().unwrap());
+    let old = packet["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|old| old["path"] == path)
+        .unwrap();
+    assert_eq!(row["before_length"], old["length"]);
+    assert_eq!(row["before_sha256"], old["sha256"]);
+    let mut restored = physical.clone();
+    for edit in row["edits"].as_array().unwrap().iter().rev() {
+        let at = edit[0].as_u64().unwrap() as usize;
+        let after = edit[1].as_str().unwrap().as_bytes();
+        assert_eq!(restored.get(at..at + after.len()), Some(after));
+        restored.splice(at..at + after.len(), edit[2].as_str().unwrap().bytes());
+    }
+    assert_eq!(
+        restored.len() as u64,
+        row["before_length"].as_u64().unwrap()
+    );
+    assert_eq!(digest(&restored), row["before_sha256"].as_str().unwrap());
+    assert_eq!(std::fs::read(root.join(path)).unwrap(), physical);
+    assert_eq!(
+        std::fs::read(root.join("src/cleanup_plan/replay/path_join/census_transport.json"))
+            .unwrap()
+            .as_slice(),
+        encoded.as_slice()
+    );
+    restored
 }

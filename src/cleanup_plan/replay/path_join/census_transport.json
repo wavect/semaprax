@@ -994,5 +994,294 @@
         ]
       }
     }
+  ],
+  "acquisitions": [
+    {
+      "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "length": 231157,
+      "sha256": "a49e96f285a19f0b11dfb3489cd239cee116343c4bbaa5126b69bce9e17a48b0",
+      "before_length": 231041,
+      "before_sha256": "c8129d4132ae953394dd37eb69974b5539258b1cfd0400f2e532c8e6571d4a01",
+      "edits": [
+        [
+          73,
+          "",
+          "\n       "
+        ],
+        [
+          259,
+          "",
+          "\n       "
+        ],
+        [
+          366,
+          "#[rustfmt::skip]\nmacro_rules! native_remaining_tests_source { () => { include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs\") }; }\n",
+          ""
+        ],
+        [
+          836,
+          "include_str!(\"../../../../../tests/wasm/scalar_browser_ci_contract/current_profiles573.rs\"),",
+          ""
+        ],
+        [
+          217470,
+          "nat",
+          "include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/rece"
+        ],
+        [
+          217475,
+          "e_",
+          "ing/"
+        ],
+        [
+          217486,
+          "_tests_source!(",
+          "/tests.rs\""
+        ],
+        [
+          226430,
+          "nat",
+          "include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/rece"
+        ],
+        [
+          226435,
+          "e_",
+          "ing/"
+        ],
+        [
+          226446,
+          "_tests_source!(",
+          "/tests.rs\""
+        ]
+      ]
+    },
+    {
+      "path": "src/bounded_output.rs",
+      "length": 52405,
+      "sha256": "c560dae3f6e0254d9adec883aff000fea6b3bc458cb65dced120e3028f09446c",
+      "before_length": 52376,
+      "before_sha256": "f81439f62393e8be2096408f90a229197b1efa402cda00b5c4cf250addd3142c",
+      "edits": [
+        [
+          47698,
+          "\n    ",
+          ""
+        ],
+        [
+          47740,
+          ", census_source_before,\n",
+          ""
+        ]
+      ]
+    },
+    {
+      "path": "src/bounded_output/canonical_stage_tests.rs",
+      "length": 32271,
+      "sha256": "cbe99a91f4ec5d567c0aa730a56a0d34afbcf22c2bdf7d5dc56bd87800c4ae11",
+      "before_length": 27664,
+      "before_sha256": "652e4ba521f44276cc52356d767ff19b3de133d8906614bc1cb119b9b45dec8c",
+      "edits": [
+        [
+          23164,
+          ");\n    let acquired = census_source_before(path, current);\n    let current = acquired.as_slice(",
+          ""
+        ],
+        [
+          27759,
+          "\n// A closed later test/source-front acquisition. The complete actual physical\n// and compiled bytes authenticate before any original census stage is entered.\npub(crate) fn census_source_before(path: &str, supplied: &[u8]) -> Vec<u8> {\n    use sha2::{Digest, Sha256};\n    let digest = |bytes: &[u8]| format!(\"{:x}\", crate::digest_hex::LowerHex(Sha256::digest(bytes)));\n    let root = std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\"));\n    let encoded = include_bytes!(\"../cleanup_plan/replay/path_join/census_transport.json\");\n    assert_eq!(\n        std::fs::read(root.join(\"src/cleanup_plan/replay/path_join/census_transport.json\"))\n            .unwrap()\n            .as_slice(),\n        encoded.as_slice()\n    );\n    let packet: serde_json::Value = serde_json::from_slice(encoded).unwrap();\n    assert_eq!(\n        packet[\"schema\"],\n        \"semaprax.path-census-source-composition.v1\"\n    );\n    assert_eq!(packet[\"e912\"], \"e9124c411f445ed80200460f2beb40cbdaa625df\");\n    assert_eq!(packet[\"predecessor\"], \"bd8a94fac\");\n    let owners = [\n        \"crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs\",\n        \"src/bounded_output.rs\",\n        \"src/bounded_output/canonical_stage_tests.rs\",\n        \"src/cleanup_plan/replay/path_join/frontier_tests/custody.rs\",\n        \"src/cleanup_plan/replay/path_join/held_edge_tests.rs\",\n        \"src/cleanup_plan/replay/path_join/shared_insertions_tests.rs\",\n        \"tests/hir_module_boundaries.rs\",\n        \"tests/workspace/semantic_graph/source_inventory.rs\",\n    ];\n    let rows = packet[\"acquisitions\"].as_array().unwrap();\n    assert_eq!(rows.len(), owners.len());\n    for (row, owner) in rows.iter().zip(owners) {\n        assert_eq!(row[\"path\"], owner);\n    }\n    let Some(row) = rows.iter().find(|row| row[\"path\"] == path) else {\n        return supplied.to_vec();\n    };\n    let physical = std::fs::read(root.join(path)).unwrap();\n    let compiled: &[u8] = match path {\n        \"crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs\")),\n        \"src/bounded_output.rs\" => include_bytes!(\"../bounded_output.rs\"),\n        \"src/bounded_output/canonical_stage_tests.rs\" => include_bytes!(\"canonical_stage_tests.rs\"),\n        \"src/cleanup_plan/replay/path_join/frontier_tests/custody.rs\" => include_bytes!(\"../cleanup_plan/replay/path_join/frontier_tests/custody.rs\"),\n        \"src/cleanup_plan/replay/path_join/held_edge_tests.rs\" => include_bytes!(\"../cleanup_plan/replay/path_join/held_edge_tests.rs\"),\n        \"src/cleanup_plan/replay/path_join/shared_insertions_tests.rs\" => include_bytes!(\"../cleanup_plan/replay/path_join/shared_insertions_tests.rs\"),\n        \"tests/hir_module_boundaries.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/tests/hir_module_boundaries.rs\")),\n        \"tests/workspace/semantic_graph/source_inventory.rs\" => include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/tests/workspace/semantic_graph/source_inventory.rs\")),\n        _ => unreachable!(),\n    };\n    assert_eq!(supplied, physical.as_slice());\n    assert_eq!(physical.as_slice(), compiled);\n    assert_eq!(physical.len() as u64, row[\"length\"].as_u64().unwrap());\n    assert_eq!(digest(&physical), row[\"sha256\"].as_str().unwrap());\n    let old = packet[\"rows\"]\n        .as_array()\n        .unwrap()\n        .iter()\n        .find(|old| old[\"path\"] == path)\n        .unwrap();\n    assert_eq!(row[\"before_length\"], old[\"length\"]);\n    assert_eq!(row[\"before_sha256\"], old[\"sha256\"]);\n    let mut restored = physical.clone();\n    for edit in row[\"edits\"].as_array().unwrap().iter().rev() {\n        let at = edit[0].as_u64().unwrap() as usize;\n        let after = edit[1].as_str().unwrap().as_bytes();\n        assert_eq!(restored.get(at..at + after.len()), Some(after));\n        restored.splice(at..at + after.len(), edit[2].as_str().unwrap().bytes());\n    }\n    assert_eq!(\n        restored.len() as u64,\n        row[\"before_length\"].as_u64().unwrap()\n    );\n    assert_eq!(digest(&restored), row[\"before_sha256\"].as_str().unwrap());\n    assert_eq!(std::fs::read(root.join(path)).unwrap(), physical);\n    assert_eq!(\n        std::fs::read(root.join(\"src/cleanup_plan/replay/path_join/census_transport.json\"))\n            .unwrap()\n            .as_slice(),\n        encoded.as_slice()\n    );\n    restored\n}\n",
+          ""
+        ]
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/path_join/frontier_tests/custody.rs",
+      "length": 21424,
+      "sha256": "666cef83df8b13197f22cff4f47c7382836cf496928d036a30d2c05c78c7ee43",
+      "before_length": 21147,
+      "before_sha256": "7ff8a657d3aa720a8285752dadd221b272fcf27ef443a78344f0eb4181381290",
+      "edits": [
+        [
+          2622,
+          "crate::bounded_output::census_before(\n        \"src/cleanup_plan/replay",
+          "include_str!(\"../.."
+        ],
+        [
+          2706,
+          ",\n        include_bytes!(\"../../path_join.rs\"),\n    );\n    let current = std::str::from_utf8(&current).unwrap(",
+          ""
+        ],
+        [
+          15202,
+          "\n                    ",
+          ""
+        ],
+        [
+          15241,
+          "\n                   ",
+          ""
+        ],
+        [
+          15309,
+          "\n                ",
+          ""
+        ],
+        [
+          15405,
+          "\n                    ",
+          ""
+        ],
+        [
+          15442,
+          "\n                   ",
+          ""
+        ],
+        [
+          15529,
+          "\n                ",
+          ""
+        ]
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/path_join/held_edge_tests.rs",
+      "length": 11811,
+      "sha256": "a8ee62b7c0200d8b4aa24020f930a13f6c5b9caaf6b8d0f84d4289fbb6202f43",
+      "before_length": 8836,
+      "before_sha256": "43a18801a4a7cebaa771b18f53260a4d331ce3d855880e1239dca29030ed4cb3",
+      "edits": [
+        [
+          6186,
+          "if path == \"src/cleanup_plan/replay/path_join/boxed_flow.rs\" {\n            // The later direct-One fold owns this exact source delta. Restore\n            // it before the unchanged held-edge predecessor's full assertions.\n            assert_eq!(\n                actual.as_slice(),\n                include_bytes!(\"boxed_flow.rs\").as_slice()\n            );\n            let encoded = include_bytes!(\"direct_one_before/inverse.json\");\n            assert_eq!(encoded.len(), 19485);\n            assert_eq!(\n                digest(encoded),\n                \"027cc73210897771d444e422df2c31c2356d9db4f5e6bc2590d1214263fede51\"\n            );\n            let direct: serde_json::Value = serde_json::from_slice(encoded).unwrap();\n            let matches: Vec<_> = direct\n                .as_array()\n                .unwrap()\n                .iter()\n                .filter(|entry| entry[\"current\"] == path)\n                .collect();\n            assert_eq!(matches.len(), 1);\n            let direct = matches[0];\n            assert_eq!(digest(&actual), direct[\"current_sha256\"].as_str().unwrap());\n            let mut restored = String::from_utf8(actual).unwrap();\n            for edit in direct[\"edits\"].as_array().unwrap() {\n                let from = edit[\"from\"].as_str().unwrap();\n                assert_eq!(restored.matches(from).count(), 1);\n                restored = restored.replacen(from, edit[\"to\"].as_str().unwrap(), 1);\n            }\n            actual = restored.into_bytes();\n            let before = include_bytes!(\"direct_one_before/boxed_flow.rs.txt\");\n            assert_eq!(\n                std::fs::read(root.join(direct[\"before\"].as_str().unwrap()))\n                    .unwrap()\n                    .as_slice(),\n                before.as_slice()\n            );\n            assert_eq!(actual.as_slice(), before.as_slice());\n        }\n        ",
+          ""
+        ],
+        [
+          10688,
+          "\n    // The later front phase refuses foreign supplied bytes without granting a\n    // generic old-source or field-normalization route.\n    let acquisitions = transport[\"acquisitions\"].as_array().unwrap();\n    assert_eq!(acquisitions.len(), 8);\n    for row in acquisitions {\n        let path = row[\"path\"].as_str().unwrap();\n        let current = std::fs::read(root.join(path)).unwrap();\n        let prior = crate::bounded_output::census_source_before(path, &current);\n        assert_eq!(prior.len() as u64, row[\"before_length\"].as_u64().unwrap());\n        assert_eq!(digest(&prior), row[\"before_sha256\"].as_str().unwrap());\n        let mut altered = current.clone();\n        altered[0] ^= 1;\n        let extended = [current.as_slice(), b\"\\n\"].concat();\n        for supplied in [\n            &current[..current.len() - 1],\n            altered.as_slice(),\n            extended.as_slice(),\n        ] {\n            assert!(\n                std::panic::catch_unwind(|| crate::bounded_output::census_source_before(\n                    path, supplied\n                ))\n                .is_err()\n            );\n        ",
+          ""
+        ],
+        [
+          11803,
+          "    }\n}\n",
+          ""
+        ]
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/path_join/shared_insertions_tests.rs",
+      "length": 20946,
+      "sha256": "17d6edc4cfeca1b7e67167d321d031a31473599c5c83cf7508ccdf3ef1887b91",
+      "before_length": 20576,
+      "before_sha256": "ebd51055fbe63840eecf6baee106060728f5fc6d2506999f210242e24d56b5a3",
+      "edits": [
+        [
+          1283,
+          "\n                    ",
+          ""
+        ],
+        [
+          1364,
+          "\n                   ",
+          ""
+        ],
+        [
+          1402,
+          "\n                ",
+          ""
+        ],
+        [
+          2586,
+          "\n        ",
+          ""
+        ],
+        [
+          2674,
+          "\n       ",
+          ""
+        ],
+        [
+          2692,
+          "\n    ",
+          ""
+        ],
+        [
+          3376,
+          "\n        ",
+          ""
+        ],
+        [
+          3451,
+          "\n       ",
+          ""
+        ],
+        [
+          3473,
+          "\n    ",
+          ""
+        ],
+        [
+          12931,
+          "\n                ",
+          ""
+        ],
+        [
+          13004,
+          "\n                ",
+          ""
+        ],
+        [
+          13585,
+          "\n                   ",
+          ""
+        ],
+        [
+          13615,
+          "\n                   ",
+          ""
+        ],
+        [
+          13699,
+          "\n                   ",
+          ""
+        ],
+        [
+          19134,
+          "current = crate::bounded_output::census_before(\n        \"src/cleanup_plan/replay/path_join.rs\",\n        include_bytes!(\"../path_join.rs\"),\n    );\n    let ",
+          ""
+        ],
+        [
+          19362,
+          "std::str::from_utf8(&current)\n            .unwrap(",
+          "include_str!(\"../path_join.rs\""
+        ]
+      ]
+    },
+    {
+      "path": "tests/hir_module_boundaries.rs",
+      "length": 155738,
+      "sha256": "b5006a95303abe61b569dadb6c4b137cbb5e048c159fbf93033d6439625dba77",
+      "before_length": 155658,
+      "before_sha256": "1b7b069d51a9ce98a1f159125e76a1aa9306ff900dd0ff5730109687c2615811",
+      "edits": [
+        [
+          334,
+          "include_str!(\"../tests/wasm/scalar_browser_ci_contract/current_profiles573.rs\"),",
+          ""
+        ]
+      ]
+    },
+    {
+      "path": "tests/workspace/semantic_graph/source_inventory.rs",
+      "length": 183882,
+      "sha256": "715a6976719b82e1c6b0f2ff8292f2e34844b83ffed685e32b2efeea6fba95fe",
+      "before_length": 183799,
+      "before_sha256": "9ed07d56356e7a8bed7a1378b83f817480fe1b55dda82c6e162740edf26b737f",
+      "edits": [
+        [
+          168833,
+          "tests/wasm/scalar_browser_ci_contract/current_profiles573.rs\"),include_str!(\"../../",
+          ""
+        ]
+      ]
+    }
   ]
 }

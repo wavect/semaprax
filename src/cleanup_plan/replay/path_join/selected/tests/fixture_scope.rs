@@ -36,7 +36,39 @@ pub(super) fn original_scope(text: &str, id: &str) {
 fn digest(raw: &[u8]) -> String {
     format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(raw)))
 }
+fn unreachable_fixtures() {
+    for original in [
+        SCALAR_UNREACHABLE,
+        super::strings::CONCAT_UNREACHABLE,
+        super::strings::LEXICAL_CONCAT_UNREACHABLE,
+        super::renewal::SOURCE_UNREACHABLE,
+        super::renewal::LEXICAL_SOURCE_UNREACHABLE,
+    ] {
+        let at = original.rfind("\n 0\n}").unwrap() + 2;
+        let line = original[..at].bytes().filter(|byte| *byte == b'\n').count() + 1;
+        let column = at - original[..at].rfind('\n').unwrap();
+        assert_eq!(
+            crate::check(original, "selected-path-family.spx").unwrap_err(),
+            vec![Diagnostic {
+                code: "SPX-P209",
+                severity: crate::diagnostic::Severity::Error,
+                message: "code after an unconditional return is unreachable".into(),
+                path: Some("selected-path-family.spx".to_owned()),
+                span: Some(crate::ast::Span {
+                    start: at,
+                    end: at + 1,
+                    line,
+                    column
+                }),
+                help: Some(
+                    "remove the unreachable code or put it on a non-returning guard path".into()
+                ),
+            }],
+        );
+    }
+}
 pub(super) fn source_custody() {
+    unreachable_fixtures();
     let manifest = include_bytes!("fixture_scope_before/source_manifest.json");
     assert_eq!(manifest.len(), MANIFEST_LENGTH);
     assert_eq!(digest(manifest), MANIFEST_SHA);
@@ -73,5 +105,5 @@ pub(super) fn source_custody() {
 }
 const MANIFEST_LENGTH: usize = 1426;
 const MANIFEST_SHA: &str = "a36d7cb733abcec14387f901e543b56afb2b6e34777a9e1f59415e0129948aef";
-const INVERSE_LENGTH: usize = 27305;
-const INVERSE_SHA: &str = "e9d8b8916fb95bf3f85ff25f1b21ed91b2276f4bb93ab388eb674b301d4d015e";
+const INVERSE_LENGTH: usize = 35730;
+const INVERSE_SHA: &str = "4c21b2c951cf5eb3972b9efa22685a186bda2f098fd824da26227506c1859167";

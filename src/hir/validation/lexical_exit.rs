@@ -615,18 +615,23 @@ mod witness_tests {
         FrameRequests,
     ) {
         let capture = Capture::begin();
+        // Reporting storage is harness setup, outside compiler observation.
+        // Every compiler-owned diagnostic is still dropped inside the window.
+        use std::fmt::Write as _;
+        let mut diagnostic_report = String::with_capacity(1 << 16);
         let phase = std::cell::Cell::new("before-resolve");
         let ((success, metrics), refused, paid, receipt) =
             crate::bounded_output::with_limit_usage_refusal(limit, || {
                 assert!(crate::bounded_output::set_active_floor(floor));
-                let measured =
-                    crate::test_allocation_observer::measure_with_capacity(1 << 16, || {
+                let measured = crate::test_allocation_observer::measure_with_capacity(
+                    1 << 16,
+                    || {
                         phase.set("hir::resolve");
                         let resolved = match crate::hir::resolve(checked) {
                             Ok(resolved) => resolved,
                             Err(errors) => {
                                 for error in &errors {
-                                    eprintln!("OPT904_DIAGNOSTIC phase=hir::resolve code={:?} severity={:?} message={:?} path={:?} span={:?} help={:?}", error.code, error.severity, error.message, error.path, error.span, error.help);
+                                    writeln!(&mut diagnostic_report, "OPT904_DIAGNOSTIC phase=hir::resolve code={:?} severity={:?} message={:?} path={:?} span={:?} help={:?}", error.code, error.severity, error.message, error.path, error.span, error.help).unwrap();
                                 }
                                 assert!(errors.iter().all(|error| error.code == "SPX-H006"));
                                 drop(errors);
@@ -636,7 +641,7 @@ mod witness_tests {
                         phase.set("second hir::validate");
                         let outcome = crate::hir::validate(&resolved);
                         if let Err(error) = &outcome {
-                            eprintln!("OPT904_DIAGNOSTIC phase=hir::validate code={:?} severity={:?} message={:?} path={:?} span={:?} help={:?}", error.code, error.severity, error.message, error.path, error.span, error.help);
+                            writeln!(&mut diagnostic_report, "OPT904_DIAGNOSTIC phase=hir::validate code={:?} severity={:?} message={:?} path={:?} span={:?} help={:?}", error.code, error.severity, error.message, error.path, error.span, error.help).unwrap();
                             assert_eq!(error.code, "SPX-H006");
                         }
                         let success = outcome.is_ok();
@@ -646,7 +651,8 @@ mod witness_tests {
                         drop(outcome);
                         drop(resolved);
                         success
-                    });
+                    },
+                );
                 let ledger = crate::bounded_output::classifier_string::ClassifierLedger::capture();
                 let first = ledger.first_refusal();
                 let remaining = crate::bounded_output::active_remaining();
@@ -659,6 +665,11 @@ mod witness_tests {
                 measured
             });
         let frame = capture.finish();
+        // Darwin stderr's process-lifetime lock belongs to reporting, never
+        // to the compiler's allocation/Drop interval.
+        if !diagnostic_report.is_empty() {
+            eprint!("{diagnostic_report}");
+        }
         // Observation follows the complete allocation window, both ledger
         // passes, original sticky-refusal checks and all owned compiler Drop.
         if !success || refused || receipt.is_some() || metrics.invalid || metrics.live != 0 {
@@ -923,7 +934,10 @@ mod witness_tests {
                 .unwrap();
             let source_sha256 = {
                 use sha2::Digest;
-                format!("{:x}", crate::digest_hex::LowerHex(sha2::Sha256::digest(source.as_bytes())))
+                format!(
+                    "{:x}",
+                    crate::digest_hex::LowerHex(sha2::Sha256::digest(source.as_bytes()))
+                )
             };
             eprintln!(
                 "OPT904_SHAPE_JSON {}",
@@ -980,9 +994,13 @@ mod witness_tests {
         let inverse: serde_json::Value =
             serde_json::from_str(include_str!("match_witness_inverse.json")).unwrap();
         let original_root = frame_reuse::source_inverse::whole_root(
-            "src/hir/validation.rs", include_str!("../validation.rs"));
+            "src/hir/validation.rs",
+            include_str!("../validation.rs"),
+        );
         let original_lexical = frame_reuse::source_inverse::whole_root(
-            "src/hir/validation/lexical_exit.rs", include_str!("lexical_exit.rs"));
+            "src/hir/validation/lexical_exit.rs",
+            include_str!("lexical_exit.rs"),
+        );
         let sources = [
             original_root.as_str(),
             original_lexical.as_str(),

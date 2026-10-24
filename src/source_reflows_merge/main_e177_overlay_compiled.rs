@@ -590,6 +590,9 @@ mod tests {
         let shared_canonical = "use fragments_v3::canonical;\n";
         assert_eq!(browser_root.matches(shared_canonical).count(), 1);
         let canonical_child = include_str!("main_e177_overlay_fragments_v3.rs");
+        let canonical_child = super::super::fragments_v3::v13_before(
+            "src/source_reflows_merge/main_e177_overlay_fragments_v3.rs", canonical_child,
+        );
         let canonical_body = canonical_child.split_once("// Shared canonical metadata encoding; no source acquisition or authority.\n").unwrap().1;
         assert_eq!(canonical_body.matches("pub(super) fn canonical(").count(), 1);
         browser_root = browser_root.replacen(shared_canonical, &canonical_body.replacen("pub(super) fn canonical(", "fn canonical(", 1), 1);
@@ -1345,7 +1348,17 @@ del _load_fixed_codecs
             assert_eq!(restored.matches(inserted).count(), 1);
             restored = restored.replacen(inserted, "", 1);
         }
-        let restored = restored.replacen(LOADER, &format!("{child}\n"), 1);
+        let mut restored = restored.replacen(LOADER, &format!("{child}\n"), 1);
+        // Policy declarations are derived metadata; the complete current parent
+        // and its V13 caller acquisition authenticated above precede this exact
+        // two-field transport to the immutable published source image.
+        for prefix in ["POLICY_LENGTH = ", "POLICY_SHA256 = "] {
+            let current: Vec<_> = parent.lines().filter(|line| line.starts_with(prefix)).collect();
+            let previous: Vec<_> = PYTHON_BEFORE.lines().filter(|line| line.starts_with(prefix)).collect();
+            assert_eq!((current.len(), previous.len()), (1, 1));
+            assert_eq!(restored.matches(current[0]).count(), 1);
+            restored = restored.replacen(current[0], previous[0], 1);
+        }
         assert_eq!(
             restored, PYTHON_BEFORE,
             "ENTIRE published pre-split Python parent"

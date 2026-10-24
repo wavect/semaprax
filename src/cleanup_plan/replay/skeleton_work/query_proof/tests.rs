@@ -39,6 +39,21 @@ pub(super) fn restore(current: &str, path: &str) -> String {
     assert_eq!(row["before_length"], old_length);
     assert_eq!(row["before_sha256"], old_hash);
     assert_eq!(std::fs::read(root.join(path)).unwrap(), current.as_bytes());
+    // Preserve the complete pre-workspace source epoch before the unchanged
+    // query inverse; the actual raw/compiled acquisition above remains current.
+    let workspace_epoch = if path == "src/cleanup_plan/replay.rs" {
+        assert_eq!(current.len(), 327551);
+        assert_eq!(digest(current.as_bytes()), "751c95561915a9b99ebec0bdf702dc9c7448d411f0f80ac58d244bc7df20dde5");
+        let addition = "#[cfg(test)]\nmod workspace_oracle;\n#[cfg(test)]\npub(crate) use factored::{EpsilonAppCensus, SuccessorAppCensus};\n#[cfg(test)]\npub(crate) use workspace_oracle::with_financed_workspace_test_oracles;\nmod selected_type_drop;\n";
+        assert_eq!(current.matches(addition).count(), 1);
+        let prior = current.replacen(addition, "\n#[cfg(test)]\npub(crate) use factored::{EpsilonAppCensus, SuccessorAppCensus};\n\nmod selected_type_drop;\n\n", 1);
+        assert_eq!(prior.len(), 327435);
+        assert_eq!(digest(prior.as_bytes()), "0aeeb9967f3272bfc1371131cba43dc39e5bb7b155eae28500512de0c34af387");
+        std::borrow::Cow::Owned(prior)
+    } else {
+        std::borrow::Cow::Borrowed(current)
+    };
+    let current = workspace_epoch.as_ref();
     assert_eq!(
         current.len(),
         row["current_length"].as_u64().unwrap() as usize
@@ -367,7 +382,10 @@ fn measured(
                 let observations = tree(&mut work, 24)?;
                 for _ in 0..8 {
                     if floor {
-                        set_active_floor(usize::MAX);
+                        assert!(set_active_floor(
+                            crate::bounded_output::active_remaining()
+                                .expect("active query-proof allocation ledger"),
+                        ));
                     }
                     let result = call(&mut work, &observations, old);
                     if result.is_err() {

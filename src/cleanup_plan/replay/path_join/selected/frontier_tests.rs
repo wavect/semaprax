@@ -439,6 +439,11 @@ fn promotion_comparison_unwind_drops_both_owners_once_after_prepublication_payme
             Some(self.cmp(other))
         }
     }
+    // Initialize only the default panic reporter's process-lifetime locks.
+    // No compiler work runs here; the actual default hook and complete unwind
+    // remain inside observation, and every live/Drop assertion stays strict.
+    drop(std::io::stderr().lock());
+    drop(std::backtrace::Backtrace::force_capture());
     let f = function();
     DROPS.with(|n| n.set(0));
     COMPARES.with(|n| n.set(0));

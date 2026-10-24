@@ -260,6 +260,11 @@ fn digest(raw: &[u8]) -> String {
     format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(raw)))
 }
 pub(super) fn before_source(path: &str, mut actual: String) -> String {
+    actual = String::from_utf8(crate::bounded_output::census_source_before(
+        path,
+        actual.as_bytes(),
+    ))
+    .unwrap();
     let inverse = include_bytes!("contains_before/inverse.json");
     assert_eq!(inverse.len(), INVERSE_LENGTH);
     assert_eq!(digest(inverse), INVERSE_SHA);

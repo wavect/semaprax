@@ -31,7 +31,10 @@ fn const_prices_equal_every_original_tariff_and_checked_layout_including_sentine
             let original = prices::<$t>(&f).0;
             let current = Insertions::<$t>::observed_prices();
             for i in 0..6 {
-                assert_eq!(current[i].checked_add(contains_tests::entry_delta::<$t>()), Some(original[i]));
+                assert_eq!(
+                    current[i].checked_add(contains_tests::entry_delta::<$t>()),
+                    Some(original[i])
+                );
             }
             assert_eq!(current[6], original[6]);
             assert_eq!(
@@ -61,7 +64,10 @@ fn const_prices_equal_every_original_tariff_and_checked_layout_including_sentine
         crate::cleanup_plan::replay::physical_storage::btree_node_upper::<Aligned, [u64; 3]>()
     );
     let before = prices::<State>(&f).1;
-    assert_eq!(Insertions::<State>::entry_controls() + contains_tests::entry_delta::<State>(), before[1]);
+    assert_eq!(
+        Insertions::<State>::entry_controls() + contains_tests::entry_delta::<State>(),
+        before[1]
+    );
     assert_eq!(Insertions::<State>::GROUP_ENTRY_CONTROLS, before[3]);
     let removed = before[0] + before[2] + before[3] - Insertions::<State>::controls();
     assert!(removed > 0);
@@ -78,7 +84,10 @@ fn const_prices_equal_every_original_tariff_and_checked_layout_including_sentine
         assert!(!refused && first.is_none());
         paid
     };
-    assert_eq!(invoice(false) + removed + contains_tests::entry_delta::<State>(), invoice(true));
+    assert_eq!(
+        invoice(false) + removed + contains_tests::entry_delta::<State>(),
+        invoice(true)
+    );
 }
 #[test]
 fn shared_group_entry_keeps_original_box_duplicate_drop_and_each_paid_frontier() {
@@ -319,7 +328,9 @@ fn complete_immediate_receiver_composition_lowers_cold_invoice_with_full_drop_an
             contains_tests::reset_banks();
             let current = observe(false, usize::MAX);
             let direct_banks = direct_one_tests::paid_banks();
-            let entry_removed = contains_tests::paid_banks().checked_mul(contains_tests::entry_delta::<PathState>()).unwrap();
+            let entry_removed = contains_tests::paid_banks()
+                .checked_mul(contains_tests::entry_delta::<PathState>())
+                .unwrap();
             assert!(before.0 .0 && current.0 .0 && !before.1 && !current.1);
             let old_controls = prices::<PathState>(f).1;
             let removed = old_controls[0] + old_controls[2] + old_controls[3]
@@ -329,7 +340,10 @@ fn complete_immediate_receiver_composition_lowers_cold_invoice_with_full_drop_an
                 f.id, before.2, current.2, removed, before.0.1, current.0.1
             );
             assert_eq!(
-                current.2 + removed + direct_banks * direct_one_before::removed_iterator_controls() + entry_removed,
+                current.2
+                    + removed
+                    + direct_banks * direct_one_before::removed_iterator_controls()
+                    + entry_removed,
                 before.2
             );
             every_invoice_lower &= current.2 < before.2;
@@ -451,9 +465,14 @@ fn complete_immediate_driver_and_receivers_keep_exact_whole_preimages_and_shared
         let raw = std::fs::read(root.join(path)).unwrap();
         prior_source(path, crate::bounded_output::census_before(path, &raw));
     }
+    let current = crate::bounded_output::census_before(
+        "src/cleanup_plan/replay/path_join.rs",
+        include_bytes!("../path_join.rs"),
+    );
     let marker = "fn validate_control_group_with_budget";
     assert_eq!(
-        include_str!("../path_join.rs")
+        std::str::from_utf8(&current)
+            .unwrap()
             .split_once(marker)
             .unwrap()
             .1,

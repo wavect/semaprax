@@ -9,9 +9,34 @@ const CONCAT: &str = r#"module oracle.concat;
   0
  }
  return string_len(text);
+}"#;
+// Exact original unreachable fixture remains an explicit parser refusal.
+pub(super) const CONCAT_UNREACHABLE: &str = r#"module oracle.concat;
+@id("o.main") fn main()->i64 {
+ let mut text=string_from_i64(1);
+ let mut count=0;
+ while count<2 {
+  text=string_concat(text,"x");
+  count=count+1;
+  0
+ }
+ return string_len(text);
  0
 }"#;
 const LEXICAL_CONCAT: &str = r#"module oracle.concat;
+@id("o.main") fn main()->i64 {
+ let mut text=string_from_i64(1);
+ let mut count=0;
+ while count<2 {
+  text=string_concat(text,"x");
+  count=count+1;
+  if count<2 {continue;};
+  0
+ }
+ return string_len(text);
+}"#;
+// Exact original unreachable fixture remains an explicit parser refusal.
+pub(super) const LEXICAL_CONCAT_UNREACHABLE: &str = r#"module oracle.concat;
 @id("o.main") fn main()->i64 {
  let mut text=string_from_i64(1);
  let mut count=0;

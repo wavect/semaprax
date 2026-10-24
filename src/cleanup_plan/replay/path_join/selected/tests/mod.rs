@@ -20,6 +20,16 @@ const SCALAR: &str = r#"module selected.schema.family;
 @id("family.bytes") fn bytes()->i64 {
  let data=fill(bytes_zeroed(1usize));
  return if byte_len(bytes_as_slice(data))==1usize {7}else{0};
+}
+"#;
+// Exact original unreachable fixture remains an explicit parser refusal.
+const SCALAR_UNREACHABLE: &str = r#"module selected.schema.family;
+@id("family.one") fn one(n:i64)->i64 {n+1}
+@id("family.main") fn main()->i64 {one(3)}
+@id("family.fill") fn fill(data:own Bytes)->Bytes {data}
+@id("family.bytes") fn bytes()->i64 {
+ let data=fill(bytes_zeroed(1usize));
+ return if byte_len(bytes_as_slice(data))==1usize {7}else{0};
  0
 }
 "#;

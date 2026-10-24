@@ -652,7 +652,7 @@ fn invocation_pending_reuse_authenticates_both_complete_immediate_old_sources() 
             "{:x}",
             crate::digest_hex::LowerHex(Sha256::digest(include_bytes!("type_scratch.rs")))
         ),
-        "0190447fbf1d3c43c84df015f4adb165d4a25e007bdac06fa451f2aee898b88d"
+        "16a92563eb08c6b8be5a957ef797ab40784310794282620ebb11f98e7cb2a8e9"
     );
     // Entire existing harness is retained, including its old #824 inverse.
     let harness = include_str!("tests.rs");

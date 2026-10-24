@@ -124,7 +124,7 @@ impl<'hir> Storage<'hir> {
 
 macro_rules! audit {
     (@body $root:expr, $loan:expr) => {{
-        let root = $root;
+        let root: &ResolvedType = $root;
         match root {
             ResolvedType::OnceFunction
             | ResolvedType::OnceFunctionI64

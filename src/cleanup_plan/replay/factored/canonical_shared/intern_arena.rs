@@ -364,7 +364,8 @@ impl Arena<SharedWeighted> {
         + 4 * size_of::<(&mut super::ReplayBudget, &super::ResolvedFunction, usize, &str)>()
         + 4 * size_of::<Result<(), super::Diagnostic>>()
         + 4 * size_of::<&mut Self>() + 4 * size_of::<&Self>()
-        + 8 * size_of::<usize>() + 8 * size_of::<bool>() + 6 * size_of::<Ordering>();
+        // Eight usize receiving roles; no runtime array is constructed.
+        + size_of::<[usize; 8]>() + 8 * size_of::<bool>() + 6 * size_of::<Ordering>();
     pub(super) fn release_private_keys(
         &mut self,
         function: &super::ResolvedFunction,

@@ -1195,6 +1195,7 @@ Audience: all documentation readers.
 - [Constructor failure receiving v1](CONSTRUCTOR-FAILURE-RECEIVING-V1.md)
 - [Borrowed diagnostic writer v1](DIAGNOSTIC-WRITER-V1.md)
 - [Factored singleton successor targets v1](FACTORED-SINGLETON-TARGETS-V1.md)
+- [Paired weighted comparison v1](PAIRED-WEIGHTED-COMPARISON-V1.md)
 - [Compact residual HIR construction v1](HIR-RESIDUAL-CONSTRUCTION-V1.md)
 - [Host compiler retained-receipt observation v1](HOST-COMPILER-RETAINED-RECEIPT-OBSERVATION-V1.md)
 - [JSON codec publication seal v1](JSON-CODEC-PUBLICATION-SEAL-V1.md)

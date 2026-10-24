@@ -45,6 +45,7 @@ mod dag_memo;
 mod early_release;
 #[cfg(test)]
 mod instrumentation;
+mod paired;
 mod storage;
 #[cfg(test)]
 use canonical_before::Receiver as Canonicalizer;
@@ -237,12 +238,23 @@ fn compare_with_index_storage<'hir>(
     let _canonical_allocation_phase = crate::test_allocation_observer::function_phase_guard(
         "cleanup_plan::factored::comparison_complete",
     );
+    let built = build_comparison(program, function, budget, helpers, continuations)?;
+    if budget.payer == AllocationPayer::ActiveBuilder {
+        budget.reserve_bytes(
+            function,
+            paired::entry_controls(),
+            "paired weighted comparison entry",
+        )?;
+        if paired::positive(function, &built, budget)? == Some(true) {
+            return Ok(Some(true));
+        }
+    }
     let BuiltComparison {
         automaton,
         sink,
         hir_root,
         plan_root,
-    } = build_comparison(program, function, budget, helpers, continuations)?;
+    } = built;
 
     #[cfg(test)]
     if budget.oracle_lease().is_some() {

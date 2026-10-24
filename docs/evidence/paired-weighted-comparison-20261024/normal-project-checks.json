@@ -1,0 +1,56 @@
+{
+  "scope": "LOCAL_CURRENT_C_NORMAL_PRODUCTION_MODEL_FOCUSED_CHECK_ONLY_NOT_FULL_CI_OR_BACKEND_EXECUTION",
+  "base_head": "99b05874b7f63556dcf3f4f6a93722c035f7cb38",
+  "cases": [
+    {
+      "case": "decode",
+      "ok": true,
+      "final_mode": 1,
+      "ordinary_limit": 67108864,
+      "consumed": 65779905,
+      "remaining": 1328959,
+      "first_refusal": "None"
+    },
+    {
+      "case": "scan",
+      "ok": true,
+      "final_mode": 2,
+      "ordinary_limit": 67108864,
+      "consumed": 62294455,
+      "remaining": 4814409,
+      "first_refusal": "None"
+    },
+    {
+      "case": "task",
+      "ok": false,
+      "final_mode": 6,
+      "ordinary_limit": 67108864,
+      "consumed": 67108828,
+      "remaining": 36,
+      "first_refusal": "Some(Refusal { requested: 112, remaining: 36, floor: 0, stage: 29, operation: 2 })"
+    },
+    {
+      "case": "pattern",
+      "ok": false,
+      "final_mode": 6,
+      "ordinary_limit": 67108864,
+      "consumed": 67075532,
+      "remaining": 33332,
+      "first_refusal": "Some(Refusal { requested: 147200, remaining: 33332, floor: 0, stage: 35, operation: 2 })"
+    },
+    {
+      "case": "catalog",
+      "ok": false,
+      "final_mode": 6,
+      "ordinary_limit": 67108864,
+      "consumed": 67108818,
+      "remaining": 46,
+      "first_refusal": "Some(Refusal { requested: 48, remaining: 46, floor: 0, stage: 27, operation: 14 })"
+    }
+  ],
+  "production_sources": {
+    "src/cleanup_plan/replay/factored.rs": "acb931fb7bf9b2c19b1de7fabaa857cd36b03cc901fd8ac1844931d7f6e5d915",
+    "src/cleanup_plan/replay/factored/strategy.rs": "b5350cae1354da026c1e320c28d93938faca06ba18e6d72ff909c3c41262eadb",
+    "src/cleanup_plan/replay/factored/paired.rs": "1d8dfb0257df05b4151e0bd94e8d75af19e19aa7989cff0b3edc1b8db455b6d6"
+  }
+}

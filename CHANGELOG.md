@@ -1,3 +1,8 @@
+## Paired weighted verifier comparison (2026-10-24)
+
+- Compare ordinary HIR and cleanup observation languages synchronously, retaining full label values, checked multiplicities, original admission and canonical fallback. Acquire scratch and bound primitive receiving frames before use; keep owning returns separately paid.
+- Add complete legacy-comparison, byte/work-cut, Unicode/NUL, overflow, allocation/drop and foreign-ledger controls. The original service and larger application budget failures remain separate work.
+
 ## Offline registry SDK setup repair (2026-10-23)
 
 ## Historical expression-fact source entries

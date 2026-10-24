@@ -1,0 +1,10 @@
+
+running 3 tests
+test cleanup_plan::replay::factored::paired::tests::paired_complete_legacy_semantics_and_every_byte_work_cut ... PAIRED_CONTROL complete bound=16288 allocated=1507 work=149
+PAIRED_CONTROL complete bound=15644 allocated=1411 work=136
+PAIRED_CONTROL complete bound=15096 allocated=1171 work=111
+ok
+test cleanup_plan::replay::factored::paired::tests::paired_duplicate_overflow_and_wide_utf8_nul_labels_keep_complete_order ... ok
+test cleanup_plan::replay::factored::paired::tests::paired_malformed_cycles_work_and_stale_foreign_sticky_receivers_fail_closed ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 8 filtered out; finished in 2.33s

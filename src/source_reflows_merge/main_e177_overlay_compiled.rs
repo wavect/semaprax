@@ -136,7 +136,7 @@ mod tests {
             assert_eq!(current_scope_root.matches(&packed).count(), 1);
             current_scope_root = current_scope_root.replacen(&packed, &expanded, 1);
         }
-        for source in ["src/workspace_graph/tests.rs", "src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs", "src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs", "src/cleanup_plan/replay/workspace_oracle.rs", "src/cleanup_plan/replay/branch_clone/inline_tests.rs", "src/cleanup_plan/replay/branch_clone/production_capacity.rs", "src/cleanup_plan/replay/branch_clone/production_capacity/tests.rs", "src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs", "src/workspace_graph/shape_identity/source_controls.rs", "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs"] {
+        for source in ["src/cleanup_plan/replay/factored/paired.rs", "src/cleanup_plan/replay/factored/paired/tests.rs", "src/workspace_graph/tests.rs", "src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs", "src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs", "src/cleanup_plan/replay/workspace_oracle.rs", "src/cleanup_plan/replay/branch_clone/inline_tests.rs", "src/cleanup_plan/replay/branch_clone/production_capacity.rs", "src/cleanup_plan/replay/branch_clone/production_capacity/tests.rs", "src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs", "src/workspace_graph/shape_identity/source_controls.rs", "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs"] {
             let declaration = format!("    {source:?},\n");
             assert_eq!(current_scope_root.matches(&declaration).count(), 1);
             current_scope_root = current_scope_root.replacen(&declaration, "", 1);
@@ -318,6 +318,7 @@ mod tests {
         assert_eq!(current_scope_child.matches(packed_separator).count(), 24);
         current_scope_child = current_scope_child.replace(packed_separator, ")),\n        \"src/");
         for source in [
+            "src/cleanup_plan/replay/factored.rs", "src/cleanup_plan/replay/factored/strategy.rs", "src/cleanup_plan/replay/factored/paired.rs", "src/cleanup_plan/replay/factored/paired/tests.rs",
             "src/hir/inspection/paid_nul.rs", "src/hir/inspection/paid_nul/pending.rs", "src/hir/inspection/paid_nul/tests.rs", "src/hir/inspection/paid_nul/reuse_before.rs", "src/hir/inspection/paid_nul/reuse_before/pending.rs", "src/hir/inspection/paid_nul/type_scratch.rs", "src/cleanup_plan/replay/continuation_storage.rs", "src/cleanup_plan/replay/continuation_storage/tests.rs", "src/cleanup_plan/replay/continuation_storage/reached.rs", "src/cleanup_plan/replay/continuation_storage/reached_before.rs", "src/cleanup_plan/replay/continuation_storage/reached_tests.rs",
             "src/cleanup_plan.rs",
             "src/workspace_graph/tests.rs",

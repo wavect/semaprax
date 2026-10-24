@@ -215,6 +215,15 @@ the admission and replay input. Its test children retain the full original flat
 plan producer, observation shape, header traits, and lexical marker producer;
 the live producer and borrowed-key comparator retain all semantic work.
 
+`factored/paired.rs` owns the ordinary positive synchronous weighted-language
+comparison after the existing automaton and lexical admission boundaries. Its
+function/budget/current-ledger bound invocation acquires actual scratch and
+primitive receiving frames; complete owning return carriers remain per-call.
+It compares complete labels and checked multiplicities by value, retaining the
+preceding canonical comparator for every inconclusive result. The proof grants
+no source, publication or physical cleanup authority. [Paired weighted
+comparison v1](PAIRED-WEIGHTED-COMPARISON-V1.md) owns its qualification boundary.
+
 `factored/canonical_shared.rs` owns ordinary immutable weighted payload sharing
 for both ordinary and selected lexical canonicalization. Moved vectors retain
 full backing reservations; Rc headers, frame slots and map nodes acquire their

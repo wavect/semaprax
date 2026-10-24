@@ -1,0 +1,17 @@
+{
+  "src/cleanup_plan/replay/factored.rs": {
+    "archive": "e/a3109cda25f4fad147aa632dd8f15b1b56f1881d0c9977cd7c602b5c2c4648f3",
+    "length": 48866,
+    "sha256": "a3109cda25f4fad147aa632dd8f15b1b56f1881d0c9977cd7c602b5c2c4648f3"
+  },
+  "src/cleanup_plan/replay/factored/strategy.rs": {
+    "archive": "e/3e4e4144890bd2de291803364ea143898f709787fe1888a9fa6dc75b097f9e08",
+    "length": 16191,
+    "sha256": "3e4e4144890bd2de291803364ea143898f709787fe1888a9fa6dc75b097f9e08"
+  },
+  "src/source_reflows_merge/main_e177_overlay_compiled.rs": {
+    "archive": "e/d38580eb6d37bca8027a68a6b125a81d7a1848afda78d66e48dce764b80c1380",
+    "length": 94549,
+    "sha256": "d38580eb6d37bca8027a68a6b125a81d7a1848afda78d66e48dce764b80c1380"
+  }
+}

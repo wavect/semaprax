@@ -1,0 +1,164 @@
+{
+  "status": "FOCUSED_LOCAL_QUALIFICATION_PASS_HOSTED_PENDING",
+  "base_head": "99b05874b7f63556dcf3f4f6a93722c035f7cb38",
+  "scope": "Actual current production bodies and types. Native cfg(test) harness omits unrelated test registrations only. Separate fresh normal C-source library checks have no cfg(test), allocation observer, proof skip or private cap. This does not claim full workspace/quality/CI or backend-execution success.",
+  "production_and_test_source_sha256": {
+    "src/cleanup_plan/replay/factored.rs": "acb931fb7bf9b2c19b1de7fabaa857cd36b03cc901fd8ac1844931d7f6e5d915",
+    "src/cleanup_plan/replay/factored/strategy.rs": "b5350cae1354da026c1e320c28d93938faca06ba18e6d72ff909c3c41262eadb",
+    "src/cleanup_plan/replay/factored/paired.rs": "1d8dfb0257df05b4151e0bd94e8d75af19e19aa7989cff0b3edc1b8db455b6d6",
+    "src/cleanup_plan/replay/factored/paired/tests.rs": "1f6e0405215d6f7c2163f4d2cc8eb25d3e690f8e5efe79f79e7c456aa33822af"
+  },
+  "normal_project_checks": [
+    {
+      "case": "decode",
+      "ok": true,
+      "final_mode": 1,
+      "ordinary_limit": 67108864,
+      "consumed": 65779905,
+      "remaining": 1328959,
+      "first_refusal": "None"
+    },
+    {
+      "case": "scan",
+      "ok": true,
+      "final_mode": 2,
+      "ordinary_limit": 67108864,
+      "consumed": 62294455,
+      "remaining": 4814409,
+      "first_refusal": "None"
+    },
+    {
+      "case": "task",
+      "ok": false,
+      "final_mode": 6,
+      "ordinary_limit": 67108864,
+      "consumed": 67108828,
+      "remaining": 36,
+      "first_refusal": "Some(Refusal { requested: 112, remaining: 36, floor: 0, stage: 29, operation: 2 })"
+    },
+    {
+      "case": "pattern",
+      "ok": false,
+      "final_mode": 6,
+      "ordinary_limit": 67108864,
+      "consumed": 67075532,
+      "remaining": 33332,
+      "first_refusal": "Some(Refusal { requested: 147200, remaining: 33332, floor: 0, stage: 35, operation: 2 })"
+    },
+    {
+      "case": "catalog",
+      "ok": false,
+      "final_mode": 6,
+      "ordinary_limit": 67108864,
+      "consumed": 67108818,
+      "remaining": 46,
+      "first_refusal": "Some(Refusal { requested: 48, remaining: 46, floor: 0, stage: 27, operation: 14 })"
+    }
+  ],
+  "rust_checks": {
+    "native/paired-controls.log": {
+      "passed": 3,
+      "sha256": "12ed9ce348fd39dee64c6a5c0000162bb93971e880f00e05f566feb8d81d9c60",
+      "bytes": 674
+    },
+    "native/callable.log": {
+      "passed": 1,
+      "sha256": "ce03730ac4a5a00b2bf4c5604a22e1be6e7a0c5ba18b92d1e590fe3290c35dd2",
+      "bytes": 1033
+    },
+    "native/scope-controls.log": {
+      "passed": 2,
+      "sha256": "bd2b32efe62e47e59d351adda8c345aec18d322d7642b0813e3207f01ffa98bc",
+      "bytes": 1046
+    },
+    "native/production-cap.log": {
+      "passed": 1,
+      "sha256": "5183e5f8ddca900eee5d9a46268cc95ed070145be05c03c0fe108afbc7632e89",
+      "bytes": 599
+    },
+    "overlay-controls.log": {
+      "passed": 33,
+      "sha256": "e3034c9f0aa913a183664d7352769828d11c11cd2ec02234058ab530026ae865",
+      "bytes": 5437
+    },
+    "compiled-whole-predecessor-controls.log": {
+      "passed": 2,
+      "sha256": "8d4d8e90a80044868b71db099b7754f6a479bd6a77a7e5834a32e3d8ea10512e",
+      "bytes": 455
+    },
+    "new-entry-controls.log": {
+      "passed": 2,
+      "sha256": "500641e11ecb0b15352bb35b94304d8d63b4e114bbb42bfcec5386df22234358",
+      "bytes": 456
+    },
+    "final-prefix-source-controls.log": {
+      "passed": 3,
+      "sha256": "0dde5fbf4869c47bdb29bbdf04dcf501ff340277c21fce05b3e497136937a959",
+      "bytes": 591
+    },
+    "final-cursor-source-guard.log": {
+      "passed": 1,
+      "sha256": "173d809faf687735bd125b6eafb045fd71bd2357d232c9864662443fd3734acb",
+      "bytes": 249
+    },
+    "hir-test.log": {
+      "passed": 11,
+      "sha256": "1a9343fc228ecacb367eefca10ac60124b737e36a11ee378d8506e73abfc0c1c",
+      "bytes": 1428
+    },
+    "projection-test.log": {
+      "passed": 1,
+      "sha256": "99015e0b9499d3801072ec51681aba6650d6f2301e6da14b61090f304f60bec4",
+      "bytes": 219
+    },
+    "native/clippy.log": {
+      "exit": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "minimum_device_physical_available_GiB": 6.3615875244140625,
+      "process_RSS_cap": null
+    },
+    "source-controller-clippy.log": {
+      "exit": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "minimum_device_physical_available_GiB": 9.721572875976562,
+      "process_RSS_cap": null
+    },
+    "hir-clippy.log": {
+      "exit": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "minimum_device_physical_available_GiB": 8.148162841796875,
+      "process_RSS_cap": null
+    },
+    "cargo-fmt.log": {
+      "exit": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "minimum_device_physical_available_GiB": 9.087234497070312,
+      "process_RSS_cap": null
+    }
+  },
+  "scoped_clippy_exclusions": {
+    "manifest_existing": "clippy::result_large_err",
+    "private_harness_only": "unused_macros from omitted unrelated test registrations",
+    "unchanged_original_test_ordering_modules": [
+      "src/source_reflows_merge/main_eb2_inputs.rs",
+      "src/source_reflows_merge/opt858_sequence_input.rs",
+      "src/source_reflows_merge/main_e177_packet_lookup.rs"
+    ],
+    "source_controller_and_hir_clippy": "No such module exemptions."
+  },
+  "caps_and_sources": "Ordinary64MiB, replay32M work, source-depth admission, original project fixtures and all original hostile bodies retained. Full previous source views, roles, chains and ordered chunks preserved.",
+  "remaining_work": "Service, pattern and catalog still G171; all main CI failures remain in goal scope. No green-CI claim.",
+  "documentation_checks": {
+    "passed": 3,
+    "sha256": "22121a012c83cd42ea76dcbead973ab8bfa9241806de15e99a1e49ba5b8d7ddf"
+  },
+  "graft_refresh": {
+    "command": "graft build --concurrency 1",
+    "exit": 0,
+    "limitation": "Graft reported Rust grammar parse aborts for some existing files; this is not source verification or a complete graph-coverage claim."
+  }
+}

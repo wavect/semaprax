@@ -1,0 +1,37 @@
+{
+  "status": "ORIGINAL_CURRENT_CODEC_COMPOSITION_PASS_PENDING_PUBLICATION",
+  "base_head": "99b05874b7f63556dcf3f4f6a93722c035f7cb38",
+  "rows": 722,
+  "page_bytes": 230044,
+  "published_current_preserved_as_exact_views": [
+    {
+      "source": "src/cleanup_plan/replay/factored.rs",
+      "view": {
+        "archive": "e/a3109cda25f4fad147aa632dd8f15b1b56f1881d0c9977cd7c602b5c2c4648f3",
+        "length": 48866,
+        "sha256": "a3109cda25f4fad147aa632dd8f15b1b56f1881d0c9977cd7c602b5c2c4648f3",
+        "name": "99b-before-paired-comparison"
+      }
+    },
+    {
+      "source": "src/cleanup_plan/replay/factored/strategy.rs",
+      "view": {
+        "archive": "e/3e4e4144890bd2de291803364ea143898f709787fe1888a9fa6dc75b097f9e08",
+        "length": 16191,
+        "sha256": "3e4e4144890bd2de291803364ea143898f709787fe1888a9fa6dc75b097f9e08",
+        "name": "99b-before-paired-comparison"
+      }
+    },
+    {
+      "source": "src/source_reflows_merge/main_e177_overlay_compiled.rs",
+      "view": {
+        "archive": "e/d38580eb6d37bca8027a68a6b125a81d7a1848afda78d66e48dce764b80c1380",
+        "length": 94549,
+        "sha256": "d38580eb6d37bca8027a68a6b125a81d7a1848afda78d66e48dce764b80c1380",
+        "name": "99b-before-paired-comparison"
+      }
+    }
+  ],
+  "all_previous_fields_views_memberships_and_fragment_edges_retained": true,
+  "all_original_codec_bodies_and_caps_unchanged": true
+}

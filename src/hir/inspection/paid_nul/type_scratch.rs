@@ -34,7 +34,7 @@ pub(super) const COLD: usize = 6 * size_of::<Work<'static>>()
     + 10 * size_of::<Owner<'static>>() // includes one carried final owner Drop
     + 6 * size_of::<Option<Owner<'static>>>()
     + 4 * size_of::<std::alloc::Layout>()
-    + 8 * size_of::<usize>()
+    + size_of::<[usize; 8]>()
     + 8 * size_of::<std::ptr::NonNull<Work<'static>>>()
     + 4 * size_of::<&mut Work<'static>>();
 // New context argument to the expression/record/inventory/plan helpers.

@@ -652,6 +652,17 @@ fn invocation_pending_reuse_authenticates_both_complete_immediate_old_sources() 
             "{:x}",
             crate::digest_hex::LowerHex(Sha256::digest(include_bytes!("type_scratch.rs")))
         ),
+        "43bebbb4746fbd9182793e37806790df77bf590983657b1653568aed31435e5e"
+    );
+    // Retain the complete pre-lint helper, undoing this one equal-size spelling.
+    let current_type = include_str!("type_scratch.rs");
+    assert_eq!(current_type.matches("size_of::<[usize; 8]>()").count(), 1);
+    let before_type = current_type.replacen("size_of::<[usize; 8]>()", "8 * size_of::<usize>()", 1);
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(before_type.as_bytes()))
+        ),
         "16a92563eb08c6b8be5a957ef797ab40784310794282620ebb11f98e7cb2a8e9"
     );
     // Entire existing harness is retained, including its old #824 inverse.

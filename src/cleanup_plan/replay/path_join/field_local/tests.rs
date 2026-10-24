@@ -863,7 +863,7 @@ fn real_shipping_partial_promotion_unwind_drops_both_original_owners() {
     }
 }
 
-const SOURCE_PACKET_SHA: &str = "1b4669774150209c555179917fcbb6b4e783a58513d471099800095b79b0ea98";
+const SOURCE_PACKET_SHA: &str = "43190f3981e24710d933ee27a211a0c9f7bb842b9334227ed9c2bff159719d53";
 fn source_digest(bytes: &[u8]) -> String {
     use sha2::{Digest, Sha256};
     format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)))

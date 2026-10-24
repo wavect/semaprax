@@ -149,7 +149,7 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states<E: semantic_refusal:
         "incoming state frontier",
     )?;
     boxed_flow::reserve_directory(function, plan.blocks.len(), budget)?;
-    let mut incoming = Vec::with_capacity(plan.blocks.len());
+    let mut incoming: Vec<frontier::Incoming<PathState>> = Vec::with_capacity(plan.blocks.len());
     incoming.resize_with(plan.blocks.len(), frontier::Incoming::default);
     let mut incoming_insertions =
         frontier::ShippingInsertions::<PathState>::acquire(function, budget)?;

@@ -359,8 +359,7 @@ impl<T: Ord, const LEXICAL: bool> Receiving<T, LEXICAL> {
             + 2 * size_of::<&Box<T>>()
             + 2 * size_of::<&BTreeSet<Box<T>>>()
             // Many field selection and Box::as_mut actual/formal/returned loans.
-            + size_of::<&mut Option<Box<BTreeSet<Box<T>>>>>
-        > ()
+            + size_of::<&mut Option<Box<BTreeSet<Box<T>>>>>()
             + 2 * size_of::<&mut Box<BTreeSet<Box<T>>>>()
             + 2 * size_of::<&mut BTreeSet<Box<T>>>()
             + 3 * size_of::<usize>()

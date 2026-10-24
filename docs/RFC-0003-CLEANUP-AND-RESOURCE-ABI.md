@@ -388,6 +388,21 @@ authenticate within budget changes. Test builds additionally run the
 factored comparison beside enumeration on every function small enough to
 enumerate and require the same verdict.
 
+An additional comparison-time representation selector applies only after the
+unchanged ordinary size/work admission and program-wide skeleton reservation:
+an ordinary active builder may compare a nonlexical function factored when both
+terminal bounds fit the existing 4,096-path window, there are at least 32 checked
+status sources, and there are no slots or live/conditional owned entry parameters.
+The selector's argument, result and loan receivers are prepaid; it still runs
+the existing acyclic CFG validator and complete independent HIR/plan language
+construction, paid paired proof and full canonical fallback. It does not select
+admission, spend or refund the held enumeration pool, or suppress the independent
+test enumerator. Tiny functions and other payers retain their previous selector.
+This checkpoint is source-only: the fitting scalar success, schema/CFG/status
+mutation, exact/short byte, sticky refusal, foreign-payer and full Drop controls
+in `cleanup_plan::replay::tests::factored::fitting_` are authored and unrun;
+no ordinary application-budget improvement is claimed before execution.
+
 The source-only [OPT839 retained canonical scratch draft](evidence/canonical-scratch-839/README.md)
 keeps one comparison's cursor/frame/open backing and authenticated receiving
 storage. Its complete old receiver, ordinary Memo, work/arithmetic/diagnostic

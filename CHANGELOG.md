@@ -1,3 +1,8 @@
+## Fitting scalar cleanup comparison (2026-10-24)
+
+- Add a separately prepaid comparison selector for already admitted ordinary builder functions with at least 32 checked statuses and no owning entry state, retaining structural validation, both complete observation languages, paired proof and canonical fallback.
+- Preserve original size/work admission, held skeleton reservations, tiny-function enumeration and independent test controls. Add fitting scalar, malformed/schema/CFG, exact/short, sticky-refusal, foreign-payer and full Drop regressions; this source checkpoint has not executed the new tests or established application-budget improvement.
+
 ## Ordinary builder factored crossover (2026-10-24)
 
 - Select complete factored comparison above 128 paths for ordinary owned and Copy functions, preserving the original selected/reference routes, structural admission, 4096-path native oracle window, and public byte/work limits.

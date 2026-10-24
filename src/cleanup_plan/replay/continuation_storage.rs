@@ -1,6 +1,15 @@
 //! Invocation-held empty continuation backing; never HIR proof or a quota.
 use super::*;
 mod paid_receiving;
+mod reached;
+#[cfg(test)]
+#[allow(
+    dead_code,
+    reason = "Complete independently compiled immediate predecessor owner."
+)]
+mod reached_before;
+#[cfg(test)]
+mod reached_tests;
 pub(super) const FRAME_CAPACITY: usize = 516;
 // Some(empty) is an idle, never-acquired top-level slot; None is its lease.
 // This replaces the old bool without enlarging the inline Storage carrier.
@@ -42,6 +51,20 @@ impl<'hir> Storage<'hir> {
     ) -> Result<(Lease, Vec<Frame<'hir>>), Diagnostic> {
         if self.receiving_owner.is_some() {
             self.authenticate(self.program, function, budget)?;
+        }
+        // A nonbinding place-pattern neither copies a payer nor forms a bool.
+        if let ReplayBudget {
+            payer: AllocationPayer::LegacyUnobserved,
+            lent_skeleton: true,
+            ..
+        } = budget
+        {
+            budget.reserve_bytes(
+                function,
+                reached::ACQUIRE_CALL,
+                "reached continuation acquisition receiving",
+            )?;
+            return self.acquire_reached(function, budget);
         }
         if self.frames.is_some() {
             let frames = self.frames.as_mut().unwrap();
@@ -95,11 +118,12 @@ impl<'hir> Storage<'hir> {
                     .as_ref()
                     .is_some_and(|frames| frames.capacity() < FRAME_CAPACITY))
         {
-            nested.slots[depth] = Some(if self.receiving_owner.is_some() && !budget.lent_skeleton {
-                fresh_receiving(function, budget)?
-            } else {
-                fresh(function, budget)?
-            });
+            nested.slots[depth] =
+                Some(if self.receiving_owner.is_some() && !budget.lent_skeleton {
+                    fresh_receiving(function, budget)?
+                } else {
+                    fresh(function, budget)?
+                });
         } else {
             budget.reserve_bytes(function, 0, "typed HIR continuation stack")?;
         }
@@ -159,8 +183,9 @@ fn with_legacy_nested<T>(run: impl FnOnce() -> T) -> T {
     let _restore = Restore(LEGACY_NESTED.with(|mode| mode.replace(true)));
     run()
 }
-/// Same old lazy requested layout for a missing top-level lease or an active
-/// nested guard in the legacy/standalone receiver. Caller prepays allocation.
+/// Keep the complete original lazy516 reservation for every payer. Ordinary
+/// lent unobserved backing reaches capacity incrementally; other partitions keep
+/// their exact original physical constructor. No reservation is refunded.
 pub(super) fn fresh<'hir>(
     function: &ResolvedFunction,
     budget: &mut ReplayBudget,
@@ -170,7 +195,14 @@ pub(super) fn fresh<'hir>(
         FRAME_CAPACITY,
         "typed HIR continuation stack",
     )?;
-    Ok(Vec::with_capacity(FRAME_CAPACITY))
+    match budget {
+        ReplayBudget {
+            payer: AllocationPayer::LegacyUnobserved,
+            lent_skeleton: true,
+            ..
+        } => Ok(Vec::with_capacity(2)),
+        _ => Ok(Vec::with_capacity(FRAME_CAPACITY)),
+    }
 }
 /// An owning traversal's Step assignment: the match, its renewed binding and
 /// the Yield arm block that evaluates the certified Next tail.
@@ -392,8 +424,21 @@ pub(super) fn reserve_push(
     if frames.len() < frames.capacity() {
         return Ok(());
     }
-    // Only the invocation-held paying constructor produces a smaller buffer.
-    // A missing legacy slot is never turned into a new funded path here.
+    if let ReplayBudget {
+        payer: AllocationPayer::LegacyUnobserved,
+        lent_skeleton: true,
+        ..
+    } = budget
+    {
+        budget.reserve_bytes(
+            function,
+            reached::GROW_CALL,
+            "reached continuation growth receiving",
+        )?;
+        return reached::grow(frames, function, budget);
+    }
+    // Every other payer retains its complete original paying/fallback path.
+    // This branch never borrows the ordinary receiver's new growth strategy.
     if !budget.pays_allocations() {
         return Err(replay_error(
             function,

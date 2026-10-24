@@ -1,0 +1,92 @@
+[
+  {
+    "path": "src/cleanup_plan/replay/continuation_storage.rs",
+    "current_length": 15623,
+    "current_sha256": "c4d4eb62835f7cfa4683d2b34bca450b9f9fe7d9e9e3c28495cfeff26465e2e7",
+    "before_length": 14296,
+    "before_sha256": "50e0fcee065b5222376f153597daa16ffc1044875e286c0bfc92ecf50e88a25f",
+    "before_fixture": "continuation_storage.rs.txt",
+    "edits": [
+      {
+        "start": 110,
+        "end": 291,
+        "current": "mod reached;\n#[cfg(test)]\n#[allow(\n    dead_code,\n    reason = \"Complete independently compiled immediate predecessor owner.\"\n)]\nmod reached_before;\n#[cfg(test)]\nmod reached_tests;\n",
+        "before": ""
+      },
+      {
+        "start": 1712,
+        "end": 2198,
+        "current": "        }\n        // A nonbinding place-pattern neither copies a payer nor forms a bool.\n        if let ReplayBudget {\n            payer: AllocationPayer::LegacyUnobserved,\n            lent_skeleton: true,\n            ..\n        } = budget\n        {\n            budget.reserve_bytes(\n                function,\n                reached::ACQUIRE_CALL,\n                \"reached continuation acquisition receiving\",\n            )?;\n            return self.acquire_reached(function, budget);\n",
+        "before": ""
+      },
+      {
+        "start": 4404,
+        "end": 4665,
+        "current": "            nested.slots[depth] =\n                Some(if self.receiving_owner.is_some() && !budget.lent_skeleton {\n                    fresh_receiving(function, budget)?\n                } else {\n                    fresh(function, budget)?\n                });\n",
+        "before": "            nested.slots[depth] = Some(if self.receiving_owner.is_some() && !budget.lent_skeleton {\n                fresh_receiving(function, budget)?\n            } else {\n                fresh(function, budget)?\n            });\n"
+      },
+      {
+        "start": 6684,
+        "end": 6918,
+        "current": "/// Keep the complete original lazy516 reservation for every payer. Ordinary\n/// lent unobserved backing reaches capacity incrementally; other partitions keep\n/// their exact original physical constructor. No reservation is refunded.\n",
+        "before": "/// Same old lazy requested layout for a missing top-level lease or an active\n/// nested guard in the legacy/standalone receiver. Caller prepays allocation.\n"
+      },
+      {
+        "start": 7184,
+        "end": 7427,
+        "current": "    match budget {\n        ReplayBudget {\n            payer: AllocationPayer::LegacyUnobserved,\n            lent_skeleton: true,\n            ..\n        } => Ok(Vec::with_capacity(2)),\n        _ => Ok(Vec::with_capacity(FRAME_CAPACITY)),\n    }\n",
+        "before": "    Ok(Vec::with_capacity(FRAME_CAPACITY))\n"
+      },
+      {
+        "start": 14014,
+        "end": 14517,
+        "current": "    if let ReplayBudget {\n        payer: AllocationPayer::LegacyUnobserved,\n        lent_skeleton: true,\n        ..\n    } = budget\n    {\n        budget.reserve_bytes(\n            function,\n            reached::GROW_CALL,\n            \"reached continuation growth receiving\",\n        )?;\n        return reached::grow(frames, function, budget);\n    }\n    // Every other payer retains its complete original paying/fallback path.\n    // This branch never borrows the ordinary receiver's new growth strategy.\n",
+        "before": "    // Only the invocation-held paying constructor produces a smaller buffer.\n    // A missing legacy slot is never turned into a new funded path here.\n"
+      }
+    ]
+  },
+  {
+    "path": "src/cleanup_plan/replay/continuation_storage/reached_before.rs",
+    "current_length": 9194,
+    "current_sha256": "980ab986d43f41e0e3f4d7aae59190c0f6ece37ce354ad967536341911782ceb",
+    "before_length": 14296,
+    "before_sha256": "50e0fcee065b5222376f153597daa16ffc1044875e286c0bfc92ecf50e88a25f",
+    "before_fixture": "continuation_storage.rs.txt",
+    "edits": [
+      {
+        "start": 90,
+        "end": 120,
+        "current": "#[path = \"paid_receiving.rs\"]\n",
+        "before": ""
+      },
+      {
+        "start": 3767,
+        "end": 4028,
+        "current": "            nested.slots[depth] =\n                Some(if self.receiving_owner.is_some() && !budget.lent_skeleton {\n                    fresh_receiving(function, budget)?\n                } else {\n                    fresh(function, budget)?\n                });\n",
+        "before": "            nested.slots[depth] = Some(if self.receiving_owner.is_some() && !budget.lent_skeleton {\n                fresh_receiving(function, budget)?\n            } else {\n                fresh(function, budget)?\n            });\n"
+      },
+      {
+        "start": 6515,
+        "end": 6638,
+        "current": "// Exact unchanged Frame/OwnedStep declarations are authenticated in the full preimage.\ntype Frame<'a> = super::Frame<'a>;\n",
+        "before": "/// An owning traversal's Step assignment: the match, its renewed binding and\n/// the Yield arm block that evaluates the certified Next tail.\npub(super) type OwnedStep<'a> = Option<(\n    &'a ResolvedExpr,\n    &'a crate::hir::ResolvedBinding,\n    &'a ResolvedExpr,\n)>;\npub(super) enum Frame<'a> {\n    Eval(&'a ResolvedExpr),\n    FinishCopyRegion {\n        previous: Option<ExpressionId>,\n    },\n    RenewalPrefix(&'a ResolvedExpr),\n    UpcastPassthrough,\n    Unary {\n        expression: &'a ResolvedExpr,\n        op: UnaryOp,\n    },\n    BinaryLeft {\n        expression: &'a ResolvedExpr,\n        op: BinaryOp,\n        right: &'a ResolvedExpr,\n    },\n    BinaryRight {\n        expression: &'a ResolvedExpr,\n        op: BinaryOp,\n        left_paths: Vec<ExprSkeletonPath>,\n    },\n    LazyRight {\n        expression: &'a ResolvedExpr,\n        op: BinaryOp,\n        left: &'a ResolvedExpr,\n        left_paths: Vec<ExprSkeletonPath>,\n    },\n    CallArgument {\n        expression: &'a ResolvedExpr,\n        params: super::resolved_call::Params<'a>,\n        args: &'a [ResolvedExpr],\n        index: usize,\n        states: Vec<CallSkeletonState>,\n    },\n    ByteRangeArgument {\n        expression: &'a ResolvedExpr,\n        index: usize,\n        states: Vec<CallSkeletonState>,\n    },\n    NativeArgument {\n        args: &'a [ResolvedExpr],\n        index: usize,\n        paths: Vec<ExprSkeletonPath>,\n    },\n    BlockValue {\n        expression: &'a ResolvedExpr,\n        statements: &'a [ResolvedStatement],\n        tail: &'a ResolvedExpr,\n        index: usize,\n        paths: Vec<ExprSkeletonPath>,\n    },\n    BlockTail {\n        expression: &'a ResolvedExpr,\n        paths: Vec<ExprSkeletonPath>,\n    },\n    WhileAfterCondition {\n        prefixes: Vec<ExprSkeletonPath>,\n        expression: &'a ResolvedExpr,\n        statements: &'a [ResolvedStatement],\n        tail: &'a ResolvedExpr,\n        index: usize,\n        condition: &'a ResolvedExpr,\n        body: &'a ResolvedExpr,\n    },\n    WhileAfterBody {\n        expression: &'a ResolvedExpr,\n        statements: &'a [ResolvedStatement],\n        tail: &'a ResolvedExpr,\n        index: usize,\n        results: Vec<ExprSkeletonPath>,\n        true_prefixes: Vec<ExprSkeletonPath>,\n        false_prefixes: Vec<ExprSkeletonPath>,\n    },\n    LexicalReturn {\n        expression: &'a ResolvedExpr,\n    },\n    ContinueAdvance {\n        expression: &'a ResolvedExpr,\n        step: OwnedStep<'a>,\n    },\n    LexicalLoopCondition {\n        prefixes: Vec<ExprSkeletonPath>,\n        expression: &'a ResolvedExpr,\n        statements: &'a [ResolvedStatement],\n        tail: &'a ResolvedExpr,\n        index: usize,\n        condition: &'a ResolvedExpr,\n        body: &'a ResolvedExpr,\n        latch: &'a crate::hir::LoopLatchKind,\n    },\n    LexicalLoopBody {\n        expression: &'a ResolvedExpr,\n        statements: &'a [ResolvedStatement],\n        tail: &'a ResolvedExpr,\n        index: usize,\n        results: Vec<ExprSkeletonPath>,\n        true_prefixes: Vec<ExprSkeletonPath>,\n        false_prefixes: Vec<ExprSkeletonPath>,\n        condition: &'a ResolvedExpr,\n    },\n    VariantField {\n        expression: &'a ResolvedExpr,\n        case: &'a DeclarationId,\n        fields: &'a [crate::hir::ResolvedFieldInitializer],\n        index: usize,\n        paths: Vec<ExprSkeletonPath>,\n    },\n    RecordField {\n        expression: &'a ResolvedExpr,\n        fields: &'a [crate::hir::ResolvedFieldInitializer],\n        index: usize,\n        paths: Vec<ExprSkeletonPath>,\n    },\n    UpdateBase {\n        expression: &'a ResolvedExpr,\n        base: &'a ResolvedExpr,\n        record: &'a DeclarationId,\n        fields: &'a [crate::hir::ResolvedFieldInitializer],\n    },\n    UpdateField {\n        expression: &'a ResolvedExpr,\n        base: &'a ResolvedExpr,\n        record: &'a DeclarationId,\n        fields: &'a [crate::hir::ResolvedFieldInitializer],\n        index: usize,\n        paths: Vec<ExprSkeletonPath>,\n        replaced: BTreeSet<DeclarationId>,\n        needs_cleanup: bool,\n    },\n    Try {\n        expression: &'a ResolvedExpr,\n    },\n    TryOption {\n        expression: &'a ResolvedExpr,\n    },\n    Project {\n        expression: &'a ResolvedExpr,\n        field: &'a DeclarationId,\n    },\n    IfCondition {\n        expression: &'a ResolvedExpr,\n        condition: &'a ResolvedExpr,\n        then_branch: &'a ResolvedExpr,\n        else_branch: &'a ResolvedExpr,\n    },\n    IfThen {\n        expression: &'a ResolvedExpr,\n        else_branch: &'a ResolvedExpr,\n        true_prefixes: Vec<ExprSkeletonPath>,\n        false_prefixes: Vec<ExprSkeletonPath>,\n        results: Vec<ExprSkeletonPath>,\n    },\n    IfElse {\n        expression: &'a ResolvedExpr,\n        false_prefixes: Vec<ExprSkeletonPath>,\n        results: Vec<ExprSkeletonPath>,\n    },\n    ScalarGuard(scalar_match::Guard<'a>),\n    ScalarValue(scalar_match::Value<'a>),\n    MatchScrutinee {\n        expression: &'a ResolvedExpr,\n        scrutinee: &'a ResolvedExpr,\n        arms: &'a [ResolvedMatchArm],\n    },\n    MatchArm {\n        expression: &'a ResolvedExpr,\n        scrutinee: &'a ResolvedExpr,\n        arms: &'a [ResolvedMatchArm],\n        index: usize,\n        remaining: Vec<ExprSkeletonPath>,\n        results: Vec<ExprSkeletonPath>,\n        is_record: bool,\n    },\n}\n\n#[cfg(test)]\nmod tests;\n"
+      }
+    ]
+  },
+  {
+    "path": "src/cleanup_plan/replay/continuation_storage/tests.rs",
+    "current_length": 27358,
+    "current_sha256": "17bb6b512db22de653583ba59d27f2f682f66dd2bca1583510e513b7688565a6",
+    "before_length": 27342,
+    "before_sha256": "ef071c7def7542ab0365cdd9566779a4b37270365bf6c147df7e87122debbdc2",
+    "before_fixture": "tests.rs.txt",
+    "edits": [
+      {
+        "start": 19067,
+        "end": 19144,
+        "current": "    let mut old = reached_before::fresh(function, &mut old_budget).unwrap();\n",
+        "before": "    let mut old = fresh(function, &mut old_budget).unwrap();\n"
+      }
+    ]
+  }
+]

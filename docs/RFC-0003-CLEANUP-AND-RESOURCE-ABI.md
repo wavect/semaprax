@@ -397,7 +397,11 @@ The selector's argument, result and loan receivers are prepaid; it still runs
 the existing acyclic CFG validator and complete independent HIR/plan language
 construction, paid paired proof and full canonical fallback. It does not select
 admission, spend or refund the held enumeration pool, or suppress the independent
-test enumerator. Tiny functions and other payers retain their previous selector.
+test enumerator. Tiny functions retain enumeration, and other payers retain their previous
+selector. Ordinary builder dispatch prepays its selector/header/CFG/error-probe
+receivers before testing thresholds, including on tiny nonselecting paths.
+The existing builder crossover above 128 paths runs first; this fitting selector
+extends only its nonselected comparison window.
 This checkpoint is source-only: the fitting scalar success, schema/CFG/status
 mutation, exact/short byte, sticky refusal, foreign-payer and full Drop controls
 in `cleanup_plan::replay::tests::factored::fitting_` are authored and unrun;

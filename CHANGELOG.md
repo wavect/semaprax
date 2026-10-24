@@ -1,5 +1,7 @@
 ## Fitting scalar cleanup comparison (2026-10-24)
 
+- Prepay both ordinary builder selectors before their new call/header/result/error-probe receivers form, including tiny nonselection. Preserve the upstream 128-path builder crossover and apply the 32-status fitting selector only after nonselection; other payers retain the original route.
+
 - Add a separately prepaid comparison selector for already admitted ordinary builder functions with at least 32 checked statuses and no owning entry state, retaining structural validation, both complete observation languages, paired proof and canonical fallback.
 - Preserve original size/work admission, held skeleton reservations, tiny-function enumeration and independent test controls. Add fitting scalar, malformed/schema/CFG, exact/short, sticky-refusal, foreign-payer and full Drop regressions; this source checkpoint has not executed the new tests or established application-budget improvement.
 

@@ -58,46 +58,9 @@ const FACTORED_PATH_THRESHOLD: usize = 256;
 // enumeration cross-check. Earlier selection is only a representation choice.
 const ENUMERATION_CROSS_CHECK_THRESHOLD: usize = 4_096;
 
-// This gate exists only at comparison time, after the ordinary size/work
-// admission and program-wide skeleton reservation. It must never be used by
-// path_summary::validate_replay_size_budget to enlarge that admitted domain.
-const FITTING_STATUS_THRESHOLD: usize = 32;
-pub(super) const FITTING_SELECTOR_CONTROLS: usize = 4 * std::mem::size_of::<&ResolvedFunction>()
-    + 4 * std::mem::size_of::<&mut ReplayBudget>()
-    + std::mem::size_of::<&crate::cleanup_plan::CleanupPlan>()
-    + 4 * std::mem::size_of::<usize>()
-    + 8 * std::mem::size_of::<bool>()
-    + 2 * std::mem::size_of::<Result<bool, Diagnostic>>()
-    + 2 * std::mem::size_of::<Result<(), Diagnostic>>();
-
-/// The caller pays the complete finite selector frame before forming its
-/// arguments/results. Headers choose a representation, never a proof. A
-/// foreign payer or admission mode cannot acquire this comparison route.
-pub(super) fn fitting_comparison_selected_paid(
-    function: &ResolvedFunction,
-    cfg_paths: usize,
-    semantic_paths: usize,
-    budget: &mut ReplayBudget,
-) -> Result<bool, Diagnostic> {
-    let plan = &function.cleanup_plan;
-    if budget.payer != AllocationPayer::ActiveBuilder
-        || budget.admission != AdmissionMode::Ordinary
-        || plan.lexical_control.is_some()
-        || cfg_paths > ENUMERATION_CROSS_CHECK_THRESHOLD
-        || semantic_paths > ENUMERATION_CROSS_CHECK_THRESHOLD
-        || plan.status_sources.len() < FITTING_STATUS_THRESHOLD
-        || !plan.slots.is_empty()
-        || !plan.entry_state.live_owned_parameters.is_empty()
-        || !plan.entry_state.conditional_owned_parameters.is_empty()
-    {
-        return Ok(false);
-    }
-    match structural_control::validate_ordinary_cfg(function, budget) {
-        Ok(()) => Ok(true),
-        Err(error) if budget.refusal_spent || crate::bounded_output::active_refused() => Err(error),
-        Err(_) => Ok(false),
-    }
-}
+// Both ordinary builder strategies live with the paid comparison owner.
+pub(super) use paired::{fitting_comparison_selected_paid, FITTING_SELECTOR_CONTROLS};
+use paired::{selected_builder_paid, BUILDER_SELECTOR_CONTROLS};
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 enum Label {
@@ -219,6 +182,11 @@ pub(super) fn validate_with_index_storage<'hir>(
         ..
     } = budget
     {
+        budget.reserve_bytes(
+            function,
+            BUILDER_SELECTOR_CONTROLS,
+            "ordinary builder representation selector receivers",
+        )?;
         selected_builder_paid(
             function,
             cfg_paths,
@@ -233,19 +201,27 @@ pub(super) fn validate_with_index_storage<'hir>(
             &mut ReplayBudget::new(),
         )?
     };
-    // Keep the shared admission selector above unchanged. Only an already
-    // admitted ordinary builder comparison may choose this fitting route.
-    // Tiny functions retain their complete original comparison and charges.
-    if !selected
-        && budget.payer == AllocationPayer::ActiveBuilder
-        && function.cleanup_plan.status_sources.len() >= FITTING_STATUS_THRESHOLD
-    {
-        budget.reserve_bytes(
-            function,
-            FITTING_SELECTOR_CONTROLS,
-            "fitting factored comparison selector receivers",
-        )?;
-        selected = fitting_comparison_selected_paid(function, cfg_paths, semantic_paths, budget)?;
+    // Keep both existing selectors above unchanged. Match their received
+    // bool and the payer place without producing a new equality/guard value.
+    // Every new fitting header read happens only after this bank is paid;
+    // nonselection (including tiny functions) honestly retains its new charge.
+    match selected {
+        false => {
+            if let ReplayBudget {
+                payer: AllocationPayer::ActiveBuilder,
+                ..
+            } = budget
+            {
+                budget.reserve_bytes(
+                    function,
+                    FITTING_SELECTOR_CONTROLS,
+                    "fitting factored comparison selector receivers",
+                )?;
+                selected =
+                    fitting_comparison_selected_paid(function, cfg_paths, semantic_paths, budget)?;
+            }
+        }
+        true => {}
     }
     #[cfg(test)]
     let continuations = {

@@ -665,3 +665,140 @@ pub(super) fn positive(
 
 #[cfg(test)]
 pub(in crate::cleanup_plan::replay::factored) mod tests;
+
+// This gate exists only at comparison time, after the ordinary size/work
+// admission and program-wide skeleton reservation. It must never be used by
+// path_summary::validate_replay_size_budget to enlarge that admitted domain.
+const FITTING_STATUS_THRESHOLD: usize = 32;
+// The error guard renews active_refused's actual TLS/RefCell/Rc/Option and
+// Cell receivers. This is the complete STICKY_ACTIVE_CONTROLS inventory from
+// inline_singleton/hir_last_use.rs, separately prepaid for this new invocation.
+const FITTING_REFUSAL_PROBE_CONTROLS: usize = {
+    use std::cell::{Cell, Ref, RefCell};
+    use std::thread::LocalKey;
+    type Active = RefCell<Option<Rc<()>>>;
+    type Loan = Ref<'static, Option<Rc<()>>>;
+    2 * size_of::<&ReplayBudget>()
+        + 2 * size_of::<bool>()
+        + 2 * size_of::<&LocalKey<Active>>()
+        + 4 * size_of::<&Active>()
+        + size_of::<Loan>()
+        + 2 * size_of::<&Loan>()
+        + 3 * size_of::<&Option<Rc<()>>>()
+        + 6 * size_of::<Option<Rc<()>>>()
+        + 5 * size_of::<Rc<()>>()
+        + 6 * size_of::<&Rc<()>>()
+        + size_of::<&()>()
+        + 2 * size_of::<&Cell<bool>>()
+        + 4 * size_of::<bool>()
+};
+pub(in crate::cleanup_plan::replay) const FITTING_SELECTOR_CONTROLS: usize = {
+    use std::mem::size_of;
+    // Selector and CFG call actual/formal loans; selector path arguments;
+    // selector return/receiver; reserve_bytes and CFG unit return/receivers.
+    4 * size_of::<&ResolvedFunction>() + 4 * size_of::<&mut ReplayBudget>()
+        + 4 * size_of::<usize>()
+        + 2 * size_of::<Result<bool, Diagnostic>>()
+        + 4 * size_of::<Result<(), Diagnostic>>()
+        + 2 * size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>()
+        + size_of::<&crate::cleanup_plan::CleanupPlan>()
+        // Option::is_some actual/formal; Vec::len actual/formal; each
+        // Vec::is_empty and its inner len actual/formal receiver pair.
+        + 2 * size_of::<&Option<Box<crate::cleanup_plan::LexicalControlPlan>>>()
+        + 2 * size_of::<&Vec<crate::cleanup_plan::StatusSource>>()
+        + 4 * size_of::<&Vec<crate::cleanup_plan::CleanupSlot>>()
+        + 4 * size_of::<&Vec<CleanupPlace>>()
+        + 4 * size_of::<&Vec<crate::cleanup_plan::ConditionalVariantEntry>>()
+        // Status len and the three empty-check length return/receivers;
+        // three threshold and three inner zero operands; seven predicate/result pairs.
+        + 8 * size_of::<usize>() + 6 * size_of::<usize>()
+        + 14 * size_of::<bool>() + FITTING_REFUSAL_PROBE_CONTROLS
+};
+
+// The upstream builder selector is a separate invocation. Pay its own finite
+// argument, predicate, CFG-result and sticky-probe families before entering it;
+// the later fitting selector cannot borrow this bank after nonselection.
+pub(super) const BUILDER_SELECTOR_CONTROLS: usize = {
+    use std::mem::size_of;
+    4 * size_of::<&ResolvedFunction>()
+        + 4 * size_of::<&mut ReplayBudget>()
+        + 6 * size_of::<usize>() // two path argument/formal pairs and two threshold operands
+        + 6 * size_of::<bool>()
+        + 2 * size_of::<Result<bool, Diagnostic>>()
+        + 4 * size_of::<Result<(), Diagnostic>>()
+        + 2 * size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>()
+        + FITTING_REFUSAL_PROBE_CONTROLS
+};
+
+/// The caller pays the complete finite selector frame before forming its
+/// arguments/results. Headers choose a representation, never a proof. A
+/// foreign payer or admission mode cannot acquire this comparison route.
+pub(in crate::cleanup_plan::replay) fn fitting_comparison_selected_paid(
+    function: &ResolvedFunction,
+    cfg_paths: usize,
+    semantic_paths: usize,
+    budget: &mut ReplayBudget,
+) -> Result<bool, Diagnostic> {
+    if let ReplayBudget {
+        payer: AllocationPayer::ActiveBuilder,
+        admission: AdmissionMode::Ordinary,
+        ..
+    } = budget
+    {
+    } else {
+        return Ok(false);
+    }
+    let plan = &function.cleanup_plan;
+    if plan.lexical_control.is_some() {
+        return Ok(false);
+    }
+    if cfg_paths > ENUMERATION_CROSS_CHECK_THRESHOLD {
+        return Ok(false);
+    }
+    if semantic_paths > ENUMERATION_CROSS_CHECK_THRESHOLD {
+        return Ok(false);
+    }
+    if plan.status_sources.len() < FITTING_STATUS_THRESHOLD {
+        return Ok(false);
+    }
+    if plan.slots.is_empty() {
+    } else {
+        return Ok(false);
+    }
+    if plan.entry_state.live_owned_parameters.is_empty() {
+    } else {
+        return Ok(false);
+    }
+    if plan.entry_state.conditional_owned_parameters.is_empty() {
+    } else {
+        return Ok(false);
+    }
+    match structural_control::validate_ordinary_cfg(function, budget) {
+        Ok(()) => Ok(true),
+        Err(error) if budget.refusal_spent || crate::bounded_output::active_refused() => Err(error),
+        Err(_) => Ok(false),
+    }
+}
+
+// The synchronous paid comparator changes the ordinary representation cost.
+// This threshold is not an admission limit. Selected/reference payers retain
+// their complete original selector and canonical comparison routes below.
+const BUILDER_FACTORED_PATH_THRESHOLD: usize = 128;
+
+pub(super) fn selected_builder_paid(
+    function: &ResolvedFunction,
+    cfg_paths: usize,
+    semantic_paths: usize,
+    budget: &mut ReplayBudget,
+) -> Result<bool, Diagnostic> {
+    if cfg_paths <= BUILDER_FACTORED_PATH_THRESHOLD
+        && semantic_paths <= BUILDER_FACTORED_PATH_THRESHOLD
+    {
+        return Ok(false);
+    }
+    match structural_control::validate_ordinary_cfg(function, budget) {
+        Ok(()) => Ok(true),
+        Err(error) if budget.refusal_spent || crate::bounded_output::active_refused() => Err(error),
+        Err(_) => Ok(false),
+    }
+}

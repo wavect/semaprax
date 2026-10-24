@@ -1,6 +1,8 @@
 use super::*;
 use crate::cleanup_plan::replay::*;
 
+const RECEIVERS: usize = 2;
+
 fn checked_program(rows: usize) -> ResolvedProgram {
     let mut text = String::from("module retained.rows; @id(\"rows.add\") fn add(x:i64)->i64 requires x>=0 ensures result>=0 {x+1} @id(\"rows.main\") fn main()->i64 {");
     for n in 0..rows {
@@ -24,7 +26,9 @@ fn ordinary_driver(
     before_release: bool,
     bytes: usize,
 ) -> (Result<(), Diagnostic>, bool, usize) {
-    ordinary_driver_reference(program, old, before_release, bytes).0
+    let (result, reference) = ordinary_driver_reference(program, old, before_release, bytes);
+    eprintln!("ordinary reference max_receivers={RECEIVERS} complete_receipt={reference:?}");
+    result
 }
 fn ordinary_driver_reference(
     program: &ResolvedProgram,
@@ -45,7 +49,6 @@ fn ordinary_driver_reference(
     use crate::cleanup_plan::replay::workspace_oracle::{
         reference_work_bound, ReferenceReceiptOnUnwind,
     };
-    const RECEIVERS: usize = 2;
     let reference = OracleScope::open_with_work(1 << 28, reference_work_bound(RECEIVERS))
         .expect("finite independent ordinary replay reference account");
     let trace = ReferenceReceiptOnUnwind::new(&reference, RECEIVERS);
@@ -79,7 +82,6 @@ fn ordinary_driver_reference(
     drop(trace);
     let reference = reference.finish();
     assert!(reference.started <= RECEIVERS, "{reference:?}");
-    eprintln!("ordinary reference max_receivers={RECEIVERS} complete_receipt={reference:?}");
     assert_eq!(reference.started, reference.completed);
     assert!(
         reference.first_refusal.is_none()
@@ -89,11 +91,35 @@ fn ordinary_driver_reference(
     );
     (result, reference)
 }
+// Fixed inline observation only; this report outlives the allocation window,
+// including an unchanged assertion unwind. It owns no compiler backing.
+type NoPreflightSnapshot = (
+    bool,
+    bool,
+    usize,
+    usize,
+    usize,
+    usize,
+    crate::cleanup_plan::replay::allocation::OracleReceipt,
+    Option<usize>,
+    Option<ReplayWorkRefusal>,
+);
+struct NoPreflightReport {
+    old: bool,
+    snapshot: std::cell::Cell<Option<NoPreflightSnapshot>>,
+}
+impl Drop for NoPreflightReport {
+    fn drop(&mut self) {
+        eprintln!("ordinary without preflight old={} success/refused/paid/work_remaining/skeleton_remaining/skeleton_spent/reference/materializations/work_refusal={:?}", self.old, self.snapshot.get());
+    }
+}
+
 // Complete immediate old helper: intentionally lacks the production preflight.
 fn ordinary_without_skeleton_preflight(
     program: &ResolvedProgram,
     old: bool,
     bytes: usize,
+    observed: &std::cell::Cell<Option<NoPreflightSnapshot>>,
 ) -> (Result<(), Diagnostic>, bool, usize) {
     let function = program.functions.iter().find(|f| f.name == "main").unwrap();
     // The comparison hook is an independent test reference, not part of the
@@ -110,9 +136,12 @@ fn ordinary_without_skeleton_preflight(
         .expect("finite independent ordinary replay reference account");
     let trace = ReferenceReceiptOnUnwind::new(&reference, RECEIVERS);
     let selected = opt_in(reference.lease()).expect("one ordinary replay reference lease");
+    let initial_materializations = skeleton_materializations();
+    let _ = take_replay_work_refusal();
+    let mut work = (0, 0, 0);
     let result = crate::bounded_output::with_limit_usage(bytes, || {
         let mut budget = ReplayBudget::new();
-        if old {
+        let verdict = if old {
             lookup_caller_before::validate_structure_with_budget_storage(
                 program,
                 function,
@@ -122,13 +151,18 @@ fn ordinary_without_skeleton_preflight(
             )
         } else {
             validate_structure_with_budget_storage(program, function, &mut budget, None, None)
-        }
+        };
+        work = (
+            budget.remaining,
+            budget.skeleton_remaining,
+            budget.skeleton_spent,
+        );
+        verdict
     });
     drop(selected);
     drop(trace);
     let reference = reference.finish();
     assert!(reference.started <= RECEIVERS, "{reference:?}");
-    eprintln!("ordinary reference max_receivers={RECEIVERS} complete_receipt={reference:?}");
     assert_eq!(reference.started, reference.completed);
     assert!(
         reference.first_refusal.is_none()
@@ -136,6 +170,17 @@ fn ordinary_without_skeleton_preflight(
             && reference.physical_failure.is_none(),
         "{reference:?}"
     );
+    observed.set(Some((
+        result.0.is_ok(),
+        result.1,
+        result.2,
+        work.0,
+        work.1,
+        work.2,
+        reference,
+        skeleton_materializations().checked_sub(initial_materializations),
+        take_replay_work_refusal(),
+    )));
     result
 }
 #[test]
@@ -362,8 +407,10 @@ fn complete_caller_success_and_refusal_drop_remain_observed_at_unchanged_cap() {
             crate::cleanup_plan::replay::ordinary_plan_history::PairScopeCensus::whole_caller(
                 bytes,
             );
-        let (_, metrics) = crate::test_allocation_observer::measure(|| {
-            let result = ordinary(&program, false, bytes);
+        let (reference, metrics) = crate::test_allocation_observer::measure(|| {
+            // Return the complete receipt without harness stderr inside the
+            // compiler allocation lifetime being measured.
+            let (result, reference) = ordinary_driver_reference(&program, false, false, bytes);
             census.observed(result.0.is_ok(), result.1);
             assert_eq!(
                 result.0.is_ok(),
@@ -374,7 +421,9 @@ fn complete_caller_success_and_refusal_drop_remain_observed_at_unchanged_cap() {
                 result.2,
             );
             drop(result);
+            reference
         });
+        eprintln!("ordinary reference bytes={bytes} max_receivers={RECEIVERS} complete_receipt={reference:?} physical={metrics:?}");
         assert!(!metrics.invalid && metrics.live == 0);
         assert_eq!(metrics.allocated, metrics.freed);
         drop(census);
@@ -386,8 +435,17 @@ fn complete_caller_without_skeleton_preflight_keeps_exact_root_refusal_and_drop(
     let program = checked_program(32);
     let function = program.functions.iter().find(|f| f.name == "main").unwrap();
     for old in [false, true] {
+        let report = NoPreflightReport {
+            old,
+            snapshot: std::cell::Cell::new(None),
+        };
         let (_, metrics) = crate::test_allocation_observer::measure(|| {
-            let result = ordinary_without_skeleton_preflight(&program, old, 64 * 1024 * 1024);
+            let result = ordinary_without_skeleton_preflight(
+                &program,
+                old,
+                64 * 1024 * 1024,
+                &report.snapshot,
+            );
             assert_eq!(
                 result.0,
                 Err(replay_error(

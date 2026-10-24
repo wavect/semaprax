@@ -406,7 +406,7 @@ pub(crate) fn census_original_before(path: &str, current: &[u8]) -> Vec<u8> {
         _ => panic!("undeclared census source"),
     };
     assert_eq!(current, compiled);
-    let normalized = census_stage(path, current, false);
+    let normalized = census_stage(path, current, false).or_else(|| (path == "src/cleanup_plan/replay/path_join/frontier_tests.rs").then(|| census_source_before(path, current)));
     let current = normalized.as_deref().unwrap_or(current);
     assert_eq!(current.len() as u64, row["length"].as_u64().unwrap());
     assert_eq!(digest(current), row["sha256"].as_str().unwrap());
@@ -550,10 +550,10 @@ pub(crate) fn census_source_before(path: &str, supplied: &[u8]) -> Vec<u8> {
             | "src/cleanup_plan/replay/path_join/frontier_tests.rs"
     ) {
         let data = include_bytes!("../cleanup_plan/replay/path_join/fused_before/inverse.json");
-        assert_eq!(data.len(), 35334);
+        assert_eq!(data.len(), 41911);
         assert_eq!(
             digest(data),
-            "893cb13d032a61903df9646967e4bc042128e22989e89be7e130a7acdbc64f12"
+            "b4d8b3b6e9872464620717910299222137204c708c636b68219f19b9890f7f3d"
         );
         assert_eq!(
             std::fs::read(root.join("src/cleanup_plan/replay/path_join/fused_before/inverse.json"))

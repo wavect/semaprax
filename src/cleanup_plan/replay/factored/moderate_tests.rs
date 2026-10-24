@@ -42,9 +42,14 @@ fn enumerated(program: &ResolvedProgram, function: &ResolvedFunction) -> Result<
     let mut budget = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
     let mut hir = hir_skeleton_paths(program, function, &mut budget)?;
     let mut plan = plan_skeleton_paths(function, &mut budget)?;
-    hir.sort();
-    plan.sort();
-    Ok(hir == plan)
+    budget.reserve_bytes(
+        function,
+        3 * skeleton_work::enumerated_prefix::ENTRY_CALL,
+        "independent moderate full-content comparison entries",
+    )?;
+    skeleton_work::enumerated_prefix::sort(&mut hir, function, &mut budget)?;
+    skeleton_work::enumerated_prefix::sort(&mut plan, function, &mut budget)?;
+    skeleton_work::enumerated_prefix::equal(&hir, &plan, function, &mut budget)
 }
 
 #[test]

@@ -468,14 +468,21 @@ fn complete_immediate_driver_and_receivers_keep_exact_whole_preimages_and_shared
         prior_source(path, crate::bounded_output::census_before(path, &raw));
     }
     let marker = "fn validate_control_group_with_budget";
+    let path = "src/cleanup_plan/replay/path_join.rs";
+    let raw = std::fs::read(root.join(path)).unwrap();
+    assert_eq!(raw, include_bytes!("../path_join.rs"));
+    // Keep the complete immediate fusion predecessor authenticated, then
+    // acquire the older shared-insertion epoch from the same whole raw source.
+    let _complete_immediate =
+        fused_tests::before_source(path, String::from_utf8(raw.clone()).unwrap());
+    let shared_before = prior_source(path, crate::bounded_output::census_before(path, &raw));
+    assert_eq!(std::fs::read(root.join(path)).unwrap(), raw);
     assert_eq!(
-        fused_tests::before_source(
-            "src/cleanup_plan/replay/path_join.rs",
-            include_str!("../path_join.rs").to_owned()
-        )
-        .split_once(marker)
-        .unwrap()
-        .1,
+        String::from_utf8(shared_before)
+            .unwrap()
+            .split_once(marker)
+            .unwrap()
+            .1,
         include_str!("shared_insertions_before/driver.rs.txt")
             .split_once(marker)
             .unwrap()

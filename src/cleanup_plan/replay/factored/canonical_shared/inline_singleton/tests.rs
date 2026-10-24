@@ -436,6 +436,7 @@ fn actual_inline_owner_exact_short_zero_and_floor_refusals_release_every_owner()
 #[test]
 fn complete_immediate_hir_and_plan_caller_keeps_results_work_and_unchanged_cap() {
     super::super::super::paired::tests::authenticate_prepaired_compare();
+    super::super::super::paired::tests::authenticate_preprivate_compare();
     use super::super::super::{before_inline_singleton, lexical_plan_tests};
     fn invoke(
         old: bool,
@@ -469,7 +470,7 @@ fn complete_immediate_hir_and_plan_caller_keeps_results_work_and_unchanged_cap()
                                 None,
                             )
                         } else {
-                            super::super::super::paired::tests::prepaired_compare(
+                            super::super::super::paired::tests::preprivate_compare(
                                 program,
                                 function,
                                 &mut budget,
@@ -522,6 +523,44 @@ fn complete_immediate_hir_and_plan_caller_keeps_results_work_and_unchanged_cap()
             });
         (result, refused, paid, remaining, spent, heap)
     }
+
+    fn invoke_prepaired(
+        program: &ResolvedProgram,
+        function: &ResolvedFunction,
+        limit: usize,
+    ) -> (
+        Result<Option<bool>, Failure>,
+        bool,
+        usize,
+        usize,
+        usize,
+        Metrics,
+    ) {
+        let ((result, remaining, spent, heap), refused, paid, _) =
+            with_limit_usage_refusal(limit, || {
+                let ((result, remaining, spent), heap) = measure(|| {
+                    let mut budget = ReplayBudget::new();
+                    let result = (|| {
+                        crate::cleanup_plan::replay::reserve_program_skeleton_work(
+                            program,
+                            std::iter::once(function),
+                            &mut budget,
+                        )?;
+                        super::super::super::paired::tests::prepaired_compare(
+                            program,
+                            function,
+                            &mut budget,
+                            None,
+                            None,
+                        )
+                    })()
+                    .map_err(failure);
+                    (result, budget.remaining, budget.skeleton_spent)
+                });
+                (result, remaining, spent, heap)
+            });
+        (result, refused, paid, remaining, spent, heap)
+    }
     for source in [lexical_plan_tests::WHILE, lexical_plan_tests::GENERATED] {
         let (program, function) = lexical_plan_tests::fixture(source);
         let old = invoke(true, &program, &function, 64 * 1024 * 1024);
@@ -535,6 +574,15 @@ fn complete_immediate_hir_and_plan_caller_keeps_results_work_and_unchanged_cap()
             assert_eq!(heap.live, 0);
             assert_eq!(heap.allocated, heap.freed);
         }
+        // Preserve the complete prepaired generation and observe its paid partition work.
+        let prepaired = invoke_prepaired(&program, &function, 64 * 1024 * 1024);
+        assert_eq!(prepaired.0, current.0);
+        assert!(!prepaired.1 && !prepaired.5.invalid);
+        assert_eq!(prepaired.4, current.4);
+        assert_eq!(prepaired.5.live, 0);
+        assert_eq!(prepaired.5.allocated, prepaired.5.freed);
+        assert!(prepaired.5.allocated <= prepaired.2 && prepaired.5.highwater <= prepaired.2);
+        eprintln!("OPT884 distinct prepaired remaining={} spent={} paid={} physical={:?}",prepaired.3,prepaired.4,prepaired.2,prepaired.5);
         // A complete composition may pay more on a cold graph. This owner
         // checks real semantics and teardown without padding the old invoice.
         eprintln!(

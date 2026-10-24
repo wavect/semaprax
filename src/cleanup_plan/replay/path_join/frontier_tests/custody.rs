@@ -197,16 +197,14 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
             // search; the fixed old source targets below are not repinned.
             actual = crate::cleanup_plan::replay::selected_owner::ordinary::custody(&path, &actual);
         }
-        let continuation_before = if path == "src/cleanup_plan/replay/continuation_storage/tests.rs"
+        let continuation_before = if matches!(path, "src/cleanup_plan/replay/continuation_storage/tests.rs" | "src/cleanup_plan/replay/continuation_storage.rs")
         {
-            assert_eq!(
-                actual.as_slice(),
-                include_bytes!("../../continuation_storage/tests.rs").as_slice()
-            );
+            let compiled = if path == "src/cleanup_plan/replay/continuation_storage.rs" { include_bytes!("../../continuation_storage.rs").as_slice() } else { include_bytes!("../../continuation_storage/tests.rs").as_slice() };
+            assert_eq!(actual.as_slice(), compiled);
             let packet = include_bytes!("../../continuation_storage/reached_before/inverse.json");
             assert_eq!(
                 digest(packet),
-                "1e1188c81b5bc515eca82e8a04a74d9ecb117d9ec3eef2632c241c804f612472"
+                "502ce5028fe9c180ff71c8e7f19ad6724f5a729244d828dadcc8ccdf1e59d129"
             );
             let rows: serde_json::Value = serde_json::from_slice(packet).unwrap();
             let row = rows
@@ -227,13 +225,12 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
                 );
                 before.splice(start..end, e["before"].as_str().unwrap().bytes());
             }
-            let fixture = include_bytes!("../../continuation_storage/reached_before/tests.rs.txt");
-            assert_eq!(before.as_slice(), fixture.as_slice());
-            assert_eq!(before.len(), 27342);
-            assert_eq!(
-                digest(&before),
-                "ef071c7def7542ab0365cdd9566779a4b37270365bf6c147df7e87122debbdc2"
-            );
+            let (fixture, length, sha): (&[u8], usize, &str) = if path == "src/cleanup_plan/replay/continuation_storage.rs" {
+                (include_bytes!("../../continuation_storage/reached_before/continuation_storage.rs.txt"), 14296, "50e0fcee065b5222376f153597daa16ffc1044875e286c0bfc92ecf50e88a25f")
+            } else { (include_bytes!("../../continuation_storage/reached_before/tests.rs.txt"), 27342, "ef071c7def7542ab0365cdd9566779a4b37270365bf6c147df7e87122debbdc2") };
+            assert_eq!(before.as_slice(), fixture);
+            assert_eq!(before.len(), length);
+            assert_eq!(digest(&before), sha);
             Some(before)
         } else {
             None

@@ -600,6 +600,7 @@ fn warm_lexical_banks_cannot_authenticate_foreign_function_budget_or_nested_rest
 #[test]
 fn whole_shipping_comparison_records_separate_hir_plan_banks_and_complete_old_work_and_drop() {
     super::super::super::paired::tests::authenticate_prepaired_compare();
+    super::super::super::paired::tests::authenticate_preprivate_compare();
     use super::super::super::lexical_plan_tests;
     fn invoke_shipping(
         program: &dyn crate::cleanup::ReplayContext,
@@ -633,6 +634,39 @@ fn whole_shipping_comparison_records_separate_hir_plan_banks_and_complete_old_wo
             })
         })
     }
+
+    fn invoke_prepaired(
+        program: &dyn crate::cleanup::ReplayContext,
+        f: &ResolvedFunction,
+        limit: usize,
+    ) -> (
+        (
+            (
+                Result<Option<bool>, Failure>,
+                (usize, usize, usize),
+                census::Report,
+            ),
+            Metrics,
+        ),
+        bool,
+        usize,
+        Option<crate::bounded_output::ReservationRefusal>,
+    ) {
+        with_limit_usage_refusal(limit, || {
+            measure(|| {
+                let mut b = ReplayBudget::new();
+                let observer = census::observe(f, &b);
+                let result =
+                    super::super::super::paired::tests::prepaired_compare(program, f, &mut b, None, None)
+                        .map_err(failure);
+                let work = (b.remaining, b.skeleton_remaining, b.skeleton_spent);
+                let report = census::take();
+                drop(observer);
+                drop(b);
+                (result, work, report)
+            })
+        })
+    }
     for source in [lexical_plan_tests::WHILE, lexical_plan_tests::GENERATED] {
         let fixture = crate::workspace_graph::SourceRecordReplayFixture::new(source);
         fixture.with_linked_context(|program|{
@@ -642,7 +676,7 @@ fn whole_shipping_comparison_records_separate_hir_plan_banks_and_complete_old_wo
                 let ((record,metrics),refused,paid,first)=with_limit_usage_refusal(1<<29,||measure(||{
                     let mut b=ReplayBudget::new();let observer=census::observe(f,&b);
                     let result=if old { before_lexical_successors::compare::compare_with_index_storage(program,f,&mut b,None,None) }
-                        else { super::super::super::paired::tests::prepaired_compare(program,f,&mut b,None,None) };
+                        else { super::super::super::paired::tests::preprivate_compare(program,f,&mut b,None,None) };
                     assert_eq!(result,Ok(Some(true)));
                     let record=(b.remaining,b.skeleton_remaining,b.skeleton_spent,census::take());drop(observer);drop(b);record
                 }));
@@ -652,6 +686,14 @@ fn whole_shipping_comparison_records_separate_hir_plan_banks_and_complete_old_wo
                 records.push(record);
             }
             assert_eq!((records[0].0,records[0].1,records[0].2),(records[1].0,records[1].1,records[1].2));
+            // Preserve the complete prepaired generation and observe its paid partition work.
+            let ((prepaired, heap), refused, paid, first) = invoke_prepaired(program, f, 1 << 29);
+            assert_eq!(prepaired.0, Ok(Some(true)));
+            assert!(!refused && first.is_none());
+            assert!(!heap.invalid && heap.live == 0 && heap.allocated == heap.freed);
+            assert!(heap.allocated <= paid && heap.highwater <= paid && prepaired.2.complete);
+            assert_eq!((prepaired.1.1, prepaired.1.2), (records[1].1, records[1].2));
+            eprintln!("OPT884 distinct prepaired work={:?} paid={paid} physical={heap:?} census={:?}",prepaired.1,prepaired.2);
             // Independently exercise today's shipping paired route. Its work
             // and invoice are observations of this route, not canonical parity.
             let ((live, metrics), refused, paid, first) = invoke_shipping(program, f, 1 << 29);

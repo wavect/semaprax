@@ -1,8 +1,8 @@
 [
   {
     "path": "src/cleanup_plan/replay/continuation_storage.rs",
-    "current_length": 15623,
-    "current_sha256": "c4d4eb62835f7cfa4683d2b34bca450b9f9fe7d9e9e3c28495cfeff26465e2e7",
+    "current_length": 23067,
+    "current_sha256": "531716f8be3d3a7c3d3b1395a4d4e3474c33e807fc5e47428392c41a971e745b",
     "before_length": 14296,
     "before_sha256": "50e0fcee065b5222376f153597daa16ffc1044875e286c0bfc92ecf50e88a25f",
     "before_fixture": "continuation_storage.rs.txt",
@@ -42,8 +42,66 @@
         "end": 14517,
         "current": "    if let ReplayBudget {\n        payer: AllocationPayer::LegacyUnobserved,\n        lent_skeleton: true,\n        ..\n    } = budget\n    {\n        budget.reserve_bytes(\n            function,\n            reached::GROW_CALL,\n            \"reached continuation growth receiving\",\n        )?;\n        return reached::grow(frames, function, budget);\n    }\n    // Every other payer retains its complete original paying/fallback path.\n    // This branch never borrows the ordinary receiver's new growth strategy.\n",
         "before": "    // Only the invocation-held paying constructor produces a smaller buffer.\n    // A missing legacy slot is never turned into a new funded path here.\n"
+      },
+      {
+        "start": 969,
+        "end": 5292,
+        "current": "    // Only the mandatory unopted test crosscheck ignored this nonreceiving\n    // Legacy owner. No live/paid lease is retired, and later actual use must\n    // reacquire through the complete original fresh() reservation and carrier.\n    #[cfg(test)]\n    pub(super) const IDLE_RETIRE_CALL: usize = {\n        use std::mem::size_of;\n        4 * size_of::<(\n            &mut Self,\n            &dyn crate::cleanup::ReplayContext,\n            &ResolvedFunction,\n            &mut ReplayBudget,\n        )>() + 4 * size_of::<Result<bool, Diagnostic>>()\n            // Authentication's terminal transport and fixed same-program\n            // identity loans; no ACTIVE Rc probe on a nonreceiving owner.\n            + 4 * size_of::<Diagnostic>() + 4 * size_of::<String>()\n            + 2 * size_of::<(&Self, &dyn crate::cleanup::ReplayContext)>()\n            + 2 * size_of::<&dyn crate::cleanup::ReplayContext>()\n            + 2 * size_of::<Option<&ResolvedProgram>>()\n            + 6 * size_of::<&ResolvedProgram>()\n            + 2 * size_of::<Result<(), Diagnostic>>()\n            + 3 * size_of::<Option<Vec<Frame<'static>>>>()\n            + 3 * size_of::<Vec<Frame<'static>>>()\n            + 3 * size_of::<Vec<Option<Vec<Frame<'static>>>>>()\n            + 4 * size_of::<&Option<Vec<Frame<'static>>>>()\n            + 4 * size_of::<&Vec<Frame<'static>>>()\n            + 4 * size_of::<&mut Self>()\n            + 4 * size_of::<&Self>()\n            + 4 * size_of::<&Nested<'static>>()\n            + 4 * size_of::<&Option<Box<Nested<'static>>>>()\n            + 4 * size_of::<&Box<Nested<'static>>>()\n            + 4 * size_of::<&mut Option<Box<Nested<'static>>>>()\n            + 4 * size_of::<&mut Box<Nested<'static>>>()\n            + 4 * size_of::<&mut Nested<'static>>()\n            + 2 * size_of::<std::slice::Iter<'static, Option<Vec<Frame<'static>>>>>()\n            + 2 * size_of::<&mut std::slice::Iter<'static, Option<Vec<Frame<'static>>>>>()\n            + 2 * size_of::<Option<&Option<Vec<Frame<'static>>>>>()\n            + 12 * size_of::<bool>()\n            + 4 * size_of::<usize>()\n    };\n    #[cfg(test)]\n    const IDLE_RETIRE_STEP: usize = {\n        use std::mem::size_of;\n        2 * size_of::<&mut std::slice::Iter<'static, Option<Vec<Frame<'static>>>>>()\n            + 2 * size_of::<Option<&Option<Vec<Frame<'static>>>>>()\n            + 4 * size_of::<&Option<Vec<Frame<'static>>>>()\n            + 2 * size_of::<&Vec<Frame<'static>>>()\n            + 2 * size_of::<Option<Vec<Frame<'static>>>>()\n            + 3 * size_of::<Vec<Frame<'static>>>()\n            + 4 * size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>()\n            + 4 * size_of::<Result<(), Diagnostic>>()\n            + 4 * size_of::<bool>()\n    };\n    #[cfg(test)]\n    pub(super) fn retire_legacy_idle(\n        &mut self,\n        program: &dyn crate::cleanup::ReplayContext,\n        function: &ResolvedFunction,\n        budget: &mut ReplayBudget,\n    ) -> Result<bool, Diagnostic> {\n        if self.receiving_owner.is_some() {\n            return Ok(false);\n        }\n        if let ReplayBudget {\n            payer: AllocationPayer::LegacyUnobserved,\n            ..\n        } = budget\n        {\n        } else {\n            return Ok(false);\n        }\n        self.authenticate(program, function, budget)?;\n        if !matches!(&self.frames, Some(frames) if frames.is_empty()) {\n            return Ok(false);\n        }\n        if let Some(nested) = &self.nested {\n            if nested.depth != 0 {\n                return Ok(false);\n            }\n            for slot in &nested.slots {\n                budget.reserve_bytes(\n                    function,\n                    Self::IDLE_RETIRE_STEP,\n                    \"idle continuation slot retirement receiving\",\n                )?;\n                budget.charge(function, 1, \"idle continuation slot retirement proof\")?;\n                if !matches!(slot, Some(frames) if frames.is_empty()) {\n                    return Ok(false);\n                }\n            }\n        }\n        // Every possible leased/nonempty slot was rejected before any Drop.\n        // No old reservation is refunded or transferred to a new allocation.\n        self.frames = Some(Vec::new());\n        if let Some(nested) = &mut self.nested {\n            nested.slots = Vec::new();\n        }\n        Ok(true)\n    }\n\n",
+        "before": ""
+      },
+      {
+        "start": 19946,
+        "end": 23067,
+        "current": "\n#[cfg(test)]\nmod idle_retirement_tests {\n    use super::*;\n    #[test]\n    fn idle_only_retirement_keeps_leases_and_original_fresh_reacquisition() {\n        let program = crate::hir::resolve(\n            &crate::check(\"module idle; @id(\\\"main\\\") fn main()->i64 {0}\", \"idle.spx\").unwrap(),\n        )\n        .unwrap();\n        let function = &program.functions[0];\n        let mut budget = ReplayBudget::unobserved();\n        let mut storage = Storage::new(&program);\n        let (lease, frames) = storage.acquire(function, &mut budget).unwrap();\n        assert_eq!(frames.capacity(), FRAME_CAPACITY);\n        assert!(!storage\n            .retire_legacy_idle(&program, function, &mut budget)\n            .unwrap());\n        assert!(storage.frames.is_none());\n        storage.release(lease, frames);\n        assert!(storage\n            .retire_legacy_idle(&program, function, &mut budget)\n            .unwrap());\n        assert_eq!(storage.frames.as_ref().unwrap().capacity(), 0);\n        let (lease, frames) = storage.acquire(function, &mut budget).unwrap();\n        assert_eq!(\n            frames.capacity(),\n            FRAME_CAPACITY,\n            \"full original fresh allocation, no credit\"\n        );\n        storage.release(lease, frames);\n        let retained = storage.frames.as_ref().unwrap().capacity();\n        storage.nested = Some(Box::new(Nested {\n            depth: 1,\n            slots: vec![None],\n        }));\n        assert!(!storage\n            .retire_legacy_idle(&program, function, &mut budget)\n            .unwrap());\n        assert_eq!(storage.frames.as_ref().unwrap().capacity(), retained);\n        let nested = storage.nested.as_mut().unwrap();\n        nested.depth = 0;\n        nested.slots[0] = Some(Vec::new());\n        assert!(storage\n            .retire_legacy_idle(&program, function, &mut budget)\n            .unwrap());\n        assert_eq!(storage.nested.as_ref().unwrap().slots.capacity(), 0);\n        let (lease, frames) = storage.acquire(function, &mut budget).unwrap();\n        storage.release(lease, frames);\n        let foreign = crate::hir::resolve(\n            &crate::check(\n                \"module foreign; @id(\\\"main\\\") fn main()->i64 {0}\",\n                \"foreign.spx\",\n            )\n            .unwrap(),\n        )\n        .unwrap();\n        let capacity = storage.frames.as_ref().unwrap().capacity();\n        let mut original = Storage::new(&program);\n        let mut original_budget = ReplayBudget::unobserved();\n        let expected = original\n            .authenticate(&foreign, function, &mut original_budget)\n            .unwrap_err();\n        let actual = storage\n            .retire_legacy_idle(&foreign, function, &mut budget)\n            .unwrap_err();\n        assert_eq!(\n            actual.json(),\n            expected.json(),\n            \"complete original foreign Diagnostic\"\n        );\n        assert_eq!(storage.frames.as_ref().unwrap().capacity(), capacity);\n        assert!(\n            storage\n                .retire_legacy_idle(&program, function, &mut budget)\n                .is_err(),\n            \"foreign refusal remains sticky\"\n        );\n    }\n}\n",
+        "before": ""
       }
-    ]
+    ],
+    "retained_prior_record": {
+      "path": "src/cleanup_plan/replay/continuation_storage.rs",
+      "current_length": 15623,
+      "current_sha256": "c4d4eb62835f7cfa4683d2b34bca450b9f9fe7d9e9e3c28495cfeff26465e2e7",
+      "before_length": 14296,
+      "before_sha256": "50e0fcee065b5222376f153597daa16ffc1044875e286c0bfc92ecf50e88a25f",
+      "before_fixture": "continuation_storage.rs.txt",
+      "edits": [
+        {
+          "start": 110,
+          "end": 291,
+          "current": "mod reached;\n#[cfg(test)]\n#[allow(\n    dead_code,\n    reason = \"Complete independently compiled immediate predecessor owner.\"\n)]\nmod reached_before;\n#[cfg(test)]\nmod reached_tests;\n",
+          "before": ""
+        },
+        {
+          "start": 1712,
+          "end": 2198,
+          "current": "        }\n        // A nonbinding place-pattern neither copies a payer nor forms a bool.\n        if let ReplayBudget {\n            payer: AllocationPayer::LegacyUnobserved,\n            lent_skeleton: true,\n            ..\n        } = budget\n        {\n            budget.reserve_bytes(\n                function,\n                reached::ACQUIRE_CALL,\n                \"reached continuation acquisition receiving\",\n            )?;\n            return self.acquire_reached(function, budget);\n",
+          "before": ""
+        },
+        {
+          "start": 4404,
+          "end": 4665,
+          "current": "            nested.slots[depth] =\n                Some(if self.receiving_owner.is_some() && !budget.lent_skeleton {\n                    fresh_receiving(function, budget)?\n                } else {\n                    fresh(function, budget)?\n                });\n",
+          "before": "            nested.slots[depth] = Some(if self.receiving_owner.is_some() && !budget.lent_skeleton {\n                fresh_receiving(function, budget)?\n            } else {\n                fresh(function, budget)?\n            });\n"
+        },
+        {
+          "start": 6684,
+          "end": 6918,
+          "current": "/// Keep the complete original lazy516 reservation for every payer. Ordinary\n/// lent unobserved backing reaches capacity incrementally; other partitions keep\n/// their exact original physical constructor. No reservation is refunded.\n",
+          "before": "/// Same old lazy requested layout for a missing top-level lease or an active\n/// nested guard in the legacy/standalone receiver. Caller prepays allocation.\n"
+        },
+        {
+          "start": 7184,
+          "end": 7427,
+          "current": "    match budget {\n        ReplayBudget {\n            payer: AllocationPayer::LegacyUnobserved,\n            lent_skeleton: true,\n            ..\n        } => Ok(Vec::with_capacity(2)),\n        _ => Ok(Vec::with_capacity(FRAME_CAPACITY)),\n    }\n",
+          "before": "    Ok(Vec::with_capacity(FRAME_CAPACITY))\n"
+        },
+        {
+          "start": 14014,
+          "end": 14517,
+          "current": "    if let ReplayBudget {\n        payer: AllocationPayer::LegacyUnobserved,\n        lent_skeleton: true,\n        ..\n    } = budget\n    {\n        budget.reserve_bytes(\n            function,\n            reached::GROW_CALL,\n            \"reached continuation growth receiving\",\n        )?;\n        return reached::grow(frames, function, budget);\n    }\n    // Every other payer retains its complete original paying/fallback path.\n    // This branch never borrows the ordinary receiver's new growth strategy.\n",
+          "before": "    // Only the invocation-held paying constructor produces a smaller buffer.\n    // A missing legacy slot is never turned into a new funded path here.\n"
+        }
+      ]
+    }
   },
   {
     "path": "src/cleanup_plan/replay/continuation_storage/reached_before.rs",

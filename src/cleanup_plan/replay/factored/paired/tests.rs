@@ -543,3 +543,190 @@ pub(in crate::cleanup_plan::replay::factored) fn authenticate_prepaired_compare(
         definition(original, "fn build_comparison<'hir>(")
     );
 }
+
+// Complete pre-HIR-release generation; only name and visibility differ.
+pub(in crate::cleanup_plan::replay::factored) fn preprivate_compare<'hir>(
+    program: &'hir dyn crate::cleanup::ReplayContext,
+    function: &'hir ResolvedFunction,
+    budget: &mut ReplayBudget,
+    helpers: Option<&crate::loop_calls::byte_writer::ModuleIndex<'hir>>,
+    continuations: Option<&mut continuation_storage::Storage<'hir>>,
+) -> Result<Option<bool>, Diagnostic> {
+    #[cfg(feature = "unstable-workflow-profiling")]
+    let _paid_phase =
+        budget.paid_phase(crate::workflow_profile::plan_comparison::PaidPhase::FactoredComparison);
+
+    let BuiltComparison {
+        automaton,
+        sink,
+        hir_root,
+        plan_root,
+    } = build_comparison(program, function, budget, helpers, continuations)?;
+
+    #[cfg(test)]
+    if budget.oracle_lease().is_some() {
+        // The exact reconstructed automaton is unchanged. An Oracle account
+        // pays the full general label order; it grants no borrowed-helper lease.
+        let mut canonical =
+            borrowed_canonical::BorrowedCanonicalizer::new(function, &automaton, sink, budget)?;
+        #[cfg(test)]
+        let _debit_phase = debit_routes::phase(debit_routes::Phase::CanonicalHIR);
+        #[cfg(test)]
+        let _successor_phase = canonical_shared::lexical_successors::census::phase(true);
+        budget.reserve_array::<(usize, u64)>(function, 1, "oracle HIR weighted root")?;
+        let Some(hir) = canonical.id(function, vec![(hir_root, 1)], budget)? else {
+            return Ok(None);
+        };
+        #[cfg(test)]
+        let _debit_phase = debit_routes::phase(debit_routes::Phase::CanonicalPLAN);
+        #[cfg(test)]
+        let _successor_phase = canonical_shared::lexical_successors::census::phase(false);
+        budget.reserve_array::<(usize, u64)>(function, 1, "oracle plan weighted root")?;
+        let Some(plan) = canonical.id(function, vec![(plan_root, 1)], budget)? else {
+            return Ok(None);
+        };
+        return Ok(Some(hir == plan));
+    }
+
+    #[cfg(test)]
+    if let Some(lease) = program.borrowed_helper_lease(function) {
+        lease.validate(program, function, budget)?;
+        let mut canonical =
+            borrowed_canonical::BorrowedCanonicalizer::new(function, &automaton, sink, budget)?;
+        #[cfg(test)]
+        let _debit_phase = debit_routes::phase(debit_routes::Phase::CanonicalHIR);
+        #[cfg(test)]
+        let _successor_phase = canonical_shared::lexical_successors::census::phase(true);
+        budget.reserve_array::<(usize, u64)>(function, 1, "borrowed HIR weighted root")?;
+        let Some(hir) = canonical.id(function, vec![(hir_root, 1)], budget)? else {
+            return Ok(None);
+        };
+        #[cfg(test)]
+        let _debit_phase = debit_routes::phase(debit_routes::Phase::CanonicalPLAN);
+        #[cfg(test)]
+        let _successor_phase = canonical_shared::lexical_successors::census::phase(false);
+        budget.reserve_array::<(usize, u64)>(function, 1, "borrowed plan weighted root")?;
+        let Some(plan) = canonical.id(function, vec![(plan_root, 1)], budget)? else {
+            return Ok(None);
+        };
+        return Ok(Some(hir == plan));
+    }
+
+    budget.reserve_bytes(
+        function,
+        canonical_shared::inline_singleton::Canonicalizer::CONSTRUCTOR_CONTROLS,
+        "canonical ordered dictionary owner receiving",
+    )?;
+    let mut canonical = canonical_shared::inline_singleton::Canonicalizer::new(&automaton, sink);
+    if budget.pays_allocations() {
+        budget.reserve_bytes(
+            function,
+            canonical_shared::inline_singleton::Canonicalizer::COLD_NODE_CONTROLS,
+            "factored cold terminal node predicate",
+        )?;
+    }
+    if canonical.cold_dead_node(hir_root) {
+        #[cfg(test)]
+        let _debit_phase = debit_routes::phase(debit_routes::Phase::CanonicalHIR);
+        #[cfg(test)]
+        let _successor_phase = canonical_shared::lexical_successors::census::phase(true);
+        budget.reserve_array::<(usize, u64)>(function, 1, "factored HIR weighted root")?;
+        let Some(hir) = canonical.id_for_comparison(function, vec![(hir_root, 1)], budget)? else {
+            return Ok(None);
+        };
+        #[cfg(test)]
+        let _debit_phase = debit_routes::phase(debit_routes::Phase::CanonicalPLAN);
+        #[cfg(test)]
+        let _successor_phase = canonical_shared::lexical_successors::census::phase(false);
+        budget.reserve_array::<(usize, u64)>(function, 1, "factored plan weighted root")?;
+        let Some(plan) = canonical.id_for_comparison(function, vec![(plan_root, 1)], budget)?
+        else {
+            return Ok(None);
+        };
+        return Ok(Some(hir == plan));
+    }
+    if budget.pays_allocations() {
+        budget.reserve_bytes(
+            function,
+            canonical_shared::closure_receiving::ClosureReceiving::DIRECT_CONTROLS
+                + canonical_shared::inline_singleton::Canonicalizer::ACTIVE_DISPATCH_CONTROLS,
+            "factored held closure invocation controls",
+        )?;
+    }
+    let mut receiving =
+        canonical_shared::closure_receiving::ClosureReceiving::from_prepaid(function, budget);
+    let canonical_id = canonical.canonical_dispatch(&budget.payer);
+    #[cfg(test)]
+    let _debit_phase = debit_routes::phase(debit_routes::Phase::CanonicalHIR);
+    #[cfg(test)]
+    let _successor_phase = canonical_shared::lexical_successors::census::phase(true);
+    budget.reserve_array::<(usize, u64)>(function, 1, "factored HIR weighted root")?;
+    let Some(hir) = canonical_id(
+        &mut canonical,
+        function,
+        vec![(hir_root, 1)],
+        &mut *budget,
+        &mut receiving,
+    )?
+    else {
+        return Ok(None);
+    };
+    #[cfg(test)]
+    let _debit_phase = debit_routes::phase(debit_routes::Phase::CanonicalPLAN);
+    #[cfg(test)]
+    let _successor_phase = canonical_shared::lexical_successors::census::phase(false);
+    budget.reserve_array::<(usize, u64)>(function, 1, "factored plan weighted root")?;
+    let Some(plan) = canonical_id(
+        &mut canonical,
+        function,
+        vec![(plan_root, 1)],
+        &mut *budget,
+        &mut receiving,
+    )?
+    else {
+        return Ok(None);
+    };
+    Ok(Some(hir == plan))
+}
+
+pub(in crate::cleanup_plan::replay::factored) fn authenticate_preprivate_compare() {
+    authenticate_prepaired_compare();
+    use sha2::{Digest, Sha256};
+    fn definition<'a>(source: &'a str, marker: &str) -> &'a str {
+        let start = source.find(marker).expect("complete source definition");
+        let end = start + source[start..].find("\n}").expect("complete definition end") + 2;
+        &source[start..end]
+    }
+    let paid_original = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/82353ce21ba46fb5ae1746e30f837d9f251da7a17bdc53c9ba53355c13d9f4a0"));
+    let mut original = paid_original.to_owned();
+    for added in [
+        "    #[cfg(test)]\n    let _canonical_allocation_phase = crate::test_allocation_observer::function_phase_guard(\n        \"cleanup_plan::factored::comparison_complete\",\n    );\n",
+        "        budget.reserve_bytes(\n            function,\n            canonical_shared::inline_singleton::hir_last_use::CALL,\n            \"factored HIR-private release call receiving\",\n        )?;\n        canonical.release_hir_private(function, budget, hir_root, plan_root)?;\n",
+        "    budget.reserve_bytes(\n        function,\n        canonical_shared::inline_singleton::hir_last_use::CALL,\n        \"factored HIR-private release call receiving\",\n    )?;\n    canonical.release_hir_private(function, budget, hir_root, plan_root)?;\n",
+        "    #[cfg(test)]\n    let _construction_allocation_phase = crate::test_allocation_observer::function_phase_guard(\n        \"cleanup_plan::factored::build_comparison\",\n    );\n",
+        "        #[cfg(test)]\n        let hir_allocation_phase = crate::test_allocation_observer::function_phase_guard(\n            \"cleanup_plan::factored::construct_hir_paths\",\n        );\n",
+        "        #[cfg(test)]\n        drop(hir_allocation_phase);\n",
+        "        #[cfg(test)]\n        let automaton_allocation_phase = crate::test_allocation_observer::function_phase_guard(\n            \"cleanup_plan::factored::construct_hir_automaton\",\n        );\n",
+        "        #[cfg(test)]\n        drop(automaton_allocation_phase);\n        #[cfg(test)]\n        let _plan_allocation_phase = crate::test_allocation_observer::function_phase_guard(\n            \"cleanup_plan::factored::construct_plan_automaton\",\n        );\n",
+        "\n#[cfg(test)]\nmod hir_memo_release_tests;\n",
+    ] {
+        assert_eq!(original.matches(added).count(), 1);
+        original = original.replacen(added, "", 1);
+    }
+    assert_eq!(original.len(), 50_781);
+    assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(original.as_bytes()))), "ebfa584f4bc1fc2e33ef27a31902893293dd147bb90fd767b97308a747b60d49");
+    let compiled = definition(include_str!("tests.rs"), "pub(in crate::cleanup_plan::replay::factored) fn preprivate_compare<'hir>(");
+    assert_eq!(compiled.replacen("pub(in crate::cleanup_plan::replay::factored) fn preprivate_compare<'hir>(", "fn compare_with_index_storage<'hir>(", 1), definition(&original, "fn compare_with_index_storage<'hir>("));
+    let mut build = definition(include_str!("../../factored.rs"), "fn build_comparison<'hir>(").to_owned();
+    for added in [
+        "    #[cfg(test)]\n    let _construction_allocation_phase = crate::test_allocation_observer::function_phase_guard(\n        \"cleanup_plan::factored::build_comparison\",\n    );\n",
+        "        #[cfg(test)]\n        let hir_allocation_phase = crate::test_allocation_observer::function_phase_guard(\n            \"cleanup_plan::factored::construct_hir_paths\",\n        );\n",
+        "        #[cfg(test)]\n        drop(hir_allocation_phase);\n",
+        "        #[cfg(test)]\n        let automaton_allocation_phase = crate::test_allocation_observer::function_phase_guard(\n            \"cleanup_plan::factored::construct_hir_automaton\",\n        );\n",
+        "        #[cfg(test)]\n        drop(automaton_allocation_phase);\n        #[cfg(test)]\n        let _plan_allocation_phase = crate::test_allocation_observer::function_phase_guard(\n            \"cleanup_plan::factored::construct_plan_automaton\",\n        );\n",
+    ] {
+        assert_eq!(build.matches(added).count(), 1);
+        build = build.replacen(added, "", 1);
+    }
+    assert_eq!(build, definition(&original, "fn build_comparison<'hir>("));
+}

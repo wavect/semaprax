@@ -20,6 +20,23 @@ fn current_source(path: &str, row: &serde_json::Value) -> String {
     file.read_exact(&mut bytes).unwrap();
     let mut tail = [0];
     assert_eq!(file.read(&mut tail).unwrap(), 0);
+    if path == Path::new("Cargo.toml") {
+        // Acquire the complete physical/compiled dependency-update epoch first.
+        assert_eq!(bytes.as_slice(), include_bytes!("../../Cargo.toml").as_slice());
+        assert_eq!(bytes.len(), 4411);
+        assert_eq!(format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(&bytes))), "206f6e4ac63533b6f1e136ffe44c3d80f580a1009cc05688c771ab4ea4e5e99b");
+        let mut manifest = String::from_utf8(bytes).unwrap();
+        for (current, before) in [
+            ("wasmparser = { version = \"=0.262.0\", default-features = false, features = [\"component-model\", \"features\", \"validate\"] }\nwasm-encoder = { version = \"=0.262.0\", default-features = false, features = [\"std\", \"component-model\"] }\n", "wasmparser = { version = \"=0.261.0\", default-features = false, features = [\"component-model\", \"features\", \"validate\"] }\nwasm-encoder = { version = \"=0.261.0\", default-features = false, features = [\"std\", \"component-model\"] }\n"),
+            ("libc = \"=0.2.191\"\n", "libc = \"=0.2.190\"\n"),
+        ] {
+            assert_eq!(manifest.matches(current).count(), 1);
+            manifest = manifest.replacen(current, before, 1);
+        }
+        bytes = manifest.into_bytes();
+        assert_eq!(bytes.len(), length);
+        assert_eq!(std::fs::read(Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap().as_slice(), include_bytes!("../../Cargo.toml").as_slice());
+    }
     let digest = format!(
         "{:x}",
         semaprax::digest_hex::LowerHex(Sha256::digest(&bytes))

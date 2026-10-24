@@ -27,11 +27,11 @@ program=original.decode()
 # The immutable old wrapper retains its complete authenticated original bytes.
 # This exact input-pin transport applies equally to cached and uncached execution.
 old_binding="helper_raw=bounded(helper,19144,'af70eaeeb1cc0da02460858f9e7ddb39086582add858c74138c4d989644e11f3')"
-current_binding="helper_raw=bounded(helper,19154,'4e86885d6e35d14434fb6c40e5f5eeb9d7d0eec04125348d59ec3b617486de0f')"
+current_binding="helper_raw=bounded(helper,19154,'8ba352088c54582fef7d4df43b270bd40c0274cd603e08bb7e8909669d24e3a0')"
 assert program.count(old_binding)==1
 program=program.replace(old_binding,current_binding,1)
 old_ingress_sha='799eee227e9d57fb000d75cbf018e0faf3b9bc03cd592f0405d3050479a12871'
-current_ingress_sha='1ce4bbacfd4c828602f62207ced28ceddfe7c85eeb61f45f158a659b0549cdcf'
+current_ingress_sha='0cb3c660321f2db16fc02df57a18f41119551059b5fd1fd553e4596a3f6ec7d5'
 assert program.count(old_ingress_sha)==1
 program=program.replace(old_ingress_sha,current_ingress_sha,1)
 bound_program=program

@@ -213,9 +213,14 @@ fn fitting_scalar_comparison_keeps_admission_and_independent_enumerator() {
     let mut control = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
     let mut expected = hir_skeleton_paths(&program, &main, &mut control).unwrap();
     let mut actual = plan_skeleton_paths(&main, &mut control).unwrap();
-    expected.sort();
-    actual.sort();
-    assert_eq!(expected, actual);
+    control.reserve_bytes(
+        &main,
+        3 * skeleton_work::enumerated_prefix::ENTRY_CALL,
+        "independent fitting full-content comparison entries",
+    ).unwrap();
+    skeleton_work::enumerated_prefix::sort(&mut expected, &main, &mut control).unwrap();
+    skeleton_work::enumerated_prefix::sort(&mut actual, &main, &mut control).unwrap();
+    assert!(skeleton_work::enumerated_prefix::equal(&expected, &actual, &main, &mut control).unwrap());
     let (selected, refused, _, _) =
         crate::bounded_output::with_limit_usage_refusal(1 << 29, || {
             let mut budget = ReplayBudget::new();

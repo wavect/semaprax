@@ -105,6 +105,8 @@ fn bundle(current: &str) -> String {
         "bb2d89942ce7b5ad759a787bcb1a0c5a0f1def93075fb70966089d30d1fdc279",
     );
     let mut before = current.to_owned();
+    // Restore the entire authenticated source-cut seed bundle before its unchanged old stages.
+    assert_eq!(digest(&before), "708991a555c4d082f6dfe12670238ab1dff76267ca841fc318e9106de0a4b5a4");
     // Restore the entire authenticated Git89df seed bundle before its unchanged old stages.
     replace(
         &mut before,

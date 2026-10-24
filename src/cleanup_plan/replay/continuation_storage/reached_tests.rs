@@ -311,7 +311,7 @@ fn source_before(path: &str, supplied: &str) -> String {
     let packet = include_bytes!("reached_before/inverse.json");
     assert_eq!(
         hash(packet),
-        "1e1188c81b5bc515eca82e8a04a74d9ecb117d9ec3eef2632c241c804f612472"
+        "502ce5028fe9c180ff71c8e7f19ad6724f5a729244d828dadcc8ccdf1e59d129"
     );
     let packet_path =
         root.join("src/cleanup_plan/replay/continuation_storage/reached_before/inverse.json");

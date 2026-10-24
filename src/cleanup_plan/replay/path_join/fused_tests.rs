@@ -756,6 +756,7 @@ fn both_promotion_orders_tree_splits_and_partial_promotion_unwind_preserve_owner
                 drop(b);
             })
         });
+        eprintln!("fused promotion unwind old={old} refused={refused} physical={a:?}");
         assert!(!refused && !a.invalid && a.live == 0);
         assert_eq!(a.allocated, a.freed);
     }
@@ -944,5 +945,5 @@ fn full_immediate_driver_and_helpers_are_independent_and_all_preceding_sources_r
         assert_eq!(digest(&raw), row["sha256"].as_str().unwrap());
     }
 }
-const INVERSE_SHA: &str = "893cb13d032a61903df9646967e4bc042128e22989e89be7e130a7acdbc64f12";
+const INVERSE_SHA: &str = "b4d8b3b6e9872464620717910299222137204c708c636b68219f19b9890f7f3d";
 const HELPERS_SHA: &str = "34904cb227034c500763ffde1e1eb4534254d724778add8dc82d609ec5973d25";

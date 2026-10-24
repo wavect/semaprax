@@ -142,6 +142,7 @@ mod tests {
             current_scope_root = current_scope_root.replacen(&declaration, "", 1);
         }
         for source in [
+            "src/hir/inspection/paid_nul.rs", "src/hir/inspection/paid_nul/pending.rs", "src/hir/inspection/paid_nul/tests.rs", "src/hir/inspection/paid_nul/reuse_before.rs", "src/hir/inspection/paid_nul/reuse_before/pending.rs", "src/hir/inspection/paid_nul/type_scratch.rs", "src/cleanup_plan/replay/continuation_storage.rs", "src/cleanup_plan/replay/continuation_storage/tests.rs", "src/cleanup_plan/replay/continuation_storage/reached.rs", "src/cleanup_plan/replay/continuation_storage/reached_before.rs", "src/cleanup_plan/replay/continuation_storage/reached_tests.rs",
             "src/cleanup_plan/replay/path_join/compact_failure_before.rs", "src/cleanup_plan/replay/path_join/compact_failure_tests.rs", "src/cleanup_plan/replay/path_join/contains_before.rs", "src/cleanup_plan/replay/path_join/contains_tests.rs", "src/cleanup_plan/replay/path_join/selected/tests/fixture_scope.rs", "src/source_reflows_merge/main_e177_overlay_digests_v13.rs", "src/source_reflows_merge/main_e177_overlay_digests_v13/logical_v12.rs", "src/source_reflows_merge/main_e177_overlay_digests_v13/tests.rs", "src/source_reflows_merge/main_e177_overlay_digests_v13/controller_transport.rs", "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs", "src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs", "tests/wasm/scalar_browser_ci_contract/current_profiles573.rs",
             "src/cleanup_plan/replay/expression_facts/capacity/before_types.rs", "src/cleanup_plan/replay/expression_facts/capacity/cursor_tests.rs", "src/cleanup_plan/replay/expression_facts/capacity/type_cursor_tests.rs", "src/source_verify/constructor_tests/corpus/operator_refusals.rs", "src/cleanup_plan/replay/path_join/direct_one_before.rs", "src/cleanup_plan/replay/path_join/direct_one_before/boxed_flow.rs", "src/cleanup_plan/replay/path_join/direct_one_before/frontier.rs", "src/cleanup_plan/replay/path_join/direct_one_tests.rs",
             "src/cleanup_plan/replay/skeleton_work/query_proof.rs", "src/cleanup_plan/replay/skeleton_work/query_proof/before.rs", "src/cleanup_plan/replay/skeleton_work/query_proof/tests.rs", "src/bounded_output/exclusive_debits/path_census.rs", "src/bounded_output/request_reservation.rs", "src/source_reflows_merge/main_e177_overlay_lookup.rs",
@@ -317,6 +318,7 @@ mod tests {
         assert_eq!(current_scope_child.matches(packed_separator).count(), 24);
         current_scope_child = current_scope_child.replace(packed_separator, ")),\n        \"src/");
         for source in [
+            "src/hir/inspection/paid_nul.rs", "src/hir/inspection/paid_nul/pending.rs", "src/hir/inspection/paid_nul/tests.rs", "src/hir/inspection/paid_nul/reuse_before.rs", "src/hir/inspection/paid_nul/reuse_before/pending.rs", "src/hir/inspection/paid_nul/type_scratch.rs", "src/cleanup_plan/replay/continuation_storage.rs", "src/cleanup_plan/replay/continuation_storage/tests.rs", "src/cleanup_plan/replay/continuation_storage/reached.rs", "src/cleanup_plan/replay/continuation_storage/reached_before.rs", "src/cleanup_plan/replay/continuation_storage/reached_tests.rs",
             "src/cleanup_plan.rs",
             "src/workspace_graph/tests.rs",
             "src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs",
@@ -1239,7 +1241,18 @@ del _load_fixed_codecs
         "src/bounded_output/exclusive_debits/path_census.rs",
         "src/bounded_output/request_reservation.rs",
         "src/source_reflows_merge/main_e177_overlay_lookup.rs",
-    ];
+            "src/hir/inspection/paid_nul.rs",
+        "src/hir/inspection/paid_nul/pending.rs",
+        "src/hir/inspection/paid_nul/tests.rs",
+        "src/hir/inspection/paid_nul/reuse_before.rs",
+        "src/hir/inspection/paid_nul/reuse_before/pending.rs",
+        "src/hir/inspection/paid_nul/type_scratch.rs",
+        "src/cleanup_plan/replay/continuation_storage.rs",
+        "src/cleanup_plan/replay/continuation_storage/tests.rs",
+        "src/cleanup_plan/replay/continuation_storage/reached.rs",
+        "src/cleanup_plan/replay/continuation_storage/reached_before.rs",
+        "src/cleanup_plan/replay/continuation_storage/reached_tests.rs",
+];
     const SCOPE_ADDITIONS_LINE: &str = r####"            "src/cleanup_plan/replay/skeleton_work/query_proof.rs", "src/cleanup_plan/replay/skeleton_work/query_proof/before.rs", "src/cleanup_plan/replay/skeleton_work/query_proof/tests.rs", "src/bounded_output/exclusive_debits/path_census.rs", "src/bounded_output/request_reservation.rs", "src/source_reflows_merge/main_e177_overlay_lookup.rs",
 "####;
     const SCOPE_REPLACEMENTS_BEFORE: &str = r####"        for source in ["src/cleanup_plan/replay/branch_clone/inline_tests.rs", "src/cleanup_plan/replay/branch_clone/production_capacity.rs", "src/cleanup_plan/replay/branch_clone/production_capacity/tests.rs", "src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs"] {
@@ -1281,6 +1294,9 @@ del _load_fixed_codecs
         assert_eq!(parent.matches(marker).count(), 1);
         let (prefix, _) = parent.split_once(marker).unwrap();
         let mut restored = prefix.to_owned();
+        let canonical_acquisition = "        let canonical_child = super::super::fragments_v3::v13_before(\n            \"src/source_reflows_merge/main_e177_overlay_fragments_v3.rs\", canonical_child,\n        );\n";
+        assert_eq!(restored.matches(canonical_acquisition).count(), 1);
+        restored = restored.replacen(canonical_acquisition, "", 1);
         assert_eq!(restored.matches(GLUE).count(), 1);
         assert_eq!(restored.matches(BRIDGE).count(), 1);
         let visibility = "pub(crate) fn compiled";
@@ -1291,6 +1307,9 @@ del _load_fixed_codecs
     }
     pub(super) fn parent_before(parent: &str, lookup: &str) -> String {
         let mut restored = parent_for_current_scope(parent, lookup);
+        let family_scope = "            \"src/hir/inspection/paid_nul.rs\", \"src/hir/inspection/paid_nul/pending.rs\", \"src/hir/inspection/paid_nul/tests.rs\", \"src/hir/inspection/paid_nul/reuse_before.rs\", \"src/hir/inspection/paid_nul/reuse_before/pending.rs\", \"src/hir/inspection/paid_nul/type_scratch.rs\", \"src/cleanup_plan/replay/continuation_storage.rs\", \"src/cleanup_plan/replay/continuation_storage/tests.rs\", \"src/cleanup_plan/replay/continuation_storage/reached.rs\", \"src/cleanup_plan/replay/continuation_storage/reached_before.rs\", \"src/cleanup_plan/replay/continuation_storage/reached_tests.rs\",\n";
+        assert_eq!(restored.matches(family_scope).count(), 2);
+        restored = restored.replace(family_scope, "");
         for key in COMBINED_9664_KEYS {
             let arm = format!("        {key:?} => Some(include_str!(\"../../{key}\")),\n");
             assert_eq!(restored.matches(&arm).count(), 1);

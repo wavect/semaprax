@@ -860,7 +860,7 @@ macro_rules! semantic_graph_projection_root_source_inventory {
         include_str!("../../src/workspace_graph/expected_projection/field_unique.rs"),
         include_str!("../../src/workspace_graph/expected_projection/field_update.rs"),
         include_str!("../../src/workspace_graph/expected_projection/string_slots.rs")
-    )
+    ,include_str!("../../src/workspace_graph/tests.rs"),include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs"),include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs"),include_str!("../../src/cleanup_plan/replay/workspace_oracle.rs"),include_str!("../../src/hir/inspection/paid_nul/tests.rs"),include_str!("../../src/hir/inspection/paid_nul/reuse_before.rs"),include_str!("../../src/hir/inspection/paid_nul/reuse_before/pending.rs"),include_str!("../../src/hir/inspection/paid_nul/type_scratch.rs"),include_str!("../../src/cleanup_plan/replay/continuation_storage/tests.rs"),include_str!("../../src/cleanup_plan/replay/continuation_storage/reached.rs"),include_str!("../../src/cleanup_plan/replay/continuation_storage/reached_before.rs"),include_str!("../../src/cleanup_plan/replay/continuation_storage/reached_tests.rs"))
     };
 }
 

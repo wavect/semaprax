@@ -1,5 +1,16 @@
 pub(crate) fn compiled(source: &str) -> Option<&'static str> {
     match source {
+        "src/hir/inspection/paid_nul.rs" => Some(include_str!("../../src/hir/inspection/paid_nul.rs")),
+        "src/hir/inspection/paid_nul/pending.rs" => Some(include_str!("../../src/hir/inspection/paid_nul/pending.rs")),
+        "src/hir/inspection/paid_nul/tests.rs" => Some(include_str!("../../src/hir/inspection/paid_nul/tests.rs")),
+        "src/hir/inspection/paid_nul/reuse_before.rs" => Some(include_str!("../../src/hir/inspection/paid_nul/reuse_before.rs")),
+        "src/hir/inspection/paid_nul/reuse_before/pending.rs" => Some(include_str!("../../src/hir/inspection/paid_nul/reuse_before/pending.rs")),
+        "src/hir/inspection/paid_nul/type_scratch.rs" => Some(include_str!("../../src/hir/inspection/paid_nul/type_scratch.rs")),
+        "src/cleanup_plan/replay/continuation_storage.rs" => Some(include_str!("../../src/cleanup_plan/replay/continuation_storage.rs")),
+        "src/cleanup_plan/replay/continuation_storage/tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/continuation_storage/tests.rs")),
+        "src/cleanup_plan/replay/continuation_storage/reached.rs" => Some(include_str!("../../src/cleanup_plan/replay/continuation_storage/reached.rs")),
+        "src/cleanup_plan/replay/continuation_storage/reached_before.rs" => Some(include_str!("../../src/cleanup_plan/replay/continuation_storage/reached_before.rs")),
+        "src/cleanup_plan/replay/continuation_storage/reached_tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/continuation_storage/reached_tests.rs")),
         "src/cleanup_plan.rs" => Some(include_str!("../../src/cleanup_plan.rs")),
         "src/workspace_graph/tests.rs" => Some(include_str!("../../src/workspace_graph/tests.rs")),
         "src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs")),

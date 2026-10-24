@@ -267,6 +267,12 @@ fn transitive_receiver_originals_and_sticky_auth_stay_complete() {
 }
 
 fn source_archives() {
+    macro_rules! ci_str {
+        ($path:expr) => {
+            source_entry(file!(), $path, ::std::include_str!($path))
+        };
+    }
+
     use sha2::{Digest, Sha256};
     let rows: serde_json::Value = serde_json::from_str(ci_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
@@ -295,7 +301,7 @@ fn source_archives() {
             ),
             fixed
         );
-        let mut result = current.to_owned();
+        let mut result = exact_entry(path, current, "receiving-transitive-results-816");
         for edit in row["edits"].as_array().unwrap().iter().rev() {
             let after = edit["after"].as_str().unwrap();
             assert_eq!(result.matches(after).count(), 1);
@@ -303,4 +309,127 @@ fn source_archives() {
         }
         assert_eq!(result, archive);
     }
+}
+
+fn source_entry(
+    caller: &'static str,
+    included: &'static str,
+    current: &'static str,
+) -> &'static str {
+    let source = included
+        .strip_prefix(env!("CARGO_MANIFEST_DIR"))
+        .and_then(|s| s.strip_prefix('/'))
+        .unwrap();
+    let expected=match source {
+ "src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs"=>"e6d9241f9287e8e00d5c8413623383b53b46e5efbe6da50e576dcf6bbd642db4",
+ "tests/hir_module_boundaries.rs"=>"055a8f7ddd8b9f5b2d12122154de053a0a6823b75c298580cd4770628c4e8851",
+ "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"=>"d764e8d6fbd373a2dbb40953baabf688fb4459562760fd5e1545cb9b73b9e6b0",
+ "src/cleanup_plan/replay/live_oracle/source_custody/b.rs"=>"4d534b5433078d8d65ec9f09c7f763614a177cd743aa02465de64c023e509173",
+ _=>return crate::source_reflows::source(caller,included,current),
+ };
+    Box::leak(
+        crate::source_reflows_merge::main_e177_final_inputs::value_direct(
+            source, expected, current,
+        )
+        .into_boxed_str(),
+    )
+}
+fn exact_entry(path: &str, current: &str, group: &str) -> String {
+    use sha2::{Digest, Sha256};
+    let data = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/docs/evidence/workspace-test-funding-20261024/entry-reflows.json"
+    ));
+    assert_eq!(data.len(), 1110944);
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(data.as_bytes()))
+        ),
+        "d3aeae9e7f7aecd60a9329f17714dfb521e2c6d0f8038961bceefa5f319e1904"
+    );
+    let rows: serde_json::Value = serde_json::from_str(data).unwrap();
+    let Some(row) = rows
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["path"] == path && row["group"] == group)
+    else {
+        return current.to_owned();
+    };
+    assert_eq!(current.len(), row["input_bytes"].as_u64().unwrap() as usize);
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))
+        ),
+        row["input_sha256"].as_str().unwrap()
+    );
+    let mut stage = current.to_owned();
+    for edit in row["edits"].as_array().unwrap().iter().rev() {
+        let before = edit["before"].as_str().unwrap();
+        assert_eq!(stage.matches(before).count(), 1);
+        stage = stage.replacen(before, edit["after"].as_str().unwrap(), 1);
+    }
+    assert_eq!(stage.len(), row["output_bytes"].as_u64().unwrap() as usize);
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(stage.as_bytes()))
+        ),
+        row["output_sha256"].as_str().unwrap()
+    );
+    stage
+}
+
+#[test]
+fn complete_source_entry_reflows_refuse_unicode_drift_truncation_replay_and_foreign_inputs() {
+    let rows: serde_json::Value = serde_json::from_str(include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/docs/evidence/workspace-test-funding-20261024/entry-reflows.json"
+    )))
+    .unwrap();
+    assert_eq!(rows.as_array().unwrap().len(), 9);
+    for row in rows
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|row| row["group"] == "receiving-transitive-results-816")
+    {
+        let path = row["path"].as_str().unwrap();
+        let input = row["original_input"].as_str().unwrap();
+        let output = row["original_output"].as_str().unwrap();
+        assert_eq!(
+            exact_entry(path, input, "receiving-transitive-results-816"),
+            output
+        );
+        let mut short = input.to_owned();
+        short.pop();
+        let mut changed = input.as_bytes().to_vec();
+        changed[0] = b'X';
+        let changed = String::from_utf8(changed).unwrap();
+        for foreign in [
+            String::new(),
+            short,
+            changed,
+            format!("{input}\n"),
+            output.to_owned(),
+            format!("{input}{input}"),
+        ] {
+            assert!(std::panic::catch_unwind(|| exact_entry(
+                path,
+                &foreign,
+                "receiving-transitive-results-816"
+            ))
+            .is_err());
+        }
+    }
+    assert_eq!(
+        exact_entry(
+            "unlisted",
+            "unchanged λ\0",
+            "receiving-transitive-results-816"
+        ),
+        "unchanged λ\0"
+    );
 }

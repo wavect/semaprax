@@ -1,0 +1,7 @@
+{
+  "source": "src/workspace_graph/tests.rs",
+  "before": "let exact_result = build_owned(vec![exact, leaf.clone()]);",
+  "after": "let (exact_result, reference_comparisons, reference_bytes) =\n        crate::cleanup_plan::with_financed_workspace_test_oracles(|| {\n            build_owned(vec![exact, leaf.clone()])\n        });\n    assert!(reference_comparisons >= 2 * MAX_CALLABLES);\n    assert!(reference_bytes > (1 << 26) && reference_bytes <= (1 << 28));",
+  "original_function_body": "fn callable_limit_exact_advances_and_one_over_is_g171() {\n    let leaf = canonical_source(\n        \"leaf.spx\",\n        \"module leaf;\\n@id(\\\"leaf.f\\\") fn f() -> i64 { 0 }\\n\",\n    );\n    let exact = callable_boundary_source(MAX_CALLABLES - 1);\n    let exact_result = build_owned(vec![exact, leaf.clone()]);\n    let trace = crate::bounded_output::stage_debits::take_completed();\n    eprintln!(\"callable-limit-exact post-construction trace={trace:?}\");\n    exact_result.expect(\"exact callable limit must advance\");\n    let over = callable_boundary_source(MAX_CALLABLES);\n    let error = build_owned(vec![over, leaf])\n        .err()\n        .expect(\"one-over callables fail\");\n    assert!(is_named_limit(&error, \"callables\"));\n}",
+  "all_original_fixture_generation_assertions_and_over_limit_checks_retained": true
+}

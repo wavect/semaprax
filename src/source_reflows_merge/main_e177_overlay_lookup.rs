@@ -1,5 +1,10 @@
 pub(crate) fn compiled(source: &str) -> Option<&'static str> {
     match source {
+        "src/cleanup_plan.rs" => Some(include_str!("../../src/cleanup_plan.rs")),
+        "src/workspace_graph/tests.rs" => Some(include_str!("../../src/workspace_graph/tests.rs")),
+        "src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs")),
+        "src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs")),
+        "src/cleanup_plan/replay/workspace_oracle.rs" => Some(include_str!("../../src/cleanup_plan/replay/workspace_oracle.rs")),
         "src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs")),
         "tests/wasm/scalar_browser_ci_contract/current_profiles573.rs" => Some(include_str!("../../tests/wasm/scalar_browser_ci_contract/current_profiles573.rs")),
         "src/cleanup_plan/replay/path_join/compact_failure_before.rs" => Some(include_str!("../../src/cleanup_plan/replay/path_join/compact_failure_before.rs")),

@@ -136,7 +136,7 @@ mod tests {
             assert_eq!(current_scope_root.matches(&packed).count(), 1);
             current_scope_root = current_scope_root.replacen(&packed, &expanded, 1);
         }
-        for source in ["src/cleanup_plan/replay/branch_clone/inline_tests.rs", "src/cleanup_plan/replay/branch_clone/production_capacity.rs", "src/cleanup_plan/replay/branch_clone/production_capacity/tests.rs", "src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs", "src/workspace_graph/shape_identity/source_controls.rs", "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs"] {
+        for source in ["src/workspace_graph/tests.rs", "src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs", "src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs", "src/cleanup_plan/replay/workspace_oracle.rs", "src/cleanup_plan/replay/branch_clone/inline_tests.rs", "src/cleanup_plan/replay/branch_clone/production_capacity.rs", "src/cleanup_plan/replay/branch_clone/production_capacity/tests.rs", "src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs", "src/workspace_graph/shape_identity/source_controls.rs", "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs"] {
             let declaration = format!("    {source:?},\n");
             assert_eq!(current_scope_root.matches(&declaration).count(), 1);
             current_scope_root = current_scope_root.replacen(&declaration, "", 1);
@@ -317,6 +317,11 @@ mod tests {
         assert_eq!(current_scope_child.matches(packed_separator).count(), 24);
         current_scope_child = current_scope_child.replace(packed_separator, ")),\n        \"src/");
         for source in [
+            "src/cleanup_plan.rs",
+            "src/workspace_graph/tests.rs",
+            "src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs",
+            "src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs",
+            "src/cleanup_plan/replay/workspace_oracle.rs",
             "src/cleanup_plan/replay/path_join/compact_failure_before.rs", "src/cleanup_plan/replay/path_join/compact_failure_tests.rs", "src/cleanup_plan/replay/path_join/contains_before.rs", "src/cleanup_plan/replay/path_join/contains_tests.rs", "src/cleanup_plan/replay/path_join/selected/tests/fixture_scope.rs", "src/source_reflows_merge/main_e177_overlay_digests_v13.rs", "src/source_reflows_merge/main_e177_overlay_digests_v13/logical_v12.rs", "src/source_reflows_merge/main_e177_overlay_digests_v13/tests.rs", "src/source_reflows_merge/main_e177_overlay_digests_v13/controller_transport.rs", "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs", "src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs", "tests/wasm/scalar_browser_ci_contract/current_profiles573.rs",
             "src/cleanup_plan/replay/expression_facts/capacity/before_types.rs", "src/cleanup_plan/replay/expression_facts/capacity/cursor_tests.rs", "src/cleanup_plan/replay/expression_facts/capacity/type_cursor_tests.rs", "src/source_verify/constructor_tests/corpus/operator_refusals.rs", "src/cleanup_plan/replay/path_join/direct_one_before.rs", "src/cleanup_plan/replay/path_join/direct_one_before/boxed_flow.rs", "src/cleanup_plan/replay/path_join/direct_one_before/frontier.rs", "src/cleanup_plan/replay/path_join/direct_one_tests.rs",
             "src/cleanup_plan/replay/skeleton_work/query_proof.rs", "src/cleanup_plan/replay/skeleton_work/query_proof/before.rs", "src/cleanup_plan/replay/skeleton_work/query_proof/tests.rs", "src/bounded_output/exclusive_debits/path_census.rs", "src/bounded_output/request_reservation.rs", "src/source_reflows_merge/main_e177_overlay_lookup.rs",

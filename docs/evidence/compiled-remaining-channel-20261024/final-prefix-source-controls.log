@@ -1,0 +1,8 @@
+
+running 3 tests
+test cleanup_plan::replay::expression_facts::arena::prefix::source_main8a::complete_original_arena_and_every_added_source_join_have_exact_full_inverses ... ok
+test cleanup_plan::replay::expression_facts::arena::prefix::source_maina3::complete_original_arena_and_every_added_source_join_have_exact_full_inverses ... ok
+test cleanup_plan::replay::expression_facts::arena::prefix::third_prefix::complete_original_arena_and_every_added_source_join_have_exact_full_inverses ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 301 filtered out; finished in 6.82s
+

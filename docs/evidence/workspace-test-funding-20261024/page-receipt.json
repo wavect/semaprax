@@ -1,0 +1,46 @@
+{
+  "status": "ORIGINAL_CURRENT_CODEC_COMPOSITION_PASS",
+  "base_head": "f96a27eed48db493d154089f7d4d63ecf28fb352",
+  "rows": 720,
+  "page_bytes": 229384,
+  "published_current_preserved_as_exact_views": [
+    {
+      "source": "src/cleanup_plan.rs",
+      "view": {
+        "archive": "docs/evidence/iterative-validator-stack-20261022/current/8025165ba93f59dd5da5d65c93b662da5a9b8297d0de810f640851eb1cb5523f.txt",
+        "length": 33751,
+        "sha256": "8025165ba93f59dd5da5d65c93b662da5a9b8297d0de810f640851eb1cb5523f",
+        "name": "f96-before-test-funding"
+      }
+    },
+    {
+      "source": "src/cleanup_plan/replay.rs",
+      "view": {
+        "archive": "e/8c57a65f4f583b4f483143fc0bdada45d5a15b05755e1ebd2f496827f2cc8a32",
+        "length": 326120,
+        "sha256": "8c57a65f4f583b4f483143fc0bdada45d5a15b05755e1ebd2f496827f2cc8a32",
+        "name": "f96-before-test-funding"
+      }
+    },
+    {
+      "source": "src/workspace_graph/tests.rs",
+      "view": {
+        "archive": "docs/evidence/fmt-local-441-20261018/whole/5db393a08ce55e502c818d5454d7e011b0611008d28ef4c6cbb2dd85d6992122.txt",
+        "length": 67877,
+        "sha256": "5db393a08ce55e502c818d5454d7e011b0611008d28ef4c6cbb2dd85d6992122",
+        "name": "f96-before-test-funding"
+      }
+    },
+    {
+      "source": "src/source_reflows_merge/main_e177_overlay_compiled.rs",
+      "view": {
+        "archive": "e/cd7de654005f0c3d2c8a9b8b25b49761037c1115f4d60fa49e1a1b53c71df9bd",
+        "length": 93280,
+        "sha256": "cd7de654005f0c3d2c8a9b8b25b49761037c1115f4d60fa49e1a1b53c71df9bd",
+        "name": "f96-before-test-funding"
+      }
+    }
+  ],
+  "all_previous_fields_views_memberships_and_fragment_edges_retained": true,
+  "all_original_codec_bodies_and_caps_unchanged": true
+}

@@ -1,0 +1,7 @@
+
+running 2 tests
+test source_reflows_merge::final_ready_inputs::projection_publication::tests::current_audit_entry_keeps_all_fifty_complete_inputs_and_the_whole_phase_predecessor ... ok
+test source_reflows_merge::final_ready_inputs::projection_publication::tests::current_audit_entry_refuses_foreign_same_length_truncated_duplicate_and_extended_joins ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 302 filtered out; finished in 0.12s
+

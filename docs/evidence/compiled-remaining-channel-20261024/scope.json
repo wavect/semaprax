@@ -1,0 +1,27 @@
+{
+  "status": "SOURCE_ONLY_COMPILED_CHANNEL_QUALIFICATION_PASS",
+  "base_commit": "6941fafc85b57820a3205b5356bc8e2068b20136",
+  "source": "src/source_reflows_merge/main_e177_overlay_compiled.rs",
+  "source_sha256": "cd7de654005f0c3d2c8a9b8b25b49761037c1115f4d60fa49e1a1b53c71df9bd",
+  "changes": "Complete current compiled channel added for existing remaining/tests.rs row; original predecessor and all old source views retained; real closed old-view regression.",
+  "checks": {
+    "overlay": 33,
+    "old_compiled_predecessors": 2,
+    "current_entries": 2,
+    "prefix_inverses": 3,
+    "cursor_capacity": 1,
+    "hir_source": 11,
+    "projection_source": 1,
+    "source_clippy": "PASS",
+    "hir_clippy": "PASS",
+    "role_hostile_controls": 6,
+    "documentation": 3
+  },
+  "unchanged": {
+    "runtime_compiler_implementation": true,
+    "public_graph_64MiB_limit": true,
+    "work_and_depth_limits": true,
+    "original_source_assertions": true
+  },
+  "limits": "Source/test registry qualification only. The latest main CI has an independent STD08 G171 graph-construction budget failure; no full CI or application-admission success is claimed."
+}

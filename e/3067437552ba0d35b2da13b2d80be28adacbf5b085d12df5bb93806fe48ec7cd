@@ -1,0 +1,949 @@
+//! Fused ordinary publication versus the complete independently compiled c189 caller.
+use super::*;
+use crate::bounded_output::{
+    active_remaining, clear_active_floor, set_active_floor, with_limit_usage_refusal,
+};
+use crate::test_allocation_observer::measure;
+use sha2::{Digest, Sha256};
+use std::{cell::Cell, mem::size_of};
+thread_local! {
+    static PROMOTIONS: Cell<usize> = const { Cell::new(0) };
+    static DROPS: Cell<usize> = const { Cell::new(0) };
+    static COMPARES: Cell<[(u64, u64); 128]> = const { Cell::new([(0, 0); 128]) };
+    static COMPARE_COUNT: Cell<usize> = const { Cell::new(0) };
+}
+pub(super) fn record_promotion() {
+    PROMOTIONS.with(|n| n.set(n.get().checked_add(1).unwrap()));
+}
+pub(super) fn reset_promotions() {
+    PROMOTIONS.with(|n| n.set(0));
+}
+fn promotions() -> usize {
+    PROMOTIONS.with(Cell::get)
+}
+pub(super) fn common_saving<T: Ord>() -> usize {
+    let removed = 4 * size_of::<frontier::Incoming<T>>()
+        + size_of::<Box<T>>()
+        + 2 * size_of::<BTreeSet<Box<T>>>();
+    let new = size_of::<&mut Box<T>>()
+        + size_of::<&mut BTreeSet<Box<T>>>()
+        + 2 * size_of::<&Box<T>>()
+        + 2 * size_of::<&BTreeSet<Box<T>>>();
+    let saving = removed
+        .checked_sub(new)
+        .expect("complete new arm receiver bank");
+    assert_eq!(
+        fused_before_frontier::Insertions::<T>::entry_controls(),
+        frontier::Insertions::<T>::entry_controls()
+            .checked_add(saving)
+            .unwrap()
+    );
+    saving
+}
+pub(super) fn promotion<T: Ord>() -> usize {
+    frontier::Insertions::<T>::promotion_controls()
+}
+// Compose every predecessor's contains-only bank with this producer's real
+// successful payment count and distinct One promotions, including setup and
+// the final unused renewal. No refund or baseline padding enters either run.
+pub(super) fn prior_entry_saving<T: Ord>() -> usize {
+    contains_tests::paid_banks()
+        .checked_mul(contains_tests::entry_delta::<T>())
+        .unwrap()
+        .checked_sub(promotions().checked_mul(promotion::<T>()).unwrap())
+        .expect("whole fixture net")
+}
+#[test]
+fn common_and_promotion_banks_cover_actual_roles_without_changing_layout_or_group_prices() {
+    macro_rules! check {
+        ($t:ty) => {{
+            assert_eq!(
+                size_of::<frontier::Incoming<$t>>(),
+                size_of::<fused_before_frontier::Incoming<$t>>()
+            );
+            assert_eq!(
+                size_of::<frontier::Insertions<$t>>(),
+                size_of::<fused_before_frontier::Insertions<$t>>()
+            );
+            assert_eq!(
+                frontier::Insertions::<$t>::controls(),
+                fused_before_frontier::Insertions::<$t>::controls()
+            );
+            let saving = common_saving::<$t>();
+            let arm = promotion::<$t>();
+            assert_eq!(
+                arm,
+                4 * size_of::<frontier::Incoming<$t>>() + 2 * size_of::<BTreeSet<Box<$t>>>()
+            );
+            let old = fused_before_frontier::Insertions::<$t>::observed_prices();
+            let new = frontier::Insertions::<$t>::observed_prices();
+            for i in 0..6 {
+                assert_eq!(
+                    new[i].checked_add(saving),
+                    old[i].checked_add(if i == 2 || i == 3 { arm } else { 0 })
+                );
+            }
+            assert_eq!(new[6], old[6]);
+        }};
+    }
+    check!(());
+    check!(u64);
+    check!([u64; 50]);
+}
+#[derive(Eq, PartialEq)]
+struct State([u64; 50]);
+impl Ord for State {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        COMPARE_COUNT.with(|n| {
+            let at = n.get();
+            assert!(at < 128);
+            COMPARES.with(|trace| {
+                let mut data = trace.get();
+                data[at] = (self.0[0], other.0[0]);
+                trace.set(data);
+            });
+            n.set(at + 1);
+        });
+        self.0.cmp(&other.0)
+    }
+}
+impl PartialOrd for State {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+impl Drop for State {
+    fn drop(&mut self) {
+        DROPS.with(|n| n.set(n.get() + 1));
+    }
+}
+#[test]
+fn whole_paid_ordinary_and_unchanged_group_producers_keep_every_compare_box_and_drop_at_all_cuts() {
+    let f = crate::hir::resolve(
+        &crate::check(
+            "module contains; @id(\"main\") fn main()->i64 {0}",
+            "contains.spx",
+        )
+        .unwrap(),
+    )
+    .unwrap()
+    .functions
+    .remove(0);
+    let observe = |old, limit| {
+        contains_tests::reset_banks();
+        DROPS.with(|n| n.set(0));
+        COMPARES.with(|n| n.set([(0, 0); 128]));
+        COMPARE_COUNT.with(|n| n.set(0));
+        let ((success, allocation), refused, paid, first) = with_limit_usage_refusal(limit, || {
+            measure(|| {
+                let mut b = ReplayBudget::new();
+                macro_rules! run {
+                    ($module:ident) => {{
+                        let mut r = match $module::Insertions::acquire(&f, &mut b) {
+                            Ok(r) => r,
+                            Err(e) => {
+                                assert_eq!(e.code, "SPX-H006");
+                                drop(e);
+                                return false;
+                            }
+                        };
+                        let mut target = $module::Incoming::default();
+                        let mut small = $module::Incoming::default();
+                        let mut group = BTreeSet::new();
+                        let operation = (|| -> Result<(), Diagnostic> {
+                            for value in [1, 1, 2, 3] {
+                                r.insert_owned(&f, &mut target, State([value; 50]), &mut b);
+                                if r.failed {
+                                    return Err(r.failure());
+                                }
+                            }
+                            assert_eq!(target.len(), 3);
+                            for value in [4, 4] {
+                                let mut one = $module::Incoming::default();
+                                r.insert_owned(&f, &mut one, State([value; 50]), &mut b);
+                                if r.failed {
+                                    return Err(r.failure());
+                                }
+                                let held = one.into_one().next().unwrap();
+                                let at = std::ptr::from_ref(held.as_ref());
+                                let prior = target
+                                    .iter()
+                                    .find(|v| v.0[0] == value)
+                                    .map(|v| std::ptr::from_ref(v.as_ref()));
+                                r.insert_held(&f, &mut target, held, &mut b);
+                                if r.failed {
+                                    return Err(r.failure());
+                                }
+                                let actual = target
+                                    .iter()
+                                    .find(|v| v.0[0] == value)
+                                    .map(|v| std::ptr::from_ref(v.as_ref()))
+                                    .unwrap();
+                                assert_eq!(actual, prior.unwrap_or(at));
+                            }
+                            for value in [7, 8] {
+                                let mut one = $module::Incoming::default();
+                                r.insert_owned(&f, &mut one, State([value; 50]), &mut b);
+                                if r.failed {
+                                    return Err(r.failure());
+                                }
+                                let held = one.into_one().next().unwrap();
+                                let at = std::ptr::from_ref(held.as_ref());
+                                r.insert_held(&f, &mut small, held, &mut b);
+                                if r.failed {
+                                    return Err(r.failure());
+                                }
+                                assert!(small.iter().any(|v| std::ptr::from_ref(v.as_ref()) == at));
+                            }
+                            for value in [9, 9] {
+                                let mut one = $module::Incoming::default();
+                                r.insert_owned(&f, &mut one, State([value; 50]), &mut b);
+                                if r.failed {
+                                    return Err(r.failure());
+                                }
+                                r.insert_group_held(
+                                    &f,
+                                    &mut group,
+                                    one.into_one().next().unwrap(),
+                                    &mut b,
+                                );
+                                if r.failed {
+                                    return Err(r.failure());
+                                }
+                            }
+                            assert_eq!((target.len(), small.len(), group.len()), (4, 2, 1));
+                            Ok(())
+                        })();
+                        let success = operation.is_ok();
+                        if let Err(e) = &operation {
+                            assert_eq!(e.code, "SPX-H006");
+                            assert_eq!(e.severity, crate::diagnostic::Severity::Error);
+                            assert!(e.path.is_none() && e.span.is_none() && e.help.is_none());
+                        }
+                        drop(operation);
+                        drop(group);
+                        drop(small);
+                        drop(target);
+                        drop(r);
+                        success
+                    }};
+                }
+                if old {
+                    run!(fused_before_frontier)
+                } else {
+                    run!(frontier)
+                }
+            })
+        });
+        assert!(
+            !allocation.invalid && allocation.live == 0 && allocation.allocated == allocation.freed
+        );
+        assert!(allocation.allocated <= paid && paid <= limit);
+        assert_eq!(refused, !success);
+        assert_eq!(first.is_some(), !success);
+        (
+            success,
+            allocation,
+            paid,
+            contains_tests::paid_banks(),
+            DROPS.with(Cell::get),
+            COMPARES.with(Cell::get),
+            COMPARE_COUNT.with(Cell::get),
+        )
+    };
+    let old = observe(true, usize::MAX);
+    let new = observe(false, usize::MAX);
+    assert!(old.0 && new.0);
+    assert_eq!(promotions(), 2);
+    // Complete actual producer invoice, through final Drop: one constructor,
+    // fourteen ordinary attempts, two group attempts, nine freshly boxed unique
+    // inputs, two One promotions (four nodes), two Many insertions, one distinct
+    // group insertion. Constructor controls include the final unused group bank;
+    // each ordinary attempt still prepays the next common entry bank.
+    let tariffs = frontier::Insertions::<State>::observed_prices();
+    let entry = frontier::Insertions::<State>::entry_controls();
+    let boxed = tariffs[0].checked_sub(entry).unwrap();
+    let node = tariffs[5].checked_sub(entry).unwrap();
+    let group = frontier::Insertions::<State>::GROUP_ENTRY_CONTROLS;
+    assert_eq!(tariffs[6], node + group);
+    assert_eq!(
+        new.2,
+        f.id.as_str().len()
+            + 512
+            + frontier::Insertions::<State>::controls()
+            + 15 * entry
+            + 2 * group
+            + 9 * boxed
+            + 7 * node
+            + 2 * promotion::<State>()
+    );
+    assert_eq!(new.3, 15); // one setup bank plus fourteen actual ordinary renewals
+    assert_eq!(
+        new.2
+            .checked_add(new.3 * common_saving::<State>())
+            .and_then(|n| n.checked_sub(2 * promotion::<State>())),
+        Some(old.2)
+    );
+    assert_eq!(new.1, old.1);
+    assert_eq!(new.4, 10);
+    assert_eq!((new.4, new.5, new.6), (old.4, old.5, old.6));
+    for prior in [false, true] {
+        let exact = if prior { old.2 } else { new.2 };
+        for limit in [0, 1, exact - 1, exact] {
+            let result = observe(prior, limit);
+            assert_eq!(result.0, limit == exact);
+        }
+    }
+}
+
+const SOURCE: &str = r#"
+module boxed;
+@id("f") fn f(flag:bool)->i64 {
+    let scratch=bytes_zeroed(3usize);
+    let view=bytes_as_slice(scratch);
+    if flag && byte_len(view)==3usize {7}else{9}
+}
+@id("main") fn main()->i64 {f(false)}
+"#;
+
+const TINY: &str = "module tiny; @id(\"main\") fn main()->i64 {0}";
+const LEXICAL: &str = r#"module ordinary.lexical;
+@id("probe") fn probe(flag:bool)->i64 {
+ let key=str"x";let view=str_as_bytes(key);let mut next=0;
+ while next<3 {next=next+1;if flag {continue;};if next==2 {return if byte_len(view)==1usize {7}else{0};};0}
+ 9
+}
+@id("main") fn main()->i64 {probe(false)}
+"#;
+const RENEWAL: &str = r#"module ordinary.byte_renewal;
+@id("app.main") fn main()->i64 {
+ let mut buffer=bytes_zeroed(2usize);
+ let untouched=bytes_zeroed(1usize);
+ let mut index=0usize;
+ while index<2usize {
+  if index==0usize {buffer=bytes_set(buffer,index,65u8);0}else{0}
+  index=index+1usize;
+  0
+ }
+ return if byte_len(bytes_as_slice(buffer))==2usize && byte_len(bytes_as_slice(untouched))==1usize {7}else{0};
+}
+"#;
+fn ordinary_replay(
+    p: &ResolvedProgram,
+    f: &ResolvedFunction,
+    old: bool,
+    budget: &mut ReplayBudget,
+) -> Result<(), Diagnostic> {
+    let storage = validate_slots_paid(f, budget)?;
+    let leaves = collect_leaves_paid(f, budget)?;
+    let auth = if lexical_cert::requires_lexical(f) {
+        let owner = selected_owner::owner(p, f, budget)?;
+        let facts = lexical_hir::collect(f, budget)?;
+        Some(lexical_cert::authenticate(p, f, &owner, &facts, budget)?)
+    } else {
+        None
+    };
+    if old {
+        fused_before::validate_path_states(p, f, &storage, &leaves, budget, auth.as_ref(), None)
+    } else {
+        validate_path_states(p, f, &storage, &leaves, budget, auth.as_ref(), None)
+    }
+}
+fn function() -> ResolvedFunction {
+    crate::hir::resolve(&crate::check(TINY, "fused-frontier.spx").unwrap())
+        .unwrap()
+        .functions
+        .remove(0)
+}
+#[test]
+fn complete_immediate_ordinary_driver_has_exact_bank_equation_through_drop_and_all_work_cuts() {
+    for source in [TINY, SOURCE, LEXICAL, RENEWAL] {
+        let program =
+            crate::hir::resolve(&crate::check(source, "ordinary-frontier.spx").unwrap()).unwrap();
+        for f in &program.functions {
+            let original = f.cleanup_plan.clone();
+            let observe = |old, limit| {
+                with_limit_usage_refusal(limit, || {
+                    measure(|| {
+                        let mut b = ReplayBudget::new();
+                        let result = ordinary_replay(&program, f, old, &mut b);
+                        let ok = result.is_ok();
+                        if let Err(e) = &result {
+                            assert_eq!(e.code, "SPX-H006");
+                        }
+                        drop(result);
+                        drop(b);
+                        ok
+                    })
+                })
+            };
+            let old = observe(true, usize::MAX);
+            contains_tests::reset_banks();
+            let new = observe(false, usize::MAX);
+            assert!(old.0 .0 && new.0 .0 && !old.1 && !new.1);
+            let entry = contains_tests::paid_banks()
+                .checked_mul(common_saving::<PathState>())
+                .unwrap();
+            let arms = promotions().checked_mul(promotion::<PathState>()).unwrap();
+            assert_eq!(
+                new.2.checked_add(entry).and_then(|n| n.checked_sub(arms)),
+                Some(old.2)
+            );
+            assert!(
+                new.2 < old.2,
+                "strict whole immediate-old invoice: {}",
+                f.id
+            );
+            assert_eq!(new.0 .1, old.0 .1);
+            for o in [&old, &new] {
+                let a = &o.0 .1;
+                assert!(!a.invalid && a.live == 0);
+                assert_eq!(a.allocated, a.freed);
+                assert!(a.allocated <= o.2);
+            }
+            for prior in [false, true] {
+                let exact = if prior { old.2 } else { new.2 };
+                for limit in [0, exact - 1, exact] {
+                    let r = observe(prior, limit);
+                    assert_eq!(r.0 .0, limit == exact);
+                    assert_eq!(r.1, limit != exact);
+                }
+            }
+            assert_eq!(f.cleanup_plan, original);
+        }
+    }
+    for source in [TINY, SOURCE, LEXICAL, RENEWAL] {
+        let p =
+            crate::hir::resolve(&crate::check(source, "ordinary-frontier.spx").unwrap()).unwrap();
+        for f in &p.functions {
+            let mut complete = ReplayBudget::unobserved();
+            ordinary_replay(&p, f, true, &mut complete).unwrap();
+            let work = MAX_REPLAY_WORK_UNITS - complete.remaining;
+            for skeleton in [false, true] {
+                for limit in [
+                    0,
+                    1,
+                    2,
+                    7,
+                    work.saturating_sub(1),
+                    work,
+                    MAX_REPLAY_WORK_UNITS,
+                ] {
+                    let mut old = ReplayBudget::unobserved();
+                    let mut now = ReplayBudget::unobserved();
+                    if skeleton {
+                        old.skeleton_remaining = limit;
+                        now.skeleton_remaining = limit;
+                    } else {
+                        old.remaining = limit;
+                        now.remaining = limit;
+                    }
+                    assert_eq!(
+                        ordinary_replay(&p, f, false, &mut now),
+                        ordinary_replay(&p, f, true, &mut old)
+                    );
+                    assert_eq!(
+                        (now.remaining, now.skeleton_remaining),
+                        (old.remaining, old.skeleton_remaining)
+                    );
+                }
+            }
+        }
+    }
+    let mut p =
+        crate::hir::resolve(&crate::check(SOURCE, "ordinary-frontier.spx").unwrap()).unwrap();
+    for arity in [0, 1, 3] {
+        let mut changed = false;
+        for f in &mut p.functions {
+            if let Some(edges) = f.cleanup_plan.blocks.iter_mut().find_map(|block| {
+                if let CleanupTerminator::Branch(edges) = &mut block.terminator {
+                    Some(edges)
+                } else {
+                    None
+                }
+            }) {
+                let original = edges.clone();
+                *edges = (0..arity).map(|i| original[i % original.len()]).collect();
+                changed = true;
+                break;
+            }
+        }
+        assert!(changed);
+        for f in &p.functions {
+            for limit in [0, 1, 2, 7, MAX_REPLAY_WORK_UNITS] {
+                let mut old = ReplayBudget::unobserved();
+                let mut now = ReplayBudget::unobserved();
+                old.remaining = limit;
+                now.remaining = limit;
+                assert_eq!(
+                    ordinary_replay(&p, f, false, &mut now),
+                    ordinary_replay(&p, f, true, &mut old)
+                );
+                assert_eq!(
+                    (now.remaining, now.skeleton_remaining),
+                    (old.remaining, old.skeleton_remaining)
+                );
+            }
+        }
+        p = crate::hir::resolve(&crate::check(SOURCE, "ordinary-frontier.spx").unwrap()).unwrap();
+    }
+}
+#[test]
+fn actual_ordinary_and_group_entries_keep_authority_positive_zero_sticky_and_drop_order() {
+    let f = function();
+    let other = function();
+    for grouped in [false, true] {
+        for scenario in 0..6 {
+            let observe = |old| {
+                DROPS.with(|n| n.set(0));
+                let (answer, refused, paid, first) = with_limit_usage_refusal(1 << 20, || {
+                    let mut b = ReplayBudget::new();
+                    let mut foreign = ReplayBudget::new();
+                    macro_rules! run {
+                        ($module:ident) => {{
+                            let mut receiver = $module::Insertions::acquire(&f, &mut b).unwrap();
+                            let mut incoming = $module::Incoming::default();
+                            let mut group = BTreeSet::new();
+                            let mut held = if grouped {
+                                receiver.insert_owned(&f, &mut incoming, State([7; 50]), &mut b);
+                                assert!(!receiver.failed);
+                                Some(incoming.into_one().next().unwrap())
+                            } else {
+                                None
+                            };
+                            let mut incoming = $module::Incoming::default();
+                            match scenario {
+                                1 => {
+                                    assert!(set_active_floor(active_remaining().unwrap()));
+                                }
+                                2 => {
+                                    let remaining = active_remaining().unwrap();
+                                    assert!(set_active_floor(remaining - 1));
+                                }
+                                5 => {
+                                    let ((), child_refused, child_paid, child_first) =
+                                        with_limit_usage_refusal(1, || {
+                                            if grouped {
+                                                receiver.insert_group_held(
+                                                    &f,
+                                                    &mut group,
+                                                    held.take().unwrap(),
+                                                    &mut b,
+                                                );
+                                            } else {
+                                                receiver.insert_owned(
+                                                    &f,
+                                                    &mut incoming,
+                                                    State([1; 50]),
+                                                    &mut b,
+                                                );
+                                            }
+                                        });
+                                    assert!(
+                                        !child_refused && child_paid == 0 && child_first.is_none()
+                                    );
+                                }
+                                _ => {}
+                            }
+                            if scenario != 5 {
+                                let function = if scenario == 3 { &other } else { &f };
+                                let budget = if scenario == 4 { &mut foreign } else { &mut b };
+                                if grouped {
+                                    receiver.insert_group_held(
+                                        function,
+                                        &mut group,
+                                        held.take().unwrap(),
+                                        budget,
+                                    );
+                                } else {
+                                    receiver.insert_owned(
+                                        function,
+                                        &mut incoming,
+                                        State([1; 50]),
+                                        budget,
+                                    );
+                                }
+                            }
+                            let error = if receiver.failed {
+                                Some(receiver.failure())
+                            } else {
+                                None
+                            };
+                            if scenario == 0 {
+                                assert!(error.is_none());
+                                if grouped {
+                                    receiver.insert_owned(
+                                        &f,
+                                        &mut incoming,
+                                        State([7; 50]),
+                                        &mut b,
+                                    );
+                                    receiver.insert_group_held(
+                                        &f,
+                                        &mut group,
+                                        incoming.into_one().next().unwrap(),
+                                        &mut b,
+                                    );
+                                    assert_eq!(group.len(), 1);
+                                } else {
+                                    for v in [2, 2, 3] {
+                                        receiver.insert_owned(
+                                            &f,
+                                            &mut incoming,
+                                            State([v; 50]),
+                                            &mut b,
+                                        );
+                                    }
+                                    assert_eq!(incoming.len(), 3);
+                                    assert_eq!(incoming.iter().map(|v| v.0[0]).sum::<u64>(), 6);
+                                    drop(incoming);
+                                }
+                                assert!(!receiver.failed);
+                            } else {
+                                assert!(error.is_some());
+                                let at = active_remaining();
+                                // An already-failed owner must neither query nor publish on retry.
+                                let mut retry = $module::Incoming::default();
+                                receiver.insert_owned(
+                                    &other,
+                                    &mut retry,
+                                    State([99; 50]),
+                                    &mut foreign,
+                                );
+                                assert!(retry.is_empty() && receiver.failed);
+                                assert_eq!(active_remaining(), at);
+                                drop(incoming);
+                            }
+                            assert_eq!(foreign.remaining, MAX_REPLAY_WORK_UNITS);
+                            clear_active_floor();
+                            drop(group);
+                            drop(receiver);
+                            (
+                                error,
+                                b.remaining,
+                                b.skeleton_remaining,
+                                DROPS.with(std::cell::Cell::get),
+                            )
+                        }};
+                    }
+                    if old {
+                        run!(fused_before_frontier)
+                    } else {
+                        run!(frontier)
+                    }
+                });
+                assert!(paid <= 1 << 20);
+                (answer, refused, first)
+            };
+            // The physical first receipt is intentionally compared only where
+            // requests are identical; owner-acquisition byte prices differ.
+            let old = observe(true);
+            let new = observe(false);
+            assert_eq!(old.0, new.0, "group={grouped} scenario={scenario}");
+            assert_eq!(old.1, new.1);
+            assert_eq!(old.2.is_some(), new.2.is_some());
+        }
+    }
+}
+#[test]
+fn both_promotion_orders_tree_splits_and_partial_promotion_unwind_preserve_owners() {
+    let f = function();
+    for reverse in [false, true] {
+        let observe = |old| {
+            with_limit_usage_refusal(1 << 24, || {
+                measure(|| {
+                    let mut b = ReplayBudget::new();
+                    macro_rules! run {
+                        ($module:ident) => {{
+                            let mut r = $module::Insertions::<u64>::acquire(&f, &mut b).unwrap();
+                            let mut target = $module::Incoming::default();
+                            let first = if reverse { 31 } else { 0 };
+                            r.insert_owned(&f, &mut target, first, &mut b);
+                            assert!(!r.failed);
+                            let original =
+                                std::ptr::from_ref(target.iter().next().unwrap().as_ref());
+                            for index in 1..32 {
+                                let value = if reverse { 31 - index } else { index };
+                                r.insert_owned(&f, &mut target, value, &mut b);
+                                assert!(!r.failed);
+                            }
+                            for value in 0..32 {
+                                r.insert_owned(&f, &mut target, value, &mut b);
+                                assert!(!r.failed);
+                            }
+                            assert!(target.iter().map(|v| **v).eq(0..32));
+                            assert!(target
+                                .iter()
+                                .any(|v| std::ptr::from_ref(v.as_ref()) == original));
+                            drop(target);
+                            drop(r);
+                        }};
+                    }
+                    if old {
+                        run!(fused_before_frontier)
+                    } else {
+                        run!(frontier)
+                    }
+                    drop(b);
+                })
+            })
+        };
+        let old = observe(true);
+        contains_tests::reset_banks();
+        let new = observe(false);
+        assert!(!old.1 && !new.1);
+        assert_eq!(contains_tests::paid_banks(), 65);
+        assert_eq!(promotions(), 1);
+        assert_eq!(
+            new.2
+                .checked_add(65 * common_saving::<u64>())
+                .and_then(|n| n.checked_sub(promotion::<u64>())),
+            Some(old.2)
+        );
+        assert_eq!(old.0 .1, new.0 .1);
+        assert!(!new.0 .1.invalid && new.0 .1.live == 0);
+    }
+    thread_local! {static PANIC_COMPARES:Cell<usize>=const{Cell::new(0)};}
+    #[derive(Eq, PartialEq)]
+    struct Unwind(u64);
+    impl Ord for Unwind {
+        fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+            PANIC_COMPARES.with(|n| {
+                n.set(n.get() + 1);
+                assert_ne!(n.get(), 2, "injected publication comparison unwind");
+            });
+            self.0.cmp(&other.0)
+        }
+    }
+    impl PartialOrd for Unwind {
+        fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+            Some(self.cmp(other))
+        }
+    }
+    impl Drop for Unwind {
+        fn drop(&mut self) {
+            DROPS.with(|n| n.set(n.get() + 1));
+        }
+    }
+    for old in [false, true] {
+        PANIC_COMPARES.with(|n| n.set(0));
+        DROPS.with(|n| n.set(0));
+        let (((), a), refused, _, _) = with_limit_usage_refusal(1 << 20, || {
+            measure(|| {
+                let mut b = ReplayBudget::new();
+                macro_rules! run {
+                    ($module:ident) => {{
+                        let mut r = $module::Insertions::acquire(&f, &mut b).unwrap();
+                        let mut target = $module::Incoming::default();
+                        r.insert_owned(&f, &mut target, Unwind(1), &mut b);
+                        assert!(!r.failed);
+                        let error = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                            r.insert_owned(&f, &mut target, Unwind(2), &mut b)
+                        }));
+                        assert!(error.is_err());
+                        drop(error);
+                        assert!(target.is_empty());
+                        assert_eq!(DROPS.with(Cell::get), 2);
+                        drop(target);
+                        drop(r);
+                    }};
+                }
+                if old {
+                    run!(fused_before_frontier)
+                } else {
+                    run!(frontier)
+                }
+                drop(b);
+            })
+        });
+        eprintln!("fused promotion unwind old={old} refused={refused} physical={a:?}");
+        assert!(!refused && !a.invalid && a.live == 0);
+        assert_eq!(a.allocated, a.freed);
+    }
+}
+fn digest(raw: &[u8]) -> String {
+    format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(raw)))
+}
+// One authenticated full-current -> complete immediate-old leg, composed before
+// every older inverse. Only the exact already-projected endpoint is idempotent.
+pub(super) fn before_source(path: &str, supplied: String) -> String {
+    let packet = include_bytes!("fused_before/inverse.json");
+    assert_eq!(digest(packet), INVERSE_SHA);
+    let rows: serde_json::Value = serde_json::from_slice(packet).unwrap();
+    let Some(row) = rows
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| r["path"].as_str() == Some(path))
+    else {
+        return supplied;
+    };
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let physical = std::fs::read(root.join(path)).unwrap();
+    let compiled: &[u8] = match path {
+        "src/cleanup_plan/replay/path_join.rs" => include_bytes!("../path_join.rs"),
+        "src/cleanup_plan/replay/path_join/frontier.rs" => include_bytes!("frontier.rs"),
+        "src/cleanup_plan/replay/path_join/contains_tests.rs" => {
+            include_bytes!("contains_tests.rs")
+        }
+        "src/cleanup_plan/replay/path_join/shared_insertions_tests.rs" => {
+            include_bytes!("shared_insertions_tests.rs")
+        }
+        "src/cleanup_plan/replay/path_join/compact_failure_tests.rs" => {
+            include_bytes!("compact_failure_tests.rs")
+        }
+        "src/cleanup_plan/replay/path_join/direct_one_tests.rs" => {
+            include_bytes!("direct_one_tests.rs")
+        }
+        "src/cleanup_plan/replay/path_join/frontier_tests.rs" => {
+            include_bytes!("frontier_tests.rs")
+        }
+        "src/cleanup_plan/replay/path_join/fused_before.rs" => include_bytes!("fused_before.rs"),
+        _ => panic!("unadmitted fused source"),
+    };
+    assert_eq!(physical, compiled);
+    assert_eq!(physical.len() as u64, row["length"].as_u64().unwrap());
+    assert_eq!(digest(&physical), row["sha256"].as_str().unwrap());
+    let mut actual = physical.clone();
+    for edit in row["edits"].as_array().unwrap() {
+        let at = edit[0].as_u64().unwrap() as usize;
+        let from = edit[1].as_str().unwrap().as_bytes();
+        assert_eq!(&actual[at..at + from.len()], from);
+        actual.splice(at..at + from.len(), edit[2].as_str().unwrap().bytes());
+    }
+    let before = std::fs::read(root.join(row["before"].as_str().unwrap())).unwrap();
+    assert_eq!(before.len() as u64, row["before_length"].as_u64().unwrap());
+    assert_eq!(digest(&before), row["before_sha256"].as_str().unwrap());
+    assert_eq!(actual, before);
+    assert!(
+        supplied.as_bytes() == physical || supplied.as_bytes() == actual,
+        "foreign fused acquisition"
+    );
+    assert_eq!(std::fs::read(root.join(path)).unwrap(), physical);
+    assert_eq!(
+        std::fs::read(root.join("src/cleanup_plan/replay/path_join/fused_before/inverse.json"))
+            .unwrap(),
+        packet
+    );
+    String::from_utf8(actual).unwrap()
+}
+#[test]
+fn full_immediate_driver_and_helpers_are_independent_and_all_preceding_sources_remain_exact() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let packet = include_bytes!("fused_before/inverse.json");
+    assert_eq!(digest(packet), INVERSE_SHA);
+    let rows: serde_json::Value = serde_json::from_slice(packet).unwrap();
+    assert_eq!(rows.as_array().unwrap().len(), 8);
+    for row in rows.as_array().unwrap() {
+        let path = row["path"].as_str().unwrap();
+        let raw = std::fs::read(root.join(path)).unwrap();
+        let old = before_source(path, String::from_utf8(raw.clone()).unwrap());
+        assert_eq!(
+            old.as_bytes(),
+            std::fs::read(root.join(row["before"].as_str().unwrap())).unwrap()
+        );
+        let mut foreign = raw;
+        foreign.push(0);
+        assert!(std::panic::catch_unwind(|| before_source(
+            path,
+            String::from_utf8(foreign).unwrap()
+        ))
+        .is_err());
+    }
+    let independent = include_str!("fused_before_frontier.rs");
+    let header = "\n// FUSED_COMPLETE_INDEPENDENT_STORAGE: namespace-only compile adaptation.\n#[path = \"storage\"]\n#[rustfmt::skip]\npub(super) mod storage {\n";
+    assert_eq!(independent.matches(header).count(), 1);
+    let (frontier, source) = independent.split_once(header).unwrap();
+    assert_eq!(
+        frontier.as_bytes(),
+        include_bytes!("fused_before/frontier.rs.txt")
+    );
+    let mut source = source.strip_suffix("}\n").unwrap().to_owned();
+    let child_header = "// FUSED_COMPLETE_EMPTY_RENEWALS\npub(in crate::cleanup_plan::replay::path_join) mod empty_renewals {\n";
+    let child_end = "}\n// END_FUSED_EMPTY_RENEWALS\n";
+    assert_eq!(source.matches(child_header).count(), 1);
+    assert_eq!(source.matches(child_end).count(), 1);
+    let start = source.find(child_header).unwrap();
+    let finish = source.find(child_end).unwrap() + child_end.len();
+    let mut child = source[start + child_header.len()..finish - child_end.len()].to_owned();
+    let tests_header = "#[cfg(test)]\npub(super) mod tests {\n";
+    let tests_end = "}\n// END_FUSED_EMPTY_RENEWALS_TESTS\n";
+    assert_eq!(child.matches(tests_header).count(), 1);
+    assert_eq!(child.matches(tests_end).count(), 1);
+    let lo = child.find(tests_header).unwrap();
+    let hi = child.find(tests_end).unwrap() + tests_end.len();
+    let tests = &child[lo + tests_header.len()..hi - tests_end.len()];
+    assert_eq!(
+        tests
+            .matches("pub(in crate::cleanup_plan::replay::path_join)")
+            .count(),
+        2
+    );
+    let tests = tests.replace(
+        "pub(in crate::cleanup_plan::replay::path_join)",
+        "pub(in crate::cleanup_plan::replay::path_join::storage)",
+    );
+    assert_eq!(
+        tests.as_bytes(),
+        include_bytes!("storage/empty_renewals/tests.rs")
+    );
+    assert_eq!(
+        digest(tests.as_bytes()),
+        "0642e437f6e107f81bf1c5ef3425d93075683417d7303754ce7494915b5d1dc0"
+    );
+    child.replace_range(lo..hi, "#[cfg(test)]\npub(super) mod tests;\n");
+    assert_eq!(
+        child.as_bytes(),
+        include_bytes!("storage/empty_renewals.rs")
+    );
+    source.replace_range(
+        start..finish,
+        "pub(in crate::cleanup_plan::replay::path_join) mod empty_renewals;\n",
+    );
+    for (adapted, original, count) in [("pub(in crate::cleanup_plan::replay::path_join) mod atomic_controls;", "pub(super) mod atomic_controls;", 1),
+        ("pub(in crate::cleanup_plan::replay::path_join) mod empty_renewals;", "pub(super) mod empty_renewals;", 1),
+        ("pub(in crate::cleanup_plan::replay::path_join) fn reserve_ownership_clone(", "pub(super) fn reserve_ownership_clone(", 1),
+        ("pub(in crate::cleanup_plan::replay::path_join) fn reserve_control_clone(", "pub(super) fn reserve_control_clone(", 1),
+        ("pub(in crate::cleanup_plan::replay::path_join) fn reserve_variant_identity(", "pub(super) fn reserve_variant_identity(", 1),
+        ("pub(in crate::cleanup_plan::replay::path_join) fn storage_regions(", "pub(super) fn storage_regions(", 1),
+        ("            crate::cleanup_plan::renewal_history::RenewalHistory,", "            super::super::super::super::renewal_history::RenewalHistory,", 1),
+        ("        let history = crate::cleanup_plan::renewal_history::RenewalHistory::new(", "        let history = super::super::super::super::renewal_history::RenewalHistory::new(", 1)] {
+        assert_eq!(source.matches(adapted).count(), count);
+        source = source.replace(adapted, original);
+    }
+    assert_eq!(source.as_bytes(), include_bytes!("storage.rs"));
+    let old = include_str!("fused_before.rs");
+    assert!(old.contains("use super::fused_before_frontier as frontier;"));
+    assert!(!old.contains("mod frontier;"));
+    let manifest = include_bytes!("fused_before/helpers.json");
+    assert_eq!(digest(manifest), HELPERS_SHA);
+    let helpers: serde_json::Value = serde_json::from_slice(manifest).unwrap();
+    for row in helpers.as_array().unwrap() {
+        let path = row["path"].as_str().unwrap();
+        let compiled: &[u8] = match path {
+            "src/cleanup_plan/replay/path_join/boxed_flow.rs" => include_bytes!("boxed_flow.rs"),
+            "src/cleanup_plan/replay/path_join/branch_join.rs" => include_bytes!("branch_join.rs"),
+            "src/cleanup_plan/replay/path_join/storage.rs" => include_bytes!("storage.rs"),
+            "src/cleanup_plan/replay/path_join/storage/atomic_controls.rs" => {
+                include_bytes!("storage/atomic_controls.rs")
+            }
+            "src/cleanup_plan/replay/path_join/storage/empty_renewals.rs" => {
+                include_bytes!("storage/empty_renewals.rs")
+            }
+            "src/cleanup_plan/replay/physical_budget.rs" => include_bytes!("../physical_budget.rs"),
+            "src/cleanup_plan/replay/physical_budget/authentication.rs" => {
+                include_bytes!("../physical_budget/authentication.rs")
+            }
+            "src/bounded_output/classifier_string.rs" => {
+                include_bytes!("../../../bounded_output/classifier_string.rs")
+            }
+            _ => panic!("foreign fused helper"),
+        };
+        let raw = std::fs::read(root.join(path)).unwrap();
+        assert_eq!(raw, compiled);
+        assert_eq!(raw.len() as u64, row["length"].as_u64().unwrap());
+        assert_eq!(digest(&raw), row["sha256"].as_str().unwrap());
+    }
+}
+const INVERSE_SHA: &str = "b4d8b3b6e9872464620717910299222137204c708c636b68219f19b9890f7f3d";
+const HELPERS_SHA: &str = "34904cb227034c500763ffde1e1eb4534254d724778add8dc82d609ec5973d25";

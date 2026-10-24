@@ -36,9 +36,7 @@ pub(crate) fn admitted(
             || index.declaration(declaration).is_none_or(|d| {
                 d.kind != DeclarationKind::Record || d.identity_origin != IdentityOrigin::Explicit
             })
-            || index
-                .declaration(&DeclarationId::new(format!("{declaration}#invariant")))
-                .is_some()
+            || index.has_record_invariant(declaration)
         {
             return false;
         }

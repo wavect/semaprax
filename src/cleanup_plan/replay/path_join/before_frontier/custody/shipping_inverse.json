@@ -1,0 +1,227 @@
+[
+  [
+    229,
+    "#[allow(\n    dead_code,\n    reason = \"complete immediate-old ordinary frontier and direct dependencies\"\n)]\nmod before_frontier;\n#[cfg(test)]\n",
+    ""
+  ],
+  [
+    502,
+    "mod boxed_flow;\n",
+    ""
+  ],
+  [
+    553,
+    "mod frontier;\n#[cfg(test)]\nmod frontier_tests;\n",
+    ""
+  ],
+  [
+    5597,
+    "    budget.reserve_array::<frontier::Incoming<PathState>>(\n",
+    "    budget.reserve_array::<BTreeSet<Box<PathState>>>(\n"
+  ],
+  [
+    5744,
+    "    boxed_flow::reserve_directory(function, plan.blocks.len(), budget)?;\n    let mut incoming = Vec::with_capacity(plan.blocks.len());\n    incoming.resize_with(plan.blocks.len(), frontier::Incoming::default);\n    let mut incoming_insertions = frontier::Insertions::<PathState>::acquire(function, budget)?;\n",
+    "    let mut incoming = vec![BTreeSet::<Box<PathState>>::new(); plan.blocks.len()];\n"
+  ],
+  [
+    6142,
+    "    incoming_insertions.insert_owned(\n",
+    "    insertions.insert_owned(\n"
+  ],
+  [
+    6284,
+    "    if incoming_insertions.failed {\n        return Err(incoming_insertions.failure().into());\n",
+    "    if insertions.failed {\n        return Err(insertions.failure().into());\n"
+  ],
+  [
+    7442,
+    "        boxed_flow::reserve_block(function, budget)?;\n",
+    ""
+  ],
+  [
+    9096,
+    "            boxed_flow::validate_singleton(function, states.one(), block_id, budget)?;\n",
+    "            validate_control_group_with_budget(function, &states, block_id, budget)?;\n"
+  ],
+  [
+    9422,
+    "            let mut state = states\n                .into_one()\n",
+    "            let mut state = *states\n                .into_iter()\n"
+  ],
+  [
+    11058,
+    "                    let state = boxed_flow::state_for_edge(\n                        function,\n                        state,\n                        &edge.condition,\n                        &contract_sources,\n                        budget,\n                    )?;\n                    incoming_insertions.insert_held(\n",
+    "                    let state =\n                        state_for_edge(function, state, &edge.condition, &contract_sources)?;\n                    insertions.insert_owned(\n"
+  ],
+  [
+    11555,
+    "                    if incoming_insertions.failed {\n                        return Err(incoming_insertions.failure().into());\n",
+    "                    if insertions.failed {\n                        return Err(insertions.failure().into());\n"
+  ],
+  [
+    13734,
+    "                            state.as_ref().clone()\n",
+    "                            state.clone()\n"
+  ],
+  [
+    14379,
+    "                        incoming_insertions.insert_owned(\n",
+    "                        insertions.insert_owned(\n"
+  ],
+  [
+    14635,
+    "                        if incoming_insertions.failed {\n                            return Err(incoming_insertions.failure().into());\n",
+    "                        if insertions.failed {\n                            return Err(insertions.failure().into());\n"
+  ],
+  [
+    15261,
+    "                        let next = boxed_flow::state_for_edge(\n                            function,\n                            state,\n                            &edge.condition,\n                            &contract_sources,\n                            budget,\n                        )?;\n",
+    "                        let next =\n                            state_for_edge(function, state, &edge.condition, &contract_sources)?;\n"
+  ],
+  [
+    15986,
+    "                        incoming_insertions.insert_held(\n",
+    "                        insertions.insert_owned(\n"
+  ],
+  [
+    16241,
+    "                        if incoming_insertions.failed {\n                            return Err(incoming_insertions.failure().into());\n",
+    "                        if insertions.failed {\n                            return Err(insertions.failure().into());\n"
+  ],
+  [
+    17685,
+    "                                state.as_ref().clone()\n",
+    "                                state.clone()\n"
+  ],
+  [
+    18513,
+    "                            incoming_insertions.insert_owned(\n",
+    "                            insertions.insert_owned(\n"
+  ],
+  [
+    18793,
+    "                            if incoming_insertions.failed {\n                                return Err(incoming_insertions.failure().into());\n",
+    "                            if insertions.failed {\n                                return Err(insertions.failure().into());\n"
+  ],
+  [
+    19423,
+    "                        *state,\n",
+    "                        state,\n"
+  ],
+  [
+    20976,
+    "                            incoming_insertions.insert_owned(\n",
+    "                            insertions.insert_owned(\n"
+  ],
+  [
+    21260,
+    "                            if incoming_insertions.failed {\n                                return Err(incoming_insertions.failure().into());\n",
+    "                            if insertions.failed {\n                                return Err(insertions.failure().into());\n"
+  ],
+  [
+    21969,
+    "                                incoming_insertions.insert_owned(\n",
+    "                                insertions.insert_owned(\n"
+  ],
+  [
+    22274,
+    "                                if incoming_insertions.failed {\n                                    return Err(incoming_insertions.failure().into());\n",
+    "                                if insertions.failed {\n                                    return Err(insertions.failure().into());\n"
+  ],
+  [
+    24609,
+    "        for state in states.into_many() {\n",
+    "        for state in states {\n"
+  ],
+  [
+    25871,
+    "            boxed_flow::reserve_block(function, budget)?;\n",
+    ""
+  ],
+  [
+    27201,
+    "            let mut state = states\n",
+    "            let mut state = *states\n"
+  ],
+  [
+    28365,
+    "                    let state = boxed_flow::state_for_edge(\n                        function,\n                        state,\n                        &edge.condition,\n                        &contract_sources,\n                        budget,\n                    )?;\n                    incoming_insertions.insert_held(\n",
+    "                    let state =\n                        state_for_edge(function, state, &edge.condition, &contract_sources)?;\n                    insertions.insert_owned(\n"
+  ],
+  [
+    28862,
+    "                    if incoming_insertions.failed {\n                        return Err(incoming_insertions.failure().into());\n",
+    "                    if insertions.failed {\n                        return Err(insertions.failure().into());\n"
+  ],
+  [
+    31041,
+    "                            state.as_ref().clone()\n",
+    "                            state.clone()\n"
+  ],
+  [
+    31686,
+    "                        incoming_insertions.insert_owned(\n",
+    "                        insertions.insert_owned(\n"
+  ],
+  [
+    31942,
+    "                        if incoming_insertions.failed {\n                            return Err(incoming_insertions.failure().into());\n",
+    "                        if insertions.failed {\n                            return Err(insertions.failure().into());\n"
+  ],
+  [
+    32568,
+    "                        let next = boxed_flow::state_for_edge(\n                            function,\n                            state,\n                            &edge.condition,\n                            &contract_sources,\n                            budget,\n                        )?;\n",
+    "                        let next =\n                            state_for_edge(function, state, &edge.condition, &contract_sources)?;\n"
+  ],
+  [
+    33293,
+    "                        incoming_insertions.insert_held(\n",
+    "                        insertions.insert_owned(\n"
+  ],
+  [
+    33548,
+    "                        if incoming_insertions.failed {\n                            return Err(incoming_insertions.failure().into());\n",
+    "                        if insertions.failed {\n                            return Err(insertions.failure().into());\n"
+  ],
+  [
+    34992,
+    "                                state.as_ref().clone()\n",
+    "                                state.clone()\n"
+  ],
+  [
+    35820,
+    "                            incoming_insertions.insert_owned(\n",
+    "                            insertions.insert_owned(\n"
+  ],
+  [
+    36100,
+    "                            if incoming_insertions.failed {\n                                return Err(incoming_insertions.failure().into());\n",
+    "                            if insertions.failed {\n                                return Err(insertions.failure().into());\n"
+  ],
+  [
+    36730,
+    "                        *state,\n",
+    "                        state,\n"
+  ],
+  [
+    38283,
+    "                            incoming_insertions.insert_owned(\n",
+    "                            insertions.insert_owned(\n"
+  ],
+  [
+    38567,
+    "                            if incoming_insertions.failed {\n                                return Err(incoming_insertions.failure().into());\n",
+    "                            if insertions.failed {\n                                return Err(insertions.failure().into());\n"
+  ],
+  [
+    39276,
+    "                                incoming_insertions.insert_owned(\n",
+    "                                insertions.insert_owned(\n"
+  ],
+  [
+    39581,
+    "                                if incoming_insertions.failed {\n                                    return Err(incoming_insertions.failure().into());\n",
+    "                                if insertions.failed {\n                                    return Err(insertions.failure().into());\n"
+  ]
+]

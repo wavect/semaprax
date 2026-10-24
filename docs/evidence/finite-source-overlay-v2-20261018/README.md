@@ -46,6 +46,78 @@ composition, numeric positions, archive authentication, single-page 262144-byte
 cap and source admissions retain their existing meanings. This private
 transport grants no authority or runtime qualification.
 
+V10 is a structural transport for a complete V9 page. It adds one
+`archive_prefixes` array of at most 32 distinct, nonempty, normal directory
+prefixes. A prefix ends in `/`. Only an explicit archive member in a documented
+V9 pin tuple may replace its literal string with `[prefix_index, suffix]`.
+Implicit `e/<full_sha256>` archives, full literal pin objects, canonical
+references, row and fragment order, numeric positions, unknown fields and every
+other value remain unchanged.
+
+The decoder validates the prefix table, reference arity and types, expanded
+normal archive path, longest matching prefix, and at least two uses of every
+table entry. It refuses a matching archive left literal. It then removes the
+table, restores the V9 schema and every exact archive string, and enters the
+complete unchanged V9 through V2 reader chain. The generator derives candidate
+directory prefixes only from explicit archives, selects the size-reducing
+candidate with the smallest canonical page size (lexical prefix breaks ties),
+and stops within the unchanged 262144-byte page cap. A caller may request
+additional reserve; the codec imposes none by default. It requires exact
+whole-V9 equality after decoding. The frozen fixture retains its explicit
+10 KiB reserve assertion as a codec test oracle.
+
+V10 adds no page, source read, archive payload compression, source admission or
+runtime qualification. The source cap, physical-source authentication and all
+V9 and older formats keep their existing meanings and implementations. The
+frozen `v10-unqualified-full-union-v9.json` and
+`v10-unqualified-full-union.json` values are logical codec fixtures. They bind
+the complete 707-row parent-metadata union and its exact transport inverse for
+tests; they are not admitted current physical pages or source qualification.
+
+V11 is an explicitly versioned digest transport over a complete V10 page.
+Only the SHA256 member of each documented positional V9 current or named-view
+pin changes: 64 lowercase hexadecimal characters become 43 canonical unpadded
+base64url characters encoding exactly 32 bytes. Full object pins, including
+objects carrying unknown fields, remain literal. Source and view names, archive
+references, unknown metadata, ordering, and the existing prefix table stay
+unchanged. There is no recursive matching of digest-like strings.
+
+The V11 decoder checks tuple arity, named-view types, integer source lengths,
+the exact alphabet and length, decoded byte length, and canonical re-encoding.
+It restores the complete V10 value before entering the unchanged V10 through V2
+reader chain. All older schemas retain their readers and controls. The page cap
+remains 262144 bytes, the source cap remains 9753094 bytes, and the prefix limit
+remains 32. The owning Python and Rust controls round-trip the complete frozen
+V10 logical fixture and reject malformed and noncanonical inputs; these codec
+controls make no runtime qualification claim.
+
+V12 is an optional view-label dictionary transport over a complete V11 value.
+Its closed envelope adds only `view_labels`, an ordered array of
+`[index, label]` declarations. Indices must equal their contiguous positions,
+labels must be distinct strings, every declaration must be used, and first
+uses must follow declaration order. Repeated references are required to remain
+legal: they preserve distinct occurrences of the same historical view. Only
+the first member of documented positional named-view tuples becomes an integer
+reference. Full object pins and their unknown fields, canonical references,
+current pins, literal row metadata, order and multiplicity remain unchanged.
+
+The decoder first validates every reference and checked-sums the expanded
+quoted JSON label bytes against the existing 9753094-byte source bound, before
+publishing expanded label strings. The physical page still has its unchanged
+262144-byte cap. Expansion restores the entire V11 canonical value, including
+the unchanged archive-prefix table, before the original V11 through V2 chain.
+Duplicate declaration indices or labels, unknown indices, noncanonical first
+use, unused declarations, invalid arities and extra envelope fields refuse.
+The V11 encoder and all older readers remain unchanged and independent; V12
+encoding is explicitly requested and does not change default serialization.
+
+The V12 Python and Rust controls are authored, not executed. Shared fixed vectors
+cover complete canonical equality and opaque metadata; the full immutable a966
+V11 page and whole old controller sources remain independent controls. A static
+prototype on the separate frozen 797-row V11 page counted 1490 positional views
+and 193 labels: 254079 bytes became 227431 bytes. That is source-capacity evidence
+for that input, not current-page adoption, runtime, RSS or agent-token evidence.
+
 V10 transports repeated exact current pins by their positions in the same
 whole authenticated 519-row predecessor. A current pin reference is `[index]`;
 a named view reference is `[name, index]`. Only the existing positional pin
@@ -59,3 +131,18 @@ still require their ordinary authentication. The executable frozen-page
 inverse, complete-packet equality and hostile controls live in
 `src/source_reflows_merge/main_e177_overlay_pins_v10.rs`; their run-specific
 results are recorded separately and confer no runtime qualification.
+
+The two independently authored V10 transports have disjoint envelopes. A
+present `archive_prefixes` field selects the original prefix decoder, including
+its refusals; its absence selects the authenticated old519 pin-reference
+decoder only for standalone V10 pages. V11 and V12 retain the prefix chain.
+
+The Python controller may factor only its static `REPLACEMENTS` and `ADDITIONS`
+path lists through four literal directory-prefix globals. Each ordered entry is
+either a literal string or one known literal prefix plus a literal suffix; the
+expanded lists retain their exact types, order, multiplicity and full paths.
+Current binding preserves this closed prefix representation, and its AST
+declaration preflight accepts only that grammar without calls, evaluation,
+policy-derived scope or external loading. Earlier qualification writers remain
+historical and are not claimed compatible with this current source layout. This source layout does
+not change a page schema, codec body, source admission or any existing cap.

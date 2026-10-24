@@ -21,6 +21,7 @@ input = "argv-utf8+file-text.v1"
 required = ["fs.read", "process.args.read", "process.stderr.write", "process.stdout.write"]
 
 [dependencies]
+std.int.decimal = "=0.1.0"
 std.pattern = "^0.1.0"
 
 [targets]

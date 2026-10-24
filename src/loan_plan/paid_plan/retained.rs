@@ -7,6 +7,12 @@ pub(in crate::loan_plan) fn build<'a>(
     work: &mut WorkCounter,
     inventory: paid_candidate::Inventory<'a, '_>,
 ) -> Result<LoanPlan, Diagnostic> {
+    // OPT903_BUILD_TRACE_BEGIN
+    #[cfg(test)]
+    let _allocation_phase = crate::test_allocation_observer::function_phase_guard(
+        "loan_plan::paid_plan::retained::build",
+    );
+    // OPT903_BUILD_TRACE_END
     let payer = work.allocation;
     let (aliases, bound, ownership, mut byte_census) =
         inventory.into_parts(program, function, payer)?;
@@ -222,6 +228,12 @@ pub(in crate::loan_plan) fn build<'a>(
         };
         parents.push(parent);
     }
+    // OPT903_ROW_TRACE_BEGIN
+    #[cfg(test)]
+    let reachability_lifetime = crate::test_allocation_observer::function_phase_guard(
+        "loan_plan::paid_reachability_lifetime",
+    );
+    // OPT903_ROW_TRACE_END
     #[cfg(not(test))]
     let reachable = work::Reachability::build(&cfg, drafts.iter().map(|draft| draft.start), work)?;
     #[cfg(test)]
@@ -271,6 +283,21 @@ pub(in crate::loan_plan) fn build<'a>(
         }
     }
     drop(live_pending);
+    // OPT903_ROW_RELEASE_BEGIN
+    // All liveness rows are now complete. Neither overlap rejection, edge
+    // proof, terminal repair nor materialization reads the reachability table.
+    // Release its actual Box before those independent scratch owners allocate;
+    // its cumulative paid reservation and every work charge remain consumed.
+    {
+        #[cfg(test)]
+        let _allocation_phase = crate::test_allocation_observer::function_phase_guard(
+            "loan_plan::paid_reachability_drop",
+        );
+        drop(reachable);
+    }
+    #[cfg(test)]
+    drop(reachability_lifetime);
+    // OPT903_ROW_RELEASE_END
     reject_cfg_overlaps_paid(program, &cfg, &aliases, &drafts, &live, work)?;
 
     let (mut edge_live, mut termination_edges) =

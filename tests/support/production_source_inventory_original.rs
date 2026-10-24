@@ -13,13 +13,67 @@ fn current_source(path: &str, row: &serde_json::Value) -> String {
     let mut file = std::fs::File::open(Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap();
     let metadata = file.metadata().unwrap();
     assert!(metadata.is_file());
-    assert_eq!(metadata.len(), length as u64);
+    let interop_epoch = path == Path::new("crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs");
+    let read_length = if interop_epoch {
+        assert_eq!(length, 229209);
+        assert_eq!(row["sha256"], "d1edee35f9a7a97e9478264a44b7e77e4b3903bcbb87bb327602053f22afa6c8");
+        233195
+    } else { length };
+    assert_eq!(metadata.len(), read_length as u64);
     let mut bytes = Vec::new();
-    bytes.try_reserve_exact(length).unwrap();
-    bytes.resize(length, 0);
+    bytes.try_reserve_exact(read_length).unwrap();
+    bytes.resize(read_length, 0);
     file.read_exact(&mut bytes).unwrap();
     let mut tail = [0];
     assert_eq!(file.read(&mut tail).unwrap(), 0);
+    if interop_epoch {
+        let compiled = include_bytes!("../../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs");
+        assert_eq!(bytes.as_slice(), compiled.as_slice());
+        assert_eq!(format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(&bytes))), "0e793e87c5913d29d090949527031177cf4ed760e1051bb1f032f21580f1782c");
+        let mut main3d81_epoch = String::from_utf8(bytes).unwrap();
+        let main3d81_raw_arm = "main3d81_before.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/path_join/";
+        assert_eq!(main3d81_epoch.matches(main3d81_raw_arm).count(), 1);
+        main3d81_epoch = main3d81_epoch.replacen(main3d81_raw_arm, "", 1);
+        bytes = main3d81_epoch.into_bytes();
+        assert_eq!(bytes.len(), 233111);
+        assert_eq!(format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(&bytes))), "efd27c7b797d0f0414bc7ae292be0c518455d6f1dbef4f849350318181b20b60");
+        let mut field_epoch = String::from_utf8(bytes).unwrap();
+        let field_raw_arms = "include_str!(\"../../../../../src/cleanup_plan/replay/path_join/field_local/mod.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/path_join/field_local/frontier.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/path_join/field_local/boxed_flow.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/path_join/field_local/tests.rs\"),";
+        assert_eq!(field_epoch.matches(field_raw_arms).count(), 1);
+        field_epoch = field_epoch.replacen(field_raw_arms, "", 1);
+        bytes = field_epoch.into_bytes();
+        assert_eq!(bytes.len(), 232761);
+        assert_eq!(format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(&bytes))), "0f8b4dff2deb10dc0989ddf58723fb7137442cacffc18870d9e2afe566c8d3d0");
+        let mut retained_epoch = String::from_utf8(bytes).unwrap();
+        let retained_raw_arm = ",include_str!(\"../../../../../src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/retained.rs\")";
+        assert_eq!(retained_epoch.matches(retained_raw_arm).count(), 1);
+        retained_epoch = retained_epoch.replacen(retained_raw_arm, "", 1);
+        bytes = retained_epoch.into_bytes();
+        assert_eq!(bytes.len(), 232648);
+        assert_eq!(format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(&bytes))), "208348c0444014d05129580b71eef50e9837425c6b9cb7286cf21bc90c9d1e3f");
+        let original = include_bytes!("../../e/d1edee35f9a7a97e9478264a44b7e77e4b3903bcbb87bb327602053f22afa6c8");
+        assert_eq!(original.len(), length);
+        assert_eq!(format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(original))), row["sha256"].as_str().unwrap());
+        bytes = original.to_vec();
+        assert_eq!(std::fs::read(Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap().as_slice(), compiled.as_slice());
+    }
+    if path == Path::new("Cargo.toml") {
+        // Acquire the complete physical/compiled dependency-update epoch first.
+        assert_eq!(bytes.as_slice(), include_bytes!("../../Cargo.toml").as_slice());
+        assert_eq!(bytes.len(), 4411);
+        assert_eq!(format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(&bytes))), "206f6e4ac63533b6f1e136ffe44c3d80f580a1009cc05688c771ab4ea4e5e99b");
+        let mut manifest = String::from_utf8(bytes).unwrap();
+        for (current, before) in [
+            ("wasmparser = { version = \"=0.262.0\", default-features = false, features = [\"component-model\", \"features\", \"validate\"] }\nwasm-encoder = { version = \"=0.262.0\", default-features = false, features = [\"std\", \"component-model\"] }\n", "wasmparser = { version = \"=0.261.0\", default-features = false, features = [\"component-model\", \"features\", \"validate\"] }\nwasm-encoder = { version = \"=0.261.0\", default-features = false, features = [\"std\", \"component-model\"] }\n"),
+            ("libc = \"=0.2.191\"\n", "libc = \"=0.2.190\"\n"),
+        ] {
+            assert_eq!(manifest.matches(current).count(), 1);
+            manifest = manifest.replacen(current, before, 1);
+        }
+        bytes = manifest.into_bytes();
+        assert_eq!(bytes.len(), length);
+        assert_eq!(std::fs::read(Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap().as_slice(), include_bytes!("../../Cargo.toml").as_slice());
+    }
     let digest = format!(
         "{:x}",
         semaprax::digest_hex::LowerHex(Sha256::digest(&bytes))

@@ -583,9 +583,18 @@ pub(super) fn expand_v8(
 #[path = "main_e177_overlay_pins_v9.rs"]
 mod pins_v9;
 pub(super) use pins_v9::{expand_v9, SCHEMA_V9};
+
 #[path = "main_e177_overlay_pins_v10.rs"]
 mod pins_v10;
-pub(super) use pins_v10::{expand_v10, SCHEMA_V10};
+pub(super) use pins_v10::{expand_v10, expand_v10_compatible, SCHEMA_V10};
+
+#[path = "main_e177_overlay_pins_v11.rs"]
+mod pins_v11;
+pub(super) use pins_v11::{expand_v11, SCHEMA_V11};
+
+#[path = "main_e177_overlay_labels_v12.rs"]
+mod labels_v12;
+pub(super) use labels_v12::{expand_v12, SCHEMA_V12};
 
 #[cfg(test)]
 mod tests {
@@ -1430,3 +1439,44 @@ mod tests {
         }
     }
 }
+
+// Shared canonical metadata encoding; no source acquisition or authority.
+pub(super) fn canonical(value: &Value) -> Vec<u8> {
+    fn write(v: &Value, out: &mut String) {
+        match v {
+            Value::Object(map) => {
+                out.push('{');
+                for (i, (key, value)) in map.iter().collect::<BTreeMap<_, _>>().iter().enumerate() {
+                    if i != 0 {
+                        out.push(',');
+                    }
+                    out.push_str(&serde_json::to_string(key).unwrap());
+                    out.push(':');
+                    write(value, out);
+                }
+                out.push('}');
+            }
+            Value::Array(array) => {
+                out.push('[');
+                for (i, value) in array.iter().enumerate() {
+                    if i != 0 {
+                        out.push(',');
+                    }
+                    write(value, out);
+                }
+                out.push(']');
+            }
+            _ => out.push_str(&serde_json::to_string(v).unwrap()),
+        }
+    }
+    let mut result = String::new();
+    write(value, &mut result);
+    result.push('\n');
+    result.into_bytes()
+}
+
+#[path = "main_e177_overlay_digests_v13.rs"]
+mod digests_v13;
+pub(super) use digests_v13::{expand_v13, SCHEMA_V13};
+#[cfg(test)]
+pub(super) use digests_v13::{before_source as v13_before, verify_current_v13};

@@ -4,6 +4,12 @@ use std::cell::{Cell, RefCell};
 #[path = "free_order.rs"]
 mod free_order;
 pub(crate) use free_order::watch_free_order;
+#[path = "phase_peaks.rs"]
+#[allow(
+    dead_code,
+    reason = "standalone allocation harnesses omit named intervals"
+)]
+mod phase_peaks;
 
 // Fixed test instrumentation capacity: the original 4096-row selected gate
 // holds 4096 title allocations plus its frame, row/slot tables and owned
@@ -133,6 +139,7 @@ impl State {
         self.metrics.live = live;
         self.metrics.allocations = count;
         self.metrics.highwater = self.metrics.highwater.max(live);
+        phase_peaks::allocated(live);
     }
     fn freed(&mut self, pointer: usize, bytes: usize) {
         free_order::record_free(pointer);

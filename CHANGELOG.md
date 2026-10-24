@@ -1,3 +1,10 @@
+## Fitting scalar cleanup comparison (2026-10-24)
+
+- Prepay both ordinary builder selectors before their new call/header/result/error-probe receivers form, including tiny nonselection. Preserve the upstream 128-path builder crossover and apply the 32-status fitting selector only after nonselection; other payers retain the original route.
+
+- Add a separately prepaid comparison selector for already admitted ordinary builder functions with at least 32 checked statuses and no owning entry state, retaining structural validation, both complete observation languages, paired proof and canonical fallback.
+- Preserve original size/work admission, held skeleton reservations, tiny-function enumeration and independent test controls. Add fitting scalar, malformed/schema/CFG, exact/short, sticky-refusal, foreign-payer and full Drop regressions; this source checkpoint has not executed the new tests or established application-budget improvement.
+
 ## Held replay states and checked native byte reads (2026-10-24)
 
 - Restore the original parent-view source gate by binding the complete current initial-report builder and retaining its exact frozen parent image.
@@ -40,6 +47,33 @@
 - Pin both public and full-host `new` help shapes in the standalone CLI integration regression, matching the existing qualified help contract.
 
 - Pin Tokio 1.53.3 in active manifests, generated consumers and lockfiles to address RUSTSEC-2026-0386. Preserve historical evidence locks and all unrelated locked packages.
+
+- Reuse held stream-command identities, borrowed invariant keys, and closed list/iterator/Option/Result/cleanup identities without changing wire text or admission order.
+- Preserve complete joined source-custody histories within the fixed metadata page limit through canonical V10 archive-prefix references.
+- Reuse closed compiler declaration identities and fund dynamic sort-key identity backing through its existing payer, preserving wire identities and diagnostic precedence.
+- Add optional fixed-storage captures of exclusive resolved-core debits alongside the existing inclusive phase observations, retaining compiler budgets and complete historical source checks.
+
+## Ownership traversal setup and incoming state reuse (#913, #914, 2026-10-22)
+
+- Skip source-move traversal setup for the existing inert root shapes after
+  funded dispatch, retaining the complete predecessor and propagating paths.
+- Retain singleton incoming ownership states and transfer their existing boxes
+  across continuations; preserve sorted multi-state joins and explicit growth
+  funding. Focused execution and unchanged application qualification are pending.
+
+## Factored HIR scratch release (#903, 2026-10-22)
+
+- Release the completed DAG memo and HIR paths before plan construction, retaining
+  owned automaton observations and all prior debits. Fund both new explicit
+  release transports; independent source, result, refusal-frontier and complete
+  Drop controls await the combined focused run. No peak-saving claim is made.
+
+## HIR continuation backing reuse (#912, 2026-10-22)
+
+- Reuse drained typed continuation directories across ordinary functions and
+  contracts in one immutable validation invocation. Retain fresh generic and
+  nested-guard backing, exact publication, the original growth payer and full
+  independent predecessor controls. Focused execution qualification is pending.
 
 ## CI reservation transport and append-only label maps (2026-10-23)
 

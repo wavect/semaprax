@@ -1,20 +1,41 @@
 use super::*;
 #[test]
 fn complete_scalar_and_lexical_success_keep_ordinary_and_immediate_old_owners() {
+    fixture_scope::source_custody();
+    fixture_scope::original_scope(SCALAR, "family.bytes");
+    fixture_scope::original_scope(OWNED_LEXICAL, "family.bytes");
     for (source, ids) in [
         (LEXICAL, &["probe", "main"][..]),
-        (SCALAR, &["family.one", "family.main", "family.bytes"][..]),
+        (SCALAR, &["family.one", "family.main"][..]),
+        (COPY_SCALAR, &["family.one", "family.main"][..]),
+        (OWNED_LEXICAL_LOOP, &["family.bytes"][..]),
     ] {
         let program = program(source);
         crate::cleanup_plan::replay::validate_program(&program).unwrap();
         for id in ids {
+            let f = program
+                .functions
+                .iter()
+                .find(|f| f.id.as_str() == *id)
+                .unwrap();
+            if source == COPY_SCALAR {
+                assert!(!crate::hir::lexical_exit::requires(f).unwrap());
+                assert!(f.cleanup_plan.slots.is_empty());
+            } else if source == OWNED_LEXICAL_LOOP {
+                assert!(crate::hir::lexical_exit::requires(f).unwrap());
+                assert!(!f.cleanup_plan.slots.is_empty());
+            }
             same_owner(&program, id, true);
         }
     }
 }
 #[test]
 fn actual_held_unknown_entry_keeps_complete_old_diagnostic_and_prior_profile_order() {
-    for (source, id) in [(LEXICAL, "probe"), (SCALAR, "family.main")] {
+    for (source, id) in [
+        (LEXICAL, "probe"),
+        (SCALAR, "family.main"),
+        (COPY_SCALAR, "family.main"),
+    ] {
         let mut program = program(source);
         let index = program
             .functions
@@ -30,10 +51,25 @@ fn actual_held_unknown_entry_keeps_complete_old_diagnostic_and_prior_profile_ord
             selected.message.contains("cleanup entry block is unknown"),
             "{selected:?}"
         );
-        assert_eq!(
-            crate::cleanup_plan::replay::validate_program(&program).unwrap_err(),
-            selected
-        );
+        let ordinary = crate::cleanup_plan::replay::validate_program(&program).unwrap_err();
+        if crate::hir::lexical_exit::requires(function).unwrap() {
+            assert_eq!(ordinary, selected, "lexical ordinary first six fields");
+        } else {
+            // The ordinary nonlexical entry does CFG preflight before the
+            // selected scalar profile. Preserve its complete independent old
+            // owner and six fields instead of inventing cross-route precedence.
+            let old = ordinary_cfg_before::bounds(function)
+                .err()
+                .expect("original CFG must refuse unknown entry");
+            assert!(old
+                .message
+                .contains("cleanup replay preflight references an unknown id"));
+            assert_eq!(ordinary, old, "ordinary CFG first six fields");
+            assert_ne!(
+                ordinary, selected,
+                "the original entry routes have distinct first refusals"
+            );
+        }
     }
     let mut program = program(SCALAR);
     let function = program
@@ -90,74 +126,93 @@ fn complete_lexical_hostile_structure_keeps_all_six_fields_and_full_drop() {
 
 #[test]
 fn whole_scalar_finalizer_hostiles_keep_first_six_fields_and_complete_drop() {
-    for case in 0..4 {
-        let mut program = program(SCALAR);
+    for source in [SCALAR, OWNED_LEXICAL, OWNED_LEXICAL_LOOP] {
+        for case in 0..4 {
+            let mut program = program(source);
+            let function = program
+                .functions
+                .iter_mut()
+                .find(|f| f.id.as_str() == "family.bytes")
+                .unwrap();
+            let exit = function
+                .cleanup_plan
+                .exits
+                .iter_mut()
+                .find(|e| !e.finalize_in_order.is_empty())
+                .unwrap();
+            match case {
+                0 => exit.finalize_in_order[0].lifecycle_id = function.id.clone(),
+                1 => exit.finalize_in_order[0].guard_flag = LivenessFlagId(u32::MAX),
+                2 => exit.finalize_in_order[0]
+                    .source
+                    .projections
+                    .push(function.id.clone()),
+                3 => exit
+                    .finalize_in_order
+                    .push(exit.finalize_in_order[0].clone()),
+                _ => unreachable!(),
+            }
+            same_owner(&program, "family.bytes", false);
+        }
+    }
+}
+#[test]
+fn held_duplicate_initialize_is_closed_by_selected_path_receipt() {
+    for text in [SCALAR, OWNED_LEXICAL, OWNED_LEXICAL_LOOP] {
+        let mut program = program(text);
         let function = program
             .functions
             .iter_mut()
             .find(|f| f.id.as_str() == "family.bytes")
             .unwrap();
-        let exit = function
+        assert_eq!(
+            crate::hir::lexical_exit::requires(function).unwrap(),
+            text == OWNED_LEXICAL_LOOP,
+            "the real loop escape determines the selected route"
+        );
+        let block = function
             .cleanup_plan
-            .exits
+            .blocks
             .iter_mut()
-            .find(|e| !e.finalize_in_order.is_empty())
+            .find(|b| {
+                b.transitions
+                    .iter()
+                    .any(|t| matches!(t, CleanupTransition::Initialize { .. }))
+            })
             .unwrap();
-        match case {
-            0 => exit.finalize_in_order[0].lifecycle_id = function.id.clone(),
-            1 => exit.finalize_in_order[0].guard_flag = LivenessFlagId(u32::MAX),
-            2 => exit.finalize_in_order[0]
-                .source
-                .projections
-                .push(function.id.clone()),
-            3 => exit
-                .finalize_in_order
-                .push(exit.finalize_in_order[0].clone()),
-            _ => unreachable!(),
-        }
+        let index = block
+            .transitions
+            .iter()
+            .position(|t| matches!(t, CleanupTransition::Initialize { .. }))
+            .unwrap();
+        block
+            .transitions
+            .insert(index + 1, block.transitions[index].clone());
+        // Structural checks independently authenticate both copies. State replay
+        // must still reject the second live initialization on its existing route.
         same_owner(&program, "family.bytes", false);
+        let source = primitive_fixture::Context::new(&program);
+        let function = program
+            .functions
+            .iter()
+            .find(|f| f.id.as_str() == "family.bytes")
+            .unwrap();
+        let error = owner(&source, function, false).unwrap_err();
+        if text != OWNED_LEXICAL_LOOP {
+            assert_eq!(
+                error,
+                replay_error(
+                    function,
+                    "selected scalar helper body contains non-Copy storage"
+                )
+            );
+        } else {
+            assert!(
+                error
+                    .message
+                    .contains("initialize transition initializes an empty or live cleanup place"),
+                "{error:?}"
+            );
+        }
     }
-}
-#[test]
-fn held_duplicate_initialize_is_closed_by_selected_path_receipt() {
-    let mut program = program(SCALAR);
-    let function = program
-        .functions
-        .iter_mut()
-        .find(|f| f.id.as_str() == "family.bytes")
-        .unwrap();
-    let block = function
-        .cleanup_plan
-        .blocks
-        .iter_mut()
-        .find(|b| {
-            b.transitions
-                .iter()
-                .any(|t| matches!(t, CleanupTransition::Initialize { .. }))
-        })
-        .unwrap();
-    let index = block
-        .transitions
-        .iter()
-        .position(|t| matches!(t, CleanupTransition::Initialize { .. }))
-        .unwrap();
-    block
-        .transitions
-        .insert(index + 1, block.transitions[index].clone());
-    // Structural checks independently authenticate both copies. State replay
-    // must still reject the second live initialization on its existing route.
-    same_owner(&program, "family.bytes", false);
-    let source = primitive_fixture::Context::new(&program);
-    let function = program
-        .functions
-        .iter()
-        .find(|f| f.id.as_str() == "family.bytes")
-        .unwrap();
-    let error = owner(&source, function, false).unwrap_err();
-    assert!(
-        error
-            .message
-            .contains("initialize transition initializes an empty or live cleanup place"),
-        "{error:?}"
-    );
 }

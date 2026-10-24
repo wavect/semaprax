@@ -830,6 +830,12 @@ pub(in crate::cleanup_plan::replay) fn validate_status_sources_held_prefix<'hir>
 
 mod inline_status;
 
+#[macro_use]
+mod last_use;
+#[cfg(test)]
+#[rustfmt::skip]
+#[path = "retained/last_use/before.rs"]
+mod before_structure_release;
 mod ordinary_cross_phase;
 pub(in crate::cleanup_plan::replay) use ordinary_cross_phase::validate_structure_with_budget_storage;
 

@@ -88,6 +88,10 @@ impl Reachability {
         starts: impl ExactSizeIterator<Item = u16> + DoubleEndedIterator,
         work: &mut WorkCounter,
     ) -> Result<Self, Diagnostic> {
+        #[cfg(test)]
+        let _allocation_phase = crate::test_allocation_observer::function_phase_guard(
+            "loan_plan::Reachability::build_rows_and_queue",
+        );
         let words = starts.len().div_ceil(u64::BITS as usize);
         let mut by_point =
             super::storage::filled(words * cfg.points.len(), 0_u64, work.allocation)?

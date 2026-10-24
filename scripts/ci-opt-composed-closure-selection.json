@@ -1,0 +1,182 @@
+{
+  "schema": "semaprax.hosted-opt-batch-selection.v1",
+  "filters": 25,
+  "expected_tests": 130,
+  "commands": [
+    {
+      "owner": "OPT893 complete finite page admission predecessor inverse and independent I/O hostiles",
+      "binary": "lib",
+      "filter": "source_reflows_merge::main_e177_final_inputs::overlay_v2::tests::",
+      "exact": false,
+      "expected_tests": 13
+    },
+    {
+      "owner": "OPT893 complete compiled lookup predecessor and child boundary controls",
+      "binary": "lib",
+      "filter": "source_reflows_merge::main_e177_final_inputs::overlay_v2::compiled_sources::tests::",
+      "exact": false,
+      "expected_tests": 2
+    },
+    {
+      "owner": "OPT893 whole observer projection current prior and foreign source controls",
+      "binary": "lib",
+      "filter": "source_reflows_merge::final_ready_inputs::observer_projection_stage_keeps_whole_current_and_prior_and_refuses_foreign_joins",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT893 complete V11 digest transport and unchanged canonical V10 inverse",
+      "binary": "lib",
+      "filter": "source_reflows_merge::main_e177_final_inputs::overlay_v2::fragments_v3::pins_v11::tests::",
+      "exact": false,
+      "expected_tests": 3
+    },
+    {
+      "owner": "OPT893 both V10 archive-prefix and original519 reference codec owners",
+      "binary": "lib",
+      "filter": "source_reflows_merge::main_e177_final_inputs::overlay_v2::fragments_v3::pins_v10::",
+      "exact": false,
+      "expected_tests": 7
+    },
+    {
+      "owner": "OPT917 canonical lossless view-label codec parity and hostile input controls",
+      "binary": "lib",
+      "filter": "source_reflows_merge::main_e177_final_inputs::overlay_v2::fragments_v3::labels_v12::tests::",
+      "exact": false,
+      "expected_tests": 6
+    },
+    {
+      "owner": "OPT915 compact lexical receiving complete immediate-old caller",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::factored::strategy::compact_receiving::tests::",
+      "exact": false,
+      "expected_tests": 4
+    },
+    {
+      "owner": "OPT903 unchanged dense64 whole public validation forecast and complete Drop gate",
+      "binary": "lib",
+      "filter": "workspace_graph::expected_projection::call_carriers::tests::exact_one_short_zero_and_whole_allocation_drop_controls",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT918 receiving sort owning controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::skeleton_work::enumerated_prefix::receiving_sort::tests::",
+      "exact": false,
+      "expected_tests": 11
+    },
+    {
+      "owner": "allocation observer interval peaks and existing physical accounting invariants",
+      "binary": "lib",
+      "filter": "test_allocation_observer::tests::",
+      "exact": false,
+      "expected_tests": 13
+    },
+    {
+      "owner": "OPT903 exact live-pointer owner receipt preserves complete allocator metrics and Drop",
+      "binary": "lib",
+      "filter": "test_allocation_observer::live_pointer_owner_receipt_preserves_full_metrics_and_drop",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT903 complete immutable PLAN prefix constructor and source custody",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::plan_prefix::tests::",
+      "exact": false,
+      "expected_tests": 9
+    },
+    {
+      "owner": "OPT903 HIR-private memo release proof authentication paid frontiers and full Drop",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::factored::hir_memo_release_tests::",
+      "exact": false,
+      "expected_tests": 7
+    },
+    {
+      "owner": "OPT903 direct continuation output complete immediate old and paid Drop",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::factored::continuation_receiver::tests::",
+      "exact": false,
+      "expected_tests": 7
+    },
+    {
+      "owner": "OPT919 ordinary frontier owning controls including whole and custody",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::frontier_tests::",
+      "exact": false,
+      "expected_tests": 14
+    },
+    {
+      "owner": "OPT919 ordinary lexical owner original search allocation and full diagnostic custody",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::selected_owner::ordinary::tests::",
+      "exact": false,
+      "expected_tests": 3
+    },
+    {
+      "owner": "OPT919 lexical edge producer transport removal and complete prior helper custody",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::held_edge_tests::",
+      "exact": false,
+      "expected_tests": 3
+    },
+    {
+      "owner": "OPT919 shared insertion authority constant tariffs and complete immediate receiver custody",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::shared_insertions_tests::",
+      "exact": false,
+      "expected_tests": 5
+    },
+    {
+      "owner": "OPT892 original ordinary constructor collector order full diagnostics and sticky owner",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_receiving::tests::",
+      "exact": false,
+      "expected_tests": 3
+    },
+    {
+      "owner": "OPT892 original whole ordinary caller actual N M invoice and scalar regression controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::expression_facts::receiving::retained::case_certified::lookup_tests::receiving::",
+      "exact": false,
+      "expected_tests": 4
+    },
+    {
+      "owner": "OPT904 complete borrowed witness ordering cached type diagnostics actual frontiers layout and custody",
+      "binary": "lib",
+      "filter": "hir::validation::lexical_exit::witness_tests::",
+      "exact": false,
+      "expected_tests": 9
+    },
+    {
+      "owner": "OPT904 full independent validator scope identity alias reopen and publication oracle",
+      "binary": "lib",
+      "filter": "hir::iterative_validator_tests::validator_oracle_preserves_direct_child_scope_on_late_errors",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT904 full independent validator scope identity alias reopen and publication oracle",
+      "binary": "lib",
+      "filter": "hir::iterative_validator_tests::validator_oracle_suppresses_failed_block_branch_lazy_and_match_child_scopes",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT904 full independent validator scope identity alias reopen and publication oracle",
+      "binary": "lib",
+      "filter": "hir::iterative_validator_tests::checkpoint_validator_preserves_full_saved_iterative_success_corpus",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT904 actual continuation allocation and excess capacity full first-refusal controls",
+      "binary": "lib",
+      "filter": "hir::validation::scope_checkpoint::tests::actual_continuation_allocator_and_excess_capacity_failures_keep_first_receipts",
+      "exact": true,
+      "expected_tests": 1
+    }
+  ]
+}

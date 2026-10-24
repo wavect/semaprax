@@ -97,6 +97,9 @@ fn lexical_preflight(
 mod tests;
 
 #[cfg(test)]
+pub(super) mod before_reachability_release;
+
+#[cfg(test)]
 #[allow(
     clippy::duplicate_mod,
     reason = "Run the same controls against independent receivers."

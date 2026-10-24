@@ -1,6 +1,6 @@
 """Finite domain membership atop unchanged complete source-role authentication."""
 from pathlib import Path
-import copy,hashlib,json,re,subprocess,sys,tempfile
+import copy,hashlib,importlib.util,json,re,subprocess
 BASE='a82e00cc83f99b16249181c45710d962598577db'
 DREL='docs/evidence/source-boundary-domains-20261016'
 FREL='docs/evidence/a3-e47-final-custody-20261016'
@@ -24,17 +24,11 @@ def original_verifier(repo):
  return ns['verify'],sha(prefix.encode())
 
 def original_generated(repo):
- # Exact original definitions and registration/inventory enumeration, stopping
- # only before its final output loop. This detects missing actual registered
- # descendants independently of the supplied current JSON classes.
+ # Keep the protected original definition as the independently checked legacy
+ # baseline, while ordinary current generation uses the declared successor.
  original=repo/FREL/'generate-authority.py';text=original.read_text();anchor="for name,chunks in [('hir',hir_chunks),('projection',projection_chunks)]:";prefix=text.split(anchor,1)[0];assert len(prefix)<len(text)
- with tempfile.TemporaryDirectory(prefix='boundary-register-',dir='/Volumes/Semaprax/runtime-tmp') as tmp:
-  prior=sys.argv[:]
-  try:
-   sys.argv=[str(original),'--repo',str(repo),'--out',tmp];ns={'__file__':str(original)};exec(compile(prefix,str(original),'exec'),ns)
-   results={name:ns['manifest'](ns[name+'_chunks']) for name in ['hir','projection']}
-  finally:sys.argv=prior
- return results,sha(prefix.encode())
+ successor=repo/DREL/'current_generation.py';spec=importlib.util.spec_from_file_location('semaprax_current_source_generation',successor);module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+ return module.generate(repo),sha(prefix.encode())
 
 def compiled(text):
  text=text.strip()
@@ -91,7 +85,7 @@ def generated_scope(repo,full_dir,regenerated=None):
   s=scope(full,sealed[name]);s['full_manifest_sha256']=sha(raw);s['full_raw_sha256']=sha(whole.encode());s['full_authenticated_production_sha256']=sha(all_production.encode());domains[name]=s
   actual=boundary_text(repo,full,set(s['current_members']));bad=[x for x in forbidden(repo,name) if x in actual];assert not bad,(name,'actual owning boundary forbidden',bad)
   proof[name]=dict(original_roots=len(s['original_roots']),current_boundary_members=len(s['current_members']),current_boundary_production=len(s['production_members']),outside_production_still_fully_authenticated=len(s['fully_authenticated_outside_production']),full_role_production=len(production),full_role_test_only=len(test),full_raw_sha256=s['full_raw_sha256'],boundary_production_sha256=sha(actual.encode()),exact_original_forbidden_tokens=forbidden(repo,name),all_original_coverage_preserved=True,actual_current_registered_children_complete=True,global_polluted_purity_result_not_claimed=True)
- return dict(schema='semaprax.source-boundary-domains.v1',status='SOURCE_ONLY_GENERATED_NOT_RUST_QUALIFICATION',domains=domains),dict(mode='SOURCE_ONLY_NO_RUST_EXECUTION',original_generator_definition_span_sha256=generator_sha,original_verifier_definition_span_sha256=verify_sha,domains=proof)
+ return dict(schema='semaprax.source-boundary-domains.v1',status='SOURCE_ONLY_GENERATED_NOT_RUST_QUALIFICATION',domains=domains),dict(mode='SOURCE_ONLY_NO_RUST_EXECUTION',original_generator_definition_span_sha256=generator_sha,current_generator_source_sha256=sha((repo/DREL/'current_generation.py').read_bytes()),original_verifier_definition_span_sha256=verify_sha,domains=proof)
 
 def negative_checks(repo,full_dir,domains):
  sealed=protected(repo);verify,_=original_verifier(repo)

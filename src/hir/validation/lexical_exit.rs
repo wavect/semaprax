@@ -615,16 +615,24 @@ mod witness_tests {
         FrameRequests,
     ) {
         let capture = Capture::begin();
+        // Reporting storage is harness setup, outside compiler observation.
+        // Every compiler-owned diagnostic is still dropped inside the window.
+        use std::fmt::Write as _;
+        let mut diagnostic_report = String::with_capacity(1 << 16);
         let phase = std::cell::Cell::new("before-resolve");
         let ((success, metrics), refused, paid, receipt) =
             crate::bounded_output::with_limit_usage_refusal(limit, || {
                 assert!(crate::bounded_output::set_active_floor(floor));
-                let measured =
-                    crate::test_allocation_observer::measure_with_capacity(1 << 16, || {
+                let measured = crate::test_allocation_observer::measure_with_capacity(
+                    1 << 16,
+                    || {
                         phase.set("hir::resolve");
                         let resolved = match crate::hir::resolve(checked) {
                             Ok(resolved) => resolved,
                             Err(errors) => {
+                                for error in &errors {
+                                    writeln!(&mut diagnostic_report, "OPT904_DIAGNOSTIC phase=hir::resolve code={:?} severity={:?} message={:?} path={:?} span={:?} help={:?}", error.code, error.severity, error.message, error.path, error.span, error.help).unwrap();
+                                }
                                 assert!(errors.iter().all(|error| error.code == "SPX-H006"));
                                 drop(errors);
                                 return false;
@@ -633,6 +641,7 @@ mod witness_tests {
                         phase.set("second hir::validate");
                         let outcome = crate::hir::validate(&resolved);
                         if let Err(error) = &outcome {
+                            writeln!(&mut diagnostic_report, "OPT904_DIAGNOSTIC phase=hir::validate code={:?} severity={:?} message={:?} path={:?} span={:?} help={:?}", error.code, error.severity, error.message, error.path, error.span, error.help).unwrap();
                             assert_eq!(error.code, "SPX-H006");
                         }
                         let success = outcome.is_ok();
@@ -642,7 +651,8 @@ mod witness_tests {
                         drop(outcome);
                         drop(resolved);
                         success
-                    });
+                    },
+                );
                 let ledger = crate::bounded_output::classifier_string::ClassifierLedger::capture();
                 let first = ledger.first_refusal();
                 let remaining = crate::bounded_output::active_remaining();
@@ -655,6 +665,11 @@ mod witness_tests {
                 measured
             });
         let frame = capture.finish();
+        // Darwin stderr's process-lifetime lock belongs to reporting, never
+        // to the compiler's allocation/Drop interval.
+        if !diagnostic_report.is_empty() {
+            eprint!("{diagnostic_report}");
+        }
         // Observation follows the complete allocation window, both ledger
         // passes, original sticky-refusal checks and all owned compiler Drop.
         if !success || refused || receipt.is_some() || metrics.invalid || metrics.live != 0 {
@@ -874,6 +889,83 @@ mod witness_tests {
     }
 
     #[test]
+    fn complete_public_cold_sequential_and_nested_match_callers_report_actual_frame_and_replacement_bills(
+    ) {
+        let mut cases = vec![
+            ("literal", 0usize, "module cold; @id(\"cold.main\") fn main()->i64 {1}".to_owned()),
+            ("call", 0usize, "module cold; @id(\"cold.f\") fn f(x:i64)->i64 {x} @id(\"cold.main\") fn main()->i64 {f(1)}".to_owned()),
+        ];
+        for count in [1usize, 8, 32] {
+            let mut body = String::new();
+            for index in 0..count {
+                body.push_str(&format!("let n{index}=match 0 {{_=>1,}};"));
+            }
+            body.push_str("1");
+            cases.push((
+                "sequential",
+                count,
+                format!("module sequential; @id(\"sequence.main\") fn main()->i64 {{{body}}}"),
+            ));
+            let mut body = "1".to_owned();
+            for _ in 0..count {
+                body = format!("match 0 {{_=>{body},}}");
+            }
+            cases.push((
+                "nested",
+                count,
+                format!("module nested; @id(\"nested.main\") fn main()->i64 {{{body}}}"),
+            ));
+        }
+        // A single exhaustive arm keeps one PLAN path. Sequential matches grow
+        // witness joins without introducing an exponential path-product fixture.
+        for (shape, count, source) in cases {
+            let checked = crate::check(&source, "matched-frame-shape.spx").unwrap();
+            let (success, metrics, refused, paid, receipt, report) =
+                run_public(&checked, &source, 64 << 20, 0);
+            let replacement = report
+                .joins
+                .checked_mul(WITNESS_JOIN)
+                .unwrap()
+                .checked_add(report.variant_views.checked_mul(VARIANT_VIEWS).unwrap())
+                .unwrap()
+                .checked_add(report.arm_views.checked_mul(VARIANT_ARM_VIEW).unwrap())
+                .unwrap()
+                .checked_add(report.finishes.checked_mul(WITNESS_FINISH).unwrap())
+                .unwrap();
+            let source_sha256 = {
+                use sha2::Digest;
+                format!(
+                    "{:x}",
+                    crate::digest_hex::LowerHex(sha2::Sha256::digest(source.as_bytes()))
+                )
+            };
+            eprintln!(
+                "OPT904_SHAPE_JSON {}",
+                serde_json::json!({
+                    "source_sha256": source_sha256,
+                    "source_bytes": source.len(), "shape": shape, "match_count": count,
+                    "success": success, "refused": refused, "first_refusal": format!("{receipt:?}"),
+                    "limit": 64usize << 20, "floor": 0, "paid": paid,
+                    "frame_size": report.size, "frame_align": report.alignment,
+                    "requested_capacity": report.requested_capacity, "acquired_capacity": report.acquired_capacity,
+                    "requests": report.requests, "joins": report.joins, "variant_views": report.variant_views,
+                    "arm_views": report.arm_views, "finishes": report.finishes,
+                    "replacement_bill": replacement, "overflow": report.overflow,
+                    "allocated": metrics.allocated, "freed": metrics.freed, "live": metrics.live, "invalid": metrics.invalid,
+                    "matched_old_image_required": true, "no_clone_payload_credit": true
+                })
+            );
+            assert!(
+                success && !refused && receipt.is_none(),
+                "complete unchanged-capacity caller {shape}/{count}"
+            );
+            assert!(!metrics.invalid && metrics.live == 0 && metrics.allocated == metrics.freed);
+            assert!(!report.overflow && report.size > 0 && report.alignment.is_power_of_two());
+            assert_eq!(report.requested_capacity, report.acquired_capacity);
+        }
+    }
+
+    #[test]
     fn whole_immediate_production_frame_dispatch_helper_and_invoice_restore_and_refuse_drift() {
         use sha2::{Digest, Sha256};
         fn hash(bytes: &[u8]) -> String {
@@ -901,9 +993,17 @@ mod witness_tests {
         }
         let inverse: serde_json::Value =
             serde_json::from_str(include_str!("match_witness_inverse.json")).unwrap();
-        let sources = [
+        let original_root = frame_reuse::source_inverse::whole_root(
+            "src/hir/validation.rs",
             include_str!("../validation.rs"),
+        );
+        let original_lexical = frame_reuse::source_inverse::whole_root(
+            "src/hir/validation/lexical_exit.rs",
             include_str!("lexical_exit.rs"),
+        );
+        let sources = [
+            original_root.as_str(),
+            original_lexical.as_str(),
             include_str!("scope_checkpoint/storage.rs"),
         ];
         let before = [
@@ -938,17 +1038,10 @@ mod witness_tests {
             drift[0] ^= 1;
             assert!(restore(row, &drift).is_none());
         }
-        let body = sources[0]
-            .split_once("    fn validate_expr_iterative_effects(")
+        let frame = include_str!("continuation_frame.rs")
+            .split_once("pub(super) enum Frame<'e> {")
             .unwrap()
             .1;
-        let frame = body
-            .split_once("        enum Frame<'e> {")
-            .unwrap()
-            .1
-            .split_once("        const {")
-            .unwrap()
-            .0;
         assert!(
             !frame.contains("#[cfg"),
             "instrumentation cannot change shipping frame layout"
@@ -962,5 +1055,42 @@ mod witness_tests {
             .unwrap()
             .0;
         assert_eq!(storage, "\n    values: Vec<T>,\n");
+    }
+    #[test]
+    fn invocation_reuse_unwinds_live_scopes_and_witness_before_publication_drop() {
+        let checked = crate::check(SCALAR, "reuse-witness-unwind.spx").unwrap();
+        let program = crate::hir::resolve(&checked).unwrap();
+        let function = program
+            .functions
+            .iter()
+            .find(|f| f.id.as_str() == "w.f")
+            .unwrap();
+        let validator = HirValidator::new(&program).unwrap();
+        let capture = Capture::begin();
+        let (((), metrics), refused, _, receipt) =
+            crate::bounded_output::with_limit_usage_refusal(64 << 20, || {
+                crate::test_allocation_observer::measure_with_capacity(1 << 16, || {
+                    PANIC_AFTER_WITNESS.with(|flag| flag.set(true));
+                    let caught = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                        let mut validator = validator;
+                        let mut scratch = frame_reuse::Scratch::new().unwrap();
+                        frame_reuse::argument().unwrap();
+                        validator
+                            .validate_function_with_frames(
+                                function,
+                                &FunctionExecutionId::Monomorphic(function.id.clone()),
+                                Some(&mut scratch),
+                            )
+                            .unwrap();
+                    }));
+                    assert!(caught.is_err());
+                    drop(caught);
+                    PANIC_AFTER_WITNESS.with(|flag| flag.set(false));
+                })
+            });
+        let report = capture.finish();
+        assert!(!refused && receipt.is_none() && report.joins > 0 && !report.overflow);
+        assert!(!metrics.invalid && metrics.live == 0 && metrics.allocated == metrics.freed);
+        crate::hir::validate(&program).unwrap();
     }
 }

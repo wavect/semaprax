@@ -1,0 +1,79 @@
+module test.nested_outcome_capacity;
+
+@id("capacity.config")
+record Config {
+    @id("capacity.config.label")
+    label: string,
+    @id("capacity.config.seed")
+    seed: i64,
+}
+
+@id("capacity.payload")
+record Payload {
+    @id("capacity.payload.items")
+    items: Vec<i64>,
+    @id("capacity.payload.config")
+    config: Config,
+    @id("capacity.payload.bytes")
+    bytes: Bytes,
+}
+
+@id("capacity.outcome")
+variant Outcome {
+    @id("capacity.outcome.ready")
+    Ready {
+        @id("capacity.outcome.value")
+        value: Payload,
+    },
+    @id("capacity.outcome.error")
+    Error {
+        @id("capacity.outcome.code")
+        code: i64,
+        @id("capacity.outcome.offset")
+        offset: usize,
+        @id("capacity.outcome.field")
+        field: i64,
+    },
+}
+
+@id("capacity.make")
+fn make(capacity: usize, count: usize) -> Outcome
+{
+    let mut items = vec_with_capacity<i64>(capacity);
+    let mut at = 0usize;
+    while at < count {
+        items = vec_push<i64>(items, i64_from_usize(at));
+        at = at + 1usize;
+        at < count
+    }
+    Outcome::Ready { value: Payload { items: items, config: Config { label: "kept", seed: 7 }, bytes: bytes_zeroed(3usize) } }
+}
+
+@id("capacity.forward")
+fn forward(value: own Outcome) -> Outcome
+{
+    value
+}
+
+@id("capacity.inspect")
+fn inspect(value: borrow Outcome, capacity: usize, count: usize) -> i64
+{
+    match borrow value { Outcome::Ready { value: payload } => { let valid = vec_len<i64>(payload.items) == count && vec_capacity<i64>(payload.items) == capacity; let edges = if count == 0usize { true } else { vec_get<i64>(payload.items, 0usize) == 0 && vec_get<i64>(payload.items, count - 1usize) == i64_from_usize(count - 1usize) }; let byte_count = match borrow payload { Payload { items: borrowed_items, config: Config { label: borrowed_label, seed: borrowed_seed }, bytes: borrowed_bytes } => byte_len(bytes_as_slice(borrowed_bytes)), }; if valid && edges && payload.config.seed == 7 && str_len_bytes(string_as_str(payload.config.label)) == 4 && byte_count == 3usize { 42 } else { 0 } }, Outcome::Error { code, offset, field } => 0, }
+}
+
+@id("capacity.finish")
+fn finish(value: own Outcome, capacity: usize, count: usize) -> i64
+{
+    match own value { Outcome::Ready { value: payload } => match own payload { Payload { items, config: Config { label, seed }, bytes } => { let mut valid = vec_len<i64>(items) == count && vec_capacity<i64>(items) == capacity; let mut at = 0usize; while at < count { valid = valid && vec_get<i64>(items, at) == i64_from_usize(at); at = at + 1usize; at < count } if valid && seed == 7 && string_len(label) == 4 && byte_len(bytes_as_slice(bytes)) == 3usize { 42 } else { 0 } }, }, Outcome::Error { code, offset, field } => 0, }
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    let value = make(0usize, 0usize);
+    let before = inspect(value, 0usize, 0usize);
+    let moved = forward(value);
+    let after = inspect(moved, 0usize, 0usize);
+    let consumed = finish(moved, 0usize, 0usize);
+    if before == 42 && after == 42 { consumed } else { 0 }
+}

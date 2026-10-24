@@ -5,7 +5,7 @@ use super::*;
 
 const INLINE: usize = 8;
 
-pub(in crate::hir::validation::function_scope) struct Collector<'a> {
+pub(in crate::hir::validation) struct Collector<'a> {
     program: &'a ResolvedProgram,
     effects: BTreeSet<String>,
     completed: [Option<&'a DeclarationId>; INLINE],
@@ -15,7 +15,7 @@ pub(in crate::hir::validation::function_scope) struct Collector<'a> {
 }
 
 impl<'a> Collector<'a> {
-    pub(in crate::hir::validation::function_scope) fn new(program: &'a ResolvedProgram) -> Self {
+    pub(in crate::hir::validation) fn new(program: &'a ResolvedProgram) -> Self {
         Self {
             program,
             effects: BTreeSet::new(),
@@ -56,7 +56,7 @@ impl<'a> Collector<'a> {
         Some(&item.id)
     }
 
-    pub(in crate::hir::validation::function_scope) fn extend(
+    pub(in crate::hir::validation) fn extend(
         &mut self,
         ty: &ResolvedType,
     ) -> Result<(), Diagnostic> {
@@ -99,7 +99,7 @@ impl<'a> Collector<'a> {
         Ok(())
     }
 
-    pub(in crate::hir::validation::function_scope) fn iter(&self) -> impl Iterator<Item = &String> {
+    pub(in crate::hir::validation) fn iter(&self) -> impl Iterator<Item = &String> {
         self.effects.iter()
     }
 }

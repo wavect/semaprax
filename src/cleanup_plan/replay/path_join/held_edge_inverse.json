@@ -1,0 +1,121 @@
+[
+  {
+    "path": "src/cleanup_plan/replay/path_join.rs",
+    "length": 52505,
+    "sha256": "a4be447ed96e73c45044675adf1c7d85606fbc194683a6d583b63a3bb3a24896",
+    "before_length": 52606,
+    "before_sha256": "0e6ad23012b88e3b36e336bbbe13045352017db91d5bc384ebdf57c39c9d0fe1",
+    "edits": [
+      [
+        600,
+        "#[cfg(test)]\n#[allow(\n    dead_code,\n    reason = \"complete independently compiled pre-inline receiving producers\"\n)]\nmod held_edge_before;\n#[cfg(test)]\nmod held_edge_tests;\n",
+        ""
+      ],
+      [
+        7616,
+        "        budget.reserve_bytes(\n            function,\n            boxed_flow::BLOCK_CONTROLS,\n            \"ordinary frontier block and singleton receiving\",\n        )?;\n",
+        "        boxed_flow::reserve_block(function, budget)?;\n"
+      ],
+      [
+        10036,
+        "            validate_join_compatibility(\n                function,\n                std::iter::empty(),\n                states.one().as_ref(),\n                block_id,\n                budget,\n            )?;\n",
+        "            boxed_flow::validate_singleton(function, states.one(), block_id, budget)?;\n"
+      ],
+      [
+        12119,
+        "                    boxed_flow::held_edge!(function, state, &edge.condition, contract_sources);\n",
+        "                    let state = boxed_flow::state_for_edge(\n                        function,\n                        state,\n                        &edge.condition,\n                        &contract_sources,\n                        budget,\n                    )?;\n"
+      ],
+      [
+        16153,
+        "                        boxed_flow::held_edge!(function, state, &edge.condition, contract_sources);\n                        let next = state;\n",
+        "                        let next = boxed_flow::state_for_edge(\n                            function,\n                            state,\n                            &edge.condition,\n                            &contract_sources,\n                            budget,\n                        )?;\n"
+      ],
+      [
+        26810,
+        "            budget.reserve_bytes(\n                function,\n                boxed_flow::BLOCK_CONTROLS,\n                \"ordinary frontier block and singleton receiving\",\n            )?;\n",
+        "            boxed_flow::reserve_block(function, budget)?;\n"
+      ],
+      [
+        29433,
+        "                    boxed_flow::held_edge!(function, state, &edge.condition, contract_sources);\n",
+        "                    let state = boxed_flow::state_for_edge(\n                        function,\n                        state,\n                        &edge.condition,\n                        &contract_sources,\n                        budget,\n                    )?;\n"
+      ],
+      [
+        33467,
+        "                        boxed_flow::held_edge!(function, state, &edge.condition, contract_sources);\n                        let next = state;\n",
+        "                        let next = boxed_flow::state_for_edge(\n                            function,\n                            state,\n                            &edge.condition,\n                            &contract_sources,\n                            budget,\n                        )?;\n"
+      ]
+    ],
+    "full_before": "src/cleanup_plan/replay/path_join/held_edge_before_driver.rs.txt"
+  },
+  {
+    "path": "src/cleanup_plan/replay/path_join/boxed_flow.rs",
+    "length": 4467,
+    "sha256": "6632ceeabe694a459ac118deeb68d858ac2dfa75e6d3ab6dccd3fc7c24e91c3d",
+    "before_length": 4976,
+    "before_sha256": "7a65cb189abb3084ad8c14f4a207f6a6b8abea4f4eeb19d3082b355154039db1",
+    "edits": [
+      [
+        493,
+        "    budget.reserve_bytes(\n        function,\n        size_of::<(\n            &ResolvedFunction,\n            usize,\n            &mut ReplayBudget,\n            Result<(), Diagnostic>,\n            Vec<frontier::Incoming<PathState>>,\n            &mut Vec<frontier::Incoming<PathState>>,\n            fn() -> frontier::Incoming<PathState>,\n        )>() + HELD_EDGE_TERMINAL,\n        \"ordinary frontier directory receiving\",\n    )?;\n",
+        "    budget.reserve_array::<(\n        &ResolvedFunction,\n        usize,\n        &mut ReplayBudget,\n        Result<(), Diagnostic>,\n        Vec<frontier::Incoming<PathState>>,\n        &mut Vec<frontier::Incoming<PathState>>,\n        fn() -> frontier::Incoming<PathState>,\n    )>(function, 1, \"ordinary frontier directory receiving\")?;\n"
+      ],
+      [
+        1222,
+        "// Direct lexical producers remove the two forwarding Result wrappers and\n// owned Box/Result<Box> edge boundary; every other original bank is retained.\npub(super) const BLOCK_CONTROLS: usize = 4 * size_of::<frontier::Incoming<PathState>>()\n",
+        "pub(super) fn reserve_block(\n    function: &ResolvedFunction,\n    budget: &mut ReplayBudget,\n) -> Result<(), Diagnostic> {\n    // Charge every dynamic control group as well as the outer block. The\n    // single incoming branch uses its block bank; a Many group pays again.\n    budget.reserve_bytes(\n        function,\n        4 * size_of::<frontier::Incoming<PathState>>()\n"
+      ],
+      [
+        2307,
+        "",
+        "            + 2 * size_of::<Result<(), Diagnostic>>()\n"
+      ],
+      [
+        2630,
+        "",
+        "                Box<PathState>,\n"
+      ],
+      [
+        2754,
+        "",
+        "                Result<Box<PathState>, Diagnostic>,\n"
+      ],
+      [
+        2913,
+        "            )>();\n",
+        "            )>(),\n        \"ordinary frontier block and singleton receiving\",\n    )\n}\n"
+      ],
+      [
+        2932,
+        "// One terminal local Diagnostic and its conversion operand, plus the actual\n// and formal Box of explicit drop before converting the selected error.\npub(super) const HELD_EDGE_TERMINAL: usize =\n    2 * size_of::<Diagnostic>() + 2 * size_of::<Box<PathState>>();\n\nmacro_rules! held_edge {\n    ($function:expr, $state:ident, $condition:expr, $sources:ident) => {{\n        if $state.pending_failure.is_some() || $state.selected_failure.is_some() || $state.published\n        {\n            let error = replay_error(\n                $function,\n                \"conditional edge follows pending, selected, or published state\",\n            );\n            // The removed callee dropped its owned Box before returning its\n            // Diagnostic to the caller for E conversion. Keep that exact order.\n            drop($state);\n            return Err(error.into());\n        }\n        match $condition {\n            EdgeCondition::Always => {}\n            EdgeCondition::BooleanResult(expression, false) => {\n                if let Some(source) = $sources.get(expression) {\n                    $state.pending_failure = Some(source.clone());\n                }\n            }\n            EdgeCondition::BooleanResult(_, true)\n            | EdgeCondition::VariantCase { .. }\n            | EdgeCondition::ArmSelected { .. }\n            | EdgeCondition::StatusZero(_) => {}\n            EdgeCondition::StatusNonzero(source) => {\n                $state.pending_failure = Some(source.clone());\n",
+        "pub(super) fn state_for_edge(\n    function: &ResolvedFunction,\n    mut state: Box<PathState>,\n    condition: &EdgeCondition,\n    contract_sources: &BTreeMap<ExpressionId, StatusSourceId>,\n    budget: &mut ReplayBudget,\n) -> Result<Box<PathState>, Diagnostic> {\n    // The owning block/group bank precedes formation of this call and its\n    // Box argument. A refused edge drops that same allocation.\n    let _ = budget;\n    if state.pending_failure.is_some() || state.selected_failure.is_some() || state.published {\n        return Err(replay_error(\n            function,\n            \"conditional edge follows pending, selected, or published state\",\n        ));\n    }\n    match condition {\n        EdgeCondition::Always => {}\n        EdgeCondition::BooleanResult(expression, false) => {\n            if let Some(source) = contract_sources.get(expression) {\n                state.pending_failure = Some(source.clone());\n"
+      ],
+      [
+        4431,
+        "    }};\n",
+        "        EdgeCondition::BooleanResult(_, true)\n        | EdgeCondition::VariantCase { .. }\n        | EdgeCondition::ArmSelected { .. }\n        | EdgeCondition::StatusZero(_) => {}\n        EdgeCondition::StatusNonzero(source) => {\n            state.pending_failure = Some(source.clone());\n        }\n    }\n    Ok(state)\n"
+      ],
+      [
+        4441,
+        "pub(super) use held_edge;\n",
+        "\n#[allow(\n    clippy::borrowed_box,\n    reason = \"validate the exact retained Box without rebuilding a tree\"\n)]\npub(super) fn validate_singleton(\n    function: &ResolvedFunction,\n    state: &Box<PathState>,\n    block: BlockId,\n    budget: &mut ReplayBudget,\n) -> Result<(), Diagnostic> {\n    // The complete original validator sees precisely the empty sorted prefix\n    // of the singleton. It still validates the history union and every field.\n    validate_join_compatibility(function, std::iter::empty(), state.as_ref(), block, budget)\n}\n"
+      ]
+    ],
+    "full_before": "src/cleanup_plan/replay/path_join/held_edge_before.rs"
+  },
+  {
+    "path": "src/cleanup_plan/replay/path_join/frontier_tests.rs",
+    "length": 19986,
+    "sha256": "d6fddcc766fc297e99577b23225cd482bcc7a11223291f9cbb11fd347f339f62",
+    "before_length": 19863,
+    "before_sha256": "ee707694ffb128fdf89cf7466facb93bd02b2dd2a47ac1fa565121baf7793e94",
+    "edits": [
+      [
+        139,
+        "// Keep every original direct helper control against its complete old producer.\nuse super::held_edge_before as boxed_flow;\n",
+        ""
+      ]
+    ]
+  }
+]

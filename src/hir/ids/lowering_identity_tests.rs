@@ -22,6 +22,88 @@ fn sha(bytes: &[u8]) -> String {
 }
 
 pub(super) fn prior_source(source: &str, current: &str) -> String {
+    let identity_batch_before = if source == "src/hir/ids/compiler.rs" {
+        let mut before = current.to_owned();
+        for added in [
+            "    Result,\n    ResultOk,\n    ResultOkValue,\n    ResultErr,\n    ResultErrError,\n",
+            "    ListNil,\n    ListCons,\n    ListHead,\n    ListTail,\n",
+            "    BoxDrop,\n    IterDrop,\n",
+            "            Self::Result => crate::prelude::RESULT_ID,\n            Self::ResultOk => crate::prelude::RESULT_OK_ID,\n            Self::ResultOkValue => crate::prelude::RESULT_OK_VALUE_ID,\n            Self::ResultErr => crate::prelude::RESULT_ERR_ID,\n            Self::ResultErrError => crate::prelude::RESULT_ERR_ERROR_ID,\n",
+            "            Self::ListNil => crate::list_ops::NIL_CASE_ID,\n            Self::ListCons => crate::list_ops::CONS_CASE_ID,\n            Self::ListHead => crate::list_ops::HEAD_ID,\n            Self::ListTail => crate::list_ops::TAIL_ID,\n",
+            "            Self::BoxDrop => crate::cleanup::BOX_DROP_LIFECYCLE_ID,\n            Self::IterDrop => crate::cleanup::ITER_DROP_LIFECYCLE_ID,\n",
+        ] {
+            assert_eq!(before.matches(added).count(), 1);
+            before = before.replacen(added, "", 1);
+        }
+        Some(before)
+    } else {
+        None
+    };
+    let current = identity_batch_before.as_deref().unwrap_or(current);
+    // Reverse only rustfmt's split of the retained lowering-source arguments.
+    // The complete pre-format source must still satisfy every original pin.
+    let formatted_operation_before = if source == "src/hir/ids/fixed_operation_tests.rs" {
+        assert_eq!(current, include_str!("fixed_operation_tests.rs"));
+        let formatted = "        \"src/hir/ids.rs\",\n        ci_str!(\"../../../src/hir/ids.rs\"),";
+        let original = "        \"src/hir/ids.rs\", ci_str!(\"../../../src/hir/ids.rs\"),";
+        assert_eq!(current.matches(formatted).count(), 1);
+        Some(current.replacen(formatted, original, 1))
+    } else {
+        None
+    };
+    let current = formatted_operation_before.as_deref().unwrap_or(current);
+    // Bind the final complete operation-source owner before every unchanged
+    // earlier control repair and immutable lowering inverse below.
+    let operation_before = if source == "src/hir/ids/fixed_operation_tests.rs" {
+        assert_eq!(current.len(), 42383);
+        assert_eq!(
+            sha(current.as_bytes()),
+            "2e6b11b6f13468c0a57c6bf4fe180c46a502736f5737bacf458b302bccfc4f43"
+        );
+        let mut before = current.to_owned();
+        for added in ["    // Authenticate the complete compiled generation before reversing only the\n    // retained-source profiling accessor; the original whole-file inverse below\n    // still reconstructs every pre-profile constructor byte.\n    assert_eq!(current, include_str!(\"../../../src/list_ops.rs\"));\n    assert_eq!(\n        format!(\n            \"{:x}\",\n            crate::digest_hex::LowerHex(<sha2::Sha256 as sha2::Digest>::digest(current.as_bytes()))\n        ),\n        \"eaf364364d29ea595520b8390a195ddd947a9caab5969b5c86cf1cf6c1923ab2\"\n    );\n    let profiled = \"program.functions().profile_iter().any(function_uses)\";\n    let ordinary = \"program.functions().iter().any(function_uses)\";\n    assert_eq!(current.matches(profiled).count(), 1);\n    let unprofiled = current.replacen(profiled, ordinary, 1);\n    let current = unprofiled.as_str();\n",
+            "    // Authenticate the complete Map catalogue before reversing only its\n    // retained-source profiling accessor; retain the original const-id inverse.\n    assert_eq!(current, include_str!(\"../../../src/map_ops.rs\"));\n    assert_eq!(current.len(), 16989);\n    assert_eq!(\n        format!(\n            \"{:x}\",\n            crate::digest_hex::LowerHex(<sha2::Sha256 as sha2::Digest>::digest(current.as_bytes()))\n        ),\n        \"adf43789d79a542aa5b160665a65f10a9ea116490efbbf1f91f6202651dd1dcf\"\n    );\n    let profiled = \"program.functions().profile_iter().any(|function| {\";\n    let ordinary = \"program.functions().iter().any(|function| {\";\n    assert_eq!(current.matches(profiled).count(), 1);\n    let unprofiled = current.replacen(profiled, ordinary, 1);\n    let current = unprofiled.as_str();\n"] {
+            assert_eq!(before.matches(added).count(), 1);
+            before = before.replacen(added, "", 1);
+        }
+        assert_eq!(before.len(), 40750);
+        assert_eq!(
+            sha(before.as_bytes()),
+            "f5ca1f734cd8ae4c3ecd9c73a65da5ff263d01cd412ffc97b4a00a326dc0f42d"
+        );
+        Some(before)
+    } else {
+        None
+    };
+    let current = operation_before.as_deref().unwrap_or(current);
+    // Authenticate the whole formatted owner, then reverse only its two exact
+    // rustfmt rewrites before every unchanged historical pin and edit below.
+    let declaration_before_formatting = if source == "src/hir/ids/declaration_tag.rs" {
+        assert_eq!(current, include_str!("declaration_tag.rs"));
+        assert_eq!(current.len(), 29925);
+        assert_eq!(
+            sha(current.as_bytes()),
+            "2cee894230ef7b0533f57da0523a6e9c31cdfe9470e3ded9462d3eb9eb09ef6d"
+        );
+        let mut before = current.to_owned();
+        for (formatted, original) in [
+            (
+                "    ids.extend(\n        super::lowering_identity_tests::cases()\n            .into_iter()\n            .map(|(tag, _)| tag),\n    );",
+                "    ids.extend(super::lowering_identity_tests::cases().into_iter().map(|(tag, _)| tag));",
+            ),
+            (
+                "    let ids_before_lowering =\n        super::lowering_identity_tests::prior_source(\"src/hir/ids.rs\", include_str!(\"../ids.rs\"));\n",
+                "    let ids_before_lowering = super::lowering_identity_tests::prior_source(\n        \"src/hir/ids.rs\", include_str!(\"../ids.rs\"),\n    );\n",
+            ),
+        ] {
+            assert_eq!(before.matches(formatted).count(), 1);
+            before = before.replacen(formatted, original, 1);
+        }
+        Some(before)
+    } else {
+        None
+    };
+    let current = declaration_before_formatting.as_deref().unwrap_or(current);
     // Exact current control repairs precede the immutable complete lowering
     // inverse. Every archived baseline and original old-body check stays intact.
     let repaired = match source {
@@ -130,6 +212,19 @@ pub(super) fn cases() -> Vec<(CompilerDeclaration, &'static str)> {
         (C::Option, crate::prelude::OPTION_ID),
         (C::OptionSome, crate::prelude::OPTION_SOME_ID),
         (C::OptionSomeValue, crate::prelude::OPTION_SOME_VALUE_ID),
+        (C::Result, crate::prelude::RESULT_ID),
+        (C::ResultOk, crate::prelude::RESULT_OK_ID),
+        (C::ResultOkValue, crate::prelude::RESULT_OK_VALUE_ID),
+        (C::ResultErr, crate::prelude::RESULT_ERR_ID),
+        (C::ResultErrError, crate::prelude::RESULT_ERR_ERROR_ID),
+        (C::ListNil, crate::list_ops::NIL_CASE_ID),
+        (C::ListCons, crate::list_ops::CONS_CASE_ID),
+        (C::ListHead, crate::list_ops::HEAD_ID),
+        (C::ListTail, crate::list_ops::TAIL_ID),
+        (C::BytesDrop, crate::cleanup::BYTES_DROP_LIFECYCLE_ID),
+        (C::VecDrop, crate::cleanup::VEC_DROP_LIFECYCLE_ID),
+        (C::BoxDrop, crate::cleanup::BOX_DROP_LIFECYCLE_ID),
+        (C::IterDrop, crate::cleanup::ITER_DROP_LIFECYCLE_ID),
     ];
     result.extend(
         crate::byte_ops::ByteOp::ALL
@@ -163,6 +258,7 @@ fn every_closed_lowering_identity_keeps_owned_wire_traits_zero_allocation_and_st
             measure(|| {
                 let id = DeclarationId::compiler(tag);
                 assert!(id.is_compiler_static());
+                assert_eq!(id.owned_allocation_bytes(), 0);
                 assert_eq!(id.as_str().as_bytes(), bytes.as_bytes());
                 drop([id.clone(), id]);
             })
@@ -212,6 +308,60 @@ fn expr(
         ownership,
         kind: ResolvedExprKind::Int(0),
         span: crate::ast::Span::default(),
+    }
+}
+
+#[test]
+fn migrated_list_iterator_option_and_result_sites_use_only_closed_compiler_tags() {
+    let sites = [
+        include_str!("../../codegen/native_emit/expression/list_ops.rs"),
+        include_str!("../../codegen/native_iter.rs"),
+        include_str!("../../interpreter/iterator.rs"),
+        include_str!("../../interpreter/list.rs"),
+        include_str!("../../wasm/aggregate/iterator_ops/owned.rs"),
+        include_str!("../../codegen/native_emit/indexed_reads.rs"),
+        include_str!("../../codegen/native_emit/text_toolkit.rs"),
+        include_str!("../../codegen/native_owned_data_provider.rs"),
+        include_str!("../fused_construction/correspond.rs"),
+        include_str!("../owned_result_try.rs"),
+        include_str!("../../wasm/aggregate/indexed_reads.rs"),
+        include_str!("../../wasm/aggregate/internal_strings.rs"),
+    ];
+    let source = sites.concat();
+    for legacy in [
+        "DeclarationId::new(list_ops::",
+        "DeclarationId::new(iterator_ops::",
+        "DeclarationId::new(crate::iterator_ops::",
+        "DeclarationId::new(crate::prelude::OPTION_",
+        "DeclarationId::new(crate::prelude::RESULT_",
+    ] {
+        assert_eq!(source.matches(legacy).count(), 0, "legacy site: {legacy}");
+    }
+    for tag in [
+        "ListNil",
+        "ListCons",
+        "ListHead",
+        "ListTail",
+        "ListStep",
+        "IterYield",
+        "IterDone",
+        "IterItem",
+        "IterRest",
+        "IterStep",
+        "Option",
+        "OptionNone",
+        "OptionSome",
+        "OptionSomeValue",
+        "Result",
+        "ResultOk",
+        "ResultOkValue",
+        "ResultErr",
+        "ResultErrError",
+    ] {
+        assert!(
+            source.contains(&format!("CompilerDeclaration::{tag}")),
+            "missing tag: {tag}"
+        );
     }
 }
 
@@ -613,5 +763,12 @@ fn complete_source_inverses_and_independent_old_lowering_bodies_remain_exact() {
         originals[0].1.clone(),
     ] {
         assert!(std::panic::catch_unwind(|| prior_source(sources[0].0, &hostile)).is_err());
+    }
+    for hostile in [
+        format!("{} ", sources[7].1),
+        sources[7].1[..sources[7].1.len() - 1].to_owned(),
+        originals[7].1.clone(),
+    ] {
+        assert!(std::panic::catch_unwind(|| prior_source(sources[7].0, &hostile)).is_err());
     }
 }

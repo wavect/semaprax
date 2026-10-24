@@ -470,7 +470,7 @@ macro_rules! certified_suffix {
 // stacks identify the SAME next nonempty segment, including on paths whose
 // previous segments differed. Empty/different successors take the old route.
 macro_rules! certified_boundary {
-    ($owner:ident, $left_links:ident, $right_links:ident, $function:ident, $budget:ident, $census:ident, $certificate:lifetime) => {{
+    ($owner:ident, $left_links:ident, $right_links:ident, $function:ident, $budget:ident, $census:ident, $certificate:lifetime, $paired:lifetime) => {{
         paid!(
             $budget,
             $function,
@@ -618,6 +618,9 @@ macro_rules! certified_boundary {
                         }
                     }
                 }
+            } else {
+                independent_plan_segment_run!($owner, $census, $function, $budget, $paired,
+                    "ordinary plan history paired cursor next");
             }
         }
     }};

@@ -108,23 +108,26 @@ impl Evaluator<'_> {
             (IteratorOp::Next, Value::Iter(iterator)) => {
                 let mut fields = BTreeMap::new();
                 let case = if let Some(item) = item {
-                    fields.insert(hir::DeclarationId::new(iterator_ops::ITEM_ID), item);
                     fields.insert(
-                        hir::DeclarationId::new(iterator_ops::REST_ID),
+                        hir::DeclarationId::compiler(hir::CompilerDeclaration::IterItem),
+                        item,
+                    );
+                    fields.insert(
+                        hir::DeclarationId::compiler(hir::CompilerDeclaration::IterRest),
                         Value::Iter(Arc::new(IteratorValue {
                             vector: Arc::clone(&iterator.vector),
                             cursor: iterator.cursor + 1,
                         })),
                     );
-                    iterator_ops::YIELD_ID
+                    hir::CompilerDeclaration::IterYield
                 } else {
-                    iterator_ops::DONE_ID
+                    hir::CompilerDeclaration::IterDone
                 };
                 drop(iterator);
                 Ok(Value::Variant(Arc::new(OwnedVariantValue {
                     ty: iterator_ops::resolved_iter_step(element.clone()),
-                    variant: hir::DeclarationId::new(iterator_ops::STEP_ID),
-                    case: hir::DeclarationId::new(case),
+                    variant: hir::DeclarationId::compiler(hir::CompilerDeclaration::IterStep),
+                    case: hir::DeclarationId::compiler(case),
                     fields,
                 })))
             }
@@ -146,22 +149,25 @@ impl Evaluator<'_> {
         let mut fields = BTreeMap::new();
         let case = if iterator.cursor < vector.values.len() {
             let item = std::mem::replace(&mut vector.values[iterator.cursor], Value::Bool(false));
-            fields.insert(hir::DeclarationId::new(crate::iterator_ops::ITEM_ID), item);
             fields.insert(
-                hir::DeclarationId::new(crate::iterator_ops::REST_ID),
+                hir::DeclarationId::compiler(hir::CompilerDeclaration::IterItem),
+                item,
+            );
+            fields.insert(
+                hir::DeclarationId::compiler(hir::CompilerDeclaration::IterRest),
                 Value::Iter(Arc::new(IteratorValue {
                     vector: Arc::new(vector),
                     cursor: iterator.cursor + 1,
                 })),
             );
-            crate::iterator_ops::YIELD_ID
+            hir::CompilerDeclaration::IterYield
         } else {
-            crate::iterator_ops::DONE_ID
+            hir::CompilerDeclaration::IterDone
         };
         Ok(Value::Variant(Arc::new(OwnedVariantValue {
             ty: crate::iterator_ops::resolved_iter_step(element.clone()),
-            variant: hir::DeclarationId::new(crate::iterator_ops::STEP_ID),
-            case: hir::DeclarationId::new(case),
+            variant: hir::DeclarationId::compiler(hir::CompilerDeclaration::IterStep),
+            case: hir::DeclarationId::compiler(case),
             fields,
         })))
     }

@@ -19,9 +19,7 @@ pub(crate) fn admitted(index: &DeclarationIndex, ty: &ResolvedType) -> bool {
         || index.declaration(declaration).is_none_or(|d| {
             d.kind != DeclarationKind::Variant || d.identity_origin != IdentityOrigin::Explicit
         })
-        || index
-            .declaration(&DeclarationId::new(format!("{declaration}#invariant")))
-            .is_some()
+        || index.has_record_invariant(declaration)
     {
         return false;
     }
@@ -120,9 +118,7 @@ fn record_shape_admitted(
                         d.kind != DeclarationKind::Record
                             || d.identity_origin != IdentityOrigin::Explicit
                     })
-                    || index
-                        .declaration(&DeclarationId::new(format!("{declaration}#invariant")))
-                        .is_some()
+                    || index.has_record_invariant(&declaration)
                     || !active.insert(declaration.clone())
                 {
                     return false;

@@ -555,6 +555,7 @@ pub(super) fn state_for_edge(
     Ok(state)
 }
 
+#[cfg(test)]
 pub(super) fn state_for_held_edge(
     function: &ResolvedFunction,
     state: &mut PathState,

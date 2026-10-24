@@ -120,3 +120,251 @@ fn budget_exhausted_factored_comparison_keeps_the_path_budget_diagnostic() {
         error.message.contains("mutually exclusive") || error.message.contains("separate calls")
     );
 }
+
+/// A fitting scalar sequence has additive checked-failure paths and no owning
+/// entry state. It previously used the complete enumerator at comparison time.
+fn fitting_status_sequence(count: usize) -> ResolvedProgram {
+    let mut source = String::from(
+        "module test.fitting_factored;\n@id(\"app.main\") fn main() -> i64 {\nlet mut total = 0;\n",
+    );
+    for _ in 0..count {
+        source.push_str("total = total + 1;\n");
+    }
+    source.push_str("total\n}\n");
+    hir::resolve(&parse(&source, Path::new("fitting-factored.spx")).unwrap()).unwrap()
+}
+
+fn fitting_select(
+    function: &ResolvedFunction,
+    cfg: usize,
+    hir: usize,
+    budget: &mut ReplayBudget,
+) -> Result<bool, Diagnostic> {
+    budget.reserve_bytes(
+        function,
+        super::super::factored::FITTING_SELECTOR_CONTROLS,
+        "fitting factored comparison selector receivers",
+    )?;
+    super::super::factored::fitting_comparison_selected_paid(function, cfg, hir, budget)
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct FittingOutcome {
+    success: bool,
+    spent: usize,
+    held: usize,
+}
+
+/// Includes selector, both independently reconstructed languages, weighted
+/// proof (and canonical fallback), every owned temporary and full Drop.
+fn fitting_probe(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    cfg: usize,
+    hir: usize,
+    limit: usize,
+) -> (
+    (FittingOutcome, crate::test_allocation_observer::Metrics),
+    bool,
+    usize,
+    Option<crate::bounded_output::ReservationRefusal>,
+) {
+    crate::bounded_output::with_limit_usage_refusal(limit, || {
+        crate::test_allocation_observer::measure(|| {
+            let mut budget = ReplayBudget::new();
+            // The unchanged preflight owns this pool while replay is live.
+            // A terminal sticky refusal poisons both work counters, as in the
+            // original budget API; it does not refund held work to a retry.
+            budget.skeleton_remaining = 17;
+            let result = fitting_select(function, cfg, hir, &mut budget).and_then(|selected| {
+                assert!(selected);
+                super::super::factored::compare(program, function, &mut budget)
+            });
+            let success = matches!(result, Ok(Some(true)));
+            if let Err(error) = &result {
+                assert_eq!(error.code, "SPX-H006");
+                assert!(budget.refusal_spent || crate::bounded_output::active_refused());
+                assert!(budget
+                    .reserve_bytes(function, 0, "retry fitting proof")
+                    .is_err());
+                assert!(budget.refusal_spent);
+                assert_eq!((budget.remaining, budget.skeleton_remaining), (0, 0));
+            }
+            let outcome = FittingOutcome {
+                success,
+                spent: MAX_REPLAY_WORK_UNITS - budget.remaining,
+                held: budget.skeleton_remaining,
+            };
+            drop(result);
+            drop(budget);
+            outcome
+        })
+    })
+}
+
+#[test]
+fn fitting_scalar_comparison_keeps_admission_and_independent_enumerator() {
+    let program = fitting_status_sequence(32);
+    let main = function(&program, "app.main");
+    let cfg = branch_sensitive_cfg_bounds(&main).unwrap().terminal_paths;
+    let hir = hir_terminal_path_bound(&main).unwrap();
+    assert_eq!(main.cleanup_plan.status_sources.len(), 32);
+    assert!(cfg <= 256 && hir <= 256);
+    assert!(!super::super::factored::selected(&main, cfg, hir));
+    validate_replay_size_budget(&main).unwrap();
+    assert_program_skeleton_authority(&program);
+    let mut control = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
+    let mut expected = hir_skeleton_paths(&program, &main, &mut control).unwrap();
+    let mut actual = plan_skeleton_paths(&main, &mut control).unwrap();
+    control.reserve_bytes(
+        &main,
+        3 * skeleton_work::enumerated_prefix::ENTRY_CALL,
+        "independent fitting full-content comparison entries",
+    ).unwrap();
+    skeleton_work::enumerated_prefix::sort(&mut expected, &main, &mut control).unwrap();
+    skeleton_work::enumerated_prefix::sort(&mut actual, &main, &mut control).unwrap();
+    assert!(skeleton_work::enumerated_prefix::equal(&expected, &actual, &main, &mut control).unwrap());
+    let (selected, refused, _, _) =
+        crate::bounded_output::with_limit_usage_refusal(1 << 29, || {
+            let mut budget = ReplayBudget::new();
+            budget.skeleton_remaining = 17;
+            let selected = super::super::factored::validate(&program, &main, &mut budget).unwrap();
+            assert_eq!(budget.skeleton_remaining, 17);
+            selected
+        });
+    assert!(selected && !refused, "the actual comparison entry selects");
+
+    // Independently execute the original budget refusal API. Legacy supplies
+    // the full six-field first diagnostic; the Active budget must keep it on
+    // its prepaid text, then poison BOTH counters and refuse even a zero retry.
+    let mut original = ReplayBudget::unobserved();
+    original.remaining = 0;
+    original.skeleton_remaining = 17;
+    let expected = original
+        .charge(&main, 1, "fitting prior work refusal")
+        .unwrap_err();
+    let (((), metrics), refused, paid, receipt) =
+        crate::bounded_output::with_limit_usage_refusal(1 << 20, || {
+            crate::test_allocation_observer::measure(|| {
+                let mut budget = ReplayBudget::new();
+                budget.remaining = 0;
+                budget.skeleton_remaining = 17;
+                let first = budget
+                    .charge(&main, 1, "fitting prior work refusal")
+                    .unwrap_err();
+                assert_eq!(first, expected, "all six original diagnostic fields");
+                assert!(budget.refusal_spent);
+                assert_eq!((budget.remaining, budget.skeleton_remaining), (0, 0));
+                let retry = budget
+                    .reserve_bytes(&main, 0, "fitting prior zero retry")
+                    .unwrap_err();
+                assert_eq!(retry, Diagnostic::io("SPX-H006", String::new()));
+                assert_eq!(first, expected, "retry cannot replace the first diagnostic");
+                assert_eq!((budget.remaining, budget.skeleton_remaining), (0, 0));
+                drop((first, retry, budget));
+            })
+        });
+    assert!(!refused && receipt.is_none(), "work refusal is local, not a byte charge");
+    assert!(!metrics.invalid && metrics.allocated <= paid);
+    assert_eq!(metrics.live, 0);
+    assert_eq!(metrics.allocated, metrics.freed);
+
+    let ((baseline, metrics), refused, charged, _) =
+        fitting_probe(&program, &main, cfg, hir, 1 << 29);
+    assert!(baseline.success && !refused);
+    assert_eq!(baseline.held, 17);
+    assert!(baseline.spent > 0);
+    assert!(!metrics.invalid && metrics.allocated <= charged);
+    assert_eq!(metrics.live, 0);
+    assert_eq!(metrics.allocated, metrics.freed);
+    let ((exact, metrics), refused, paid, _) = fitting_probe(&program, &main, cfg, hir, charged);
+    assert_eq!(exact, baseline);
+    assert!(!refused && paid == charged);
+    assert!(!metrics.invalid && metrics.allocated <= paid);
+    assert_eq!(metrics.live, 0);
+    for cut in [0, 1, charged - 1] {
+        let ((short, metrics), refused, paid, receipt) =
+            fitting_probe(&program, &main, cfg, hir, cut);
+        assert!(!short.success && refused && receipt.is_some());
+        // The explicit zero retry above has the original terminal poison
+        // contract, not the successful comparison's live held allowance.
+        assert_eq!(short.held, 0);
+        assert!(paid <= cut && !metrics.invalid && metrics.allocated <= paid);
+        assert_eq!(metrics.live, 0);
+        assert_eq!(metrics.allocated, metrics.freed);
+    }
+}
+
+#[test]
+fn fitting_selector_preserves_tiny_foreign_and_owned_controls() {
+    let program = fitting_status_sequence(32);
+    let main = function(&program, "app.main");
+    let cfg = branch_sensitive_cfg_bounds(&main).unwrap().terminal_paths;
+    let hir = hir_terminal_path_bound(&main).unwrap();
+    let mut legacy = ReplayBudget::unobserved();
+    assert!(!fitting_select(&main, cfg, hir, &mut legacy).unwrap());
+    let tiny_program = fitting_status_sequence(31);
+    let tiny = function(&tiny_program, "app.main");
+    let owned_program = independent_decisions(1);
+    let mut owned = function(&owned_program, "app.main");
+    // Keep a genuine slot, but give the header enough genuine checked-status
+    // rows to isolate the ownership exclusion from the threshold exclusion.
+    owned.cleanup_plan.status_sources = main.cleanup_plan.status_sources.clone();
+    let ((), refused, _, _) = crate::bounded_output::with_limit_usage_refusal(1 << 24, || {
+        let mut budget = ReplayBudget::new();
+        assert!(!fitting_select(&tiny, cfg, hir, &mut budget).unwrap());
+        assert!(!fitting_select(&owned, cfg, hir, &mut budget).unwrap());
+        assert!(!fitting_select(&main, 4_097, hir, &mut budget).unwrap());
+        assert!(!fitting_select(&main, cfg, 4_097, &mut budget).unwrap());
+        budget.admission = AdmissionMode::SelectedRetained;
+        assert!(!fitting_select(&main, cfg, hir, &mut budget).unwrap());
+        budget.admission = AdmissionMode::Ordinary;
+        budget.payer = AllocationPayer::SelectedReservation;
+        assert!(!super::super::factored::fitting_comparison_selected_paid(
+            &main,
+            cfg,
+            hir,
+            &mut budget,
+        )
+        .unwrap());
+    });
+    assert!(!refused);
+}
+
+#[test]
+fn fitting_scalar_header_never_proves_a_mutated_plan() {
+    let program = fitting_status_sequence(32);
+    let main = function(&program, "app.main");
+    let mut malformed = main.clone();
+    malformed.cleanup_plan.schema = "semaprax.cleanup.invalid";
+    let error = validate_structure(&program, &malformed).unwrap_err();
+    assert_eq!(error.code, "SPX-H006");
+    assert!(error.message.contains("schema"));
+
+    let mut changed = main.clone();
+    let edge = changed
+        .cleanup_plan
+        .edges
+        .iter_mut()
+        .find(|edge| matches!(edge.condition, EdgeCondition::StatusZero(_)))
+        .unwrap();
+    let EdgeCondition::StatusZero(source) = &edge.condition else {
+        unreachable!()
+    };
+    edge.condition = EdgeCondition::StatusNonzero(source.clone());
+    assert_eq!(fresh_compare(&program, &changed), Some(false));
+    assert_independent_replay_rejects(&program, &changed);
+
+    let mut cycle = main.clone();
+    cycle.cleanup_plan.edges[0].to = cycle.cleanup_plan.entry;
+    let error = validate_structure(&program, &cycle).unwrap_err();
+    assert_eq!(error.code, "SPX-H006");
+    assert!(error.message.contains("failed independent replay"));
+    let cfg = branch_sensitive_cfg_bounds(&main).unwrap().terminal_paths;
+    let hir = hir_terminal_path_bound(&main).unwrap();
+    let (selected, refused, _, _) =
+        crate::bounded_output::with_limit_usage_refusal(1 << 24, || {
+            fitting_select(&cycle, cfg, hir, &mut ReplayBudget::new()).unwrap()
+        });
+    assert!(!selected && !refused);
+}

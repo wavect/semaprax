@@ -195,6 +195,10 @@ fn prepare_sealed<'a, T>(
     program: &'a ResolvedProgram,
     seal: impl FnOnce(Storage<'a>, Payer<'_>) -> Result<T, Diagnostic>,
 ) -> Result<(T, Deferred<'a>), Diagnostic> {
+    #[cfg(test)]
+    let _allocation_phase = crate::test_allocation_observer::function_phase_guard(
+        "hir::canonical_loan_storage::prepare_sealed",
+    );
     let _stage = crate::bounded_output::reservation_stage_guard(
         crate::bounded_output::ReservationStage::CanonicalLoanStorage,
     );
@@ -237,6 +241,10 @@ fn prepare_sealed<'a, T>(
             .iter()
             .chain(program.function_instances.iter().map(|i| &i.function))
         {
+            #[cfg(test)]
+            let _allocation_phase = crate::test_allocation_observer::function_phase_guard(
+                "hir::canonical_loan_storage::next_function",
+            );
             let plan = match captured.as_ref() {
                 Some(owner) => {
                     match crate::loan_plan::build_plan_with_reservation(program, function, owner) {
@@ -274,6 +282,10 @@ fn prepare_sealed<'a, T>(
 }
 
 fn append(storage: &mut Storage<'_>, plan: LoanPlan, payer: Payer<'_>) -> Result<(), Diagnostic> {
+    #[cfg(test)]
+    let _allocation_phase = crate::test_allocation_observer::function_phase_guard(
+        "hir::canonical_loan_storage::append",
+    );
     payer.reserve(0)?;
     // Detaching only owned backing lets the original complete receiver read
     // persistent directories without holding a mutable borrow of their owner.

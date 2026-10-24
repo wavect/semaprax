@@ -1,5 +1,6 @@
 //! Complete immediate PLAN/HIR comparison, not an arena identity certificate.
 use super::*;
+use crate::cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::loaded_segment_composition_tests as loaded;
 fn run(
     f: &ResolvedFunction,
     old: bool,
@@ -64,7 +65,8 @@ fn report(old: &Run, current: &Run) {
         )
     );
     let (added, removed) = final_affine::delta(&current.row);
-    assert_eq!(current.observed.2 + removed, old.observed.2 + added);
+    let (loaded_added, loaded_removed) = loaded::complete_loaded_delta(&current.row);
+    assert_eq!(current.observed.2 + removed + loaded_removed, old.observed.2 + added + loaded_added);
     eprintln!(
         "OPT907 complete old={} current={} added={} removed={} flat={} shared={} steps={} tails={}; independent content, full heap/Drop, cold losses retained; no app admission claim",
         old.observed.2,
@@ -270,6 +272,7 @@ fn affine_final_hir_feature_capture_prices_each_actual_admitted_bank_and_teardow
 }
 
 fn altered(f: &ResolvedFunction, old: bool, alteration: usize, shared: bool) -> Run {
+    frontiers::prepare();
     let (mut actual, mut expected) = fixture(4, 3, true, 0);
     match alteration {
         0 => {
@@ -367,6 +370,7 @@ fn affine_final_hir_retains_independent_content_exhaustion_and_terminal_mismatch
 }
 #[test]
 fn affine_final_hir_keeps_typed_foreign_restored_authority_and_unwind_full_drop() {
+    frontiers::prepare();
     // Existing complete authority owner exercises the actual current compare,
     // valid/missing/foreign Oracle admission and sticky refusal after restore.
     super::super::shared_identity_replay_typed_oracle_missing_foreign_and_restored_scope_keeps_ambient_unspent();
@@ -428,6 +432,19 @@ pub(super) fn whole_before(case: usize, source: &str) -> Result<Vec<u8>, &'stati
         serde_json::from_str(include_str!("final_affine_inverse.json")).unwrap();
     let row = &table["cases"][case];
     let digest = |bytes: &[u8]| format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)));
+    // Only the exact live owner may acquire its authenticated preformat view.
+    // All other inputs still meet the original whole-source inverse boundary.
+    let acquired;
+    let source = if case == 0 && source == include_str!("../comparison_owner.rs") {
+        acquired = restore_exact_preformat_source(
+            "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs",
+            source.as_bytes(),
+            row["current_sha256"].as_str().unwrap(),
+        );
+        acquired.as_str()
+    } else {
+        source
+    };
     if source.len() as u64 != row["current_length"].as_u64().unwrap()
         || digest(source.as_bytes()) != row["current_sha256"].as_str().unwrap()
     {

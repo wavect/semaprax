@@ -316,7 +316,7 @@ impl ClassifierLedger {
     }
     /// One-time fill of an already prepaid receiving slot after its acquiring
     /// child restores. No returned ledger/Result is constructed by this gateway.
-    pub(crate) fn capture_into_controls() -> usize {
+    pub(crate) const fn capture_into_controls() -> usize {
         std::mem::size_of::<&mut Self>()
             + std::mem::size_of::<std::cell::Ref<'_, Option<Rc<Budget>>>>()
             + 2 * std::mem::size_of::<&Option<Rc<Budget>>>()
@@ -463,7 +463,7 @@ impl ClassifierLedger {
     /// Actual new callers of current() prepay its cloned ACTIVE return/local,
     /// match tuple and arm receiver, TLS borrow, borrowed predicates and bools.
     /// Original current() below is unchanged; this inventory grants no authority.
-    pub(crate) fn current_receiving_controls() -> usize {
+    pub(crate) const fn current_receiving_controls() -> usize {
         use std::cell::{Ref, RefCell};
         use std::mem::size_of;
         size_of::<&Self>()

@@ -1,0 +1,21 @@
+{
+  "schema": "semaprax.hosted-opt-batch-selection.v1",
+  "filters": 2,
+  "expected_tests": 7,
+  "commands": [
+    {
+      "owner": "OPT754 interface identifier census owning controls",
+      "binary": "lib",
+      "filter": "workspace_graph::expected_projection::private_layout::names::interface_tests::",
+      "exact": false,
+      "expected_tests": 6
+    },
+    {
+      "owner": "OPT724 unchanged maximum-shape UTF8 acceptance at original fuel",
+      "binary": "project",
+      "filter": "standard_library::application_json::utf8::max_shape::utf8_maximum_shape_preserves_raw_escaped_and_mixed_64_byte_values",
+      "exact": true,
+      "expected_tests": 1
+    }
+  ]
+}

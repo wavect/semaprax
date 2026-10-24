@@ -1,0 +1,260 @@
+[
+  {
+    "path": "src/hir/inspection/paid_nul.rs",
+    "current_length": 43770,
+    "current_sha256": "03a827735c79934604ac0488cd03446335f987fd7e3dcf6d07d11249b1895fbe",
+    "before_length": 38398,
+    "before_sha256": "62bbad3927f43bb6e034d608b1026a74bf72744503a7b795aad29d90b65541c9",
+    "edits": [
+      {
+        "start": 111,
+        "end": 129,
+        "current": "mod type_scratch;\n",
+        "before": ""
+      },
+      {
+        "start": 194,
+        "end": 1286,
+        "current": "// Added selection/borrowed-frame roles are separate from the retained frame\n// and full replacement spill acquisitions. Each original per-root positive\n// frame payment becomes REUSE_CALL; no preceding charge is refunded.\nconst REUSE_CALL: usize = 2 * std::mem::size_of::<&mut Pending<'static, ResolvedExpr>>()\n    + 2 * std::mem::size_of::<bool>() // first-root flag, conservative on later functions\n    + type_scratch::LOAN;\nconst EMPTY_EXPRESSION_BYTES: usize =\n    std::mem::size_of::<Pending<'static, ResolvedExpr>>() + REUSE_CALL;\n// Selection replaces the original entry reserve(0), rather than adding a fresh\n// ACTIVE/TLS/Option probe. Its payment helper arguments/Results are unchanged.\nconst REUSE_SELECTION: usize =\n    2 * std::mem::size_of::<Option<(&ResolvedFunction, &[ResolvedFunction])>>()\n        + 2 * std::mem::size_of::<(&ResolvedFunction, &[ResolvedFunction])>()\n        + 4 * std::mem::size_of::<&[ResolvedFunction]>()\n        + 2 * std::mem::size_of::<&Vec<ResolvedFunction>>()\n        + 6 * std::mem::size_of::<bool>(); // selection and initial-root local/pattern\n\n",
+        "before": ""
+      },
+      {
+        "start": 1384,
+        "end": 1488,
+        "current": "    reserve(REUSE_SELECTION + type_scratch::HEADER)?;\n    let mut types = type_scratch::Storage::new();\n",
+        "before": "    reserve(0)?;\n"
+      },
+      {
+        "start": 2971,
+        "end": 3029,
+        "current": "            type_scratch::audit!(&field.ty, &mut types)?;\n",
+        "before": "            audit_resolved_type(&field.ty)?;\n"
+      },
+      {
+        "start": 3411,
+        "end": 3473,
+        "current": "                type_scratch::audit!(&field.ty, &mut types)?;\n",
+        "before": "                audit_resolved_type(&field.ty)?;\n"
+      },
+      {
+        "start": 3745,
+        "end": 3803,
+        "current": "            type_scratch::audit!(&field.ty, &mut types)?;\n",
+        "before": "            audit_resolved_type(&field.ty)?;\n"
+      },
+      {
+        "start": 5225,
+        "end": 5291,
+        "current": "                    type_scratch::audit!(&field.ty, &mut types)?;\n",
+        "before": "                    audit_resolved_type(&field.ty)?;\n"
+      },
+      {
+        "start": 5644,
+        "end": 5714,
+        "current": "                        type_scratch::audit!(&field.ty, &mut types)?;\n",
+        "before": "                        audit_resolved_type(&field.ty)?;\n"
+      },
+      {
+        "start": 6239,
+        "end": 6305,
+        "current": "                type_scratch::audit!(&parameter.ty, &mut types)?;\n",
+        "before": "                audit_resolved_type(&parameter.ty)?;\n"
+      },
+      {
+        "start": 6335,
+        "end": 6563,
+        "current": "    // The entry bank paid selection even on an empty function inventory.\n    // No type/parameter/result audit has moved across another semantic check.\n    if let Some((function, remaining)) = program.functions.split_first() {\n",
+        "before": "    for function in &program.functions {\n"
+      },
+      {
+        "start": 6755,
+        "end": 6817,
+        "current": "            type_scratch::audit!(&parameter.ty, &mut types)?;\n",
+        "before": "            audit_resolved_type(&parameter.ty)?;\n"
+      },
+      {
+        "start": 6904,
+        "end": 7218,
+        "current": "        type_scratch::audit!(&function.return_type, &mut types)?;\n        // First real scratch formation follows the first function's original\n        // metadata checks. No later root forms another inline32 frame.\n        let mut pending = Pending::<ResolvedExpr>::empty()?;\n        let mut initial_root = true;\n",
+        "before": "        audit_resolved_type(&function.return_type)?;\n"
+      },
+      {
+        "start": 7395,
+        "end": 8863,
+        "current": "            // This replaces the old per-root Pending::new frame reservation.\n            // Its root push and every pop/growth/sticky check remain below.\n            if initial_root {\n                initial_root = false; // empty() already paid the first caller\n            } else {\n                reserve(REUSE_CALL)?;\n            }\n            pending.push(expression)?;\n            audit_resolved_expression_pending(&mut pending, &mut types)?;\n        }\n        for function in remaining {\n            reject_nul_identity(\"resolved function\", function.id.as_str())?;\n            for parameter in &function.params {\n                reject_nul_identity(\"resolved value\", parameter.id.as_str())?;\n                type_scratch::audit!(&parameter.ty, &mut types)?;\n            }\n            reject_nul_identity(\"resolved value\", function.result_id.as_str())?;\n            type_scratch::audit!(&function.return_type, &mut types)?;\n            for expression in function\n                .requires\n                .iter()\n                .chain(std::iter::once(&function.body))\n                .chain(&function.ensures)\n            {\n                // This replaces the old per-root Pending::new frame reservation.\n                // Its root push and every pop/growth/sticky check remain below.\n                reserve(REUSE_CALL)?;\n                pending.push(expression)?;\n                audit_resolved_expression_pending(&mut pending, &mut types)?;\n            }\n",
+        "before": "            audit_resolved_expression(expression)?;\n"
+      },
+      {
+        "start": 9315,
+        "end": 9401,
+        "current": "    reserve(type_scratch::HEADER)?;\n    let mut types = type_scratch::Storage::new();\n",
+        "before": "    reserve(0)?;\n"
+      },
+      {
+        "start": 9442,
+        "end": 23070,
+        "current": "        {\n            let inventory = &function.cleanup;\n\n            for slot in &inventory.slots {\n                match &slot.origin {\n                    crate::cleanup::CleanupStorageOrigin::Parameter { value, .. }\n                    | crate::cleanup::CleanupStorageOrigin::Binding { value }\n                    | crate::cleanup::CleanupStorageOrigin::ProvisionalResult { value } => {\n                        reject_nul_identity(\"cleanup inventory value\", value.as_str())?;\n                    }\n                    crate::cleanup::CleanupStorageOrigin::Temporary { expression } => {\n                        reject_nul_identity(\"cleanup inventory expression\", expression.as_str())?;\n                    }\n                }\n                type_scratch::audit!(&slot.ty, &mut types)?;\n                audit_field_liveness_shape(&slot.shape)?;\n            }\n            for flag in &inventory.flags {\n                audit_inventory_place(&flag.place)?;\n                reject_nul_identity(\"cleanup inventory lifecycle\", flag.lifecycle.as_str())?;\n            }\n        }\n        {\n            let plan = &function.cleanup_plan;\n\n            for place in &plan.entry_state.live_owned_parameters {\n                audit_plan_place(place)?;\n            }\n            for slot in &plan.slots {\n                audit_plan_storage(&slot.storage)?;\n                type_scratch::audit!(&slot.ty, &mut types)?;\n                audit_field_liveness_shape(&slot.field_liveness_shape)?;\n            }\n            for source in &plan.status_sources {\n                audit_status_source(&source.id)?;\n                if let crate::cleanup_plan::StatusProducer::PropagatedCall { callee } =\n                    &source.producer\n                {\n                    reject_nul_identity(\"cleanup-plan propagated callee\", callee.as_str())?;\n                }\n            }\n            for block in &plan.blocks {\n                for transition in &block.transitions {\n                    match transition {\n                        crate::cleanup_plan::CleanupTransition::Initialize { at, destination }\n                        | crate::cleanup_plan::CleanupTransition::ReserveRenewal {\n                            at,\n                            binding: destination,\n                        } => {\n                            reject_nul_identity(\"cleanup-plan initialize expression\", at.as_str())?;\n                            audit_plan_place(destination)?;\n                        }\n                        crate::cleanup_plan::CleanupTransition::InitializeVariant {\n                            at,\n                            destination,\n                            variant,\n                        } => {\n                            reject_nul_identity(\n                                \"cleanup-plan variant initialize expression\",\n                                at.as_str(),\n                            )?;\n                            audit_plan_place(destination)?;\n                            reject_nul_identity(\n                                \"cleanup-plan initialized variant\",\n                                variant.as_str(),\n                            )?;\n                        }\n                        crate::cleanup_plan::CleanupTransition::Transfer {\n                            at,\n                            source,\n                            destination,\n                        }\n                        | crate::cleanup_plan::CleanupTransition::Renew {\n                            at,\n                            source,\n                            destination,\n                        } => {\n                            reject_nul_identity(\"cleanup-plan transfer expression\", at.as_str())?;\n                            audit_plan_place(source)?;\n                            audit_plan_place(destination)?;\n                        }\n                        crate::cleanup_plan::CleanupTransition::TransferVariant {\n                            at,\n                            source,\n                            destination,\n                            variant,\n                        } => {\n                            reject_nul_identity(\n                                \"cleanup-plan variant transfer expression\",\n                                at.as_str(),\n                            )?;\n                            audit_plan_place(source)?;\n                            audit_plan_place(destination)?;\n                            reject_nul_identity(\n                                \"cleanup-plan transferred variant\",\n                                variant.as_str(),\n                            )?;\n                        }\n                        crate::cleanup_plan::CleanupTransition::AuthenticateVariantCase {\n                            at,\n                            source,\n                            variant,\n                            case,\n                        } => {\n                            reject_nul_identity(\n                                \"cleanup-plan variant authentication expression\",\n                                at.as_str(),\n                            )?;\n                            audit_plan_place(source)?;\n                            reject_nul_identity(\n                                \"cleanup-plan authenticated variant\",\n                                variant.as_str(),\n                            )?;\n                            reject_nul_identity(\"cleanup-plan authenticated case\", case.as_str())?;\n                        }\n                        crate::cleanup_plan::CleanupTransition::CallCommit { call, arguments } => {\n                            reject_nul_identity(\"cleanup-plan committed call\", call.as_str())?;\n                            for argument in arguments {\n                                audit_plan_place(&argument.source)?;\n                            }\n                        }\n                        crate::cleanup_plan::CleanupTransition::SelectFailure { source } => {\n                            audit_status_source(source)?;\n                        }\n                        crate::cleanup_plan::CleanupTransition::StageCopyResult { source } => {\n                            match source {\n                                crate::cleanup_plan::StagedCopyResultSource::Body {\n                                    expression,\n                                    instance,\n                                } => {\n                                    reject_nul_identity(\n                                        \"cleanup-plan staged body expression\",\n                                        expression.as_str(),\n                                    )?;\n                                    type_scratch::audit!(instance, &mut types)?;\n                                }\n                                crate::cleanup_plan::StagedCopyResultSource::TryResidual {\n                                    expression,\n                                    operand,\n                                    source_instance,\n                                    target_instance,\n                                    result,\n                                    ok_case,\n                                    ok_field,\n                                    err_case,\n                                    err_field,\n                                } => {\n                                    reject_nul_identity(\n                                        \"cleanup-plan staged `?` expression\",\n                                        expression.as_str(),\n                                    )?;\n                                    reject_nul_identity(\n                                        \"cleanup-plan staged `?` operand\",\n                                        operand.as_str(),\n                                    )?;\n                                    type_scratch::audit!(source_instance, &mut types)?;\n                                    type_scratch::audit!(target_instance, &mut types)?;\n                                    for (kind, declaration) in [\n                                        (\"cleanup-plan staged `?` Result\", result),\n                                        (\"cleanup-plan staged `?` Ok case\", ok_case),\n                                        (\"cleanup-plan staged `?` Ok field\", ok_field),\n                                        (\"cleanup-plan staged `?` Err case\", err_case),\n                                        (\"cleanup-plan staged `?` Err field\", err_field),\n                                    ] {\n                                        reject_nul_identity(kind, declaration.as_str())?;\n                                    }\n                                }\n                                crate::cleanup_plan::StagedCopyResultSource::TryOptionNone {\n                                    expression,\n                                    operand,\n                                    source_instance,\n                                    target_instance,\n                                    option,\n                                    some_case,\n                                    some_field,\n                                    none_case,\n                                } => {\n                                    reject_nul_identity(\n                                        \"cleanup-plan staged Option `?` expression\",\n                                        expression.as_str(),\n                                    )?;\n                                    reject_nul_identity(\n                                        \"cleanup-plan staged Option `?` operand\",\n                                        operand.as_str(),\n                                    )?;\n                                    type_scratch::audit!(source_instance, &mut types)?;\n                                    type_scratch::audit!(target_instance, &mut types)?;\n                                    for (kind, declaration) in [\n                                        (\"cleanup-plan staged Option `?` Option\", option),\n                                        (\"cleanup-plan staged Option `?` Some case\", some_case),\n                                        (\"cleanup-plan staged Option `?` Some field\", some_field),\n                                        (\"cleanup-plan staged Option `?` None case\", none_case),\n                                    ] {\n                                        reject_nul_identity(kind, declaration.as_str())?;\n                                    }\n                                }\n                            }\n                        }\n                    }\n                }\n            }\n            for edge in &plan.edges {\n                match &edge.condition {\n                    crate::cleanup_plan::EdgeCondition::Always => {}\n                    crate::cleanup_plan::EdgeCondition::BooleanResult(expression, _) => {\n                        reject_nul_identity(\n                            \"cleanup-plan boolean expression\",\n                            expression.as_str(),\n                        )?;\n                    }\n                    crate::cleanup_plan::EdgeCondition::VariantCase {\n                        scrutinee, case, ..\n                    } => {\n                        reject_nul_identity(\"cleanup-plan match scrutinee\", scrutinee.as_str())?;\n                        reject_nul_identity(\"cleanup-plan variant case\", case.as_str())?;\n                    }\n                    crate::cleanup_plan::EdgeCondition::ArmSelected { scrutinee, .. } => {\n                        reject_nul_identity(\n                            \"cleanup-plan scalar-match scrutinee\",\n                            scrutinee.as_str(),\n                        )?;\n                    }\n                    crate::cleanup_plan::EdgeCondition::StatusZero(source)\n                    | crate::cleanup_plan::EdgeCondition::StatusNonzero(source) => {\n                        audit_status_source(source)?;\n                    }\n                }\n            }\n            for region in &plan.regions {\n                for storage in &region.slots {\n                    audit_plan_storage(storage)?;\n                }\n            }\n            for exit in &plan.exits {\n                for finalizer in &exit.finalize_in_order {\n                    audit_plan_place(&finalizer.source)?;\n                    reject_nul_identity(\n                        \"cleanup-plan finalizer lifecycle\",\n                        finalizer.lifecycle_id.as_str(),\n                    )?;\n                }\n                match &exit.continuation {\n                    crate::cleanup_plan::ExitContinuation::LoopLatch { target }\n                    | crate::cleanup_plan::ExitContinuation::LoopBreak { target, .. } => {\n                        audit_control_target(target)?;\n                    }\n                    crate::cleanup_plan::ExitContinuation::FunctionReturn {\n                        target,\n                        source,\n                        ..\n                    } => {\n                        audit_control_target(target)?;\n                        audit_result_source(source)?;\n                    }\n                    crate::cleanup_plan::ExitContinuation::Continue(_)\n                    | crate::cleanup_plan::ExitContinuation::ReturnUnit => {}\n                    crate::cleanup_plan::ExitContinuation::CommitResult { source } => {\n                        audit_result_source(source)?;\n                    }\n                    crate::cleanup_plan::ExitContinuation::ReturnFailure { source } => {\n                        audit_status_source(source)?;\n                    }\n                }\n            }\n        }\n",
+        "before": "        audit_cleanup_inventory(&function.cleanup)?;\n        audit_cleanup_plan(&function.cleanup_plan)?;\n"
+      },
+      {
+        "start": 23090,
+        "end": 23103,
+        "current": "#[cfg(test)]\n",
+        "before": ""
+      },
+      {
+        "start": 23175,
+        "end": 23175,
+        "current": "",
+        "before": "    // These exact leaves contain neither declaration identities nor child\n    // types. The original walk allocated one worklist only to pop the root.\n"
+      },
+      {
+        "start": 24295,
+        "end": 24607,
+        "current": "    // Compatibility helper keeps the original single positive probe; unlike\n    // production's invocation owner, this fresh context serves just one root.\n    reserve(type_scratch::HEADER + type_scratch::CALL + type_scratch::COLD)?;\n    let mut types = type_scratch::Storage::new();\n    types.visit(root, true)\n",
+        "before": "    let mut pending = Pending::new(root)?;\n    while let Some(ty) = pending.pop()? {\n        match ty {\n            ResolvedType::Function { parameters, result } => {\n                pending.extend(parameters)?;\n                pending.push(result)?;\n            }\n            ResolvedType::OnceFunction\n            | ResolvedType::OnceFunctionI64\n            | ResolvedType::OnceFunctionI64Pair\n            | ResolvedType::MutFunctionI64\n            | ResolvedType::Never\n            | ResolvedType::Unit\n            | ResolvedType::I64\n            | ResolvedType::I32\n            | ResolvedType::Char\n            | ResolvedType::U8\n            | ResolvedType::Usize\n            | ResolvedType::ArrayU8(_)\n            | ResolvedType::F32\n            | ResolvedType::F64\n            | ResolvedType::Bool\n            | ResolvedType::String\n            | ResolvedType::Bytes\n            | ResolvedType::Str\n            | ResolvedType::SliceU8\n            | ResolvedType::StringMap => {}\n            ResolvedType::TypeParameter { owner, .. } => {\n                reject_nul_identity(\"resolved type-parameter owner\", owner.as_str())?;\n            }\n            ResolvedType::Nominal {\n                declaration,\n                arguments,\n            } => {\n                reject_nul_identity(\"resolved nominal type\", declaration.as_str())?;\n                pending.extend(arguments)?;\n            }\n        }\n    }\n    Ok(())\n"
+      },
+      {
+        "start": 24610,
+        "end": 24656,
+        "current": "fn audit_resolved_record_match_pattern<'hir>(\n",
+        "before": "fn audit_resolved_record_match_pattern(\n"
+      },
+      {
+        "start": 24684,
+        "end": 24816,
+        "current": "    instance: &'hir ResolvedType,\n    fields: &'hir [ResolvedRecordMatchPatternField],\n    types: &mut type_scratch::Storage<'hir>,\n",
+        "before": "    instance: &ResolvedType,\n    fields: &[ResolvedRecordMatchPatternField],\n"
+      },
+      {
+        "start": 24846,
+        "end": 25084,
+        "current": "    // The caller's carried peek bank paid the new context/record loans.\n    // This replaces the original fixed-subject reserve(0), not a new probe.\n    type_scratch::record_identity(record)?;\n    type_scratch::audit!(instance, types)?;\n",
+        "before": "    reject_nul_identity(\"resolved record match\", record.as_str())?;\n    audit_resolved_type(instance)?;\n"
+      },
+      {
+        "start": 25383,
+        "end": 25442,
+        "current": "                type_scratch::audit!(&binding.ty, types)?;\n",
+        "before": "                audit_resolved_type(&binding.ty)?;\n"
+      },
+      {
+        "start": 25644,
+        "end": 25764,
+        "current": "            } => {\n                audit_resolved_record_match_pattern(record, instance, fields, types)?;\n            }\n",
+        "before": "            } => audit_resolved_record_match_pattern(record, instance, fields)?,\n"
+      },
+      {
+        "start": 25794,
+        "end": 25807,
+        "current": "#[cfg(test)]\n",
+        "before": ""
+      },
+      {
+        "start": 25885,
+        "end": 26262,
+        "current": "    let mut pending = Pending::<ResolvedExpr>::expression_compat()?;\n    let mut types = type_scratch::Storage::new();\n    pending.push(root)?;\n    audit_resolved_expression_pending(&mut pending, &mut types)\n}\n\nfn audit_resolved_expression_pending<'hir>(\n    pending: &mut Pending<'hir, ResolvedExpr>,\n    types: &mut type_scratch::Storage<'hir>,\n) -> Result<(), Diagnostic> {\n",
+        "before": "    let mut pending = Pending::new(root)?;\n"
+      },
+      {
+        "start": 26389,
+        "end": 26443,
+        "current": "        type_scratch::audit!(&expression.ty, types)?;\n",
+        "before": "        audit_resolved_type(&expression.ty)?;\n"
+      },
+      {
+        "start": 26743,
+        "end": 26808,
+        "current": "                    type_scratch::audit!(&parameter.ty, types)?;\n",
+        "before": "                    audit_resolved_type(&parameter.ty)?;\n"
+      },
+      {
+        "start": 26958,
+        "end": 27029,
+        "current": "                    type_scratch::audit!(&capture.binding.ty, types)?;\n",
+        "before": "                    audit_resolved_type(&capture.binding.ty)?;\n"
+      },
+      {
+        "start": 29070,
+        "end": 29125,
+        "current": "                type_scratch::audit!(element, types)?;\n",
+        "before": "                audit_resolved_type(element)?;\n"
+      },
+      {
+        "start": 29313,
+        "end": 29374,
+        "current": "                type_scratch::audit!(&loan.element, types)?;\n",
+        "before": "                audit_resolved_type(&loan.element)?;\n"
+      },
+      {
+        "start": 31520,
+        "end": 31587,
+        "current": "                        type_scratch::audit!(&binding.ty, types)?;\n",
+        "before": "                        audit_resolved_type(&binding.ty)?;\n"
+      },
+      {
+        "start": 34069,
+        "end": 34150,
+        "current": "                                type_scratch::audit!(&field.binding.ty, types)?;\n",
+        "before": "                                audit_resolved_type(&field.binding.ty)?;\n"
+      },
+      {
+        "start": 34371,
+        "end": 34527,
+        "current": "                        } => {\n                            audit_resolved_record_match_pattern(record, instance, fields, types)?;\n                        }\n",
+        "before": "                        } => audit_resolved_record_match_pattern(record, instance, fields)?,\n"
+      },
+      {
+        "start": 34845,
+        "end": 34916,
+        "current": "                            type_scratch::audit!(&binding.ty, types)?;\n",
+        "before": "                            audit_resolved_type(&binding.ty)?;\n"
+      },
+      {
+        "start": 35945,
+        "end": 36006,
+        "current": "                type_scratch::audit!(residual_type, types)?;\n",
+        "before": "                audit_resolved_type(residual_type)?;\n"
+      },
+      {
+        "start": 36643,
+        "end": 36704,
+        "current": "                type_scratch::audit!(residual_type, types)?;\n",
+        "before": "                audit_resolved_type(residual_type)?;\n"
+      },
+      {
+        "start": 40485,
+        "end": 40485,
+        "current": "",
+        "before": "fn audit_cleanup_inventory(inventory: &CleanupInventory) -> Result<(), Diagnostic> {\n    for slot in &inventory.slots {\n        match &slot.origin {\n            crate::cleanup::CleanupStorageOrigin::Parameter { value, .. }\n            | crate::cleanup::CleanupStorageOrigin::Binding { value }\n            | crate::cleanup::CleanupStorageOrigin::ProvisionalResult { value } => {\n                reject_nul_identity(\"cleanup inventory value\", value.as_str())?;\n            }\n            crate::cleanup::CleanupStorageOrigin::Temporary { expression } => {\n                reject_nul_identity(\"cleanup inventory expression\", expression.as_str())?;\n            }\n        }\n        audit_resolved_type(&slot.ty)?;\n        audit_field_liveness_shape(&slot.shape)?;\n    }\n    for flag in &inventory.flags {\n        audit_inventory_place(&flag.place)?;\n        reject_nul_identity(\"cleanup inventory lifecycle\", flag.lifecycle.as_str())?;\n    }\n    Ok(())\n}\n\n"
+      },
+      {
+        "start": 42268,
+        "end": 42268,
+        "current": "",
+        "before": "fn audit_cleanup_plan(plan: &CleanupPlan) -> Result<(), Diagnostic> {\n    for place in &plan.entry_state.live_owned_parameters {\n        audit_plan_place(place)?;\n    }\n    for slot in &plan.slots {\n        audit_plan_storage(&slot.storage)?;\n        audit_resolved_type(&slot.ty)?;\n        audit_field_liveness_shape(&slot.field_liveness_shape)?;\n    }\n    for source in &plan.status_sources {\n        audit_status_source(&source.id)?;\n        if let crate::cleanup_plan::StatusProducer::PropagatedCall { callee } = &source.producer {\n            reject_nul_identity(\"cleanup-plan propagated callee\", callee.as_str())?;\n        }\n    }\n    for block in &plan.blocks {\n        for transition in &block.transitions {\n            match transition {\n                crate::cleanup_plan::CleanupTransition::Initialize { at, destination }\n                | crate::cleanup_plan::CleanupTransition::ReserveRenewal {\n                    at,\n                    binding: destination,\n                } => {\n                    reject_nul_identity(\"cleanup-plan initialize expression\", at.as_str())?;\n                    audit_plan_place(destination)?;\n                }\n                crate::cleanup_plan::CleanupTransition::InitializeVariant {\n                    at,\n                    destination,\n                    variant,\n                } => {\n                    reject_nul_identity(\"cleanup-plan variant initialize expression\", at.as_str())?;\n                    audit_plan_place(destination)?;\n                    reject_nul_identity(\"cleanup-plan initialized variant\", variant.as_str())?;\n                }\n                crate::cleanup_plan::CleanupTransition::Transfer {\n                    at,\n                    source,\n                    destination,\n                }\n                | crate::cleanup_plan::CleanupTransition::Renew {\n                    at,\n                    source,\n                    destination,\n                } => {\n                    reject_nul_identity(\"cleanup-plan transfer expression\", at.as_str())?;\n                    audit_plan_place(source)?;\n                    audit_plan_place(destination)?;\n                }\n                crate::cleanup_plan::CleanupTransition::TransferVariant {\n                    at,\n                    source,\n                    destination,\n                    variant,\n                } => {\n                    reject_nul_identity(\"cleanup-plan variant transfer expression\", at.as_str())?;\n                    audit_plan_place(source)?;\n                    audit_plan_place(destination)?;\n                    reject_nul_identity(\"cleanup-plan transferred variant\", variant.as_str())?;\n                }\n                crate::cleanup_plan::CleanupTransition::AuthenticateVariantCase {\n                    at,\n                    source,\n                    variant,\n                    case,\n                } => {\n                    reject_nul_identity(\n                        \"cleanup-plan variant authentication expression\",\n                        at.as_str(),\n                    )?;\n                    audit_plan_place(source)?;\n                    reject_nul_identity(\"cleanup-plan authenticated variant\", variant.as_str())?;\n                    reject_nul_identity(\"cleanup-plan authenticated case\", case.as_str())?;\n                }\n                crate::cleanup_plan::CleanupTransition::CallCommit { call, arguments } => {\n                    reject_nul_identity(\"cleanup-plan committed call\", call.as_str())?;\n                    for argument in arguments {\n                        audit_plan_place(&argument.source)?;\n                    }\n                }\n                crate::cleanup_plan::CleanupTransition::SelectFailure { source } => {\n                    audit_status_source(source)?;\n                }\n                crate::cleanup_plan::CleanupTransition::StageCopyResult { source } => {\n                    match source {\n                        crate::cleanup_plan::StagedCopyResultSource::Body {\n                            expression,\n                            instance,\n                        } => {\n                            reject_nul_identity(\n                                \"cleanup-plan staged body expression\",\n                                expression.as_str(),\n                            )?;\n                            audit_resolved_type(instance)?;\n                        }\n                        crate::cleanup_plan::StagedCopyResultSource::TryResidual {\n                            expression,\n                            operand,\n                            source_instance,\n                            target_instance,\n                            result,\n                            ok_case,\n                            ok_field,\n                            err_case,\n                            err_field,\n                        } => {\n                            reject_nul_identity(\n                                \"cleanup-plan staged `?` expression\",\n                                expression.as_str(),\n                            )?;\n                            reject_nul_identity(\n                                \"cleanup-plan staged `?` operand\",\n                                operand.as_str(),\n                            )?;\n                            audit_resolved_type(source_instance)?;\n                            audit_resolved_type(target_instance)?;\n                            for (kind, declaration) in [\n                                (\"cleanup-plan staged `?` Result\", result),\n                                (\"cleanup-plan staged `?` Ok case\", ok_case),\n                                (\"cleanup-plan staged `?` Ok field\", ok_field),\n                                (\"cleanup-plan staged `?` Err case\", err_case),\n                                (\"cleanup-plan staged `?` Err field\", err_field),\n                            ] {\n                                reject_nul_identity(kind, declaration.as_str())?;\n                            }\n                        }\n                        crate::cleanup_plan::StagedCopyResultSource::TryOptionNone {\n                            expression,\n                            operand,\n                            source_instance,\n                            target_instance,\n                            option,\n                            some_case,\n                            some_field,\n                            none_case,\n                        } => {\n                            reject_nul_identity(\n                                \"cleanup-plan staged Option `?` expression\",\n                                expression.as_str(),\n                            )?;\n                            reject_nul_identity(\n                                \"cleanup-plan staged Option `?` operand\",\n                                operand.as_str(),\n                            )?;\n                            audit_resolved_type(source_instance)?;\n                            audit_resolved_type(target_instance)?;\n                            for (kind, declaration) in [\n                                (\"cleanup-plan staged Option `?` Option\", option),\n                                (\"cleanup-plan staged Option `?` Some case\", some_case),\n                                (\"cleanup-plan staged Option `?` Some field\", some_field),\n                                (\"cleanup-plan staged Option `?` None case\", none_case),\n                            ] {\n                                reject_nul_identity(kind, declaration.as_str())?;\n                            }\n                        }\n                    }\n                }\n            }\n        }\n    }\n    for edge in &plan.edges {\n        match &edge.condition {\n            crate::cleanup_plan::EdgeCondition::Always => {}\n            crate::cleanup_plan::EdgeCondition::BooleanResult(expression, _) => {\n                reject_nul_identity(\"cleanup-plan boolean expression\", expression.as_str())?;\n            }\n            crate::cleanup_plan::EdgeCondition::VariantCase {\n                scrutinee, case, ..\n            } => {\n                reject_nul_identity(\"cleanup-plan match scrutinee\", scrutinee.as_str())?;\n                reject_nul_identity(\"cleanup-plan variant case\", case.as_str())?;\n            }\n            crate::cleanup_plan::EdgeCondition::ArmSelected { scrutinee, .. } => {\n                reject_nul_identity(\"cleanup-plan scalar-match scrutinee\", scrutinee.as_str())?;\n            }\n            crate::cleanup_plan::EdgeCondition::StatusZero(source)\n            | crate::cleanup_plan::EdgeCondition::StatusNonzero(source) => {\n                audit_status_source(source)?;\n            }\n        }\n    }\n    for region in &plan.regions {\n        for storage in &region.slots {\n            audit_plan_storage(storage)?;\n        }\n    }\n    for exit in &plan.exits {\n        for finalizer in &exit.finalize_in_order {\n            audit_plan_place(&finalizer.source)?;\n            reject_nul_identity(\n                \"cleanup-plan finalizer lifecycle\",\n                finalizer.lifecycle_id.as_str(),\n            )?;\n        }\n        match &exit.continuation {\n            crate::cleanup_plan::ExitContinuation::LoopLatch { target }\n            | crate::cleanup_plan::ExitContinuation::LoopBreak { target, .. } => {\n                audit_control_target(target)?;\n            }\n            crate::cleanup_plan::ExitContinuation::FunctionReturn { target, source, .. } => {\n                audit_control_target(target)?;\n                audit_result_source(source)?;\n            }\n            crate::cleanup_plan::ExitContinuation::Continue(_)\n            | crate::cleanup_plan::ExitContinuation::ReturnUnit => {}\n            crate::cleanup_plan::ExitContinuation::CommitResult { source } => {\n                audit_result_source(source)?;\n            }\n            crate::cleanup_plan::ExitContinuation::ReturnFailure { source } => {\n                audit_status_source(source)?;\n            }\n        }\n    }\n    Ok(())\n}\n\n"
+      },
+      {
+        "start": 43634,
+        "end": 43759,
+        "current": "#[allow(\n    dead_code,\n    reason = \"complete independently compiled immediate-old audit\"\n)]\nmod reuse_before;\n#[cfg(test)]\n",
+        "before": ""
+      }
+    ]
+  },
+  {
+    "path": "src/hir/inspection/paid_nul/pending.rs",
+    "current_length": 3468,
+    "current_sha256": "b7a2938298e5615e18f530fd45638ab7552cefc893b8b1d1cf4c2d06fabac0b7",
+    "before_length": 2490,
+    "before_sha256": "27622dc1bce1918fa8366f1ec97267692a655758907e270ff032156b385b0ebd",
+    "edits": [
+      {
+        "start": 2490,
+        "end": 3468,
+        "current": "\nimpl<'a> Pending<'a, super::ResolvedExpr> {\n    /// Private invocation scratch; only successfully drained roots reuse it.\n    pub(super) fn empty() -> Result<Self, Diagnostic> {\n        reserve(super::EMPTY_EXPRESSION_BYTES)?;\n        Ok(Self {\n            inline: [None; INLINE],\n            len: 0,\n            spill: Vec::new(),\n        })\n    }\n}\n\nimpl<'a> Pending<'a, super::ResolvedType> {\n    pub(super) fn type_empty(_formation: super::type_scratch::Formation) -> Self {\n        Self {\n            inline: [None; INLINE],\n            len: 0,\n            spill: Vec::new(),\n        }\n    }\n}\n\n#[cfg(test)]\nimpl<'a> Pending<'a, super::ResolvedExpr> {\n    pub(super) fn expression_compat() -> Result<Self, Diagnostic> {\n        reserve(\n            std::mem::size_of::<Self>() + super::type_scratch::HEADER + super::type_scratch::LOAN,\n        )?;\n        Ok(Self {\n            inline: [None; INLINE],\n            len: 0,\n            spill: Vec::new(),\n        })\n    }\n}\n",
+        "before": ""
+      }
+    ]
+  }
+]

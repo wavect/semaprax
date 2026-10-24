@@ -1,0 +1,32 @@
+[
+  {
+    "path": "src/cleanup_plan/replay/path_join.rs",
+    "before": "src/cleanup_plan/replay/path_join/contains_before/path_join.rs.txt",
+    "length": 54215,
+    "sha256": "2977cc41d8a37cba936f983af9635ec45a4d2bb09938dcc4ab6ae3c3db06f552"
+  },
+  {
+    "path": "src/cleanup_plan/replay/path_join/frontier.rs",
+    "before": "src/cleanup_plan/replay/path_join/contains_before/frontier.rs.txt",
+    "length": 19605,
+    "sha256": "457bdf0b9c7d121803fc4caec020a8da3e7e7ba91dde5899f502c270db2f8130"
+  },
+  {
+    "path": "src/cleanup_plan/replay/path_join/direct_one_tests.rs",
+    "before": "src/cleanup_plan/replay/path_join/contains_before/direct_one_tests.rs.txt",
+    "length": 13113,
+    "sha256": "9664f67acf4f1683c832738b7fd3b4e6b78b1174d8fd7e963a67d898c9a9966b"
+  },
+  {
+    "path": "src/cleanup_plan/replay/path_join/compact_failure_tests.rs",
+    "before": "src/cleanup_plan/replay/path_join/contains_before/compact_failure_tests.rs.txt",
+    "length": 29759,
+    "sha256": "f6092afd5d271b42f67f45abc37794683f24f9060583790b40b34d3bff1764a3"
+  },
+  {
+    "path": "src/cleanup_plan/replay/path_join/shared_insertions_tests.rs",
+    "before": "src/cleanup_plan/replay/path_join/contains_before/shared_insertions_tests.rs.txt",
+    "length": 20080,
+    "sha256": "88e797cc0764b2322c71f800c4a62069aa1ead7114c03c205609bb4ca5594bcf"
+  }
+]

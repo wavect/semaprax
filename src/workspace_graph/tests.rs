@@ -1991,9 +1991,12 @@ fn callable_limit_exact_advances_and_one_over_is_g171() {
     );
     let exact = callable_boundary_source(MAX_CALLABLES - 1);
     let (exact_result, reference_comparisons, reference_bytes) =
-        crate::cleanup_plan::with_financed_workspace_test_oracles(|| {
-            build_owned(vec![exact, leaf.clone()])
-        });
+        // One module-local synthetic main per module plus MAX_CALLABLES
+        // authored functions; each invokes the two original oracle receivers.
+        crate::cleanup_plan::with_financed_workspace_test_oracles(
+            2usize.checked_mul(MAX_CALLABLES.checked_add(2).unwrap()).unwrap(),
+            || build_owned(vec![exact, leaf.clone()]),
+        );
     assert!(reference_comparisons >= 2 * MAX_CALLABLES);
     assert!(reference_bytes > (1 << 26) && reference_bytes <= (1 << 28));
     let trace = crate::bounded_output::stage_debits::take_completed();

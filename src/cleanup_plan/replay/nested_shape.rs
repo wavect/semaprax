@@ -198,7 +198,9 @@ fn derive(
                     charge_leaf(function, budget)?;
                     shapes.push(FieldLivenessShape::Leaf {
                         flag: next_flag_id(function, next_flag)?,
-                        lifecycle: DeclarationId::new(crate::cleanup::VEC_DROP_LIFECYCLE_ID),
+                        lifecycle: DeclarationId::compiler(
+                            crate::hir::CompilerDeclaration::VecDrop,
+                        ),
                     });
                     continue;
                 }
@@ -224,7 +226,9 @@ fn derive(
                     charge_leaf(function, budget)?;
                     shapes.push(FieldLivenessShape::Leaf {
                         flag: next_flag_id(function, next_flag)?,
-                        lifecycle: DeclarationId::new(crate::cleanup::ITER_DROP_LIFECYCLE_ID),
+                        lifecycle: DeclarationId::compiler(
+                            crate::hir::CompilerDeclaration::IterDrop,
+                        ),
                     });
                     continue;
                 }
@@ -232,7 +236,9 @@ fn derive(
                     charge_leaf(function, budget)?;
                     shapes.push(FieldLivenessShape::Leaf {
                         flag: next_flag_id(function, next_flag)?,
-                        lifecycle: DeclarationId::new(crate::cleanup::BOX_DROP_LIFECYCLE_ID),
+                        lifecycle: DeclarationId::compiler(
+                            crate::hir::CompilerDeclaration::BoxDrop,
+                        ),
                     });
                     continue;
                 }

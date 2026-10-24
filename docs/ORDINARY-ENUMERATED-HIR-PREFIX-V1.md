@@ -48,3 +48,24 @@ separate. New cursor work and receiving can outweigh removed copies; no
 end-to-end saving, codec/catalog fit, token/turn/cost gain or production support
 is established. Actual #808, catalogs and NDJSON outcomes at unchanged limits
 and matched application benchmarks remain later qualification.
+
+The complete-fork successor is a separate source candidate under
+`ordinary_plan_history/completed_fork`. It preserves the existing 4,096-item
+selector and pending PLAN selector. At a real ordinary multi-suffix product it
+moves the complete prefix tail once into the existing immutable Seq carrier;
+later nested suffixes concatenate through the existing prepaid Seq/Cat factory.
+There is no path/state union, threshold substitution, flattened shadow copy or
+shared-identity comparison. Public unobserved and funded ordinary callers are
+eligible; selected, oracle, lexical, renewal, merged and lent-work receivers keep
+the original sequence. An unshared singleton keeps the original receiver too.
+
+When actual HIR paths contain shared sequence storage, the successor finalizer
+constructs PLAN independently, then uses the existing paid complete-content
+HIR sort and original immutable PLAN comparator. Every observation, duplicate
+path and terminal participates. Flat final histories retain the original final
+verifier. New dispatch, validation, node, cursor and finalizer costs are paid on
+the same caller, including cold paths and partial Drop; no original work event,
+budget, admission ceiling or refusal is waived. The complete immediate-old
+sequence remains separately compiled, with exact source inverses and owning
+nested/public/funded/physical/hostile controls. These controls are authored, not
+executed; the successor has no runtime or application qualification yet.

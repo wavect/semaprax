@@ -266,6 +266,21 @@ pub(in crate::workspace_graph) fn synthetic_builder_bytes_scoped_with_retention_
             .checked_sub(cost::fixed_hir_discount(layout_mode, &raw, &runtime)?)
             .expect("literal storage discount retains the complete reduced fixed bundle")
     };
+    // Only the final uncached route has no semantic-cache serialization owner.
+    // This independently paid source certificate concerns local callee backing,
+    // not the auxiliary-carrier absence counter, BASE, or an expression ID.
+    let shared_callees = if layout_mode == 6 && retention == cached_exact::Retention::Parsed {
+        super::shared_local_callees::costs(super::shared_local_callees::Context {
+            program,
+            authored,
+            programs,
+        })?
+    } else {
+        super::shared_local_callees::Costs { slots: 0, bytes: 0 }
+    };
+    let identity_slots = identity_slots
+        .checked_sub(shared_callees.slots)
+        .expect("a certified raw call retains its callee slot until this separate proof");
     let identity_occurrence_upper = identity_slots
         .checked_mul(maximum_identity_bytes)
         .and_then(|bytes| bytes.checked_mul(HIR_IDENTITY_COPY_FACTOR))
@@ -287,6 +302,7 @@ pub(in crate::workspace_graph) fn synthetic_builder_bytes_scoped_with_retention_
     )?;
     let hir_upper = fixed_hir_upper
         .checked_add(call_proof)
+        .and_then(|bytes| bytes.checked_add(shared_callees.bytes))
         .and_then(|bytes| bytes.checked_add(prelude_hir_upper))
         .and_then(|bytes| bytes.checked_add(identity_carrier_bytes))
         .and_then(|bytes| bytes.checked_add(identity_occurrence_upper))
@@ -540,3 +556,14 @@ pub(in crate::workspace_graph) fn synthetic_program_with_registry_using<'a>(
     byte_proofs.complete().map_err(|error| vec![error])?;
     Ok(synthetic)
 }
+
+#[path = "shared_local_callees/coupled_projection.rs"]
+mod coupled_projection;
+#[cfg(test)]
+pub(super) use coupled_projection::estimate as coupled_uncached_estimate;
+
+#[path = "shared_local_callees/paired_projection.rs"]
+pub(super) mod paired_projection;
+
+#[path = "shared_local_callees/modular_projection.rs"]
+pub(super) mod modular_projection;

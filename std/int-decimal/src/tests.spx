@@ -7,6 +7,8 @@ use function @id("std.int.decimal.compare") from std.int.decimal as compare;
 use function @id("std.int.decimal.add") from std.int.decimal as add;
 use function @id("std.int.decimal.subtract") from std.int.decimal as subtract;
 use function @id("std.int.decimal.divide") from std.int.decimal as divide;
+use function @id("std.int.decimal.internal-bounded-divisor") from std.int.decimal as bounded_divisor;
+use function @id("std.int.decimal.internal-divide-generic") from std.int.decimal as divide_generic;
 
 @id("std.int.decimal.tests.main")
 fn main() -> i64
@@ -58,7 +60,7 @@ fn main() -> i64
     let max_u64 = "18446744073709551615";
     if divide("18446744073709551615", string_as_str(max_u64)) != "1" { failures = failures + 512; }
     if add("99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999", "1") != "100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000" { failures = failures + 1024; }
-    failures + regression()
+    failures + regression() + division_boundaries() + division_fallback() + division_quotient_zeros() + division_huge_dividend()
 }
 
 @id("std.int.decimal.tests.regression")
@@ -87,4 +89,62 @@ fn ordering_regression() -> i64
 fn cursor_regression() -> i64
 {
     if add("0", "999999999999999999999999999999") == "999999999999999999999999999999" { 0 } else { 8192 }
+}
+
+@id("std.int.decimal.tests.division-boundaries")
+fn division_boundaries() -> i64
+{
+    let one = "1";
+    let maximum = "922337203685477580";
+    let above = "922337203685477581";
+    let eighteen = "999999999999999999";
+    let nineteen = "1000000000000000000";
+    let mut failures = 0;
+    if bounded_divisor(string_as_str(one)) != 1 { failures = failures + 1; }
+    if bounded_divisor(string_as_str(maximum)) != 922337203685477580 { failures = failures + 2; }
+    if bounded_divisor(string_as_str(above)) != 0 { failures = failures + 4; }
+    if bounded_divisor(string_as_str(eighteen)) != 0 { failures = failures + 8; }
+    if bounded_divisor(string_as_str(nineteen)) != 0 { failures = failures + 16; }
+    if divide("9223372036854775799", string_as_str(maximum)) != "9" { failures = failures + 32; }
+    if divide("9223372036854775807", string_as_str(maximum)) != "10" { failures = failures + 64; }
+    failures
+}
+
+@id("std.int.decimal.tests.division-fallback")
+fn division_fallback() -> i64
+{
+    let above = "922337203685477581";
+    let huge = "18446744073709551616";
+    let mut failures = 0;
+    let dispatched = divide("9223372036854775810", string_as_str(above));
+    let original = divide_generic("9223372036854775810", string_as_str(above));
+    if dispatched != "10" || dispatched != original { failures = failures + 1; }
+    let dispatched_huge = divide("18446744073709551616", string_as_str(huge));
+    let original_huge = divide_generic("18446744073709551616", string_as_str(huge));
+    if dispatched_huge != "1" || dispatched_huge != original_huge { failures = failures + 2; }
+    failures
+}
+
+@id("std.int.decimal.tests.division-quotient-zeros")
+fn division_quotient_zeros() -> i64
+{
+    let ten = "10";
+    let hundred = "100";
+    let mut failures = 0;
+    if divide("0", string_as_str(ten)) != "0" { failures = failures + 1; }
+    if divide("7", string_as_str(ten)) != "0" { failures = failures + 2; }
+    if divide("1001", string_as_str(ten)) != "100" { failures = failures + 4; }
+    if divide("100010001", string_as_str(hundred)) != "1000100" { failures = failures + 8; }
+    failures
+}
+
+@id("std.int.decimal.tests.division-huge-dividend")
+fn division_huge_dividend() -> i64
+{
+    let one = "1";
+    let three = "3";
+    let dividend = "9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999";
+    let same = divide(string_slice(dividend, 0, string_len(dividend)), string_as_str(one));
+    let thirds = divide(dividend, string_as_str(three));
+    if same == "9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999" && thirds == "3333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333" { 0 } else { 1 }
 }

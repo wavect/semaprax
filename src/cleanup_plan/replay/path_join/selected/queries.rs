@@ -429,7 +429,7 @@ macro_rules! incoming_at {
             $function,
             $incoming,
             $index,
-            BTreeSet<Box<PathState>>
+            super::frontier::Incoming<PathState>
         )
     };
 }
@@ -509,7 +509,7 @@ macro_rules! group_at {
 pub(super) use group_at;
 macro_rules! clone_state {
     ($budget:ident,$function:ident,$state:ident) => {
-        clone_value!($budget, $function, $state, PathState)
+        clone_value!($budget, $function, (*$state), PathState)
     };
 }
 pub(super) use clone_state;

@@ -28,7 +28,7 @@ fn node<K, V>() -> Result<(), Diagnostic> {
     fund(crate::cleanup_plan::replay_btree_node_upper::<K, V>())
 }
 /// Borrowed effect keys; each genuinely new key pays its node before insertion.
-pub(super) fn declared_effects(effects: &[String]) -> Result<BTreeSet<&str>, Diagnostic> {
+pub(in crate::hir::validation) fn declared_effects(effects: &[String]) -> Result<BTreeSet<&str>, Diagnostic> {
     fund(Some(0))?;
     let mut keys = BTreeSet::new();
     for effect in effects {
@@ -108,4 +108,4 @@ fn collect<'a>(
     Ok(())
 }
 
-pub(super) mod completed;
+pub(in crate::hir::validation) mod completed;

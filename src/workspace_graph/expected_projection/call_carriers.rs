@@ -355,3 +355,14 @@ pub(super) use directory::count;
 #[cfg(test)]
 #[path = "call_carriers_before_directory.rs"]
 mod before_directory;
+
+#[path = "call_carriers_joint.rs"]
+mod joint;
+pub(super) use joint::count as count_joint;
+
+pub(super) use joint::modular_census::count as count_modular;
+
+#[cfg(test)]
+pub(super) use joint::modular_census::linear_loan as modular_linear_loan;
+#[cfg(test)]
+pub(super) use directory::indexed_modular_loan as modular_indexed_loan;

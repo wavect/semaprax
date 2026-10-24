@@ -444,7 +444,8 @@ impl InventoryBuilder<'_> {
                         let flag_index = u32::try_from(self.flags.len())
                             .map_err(|_| cleanup_error("too many cleanup liveness flags"))?;
                         let flag = LivenessFlagId(flag_index);
-                        let lifecycle = DeclarationId::new(BOX_DROP_LIFECYCLE_ID);
+                        let lifecycle =
+                            DeclarationId::compiler(crate::hir::CompilerDeclaration::BoxDrop);
                         self.flags.push(CleanupFlag {
                             id: flag,
                             place: CleanupPlace {

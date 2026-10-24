@@ -316,6 +316,137 @@ impl PartialEq<Arena<Signature>> for std::collections::BTreeMap<Signature, usize
     }
 }
 
+// This is a cache of exact weighted keys, separate from the authoritative
+// Signature -> canonical-ID arena. A successful caller partition proof excludes
+// every HIR-private key from every future PLAN movement and epsilon closure.
+impl Arena<SharedWeighted> {
+    pub(super) const RELEASE_CONTROLS: usize = 4 * size_of::<(
+        &mut Self,
+        &super::ResolvedFunction,
+        &mut super::ReplayBudget,
+        usize,
+        usize,
+    )>() + 4 * size_of::<Result<(), super::Diagnostic>>(
+    ) + 4 * size_of::<&mut Vec<Node<SharedWeighted>>>()
+        + 2 * size_of::<std::slice::IterMut<'static, Node<SharedWeighted>>>()
+        + 4 * size_of::<&mut [Node<SharedWeighted>]>()
+        + 4 * size_of::<Option<&mut Node<SharedWeighted>>>()
+        + 4 * size_of::<&mut Node<SharedWeighted>>()
+        + 2 * size_of::<&mut std::slice::IterMut<'static, Node<SharedWeighted>>>()
+        + 4 * size_of::<std::ops::Range<usize>>()
+        + 2 * size_of::<&Vec<Node<SharedWeighted>>>()
+        + 2 * size_of::<Option<usize>>()
+        + 2 * size_of::<&mut std::ops::Range<usize>>()
+        + 4 * size_of::<usize>()
+        + 4 * size_of::<bool>();
+    const RELEASE_STEP: usize = Self::INSERT_CONTROLS
+        + 2 * size_of::<Node<SharedWeighted>>() // retain move or removed-key Drop
+        // Renew each next receiving place before its following probe,
+        // including final None; retain callback loans are not moved Nodes.
+        + 2 * size_of::<Option<&mut Node<SharedWeighted>>>()
+        + 2 * size_of::<&mut std::slice::IterMut<'static, Node<SharedWeighted>>>()
+        + 2 * size_of::<&mut std::slice::Iter<'static, (usize, u64)>>()
+        + 2 * size_of::<&Node<SharedWeighted>>()
+        + 2 * size_of::<Option<usize>>()
+        + 2 * size_of::<&mut std::ops::Range<usize>>()
+        // Exact Rc<SmallWeighted> -> Deref/as_slice -> slice iteration and
+        // Rc::cmp -> SmallWeighted::cmp -> two as_slice -> slice::cmp roles.
+        // No OrderedWeights owner or iterator exists in this state-key path.
+        + 2 * size_of::<std::slice::Iter<'static, (usize, u64)>>()
+        + 8 * size_of::<&SharedWeighted>()
+        + 12 * size_of::<&super::SmallWeighted>()
+        + 12 * size_of::<&[(usize, u64)]>()
+        + 4 * size_of::<&Vec<(usize, u64)>>()
+        + 4 * size_of::<&[(usize, u64); 1]>()
+        + 2 * size_of::<Option<&(usize, u64)>>()
+        + 2 * size_of::<&(usize, u64)>()
+        + 2 * size_of::<&usize>()
+        + 4 * size_of::<(&mut super::ReplayBudget, &super::ResolvedFunction, usize, &str)>()
+        + 4 * size_of::<Result<(), super::Diagnostic>>()
+        + 4 * size_of::<&mut Self>() + 4 * size_of::<&Self>()
+        // Eight usize receiving roles; no runtime array is constructed.
+        + size_of::<[usize; 8]>() + 8 * size_of::<bool>() + 6 * size_of::<Ordering>();
+    pub(super) fn release_private_keys(
+        &mut self,
+        function: &super::ResolvedFunction,
+        budget: &mut super::ReplayBudget,
+        first: usize,
+        end: usize,
+    ) -> Result<(), super::Diagnostic> {
+        // All failures are terminal for the owning Memo. No lookup may observe
+        // marked heights or partially rebuilt links; Drop visits Vec fields only.
+        for node in &mut self.nodes {
+            budget.reserve_bytes(
+                function,
+                Self::RELEASE_STEP,
+                "private state key scan receiving",
+            )?;
+            budget.charge(function, 1, "private state key scan")?;
+            for (key, _) in node.key.iter() {
+                budget.reserve_bytes(
+                    function,
+                    Self::RELEASE_STEP,
+                    "private weighted key receiving",
+                )?;
+                budget.charge(function, 1, "private weighted key proof")?;
+                if *key >= first && *key < end {
+                    node.height = 0; // Valid AVL heights are positive; value IDs stay untouched.
+                    break;
+                }
+            }
+        }
+        // Every real retain move/Drop was prepaid by the corresponding node
+        // scan. Keep backing and all common keys, not a rebuilt cache of verdicts.
+        self.nodes.retain(|node| node.height != 0);
+        self.root = NONE;
+        for index in 0..self.nodes.len() {
+            budget.reserve_bytes(
+                function,
+                Self::RELEASE_STEP,
+                "private state relink receiving",
+            )?;
+            budget.charge(function, 1, "private state relink")?;
+            self.nodes[index].left = NONE;
+            self.nodes[index].right = NONE;
+            self.nodes[index].parent = NONE;
+            self.nodes[index].height = 1;
+            let mut at = self.root;
+            let mut parent = NONE;
+            let mut left = false;
+            while at != NONE {
+                budget.reserve_bytes(
+                    function,
+                    Self::RELEASE_STEP,
+                    "private state comparison receiving",
+                )?;
+                budget.charge(function, 1, "private state comparison")?;
+                parent = at;
+                match self.nodes[index].key.cmp(&self.nodes[at].key) {
+                    Ordering::Less => {
+                        left = true;
+                        at = self.nodes[at].left;
+                    }
+                    Ordering::Greater => {
+                        left = false;
+                        at = self.nodes[at].right;
+                    }
+                    Ordering::Equal => unreachable!("retained exact cache keys remain unique"),
+                }
+            }
+            self.nodes[index].parent = parent;
+            if parent == NONE {
+                self.root = index;
+            } else if left {
+                self.nodes[parent].left = index;
+            } else {
+                self.nodes[parent].right = index;
+            }
+            self.rebalance(parent);
+        }
+        Ok(())
+    }
+}
+
 // The caller's existing unit destination receives every nested Result. The
 // former BTree node is actually absent; no fallible rotation follows this bank.
 macro_rules! prepare_insert {

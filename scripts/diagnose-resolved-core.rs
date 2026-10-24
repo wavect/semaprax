@@ -78,6 +78,13 @@ fn main() {
     );
     for a in &core.attempts[..core.stored_attempts] {
         println!("attempt={} parent={:?} mode={} initial={} remaining={} consumed={} nested={} foreign={} outcome={:?} complete={} invalid={} refused={} first={:?}",a.ordinal,a.parent_ordinal,a.mode,a.initial,a.remaining,a.consumed,a.nested_ledger_debits,a.foreign_ledger_debits,a.outcome,a.complete,a.invalid,a.refused,a.first_refusal);
+        for (family, row) in semaprax::workflow_profile::plan_comparison::PATH_FAMILIES
+            .iter()
+            .zip(a.path_census)
+        {
+            println!("path-census:{{\"schema\":\"semaprax.path-family-census.v1\",\"family\":\"{}\",\"entries\":{},\"successes\":{},\"errors\":{},\"unwinds\":{},\"refusals\":{},\"requests\":{},\"requested_bytes\":{},\"admitted_requests\":{},\"admitted_bytes\":{},\"debits\":{},\"debit_bytes\":{},\"terminal_paths\":{},\"successful_paths\":{},\"events\":{:?},\"event_labels\":{:?},\"foreign_events\":{},\"descendant_requests\":{},\"descendant_requested_bytes\":{},\"descendant_admitted_requests\":{},\"descendant_admitted_bytes\":{},\"descendant_entries\":{},\"descendant_events\":{:?},\"physical_allocator_census\":false}}",
+                family,row.entries,row.successes,row.errors,row.unwinds,row.refusals,row.requests,row.requested_bytes,row.admitted_requests,row.admitted_bytes,row.debits,row.debit_bytes,row.terminal_paths,row.successful_paths,row.events,semaprax::workflow_profile::plan_comparison::PATH_EVENTS,row.foreign_events,row.descendant_requests,row.descendant_requested_bytes,row.descendant_admitted_requests,row.descendant_admitted_bytes,row.descendant_entries,row.descendant_events);
+        }
         for (label, value) in core.stage_labels.iter().zip(a.stage_debits) {
             if value != 0 {
                 println!("stage {label}: {value}");

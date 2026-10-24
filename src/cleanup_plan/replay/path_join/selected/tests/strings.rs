@@ -8,17 +8,58 @@ const CONCAT: &str = r#"module oracle.concat;
   count=count+1;
   0
  }
- string_len(text)
+ return string_len(text);
+}"#;
+// Exact original unreachable fixture remains an explicit parser refusal.
+pub(super) const CONCAT_UNREACHABLE: &str = r#"module oracle.concat;
+@id("o.main") fn main()->i64 {
+ let mut text=string_from_i64(1);
+ let mut count=0;
+ while count<2 {
+  text=string_concat(text,"x");
+  count=count+1;
+  0
+ }
+ return string_len(text);
+ 0
+}"#;
+const LEXICAL_CONCAT: &str = r#"module oracle.concat;
+@id("o.main") fn main()->i64 {
+ let mut text=string_from_i64(1);
+ let mut count=0;
+ while count<2 {
+  text=string_concat(text,"x");
+  count=count+1;
+  if count<2 {continue;};
+  0
+ }
+ return string_len(text);
+}"#;
+// Exact original unreachable fixture remains an explicit parser refusal.
+pub(super) const LEXICAL_CONCAT_UNREACHABLE: &str = r#"module oracle.concat;
+@id("o.main") fn main()->i64 {
+ let mut text=string_from_i64(1);
+ let mut count=0;
+ while count<2 {
+  text=string_concat(text,"x");
+  count=count+1;
+  if count<2 {continue;};
+  0
+ }
+ return string_len(text);
+ 0
 }"#;
 #[test]
 fn genuine_string_append_success_preserves_complete_old_and_ordinary_routes() {
-    let program = program(CONCAT);
+    fixture_scope::original_scope(CONCAT, "o.main");
+    let program = program(LEXICAL_CONCAT);
     crate::cleanup_plan::replay::validate_program(&program).unwrap();
+    assert!(crate::hir::lexical_exit::requires(&program.functions[0]).unwrap());
     same_owner(&program, "o.main", true);
 }
 #[test]
 fn held_string_append_duplicate_reservation_preserves_first_full_old_diagnostic() {
-    let mut program = program(CONCAT);
+    let mut program = program(LEXICAL_CONCAT);
     let at = {
         let source = primitive_fixture::Context::new(&program);
         let function = program
@@ -26,6 +67,7 @@ fn held_string_append_duplicate_reservation_preserves_first_full_old_diagnostic(
             .iter()
             .find(|f| f.id.as_str() == "o.main")
             .unwrap();
+        assert!(crate::hir::lexical_exit::requires(function).unwrap());
         let mut budget = ReplayBudget::with_physical(function, LIMIT).unwrap();
         let context =
             selected_context::Context::new_paid(&source, function, &mut budget, true).unwrap();

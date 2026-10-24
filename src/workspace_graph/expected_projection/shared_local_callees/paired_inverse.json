@@ -1,0 +1,104 @@
+{
+  "base": "346b1d4a2e0b73d0afd5c87b3e390023393797ce",
+  "complete_416_predecessor": "416773a7e88df70218585dfff7cec2e1dc634713",
+  "entries": {
+    "call_carriers_inverse.rs": {
+      "prior_path": "call_carriers_inverse.rs",
+      "prior_sha256": "19b35869b9438236bc14672cd51bb11dd919de2929c3ec10b23283666a1a37b9",
+      "current_sha256": "4af2dae691c8f85b3557136de1247af75d10c54f96bed56cbdec213e6e0f0e73",
+      "splices": [
+        {
+          "current": "}\n// Complete authenticated acquisition stage, before the unchanged pre-898 inverse.\npub(in crate::workspace_graph) fn pre916_held(source: &str) -> String {\n    let paired_stage =\n        super::super::shared_local_callees::paired::tests::restore(\"held_projection.rs\", source);\n    let source = paired_stage.as_str();\n    use sha2::{Digest, Sha256};\n    let hash = |raw: &str| {\n        format!(\n",
+          "prior": "}\n// Complete authenticated acquisition stage, before the unchanged pre-898 inverse.\npub(in crate::workspace_graph) fn pre916_held(source: &str) -> String {\n    use sha2::{Digest, Sha256};\n    let hash = |raw: &str| {\n        format!(\n"
+        }
+      ]
+    },
+    "held_projection.rs": {
+      "prior_path": "held_projection.rs",
+      "prior_sha256": "8443e4086088b9a623df9f7b7cd9755a0e69664fc4a60066bf5e8da2e6797710",
+      "current_sha256": "3ed8aad0bf741fb853e477ff3c9642d422419ec1f24102b2bec802bb3c551980",
+      "splices": [
+        {
+          "current": "#[path = \"shared_local_callees/coupled_projection.rs\"]\nmod coupled_projection;\npub(super) use coupled_projection::estimate as coupled_uncached_estimate;\n\n#[path = \"shared_local_callees/paired_projection.rs\"]\npub(super) mod paired_projection;\n",
+          "prior": "#[path = \"shared_local_callees/coupled_projection.rs\"]\nmod coupled_projection;\npub(super) use coupled_projection::estimate as coupled_uncached_estimate;\n"
+        }
+      ]
+    },
+    "shared_local_callees.rs": {
+      "prior_path": "shared_local_callees.rs",
+      "prior_sha256": "d282c57cfbfbffe5f26826e574576682549dfd98c9008e1894569c6f0bb6ff95",
+      "current_sha256": "367f69717375d66490f9c8d1d578bd31f4ce95c260a7c0a9da96c2ed43d144a4",
+      "splices": [
+        {
+          "current": "#[path = \"shared_local_callees/reused.rs\"]\nmod reused;\npub(super) use reused::Session;\n\n#[path = \"shared_local_callees/paired.rs\"]\npub(super) mod paired;\n",
+          "prior": "#[path = \"shared_local_callees/reused.rs\"]\nmod reused;\npub(super) use reused::Session;\n"
+        }
+      ]
+    },
+    "uncached_peak.rs": {
+      "prior_path": "uncached_peak.rs",
+      "prior_sha256": "5213e0943fc9899b836893dc8ca51bc3258814efb1188059bc8bf80d485f48f9",
+      "current_sha256": "19abaa4641883629d999ad2f197ed4f4a4e462349425566b16cc1eb05858319e",
+      "splices": [
+        {
+          "current": "        observation.module(index);\n        super::super::diagnostics::begin_precharge_module(&program.path);\n        let maximum = Some(dependency_identity_max(program, authored, programs)?);\n        let (full, retained) = super::shared_local_callees::paired::estimates(\n            program, authored, programs, maximum, 6, true, registry,\n        )?;\n        full_costs[index] = full.retained_hir;\n        retained_costs[index] = retained.retained_hir;\n        super::super::diagnostics::record_precharge_module(&program.path, full_costs[index]);\n    }\n    order[..programs.len()].sort_unstable_by(|left, right| {\n",
+          "prior": "        observation.module(index);\n        super::super::diagnostics::begin_precharge_module(&program.path);\n        let maximum = Some(dependency_identity_max(program, authored, programs)?);\n        full_costs[index] = super::held_projection::coupled_uncached_estimate(\n            program, authored, programs, maximum, 6, true, registry,\n        )?\n        .retained_hir;\n        retained_costs[index] = super::held_projection::coupled_uncached_estimate(\n            program, authored, programs, maximum, 6, false, registry,\n        )?\n        .retained_hir;\n        super::super::diagnostics::record_precharge_module(&program.path, full_costs[index]);\n    }\n    order[..programs.len()].sort_unstable_by(|left, right| {\n"
+        }
+      ]
+    },
+    "shared_local_callees/coupled_projection.rs": {
+      "prior_path": "shared_local_callees/coupled_projection.rs",
+      "prior_sha256": "a399e9385bac7459a511a17b3263d8921ee50ab6ca1b30a78a503cab529e661b",
+      "current_sha256": "154acb58b9ea4e03b6d7ad2284a7ac8def958e943f2fc14fd856c7599c9117cf",
+      "splices": [
+        {
+          "current": "                        } else {\n                            1\n                        })\n                        .and_then(|n| n.checked_mul(super::super::super::HIR_EXPR_FIXED_BUNDLE))\n                        .and_then(|exact| base.checked_add(exact))\n                })\n        })\n        .unwrap_or(usize::MAX);\n    #[cfg(test)]\n    super::super::super::forecast_observation::record_components(\n        &program.path,\n        layout_mode,\n        retention == cached_exact::Retention::Semantic,\n",
+          "prior": "                        } else {\n                            1\n                        })\n                        .and_then(|n| {\n                            n.checked_mul(super::super::super::super::HIR_EXPR_FIXED_BUNDLE)\n                        })\n                        .and_then(|exact| base.checked_add(exact))\n                })\n        })\n        .unwrap_or(usize::MAX);\n    #[cfg(test)]\n    super::super::super::super::forecast_observation::record_components(\n        &program.path,\n        layout_mode,\n        retention == cached_exact::Retention::Semantic,\n"
+        },
+        {
+          "current": "        .checked_add(runtime.exact_expressions)\n        .and_then(|count| {\n            count\n                .checked_mul(super::super::super::HIR_FIXED_EXPANSION_FACTOR)\n                .and_then(|n| n.checked_mul(std::mem::size_of::<crate::ast::Expr>()))\n                .and_then(|old| prior_fixed_hir_upper.checked_sub(old))\n                .and_then(|base| {\n",
+          "prior": "        .checked_add(runtime.exact_expressions)\n        .and_then(|count| {\n            count\n                .checked_mul(super::super::super::super::HIR_FIXED_EXPANSION_FACTOR)\n                .and_then(|n| n.checked_mul(std::mem::size_of::<crate::ast::Expr>()))\n                .and_then(|old| prior_fixed_hir_upper.checked_sub(old))\n                .and_then(|base| {\n"
+        },
+        {
+          "current": "                identity_slots,\n                ast_type_declaration_identity_slots(declaration)?,\n            )?;\n            super::super::super::generic_type_import::rewrite_declaration_runtime_cost_with_layout(\n                declaration,\n                target.module,\n                program,\n",
+          "prior": "                identity_slots,\n                ast_type_declaration_identity_slots(declaration)?,\n            )?;\n            super::super::super::super::generic_type_import::rewrite_declaration_runtime_cost_with_layout(\n                declaration,\n                target.module,\n                program,\n"
+        },
+        {
+          "current": "                programs,\n                &mut default_memo,\n                &mut BTreeSet::new(),\n                super::super::super::owned_function_import::admitted_with_layout(\n                    program, target, authored, programs, layout,\n                ),\n                import_stub::byte_helper_authorized(\n",
+          "prior": "                programs,\n                &mut default_memo,\n                &mut BTreeSet::new(),\n                super::super::super::super::owned_function_import::admitted_with_layout(\n                    program, target, authored, programs, layout,\n                ),\n                import_stub::byte_helper_authorized(\n"
+        }
+      ]
+    },
+    "shared_local_callees/paired_projection.rs": {
+      "prior_path": "shared_local_callees/coupled_projection.rs",
+      "prior_sha256": "a399e9385bac7459a511a17b3263d8921ee50ab6ca1b30a78a503cab529e661b",
+      "current_sha256": "7539f91ca688a592aa66eba74c6dee4b3a721e29fbab9367b7043f8036e4cec9",
+      "splices": [
+        {
+          "current": "                        } else {\n                            1\n                        })\n                        .and_then(|n| n.checked_mul(super::super::super::HIR_EXPR_FIXED_BUNDLE))\n                        .and_then(|exact| base.checked_add(exact))\n                })\n        })\n        .unwrap_or(usize::MAX);\n    #[cfg(test)]\n    super::super::super::forecast_observation::record_components(\n        &program.path,\n        layout_mode,\n        retention == cached_exact::Retention::Semantic,\n",
+          "prior": "                        } else {\n                            1\n                        })\n                        .and_then(|n| {\n                            n.checked_mul(super::super::super::super::HIR_EXPR_FIXED_BUNDLE)\n                        })\n                        .and_then(|exact| base.checked_add(exact))\n                })\n        })\n        .unwrap_or(usize::MAX);\n    #[cfg(test)]\n    super::super::super::super::forecast_observation::record_components(\n        &program.path,\n        layout_mode,\n        retention == cached_exact::Retention::Semantic,\n"
+        },
+        {
+          "current": "        .checked_add(runtime.exact_expressions)\n        .and_then(|count| {\n            count\n                .checked_mul(super::super::super::HIR_FIXED_EXPANSION_FACTOR)\n                .and_then(|n| n.checked_mul(std::mem::size_of::<crate::ast::Expr>()))\n                .and_then(|old| prior_fixed_hir_upper.checked_sub(old))\n                .and_then(|base| {\n",
+          "prior": "        .checked_add(runtime.exact_expressions)\n        .and_then(|count| {\n            count\n                .checked_mul(super::super::super::super::HIR_FIXED_EXPANSION_FACTOR)\n                .and_then(|n| n.checked_mul(std::mem::size_of::<crate::ast::Expr>()))\n                .and_then(|old| prior_fixed_hir_upper.checked_sub(old))\n                .and_then(|base| {\n"
+        },
+        {
+          "current": "                identity_slots,\n                ast_type_declaration_identity_slots(declaration)?,\n            )?;\n            super::super::super::generic_type_import::rewrite_declaration_runtime_cost_with_layout(\n                declaration,\n                target.module,\n                program,\n",
+          "prior": "                identity_slots,\n                ast_type_declaration_identity_slots(declaration)?,\n            )?;\n            super::super::super::super::generic_type_import::rewrite_declaration_runtime_cost_with_layout(\n                declaration,\n                target.module,\n                program,\n"
+        },
+        {
+          "current": "                programs,\n                &mut default_memo,\n                &mut BTreeSet::new(),\n                super::super::super::owned_function_import::admitted_with_layout(\n                    program, target, authored, programs, layout,\n                ),\n                import_stub::byte_helper_authorized(\n",
+          "prior": "                programs,\n                &mut default_memo,\n                &mut BTreeSet::new(),\n                super::super::super::super::owned_function_import::admitted_with_layout(\n                    program, target, authored, programs, layout,\n                ),\n                import_stub::byte_helper_authorized(\n"
+        },
+        {
+          "current": "    let retention = cached_exact::Retention::Parsed;\n    let mut raw = StructuralCost::raw_ast(layout_mode >= 1).with_inline_values(layout_mode >= 2);\n    ast_program_cost(program, &mut raw, include_imports)?;\n    let (call_data, shared_callees) = super::super::shared_local_callees::paired::read_or_count(\n        Some(census),\n        super::super::shared_local_callees::Context {\n            program,\n            authored,\n",
+          "prior": "    let retention = cached_exact::Retention::Parsed;\n    let mut raw = StructuralCost::raw_ast(layout_mode >= 1).with_inline_values(layout_mode >= 2);\n    ast_program_cost(program, &mut raw, include_imports)?;\n    let (call_data, shared_callees) = super::super::call_carriers::count_joint(\n        super::super::shared_local_callees::Context {\n            program,\n            authored,\n"
+        },
+        {
+          "current": "//! all sixteen identity copies retain their original independent equations.\nuse super::*;\n\npub(in crate::workspace_graph::expected_projection) fn estimate_with_census<'p, 'a>(\n    program: &'p Program,\n    authored: &'a BTreeMap<&'a str, AuthoredDeclaration<'a>>,\n    programs: &'a [Program],\n    maximum_identity: Option<usize>,\n    layout_mode: u8,\n    include_imports: bool,\n    registry: Option<&private_layout::registry::LayoutRegistry<'_>>,\n    census: &mut super::super::shared_local_callees::paired::Census<'p, 'a>,\n) -> Result<SyntheticBuilderCosts, Vec<Diagnostic>> {\n    if layout_mode != 6 {\n        return Err(vec![limit_error(\"builder_bytes\", active_builder_limit())]);\n",
+          "prior": "//! all sixteen identity copies retain their original independent equations.\nuse super::*;\n\npub(in crate::workspace_graph::expected_projection) fn estimate<'a>(\n    program: &Program,\n    authored: &'a BTreeMap<&'a str, AuthoredDeclaration<'a>>,\n    programs: &'a [Program],\n    maximum_identity: Option<usize>,\n    layout_mode: u8,\n    include_imports: bool,\n    registry: Option<&private_layout::registry::LayoutRegistry<'_>>,\n) -> Result<SyntheticBuilderCosts, Vec<Diagnostic>> {\n    if layout_mode != 6 {\n        return Err(vec![limit_error(\"builder_bytes\", active_builder_limit())]);\n"
+        }
+      ]
+    }
+  }
+}

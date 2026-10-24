@@ -216,7 +216,7 @@ fn current_factored_storage_preserves_old_automata_work_and_full_hostile_diagnos
     assert_eq!(allocation.allocated, allocation.freed);
     // Rust panic payload/hook allocations are observed too, but have no compiler
     // debit claim. The valid compiler cases below retain the full funding bound.
-    for hostile in [false, true] {
+    for (hostile, warm) in [(false, false), (true, false), (false, true), (true, true)] {
         let mut program = program();
         if hostile {
             let plan = &mut program.functions[0].cleanup_plan;
@@ -240,6 +240,45 @@ fn current_factored_storage_preserves_old_automata_work_and_full_hostile_diagnos
                 let mut budget = ReplayBudget::with_skeleton_limit(0);
                 let mut storage =
                     continuation_storage::Storage::for_program(&program, &mut budget).unwrap();
+                if warm {
+                    // Warm both idle slots under their ordinary account, then
+                    // prove factored acquisition upgrades empty backing without
+                    // adding relocation work to the independent oracle's units.
+                    let mut warming = ReplayBudget::new();
+                    let (top, frames) = storage.acquire(function, &mut warming).unwrap();
+                    let (inner, nested) = storage.acquire(function, &mut warming).unwrap();
+                    assert_eq!((frames.capacity(), nested.capacity()), (2, 2));
+                    assert!(frames.is_empty() && nested.is_empty());
+                    storage.release(inner, nested);
+                    storage.release(top, frames);
+                    let work = (
+                        budget.remaining,
+                        budget.skeleton_spent,
+                        budget.skeleton_remaining,
+                    );
+                    budget.lent_skeleton = true;
+                    let (top, frames) = storage.acquire(function, &mut budget).unwrap();
+                    let (inner, nested) = storage.acquire(function, &mut budget).unwrap();
+                    assert_eq!(
+                        (frames.capacity(), nested.capacity()),
+                        (
+                            continuation_storage::FRAME_CAPACITY,
+                            continuation_storage::FRAME_CAPACITY
+                        )
+                    );
+                    assert!(frames.is_empty() && nested.is_empty());
+                    storage.release(inner, nested);
+                    storage.release(top, frames);
+                    budget.lent_skeleton = false;
+                    assert_eq!(
+                        work,
+                        (
+                            budget.remaining,
+                            budget.skeleton_spent,
+                            budget.skeleton_remaining
+                        )
+                    );
+                }
                 let old = build_comparison(&program, function, &mut old_budget, None, None);
                 let current =
                     build_comparison(&program, function, &mut budget, None, Some(&mut storage));
@@ -412,6 +451,16 @@ fn complete_prior_receiver_and_funded_disagreement_assertion_remain_byte_exact()
         original.strip_suffix("#[cfg(test)]\nmod tests;\n").unwrap()
     );
     let changes = [
+        ("        if matches!(enumerating.payer, AllocationPayer::LegacyUnobserved)\n            && !ordinary_plan_history::completed_fork::emission::before_selected()\n        {\n            plan_prefix::equal_paths(function, &mut enumerating, &mut hir, &mut plan)\n        } else {\n            hir.sort();\n            plan.sort();\n            Ok(hir == plan)\n        }\n", "        hir.sort();\n        plan.sort();\n        Ok(hir == plan)\n"),
+        ("    let _debit_route = debit_routes::route(debit_routes::Route::UnoptedCrosscheck);\n    let _debit_phase = debit_routes::phase(debit_routes::Phase::EnumeratedHIR);\n", ""),
+        ("    #[cfg(feature = \"unstable-workflow-profiling\")]\n    let paid_enumeration = enumerating\n        .paid_phase(crate::workflow_profile::plan_comparison::PaidPhase::CrosscheckEnumerated);\n", ""),
+        ("        let _debit_phase = debit_routes::phase(debit_routes::Phase::FlatPLAN);\n", ""),
+        ("        let _debit_phase = debit_routes::phase(debit_routes::Phase::PathComparison);\n", ""),
+        ("    let _debit_phase = debit_routes::phase(debit_routes::Phase::OtherReplay);\n    #[cfg(feature = \"unstable-workflow-profiling\")]\n    drop(paid_enumeration);\n", ""),
+        ("        #[cfg(feature = \"unstable-workflow-profiling\")]\n        let _paid_crosscheck = factored\n            .paid_phase(crate::workflow_profile::plan_comparison::PaidPhase::CrosscheckFactored);\n", ""),
+        ("    let enumeration_phase = crate::test_allocation_observer::function_phase_guard(\n        \"cleanup_plan::crosscheck::enumerated_hir_plan\",\n    );\n", ""),
+        ("    drop(enumeration_phase);\n", ""),
+        ("        let _allocation_phase = crate::test_allocation_observer::function_phase_guard(\n            \"cleanup_plan::crosscheck::factored_compare\",\n        );\n", ""),
         (") -> Result<(), Diagnostic> {", ") {"),
         ("        let verdict =\n            match compare_with_index_storage(program, function, &mut factored, None, Some(storage))\n            {\n                // A refused ledger cannot finance a verdict. Preserve the exact\n                // error and let the caller report its sticky builder refusal.\n                Err(error) if crate::bounded_output::active_refused() => {\n                    SKELETON_MATERIALIZATIONS.with(|count| count.set(saved));\n                    return Err(error);\n                }\n                verdict => verdict,\n            };\n", "        let verdict =\n            compare_with_index_storage(program, function, &mut factored, None, Some(storage));\n"),
         ("    Ok(())\n", ""),

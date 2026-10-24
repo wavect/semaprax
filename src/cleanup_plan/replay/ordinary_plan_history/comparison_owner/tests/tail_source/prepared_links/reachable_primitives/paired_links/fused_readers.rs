@@ -1,4 +1,5 @@
 //! Complete immediate fused-reader source inverses; no prior checks removed.
+#[path = "independent_segments.rs"]
 mod independent_segments;
 fn restore(current: &str, before: &str, length: usize, edits: &[(usize, &str, &str)]) -> String {
     assert_eq!(current.len(), length, "unknown fused-reader subject extent");

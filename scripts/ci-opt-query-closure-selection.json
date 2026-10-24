@@ -1,0 +1,336 @@
+{
+  "schema": "semaprax.hosted-opt-batch-selection.v1",
+  "filters": 47,
+  "expected_tests": 193,
+  "commands": [
+    {
+      "owner": "OPT893 complete finite page admission predecessor inverse and independent I/O hostiles",
+      "binary": "lib",
+      "filter": "source_reflows_merge::main_e177_final_inputs::overlay_v2::tests::",
+      "exact": false,
+      "expected_tests": 13
+    },
+    {
+      "owner": "OPT893 complete compiled lookup predecessor and child boundary controls",
+      "binary": "lib",
+      "filter": "source_reflows_merge::main_e177_final_inputs::overlay_v2::compiled_sources::tests::",
+      "exact": false,
+      "expected_tests": 2
+    },
+    {
+      "owner": "OPT893 whole observer projection current prior and foreign source controls",
+      "binary": "lib",
+      "filter": "source_reflows_merge::final_ready_inputs::observer_projection_stage_keeps_whole_current_and_prior_and_refuses_foreign_joins",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT893 complete V11 digest transport and unchanged canonical V10 inverse",
+      "binary": "lib",
+      "filter": "source_reflows_merge::main_e177_final_inputs::overlay_v2::fragments_v3::pins_v11::tests::",
+      "exact": false,
+      "expected_tests": 3
+    },
+    {
+      "owner": "OPT893 both V10 archive-prefix and original519 reference codec owners",
+      "binary": "lib",
+      "filter": "source_reflows_merge::main_e177_final_inputs::overlay_v2::fragments_v3::pins_v10::",
+      "exact": false,
+      "expected_tests": 7
+    },
+    {
+      "owner": "OPT917 canonical lossless view-label codec parity and hostile input controls",
+      "binary": "lib",
+      "filter": "source_reflows_merge::main_e177_final_inputs::overlay_v2::fragments_v3::labels_v12::tests::",
+      "exact": false,
+      "expected_tests": 6
+    },
+    {
+      "owner": "OPT892 original callable boundary owner35",
+      "binary": "lib",
+      "filter": "workspace_graph::tests::callable_limit_exact_advances_and_one_over_is_g171",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT892 original primitive codec preparation owner9",
+      "binary": "lib",
+      "filter": "workspace_graph::tests::codec808_frontier::primitive_string_codec_actual_preparation_reports_existing_first_operation_without_replacing_failure",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT892 original typed Catalog complete23 functional cases",
+      "binary": "project",
+      "filter": "standard_library::application_json::owned::catalog_scoped_records::typed_catalog_derives_codecs_and_preserves_all_23_functional_cases",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT892 original starter closed schema and stale source controls",
+      "binary": "project",
+      "filter": "standard_library::application_json::starter::starter_shared_plan_decoder_retains_closed_schema_bounds_and_stale_source_refusals",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT892 original ordinary constructor collector order full diagnostics and sticky owner",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_receiving::tests::",
+      "exact": false,
+      "expected_tests": 3
+    },
+    {
+      "owner": "OPT892 original retained lookup typed output UTF8 NUL noncall cuts and unwind",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::expression_facts::arena::retained::into_tests::",
+      "exact": false,
+      "expected_tests": 4
+    },
+    {
+      "owner": "OPT892 original whole ordinary caller actual N M invoice and scalar regression controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::expression_facts::receiving::retained::case_certified::lookup_tests::receiving::",
+      "exact": false,
+      "expected_tests": 4
+    },
+    {
+      "owner": "OPT892 exact original nested ACTIVE foreign budget and stale function guard",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::expression_facts::receiving::retained::case_certified::lookup_tests::original_exact_owner_guards_reject_nested_ledger_foreign_budget_and_stale_function",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT903 unchanged dense64 whole public validation forecast and complete Drop gate",
+      "binary": "lib",
+      "filter": "workspace_graph::expected_projection::call_carriers::tests::exact_one_short_zero_and_whole_allocation_drop_controls",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT892 exact structural query authority work cuts Weak identity full setup and Drop",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::skeleton_work::query_proof::tests::",
+      "exact": false,
+      "expected_tests": 10
+    },
+    {
+      "owner": "OPT919 retained original edge and complete current-to-old census inverses",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::held_edge_tests::",
+      "exact": false,
+      "expected_tests": 4
+    },
+    {
+      "owner": "OPT893 full compiled lookup and Python codec factoring source reassembly",
+      "binary": "lib",
+      "filter": "source_reflows_merge::main_e177_final_inputs::overlay_v2::compiled_sources::census_split::",
+      "exact": false,
+      "expected_tests": 2
+    },
+    {
+      "owner": "OPT919 complete joined HIR source trust boundary",
+      "binary": "hir_module_boundaries",
+      "filter": "core_validation_has_no_resolution_cleanup_build_or_physical_authority",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT903 complete immutable PLAN prefix constructor and source custody",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::plan_prefix::tests::",
+      "exact": false,
+      "expected_tests": 9
+    },
+    {
+      "owner": "Exact remaining failure from combined qualification40013931943; preserve original acceptance",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::factored::continuation_receiver::tests::complete_prior_receiver_and_funded_disagreement_assertion_remain_byte_exact",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Exact remaining failure from combined qualification40013931943; preserve original acceptance",
+      "binary": "lib",
+      "filter": "hir::validation::lexical_exit::witness_tests::complete_public_caller_reports_real_backing_replacement_bill_and_drop_for_matched_sources",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Exact remaining failure from combined qualification40013931943; preserve original acceptance",
+      "binary": "lib",
+      "filter": "hir::validation::lexical_exit::witness_tests::real_new_witness_frontiers_exact_short_zero_floor_sticky_and_drop_are_not_layout_guesses",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Exact remaining failure from combined qualification40013931943; preserve original acceptance",
+      "binary": "lib",
+      "filter": "hir::validation::lexical_exit::witness_tests::whole_immediate_production_frame_dispatch_helper_and_invoice_restore_and_refuse_drift",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT914 original compact selected frontier immediate-old callers for nearest issue closure",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::selected::frontier_tests::",
+      "exact": false,
+      "expected_tests": 12
+    },
+    {
+      "owner": "Incoming main funded type cursor immediate predecessor and actual boundary controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::expression_facts::capacity::",
+      "exact": false,
+      "expected_tests": 13
+    },
+    {
+      "owner": "Incoming main complete cursor caller allocation source and layout controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::expression_facts::arena::cursor_tests::",
+      "exact": false,
+      "expected_tests": 4
+    },
+    {
+      "owner": "Incoming main intentional operator refusal corpus with complete independent oracle",
+      "binary": "lib",
+      "filter": "source_verify::constructor_tests::corpus::scalar_frame_machine_matches_recursive_oracle",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Incoming main intentional operator refusal corpus with complete independent oracle",
+      "binary": "lib",
+      "filter": "source_verify::constructor_tests::corpus::generic_inference_v2_frame_machine_matches_recursive_oracle",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Incoming main complete operator source inverse and hostile drift controls",
+      "binary": "lib",
+      "filter": "source_verify::recovery_tests::operators_799::complete_original_operator_source_is_preserved_by_exact_named_inverse",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Incoming main complete operator source inverse and hostile drift controls",
+      "binary": "lib",
+      "filter": "source_verify::recovery_tests::operators_799::operator_source_inverse_refuses_truncation_and_one_byte_drift",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT919 direct singleton carrier removal whole immediate invoices and original work diagnostics",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::direct_one_tests::",
+      "exact": false,
+      "expected_tests": 5
+    },
+    {
+      "owner": "OPT919 complete original frontier caller invoices ownership and allocation controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::frontier_tests::",
+      "exact": false,
+      "expected_tests": 14
+    },
+    {
+      "owner": "OPT919 complete original frontier caller invoices ownership and allocation controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::receiver_tests::",
+      "exact": false,
+      "expected_tests": 3
+    },
+    {
+      "owner": "OPT919 complete original frontier caller invoices ownership and allocation controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::shared_insertions_tests::",
+      "exact": false,
+      "expected_tests": 5
+    },
+    {
+      "owner": "OPT914 complete original selected caller regressions previously seven failures; preserve full six-field diagnostic order",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::selected::tests::",
+      "exact": false,
+      "expected_tests": 19
+    },
+    {
+      "owner": "OPT912 complete drained-frame reuse owners including three corrected invocation fixtures",
+      "binary": "lib",
+      "filter": "hir::validation::frame_reuse::",
+      "exact": false,
+      "expected_tests": 10
+    },
+    {
+      "owner": "OPT912 exact invocation publication unwind and physical Drop control",
+      "binary": "lib",
+      "filter": "hir::validation::lexical_exit::witness_tests::invocation_reuse_unwinds_live_scopes_and_witness_before_publication_drop",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT913 original complete caller invoice regression corrected fixture",
+      "binary": "lib",
+      "filter": "hir::validation::scope_checkpoint::marks::tests::ordinary_function_callers_report_complete_old_current_bills_and_drop_without_gain_assumption",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT919 compact pending failure complete authority Diagnostic Cow Drop old-source controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::compact_failure_tests::",
+      "exact": false,
+      "expected_tests": 8
+    },
+    {
+      "owner": "OPT919 lexical contains exact removed formal retained banks complete immediate old and Drop",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::contains_tests::",
+      "exact": false,
+      "expected_tests": 3
+    },
+    {
+      "owner": "OPT924 repeated-only digest V13 parity complete V12 inverse canonical hostile and cap controls",
+      "binary": "lib",
+      "filter": "source_reflows_merge::main_e177_final_inputs::overlay_v2::fragments_v3::digests_v13::tests::",
+      "exact": false,
+      "expected_tests": 7
+    },
+    {
+      "owner": "Paired encoder/parser compiler-produced Core/Component SDK artifact and source-bound hostile replay",
+      "binary": "public_generic_wasm_adapter_v1",
+      "filter": "compiler_provider_artifact::compiler_provider_artifact_is_deterministic_closed_and_binding_normalized",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Paired encoder/parser compiler-produced Core/Component SDK artifact and source-bound hostile replay",
+      "binary": "public_generic_wasm_adapter_v1",
+      "filter": "component_artifact::retained_component_replays_deterministically_and_rejects_tampered_identity",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Paired encoder/parser compiler-produced Core/Component SDK artifact and source-bound hostile replay",
+      "binary": "public_generic_wasm_adapter_v1",
+      "filter": "component_artifact::retained_component_refuses_source_drift_before_runtime_and_accepts_new_revision",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Incoming396 exact paid lexical source epoch and complete original caller custody",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::expression_facts::receiving::remaining::tests::complete_root_receivers_and_only_named_paid_caller_projections_keep_original_bytes",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Incoming396 exact paid lexical source epoch and complete original caller custody",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::expression_facts::receiving::remaining::tests::paid_lexical_call_inverse_rejects_whole_source_drift_and_old_inputs",
+      "exact": true,
+      "expected_tests": 1
+    }
+  ]
+}

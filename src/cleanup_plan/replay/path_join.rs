@@ -3,20 +3,53 @@
 use super::*;
 use std::borrow::Borrow;
 #[cfg(test)]
+use super::transition;
+#[cfg(test)]
+mod main3d81_before;
+#[cfg(test)]
 #[allow(dead_code, reason = "complete original path-state replay receiver")]
 mod before;
+#[cfg(test)]
+#[allow(
+    dead_code,
+    reason = "complete immediate-old ordinary frontier and direct dependencies"
+)]
+mod before_frontier;
 #[cfg(test)]
 #[allow(dead_code, reason = "complete MAIN019d callback receiver")]
 #[path = "path_join/before_receiving.rs"]
 mod before_receiving;
+#[cfg(test)]
+mod boxed_flow;
 mod boxed_states;
 mod branch_join;
 #[cfg(test)]
+mod frontier;
+#[cfg(test)]
+mod frontier_tests;
+#[cfg(test)]
+#[allow(
+    dead_code,
+    reason = "complete independently compiled pre-inline receiving producers"
+)]
+mod held_edge_before;
+#[cfg(test)]
+mod held_edge_tests;
+#[cfg(test)]
 mod receiver_tests;
+#[cfg(test)]
+#[allow(
+    dead_code,
+    reason = "complete independently executable immediate-92d insertion predecessors"
+)]
+mod shared_insertions_before;
+#[cfg(test)]
+mod shared_insertions_tests;
 pub(super) mod storage;
 
 #[allow(clippy::too_many_arguments)] // Keep the independently held phase index explicit.
-pub(super) fn validate_path_states<E: semantic_refusal::Error>(
+#[cfg(test)]
+pub(super) fn validate_path_states_before_field_local<E: semantic_refusal::Error>(
     program: &dyn crate::cleanup::ReplayContext,
     function: &ResolvedFunction,
     storage: &BTreeSet<StorageId>,
@@ -33,6 +66,14 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
     let _exclusive_operation = crate::bounded_output::exclusive_debits::operation_guard(
         crate::bounded_output::exclusive_debits::Operation::ReplayPathStates,
     );
+    #[cfg(feature = "unstable-workflow-profiling")]
+    let mut path_census = crate::bounded_output::exclusive_debits::path_census::enter(
+        crate::bounded_output::exclusive_debits::path_census::Family::Ordinary,
+    );
+    #[cfg(feature = "unstable-workflow-profiling")]
+    crate::bounded_output::exclusive_debits::path_census::event(
+        crate::bounded_output::exclusive_debits::path_census::Event::Body,
+    );
     // Authenticate the absence once before path traversal. The source/HIR
     // wrapper certificate identifies a conditional Step transfer, which must
     // never acquire the one-leaf renewal authority of another profile.
@@ -48,16 +89,6 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
             }
         }
     }
-    // The held edge helper uses only nonrecursive borrowed receiver frames.
-    // Acquire their complete fixed capacity here; owned results retain their
-    // ordinary per-call paths and insertion backing remains independently paid.
-    budget.reserve_bytes(
-        function,
-        8 * std::mem::size_of::<&mut PathState>()
-            + 4 * std::mem::size_of::<Result<(), Diagnostic>>()
-            + 2 * std::mem::size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>(),
-        "held-state borrowed receiver controls",
-    )?;
     let plan = &function.cleanup_plan;
     let storage_regions = storage::storage_regions(function, budget)?;
     // Exact ownership state each lexical loop body must restore, captured once
@@ -153,21 +184,24 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
         });
     }
 
-    budget.reserve_array::<BTreeSet<Box<PathState>>>(
+    budget.reserve_array::<frontier::Incoming<PathState>>(
         function,
         plan.blocks.len(),
         "incoming state frontier",
     )?;
-    let mut incoming = vec![BTreeSet::<Box<PathState>>::new(); plan.blocks.len()];
-    let mut insertions = boxed_states::Insertions::<PathState>::acquire(function, budget)?;
-    insertions.insert_owned(
+    boxed_flow::reserve_directory(function, plan.blocks.len(), budget)?;
+    let mut incoming = Vec::with_capacity(plan.blocks.len());
+    incoming.resize_with(plan.blocks.len(), frontier::Incoming::default);
+    let mut incoming_insertions = frontier::Insertions::<PathState>::acquire(function, budget)?;
+
+    incoming_insertions.insert_owned(
         function,
         &mut incoming[plan.entry.0 as usize],
         initial,
         budget,
     );
-    if insertions.failed {
-        return Err(insertions.failure().into());
+    if incoming_insertions.failed {
+        return Err(incoming_insertions.failure().into());
     }
     budget.reserve_array::<usize>(function, plan.blocks.len(), "cleanup predecessor counters")?;
     let mut remaining_predecessors = vec![0_usize; plan.blocks.len()];
@@ -189,7 +223,16 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
     let mut branch_joins = branch_join::BranchJoins::default();
 
     while let Some(block_id) = queue.pop_front() {
+        budget.reserve_bytes(
+            function,
+            boxed_flow::BLOCK_CONTROLS,
+            "ordinary frontier block and singleton receiving",
+        )?;
+        #[cfg(test)]
+        direct_one_tests::record_bank();
         let states = std::mem::take(&mut incoming[block_id.0 as usize]);
+        #[cfg(feature = "unstable-workflow-profiling")]
+        states.observe_incoming();
         if states.is_empty() {
             return Err(replay_error(
                 function,
@@ -197,14 +240,27 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
             )
             .into());
         }
-        let join_units =
-            states
-                .len()
-                .saturating_mul(states.iter().fold(1_usize, |total, state| {
-                    total
-                        .saturating_add(state.live_order.len())
-                        .saturating_add(renewal::retained_units(state))
-                }));
+        // Many retains the original direct tree iterator, including its
+        // exhaustion: no per-state frontier dispatch or forwarded Option is
+        // introduced. One reads the same borrowed fields directly; it forms
+        // neither an iterator nor a forwarded next/exhaustion Option.
+        let join_units = match &states {
+            frontier::Incoming::Many(states) => {
+                states
+                    .len()
+                    .saturating_mul(states.iter().fold(1_usize, |total, state| {
+                        total
+                            .saturating_add(state.live_order.len())
+                            .saturating_add(renewal::retained_units(state))
+                    }))
+            }
+            // The field binding replaces the old fold's &Box callback formal.
+            // Its existing Box/PathState borrow banks remain fully paid.
+            frontier::Incoming::One(state) => 1_usize
+                .saturating_add(state.live_order.len())
+                .saturating_add(renewal::retained_units(state)),
+            frontier::Incoming::Empty => unreachable!("empty frontier already refused"),
+        };
         budget.charge(function, join_units, "all-path ownership replay")?;
         // A single incoming state is already its complete unique control group.
         // Keep every validation/join/transition/exit and scheduling step below;
@@ -222,14 +278,21 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                 )
                 .into());
             }
-            validate_control_group_with_budget(function, &states, block_id, budget)?;
+            validate_join_compatibility(
+                function,
+                std::iter::empty(),
+                states.one().as_ref(),
+                block_id,
+                budget,
+            )?;
             // The validated singleton already owns the complete joined fields.
             // Consume it once; neither original vector nor any nested identity
             // is cloned, replaced from a clone, or temporarily reinitialized.
-            let mut state = states
-                .into_iter()
-                .next()
-                .expect("replay control group is non-empty");
+            // Move into the same named Box slot previously filled by expect;
+            // no Option, iterator, replacement or additional owner is formed.
+            let frontier::Incoming::One(mut state) = states else {
+                unreachable!("singleton frontier already selected")
+            };
             // Identical branch arms still require their original normalization.
             // Move the original vector into that same producer and receive its
             // result back into the same field. Partial failure drops the moved
@@ -264,27 +327,15 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                 CleanupTerminator::Goto(edge) => {
                     require_normal_flow_state(function, &state, block_id)?;
                     let edge = &plan.edges[edge.0 as usize];
-                    super::transition::state_for_held_edge(
-                        function,
-                        &mut state,
-                        &edge.condition,
-                        &contract_sources,
-                    )?;
-                    // Preserve actual/formal owning Box transports at every
-                    // reused insertion; only the new allocation disappears.
-                    budget.reserve_bytes(
-                        function,
-                        2 * std::mem::size_of::<Box<PathState>>(),
-                        "held-state owning box transports",
-                    )?;
-                    insertions.insert_held(
+                    boxed_flow::held_edge!(function, state, &edge.condition, contract_sources);
+                    incoming_insertions.insert_held(
                         function,
                         &mut incoming[edge.to.0 as usize],
                         state,
                         budget,
                     );
-                    if insertions.failed {
-                        return Err(insertions.failure().into());
+                    if incoming_insertions.failed {
+                        return Err(incoming_insertions.failure().into());
                     }
                 }
                 CleanupTerminator::Branch(edges) => {
@@ -338,14 +389,14 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                                 budget,
                             )?;
                         }
-                        insertions.insert_owned(
+                        incoming_insertions.insert_owned(
                             function,
                             &mut incoming[edge.to.0 as usize],
                             next,
                             budget,
                         );
-                        if insertions.failed {
-                            return Err(insertions.failure().into());
+                        if incoming_insertions.failed {
+                            return Err(incoming_insertions.failure().into());
                         }
                         // The earlier sibling owns its independent clone. The final
                         // sibling receives the original state, with identical work.
@@ -356,12 +407,7 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                             renewal::retained_units(&state),
                             "renewal branch history clone",
                         )?;
-                        super::transition::state_for_held_edge(
-                            function,
-                            &mut state,
-                            &edge.condition,
-                            &contract_sources,
-                        )?;
+                        boxed_flow::held_edge!(function, state, &edge.condition, contract_sources);
                         let next = state;
                         if let Some(auth) = lexical {
                             lexical_flow::capture_loop_entry(
@@ -373,22 +419,20 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                                 budget,
                             )?;
                         }
-                        budget.reserve_bytes(
-                            function,
-                            2 * std::mem::size_of::<Box<PathState>>(),
-                            "held-state owning box transports",
-                        )?;
-                        insertions.insert_held(
+                        incoming_insertions.insert_held(
                             function,
                             &mut incoming[edge.to.0 as usize],
                             next,
                             budget,
                         );
-                        if insertions.failed {
-                            return Err(insertions.failure().into());
+                        if incoming_insertions.failed {
+                            return Err(incoming_insertions.failure().into());
                         }
                     } else {
                         // Complete old fallback for low-level malformed cardinality.
+                        // Unbox once before the unbounded edge loop: every clone
+                        // retains the original unboxed receiver and transport.
+                        let state = *state;
                         for edge in edges {
                             let edge = &plan.edges[edge.0 as usize];
                             budget.charge(
@@ -411,7 +455,7 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                                     budget,
                                     "ownership branch clone",
                                 )?;
-                                state.as_ref().clone()
+                                state.clone()
                             };
                             let next = state_for_edge(
                                 function,
@@ -429,20 +473,19 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                                     budget,
                                 )?;
                             }
-                            insertions.insert_owned(
+                            incoming_insertions.insert_owned(
                                 function,
                                 &mut incoming[edge.to.0 as usize],
                                 next,
                                 budget,
                             );
-                            if insertions.failed {
-                                return Err(insertions.failure().into());
+                            if incoming_insertions.failed {
+                                return Err(incoming_insertions.failure().into());
                             }
                         }
                     }
                 }
                 CleanupTerminator::Exit(exit_id) => {
-                    let state = *state;
                     let exit = &plan.exits[exit_id.0 as usize];
                     let extra = lexical
                         .and_then(|auth| auth.item_disposals.get(exit_id))
@@ -450,7 +493,7 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                     match replay_exit(
                         function,
                         exit,
-                        state,
+                        *state,
                         &storage_regions,
                         storage,
                         leaves,
@@ -480,14 +523,14 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                                     leaves,
                                 )?;
                             }
-                            insertions.insert_owned(
+                            incoming_insertions.insert_owned(
                                 function,
                                 &mut incoming[target.0 as usize],
                                 continued,
                                 budget,
                             );
-                            if insertions.failed {
-                                return Err(insertions.failure().into());
+                            if incoming_insertions.failed {
+                                return Err(incoming_insertions.failure().into());
                             }
                         }
                         ExitFlow::Latch(latched) => {
@@ -497,14 +540,14 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                             if let Some(entry) = lexical_cert::latch_resume(plan, exit.id) {
                                 // A certified continue enters its finite generated
                                 // advancement fragment, whose own latch checks entry.
-                                insertions.insert_owned(
+                                incoming_insertions.insert_owned(
                                     function,
                                     &mut incoming[entry.0 as usize],
                                     latched,
                                     budget,
                                 );
-                                if insertions.failed {
-                                    return Err(insertions.failure().into());
+                                if incoming_insertions.failed {
+                                    return Err(incoming_insertions.failure().into());
                                 }
                             } else {
                                 lexical_flow::check_latch(
@@ -550,7 +593,7 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
             continue;
         }
         let mut groups = BTreeMap::<ControlKey, BTreeSet<Box<PathState>>>::new();
-        for state in states {
+        for state in states.into_many() {
             let key = if storage::atomic_controls::selected(&state, budget) {
                 let payload = storage::atomic_controls::reserve(function, &state, budget)?;
                 storage::atomic_controls::copy(payload)
@@ -572,13 +615,20 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                 )?;
             }
             let group = groups.entry(key).or_default();
-            insertions.insert_held(function, group, state, budget);
-            if insertions.failed {
-                return Err(insertions.failure().into());
+            incoming_insertions.insert_group_held(function, group, state, budget);
+            if incoming_insertions.failed {
+                return Err(incoming_insertions.failure().into());
             }
         }
         let block = &plan.blocks[block_id.0 as usize];
         for states in groups.into_values() {
+            budget.reserve_bytes(
+                function,
+                boxed_flow::BLOCK_CONTROLS,
+                "ordinary frontier block and singleton receiving",
+            )?;
+            #[cfg(test)]
+            direct_one_tests::record_bank();
             // An owning break's fragment rejoins its wrapper's parent: every
             // incoming state must agree exactly, with no ownership or history
             // repair by the generic join below.
@@ -605,7 +655,7 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                     budget,
                 )?;
             }
-            let mut state = *states
+            let mut state = states
                 .into_iter()
                 .next()
                 .expect("replay control group is non-empty");
@@ -633,16 +683,15 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                 CleanupTerminator::Goto(edge) => {
                     require_normal_flow_state(function, &state, block_id)?;
                     let edge = &plan.edges[edge.0 as usize];
-                    let state =
-                        state_for_edge(function, state, &edge.condition, &contract_sources)?;
-                    insertions.insert_owned(
+                    boxed_flow::held_edge!(function, state, &edge.condition, contract_sources);
+                    incoming_insertions.insert_held(
                         function,
                         &mut incoming[edge.to.0 as usize],
                         state,
                         budget,
                     );
-                    if insertions.failed {
-                        return Err(insertions.failure().into());
+                    if incoming_insertions.failed {
+                        return Err(incoming_insertions.failure().into());
                     }
                 }
                 CleanupTerminator::Branch(edges) => {
@@ -682,7 +731,7 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                                 budget,
                                 "ownership branch clone",
                             )?;
-                            state.clone()
+                            state.as_ref().clone()
                         };
                         let next =
                             state_for_edge(function, cloned, &edge.condition, &contract_sources)?;
@@ -696,14 +745,14 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                                 budget,
                             )?;
                         }
-                        insertions.insert_owned(
+                        incoming_insertions.insert_owned(
                             function,
                             &mut incoming[edge.to.0 as usize],
                             next,
                             budget,
                         );
-                        if insertions.failed {
-                            return Err(insertions.failure().into());
+                        if incoming_insertions.failed {
+                            return Err(incoming_insertions.failure().into());
                         }
                         // The earlier sibling owns its independent clone. The final
                         // sibling receives the original state, with identical work.
@@ -714,8 +763,8 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                             renewal::retained_units(&state),
                             "renewal branch history clone",
                         )?;
-                        let next =
-                            state_for_edge(function, state, &edge.condition, &contract_sources)?;
+                        boxed_flow::held_edge!(function, state, &edge.condition, contract_sources);
+                        let next = state;
                         if let Some(auth) = lexical {
                             lexical_flow::capture_loop_entry(
                                 function,
@@ -726,17 +775,20 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                                 budget,
                             )?;
                         }
-                        insertions.insert_owned(
+                        incoming_insertions.insert_held(
                             function,
                             &mut incoming[edge.to.0 as usize],
                             next,
                             budget,
                         );
-                        if insertions.failed {
-                            return Err(insertions.failure().into());
+                        if incoming_insertions.failed {
+                            return Err(incoming_insertions.failure().into());
                         }
                     } else {
                         // Complete old fallback for low-level malformed cardinality.
+                        // Unbox once before the unbounded edge loop: every clone
+                        // retains the original unboxed receiver and transport.
+                        let state = *state;
                         for edge in edges {
                             let edge = &plan.edges[edge.0 as usize];
                             budget.charge(
@@ -777,14 +829,14 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                                     budget,
                                 )?;
                             }
-                            insertions.insert_owned(
+                            incoming_insertions.insert_owned(
                                 function,
                                 &mut incoming[edge.to.0 as usize],
                                 next,
                                 budget,
                             );
-                            if insertions.failed {
-                                return Err(insertions.failure().into());
+                            if incoming_insertions.failed {
+                                return Err(incoming_insertions.failure().into());
                             }
                         }
                     }
@@ -797,7 +849,7 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                     match replay_exit(
                         function,
                         exit,
-                        state,
+                        *state,
                         &storage_regions,
                         storage,
                         leaves,
@@ -827,14 +879,14 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                                     leaves,
                                 )?;
                             }
-                            insertions.insert_owned(
+                            incoming_insertions.insert_owned(
                                 function,
                                 &mut incoming[target.0 as usize],
                                 continued,
                                 budget,
                             );
-                            if insertions.failed {
-                                return Err(insertions.failure().into());
+                            if incoming_insertions.failed {
+                                return Err(incoming_insertions.failure().into());
                             }
                         }
                         ExitFlow::Latch(latched) => {
@@ -844,14 +896,14 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
                             if let Some(entry) = lexical_cert::latch_resume(plan, exit.id) {
                                 // A certified continue enters its finite generated
                                 // advancement fragment, whose own latch checks entry.
-                                insertions.insert_owned(
+                                incoming_insertions.insert_owned(
                                     function,
                                     &mut incoming[entry.0 as usize],
                                     latched,
                                     budget,
                                 );
-                                if insertions.failed {
-                                    return Err(insertions.failure().into());
+                                if incoming_insertions.failed {
+                                    return Err(incoming_insertions.failure().into());
                                 }
                             } else {
                                 lexical_flow::check_latch(
@@ -903,6 +955,14 @@ pub(super) fn validate_path_states<E: semantic_refusal::Error>(
             "cleanup CFG has no replayable terminal success path",
         )
         .into());
+    }
+    #[cfg(feature = "unstable-workflow-profiling")]
+    {
+        crate::bounded_output::exclusive_debits::path_census::finish(
+            terminal_paths,
+            successful_paths,
+        );
+        path_census.success();
     }
     Ok(())
 }
@@ -1203,3 +1263,48 @@ mod final_edge_tests;
 pub(in crate::cleanup_plan::replay) mod before_path_boundary;
 
 pub(in crate::cleanup_plan::replay) mod selected;
+
+#[cfg(test)]
+#[allow(
+    dead_code,
+    reason = "complete immediate old singleton receiving driver and helpers"
+)]
+mod direct_one_before;
+#[cfg(test)]
+mod direct_one_tests;
+
+#[cfg(test)]
+#[allow(
+    dead_code,
+    reason = "complete independently compiled immediate-a6 frontier owner"
+)]
+mod compact_failure_before;
+#[cfg(test)]
+mod compact_failure_tests;
+
+#[cfg(test)]
+#[allow(
+    dead_code,
+    reason = "complete independently compiled immediate-compact frontier owner"
+)]
+mod contains_before;
+#[cfg(test)]
+mod contains_tests;
+
+#[cfg(test)]
+#[allow(
+    dead_code,
+    reason = "complete immediate-c189 ordinary driver and dependencies"
+)]
+mod fused_before;
+#[cfg(test)]
+#[allow(
+    dead_code,
+    reason = "complete byte-exact immediate-c189 insertion producer"
+)]
+mod fused_before_frontier;
+#[cfg(test)]
+mod fused_tests;
+
+mod field_local;
+pub(super) use field_local::validate_path_states;

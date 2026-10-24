@@ -145,7 +145,7 @@ pub(crate) fn validate_attached_identity_references(
     Ok(())
 }
 
-fn audit_resolved_type(root: &ResolvedType) -> Result<(), Diagnostic> {
+pub(super) fn audit_resolved_type(root: &ResolvedType) -> Result<(), Diagnostic> {
     // These exact leaves contain neither declaration identities nor child
     // types. The original walk allocated one worklist only to pop the root.
     match root {

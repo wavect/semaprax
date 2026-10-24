@@ -355,7 +355,7 @@ fn reuse_source_before(path: &str, supplied: &str) -> String {
     );
     assert_eq!(
         hash(packet_bytes),
-        "34e8f79564b7d6ec98359f85eec368edb38b4384725014938ce9475b02acf2e2"
+        "b376a16d75cbcf35956132eb368ef74c548759a77051d708c4d5ee6318dcf0b2"
     );
     let packet: serde_json::Value = serde_json::from_slice(packet_bytes).unwrap();
     assert_eq!(packet.as_array().unwrap().len(), 2);
@@ -476,7 +476,7 @@ fn invocation_pending_reuse_keeps_complete_old_invoice_without_padding() {
     let frame = std::mem::size_of::<Pending<'_, ResolvedExpr>>();
     assert_eq!(
         new_paid + roots * frame,
-        old_paid + REUSE_SELECTION + frame + roots * REUSE_CALL
+        old_paid + REUSE_SELECTION + type_scratch::HEADER + frame + roots * REUSE_CALL
     );
     assert!(new_paid < old_paid);
     for (physical, paid) in [(old_physical, old_paid), (new_physical, new_paid)] {
@@ -519,7 +519,7 @@ fn invocation_pending_reuse_preserves_all_diagnostic_fields_and_first_error_orde
         if case == 0 {
             assert_eq!(
                 bp,
-                ap + REUSE_SELECTION,
+                ap + REUSE_SELECTION + type_scratch::HEADER,
                 "first metadata failure must precede frame formation"
             );
         }
@@ -539,12 +539,18 @@ fn invocation_pending_reuse_exact_short_zero_sticky_and_scope_isolation() {
     let new_empty = reuse_observe(&empty, false, LIMIT);
     assert_eq!(old_empty.0, new_empty.0);
     assert!(new_empty.0.is_ok() && !old_empty.2 && !new_empty.2);
-    assert_eq!(new_empty.3, old_empty.3 + REUSE_SELECTION);
+    assert_eq!(
+        new_empty.3,
+        old_empty.3 + REUSE_SELECTION + type_scratch::HEADER
+    );
     assert_eq!(new_empty.1.allocated, 0);
     let empty_zero = reuse_observe(&empty, false, 0);
     assert_eq!(empty_zero.0.unwrap_err(), text::refused());
     assert!(empty_zero.2 && empty_zero.3 == 0);
-    assert_eq!(empty_zero.4.unwrap().requested, REUSE_SELECTION);
+    assert_eq!(
+        empty_zero.4.unwrap().requested,
+        REUSE_SELECTION + type_scratch::HEADER
+    );
     let p = reuse_program(&[65, 1, 130]);
     let (result, _, refused, exact, first) = reuse_observe(&p, false, LIMIT);
     assert!(result.is_ok() && !refused && first.is_none());
@@ -601,6 +607,10 @@ fn invocation_pending_reuse_authenticates_both_complete_immediate_old_sources() 
             include_str!("reuse_before/pending.rs"),
         ),
         (
+            "src/hir/inspection/paid_nul/type_scratch.rs",
+            include_str!("type_scratch.rs"),
+        ),
+        (
             "src/hir/inspection/paid_nul/text.rs",
             include_str!("text.rs"),
         ),
@@ -617,6 +627,17 @@ fn invocation_pending_reuse_authenticates_both_complete_immediate_old_sources() 
             "mod pending;",
         )
         .replace("#[path = \"text.rs\"]\nmod text;", "mod text;");
+    assert_eq!(
+        before
+            .matches("pub(super) fn audit_resolved_type(root:")
+            .count(),
+        1
+    );
+    let before = before.replacen(
+        "pub(super) fn audit_resolved_type(root:",
+        "fn audit_resolved_type(root:",
+        1,
+    );
     assert_eq!(before + "\n#[cfg(test)]\nmod tests;\n", audit);
     assert_eq!(include_str!("reuse_before/pending.rs"), pending);
     assert_eq!(
@@ -625,6 +646,13 @@ fn invocation_pending_reuse_authenticates_both_complete_immediate_old_sources() 
             crate::digest_hex::LowerHex(Sha256::digest(include_bytes!("text.rs")))
         ),
         "b3c25a540ff9ec25804e6847016eb637ff9b56f8147d180d748e5f9dfeb47beb"
+    );
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(include_bytes!("type_scratch.rs")))
+        ),
+        "0190447fbf1d3c43c84df015f4adb165d4a25e007bdac06fa451f2aee898b88d"
     );
     // Entire existing harness is retained, including its old #824 inverse.
     let harness = include_str!("tests.rs");
@@ -646,4 +674,198 @@ fn invocation_pending_reuse_authenticates_both_complete_immediate_old_sources() 
         &mutated
     ))
     .is_err());
+}
+
+fn observe_type_roots(roots: &[ResolvedType], old: bool, limit: usize) -> ReuseObservation {
+    let ((result, physical), refused, paid, first) = with_limit_usage_refusal(limit, || {
+        measure(|| {
+            if old {
+                for root in roots {
+                    reuse_before::audit_resolved_type(root)?;
+                }
+            } else {
+                reserve(type_scratch::HEADER)?;
+                let mut types = type_scratch::Storage::new();
+                for root in roots {
+                    type_scratch::audit!(root, &mut types)?;
+                }
+            }
+            Ok(())
+        })
+    });
+    (result, physical, refused, paid, first)
+}
+#[test]
+fn invocation_type_pending_reuse_prices_complete_setup_and_each_reached_walk() {
+    let roots = vec![nominal("type.λ", vec![ResolvedType::I64]); 128];
+    let (old, a, ar, ap, af) = observe_type_roots(&roots, true, LIMIT);
+    let (new, b, br, bp, bf) = observe_type_roots(&roots, false, LIMIT);
+    assert_eq!(new, old);
+    assert!(new.is_ok() && !ar && !br && af.is_none() && bf.is_none());
+    assert_eq!(
+        ap,
+        roots.len() * std::mem::size_of::<Pending<'_, ResolvedType>>()
+    );
+    assert_eq!(
+        bp,
+        type_scratch::HEADER + type_scratch::COLD + roots.len() * type_scratch::CALL
+    );
+    assert!(
+        bp < ap,
+        "all new setup and heap backing must fit the genuine old invoice"
+    );
+    assert_eq!(a.allocated, 0);
+    assert_eq!(
+        b.allocated,
+        std::mem::size_of::<Pending<'_, ResolvedType>>()
+    );
+    for (physical, paid) in [(a, ap), (b, bp)] {
+        assert!(!physical.invalid && physical.live == 0 && physical.allocated == physical.freed);
+        assert!(physical.allocated <= paid && physical.highwater <= paid);
+    }
+    let leaves = vec![ResolvedType::I64; 128];
+    let leaf = observe_type_roots(&leaves, false, LIMIT);
+    assert!(leaf.0.is_ok() && !leaf.2 && leaf.4.is_none());
+    assert_eq!(leaf.3, type_scratch::HEADER);
+    assert_eq!(leaf.1.allocated, 0, "neutral context must not form backing");
+}
+#[test]
+fn invocation_type_pending_reuse_keeps_wide_growth_and_nested_failure_order() {
+    let mut roots: Vec<_> = [130, 1, 65, 130, 1, 130]
+        .into_iter()
+        .map(|width| nominal("wide.λ", vec![ResolvedType::I64; width]))
+        .collect();
+    let (old, a, ar, ap, af) = observe_type_roots(&roots, true, LIMIT);
+    let (new, b, br, bp, bf) = observe_type_roots(&roots, false, LIMIT);
+    assert_eq!(new, old);
+    assert!(new.is_ok() && !ar && !br && af.is_none() && bf.is_none());
+    assert!(b.allocated < a.allocated);
+    for (physical, paid) in [(a, ap), (b, bp)] {
+        assert!(!physical.invalid && physical.live == 0 && physical.allocated == physical.freed);
+        assert!(physical.allocated <= paid && physical.highwater <= paid);
+    }
+    roots.push(ResolvedType::Function {
+        parameters: vec![nominal("parameter\0bad", vec![])],
+        result: Box::new(ResolvedType::TypeParameter {
+            owner: DeclarationId::new("result\0bad"),
+            index: 0,
+        }),
+    });
+    let old = observe_type_roots(&roots, true, LIMIT);
+    let new = observe_type_roots(&roots, false, LIMIT);
+    assert!(old.0.is_err());
+    assert_eq!(
+        new.0, old.0,
+        "complete six-field diagnostic and LIFO result-before-parameter order"
+    );
+    assert!(!old.2 && !new.2 && old.4.is_none() && new.4.is_none());
+    assert_eq!(new.1.live, 0);
+    assert_eq!(new.1.allocated, new.1.freed);
+    let ((result, physical), refused, _, first) = with_limit_usage_refusal(LIMIT, || {
+        measure(|| {
+            reserve(type_scratch::HEADER)?;
+            let mut types = type_scratch::Storage::new();
+            type_scratch::audit!(&roots[0], &mut types)?;
+            assert!(!types.cold());
+            let failure = type_scratch::audit!(roots.last().unwrap(), &mut types);
+            assert!(
+                types.cold(),
+                "failed taken owner must not return to reusable slot"
+            );
+            failure
+        })
+    });
+    assert_eq!(result, old.0);
+    assert!(!refused && first.is_none() && !physical.invalid && physical.live == 0);
+}
+#[test]
+fn invocation_type_pending_reuse_exact_short_sticky_and_fresh_invocation() {
+    let roots = vec![nominal("type.λ", vec![ResolvedType::I64; 65]); 8];
+    let exact = observe_type_roots(&roots, false, LIMIT).3;
+    for limit in [0, type_scratch::HEADER, exact - 1, exact] {
+        let outcome = observe_type_roots(&roots, false, limit);
+        assert_eq!(outcome.0.is_ok(), limit == exact);
+        assert_eq!(outcome.2, limit != exact);
+        assert_eq!(outcome.4.is_none(), limit == exact);
+        if limit != exact {
+            assert_eq!(outcome.0.unwrap_err(), text::refused());
+        }
+        assert!(outcome.3 <= limit && !outcome.1.invalid && outcome.1.live == 0);
+        assert_eq!(outcome.1.allocated, outcome.1.freed);
+    }
+    assert_eq!(observe_type_roots(&roots, false, exact).3, exact);
+    let ((result, physical), refused, paid, first) = with_limit_usage_refusal(exact, || {
+        measure(|| {
+            reserve(type_scratch::HEADER)?;
+            let mut types = type_scratch::Storage::new();
+            for root in &roots {
+                type_scratch::audit!(root, &mut types)?;
+            }
+            assert!(!crate::bounded_output::reserve_active_required(1));
+            let failure: Result<(), Diagnostic> =
+                (|| type_scratch::audit!(&roots[0], &mut types))();
+            assert_eq!(failure.unwrap_err(), text::refused());
+            Ok::<(), Diagnostic>(())
+        })
+    });
+    assert!(result.is_ok());
+    assert!(refused && paid == exact && first.unwrap().requested == 1);
+    assert!(!physical.invalid && physical.live == 0 && physical.allocated == physical.freed);
+    assert_eq!(
+        text::message("resolved record match"),
+        Some("resolved record match identity contains NUL")
+    );
+}
+#[test]
+fn invocation_type_pending_reuse_full_old_public_audit_has_unpadded_gain() {
+    let mut p = reuse_program(&[130; 12]);
+    for function in &mut p.functions {
+        function.return_type = nominal("return.λ", vec![ResolvedType::I64]);
+        for parameter in &mut function.params {
+            parameter.ty = nominal("parameter.λ", vec![ResolvedType::I64]);
+        }
+        function.body.ty = nominal("body.λ", vec![ResolvedType::I64]);
+        if let ResolvedExprKind::Invoke { callable, args } = &mut function.body.kind {
+            callable.ty = nominal("callable.λ", vec![ResolvedType::I64]);
+            for arg in args {
+                arg.ty = nominal("argument.λ", vec![ResolvedType::I64]);
+            }
+        }
+    }
+    let old = reuse_observe(&p, true, LIMIT);
+    let new = reuse_observe(&p, false, LIMIT);
+    assert_eq!(new.0, old.0);
+    assert!(new.0.is_ok() && !old.2 && !new.2 && old.4.is_none() && new.4.is_none());
+    assert!(
+        new.3 < old.3,
+        "whole independently compiled old setup is the baseline"
+    );
+    assert!(new.1.allocated < old.1.allocated);
+    for outcome in [old, new] {
+        assert!(
+            !outcome.1.invalid && outcome.1.live == 0 && outcome.1.allocated == outcome.1.freed
+        );
+        assert!(outcome.1.allocated <= outcome.3 && outcome.1.highwater <= outcome.3);
+    }
+    // A later malformed type is not observed before the original earlier
+    // identity failure, and separate invocations never inherit warmed scratch.
+    p.functions[0].result_id = ValueId::new("earlier-result\0bad".to_owned());
+    p.functions[0].body.ty = nominal("unreached-type\0bad", vec![ResolvedType::I64]);
+    let old = reuse_observe(&p, true, LIMIT);
+    for _ in 0..2 {
+        let new = reuse_observe(&p, false, LIMIT);
+        assert!(old.0.is_err());
+        assert_eq!(new.0, old.0);
+        assert!(!new.2 && new.4.is_none() && !new.1.invalid && new.1.live == 0);
+        assert_eq!(new.1.allocated, new.1.freed);
+    }
+    let (((), physical), refused, _, first) = with_limit_usage_refusal(LIMIT, || {
+        measure(|| {
+            let old = reuse_before::validate_attached_identity_references(&p);
+            let new = validate_attached_identity_references(&p);
+            assert_eq!(new, old);
+            drop((old, new));
+        })
+    });
+    assert!(!refused && first.is_none() && !physical.invalid && physical.live == 0);
 }

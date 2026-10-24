@@ -48,3 +48,21 @@ Drop, malformed targets/cycles, wide branching, multiplicity overflow, sticky
 failure and foreign/restored ledger rejection. Local development checks of the
 original JSON decoder and scanner fit their ordinary 64 MiB account. This is
 not hosted evidence or a claim that all application fixtures or CI now pass.
+
+
+## Ordinary builder representation crossover
+
+The ordinary ActiveBuilder caller selects the factored representation above
+128 terminal paths for both owned and Copy functions. Structural CFG validation,
+program skeleton-work admission, full independently rebuilt observation
+languages, canonical fallback, and the unchanged 64 MiB/32M work limits remain
+mandatory. This is a representation crossover, not an additional path allowance.
+The complete preceding selected/reference selector remains unchanged. Native
+small-function oracle comparisons still cover the original 4096-path window.
+
+Owning controls cover both sides of the 128-path boundary for owned and Copy
+inputs and compare all six fields of the original changed-Boolean diagnostic.
+Original moderate-selector tests and their owned fallbacks remain intact.
+Focused original collection-response backend tests fit the ordinary limit;
+this does not claim that all JSON fixtures, application projects, or hosted CI
+are green.

@@ -319,3 +319,47 @@ fn joined_hostiles() {
     assert!(joined_checked(&data[..data.len() - 1], "src/foreign.rs", "foreign").is_none());
     assert!(joined_checked(&format!("!{}", &data[1..]), "src/foreign.rs", "foreign").is_none());
 }
+
+#[test]
+fn ordinary_builder_crossover_128_keeps_reference_routes_and_complete_languages() {
+    for decisions in [6, 7, 8, 9] {
+        for owned in [false, true] {
+            let program = fixture(decisions, owned);
+            let function = &program.functions[0];
+            let cfg = branch_sensitive_cfg_bounds(function)
+                .unwrap()
+                .terminal_paths;
+            let hir = hir_terminal_path_bound(function).unwrap();
+            assert_eq!((cfg, hir), (1 << decisions, 1 << decisions));
+            assert!(enumerated(&program, function).unwrap());
+            assert_eq!(selected(function, cfg, hir), !owned && decisions > 8);
+            let (result, refused, _, receipt) = with_limit_usage_refusal(64 * 1024 * 1024, || {
+                let mut budget = ReplayBudget::new();
+                validate(&program, function, &mut budget)
+            });
+            assert_eq!(result.unwrap(), decisions > 7);
+            assert!(!refused && receipt.is_none());
+        }
+    }
+}
+
+#[test]
+fn ordinary_builder_crossover_keeps_complete_legacy_hostile_diagnostic() {
+    let program = fixture(8, true);
+    let mut changed = program.functions[0].clone();
+    let condition = changed
+        .cleanup_plan
+        .edges
+        .iter_mut()
+        .find_map(|edge| match &mut edge.condition {
+            EdgeCondition::BooleanResult(_, value) => Some(value),
+            _ => None,
+        })
+        .expect("retained Boolean route");
+    *condition = !*condition;
+    let original = validate_structure(&program, &changed).unwrap_err();
+    let (current, refused, _, receipt) =
+        with_limit_usage_refusal(64 * 1024 * 1024, || validate_structure(&program, &changed));
+    assert_eq!(current.unwrap_err(), original, "all six diagnostic fields");
+    assert!(!refused && receipt.is_none());
+}

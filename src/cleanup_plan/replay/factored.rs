@@ -64,6 +64,7 @@ enum Label {
     End(SkeletonTerminal),
 }
 
+// Preserve the selected/reference representation crossover.
 // Borrowed headers select a representation; structural and complete weighted
 // language verification retain all acceptance authority. Resource-bearing
 // functions keep the original window because their states need not coalesce.
@@ -81,6 +82,29 @@ fn representation_candidate(
         || (plan.slots.is_empty()
             && plan.entry_state.live_owned_parameters.is_empty()
             && plan.entry_state.conditional_owned_parameters.is_empty())
+}
+
+// The synchronous paid comparator changes the ordinary representation cost.
+// This threshold is not an admission limit. Selected/reference payers retain
+// their complete original selector and canonical comparison routes below.
+const BUILDER_FACTORED_PATH_THRESHOLD: usize = 128;
+
+fn selected_builder_paid(
+    function: &ResolvedFunction,
+    cfg_paths: usize,
+    semantic_paths: usize,
+    budget: &mut ReplayBudget,
+) -> Result<bool, Diagnostic> {
+    if cfg_paths <= BUILDER_FACTORED_PATH_THRESHOLD
+        && semantic_paths <= BUILDER_FACTORED_PATH_THRESHOLD
+    {
+        return Ok(false);
+    }
+    match structural_control::validate_ordinary_cfg(function, budget) {
+        Ok(()) => Ok(true),
+        Err(error) if budget.refusal_spent || crate::bounded_output::active_refused() => Err(error),
+        Err(_) => Ok(false),
+    }
 }
 
 /// Semantic nonselection remains false; a physical scratch refusal is sticky
@@ -149,12 +173,25 @@ pub(super) fn validate_with_index_storage<'hir>(
     );
     let cfg_paths = branch_sensitive_cfg_bounds(function)?.terminal_paths;
     let semantic_paths = hir_terminal_path_bound(function)?;
-    let selected = selected_paid(
-        function,
-        cfg_paths,
-        semantic_paths,
-        &mut ReplayBudget::new(),
-    )?;
+    let selected = if let ReplayBudget {
+        payer: AllocationPayer::ActiveBuilder,
+        ..
+    } = budget
+    {
+        selected_builder_paid(
+            function,
+            cfg_paths,
+            semantic_paths,
+            &mut ReplayBudget::new(),
+        )?
+    } else {
+        selected_paid(
+            function,
+            cfg_paths,
+            semantic_paths,
+            &mut ReplayBudget::new(),
+        )?
+    };
     #[cfg(test)]
     let continuations = {
         let mut continuations = continuations;

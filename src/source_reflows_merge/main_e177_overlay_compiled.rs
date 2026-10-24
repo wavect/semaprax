@@ -136,7 +136,7 @@ mod tests {
             assert_eq!(current_scope_root.matches(&packed).count(), 1);
             current_scope_root = current_scope_root.replacen(&packed, &expanded, 1);
         }
-        for source in ["src/cleanup_plan/replay/factored/paired.rs", "src/cleanup_plan/replay/factored/paired/tests.rs", "src/workspace_graph/tests.rs", "src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs", "src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs", "src/cleanup_plan/replay/workspace_oracle.rs", "src/cleanup_plan/replay/branch_clone/inline_tests.rs", "src/cleanup_plan/replay/branch_clone/production_capacity.rs", "src/cleanup_plan/replay/branch_clone/production_capacity/tests.rs", "src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs", "src/workspace_graph/shape_identity/source_controls.rs", "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs"] {
+        for source in ["src/cleanup_plan/replay/factored/moderate_tests.rs", "src/cleanup_plan/replay/factored/paired.rs", "src/cleanup_plan/replay/factored/paired/tests.rs", "src/workspace_graph/tests.rs", "src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs", "src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs", "src/cleanup_plan/replay/workspace_oracle.rs", "src/cleanup_plan/replay/branch_clone/inline_tests.rs", "src/cleanup_plan/replay/branch_clone/production_capacity.rs", "src/cleanup_plan/replay/branch_clone/production_capacity/tests.rs", "src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs", "src/workspace_graph/shape_identity/source_controls.rs", "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs"] {
             let declaration = format!("    {source:?},\n");
             assert_eq!(current_scope_root.matches(&declaration).count(), 1);
             current_scope_root = current_scope_root.replacen(&declaration, "", 1);
@@ -1280,7 +1280,7 @@ del _load_fixed_codecs
 "####;
     const MAIN_C907_REPLACEMENT_LINES: &[&str] = &["            \"src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/counter_tests.rs\",\n","            \"src/cleanup_plan/replay/expression_facts/arena/prefix/tests.rs\",\n"];
     const PY_SCOPE_INSERTIONS: &[&str] = &[
-        "_REPLAY+'physical_budget/authentication.rs',",
+        "_REPLAY+'physical_budget/authentication.rs',", "_REPLAY+'factored/moderate_tests.rs',",
         ",_REPLAY+'path_join/compact_failure_before.rs',_REPLAY+'path_join/compact_failure_tests.rs',_REPLAY+'path_join/contains_before.rs',_REPLAY+'path_join/contains_tests.rs',_REPLAY+'path_join/selected/tests/fixture_scope.rs',_REFLOWS+'main_e177_overlay_digests_v13.rs',_REFLOWS+'main_e177_overlay_digests_v13/logical_v12.rs',_REFLOWS+'main_e177_overlay_digests_v13/tests.rs',_REFLOWS+'main_e177_overlay_digests_v13/controller_transport.rs',_REPLAY+'expression_facts/receiving/remaining/tests.rs','tests/wasm/scalar_browser_ci_contract/current_profiles573.rs'",
         "_REPLAY+'expression_facts/receiving/retained/case_proof/tests.rs',",
         ",_REPLAY+'expression_facts/capacity/before_types.rs',_REPLAY+'expression_facts/capacity/cursor_tests.rs',_REPLAY+'expression_facts/capacity/type_cursor_tests.rs','src/source_verify/constructor_tests/corpus/operator_refusals.rs',_REPLAY+'path_join/direct_one_before.rs',_REPLAY+'path_join/direct_one_before/boxed_flow.rs',_REPLAY+'path_join/direct_one_before/frontier.rs',_REPLAY+'path_join/direct_one_tests.rs'",
@@ -1359,7 +1359,7 @@ del _load_fixed_codecs
         let main99_scope = "            \"src/cleanup_plan.rs\",\n            \"src/workspace_graph/tests.rs\",\n            \"src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs\",\n            \"src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs\",\n            \"src/cleanup_plan/replay/workspace_oracle.rs\",\n";
         assert_eq!(restored.matches(main99_scope).count(), 1);
         restored = restored.replacen(main99_scope, "", 1);
-        let financed_scope = "        for source in [\"src/cleanup_plan/replay/factored/paired.rs\", \"src/cleanup_plan/replay/factored/paired/tests.rs\", \"src/workspace_graph/tests.rs\", \"src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs\", \"src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs\", \"src/cleanup_plan/replay/workspace_oracle.rs\", ";
+        let financed_scope = "        for source in [\"src/cleanup_plan/replay/factored/moderate_tests.rs\", \"src/cleanup_plan/replay/factored/paired.rs\", \"src/cleanup_plan/replay/factored/paired/tests.rs\", \"src/workspace_graph/tests.rs\", \"src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs\", \"src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs\", \"src/cleanup_plan/replay/workspace_oracle.rs\", ";
         assert_eq!(restored.matches(financed_scope).count(), 1);
         restored = restored.replacen(financed_scope, "        for source in [", 1);
         assert_eq!(restored.matches(SCOPE_REPLACEMENTS_AFTER).count(), 1);

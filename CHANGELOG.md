@@ -1,3 +1,8 @@
+## Ordinary builder factored crossover (2026-10-24)
+
+- Select complete factored comparison above 128 paths for ordinary owned and Copy functions, preserving the original selected/reference routes, structural admission, 4096-path native oracle window, and public byte/work limits.
+- Recover six original collection and nested-response regressions locally, including the 256-row independent wire oracle, without changing generated source or fixture bounds. Larger application failures remain under investigation.
+
 ## Paired weighted verifier comparison (2026-10-24)
 
 - Compare ordinary HIR and cleanup observation languages synchronously, retaining full label values, checked multiplicities, original admission and canonical fallback. Acquire scratch and bound primitive receiving frames before use; keep owning returns separately paid.

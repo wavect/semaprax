@@ -1,0 +1,170 @@
+{
+  "schema": "semaprax.builder-factored-crossover.local-qualification.v1",
+  "base_head": "93877b333b806eea9274f8cfb87172922c6b7853",
+  "scope": "Local macOS production-build and focused original tests only; not hosted CI or complete quality full profile. Goal remains active.",
+  "production_sources": {
+    "src/cleanup_plan/replay/factored.rs": "05872a25252c32ea82e81b9ebf5a39a925ebe15a5d58977a1c604eee9b4bf60b",
+    "src/cleanup_plan/replay/factored/strategy.rs": "b5350cae1354da026c1e320c28d93938faca06ba18e6d72ff909c3c41262eadb",
+    "src/cleanup_plan/replay/factored/paired.rs": "1d8dfb0257df05b4151e0bd94e8d75af19e19aa7989cff0b3edc1b8db455b6d6"
+  },
+  "unchanged_public_limits": {
+    "builder_bytes": 67108864,
+    "replay_work": 32000000,
+    "native_small_function_oracle_paths": 4096
+  },
+  "current_production_checks": [
+    {
+      "case": "decode",
+      "ok": true,
+      "final_mode": 1,
+      "ordinary_limit": 67108864,
+      "consumed": 62480960,
+      "remaining": 4627904,
+      "first_refusal": "None"
+    },
+    {
+      "case": "scan",
+      "ok": true,
+      "final_mode": 2,
+      "ordinary_limit": 67108864,
+      "consumed": 61643449,
+      "remaining": 5465415,
+      "first_refusal": "None"
+    },
+    {
+      "case": "task",
+      "ok": false,
+      "final_mode": 6,
+      "ordinary_limit": 67108864,
+      "consumed": 67108735,
+      "remaining": 129,
+      "first_refusal": "Some(Refusal { requested: 138, remaining: 129, floor: 0, stage: 27, operation: 18 })"
+    },
+    {
+      "case": "pattern",
+      "ok": false,
+      "final_mode": 6,
+      "ordinary_limit": 67108864,
+      "consumed": 67075532,
+      "remaining": 33332,
+      "first_refusal": "Some(Refusal { requested: 147200, remaining: 33332, floor: 0, stage: 35, operation: 2 })"
+    },
+    {
+      "case": "catalog",
+      "ok": false,
+      "final_mode": 6,
+      "ordinary_limit": 67108864,
+      "consumed": 67107677,
+      "remaining": 1187,
+      "first_refusal": "Some(Refusal { requested: 1536, remaining: 1187, floor: 0, stage: 27, operation: 20 })"
+    },
+    {
+      "case": "collection",
+      "ok": true,
+      "final_mode": 6,
+      "ordinary_limit": 67108864,
+      "consumed": 66838675,
+      "remaining": 270189,
+      "first_refusal": "None"
+    }
+  ],
+  "original_integration71": {
+    "passed": 20,
+    "failed": 51,
+    "all_remaining_failures_report_g171": true,
+    "recovered": [
+      "standard_library::application_json::collection_response::collection_response_checks_actual_cardinality_and_string_bound_before_output",
+      "standard_library::application_json::collection_response::collection_response_full_256_rows_at_64_bytes_preserves_independent_wire_oracle",
+      "standard_library::application_json::collection_response::collection_response_long_wire_keys_select_fixed_output_capacity_refusal",
+      "standard_library::application_json::collection_response::collection_response_unicode_nul_scalar_boundaries_and_exact_output_agree_on_three_backends",
+      "standard_library::application_json::nested_response::nested_response_selected_exact_eight_and_late_dynamic_string_plus_one_settle_owners",
+      "standard_library::application_json::nested_response::string_vectors::primitive_string_response_two_nested_paths_preserve_exact_and_one_short_bytes"
+    ],
+    "regressions": [],
+    "scope": "Complete original project integration harness and original fixtures/assertions, coherent normal candidate library/CLI/daemon; prior to formatting and source-custody-only publication.",
+    "log_sha256": "b2ede8bc8a51fc75bb479ece87903a7aef8b648c0456270e27780edf9865544f"
+  },
+  "focused_controls": {
+    "native/owning12-tests.log": {
+      "passed": 12,
+      "log_sha256": "8a9eb98bba719c5ff5ef54129df6ecfa1f213dcc3a9894abe2eabb9ed8f7e113"
+    },
+    "overlay-controls.log": {
+      "passed": 33,
+      "log_sha256": "1ac5f8444f5015f50c7483a8a6fc757474925bc2c9dfde57ddbf594221bef276"
+    },
+    "compiled-whole-predecessor-controls.log": {
+      "passed": 2,
+      "log_sha256": "469758b8e8765f62d055df166aea098d6117da023369aa94385d0979a2daa26f"
+    },
+    "new-entry-controls.log": {
+      "passed": 2,
+      "log_sha256": "848a1870755e0e6b01354f4da8081ee87a0df6b1459e68efed648425c5a24c91"
+    },
+    "final-prefix-source-controls.log": {
+      "passed": 3,
+      "log_sha256": "09f7986fd973ac5d2447d58bdc7e3cb5739cba62a02c08c736527f7b6dc9c505"
+    },
+    "final-cursor-source-guard.log": {
+      "passed": 1,
+      "log_sha256": "03f9915b99156ae7d8c0ca2fc109d28d501be7d8cd202c1b0ec76b6cdf212b5a"
+    },
+    "hir-test.log": {
+      "passed": 11,
+      "log_sha256": "3952ee744090762b967810e0884af3eadb4fddd40ba37a37dc424348d1767592"
+    },
+    "projection-test.log": {
+      "passed": 1,
+      "log_sha256": "6dcd5a167bf8824049b3216e4224b7527b5686b733daff3d8d1a97f9fd351b97"
+    },
+    "native/clippy.log": {
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "scope": "scoped local Clippy; complete Cargo CI profile not claimed"
+    },
+    "final-source-clippy.log": {
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "scope": "scoped local Clippy; complete Cargo CI profile not claimed"
+    },
+    "hir-clippy.log": {
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "scope": "scoped local Clippy; complete Cargo CI profile not claimed"
+    }
+  },
+  "source_custody": {
+    "rows": 722,
+    "page_bytes": 230435,
+    "page_cap_unchanged": 262144,
+    "all_previous_views_roles_and_acquisition_edges_preserved": true,
+    "six_original_hostile_controls_pass": true
+  },
+  "known_remaining_issues": [
+    "51 of the previously failing original JSON cases still report G171",
+    "task, catalog and pattern applications still exceed the unchanged builder account",
+    "codec808 original native test still fails with pre-existing G171; full native suite not claimed green",
+    "hosted CI has additional failures under investigation"
+  ],
+  "memory_policy": "All task outputs on external SSD. Actual free+inactive+speculative device RAM and pressure monitored; no process RSS cap. Only own process groups may be paused.",
+  "missing_archives_repaired": [
+    "e/bdce82425869a91e406c78175753f19ff0db46a468c4bba33f8bef793b4fe234",
+    "e/dedf173b547c94f95de782e5e0da223d9aec1608977e35c8bf10297c7aae29b5",
+    "e/1d41b46564349fa85fc76e173295df7bcfd80123f81ec9bd39d94a05b203f645",
+    "e/6745c50ef06c4bab501efe623044c0044977a946df0aff8c95873a0c92de0fd1",
+    "e/1d31e1bf8377e7a1d7dd1d5a8844faa974cefa6cf94bd3029283647f70d2a51c",
+    "e/79db9e907b352fe8cc96eaa3a1e87c97795436a3d566f0809af85986c118d92a",
+    "e/9e706c834040fcb816fb6e765134b5e84cdf52d6c975364b8338d42bf1630ec4",
+    "e/bca2684deec711617c7d30388b6dc1087389826c20c1acc51f97131758d8b634"
+  ],
+  "current_production_recovered_six": {
+    "passed": 6,
+    "failed": 0,
+    "scope": "Fresh actual checkout production library, CLI and daemon; complete original project harness; all original test bodies, bounds, independent oracles and backend assertions preserved.",
+    "log_sha256": "ee633c8caef6b5ab4d698ad9435bd527309b92248e4b200f8661f2c90b131e87"
+  },
+  "memory_validation": {
+    "fresh_six_actual_available_min_gib": 8.44,
+    "scoped_native_clippy_actual_available_min_gib": 5.76,
+    "source_clippy_actual_available_min_gib": 6.46,
+    "prior_original71_actual_available_min_gib": 2.93,
+    "no_process_rss_caps": true
+  }
+}

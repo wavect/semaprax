@@ -372,7 +372,7 @@ fn complete_receiving_sources_reconstruct_pinned_originals() {
         }
         assert_eq!(restored, original);
     }
-    assert_eq!(include_str!("prelude_forecast_original.rs"), originals[2]);
+    assert_eq!(crate::source_reflows::next_custody_before("constructor903", "src/workspace_graph/expected_projection/prelude_forecast_original.rs", include_str!("prelude_forecast_original.rs")), originals[2]);
 }
 
 #[test]

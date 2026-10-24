@@ -21,6 +21,7 @@ pub(in crate::workspace_graph::expected_projection) fn count(
         bytes: SELECTOR.saturating_add(
             2 * size_of::<(Context<'_, '_>, bool, Result<(Proof, Costs), Error>)>(),
         ),
+        ..Default::default()
     };
     let mut length = program.functions.len();
     if imports {
@@ -58,6 +59,7 @@ fn indexed<const N: usize>(
     let mut proof = Proof {
         roots: 0,
         bytes: selector,
+        ..Default::default()
     };
     bill!(proof; 2 * Directory<'_, N>);
     bill!(proof; ([Header<'_>; N], Header<'_>, Source<'_>, &Program, &Index<'_>, bool, usize, Option<usize>));

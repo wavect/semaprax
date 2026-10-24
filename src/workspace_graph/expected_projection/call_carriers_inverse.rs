@@ -171,7 +171,8 @@ pub(super) use coupled_projection::estimate as coupled_uncached_estimate;
 fn complete_forecaster_inverse_reconstructs_entire_pre898_algorithm() {
     let actual_stage = pre916_held(include_str!("held_projection.rs"));
     let actual = actual_stage.as_str();
-    let original = include_str!("call_carriers_original.rs");
+    let original903 = crate::source_reflows::next_custody_before("constructor903", "src/workspace_graph/expected_projection/call_carriers_original.rs", include_str!("call_carriers_original.rs"));
+    let original = original903.as_str();
     let original = original
         .split("// Finite helper wiring")
         .next()

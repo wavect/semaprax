@@ -299,6 +299,8 @@ pub(in crate::workspace_graph::expected_projection) fn imports_before(
     } else {
         format!("src/workspace_graph/expected_projection/{path}")
     };
+    let source903 = crate::source_reflows::next_custody_before("constructor903", &canonical_entry, source);
+    let source = source903.as_str();
     let production =
         crate::source_reflows::next_custody_before("production7834", &canonical_entry, source);
     let entry = crate::source_reflows::next_custody_before(

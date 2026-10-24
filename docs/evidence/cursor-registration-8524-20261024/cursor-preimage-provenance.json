@@ -1,0 +1,21 @@
+{
+  "source": "src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs",
+  "previous": {
+    "commit": "8c95f77750aaaba9eaa59da865eb65658900646c",
+    "length": 8127,
+    "sha256": "fdb672ec67714810ba990a306ec8b282ce7c628d627b272b322d21e51293da34",
+    "archive": "e/fdb672ec67714810ba990a306ec8b282ce7c628d627b272b322d21e51293da34"
+  },
+  "current": {
+    "length": 8182,
+    "sha256": "2c91db9d0da06846703b41d7221a5daf16b56aa73933f0a88b714d23d08552a2"
+  },
+  "declared_original_domains": [
+    "main090 main",
+    "main090 physical",
+    "main34d",
+    "main-c883",
+    "main-f247"
+  ],
+  "whole_git_bytes_verified": true
+}

@@ -42,6 +42,8 @@ pub(in crate::workspace_graph) fn uncached_output_layout_with_registry(
     let mut order = [0; super::super::MAX_FILES];
     let mut full_costs = [0usize; super::super::MAX_FILES];
     let mut retained_costs = [0usize; super::super::MAX_FILES];
+    let mut later_scratch = 0usize;
+    let mut covered_functions = 0usize;
     for (index, program) in programs.iter().enumerate() {
         order[index] = index;
         #[cfg(test)]
@@ -51,8 +53,33 @@ pub(in crate::workspace_graph) fn uncached_output_layout_with_registry(
         let (full, retained) = super::shared_local_callees::modular_pair::selected_estimates(
             program, authored, programs, maximum, 6, true, registry,
         )?;
-        full_costs[index] = full.retained_hir;
-        retained_costs[index] = retained.retained_hir;
+        full_costs[index] = checked_usage(
+            full.retained_hir,
+            super::retained_scratch::RECEIVING,
+            "builder_bytes",
+            active_builder_limit(),
+        )?;
+        // Full construction retains the original estimate. Only separately
+        // counted scratch from complete covered functions leaves the retained
+        // output. Every other HIR/fixed-function/loan-plan term remains intact.
+        let scratch = retained
+            .retained_scratch
+            .bytes()
+            .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?;
+        retained_costs[index] = retained
+            .retained_hir
+            .checked_sub(scratch)
+            .and_then(|bytes| bytes.checked_add(super::retained_scratch::RECEIVING))
+            .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?;
+        later_scratch = later_scratch.max(
+            retained
+                .retained_scratch
+                .later()
+                .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?,
+        );
+        covered_functions = covered_functions
+            .checked_add(retained.retained_scratch.functions)
+            .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?;
         super::super::diagnostics::record_precharge_module(&program.path, full_costs[index]);
     }
     order[..programs.len()].sort_unstable_by(|left, right| {
@@ -90,6 +117,31 @@ pub(in crate::workspace_graph) fn uncached_output_layout_with_registry(
             (peak, retained),
         );
     }
+    // Later validation can rebuild one function's forward table while ALL
+    // filtered outputs and the growing canonical function directory are live.
+    // Scratch is MAX, directory backing is SUM; neither is silently zero.
+    let directory = crate::hir::retained_scalar_directory_bound(covered_functions)
+        .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?;
+    let additional = later_scratch
+        .checked_add(directory)
+        .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?;
+    if retained
+        .checked_add(additional)
+        .is_none_or(|total| total > active_builder_limit())
+    {
+        super::super::diagnostics::record_retained_validation_precharge_refusal(
+            programs.len(),
+            retained,
+            additional,
+        );
+    }
+    let later = checked_usage(
+        retained,
+        additional,
+        "builder_bytes",
+        active_builder_limit(),
+    )?;
+    peak = peak.max(later);
     super::super::diagnostics::complete_sequential_precharge(peak.max(retained));
     #[cfg(test)]
     observation.complete(peak.max(retained), retained, 0);
@@ -359,3 +411,6 @@ pub(in crate::workspace_graph) fn next_retention_prebound_with_uncached_peak_wit
     }
     Err(vec![limit_error("builder_bytes", active_builder_limit())])
 }
+
+#[cfg(test)]
+mod retained_scratch_tests;

@@ -1,0 +1,181 @@
+{
+  "scope": "Exact graph-pin and retained complete source bridge repair; local Rust 1.97 macOS checks. Hosted captures originate at 3d81; hosted job failed before browser runtime. Local real browser used the genuine 3d81 production compiler binary. No current-head hosted success claim.",
+  "local_tests": {
+    "browser_contract": 233,
+    "overlay": 33,
+    "whole_predecessor": 2,
+    "new_entry": 2,
+    "prefix": 3,
+    "cursor_source": 1,
+    "hir": 11,
+    "projection": 1,
+    "chromium": 3,
+    "documentation": 3
+  },
+  "controls": {
+    "no_process_RSS_cap": true,
+    "all_work_external_SSD": true,
+    "complete_prior_sources_retained": true,
+    "unknown_profiles_rejected": true,
+    "complete_graph_bytes_equal_after_only_bill_and_digest_restoration": true
+  },
+  "records": [
+    {
+      "name": "rust-browser-tests.log",
+      "sha256": "8e9da87be4d5ae324b4bed6a1194ea9759fc1de50aaf4694674ef1b6af30795c",
+      "bytes": 39818,
+      "device_RAM": {
+        "minimum_device_physical_available_GiB": 7.1304931640625,
+        "process_RSS_cap": null,
+        "peak_process_tree_RSS_telemetry_KiB": 102256
+      }
+    },
+    {
+      "name": "overlay-controls.log",
+      "sha256": "17aa80dd876f5daac382c446acc3cce31bce724432e2ad9004b53400c4d50912",
+      "bytes": 5437,
+      "device_RAM": {
+        "minimum_device_physical_available_GiB": 7.1101837158203125,
+        "process_RSS_cap": null,
+        "peak_process_tree_RSS_telemetry_KiB": 56400
+      }
+    },
+    {
+      "name": "compiled-whole-predecessor-controls.log",
+      "sha256": "469758b8e8765f62d055df166aea098d6117da023369aa94385d0979a2daa26f",
+      "bytes": 455,
+      "device_RAM": {
+        "minimum_device_physical_available_GiB": 7.3774566650390625,
+        "process_RSS_cap": null,
+        "peak_process_tree_RSS_telemetry_KiB": 5712
+      }
+    },
+    {
+      "name": "new-entry-controls.log",
+      "sha256": "7ef9eaf11d38d5dfa2aa3ce3210488e6eab5c4a38da27d21ae10fcbaf1c93c3d",
+      "bytes": 456,
+      "device_RAM": {
+        "minimum_device_physical_available_GiB": 7.384246826171875,
+        "process_RSS_cap": null,
+        "peak_process_tree_RSS_telemetry_KiB": 4544
+      }
+    },
+    {
+      "name": "final-prefix-source-controls.log",
+      "sha256": "05ecfa777dca7a86aed12391f7d03abaab50637cc69a4f04eed5f3d14850c173",
+      "bytes": 591,
+      "device_RAM": {
+        "minimum_device_physical_available_GiB": 7.3200531005859375,
+        "process_RSS_cap": null,
+        "peak_process_tree_RSS_telemetry_KiB": 68256
+      }
+    },
+    {
+      "name": "final-cursor-source-guard.log",
+      "sha256": "e6cc0008426cdaaba3b6ddeb1f2aa9d6d1de170b574a54d504009d416356c5e3",
+      "bytes": 249,
+      "device_RAM": {
+        "minimum_device_physical_available_GiB": 7.458831787109375,
+        "process_RSS_cap": null,
+        "peak_process_tree_RSS_telemetry_KiB": 40704
+      }
+    },
+    {
+      "name": "hir-test.log",
+      "sha256": "b73ccb10eaae8ef1d45538bc4733e14257be0174f4f273938c096c678b9b72ee",
+      "bytes": 1428,
+      "device_RAM": {
+        "minimum_device_physical_available_GiB": 6.766845703125,
+        "process_RSS_cap": null,
+        "peak_process_tree_RSS_telemetry_KiB": 511120
+      }
+    },
+    {
+      "name": "hir-clippy.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "device_RAM": {
+        "minimum_device_physical_available_GiB": 6.909210205078125,
+        "process_RSS_cap": null,
+        "peak_process_tree_RSS_telemetry_KiB": 395456
+      }
+    },
+    {
+      "name": "projection-test.log",
+      "sha256": "1026509bedbd93d6e4d0415a3dc390dd42775c566a0323145649cd9f90b1157d",
+      "bytes": 219,
+      "device_RAM": {
+        "minimum_device_physical_available_GiB": 7.105133056640625,
+        "process_RSS_cap": null,
+        "peak_process_tree_RSS_telemetry_KiB": 187920
+      }
+    },
+    {
+      "name": "final-source-clippy.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "device_RAM": {
+        "minimum_device_physical_available_GiB": 6.9489593505859375,
+        "process_RSS_cap": null,
+        "peak_process_tree_RSS_telemetry_KiB": 615472
+      }
+    },
+    {
+      "name": "rust-clippy.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "device_RAM": {
+        "minimum_device_physical_available_GiB": 6.8618927001953125,
+        "process_RSS_cap": null,
+        "peak_process_tree_RSS_telemetry_KiB": 510768
+      }
+    },
+    {
+      "name": "fmt.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "device_RAM": {
+        "minimum_device_physical_available_GiB": 6.5075836181640625,
+        "process_RSS_cap": null,
+        "peak_process_tree_RSS_telemetry_KiB": 1229520
+      }
+    },
+    {
+      "name": "verify-roles.log",
+      "sha256": "0cc453b6fdf4538f6f6870a3deeddebcfe57bfba1ca3bc3a5b148db299c9fcb4",
+      "bytes": 102,
+      "device_RAM": {
+        "minimum_device_physical_available_GiB": 7.1307525634765625,
+        "process_RSS_cap": null,
+        "peak_process_tree_RSS_telemetry_KiB": 566928
+      }
+    },
+    {
+      "name": "chromium-tests.log",
+      "sha256": "9713e68158cc542edf41bf9a11a3beb03a1681f591e7164368c4c7b235163dfc",
+      "bytes": 1644,
+      "device_RAM": {
+        "minimum_device_physical_available_GiB": 6.6723175048828125,
+        "process_RSS_cap": null,
+        "peak_process_tree_RSS_telemetry_KiB": 966064
+      }
+    }
+  ],
+  "archive_audit": {
+    "status": "PASS",
+    "current_rows": 727,
+    "unique_archive_pins": 2487,
+    "every_current_physical_row_matches": true,
+    "every_archive_length_and_hash_matches": true,
+    "new_required_archives": [
+      "e/06638e2675d38575c33c43743a3a50ab6d6d6f6b9edf6a68dde51198a1078e69",
+      "e/08b0eece806c2bf349974266a34a56fa66db27c177980a663c4910254b47a20b",
+      "e/0fc3985523d000ba63e46a2c0654639c650da175a5f02acb635ebe057e1e4003",
+      "e/3c864a0d30c057f5ad90adfeda6b5887e1a4c340ff295ebb525088d50c855265",
+      "e/626fbccaf07249743cbc524c48233341a209e6dad8e8992d8fe1227c5b127454",
+      "e/d419663ae893e4f63cf159a2d5da175d1ffbeba4b5fdba754f67d8d4ee1e9966",
+      "e/e19d3904c6d8b9af190410b2e58d1ebda121b972ba3f901e58bae960e85d3cf0"
+    ]
+  },
+  "documentation_log_sha256": "b064b1321b22a038e145745abf505ddded25fb631c836a9e088db92244d21d44"
+}

@@ -335,3 +335,94 @@ fn existing_registered_oracle_stage_keeps_four_complete_inverses_and_refuses_for
         }
     }
 }
+
+#[test]
+fn every_fixed_metadata_stage_has_its_complete_registered_input() {
+    use super::main_e177_final_inputs::ProjectionInvocation;
+    let rows: serde_json::Value = serde_json::from_str(include_str!(
+        "../../docs/evidence/metadata-views-20261024/new-views.json"
+    ))
+    .unwrap();
+    let rows = rows.as_array().unwrap();
+    assert_eq!(rows.len(), 204);
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let mut invocation = ProjectionInvocation::new();
+    for row in rows {
+        let source = row["source"].as_str().unwrap();
+        let view = &row["view"];
+        let expected = view["sha256"].as_str().unwrap();
+        let current = std::fs::read_to_string(root.join(source)).unwrap();
+        let prior = invocation.value_direct(source, expected, &current);
+        assert_eq!(prior.len() as u64, view["length"].as_u64().unwrap());
+        assert_eq!(super::source_sha(&prior), expected, "{source}");
+        assert_eq!(
+            prior,
+            std::fs::read_to_string(root.join(view["archive"].as_str().unwrap())).unwrap()
+        );
+    }
+    let row = &rows[0];
+    let source = row["source"].as_str().unwrap();
+    let expected = row["view"]["sha256"].as_str().unwrap();
+    let current = std::fs::read_to_string(root.join(source)).unwrap();
+    assert!(entry(source, expected));
+    assert!(!entry("foreign.rs", expected));
+    assert!(!entry(source, &"0".repeat(64)));
+    for hostile in [
+        format!("{current}\n"),
+        current[..current.len() - 1].to_owned(),
+    ] {
+        let value = invocation.value_direct(source, expected, &hostile);
+        assert_ne!(super::source_sha(&value), expected);
+    }
+}
+
+#[test]
+fn declared_cursor_epoch_binds_all_current_channels_before_the_complete_history() {
+    let source = "src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs";
+    let expected = "fdb672ec67714810ba990a306ec8b282ce7c628d627b272b322d21e51293da34";
+    let current_sha = "2c91db9d0da06846703b41d7221a5daf16b56aa73933f0a88b714d23d08552a2";
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let current = std::fs::read_to_string(root.join(source)).unwrap();
+    let previous = std::fs::read_to_string(root.join("e").join(expected)).unwrap();
+    assert_eq!(current.len(), 8182);
+    assert_eq!(previous.len(), 8127);
+    assert_eq!(super::source_sha(&current), current_sha);
+    assert_eq!(super::source_sha(&previous), expected);
+    let mut invocation = super::main_e177_final_inputs::ProjectionInvocation::new();
+    assert_eq!(
+        super::main_e177_final_inputs::registered_file(source, current_sha, 8182).unwrap(),
+        current
+    );
+    assert_eq!(
+        invocation.file(&root.join(source), 8127, expected).unwrap(),
+        previous
+    );
+    for supplied in [&current, &previous] {
+        assert_eq!(
+            invocation.value_direct(source, expected, supplied),
+            previous
+        );
+    }
+    for bad in [
+        String::new(),
+        format!("{current} "),
+        format!("{previous} "),
+        current[..current.len() - 1].to_owned(),
+    ] {
+        assert_ne!(
+            super::source_sha(&invocation.value_direct(source, expected, &bad)),
+            expected
+        );
+    }
+    assert!(super::main_e177_final_inputs::registered_file(source, expected, 8126).is_none());
+    assert!(
+        super::main_e177_final_inputs::registered_file(source, "foreign", usize::MAX).is_none()
+    );
+    assert!(
+        super::main_e177_final_inputs::registered_file("foreign", expected, usize::MAX).is_none()
+    );
+    assert_eq!(
+        invocation.value_direct("foreign", expected, &current),
+        current
+    );
+}

@@ -564,6 +564,8 @@ fn complete_original_receivers_and_all_literal_source_inverses_remain_byte_exact
             "src/workspace_graph/expected_projection/borrowed_imports_original.rs" => (include_str!("../../../../../src/workspace_graph/expected_projection/borrowed_imports_original.rs"), ci_str!("../../../../../docs/evidence/provider-proof-backing-714177/5.before.txt")),
             other => panic!("unregistered complete source {other}"),
         };
+        let current903 = crate::source_reflows::next_custody_before("constructor903", row["file"].as_str().unwrap(), current);
+        let current = current903.as_str();
         let current = crate::source_reflows_merge::constructor_complete_input(
             row["file"].as_str().unwrap(),
             current,

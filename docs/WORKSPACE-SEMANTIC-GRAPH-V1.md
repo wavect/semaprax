@@ -366,6 +366,33 @@ modules by descending full-minus-retained HIR overhead, with a path tie-break;
 the forecast and resolver use the same order. Completed outputs are restored
 to canonical path order before validation and publication.
 
+For this final mode only, the completed-module retained forecast may distinguish
+constructor-covered reachability scratch from retained output. A separately
+counted, constructor-complete function census may remove only the existing typed
+reachability/point-queue allowance (74 bytes per expression on the admitted
+profile) from that function's retained term. The full construction allowance,
+fixed function allowance, and every live allocation reservation remain charged.
+Coverage follows authenticated scalar constructors, statement/contract roots and
+monomorphic local call signatures, including the actual AST-to-HIR/CFG point
+association; it is not selected by declaration names. Generic/default/synthetic
+expansions, unknown constructors or targets, and an incomplete function census
+retain the complete old expression tariff for that function. Census, association,
+iterator, receiving and retained bookkeeping roles are paid before use, with
+checked arithmetic and the complete old forecast retained independently.
+
+Later cross-module validation is a separate live window: all completed module
+outputs remain live while one function is validated. Its bound includes the sum
+of retained outputs and compact inventories, the maximum simultaneous covered
+function reachability/point-queue scratch, and the separately counted growing
+canonical function directory, loan-storage headers and receiving costs. It does
+not substitute a retained-only measurement for the whole construction or later
+validation peak. The original module ordering and path ties remain unchanged.
+A refusal selected by this later window is attributed to that window, rather
+than to a last-module construction step; sticky error selection and full
+teardown still apply. This distinction does not establish a numerical saving or
+application admission without the owning allocation, fallback and application
+gates.
+
 Exact authored declaration collections now lend a sealed compiler-only
 `ProgramSource`; local presentations own only an optional scalar `main`.
 A concrete presentation identity distinguishes overlays of the same source.

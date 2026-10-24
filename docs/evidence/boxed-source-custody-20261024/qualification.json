@@ -1,0 +1,127 @@
+{
+  "status": "ONE_ACTUAL_CI_SOURCE_CUSTODY_FAILURE_RECOVERED_OTHER_CI_FAILURES_REMAIN",
+  "base_head": "3d81c8544bb34cbc343fd1402505b81aa36dc58d",
+  "repair": [
+    "Register the complete boxed-state 4fba current input reconstructed from its immutable archived source and unique unchanged recipe.",
+    "Acquire the exact complete pre-StorageParent classifier source through current physical/compiled/archive authentication before the original hash and source-inverse assertions.",
+    "Adapt only the exact pre-existing lint annotation and two explicitly named formatter token gaps before the unchanged whole receiver comparisons."
+  ],
+  "owning_native": {
+    "passed": 75,
+    "failed": 8,
+    "recovered": [
+      "cleanup_plan::replay::path_join::boxed_states::receiving_tests::actual_entry_and_box_layout_inventory_and_complete_main_receiver_sources_are_exact"
+    ],
+    "regressions": [],
+    "remaining": [
+      "cleanup_plan::replay::path_join::selected::tests::renewal::actual_same_owner_byte_renewal_preserves_original_binding_and_whole_owner",
+      "cleanup_plan::replay::path_join::selected::tests::session::live_initialize_paid_session_retains_original_report_source_and_first_receipt",
+      "cleanup_plan::replay::path_join::selected::tests::strings::genuine_string_append_success_preserves_complete_old_and_ordinary_routes",
+      "cleanup_plan::replay::path_join::selected::tests::strings::held_string_append_duplicate_reservation_preserves_first_full_old_diagnostic",
+      "cleanup_plan::replay::path_join::selected::tests::whole::actual_held_unknown_entry_keeps_complete_old_diagnostic_and_prior_profile_order",
+      "cleanup_plan::replay::path_join::selected::tests::whole::complete_scalar_and_lexical_success_keep_ordinary_and_immediate_old_owners",
+      "cleanup_plan::replay::path_join::selected::tests::whole::held_duplicate_initialize_is_closed_by_selected_path_receipt",
+      "workspace_graph::tests::codec808_frontier::primitive_string_codec_actual_preparation_reports_existing_first_operation_without_replacing_failure"
+    ],
+    "original_complete_test_body_and_real_layout_assertions_executed": true,
+    "actual_full_compiler_types": true,
+    "private_unrelated_test_attributes_omitted": true,
+    "raw_source_acquisitions_read_complete_actual_sources": true
+  },
+  "checks": [
+    {
+      "log": "overlay-controls.log",
+      "passed": 33,
+      "sha256": "35e9741ccbb0176e4a418a62aa5ab7d4df705c05aa512c471f281973e795373c"
+    },
+    {
+      "log": "compiled-whole-predecessor-controls.log",
+      "passed": 2,
+      "sha256": "469758b8e8765f62d055df166aea098d6117da023369aa94385d0979a2daa26f"
+    },
+    {
+      "log": "new-entry-controls.log",
+      "passed": 2,
+      "sha256": "57cf8e4e671e625f4908a532acb205960ca0abc276fe0af3641774ab81f7c5a6"
+    },
+    {
+      "log": "final-prefix-source-controls.log",
+      "passed": 3,
+      "sha256": "caf3d14168d1d8481b208187228c0d3b3103825506041957634914d6e512956a"
+    },
+    {
+      "log": "final-cursor-source-guard.log",
+      "passed": 1,
+      "sha256": "d4280946843fb9018b0764baa17c89860bacd17d7d1374be3523eaaa6892b6a3"
+    },
+    {
+      "log": "boxed-source-prefix.log",
+      "passed": 1,
+      "sha256": "0ac2f48a838451059dcb5bc59406ef8325fbb5146d9b2057d703e9dcddbb64cd"
+    },
+    {
+      "log": "hir-test.log",
+      "passed": 11,
+      "sha256": "667154cebc65eb88fb6e7cb2280f9011f0ce4ac3e11658bdff3c59d7ef222cbd"
+    },
+    {
+      "log": "projection-test.log",
+      "passed": 1,
+      "sha256": "83debd966e1bd47a8e621103198d1b47c4038ccbc23d7ef7f540f531ebb1da0e"
+    },
+    {
+      "log": "docs-controls.log",
+      "passed": 3,
+      "sha256": "4716a690a15c55227e97d316b930f9e730df72c9249ee3df077c765893e2c9f9"
+    }
+  ],
+  "clippy": {
+    "source": "PASS",
+    "hir": "PASS",
+    "native_receiver": "PASS",
+    "private_preexisting_exceptions": {
+      "unchanged_helper_files": [
+        "src/source_reflows_merge/main_eb2_inputs.rs",
+        "src/source_reflows_merge/opt858_sequence_input.rs",
+        "src/source_reflows_merge/main_e177_packet_lookup.rs"
+      ],
+      "lint": "clippy::items_after_test_module",
+      "private_harness_only": true,
+      "shipping_source_lint_changes": false,
+      "all_other_warnings_denied": true
+    },
+    "cargo_manifest_result_large_err_allowance_honored": true,
+    "unused_macros_allowed_only_for_private_registration_selection": true,
+    "shipping_lint_changes": false
+  },
+  "source_history": {
+    "rows": 726,
+    "page_bytes": 234018,
+    "unchanged_page_cap": 262144,
+    "all_previous_rows_views_and_fragment_edges_preserved": true
+  },
+  "original_source_recipes_fixtures_caps_and_assertions_retained": true,
+  "no_production_replay_or_admission_changes": true,
+  "no_changes_to_frozen_receivers": true,
+  "normal_generated_diagnostic_inputs_reproduced_identically": {
+    "installed_dynamic_diagnostic_sites.rs": "2334f7263c4800b36c857f1af33f9f25cf0f598556c04acc27abb5d7394c0927",
+    "installed_diagnostic_codes.rs": "4ec90d1d4e7150b132208dda3fdb14501331bc6b71725eec0bea9a997dd21164"
+  },
+  "ram": {
+    "monitored_device_physical_available": true,
+    "no_process_rss_caps": true,
+    "compiler_paused_once_for_actual_available_ram": true,
+    "all_writable_work_temp_and_caches_on_external_ssd": true
+  },
+  "not_claimed": [
+    "Whole current main CI green",
+    "The remaining seven selected replay tests or codec builder budget fixed",
+    "Full scripts/quality.sh full passed"
+  ],
+  "frozen_source_and_policy_inputs": {
+    "src/cleanup_plan/replay/path_join/boxed_states/receiving_tests.rs": "e758da1b2c75be93290323a98fe765840b91442d987775e18bf8589c4582a9fe",
+    "src/source_reflows_merge/main_e177_overlay_v2.rs": "43f7bf666e2544d6c5fe65bd247362430421c07f26bd40d79c6b18736f44da10",
+    "docs/evidence/finite-source-overlay-v2-20261018/page.json": "764ababc283a3a912321cdff9dedcaf4add188d27aa5c502ef214340f8b9dc28",
+    "docs/evidence/finite-source-overlay-v2-20261018/policy.json": "5985a6c3d1c8a02da7f52ec28de7d503b07da188d16177f531afc554b585a1e5"
+  }
+}

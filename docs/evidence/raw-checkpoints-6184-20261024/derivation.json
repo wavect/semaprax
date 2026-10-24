@@ -1,0 +1,67 @@
+[
+  {
+    "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "unchanged_recipe": "docs/evidence/ci-small-fixes-20261021/inventory-successor.json",
+    "recipe_sha256": "d64759367b95039add5633647e94066ae973c057584239b43a7701c09a7aee6a",
+    "whole_original_checkpoint": {
+      "archive": "docs/evidence/native-resolver-prefix-20261021/current/540e2ae190c5fd004c8a3cb90b20e2892fe8776e1bb4f688cec2b51c71280729.txt",
+      "length": 209409,
+      "name": "whole-pre-ci-small-7b46a15bdd5",
+      "sha256": "540e2ae190c5fd004c8a3cb90b20e2892fe8776e1bb4f688cec2b51c71280729"
+    },
+    "reconstructed_successor_length": 209317,
+    "reconstructed_successor_sha256": "3ddaeebfec59463ae0c78e955c06dffca9865357cd347d6036b538dc9e671b28",
+    "full_original_inverse_exact": true
+  },
+  {
+    "source": "src/cleanup_plan/replay.rs",
+    "unchanged_recipe": "docs/evidence/compact-byte-errors-20261021/replay-successor.json",
+    "recipe_sha256": "2788ad869b721f06ff00d2b7cb36b8e23dd9d86bd4f500ef7ee9dd4c33f1314c",
+    "whole_original_checkpoint": {
+      "archive": "e/cf20e9132b5b94602777d4b1d70495da2c8411181a9f642919f6a0d4aa8c12c8",
+      "length": 326272,
+      "name": "whole-pre-byte-error-9bb8a15bdd5",
+      "sha256": "cf20e9132b5b94602777d4b1d70495da2c8411181a9f642919f6a0d4aa8c12c8"
+    },
+    "reconstructed_successor_length": 326264,
+    "reconstructed_successor_sha256": "cc999fb9034687101cb5d34db54ed4ea58289ac6d9f9f7fae9f53e693231f74a",
+    "full_original_inverse_exact": true
+  },
+  {
+    "source": "tests/hir_module_boundaries.rs",
+    "unchanged_recipe": "docs/evidence/raw-checkpoints-20261021/checkpoint-inverses.json",
+    "recipe_sha256": "c0137c8c2a4f16e11ca4a385d57f764bae804b5170db0ae8a882bb7868546c41",
+    "whole_original_checkpoint": {
+      "archive": "docs/evidence/prefix-boundary-23b2-20261019/whole/fc913ecc7db54fa1e4ef480952e459b972a04171e40e7237964aff5d81be7e95.txt",
+      "length": 134002,
+      "name": "whole-parent-2-before-pr896",
+      "sha256": "fc913ecc7db54fa1e4ef480952e459b972a04171e40e7237964aff5d81be7e95"
+    },
+    "reconstructed_successor_length": 136942,
+    "reconstructed_successor_sha256": "ffe6016f0c7b317ce89103f9fbe72f888a31ce212efd0f22fcd26e62c73d8a79",
+    "full_original_inverse_exact": true
+  },
+  {
+    "source": "tests/workspace/semantic_graph/source_inventory.rs",
+    "unchanged_recipe": "docs/evidence/raw-checkpoints-20261021/checkpoint-inverses.json",
+    "recipe_sha256": "c0137c8c2a4f16e11ca4a385d57f764bae804b5170db0ae8a882bb7868546c41",
+    "whole_original_checkpoint": {
+      "archive": "docs/evidence/prefix-boundary-23b2-20261019/whole/68338a176c682de788c747003b39a6c030128da1c39275f72ae24b5651410d19.txt",
+      "length": 150776,
+      "name": "whole-parent-2-before-pr896",
+      "sha256": "68338a176c682de788c747003b39a6c030128da1c39275f72ae24b5651410d19"
+    },
+    "reconstructed_successor_length": 166104,
+    "reconstructed_successor_sha256": "949eafef81d1d525a84d530c81101eced9a9ff87093032cbfc73c778308639dc",
+    "full_original_inverse_exact": true
+  },
+  {
+    "source": "src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs",
+    "original_table": "docs/evidence/main043-independent-custody-20261016/live/table-1.json",
+    "original_archive": "docs/evidence/exit-status-directory-reuse/src__cleanup_plan__replay__expression_facts__receiving__remaining__tests.rs.before.txt",
+    "original_sha256": "ac2685e11c2cd09f9caee373b6b5744b5544b5680032cc07fbead0650ceef474",
+    "whole_original_forward_and_inverse_exact": true,
+    "checkpoint_sha256": "e6d9241f9287e8e00d5c8413623383b53b46e5efbe6da50e576dcf6bbd642db4",
+    "checkpoint_length": 17171
+  }
+]

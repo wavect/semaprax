@@ -305,3 +305,8 @@ pub(super) mod paired;
 pub(super) mod modular_session;
 #[path = "shared_local_callees/modular_pair.rs"]
 pub(super) mod modular_pair;
+
+#[cfg(test)]
+#[path = "shared_local_callees/before903.rs"]
+#[allow(dead_code, reason = "complete immediate constructor-retention forecast oracle")]
+pub(in crate::workspace_graph::expected_projection) mod before903;

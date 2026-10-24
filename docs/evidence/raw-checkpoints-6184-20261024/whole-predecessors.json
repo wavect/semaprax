@@ -1,0 +1,27 @@
+{
+  "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": {
+    "archive": "e/3ddaeebfec59463ae0c78e955c06dffca9865357cd347d6036b538dc9e671b28",
+    "length": 209317,
+    "sha256": "3ddaeebfec59463ae0c78e955c06dffca9865357cd347d6036b538dc9e671b28"
+  },
+  "src/cleanup_plan/replay.rs": {
+    "archive": "e/cc999fb9034687101cb5d34db54ed4ea58289ac6d9f9f7fae9f53e693231f74a",
+    "length": 326264,
+    "sha256": "cc999fb9034687101cb5d34db54ed4ea58289ac6d9f9f7fae9f53e693231f74a"
+  },
+  "tests/hir_module_boundaries.rs": {
+    "archive": "e/ffe6016f0c7b317ce89103f9fbe72f888a31ce212efd0f22fcd26e62c73d8a79",
+    "length": 136942,
+    "sha256": "ffe6016f0c7b317ce89103f9fbe72f888a31ce212efd0f22fcd26e62c73d8a79"
+  },
+  "tests/workspace/semantic_graph/source_inventory.rs": {
+    "archive": "e/949eafef81d1d525a84d530c81101eced9a9ff87093032cbfc73c778308639dc",
+    "length": 166104,
+    "sha256": "949eafef81d1d525a84d530c81101eced9a9ff87093032cbfc73c778308639dc"
+  },
+  "src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs": {
+    "archive": "e/e6d9241f9287e8e00d5c8413623383b53b46e5efbe6da50e576dcf6bbd642db4",
+    "length": 17171,
+    "sha256": "e6d9241f9287e8e00d5c8413623383b53b46e5efbe6da50e576dcf6bbd642db4"
+  }
+}

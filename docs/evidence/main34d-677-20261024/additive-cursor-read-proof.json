@@ -1,0 +1,48 @@
+[
+  {
+    "domain": "hir",
+    "parent": "src/source_reflows/incoming67107_semantic_receivers.rs",
+    "child": "src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs",
+    "existing_parent_and_child_roles": "test-only",
+    "exact_two_new_data_acquisitions": [
+      {
+        "parent": "src/source_reflows/incoming67107_semantic_receivers.rs",
+        "start": 23797,
+        "text": "include_str!(\"../cleanup_plan/replay/expression_facts/arena/cursor_tests.rs\")",
+        "attributes": [],
+        "child": "src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs"
+      },
+      {
+        "parent": "src/source_reflows/incoming67107_semantic_receivers.rs",
+        "start": 40721,
+        "text": "include_str!(\"../cleanup_plan/replay/expression_facts/arena/cursor_tests.rs\")",
+        "attributes": [],
+        "child": "src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs"
+      }
+    ],
+    "no_executable_module_declaration_or_production_role_added": true
+  },
+  {
+    "domain": "projection",
+    "parent": "src/source_reflows/incoming67107_semantic_receivers.rs",
+    "child": "src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs",
+    "existing_parent_and_child_roles": "test-only",
+    "exact_two_new_data_acquisitions": [
+      {
+        "parent": "src/source_reflows/incoming67107_semantic_receivers.rs",
+        "start": 23797,
+        "text": "include_str!(\"../cleanup_plan/replay/expression_facts/arena/cursor_tests.rs\")",
+        "attributes": [],
+        "child": "src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs"
+      },
+      {
+        "parent": "src/source_reflows/incoming67107_semantic_receivers.rs",
+        "start": 40721,
+        "text": "include_str!(\"../cleanup_plan/replay/expression_facts/arena/cursor_tests.rs\")",
+        "attributes": [],
+        "child": "src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs"
+      }
+    ],
+    "no_executable_module_declaration_or_production_role_added": true
+  }
+]

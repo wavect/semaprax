@@ -1,0 +1,21 @@
+{
+  "source": "src/cleanup_plan/replay/path_join/boxed_states.rs",
+  "immutable_recipe": "docs/evidence/next-bitmap-singleton-main2600-20261016/current-to-4fba.json",
+  "recipe_sha256": "79d510959eae14b2092d3695751912c45ebab65641c0b5147df21b5988fac66f",
+  "whole_original_archive": "docs/evidence/next-bitmap-singleton-main2600-20261016/before-4fba/src/cleanup_plan/replay/path_join/boxed_states.rs",
+  "whole_original_sha256": "34fd1fbfa2ba214f1b9f5ffaa05045effb5d790cc438efe6357d1a9d278569db",
+  "derived_view": {
+    "name": "whole-boxed-source-4fba-current",
+    "archive": "e/9e736102f9b39a731db6ab6ae3d17280eb04e5fa7df913c86cc503ec1771566f",
+    "length": 6796,
+    "sha256": "9e736102f9b39a731db6ab6ae3d17280eb04e5fa7df913c86cc503ec1771566f"
+  },
+  "unique_full_recipe_applied": true,
+  "original_recipe_and_source_assertions_unchanged": true,
+  "classifier_preimage": {
+    "immutable_recipe": "docs/evidence/boxed-state-receiving-849-20261016/source-inverses.json",
+    "current_sha256": "88389f912f0bd6c275a8cee2bec309210bb0c575c7b449547606d8449dfdb9cc",
+    "whole_original_sha256": "da6c47e54879339c12b36858295cb22fe10760bd0dac6c056766d00c26d7d78e",
+    "all_original_edits_and_full_source_assertions_retained": true
+  }
+}

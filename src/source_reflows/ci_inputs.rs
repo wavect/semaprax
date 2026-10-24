@@ -525,7 +525,8 @@ pub(super) fn prior<'a>(source: &str, supplied: &'a str) -> Cow<'a, str> {
     )
     .unwrap();
     assert_eq!(fresh, current, "complete fresh physical CI history input");
-    let entered = historical_entry(source, row["current_sha256"].as_str().unwrap(), current);
+    let source903 = constructor903_before(source, current);
+    let entered = historical_entry(source, row["current_sha256"].as_str().unwrap(), source903.as_deref().unwrap_or(current));
     assert_eq!(entered.len() as u64, row["current_length"]);
     assert_eq!(digest(&entered), row["current_sha256"]);
     let mut before = entered.into_owned();
@@ -1214,6 +1215,7 @@ pub(super) fn compact_frontier_entry(source: &str, supplied: &str) -> Option<Str
 
 // Exact finite source entry only; no compiler, budget or execution authority.
 pub(super) fn next_custody_before(owner: &str, source: &str, supplied: &str) -> String {
+    if owner == "constructor903" { return constructor903_before(source, supplied).unwrap_or_else(|| supplied.to_owned()); }
     const PACKET: &str = include_str!("next_custody_inverse.json");
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     assert_eq!(
@@ -1283,7 +1285,8 @@ pub(super) fn next_custody_before(owner: &str, source: &str, supplied: &str) -> 
         physical, compiled,
         "complete actual compiled source channel"
     );
-    let acquired = next_emission_before(owner, source, supplied, compiled)
+    let acquired = constructor903_before(source, supplied)
+        .or_else(|| next_emission_before(owner, source, supplied, compiled))
         .or_else(|| next_custody_front(owner, source, supplied, compiled, row));
     if acquired.is_none() {
         assert_eq!(supplied, compiled, "complete compiled source channel");
@@ -1474,4 +1477,22 @@ fn next_emission_before(owner: &str, source: &str, supplied: &str, actual: &str)
     assert_eq!(restored, target, "entire fixed b23 test source");
     if acquired.is_some(){assert_eq!(reader::read(&root.join(source),raw_actual.len(),&digest(raw_actual),2_097_152).unwrap(),raw_actual);}
     Some(restored)
+}
+
+// Exact full physical source and named pre-903 view; every old route stays strict.
+#[rustfmt::skip]
+fn constructor903_before(source: &str, supplied: &str) -> Option<String> {
+    const FRONT: &str = include_str!("next_custody_fronts.json");
+    let packet: serde_json::Value = serde_json::from_str(FRONT).unwrap();
+    let Some(row) = packet["constructor_retention_903"]["records"].get(source) else { return None; };
+    assert_eq!(packet["constructor_retention_903"]["schema"], "semaprax.constructor-retention-903-source-fronts.v1");
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let acquire = |path: &str, length: usize, sha: &str| reader::read(&root.join(path), length, sha, 2_097_152).unwrap();
+    assert_eq!(acquire("src/source_reflows/next_custody_fronts.json", FRONT.len(), &digest(FRONT)), FRONT);
+    let actual = acquire(source, row["current"]["length"].as_u64().unwrap().try_into().unwrap(), row["current"]["sha256"].as_str().unwrap());
+    let mut previous = 0; for e in row["edits"].as_array().unwrap() { let a: usize = e["start"].as_u64().unwrap().try_into().unwrap(); let b: usize = e["end"].as_u64().unwrap().try_into().unwrap(); assert!(previous <= a && a <= b && b <= actual.len() && actual.is_char_boundary(a) && actual.is_char_boundary(b)); assert_eq!(&actual[a..b], e["after"].as_str().unwrap()); previous = b; }
+    let mut restored = actual.clone(); for e in row["edits"].as_array().unwrap().iter().rev() { restored.replace_range(e["start"].as_u64().unwrap().try_into().unwrap()..e["end"].as_u64().unwrap().try_into().unwrap(), e["before"].as_str().unwrap()); }
+    assert_eq!(restored, row["before_text"].as_str().unwrap()); assert_eq!(restored.len() as u64, row["target"]["length"]); assert_eq!(digest(&restored), row["target"]["sha256"]);
+    assert!(supplied == actual || supplied == restored, "only complete physical or exact named pre-903 input view");
+    assert_eq!(acquire(source, actual.len(), &digest(&actual)), actual); assert_eq!(acquire("src/source_reflows/next_custody_fronts.json", FRONT.len(), &digest(FRONT)), FRONT); Some(restored)
 }

@@ -1,0 +1,32 @@
+{
+  "src/cleanup_plan/replay.rs": {
+    "archive": "e/bdce82425869a91e406c78175753f19ff0db46a468c4bba33f8bef793b4fe234",
+    "length": 326240,
+    "sha256": "bdce82425869a91e406c78175753f19ff0db46a468c4bba33f8bef793b4fe234"
+  },
+  "src/source_reflows_merge.rs": {
+    "archive": "e/b5cc8042ab7d2fd4ae06630ee6a063cc51b016e713ce5d6eef45a88894b77cda",
+    "length": 102073,
+    "sha256": "b5cc8042ab7d2fd4ae06630ee6a063cc51b016e713ce5d6eef45a88894b77cda"
+  },
+  "src/source_reflows_merge/main67107_inputs.rs": {
+    "archive": "e/555d676283e593101b9fc21b8e26f71b1b31b9567c52d3ca402077c4f8bf7fab",
+    "length": 49667,
+    "sha256": "555d676283e593101b9fc21b8e26f71b1b31b9567c52d3ca402077c4f8bf7fab"
+  },
+  "tests/hir_module_boundaries.rs": {
+    "archive": "e/7fbf376462b414bfa418140ac77605e836e5a901b39a26fd62effbc92df8e412",
+    "length": 140563,
+    "sha256": "7fbf376462b414bfa418140ac77605e836e5a901b39a26fd62effbc92df8e412"
+  },
+  "tests/workspace/semantic_graph/source_inventory.rs": {
+    "archive": "e/4b57d9a1540c392f265a41470445f0dc56a55e6ec9b04b10c85c7891de0259bd",
+    "length": 167529,
+    "sha256": "4b57d9a1540c392f265a41470445f0dc56a55e6ec9b04b10c85c7891de0259bd"
+  },
+  "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": {
+    "archive": "e/f6548d960715440ae229df6c3a01dda62f035c5379ce2301e2193eb9339f499b",
+    "length": 213373,
+    "sha256": "f6548d960715440ae229df6c3a01dda62f035c5379ce2301e2193eb9339f499b"
+  }
+}

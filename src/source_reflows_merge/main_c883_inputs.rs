@@ -177,6 +177,90 @@ pub(crate) fn current_1e_value(source: &str, supplied: &str) -> String {
         current
     }
 }
+// The cursor source gained exactly this later acquisition call. Restore its
+// complete packet epoch before the existing full-source comparisons on both
+// independently acquired channels.
+fn before_cursor_call(source: &str, expected: &str, supplied: &str) -> String {
+    if source != "src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs"
+        || expected != "fdb672ec67714810ba990a306ec8b282ce7c628d627b272b322d21e51293da34"
+        || digest(supplied.as_bytes()) == expected
+    {
+        return supplied.to_owned();
+    }
+    assert_eq!(
+        digest(supplied.as_bytes()),
+        "2c91db9d0da06846703b41d7221a5daf16b56aa73933f0a88b714d23d08552a2"
+    );
+    let current = "    let capacity_now =\n        capacity::type_cursor_tests::immediate_before(include_str!(\"../capacity.rs\"));";
+    assert_eq!(supplied.matches(current).count(), 1);
+    let previous = supplied.replacen(
+        current,
+        "    let capacity_now = include_str!(\"../capacity.rs\");",
+        1,
+    );
+    assert_eq!(digest(previous.as_bytes()), expected);
+    previous
+}
+
+// Only the current side of the two immutable packets uses this front. The
+// complete live physical/compiled pair precedes the original historical
+// normalization; archive readers and current RAW audits never use it.
+fn latest_compiled(source: &str) -> Option<&'static str> {
+    compiled(source)
+        .or_else(|| super::main67107_inputs::accepted_physical_compiled(source))
+        .or_else(|| {
+            (source == "docs/evidence/projection-audit-scope-v1/legacy-inputs.tsv").then_some(
+                include_str!("../../docs/evidence/projection-audit-scope-v1/legacy-inputs.tsv"),
+            )
+        })
+}
+fn latest_current(
+    path: &Path,
+    row: &serde_json::Value,
+    f247: bool,
+) -> Option<std::io::Result<String>> {
+    let source = row["path"].as_str().unwrap();
+    let compiled = latest_compiled(source)?;
+    let expected = row["current_sha256"].as_str().unwrap();
+    let length = row["current_length"].as_u64().unwrap() as usize;
+    if compiled.len() == length && digest(compiled.as_bytes()) == expected {
+        return None;
+    }
+    Some((|| {
+        let raw = super::main67107_inputs::main_f247_file_raw(
+            path,
+            compiled.len(),
+            &digest(compiled.as_bytes()),
+        )
+        .map_err(|message| std::io::Error::new(std::io::ErrorKind::InvalidData, message))?;
+        assert_eq!(
+            raw, compiled,
+            "complete latest physical/compiled packet owner"
+        );
+        let historical = if f247 {
+            let value = legacy_ci_inputs::for_expected(source, expected, &raw);
+            super::next_big_batch_inputs::value(source, expected, &value)
+        } else {
+            let value = super::next_big_batch_inputs::value(source, expected, &raw);
+            legacy_ci_inputs::for_expected(source, expected, &value).into_owned()
+        };
+        let historical =
+            super::main67107_inputs::accepted_expected_value(source, expected, &historical);
+        let historical = before_cursor_call(source, expected, &historical);
+        assert_eq!(
+            historical.len(),
+            length,
+            "complete historical current length"
+        );
+        assert_eq!(
+            digest(historical.as_bytes()),
+            expected,
+            "complete historical current digest"
+        );
+        Ok(historical)
+    })())
+}
+
 fn read_packet(path: impl AsRef<Path>, packet: serde_json::Value) -> std::io::Result<String> {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let path = path.as_ref();
@@ -192,7 +276,14 @@ fn read_packet(path: impl AsRef<Path>, packet: serde_json::Value) -> std::io::Re
         "closed main-c883 source membership"
     );
     let row = rows.iter().find(|row| row["path"] == relative).unwrap();
-    let current = if let Some(previous) = crate::source_reflows_merge::next_big_batch_inputs::file(
+    let latest = if packet["schema"] == "semaprax.main-c883-source-acquisition.v1" {
+        latest_current(path, row, false)
+    } else {
+        None
+    };
+    let current = if let Some(latest) = latest {
+        latest?
+    } else if let Some(previous) = crate::source_reflows_merge::next_big_batch_inputs::file(
         path,
         row["current_length"].as_u64().unwrap() as usize,
         row["current_sha256"].as_str().unwrap(),
@@ -221,6 +312,8 @@ fn read_packet(path: impl AsRef<Path>, packet: serde_json::Value) -> std::io::Re
             row["current_sha256"].as_str().unwrap(),
             &compiled,
         );
+        let compiled =
+            before_cursor_call(relative, row["current_sha256"].as_str().unwrap(), &compiled);
         assert_eq!(
             current, compiled,
             "complete physical/compiled main-c883 owner"
@@ -309,11 +402,15 @@ pub(crate) fn read_f247(path: impl AsRef<Path>) -> std::io::Result<String> {
         super::main67107_inputs::main_f247_file_raw(path, length, expected)
             .map_err(|message| std::io::Error::new(std::io::ErrorKind::InvalidData, message))
     };
-    let current = read(
-        &root.join(relative),
-        row["current_length"].as_u64().unwrap() as usize,
-        row["current_sha256"].as_str().unwrap(),
-    )?;
+    let current = if let Some(latest) = latest_current(&root.join(relative), row, true) {
+        latest?
+    } else {
+        read(
+            &root.join(relative),
+            row["current_length"].as_u64().unwrap() as usize,
+            row["current_sha256"].as_str().unwrap(),
+        )?
+    };
     if let Some(compiled) =
         compiled(relative).or_else(|| super::main67107_inputs::accepted_physical_compiled(relative))
     {
@@ -333,6 +430,8 @@ pub(crate) fn read_f247(path: impl AsRef<Path>) -> std::io::Result<String> {
             row["current_sha256"].as_str().unwrap(),
             &compiled,
         );
+        let compiled =
+            before_cursor_call(relative, row["current_sha256"].as_str().unwrap(), &compiled);
         assert_eq!(
             current, compiled,
             "actual complete compiled f247 current owner"
@@ -354,12 +453,21 @@ pub(crate) fn f247_expected(path: &str, supplied: &str) -> String {
         .iter()
         .find(|r| r["path"] == path)
         .unwrap();
-    let actual = super::main67107_inputs::main_f247_file_raw(
-        &root.join(path),
-        row["current_length"].as_u64().unwrap() as usize,
-        row["current_sha256"].as_str().unwrap(),
-    )
-    .unwrap();
+    let actual = if let Some(latest) = latest_current(&root.join(path), row, true) {
+        latest.unwrap()
+    } else {
+        super::main67107_inputs::main_f247_file_raw(
+            &root.join(path),
+            row["current_length"].as_u64().unwrap() as usize,
+            row["current_sha256"].as_str().unwrap(),
+        )
+        .unwrap()
+    };
+    let supplied = if latest_compiled(path).is_some_and(|current| current == supplied) {
+        actual.as_str()
+    } else {
+        supplied
+    };
     let projected =
         legacy_ci_inputs::for_expected(path, row["current_sha256"].as_str().unwrap(), supplied);
     let supplied = projected.as_ref();
@@ -384,4 +492,74 @@ fn closed_f247_acquisition_authenticates_whole_current_and_incoming_domains() {
         assert_eq!(digest(value.as_bytes()), row["main_sha256"]);
     }
     assert!(std::panic::catch_unwind(|| read_f247(root.join("foreign-f247-source"))).is_err());
+}
+
+#[test]
+fn latest_packet_front_keeps_whole_history_and_rejects_changed_physical_bytes() {
+    let packet = packet_f247();
+    let row = packet["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["path"] == "src/cleanup_plan/replay.rs")
+        .unwrap();
+    let compiled = latest_compiled(row["path"].as_str().unwrap()).unwrap();
+    let directory =
+        std::env::temp_dir().join(format!("semaprax-closed-packet-{}", std::process::id()));
+    std::fs::create_dir(&directory).unwrap();
+    struct Remove(std::path::PathBuf);
+    impl Drop for Remove {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+    let _remove = Remove(directory.clone());
+    let file = directory.join("owner.rs");
+    std::fs::write(&file, compiled).unwrap();
+    let before = latest_current(&file, row, true).unwrap().unwrap();
+    assert_eq!(before.len() as u64, row["current_length"].as_u64().unwrap());
+    assert_eq!(digest(before.as_bytes()), row["current_sha256"]);
+    let mut changed = compiled.as_bytes().to_vec();
+    changed[0] ^= 1;
+    for bad in [Vec::new(), changed, [compiled.as_bytes(), b" "].concat()] {
+        std::fs::write(&file, bad).unwrap();
+        assert!(latest_current(&file, row, true).unwrap().is_err());
+    }
+    std::fs::write(&file, compiled).unwrap();
+    #[cfg(unix)]
+    {
+        let link = directory.join("symlink.rs");
+        std::os::unix::fs::symlink(&file, &link).unwrap();
+        assert!(latest_current(&link, row, true).unwrap().is_err());
+    }
+    assert!(latest_current(&directory, row, true).unwrap().is_err());
+    assert!(latest_current(&directory.join("missing.rs"), row, true)
+        .unwrap()
+        .is_err());
+    let source = row["path"].as_str().unwrap();
+    let incoming = read_f247(Path::new(env!("CARGO_MANIFEST_DIR")).join(source)).unwrap();
+    assert_eq!(f247_expected(source, compiled), incoming);
+    assert_eq!(f247_expected(source, &incoming), incoming);
+    for foreign in [
+        String::new(),
+        format!("{compiled} "),
+        format!("{incoming} "),
+    ] {
+        assert!(std::panic::catch_unwind(|| f247_expected(source, &foreign)).is_err());
+    }
+}
+
+#[test]
+fn exact_cursor_epoch_keeps_complete_preimage_and_refuses_foreign_bytes() {
+    let source = "src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs";
+    let expected = "fdb672ec67714810ba990a306ec8b282ce7c628d627b272b322d21e51293da34";
+    let current = latest_compiled(source).unwrap();
+    let old = before_cursor_call(source, expected, current);
+    assert_eq!(old.len(), 8127);
+    assert_eq!(before_cursor_call(source, expected, &old), old);
+    assert_eq!(before_cursor_call("foreign", expected, current), current);
+    assert_eq!(before_cursor_call(source, "foreign", current), current);
+    for bad in [String::new(), format!("{current} "), format!("{old} ")] {
+        assert!(std::panic::catch_unwind(|| before_cursor_call(source, expected, &bad)).is_err());
+    }
 }

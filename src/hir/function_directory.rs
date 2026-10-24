@@ -43,3 +43,29 @@ impl<'a> Directory<'a> {
 }
 
 pub(super) mod caller;
+
+/// Additional later-validation directory allowance for constructor-covered
+/// scalar functions. Actual caller allocation uses exactly these entry/carrier
+/// layouts, plus the receiving canonical-storage Rc even when its loan vectors
+/// have no backing. Permits/unknown functions keep their complete old forecast.
+pub(crate) fn retained_scalar_directory_bound(functions: usize) -> Option<usize> {
+    if functions == 0 {
+        return Some(0);
+    }
+    let backing = functions.checked_mul(std::mem::size_of::<Entry<'_>>())?;
+    let carrier = std::alloc::Layout::new::<[usize; 2]>()
+        .extend(std::alloc::Layout::new::<Directory<'_>>())
+        .ok()?
+        .0
+        .pad_to_align()
+        .size();
+    let storage = std::alloc::Layout::new::<[usize; 2]>()
+        .extend(std::alloc::Layout::new::<
+            super::canonical_loan_storage::Storage<'_>,
+        >())
+        .ok()?
+        .0
+        .pad_to_align()
+        .size();
+    backing.checked_add(carrier)?.checked_add(storage)
+}

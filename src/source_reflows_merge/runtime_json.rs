@@ -320,6 +320,236 @@ fn main043_check_raw_subject(packet: &serde_json::Value, source: &str) -> String
     physical
 }
 
+// This first step binds the complete latest RAW channels before replaying
+// the unchanged successor and checkpoint inverses below. It is not a logical
+// source projection: the complete physical/compiled current image is required.
+// The three unchanged ExitDirectory subjects were already explicit inputs
+// of its original ten-owner audit. Keep their full compiled images available
+// without opening the older RAW checkpoint subject registry.
+fn main043_current_subject(source: &str) -> (&'static str, &'static str) {
+    match source {
+        "src/cleanup_plan/replay/expression_facts/receiving/remaining.rs" => (
+            concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/cleanup_plan/replay/expression_facts/receiving/remaining.rs"
+            ),
+            include_str!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/cleanup_plan/replay/expression_facts/receiving/remaining.rs"
+            )),
+        ),
+        "src/cleanup_plan/replay/expression_facts/receiving/remaining/selected.rs" => (
+            concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/cleanup_plan/replay/expression_facts/receiving/remaining/selected.rs"
+            ),
+            include_str!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/cleanup_plan/replay/expression_facts/receiving/remaining/selected.rs"
+            )),
+        ),
+        "src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs" => (
+            concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs"
+            ),
+            include_str!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs"
+            )),
+        ),
+        _ => {
+            let (path, compiled, _) = main043_raw_subject(source);
+            (path, compiled)
+        }
+    }
+}
+
+// Exact current physical channels are acquired before the immutable main5b4 RAW recipe.
+fn main8_raw_before(source: &str, current: &str) -> String {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let data = include_str!("../source_reflows/next_custody_fronts.json");
+    assert_eq!(
+        main043_raw_file(
+            &root.join("src/source_reflows/next_custody_fronts.json"),
+            data.len(),
+            &format!("{:x}", crate::digest_hex::LowerHex(digest(data.as_bytes())))
+        )
+        .unwrap(),
+        data
+    );
+    let packet: serde_json::Value = serde_json::from_str(data).unwrap();
+    let front = &packet["main8_raw_current_fronts"];
+    assert_eq!(
+        front["schema"],
+        "semaprax.main5b4.current-raw-input-fronts.v1"
+    );
+    assert_eq!(
+        front["target_head"],
+        "5b4ea4db02815496376841a90f77af8d20971377"
+    );
+    let rows = front["rows"].as_array().unwrap();
+    assert_eq!(rows.len(), 5);
+    let names: Vec<_> = rows
+        .iter()
+        .map(|row| row["source"].as_str().unwrap())
+        .collect();
+    assert_eq!(names, ["crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs", "src/cleanup_plan/replay.rs", "tests/hir_module_boundaries.rs", "tests/workspace/semantic_graph/source_inventory.rs", "src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs"]);
+    let matching: Vec<_> = rows.iter().filter(|row| row["source"] == source).collect();
+    assert_eq!(matching.len(), 1);
+    let row = matching[0];
+    assert_eq!(
+        row["source_kind"],
+        "EXACT_CURRENT_PHYSICAL_TO_COMPLETE_MAIN5B4_RAW_INPUT_VIEW"
+    );
+    let length = usize::try_from(row["after"]["length"].as_u64().unwrap()).unwrap();
+    let sha = row["after"]["sha256"].as_str().unwrap();
+    assert_eq!(current.len(), length);
+    assert_eq!(digest(current.as_bytes()), main043_raw_pin(sha));
+    assert_eq!(
+        main043_raw_file(&root.join(source), length, sha).unwrap(),
+        current
+    );
+    let mut restored = current.to_owned();
+    let mut last = restored.len();
+    for edit in row["inverse"].as_array().unwrap().iter().rev() {
+        let start = usize::try_from(edit["start"].as_u64().unwrap()).unwrap();
+        let end = usize::try_from(edit["end"].as_u64().unwrap()).unwrap();
+        assert!(start <= end && end <= last);
+        assert_eq!(restored.get(start..end), edit["after"].as_str());
+        restored.replace_range(start..end, edit["before"].as_str().unwrap());
+        last = start;
+    }
+    let before_sha = row["before"]["sha256"].as_str().unwrap();
+    let archive = row["archive"].as_str().unwrap();
+    assert_eq!(archive, format!("e/{before_sha}"));
+    let before = main043_raw_file(
+        &root.join(archive),
+        usize::try_from(row["before"]["length"].as_u64().unwrap()).unwrap(),
+        before_sha,
+    )
+    .unwrap();
+    assert_eq!(restored, before, "ENTIRE immutable main5b4 RAW input view");
+    assert_eq!(
+        main043_raw_file(&root.join(source), length, sha).unwrap(),
+        current
+    );
+    assert_eq!(
+        main043_raw_file(
+            &root.join("src/source_reflows/next_custody_fronts.json"),
+            data.len(),
+            &format!("{:x}", crate::digest_hex::LowerHex(digest(data.as_bytes())))
+        )
+        .unwrap(),
+        data
+    );
+    restored
+}
+
+fn main043_before_successors(
+    source: &str,
+    raw: &str,
+    key: &str,
+    outer: &mut Vec<serde_json::Value>,
+) -> String {
+    if !matches!(source,
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
+        | "src/cleanup_plan/replay.rs" | "tests/hir_module_boundaries.rs"
+        | "tests/workspace/semantic_graph/source_inventory.rs"
+        | "src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs") {
+        return raw.to_owned();
+    }
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let data = main043_raw_file(
+        &root.join("docs/evidence/source-coverage-254-20261024/latest-to-successors.json"),
+        286968,
+        "7746c771eaf205e67df886e43f027083ec1e61b4dae4380d16c3476e303f6734",
+    )
+    .unwrap();
+    assert_eq!(
+        data,
+        include_str!("../../docs/evidence/source-coverage-254-20261024/latest-to-successors.json")
+    );
+    let spec: serde_json::Value = serde_json::from_str(&data).unwrap();
+    assert_eq!(
+        spec["schema"],
+        "semaprax.main043.raw-checkpoint-successor.v1"
+    );
+    let rows = spec["rows"].as_array().unwrap();
+    assert_eq!(rows.len(), 5);
+    let matching: Vec<_> = rows.iter().filter(|row| row["source"] == source).collect();
+    assert_eq!(matching.len(), 1);
+    let row = matching[0];
+    let (path, actual_compiled) = main043_current_subject(source);
+    assert_eq!(
+        raw, actual_compiled,
+        "complete actual physical/compiled RAW source before input-view acquisition"
+    );
+    assert!(matches!(key, "after" | "new"));
+    let actual_raw = raw;
+    let input_view = main8_raw_before(source, actual_raw);
+    let compiled_view = main8_raw_before(source, actual_compiled);
+    if actual_raw != input_view {
+        let mut edit = serde_json::Map::new();
+        edit.insert(key.to_owned(), actual_raw.into());
+        edit.insert("before".to_owned(), input_view.clone().into());
+        outer.push(edit.into());
+    }
+    let raw = input_view.as_str();
+    let compiled = compiled_view.as_str();
+    assert_eq!(
+        raw, compiled,
+        "complete latest supplied/compiled RAW source"
+    );
+    let actual_physical = main043_raw_file(
+        std::path::Path::new(path),
+        actual_raw.len(),
+        &format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(digest(actual_raw.as_bytes()))
+        ),
+    )
+    .unwrap();
+    let physical = main8_raw_before(source, &actual_physical);
+    assert_eq!(physical.len() as u64, row["length"].as_u64().unwrap());
+    assert_eq!(
+        digest(physical.as_bytes()),
+        main043_raw_pin(row["sha256"].as_str().unwrap())
+    );
+    assert_eq!(
+        physical, raw,
+        "complete latest physical/compiled RAW source"
+    );
+    let previous_sha = row["checkpoint_sha256"].as_str().unwrap();
+    let archive = row["archive"].as_str().unwrap();
+    assert_eq!(archive, format!("e/{previous_sha}"));
+    let previous = main043_raw_file(
+        &root.join(archive),
+        usize::try_from(row["checkpoint_length"].as_u64().unwrap()).unwrap(),
+        previous_sha,
+    )
+    .unwrap();
+    assert!(matches!(key, "after" | "new"));
+    let mut restored = physical;
+    for pair in row["inverse"].as_array().unwrap() {
+        let after = pair[0].as_str().unwrap();
+        let before = pair[1].as_str().unwrap();
+        assert!(!after.is_empty());
+        assert_eq!(
+            restored.matches(after).count(),
+            1,
+            "unique latest RAW inverse"
+        );
+        restored = restored.replacen(after, before, 1);
+        let mut edit = serde_json::Map::new();
+        edit.insert(key.to_owned(), after.into());
+        edit.insert("before".to_owned(), before.into());
+        outer.push(edit.into());
+    }
+    assert_eq!(restored, previous, "whole immutable RAW checkpoint inverse");
+    previous
+}
+
 pub(super) fn main043_raw_metadata(fixture: super::main043_custody::Fixture) -> String {
     use super::main043_custody::Fixture as F;
     let (name, key, forward) = match fixture {
@@ -441,7 +671,7 @@ pub(super) fn main043_raw_metadata(fixture: super::main043_custody::Fixture) -> 
         );
         let mut outer = Vec::new();
         let (_, live, _) = main043_raw_subject(source);
-        let mut live = live.to_owned();
+        let mut live = main043_before_successors(source, live, key, &mut outer);
         for successor in successors.iter().filter(|row| row["source"] == source) {
             assert_eq!(live.len() as u64, successor["length"]);
             assert_eq!(
@@ -529,6 +759,46 @@ pub(super) fn main043_raw_metadata(fixture: super::main043_custody::Fixture) -> 
             current, expected,
             "whole independently sealed previous RAW image"
         );
+        if name == "ExitDirectory" {
+            // Replay every unchanged intermediate inverse before composing its
+            // exact source-to-checkpoint step. The original rows remain below;
+            // repeated full intermediate images need not inflate the wire data.
+            let (path, compiled, _) = main043_raw_subject(source);
+            let latest = main043_raw_file(
+                std::path::Path::new(path),
+                compiled.len(),
+                &format!(
+                    "{:x}",
+                    crate::digest_hex::LowerHex(Sha256::digest(compiled.as_bytes()))
+                ),
+            )
+            .unwrap();
+            assert_eq!(latest, compiled, "fresh complete RAW composition source");
+            let mut replayed = latest.clone();
+            for edit in &outer {
+                let after = edit[key].as_str().unwrap();
+                assert!(!after.is_empty());
+                assert_eq!(
+                    replayed.matches(after).count(),
+                    1,
+                    "unique complete RAW composition"
+                );
+                replayed = replayed.replacen(after, edit["before"].as_str().unwrap(), 1);
+            }
+            assert_eq!(
+                replayed, expected,
+                "all original intermediate RAW steps executed"
+            );
+            let mut composed = serde_json::Map::new();
+            composed.insert(key.to_owned(), latest.into());
+            composed.insert("before".to_owned(), expected.into());
+            let composed = vec![serde_json::Value::Object(composed)];
+            if serde_json::to_string(&composed).unwrap().len()
+                < serde_json::to_string(&outer).unwrap().len()
+            {
+                outer = composed;
+            }
+        }
         let steps = row["edits"].as_array_mut().unwrap();
         if forward {
             outer.extend(old_steps.clone());
@@ -543,6 +813,42 @@ pub(super) fn main043_raw_metadata(fixture: super::main043_custody::Fixture) -> 
             "all original RAW row fields and recipes retained"
         );
     }
+    if name == "ExitDirectory" {
+        // This original subject had no old outer front. Bind its complete
+        // latest source, then retain and execute every unchanged old edit.
+        let source = "src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs";
+        let index = rows
+            .as_array()
+            .unwrap()
+            .iter()
+            .position(|row| row["source"] == source)
+            .unwrap();
+        let row = &mut rows.as_array_mut().unwrap()[index];
+        let old_steps = row["edits"].as_array().unwrap().clone();
+        let (_, raw) = main043_current_subject(source);
+        let mut outer = Vec::new();
+        let mut restored = main043_before_successors(source, raw, key, &mut outer);
+        for edit in old_steps.iter().rev() {
+            let after = edit[key].as_str().unwrap();
+            assert!(!after.is_empty());
+            assert_eq!(restored.matches(after).count(), 1);
+            restored = restored.replacen(after, edit["before"].as_str().unwrap(), 1);
+        }
+        assert_eq!(
+            digest(restored.as_bytes()),
+            main043_raw_pin(row["sha256"].as_str().unwrap())
+        );
+        row["edits"]
+            .as_array_mut()
+            .unwrap()
+            .extend(outer.into_iter().rev());
+        let mut original = row.clone();
+        original["edits"] = old_steps.into();
+        assert_eq!(
+            original, before[index],
+            "complete original unfronted RAW row"
+        );
+    }
     assert_eq!(
         rows.as_array().unwrap().len(),
         before.as_array().unwrap().len()
@@ -555,6 +861,77 @@ pub(super) fn main043_raw_metadata(fixture: super::main043_custody::Fixture) -> 
 #[cfg(test)]
 mod main043_raw_tests {
     use super::*;
+
+    #[test]
+    fn exit_directory_recipe_replays_every_complete_latest_raw_owner() {
+        let metadata = main043_raw_metadata(super::super::main043_custody::Fixture::ExitDirectory);
+        let rows: serde_json::Value = serde_json::from_str(&metadata).unwrap();
+        for row in rows.as_array().unwrap() {
+            let source = row["source"].as_str().unwrap();
+            let (_, raw) = main043_current_subject(source);
+            let mut restored = raw.to_owned();
+            for (index, edit) in row["edits"].as_array().unwrap().iter().rev().enumerate() {
+                let after = edit["after"].as_str().unwrap();
+                assert_eq!(
+                    restored.matches(after).count(),
+                    1,
+                    "complete RAW owner {source}, inverse step {index}, bytes {}",
+                    after.len()
+                );
+                restored = restored.replacen(after, edit["before"].as_str().unwrap(), 1);
+            }
+            assert_eq!(
+                digest(restored.as_bytes()),
+                main043_raw_pin(row["sha256"].as_str().unwrap()),
+                "{source}"
+            );
+        }
+    }
+
+    #[test]
+    fn latest_raw_successor_binds_all_five_complete_live_channels_and_refuses_changed_inputs() {
+        let sources = [
+            "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+            "src/cleanup_plan/replay.rs",
+            "tests/hir_module_boundaries.rs",
+            "tests/workspace/semantic_graph/source_inventory.rs",
+            "src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs",
+        ];
+        for source in sources {
+            let (_, current) = main043_current_subject(source);
+            let mut edits = Vec::new();
+            let previous = main043_before_successors(source, current, "after", &mut edits);
+            assert!(!edits.is_empty());
+            let mut restored = current.to_owned();
+            for edit in &edits {
+                let after = edit["after"].as_str().unwrap();
+                assert_eq!(restored.matches(after).count(), 1);
+                restored = restored.replacen(after, edit["before"].as_str().unwrap(), 1);
+            }
+            assert_eq!(restored, previous);
+            assert_ne!(previous, current);
+            for bad in [
+                format!("{current}\n"),
+                current[..current.len() - 1].to_owned(),
+            ] {
+                let mut refused = Vec::new();
+                assert!(std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                    main043_before_successors(source, &bad, "after", &mut refused)
+                }))
+                .is_err());
+                assert!(
+                    refused.is_empty(),
+                    "no history published after live-source refusal"
+                );
+            }
+        }
+        let mut edits = Vec::new();
+        assert_eq!(
+            main043_before_successors("foreign.rs", "foreign", "after", &mut edits),
+            "foreign"
+        );
+        assert!(edits.is_empty());
+    }
 
     #[test]
     fn raw_successor_reader_keeps_bounds_digests_utf8_and_nofollow_refusals() {

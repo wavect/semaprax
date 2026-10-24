@@ -1,0 +1,22 @@
+{
+  "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs": {
+    "archive": "e/7abfc4358d9419d8eeb8d2b92594a51392c0e3028b220d3230499b097094fbbb",
+    "length": 11291,
+    "sha256": "7abfc4358d9419d8eeb8d2b92594a51392c0e3028b220d3230499b097094fbbb"
+  },
+  "tests/wasm/scalar_browser_ci_contract/historical_builder.rs": {
+    "archive": "e/d08980293493968e085698d7f3b040966af3ad5c9a133603ed191358ffa12b83",
+    "length": 55881,
+    "sha256": "d08980293493968e085698d7f3b040966af3ad5c9a133603ed191358ffa12b83"
+  },
+  "tests/wasm/scalar_browser_ci_contract/current_profiles573.rs": {
+    "archive": "e/99b71451c348ba6de7f457d2c0b5c9d8c944135fe36c08e796c1840d1df49aff",
+    "length": 10276,
+    "sha256": "99b71451c348ba6de7f457d2c0b5c9d8c944135fe36c08e796c1840d1df49aff"
+  },
+  "src/source_reflows_merge/main_e177_overlay_compiled.rs": {
+    "archive": "e/764c7bd57141c7ae439dab004b55ab752bfaeb6868f207231ba66de778adab57",
+    "length": 96750,
+    "sha256": "764c7bd57141c7ae439dab004b55ab752bfaeb6868f207231ba66de778adab57"
+  }
+}

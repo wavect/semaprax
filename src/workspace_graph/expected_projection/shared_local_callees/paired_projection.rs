@@ -330,6 +330,7 @@ pub(in crate::workspace_graph::expected_projection) fn estimate_with_census<'p, 
         transient_import_clone,
         runtime: runtime.total,
         retained_hir: hir_upper,
+        retained_scratch: call_data.retained,
         synthetic_ast: checked_usage(
             raw.total,
             runtime.total,

@@ -1,0 +1,169 @@
+{
+  "schema": "semaprax.local-ci-source-repair.v1",
+  "before_head": "7eff598ddd42104cc69f793d37dbdac7608cb998",
+  "scope": "Local source-only test-controller qualification. No compiler runtime, hosted current-head, platform or device qualification is claimed.",
+  "change": "Authenticate the complete latest physical and compiled owner before applying unchanged historical current-side normalizers for the two immutable closed packets; retain original whole-source comparisons and archives. Restore the one exact 55-byte cursor acquisition successor before both original channel comparisons.",
+  "original_main_c883_rows": 240,
+  "original_main_f247_rows": 408,
+  "original_main_1e_rows": 22,
+  "original_held_reader_body_unchanged": true,
+  "current_raw_audits_unmodified": true,
+  "foreign_missing_nonregular_symlink_short_changed_same_length_extended_and_foreign_supplied_controls": true,
+  "canonical_rows": 727,
+  "unique_canonical_archive_paths": 2679,
+  "page_bytes": 256006,
+  "tests": {
+    "closed-packet-controls": 8,
+    "alias-root-controls": 1,
+    "ordinary-plan-controls": 3,
+    "raw-reader-controls": 3,
+    "overlay-controls": 33,
+    "constructor-stage-controls": 3,
+    "main043-audits": 9,
+    "hir-test": 11,
+    "projection-test": 1,
+    "docs-controls": 3
+  },
+  "checks": {
+    "final-source-build": {
+      "exit": 0,
+      "process_RSS_cap": null,
+      "minimum_device_physical_available_GiB": 6.5541229248046875,
+      "compiler_pauses": 0,
+      "peak_process_tree_RSS_telemetry_KiB": 847760
+    },
+    "closed-packet-controls": {
+      "exit": 0,
+      "process_RSS_cap": null,
+      "minimum_device_physical_available_GiB": 6.474365234375,
+      "compiler_pauses": 0,
+      "peak_process_tree_RSS_telemetry_KiB": 132944
+    },
+    "final-source-clippy": {
+      "exit": 0,
+      "process_RSS_cap": null,
+      "minimum_device_physical_available_GiB": 6.580169677734375,
+      "compiler_pauses": 0,
+      "peak_process_tree_RSS_telemetry_KiB": 622768
+    },
+    "alias-root-controls": {
+      "exit": 0,
+      "process_RSS_cap": null,
+      "minimum_device_physical_available_GiB": 7.55133056640625,
+      "compiler_pauses": 0,
+      "peak_process_tree_RSS_telemetry_KiB": 52512
+    },
+    "ordinary-plan-controls": {
+      "exit": 0,
+      "process_RSS_cap": null,
+      "minimum_device_physical_available_GiB": 7.593109130859375,
+      "compiler_pauses": 0,
+      "peak_process_tree_RSS_telemetry_KiB": 19216
+    },
+    "raw-reader-controls": {
+      "exit": 0,
+      "process_RSS_cap": null,
+      "minimum_device_physical_available_GiB": 7.57208251953125,
+      "compiler_pauses": 0,
+      "peak_process_tree_RSS_telemetry_KiB": 63168
+    },
+    "overlay-controls": {
+      "exit": 0,
+      "process_RSS_cap": null,
+      "minimum_device_physical_available_GiB": 6.753753662109375,
+      "compiler_pauses": 0,
+      "peak_process_tree_RSS_telemetry_KiB": 59088
+    },
+    "constructor-stage-controls": {
+      "exit": 0,
+      "process_RSS_cap": null,
+      "minimum_device_physical_available_GiB": 6.63775634765625,
+      "compiler_pauses": 0,
+      "peak_process_tree_RSS_telemetry_KiB": 106752
+    },
+    "main043-audits": {
+      "exit": 0,
+      "process_RSS_cap": null,
+      "minimum_device_physical_available_GiB": 7.4847259521484375,
+      "compiler_pauses": 0,
+      "peak_process_tree_RSS_telemetry_KiB": 101328
+    },
+    "generate-roles": {
+      "exit": 0,
+      "process_RSS_cap": null,
+      "minimum_device_physical_available_GiB": 7.357391357421875,
+      "compiler_pauses": 0,
+      "peak_process_tree_RSS_telemetry_KiB": 113472
+    },
+    "verify-roles": {
+      "exit": 0,
+      "process_RSS_cap": null,
+      "minimum_device_physical_available_GiB": 7.199249267578125,
+      "compiler_pauses": 0,
+      "peak_process_tree_RSS_telemetry_KiB": 572240
+    },
+    "publish-roles": {
+      "exit": 0,
+      "process_RSS_cap": null,
+      "minimum_device_physical_available_GiB": 7.4170989990234375,
+      "compiler_pauses": 0,
+      "peak_process_tree_RSS_telemetry_KiB": 125808
+    },
+    "hir-build": {
+      "exit": 0,
+      "process_RSS_cap": null,
+      "minimum_device_physical_available_GiB": 6.7574310302734375,
+      "compiler_pauses": 0,
+      "peak_process_tree_RSS_telemetry_KiB": 1282160
+    },
+    "hir-test": {
+      "exit": 0,
+      "process_RSS_cap": null,
+      "minimum_device_physical_available_GiB": 6.84637451171875,
+      "compiler_pauses": 0,
+      "peak_process_tree_RSS_telemetry_KiB": 535664
+    },
+    "hir-clippy": {
+      "exit": 0,
+      "process_RSS_cap": null,
+      "minimum_device_physical_available_GiB": 6.7390899658203125,
+      "compiler_pauses": 0,
+      "peak_process_tree_RSS_telemetry_KiB": 388560
+    },
+    "projection-build": {
+      "exit": 0,
+      "process_RSS_cap": null,
+      "minimum_device_physical_available_GiB": 6.6308441162109375,
+      "compiler_pauses": 0,
+      "peak_process_tree_RSS_telemetry_KiB": 2031760
+    },
+    "projection-test": {
+      "exit": 0,
+      "process_RSS_cap": null,
+      "minimum_device_physical_available_GiB": 7.1536102294921875,
+      "compiler_pauses": 0,
+      "peak_process_tree_RSS_telemetry_KiB": 165232
+    },
+    "docs-build": {
+      "exit": 0,
+      "process_RSS_cap": null,
+      "minimum_device_physical_available_GiB": 7.0045928955078125,
+      "compiler_pauses": 0,
+      "peak_process_tree_RSS_telemetry_KiB": 1313760
+    },
+    "docs-controls": {
+      "exit": 0,
+      "process_RSS_cap": null,
+      "minimum_device_physical_available_GiB": 7.2267913818359375,
+      "compiler_pauses": 0,
+      "peak_process_tree_RSS_telemetry_KiB": 13632
+    },
+    "fmt": {
+      "exit": 0,
+      "process_RSS_cap": null,
+      "minimum_device_physical_available_GiB": 6.4773101806640625,
+      "compiler_pauses": 0,
+      "peak_process_tree_RSS_telemetry_KiB": 1231872
+    }
+  }
+}

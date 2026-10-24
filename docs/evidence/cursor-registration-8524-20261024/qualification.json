@@ -1,0 +1,170 @@
+{
+  "schema": "semaprax.local-ci-source-repair.v1",
+  "before_head": "8524e1c80c76de79352245de3c759b100ba66e23",
+  "scope": "Local source-only historical controller qualification; no current-head normal compiler runtime, hosted CI, or physical-device claim.",
+  "change": "Register only the existing, already-declared cursor owner and its exact complete historical input in the finite lookup. Authenticate complete current physical, compiled and archive channels before returning the named historical view. All existing rows, compiled classifications and historical views retained.",
+  "new_source": "src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs",
+  "canonical_rows": 728,
+  "unique_canonical_archive_paths": 2683,
+  "page_bytes": 256523,
+  "whole_preimage_from_immutable_git_verified": true,
+  "all_original_reader_caps_and_source_guard_assertions_retained": true,
+  "main090_full_173_row_old_test_passed": true,
+  "main21_old_test_passed": true,
+  "main21_measurement_scope": "Initial harness; only the unexecuted newly added registry regression was subsequently corrected to use the existing current-view API. Main21 body, production types, invoked acquisition code and registered input bytes remained identical.",
+  "remaining_work": "Full CI and existing compiler builder-budget failures remain unverified or unresolved.",
+  "tests": {
+    "constructor-stage-controls": 4,
+    "main090-final-controls": 1,
+    "main21-controls": 1,
+    "overlay-controls": 33,
+    "main34d-controls": 10,
+    "main043-audits": 9,
+    "raw-reader-controls": 3,
+    "hir-test": 11,
+    "projection-test": 1,
+    "docs-controls": 3
+  },
+  "checks": {
+    "constructor-stage-controls": {
+      "exit": 0,
+      "process_RSS_cap": null,
+      "minimum_device_physical_available_GiB": 6.5044403076171875,
+      "compiler_pauses": 0,
+      "peak_process_tree_RSS_telemetry_KiB": 109024
+    },
+    "main090-final-controls": {
+      "exit": 0,
+      "process_RSS_cap": null,
+      "minimum_device_physical_available_GiB": 5.561676025390625,
+      "compiler_pauses": 0,
+      "peak_process_tree_RSS_telemetry_KiB": 205264
+    },
+    "main21-controls": {
+      "exit": 0,
+      "process_RSS_cap": null,
+      "minimum_device_physical_available_GiB": 5.55877685546875,
+      "compiler_pauses": 0,
+      "peak_process_tree_RSS_telemetry_KiB": 209344
+    },
+    "overlay-controls": {
+      "exit": 0,
+      "process_RSS_cap": null,
+      "minimum_device_physical_available_GiB": 5.9263458251953125,
+      "compiler_pauses": 0,
+      "peak_process_tree_RSS_telemetry_KiB": 58208
+    },
+    "main34d-controls": {
+      "exit": 0,
+      "process_RSS_cap": null,
+      "minimum_device_physical_available_GiB": 5.5565643310546875,
+      "compiler_pauses": 0,
+      "peak_process_tree_RSS_telemetry_KiB": 147552
+    },
+    "main043-audits": {
+      "exit": 0,
+      "process_RSS_cap": null,
+      "minimum_device_physical_available_GiB": 6.1162567138671875,
+      "compiler_pauses": 0,
+      "peak_process_tree_RSS_telemetry_KiB": 99520
+    },
+    "raw-reader-controls": {
+      "exit": 0,
+      "process_RSS_cap": null,
+      "minimum_device_physical_available_GiB": 6.236663818359375,
+      "compiler_pauses": 0,
+      "peak_process_tree_RSS_telemetry_KiB": 71888
+    },
+    "hir-test": {
+      "exit": 0,
+      "process_RSS_cap": null,
+      "minimum_device_physical_available_GiB": 6.0620574951171875,
+      "compiler_pauses": 0,
+      "peak_process_tree_RSS_telemetry_KiB": 531264
+    },
+    "projection-test": {
+      "exit": 0,
+      "process_RSS_cap": null,
+      "minimum_device_physical_available_GiB": 6.0788421630859375,
+      "compiler_pauses": 0,
+      "peak_process_tree_RSS_telemetry_KiB": 165776
+    },
+    "docs-controls": {
+      "exit": 0,
+      "process_RSS_cap": null,
+      "minimum_device_physical_available_GiB": 5.9095458984375,
+      "compiler_pauses": 0,
+      "peak_process_tree_RSS_telemetry_KiB": 14048
+    },
+    "final-source-build": {
+      "exit": 0,
+      "process_RSS_cap": null,
+      "minimum_device_physical_available_GiB": 6.275726318359375,
+      "compiler_pauses": 0,
+      "peak_process_tree_RSS_telemetry_KiB": 842624
+    },
+    "final-source-clippy": {
+      "exit": 0,
+      "process_RSS_cap": null,
+      "minimum_device_physical_available_GiB": 6.2544708251953125,
+      "compiler_pauses": 0,
+      "peak_process_tree_RSS_telemetry_KiB": 623904
+    },
+    "generate-roles": {
+      "exit": 0,
+      "process_RSS_cap": null,
+      "minimum_device_physical_available_GiB": 6.0237884521484375,
+      "compiler_pauses": 0,
+      "peak_process_tree_RSS_telemetry_KiB": 109248
+    },
+    "verify-roles": {
+      "exit": 0,
+      "process_RSS_cap": null,
+      "minimum_device_physical_available_GiB": 6.3327178955078125,
+      "compiler_pauses": 0,
+      "peak_process_tree_RSS_telemetry_KiB": 574816
+    },
+    "publish-roles": {
+      "exit": 0,
+      "process_RSS_cap": null,
+      "minimum_device_physical_available_GiB": 6.603424072265625,
+      "compiler_pauses": 0,
+      "peak_process_tree_RSS_telemetry_KiB": 125968
+    },
+    "hir-build": {
+      "exit": 0,
+      "process_RSS_cap": null,
+      "minimum_device_physical_available_GiB": 5.916351318359375,
+      "compiler_pauses": 0,
+      "peak_process_tree_RSS_telemetry_KiB": 1425808
+    },
+    "hir-clippy": {
+      "exit": 0,
+      "process_RSS_cap": null,
+      "minimum_device_physical_available_GiB": 6.183380126953125,
+      "compiler_pauses": 0,
+      "peak_process_tree_RSS_telemetry_KiB": 342704
+    },
+    "projection-build": {
+      "exit": 0,
+      "process_RSS_cap": null,
+      "minimum_device_physical_available_GiB": 5.5565643310546875,
+      "compiler_pauses": 0,
+      "peak_process_tree_RSS_telemetry_KiB": 2019152
+    },
+    "docs-build": {
+      "exit": 0,
+      "process_RSS_cap": null,
+      "minimum_device_physical_available_GiB": 5.575958251953125,
+      "compiler_pauses": 0,
+      "peak_process_tree_RSS_telemetry_KiB": 1317472
+    },
+    "fmt": {
+      "exit": 0,
+      "process_RSS_cap": null,
+      "minimum_device_physical_available_GiB": 6.0214996337890625,
+      "compiler_pauses": 0,
+      "peak_process_tree_RSS_telemetry_KiB": 1225568
+    }
+  }
+}

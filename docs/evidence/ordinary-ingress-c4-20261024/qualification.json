@@ -1,0 +1,123 @@
+{
+  "status": "FOCUSED_SIX_OWNER_INGRESS_REPAIR_PASS_FULL_CI_PENDING",
+  "base_head": "c4d40655811ef653c7d645dedce97ea33edb39ed",
+  "scope": "Test-only source history acquisition, no production compiler/runtime or physical funding claim.",
+  "ordinary_plan_previous_failures_recovered": 3,
+  "six_latest_compiled_physical_archive_channels_bound": true,
+  "whole_previous_FINAL_and_integrated_and_legacy_packets_unchanged": true,
+  "original_indexed_inverse_and_512_edit_and_2MiB_bounds_unchanged": true,
+  "newest_inverse_replays_to_complete_old_FINAL_before_old_inverse": true,
+  "old_stage_and_foreign_tuple_controls_retained": true,
+  "HIR_source_tests": 11,
+  "source_overlay_tests": 33,
+  "main043_previous_source_tests": 9,
+  "raw_reader_tests": 3,
+  "source_page_bytes": 255621,
+  "source_page_cap_unchanged": 262144,
+  "archive_audit": {
+    "status": "PASS",
+    "current_rows": 727,
+    "unique_archive_pins": 2694,
+    "every_current_physical_row_matches": true,
+    "every_archive_length_and_hash_matches": true,
+    "new_required_archives": [
+      "e/555d676283e593101b9fc21b8e26f71b1b31b9567c52d3ca402077c4f8bf7fab",
+      "e/6c72d1e25aa591891853b51fd03fced7da6817a8de71cadd9a94f022f9693012",
+      "e/b5cc8042ab7d2fd4ae06630ee6a063cc51b016e713ce5d6eef45a88894b77cda",
+      "e/c5adbd5c6bf90aa53355112a2c1cd2f555feeaab5e7b31897bd5f5f311a562f6",
+      "e/e95eff9891c7cc7a2c526e004719a32e923f90233ea45d48432d75fea0c46ab1"
+    ]
+  },
+  "logs": [
+    {
+      "log": "ordinary-plan-controls.log",
+      "sha256": "411f07df4eea30c8c615a2e23346f342d1a31bdcb2e1b09243f2e96f2b49c45c",
+      "minimum_device_physical_available_GiB": 7.2833709716796875,
+      "process_RSS_cap": null
+    },
+    {
+      "log": "main043-audits.log",
+      "sha256": "c57146c05d880b38240987552520c55c702d5c363bbf9e1dfaca0faf0337cb5d",
+      "minimum_device_physical_available_GiB": 7.2086639404296875,
+      "process_RSS_cap": null
+    },
+    {
+      "log": "raw-reader-controls.log",
+      "sha256": "abcea75f1a94b7972cdb8abc83e4700115089f4c5ca9268a40a98ecc9141b496",
+      "minimum_device_physical_available_GiB": 7.230072021484375,
+      "process_RSS_cap": null
+    },
+    {
+      "log": "constructor-stage-controls.log",
+      "sha256": "2ed496adefdecabfa0548fa54a47f2b5d3ee9f9dd83021c7f3bf984e642f14b3",
+      "minimum_device_physical_available_GiB": 7.14617919921875,
+      "process_RSS_cap": null
+    },
+    {
+      "log": "overlay-controls.log",
+      "sha256": "b2014d848701e515c542faea3bbad951377e319108ef1f8ba1f72bc845b90ff5",
+      "minimum_device_physical_available_GiB": 6.601959228515625,
+      "process_RSS_cap": null
+    },
+    {
+      "log": "compiled-whole-predecessor-controls.log",
+      "sha256": "5ce98d8854ce4762732ba358fd8ad35ef17340ae5c551202ea3b29672de74b62",
+      "minimum_device_physical_available_GiB": 6.7311248779296875,
+      "process_RSS_cap": null
+    },
+    {
+      "log": "new-entry-controls.log",
+      "sha256": "0a995a22d72f1d02f444b9242331138be9a5d4f2db44dcba2bd0ae33a7de588c",
+      "minimum_device_physical_available_GiB": 6.7405242919921875,
+      "process_RSS_cap": null
+    },
+    {
+      "log": "final-prefix-source-controls.log",
+      "sha256": "9be180f0e7cb68610f2cb540b066aabb98419efe5e4558a2d6f1ed624611788f",
+      "minimum_device_physical_available_GiB": 6.691375732421875,
+      "process_RSS_cap": null
+    },
+    {
+      "log": "final-cursor-source-guard.log",
+      "sha256": "fdd1f86542938000deefaa3fd764c95f84872190c79c0322c0518f1e8635a0fb",
+      "minimum_device_physical_available_GiB": 7.4001007080078125,
+      "process_RSS_cap": null
+    },
+    {
+      "log": "hir-test.log",
+      "sha256": "c11c73a82e63bdb04e1dc829c0973a85fcf2ecee6df97f5bc45ad865bed1e97a",
+      "minimum_device_physical_available_GiB": 6.50994873046875,
+      "process_RSS_cap": null
+    },
+    {
+      "log": "hir-clippy.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "minimum_device_physical_available_GiB": 6.51971435546875,
+      "process_RSS_cap": null
+    },
+    {
+      "log": "projection-test.log",
+      "sha256": "1b63ae881d5bddf561635785fd65eb8b3ad45608c05a3a72a4a67e7c79963239",
+      "minimum_device_physical_available_GiB": 7.108001708984375,
+      "process_RSS_cap": null
+    },
+    {
+      "log": "final-source-clippy.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "minimum_device_physical_available_GiB": 6.9031982421875,
+      "process_RSS_cap": null
+    },
+    {
+      "log": "docs-controls.log",
+      "sha256": "c4e946d0bb61fee4f71b5e36f2e79b9c3ada28bc0b177568988e2ed63847c8f1",
+      "minimum_device_physical_available_GiB": 7.076629638671875,
+      "process_RSS_cap": null
+    },
+    {
+      "log": "verify-roles.log",
+      "sha256": "0cc453b6fdf4538f6f6870a3deeddebcfe57bfba1ca3bc3a5b148db299c9fcb4",
+      "minimum_device_physical_available_GiB": 6.5327301025390625,
+      "process_RSS_cap": null
+    }
+  ]
+}

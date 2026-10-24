@@ -1,0 +1,32 @@
+[
+  {
+    "domain": "hir",
+    "parent": "src/source_reflows_merge/main_e177_overlay_compiled.rs",
+    "child": "src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs",
+    "parent_role_unchanged": "test-only",
+    "child_preserves_original_test_only_role": true,
+    "every_new_chain_is_test_only": true,
+    "one_exact_new_data_acquisition": {
+      "parent": "src/source_reflows_merge/main_e177_overlay_compiled.rs",
+      "start": 163,
+      "text": "include_str!(\"../../src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs\")",
+      "attributes": [],
+      "child": "src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs"
+    }
+  },
+  {
+    "domain": "projection",
+    "parent": "src/source_reflows_merge/main_e177_overlay_compiled.rs",
+    "child": "src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs",
+    "parent_role_unchanged": null,
+    "child_preserves_original_test_only_role": true,
+    "every_new_chain_is_test_only": true,
+    "one_exact_new_data_acquisition": {
+      "parent": "src/source_reflows_merge/main_e177_overlay_compiled.rs",
+      "start": 163,
+      "text": "include_str!(\"../../src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs\")",
+      "attributes": [],
+      "child": "src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs"
+    }
+  }
+]

@@ -214,6 +214,8 @@ impl<'p, 'a> Census<'p, 'a> {
                 call_carriers::Proof {
                     roots: proof.roots,
                     bytes: proof.bytes,
+                    retained: proof.retained,
+                    ..Default::default()
                 },
                 Costs {
                     slots: cost.slots,

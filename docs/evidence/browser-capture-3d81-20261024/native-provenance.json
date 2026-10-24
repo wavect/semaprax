@@ -1,0 +1,6 @@
+{
+  "scope": "Genuine complete cfg(not test) actual normal compiler library and CLI built from 3d81 implementation; subsequent uncommitted changes are test source custody only and generated diagnostic inventories reproduce byte-identically. This is local macOS Rust1.97 evidence, not hosted browser runtime.",
+  "binary_sha256": "7f540ff390caf212cddeb172b410150a79eaf2861eb5f6027db8e6c1fad13ecc",
+  "implementation_head": "3d81c8544bb34cbc343fd1402505b81aa36dc58d",
+  "compiler": "/Volumes/Semaprax/tmp/ci-38383508340/held-replay-publish-e8/normal/semaprax"
+}

@@ -78,6 +78,7 @@ pub(in crate::workspace_graph::expected_projection) fn count(
     let mut selector = Proof {
         roots: 0,
         bytes: SELECTOR,
+        ..Default::default()
     };
     let mut length = program.functions.len();
     if imports {
@@ -388,6 +389,7 @@ fn indexed<const N: usize>(
     let mut proof = Proof {
         roots: 0,
         bytes: selector,
+        ..Default::default()
     };
     proof.charge(&(program, authored, imports));
     proof.bytes = proof.bytes.saturating_add(std::mem::size_of::<Proof>());

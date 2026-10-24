@@ -1,0 +1,46 @@
+[
+  {
+    "domain": "hir",
+    "all_original_semantic_classes_and_roles_preserved": true,
+    "exact_two_indexed_additive_data_acquisitions": [
+      {
+        "parent": "tests/hir_module_boundaries.rs",
+        "start": 4667,
+        "text": "include_str!(\"../src/cleanup_plan/replay/workspace_oracle.rs\")",
+        "attributes": [],
+        "child": "src/cleanup_plan/replay/workspace_oracle.rs"
+      },
+      {
+        "parent": "tests/hir_module_boundaries.rs",
+        "start": 4605,
+        "text": "include_str!(\"../src/cleanup_plan/replay/factored/paired.rs\")",
+        "attributes": [],
+        "child": "src/cleanup_plan/replay/factored/paired.rs"
+      }
+    ],
+    "other_two_macro_inventory_acquisitions_are_verified_by_literal_and_real_expansion_checks": true,
+    "every_added_acquisition_is_test_only": true
+  },
+  {
+    "domain": "projection",
+    "all_original_semantic_classes_and_roles_preserved": true,
+    "exact_two_indexed_additive_data_acquisitions": [
+      {
+        "parent": "tests/hir_module_boundaries.rs",
+        "start": 4667,
+        "text": "include_str!(\"../src/cleanup_plan/replay/workspace_oracle.rs\")",
+        "attributes": [],
+        "child": "src/cleanup_plan/replay/workspace_oracle.rs"
+      },
+      {
+        "parent": "tests/hir_module_boundaries.rs",
+        "start": 4605,
+        "text": "include_str!(\"../src/cleanup_plan/replay/factored/paired.rs\")",
+        "attributes": [],
+        "child": "src/cleanup_plan/replay/factored/paired.rs"
+      }
+    ],
+    "other_two_macro_inventory_acquisitions_are_verified_by_literal_and_real_expansion_checks": true,
+    "every_added_acquisition_is_test_only": true
+  }
+]

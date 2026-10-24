@@ -11,6 +11,10 @@ use std::collections::BTreeMap;
 pub(super) struct Proof {
     pub(super) roots: usize,
     pub(super) bytes: usize,
+    pub(super) retained: super::retained_scratch::Counts,
+    // Reused by the already executing modular traversal, not another walker.
+    pub(super) current_retained: usize,
+    pub(super) retention_closed: bool,
 }
 impl Proof {
     fn charge<T>(&mut self, value: &T) {

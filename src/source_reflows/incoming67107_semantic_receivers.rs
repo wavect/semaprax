@@ -593,13 +593,59 @@ fn main34d_entry<'a>(
     assert_eq!(entries.len(), 1, "missing or duplicate MAIN input");
     entries[0]
 }
+// MAIN34d is an immutable historical controller. Authenticate its complete
+// latest cursor owner before selecting that controller's exact cursor epoch;
+// the ordinary bounded RAW reader and all other source domains stay unchanged.
+fn main34d_cursor_epoch(entry: &serde_json::Value, supplied: Option<&str>) -> Option<String> {
+    const SOURCE: &str = "src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs";
+    const PREVIOUS: &str = "fdb672ec67714810ba990a306ec8b282ce7c628d627b272b322d21e51293da34";
+    if entry["path"] != SOURCE
+        || entry["current_len"] != 8127
+        || entry["current_sha256"] != PREVIOUS
+    {
+        return None;
+    }
+    let compiled = include_str!("../cleanup_plan/replay/expression_facts/arena/cursor_tests.rs");
+    let raw = main34d_file(
+        &Path::new(env!("CARGO_MANIFEST_DIR")).join(SOURCE),
+        compiled.len(),
+        &digest(compiled),
+    )
+    .expect("complete latest cursor physical source");
+    assert_eq!(
+        raw, compiled,
+        "complete latest cursor physical/compiled owner"
+    );
+    assert_eq!(
+        digest(&raw),
+        "2c91db9d0da06846703b41d7221a5daf16b56aa73933f0a88b714d23d08552a2"
+    );
+    let acquisition = "    let capacity_now =\n        capacity::type_cursor_tests::immediate_before(include_str!(\"../capacity.rs\"));";
+    assert_eq!(raw.matches(acquisition).count(), 1);
+    let previous = raw.replacen(
+        acquisition,
+        "    let capacity_now = include_str!(\"../capacity.rs\");",
+        1,
+    );
+    assert_eq!(previous.len(), 8127);
+    assert_eq!(digest(&previous), PREVIOUS);
+    if let Some(supplied) = supplied {
+        assert!(
+            supplied == raw || supplied == previous,
+            "foreign complete cursor epoch input"
+        );
+    }
+    Some(previous)
+}
+
 fn main34d_project_entry(entry: &serde_json::Value, current: &str) -> String {
     let current_view = crate::source_reflows_merge::main_e177_final_inputs::value(
         entry["path"].as_str().unwrap(),
         entry["current_sha256"].as_str().unwrap(),
         current,
     );
-    let current = current_view.as_str();
+    let cursor_epoch = main34d_cursor_epoch(entry, Some(&current_view));
+    let current = cursor_epoch.as_deref().unwrap_or(&current_view);
     assert_eq!(current.len() as u64, entry["current_len"].as_u64().unwrap());
     assert_eq!(digest(current), entry["current_sha256"]);
     let inverse = entry["whole_source_inverse"].as_array().unwrap();
@@ -634,10 +680,14 @@ pub(super) fn main34d_read(domain: &str, path: &Path) -> std::io::Result<String>
     let length = usize::try_from(entry["current_len"].as_u64().unwrap()).unwrap();
     let expected = entry["current_sha256"].as_str().unwrap();
     assert!(length <= MAIN34D_CAP);
-    let current = crate::source_reflows_merge::main_e177_final_inputs::file(path, length, expected)
-        .map(Ok)
-        .unwrap_or_else(|| main34d_file(path, length, expected))
-        .expect("complete current raw MAIN input");
+    let current = if let Some(cursor_epoch) = main34d_cursor_epoch(entry, None) {
+        cursor_epoch
+    } else {
+        crate::source_reflows_merge::main_e177_final_inputs::file(path, length, expected)
+            .map(Ok)
+            .unwrap_or_else(|| main34d_file(path, length, expected))
+            .expect("complete current raw MAIN input")
+    };
     Ok(main34d_project_entry(entry, &current))
 }
 pub(super) fn main34d_proofs() -> Vec<serde_json::Value> {
@@ -973,4 +1023,33 @@ fn complete_mainbcc_routes_keep_all_six_rows_and_refuse_foreign_inputs() {
 // this namespace's archived-stage calls retain the full original formatter.
 fn restore(record: &serde_json::Value, current: &str) -> String {
     super::restore_formatting(record, current)
+}
+
+#[test]
+fn main34d_exact_cursor_epoch_keeps_both_whole_inputs_and_refuses_drift() {
+    let manifest = main34d_manifest();
+    let source = "src/cleanup_plan/replay/expression_facts/arena/cursor_tests.rs";
+    let entry = manifest["inputs"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|entry| entry["path"] == source)
+        .unwrap();
+    let current = include_str!("../cleanup_plan/replay/expression_facts/arena/cursor_tests.rs");
+    let previous = main34d_cursor_epoch(entry, Some(current)).unwrap();
+    assert_eq!(
+        main34d_cursor_epoch(entry, Some(&previous)).unwrap(),
+        previous
+    );
+    for bad in [String::new(), format!("{current} "), format!("{previous} ")] {
+        assert!(std::panic::catch_unwind(|| main34d_cursor_epoch(entry, Some(&bad))).is_err());
+    }
+    for field in ["path", "current_len", "current_sha256"] {
+        let mut foreign = entry.clone();
+        foreign[field] = serde_json::Value::Null;
+        assert!(main34d_cursor_epoch(&foreign, Some(current)).is_none());
+    }
+    let expected = main34d_project_entry(entry, current);
+    assert_eq!(main34d_project_entry(entry, &previous), expected);
+    assert_eq!(digest(&expected), entry["main_sha256"]);
 }

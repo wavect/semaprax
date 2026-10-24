@@ -138,6 +138,29 @@ fn ordinary_data(function: &Function, proof: &mut Proof) -> bool {
 }
 fn supported(expression: &Expr, proof: &mut Proof) -> bool {
     proof.charge(&(expression, &expression.kind));
+    // Reuse the existing constructor/statement match. No second child walk or
+    // statement iterator is formed for retention. The extra predicate value
+    // is accounted independently of the old classifier's returned boolean.
+    proof.bytes = proof.bytes.saturating_add(2 * size_of::<bool>());
+    if !matches!(
+        expression.kind,
+        ExprKind::Call { .. }
+            | ExprKind::If { .. }
+            | ExprKind::Unary { .. }
+            | ExprKind::Binary { .. }
+            | ExprKind::Var(_)
+            | ExprKind::Int(_)
+            | ExprKind::Int32(_)
+            | ExprKind::Uint8(_)
+            | ExprKind::Usize(_)
+            | ExprKind::Char(_)
+            | ExprKind::Float32(_)
+            | ExprKind::Float64(_)
+            | ExprKind::Bool(_)
+            | ExprKind::Block { .. }
+    ) {
+        proof.retention_closed = false;
+    }
     match &expression.kind {
         ExprKind::Call { .. }
         | ExprKind::If { .. }
@@ -159,9 +182,32 @@ fn supported(expression: &Expr, proof: &mut Proof) -> bool {
         ExprKind::Block { statements, .. } => statements.iter().all(|s| {
             proof.charge(&s);
             match s {
-                Statement::Let { declared, .. } => declared.as_ref().is_none_or(plain),
+                Statement::Let { declared, .. } => {
+                    // The original Option callback now carries this one lender;
+                    // its original type loan and plain-result control survive.
+                    proof.bytes = proof
+                        .bytes
+                        .saturating_add(size_of::<&mut Proof>() + 2 * size_of::<bool>());
+                    declared.as_ref().is_none_or(|ty| {
+                        proof.retention_closed &= matches!(
+                            ty,
+                            Type::I64
+                                | Type::I32
+                                | Type::U8
+                                | Type::Usize
+                                | Type::Char
+                                | Type::F32
+                                | Type::F64
+                                | Type::Bool
+                        );
+                        plain(ty)
+                    })
+                }
                 Statement::Assign { field: None, .. } | Statement::While { .. } => true,
-                _ => false,
+                _ => {
+                    proof.retention_closed = false;
+                    false
+                }
             }
         }),
         _ => false,
@@ -194,6 +240,7 @@ pub(super) fn linear(
     let proof = Proof {
         roots: 0,
         bytes: selector,
+        ..Default::default()
     };
     count_with_lookup(context, imports, proof, &mut lookup)
 }
@@ -219,8 +266,37 @@ pub(super) fn count_with_lookup<'p, 'a, L: Lookup<'p>>(
             len: 0,
         };
         proof.charge(&names);
+        proof.current_retained = 0;
+        proof.retention_closed = matches!(function.yields, None)
+            && matches!(function.follows, None)
+            && matches!(
+                function.return_type,
+                Type::I64
+                    | Type::I32
+                    | Type::U8
+                    | Type::Usize
+                    | Type::Char
+                    | Type::F32
+                    | Type::F64
+                    | Type::Bool
+            );
+        proof.charge(&(proof.current_retained, proof.retention_closed));
         let mut complete = function.params.iter().all(|p| {
             proof.charge(&p);
+            let scalar = matches!(p.mode, crate::ast::ParamMode::Value)
+                && matches!(
+                    p.ty,
+                    Type::I64
+                        | Type::I32
+                        | Type::U8
+                        | Type::Usize
+                        | Type::Char
+                        | Type::F32
+                        | Type::F64
+                        | Type::Bool
+                );
+            proof.charge(&scalar);
+            proof.retention_closed &= scalar;
             names.insert(&p.name, &mut proof)
         });
         for root in call_identity::roots(function) {
@@ -282,8 +358,32 @@ pub(super) fn count_with_lookup<'p, 'a, L: Lookup<'p>>(
             )? {
                 proof.roots = before;
                 body_complete = false;
+                proof.retention_closed = false;
                 break;
             }
+        }
+        // No partial function can authorize an exclusion. Generic functions
+        // were rejected before this existing traversal; runtime trees never enter.
+        if proof.retention_closed {
+            proof.charge(&(proof.current_retained, proof.retained));
+            // Two checked aggregate additions (actual/formal operands and
+            // returned/receiving Options), plus the MAX operand/result bank.
+            proof.bytes =
+                proof
+                    .bytes
+                    .saturating_add(size_of::<([usize; 12], [Option<usize>; 4], [bool; 4])>());
+            proof.retained.expressions = proof
+                .retained
+                .expressions
+                .checked_add(proof.current_retained)
+                .ok_or(Error::Arithmetic)?;
+            proof.retained.maximum_function =
+                proof.retained.maximum_function.max(proof.current_retained);
+            proof.retained.functions = proof
+                .retained
+                .functions
+                .checked_add(1)
+                .ok_or(Error::Arithmetic)?;
         }
         if !body_complete {
             Session::rollback(&mut session, callee_before)?;
@@ -325,8 +425,27 @@ fn visit<'p, 'a, L: Lookup<'p>>(
     if depth == 128 {
         return Ok(false);
     }
-    if body && !supported(expression, proof) {
-        *body_complete = false;
+    if body || proof.retention_closed {
+        let supported = supported(expression, proof);
+        if body && !supported {
+            *body_complete = false;
+        }
+    }
+    // Only one bounded scalar field is added to the already executing visit.
+    // Five arithmetic operand/result words and two predicate values cover the
+    // checked-before-increment counter. There is no checked_add Option ABI.
+    proof.bytes = proof.bytes.saturating_add(size_of::<bool>());
+    if proof.retention_closed {
+        proof.bytes =
+            proof
+                .bytes
+                .saturating_add(size_of::<(usize, usize, usize, usize, usize, bool, bool)>());
+        if depth < 32 && proof.current_retained < crate::loan_plan::MAX_LOAN_ENDPOINTS_V1 / 2 {
+            // The explicit upper bound is at most 2,048, so this cannot overflow.
+            proof.current_retained += 1;
+        } else {
+            proof.retention_closed = false;
+        }
     }
     if let ExprKind::Call {
         name,
@@ -336,9 +455,71 @@ fn visit<'p, 'a, L: Lookup<'p>>(
     {
         let callee = body && *body_complete && outside;
         proof.charge(&callee);
-        if (free || callee) && outside && type_arguments.is_empty() && !names.contains(name, proof)
+        let retained_call = proof.retention_closed;
+        proof.charge(&retained_call);
+        if (free || callee || retained_call)
+            && outside
+            && type_arguments.is_empty()
+            && !names.contains(name, proof)
         {
             let loan = lookup.target(context.authored, name, args.len(), proof);
+            if retained_call {
+                // The directory's local loan authenticates exact membership,
+                // arity and absence of competing/import/interface names.
+                let mut scalar = false;
+                proof.charge(&scalar);
+                if let Some(target) = loan.local {
+                    proof.charge(&target);
+                    scalar = matches!(
+                        target.return_type,
+                        Type::I64
+                            | Type::I32
+                            | Type::U8
+                            | Type::Usize
+                            | Type::Char
+                            | Type::F32
+                            | Type::F64
+                            | Type::Bool
+                    );
+                    // A distinct iterator is formed here; a borrowed Function
+                    // or Param does not pay its IntoIterator/next receivers.
+                    proof.bytes = proof.bytes.saturating_add(size_of::<(
+                        &Vec<crate::ast::Param>,
+                        &Vec<crate::ast::Param>,
+                        std::slice::Iter<'_, crate::ast::Param>,
+                        std::slice::Iter<'_, crate::ast::Param>,
+                    )>());
+                    for parameter in &target.params {
+                        proof.bytes = proof.bytes.saturating_add(size_of::<(
+                            [&mut std::slice::Iter<'_, crate::ast::Param>; 4],
+                            [Option<&crate::ast::Param>; 2],
+                            [&crate::ast::Param; 2],
+                            [bool; 4],
+                        )>());
+                        proof.charge(&parameter);
+                        scalar &= matches!(parameter.mode, crate::ast::ParamMode::Value)
+                            && matches!(
+                                parameter.ty,
+                                Type::I64
+                                    | Type::I32
+                                    | Type::U8
+                                    | Type::Usize
+                                    | Type::Char
+                                    | Type::F32
+                                    | Type::F64
+                                    | Type::Bool
+                            );
+                    }
+                    // The terminal next/None publication is reached even by
+                    // a zero-parameter target and cannot use a prior item bank.
+                    proof.bytes = proof.bytes.saturating_add(size_of::<(
+                        [&mut std::slice::Iter<'_, crate::ast::Param>; 4],
+                        [Option<&crate::ast::Param>; 2],
+                        [bool; 4],
+                    )>());
+                }
+                proof.retention_closed &= scalar;
+            }
             if free && loan.auxiliary {
                 proof.roots = proof.roots.saturating_add(1);
             }
@@ -347,6 +528,8 @@ fn visit<'p, 'a, L: Lookup<'p>>(
                     Session::observe(session, context, owner, target, args.len())?;
                 }
             }
+        } else if retained_call {
+            proof.retention_closed = false;
         }
     }
     let outside = outside && !matches!(expression.kind, ExprKind::Closure { .. });

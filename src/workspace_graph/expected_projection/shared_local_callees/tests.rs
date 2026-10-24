@@ -191,7 +191,8 @@ fn tiny_repeated_proof_and_whole_resolver_backing_are_measured_through_drop() {
 
 #[test]
 fn immediate_old_bytes_and_serialized_phase_boundary_remain_explicit() {
-    let old = include_str!("before_projection.rs");
+    let old903 = crate::source_reflows::next_custody_before("constructor903", "src/workspace_graph/expected_projection/shared_local_callees/before_projection.rs", include_str!("before_projection.rs"));
+    let old = old903.as_str();
     assert_eq!(
         format!(
             "{:x}",

@@ -131,6 +131,7 @@ pub use lexical_exit::{
 pub(crate) mod byte_partition;
 mod canonical_loan_storage;
 mod function_directory;
+pub(crate) use function_directory::retained_scalar_directory_bound;
 pub mod function_value;
 mod ids;
 mod inspection;

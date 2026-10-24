@@ -1,0 +1,32 @@
+{
+  "tests/hir_module_boundaries.rs": [
+    [
+      "n67107_inputs.rs\"),include_str!(\"../src/cleanup_plan/replay/branch_clone/short_plan.rs\"),),include_str!(\"../src/cleanup_plan/replay/factored/paired.rs\"),include_str!(\"../src/cleanup_plan/replay/workspace_oracle.rs\")),\n        audit_source_join!(include_str!(\"..",
+      "n67107_inputs.rs\"),include_str!(\"../src/cleanup_plan/replay/branch_clone/short_plan.rs\"),),\n        audit_source_join!(include_str!(\".."
+    ],
+    [
+      "validation_raw = audit_source_join!(\n        audit_source_join!(audit_source_join!(include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/inco",
+      "validation_raw = audit_source_join!(\n        audit_source_join!(include_str!(\"../src/cleanup_plan/replay/factored/canonical_shared/inco"
+    ]
+  ],
+  "tests/workspace/semantic_graph/source_inventory.rs": [
+    [
+      "flat_probe.rs\"),include_str!(\"../../src/cleanup_plan/replay/branch_clone/short_plan.rs\"),),include_str!(\"../../src/cleanup_plan/replay/factored/paired.rs\"),include_str!(\"../../src/cleanup_plan/replay/workspace_oracle.rs\")) };\n    (capacity) => { audit_source_join!(in",
+      "flat_probe.rs\"),include_str!(\"../../src/cleanup_plan/replay/branch_clone/short_plan.rs\"),) };\n    (capacity) => { audit_source_join!(in"
+    ],
+    [
+      "_layout_owned_source_inventory {\n    () => { audit_source_join!(audit_source_join!(include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/i",
+      "_layout_owned_source_inventory {\n    () => { audit_source_join!(include_str!(\"../../src/cleanup_plan/replay/factored/canonical_shared/i"
+    ]
+  ],
+  "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": [
+    [
+      "(\"../../../../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix/flat_probe.rs\"),),include_str!(\"../../../../../src/cleanup_plan/replay/factored/paired.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/workspace_oracle.rs\"))\n    };\n} // Complete additive source union; ",
+      "(\"../../../../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix/flat_probe.rs\"),)\n    };\n} // Complete additive source union; "
+    ],
+    [
+      "ofile_source_inventory {\n    () => {\n        audit_source_join!(audit_source_join!(include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical",
+      "ofile_source_inventory {\n    () => {\n        audit_source_join!(include_str!(\"../../../../../src/cleanup_plan/replay/factored/canonical"
+    ]
+  ]
+}

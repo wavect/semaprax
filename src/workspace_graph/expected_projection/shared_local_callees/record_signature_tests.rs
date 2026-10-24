@@ -275,6 +275,8 @@ pub(in crate::workspace_graph::expected_projection) fn restore(
     } else {
         format!("src/workspace_graph/expected_projection/{path}")
     };
+    let current903 = crate::source_reflows::next_custody_before("constructor903", &canonical, current);
+    let current = current903.as_str();
     let Some(entry) = packet["entries"].get(&canonical) else {
         return current.to_owned();
     };

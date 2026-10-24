@@ -241,7 +241,7 @@ fn complete_borrowed_help_source_restores_full_original_without_normalization() 
         "/docs/evidence/borrowed-refusal-help-824/exact-source-inverse.json"
     )))
     .unwrap();
-    let mut current = include_str!("../diagnostics.rs").to_owned();
+    let mut current = crate::source_reflows::next_custody_before("constructor903", "src/workspace_graph/diagnostics.rs", include_str!("../diagnostics.rs"));
     for edit in record["edits"].as_array().unwrap().iter().rev() {
         let after = edit["after"].as_str().unwrap();
         assert_eq!(current.matches(after).count(), 1);

@@ -15,14 +15,18 @@ fn current_source(path: &str, row: &serde_json::Value) -> String {
     assert!(metadata.is_file());
     let interop_path = path == Path::new("crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs");
     let interop_epoch = interop_path && row["sha256"] == "d1edee35f9a7a97e9478264a44b7e77e4b3903bcbb87bb327602053f22afa6c8";
-    if interop_path && !interop_epoch {
-        assert_eq!(length, 233409);
-        assert_eq!(row["sha256"], "760872c3ea2924d4accd70e0b42b8573debaa312cfa4cd8a11cd61455b4701c5");
+    let interop_prior_current = interop_path && row["sha256"] == "760872c3ea2924d4accd70e0b42b8573debaa312cfa4cd8a11cd61455b4701c5";
+    if interop_path && !interop_epoch && !interop_prior_current {
+        assert_eq!(length, 235724);
+        assert_eq!(row["sha256"], "23ea864c426901f3774b0a89bc3f2014e8cd9e784ccdc300f7718b2c174cd6b5");
     }
     let read_length = if interop_epoch {
         assert_eq!(length, 229209);
         assert_eq!(row["sha256"], "d1edee35f9a7a97e9478264a44b7e77e4b3903bcbb87bb327602053f22afa6c8");
-        233409
+        235724
+    } else if interop_prior_current {
+        assert_eq!(length, 233409);
+        235724
     } else { length };
     assert_eq!(metadata.len(), read_length as u64);
     let mut bytes = Vec::new();
@@ -34,9 +38,46 @@ fn current_source(path: &str, row: &serde_json::Value) -> String {
     if interop_path {
         assert_eq!(bytes.as_slice(), include_bytes!("../../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs").as_slice());
     }
+    let native_before = |raw: Vec<u8>| {
+        assert_eq!(raw.len(), 235724);
+        assert_eq!(format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(&raw))), "23ea864c426901f3774b0a89bc3f2014e8cd9e784ccdc300f7718b2c174cd6b5");
+        let mut text = String::from_utf8(raw).unwrap();
+        for literal in [
+            ",include_str!(\"../../../../../src/workspace_graph/expected_projection/retained_scratch.rs\")",
+            ",include_str!(\"../../../../../src/workspace_graph/expected_projection/shared_local_callees/before903.rs\")",
+            ",include_str!(\"../../../../../src/workspace_graph/expected_projection/shared_local_callees/before903/call_carriers.rs\")",
+            ",include_str!(\"../../../../../src/workspace_graph/expected_projection/shared_local_callees/before903/call_carriers_directory.rs\")",
+            ",include_str!(\"../../../../../src/workspace_graph/expected_projection/shared_local_callees/before903/call_carriers_directory/modular.rs\")",
+            ",include_str!(\"../../../../../src/workspace_graph/expected_projection/shared_local_callees/before903/call_carriers_directory/reused.rs\")",
+            ",include_str!(\"../../../../../src/workspace_graph/expected_projection/shared_local_callees/before903/call_carriers_joint.rs\")",
+            ",include_str!(\"../../../../../src/workspace_graph/expected_projection/shared_local_callees/before903/held_projection/modular_projection.rs\")",
+            ",include_str!(\"../../../../../src/workspace_graph/expected_projection/shared_local_callees/before903/held_projection/paired_projection.rs\")",
+            ",include_str!(\"../../../../../src/workspace_graph/expected_projection/shared_local_callees/before903/modular_pair.rs\")",
+            ",include_str!(\"../../../../../src/workspace_graph/expected_projection/shared_local_callees/before903/paired.rs\")",
+            ",include_str!(\"../../../../../src/workspace_graph/expected_projection/shared_local_callees/before903/shared_local_callees/modular_census.rs\")",
+            ",include_str!(\"../../../../../src/workspace_graph/expected_projection/uncached_peak/retained_scratch_tests.rs\")",
+            ",include_str!(\"../../../../../src/workspace_graph/expected_projection/uncached_peak_before.rs\")",
+            ",include_str!(\"../../../../../src/loan_plan/owned_capacity.rs\")",
+            ",include_str!(\"../../../../../src/workspace_graph/type_proof_tests.rs\")",
+            ",include_str!(\"../../../../../src/workspace_graph/tests/builder_limits.rs\")",
+            ",include_str!(\"../../../../../src/bounded_output/stage_debits.rs\")",
+            ",include_str!(\"../../../../../src/cleanup_plan/replay/factored/oracle_order/tests.rs\")",
+            ",include_str!(\"../../../../../src/workspace_graph/diagnostics.rs\")",
+            ",include_str!(\"../../../../../src/workspace_graph/expected_projection/import_stub/core_proofs/tests.rs\")",
+            ",include_str!(\"../../../../../src/workspace_graph/diagnostics/borrowed_help_tests.rs\")",
+        ] {
+            assert_eq!(text.matches(literal).count(), 1);
+            text = text.replacen(literal, "", 1);
+        }
+        assert_eq!(text.len(), 233409);
+        assert_eq!(format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(text.as_bytes()))), "760872c3ea2924d4accd70e0b42b8573debaa312cfa4cd8a11cd61455b4701c5");
+        text.into_bytes()
+    };
+    if interop_prior_current { bytes = native_before(bytes); }
     if interop_epoch {
         let compiled = include_bytes!("../../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs");
         assert_eq!(bytes.as_slice(), compiled.as_slice());
+        bytes = native_before(bytes);
         // Complete two-child raw epoch precedes every unchanged historical leg.
         assert_eq!(format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(&bytes))), "760872c3ea2924d4accd70e0b42b8573debaa312cfa4cd8a11cd61455b4701c5");
         let mut next_epoch = String::from_utf8(bytes).unwrap();

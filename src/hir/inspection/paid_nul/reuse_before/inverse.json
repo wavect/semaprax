@@ -1,0 +1,74 @@
+[
+  {
+    "path": "src/hir/inspection/paid_nul.rs",
+    "current_length": 41586,
+    "current_sha256": "f351039d40874cc90815c5e3601a9eb0da6bfeac2cbc52d152aa34dc40bae89a",
+    "before_length": 38398,
+    "before_sha256": "62bbad3927f43bb6e034d608b1026a74bf72744503a7b795aad29d90b65541c9",
+    "edits": [
+      {
+        "start": 176,
+        "end": 1243,
+        "current": "// Added selection/borrowed-frame roles are separate from the retained frame\n// and full replacement spill acquisitions. Each original per-root positive\n// frame payment becomes REUSE_CALL; no preceding charge is refunded.\nconst REUSE_CALL: usize = 2 * std::mem::size_of::<&mut Pending<'static, ResolvedExpr>>()\n    + 2 * std::mem::size_of::<bool>(); // first-root flag, conservative on later functions\nconst EMPTY_EXPRESSION_BYTES: usize =\n    std::mem::size_of::<Pending<'static, ResolvedExpr>>() + REUSE_CALL;\n// Selection replaces the original entry reserve(0), rather than adding a fresh\n// ACTIVE/TLS/Option probe. Its payment helper arguments/Results are unchanged.\nconst REUSE_SELECTION: usize =\n    2 * std::mem::size_of::<Option<(&ResolvedFunction, &[ResolvedFunction])>>()\n        + 2 * std::mem::size_of::<(&ResolvedFunction, &[ResolvedFunction])>()\n        + 4 * std::mem::size_of::<&[ResolvedFunction]>()\n        + 2 * std::mem::size_of::<&Vec<ResolvedFunction>>()\n        + 6 * std::mem::size_of::<bool>(); // selection and initial-root local/pattern\n\n",
+        "before": ""
+      },
+      {
+        "start": 1341,
+        "end": 1372,
+        "current": "    reserve(REUSE_SELECTION)?;\n",
+        "before": "    reserve(0)?;\n"
+      },
+      {
+        "start": 6141,
+        "end": 6369,
+        "current": "    // The entry bank paid selection even on an empty function inventory.\n    // No type/parameter/result audit has moved across another semantic check.\n    if let Some((function, remaining)) = program.functions.split_first() {\n",
+        "before": "    for function in &program.functions {\n"
+      },
+      {
+        "start": 6750,
+        "end": 6998,
+        "current": "        // First real scratch formation follows the first function's original\n        // metadata checks. No later root forms another inline32 frame.\n        let mut pending = Pending::<ResolvedExpr>::empty()?;\n        let mut initial_root = true;\n",
+        "before": ""
+      },
+      {
+        "start": 7175,
+        "end": 8593,
+        "current": "            // This replaces the old per-root Pending::new frame reservation.\n            // Its root push and every pop/growth/sticky check remain below.\n            if initial_root {\n                initial_root = false; // empty() already paid the first caller\n            } else {\n                reserve(REUSE_CALL)?;\n            }\n            pending.push(expression)?;\n            audit_resolved_expression_pending(&mut pending)?;\n        }\n        for function in remaining {\n            reject_nul_identity(\"resolved function\", function.id.as_str())?;\n            for parameter in &function.params {\n                reject_nul_identity(\"resolved value\", parameter.id.as_str())?;\n                audit_resolved_type(&parameter.ty)?;\n            }\n            reject_nul_identity(\"resolved value\", function.result_id.as_str())?;\n            audit_resolved_type(&function.return_type)?;\n            for expression in function\n                .requires\n                .iter()\n                .chain(std::iter::once(&function.body))\n                .chain(&function.ensures)\n            {\n                // This replaces the old per-root Pending::new frame reservation.\n                // Its root push and every pop/growth/sticky check remain below.\n                reserve(REUSE_CALL)?;\n                pending.push(expression)?;\n                audit_resolved_expression_pending(&mut pending)?;\n            }\n",
+        "before": "            audit_resolved_expression(expression)?;\n"
+      },
+      {
+        "start": 12944,
+        "end": 12957,
+        "current": "#[cfg(test)]\n",
+        "before": ""
+      },
+      {
+        "start": 13078,
+        "end": 13246,
+        "current": "    audit_resolved_expression_pending(&mut pending)\n}\n\nfn audit_resolved_expression_pending(\n    pending: &mut Pending<'_, ResolvedExpr>,\n) -> Result<(), Diagnostic> {\n",
+        "before": ""
+      },
+      {
+        "start": 41450,
+        "end": 41575,
+        "current": "#[allow(\n    dead_code,\n    reason = \"complete independently compiled immediate-old audit\"\n)]\nmod reuse_before;\n#[cfg(test)]\n",
+        "before": ""
+      }
+    ]
+  },
+  {
+    "path": "src/hir/inspection/paid_nul/pending.rs",
+    "current_length": 2842,
+    "current_sha256": "607a09223097303b9c677d3cc6c82bf234cd517dead426286a951e37e05adf90",
+    "before_length": 2490,
+    "before_sha256": "27622dc1bce1918fa8366f1ec97267692a655758907e270ff032156b385b0ebd",
+    "edits": [
+      {
+        "start": 2490,
+        "end": 2842,
+        "current": "\nimpl<'a> Pending<'a, super::ResolvedExpr> {\n    /// Private invocation scratch; only successfully drained roots reuse it.\n    pub(super) fn empty() -> Result<Self, Diagnostic> {\n        reserve(super::EMPTY_EXPRESSION_BYTES)?;\n        Ok(Self {\n            inline: [None; INLINE],\n            len: 0,\n            spill: Vec::new(),\n        })\n    }\n}\n",
+        "before": ""
+      }
+    ]
+  }
+]

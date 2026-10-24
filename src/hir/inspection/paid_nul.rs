@@ -5,8 +5,24 @@ mod text;
 use pending::Pending;
 use text::{reject_nul_identity, reserve};
 
+// Added selection/borrowed-frame roles are separate from the retained frame
+// and full replacement spill acquisitions. Each original per-root positive
+// frame payment becomes REUSE_CALL; no preceding charge is refunded.
+const REUSE_CALL: usize = 2 * std::mem::size_of::<&mut Pending<'static, ResolvedExpr>>()
+    + 2 * std::mem::size_of::<bool>(); // first-root flag, conservative on later functions
+const EMPTY_EXPRESSION_BYTES: usize =
+    std::mem::size_of::<Pending<'static, ResolvedExpr>>() + REUSE_CALL;
+// Selection replaces the original entry reserve(0), rather than adding a fresh
+// ACTIVE/TLS/Option probe. Its payment helper arguments/Results are unchanged.
+const REUSE_SELECTION: usize =
+    2 * std::mem::size_of::<Option<(&ResolvedFunction, &[ResolvedFunction])>>()
+        + 2 * std::mem::size_of::<(&ResolvedFunction, &[ResolvedFunction])>()
+        + 4 * std::mem::size_of::<&[ResolvedFunction]>()
+        + 2 * std::mem::size_of::<&Vec<ResolvedFunction>>()
+        + 6 * std::mem::size_of::<bool>(); // selection and initial-root local/pattern
+
 pub(super) fn validate_nul_free_identities(program: &ResolvedProgram) -> Result<(), Diagnostic> {
-    reserve(0)?;
+    reserve(REUSE_SELECTION)?;
     reject_nul_identity("resolved entry point", program.entrypoint.as_str())?;
 
     for (key, declaration) in &program.declarations.declarations {
@@ -107,7 +123,9 @@ pub(super) fn validate_nul_free_identities(program: &ResolvedProgram) -> Result<
             }
         }
     }
-    for function in &program.functions {
+    // The entry bank paid selection even on an empty function inventory.
+    // No type/parameter/result audit has moved across another semantic check.
+    if let Some((function, remaining)) = program.functions.split_first() {
         reject_nul_identity("resolved function", function.id.as_str())?;
         for parameter in &function.params {
             reject_nul_identity("resolved value", parameter.id.as_str())?;
@@ -115,13 +133,46 @@ pub(super) fn validate_nul_free_identities(program: &ResolvedProgram) -> Result<
         }
         reject_nul_identity("resolved value", function.result_id.as_str())?;
         audit_resolved_type(&function.return_type)?;
+        // First real scratch formation follows the first function's original
+        // metadata checks. No later root forms another inline32 frame.
+        let mut pending = Pending::<ResolvedExpr>::empty()?;
+        let mut initial_root = true;
         for expression in function
             .requires
             .iter()
             .chain(std::iter::once(&function.body))
             .chain(&function.ensures)
         {
-            audit_resolved_expression(expression)?;
+            // This replaces the old per-root Pending::new frame reservation.
+            // Its root push and every pop/growth/sticky check remain below.
+            if initial_root {
+                initial_root = false; // empty() already paid the first caller
+            } else {
+                reserve(REUSE_CALL)?;
+            }
+            pending.push(expression)?;
+            audit_resolved_expression_pending(&mut pending)?;
+        }
+        for function in remaining {
+            reject_nul_identity("resolved function", function.id.as_str())?;
+            for parameter in &function.params {
+                reject_nul_identity("resolved value", parameter.id.as_str())?;
+                audit_resolved_type(&parameter.ty)?;
+            }
+            reject_nul_identity("resolved value", function.result_id.as_str())?;
+            audit_resolved_type(&function.return_type)?;
+            for expression in function
+                .requires
+                .iter()
+                .chain(std::iter::once(&function.body))
+                .chain(&function.ensures)
+            {
+                // This replaces the old per-root Pending::new frame reservation.
+                // Its root push and every pop/growth/sticky check remain below.
+                reserve(REUSE_CALL)?;
+                pending.push(expression)?;
+                audit_resolved_expression_pending(&mut pending)?;
+            }
         }
     }
     Ok(())
@@ -245,8 +296,15 @@ fn audit_resolved_record_match_pattern(
     Ok(())
 }
 
+#[cfg(test)]
 fn audit_resolved_expression(root: &ResolvedExpr) -> Result<(), Diagnostic> {
     let mut pending = Pending::new(root)?;
+    audit_resolved_expression_pending(&mut pending)
+}
+
+fn audit_resolved_expression_pending(
+    pending: &mut Pending<'_, ResolvedExpr>,
+) -> Result<(), Diagnostic> {
     while let Some(expression) = pending.pop()? {
         reject_nul_identity("resolved expression", expression.id.as_str())?;
         audit_resolved_type(&expression.ty)?;
@@ -879,5 +937,11 @@ fn audit_control_target(target: &super::ControlTarget) -> Result<(), Diagnostic>
     }
 }
 
+#[cfg(test)]
+#[allow(
+    dead_code,
+    reason = "complete independently compiled immediate-old audit"
+)]
+mod reuse_before;
 #[cfg(test)]
 mod tests;

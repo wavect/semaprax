@@ -73,3 +73,15 @@ impl<'a, T> Pending<'a, T> {
         self.spill.capacity()
     }
 }
+
+impl<'a> Pending<'a, super::ResolvedExpr> {
+    /// Private invocation scratch; only successfully drained roots reuse it.
+    pub(super) fn empty() -> Result<Self, Diagnostic> {
+        reserve(super::EMPTY_EXPRESSION_BYTES)?;
+        Ok(Self {
+            inline: [None; INLINE],
+            len: 0,
+            spill: Vec::new(),
+        })
+    }
+}

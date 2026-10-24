@@ -281,11 +281,13 @@ fn complete_nul_receiving_and_saved_constructor_sources_preserve_every_original_
         "/docs/evidence/paid-nul-audit-824/exact-source-inverses.json"
     )))
     .unwrap();
+    let paid_nul_before =
+        reuse_source_before("src/hir/inspection/paid_nul.rs", ci_str!("../paid_nul.rs"));
     let currents = [
         ci_str!("../../inspection.rs"),
         ci_str!("../../validation/constructor_seed/original.rs"),
         ci_str!("../../validation/function_lookup/paid_custody.rs"),
-        ci_str!("../paid_nul.rs"),
+        paid_nul_before.as_str(),
     ];
     let originals = [
         ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/paid-nul-audit-824/src__hir__inspection.rs.before.txt")),
@@ -339,4 +341,309 @@ fn complete_nul_receiving_and_saved_constructor_sources_preserve_every_original_
         ),
         "746c98ae21a2fc52029d943b65c237608ae6923bb80968ab282c16e2268ad770"
     );
+}
+
+// BEGIN INVOCATION EXPRESSION PENDING REUSE CONTROLS
+fn reuse_source_before(path: &str, supplied: &str) -> String {
+    use sha2::{Digest, Sha256};
+    let hash = |bytes: &[u8]| format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)));
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let packet_bytes = include_bytes!("reuse_before/inverse.json");
+    assert_eq!(
+        std::fs::read(root.join("src/hir/inspection/paid_nul/reuse_before/inverse.json")).unwrap(),
+        packet_bytes
+    );
+    assert_eq!(
+        hash(packet_bytes),
+        "34e8f79564b7d6ec98359f85eec368edb38b4384725014938ce9475b02acf2e2"
+    );
+    let packet: serde_json::Value = serde_json::from_slice(packet_bytes).unwrap();
+    assert_eq!(packet.as_array().unwrap().len(), 2);
+    let row = packet
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["path"] == path)
+        .unwrap();
+    let compiled = match path {
+        "src/hir/inspection/paid_nul.rs" => include_str!("../paid_nul.rs"),
+        "src/hir/inspection/paid_nul/pending.rs" => include_str!("pending.rs"),
+        _ => panic!("foreign pending reuse owner"),
+    };
+    assert_eq!(supplied, compiled);
+    assert_eq!(std::fs::read(root.join(path)).unwrap(), compiled.as_bytes());
+    assert_eq!(
+        compiled.len(),
+        row["current_length"].as_u64().unwrap() as usize
+    );
+    assert_eq!(
+        hash(compiled.as_bytes()),
+        row["current_sha256"].as_str().unwrap()
+    );
+    let mut restored = compiled.to_owned();
+    for edit in row["edits"].as_array().unwrap().iter().rev() {
+        let start = edit["start"].as_u64().unwrap() as usize;
+        let end = edit["end"].as_u64().unwrap() as usize;
+        assert_eq!(&restored[start..end], edit["current"].as_str().unwrap());
+        restored.replace_range(start..end, edit["before"].as_str().unwrap());
+    }
+    let before = match path {
+        "src/hir/inspection/paid_nul.rs" => include_str!("reuse_before/paid_nul.rs.txt"),
+        "src/hir/inspection/paid_nul/pending.rs" => include_str!("reuse_before/pending.rs.txt"),
+        _ => unreachable!(),
+    };
+    let fixture = match path {
+        "src/hir/inspection/paid_nul.rs" => "paid_nul.rs.txt",
+        "src/hir/inspection/paid_nul/pending.rs" => "pending.rs.txt",
+        _ => unreachable!(),
+    };
+    assert_eq!(
+        std::fs::read(
+            root.join("src/hir/inspection/paid_nul/reuse_before")
+                .join(fixture)
+        )
+        .unwrap(),
+        before.as_bytes()
+    );
+    assert_eq!(restored, before);
+    assert_eq!(
+        restored.len(),
+        row["before_length"].as_u64().unwrap() as usize
+    );
+    assert_eq!(
+        hash(restored.as_bytes()),
+        row["before_sha256"].as_str().unwrap()
+    );
+    assert_eq!(std::fs::read(root.join(path)).unwrap(), compiled.as_bytes());
+    assert_eq!(
+        std::fs::read(root.join("src/hir/inspection/paid_nul/reuse_before/inverse.json")).unwrap(),
+        packet_bytes
+    );
+    restored
+}
+
+fn reuse_program(widths: &[usize]) -> ResolvedProgram {
+    let mut p = program();
+    let template = p.functions[0].clone();
+    p.functions = widths
+        .iter()
+        .map(|width| {
+            let mut f = template.clone();
+            f.requires.clear();
+            f.ensures.clear();
+            f.body = expression(*width);
+            f
+        })
+        .collect();
+    p
+}
+type ReuseObservation = (
+    Result<(), Diagnostic>,
+    crate::test_allocation_observer::Metrics,
+    bool,
+    usize,
+    Option<crate::bounded_output::ReservationRefusal>,
+);
+fn reuse_observe(p: &ResolvedProgram, old: bool, limit: usize) -> ReuseObservation {
+    let ((result, metrics), refused, paid, first) = with_limit_usage_refusal(limit, || {
+        measure(|| {
+            if old {
+                reuse_before::validate_nul_free_identities(p)
+            } else {
+                validate_nul_free_identities(p)
+            }
+        })
+    });
+    (result, metrics, refused, paid, first)
+}
+#[test]
+fn invocation_pending_reuse_keeps_complete_old_invoice_without_padding() {
+    let mut p = reuse_program(&[0; 12]);
+    p.functions[0].requires = vec![expression(0); 2];
+    p.functions[0].ensures = vec![expression(0)];
+    let roots: usize = p
+        .functions
+        .iter()
+        .map(|f| f.requires.len() + 1 + f.ensures.len())
+        .sum();
+    assert_eq!(roots, 15);
+    let (old, old_physical, old_refused, old_paid, old_first) = reuse_observe(&p, true, LIMIT);
+    let (new, new_physical, new_refused, new_paid, new_first) = reuse_observe(&p, false, LIMIT);
+    assert_eq!(new, old);
+    assert!(
+        new.is_ok() && !old_refused && !new_refused && old_first.is_none() && new_first.is_none()
+    );
+    let frame = std::mem::size_of::<Pending<'_, ResolvedExpr>>();
+    assert_eq!(
+        new_paid + roots * frame,
+        old_paid + REUSE_SELECTION + frame + roots * REUSE_CALL
+    );
+    assert!(new_paid < old_paid);
+    for (physical, paid) in [(old_physical, old_paid), (new_physical, new_paid)] {
+        assert!(!physical.invalid && physical.live == 0 && physical.allocated == physical.freed);
+        assert!(physical.allocated <= paid && physical.highwater <= paid);
+    }
+}
+#[test]
+fn invocation_pending_reuse_retains_spill_only_until_whole_audit_drop() {
+    let p = reuse_program(&[130, 1, 65, 130, 1, 130]);
+    let (old, a, ar, ap, af) = reuse_observe(&p, true, LIMIT);
+    let (new, b, br, bp, bf) = reuse_observe(&p, false, LIMIT);
+    assert_eq!(new, old);
+    assert!(new.is_ok() && !ar && !br && af.is_none() && bf.is_none());
+    assert!(b.allocated < a.allocated && bp < ap);
+    for (physical, paid) in [(a, ap), (b, bp)] {
+        assert!(!physical.invalid && physical.live == 0 && physical.allocated == physical.freed);
+        assert!(physical.allocated <= paid && physical.highwater <= paid);
+    }
+}
+#[test]
+fn invocation_pending_reuse_preserves_all_diagnostic_fields_and_first_error_order() {
+    for case in 0..4 {
+        let mut p = reuse_program(&[65, 1, 130]);
+        match case {
+            0 => p.functions[0].result_id = ValueId::new("first-result\0bad".to_owned()),
+            1 => p.functions[1].result_id = ValueId::new("second-result\0bad".to_owned()),
+            2 => {
+                let owner = FunctionExecutionId::Monomorphic(p.functions[0].id.clone());
+                p.functions[1].body.id = ExpressionId::new(&owner, "second-body\0bad");
+                p.functions[2].result_id = ValueId::new("last-result\0bad".to_owned());
+            }
+            _ => p.functions[2].result_id = ValueId::new("last-result\0bad".to_owned()),
+        }
+        let (old, a, ar, ap, af) = reuse_observe(&p, true, LIMIT);
+        let (new, b, br, bp, bf) = reuse_observe(&p, false, LIMIT);
+        assert!(old.is_err());
+        assert_eq!(new, old);
+        assert!(!ar && !br && af.is_none() && bf.is_none());
+        if case == 0 {
+            assert_eq!(
+                bp,
+                ap + REUSE_SELECTION,
+                "first metadata failure must precede frame formation"
+            );
+        }
+        for (physical, paid) in [(a, ap), (b, bp)] {
+            assert!(
+                !physical.invalid && physical.live == 0 && physical.allocated == physical.freed
+            );
+            assert!(physical.allocated <= paid && physical.highwater <= paid);
+        }
+    }
+}
+#[test]
+fn invocation_pending_reuse_exact_short_zero_sticky_and_scope_isolation() {
+    let mut empty = program();
+    empty.functions.clear();
+    let old_empty = reuse_observe(&empty, true, LIMIT);
+    let new_empty = reuse_observe(&empty, false, LIMIT);
+    assert_eq!(old_empty.0, new_empty.0);
+    assert!(new_empty.0.is_ok() && !old_empty.2 && !new_empty.2);
+    assert_eq!(new_empty.3, old_empty.3 + REUSE_SELECTION);
+    assert_eq!(new_empty.1.allocated, 0);
+    let empty_zero = reuse_observe(&empty, false, 0);
+    assert_eq!(empty_zero.0.unwrap_err(), text::refused());
+    assert!(empty_zero.2 && empty_zero.3 == 0);
+    assert_eq!(empty_zero.4.unwrap().requested, REUSE_SELECTION);
+    let p = reuse_program(&[65, 1, 130]);
+    let (result, _, refused, exact, first) = reuse_observe(&p, false, LIMIT);
+    assert!(result.is_ok() && !refused && first.is_none());
+    for limit in [0, exact - 1, exact] {
+        let (result, physical, refused, paid, first) = reuse_observe(&p, false, limit);
+        assert_eq!(result.is_ok(), limit == exact);
+        assert_eq!(refused, limit != exact);
+        assert_eq!(first.is_none(), limit == exact);
+        if limit != exact {
+            assert_eq!(result.unwrap_err(), text::refused());
+        }
+        assert!(
+            paid <= limit
+                && !physical.invalid
+                && physical.live == 0
+                && physical.allocated == physical.freed
+        );
+    }
+    let (((), physical), refused, paid, first) = with_limit_usage_refusal(exact, || {
+        measure(|| {
+            validate_nul_free_identities(&p).unwrap();
+            let child = with_limit_usage_refusal(exact, || validate_nul_free_identities(&p));
+            assert!(child.0.is_ok() && !child.1 && child.2 == exact && child.3.is_none());
+            assert!(!crate::bounded_output::reserve_active_required(1));
+            assert_eq!(
+                validate_nul_free_identities(&p).unwrap_err(),
+                text::refused()
+            );
+        })
+    });
+    assert!(refused && paid == exact && first.unwrap().requested == 1);
+    assert!(!physical.invalid && physical.live == 0 && physical.allocated == physical.freed);
+    assert_eq!(reuse_observe(&p, false, exact).3, exact);
+}
+#[test]
+fn invocation_pending_reuse_authenticates_both_complete_immediate_old_sources() {
+    use sha2::{Digest, Sha256};
+    let audit = reuse_source_before(
+        "src/hir/inspection/paid_nul.rs",
+        include_str!("../paid_nul.rs"),
+    );
+    let pending = reuse_source_before(
+        "src/hir/inspection/paid_nul/pending.rs",
+        include_str!("pending.rs"),
+    );
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    for (path, compiled) in [
+        (
+            "src/hir/inspection/paid_nul/reuse_before.rs",
+            include_str!("reuse_before.rs"),
+        ),
+        (
+            "src/hir/inspection/paid_nul/reuse_before/pending.rs",
+            include_str!("reuse_before/pending.rs"),
+        ),
+        (
+            "src/hir/inspection/paid_nul/text.rs",
+            include_str!("text.rs"),
+        ),
+        (
+            "src/hir/inspection/paid_nul/reuse_before/tests.rs.txt",
+            include_str!("reuse_before/tests.rs.txt"),
+        ),
+    ] {
+        assert_eq!(std::fs::read(root.join(path)).unwrap(), compiled.as_bytes());
+    }
+    let before = include_str!("reuse_before.rs")
+        .replace(
+            "#[path = \"reuse_before/pending.rs\"]\nmod pending;",
+            "mod pending;",
+        )
+        .replace("#[path = \"text.rs\"]\nmod text;", "mod text;");
+    assert_eq!(before + "\n#[cfg(test)]\nmod tests;\n", audit);
+    assert_eq!(include_str!("reuse_before/pending.rs"), pending);
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(include_bytes!("text.rs")))
+        ),
+        "b3c25a540ff9ec25804e6847016eb637ff9b56f8147d180d748e5f9dfeb47beb"
+    );
+    // Entire existing harness is retained, including its old #824 inverse.
+    let harness = include_str!("tests.rs");
+    let (prefix, _) = harness
+        .split_once("// BEGIN INVOCATION EXPRESSION PENDING REUSE CONTROLS")
+        .unwrap();
+    let prefix = prefix.replace(
+        "    let paid_nul_before =\n        reuse_source_before(\"src/hir/inspection/paid_nul.rs\", ci_str!(\"../paid_nul.rs\"));\n",
+        "",
+    ).replace("        paid_nul_before.as_str(),", "        ci_str!(\"../paid_nul.rs\"),");
+    assert_eq!(
+        prefix.strip_suffix('\n').unwrap(),
+        include_str!("reuse_before/tests.rs.txt")
+    );
+    let current = include_str!("../paid_nul.rs");
+    let mutated = current.replacen("const REUSE_CALL", "const FOREIGN_CALL", 1);
+    assert!(std::panic::catch_unwind(|| reuse_source_before(
+        "src/hir/inspection/paid_nul.rs",
+        &mutated
+    ))
+    .is_err());
 }

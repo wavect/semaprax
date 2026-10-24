@@ -1,4 +1,5 @@
 //! Invocation-local immutable classification DATA, never content authority.
+use super::{ReplayBudget, ResolvedFunction};
 pub(super) const PAYMENT: usize = 2 * size_of::<&mut ReplayBudget>()
     + 2 * size_of::<&ResolvedFunction>()
     + 2 * size_of::<&str>()

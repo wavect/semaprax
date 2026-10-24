@@ -931,14 +931,41 @@ pub(super) fn batch_913_entry(source: &str, supplied: &str) -> Option<String> {
         assert_eq!(before.matches("    source.push_str(\"@id(\\\"reuse.main\\\") fn main()->i64 {f31(1)}\\n\");\n    program(&source)\n}\nfn decimal_program() -> ResolvedProgram {\n    // Preserve the entire library; executable resolution also needs an entry.\n    let source = format!(\n        \"{}\\n@id(\\\"reuse.decimal.main\\\") fn main()->i64 {{let value=add(\\\"1\\\",\\\"2\\\");string_len(value)}}\\n\",\n        include_str!(\"../../../../std/int-decimal/src/decimal.spx\")\n    );\n").count(), 1);
         before = before.replacen("    source.push_str(\"@id(\\\"reuse.main\\\") fn main()->i64 {f31(1)}\\n\");\n    program(&source)\n}\nfn decimal_program() -> ResolvedProgram {\n    // Preserve the entire library; executable resolution also needs an entry.\n    let source = format!(\n        \"{}\\n@id(\\\"reuse.decimal.main\\\") fn main()->i64 {{let value=add(\\\"1\\\",\\\"2\\\");string_len(value)}}\\n\",\n        include_str!(\"../../../../std/int-decimal/src/decimal.spx\")\n    );\n", "", 1);
         assert_eq!(before.matches("        decimal_program(),\n").count(), 1);
-        before = before.replacen("        decimal_program(),\n", "        program(include_str!(\"../../../../std/int-decimal/src/decimal.spx\")),\n", 1);
-        assert_eq!(before.matches("        (\"decimal\", decimal_program(), true),\n").count(), 1);
+        before = before.replacen(
+            "        decimal_program(),\n",
+            "        program(include_str!(\"../../../../std/int-decimal/src/decimal.spx\")),\n",
+            1,
+        );
+        assert_eq!(
+            before
+                .matches("        (\"decimal\", decimal_program(), true),\n")
+                .count(),
+            1
+        );
         before = before.replacen("        (\"decimal\", decimal_program(), true),\n", "        (\"decimal\", program(include_str!(\"../../../../std/int-decimal/src/decimal.spx\")), true),\n", 1);
-        const MIDDLE: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/a6968006a29a11d4fdcb2adc75c34c0142c2e51166636c77b1b285b5ffdbe6bb"));
+        const MIDDLE: &str = include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/e/a6968006a29a11d4fdcb2adc75c34c0142c2e51166636c77b1b285b5ffdbe6bb"
+        ));
         assert_eq!(MIDDLE.len(), 13608);
-        assert_eq!(digest(MIDDLE), "a6968006a29a11d4fdcb2adc75c34c0142c2e51166636c77b1b285b5ffdbe6bb");
-        assert_eq!(reader::read(&root.join("e/a6968006a29a11d4fdcb2adc75c34c0142c2e51166636c77b1b285b5ffdbe6bb"), 13608, "a6968006a29a11d4fdcb2adc75c34c0142c2e51166636c77b1b285b5ffdbe6bb", 2_097_152).unwrap(), MIDDLE);
-        assert_eq!(before, MIDDLE, "ENTIRE unchanged pre-fixture current source");
+        assert_eq!(
+            digest(MIDDLE),
+            "a6968006a29a11d4fdcb2adc75c34c0142c2e51166636c77b1b285b5ffdbe6bb"
+        );
+        assert_eq!(
+            reader::read(
+                &root.join("e/a6968006a29a11d4fdcb2adc75c34c0142c2e51166636c77b1b285b5ffdbe6bb"),
+                13608,
+                "a6968006a29a11d4fdcb2adc75c34c0142c2e51166636c77b1b285b5ffdbe6bb",
+                2_097_152
+            )
+            .unwrap(),
+            MIDDLE
+        );
+        assert_eq!(
+            before, MIDDLE,
+            "ENTIRE unchanged pre-fixture current source"
+        );
     }
     for &(after, prior) in edits {
         assert_eq!(before.matches(after).count(), 1);
@@ -1113,20 +1140,25 @@ pub(super) fn next_custody_before(owner: &str, source: &str, supplied: &str) -> 
         "tests/workspace/semantic_graph/source_inventory.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/workspace/semantic_graph/source_inventory.rs")),
         _ => unreachable!("closed finite source entry"),
     };
-    assert_eq!(supplied, compiled, "complete compiled source channel");
+    // Authenticate the actual compiled/physical channel before any finite epoch projection.
+    let physical = reader::read(
+        &root.join(source),
+        compiled.len(),
+        &digest(compiled),
+        2_097_152,
+    )
+    .unwrap();
+    assert_eq!(
+        physical, compiled,
+        "complete actual compiled source channel"
+    );
+    let acquired = next_custody_front(owner, source, supplied, compiled, row);
+    if acquired.is_none() {
+        assert_eq!(supplied, compiled, "complete compiled source channel");
+    }
+    let compiled = acquired.as_deref().unwrap_or(compiled);
     assert_eq!(compiled.len() as u64, row["current_length"]);
     assert_eq!(digest(compiled), row["current_sha256"]);
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    assert_eq!(
-        reader::read(
-            &root.join(source),
-            compiled.len(),
-            row["current_sha256"].as_str().unwrap(),
-            2_097_152
-        )
-        .unwrap(),
-        compiled
-    );
     let mut prior_end = 0;
     for edit in row["edits"].as_array().unwrap() {
         let start = usize::try_from(edit["start"].as_u64().unwrap()).unwrap();
@@ -1146,4 +1178,120 @@ pub(super) fn next_custody_before(owner: &str, source: &str, supplied: &str) -> 
     assert_eq!(restored.len() as u64, row["before_length"]);
     assert_eq!(digest(&restored), row["before_sha256"]);
     restored
+}
+
+// Only these four exact current fronts may precede the immutable26 input epochs.
+fn next_custody_front(
+    owner: &str,
+    source: &str,
+    supplied: &str,
+    actual: &str,
+    old: &serde_json::Value,
+) -> Option<String> {
+    const FRONT: &str = include_str!("next_custody_fronts.json");
+    const PAIRS: [(&str, &str); 4] = [
+        (
+            "prelude286",
+            "tests/workspace/semantic_graph/source_inventory.rs",
+        ),
+        (
+            "v12-root",
+            "src/source_reflows_merge/main_e177_overlay_v2.rs",
+        ),
+        (
+            "v12-python",
+            "docs/evidence/finite-source-overlay-v2-20261018/overlay_page.py",
+        ),
+        (
+            "main295-v12-fragments",
+            "src/source_reflows_merge/main_e177_overlay_fragments_v3.rs",
+        ),
+    ];
+    let Some(index) = PAIRS.iter().position(|pair| *pair == (owner, source)) else {
+        return None;
+    };
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    assert_eq!(
+        reader::read(
+            &root.join("src/source_reflows/next_custody_fronts.json"),
+            FRONT.len(),
+            &digest(FRONT),
+            2_097_152
+        )
+        .unwrap(),
+        FRONT
+    );
+    let packet: serde_json::Value = serde_json::from_str(FRONT).unwrap();
+    assert_eq!(packet["schema"], "semaprax.next-custody-four-fronts.v1");
+    assert_eq!(
+        packet["original_packet"]["length"],
+        include_str!("next_custody_inverse.json").len()
+    );
+    assert_eq!(
+        packet["original_packet"]["sha256"],
+        digest(include_str!("next_custody_inverse.json"))
+    );
+    let rows = packet["rows"].as_array().unwrap();
+    assert_eq!(rows.len(), PAIRS.len());
+    for (row, pair) in rows.iter().zip(PAIRS) {
+        assert_eq!(row["owner"], pair.0);
+        assert_eq!(row["source"], pair.1);
+    }
+    let row = &rows[index];
+    assert_eq!(actual.len() as u64, row["length"]);
+    assert_eq!(digest(actual), row["sha256"]);
+    fn project(actual: &str, stage: &serde_json::Value) -> String {
+        let mut previous = 0;
+        for edit in stage["edits"].as_array().unwrap() {
+            let start = usize::try_from(edit["start"].as_u64().unwrap()).unwrap();
+            let end = usize::try_from(edit["end"].as_u64().unwrap()).unwrap();
+            assert!(previous <= start && start <= end && end <= actual.len());
+            assert!(actual.is_char_boundary(start) && actual.is_char_boundary(end));
+            assert_eq!(&actual[start..end], edit["after"].as_str().unwrap());
+            previous = end;
+        }
+        let mut result = actual.to_owned();
+        for edit in stage["edits"].as_array().unwrap().iter().rev() {
+            let start = usize::try_from(edit["start"].as_u64().unwrap()).unwrap();
+            let end = usize::try_from(edit["end"].as_u64().unwrap()).unwrap();
+            result.replace_range(start..end, edit["before"].as_str().unwrap());
+        }
+        assert_eq!(result.len() as u64, stage["length"]);
+        assert_eq!(digest(&result), stage["sha256"]);
+        result
+    }
+    let middle = (!row["middle"].is_null()).then(|| project(actual, &row["middle"]));
+    assert!(
+        supplied == actual || middle.as_deref() == Some(supplied),
+        "only the same actual source or its exact bound V13 intermediate"
+    );
+    assert_eq!(row["target"]["length"], old["current_length"]);
+    assert_eq!(row["target"]["sha256"], old["current_sha256"]);
+    let restored = project(actual, &row["target"]);
+    assert_eq!(
+        reader::read(&root.join(source), actual.len(), &digest(actual), 2_097_152).unwrap(),
+        actual
+    );
+    assert_eq!(
+        reader::read(
+            &root.join("src/source_reflows/next_custody_fronts.json"),
+            FRONT.len(),
+            &digest(FRONT),
+            2_097_152
+        )
+        .unwrap(),
+        FRONT
+    );
+    let original = include_str!("next_custody_inverse.json");
+    assert_eq!(
+        reader::read(
+            &root.join("src/source_reflows/next_custody_inverse.json"),
+            original.len(),
+            &digest(original),
+            2_097_152
+        )
+        .unwrap(),
+        original
+    );
+    Some(restored)
 }

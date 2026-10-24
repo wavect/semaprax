@@ -181,6 +181,12 @@ fn complete_sources_and_independent_old_query_bindings_are_exact() {
         "0fd752c50adec4ffe2269581cc7c7d2cc1e6d873d43a6bb47d35e6be9d826550"
     );
     let old = include_str!("before.rs");
+    assert_eq!(
+        old.matches("use super::{ReplayBudget, ResolvedFunction};\n")
+            .count(),
+        1
+    );
+    let old = old.replacen("use super::{ReplayBudget, ResolvedFunction};\n", "", 1);
     let validation = include_str!("validation.before.txt");
     let emission = include_str!("emission.before.txt");
     let fork = include_str!("fork.before.txt");
@@ -456,11 +462,12 @@ fn actual_alt_query_does_not_publish_a_partial_sequence_proof() {
         work.budget
             .reserve_bytes(
                 function,
-                4 * size_of::<ObservationDag>() + 4 * size_of::<ObservationDagKind>
-                    > () + 4 * size_of::<Node>()
-                        + 4 * size_of::<Vec<Node>>()
-                        + 8 * size_of::<usize>()
-                        + CALL,
+                4 * size_of::<ObservationDag>()
+                    + 4 * size_of::<ObservationDagKind>()
+                    + 4 * size_of::<Node>()
+                    + 4 * size_of::<Vec<Node>>()
+                    + 8 * size_of::<usize>()
+                    + CALL,
                 "complete hostile Alt fixture receivers",
             )
             .unwrap();
@@ -502,7 +509,7 @@ fn whole_inputs(
         measure(|| {
             let function = &program.functions[0];
             let mut budget = ReplayBudget::with_skeleton_limit(usize::MAX);
-            let result = (|| {
+            let result: Result<usize, Diagnostic> = (|| {
                 let mut work = SkeletonWork::with_index(program, function, &mut budget, None)?;
                 let observations = tree(&mut work, 64)?;
                 work.budget.reserve_bytes(

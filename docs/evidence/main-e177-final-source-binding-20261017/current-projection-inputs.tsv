@@ -1378,3 +1378,11 @@ src/source_reflows_merge/main_e177_overlay_digests_v13/parent-5.before.txt
 src/source_reflows_merge/main_e177_overlay_digests_v13/v12.before.rs.txt
 src/source_reflows_merge/main_e177_overlay_digests_v13/controller_transport.json
 tests/wasm/scalar_browser_ci_contract/current_profiles573.rs
+docs/evidence/browser-capture-573-20261024/calculator-baseline.json
+docs/evidence/browser-capture-573-20261024/calculator-renamed.json
+docs/evidence/browser-capture-573-20261024/native-calculator-baseline.json
+docs/evidence/browser-capture-573-20261024/native-calculator-renamed.json
+platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs
+docs/evidence/browser-capture-573-20261024/runner.before.mjs
+docs/evidence/browser-capture-573-20261024/historical_builder.before.rs.txt
+src/source_reflows/next_custody_fronts.json

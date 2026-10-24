@@ -171,24 +171,24 @@
   },
   {
     "path": "src/cleanup_plan/replay/skeleton_work/query_proof/before.rs",
-    "current_length": 12614,
-    "current_sha256": "8f6ef6e6b50a9cf884c0436ac3d0799cabe883036b91138977e67b4014adaac7",
+    "current_length": 12659,
+    "current_sha256": "6dbccd8ac5aadaa729f122472d5a7789da7753b8389ab61189f444282b6bf719",
     "before_file": "validation.before.txt",
     "before_length": 10194,
     "before_sha256": "52299d69ae04653546366d2eb220e0acbfc590c823e0a7819d29a1b47e7be134",
     "edits": [
       [
         77,
-        "pub(super) const PAYMENT: usize = 2 * size_of::<&mut ReplayBudget>()\n    + 2 * size_of::<&ResolvedFunction>()\n    + 2 * size_of::<&str>()\n    + 2 * size_of::<usize>()\n    + 2 * size_of::<Result<(), Diagnostic>>();\npub(super) const VALIDATE: usize = 2 * size_of::<(&Observations, &mut SkeletonWork<'static, 'static>)>()\n    + size_of::<Result<bool, Diagnostic>>()\n    + size_of::<Vec<&ObservationDag>>()\n    + 2 * size_of::<&mut Vec<&ObservationDag>>()\n    + 2 * size_of::<&ObservationDag>()\n    + 4 * size_of::<usize>()\n    + 4 * size_of::<Option<&ObservationDag>>()\n    + 2 * size_of::<&ObservationDagKind>()\n    + size_of::<std::slice::Iter<'static, Rc<ObservationDag>>>()\n    + 2 * size_of::<Option<&Rc<ObservationDag>>>()\n    + 4 * size_of::<bool>()\n    + PAYMENT;\n",
+        "use super::{ReplayBudget, ResolvedFunction};\npub(super) const PAYMENT: usize = 2 * size_of::<&mut ReplayBudget>()\n    + 2 * size_of::<&ResolvedFunction>()\n    + 2 * size_of::<&str>()\n    + 2 * size_of::<usize>()\n    + 2 * size_of::<Result<(), Diagnostic>>();\npub(super) const VALIDATE: usize = 2 * size_of::<(&Observations, &mut SkeletonWork<'static, 'static>)>()\n    + size_of::<Result<bool, Diagnostic>>()\n    + size_of::<Vec<&ObservationDag>>()\n    + 2 * size_of::<&mut Vec<&ObservationDag>>()\n    + 2 * size_of::<&ObservationDag>()\n    + 4 * size_of::<usize>()\n    + 4 * size_of::<Option<&ObservationDag>>()\n    + 2 * size_of::<&ObservationDagKind>()\n    + size_of::<std::slice::Iter<'static, Rc<ObservationDag>>>()\n    + 2 * size_of::<Option<&Rc<ObservationDag>>>()\n    + 4 * size_of::<bool>()\n    + PAYMENT;\n",
         ""
       ],
       [
-        954,
+        999,
         "    ObservationDagKind, Observations, Rc, SkeletonWork,\n",
         "    ObservationDagKind, Observations, Rc, SkeletonWork, PAYMENT,\n"
       ],
       [
-        10930,
+        10975,
         "\npub(in crate::cleanup_plan::replay) fn sequence_only(\n    observations: &Observations,\n    work: &mut SkeletonWork<'_, '_>,\n) -> Result<bool, Diagnostic> {\n    let mut pending = Vec::new();\n    if let Some(root) = &observations.prefix {\n        work.budget.reserve_vec(\n            work.function,\n            &mut pending,\n            1,\n            \"complete HIR sequence validation backing\",\n        )?;\n        pending.push(root.as_ref());\n    }\n    while let Some(node) = pending.pop() {\n        work.budget\n            .charge(work.function, 1, \"complete HIR sequence validation\")?;\n        work.budget.reserve_bytes(\n            work.function,\n            VALIDATE,\n            \"complete HIR sequence validation step\",\n        )?;\n        match &node.kind {\n            ObservationDagKind::Alt(_) => return Ok(false),\n            ObservationDagKind::Seq(prefix, _) => {\n                if let Some(prefix) = prefix {\n                    work.budget.reserve_vec(\n                        work.function,\n                        &mut pending,\n                        1,\n                        \"complete HIR sequence ancestor backing\",\n                    )?;\n                    pending.push(prefix.as_ref());\n                }\n            }\n            ObservationDagKind::Cat(children) => {\n                work.budget.reserve_vec(\n                    work.function,\n                    &mut pending,\n                    children.len(),\n                    \"complete HIR sequence concatenation backing\",\n                )?;\n                for child in children {\n                    pending.push(child.as_ref());\n                }\n            }\n        }\n    }\n    Ok(true)\n}\n\n",
         "#[cfg(test)]\nmod tests;\n"
       ]

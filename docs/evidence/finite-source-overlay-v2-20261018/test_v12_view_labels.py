@@ -12,6 +12,82 @@ FIXTURE = ROOT / 'src/source_reflows_merge/main_e177_overlay_labels_v12'
 OLD = runpy.run_path(str(FIXTURE / 'controller.before.py.txt'))
 
 
+# Closed current-source acquisition precedes every unchanged legacy assertion.
+_FRONT_PATH = 'src/source_reflows/next_custody_fronts.json'
+_FRONT_PIN = {'length': 157035, 'sha256': '7e5d90823d86421fda149ca1568ba25aedba441bd2820e39a40ae7fc238197ea'}
+_NEXT_PATH = 'src/source_reflows/next_custody_inverse.json'
+_PAIRS = [
+    ('prelude286', 'tests/workspace/semantic_graph/source_inventory.rs'),
+    ('v12-root', 'src/source_reflows_merge/main_e177_overlay_v2.rs'),
+    ('v12-python', 'docs/evidence/finite-source-overlay-v2-20261018/overlay_page.py'),
+    ('main295-v12-fragments', 'src/source_reflows_merge/main_e177_overlay_fragments_v3.rs'),
+]
+
+def _source_bytes(relative):
+    import os, stat
+    path = ROOT / relative
+    for ancestor in (path, *path.parents):
+        assert not stat.S_ISLNK(os.lstat(ancestor).st_mode)
+    initial = os.lstat(path)
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    try:
+        identity = lambda s: (s.st_dev, s.st_ino, s.st_mode, s.st_size, s.st_mtime_ns, s.st_ctime_ns)
+        opened = os.fstat(fd)
+        assert stat.S_ISREG(opened.st_mode) and identity(initial) == identity(opened)
+        assert opened.st_size <= 2_097_152
+        with os.fdopen(fd, 'rb', closefd=False) as stream:
+            raw = stream.read(2_097_153)
+        assert len(raw) == opened.st_size
+        assert identity(opened) == identity(os.fstat(fd)) == identity(os.lstat(path))
+        return raw
+    finally:
+        os.close(fd)
+
+def _pin_bytes(raw, expected):
+    assert len(raw) == expected['length']
+    assert hashlib.sha256(raw).hexdigest() == expected['sha256']
+    return raw
+
+def _front_data():
+    raw = _pin_bytes(_source_bytes(_FRONT_PATH), _FRONT_PIN)
+    data = json.loads(raw)
+    assert data['schema'] == 'semaprax.next-custody-four-fronts.v1'
+    assert [(r['owner'], r['source']) for r in data['rows']] == _PAIRS
+    legacy_raw = _pin_bytes(_source_bytes(_NEXT_PATH), data['original_packet'])
+    legacy = json.loads(legacy_raw)
+    assert len(legacy['owners']) == 26
+    return raw, data, legacy_raw, legacy
+
+def _front_project(actual, stage):
+    prior_end = 0
+    for edit in stage['edits']:
+        start, end = edit['start'], edit['end']
+        assert type(start) is int and type(end) is int
+        assert prior_end <= start <= end <= len(actual)
+        assert actual[start:end] == edit['after'].encode()
+        actual[:start].decode(); actual[:end].decode()
+        prior_end = end
+    result = actual
+    for edit in reversed(stage['edits']):
+        result = result[:edit['start']] + edit['before'].encode() + result[edit['end']:]
+    return _pin_bytes(result, stage)
+
+def _acquire_next_current(owner, source, supplied):
+    assert (owner, source) in _PAIRS
+    front_raw, front, legacy_raw, legacy = _front_data()
+    entry = front['rows'][_PAIRS.index((owner, source))]
+    actual = _pin_bytes(_source_bytes(source), entry)
+    assert supplied.encode() == actual, 'Python acquisition requires the actual physical source'
+    row, = [r for r in legacy['owners'] if (r['owner'], r['source']) == (owner, source)]
+    assert entry['target']['length'] == row['current_length']
+    assert entry['target']['sha256'] == row['current_sha256']
+    result = _front_project(actual, entry['target'])
+    assert _source_bytes(source) == actual
+    assert _source_bytes(_FRONT_PATH) == front_raw and _source_bytes(_NEXT_PATH) == legacy_raw
+    return result.decode()
+
+
+
 class ViewLabels(unittest.TestCase):
     def pair(self):
         return tuple(codec.parse((FIXTURE / name).read_bytes())
@@ -98,10 +174,32 @@ class ViewLabels(unittest.TestCase):
         self.assertEqual(codec.expand_v12_view_labels(codec.encode_v12_view_labels(full)), full)
 
     def test_entire_previous_controller_and_caps_restore_exactly(self):
+        # Exercise every stale front without changing this owning test count.
+        front_raw, fronts, legacy_raw, legacy = _front_data()
+        for owner, source in _PAIRS:
+            physical = _source_bytes(source).decode()
+            acquired = _acquire_next_current(owner, source, physical)
+            row, = [r for r in legacy['owners'] if (r['owner'], r['source']) == (owner, source)]
+            raw = acquired.encode()
+            self.assertEqual(len(raw), row['current_length'])
+            self.assertEqual(hashlib.sha256(raw).hexdigest(), row['current_sha256'])
+            for edit in reversed(row['edits']):
+                self.assertEqual(raw[edit['start']:edit['end']], edit['after'].encode())
+                raw = raw[:edit['start']] + edit['before'].encode() + raw[edit['end']:]
+            self.assertEqual(raw, row['before_text'].encode())
+            self.assertEqual(len(raw), row['before_length'])
+            self.assertEqual(hashlib.sha256(raw).hexdigest(), row['before_sha256'])
+            for bad in ('', physical[:-1], physical + '\n', acquired):
+                with self.subTest(owner=owner, refusal='foreign-or-stale-source'):
+                    with self.assertRaises(AssertionError):
+                        _acquire_next_current(owner, source, bad)
+        with self.assertRaises(AssertionError):
+            _acquire_next_current('foreign-owner', _PAIRS[0][1], '')
         before = (FIXTURE / 'controller.before.py.txt').read_bytes()
         self.assertEqual(hashlib.sha256(before).hexdigest(),
                          '5834ed5afd8ddaf3be4229b2a3a97edf2420b92b46ee195e44d48ea8844c71ec')
         current = (Path(__file__).parent / 'overlay_page.py').read_text()
+        current = _acquire_next_current('v12-python', 'docs/evidence/finite-source-overlay-v2-20261018/overlay_page.py', current)
         packet = json.loads((ROOT / 'src/source_reflows/next_custody_inverse.json').read_text())
         row = next(row for row in packet['owners'] if row['owner'] == 'v12-python')
         self.assertEqual(len(current.encode()), row['current_length'])
@@ -120,6 +218,10 @@ class ViewLabels(unittest.TestCase):
         self.assertEqual(restored.encode(), before)
         self.assertEqual(codec.PAGE_CAP, OLD['PAGE_CAP'])
         self.assertEqual(codec.SOURCE_CAP, OLD['SOURCE_CAP'])
+        self.assertEqual(_source_bytes(_FRONT_PATH), front_raw)
+        self.assertEqual(_source_bytes(_NEXT_PATH), legacy_raw)
+        for owner, source in _PAIRS:
+            _acquire_next_current(owner, source, _source_bytes(source).decode())
 
 
 if __name__ == '__main__':

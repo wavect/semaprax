@@ -15,9 +15,11 @@ mod before_frontier;
 #[allow(dead_code, reason = "complete MAIN019d callback receiver")]
 #[path = "path_join/before_receiving.rs"]
 mod before_receiving;
+#[cfg(test)]
 mod boxed_flow;
 mod boxed_states;
 mod branch_join;
+#[cfg(test)]
 mod frontier;
 #[cfg(test)]
 mod frontier_tests;
@@ -42,7 +44,8 @@ mod shared_insertions_tests;
 pub(super) mod storage;
 
 #[allow(clippy::too_many_arguments)] // Keep the independently held phase index explicit.
-pub(super) fn validate_path_states<E: semantic_refusal::Error>(
+#[cfg(test)]
+pub(super) fn validate_path_states_before_field_local<E: semantic_refusal::Error>(
     program: &dyn crate::cleanup::ReplayContext,
     function: &ResolvedFunction,
     storage: &BTreeSet<StorageId>,
@@ -1297,3 +1300,6 @@ mod fused_before;
 mod fused_before_frontier;
 #[cfg(test)]
 mod fused_tests;
+
+mod field_local;
+pub(super) use field_local::validate_path_states;

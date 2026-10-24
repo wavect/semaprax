@@ -346,7 +346,18 @@ fn ordinary_replay(
     if old {
         fused_before::validate_path_states(p, f, &storage, &leaves, budget, auth.as_ref(), None)
     } else {
-        validate_path_states(p, f, &storage, &leaves, budget, auth.as_ref(), None)
+        // Preserve this complete generation equation and full allocator receipt
+        // on its exact immediate field-local predecessor. The new shipping path
+        // has independent full-original/immediate net, work and Drop controls.
+        validate_path_states_before_field_local(
+            p,
+            f,
+            &storage,
+            &leaves,
+            budget,
+            auth.as_ref(),
+            None,
+        )
     }
 }
 fn function() -> ResolvedFunction {
@@ -814,6 +825,14 @@ pub(super) fn before_source(path: &str, supplied: String) -> String {
         _ => panic!("unadmitted fused source"),
     };
     assert_eq!(physical, compiled);
+    // Admit the closed field-local source epoch only after full actual source
+    // equality; every original eight-row pin/inverse below remains unchanged.
+    let supplied = if supplied.as_bytes() == physical {
+        String::from_utf8(field_local::tests::source_before(path, &physical)).unwrap()
+    } else {
+        supplied
+    };
+    let physical = field_local::tests::source_before(path, &physical);
     assert_eq!(physical.len() as u64, row["length"].as_u64().unwrap());
     assert_eq!(digest(&physical), row["sha256"].as_str().unwrap());
     let mut actual = physical.clone();
@@ -831,7 +850,7 @@ pub(super) fn before_source(path: &str, supplied: String) -> String {
         supplied.as_bytes() == physical || supplied.as_bytes() == actual,
         "foreign fused acquisition"
     );
-    assert_eq!(std::fs::read(root.join(path)).unwrap(), physical);
+    assert_eq!(std::fs::read(root.join(path)).unwrap(), compiled);
     assert_eq!(
         std::fs::read(root.join("src/cleanup_plan/replay/path_join/fused_before/inverse.json"))
             .unwrap(),

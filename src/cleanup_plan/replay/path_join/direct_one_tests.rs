@@ -75,7 +75,18 @@ fn ordinary_replay(
             None,
         )
     } else {
-        validate_path_states(p, f, &storage, &leaves, budget, auth.as_ref(), None)
+        // Preserve this complete generation equation and full allocator receipt
+        // on its exact immediate field-local predecessor. The new shipping path
+        // has independent full-original/immediate net, work and Drop controls.
+        validate_path_states_before_field_local(
+            p,
+            f,
+            &storage,
+            &leaves,
+            budget,
+            auth.as_ref(),
+            None,
+        )
     }
 }
 #[test]

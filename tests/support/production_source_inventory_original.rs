@@ -17,7 +17,7 @@ fn current_source(path: &str, row: &serde_json::Value) -> String {
     let read_length = if interop_epoch {
         assert_eq!(length, 229209);
         assert_eq!(row["sha256"], "d1edee35f9a7a97e9478264a44b7e77e4b3903bcbb87bb327602053f22afa6c8");
-        232761
+        233111
     } else { length };
     assert_eq!(metadata.len(), read_length as u64);
     let mut bytes = Vec::new();
@@ -29,6 +29,13 @@ fn current_source(path: &str, row: &serde_json::Value) -> String {
     if interop_epoch {
         let compiled = include_bytes!("../../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs");
         assert_eq!(bytes.as_slice(), compiled.as_slice());
+        assert_eq!(format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(&bytes))), "efd27c7b797d0f0414bc7ae292be0c518455d6f1dbef4f849350318181b20b60");
+        let mut field_epoch = String::from_utf8(bytes).unwrap();
+        let field_raw_arms = "include_str!(\"../../../../../src/cleanup_plan/replay/path_join/field_local/mod.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/path_join/field_local/frontier.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/path_join/field_local/boxed_flow.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/path_join/field_local/tests.rs\"),";
+        assert_eq!(field_epoch.matches(field_raw_arms).count(), 1);
+        field_epoch = field_epoch.replacen(field_raw_arms, "", 1);
+        bytes = field_epoch.into_bytes();
+        assert_eq!(bytes.len(), 232761);
         assert_eq!(format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(&bytes))), "0f8b4dff2deb10dc0989ddf58723fb7137442cacffc18870d9e2afe566c8d3d0");
         let mut retained_epoch = String::from_utf8(bytes).unwrap();
         let retained_raw_arm = ",include_str!(\"../../../../../src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/retained.rs\")";

@@ -406,7 +406,10 @@ pub(crate) fn census_original_before(path: &str, current: &[u8]) -> Vec<u8> {
         _ => panic!("undeclared census source"),
     };
     assert_eq!(current, compiled);
-    let normalized = census_stage(path, current, false).or_else(|| (path == "src/cleanup_plan/replay/path_join/frontier_tests.rs").then(|| census_source_before(path, current)));
+    let normalized = census_stage(path, current, false).or_else(|| {
+        (path == "src/cleanup_plan/replay/path_join/frontier_tests.rs")
+            .then(|| census_source_before(path, current))
+    });
     let current = normalized.as_deref().unwrap_or(current);
     assert_eq!(current.len() as u64, row["length"].as_u64().unwrap());
     assert_eq!(digest(current), row["sha256"].as_str().unwrap());
@@ -584,6 +587,15 @@ pub(crate) fn census_source_before(path: &str, supplied: &[u8]) -> Vec<u8> {
             _ => unreachable!(),
         };
         assert_eq!(physical, compiled);
+        // Acquire only the closed field-local root epoch after authenticating
+        // complete actual bytes. All original fusion rows remain untouched.
+        let physical_full = physical.clone();
+        let physical = field_local_census_before(path, &physical);
+        let supplied = if supplied == physical_full.as_slice() {
+            physical.as_slice()
+        } else {
+            supplied
+        };
         assert_eq!(physical.len() as u64, row["length"].as_u64().unwrap());
         assert_eq!(digest(&physical), row["sha256"].as_str().unwrap());
         let mut before = physical.clone();
@@ -612,7 +624,7 @@ pub(crate) fn census_source_before(path: &str, supplied: &[u8]) -> Vec<u8> {
             supplied == physical.as_slice() || supplied == before.as_slice(),
             "foreign full fusion census acquisition"
         );
-        assert_eq!(std::fs::read(root.join(path)).unwrap(), physical);
+        assert_eq!(std::fs::read(root.join(path)).unwrap(), physical_full);
         assert_eq!(
             std::fs::read(root.join("src/cleanup_plan/replay/path_join/fused_before/inverse.json"))
                 .unwrap(),
@@ -651,12 +663,44 @@ pub(crate) fn census_source_before(path: &str, supplied: &[u8]) -> Vec<u8> {
         _ => unreachable!(),
     };
     assert_eq!(physical.as_slice(), compiled);
+    // The shared-insertion source retains its entire independently compiled
+    // b23 predecessor before entering the unchanged older census rows.
+    let physical_full = physical.clone();
+    let mut physical = field_local_census_before(path, &physical);
     let stages = packet["post_c189_acquisitions"].as_array().unwrap();
     let post_paths=["crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs", "src/bounded_output/canonical_stage_tests.rs", "src/cleanup_plan/replay/path_join/frontier_tests/custody.rs", "src/cleanup_plan/replay/path_join/shared_insertions_tests.rs", "tests/hir_module_boundaries.rs", "tests/workspace/semantic_graph/source_inventory.rs"];
     assert_eq!(stages.len(), post_paths.len());
     for (stage, name) in stages.iter().zip(post_paths) {
         assert_eq!(stage["path"], name);
     }
+    // Four finite current fronts compose before the ENTIRE unchanged older
+    // post-c189 records. The complete previous row objects remain in place.
+    let fronts = packet["field_local_source_fronts"].as_array().unwrap();
+    let front_paths = ["crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs", "src/bounded_output/canonical_stage_tests.rs", "tests/hir_module_boundaries.rs", "tests/workspace/semantic_graph/source_inventory.rs"];
+    assert_eq!(fronts.len(), front_paths.len());
+    for (front, expected) in fronts.iter().zip(front_paths) {
+        assert_eq!(front["path"], expected);
+    }
+    if let Some(front) = fronts.iter().find(|f| f["path"] == path) {
+        let prior = stages.iter().find(|r| r["path"] == path).unwrap();
+        assert_eq!(physical.len() as u64, front["length"]);
+        assert_eq!(digest(&physical), front["sha256"].as_str().unwrap());
+        assert_eq!(front["before_length"], prior["length"]);
+        assert_eq!(front["before_sha256"], prior["sha256"]);
+        for e in front["edits"].as_array().unwrap() {
+            let at = e[0].as_u64().unwrap() as usize;
+            let from = e[1].as_str().unwrap().as_bytes();
+            assert_eq!(physical.get(at..at + from.len()), Some(from));
+            physical.splice(at..at + from.len(), e[2].as_str().unwrap().bytes());
+        }
+        assert_eq!(physical.len() as u64, prior["length"]);
+        assert_eq!(digest(&physical), prior["sha256"].as_str().unwrap());
+    }
+    let supplied = if supplied == physical_full.as_slice() {
+        physical.as_slice()
+    } else {
+        supplied
+    };
     let mut acquired = physical.clone();
     if let Some(stage) = stages.iter().find(|r| r["path"] == path) {
         assert_eq!(physical.len() as u64, stage["length"]);
@@ -700,7 +744,7 @@ pub(crate) fn census_source_before(path: &str, supplied: &[u8]) -> Vec<u8> {
         row["before_length"].as_u64().unwrap()
     );
     assert_eq!(digest(&restored), row["before_sha256"].as_str().unwrap());
-    assert_eq!(std::fs::read(root.join(path)).unwrap(), physical);
+    assert_eq!(std::fs::read(root.join(path)).unwrap(), physical_full);
     assert_eq!(
         std::fs::read(root.join("src/cleanup_plan/replay/path_join/census_transport.json"))
             .unwrap()
@@ -708,4 +752,69 @@ pub(crate) fn census_source_before(path: &str, supplied: &[u8]) -> Vec<u8> {
         encoded.as_slice()
     );
     restored
+}
+
+// Only these two full-current owners changed at the field-local boundary.
+// The complete fixed packet and physical source authenticate before projection;
+// older packets/targets remain authoritative for every subsequent inverse.
+fn field_local_census_before(path: &str, current: &[u8]) -> Vec<u8> {
+    use sha2::{Digest, Sha256};
+    let digest = |bytes: &[u8]| format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)));
+    let compiled: &[u8] = match path {
+        "src/cleanup_plan/replay/path_join.rs" => {
+            include_bytes!("../cleanup_plan/replay/path_join.rs")
+        }
+        "src/cleanup_plan/replay/path_join/shared_insertions_tests.rs" => {
+            include_bytes!("../cleanup_plan/replay/path_join/shared_insertions_tests.rs")
+        }
+        _ => return current.to_vec(),
+    };
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let physical = std::fs::read(root.join(path)).unwrap();
+    assert_eq!(physical, compiled);
+    assert_eq!(current, compiled);
+    let packet = include_bytes!("../cleanup_plan/replay/path_join/field_local/inverse.json");
+    assert_eq!(packet.len(), 50066);
+    assert_eq!(
+        digest(packet),
+        "1b4669774150209c555179917fcbb6b4e783a58513d471099800095b79b0ea98"
+    );
+    assert_eq!(
+        std::fs::read(root.join("src/cleanup_plan/replay/path_join/field_local/inverse.json"))
+            .unwrap(),
+        packet
+    );
+    let data: serde_json::Value = serde_json::from_slice(packet).unwrap();
+    assert_eq!(data["schema"], "semaprax.ordinary-field-local-source.v1");
+    assert_eq!(data["base"], "b23f09dd902d2fd79078acd9f07ff35d70e06a21");
+    let rows = data["acquisitions"].as_array().unwrap();
+    let owners = [
+        "src/cleanup_plan/replay/path_join.rs",
+        "src/cleanup_plan/replay/path_join/fused_tests.rs",
+        "src/cleanup_plan/replay/path_join/direct_one_tests.rs",
+        "src/cleanup_plan/replay/path_join/shared_insertions_tests.rs",
+    ];
+    assert_eq!(rows.len(), owners.len());
+    for (row, owner) in rows.iter().zip(owners) {
+        assert_eq!(row["path"], owner);
+    }
+    let row = rows.iter().find(|r| r["path"] == path).unwrap();
+    assert_eq!(physical.len() as u64, row["length"]);
+    assert_eq!(digest(&physical), row["sha256"].as_str().unwrap());
+    let mut before = physical.clone();
+    for edit in row["edits"].as_array().unwrap() {
+        let at = edit[0].as_u64().unwrap() as usize;
+        let from = edit[1].as_str().unwrap().as_bytes();
+        assert_eq!(before.get(at..at + from.len()), Some(from));
+        before.splice(at..at + from.len(), edit[2].as_str().unwrap().bytes());
+    }
+    assert_eq!(before.len() as u64, row["before_length"]);
+    assert_eq!(digest(&before), row["before_sha256"].as_str().unwrap());
+    assert_eq!(std::fs::read(root.join(path)).unwrap(), compiled);
+    assert_eq!(
+        std::fs::read(root.join("src/cleanup_plan/replay/path_join/field_local/inverse.json"))
+            .unwrap(),
+        packet
+    );
+    before
 }

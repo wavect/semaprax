@@ -292,7 +292,10 @@ fn ordinary_replay(
             None,
         )
     } else {
-        validate_path_states(
+        // The complete immediate field-local predecessor retains this generation's
+        // exact invoice/allocator equation. The shipping arm is exercised against
+        // the full original caller in field_local::tests with its new typed banks.
+        validate_path_states_before_field_local(
             program,
             function,
             &storage,

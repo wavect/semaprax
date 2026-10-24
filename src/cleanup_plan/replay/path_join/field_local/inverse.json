@@ -1,0 +1,548 @@
+{
+  "schema": "semaprax.ordinary-field-local-source.v1",
+  "base": "b23f09dd902d2fd79078acd9f07ff35d70e06a21",
+  "acquisitions": [
+    {
+      "path": "src/cleanup_plan/replay/path_join.rs",
+      "length": 54823,
+      "sha256": "150a45a41255d3460b3955901c60b6b743db50071866fb530d511d89df01c32a",
+      "before_length": 54697,
+      "before_sha256": "d0cd46333a1f4feba0d875e80e53063a4020d7390cb9735f97765d0578637648",
+      "edits": [
+        [
+          54755,
+          "\nmod field_local;\npub(super) use field_local::validate_path_states;\n",
+          ""
+        ],
+        [
+          1146,
+          "#[cfg(test)]\npub(super) fn validate_path_states_before_field_local<E: semantic_refusal::Error>(\n",
+          "pub(super) fn validate_path_states<E: semantic_refusal::Error>(\n"
+        ],
+        [
+          566,
+          "#[cfg(test)]\n",
+          ""
+        ],
+        [
+          502,
+          "#[cfg(test)]\n",
+          ""
+        ]
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/path_join/fused_tests.rs",
+      "length": 43466,
+      "sha256": "cb284c8e0973e911dcbf928d066600ef7f4a9603312da5cf9647b33ac8f86716",
+      "before_length": 42168,
+      "before_sha256": "3067437552ba0d35b2da13b2d80be28adacbf5b085d12df5bb93806fe48ec7cd",
+      "edits": [
+        [
+          36590,
+          "    assert_eq!(std::fs::read(root.join(path)).unwrap(), compiled);\n",
+          "    assert_eq!(std::fs::read(root.join(path)).unwrap(), physical);\n"
+        ],
+        [
+          35303,
+          "    // Admit the closed field-local source epoch only after full actual source\n    // equality; every original eight-row pin/inverse below remains unchanged.\n    let supplied = if supplied.as_bytes() == physical {\n        String::from_utf8(field_local::tests::source_before(path, &physical)).unwrap()\n    } else {\n        supplied\n    };\n    let physical = field_local::tests::source_before(path, &physical);\n",
+          ""
+        ],
+        [
+          13991,
+          "        // Preserve this complete generation equation and full allocator receipt\n        // on its exact immediate field-local predecessor. The new shipping path\n        // has independent full-original/immediate net, work and Drop controls.\n        validate_path_states_before_field_local(\n            p,\n            f,\n            &storage,\n            &leaves,\n            budget,\n            auth.as_ref(),\n            None,\n        )\n",
+          "        validate_path_states(p, f, &storage, &leaves, budget, auth.as_ref(), None)\n"
+        ],
+        [
+          31003,
+          "    // Rust1.97 Darwin's default panic report lazily Box::pins its static\n    // backtrace pthread mutex (8-byte signature +56-byte payload). Initialize\n    // that process-global harness owner before BOTH compiler observations;\n    // measured publication faults still use the unchanged default hook.\n    let report = std::panic::catch_unwind(|| {\n        assert_ne!(\n            2usize, 2usize,\n            \"initialize default panic reporting outside observation\"\n        );\n    });\n    assert!(report.is_err());\n    drop(report);\n",
+          ""
+        ]
+      ],
+      "warm_epoch": {
+        "length": 42701,
+        "sha256": "ea3c6cb8a1f5afe3a16e5ba287f72ece3de5b09a66efd428c09a0e68246cde5d",
+        "from_current": [
+          [
+            36590,
+            "    assert_eq!(std::fs::read(root.join(path)).unwrap(), compiled);\n",
+            "    assert_eq!(std::fs::read(root.join(path)).unwrap(), physical);\n"
+          ],
+          [
+            35303,
+            "    // Admit the closed field-local source epoch only after full actual source\n    // equality; every original eight-row pin/inverse below remains unchanged.\n    let supplied = if supplied.as_bytes() == physical {\n        String::from_utf8(field_local::tests::source_before(path, &physical)).unwrap()\n    } else {\n        supplied\n    };\n    let physical = field_local::tests::source_before(path, &physical);\n",
+            ""
+          ],
+          [
+            13991,
+            "        // Preserve this complete generation equation and full allocator receipt\n        // on its exact immediate field-local predecessor. The new shipping path\n        // has independent full-original/immediate net, work and Drop controls.\n        validate_path_states_before_field_local(\n            p,\n            f,\n            &storage,\n            &leaves,\n            budget,\n            auth.as_ref(),\n            None,\n        )\n",
+            "        validate_path_states(p, f, &storage, &leaves, budget, auth.as_ref(), None)\n"
+          ]
+        ],
+        "to_b23": [
+          [
+            31003,
+            "    // Rust1.97 Darwin's default panic report lazily Box::pins its static\n    // backtrace pthread mutex (8-byte signature +56-byte payload). Initialize\n    // that process-global harness owner before BOTH compiler observations;\n    // measured publication faults still use the unchanged default hook.\n    let report = std::panic::catch_unwind(|| {\n        assert_ne!(\n            2usize, 2usize,\n            \"initialize default panic reporting outside observation\"\n        );\n    });\n    assert!(report.is_err());\n    drop(report);\n",
+            ""
+          ]
+        ]
+      },
+      "prior_b23_acquisition": {
+        "path": "src/cleanup_plan/replay/path_join/fused_tests.rs",
+        "length": 42933,
+        "sha256": "0edfcf0f766e8a102f87079341fb635a241be30cf88877d70520979cb6b6d701",
+        "before_length": 42168,
+        "before_sha256": "3067437552ba0d35b2da13b2d80be28adacbf5b085d12df5bb93806fe48ec7cd",
+        "edits": [
+          [
+            36057,
+            "    assert_eq!(std::fs::read(root.join(path)).unwrap(), compiled);\n",
+            "    assert_eq!(std::fs::read(root.join(path)).unwrap(), physical);\n"
+          ],
+          [
+            34770,
+            "    // Admit the closed field-local source epoch only after full actual source\n    // equality; every original eight-row pin/inverse below remains unchanged.\n    let supplied = if supplied.as_bytes() == physical {\n        String::from_utf8(field_local::tests::source_before(path, &physical)).unwrap()\n    } else {\n        supplied\n    };\n    let physical = field_local::tests::source_before(path, &physical);\n",
+            ""
+          ],
+          [
+            13991,
+            "        // Preserve this complete generation equation and full allocator receipt\n        // on its exact immediate field-local predecessor. The new shipping path\n        // has independent full-original/immediate net, work and Drop controls.\n        validate_path_states_before_field_local(\n            p,\n            f,\n            &storage,\n            &leaves,\n            budget,\n            auth.as_ref(),\n            None,\n        )\n",
+            "        validate_path_states(p, f, &storage, &leaves, budget, auth.as_ref(), None)\n"
+          ]
+        ]
+      }
+    },
+    {
+      "path": "src/cleanup_plan/replay/path_join/direct_one_tests.rs",
+      "length": 13932,
+      "sha256": "fb238ec22ca33eeb1e8d56f39eb1e9dd2260e372bac20d1ba738f1202e9eadfd",
+      "before_length": 13576,
+      "before_sha256": "3bd77c15f526971d408a538c27aaa94f6b80ba2a9671fc00cd8d084312ae5532",
+      "edits": [
+        [
+          2405,
+          "        // Preserve this complete generation equation and full allocator receipt\n        // on its exact immediate field-local predecessor. The new shipping path\n        // has independent full-original/immediate net, work and Drop controls.\n        validate_path_states_before_field_local(\n            p,\n            f,\n            &storage,\n            &leaves,\n            budget,\n            auth.as_ref(),\n            None,\n        )\n",
+          "        validate_path_states(p, f, &storage, &leaves, budget, auth.as_ref(), None)\n"
+        ]
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/path_join/shared_insertions_tests.rs",
+      "length": 23426,
+      "sha256": "113b1a00f336d8c8a1769dfe6e24cd9585b6b534e1f94fa3146c6c03be2de595",
+      "before_length": 23156,
+      "before_sha256": "cf7aab31bb89a7d24f515873c88661666996c7c7c202652e4a751ffbdb9f7621",
+      "edits": [
+        [
+          11548,
+          "        // The complete immediate field-local predecessor retains this generation's\n        // exact invoice/allocator equation. The shipping arm is exercised against\n        // the full original caller in field_local::tests with its new typed banks.\n        validate_path_states_before_field_local(\n",
+          "        validate_path_states(\n"
+        ]
+      ]
+    }
+  ],
+  "shipping": [
+    {
+      "path": "src/cleanup_plan/replay/path_join/field_local/mod.rs",
+      "length": 45210,
+      "sha256": "b564d2289ed80b3ad1b0d4d3f802d9aa2d340895b1c010f026316eaa8527c8af",
+      "before_length": 43663,
+      "before_sha256": "73af34815aca03f38324bb02e26489572725529489ce639884376dfedffa09d5",
+      "edits": [
+        [
+          45210,
+          "",
+          "\ntype ControlKey = (\n    Option<StatusSourceId>,\n    Option<StatusSourceId>,\n    Option<StagedCopyResultSource>,\n    bool,\n    Option<ReturnedSource>,\n);\n\n/// The borrowed prefix is exactly the sorted set previously copied into\n/// `checked`. Keep the complete history union: pairwise checks alone miss a\n/// cycle assembled from three or more individually compatible histories.\n"
+        ],
+        [
+          42149,
+          "                                frontier::insert_owned!(\n                                    PathState,\n                                    incoming_insertions,\n",
+          "                                incoming_insertions.insert_owned(\n"
+        ],
+        [
+          41069,
+          "                            frontier::insert_owned!(\n                                PathState,\n                                incoming_insertions,\n",
+          "                            incoming_insertions.insert_owned(\n"
+        ],
+        [
+          38519,
+          "                            frontier::insert_owned!(\n                                PathState,\n                                incoming_insertions,\n",
+          "                            incoming_insertions.insert_owned(\n"
+        ],
+        [
+          35716,
+          "                        frontier::insert_held!(\n                            PathState,\n                            incoming_insertions,\n",
+          "                        incoming_insertions.insert_held(\n"
+        ],
+        [
+          34180,
+          "                        frontier::insert_owned!(\n                            PathState,\n                            incoming_insertions,\n",
+          "                        incoming_insertions.insert_owned(\n"
+        ],
+        [
+          31053,
+          "                    frontier::insert_held!(\n                        PathState,\n                        incoming_insertions,\n",
+          "                    incoming_insertions.insert_held(\n"
+        ],
+        [
+          28406,
+          "            {\n                direct_one_tests::record_bank();\n                tests::group_block();\n            }\n",
+          "            direct_one_tests::record_bank();\n"
+        ],
+        [
+          26783,
+          "        let Some(tree) = states.many.take() else {\n            unreachable!(\"multiple-state frontier owns its tree\");\n        };\n        for state in *tree {\n",
+          "        for state in states.into_many() {\n"
+        ],
+        [
+          24048,
+          "                                frontier::insert_owned!(\n                                    PathState,\n                                    incoming_insertions,\n",
+          "                                incoming_insertions.insert_owned(\n"
+        ],
+        [
+          22968,
+          "                            frontier::insert_owned!(\n                                PathState,\n                                incoming_insertions,\n",
+          "                            incoming_insertions.insert_owned(\n"
+        ],
+        [
+          20418,
+          "                            frontier::insert_owned!(\n                                PathState,\n                                incoming_insertions,\n",
+          "                            incoming_insertions.insert_owned(\n"
+        ],
+        [
+          17615,
+          "                        frontier::insert_held!(\n                            PathState,\n                            incoming_insertions,\n",
+          "                        incoming_insertions.insert_held(\n"
+        ],
+        [
+          16079,
+          "                        frontier::insert_owned!(\n                            PathState,\n                            incoming_insertions,\n",
+          "                        incoming_insertions.insert_owned(\n"
+        ],
+        [
+          12952,
+          "                    frontier::insert_held!(\n                        PathState,\n                        incoming_insertions,\n",
+          "                    incoming_insertions.insert_held(\n"
+        ],
+        [
+          11073,
+          "            // Take only the Option field into the same named Box slot. The\n            // nonbinding pattern forms no owning expect argument or result.\n            let Some(mut state) = states.one.take() else {\n                unreachable!(\"singleton frontier already selected\");\n",
+          "            // Move into the same named Box slot previously filled by expect;\n            // no Option, iterator, replacement or additional owner is formed.\n            let frontier::Incoming::One(mut state) = states else {\n                unreachable!(\"singleton frontier already selected\")\n"
+        ],
+        [
+          10581,
+          "                match &states.one {\n                    Some(state) => state.as_ref(),\n                    None => unreachable!(\"singleton frontier already selected\"),\n                },\n",
+          "                states.one().as_ref(),\n"
+        ],
+        [
+          10182,
+          "            if exact_join && frontier::incoming_len!(states) != 1 {\n",
+          "            if exact_join && states.len() != 1 {\n"
+        ],
+        [
+          9772,
+          "        if frontier::incoming_len!(states) == 1 {\n",
+          "        if states.len() == 1 {\n"
+        ],
+        [
+          8981,
+          "                .saturating_add(renewal::retained_units(state))\n        } else if let Some(tree) = &states.many {\n            tree.len()\n                .saturating_mul(tree.iter().fold(1_usize, |total, state| {\n                    total\n                        .saturating_add(state.live_order.len())\n                        .saturating_add(renewal::retained_units(state))\n                }))\n        } else {\n            unreachable!(\"nonempty incoming state\")\n",
+          "                .saturating_add(renewal::retained_units(state)),\n            frontier::Incoming::Empty => unreachable!(\"empty frontier already refused\"),\n"
+        ],
+        [
+          8845,
+          "        let join_units = if let Some(state) = &states.one {\n            1_usize\n",
+          "        let join_units = match &states {\n            frontier::Incoming::Many(states) => {\n                states\n                    .len()\n                    .saturating_mul(states.iter().fold(1_usize, |total, state| {\n                        total\n                            .saturating_add(state.live_order.len())\n                            .saturating_add(renewal::retained_units(state))\n                    }))\n            }\n            // The field binding replaces the old fold's &Box callback formal.\n            // Its existing Box/PathState borrow banks remain fully paid.\n            frontier::Incoming::One(state) => 1_usize\n"
+        ],
+        [
+          8316,
+          "        if frontier::incoming_empty!(states) {\n",
+          "        if states.is_empty() {\n"
+        ],
+        [
+          7930,
+          "        {\n            direct_one_tests::record_bank();\n            if let Some(_) = incoming[block_id.0 as usize].one {\n                tests::one_block();\n            } else {\n                tests::many_block();\n            }\n        }\n        let states = &mut incoming[block_id.0 as usize];\n",
+          "        direct_one_tests::record_bank();\n        let states = std::mem::take(&mut incoming[block_id.0 as usize]);\n"
+        ],
+        [
+          7499,
+          "            // Nonbinding field inspection is funded by reserve_directory's\n            // retained per-slot selector bank, before this arm's carriers form.\n            if let Some(_) = incoming[block_id.0 as usize].one {\n                boxed_flow::BLOCK_ONE\n            } else {\n                boxed_flow::BLOCK_MANY\n            },\n",
+          "            boxed_flow::BLOCK_CONTROLS,\n"
+        ],
+        [
+          6108,
+          "    frontier::insert_owned!(\n        PathState,\n        incoming_insertions,\n",
+          "    incoming_insertions.insert_owned(\n"
+        ],
+        [
+          5994,
+          "    let mut incoming_insertions =\n        frontier::ShippingInsertions::<PathState>::acquire(function, budget)?;\n",
+          "    let mut incoming_insertions = frontier::Insertions::<PathState>::acquire(function, budget)?;\n"
+        ],
+        [
+          667,
+          "    #[cfg(test)]\n    tests::begin(function.cleanup_plan.blocks.len());\n",
+          ""
+        ],
+        [
+          268,
+          "pub(in crate::cleanup_plan::replay) fn validate_path_states<E: semantic_refusal::Error>(\n",
+          "pub(super) fn validate_path_states<E: semantic_refusal::Error>(\n"
+        ],
+        [
+          0,
+          "//! Field-local ordinary incoming ownership, retaining the full old driver separately.\nuse super::*;\nmod boxed_flow;\npub(super) mod frontier;\n#[cfg(test)]\npub(super) mod tests;\n\n",
+          ""
+        ]
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/path_join/field_local/frontier.rs",
+      "length": 27979,
+      "sha256": "23f06e15a5df029857034ecca452369cb1ca7be5875a8d90ff919b36602155e3",
+      "before_length": 22575,
+      "before_sha256": "54dc6f27a755399709247f182124d7cd3a8f25070f07c865412587c4c0d93587",
+      "edits": [
+        [
+          27306,
+          "        assert!(self.one.is_none(), \"multiple-state frontier\");\n        match self.many {\n            Some(tree) => *tree,\n            None => BTreeSet::new(),\n        }\n",
+          "        let Self::Many(v) = self else {\n            unreachable!(\"multiple-state frontier\")\n        };\n        v\n"
+        ],
+        [
+          27233,
+          "    #[cfg(test)]\n",
+          ""
+        ],
+        [
+          27138,
+          "        assert!(self.many.is_none(), \"singleton frontier\");\n        self.one.into_iter()\n",
+          "        let Self::One(v) = self else {\n            unreachable!(\"singleton frontier\")\n        };\n        Some(v).into_iter()\n"
+        ],
+        [
+          26808,
+          "        if let Some(v) = self.one.as_ref() {\n            Iter::One(Some(v).into_iter())\n        } else if let Some(tree) = &self.many {\n            Iter::Many(tree.iter())\n        } else {\n            Iter::One(None.into_iter())\n",
+          "        match self {\n            Self::Empty => Iter::One(None.into_iter()),\n            Self::One(v) => Iter::One(Some(v).into_iter()),\n            Self::Many(v) => Iter::Many(v.iter()),\n"
+        ],
+        [
+          26667,
+          "    pub(super) fn is_many(&self) -> bool {\n        self.many.is_some()\n    }\n    #[cfg(test)]\n",
+          ""
+        ],
+        [
+          26559,
+          "    #[cfg(test)]\n",
+          ""
+        ],
+        [
+          26359,
+          "        event(if self.one.is_some() {\n            Event::InputOne\n        } else if self.many.is_none() {\n            Event::InputEmpty\n        } else {\n            Event::InputMany\n",
+          "        event(match self {\n            Self::Empty => Event::InputEmpty,\n            Self::One(_) => Event::InputOne,\n            Self::Many(_) => Event::InputMany,\n"
+        ],
+        [
+          26017,
+          "        if self.one.is_some() {\n            1\n        } else if let Some(tree) = &self.many {\n            tree.len()\n        } else {\n            0\n",
+          "        match self {\n            Self::Empty => 0,\n            Self::One(_) => 1,\n            Self::Many(v) => v.len(),\n"
+        ],
+        [
+          25960,
+          "    #[cfg(test)]\n",
+          ""
+        ],
+        [
+          25899,
+          "        self.one.as_ref().expect(\"singleton frontier\")\n",
+          "        let Self::One(v) = self else {\n            unreachable!(\"singleton frontier\")\n        };\n        v\n"
+        ],
+        [
+          25759,
+          "    #[allow(clippy::borrowed_box, reason = \"borrow the existing singleton Box\")]\n    #[cfg(test)]\n",
+          "    #[allow(\n        clippy::borrowed_box,\n        reason = \"retain the exact existing boxed owner without constructing a tree\"\n    )]\n"
+        ],
+        [
+          25652,
+          "        Self {\n            one: None,\n            many: None,\n        }\n",
+          "        Self::Empty\n"
+        ],
+        [
+          25591,
+          "",
+          "#[allow(\n    clippy::derivable_impls,\n    reason = \"unconditional Default preserves non-Default T and the paid callback receiver contract\"\n)]\n"
+        ],
+        [
+          25316,
+          "pub(super) struct Incoming<T> {\n    // Exactly one field can own states. During promotion both fields remain\n    // empty until the same original sorted tree is completely constructed.\n    pub(super) one: Option<Box<T>>,\n    pub(super) many: Option<Box<BTreeSet<Box<T>>>>,\n",
+          "pub(super) enum Incoming<T> {\n    Empty,\n    One(Box<T>),\n    Many(BTreeSet<Box<T>>),\n"
+        ],
+        [
+          21489,
+          "            self.refusal = Some(ByteFailure {\n                message: std::borrow::Cow::Owned(String::new()),\n            });\n",
+          "            self.refusal = Some(ByteFailure::from_budget(Diagnostic::io(\n                \"SPX-H006\",\n                String::new(),\n            )));\n"
+        ],
+        [
+          20825,
+          "",
+          "        match target {\n            Incoming::Empty => {\n                admit_entry!(\n                    self,\n                    function,\n                    budget,\n                    Self::ENTRY_CONTROLS,\n                    \"compact incoming held state and publication renewal\"\n                );\n                insertion_event!(HeldTransfer);\n                insertion_event!(Empty);\n                *target = Incoming::One(value);\n            }\n            Incoming::One(old) => {\n                if old.as_ref().cmp(value.as_ref()) == std::cmp::Ordering::Equal {\n                    admit_entry!(\n                        self,\n                        function,\n                        budget,\n                        Self::ENTRY_CONTROLS,\n                        \"compact incoming held state and publication renewal\"\n                    );\n                    insertion_event!(Duplicate);\n                } else {\n                    admit_entry!(\n                        self,\n                        function,\n                        budget,\n                        Self::HELD_ONE,\n                        \"compact incoming held state and publication renewal\"\n                    );\n                    insertion_event!(HeldTransfer);\n                    insertion_event!(One);\n                    insertion_event!(Promotion);\n                    #[cfg(test)]\n                    fused_tests::record_promotion();\n                    let Incoming::One(old) = std::mem::take(target) else {\n                        unreachable!()\n                    };\n                    let mut tree = BTreeSet::new();\n                    insertion_event!(TreeInsert);\n                    tree.insert(old);\n                    insertion_event!(TreeInsert);\n                    tree.insert(value);\n                    *target = Incoming::Many(tree);\n                }\n            }\n            Incoming::Many(tree) => {\n                if tree.contains(value.as_ref()) {\n                    admit_entry!(\n                        self,\n                        function,\n                        budget,\n                        Self::ENTRY_CONTROLS,\n                        \"compact incoming held state and publication renewal\"\n                    );\n                    insertion_event!(Duplicate);\n                } else {\n                    admit_entry!(\n                        self,\n                        function,\n                        budget,\n                        Self::HELD_MANY,\n                        \"compact incoming held state and publication renewal\"\n                    );\n                    insertion_event!(HeldTransfer);\n                    insertion_event!(Many);\n                    insertion_event!(TreeInsert);\n                    tree.insert(value);\n                }\n            }\n        }\n        self.entry = true;\n"
+        ],
+        [
+          20699,
+          "        'attempt: {\n            frontier::insert_held_body!(Self, self, function, target, value, budget, 'attempt);\n",
+          "        if self.failed {\n            return;\n"
+        ],
+        [
+          20450,
+          "    #[cfg(test)]\n",
+          ""
+        ],
+        [
+          20444,
+          "",
+          "        match target {\n            Incoming::Empty => {\n                admit_entry!(\n                    self,\n                    function,\n                    budget,\n                    Self::OWNED_EMPTY,\n                    \"compact incoming owned state and publication renewal\"\n                );\n                insertion_event!(OwnedBox);\n                let value = Box::new(value);\n                insertion_event!(Empty);\n                *target = Incoming::One(value);\n            }\n            Incoming::One(old) => {\n                if old.as_ref().cmp(&value) == std::cmp::Ordering::Equal {\n                    admit_entry!(\n                        self,\n                        function,\n                        budget,\n                        Self::ENTRY_CONTROLS,\n                        \"compact incoming owned state and publication renewal\"\n                    );\n                    insertion_event!(Duplicate);\n                } else {\n                    admit_entry!(\n                        self,\n                        function,\n                        budget,\n                        Self::OWNED_ONE,\n                        \"compact incoming owned state and publication renewal\"\n                    );\n                    insertion_event!(OwnedBox);\n                    // Original owned argument construction preceded entering\n                    // publish(), hence also preceded taking the old One owner.\n                    let value = Box::new(value);\n                    insertion_event!(One);\n                    insertion_event!(Promotion);\n                    #[cfg(test)]\n                    fused_tests::record_promotion();\n                    let Incoming::One(old) = std::mem::take(target) else {\n                        unreachable!()\n                    };\n                    let mut tree = BTreeSet::new();\n                    insertion_event!(TreeInsert);\n                    tree.insert(old);\n                    insertion_event!(TreeInsert);\n                    tree.insert(value);\n                    *target = Incoming::Many(tree);\n                }\n            }\n            Incoming::Many(tree) => {\n                if tree.contains(&value) {\n                    admit_entry!(\n                        self,\n                        function,\n                        budget,\n                        Self::ENTRY_CONTROLS,\n                        \"compact incoming owned state and publication renewal\"\n                    );\n                    insertion_event!(Duplicate);\n                } else {\n                    admit_entry!(\n                        self,\n                        function,\n                        budget,\n                        Self::OWNED_MANY,\n                        \"compact incoming owned state and publication renewal\"\n                    );\n                    insertion_event!(OwnedBox);\n                    let value = Box::new(value);\n                    insertion_event!(Many);\n                    insertion_event!(TreeInsert);\n                    tree.insert(value);\n                }\n            }\n        }\n        self.entry = true;\n"
+        ],
+        [
+          20317,
+          "        'attempt: {\n            frontier::insert_owned_body!(Self, self, function, target, value, budget, 'attempt);\n",
+          "        if self.failed {\n            return;\n"
+        ],
+        [
+          20072,
+          "    #[cfg(test)]\n",
+          ""
+        ],
+        [
+          19515,
+          "            self.refusal = Some(ByteFailure {\n                message: std::borrow::Cow::Owned(String::new()),\n            });\n",
+          "            self.refusal = Some(ByteFailure::from_budget(Diagnostic::io(\n                \"SPX-H006\",\n                String::new(),\n            )));\n"
+        ],
+        [
+          18936,
+          "    #[cfg(test)]\n",
+          ""
+        ],
+        [
+          18394,
+          "            {\n                contains_tests::record_entry_bank();\n                tests::entry_bank();\n            }\n",
+          "            contains_tests::record_entry_bank();\n"
+        ],
+        [
+          17658,
+          "    pub(super) const OWNED_ONE: usize = Self::HELD_ONE.saturating_add(Self::BOXED);\n    pub(super) const HELD_MANY: usize = Self::NODE.saturating_add(Self::ENTRY_CONTROLS);\n    pub(super) const OWNED_MANY: usize = Self::HELD_MANY.saturating_add(Self::BOXED);\n",
+          "    const OWNED_ONE: usize = Self::HELD_ONE.saturating_add(Self::BOXED);\n    const HELD_MANY: usize = Self::NODE.saturating_add(Self::ENTRY_CONTROLS);\n    const OWNED_MANY: usize = Self::HELD_MANY.saturating_add(Self::BOXED);\n"
+        ],
+        [
+          17506,
+          "    pub(super) const HELD_ONE: usize = Self::TWO_NODES\n",
+          "    const HELD_ONE: usize = Self::TWO_NODES\n"
+        ],
+        [
+          17355,
+          "    pub(super) const OWNED_EMPTY: usize = Self::ENTRY_CONTROLS.saturating_add(Self::BOXED);\n",
+          "    const OWNED_EMPTY: usize = Self::ENTRY_CONTROLS.saturating_add(Self::BOXED);\n"
+        ],
+        [
+          16018,
+          "    pub(super) const PROMOTION_CONTROLS: usize = 4 * size_of::<Option<Box<T>>>()\n            + 2 * size_of::<&mut Option<Box<T>>>()\n            // Tree new return/local plus Box::new formal and actual heap payload.\n            + 4 * size_of::<BTreeSet<Box<T>>>()\n            // Box constructor result, receiving owner, Some field and publication.\n            + 4 * size_of::<Box<BTreeSet<Box<T>>>>()\n            + 2 * size_of::<Option<Box<BTreeSet<Box<T>>>>>();\n",
+          "    const PROMOTION_CONTROLS: usize =\n        4 * size_of::<Incoming<T>>() + 2 * size_of::<BTreeSet<Box<T>>>();\n"
+        ],
+        [
+          15863,
+          "    // taking the One field, its Option transports and new/moved tree exist.\n",
+          "    // mem::take/default, its moved Incoming and the new/moved BTreeSet exist.\n"
+        ],
+        [
+          15431,
+          "            + 12 * size_of::<bool>()\n",
+          "            + 8 * size_of::<bool>()\n"
+        ],
+        [
+          14976,
+          "            // Many field selection and Box::as_mut actual/formal/returned loans.\n            + size_of::<&mut Option<Box<BTreeSet<Box<T>>>>>\n        > ()\n            + 2 * size_of::<&mut Box<BTreeSet<Box<T>>>>()\n            + 2 * size_of::<&mut BTreeSet<Box<T>>>()\n",
+          ""
+        ],
+        [
+          14749,
+          "            + 2 * size_of::<&mut Option<Box<T>>>()\n",
+          ""
+        ],
+        [
+          14192,
+          "            // Field publication forms only Option<Box>, never an owning\n            // Incoming aggregate. The lexical input receiving local preserves\n            // early value Drop on every refusal, so its Box carrier stays paid.\n            // Every Box constructor/node payment remains independently priced.\n            + 2 * size_of::<Option<Box<T>>>()\n",
+          "            // Empty/Many aggregate publication and the surviving insertion\n            // value transports. The publish formal disappears; owned Box creation\n            // now binds a lexical local, so only one Box carrier is removed.\n            // The One promotion's take/tree carriers are paid in its arm.\n            + 2 * size_of::<Incoming<T>>()\n"
+        ],
+        [
+          13832,
+          "    pub(super) const ENTRY_CONTROLS: usize = if LEXICAL { 0 } else { 2 * size_of::<&mut Self>() }\n",
+          "    const ENTRY_CONTROLS: usize = 2 * size_of::<&mut Self>()\n"
+        ],
+        [
+          13145,
+          "            // Foreign authority retains the exact owned-empty H006 payload.\n            // Its direct String/Cow/compact aggregates replace the removed\n            // Diagnostic::io and from_budget actual/formal gateways. The\n            // independent terminal conversion above remains fully reserved.\n            + 2 * size_of::<String>()\n            + 2 * size_of::<std::borrow::Cow<'static, str>>()\n",
+          "            // A foreign/function/budget rejection still constructs the actual\n            // original Diagnostic before compacting it. This NEW affine call\n            // owns a Diagnostic actual/formal and returned compact carriers;\n            // its bank is separate from the retained failure() conversion.\n            + 2 * size_of::<Diagnostic>()\n"
+        ],
+        [
+          11897,
+          "    // the Diagnostic. Foreign rejection publishes the same owned-empty Cow\n    // only after the actual held ledger rejected storage; no Diagnostic is\n    // constructed and consumed at that private intermediate boundary.\n",
+          "    // the Diagnostic. Foreign rejection still constructs its original Diagnostic\n    // first and compacts only after the actual held ledger rejected storage.\n"
+        ],
+        [
+          11420,
+          "impl<T: Ord, const LEXICAL: bool> Receiving<T, LEXICAL> {\n",
+          "impl<T: Ord> Insertions<T> {\n"
+        ],
+        [
+          11139,
+          "    pub(super) refusal: Option<ByteFailure>,\n    pub(super) entry: bool,\n    pub(super) group_entry: bool,\n    pub(super) function: *const ResolvedFunction,\n    pub(super) budget: *const ReplayBudget,\n    pub(super) ledger: ClassifierLedger,\n",
+          "    refusal: Option<ByteFailure>,\n    entry: bool,\n    group_entry: bool,\n    function: *const ResolvedFunction,\n    budget: *const ReplayBudget,\n    ledger: ClassifierLedger,\n"
+        ],
+        [
+          1247,
+          "macro_rules! insert_owned_body {\n    ($receiver:ty, $owner:ident, $function:ident, $target:ident, $value:ident, $budget:ident, $label:lifetime) => {\n        if $owner.failed {\n            break $label;\n        }\n        if let Some(old) = &mut $target.one {\n            if old.as_ref().cmp(&$value) == std::cmp::Ordering::Equal {\n                frontier::admit_entry!(\n                    $label,\n                    $owner,\n                    $function,\n                    $budget,\n                    <$receiver>::ENTRY_CONTROLS,\n                    \"compact incoming owned state and publication renewal\"\n                );\n                frontier::insertion_event!(Duplicate);\n            } else {\n                frontier::admit_entry!(\n                    $label,\n                    $owner,\n                    $function,\n                    $budget,\n                    <$receiver>::OWNED_ONE,\n                    \"compact incoming owned state and publication renewal\"\n                );\n                frontier::insertion_event!(OwnedBox);\n                // Original owned argument construction preceded entering\n                // publish(), hence also preceded taking the old One owner.\n                let $value = Box::new($value);\n                frontier::insertion_event!(One);\n                frontier::insertion_event!(Promotion);\n                #[cfg(test)]\n                {\n                    fused_tests::record_promotion();\n                    tests::promotion();\n                }\n                let Some(old) = $target.one.take() else {\n                    unreachable!(\"one owner before promotion\");\n                };\n                let mut tree = BTreeSet::new();\n                frontier::insertion_event!(TreeInsert);\n                tree.insert(old);\n                frontier::insertion_event!(TreeInsert);\n                tree.insert($value);\n                $target.many = Some(Box::new(tree));\n            }\n        } else if let Some(tree) = &mut $target.many {\n            let tree = tree.as_mut();\n            if tree.contains(&$value) {\n                frontier::admit_entry!(\n                    $label,\n                    $owner,\n                    $function,\n                    $budget,\n                    <$receiver>::ENTRY_CONTROLS,\n                    \"compact incoming owned state and publication renewal\"\n                );\n                frontier::insertion_event!(Duplicate);\n            } else {\n                frontier::admit_entry!(\n                    $label,\n                    $owner,\n                    $function,\n                    $budget,\n                    <$receiver>::OWNED_MANY,\n                    \"compact incoming owned state and publication renewal\"\n                );\n                frontier::insertion_event!(OwnedBox);\n                let $value = Box::new($value);\n                frontier::insertion_event!(Many);\n                frontier::insertion_event!(TreeInsert);\n                tree.insert($value);\n            }\n        } else {\n            frontier::admit_entry!(\n                $label,\n                $owner,\n                $function,\n                $budget,\n                <$receiver>::OWNED_EMPTY,\n                \"compact incoming owned state and publication renewal\"\n            );\n            frontier::insertion_event!(OwnedBox);\n            let $value = Box::new($value);\n            frontier::insertion_event!(Empty);\n            $target.one = Some($value);\n        }\n        $owner.entry = true;\n    };\n}\nmacro_rules! insert_held_body {\n    ($receiver:ty, $owner:ident, $function:ident, $target:ident, $value:ident, $budget:ident, $label:lifetime) => {\n        if $owner.failed {\n            break $label;\n        }\n        if let Some(old) = &mut $target.one {\n            if old.as_ref().cmp($value.as_ref()) == std::cmp::Ordering::Equal {\n                frontier::admit_entry!(\n                    $label,\n                    $owner,\n                    $function,\n                    $budget,\n                    <$receiver>::ENTRY_CONTROLS,\n                    \"compact incoming held state and publication renewal\"\n                );\n                frontier::insertion_event!(Duplicate);\n            } else {\n                frontier::admit_entry!(\n                    $label,\n                    $owner,\n                    $function,\n                    $budget,\n                    <$receiver>::HELD_ONE,\n                    \"compact incoming held state and publication renewal\"\n                );\n                frontier::insertion_event!(HeldTransfer);\n                frontier::insertion_event!(One);\n                frontier::insertion_event!(Promotion);\n                #[cfg(test)]\n                {\n                    fused_tests::record_promotion();\n                    tests::promotion();\n                }\n                let Some(old) = $target.one.take() else {\n                    unreachable!(\"one owner before promotion\");\n                };\n                let mut tree = BTreeSet::new();\n                frontier::insertion_event!(TreeInsert);\n                tree.insert(old);\n                frontier::insertion_event!(TreeInsert);\n                tree.insert($value);\n                $target.many = Some(Box::new(tree));\n            }\n        } else if let Some(tree) = &mut $target.many {\n            let tree = tree.as_mut();\n            if tree.contains($value.as_ref()) {\n                frontier::admit_entry!(\n                    $label,\n                    $owner,\n                    $function,\n                    $budget,\n                    <$receiver>::ENTRY_CONTROLS,\n                    \"compact incoming held state and publication renewal\"\n                );\n                frontier::insertion_event!(Duplicate);\n            } else {\n                frontier::admit_entry!(\n                    $label,\n                    $owner,\n                    $function,\n                    $budget,\n                    <$receiver>::HELD_MANY,\n                    \"compact incoming held state and publication renewal\"\n                );\n                frontier::insertion_event!(HeldTransfer);\n                frontier::insertion_event!(Many);\n                frontier::insertion_event!(TreeInsert);\n                tree.insert($value);\n            }\n        } else {\n            frontier::admit_entry!(\n                $label,\n                $owner,\n                $function,\n                $budget,\n                <$receiver>::ENTRY_CONTROLS,\n                \"compact incoming held state and publication renewal\"\n            );\n            frontier::insertion_event!(HeldTransfer);\n            frontier::insertion_event!(Empty);\n            $target.one = Some($value);\n        }\n        $owner.entry = true;\n    };\n}\nmacro_rules! authenticate_lexical {\n    ($owner:ident, $function:ident, $budget:ident, $label:lifetime) => {\n        if $owner.failed {\n            break $label;\n        }\n        assert!($owner.entry);\n        $owner.entry = false;\n        // Compare exact receiver identity before querying a possibly foreign\n        // payer. The held ledger poisons only its original owner on mismatch.\n        if $owner.function != std::ptr::from_ref($function)\n            || $owner.budget != std::ptr::from_ref($budget)\n            || !$owner.ledger.current()\n        {\n            $owner.ledger.reject_storage();\n            $owner.refusal = Some(crate::cleanup_plan::replay::physical_budget::ByteFailure {\n                message: std::borrow::Cow::Owned(String::new()),\n            });\n            $owner.failed = true;\n            break $label;\n        }\n        $budget.authenticate_zero_compact_into(\n            $function,\n            \"incoming ownership state authority\",\n            &mut $owner.refusal,\n        );\n        $owner.failed = $owner.refusal.is_some();\n    };\n}\nmacro_rules! insert_owned {\n    ($ty:ty, $owner:ident, $function:ident, $target:expr, $value:expr, $budget:ident $(,)?) => {{\n        // These are the original target/value receiving locals. No owning\n        // Incoming aggregate or insertion/authentication method is forwarded.\n        let target = $target;\n        let value = $value;\n        'attempt: {\n            frontier::authenticate_lexical!($owner, $function, $budget, 'attempt);\n            frontier::insert_owned_body!(frontier::ShippingInsertions<$ty>, $owner, $function, target, value, $budget, 'attempt);\n        }\n    }};\n}\nmacro_rules! insert_held {\n    ($ty:ty, $owner:ident, $function:ident, $target:expr, $value:expr, $budget:ident $(,)?) => {{\n        // These are the original target/value receiving locals. No owning\n        // Incoming aggregate or insertion/authentication method is forwarded.\n        let target = $target;\n        let value = $value;\n        'attempt: {\n            frontier::authenticate_lexical!($owner, $function, $budget, 'attempt);\n            frontier::insert_held_body!(frontier::ShippingInsertions<$ty>, $owner, $function, target, value, $budget, 'attempt);\n        }\n    }};\n}\nmacro_rules! incoming_len {\n    ($target:ident) => {\n        if let Some(_) = $target.one {\n            1\n        } else if let Some(tree) = &$target.many {\n            tree.len()\n        } else {\n            0\n        }\n    };\n}\nmacro_rules! incoming_empty {\n    ($target:ident) => {\n        if let Some(_) = $target.one {\n            false\n        } else if let Some(_) = $target.many {\n            false\n        } else {\n            true\n        }\n    };\n}\npub(super) use {\n    admit_entry, authenticate_lexical, insert_held, insert_held_body, insert_owned,\n    insert_owned_body, insertion_event,\n};\npub(super) use {incoming_empty, incoming_len};\n\n#[cfg(test)]\npub(super) type Insertions<T> = Receiving<T, false>;\npub(super) type ShippingInsertions<T> = Receiving<T, true>;\npub(super) struct Receiving<T, const LEXICAL: bool> {\n",
+          "pub(super) struct Insertions<T> {\n"
+        ],
+        [
+          828,
+          "            {\n                contains_tests::record_entry_bank();\n                tests::entry_bank();\n            }\n",
+          "            contains_tests::record_entry_bank();\n"
+        ],
+        [
+          731,
+          "            break $label;\n",
+          "            return;\n"
+        ],
+        [
+          466,
+          "    ($label:lifetime, $owner:ident, $function:ident, $budget:ident, $bytes:expr, $phase:literal) => {\n",
+          "    ($owner:ident, $function:ident, $budget:ident, $bytes:expr, $phase:literal) => {\n"
+        ]
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/path_join/field_local/boxed_flow.rs",
+      "length": 6465,
+      "sha256": "f390ffa8f79b4add47700fb90703539de4762ac2a4cd5ae7029ce63cae0b2f45",
+      "before_length": 3885,
+      "before_sha256": "e60f54339ffc357e805c8466ea21272bfef62531405ba2f06c0026a3ad390154",
+      "edits": [
+        [
+          2936,
+          "\n// One consumes only its Option field. The nonbinding Some pattern removes\n// expect's owning formal and returned Box; its Box binding uses the unchanged\n// Box bank above. The old whole-Incoming take/default/result carriers are gone.\npub(super) const BLOCK_ONE: usize = BLOCK_COMMON\n    + 4 * size_of::<Option<Box<PathState>>>()\n    + 2 * size_of::<&mut Option<Box<PathState>>>()\n    + size_of::<&mut frontier::Incoming<PathState>>();\n// Many takes only its optional boxed tree and moves the tree into the\n// original IntoIter. The Box allocation was paid at promotion and is retired\n// here; no fresh empty tree is constructed during take.\npub(super) const BLOCK_MANY: usize = BLOCK_COMMON\n    // join_units and both possible incoming_len expressions: four optional\n    // field/pattern loans; three Box deref actual/formal pairs plus two named\n    // pattern bindings. The exact-join second len remains conservatively paid.\n    + 4 * size_of::<&Option<Box<BTreeSet<Box<PathState>>>>>()\n    + 8 * size_of::<&Box<BTreeSet<Box<PathState>>>>()\n    + 4 * size_of::<Option<Box<BTreeSet<Box<PathState>>>>>()\n    + 2 * size_of::<&mut Option<Box<BTreeSet<Box<PathState>>>>>()\n    + 2 * size_of::<Box<BTreeSet<Box<PathState>>>>()\n    + 4 * size_of::<BTreeSet<Box<PathState>>>()\n    + size_of::<&mut frontier::Incoming<PathState>>();\n// Group replay is unchanged, so retain its ENTIRE original block price,\n// including its conservative four Incoming carriers. This exact old enum\n// declaration is a layout-only price anchor; it is never constructed at runtime\n// and cannot grant storage or a credit to the new directory representation.\n#[allow(dead_code, reason = \"retain the exact unchanged group tariff layout\")]\nenum GroupPrice<T> {\n    Empty,\n    One(Box<T>),\n    Many(BTreeSet<Box<T>>),\n}\npub(super) const BLOCK_CONTROLS: usize = BLOCK_COMMON\n    + 4 * size_of::<GroupPrice<PathState>>()\n    + 2 * size_of::<bool>()\n    + 2 * size_of::<&GroupPrice<PathState>>()\n    + 4 * size_of::<usize>();\n",
+          ""
+        ],
+        [
+          2559,
+          "",
+          "    + 4 * size_of::<usize>()\n"
+        ],
+        [
+          2141,
+          "// All non-frontier old block roles survive. The per-directory selector bank\n// precedes the nonbinding One field pattern and is retained for every slot.\nconst BLOCK_COMMON: usize = 2 * size_of::<&BTreeSet<Box<PathState>>>()\n",
+          "pub(super) const BLOCK_CONTROLS: usize = 4 * size_of::<frontier::Incoming<PathState>>()\n    + 2 * size_of::<bool>()\n    + 2 * size_of::<&frontier::Incoming<PathState>>()\n    + 2 * size_of::<&BTreeSet<Box<PathState>>>()\n"
+        ],
+        [
+          1116,
+          "        // Both None field aggregates form on every cold default. No empty\n        // BTreeSet constructor is executed or credited for a singleton.\n        Option<Box<PathState>>,\n        Option<Box<BTreeSet<Box<PathState>>>>,\n        // A validated acyclic CFG reaches each block at most once. These\n        // original block selector loans/scalars are moved ahead of selection,\n        // not refunded; all directory slots retain their unused allowance.\n        &Option<Box<PathState>>,\n        &Option<Box<PathState>>,\n        usize,\n        usize,\n        usize,\n        usize,\n        bool,\n        bool,\n",
+          ""
+        ]
+      ]
+    }
+  ]
+}

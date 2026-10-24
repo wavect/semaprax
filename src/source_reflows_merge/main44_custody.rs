@@ -79,6 +79,19 @@ impl Fixture {
                     (9481, "    let built = build_comparison(program, function, budget, helpers, continuations)?;\n    if budget.payer == AllocationPayer::ActiveBuilder {\n        budget.reserve_bytes(\n            function,\n            paired::entry_controls(),\n            \"paired weighted comparison entry\",\n        )?;\n        if paired::positive(function, &built, budget)? == Some(true) {\n            return Ok(Some(true));\n        }\n    }\n", ""),
                     (9991, "    } = built;\n", "    } = build_comparison(program, function, budget, helpers, continuations)?;\n"),
                 ][..]),
+            ("src/cleanup_plan/replay/factored.rs", "8249547ae7f6fa877064e583e65415f6b9e65931c22eaba8cbb848f687935dc4") => (
+                include_str!("../../src/cleanup_plan/replay/factored.rs"), 55786, "1b28726cdb885c1d07033f71d0e22ae38a8c29ec04c0e314e9f2ecd3a85fa9a2",
+                include_str!("../../e/8249547ae7f6fa877064e583e65415f6b9e65931c22eaba8cbb848f687935dc4"), 52726, &[
+                    (2637, "// Both ordinary builder strategies live with the paid comparison owner.\npub(super) use paired::{fitting_comparison_selected_paid, FITTING_SELECTOR_CONTROLS};\nuse paired::{selected_builder_paid, BUILDER_SELECTOR_CONTROLS};\n\n", ""),
+                    (3002, "// Preserve the selected/reference representation crossover.\n", ""),
+                    (6560, "    let mut selected = if let ReplayBudget {\n        payer: AllocationPayer::ActiveBuilder,\n        ..\n    } = budget\n    {\n        budget.reserve_bytes(\n            function,\n            BUILDER_SELECTOR_CONTROLS,\n            \"ordinary builder representation selector receivers\",\n        )?;\n        selected_builder_paid(\n            function,\n            cfg_paths,\n            semantic_paths,\n            &mut ReplayBudget::new(),\n        )?\n    } else {\n        selected_paid(\n            function,\n            cfg_paths,\n            semantic_paths,\n            &mut ReplayBudget::new(),\n        )?\n    };\n    // Keep both existing selectors above unchanged. Only the ordinary builder\n    // evaluates this nonselection guard; its two bool roles were prepaid in\n    // BUILDER_SELECTOR_CONTROLS before entering the initial selector.\n    if let ReplayBudget {\n        payer: AllocationPayer::ActiveBuilder,\n        ..\n    } = budget\n    {\n        if !selected {\n            // Every fitting header read follows payment of its own bank.\n            budget.reserve_bytes(\n                function,\n                FITTING_SELECTOR_CONTROLS,\n                \"fitting factored comparison selector receivers\",\n            )?;\n            selected =\n                fitting_comparison_selected_paid(function, cfg_paths, semantic_paths, budget)?;\n        }\n    }\n", "    let selected = selected_paid(\n        function,\n        cfg_paths,\n        semantic_paths,\n        &mut ReplayBudget::new(),\n    )?;\n"),
+                    (14807, "        #[cfg(test)]\n        let hir_phase =\n            crate::test_allocation_observer::function_phase_guard(\"factored::canonical_hir_root\");\n", ""),
+                    (15090, "        #[cfg(test)]\n        drop(hir_phase);\n        if let ReplayBudget {\n            payer: AllocationPayer::LegacyUnobserved,\n            ..\n        } = budget\n        {\n            budget.reserve_bytes(\n                function,\n                canonical_shared::inline_singleton::hir_last_use::STORAGE_CALL,\n                \"factored HIR-private release call receiving\",\n            )?;\n            canonical.release_hir_storage(function, budget, hir_root, plan_root)?;\n        } else {\n            budget.reserve_bytes(\n                function,\n                canonical_shared::inline_singleton::hir_last_use::CALL,\n                \"factored HIR-private release call receiving\",\n            )?;\n            canonical.release_hir_private(function, budget, hir_root, plan_root)?;\n        }\n", "        budget.reserve_bytes(\n            function,\n            canonical_shared::inline_singleton::hir_last_use::CALL,\n            \"factored HIR-private release call receiving\",\n        )?;\n        canonical.release_hir_private(function, budget, hir_root, plan_root)?;\n"),
+                    (16195, "        #[cfg(test)]\n        let _plan_phase =\n            crate::test_allocation_observer::function_phase_guard(\"factored::canonical_plan_root\");\n", ""),
+                    (17347, "    #[cfg(test)]\n    let hir_phase =\n        crate::test_allocation_observer::function_phase_guard(\"factored::canonical_hir_root\");\n", ""),
+                    (17680, "    #[cfg(test)]\n    drop(hir_phase);\n    if let ReplayBudget {\n        payer: AllocationPayer::LegacyUnobserved,\n        ..\n    } = budget\n    {\n        budget.reserve_bytes(\n            function,\n            canonical_shared::inline_singleton::hir_last_use::STORAGE_CALL,\n            \"factored HIR-private release call receiving\",\n        )?;\n        canonical.release_hir_storage(function, budget, hir_root, plan_root)?;\n    } else {\n        budget.reserve_bytes(\n            function,\n            canonical_shared::inline_singleton::hir_last_use::CALL,\n            \"factored HIR-private release call receiving\",\n        )?;\n        canonical.release_hir_private(function, budget, hir_root, plan_root)?;\n    }\n", "    budget.reserve_bytes(\n        function,\n        canonical_shared::inline_singleton::hir_last_use::CALL,\n        \"factored HIR-private release call receiving\",\n    )?;\n    canonical.release_hir_private(function, budget, hir_root, plan_root)?;\n"),
+                    (18681, "    #[cfg(test)]\n    let _plan_phase =\n        crate::test_allocation_observer::function_phase_guard(\"factored::canonical_plan_root\");\n", ""),
+                ][..]),
             _ => return (std::borrow::Cow::Borrowed(supplied), Vec::new()),
         };
         let physical_compiled = compiled;
@@ -90,10 +103,18 @@ impl Fixture {
                 "809181e23ff2dd185ba0f28504fa05eea592aa40e94144714c884d997d00d8cc"
                     | "ffca82dfababa42ad8f21b57a51c42d313a769c17dc14115e1a2ac60a103e5c8"
             );
+        let has_current_epoch = source == "src/cleanup_plan/replay/factored.rs"
+            && expected == "82353ce21ba46fb5ae1746e30f837d9f251da7a17bdc53c9ba53355c13d9f4a0";
         let (paired_epoch, prefix_edits) = if has_paired_epoch {
             Self::closure_epoch(
                 source,
                 "82353ce21ba46fb5ae1746e30f837d9f251da7a17bdc53c9ba53355c13d9f4a0",
+                supplied,
+            )
+        } else if has_current_epoch {
+            Self::closure_epoch(
+                source,
+                "8249547ae7f6fa877064e583e65415f6b9e65931c22eaba8cbb848f687935dc4",
                 supplied,
             )
         } else {
@@ -113,6 +134,8 @@ impl Fixture {
             current_file(
                 &if has_paired_epoch {
                     root.join("e/82353ce21ba46fb5ae1746e30f837d9f251da7a17bdc53c9ba53355c13d9f4a0")
+                } else if has_current_epoch {
+                    root.join("e/8249547ae7f6fa877064e583e65415f6b9e65931c22eaba8cbb848f687935dc4")
                 } else {
                     root.join(source)
                 },

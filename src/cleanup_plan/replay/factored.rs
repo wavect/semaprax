@@ -233,6 +233,10 @@ fn compare_with_index_storage<'hir>(
     let _paid_phase =
         budget.paid_phase(crate::workflow_profile::plan_comparison::PaidPhase::FactoredComparison);
 
+    #[cfg(test)]
+    let _canonical_allocation_phase = crate::test_allocation_observer::function_phase_guard(
+        "cleanup_plan::factored::comparison_complete",
+    );
     let BuiltComparison {
         automaton,
         sink,
@@ -407,6 +411,10 @@ fn build_comparison<'hir>(
     let _exclusive_operation = crate::bounded_output::exclusive_debits::operation_guard(
         crate::bounded_output::exclusive_debits::Operation::ReplayFactoredConstruction,
     );
+    #[cfg(test)]
+    let _construction_allocation_phase = crate::test_allocation_observer::function_phase_guard(
+        "cleanup_plan::factored::build_comparison",
+    );
     // Both independent constructors debit skeleton helpers as well as ordinary
     // constructors. Keep one active allowance through the HIR walk AND plan
     // automaton construction; the held program reservation belongs to other
@@ -420,6 +428,10 @@ fn build_comparison<'hir>(
         budget.merge_paths = true;
         #[cfg(test)]
         let _debit_phase = debit_routes::phase(debit_routes::Phase::FactoredHIR);
+        #[cfg(test)]
+        let hir_allocation_phase = crate::test_allocation_observer::function_phase_guard(
+            "cleanup_plan::factored::construct_hir_paths",
+        );
         let hir_paths = hir_skeleton_paths_with_index_storage(
             program,
             function,
@@ -435,9 +447,15 @@ fn build_comparison<'hir>(
             "HIR skeleton",
             hir_paths.as_ref().map(|paths| paths.as_slice()).ok(),
         );
+        #[cfg(test)]
+        drop(hir_allocation_phase);
         let hir_paths = hir_paths?;
         #[cfg(test)]
         let _debit_phase = debit_routes::phase(debit_routes::Phase::HIRAutomaton);
+        #[cfg(test)]
+        let automaton_allocation_phase = crate::test_allocation_observer::function_phase_guard(
+            "cleanup_plan::factored::construct_hir_automaton",
+        );
         let mut automaton = Automaton::default();
         let sink = automaton.node(function, budget)?;
         let success = automaton.end(function, budget, sink, SkeletonTerminal::Success)?;
@@ -484,6 +502,12 @@ fn build_comparison<'hir>(
         early_release::frontier(2, budget);
         #[cfg(test)]
         let _debit_phase = debit_routes::phase(debit_routes::Phase::PLANAutomaton);
+        #[cfg(test)]
+        drop(automaton_allocation_phase);
+        #[cfg(test)]
+        let _plan_allocation_phase = crate::test_allocation_observer::function_phase_guard(
+            "cleanup_plan::factored::construct_plan_automaton",
+        );
         let plan_root = automaton.add_plan(function, success, failure, latch, budget)?;
         #[cfg(test)]
         instrumentation::phase(function, budget, "plan automaton", None);

@@ -128,6 +128,12 @@ def generate(repo,out=None):
   end=close(im,t.end()-1,'{','}');body=inv[t.end():end-1];bm=mask(body);arms={}
   for v in re.finditer(r'\(([^)]*)\)\s*=>\s*\{',bm):arms[v[1].strip()]=body[v.end():close(bm,v.end()-1,'{','}')-1]
   macros[t[1]]=arms
+ hir_inv=inventory_transport(source_text(R/'tests/hir_module_boundaries.rs'));hir_mask=mask(hir_inv)
+ for t in re.finditer(r'macro_rules!\s+(\w+)\s*\{',hir_mask):
+  end=close(hir_mask,t.end()-1,'{','}');body=hir_inv[t.end():end-1];bm=mask(body);arms={}
+  for v in re.finditer(r'\(([^)]*)\)\s*=>\s*\{',bm):arms[v[1].strip()]=body[v.end():close(bm,v.end()-1,'{','}')-1]
+  assert t[1] not in macros or macros[t[1]]==arms,('ambiguous literal inventory macro',t[1])
+  macros[t[1]]=arms
  class Expr:
   def __init__(self,s,base):self.s=s;self.i=0;self.base=base
   def skip(self):

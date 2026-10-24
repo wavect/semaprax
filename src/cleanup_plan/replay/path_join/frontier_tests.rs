@@ -139,7 +139,8 @@ fn each_constructor_one_and_promotion_payment_frontier_preserves_partial_drop_an
     let promotion =
         2 * crate::cleanup_plan::replay::physical_storage::btree_node_upper::<Box<State>, ()>()
             .unwrap()
-            + one;
+            + one
+            + Insertions::<State>::promotion_controls();
     for limit in [
         0,
         acquisition - 1,

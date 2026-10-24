@@ -20,8 +20,10 @@ fn run_driver(
 ) -> (Result<(), Diagnostic>, bool, usize, crate::cleanup_plan::replay::allocation::OracleReceipt) {
     // Reference-only comparison has its own finite account. The actual driver
     // remains ActiveBuilder under the exact ordinary caller limit below.
+    // Cumulative reference work funds the complete pair for both functions;
+    // the original per-receiver ceilings and all work debits remain intact.
     use crate::cleanup_plan::replay::allocation::{opt_in, OracleScope};
-    let scope = OracleScope::open_with_work(1 << 28, 1 << 25)
+    let scope = OracleScope::open_with_work(1 << 28, 1 << 27)
         .expect("explicit independent receiving reference account");
     let selected = opt_in(scope.lease()).expect("one receiving reference account");
     let (result, refused, paid) = crate::bounded_output::with_limit_usage(limit, || {

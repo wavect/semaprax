@@ -4,6 +4,30 @@ use crate::bounded_output::classifier_string::ClassifierLedger;
 use crate::cleanup_plan::replay::physical_budget::ByteFailure;
 use std::{collections::BTreeSet, marker::PhantomData, mem::size_of};
 
+// Lexical renewal has the original payment and one-shot failure frontier.
+// No helper call, result packet, or new argument transport is introduced.
+macro_rules! admit_entry {
+    ($owner:ident, $function:ident, $budget:ident, $bytes:expr, $phase:literal) => {
+        if let Err(error) = $budget.reserve_compact_bytes($function, $bytes, $phase) {
+            $owner.refusal = Some(error);
+            $owner.failed = true;
+            return;
+        }
+        #[cfg(test)]
+        if $budget.pays_allocations() {
+            contains_tests::record_entry_bank();
+        }
+    };
+}
+macro_rules! insertion_event {
+    ($event:ident) => {
+        #[cfg(feature = "unstable-workflow-profiling")]
+        crate::bounded_output::exclusive_debits::path_census::event(
+            crate::bounded_output::exclusive_debits::path_census::Event::$event,
+        );
+    };
+}
+
 pub(super) struct Insertions<T> {
     pub(super) failed: bool,
     refusal: Option<ByteFailure>,
@@ -58,9 +82,18 @@ impl<T: Ord> Insertions<T> {
             + size_of::<&mut Option<ByteFailure>>()
             + size_of::<Result<(), ByteFailure>>()
             + ClassifierLedger::current_receiving_controls()
-            + 6 * size_of::<Incoming<T>>()
-            + 6 * size_of::<Box<T>>()
-            + 2 * size_of::<BTreeSet<Box<T>>>()
+            // Empty/Many aggregate publication and the surviving insertion
+            // value transports. The publish formal disappears; owned Box creation
+            // now binds a lexical local, so only one Box carrier is removed.
+            // The One promotion's take/tree carriers are paid in its arm.
+            + 2 * size_of::<Incoming<T>>()
+            + 5 * size_of::<Box<T>>()
+            // The fused mutable variant binds One/Many receivers. Their shared
+            // cmp/contains reborrows are distinct from the retained old loans.
+            + size_of::<&mut Box<T>>()
+            + size_of::<&mut BTreeSet<Box<T>>>()
+            + 2 * size_of::<&Box<T>>()
+            + 2 * size_of::<&BTreeSet<Box<T>>>()
             + 3 * size_of::<usize>()
             // contains result + named duplicate, each branch predicate and
             // match selector. The renewed bank precedes all warm hits too.
@@ -71,6 +104,15 @@ impl<T: Ord> Insertions<T> {
             // contains callee's independent formal &Incoming no longer exists.
             + size_of::<&Incoming<T>>()
             + 2 * size_of::<&T>();
+    // Paid only after a distinct One value has been compared and before
+    // mem::take/default, its moved Incoming and the new/moved BTreeSet exist.
+    // No old NODE/BOXED payment or unused common entry is credited/refunded.
+    const PROMOTION_CONTROLS: usize =
+        4 * size_of::<Incoming<T>>() + 2 * size_of::<BTreeSet<Box<T>>>();
+    #[cfg(test)]
+    pub(super) fn promotion_controls() -> usize {
+        Self::PROMOTION_CONTROLS
+    }
     pub(super) fn entry_controls() -> usize {
         Self::ENTRY_CONTROLS
     }
@@ -89,7 +131,9 @@ impl<T: Ord> Insertions<T> {
     const BOXED: usize = size_of::<T>().saturating_add(2 * size_of::<Box<T>>());
     const OWNED_EMPTY: usize = Self::ENTRY_CONTROLS.saturating_add(Self::BOXED);
     const TWO_NODES: usize = Self::NODE.saturating_mul(2);
-    const HELD_ONE: usize = Self::TWO_NODES.saturating_add(Self::ENTRY_CONTROLS);
+    const HELD_ONE: usize = Self::TWO_NODES
+        .saturating_add(Self::ENTRY_CONTROLS)
+        .saturating_add(Self::PROMOTION_CONTROLS);
     const OWNED_ONE: usize = Self::HELD_ONE.saturating_add(Self::BOXED);
     const HELD_MANY: usize = Self::NODE.saturating_add(Self::ENTRY_CONTROLS);
     const OWNED_MANY: usize = Self::HELD_MANY.saturating_add(Self::BOXED);
@@ -160,45 +204,82 @@ impl<T: Ord> Insertions<T> {
         if self.failed {
             return;
         }
-        let duplicate = match &*target {
-            Incoming::Empty => false,
-            Incoming::One(old) => old.as_ref().cmp(&value) == std::cmp::Ordering::Equal,
-            Incoming::Many(v) => v.contains(&value),
-        };
-        let bytes = if duplicate {
-            Self::ENTRY_CONTROLS
-        } else {
-            match target {
-                Incoming::Empty => Self::OWNED_EMPTY,
-                Incoming::One(_) => Self::OWNED_ONE,
-                Incoming::Many(_) => Self::OWNED_MANY,
+        match target {
+            Incoming::Empty => {
+                admit_entry!(
+                    self,
+                    function,
+                    budget,
+                    Self::OWNED_EMPTY,
+                    "compact incoming owned state and publication renewal"
+                );
+                insertion_event!(OwnedBox);
+                let value = Box::new(value);
+                insertion_event!(Empty);
+                *target = Incoming::One(value);
             }
-        };
-        if let Err(error) = budget.reserve_compact_bytes(
-            function,
-            bytes,
-            "compact incoming owned state and publication renewal",
-        ) {
-            self.refusal = Some(error);
-            self.failed = true;
-            return;
-        }
-        #[cfg(test)]
-        if budget.pays_allocations() {
-            contains_tests::record_entry_bank();
-        }
-        #[cfg(feature = "unstable-workflow-profiling")]
-        if duplicate {
-            crate::bounded_output::exclusive_debits::path_census::event(
-                crate::bounded_output::exclusive_debits::path_census::Event::Duplicate,
-            );
-        }
-        if !duplicate {
-            #[cfg(feature = "unstable-workflow-profiling")]
-            crate::bounded_output::exclusive_debits::path_census::event(
-                crate::bounded_output::exclusive_debits::path_census::Event::OwnedBox,
-            );
-            target.publish(Box::new(value));
+            Incoming::One(old) => {
+                if old.as_ref().cmp(&value) == std::cmp::Ordering::Equal {
+                    admit_entry!(
+                        self,
+                        function,
+                        budget,
+                        Self::ENTRY_CONTROLS,
+                        "compact incoming owned state and publication renewal"
+                    );
+                    insertion_event!(Duplicate);
+                } else {
+                    admit_entry!(
+                        self,
+                        function,
+                        budget,
+                        Self::OWNED_ONE,
+                        "compact incoming owned state and publication renewal"
+                    );
+                    insertion_event!(OwnedBox);
+                    // Original owned argument construction preceded entering
+                    // publish(), hence also preceded taking the old One owner.
+                    let value = Box::new(value);
+                    insertion_event!(One);
+                    insertion_event!(Promotion);
+                    #[cfg(test)]
+                    fused_tests::record_promotion();
+                    let Incoming::One(old) = std::mem::take(target) else {
+                        unreachable!()
+                    };
+                    let mut tree = BTreeSet::new();
+                    insertion_event!(TreeInsert);
+                    tree.insert(old);
+                    insertion_event!(TreeInsert);
+                    tree.insert(value);
+                    *target = Incoming::Many(tree);
+                }
+            }
+            Incoming::Many(tree) => {
+                if tree.contains(&value) {
+                    admit_entry!(
+                        self,
+                        function,
+                        budget,
+                        Self::ENTRY_CONTROLS,
+                        "compact incoming owned state and publication renewal"
+                    );
+                    insertion_event!(Duplicate);
+                } else {
+                    admit_entry!(
+                        self,
+                        function,
+                        budget,
+                        Self::OWNED_MANY,
+                        "compact incoming owned state and publication renewal"
+                    );
+                    insertion_event!(OwnedBox);
+                    let value = Box::new(value);
+                    insertion_event!(Many);
+                    insertion_event!(TreeInsert);
+                    tree.insert(value);
+                }
+            }
         }
         self.entry = true;
     }
@@ -213,45 +294,77 @@ impl<T: Ord> Insertions<T> {
         if self.failed {
             return;
         }
-        let duplicate = match &*target {
-            Incoming::Empty => false,
-            Incoming::One(old) => old.as_ref().cmp(value.as_ref()) == std::cmp::Ordering::Equal,
-            Incoming::Many(v) => v.contains(value.as_ref()),
-        };
-        let bytes = if duplicate {
-            Self::ENTRY_CONTROLS
-        } else {
-            match target {
-                Incoming::Empty => Self::ENTRY_CONTROLS,
-                Incoming::One(_) => Self::HELD_ONE,
-                Incoming::Many(_) => Self::HELD_MANY,
+        match target {
+            Incoming::Empty => {
+                admit_entry!(
+                    self,
+                    function,
+                    budget,
+                    Self::ENTRY_CONTROLS,
+                    "compact incoming held state and publication renewal"
+                );
+                insertion_event!(HeldTransfer);
+                insertion_event!(Empty);
+                *target = Incoming::One(value);
             }
-        };
-        if let Err(error) = budget.reserve_compact_bytes(
-            function,
-            bytes,
-            "compact incoming held state and publication renewal",
-        ) {
-            self.refusal = Some(error);
-            self.failed = true;
-            return;
-        }
-        #[cfg(test)]
-        if budget.pays_allocations() {
-            contains_tests::record_entry_bank();
-        }
-        #[cfg(feature = "unstable-workflow-profiling")]
-        if duplicate {
-            crate::bounded_output::exclusive_debits::path_census::event(
-                crate::bounded_output::exclusive_debits::path_census::Event::Duplicate,
-            );
-        }
-        if !duplicate {
-            #[cfg(feature = "unstable-workflow-profiling")]
-            crate::bounded_output::exclusive_debits::path_census::event(
-                crate::bounded_output::exclusive_debits::path_census::Event::HeldTransfer,
-            );
-            target.publish(value);
+            Incoming::One(old) => {
+                if old.as_ref().cmp(value.as_ref()) == std::cmp::Ordering::Equal {
+                    admit_entry!(
+                        self,
+                        function,
+                        budget,
+                        Self::ENTRY_CONTROLS,
+                        "compact incoming held state and publication renewal"
+                    );
+                    insertion_event!(Duplicate);
+                } else {
+                    admit_entry!(
+                        self,
+                        function,
+                        budget,
+                        Self::HELD_ONE,
+                        "compact incoming held state and publication renewal"
+                    );
+                    insertion_event!(HeldTransfer);
+                    insertion_event!(One);
+                    insertion_event!(Promotion);
+                    #[cfg(test)]
+                    fused_tests::record_promotion();
+                    let Incoming::One(old) = std::mem::take(target) else {
+                        unreachable!()
+                    };
+                    let mut tree = BTreeSet::new();
+                    insertion_event!(TreeInsert);
+                    tree.insert(old);
+                    insertion_event!(TreeInsert);
+                    tree.insert(value);
+                    *target = Incoming::Many(tree);
+                }
+            }
+            Incoming::Many(tree) => {
+                if tree.contains(value.as_ref()) {
+                    admit_entry!(
+                        self,
+                        function,
+                        budget,
+                        Self::ENTRY_CONTROLS,
+                        "compact incoming held state and publication renewal"
+                    );
+                    insertion_event!(Duplicate);
+                } else {
+                    admit_entry!(
+                        self,
+                        function,
+                        budget,
+                        Self::HELD_MANY,
+                        "compact incoming held state and publication renewal"
+                    );
+                    insertion_event!(HeldTransfer);
+                    insertion_event!(Many);
+                    insertion_event!(TreeInsert);
+                    tree.insert(value);
+                }
+            }
         }
         self.entry = true;
     }
@@ -438,56 +551,6 @@ impl<T: Ord> Incoming<T> {
     }
     pub(super) fn is_empty(&self) -> bool {
         self.len() == 0
-    }
-    // Called only after all box, node/split, move, empty replacement and Result
-    // roles have been acquired. On a refused payment no target is taken.
-    fn publish(&mut self, value: Box<T>) {
-        match self {
-            Self::Empty => {
-                #[cfg(feature = "unstable-workflow-profiling")]
-                crate::bounded_output::exclusive_debits::path_census::event(
-                    crate::bounded_output::exclusive_debits::path_census::Event::Empty,
-                );
-                *self = Self::One(value);
-            }
-            Self::One(_) => {
-                #[cfg(feature = "unstable-workflow-profiling")]
-                {
-                    crate::bounded_output::exclusive_debits::path_census::event(
-                        crate::bounded_output::exclusive_debits::path_census::Event::One,
-                    );
-                    crate::bounded_output::exclusive_debits::path_census::event(
-                        crate::bounded_output::exclusive_debits::path_census::Event::Promotion,
-                    );
-                }
-                let Self::One(old) = std::mem::take(self) else {
-                    unreachable!()
-                };
-                let mut tree = BTreeSet::new();
-                #[cfg(feature = "unstable-workflow-profiling")]
-                crate::bounded_output::exclusive_debits::path_census::event(
-                    crate::bounded_output::exclusive_debits::path_census::Event::TreeInsert,
-                );
-                tree.insert(old);
-                #[cfg(feature = "unstable-workflow-profiling")]
-                crate::bounded_output::exclusive_debits::path_census::event(
-                    crate::bounded_output::exclusive_debits::path_census::Event::TreeInsert,
-                );
-                tree.insert(value);
-                *self = Self::Many(tree);
-            }
-            Self::Many(tree) => {
-                #[cfg(feature = "unstable-workflow-profiling")]
-                crate::bounded_output::exclusive_debits::path_census::event(
-                    crate::bounded_output::exclusive_debits::path_census::Event::Many,
-                );
-                #[cfg(feature = "unstable-workflow-profiling")]
-                crate::bounded_output::exclusive_debits::path_census::event(
-                    crate::bounded_output::exclusive_debits::path_census::Event::TreeInsert,
-                );
-                tree.insert(value);
-            }
-        }
     }
     #[cfg(test)]
     pub(super) fn iter(&self) -> Iter<'_, T> {

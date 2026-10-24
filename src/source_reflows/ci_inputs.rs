@@ -257,7 +257,14 @@ fn rows() -> serde_json::Value {
     // immutable CI bodies; each inverse binds every changed literal and offset.
     {
         let row = &mut rows[5];
-        let current = compiled(row["source"].as_str().unwrap()).unwrap().1;
+        let actual_current = compiled(row["source"].as_str().unwrap()).unwrap().1;
+        let (closure_epoch, acquisition) =
+            crate::source_reflows_merge::Main44Fixture::closure_epoch(
+                row["source"].as_str().unwrap(),
+                "9dffc2821b02990bea08f9434b911c9dca98e52af5be26013bc1702916118742",
+                actual_current,
+            );
+        let current = closure_epoch.as_ref();
         assert_eq!(current.len(), 29371);
         assert_eq!(
             digest(current),
@@ -277,8 +284,13 @@ fn rows() -> serde_json::Value {
             .as_array_mut()
             .unwrap()
             .extend(edits.as_array().unwrap().iter().cloned());
-        row["current_length"] = serde_json::json!(current.len());
-        row["current_sha256"] = serde_json::json!(digest(current));
+        row["inverse"].as_array_mut().unwrap().extend(
+            acquisition
+                .iter()
+                .map(|&(at, after, before)| serde_json::json!([at, after, before])),
+        );
+        row["current_length"] = serde_json::json!(actual_current.len());
+        row["current_sha256"] = serde_json::json!(digest(actual_current));
     }
     {
         let row = &mut rows[8];
@@ -320,7 +332,14 @@ fn rows() -> serde_json::Value {
             probe["sha256"],
             "3e3835bc69e3029d4fbfb03639dab27573e3bdd3d8c02ea286a0cc53ea94ea02"
         );
-        let current = compiled(probe["source"].as_str().unwrap()).unwrap().1;
+        let actual_current = compiled(probe["source"].as_str().unwrap()).unwrap().1;
+        let (closure_epoch, acquisition) =
+            crate::source_reflows_merge::Main44Fixture::closure_epoch(
+                probe["source"].as_str().unwrap(),
+                "ffca82dfababa42ad8f21b57a51c42d313a769c17dc14115e1a2ac60a103e5c8",
+                actual_current,
+            );
+        let current = closure_epoch.as_ref();
         assert_eq!(current.len(), 49837);
         assert_eq!(
             digest(current),
@@ -340,8 +359,13 @@ fn rows() -> serde_json::Value {
             .as_array_mut()
             .unwrap()
             .extend(extra.as_array().unwrap().iter().cloned());
-        probe["length"] = serde_json::json!(current.len());
-        probe["sha256"] = serde_json::json!(digest(current));
+        probe["inverse"].as_array_mut().unwrap().extend(
+            acquisition
+                .iter()
+                .map(|&(at, after, before)| serde_json::json!([at, after, before])),
+        );
+        probe["length"] = serde_json::json!(actual_current.len());
+        probe["sha256"] = serde_json::json!(digest(actual_current));
     }
     for probe in probes.as_array().unwrap() {
         let row = rows
@@ -887,12 +911,26 @@ pub(super) fn batch_913_entry(source: &str, supplied: &str) -> Option<String> {
         ]),
         _ => return None,
     };
-    assert_eq!(supplied, compiled, "complete current batch source");
+    let physical_compiled = compiled;
+    let (closure_epoch, _) =
+        crate::source_reflows_merge::Main44Fixture::closure_epoch(source, expected, compiled);
+    let compiled = closure_epoch.as_ref();
+    assert_eq!(supplied, physical_compiled, "complete current batch source");
     assert_eq!(compiled.len(), length);
     assert_eq!(digest(compiled), expected);
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     assert_eq!(
-        reader::read(&root.join(source), length, expected, 2_097_152).unwrap(),
+        reader::read(
+            &if source == "src/hir/validation/lexical_exit.rs" {
+                root.join("e").join(expected)
+            } else {
+                root.join(source)
+            },
+            length,
+            expected,
+            2_097_152,
+        )
+        .unwrap(),
         compiled
     );
     if source == "src/hir/validation/scope_checkpoint/marks.rs" {

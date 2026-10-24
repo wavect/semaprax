@@ -47,7 +47,61 @@ const OWNED_LEXICAL: &str = r#"module selected.schema.owned_lexical;
 }
 "#;
 fn program(source: &str) -> ResolvedProgram {
-    crate::hir::resolve(&crate::check(source, "selected-path-family.spx").unwrap()).unwrap()
+    let parsed = crate::parse(source, "selected-path-family.spx").unwrap();
+    if parsed
+        .functions
+        .iter()
+        .any(|function| function.name == "main")
+    {
+        return crate::hir::resolve(&crate::check(source, "selected-path-family.spx").unwrap())
+            .unwrap();
+    }
+    // Keep the complete original library and both exact public refusals. Its
+    // owning success is a real project import/call, never an appended entry.
+    assert_eq!(source, OWNED_LEXICAL, "closed selected library fixture");
+    let rejected = vec![Diagnostic {
+        code: "SPX-T105",
+        severity: crate::diagnostic::Severity::Error,
+        message: "executable module must define `fn main() -> i64`".into(),
+        path: Some("selected-path-family.spx".to_owned()),
+        span: Some(parsed.functions[0].span),
+        help: Some("a module without `fn main() -> i64` is a library module: check it through the project that owns it with `semaprax check <project-dir>`, or add `main` to run this file alone".into()),
+    }];
+    assert_eq!(
+        crate::check(source, "selected-path-family.spx").unwrap_err(),
+        rejected
+    );
+    assert_eq!(crate::hir::resolve(&parsed).unwrap_err(), rejected);
+    const CONSUMER: &str = r#"module selected.library.consumer;
+use function @id("family.bytes") from selected.schema.owned_lexical as bytes;
+@id("selected.library.consumer.main") fn main()->i64 {bytes()}
+"#;
+    let sources = [
+        ("selected-path-family.spx", source),
+        ("selected-library-consumer.spx", CONSUMER),
+    ]
+    .into_iter()
+    .map(|(path, text)| crate::workspace_graph::WorkspaceSource {
+        path: path.to_owned(),
+        source: crate::format::canonical(&crate::parse(text, path).unwrap()),
+    })
+    .collect();
+    let project = crate::workspace_graph::build_owned(sources).unwrap();
+    let linked = project
+        .linked_scalar_program_with_roots(
+            "selected.library.consumer",
+            &["family.bytes".to_owned()],
+            crate::project::ProjectProfile::OwnedDataApiV1,
+            false,
+        )
+        .unwrap();
+    assert_eq!(linked.functions.len(), parsed.functions.len() + 1);
+    assert!(linked
+        .functions
+        .iter()
+        .any(|f| f.id.as_str() == "family.bytes"));
+    crate::hir::validate(&linked).unwrap();
+    linked
 }
 fn render(error: Error, function: &ResolvedFunction) -> Diagnostic {
     match error {

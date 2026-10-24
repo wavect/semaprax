@@ -1,0 +1,247 @@
+[
+  {
+    "path": "src/cleanup_plan/replay/path_join.rs",
+    "length": 54697,
+    "sha256": "d0cd46333a1f4feba0d875e80e53063a4020d7390cb9735f97765d0578637648",
+    "before": "src/cleanup_plan/replay/path_join/fused_before/path_join.rs.txt",
+    "before_length": 54380,
+    "before_sha256": "c87e4c4f061f25fedde76f64119ef1a0ece0961f8e411ceff5961d41cc4ab7e2",
+    "edits": [
+      [
+        54400,
+        "\n#[cfg(test)]\n#[allow(\n    dead_code,\n    reason = \"complete immediate-c189 ordinary driver and dependencies\"\n)]\nmod fused_before;\n#[cfg(test)]\n#[allow(\n    dead_code,\n    reason = \"complete byte-exact immediate-c189 insertion producer\"\n)]\nmod fused_before_frontier;\n#[cfg(test)]\nmod fused_tests;\n",
+        ""
+      ],
+      [
+        54239,
+        "#[allow(\n    dead_code,\n    reason = \"complete independently compiled immediate-compact frontier owner\"\n)]\n",
+        "#[allow(dead_code, reason = \"complete independently compiled immediate-compact frontier owner\")]\n"
+      ],
+      [
+        54055,
+        "#[allow(\n    dead_code,\n    reason = \"complete independently compiled immediate-a6 frontier owner\"\n)]\n",
+        "#[allow(dead_code, reason = \"complete independently compiled immediate-a6 frontier owner\")]\n"
+      ]
+    ]
+  },
+  {
+    "path": "src/cleanup_plan/replay/path_join/frontier.rs",
+    "length": 22575,
+    "sha256": "54dc6f27a755399709247f182124d7cd3a8f25070f07c865412587c4c0d93587",
+    "before": "src/cleanup_plan/replay/path_join/fused_before/frontier.rs.txt",
+    "before_length": 20194,
+    "before_sha256": "96f7289e424d786cc87c8d4d02c9d546720f31d81c0d5de98293f71904ffeb25",
+    "edits": [
+      [
+        21419,
+        "",
+        "    // Called only after all box, node/split, move, empty replacement and Result\n    // roles have been acquired. On a refused payment no target is taken.\n    fn publish(&mut self, value: Box<T>) {\n        match self {\n            Self::Empty => {\n                #[cfg(feature = \"unstable-workflow-profiling\")]\n                crate::bounded_output::exclusive_debits::path_census::event(\n                    crate::bounded_output::exclusive_debits::path_census::Event::Empty,\n                );\n                *self = Self::One(value);\n            }\n            Self::One(_) => {\n                #[cfg(feature = \"unstable-workflow-profiling\")]\n                {\n                    crate::bounded_output::exclusive_debits::path_census::event(\n                        crate::bounded_output::exclusive_debits::path_census::Event::One,\n                    );\n                    crate::bounded_output::exclusive_debits::path_census::event(\n                        crate::bounded_output::exclusive_debits::path_census::Event::Promotion,\n                    );\n                }\n                let Self::One(old) = std::mem::take(self) else {\n                    unreachable!()\n                };\n                let mut tree = BTreeSet::new();\n                #[cfg(feature = \"unstable-workflow-profiling\")]\n                crate::bounded_output::exclusive_debits::path_census::event(\n                    crate::bounded_output::exclusive_debits::path_census::Event::TreeInsert,\n                );\n                tree.insert(old);\n                #[cfg(feature = \"unstable-workflow-profiling\")]\n                crate::bounded_output::exclusive_debits::path_census::event(\n                    crate::bounded_output::exclusive_debits::path_census::Event::TreeInsert,\n                );\n                tree.insert(value);\n                *self = Self::Many(tree);\n            }\n            Self::Many(tree) => {\n                #[cfg(feature = \"unstable-workflow-profiling\")]\n                crate::bounded_output::exclusive_debits::path_census::event(\n                    crate::bounded_output::exclusive_debits::path_census::Event::Many,\n                );\n                #[cfg(feature = \"unstable-workflow-profiling\")]\n                crate::bounded_output::exclusive_debits::path_census::event(\n                    crate::bounded_output::exclusive_debits::path_census::Event::TreeInsert,\n                );\n                tree.insert(value);\n            }\n        }\n    }\n"
+      ],
+      [
+        13270,
+        "            Incoming::One(old) => {\n                if old.as_ref().cmp(value.as_ref()) == std::cmp::Ordering::Equal {\n                    admit_entry!(\n                        self,\n                        function,\n                        budget,\n                        Self::ENTRY_CONTROLS,\n                        \"compact incoming held state and publication renewal\"\n                    );\n                    insertion_event!(Duplicate);\n                } else {\n                    admit_entry!(\n                        self,\n                        function,\n                        budget,\n                        Self::HELD_ONE,\n                        \"compact incoming held state and publication renewal\"\n                    );\n                    insertion_event!(HeldTransfer);\n                    insertion_event!(One);\n                    insertion_event!(Promotion);\n                    #[cfg(test)]\n                    fused_tests::record_promotion();\n                    let Incoming::One(old) = std::mem::take(target) else {\n                        unreachable!()\n                    };\n                    let mut tree = BTreeSet::new();\n                    insertion_event!(TreeInsert);\n                    tree.insert(old);\n                    insertion_event!(TreeInsert);\n                    tree.insert(value);\n                    *target = Incoming::Many(tree);\n                }\n            }\n            Incoming::Many(tree) => {\n                if tree.contains(value.as_ref()) {\n                    admit_entry!(\n                        self,\n                        function,\n                        budget,\n                        Self::ENTRY_CONTROLS,\n                        \"compact incoming held state and publication renewal\"\n                    );\n                    insertion_event!(Duplicate);\n                } else {\n                    admit_entry!(\n                        self,\n                        function,\n                        budget,\n                        Self::HELD_MANY,\n                        \"compact incoming held state and publication renewal\"\n                    );\n                    insertion_event!(HeldTransfer);\n                    insertion_event!(Many);\n                    insertion_event!(TreeInsert);\n                    tree.insert(value);\n                }\n            }\n",
+        "        };\n        if let Err(error) = budget.reserve_compact_bytes(\n            function,\n            bytes,\n            \"compact incoming held state and publication renewal\",\n        ) {\n            self.refusal = Some(error);\n            self.failed = true;\n            return;\n        }\n        #[cfg(test)]\n        if budget.pays_allocations() {\n            contains_tests::record_entry_bank();\n        }\n        #[cfg(feature = \"unstable-workflow-profiling\")]\n        if duplicate {\n            crate::bounded_output::exclusive_debits::path_census::event(\n                crate::bounded_output::exclusive_debits::path_census::Event::Duplicate,\n            );\n        }\n        if !duplicate {\n            #[cfg(feature = \"unstable-workflow-profiling\")]\n            crate::bounded_output::exclusive_debits::path_census::event(\n                crate::bounded_output::exclusive_debits::path_census::Event::HeldTransfer,\n            );\n            target.publish(value);\n"
+      ],
+      [
+        12814,
+        "        match target {\n            Incoming::Empty => {\n                admit_entry!(\n                    self,\n                    function,\n                    budget,\n                    Self::ENTRY_CONTROLS,\n                    \"compact incoming held state and publication renewal\"\n                );\n                insertion_event!(HeldTransfer);\n                insertion_event!(Empty);\n                *target = Incoming::One(value);\n",
+        "        let duplicate = match &*target {\n            Incoming::Empty => false,\n            Incoming::One(old) => old.as_ref().cmp(value.as_ref()) == std::cmp::Ordering::Equal,\n            Incoming::Many(v) => v.contains(value.as_ref()),\n        };\n        let bytes = if duplicate {\n            Self::ENTRY_CONTROLS\n        } else {\n            match target {\n                Incoming::Empty => Self::ENTRY_CONTROLS,\n                Incoming::One(_) => Self::HELD_ONE,\n                Incoming::Many(_) => Self::HELD_MANY,\n"
+      ],
+      [
+        9894,
+        "            Incoming::One(old) => {\n                if old.as_ref().cmp(&value) == std::cmp::Ordering::Equal {\n                    admit_entry!(\n                        self,\n                        function,\n                        budget,\n                        Self::ENTRY_CONTROLS,\n                        \"compact incoming owned state and publication renewal\"\n                    );\n                    insertion_event!(Duplicate);\n                } else {\n                    admit_entry!(\n                        self,\n                        function,\n                        budget,\n                        Self::OWNED_ONE,\n                        \"compact incoming owned state and publication renewal\"\n                    );\n                    insertion_event!(OwnedBox);\n                    // Original owned argument construction preceded entering\n                    // publish(), hence also preceded taking the old One owner.\n                    let value = Box::new(value);\n                    insertion_event!(One);\n                    insertion_event!(Promotion);\n                    #[cfg(test)]\n                    fused_tests::record_promotion();\n                    let Incoming::One(old) = std::mem::take(target) else {\n                        unreachable!()\n                    };\n                    let mut tree = BTreeSet::new();\n                    insertion_event!(TreeInsert);\n                    tree.insert(old);\n                    insertion_event!(TreeInsert);\n                    tree.insert(value);\n                    *target = Incoming::Many(tree);\n                }\n            }\n            Incoming::Many(tree) => {\n                if tree.contains(&value) {\n                    admit_entry!(\n                        self,\n                        function,\n                        budget,\n                        Self::ENTRY_CONTROLS,\n                        \"compact incoming owned state and publication renewal\"\n                    );\n                    insertion_event!(Duplicate);\n                } else {\n                    admit_entry!(\n                        self,\n                        function,\n                        budget,\n                        Self::OWNED_MANY,\n                        \"compact incoming owned state and publication renewal\"\n                    );\n                    insertion_event!(OwnedBox);\n                    let value = Box::new(value);\n                    insertion_event!(Many);\n                    insertion_event!(TreeInsert);\n                    tree.insert(value);\n                }\n            }\n",
+        "        };\n        if let Err(error) = budget.reserve_compact_bytes(\n            function,\n            bytes,\n            \"compact incoming owned state and publication renewal\",\n        ) {\n            self.refusal = Some(error);\n            self.failed = true;\n            return;\n        }\n        #[cfg(test)]\n        if budget.pays_allocations() {\n            contains_tests::record_entry_bank();\n        }\n        #[cfg(feature = \"unstable-workflow-profiling\")]\n        if duplicate {\n            crate::bounded_output::exclusive_debits::path_census::event(\n                crate::bounded_output::exclusive_debits::path_census::Event::Duplicate,\n            );\n        }\n        if !duplicate {\n            #[cfg(feature = \"unstable-workflow-profiling\")]\n            crate::bounded_output::exclusive_debits::path_census::event(\n                crate::bounded_output::exclusive_debits::path_census::Event::OwnedBox,\n            );\n            target.publish(Box::new(value));\n"
+      ],
+      [
+        9399,
+        "        match target {\n            Incoming::Empty => {\n                admit_entry!(\n                    self,\n                    function,\n                    budget,\n                    Self::OWNED_EMPTY,\n                    \"compact incoming owned state and publication renewal\"\n                );\n                insertion_event!(OwnedBox);\n                let value = Box::new(value);\n                insertion_event!(Empty);\n                *target = Incoming::One(value);\n",
+        "        let duplicate = match &*target {\n            Incoming::Empty => false,\n            Incoming::One(old) => old.as_ref().cmp(&value) == std::cmp::Ordering::Equal,\n            Incoming::Many(v) => v.contains(&value),\n        };\n        let bytes = if duplicate {\n            Self::ENTRY_CONTROLS\n        } else {\n            match target {\n                Incoming::Empty => Self::OWNED_EMPTY,\n                Incoming::One(_) => Self::OWNED_ONE,\n                Incoming::Many(_) => Self::OWNED_MANY,\n"
+      ],
+      [
+        6658,
+        "    const HELD_ONE: usize = Self::TWO_NODES\n        .saturating_add(Self::ENTRY_CONTROLS)\n        .saturating_add(Self::PROMOTION_CONTROLS);\n",
+        "    const HELD_ONE: usize = Self::TWO_NODES.saturating_add(Self::ENTRY_CONTROLS);\n"
+      ],
+      [
+        5301,
+        "    // Paid only after a distinct One value has been compared and before\n    // mem::take/default, its moved Incoming and the new/moved BTreeSet exist.\n    // No old NODE/BOXED payment or unused common entry is credited/refunded.\n    const PROMOTION_CONTROLS: usize =\n        4 * size_of::<Incoming<T>>() + 2 * size_of::<BTreeSet<Box<T>>>();\n    #[cfg(test)]\n    pub(super) fn promotion_controls() -> usize {\n        Self::PROMOTION_CONTROLS\n    }\n",
+        ""
+      ],
+      [
+        4025,
+        "            // Empty/Many aggregate publication and the surviving insertion\n            // value transports. The publish formal disappears; owned Box creation\n            // now binds a lexical local, so only one Box carrier is removed.\n            // The One promotion's take/tree carriers are paid in its arm.\n            + 2 * size_of::<Incoming<T>>()\n            + 5 * size_of::<Box<T>>()\n            // The fused mutable variant binds One/Many receivers. Their shared\n            // cmp/contains reborrows are distinct from the retained old loans.\n            + size_of::<&mut Box<T>>()\n            + size_of::<&mut BTreeSet<Box<T>>>()\n            + 2 * size_of::<&Box<T>>()\n            + 2 * size_of::<&BTreeSet<Box<T>>>()\n",
+        "            + 6 * size_of::<Incoming<T>>()\n            + 6 * size_of::<Box<T>>()\n            + 2 * size_of::<BTreeSet<Box<T>>>()\n"
+      ],
+      [
+        288,
+        "\n// Lexical renewal has the original payment and one-shot failure frontier.\n// No helper call, result packet, or new argument transport is introduced.\nmacro_rules! admit_entry {\n    ($owner:ident, $function:ident, $budget:ident, $bytes:expr, $phase:literal) => {\n        if let Err(error) = $budget.reserve_compact_bytes($function, $bytes, $phase) {\n            $owner.refusal = Some(error);\n            $owner.failed = true;\n            return;\n        }\n        #[cfg(test)]\n        if $budget.pays_allocations() {\n            contains_tests::record_entry_bank();\n        }\n    };\n}\nmacro_rules! insertion_event {\n    ($event:ident) => {\n        #[cfg(feature = \"unstable-workflow-profiling\")]\n        crate::bounded_output::exclusive_debits::path_census::event(\n            crate::bounded_output::exclusive_debits::path_census::Event::$event,\n        );\n    };\n}\n",
+        ""
+      ]
+    ]
+  },
+  {
+    "path": "src/cleanup_plan/replay/path_join/contains_tests.rs",
+    "length": 13861,
+    "sha256": "209e8df77e31f719bb2ce9df981b8e206ecd27beeb143b8028b719490ebc43df",
+    "before": "src/cleanup_plan/replay/path_join/fused_before/contains_tests.rs.txt",
+    "before_length": 13596,
+    "before_sha256": "fa4d4122654ffbdff57700e81f1d5d608fb405db6d6ad6f0290297b89d67f177",
+    "edits": [
+      [
+        10653,
+        "pub(super) fn before_source(path: &str, actual: String) -> String {\n    let mut actual = fused_tests::before_source(path, actual);\n",
+        "pub(super) fn before_source(path: &str, mut actual: String) -> String {\n    actual = String::from_utf8(crate::bounded_output::census_source_before(\n        path,\n        actual.as_bytes(),\n    ))\n    .unwrap();\n"
+      ],
+      [
+        9996,
+        "        new.2\n            .checked_add(new.3 * entry_delta::<State>())\n            .and_then(|n| n.checked_sub(2 * fused_tests::promotion::<State>())),\n",
+        "        new.2.checked_add(new.3 * entry_delta::<State>()),\n"
+      ],
+      [
+        1621,
+        "        assert_eq!(\n            old[i].checked_add(if i == 2 || i == 3 {\n                fused_tests::promotion::<T>()\n            } else {\n                0\n            }),\n            new[i].checked_add(removed)\n        );\n",
+        "        assert_eq!(old[i], new[i] + removed);\n"
+      ],
+      [
+        972,
+        "    let removed = size_of::<&frontier::Incoming<T>>() + fused_tests::common_saving::<T>();\n",
+        "    let removed = size_of::<&frontier::Incoming<T>>();\n"
+      ],
+      [
+        820,
+        "    fused_tests::reset_promotions();\n",
+        ""
+      ]
+    ]
+  },
+  {
+    "path": "src/cleanup_plan/replay/path_join/shared_insertions_tests.rs",
+    "length": 20953,
+    "sha256": "4c9dc6a817b74cd8f056694ce277298fe5bc3d082258a8e8c8d538a7e3db53c8",
+    "before": "src/cleanup_plan/replay/path_join/fused_before/shared_insertions_tests.rs.txt",
+    "before_length": 20946,
+    "before_sha256": "17d6edc4cfeca1b7e67167d321d031a31473599c5c83cf7508ccdf3ef1887b91",
+    "edits": [
+      [
+        19280,
+        "        fused_tests::before_source(\n            \"src/cleanup_plan/replay/path_join.rs\",\n            include_str!(\"../path_join.rs\").to_owned()\n        )\n        .split_once(marker)\n        .unwrap()\n        .1,\n",
+        "        std::str::from_utf8(&current)\n            .unwrap()\n            .split_once(marker)\n            .unwrap()\n            .1,\n"
+      ],
+      [
+        19206,
+        "",
+        "    let current = crate::bounded_output::census_before(\n        \"src/cleanup_plan/replay/path_join.rs\",\n        include_bytes!(\"../path_join.rs\"),\n    );\n"
+      ],
+      [
+        13032,
+        "            let entry_removed = fused_tests::prior_entry_saving::<PathState>();\n",
+        "            let entry_removed = contains_tests::paid_banks()\n                .checked_mul(contains_tests::entry_delta::<PathState>())\n                .unwrap();\n"
+      ],
+      [
+        1365,
+        "                    original[i].checked_add(if i == 2 || i == 3 {\n                        fused_tests::promotion::<$t>()\n                    } else {\n                        0\n                    })\n",
+        "                    Some(original[i])\n"
+      ]
+    ]
+  },
+  {
+    "path": "src/cleanup_plan/replay/path_join/compact_failure_tests.rs",
+    "length": 30303,
+    "sha256": "bc40b871deaf4780c60e56d66099086f72fa23be398ab9d17853fbf84f5b6258",
+    "before": "src/cleanup_plan/replay/path_join/fused_before/compact_failure_tests.rs.txt",
+    "before_length": 30102,
+    "before_sha256": "fe1f46359a6d39399a23dfe09878a196a6ee8b3a27d61e1ef8cc20b7af8a2370",
+    "edits": [
+      [
+        3703,
+        "    assert_eq!(\n        new.0 + net + contains_tests::entry_delta::<PathState>(),\n        old.0\n    );\n",
+        "    assert_eq!(new.0 + net + contains_tests::entry_delta::<PathState>(), old.0);\n"
+      ],
+      [
+        2161,
+        "        assert_eq!(\n            old_entry_prices[i].checked_add(if i == 2 || i == 3 {\n                fused_tests::promotion::<T>()\n            } else {\n                0\n            }),\n            new_entry_prices[i].checked_add(contains_tests::entry_delta::<T>())\n        );\n",
+        "        assert_eq!(old_entry_prices[i], new_entry_prices[i] + contains_tests::entry_delta::<T>());\n"
+      ]
+    ]
+  },
+  {
+    "path": "src/cleanup_plan/replay/path_join/direct_one_tests.rs",
+    "length": 13576,
+    "sha256": "3bd77c15f526971d408a538c27aaa94f6b80ba2a9671fc00cd8d084312ae5532",
+    "before": "src/cleanup_plan/replay/path_join/fused_before/direct_one_tests.rs.txt",
+    "before_length": 13374,
+    "before_sha256": "45af4bfff1372dfbe9f493fb79c59a035081901170445244f90f5515180b786b",
+    "edits": [
+      [
+        5813,
+        "            eprintln!(\n                \"direct-one {} immediate8caff={} current={} banks={} iterator_removed={} setup_removed={} entry_removed={} physical_before={:?} physical_current={:?}\",\n                f.id,\n                before.2,\n                current.2,\n                banks,\n                removed,\n                setup_removed,\n                entry_removed,\n                before.0.1,\n                current.0.1\n            );\n",
+        "            eprintln!(\"direct-one {} immediate8caff={} current={} banks={} iterator_removed={} setup_removed={} entry_removed={} physical_before={:?} physical_current={:?}\", f.id,before.2,current.2,banks,removed,setup_removed,entry_removed,before.0.1,current.0.1);\n"
+      ],
+      [
+        5506,
+        "                current\n                    .2\n                    .checked_add(removed)\n                    .and_then(|n| n.checked_add(setup_removed))\n                    .and_then(|n| n.checked_add(entry_removed)),\n",
+        "                current.2.checked_add(removed).and_then(|n| n.checked_add(setup_removed)).and_then(|n| n.checked_add(entry_removed)),\n"
+      ],
+      [
+        5402,
+        "            let entry_removed = fused_tests::prior_entry_saving::<PathState>();\n",
+        "            let entry_removed = contains_tests::paid_banks()\n                .checked_mul(contains_tests::entry_delta::<PathState>()).unwrap();\n"
+      ]
+    ]
+  },
+  {
+    "path": "src/cleanup_plan/replay/path_join/frontier_tests.rs",
+    "length": 22107,
+    "sha256": "7423729bfe25901a69b6bebbdb7f954b55a15e350975a9cd6adfe0b8a51d53bf",
+    "before": "src/cleanup_plan/replay/path_join/fused_before/frontier_tests.rs.txt",
+    "before_length": 22051,
+    "before_sha256": "9c5fb6769cc7bc5f6e5518f781095e66c9c4cc0db11ca19b88462b80217e2d1a",
+    "edits": [
+      [
+        5645,
+        "            + one\n            + Insertions::<State>::promotion_controls();\n",
+        "            + one;\n"
+      ]
+    ]
+  },
+  {
+    "path": "src/cleanup_plan/replay/path_join/fused_before.rs",
+    "length": 52598,
+    "sha256": "e2e7a160aa00f2c672ea02142168f99b3d7fdb5a6a91b1f9cdf736c93b3f5006",
+    "before": "src/cleanup_plan/replay/path_join/fused_before/path_join.rs.txt",
+    "before_length": 54380,
+    "before_sha256": "c87e4c4f061f25fedde76f64119ef1a0ece0961f8e411ceff5961d41cc4ab7e2",
+    "edits": [
+      [
+        52598,
+        "",
+        "\n#[cfg(test)]\nmod before_singleton;\n#[cfg(test)]\nmod singleton_tests;\n\n#[cfg(test)]\n#[path = \"path_join/main_single_groups/mod.rs\"]\nmod main_single_groups;\n\n#[cfg(test)]\nmod before_state_move;\n#[cfg(test)]\nmod state_move_tests;\n\n#[cfg(test)]\nmod before_final_edge;\n#[cfg(test)]\nmod final_edge_tests;\n\n#[cfg(test)]\n#[allow(dead_code, reason = \"complete immediate old path boundary receiver\")]\npub(in crate::cleanup_plan::replay) mod before_path_boundary;\n\npub(in crate::cleanup_plan::replay) mod selected;\n\n#[cfg(test)]\n#[allow(\n    dead_code,\n    reason = \"complete immediate old singleton receiving driver and helpers\"\n)]\nmod direct_one_before;\n#[cfg(test)]\nmod direct_one_tests;\n\n#[cfg(test)]\n#[allow(dead_code, reason = \"complete independently compiled immediate-a6 frontier owner\")]\nmod compact_failure_before;\n#[cfg(test)]\nmod compact_failure_tests;\n\n#[cfg(test)]\n#[allow(dead_code, reason = \"complete independently compiled immediate-compact frontier owner\")]\nmod contains_before;\n#[cfg(test)]\nmod contains_tests;\n"
+      ],
+      [
+        44667,
+        "",
+        "#[cfg(test)]\nmod tests;\n\n"
+      ],
+      [
+        256,
+        "#[path = \"storage.rs\"]\nmod storage;\n",
+        "mod frontier;\n#[cfg(test)]\nmod frontier_tests;\n#[cfg(test)]\n#[allow(\n    dead_code,\n    reason = \"complete independently compiled pre-inline receiving producers\"\n)]\nmod held_edge_before;\n#[cfg(test)]\nmod held_edge_tests;\n#[cfg(test)]\nmod receiver_tests;\n#[cfg(test)]\n#[allow(\n    dead_code,\n    reason = \"complete independently executable immediate-92d insertion predecessors\"\n)]\nmod shared_insertions_before;\n#[cfg(test)]\nmod shared_insertions_tests;\npub(super) mod storage;\n"
+      ],
+      [
+        212,
+        "#[path = \"branch_join.rs\"]\n",
+        "mod boxed_states;\n"
+      ],
+      [
+        170,
+        "#[path = \"boxed_flow.rs\"]\n",
+        "#[cfg(test)]\n#[allow(dead_code, reason = \"complete original path-state replay receiver\")]\nmod before;\n#[cfg(test)]\n#[allow(\n    dead_code,\n    reason = \"complete immediate-old ordinary frontier and direct dependencies\"\n)]\nmod before_frontier;\n#[cfg(test)]\n#[allow(dead_code, reason = \"complete MAIN019d callback receiver\")]\n#[path = \"path_join/before_receiving.rs\"]\nmod before_receiving;\n"
+      ],
+      [
+        0,
+        "//! Complete immediate-c189 ordinary driver; its frontier is independently compiled.\nuse super::fused_before_frontier as frontier;\n",
+        "//! Topological cleanup-CFG replay and ownership-only join normalization.\n\n"
+      ]
+    ]
+  }
+]

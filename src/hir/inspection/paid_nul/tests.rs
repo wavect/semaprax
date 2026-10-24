@@ -273,6 +273,34 @@ fn borrowed_execution_text_has_exact_serialized_nul_verdict_without_key_acquisit
     }
 }
 
+// Complete physical sources precede the unchanged four original audit inverses.
+fn audit_source_before(path: &str, supplied: &str) -> String {
+    use sha2::{Digest, Sha256};
+    let hash = |b: &[u8]| format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(b)));
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let packet = include_str!("reuse_before/audit_acquisition.json");
+    assert_eq!(std::fs::read(root.join("src/hir/inspection/paid_nul/reuse_before/audit_acquisition.json")).unwrap(), packet.as_bytes());
+    assert_eq!(hash(packet.as_bytes()), "e5fd4db07611e7a45a3b7dd9ee35fa946f74a30b05685c7b57ecdfd69c85692c");
+    let packet: serde_json::Value = serde_json::from_str(packet).unwrap();
+    assert_eq!(packet["schema"], "semaprax.paid-nul-audit-source-acquisition.v1");
+    let targets = [("src/hir/inspection.rs", 52939u64, "5c80d0017ee96a092a80b7fe9c5b2ed263d0a91fe13cfca9a56f9674f27a1252"), ("src/hir/validation/constructor_seed/original.rs", 2250u64, "7869bcbceeee788e1fc5e7b5afba51a39c41e69561dcdb4b802a57d11dbf7804"), ("src/hir/validation/function_lookup/paid_custody.rs", 11113u64, "fa1983be234c53278d09665f762ba44feb15f88240ebd950df4d7f399c7a47ca")];
+    let rows = packet["rows"].as_array().unwrap(); assert_eq!(rows.len(), targets.len());
+    for (row, (name, length, sha)) in rows.iter().zip(targets) { assert_eq!(row["path"], name); assert_eq!(row["before_length"], length); assert_eq!(row["before_sha256"], sha); }
+    let row = rows.iter().find(|r| r["path"] == path).expect("fixed original audit acquisition");
+    let compiled = match path {
+        "src/hir/inspection.rs" => ci_str!("../../inspection.rs"),
+        "src/hir/validation/constructor_seed/original.rs" => ci_str!("../../validation/constructor_seed/original.rs"),
+        "src/hir/validation/function_lookup/paid_custody.rs" => ci_str!("../../validation/function_lookup/paid_custody.rs"),
+        _ => panic!("foreign original audit acquisition"),
+    };
+    assert_eq!(supplied, compiled); assert_eq!(std::fs::read(root.join(path)).unwrap(), compiled.as_bytes());
+    assert_eq!(compiled.len() as u64, row["current_length"]); assert_eq!(hash(compiled.as_bytes()), row["current_sha256"].as_str().unwrap());
+    let mut restored = compiled.to_owned();
+    for e in row["edits"].as_array().unwrap().iter().rev() { let start=e["start"].as_u64().unwrap() as usize; let end=e["end"].as_u64().unwrap() as usize; assert_eq!(&restored[start..end], e["current"].as_str().unwrap()); restored.replace_range(start..end, e["before"].as_str().unwrap()); }
+    assert_eq!(restored, row["full_before"].as_str().unwrap()); assert_eq!(restored.len() as u64, row["before_length"]); assert_eq!(hash(restored.as_bytes()), row["before_sha256"].as_str().unwrap());
+    assert_eq!(std::fs::read(root.join(path)).unwrap(), compiled.as_bytes()); restored
+}
+
 #[test]
 fn complete_nul_receiving_and_saved_constructor_sources_preserve_every_original_byte() {
     use sha2::{Digest, Sha256};
@@ -283,12 +311,12 @@ fn complete_nul_receiving_and_saved_constructor_sources_preserve_every_original_
     .unwrap();
     let paid_nul_before =
         reuse_source_before("src/hir/inspection/paid_nul.rs", ci_str!("../paid_nul.rs"));
-    let currents = [
-        ci_str!("../../inspection.rs"),
-        ci_str!("../../validation/constructor_seed/original.rs"),
-        ci_str!("../../validation/function_lookup/paid_custody.rs"),
-        paid_nul_before.as_str(),
+    let acquired = [
+        audit_source_before("src/hir/inspection.rs", ci_str!("../../inspection.rs")),
+        audit_source_before("src/hir/validation/constructor_seed/original.rs", ci_str!("../../validation/constructor_seed/original.rs")),
+        audit_source_before("src/hir/validation/function_lookup/paid_custody.rs", ci_str!("../../validation/function_lookup/paid_custody.rs")),
     ];
+    let currents = [acquired[0].as_str(), acquired[1].as_str(), acquired[2].as_str(), paid_nul_before.as_str()];
     let originals = [
         ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/paid-nul-audit-824/src__hir__inspection.rs.before.txt")),
         ci_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/paid-nul-audit-824/src__hir__validation__constructor_seed__original.rs.before.txt")),
@@ -573,7 +601,13 @@ fn invocation_pending_reuse_exact_short_zero_sticky_and_scope_isolation() {
         measure(|| {
             validate_nul_free_identities(&p).unwrap();
             let child = with_limit_usage_refusal(exact, || validate_nul_free_identities(&p));
-            assert!(child.0.is_ok() && !child.1 && child.2 == exact && child.3.is_none());
+            // The child inherits min(requested, parent remaining), which is
+            // zero after the parent's exact audit. Retain this real refusal.
+            assert_eq!(child.0.unwrap_err(), text::refused());
+            assert!(child.1 && child.2 == 0);
+            let first = child.3.unwrap();
+            assert_eq!(first.requested, REUSE_SELECTION + type_scratch::HEADER);
+            assert_eq!((first.remaining, first.floor), (0, 0));
             assert!(!crate::bounded_output::reserve_active_required(1));
             assert_eq!(
                 validate_nul_free_identities(&p).unwrap_err(),
@@ -582,6 +616,23 @@ fn invocation_pending_reuse_exact_short_zero_sticky_and_scope_isolation() {
         })
     });
     assert!(refused && paid == exact && first.unwrap().requested == 1);
+    assert!(!physical.invalid && physical.live == 0 && physical.allocated == physical.freed);
+    // Separately fund both actual audits to exercise successful nested scope
+    // restoration. This is their exact summed invoice, not a larger quota.
+    let both = exact.checked_mul(2).unwrap();
+    let (((), physical), refused, paid, first) = with_limit_usage_refusal(both, || {
+        measure(|| {
+            validate_nul_free_identities(&p).unwrap();
+            let child = with_limit_usage_refusal(exact, || validate_nul_free_identities(&p));
+            assert!(child.0.is_ok() && !child.1 && child.2 == exact && child.3.is_none());
+            assert!(!crate::bounded_output::reserve_active_required(1));
+            assert_eq!(
+                validate_nul_free_identities(&p).unwrap_err(),
+                text::refused()
+            );
+        })
+    });
+    assert!(refused && paid == both && first.unwrap().requested == 1);
     assert!(!physical.invalid && physical.live == 0 && physical.allocated == physical.freed);
     assert_eq!(reuse_observe(&p, false, exact).3, exact);
 }

@@ -24,12 +24,13 @@ pub(super) fn record_entry_bank() {
 }
 pub(super) fn reset_banks() {
     BANKS.with(|n| n.set(0));
+    fused_tests::reset_promotions();
 }
 pub(super) fn paid_banks() -> usize {
     BANKS.with(Cell::get)
 }
 pub(super) fn entry_delta<T: Ord>() -> usize {
-    let removed = size_of::<&frontier::Incoming<T>>();
+    let removed = size_of::<&frontier::Incoming<T>>() + fused_tests::common_saving::<T>();
     assert_eq!(
         contains_before::Insertions::<T>::controls(),
         frontier::Insertions::<T>::controls()
@@ -45,7 +46,14 @@ pub(super) fn entry_delta<T: Ord>() -> usize {
     let old = contains_before::Insertions::<T>::observed_prices();
     let new = frontier::Insertions::<T>::observed_prices();
     for i in 0..6 {
-        assert_eq!(old[i], new[i] + removed);
+        assert_eq!(
+            old[i].checked_add(if i == 2 || i == 3 {
+                fused_tests::promotion::<T>()
+            } else {
+                0
+            }),
+            new[i].checked_add(removed)
+        );
     }
     assert_eq!(old[6], new[6]);
     assert!(removed > 0);
@@ -241,7 +249,9 @@ fn whole_paid_ordinary_and_unchanged_group_producers_keep_every_compare_box_and_
     assert!(old.0 && new.0);
     assert_eq!(new.3, 15); // one setup bank plus fourteen actual ordinary renewals
     assert_eq!(
-        new.2.checked_add(new.3 * entry_delta::<State>()),
+        new.2
+            .checked_add(new.3 * entry_delta::<State>())
+            .and_then(|n| n.checked_sub(2 * fused_tests::promotion::<State>())),
         Some(old.2)
     );
     assert_eq!(new.1, old.1);
@@ -259,12 +269,8 @@ fn whole_paid_ordinary_and_unchanged_group_producers_keep_every_compare_box_and_
 fn digest(raw: &[u8]) -> String {
     format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(raw)))
 }
-pub(super) fn before_source(path: &str, mut actual: String) -> String {
-    actual = String::from_utf8(crate::bounded_output::census_source_before(
-        path,
-        actual.as_bytes(),
-    ))
-    .unwrap();
+pub(super) fn before_source(path: &str, actual: String) -> String {
+    let mut actual = fused_tests::before_source(path, actual);
     let inverse = include_bytes!("contains_before/inverse.json");
     assert_eq!(inverse.len(), INVERSE_LENGTH);
     assert_eq!(digest(inverse), INVERSE_SHA);

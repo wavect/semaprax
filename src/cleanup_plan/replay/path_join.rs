@@ -1266,13 +1266,34 @@ mod direct_one_before;
 mod direct_one_tests;
 
 #[cfg(test)]
-#[allow(dead_code, reason = "complete independently compiled immediate-a6 frontier owner")]
+#[allow(
+    dead_code,
+    reason = "complete independently compiled immediate-a6 frontier owner"
+)]
 mod compact_failure_before;
 #[cfg(test)]
 mod compact_failure_tests;
 
 #[cfg(test)]
-#[allow(dead_code, reason = "complete independently compiled immediate-compact frontier owner")]
+#[allow(
+    dead_code,
+    reason = "complete independently compiled immediate-compact frontier owner"
+)]
 mod contains_before;
 #[cfg(test)]
 mod contains_tests;
+
+#[cfg(test)]
+#[allow(
+    dead_code,
+    reason = "complete immediate-c189 ordinary driver and dependencies"
+)]
+mod fused_before;
+#[cfg(test)]
+#[allow(
+    dead_code,
+    reason = "complete byte-exact immediate-c189 insertion producer"
+)]
+mod fused_before_frontier;
+#[cfg(test)]
+mod fused_tests;

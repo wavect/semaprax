@@ -383,36 +383,89 @@ fn block_run(
     cap: usize,
     work: usize,
 ) -> (Result<(), Diagnostic>, bool, usize, usize) {
+    block_run_driver(
+        context,
+        function,
+        if current {
+            BlockDriver::Current
+        } else {
+            BlockDriver::Immediate
+        },
+        cap,
+        work,
+    )
+}
+#[derive(Clone, Copy)]
+enum BlockDriver {
+    Immediate,
+    Transition,
+    Current,
+}
+fn block_run_driver(
+    context: &dyn crate::cleanup::ReplayContext,
+    function: &ResolvedFunction,
+    driver: BlockDriver,
+    cap: usize,
+    work: usize,
+) -> (Result<(), Diagnostic>, bool, usize, usize) {
+    // The comparison hook is an independent test reference, not part of the
+    // ordinary builder invoice. Both real arms retain the original byte limit.
+    // This finite 128Mi-unit private reference allowance is not an exhaustive
+    // derived bound; the receipt must fit and every receiver keeps its old MAX.
+    use crate::cleanup_plan::replay::allocation::{opt_in, OracleScope};
+    let reference = OracleScope::open_with_work(1 << 28, 1 << 27)
+        .expect("finite independent ordinary replay reference account");
+    let selected = opt_in(reference.lease()).expect("one ordinary replay reference lease");
     let _ = crate::cleanup_plan::replay::ordinary_receiving::take_census();
     let ((result, work), refused, paid) = crate::bounded_output::with_limit_usage(cap, || {
         let mut budget = ReplayBudget::new();
         budget.remaining = work;
         // The production caller establishes this allowance on the same payer.
-        let result =
-            match reserve_program_skeleton_work(context, std::iter::once(function), &mut budget) {
-                Err(error) => Err(error),
-                Ok(_) => {
-                    if current {
-                        validate_structure_with_budget_storage(
-                            context,
-                            function,
-                            &mut budget,
-                            None,
-                            None,
-                        )
-                    } else {
-                        super::super::ordinary_block_before::validate_structure_with_budget_storage(
-                            context,
-                            function,
-                            &mut budget,
-                            None,
-                            None,
-                        )
-                    }
+        let result = match reserve_program_skeleton_work(
+            context,
+            std::iter::once(function),
+            &mut budget,
+        ) {
+            Err(error) => Err(error),
+            Ok(_) => {
+                if matches!(driver, BlockDriver::Current) {
+                    validate_structure_with_budget_storage(
+                        context,
+                        function,
+                        &mut budget,
+                        None,
+                        None,
+                    )
+                } else if matches!(driver, BlockDriver::Transition) {
+                    super::super::before_structure_release::validate_structure_with_budget_storage(
+                        context,
+                        function,
+                        &mut budget,
+                        None,
+                        None,
+                    )
+                } else {
+                    super::super::ordinary_block_before::validate_structure_with_budget_storage(
+                        context,
+                        function,
+                        &mut budget,
+                        None,
+                        None,
+                    )
                 }
-            };
+            }
+        };
         (result, work - budget.remaining)
     });
+    drop(selected);
+    let reference = reference.finish();
+    assert_eq!(reference.started, reference.completed);
+    assert!(
+        reference.first_refusal.is_none()
+            && reference.first_work_refusal.is_none()
+            && reference.physical_failure.is_none(),
+        "{reference:?}"
+    );
     (result, refused, paid, work)
 }
 
@@ -453,7 +506,38 @@ fn transition_scratch_has_complete_immediate_typed_invoice_and_unchanged_work() 
         let program = fixture(rows, true);
         let function = function(&program);
         let old = block_run(&program, function, false, CAP, MAX_REPLAY_WORK_UNITS);
-        let current = block_run(&program, function, true, CAP, MAX_REPLAY_WORK_UNITS);
+        // Original #889 transition equation uses its full independently compiled
+        // generation, before the later #903 last-use scratch transport.
+        let current = block_run_driver(
+            &program,
+            function,
+            BlockDriver::Transition,
+            CAP,
+            MAX_REPLAY_WORK_UNITS,
+        );
+        let generation_census = crate::cleanup_plan::replay::ordinary_receiving::take_census();
+        let shipping = block_run(&program, function, true, CAP, MAX_REPLAY_WORK_UNITS);
+        let shipping_census = crate::cleanup_plan::replay::ordinary_receiving::take_census();
+        assert_eq!(shipping.0, current.0); // complete current six-field verdict
+        assert!(shipping.0.is_ok() && !shipping.1);
+        assert_eq!(shipping.3, current.3);
+        assert_eq!(shipping_census.reached, generation_census.reached);
+        assert!(!shipping_census.incomplete && !generation_census.incomplete);
+        // The reached status-session count is an observation of the actual
+        // completed retained-attempt arm, never permission to select it.
+        assert!(shipping_census.reached[1] <= 1);
+        let release = super::super::last_use::RELEASE
+            .checked_add(
+                shipping_census.reached[1]
+                    .checked_mul(super::super::last_use::ATTEMPT)
+                    .unwrap(),
+            )
+            .unwrap();
+        assert_eq!(
+            shipping.2,
+            current.2.checked_add(release).unwrap(),
+            "complete current scratch-release composition rows={rows}"
+        );
         assert_eq!(current.0, old.0, "all six fields rows={rows}");
         assert!(
             current.0.is_ok() && !old.1 && !current.1,
@@ -679,8 +763,15 @@ fn callback_run(
     mode: u8,
     target: Option<usize>,
 ) -> ((Result<(), Diagnostic>, usize), bool, usize) {
+    // One finite private reference account covers both the outer comparison
+    // and mode1's nested real call. Do not create a nested OracleScope inside
+    // the callback; every receiver retains its original individual work MAX.
+    use crate::cleanup_plan::replay::allocation::{opt_in, OracleScope};
+    let reference = OracleScope::open_with_work(1 << 28, 1 << 27)
+        .expect("finite independent callback replay reference account");
+    let selected = opt_in(reference.lease()).expect("one callback replay reference lease");
     let _ = crate::cleanup_plan::replay::ordinary_receiving::take_census();
-    crate::bounded_output::with_limit_usage(CAP, || {
+    let result = crate::bounded_output::with_limit_usage(CAP, || {
         let context = CallbackContext {
             program,
             nested,
@@ -721,7 +812,17 @@ fn callback_run(
             }
         };
         (result, context.fired_at.get())
-    })
+    });
+    drop(selected);
+    let reference = reference.finish();
+    assert_eq!(reference.started, reference.completed);
+    assert!(
+        reference.first_refusal.is_none()
+            && reference.first_work_refusal.is_none()
+            && reference.physical_failure.is_none(),
+        "{reference:?}"
+    );
+    result
 }
 
 #[test]

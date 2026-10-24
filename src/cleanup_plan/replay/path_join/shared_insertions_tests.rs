@@ -33,7 +33,11 @@ fn const_prices_equal_every_original_tariff_and_checked_layout_including_sentine
             for i in 0..6 {
                 assert_eq!(
                     current[i].checked_add(contains_tests::entry_delta::<$t>()),
-                    Some(original[i])
+                    original[i].checked_add(if i == 2 || i == 3 {
+                        fused_tests::promotion::<$t>()
+                    } else {
+                        0
+                    })
                 );
             }
             assert_eq!(current[6], original[6]);
@@ -328,9 +332,7 @@ fn complete_immediate_receiver_composition_lowers_cold_invoice_with_full_drop_an
             contains_tests::reset_banks();
             let current = observe(false, usize::MAX);
             let direct_banks = direct_one_tests::paid_banks();
-            let entry_removed = contains_tests::paid_banks()
-                .checked_mul(contains_tests::entry_delta::<PathState>())
-                .unwrap();
+            let entry_removed = fused_tests::prior_entry_saving::<PathState>();
             assert!(before.0 .0 && current.0 .0 && !before.1 && !current.1);
             let old_controls = prices::<PathState>(f).1;
             let removed = old_controls[0] + old_controls[2] + old_controls[3]
@@ -465,17 +467,15 @@ fn complete_immediate_driver_and_receivers_keep_exact_whole_preimages_and_shared
         let raw = std::fs::read(root.join(path)).unwrap();
         prior_source(path, crate::bounded_output::census_before(path, &raw));
     }
-    let current = crate::bounded_output::census_before(
-        "src/cleanup_plan/replay/path_join.rs",
-        include_bytes!("../path_join.rs"),
-    );
     let marker = "fn validate_control_group_with_budget";
     assert_eq!(
-        std::str::from_utf8(&current)
-            .unwrap()
-            .split_once(marker)
-            .unwrap()
-            .1,
+        fused_tests::before_source(
+            "src/cleanup_plan/replay/path_join.rs",
+            include_str!("../path_join.rs").to_owned()
+        )
+        .split_once(marker)
+        .unwrap()
+        .1,
         include_str!("shared_insertions_before/driver.rs.txt")
             .split_once(marker)
             .unwrap()

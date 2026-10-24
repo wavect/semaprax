@@ -9,7 +9,11 @@ pub(crate) fn with_financed_workspace_test_oracles<T>(
     // A 1,024-function fixture executes 2,052 complete reference receivers.
     // A private aarch64 Rust 1.97.1 control measured 194,083,774 bytes. Use a finite
     // 256 MiB account up front; the ordinary builder never draws from it.
-    let scope = OracleScope::open_with_work(1 << 28, 1 << 25)
+    // The finite cumulative reference work account covers the complete batch
+    // of comparisons, rather than sharing one receiver's allowance across
+    // all 2,052 runs. Every original per-receiver work ceiling remains intact;
+    // completion still rejects any exhausted cumulative account.
+    let scope = OracleScope::open_with_work(1 << 28, 1 << 27)
         .expect("explicit independent workspace reference account");
     let lease = scope.lease();
     let selected = opt_in(lease).expect("one explicit workspace reference account");

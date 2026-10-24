@@ -11,6 +11,91 @@ pub(super) struct Spec {
     pub(super) sha256: [u8; 32],
 }
 impl Fixture {
+    // A finite complete source epoch before the unchanged CI/Main44 inverses.
+    // Actual physical current and the entire immutable predecessor are both read.
+    pub(crate) fn closure_epoch<'a>(
+        source: &str,
+        expected: &str,
+        supplied: &'a str,
+    ) -> (
+        std::borrow::Cow<'a, str>,
+        &'static [(usize, &'static str, &'static str)],
+    ) {
+        type Edit = (usize, &'static str, &'static str);
+        let (compiled, length, sha, prior, prior_length, edits):
+            (&str, usize, &str, &str, usize, &[Edit]) = match (source, expected) {
+            ("src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs", "9dffc2821b02990bea08f9434b911c9dca98e52af5be26013bc1702916118742") => (
+                include_str!("../../src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs"), 29922, "6b8839aa7294a09ffc95f9cbc9d04fc42b6e51cd611e8bbfca1bc0bb4e88dab4",
+                include_str!("../../e/9dffc2821b02990bea08f9434b911c9dca98e52af5be26013bc1702916118742"), 29371, &[
+                    (14267, "    // reserve_vec deliberately leaves ordinary unobserved storage to its\n    // caller. Unlike the producer's push-grown vectors, prepare must find all\n    // links allocated before traversal: capacity is a hard validation guard.\n    // Funded owners already acquired this backing above; keep their exact\n    // reservations and refusal order unchanged.\n    if budget.payer == AllocationPayer::LegacyUnobserved {\n        owner.left_cursor.links.reserve_exact(actual.max_depth);\n        owner.right_cursor.links.reserve_exact(actual.max_depth);\n    }\n", ""),
+                ][..]),
+            ("src/cleanup_plan/replay/factored.rs", "809181e23ff2dd185ba0f28504fa05eea592aa40e94144714c884d997d00d8cc") => (
+                include_str!("../../src/cleanup_plan/replay/factored.rs"), 52363, "82353ce21ba46fb5ae1746e30f837d9f251da7a17bdc53c9ba53355c13d9f4a0",
+                include_str!("../../e/809181e23ff2dd185ba0f28504fa05eea592aa40e94144714c884d997d00d8cc"), 51339, &[
+                    (9297, "    #[cfg(test)]\n    let _canonical_allocation_phase = crate::test_allocation_observer::function_phase_guard(\n        \"cleanup_plan::factored::comparison_complete\",\n    );\n", ""),
+                    (16880, "    #[cfg(test)]\n    let _construction_allocation_phase = crate::test_allocation_observer::function_phase_guard(\n        \"cleanup_plan::factored::build_comparison\",\n    );\n", ""),
+                    (17738, "        #[cfg(test)]\n        let hir_allocation_phase = crate::test_allocation_observer::function_phase_guard(\n            \"cleanup_plan::factored::construct_hir_paths\",\n        );\n", ""),
+                    (18341, "        #[cfg(test)]\n        drop(hir_allocation_phase);\n", ""),
+                    (18538, "        #[cfg(test)]\n        let automaton_allocation_phase = crate::test_allocation_observer::function_phase_guard(\n            \"cleanup_plan::factored::construct_hir_automaton\",\n        );\n", ""),
+                    (20745, "        #[cfg(test)]\n        drop(automaton_allocation_phase);\n        #[cfg(test)]\n        let _plan_allocation_phase = crate::test_allocation_observer::function_phase_guard(\n            \"cleanup_plan::factored::construct_plan_automaton\",\n        );\n", ""),
+                ][..]),
+            ("src/cleanup_plan/replay/factored.rs", "ffca82dfababa42ad8f21b57a51c42d313a769c17dc14115e1a2ac60a103e5c8") => (
+                include_str!("../../src/cleanup_plan/replay/factored.rs"), 52363, "82353ce21ba46fb5ae1746e30f837d9f251da7a17bdc53c9ba53355c13d9f4a0",
+                include_str!("../../e/ffca82dfababa42ad8f21b57a51c42d313a769c17dc14115e1a2ac60a103e5c8"), 49837, &[
+                    (9297, "    #[cfg(test)]\n    let _canonical_allocation_phase = crate::test_allocation_observer::function_phase_guard(\n        \"cleanup_plan::factored::comparison_complete\",\n    );\n", ""),
+                    (13075, "        budget.reserve_bytes(\n            function,\n            canonical_shared::inline_singleton::hir_last_use::CALL,\n            \"factored HIR-private release call receiving\",\n        )?;\n        canonical.release_hir_private(function, budget, hir_root, plan_root)?;\n", ""),
+                    (13933, "            canonical_shared::closure_receiving::ClosureReceiving::DIRECT_CONTROLS\n                + canonical_shared::inline_singleton::Canonicalizer::ACTIVE_DISPATCH_CONTROLS,\n", "            canonical_shared::closure_receiving::ClosureReceiving::DIRECT_CONTROLS,\n"),
+                    (14305, "    let canonical_id = canonical.canonical_dispatch(&budget.payer);\n", ""),
+                    (14658, "    let Some(hir) = canonical_id(\n        &mut canonical,\n", "    let Some(hir) = canonical.id_with_compact_receiving(\n"),
+                    (14763, "        &mut *budget,\n", "        budget,\n"),
+                    (14859, "    budget.reserve_bytes(\n        function,\n        canonical_shared::inline_singleton::hir_last_use::CALL,\n        \"factored HIR-private release call receiving\",\n    )?;\n    canonical.release_hir_private(function, budget, hir_root, plan_root)?;\n", ""),
+                    (15393, "    let Some(plan) = canonical_id(\n        &mut canonical,\n", "    let Some(plan) = canonical.id_with_compact_receiving(\n"),
+                    (15500, "        &mut *budget,\n", "        budget,\n"),
+                    (16880, "    #[cfg(test)]\n    let _construction_allocation_phase = crate::test_allocation_observer::function_phase_guard(\n        \"cleanup_plan::factored::build_comparison\",\n    );\n", ""),
+                    (17738, "        #[cfg(test)]\n        let hir_allocation_phase = crate::test_allocation_observer::function_phase_guard(\n            \"cleanup_plan::factored::construct_hir_paths\",\n        );\n", ""),
+                    (18341, "        #[cfg(test)]\n        drop(hir_allocation_phase);\n", ""),
+                    (18538, "        #[cfg(test)]\n        let automaton_allocation_phase = crate::test_allocation_observer::function_phase_guard(\n            \"cleanup_plan::factored::construct_hir_automaton\",\n        );\n", ""),
+                    (20745, "        #[cfg(test)]\n        drop(automaton_allocation_phase);\n        #[cfg(test)]\n        let _plan_allocation_phase = crate::test_allocation_observer::function_phase_guard(\n            \"cleanup_plan::factored::construct_plan_automaton\",\n        );\n", ""),
+                    (44381, "        if ordinary_plan_history::completed_fork::emission::before_selected() {\n            hir.sort();\n            plan.sort();\n            Ok(hir == plan)\n        } else {\n            enumerating.reserve_bytes(\n                function,\n                2 * skeleton_work::enumerated_prefix::ENTRY_CALL,\n                \"factored cross-check complete enumerated content receivers\",\n            )?;\n            skeleton_work::enumerated_prefix::sort(&mut hir, function, &mut enumerating)?;\n            if matches!(enumerating.payer, AllocationPayer::LegacyUnobserved) {\n                skeleton_work::enumerated_prefix::sort(&mut plan, function, &mut enumerating)?;\n            } else {\n                plan.sort();\n            }\n            skeleton_work::enumerated_prefix::equal(&hir, &plan, function, &mut enumerating)\n        }\n", "        hir.sort();\n        plan.sort();\n        Ok(hir == plan)\n"),
+                    (52321, "\n#[cfg(test)]\nmod hir_memo_release_tests;\n", ""),
+                ][..]),
+            ("src/hir/validation/lexical_exit.rs", "5610b10bf134638d5a30dbee84058895d40263d46ac07057f154d47ff8487c0e") => (
+                include_str!("../../src/hir/validation/lexical_exit.rs"), 48442, "efd93bf8154b11c5399749f8592bae4ee73617448a12a62f488d0b158bd94302",
+                include_str!("../../e/5610b10bf134638d5a30dbee84058895d40263d46ac07057f154d47ff8487c0e"), 47750, &[
+                    (25359, "        // Reporting storage is harness setup, outside compiler observation.\n        // Every compiler-owned diagnostic is still dropped inside the window.\n        use std::fmt::Write as _;\n        let mut diagnostic_report = String::with_capacity(1 << 16);\n", ""),
+                    (25881, "                let measured = crate::test_allocation_observer::measure_with_capacity(\n                    1 << 16,\n                    || {\n", "                let measured =\n                    crate::test_allocation_observer::measure_with_capacity(1 << 16, || {\n"),
+                    (26303, "                                    writeln!(&mut diagnostic_report, \"OPT904_DIAGNOSTIC phase=hir::resolve code={:?} severity={:?} message={:?} path={:?} span={:?} help={:?}\", error.code, error.severity, error.message, error.path, error.span, error.help).unwrap();\n", "                                    eprintln!(\"OPT904_DIAGNOSTIC phase=hir::resolve code={:?} severity={:?} message={:?} path={:?} span={:?} help={:?}\", error.code, error.severity, error.message, error.path, error.span, error.help);\n"),
+                    (27030, "                            writeln!(&mut diagnostic_report, \"OPT904_DIAGNOSTIC phase=hir::validate code={:?} severity={:?} message={:?} path={:?} span={:?} help={:?}\", error.code, error.severity, error.message, error.path, error.span, error.help).unwrap();\n", "                            eprintln!(\"OPT904_DIAGNOSTIC phase=hir::validate code={:?} severity={:?} message={:?} path={:?} span={:?} help={:?}\", error.code, error.severity, error.message, error.path, error.span, error.help);\n"),
+                    (27676, "                    },\n                );\n", "                    });\n"),
+                    (28371, "        // Darwin stderr's process-lifetime lock belongs to reporting, never\n        // to the compiler's allocation/Drop interval.\n        if !diagnostic_report.is_empty() {\n            eprint!(\"{diagnostic_report}\");\n        }\n", ""),
+                    (41252, "                format!(\n                    \"{:x}\",\n                    crate::digest_hex::LowerHex(sha2::Sha256::digest(source.as_bytes()))\n                )\n", "                format!(\"{:x}\", crate::digest_hex::LowerHex(sha2::Sha256::digest(source.as_bytes())))\n"),
+                    (44367, "            \"src/hir/validation.rs\",\n            include_str!(\"../validation.rs\"),\n        );\n", "            \"src/hir/validation.rs\", include_str!(\"../validation.rs\"));\n"),
+                    (44533, "            \"src/hir/validation/lexical_exit.rs\",\n            include_str!(\"lexical_exit.rs\"),\n        );\n", "            \"src/hir/validation/lexical_exit.rs\", include_str!(\"lexical_exit.rs\"));\n"),
+                ][..]),
+            _ => return (std::borrow::Cow::Borrowed(supplied), &[]),
+        };
+        assert_eq!(supplied, compiled, "complete current closure epoch");
+        assert_eq!(compiled.len(), length);
+        assert_eq!(super::source_sha(compiled), sha);
+        assert_eq!(prior.len(), prior_length);
+        assert_eq!(super::source_sha(prior), expected);
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        assert_eq!(
+            current_file(&root.join(source), length, sha).unwrap(),
+            compiled
+        );
+        assert_eq!(
+            current_file(&root.join("e").join(expected), prior_length, expected).unwrap(),
+            prior
+        );
+        let mut restored = compiled.to_owned();
+        for &(at, after, before) in edits.iter().rev() {
+            assert_eq!(restored.get(at..at + after.len()), Some(after));
+            restored.replace_range(at..at + after.len(), before);
+        }
+        assert_eq!(restored, prior, "entire fixed closure predecessor");
+        (std::borrow::Cow::Owned(restored), edits)
+    }
     pub(super) fn spec(self) -> Spec {
         match self {
             Self::Compact7 => Spec {
@@ -236,7 +321,10 @@ fn current_file(
 
 // Closed diagnostic-only scopes: authenticate whole current source before
 // restoring the exact immediate production image for every older source audit.
-pub(crate) fn before_phase_probes<'a>(source: &str, supplied: &'a str) -> std::borrow::Cow<'a, str> {
+pub(crate) fn before_phase_probes<'a>(
+    source: &str,
+    supplied: &'a str,
+) -> std::borrow::Cow<'a, str> {
     let (compiled, length, expected, prior_length, prior_sha, edits) = match source {
         "src/cleanup_plan/validate.rs" => (include_str!("../../src/cleanup_plan/validate.rs"), 4475, "75ac0859815d3a47a94b81493c04a8ae89516f4939fe79a8da7f94d141e41c1b", 4269, "794785605a074c9c2b80f48e665e6e0a03723a9ace4802c88561ca084bb7632e", &[
             ("        crate::workflow_profile::plan_comparison::PaidPhase::CleanupValidation,\n    );\n\n    #[cfg(test)]\n    let _allocation_phase = crate::test_allocation_observer::function_phase_guard(\n        \"cleanup_plan::validate::canonical_rebuild\",\n    );\n    let mut frontier = crate::loop_calls::byte_writer::validation_frontier::Frontier::new(program);\n    for function in &program.functions {\n        #[cfg(feature = \"unstable-workflow-profiling\")]\n", "        crate::workflow_profile::plan_comparison::PaidPhase::CleanupValidation,\n    );\n\n    let mut frontier = crate::loop_calls::byte_writer::validation_frontier::Frontier::new(program);\n    for function in &program.functions {\n        #[cfg(feature = \"unstable-workflow-profiling\")]\n"),
@@ -265,14 +353,26 @@ pub(crate) fn before_phase_probes<'a>(source: &str, supplied: &'a str) -> std::b
     // Authenticate the exact early-release epoch before the unchanged incoming
     // main and diagnostic-probe inverses; no predecessor pins move.
     let physical_compiled = compiled;
+    let (closure_epoch, _) = Fixture::closure_epoch(
+        source,
+        "809181e23ff2dd185ba0f28504fa05eea592aa40e94144714c884d997d00d8cc",
+        compiled,
+    );
+    let compiled = closure_epoch.as_ref();
     let workspace_epoch = if source == "src/cleanup_plan/replay.rs" {
         assert_eq!(compiled.len(), 327551);
-        assert_eq!(super::source_sha(compiled), "751c95561915a9b99ebec0bdf702dc9c7448d411f0f80ac58d244bc7df20dde5");
+        assert_eq!(
+            super::source_sha(compiled),
+            "751c95561915a9b99ebec0bdf702dc9c7448d411f0f80ac58d244bc7df20dde5"
+        );
         let addition = "#[cfg(test)]\nmod workspace_oracle;\n#[cfg(test)]\npub(crate) use factored::{EpsilonAppCensus, SuccessorAppCensus};\n#[cfg(test)]\npub(crate) use workspace_oracle::with_financed_workspace_test_oracles;\nmod selected_type_drop;\n";
         assert_eq!(compiled.matches(addition).count(), 1);
         let prior = compiled.replacen(addition, "\n#[cfg(test)]\npub(crate) use factored::{EpsilonAppCensus, SuccessorAppCensus};\n\nmod selected_type_drop;\n\n", 1);
         assert_eq!(prior.len(), 327435);
-        assert_eq!(super::source_sha(&prior), "0aeeb9967f3272bfc1371131cba43dc39e5bb7b155eae28500512de0c34af387");
+        assert_eq!(
+            super::source_sha(&prior),
+            "0aeeb9967f3272bfc1371131cba43dc39e5bb7b155eae28500512de0c34af387"
+        );
         std::borrow::Cow::Owned(prior)
     } else {
         std::borrow::Cow::Borrowed(compiled)
@@ -284,7 +384,10 @@ pub(crate) fn before_phase_probes<'a>(source: &str, supplied: &'a str) -> std::b
     let implementation_epoch = match source {
         "src/cleanup_plan/replay.rs" => {
             assert_eq!(compiled.len(), 327435);
-            assert_eq!(super::source_sha(compiled), "0aeeb9967f3272bfc1371131cba43dc39e5bb7b155eae28500512de0c34af387");
+            assert_eq!(
+                super::source_sha(compiled),
+                "0aeeb9967f3272bfc1371131cba43dc39e5bb7b155eae28500512de0c34af387"
+            );
             let mut prior = compiled.to_owned();
             for &(at, after, before) in [
                 (1097, "mod plan_prefix;\n", ""),
@@ -321,12 +424,18 @@ pub(crate) fn before_phase_probes<'a>(source: &str, supplied: &'a str) -> std::b
                 prior.replace_range(at..at + after.len(), before);
             }
             assert_eq!(prior.len(), 326426);
-            assert_eq!(super::source_sha(&prior), "5b40d53c43ccf6335bd2fbaf33c3c57d75b5bcfab2a7d6ebbd03851d77ee6e9d");
+            assert_eq!(
+                super::source_sha(&prior),
+                "5b40d53c43ccf6335bd2fbaf33c3c57d75b5bcfab2a7d6ebbd03851d77ee6e9d"
+            );
             std::borrow::Cow::Owned(prior)
-        },
+        }
         "src/cleanup_plan/replay/factored.rs" => {
             assert_eq!(compiled.len(), 51339);
-            assert_eq!(super::source_sha(compiled), "809181e23ff2dd185ba0f28504fa05eea592aa40e94144714c884d997d00d8cc");
+            assert_eq!(
+                super::source_sha(compiled),
+                "809181e23ff2dd185ba0f28504fa05eea592aa40e94144714c884d997d00d8cc"
+            );
             let mut prior = compiled.to_owned();
             for &(at, after, before) in [
                 (12903, "        budget.reserve_bytes(\n            function,\n            canonical_shared::inline_singleton::hir_last_use::CALL,\n            \"factored HIR-private release call receiving\",\n        )?;\n        canonical.release_hir_private(function, budget, hir_root, plan_root)?;\n", ""),
@@ -344,15 +453,21 @@ pub(crate) fn before_phase_probes<'a>(source: &str, supplied: &'a str) -> std::b
                 prior.replace_range(at..at + after.len(), before);
             }
             assert_eq!(prior.len(), 49837);
-            assert_eq!(super::source_sha(&prior), "ffca82dfababa42ad8f21b57a51c42d313a769c17dc14115e1a2ac60a103e5c8");
+            assert_eq!(
+                super::source_sha(&prior),
+                "ffca82dfababa42ad8f21b57a51c42d313a769c17dc14115e1a2ac60a103e5c8"
+            );
             std::borrow::Cow::Owned(prior)
-        },
+        }
         _ => std::borrow::Cow::Borrowed(compiled),
     };
     let compiled = implementation_epoch.as_ref();
     let early_release_epoch = if source == "src/cleanup_plan/replay/factored.rs" {
         assert_eq!(compiled.len(), 49837);
-        assert_eq!(super::source_sha(compiled), "ffca82dfababa42ad8f21b57a51c42d313a769c17dc14115e1a2ac60a103e5c8");
+        assert_eq!(
+            super::source_sha(compiled),
+            "ffca82dfababa42ad8f21b57a51c42d313a769c17dc14115e1a2ac60a103e5c8"
+        );
         let mut prior = compiled.to_owned();
         for (current, previous) in [
             ("#[cfg(test)]\nmod early_release;\n", ""),
@@ -362,7 +477,10 @@ pub(crate) fn before_phase_probes<'a>(source: &str, supplied: &'a str) -> std::b
             prior = prior.replacen(current, previous, 1);
         }
         assert_eq!(prior.len(), 49022);
-        assert_eq!(super::source_sha(&prior), "3e3835bc69e3029d4fbfb03639dab27573e3bdd3d8c02ea286a0cc53ea94ea02");
+        assert_eq!(
+            super::source_sha(&prior),
+            "3e3835bc69e3029d4fbfb03639dab27573e3bdd3d8c02ea286a0cc53ea94ea02"
+        );
         std::borrow::Cow::Owned(prior)
     } else {
         std::borrow::Cow::Borrowed(compiled)
@@ -388,30 +506,68 @@ pub(crate) fn before_phase_probes<'a>(source: &str, supplied: &'a str) -> std::b
         ]),
         _ => (length, expected, &[]),
     };
-    assert_eq!(compiled.len(), live_length, "complete current merged probe source");
+    assert_eq!(
+        compiled.len(),
+        live_length,
+        "complete current merged probe source"
+    );
     assert_eq!(super::source_sha(compiled), live_sha);
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    assert_eq!(current_file(&root.join(source), physical_compiled.len(), &super::source_sha(physical_compiled)).expect("complete no-follow diagnostic-probe owner"), physical_compiled);
+    assert_eq!(
+        current_file(
+            &root.join(source),
+            physical_compiled.len(),
+            &super::source_sha(physical_compiled)
+        )
+        .expect("complete no-follow diagnostic-probe owner"),
+        physical_compiled
+    );
     let mut restored = compiled.to_owned();
     for &(at, after, before) in merge_edits.iter().rev() {
-        assert_eq!(&restored[at..at + after.len()], after, "exact incoming-main source inverse");
+        assert_eq!(
+            &restored[at..at + after.len()],
+            after,
+            "exact incoming-main source inverse"
+        );
         restored.replace_range(at..at + after.len(), before);
     }
-    assert_eq!(restored.len(), length, "complete original diagnostic-probe epoch");
+    assert_eq!(
+        restored.len(),
+        length,
+        "complete original diagnostic-probe epoch"
+    );
     assert_eq!(super::source_sha(&restored), expected);
     for &(after, before) in edits {
-        assert_eq!(restored.matches(after).count(), 1, "unique diagnostic-probe scope");
+        assert_eq!(
+            restored.matches(after).count(),
+            1,
+            "unique diagnostic-probe scope"
+        );
         restored = restored.replacen(after, before, 1);
     }
     assert_eq!(restored.len(), prior_length);
-    assert_eq!(super::source_sha(&restored), prior_sha, "entire pre-probe source");
+    assert_eq!(
+        super::source_sha(&restored),
+        prior_sha,
+        "entire pre-probe source"
+    );
     std::borrow::Cow::Owned(restored)
 }
 
 // Select an explicitly authenticated historical parent view before the exact
 // probe inverse; incoming-main views retain their own full source bodies.
-pub(crate) fn phase_probe_stage<'a>(source: &str, expected: &str, supplied: &'a str) -> std::borrow::Cow<'a, str> {
-    if !matches!(source, "src/cleanup_plan/validate.rs" | "src/cleanup_plan/replay.rs" | "src/cleanup_plan/replay/factored.rs" | "src/cleanup_plan/replay/factored/continuation_receiver.rs") {
+pub(crate) fn phase_probe_stage<'a>(
+    source: &str,
+    expected: &str,
+    supplied: &'a str,
+) -> std::borrow::Cow<'a, str> {
+    if !matches!(
+        source,
+        "src/cleanup_plan/validate.rs"
+            | "src/cleanup_plan/replay.rs"
+            | "src/cleanup_plan/replay/factored.rs"
+            | "src/cleanup_plan/replay/factored/continuation_receiver.rs"
+    ) {
         return std::borrow::Cow::Borrowed(supplied);
     }
     let acquired = super::main_e177_final_inputs::value_direct(source, expected, supplied);

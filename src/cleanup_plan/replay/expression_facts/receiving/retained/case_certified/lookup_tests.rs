@@ -14,8 +14,26 @@ fn ordinary(
     old: bool,
     bytes: usize,
 ) -> (Result<(), Diagnostic>, bool, usize) {
+    ordinary_driver(program, old, false, bytes)
+}
+// Complete generation counterpart before #903's independently priced scratch
+// release. The original #885 equality never includes that later transport.
+fn ordinary_driver(
+    program: &ResolvedProgram,
+    old: bool,
+    before_release: bool,
+    bytes: usize,
+) -> (Result<(), Diagnostic>, bool, usize) {
     let function = program.functions.iter().find(|f| f.name == "main").unwrap();
-    crate::bounded_output::with_limit_usage(bytes, || {
+    // The comparison hook is an independent test reference, not part of the
+    // ordinary builder invoice. Both real arms retain the original byte limit.
+    // This finite 128Mi-unit private reference allowance is not an exhaustive
+    // derived bound; the receipt must fit and every receiver keeps its old MAX.
+    use crate::cleanup_plan::replay::allocation::{opt_in, OracleScope};
+    let reference = OracleScope::open_with_work(1 << 28, 1 << 27)
+        .expect("finite independent ordinary replay reference account");
+    let selected = opt_in(reference.lease()).expect("one ordinary replay reference lease");
+    let result = crate::bounded_output::with_limit_usage(bytes, || {
         let mut budget = ReplayBudget::new();
         // Production reserves the complete skeleton allowance before calling this inner receiver.
         // Keep that real preflight inside the same measured payer for both independent arms.
@@ -28,10 +46,28 @@ fn ordinary(
                 None,
                 None,
             )
+        } else if before_release {
+            super::super::before_structure_release::validate_structure_with_budget_storage(
+                program,
+                function,
+                &mut budget,
+                None,
+                None,
+            )
         } else {
             validate_structure_with_budget_storage(program, function, &mut budget, None, None)
         }
-    })
+    });
+    drop(selected);
+    let reference = reference.finish();
+    assert_eq!(reference.started, reference.completed);
+    assert!(
+        reference.first_refusal.is_none()
+            && reference.first_work_refusal.is_none()
+            && reference.physical_failure.is_none(),
+        "{reference:?}"
+    );
+    result
 }
 // Complete immediate old helper: intentionally lacks the production preflight.
 fn ordinary_without_skeleton_preflight(
@@ -40,7 +76,15 @@ fn ordinary_without_skeleton_preflight(
     bytes: usize,
 ) -> (Result<(), Diagnostic>, bool, usize) {
     let function = program.functions.iter().find(|f| f.name == "main").unwrap();
-    crate::bounded_output::with_limit_usage(bytes, || {
+    // The comparison hook is an independent test reference, not part of the
+    // ordinary builder invoice. Both real arms retain the original byte limit.
+    // This finite 128Mi-unit private reference allowance is not an exhaustive
+    // derived bound; the receipt must fit and every receiver keeps its old MAX.
+    use crate::cleanup_plan::replay::allocation::{opt_in, OracleScope};
+    let reference = OracleScope::open_with_work(1 << 28, 1 << 27)
+        .expect("finite independent ordinary replay reference account");
+    let selected = opt_in(reference.lease()).expect("one ordinary replay reference lease");
+    let result = crate::bounded_output::with_limit_usage(bytes, || {
         let mut budget = ReplayBudget::new();
         if old {
             lookup_caller_before::validate_structure_with_budget_storage(
@@ -53,7 +97,17 @@ fn ordinary_without_skeleton_preflight(
         } else {
             validate_structure_with_budget_storage(program, function, &mut budget, None, None)
         }
-    })
+    });
+    drop(selected);
+    let reference = reference.finish();
+    assert_eq!(reference.started, reference.completed);
+    assert!(
+        reference.first_refusal.is_none()
+            && reference.first_work_refusal.is_none()
+            && reference.physical_failure.is_none(),
+        "{reference:?}"
+    );
+    result
 }
 #[test]
 fn complete_immediate_old_ordinary_caller_preserves_results_and_funds_real_dense_route() {
@@ -96,10 +150,74 @@ fn earlier_schema_error_and_query_free_prefix_keep_all_six_fields_and_debits() {
     // immediate old HIR caller; current scalar semantics/costs have a mirror in
     // lookup_tests::receiving's independent 0/1/many composition control.
     crate::cleanup_plan::replay::ordinary_receiving::with_before(|| {
+        let ordinary =
+            |program: &ResolvedProgram, old, bytes| ordinary_driver(program, old, true, bytes);
         assert_eq!(
             ordinary(&scalar, false, 64 * 1024 * 1024),
             ordinary(&scalar, true, 64 * 1024 * 1024)
         );
+    });
+    // Actual current receiver also runs, on its own unchanged byte limit. The
+    // zero-query path has no retained attempt; its later #903 tuple is paid.
+    crate::cleanup_plan::replay::ordinary_receiving::with_before(|| {
+        let generation = ordinary_driver(&scalar, false, true, 64 * 1024 * 1024);
+        let current = ordinary(&scalar, false, 64 * 1024 * 1024);
+        assert_eq!(current.0, generation.0); // all six Diagnostic fields
+        assert!(current.0.is_ok() && !current.1 && !generation.1);
+        assert_eq!(
+            current.2,
+            generation
+                .2
+                .checked_add(super::super::last_use::RELEASE)
+                .unwrap(),
+            "complete current scalar composition includes the actual scratch transport"
+        );
+        let exact = ordinary(&scalar, false, current.2);
+        assert_eq!(exact.0, current.0); // whole current Result, not a byte-normalized error
+        assert!(!exact.1);
+        for cap in [0, current.2 - 1] {
+            let short = ordinary(&scalar, false, cap);
+            assert!(short.0.is_err() && short.1, "current cap={cap}: {short:?}");
+            eprintln!("current scalar refusal cap={cap} full_result/refused/paid={short:?}");
+        }
+        let function = scalar.functions.iter().find(|f| f.name == "main").unwrap();
+        for work in [0, 1, 2, 7, 32, MAX_REPLAY_WORK_UNITS] {
+            let observe = |before_release| {
+                let mut budget = ReplayBudget::unobserved();
+                budget.remaining = work;
+                let result = match reserve_program_skeleton_work(
+                    &scalar,
+                    std::iter::once(function),
+                    &mut budget,
+                ) {
+                    Err(error) => Err(error),
+                    Ok(_) => {
+                        if before_release {
+                            super::super::before_structure_release::validate_structure_with_budget_storage(&scalar,function,&mut budget,None,None)
+                        } else {
+                            validate_structure_with_budget_storage(
+                                &scalar,
+                                function,
+                                &mut budget,
+                                None,
+                                None,
+                            )
+                        }
+                    }
+                };
+                (
+                    result,
+                    budget.remaining,
+                    budget.skeleton_remaining,
+                    budget.skeleton_spent,
+                )
+            };
+            assert_eq!(
+                observe(false),
+                observe(true),
+                "complete current scalar work/Diagnostic cut={work}"
+            );
+        }
     });
 }
 #[test]

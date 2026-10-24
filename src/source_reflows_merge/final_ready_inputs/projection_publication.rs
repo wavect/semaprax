@@ -43,8 +43,8 @@ pub(super) fn previous(path: &str, length: usize, sha: &str) -> Option<String> {
 // before this historical facade route, and every original phase inverse runs
 // after it. No source component is omitted from the current input.
 pub(super) fn audit_join(supplied: &str) -> Option<String> {
-    if supplied.len() != 1536495
-        || digest(supplied) != "ee7d89d894e31376f70cf5aee4301bc46cd1c6adeb1c0f5d04f9814d00dc1d58"
+    if supplied.len() != 1805554
+        || digest(supplied) != "7cf6c9bec87b5b773a821c11eb63600706a33e2bce80fdd5dceb856b2adbf435"
     {
         return None;
     }
@@ -75,7 +75,7 @@ pub(super) fn audit_join(supplied: &str) -> Option<String> {
         ("src/cleanup_plan/replay/path_join/boxed_flow.rs", include_str!("../../cleanup_plan/replay/path_join/boxed_flow.rs"), 3885, "e60f54339ffc357e805c8466ea21272bfef62531405ba2f06c0026a3ad390154"),
         ("src/cleanup_plan/replay/path_join/frontier.rs", include_str!("../../cleanup_plan/replay/path_join/frontier.rs"), 20194, "96f7289e424d786cc87c8d4d02c9d546720f31d81c0d5de98293f71904ffeb25"),
         ("src/cleanup_plan/replay/path_join/frontier_tests.rs", include_str!("../../cleanup_plan/replay/path_join/frontier_tests.rs"), 22051, "9c5fb6769cc7bc5f6e5518f781095e66c9c4cc0db11ca19b88462b80217e2d1a"),
-        ("src/cleanup_plan/replay/path_join/frontier_tests/custody.rs", include_str!("../../cleanup_plan/replay/path_join/frontier_tests/custody.rs"), 21147, "7ff8a657d3aa720a8285752dadd221b272fcf27ef443a78344f0eb4181381290"),
+        ("src/cleanup_plan/replay/path_join/frontier_tests/custody.rs", include_str!("../../cleanup_plan/replay/path_join/frontier_tests/custody.rs"), 21424, "666cef83df8b13197f22cff4f47c7382836cf496928d036a30d2c05c78c7ee43"),
         ("src/cleanup_plan/replay/path_join/frontier_tests/whole.rs", include_str!("../../cleanup_plan/replay/path_join/frontier_tests/whole.rs"), 10925, "da179f47f2f3f41eb14350b137d2468f5ac241445d6ae04d131c927da1c09908"),
         ("src/call_index/validation_before.rs", include_str!("../../call_index/validation_before.rs"), 3463, "50097cb04d8577afd15d0209fd11f14e1ff2d3d60c5bb692b8128c753b201472"),
         ("src/call_index/validation_receipt_tests.rs", include_str!("../../call_index/validation_receipt_tests.rs"), 4015, "0cb673d2f420230bc3b49fa90937d83302bfd29dec44aac4e95515c758297ce7"),
@@ -166,6 +166,18 @@ pub(super) fn audit_join(supplied: &str) -> Option<String> {
         ("src/workspace_graph/expected_projection/field_unique.rs", include_str!("../../workspace_graph/expected_projection/field_unique.rs"), 7839, "8283a892cb8ce7b4ad460be23c4c80a70c4de92eed4606aec008b3ee8650f6c9"),
         ("src/workspace_graph/expected_projection/field_update.rs", include_str!("../../workspace_graph/expected_projection/field_update.rs"), 7630, "b3e1eea8dd6bf25da2e9a2e928177973070450ffe34f095ed266b21d792fcebc"),
         ("src/workspace_graph/expected_projection/string_slots.rs", include_str!("../../workspace_graph/expected_projection/string_slots.rs"), 11811, "570d9033ca799f4564b0b2f9e90abd82f063747f45cb8f20a3f23a082db09a5f"),
+        ("src/workspace_graph/tests.rs", include_str!("../../workspace_graph/tests.rs"), 68144, "1d41b46564349fa85fc76e173295df7bcfd80123f81ec9bd39d94a05b203f645"),
+        ("src/cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs", include_str!("../../cleanup_plan/replay/expression_facts/receiving/helpers/tests.rs"), 19806, "6745c50ef06c4bab501efe623044c0044977a946df0aff8c95873a0c92de0fd1"),
+        ("src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs", include_str!("../../cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs"), 30467, "79db9e907b352fe8cc96eaa3a1e87c97795436a3d566f0809af85986c118d92a"),
+        ("src/cleanup_plan/replay/workspace_oracle.rs", include_str!("../../cleanup_plan/replay/workspace_oracle.rs"), 2147, "bca2684deec711617c7d30388b6dc1087389826c20c1acc51f97131758d8b634"),
+        ("src/hir/inspection/paid_nul/tests.rs", include_str!("../../hir/inspection/paid_nul/tests.rs"), 36827, "299fa5d6ce3bb291a7d7b2224219e06dd5d48d7587262215b45a767ba4804737"),
+        ("src/hir/inspection/paid_nul/reuse_before.rs", include_str!("../../hir/inspection/paid_nul/reuse_before.rs"), 38440, "f244990419557597356086d2b3e6005f84c1d471160eb4b2e1506b1727e1ca3f"),
+        ("src/hir/inspection/paid_nul/reuse_before/pending.rs", include_str!("../../hir/inspection/paid_nul/reuse_before/pending.rs"), 2490, "27622dc1bce1918fa8366f1ec97267692a655758907e270ff032156b385b0ebd"),
+        ("src/hir/inspection/paid_nul/type_scratch.rs", include_str!("../../hir/inspection/paid_nul/type_scratch.rs"), 8271, "43bebbb4746fbd9182793e37806790df77bf590983657b1653568aed31435e5e"),
+        ("src/cleanup_plan/replay/continuation_storage/tests.rs", include_str!("../../cleanup_plan/replay/continuation_storage/tests.rs"), 27358, "17bb6b512db22de653583ba59d27f2f682f66dd2bca1583510e513b7688565a6"),
+        ("src/cleanup_plan/replay/continuation_storage/reached.rs", include_str!("../../cleanup_plan/replay/continuation_storage/reached.rs"), 6399, "bf60981f88a31c20b7151d010bc1360461048573b9164e00dd8c9124305d9278"),
+        ("src/cleanup_plan/replay/continuation_storage/reached_before.rs", include_str!("../../cleanup_plan/replay/continuation_storage/reached_before.rs"), 9194, "980ab986d43f41e0e3f4d7aae59190c0f6ece37ce354ad967536341911782ceb"),
+        ("src/cleanup_plan/replay/continuation_storage/reached_tests.rs", include_str!("../../cleanup_plan/replay/continuation_storage/reached_tests.rs"), 19239, "ca3c73d0f810d4c794daf877315fdc225f0670826159a734a22a9a88d21cd628"),
     ];
     for &(path, compiled, length, sha) in PARTS {
         assert_eq!((compiled.len(), digest(compiled)), (length, sha.to_owned()));

@@ -50,7 +50,14 @@ pub(super) fn setup_delta<T: Ord>() -> usize {
     let old_entry_prices = compact_failure_before::Insertions::<T>::observed_prices();
     let new_entry_prices = frontier::Insertions::<T>::observed_prices();
     for i in 0..6 {
-        assert_eq!(old_entry_prices[i], new_entry_prices[i] + contains_tests::entry_delta::<T>());
+        assert_eq!(
+            old_entry_prices[i].checked_add(if i == 2 || i == 3 {
+                fused_tests::promotion::<T>()
+            } else {
+                0
+            }),
+            new_entry_prices[i].checked_add(contains_tests::entry_delta::<T>())
+        );
     }
     assert_eq!(old_entry_prices[6], new_entry_prices[6]);
     net
@@ -85,7 +92,10 @@ fn complete_owner_result_option_layouts_remove_only_net_new_conversion_funded_by
     };
     let old = invoice(true);
     let new = invoice(false);
-    assert_eq!(new.0 + net + contains_tests::entry_delta::<PathState>(), old.0);
+    assert_eq!(
+        new.0 + net + contains_tests::entry_delta::<PathState>(),
+        old.0
+    );
     assert_eq!(new.1, old.1);
     for prior in [false, true] {
         let exact = if prior { old.0 } else { new.0 };

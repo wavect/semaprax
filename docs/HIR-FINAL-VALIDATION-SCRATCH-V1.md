@@ -115,3 +115,24 @@ repeated scalar function/contract invocations, cold tiny/shallow roots, physical
 exact/one-short and floor limits, and sticky retry without reacquisition. They
 are source-authored and unexecuted pending the combined focused qualification.
 No measured saving, complete funding, or application-fit claim is made here.
+
+
+## Lexical match-witness join (#904)
+
+The successor keeps the complete immediate witness helper and its full invoice
+under test ownership. The two production AfterArm sites perform the same
+already-validated immutable witness join lexically. The only removed boundaries
+are that helper's actual/formal argument tuple and outer Result transport.
+Delegated type checking and diagnostic construction keep their complete banks;
+new lexical reference bindings are prepaid. No Frame, capacity, growth, payload
+clone, semantic check, work unit, scope settlement or result-selection rule is
+credited or changed. Latest Never and first non-Never identity remain exact.
+
+A test-only selector executes the original full caller/helper frontier on its
+original invoice; production has no selector. New owning controls require exact
+full diagnostics and selected pointers, complete caller debit reconciliation,
+unchanged full-capacity requests, zero/exact/short/floor/sticky refusal and full
+Drop. Whole immediate source bytes are retained and projected only after exact
+physical/compiled authentication and a late physical reread. All controls remain
+authored and unexecuted pending the authorized combined focused qualification.
+No measured saving, application admission or issue-closure claim is made.

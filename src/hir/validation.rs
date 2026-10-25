@@ -5066,12 +5066,7 @@ impl<'a> HirValidator<'a> {
                             "resolved owned variant match arm must produce a Copy scalar",
                         ));
                     }
-                    #[cfg(test)]
-                    lexical_exit::observe_witness_frontier("join", lexical_exit::WITNESS_JOIN);
-                    scope_checkpoint::charge::reserve(Some(lexical_exit::WITNESS_JOIN))?;
-                    #[cfg(test)]
-                    lexical_exit::observe_witness_role("join");
-                    validator.join_lexical_match_witness(&mut result, &arm.value)?;
+                    lexical_exit::join_validated_arm!(validator, result, arm.value);
                     #[cfg(test)]
                     lexical_exit::witness_unwind_point();
                     if !super::lexical_exit::returns_only(&arm.value) {
@@ -5326,12 +5321,7 @@ impl<'a> HirValidator<'a> {
                 } => {
                     let arm_scope = scopes.pop().expect("scalar match arm scope retained");
                     let arm = &arms[index];
-                    #[cfg(test)]
-                    lexical_exit::observe_witness_frontier("join", lexical_exit::WITNESS_JOIN);
-                    scope_checkpoint::charge::reserve(Some(lexical_exit::WITNESS_JOIN))?;
-                    #[cfg(test)]
-                    lexical_exit::observe_witness_role("join");
-                    validator.join_lexical_match_witness(&mut result, &arm.value)?;
+                    lexical_exit::join_validated_arm!(validator, result, arm.value);
                     #[cfg(test)]
                     lexical_exit::witness_unwind_point();
                     if !super::lexical_exit::returns_only(&arm.value) {

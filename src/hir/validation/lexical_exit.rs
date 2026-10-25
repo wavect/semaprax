@@ -149,9 +149,13 @@ impl HirValidator<'_> {
     }
 }
 
+pub(super) mod lexical_join;
+pub(super) use lexical_join::join_validated_arm;
+
 // The new witness continuation's explicit transport and local receivers. These
 // are additions to the unchanged full-capacity Storage<Frame> backing invoice;
 // removed type clones receive no separate byte credit.
+#[cfg(test)]
 type WitnessJoinCall<'a, 'v> = (
     &'a HirValidator<'v>,
     &'a mut Option<&'v ResolvedExpr>,
@@ -171,6 +175,7 @@ const WITNESS_TYPE_CALL: usize = 2 * std::mem::size_of::<WitnessTypeCall<'static
     + 2 * std::mem::size_of::<Result<(), Diagnostic>>();
 const WITNESS_ERROR_CALL: usize =
     2 * std::mem::size_of::<&str>() + 2 * std::mem::size_of::<Diagnostic>();
+#[cfg(test)]
 pub(super) const WITNESS_JOIN: usize = PAYMENT
     + WITNESS_TYPE_CALL
     + WITNESS_ERROR_CALL
@@ -209,6 +214,7 @@ impl HirValidator<'_> {
     /// Called only by AfterArm, after the complete arm body succeeded and the
     /// original borrow-release and owned-result checks. The immutable expression
     /// itself witnesses the type; a reconstructed/cached type is never authority.
+    #[cfg(test)]
     pub(super) fn join_lexical_match_witness<'value>(
         &self,
         result: &mut Option<&'value ResolvedExpr>,
@@ -394,7 +400,7 @@ mod witness_tests {
     const SCALAR: &str = "module witness; @id(\"w.f\") fn f(x:i64)->i64 {match x {0=>1, n=>n,}} @id(\"w.main\") fn main()->i64 {f(0)}";
     const MIXED_GUARD_RETURN: &str =
         "module mixed; @id(\"main\") fn main()->i64 {match 0 {0=>{return 1;}, _=>2,}}";
-    fn sources() -> Vec<String> {
+    pub(super) fn sources() -> Vec<String> {
         let mut nested = "0".to_owned();
         for _ in 0..16 {
             nested = format!("match 0 {{0=>{nested}, _=>0,}}");
@@ -601,7 +607,7 @@ mod witness_tests {
         }
     }
 
-    fn run_public(
+    pub(super) fn run_public(
         checked: &crate::ast::Program,
         source: &str,
         limit: usize,
@@ -770,7 +776,7 @@ mod witness_tests {
             let backing = report.acquired_capacity.checked_mul(report.size).unwrap();
             let replacement = report
                 .joins
-                .checked_mul(WITNESS_JOIN)
+                .checked_mul(lexical_join::LEXICAL_JOIN)
                 .unwrap()
                 .checked_add(report.variant_views.checked_mul(VARIANT_VIEWS).unwrap())
                 .unwrap()
@@ -924,7 +930,7 @@ mod witness_tests {
                 run_public(&checked, &source, 64 << 20, 0);
             let replacement = report
                 .joins
-                .checked_mul(WITNESS_JOIN)
+                .checked_mul(lexical_join::LEXICAL_JOIN)
                 .unwrap()
                 .checked_add(report.variant_views.checked_mul(VARIANT_VIEWS).unwrap())
                 .unwrap()

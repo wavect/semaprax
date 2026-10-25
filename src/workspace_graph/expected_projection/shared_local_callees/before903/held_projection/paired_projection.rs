@@ -137,7 +137,7 @@ pub(in crate::workspace_graph::expected_projection) fn estimate_with_census<'p, 
                 programs,
                 &mut default_memo,
                 &mut BTreeSet::new(),
-                super::super::super::owned_function_import::admitted_with_layout(
+                crate::workspace_graph::owned_function_import::admitted_with_layout(
                     program, target, authored, programs, layout,
                 ),
                 import_stub::byte_helper_authorized(
@@ -157,7 +157,7 @@ pub(in crate::workspace_graph::expected_projection) fn estimate_with_census<'p, 
                 identity_slots,
                 ast_type_declaration_identity_slots(declaration)?,
             )?;
-            super::super::super::generic_type_import::rewrite_declaration_runtime_cost_with_layout(
+            crate::workspace_graph::generic_type_import::rewrite_declaration_runtime_cost_with_layout(
                 declaration,
                 target.module,
                 program,
@@ -292,7 +292,7 @@ pub(in crate::workspace_graph::expected_projection) fn estimate_with_census<'p, 
         })
         .unwrap_or(usize::MAX);
     #[cfg(any())]
-    super::super::super::forecast_observation::record_components(
+    crate::workspace_graph::forecast_observation::record_components(
         &program.path,
         layout_mode,
         retention == cached_exact::Retention::Semantic,

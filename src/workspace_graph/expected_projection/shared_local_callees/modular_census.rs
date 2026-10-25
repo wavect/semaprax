@@ -168,19 +168,23 @@ pub(in crate::workspace_graph::expected_projection) fn count_with_lookup<'p, 'a,
         };
         proof.charge(&names);
         proof.current_retained = 0;
-        proof.retention_closed = matches!(function.yields, None)
-            && matches!(function.follows, None)
-            && matches!(
-                function.return_type,
-                Type::I64
-                    | Type::I32
-                    | Type::U8
-                    | Type::Usize
-                    | Type::Char
-                    | Type::F32
-                    | Type::F64
-                    | Type::Bool
-            );
+        proof.retention_closed = match function.yields {
+            Some(_) => false,
+            None => match function.follows {
+                Some(_) => false,
+                None => matches!(
+                    function.return_type,
+                    Type::I64
+                        | Type::I32
+                        | Type::U8
+                        | Type::Usize
+                        | Type::Char
+                        | Type::F32
+                        | Type::F64
+                        | Type::Bool
+                ),
+            },
+        };
         proof.charge(&(proof.current_retained, proof.retention_closed));
         let mut complete = function.params.iter().all(|p| {
             proof.charge(&p);
@@ -266,6 +270,10 @@ pub(in crate::workspace_graph::expected_projection) fn count_with_lookup<'p, 'a,
         // No partial function can authorize an exclusion. Generic functions
         // were rejected before this existing traversal; runtime trees never enter.
         if proof.retention_closed {
+            // Prepay the physical u16 source plus widening result/local before
+            // forming them. Aggregate Counts and MAX remain full usize values.
+            proof.bytes = proof.bytes.saturating_add(size_of::<(u16, usize, usize)>());
+            let completed = proof.current_retained as usize;
             proof.charge(&(proof.current_retained, proof.retained));
             // Two checked aggregate additions (actual/formal operands and
             // returned/receiving Options), plus the MAX operand/result bank.
@@ -276,10 +284,10 @@ pub(in crate::workspace_graph::expected_projection) fn count_with_lookup<'p, 'a,
             proof.retained.expressions = proof
                 .retained
                 .expressions
-                .checked_add(proof.current_retained)
+                .checked_add(completed)
                 .ok_or(Error::Arithmetic)?;
             proof.retained.maximum_function =
-                proof.retained.maximum_function.max(proof.current_retained);
+                proof.retained.maximum_function.max(completed);
             proof.retained.functions = proof
                 .retained
                 .functions
@@ -333,16 +341,18 @@ fn visit<'p, 'a, L: Lookup<'p>>(
         }
     }
     // Only one bounded scalar field is added to the already executing visit.
-    // Five arithmetic operand/result words and two predicate values cover the
-    // checked-before-increment counter. There is no checked_add Option ABI.
+    // Preserve both usize depth operands. Only the five counter comparison /
+    // increment operands/results narrow with the actual u16 field; both
+    // predicates remain paid. There is no checked_add Option ABI.
     proof.bytes = proof.bytes.saturating_add(size_of::<bool>());
     if proof.retention_closed {
         proof.bytes =
             proof
                 .bytes
-                .saturating_add(size_of::<(usize, usize, usize, usize, usize, bool, bool)>());
-        if depth < 32 && proof.current_retained < crate::loan_plan::MAX_LOAN_ENDPOINTS_V1 / 2 {
-            // The explicit upper bound is at most 2,048, so this cannot overflow.
+                .saturating_add(size_of::<([usize; 2], [u16; 5], [bool; 2])>());
+        if depth < 32 && proof.current_retained < crate::workspace_graph::expected_projection::retained_scratch::MAX_COVERED_EXPRESSIONS {
+            // The const-checked bound dominates this sole increment. Unknown or
+            // incomplete functions never reopen it before the next reset.
             proof.current_retained += 1;
         } else {
             proof.retention_closed = false;

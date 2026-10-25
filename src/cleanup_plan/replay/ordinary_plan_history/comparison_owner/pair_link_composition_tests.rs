@@ -81,6 +81,11 @@ fn link_delta(old: &pair_scope_census::Row, r: &pair_scope_census::Row) -> (usiz
             certified_heads::RUN_CAPTURE
         )
     );
+    // Keep the complete immediate driver expression/assertion above; the new
+    // actual certified caller forms only the separately prepaid scalar frame.
+    let capture = 2 * size_of::<&[Rc<SkeletonObservation>]>()
+        + 8 * size_of::<usize>() + size_of::<bool>();
+    assert_eq!(capture, certified_heads::RUN_SCALAR_CAPTURE);
     // The distinct complete old/new load and split packets have equal totals;
     // this is an exact formation witness, not an anonymous same-width donor.
     let old_pop = 2 * size_of::<&mut Vec<usize>>()

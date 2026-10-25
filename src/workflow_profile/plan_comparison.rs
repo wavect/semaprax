@@ -129,8 +129,12 @@ pub enum Site {
     FinalSharedAdmitted,
     FinalStepAdmitted,
     FinalTailAdmitted,
+    // Appended: historical Numeric* indices and their meaning are unchanged.
+    ScalarCaptureAdmitted,
+    ScalarTurnAdmitted,
+    ScalarPublishAdmitted,
 }
-const SITES: usize = 56;
+const SITES: usize = 59;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Counts {
     pub events: [u64; SITES],

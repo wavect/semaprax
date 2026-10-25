@@ -241,7 +241,56 @@ fn complete_borrowed_help_source_restores_full_original_without_normalization() 
         "/docs/evidence/borrowed-refusal-help-824/exact-source-inverse.json"
     )))
     .unwrap();
-    let mut current = crate::source_reflows::next_custody_before("constructor903", "src/workspace_graph/diagnostics.rs", include_str!("../diagnostics.rs"));
+    let mut current = crate::source_reflows::next_custody_before(
+        "constructor903",
+        "src/workspace_graph/diagnostics.rs",
+        include_str!("../diagnostics.rs"),
+    );
+    // The later borrowed-writer route is acquired as its complete named
+    // immediate source before the unchanged declared824 inverse below.
+    let constructor_view = current.clone();
+    let fronts: serde_json::Value = serde_json::from_str(include_str!(
+        "../../source_reflows/next_custody_fronts.json"
+    ))
+    .unwrap();
+    let front = &fronts["borrowed_help_824_declared_source"];
+    assert_eq!(
+        front["schema"],
+        "semaprax.borrowed-help-824-declared-source.v1"
+    );
+    let hash = |raw: &str| {
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(raw.as_bytes()))
+        )
+    };
+    assert_eq!(current.len() as u64, front["current"]["length"]);
+    assert_eq!(hash(&current), front["current"]["sha256"]);
+    let mut end = 0;
+    for edit in front["edits"].as_array().unwrap() {
+        let start = usize::try_from(edit["start"].as_u64().unwrap()).unwrap();
+        let next = usize::try_from(edit["end"].as_u64().unwrap()).unwrap();
+        assert!(end <= start && start <= next && next <= current.len());
+        assert!(current.is_char_boundary(start) && current.is_char_boundary(next));
+        assert_eq!(&current[start..next], edit["after"].as_str().unwrap());
+        end = next;
+    }
+    for edit in front["edits"].as_array().unwrap().iter().rev() {
+        let start = usize::try_from(edit["start"].as_u64().unwrap()).unwrap();
+        let end = usize::try_from(edit["end"].as_u64().unwrap()).unwrap();
+        current.replace_range(start..end, edit["before"].as_str().unwrap());
+    }
+    assert_eq!(current, front["before_text"].as_str().unwrap());
+    assert_eq!(current.len() as u64, front["target"]["length"]);
+    assert_eq!(hash(&current), front["target"]["sha256"]);
+    assert_eq!(
+        crate::source_reflows::next_custody_before(
+            "constructor903",
+            "src/workspace_graph/diagnostics.rs",
+            include_str!("../diagnostics.rs")
+        ),
+        constructor_view
+    );
     for edit in record["edits"].as_array().unwrap().iter().rev() {
         let after = edit["after"].as_str().unwrap();
         assert_eq!(current.matches(after).count(), 1);

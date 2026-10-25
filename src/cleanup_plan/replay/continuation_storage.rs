@@ -1,5 +1,9 @@
 //! Invocation-held empty continuation backing; never HIR proof or a quota.
 use super::*;
+#[cfg(test)]
+mod oracle_reached;
+#[cfg(test)]
+mod oracle_reached_tests;
 mod paid_receiving;
 mod reached;
 #[cfg(test)]
@@ -282,13 +286,22 @@ fn with_legacy_nested<T>(run: impl FnOnce() -> T) -> T {
     let _restore = Restore(LEGACY_NESTED.with(|mode| mode.replace(true)));
     run()
 }
-/// Keep the complete original lazy516 reservation for every payer. Ordinary
-/// lent unobserved backing reaches capacity incrementally; other partitions keep
-/// their exact original physical constructor. No reservation is refunded.
+/// Preserve the original constructor for production and Legacy payers. The
+/// independently funded test Oracle acquires only backing it actually reaches;
+/// its removed 516 allocation carries no old fee and no refund.
 pub(super) fn fresh<'hir>(
     function: &ResolvedFunction,
     budget: &mut ReplayBudget,
 ) -> Result<Vec<Frame<'hir>>, Diagnostic> {
+    #[cfg(test)]
+    if let AllocationPayer::Oracle(_) = budget.payer {
+        budget.reserve_bytes(
+            function,
+            oracle_reached::FRESH_CALL,
+            "oracle continuation fresh receivers",
+        )?;
+        return oracle_reached::fresh(function, budget);
+    }
     budget.reserve_array::<Frame<'hir>>(
         function,
         FRAME_CAPACITY,
@@ -489,7 +502,8 @@ pub(super) enum Frame<'a> {
 mod tests;
 
 // A current invocation-held receiver acquires only the backing it reaches.
-// Legacy and independent oracle receivers retain the complete fixed layout.
+// Legacy keeps its original route. The test Oracle has a separately paid
+// reached strategy; its complete fixed-layout predecessor remains executable.
 pub(super) fn fresh_receiving<'hir>(
     function: &ResolvedFunction,
     budget: &mut ReplayBudget,
@@ -535,6 +549,15 @@ pub(super) fn reserve_push(
             "reached continuation growth receiving",
         )?;
         return reached::grow(frames, function, budget);
+    }
+    #[cfg(test)]
+    if let AllocationPayer::Oracle(_) = budget.payer {
+        budget.reserve_bytes(
+            function,
+            oracle_reached::GROW_CALL,
+            "oracle continuation growth receivers",
+        )?;
+        return oracle_reached::grow(frames, function, budget);
     }
     // Every other payer retains its complete original paying/fallback path.
     // This branch never borrows the ordinary receiver's new growth strategy.

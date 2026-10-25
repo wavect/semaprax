@@ -1,3 +1,11 @@
+## Unreleased
+
+- Prepay branch-sort frames and certified scalar comparison capture, retain complete fallback and historical executables, and encode known source-row fields losslessly within the existing custody limits.
+- Fund immutable Oracle pointer comparisons and Oracle-local reached backing independently, preserving ordinary and Legacy routes, depth limits, sticky refusal, and complete old constructors.
+- Repair retained-forecast boundary fixtures, historical equation domains, test-module paths, and exact source-view acquisition.
+
+- Add constructor-covered forecast retention and later-validation scratch reuse, preserving the complete fallback when coverage does not apply.
+
 ## Fitting scalar cleanup comparison (2026-10-24)
 
 - Prepay both ordinary builder selectors before their new call/header/result/error-probe receivers form, including tiny nonselection. Preserve the upstream 128-path builder crossover and apply the 32-status fitting selector only after nonselection; other payers retain the original route.

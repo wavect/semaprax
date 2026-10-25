@@ -1309,17 +1309,17 @@ fn certified_heads_opt_in_counts_every_real_new_packet_after_complete_teardown()
             certified_heads::BOUNDARY_BODY,
         ),
         (
-            Site::NumericCaptureAdmitted,
+            Site::ScalarCaptureAdmitted,
             r.row.shared_runs,
-            certified_heads::RUN_CAPTURE,
+            certified_heads::RUN_SCALAR_CAPTURE,
         ),
         (
-            Site::NumericTurnAdmitted,
+            Site::ScalarTurnAdmitted,
             r.row.shared_turns,
             certified_heads::RUN_TURN,
         ),
         (
-            Site::NumericPublishAdmitted,
+            Site::ScalarPublishAdmitted,
             r.row.shared_publishes,
             certified_heads::RUN_PUBLISH,
         ),
@@ -1477,3 +1477,6 @@ fn composed_main7e_and_certified_heads_keep_full_actual_invoices_both_hir_and_al
 
 #[path = "final_affine_tests.rs"]
 mod final_affine_tests;
+
+#[path = "certified_countdown_tests.rs"]
+mod certified_countdown_tests;

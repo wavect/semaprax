@@ -4,7 +4,6 @@
 //! is charged before it runs; scratch growth is reserved before it happens.
 //! The ordinary derived `Ord` and the borrowed `Key` stay untouched.
 use super::*;
-use std::borrow::Borrow;
 use std::cmp::Ordering;
 
 macro_rules! decide {
@@ -789,15 +788,37 @@ pub(super) fn label(
     }
 }
 
-fn items<I: Borrow<SkeletonObservation>>(
-    a: &[I],
-    b: &[I],
+// This bank covers only the newly introduced comparison operation. A miss
+// still executes the complete original observation comparison below.
+const FLAT_IDENTITY_RECEIVERS: usize = {
+    use std::mem::size_of;
+    2 * size_of::<(&Rc<SkeletonObservation>, &Rc<SkeletonObservation>)>()
+        + 2 * size_of::<bool>()
+        + 4 * size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>()
+        + 4 * size_of::<Result<(), Diagnostic>>()
+};
+
+fn items(
+    a: &[Rc<SkeletonObservation>],
+    b: &[Rc<SkeletonObservation>],
     function: &ResolvedFunction,
     budget: &mut ReplayBudget,
 ) -> Result<Ordering, Diagnostic> {
     for (x, y) in a.iter().zip(b) {
         budget.charge(function, 1, "oracle flat observation member")?;
-        decide!(observation(x.borrow(), y.borrow(), function, budget)?);
+        // Actual/formal Rc::ptr_eq loans and returned/received bool, plus
+        // both new reserve/charge calls and their fallible receiving sums.
+        // Admit the bank before forming the pointer-test arguments.
+        budget.reserve_bytes(
+            function,
+            FLAT_IDENTITY_RECEIVERS,
+            "oracle flat identity receivers",
+        )?;
+        budget.charge(function, 1, "oracle flat observation identity")?;
+        if Rc::ptr_eq(x, y) {
+            continue;
+        }
+        decide!(observation(x.as_ref(), y.as_ref(), function, budget)?);
     }
     budget.charge(function, 1, "oracle flat observation length")?;
     Ok(a.len().cmp(&b.len()))
@@ -899,3 +920,12 @@ fn sift(
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+#[allow(
+    dead_code,
+    reason = "Complete independently executable original Oracle order."
+)]
+mod before_flat_identity;
+#[cfg(test)]
+mod flat_identity_tests;

@@ -1,6 +1,9 @@
 //! Two closed source acquisitions; neither retargets an original V13 endpoint.
 use serde_json::Value;
 
+#[path = "../../workspace_graph/identity_resolution/base/cache_billing/main7f8_reader.rs"]
+mod physical_reader;
+
 const OWNERS: [&str; 3] = [
     "docs/evidence/finite-source-overlay-v2-20261018/overlay_page.py",
     "src/source_reflows_merge/main_e177_overlay_v2.rs",
@@ -152,6 +155,26 @@ fn v14_source_before(source: &str, supplied: &str) -> String {
             compiled.as_bytes()
         );
         // Exact main8/constructor registration source phase; prior epochs remain complete.
+        // Complete actual loader-fixture source precedes its immutable pre-V15 input view.
+        let v15_loader_input;
+        let supplied = if super::hash(supplied.as_bytes())
+            == "7e88be48fafcc0a596fef3b48630452f45ae9441ab98cd1733224644e2151be6"
+        {
+            assert_eq!(supplied.len(), 152325);
+            let post = "let current_loader = LOADER.replacen(\" length=10905\\n\", &format!(\" length={}\\n\", CODECS.len()), 1).replacen(\"a0f906f11a8c7205a2124e5cd9c1909fa1a53a12731a0775d3e360d844bab794\", &digest(CODECS), 1);";
+            let prior = "let current_loader = LOADER.replacen(\" length=10905\\n\", \" length=23065\\n\", 1).replacen(\"a0f906f11a8c7205a2124e5cd9c1909fa1a53a12731a0775d3e360d844bab794\", \"9cae8c3b1db0d54de8ce9d66639dab5de6c16c9e5772d1503b922482b1b2a1fb\", 1);";
+            assert_eq!(supplied.matches(post).count(), 1);
+            let restored = supplied.replacen(post, prior, 1);
+            assert_eq!(restored.len(), 152355);
+            assert_eq!(
+                super::hash(restored.as_bytes()),
+                "3f0857f8d893c058137794c6a1aa533dfe6092746ad0cbdea1bef020c12d60cf"
+            );
+            v15_loader_input = restored;
+            v15_loader_input.as_str()
+        } else {
+            supplied
+        };
         assert_eq!(supplied.len(), 152355);
         assert_eq!(
             super::hash(supplied.as_bytes()),
@@ -217,6 +240,53 @@ fn v14_source_before(source: &str, supplied: &str) -> String {
             supplied,
             include_str!("../main_e177_overlay_labels_v12/tests.rs")
         );
+        // Acquire the entire physical V16 source before the unchanged V15 inverse.
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        let compiled = supplied;
+        let v16_labels_input;
+        let supplied = if super::hash(supplied.as_bytes())
+            == "0421597ed21e1938cc215e2eea2ac2461b6d3324527df9833e1769688f1e65f2"
+        {
+            assert_eq!(supplied.len(), 9793);
+            assert_eq!(
+                physical_reader::read(&root.join(source), 9793,
+                    "0421597ed21e1938cc215e2eea2ac2461b6d3324527df9833e1769688f1e65f2", 9_753_094).unwrap(),
+                compiled
+            );
+            let post = "    if page[\"schema\"] == super::super::SCHEMA_V16 {\n        super::super::verify_current_v16(&page);\n        return;\n    }\n";
+            assert_eq!(supplied.matches(post).count(), 1);
+            let restored = supplied.replacen(post, "", 1);
+            assert_eq!(restored.len(), 9670);
+            assert_eq!(super::hash(restored.as_bytes()),
+                "e1f1e7883e7b9930c68b345102fef5efb7caf4825164d75df5d130ac9b6872d9");
+            v16_labels_input = restored;
+            v16_labels_input.as_str()
+        } else {
+            supplied
+        };
+        // Acquire the complete V15 test source before its one exact historical dispatch inverse.
+        let v15_labels_input;
+        let supplied = if super::hash(supplied.as_bytes())
+            == "e1f1e7883e7b9930c68b345102fef5efb7caf4825164d75df5d130ac9b6872d9"
+        {
+            assert_eq!(supplied.len(), 9670);
+            assert_eq!(
+                std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(source)).unwrap(),
+                compiled.as_bytes()
+            );
+            let post = "    if page[\"schema\"] == super::super::SCHEMA_V15 {\n        super::super::verify_current_v15(&page);\n        return;\n    }\n";
+            assert_eq!(supplied.matches(post).count(), 1);
+            let restored = supplied.replacen(post, "", 1);
+            assert_eq!(restored.len(), 9547);
+            assert_eq!(
+                super::hash(restored.as_bytes()),
+                "652294002414f8f91534668666c28bec3954d1ce250cffc7fd0f3522a1356a8e"
+            );
+            v15_labels_input = restored;
+            v15_labels_input.as_str()
+        } else {
+            supplied
+        };
         assert_eq!(supplied.len(), 9547);
         assert_eq!(
             super::hash(supplied.as_bytes()),
@@ -231,6 +301,10 @@ fn v14_source_before(source: &str, supplied: &str) -> String {
             super::hash(restored.as_bytes()),
             "6b316023a1d5f99cec3300b78bd84cd93077e1a806c774ab349aaea6356920e6"
         );
+        if compiled.len() == 9793 {
+            assert_eq!(physical_reader::read(&root.join(source), 9793,
+                "0421597ed21e1938cc215e2eea2ac2461b6d3324527df9833e1769688f1e65f2", 9_753_094).unwrap(), compiled);
+        }
         return restored;
     }
     let Some(index) = V14_FRONT_SOURCES.iter().position(|path| *path == source) else {
@@ -252,6 +326,42 @@ fn v14_source_before(source: &str, supplied: &str) -> String {
     assert_eq!(supplied, compiled, "complete physical V14 caller source");
     let packet: Value = serde_json::from_str(include_str!("controller_transport.json")).unwrap();
     let front = &packet["v14_source_fronts"];
+    let physical = &packet["v16_physical_front"];
+    assert_eq!(physical["schema"], "semaprax.v16-physical-source-fronts.v1");
+    assert_eq!(physical["source_kind"], "COMPLETE_PHYSICAL_V16_TO_UNCHANGED_V15_INPUT");
+    assert_eq!(physical["sources"], serde_json::json!(V14_FRONT_SOURCES));
+    let physical_rows = physical["records"].as_array().unwrap();
+    assert_eq!(physical_rows.len(), V14_FRONT_SOURCES.len());
+    let physical_names: Vec<_> = physical_rows.iter()
+        .map(|row| row["source"].as_str().unwrap()).collect();
+    assert_eq!(physical_names, V14_FRONT_SOURCES);
+    let physical_row = &physical_rows[index];
+    let physical_length = usize::try_from(physical_row["length"].as_u64().unwrap()).unwrap();
+    let physical_sha = physical_row["sha256"].as_str().unwrap();
+    assert!(physical_length <= 9_753_094);
+    assert_eq!(supplied.len(), physical_length);
+    assert_eq!(super::hash(supplied.as_bytes()), physical_sha);
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    assert_eq!(physical_reader::read(&root.join(source), physical_length,
+        physical_sha, 9_753_094).unwrap(), compiled);
+    let mut v16_input = supplied.to_owned();
+    for edit in physical_row["edits"].as_array().unwrap().iter().rev() {
+        let start = usize::try_from(edit["start"].as_u64().unwrap()).unwrap();
+        let end = usize::try_from(edit["end"].as_u64().unwrap()).unwrap();
+        let before = edit["before"].as_str().unwrap();
+        assert!(start <= end && end <= v16_input.len());
+        assert!(v16_input.is_char_boundary(start) && v16_input.is_char_boundary(end));
+        assert_eq!(&v16_input[start..end], edit["after"].as_str().unwrap());
+        let restored_length = v16_input.len().checked_sub(end - start).unwrap()
+            .checked_add(before.len()).unwrap();
+        assert!(restored_length <= 9_753_094);
+        v16_input.replace_range(start..end, before);
+    }
+    assert_eq!(v16_input.len() as u64, physical_row["target"]["length"].as_u64().unwrap());
+    assert_eq!(super::hash(v16_input.as_bytes()), physical_row["target"]["sha256"].as_str().unwrap());
+    assert_eq!(physical_row["target"]["length"], front["records"][index]["length"]);
+    assert_eq!(physical_row["target"]["sha256"], front["records"][index]["sha256"]);
+    let supplied = v16_input.as_str();
     assert_eq!(front["schema"], "semaprax.v14-physical-source-fronts.v1");
     assert_eq!(
         front["source_kind"],
@@ -305,5 +415,7 @@ fn v14_source_before(source: &str, supplied: &str) -> String {
         super::hash(restored.as_bytes()),
         row["target"]["sha256"].as_str().unwrap()
     );
+    assert_eq!(physical_reader::read(&root.join(source), physical_length,
+        physical_sha, 9_753_094).unwrap(), compiled);
     restored
 }

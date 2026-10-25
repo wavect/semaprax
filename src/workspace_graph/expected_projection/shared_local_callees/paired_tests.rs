@@ -151,7 +151,32 @@ fn paired_complete_estimates_retain_independent_equations_and_real_shipping_peak
         )
         .unwrap()
     });
-    let expected = full.retained_hir.max(retained.retained_hir);
+    // Keep the original complete producer's MAX equation against its own
+    // executable layout, without treating new validation storage as old output.
+    let (before_full, before_retained) = super::super::before903::paired::estimates(
+        ctx.program,
+        &authored,
+        &programs,
+        Some(maximum),
+        6,
+        true,
+        None,
+    )
+    .unwrap();
+    let before_expected = before_full.retained_hir.max(before_retained.retained_hir);
+    let before_layout =
+        super::super::super::before_uncached_peak::uncached_output_layout(&programs, &authored)
+            .unwrap();
+    assert_eq!(before_layout.forecast, before_expected);
+    let scratch = retained.retained_scratch;
+    let retained_output = retained
+        .retained_hir
+        .checked_sub(scratch.expressions * crate::loan_plan::REACHABILITY_BYTES_PER_EXPRESSION)
+        .unwrap();
+    let later = scratch.maximum_function * crate::loan_plan::REACHABILITY_BYTES_PER_EXPRESSION
+        + crate::hir::retained_scalar_directory_bound(scratch.functions).unwrap();
+    let receivers = super::super::super::retained_scratch::RECEIVING;
+    let expected = (full.retained_hir + receivers).max(retained_output + receivers + later);
     let (layout, refused_shipping, paid_shipping, _) = with_limit_usage_refusal(usize::MAX, || {
         super::super::super::uncached_peak::uncached_output_layout(&programs, &authored).unwrap()
     });

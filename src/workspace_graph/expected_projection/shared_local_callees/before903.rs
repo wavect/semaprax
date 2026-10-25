@@ -27,6 +27,7 @@ mod shared_local_callees {
     pub(super) use super::super::{modular_session, Session};
     pub(super) use super::{modular_pair, paired, Context, Costs, Failure};
 }
+#[path = "before903/held_projection"]
 mod held_projection {
     use super::*;
     #[path = "modular_projection.rs"]

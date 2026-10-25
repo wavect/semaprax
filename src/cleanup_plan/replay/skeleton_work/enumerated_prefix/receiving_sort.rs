@@ -48,24 +48,32 @@ const ADVANCE_CALL: usize = PAYMENT
     + 4 * size_of::<&mut Cursor>()
     + 4 * size_of::<&Observations>()
     + 2 * size_of::<Result<(), ByteFailure>>();
-// Every other former ADVANCE_CALL role is renewed before each actual pop,
-// including exhaustion. The two explicit mutable receiving views are new.
-const FRAME_STEP: usize = 2 * PAYMENT
+// The pop/take, moved match, scalar controls, and work-payment producer are
+// common to every attempt, including exhaustion. The third PAYMENT funds the
+// new branch reserve BEFORE its actual/formal arguments and Result can form.
+// Match the already-owned frame: there is no extra selector helper or loan.
+const FRAME_COMMON: usize = 3 * PAYMENT
     + 2 * size_of::<&mut Vec<Frame>>()
     + 2 * size_of::<&mut Option<Frame>>()
-    + 2 * size_of::<Frame>() // moved match and resumed-frame constructor
-    + 2 * size_of::<Option<Frame>>() // pop/take transports; retained slot is separate
-    + 4 * size_of::<Rc<ObservationDag>>() // clone input/return and moved handles
-    + 4 * size_of::<Observation>() // clone input/return and yielded assignment
+    + 2 * size_of::<Frame>()
+    + 2 * size_of::<Option<Frame>>()
+    + 4 * size_of::<Rc<ObservationDag>>() // moved node bindings precede branch payment
+    + size_of::<[usize; 8]>()
+    + 8 * size_of::<bool>();
+// Complete old typed roles, partitioned by actual constructors. SeqItems has
+// both node-kind/handle and item receivers; Node has prefix/child receivers.
+// No node growth or Cat-child invoice is discounted here.
+const ROOT_FRAME: usize = 4 * size_of::<Observation>()
     + 4 * size_of::<Option<&Observation>>()
-    + 4 * size_of::<Option<Rc<ObservationDag>>>()
+    + 4 * size_of::<&[Observation]>();
+const SEQ_FRAME: usize = ROOT_FRAME + 4 * size_of::<&ObservationDagKind>();
+const NODE_FRAME: usize = 4 * size_of::<Option<Rc<ObservationDag>>>()
     + 2 * size_of::<std::iter::Rev<std::slice::Iter<'static, Rc<ObservationDag>>>>()
     + 4 * size_of::<Option<&Rc<ObservationDag>>>()
     + 4 * size_of::<&ObservationDagKind>()
-    + 4 * size_of::<&[Observation]>()
-    + 4 * size_of::<&Option<Rc<ObservationDag>>>()
-    + size_of::<[usize; 8]>()
-    + 8 * size_of::<bool>();
+    + 4 * size_of::<&Option<Rc<ObservationDag>>>();
+#[cfg(test)]
+const FRAME_STEP: usize = before_branch_frames::old_frame_step();
 // Only a Node can invoke the backing-reservation producer. Pay its actual
 // call plus this new renewal call at that branch, before either can form its
 // transports. Item/resume/exhaustion frames never invoke the growth producer.
@@ -150,9 +158,11 @@ impl Cursor {
         loop {
             budget.reserve_compact_bytes(
                 function,
-                FRAME_STEP,
-                "enumerated HIR cursor frame receiving renewal",
+                FRAME_COMMON,
+                "enumerated HIR cursor common frame receiving renewal",
             )?;
+            #[cfg(test)]
+            frame_event(0);
             self.current = self.pending.pop();
             if self.current.is_none() {
                 break;
@@ -160,6 +170,13 @@ impl Cursor {
             budget.charge_compact(function, 1, "enumerated HIR cursor traversal")?;
             match self.current.take().expect("the popped frame was present") {
                 Frame::RootItems { next } => {
+                    #[cfg(test)]
+                    frame_event(1);
+                    budget.reserve_compact_bytes(
+                        function,
+                        ROOT_FRAME,
+                        "enumerated HIR root-items frame receivers",
+                    )?;
                     if let Some(item) = observations.items.get(next) {
                         self.yielded = Some(Rc::clone(item));
                         self.pending.push(Frame::RootItems { next: next + 1 });
@@ -167,6 +184,13 @@ impl Cursor {
                     }
                 }
                 Frame::SeqItems { node, next } => {
+                    #[cfg(test)]
+                    frame_event(2);
+                    budget.reserve_compact_bytes(
+                        function,
+                        SEQ_FRAME,
+                        "enumerated HIR sequence-items frame receivers",
+                    )?;
                     let ObservationDagKind::Seq(_, items) = &node.kind else {
                         unreachable!("sequence cursor frame retains its immutable node")
                     };
@@ -180,6 +204,13 @@ impl Cursor {
                     }
                 }
                 Frame::Node(node) => {
+                    #[cfg(test)]
+                    frame_event(3);
+                    budget.reserve_compact_bytes(
+                        function,
+                        NODE_FRAME,
+                        "enumerated HIR node frame receivers",
+                    )?;
                     budget.reserve_compact_bytes(
                         function,
                         NODE_STEP,
@@ -396,3 +427,21 @@ mod tests;
 #[allow(dead_code, unused_imports, reason = "complete immediate-old bank and independent invoice control")]
 #[rustfmt::skip]
 mod before_frame_pricing;
+
+#[cfg(test)]
+#[allow(dead_code, unused_imports, reason = "complete independent immediate OPT-926 predecessor")]
+#[rustfmt::skip]
+pub(super) mod before_branch_frames;
+#[cfg(test)]
+std::thread_local! {
+    pub(super) static IMMEDIATE_BRANCH_FRAMES: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    static BRANCH_FRAME_EVENTS: std::cell::Cell<[usize; 4]> = const { std::cell::Cell::new([0; 4]) };
+}
+#[cfg(test)]
+fn frame_event(index: usize) {
+    BRANCH_FRAME_EVENTS.with(|events| {
+        let mut counts = events.get();
+        counts[index] = counts[index].checked_add(1).unwrap();
+        events.set(counts);
+    });
+}

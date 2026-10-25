@@ -53,3 +53,48 @@ External authoring for this continuation was blocked by two automatic approval r
 Explicit classifier selectors: `bounded_output::classifier_string::explicit::tests` and `cleanup_plan::replay::paid_type_facts::oracle_logical_tests`. Original `bounded_output::classifier_string::tests` and `cleanup_plan::replay::paid_type_facts::droppability::key_tests` remain independent controls. All are pending.
 
 Pending destructure control: `cleanup_plan::replay::record_destructure::funded::tests::nested_destructure_and_field_substitution_match_full_old_receivers_through_drop`. This paid storage seam does not establish the remaining nominal admission or complete pair acquisition proof.
+
+## Paid Oracle local operations (#929, #930)
+
+The test-only enumerated flat comparison specializes to its actual
+`Rc<SkeletonObservation>` slices. Each member keeps its old paid step, acquires
+the complete new pointer-operation receivers, then pays one pointer equality
+operation. Identical immutable storage advances the comparison; a miss performs
+the complete previous observation comparison. Length, terminal comparison, both
+independent sorts and the final path comparison remain. This introduces new work
+and byte cuts; no old-cut equivalence or whole-caller gain is claimed.
+
+The Oracle continuation constructor separately acquires two actual Frame slots
+and pays complete replacement backing before each reached growth. It pays new
+receivers, relocation and release before formation. The absent fixed 516-slot
+allocation carries no old fee or refund. The same depth ceiling, independent
+budgets, invocation authority and finite outer caps remain. Deep cumulative
+backing and work can exceed the fixed constructor. Complete old comparison and
+fixed constructor/growth controls remain executable beside exact source images
+and inverses. Reference changes alone establish no application or agent gain.
+
+### Required qualification
+
+Qualification requires these six controls under
+`cleanup_plan::replay::factored::oracle_order::flat_identity_tests`:
+
+- `same_rc_and_equal_separate_rc_keep_order_with_new_exact_and_short_cuts`
+- `identity_keeps_original_zero_receiver_work_failure_before_new_bank`
+- `expired_pointer_receiver_never_spends_foreign_scope_or_changes_old_diagnostic`
+- `complete_old_order_is_exact_and_new_submodules_remain_source_bound`
+- `pointer_fee_exact_short_and_sticky_preserve_positive_active_floor`
+- `comparison_unwind_releases_owned_rc_inputs_and_oracle_authority`
+
+It also requires these four controls under
+`cleanup_plan::replay::continuation_storage::oracle_reached_tests`:
+
+- `oracle_initial_and_relocated_backing_keep_exact_short_zero_and_drop`
+- `constructor_unwind_drops_actual_new_and_complete_old_backing_and_authority`
+- `expired_constructor_receiver_keeps_old_diagnostic_without_foreign_debit`
+- `new_oracle_fee_frontiers_exact_short_and_sticky_preserve_positive_active_floor`
+
+The unchanged owning callable and complete 64-row controls are also required:
+
+- `workspace_graph::tests::callable_limit_exact_advances_and_one_over_is_g171`
+- `cleanup_plan::replay::expression_facts::receiving::retained::case_certified::lookup_tests::receiving::whole_immediate_ordinary_result_exact_short_zero_and_real_nm_are_observed`
+- `cleanup_plan::replay::expression_facts::receiving::retained::case_certified::lookup_tests::complete_immediate_old_ordinary_caller_preserves_results_and_funds_real_dense_route`

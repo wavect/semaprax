@@ -129,5 +129,41 @@ class V14PinTails(unittest.TestCase):
             codec.expand_v13_digest_table(v13)
 
 
+
+class V15SourcePaths(unittest.TestCase):
+    def setUp(self):
+        self.v12=fixture();self.v12['additions'][0]['source']=codec.V15_SOURCE_PREFIXES[0]+'unicode-λ.rs'
+        self.v12['additions'][0]['extra']['source']='0:opaque'
+        self.v12['replacements'][0]['old519_index'][3][0]['source']=codec.V15_SOURCE_PREFIXES[2]+'x.rs'
+        self.v12['replacements'][0]['old519_index'][3][1]['source']='0:opaque'
+        self.v14=codec.encode_v14(self.v12);self.wire=codec.encode_v15(self.v12)
+    def test_entire_v14_v13_v12_and_opaque_source_slots(self):
+        self.assertEqual(codec.expand_v15_source_paths(self.wire),self.v14)
+        self.assertEqual(codec._expand_v13_logical_digest_table(codec._expand_v14_logical_pin_tails(codec.expand_v15_source_paths(self.wire))),self.v12)
+        self.assertEqual(self.wire['additions'][0]['extra'],self.v14['additions'][0]['extra'])
+        self.assertEqual(self.wire['replacements'][0]['old519_index'][3][1],self.v14['replacements'][0]['old519_index'][3][1])
+    def test_malformed_noncanonical_uninterned_and_unknown_envelopes(self):
+        for source in [None,True,False,[],{},[0,'x'],'i:x','0:','0:/x','0:../x','0:x\\y','0:x:y',codec.V15_SOURCE_PREFIXES[0]+'x','1:ordinary_plan_history/comparison_owner/x']:
+            bad=copy.deepcopy(self.wire);bad['additions'][0]['source']=source
+            with self.assertRaises(AssertionError):codec.expand_v15_source_paths(bad)
+        bad=copy.deepcopy(self.wire);bad['source_prefixes']=[]
+        with self.assertRaises(AssertionError):codec.expand_v15_source_paths(bad)
+    def test_old_tail_amplification_and_public_wire_caps_stay_closed(self):
+        bad=copy.deepcopy(self.wire);bad['pin_tails']=[[7,0,'e/'+'x'*100000]]
+        ref=bad['replacements'][0]['old519_index'];ref[1]=[0];ref[2]=[[0,0]for _ in range(100)];ref[3]=None
+        with self.assertRaisesRegex(AssertionError,'v14 expanded bound'):codec.expand_v15_source_paths(bad)
+        bad=copy.deepcopy(self.wire);bad['predecessor']='x'*codec.PAGE_CAP
+        with self.assertRaisesRegex(AssertionError,'v15 same one-page cap'):codec.expand_v15_source_paths(bad)
+    def test_actual953_frontier_full_inverse_public_v14_still_refuses(self):
+        from pathlib import Path
+        import json
+        root=Path(__file__).resolve().parents[3]
+        raw=(root/'e/6a06db716fe5fa91c8233ade79203b29457dadb46b6e1083ecfe6b0df3952d61').read_bytes();v14=json.loads(raw)
+        v12=json.loads((root/'e/571ec88fa5e7037cae6d7b6e2ea592acaf3c97380a07a07cafe366bf923d295b').read_bytes())
+        with self.assertRaisesRegex(AssertionError,'v14 same one-page cap'):codec.expand_v14_pin_tails(v14)
+        encoded=codec.encode_v15(v12)
+        self.assertEqual(len(codec.canonical(encoded)),260553)
+        self.assertEqual(codec.canonical(codec.expand_v15_source_paths(encoded)),raw)
+
 if __name__ == '__main__':
     unittest.main()

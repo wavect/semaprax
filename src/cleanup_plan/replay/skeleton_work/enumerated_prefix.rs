@@ -380,6 +380,13 @@ pub(in crate::cleanup_plan::replay) fn sort(
         paths.sort();
         return Ok(());
     }
+    // Test-only direct dispatch preserves the immediate caller's actual full
+    // signature exactly once; no forwarding sort frame is interposed.
+    #[cfg(test)]
+    if receiving_sort::IMMEDIATE_BRANCH_FRAMES.with(std::cell::Cell::get) {
+        return receiving_sort::before_branch_frames::sort(paths, function, budget)
+            .map_err(|failure| failure.into_diagnostic());
+    }
     receiving_sort::sort(paths, function, budget).map_err(|failure| failure.into_diagnostic())
 }
 

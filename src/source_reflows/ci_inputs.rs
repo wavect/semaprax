@@ -295,6 +295,7 @@ fn rows() -> serde_json::Value {
     {
         let row = &mut rows[8];
         let current = compiled(row["source"].as_str().unwrap()).unwrap().1;
+        let current = constructor903_before(row["source"].as_str().unwrap(), current).unwrap_or_else(|| current.to_owned()); let current = current.as_str();
         assert_eq!(current.len(), 59526);
         assert_eq!(
             digest(current),
@@ -1244,7 +1245,7 @@ pub(super) fn next_custody_before(owner: &str, source: &str, supplied: &str) -> 
         .iter()
         .find(|row| row["owner"] == owner && row["source"] == source);
     let Some(row) = row else {
-        return supplied.to_owned();
+        return constructor903_before(source, supplied).unwrap_or_else(|| supplied.to_owned());
     };
     let compiled = match source {
         "docs/PRIVATE-NOMINAL-LAYOUT-CLOSURE-V1.md" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/PRIVATE-NOMINAL-LAYOUT-CLOSURE-V1.md")),
@@ -1285,7 +1286,8 @@ pub(super) fn next_custody_before(owner: &str, source: &str, supplied: &str) -> 
         physical, compiled,
         "complete actual compiled source channel"
     );
-    let acquired = constructor903_before(source, supplied)
+    let constructor = constructor903_before(source, compiled); let acquired = constructor.filter(|before| supplied == compiled || supplied == before.as_str())
+        .or_else(|| (supplied.len() as u64 == row["current_length"].as_u64().unwrap() && digest(supplied) == row["current_sha256"].as_str().unwrap()).then(|| supplied.to_owned()))
         .or_else(|| next_emission_before(owner, source, supplied, compiled))
         .or_else(|| next_custody_front(owner, source, supplied, compiled, row));
     if acquired.is_none() {
@@ -1491,7 +1493,7 @@ fn constructor903_before(source: &str, supplied: &str) -> Option<String> {
     assert_eq!(acquire("src/source_reflows/next_custody_fronts.json", FRONT.len(), &digest(FRONT)), FRONT);
     let actual = acquire(source, row["current"]["length"].as_u64().unwrap().try_into().unwrap(), row["current"]["sha256"].as_str().unwrap());
     let mut previous = 0; for e in row["edits"].as_array().unwrap() { let a: usize = e["start"].as_u64().unwrap().try_into().unwrap(); let b: usize = e["end"].as_u64().unwrap().try_into().unwrap(); assert!(previous <= a && a <= b && b <= actual.len() && actual.is_char_boundary(a) && actual.is_char_boundary(b)); assert_eq!(&actual[a..b], e["after"].as_str().unwrap()); previous = b; }
-    let mut restored = actual.clone(); for e in row["edits"].as_array().unwrap().iter().rev() { restored.replace_range(e["start"].as_u64().unwrap().try_into().unwrap()..e["end"].as_u64().unwrap().try_into().unwrap(), e["before"].as_str().unwrap()); }
+    let mut restored = actual.clone(); for e in row["edits"].as_array().unwrap().iter().rev() { restored.replace_range::<std::ops::Range<usize>>(e["start"].as_u64().unwrap().try_into().unwrap()..e["end"].as_u64().unwrap().try_into().unwrap(), e["before"].as_str().unwrap()); }
     assert_eq!(restored, row["before_text"].as_str().unwrap()); assert_eq!(restored.len() as u64, row["target"]["length"]); assert_eq!(digest(&restored), row["target"]["sha256"]);
     assert!(supplied == actual || supplied == restored, "only complete physical or exact named pre-903 input view");
     assert_eq!(acquire(source, actual.len(), &digest(&actual)), actual); assert_eq!(acquire("src/source_reflows/next_custody_fronts.json", FRONT.len(), &digest(FRONT)), FRONT); Some(restored)

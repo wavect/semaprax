@@ -6,7 +6,7 @@ use crate::workspace_graph::expected_projection::{call_carriers, shared_local_ca
 const SCALAR: &str = r#"module covered;
 @id("covered.add") fn add(x:i64)->i64 {x+1}
 @id("covered.main") fn main()->i64 ensures result >= 0 {
-    let mut value=0; while value<16 {value=add(value);} value
+    let mut value=0; while value<16 {value=add(value);value} value
 }
 "#;
 fn counts(programs: &[Program]) -> super::super::retained_scratch::Counts {
@@ -269,4 +269,84 @@ fn expression_scratch_term_is_the_existing_typed_two_point_ceiling() {
         2 * point
     );
     assert_eq!(2 * point, 74);
+}
+
+#[test]
+fn bounded_physical_counter_exact_limit_and_uncovered_paths_never_publish_partial_counts() {
+    fn tree(leaves: usize) -> String {
+        if leaves == 1 {
+            "0".to_owned()
+        } else {
+            format!("({}+{})", tree(leaves / 2), tree(leaves - leaves / 2))
+        }
+    }
+    let limit = super::super::retained_scratch::MAX_COVERED_EXPRESSIONS;
+    assert_eq!(
+        usize::from(limit),
+        crate::loan_plan::MAX_LOAN_ENDPOINTS_V1 / 2
+    );
+    assert_eq!(limit, 2048);
+    for (leaves, negate, nodes) in [
+        (1023, false, 2046),
+        (1023, true, 2047),
+        (1024, false, 2048),
+        (1024, true, 2049),
+    ] {
+        let expression = tree(leaves);
+        let expression = if negate {
+            format!("-({expression})")
+        } else {
+            expression
+        };
+        for trailing_uncovered in [false, true] {
+            let tail = if trailing_uncovered {
+                " @id(\"bounded.generic\") fn generic<T>(x:i64)->i64 {x} @id(\"bounded.unknown\") fn unknown()->i64 {let x=bytes_zeroed(1usize);0}"
+            } else {
+                ""
+            };
+            let text = format!(
+                "module bounded; @id(\"bounded.main\") fn main()->i64 {{{expression}}}{tail}"
+            );
+            let source = crate::parse(&text, "bounded.spx").unwrap();
+            let mut actual_nodes = 0;
+            for root in super::super::call_identity::roots(&source.functions[0]) {
+                assert!(super::super::call_identity::walk(root, &mut |_| {
+                    actual_nodes += 1;
+                    true
+                }));
+            }
+            assert_eq!(actual_nodes, nodes);
+            let programs = [source];
+            let authored = crate::workspace_graph::index_authored(&programs).unwrap();
+            let context = shared_local_callees::Context {
+                program: &programs[0],
+                authored: &authored,
+                programs: &programs,
+            };
+            for proof in [
+                call_carriers::count_joint(context, true).unwrap().0,
+                call_carriers::count_modular(context, true).unwrap().0,
+            ] {
+                assert!(proof.current_retained <= limit);
+                let covered = usize::from(nodes <= usize::from(limit));
+                assert_eq!(proof.retained.functions, covered);
+                assert_eq!(
+                    proof.retained.expressions,
+                    if covered == 1 { nodes } else { 0 }
+                );
+                assert_eq!(
+                    proof.retained.maximum_function,
+                    if covered == 1 { nodes } else { 0 }
+                );
+            }
+        }
+    }
+    // The independent depth refusal also closes the certificate without a
+    // narrowed counter wrapping or a partial function contributing an exclusion.
+    let text = format!(
+        "module deep; @id(\"deep.main\") fn main()->i64 {{{}0}}",
+        "-".repeat(40)
+    );
+    let source = crate::parse(&text, "deep.spx").unwrap();
+    assert_eq!(counts(&[source]).functions, 0);
 }

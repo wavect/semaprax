@@ -539,7 +539,10 @@ fn every_deep_empty_frame_and_warm_cat_child_attempt_renews_its_actual_invoice()
                 assert_eq!(
                     bytes - crate::bounded_output::active_remaining().unwrap(),
                     ADVANCE_CALL
-                        + attempts * FRAME_STEP
+                        + attempts * FRAME_COMMON
+                        + ROOT_FRAME
+                        + (depth + children) * SEQ_FRAME
+                        + (depth + children + 1) * NODE_FRAME
                         + child_attempts * CAT_CHILD_STEP
                         + (depth + children + 1) * NODE_STEP
                 );
@@ -616,3 +619,6 @@ fn complete_immediate_old_bank_and_original_structural_invoice_are_source_bound(
     assert!(original_tests
         .contains("ADVANCE_CALL + attempts * FRAME_STEP + child_attempts * CAT_CHILD_STEP"));
 }
+
+#[path = "branch_frames.rs"]
+mod branch_frames;

@@ -1,6 +1,8 @@
 //! Reached-capacity backing for the ordinary unobserved continuation owner.
 //! The old 516-frame reservation/depth and every old traversal debit remain.
-//! No observed/selected/oracle payer enters this additional physical strategy.
+//! No observed/selected/oracle payer enters this ordinary strategy. Oracle
+//! has a separate explicitly funded reached strategy in oracle_reached.rs; the
+//! full original fixed516 constructor remains independently executable.
 use super::*;
 use std::mem::size_of;
 

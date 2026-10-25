@@ -111,11 +111,7 @@ pub(super) fn boundary_run_added(r: &pair_scope_census::Row) -> usize {
             + size_of::<Ordering>())
             * r.shared_boundaries
         + (2 * size_of::<&[Rc<SkeletonObservation>]>()
-            + 4 * size_of::<usize>()
-            + 6 * size_of::<certified_heads::SharedUnitDriver>()
-            + 2 * size_of::<&mut certified_heads::SharedUnitDriver>()
-            + 2 * size_of::<Option<()>>())
-            * r.shared_runs
+            + 8 * size_of::<usize>() + size_of::<bool>()) * r.shared_runs
         + (4 * size_of::<&[Rc<SkeletonObservation>]>()
             + 4 * size_of::<usize>()
             + size_of::<Ordering>())
@@ -684,8 +680,14 @@ fn shared_identity_replay_every_new_acquisition_exact_short_zero_floor_and_stick
     assert_eq!(
         success.row.shared_turns,
         success.row.identity_observations + success.row.shared_runs,
-        "each complete unit driver reaches every Some and its sole terminal None"
+        "each complete prepaid run reaches every item and one terminal decision"
     );
+    // Preserve the independent complete driver bank for its surviving caller.
+    assert_eq!(2 * size_of::<&[Rc<SkeletonObservation>]>()
+        + 4 * size_of::<usize>()
+        + 6 * size_of::<std::iter::Take<std::iter::Repeat<()>>>()
+        + 2 * size_of::<&mut std::iter::Take<std::iter::Repeat<()>>>()
+        + 2 * size_of::<Option<()>>(), certified_heads::RUN_CAPTURE);
     for (phase, count, price) in [
         (
             "ordinary plan shared suffix pattern probe",
@@ -696,10 +698,7 @@ fn shared_identity_replay_every_new_acquisition_exact_short_zero_floor_and_stick
             "ordinary plan certified numeric run capture",
             success.row.shared_runs,
             2 * size_of::<&[Rc<SkeletonObservation>]>()
-                + 4 * size_of::<usize>()
-                + 6 * size_of::<std::iter::Take<std::iter::Repeat<()>>>()
-                + 2 * size_of::<&mut std::iter::Take<std::iter::Repeat<()>>>()
-                + 2 * size_of::<Option<()>>(),
+                + 8 * size_of::<usize>() + size_of::<bool>(),
         ),
         (
             "ordinary plan certified numeric run publication",

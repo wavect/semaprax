@@ -309,7 +309,7 @@ fn fresh_entry_suffix_refused_prefix_prices_admitted_bodies_independently_of_g()
         );
         assert_eq!(
             bytes("ordinary plan certified numeric run capture"),
-            current.row.shared_runs * certified_heads::RUN_CAPTURE
+            current.row.shared_runs * certified_heads::RUN_SCALAR_CAPTURE
         );
         assert_eq!(
             bytes("ordinary plan certified numeric run turn"),

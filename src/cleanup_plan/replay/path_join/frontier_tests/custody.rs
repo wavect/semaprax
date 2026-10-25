@@ -1,5 +1,7 @@
 //! Whole-source inverse and immutable shared dependency binding for the oracle.
 use sha2::{Digest, Sha256};
+#[path = "../../oracle_closure_before/custody.rs"]
+mod oracle_closure_custody;
 fn digest(bytes: &[u8]) -> String {
     format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)))
 }
@@ -64,12 +66,18 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
         before.split_once(marker).unwrap().1
     );
     for (path, expected) in rows {
-        let mut actual =
-            crate::bounded_output::census_before(&path, &std::fs::read(root.join(&path)).unwrap());
+        // Bound the changed continuation route against its compiled current
+        // image before the complete inherited inverse/dependency checks.
+        let mut actual = if path == "src/cleanup_plan/replay/continuation_storage.rs" {
+            let physical = oracle_closure_custody::exact_compiled(&root.join(&path), include_str!("../../continuation_storage.rs"));
+            crate::bounded_output::census_before(&path, physical.as_bytes())
+        } else {
+            crate::bounded_output::census_before(&path, &std::fs::read(root.join(&path)).unwrap())
+        };
         // Finite inventory transport only: the main scalar classifier changes
         // the measured common lexical prefix. This is not old execution restoration.
         let encoded = include_str!("../before_frontier/custody/main_d227_transport.json");
-        assert_eq!(std::fs::read(root.join("src/cleanup_plan/replay/path_join/before_frontier/custody/main_d227_transport.json")).unwrap(), encoded.as_bytes());
+        assert_eq!(oracle_closure_custody::exact_compiled(&root.join("src/cleanup_plan/replay/path_join/before_frontier/custody/main_d227_transport.json"), encoded).as_bytes(), encoded.as_bytes());
         assert_eq!(
             digest(encoded.as_bytes()),
             "a45ca685dd5d58087205b82584411860c1cc7d1ba2beb1ff2d64154043338eeb"
@@ -206,6 +214,9 @@ fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source
         {
             let compiled = if path == "src/cleanup_plan/replay/continuation_storage.rs" { include_bytes!("../../continuation_storage.rs").as_slice() } else { include_bytes!("../../continuation_storage/tests.rs").as_slice() };
             assert_eq!(actual.as_slice(), compiled);
+            if path == "src/cleanup_plan/replay/continuation_storage.rs" {
+                actual = oracle_closure_custody::restore(&path, std::str::from_utf8(&actual).unwrap()).into_bytes();
+            }
             let packet = include_bytes!("../../continuation_storage/reached_before/inverse.json");
             assert_eq!(
                 digest(packet),

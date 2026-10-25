@@ -90,16 +90,65 @@ pub(in crate::source_reflows_merge) fn input(source: &str, current: &str) -> Str
 }
 fn bundle(current: &str) -> String {
     let physical_current = current;
+    // Authenticate the actual public epoch before constructing a named historical input.
+    let guide_epoch;
+    let current = if digest(current)
+        == "cfcee456219f766e1d939c7a8c90a38c2e42bce79644a3990323719491ae648a"
+    {
+        authenticate(
+            "docs/AGENT-SKILL-BUNDLE-V1.json",
+            current,
+            include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"),
+            5544,
+            "cfcee456219f766e1d939c7a8c90a38c2e42bce79644a3990323719491ae648a",
+        );
+        let mut prior = current.to_owned();
+        replace(
+            &mut prior,
+            "sha256:4d03ba63891a822aa638558f9d5dd58fcb6cec3e51cc70b742dc1845476abf73",
+            "sha256:91f9c6c07e143a11d4b9c837395c775f143d438d163f8474aa7356998125fb07",
+            1,
+        );
+        replace(
+            &mut prior,
+            "sha256:7422df629f3232df98c2b2afeb908aceab7bcf63400495fbdd1f1d9928950922",
+            "sha256:68bf89cdc667b569778de5905df8ebd4c4cf4d1a5f76774b734fa2d74d15cfde",
+            1,
+        );
+        assert_eq!(prior.len(), 5544);
+        assert_eq!(
+            digest(&prior),
+            "29ad234d3e02654130c56d0facfa568d8113d67fb9779ede8fd87a4aad04127d"
+        );
+        guide_epoch = prior;
+        guide_epoch.as_str()
+    } else {
+        current
+    };
     let projected_current;
     let current =
         if digest(current) == "29ad234d3e02654130c56d0facfa568d8113d67fb9779ede8fd87a4aad04127d" {
-            authenticate(
-                "docs/AGENT-SKILL-BUNDLE-V1.json",
-                current,
-                include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"),
-                5544,
-                "29ad234d3e02654130c56d0facfa568d8113d67fb9779ede8fd87a4aad04127d",
-            );
+            if physical_current == current {
+                authenticate(
+                    "docs/AGENT-SKILL-BUNDLE-V1.json",
+                    current,
+                    include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"),
+                    5544,
+                    "29ad234d3e02654130c56d0facfa568d8113d67fb9779ede8fd87a4aad04127d",
+                );
+            } else {
+                // The physical epoch was authenticated before its exact two-field inverse.
+                assert_eq!(physical_current.len(), 5544);
+                assert_eq!(
+                    digest(physical_current),
+                    "cfcee456219f766e1d939c7a8c90a38c2e42bce79644a3990323719491ae648a"
+                );
+                assert_eq!(current.len(), 5544);
+                assert_eq!(
+                    digest(current),
+                    "29ad234d3e02654130c56d0facfa568d8113d67fb9779ede8fd87a4aad04127d"
+                );
+            }
             // Named historical INPUT view; the public producer must confirm this epoch.
             let mut prior = current.to_owned();
             replace(

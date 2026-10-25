@@ -1483,7 +1483,7 @@ runpy.run_path(sys.argv[1],run_name='codec_fixture')
         ] {
             assert!(std::panic::catch_unwind(|| parent_before(ROOT, &child)).is_err());
         }
-        let current_loader = LOADER.replacen(" length=10905\n", " length=23065\n", 1).replacen("a0f906f11a8c7205a2124e5cd9c1909fa1a53a12731a0775d3e360d844bab794", "9cae8c3b1db0d54de8ce9d66639dab5de6c16c9e5772d1503b922482b1b2a1fb", 1); assert_eq!(PYTHON.matches(&current_loader).count(), 1); for parent in [
+        let current_loader = LOADER.replacen(" length=10905\n", &format!(" length={}\n", CODECS.len()), 1).replacen("a0f906f11a8c7205a2124e5cd9c1909fa1a53a12731a0775d3e360d844bab794", &digest(CODECS), 1); assert_eq!(PYTHON.matches(&current_loader).count(), 1); for parent in [
             format!("{PYTHON} "),
             PYTHON.replacen(&current_loader, "", 1),
             PYTHON.replacen("os.O_NOFOLLOW", "0", 1),

@@ -413,4 +413,5 @@ pub(in crate::workspace_graph) fn next_retention_prebound_with_uncached_peak_wit
 }
 
 #[cfg(test)]
+#[path = "uncached_peak/retained_scratch_tests.rs"]
 mod retained_scratch_tests;

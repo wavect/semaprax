@@ -526,3 +526,272 @@ def encode_v14_pin_tails(page):
 
 def encode_v14(page):
  return encode_v14_pin_tails(_encode_v13_logical_digest_table(page))
+
+# Private V15 logical frontier; public V14 functions and wire caps remain exact.
+def _expand_v14_logical_pin_tails(page):
+ assert keys(page,(*V12_KEYS,'view_labels','digest_table','pin_tails')) and page['schema']==V14_SCHEMA, 'v14 envelope'
+ assert len(canonical(page))<=SOURCE_CAP, 'v14 same one-page cap'
+ declarations=page['pin_tails']
+ assert type(declarations) is list, 'v14 dictionary'
+ unique=set()
+ for value in declarations:
+  key=_v14_tail(value)
+  assert key not in unique, 'v14 duplicate declaration'
+  unique.add(key)
+ result=copy.deepcopy(page);del result['pin_tails'];result['schema']=V13_SCHEMA
+ uses=[0]*len(declarations);next_index=0;literals=set();expanded=len(canonical(result))
+ def validate(value):
+  nonlocal next_index,expanded
+  if len(value)==1:
+   position=value[0]
+   assert type(position) is int and 0<=position<len(declarations), 'v14 unknown tail index'
+   if uses[position]==0:
+    assert position==next_index, 'v14 noncanonical first-use order'
+    next_index+=1
+   uses[position]+=1
+   expanded+=len(canonical(declarations[position]))-len(canonical(value))
+  else:
+   key=_v14_tail(value)
+   assert key not in unique and key not in literals, 'v14 uninterned or aliased tail'
+   literals.add(key)
+  assert expanded<=SOURCE_CAP, 'v14 expanded bound'
+  return value
+ v14_pin_slots(result,validate)
+ assert all(count>=2 for count in uses), 'v14 declaration requires repeated use'
+ assert expanded<=SOURCE_CAP, 'v14 expanded bound'
+ v14_pin_slots(result,lambda value:copy.deepcopy(declarations[value[0]]) if len(value)==1 else value)
+ assert len(canonical(result))==expanded, 'v14 expanded bound'
+ _expand_v13_logical_digest_table(result)
+ return result
+
+
+def _encode_v14_logical_pin_tails(page):
+ assert keys(page,(*V12_KEYS,'view_labels','digest_table')) and page['schema']==V13_SCHEMA, 'v14 input envelope'
+ assert len(canonical(page))<=SOURCE_CAP, 'v14 logical input bound'
+ _expand_v13_logical_digest_table(page)
+ result=copy.deepcopy(page);counts={}
+ def count(value):
+  key=_v14_tail(value);counts[key]=counts.get(key,0)+1
+  return value
+ v14_pin_slots(result,count)
+ table=[];indices={}
+ def encode(value):
+  key=_v14_tail(value)
+  if counts[key]<2:return value
+  if key not in indices:indices[key]=len(table);table.append(copy.deepcopy(value))
+  return [indices[key]]
+ v14_pin_slots(result,encode)
+ result['schema']=V14_SCHEMA;result['pin_tails']=table
+ assert len(canonical(result))<=SOURCE_CAP, 'v14 same one-page cap'
+ assert canonical(_expand_v14_logical_pin_tails(result))==canonical(page), 'v14 ENTIRE V13 page inverse'
+ return result
+
+
+# Versioned V15 registry: source slots only; this is not a source allowlist.
+V15_SCHEMA = 'semaprax.finite-source-overlay-page.v15'
+V15_CODES = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefgh'
+V15_SOURCE_PREFIXES = ('src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/', 'src/cleanup_plan/replay/', 'src/workspace_graph/expected_projection/', 'src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/', 'src/hir/validation/frame_reuse/', 'src/workspace_graph/expected_projection/shared_local_callees/', 'src/cleanup_plan/replay/path_join/', 'src/cleanup_plan/replay/ordinary_plan_history/completed_fork/', 'src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/', 'src/source_reflows_merge/', 'src/cleanup_plan/replay/expression_facts/', 'tests/wasm/scalar_browser_ci_contract/', 'src/cleanup_plan/replay/skeleton_work/enumerated_prefix/', 'src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/', 'src/cleanup_plan/replay/expression_facts/receiving/retained/', 'src/cleanup_plan/replay/ordinary_plan_history/', 'src/hir/inspection/paid_nul/', 'src/cleanup_plan/replay/path_join/before_frontier/', 'src/cleanup_plan/replay/skeleton_work/', 'src/cleanup_plan/replay/path_join/selected/before_frontier/', 'src/workspace_graph/', 'src/bounded_output/', 'src/workspace_graph/expected_projection/borrowed_imports/typed/', 'src/cleanup_plan/replay/factored/', 'src/cleanup_plan/replay/continuation_storage/', 'src/cleanup_plan/replay/path_join/selected/frontier_tests/', 'src/source_reflows_merge/main_e177_overlay_digests_v13/', 'src/hir/validation/', 'src/codegen/native_owned_data_provider/', 'src/ast/program_source/', 'src/cleanup_plan/', 'src/workspace_graph/expected_projection/shared_local_callees/before903/', 'src/hir/resolve_expr/sort_keys/', 'src/workspace_graph/expected_projection/private_layout/', 'src/test_allocation_observer/', 'src/loan_plan/', 'src/cleanup_plan/replay/path_join/shared_insertions_before/', 'src/string_ops/conditions/', 'src/cli/help/authoring/', 'src/hir/lexical_exit/', 'src/bounded_output/stage_debits/route_debits/', 'src/literal_format/', 'src/hir/validation/scope_checkpoint/marks/', 'src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/')
+
+def v15_source_slots(page, convert):
+ def row(value):
+  assert type(value) is dict, 'v15 literal row'
+  if 'source' in value:value['source']=convert(value['source'])
+ def fragments(values):
+  if values is None:return
+  assert type(values) is list, 'v15 fragments'
+  for value in values:
+   assert type(value) is dict, 'v15 fragment row'
+   if 'canonical_source' not in value:row(value)
+ for group in ('replacements','additions'):
+  assert type(page[group]) is list, 'v15 rows'
+  for value in page[group]:
+   assert type(value) is dict, 'v15 row'
+   if 'old519_index' in value:
+    assert group=='replacements' and keys(value,('old519_index',)), 'v15 indexed row'
+    ref=value['old519_index']
+    assert type(ref) is list and len(ref)==4, 'v15 old519 arity'
+    fragments(ref[3])
+   else:
+    row(value)
+    if 'fragments' in value:fragments(value['fragments'])
+
+def _v15_prefix(path):
+ choices=[(len(prefix),index) for index,prefix in enumerate(V15_SOURCE_PREFIXES) if path.startswith(prefix)]
+ return max(choices)[1] if choices else None
+
+def _v15_source(value):
+ assert type(value) is str, 'v15 source type'
+ if ':' not in value:
+  assert normal(value), 'v15 source path'
+  assert _v15_prefix(value) is None, 'v15 uninterned source'
+  return value
+ assert len(value)>=3 and value[1]==':' and value[0] in V15_CODES, 'v15 source reference'
+ index=V15_CODES.index(value[0]);path=V15_SOURCE_PREFIXES[index]+value[2:]
+ assert normal(path), 'v15 expanded source path'
+ assert _v15_prefix(path)==index, 'v15 noncanonical source prefix'
+ return path
+
+def expand_v15_source_paths(page):
+ assert keys(page,(*V12_KEYS,'view_labels','digest_table','pin_tails')) and page['schema']==V15_SCHEMA, 'v15 envelope'
+ assert len(canonical(page))<=PAGE_CAP, 'v15 same one-page cap'
+ result=copy.deepcopy(page);result['schema']=V14_SCHEMA
+ expanded=len(canonical(result))
+ def validate(value):
+  nonlocal expanded
+  path=_v15_source(value)
+  expanded=expanded-len(canonical(value))+len(canonical(path))
+  assert expanded<=SOURCE_CAP, 'v15 expanded bound'
+  return value
+ v15_source_slots(result,validate)
+ assert expanded<=SOURCE_CAP, 'v15 expanded bound'
+ v15_source_slots(result,_v15_source)
+ assert len(canonical(result))==expanded, 'v15 expanded bound'
+ _expand_v14_logical_pin_tails(result)
+ return result
+
+def encode_v15_source_paths(page):
+ assert keys(page,(*V12_KEYS,'view_labels','digest_table','pin_tails')) and page['schema']==V14_SCHEMA, 'v15 input envelope'
+ assert len(canonical(page))<=SOURCE_CAP, 'v15 logical input bound'
+ _expand_v14_logical_pin_tails(page)
+ result=copy.deepcopy(page)
+ def encode(value):
+  assert type(value) is str and normal(value), 'v15 source path'
+  index=_v15_prefix(value)
+  return value if index is None else V15_CODES[index]+':'+value[len(V15_SOURCE_PREFIXES[index]):]
+ v15_source_slots(result,encode);result['schema']=V15_SCHEMA
+ assert len(canonical(result))<=PAGE_CAP, 'v15 same one-page cap'
+ assert canonical(expand_v15_source_paths(result))==canonical(page), 'v15 ENTIRE V14 page inverse'
+ return result
+
+def encode_v15(page):
+ return encode_v15_source_paths(_encode_v14_logical_pin_tails(_encode_v13_logical_digest_table(page)))
+
+
+# Private V16 frontier; original public V15 functions and caps remain byte-exact.
+def _expand_v15_logical_source_paths(page):
+ assert keys(page,(*V12_KEYS,'view_labels','digest_table','pin_tails')) and page['schema']==V15_SCHEMA, 'v15 envelope'
+ assert len(canonical(page))<=SOURCE_CAP, 'v15 same one-page cap'
+ result=copy.deepcopy(page);result['schema']=V14_SCHEMA
+ expanded=len(canonical(result))
+ def validate(value):
+  nonlocal expanded
+  path=_v15_source(value)
+  expanded=expanded-len(canonical(value))+len(canonical(path))
+  assert expanded<=SOURCE_CAP, 'v15 expanded bound'
+  return value
+ v15_source_slots(result,validate)
+ assert expanded<=SOURCE_CAP, 'v15 expanded bound'
+ v15_source_slots(result,_v15_source)
+ assert len(canonical(result))==expanded, 'v15 expanded bound'
+ _expand_v14_logical_pin_tails(result)
+ return result
+def _encode_v15_logical_source_paths(page):
+ assert keys(page,(*V12_KEYS,'view_labels','digest_table','pin_tails')) and page['schema']==V14_SCHEMA, 'v15 input envelope'
+ assert len(canonical(page))<=SOURCE_CAP, 'v15 logical input bound'
+ _expand_v14_logical_pin_tails(page)
+ result=copy.deepcopy(page)
+ def encode(value):
+  assert type(value) is str and normal(value), 'v15 source path'
+  index=_v15_prefix(value)
+  return value if index is None else V15_CODES[index]+':'+value[len(V15_SOURCE_PREFIXES[index]):]
+ v15_source_slots(result,encode);result['schema']=V15_SCHEMA
+ assert len(canonical(result))<=SOURCE_CAP, 'v15 same one-page cap'
+ assert canonical(_expand_v15_logical_source_paths(result))==canonical(page), 'v15 ENTIRE V14 page inverse'
+ return result
+
+V16_SCHEMA = 'semaprax.finite-source-overlay-page.v16'
+_V16_ROW_KEYS = ('source','compiled','current','views')
+
+def _v16_eligible(value):
+ return keys(value,_V16_ROW_KEYS) or keys(value,(*_V16_ROW_KEYS,'fragments'))
+
+def _v16_walk(page, inspect, publish=False, postorder=False):
+ # Match V15's exact slot domain: only top-level rows own fragment slots.
+ # A fragment row's own unknown fragments metadata is never traversed.
+ def row(value, outer):
+  if postorder:
+   if outer and 'fragments' in value:fragments(value['fragments'])
+   return inspect(value)
+  changed=inspect(value)
+  if outer and 'fragments' in changed:fragments(changed['fragments'])
+  return changed
+ def fragments(values):
+  if values is None:return
+  assert type(values) is list, 'v16 fragments'
+  for index,value in enumerate(values):
+   assert type(value) is dict, 'v16 fragment row'
+   if 'canonical_source' not in value:
+    changed=row(value,False)
+    if publish:values[index]=changed
+ for group in ('replacements','additions'):
+  assert type(page[group]) is list, 'v16 rows'
+  for index,value in enumerate(page[group]):
+   assert type(value) is dict, 'v16 row'
+   if 'old519_index' in value:
+    assert group=='replacements' and keys(value,('old519_index',)), 'v16 indexed row'
+    ref=value['old519_index']
+    assert type(ref) is list and len(ref)==4, 'v16 old519 arity'
+    fragments(ref[3])
+   else:
+    changed=row(value,True)
+    if publish:page[group][index]=changed
+
+def _v16_tuple(value):
+ assert keys(value,('source_row',)), 'v16 row envelope'
+ items=value['source_row']
+ assert type(items) is list and len(items) in (4,5), 'v16 row arity'
+ assert type(items[0]) is str and type(items[1]) is bool, 'v16 source/compiled type'
+ assert type(items[2]) in (list,dict) and type(items[3]) is list, 'v16 current/views type'
+ # Only a top-level row's fifth payload is a fragment domain; the walker
+ # validates that domain. The same key inside a fragment row is opaque.
+ return items
+
+def _v16_overhead(arity):
+ fields=(*_V16_ROW_KEYS,'fragments')[:arity]
+ # All payloads occur exactly once. Only fixed field names and punctuation expand.
+ return 2+sum(len(canonical(key)) for key in fields)+(arity-1)-(len(b'{"source_row":[]}')+arity-1)
+
+def expand_v16_source_rows(page):
+ assert keys(page,(*V12_KEYS,'view_labels','digest_table','pin_tails')) and page['schema']==V16_SCHEMA, 'v16 envelope'
+ assert len(canonical(page))<=PAGE_CAP, 'v16 same one-page cap'
+ expanded=len(canonical(page))
+ def validate(value):
+  nonlocal expanded
+  if not keys(value,('source_row',)):
+   assert not _v16_eligible(value), 'v16 literal row alias'
+   return value
+  items=_v16_tuple(value)
+  expanded+=_v16_overhead(len(items))
+  assert expanded<=SOURCE_CAP, 'v16 expanded bound'
+  # A borrowed temporary dictionary permits traversal of the fragments only;
+  # it does not copy any payload or publish an expanded source row.
+  return {'fragments':items[4]} if len(items)==5 else {}
+ _v16_walk(page,validate)
+ assert expanded<=SOURCE_CAP, 'v16 expanded bound'
+ result=copy.deepcopy(page);result['schema']=V15_SCHEMA
+ def decode(value):
+  if not keys(value,('source_row',)):return value
+  items=_v16_tuple(value)
+  return dict(zip((*_V16_ROW_KEYS,'fragments'),items))
+ _v16_walk(result,decode,True)
+ assert len(canonical(result))==expanded, 'v16 expanded bound'
+ _expand_v15_logical_source_paths(result)
+ return result
+
+def encode_v16_source_rows(page):
+ assert keys(page,(*V12_KEYS,'view_labels','digest_table','pin_tails')) and page['schema']==V15_SCHEMA, 'v16 input envelope'
+ assert len(canonical(page))<=SOURCE_CAP, 'v16 logical input bound'
+ _expand_v15_logical_source_paths(page)
+ result=copy.deepcopy(page)
+ def encode(value):
+  if not _v16_eligible(value):return value
+  assert type(value['source']) is str and type(value['compiled']) is bool, 'v16 source/compiled type'
+  assert type(value['current']) in (list,dict) and type(value['views']) is list, 'v16 current/views type'
+  return {'source_row':[value[key] for key in (*_V16_ROW_KEYS,'fragments') if key in value]}
+ _v16_walk(result,encode,True,True);result['schema']=V16_SCHEMA
+ assert len(canonical(result))<=PAGE_CAP, 'v16 same one-page cap'
+ assert canonical(expand_v16_source_rows(result))==canonical(page), 'v16 ENTIRE V15 page inverse'
+ return result
+
+def encode_v16(page):
+ return encode_v16_source_rows(_encode_v15_logical_source_paths(_encode_v14_logical_pin_tails(_encode_v13_logical_digest_table(page))))

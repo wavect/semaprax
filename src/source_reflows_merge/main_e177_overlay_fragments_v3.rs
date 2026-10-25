@@ -1477,6 +1477,6 @@ pub(super) fn canonical(value: &Value) -> Vec<u8> {
 
 #[path = "main_e177_overlay_digests_v13.rs"]
 mod digests_v13;
-pub(super) use digests_v13::{expand_v13, expand_v14, SCHEMA_V13, SCHEMA_V14};
+pub(super) use digests_v13::{expand_v13, expand_v14, expand_v15, expand_v16, SCHEMA_V16, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15};
 #[cfg(test)]
-pub(super) use digests_v13::{before_source as v13_before, verify_current_v13, verify_current_v14};
+pub(super) use digests_v13::{before_source as v13_before, verify_current_v13, verify_current_v14, verify_current_v15, verify_current_v16};

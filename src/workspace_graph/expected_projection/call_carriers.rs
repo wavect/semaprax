@@ -13,7 +13,7 @@ pub(super) struct Proof {
     pub(super) bytes: usize,
     pub(super) retained: super::retained_scratch::Counts,
     // Reused by the already executing modular traversal, not another walker.
-    pub(super) current_retained: usize,
+    pub(super) current_retained: u16,
     pub(super) retention_closed: bool,
 }
 impl Proof {

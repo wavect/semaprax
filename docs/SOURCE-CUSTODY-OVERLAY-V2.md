@@ -147,3 +147,57 @@ V11 and older validation, source/compiled/archive authority and limits remain in
 force. Python/Rust parity, every original codec control and a complete independent
 V12 source inverse are required; wire reduction alone establishes no source
 admission or application performance claim.
+
+## V15 literal source-path transport
+
+V15 preserves the entire logical V14 object. Only `source` in literal
+replacement/addition rows and literal fragments may use a token. Indexed-row
+fragment slots are included; canonical-source references and all unknown
+metadata are opaque. The fixed 44 directory prefixes and their one-character
+ASCII codes are versioned identically in the Python and Rust codecs. A token
+is `code:suffix`. It must reconstruct a normal path and use its longest matching
+fixed prefix. A literal normal path with no matching prefix remains literal.
+Uninterned matching literals, malformed/unknown codes, abnormal paths and extra
+envelope fields refuse. No page-selected dictionary, path discovery or source
+authority is introduced. Unused fixed registry entries grant no authority.
+
+The public V15 wire remains at most 262144 canonical bytes. Before publishing
+expanded paths, checked complete-length accounting enforces the existing
+9753094 source bound. The entire V14 value is reconstructed and validated by an
+explicit internal source-bounded copy of the complete V14 reader, followed by
+the unchanged older decoder chain. Public V14 functions and their wire cap
+remain independently executable and unchanged. Complete historical V14/policy
+controls, actual over-cap V14/V13/V12 inverse fixtures, current whole-page
+Python/Rust parity, path hostiles and old amplification controls remain owning
+gates. Prediction and source-only codec checks establish no compiler or
+application admission.
+
+
+## V16 known literal-row transport
+
+V16 reconstructs the entire canonical V15 value before any unchanged V15 path
+validation, earlier codec validation or source admission. In the existing literal
+replacement/addition and literal-fragment slots, an object with exactly `source`,
+`compiled`, `current`, `views` and optionally `fragments` is represented as
+`{"source_row":[source,compiled,current,views]}` or the five-item form carrying
+`fragments`. The source is the unchanged V15 literal/token spelling, `compiled`
+is an explicit boolean, and every payload occurs exactly once. Indexed rows and
+canonical-source references retain their old shapes. A literal row with any
+additional metadata remains literal, preserving every unknown value. Only the exact one-key object is an envelope; old literal rows containing an
+unknown `source_row` key remain literal. Wrong envelope arities/types and an
+unwrapped eligible row are refused as noncanonical aliases.
+The fragment-row domain stays exactly one level deep, matching V15. A top-level
+fifth payload must be null or an array; a fragment row's fifth payload retains
+its original opaque semantics and is never traversed. Unknown
+nested metadata is never searched for tags or source paths.
+
+The single canonical wire page remains bounded by 262144 bytes. A first pass
+validates all borrowed row envelopes and checks the complete expanded byte count
+using only the fixed field-name/punctuation delta before allocating reconstructed
+rows. Checked arithmetic enforces the unchanged 9753094 source bound. Expansion
+then proves the exact complete V15 canonical preimage and enters an internal
+source-bounded copy of the entire V15 reader. Public V15 functions, their
+262144-byte cap, old controls and all older readers remain independently
+executable and unchanged. There is no new page, dictionary, archive path,
+source authority or logical source admission. Source-only size predictions and
+authored controls establish no executable qualification or application gain.

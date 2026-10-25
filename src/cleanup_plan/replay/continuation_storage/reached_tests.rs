@@ -1,5 +1,7 @@
 //! Full predecessor constructors, exact new work, real backing and final Drop.
 use super::*;
+#[path = "../oracle_closure_before/custody.rs"]
+mod oracle_closure_custody;
 use crate::bounded_output::with_limit_usage_refusal;
 use crate::test_allocation_observer::measure;
 
@@ -315,7 +317,11 @@ fn source_before(path: &str, supplied: &str) -> String {
     );
     let packet_path =
         root.join("src/cleanup_plan/replay/continuation_storage/reached_before/inverse.json");
-    assert_eq!(std::fs::read(&packet_path).unwrap(), packet);
+    assert_eq!(
+        oracle_closure_custody::exact_compiled(&packet_path, std::str::from_utf8(packet).unwrap())
+            .as_bytes(),
+        packet
+    );
     let rows: serde_json::Value = serde_json::from_slice(packet).unwrap();
     let rows = rows.as_array().unwrap();
     assert_eq!(rows.len(), 3);
@@ -330,7 +336,20 @@ fn source_before(path: &str, supplied: &str) -> String {
         _ => panic!("foreign reached continuation source"),
     };
     assert_eq!(supplied, compiled);
-    assert_eq!(std::fs::read(root.join(path)).unwrap(), compiled.as_bytes());
+    assert_eq!(
+        oracle_closure_custody::exact_compiled(&root.join(path), compiled).as_bytes(),
+        compiled.as_bytes()
+    );
+    let live_compiled = compiled;
+    // Reconstruct the ENTIRE immediate R image before the unchanged older
+    // packet applies. The adapter authenticates every new module, not just
+    // the root that dispatches to them; foreign/drift input still fails first.
+    let immediate = if path == "src/cleanup_plan/replay/continuation_storage.rs" {
+        oracle_closure_custody::restore(path, compiled)
+    } else {
+        compiled.to_owned()
+    };
+    let compiled = immediate.as_str();
     let row = rows.iter().find(|row| row["path"] == path).unwrap();
     assert_eq!(
         compiled.len(),
@@ -371,7 +390,10 @@ fn source_before(path: &str, supplied: &str) -> String {
     let fixture_path = root
         .join("src/cleanup_plan/replay/continuation_storage/reached_before")
         .join(fixture_path);
-    assert_eq!(std::fs::read(&fixture_path).unwrap(), fixture.as_bytes());
+    assert_eq!(
+        oracle_closure_custody::exact_compiled(&fixture_path, fixture).as_bytes(),
+        fixture.as_bytes()
+    );
     let mut restored = compiled.to_owned();
     for edit in row["edits"].as_array().unwrap().iter().rev() {
         let a = edit["start"].as_u64().unwrap() as usize;
@@ -380,9 +402,19 @@ fn source_before(path: &str, supplied: &str) -> String {
         restored.replace_range(a..b, edit["before"].as_str().unwrap());
     }
     assert_eq!(restored, fixture);
-    assert_eq!(std::fs::read(root.join(path)).unwrap(), compiled.as_bytes());
-    assert_eq!(std::fs::read(fixture_path).unwrap(), fixture.as_bytes());
-    assert_eq!(std::fs::read(packet_path).unwrap(), packet);
+    assert_eq!(
+        oracle_closure_custody::exact_compiled(&root.join(path), live_compiled).as_bytes(),
+        live_compiled.as_bytes()
+    );
+    assert_eq!(
+        oracle_closure_custody::exact_compiled(&fixture_path, fixture).as_bytes(),
+        fixture.as_bytes()
+    );
+    assert_eq!(
+        oracle_closure_custody::exact_compiled(&packet_path, std::str::from_utf8(packet).unwrap())
+            .as_bytes(),
+        packet
+    );
     restored
 }
 
@@ -436,18 +468,23 @@ fn complete_immediate_old_sources_and_unchanged_shared_frame_declarations_remain
         ),
     ] {
         assert_eq!(
-            std::fs::read(physical.join(path)).unwrap(),
+            oracle_closure_custody::exact_compiled(&physical.join(path), compiled).as_bytes(),
             compiled.as_bytes()
         );
+        let prior = if path == "src/cleanup_plan/replay/continuation_storage/reached.rs" {
+            oracle_closure_custody::restore(path, compiled)
+        } else {
+            compiled.to_owned()
+        };
         assert_eq!(
             format!(
                 "{:x}",
-                crate::digest_hex::LowerHex(Sha256::digest(compiled.as_bytes()))
+                crate::digest_hex::LowerHex(Sha256::digest(prior.as_bytes()))
             ),
             expected
         );
         assert_eq!(
-            std::fs::read(physical.join(path)).unwrap(),
+            oracle_closure_custody::exact_compiled(&physical.join(path), compiled).as_bytes(),
             compiled.as_bytes()
         );
     }

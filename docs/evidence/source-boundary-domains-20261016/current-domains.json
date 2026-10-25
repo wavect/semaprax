@@ -3069,6 +3069,7 @@
         "src/list_ops.rs",
         "src/literal_format.rs",
         "src/loan_plan.rs",
+        "src/loan_plan/owned_capacity.rs",
         "src/loan_plan/paid_children.rs",
         "src/loan_plan/traversal.rs",
         "src/loop_calls.rs",
@@ -3123,6 +3124,7 @@
         "src/workspace_graph/constructor_failure/report/stages.rs",
         "src/workspace_graph/constructor_failure/typed.rs",
         "src/workspace_graph/diagnostics.rs",
+        "src/workspace_graph/diagnostics/invocation.rs",
         "src/workspace_graph/expected_projection.rs",
         "src/workspace_graph/expected_projection/borrowed_imports.rs",
         "src/workspace_graph/expected_projection/borrowed_imports/alias_clone.rs",
@@ -3156,6 +3158,7 @@
         "src/workspace_graph/expected_projection/local_identity.rs",
         "src/workspace_graph/expected_projection/prelude_forecast.rs",
         "src/workspace_graph/expected_projection/record_traversal.rs",
+        "src/workspace_graph/expected_projection/retained_scratch.rs",
         "src/workspace_graph/expected_projection/retention.rs",
         "src/workspace_graph/expected_projection/shared_local_callees.rs",
         "src/workspace_graph/expected_projection/shared_local_callees/coupled_projection.rs",
@@ -3192,9 +3195,9 @@
         "src/workspace_graph/validation.rs",
         "src/workspace_report.rs"
       ],
-      "full_manifest_sha256": "08ea17108c1e65e12e5f1c905dbab55c28c668d49c061425a59bb71ff37712ef",
-      "full_raw_sha256": "db4d9f3d3b9eb2a9808e29c62fe119e0f7842969d7cb347e7ef967a56032ee33",
-      "full_authenticated_production_sha256": "932d564ae41f93c405e442ef18895f1bb17ad81f5b074ffb9b701d1dbf1729bd"
+      "full_manifest_sha256": "6d5b18f088b8a7b542b19c1d26e962e9a713206111ccebdbe18dc52a2d27fc74",
+      "full_raw_sha256": "c138e24f2330e2869dda9657155b8afec72fcccec383128b4bd75e85dfc01af5",
+      "full_authenticated_production_sha256": "4f30f1c97eda26ba314c8ea86ebcbdc69ba8440084f673e95a26d55490737904"
     },
     "projection": {
       "baseline": "a82e00cc83f99b16249181c45710d962598577db",
@@ -3587,8 +3590,18 @@
         "src/workspace_graph/expected_projection/private_layout/sorting.rs",
         "src/workspace_graph/expected_projection/private_layout/tests.rs",
         "src/workspace_graph/expected_projection/record_traversal.rs",
+        "src/workspace_graph/expected_projection/retained_scratch.rs",
         "src/workspace_graph/expected_projection/retention.rs",
         "src/workspace_graph/expected_projection/shared_local_callees.rs",
+        "src/workspace_graph/expected_projection/shared_local_callees/before903.rs",
+        "src/workspace_graph/expected_projection/shared_local_callees/before903/call_carriers.rs",
+        "src/workspace_graph/expected_projection/shared_local_callees/before903/call_carriers_directory.rs",
+        "src/workspace_graph/expected_projection/shared_local_callees/before903/call_carriers_directory/modular.rs",
+        "src/workspace_graph/expected_projection/shared_local_callees/before903/call_carriers_directory/reused.rs",
+        "src/workspace_graph/expected_projection/shared_local_callees/before903/call_carriers_joint.rs",
+        "src/workspace_graph/expected_projection/shared_local_callees/before903/modular_pair.rs",
+        "src/workspace_graph/expected_projection/shared_local_callees/before903/paired.rs",
+        "src/workspace_graph/expected_projection/shared_local_callees/before903/shared_local_callees/modular_census.rs",
         "src/workspace_graph/expected_projection/shared_local_callees/before_projection.rs",
         "src/workspace_graph/expected_projection/shared_local_callees/controls_tests.rs",
         "src/workspace_graph/expected_projection/shared_local_callees/coupled_projection.rs",
@@ -3617,6 +3630,8 @@
         "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
         "src/workspace_graph/expected_projection/uncached_absence_tests.rs",
         "src/workspace_graph/expected_projection/uncached_peak.rs",
+        "src/workspace_graph/expected_projection/uncached_peak/retained_scratch_tests.rs",
+        "src/workspace_graph/expected_projection/uncached_peak_before.rs",
         "src/workspace_graph/expected_projection/vec_constructor.rs",
         "tests/cli_help_surface_v1/task_pages.rs",
         "tests/wasm/scalar_browser_ci_contract/actual_83ca.rs",
@@ -3698,6 +3713,7 @@
         "src/workspace_graph/expected_projection/private_layout/shape.rs",
         "src/workspace_graph/expected_projection/private_layout/sorting.rs",
         "src/workspace_graph/expected_projection/record_traversal.rs",
+        "src/workspace_graph/expected_projection/retained_scratch.rs",
         "src/workspace_graph/expected_projection/retention.rs",
         "src/workspace_graph/expected_projection/shared_local_callees.rs",
         "src/workspace_graph/expected_projection/shared_local_callees/coupled_projection.rs",
@@ -4441,6 +4457,7 @@
         "src/literal_format/funded_receiving.rs",
         "src/loan_plan.rs",
         "src/loan_plan/funded_flat.rs",
+        "src/loan_plan/owned_capacity.rs",
         "src/loan_plan/paid_candidate.rs",
         "src/loan_plan/paid_candidate/retained.rs",
         "src/loan_plan/paid_candidate/retained/inventory.rs",
@@ -4540,9 +4557,9 @@
         "src/workspace_report.rs",
         "src/workspace_report/initial.rs"
       ],
-      "full_manifest_sha256": "f72e22dbae28a85ab16b91c0009703db745f722980d5c1b47f8fc86229ad48cc",
-      "full_raw_sha256": "7af75f3556444e389047a0700adc6b8b03ea262faffb4bd9103dbacf33a749c0",
-      "full_authenticated_production_sha256": "16c7b19cbb57bf3432f209e928efd195e3e6c49af5ee7fec305d7ae3fd21c510"
+      "full_manifest_sha256": "e0ef153c826998bdbf0f572e05f4601542eab3f52fcb037ab1d83d111e2cf7b0",
+      "full_raw_sha256": "89d6121fdeb978eb9af2bbcc3a48ef893dd59fae56917e086fb32b100298fa7e",
+      "full_authenticated_production_sha256": "d2412ef6cafb63683dce76ce56133e9a1a88b85e38684d4831f6a1e025f9c5ed"
     }
   }
 }

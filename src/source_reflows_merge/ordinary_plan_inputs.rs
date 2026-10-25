@@ -291,9 +291,9 @@ const FINAL_INGRESS: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/docs/evidence/ordinary-plan-final-ingress-20261017/current-inputs.json"
 ));
-const FINAL_INGRESS_LENGTH: usize = 706318;
+const FINAL_INGRESS_LENGTH: usize = 712808;
 const FINAL_INGRESS_SHA256: &str =
-    "2fcdc7c3798717cea1df0172e442cc79368f525d687a0fdd87cac92a30f648d6";
+    "aece144f65c597807ed22814ca2a48f49db17a5b478668ed36f40f062ad0e65d";
 const FINAL_INGRESS_CAP: usize = 2 * 1024 * 1024;
 // Both complete historical FINAL packets remain independent of the canonical
 // producer's next generation. Only the literal current six-source view below

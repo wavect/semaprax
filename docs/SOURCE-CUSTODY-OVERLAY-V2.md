@@ -356,3 +356,31 @@ pin page or seven-key archive-prefix page. A named V11 envelope always enters
 the original legacy V10 decoder after restoring names, even if hostile inner
 metadata resembles an archive-prefix page. It never switches codec provenance
 using field presence. All original V10 readers remain independently callable.
+
+## V18 typed fragment-reference transport
+
+OPT#934 adds `semaprax.finite-source-overlay-page.v18`, with the same exact
+outer fields and positional rows as V17. Only immediate top-level row
+`fragments` and replacement `old519_index[3]` arrays admit an integer shorthand
+for an exact single-key `{"canonical_source": integer}` object. The integer
+must designate an addition: at least 519 and less than 519 plus the complete
+ordered additions count. Booleans, floating values, negative zero, negative
+values and out-of-range indices refuse. The original object spelling with an
+eligible integer is a noncanonical alias in V18. String references, objects
+with additional keys and unknown fields retain their original values and old
+validation rules. Reference-shaped objects in other fields and a fragment
+row's own fifth payload are opaque. No recursive search, sorting, deduplication,
+new source admission or archive authority is introduced.
+
+Before cloning payloads, the borrowed decoder checks the unchanged 262144-byte
+wire cap, all row/reference slots and the complete expanded V15 size against
+9753094 bytes. Each integer-reference expansion adds exactly 21 bytes; V17's
+existing row/compiled-flag expansion remains fully counted with checked Rust
+arithmetic. The decoder constructs V15 directly, because a redundant V17
+intermediate may exceed the wire cap, and enters the original V15 logical
+reader chain. The producer proves the entire V15 preimage and the public
+composition preserves complete predecessor and unknown metadata. Existing
+V10/V11 forms and every V12--V17 function, limit and hostile control remain
+independently executable. The two existing Python program members retain their
+65536-byte individual limits. Authored controls and pure round-trip/size
+measurements establish no compiler, runtime or application qualification.

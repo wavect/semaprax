@@ -1175,3 +1175,187 @@ pub(in super::super::super) fn verify_current_v17(page: &Value) {
     assert_eq!(canonical(&actual["encoded"]), canonical(page));
     assert_eq!(canonical(&actual["v15"]), canonical(&v15));
 }
+
+fn v18_fixture() -> Value {
+    let mut full = v16_fixture();
+    full["replacements"][0]["old519_index"][3] = serde_json::json!([
+        {"canonical_source":519},{"canonical_source":520},
+        {"canonical_source":"opaque","unknown":{"canonical_source":519}}]);
+    full["additions"][1]["opaque_reference"] = serde_json::json!({"canonical_source":519});
+    full
+}
+#[test]
+fn v18_entire_preimage_keeps_unknown_fields_one_level_domains_and_order() {
+    let logical = encode_v15(&v18_fixture()).unwrap();
+    let legacy = encode_v17_rows(&logical).unwrap();
+    let wire = typed_refs_v18::encode_rows(&logical).unwrap();
+    assert_eq!(wire["replacements"][0]["old519_index"][3][0], 519);
+    assert_eq!(wire["replacements"][0]["old519_index"][3][1], 520);
+    assert_eq!(
+        canonical(&typed_refs_v18::expand_to_v15(&wire).unwrap()),
+        canonical(&logical)
+    );
+    assert_eq!(
+        canonical(&encode_v17_rows(&logical).unwrap()),
+        canonical(&legacy)
+    );
+    assert_eq!(canonical(&legacy).len() - canonical(&wire).len(), 42);
+    assert_eq!(
+        wire["additions"][1]["opaque_reference"],
+        logical["additions"][1]["opaque_reference"]
+    );
+    let mut nested = logical.clone();
+    nested["additions"][1]["fragments"] = serde_json::json!([{ "source":"nested.rs", "compiled":true,"current":[1,"A".repeat(43)],"views":[],"fragments":[519,{"canonical_source":519}]}]);
+    assert_eq!(
+        typed_refs_v18::expand_to_v15(&typed_refs_v18::encode_rows(&nested).unwrap()).unwrap(),
+        nested
+    );
+}
+#[test]
+fn v18_rejects_aliases_bad_indices_wrong_slots_and_truncation() {
+    let wire = typed_refs_v18::encode(&v18_fixture()).unwrap();
+    let total = 519 + wire["additions"].as_array().unwrap().len();
+    for bad in [
+        serde_json::json!(true),
+        serde_json::json!(false),
+        serde_json::json!(-1),
+        serde_json::json!(0),
+        serde_json::json!(518),
+        serde_json::json!(519.0),
+        serde_json::json!(-0.0),
+        serde_json::json!(total),
+        serde_json::json!({"canonical_source":519}),
+    ] {
+        let mut changed = wire.clone();
+        changed["replacements"][0]["old519_index"][3][0] = bad;
+        assert!(typed_refs_v18::expand_to_v15(&changed).is_err());
+    }
+    let mut changed = wire.clone();
+    changed["additions"][0] = 519.into();
+    assert!(typed_refs_v18::expand_to_v15(&changed).is_err());
+    changed = wire.clone();
+    changed["replacements"][0]["old519_index"] = serde_json::json!([0, [], []]);
+    assert!(typed_refs_v18::expand_to_v15(&changed).is_err());
+    changed = wire;
+    changed["unknown"] = 519.into();
+    assert!(typed_refs_v18::expand_to_v15(&changed).is_err());
+}
+#[test]
+fn v18_exact_short_expanded_bound_and_wire_cap_are_independent() {
+    let wire = typed_refs_v18::encode(&v18_fixture()).unwrap();
+    let logical = typed_refs_v18::expand_to_v15(&wire).unwrap();
+    let exact = canonical(&logical).len();
+    assert_eq!(typed_refs_v18::preflight(&wire, exact).unwrap(), exact);
+    assert_eq!(
+        typed_refs_v18::preflight(&wire, exact - 1).unwrap_err(),
+        "v18 expanded bound"
+    );
+    let mut large = wire;
+    large["predecessor"] = "x".repeat(PAGE_CAP).into();
+    assert_eq!(
+        typed_refs_v18::expand_to_v15(&large).unwrap_err(),
+        "v18 same one-page cap"
+    );
+}
+fn python_v18(full: &Value, hostile: &[Value]) -> Value {
+    use std::io::{Read, Write};
+    use std::process::{Command, Stdio};
+    let mut child=Command::new("python3").args(["-B","-c",r#"
+import json,runpy,sys
+from pathlib import Path
+n=runpy.run_path(str(Path(sys.argv[1])/'docs/evidence/finite-source-overlay-v2-20261018/overlay_page.py'),run_name='v18_owning_parity')
+value=json.load(sys.stdin);wire=n['encode_v18'](value['full']);v15=n['expand_v18_fragment_refs'](wire)
+refused=[]
+for bad in value['hostile']:
+ try:n['expand_v18_fragment_refs'](bad)
+ except (AssertionError,KeyError,TypeError,ValueError):refused.append(True)
+ else:refused.append(False)
+sys.stdout.buffer.write(n['canonical']({'encoded':wire,'v15':v15,'refused':refused}))
+"#]).arg(env!("CARGO_MANIFEST_DIR")).stdin(Stdio::piped()).stdout(Stdio::piped()).spawn().unwrap();
+    child
+        .stdin
+        .take()
+        .unwrap()
+        .write_all(&canonical(
+            &serde_json::json!({"full":full,"hostile":hostile}),
+        ))
+        .unwrap();
+    let mut raw = Vec::new();
+    let read = child
+        .stdout
+        .take()
+        .unwrap()
+        .take((SOURCE_CAP + 1) as u64)
+        .read_to_end(&mut raw);
+    let status = child.wait().unwrap();
+    read.unwrap();
+    assert!(status.success());
+    assert!(raw.len() <= SOURCE_CAP);
+    serde_json::from_slice(&raw).unwrap()
+}
+#[test]
+fn v18_complete_current_page_and_python_rust_transport_match() {
+    let raw = include_bytes!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/docs/evidence/finite-source-overlay-v2-20261018/page.json"
+    ));
+    let current: Value = serde_json::from_slice(raw).unwrap();
+    assert_eq!(canonical(&current).as_slice(), raw.as_slice());
+    let logical = if current["schema"] == typed_refs_v18::SCHEMA_V18 {
+        typed_refs_v18::expand_to_v15(&current).unwrap()
+    } else {
+        assert_eq!(current["schema"], SCHEMA_V17);
+        expand_positional_to_v15(&current).unwrap()
+    };
+    let v12 = expand_to_v12_logical(
+        &expand_to_v13_logical(&expand_to_v14_logical(&logical).unwrap()).unwrap(),
+    )
+    .unwrap();
+    let wire = typed_refs_v18::encode(&v12).unwrap();
+    let actual = python_v18(&v12, &[]);
+    assert_eq!(canonical(&actual["encoded"]), canonical(&wire));
+    assert_eq!(canonical(&actual["v15"]), canonical(&logical));
+    assert_eq!(
+        canonical(&typed_refs_v18::expand_to_v15(&wire).unwrap()),
+        canonical(&logical)
+    );
+    if current["schema"] == typed_refs_v18::SCHEMA_V18 {
+        assert_eq!(canonical(&current), canonical(&wire));
+    }
+    let before = super::super::super::super::packet_before_overlay();
+    let (policy, _) = super::super::super::load().unwrap();
+    let original = super::super::super::compose_values(before.clone(), &policy, &current).unwrap();
+    let restored = super::super::super::compose_values(before, &policy, &wire).unwrap();
+    assert_eq!(canonical(&restored), canonical(&original));
+}
+
+#[test]
+fn v18_python_rust_hostile_reference_decisions_match() {
+    let full = v18_fixture();
+    let wire = typed_refs_v18::encode(&full).unwrap();
+    let mut hostile = Vec::new();
+    for bad in [
+        serde_json::json!(true),
+        serde_json::json!(-1),
+        serde_json::json!(518),
+        serde_json::json!(519.0),
+        serde_json::json!(-0.0),
+        serde_json::json!(u64::MAX),
+        serde_json::json!({"canonical_source":519}),
+    ] {
+        let mut value = wire.clone();
+        value["replacements"][0]["old519_index"][3][0] = bad;
+        hostile.push(value);
+    }
+    let actual = python_v18(&full, &hostile);
+    let refused: Vec<Value> = hostile
+        .iter()
+        .map(|p| typed_refs_v18::expand_to_v15(p).is_err().into())
+        .collect();
+    assert_eq!(actual["refused"], Value::Array(refused));
+    assert!(actual["refused"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|v| v.as_bool() == Some(true)));
+}

@@ -1,5 +1,7 @@
 ## Bounded repeated source-view labels (2026-10-25)
 
+- Source-only OPT#934: add closed V18 typed fragment-reference transport with unchanged page/program caps and complete older codec routes; focused controls await combined qualification.
+
 - Encode repeated packed view labels through a bounded V11 dictionary while retaining every old source row, view, unknown field and fragment edge. Keep the 262144-byte wire cap and bound aggregate materialized label bytes before copying.
 - Preserve the complete V10 decoder and all older codec controls; authenticate the whole restored page before ordinary source admission.
 

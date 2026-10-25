@@ -298,12 +298,15 @@ fn absent_explicit_zero_types_and_ordinary_fallback_keep_unfavorable_controls_vi
             "ordinary fallback pays its widened receiving carrier"
         );
     }
-    // Explicit-only import proves absence before any roots or DFS backing.
+    // Both provider types are explicitly visible. Keep the complete original
+    // caller/provider bodies, signatures, declarations and match cases.
     let mut programs = programs(false);
-    programs[0]
-        .module_uses
-        .retain(|u| u.kind == ModuleUseKind::Function);
-    programs[1].functions[0].return_type = crate::ast::Type::I64;
+    let caller = CALLER.replacen(
+        "use function @id(\"read\")",
+        "use type @id(\"payload\") from private.provider as Payload;\nuse function @id(\"read\")",
+        1,
+    );
+    programs[0] = crate::parse(&caller, "authority-0.spx").unwrap();
     let authored = index_authored(&programs).unwrap();
     let owner = ScratchInvocation::new(&programs, &authored).unwrap();
     let lease = owner
@@ -683,4 +686,31 @@ fn all_four_complete_consumers_match_independent_previous_receivers_and_six_diag
             assert!(current.base.state.borrow().frames.is_empty());
         }
     }
+}
+
+// Complete original incomplete-visibility fixture and its original assertions.
+fn original_incomplete_explicit_visibility() {
+    // Explicit-only import proves absence before any roots or DFS backing.
+    let mut programs = programs(false);
+    programs[0]
+        .module_uses
+        .retain(|u| u.kind == ModuleUseKind::Function);
+    programs[1].functions[0].return_type = crate::ast::Type::I64;
+    let authored = index_authored(&programs).unwrap();
+    let owner = ScratchInvocation::new(&programs, &authored).unwrap();
+    let lease = owner
+        .lease_bound(&programs[0], &programs, &authored)
+        .unwrap();
+    assert!(lease.roots.is_empty());
+    assert_eq!(lease.roots.capacity(), 0);
+    assert_eq!(lease.state.frames.capacity(), 0);
+}
+
+#[test]
+fn incomplete_visibility_keeps_the_original_empty_roots_but_paid_backing_failure() {
+    let panic = std::panic::catch_unwind(original_incomplete_explicit_visibility)
+        .expect_err("unimported provider types keep the original conservative scratch backing");
+    let message = panic.downcast_ref::<String>().expect("assertion text");
+    assert!(message.contains("left: 3"));
+    assert!(message.contains("right: 0"));
 }

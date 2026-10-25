@@ -1,3 +1,13 @@
+## Projection identity and explicit-visibility controls (2026-10-25)
+
+- Measure the authored identity-copy slope separately from the full base-prelude contribution, using the real prelude AST producer and retaining the original whole-cost failure as a negative control.
+- Exercise empty private-layout scratch with complete, explicitly imported provider types; retain the original incomplete-visibility fixture and its paid-backing failure.
+- Preserve all five original prelude source images and every existing inverse step while binding complete intervening current source images.
+
+## Complete replay-prefix source coverage (2026-10-25)
+
+- Join the compact replay-prefix helper and its tests into all three source inventories that already bind the prefix root. Keep the complete existing inventories and their assertions; do not change the frozen coverage allowances.
+
 ## Default builder refusal text and diagnostic controls (2026-10-25)
 
 - Keep the complete default-limit G171 message available without allocating when its formatter is exhausted; retain the original formatter debit and sticky refusal.

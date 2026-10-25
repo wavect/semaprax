@@ -1,0 +1,45 @@
+{
+  "status": "SOURCE_ONLY_FOCUSED_PASS",
+  "base_head": "74d6ff96d412d78bfc806661d7fec0e1d4c67a30",
+  "original_gate": "tests/source_locked_contracts.rs",
+  "original_gate_sha256": "f5f8d75e21d013a7af8264b4fb69f5e3f88e4aa05876921043fad746e49bb4dd",
+  "unchanged_frozen_allowances_sha256": "2a12971df6481aba04615dc9ab01f85a82f25b9b64212ed4d8e54ace548f75ba",
+  "before": "Same compiled original gate failed with exactly three missing prefix-helper readers",
+  "after": "Same compiled original full two-test harness PASS, including ignored-test justification check",
+  "edits": [
+    {
+      "source": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "before_sha256": "2b547588738b4bd67a6e7a2b007cca5211cbdbd07c32e430f5b71fd66d458739",
+      "after_sha256": "3a43d350fbe971a7c3bb46000b559fb3c1bc5995e196953382068149ee82c96f",
+      "before": "include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/arena/prefix.rs\")",
+      "after": "concat!(include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/arena/prefix.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/arena/prefix/compact.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/arena/prefix/compact_tests.rs\"))",
+      "lines_unchanged": 1500
+    },
+    {
+      "source": "tests/hir_module_boundaries.rs",
+      "before_sha256": "55cadc5d94b9555712a4633f9d0d9780b49fe9f70b75867eb835d7297802a95f",
+      "after_sha256": "246d91d06278340a16c3ef24d6660a292f68f74ff4533e87ba349c062956f4f4",
+      "before": "include_str!(\"../src/cleanup_plan/replay/expression_facts/arena/prefix.rs\")",
+      "after": "concat!(include_str!(\"../src/cleanup_plan/replay/expression_facts/arena/prefix.rs\"),include_str!(\"../src/cleanup_plan/replay/expression_facts/arena/prefix/compact.rs\"),include_str!(\"../src/cleanup_plan/replay/expression_facts/arena/prefix/compact_tests.rs\"))",
+      "lines_unchanged": 167
+    },
+    {
+      "source": "tests/workspace/semantic_graph/source_inventory.rs",
+      "before_sha256": "434846b0f3e9453ea59b64c37f9ed09b94afd8a127684c84111e417d0c910615",
+      "after_sha256": "0144e54abac27fcfc032f9bc873fa616539da1a2b20de17495b84f68428104e7",
+      "before": "include_str!(\"../../src/cleanup_plan/replay/expression_facts/arena/prefix.rs\")",
+      "after": "concat!(include_str!(\"../../src/cleanup_plan/replay/expression_facts/arena/prefix.rs\"),include_str!(\"../../src/cleanup_plan/replay/expression_facts/arena/prefix/compact.rs\"),include_str!(\"../../src/cleanup_plan/replay/expression_facts/arena/prefix/compact_tests.rs\"))",
+      "lines_unchanged": 944
+    }
+  ],
+  "children": [
+    "src/cleanup_plan/replay/expression_facts/arena/prefix/compact.rs",
+    "src/cleanup_plan/replay/expression_facts/arena/prefix/compact_tests.rs"
+  ],
+  "ram": {
+    "minimum_device_physical_available_GiB": 7.8269195556640625,
+    "compiler_pauses": 0,
+    "process_RSS_cap": null
+  },
+  "scope": "Source coverage only; full hosted CI, full compiler tests, and application budget success are not claimed."
+}

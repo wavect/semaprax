@@ -135,6 +135,29 @@ fn identity_length_uses_sixteen_bytes_per_slot_and_identity_byte() {
     let long = synthetic_builder_bytes_scoped(program, &authored, &programs, Some(48), 0, true)
         .unwrap()
         .retained_hir;
+    // The unconditional base prelude is independently retained. Derive its
+    // identity contribution from the actual AST producer, not the forecaster.
+    let base = &crate::prelude::declarations()[..2];
+    let mut base_slots = 0usize;
+    let mut base_maximum = 0usize;
+    for declaration in base {
+        base_maximum = base_maximum.max(declaration.stable_id.len());
+        let crate::ast::TypeDeclarationKind::Variant { cases } = &declaration.kind else {
+            panic!("complete base prelude consists of Option and Result variants");
+        };
+        for case in cases {
+            base_maximum = base_maximum.max(case.stable_id.len());
+            base_slots += case.fields.len();
+            for field in &case.fields {
+                base_maximum = base_maximum.max(field.stable_id.len());
+            }
+        }
+    }
+    assert_eq!((base_slots, base_maximum), (3, 22));
+    let base_delta = base_slots * (48usize.max(base_maximum) - 16usize.max(base_maximum)) * 16;
+    assert_eq!(base_delta, 1248);
+    assert_eq!(long - short, identity_slots * (48 - 16) * 16 + base_delta);
+    let long = long - base_delta;
     assert_eq!(long - short, identity_slots * (48 - 16) * 16);
 }
 #[test]
@@ -893,4 +916,28 @@ fn main() -> i64 { 0 }
         attempts, built.usage.builder_bytes);
     drop((built, layouts));
     acquire();
+}
+
+// Complete original measurement: it includes the separately retained base prelude.
+fn original_whole_identity_length_measurement() {
+    let programs = fixture(24, 32, false);
+    let authored = super::super::index_authored(&programs).unwrap();
+    let program = &programs[0];
+    let identity_slots = super::identity_slots::ast_program_identity_slots(program).unwrap();
+    let short = synthetic_builder_bytes_scoped(program, &authored, &programs, Some(16), 0, true)
+        .unwrap()
+        .retained_hir;
+    let long = synthetic_builder_bytes_scoped(program, &authored, &programs, Some(48), 0, true)
+        .unwrap()
+        .retained_hir;
+    assert_eq!(long - short, identity_slots * (48 - 16) * 16);
+}
+
+#[test]
+fn original_whole_identity_measurement_keeps_its_exact_unadjusted_failure() {
+    let panic = std::panic::catch_unwind(original_whole_identity_length_measurement)
+        .expect_err("the original whole-retention measurement contains the base prelude");
+    let message = panic.downcast_ref::<String>().expect("assertion text");
+    assert!(message.contains("left: 148704"));
+    assert!(message.contains("right: 147456"));
 }

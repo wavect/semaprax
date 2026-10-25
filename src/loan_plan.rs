@@ -170,7 +170,7 @@ impl LoanPlan {
         }
     }
 
-    fn empty_v1() -> Self {
+    pub(crate) fn empty_v1() -> Self {
         Self {
             schema: LOAN_PLAN_SCHEMA_V1,
             loans: Vec::new(),

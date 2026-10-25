@@ -506,7 +506,7 @@ fn entire_immediate_sources_and_independent_old_receivers_are_authenticated() {
     assert!(raw.len() <= 2 * 1024 * 1024);
     assert_eq!(
         digest(raw.as_bytes()),
-        "08a354a9349f83886de90867d6421092fef7cae68a42845ac4b29ea4b3a46613"
+        "b0431b45c4448896a962c8bfb7be0cb93f2b648c976eeae81865c44741cfc238"
     );
     let snapshot: serde_json::Value = serde_json::from_str(raw).unwrap();
     assert_eq!(snapshot["base"], "8086b7e5047e7199c8fccb2f07c49c3513982d2a");

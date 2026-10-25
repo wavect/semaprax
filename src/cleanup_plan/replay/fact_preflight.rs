@@ -36,7 +36,7 @@ macro_rules! with_program_backing {
                 "invocation fact backing acquisition and returned receiver",
             )?;
             let mut $owner =
-                expression_facts::arena::invocation::Backing::acquire($full, function, $budget)?;
+                expression_facts::arena::invocation::Backing::acquire($full, function, &mut $budget)?;
             $continuation
         } else {
             // No owner-shaped Option/Result/return packet exists on this path.
@@ -81,7 +81,7 @@ macro_rules! with_program_status_backing {
                 "invocation fact backing acquisition and returned receiver",
             )?;
             let mut $owner =
-                expression_facts::arena::invocation::Backing::acquire($full, $first, $budget)?;
+                expression_facts::arena::invocation::Backing::acquire($full, $first, &mut $budget)?;
             $continuation
         } else {
             // No owner-shaped Option/Result/return packet exists on this path.

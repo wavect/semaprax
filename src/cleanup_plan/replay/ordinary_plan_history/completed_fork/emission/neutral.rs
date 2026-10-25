@@ -54,6 +54,7 @@ macro_rules! dispatch {
         use $crate::cleanup_plan::replay::{lexical_skeleton, note_skeleton_materialization};
         // A test can execute the entire immediate caller by omitting just this
         // new lexical branch. No forwarding emitter frame pads its old invoice.
+        #[cfg_attr(not(test), allow(unused_labels))]
         'neutral_dispatch: {
             #[cfg(test)]
             if neutral::before_selected() {

@@ -6,11 +6,11 @@ mod helpers;
 mod retained;
 #[cfg(test)]
 pub(in crate::cleanup_plan::replay) use retained::{
-    before_status_retention, validate_status_sources_certified,
+    before_status_retention, validate_status_sources_certified, validate_structure_with_fact_backing,
 };
 pub(in crate::cleanup_plan::replay) use retained::{
     validate_blocks_and_edges_retained, validate_exits_retained,
-    validate_structure_with_budget_storage, validate_structure_with_fact_backing,
+    validate_structure_with_budget_storage,
     validate_structure_with_status_backing, StatusCases, INVOCATION_RELEASE_BYTES,
 };
 mod regions_entry;

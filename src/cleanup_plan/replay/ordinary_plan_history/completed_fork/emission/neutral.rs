@@ -130,15 +130,177 @@ macro_rules! dispatch {
                 }
                 $prefixes
             } else {
-                match emission::emit!($prefixes, $suffixes, $work)? {
-                    emission::Emission::Complete(paths) => return Ok(paths),
-                    emission::Emission::Unsupported(paths) => paths,
-                }
+                neutral::multiple!($prefixes, $suffixes, $work)
             }
         }
     }};
 }
 pub(in crate::cleanup_plan::replay) use dispatch;
+
+// Additional selection is paid only after the unchanged singleton receiver
+// declines. No iterator/closure owner is introduced: one scalar cursor selects
+// existing borrowed places. Each terminal condition is prepaid too.
+pub(in crate::cleanup_plan::replay) const MANY_SELECT: usize = 4
+    * size_of::<&Vec<ExprSkeletonPath>>()
+    + 4 * size_of::<&[ExprSkeletonPath]>()
+    + 4 * size_of::<&ExprSkeletonPath>()
+    + 4 * size_of::<&Option<Rc<ObservationDag>>>()
+    + 4 * size_of::<&Vec<Rc<crate::cleanup_plan::replay::SkeletonObservation>>>()
+    + 4 * size_of::<&Option<crate::cleanup_plan::CleanupPlace>>()
+    + 4 * size_of::<&lexical_skeleton::Continuation>()
+    + 12 * size_of::<usize>()
+    + 16 * size_of::<bool>()
+    + 2 * PAYMENT;
+pub(in crate::cleanup_plan::replay) const MANY_PROBE: usize = 4 * size_of::<&[ExprSkeletonPath]>()
+    + 2 * size_of::<&ExprSkeletonPath>()
+    + 2 * size_of::<&Option<Rc<ObservationDag>>>()
+    + 2 * size_of::<&Vec<Rc<crate::cleanup_plan::replay::SkeletonObservation>>>()
+    + 2 * size_of::<&Option<crate::cleanup_plan::CleanupPlace>>()
+    + 2 * size_of::<&lexical_skeleton::Continuation>()
+    + 10 * size_of::<usize>()
+    + 12 * size_of::<bool>()
+    + PAYMENT;
+// The singleton OUTPUT already contains the exact ledger, Vec/result/error,
+// clone_owned and work gateways. Renew it before EACH new output, together with
+// the actual observations/path construction, push ABI and scalar cursor roles.
+// No retained general bank is silently donated to this lexical receiver.
+pub(in crate::cleanup_plan::replay) const MANY_OUTPUT: usize = OUTPUT
+    + 2 * size_of::<Observations>()
+    + 2 * size_of::<ExprSkeletonPath>()
+    + 2 * size_of::<lexical_skeleton::Continuation>()
+    + 4 * size_of::<&mut Vec<ExprSkeletonPath>>()
+    + 2 * size_of::<Vec<Rc<crate::cleanup_plan::replay::SkeletonObservation>>>()
+    + 2 * size_of::<Result<(), Diagnostic>>()
+    + 12 * size_of::<usize>()
+    + 8 * size_of::<bool>()
+    + PAYMENT;
+
+macro_rules! multiple {
+    ($prefixes:ident, $suffixes:ident, $work:ident) => {{
+        'neutral_multiple: {
+            $work.budget.reserve_bytes(
+                $work.function,
+                neutral::MANY_SELECT,
+                "neutral multi-output selector receivers",
+            )?;
+            let mut eligible = if $prefixes.len() == 1 && $suffixes.len() > 1 {
+                let prefix = &$prefixes[0];
+                !prefix.failed
+                    && !prefix.residual
+                    && prefix.observations.prefix.is_none()
+                    && prefix.observations.items.is_empty()
+                    && prefix.owned_source.is_none()
+                    && matches!(&prefix.continuation, lexical_skeleton::Continuation::Normal)
+            } else {
+                false
+            };
+            let mut index = 0;
+            loop {
+                $work.budget.reserve_bytes(
+                    $work.function,
+                    neutral::MANY_PROBE,
+                    "neutral multi-output metadata receivers",
+                )?;
+                if !eligible || index == $suffixes.len() {
+                    break;
+                }
+                let suffix = &$suffixes[index];
+                eligible = suffix.observations.prefix.is_some()
+                    && suffix.observations.items.is_empty()
+                    && suffix.owned_source.is_none()
+                    && matches!(&suffix.continuation, lexical_skeleton::Continuation::Normal);
+                index += 1;
+            }
+            if !eligible {
+                break 'neutral_multiple match emission::emit!($prefixes, $suffixes, $work)? {
+                    emission::Emission::Complete(paths) => return Ok(paths),
+                    emission::Emission::Unsupported(paths) => paths,
+                };
+            }
+            $work.budget.reserve_bytes(
+                $work.function,
+                neutral::OUTPUT + sequence::SHARE_CONTROLS,
+                "neutral multi-output validation and ledger receivers",
+            )?;
+            let mut ledger = ClassifierLedger::empty_receiving();
+            ledger.capture_current_into();
+            if !sequence::without_renewal($work)? {
+                break 'neutral_multiple $prefixes;
+            }
+            $work.budget.reserve_bytes(
+                $work.function,
+                validation::CALL,
+                "complete HIR validation scope receivers",
+            )?;
+            if !validation::inputs(&$prefixes, $suffixes, $work)? {
+                break 'neutral_multiple $prefixes;
+            }
+            let mut paths = $prefixes;
+            let mut index = 0;
+            loop {
+                $work.budget.reserve_bytes(
+                    $work.function,
+                    neutral::MANY_OUTPUT,
+                    "neutral multi-output publication receivers",
+                )?;
+                if index == $suffixes.len() {
+                    break;
+                }
+                let suffix = &$suffixes[index];
+                $work.charge(1, "skeleton prefix clone")?;
+                if !ledger.current() {
+                    return Err($crate::diagnostic::Diagnostic::io(
+                        "SPX-H006",
+                        String::new(),
+                    ));
+                }
+                note_skeleton_materialization();
+                $work.charge(1, "skeleton suffix clone")?;
+                note_skeleton_materialization();
+                let owned_source = $work.clone_owned(
+                    &suffix.owned_source,
+                    "sequenced skeleton owned-source clone",
+                )?;
+                // Preserve the original profile frontier AFTER cloning and
+                // before the path's work/publication, including over-limit input.
+                if index >= MAX_REPLAY_PATHS {
+                    return Err($work.budget.budget_refusal(
+                        $work.function,
+                        "complete HIR fork exceeds finite path profile",
+                        "",
+                    ));
+                }
+                if index == 0 {
+                    $work.charge(1, "sequenced skeleton path")?;
+                    note_skeleton_materialization();
+                    let path = &mut paths[0];
+                    path.observations.prefix = suffix.observations.prefix.clone();
+                    path.owned_source = owned_source;
+                    path.failed = suffix.failed;
+                    path.residual = suffix.residual;
+                } else {
+                    $work.push_expr_path(
+                        &mut paths,
+                        ExprSkeletonPath {
+                            observations: Observations {
+                                prefix: suffix.observations.prefix.clone(),
+                                items: Vec::new(),
+                            },
+                            owned_source,
+                            failed: suffix.failed,
+                            residual: suffix.residual,
+                            continuation: lexical_skeleton::Continuation::Normal,
+                        },
+                        "sequenced skeleton path",
+                    )?;
+                }
+                index += 1;
+            }
+            return Ok(paths);
+        }
+    }};
+}
+pub(in crate::cleanup_plan::replay) use multiple;
 
 #[cfg(test)]
 thread_local! {

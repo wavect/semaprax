@@ -174,3 +174,25 @@ The owning controls retain whole old source, exercise subsequent shared-query
 work, all work cuts and complete owner Drop, and require an actual full-caller
 reservation reduction. These controls are source-authored and unexecuted;
 application admission and the earlier static module forecast remain separate.
+
+The additional multiple-suffix candidate accepts the same single neutral prefix
+and more than one Normal suffix only when each suffix has an actual shared DAG,
+empty inline tail and absent owned source. A prepaid scalar cursor inspects
+those places; any mismatch retains the complete general emitter. The entire
+renewal scan and validation/cache publication still run once. Each output keeps
+the original prefix/suffix/owned-source clone and path work events. The first
+output reuses the existing Vec slot; later outputs construct their actual
+Observations/path owners and call the original paid push helper. The finite
+path-profile refusal remains after the owned-source clone and before path work.
+Backing is acquired at each original publication boundary, never prepaid by an
+early aggregate allocation that could change the first work refusal.
+
+MANY_SELECT and MANY_PROBE fund their additional predicates, index transports
+and terminal probes before formation. MANY_OUTPUT conservatively retains the
+complete singleton output/error gateways and adds each actually new output
+Observations, path, continuation, vector/push and cursor packet. The inherited
+singleton branch and independently executable full old caller are unchanged.
+The additional controls compare whole ordinary caller invoices, cached work,
+ordered outputs, every work cut, exact/short/floor reservations and full Drop.
+They are unexecuted: this source change does not establish a positive net result
+or application admission, and it removes no completed census tariff.

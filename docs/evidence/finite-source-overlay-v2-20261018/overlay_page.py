@@ -312,7 +312,7 @@ def _load_fixed_codecs():
  import os, stat
  from pathlib import Path
  path=Path(__file__).with_name('overlay_page_codecs.py')
- length=45519
+ length=49928
  fd=os.open(path,os.O_RDONLY|os.O_CLOEXEC|os.O_NOFOLLOW|os.O_NONBLOCK)
  try:
   info=os.fstat(fd)
@@ -322,7 +322,7 @@ def _load_fixed_codecs():
   identity=lambda value:(value.st_dev,value.st_ino,value.st_mode,value.st_size,value.st_mtime_ns,value.st_ctime_ns)
   assert stat.S_ISREG(after.st_mode) and stat.S_ISREG(named.st_mode), 'codec postread regularity'
   assert identity(info)==identity(after)==identity(named), 'codec postread identity'
-  assert len(raw)==length and hashlib.sha256(raw).hexdigest()=='0c303cd7576354af9026fe80e313546b1676ec810f2c18b5b770e9be751ba836', 'codec fixed bytes'
+  assert len(raw)==length and hashlib.sha256(raw).hexdigest()=='7611f7181c9944dfa3ec2f4fb2e0d505d1a0425327974222c96bf52bc9bc5ba9', 'codec fixed bytes'
  finally:os.close(fd)
  exec(compile(raw,str(path),'exec'),globals())
 _load_fixed_codecs()
@@ -403,6 +403,7 @@ def encode_v10_pins(before,policy,page):
 
 def compose_values(before, policy, page):
  if page['schema']==V10_SCHEMA:page=expand_v10_public_compatible(before,policy,page)
+ if page['schema']==V18_SCHEMA:page=_expand_v12_logical_view_labels(_expand_v13_logical_digest_table(_expand_v14_logical_pin_tails(_expand_v15_logical_source_paths(expand_v18_fragment_refs(page)))))
  if page['schema']==V17_SCHEMA:page=_expand_v12_logical_view_labels(_expand_v13_logical_digest_table(_expand_v14_logical_pin_tails(_expand_v15_logical_source_paths(expand_v17_source_rows(page)))))
  if page['schema']==V16_SCHEMA:page=_expand_v12_logical_view_labels(_expand_v13_logical_digest_table(_expand_v14_logical_pin_tails(_expand_v15_logical_source_paths(expand_v16_source_rows(page)))))
  if page['schema']==V15_SCHEMA:page=_expand_v12_logical_view_labels(_expand_v13_logical_digest_table(_expand_v14_logical_pin_tails(expand_v15_source_paths(page))))

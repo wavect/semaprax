@@ -981,3 +981,96 @@ def expand_v10_public_compatible(before,policy,page):
   return expand_v10_archive_prefixes(page)
  assert keys(page,('schema','index','total_pages','predecessor','replacements','additions')), 'v10 compatible envelope'
  return expand_v10_pins(before,policy,page)
+
+# OPT934: integer references only in the original top-level fragment slots.
+V18_SCHEMA = 'semaprax.finite-source-overlay-page.v18'
+def _v18_walk(page, row, reference, publish=False):
+ def fragments(values):
+  if values is None:return
+  assert type(values) is list, 'v18 fragments'
+  for index,value in enumerate(values):
+   if type(value) is int or type(value) is bool or type(value) is float or (type(value) is dict and 'canonical_source' in value):changed=reference(value)
+   else:
+    assert type(value) in (dict,list), 'v18 fragment row'
+    changed=row(value)
+   if publish:values[index]=changed
+ for group in ('replacements','additions'):
+  assert type(page[group]) is list, 'v18 rows'
+  for index,value in enumerate(page[group]):
+   if type(value) is dict and 'old519_index' in value:
+    assert group=='replacements' and keys(value,('old519_index',)), 'v18 indexed row'
+    ref=value['old519_index'];assert type(ref) is list and len(ref)==4, 'v18 old519 arity'
+    fragments(ref[3])
+   else:
+    assert type(value) in (dict,list), 'v18 row type'
+    changed=row(value)
+    if type(changed) is list:
+     _v17_tuple(changed)
+     if len(changed)==5:fragments(changed[4])
+    elif 'fragments' in changed:fragments(changed['fragments'])
+    if publish:page[group][index]=changed
+
+def _v18_index(value, total):
+ assert type(value) is int and 519<=value<total, 'v18 canonical addition index'
+ return value
+
+def _v18_preflight(page, limit):
+ assert keys(page,(*V12_KEYS,'view_labels','digest_table','pin_tails')) and page['schema']==V18_SCHEMA, 'v18 envelope'
+ expanded=len(canonical(page));assert expanded<=PAGE_CAP, 'v18 same one-page cap'
+ assert type(page['additions']) is list, 'v18 rows'
+ total=519+len(page['additions'])
+ def bound(amount):
+  nonlocal expanded
+  expanded+=amount;assert expanded<=min(limit,SOURCE_CAP), 'v18 expanded bound'
+ def row(value):
+  if type(value) is dict:
+   assert not _v16_eligible(value) and not keys(value,('source_row',)), 'v18 literal row alias'
+  else:
+   items=_v17_tuple(value)
+   bound(_v16_overhead(len(items))+len(b'{"source_row":[]}')-2+(4 if items[1]==0 else 3))
+  return value
+ def reference(value):
+  if type(value) is dict:
+   if keys(value,('canonical_source',)) and type(value['canonical_source']) is not str:
+    _v18_index(value['canonical_source'],total);assert False, 'v18 wrapped integer alias'
+  else:_v18_index(value,total);bound(21)
+  return value
+ _v18_walk(page,row,reference)
+ assert expanded<=min(limit,SOURCE_CAP), 'v18 expanded bound'
+ return expanded
+
+def expand_v18_fragment_refs(page):
+ expanded=_v18_preflight(page,SOURCE_CAP)
+ result=copy.deepcopy(page);result['schema']=V15_SCHEMA
+ def decode(value):
+  if type(value) is dict:return value
+  items=_v17_tuple(value);value=dict(zip((*_V16_ROW_KEYS,'fragments'),items));value['compiled']=items[1]==1;return value
+ _v18_walk(result,decode,lambda value:{'canonical_source':value} if type(value) is int else value,True)
+ assert len(canonical(result))==expanded, 'v18 expanded bound'
+ _expand_v15_logical_source_paths(result)
+ return result
+
+def encode_v18_fragment_refs(page):
+ assert keys(page,(*V12_KEYS,'view_labels','digest_table','pin_tails')) and page['schema']==V15_SCHEMA, 'v18 input envelope'
+ assert len(canonical(page))<=SOURCE_CAP, 'v18 logical input bound'
+ _expand_v15_logical_source_paths(page)
+ result=copy.deepcopy(page)
+ def row(value):
+  if not _v16_eligible(value):
+   assert not keys(value,('source_row',)), 'v18 literal row alias'
+   return value
+  assert type(value['compiled']) is bool, 'v18 source/compiled type'
+  items=[value[key] for key in (*_V16_ROW_KEYS,'fragments') if key in value];items[1]=int(items[1]);return _v17_tuple(items)
+ _v16_walk(result,row,True,True)
+ total=519+len(result['additions'])
+ def reference(value):
+  assert type(value) is dict, 'v18 literal integer alias'
+  if keys(value,('canonical_source',)) and type(value['canonical_source']) is not str:return _v18_index(value['canonical_source'],total)
+  return value
+ _v18_walk(result,lambda value:value,reference,True);result['schema']=V18_SCHEMA
+ assert len(canonical(result))<=PAGE_CAP, 'v18 same one-page cap'
+ assert canonical(expand_v18_fragment_refs(result))==canonical(page), 'v18 ENTIRE V15 page inverse'
+ return result
+
+def encode_v18(page):
+ return encode_v18_fragment_refs(_encode_v15_logical_source_paths(_encode_v14_logical_pin_tails(_encode_v13_logical_digest_table(page))))

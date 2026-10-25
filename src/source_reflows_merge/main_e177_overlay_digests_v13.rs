@@ -1358,3 +1358,7 @@ pub(in super::super) fn expand_v17(
     )?)?)?;
     super::expand_v11(before, policy, &logical_v12::expand_to_v11(&logical)?)
 }
+
+#[path = "main_e177_overlay_digests_v13/typed_refs_v18.rs"]
+mod typed_refs_v18;
+pub(in super::super) use typed_refs_v18::{expand_v18, SCHEMA_V18};

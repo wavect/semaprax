@@ -704,5 +704,74 @@ class V11EnvelopeCompatibility(unittest.TestCase):
             codec.expand_v11_names = old_names
 
 
+
+class TypedFragmentReferences(unittest.TestCase):
+    def fixture(self):
+        value = PositionalSourceRows().fixture()
+        value['replacements'][0]['old519_index'][3] = [
+            {'canonical_source': 519}, {'canonical_source': 520},
+            {'canonical_source': 'opaque', 'unknown': {'canonical_source': 519}}]
+        value['additions'][1]['opaque_reference'] = {'canonical_source': 519}
+        return value
+
+    def test_entire_inverse_order_unknowns_and_unchanged_v17(self):
+        before = self.fixture()
+        old = codec.encode_v17_source_rows(before)
+        wire = codec.encode_v18_fragment_refs(before)
+        self.assertEqual(codec.expand_v18_fragment_refs(wire), before)
+        self.assertEqual(codec.encode_v17_source_rows(before), old)
+        self.assertEqual(wire['replacements'][0]['old519_index'][3][:2], [519, 520])
+        self.assertEqual(len(codec.canonical(old))-len(codec.canonical(wire)), 42)
+        self.assertEqual(wire['additions'][1]['opaque_reference'], {'canonical_source': 519})
+        before['additions'][1]['fragments'] = [{
+            'source': 'nested.rs', 'compiled': True, 'current': [7, 'A'*43], 'views': [],
+            'fragments': [519, {'canonical_source': 519}]}]
+        self.assertEqual(codec.expand_v18_fragment_refs(codec.encode_v18_fragment_refs(before)), before)
+
+    def test_hostile_types_aliases_wrong_slots_and_truncation(self):
+        wire = codec.encode_v18_fragment_refs(self.fixture())
+        for bad in [True, False, -1, 0, 518, 519.0, -0.0,
+                    519+len(wire['additions']), {'canonical_source': 519}]:
+            changed = copy.deepcopy(wire)
+            changed['replacements'][0]['old519_index'][3][0] = bad
+            with self.assertRaises(AssertionError):codec.expand_v18_fragment_refs(changed)
+        for path, bad in [('additions', [519]), ('replacements', [{'old519_index': [0, [], []]}])]:
+            changed = copy.deepcopy(wire);changed[path] = bad
+            with self.assertRaises(AssertionError):codec.expand_v18_fragment_refs(changed)
+        changed = copy.deepcopy(wire);changed['unknown'] = 519
+        with self.assertRaises(AssertionError):codec.expand_v18_fragment_refs(changed)
+        raw = codec.canonical(wire);bad = raw.replace(b'[519,520,', b'[-0,520,', 1)
+        self.assertNotEqual(bad, raw)
+        with self.assertRaises(AssertionError):codec.parse(bad)
+
+    def test_exact_short_bound_precedes_clone_and_wire_cap(self):
+        before = self.fixture();wire = codec.encode_v18_fragment_refs(before)
+        original_cap, original_copy = codec.SOURCE_CAP, codec.copy.deepcopy
+        try:
+            exact = len(codec.canonical(before))
+            self.assertEqual(codec._v18_preflight(wire, exact), exact)
+            with self.assertRaisesRegex(AssertionError, 'v18 expanded bound'):
+                codec._v18_preflight(wire, exact-1)
+            codec.SOURCE_CAP = exact-1
+            def forbidden(_):raise RuntimeError('expanded payload cloned before full bound')
+            codec.copy.deepcopy = forbidden
+            with self.assertRaisesRegex(AssertionError, 'v18 expanded bound'):
+                codec.expand_v18_fragment_refs(wire)
+            codec.SOURCE_CAP = original_cap
+            wire['predecessor'] = 'x' * codec.PAGE_CAP
+            with self.assertRaisesRegex(AssertionError, 'v18 same one-page cap'):
+                codec.expand_v18_fragment_refs(wire)
+        finally:codec.SOURCE_CAP, codec.copy.deepcopy = original_cap, original_copy
+
+    def test_current_real_page_keeps_entire_v15_preimage(self):
+        current = codec.parse((Path(__file__).parent/'page.json').read_bytes())
+        before = (codec.expand_v18_fragment_refs(current) if current['schema']==codec.V18_SCHEMA
+                  else codec.expand_v17_source_rows(current))
+        wire = codec.encode_v18_fragment_refs(before)
+        self.assertEqual(codec.expand_v18_fragment_refs(wire), before)
+        self.assertLessEqual(len(codec.canonical(wire)), codec.PAGE_CAP)
+        if current['schema']==codec.V18_SCHEMA:self.assertEqual(wire, current)
+
+
 if __name__ == '__main__':
     unittest.main()

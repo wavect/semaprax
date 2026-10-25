@@ -1517,3 +1517,9 @@ src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/neutral/te
 src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/neutral/emission.before.rs.txt
 src/workspace_graph/expected_projection/call_carriers.before_name_filter.rs.txt
 src/workspace_graph/expected_projection/call_carriers.name_filter_inverse.json
+src/cleanup_plan/replay/expression_facts/arena/invocation.rs
+src/cleanup_plan/replay/expression_facts/arena/invocation_source_inverse.json
+src/cleanup_plan/replay/expression_facts/arena/invocation_tests.rs
+src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_invocation.rs
+src/cleanup_plan/replay/fact_preflight.rs
+src/source_front_pool.rs

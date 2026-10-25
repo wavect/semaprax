@@ -33,17 +33,71 @@ struct Names<'a> {
     len: usize,
 }
 impl<'a> Names<'a> {
+    // Count0..128 needs8 bits. The same already-owned usize also holds a
+    // conservative byte-length residue set; no new field/backing is retained.
+    const COUNT_BITS: usize = u8::BITS as usize;
+    const COUNT_MASK: usize = u8::MAX as usize;
+    const FILTER_BITS: usize = {
+        assert!(usize::BITS > u8::BITS);
+        usize::BITS as usize - Self::COUNT_BITS
+    };
     fn insert(&mut self, name: &'a str, proof: &mut Proof) -> bool {
+        #[cfg(test)]
+        if tests::before_names_selected() {
+            return tests::names_before_insert!(self, name, proof);
+        }
         proof.charge(&(&*self, name));
-        if self.len == self.entries.len() {
+        // Scalar bank40: count mask3, capacity comparison3, str length2,
+        // residue3, shift-add3, shift3, index2, packed OR3/NOT2/AND3,
+        // count-add3/final OR3, and four retained/publication scalars.
+        // Two fat loans fund str::len actual/formal. Array len and IndexMut
+        // each own actual/formal loans, the returned slot loan, and Some
+        // producer/receiver values. Four booleans fund comparison/publication
+        // including early refusal. All roles are prepaid before formation;
+        // the unchanged Names layout and all128 slots stay fully paid.
+        proof.bytes = proof.bytes.saturating_add(std::mem::size_of::<(
+            [usize; 40],
+            [&str; 2],
+            [bool; 4],
+            [&mut [Option<&str>; 128]; 2],
+            &mut Option<&str>,
+            [Option<&str>; 2],
+            [&[Option<&str>; 128]; 2],
+        )>());
+        let count = self.len & Self::COUNT_MASK;
+        if count == self.entries.len() {
             return false;
         }
-        self.entries[self.len] = Some(name);
-        self.len += 1;
+        let residue = name.len() % Self::FILTER_BITS;
+        let bit = 1usize << (Self::COUNT_BITS + residue);
+        self.entries[count] = Some(name);
+        self.len = ((self.len | bit) & !Self::COUNT_MASK) | (count + 1);
         true
     }
     fn contains(&self, name: &str, proof: &mut Proof) -> bool {
+        #[cfg(test)]
+        if tests::before_names_selected() {
+            return tests::names_before_contains!(self, name, proof);
+        }
         proof.charge(&(self, name));
+        // This is a negative filter only. Collisions always execute the full
+        // original string scan; no bit or source spelling grants equality.
+        // Scalar bank24: mask3, length2, remainder3, add3, shift3,
+        // bit-test3, zero comparison3, three retained scalars and zero.
+        // Two fat loans fund str::len actual/formal, four booleans cover
+        // the new comparison and branch/publication roles. Existing scan
+        // cursor/index/Option/string-equality banks remain reached in full.
+        proof.bytes =
+            proof
+                .bytes
+                .saturating_add(std::mem::size_of::<([usize; 24], [&str; 2], [bool; 4])>());
+        let count = self.len & Self::COUNT_MASK;
+        let residue = name.len() % Self::FILTER_BITS;
+        let bit = 1usize << (Self::COUNT_BITS + residue);
+        if self.len & bit == 0 {
+            proof.charge(&false);
+            return false;
+        }
         // One scalar cursor. No iterator, closure environment, Some(name)
         // construction or Option equality pipeline is formed by this search.
         proof.bytes = proof.bytes.saturating_add(std::mem::size_of::<usize>());
@@ -54,7 +108,7 @@ impl<'a> Names<'a> {
             proof.bytes = proof
                 .bytes
                 .saturating_add(2 * std::mem::size_of::<usize>() + std::mem::size_of::<bool>());
-            if index == self.len {
+            if index == count {
                 proof.charge(&false);
                 return false;
             }
@@ -82,7 +136,6 @@ impl<'a> Names<'a> {
             index += 1;
         }
     }
-
     fn pattern(&mut self, pattern: &'a MatchPattern, depth: usize, proof: &mut Proof) -> bool {
         proof.charge(&(&*self, pattern, depth));
         if depth == 128 {
@@ -367,6 +420,6 @@ pub(super) use joint::count as count_joint;
 pub(super) use joint::modular_census::count as count_modular;
 
 #[cfg(test)]
-pub(super) use joint::modular_census::linear_loan as modular_linear_loan;
-#[cfg(test)]
 pub(super) use directory::indexed_modular_loan as modular_indexed_loan;
+#[cfg(test)]
+pub(super) use joint::modular_census::linear_loan as modular_linear_loan;

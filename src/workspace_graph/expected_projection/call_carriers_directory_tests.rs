@@ -68,7 +68,9 @@ fn warm_calls(source: &str, balanced: bool) -> String {
 }
 
 fn parity(program: &Program, index: &Index<'_>, imports: bool) -> (Proof, Census) {
-    let old = super::super::before_directory::count(program, index, imports);
+    let old = super::super::tests::before_names(|| {
+        super::super::before_directory::count(program, index, imports)
+    });
     take_census();
     let current = count(program, index, imports);
     let census = take_census();
@@ -125,7 +127,9 @@ fn complete_before_source_and_all_header_capacity_boundaries_are_retained() {
             assert_eq!((census.builds, census.rows), (1, n));
             assert!(census.sort_compares > 0);
         } else {
-            let old = super::super::before_directory::count(&programs[0], &index, true);
+            let old = super::super::tests::before_names(|| {
+                super::super::before_directory::count(&programs[0], &index, true)
+            });
             assert_eq!(current.bytes, old.bytes + EMPTY_SELECTOR);
             assert_eq!((census.builds, census.rows, census.queries), (0, 0, 0));
         }
@@ -266,7 +270,9 @@ fn full_cold_invoice_retains_short_losses_and_genuine_dense_net_gate() {
             }
             let programs = [parse(&ambiguous)];
             let index = crate::workspace_graph::index_authored(&programs).unwrap();
-            let old = super::super::before_directory::count(&programs[0], &index, true);
+            let old = super::super::tests::before_names(|| {
+                super::super::before_directory::count(&programs[0], &index, true)
+            });
             let (proof, census) = parity(&programs[0], &index, true);
             assert_eq!(
                 (old.roots, proof.roots, census.queries),
@@ -277,7 +283,9 @@ fn full_cold_invoice_retains_short_losses_and_genuine_dense_net_gate() {
         let program = parse(&source);
         let programs = [program];
         let index = crate::workspace_graph::index_authored(&programs).unwrap();
-        let old = super::super::before_directory::count(&programs[0], &index, true);
+        let old = super::super::tests::before_names(|| {
+            super::super::before_directory::count(&programs[0], &index, true)
+        });
         let (current, census) = parity(&programs[0], &index, true);
         if headers == 2 {
             assert_eq!(current.bytes, old.bytes + EMPTY_SELECTOR);
@@ -367,7 +375,9 @@ fn complete_pre898_forecast_comparison_discloses_every_cold_and_dense_row() {
         let index = crate::workspace_graph::index_authored(&programs).unwrap();
         let program = &programs[0];
         let maximum = Some(dependency_identity_max(program, &index, &programs).unwrap());
-        let before_directory = super::super::before_directory::count(program, &index, true);
+        let before_directory = super::super::tests::before_names(|| {
+            super::super::before_directory::count(program, &index, true)
+        });
         let current_proof = count(program, &index, true);
         assert_eq!(current_proof.roots, before_directory.roots);
         if shape == 1 {

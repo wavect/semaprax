@@ -380,6 +380,22 @@ retain the complete old expression tariff for that function. Census, association
 iterator, receiving and retained bookkeeping roles are paid before use, with
 checked arithmetic and the complete old forecast retained independently.
 
+The source-census local-name directory may use a negative byte-length residue
+filter in the unused high bits of its existing count word. Its low eight bits
+retain the exact 0..128 entry count; all original directory backing remains
+charged. The residue width follows the actual usize width, with shifts strictly
+below that width. A missing bit omits the real array/Option/string-comparison
+producer; a collision still executes the complete exact spelling scan. The
+filter never establishes equality or a checked callee, and it does not depend
+on module/function names. Insert and query scalar/length/index controls are
+charged before formation. The original method bodies remain independently
+executable at the same ABI with the same directory layout and original fee
+model. Existing cold-invoice controls retain that explicit old mode; current
+whole-census controls separately include the new controls and honest hit-only
+or tiny regressions. No already-completed tariff or retained HIR allowance is
+subtracted because a census frame has dropped. Application admission still
+requires the original production-cap owner.
+
 Later cross-module validation is a separate live window: all completed module
 outputs remain live while one function is validated. Its bound includes the sum
 of retained outputs and compact inventories, the maximum simultaneous covered

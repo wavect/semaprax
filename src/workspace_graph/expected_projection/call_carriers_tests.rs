@@ -420,69 +420,73 @@ fn dense_invoice(n: usize) -> usize {
 }
 #[test]
 fn independent_cold_invoice_prices_zero_and_every_closed_dense_proof_role() {
-    for n in [1, 2, 16, 64] {
-        let source = dense(n);
-        let programs = vec![parse(&source)];
-        let authored = crate::workspace_graph::index_authored(&programs).unwrap();
-        let (p, allocation) =
-            crate::test_allocation_observer::measure(|| count(&programs[0], &authored, true));
-        assert_eq!(p.roots, n);
-        let before = super::before_directory::count(&programs[0], &authored, true);
-        assert_eq!(
-            before.bytes,
-            dense_invoice(n),
-            "complete pre-directory tariff"
-        );
-        assert_eq!(p.bytes, dense_invoice(n) + super::directory::EMPTY_SELECTOR);
-        assert_eq!(p.roots, before.roots);
-        assert!(!allocation.invalid);
-        assert_eq!(allocation.allocations, 0);
-        assert_eq!(allocation.reallocations, 0);
-        assert_eq!(allocation.live, 0);
-    }
-    // Existing shadowing controls cover semantic refusal. This independent
-    // source-role equation additionally reaches nonempty names and early hits.
-    for (query, probes, terminal, increments, found) in [
-        ("first", 1usize, 0usize, 0usize, true),
-        ("second", 2, 0, 1, true),
-        ("absent", 2, 1, 2, false),
-    ] {
-        let mut names = Names {
-            entries: [None; 128],
-            len: 2,
-        };
-        names.entries[0] = Some("first");
-        names.entries[1] = Some("second");
-        let mut invoice = Proof::default();
-        let (actual, allocation) =
-            crate::test_allocation_observer::measure(|| names.contains(query, &mut invoice));
-        assert_eq!(actual, found);
-        let entry = charged::<(&Names<'_>, &str)>() + size_of::<usize>();
-        let predicate = 2 * size_of::<usize>() + size_of::<bool>();
-        let index = 2 * size_of::<&[Option<&str>; 128]>()
-            + 2 * size_of::<usize>()
-            + size_of::<&Option<&str>>();
-        let comparison = size_of::<&&str>() + 4 * size_of::<&str>() + size_of::<bool>();
-        assert_eq!(
-            invoice.bytes,
-            entry
-                + (probes + terminal) * predicate
-                + probes * (index + comparison)
-                + increments * size_of::<usize>()
-                + charged::<bool>()
-        );
-        assert!(!allocation.invalid);
-        assert_eq!(allocation.allocations, 0);
-        assert_eq!(allocation.reallocations, 0);
-        assert_eq!(allocation.live, 0);
-    }
-    let source = "module ordinary; @id(\"ordinary.main\") fn main()->i64{1}";
-    let p = proof(source);
-    assert_eq!(p.roots, 0);
-    assert!(p.bytes > 0);
-    let (old, new, old_total, new_total) = costs(source, 7, cached_exact::Retention::Semantic);
-    assert_eq!(new, old + p.bytes);
-    assert_eq!(new_total, old_total + p.bytes);
+    // Frozen pre-filter cold tariff remains independently executable without
+    // repricing its receiver model. New current scope is qualified separately.
+    before_names(|| {
+        for n in [1, 2, 16, 64] {
+            let source = dense(n);
+            let programs = vec![parse(&source)];
+            let authored = crate::workspace_graph::index_authored(&programs).unwrap();
+            let (p, allocation) =
+                crate::test_allocation_observer::measure(|| count(&programs[0], &authored, true));
+            assert_eq!(p.roots, n);
+            let before = super::before_directory::count(&programs[0], &authored, true);
+            assert_eq!(
+                before.bytes,
+                dense_invoice(n),
+                "complete pre-directory tariff"
+            );
+            assert_eq!(p.bytes, dense_invoice(n) + super::directory::EMPTY_SELECTOR);
+            assert_eq!(p.roots, before.roots);
+            assert!(!allocation.invalid);
+            assert_eq!(allocation.allocations, 0);
+            assert_eq!(allocation.reallocations, 0);
+            assert_eq!(allocation.live, 0);
+        }
+        // Existing shadowing controls cover semantic refusal. This independent
+        // source-role equation additionally reaches nonempty names and early hits.
+        for (query, probes, terminal, increments, found) in [
+            ("first", 1usize, 0usize, 0usize, true),
+            ("second", 2, 0, 1, true),
+            ("absent", 2, 1, 2, false),
+        ] {
+            let mut names = Names {
+                entries: [None; 128],
+                len: 2,
+            };
+            names.entries[0] = Some("first");
+            names.entries[1] = Some("second");
+            let mut invoice = Proof::default();
+            let (actual, allocation) =
+                crate::test_allocation_observer::measure(|| names.contains(query, &mut invoice));
+            assert_eq!(actual, found);
+            let entry = charged::<(&Names<'_>, &str)>() + size_of::<usize>();
+            let predicate = 2 * size_of::<usize>() + size_of::<bool>();
+            let index = 2 * size_of::<&[Option<&str>; 128]>()
+                + 2 * size_of::<usize>()
+                + size_of::<&Option<&str>>();
+            let comparison = size_of::<&&str>() + 4 * size_of::<&str>() + size_of::<bool>();
+            assert_eq!(
+                invoice.bytes,
+                entry
+                    + (probes + terminal) * predicate
+                    + probes * (index + comparison)
+                    + increments * size_of::<usize>()
+                    + charged::<bool>()
+            );
+            assert!(!allocation.invalid);
+            assert_eq!(allocation.allocations, 0);
+            assert_eq!(allocation.reallocations, 0);
+            assert_eq!(allocation.live, 0);
+        }
+        let source = "module ordinary; @id(\"ordinary.main\") fn main()->i64{1}";
+        let p = proof(source);
+        assert_eq!(p.roots, 0);
+        assert!(p.bytes > 0);
+        let (old, new, old_total, new_total) = costs(source, 7, cached_exact::Retention::Semantic);
+        assert_eq!(new, old + p.bytes);
+        assert_eq!(new_total, old_total + p.bytes);
+    });
 }
 
 #[test]
@@ -594,5 +598,373 @@ fn native_import_priority_and_malformed_or_runtime_censuses_keep_old_charges() {
     assert_eq!(
         super::super::cost::fixed_hir_discount(5, &raw, &runtime).unwrap(),
         0
+    );
+}
+
+// Full immediate-old method bodies execute lexically at the SAME caller ABI.
+// Only self/name/proof token spelling changes for macro hygiene; whole original
+// parent bytes remain in call_carriers.before_name_filter.rs.txt.
+macro_rules! names_before_insert {
+    ($this:ident, $name:ident, $proof:ident) => {{
+        $proof.charge(&(&*$this, $name));
+        if $this.len == $this.entries.len() {
+            return false;
+        }
+        $this.entries[$this.len] = Some($name);
+        $this.len += 1;
+        true
+    }};
+}
+pub(super) use names_before_insert;
+macro_rules! names_before_contains {
+    ($this:ident, $name:ident, $proof:ident) => {{
+        $proof.charge(&($this, $name));
+        // One scalar cursor. No iterator, closure environment, Some($name)
+        // construction or Option equality pipeline is formed by this search.
+        $proof.bytes = $proof.bytes.saturating_add(std::mem::size_of::<usize>());
+        let mut index = 0;
+        loop {
+            // Actual cursor/length comparison values and its boolean result,
+            // including the terminal probe on an absent spelling.
+            $proof.bytes = $proof
+                .bytes
+                .saturating_add(2 * std::mem::size_of::<usize>() + std::mem::size_of::<bool>());
+            if index == $this.len {
+                $proof.charge(&false);
+                return false;
+            }
+            // Array Index actual/formal receivers and indices, returned option
+            // loan. Matching a borrowed place forms no Option<&str> value.
+            $proof.bytes = $proof.bytes.saturating_add(
+                2 * std::mem::size_of::<&[Option<&str>; 128]>()
+                    + 2 * std::mem::size_of::<usize>()
+                    + std::mem::size_of::<&Option<&str>>(),
+            );
+            if let Some(item) = &$this.entries[index] {
+                // The &&str pattern binding, str::eq's actual/formal fat loans,
+                // and its returned boolean all belong to this reached probe.
+                $proof.bytes = $proof.bytes.saturating_add(
+                    std::mem::size_of::<&&str>()
+                        + 4 * std::mem::size_of::<&str>()
+                        + std::mem::size_of::<bool>(),
+                );
+                if str::eq(*item, $name) {
+                    $proof.charge(&true);
+                    return true;
+                }
+            }
+            $proof.bytes = $proof.bytes.saturating_add(std::mem::size_of::<usize>());
+            index += 1;
+        }
+    }};
+}
+pub(super) use names_before_contains;
+
+thread_local! {
+    static BEFORE_NAMES: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+pub(super) fn before_names_selected() -> bool {
+    BEFORE_NAMES.with(|mode| mode.get())
+}
+pub(super) fn before_names<T>(body: impl FnOnce() -> T) -> T {
+    struct Restore(bool);
+    impl Drop for Restore {
+        fn drop(&mut self) {
+            BEFORE_NAMES.with(|mode| mode.set(self.0));
+        }
+    }
+    let _restore = Restore(BEFORE_NAMES.with(|mode| mode.replace(true)));
+    body()
+}
+
+#[test]
+fn length_residue_filter_keeps_all_names_capacity_collisions_and_byte_spellings() {
+    let mut strings = (0..128)
+        .map(|n| format!("name{n}{}", "x".repeat(n % 31)))
+        .collect::<Vec<_>>();
+    strings[0] = String::new();
+    strings[1] = "é\0x".to_owned();
+    strings[2] = "z".repeat(Names::FILTER_BITS * 3 + strings[1].len());
+    let mut queries = strings.clone();
+    queries.extend([
+        "missing".to_owned(),
+        "é\0y".to_owned(),
+        "m".repeat(Names::FILTER_BITS * 4 + 4),
+    ]);
+    for old in [false, true] {
+        let body = || {
+            let mut names = Names {
+                entries: [None; 128],
+                len: 0,
+            };
+            let mut invoice = Proof::default();
+            for item in &strings {
+                assert!(names.insert(item, &mut invoice));
+            }
+            assert!(!names.insert("one beyond the original128 slots", &mut invoice));
+            for query in &queries {
+                let expected = strings.iter().any(|item| item == query);
+                assert_eq!(
+                    names.contains(query, &mut invoice),
+                    expected,
+                    "old={old} query={query:?}"
+                );
+            }
+            assert!(invoice.bytes > 0);
+        };
+        if old {
+            before_names(body)
+        } else {
+            body()
+        }
+    }
+    // Same-residue but unequal spelling must execute full original comparison.
+    for old in [false, true] {
+        let body = || {
+            let value = "a";
+            let collision = "q".repeat(1 + Names::FILTER_BITS);
+            let mut names = Names {
+                entries: [None; 128],
+                len: 0,
+            };
+            let mut invoice = Proof::default();
+            assert!(names.insert(value, &mut invoice));
+            assert!(!names.contains(&collision, &mut invoice));
+            assert!(names.contains(value, &mut invoice));
+        };
+        if old {
+            before_names(body)
+        } else {
+            body()
+        }
+    }
+}
+
+#[test]
+fn length_residue_whole_mode6_forecast_retains_old_constructor_fees_and_real_net() {
+    let mut source = String::from(
+        "module length_filter; @id(\"callee\") fn callee()->i64{1} @id(\"main\") fn main()->i64{",
+    );
+    for n in 0..64 {
+        source.push_str(&format!("let local_{n:03}={n};"));
+    }
+    source.push_str(
+        &std::iter::repeat_n("callee()", 64)
+            .collect::<Vec<_>>()
+            .join("+"),
+    );
+    source.push_str("+local_063}");
+    let mut imported = source.clone();
+    imported = imported.replacen(
+        "module length_filter;",
+        "module length_filter; use function @id(\"remote\") from provider as remote;",
+        1,
+    );
+    let provider = "module provider; @id(\"remote\") fn remote()->i64{1}";
+    for text in [&source, &imported] {
+        let programs = vec![
+            crate::parse(text, "length-filter.spx").unwrap(),
+            crate::parse(provider, "provider.spx").unwrap(),
+        ];
+        let authored = crate::workspace_graph::index_authored(&programs).unwrap();
+        let maximum = dependency_identity_max(&programs[0], &authored, &programs).unwrap();
+        let observe = |old| {
+            let body = || {
+                crate::test_allocation_observer::measure(|| {
+                    crate::bounded_output::with_limit_usage_refusal(usize::MAX, || {
+                        let (full, retained) =
+                            super::super::shared_local_callees::modular_pair::selected_estimates(
+                                &programs[0],
+                                &authored,
+                                &programs,
+                                Some(maximum),
+                                6,
+                                true,
+                                None,
+                            )
+                            .unwrap();
+                        let costs = [
+                            full.retained_hir,
+                            retained.retained_hir,
+                            full.synthetic_ast,
+                            retained.synthetic_ast,
+                            full.runtime,
+                            retained.runtime,
+                        ];
+                        let coverage = retained.retained_scratch;
+                        drop((full, retained));
+                        (costs, coverage)
+                    })
+                })
+            };
+            if old {
+                before_names(body)
+            } else {
+                body()
+            }
+        };
+        let old = observe(true);
+        let current = observe(false);
+        assert!(!old.0 .1 && !current.0 .1);
+        assert!(old.0 .3.is_none() && current.0 .3.is_none());
+        for heap in [&old.1, &current.1] {
+            assert!(!heap.invalid && heap.live == 0);
+            assert_eq!(heap.allocated, heap.freed);
+        }
+        assert_eq!(
+            &old.0 .0 .0[2..],
+            &current.0 .0 .0[2..],
+            "all AST/runtime terms unchanged"
+        );
+        assert_eq!(
+            old.0 .0 .1, current.0 .0 .1,
+            "complete scratch coverage unchanged"
+        );
+        assert!(
+            current.0 .0 .0[0] < old.0 .0 .0[0],
+            "full caller must earn actual tariff reduction"
+        );
+        assert!(
+            current.0 .0 .0[1] < old.0 .0 .0[1],
+            "retained caller must earn actual tariff reduction"
+        );
+        // Source census tariff is not allocator RSS or an application claim.
+        eprintln!(
+            "NAME_LENGTH_FILTER module={} imported={} current={current:?} old={old:?}",
+            programs[0].path,
+            !programs[0].module_uses.is_empty()
+        );
+    }
+}
+
+#[test]
+fn length_filter_full_old_owner_and_lexical_method_bodies_remain_source_bound() {
+    use sha2::{Digest, Sha256};
+    let current = include_str!("call_carriers.rs");
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("src/workspace_graph/expected_projection/call_carriers.rs");
+    assert_eq!(std::fs::read(&path).unwrap(), current.as_bytes());
+    let saved = include_str!("call_carriers.before_name_filter.rs.txt");
+    let packet: serde_json::Value =
+        serde_json::from_str(include_str!("call_carriers.name_filter_inverse.json")).unwrap();
+    let digest = |bytes: &[u8]| format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)));
+    assert_eq!(packet["current"]["length"], current.len());
+    assert_eq!(packet["current"]["sha256"], digest(current.as_bytes()));
+    assert_eq!(packet["before"]["length"], saved.len());
+    assert_eq!(packet["before"]["sha256"], digest(saved.as_bytes()));
+    let mut restored = current.to_owned();
+    for edit in packet["edits"].as_array().unwrap().iter().rev() {
+        let start = edit["start"].as_u64().unwrap() as usize;
+        let end = edit["end"].as_u64().unwrap() as usize;
+        assert_eq!(&restored[start..end], edit["current"].as_str().unwrap());
+        restored.replace_range(start..end, edit["before"].as_str().unwrap());
+    }
+    assert_eq!(
+        restored, saved,
+        "WHOLE immediate-old source and all untouched controls"
+    );
+    // The compiled old expansions contain each complete body with only
+    // explicit macro argument qualification; whitespace is formatter-owned.
+    let test_source = include_str!("call_carriers_tests.rs");
+    for (method, next) in [("insert", "contains"), ("contains", "pattern")] {
+        let begin = saved.find(&format!("    fn {method}(")).unwrap();
+        let finish = saved[begin..].find(&format!("    fn {next}(")).unwrap() + begin;
+        let definition = &saved[begin..finish];
+        let body = &definition[definition.find('{').unwrap() + 1..definition.rfind('}').unwrap()];
+        let begin = test_source
+            .find(&format!("macro_rules! names_before_{method} {{"))
+            .unwrap();
+        let fragment = &test_source[begin..];
+        let begin = fragment.find("=> {{").unwrap() + 5;
+        let end = fragment[begin..].find("    }};").unwrap() + begin;
+        let body_after = fragment[begin..end]
+            .replace("$this", "self")
+            .replace("$name", "name")
+            .replace("$proof", "proof");
+        let compact = |text: &str| {
+            text.chars()
+                .filter(|ch| !ch.is_whitespace())
+                .collect::<String>()
+        };
+        assert_eq!(
+            compact(&body_after),
+            compact(body),
+            "entire old {method} body"
+        );
+    }
+    assert_eq!(std::fs::read(path).unwrap(), current.as_bytes());
+}
+
+#[test]
+fn length_filter_direct_constructor_invoice_reports_miss_hit_and_empty_costs() {
+    let cases: &[(&str, &[&str], [&str; 4])] = &[
+        ("empty", &[], ["one", "é", "", "nul\0"]),
+        ("hits", &["one", "é", "nul\0"], ["one", "é", "nul\0", "one"]),
+        (
+            "negative",
+            &["aa", "bbb", "cccc", "dddd"],
+            ["xxxxx", "yyyyy", "zzzzz", "qqqqq"],
+        ),
+    ];
+    for (label, input, queries) in cases {
+        let observe = |old| {
+            let body = || {
+                crate::test_allocation_observer::measure(|| {
+                    let mut proof = Proof::default();
+                    let mut names = Names {
+                        entries: [None; 128],
+                        len: 0,
+                    };
+                    proof.charge(&names);
+                    for name in *input {
+                        assert!(names.insert(name, &mut proof));
+                    }
+                    let mut answers = [false; 4];
+                    // Both complete owners execute the same bounded query
+                    // workload; constructor overhead is included, never reset.
+                    for _ in 0..8 {
+                        for (i, query) in queries.iter().enumerate() {
+                            answers[i] = names.contains(query, &mut proof);
+                        }
+                    }
+                    (answers, proof.bytes)
+                })
+            };
+            if old {
+                before_names(body)
+            } else {
+                body()
+            }
+        };
+        let old = observe(true);
+        let current = observe(false);
+        assert_eq!(old.0 .0, current.0 .0);
+        for heap in [&old.1, &current.1] {
+            assert!(!heap.invalid);
+            assert_eq!(
+                (
+                    heap.allocations,
+                    heap.reallocations,
+                    heap.allocated,
+                    heap.freed,
+                    heap.live
+                ),
+                (0, 0, 0, 0, 0)
+            );
+        }
+        if *label == "negative" {
+            assert!(current.0 .1 < old.0 .1, "whole constructor and all queries");
+        } else {
+            assert!(
+                current.0 .1 >= old.0 .1,
+                "empty/hit regressions stay visible"
+            );
+        }
+        eprintln!("NAME_FILTER_DIRECT family={label} current={current:?} old={old:?}");
+    }
+    assert_eq!(
+        size_of::<Names<'_>>(),
+        size_of::<([Option<&str>; 128], usize)>(),
+        "no new storage/layout baseline padding"
     );
 }

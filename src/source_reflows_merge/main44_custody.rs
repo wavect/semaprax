@@ -194,9 +194,11 @@ impl Fixture {
         assert_eq!(super::source_sha(prior), expected);
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
         let acquired = if context_source.is_some() {
-            // This exact old view came from the fully reread new physical owner
-            // and a whole-byte inverse; it is not an old physical-file claim.
-            compiled.to_owned()
+            // Preserve the original late physical acquisition as well as the
+            // early one; a source change between the two remains a refusal.
+            let actual = current_file(&root.join(source), physical_compiled.len(), &super::source_sha(physical_compiled)).unwrap();
+            assert_eq!(actual, physical_compiled);
+            Self::prior_source(source, &actual).expect("exact late arm-context source")
         } else {
             current_file(
                 &if has_paired_epoch {

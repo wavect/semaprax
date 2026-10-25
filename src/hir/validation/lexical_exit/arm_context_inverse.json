@@ -17,8 +17,8 @@
     },
     {
       "source": "src/source_reflows_merge/main44_custody.rs",
-      "current_length": 70097,
-      "current_sha256": "30ce7fc964d2af42950e25b96f883aff5189ec485fc6667be1898a4bf5912634",
+      "current_length": 70331,
+      "current_sha256": "78f401241450c83d609193c38b20e66393e53ddf9ee8b388057c1b56d5a33442",
       "before_length": 66936,
       "before_sha256": "ca1225485b3a48ffbccb38e5270f7a4ab397b6c9d33f0a3cd15c814e044cbfae",
       "edits": [
@@ -36,19 +36,19 @@
         },
         {
           "start": 22828,
-          "end": 23090,
-          "after": "        let acquired = if context_source.is_some() {\n            // This exact old view came from the fully reread new physical owner\n            // and a whole-byte inverse; it is not an old physical-file claim.\n            compiled.to_owned()\n        } else {\n",
+          "end": 23324,
+          "after": "        let acquired = if context_source.is_some() {\n            // Preserve the original late physical acquisition as well as the\n            // early one; a source change between the two remains a refusal.\n            let actual = current_file(&root.join(source), physical_compiled.len(), &super::source_sha(physical_compiled)).unwrap();\n            assert_eq!(actual, physical_compiled);\n            Self::prior_source(source, &actual).expect(\"exact late arm-context source\")\n        } else {\n",
           "before": "        assert_eq!(\n"
         },
         {
-          "start": 23687,
-          "end": 23760,
+          "start": 23921,
+          "end": 23994,
           "after": "            .unwrap()\n        };\n        assert_eq!(acquired, compiled);\n",
           "before": "            .unwrap(),\n            compiled\n        );\n"
         },
         {
-          "start": 24309,
-          "end": 24501,
+          "start": 24543,
+          "end": 24735,
           "after": "        if context_source.is_some() {\n            composed.push((48442, \"\\n#[cfg(test)]\\n#[path = \\\"lexical_exit/arm_context_tests.rs\\\"]\\npub(super) mod arm_context_tests;\\n\", \"\"));\n        }\n",
           "before": ""
         }

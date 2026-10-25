@@ -206,14 +206,16 @@ authored controls establish no executable qualification or application gain.
 
 V17 uses the same closed row domain and payloads as V16, with each exact
 `{"source_row":[...]}` envelope replaced by its array payload. The four- and
-five-item arities retain the source, explicit compiled boolean, current pin,
-ordered views, and optional fragments. Indexed rows, canonical-source references,
+five-item arities retain the source, an explicit compiled-flag code, current pin,
+ordered views, and optional fragments. Integer `0` decodes to `false`, and integer
+`1` to `true`; booleans, floats, and other integers in this wire slot are refused.
+Indexed rows, canonical-source references,
 and objects carrying unknown metadata retain their entire original values.
 An eligible literal row or a sole `source_row` envelope is a noncanonical alias
 in V17. Fragment rows remain one level deep; their own fifth payload is opaque.
 
 Before cloning any payload, the decoder validates every borrowed row and counts
-the exact fixed field-name and punctuation expansion against the unchanged
+the exact fixed field-name, punctuation, and flag-spelling expansion against the unchanged
 9753094-byte source limit. It reconstructs the entire V15 page directly and
 enters the existing source-bounded V15 decoder chain. An intermediate V16 wire
 page is not constructed: its redundant envelopes can exceed the unchanged

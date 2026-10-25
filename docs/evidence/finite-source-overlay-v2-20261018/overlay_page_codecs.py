@@ -836,7 +836,7 @@ def _v17_walk(page, inspect, publish=False, postorder=False):
 
 def _v17_tuple(items):
  assert type(items) is list and len(items) in (4,5), 'v17 row arity'
- assert type(items[0]) is str and type(items[1]) is bool, 'v17 source/compiled type'
+ assert type(items[0]) is str and type(items[1]) is int and items[1] in (0,1), 'v17 source/compiled type'
  assert type(items[2]) in (list,dict) and type(items[3]) is list, 'v17 current/views type'
  return items
 
@@ -850,7 +850,7 @@ def expand_v17_source_rows(page):
    assert not _v16_eligible(value) and not keys(value,('source_row',)), 'v17 literal row alias'
    return value
   items=_v17_tuple(value)
-  expanded+=_v16_overhead(len(items))+len(b'{"source_row":[]}')-2
+  expanded+=_v16_overhead(len(items))+len(b'{"source_row":[]}')-2+(4 if items[1]==0 else 3)
   assert expanded<=SOURCE_CAP, 'v17 expanded bound'
   return {'fragments':items[4]} if len(items)==5 else {}
  _v17_walk(page,validate)
@@ -858,7 +858,10 @@ def expand_v17_source_rows(page):
  result=copy.deepcopy(page);result['schema']=V15_SCHEMA
  def decode(value):
   if type(value) is dict:return value
-  return dict(zip((*_V16_ROW_KEYS,'fragments'),_v17_tuple(value)))
+  items=_v17_tuple(value)
+  decoded=dict(zip((*_V16_ROW_KEYS,'fragments'),items))
+  decoded['compiled']=items[1]==1
+  return decoded
  _v17_walk(result,decode,True)
  assert len(canonical(result))==expanded, 'v17 expanded bound'
  _expand_v15_logical_source_paths(result)
@@ -873,7 +876,9 @@ def encode_v17_source_rows(page):
   if not _v16_eligible(value):
    assert not keys(value,('source_row',)), 'v17 literal row alias'
    return value
+  assert type(value['compiled']) is bool, 'v17 source/compiled type'
   items=[value[key] for key in (*_V16_ROW_KEYS,'fragments') if key in value]
+  items[1]=int(items[1])
   return _v17_tuple(items)
  _v16_walk(result,encode,True,True);result['schema']=V17_SCHEMA
  assert len(canonical(result))<=PAGE_CAP, 'v17 same one-page cap'

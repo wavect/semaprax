@@ -547,7 +547,8 @@ class PositionalSourceRows(unittest.TestCase):
     def fixture(self):
         known = {'source': 'literal.rs', 'compiled': False,
                  'current': [7, 'A' * 43], 'views': []}
-        fragment = {**copy.deepcopy(known), 'fragments': {'source_row': [None]}}
+        fragment = {**copy.deepcopy(known), 'compiled': True,
+                    'fragments': {'source_row': [None]}}
         outer = {**copy.deepcopy(known), 'fragments': [fragment,
                  {'canonical_source': 'opaque', 'source_row': [False]}]}
         unknown = {**copy.deepcopy(known), 'unknown': {'source_row': [None]},
@@ -568,7 +569,10 @@ class PositionalSourceRows(unittest.TestCase):
         self.assertEqual(before, saved)
         self.assertEqual(codec.expand_v17_source_rows(wire), before)
         self.assertLess(len(codec.canonical(wire)), len(codec.canonical(legacy)))
-        self.assertIs(wire['additions'][0][1], False)
+        self.assertEqual(wire['additions'][0][1], 0)
+        self.assertIs(type(wire['additions'][0][1]), int)
+        self.assertEqual(wire['additions'][0][4][0][1], 1)
+        self.assertIs(type(wire['additions'][0][4][0][1]), int)
         self.assertEqual(wire['additions'][1], before['additions'][1])
         self.assertEqual(wire['additions'][0][4][0][4], {'source_row': [None]})
         self.assertEqual(wire['additions'][0][4][1], before['additions'][0]['fragments'][1])
@@ -576,17 +580,23 @@ class PositionalSourceRows(unittest.TestCase):
 
     def test_hostile_arity_types_aliases_and_fragment_domain(self):
         wire = codec.encode_v17_source_rows(self.fixture())
-        bad = [[], [None] * 4, ['literal.rs', 0, [], []],
-               ['literal.rs', True, None, []], ['literal.rs', True, [], {}],
+        bad = [[], [None] * 4, ['literal.rs', 2, [], []],
+               ['literal.rs', False, [], []], ['literal.rs', 1.0, [], []],
+               ['literal.rs', 1, None, []], ['literal.rs', 1, [], {}],
                {'source_row': ['literal.rs', True, [], []]},
                {'source': 'literal.rs', 'compiled': True, 'current': [], 'views': []},
-               ['literal.rs', True, [], [], {'opaque': True}]]
+               ['literal.rs', 1, [], [], {'opaque': True}]]
         for replacement in bad:
             with self.subTest(replacement=replacement):
                 changed = copy.deepcopy(wire)
                 changed['additions'][0] = replacement
                 with self.assertRaises(AssertionError):
                     codec.expand_v17_source_rows(changed)
+        raw = codec.canonical(wire)
+        negative_zero = raw.replace(b'["literal.rs",0,', b'["literal.rs",-0,', 1)
+        self.assertNotEqual(negative_zero, raw)
+        with self.assertRaisesRegex(AssertionError, 'noncanonical JSON'):
+            codec.parse(negative_zero)
         changed = copy.deepcopy(wire)
         changed['replacements'][0]['old519_index'] = [0, [], []]
         with self.assertRaises(AssertionError):

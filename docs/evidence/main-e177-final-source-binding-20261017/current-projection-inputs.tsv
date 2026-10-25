@@ -1514,3 +1514,5 @@ src/workspace_graph/expected_projection/shared_local_callees/before903/call_carr
 src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/neutral.rs
 src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/neutral/tests.rs
 src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/neutral/emission.before.rs.txt
+src/workspace_graph/expected_projection/call_carriers.before_name_filter.rs.txt
+src/workspace_graph/expected_projection/call_carriers.name_filter_inverse.json

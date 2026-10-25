@@ -249,7 +249,7 @@ fn complete_borrowed_help_source_restores_full_original_without_normalization() 
     // The later borrowed-writer route is acquired as its complete named
     // immediate source before the unchanged declared824 inverse below.
     let constructor_view = current.clone();
-    let fronts: serde_json::Value = crate::source_front_pool::decode(include_str!(
+    let fronts: serde_json::Value = crate::source_reflows::front_pool::decode(include_str!(
         "../../source_reflows/next_custody_fronts.json"
     ))
     .unwrap();

@@ -17,7 +17,7 @@ The key rule is separation: readable source, checked meaning, agent reports,
 write authority, and target execution are different things. Passing data
 between them does not automatically transfer authority.
 
-The test-only `source_front_pool` module owns the bounded edit-string pool
+The test-only `source_reflows::front_pool` module owns the bounded edit-string pool
 decoder shared by the source-front readers. Its Python counterpart lives in
 `test_v12_view_labels.py`. They reconstruct existing source DATA without adding
 source or archive authority; [the source contract](SOURCE-CUSTODY-OVERLAY-V2.md#source-front-edit-string-pool-v1)

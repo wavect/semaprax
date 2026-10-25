@@ -1358,7 +1358,7 @@ fn next_custody_front(
         .unwrap(),
         FRONT
     );
-    let packet: serde_json::Value = crate::source_front_pool::decode(FRONT).unwrap();
+    let packet: serde_json::Value = crate::source_reflows::front_pool::decode(FRONT).unwrap();
     assert_eq!(packet["schema"], "semaprax.next-custody-four-fronts.v1");
     assert_eq!(
         packet["original_packet"]["length"],
@@ -1485,7 +1485,7 @@ fn next_emission_before(owner: &str, source: &str, supplied: &str, actual: &str)
 #[rustfmt::skip]
 fn constructor903_before(source: &str, supplied: &str) -> Option<String> {
     const FRONT: &str = include_str!("next_custody_fronts.json");
-    let packet: serde_json::Value = crate::source_front_pool::decode(FRONT).unwrap();
+    let packet: serde_json::Value = crate::source_reflows::front_pool::decode(FRONT).unwrap();
     let Some(row) = packet["constructor_retention_903"]["records"].get(source) else { return None; };
     assert_eq!(packet["constructor_retention_903"]["schema"], "semaprax.constructor-retention-903-source-fronts.v1");
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));

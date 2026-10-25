@@ -600,3 +600,33 @@ sets can require more bytes; no application fit or exclusive failure attribution
 follows from source accounting. The source-only contract, exact whole-source
 inverses, four new owning selectors and bounded review are retained under
 `docs/evidence/dense-loan-live-scratch/`; actual qualification remains pending.
+
+### Owned paid materializer inputs (OPT-932, source-only)
+
+The private `paid_materialize` receiver consumes its existing draft owner in
+order. It moves each origin projection directory and takes the corresponding
+owned termination row at the original indexed per-draft frontier. A short row
+inventory still reaches that indexed failure; it cannot silently truncate an
+owned zip or bypass an earlier empty-termination diagnostic. Termination order,
+adjacent `ends.dedup()`, parents, schema selection, and all semantic work remain
+unchanged. Existing site, cause and program-point shared-handle clones remain.
+
+Starts and kills directories are still constructed by the complete original
+loan/edge loops. Their rows then move into the unchanged paid compact-list
+conversion at the original endpoint-field positions. An over-capacity nonempty
+row still pays the complete replacement while the original buffer lives; empty
+and exact-capacity rows retain the original conversion rules. A moved
+termination row retains its actual capacity, including spare capacity; this is
+not an exact-capacity or reduced-retained-size promise.
+
+Separate typed banks precede consuming iterator construction, each next/terminal
+turn, indexed take and its empty replacement, and endpoint-row Option/receiving
+transports and Drop. No completed tariff is subtracted and no surviving clone
+is credited. `paid_materialize/immediate_before.rs.txt` retains the complete
+8086 immediate source, with its full same-ABI function separately executable in
+`immediate_before.rs`; older before/legacy controls remain. The owning
+`owned_inputs_tests` controls compare full plans, wire/graph projections, actual
+allocation through Drop, exact/short/zero/sticky/floor/foreign frontiers,
+malformed first-error/index behavior and unwind. These controls are authored
+but unrun; cold/small tariff regressions and actual capacity remain visible.
+No application admission, net tariff, token or runtime improvement is claimed.

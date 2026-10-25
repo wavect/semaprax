@@ -314,3 +314,7 @@ pub(super) mod retained_before;
 // Exact immediate-old scratch retained by the bounded certified-row successor.
 pub(super) const RETAINABLE_BYTES: usize =
     std::mem::size_of::<LookupControl>() + 2 * std::mem::size_of::<ReceivingComparison<'static>>();
+
+pub(super) mod compact;
+#[cfg(test)]
+mod compact_tests;

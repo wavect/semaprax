@@ -346,7 +346,9 @@ impl<'hir> Lookup for Arena<'hir> {
         budget: &mut ReplayBudget,
     ) -> Result<Option<&'a Option<CallFact<'a>>>, Diagnostic> {
         if budget.payer == AllocationPayer::ActiveBuilder && !self.nodes.is_empty() {
-            prefix::find_receiving(self, function, key, budget)
+            Ok(physical_budget::compact_try!(
+                prefix::compact::find_receiving(self, function, key, budget)
+            ))
         } else {
             prefix::find(self, function, key, budget)
         }

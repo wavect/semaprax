@@ -1,0 +1,23 @@
+{
+  "same_compiler_pid": 33608,
+  "same_monitor_pid": 33495,
+  "process_restarted": false,
+  "process_RSS_cap": null,
+  "minimum_device_physical_available_GiB": 3.214813232421875,
+  "additional_pauses": 0,
+  "compiler_terminal": true,
+  "samples": [
+    {
+      "available_GiB": 3.62353515625,
+      "paused": false
+    },
+    {
+      "available_GiB": 3.243682861328125,
+      "paused": false
+    },
+    {
+      "available_GiB": 4.1813201904296875,
+      "paused": false
+    }
+  ]
+}

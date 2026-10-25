@@ -108,7 +108,9 @@ pub(in crate::cleanup_plan::replay) fn validate_exits_retained(
                 }
                 budget.charge(function, 2, "borrowed exit latch selector work")?;
                 if !matches!(exit.continuation, ExitContinuation::LoopLatch { .. }) {
-                    if !helpers::exit_regions_match(function, exit, budget)? {
+                    if !physical_budget::compact_try!(helpers::exit_regions_match_compact(
+                        function, exit, budget
+                    )) {
                         return Err(replay_error(
                             function,
                             "cleanup exit does not leave the exact source-to-target region chain",

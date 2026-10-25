@@ -46,3 +46,5 @@ pub(super) fn validate_place(
 mod before_remaining;
 #[cfg(test)]
 mod tests;
+
+pub(in crate::cleanup_plan::replay::expression_facts::receiving) use matching::compact::exit_regions_match as exit_regions_match_compact;

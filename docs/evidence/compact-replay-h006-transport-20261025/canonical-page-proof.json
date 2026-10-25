@@ -1,0 +1,37 @@
+{
+  "status": "ORIGINAL_CURRENT_CODEC_COMPOSITION_PASS_PENDING_PUBLICATION",
+  "base_head": "cd403c142af3bd110761305b06f18f2d9cc0fc89",
+  "rows": 729,
+  "page_bytes": 258062,
+  "published_current_preserved_as_exact_views": [
+    {
+      "source": "src/cleanup_plan/replay/expression_facts/arena.rs",
+      "view": {
+        "archive": "docs/evidence/main-e177-final-source-binding-20261017/views/c075f4e758cd36ab40328df263bbd8b4836c8012abdcc6c4fd23fd95efb13a59.txt",
+        "length": 13588,
+        "sha256": "c075f4e758cd36ab40328df263bbd8b4836c8012abdcc6c4fd23fd95efb13a59",
+        "name": "whole-before-compact-h006-cd403c"
+      }
+    },
+    {
+      "source": "src/cleanup_plan/replay/expression_facts/arena/prefix.rs",
+      "view": {
+        "archive": "docs/evidence/fmt-a110/3SJ__f5rzNqJ286VyZ8-19YQbVSkvj-J3jGTEeih0bc.txt",
+        "length": 11767,
+        "sha256": "dd227ffdfe6bccda89dbce95c99f3ed7d6106d54a4be3f89de319311e8a1d1b7",
+        "name": "whole-before-compact-h006-cd403c"
+      }
+    },
+    {
+      "source": "src/cleanup_plan/replay/expression_facts/arena/prefix/tests.rs",
+      "view": {
+        "archive": "e/a0e16706fe0f3651621768fac7b91f6430bc1aea7017d39773e3b11d459d73e1",
+        "length": 24940,
+        "sha256": "a0e16706fe0f3651621768fac7b91f6430bc1aea7017d39773e3b11d459d73e1",
+        "name": "whole-before-compact-h006-cd403c"
+      }
+    }
+  ],
+  "all_previous_fields_views_memberships_and_fragment_edges_retained": true,
+  "all_original_codec_bodies_and_caps_unchanged": true
+}

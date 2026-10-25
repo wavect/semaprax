@@ -1016,7 +1016,7 @@ pub(super) fn batch_913_entry(source: &str, supplied: &str) -> Option<String> {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     assert_eq!(
         reader::read(
-            &if source == "src/hir/validation/lexical_exit.rs" {
+            &if matches!(source, "src/hir/validation/lexical_exit.rs" | "src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs") {
                 root.join("e").join(expected)
             } else {
                 root.join(source)
@@ -1100,7 +1100,7 @@ pub(super) fn batch_913_entry(source: &str, supplied: &str) -> Option<String> {
             "ENTIRE unchanged pre-fixture current source"
         );
     }
-    for &(after, prior) in edits {
+    if source == "src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs" { assert_eq!(reader::read(&root.join(source), physical_compiled.len(), &digest(physical_compiled), 2_097_152).unwrap(), physical_compiled, "complete late physical history observer source"); } for &(after, prior) in edits {
         assert_eq!(before.matches(after).count(), 1);
         before = before.replacen(after, prior, 1);
     }

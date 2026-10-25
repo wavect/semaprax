@@ -97,6 +97,16 @@ impl Fixture {
                 include_str!("../../e/1b28726cdb885c1d07033f71d0e22ae38a8c29ec04c0e314e9f2ecd3a85fa9a2"), 55786, &[
                     (2115, ";\n#[cfg(test)]\npub(super) use paired::tests::{\n    authenticate_prefitting_dispatch, prefitting_selected_paid, prefitting_validate,\n}", ""),
                 ][..]),
+            ("src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs", "c82fb33f537bed7561a0267298de31c1577b00e3d2e7b6db1ec70b52b9deec7d") => (
+                include_str!("../../src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs"), 11443, "0aac14bdb3c69a167151e5861a187b1ca3d45001716c9bffb3988651ee1495b8",
+                include_str!("../../e/c82fb33f537bed7561a0267298de31c1577b00e3d2e7b6db1ec70b52b9deec7d"), 10608, &[
+                    (103, "use std::sync::{RwLock, RwLockWriteGuard};\n", "use std::sync::{Mutex, MutexGuard};\n"),
+                    (707, "// acquire this lock. A thread retains its lease so repeated finish calls keep\n", "// acquire this mutex. A thread retains its lease so repeated finish calls keep\n"),
+                    (859, "// Exclusive write leases retain mutex semantics. Unlike the native mutex on\n// macOS, this lock needs no lazy heap allocation on its first acquisition.\nstatic STORAGE: RwLock<Trace> = RwLock::new(Trace {\n", "static STORAGE: Mutex<Trace> = Mutex::new(Trace {\n"),
+                    (1201, "    static TRACE: RefCell<Option<RwLockWriteGuard<'static, Trace>>> = const { RefCell::new(None) };\n", "    static TRACE: RefCell<Option<MutexGuard<'static, Trace>>> = const { RefCell::new(None) };\n"),
+                    (2306, "                    .write()\n", "                    .lock()\n"),
+                    (10737, "#[test]\nfn preparation_preserves_an_existing_lease_and_its_complete_event() {\n    prepare();\n    let (_, refused, _, first) =\n        crate::bounded_output::with_limit_usage_refusal(usize::MAX, || {\n            reset();\n            before(\"observer preparation regression\");\n            after();\n            prepare();\n            let events = finish();\n            assert_eq!(events.len(), 1);\n            assert_eq!(events[0].phase, \"observer preparation regression\");\n            assert_eq!(events[0].before, 0);\n            assert_eq!(events[0].after, Some(0));\n            assert_eq!(events[0].swaps, 0);\n        });\n    assert!(!refused && first.is_none());\n}\n\n", ""),
+                ][..]),
             _ => return (std::borrow::Cow::Borrowed(supplied), Vec::new()),
         };
         let physical_compiled = compiled;

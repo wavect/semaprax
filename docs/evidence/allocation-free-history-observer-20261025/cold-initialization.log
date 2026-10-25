@@ -1,0 +1,7 @@
+test cleanup_plan::replay::ordinary_plan_history::frontiers::initialization_tests::fresh_thread_trace_is_ready_without_prepare_and_keeps_exact_capacity ...
+
+thread '<unnamed>' (103776148) panicked at /Volumes/Semaprax/worktrees/ci-held-borrowed-e8/src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs:100:9:
+finite frontier observation capacity exhausted
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test cleanup_plan::replay::ordinary_plan_history::frontiers::initialization_tests::fresh_thread_trace_is_ready_without_prepare_and_keeps_exact_capacity ... ok
+HEAD_ORIGINAL_HISTORY_RESULTS passed=1 failed=0

@@ -1,0 +1,36 @@
+{
+  "status": "SOURCE_PRESERVATION_AND_CURRENT_HEAD_FOCUSED_TESTS_PASS",
+  "base_head": "b7f586e82514aa13ce21fcc27a5b87e216c225be",
+  "changed_source": "src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs",
+  "previous_source": {
+    "archive": "e/862cf4a52ff621fb42e443be130c68ca23ebe60be46ee6ba46def5deb020a22c",
+    "length": 4264,
+    "sha256": "862cf4a52ff621fb42e443be130c68ca23ebe60be46ee6ba46def5deb020a22c"
+  },
+  "current_source": {
+    "length": 5099,
+    "sha256": "f262993fa01ffb0af764b8e2a4508cb8006a206d543ee8f5cedfb893bae56c0b"
+  },
+  "whole_previous_source_recovered_byte_for_byte": true,
+  "existing_frontier_and_initialization_test_bodies_unchanged": true,
+  "domain_records": [
+    {
+      "domain": "hir",
+      "previous_archive": "e/bfc24d12c3b1699a8f6d3e64b5f7e8c7f24a764ab3949e851afdc354e1186a5e",
+      "current_sha256": "dd7dfb710abfaac217838baca0b8c07024edeaaebe40acb0cd0544b54571ae72",
+      "current_length": 8390595,
+      "all_previous_fields_roles_ordered_chunks_and_acquisitions_preserved": true,
+      "only_source_pin_and_registration_byte_offsets_changed": true
+    },
+    {
+      "domain": "projection",
+      "previous_archive": "e/4c07f1ecc5a29001a7ccfa69a1969b7860631159c3ba79545d9a093a734b4896",
+      "current_sha256": "db8b41f6c77f5e3b8e3e958690d60f1129c734bb73054c46e946f29ef462db0e",
+      "current_length": 8374706,
+      "all_previous_fields_roles_ordered_chunks_and_acquisitions_preserved": true,
+      "only_source_pin_and_registration_byte_offsets_changed": true
+    }
+  ],
+  "all_original_source_verifier_and_six_hostile_controls_pass": true,
+  "scope": "Test observer only; compiler semantics, IR, all ordinary budgets and runtime candidate selection unchanged."
+}

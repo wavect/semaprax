@@ -255,3 +255,7 @@ pub(in crate::cleanup_plan::replay::expression_facts::receiving) fn exit_regions
 
 #[cfg(test)]
 mod tests;
+
+pub(in crate::cleanup_plan::replay::expression_facts::receiving) mod compact;
+#[cfg(test)]
+mod compact_tests;

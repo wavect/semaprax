@@ -531,7 +531,11 @@ fn receiving_minimum_hit_funds_both_full_state_layouts_before_comparing() {
         crate::bounded_output::with_limit_usage_refusal(usize::MAX, || {
             let mut budget = ReplayBudget::new();
             budget.prepare_builder(function).unwrap();
-            if run {
+            if run == 1 {
+                assert!(find_receiving(&arena, function, &keys[0], &mut budget)
+                    .unwrap()
+                    .is_some());
+            } else if run == 2 {
                 assert!(arena
                     .fact(function, &keys[0], &mut budget)
                     .unwrap()
@@ -539,13 +543,23 @@ fn receiving_minimum_hit_funds_both_full_state_layouts_before_comparing() {
             }
         })
     };
-    let ((), refused, setup, first) = observe(false);
+    let ((), refused, setup, first) = observe(0);
     assert!(!refused && first.is_none());
-    let ((), refused, paid, first) = observe(true);
+    let ((), refused, paid, first) = observe(1);
     assert!(!refused && first.is_none());
     assert_eq!(
         paid - setup,
         LOOKUP_BYTES + 2 * std::mem::size_of::<ReceivingComparison<'_>>()
+    );
+    let ((), refused, current_paid, first) = observe(2);
+    assert!(!refused && first.is_none());
+    assert_eq!(
+        current_paid - setup,
+        super::compact::LOOKUP_BYTES + 2 * std::mem::size_of::<ReceivingComparison<'_>>()
+    );
+    assert_eq!(
+        paid - current_paid,
+        LOOKUP_BYTES - super::compact::LOOKUP_BYTES
     );
 }
 

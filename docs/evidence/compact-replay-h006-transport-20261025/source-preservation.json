@@ -1,0 +1,78 @@
+{
+  "base_head": "cd403c142af3bd110761305b06f18f2d9cc0fc89",
+  "status": "COMPLETE_SOURCE_INVERSES_CURRENT_MAIN_FOCUSED_CONTROLS_AND_SOURCE_BOUNDARIES_PASS",
+  "changed_sources": [
+    {
+      "source": "src/cleanup_plan/replay/expression_facts/arena.rs",
+      "before_sha256": "c075f4e758cd36ab40328df263bbd8b4836c8012abdcc6c4fd23fd95efb13a59"
+    },
+    {
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/retained/exits.rs",
+      "before_sha256": "a372db755ee90873f7ddf58bdab6f091589c2cd63b6e9dc6991f6eb0d4499ddd"
+    },
+    {
+      "source": "src/cleanup_plan/replay/expression_facts/arena/prefix.rs",
+      "before_sha256": "dd227ffdfe6bccda89dbce95c99f3ed7d6106d54a4be3f89de319311e8a1d1b7"
+    },
+    {
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching.rs",
+      "before_sha256": "29a301abb545c42ffd46c2f8b017d24743deaa6ac702ca9b919a529e29b32910"
+    },
+    {
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/helpers.rs",
+      "before_sha256": "d8283639362ab72ba61cfa137d83bb02389deb9dd67599f627a662e0d55ddf16"
+    },
+    {
+      "source": "src/cleanup_plan/replay/expression_facts/arena/prefix/compact.rs",
+      "before_sha256": null
+    },
+    {
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching/compact.rs",
+      "before_sha256": null
+    },
+    {
+      "source": "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching/compact_tests.rs",
+      "before_sha256": null
+    },
+    {
+      "source": "src/cleanup_plan/replay/expression_facts/arena/prefix/compact_tests.rs",
+      "before_sha256": null
+    },
+    {
+      "source": "src/cleanup_plan/replay/expression_facts/arena/prefix/tests.rs",
+      "before_sha256": "a0e16706fe0f3651621768fac7b91f6430bc1aea7017d39773e3b11d459d73e1"
+    }
+  ],
+  "domains": [
+    {
+      "domain": "hir",
+      "whole_predecessor_archive": "e/dd7dfb710abfaac217838baca0b8c07024edeaaebe40acb0cd0544b54571ae72",
+      "all_old_sources_classes_roles_chains_and_ordered_chunks_preserved": true,
+      "new_classes": {
+        "src/cleanup_plan/replay/expression_facts/arena/prefix/compact.rs": "production",
+        "src/cleanup_plan/replay/expression_facts/arena/prefix/compact_tests.rs": "test-only",
+        "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching/compact.rs": "production",
+        "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching/compact_tests.rs": "test-only"
+      },
+      "only_expected_source_pins_and_physical_edge_offsets_changed": true,
+      "current_sha256": "7917472a25ec267b1691f553256fdf70669f62d46d6b94f96abff4062e1fa782"
+    },
+    {
+      "domain": "projection",
+      "whole_predecessor_archive": "e/db8b41f6c77f5e3b8e3e958690d60f1129c734bb73054c46e946f29ef462db0e",
+      "all_old_sources_classes_roles_chains_and_ordered_chunks_preserved": true,
+      "new_classes": {
+        "src/cleanup_plan/replay/expression_facts/arena/prefix/compact.rs": "production",
+        "src/cleanup_plan/replay/expression_facts/arena/prefix/compact_tests.rs": "test-only",
+        "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching/compact.rs": "production",
+        "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching/compact_tests.rs": "test-only"
+      },
+      "only_expected_source_pins_and_physical_edge_offsets_changed": true,
+      "current_sha256": "66515deb770b193da9bd8127caa4094072291129e76e68ecd8b9484642f0cc57"
+    }
+  ],
+  "limits_and_full_IR_unchanged": true,
+  "unique_focused_controls": 10,
+  "focused_executions": 11,
+  "full_CI_green_claim": false
+}

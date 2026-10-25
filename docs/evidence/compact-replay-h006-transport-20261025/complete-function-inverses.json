@@ -1,0 +1,37 @@
+{
+  "base_head": "cd403c142af3bd110761305b06f18f2d9cc0fc89",
+  "status": "BOTH_WHOLE_ORIGINAL_FUNCTIONS_RETAINED_AND_COMPLETE_SUCCESSOR_INVERSES_PASS",
+  "functions": [
+    {
+      "parent": "src/cleanup_plan/replay/expression_facts/arena/prefix.rs",
+      "child": "src/cleanup_plan/replay/expression_facts/arena/prefix/compact.rs",
+      "function": "find_receiving",
+      "original_function_retained_byte_for_byte": true,
+      "complete_body_recovered_by_narrow_ABI_and_primitive_method_inverse": true,
+      "old_function_sha256": "77a06341f72fcbaf80d0caaa01ba833b6193de6db3de5e74ad993e91c4a8df3c",
+      "new_function_sha256": "d0ec2308c1d1769e5705dee01e7552b284e3fba1bdcb16b2a7c53e39b95f8b33",
+      "complete_structural_diagnostic_converters": 0,
+      "original_charge_sites": 8,
+      "narrow_charge_sites": 8,
+      "original_reserve_sites": 3,
+      "narrow_reserve_sites": 3
+    },
+    {
+      "parent": "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching.rs",
+      "child": "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching/compact.rs",
+      "function": "exit_regions_match",
+      "original_function_retained_byte_for_byte": true,
+      "complete_body_recovered_by_narrow_ABI_and_primitive_method_inverse": true,
+      "old_function_sha256": "f94b4c765c1697113580ea9a472bc618a53940e500dd56520dbea31f5de620c3",
+      "new_function_sha256": "74a326a21383025f4120ec0b0a91148168e2e2e56e3ec3e3a560bf6beffda290",
+      "complete_structural_diagnostic_converters": 14,
+      "original_charge_sites": 10,
+      "narrow_charge_sites": 10,
+      "original_reserve_sites": 2,
+      "narrow_reserve_sites": 2
+    }
+  ],
+  "new_lookup_tariff": "two actual compact Results and the surviving outer Diagnostic Result; complete old scratch retained",
+  "new_exit_tariff": "two actual compact Results; all other original Matching controls retained",
+  "limits_and_complete_IR_unchanged": true
+}

@@ -1,6 +1,6 @@
 //! Test-only fixed observation buffer. It cannot inject or authorize a debit.
 use std::cell::RefCell;
-use std::sync::{Mutex, MutexGuard};
+use std::sync::{RwLock, RwLockWriteGuard};
 #[derive(Clone, Copy, Debug)]
 pub(super) struct Event {
     pub phase: &'static str,
@@ -24,9 +24,11 @@ struct Trace {
 }
 // The fixed test buffer has no heap backing and occupies no thread stack/TLS
 // payload. Explicit observations serialize; inactive compiler callbacks never
-// acquire this mutex. A thread retains its lease so repeated finish calls keep
+// acquire this lock. A thread retains its lease so repeated finish calls keep
 // their original complete snapshot. TLS destruction releases the lease.
-static STORAGE: Mutex<Trace> = Mutex::new(Trace {
+// Exclusive write leases retain mutex semantics. Unlike the native mutex on
+// macOS, this lock needs no lazy heap allocation on its first acquisition.
+static STORAGE: RwLock<Trace> = RwLock::new(Trace {
     enabled: false,
     count: 0,
     pending: None,
@@ -35,7 +37,7 @@ static STORAGE: Mutex<Trace> = Mutex::new(Trace {
     events: [EMPTY; 4096],
 });
 thread_local! {
-    static TRACE: RefCell<Option<MutexGuard<'static, Trace>>> = const { RefCell::new(None) };
+    static TRACE: RefCell<Option<RwLockWriteGuard<'static, Trace>>> = const { RefCell::new(None) };
 }
 // Warm only the allocation-free thread-bound lease carrier. The entire fixed
 // backing already exists; neither preparation nor first reset allocates.
@@ -63,7 +65,7 @@ fn reset_mode(swaps_only: bool) {
             // overwrites every live control before enabling a new observation.
             *lease = Some(
                 STORAGE
-                    .lock()
+                    .write()
                     .unwrap_or_else(std::sync::PoisonError::into_inner),
             );
         }
@@ -268,6 +270,25 @@ fn prepared_fixed_observers_keep_measured_resets_and_frontiers_allocation_free()
         super::comparison_owner::pair_scope_census::finish_empty_for_frontier_test();
     assert!(empty);
     assert_eq!(lost, 0);
+}
+
+#[test]
+fn preparation_preserves_an_existing_lease_and_its_complete_event() {
+    prepare();
+    let (_, refused, _, first) =
+        crate::bounded_output::with_limit_usage_refusal(usize::MAX, || {
+            reset();
+            before("observer preparation regression");
+            after();
+            prepare();
+            let events = finish();
+            assert_eq!(events.len(), 1);
+            assert_eq!(events[0].phase, "observer preparation regression");
+            assert_eq!(events[0].before, 0);
+            assert_eq!(events[0].after, Some(0));
+            assert_eq!(events[0].swaps, 0);
+        });
+    assert!(!refused && first.is_none());
 }
 
 #[cfg(test)]

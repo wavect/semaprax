@@ -1,0 +1,15 @@
+{
+  "scope": "Actual main compiler and all actual IR/defaults/verification; only private registration/visibility/fixture absolute paths adapted",
+  "tests": [
+    "cleanup_plan::replay::expression_facts::receiving::helpers::matching::compact_tests::topological_forests_and_reverse_numberings_keep_the_complete_original_prefix",
+    "cleanup_plan::replay::expression_facts::receiving::helpers::matching::compact_tests::every_original_produced_non_latch_exit_keeps_its_full_expected_result",
+    "cleanup_plan::replay::expression_facts::receiving::helpers::matching::compact_tests::malformed_full_chains_precede_an_authored_prefix_mismatch",
+    "cleanup_plan::replay::expression_facts::receiving::helpers::matching::compact_tests::physical_and_work_frontiers_keep_full_payment_sticky_refusal_and_last_drop",
+    "cleanup_plan::replay::expression_facts::receiving::helpers::matching::compact_tests::actual_active_selector_is_prepaid_at_exact_short_zero_and_drops_without_debt",
+    "cleanup_plan::replay::expression_facts::arena::prefix::compact_tests::receiving_comparison_keeps_every_full_key_result_and_original_work_event",
+    "cleanup_plan::replay::expression_facts::arena::prefix::compact_tests::receiving_state_reduces_actual_bills_and_preserves_all_physical_frontiers",
+    "cleanup_plan::replay::expression_facts::arena::prefix::compact_tests::receiving_minimum_hit_funds_both_full_state_layouts_before_comparing",
+    "cleanup_plan::replay::expression_facts::arena::prefix::compact_tests::receiving_returns_complete_real_call_facts_without_a_projection_or_clone",
+    "cleanup_plan::replay::expression_facts::arena::prefix::tests::receiving_minimum_hit_funds_both_full_state_layouts_before_comparing"
+  ]
+}

@@ -1,0 +1,3 @@
+test cleanup_plan::replay::ordinary_plan_history::frontier_tests::each_new_frame_backing_and_post_swap_frontier_has_exact_short_zero_floor_and_drop_controls ...
+test cleanup_plan::replay::ordinary_plan_history::frontier_tests::each_new_frame_backing_and_post_swap_frontier_has_exact_short_zero_floor_and_drop_controls ... ok
+HEAD_ORIGINAL_HISTORY_RESULTS passed=1 failed=0

@@ -1,0 +1,4956 @@
+{
+  "packet": {
+    "path": "docs/evidence/main-e177-final-source-binding-20261017/current-inputs.json",
+    "length": 260977,
+    "sha256": "de6103a37cb677be139de99b4a945ddf2d588b5292a01ca058715b3d7f8734dc"
+  },
+  "rows": 433,
+  "guard": {
+    "path": "docs/evidence/next-big-batch-source-binding-20261017/guard_payload.py",
+    "length": 18420,
+    "sha256": "1641b57088ed77b78631be8843c0f074ea09e04f591811b129ddea709bbc11f9",
+    "archive": "docs/evidence/main-e177-final-source-binding-20261017/guards/docs__evidence__next-big-batch-source-binding-20261017__guard_payload.py.before.txt"
+  },
+  "this_guard": "docs/evidence/main-e177-final-source-binding-20261017/guard_payload.py",
+  "public": {
+    "path": "docs/evidence/main043-independent-custody-20261016/verify-or-refresh.py",
+    "length": 2765,
+    "sha256": "e7ff6c470d23e38036ecf09f82a0f2d86418f8370044d31eb90baafc20702373",
+    "archive": "docs/evidence/main-e177-final-source-binding-20261017/guards/docs__evidence__main043-independent-custody-20261016__verify-or-refresh.py.before.txt"
+  },
+  "public_edits": [
+    {
+      "before": "docs/evidence/next-big-batch-source-binding-20261017/guard_payload.py",
+      "after": "docs/evidence/main-e177-final-source-binding-20261017/guard_payload.py",
+      "count": 1
+    },
+    {
+      "before": "guard_raw=held(guard_helper,18420)",
+      "after": "guard_raw=held(guard_helper,@GUARD_LENGTH@)",
+      "count": 1
+    },
+    {
+      "before": "1641b57088ed77b78631be8843c0f074ea09e04f591811b129ddea709bbc11f9",
+      "after": "@GUARD_SHA256@",
+      "count": 1
+    }
+  ],
+  "modules": {
+    "src/cleanup_plan/replay/branch_clone/direct.rs": {
+      "length": 24689,
+      "sha256": "68d1b7487fc5d6766bf72b0dacb933c78bf8e5a3a7986856ba96a09b6d60887c"
+    },
+    "src/cleanup_plan/replay/branch_clone/direct/before.rs": {
+      "length": 60395,
+      "sha256": "a16f3c0c7e34c3f5cc179c61665979941ecf0e17c75ad43185ad4128a8ac6a65"
+    },
+    "src/cleanup_plan/replay/branch_clone/direct/tests.rs": {
+      "length": 34935,
+      "sha256": "fc0bf456c3487953275d2463324630d2c27a453c74cd3b26fdbb97eb3b99b691"
+    },
+    "src/cleanup_plan/replay/compact_stage/main_f247_source_custody.rs": {
+      "length": 15825,
+      "sha256": "65ed80a5577ce95d713a5d35722f7e90cd232774c0a685def063c4e2be284e67"
+    },
+    "src/cleanup_plan/replay/expression_facts/receiving/directory/before_cursor.rs": {
+      "length": 20452,
+      "sha256": "d279a94a12fa54cd1ada2e7a8fbb01e7f49d7b68c87b55665cb3b8fd8f21af80"
+    },
+    "src/cleanup_plan/replay/expression_facts/receiving/directory/before_cursor/qualification.rs": {
+      "length": 19015,
+      "sha256": "ecf79a618ce0d00caa4f0c39bf9d79eee072e608479dea804f62362f3ef65250"
+    },
+    "src/cleanup_plan/replay/expression_facts/receiving/directory/before_cursor/status_prefix.rs": {
+      "length": 37096,
+      "sha256": "fa6b23476286d2f1fb42a657af88e20cacee2042464074b4cc88c6699570207f"
+    },
+    "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/reused_cursor.rs": {
+      "length": 25286,
+      "sha256": "76b701afa4678d67d51f11be249cbdbee219dd111ec53c9c10feff527d10dccf"
+    },
+    "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/reused_cursor/tests.rs": {
+      "length": 7016,
+      "sha256": "3dbb49c1b65ebcb13baae9b9f6d1b4d37078a331f749d678b67a53da2b8353cb"
+    },
+    "src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels.rs": {
+      "length": 7160,
+      "sha256": "986b47fcc5ac244aa388c7f92b2d39992d68125ee5f5cb0a1d1a88bd9fc1494f"
+    },
+    "src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels/terminal_leaf.rs": {
+      "length": 8158,
+      "sha256": "6fc9fc8cbfa6e665d260e5dac211dda6ce7a864a641cfc288d4ea95331504e73"
+    },
+    "src/cleanup_plan/replay/factored/canonical_shared/selected_labels.rs": {
+      "length": 17568,
+      "sha256": "d558e58bccb95f6af7fe406e27d3bb9da6d8d938b9af6937528a27f09f9d04e8"
+    },
+    "src/cleanup_plan/replay/factored/canonical_shared/selected_labels/tests.rs": {
+      "length": 19020,
+      "sha256": "769d5b53f095d95d6c0a6daae28a035d3f4b2cfc4810797e5c16423fd0da4139"
+    },
+    "src/cleanup_plan/replay/merge_census.rs": {
+      "length": 12885,
+      "sha256": "08dbb32419f0a799069d285aebf7a065a79c6762b28fff617f2bf3db83cf4420"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/before_comparison.rs": {
+      "length": 10345,
+      "sha256": "a44bd5b6db7e3b1df60184035e062e6eefcc7f126189c328117e8ed615d161cf"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs": {
+      "length": 29078,
+      "sha256": "e2e5f1b98ed61bf5d897586ed06b4c9d15758ea7619a12a51d8a724e85dda2b2"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests.rs": {
+      "length": 45040,
+      "sha256": "b2790adfe64995687a557320a8dea8fa1c24a3ac750b3c508ceb0d680f7d9502"
+    },
+    "src/cleanup_plan/replay/owned_suffix_878.rs": {
+      "length": 17919,
+      "sha256": "e4cc459a15cc416d0721ab13a63daf7a30b6bc38dd974ef24604fb362d125c9d"
+    },
+    "src/cleanup_plan/replay/owned_suffix_878_vector.rs": {
+      "length": 7826,
+      "sha256": "4a21f160952bc130224bb3588093e62e59aa30496ee6510ca92ee204640dfe12"
+    },
+    "src/cleanup_plan/replay/skeleton_work/isolated_paths.rs": {
+      "length": 2063,
+      "sha256": "5cc0e767a4e5e61ae5135d4193b831d941b90b6f676f6620d64fb9ac016c0d72"
+    },
+    "src/cleanup_plan/replay/skeleton_work/isolated_paths/tests.rs": {
+      "length": 11699,
+      "sha256": "021a0dd84f3275b7cbd69936cb8def96e5172fb39ceaa1b4b385d3962f6792f2"
+    },
+    "src/cleanup_plan/replay/skeleton_work/isolated_paths/tests/before.rs": {
+      "length": 6999,
+      "sha256": "15dae1c261be2ac1a105a74906e10d105a3aba87e7e88b404bdfa67bf6f3e739"
+    },
+    "src/cleanup_plan/replay/skeleton_work/merge_keys_878.rs": {
+      "length": 12532,
+      "sha256": "876b77d2ad86d4f4577dc599e0b33b85c5125b817daf114b69a1e81c07c0f4ea"
+    },
+    "src/cleanup_plan/replay/skeleton_work/merge_search.rs": {
+      "length": 6955,
+      "sha256": "1f4c0b4430f26e0291d34b9bba6b1cc10288754c8adecab695cb7b7a154c760e"
+    },
+    "src/source_reflows/main99f_controllers.rs": {
+      "length": 62316,
+      "sha256": "818b724a693ce48b1cb81db1e6d4bc6dff7313836a76bde5251a44993e7e978f"
+    },
+    "src/source_reflows/main_e177_controllers.rs": {
+      "length": 62990,
+      "sha256": "89f372ffa0e2d427b0048875b686bdee74af90434f556bc79b3569285ba88387"
+    },
+    "src/source_reflows/main_e177_support.rs": {
+      "length": 1529,
+      "sha256": "669e9d901b4823a843cc370bc2696ff5f327b88d89f385711193ca0823a0b7be"
+    },
+    "src/source_reflows/main_f247_controllers.rs": {
+      "length": 58667,
+      "sha256": "44528b902fc57aa30c0871711e8faae39921a9df98a228517b395d1e74a0f6d5"
+    },
+    "src/source_reflows_merge/main99f_inputs.rs": {
+      "length": 38609,
+      "sha256": "b54ac366da333fd6460c36436bfc680b82b6eb92de3b05ebd353c45771d63d8c"
+    },
+    "src/source_reflows_merge/main_e177_final_inputs.rs": {
+      "length": 113138,
+      "sha256": "21f45e03fe08b7309c02875226c65fb71129ec55e8dcc1e96689a76d537df75e"
+    },
+    "src/source_reflows_merge/main_e177_inputs.rs": {
+      "length": 39539,
+      "sha256": "891cc282a015751919bc790fc5ab47bb25709b5e367383dbc0ffca9354f1a799"
+    },
+    "src/source_reflows_merge/next_big_batch_inputs.rs": {
+      "length": 22917,
+      "sha256": "2be13682ca79a665f9f8481118f9ff0b72b1ac9c34fd07d84cac990ba67b6ff1"
+    },
+    "src/workspace_graph/tests/core_attempt_trace.rs": {
+      "length": 4672,
+      "sha256": "88cb67c66c6719a7a02b6c49779015213a5b4929d16611df1898aaac43faa02f"
+    },
+    "tests/wasm/scalar_browser_ci_contract/before_3e66.rs": {
+      "length": 5587,
+      "sha256": "40740f94459a3cdcc807b43014cd3c0bf02062f69c2fa5f73c7379a996e12e8f"
+    },
+    "tests/wasm/scalar_browser_ci_contract/incoming_main3e66.rs": {
+      "length": 8126,
+      "sha256": "ed46e33e52eb0b7dcd60d44fa175cfc759261d149d749d3e41ced5e2933f2123"
+    },
+    "tests/workspace/pin_capture.rs": {
+      "length": 3432,
+      "sha256": "ee19d91ad30a9b959fe11a488a0138d60685fed409d6f29244fa981772934bbf"
+    },
+    "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/inline.rs": {
+      "length": 18856,
+      "sha256": "cc531da41d635a15fae4d0f05448333769caee76eb9d37599482000ff5143e40"
+    },
+    "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/inline/tests.rs": {
+      "length": 15759,
+      "sha256": "d573feb2a764863e240d9c7d5f7ffcf7160031e5beaf521b6d0a18ed0cff9f93"
+    },
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/inline_status.rs": {
+      "length": 5297,
+      "sha256": "7ee51c368414f6ed39114b6ba5850b6a98a650447f30c0e50f88c860c4ec0bae"
+    },
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/inline_status/tests.rs": {
+      "length": 5150,
+      "sha256": "13b29a5cbffbd1a04b1206a8cc2f5dc7c1f52ef0e1e9325fd23c8ca871504c44"
+    },
+    "src/cleanup_plan/replay/factored/canonical_shared/before_paid_many/empty_memo.rs": {
+      "length": 9660,
+      "sha256": "278e0186dd7d69c8979685db29a5ae2f9c7c1fe0954f4a6a484fc178d794166a"
+    },
+    "src/cleanup_plan/replay/factored/canonical_shared/before_scope_memo.rs": {
+      "length": 9678,
+      "sha256": "1014fbb66e27dfd48ee78c63edca35d76d8ac32f700987d9745cd724e91bcf24"
+    },
+    "src/cleanup_plan/replay/factored/canonical_shared/before_selected_route.rs": {
+      "length": 7140,
+      "sha256": "2bb7e60257922cc0d990554bb64b1cd3d45468e71d42a99683a68a45928f5b48"
+    },
+    "src/cleanup_plan/replay/factored/canonical_shared/empty_memo/owned_tests.rs": {
+      "length": 5408,
+      "sha256": "ca64a86b88fce36b84230e3e70a3c95b6020f5734c2c95bf7a0e38020fe9417a"
+    },
+    "src/cleanup_plan/replay/factored/canonical_shared/paid_route_tests.rs": {
+      "length": 12878,
+      "sha256": "4a240d0e8551d4bad8e026aa08c15c15a6532337576991647f86a9af839aa638"
+    },
+    "src/source_reflows/semantic_receivers/status_inline.rs": {
+      "length": 8381,
+      "sha256": "181c3470264c6296140754f439fcc148c90f3039b105f0be248ffa7ac72d0879"
+    },
+    "src/cleanup_plan/replay/factored/canonical_shared/before_lexical_successors.rs": {
+      "length": 7332,
+      "sha256": "07b00726cba0d6bb70c7c2f40d9887f6a59425543d113b28dafef8124a439c89"
+    },
+    "src/cleanup_plan/replay/factored/canonical_shared/before_lexical_successors/compare.rs": {
+      "length": 5863,
+      "sha256": "f907a952780bbb89bc2fe69f121d99c553bfdc2ea65cab0082a8f625814ffeab"
+    },
+    "src/cleanup_plan/replay/factored/canonical_shared/lexical_successors.rs": {
+      "length": 27278,
+      "sha256": "db06143a7a46c5030fc813b49a7ca7be73a1f9d619a13bb14a198799a5c7c1d8"
+    },
+    "src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/census.rs": {
+      "length": 30041,
+      "sha256": "f9647d41afe7a984652bced0006bf6ef4e61a8da4e91e4cc36cdb4927b8c478e"
+    },
+    "src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/frame_loop.rs": {
+      "length": 18307,
+      "sha256": "d452d127a17c3d076fcc9e2e66f64e4609eebed8c9f840ba0a126f82117bb065"
+    },
+    "src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/frame_loop/before_borrowed_single.rs": {
+      "length": 20771,
+      "sha256": "5c9794699c265a86f09732172ad1f2b70147bf1b7c9ac9790bc62a561ff40bd7"
+    },
+    "src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/frame_loop/borrowed_single.rs": {
+      "length": 5000,
+      "sha256": "b5f06362c159aa93e4838e9004b52fcc363fb0306a77cedb5ebeb9274458bf35"
+    },
+    "src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/frame_loop/borrowed_single/tests.rs": {
+      "length": 6792,
+      "sha256": "0f47e69fe74fc2227521746bb64667ad5db18828a30b40b65b503fb0db590130"
+    },
+    "src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/tests.rs": {
+      "length": 37623,
+      "sha256": "3a690560fa0fed1ce01cffed9cefab0753a4660cc6774f9dd68375759790b00a"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_lexical_cursor.rs": {
+      "length": 20151,
+      "sha256": "c9b6319b4fe0db8e85ec232e4d22b19a45ea45dbf4a2bbfad5d1c7a9721cb936"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor.rs": {
+      "length": 6956,
+      "sha256": "c63b8f98af8b1fa55f7e305819efc87107477db4a92f57743365544885b4973c"
+    },
+    "src/cleanup_plan/replay/expression_facts/arena/prefix/retained_before.rs": {
+      "length": 11775,
+      "sha256": "e086b2870846b2fe6db800b3679d9fa00cf2f5cccf25ee0035cfb792252a771e"
+    },
+    "src/cleanup_plan/replay/expression_facts/arena/retained.rs": {
+      "length": 16051,
+      "sha256": "64de669bef927e9c12b9d5ed8c38a2e6d70d83cbe282c2b903268ddbb4f8092c"
+    },
+    "src/cleanup_plan/replay/expression_facts/arena/retained/tests.rs": {
+      "length": 28813,
+      "sha256": "cf5ef9e70aa3abb631010a6fa82c7827ec0d0975a0f7abfe0cae488909157b74"
+    },
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_before.rs": {
+      "length": 12379,
+      "sha256": "26398dfe99136909332e654e85c23e9aedcd57a6d9c29410a4c8deffb8133ce8"
+    },
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_caller_before.rs": {
+      "length": 4481,
+      "sha256": "9364443a8a9df12138b4eeb3671a6088e3202efb3c3e05d6a4c22ede6a8edffc"
+    },
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests.rs": {
+      "length": 17998,
+      "sha256": "25d82517b2dd7e34292cc13259083ec550ae4fc51b9197087e7de55791eeed8d"
+    },
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/retained_lookup.rs": {
+      "length": 8334,
+      "sha256": "8018932bbd3f51ce2f5e174f75a1803f4b7d59aeadbf008d069d12415ab20a43"
+    },
+    "src/cleanup_plan/replay/factored/canonical_shared/lexical_child_scratch/current_tests.rs": {
+      "length": 8726,
+      "sha256": "26e8d0ad5fe3c34e40315634b9bc718a77ce4f42a7ef933073a3d40420219933"
+    },
+    "src/cleanup_plan/replay/factored/canonical_shared/lexical_child_scratch/matched.rs": {
+      "length": 19815,
+      "sha256": "1314928a64076a10cceb7e9ae271e09815c160c265dccfd9e7d5a8c901d12847"
+    },
+    "src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/frame_loop/before_arity_dispatch.rs": {
+      "length": 31149,
+      "sha256": "982fe65b29a26a38efb7dc8e7aee0e5cb6d45484e0137dfbf58897d4656557cd"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_pair_scope/lexical_cursor.rs": {
+      "length": 6323,
+      "sha256": "7614b53a5d5f30197157064a13ecc408c886f3b907eb3afeb5830bfcd1cbd399"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_pair_scope/mod.rs": {
+      "length": 21723,
+      "sha256": "64c7d372d34967e63112a3acb395184eca7d586663b6f61b6f83904f4e86bba8"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_census.rs": {
+      "length": 42925,
+      "sha256": "80706a2e623bae9438a78243ec1ad1d9beca2b6aaa166142f00bbcb814185d7e"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_tests.rs": {
+      "length": 58159,
+      "sha256": "d56482364db99247541856b7ce9a90f4c735dc85b7de081ded3daf3dbec35596"
+    },
+    "src/workspace_graph/shape_identity/before785.rs": {
+      "length": 1294,
+      "sha256": "e49ef5b19c636d8291a73f805138d14030f1209407de499e9e5398efa4060116"
+    },
+    "src/workspace_graph/shape_identity/before_caller785.rs": {
+      "length": 7544,
+      "sha256": "7bf7497a8271b4d690f058c15e0db4d6de3b42c0425cd41a5d94c8f6f0fcaa74"
+    },
+    "src/workspace_graph/shape_identity/before_validation785.rs": {
+      "length": 40317,
+      "sha256": "76de24d6277bedaa4d4a479cfc950e679a185a4135b19fff8b362f16bbd2feb0"
+    },
+    "src/workspace_graph/shape_identity/source_controls.rs": {
+      "length": 5828,
+      "sha256": "c2288ee7f78f21dc4f31d095077dc5e77c4bda32d9210cb73c9977d6f0e52719"
+    },
+    "src/workspace_graph/shape_identity/tests.rs": {
+      "length": 13451,
+      "sha256": "c08c27f79b91214b73353b8d1dfa46f64b5f43ea6071ee3102df0e8af347ee47"
+    },
+    "src/cleanup_plan/replay/factored/canonical_shared/before_lexical_successors_methods.rs": {
+      "length": 60656,
+      "sha256": "4f78b6234a37dad7db095065587590f409f85ef01a1e7f8176ff8f12a62fa630"
+    },
+    "src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels_methods.rs": {
+      "length": 60020,
+      "sha256": "8eed1b35b64756b5ba617cfabd9ebe711cf115600c8815f290ca6eed78afd183"
+    },
+    "src/cleanup_plan/replay/factored/canonical_shared/before_selected_route_methods.rs": {
+      "length": 60775,
+      "sha256": "0c261c6c9148990f48149c6e87bd0cf2410ea28ceaf80dd90870c0e11670c498"
+    },
+    "src/hir/resolve_program_methods.rs": {
+      "length": 62307,
+      "sha256": "f30dceeebb3777525afbef57858974fd5058acd0347483c8856fea62ae9bad96"
+    },
+    "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels_tail.rs": {
+      "length": 14862,
+      "sha256": "270378414a216fbc1ffa511471e1931a612c48ae34adb48d0a3fd35963980e0a"
+    },
+    "src/cleanup_plan/replay/factored/canonical_shared/arena_tests_tail.rs": {
+      "length": 15129,
+      "sha256": "00262caa57f8a1eded7f93aeb18901f09a62f2abc2749a967d4c93e6ce392b4e"
+    },
+    "src/source_reflows_merge/main67107_inputs_tail.rs": {
+      "length": 59856,
+      "sha256": "ed1a6bee373aaf70c4ff9ab50312e4a2a0314dee9370d1568b8331ce2ce6e032"
+    },
+    "src/cleanup_plan/replay/live_oracle/source_custody/a_tail.rs": {
+      "length": 30973,
+      "sha256": "20c5c864bc3eb84f4d832b1f67ea5898279950b5ac7ba06a7381a2adb4b50637"
+    },
+    "src/cleanup_plan/replay/live_oracle/source_custody/b_tail.rs": {
+      "length": 45829,
+      "sha256": "007cdd753efd8749cc7ca4f221569ab1ecd779a85590970bf459c51d34840011"
+    },
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs": {
+      "length": 4274,
+      "sha256": "842979bf706a0ce014e74436eefbc722ccbef7e605f5aaeba3893dca7e55781f"
+    },
+    "src/cleanup_plan/replay/factored/canonical_shared/matched_receiving_layers.rs": {
+      "length": 46151,
+      "sha256": "5c5c77c8409a2d0c029db3494c439cf80f3470b599455bf2c9e5329b164cc19e"
+    },
+    "src/cleanup_plan/replay/factored/canonical_shared/matched_receiving_layers/memo.rs": {
+      "length": 32768,
+      "sha256": "8b0d6827a6c54f43a59f78f13174947762a40026eae81bede3877696432c0ab6"
+    },
+    "src/cleanup_plan/replay/factored/canonical_shared/matched_receiving_layers/successor_targets.rs": {
+      "length": 4410,
+      "sha256": "46f5e7917928ff472768e6c14073ee83d3f641dc6ae86f14f40b1e96b7b4be89"
+    },
+    "src/hir/ids/declaration_tag.rs": {
+      "length": 29925,
+      "sha256": "2cee894230ef7b0533f57da0523a6e9c31cdfe9470e3ded9462d3eb9eb09ef6d"
+    },
+    "src/hir/ids/declaration_tag/before.rs": {
+      "length": 8897,
+      "sha256": "f8bc3f4cb82c2192478c74a09f9f35d9da054b033757c7600611f1979071f355"
+    },
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase.rs": {
+      "length": 86698,
+      "sha256": "fa232cdadb3ff7ea321caa04554d8dc2c237928b976af5890f6ed555c276b1ec"
+    },
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase_before.rs": {
+      "length": 4051,
+      "sha256": "ccb54e4d4221e6731a6b2feb4c459a445c4739808b5e2b21d5f5375aa00b98e3"
+    },
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase_tests.rs": {
+      "length": 35057,
+      "sha256": "0d7baf71c215dfc2c927a1992025e6cc76ddfa1604879585aa62f8fb31ec7450"
+    },
+    "src/cleanup_plan/replay/inventory_coverage.rs": {
+      "length": 17186,
+      "sha256": "67a8e18109a36a3c542680623ccf2c4224f694304caca63a94af3d5d3a9b8cc4"
+    },
+    "src/cleanup_plan/replay/inventory_coverage/paid.rs": {
+      "length": 9996,
+      "sha256": "680fc7b168694a655ed7e1d834962843e6e1fba2a857d43f8920482a9ce9bf78"
+    },
+    "src/cleanup_plan/replay/inventory_coverage/paid/queries.rs": {
+      "length": 16589,
+      "sha256": "1179d874b5efb90e44ba7404ce8c35bdc78dc06dda85f8082c8047a27e5b2089"
+    },
+    "src/cleanup_plan/replay/inventory_coverage/paid/shape.rs": {
+      "length": 8090,
+      "sha256": "31e654b4c89c285f736c8d025c7a442b27622d31d3a360aa1e6dffa14c344167"
+    },
+    "src/cleanup_plan/replay/inventory_coverage/paid/supplemental.rs": {
+      "length": 12849,
+      "sha256": "19414ece3448e21dbb491f6959b09d448c9e0071fef714c7caf5332ef8ee7fcb"
+    },
+    "src/cleanup_plan/replay/inventory_coverage/paid/supplemental/tests.rs": {
+      "length": 5669,
+      "sha256": "901582c1579408921885fe4c7f8badd4460fbb9566e2d388054b5ac47e533632"
+    },
+    "src/cleanup_plan/replay/inventory_coverage/paid_before.rs": {
+      "length": 7112,
+      "sha256": "24dbb1637a40348e2bacad3948f03fb46ee1e420923ea394026a4f4d47155b47"
+    },
+    "src/cleanup_plan/replay/inventory_coverage/typed_tests.rs": {
+      "length": 11414,
+      "sha256": "26d0f4158e54651b19cadf39d6f0328e324580c80f8a786b897e38fd2d9e1e5f"
+    },
+    "src/cleanup_plan/replay/inventory_coverage/typed_tests/selected_family.rs": {
+      "length": 14622,
+      "sha256": "10be00da2454f5e254447855c8150f96a237ec88d9ad2fa419b137ac10584caf"
+    },
+    "src/cleanup_plan/replay/lexical_replay.rs": {
+      "length": 16313,
+      "sha256": "c3bc36798a813d536e25570fed41c6210245be8db74d01ca5e4a631cb6747d98"
+    },
+    "src/cleanup_plan/replay/lexical_replay/before_selected_control.rs": {
+      "length": 5915,
+      "sha256": "02b5055117f1cc32514282f5ee149dffa9dd15c2d7b263241d88c471498da33d"
+    },
+    "src/cleanup_plan/replay/lexical_replay/before_selected_path.rs": {
+      "length": 8205,
+      "sha256": "76315ca0506d052f6fd3e68cbd54359d921da512b57bda13b1dd159185b1bec9"
+    },
+    "src/cleanup_plan/replay/path_join/selected.rs": {
+      "length": 7073,
+      "sha256": "bd051ea774e078c713048f74f4943a88ae2222dacc63c51baf643612381c882d"
+    },
+    "src/cleanup_plan/replay/path_join/selected/append_before_formals.rs": {
+      "length": 2952,
+      "sha256": "f7d5eac2f0024a6629a0cb9a087b8ebecc4968883b5bbae2a411213021ed8712"
+    },
+    "src/cleanup_plan/replay/path_join/selected/execution.rs": {
+      "length": 38653,
+      "sha256": "cd5525d9bcb6cf1a2eadad63b1483610c9b9c8efa3a309e9a7615e4ce74b1c42"
+    },
+    "src/cleanup_plan/replay/path_join/selected/finish.rs": {
+      "length": 18467,
+      "sha256": "b864db59f35453a3991eb78f8dcb7d4c88b06c6731ef92cdde960ca18f4a90df"
+    },
+    "src/cleanup_plan/replay/path_join/selected/history.rs": {
+      "length": 10082,
+      "sha256": "488ec20de8c88326b290ec9b3b0d881c127c93e09671b1753729f842cc432e06"
+    },
+    "src/cleanup_plan/replay/path_join/selected/joins.rs": {
+      "length": 12643,
+      "sha256": "1fd341138cde301c4b299375bb7ea9b3dc5eefe594fbd8df86357fd0d8e311f6"
+    },
+    "src/cleanup_plan/replay/path_join/selected/lexical_flow.rs": {
+      "length": 13984,
+      "sha256": "716b01d1ab97f81867871457feec2161c5dbcdaa9b4006c1db9d35c9d2a67693"
+    },
+    "src/cleanup_plan/replay/path_join/selected/lookup.rs": {
+      "length": 12421,
+      "sha256": "39c4d99567601d170a7967bb696841bd88be6b1231566eddfafd2f350432367f"
+    },
+    "src/cleanup_plan/replay/path_join/selected/queries.rs": {
+      "length": 22878,
+      "sha256": "d1aa5cfe263f3412849d4d7818481e01a682aef3f0c3f07eeec6e196d2981909"
+    },
+    "src/cleanup_plan/replay/path_join/selected/reason.rs": {
+      "length": 16553,
+      "sha256": "f2741c22f84e762367ac3d073d627e9920b0c525bcffdaa69433b3b3316ca286"
+    },
+    "src/cleanup_plan/replay/path_join/selected/receiving.rs": {
+      "length": 16518,
+      "sha256": "d0a1faed7d1d9a2d17b8b7983aa6fdc75f95f7636724cadb6bc4433a717e1e7e"
+    },
+    "src/cleanup_plan/replay/path_join/selected/renewal.rs": {
+      "length": 31040,
+      "sha256": "ad4e3a0b28775c41b5da5a0573f5064925caaa0ee92addfcfcee212a731614c6"
+    },
+    "src/cleanup_plan/replay/path_join/selected/strings.rs": {
+      "length": 9410,
+      "sha256": "70d39574a019409036e6f5c1a846d647db0923d2dcc8b679df9687348193cc40"
+    },
+    "src/cleanup_plan/replay/path_join/selected/tests/boundary.rs": {
+      "length": 8107,
+      "sha256": "dfb424f8dd77c29512afd763bebe7e7b6951f6be6c449f4899ac7bac166603e3"
+    },
+    "src/cleanup_plan/replay/path_join/selected/tests/history.rs": {
+      "length": 13788,
+      "sha256": "6240ed234065c3e3298d68a1c53c98e02ec1b29befe7b6f9e4b8ae90cfe83657"
+    },
+    "src/cleanup_plan/replay/path_join/selected/tests/layout.rs": {
+      "length": 3337,
+      "sha256": "1b99a1a4b09012d1ae0afd8a5010e60be2fea735b089f0f96a32971fade4c1ed"
+    },
+    "src/cleanup_plan/replay/path_join/selected/tests/lookup.rs": {
+      "length": 6954,
+      "sha256": "e148996f825b0e4ff61122353e50cf9c2144ce1b2d3ccb9ce57c525c5a3ddd0e"
+    },
+    "src/cleanup_plan/replay/path_join/selected/tests/mod.rs": {
+      "length": 4413,
+      "sha256": "b18cda52ab90e700d541b1158a2b01ccaba83d4958334e40191fb9bdc086a295"
+    },
+    "src/cleanup_plan/replay/path_join/selected/tests/nominal.rs": {
+      "length": 3239,
+      "sha256": "f3c7d7116679d1c658258785a0798ad888dc8cc252e90a14d11b85954f160478"
+    },
+    "src/cleanup_plan/replay/path_join/selected/tests/reason_before_path.rs": {
+      "length": 13052,
+      "sha256": "91c0654b90698da389ab63c686bbe29937a86dbaa5f683a1477f481a64f2b6ee"
+    },
+    "src/cleanup_plan/replay/path_join/selected/tests/renewal.rs": {
+      "length": 3039,
+      "sha256": "0f50629a48219d7bb4ce1696ee754bff18692a204891bcc0e14be702a41de7cf"
+    },
+    "src/cleanup_plan/replay/path_join/selected/tests/session.rs": {
+      "length": 3897,
+      "sha256": "8edcb3f2679266b0e5bd60e38a4eec1572236171ebc4290544c07754538d7951"
+    },
+    "src/cleanup_plan/replay/path_join/selected/tests/strings.rs": {
+      "length": 2300,
+      "sha256": "3cb68eecc897e666d3ae949a57332ccc67fd6e57f819956163238250bc4106ff"
+    },
+    "src/cleanup_plan/replay/path_join/selected/tests/whole.rs": {
+      "length": 5841,
+      "sha256": "8db0e39a5ed2b200c8a3f0b18607e1bae9c485253137c20e5728679c84ddae70"
+    },
+    "src/cleanup_plan/replay/path_join/selected/walk.rs": {
+      "length": 61824,
+      "sha256": "a83992368a59d48c1d7cca887f9e184b5ec1457e985db6219efca294675302f4"
+    },
+    "src/cleanup_plan/replay/record_destructure/update.rs": {
+      "length": 8042,
+      "sha256": "174d12a44343cee6abba4922a2b7b8e1986dbdab8840860bca3c17aab415af8c"
+    },
+    "src/cleanup_plan/replay/scalar_replay.rs": {
+      "length": 16893,
+      "sha256": "fc0d67cafc8ee7e41d0616de194144d57e967ba1648b35fcb3325074c0a4d644"
+    },
+    "src/cleanup_plan/replay/scalar_replay/before_selected_control.rs": {
+      "length": 6213,
+      "sha256": "704a1a6f01aa917ba1f33f51b462059025f26bb18ab7d7cc93cc6c5c2c836523"
+    },
+    "src/cleanup_plan/replay/scalar_replay/before_selected_path.rs": {
+      "length": 8299,
+      "sha256": "5754b7982683aba58ed1b332ddb8333658c6b0ced00e0472bcc61e92e15f67b6"
+    },
+    "src/cleanup_plan/replay/scalar_replay/paid_before.rs": {
+      "length": 5430,
+      "sha256": "1ea5e261b08d1cbc44bfcd1d8f3f8792a3935d31447f26547c3730da55ce0876"
+    },
+    "src/cleanup_plan/replay/scalar_replay/selected_family_tests.rs": {
+      "length": 4733,
+      "sha256": "4675bbabcac1a5ea20f670baad75c6e9330b969ab9afeff216c997b0da92cd41"
+    },
+    "src/cleanup_plan/replay/schema/selected_paid.rs": {
+      "length": 12912,
+      "sha256": "ef75367f8fc45dff9d85ae572646181fb9a4faf3e16807eb98a9eaf6bc61c8e5"
+    },
+    "src/cleanup_plan/replay/schema/selected_paid/tests.rs": {
+      "length": 5321,
+      "sha256": "8bdf9e646e27e1d777937f3e8f0cded8512face226557598b66404bb0458fe6e"
+    },
+    "src/cleanup_plan/replay/selected_context.rs": {
+      "length": 3864,
+      "sha256": "98777200528b6dad5a6c49ccc761c7b5e5bddb26a64b1cffae0e31ba2ff2290d"
+    },
+    "src/cleanup_plan/replay/selected_context/child.rs": {
+      "length": 13878,
+      "sha256": "27aac910e83123efbd10b2b2a4165068a808b8daff5318056fa6b4efa206a2c9"
+    },
+    "src/cleanup_plan/replay/selected_context/family.rs": {
+      "length": 6653,
+      "sha256": "43b38097f15d8385f9639dc4b755b107c5f9e095a46d718443d4e8c1c9a32835"
+    },
+    "src/cleanup_plan/replay/selected_entry/tests/paid.rs": {
+      "length": 20223,
+      "sha256": "3881cf0fd3d6deb5f7bf8208cb4675dff683855b95fe975473ce9b48d60e9441"
+    },
+    "src/cleanup_plan/replay/selected_entry/tests/paid/selected_control.rs": {
+      "length": 4151,
+      "sha256": "e8fea2f8bff5c0edcac9e196e3eb685ea234337c46256723f8461c2b0a744816"
+    },
+    "src/cleanup_plan/replay/selected_entry/tests/paid/selected_family.rs": {
+      "length": 3710,
+      "sha256": "853bec2328abebbbbcac3d5096a3b48705c4c099ad1d4c3d6ee252aa28d1955b"
+    },
+    "src/cleanup_plan/replay/selected_profile/paid_children.rs": {
+      "length": 1747,
+      "sha256": "0a3afe4135e9e4dee71a396df565cfa847416f522c73c22483bf5cb15b91dd57"
+    },
+    "src/cleanup_plan/replay/structural_control.rs": {
+      "length": 1219,
+      "sha256": "458cc5f8bb0de25f197a6c1d4a1a0d240d6123da70107b4e2fc9d342320a4a66"
+    },
+    "src/cleanup_plan/replay/structural_control/calls/cursor.rs": {
+      "length": 4547,
+      "sha256": "4c1f11609aab86b845013b820a4a9557c85e216251200b7308fe0147d6e8fdec"
+    },
+    "src/cleanup_plan/replay/structural_control/selected.rs": {
+      "length": 4854,
+      "sha256": "e1916f10ad3d93433c90260b076897ed2586987aefd6540d64f6e4dce0458211"
+    },
+    "src/cleanup_plan/replay/structural_control/selected/blocks.rs": {
+      "length": 42825,
+      "sha256": "8466b732e122fea1365efc44b1a84e66b63fe5a67ff15c0d70dafb63864aa8c8"
+    },
+    "src/cleanup_plan/replay/structural_control/selected/calls.rs": {
+      "length": 35506,
+      "sha256": "c1546b394995d70124913bd54a1799e6d3079f002d71dee4a9412d14b5937131"
+    },
+    "src/cleanup_plan/replay/structural_control/selected/cfg.rs": {
+      "length": 10218,
+      "sha256": "cee4cbb6dabafac66cf3cf4c81c34de9eb98856b584f772d4eaa9664283e13cd"
+    },
+    "src/cleanup_plan/replay/structural_control/selected/entry.rs": {
+      "length": 3190,
+      "sha256": "db7d9576962f57aa8ff3816fca6fa4721f6c111b6e546345b10c79fc58ce83f1"
+    },
+    "src/cleanup_plan/replay/structural_control/selected/entry_before_dynamic.rs": {
+      "length": 2462,
+      "sha256": "9b0b0cfc08de65ad0702a43bedc2f87148fb78fd58961be25227286a309d9900"
+    },
+    "src/cleanup_plan/replay/structural_control/selected/entry_before_formals.rs": {
+      "length": 3405,
+      "sha256": "80fe58413d1c1b14ea4ed7157d227eaba548ce72eaf3f0a0f895ee7dd9fa143f"
+    },
+    "src/cleanup_plan/replay/structural_control/selected/exits.rs": {
+      "length": 36101,
+      "sha256": "948150874e68e7a969619bfa5760d00c3e2c7e06509a22cc86e46176d62d6f62"
+    },
+    "src/cleanup_plan/replay/structural_control/selected/helpers.rs": {
+      "length": 20348,
+      "sha256": "285aad0047f7837570fbd3faba5f0ebe371fc804cff36670b3034a4494d358ba"
+    },
+    "src/cleanup_plan/replay/structural_control/selected/place_before_formals.rs": {
+      "length": 3279,
+      "sha256": "4a2c400fab3071bf56b7bf4fc118fdaaea5d8628e3fd41f7393c219fe9caf3fc"
+    },
+    "src/cleanup_plan/replay/structural_control/selected/reason.rs": {
+      "length": 13187,
+      "sha256": "66595a4d3cb4ad59933c5b9c8f4eb40d32a950bac159be40b965798c971c4266"
+    },
+    "src/cleanup_plan/replay/structural_control/selected/status.rs": {
+      "length": 7568,
+      "sha256": "a785b8fa8165fc2798b234c79acdfa951123763b8796fbb27db6baff64f8cc1e"
+    },
+    "src/cleanup_plan/replay/structural_control/selected/tests/boundary.rs": {
+      "length": 30337,
+      "sha256": "feeaed478ae3c619d420eed63543a89dc6f9107893c488905a3fb655870c6da8"
+    },
+    "src/cleanup_plan/replay/structural_control/selected/tests/children.rs": {
+      "length": 11828,
+      "sha256": "b34f25af3ef46f0913a1fd25a46f41e5f770064632b9945058bc86276dd1a11c"
+    },
+    "src/cleanup_plan/replay/structural_control/selected/tests/mod.rs": {
+      "length": 4313,
+      "sha256": "7bc5f39c1574f39bdbd49877f1ebb40145bede989a7555ebb5318aa33b3b3f9e"
+    },
+    "src/cleanup_plan/replay/structural_control/selected/tests/nominal.rs": {
+      "length": 3239,
+      "sha256": "f3c7d7116679d1c658258785a0798ad888dc8cc252e90a14d11b85954f160478"
+    },
+    "src/cleanup_plan/replay/structural_control/selected/tests/renewal.rs": {
+      "length": 3039,
+      "sha256": "1b47d7b36bb180ad7358b581998e48da8b830dd7e9fa9503ef9bd060a0c81406"
+    },
+    "src/cleanup_plan/replay/structural_control/selected/tests/whole.rs": {
+      "length": 5861,
+      "sha256": "413dadf24a7d0f59611bee61d74fa3e4793f808f16e964827a84fa49a25e9133"
+    },
+    "src/cleanup_plan/renewal_profile/funded_receiving.rs": {
+      "length": 1886,
+      "sha256": "03f01d702c35a4f62511140d9ddb7abb8be126fec27c28206ff6b03b62b2e914"
+    },
+    "src/cleanup_plan/replay/expression_facts/arena/retained/into_tests.rs": {
+      "length": 10505,
+      "sha256": "565049edbf7909eeb83cb6e0a7179783133568e0f793ca4772b4f5ce522102b7"
+    },
+    "src/cleanup_plan/replay/expression_facts/arena/retained_into.rs": {
+      "length": 16273,
+      "sha256": "63e1be7b4114be13c261bd19e9a4b673c17cb2a36ea003e89b0ca88198feccfd"
+    },
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests/receiving.rs": {
+      "length": 14483,
+      "sha256": "fcd3a360eaf7681316cc2432e0165729766a29ea18ce80424cef798cfc421e38"
+    },
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/retained_lookup_before_receiving.rs": {
+      "length": 7359,
+      "sha256": "441a074c30cbea0a8fe1d04be162503eb460f43cfdce9fc5ee7979ba60de1836"
+    },
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase_before_receiving.rs": {
+      "length": 76901,
+      "sha256": "e10b27ba0620c915d5434bd63a8205cd2ebfa6240dc57703fbb26eed9383b986"
+    },
+    "src/cleanup_plan/replay/ordinary_receiving.rs": {
+      "length": 17990,
+      "sha256": "55d8ea74cba9410ab2c71d712d396331b2dd59e27e7013677623c231d960e5f6"
+    },
+    "src/cleanup_plan/replay/ordinary_receiving/caller_before.rs": {
+      "length": 4692,
+      "sha256": "73f4d1308db9e801130ad24303ef8f74fa9bfeb8b7086af70b2438f796e8b5eb"
+    },
+    "src/cleanup_plan/replay/ordinary_receiving/tests.rs": {
+      "length": 16757,
+      "sha256": "fe18897b1dba17396d3ce57e026a0c210223e5957324a85313f605fef6575cde"
+    },
+    "src/cleanup_plan/replay/skeleton_work/receiving.rs": {
+      "length": 6284,
+      "sha256": "643b68e9280a1ecdf245235198f6d0cbce01d860f2c686acd42200e3a8486c96"
+    },
+    "src/hir/lexical_exit/owner_funded_receiving.rs": {
+      "length": 2658,
+      "sha256": "2c7d175ddb47f1c88d40ca891767898831f24f7e4f49eaa6ebd7769f2a4a898a"
+    },
+    "src/literal_format/funded_receiving.rs": {
+      "length": 1314,
+      "sha256": "523afb818016e67c13a23c0f653a13f94d2015aaad95efbb74363efb64ef642c"
+    },
+    "src/source_reflows_merge/main_e177_overlay_v2.rs": {
+      "length": 71199,
+      "sha256": "f37cfa38a354f82f9466ca1d5a666f9a4bf18c16bf7c1d52226dabb1827418fe"
+    },
+    "src/string_ops/conditions/funded_receiving.rs": {
+      "length": 1017,
+      "sha256": "a5842cc2765416ddd9816e9dd682c511c726308c828431146325e72adb30ada8"
+    },
+    "src/cleanup_plan/replay/factored/before_inline_singleton.rs": {
+      "length": 5781,
+      "sha256": "8810bad4566b3c46b2b3d0b4a7c55679137fd4b82ccf6c975cd59d5271652b1d"
+    },
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton.rs": {
+      "length": 55814,
+      "sha256": "b6471558eaf00c76a99472843a9d96a58a11fe9e5779f50fdccbfc6f0011aa51"
+    },
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/inline_exit.rs": {
+      "length": 3388,
+      "sha256": "d485b165d89d23d063fed7688b8df6e0c297f088982448c8c6dfec17b96ba5e1"
+    },
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/inline_exit/census.rs": {
+      "length": 3466,
+      "sha256": "55a0223985cfa2be898ef1851ae0cd8a2069e6d5db1ec0419c0ff8b2c8457f9e"
+    },
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors.rs": {
+      "length": 33029,
+      "sha256": "39412583a543bf0b2d2f3f38c11d882183d89abfef4b8ae650f827142a3d2470"
+    },
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop.rs": {
+      "length": 25929,
+      "sha256": "2a64ea81fe25ac38ad7d3060cb1dae31de835e46c4572c5bf425ea979a477917"
+    },
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/borrowed_single.rs": {
+      "length": 5325,
+      "sha256": "b20fa6833b1d03a2b28fd78b4dbc5be9eb31125dc1616295ab4de1de98570073"
+    },
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/terminal_leaf.rs": {
+      "length": 8330,
+      "sha256": "e96169bac2c81637e3a741eb51dad2d48604d59eec0c3c441d9db1e2b7a4d649"
+    },
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/tests.rs": {
+      "length": 30961,
+      "sha256": "61478bcc50bb3c4a2d640abb3cf8a05cf2a42816d1af80a9a01f7974633c6ba2"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_paired.rs": {
+      "length": 20736,
+      "sha256": "cbabeca225942f20ffe4d4cd675199eb0200934c8be06940ddbfff1b05f74bb3"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value.rs": {
+      "length": 15824,
+      "sha256": "729bbe21e5818c126fafe507444b1be4a1155e47eed0f140cabff5df31a64dd1"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_flat_view.rs": {
+      "length": 28105,
+      "sha256": "efe37def7206f52eb92424c36d79bf3befbdbc1ba8e456d027fa8f30b62d93fa"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_fused_flat.rs": {
+      "length": 21381,
+      "sha256": "1c36876f650c21ae54fbeb03d917d53ea7a78d3654d98370b998eb3d6bc777bf"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/combined_pair_scope_tests.rs": {
+      "length": 60100,
+      "sha256": "79f1eb1cccdea7621ca93b376a66413ecfd56cb378592fc3f9254ab04211d8da"
+    },
+    "src/ast/program_source/function_alias/scalar_signature.rs": {
+      "length": 3398,
+      "sha256": "adbcb76a1b4c20c44f2543eba4fe5cfa262a11dd0f6ceb02ba5cd05312bbd287"
+    },
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_block_before.rs": {
+      "length": 79461,
+      "sha256": "4f0edf4d0ce83f6519240778eb45417329d6f30954c9e0d7d1177bd8197628ab"
+    },
+    "src/workspace_graph/constructor_failure/before_scalar_dispatch.rs": {
+      "length": 7965,
+      "sha256": "71bfa8d6c8c45012394483ad53cacca1ebfb93331d27dfb29845c830dfabf96d"
+    },
+    "src/workspace_graph/expected_projection/borrowed_imports/typed/before_scalar_signature.rs": {
+      "length": 15446,
+      "sha256": "90cf27667fe64714fdc3d5196406d0eec2ad59cbd12d1a07b16a23810eda066a"
+    },
+    "src/workspace_graph/expected_projection/borrowed_imports/typed/scalar_signature_tests.rs": {
+      "length": 22427,
+      "sha256": "24607db07dfce24677610d69f7073b44cb01fe47893f3f90bcfaab474c18ecdf"
+    },
+    "src/ast/program_source/function_alias/before_string.rs": {
+      "length": 1898,
+      "sha256": "3de6f80391541e690f04879f7f1b15ed0917870b1c54f2321f7d43d8bea639ea"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_retained_tail.rs": {
+      "length": 21775,
+      "sha256": "973fea59d96e7a27f22fe689c3bed663e56d64bfbc0bbd823dcc08b0b2e8804c"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_before_tail.rs": {
+      "length": 6323,
+      "sha256": "7614b53a5d5f30197157064a13ecc408c886f3b907eb3afeb5830bfcd1cbd399"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/matched_tail_tests.rs": {
+      "length": 48451,
+      "sha256": "9855b280856039473b16e8d03dc7d3bce66a194fb42e4a79621d26673847f386"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_tail.rs": {
+      "length": 6683,
+      "sha256": "d2121a25559a10894ce6f6bd883f8cd55f0c7bab29e182431e65d236aba2df4b"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/source_format.rs": {
+      "length": 57481,
+      "sha256": "590873f289e2a34e5d28a08eafb10267b35aa527bde7ad1734682d554b347c56"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source.rs": {
+      "length": 6294,
+      "sha256": "f4dee6ae5901cbf94798600c1a1e207640b790d5577cdfe6014c6b4129eefbf2"
+    },
+    "src/source_reflows_merge/main_e177_historical_before_data.rs": {
+      "length": 25356,
+      "sha256": "05ecc0163fa3593182d2044c5f2029e3c1dd0cd7143ed9904eccfd6e6b751a3d"
+    },
+    "src/source_reflows_merge/main_e177_historical_data.rs": {
+      "length": 1902,
+      "sha256": "67bfa3bf6ca2151ba8f99ae6390099fa9fcdfef7fb752ecbb831b150ce111310"
+    },
+    "src/source_reflows_merge/main_e177_historical_data_tests.rs": {
+      "length": 6097,
+      "sha256": "ecc693e67e0a193efec4ddc0e22037fcd99b8626b7fd87e5f11c1123fd65d4f3"
+    },
+    "src/source_reflows_merge/main_e177_overlay_fragments_v3.rs": {
+      "length": 63621,
+      "sha256": "a9ce21837dde802472a2d72400e44d5550aeae33a04f1399022c6bc29cc85792"
+    },
+    "src/workspace_graph/expected_projection/borrowed_imports/typed/before_string_signature.rs": {
+      "length": 19877,
+      "sha256": "e392af9c4f7bf39edfa9850d759e5d8a805e9c53cfb280633017afb64d112eb7"
+    },
+    "src/workspace_graph/expected_projection/borrowed_imports/typed/string_signature_tests.rs": {
+      "length": 17171,
+      "sha256": "73742290da203264ad5410057c1787b921e051e456ace291d167a584f801fb3c"
+    },
+    "src/workspace_graph/expected_projection/call_carriers.rs": {
+      "length": 12395,
+      "sha256": "d0f832f517a6037e1c3f8c7f5b1cca79af990ed2837b8c29b38903cb4baa6033"
+    },
+    "src/workspace_graph/expected_projection/call_carriers_historical_tests.rs": {
+      "length": 30577,
+      "sha256": "30ee9b7d27da7985809d73823ad6b2297548873c76731723659b4464c9c49170"
+    },
+    "src/workspace_graph/expected_projection/call_carriers_inverse.rs": {
+      "length": 4106,
+      "sha256": "5a0c22d81a09e58528af9e394df7313cb79198961b6de14a9159af360666f62f"
+    },
+    "src/workspace_graph/expected_projection/call_carriers_original.rs": {
+      "length": 23564,
+      "sha256": "90f8c704f7a8eeb72cfc5318123b27febe80ce5bbba39b7b6a1952ec6e058f58"
+    },
+    "src/workspace_graph/expected_projection/call_carriers_tests.rs": {
+      "length": 23994,
+      "sha256": "04baeff68abf890ab6bfa855969786876b0b91ef59cf685f898b829e14e0c047"
+    },
+    "src/ast/program_source/decl_slices.rs": {
+      "length": 9428,
+      "sha256": "3e6cbf1036e73125905bdf4ac705e876929d24cd626eb365db2ae08434f33e12"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_prepared_pairing.rs": {
+      "length": 22454,
+      "sha256": "aed0aeafaf41aa8a9e187d855f2ec450cd570f29c4fcb593cd3627489628a106"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_before_prepared_links.rs": {
+      "length": 6431,
+      "sha256": "8a354f623f13b5e9b337dae1e8eb0199a9e67e3d81b704be8864570a8eb38b22"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/prepared_pairing_tests.rs": {
+      "length": 40738,
+      "sha256": "f9e75926f5df0b6b7746a78cf3d2f705bf76d342356346c3581ddd8b6c04aba9"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links.rs": {
+      "length": 9949,
+      "sha256": "dafb587e3248893d836b70f9407e8ca07dd292cd6b93b6e5f19fc01162c425be"
+    },
+    "src/workspace_graph/expected_projection/call_carriers_before_directory.rs": {
+      "length": 12075,
+      "sha256": "529dc30d6e2db8c21099fe47e4a2da55a67284f9fca7c114e2e8408c6994a277"
+    },
+    "src/workspace_graph/expected_projection/call_carriers_directory.rs": {
+      "length": 21794,
+      "sha256": "c49b0a20bbb6681d67dfbf177fe3fd41a64c57079afa7d7713aaa78a42d6ab95"
+    },
+    "src/workspace_graph/expected_projection/call_carriers_directory_tests.rs": {
+      "length": 20676,
+      "sha256": "d820534cafd4ccf394e3c847dd486a3b8797add74c42395087e5ca07b8a99da1"
+    },
+    "src/workspace_graph/expected_projection.rs": {
+      "length": 59698,
+      "sha256": "cdd35c1e31d513032b5f4943ee86efdb7cce9dd4a8b77e152b4640d2ba094ab4"
+    },
+    "src/workspace_graph/expected_projection/prelude_forecast_tests.rs": {
+      "length": 12973,
+      "sha256": "1118299b35a0009ce7476507741ea9f1495b0d12191af673a852a6da7cb771af"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_identity_prefix.rs": {
+      "length": 29364,
+      "sha256": "90c38069b2c42ec1ab4edfcf137cc65ac0c787703a39c3f8dab6e6d6e37dc766"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_before_identity.rs": {
+      "length": 6457,
+      "sha256": "8db6b9a6110b31cdfea17414762febcdd689d9dc8889c7428ed502599f77928b"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_identity.rs": {
+      "length": 6318,
+      "sha256": "95e186e91eef6db83131445bfebb80c58f3cf86e69bb1745abb6e8c15fae025e"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix.rs": {
+      "length": 7450,
+      "sha256": "e93196aad600874daf3d1fea0bf65bb82dc806a37b23d0980a64f3f755e29dc0"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_tests.rs": {
+      "length": 43632,
+      "sha256": "b613aae744fc8be69a263c49d07bb3ffe3c6544fccb1d3703fa2aa07840e9f89"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_reachable_primitives.rs": {
+      "length": 23096,
+      "sha256": "05686e00fa0f335ef641ec25da1040201f10ef710579ac97ebfc81be8b1fe843"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_reachable_before.rs": {
+      "length": 6956,
+      "sha256": "c63b8f98af8b1fa55f7e305819efc87107477db4a92f57743365544885b4973c"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/reachable_pair_scope_tests.rs": {
+      "length": 40966,
+      "sha256": "218a90e31a351a47c984e889126beca53b1a7be512912499cc7fe7e85cd27f3c"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives.rs": {
+      "length": 11150,
+      "sha256": "15ffb8da630f6bfdd8bcd92399dd4bb3fef1716c1cc0e7b635a89bfd5a02393d"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_event_prefix.rs": {
+      "length": 34697,
+      "sha256": "be8b6d50dd5edfe1e0f9064a296724ef253519bf0fc49efbcc0e53e7da362e74"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_shared_steps.rs": {
+      "length": 26164,
+      "sha256": "8e23d21afb19a1c21d0a211f0a802bcb285c09ac5311a525375eb8bf2b8698f0"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_shared_steps.rs": {
+      "length": 10841,
+      "sha256": "e3278dc29dcce665dd9d3a67ce048e552254a65c5a939f769b2b7c1eb86a9ded"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main99_pair_scope_tests.rs": {
+      "length": 43990,
+      "sha256": "b36cf70f3567c5570377b3448d2730bbd46d5fbdc9dd61ab7b11fec1bf79deb3"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_event.rs": {
+      "length": 7126,
+      "sha256": "27520c74908e5cc0314159f8de94b7c893aa11b57284c7f15288dc3f06b3f185"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_before_event.rs": {
+      "length": 6770,
+      "sha256": "c5d8aa8feed50f31c914f72ed5d90cdcc76c410360a46bb2a34e829e3bd25780"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_before_event_tests.rs": {
+      "length": 33186,
+      "sha256": "ba5e80400489f1c4546b9e6c724a6ab9dcea707e74e02a50c329895775aa54db"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_event_tests.rs": {
+      "length": 20778,
+      "sha256": "a34382bf8eead8850427dadaa50273937b765a2dd285565f5f8aa0610d3e9fa8"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/shared_steps.rs": {
+      "length": 21236,
+      "sha256": "4fd2dcf2ead3369e2da6ac3cf1ff2ae08420429c50ce96825751cb940d5b4b7a"
+    },
+    "src/cleanup_plan/replay/lexical_replay/operand_tests/source.rs": {
+      "length": 4531,
+      "sha256": "8d7ce550bcd6f49d491d9a5ea286b209e71307f23bf558f77ec9120e43bdb16a"
+    },
+    "src/workspace_graph/expected_projection/private_layout/capacity_tests/source.rs": {
+      "length": 6885,
+      "sha256": "4c664503b8c2940f9c3519524d80c9a58f234f8dbdb9738438dda5eff6fd1edd"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_certified_heads.rs": {
+      "length": 32095,
+      "sha256": "8065d8caeefb5a556da49c3d51690e3191d829c665cd0d2079fc4829c154c918"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_shared_runs.rs": {
+      "length": 25857,
+      "sha256": "51a2461a7ee906ad6b5a88ebdff6fc1f082a20e105c756bfe30cf83890310550"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads.rs": {
+      "length": 34172,
+      "sha256": "3b5977ebc384a55d39f8e3389cd3dc3cd7766fd429c0d2a2130d07c4002ef3a7"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads_tests.rs": {
+      "length": 56168,
+      "sha256": "f0ae0d03e8ecf11024f6eb8e47a30d78f5b6012d5a8b1877ed62c9d4a92ae253"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_before_certified.rs": {
+      "length": 6956,
+      "sha256": "c63b8f98af8b1fa55f7e305819efc87107477db4a92f57743365544885b4973c"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_shared_runs.rs": {
+      "length": 17993,
+      "sha256": "1278774f715445f4cee3784ef21bc2618c8be3e088a188785e2d8fd3649df0b9"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main7e_pair_scope_tests.rs": {
+      "length": 50993,
+      "sha256": "287ce9abf3b7a74164c1f58008deb3a6b8be214afb1218e98a90e4c320d30c7c"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_certified.rs": {
+      "length": 7656,
+      "sha256": "f68af76308eb729dd805fd1453d23e738fa6cf3aa4ab9bbbe9518d72323c341e"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_before_certified.rs": {
+      "length": 7383,
+      "sha256": "375d7cfdbb9ea4c2024d2b56a453e9e9cc7a57648057af869f7050a121e072ee"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/shared_steps/shared_boundaries.rs": {
+      "length": 23784,
+      "sha256": "921932de646b2be17d4f64a8a2f8e499d6ba0098a4e145d326ed0e88f66f90ca"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/shared_steps/shared_boundaries/shared_runs.rs": {
+      "length": 33043,
+      "sha256": "e108fda04b20450b6014c943da5984818ceb6fbc837e7f86b086ad22b6cea1f8"
+    },
+    "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs": {
+      "length": 17919,
+      "sha256": "a7e146f89c90b1cacb07a39971e7d51fe1eb32b8753305d092b6aee71627c890"
+    },
+    "src/workspace_graph/cold_canonical/tests.rs": {
+      "length": 16089,
+      "sha256": "9f86fbb6c40d5285d13ad2b90eb09860ecbb8292b94aa368a890b7c3e9d71cc6"
+    },
+    "src/workspace_graph/expected_projection/cost.rs": {
+      "length": 41013,
+      "sha256": "748f9c3acf0bf4f899e08793c769a80ba30f7bedf92c3d82e24fb5168d838bf8"
+    },
+    "src/bounded_output/stage_debits/route_debits/json_codec_probe.rs": {
+      "length": 3320,
+      "sha256": "4db43502a74a83c16ca79f6b9538672a16cf92c65c3d317e189990b899fbe62f"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_main001.rs": {
+      "length": 26651,
+      "sha256": "a437d1e8c4da2ae3e8595d72c5558d95f2731cb322738273edc0745b970080a3"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_main487.rs": {
+      "length": 25313,
+      "sha256": "8a69e12c45733ecfca3ef9e5f8907068b861b4a15c27b553d7cc8906c08708d3"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_main_b692.rs": {
+      "length": 27227,
+      "sha256": "366c69fef9c8648255b88498153cc08d5277629b8f607eeb99fd72bae83748b5"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_pair_links.rs": {
+      "length": 34455,
+      "sha256": "4d37c539550c84bba56eab360ce7d6fcb0ab5425bedeeca1ce7d8d3e3b3769a2"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_paired_tail.rs": {
+      "length": 34170,
+      "sha256": "3bfddfb8c69711d9e5c5b423a3a400e74a1b16572ead764acb340ad8a8bbe417"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/borrowed_reader_composition_tests.rs": {
+      "length": 13890,
+      "sha256": "9ab45ba5a6d1e5ac93e0aca9b3252e3166cb0a117344a517850eaae99c6e803b"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads_pair_links.rs": {
+      "length": 32019,
+      "sha256": "4f77590d854ac3982ec412d797fe559b92ab781896b26e8b3fee1299064529ae"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads_paired_tail.rs": {
+      "length": 32339,
+      "sha256": "9467284ebc12b7a48380d41f9d3d7005bbbcb707fff02fe81b4e48527402f76d"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_main001.rs": {
+      "length": 21368,
+      "sha256": "f70a5ec7456c2b0e922b302aa194f8303575e1f7e794a9370ee409744538a5d3"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_main487.rs": {
+      "length": 30104,
+      "sha256": "b66e1c1f47583c8c687e352be56bcb01e49da9456b81c3e36862a359416e5583"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_main_b692.rs": {
+      "length": 25469,
+      "sha256": "b54e7239b1e5c1f5a2dbe914d8ad4dbf17b343784d10d8cb1b1e450baf626f6c"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_pair_links.rs": {
+      "length": 6956,
+      "sha256": "c63b8f98af8b1fa55f7e305819efc87107477db4a92f57743365544885b4973c"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_paired_tail.rs": {
+      "length": 6956,
+      "sha256": "c63b8f98af8b1fa55f7e305819efc87107477db4a92f57743365544885b4973c"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main001_pair_scope_tests.rs": {
+      "length": 50692,
+      "sha256": "b6f24502e16f6439d59c14ffe8700a84decc8c36876378e557e9245dc58e27bc"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main487_pair_scope_tests.rs": {
+      "length": 55524,
+      "sha256": "0a76af1059064eaeaef23136068d1a35cdc77e5ad931e28eb0ee304a5a8baaa6"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main_b692_pair_scope_tests.rs": {
+      "length": 50866,
+      "sha256": "0b92d66d8c5b903c6c2b949b2b74517bc5e45117bc9e6d6ef46036f2173c8d0e"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main_b692_paired_tails.rs": {
+      "length": 6335,
+      "sha256": "485410ab39853c26e2df54bace3891ae4b883029140f66113e481466d5c60954"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_link_composition_tests.rs": {
+      "length": 13669,
+      "sha256": "96590edda424c3321cd1ba58120bfa65e47c9e0fe58a81723e0706a82a25965f"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_tail_composition_tests.rs": {
+      "length": 19369,
+      "sha256": "1f2e134a5139c1c657d94cf9806f790989c94476d934d2fb1d37973bb8a3b1ca"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_pair_links.rs": {
+      "length": 7656,
+      "sha256": "f68af76308eb729dd805fd1453d23e738fa6cf3aa4ab9bbbe9518d72323c341e"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_paired_tail.rs": {
+      "length": 8337,
+      "sha256": "40d1e9db7ef14c4791fcad0476fe1abcf2732022fd2d2a89e5b9b811ed5b6437"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_pair_links.rs": {
+      "length": 7420,
+      "sha256": "faf2391a83182d4b60d1be8561c404ac7af427fcd1f59ff2bfa45c85058244d0"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_paired_tail.rs": {
+      "length": 7420,
+      "sha256": "faf2391a83182d4b60d1be8561c404ac7af427fcd1f59ff2bfa45c85058244d0"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links.rs": {
+      "length": 37475,
+      "sha256": "9fb7af33a5df12e64b70bce38e63636abb10f0866e22e485b250ff43550482fa"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/constructor.rs": {
+      "length": 6098,
+      "sha256": "753fcdc6ea3302c8f33a0355746d7d75b5fdc2c971d95aea6403467a8d8ef810"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/fused_readers.rs": {
+      "length": 44804,
+      "sha256": "59fe28fbbdae91a53d5d8494759a0b472c67f7fa1c35c8b4a0462a910935be98"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/json_ledger.rs": {
+      "length": 7872,
+      "sha256": "d5e2c99c048b76596ffd9e58412cf5a1f2eb467fe5c4855e62c96be80d84768b"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/paired_tails.rs": {
+      "length": 27194,
+      "sha256": "b137b062c8a91954441e84e9e77ed72b05c631a11608dab43eea8e5539f25cc2"
+    },
+    "src/source_reflows_merge/main_e177_overlay_compiled.rs": {
+      "length": 99191,
+      "sha256": "125136fe079ccbc92afa8e9fd14f9c6a621f0208be7d8567538d2d8d876d0bca"
+    },
+    "src/source_reflows_merge/main_e177_packet_lookup.rs": {
+      "length": 35103,
+      "sha256": "1e31aba22d551ebabbfb57e2f0b1d36f6bb1517f816a1ed6413ebd732df66981"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_empty_selector.rs": {
+      "length": 32474,
+      "sha256": "ef34a166d42955f6755f645e89bcd925e7261c93e131fedaa7cb804bd4ab3b88"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads_before_empty.rs": {
+      "length": 33327,
+      "sha256": "a8f68ec06d4a418a6a4fd4b0a19ea75a411357899a32a66dcf7e5d0d46097460"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/empty_selector_tests.rs": {
+      "length": 25657,
+      "sha256": "727ba50b5e55824d7dd2ff05d4e389d3aa06e377baa78295ed353fbe500efdae"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_before_empty.rs": {
+      "length": 6956,
+      "sha256": "c63b8f98af8b1fa55f7e305819efc87107477db4a92f57743365544885b4973c"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_empty.rs": {
+      "length": 15748,
+      "sha256": "0e289307a841d6ae175957fc9d0f510dc08ccf85959125748cf027b65a9b0de3"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_before_empty.rs": {
+      "length": 7420,
+      "sha256": "faf2391a83182d4b60d1be8561c404ac7af427fcd1f59ff2bfa45c85058244d0"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_final_affine.rs": {
+      "length": 29552,
+      "sha256": "5db66026b82c264849c9bddc1ebb6f25b9433bd8fd4734fc606aead076dc2679"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads_before_final_affine.rs": {
+      "length": 34172,
+      "sha256": "d1a229642405a06f2037a30470188c82d66ecb51913c40f30842428c3984a1d6"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/final_affine.rs": {
+      "length": 9993,
+      "sha256": "2f4387d36e1e29ab15c409438dd74071439f2cb058d3fe53aa16c533ef79780e"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/final_affine_tests.rs": {
+      "length": 21250,
+      "sha256": "bce80574d3d354c7205b84c6c1be0fc2b44efb8f6a7bd9224a14d9b460319e8e"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_before_final_affine.rs": {
+      "length": 6956,
+      "sha256": "c63b8f98af8b1fa55f7e305819efc87107477db4a92f57743365544885b4973c"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_final_affine.rs": {
+      "length": 15748,
+      "sha256": "0e289307a841d6ae175957fc9d0f510dc08ccf85959125748cf027b65a9b0de3"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_before_final_affine.rs": {
+      "length": 7420,
+      "sha256": "faf2391a83182d4b60d1be8561c404ac7af427fcd1f59ff2bfa45c85058244d0"
+    },
+    "src/bounded_output/exclusive_debits.rs": {
+      "length": 35344,
+      "sha256": "7d0347a5de731360c0cb2b82df0ba9823e85d65ecfba60bcad9c3c6252caa6ba"
+    },
+    "src/hir/ids/lowering_identity_tests.rs": {
+      "length": 27672,
+      "sha256": "8c3ac416a6064fcc8a7a10ceec070764334d4992b74fe927c8e7ffd7aa1822ad"
+    },
+    "src/hir/owned_collection_record/identity_before.rs": {
+      "length": 3616,
+      "sha256": "69f16e619754676b5a87c9f3097d58430f6c2190337ab30bdc34c28c1669b66d"
+    },
+    "src/hir/resolve_expr/sort_keys/identity_before.rs": {
+      "length": 2603,
+      "sha256": "8b0ba9454b0cf8592977cfbafd468493d403affb2a05430eee86135a5019f3fb"
+    },
+    "src/hir/resolve_expr/sort_keys/identity_tests.rs": {
+      "length": 15206,
+      "sha256": "094bc3c3fd18142b71b3be32ac68ad5289d77aca6775ce401007b7e9bb38a133"
+    },
+    "src/hir/resolve_for/identity_before.rs": {
+      "length": 9363,
+      "sha256": "9886243816b32ab0e64764367c110ae1ffcc4276e5b290955b560ec2fea100e0"
+    },
+    "src/hir/resolve_for_own/identity_before.rs": {
+      "length": 7868,
+      "sha256": "ea060f003061866b6bf8df5bbcba4d267b1a694b700168a8962351065e792842"
+    },
+    "src/source_reflows_merge/main_e177_overlay_pins_v9.rs": {
+      "length": 10093,
+      "sha256": "f6152aef5b30ef71af962485fc38198a0ac5f3f4f733b7ae3fc75193620e07c6"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/fixture_helpers.rs": {
+      "length": 13740,
+      "sha256": "771f16f72fa8f2f97a6cae06798250d08ccab2e3193d6e635dcaf4213edc5ede"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/lexical_cursor.rs": {
+      "length": 33725,
+      "sha256": "768c23a10fcec91ef7dfdbd67dabd64885266291f236c66efd0e80ad21b29b6e"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/mod.rs": {
+      "length": 22735,
+      "sha256": "beecee19c500379a95adb5d086450843533e353abe35bfd5886d5b3b4126ab4d"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/pair_scope_census.rs": {
+      "length": 22325,
+      "sha256": "dea1a69cc0cbb97de935220a53628e001ad096cccce1307623461977d72211a6"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/retained_main_289/pair_scope_tests.rs": {
+      "length": 56287,
+      "sha256": "954c0ad04b909e00edcec2834b7936fe3b6c3ccfa1864799c408e13c96225d09"
+    },
+    "src/bounded_output/stage_debits/route_debits/retained_main_289.rs": {
+      "length": 5037,
+      "sha256": "051797ccfc0fea98d81a9dde786a2a69537b3c1f897ff4b494f4df0152c18e18"
+    }
+  },
+  "carriers": {
+    "tests/hir_module_boundaries.rs": {
+      "path": "tests/hir_module_boundaries.rs",
+      "length": 140708,
+      "sha256": "55cadc5d94b9555712a4633f9d0d9780b49fe9f70b75867eb835d7297802a95f",
+      "base": "../"
+    },
+    "tests/workspace/semantic_graph/source_inventory.rs": {
+      "path": "tests/workspace/semantic_graph/source_inventory.rs",
+      "length": 167680,
+      "sha256": "434846b0f3e9453ea59b64c37f9ed09b94afd8a127684c84111e417d0c910615",
+      "base": "../../"
+    },
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": {
+      "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+      "length": 213542,
+      "sha256": "2b547588738b4bd67a6e7a2b007cca5211cbdbd07c32e430f5b71fd66d458739",
+      "base": "../../../../../"
+    }
+  },
+  "prior_carriers": {
+    "tests/hir_module_boundaries.rs": {
+      "length": 100796,
+      "sha256": "e3dad40652ba74ba2737e21b493ffb48787eb576974609f62f3f62ad690f443b",
+      "base": "../"
+    },
+    "tests/workspace/semantic_graph/source_inventory.rs": {
+      "length": 98621,
+      "sha256": "4cf1b2596f589f53fe4dec8ac692738eecd04e7e3909c846a1c762d04717834c",
+      "base": "../../"
+    },
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": {
+      "length": 159374,
+      "sha256": "700318b054f35e3dbf69cf25d7a83cd3bf65d04f5674327bcbbd5af02bbdec66",
+      "base": "../../../../../"
+    }
+  },
+  "workspace_owner": {
+    "path": "tests/workspace/semantic_graph.rs",
+    "length": 57556,
+    "sha256": "199b49885168f659daaf1759593b72392aa83621f6340796a83f97ec397de96d"
+  },
+  "table": {
+    "path": "docs/evidence/main-e177-final-source-binding-20261017/current-projection-inputs.tsv",
+    "length": 65336,
+    "sha256": "de162ca5e36f49447e17383bdeb42316b509f6f99f2de67eb32d61d6bd28c0c6",
+    "prior": {
+      "length": 26040,
+      "sha256": "bf9d90d2e54bd7fc117b8f885f94fba383d74207e8833a62c8c3eaa7adeeb190",
+      "archive": "docs/evidence/main-e177-final-source-binding-20261017/prior426.whole.tsv.txt"
+    },
+    "insertions": [
+      {
+        "at": 24,
+        "path": "src/cleanup_plan/replay/factored/before_inline_singleton.rs"
+      },
+      {
+        "at": 25,
+        "path": "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton.rs"
+      },
+      {
+        "at": 26,
+        "path": "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/inline_exit.rs"
+      },
+      {
+        "at": 27,
+        "path": "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/inline_exit/census.rs"
+      },
+      {
+        "at": 28,
+        "path": "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors.rs"
+      },
+      {
+        "at": 29,
+        "path": "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop.rs"
+      },
+      {
+        "at": 30,
+        "path": "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/borrowed_single.rs"
+      },
+      {
+        "at": 31,
+        "path": "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/terminal_leaf.rs"
+      },
+      {
+        "at": 32,
+        "path": "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/tests.rs"
+      },
+      {
+        "at": 33,
+        "path": "src/cleanup_plan/replay/factored/canonical_shared/lexical_successors.rs"
+      },
+      {
+        "at": 34,
+        "path": "src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/census.rs"
+      },
+      {
+        "at": 35,
+        "path": "src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/tests.rs"
+      },
+      {
+        "at": 36,
+        "path": "src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/frame_loop.rs"
+      },
+      {
+        "at": 37,
+        "path": "src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/frame_loop/before_borrowed_single.rs"
+      },
+      {
+        "at": 38,
+        "path": "src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/frame_loop/before_arity_dispatch.rs"
+      },
+      {
+        "at": 39,
+        "path": "src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/frame_loop/borrowed_single.rs"
+      },
+      {
+        "at": 40,
+        "path": "src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/frame_loop/borrowed_single/tests.rs"
+      },
+      {
+        "at": 41,
+        "path": "src/cleanup_plan/replay/factored/canonical_shared/before_lexical_successors.rs"
+      },
+      {
+        "at": 42,
+        "path": "src/cleanup_plan/replay/factored/canonical_shared/before_lexical_successors_methods.rs"
+      },
+      {
+        "at": 43,
+        "path": "src/cleanup_plan/replay/factored/canonical_shared/before_lexical_successors/compare.rs"
+      },
+      {
+        "at": 44,
+        "path": "src/cleanup_plan/replay/factored/canonical_shared/before_paid_many/empty_memo.rs"
+      },
+      {
+        "at": 45,
+        "path": "src/cleanup_plan/replay/factored/canonical_shared/before_scope_memo.rs"
+      },
+      {
+        "at": 46,
+        "path": "src/cleanup_plan/replay/factored/canonical_shared/before_selected_route.rs"
+      },
+      {
+        "at": 47,
+        "path": "src/cleanup_plan/replay/factored/canonical_shared/before_selected_route_methods.rs"
+      },
+      {
+        "at": 48,
+        "path": "src/cleanup_plan/replay/factored/canonical_shared/empty_memo/owned_tests.rs"
+      },
+      {
+        "at": 49,
+        "path": "src/cleanup_plan/replay/factored/canonical_shared/paid_route_tests.rs"
+      },
+      {
+        "at": 50,
+        "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/before_cursor.rs"
+      },
+      {
+        "at": 51,
+        "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/before_cursor/qualification.rs"
+      },
+      {
+        "at": 52,
+        "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/before_cursor/status_prefix.rs"
+      },
+      {
+        "at": 53,
+        "path": "src/cleanup_plan/replay/merge_census.rs"
+      },
+      {
+        "at": 54,
+        "path": "src/cleanup_plan/replay/owned_suffix_878.rs"
+      },
+      {
+        "at": 55,
+        "path": "src/cleanup_plan/replay/owned_suffix_878_vector.rs"
+      },
+      {
+        "at": 56,
+        "path": "src/cleanup_plan/replay/skeleton_work/merge_keys_878.rs"
+      },
+      {
+        "at": 57,
+        "path": "src/cleanup_plan/replay/skeleton_work/merge_search.rs"
+      },
+      {
+        "at": 58,
+        "path": "src/source_reflows/main_e177_controllers.rs"
+      },
+      {
+        "at": 59,
+        "path": "src/source_reflows/main_e177_support.rs"
+      },
+      {
+        "at": 60,
+        "path": "src/source_reflows_merge/main_e177_final_inputs.rs"
+      },
+      {
+        "at": 61,
+        "path": "src/source_reflows_merge/main_e177_overlay_v2.rs"
+      },
+      {
+        "at": 62,
+        "path": "src/source_reflows_merge/main_e177_overlay_compiled.rs"
+      },
+      {
+        "at": 63,
+        "path": "src/source_reflows_merge/main_e177_inputs.rs"
+      },
+      {
+        "at": 64,
+        "path": "tests/workspace/pin_capture.rs"
+      },
+      {
+        "at": 70,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor.rs"
+      },
+      {
+        "at": 71,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value.rs"
+      },
+      {
+        "at": 72,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_paired.rs"
+      },
+      {
+        "at": 73,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_lexical_cursor.rs"
+      },
+      {
+        "at": 75,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_pair_scope/mod.rs"
+      },
+      {
+        "at": 76,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_pair_scope/lexical_cursor.rs"
+      },
+      {
+        "at": 77,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_census.rs"
+      },
+      {
+        "at": 78,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_tests.rs"
+      },
+      {
+        "at": 88,
+        "path": "src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels_methods.rs"
+      },
+      {
+        "at": 118,
+        "path": "src/cleanup_plan/replay/factored/canonical_shared/arena_tests_tail.rs"
+      },
+      {
+        "at": 190,
+        "path": "src/cleanup_plan/replay/physical_budget/setup.rs"
+      },
+      {
+        "at": 200,
+        "path": "src/cleanup_plan/replay/physical_storage/representative_measurements.rs"
+      },
+      {
+        "at": 201,
+        "path": "src/cleanup_plan/replay/physical_storage/representative_measurements/applications.rs"
+      },
+      {
+        "at": 204,
+        "path": "src/cleanup_plan/replay/allocation/oracle/diagnostic.rs"
+      },
+      {
+        "at": 205,
+        "path": "src/cleanup_plan/replay/allocation/oracle/diagnostic/metered.rs"
+      },
+      {
+        "at": 206,
+        "path": "src/cleanup_plan/replay/allocation/oracle/invocation.rs"
+      },
+      {
+        "at": 220,
+        "path": "src/cleanup_plan/replay/factored/canonical_shared/matched_receiving_layers.rs"
+      },
+      {
+        "at": 221,
+        "path": "src/cleanup_plan/replay/factored/canonical_shared/matched_receiving_layers/memo.rs"
+      },
+      {
+        "at": 222,
+        "path": "src/cleanup_plan/replay/factored/canonical_shared/matched_receiving_layers/successor_targets.rs"
+      },
+      {
+        "at": 258,
+        "path": "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs"
+      },
+      {
+        "at": 275,
+        "path": "src/cleanup_plan/replay/ordinary_receiving.rs"
+      },
+      {
+        "at": 276,
+        "path": "src/cleanup_plan/replay/ordinary_receiving/caller_before.rs"
+      },
+      {
+        "at": 277,
+        "path": "src/cleanup_plan/replay/ordinary_receiving/tests.rs"
+      },
+      {
+        "at": 278,
+        "path": "src/cleanup_plan/replay/constructed_variant.rs"
+      },
+      {
+        "at": 279,
+        "path": "src/cleanup_plan/replay/context_closure.rs"
+      },
+      {
+        "at": 280,
+        "path": "src/cleanup_plan/replay/continuation_storage.rs"
+      },
+      {
+        "at": 281,
+        "path": "src/cleanup_plan/replay/allocation_paths.rs"
+      },
+      {
+        "at": 282,
+        "path": "src/cleanup_plan/replay/call_paths.rs"
+      },
+      {
+        "at": 283,
+        "path": "src/cleanup_plan/replay/call_payload.rs"
+      },
+      {
+        "at": 284,
+        "path": "src/cleanup_plan/replay/expression_children.rs"
+      },
+      {
+        "at": 285,
+        "path": "src/cleanup_plan/replay/expression_facts.rs"
+      },
+      {
+        "at": 286,
+        "path": "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase_before_receiving.rs"
+      },
+      {
+        "at": 287,
+        "path": "src/cleanup_plan/replay/expression_facts/borrowed.rs"
+      },
+      {
+        "at": 288,
+        "path": "src/cleanup_plan/replay/expression_facts/capacity.rs"
+      },
+      {
+        "at": 289,
+        "path": "src/cleanup_plan/replay/expression_facts/saved.rs"
+      },
+      {
+        "at": 290,
+        "path": "src/cleanup_plan/replay/expression_facts/receiving_before.rs"
+      },
+      {
+        "at": 291,
+        "path": "src/cleanup_plan/replay/expression_facts/ordinary_before.rs"
+      },
+      {
+        "at": 292,
+        "path": "src/cleanup_plan/replay/flat_records.rs"
+      },
+      {
+        "at": 293,
+        "path": "src/cleanup_plan/replay/inventory_coverage.rs"
+      },
+      {
+        "at": 294,
+        "path": "src/cleanup_plan/replay/inventory_coverage/paid_before.rs"
+      },
+      {
+        "at": 295,
+        "path": "src/cleanup_plan/replay/physical_clone.rs"
+      },
+      {
+        "at": 296,
+        "path": "src/cleanup_plan/replay/scalar_match.rs"
+      },
+      {
+        "at": 297,
+        "path": "src/cleanup_plan/replay/scalar_replay.rs"
+      },
+      {
+        "at": 298,
+        "path": "src/cleanup_plan/replay/scalar_replay/paid_before.rs"
+      },
+      {
+        "at": 299,
+        "path": "src/cleanup_plan/replay/scalar_replay/selected_family_tests.rs"
+      },
+      {
+        "at": 300,
+        "path": "src/cleanup_plan/replay/scalar_replay/before_selected_control.rs"
+      },
+      {
+        "at": 301,
+        "path": "src/cleanup_plan/replay/scalar_replay/before_selected_path.rs"
+      },
+      {
+        "at": 302,
+        "path": "src/cleanup_plan/replay/scalar_replay/records.rs"
+      },
+      {
+        "at": 303,
+        "path": "src/cleanup_plan/replay/scalar_replay_tree.rs"
+      },
+      {
+        "at": 304,
+        "path": "src/cleanup_plan/replay/scalar_replay_tree/records.rs"
+      },
+      {
+        "at": 305,
+        "path": "src/cleanup_plan/replay/selected_callees.rs"
+      },
+      {
+        "at": 306,
+        "path": "src/cleanup_plan/replay/shape_cursor.rs"
+      },
+      {
+        "at": 307,
+        "path": "src/cleanup_plan/replay/status_construction.rs"
+      },
+      {
+        "at": 308,
+        "path": "src/cleanup_plan/replay/status_construction/borrowed.rs"
+      },
+      {
+        "at": 309,
+        "path": "src/cleanup_plan/replay/structural_maps.rs"
+      },
+      {
+        "at": 310,
+        "path": "src/cleanup_plan/replay/status_validation.rs"
+      },
+      {
+        "at": 311,
+        "path": "src/cleanup_plan/replay/primitive_fixture.rs"
+      },
+      {
+        "at": 312,
+        "path": "src/cleanup_plan/replay/path_summary.rs"
+      },
+      {
+        "at": 313,
+        "path": "src/cleanup_plan/replay/skeleton_bound.rs"
+      },
+      {
+        "at": 314,
+        "path": "src/cleanup_plan/replay/skeleton_work.rs"
+      },
+      {
+        "at": 315,
+        "path": "src/cleanup_plan/replay/skeleton_work/receiving.rs"
+      },
+      {
+        "at": 316,
+        "path": "src/cleanup_plan/replay/skeleton_work/dag_storage.rs"
+      },
+      {
+        "at": 317,
+        "path": "src/cleanup_plan/replay/skeleton_work/oracle_entry.rs"
+      },
+      {
+        "at": 318,
+        "path": "src/cleanup_plan/replay/skeleton_work/ordinary_dag.rs"
+      },
+      {
+        "at": 319,
+        "path": "src/cleanup_plan/replay/skeleton_work/ordinary_dag/frontier.rs"
+      },
+      {
+        "at": 320,
+        "path": "src/cleanup_plan/replay/skeleton_work/ordinary_dag/saved.rs"
+      },
+      {
+        "at": 321,
+        "path": "src/cleanup_plan/replay/typed_storage.rs"
+      },
+      {
+        "at": 322,
+        "path": "src/cleanup_plan/replay/typed_storage/collections.rs"
+      },
+      {
+        "at": 323,
+        "path": "src/cleanup_plan/replay/guarded_variant.rs"
+      },
+      {
+        "at": 324,
+        "path": "src/cleanup_plan/replay/lexical_boundary.rs"
+      },
+      {
+        "at": 325,
+        "path": "src/cleanup_plan/replay/lexical_census.rs"
+      },
+      {
+        "at": 326,
+        "path": "src/cleanup_plan/replay/lexical_cert.rs"
+      },
+      {
+        "at": 327,
+        "path": "src/cleanup_plan/replay/lexical_cert/storage.rs"
+      },
+      {
+        "at": 328,
+        "path": "src/cleanup_plan/replay/lexical_cert/storage/ordinary_finalizers.rs"
+      },
+      {
+        "at": 329,
+        "path": "src/cleanup_plan/replay/lexical_flow.rs"
+      },
+      {
+        "at": 330,
+        "path": "src/cleanup_plan/replay/lexical_hir.rs"
+      },
+      {
+        "at": 331,
+        "path": "src/cleanup_plan/replay/lexical_skeleton.rs"
+      },
+      {
+        "at": 332,
+        "path": "src/cleanup_plan/replay/nested_shape.rs"
+      },
+      {
+        "at": 333,
+        "path": "src/cleanup_plan/replay/nested_shape/paid.rs"
+      },
+      {
+        "at": 334,
+        "path": "src/cleanup_plan/replay/nested_shape/paid/scratch.rs"
+      },
+      {
+        "at": 335,
+        "path": "src/cleanup_plan/replay/nested_shape/paid/oracle.rs"
+      },
+      {
+        "at": 336,
+        "path": "src/cleanup_plan/replay/nested_shape/paid_before.rs"
+      },
+      {
+        "at": 337,
+        "path": "src/cleanup_plan/replay/ordinary_inventory.rs"
+      },
+      {
+        "at": 338,
+        "path": "src/cleanup_plan/replay/ordinary_inventory/owned.rs"
+      },
+      {
+        "at": 339,
+        "path": "src/cleanup_plan/replay/ordinary_inventory/storage.rs"
+      },
+      {
+        "at": 340,
+        "path": "src/cleanup_plan/replay/ordinary_inventory/substitute.rs"
+      },
+      {
+        "at": 341,
+        "path": "src/cleanup_plan/replay/ordinary_inventory/before.rs"
+      },
+      {
+        "at": 342,
+        "path": "src/cleanup_plan/replay/ordinary_renewals.rs"
+      },
+      {
+        "at": 343,
+        "path": "src/cleanup_plan/replay/paid_type_facts.rs"
+      },
+      {
+        "at": 344,
+        "path": "src/cleanup_plan/replay/paid_type_facts/droppability.rs"
+      },
+      {
+        "at": 345,
+        "path": "src/cleanup_plan/replay/paid_type_facts/droppability/key.rs"
+      },
+      {
+        "at": 346,
+        "path": "src/cleanup_plan/replay/paid_type_facts/droppability/paid.rs"
+      },
+      {
+        "at": 347,
+        "path": "src/cleanup_plan/replay/paid_type_facts/droppability/saved_paid.rs"
+      },
+      {
+        "at": 348,
+        "path": "src/cleanup_plan/replay/paid_type_facts/droppability/text.rs"
+      },
+      {
+        "at": 349,
+        "path": "src/cleanup_plan/replay/paid_type_facts/inventory_substitute.rs"
+      },
+      {
+        "at": 350,
+        "path": "src/cleanup_plan/replay/paid_type_facts/inventory_clone.rs"
+      },
+      {
+        "at": 351,
+        "path": "src/cleanup_plan/replay/paid_type_facts/inventory_text.rs"
+      },
+      {
+        "at": 352,
+        "path": "src/cleanup_plan/replay/paid_type_facts/inventory_profile.rs"
+      },
+      {
+        "at": 353,
+        "path": "src/cleanup_plan/replay/paid_type_facts/inventory_metadata.rs"
+      },
+      {
+        "at": 354,
+        "path": "src/cleanup_plan/replay/paid_type_facts/inventory_metadata/admission.rs"
+      },
+      {
+        "at": 355,
+        "path": "src/cleanup_plan/replay/paid_type_facts/inventory_nested.rs"
+      },
+      {
+        "at": 356,
+        "path": "src/cleanup_plan/replay/paid_type_facts/inventory_encoded.rs"
+      },
+      {
+        "at": 357,
+        "path": "src/cleanup_plan/replay/paid_type_facts/inventory_ordered.rs"
+      },
+      {
+        "at": 358,
+        "path": "src/cleanup_plan/replay/paid_type_facts/inventory_flags.rs"
+      },
+      {
+        "at": 359,
+        "path": "src/cleanup_plan/replay/paid_type_facts/inventory_flags/families.rs"
+      },
+      {
+        "at": 360,
+        "path": "src/cleanup_plan/replay/paid_type_facts/inventory_raw_key.rs"
+      },
+      {
+        "at": 361,
+        "path": "src/cleanup_plan/replay/paid_type_facts/inventory_drop.rs"
+      },
+      {
+        "at": 362,
+        "path": "src/cleanup_plan/replay/paid_type_facts/inventory_lifecycle.rs"
+      },
+      {
+        "at": 363,
+        "path": "src/cleanup_plan/replay/paid_type_facts/inventory_lifecycle/equal.rs"
+      },
+      {
+        "at": 364,
+        "path": "src/cleanup_plan/replay/paid_type_facts/inventory_lifecycle/native.rs"
+      },
+      {
+        "at": 365,
+        "path": "src/cleanup_plan/replay/paid_type_facts/inventory_lifecycle/outcome.rs"
+      },
+      {
+        "at": 366,
+        "path": "src/cleanup_plan/replay/paid_type_facts/inventory_lifecycle/step.rs"
+      },
+      {
+        "at": 367,
+        "path": "src/cleanup_plan/replay/paid_type_facts/inventory_lifecycle/variants.rs"
+      },
+      {
+        "at": 368,
+        "path": "src/cleanup_plan/replay/paid_type_facts/inventory_summary.rs"
+      },
+      {
+        "at": 369,
+        "path": "src/cleanup_plan/replay/paid_type_facts/inventory_summary/collector.rs"
+      },
+      {
+        "at": 370,
+        "path": "src/cleanup_plan/replay/paid_type_facts/inventory_summary/generic.rs"
+      },
+      {
+        "at": 371,
+        "path": "src/cleanup_plan/replay/paid_type_facts/inventory_summary/profile.rs"
+      },
+      {
+        "at": 372,
+        "path": "src/cleanup_plan/replay/paid_type_facts/inventory_summary/shape.rs"
+      },
+      {
+        "at": 373,
+        "path": "src/cleanup_plan/replay/paid_type_facts/inventory_summary/shape_original.rs"
+      },
+      {
+        "at": 374,
+        "path": "src/cleanup_plan/replay/paid_type_facts/oracle_inventory.rs"
+      },
+      {
+        "at": 375,
+        "path": "src/cleanup_plan/replay/path_join.rs"
+      },
+      {
+        "at": 376,
+        "path": "src/cleanup_plan/replay/path_join/selected.rs"
+      },
+      {
+        "at": 377,
+        "path": "src/cleanup_plan/replay/path_join/selected/reason.rs"
+      },
+      {
+        "at": 378,
+        "path": "src/cleanup_plan/replay/path_join/selected/execution.rs"
+      },
+      {
+        "at": 379,
+        "path": "src/cleanup_plan/replay/path_join/selected/finish.rs"
+      },
+      {
+        "at": 380,
+        "path": "src/cleanup_plan/replay/path_join/selected/history.rs"
+      },
+      {
+        "at": 381,
+        "path": "src/cleanup_plan/replay/path_join/selected/joins.rs"
+      },
+      {
+        "at": 382,
+        "path": "src/cleanup_plan/replay/path_join/selected/lexical_flow.rs"
+      },
+      {
+        "at": 383,
+        "path": "src/cleanup_plan/replay/path_join/selected/lookup.rs"
+      },
+      {
+        "at": 384,
+        "path": "src/cleanup_plan/replay/path_join/selected/queries.rs"
+      },
+      {
+        "at": 385,
+        "path": "src/cleanup_plan/replay/path_join/selected/receiving.rs"
+      },
+      {
+        "at": 386,
+        "path": "src/cleanup_plan/replay/path_join/selected/renewal.rs"
+      },
+      {
+        "at": 387,
+        "path": "src/cleanup_plan/replay/path_join/selected/strings.rs"
+      },
+      {
+        "at": 388,
+        "path": "src/cleanup_plan/replay/path_join/selected/walk.rs"
+      },
+      {
+        "at": 389,
+        "path": "src/cleanup_plan/replay/path_join/selected/append_before_formals.rs"
+      },
+      {
+        "at": 390,
+        "path": "src/cleanup_plan/replay/path_join/selected/tests/mod.rs"
+      },
+      {
+        "at": 391,
+        "path": "src/cleanup_plan/replay/path_join/selected/tests/boundary.rs"
+      },
+      {
+        "at": 392,
+        "path": "src/cleanup_plan/replay/path_join/selected/tests/layout.rs"
+      },
+      {
+        "at": 393,
+        "path": "src/cleanup_plan/replay/path_join/selected/tests/reason_before_path.rs"
+      },
+      {
+        "at": 394,
+        "path": "src/cleanup_plan/replay/path_join/selected/tests/nominal.rs"
+      },
+      {
+        "at": 395,
+        "path": "src/cleanup_plan/replay/path_join/selected/tests/session.rs"
+      },
+      {
+        "at": 396,
+        "path": "src/cleanup_plan/replay/path_join/selected/tests/whole.rs"
+      },
+      {
+        "at": 397,
+        "path": "src/cleanup_plan/replay/path_join/selected/tests/history.rs"
+      },
+      {
+        "at": 398,
+        "path": "src/cleanup_plan/replay/path_join/selected/tests/renewal.rs"
+      },
+      {
+        "at": 399,
+        "path": "src/cleanup_plan/replay/path_join/selected/tests/lookup.rs"
+      },
+      {
+        "at": 400,
+        "path": "src/cleanup_plan/replay/path_join/selected/tests/strings.rs"
+      },
+      {
+        "at": 401,
+        "path": "src/cleanup_plan/replay/path_join/branch_join.rs"
+      },
+      {
+        "at": 402,
+        "path": "src/cleanup_plan/replay/path_join/storage.rs"
+      },
+      {
+        "at": 403,
+        "path": "src/cleanup_plan/replay/renewal.rs"
+      },
+      {
+        "at": 404,
+        "path": "src/cleanup_plan/replay/renewal/owned_commit.rs"
+      },
+      {
+        "at": 405,
+        "path": "src/cleanup_plan/replay/string_replacement.rs"
+      },
+      {
+        "at": 406,
+        "path": "src/cleanup_plan/replay/strings.rs"
+      },
+      {
+        "at": 407,
+        "path": "src/cleanup_plan/replay/strings/selected.rs"
+      },
+      {
+        "at": 408,
+        "path": "src/cleanup_plan/replay/transition.rs"
+      },
+      {
+        "at": 409,
+        "path": "src/cleanup_plan/replay/transition_storage.rs"
+      },
+      {
+        "at": 410,
+        "path": "src/cleanup_plan/replay/record_destructure.rs"
+      },
+      {
+        "at": 411,
+        "path": "src/cleanup_plan/replay/record_destructure/update.rs"
+      },
+      {
+        "at": 412,
+        "path": "src/cleanup_plan/replay/record_destructure/funded.rs"
+      },
+      {
+        "at": 413,
+        "path": "src/cleanup_plan/replay/record_destructure/funded/admission.rs"
+      },
+      {
+        "at": 414,
+        "path": "src/cleanup_plan/replay/record_destructure/funded/admission/byte.rs"
+      },
+      {
+        "at": 415,
+        "path": "src/cleanup_plan/replay/record_destructure/funded/admission/collection.rs"
+      },
+      {
+        "at": 416,
+        "path": "src/cleanup_plan/replay/record_destructure/funded/admission/text.rs"
+      },
+      {
+        "at": 417,
+        "path": "src/cleanup_plan/replay/resolved_call.rs"
+      },
+      {
+        "at": 418,
+        "path": "src/cleanup_plan/replay/resolved_call/param_view.rs"
+      },
+      {
+        "at": 419,
+        "path": "src/cleanup_plan/replay/supplemental.rs"
+      },
+      {
+        "at": 420,
+        "path": "src/cleanup_plan/replay/schema.rs"
+      },
+      {
+        "at": 421,
+        "path": "src/cleanup_plan/replay/schema/selected_paid.rs"
+      },
+      {
+        "at": 422,
+        "path": "src/cleanup_plan/replay/schema/selected_paid/tests.rs"
+      },
+      {
+        "at": 423,
+        "path": "src/cleanup_plan/replay/schema/borrowed.rs"
+      },
+      {
+        "at": 424,
+        "path": "src/cleanup_plan/replay/schema/borrowed/decision.rs"
+      },
+      {
+        "at": 425,
+        "path": "src/cleanup_plan/replay/schema/paid_summary.rs"
+      },
+      {
+        "at": 426,
+        "path": "src/cleanup_plan/replay/schema/paid_summary/original_receiver.rs"
+      },
+      {
+        "at": 427,
+        "path": "src/cleanup_plan/replay/allocation.rs"
+      },
+      {
+        "at": 428,
+        "path": "src/cleanup_plan/replay/cfg_bounds.rs"
+      },
+      {
+        "at": 429,
+        "path": "src/cleanup_plan/replay/oracle_controls.rs"
+      },
+      {
+        "at": 430,
+        "path": "src/cleanup_plan/replay/phase_measurement.rs"
+      },
+      {
+        "at": 431,
+        "path": "src/cleanup_plan/replay/live_oracle.rs"
+      },
+      {
+        "at": 432,
+        "path": "src/cleanup_plan/replay/live_oracle/source_custody.rs"
+      },
+      {
+        "at": 445,
+        "path": "src/cleanup_plan/replay/expression_facts/arena/prefix/retained_before.rs"
+      },
+      {
+        "at": 446,
+        "path": "src/cleanup_plan/replay/expression_facts/arena/retained.rs"
+      },
+      {
+        "at": 447,
+        "path": "src/cleanup_plan/replay/expression_facts/arena/retained_into.rs"
+      },
+      {
+        "at": 448,
+        "path": "src/cleanup_plan/replay/expression_facts/arena/retained/into_tests.rs"
+      },
+      {
+        "at": 449,
+        "path": "src/cleanup_plan/replay/expression_facts/arena/retained/tests.rs"
+      },
+      {
+        "at": 450,
+        "path": "src/cleanup_plan/replay/expression_facts/arena/prefix.rs"
+      },
+      {
+        "at": 451,
+        "path": "src/cleanup_plan/replay/expression_facts/arena/producer.rs"
+      },
+      {
+        "at": 458,
+        "path": "src/cleanup_plan/replay/expression_facts/receiving/retained/exit_prefix.rs"
+      },
+      {
+        "at": 467,
+        "path": "src/cleanup_plan/replay/factored/borrowed_canonical.rs"
+      },
+      {
+        "at": 468,
+        "path": "src/cleanup_plan/replay/factored/borrowed_canonical/dictionary.rs"
+      },
+      {
+        "at": 469,
+        "path": "src/cleanup_plan/replay/factored/canonical_before.rs"
+      },
+      {
+        "at": 470,
+        "path": "src/cleanup_plan/replay/factored/copy_regions.rs"
+      },
+      {
+        "at": 471,
+        "path": "src/cleanup_plan/replay/factored/dag_memo.rs"
+      },
+      {
+        "at": 472,
+        "path": "src/cleanup_plan/replay/factored/dag_memo/ordinal.rs"
+      },
+      {
+        "at": 473,
+        "path": "src/cleanup_plan/replay/factored/instrumentation.rs"
+      },
+      {
+        "at": 474,
+        "path": "src/cleanup_plan/replay/factored/storage.rs"
+      },
+      {
+        "at": 475,
+        "path": "src/cleanup_plan/replay/factored/strategy.rs"
+      },
+      {
+        "at": 476,
+        "path": "src/cleanup_plan/replay/factored/oracle_order.rs"
+      },
+      {
+        "at": 480,
+        "path": "src/cleanup_plan/replay/factored/oracle_hook/closure_controls.rs"
+      },
+      {
+        "at": 482,
+        "path": "src/cleanup_plan/replay/leaf_index/paid.rs"
+      },
+      {
+        "at": 484,
+        "path": "src/cleanup_plan/replay/live_oracle/source_custody/a_tail.rs"
+      },
+      {
+        "at": 486,
+        "path": "src/cleanup_plan/replay/live_oracle/source_custody/b_tail.rs"
+      },
+      {
+        "at": 488,
+        "path": "src/cleanup_plan/replay/selected_context/family.rs"
+      },
+      {
+        "at": 489,
+        "path": "src/cleanup_plan/replay/selected_context/borrowed.rs"
+      },
+      {
+        "at": 491,
+        "path": "src/cleanup_plan/replay/selected_entry/borrowed.rs"
+      },
+      {
+        "at": 494,
+        "path": "src/cleanup_plan/replay/selected_entry/tests/recovering.rs"
+      },
+      {
+        "at": 495,
+        "path": "src/cleanup_plan/replay/selected_entry/tests/setup.rs"
+      },
+      {
+        "at": 496,
+        "path": "src/cleanup_plan/replay/selected_entry/tests/paid.rs"
+      },
+      {
+        "at": 497,
+        "path": "src/cleanup_plan/replay/selected_entry/tests/paid/selected_family.rs"
+      },
+      {
+        "at": 498,
+        "path": "src/cleanup_plan/replay/selected_entry/tests/paid/selected_control.rs"
+      },
+      {
+        "at": 499,
+        "path": "src/cleanup_plan/replay/selected_entry/tests/transition_errors.rs"
+      },
+      {
+        "at": 500,
+        "path": "src/cleanup_plan/replay/selected_entry/tests/transition_errors/old.rs"
+      },
+      {
+        "at": 504,
+        "path": "src/cleanup_plan/replay/selected_profile/collections.rs"
+      },
+      {
+        "at": 505,
+        "path": "src/cleanup_plan/replay/selected_profile/conditions.rs"
+      },
+      {
+        "at": 506,
+        "path": "src/cleanup_plan/replay/selected_profile/row_loan.rs"
+      },
+      {
+        "at": 507,
+        "path": "src/cleanup_plan/replay/selected_profile/string_transfer.rs"
+      },
+      {
+        "at": 509,
+        "path": "src/hir/owned_collection_record.rs"
+      },
+      {
+        "at": 510,
+        "path": "src/hir/owned_collection_record/saved.rs"
+      },
+      {
+        "at": 511,
+        "path": "src/hir/owned_record_subtree.rs"
+      },
+      {
+        "at": 512,
+        "path": "src/hir/owned_text_record.rs"
+      },
+      {
+        "at": 513,
+        "path": "src/hir/owned_text_record/paid.rs"
+      },
+      {
+        "at": 514,
+        "path": "src/hir/owned_text_record/paid/substitution.rs"
+      },
+      {
+        "at": 515,
+        "path": "src/hir/owned_text_record/saved.rs"
+      },
+      {
+        "at": 516,
+        "path": "src/hir/projected_string_view.rs"
+      },
+      {
+        "at": 517,
+        "path": "src/hir/vec_field.rs"
+      },
+      {
+        "at": 518,
+        "path": "src/hir/agent_nodes.rs"
+      },
+      {
+        "at": 519,
+        "path": "src/hir/agent_validation.rs"
+      },
+      {
+        "at": 520,
+        "path": "src/hir/agent_validation/embedded.rs"
+      },
+      {
+        "at": 521,
+        "path": "src/hir/byte_capacity.rs"
+      },
+      {
+        "at": 522,
+        "path": "src/hir/byte_capacity/static_extent.rs"
+      },
+      {
+        "at": 523,
+        "path": "src/hir/byte_capacity/fused_selection.rs"
+      },
+      {
+        "at": 524,
+        "path": "src/hir/byte_slice_provenance.rs"
+      },
+      {
+        "at": 525,
+        "path": "src/hir/byte_slice_provenance/inline_range.rs"
+      },
+      {
+        "at": 526,
+        "path": "src/hir/byte_slice_provenance/vec_field.rs"
+      },
+      {
+        "at": 527,
+        "path": "src/hir/ordinary_scan.rs"
+      },
+      {
+        "at": 528,
+        "path": "src/hir/static_text.rs"
+      },
+      {
+        "at": 529,
+        "path": "src/hir/static_text/backing.rs"
+      },
+      {
+        "at": 530,
+        "path": "src/hir/static_text/origin.rs"
+      },
+      {
+        "at": 531,
+        "path": "src/hir/capacity_probe.rs"
+      },
+      {
+        "at": 532,
+        "path": "src/hir/closure.rs"
+      },
+      {
+        "at": 533,
+        "path": "src/hir/closure/resolve.rs"
+      },
+      {
+        "at": 534,
+        "path": "src/hir/closure/validation.rs"
+      },
+      {
+        "at": 535,
+        "path": "src/hir/closure/owning_desugar.rs"
+      },
+      {
+        "at": 536,
+        "path": "src/hir/closure/materialize.rs"
+      },
+      {
+        "at": 537,
+        "path": "src/hir/closure/borrowed.rs"
+      },
+      {
+        "at": 538,
+        "path": "src/hir/closure/mutable.rs"
+      },
+      {
+        "at": 539,
+        "path": "src/hir/closure/once.rs"
+      },
+      {
+        "at": 540,
+        "path": "src/hir/closure/paid.rs"
+      },
+      {
+        "at": 541,
+        "path": "src/hir/closure/paid/copy.rs"
+      },
+      {
+        "at": 542,
+        "path": "src/hir/copy_discard.rs"
+      },
+      {
+        "at": 543,
+        "path": "src/hir/fused_construction.rs"
+      },
+      {
+        "at": 544,
+        "path": "src/hir/fused_construction/correspond.rs"
+      },
+      {
+        "at": 545,
+        "path": "src/hir/fused_construction/join.rs"
+      },
+      {
+        "at": 546,
+        "path": "src/hir/fused_construction/shape.rs"
+      },
+      {
+        "at": 547,
+        "path": "src/hir/fused_construction/suffix.rs"
+      },
+      {
+        "at": 548,
+        "path": "src/hir/lexical_exit.rs"
+      },
+      {
+        "at": 549,
+        "path": "src/hir/lexical_exit/walk.rs"
+      },
+      {
+        "at": 550,
+        "path": "src/hir/lexical_exit/owner.rs"
+      },
+      {
+        "at": 551,
+        "path": "src/hir/lexical_exit/rekey.rs"
+      },
+      {
+        "at": 552,
+        "path": "src/hir/lexical_exit/latch.rs"
+      },
+      {
+        "at": 553,
+        "path": "src/hir/lexical_exit/wrapper.rs"
+      },
+      {
+        "at": 554,
+        "path": "src/hir/lexical_exit/validation.rs"
+      },
+      {
+        "at": 555,
+        "path": "src/hir/lexical_exit/return_operand.rs"
+      },
+      {
+        "at": 556,
+        "path": "src/hir/byte_partition.rs"
+      },
+      {
+        "at": 557,
+        "path": "src/hir/canonical_loan_storage.rs"
+      },
+      {
+        "at": 558,
+        "path": "src/hir/canonical_loan_storage/caller.rs"
+      },
+      {
+        "at": 559,
+        "path": "src/hir/canonical_loan_storage/caller/owned_before.rs"
+      },
+      {
+        "at": 560,
+        "path": "src/hir/canonical_loan_storage/caller/shared.rs"
+      },
+      {
+        "at": 561,
+        "path": "src/hir/canonical_loan_storage/caller/sealed_before_stage.rs"
+      },
+      {
+        "at": 562,
+        "path": "src/hir/canonical_loan_storage/caller_before.rs"
+      },
+      {
+        "at": 563,
+        "path": "src/hir/canonical_loan_storage/scratch.rs"
+      },
+      {
+        "at": 564,
+        "path": "src/hir/canonical_loan_storage/deferred.rs"
+      },
+      {
+        "at": 565,
+        "path": "src/hir/function_directory.rs"
+      },
+      {
+        "at": 566,
+        "path": "src/hir/function_directory/caller.rs"
+      },
+      {
+        "at": 567,
+        "path": "src/hir/function_value.rs"
+      },
+      {
+        "at": 568,
+        "path": "src/hir/function_value/paid_walk.rs"
+      },
+      {
+        "at": 569,
+        "path": "src/hir/function_value/resolve.rs"
+      },
+      {
+        "at": 570,
+        "path": "src/hir/ids.rs"
+      },
+      {
+        "at": 571,
+        "path": "src/hir/ids/compiler.rs"
+      },
+      {
+        "at": 572,
+        "path": "src/hir/ids/streamed.rs"
+      },
+      {
+        "at": 573,
+        "path": "src/hir/ids/metered_owner.rs"
+      },
+      {
+        "at": 574,
+        "path": "src/hir/ids/metered_owner/oracle.rs"
+      },
+      {
+        "at": 575,
+        "path": "src/hir/inspection.rs"
+      },
+      {
+        "at": 576,
+        "path": "src/hir/inspection/audit_pending.rs"
+      },
+      {
+        "at": 577,
+        "path": "src/hir/inspection/calls.rs"
+      },
+      {
+        "at": 578,
+        "path": "src/hir/inspection/paid_nul.rs"
+      },
+      {
+        "at": 579,
+        "path": "src/hir/inspection/paid_nul/pending.rs"
+      },
+      {
+        "at": 580,
+        "path": "src/hir/inspection/paid_nul/text.rs"
+      },
+      {
+        "at": 581,
+        "path": "src/hir/monomorphize.rs"
+      },
+      {
+        "at": 582,
+        "path": "src/hir/monomorphize/substitution_saved.rs"
+      },
+      {
+        "at": 583,
+        "path": "src/hir/nodes.rs"
+      },
+      {
+        "at": 584,
+        "path": "src/hir/nodes/import_result_type.rs"
+      },
+      {
+        "at": 585,
+        "path": "src/hir/owned_result_try.rs"
+      },
+      {
+        "at": 586,
+        "path": "src/hir/record_evolution.rs"
+      },
+      {
+        "at": 587,
+        "path": "src/hir/record_invariants.rs"
+      },
+      {
+        "at": 588,
+        "path": "src/hir/record_invariants/source.rs"
+      },
+      {
+        "at": 589,
+        "path": "src/hir/resolve_box_call.rs"
+      },
+      {
+        "at": 590,
+        "path": "src/hir/resolve_box_call/iterator.rs"
+      },
+      {
+        "at": 591,
+        "path": "src/hir/resolve_box_call/list.rs"
+      },
+      {
+        "at": 592,
+        "path": "src/hir/resolve_box_call/map.rs"
+      },
+      {
+        "at": 593,
+        "path": "src/hir/resolve_class.rs"
+      },
+      {
+        "at": 594,
+        "path": "src/hir/resolve_expr.rs"
+      },
+      {
+        "at": 595,
+        "path": "src/hir/resolve_expr/byte_view.rs"
+      },
+      {
+        "at": 596,
+        "path": "src/hir/resolve_expr/capacity.rs"
+      },
+      {
+        "at": 597,
+        "path": "src/hir/resolve_expr/finish.rs"
+      },
+      {
+        "at": 598,
+        "path": "src/hir/resolve_expr/lexical_exit.rs"
+      },
+      {
+        "at": 599,
+        "path": "src/hir/resolve_expr/literal_format.rs"
+      },
+      {
+        "at": 600,
+        "path": "src/hir/resolve_expr/path_arena.rs"
+      },
+      {
+        "at": 601,
+        "path": "src/hir/resolve_expr/sort_keys.rs"
+      },
+      {
+        "at": 602,
+        "path": "src/hir/resolve_expr/super_method.rs"
+      },
+      {
+        "at": 603,
+        "path": "src/hir/resolve_expr/variable.rs"
+      },
+      {
+        "at": 604,
+        "path": "src/hir/resolve_expr/vec_constructor.rs"
+      },
+      {
+        "at": 605,
+        "path": "src/hir/resolve_expr/vec_field.rs"
+      },
+      {
+        "at": 606,
+        "path": "src/hir/resolver_scope.rs"
+      },
+      {
+        "at": 607,
+        "path": "src/hir/resolver_scope/source_audit.rs"
+      },
+      {
+        "at": 608,
+        "path": "src/hir/borrowed_root_oracle.rs"
+      },
+      {
+        "at": 609,
+        "path": "src/hir/borrowed_root_oracle/resolve_box_call.rs"
+      },
+      {
+        "at": 610,
+        "path": "src/hir/borrowed_root_oracle/resolve_box_call/iterator.rs"
+      },
+      {
+        "at": 611,
+        "path": "src/hir/borrowed_root_oracle/resolve_box_call/list.rs"
+      },
+      {
+        "at": 612,
+        "path": "src/hir/borrowed_root_oracle/resolve_box_call/map.rs"
+      },
+      {
+        "at": 613,
+        "path": "src/hir/borrowed_root_oracle/resolve_expr.rs"
+      },
+      {
+        "at": 614,
+        "path": "src/hir/borrowed_root_oracle/resolve_expr/byte_view.rs"
+      },
+      {
+        "at": 615,
+        "path": "src/hir/borrowed_root_oracle/resolve_expr/capacity.rs"
+      },
+      {
+        "at": 616,
+        "path": "src/hir/borrowed_root_oracle/resolve_expr/finish.rs"
+      },
+      {
+        "at": 617,
+        "path": "src/hir/borrowed_root_oracle/resolve_expr/lexical_exit.rs"
+      },
+      {
+        "at": 618,
+        "path": "src/hir/borrowed_root_oracle/resolve_expr/literal_format.rs"
+      },
+      {
+        "at": 619,
+        "path": "src/hir/borrowed_root_oracle/resolve_expr/sort_keys.rs"
+      },
+      {
+        "at": 620,
+        "path": "src/hir/borrowed_root_oracle/resolve_expr/super_method.rs"
+      },
+      {
+        "at": 621,
+        "path": "src/hir/borrowed_root_oracle/resolve_expr/variable.rs"
+      },
+      {
+        "at": 622,
+        "path": "src/hir/borrowed_root_oracle/resolve_expr/vec_constructor.rs"
+      },
+      {
+        "at": 623,
+        "path": "src/hir/borrowed_root_oracle/resolve_expr/vec_field.rs"
+      },
+      {
+        "at": 624,
+        "path": "src/hir/borrowed_root_oracle/resolve_expr_frame.rs"
+      },
+      {
+        "at": 625,
+        "path": "src/hir/borrowed_root_oracle/resolve_expr_frame/fixed_results.rs"
+      },
+      {
+        "at": 626,
+        "path": "src/hir/borrowed_root_oracle/resolve_expr_frame/capacity_old.rs"
+      },
+      {
+        "at": 627,
+        "path": "src/hir/borrowed_root_oracle/resolve_for.rs"
+      },
+      {
+        "at": 628,
+        "path": "src/hir/borrowed_root_oracle/resolve_for/bytes.rs"
+      },
+      {
+        "at": 629,
+        "path": "src/hir/borrowed_root_oracle/resolve_for/record.rs"
+      },
+      {
+        "at": 630,
+        "path": "src/hir/borrowed_root_oracle/resolve_for_own.rs"
+      },
+      {
+        "at": 631,
+        "path": "src/hir/borrowed_root_oracle/resolve_pattern.rs"
+      },
+      {
+        "at": 632,
+        "path": "src/hir/borrowed_root_oracle/resolve_statement.rs"
+      },
+      {
+        "at": 633,
+        "path": "src/hir/borrowed_root_oracle/resolve_vec_call.rs"
+      },
+      {
+        "at": 634,
+        "path": "src/hir/resolve_expr_frame.rs"
+      },
+      {
+        "at": 635,
+        "path": "src/hir/resolve_expr_frame/fixed_results.rs"
+      },
+      {
+        "at": 636,
+        "path": "src/hir/resolve_expr_frame/capacity_old.rs"
+      },
+      {
+        "at": 637,
+        "path": "src/hir/resolve_expr_reference.rs"
+      },
+      {
+        "at": 638,
+        "path": "src/hir/resolve_expr_reference/block.rs"
+      },
+      {
+        "at": 639,
+        "path": "src/hir/resolve_expr_reference/control.rs"
+      },
+      {
+        "at": 640,
+        "path": "src/hir/resolve_expr_reference/literal_format.rs"
+      },
+      {
+        "at": 641,
+        "path": "src/hir/resolve_expr_reference/projection.rs"
+      },
+      {
+        "at": 642,
+        "path": "src/hir/resolve_expr_reference/static_text.rs"
+      },
+      {
+        "at": 643,
+        "path": "src/hir/resolve_for.rs"
+      },
+      {
+        "at": 644,
+        "path": "src/hir/resolve_for/bytes.rs"
+      },
+      {
+        "at": 645,
+        "path": "src/hir/resolve_for/record.rs"
+      },
+      {
+        "at": 646,
+        "path": "src/hir/resolve_for_own.rs"
+      },
+      {
+        "at": 647,
+        "path": "src/hir/resolve_native_rust_result.rs"
+      },
+      {
+        "at": 648,
+        "path": "src/hir/resolve_pattern.rs"
+      },
+      {
+        "at": 649,
+        "path": "src/hir/resolve_program.rs"
+      },
+      {
+        "at": 650,
+        "path": "src/hir/resolve_program/initial_loan_plans.rs"
+      },
+      {
+        "at": 651,
+        "path": "src/hir/resolve_program/initial_loan_plans/staging.rs"
+      },
+      {
+        "at": 652,
+        "path": "src/hir/resolve_program/reuse_lowered.rs"
+      },
+      {
+        "at": 653,
+        "path": "src/hir/resolve_statement.rs"
+      },
+      {
+        "at": 654,
+        "path": "src/hir/resolve_stdin_stream.rs"
+      },
+      {
+        "at": 655,
+        "path": "src/hir/resolve_variant_or.rs"
+      },
+      {
+        "at": 656,
+        "path": "src/hir/resolve_vec_call.rs"
+      },
+      {
+        "at": 657,
+        "path": "src/hir/resolve_yield.rs"
+      },
+      {
+        "at": 658,
+        "path": "src/hir/selected_fused_candidate.rs"
+      },
+      {
+        "at": 659,
+        "path": "src/hir/type_reachability.rs"
+      },
+      {
+        "at": 660,
+        "path": "src/hir/type_reachability/nested_generic_function.rs"
+      },
+      {
+        "at": 661,
+        "path": "src/hir/type_reachability/owned_oracle.rs"
+      },
+      {
+        "at": 662,
+        "path": "src/hir/type_reachability/owned_oracle/native_owner_old.rs"
+      },
+      {
+        "at": 663,
+        "path": "src/hir/type_reachability/owned_oracle/native_owner_old/url_view.rs"
+      },
+      {
+        "at": 664,
+        "path": "src/hir/type_reachability/leaf_saved.rs"
+      },
+      {
+        "at": 665,
+        "path": "src/hir/vec_constructor.rs"
+      },
+      {
+        "at": 666,
+        "path": "src/hir/vec_constructor/capture.rs"
+      },
+      {
+        "at": 667,
+        "path": "src/hir/variant_equality.rs"
+      },
+      {
+        "at": 668,
+        "path": "src/hir/workspace_link.rs"
+      },
+      {
+        "at": 669,
+        "path": "src/hir/workspace_link/compiler_prelude.rs"
+      },
+      {
+        "at": 670,
+        "path": "src/hir/workspace_link/profile_diagnostics.rs"
+      },
+      {
+        "at": 671,
+        "path": "src/hir/workspace_link/stdin_stream.rs"
+      },
+      {
+        "at": 672,
+        "path": "src/hir/workspace_link/stream_collection_record.rs"
+      },
+      {
+        "at": 673,
+        "path": "src/hir/workspace_link/stream_nested_outcome.rs"
+      },
+      {
+        "at": 674,
+        "path": "src/hir/workspace_link/stream_owned.rs"
+      },
+      {
+        "at": 675,
+        "path": "src/hir/workspace_link/stream_record.rs"
+      },
+      {
+        "at": 676,
+        "path": "src/hir/yield_aggregate.rs"
+      },
+      {
+        "at": 677,
+        "path": "src/hir/cache_codec.rs"
+      },
+      {
+        "at": 678,
+        "path": "src/hir/declaration_index.rs"
+      },
+      {
+        "at": 679,
+        "path": "src/hir/declaration_index/flags.rs"
+      },
+      {
+        "at": 680,
+        "path": "src/hir/declaration_index/flags/nominal_key.rs"
+      },
+      {
+        "at": 681,
+        "path": "src/hir/declaration_index/flags/nominal_key/compound.rs"
+      },
+      {
+        "at": 682,
+        "path": "src/hir/declaration_index/flags/paid.rs"
+      },
+      {
+        "at": 683,
+        "path": "src/hir/declaration_index/flags/paid/admission.rs"
+      },
+      {
+        "at": 684,
+        "path": "src/hir/declaration_index/flags/paid/builtin.rs"
+      },
+      {
+        "at": 685,
+        "path": "src/hir/declaration_index/flags/paid/compute.rs"
+      },
+      {
+        "at": 686,
+        "path": "src/hir/declaration_index/flags/paid/key.rs"
+      },
+      {
+        "at": 687,
+        "path": "src/hir/declaration_index/flags/paid/storage.rs"
+      },
+      {
+        "at": 688,
+        "path": "src/hir/declaration_index/flags/paid/substitute.rs"
+      },
+      {
+        "at": 689,
+        "path": "src/hir/declaration_index/flags/paid/inventory_constructor.rs"
+      },
+      {
+        "at": 690,
+        "path": "src/hir/declaration_index/flags/paid/inventory_constructor/key.rs"
+      },
+      {
+        "at": 691,
+        "path": "src/hir/declaration_index/flags/paid/inventory_constructor/substitute.rs"
+      },
+      {
+        "at": 692,
+        "path": "src/hir/declaration_index/flags/owned_key_oracle.rs"
+      },
+      {
+        "at": 693,
+        "path": "src/hir/declaration_index/inventory_lookup.rs"
+      },
+      {
+        "at": 694,
+        "path": "src/hir/declaration_index/inventory_lookup/compound.rs"
+      },
+      {
+        "at": 695,
+        "path": "src/hir/declaration_index/inventory_lookup/nominal.rs"
+      },
+      {
+        "at": 696,
+        "path": "src/hir/declaration_index/owned_builtin.rs"
+      },
+      {
+        "at": 697,
+        "path": "src/hir/declaration_index/owner_name.rs"
+      },
+      {
+        "at": 698,
+        "path": "src/hir/declaration_index/primitive_replay.rs"
+      },
+      {
+        "at": 699,
+        "path": "src/hir/declaration_index/primitive_replay/flat_record.rs"
+      },
+      {
+        "at": 700,
+        "path": "src/hir/declaration_index/projection.rs"
+      },
+      {
+        "at": 701,
+        "path": "src/hir/declaration_index/source.rs"
+      },
+      {
+        "at": 702,
+        "path": "src/hir/identity_resolution.rs"
+      },
+      {
+        "at": 703,
+        "path": "src/hir/identity_resolution/previous_source.rs"
+      },
+      {
+        "at": 704,
+        "path": "src/hir/ordinary_identity.rs"
+      },
+      {
+        "at": 705,
+        "path": "src/hir/vec_field_origin.rs"
+      },
+      {
+        "at": 706,
+        "path": "src/hir/row_loan.rs"
+      },
+      {
+        "at": 707,
+        "path": "src/hir/row_loan/producer.rs"
+      },
+      {
+        "at": 708,
+        "path": "src/hir/row_loan/validate.rs"
+      },
+      {
+        "at": 709,
+        "path": "src/hir/row_loan/validate/budget.rs"
+      },
+      {
+        "at": 710,
+        "path": "src/hir/row_loan/validate/comparisons.rs"
+      },
+      {
+        "at": 711,
+        "path": "src/hir/collection_outcome.rs"
+      },
+      {
+        "at": 712,
+        "path": "src/hir/collection_outcome/nested.rs"
+      },
+      {
+        "at": 713,
+        "path": "src/hir/collection_outcome/nested/profile.rs"
+      },
+      {
+        "at": 714,
+        "path": "src/hir/collection_outcome/owned.rs"
+      },
+      {
+        "at": 715,
+        "path": "src/hir/collection_outcome/stream_input.rs"
+      },
+      {
+        "at": 716,
+        "path": "src/hir/copy_record_collection.rs"
+      },
+      {
+        "at": 717,
+        "path": "src/hir/declared_collection.rs"
+      },
+      {
+        "at": 718,
+        "path": "src/hir/declared_collection/paid.rs"
+      },
+      {
+        "at": 719,
+        "path": "src/hir/declared_collection/paid/early.rs"
+      },
+      {
+        "at": 720,
+        "path": "src/hir/generic_collection.rs"
+      },
+      {
+        "at": 721,
+        "path": "src/hir/generic_inference.rs"
+      },
+      {
+        "at": 722,
+        "path": "src/hir/generic_result.rs"
+      },
+      {
+        "at": 723,
+        "path": "src/hir/iterator_loop.rs"
+      },
+      {
+        "at": 724,
+        "path": "src/hir/iterator_loop/renewal.rs"
+      },
+      {
+        "at": 725,
+        "path": "src/hir/iterator_loop/renewal/paid_scan.rs"
+      },
+      {
+        "at": 726,
+        "path": "src/hir/iterator_loop/paid.rs"
+      },
+      {
+        "at": 727,
+        "path": "src/hir/owned_leaf_collection.rs"
+      },
+      {
+        "at": 728,
+        "path": "src/hir/owned_record_collection.rs"
+      },
+      {
+        "at": 729,
+        "path": "src/hir/renewal_probes.rs"
+      },
+      {
+        "at": 730,
+        "path": "src/hir/renewal_probes/phase.rs"
+      },
+      {
+        "at": 731,
+        "path": "src/hir/vec_loop_renewal.rs"
+      },
+      {
+        "at": 732,
+        "path": "src/hir/vec_loop_renewal/consuming.rs"
+      },
+      {
+        "at": 733,
+        "path": "src/hir/vec_loop_renewal/consuming/empty_clone.rs"
+      },
+      {
+        "at": 734,
+        "path": "src/hir/generic_mapping.rs"
+      },
+      {
+        "at": 735,
+        "path": "src/hir/generic_variant.rs"
+      },
+      {
+        "at": 736,
+        "path": "src/hir/function_reuse_source.rs"
+      },
+      {
+        "at": 739,
+        "path": "src/hir/validation/function_lookup.rs"
+      },
+      {
+        "at": 740,
+        "path": "src/hir/validation/function_lookup/permits.rs"
+      },
+      {
+        "at": 741,
+        "path": "src/hir/validation/function_lookup/original.rs"
+      },
+      {
+        "at": 742,
+        "path": "src/hir/validation/function_lookup/paid_custody.rs"
+      },
+      {
+        "at": 743,
+        "path": "src/hir/validation/function_scope.rs"
+      },
+      {
+        "at": 744,
+        "path": "src/hir/validation/function_scope/old.rs"
+      },
+      {
+        "at": 745,
+        "path": "src/hir/validation/function_scope/backing_saved.rs"
+      },
+      {
+        "at": 746,
+        "path": "src/hir/validation/function_scope/lifecycle_receiver_saved.rs"
+      },
+      {
+        "at": 747,
+        "path": "src/hir/validation/function_scope/empty_ensures.rs"
+      },
+      {
+        "at": 748,
+        "path": "src/hir/validation/function_scope/empty_ensures/before.rs"
+      },
+      {
+        "at": 749,
+        "path": "src/hir/validation/identity_directory.rs"
+      },
+      {
+        "at": 750,
+        "path": "src/hir/validation/identity_directory/iter.rs"
+      },
+      {
+        "at": 751,
+        "path": "src/hir/validation/identity_directory/oracle_entries.rs"
+      },
+      {
+        "at": 752,
+        "path": "src/hir/validation/identity_directory/transaction.rs"
+      },
+      {
+        "at": 753,
+        "path": "src/hir/validation/identity_insert.rs"
+      },
+      {
+        "at": 754,
+        "path": "src/hir/validation/identity_insert/coarse.rs"
+      },
+      {
+        "at": 755,
+        "path": "src/hir/validation/identity_scratch.rs"
+      },
+      {
+        "at": 756,
+        "path": "src/hir/validation/owned_iterative_oracle.rs"
+      },
+      {
+        "at": 757,
+        "path": "src/hir/validation/scope_checkpoint.rs"
+      },
+      {
+        "at": 758,
+        "path": "src/hir/validation/scope_checkpoint/charge.rs"
+      },
+      {
+        "at": 759,
+        "path": "src/hir/validation/scope_checkpoint/coarse.rs"
+      },
+      {
+        "at": 760,
+        "path": "src/hir/validation/scope_checkpoint/fresh.rs"
+      },
+      {
+        "at": 761,
+        "path": "src/hir/validation/scope_checkpoint/marks.rs"
+      },
+      {
+        "at": 762,
+        "path": "src/hir/validation/scope_checkpoint/merge.rs"
+      },
+      {
+        "at": 763,
+        "path": "src/hir/validation/scope_checkpoint/merge/saved.rs"
+      },
+      {
+        "at": 764,
+        "path": "src/hir/validation/scope_checkpoint/paths.rs"
+      },
+      {
+        "at": 765,
+        "path": "src/hir/validation/scope_checkpoint/storage.rs"
+      },
+      {
+        "at": 766,
+        "path": "src/hir/validation/scope_checkpoint/transaction.rs"
+      },
+      {
+        "at": 767,
+        "path": "src/hir/validation/scope_checkpoint/tree.rs"
+      },
+      {
+        "at": 768,
+        "path": "src/hir/validation/scope_checkpoint/views.rs"
+      },
+      {
+        "at": 769,
+        "path": "src/hir/validation/type_requirement.rs"
+      },
+      {
+        "at": 770,
+        "path": "src/hir/validation/aggregate_metadata.rs"
+      },
+      {
+        "at": 771,
+        "path": "src/hir/validation/assign_field.rs"
+      },
+      {
+        "at": 772,
+        "path": "src/hir/validation/continuation_path.rs"
+      },
+      {
+        "at": 773,
+        "path": "src/hir/validation/path_label.rs"
+      },
+      {
+        "at": 774,
+        "path": "src/hir/validation/borrowed_argument.rs"
+      },
+      {
+        "at": 775,
+        "path": "src/hir/validation/borrowed_str.rs"
+      },
+      {
+        "at": 776,
+        "path": "src/hir/validation/box_intrinsic.rs"
+      },
+      {
+        "at": 777,
+        "path": "src/hir/validation/branch_merge.rs"
+      },
+      {
+        "at": 778,
+        "path": "src/hir/validation/byte_range.rs"
+      },
+      {
+        "at": 779,
+        "path": "src/hir/validation/call_parameters.rs"
+      },
+      {
+        "at": 780,
+        "path": "src/hir/validation/call_parameters/copy_before.rs"
+      },
+      {
+        "at": 781,
+        "path": "src/hir/validation/call_signature.rs"
+      },
+      {
+        "at": 782,
+        "path": "src/hir/validation/callable_types.rs"
+      },
+      {
+        "at": 783,
+        "path": "src/hir/validation/callable_types/inline_frames.rs"
+      },
+      {
+        "at": 784,
+        "path": "src/hir/validation/callable_types/original_receiver.rs"
+      },
+      {
+        "at": 785,
+        "path": "src/hir/validation/canonical_loans.rs"
+      },
+      {
+        "at": 786,
+        "path": "src/hir/validation/canonical_loans/constructors_before.rs"
+      },
+      {
+        "at": 787,
+        "path": "src/hir/validation/closure.rs"
+      },
+      {
+        "at": 788,
+        "path": "src/hir/validation/closure/old.rs"
+      },
+      {
+        "at": 789,
+        "path": "src/hir/validation/contract_owners.rs"
+      },
+      {
+        "at": 790,
+        "path": "src/hir/validation/effect_keys.rs"
+      },
+      {
+        "at": 791,
+        "path": "src/hir/validation/executable_profiles.rs"
+      },
+      {
+        "at": 792,
+        "path": "src/hir/validation/generic_record_composition.rs"
+      },
+      {
+        "at": 793,
+        "path": "src/hir/validation/generic_template.rs"
+      },
+      {
+        "at": 794,
+        "path": "src/hir/validation/generic_template/reachability.rs"
+      },
+      {
+        "at": 795,
+        "path": "src/hir/validation/generic_template/values.rs"
+      },
+      {
+        "at": 796,
+        "path": "src/hir/validation/generic_template/values/charge.rs"
+      },
+      {
+        "at": 797,
+        "path": "src/hir/validation/generic_template/values/tree.rs"
+      },
+      {
+        "at": 798,
+        "path": "src/hir/validation/host_command.rs"
+      },
+      {
+        "at": 799,
+        "path": "src/hir/validation/lexical_exit.rs"
+      },
+      {
+        "at": 800,
+        "path": "src/hir/validation/native_borrow.rs"
+      },
+      {
+        "at": 801,
+        "path": "src/hir/validation/nominal_facts.rs"
+      },
+      {
+        "at": 802,
+        "path": "src/hir/validation/owned_buffer.rs"
+      },
+      {
+        "at": 803,
+        "path": "src/hir/validation/owned_buffer/iterator_view.rs"
+      },
+      {
+        "at": 804,
+        "path": "src/hir/validation/owned_result_try.rs"
+      },
+      {
+        "at": 805,
+        "path": "src/hir/validation/owner_renewal.rs"
+      },
+      {
+        "at": 806,
+        "path": "src/hir/validation/ownership_flags.rs"
+      },
+      {
+        "at": 807,
+        "path": "src/hir/validation/ownership_flags/before.rs"
+      },
+      {
+        "at": 808,
+        "path": "src/hir/validation/proof_return.rs"
+      },
+      {
+        "at": 809,
+        "path": "src/hir/validation/record_pattern.rs"
+      },
+      {
+        "at": 810,
+        "path": "src/hir/validation/record_pattern/binding_path.rs"
+      },
+      {
+        "at": 811,
+        "path": "src/hir/validation/record_pattern/owned.rs"
+      },
+      {
+        "at": 812,
+        "path": "src/hir/validation/record_traversal.rs"
+      },
+      {
+        "at": 813,
+        "path": "src/hir/validation/row_loan.rs"
+      },
+      {
+        "at": 814,
+        "path": "src/hir/validation/stdin_stream.rs"
+      },
+      {
+        "at": 815,
+        "path": "src/hir/validation/stdin_stream/paid.rs"
+      },
+      {
+        "at": 816,
+        "path": "src/hir/validation/stdin_stream/paid/analysis.rs"
+      },
+      {
+        "at": 817,
+        "path": "src/hir/validation/string_intrinsic.rs"
+      },
+      {
+        "at": 818,
+        "path": "src/hir/validation/type_profiles.rs"
+      },
+      {
+        "at": 819,
+        "path": "src/hir/validation/unsafe_scan.rs"
+      },
+      {
+        "at": 820,
+        "path": "src/hir/validation/unsafe_scan/paid.rs"
+      },
+      {
+        "at": 821,
+        "path": "src/hir/validation/upcast.rs"
+      },
+      {
+        "at": 822,
+        "path": "src/hir/validation/vec_field.rs"
+      },
+      {
+        "at": 823,
+        "path": "src/hir/validation/vec_intrinsic.rs"
+      },
+      {
+        "at": 824,
+        "path": "src/hir/validation/fused_selection.rs"
+      },
+      {
+        "at": 825,
+        "path": "src/hir/validation/generic_variant.rs"
+      },
+      {
+        "at": 826,
+        "path": "src/hir/validation/iterator_loops.rs"
+      },
+      {
+        "at": 827,
+        "path": "src/hir/validation/iterator_loops/field_scope.rs"
+      },
+      {
+        "at": 828,
+        "path": "src/hir/validation/place_resolution.rs"
+      },
+      {
+        "at": 829,
+        "path": "src/hir/validation/string_replacement.rs"
+      },
+      {
+        "at": 830,
+        "path": "src/hir/validation/variant_guard_state.rs"
+      },
+      {
+        "at": 831,
+        "path": "src/hir/validation/variant_or.rs"
+      },
+      {
+        "at": 832,
+        "path": "src/hir/validation/variant_or/covered.rs"
+      },
+      {
+        "at": 835,
+        "path": "src/hir/validation/function_scope/lifecycle/completed/inline_path.rs"
+      },
+      {
+        "at": 850,
+        "path": "src/source_verify/declaration/classes.rs"
+      },
+      {
+        "at": 851,
+        "path": "src/source_verify/declaration/declarations.rs"
+      },
+      {
+        "at": 852,
+        "path": "src/source_verify/declaration/functions.rs"
+      },
+      {
+        "at": 853,
+        "path": "src/source_verify/declaration/functions/signature_refusal.rs"
+      },
+      {
+        "at": 854,
+        "path": "src/source_verify/declaration/functions/traversal_scope.rs"
+      },
+      {
+        "at": 855,
+        "path": "src/source_verify/declaration/functions/old.rs"
+      },
+      {
+        "at": 856,
+        "path": "src/source_verify/declaration/fusion.rs"
+      },
+      {
+        "at": 857,
+        "path": "src/source_verify/declaration/fusion/consumers.rs"
+      },
+      {
+        "at": 858,
+        "path": "src/source_verify/declaration/identity.rs"
+      },
+      {
+        "at": 859,
+        "path": "src/source_verify/declaration/old.rs"
+      },
+      {
+        "at": 860,
+        "path": "src/source_verify/declaration/public_signature_before.rs"
+      },
+      {
+        "at": 862,
+        "path": "tests/hir_module_boundaries/oracle_source_inventory.rs"
+      },
+      {
+        "at": 959,
+        "path": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/retained_lookup_before_receiving.rs"
+      },
+      {
+        "at": 960,
+        "path": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/retained_lookup.rs"
+      },
+      {
+        "at": 961,
+        "path": "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase.rs"
+      },
+      {
+        "at": 962,
+        "path": "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase_before.rs"
+      },
+      {
+        "at": 963,
+        "path": "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase_tests.rs"
+      },
+      {
+        "at": 964,
+        "path": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_before.rs"
+      },
+      {
+        "at": 965,
+        "path": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_caller_before.rs"
+      },
+      {
+        "at": 966,
+        "path": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests.rs"
+      },
+      {
+        "at": 967,
+        "path": "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests/receiving.rs"
+      },
+      {
+        "at": 974,
+        "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/reused_cursor.rs"
+      },
+      {
+        "at": 975,
+        "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/reused_cursor/tests.rs"
+      },
+      {
+        "at": 976,
+        "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/inline.rs"
+      },
+      {
+        "at": 977,
+        "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/inline/tests.rs"
+      },
+      {
+        "at": 978,
+        "path": "src/cleanup_plan/replay/expression_facts/receiving/retained/inline_status.rs"
+      },
+      {
+        "at": 979,
+        "path": "src/cleanup_plan/replay/expression_facts/receiving/retained/inline_status/tests.rs"
+      },
+      {
+        "at": 980,
+        "path": "src/source_reflows/semantic_receivers/status_inline.rs"
+      },
+      {
+        "at": 1032,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_flat_view.rs"
+      },
+      {
+        "at": 1033,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_fused_flat.rs"
+      },
+      {
+        "at": 1034,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/combined_pair_scope_tests.rs"
+      },
+      {
+        "at": 1035,
+        "path": "src/ast/program_source/function_alias/scalar_signature.rs"
+      },
+      {
+        "at": 1036,
+        "path": "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_block_before.rs"
+      },
+      {
+        "at": 1037,
+        "path": "src/workspace_graph/constructor_failure/before_scalar_dispatch.rs"
+      },
+      {
+        "at": 1038,
+        "path": "src/workspace_graph/expected_projection/borrowed_imports/typed/before_scalar_signature.rs"
+      },
+      {
+        "at": 1039,
+        "path": "src/workspace_graph/expected_projection/borrowed_imports/typed/scalar_signature_tests.rs"
+      },
+      {
+        "at": 1040,
+        "path": "src/ast/program_source/function_alias/before_string.rs"
+      },
+      {
+        "at": 1041,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_retained_tail.rs"
+      },
+      {
+        "at": 1042,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_before_tail.rs"
+      },
+      {
+        "at": 1043,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/matched_tail_tests.rs"
+      },
+      {
+        "at": 1044,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_tail.rs"
+      },
+      {
+        "at": 1045,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/source_format.rs"
+      },
+      {
+        "at": 1046,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source.rs"
+      },
+      {
+        "at": 1047,
+        "path": "src/source_reflows_merge/main_e177_historical_before_data.rs"
+      },
+      {
+        "at": 1048,
+        "path": "src/source_reflows_merge/main_e177_historical_data.rs"
+      },
+      {
+        "at": 1049,
+        "path": "src/source_reflows_merge/main_e177_historical_data_tests.rs"
+      },
+      {
+        "at": 1050,
+        "path": "src/source_reflows_merge/main_e177_overlay_fragments_v3.rs"
+      },
+      {
+        "at": 1051,
+        "path": "src/workspace_graph/expected_projection/borrowed_imports/typed/before_string_signature.rs"
+      },
+      {
+        "at": 1052,
+        "path": "src/workspace_graph/expected_projection/borrowed_imports/typed/string_signature_tests.rs"
+      },
+      {
+        "at": 1053,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_prepared_pairing.rs"
+      },
+      {
+        "at": 1054,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_before_prepared_links.rs"
+      },
+      {
+        "at": 1055,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/prepared_pairing_tests.rs"
+      },
+      {
+        "at": 1056,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links.rs"
+      },
+      {
+        "at": 1057,
+        "path": "src/workspace_graph/expected_projection/call_carriers_before_directory.rs"
+      },
+      {
+        "at": 1058,
+        "path": "src/workspace_graph/expected_projection/call_carriers_directory.rs"
+      },
+      {
+        "at": 1059,
+        "path": "src/workspace_graph/expected_projection/call_carriers_directory_tests.rs"
+      },
+      {
+        "at": 1060,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_identity_prefix.rs"
+      },
+      {
+        "at": 1061,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_before_identity.rs"
+      },
+      {
+        "at": 1062,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_identity.rs"
+      },
+      {
+        "at": 1063,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix.rs"
+      },
+      {
+        "at": 1064,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_tests.rs"
+      },
+      {
+        "at": 1065,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_reachable_primitives.rs"
+      },
+      {
+        "at": 1066,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_reachable_before.rs"
+      },
+      {
+        "at": 1067,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/reachable_pair_scope_tests.rs"
+      },
+      {
+        "at": 1068,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives.rs"
+      },
+      {
+        "at": 1069,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_event_prefix.rs"
+      },
+      {
+        "at": 1070,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_shared_steps.rs"
+      },
+      {
+        "at": 1071,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_shared_steps.rs"
+      },
+      {
+        "at": 1072,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main99_pair_scope_tests.rs"
+      },
+      {
+        "at": 1073,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_event.rs"
+      },
+      {
+        "at": 1074,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_before_event.rs"
+      },
+      {
+        "at": 1075,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_before_event_tests.rs"
+      },
+      {
+        "at": 1076,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_event_tests.rs"
+      },
+      {
+        "at": 1077,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/shared_steps.rs"
+      },
+      {
+        "at": 1078,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_certified_heads.rs"
+      },
+      {
+        "at": 1079,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_shared_runs.rs"
+      },
+      {
+        "at": 1080,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads.rs"
+      },
+      {
+        "at": 1081,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads_tests.rs"
+      },
+      {
+        "at": 1082,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_before_certified.rs"
+      },
+      {
+        "at": 1083,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_shared_runs.rs"
+      },
+      {
+        "at": 1084,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main7e_pair_scope_tests.rs"
+      },
+      {
+        "at": 1085,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_certified.rs"
+      },
+      {
+        "at": 1086,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_before_certified.rs"
+      },
+      {
+        "at": 1087,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/shared_steps/shared_boundaries.rs"
+      },
+      {
+        "at": 1088,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/shared_steps/shared_boundaries/shared_runs.rs"
+      },
+      {
+        "at": 1089,
+        "path": "src/bounded_output/stage_debits/route_debits/json_codec_probe.rs"
+      },
+      {
+        "at": 1090,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_main001.rs"
+      },
+      {
+        "at": 1091,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_main487.rs"
+      },
+      {
+        "at": 1092,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_main_b692.rs"
+      },
+      {
+        "at": 1093,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_pair_links.rs"
+      },
+      {
+        "at": 1094,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_paired_tail.rs"
+      },
+      {
+        "at": 1095,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/borrowed_reader_composition_tests.rs"
+      },
+      {
+        "at": 1096,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads_pair_links.rs"
+      },
+      {
+        "at": 1097,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads_paired_tail.rs"
+      },
+      {
+        "at": 1098,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_main001.rs"
+      },
+      {
+        "at": 1099,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_main487.rs"
+      },
+      {
+        "at": 1100,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_main_b692.rs"
+      },
+      {
+        "at": 1101,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_pair_links.rs"
+      },
+      {
+        "at": 1102,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_paired_tail.rs"
+      },
+      {
+        "at": 1103,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main001_pair_scope_tests.rs"
+      },
+      {
+        "at": 1104,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main487_pair_scope_tests.rs"
+      },
+      {
+        "at": 1105,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main_b692_pair_scope_tests.rs"
+      },
+      {
+        "at": 1106,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main_b692_paired_tails.rs"
+      },
+      {
+        "at": 1107,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_link_composition_tests.rs"
+      },
+      {
+        "at": 1108,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_tail_composition_tests.rs"
+      },
+      {
+        "at": 1109,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_pair_links.rs"
+      },
+      {
+        "at": 1110,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_paired_tail.rs"
+      },
+      {
+        "at": 1111,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_pair_links.rs"
+      },
+      {
+        "at": 1112,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_paired_tail.rs"
+      },
+      {
+        "at": 1113,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links.rs"
+      },
+      {
+        "at": 1114,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/constructor.rs"
+      },
+      {
+        "at": 1115,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/fused_readers.rs"
+      },
+      {
+        "at": 1116,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/json_ledger.rs"
+      },
+      {
+        "at": 1117,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/paired_tails.rs"
+      },
+      {
+        "at": 1118,
+        "path": "src/source_reflows_merge/main_e177_packet_lookup.rs"
+      },
+      {
+        "at": 1119,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_empty_selector.rs"
+      },
+      {
+        "at": 1120,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads_before_empty.rs"
+      },
+      {
+        "at": 1121,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/empty_selector_tests.rs"
+      },
+      {
+        "at": 1122,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_before_empty.rs"
+      },
+      {
+        "at": 1123,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_empty.rs"
+      },
+      {
+        "at": 1124,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_before_empty.rs"
+      },
+      {
+        "at": 1125,
+        "path": "src/bounded_output/exclusive_debits.rs"
+      },
+      {
+        "at": 1126,
+        "path": "src/hir/ids/lowering_identity_tests.rs"
+      },
+      {
+        "at": 1127,
+        "path": "src/hir/owned_collection_record/identity_before.rs"
+      },
+      {
+        "at": 1128,
+        "path": "src/hir/resolve_expr/sort_keys/identity_before.rs"
+      },
+      {
+        "at": 1129,
+        "path": "src/hir/resolve_expr/sort_keys/identity_tests.rs"
+      },
+      {
+        "at": 1130,
+        "path": "src/hir/resolve_for/identity_before.rs"
+      },
+      {
+        "at": 1131,
+        "path": "src/hir/resolve_for_own/identity_before.rs"
+      },
+      {
+        "at": 1132,
+        "path": "src/source_reflows_merge/main_e177_overlay_pins_v9.rs"
+      },
+      {
+        "at": 1133,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_final_affine.rs"
+      },
+      {
+        "at": 1134,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads_before_final_affine.rs"
+      },
+      {
+        "at": 1135,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/final_affine.rs"
+      },
+      {
+        "at": 1136,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/final_affine_tests.rs"
+      },
+      {
+        "at": 1137,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_before_final_affine.rs"
+      },
+      {
+        "at": 1138,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_final_affine.rs"
+      },
+      {
+        "at": 1139,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_before_final_affine.rs"
+      }
+    ],
+    "rows": 1140
+  },
+  "closed_prior_sources": [
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+    "src/cleanup_plan/replay/branch_clone/direct.rs",
+    "src/cleanup_plan/replay/branch_clone/direct/before.rs",
+    "src/cleanup_plan/replay/branch_clone/direct/tests.rs",
+    "src/cleanup_plan/replay/compact_stage/main_f247_source_custody.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels/terminal_leaf.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/selected_labels.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/selected_labels/tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/before_comparison.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests.rs",
+    "src/cleanup_plan/replay/skeleton_work/isolated_paths.rs",
+    "src/cleanup_plan/replay/skeleton_work/isolated_paths/tests.rs",
+    "src/cleanup_plan/replay/skeleton_work/isolated_paths/tests/before.rs",
+    "src/source_reflows/main99f_controllers.rs",
+    "src/source_reflows/main_f247_controllers.rs",
+    "src/source_reflows_merge/main99f_inputs.rs",
+    "src/source_reflows_merge/next_big_batch_inputs.rs",
+    "src/workspace_graph/tests/core_attempt_trace.rs",
+    "src/workspace_graph/type_proof_tests.rs",
+    "tests/hir_module_boundaries.rs",
+    "tests/wasm/scalar_browser_ci_contract/before_3e66.rs",
+    "tests/wasm/scalar_browser_ci_contract/incoming_main3e66.rs",
+    "tests/workspace/semantic_graph.rs",
+    "tests/workspace/semantic_graph/source_inventory.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/inline.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/inline/tests.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/inline_status.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/inline_status/tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_paid_many.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_paid_many/empty_memo.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_scope_memo.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_selected_route.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/empty_memo.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/empty_memo/owned_tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/intern_arena.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/paid_route_tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf.rs",
+    "src/cleanup_plan/replay/factored/continuation_receiver.rs",
+    "src/cleanup_plan/replay/factored/oracle_hook.rs",
+    "src/source_reflows/semantic_receivers/status_inline.rs",
+    "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
+    "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+    "src/cleanup_plan.rs",
+    "src/cleanup_plan/replay/factored.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_lexical_successors.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_lexical_successors/compare.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/lexical_successors.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/census.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/frame_loop.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/frame_loop/before_borrowed_single.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/frame_loop/borrowed_single.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/frame_loop/borrowed_single/tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_lexical_cursor.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor.rs",
+    "src/cleanup_plan/replay/owned_suffix.rs",
+    "src/cleanup_plan/replay/owned_suffix/tests.rs",
+    "src/cleanup_plan/replay/skeleton_work/merge_keys_tests.rs",
+    "src/cleanup_plan/replay/skeleton_work/ordinary_dag.rs",
+    "src/workspace_graph/expected_projection/held_projection.rs",
+    "src/workspace_graph/static_text/scalar_helpers/capture_directory/tests.rs",
+    "src/workspace_graph/tests/builder_limits.rs",
+    "tests/workspace/semantic_graph/source_inventory_controls.rs",
+    "src/cleanup_plan/replay/expression_facts/arena.rs",
+    "src/cleanup_plan/replay/expression_facts/arena/prefix.rs",
+    "src/cleanup_plan/replay/expression_facts/arena/prefix/retained_before.rs",
+    "src/cleanup_plan/replay/expression_facts/arena/prefix/tests.rs",
+    "src/cleanup_plan/replay/expression_facts/arena/retained.rs",
+    "src/cleanup_plan/replay/expression_facts/arena/retained/tests.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_before.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_caller_before.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/retained_lookup.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_paid_many/compare.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/lexical_child_scratch/current_tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/lexical_child_scratch/matched.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/lexical_successors/frame_loop/before_arity_dispatch.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_pair_scope/lexical_cursor.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_pair_scope/mod.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_census.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_scope_tests.rs",
+    "src/source_reflows_merge/main_c883_inputs.rs",
+    "src/workspace_graph/shape_identity/before785.rs",
+    "src/workspace_graph/shape_identity/before_caller785.rs",
+    "src/workspace_graph/shape_identity/before_validation785.rs",
+    "src/workspace_graph/shape_identity/source_controls.rs",
+    "src/workspace_graph/shape_identity/tests.rs",
+    "src/workspace_graph/tests.rs",
+    "CHANGELOG.md",
+    "docs/ARCHITECTURE.md",
+    "docs/SUMMARY.md",
+    "src/cleanup_plan/replay.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/directory.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/directory/before_cursor.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/directory/before_cursor/qualification.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/directory/before_cursor/status_prefix.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/reused_cursor.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/reused_cursor/tests.rs",
+    "src/cleanup_plan/replay/merge_census.rs",
+    "src/cleanup_plan/replay/owned_suffix_878.rs",
+    "src/cleanup_plan/replay/owned_suffix_878_vector.rs",
+    "src/cleanup_plan/replay/skeleton_work.rs",
+    "src/cleanup_plan/replay/skeleton_work/merge_keys_878.rs",
+    "src/cleanup_plan/replay/skeleton_work/merge_search.rs",
+    "src/source_reflows.rs",
+    "src/source_reflows/main_e177_controllers.rs",
+    "src/source_reflows/main_e177_support.rs",
+    "src/source_reflows_merge.rs",
+    "src/source_reflows_merge/main67107_inputs.rs",
+    "src/source_reflows_merge/main_e177_inputs.rs",
+    "tests/workspace/pin_capture.rs",
+    "docs/evidence/projection-audit-scope-v1/legacy-inputs.tsv",
+    "src/cleanup_plan/replay/branch_clone/tests.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/paid_many/tests.rs",
+    "src/source_reflows/semantic_receivers.rs",
+    "tests/native/string_settlement/codec_allocation/codec808_frontier.rs",
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity.rs",
+    "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory_leaf_views.rs",
+    "crates/semaprax-native-rust-owned-data-package/src/project_publication/application.rs",
+    "src/bounded_output.rs",
+    "src/bounded_output/stage_debits.rs",
+    "src/cleanup/inventory_builder.rs",
+    "src/cleanup/schema_summary/tests.rs",
+    "src/cleanup_plan/renewal_profile/child_refusal.rs",
+    "src/cleanup_plan/renewal_profile/selected.rs",
+    "src/cleanup_plan/renewal_profile/selected_inline.rs",
+    "src/cleanup_plan/renewal_profile/selected_inline/append.rs",
+    "src/cleanup_plan/replay/allocation/oracle.rs",
+    "src/cleanup_plan/replay/allocation/oracle/zero_tests.rs",
+    "src/cleanup_plan/replay/allocation/tests/clone_cursor.rs",
+    "src/cleanup_plan/replay/branch_clone.rs",
+    "src/cleanup_plan/replay/branch_clone/before.rs",
+    "src/cleanup_plan/replay/branch_clone/before_inline.rs",
+    "src/cleanup_plan/replay/branch_clone/inline_tests.rs",
+    "src/cleanup_plan/replay/branch_clone/main8a/tests.rs",
+    "src/cleanup_plan/replay/branch_clone/production_capacity.rs",
+    "src/cleanup_plan/replay/branch_clone/production_capacity/before.rs",
+    "src/cleanup_plan/replay/branch_clone/production_capacity/tests.rs",
+    "src/cleanup_plan/replay/compact_stage.rs",
+    "src/cleanup_plan/replay/compact_stage/source_custody_main44.rs",
+    "src/cleanup_plan/replay/compact_stage/source_custody_main8a.rs",
+    "src/cleanup_plan/replay/compact_stage/source_custody_maina3.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/tests.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/regions_entry/tests.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/counter_before.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/counter_tests.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof/tests.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/component_before_prefix.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/status_before_prefix.rs",
+    "src/cleanup_plan/replay/factored/before_closure_invocation.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/arena_tests_tail.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_alias.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_arena.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_closure_receiver.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_empty/cached_tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_empty/closure_receiving.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_empty/ordered_weights.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_empty_signature.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_held.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_held_memo.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_inline_weighted.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_lexical_successors_methods.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_ordered.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_paid_many/terminal_leaf.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_receiving_layers.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_scratch.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_selected_labels_methods.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_selected_route_methods.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_targets.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_terminal_leaf.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels/lexical_finish.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/borrowed_labels_tail.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/closure_receiving/source.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/held_auth_tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/incoming_flat_targets.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_weighted.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_weighted/source.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_weighted/tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/lexical_child_scratch.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/lexical_child_scratch/before.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/lexical_child_scratch/tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/before_index.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/epsilon_alias.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/memo.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/source.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight/tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/main_unit_weight/unit_weight_tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/memo/retained/held_tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/memo/tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/amortized_source.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/receiver_tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/paid_many.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/paid_many/source.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/receiving_layer_tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/successor_targets.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/terminal_leaf_tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/tests.rs",
+    "src/cleanup_plan/replay/factored/compact_nodes/before/mod.rs",
+    "src/cleanup_plan/replay/factored/moderate_tests.rs",
+    "src/cleanup_plan/replay/factored/oracle_order/tests.rs",
+    "src/cleanup_plan/replay/factored/strategy.rs",
+    "src/cleanup_plan/replay/factored/strategy/tests.rs",
+    "src/cleanup_plan/replay/final_output/before.rs",
+    "src/cleanup_plan/replay/final_output/before_compaction.rs",
+    "src/cleanup_plan/replay/final_output/before_transfer_current.rs",
+    "src/cleanup_plan/replay/final_output/current_observation_tests.rs",
+    "src/cleanup_plan/replay/final_output/tests.rs",
+    "src/cleanup_plan/replay/flat_records/tests.rs",
+    "src/cleanup_plan/replay/inventory_coverage/typed_tests/initial_tests.rs",
+    "src/cleanup_plan/replay/lexical_cert/paid.rs",
+    "src/cleanup_plan/replay/lexical_replay/before_boundary.rs",
+    "src/cleanup_plan/replay/lexical_replay/before_status_scalar.rs",
+    "src/cleanup_plan/replay/live_oracle/source_custody/a.rs",
+    "src/cleanup_plan/replay/live_oracle/source_custody/a_tail.rs",
+    "src/cleanup_plan/replay/live_oracle/source_custody/b.rs",
+    "src/cleanup_plan/replay/live_oracle/source_custody/b_tail.rs",
+    "src/cleanup_plan/replay/live_oracle/source_custody/current_view.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/owned_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/source_custody.rs",
+    "src/cleanup_plan/replay/owned_suffix/before.rs",
+    "src/cleanup_plan/replay/path_array/funded_tests.rs",
+    "src/cleanup_plan/replay/path_array/main44/completed_tests.rs",
+    "src/cleanup_plan/replay/path_array/main44/current.rs",
+    "src/cleanup_plan/replay/path_array/main44/mod.rs",
+    "src/cleanup_plan/replay/path_array/main44/sequence/tests.rs",
+    "src/cleanup_plan/replay/path_array/main44/source_domain.rs",
+    "src/cleanup_plan/replay/path_array/main44/tests.rs",
+    "src/cleanup_plan/replay/path_array/main44/vector_tests.rs",
+    "src/cleanup_plan/replay/path_array/main696.rs",
+    "src/cleanup_plan/replay/path_array/main8a/completed_tests.rs",
+    "src/cleanup_plan/replay/path_array/main8a/mod.rs",
+    "src/cleanup_plan/replay/path_array/main8a/tests.rs",
+    "src/cleanup_plan/replay/path_array/sequence_minimum.rs",
+    "src/cleanup_plan/replay/path_array/tests.rs",
+    "src/cleanup_plan/replay/path_join.rs",
+    "src/cleanup_plan/replay/path_join/before_final_edge.rs",
+    "src/cleanup_plan/replay/path_join/before_path_boundary.rs",
+    "src/cleanup_plan/replay/path_join/before_receiving.rs",
+    "src/cleanup_plan/replay/path_join/before_singleton.rs",
+    "src/cleanup_plan/replay/path_join/before_state_move.rs",
+    "src/cleanup_plan/replay/path_join/boxed_states/before.rs",
+    "src/cleanup_plan/replay/path_join/singleton_tests.rs",
+    "src/cleanup_plan/replay/physical_budget.rs",
+    "src/cleanup_plan/replay/physical_budget/authentication.rs",
+    "src/cleanup_plan/replay/physical_budget/authentication/source.rs",
+    "src/cleanup_plan/replay/physical_budget/authentication/tests.rs",
+    "src/cleanup_plan/replay/physical_budget/setup.rs",
+    "src/cleanup_plan/replay/physical_storage.rs",
+    "src/cleanup_plan/replay/physical_storage/zero_tests.rs",
+    "src/cleanup_plan/replay/scalar_replay/before_certificate.rs",
+    "src/cleanup_plan/replay/scalar_replay/before_status_scalar.rs",
+    "src/cleanup_plan/replay/schema.rs",
+    "src/cleanup_plan/replay/schema/ordinary_tests.rs",
+    "src/cleanup_plan/replay/schema/paid_summary/original_receiver.rs",
+    "src/cleanup_plan/replay/schema/paid_summary/tests.rs",
+    "src/cleanup_plan/replay/selected_context/child/tests.rs",
+    "src/cleanup_plan/replay/selected_context/paid.rs",
+    "src/cleanup_plan/replay/selected_context/paid_before_children.rs",
+    "src/cleanup_plan/replay/selected_entry/tests/session_errors.rs",
+    "src/cleanup_plan/replay/selected_owner/paid.rs",
+    "src/cleanup_plan/replay/selected_owner/paid_before_children.rs",
+    "src/cleanup_plan/replay/selected_profile.rs",
+    "src/cleanup_plan/replay/selected_profile/paid.rs",
+    "src/cleanup_plan/replay/selected_profile/paid_before_children.rs",
+    "src/cleanup_plan/replay/selected_profile/paid_children/tests.rs",
+    "src/cleanup_plan/replay/semantic_refusal.rs",
+    "src/cleanup_plan/replay/semantic_refusal/tests.rs",
+    "src/cleanup_plan/replay/sequence_prefix/main24/tests.rs",
+    "src/cleanup_plan/replay/sequence_prefix/main8a/current.rs",
+    "src/cleanup_plan/replay/sequence_prefix/main8a/wrapper_context.rs",
+    "src/cleanup_plan/replay/sequence_prefix/main_c11/tests.rs",
+    "src/cleanup_plan/replay/sequence_prefix/main_c11/wrapper_context.rs",
+    "src/cleanup_plan/replay/sequence_vector/main_a3/path_array_source.rs",
+    "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/before.rs",
+    "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/source_custody.rs",
+    "src/cleanup_plan/replay/skeleton_work/merge_keys.rs",
+    "src/cleanup_plan/replay/skeleton_work/prefix_fusion.rs",
+    "src/cleanup_plan/replay/structural_control/blocks.rs",
+    "src/cleanup_plan/replay/structural_control/blocks_before_receipt.rs",
+    "src/cleanup_plan/replay/structural_control/calls.rs",
+    "src/cleanup_plan/replay/structural_control/calls/custody_tests.rs",
+    "src/cleanup_plan/replay/structural_maps/paid_reference.rs",
+    "src/cleanup_plan/replay/structural_maps/tests/paid_reference.rs",
+    "src/codegen/native_shared_bytes/closure.rs",
+    "src/diagnostic/before_writer.rs",
+    "src/format/comments/compare/tests.rs",
+    "src/hir/declaration_index/identity_payer.rs",
+    "src/hir/declaration_index/identity_reuse/resolver_held.rs",
+    "src/hir/declaration_index/legacy_drop/before.rs",
+    "src/hir/declaration_index/linked_owned_data.rs",
+    "src/hir/declaration_index/linked_owned_data/legacy_before.rs",
+    "src/hir/expr_nodes.rs",
+    "src/hir/function_value.rs",
+    "src/hir/ids/fixed_operation_tests.rs",
+    "src/hir/iterator_loop/renewal.rs",
+    "src/hir/lexical_exit.rs",
+    "src/hir/lexical_exit/latch_inline.rs",
+    "src/hir/lexical_exit/walk/tests.rs",
+    "src/hir/resolve_expr/byte_ancestry.rs",
+    "src/hir/resolve_expr_frame.rs",
+    "src/hir/resolve_program.rs",
+    "src/hir/resolve_program/tests/reservation_stages.rs",
+    "src/hir/resolve_program_methods.rs",
+    "src/hir/static_text.rs",
+    "src/hir/validation.rs",
+    "src/hir/validation/byte_traversal/nested/check.rs",
+    "src/hir/validation/byte_traversal/nested/index.rs",
+    "src/hir/validation/generic_template.rs",
+    "src/hir/workspace_link/legacy_nominal_before.rs",
+    "src/loan_plan/funded_flat/before_dense.rs",
+    "src/loan_plan/funded_flat/directories_tests.rs",
+    "src/loan_plan/funded_flat/fixture_before.rs",
+    "src/loan_plan/funded_flat/tests.rs",
+    "src/loan_plan/funded_flat/tests_before.rs",
+    "src/loan_plan/paid_candidate/retained/nested_tests.rs",
+    "src/loan_plan/paid_live.rs",
+    "src/loan_plan/paid_live/dense.rs",
+    "src/loan_plan/paid_live/dense/tests.rs",
+    "src/loan_plan/paid_live/funded_before.rs",
+    "src/loan_plan/paid_plan/retained_before_dense.rs",
+    "src/loan_plan/saved_planner.rs",
+    "src/loan_plan/tests.rs",
+    "src/loop_calls/byte_writer.rs",
+    "src/loop_calls/byte_writer/resolved.rs",
+    "src/loop_calls/byte_writer/resolved/selected_inline.rs",
+    "src/project/incremental.rs",
+    "src/project/json_codec.rs",
+    "src/project/json_codec/retained_receipt/tests.rs",
+    "src/project/mod.rs",
+    "src/source_reflows/factored_sources.rs",
+    "src/source_reflows/incoming090_semantic_receivers.rs",
+    "src/source_reflows/incoming21_semantic_receivers.rs",
+    "src/source_reflows/incoming67107_semantic_receivers.rs",
+    "src/source_reflows/main043.rs",
+    "src/source_reflows/main043/audit_0.rs",
+    "src/source_reflows/main043/audit_1.rs",
+    "src/source_reflows/main043/audit_2.rs",
+    "src/source_reflows/main043/audit_3.rs",
+    "src/source_reflows/main043/audit_4.rs",
+    "src/source_reflows/main043/audit_5.rs",
+    "src/source_reflows/main043/audit_6.rs",
+    "src/source_reflows/main043/audit_7.rs",
+    "src/source_reflows/main043/audit_8.rs",
+    "src/source_reflows/main043/semantic_receivers.rs",
+    "src/source_reflows/main_c883_receivers.rs",
+    "src/source_reflows/nested_scope.rs",
+    "src/source_reflows/semantic_receivers_main8a.rs",
+    "src/source_reflows/semantic_receivers_mainb80.rs",
+    "src/source_reflows_merge/current344.rs",
+    "src/source_reflows_merge/final_ready_inputs.rs",
+    "src/source_reflows_merge/main043_custody.rs",
+    "src/source_reflows_merge/main44_custody.rs",
+    "src/source_reflows_merge/main67107_inputs_tail.rs",
+    "src/source_reflows_merge/main7f8_source_inputs.rs",
+    "src/source_reflows_merge/main8a_custody.rs",
+    "src/source_reflows_merge/main8a_historical.rs",
+    "src/source_reflows_merge/main_eb2_inputs.rs",
+    "src/source_reflows_merge/maina3_custody.rs",
+    "src/source_reflows_merge/metadata_json.rs",
+    "src/source_reflows_merge/opt858_sequence_input.rs",
+    "src/source_reflows_merge/ordinary_plan_inputs.rs",
+    "src/source_reflows_merge/runtime_json.rs",
+    "src/source_verify/declaration.rs",
+    "src/source_verify/declaration/record_shape.rs",
+    "src/source_verify/declared_type/string_record.rs",
+    "src/source_verify/funding.rs",
+    "src/source_verify/funding/tests.rs",
+    "src/wasm/aggregate/semantic_work.rs",
+    "src/workspace_graph.rs",
+    "src/workspace_graph/cache_key_original.rs",
+    "src/workspace_graph/cold_canonical/before.rs",
+    "src/workspace_graph/constructor_failure/receiving/before.rs",
+    "src/workspace_graph/constructor_failure/receiving/typed/tests.rs",
+    "src/workspace_graph/diagnostics.rs",
+    "src/workspace_graph/diagnostics/constructor_report_before.rs",
+    "src/workspace_graph/expected_projection/borrowed_imports.rs",
+    "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/owned_growth_tests.rs",
+    "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/rename_tests.rs",
+    "src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs",
+    "src/workspace_graph/expected_projection/defaults/inline_tests.rs",
+    "src/workspace_graph/expected_projection/defaults/typed.rs",
+    "src/workspace_graph/expected_projection/import_stub/core_proofs/tests.rs",
+    "src/workspace_graph/expected_projection/import_stub/typed.rs",
+    "src/workspace_graph/expected_projection/private_layout/before_registry.rs",
+    "src/workspace_graph/expected_projection/private_layout/capacity_before.rs",
+    "src/workspace_graph/expected_projection/type_rewrite/receiving.rs",
+    "src/workspace_graph/expected_projection/uncached_peak.rs",
+    "src/workspace_graph/function_alias/before_core.rs",
+    "src/workspace_graph/function_alias/before_core/tests.rs",
+    "src/workspace_graph/identity_resolution/base/cache_billing/source_reference.rs",
+    "src/workspace_graph/initial_report/before.rs",
+    "src/workspace_graph/initial_report/before_mappers.rs",
+    "src/workspace_graph/source_schema/byte_helper.rs",
+    "src/workspace_graph/source_schema/nominal_context/main8a.rs",
+    "src/workspace_graph/source_schema/static_text/tests.rs",
+    "src/workspace_graph/source_schema/static_text/tests/paid_report.rs",
+    "src/workspace_graph/static_text/scalar_helpers.rs",
+    "src/workspace_graph/test_replay_context.rs",
+    "src/workspace_graph/validation/before_roots.rs",
+    "tests/agent_runtime_v1/execution_revision/workspace.rs",
+    "tests/doctor_production_provisioner_v1.rs",
+    "tests/documentation/held_auth_sources.rs",
+    "tests/offline_package/resolver_cli.rs",
+    "tests/owned_data/nested_owned_record_frontend_hir.rs",
+    "tests/owned_data/owned_leaf_vec.rs",
+    "tests/project/standard_library/application_json.rs",
+    "tests/project/standard_library/application_json/plan.rs",
+    "tests/project/standard_library/application_json/retained_receipt.rs",
+    "tests/quality_routing.rs",
+    "tests/source_locked_contracts.rs",
+    "tests/support/production_source_inventory.rs",
+    "tests/wasm/scalar_browser_ci_contract.rs",
+    "tests/wasm/scalar_browser_ci_contract/actual_67b.rs",
+    "tests/wasm/scalar_browser_ci_contract/browser_custody.rs",
+    "tests/wasm/scalar_browser_ci_contract/c11_before_2600.rs",
+    "tests/wasm/scalar_browser_ci_contract/historical_builder.rs",
+    "tests/wasm/scalar_browser_ci_contract/historical_main_7f8.rs",
+    "tests/wasm/scalar_browser_ci_contract/next_actual.rs",
+    "docs/evidence/main-e177-final-source-binding-20261017/current-projection-inputs.tsv",
+    "src/bounded_output/stage_debits/route_debits.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/matched_receiving_layers.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/matched_receiving_layers/memo.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/matched_receiving_layers/successor_targets.rs",
+    "src/cleanup_plan/replay/factored/compact_nodes/tests.rs",
+    "src/hir/ids/declaration_tag.rs",
+    "src/hir/ids/declaration_tag/before.rs",
+    "src/cleanup_plan/replay/path_array/sequence_minimum/optimized_tests.rs",
+    "src/source_reflows/semantic_receivers_main7c6.rs",
+    "src/source_reflows/semantic_receivers_main_afba.rs",
+    "src/source_reflows/semantic_receivers_main_f1.rs",
+    "src/source_reflows/semantic_receivers_maina3.rs",
+    "src/source_reflows/semantic_receivers_main44.rs",
+    "src/ast/program_source/decl_slices/before_alias.rs",
+    "src/ast/program_source/function_alias/presentation.rs",
+    "src/box_ops/wrappers.rs",
+    "src/hir/resolve_yield.rs",
+    "src/hir/identity_resolution/nominal.rs",
+    "src/loop_calls/byte_writer/source_index.rs",
+    "src/vec_ops/wrappers.rs",
+    "src/source_verify/generic_inference.rs",
+    "src/source_verify/hints.rs",
+    "src/source_verify/iterative.rs",
+    "src/source_verify/vec_field.rs",
+    "src/source_reflows_merge/runtime_json/tests.rs",
+    "src/cleanup_plan/renewal_profile/ordinary/direct_presence_tests.rs",
+    "src/cleanup_plan/replay/branch_clone/funded_tests.rs",
+    "src/cleanup_plan/replay/path_array/sequence_minimum/before.rs",
+    "src/cleanup_plan/replay/flat_records/tests/receiving_status_scalar.rs",
+    "src/cleanup_plan/replay/sequence_vector/before_funded.rs",
+    "src/cleanup_plan/replay/sequence_vector/funded_tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_empty.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/before_unit.rs",
+    "src/cleanup_plan/replay/factored/compact_nodes/before/canonical.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/empty_signature_tests.rs",
+    "src/cleanup_plan/replay/sequence_prefix/main24/wrapper_context.rs",
+    "src/source_verify/declaration/functions/old.rs",
+    "src/source_verify/declaration/functions/public_signature_before.rs",
+    "src/source_verify/iterative/enter/enter_before_components.rs",
+    "src/source_verify/iterative/enter/enter_before_extended.rs",
+    "src/source_verify/recovery_legacy/enter.rs",
+    "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs",
+    "src/ast/program_source/decl_slices/alias_tests.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/ordered_weights/source.rs",
+    "src/cleanup_plan/replay/factored/instrumentation.rs",
+    "src/cleanup_plan/replay/path_join/tests.rs",
+    "src/cleanup_plan/replay/sequence_prefix/main24/before.rs",
+    "src/cleanup_plan/replay/sequence_vector/observation_parity.rs",
+    "src/workspace_graph/constructor_failure/report/stages.rs",
+    "src/workspace_graph/constructor_failure/report/tests.rs",
+    "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/owned_growth.rs",
+    "src/workspace_graph/identity_resolution/base/cache_billing/main7f8_reader.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase_before.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase_tests.rs",
+    "src/cleanup_plan/replay/inventory_coverage/paid/queries.rs",
+    "src/cleanup_plan/replay/inventory_coverage/paid/shape.rs",
+    "src/cleanup_plan/replay/inventory_coverage/paid/supplemental.rs",
+    "src/cleanup_plan/replay/inventory_coverage/paid/supplemental/tests.rs",
+    "src/cleanup_plan/replay/inventory_coverage/paid_before.rs",
+    "src/cleanup_plan/replay/inventory_coverage/typed_tests/selected_family.rs",
+    "src/cleanup_plan/replay/lexical_replay/before_selected_control.rs",
+    "src/cleanup_plan/replay/lexical_replay/before_selected_path.rs",
+    "src/cleanup_plan/replay/path_join/selected.rs",
+    "src/cleanup_plan/replay/path_join/selected/append_before_formals.rs",
+    "src/cleanup_plan/replay/path_join/selected/execution.rs",
+    "src/cleanup_plan/replay/path_join/selected/finish.rs",
+    "src/cleanup_plan/replay/path_join/selected/history.rs",
+    "src/cleanup_plan/replay/path_join/selected/joins.rs",
+    "src/cleanup_plan/replay/path_join/selected/lexical_flow.rs",
+    "src/cleanup_plan/replay/path_join/selected/lookup.rs",
+    "src/cleanup_plan/replay/path_join/selected/queries.rs",
+    "src/cleanup_plan/replay/path_join/selected/reason.rs",
+    "src/cleanup_plan/replay/path_join/selected/receiving.rs",
+    "src/cleanup_plan/replay/path_join/selected/renewal.rs",
+    "src/cleanup_plan/replay/path_join/selected/strings.rs",
+    "src/cleanup_plan/replay/path_join/selected/tests/boundary.rs",
+    "src/cleanup_plan/replay/path_join/selected/tests/history.rs",
+    "src/cleanup_plan/replay/path_join/selected/tests/layout.rs",
+    "src/cleanup_plan/replay/path_join/selected/tests/lookup.rs",
+    "src/cleanup_plan/replay/path_join/selected/tests/mod.rs",
+    "src/cleanup_plan/replay/path_join/selected/tests/nominal.rs",
+    "src/cleanup_plan/replay/path_join/selected/tests/reason_before_path.rs",
+    "src/cleanup_plan/replay/path_join/selected/tests/renewal.rs",
+    "src/cleanup_plan/replay/path_join/selected/tests/session.rs",
+    "src/cleanup_plan/replay/path_join/selected/tests/strings.rs",
+    "src/cleanup_plan/replay/path_join/selected/tests/whole.rs",
+    "src/cleanup_plan/replay/path_join/selected/walk.rs",
+    "src/cleanup_plan/replay/scalar_replay/before_selected_control.rs",
+    "src/cleanup_plan/replay/scalar_replay/before_selected_path.rs",
+    "src/cleanup_plan/replay/scalar_replay/paid_before.rs",
+    "src/cleanup_plan/replay/scalar_replay/selected_family_tests.rs",
+    "src/cleanup_plan/replay/schema/selected_paid.rs",
+    "src/cleanup_plan/replay/schema/selected_paid/tests.rs",
+    "src/cleanup_plan/replay/selected_context/family.rs",
+    "src/cleanup_plan/replay/selected_entry/tests/paid/selected_control.rs",
+    "src/cleanup_plan/replay/selected_entry/tests/paid/selected_family.rs",
+    "src/cleanup_plan/replay/structural_control/selected.rs",
+    "src/cleanup_plan/replay/structural_control/selected/blocks.rs",
+    "src/cleanup_plan/replay/structural_control/selected/calls.rs",
+    "src/cleanup_plan/replay/structural_control/selected/cfg.rs",
+    "src/cleanup_plan/replay/structural_control/selected/entry.rs",
+    "src/cleanup_plan/replay/structural_control/selected/entry_before_dynamic.rs",
+    "src/cleanup_plan/replay/structural_control/selected/entry_before_formals.rs",
+    "src/cleanup_plan/replay/structural_control/selected/exits.rs",
+    "src/cleanup_plan/replay/structural_control/selected/helpers.rs",
+    "src/cleanup_plan/replay/structural_control/selected/place_before_formals.rs",
+    "src/cleanup_plan/replay/structural_control/selected/reason.rs",
+    "src/cleanup_plan/replay/structural_control/selected/status.rs",
+    "src/cleanup_plan/replay/structural_control/selected/tests/boundary.rs",
+    "src/cleanup_plan/replay/structural_control/selected/tests/children.rs",
+    "src/cleanup_plan/replay/structural_control/selected/tests/mod.rs",
+    "src/cleanup_plan/replay/structural_control/selected/tests/nominal.rs",
+    "src/cleanup_plan/replay/structural_control/selected/tests/renewal.rs",
+    "src/cleanup_plan/replay/structural_control/selected/tests/whole.rs",
+    "src/cleanup_plan/renewal_history.rs",
+    "src/cleanup_plan/replay/inventory_coverage.rs",
+    "src/cleanup_plan/replay/inventory_coverage/paid.rs",
+    "src/cleanup_plan/replay/inventory_coverage/typed_tests.rs",
+    "src/cleanup_plan/replay/lexical_replay.rs",
+    "src/cleanup_plan/replay/record_destructure/update.rs",
+    "src/cleanup_plan/replay/scalar_replay.rs",
+    "src/cleanup_plan/replay/selected_context.rs",
+    "src/cleanup_plan/replay/selected_context/child.rs",
+    "src/cleanup_plan/replay/selected_entry/tests/paid.rs",
+    "src/cleanup_plan/replay/selected_profile/paid_children.rs",
+    "src/cleanup_plan/replay/structural_control.rs",
+    "src/cleanup_plan/replay/structural_control/calls/cursor.rs",
+    "src/iterator_ops.rs",
+    "src/workspace_graph/source_schema/static_text/tests/before_static_lexical_selector.rs",
+    "src/cleanup_plan/renewal_profile/funded_receiving.rs",
+    "src/cleanup_plan/replay/expression_facts/arena/retained/into_tests.rs",
+    "src/cleanup_plan/replay/expression_facts/arena/retained_into.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests/receiving.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/retained_lookup_before_receiving.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase_before_receiving.rs",
+    "src/cleanup_plan/replay/ordinary_receiving.rs",
+    "src/cleanup_plan/replay/ordinary_receiving/caller_before.rs",
+    "src/cleanup_plan/replay/ordinary_receiving/tests.rs",
+    "src/cleanup_plan/replay/skeleton_work/receiving.rs",
+    "src/hir/lexical_exit/owner_funded_receiving.rs",
+    "src/literal_format/funded_receiving.rs",
+    "src/source_reflows_merge/main_e177_overlay_v2.rs",
+    "src/string_ops/conditions/funded_receiving.rs",
+    "src/hir/ids/declaration_backing_tests.rs",
+    "src/cleanup_plan/replay/factored/before_inline_singleton.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/inline_exit.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/inline_exit/census.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/lexical_successors/frame_loop/borrowed_single.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/terminal_leaf.rs",
+    "src/cleanup_plan/replay/factored/canonical_shared/inline_singleton/tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_paired.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value.rs",
+    "src/source_reflows_merge/runtime_json/sealed_io.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_flat_view.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_fused_flat.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/combined_pair_scope_tests.rs",
+    "src/ast/program_source/function_alias/scalar_signature.rs",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_block_before.rs",
+    "src/workspace_graph/constructor_failure/before_scalar_dispatch.rs",
+    "src/workspace_graph/expected_projection/borrowed_imports/typed/before_scalar_signature.rs",
+    "src/workspace_graph/expected_projection/borrowed_imports/typed/scalar_signature_tests.rs",
+    "src/ast/program_source/function_alias/before_string.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_retained_tail.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_before_tail.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/matched_tail_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_tail.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/source_format.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source.rs",
+    "src/source_reflows_merge/main_e177_historical_before_data.rs",
+    "src/source_reflows_merge/main_e177_historical_data.rs",
+    "src/source_reflows_merge/main_e177_historical_data_tests.rs",
+    "src/source_reflows_merge/main_e177_overlay_fragments_v3.rs",
+    "src/workspace_graph/expected_projection/borrowed_imports/typed/before_string_signature.rs",
+    "src/workspace_graph/expected_projection/borrowed_imports/typed/string_signature_tests.rs",
+    "src/workspace_graph/expected_projection/call_carriers.rs",
+    "src/workspace_graph/expected_projection/call_carriers_historical_tests.rs",
+    "src/workspace_graph/expected_projection/call_carriers_inverse.rs",
+    "src/workspace_graph/expected_projection/call_carriers_original.rs",
+    "src/workspace_graph/expected_projection/call_carriers_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_prepared_pairing.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_before_prepared_links.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/prepared_pairing_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links.rs",
+    "src/workspace_graph/expected_projection/call_carriers_before_directory.rs",
+    "src/workspace_graph/expected_projection/call_carriers_directory.rs",
+    "src/workspace_graph/expected_projection/call_carriers_directory_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_identity_prefix.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_before_identity.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_identity.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_reachable_primitives.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_reachable_before.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/reachable_pair_scope_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_event_prefix.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_shared_steps.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_shared_steps.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main99_pair_scope_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_event.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_before_event.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_before_event_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_event_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/shared_steps.rs",
+    "src/cleanup_plan/replay/lexical_replay/operand_tests/source.rs",
+    "src/workspace_graph/expected_projection/private_layout/capacity_tests/source.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_certified_heads.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_shared_runs.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_before_certified.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_shared_runs.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main7e_pair_scope_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_certified.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_before_certified.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/shared_steps/shared_boundaries.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/shared_steps/shared_boundaries/shared_runs.rs",
+    "src/workspace_graph/expected_projection/private_layout/registry/scratch_tests.rs",
+    "src/workspace_graph/cold_canonical/tests.rs",
+    "src/workspace_graph/expected_projection/cost.rs",
+    "src/bounded_output/stage_debits/route_debits/json_codec_probe.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_main001.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_main487.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_main_b692.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_pair_links.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_paired_tail.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/borrowed_reader_composition_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads_pair_links.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads_paired_tail.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_main001.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_main487.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_main_b692.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_pair_links.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_paired_tail.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main001_pair_scope_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main487_pair_scope_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main_b692_pair_scope_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/main_b692_paired_tails.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/pair_link_composition_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_tail_composition_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_pair_links.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_paired_tail.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_pair_links.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_paired_tail.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/constructor.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/fused_readers.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/json_ledger.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/tests/tail_source/prepared_links/reachable_primitives/paired_links/paired_tails.rs",
+    "src/source_reflows_merge/main_e177_overlay_compiled.rs",
+    "src/source_reflows_merge/main_e177_packet_lookup.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_empty_selector.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads_before_empty.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/empty_selector_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_before_empty.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_empty.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_before_empty.rs",
+    "src/test_allocation_observer/backing.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/before_final_affine.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/certified_heads_before_final_affine.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/final_affine.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/final_affine_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/lexical_cursor_before_final_affine.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/paired_value_before_final_affine.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner/shared_prefix_before_final_affine.rs",
+    "src/bounded_output/exclusive_debits.rs",
+    "src/hir/ids/lowering_identity_tests.rs",
+    "src/hir/owned_collection_record/identity_before.rs",
+    "src/hir/resolve_expr/sort_keys/identity_before.rs",
+    "src/hir/resolve_expr/sort_keys/identity_tests.rs",
+    "src/hir/resolve_for/identity_before.rs",
+    "src/hir/resolve_for_own/identity_before.rs",
+    "src/source_reflows_merge/main_e177_overlay_pins_v9.rs"
+  ],
+  "extension": {
+    "path": "docs/evidence/fmt-local-441-20261018/extension.json",
+    "length": 262076,
+    "sha256": "2af7299253e5cfb027186ba4fc151011a937214ff381c9267bfc11ef7d0003b6"
+  },
+  "logical_rows": 687,
+  "source_successor": {
+    "path": "docs/evidence/clippy-11a0-integration/inputs.json",
+    "length": 74925,
+    "sha256": "fd11fdc6330063376d95f97a77b3e4c83f75147bff01dd34118c48d34ff96211"
+  },
+  "previous_successor": {
+    "path": "docs/evidence/clippy-4a6eb/inputs.json",
+    "length": 47876,
+    "sha256": "5d8f589d5cfb817ebda43548e89b6d3cfacecee20659896ffd57f49e7499baeb"
+  }
+}

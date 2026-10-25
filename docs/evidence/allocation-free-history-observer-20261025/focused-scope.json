@@ -1,0 +1,32 @@
+{
+  "scope": "Actual main b7 compiler and test-only mutex warmup, full real current IR/types/defaults/verification. Private test visibility/registration/raw-input rebasing only. No runtime candidates or assertion edits.",
+  "base_head": "b7f586e82514aa13ce21fcc27a5b87e216c225be",
+  "registered": [
+    "cleanup_plan::replay::ordinary_plan_history::frontiers::preparation_preserves_an_existing_lease_and_its_complete_event",
+    "cleanup_plan::replay::ordinary_plan_history::tests::complete_old_plan_and_materialization_work_are_preserved",
+    "cleanup_plan::replay::ordinary_plan_history::tests::late_changes_terminal_and_multiplicity_fail_closed",
+    "cleanup_plan::replay::ordinary_plan_history::tests::distinct_segment_boundaries_order_by_complete_values",
+    "cleanup_plan::replay::ordinary_plan_history::tests::first_skeleton_refusal_and_sticky_zero_are_preserved",
+    "cleanup_plan::replay::ordinary_plan_history::tests::retained_unobserved_and_lent_owners_are_excluded",
+    "cleanup_plan::replay::ordinary_plan_history::tests::full_comparator_exact_one_short_and_zero_leave_no_live_backing",
+    "cleanup_plan::replay::ordinary_plan_history::tests::malformed_private_links_fail_without_recursive_drop_or_indexing",
+    "cleanup_plan::replay::ordinary_plan_history::tests::ordinary_default_retains_flat_verifier_and_candidate_selection_is_scoped",
+    "cleanup_plan::replay::ordinary_plan_history::owned_tests::original_owned_option_remains_an_exact_unadmitted_residual_control",
+    "cleanup_plan::replay::ordinary_plan_history::owned_tests::full_owned_transition_residual_and_scalar_corpus_keeps_flat_predecessor",
+    "cleanup_plan::replay::ordinary_plan_history::owned_tests::branch_and_ownership_mutations_keep_all_six_diagnostic_fields",
+    "cleanup_plan::replay::ordinary_plan_history::frontier_tests::each_new_frame_backing_and_post_swap_frontier_has_exact_short_zero_floor_and_drop_controls",
+    "cleanup_plan::replay::ordinary_plan_history::frontiers::initialization_tests::fresh_thread_trace_is_ready_without_prepare_and_keeps_exact_capacity",
+    "cleanup_plan::replay::ordinary_plan_history::frontiers::initialization_tests::inactive_frontier_callbacks_on_a_small_stack_allocate_nothing_and_take_no_lease",
+    "cleanup_plan::replay::ordinary_plan_history::frontiers::initialization_tests::a_foreign_inactive_thread_cannot_change_the_held_trace_or_repeated_snapshot"
+  ],
+  "adapted_files": [
+    "src/cleanup_plan.rs",
+    "src/cleanup_plan/replay.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/owned_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/frontier_tests.rs",
+    "src/cleanup_plan/replay/ordinary_plan_history/frontiers/initialization_tests.rs"
+  ]
+}

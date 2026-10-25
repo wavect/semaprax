@@ -89,13 +89,37 @@ pub(in crate::source_reflows_merge) fn input(source: &str, current: &str) -> Str
     super::super::compile_fixture_input(source, &normalized)
 }
 fn bundle(current: &str) -> String {
+    // Source-only prospective1011 epoch; fresh production must confirm these bytes.
+    let combined1011_physical_current = current;
+    let combined1011_epoch;
+    let current = if digest(current) == "efc915af4b2eb7e3d0746f7abe48b380a8db6862ae1f72016a75d4fc55db97d9" {
+        authenticate("docs/AGENT-SKILL-BUNDLE-V1.json", current,
+            include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"), 5544,
+            "efc915af4b2eb7e3d0746f7abe48b380a8db6862ae1f72016a75d4fc55db97d9");
+        let mut prior = current.to_owned();
+        replace(&mut prior, "sha256:d3fbde442377a3e9f72b4f05d96e33e8ceba46523a5f52a88c9e5044c3396ca4", "sha256:f961a332a6051ebb1f1600aa714a50efedf8769b5447daf73b141a5cfa1170d4", 1);
+        replace(&mut prior, "sha256:479123c567e380c66cc6618e88ed5b1ef8e430558e341a2cae95c6edf2ab86a7", "sha256:0fb7be8e37a7c95c33fb3b0af0f3bba7caf73981635901f3444753fb60650419", 1);
+        assert_eq!(prior.len(), 5544);
+        assert_eq!(digest(&prior), "b0a4f70186e44c1866f1e606c795bd4b2afe868c1839a9ad3f875ae4792ade15");
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        assert_eq!(prior, include_str!("../../e/b0a4f70186e44c1866f1e606c795bd4b2afe868c1839a9ad3f875ae4792ade15"));
+        assert_eq!(reader::read(&root.join("e/b0a4f70186e44c1866f1e606c795bd4b2afe868c1839a9ad3f875ae4792ade15"), 5544,
+            "b0a4f70186e44c1866f1e606c795bd4b2afe868c1839a9ad3f875ae4792ade15", 65536).unwrap(), prior);
+        combined1011_epoch = prior;
+        combined1011_epoch.as_str()
+    } else { current };
     // Source-only prospective epoch: the fresh public producer must confirm these bytes.
     let next_physical_current = current;
     let next_epoch;
     let current = if digest(current) == "b0a4f70186e44c1866f1e606c795bd4b2afe868c1839a9ad3f875ae4792ade15" {
+        if combined1011_physical_current == current {
         authenticate("docs/AGENT-SKILL-BUNDLE-V1.json", current,
             include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"), 5544,
             "b0a4f70186e44c1866f1e606c795bd4b2afe868c1839a9ad3f875ae4792ade15");
+        } else {
+            assert_eq!(digest(combined1011_physical_current), "efc915af4b2eb7e3d0746f7abe48b380a8db6862ae1f72016a75d4fc55db97d9");
+            assert_eq!(current, include_str!("../../e/b0a4f70186e44c1866f1e606c795bd4b2afe868c1839a9ad3f875ae4792ade15"));
+        }
         let mut prior = current.to_owned();
         replace(&mut prior, "sha256:f961a332a6051ebb1f1600aa714a50efedf8769b5447daf73b141a5cfa1170d4", "sha256:6d5fd3ef7155ad7c3c5df13a49e7f2176feeafc6e238e177d87fc16d0a31fc8f", 1);
         replace(&mut prior, "sha256:0fb7be8e37a7c95c33fb3b0af0f3bba7caf73981635901f3444753fb60650419", "sha256:ca7d65ae3e549d3465749be1d6deda0cf4a1a7c21d21d7b6804fd37842526e5a", 1);
@@ -538,12 +562,18 @@ fn bundle(current: &str) -> String {
         "bb1d335ef40cff2cf81d08ddcf0943b168d04721ee1e7de1b3d809d3b9600d2f"
     );
     assert_eq!(
-        std::fs::read_to_string(
-            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-                .join("docs/AGENT-SKILL-BUNDLE-V1.json")
-        )
-        .unwrap(),
-        next_physical_current,
+        if digest(combined1011_physical_current) == "efc915af4b2eb7e3d0746f7abe48b380a8db6862ae1f72016a75d4fc55db97d9" {
+            reader::read(&std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("docs/AGENT-SKILL-BUNDLE-V1.json"), 5544,
+                "efc915af4b2eb7e3d0746f7abe48b380a8db6862ae1f72016a75d4fc55db97d9", 65536).unwrap()
+        } else {
+            std::fs::read_to_string(
+                std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                    .join("docs/AGENT-SKILL-BUNDLE-V1.json")
+            )
+            .unwrap()
+        },
+        combined1011_physical_current,
     );
     before
 }

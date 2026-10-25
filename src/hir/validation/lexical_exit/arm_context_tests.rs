@@ -247,49 +247,25 @@ fn generic_result_and_borrowed_arm_release_keep_complete_function_publication() 
 
 /// The exact new test registration retains its complete fixed previous owner.
 /// Existing producer/control bodies and every old downstream target are kept.
-pub(in crate::hir::validation) fn prior_source(source: &str, current: &str) -> Option<String> {
-    use sha2::{Digest, Sha256};
-    let hash = |bytes: &[u8]| format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)));
-    let binding: serde_json::Value =
-        serde_json::from_str(include_str!("arm_context_inverse.json")).unwrap();
-    let rows = binding["rows"].as_array().unwrap();
-    assert_eq!(rows.len(), 1);
-    let row = rows
-        .iter()
-        .find(|row| row["source"].as_str() == Some(source))?;
-    if current.len() as u64 != row["current_length"].as_u64().unwrap()
-        || hash(current.as_bytes()) != row["current_sha256"].as_str().unwrap()
-    {
-        return None;
-    }
-    let mut previous = Vec::new();
-    let mut end = 0;
-    for edit in row["edits"].as_array().unwrap() {
-        let start = usize::try_from(edit["start"].as_u64().unwrap()).unwrap();
-        let next = usize::try_from(edit["end"].as_u64().unwrap()).unwrap();
-        assert!(end <= start && start <= next && next <= current.len());
-        assert_eq!(
-            &current.as_bytes()[start..next],
-            edit["after"].as_str().unwrap().as_bytes()
-        );
-        previous.extend_from_slice(&current.as_bytes()[end..start]);
-        previous.extend_from_slice(edit["before"].as_str().unwrap().as_bytes());
-        end = next;
-    }
-    previous.extend_from_slice(&current.as_bytes()[end..]);
-    assert_eq!(
-        previous.len() as u64,
-        row["before_length"].as_u64().unwrap()
-    );
-    assert_eq!(hash(&previous), row["before_sha256"].as_str().unwrap());
-    Some(String::from_utf8(previous).unwrap())
+fn prior_source(source: &str, current: &str) -> Option<String> {
+    crate::source_reflows_merge::Main44Fixture::prior_source(source, current)
 }
 
 #[test]
 fn complete_context_source_inverses_reject_drift_and_keep_whole_previous_owners() {
-    let source = "src/hir/validation/lexical_exit.rs";
-    let current = include_str!("../lexical_exit.rs");
-    {
+    for (source, current) in [
+        (
+            "src/hir/validation/lexical_exit.rs",
+            include_str!("../lexical_exit.rs"),
+        ),
+        (
+            "src/source_reflows_merge/main44_custody.rs",
+            include_str!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/source_reflows_merge/main44_custody.rs"
+            )),
+        ),
+    ] {
         let before = prior_source(source, current).expect("complete current owner");
         assert_ne!(before, current);
         assert!(
@@ -302,4 +278,40 @@ fn complete_context_source_inverses_reject_drift_and_keep_whole_previous_owners(
         assert!(prior_source(source, std::str::from_utf8(&drift).unwrap()).is_none());
     }
     assert!(prior_source("unlisted.rs", include_str!("arm_context_tests.rs")).is_none());
+    // Invoke the actual owning gate: new physical/compiled -> entire eb8
+    // registration predecessor -> unchanged Main44 -> unchanged #913 target.
+    let current = include_str!("../lexical_exit.rs");
+    let (view, edits) = crate::source_reflows_merge::Main44Fixture::closure_epoch(
+        "src/hir/validation/lexical_exit.rs",
+        "5610b10bf134638d5a30dbee84058895d40263d46ac07057f154d47ff8487c0e",
+        current,
+    );
+    let mut full = current.to_owned();
+    for (start, after, before) in edits.into_iter().rev() {
+        assert_eq!(full.get(start..start + after.len()), Some(after));
+        full.replace_range(start..start + after.len(), before);
+    }
+    assert_eq!(
+        full, view,
+        "returned complete inverse includes the new registration"
+    );
+    let complete =
+        crate::source_reflows::batch_913_entry("src/hir/validation/lexical_exit.rs", current)
+            .unwrap();
+    use sha2::{Digest, Sha256};
+    assert_eq!(complete.len(), 47202);
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(complete.as_bytes()))
+        ),
+        "ed95841d0c0bb977e8120046a0182ff2dcef8731f443d0d1c17af2233ce15bc4"
+    );
+    assert!(
+        std::panic::catch_unwind(|| crate::source_reflows::batch_913_entry(
+            "src/hir/validation/lexical_exit.rs",
+            &(current.to_owned() + " ")
+        ))
+        .is_err()
+    );
 }

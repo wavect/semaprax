@@ -187,18 +187,17 @@ fn exact_short_sticky_reset_acquisition_never_returns_partially_cleared_storage(
                 Backing::acquire(&program, function, &mut budget)
             });
             if let Ok(mut owner) = acquired {
-                let actual = with_backing(function, &program, &mut budget, &mut owner);
-                match actual {
-                    Ok(facts) => drop(facts),
-                    Err(first) => {
-                        let before = owner.ledger.first_refusal();
-                        let retry = with_backing(function, &program, &mut budget, &mut owner);
-                        assert!(retry.is_err());
-                        drop(retry);
-                        assert_eq!(owner.ledger.first_refusal(), before);
-                        drop(first);
-                        assert!(owner.empty.is_none());
-                    }
+                // Consume the Result and drop any successful Lease before
+                // borrowing the owner again for the sticky-refusal retry.
+                let first = with_backing(function, &program, &mut budget, &mut owner).err();
+                if let Some(first) = first {
+                    let before = owner.ledger.first_refusal();
+                    let retry = with_backing(function, &program, &mut budget, &mut owner);
+                    assert!(retry.is_err());
+                    drop(retry);
+                    assert_eq!(owner.ledger.first_refusal(), before);
+                    drop(first);
+                    assert!(owner.empty.is_none());
                 }
             }
         })

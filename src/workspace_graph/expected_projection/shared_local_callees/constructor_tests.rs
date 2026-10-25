@@ -153,10 +153,29 @@ fn constructors(resolved: &ResolvedProgram, expected: usize) {
     for function in &resolved.functions {
         // The real resolver already constructed both inventories. A callee is
         // retained by PropagatedCall, while storage origins remain independent.
-        assert_eq!(
-            function.cleanup.entry_state,
-            function.cleanup_plan.entry_state
-        );
+        // These fixtures have only scalar parameters. Check the complete
+        // entry states independently: inventory storage IDs and plan places
+        // deliberately have different representations.
+        assert!(function
+            .cleanup
+            .entry_state
+            .live_owned_parameters
+            .is_empty());
+        assert!(function
+            .cleanup
+            .entry_state
+            .conditional_owned_parameters
+            .is_empty());
+        assert!(function
+            .cleanup_plan
+            .entry_state
+            .live_owned_parameters
+            .is_empty());
+        assert!(function
+            .cleanup_plan
+            .entry_state
+            .conditional_owned_parameters
+            .is_empty());
         if function.id.as_str().starts_with("shared.") {
             // These real scalar-only constructors create no owned storage.
             // The inventory therefore adds no independent callee identity;

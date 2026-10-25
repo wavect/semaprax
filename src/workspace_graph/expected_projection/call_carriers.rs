@@ -257,25 +257,121 @@ fn target(
     admitted
 }
 
+#[cfg(test)]
+macro_rules! before_scratch_body {
+    ($program:ident, $authored:ident, $imports:ident) => {{
+        let mut proof = Proof::default();
+        proof.charge(&($program, $authored, $imports));
+        proof.bytes = proof.bytes.saturating_add(std::mem::size_of::<Proof>());
+        for function in &$program.functions {
+            proof.charge(&function);
+            // Generic owner bodies can be materialized repeatedly; no discount.
+            if !function.type_parameters.is_empty() {
+                continue;
+            }
+            let mut names = Names {
+                entries: [None; 128],
+                len: 0,
+            };
+            proof.charge(&names);
+            let mut complete = function.params.iter().all(|p| {
+                proof.charge(&p);
+                names.insert(&p.name, &mut proof)
+            });
+            for root in call_identity::roots(function) {
+                // Fixed walker scratch is retained for this complete pass, including
+                // failed proofs. Each visited formal/reference is charged too.
+                proof.bytes = proof
+                    .bytes
+                    .saturating_add(std::mem::size_of::<[Option<(&Expr, usize)>; 129]>());
+                complete &= call_identity::walk(root, &mut |expression| {
+                    proof.charge(&expression);
+                    match &expression.kind {
+                        ExprKind::Block { statements, .. } => statements.iter().all(|s| match s {
+                            Statement::Let { name, .. } | Statement::Assign { name, .. } => {
+                                names.insert(name, &mut proof)
+                            }
+                            Statement::For { item, .. } | Statement::ForOwn { item, .. } => {
+                                names.insert(item, &mut proof)
+                            }
+                            Statement::ForBorrow { item, index, .. } => {
+                                names.insert(item, &mut proof)
+                                    && index
+                                        .as_ref()
+                                        .is_none_or(|i| names.insert(&i.name, &mut proof))
+                            }
+                            _ => true,
+                        }),
+                        ExprKind::Closure { params, .. } => params.iter().all(|p| {
+                            proof.charge(&p);
+                            names.insert(&p.name, &mut proof)
+                        }),
+                        ExprKind::Match { arms, .. } => arms
+                            .iter()
+                            .all(|a| names.pattern(&a.pattern, 0, &mut proof)),
+                        _ => true,
+                    }
+                });
+            }
+            proof.charge(&complete);
+            if !complete {
+                continue;
+            }
+            let before = proof.roots;
+            proof.charge(&before);
+            for root in call_identity::roots(function) {
+                if !visit(
+                    root, false, true, 0, &names, $program, $authored, $imports, &mut proof,
+                ) {
+                    proof.roots = before;
+                    break;
+                }
+            }
+        }
+        proof
+    }};
+}
+
 fn count_linear(
     program: &Program,
     authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
     imports: bool,
 ) -> Proof {
+    #[cfg(test)]
+    if crate::workspace_graph::expected_projection::call_carriers::before_scratch_selected() {
+        return before_scratch_body!(program, authored, imports);
+    }
     let mut proof = Proof::default();
     proof.charge(&(program, authored, imports));
     proof.bytes = proof.bytes.saturating_add(std::mem::size_of::<Proof>());
+    // The complete array/aggregate is constructed once in this invocation.
+    // Its immutable Program loans can outlive a function iteration; only the
+    // packed active prefix is read, so stale tail slots grant no name authority.
+    proof.bytes = proof.bytes.saturating_add(
+        std::mem::size_of::<Names<'_>>()
+            + std::mem::size_of::<&mut Proof>()
+            + std::mem::size_of::<&Names<'_>>(),
+    );
+    let mut names = Names {
+        entries: [None; 128],
+        len: 0,
+    };
     for function in &program.functions {
         proof.charge(&function);
         // Generic owner bodies can be materialized repeatedly; no discount.
         if !function.type_parameters.is_empty() {
             continue;
         }
-        let mut names = Names {
-            entries: [None; 128],
-            len: 0,
-        };
-        proof.charge(&names);
+        // Reset scalar/actual-formal mutable and shared scope loans are paid
+        // before the first write. All existing per-node visit/insert/contains
+        // invoices remain complete; no old aggregate credit survives here.
+        proof.bytes = proof.bytes.saturating_add(std::mem::size_of::<(
+            [usize; 4],
+            [&mut Names<'_>; 2],
+            [&Names<'_>; 2],
+            [bool; 2],
+        )>());
+        names.len = 0;
         let mut complete = function.params.iter().all(|p| {
             proof.charge(&p);
             names.insert(&p.name, &mut proof)
@@ -423,3 +519,8 @@ pub(super) use joint::modular_census::count as count_modular;
 pub(super) use directory::indexed_modular_loan as modular_indexed_loan;
 #[cfg(test)]
 pub(super) use joint::modular_census::linear_loan as modular_linear_loan;
+
+#[cfg(test)]
+pub(super) fn before_scratch_selected() -> bool {
+    tests::scratch_before_selected()
+}

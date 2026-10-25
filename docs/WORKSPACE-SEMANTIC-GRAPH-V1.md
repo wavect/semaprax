@@ -928,3 +928,26 @@ measured full payment exact/one-short controls with first receipt, sticky zero
 and one probes, allocation-free retry, unchanged debits and complete Drop.
 `identity_resolution/tests/refusal_reference.rs` preserves the full historical
 threshold body verbatim as source provenance, not a current execution claim.
+
+The source-only ordinary call-census scratch-reuse candidate constructs the
+complete 128-slot Names aggregate once per invocation in each of the linear,
+indexed-directory, paired-joint and imported-modular owners. It resets the
+packed count/filter scalar before each eligible function. Prior tail slots are
+immutable loans into the same Program and are excluded by the active count;
+resetting neither widens capacity nor grants a prior function's shadowing fact.
+Overflow, incomplete traversal, generics, imports and rollback keep their
+original decisions. The full existing insert/contains/walk/lookup invoices
+remain reached; no completed proof tariff is removed after its producer ran.
+
+The once-paid constructor A is `sizeof(Names)+sizeof(&mut Proof)+sizeof(&Names)`.
+Each reset prepays R, the tuple of four usize scalars, two actual/formal mutable
+Names loans, two shared scope loans and two control booleans, before writing the
+count. For C eligible functions, the removed constructor contribution is
+`(C-1)*A-C*R`; empty and one-function inputs can therefore regress. This equation
+follows the eliminated per-function aggregate constructors, not a claim that a
+completed invoice is no longer retained. Each immediate-old complete loop
+remains a cfg(test) lexical expansion at its original signature, before new
+state/payment. Whole-source byte inverses and all four complete old bodies are
+retained. Authored controls compare every owner, capacity/incomplete/shadowing
+and import cases, complete paired/imported mode6 callers and full Drop. They
+are unexecuted; no positive application admission or physical heap claim follows.

@@ -1136,7 +1136,8 @@ pub(in super::super) fn expand_v16(
     super::expand_v11(before, policy, &logical_v12::expand_to_v11(&logical)?)
 }
 
-// V17 elides only V16's redundant one-key wrapper at the same admitted slots.
+// V17 elides the redundant row wrapper and codes compiled as exact integer0/1.
+// Both changes apply only at the same admitted source-row slots.
 // The complete public V16 reader and its wire cap remain unchanged above.
 pub(in super::super) const SCHEMA_V17: &str = "semaprax.finite-source-overlay-page.v17";
 fn positional_row(value: &Value) -> Result<&Vec<Value>, &'static str> {
@@ -1144,7 +1145,7 @@ fn positional_row(value: &Value) -> Result<&Vec<Value>, &'static str> {
     if items.len() != 4 && items.len() != 5 {
         return Err("v17 row arity");
     }
-    if !items[0].is_string() || !items[1].is_boolean() {
+    if !items[0].is_string() || !items[1].as_u64().is_some_and(|flag| flag <= 1) {
         return Err("v17 source/compiled type");
     }
     if !(items[2].is_array() || items[2].is_object()) || !items[3].is_array() {
@@ -1228,9 +1229,11 @@ fn transform_positional_rows(page: &mut Value, decode: bool) -> Result<(), &'sta
     fn literal(value: &mut Value, decode: bool, outer: bool) -> Result<(), &'static str> {
         if decode && value.is_array() {
             positional_row(value)?;
-            let Value::Array(items) = std::mem::take(value) else {
+            let Value::Array(mut items) = std::mem::take(value) else {
                 unreachable!()
             };
+            // The borrowed first pass already proved an exact0/1 integer.
+            items[1] = Value::Bool(items[1].as_u64().ok_or("v17 source/compiled type")? == 1);
             *value = Value::Object(
                 ROW_FIELDS
                     .iter()
@@ -1248,6 +1251,10 @@ fn transform_positional_rows(page: &mut Value, decode: bool) -> Result<(), &'sta
             let Value::Object(mut object) = std::mem::take(value) else {
                 unreachable!()
             };
+            let flag = object
+                .get_mut("compiled")
+                .ok_or("v17 source/compiled type")?;
+            *flag = Value::from(u64::from(flag.as_bool().ok_or("v17 source/compiled type")?));
             *value = Value::Array(
                 ROW_FIELDS
                     .iter()
@@ -1276,8 +1283,12 @@ fn expand_positional_to_v15(page: &Value) -> Result<Value, &'static str> {
     }
     visit_positional_rows(page, &mut |value| {
         if value.is_array() {
-            let overhead = row_overhead(positional_row(value)?.len())
+            let items = positional_row(value)?;
+            // false has5 bytes and true4; either integer flag has1 byte.
+            let boolean_width = if items[1].as_u64() == Some(0) { 4 } else { 3 };
+            let overhead = row_overhead(items.len())
                 .checked_add(b"{\"source_row\":[]}".len() - 2)
+                .and_then(|bytes| bytes.checked_add(boolean_width))
                 .ok_or("v17 expanded bound")?;
             expanded = expanded.checked_add(overhead).ok_or("v17 expanded bound")?;
             if expanded > SOURCE_CAP {

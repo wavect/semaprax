@@ -980,9 +980,17 @@ fn v17_preserves_entire_v15_opaque_metadata_and_one_level_fragments() {
     assert_eq!(expand_positional_to_v15(&wire).unwrap(), prior);
     assert!(wire["additions"][1].is_array());
     assert_eq!(
-        canonical(&wire).len() + 2 * 15,
+        canonical(&wire).len() + 2 * (15 + 4),
         canonical(&encode_v16(&full).unwrap()).len()
     );
+    assert_eq!(wire["additions"][1][1], 0);
+    for flag in [false, true] {
+        let mut logical = prior.clone();
+        logical["additions"][1]["compiled"] = flag.into();
+        let encoded = encode_v17_rows(&logical).unwrap();
+        assert_eq!(encoded["additions"][1][1].as_u64(), Some(u64::from(flag)));
+        assert_eq!(expand_positional_to_v15(&encoded).unwrap(), logical);
+    }
     for metadata in [
         json!(17),
         json!([false,{"source_row":null}]),
@@ -1019,12 +1027,20 @@ fn v17_refuses_closed_row_alias_types_and_inherited_amplification() {
     let prior = expand_positional_to_v15(&wire).unwrap();
     for row in [
         json!([]),
-        json!(["9:x", true, [], [], null, null]),
-        json!([false, true, [], []]),
-        json!(["9:x", 1, [], []]),
-        json!(["9:x", true, null, []]),
-        json!(["9:x", true, [], null]),
-        json!(["9:x", true, [], [], false]),
+        json!(["9:x", 0, [], [], null, null]),
+        json!([false, 0, [], []]),
+        json!(["9:x", true, [], []]),
+        json!(["9:x", false, [], []]),
+        json!(["9:x", 2, [], []]),
+        json!(["9:x", -1, [], []]),
+        json!(["9:x", 0.0, [], []]),
+        json!(["9:x", -0.0, [], []]),
+        json!(["9:x", 1.0, [], []]),
+        json!(["9:x", null, [], []]),
+        json!(["9:x", "0", [], []]),
+        json!(["9:x", 0, null, []]),
+        json!(["9:x", 0, [], null]),
+        json!(["9:x", 0, [], [], false]),
         json!({"source_row":["9:x",true,[],[]]}),
         prior["additions"][1].clone(),
     ] {
@@ -1032,6 +1048,12 @@ fn v17_refuses_closed_row_alias_types_and_inherited_amplification() {
         bad["additions"][1] = row;
         assert!(expand_positional_to_v15(&bad).is_err());
     }
+    // Parsing preserves JSON negative zero as a floating number; it is no integer alias.
+    let negative_zero: Value = serde_json::from_str(r#"["9:x",-0,[],[]]"#).unwrap();
+    assert!(negative_zero[1].as_u64().is_none());
+    let mut bad = wire.clone();
+    bad["additions"][1] = negative_zero;
+    assert!(expand_positional_to_v15(&bad).is_err());
     let mut bad = wire.clone();
     bad["unknown"] = json!(null);
     assert_eq!(expand_positional_to_v15(&bad).unwrap_err(), "v15 envelope");

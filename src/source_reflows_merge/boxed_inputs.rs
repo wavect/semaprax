@@ -89,13 +89,36 @@ pub(in crate::source_reflows_merge) fn input(source: &str, current: &str) -> Str
     super::super::compile_fixture_input(source, &normalized)
 }
 fn bundle(current: &str) -> String {
+    // Source-only prospective epoch: the fresh public producer must confirm these bytes.
+    let next_physical_current = current;
+    let next_epoch;
+    let current = if digest(current) == "b0a4f70186e44c1866f1e606c795bd4b2afe868c1839a9ad3f875ae4792ade15" {
+        authenticate("docs/AGENT-SKILL-BUNDLE-V1.json", current,
+            include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"), 5544,
+            "b0a4f70186e44c1866f1e606c795bd4b2afe868c1839a9ad3f875ae4792ade15");
+        let mut prior = current.to_owned();
+        replace(&mut prior, "sha256:f961a332a6051ebb1f1600aa714a50efedf8769b5447daf73b141a5cfa1170d4", "sha256:6d5fd3ef7155ad7c3c5df13a49e7f2176feeafc6e238e177d87fc16d0a31fc8f", 1);
+        replace(&mut prior, "sha256:0fb7be8e37a7c95c33fb3b0af0f3bba7caf73981635901f3444753fb60650419", "sha256:ca7d65ae3e549d3465749be1d6deda0cf4a1a7c21d21d7b6804fd37842526e5a", 1);
+        assert_eq!(prior.len(), 5544);
+        assert_eq!(digest(&prior), "0ce960e3b7ff74c435bc3d43126ab85a09c43e7eed125dbd9922d85bae89621b");
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        assert_eq!(reader::read(&root.join("e/0ce960e3b7ff74c435bc3d43126ab85a09c43e7eed125dbd9922d85bae89621b"), 5544,
+            "0ce960e3b7ff74c435bc3d43126ab85a09c43e7eed125dbd9922d85bae89621b", 65536).unwrap(), prior);
+        next_epoch = prior;
+        next_epoch.as_str()
+    } else { current };
     // One complete repair epoch before every unchanged historical GUIDE inverse.
     let repair_physical_current = current;
     let repair_epoch;
     let current = if digest(current) == "0ce960e3b7ff74c435bc3d43126ab85a09c43e7eed125dbd9922d85bae89621b" {
+        if next_physical_current == current {
         authenticate("docs/AGENT-SKILL-BUNDLE-V1.json", current,
             include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"), 5544,
             "0ce960e3b7ff74c435bc3d43126ab85a09c43e7eed125dbd9922d85bae89621b");
+        } else {
+            assert_eq!(digest(next_physical_current), "b0a4f70186e44c1866f1e606c795bd4b2afe868c1839a9ad3f875ae4792ade15");
+            assert_eq!(current, include_str!("../../e/0ce960e3b7ff74c435bc3d43126ab85a09c43e7eed125dbd9922d85bae89621b"));
+        }
         let mut prior = current.to_owned();
         replace(&mut prior, "sha256:6d5fd3ef7155ad7c3c5df13a49e7f2176feeafc6e238e177d87fc16d0a31fc8f", "sha256:9832e06cd6bd1cbe55d25009498f577f2cd1796843279b6f579d78f25bfb1a55", 1);
         replace(&mut prior, "sha256:ca7d65ae3e549d3465749be1d6deda0cf4a1a7c21d21d7b6804fd37842526e5a", "sha256:86c97a10aa779d1496a8f733ea651247af93704a7b18c9459be6e1dc7658c400", 1);
@@ -520,7 +543,7 @@ fn bundle(current: &str) -> String {
                 .join("docs/AGENT-SKILL-BUNDLE-V1.json")
         )
         .unwrap(),
-        repair_physical_current,
+        next_physical_current,
     );
     before
 }

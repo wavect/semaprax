@@ -14,6 +14,8 @@ fn current_source(path: &str, row: &serde_json::Value) -> String {
     let metadata = file.metadata().unwrap();
     assert!(metadata.is_file());
     let interop_path = path == Path::new("crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs");
+    let interop_next990 = interop_path && row["sha256"] == "e3af6b601614a9a7e902a718d6d9cca752a5d68d0e89862f28a4c6b39a6b6e98";
+    if interop_next990 { assert_eq!(length, 241368); }
     let interop_next977 = interop_path && row["sha256"] == "677cc0d000dfc7a179d0dc07956f9b3f9ca68c4ee2f14e1d134e1c474004f1b6";
     if interop_next977 { assert_eq!(length, 240728); }
     let interop_next = interop_path && row["sha256"] == "a056e62b5dc75528b2d19f5469b08ab831fbf48c2f8348154a3e360c341c5b4b";
@@ -22,7 +24,7 @@ fn current_source(path: &str, row: &serde_json::Value) -> String {
     let interop_prior_current = interop_path && row["sha256"] == "760872c3ea2924d4accd70e0b42b8573debaa312cfa4cd8a11cd61455b4701c5";
     let interop_current = interop_path && row["sha256"] == "22c4e696c83d5e53b8b2fdb5e0f5b00a7e6b40e9bb53fffbc0fc4e005152b257";
     if interop_current { assert_eq!(length, 239547); }
-    if interop_path && !interop_epoch && !interop_prior_current && !interop_current && !interop_next && !interop_next977 {
+    if interop_path && !interop_epoch && !interop_prior_current && !interop_current && !interop_next && !interop_next977 && !interop_next990 {
         assert_eq!(length, 235724);
         assert_eq!(row["sha256"], "23ea864c426901f3774b0a89bc3f2014e8cd9e784ccdc300f7718b2c174cd6b5");
     }
@@ -34,7 +36,7 @@ fn current_source(path: &str, row: &serde_json::Value) -> String {
         assert_eq!(length, 233409);
         235724
     } else { length };
-    let read_length = if interop_path { 240728 } else { read_length };
+    let read_length = if interop_path { 241368 } else { read_length };
     assert_eq!(metadata.len(), read_length as u64);
     let mut bytes = Vec::new();
     bytes.try_reserve_exact(read_length).unwrap();
@@ -45,6 +47,17 @@ fn current_source(path: &str, row: &serde_json::Value) -> String {
     if interop_path {
         assert_eq!(bytes.as_slice(), include_bytes!("../../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs").as_slice());
     }
+    if interop_path {
+        assert_eq!(bytes.len(), 241368);
+        assert_eq!(format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(&bytes))), "e3af6b601614a9a7e902a718d6d9cca752a5d68d0e89862f28a4c6b39a6b6e98");
+        if !interop_next990 {
+            let prior = include_bytes!("../../e/677cc0d000dfc7a179d0dc07956f9b3f9ca68c4ee2f14e1d134e1c474004f1b6");
+            assert_eq!(prior.len(), 240728);
+            assert_eq!(format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(prior))), "677cc0d000dfc7a179d0dc07956f9b3f9ca68c4ee2f14e1d134e1c474004f1b6");
+            bytes = prior.to_vec();
+        }
+    }
+    if !interop_next990 {
     if interop_path {
         assert_eq!(bytes.len(), 240728);
         assert_eq!(format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(&bytes))), "677cc0d000dfc7a179d0dc07956f9b3f9ca68c4ee2f14e1d134e1c474004f1b6");
@@ -152,6 +165,7 @@ fn current_source(path: &str, row: &serde_json::Value) -> String {
         bytes = original.to_vec();
         assert_eq!(std::fs::read(Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap().as_slice(), compiled.as_slice());
     }
+    }
     if path == Path::new("Cargo.toml") {
         // Acquire the complete physical/compiled dependency-update epoch first.
         assert_eq!(bytes.as_slice(), include_bytes!("../../Cargo.toml").as_slice());
@@ -182,6 +196,41 @@ fn current_source(path: &str, row: &serde_json::Value) -> String {
         "actual current source drift: {}",
         path.display()
     );
+    if interop_path {
+        let physical_path = Path::new(env!("CARGO_MANIFEST_DIR")).join(path);
+        let mut options = std::fs::OpenOptions::new();
+        options.read(true);
+        #[cfg(unix)] {
+            use std::os::unix::fs::OpenOptionsExt;
+            options.custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK | libc::O_CLOEXEC);
+        }
+        #[cfg(windows)] {
+            use std::os::windows::fs::OpenOptionsExt;
+            options.custom_flags(0x0020_0000); // FILE_FLAG_OPEN_REPARSE_POINT: inspect, never follow.
+        }
+        #[cfg(not(any(unix, windows)))]
+        panic!("native990 custody requires a nofollow regular-file reader");
+        let identity = |m: std::fs::Metadata| {
+            assert!(m.is_file() && !m.file_type().is_symlink());
+            #[cfg(unix)] {
+                use std::os::unix::fs::MetadataExt;
+                (m.dev(), m.ino(), m.mode(), m.len(), m.mtime(), m.mtime_nsec(), m.ctime(), m.ctime_nsec())
+            }
+            #[cfg(not(unix))] { (m.len(), m.created().unwrap(), m.modified().unwrap()) }
+        };
+        let file = options.open(&physical_path).unwrap();
+        let metadata = file.metadata().unwrap();
+        assert_eq!(metadata.len(), 241368);
+        let before_identity = identity(metadata);
+        assert_eq!(before_identity, identity(std::fs::symlink_metadata(&physical_path).unwrap()));
+        let mut later = Vec::new();
+        later.try_reserve_exact(241369).unwrap();
+        (&file).take(241369).read_to_end(&mut later).unwrap();
+        assert_eq!(later.len(), 241368);
+        assert_eq!(later.as_slice(), include_bytes!("../../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs").as_slice());
+        assert_eq!(before_identity, identity(file.metadata().unwrap()));
+        assert_eq!(before_identity, identity(std::fs::symlink_metadata(&physical_path).unwrap()));
+    }
     String::from_utf8(bytes).unwrap()
 }
 fn registration_is_test_only(

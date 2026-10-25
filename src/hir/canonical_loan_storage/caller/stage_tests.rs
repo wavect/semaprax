@@ -253,3 +253,18 @@ fn actual_shared_seal_stage_preserves_exact_short_zero_numeric_receipts_and_comp
     );
     assert_eq!(original, archive);
 }
+
+// The two complete stage-attribution controls above pin the immediate-before
+// receipt shape. Their bodies and assertions are retained verbatim; only these
+// two explicit local entry points select that authenticated complete receiver.
+// stream::tests::current_raw_and_shared_receiving_preserve_exact_short_zero_floor_sticky_and_full_drop
+// exercises the actual new receiver and sealing at its own complete invoices.
+fn prepare_with_comparison<'a>(
+    seed: &ConstructorSeed<'_>,
+    program: &'a ResolvedProgram,
+) -> Result<(Storage<'a>, Deferred<'a>), Diagnostic> {
+    stream::with_before(|| super::prepare_with_comparison(seed, program))
+}
+fn prepare_shared<'a>(seed: &ConstructorSeed<'a>) -> Result<std::rc::Rc<Storage<'a>>, Diagnostic> {
+    stream::with_before(|| super::prepare_shared(seed))
+}

@@ -118,6 +118,6 @@ pub(super) fn materialize<S>(
 
 #[cfg(test)]
 mod before;
-mod ordered_union;
+pub(in crate::loan_plan) mod ordered_union;
 #[cfg(test)]
 mod tests;

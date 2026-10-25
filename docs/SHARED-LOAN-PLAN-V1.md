@@ -600,3 +600,40 @@ sets can require more bytes; no application fit or exclusive failure attribution
 follows from source accounting. The source-only contract, exact whole-source
 inverses, four new owning selectors and bounded review are retained under
 `docs/evidence/dense-loan-live-scratch/`; actual qualification remains pending.
+
+
+### Independent canonical borrowed-row receiver (source candidate)
+
+The captured canonical-validation route independently repeats the complete
+current-function, candidate, CFG, alias, ownership, live, parent, overlap and
+terminal-repair derivation. Its private `canonical_sink::Source` owns that
+result for one receiving invocation. The attachment is compared against every
+schema, loan, endpoint and edge field in original order; it supplies no size,
+origin, candidate, pruning decision or lookup authority. Empty independent
+results compare the complete empty schema too. The original complete planner,
+materializer, canonical caller and append remain independently executable.
+
+The one-shot canonical receiver borrows the raw ordered rows and emits the
+existing final local/identity/live lookup tuples directly. The two original
+ordered-union vector producers and their full fees remain. No intermediate
+endpoint lookup vector or callback per endpoint is introduced. Lookup ambiguity
+is selected by the earliest original source ordinal, with unknown-loan refusal
+preceding duplicate liveness at that same occurrence. A mismatch remains in the
+original late Deferred frontier, behind earlier semantic and cleanup errors.
+
+New Source/Parts/closure/argument/Result, borrowed loan view, sticky-comparison,
+cursor, drain and receiving/drop roles are separately paid before formation by
+the captured CFG reservation. A separately paid checked pass sums independent selected edge-row lengths
+before one probe reservation. Selected unions are subsets of these rows; duplicate
+branch memberships can overreserve and all actual upper capacity is paid while
+old backing remains live. Empty/cold and branching inputs can cost more; no completed fee is refunded. Independent
+CFG scratch survives through receiving, so complete high-water and Drop must be
+observed. Draft origins retain the exact projection capacity established by
+clone_place/funded::resolve; arbitrary external drafts cannot enter this route.
+
+The source candidate includes complete old/current caller, field mutation,
+late-priority, work-cut, foreign-owner, exact/short/zero/floor/sticky and actual
+allocation-through-Drop controls. Historical stage-only invoice controls still
+execute their complete immediate-before receiver; corresponding new raw/shared
+controls independently measure the new route's invoices. These controls are
+unrun. No compiler, backend, application-fit or measured byte-gain claim follows.

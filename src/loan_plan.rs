@@ -9,8 +9,8 @@ use crate::hir::{
     ResolvedStatement, ResolvedType, ValueId,
 };
 
-pub(crate) use storage::PlannerError as FundedError;
-
+pub(crate) use {funded_flat::build_canonical, storage::PlannerError as FundedError};
+pub(crate) mod canonical_sink;
 pub(crate) fn build_plan_with_reservation(
     program: &ResolvedProgram,
     function: &ResolvedFunction,

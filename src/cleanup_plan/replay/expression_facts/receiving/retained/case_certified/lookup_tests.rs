@@ -482,6 +482,11 @@ fn complete_caller_without_skeleton_preflight_keeps_exact_root_refusal_and_drop(
         assert_eq!(metrics.allocated, metrics.freed);
     }
 
+    // Keep the natural one-row refusal above. The distinct original 32-row
+    // shipping subject reaches the fitting selector; a one-row function does
+    // not meet its status-directory threshold and must still enumerate.
+    let program = checked_program(32);
+    let function = program.functions.iter().find(|f| f.name == "main").unwrap();
     // The shipping route keeps its real64MiB payer and complete finalDrop.
     // New representation selection is observed separately from the old refusal.
     let report = NoPreflightReport {
@@ -1003,8 +1008,30 @@ fn default_factored_work_without_outer_preflight_is_paid_exact_short_and_dropped
             let mut work_spent = 0;
             let mut succeeded = false;
             let mut byte_refused = false;
+            let mut observed_reference = None;
+            let mut ordinary_paid = 0;
+            let mut reference_owner_fee = 0;
             let (_, metrics) = crate::test_allocation_observer::measure(|| {
-                let (result, refused, _) =
+                // Same finite independent reference protocol as the complete
+                // ordinary drivers above. Its two original receivers must not
+                // spend the live ordinary caller's unchanged 64 MiB account.
+                use crate::cleanup_plan::replay::allocation::{opt_in, OracleScope};
+                use crate::cleanup_plan::replay::workspace_oracle::{
+                    reference_work_bound, ReferenceReceiptOnUnwind,
+                };
+                let reference =
+                    OracleScope::open_with_work(1 << 28, reference_work_bound(RECEIVERS))
+                        .expect("finite independent no-preflight reference account");
+                // OracleScope uses only TLS Cells. The observed heap owner is
+                // the ordinary with_limit ledger's Rc<Budget>, whose allocation
+                // precedes its own account. Pay its exact typed backing FIRST
+                // from the finite fixture lease, even when no oracle starts.
+                reference_owner_fee = crate::bounded_output::test_budget_backing_bytes();
+                reference.lease().charge(reference_owner_fee)
+                    .expect("finite fixture ledger backing before Rc construction");
+                let trace = ReferenceReceiptOnUnwind::new(&reference, RECEIVERS);
+                let selected = opt_in(reference.lease()).expect("one no-preflight reference lease");
+                let (result, refused, paid) =
                     crate::bounded_output::with_limit_usage(64 * 1024 * 1024, || {
                         let mut budget = ReplayBudget::new();
                         budget.remaining = allowance;
@@ -1030,6 +1057,19 @@ fn default_factored_work_without_outer_preflight_is_paid_exact_short_and_dropped
                     });
                 succeeded = result.is_ok();
                 byte_refused = refused;
+                ordinary_paid = paid;
+                drop(selected);
+                drop(trace);
+                let reference = reference.finish();
+                assert!(reference.started <= RECEIVERS, "{reference:?}");
+                assert_eq!(reference.started, reference.completed);
+                assert!(
+                    reference.first_refusal.is_none()
+                        && reference.first_work_refusal.is_none()
+                        && reference.physical_failure.is_none(),
+                    "{reference:?}"
+                );
+                observed_reference = Some(reference);
                 if let Err(error) = &result {
                     assert_eq!(error.code, "SPX-H006");
                 }
@@ -1037,7 +1077,16 @@ fn default_factored_work_without_outer_preflight_is_paid_exact_short_and_dropped
             });
             assert!(!metrics.invalid && metrics.live == 0);
             assert_eq!(metrics.allocated, metrics.freed);
-            assert!(!byte_refused, "work refusal cannot become a byte refusal");
+            let reference = observed_reference.expect("complete no-preflight reference receipt");
+            eprintln!("LOOKUP_NO_PREFLIGHT_WORK old={old} allowance={allowance} success={succeeded} work_spent={work_spent} byte_refused={byte_refused} ordinary_paid={ordinary_paid} reference_fixture_owner_paid={reference_owner_fee} reference={reference:?} full_drop={metrics:?}");
+            assert!(!byte_refused, "work refusal cannot become a byte refusal: old={old} allowance={allowance} ordinary_paid={ordinary_paid} reference={reference:?}");
+            if succeeded {
+                assert!(
+                    reference.started > 0,
+                    "successful caller executes its independent reference"
+                );
+            }
+            assert!(metrics.allocated <= ordinary_paid.checked_add(reference.charged).unwrap());
             (succeeded, work_spent)
         };
         let (success, spent) = observe(MAX_REPLAY_WORK_UNITS);

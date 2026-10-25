@@ -286,6 +286,18 @@ pub(in crate::workspace_graph::expected_projection) fn estimates<'a>(
     Ok((full, retained))
 }
 
+
+// Test-only type widths of the complete historical paid receiver. The old
+// Census, Invoice calls, and forecast executable bodies above stay unchanged.
+#[cfg(test)]
+pub(in crate::workspace_graph::expected_projection) fn historical_read_bank_widths() -> [usize; 3] {
+    [
+        size_of::<Read<'_, '_>>(),
+        size_of::<&Invoice>(),
+        size_of::<Result<(), Failure>>(),
+    ]
+}
+
 #[cfg(any())]
 #[path = "paired_tests.rs"]
 pub(in crate::workspace_graph::expected_projection) mod tests;

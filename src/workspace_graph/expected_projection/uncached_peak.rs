@@ -35,6 +35,8 @@ pub(in crate::workspace_graph) fn uncached_output_layout_with_registry(
 ) -> Result<UncachedOutputLayout, Vec<Diagnostic>> {
     #[cfg(test)]
     let mut observation = super::super::forecast_observation::begin_pass(6);
+    #[cfg(test)]
+    observation.live_layout(programs.len());
     let _precharge = super::super::diagnostics::precharge_scope();
     // This pass is the refusing bound whenever it refuses. Never let an
     // earlier summed fallback's partial module sum describe it.
@@ -80,6 +82,22 @@ pub(in crate::workspace_graph) fn uncached_output_layout_with_registry(
         covered_functions = covered_functions
             .checked_add(retained.retained_scratch.functions)
             .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?;
+        #[cfg(test)]
+        observation.live_formula(
+            index,
+            &program.path,
+            [
+                full_costs[index],
+                retained_costs[index],
+                full.retained_hir,
+                retained.retained_hir,
+                scratch,
+                retained.retained_scratch.expressions,
+                retained.retained_scratch.maximum_function,
+                retained.retained_scratch.functions,
+                super::retained_scratch::RECEIVING,
+            ],
+        );
         super::super::diagnostics::record_precharge_module(&program.path, full_costs[index]);
     }
     order[..programs.len()].sort_unstable_by(|left, right| {
@@ -94,6 +112,16 @@ pub(in crate::workspace_graph) fn uncached_output_layout_with_registry(
         let path = programs[*index].path.as_str();
         #[cfg(test)]
         let retained_before = retained;
+        #[cfg(test)]
+        observation.live_attempt([
+            *index,
+            earlier,
+            retained,
+            full_costs[*index],
+            retained_costs[*index],
+            active_builder_limit(),
+            1,
+        ]);
         stage_sequential_refusal(path, earlier, retained, full_costs[*index], true);
         peak = peak.max(checked_usage(
             retained,
@@ -101,6 +129,16 @@ pub(in crate::workspace_graph) fn uncached_output_layout_with_registry(
             "builder_bytes",
             active_builder_limit(),
         )?);
+        #[cfg(test)]
+        observation.live_attempt([
+            *index,
+            earlier,
+            retained,
+            full_costs[*index],
+            retained_costs[*index],
+            active_builder_limit(),
+            0,
+        ]);
         stage_sequential_refusal(path, earlier, retained, retained_costs[*index], false);
         retained = checked_usage(
             retained,

@@ -163,6 +163,23 @@ fn changed_physical_frontier_keeps_sticky_floor_zero_and_malformed_cleanup() {
             new.paid,
         ] {
             for floor in [0, 1, bytes] {
+                if floor > bytes {
+                    // A floor cannot exceed the whole allowance. Keep this
+                    // rejected setup distinct from a paid sort refusal.
+                    let ((), refused, paid, receipt) = with_limit_usage_refusal(bytes, || {
+                        assert!(!crate::bounded_output::set_active_floor(floor));
+                        assert_eq!(crate::bounded_output::active_remaining(), Some(bytes));
+                        assert_eq!(
+                            crate::bounded_output::active_usable_remaining(),
+                            Some(bytes)
+                        );
+                        assert!(!crate::bounded_output::active_refused());
+                    });
+                    assert!(!refused);
+                    assert_eq!(paid, 0);
+                    assert!(receipt.is_none());
+                    continue;
+                }
                 let result = current(&paths, function, usize::MAX, bytes, floor, false).0;
                 if result.refused || result.refusal_spent {
                     assert!(result.sticky.is_some());

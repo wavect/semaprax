@@ -33,7 +33,7 @@ source=original.decode();assert source.count(old)==1
 current=source.replace(old,new,1)
 assert current.replace(new,old,1).encode()==original
 guard_helper=R/'docs/evidence/main-e177-final-source-binding-20261017/guard_payload.py';guard_raw=held(guard_helper,19163)
-assert sha(guard_raw)=='9843641ac3a744af6a704a58c1d55bf723786178a8d73849bc17087585e385e0'
+assert sha(guard_raw)=='5e7998e8c2f2d14cd107d2569726ff83194fe52bdbcbb93871f9707b7f85d8da'
 g=types.ModuleType('accepted_main043_strict_guard');g.__file__=str(guard_helper);g._AUTHENTICATED_PROGRAM=guard_raw
 exec(compile(guard_raw,str(guard_helper),'exec'),g.__dict__)
 m._next_raw_source=g.source

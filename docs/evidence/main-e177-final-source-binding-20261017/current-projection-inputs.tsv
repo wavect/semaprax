@@ -1494,6 +1494,7 @@ src/cleanup_plan/replay/oracle_closure_before/src__cleanup_plan__replay__factore
 src/cleanup_plan/replay/oracle_closure_before/src__cleanup_plan__replay__path_join__frontier_tests__custody.rs.txt
 src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_branch_frames.rs.txt
 tests/workspace/semantic_graph/host_pins.rs
+src/workspace_graph/forecast_observation.rs
 src/cleanup_plan/replay/expression_facts/arena/prefix/compact.rs
 src/cleanup_plan/replay/expression_facts/arena/prefix/compact_tests.rs
 src/cleanup_plan/replay/expression_facts/receiving/helpers/matching/compact.rs

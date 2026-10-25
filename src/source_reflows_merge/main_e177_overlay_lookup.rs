@@ -11,6 +11,7 @@ pub(crate) fn compiled(source: &str) -> Option<&'static str> {
         "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching/compact.rs" => Some(include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/helpers/matching/compact.rs")),
         "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching/compact_tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/helpers/matching/compact_tests.rs")),
         "tests/workspace/semantic_graph/host_pins.rs" => Some(include_str!("../../tests/workspace/semantic_graph/host_pins.rs")),
+        "src/workspace_graph/forecast_observation.rs" => Some(include_str!("../../src/workspace_graph/forecast_observation.rs")),
         "src/cleanup_plan/replay/transition.rs" => Some(include_str!("../../src/cleanup_plan/replay/transition.rs")),
         "src/workspace_graph/initial_report/build.rs" => Some(include_str!("../../src/workspace_graph/initial_report/build.rs")),
         "src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/path_join/main_single_groups/receiver_tests.rs")),

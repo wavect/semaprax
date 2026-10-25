@@ -89,11 +89,65 @@ pub(in crate::source_reflows_merge) fn input(source: &str, current: &str) -> Str
     super::super::compile_fixture_input(source, &normalized)
 }
 fn bundle(current: &str) -> String {
+    // One complete repair epoch before every unchanged historical GUIDE inverse.
+    let repair_physical_current = current;
+    let repair_epoch;
+    let current = if digest(current) == "0ce960e3b7ff74c435bc3d43126ab85a09c43e7eed125dbd9922d85bae89621b" {
+        authenticate("docs/AGENT-SKILL-BUNDLE-V1.json", current,
+            include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"), 5544,
+            "0ce960e3b7ff74c435bc3d43126ab85a09c43e7eed125dbd9922d85bae89621b");
+        let mut prior = current.to_owned();
+        replace(&mut prior, "sha256:6d5fd3ef7155ad7c3c5df13a49e7f2176feeafc6e238e177d87fc16d0a31fc8f", "sha256:9832e06cd6bd1cbe55d25009498f577f2cd1796843279b6f579d78f25bfb1a55", 1);
+        replace(&mut prior, "sha256:ca7d65ae3e549d3465749be1d6deda0cf4a1a7c21d21d7b6804fd37842526e5a", "sha256:86c97a10aa779d1496a8f733ea651247af93704a7b18c9459be6e1dc7658c400", 1);
+        assert_eq!(prior.len(), 5544);
+        assert_eq!(digest(&prior), "f4b75c854f4c04a841816bcad6c5972b330b794de644b547ca1ced533ac2345c");
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        assert_eq!(reader::read(&root.join("e/f4b75c854f4c04a841816bcad6c5972b330b794de644b547ca1ced533ac2345c"), 5544,
+            "f4b75c854f4c04a841816bcad6c5972b330b794de644b547ca1ced533ac2345c", 65536).unwrap(), prior);
+        repair_epoch = prior;
+        repair_epoch.as_str()
+    } else { current };
     let physical_current = current;
+    // Prospective source epoch only; fresh public production must confirm these bytes.
+    let incoming_b7_guide_epoch;
+    let current = if digest(current)
+        == "f4b75c854f4c04a841816bcad6c5972b330b794de644b547ca1ced533ac2345c"
+    {
+        if repair_physical_current == current {
+        authenticate(
+            "docs/AGENT-SKILL-BUNDLE-V1.json",
+            current,
+            include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"),
+            5544,
+            "f4b75c854f4c04a841816bcad6c5972b330b794de644b547ca1ced533ac2345c",
+        );
+        } else {
+            assert_eq!(digest(repair_physical_current), "0ce960e3b7ff74c435bc3d43126ab85a09c43e7eed125dbd9922d85bae89621b");
+            assert_eq!(current, include_str!("../../e/f4b75c854f4c04a841816bcad6c5972b330b794de644b547ca1ced533ac2345c"));
+        }
+        let mut prior = current.to_owned();
+        replace(
+            &mut prior,
+            "sha256:9832e06cd6bd1cbe55d25009498f577f2cd1796843279b6f579d78f25bfb1a55",
+            "sha256:46b6167a2937d423dea03a3e20d222f1a23942f8c83bf6a6a480d9473e5205f1",
+            1,
+        );
+        replace(
+            &mut prior,
+            "sha256:86c97a10aa779d1496a8f733ea651247af93704a7b18c9459be6e1dc7658c400",
+            "sha256:e12ce170f16c346621a997c7437721048d23b61746d67e71dde626033d5b8752",
+            1,
+        );
+        assert_eq!(prior.len(), 5544);
+        assert_eq!(digest(&prior), "41ff139de9ebc3d6b0b96f29811246df36051422db5bbc5715717e416599b71e");
+        incoming_b7_guide_epoch = prior;
+        incoming_b7_guide_epoch.as_str()
+    } else { current };
     let predicted_guide_epoch;
     let current = if digest(current)
         == "41ff139de9ebc3d6b0b96f29811246df36051422db5bbc5715717e416599b71e"
     {
+        if physical_current == current {
         authenticate(
             "docs/AGENT-SKILL-BUNDLE-V1.json",
             current,
@@ -101,6 +155,12 @@ fn bundle(current: &str) -> String {
             5544,
             "41ff139de9ebc3d6b0b96f29811246df36051422db5bbc5715717e416599b71e",
         );
+        } else {
+            assert_eq!(physical_current.len(), 5544);
+            assert_eq!(digest(physical_current), "f4b75c854f4c04a841816bcad6c5972b330b794de644b547ca1ced533ac2345c");
+            assert_eq!(current.len(), 5544);
+            assert_eq!(digest(current), "41ff139de9ebc3d6b0b96f29811246df36051422db5bbc5715717e416599b71e");
+        }
         let mut prior = current.to_owned();
         replace(
             &mut prior,
@@ -139,10 +199,14 @@ fn bundle(current: &str) -> String {
             );
         } else {
             assert_eq!(physical_current.len(), 5544);
+            if digest(physical_current) == "f4b75c854f4c04a841816bcad6c5972b330b794de644b547ca1ced533ac2345c" {
+                assert_eq!(physical_current.len(), 5544);
+            } else {
             assert_eq!(
                 digest(physical_current),
                 "41ff139de9ebc3d6b0b96f29811246df36051422db5bbc5715717e416599b71e"
             );
+            }
             assert_eq!(current.len(), 5544);
             assert_eq!(
                 digest(current),
@@ -186,7 +250,9 @@ fn bundle(current: &str) -> String {
             } else {
                 // The physical epoch was authenticated before its exact two-field inverse.
                 assert_eq!(physical_current.len(), 5544);
-                if digest(physical_current)
+                if digest(physical_current) == "f4b75c854f4c04a841816bcad6c5972b330b794de644b547ca1ced533ac2345c" {
+                    assert_eq!(physical_current.len(), 5544);
+                } else if digest(physical_current)
                     == "41ff139de9ebc3d6b0b96f29811246df36051422db5bbc5715717e416599b71e"
                 {
                     assert_eq!(physical_current.len(), 5544);
@@ -454,7 +520,7 @@ fn bundle(current: &str) -> String {
                 .join("docs/AGENT-SKILL-BUNDLE-V1.json")
         )
         .unwrap(),
-        physical_current,
+        repair_physical_current,
     );
     before
 }

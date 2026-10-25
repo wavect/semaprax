@@ -291,9 +291,9 @@ const FINAL_INGRESS: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/docs/evidence/ordinary-plan-final-ingress-20261017/current-inputs.json"
 ));
-const FINAL_INGRESS_LENGTH: usize = 786027;
+const FINAL_INGRESS_LENGTH: usize = 786289;
 const FINAL_INGRESS_SHA256: &str =
-    "2bde94e389c7264c3d4cec3a5926015ef88612e1bb9ad0254bab00c28cf2397a";
+    "31afd14c8fa4c8792aeaec9e58fea785d9414b151cc88812a4b936e1dd3502e2";
 const FINAL_INGRESS_CAP: usize = 2 * 1024 * 1024;
 // Both complete historical FINAL packets remain independent of the canonical
 // producer's next generation. Only the literal current six-source view below
@@ -306,9 +306,9 @@ const LIVE_INGRESS: [(&str, usize, &str); 6] = [
     ("src/cleanup_plan/replay.rs", 327551, "751c95561915a9b99ebec0bdf702dc9c7448d411f0f80ac58d244bc7df20dde5"),
     ("src/source_reflows_merge.rs", 102490, "62a9e3f89c8951eec518db386d3025e93d5e91dc42ca465bf9ef7f9bf52b1f86"),
     ("src/source_reflows_merge/main67107_inputs.rs", 49667, "555d676283e593101b9fc21b8e26f71b1b31b9567c52d3ca402077c4f8bf7fab"),
-    ("tests/hir_module_boundaries.rs", 159654, "7330b7d65a7cd0f31d48cf71704dde7878c253482a7a908c546c694d8d97b9f5"),
-    ("tests/workspace/semantic_graph/source_inventory.rs", 187869, "997f2f8cd2fec5d8e0d6d3dbd6be71dd388031a2ebd13445b58cbe61f9d38967"),
-    ("crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs", 235724, "23ea864c426901f3774b0a89bc3f2014e8cd9e784ccdc300f7718b2c174cd6b5"),
+    ("tests/hir_module_boundaries.rs", 160787, "4047802e5f7369b2adbc1311a0b84b29dd5fd4f21b3f74ca166664ebe9ed5186"),
+    ("tests/workspace/semantic_graph/source_inventory.rs", 252881, "7882a7be0525a22ecf35e4302790de34b50500161b4ac4dee602a8b8a3574e13"),
+    ("crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs", 239622, "a056e62b5dc75528b2d19f5469b08ab831fbf48c2f8348154a3e360c341c5b4b"),
 ];
 
 fn final_ingress_same_file(a: &std::fs::Metadata, b: &std::fs::Metadata) -> bool {

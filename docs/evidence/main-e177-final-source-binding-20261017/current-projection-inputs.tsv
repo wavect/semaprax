@@ -1546,3 +1546,8 @@ src/source_reflows_merge/main_e177_overlay_incoming064.json
 src/workspace_graph/expected_projection/call_carriers/closed_roots_inverse.json
 src/loan_plan/paid_materialize/immediate_before.rs.txt
 src/source_reflows_merge/main_e177_overlay_digests_v13/typed_refs_v18.rs
+src/hir/validation/scope_checkpoint/merge/moved_direct.rs
+src/hir/validation/scope_checkpoint/merge/moved_direct/before.rs
+src/hir/validation/scope_checkpoint/merge/moved_direct/tests.rs
+src/hir/validation/scope_checkpoint/merge/moved_direct/before.rs.txt
+src/hir/validation/scope_checkpoint/merge/moved_direct/source_inverse.json

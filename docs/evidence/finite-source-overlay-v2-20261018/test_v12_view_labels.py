@@ -48,9 +48,211 @@ def _pin_bytes(raw, expected):
     assert hashlib.sha256(raw).hexdigest() == expected['sha256']
     return raw
 
+_FRONT_POOL_SCHEMA = 'semaprax.source-edit-string-pool.v1'
+_FRONT_POOL_REF = '$source_edit_string_v1'
+_FRONT_SOURCE_CAP = 9_753_094
+
+def _front_pool_edits(document):
+    assert document['schema'] == 'semaprax.next-custody-four-fronts.v1'
+    for row in document['rows']:
+        yield row['target']['edits']
+        if row['middle'] is not None:
+            yield row['middle']['edits']
+    constructor = document['constructor_retention_903']
+    assert constructor['schema'] == 'semaprax.constructor-retention-903-source-fronts.v1'
+    for source in sorted(constructor['records']):
+        yield constructor['records'][source]['edits']
+    main8 = document['main8_raw_current_fronts']
+    assert main8['schema'] == 'semaprax.main5b4.current-raw-input-fronts.v1'
+    for row in main8['rows']:
+        yield row['inverse']
+
+def _front_pool_slots(document):
+    for group in _front_pool_edits(document):
+        assert type(group) is list
+        for edit in group:
+            if type(edit) is dict and set(edit) == {'start', 'end', 'after', 'before'}:
+                for key in ('after', 'before'):
+                    yield edit, key
+
+def _front_json_size(value):
+    # Count canonical UTF-8 output without forming an expanded serialization.
+    if type(value) is str:
+        size = 2
+        for char in value:
+            size += (2 if char in '\\"\b\f\n\r\t' else
+                     6 if ord(char) < 32 else len(char.encode()))
+        return size
+    if value is None:
+        return 4
+    if type(value) is bool:
+        return 4 if value else 5
+    if type(value) in (int, float):
+        return len(json.dumps(value, allow_nan=False).encode())
+    if type(value) is list:
+        return 2 + max(0, len(value) - 1) + sum(_front_json_size(v) for v in value)
+    assert type(value) is dict and all(type(k) is str for k in value)
+    return 2 + max(0, len(value) - 1) + sum(
+        _front_json_size(k) + 1 + _front_json_size(v) for k, v in value.items())
+
+def _front_unique_pairs(pairs):
+    result = {}
+    for key, value in pairs:
+        assert key not in result, 'duplicate source-front key'
+        result[key] = value
+    return result
+
+def _front_finite_float(text):
+    value = float(text)
+    assert value == value and abs(value) != float('inf'), 'nonfinite JSON number'
+    return value
+
+def _front_invalid_constant(_text):
+    raise AssertionError('nonfinite JSON constant')
+
+def _front_integer(text):
+    # serde_json represents JSON -0 as a floating negative zero, which cannot
+    # impersonate the nonnegative integer required in a reference slot.
+    return -0.0 if text == '-0' else int(text)
+
+def _front_scalar_text(value):
+    # serde_json accepts Unicode scalar text, not lone surrogate code units.
+    if type(value) is str:
+        try:
+            value.encode()
+        except UnicodeEncodeError:
+            raise AssertionError('non-scalar JSON text') from None
+    elif type(value) is dict:
+        for key, child in value.items():
+            _front_scalar_text(key)
+            _front_scalar_text(child)
+    elif type(value) is list:
+        for child in value:
+            _front_scalar_text(child)
+
+def _front_body_size(raw):
+    # Full JSON validation precedes this lexical scan. Preserve opaque number
+    # spellings rather than counting a language-specific float serialization.
+    whitespace = b' \t\r\n'
+    def skip(pos):
+        while pos < len(raw) and raw[pos] in whitespace:
+            pos += 1
+        return pos
+    def string_end(pos):
+        assert raw[pos] == 34
+        pos += 1
+        while raw[pos] != 34:
+            pos += 2 if raw[pos] == 92 else 1
+        return pos + 1
+    def value_end(pos):
+        if raw[pos] == 34:
+            return string_end(pos)
+        if raw[pos] not in b'[{':
+            while pos < len(raw) and raw[pos] not in b',}] \t\r\n':
+                pos += 1
+            return pos
+        depth = 0
+        while pos < len(raw):
+            char = raw[pos]
+            if char == 34:
+                pos = string_end(pos)
+                continue
+            depth += (1 if char in b'[{' else -1 if char in b']}' else 0)
+            pos += 1
+            if depth == 0:
+                return pos
+        raise AssertionError('incomplete body')
+    pos = skip(0)
+    assert raw[pos] == 123
+    pos = skip(pos + 1)
+    while raw[pos] != 125:
+        end = string_end(pos)
+        key = json.loads(raw[pos:end])
+        pos = skip(end)
+        assert raw[pos] == 58
+        pos = skip(pos + 1)
+        end = value_end(pos)
+        if key == 'body':
+            return end - pos
+        pos = skip(end)
+        if raw[pos] == 44:
+            pos = skip(pos + 1)
+    raise AssertionError('missing body')
+
+def _front_expand_pool(envelope, body_size):
+    assert set(envelope) == {'schema', 'strings', 'body'}
+    assert envelope['schema'] == _FRONT_POOL_SCHEMA
+    strings = envelope['strings']
+    assert type(strings) is list and all(type(s) is str and len(s.encode()) >= 64 for s in strings)
+    assert len(set(strings)) == len(strings), 'duplicate pool string'
+    document = envelope['body']
+    assert type(document) is dict
+    uses = [0] * len(strings)
+    first = 0
+    literals = {}
+    declared = set(strings)
+    expanded_size = body_size + 1
+    # Borrowed validation and complete accounting precede every substitution.
+    for edit, key in _front_pool_slots(document):
+        value = edit[key]
+        if type(value) is str:
+            assert value not in declared, 'literal/reference alias'
+            if len(value.encode()) >= 64:
+                literals[value] = literals.get(value, 0) + 1
+            continue
+        assert type(value) is dict and set(value) == {_FRONT_POOL_REF}
+        index = value[_FRONT_POOL_REF]
+        assert type(index) is int and 0 <= index < len(strings)
+        if uses[index] == 0:
+            assert index == first, 'noncanonical first use'
+            first += 1
+        uses[index] += 1
+        expanded_size += _front_json_size(strings[index]) - _front_json_size(value)
+    assert all(n >= 2 for n in uses), 'unused or singleton declaration'
+    assert all(n == 1 for n in literals.values()), 'repeated uninterned literal'
+    assert expanded_size <= _FRONT_SOURCE_CAP, 'expanded source-front limit'
+    for edit, key in _front_pool_slots(document):
+        if type(edit[key]) is dict:
+            edit[key] = strings[edit[key][_FRONT_POOL_REF]]
+    return document
+
+def _front_decode_bytes(raw):
+    assert type(raw) is bytes and len(raw) <= 2_097_152
+    # Preserve the independently executable legacy parser and return shape.
+    value = json.loads(raw)
+    if type(value) is dict and value.get('schema') == _FRONT_POOL_SCHEMA:
+        value = json.loads(raw, object_pairs_hook=_front_unique_pairs,
+                           parse_float=_front_finite_float, parse_int=_front_integer,
+                           parse_constant=_front_invalid_constant)
+        _front_scalar_text(value)
+        return _front_expand_pool(value, _front_body_size(raw))
+    assert type(value) is dict and value.get('schema') == 'semaprax.next-custody-four-fronts.v1'
+    return value
+
+def _front_encode_pool(document):
+    # This is a pure format operation, never a source admission or file writer.
+    assert _front_json_size(document) + 1 <= _FRONT_SOURCE_CAP
+    counts = {}
+    for edit, key in _front_pool_slots(document):
+        value = edit[key]
+        assert type(value) is str
+        if len(value.encode()) >= 64:
+            counts[value] = counts.get(value, 0) + 1
+    strings = [value for value, count in counts.items() if count >= 2]
+    indices = {value: index for index, value in enumerate(strings)}
+    body = copy.deepcopy(document)
+    for edit, key in _front_pool_slots(body):
+        if edit[key] in indices:
+            edit[key] = {_FRONT_POOL_REF: indices[edit[key]]}
+    envelope = dict(schema=_FRONT_POOL_SCHEMA, strings=strings, body=body)
+    assert _front_json_size(envelope) + 1 <= 2_097_152
+    wire = json.dumps(envelope, separators=(',', ':'), ensure_ascii=False, allow_nan=False).encode() + b'\n'
+    assert _front_decode_bytes(wire) == document
+    return wire
+
 def _front_data():
     raw = _pin_bytes(_source_bytes(_FRONT_PATH), _FRONT_PIN)
-    data = json.loads(raw)
+    data = _front_decode_bytes(raw)
     assert data['schema'] == 'semaprax.next-custody-four-fronts.v1'
     assert [(r['owner'], r['source']) for r in data['rows']] == _PAIRS
     legacy_raw = _pin_bytes(_source_bytes(_NEXT_PATH), data['original_packet'])
@@ -222,6 +424,123 @@ class ViewLabels(unittest.TestCase):
         self.assertEqual(_source_bytes(_NEXT_PATH), legacy_raw)
         for owner, source in _PAIRS:
             _acquire_next_current(owner, source, _source_bytes(source).decode())
+
+
+class SourceFrontPoolTests(unittest.TestCase):
+    @staticmethod
+    def fixture():
+        payload = 'é\\\"\x00' * 32
+        edit = dict(start=0, end=0, after=payload, before=payload)
+        return dict(
+            schema='semaprax.next-custody-four-fronts.v1',
+            rows=[dict(target=dict(edits=[edit]), middle=None)],
+            constructor_retention_903=dict(
+                schema='semaprax.constructor-retention-903-source-fronts.v1', records={}),
+            main8_raw_current_fronts=dict(
+                schema='semaprax.main5b4.current-raw-input-fronts.v1', rows=[]),
+            opaque={_FRONT_POOL_REF: 900, 'float': 1e-7})
+
+    def test_pool_whole_inverse_and_opaque_unknowns(self):
+        document = self.fixture()
+        before = json.dumps(document, separators=(',', ':'), ensure_ascii=False).encode()
+        wire = _front_encode_pool(document)
+        actual = _front_decode_bytes(wire)
+        self.assertEqual(actual, document)
+        self.assertEqual(json.dumps(actual, separators=(',', ':'), ensure_ascii=False).encode(), before)
+        self.assertEqual(_front_decode_bytes(before), document)
+        self.assertEqual(actual['opaque'], document['opaque'])
+        self.assertEqual(_front_json_size(document), len(before))
+        unknown = dict(start=0, end=0, after={_FRONT_POOL_REF: 8}, before='x', unknown=True)
+        document['rows'][0]['target']['edits'].append(unknown)
+        self.assertEqual(_front_decode_bytes(_front_encode_pool(document)), document)
+
+    def test_pool_rejects_malformed_aliases_and_duplicates(self):
+        envelope = json.loads(_front_encode_pool(self.fixture()))
+        bads = []
+        for index in (-1, True, 0.0, 1, '0', None):
+            bad = copy.deepcopy(envelope)
+            bad['body']['rows'][0]['target']['edits'][0]['after'] = {_FRONT_POOL_REF: index}
+            bads.append(bad)
+        for field, value in (('strings', []), ('strings', envelope['strings'] * 2),
+                             ('strings', [64]), ('strings', ['short']),
+                             ('schema', 'semaprax.source-edit-string-pool.unknown')):
+            bad = copy.deepcopy(envelope)
+            bad[field] = value
+            bads.append(bad)
+        bad = copy.deepcopy(envelope)
+        bad['body']['rows'][0]['target']['edits'][0]['after'] = envelope['strings'][0]
+        bads.append(bad)
+        bad = copy.deepcopy(envelope)
+        bad['unknown'] = True
+        bads.append(bad)
+        for bad in bads:
+            with self.subTest(bad=repr(bad)[:120]), self.assertRaises((AssertionError, KeyError, TypeError)):
+                _front_decode_bytes(json.dumps(bad).encode())
+        raw = _front_encode_pool(self.fixture())
+        negative_zero = raw.replace(b'"$source_edit_string_v1":0', b'"$source_edit_string_v1":-0', 1)
+        self.assertNotEqual(negative_zero, raw)
+        with self.assertRaises(AssertionError):
+            _front_decode_bytes(negative_zero)
+        duplicate = raw.replace(b'"schema":', b'"schema":"duplicate","schema":', 1)
+        with self.assertRaises(AssertionError):
+            _front_decode_bytes(duplicate)
+        for scalar in (b'NaN', b'Infinity', b'-Infinity', b'1e999', b'"\\ud800"'):
+            bad = raw.replace(b'1e-07', scalar)
+            with self.subTest(scalar=scalar), self.assertRaises(AssertionError):
+                _front_decode_bytes(bad)
+        for field in ('constructor_retention_903', 'main8_raw_current_fronts'):
+            bad = copy.deepcopy(envelope)
+            bad['body'][field]['schema'] = 'unknown'
+            with self.assertRaises(AssertionError):
+                _front_decode_bytes(json.dumps(bad).encode())
+
+    def test_pool_literal_repeat_and_first_use_are_canonical(self):
+        document = self.fixture()
+        envelope = json.loads(_front_encode_pool(document))
+        envelope['body']['rows'][0]['target']['edits'].append(
+            dict(start=0, end=0, after='y' * 64, before='y' * 64))
+        with self.assertRaises(AssertionError):
+            _front_decode_bytes(json.dumps(envelope).encode())
+        wire = _front_encode_pool(envelope['body'] | {'rows': document['rows']})
+        self.assertEqual(_front_decode_bytes(wire), document)
+        document['rows'][0]['target']['edits'].append(
+            dict(start=0, end=0, after='z' * 64, before='z' * 64))
+        envelope = json.loads(_front_encode_pool(document))
+        envelope['strings'].reverse()
+        for edit in envelope['body']['rows'][0]['target']['edits']:
+            for key in ('after', 'before'):
+                edit[key][_FRONT_POOL_REF] = 1 - edit[key][_FRONT_POOL_REF]
+        with self.assertRaises(AssertionError):
+            _front_decode_bytes(json.dumps(envelope).encode())
+
+    def test_pool_raw_body_numbers_and_cap_precede_expansion(self):
+        from unittest.mock import patch
+        envelope = json.loads(_front_encode_pool(self.fixture()))
+        raw = json.dumps(envelope, ensure_ascii=False, indent=2).encode()
+        raw = raw.replace(b'1e-07', b'1.000000000e-7')
+        body_size = _front_body_size(raw)
+        self.assertGreater(body_size, _front_json_size(envelope['body']))
+        self.assertEqual(_front_decode_bytes(raw)['opaque']['float'], 1e-7)
+        bound = body_size + 1
+        for edit, key in _front_pool_slots(envelope['body']):
+            index = edit[key][_FRONT_POOL_REF]
+            bound += _front_json_size(envelope['strings'][index]) - _front_json_size(edit[key])
+        with patch.dict(globals(), _FRONT_SOURCE_CAP=bound):
+            self.assertEqual(_front_decode_bytes(raw), self.fixture())
+        with patch.dict(globals(), _FRONT_SOURCE_CAP=bound - 1):
+            with self.assertRaises(AssertionError):
+                _front_decode_bytes(raw)
+        # A small legal wire cannot amplify past the original logical cap.
+        envelope['strings'] = ['x' * 65536]
+        edit = dict(start=0, end=0, after={_FRONT_POOL_REF: 0}, before={_FRONT_POOL_REF: 0})
+        envelope['body']['rows'][0]['target']['edits'] = [copy.deepcopy(edit) for _ in range(80)]
+        raw = json.dumps(envelope, separators=(',', ':')).encode()
+        self.assertLess(len(raw), 2_097_152)
+        with self.assertRaises(AssertionError):
+            _front_decode_bytes(raw)
+        self.assertIsInstance(envelope['body']['rows'][0]['target']['edits'][0]['after'], dict)
+        with self.assertRaises(AssertionError):
+            _front_decode_bytes(b' ' * 2_097_153)
 
 
 if __name__ == '__main__':

@@ -217,3 +217,62 @@ source/archive reads, late physical reauthentication, mutations, symlink
 refusals, six roots and hostile controls remain live and unchanged. The complete
 original FINAL checker remains independently executable through its original
 selector. Source-only checks do not establish runtime gain or FINAL acceptance.
+
+## Source-front edit-string pool V1
+
+OPT#931 adds an opt-in physical transport for the existing complete
+`semaprax.next-custody-four-fronts.v1` DATA object. Its closed outer object has
+exactly `schema: "semaprax.source-edit-string-pool.v1"`, `strings` and `body`.
+`body` retains the entire original object and all unknown metadata. The old
+unenveloped parser remains independently executable. This is separate from
+the page codecs above: it changes no policy, source role, archive authority,
+logical source admission, compiler semantics or application resource limit.
+
+Only exact four-key edit objects (`start`, `end`, `after`, `before`) in these
+existing domains may pool their `after` and `before` string payloads:
+
+- top-level `rows`, in original order, visiting `target.edits` then non-null
+  `middle.edits`;
+- `constructor_retention_903.records`, in lexical source-key order;
+- `main8_raw_current_fronts.rows`, in original order, visiting `inverse`.
+
+The complete new body requires the original top-level schema, both existing
+nested schema strings, and their existing arrays/records. A top-level row
+requires `target` and `middle`; every visited stage/record requires its edit
+array. Edit objects with additional or missing fields are opaque. Other nested
+metadata is never searched for references. The traversal changes no source
+vector, row, inverse, target, multiplicity or unknown field.
+
+A payload reference is exactly `{"$source_edit_string_v1": index}` with a
+nonnegative integer index. Booleans, floating representations and negative
+zero cannot act as indices. The pool consists of unique Unicode scalar strings
+of at least 64 UTF-8 bytes. Every declaration must occur at least twice, in
+exact first-use order across the domains above, visiting `after` before
+`before`. All repeated eligible strings must be interned; singleton strings
+remain literal. Unused, duplicate or single-use declarations, literal/reference
+aliases, wrong tags, extra reference fields and invalid indices refuse. Pool
+entries are strings, so references cannot nest or form cycles. Reference-shaped
+values in opaque metadata remain untouched. New envelopes reject duplicate
+JSON keys, nonfinite numbers and non-scalar text without changing the old
+parser branch.
+
+The physical wire remains at most 2,097,152 bytes. Before copying any expanded
+payload, both readers validate every reference and check a common wire-derived
+expansion bound against the existing 9,753,094-byte held-source limit. Start
+with the byte length of the complete raw `body` JSON span plus one newline;
+for each reference add the canonical UTF-8 JSON string length and subtract the
+canonical ASCII reference-object length. Checked arithmetic is required. This
+conservatively bounds textual reference expansion while preserving all other
+raw JSON bytes. Whitespace or escaped reference-key spellings may increase the
+bound; they never reduce it. Opaque numeric spelling is counted from the actual
+wire, avoiding differences between Python and Rust float serializers. The
+bound is not a claim about reserialization size in either language.
+
+Only after this complete preflight may readers substitute payloads and enter
+all original source-front checks. Physical authentication precedes decoding;
+the original final source/DATA rereads remain live. Encoding must prove the
+complete original logical object is recovered, including opaque fields. The
+owning Python controls and test-only Rust module cover inverse equality,
+canonical declarations, malformed references, opaque fallback, raw number
+spelling and exact/short/amplification limits. Source-only code and size
+predictions establish no executable qualification or application improvement.

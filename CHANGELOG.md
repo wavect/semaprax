@@ -1,3 +1,10 @@
+## Private ordered moved-place scope joins (#936)
+
+- Replace temporary owned key sets with separately funded ordered borrowed
+  cursors, preserving final maps, availability joins and all other builders.
+- Retain full immediate producer/payer and source inverses; authored whole
+  caller gains, cold loss and resource-frontier controls remain unqualified.
+
 ## Bounded repeated source-view labels (2026-10-25)
 
 - Encode repeated packed view labels through a bounded V11 dictionary while retaining every old source row, view, unknown field and fragment edge. Keep the 262144-byte wire cap and bound aggregate materialized label bytes before copying.

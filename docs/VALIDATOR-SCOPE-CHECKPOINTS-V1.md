@@ -162,3 +162,27 @@ following the existing expression depth-oracle convention. All original bodies,
 fixtures, diagnostic and identity assertions remain. This is test-oracle stack
 provisioning only; production admission depth, stack behavior and support claims
 are unchanged and still require independent qualification.
+
+## Ordered moved-place output (#936)
+
+Conditional and branch joins may replace only the temporary owned moved-key
+set with two independently ordered borrowed map cursors. Every missing branch
+state is Available; equal keys consume both inputs, each other step consumes
+one, and each non-Available result clones its retained output path once. This
+preserves the original lexicographic final map and Availability::join.
+
+The new root/count/arithmetic/iterator/output/clone/insert carriers are prepaid
+before formation. The distinct join-output tariff retains final map nodes and
+the original conservative path payload upper. Only the physically absent
+temporary key-set nodes are omitted; no aggregate old debit is subtracted.
+The availability-copy moved() tariff remains byte-for-byte unchanged, as do
+definitely-partial candidate/prefix builders, loan unions, scope COW bindings
+and commit/drop ordering. Inputs remain immutable through full result staging.
+
+The complete immediate paid join functions and original generic producer stay
+independently executable under a panic-safe test-only caller selection. Exact
+source/inverse, state/empty/interleaved/prefix, full scope/full HIR caller and
+exact/short/zero/floor/sticky/Drop controls are authored only. Strict many-field
+allocation AND invoice gates must pass; a paid one-field cold loss remains
+visible. No measured gain, capacity rebate or application recovery is claimed
+by this source-only implementation.

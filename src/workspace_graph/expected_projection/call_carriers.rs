@@ -7,6 +7,7 @@ use crate::ast::{
 };
 use std::collections::BTreeMap;
 
+#[path = "call_carriers/closed_roots.rs"]
 mod closed_roots;
 
 #[derive(Default)]

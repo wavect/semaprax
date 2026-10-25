@@ -743,7 +743,7 @@ fn v15_actual_overcap_frontier_and_current_whole_page_keep_python_rust_parity() 
     let current_raw=include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/finite-source-overlay-v2-20261018/page.json"));
     let current:Value=serde_json::from_slice(current_raw).unwrap();
     assert_eq!(canonical(&current).as_slice(), current_raw.as_slice());
-    let current = retain_v16_page_for_v17(current);
+    let current = retain_v16_page_for_v17(retain_current_v17_for_v18(current));
     if current["schema"]==SCHEMA_V16 { verify_current_v16(&current); }
     else { verify_current_v15(&current); }
 }
@@ -905,7 +905,7 @@ fn v16_current_whole_page_and_python_rust_transport_are_equal() {
     ));
     let current: Value = serde_json::from_slice(raw).unwrap();
     assert_eq!(canonical(&current).as_slice(), raw.as_slice());
-    let current = retain_v16_page_for_v17(current);
+    let current = retain_v16_page_for_v17(retain_current_v17_for_v18(current));
     if current["schema"] == SCHEMA_V16 {
         verify_current_v16(&current);
     } else {
@@ -1121,6 +1121,7 @@ fn v17_keeps_complete_overcap_v16_preimage_and_python_rust_parity() {
     ));
     let current: Value = serde_json::from_slice(raw).unwrap();
     assert_eq!(canonical(&current).as_slice(), raw.as_slice());
+    let current = retain_current_v17_for_v18(current);
     if current["schema"] == SCHEMA_V17 {
         verify_current_v17(&current);
     } else {
@@ -1295,17 +1296,19 @@ sys.stdout.buffer.write(n['canonical']({'encoded':wire,'v15':v15,'refused':refus
 }
 #[test]
 fn v18_complete_current_page_and_python_rust_transport_match() {
-    let raw = include_bytes!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/docs/evidence/finite-source-overlay-v2-20261018/page.json"
-    ));
+    let raw = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"),
+        "/docs/evidence/finite-source-overlay-v2-20261018/page.json"));
     let current: Value = serde_json::from_slice(raw).unwrap();
-    assert_eq!(canonical(&current).as_slice(), raw.as_slice());
+    assert_eq!(canonical(&current).as_slice(),raw.as_slice());
+    verify_current_v18(&current);
+}
+pub(in super::super::super) fn verify_current_v18(current: &Value) {
+    authenticate_current_page_for_retained_controls(current);
     let logical = if current["schema"] == typed_refs_v18::SCHEMA_V18 {
-        typed_refs_v18::expand_to_v15(&current).unwrap()
+        typed_refs_v18::expand_to_v15(current).unwrap()
     } else {
         assert_eq!(current["schema"], SCHEMA_V17);
-        expand_positional_to_v15(&current).unwrap()
+        expand_positional_to_v15(current).unwrap()
     };
     let v12 = expand_to_v12_logical(
         &expand_to_v13_logical(&expand_to_v14_logical(&logical).unwrap()).unwrap(),
@@ -1320,11 +1323,11 @@ fn v18_complete_current_page_and_python_rust_transport_match() {
         canonical(&logical)
     );
     if current["schema"] == typed_refs_v18::SCHEMA_V18 {
-        assert_eq!(canonical(&current), canonical(&wire));
+        assert_eq!(canonical(current), canonical(&wire));
     }
     let before = super::super::super::super::packet_before_overlay();
     let (policy, _) = super::super::super::load().unwrap();
-    let original = super::super::super::compose_values(before.clone(), &policy, &current).unwrap();
+    let original = super::super::super::compose_values(before.clone(), &policy, current).unwrap();
     let restored = super::super::super::compose_values(before, &policy, &wire).unwrap();
     assert_eq!(canonical(&restored), canonical(&original));
 }
@@ -1358,4 +1361,40 @@ fn v18_python_rust_hostile_reference_decisions_match() {
         .unwrap()
         .iter()
         .all(|v| v.as_bool() == Some(true)));
+}
+
+
+// Historical controls acquire the actual live wire first, then an exact
+// independently pinned full predecessor. Their evidence remains historical.
+fn authenticate_current_page_for_retained_controls(current: &Value) {
+    assert!(current["schema"] == SCHEMA_V17 || current["schema"] == typed_refs_v18::SCHEMA_V18);
+    let compiled = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"),
+        "/docs/evidence/finite-source-overlay-v2-20261018/page.json"));
+    assert!(compiled.len() <= PAGE_CAP);
+    assert_eq!(canonical(current).as_slice(), compiled.as_slice());
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("docs/evidence/finite-source-overlay-v2-20261018/page.json");
+    let physical = super::super::super::held_4a6eb(&path,compiled.len(),&hash(compiled)).unwrap();
+    assert_eq!(physical.as_bytes(),compiled.as_slice());
+    if current["schema"] == typed_refs_v18::SCHEMA_V18 {
+        typed_refs_v18::expand_to_v15(current).unwrap();
+    } else {
+        expand_positional_to_v15(current).unwrap();
+    }
+}
+fn retain_current_v17_for_v18(current: Value) -> Value {
+    if current["schema"] != typed_refs_v18::SCHEMA_V18 { return current; }
+    authenticate_current_page_for_retained_controls(&current);
+    let raw=include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"),
+        "/e/ab3c0bc973d3720e5afe6eb2b1594cd4080bc391a8ff6cae9773dadb2cdd979a"));
+    assert_eq!(raw.len(),261018);
+    assert_eq!(hash(raw),"ab3c0bc973d3720e5afe6eb2b1594cd4080bc391a8ff6cae9773dadb2cdd979a");
+    let path=std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("e/ab3c0bc973d3720e5afe6eb2b1594cd4080bc391a8ff6cae9773dadb2cdd979a");
+    let physical=super::super::super::held_4a6eb(&path,raw.len(),&hash(raw)).unwrap();
+    assert_eq!(physical.as_bytes(),raw.as_slice());
+    let prior:Value=serde_json::from_slice(raw).unwrap();
+    assert_eq!(prior["schema"],SCHEMA_V17);
+    assert_eq!(canonical(&prior).as_slice(),raw.as_slice());
+    prior
 }

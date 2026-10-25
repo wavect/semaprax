@@ -1362,3 +1362,6 @@ pub(in super::super) fn expand_v17(
 #[path = "main_e177_overlay_digests_v13/typed_refs_v18.rs"]
 mod typed_refs_v18;
 pub(in super::super) use typed_refs_v18::{expand_v18, SCHEMA_V18};
+
+#[cfg(test)]
+pub(in super::super) use tests::{verify_current_v17, verify_current_v18};

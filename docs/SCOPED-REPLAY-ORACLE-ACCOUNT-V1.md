@@ -98,3 +98,30 @@ The unchanged owning callable and complete 64-row controls are also required:
 - `workspace_graph::tests::callable_limit_exact_advances_and_one_over_is_g171`
 - `cleanup_plan::replay::expression_facts::receiving::retained::case_certified::lookup_tests::receiving::whole_immediate_ordinary_result_exact_short_zero_and_real_nm_are_observed`
 - `cleanup_plan::replay::expression_facts::receiving::retained::case_certified::lookup_tests::complete_immediate_old_ordinary_caller_preserves_results_and_funds_real_dense_route`
+
+The source-only lexical flat-identity work candidate removes the outer
+`ReplayBudget::charge_compact` call packet at the two newly introduced pointer
+identity work sites. Its restricted macro accepts only the actual budget and
+function places plus the original caller-location token. The operation remains
+one unit with the same static phase. It creates no units/phase parameter aliases
+or outer `Result<(), ByteFailure>` return/receiver. The original general method
+is byte-identical and independently executable. The complete original prepare,
+sticky, lent-skeleton dispatch, oracle-work, checked subtraction, lazy refusal
+closure and diagnostic trace remain in their original order. Lending still calls
+the original compact skeleton producer, including its repeated prepare and
+checks. The caller-location token is evaluated once at the old trace point;
+it is not an additional function transport or an authority-switch callback.
+
+The per-pointer bank retains the reserve_compact_bytes actual/formal tuple and
+its two compact result roles, Rc comparison loans and booleans. It removes only
+`2*sizeof((&mut ReplayBudget,&ResolvedFunction,usize,&str))` plus
+`2*sizeof(Result<(),ByteFailure>)`, matching the absent work forwarding boundary.
+Every surviving nested helper's complete Diagnostic and compact/refusal
+constructors retain their funding; the full once-only terminal conversion bank
+is unchanged. A cfg(test) complete immediate-old items body executes lexically
+at the same original signature with its original entire hot tariff. No reference
+cap, work count, generation check, old receiver or refusal status is relaxed.
+Authored controls compare the complete old/current invoices, all work cuts,
+exact/short/sticky paths, real expired/foreign scopes, lending and local ceiling
+trace fields, source bodies and full Drop. They are unrun: the source-level typed
+delta establishes no whole-reference fit or application-admission claim.

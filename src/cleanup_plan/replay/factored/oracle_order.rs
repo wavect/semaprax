@@ -794,6 +794,14 @@ const FLAT_IDENTITY_RECEIVERS: usize = {
     use std::mem::size_of;
     2 * size_of::<(&Rc<SkeletonObservation>, &Rc<SkeletonObservation>)>()
         + 2 * size_of::<bool>()
+        + 2 * size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>()
+        + 2 * size_of::<Result<(), physical_budget::ByteFailure>>()
+};
+#[cfg(test)]
+const BEFORE_LEXICAL_IDENTITY_RECEIVERS: usize = {
+    use std::mem::size_of;
+    2 * size_of::<(&Rc<SkeletonObservation>, &Rc<SkeletonObservation>)>()
+        + 2 * size_of::<bool>()
         + 4 * size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>()
         + 4 * size_of::<Result<(), physical_budget::ByteFailure>>()
 };
@@ -827,12 +835,63 @@ const FLAT_IDENTITY_ENTRY: usize = {
         + 6 * size_of::<Pairs>()
 };
 
+#[cfg(test)]
+macro_rules! before_lexical_identity_items {
+    ($a:ident, $b:ident, $function:ident, $budget:ident) => {{
+        // This is the original first zip/next/Some member binding. In particular,
+        // zero work still refuses at the original member before any new byte bank.
+        if let Some((x, y)) = $a.iter().zip($b).next() {
+            $budget.charge($function, 1, "oracle flat observation member")?;
+            $budget.reserve_bytes($function, FLAT_IDENTITY_ENTRY, "oracle flat identity entry")?;
+            physical_budget::compact_try!($budget.reserve_compact_bytes(
+                $function,
+                BEFORE_LEXICAL_IDENTITY_RECEIVERS,
+                "oracle flat identity receivers",
+            ));
+            physical_budget::compact_try!($budget.charge_compact(
+                $function,
+                1,
+                "oracle flat observation identity"
+            ));
+            if Rc::ptr_eq(x, y) {
+            } else {
+                decide!(observation(x.as_ref(), y.as_ref(), $function, $budget)?);
+            }
+            // Both first elements existed above. All new slices, ranges, iterator
+            // returns and IntoIterator moves are now prepaid; no length is repaired.
+            for (x, y) in $a[1..].iter().zip($b[1..].iter()) {
+                $budget.charge($function, 1, "oracle flat observation member")?;
+                physical_budget::compact_try!($budget.reserve_compact_bytes(
+                    $function,
+                    BEFORE_LEXICAL_IDENTITY_RECEIVERS,
+                    "oracle flat identity receivers",
+                ));
+                physical_budget::compact_try!($budget.charge_compact(
+                    $function,
+                    1,
+                    "oracle flat observation identity"
+                ));
+                if Rc::ptr_eq(x, y) {
+                    continue;
+                }
+                decide!(observation(x.as_ref(), y.as_ref(), $function, $budget)?);
+            }
+        }
+        $budget.charge($function, 1, "oracle flat observation length")?;
+        Ok($a.len().cmp(&$b.len()))
+    }};
+}
+
 fn items(
     a: &[Rc<SkeletonObservation>],
     b: &[Rc<SkeletonObservation>],
     function: &ResolvedFunction,
     budget: &mut ReplayBudget,
 ) -> Result<Ordering, Diagnostic> {
+    #[cfg(test)]
+    if flat_identity_tests::lexical_before_selected() {
+        return before_lexical_identity_items!(a, b, function, budget);
+    }
     // This is the original first zip/next/Some member binding. In particular,
     // zero work still refuses at the original member before any new byte bank.
     if let Some((x, y)) = a.iter().zip(b).next() {
@@ -843,7 +902,7 @@ fn items(
             FLAT_IDENTITY_RECEIVERS,
             "oracle flat identity receivers",
         ));
-        physical_budget::compact_try!(budget.charge_compact(function, 1, "oracle flat observation identity"));
+        physical_budget::charge_flat_identity!(budget, function, std::panic::Location::caller());
         if Rc::ptr_eq(x, y) {
         } else {
             decide!(observation(x.as_ref(), y.as_ref(), function, budget)?);
@@ -857,7 +916,11 @@ fn items(
                 FLAT_IDENTITY_RECEIVERS,
                 "oracle flat identity receivers",
             ));
-            physical_budget::compact_try!(budget.charge_compact(function, 1, "oracle flat observation identity"));
+            physical_budget::charge_flat_identity!(
+                budget,
+                function,
+                std::panic::Location::caller()
+            );
             if Rc::ptr_eq(x, y) {
                 continue;
             }

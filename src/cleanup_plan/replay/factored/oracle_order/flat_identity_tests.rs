@@ -481,7 +481,13 @@ fn first_and_tail_compact_cuts_keep_work_order_sticky_failure_and_drop() {
         );
         for (allowance, paid) in [(1, first.charged), (3, whole.charged)] {
             let identity_work = run(
-                &program, &a, &b, false, whole.charged, allowance, Err(&expected),
+                &program,
+                &a,
+                &b,
+                false,
+                whole.charged,
+                allowance,
+                Err(&expected),
             );
             assert_eq!(identity_work.work, allowance);
             assert_eq!(identity_work.charged, paid);
@@ -502,4 +508,339 @@ fn first_and_tail_compact_cuts_keep_work_order_sticky_failure_and_drop() {
     assert_eq!(Rc::strong_count(&separate), 1);
     drop((x, separate));
     assert!(OracleScope::open_with_work(1 << 20, 1 << 20).is_ok());
+}
+
+thread_local! {
+    static LEXICAL_BEFORE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+pub(super) fn lexical_before_selected() -> bool {
+    LEXICAL_BEFORE.with(|mode| mode.get())
+}
+fn lexical_before<T>(body: impl FnOnce() -> T) -> T {
+    struct Restore(bool);
+    impl Drop for Restore {
+        fn drop(&mut self) {
+            LEXICAL_BEFORE.with(|mode| mode.set(self.0));
+        }
+    }
+    let _restore = Restore(LEXICAL_BEFORE.with(|mode| mode.replace(true)));
+    body()
+}
+
+#[test]
+fn lexical_identity_complete_immediate_invoice_and_all_work_cuts_keep_old_receivers() {
+    let program = fixture();
+    let function = &program.functions[0];
+    let x = Rc::new(SkeletonObservation::Boolean {
+        expression: ExpressionId::from_owned("lexical\0é.identity".to_owned()),
+        value: false,
+    });
+    let separate = Rc::new((*x).clone());
+    for right in [&x, &separate] {
+        let a = [x.clone(), x.clone(), x.clone()];
+        let b = [right.clone(), right.clone(), right.clone()];
+        let old = lexical_before(|| {
+            run(
+                &program,
+                &a,
+                &b,
+                false,
+                1 << 20,
+                1 << 20,
+                Ok(Ordering::Equal),
+            )
+        });
+        let current = run(
+            &program,
+            &a,
+            &b,
+            false,
+            1 << 20,
+            1 << 20,
+            Ok(Ordering::Equal),
+        );
+        assert_eq!(current.work, old.work);
+        assert_eq!(
+            old.charged - current.charged,
+            a.len() * (BEFORE_LEXICAL_IDENTITY_RECEIVERS - FLAT_IDENTITY_RECEIVERS),
+            "same ABI, full current immediate old bank, no forwarding padding"
+        );
+        assert_eq!(
+            BEFORE_LEXICAL_IDENTITY_RECEIVERS - FLAT_IDENTITY_RECEIVERS,
+            2 * std::mem::size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>()
+                + 2 * std::mem::size_of::<Result<(), physical_budget::ByteFailure>>()
+        );
+        for cap in 0..=old.work {
+            let expected = lexical_before(|| {
+                let scope = OracleScope::open_with_work(1 << 20, cap).unwrap();
+                let lease = scope.lease();
+                let invocation = enter(&program, function, lease).unwrap();
+                let mut budget =
+                    ReplayBudget::with_skeleton_limit_oracle(MAX_REPLAY_WORK_UNITS, lease);
+                let actual = items(&a, &b, function, &mut budget);
+                drop(budget);
+                assert_eq!(invocation.exit(), Ok(()));
+                let _ = scope.finish();
+                actual
+            });
+            let expected_ref = expected.as_ref().copied();
+            let old = lexical_before(|| run(&program, &a, &b, false, 1 << 20, cap, expected_ref));
+            let current = run(&program, &a, &b, false, 1 << 20, cap, expected_ref);
+            assert_eq!(current.work, old.work);
+            assert_eq!(current.first_work_refusal, old.first_work_refusal);
+            assert_eq!(current.physical_failure, old.physical_failure);
+            drop(expected);
+        }
+        for old in [false, true] {
+            let body = || {
+                let ample = run(
+                    &program,
+                    &a,
+                    &b,
+                    false,
+                    1 << 20,
+                    1 << 20,
+                    Ok(Ordering::Equal),
+                );
+                let exact = run(
+                    &program,
+                    &a,
+                    &b,
+                    false,
+                    ample.charged,
+                    ample.work,
+                    Ok(Ordering::Equal),
+                );
+                assert_eq!((exact.charged, exact.work), (ample.charged, ample.work));
+                let refusal = replay_error(function,
+                    "cleanup replay physical reservation exhausted during oracle flat identity receivers");
+                let short = run(
+                    &program,
+                    &a,
+                    &b,
+                    false,
+                    ample.charged - 1,
+                    ample.work,
+                    Err(&refusal),
+                );
+                assert_eq!(
+                    short.first_refusal.unwrap().remaining,
+                    if old {
+                        BEFORE_LEXICAL_IDENTITY_RECEIVERS
+                    } else {
+                        FLAT_IDENTITY_RECEIVERS
+                    } - 1
+                );
+            };
+            if old {
+                lexical_before(body)
+            } else {
+                body()
+            }
+        }
+        eprintln!(
+            "LEXICAL_IDENTITY right_shared={} current={current:?} immediate_old={old:?}",
+            Rc::ptr_eq(&x, right)
+        );
+        drop((a, b));
+    }
+    assert_eq!(Rc::strong_count(&x), 1);
+    assert_eq!(Rc::strong_count(&separate), 1);
+}
+
+#[test]
+fn lexical_identity_keeps_lent_and_receiver_work_trace_and_expired_generation() {
+    let program = fixture();
+    let function = &program.functions[0];
+    let x = Rc::new(SkeletonObservation::Boolean {
+        expression: ExpressionId::from_owned("local.identity".to_owned()),
+        value: false,
+    });
+    let values = [x.clone(), x.clone(), x.clone()];
+    for lent in [false, true] {
+        for work in 0..=7 {
+            let invoke = || {
+                let _ = crate::cleanup_plan::replay::take_replay_work_refusal();
+                let scope = OracleScope::open_with_work(1 << 20, 1 << 20).unwrap();
+                let lease = scope.lease();
+                let invocation = enter(&program, function, lease).unwrap();
+                let mut budget = ReplayBudget::with_skeleton_limit_oracle(work, lease);
+                budget.lent_skeleton = lent;
+                budget.remaining = work;
+                let result = items(&values, &values, function, &mut budget);
+                let state = (
+                    budget.remaining,
+                    budget.skeleton_remaining,
+                    budget.skeleton_spent,
+                    budget.refusal_spent,
+                );
+                let trace = crate::cleanup_plan::replay::take_replay_work_refusal().map(|row| {
+                    assert!(row.caller.line() != 0);
+                    (
+                        row.caller.file(),
+                        row.requested,
+                        row.remaining,
+                        row.status_sources,
+                        row.first_status_bytes,
+                        row.payer,
+                    )
+                });
+                drop(budget);
+                assert_eq!(invocation.exit(), Ok(()));
+                (result, state, trace, scope.finish())
+            };
+            let expected = lexical_before(invoke).0;
+            let observe = |old| {
+                let body = || {
+                    measure(|| {
+                        let (actual, state, trace, receipt) = invoke();
+                        assert_eq!(actual, expected, "lent={lent} work={work} old={old}");
+                        drop(actual);
+                        (state, trace, receipt)
+                    })
+                };
+                if old {
+                    lexical_before(body)
+                } else {
+                    body()
+                }
+            };
+            let old = observe(true);
+            let current = observe(false);
+            assert_eq!(
+                old.0 .0, current.0 .0,
+                "complete remaining/spent/sticky fields"
+            );
+            assert_eq!(
+                old.0 .1, current.0 .1,
+                "actual source trace owner and all debit fields"
+            );
+            assert_eq!(old.0 .2.work, current.0 .2.work);
+            assert_eq!(old.0 .2.first_work_refusal, current.0 .2.first_work_refusal);
+            for record in [&old, &current] {
+                assert!(!record.1.invalid && record.1.live == 0);
+                assert_eq!(record.1.allocated, record.1.freed);
+                assert!(record.1.allocated <= record.0 .2.charged);
+            }
+            drop(expected);
+        }
+    }
+    // The unchanged hostile owner exercises real expired/foreign generation
+    // controls. Execute it at both complete immediate and lexical identities.
+    lexical_before(expired_pointer_receiver_never_spends_foreign_scope_or_changes_old_diagnostic);
+    expired_pointer_receiver_never_spends_foreign_scope_or_changes_old_diagnostic();
+    drop(values);
+    assert_eq!(Rc::strong_count(&x), 1);
+}
+
+#[test]
+fn lexical_identity_full_old_sources_general_producer_cold_bank_and_items_are_preserved() {
+    use sha2::{Digest, Sha256};
+    let packet = include_str!("lexical_identity_source_inverse.json");
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    assert_eq!(
+        std::fs::read(root.join(
+            "src/cleanup_plan/replay/factored/oracle_order/lexical_identity_source_inverse.json"
+        ))
+        .unwrap(),
+        packet.as_bytes()
+    );
+    let data: serde_json::Value = serde_json::from_str(packet).unwrap();
+    assert_eq!(data["owners"].as_array().unwrap().len(), 2);
+    let digest = |bytes: &[u8]| format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)));
+    for (path, current, length, sha256) in [
+        (
+            "src/cleanup_plan/replay/physical_budget.rs",
+            include_str!("../../physical_budget.rs"),
+            43414,
+            "dca3a126f4c0dfde7e45db233d011100c5f9411cd77766260a9b1a4669c05cbd",
+        ),
+        (
+            "src/cleanup_plan/replay/factored/oracle_order.rs",
+            include_str!("../oracle_order.rs"),
+            34880,
+            "bcedf71e28fe75eb13d6ebdad0b9fd05dad4d2c83262024f19cf8237786a9f4d",
+        ),
+    ] {
+        assert_eq!(std::fs::read(root.join(path)).unwrap(), current.as_bytes());
+        let rows = data["owners"].as_array().unwrap();
+        let row = rows.iter().find(|row| row["path"] == path).unwrap();
+        assert_eq!(rows.iter().filter(|row| row["path"] == path).count(), 1);
+        assert_eq!(row["current"]["length"], current.len());
+        assert_eq!(row["current"]["sha256"], digest(current.as_bytes()));
+        let mut restored = current.to_owned();
+        for edit in row["edits"].as_array().unwrap().iter().rev() {
+            let start = edit["start"].as_u64().unwrap() as usize;
+            let end = edit["end"].as_u64().unwrap() as usize;
+            assert_eq!(&restored[start..end], edit["current"].as_str().unwrap());
+            restored.replace_range(start..end, edit["before"].as_str().unwrap());
+        }
+        assert_eq!(restored.len(), length);
+        assert_eq!(digest(restored.as_bytes()), sha256);
+        assert_eq!(row["before"]["length"], length);
+        assert_eq!(row["before"]["sha256"], sha256);
+        if path.ends_with("physical_budget.rs") {
+            let start = restored
+                .find("    // Complete original general work producer")
+                .unwrap();
+            let end = restored[start..]
+                .find("    // Same complete tree-layout producer")
+                .unwrap()
+                + start;
+            assert!(
+                current.contains(&restored[start..end]),
+                "whole original general work producer byte-exact"
+            );
+        } else {
+            let start = restored.find("const FLAT_IDENTITY_ENTRY:").unwrap();
+            let end = restored[start..].find("\nfn items(").unwrap() + start;
+            assert!(
+                current.contains(&restored[start..end]),
+                "whole cold bank byte-exact"
+            );
+            let start = restored.find("fn items(").unwrap();
+            let end = restored[start..]
+                .find("\n/// Exact existing prefix pointer identity")
+                .unwrap()
+                + start;
+            let definition = &restored[start..end];
+            let body =
+                &definition[definition.find('{').unwrap() + 1..definition.rfind('}').unwrap()];
+            let fragment = &current[current
+                .find("macro_rules! before_lexical_identity_items")
+                .unwrap()..];
+            let start = fragment.find("=> {{").unwrap() + 5;
+            let end = fragment[start..].find("    }};").unwrap() + start;
+            let mut actual = fragment[start..end].to_owned();
+            for arg in ["a", "b", "function", "budget"] {
+                actual = actual.replace(&format!("${arg}"), arg);
+            }
+            actual = actual.replace(
+                "BEFORE_LEXICAL_IDENTITY_RECEIVERS",
+                "FLAT_IDENTITY_RECEIVERS",
+            );
+            let normalize = |text: &str| {
+                text.chars()
+                    .filter(|ch| !ch.is_whitespace())
+                    .collect::<String>()
+                    .replace(
+                        "\"oracleflatobservationidentity\",)",
+                        "\"oracleflatobservationidentity\")",
+                    )
+            };
+            assert_eq!(
+                normalize(&actual),
+                normalize(body),
+                "entire same-ABI immediate items, original hot tariff"
+            );
+        }
+        assert_eq!(std::fs::read(root.join(path)).unwrap(), current.as_bytes());
+    }
+    assert_eq!(
+        std::fs::read(root.join(
+            "src/cleanup_plan/replay/factored/oracle_order/lexical_identity_source_inverse.json"
+        ))
+        .unwrap(),
+        packet.as_bytes()
+    );
 }

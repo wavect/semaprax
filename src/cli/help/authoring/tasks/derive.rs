@@ -274,7 +274,8 @@ fn check_descriptor_project(files: &[Value]) {
         NEXT.fetch_add(1, Ordering::Relaxed)
     ));
     std::fs::create_dir(&directory_path).unwrap();
-    let directory = Directory(directory_path);
+    // Project authentication rejects symlinked ancestors, including macOS /var.
+    let directory = Directory(directory_path.canonicalize().unwrap());
     for file in files {
         let path = std::path::Path::new(file["path"].as_str().unwrap());
         assert!(path

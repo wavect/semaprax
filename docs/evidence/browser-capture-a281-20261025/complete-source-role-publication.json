@@ -1,0 +1,44 @@
+{
+  "base_head": "56eac31c668390dacc23315f4673844aae4f076c",
+  "domains": [
+    {
+      "domain": "hir",
+      "complete_predecessor_archive": "e/7917472a25ec267b1691f553256fdf70669f62d46d6b94f96abff4062e1fa782",
+      "current_sha256": "36e8798deb4d90cf1fe3f89d2dd9474c460fceeb27966d89f3b8b1bedc747c70",
+      "all_classes_roles_chains_and_chunks_preserved": true,
+      "changed_source_pins": [
+        "src/source_reflows_merge/main_e177_overlay_v2.rs",
+        "tests/wasm/scalar_browser_ci_contract/current_profiles3d81.rs"
+      ]
+    },
+    {
+      "domain": "projection",
+      "complete_predecessor_archive": "e/66515deb770b193da9bd8127caa4094072291129e76e68ecd8b9484642f0cc57",
+      "current_sha256": "591c9995e3dbaf357fc4fb719de6a2aabee0fd69cff188e3f268ce422aa3106d",
+      "all_classes_roles_chains_and_chunks_preserved": true,
+      "changed_source_pins": [
+        "src/source_reflows_merge/main_e177_overlay_v2.rs",
+        "tests/wasm/scalar_browser_ci_contract/current_profiles3d81.rs"
+      ]
+    }
+  ],
+  "whole_predecessors": [
+    "e/7917472a25ec267b1691f553256fdf70669f62d46d6b94f96abff4062e1fa782",
+    "e/66515deb770b193da9bd8127caa4094072291129e76e68ecd8b9484642f0cc57",
+    "e/53dcbef9fdc7ffa8aff11fba89c3a92488d6e068828e6d3f3e74f1e80c33e684",
+    "e/49cfe8089b1343bcaf3e932de584ade848d8e27bf21377c5617fd96b1e661a2c",
+    "e/09138d3675e8870d86e0bad61bc6b56204c21e789e4509de331c805fdb184a7d",
+    "e/6731cfa715b2589b7bde8aea10bd5e65240ff592b90b7841cb61ee4f2b2c4a9a",
+    "e/db52cb7bf0654309dfc40267cc491d7b383d017e620d7d0c013cb687824fde43",
+    "e/e1392d8243b637445746c94d140cab66abe6c9d1321b34b10ffba84cb05648c5",
+    "e/57f0f6cb086f3deb8e7c06c0f3dbc62fdb4bfc98b704c5a1aa323d38b8513111",
+    "e/b8a7e0ce1d6933cc6e72c4e292cdf822655262a00bffa3a0677a6936244c6513",
+    "e/3db89dd5a5824ceccc4fbc325d196e4573380d510d2ad037bcdf2d20b625ede3",
+    "e/7917472a25ec267b1691f553256fdf70669f62d46d6b94f96abff4062e1fa782",
+    "e/66515deb770b193da9bd8127caa4094072291129e76e68ecd8b9484642f0cc57",
+    "e/0fc3985523d000ba63e46a2c0654639c650da175a5f02acb635ebe057e1e4003",
+    "e/e19d3904c6d8b9af190410b2e58d1ebda121b972ba3f901e58bae960e85d3cf0",
+    "e/4e3d878348c50baed7a1b2a56379f8114c0af775167e560e71d8f13915b65dd1"
+  ],
+  "original_codec_caps_and_all_source_boundaries_unchanged": true
+}

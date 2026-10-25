@@ -162,10 +162,12 @@ mod tests {
             )
         );
         assert!(overflow);
-        // A refusal also formats a bounded diagnostic. Measure that output
-        // independently with exactly the bytes remaining after the first site;
-        // even a discarded partial diagnostic keeps its allocation debit.
+        // Reproduce the same sticky refusal before measuring the diagnostic:
+        // a fresh ledger could still format output and is a different state.
+        // The complete original fresh-ledger assertion remains below as a
+        // negative calibration control, with every assertion preserved.
         let (_, _, diagnostic_bytes) = bounded_output::with_limit_usage(bytes / 2 - 1, || {
+            assert!(!bounded_output::reserve_active_required(bytes / 2));
             crate::workspace_graph::diagnostics::limit_error(
                 "builder_bytes",
                 super::super::super::active_builder_limit(),
@@ -176,5 +178,74 @@ mod tests {
             bytes / 2 + diagnostic_bytes,
             "only the first site and bounded refusal diagnostic are debited"
         );
+    }
+    mod before_sticky_calibration {
+        use super::{bounded_output, imported_call_sites, resolved, BTreeSet};
+        fn selected_call_storage_is_charged_exactly_and_refuses_before_copying() {
+            let local = resolved("local(1) + local(2)");
+            let targets = BTreeSet::from(["lib.imported"]);
+            let (sites, overflow, consumed) =
+                bounded_output::with_limit_usage(0, || imported_call_sites(&local, &targets));
+            assert!(sites.unwrap().is_empty());
+            assert!(!overflow);
+            assert_eq!(consumed, 0);
+
+            let imported = resolved("local(1) + imported(2) + imported(3)");
+            let bytes = 2 * (std::mem::size_of::<(String, &str, &str)>() + "app.main".len());
+            let (sites, overflow, consumed) = bounded_output::with_limit_usage(bytes, || {
+                imported_call_sites(&imported, &targets)
+            });
+            assert_eq!(sites.unwrap().len(), 2);
+            assert!(!overflow);
+            assert_eq!(consumed, bytes);
+            let (error, overflow, consumed) = bounded_output::with_limit_usage(bytes - 1, || {
+                imported_call_sites(&imported, &targets)
+            });
+            let error = error.unwrap_err();
+            assert_eq!(error[0].code, "SPX-G171");
+            assert_eq!(
+                error[0].message,
+                format!(
+                    "Workspace Semantic Graph `builder_bytes` exceeds {}",
+                    super::super::super::active_builder_limit()
+                )
+            );
+            assert!(overflow);
+            // A refusal also formats a bounded diagnostic. Measure that output
+            // independently with exactly the bytes remaining after the first site;
+            // even a discarded partial diagnostic keeps its allocation debit.
+            let (_, _, diagnostic_bytes) = bounded_output::with_limit_usage(bytes / 2 - 1, || {
+                crate::workspace_graph::diagnostics::limit_error(
+                    "builder_bytes",
+                    super::super::super::active_builder_limit(),
+                )
+            });
+            assert_eq!(
+                consumed,
+                bytes / 2 + diagnostic_bytes,
+                "only the first site and bounded refusal diagnostic are debited"
+            );
+        }
+        pub(super) fn run() {
+            selected_call_storage_is_charged_exactly_and_refuses_before_copying();
+        }
+    }
+
+    #[test]
+    fn original_fresh_diagnostic_calibration_refuses_the_exact_sticky_debit() {
+        let panic = std::panic::catch_unwind(before_sticky_calibration::run)
+            .expect_err("the complete original fresh-ledger expectation must still fail");
+        let message = panic.downcast_ref::<String>().expect("assertion text");
+        assert!(message.contains("only the first site and bounded refusal diagnostic are debited"));
+        let site = std::mem::size_of::<(String, &str, &str)>() + "app.main".len();
+        let (_, _, fresh) = bounded_output::with_limit_usage(site - 1, || {
+            crate::workspace_graph::diagnostics::limit_error(
+                "builder_bytes",
+                super::super::super::active_builder_limit(),
+            )
+        });
+        assert!(fresh > 0);
+        assert!(message.contains(&format!("left: {site}")));
+        assert!(message.contains(&format!("right: {}", site + fresh)));
     }
 }

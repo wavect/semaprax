@@ -1,0 +1,35 @@
+{
+  "source": "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/rename_tests.rs",
+  "before_sha256": "eabd3dd512c776254a5d5e3a1c1307f65c68db089d27872a1e96d60803340d32",
+  "before_bytes": 43004,
+  "after_sha256": "517146e2e575d1895308fdd055344467c0edf222135eac4034b6ddea5af971a9",
+  "after_bytes": 47579,
+  "reverse_apply_edits": [
+    {
+      "after_start": 1266,
+      "after": "    // Keep the complete original invalid source as a rejection witness. The\n    // positive alias subject must use an ordinary, non-reserved local name.\n    let original_programs = [\n        crate::parse(BOX_CALLER, \"caller.spx\").unwrap(),\n        crate::parse(\n            include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/std/mem/src/mem.spx\")),\n            \"provider.spx\",\n        )\n        .unwrap(),\n    ];\n    let original_authored = index_authored(&original_programs).unwrap();\n    let ((), refused, _, first) = with_limit_usage_refusal(LIMIT, || {\n        let registry = LayoutRegistry::new(&original_programs, &original_authored);\n        let mut receiver = Receiver::acquire().unwrap();\n        let old = super::super::before_alias::construct_using(\n            &original_programs[0],\n            &original_authored,\n            &original_programs,\n            &registry,\n            None,\n            &mut receiver,\n        )\n        .unwrap();\n        let layout = registry\n            .get(\n                &original_programs[0],\n                &original_authored,\n                &original_programs,\n            )\n            .unwrap();\n        let failure = linked(|| {\n            crate::hir::identity_resolution::before_function_alias::resolve_source_nominal(\n                &old,\n                layout.presentation(&original_programs[0], &old).unwrap(),\n                crate::workspace_graph::reserve_builder_structure,\n            )\n        });\n        let diagnostics = match failure {\n            Err(crate::hir::identity_resolution::Failure::Source(diagnostics)) => diagnostics,\n            other => panic!(\n                \"original invalid box fixture changed: {:?}\",\n                other.as_ref().map(|_| ())\n            ),\n        };\n        assert_eq!(diagnostics.len(), 4);\n        super::owned_growth_tests::assert_old_alias_refusal(&old, &diagnostics[..3]);\n        assert_eq!(&diagnostics[3], &crate::diagnostic::Diagnostic::error(\n            \"SPX-S109\", \"`result` is reserved and cannot name a local binding\",\n            crate::ast::Span { start: 285, end: 291, line: 5, column: 73 },\n        ).at_path(\"caller.spx\").with_help(\n            \"`result` names the function's return value only in `ensures`; rename a local binding to `outcome` and update its uses\"\n        ));\n        drop(layout);\n        drop(old);\n        drop(receiver);\n        drop(registry);\n    });\n    assert!(!refused && first.is_none());\n    assert_eq!(BOX_CALLER.matches(\"let result=\").count(), 1);\n    let box_caller = BOX_CALLER.replacen(\"let result=\", \"let observed=\", 1);\n",
+      "before": ""
+    },
+    {
+      "after_start": 3928,
+      "after": "            box_caller.as_str(),\n",
+      "before": "            BOX_CALLER,\n"
+    },
+    {
+      "after_start": 28023,
+      "after": "    let root = root.canonicalize().unwrap();\n",
+      "before": ""
+    },
+    {
+      "after_start": 28654,
+      "after": "    let mut sources = [\n",
+      "before": "    let sources = [\n"
+    },
+    {
+      "after_start": 29065,
+      "after": "    // The original smoke-only module remains an exact negative witness.\n    let missing_main =\n        crate::project::with_authenticated_project(&root.join(\"semaprax.toml\"), |snapshot| {\n            snapshot.check()\n        })\n        .unwrap_err();\n    assert_eq!(missing_main, vec![crate::diagnostic::Diagnostic::error(\n        \"SPX-G172\",\n        \"workspace scalar module `alias.witness_tests` must declare exactly one authored `main` function\",\n        crate::ast::Span { start: 0, end: 0, line: 1, column: 1 },\n    ).at_path(\"src/tests.spx\")]);\n    let executable_tests = format!(\n        \"{tests} @id(\\\"alias.witness.main\\\") fn main()->i64 {{if smoke() {{0}} else {{1}}}}\"\n    );\n    sources[2].1 =\n        crate::format::canonical(&crate::parse(&executable_tests, \"src/tests.spx\").unwrap());\n    std::fs::write(root.join(sources[2].0), &sources[2].1).unwrap();\n    // This original web selection is outside the scalar export profile: its\n    // complete module contains the generic Vec instances used by this test.\n    let web_refusal =\n        crate::project::with_authenticated_project(&root.join(\"semaprax.toml\"), |snapshot| {\n            snapshot.check()\n        })\n        .unwrap_err();\n    assert_eq!(\n        web_refusal,\n        vec![crate::diagnostic::Diagnostic::io(\n        \"SPX-W115\",\n        \"Public Scalar Export Profile v1 does not admit generic function templates or instances\",\n    )]\n    );\n    let web_selection = \"web_exports = [\\\"alias.current.main\\\"]\\n\";\n    assert_eq!(manifest.matches(web_selection).count(), 1);\n    let native_manifest = manifest\n        .replacen(\"semaprax.project.v1\", \"semaprax.project.v8\", 1)\n        .replacen(\n            \"entry =\",\n            \"version = \\\"0.1.0\\\"\\nprofile = \\\"owned-data-api.v1\\\"\\nentry =\",\n            1,\n        )\n        .replacen(web_selection, \"web_exports = []\\n\", 1);\n    std::fs::write(root.join(\"semaprax.toml\"), native_manifest).unwrap();\n",
+      "before": ""
+    }
+  ],
+  "restored_every_original_byte": true
+}

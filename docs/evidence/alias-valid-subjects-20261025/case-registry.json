@@ -1,0 +1,113 @@
+{
+  "exports": [
+    {
+      "module": "alias",
+      "function": "renamed_vec_and_box_payloads_lend_provider_fields_through_actual_owner_and_hir",
+      "symbol": "alias_focused_semaprax::workspace_graph::expected_projection::borrowed_imports::typed::alias::rename_tests::renamed_vec_and_box_payloads_lend_provider_fields_through_actual_owner_and_hir"
+    },
+    {
+      "module": "alias",
+      "function": "provider_invariants_preselect_complete_owning_roots_before_any_borrowed_entry",
+      "symbol": "alias_focused_semaprax::workspace_graph::expected_projection::borrowed_imports::typed::alias::rename_tests::provider_invariants_preselect_complete_owning_roots_before_any_borrowed_entry"
+    },
+    {
+      "module": "alias",
+      "function": "malformed_provider_cannot_gain_borrowing_through_a_renamed_import",
+      "symbol": "alias_focused_semaprax::workspace_graph::expected_projection::borrowed_imports::typed::alias::rename_tests::malformed_provider_cannot_gain_borrowing_through_a_renamed_import"
+    },
+    {
+      "module": "alias",
+      "function": "renamed_and_ordinary_whole_producer_receiver_drop_and_refusal_costs_are_observed",
+      "symbol": "alias_focused_semaprax::workspace_graph::expected_projection::borrowed_imports::typed::alias::rename_tests::renamed_and_ordinary_whole_producer_receiver_drop_and_refusal_costs_are_observed"
+    },
+    {
+      "module": "alias",
+      "function": "provider_bound_intrinsic_alias_requires_existing_authority_exact_membership_and_original_guard",
+      "symbol": "alias_focused_semaprax::workspace_graph::expected_projection::borrowed_imports::typed::alias::rename_tests::provider_bound_intrinsic_alias_requires_existing_authority_exact_membership_and_original_guard"
+    },
+    {
+      "module": "alias",
+      "function": "ordinary_project_import_as_vec_alias_preserves_real_provider_declarations_and_complete_sources",
+      "symbol": "alias_focused_semaprax::workspace_graph::expected_projection::borrowed_imports::typed::alias::rename_tests::ordinary_project_import_as_vec_alias_preserves_real_provider_declarations_and_complete_sources"
+    },
+    {
+      "module": "alias",
+      "function": "corrected_common_binding_rejects_forged_payload_and_preserves_raw_old_refusal",
+      "symbol": "alias_focused_semaprax::workspace_graph::expected_projection::borrowed_imports::typed::alias::rename_tests::corrected_common_binding_rejects_forged_payload_and_preserves_raw_old_refusal"
+    },
+    {
+      "module": "before_scalar_signature",
+      "function": "renamed_vec_and_box_payloads_lend_provider_fields_through_actual_owner_and_hir",
+      "symbol": "alias_focused_semaprax::workspace_graph::expected_projection::borrowed_imports::typed::before_scalar_signature::rename_tests::renamed_vec_and_box_payloads_lend_provider_fields_through_actual_owner_and_hir"
+    },
+    {
+      "module": "before_scalar_signature",
+      "function": "provider_invariants_preselect_complete_owning_roots_before_any_borrowed_entry",
+      "symbol": "alias_focused_semaprax::workspace_graph::expected_projection::borrowed_imports::typed::before_scalar_signature::rename_tests::provider_invariants_preselect_complete_owning_roots_before_any_borrowed_entry"
+    },
+    {
+      "module": "before_scalar_signature",
+      "function": "malformed_provider_cannot_gain_borrowing_through_a_renamed_import",
+      "symbol": "alias_focused_semaprax::workspace_graph::expected_projection::borrowed_imports::typed::before_scalar_signature::rename_tests::malformed_provider_cannot_gain_borrowing_through_a_renamed_import"
+    },
+    {
+      "module": "before_scalar_signature",
+      "function": "renamed_and_ordinary_whole_producer_receiver_drop_and_refusal_costs_are_observed",
+      "symbol": "alias_focused_semaprax::workspace_graph::expected_projection::borrowed_imports::typed::before_scalar_signature::rename_tests::renamed_and_ordinary_whole_producer_receiver_drop_and_refusal_costs_are_observed"
+    },
+    {
+      "module": "before_scalar_signature",
+      "function": "provider_bound_intrinsic_alias_requires_existing_authority_exact_membership_and_original_guard",
+      "symbol": "alias_focused_semaprax::workspace_graph::expected_projection::borrowed_imports::typed::before_scalar_signature::rename_tests::provider_bound_intrinsic_alias_requires_existing_authority_exact_membership_and_original_guard"
+    },
+    {
+      "module": "before_scalar_signature",
+      "function": "ordinary_project_import_as_vec_alias_preserves_real_provider_declarations_and_complete_sources",
+      "symbol": "alias_focused_semaprax::workspace_graph::expected_projection::borrowed_imports::typed::before_scalar_signature::rename_tests::ordinary_project_import_as_vec_alias_preserves_real_provider_declarations_and_complete_sources"
+    },
+    {
+      "module": "before_scalar_signature",
+      "function": "corrected_common_binding_rejects_forged_payload_and_preserves_raw_old_refusal",
+      "symbol": "alias_focused_semaprax::workspace_graph::expected_projection::borrowed_imports::typed::before_scalar_signature::rename_tests::corrected_common_binding_rejects_forged_payload_and_preserves_raw_old_refusal"
+    },
+    {
+      "module": "before_string_signature",
+      "function": "renamed_vec_and_box_payloads_lend_provider_fields_through_actual_owner_and_hir",
+      "symbol": "alias_focused_semaprax::workspace_graph::expected_projection::borrowed_imports::typed::before_string_signature::rename_tests::renamed_vec_and_box_payloads_lend_provider_fields_through_actual_owner_and_hir"
+    },
+    {
+      "module": "before_string_signature",
+      "function": "provider_invariants_preselect_complete_owning_roots_before_any_borrowed_entry",
+      "symbol": "alias_focused_semaprax::workspace_graph::expected_projection::borrowed_imports::typed::before_string_signature::rename_tests::provider_invariants_preselect_complete_owning_roots_before_any_borrowed_entry"
+    },
+    {
+      "module": "before_string_signature",
+      "function": "malformed_provider_cannot_gain_borrowing_through_a_renamed_import",
+      "symbol": "alias_focused_semaprax::workspace_graph::expected_projection::borrowed_imports::typed::before_string_signature::rename_tests::malformed_provider_cannot_gain_borrowing_through_a_renamed_import"
+    },
+    {
+      "module": "before_string_signature",
+      "function": "renamed_and_ordinary_whole_producer_receiver_drop_and_refusal_costs_are_observed",
+      "symbol": "alias_focused_semaprax::workspace_graph::expected_projection::borrowed_imports::typed::before_string_signature::rename_tests::renamed_and_ordinary_whole_producer_receiver_drop_and_refusal_costs_are_observed"
+    },
+    {
+      "module": "before_string_signature",
+      "function": "provider_bound_intrinsic_alias_requires_existing_authority_exact_membership_and_original_guard",
+      "symbol": "alias_focused_semaprax::workspace_graph::expected_projection::borrowed_imports::typed::before_string_signature::rename_tests::provider_bound_intrinsic_alias_requires_existing_authority_exact_membership_and_original_guard"
+    },
+    {
+      "module": "before_string_signature",
+      "function": "ordinary_project_import_as_vec_alias_preserves_real_provider_declarations_and_complete_sources",
+      "symbol": "alias_focused_semaprax::workspace_graph::expected_projection::borrowed_imports::typed::before_string_signature::rename_tests::ordinary_project_import_as_vec_alias_preserves_real_provider_declarations_and_complete_sources"
+    },
+    {
+      "module": "before_string_signature",
+      "function": "corrected_common_binding_rejects_forged_payload_and_preserves_raw_old_refusal",
+      "symbol": "alias_focused_semaprax::workspace_graph::expected_projection::borrowed_imports::typed::before_string_signature::rename_tests::corrected_common_binding_rejects_forged_payload_and_preserves_raw_old_refusal"
+    }
+  ],
+  "count": 21,
+  "scope": "Actual full cfg(test) compiler with only test registration attributes replaced by uniquely named exports; every selected body and assertion preserved. Unrelated test functions omitted by Rust without --test. No mock IR or weakened limits.",
+  "source_sha256": "517146e2e575d1895308fdd055344467c0edf222135eac4034b6ddea5af971a9",
+  "private_registration_sha256": "96b7e10e3268bc4030a78c71705c85f050a1fc7d1f00cfce4cd77c70d02935bb"
+}

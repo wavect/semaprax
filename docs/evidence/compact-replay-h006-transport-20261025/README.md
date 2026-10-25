@@ -1,5 +1,9 @@
 # Narrow replay H006 transport
 
+Status: focused local verification; full CI remains pending.
+
+Audience: compiler maintainers and CI reviewers.
+
 Ordinary nonempty expression-fact lookup and retained exit-region matching now return the existing compact `ByteFailure` internally. Every H006 message remains complete; fixed code, severity and absent optional fields are checked by the existing converter and reconstructed at the public Diagnostic boundary. Success creates no owned diagnostic. All original work events, validation order, branch behavior, complete keys, call facts and structural errors remain. The original two complete helpers remain byte-for-byte in place as independent controls; both complete successor bodies invert to them under the explicit transport/method substitution.
 
 Lookup retains its complete old scratch and pays two actual narrow Results plus the surviving outer Diagnostic Result. Exit matching changes only its two actual Result roles; every other Matching carrier remains paid. No result memo, hypothetical carrier donation, cap change or IR change is introduced. Selected, Oracle and legacy lookup routes keep their existing dispatch.

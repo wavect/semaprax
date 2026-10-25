@@ -235,6 +235,11 @@ peak forecast, allocator measurement, or process RSS. The SPX-G171 code,
 message, source immutability, and ceiling are unchanged. Missing evidence is
 reported as unknown, never synthesized from the static forecast.
 
+At the default 67,108,864-byte builder limit, an exhausted primary formatter
+borrows the complete fixed message ``Workspace Semantic Graph `builder_bytes` exceeds 67108864``. It retains the formatter's original debit
+and first sticky refusal without allocating message backing. Diagnostic cost
+controls reproduce the refused reservation before measuring its output.
+
 The legacy estimate uses the longest authored identity in the whole workspace.
 If that estimate would exceed the builder limit, an additive fallback repeats
 the same arithmetic with each module's own transitive dependency closure and

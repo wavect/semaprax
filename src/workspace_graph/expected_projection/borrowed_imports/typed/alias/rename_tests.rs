@@ -19,10 +19,70 @@ use function @id("std.mem.box.into-inner") from std.mem as take_box;
 
 #[test]
 fn renamed_vec_and_box_payloads_lend_provider_fields_through_actual_owner_and_hir() {
+    // Keep the complete original invalid source as a rejection witness. The
+    // positive alias subject must use an ordinary, non-reserved local name.
+    let original_programs = [
+        crate::parse(BOX_CALLER, "caller.spx").unwrap(),
+        crate::parse(
+            include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/std/mem/src/mem.spx")),
+            "provider.spx",
+        )
+        .unwrap(),
+    ];
+    let original_authored = index_authored(&original_programs).unwrap();
+    let ((), refused, _, first) = with_limit_usage_refusal(LIMIT, || {
+        let registry = LayoutRegistry::new(&original_programs, &original_authored);
+        let mut receiver = Receiver::acquire().unwrap();
+        let old = super::super::before_alias::construct_using(
+            &original_programs[0],
+            &original_authored,
+            &original_programs,
+            &registry,
+            None,
+            &mut receiver,
+        )
+        .unwrap();
+        let layout = registry
+            .get(
+                &original_programs[0],
+                &original_authored,
+                &original_programs,
+            )
+            .unwrap();
+        let failure = linked(|| {
+            crate::hir::identity_resolution::before_function_alias::resolve_source_nominal(
+                &old,
+                layout.presentation(&original_programs[0], &old).unwrap(),
+                crate::workspace_graph::reserve_builder_structure,
+            )
+        });
+        let diagnostics = match failure {
+            Err(crate::hir::identity_resolution::Failure::Source(diagnostics)) => diagnostics,
+            other => panic!(
+                "original invalid box fixture changed: {:?}",
+                other.as_ref().map(|_| ())
+            ),
+        };
+        assert_eq!(diagnostics.len(), 4);
+        super::owned_growth_tests::assert_old_alias_refusal(&old, &diagnostics[..3]);
+        assert_eq!(&diagnostics[3], &crate::diagnostic::Diagnostic::error(
+            "SPX-S109", "`result` is reserved and cannot name a local binding",
+            crate::ast::Span { start: 285, end: 291, line: 5, column: 73 },
+        ).at_path("caller.spx").with_help(
+            "`result` names the function's return value only in `ensures`; rename a local binding to `outcome` and update its uses"
+        ));
+        drop(layout);
+        drop(old);
+        drop(receiver);
+        drop(registry);
+    });
+    assert!(!refused && first.is_none());
+    assert_eq!(BOX_CALLER.matches("let result=").count(), 1);
+    let box_caller = BOX_CALLER.replacen("let result=", "let observed=", 1);
     for (caller, provider) in [
         (RENAMED, PROVIDER),
         (
-            BOX_CALLER,
+            box_caller.as_str(),
             include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/std/mem/src/mem.spx")),
         ),
     ] {
@@ -590,12 +650,13 @@ fn ordinary_project_import_as_vec_alias_preserves_real_provider_declarations_and
         NEXT.fetch_add(1, Ordering::Relaxed)
     ));
     std::fs::create_dir_all(root.join("src")).unwrap();
+    let root = root.canonicalize().unwrap();
     let manifest = "schema = \"semaprax.project.v1\"\nname = \"intrinsic-alias-witness\"\nentry = \"alias.current\"\nsources = [\"src/app.spx\", \"src/provider.spx\", \"src/tests.spx\"]\nweb_exports = [\"alias.current.main\"]\ntests = [\"alias.witness_tests\"]\n";
     let tests = "module alias.witness_tests; @id(\"alias.witness.smoke\") fn smoke()->bool {true}";
     std::fs::write(root.join("semaprax.toml"), manifest).unwrap();
     // Project source custody requires canonical bytes. Keep the original raw
     // fixture inputs and use the actual compiler formatter for every file.
-    let sources = [
+    let mut sources = [
         ("src/app.spx", RENAMED),
         ("src/provider.spx", PROVIDER),
         ("src/tests.spx", tests),
@@ -609,6 +670,48 @@ fn ordinary_project_import_as_vec_alias_preserves_real_provider_declarations_and
     for (path, source) in &sources {
         std::fs::write(root.join(path), source).unwrap();
     }
+    // The original smoke-only module remains an exact negative witness.
+    let missing_main =
+        crate::project::with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
+            snapshot.check()
+        })
+        .unwrap_err();
+    assert_eq!(missing_main, vec![crate::diagnostic::Diagnostic::error(
+        "SPX-G172",
+        "workspace scalar module `alias.witness_tests` must declare exactly one authored `main` function",
+        crate::ast::Span { start: 0, end: 0, line: 1, column: 1 },
+    ).at_path("src/tests.spx")]);
+    let executable_tests = format!(
+        "{tests} @id(\"alias.witness.main\") fn main()->i64 {{if smoke() {{0}} else {{1}}}}"
+    );
+    sources[2].1 =
+        crate::format::canonical(&crate::parse(&executable_tests, "src/tests.spx").unwrap());
+    std::fs::write(root.join(sources[2].0), &sources[2].1).unwrap();
+    // This original web selection is outside the scalar export profile: its
+    // complete module contains the generic Vec instances used by this test.
+    let web_refusal =
+        crate::project::with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
+            snapshot.check()
+        })
+        .unwrap_err();
+    assert_eq!(
+        web_refusal,
+        vec![crate::diagnostic::Diagnostic::io(
+        "SPX-W115",
+        "Public Scalar Export Profile v1 does not admit generic function templates or instances",
+    )]
+    );
+    let web_selection = "web_exports = [\"alias.current.main\"]\n";
+    assert_eq!(manifest.matches(web_selection).count(), 1);
+    let native_manifest = manifest
+        .replacen("semaprax.project.v1", "semaprax.project.v8", 1)
+        .replacen(
+            "entry =",
+            "version = \"0.1.0\"\nprofile = \"owned-data-api.v1\"\nentry =",
+            1,
+        )
+        .replacen(web_selection, "web_exports = []\n", 1);
+    std::fs::write(root.join("semaprax.toml"), native_manifest).unwrap();
     crate::project::with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
         snapshot.check()?;
         crate::hir::validate(snapshot.entry_program()).unwrap();

@@ -1,0 +1,16 @@
+[
+  {
+    "fixture": "calculator-baseline.json",
+    "new_digest": "sha256:9b5e5135c113900a02bb7f80aee7cd501a8238a85edac4bbaa7f26a5d6a272fc",
+    "builder_bytes": 2987780,
+    "prior_builder_bytes": 2999812,
+    "complete_old_graph_restored_exactly": true
+  },
+  {
+    "fixture": "calculator-renamed.json",
+    "new_digest": "sha256:12a3ece072b0a9e56f11b35f15834d51b3f922e2ebd182e8aa7ee2731d6c5e2a",
+    "builder_bytes": 2987780,
+    "prior_builder_bytes": 2999812,
+    "complete_old_graph_restored_exactly": true
+  }
+]

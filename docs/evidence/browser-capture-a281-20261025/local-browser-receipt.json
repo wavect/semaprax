@@ -1,0 +1,6 @@
+{
+  "scope": "Actual normal all-feature compiler binary built from 56eac runtime source (not current-head hosted evidence) generated direct-source, baseline and renamed Project web artifacts; all three real TypeScript consumers checked; unchanged shipping test-fixtures.mjs and real repository-pinned Chromium headless shell executed serially",
+  "compiler_sha256": "03235a4c9e3205dd7790c80bd13e7d0f3ab706e3ec91bb16d523ce3e442baaa7",
+  "all_build_temp_dependency_and_browser_paths_on_external_ssd": true,
+  "process_RSS_cap": null
+}

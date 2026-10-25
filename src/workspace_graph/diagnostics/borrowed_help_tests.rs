@@ -340,3 +340,46 @@ fn complete_borrowed_help_source_restores_full_original_without_normalization() 
         .trim_end()
     );
 }
+
+#[test]
+fn exhausted_default_builder_message_is_complete_without_backing_or_refusal_drift() {
+    use crate::bounded_output::{reserve_active_required, with_limit_usage_refusal};
+    use crate::test_allocation_observer::measure;
+    let _restore = Restore::capture();
+    for case in 0..8 {
+        fixture(case);
+        for limit in [0, 1] {
+            let (old, old_refused, old_paid, old_first) = with_limit_usage_refusal(limit, || {
+                assert!(!reserve_active_required(limit + 1));
+                original_limit_error("builder_bytes", MAX_BUILDER_BYTES)
+            });
+            assert!(
+                old.message.is_empty(),
+                "complete original exhausted-message witness"
+            );
+            let ((current, actual), refused, paid, first) = with_limit_usage_refusal(limit, || {
+                assert!(!reserve_active_required(limit + 1));
+                measure(|| limit_error("builder_bytes", MAX_BUILDER_BYTES))
+            });
+            let mut expected = old;
+            expected.message = std::borrow::Cow::Borrowed(
+                "Workspace Semantic Graph `builder_bytes` exceeds 67108864",
+            );
+            assert_eq!(current, expected);
+            assert!(matches!(current.message, std::borrow::Cow::Borrowed(_)));
+            assert!(old_refused && refused);
+            assert_eq!((paid, first), (old_paid, old_first));
+            assert_eq!(first.unwrap().requested, limit + 1);
+            assert!(!actual.invalid);
+            assert_eq!((actual.allocated, actual.freed, actual.live), (0, 0, 0));
+        }
+        let (old, old_refused, old_paid, old_first) = with_limit_usage_refusal(1 << 20, || {
+            original_limit_error("builder_bytes", MAX_BUILDER_BYTES)
+        });
+        let (current, refused, paid, first) =
+            with_limit_usage_refusal(1 << 20, || limit_error("builder_bytes", MAX_BUILDER_BYTES));
+        assert_eq!(current, old);
+        assert!(!old_refused && !refused);
+        assert_eq!((paid, first), (old_paid, old_first));
+    }
+}

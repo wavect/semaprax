@@ -1,5 +1,9 @@
 # Allocation-free plan-history observer
 
+Status: focused local verification; full CI remains pending.
+
+Audience: compiler maintainers and CI reviewers.
+
 The first `std::sync::Mutex` acquisition on this macOS/Rust host allocates 64 bytes that remain owned by the static lock. The original cold allocator frontier therefore reports 64 live bytes belonging to the test observer. A direct standard-library allocation probe reproduces the allocation.
 
 Use `std::sync::RwLock` only through exclusive write leases. Its first write acquisition allocates zero bytes on this host; observations remain serialized, inactive callbacks take no lease, and TLS destruction releases the lease. No unsafe code or dependency is added. `prepare` remains the original TLS-only operation: first reset still works without preparation.

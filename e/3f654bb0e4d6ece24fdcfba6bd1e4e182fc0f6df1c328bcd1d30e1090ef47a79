@@ -1,0 +1,82 @@
+{
+  "status": "FOCUSED_LOCAL_PASS",
+  "scope": "Eight actual cfg(test) functions from complete current compiler using private registration-only exports; complete self-source input bound to actual current N file; no mock IR. Full hosted CI and full local quality profile are not claimed.",
+  "base_head": "edb74d197882d37bcf6107f050b6708291d5d131",
+  "cases": [
+    "workspace_graph::expected_projection::call_sites::tests::selected_imports_borrow_sites_preserve_occurrences_and_skip_local_calls",
+    "workspace_graph::expected_projection::call_sites::tests::selected_closure_calls_keep_the_private_owner_after_the_visit",
+    "workspace_graph::expected_projection::call_sites::tests::selected_call_storage_is_charged_exactly_and_refuses_before_copying",
+    "workspace_graph::expected_projection::call_sites::tests::original_fresh_diagnostic_calibration_refuses_the_exact_sticky_debit",
+    "workspace_graph::diagnostics::borrowed_help_tests::every_help_branch_keeps_full_original_diagnostic_and_actual_complete_drop",
+    "workspace_graph::diagnostics::borrowed_help_tests::zero_and_sticky_help_do_not_clone_paths_or_replace_first_refusal",
+    "workspace_graph::diagnostics::borrowed_help_tests::complete_borrowed_help_source_restores_full_original_without_normalization",
+    "workspace_graph::diagnostics::borrowed_help_tests::exhausted_default_builder_message_is_complete_without_backing_or_refusal_drift"
+  ],
+  "subject_source": {
+    "scope": "Exact current source and complete prior recipe retention; source-only, runtime result separate",
+    "files": [
+      {
+        "source": "src/workspace_graph/diagnostics.rs",
+        "sha256": "3390f8ef971a7b9912b7bb67d9c730da91ccbf41115392d2421c5a7dc033ed8b",
+        "length": 16430,
+        "before_sha256": "b0785724bdbde5253b6a1aee53779d668f4fdbd13fe079badb586082b4045612"
+      },
+      {
+        "source": "src/workspace_graph/diagnostics/borrowed_help_tests.rs",
+        "sha256": "37c21fffd68114e88b4ad05a273ba51942f818c92e59a0f7f0859832c28b62c5",
+        "length": 15819,
+        "before_sha256": "8718a1ef25bea79d74620ebb9b0d8dbe2039b1a32984dd6ffcd4d3508d1ec3e3"
+      },
+      {
+        "source": "docs/evidence/borrowed-refusal-help-824/exact-source-inverse.json",
+        "sha256": "077c4470aec8e42443c64f30cccaf0a7923f43a96963fc9db6684c6ba2bcdc5e",
+        "length": 40828,
+        "before_sha256": "cd56b2ab4670a4c41f7bf95e7cb776157fbb1bd7da6ced272d0805df258a4350"
+      },
+      {
+        "source": "src/workspace_graph/expected_projection/call_sites.rs",
+        "sha256": "b349cbfa3c51b46a7203a1051ca27c716df885fcec805ee1ed9f15c0d5de4c8e",
+        "length": 10899,
+        "before_sha256": "f5373c1a3f2061b2556b218860d520281d6ab1cb7338d3def2ad4e1ad85abfa0"
+      }
+    ],
+    "original_full_diagnostics_restored_sha256": "c480b975897767ea2516b73112dd1547ea107841cbbe0537ed09b1de87b4b8bc",
+    "original_recipe_prefix_entries_retained": 2
+  },
+  "private_registration": [
+    {
+      "source": "src/workspace_graph/expected_projection/call_sites.rs",
+      "source_sha256": "b349cbfa3c51b46a7203a1051ca27c716df885fcec805ee1ed9f15c0d5de4c8e",
+      "private_registration_sha256": "d429ae43c868fbc5c6c7d0a297eb4c6a15c55b983c5c3b731a62687c9a47b56f",
+      "registration_changes": 4,
+      "body_changes": 0,
+      "self_source_bindings": []
+    },
+    {
+      "source": "src/workspace_graph/diagnostics/borrowed_help_tests.rs",
+      "source_sha256": "37c21fffd68114e88b4ad05a273ba51942f818c92e59a0f7f0859832c28b62c5",
+      "private_registration_sha256": "8fc301151225a806bc1d87c481af5ae463da372976e09c3ce017050402d44293",
+      "registration_changes": 4,
+      "body_changes": 0,
+      "self_source_bindings": [
+        {
+          "literal": "borrowed_help_tests.rs",
+          "actual_complete_input": "/Volumes/Semaprax/worktrees/ci-held-borrowed-e8/src/workspace_graph/diagnostics/borrowed_help_tests.rs",
+          "sha256": "37c21fffd68114e88b4ad05a273ba51942f818c92e59a0f7f0859832c28b62c5",
+          "reason": "Self-source oracle must observe original current attributes, not private registration attributes; test body unchanged"
+        }
+      ]
+    }
+  ],
+  "checks": {
+    "actual_cfg_test_controls": 8,
+    "focused_clippy": "PASS with warnings denied; unrelated dormant test macros and existing result_large_err allowed by the focused harness",
+    "full_quality_profile": "Not run locally; full hosted CI remains required"
+  },
+  "ram": {
+    "minimum_device_physical_available_GiB": 4.4098663330078125,
+    "compiler_pauses": 0,
+    "process_RSS_cap": null
+  },
+  "complete_original_history": "Both original inverse recipe entries and the frozen original diagnostics source remain exact; the full intervening edb source image is added as a reverse step. Complete original selected-call test remains compiled as the exact expected failing fresh-ledger calibration."
+}

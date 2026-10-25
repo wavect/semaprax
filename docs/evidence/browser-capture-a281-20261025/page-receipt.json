@@ -1,0 +1,28 @@
+{
+  "status": "ORIGINAL_CURRENT_CODEC_COMPOSITION_PASS_PENDING_PUBLICATION",
+  "base_head": "56eac31c668390dacc23315f4673844aae4f076c",
+  "rows": 729,
+  "page_bytes": 258281,
+  "published_current_preserved_as_exact_views": [
+    {
+      "source": "tests/wasm/scalar_browser_ci_contract/current_profiles3d81.rs",
+      "view": {
+        "length": 11973,
+        "sha256": "0fc3985523d000ba63e46a2c0654639c650da175a5f02acb635ebe057e1e4003",
+        "archive": "e/0fc3985523d000ba63e46a2c0654639c650da175a5f02acb635ebe057e1e4003",
+        "name": "whole-before-browser-a281-cd403c"
+      }
+    },
+    {
+      "source": "platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs",
+      "view": {
+        "length": 11370,
+        "sha256": "e19d3904c6d8b9af190410b2e58d1ebda121b972ba3f901e58bae960e85d3cf0",
+        "archive": "e/e19d3904c6d8b9af190410b2e58d1ebda121b972ba3f901e58bae960e85d3cf0",
+        "name": "whole-before-browser-a281-cd403c"
+      }
+    }
+  ],
+  "all_previous_fields_views_memberships_and_fragment_edges_retained": true,
+  "all_original_codec_bodies_and_caps_unchanged": true
+}

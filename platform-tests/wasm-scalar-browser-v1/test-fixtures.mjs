@@ -33,7 +33,9 @@ const expectedFunctions = [
   result,
 }));
 // Original hosted records remain in docs/evidence/ci-corrections-1c87-20261018.
-// Current complete graph captures: docs/evidence/browser-capture-3d81-20261024.
+// Current hosted and native captures: docs/evidence/browser-capture-a281-20261025.
+// Linux 1.88 run 40178348803, job 121124361356, source a2814be651.
+// Complete prior captures: docs/evidence/browser-capture-3d81-20261024.
 // Linux 1.88 run 40099757952, job 120889825524, source 3d81c8544b.
 // Prior exact profiles remain in docs/evidence/browser-capture-573-20261024.
 // Prior bill-only captures: docs/evidence/browser-capture-909-20261023.
@@ -48,22 +50,22 @@ const fixtureSpecs = [
     schema: "semaprax.web-project.v1",
     project_revision: "sha256:8576caa566cb7f0d265354927c5bc7b481146f05e616f76917f340b4af26f053",
     workspace_revision: "sha256:f0454397a2b339677bc49c9ccd8e8491917426202c6aba2475221879e02ae3f6",
-    project_graph_digest: "sha256:d384b850c984806c252525cce9960be15f0cf2df49e3702c16a7015bf297e83e",
+    project_graph_digest: "sha256:9b5e5135c113900a02bb7f80aee7cd501a8238a85edac4bbaa7f26a5d6a272fc",
   },
   {
     name: "project-renamed",
     schema: "semaprax.web-project.v1",
     project_revision: "sha256:afa7b35b6b057eaa1cbf89c68ccd1e19a8d988f4168049f70717f80c28218fb7",
     workspace_revision: "sha256:8fcf973950f10bf9393ff5597484333b178e5f93c5d2a1847f6ccc18d6185f71",
-    project_graph_digest: "sha256:4edf2e1ef8b9d25496aa73e2c21be6ee838ab0fdc98a9740dbe820874656e940",
+    project_graph_digest: "sha256:12a3ece072b0a9e56f11b35f15834d51b3f922e2ebd182e8aa7ee2731d6c5e2a",
   },
 ];
 // Explicit exact profile for local Rust 1.97 builds. The hosted CI default
 // keeps the Linux Rust 1.88 pins above; no caller-supplied digest is accepted.
 const graphProfile = process.env.SEMAPRAX_BROWSER_GRAPH_PROFILE ?? "hosted-rust-1.88";
 if (graphProfile === "native-rust-1.97") {
-  fixtureSpecs[1].project_graph_digest = "sha256:fd5726c388ca6990a8f3bfa69604744bb0a62c12a5d7c6ed40618d592a839638";
-  fixtureSpecs[2].project_graph_digest = "sha256:e06efae936404cf69025c0dc620760d2642b10976cdcaabcb17ff8ea39e31deb";
+  fixtureSpecs[1].project_graph_digest = "sha256:00a5a3c69fb60492a8c97ed5973ad760d4d42697a1543cf0f70581a33b00e09c";
+  fixtureSpecs[2].project_graph_digest = "sha256:da0451df9a75801dac4a50a2a47fda924e3b6a7156720829b1c7bc3819926ec3";
 } else if (graphProfile !== "hosted-rust-1.88") {
   throw new Error(`unknown exact compiler graph profile: ${graphProfile}`);
 }

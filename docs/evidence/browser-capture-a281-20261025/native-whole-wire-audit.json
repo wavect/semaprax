@@ -1,0 +1,18 @@
+[
+  {
+    "fixture": "calculator-baseline.json",
+    "native_digest": "sha256:00a5a3c69fb60492a8c97ed5973ad760d4d42697a1543cf0f70581a33b00e09c",
+    "native_builder_bytes": 2987996,
+    "prior_native_builder_bytes": 3000028,
+    "whole_prior_native_recovered": true,
+    "whole_hosted_recovered": true
+  },
+  {
+    "fixture": "calculator-renamed.json",
+    "native_digest": "sha256:da0451df9a75801dac4a50a2a47fda924e3b6a7156720829b1c7bc3819926ec3",
+    "native_builder_bytes": 2987996,
+    "prior_native_builder_bytes": 3000028,
+    "whole_prior_native_recovered": true,
+    "whole_hosted_recovered": true
+  }
+]

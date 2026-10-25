@@ -1,3 +1,9 @@
+## Default builder refusal text and diagnostic controls (2026-10-25)
+
+- Keep the complete default-limit G171 message available without allocating when its formatter is exhausted; retain the original formatter debit and sticky refusal.
+- Calibrate selected-call diagnostic costs from the actual refused ledger state, retaining the complete original fresh-ledger test as an exact negative control.
+- Extend the diagnostic source inverse with the complete intervening source image while preserving its original recipe and frozen source.
+
 ## Unreleased
 
 - Prepay branch-sort frames and certified scalar comparison capture, retain complete fallback and historical executables, and encode known source-row fields losslessly within the existing custody limits.

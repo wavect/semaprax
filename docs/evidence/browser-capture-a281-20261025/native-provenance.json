@@ -1,0 +1,9 @@
+{
+  "runtime_source_head": "56eac31c668390dacc23315f4673844aae4f076c",
+  "test_only_browser_pin_and_source_custody_edits_present": true,
+  "actual_current_production_source": true,
+  "compiler_binary_sha256": "03235a4c9e3205dd7790c80bd13e7d0f3ab706e3ec91bb16d523ce3e442baaa7",
+  "library_sha256": "7f4131064a2f9235089524e7f0595e55e21794af77e89ba9922189566a6a8c35",
+  "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: aarch64-apple-darwin\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
+  "process_RSS_cap": null
+}

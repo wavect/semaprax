@@ -1,0 +1,19 @@
+{
+  "status": "ALL_235_BROWSER_RUST_CONTROLS_AND_3_REAL_CHROMIUM_CALCULATORS_PASS",
+  "base_head": "56eac31c668390dacc23315f4673844aae4f076c",
+  "current_module_sha256": "b259958397633eb1c8be6d84644295633adaa6990cfd0b880dcd3c04a6b13f29",
+  "all_235_exact_registered_controls_executed_without_skipping": true,
+  "qualification_across_device_guarded_runs": true,
+  "single_uninterrupted_suite_claim": false,
+  "typescript_consumers": 3,
+  "serial_chromium_tests": 3,
+  "cargo_clippy_lints_and_deny_warnings_pass": true,
+  "unchanged_source_verifier_hostile_controls": 6,
+  "original_graph_semantics_and_limits_preserved": true,
+  "original_three_registry_rows_and_cardinality_preserved": true,
+  "one_explicit_separately_checked_successor_row": true,
+  "all_work_build_cache_tmp_on_external_ssd": true,
+  "process_RSS_cap": null,
+  "remaining_builder_budget_failures_not_fixed_by_this_test_change": true,
+  "full_CI_green_claim": false
+}

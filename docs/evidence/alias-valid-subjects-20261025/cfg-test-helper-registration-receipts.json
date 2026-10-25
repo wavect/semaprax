@@ -1,0 +1,23 @@
+[
+  {
+    "source": "src/source_reflows/nested_scope.rs",
+    "selected_names": [
+      "joined_nested_source_keeps_full_live_union_and_both_complete_parent_custodies",
+      "joined_nested_source_refuses_foreign_truncated_drifted_predicates_and_partial_recipes"
+    ],
+    "actual_attributes_changed": 2,
+    "original_sha256": "274094f635ef53f6685d29c835a7b002771861b54d4d7522c32b1cd5c302af3e",
+    "private_sha256": "c580497dbce0b3ce8ba931eecc9d922abb442827906bae9506694644b6518b32",
+    "purpose": "Keep original test helper bodies called/reexported from unregistered cfg(test) functions; no body/assertion changed."
+  },
+  {
+    "source": "src/cleanup_plan/replay/factored/canonical_shared/scratch_tests.rs",
+    "selected_names": [
+      "retained_cache_receiving_fee_preserves_floor_and_sticky_refusal_without_allocation"
+    ],
+    "actual_attributes_changed": 2,
+    "original_sha256": "0a604667bd9e3ba533918a39e07b75ecbf8181ed4bfc50f82dad373ed640dfdf",
+    "private_sha256": "6e86631aa7c0288d37c159dc687fbc53469eda929c4615751a1e9a3e06840847",
+    "purpose": "Keep original test helper bodies called/reexported from unregistered cfg(test) functions; no body/assertion changed."
+  }
+]

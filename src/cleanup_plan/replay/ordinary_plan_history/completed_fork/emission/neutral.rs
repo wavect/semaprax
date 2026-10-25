@@ -12,7 +12,7 @@ pub(in crate::cleanup_plan::replay) const SELECT: usize = 4 * size_of::<&Vec<Exp
     + 4 * size_of::<&Option<Rc<ObservationDag>>>()
     + 4 * size_of::<&Option<crate::cleanup_plan::CleanupPlace>>()
     + 4 * size_of::<&lexical_skeleton::Continuation>()
-    + 8 * size_of::<usize>()
+    + size_of::<[usize; 8]>()
     + 32 * size_of::<bool>()
     + PAYMENT;
 // All work/clone calls retain their original implementation and payment. This

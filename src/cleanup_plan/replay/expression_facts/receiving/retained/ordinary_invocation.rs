@@ -1452,7 +1452,7 @@ pub(in crate::cleanup_plan::replay) fn validate_structure_with_fact_backing<'hir
     expression_facts::receiving::validate_blocks_and_edges_retained(
         program,
         function,
-        &*expression_facts,
+        &expression_facts,
         &storage,
         &leaves,
         helpers,

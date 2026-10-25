@@ -1,3 +1,8 @@
+## Bounded repeated source-view labels (2026-10-25)
+
+- Encode repeated packed view labels through a bounded V11 dictionary while retaining every old source row, view, unknown field and fragment edge. Keep the 262144-byte wire cap and bound aggregate materialized label bytes before copying.
+- Preserve the complete V10 decoder and all older codec controls; authenticate the whole restored page before ordinary source admission.
+
 ## Projection identity and explicit-visibility controls (2026-10-25)
 
 - Measure the authored identity-copy slope separately from the full base-prelude contribution, using the real prelude AST producer and retaining the original whole-cost failure as a negative control.

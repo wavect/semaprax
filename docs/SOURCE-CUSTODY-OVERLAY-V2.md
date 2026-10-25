@@ -331,3 +331,28 @@ owning Python controls and test-only Rust module cover inverse equality,
 canonical declarations, malformed references, opaque fallback, raw number
 spelling and exact/short/amplification limits. Source-only code and size
 predictions establish no executable qualification or application improvement.
+
+
+## Historical V11 envelope compatibility
+
+OPT#933 preserves two independently executable encodings whose historical
+schema string is `semaprax.finite-source-overlay-page.v11`. The digest form
+is the exact seven-key page (`schema`, `index`, `total_pages`, `predecessor`,
+`replacements`, `additions`, `archive_prefixes`). The incoming named-view form
+is exactly `schema`, `names`, `page`, carrying its complete V10 predecessor.
+Public dispatch recognizes only those disjoint key sets and refuses mixed,
+missing and unknown outer fields before entering either reader. Unknown values
+inside their original opaque domains retain each original reader's rules.
+
+The complete digest reader remains the internal V12--V17 predecessor. The
+complete incoming V10/name reader, producer and hostile controls remain
+independently executable. Both public routes restore the same complete logical
+packet through their original older readers; their historical schema is not
+renamed. Existing page/source caps and source/archive authority are unchanged.
+Source-only compatibility and size probes establish no executable qualification.
+
+The direct public V10 entry likewise selects only its complete six-key legacy
+pin page or seven-key archive-prefix page. A named V11 envelope always enters
+the original legacy V10 decoder after restoring names, even if hostile inner
+metadata resembles an archive-prefix page. It never switches codec provenance
+using field presence. All original V10 readers remain independently callable.

@@ -622,5 +622,87 @@ class PositionalSourceRows(unittest.TestCase):
             codec.copy.deepcopy = old_copy
 
 
+
+class V11EnvelopeCompatibility(unittest.TestCase):
+    def test_entire_frozen_digest_and_named_view_v10_preimages_remain_independent(self):
+        digest = codec.parse((FIXTURE / 'v11.before.json').read_bytes())
+        self.assertEqual(codec.canonical(codec.expand_v11_compatible(digest)),
+                         codec.canonical(codec.expand_v11_digest_pins(digest)))
+        sha = '2018302f513448433f418a128169982a6bbe55652a843397e37fc5ed9ab9ac64'
+        raw = (ROOT / 'e' / sha).read_bytes()
+        self.assertEqual(hashlib.sha256(raw).hexdigest(), sha)
+        v10 = codec.parse(raw)
+        compact = codec.encode_v11_names(v10)
+        self.assertEqual(codec.canonical(codec.expand_v11_compatible(compact)), raw)
+        self.assertEqual(compact['schema'], digest['schema'])
+        self.assertNotEqual(set(compact), set(digest))
+
+    def test_original_named_slots_preserve_opaque_objects_and_nested_values(self):
+        old = {'schema': codec.V10_SCHEMA, 'replacements': [], 'additions': [{
+            'source': 'opaque', 'compiled': True, 'current': [1, 'f' * 64],
+            'views': [['same', 1, 'f' * 64], ['same', 1, 'f' * 64],
+                      {'name': 7, 'unknown': {'names': [0], 'page': False}}],
+            'unknown': {'names': [0], 'page': {'schema': codec.V11_SCHEMA}}}]}
+        compact = codec.encode_v11_names(old)
+        self.assertEqual(compact['names'], ['same'])
+        self.assertEqual(codec.expand_v11_compatible(compact), old)
+        self.assertEqual(compact['page']['additions'][0]['unknown'],
+                         old['additions'][0]['unknown'])
+
+    def test_public_v10_forms_and_named_v11_keep_exact_legacy_provenance(self):
+        before = {'schema': 'fixture', 'source_cap': codec.SOURCE_CAP,
+                  'opaque': {'names': [0], 'archive_prefixes': False},
+                  'rows': [{'source': f'src/provenance_{i}.rs', 'compiled': False,
+                            'current': {'length': 0, 'sha256': '0' * 64,
+                                        'archive': 'e/' + '0' * 64}, 'views': []}
+                           for i in range(519)]}
+        predecessor = {'rows': 519, 'logical_sha256': codec.H(codec.canonical(before))}
+        policy = {'schema': 'semaprax.finite-source-overlay-policy.v2',
+                  'page': {'path': codec.PAGE_PATH, 'length': 0, 'sha256': '0' * 64},
+                  'predecessor': predecessor, 'replacements': [], 'additions': [],
+                  'new_fragment_edges': []}
+        legacy = {'schema': codec.V10_SCHEMA, 'index': 1, 'total_pages': 1,
+                  'predecessor': predecessor, 'replacements': [], 'additions': []}
+        prefix = dict(legacy, archive_prefixes=['e/'])
+        for value in (legacy, prefix):
+            self.assertEqual(codec.compose_values(before, policy, value), before)
+        named = {'schema': codec.V11_SCHEMA, 'names': [], 'page': legacy}
+        self.assertEqual(codec.compose_values(before, policy, named), before)
+        # The prefix shape is genuinely valid above. Wrapping it in names must
+        # not select that different codec: the original named route is legacy.
+        crossed = dict(named, page=prefix)
+        with self.assertRaises(AssertionError):
+            codec.compose_values(before, policy, crossed)
+        for value in (legacy, prefix):
+            for key in ('names', 'page', 'unknown'):
+                changed = dict(value); changed[key] = None
+                with self.assertRaises(AssertionError):
+                    codec.compose_values(before, policy, changed)
+
+    def test_mixed_unknown_and_missing_outer_keys_refuse_before_payload_decoders(self):
+        direct, _ = ViewLabels().pair()
+        named = {'schema': codec.V11_SCHEMA, 'names': [], 'page': {}}
+        hostile = []
+        for original in (direct, named):
+            changed = copy.deepcopy(original); changed['unknown'] = 0; hostile.append(changed)
+            for key in original:
+                changed = copy.deepcopy(original); del changed[key]; hostile.append(changed)
+        for key in ('names', 'page'):
+            changed = copy.deepcopy(direct); changed[key] = named[key]; hostile.append(changed)
+        changed = copy.deepcopy(named); changed['replacements'] = []; hostile.append(changed)
+        old_digest, old_names = codec.expand_v11_digest_pins, codec.expand_v11_names
+        def forbidden(_):
+            raise RuntimeError('payload decoder reached before envelope refusal')
+        try:
+            codec.expand_v11_digest_pins = forbidden
+            codec.expand_v11_names = forbidden
+            for value in hostile:
+                with self.assertRaises(AssertionError):
+                    codec.expand_v11_compatible(value)
+        finally:
+            codec.expand_v11_digest_pins = old_digest
+            codec.expand_v11_names = old_names
+
+
 if __name__ == '__main__':
     unittest.main()

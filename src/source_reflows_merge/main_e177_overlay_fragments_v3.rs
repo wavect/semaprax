@@ -590,7 +590,10 @@ pub(super) use pins_v10::{expand_v10, expand_v10_compatible, SCHEMA_V10};
 
 #[path = "main_e177_overlay_pins_v11.rs"]
 mod pins_v11;
-pub(super) use pins_v11::{expand_v11, SCHEMA_V11};
+pub(super) use pins_v11::{expand_v10_public_compatible, expand_v11, expand_v11_compatible, SCHEMA_V11};
+// Complete independent incoming V10/named-view V11 decoder and controls.
+#[path = "main_e177_overlay_names_v11/main_e177_overlay_pins_v10.rs"]
+mod names_v11;
 
 #[path = "main_e177_overlay_labels_v12.rs"]
 mod labels_v12;

@@ -335,10 +335,10 @@ fn compose_values(before: Value, policy: &Value, page: &Value) -> Result<Value, 
         let expanded = fragments_v3::expand_v12(&before, policy, page)?;
         compose_values_v2(before, policy, &expanded)
     } else if page["schema"] == fragments_v3::SCHEMA_V11 {
-        let expanded = fragments_v3::expand_v11(&before, policy, page)?;
+        let expanded = fragments_v3::expand_v11_compatible(&before, policy, page)?;
         compose_values_v2(before, policy, &expanded)
     } else if page["schema"] == fragments_v3::SCHEMA_V10 {
-        let expanded = fragments_v3::expand_v10_compatible(&before, policy, page)?;
+        let expanded = fragments_v3::expand_v10_public_compatible(&before, policy, page)?;
         compose_values_v2(before, policy, &expanded)
     } else if page["schema"] == fragments_v3::SCHEMA_V9 {
         let expanded = fragments_v3::expand_v9(&before, policy, page)?;
@@ -1180,3 +1180,7 @@ mod tests {
     }
 }
 // Nondelegating current/prior view front, followed by the entire old stage path.
+
+#[cfg(test)]
+#[path = "main_e177_overlay_incoming064.rs"]
+mod incoming064;

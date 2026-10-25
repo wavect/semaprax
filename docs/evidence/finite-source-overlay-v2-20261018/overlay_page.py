@@ -312,7 +312,7 @@ def _load_fixed_codecs():
  import os, stat
  from pathlib import Path
  path=Path(__file__).with_name('overlay_page_codecs.py')
- length=41105
+ length=45519
  fd=os.open(path,os.O_RDONLY|os.O_CLOEXEC|os.O_NOFOLLOW|os.O_NONBLOCK)
  try:
   info=os.fstat(fd)
@@ -322,7 +322,7 @@ def _load_fixed_codecs():
   identity=lambda value:(value.st_dev,value.st_ino,value.st_mode,value.st_size,value.st_mtime_ns,value.st_ctime_ns)
   assert stat.S_ISREG(after.st_mode) and stat.S_ISREG(named.st_mode), 'codec postread regularity'
   assert identity(info)==identity(after)==identity(named), 'codec postread identity'
-  assert len(raw)==length and hashlib.sha256(raw).hexdigest()=='feae52285578d539f49e542b5bc057d289477d1781c0ecec9cba73cf3a157cfa', 'codec fixed bytes'
+  assert len(raw)==length and hashlib.sha256(raw).hexdigest()=='0c303cd7576354af9026fe80e313546b1676ec810f2c18b5b770e9be751ba836', 'codec fixed bytes'
  finally:os.close(fd)
  exec(compile(raw,str(path),'exec'),globals())
 _load_fixed_codecs()
@@ -402,14 +402,19 @@ def encode_v10_pins(before,policy,page):
 
 
 def compose_values(before, policy, page):
- if page["schema"]==V10_SCHEMA and "archive_prefixes" not in page:page=expand_v10_pins(before,policy,page)
+ if page['schema']==V10_SCHEMA:page=expand_v10_public_compatible(before,policy,page)
  if page['schema']==V17_SCHEMA:page=_expand_v12_logical_view_labels(_expand_v13_logical_digest_table(_expand_v14_logical_pin_tails(_expand_v15_logical_source_paths(expand_v17_source_rows(page)))))
  if page['schema']==V16_SCHEMA:page=_expand_v12_logical_view_labels(_expand_v13_logical_digest_table(_expand_v14_logical_pin_tails(_expand_v15_logical_source_paths(expand_v16_source_rows(page)))))
  if page['schema']==V15_SCHEMA:page=_expand_v12_logical_view_labels(_expand_v13_logical_digest_table(_expand_v14_logical_pin_tails(expand_v15_source_paths(page))))
  if page['schema']==V14_SCHEMA:page=_expand_v12_logical_view_labels(_expand_v13_logical_digest_table(expand_v14_pin_tails(page)))
  if page['schema']==V13_SCHEMA:page=_expand_v12_logical_view_labels(expand_v13_digest_table(page))
  if page['schema']==V12_SCHEMA:page=expand_v12_view_labels(page)
- if page['schema']==V11_SCHEMA:page=expand_v11_digest_pins(page)
+ if page['schema']==V11_SCHEMA:
+  named=keys(page,('schema','names','page'))
+  page=expand_v11_compatible(page)
+  # Incoming names always delegates to its complete original legacy V10 route.
+  # A similarly named inner archive-prefix field never selects another codec.
+  if named:page=expand_v10_pins(before,policy,page)
  if page['schema']==V10_SCHEMA:page=expand_v10_archive_prefixes(page)
  if page['schema']==V9_SCHEMA:page=expand_v9_pins(page)
  if page['schema']==V8_SCHEMA:page=expand_v8_carriers(before,policy,page)

@@ -264,6 +264,20 @@ pub(in crate::workspace_graph::expected_projection) fn estimate_with_census<'p, 
         .and_then(|bytes| bytes.checked_add(identity_carrier_bytes))
         .and_then(|bytes| bytes.checked_add(identity_occurrence_upper))
         .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?;
+    #[cfg(test)]
+    super::super::super::forecast_observation::record_live_hir_terms(
+        &program.path,
+        include_imports,
+        [
+            fixed_hir_upper,
+            call_proof,
+            shared_callees.bytes,
+            prelude_hir_upper,
+            identity_carrier_bytes,
+            identity_occurrence_upper,
+            hir_upper,
+        ],
+    );
     let retained_clone_and_hir = checked_usage(
         raw.total,
         hir_upper,

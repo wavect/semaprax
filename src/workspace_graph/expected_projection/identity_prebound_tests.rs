@@ -372,6 +372,25 @@ struct SequentialOracle {
     before903: bool,
 }
 
+// The independent old producer pays a renewed receiver before its second
+// read. Its retained forecast carries that cumulative payment even when the
+// import-free semantic output is identical. Restate the typed gateway here;
+// the old module exposes only widths of its private receiver types.
+fn historical_renewed_read_fee() -> usize {
+    use std::{cell::Cell, mem::size_of};
+    let [read, invoice_reference, result] =
+        super::shared_local_callees::before903::paired::historical_read_bank_widths();
+    let gateway = 4 * invoice_reference
+        + 4 * size_of::<usize>()
+        + 2 * size_of::<Option<usize>>()
+        + 2 * result
+        + 3 * size_of::<bool>()
+        + 4 * size_of::<&Cell<usize>>()
+        + crate::bounded_output::classifier_string::ClassifierLedger::current_receiving_controls();
+    assert!(read > 0 && gateway > 0);
+    read + gateway
+}
+
 fn sequential_oracle_before903(
     programs: &[Program],
     authored: &std::collections::BTreeMap<&str, super::AuthoredDeclaration<'_>>,
@@ -563,9 +582,13 @@ fn uncached_sequential_forecast_attributes_its_own_cumulative_one_short_step() {
         let programs = uniform_sequential_fixture();
         let authored = super::super::index_authored(&programs).unwrap();
         let oracle = sequential_oracle_before903(&programs, &authored);
-        // Import-free modules retain their complete own output, so the peak is
-        // the cumulative retained sum reached while resolving the last module.
-        assert_eq!(oracle.full, oracle.retained);
+        // Import-free modules retain their complete own output and the
+        // separately paid second receiver; the peak is the final retained sum.
+        let renewed_read = historical_renewed_read_fee();
+        assert_eq!(
+            oracle.full.iter().map(|full| full + renewed_read).collect::<Vec<_>>(),
+            oracle.retained
+        );
         assert_eq!(oracle.forecast, oracle.retained.iter().sum::<usize>());
         assert_eq!(oracle.order, [0, 1, 2]);
         let layout =
@@ -621,7 +644,16 @@ fn uncached_sequential_forecast_attributes_its_own_cumulative_one_short_step() {
             "2 earlier module(s) retain {} bytes",
             oracle.retained[0] + oracle.retained[1]
         )));
-        assert!(expected.contains(&format!("resolving `{}`", programs[2].path)));
+        // The independently typed renewed read makes retained output larger
+        // than the import-free resolver forecast. The final resolver fits;
+        // publishing that module's complete retained output is the short step.
+        let earlier = oracle.retained[0] + oracle.retained[1];
+        assert!(earlier + oracle.full[2] <= short);
+        assert_eq!(earlier + oracle.retained[2], short + 1);
+        assert!(expected.contains(&format!(
+            "and `{}` retains {} more bytes",
+            programs[2].path, oracle.retained[2]
+        )));
         // Hostile stale attribution: a refused summed pass runs first.
         let summed = single_help(
             &uncached_peak_prebound(&programs, &authored).unwrap_err(),
@@ -704,7 +736,7 @@ fn uncached_sequential_refusal_follows_the_independent_overhead_order() {
         assert!(before.full[consumer] > before.retained[consumer]);
         assert!(oracle.full[consumer] > oracle.retained[consumer]);
     }
-    assert_eq!(before.full[0], before.retained[0]);
+    assert_eq!(before.full[0] + historical_renewed_read_fee(), before.retained[0]);
     assert_eq!(
         before.order.last(),
         Some(&0),
@@ -750,4 +782,115 @@ fn uncached_sequential_refusal_follows_the_independent_overhead_order() {
         .err()
         .unwrap();
     assert_eq!(single_help(&refusal, short), expected);
+}
+
+#[test]
+fn exact_public_workspace_fixture_current_typed_invoice_reconciles_every_stage() {
+    use crate::bounded_output::{stage_debits, ReservationStage};
+    use crate::workspace_graph as graph;
+    use std::io::Read;
+    let fixture = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/workspace/semantic_graph.rs"));
+    let fixture_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/workspace/semantic_graph.rs");
+    let acquire = || {
+        assert!(fixture.len() <= 262144);
+        let named = std::fs::symlink_metadata(&fixture_path).unwrap();
+        assert!(named.is_file() && !named.file_type().is_symlink());
+        let mut options = std::fs::OpenOptions::new();
+        options.read(true);
+        #[cfg(unix)] {
+            use std::os::unix::fs::OpenOptionsExt;
+            options.custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK | libc::O_CLOEXEC);
+        }
+        let file = options.open(&fixture_path).unwrap();
+        let before = file.metadata().unwrap();
+        assert!(before.is_file());
+        assert_eq!(before.len(), fixture.len() as u64);
+        let mut held = Vec::new();
+        (&file).take(fixture.len() as u64 + 1).read_to_end(&mut held).unwrap();
+        assert_eq!(held, fixture.as_bytes());
+        let after = file.metadata().unwrap();
+        let last = std::fs::symlink_metadata(&fixture_path).unwrap();
+        assert!(last.is_file() && !last.file_type().is_symlink());
+        assert_eq!((before.len(), before.modified().unwrap()),
+                   (after.len(), after.modified().unwrap()));
+        assert_eq!((before.len(), before.modified().unwrap()),
+                   (last.len(), last.modified().unwrap()));
+    };
+    acquire();
+    let sources = [
+            (
+                "z/app.spx",
+                r#"
+module public.app;
+use type @id("public.point") from public.provider as Point;
+use function @id("public.work") from public.provider as work;
+permit { audit.write }
+
+fn helper() -> i64 { 7 }
+
+@id("public.main")
+fn main() -> i64 uses { audit.write } {
+    let local = helper();
+    local + work(Point { value: 1 })
+}
+"#,
+            ),
+            (
+                "a/provider.spx",
+                r#"
+module public.provider;
+permit { audit.write }
+
+@id("public.point")
+record Point { @id("public.point.value") value: i64, }
+
+@id("public.work")
+fn work(value: Point) -> i64 uses { audit.write } { value.value }
+
+@id("public.provider.main")
+fn main() -> i64 { 0 }
+"#,
+            ),
+        ];
+
+    for (path, source) in sources {
+        let exact_tuple = format!("\"{path}\",\n                r#\"{source}\"#");
+        assert_eq!(fixture.matches(&exact_tuple).count(), 1,
+                   "same complete raw fixture and path, before canonical formatting");
+    }
+    let sources: Vec<_> = sources.into_iter().map(|(path, source)| {
+        let program = crate::parse(source, path).unwrap();
+        graph::WorkspaceSource { path: path.to_owned(), source: crate::format::canonical(&program) }
+    }).collect();
+    assert_eq!(sources.iter().map(|source| source.source.len()).sum::<usize>(), 606);
+    let mut programs: Vec<_> = sources.iter().map(|source|
+        crate::parse(&source.source, &source.path).unwrap()).collect();
+    programs.sort_by(|left, right| left.path.cmp(&right.path));
+    let authored = graph::index_authored(&programs).unwrap();
+    let paths = graph::index_modules(&programs).unwrap();
+    let layouts = super::private_layout::registry::LayoutRegistry::new(&programs, &authored);
+    graph::import_validation::validate_uses_with_registry(&programs, &paths, &authored, Some(&layouts)).unwrap();
+    graph::validate_dependency_dag(&programs).unwrap();
+    let initial = super::cached_exact::initial_with_registry(
+        &programs, &authored, true, super::cached_exact::Retention::Parsed, Some(&layouts),
+    ).unwrap();
+    let layout_fee = layouts.receipt();
+    let _ = stage_debits::take_completed();
+    let attempts_before = graph::CORE_BUILD_ATTEMPTS.with(|value| value.get());
+    let result = graph::build_owned(sources);
+    let attempts = graph::CORE_BUILD_ATTEMPTS.with(|value| value.get()) - attempts_before;
+    let built = result.unwrap();
+    let trace = stage_debits::take_completed().expect("actual complete public builder core");
+    assert_eq!(attempts, 1, "one complete actual public builder core, no fallback hidden");
+    assert_eq!((trace.mode, trace.prebound, trace.layouts), (initial.3, initial.0, layout_fee));
+    assert_eq!(trace.debits[ReservationStage::CorePrebound as usize + 1], initial.0);
+    assert_eq!(trace.sum(), trace.consumed);
+    assert_eq!(trace.operation_debits.sum(), trace.consumed);
+    assert_eq!(built.usage.builder_bytes, 606usize.max(trace.consumed));
+    assert!(trace.consumed <= graph::MAX_BUILDER_BYTES);
+    eprintln!("PUBLIC_WORKSPACE_CURRENT_TYPED_INVOICE initial={initial:?} layouts={layout_fee} attempts={:?} complete={trace:?} graph_builder_bytes={} historical_mac=928685 historical_portable=928541 historical_delta_is_not_yet_attributed=true",
+        attempts, built.usage.builder_bytes);
+    drop((built, layouts));
+    acquire();
 }

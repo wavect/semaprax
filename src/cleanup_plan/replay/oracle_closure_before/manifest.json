@@ -1,7 +1,7 @@
 {
   "src/cleanup_plan/replay/factored/oracle_order.rs": {
-    "current_length": 32306,
-    "current_sha256": "b7447591bb3513b3f6efd51a054d8c058941b131c038ff0698d5fa7602a4d0a1",
+    "current_length": 34880,
+    "current_sha256": "bcedf71e28fe75eb13d6ebdad0b9fd05dad4d2c83262024f19cf8237786a9f4d",
     "before_length": 31188,
     "before_sha256": "a5b274eb811d25ba6b1aa0b78ef108859c7f37bef32fb9236a51b816011f4011",
     "before_fixture": "src__cleanup_plan__replay__factored__oracle_order.rs.txt"
@@ -21,8 +21,8 @@
     "before_fixture": null
   },
   "src/cleanup_plan/replay/factored/oracle_order/flat_identity_tests.rs": {
-    "current_length": 13160,
-    "current_sha256": "6939ce58e1328315636c976c70a9087cafb266274470e400697ef20410317b33",
+    "current_length": 19009,
+    "current_sha256": "4d449d15fe43246a1e3a311487f5d5c8f20044e6bdb9f733afdd0fd0c6b318c9",
     "before_length": 0,
     "before_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "before_fixture": null
@@ -63,8 +63,8 @@
     "before_fixture": "src__cleanup_plan__replay__continuation_storage__reached_tests.rs.txt"
   },
   "src/cleanup_plan/replay/path_join/frontier_tests/custody.rs": {
-    "current_length": 44831,
-    "current_sha256": "994117cf20c54364361e2ad647d7d39facd7ed6d568ff77cfbc9773c1662b400",
+    "current_length": 45676,
+    "current_sha256": "9741a25ba95c97dddbd9b507d4b190b926cd1db44f5adb812e48d59b2940658d",
     "before_length": 42710,
     "before_sha256": "3d68e87d1e68adabab772808f670ca189f7b3f776dfc2b54cf612b8c6d2f029b",
     "before_fixture": "src__cleanup_plan__replay__path_join__frontier_tests__custody.rs.txt"

@@ -1,6 +1,7 @@
 //! Whole constructors and later validation, including receiving Drop.
 use super::*;
-use crate::test_allocation_observer::measure;
+use crate::ast::{FieldDeclaration, Type, TypeDeclarationKind};
+use crate::test_allocation_observer::{current_metrics, live_bytes_matching, measure};
 use crate::workspace_graph::expected_projection::{call_carriers, shared_local_callees};
 
 const SCALAR: &str = r#"module covered;
@@ -116,6 +117,68 @@ fn incomplete_function_generic_default_borrow_and_unknown_constructor_keep_whole
     assert_eq!(counts(&[source]).functions, 1);
 }
 
+// Same complete static-owner predicate as borrowed_imports/tests/initialization.rs.
+// It observes pointers only and never initializes a proxy or rewrites metrics.
+fn string_owns(value: &String, pointer: usize) -> bool {
+    value.capacity() != 0 && value.as_ptr() as usize == pointer
+}
+fn vec_owns<T>(values: &Vec<T>, pointer: usize) -> bool {
+    values.capacity() != 0 && values.as_ptr() as usize == pointer
+}
+fn type_owns(ty: &Type, pointer: usize) -> bool {
+    match ty {
+        Type::Named { name, arguments } => {
+            string_owns(name, pointer)
+                || vec_owns(arguments, pointer)
+                || arguments.iter().any(|ty| type_owns(ty, pointer))
+        }
+        Type::Function { parameters, result } => {
+            vec_owns(parameters, pointer)
+                || result.as_ref() as *const Type as usize == pointer
+                || parameters.iter().any(|ty| type_owns(ty, pointer))
+                || type_owns(result, pointer)
+        }
+        _ => false,
+    }
+}
+fn fields_own(fields: &Vec<FieldDeclaration>, pointer: usize) -> bool {
+    vec_owns(fields, pointer)
+        || fields.iter().any(|field| {
+            string_owns(&field.stable_id, pointer)
+                || string_owns(&field.name, pointer)
+                || type_owns(&field.ty, pointer)
+        })
+}
+fn prelude_owns(pointer: usize) -> bool {
+    // Resolution has already requested this exact OnceLock owner. Do not call
+    // it before the complete original receiver or initialize a proxy schema.
+    let declarations = crate::prelude::declarations();
+    declarations.as_ptr() as usize == pointer
+        || declarations.iter().any(|declaration| {
+            string_owns(&declaration.stable_id, pointer)
+                || string_owns(&declaration.name, pointer)
+                || vec_owns(&declaration.type_parameters, pointer)
+                || declaration
+                    .type_parameters
+                    .iter()
+                    .any(|parameter| string_owns(&parameter.name, pointer))
+                || match &declaration.kind {
+                    TypeDeclarationKind::Record { fields } => fields_own(fields, pointer),
+                    TypeDeclarationKind::Variant { cases } => {
+                        vec_owns(cases, pointer)
+                            || cases.iter().any(|case| {
+                                string_owns(&case.stable_id, pointer)
+                                    || string_owns(&case.name, pointer)
+                                    || fields_own(&case.fields, pointer)
+                            })
+                    }
+                    TypeDeclarationKind::Resource { .. } | TypeDeclarationKind::Class { .. } => {
+                        false
+                    }
+                }
+        })
+}
+
 #[test]
 fn cross_module_peak_retains_later_max_directory_and_whole_drop_bounds() {
     let programs=(0..4).map(|index| {
@@ -151,6 +214,48 @@ fn cross_module_peak_retains_later_max_directory_and_whole_drop_bounds() {
         current.forecast
             >= retained + later + crate::hir::retained_scalar_directory_bound(functions).unwrap()
     );
+    // Preserve the whole cold receiver, including the process prelude's first
+    // allocation. Every survivor must belong to that exact immutable owner;
+    // none is subtracted from this receipt or its simultaneous peak bound.
+    let (((cold_retained_live, cold_later_peak), owned_static), cold) = measure(|| {
+        let all = programs
+            .iter()
+            .map(|program| crate::hir::resolve(program).unwrap())
+            .collect::<Vec<_>>();
+        let retained_live = current_metrics().live;
+        for hir in &all {
+            crate::hir::validate(hir).unwrap();
+        }
+        let later_peak = current_metrics().highwater;
+        drop(all);
+        // Tripwires precede the borrowed allocation registry callback.
+        for declaration in crate::prelude::declarations() {
+            assert!(declaration.extends.is_none() && declaration.invariants.is_none());
+            assert!(matches!(
+                declaration.kind,
+                TypeDeclarationKind::Record { .. } | TypeDeclarationKind::Variant { .. }
+            ));
+        }
+        (
+            (retained_live, later_peak),
+            live_bytes_matching(prelude_owns),
+        )
+    });
+    assert!(!cold.invalid);
+    assert!(cold_retained_live > 0 && cold_later_peak >= cold_retained_live);
+    assert_eq!(
+        cold.live, owned_static,
+        "unowned survivor after whole cold Drop"
+    );
+    assert_eq!(cold.allocated, cold.freed.checked_add(cold.live).unwrap());
+    if cold.live != 0 && cfg!(target_pointer_width = "64") {
+        assert_eq!(
+            cold.live, 6420,
+            "changed prelude cold initialization receipt"
+        );
+    }
+    assert!(cold.highwater <= current.forecast);
+    eprintln!("903_COLD_CONSTRUCTOR_PEAK static_prelude_live={owned_static} whole_drop={cold:?}; no metrics subtraction or application admission claim");
     let ((retained_live, later_peak), allocation) = measure(|| {
         let all = programs
             .iter()

@@ -1991,10 +1991,12 @@ fn callable_limit_exact_advances_and_one_over_is_g171() {
     );
     let exact = callable_boundary_source(MAX_CALLABLES - 1);
     let (exact_result, reference_comparisons, reference_bytes) =
-        // One module-local synthetic main per module plus MAX_CALLABLES
-        // authored functions; each invokes the two original oracle receivers.
+        // At most seven monotonic core modes (0..=6) can resolve this same
+        // fixture again (initial_report/build.rs). Each attempt has at most
+        // MAX_CALLABLES authored functions plus two module-local mains, and
+        // each HIR validation invokes both complete original receivers.
         crate::cleanup_plan::with_financed_workspace_test_oracles(
-            2usize.checked_mul(MAX_CALLABLES.checked_add(2).unwrap()).unwrap(),
+            2usize.checked_mul(MAX_CALLABLES.checked_add(2).unwrap()).unwrap().checked_mul(7).unwrap(),
             || build_owned(vec![exact, leaf.clone()]),
         );
     assert!(reference_comparisons >= 2 * MAX_CALLABLES);

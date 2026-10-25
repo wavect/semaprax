@@ -164,6 +164,7 @@ fn complete_forecast_exact_short_zero_receipts_and_resolver_drop() {
 
 // Closed acquisition for this older five-owner proof; every original inverse follows.
 fn receiving_pre286_source(path: &str, current: &str) -> String {
+    let physical_current = current;
     let entry = crate::source_reflows::next_custody_before("prelude286", path, current);
     let current = entry.as_str();
     use sha2::{Digest, Sha256};
@@ -296,7 +297,7 @@ mod before_shared_local_projection;
 "########, r########""########, 1);
         }
         "tests/workspace/semantic_graph/source_inventory.rs" => {
-            restored = crate::source_reflows_merge::main_e177_final_inputs::value_direct(path, "4a1920f6abdff90036fe9afabe687c091b08a38d4f26a28e2e7c7feb678cbd14", current);
+            restored = crate::source_reflows_merge::main_e177_final_inputs::value_direct(path, "4a1920f6abdff90036fe9afabe687c091b08a38d4f26a28e2e7c7feb678cbd14", physical_current);
         }
         _ => unreachable!(),
     }

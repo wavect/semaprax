@@ -53,7 +53,10 @@ fn run(
     });
     assert!(!observed.invalid && observed.live == 0);
     assert_eq!(observed.allocated, observed.freed);
-    assert!(observed.allocated <= receipt.charged);
+    assert!(
+        observed.allocated <= receipt.charged,
+        "old={old} observed={observed:?} complete_reference={receipt:?}"
+    );
     receipt
 }
 
@@ -317,6 +320,28 @@ fn pointer_fee_exact_short_and_sticky_preserve_positive_active_floor() {
 fn comparison_unwind_releases_owned_rc_inputs_and_oracle_authority() {
     let program = fixture();
     let function = &program.functions[0];
+    // Independently observe the complete test-only unwind transport and its
+    // payload before using the same operation around real compiler owners.
+    // Both controls execute the identical resume_unwind(Box::new(17u8))
+    // operation used below. Prepay its complete observed payload and runtime
+    // transport before that operation, independently of compiler-owner work.
+    // No control bytes are subtracted or credited to either measured arm.
+    let control_run = || {
+        measure(|| std::panic::catch_unwind(|| std::panic::resume_unwind(Box::new(17u8))).is_err())
+    };
+    let (control_panicked, control) = control_run();
+    assert!(control_panicked);
+    assert!(!control.invalid && control.live == 0);
+    assert_eq!(control.allocated, control.freed);
+    assert!(control.allocated >= std::mem::size_of::<u8>());
+    assert!(control.allocated <= 1 << 20);
+    let (repeat_panicked, repeat_control) = control_run();
+    assert!(repeat_panicked);
+    assert_eq!(
+        control, repeat_control,
+        "unwind transport control must be stable before interpreting its receipt"
+    );
+    eprintln!("FLAT_IDENTITY_UNWIND_CONTROL complete_runtime_and_payload={control:?} repeated={repeat_control:?}");
     for old in [true, false] {
         let charged = std::cell::Cell::new(0);
         let (panicked, observed) = measure(|| {
@@ -348,8 +373,8 @@ fn comparison_unwind_releases_owned_rc_inputs_and_oracle_authority() {
                 budget
                     .reserve_bytes(
                         function,
-                        std::mem::size_of::<u8>(),
-                        "control unwind payload",
+                        control.allocated,
+                        "complete control unwind payload and runtime transport",
                     )
                     .unwrap();
                 charged.set(scope.receipt().charged);
@@ -360,7 +385,121 @@ fn comparison_unwind_releases_owned_rc_inputs_and_oracle_authority() {
         assert!(panicked);
         assert!(!observed.invalid && observed.live == 0);
         assert_eq!(observed.allocated, observed.freed);
-        assert!(observed.allocated <= charged.get());
+        assert!(
+            observed.allocated <= charged.get(),
+            "old={old} observed={observed:?} charged={} independent_unwind_control={control:?}",
+            charged.get()
+        );
         assert!(OracleScope::open_with_work(1 << 20, 1 << 20).is_ok());
     }
+}
+
+#[test]
+fn first_and_tail_compact_cuts_keep_work_order_sticky_failure_and_drop() {
+    let program = fixture();
+    let function = &program.functions[0];
+    let x = Rc::new(SkeletonObservation::Boolean {
+        expression: ExpressionId::from_owned("flat\0é.tail.identity".to_owned()),
+        value: false,
+    });
+    let separate = Rc::new((*x).clone());
+    for tail in [&x, &separate] {
+        let a = [x.clone(), x.clone()];
+        let b = [x.clone(), tail.clone()];
+        let held = (Rc::strong_count(&x), Rc::strong_count(&separate));
+        let first = run(
+            &program,
+            &a[..1],
+            &b[..1],
+            false,
+            1 << 20,
+            1 << 20,
+            Ok(Ordering::Equal),
+        );
+        let whole = run(
+            &program,
+            &a,
+            &b,
+            false,
+            1 << 20,
+            1 << 20,
+            Ok(Ordering::Equal),
+        );
+        assert_eq!(whole.charged - first.charged, FLAT_IDENTITY_RECEIVERS);
+        for (left, right, ample, before_work) in
+            [(&a[..1], &b[..1], first, 1), (&a[..], &b[..], whole, 3)]
+        {
+            let exact = run(
+                &program,
+                left,
+                right,
+                false,
+                ample.charged,
+                ample.work,
+                Ok(Ordering::Equal),
+            );
+            assert_eq!((exact.charged, exact.work), (ample.charged, ample.work));
+            let expected = replay_error(function,
+                "cleanup replay physical reservation exhausted during oracle flat identity receivers");
+            let short = run(
+                &program,
+                left,
+                right,
+                false,
+                ample.charged - 1,
+                ample.work,
+                Err(&expected),
+            );
+            let refusal = short
+                .first_refusal
+                .expect("the reached member's compact payment refuses");
+            assert_eq!(refusal.requested, FLAT_IDENTITY_RECEIVERS);
+            assert_eq!(refusal.remaining, FLAT_IDENTITY_RECEIVERS - 1);
+            assert_eq!(short.work, before_work);
+            assert!(short.first_work_refusal.is_none() && short.physical_failure.is_none());
+            // run() also retries zero on the same refused lease/budget, checks
+            // sticky failure, and observes complete budget/account Drop live0.
+        }
+        let expected = replay_error(
+            function,
+            "oracle account work allowance refused during oracle flat observation member",
+        );
+        let tail_work = run(&program, &a, &b, false, whole.charged, 2, Err(&expected));
+        assert_eq!(tail_work.work, 2);
+        assert_eq!(
+            tail_work.charged, first.charged,
+            "tail work fails before its compact byte bank"
+        );
+        assert!(tail_work.first_refusal.is_none());
+        assert_eq!(tail_work.first_work_refusal.unwrap().requested, 1);
+        // The identity work uses the compact producer on both reached
+        // members. Its complete failure must keep the semantic Diagnostic,
+        // paid bank, sticky account and final Drop at both boundaries.
+        let expected = replay_error(
+            function,
+            "oracle account work allowance refused during oracle flat observation identity",
+        );
+        for (allowance, paid) in [(1, first.charged), (3, whole.charged)] {
+            let identity_work = run(
+                &program, &a, &b, false, whole.charged, allowance, Err(&expected),
+            );
+            assert_eq!(identity_work.work, allowance);
+            assert_eq!(identity_work.charged, paid);
+            assert!(identity_work.first_refusal.is_none());
+            let refusal = identity_work.first_work_refusal.unwrap();
+            assert_eq!(refusal.requested, 1);
+            assert_eq!(refusal.remaining, 0);
+            assert!(identity_work.physical_failure.is_none());
+        }
+        assert_eq!(
+            held,
+            (Rc::strong_count(&x), Rc::strong_count(&separate)),
+            "no comparison/result/refusal retains a borrowed input owner"
+        );
+        drop((a, b));
+    }
+    assert_eq!(Rc::strong_count(&x), 1);
+    assert_eq!(Rc::strong_count(&separate), 1);
+    drop((x, separate));
+    assert!(OracleScope::open_with_work(1 << 20, 1 << 20).is_ok());
 }

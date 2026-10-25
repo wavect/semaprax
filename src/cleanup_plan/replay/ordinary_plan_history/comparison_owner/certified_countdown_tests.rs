@@ -249,7 +249,9 @@ fn countdown_capture_exact_short_floor_zero_and_sticky_receipt_are_actual_fronti
                 assert!(run.observed.0 .0.result.is_err());
             }
             if let Some(retry) = run.observed.0 .0.retry.as_ref() {
-                assert_eq!(Some(retry), run.observed.0 .0.result.as_ref().err());
+                // The first prepaid text is retained in result. A sticky retry
+                // owns no second backing and returns the original empty H006.
+                assert_eq!(retry, &failure(&Diagnostic::io("SPX-H006", String::new())));
             }
             balanced(run.observed.0 .1);
         }

@@ -209,6 +209,10 @@ pub(super) fn heads_run_generation(
             } else {
                 None
             };
+            assert_eq!(
+                result.as_ref().map(|_| ()).map_err(failure), saved,
+                "the sticky retry cannot change any field of the first held diagnostic"
+            );
             let outcome = Outcome {
                 result: saved,
                 retry: retry.as_ref().map(failure),

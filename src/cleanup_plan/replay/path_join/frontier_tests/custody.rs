@@ -429,6 +429,15 @@ fn current_shared_input_before(path: &str, current: &[u8]) -> Vec<u8> {
         let compiled = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests.rs")).as_slice();
         assert_eq!(physical.as_slice(), compiled);
         assert_eq!(current, compiled);
+        // Complete fixture-owner funding precedes the unchanged prior lookup chain.
+        assert_eq!(current.len(), 45009);
+        assert_eq!(digest(current), "810201d22a70f872c298aca9941bf5347798889fc91284bc4cc3f0e7402debbd");
+        let current = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/29e398dbdcd6a81735156bdf0d72a437d40e64a5786bb79a3add1924e626342a")).as_slice();
+        // Bind the complete repaired physical lookup before acquiring the
+        // entire authenticated mainb7 input for the unchanged older fronts.
+        assert_eq!(current.len(), 44359);
+        assert_eq!(digest(current), "29e398dbdcd6a81735156bdf0d72a437d40e64a5786bb79a3add1924e626342a");
+        let current = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/8fb97de082a60f774add25568ba491fac867b7a82880ef8e601a31f068585394")).as_slice();
         assert_eq!(current.len(), 41729);
         assert_eq!(digest(current), "8fb97de082a60f774add25568ba491fac867b7a82880ef8e601a31f068585394");
         let prior = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/48ba251872ba4bf83424e95f78cbadcd11636432a03da7ec8e700e78425a353d")).as_slice();

@@ -127,6 +127,16 @@ struct Budget {
     stage: Cell<Option<ReservationStage>>,
 }
 
+// Test fixtures that observe the enclosing budget itself must acquire this
+// backing before with_limit creates its Rc. This is not a compiler allowance.
+#[cfg(test)]
+pub(crate) fn test_budget_backing_bytes() -> usize {
+    let (layout, _) = std::alloc::Layout::new::<[usize; 2]>()
+        .extend(std::alloc::Layout::new::<Budget>())
+        .expect("fixed Rc header and Budget layout");
+    layout.pad_to_align().size()
+}
+
 thread_local! {
     static ACTIVE: RefCell<Option<Rc<Budget>>> = const { RefCell::new(None) };
 }

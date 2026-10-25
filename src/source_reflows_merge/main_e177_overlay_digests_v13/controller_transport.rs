@@ -154,6 +154,34 @@ fn v14_source_before(source: &str, supplied: &str) -> String {
             std::fs::read(root.join(source)).unwrap(),
             compiled.as_bytes()
         );
+        // Acquire the entire pre-observer compiled input before its unchanged history.
+        let observer_compiled_input;
+        let supplied = if super::hash(supplied.as_bytes()) == "616ca00e0b195931261dc80ea32312e84092863620883bb747605f1ec23e9caf" {
+            assert_eq!(supplied.len(), 157253);
+            assert_eq!(physical_reader::read(&root.join(source), 157253,
+                "616ca00e0b195931261dc80ea32312e84092863620883bb747605f1ec23e9caf", 9_753_094).unwrap(), compiled);
+            observer_compiled_input = physical_reader::read(
+                &root.join("e/84242ca46276900f23cc4442ae9aa64fe47f81076fd0511e1d5a979998675b11"), 156891, "84242ca46276900f23cc4442ae9aa64fe47f81076fd0511e1d5a979998675b11", 9_753_094).unwrap();
+            observer_compiled_input.as_str()
+        } else { supplied };
+        // Acquire the complete reviewed pre-repair compiled input before its unchanged history.
+        let repair_compiled_input;
+        let supplied = if super::hash(supplied.as_bytes()) == "84242ca46276900f23cc4442ae9aa64fe47f81076fd0511e1d5a979998675b11" {
+            assert_eq!(supplied.len(), 156891);
+            if super::hash(compiled.as_bytes()) == "616ca00e0b195931261dc80ea32312e84092863620883bb747605f1ec23e9caf" {
+                assert_eq!(physical_reader::read(&root.join("e/84242ca46276900f23cc4442ae9aa64fe47f81076fd0511e1d5a979998675b11"), 156891,
+                    "84242ca46276900f23cc4442ae9aa64fe47f81076fd0511e1d5a979998675b11", 9_753_094).unwrap(), supplied);
+            } else {
+            assert_eq!(physical_reader::read(&root.join(source), 156891,
+                "84242ca46276900f23cc4442ae9aa64fe47f81076fd0511e1d5a979998675b11", 9_753_094).unwrap(), compiled);
+            }
+            repair_compiled_input = physical_reader::read(
+                &root.join("e/777709dffedae86cb1ee7750967b21640d5be4296c92474f99861c34615287e3"),
+                154097, "777709dffedae86cb1ee7750967b21640d5be4296c92474f99861c34615287e3", 9_753_094).unwrap();
+            repair_compiled_input.as_str()
+        } else {
+            supplied
+        };
         // Acquire complete mainb7 source before the unchanged loader history.
         let mainb7_compiled_input;
         let supplied = if super::hash(supplied.as_bytes()) == "777709dffedae86cb1ee7750967b21640d5be4296c92474f99861c34615287e3" {
@@ -381,9 +409,19 @@ fn v14_source_before(source: &str, supplied: &str) -> String {
     }
     assert_eq!(v16_input.len() as u64, physical_row["target"]["length"].as_u64().unwrap());
     assert_eq!(super::hash(v16_input.as_bytes()), physical_row["target"]["sha256"].as_str().unwrap());
-    assert_eq!(physical_row["target"]["length"], front["records"][index]["length"]);
-    assert_eq!(physical_row["target"]["sha256"], front["records"][index]["sha256"]);
-    let supplied = v16_input.as_str();
+    // Retain the complete V16-to-V15 replay above. The current V14 front
+    // independently authenticates the physical source, whereas older packets
+    // acquired the unchanged V15 input. Select only the exact recorded stage.
+    let front_row = &front["records"][index];
+    let supplied = if front_row["length"] == physical_row["length"]
+        && front_row["sha256"] == physical_row["sha256"]
+    {
+        supplied
+    } else {
+        assert_eq!(physical_row["target"]["length"], front_row["length"]);
+        assert_eq!(physical_row["target"]["sha256"], front_row["sha256"]);
+        v16_input.as_str()
+    };
     assert_eq!(front["schema"], "semaprax.v14-physical-source-fronts.v1");
     assert_eq!(
         front["source_kind"],

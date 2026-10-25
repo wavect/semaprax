@@ -16,6 +16,7 @@
 
 ## Unreleased
 
+- Share repeated source-inverse payloads and closed source-path prefixes, and elide redundant row wrappers, while retaining complete legacy readers, unknown metadata, and existing bounds.
 - Prepay branch-sort frames and certified scalar comparison capture, retain complete fallback and historical executables, and encode known source-row fields losslessly within the existing custody limits.
 - Fund immutable Oracle pointer comparisons and Oracle-local reached backing independently, preserving ordinary and Legacy routes, depth limits, sticky refusal, and complete old constructors.
 - Repair retained-forecast boundary fixtures, historical equation domains, test-module paths, and exact source-view acquisition.

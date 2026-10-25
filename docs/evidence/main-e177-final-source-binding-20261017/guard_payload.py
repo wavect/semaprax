@@ -15,10 +15,60 @@ def bounded(path,length,digest):
   assert hashlib.sha256(b).hexdigest()==digest;return b
  finally:os.close(fd)
 _CONFIG_PATH=R/'docs/evidence/merge-2e92-browser-20261018/guard-config.json'
-_CONFIG_LENGTH=250429
-_CONFIG_SHA256='e3b305eb392180a867bc2e09d1db4cbd9c85565b9760bfdd72fc11177b9f044d'
+_CONFIG_LENGTH=244510
+_CONFIG_SHA256='2d5b5eb1920a224634571a48f539e4db014506a5f0601d42778c52971f3d95c6'
 _CONFIG_RAW=bounded(_CONFIG_PATH,_CONFIG_LENGTH,_CONFIG_SHA256)
-CONFIG=json.loads(_CONFIG_RAW)
+# Closed field-only transport. Legacy list semantics and every other CONFIG value remain unchanged.
+_CLOSED_SOURCE_SCHEMA='semaprax.closed-prior-sources.prefixes.v1'
+_CLOSED_SOURCE_PREFIXES=(('R','src/cleanup_plan/replay/'),('W','src/workspace_graph/'),('H','src/hir/'),('D','docs/evidence/'),('T','tests/'),('N','crates/semaprax-native-rust-interop-builder/'),('S','src/source_reflows/'),('M','src/source_reflows_merge/'))
+def _closed_source_json(value):
+ return json.dumps(value,ensure_ascii=False,separators=(',',':'),allow_nan=False).encode('utf-8')
+def _closed_source_parts(value):
+ assert isinstance(value,str) and value and '\\' not in value and '\x00' not in value
+ assert not value.startswith('/') and all(x not in ('','.','..') for x in value.split('/'))
+ value.encode('utf-8')
+def _decode_configuration(value):
+ field=value['closed_prior_sources']
+ if isinstance(field,list):return value # Entire original legacy reader remains the default.
+ assert isinstance(field,dict) and set(field)=={'schema','sources'} and field['schema']==_CLOSED_SOURCE_SCHEMA
+ assert len(_closed_source_json(value))+1<=262144
+ sources=field['sources'];assert isinstance(sources,list)
+ expanded_size=2+max(0,len(sources)-1)
+ for source in sources:
+  assert isinstance(source,str)
+  if ':' in source:
+   assert len(source)>=3 and source[1]==':' and source.count(':')==1
+   prefix=next((p for code,p in _CLOSED_SOURCE_PREFIXES if code==source[0]),None);assert prefix is not None
+   _closed_source_parts(source[2:])
+   # Prefixes are pairwise disjoint ASCII directory prefixes; every eligible path has one spelling.
+   expanded_size+=len(_closed_source_json(source))+len(prefix.encode('utf-8'))-2
+  else:
+   _closed_source_parts(source)
+   assert not any(source.startswith(prefix) for _,prefix in _CLOSED_SOURCE_PREFIXES),('noncanonical closed source',source)
+   expanded_size+=len(_closed_source_json(source))
+ # Complete expanded canonical CONFIG budget, including all opaque fields and final newline.
+ # No expanded path is joined or cloned before the whole bound is established.
+ assert len(_closed_source_json(value))-len(_closed_source_json(field))+expanded_size+1<=9753094
+ decoded=[]
+ for source in sources:
+  if ':' in source:
+   prefix=next(p for code,p in _CLOSED_SOURCE_PREFIXES if code==source[0]);decoded.append(prefix+source[2:])
+  else:decoded.append(source)
+ result=dict(value);result['closed_prior_sources']=decoded
+ return result
+def _encode_configuration(value):
+ sources=value['closed_prior_sources'];assert isinstance(sources,list)
+ assert len(_closed_source_json(value))+1<=9753094
+ encoded=[]
+ for source in sources:
+  assert isinstance(source,str)
+  encoded.append(next((code+':'+source[len(prefix):] for code,prefix in _CLOSED_SOURCE_PREFIXES if source.startswith(prefix)),source))
+ result=dict(value);result['closed_prior_sources']={'schema':_CLOSED_SOURCE_SCHEMA,'sources':encoded}
+ assert len(_closed_source_json(result))+1<=262144
+ assert _decode_configuration(result)==value
+ return result
+
+CONFIG=_decode_configuration(json.loads(_CONFIG_RAW))
 def _configuration_current():
  assert bounded(_CONFIG_PATH,_CONFIG_LENGTH,_CONFIG_SHA256)==_CONFIG_RAW
 

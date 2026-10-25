@@ -81,56 +81,164 @@ fn exact_edit(v: &Value) -> bool {
     })
 }
 fn edits<'a>(v: &'a Value, key: &str, out: &mut Vec<&'a Value>) -> Result<(), &'static str> {
-    if let Some(a) = v.get(key) {
-        for edit in a.as_array().ok_or("edit array")? {
-            if exact_edit(edit) {
-                out.extend([&edit["after"], &edit["before"]]);
-            }
+    let a = v.get(key).and_then(Value::as_array).ok_or("edit array")?;
+    for edit in a {
+        if exact_edit(edit) {
+            out.extend([&edit["after"], &edit["before"]]);
         }
     }
     Ok(())
 }
 fn payloads(body: &Value) -> Result<Vec<&Value>, &'static str> {
     let mut out = Vec::new();
-    body.get("rows").and_then(Value::as_array).ok_or("rows")?;
-    body.get("constructor_retention_903")
-        .and_then(|v| v.get("records"))
+    for row in body.get("rows").and_then(Value::as_array).ok_or("rows")? {
+        edits(row.get("target").ok_or("target")?, "edits", &mut out)?;
+        let middle = row.get("middle").ok_or("middle")?;
+        if !middle.is_null() {
+            edits(middle, "edits", &mut out)?;
+        }
+    }
+    let ctor = body.get("constructor_retention_903").ok_or("constructor")?;
+    if ctor.get("schema").and_then(Value::as_str)
+        != Some("semaprax.constructor-retention-903-source-fronts.v1")
+    {
+        return Err("constructor schema");
+    }
+    let records = ctor
+        .get("records")
         .and_then(Value::as_object)
         .ok_or("records")?;
-    body.get("main8_raw_current_fronts")
-        .and_then(|v| v.get("rows"))
+    let mut names: Vec<_> = records.keys().collect();
+    names.sort_unstable();
+    for name in names {
+        edits(&records[name], "edits", &mut out)?;
+    }
+    let main = body.get("main8_raw_current_fronts").ok_or("raw fronts")?;
+    if main.get("schema").and_then(Value::as_str)
+        != Some("semaprax.main5b4.current-raw-input-fronts.v1")
+    {
+        return Err("raw schema");
+    }
+    for row in main
+        .get("rows")
         .and_then(Value::as_array)
-        .ok_or("raw rows")?;
-    if let Some(rows) = body.get("rows") {
-        for row in rows.as_array().ok_or("rows")? {
-            // Canonical domain order is target then middle, not JSON key order.
-            for key in ["target", "middle"] {
-                if let Some(stage) = row.get(key).filter(|v| !v.is_null()) {
-                    edits(stage, "edits", &mut out)?;
-                }
-            }
-        }
-    }
-    if let Some(records) = body
-        .get("constructor_retention_903")
-        .and_then(|v| v.get("records"))
+        .ok_or("raw rows")?
     {
-        let records = records.as_object().ok_or("records")?;
-        let mut names: Vec<_> = records.keys().collect();
-        names.sort_unstable();
-        for name in names {
-            edits(&records[name], "edits", &mut out)?;
-        }
-    }
-    if let Some(rows) = body
-        .get("main8_raw_current_fronts")
-        .and_then(|v| v.get("rows"))
-    {
-        for row in rows.as_array().ok_or("raw rows")? {
-            edits(row, "inverse", &mut out)?;
-        }
+        edits(row, "inverse", &mut out)?;
     }
     Ok(out)
+}
+
+// This scanner runs only AFTER the complete strict JSON parse. It records
+// original byte spans, never normalizes a number/string/key, and never expands
+// a payload. Only the top-level body span is selected; payloads() alone selects references.
+#[derive(Clone, Copy)]
+struct Span {
+    start: usize,
+    end: usize,
+}
+impl Span {
+    fn len(self) -> usize {
+        self.end - self.start
+    }
+}
+fn skip_space(raw: &str, mut at: usize) -> usize {
+    while raw
+        .as_bytes()
+        .get(at)
+        .is_some_and(|b| matches!(b, b' ' | b'\n' | b'\r' | b'\t'))
+    {
+        at += 1;
+    }
+    at
+}
+fn quoted_end(raw: &str, start: usize) -> Result<usize, &'static str> {
+    if raw.as_bytes().get(start) != Some(&b'"') {
+        return Err("quoted span");
+    }
+    let mut at = start + 1;
+    while let Some(b) = raw.as_bytes().get(at) {
+        match b {
+            b'"' => return Ok(at + 1),
+            b'\\' => at = at.checked_add(2).ok_or("span overflow")?,
+            _ => at += 1,
+        }
+    }
+    Err("quoted end")
+}
+fn value_span(raw: &str, start: usize) -> Result<Span, &'static str> {
+    let start = skip_space(raw, start);
+    let bytes = raw.as_bytes();
+    let first = *bytes.get(start).ok_or("value span")?;
+    let end = if first == b'"' {
+        quoted_end(raw, start)?
+    } else if first == b'{' || first == b'[' {
+        let mut at = start;
+        let mut depth = 0usize;
+        loop {
+            match bytes.get(at).ok_or("container end")? {
+                b'"' => {
+                    at = quoted_end(raw, at)?;
+                    continue;
+                }
+                b'{' | b'[' => depth = depth.checked_add(1).ok_or("span depth")?,
+                b'}' | b']' => {
+                    depth = depth.checked_sub(1).ok_or("span depth")?;
+                    if depth == 0 {
+                        break at + 1;
+                    }
+                }
+                _ => {}
+            }
+            at += 1;
+        }
+    } else {
+        let mut at = start;
+        while bytes
+            .get(at)
+            .is_some_and(|b| !matches!(b, b' ' | b'\n' | b'\r' | b'\t' | b',' | b'}' | b']'))
+        {
+            at += 1;
+        }
+        if at == start {
+            return Err("primitive span");
+        }
+        at
+    };
+    Ok(Span { start, end })
+}
+fn members(raw: &str, object: Span) -> Result<Vec<(String, Span)>, &'static str> {
+    if raw.as_bytes().get(object.start) != Some(&b'{') {
+        return Err("object span");
+    }
+    let mut at = skip_space(raw, object.start + 1);
+    let mut out = Vec::new();
+    while raw.as_bytes().get(at) != Some(&b'}') {
+        let end = quoted_end(raw, at)?;
+        let name = serde_json::from_str(&raw[at..end]).map_err(|_| "key span")?;
+        at = skip_space(raw, end);
+        if raw.as_bytes().get(at) != Some(&b':') {
+            return Err("colon span");
+        }
+        let value = value_span(raw, at + 1)?;
+        out.push((name, value));
+        at = skip_space(raw, value.end);
+        if raw.as_bytes().get(at) == Some(&b',') {
+            at = skip_space(raw, at + 1);
+        } else {
+            break;
+        }
+    }
+    if at + 1 != object.end {
+        return Err("object end span");
+    }
+    Ok(out)
+}
+fn raw_body_span(raw: &str) -> Result<Span, &'static str> {
+    members(raw, value_span(raw, 0)?)?
+        .into_iter()
+        .find_map(|(name, span)| (name == "body").then_some(span))
+        .ok_or("body span")
 }
 fn reference(v: &Value) -> Result<Option<usize>, &'static str> {
     let Some(m) = v.as_object() else {
@@ -239,11 +347,8 @@ fn decode_with_cap(raw: &str, expanded_cap: usize) -> Result<Value, &'static str
     let mut counts = vec![0usize; strings.len()];
     let mut all: BTreeMap<&str, (usize, bool)> = BTreeMap::new();
     let mut next = 0usize;
-    let mut expanded = serde_json::to_vec(&body)
-        .map_err(|_| "body JSON")?
-        .len()
-        .checked_add(1)
-        .ok_or("expanded overflow")?;
+    let body_span = raw_body_span(raw)?;
+    let mut expanded = body_span.len().checked_add(1).ok_or("expanded overflow")?;
     for slot in slots {
         let (text, pooled) = if let Some(index) = reference(slot)? {
             let s = strings.get(index).ok_or("reference bounds")?;
@@ -254,6 +359,9 @@ fn decode_with_cap(raw: &str, expanded_cap: usize) -> Result<Value, &'static str
                 next += 1;
             }
             counts[index] = counts[index].checked_add(1).ok_or("use overflow")?;
+            // The canonical reference is never longer than its valid original
+            // spelling. Keeping any original reference whitespace/escapes as
+            // overhead is conservative; opaque numeric/key spellings survive.
             expanded = expanded
                 .checked_sub(
                     serde_json::to_vec(slot)
@@ -284,10 +392,6 @@ fn decode_with_cap(raw: &str, expanded_cap: usize) -> Result<Value, &'static str
     // All reference/type/canonicality checks and the complete expanded byte
     // bound precede the first expanded string clone.
     expand(&mut body, &strings);
-    debug_assert_eq!(
-        serde_json::to_vec(&body).expect("JSON value").len() + 1,
-        expanded
-    );
     Ok(body)
 }
 
@@ -304,10 +408,22 @@ mod tests {
     fn envelope(mut body: Value, strings: Vec<String>) -> Value {
         let m = body.as_object_mut().unwrap();
         m.entry("rows").or_insert_with(|| json!([]));
-        m.entry("constructor_retention_903")
-            .or_insert_with(|| json!({"records":{}}));
-        m.entry("main8_raw_current_fronts")
-            .or_insert_with(|| json!({"rows":[]}));
+        m.entry("constructor_retention_903").or_insert_with(
+            || json!({"schema":"semaprax.constructor-retention-903-source-fronts.v1","records":{}}),
+        );
+        m.entry("main8_raw_current_fronts").or_insert_with(
+            || json!({"schema":"semaprax.main5b4.current-raw-input-fronts.v1","rows":[]}),
+        );
+        body["constructor_retention_903"]["schema"] =
+            json!("semaprax.constructor-retention-903-source-fronts.v1");
+        body["main8_raw_current_fronts"]["schema"] =
+            json!("semaprax.main5b4.current-raw-input-fronts.v1");
+        for row in body["rows"].as_array_mut().unwrap() {
+            row.as_object_mut()
+                .unwrap()
+                .entry("middle")
+                .or_insert(Value::Null);
+        }
         json!({"schema":SCHEMA,"strings":strings,"body":body})
     }
     fn wire(v: &Value) -> String {
@@ -318,6 +434,7 @@ mod tests {
         let text = "é\\\n\"".repeat(32);
         let mut body = json!({"schema":LEGACY,"rows":[{"target":{"edits":[edit(reference_at(0),reference_at(0))]},"middle":null}],"constructor_retention_903":{"records":{"z":{"edits":[edit(reference_at(0),json!("short"))]}}},"main8_raw_current_fronts":{"rows":[{"inverse":[edit(reference_at(0),json!("short"))]}]},"unknown":{"after":{(TAG):9}},"opaque":[1,true,null]});
         let encoded = envelope(body.clone(), vec![text.clone()]);
+        body = encoded["body"].clone();
         expand(&mut body, &[text]);
         assert_eq!(decode(&wire(&encoded)).unwrap(), body);
         assert_eq!(decode(&wire(&body)).unwrap(), body);
@@ -326,7 +443,7 @@ mod tests {
         let value = json!({"schema":LEGACY,"rows":[{"target":{"edits":[opaque.clone()]}}],"constructor_retention_903":{"records":{}},"main8_raw_current_fronts":{"rows":[]}});
         assert_eq!(
             decode(&wire(&envelope(value.clone(), vec![]))).unwrap(),
-            value
+            envelope(value, vec![])["body"]
         );
     }
     #[test]
@@ -366,6 +483,15 @@ mod tests {
         );
         assert!(decode(&wire(&v)).is_err());
         let raw = wire(&good);
+        let negative_zero = raw.replacen(
+            "\"$source_edit_string_v1\":0",
+            "\"$source_edit_string_v1\":-0",
+            1,
+        );
+        assert!(
+            decode(&negative_zero).is_err(),
+            "negative-zero reference is not a u64"
+        );
         let duplicate = raw.replacen("\"schema\":", "\"schema\":\"duplicate\",\"schema\":", 1);
         assert!(decode(&duplicate).is_err());
     }
@@ -412,6 +538,73 @@ mod tests {
         );
         let duplicate = wire(&opaque).replacen("\"unknown\":", "\"unknown\":null,\"unknown\":", 1);
         assert!(decode(&duplicate).is_err());
+    }
+    #[test]
+    fn required_nested_schemas_and_edit_arrays_refuse_before_expansion() {
+        let body = json!({"schema":LEGACY,"rows":[{"target":{"edits":[]},"middle":{"edits":[]}}],"constructor_retention_903":{"records":{"source":{"edits":[]}}},"main8_raw_current_fronts":{"rows":[{"inverse":[]}]}});
+        let good = envelope(body, vec![]);
+        assert!(decode(&wire(&good)).is_ok());
+        for (parent, key) in [
+            ("/body/constructor_retention_903", "schema"),
+            ("/body/main8_raw_current_fronts", "schema"),
+            ("/body/rows/0", "target"),
+            ("/body/rows/0", "middle"),
+            ("/body/rows/0/target", "edits"),
+            ("/body/rows/0/middle", "edits"),
+            ("/body/constructor_retention_903/records/source", "edits"),
+            ("/body/main8_raw_current_fronts/rows/0", "inverse"),
+        ] {
+            let mut bad = good.clone();
+            bad.pointer_mut(parent)
+                .unwrap()
+                .as_object_mut()
+                .unwrap()
+                .remove(key);
+            assert!(decode(&wire(&bad)).is_err(), "missing {parent}/{key}");
+        }
+        for path in [
+            "/body/constructor_retention_903/schema",
+            "/body/main8_raw_current_fronts/schema",
+        ] {
+            let mut bad = good.clone();
+            *bad.pointer_mut(path).unwrap() = json!("foreign");
+            assert!(decode(&wire(&bad)).is_err());
+        }
+    }
+    #[test]
+    fn lexical_body_budget_preserves_raw_numbers_whitespace_escaped_keys_and_strings() {
+        let text = "p".repeat(64);
+        let body = json!({"schema":LEGACY,"rows":[{"target":{"edits":[edit(reference_at(0),reference_at(0))]}}],"opaque_number":0,"opaque_string":"\"} ] { [ \\ body","opaque_nested":{"body":[]}});
+        let plain = wire(&envelope(body, vec![text.clone()]));
+        let raw = format!(
+            " \n{}\n ",
+            plain
+                .replace("\"body\":", "\"bo\\u0064y\" : \n")
+                .replace("\"opaque_number\":0", "\"opaque_number\": 0.0000100e+02")
+                .replace(
+                    "\"$source_edit_string_v1\":0",
+                    "\"$source_\\u0065dit_string_v1\" : 0"
+                )
+        );
+        let span = raw_body_span(&raw).unwrap();
+        let body_raw = &raw[span.start..span.end];
+        assert!(body_raw.starts_with('{') && body_raw.ends_with('}'));
+        assert!(body_raw.contains("0.0000100e+02"));
+        let reference_width = wire(&reference_at(0)).len();
+        let expected = span.len() + 1 + 2 * (json_string_len(&text).unwrap() - reference_width);
+        let decoded = decode_with_cap(&raw, expected).unwrap();
+        assert_eq!(
+            decoded["opaque_number"],
+            serde_json::from_str::<Value>("0.0000100e+02").unwrap()
+        );
+        assert_eq!(decode_with_cap(&raw, expected - 1), Err("expanded bound"));
+        // Reference-internal whitespace/escaped-key overhead remains in the
+        // shared conservative bound; it is not subtracted or normalized away.
+        assert!(expected > wire(&decoded).len() + 1);
+        assert_eq!(
+            decode_with_cap(&plain, wire(&decode(&plain).unwrap()).len() + 1).unwrap(),
+            decode(&plain).unwrap()
+        );
     }
     #[test]
     fn full_expanded_size_exact_short_unicode_escape_and_amplification_bounds() {

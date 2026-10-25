@@ -839,6 +839,7 @@ mod before_structure_release;
 mod ordinary_cross_phase;
 mod ordinary_invocation;
 pub(in crate::cleanup_plan::replay) use ordinary_cross_phase::validate_structure_with_budget_storage;
+#[cfg_attr(not(test), allow(unused_imports))]
 pub(in crate::cleanup_plan::replay) use ordinary_invocation::{
     validate_structure_with_fact_backing, INVOCATION_RELEASE_BYTES,
 };

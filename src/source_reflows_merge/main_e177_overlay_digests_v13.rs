@@ -255,7 +255,7 @@ pub(in super::super) fn expand_v13(
 #[path = "main_e177_overlay_digests_v13/tests.rs"]
 mod tests;
 #[cfg(test)]
-pub(in super::super) use tests::{before_source, verify_current_v13, verify_current_v14, verify_current_v15, verify_current_v16, verify_current_v17};
+pub(in super::super) use tests::{before_source, verify_current_v13, verify_current_v14, verify_current_v15, verify_current_v16};
 
 // Private V14 intermediate only; standalone V13 entry points above are unchanged.
 fn expand_to_v12_logical(page: &Value) -> Result<Value, &'static str> {

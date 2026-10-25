@@ -464,6 +464,8 @@ pub(crate) fn compiled(source: &str) -> Option<&'static str> {
         "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_invocation.rs" => Some(include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_invocation.rs")),
         "src/cleanup_plan/replay/fact_preflight.rs" => Some(include_str!("../../src/cleanup_plan/replay/fact_preflight.rs")),
         "src/source_front_pool.rs" => Some(include_str!("../../src/source_front_pool.rs")),
+        "src/workspace_graph/expected_projection/call_sites.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/call_sites.rs")),
+        "src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch/tests.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/private_layout/authority_invocation/scratch/tests.rs")),
         _ => None,
     }
 }

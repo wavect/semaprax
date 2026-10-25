@@ -16,7 +16,9 @@ fn current_source(path: &str, row: &serde_json::Value) -> String {
     let interop_path = path == Path::new("crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs");
     let interop_epoch = interop_path && row["sha256"] == "d1edee35f9a7a97e9478264a44b7e77e4b3903bcbb87bb327602053f22afa6c8";
     let interop_prior_current = interop_path && row["sha256"] == "760872c3ea2924d4accd70e0b42b8573debaa312cfa4cd8a11cd61455b4701c5";
-    if interop_path && !interop_epoch && !interop_prior_current {
+    let interop_current = interop_path && row["sha256"] == "22c4e696c83d5e53b8b2fdb5e0f5b00a7e6b40e9bb53fffbc0fc4e005152b257";
+    if interop_current { assert_eq!(length, 239547); }
+    if interop_path && !interop_epoch && !interop_prior_current && !interop_current {
         assert_eq!(length, 235724);
         assert_eq!(row["sha256"], "23ea864c426901f3774b0a89bc3f2014e8cd9e784ccdc300f7718b2c174cd6b5");
     }
@@ -28,6 +30,7 @@ fn current_source(path: &str, row: &serde_json::Value) -> String {
         assert_eq!(length, 233409);
         235724
     } else { length };
+    let read_length = if interop_path { 239547 } else { read_length };
     assert_eq!(metadata.len(), read_length as u64);
     let mut bytes = Vec::new();
     bytes.try_reserve_exact(read_length).unwrap();
@@ -37,6 +40,16 @@ fn current_source(path: &str, row: &serde_json::Value) -> String {
     assert_eq!(file.read(&mut tail).unwrap(), 0);
     if interop_path {
         assert_eq!(bytes.as_slice(), include_bytes!("../../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs").as_slice());
+    }
+    if interop_path {
+        assert_eq!(bytes.len(), 239547);
+        assert_eq!(format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(&bytes))), "22c4e696c83d5e53b8b2fdb5e0f5b00a7e6b40e9bb53fffbc0fc4e005152b257");
+        if !interop_current {
+            let prior = include_bytes!("../../e/23ea864c426901f3774b0a89bc3f2014e8cd9e784ccdc300f7718b2c174cd6b5");
+            assert_eq!(prior.len(), 235724);
+            assert_eq!(format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(prior))), "23ea864c426901f3774b0a89bc3f2014e8cd9e784ccdc300f7718b2c174cd6b5");
+            bytes = prior.to_vec();
+        }
     }
     let native_before = |raw: Vec<u8>| {
         assert_eq!(raw.len(), 235724);
@@ -76,7 +89,7 @@ fn current_source(path: &str, row: &serde_json::Value) -> String {
     if interop_prior_current { bytes = native_before(bytes); }
     if interop_epoch {
         let compiled = include_bytes!("../../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs");
-        assert_eq!(bytes.as_slice(), compiled.as_slice());
+        assert_eq!(bytes.as_slice(), include_bytes!("../../e/23ea864c426901f3774b0a89bc3f2014e8cd9e784ccdc300f7718b2c174cd6b5").as_slice());
         bytes = native_before(bytes);
         // Complete two-child raw epoch precedes every unchanged historical leg.
         assert_eq!(format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(&bytes))), "760872c3ea2924d4accd70e0b42b8573debaa312cfa4cd8a11cd61455b4701c5");

@@ -90,18 +90,65 @@ pub(in crate::source_reflows_merge) fn input(source: &str, current: &str) -> Str
 }
 fn bundle(current: &str) -> String {
     let physical_current = current;
-    // Authenticate the actual public epoch before constructing a named historical input.
-    let guide_epoch;
+    let predicted_guide_epoch;
     let current = if digest(current)
-        == "cfcee456219f766e1d939c7a8c90a38c2e42bce79644a3990323719491ae648a"
+        == "41ff139de9ebc3d6b0b96f29811246df36051422db5bbc5715717e416599b71e"
     {
         authenticate(
             "docs/AGENT-SKILL-BUNDLE-V1.json",
             current,
             include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"),
             5544,
-            "cfcee456219f766e1d939c7a8c90a38c2e42bce79644a3990323719491ae648a",
+            "41ff139de9ebc3d6b0b96f29811246df36051422db5bbc5715717e416599b71e",
         );
+        let mut prior = current.to_owned();
+        replace(
+            &mut prior,
+            "sha256:46b6167a2937d423dea03a3e20d222f1a23942f8c83bf6a6a480d9473e5205f1",
+            "sha256:4d03ba63891a822aa638558f9d5dd58fcb6cec3e51cc70b742dc1845476abf73",
+            1,
+        );
+        replace(
+            &mut prior,
+            "sha256:e12ce170f16c346621a997c7437721048d23b61746d67e71dde626033d5b8752",
+            "sha256:7422df629f3232df98c2b2afeb908aceab7bcf63400495fbdd1f1d9928950922",
+            1,
+        );
+        assert_eq!(prior.len(), 5544);
+        assert_eq!(
+            digest(&prior),
+            "cfcee456219f766e1d939c7a8c90a38c2e42bce79644a3990323719491ae648a"
+        );
+        predicted_guide_epoch = prior;
+        predicted_guide_epoch.as_str()
+    } else {
+        current
+    };
+    // Authenticate the actual public epoch before constructing a named historical input.
+    let guide_epoch;
+    let current = if digest(current)
+        == "cfcee456219f766e1d939c7a8c90a38c2e42bce79644a3990323719491ae648a"
+    {
+        if physical_current == current {
+            authenticate(
+                "docs/AGENT-SKILL-BUNDLE-V1.json",
+                current,
+                include_str!("../../docs/AGENT-SKILL-BUNDLE-V1.json"),
+                5544,
+                "cfcee456219f766e1d939c7a8c90a38c2e42bce79644a3990323719491ae648a",
+            );
+        } else {
+            assert_eq!(physical_current.len(), 5544);
+            assert_eq!(
+                digest(physical_current),
+                "41ff139de9ebc3d6b0b96f29811246df36051422db5bbc5715717e416599b71e"
+            );
+            assert_eq!(current.len(), 5544);
+            assert_eq!(
+                digest(current),
+                "cfcee456219f766e1d939c7a8c90a38c2e42bce79644a3990323719491ae648a"
+            );
+        }
         let mut prior = current.to_owned();
         replace(
             &mut prior,
@@ -139,10 +186,16 @@ fn bundle(current: &str) -> String {
             } else {
                 // The physical epoch was authenticated before its exact two-field inverse.
                 assert_eq!(physical_current.len(), 5544);
-                assert_eq!(
-                    digest(physical_current),
-                    "cfcee456219f766e1d939c7a8c90a38c2e42bce79644a3990323719491ae648a"
-                );
+                if digest(physical_current)
+                    == "41ff139de9ebc3d6b0b96f29811246df36051422db5bbc5715717e416599b71e"
+                {
+                    assert_eq!(physical_current.len(), 5544);
+                } else {
+                    assert_eq!(
+                        digest(physical_current),
+                        "cfcee456219f766e1d939c7a8c90a38c2e42bce79644a3990323719491ae648a"
+                    );
+                }
                 assert_eq!(current.len(), 5544);
                 assert_eq!(
                     digest(current),

@@ -1405,6 +1405,8 @@
         "src/cleanup_plan/replay/factored/oracle_hook.rs",
         "src/cleanup_plan/replay/factored/oracle_hook/closure_controls.rs",
         "src/cleanup_plan/replay/factored/oracle_order.rs",
+        "src/cleanup_plan/replay/factored/oracle_order/before_flat_identity.rs",
+        "src/cleanup_plan/replay/factored/oracle_order/flat_identity_tests.rs",
         "src/cleanup_plan/replay/factored/oracle_order/tests.rs",
         "src/cleanup_plan/replay/factored/strategy/before_fitting.rs",
         "src/cleanup_plan/replay/factored/strategy/fitting_tests.rs",
@@ -1475,6 +1477,7 @@
         "src/cleanup_plan/replay/nested_shape/paid/scratch.rs",
         "src/cleanup_plan/replay/nested_shape/paid_before.rs",
         "src/cleanup_plan/replay/nested_shape/scalar_tests.rs",
+        "src/cleanup_plan/replay/oracle_closure_before/custody.rs",
         "src/cleanup_plan/replay/oracle_controls.rs",
         "src/cleanup_plan/replay/ordinary_inventory/before.rs",
         "src/cleanup_plan/replay/ordinary_inventory/substitute.rs",
@@ -1724,7 +1727,9 @@
         "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/flat_probe/receiving_tests.rs",
         "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort.rs",
         "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before.rs",
+        "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_branch_frames.rs",
         "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_frame_pricing.rs",
+        "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/branch_frames.rs",
         "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/tests.rs",
         "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/source_custody.rs",
         "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
@@ -3115,6 +3120,8 @@
         "src/wasm/aggregate/internal_strings.rs",
         "src/wasm/aggregate/iterator_ops.rs",
         "src/wasm/aggregate/iterator_ops/owned.rs",
+        "src/workflow_profile.rs",
+        "src/workflow_profile/plan_comparison.rs",
         "src/workspace_graph.rs",
         "src/workspace_graph/constructor_failure.rs",
         "src/workspace_graph/constructor_failure/attempt.rs",
@@ -3195,9 +3202,9 @@
         "src/workspace_graph/validation.rs",
         "src/workspace_report.rs"
       ],
-      "full_manifest_sha256": "6d5b18f088b8a7b542b19c1d26e962e9a713206111ccebdbe18dc52a2d27fc74",
-      "full_raw_sha256": "c138e24f2330e2869dda9657155b8afec72fcccec383128b4bd75e85dfc01af5",
-      "full_authenticated_production_sha256": "4f30f1c97eda26ba314c8ea86ebcbdc69ba8440084f673e95a26d55490737904"
+      "full_manifest_sha256": "fc85bb8f7a4b0dc187a2594b186b7b418ed42f73efc7586049e0d3e41f55066c",
+      "full_raw_sha256": "de462300150beca0d2d4b271745ef5b829398b3078aac6edbcb3670d0212c017",
+      "full_authenticated_production_sha256": "5cf3dde470535aa4a783fa46a9478a451486489cf25f74cf939ba464d022e90f"
     },
     "projection": {
       "baseline": "a82e00cc83f99b16249181c45710d962598577db",
@@ -4530,6 +4537,8 @@
         "src/wasm/aggregate/internal_strings.rs",
         "src/wasm/aggregate/iterator_ops.rs",
         "src/wasm/aggregate/iterator_ops/owned.rs",
+        "src/workflow_profile.rs",
+        "src/workflow_profile/plan_comparison.rs",
         "src/workspace_graph.rs",
         "src/workspace_graph/constructor_failure.rs",
         "src/workspace_graph/constructor_failure/receiving.rs",
@@ -4557,9 +4566,9 @@
         "src/workspace_report.rs",
         "src/workspace_report/initial.rs"
       ],
-      "full_manifest_sha256": "e0ef153c826998bdbf0f572e05f4601542eab3f52fcb037ab1d83d111e2cf7b0",
-      "full_raw_sha256": "89d6121fdeb978eb9af2bbcc3a48ef893dd59fae56917e086fb32b100298fa7e",
-      "full_authenticated_production_sha256": "d2412ef6cafb63683dce76ce56133e9a1a88b85e38684d4831f6a1e025f9c5ed"
+      "full_manifest_sha256": "5811797ce93aa11458e583c16077d27c056bbd2b0137fe45b9f967e28f48b122",
+      "full_raw_sha256": "66d9b7f16c3f08c40480268712398aaee524d41d09909d999d7ef4f67c5e4176",
+      "full_authenticated_production_sha256": "24ae7e16c9ae8f5d9f3e72729903f20c3e5b02d1924bfbc127b6f188e459270f"
     }
   }
 }

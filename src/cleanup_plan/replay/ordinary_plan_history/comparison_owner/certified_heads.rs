@@ -42,7 +42,7 @@ const _: () = assert!(size_of::<()>() == 0 && !std::mem::needs_drop::<SharedUnit
 // retained remaining (U), zero-test operands (2U), decrement operands/result
 // (3U), and one condition. All reusable slots are paid BEFORE formation.
 pub(super) const RUN_SCALAR_CAPTURE: usize =
-    2 * size_of::<&[Rc<SkeletonObservation>]>() + 8 * size_of::<usize>() + size_of::<bool>();
+    2 * size_of::<&[Rc<SkeletonObservation>]>() + size_of::<[usize; 8]>() + size_of::<bool>();
 #[cfg(test)]
 #[allow(dead_code, unused_imports, unused_macros, reason = "complete independently executable immediate countdown predecessor")]
 #[rustfmt::skip]

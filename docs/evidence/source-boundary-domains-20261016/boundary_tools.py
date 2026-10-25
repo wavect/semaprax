@@ -167,7 +167,7 @@ def _protected_helper(repo,j):
  path='tests/support/production_source_inventory_original.rs'
  assert j['helper_original']==path and j['helper_before_sha256']=='d51a124525e3d41469c1db223a0b4526faa3faff1c757b9526ca0b2233358e8c'
  actual=(repo/path).read_bytes()
- epoch=_inventory_model_epoch_before(_interop_model_epoch_before(_next_raw_registration_helper_before(_constructor903_raw_helper_before(actual))))
+ epoch=_inventory_model_epoch_before(_interop_model_epoch_before(_next_raw_registration_helper_before(_constructor903_raw_helper_before(_native966_helper_before(actual)))))
  assert epoch==git(repo,'424e9611a87e66f43a82a7ce7c9b4bb56a4ec64b',path), 'complete helper source epoch'
  restored=_restore_protected_helper(epoch)
  assert (repo/path).read_bytes()==actual, 'protected helper source drift'
@@ -182,4 +182,15 @@ def _constructor903_raw_helper_before(actual):
   after=after.encode();assert restored[at:at+len(after)]==after, 'exact constructor903 helper byte inverse'
   restored=restored[:at]+before.encode()+restored[at+len(after):]
  assert len(restored)==12873 and sha(restored)=='4fa434fcfb95738842c6ed0ef8a90d8c81ee02414328d5f3fd365c26d83bbd59', 'entire preceding raw helper'
+ return restored
+
+
+def _native966_helper_before(actual):
+ assert len(actual)==17612 and sha(actual)=='53a5b40b13dcb20fa2807750cc5f91caa3ca388bd1a4a607119103d14b8580fe', 'complete native966 helper'
+ parts=[];cursor=0
+ for e in [{'start': 1129, 'end': 1397, 'after': '    let interop_current = interop_path && row["sha256"] == "22c4e696c83d5e53b8b2fdb5e0f5b00a7e6b40e9bb53fffbc0fc4e005152b257";\n    if interop_current { assert_eq!(length, 239547); }\n    if interop_path && !interop_epoch && !interop_prior_current && !interop_current {\n', 'before': '    if interop_path && !interop_epoch && !interop_prior_current {\n'}, {'start': 1849, 'end': 1920, 'after': '    let read_length = if interop_path { 239547 } else { read_length };\n', 'before': ''}, {'start': 2406, 'end': 3037, 'after': '    }\n    if interop_path {\n        assert_eq!(bytes.len(), 239547);\n        assert_eq!(format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(&bytes))), "22c4e696c83d5e53b8b2fdb5e0f5b00a7e6b40e9bb53fffbc0fc4e005152b257");\n        if !interop_current {\n            let prior = include_bytes!("../../e/23ea864c426901f3774b0a89bc3f2014e8cd9e784ccdc300f7718b2c174cd6b5");\n            assert_eq!(prior.len(), 235724);\n            assert_eq!(format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(prior))), "23ea864c426901f3774b0a89bc3f2014e8cd9e784ccdc300f7718b2c174cd6b5");\n            bytes = prior.to_vec();\n        }\n', 'before': ''}, {'start': 6686, 'end': 6827, 'after': '        assert_eq!(bytes.as_slice(), include_bytes!("../../e/23ea864c426901f3774b0a89bc3f2014e8cd9e784ccdc300f7718b2c174cd6b5").as_slice());\n', 'before': '        assert_eq!(bytes.as_slice(), compiled.as_slice());\n'}]:
+  assert actual[e['start']:e['end']]==e['after'].encode(), 'exact native966 helper inverse'
+  parts.extend((actual[cursor:e['start']],e['before'].encode()));cursor=e['end']
+ restored=b''.join(parts+[actual[cursor:]])
+ assert len(restored)==16626 and sha(restored)=='855ab2165b03db87f3295f8008a8d6bdf3e055edf455d5f201a48fadd466baec', 'whole preceding constructor903 helper'
  return restored

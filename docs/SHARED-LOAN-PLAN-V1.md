@@ -615,9 +615,14 @@ Starts and kills directories are still constructed by the complete original
 loan/edge loops. Their rows then move into the unchanged paid compact-list
 conversion at the original endpoint-field positions. An over-capacity nonempty
 row still pays the complete replacement while the original buffer lives; empty
-and exact-capacity rows retain the original conversion rules. A moved
-termination row retains its actual capacity, including spare capacity; this is
-not an exact-capacity or reduced-retained-size promise.
+and exact-capacity rows retain the original conversion rules. The actual termination producer grows rows geometrically with an initial
+capacity of four. Moving that spare capacity into the retained plan would
+change the previous lifetime bound, so a separately prepaid lexical
+Box-slice-to-Vec conversion compacts a nonexact row. Its complete replacement
+backing is charged while the original remains live, and all Box/Vec, selector,
+return and Drop transports are acquired first. Empty spare rows release their
+old backing without a new allocation. Published termination capacity remains
+exactly its length as in the immediate old caller.
 
 Separate typed banks precede consuming iterator construction, each next/terminal
 turn, indexed take and its empty replacement, and endpoint-row Option/receiving
@@ -627,6 +632,11 @@ is credited. `paid_materialize/immediate_before.rs.txt` retains the complete
 `immediate_before.rs`; older before/legacy controls remain. The owning
 `owned_inputs_tests` controls compare full plans, wire/graph projections, actual
 allocation through Drop, exact/short/zero/sticky/floor/foreign frontiers,
-malformed first-error/index behavior and unwind. These controls are authored
+malformed first-error/index behavior and unwind. The complete funded caller
+also executes the immediate-old materializer through a test-only director and
+checks full mutable retained capacity, allocation and Drop, including exact
+and short receiving budgets. Origin production either clones exact projection
+backing or enforces the exact resolved projection count before publication.
+These controls are authored
 but unrun; cold/small tariff regressions and actual capacity remain visible.
 No application admission, net tariff, token or runtime improvement is claimed.

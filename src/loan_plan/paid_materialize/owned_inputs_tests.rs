@@ -4,6 +4,24 @@ use crate::bounded_output::cfg_reservation::{CfgReservation, Refused};
 use crate::bounded_output::{active_remaining, set_active_floor, with_limit_usage_refusal};
 use crate::test_allocation_observer::{current_metrics, measure, Metrics};
 
+thread_local! {
+    static IMMEDIATE_OLD: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+pub(super) fn use_immediate_old() -> bool {
+    IMMEDIATE_OLD.with(std::cell::Cell::get)
+}
+struct Mode(bool);
+impl Mode {
+    fn select(old: bool) -> Self {
+        Self(IMMEDIATE_OLD.with(|slot| slot.replace(old)))
+    }
+}
+impl Drop for Mode {
+    fn drop(&mut self) {
+        IMMEDIATE_OLD.with(|slot| slot.set(self.0));
+    }
+}
+
 type Inputs<'a> = (
     Cfg<'a>,
     Vec<CfgDraft<()>>,
@@ -170,28 +188,46 @@ fn owned_origin_and_termination_backing_move_with_original_order_dedup_and_spare
         )));
     with_limit_usage_refusal(usize::MAX, || {
         let owner = CfgReservation::acquire().unwrap();
-        let mut input = inputs(function, &plan, &owner).unwrap();
+        let input = inputs(function, &plan, &owner).unwrap();
         let projection_pointer = input.1[0].origin.projections.as_ptr();
-        let first_edge = input.4[0][0];
-        storage::push(&mut input.4[0], first_edge, Some(&owner)).unwrap();
         let termination_pointer = input.4[0].as_ptr();
-        let termination_capacity = input.4[0].capacity();
+        assert_eq!(input.4[0].len(), input.4[0].capacity());
         let current = invoke(input, &owner, false).unwrap();
-        let mut old_input = inputs(function, &plan, &owner).unwrap();
-        storage::push(&mut old_input.4[0], first_edge, Some(&owner)).unwrap();
-        let old = invoke(old_input, &owner, true).unwrap();
+        let old = invoke(inputs(function, &plan, &owner).unwrap(), &owner, true).unwrap();
         assert_eq!(current, old);
         assert_eq!(
             current.loans[0].origin.projections.as_ptr(),
             projection_pointer
         );
         assert_eq!(current.loans[0].end_edges.as_ptr(), termination_pointer);
-        assert_eq!(current.loans[0].end_edges.capacity(), termination_capacity);
+        assert_eq!(
+            owned_capacity::clone_capacity_bytes(&current),
+            owned_capacity::clone_capacity_bytes(&old)
+        );
+        // The REAL producer's singleton rows have geometric capacity four.
+        // Reproduce spare backing, then require old exact published capacity.
+        let mut input = inputs(function, &plan, &owner).unwrap();
+        let first_edge = input.4[0][0];
+        storage::push(&mut input.4[0], first_edge, Some(&owner)).unwrap();
+        assert!(input.4[0].capacity() > input.4[0].len());
+        let current = invoke(input, &owner, false).unwrap();
+        let mut input = inputs(function, &plan, &owner).unwrap();
+        storage::push(&mut input.4[0], first_edge, Some(&owner)).unwrap();
+        let old = invoke(input, &owner, true).unwrap();
+        assert_eq!(current, old);
+        for (a, b) in current.loans.iter().zip(&old.loans) {
+            assert_eq!(a.end_edges.capacity(), a.end_edges.len());
+            assert_eq!(a.end_edges.capacity(), b.end_edges.capacity());
+        }
         assert_eq!(current.loans[0].end_edges.last(), Some(&first_edge));
         assert!(!current.loans[0]
             .ends
             .windows(2)
             .any(|pair| pair[0] == pair[1]));
+        assert_eq!(
+            owned_capacity::clone_capacity_bytes(&current),
+            owned_capacity::clone_capacity_bytes(&old)
+        );
         assert_eq!(owner.first(), None);
     });
 }
@@ -337,5 +373,101 @@ fn owned_rows_malformed_unwind_releases_complete_inputs_and_partly_built_result(
             assert_eq!(metrics.allocated, metrics.freed);
             // Panic-runtime control allocations are not a compiler tariff claim.
         });
+    }
+}
+
+#[test]
+fn owned_rows_complete_funded_caller_keeps_retained_capacity_and_allocation_drop() {
+    let (program, index) = boundary_tests::fixture_with_uses(3, true);
+    // Reuse the admitted projected-field caller shape from the existing
+    // canonical-loan storage owner, not an invented HIR-only sizing fixture.
+    let ast = crate::check(
+        r#"module loan.owned_rows;
+@id("packet") record Packet { @id("payload") payload:Bytes, @id("sibling") sibling:Bytes, }
+@id("first") fn first(packet:own Packet)->usize {
+ let view=bytes_as_slice(packet.payload);
+ byte_len(view)+byte_len(view)+byte_len(view)+byte_len(view)+byte_len(view)
+}
+@id("main") fn main()->i64 {0}
+"#,
+        "owned-loan-materializer.spx",
+    )
+    .unwrap();
+    let projected = crate::hir::resolve(&ast).unwrap();
+    let projected_index = projected
+        .functions
+        .iter()
+        .position(|f| f.id.as_str() == "first")
+        .unwrap();
+    for (program, index) in [(program, index), (projected, projected_index)] {
+        let function = &program.functions[index];
+        let expected = saved_planner::build_plan(&program, function).unwrap();
+        let run = |old, limit| {
+            let _mode = Mode::select(old); // test-only director outside observation
+            let ((retained, metrics), refused, used, first) =
+                with_limit_usage_refusal(limit, || {
+                    measure(|| {
+                        let owner = match CfgReservation::acquire() {
+                            Ok(owner) => owner,
+                            Err(_) => return None,
+                        };
+                        let result = build_plan_with_reservation(&program, function, &owner);
+                        let retained = result.as_ref().ok().map(|plan| {
+                            assert_eq!(plan, &expected);
+                            for loan in &plan.loans {
+                                assert_eq!(loan.end_edges.capacity(), loan.end_edges.len());
+                                assert_eq!(
+                                    loan.origin.projections.capacity(),
+                                    loan.origin.projections.len()
+                                );
+                            }
+                            (
+                                owned_capacity::clone_capacity_bytes(plan).unwrap(),
+                                owned_capacity::owned_capacity_bytes(plan).unwrap(),
+                            )
+                        });
+                        drop(result);
+                        drop(owner);
+                        retained
+                    })
+                });
+            assert!(!metrics.invalid);
+            assert_eq!(metrics.live, 0);
+            assert_eq!(metrics.allocated, metrics.freed);
+            assert!(
+                metrics.allocated <= used,
+                "old={old} metrics={metrics:?} paid={used}"
+            );
+            assert_eq!(retained.is_some(), !refused);
+            assert_eq!(retained.is_none(), first.is_some());
+            (retained, used, metrics)
+        };
+        let old = run(true, usize::MAX);
+        let current = run(false, usize::MAX);
+        assert_eq!(
+            current.0, old.0,
+            "entire retained mutable capacity equals immediate caller"
+        );
+        assert!(
+            current.2.allocated <= old.2.allocated,
+            "complete caller creates no extra backing"
+        );
+        if expected
+            .loans
+            .iter()
+            .any(|loan| !loan.origin.projections.is_empty())
+        {
+            assert!(
+                current.2.allocated < old.2.allocated,
+                "actual admitted projected caller removes origin backing clone"
+            );
+        }
+        eprintln!("whole funded loan caller old={old:?} current={current:?}");
+        for old in [true, false] {
+            let exact = run(old, usize::MAX).1;
+            for limit in [0, exact - 1, exact] {
+                assert_eq!(run(old, limit).0.is_some(), limit >= exact);
+            }
+        }
     }
 }

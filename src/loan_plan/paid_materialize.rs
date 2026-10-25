@@ -9,6 +9,17 @@ pub(super) fn materialize<S>(
     mut termination_edges: Vec<Vec<u16>>,
     payer: &crate::bounded_output::cfg_reservation::CfgReservation,
 ) -> Result<LoanPlan, Diagnostic> {
+    #[cfg(test)]
+    if owned_inputs_tests::use_immediate_old() {
+        return immediate_before::materialize(
+            cfg,
+            drafts,
+            parents,
+            edge_live,
+            termination_edges,
+            payer,
+        );
+    }
     // The draft count is exact. Result collection need not retain spare
     // geometric capacity in the authoritative physical loan inventory.
     payer
@@ -38,6 +49,23 @@ pub(super) fn materialize<S>(
             .array::<TakeRow<'_, u16>>(1)
             .map_err(|_| storage::marker())?;
         let end_edges = std::mem::take(&mut termination_edges[index]);
+        // The producer grows termination rows geometrically (minimum four).
+        // Old clone_vec published exact capacity. Preserve that lifetime bound:
+        // pay the complete replacement WHILE old backing is still live, with
+        // all new Box/Vec receivers acquired before any selector/conversion.
+        payer
+            .array::<TerminationCompact<'_>>(1)
+            .map_err(|_| storage::marker())?;
+        let end_edges = if end_edges.capacity() != end_edges.len() {
+            if !end_edges.is_empty() {
+                payer
+                    .array::<u16>(end_edges.len())
+                    .map_err(|_| storage::marker())?;
+            }
+            end_edges.into_boxed_slice().into_vec()
+        } else {
+            end_edges
+        };
         if end_edges.is_empty() {
             return Err(error("loan has no bounded CFG termination edge"));
         }
@@ -202,6 +230,33 @@ type TakeRow<'a, T> = (
     Vec<T>,
     Vec<T>,
     Vec<T>, // default empty, returned row, retained/drop row
+    PaidTurn,
+);
+// Only type layouts are evaluated: no tariff tuple is materialized.
+// Actual/formal Vec and Box receivers, both returned/held/drop carriers,
+// len/capacity loans/operands, both predicates and two reservation Results.
+type TerminationCompact<'a> = (
+    Vec<u16>,
+    Vec<u16>,
+    Vec<u16>,
+    Vec<u16>,
+    Box<[u16]>,
+    Box<[u16]>,
+    Box<[u16]>,
+    Box<[u16]>,
+    &'a Vec<u16>,
+    &'a Vec<u16>,
+    &'a Vec<u16>,
+    &'a Vec<u16>,
+    usize,
+    usize,
+    usize,
+    usize,
+    usize,
+    usize,
+    bool,
+    bool,
+    PaidTurn,
     PaidTurn,
 );
 type EndpointCold = (

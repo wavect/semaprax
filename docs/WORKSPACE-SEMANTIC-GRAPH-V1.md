@@ -627,6 +627,62 @@ source byte where the core build retains 3.8, and the string term is 1.2% to
 `bounded_output` debit is not an under-count worth re-deriving against: it is
 66% to 79% of the retained heap the allocator measures on the same builds.
 
+## Authenticated local callee identity forecast
+
+The uncached parsed-HIR mode may remove only a separately authenticated local
+callee occurrence from the identity-text census. All remaining occurrences keep
+`HIR_IDENTITY_COPY_FACTOR` unchanged. The certificate borrows the exact source
+program, authored index, provider slice and original invoice; unrelated auxiliary
+call-carrier roots grant no identity authority. Compiler/prelude calls, imports,
+aliases, interfaces, generic/default/closure lowerings, shadowed function values
+and unfamiliar expression shapes keep their original bounds.
+
+The constructor map has eight families. These are constructor paths, not a claim
+that every call physically creates eight copies:
+
+| Family | Actual storage constructor and retained obligation |
+| --- | --- |
+| HIR call | `hir/resolve_expr.rs` clones the held `function_id`, then moves it through `Frame::FinishCall`; the callee's shared allocation key must match the declaration. |
+| Declaration index | `hir/declaration_index.rs` clones the declaration ID into `functions_by_name`; the declaration entry and name lookup share the held backing. |
+| Type index | The separate `types_by_name` namespace and retained resolved types do not create a function-callee entry. Nominal, case, field and type identities retain their complete allowance. |
+| Persistent call index | `call_index.rs` clones the callee into sites, caller maps and target sets. Fresh expression-key Strings remain independently owned and charged. |
+| Validation sets | `hir/validation/function_lookup.rs` either borrows the directory or clones IDs in its legacy map. Validation/checking work and temporary maps remain charged. |
+| Cleanup inventory | `cleanup/inventory_builder.rs` traverses Call arguments without materializing callee text. Expression/storage identities and owned argument backing remain independent. |
+| Cleanup plan | `cleanup_plan/build/finish_call.rs` clones the ID into `StatusProducer::PropagatedCall`; status-source expression IDs are fresh and retain their allowance. |
+| Retained call edges | `hir/inspection.rs` clones IDs into the workspace call-edge set. Imported `WorkspaceEdge` paths remain independent Strings and receive no local certificate. |
+
+The graph serializer's `BTreeSet<String>` is a ninth, different physical owner.
+`graph.rs` inserts `callee.as_str().to_owned()` into that set. It is not a
+`CappedString` output write and is never covered by this identity certificate.
+`source_callables.rs` retains the complete mode-zero forecast before its HIR JSON
+route; the final uncached retained WorkspaceModule route does not call that
+serializer.
+
+The owning constructor tests also retain the complete executable forecast from
+`21574297e02afb6f286901171f6c179bf2ccea0a`, immediately before this certificate.
+It uses the frozen two-word call proof and six-word result, rather than silently
+repricing the old arm with the later constructor-retention fields. The original
+whole source, its SHA-256 and a full UTF-8 inverse authenticate the namespace-only
+compiled copy. The current carrier census's fee is observed independently, so
+its later ABI/funding changes are explicit in the exact old/current equation.
+All modes zero through seven, both retention policies and actual imported-source
+inputs remain controlled. The complete immediately preceding mode-five uncached
+sequential caller is also independently executable, with its same seven-argument
+projection gateway and old result type. Its complete source and byte inverse
+remain authenticated. Its old bound is compared with the actual current
+mode-six caller including later composed corrections; that difference is not
+exclusive attribution to the local-ID certificate. Existing matched-current
+oracles stay enabled.
+
+The added source is unqualified until the exact constructor, full-forecast,
+proof-frontier and whole-caller Drop controls execute. Printed forecasts,
+cumulative reservations and requested allocator layouts are separate quantities.
+The local projection/HIR observation does not stand in for the final uncached
+workspace caller, CLI49 or complete applications at their original caps. No
+admission, positive net reduction, physical-device or RSS claim follows from the
+source equations. Those existing application and production qualification gates
+remain required.
+
 An imported declaration is charged for what the synthetic projection retains,
 not for the provider's source. A function import becomes a stub: the rewritten
 signature, no preconditions or postconditions, and the return type's default

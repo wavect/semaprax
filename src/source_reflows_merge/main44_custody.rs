@@ -11,6 +11,46 @@ pub(super) struct Spec {
     pub(super) sha256: [u8; 32],
 }
 impl Fixture {
+    pub(crate) fn prior_source(source: &str, current: &str) -> Option<String> {
+        use sha2::{Digest, Sha256};
+        let hash = |bytes: &[u8]| format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)));
+        let binding: serde_json::Value =
+            serde_json::from_str(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/lexical_exit/arm_context_inverse.json"))).unwrap();
+        let rows = binding["rows"].as_array().unwrap();
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows[0]["source"], "src/hir/validation/lexical_exit.rs");
+        assert_eq!(rows[1]["source"], "src/source_reflows_merge/main44_custody.rs");
+        let row = rows
+            .iter()
+            .find(|row| row["source"].as_str() == Some(source))?;
+        if current.len() as u64 != row["current_length"].as_u64().unwrap()
+            || hash(current.as_bytes()) != row["current_sha256"].as_str().unwrap()
+        {
+            return None;
+        }
+        let mut previous = Vec::new();
+        let mut end = 0;
+        for edit in row["edits"].as_array().unwrap() {
+            let start = usize::try_from(edit["start"].as_u64().unwrap()).unwrap();
+            let next = usize::try_from(edit["end"].as_u64().unwrap()).unwrap();
+            assert!(end <= start && start <= next && next <= current.len());
+            assert_eq!(
+                &current.as_bytes()[start..next],
+                edit["after"].as_str().unwrap().as_bytes()
+            );
+            previous.extend_from_slice(&current.as_bytes()[end..start]);
+            previous.extend_from_slice(edit["before"].as_str().unwrap().as_bytes());
+            end = next;
+        }
+        previous.extend_from_slice(&current.as_bytes()[end..]);
+        assert_eq!(
+            previous.len() as u64,
+            row["before_length"].as_u64().unwrap()
+        );
+        assert_eq!(hash(&previous), row["before_sha256"].as_str().unwrap());
+        Some(String::from_utf8(previous).unwrap())
+    }
+
     // A finite complete source epoch before the unchanged CI/Main44 inverses.
     // Actual physical current and the entire immutable predecessor are both read.
     pub(crate) fn closure_epoch<'a>(
@@ -110,6 +150,20 @@ impl Fixture {
             _ => return (std::borrow::Cow::Borrowed(supplied), Vec::new()),
         };
         let physical_compiled = compiled;
+        // Acquire the actual complete new arm-context owner before selecting
+        // its exact predecessor. The original physical/supplied check and all
+        // prior hashes, inverse operations and targets remain below.
+        let context_source = if source == "src/hir/validation/lexical_exit.rs" {
+            let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+            assert_eq!(
+                current_file(&root.join(source), compiled.len(), &super::source_sha(compiled)).unwrap(),
+                compiled
+            );
+            Self::prior_source(source, compiled)
+        } else {
+            None
+        };
+        let compiled = context_source.as_deref().unwrap_or(compiled);
         // Compose this complete new main epoch before the unchanged four
         // acquisition records; the recursively selected fifth record is finite.
         let has_paired_epoch = source == "src/cleanup_plan/replay/factored.rs"
@@ -149,7 +203,13 @@ impl Fixture {
         assert_eq!(prior.len(), prior_length);
         assert_eq!(super::source_sha(prior), expected);
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-        assert_eq!(
+        let acquired = if context_source.is_some() {
+            // Preserve the original late physical acquisition as well as the
+            // early one; a source change between the two remains a refusal.
+            let actual = current_file(&root.join(source), physical_compiled.len(), &super::source_sha(physical_compiled)).unwrap();
+            assert_eq!(actual, physical_compiled);
+            Self::prior_source(source, &actual).expect("exact late arm-context source")
+        } else {
             current_file(
                 &if has_paired_epoch {
                     root.join("e/82353ce21ba46fb5ae1746e30f837d9f251da7a17bdc53c9ba53355c13d9f4a0")
@@ -163,9 +223,9 @@ impl Fixture {
                 length,
                 sha,
             )
-            .unwrap(),
-            compiled
-        );
+            .unwrap()
+        };
+        assert_eq!(acquired, compiled);
         assert_eq!(
             current_file(&root.join("e").join(expected), prior_length, expected).unwrap(),
             prior
@@ -178,6 +238,9 @@ impl Fixture {
         assert_eq!(restored, prior, "entire fixed closure predecessor");
         let mut composed = edits.to_vec();
         composed.extend(prefix_edits);
+        if context_source.is_some() {
+            composed.push((48442, "\n#[cfg(test)]\n#[path = \"lexical_exit/arm_context_tests.rs\"]\npub(super) mod arm_context_tests;\n", ""));
+        }
         (std::borrow::Cow::Owned(restored), composed)
     }
     pub(super) fn spec(self) -> Spec {

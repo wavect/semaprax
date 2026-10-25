@@ -1094,3 +1094,7 @@ mod witness_tests {
         crate::hir::validate(&program).unwrap();
     }
 }
+
+#[cfg(test)]
+#[path = "lexical_exit/arm_context_tests.rs"]
+pub(super) mod arm_context_tests;

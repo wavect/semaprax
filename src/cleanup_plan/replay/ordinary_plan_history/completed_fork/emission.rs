@@ -354,10 +354,7 @@ macro_rules! dispatch {
             if $suffixes.len() > 1 || match $suffixes.first() {
                     Some(path) => path.observations.prefix.is_some(), None => false,
                 } {
-                match $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::emit!($prefixes, $suffixes, $work)? {
-                    $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::Emission::Complete(paths) => return Ok(paths),
-                    $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::Emission::Unsupported(paths) => paths,
-                }
+                $crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::neutral::dispatch!($prefixes, $suffixes, $work)
             } else { $prefixes }
             } else { $prefixes }
         } else { $prefixes }
@@ -497,6 +494,7 @@ pub(in crate::cleanup_plan::replay) fn shared_query_inputs_for_test(
 // The complete immediate emitter, STEP/ENTRY invoices and dispatch above stay
 // independently executable. Only the selected shipping producer owns this frame.
 pub(in crate::cleanup_plan::replay) mod retained;
+pub(in crate::cleanup_plan::replay) mod neutral;
 
 #[cfg(test)]
 pub(in crate::cleanup_plan::replay) fn immediate_selected() -> bool {

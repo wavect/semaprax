@@ -147,3 +147,30 @@ restrictions stay unchanged. The source/payer selector retains sticky retry and
 separately reaches a fresh foreign-function check on the same physical payer,
 asserting six fields, paid String pointer, no new allocation, unchanged charged
 bytes and terminal sticky refusal. All controls remain unrun.
+
+## Neutral complete sequence receiver
+
+The source candidate's ordinary one-prefix/one-suffix branch retains the
+original complete renewal scan, validation scope, shared classifier publication
+and owned-source clone call. It does not infer validity from a DAG marker or
+replace the query with an assumed leaf result. The prefix must have no
+observations or owned source, be active and have Normal continuation. The
+suffix must have an empty inline tail, no owned source and Normal continuation.
+Its existing DAG remains the actual shared immutable owner.
+
+The lexical receiver moves the original prefix Vec once and writes the existing
+suffix Rc into its empty prefix field. It constructs no general Emission,
+Failure, temporary Observations or swap owner. SELECT pays every new production
+predicate before evaluation. OUTPUT prepays the new output/ledger/error loans
+and receivers; the original SHARE_CONTROLS and validation CALL remain fully
+paid before their unchanged helpers. Unsupported renewal/classification follows
+the original general caller fallback without executing either scan twice.
+All original clone/path work and materialization events remain.
+
+The cfg(test) immediate mode skips only the new lexical branch and executes the
+entire original emitter expansion in the same sequence caller. It does not add
+a forwarding old-call frame or charge the new selector to the old invoice.
+The owning controls retain whole old source, exercise subsequent shared-query
+work, all work cuts and complete owner Drop, and require an actual full-caller
+reservation reduction. These controls are source-authored and unexecuted;
+application admission and the earlier static module forecast remain separate.

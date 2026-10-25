@@ -348,3 +348,17 @@ fact equality, later duplicate identities, wrong-budget refusal, exact/short/zer
 and sticky acquisition failures, and full Drop. These controls are authored but
 unrun. First-function and tiny programs can regress; no net or application-fit
 claim follows from this source candidate.
+
+The private status-directory follow-up uses a separate invocation-local empty
+node backing. It retains the complete status constructor on every reached
+function, independently rebuilds all keys and immutable prefix indexes, and
+returns only a cleared node Vec at the original last-use release frontier.
+The index and all key references are dropped before return; no status proof,
+lookup, verdict or live payload crosses a function. The original fact-only
+caller and receiving body remain independently executable. A distinct typed
+acquisition/count/complete-call/authentication/return bank is paid before its
+new roles; the earlier fact-owner bank is neither reused nor reduced. All old
+capacity, insertion, proof, release and work charges remain, except actual
+node replacement allocation and relocation work physically absent with held
+capacity. New-owner cold costs and complete whole-caller net remain executable
+receiving gates; source-only implementation is not application qualification.

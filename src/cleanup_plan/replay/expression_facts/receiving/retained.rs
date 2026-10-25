@@ -838,8 +838,10 @@ mod last_use;
 mod before_structure_release;
 mod ordinary_cross_phase;
 mod ordinary_invocation;
-pub(in crate::cleanup_plan::replay) use ordinary_invocation::{validate_structure_with_fact_backing, INVOCATION_RELEASE_BYTES};
 pub(in crate::cleanup_plan::replay) use ordinary_cross_phase::validate_structure_with_budget_storage;
+pub(in crate::cleanup_plan::replay) use ordinary_invocation::{
+    validate_structure_with_fact_backing, INVOCATION_RELEASE_BYTES,
+};
 
 #[cfg(test)]
 mod ordinary_cross_phase_before_receiving;
@@ -848,3 +850,25 @@ mod ordinary_cross_phase_before_receiving;
 #[allow(dead_code, reason = "complete immediate receiver retains its original historical child")]
 #[rustfmt::skip]
 mod ordinary_block_before;
+
+// Consume fields in the ORIGINAL StatusSources Drop order: ledger before ids.
+// No key/index is dropped while its original ledger receiver remains held.
+impl<'hir> StatusSources<'hir> {
+    fn return_invocation_directory(
+        self,
+        backing: &mut super::directory::invocation::Backing<'hir>,
+    ) {
+        let Self {
+            function: _,
+            budget: _,
+            ledger,
+            ids,
+        } = self;
+        drop(ledger);
+        if let Some(directory) = ids {
+            backing.recycle(directory);
+        }
+    }
+}
+mod ordinary_status_invocation;
+pub(in crate::cleanup_plan::replay) use ordinary_status_invocation::validate_structure_with_status_backing;

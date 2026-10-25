@@ -1,6 +1,7 @@
 //! Complete ordinary receiving dispatch; old tree branches remain compiled independently.
 use super::*;
 mod directory;
+pub(in crate::cleanup_plan::replay) use directory::invocation::Backing as StatusBacking;
 mod helpers;
 mod retained;
 #[cfg(test)]
@@ -9,7 +10,8 @@ pub(in crate::cleanup_plan::replay) use retained::{
 };
 pub(in crate::cleanup_plan::replay) use retained::{
     validate_blocks_and_edges_retained, validate_exits_retained,
-    validate_structure_with_budget_storage, validate_structure_with_fact_backing, StatusCases, INVOCATION_RELEASE_BYTES,
+    validate_structure_with_budget_storage, validate_structure_with_fact_backing,
+    validate_structure_with_status_backing, StatusCases, INVOCATION_RELEASE_BYTES,
 };
 mod regions_entry;
 mod remaining;

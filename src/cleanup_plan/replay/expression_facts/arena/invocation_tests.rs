@@ -313,6 +313,22 @@ fn complete_immediate_sources_old_program_caller_and_new_children_are_source_bou
             include_str!("../receiving/retained/ordinary_invocation.rs"),
         ),
         (
+            "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_status_invocation.rs",
+            include_str!("../receiving/retained/ordinary_status_invocation.rs"),
+        ),
+        (
+            "src/cleanup_plan/replay/expression_facts/receiving/directory/invocation.rs",
+            include_str!("../receiving/directory/invocation.rs"),
+        ),
+        (
+            "src/cleanup_plan/replay/expression_facts/receiving/directory/invocation_source_inverse.json",
+            include_str!("../receiving/directory/invocation_source_inverse.json"),
+        ),
+        (
+            "src/cleanup_plan/replay/expression_facts/receiving/directory/invocation_tests.rs",
+            include_str!("../receiving/directory/invocation_tests.rs"),
+        ),
+        (
             "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase.rs",
             include_str!("../receiving/retained/ordinary_cross_phase.rs"),
         ),

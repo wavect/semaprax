@@ -1,6 +1,7 @@
 //! Complete paid ordered key directory for receiving replay. Indices are private
 //! construction coordinates; keys are compared in full and never hashed.
 use super::*;
+pub(in crate::cleanup_plan::replay) mod invocation;
 use crate::cleanup_plan::ExitTargetId;
 use std::cmp::Ordering;
 

@@ -34,6 +34,7 @@ mod physical_budget;
 mod physical_clone;
 mod physical_storage;
 mod plan_prefix;
+mod projection_backing;
 mod scalar_match;
 mod scalar_replay;
 #[cfg(test)]
@@ -49,7 +50,6 @@ mod selected_entry;
 mod sequence_prefix;
 mod sequence_vector;
 mod shape_cursor;
-mod projection_backing;
 mod status_construction;
 mod structural_control;
 mod structural_maps;
@@ -1562,7 +1562,11 @@ fn collect_leaves_paid(
     let mut pending = shape_cursor::Pending::new();
     // This additional owner/constructor/drop bank precedes formation. Existing
     // shape receiver, work, growth, clone and leaf invoices remain unchanged.
-    budget.reserve_bytes(function, projection_backing::ENTRY, "shape projection backing owner")?;
+    budget.reserve_bytes(
+        function,
+        projection_backing::ENTRY,
+        "shape projection backing owner",
+    )?;
     let mut projections = Vec::new();
     for slot in &function.cleanup_plan.slots {
         collect_shape(

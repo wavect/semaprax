@@ -956,3 +956,19 @@ state/payment. Whole-source byte inverses and all four complete old bodies are
 retained. Authored controls compare every owner, capacity/incomplete/shadowing
 and import cases, complete paired/imported mode6 callers and full Drop. They
 are unexecuted; no positive application admission or physical heap claim follows.
+
+
+The private Names census now has a prepaid closed-root selector before its
+first binding-only walk. Literal and no-argument-call roots, and empty blocks
+with one such tail, cannot add a local, closure parameter or match binding.
+They retain each original ordered expression invoice while physically omitting
+that pass's fixed129-slot walker and callback. All other roots use the complete
+old bounded walk; the complete later call, retention and local-callee visitors
+are unchanged. No constructor allowance, comparison, bound or semantic check
+is discounted by this selector. Its own actual/formal, branch and field loans
+are paid before use, including fallback. The complete immediate old four
+callers remain independently executable, with original Names scratch reuse and
+length filtering. Original719 tiny-loss controls keep their explicit oldstage;
+separate full current controls report actual tiny, dense and fallback results.
+All controls are source-authored and unexecuted. Whole application admission
+and scoped production qualification at existing limits remain required.

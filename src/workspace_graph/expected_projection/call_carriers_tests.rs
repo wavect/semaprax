@@ -1187,6 +1187,9 @@ fn census_scratch_reset_all_four_owners_preserves_capacity_shadowing_imports_and
 
 #[test]
 fn census_scratch_whole_mode6_forecast_reports_net_and_honest_cold_loss() {
+    // This complete719 owner keeps its original current/pre719 stage pair.
+    // The successor's actual current tiny/large callers have separate controls.
+    let _stage = super::closed_roots::Before::hold();
     for count in [0, 1, 64] {
         for imported in [false, true] {
             let mut source = String::from("module reuse;");

@@ -558,7 +558,7 @@ mod v11_tests {
     fn v11_appends_to_the_entire_original_v10_rust_decoder_without_rewriting_it() {
         let source = std::include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/src/source_reflows_merge/main_e177_overlay_pins_v10.rs"
+            "/src/source_reflows_merge/main_e177_overlay_names_v11/main_e177_overlay_pins_v10.rs"
         ));
         let (original, _) = source.split_once("\n// V11_VIEW_NAMES_BEGIN:").unwrap();
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));

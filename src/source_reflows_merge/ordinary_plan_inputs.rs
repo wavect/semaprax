@@ -303,12 +303,12 @@ const OURS_FINAL_INGRESS: &str =
 const MAIN_FINAL_INGRESS: &str =
     include_str!("../../e/3d61f09b3235194aba756af2ab9ec48ef7d24d77a5dcdba3190d104a306477fe");
 const LIVE_INGRESS: [(&str, usize, &str); 6] = [
-    ("src/cleanup_plan/replay.rs", 327551, "751c95561915a9b99ebec0bdf702dc9c7448d411f0f80ac58d244bc7df20dde5"),
-    ("src/source_reflows_merge.rs", 102490, "62a9e3f89c8951eec518db386d3025e93d5e91dc42ca465bf9ef7f9bf52b1f86"),
+    ("src/cleanup_plan/replay.rs", 325427, "cf84acd5cb2d9ef94fa5b1b5053185d7fe0eb3dbedd83a333edf6458b0c5e2af"),
+    ("src/source_reflows_merge.rs", 102512, "63e15c9f08db2abe227073c6fc5a3440e242e8d3cfb0daf42adb6fbe93841825"),
     ("src/source_reflows_merge/main67107_inputs.rs", 49667, "555d676283e593101b9fc21b8e26f71b1b31b9567c52d3ca402077c4f8bf7fab"),
-    ("tests/hir_module_boundaries.rs", 160787, "4047802e5f7369b2adbc1311a0b84b29dd5fd4f21b3f74ca166664ebe9ed5186"),
-    ("tests/workspace/semantic_graph/source_inventory.rs", 252881, "7882a7be0525a22ecf35e4302790de34b50500161b4ac4dee602a8b8a3574e13"),
-    ("crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs", 239622, "a056e62b5dc75528b2d19f5469b08ab831fbf48c2f8348154a3e360c341c5b4b"),
+    ("tests/hir_module_boundaries.rs", 162329, "cdb8de136965391db8902aa21a61c2b4041f50b622d5bdbe287d55925833c3d1"),
+    ("tests/workspace/semantic_graph/source_inventory.rs", 255724, "94ec8a5e0d82359f5fb277b19d314918b4547a3a1fbac6033c8e48790f579757"),
+    ("crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs", 241368, "e3af6b601614a9a7e902a718d6d9cca752a5d68d0e89862f28a4c6b39a6b6e98"),
 ];
 
 fn final_ingress_same_file(a: &std::fs::Metadata, b: &std::fs::Metadata) -> bool {

@@ -1,0 +1,19 @@
+{
+  "rows": [
+    {
+      "source": "src/hir/validation/lexical_exit.rs",
+      "current_length": 48536,
+      "current_sha256": "f20b6d83c225a3615791a10de00adf9684cffdd920230c0f5c851112c2bef61d",
+      "before_length": 48442,
+      "before_sha256": "efd93bf8154b11c5399749f8592bae4ee73617448a12a62f488d0b158bd94302",
+      "edits": [
+        {
+          "start": 48442,
+          "end": 48536,
+          "after": "\n#[cfg(test)]\n#[path = \"lexical_exit/arm_context_tests.rs\"]\npub(super) mod arm_context_tests;\n",
+          "before": ""
+        }
+      ]
+    }
+  ]
+}

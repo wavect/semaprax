@@ -471,3 +471,10 @@ fn owned_rows_complete_funded_caller_keeps_retained_capacity_and_allocation_drop
         }
     }
 }
+
+// Expose only the two already executable same-ABI test stages to the complete
+// canonical caller. This never enters production or creates an allowance.
+pub(super) fn with_materializer_stage<T>(before_8086: bool, operation: impl FnOnce() -> T) -> T {
+    let _mode = Mode::select(before_8086);
+    operation()
+}

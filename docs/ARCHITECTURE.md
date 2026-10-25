@@ -307,6 +307,12 @@ attachment boundary. Linked byte-slice provenance borrows authored functions the
 instances through the unchanged full derivation instead of cloning their HIR.
 Declaration-index disposal sends only nominal children to its existing iterative
 frontier, so scalar leaves and empty nominal arguments need no queue.
+`loan_plan/canonical_sink.rs` owns the private independently derived borrowed
+row Source for captured canonical validation; it grants no attachment authority.
+`hir/canonical_loan_storage/caller/stream.rs` owns complete endpoint/edge
+comparison and the existing final lookup tuple emission from those rows. The
+original materializer, complete caller, ordered unions and late Deferred
+frontier remain independently executable. This source candidate is unqualified.
 `loan_plan/funded_flat.rs` owns the exact-current-member paid planner,
 while `bounded_output/cfg_reservation.rs` owns its affine ledger and prepaid
 physical-refusal carrier. `loan_plan/cfg_directory.rs` owns private mutable AVL

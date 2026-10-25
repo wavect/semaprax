@@ -509,3 +509,5 @@ mod reachability_release_tests;
 mod retained_before_dense;
 #[cfg(test)]
 pub(super) use retained_before_dense::build as build_retained_before_dense;
+
+pub(super) use retained::build_canonical;

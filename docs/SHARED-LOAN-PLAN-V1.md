@@ -640,3 +640,55 @@ backing or enforces the exact resolved projection count before publication.
 These controls are authored
 but unrun; cold/small tariff regressions and actual capacity remain visible.
 No application admission, net tariff, token or runtime improvement is claimed.
+
+### Independent canonical borrowed-row receiver (source candidate)
+
+The captured canonical-validation route independently repeats the complete
+current-function, candidate, CFG, alias, ownership, live, parent, overlap and
+terminal-repair derivation. Its private `canonical_sink::Source` owns that
+result for one receiving invocation. The attachment is compared against every
+schema, loan, endpoint and edge field in original order; it supplies no size,
+origin, candidate, pruning decision or lookup authority. Empty independent
+results compare the complete empty schema too. The original complete planner,
+materializer, canonical caller and append remain independently executable.
+
+The one-shot canonical receiver borrows the raw ordered rows and emits the
+existing final local/identity/live lookup tuples directly. The two original
+ordered-union vector producers and their full fees remain. No intermediate
+endpoint lookup vector or callback per endpoint is introduced. Lookup ambiguity
+is selected by the earliest original source ordinal, with unknown-loan refusal
+preceding duplicate liveness at that same occurrence. A mismatch remains in the
+original late Deferred frontier, behind earlier semantic and cleanup errors.
+
+New Source/Parts/closure/argument/Result, borrowed loan view, sticky-comparison,
+cursor, drain and receiving/drop roles are separately paid before formation by
+the captured CFG reservation. A separately paid checked pass sums independent selected edge-row lengths
+before one probe reservation. Selected unions are subsets of these rows; duplicate
+branch memberships can overreserve and all actual upper capacity is paid while
+old backing remains live. Empty/cold and branching inputs can cost more; no completed fee is refunded. Independent
+CFG scratch survives through receiving, so complete high-water and Drop must be
+observed. Draft origins retain the exact projection capacity established by
+clone_place/funded::resolve; arbitrary external drafts cannot enter this route.
+
+The source candidate includes complete old/current caller, field mutation,
+late-priority, work-cut, foreign-owner, exact/short/zero/floor/sticky and actual
+allocation-through-Drop controls. Historical stage-only invoice controls still
+execute their complete immediate-before receiver; corresponding new raw/shared
+controls independently measure the new route's invoices. These controls are
+unrun. No compiler, backend, application-fit or measured byte-gain claim follows.
+
+
+The combined source candidate keeps three explicit test stages. The complete
+8086 canonical caller delegates to the complete 8086 materializer through its
+panic-safe original-stage director. The immediate owned-row stage runs that
+same caller with the owned V2 materializer; streamed current uses the independent
+borrowed-row receiver. Both original caller bodies and both materializer bodies
+remain executable. Historical stage attribution controls select the original
+delegate on both sides, while new raw/shared receiving controls exercise all
+three stages at independently measured invoices. The 193-loan strict allocation
+and invoice gate remains against 8086 and is also required against owned V2;
+the one-view shape is additional. Cold loss and each stage's actual high-water
+remain visible. Whole former source metadata is retained byte-for-byte, and
+current source inverses still reach the same complete 8086 targets plus the
+complete immediate owned-stage targets. These are source-only, unrun controls;
+combining the two changes does not add their separately observed savings.

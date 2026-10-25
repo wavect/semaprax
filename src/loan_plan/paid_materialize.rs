@@ -294,3 +294,9 @@ pub(in crate::loan_plan) mod ordered_union;
 mod owned_inputs_tests;
 #[cfg(test)]
 mod tests;
+
+// Finite test stages reuse the existing panic-safe materializer director.
+#[cfg(test)]
+pub(crate) fn with_materializer_stage<T>(before_8086: bool, operation: impl FnOnce() -> T) -> T {
+    owned_inputs_tests::with_materializer_stage(before_8086, operation)
+}

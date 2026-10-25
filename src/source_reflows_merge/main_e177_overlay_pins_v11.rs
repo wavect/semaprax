@@ -248,3 +248,159 @@ mod tests {
         assert!(expand_v11_to_v10(&full).is_err());
     }
 }
+
+// OPT933: preserve both independent historical V11 implementations. Their
+// complete public envelopes are disjoint; reject mixed/unknown keys before
+// either implementation can clone or interpret payloads. V12--V17 retain their
+// original direct call to expand_v11 above.
+pub(in super::super) fn expand_v11_compatible(
+    before: &Value,
+    policy: &Value,
+    page: &Value,
+) -> Result<Value, &'static str> {
+    if page["schema"] != SCHEMA_V11 {
+        return Err("v11 compatible schema");
+    }
+    if super::super::keys(page, &["schema", "names", "page"]) {
+        return super::names_v11::expand_v11(before, policy, page);
+    }
+    if !super::super::keys(page, &[
+        "schema", "index", "total_pages", "predecessor", "replacements",
+        "additions", "archive_prefixes",
+    ]) {
+        return Err("v11 compatible envelope");
+    }
+    expand_v11(before, policy, page)
+}
+
+
+// The direct public V10 entry uses the same exact provenance distinction.
+// Original V10 readers and all internal V12--V17 calls remain unchanged.
+pub(in super::super) fn expand_v10_public_compatible(
+    before: &Value,
+    policy: &Value,
+    page: &Value,
+) -> Result<Value, &'static str> {
+    if page["schema"] != SCHEMA_V10 {
+        return Err("v10 compatible schema");
+    }
+    if super::super::keys(page, &[
+        "schema", "index", "total_pages", "predecessor", "replacements",
+        "additions", "archive_prefixes",
+    ]) {
+        return expand_v10(before, policy, page);
+    }
+    if !super::super::keys(page, &[
+        "schema", "index", "total_pages", "predecessor", "replacements", "additions",
+    ]) {
+        return Err("v10 compatible envelope");
+    }
+    super::expand_v10_compatible(before, policy, page)
+}
+
+#[cfg(test)]
+mod compatibility_tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn complete_named_v11_public_route_matches_independent_old_v10_and_python() {
+        use std::io::{Read, Write};
+        use std::process::{Command, Stdio};
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        let read = |sha, length| {
+            let bytes = super::super::super::held_4a6eb(
+                &root.join(format!("e/{sha}")), length, sha,
+            ).unwrap();
+            serde_json::from_str::<Value>(&bytes).unwrap()
+        };
+        let before = super::super::super::super::packet_before_overlay();
+        let policy = read("f79b365ce48f1bfe3422feb73453795fe30d563c2d2167486ba85965d7b5d2dc",112303);
+        let v10 = read("2018302f513448433f418a128169982a6bbe55652a843397e37fc5ed9ab9ac64",261855);
+        let envelope = json!({"schema":SCHEMA_V11,"names":[],"page":v10});
+        let expected = super::super::names_v11::expand_v10(&before,&policy,&v10).unwrap();
+        let direct = expand_v11_compatible(&before,&policy,&envelope).unwrap();
+        assert_eq!(direct,expected);
+        let expected_packet = super::super::super::compose_values_v2(before.clone(),&policy,&expected).unwrap();
+        let public = super::super::super::compose_values(before.clone(),&policy,&envelope).unwrap();
+        assert_eq!(public,expected_packet);
+        let script = "import json,sys\nsys.path.insert(0,sys.argv[1])\nimport overlay_page as c\nb,p,v=json.loads(sys.stdin.buffer.read())\nsys.stdout.buffer.write(c.canonical(c.compose_values(b,p,v)))\n";
+        let mut child = Command::new("python3")
+            .env("PYTHONDONTWRITEBYTECODE","1")
+            .args(["-B","-c",script])
+            .arg(root.join("docs/evidence/finite-source-overlay-v2-20261018"))
+            .stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped())
+            .spawn().unwrap();
+        child.stdin.take().unwrap().write_all(
+            &serde_json::to_vec(&json!([before,policy,envelope])).unwrap(),
+        ).unwrap();
+        let mut output=Vec::new();
+        child.stdout.take().unwrap().take(super::super::super::SOURCE_CAP as u64+1)
+            .read_to_end(&mut output).unwrap();
+        assert!(output.len()<=super::super::super::SOURCE_CAP);
+        let result=child.wait_with_output().unwrap();
+        assert!(result.status.success(),"{}",String::from_utf8_lossy(&result.stderr));
+        assert_eq!(output,super::super::super::canonical(&public));
+    }
+
+    #[test]
+    fn public_v10_forms_and_named_v11_do_not_cross_codec_provenance() {
+        let rows: Vec<_> = (0..519).map(|i| json!({
+            "source":format!("src/provenance_{i}.rs"),"compiled":false,
+            "current":{"length":0,"sha256":"0".repeat(64),"archive":format!("e/{}","0".repeat(64))},"views":[],
+        })).collect();
+        let before=json!({"schema":"fixture","source_cap":super::super::super::SOURCE_CAP,
+            "opaque":{"names":[0],"archive_prefixes":false},"rows":rows});
+        let predecessor=json!({"rows":519,"logical_sha256":super::super::super::digest(
+            &super::super::super::canonical(&before))});
+        let policy=json!({"schema":"semaprax.finite-source-overlay-policy.v2",
+            "page":{"path":"docs/evidence/finite-source-overlay-v2-20261018/page.json","length":0,"sha256":"0".repeat(64)},
+            "predecessor":predecessor,"replacements":[],"additions":[],"new_fragment_edges":[]});
+        let legacy=json!({"schema":SCHEMA_V10,"index":1,"total_pages":1,
+            "predecessor":predecessor,"replacements":[],"additions":[]});
+        let mut prefix=legacy.clone();prefix["archive_prefixes"]=json!(["e/"]);
+        for value in [&legacy,&prefix] {
+            assert_eq!(super::super::super::compose_values(before.clone(),&policy,value).unwrap(),before);
+        }
+        let names=json!({"schema":SCHEMA_V11,"names":[],"page":legacy});
+        assert_eq!(super::super::super::compose_values(before.clone(),&policy,&names).unwrap(),before);
+        let mut crossed=names;crossed["page"]=prefix.clone();
+        assert!(super::super::super::compose_values(before.clone(),&policy,&crossed).is_err());
+        for value in [&legacy,&prefix] {
+            for key in ["names","page","unknown"] {
+                let mut changed=value.clone();changed[key]=Value::Null;
+                assert!(super::super::super::compose_values(before.clone(),&policy,&changed).is_err());
+            }
+        }
+    }
+
+    #[test]
+    fn v11_mixed_missing_and_unknown_envelopes_refuse_before_either_decoder() {
+        let before = json!({});
+        let policy = json!({});
+        let direct = json!({"schema":SCHEMA_V11,"index":0,"total_pages":1,
+            "predecessor":{},"replacements":[],"additions":[],"archive_prefixes":[]});
+        let names = json!({"schema":SCHEMA_V11,"names":[],"page":{}});
+        for original in [&direct, &names] {
+            let mut changed = original.clone();
+            changed["unknown"] = true.into();
+            assert_eq!(expand_v11_compatible(&before, &policy, &changed), Err("v11 compatible envelope"));
+            for key in original.as_object().unwrap().keys() {
+                let mut changed = original.clone();
+                changed.as_object_mut().unwrap().remove(key);
+                assert!(expand_v11_compatible(&before, &policy, &changed).is_err());
+            }
+        }
+        for key in ["names", "page"] {
+            let mut changed = direct.clone();
+            changed[key] = names[key].clone();
+            assert_eq!(expand_v11_compatible(&before, &policy, &changed), Err("v11 compatible envelope"));
+        }
+        let mut changed = names.clone();
+        changed["replacements"] = json!([]);
+        assert_eq!(expand_v11_compatible(&before, &policy, &changed), Err("v11 compatible envelope"));
+        let mut wrong = names;
+        wrong["schema"] = SCHEMA_V10.into();
+        assert_eq!(expand_v11_compatible(&before, &policy, &wrong), Err("v11 compatible schema"));
+    }
+}

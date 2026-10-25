@@ -887,3 +887,97 @@ def encode_v17_source_rows(page):
 
 def encode_v17(page):
  return encode_v17_source_rows(_encode_v15_logical_source_paths(_encode_v14_logical_pin_tails(_encode_v13_logical_digest_table(page))))
+
+
+# V11_VIEW_NAMES_BEGIN: only packed named-view tuple slots participate.
+V11_SCHEMA = 'semaprax.finite-source-overlay-page.v11'
+def v11_names_slots(page, convert):
+ result=copy.deepcopy(page)
+ def views(value):
+  assert type(value) is list, 'v11 views'
+  for view in value:
+   if type(view) is list:
+    assert view, 'v11 named tuple'
+    view[0]=convert(view[0])
+ def row(value):
+  assert type(value) is dict, 'v11 literal row'
+  if 'views' in value:views(value['views'])
+ def fragments(value):
+  if value is None:return
+  assert type(value) is list, 'v11 fragments'
+  for fragment in value:
+   assert type(fragment) is dict, 'v11 fragment row'
+   if 'canonical_source' not in fragment:row(fragment)
+ for group in ('replacements','additions'):
+  assert type(result[group]) is list, 'v11 rows'
+  for value in result[group]:
+   assert type(value) is dict, 'v11 row'
+   if 'old519_index' in value:
+    assert group=='replacements' and keys(value,('old519_index',)), 'v11 indexed row'
+    reference=value['old519_index']
+    assert type(reference) is list and len(reference)==4, 'v11 old519 arity'
+    views(reference[2]);fragments(reference[3])
+   else:
+    row(value)
+    if 'fragments' in value:fragments(value['fragments'])
+ return result
+
+def expand_v11_names(envelope):
+ assert keys(envelope,('schema','names','page')) and envelope['schema']==V11_SCHEMA, 'v11 envelope'
+ assert len(canonical(envelope))<=PAGE_CAP, 'v11 wire cap'
+ names=envelope['names'];assert type(names) is list and all(type(n) is str for n in names), 'v11 names'
+ assert names==sorted(set(names)), 'v11 unique sorted names'
+ page=envelope['page'];assert type(page) is dict and page.get('schema')==V10_SCHEMA, 'v11 inner schema'
+ sizes=[len(canonical(n)) for n in names];used=set();materialized=0
+ def name(value):
+  nonlocal materialized
+  if type(value) is int:
+   assert 0<=value<len(names), 'v11 name index'
+   index=value;size=sizes[index];value=names[index];used.add(index)
+  else:
+   assert type(value) is str, 'v11 literal name'
+   size=len(canonical(value))
+  materialized+=size;assert materialized<=PAGE_CAP, 'v11 materialized name cap'
+  return value
+ result=v11_names_slots(page,name)
+ assert used==set(range(len(names))), 'v11 unused names'
+ return result
+
+def encode_v11_names(page):
+ assert type(page) is dict and page.get('schema')==V10_SCHEMA, 'v11 encoding schema'
+ counts={}
+ def count(name):
+  assert type(name) is str, 'v11 encoding name'
+  counts[name]=counts.get(name,0)+1;return name
+ v11_names_slots(page,count)
+ names=sorted(n for n,count in counts.items() if count>1);indices={n:i for i,n in enumerate(names)}
+ encoded=v11_names_slots(page,lambda name:indices.get(name,name))
+ result=dict(schema=V11_SCHEMA,names=names,page=encoded)
+ assert canonical(expand_v11_names(result))==canonical(page), 'v11 ENTIRE V10 page inverse'
+ assert len(canonical(result))<=PAGE_CAP, 'v11 same wire cap'
+ return result
+
+def encode_v11_pins(before,policy,page):
+ assert page['schema']==V9_SCHEMA, 'v11 encoding predecessor'
+ intermediate=transform_v10_pin_slots(page,before,policy,True);intermediate['schema']=V10_SCHEMA
+ assert canonical(expand_v10_pins(before,policy,intermediate))==canonical(page), 'v11 ENTIRE V9 intermediate inverse'
+ return encode_v11_names(intermediate)
+# V11_VIEW_NAMES_END
+
+# OPT933: these public wire shapes share one historical schema spelling.
+# Internal V12--V17 readers still call the complete original digest reader.
+def expand_v11_compatible(page):
+ assert type(page) is dict and page.get('schema')==V11_SCHEMA, 'v11 compatible schema'
+ if keys(page,('schema','names','page')):
+  return expand_v11_names(page)
+ assert keys(page,('schema','index','total_pages','predecessor','replacements','additions','archive_prefixes')), 'v11 compatible envelope'
+ return expand_v11_digest_pins(page)
+
+# Direct public V10 also has two independently retained historical wire forms.
+# Their exact complete outer shapes select provenance, never field absence.
+def expand_v10_public_compatible(before,policy,page):
+ assert type(page) is dict and page.get('schema')==V10_SCHEMA, 'v10 compatible schema'
+ if keys(page,('schema','index','total_pages','predecessor','replacements','additions','archive_prefixes')):
+  return expand_v10_archive_prefixes(page)
+ assert keys(page,('schema','index','total_pages','predecessor','replacements','additions')), 'v10 compatible envelope'
+ return expand_v10_pins(before,policy,page)

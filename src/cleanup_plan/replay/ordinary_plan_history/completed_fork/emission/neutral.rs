@@ -72,12 +72,12 @@ macro_rules! dispatch {
                 let suffix = &$suffixes[0];
                 !prefix.failed
                     && !prefix.residual
-                    && matches!(&prefix.observations.prefix, None)
+                    && prefix.observations.prefix.is_none()
                     && prefix.observations.items.is_empty()
-                    && matches!(&prefix.owned_source, None)
+                    && prefix.owned_source.is_none()
                     && matches!(&prefix.continuation, lexical_skeleton::Continuation::Normal)
                     && suffix.observations.items.is_empty()
-                    && matches!(&suffix.owned_source, None)
+                    && suffix.owned_source.is_none()
                     && matches!(&suffix.continuation, lexical_skeleton::Continuation::Normal)
             } else {
                 false

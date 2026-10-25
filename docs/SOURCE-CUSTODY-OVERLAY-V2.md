@@ -226,7 +226,12 @@ remain independently executable. V17 adds no source, path, page, or authority.
 
 The authenticated guard configuration may encode only `closed_prior_sources`
 as `{"schema":"semaprax.closed-prior-sources.prefixes.v1","sources":[...]}`.
-A legacy list retains its entire original reader behavior. The fixed tokens are:
+A legacy list retains its entire original reader behavior. This field is a
+named source-acquisition allowlist, distinct from the canonical overlay row
+inventory. Equal lengths do not imply equal membership. New canonical sources
+are identified against the authenticated prior canonical inventory; extending
+the allowlist preserves its complete existing order and historical members.
+The fixed tokens are:
 
 ```text
 R: src/cleanup_plan/replay/

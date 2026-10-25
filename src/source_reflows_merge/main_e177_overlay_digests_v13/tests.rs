@@ -743,6 +743,7 @@ fn v15_actual_overcap_frontier_and_current_whole_page_keep_python_rust_parity() 
     let current_raw=include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/finite-source-overlay-v2-20261018/page.json"));
     let current:Value=serde_json::from_slice(current_raw).unwrap();
     assert_eq!(canonical(&current).as_slice(), current_raw.as_slice());
+    let current = retain_v16_page_for_v17(current);
     if current["schema"]==SCHEMA_V16 { verify_current_v16(&current); }
     else { verify_current_v15(&current); }
 }
@@ -904,6 +905,7 @@ fn v16_current_whole_page_and_python_rust_transport_are_equal() {
     ));
     let current: Value = serde_json::from_slice(raw).unwrap();
     assert_eq!(canonical(&current).as_slice(), raw.as_slice());
+    let current = retain_v16_page_for_v17(current);
     if current["schema"] == SCHEMA_V16 {
         verify_current_v16(&current);
     } else {
@@ -948,6 +950,206 @@ pub(in super::super::super) fn verify_current_v16(page: &Value) {
     let v12 = expand_to_v12_logical(&expand_to_v13_logical(&v14).unwrap()).unwrap();
     assert_eq!(canonical(&encode_v16(&v12).unwrap()), canonical(page));
     let actual = python_v16(&v12);
+    assert_eq!(canonical(&actual["encoded"]), canonical(page));
+    assert_eq!(canonical(&actual["v15"]), canonical(&v15));
+}
+
+fn retain_v16_page_for_v17(current: Value) -> Value {
+    if current["schema"] != SCHEMA_V17 {
+        return current;
+    }
+    let raw = include_bytes!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/e/4434b53d2afd56bf387f57712ec627cb0af7e3439d81d00c6e39d147ee6b4f93"
+    ));
+    assert_eq!(raw.len(), 260344);
+    assert_eq!(
+        hash(raw),
+        "4434b53d2afd56bf387f57712ec627cb0af7e3439d81d00c6e39d147ee6b4f93"
+    );
+    let prior: Value = serde_json::from_slice(raw).unwrap();
+    assert_eq!(prior["schema"], SCHEMA_V16);
+    assert_eq!(canonical(&prior).as_slice(), raw.as_slice());
+    prior
+}
+#[test]
+fn v17_preserves_entire_v15_opaque_metadata_and_one_level_fragments() {
+    let full = v16_fixture();
+    let prior = encode_v15(&full).unwrap();
+    let wire = encode_v17(&full).unwrap();
+    assert_eq!(expand_positional_to_v15(&wire).unwrap(), prior);
+    assert!(wire["additions"][1].is_array());
+    assert_eq!(
+        canonical(&wire).len() + 2 * 15,
+        canonical(&encode_v16(&full).unwrap()).len()
+    );
+    for metadata in [
+        json!(17),
+        json!([false,{"source_row":null}]),
+        json!({"source":"0:opaque","compiled":0}),
+    ] {
+        for fragments in [
+            json!({"source_row":[null]}),
+            json!([{"source_row":[null]}]),
+            json!(17),
+        ] {
+            let mut unknown = full.clone();
+            unknown["additions"][1]["source_row"] = metadata.clone();
+            unknown["additions"][1]["another_unknown"] = json!({"fragments":false});
+            unknown["replacements"][0]["old519_index"][3][2]["fragments"] = fragments;
+            let old = encode_v15(&unknown).unwrap();
+            let encoded = encode_v17(&unknown).unwrap();
+            assert_eq!(encoded["additions"][1], old["additions"][1]);
+            assert_eq!(
+                canonical(&expand_positional_to_v15(&encoded).unwrap()),
+                canonical(&old)
+            );
+        }
+    }
+    let mut nested = full;
+    nested["additions"][1]["fragments"] = json!([nested["additions"][1].clone()]);
+    assert_eq!(
+        expand_positional_to_v15(&encode_v17(&nested).unwrap()).unwrap(),
+        encode_v15(&nested).unwrap()
+    );
+}
+#[test]
+fn v17_refuses_closed_row_alias_types_and_inherited_amplification() {
+    let wire = encode_v17(&v16_fixture()).unwrap();
+    let prior = expand_positional_to_v15(&wire).unwrap();
+    for row in [
+        json!([]),
+        json!(["9:x", true, [], [], null, null]),
+        json!([false, true, [], []]),
+        json!(["9:x", 1, [], []]),
+        json!(["9:x", true, null, []]),
+        json!(["9:x", true, [], null]),
+        json!(["9:x", true, [], [], false]),
+        json!({"source_row":["9:x",true,[],[]]}),
+        prior["additions"][1].clone(),
+    ] {
+        let mut bad = wire.clone();
+        bad["additions"][1] = row;
+        assert!(expand_positional_to_v15(&bad).is_err());
+    }
+    let mut bad = wire.clone();
+    bad["unknown"] = json!(null);
+    assert_eq!(expand_positional_to_v15(&bad).unwrap_err(), "v15 envelope");
+    let mut bad = wire.clone();
+    bad["predecessor"] = "x".repeat(PAGE_CAP).into();
+    assert_eq!(
+        expand_positional_to_v15(&bad).unwrap_err(),
+        "v17 same one-page cap"
+    );
+    let mut bad = wire;
+    bad["pin_tails"] = json!([[7, 0, format!("e/{}", "x".repeat(100000))]]);
+    let tuple = bad["replacements"][0]["old519_index"]
+        .as_array_mut()
+        .unwrap();
+    tuple[1] = json!([0]);
+    tuple[2] = Value::Array((0..100).map(|_| json!([0, 0])).collect());
+    tuple[3] = Value::Null;
+    assert!(canonical(&bad).len() <= PAGE_CAP);
+    assert_eq!(
+        expand_positional_to_v15(&bad).unwrap_err(),
+        "v14 expanded bound"
+    );
+    assert_eq!(
+        row_overhead(5) + b"{\"source_row\":[]}".len()
+            - 2
+            - (row_overhead(4) + b"{\"source_row\":[]}".len() - 2),
+        "\"fragments\":".len()
+    );
+}
+#[test]
+fn v17_keeps_complete_overcap_v16_preimage_and_python_rust_parity() {
+    let mut prior = encode_v15(&v16_fixture()).unwrap();
+    let row = prior["additions"][1].clone();
+    let mut v16 = prior.clone();
+    transform_source_rows(&mut v16, false).unwrap();
+    v16["schema"] = SCHEMA_V16.into();
+    let base_bytes = canonical(&v16).len();
+    assert!(base_bytes <= PAGE_CAP);
+    // Existing additions are nonempty: each appended identical encoded row
+    // contributes its JSON width plus one comma, exactly canonical(row).len().
+    let row_bytes = canonical(&v16["additions"][1]).len();
+    let extra = (PAGE_CAP - base_bytes) / row_bytes + 1;
+    let additions = prior["additions"].as_array_mut().unwrap();
+    additions.resize(additions.len() + extra, row);
+    assert_eq!(
+        encode_v16_rows(&prior).unwrap_err(),
+        "v16 same one-page cap"
+    );
+    let wire = encode_v17_rows(&prior).unwrap();
+    assert!(canonical(&wire).len() <= PAGE_CAP);
+    assert_eq!(
+        canonical(&expand_positional_to_v15(&wire).unwrap()),
+        canonical(&prior)
+    );
+    let v12 = expand_to_v12_logical(
+        &expand_to_v13_logical(&expand_to_v14_logical(&prior).unwrap()).unwrap(),
+    )
+    .unwrap();
+    let actual = python_v17(&v12);
+    assert_eq!(canonical(&actual["encoded"]), canonical(&wire));
+    assert_eq!(canonical(&actual["v15"]), canonical(&prior));
+    let raw = include_bytes!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/docs/evidence/finite-source-overlay-v2-20261018/page.json"
+    ));
+    let current: Value = serde_json::from_slice(raw).unwrap();
+    assert_eq!(canonical(&current).as_slice(), raw.as_slice());
+    if current["schema"] == SCHEMA_V17 {
+        verify_current_v17(&current);
+    } else {
+        let v15 = if current["schema"] == SCHEMA_V16 {
+            expand_to_v15(&current).unwrap()
+        } else {
+            assert_eq!(current["schema"], SCHEMA_V15);
+            current
+        };
+        verify_current_v17(&encode_v17_rows(&v15).unwrap());
+    }
+}
+fn python_v17(full: &Value) -> Value {
+    use std::io::{Read, Write};
+    use std::process::{Command, Stdio};
+    let mut child = Command::new("python3").args(["-B","-c",r#"
+import json,runpy,sys
+from pathlib import Path
+n=runpy.run_path(str(Path(sys.argv[1])/'docs/evidence/finite-source-overlay-v2-20261018/overlay_page.py'),run_name='v17_owning_parity')
+full=json.load(sys.stdin);wire=n['encode_v17'](full);v15=n['expand_v17_source_rows'](wire)
+sys.stdout.buffer.write(n['canonical']({'encoded':wire,'v15':v15}))
+"#]).arg(env!("CARGO_MANIFEST_DIR")).stdin(Stdio::piped()).stdout(Stdio::piped()).spawn().unwrap();
+    child
+        .stdin
+        .take()
+        .unwrap()
+        .write_all(&canonical(full))
+        .unwrap();
+    let mut raw = Vec::new();
+    let read = child
+        .stdout
+        .take()
+        .unwrap()
+        .take((SOURCE_CAP + 1) as u64)
+        .read_to_end(&mut raw);
+    let status = child.wait().unwrap();
+    read.unwrap();
+    assert!(status.success());
+    assert!(raw.len() <= SOURCE_CAP);
+    serde_json::from_slice(&raw).unwrap()
+}
+pub(in super::super::super) fn verify_current_v17(page: &Value) {
+    assert_eq!(page["schema"], SCHEMA_V17);
+    assert!(canonical(page).len() <= PAGE_CAP);
+    let v15 = expand_positional_to_v15(page).unwrap();
+    let v12 = expand_to_v12_logical(
+        &expand_to_v13_logical(&expand_to_v14_logical(&v15).unwrap()).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(canonical(&encode_v17(&v12).unwrap()), canonical(page));
+    let actual = python_v17(&v12);
     assert_eq!(canonical(&actual["encoded"]), canonical(page));
     assert_eq!(canonical(&actual["v15"]), canonical(&v15));
 }

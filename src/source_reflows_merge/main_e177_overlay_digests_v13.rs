@@ -255,7 +255,7 @@ pub(in super::super) fn expand_v13(
 #[path = "main_e177_overlay_digests_v13/tests.rs"]
 mod tests;
 #[cfg(test)]
-pub(in super::super) use tests::{before_source, verify_current_v13, verify_current_v14, verify_current_v15, verify_current_v16};
+pub(in super::super) use tests::{before_source, verify_current_v13, verify_current_v14, verify_current_v15, verify_current_v16, verify_current_v17};
 
 // Private V14 intermediate only; standalone V13 entry points above are unchanged.
 fn expand_to_v12_logical(page: &Value) -> Result<Value, &'static str> {
@@ -1132,6 +1132,218 @@ pub(in super::super) fn expand_v16(
 ) -> Result<Value, &'static str> {
     let logical = expand_to_v12_logical(&expand_to_v13_logical(&expand_to_v14_logical(
         &expand_to_v15(page)?,
+    )?)?)?;
+    super::expand_v11(before, policy, &logical_v12::expand_to_v11(&logical)?)
+}
+
+// V17 elides only V16's redundant one-key wrapper at the same admitted slots.
+// The complete public V16 reader and its wire cap remain unchanged above.
+pub(in super::super) const SCHEMA_V17: &str = "semaprax.finite-source-overlay-page.v17";
+fn positional_row(value: &Value) -> Result<&Vec<Value>, &'static str> {
+    let items = value.as_array().ok_or("v17 row arity")?;
+    if items.len() != 4 && items.len() != 5 {
+        return Err("v17 row arity");
+    }
+    if !items[0].is_string() || !items[1].is_boolean() {
+        return Err("v17 source/compiled type");
+    }
+    if !(items[2].is_array() || items[2].is_object()) || !items[3].is_array() {
+        return Err("v17 current/views type");
+    }
+    Ok(items)
+}
+// Borrowed first pass: no expanded row or repeated payload is constructed.
+fn visit_positional_rows(
+    page: &Value,
+    inspect: &mut dyn FnMut(&Value) -> Result<(), &'static str>,
+) -> Result<(), &'static str> {
+    fn fragments(
+        value: &Value,
+        inspect: &mut dyn FnMut(&Value) -> Result<(), &'static str>,
+    ) -> Result<(), &'static str> {
+        if value.is_null() {
+            return Ok(());
+        }
+        for value in value.as_array().ok_or("v17 fragments")? {
+            if !(value.is_array() || value.is_object()) {
+                return Err("v17 fragment row");
+            }
+            if value.is_array() || value.get("canonical_source").is_none() {
+                literal(value, inspect, false)?;
+            }
+        }
+        Ok(())
+    }
+    fn literal(
+        value: &Value,
+        inspect: &mut dyn FnMut(&Value) -> Result<(), &'static str>,
+        outer: bool,
+    ) -> Result<(), &'static str> {
+        if !(value.is_array() || value.is_object()) {
+            return Err("v17 row type");
+        }
+        inspect(value)?;
+        if outer && value.is_array() {
+            let items = positional_row(value)?;
+            if items.len() == 5 {
+                fragments(&items[4], inspect)?;
+            }
+        } else if outer {
+            if let Some(value) = value.get("fragments") {
+                fragments(value, inspect)?;
+            }
+        }
+        Ok(())
+    }
+    for group in ["replacements", "additions"] {
+        for value in page[group].as_array().ok_or("v17 rows")? {
+            if let Some(reference) = value.get("old519_index") {
+                if group != "replacements" || value.as_object().is_none_or(|o| o.len() != 1) {
+                    return Err("v17 indexed row");
+                }
+                let reference = reference.as_array().ok_or("v17 old519 arity")?;
+                if reference.len() != 4 {
+                    return Err("v17 old519 arity");
+                }
+                fragments(&reference[3], inspect)?;
+            } else {
+                literal(value, inspect, true)?;
+            }
+        }
+    }
+    Ok(())
+}
+fn transform_positional_rows(page: &mut Value, decode: bool) -> Result<(), &'static str> {
+    fn fragments(value: &mut Value, decode: bool) -> Result<(), &'static str> {
+        if value.is_null() {
+            return Ok(());
+        }
+        for value in value.as_array_mut().ok_or("v17 fragments")? {
+            if value.is_array() || value.get("canonical_source").is_none() {
+                literal(value, decode, false)?;
+            }
+        }
+        Ok(())
+    }
+    fn literal(value: &mut Value, decode: bool, outer: bool) -> Result<(), &'static str> {
+        if decode && value.is_array() {
+            positional_row(value)?;
+            let Value::Array(items) = std::mem::take(value) else {
+                unreachable!()
+            };
+            *value = Value::Object(
+                ROW_FIELDS
+                    .iter()
+                    .zip(items)
+                    .map(|(key, value)| ((*key).to_owned(), value))
+                    .collect(),
+            );
+        }
+        if outer {
+            if let Some(value) = value.get_mut("fragments") {
+                fragments(value, decode)?;
+            }
+        }
+        if !decode && eligible_row(value) {
+            let Value::Object(mut object) = std::mem::take(value) else {
+                unreachable!()
+            };
+            *value = Value::Array(
+                ROW_FIELDS
+                    .iter()
+                    .filter_map(|key| object.remove(*key))
+                    .collect(),
+            );
+        }
+        Ok(())
+    }
+    for group in ["replacements", "additions"] {
+        for value in page[group].as_array_mut().ok_or("v17 rows")? {
+            if value.get("old519_index").is_some() {
+                fragments(&mut value["old519_index"][3], decode)?;
+            } else {
+                literal(value, decode, true)?;
+            }
+        }
+    }
+    Ok(())
+}
+fn expand_positional_to_v15(page: &Value) -> Result<Value, &'static str> {
+    source_envelope(page, SCHEMA_V17)?;
+    let mut expanded = canonical(page).len();
+    if expanded > PAGE_CAP {
+        return Err("v17 same one-page cap");
+    }
+    visit_positional_rows(page, &mut |value| {
+        if value.is_array() {
+            let overhead = row_overhead(positional_row(value)?.len())
+                .checked_add(b"{\"source_row\":[]}".len() - 2)
+                .ok_or("v17 expanded bound")?;
+            expanded = expanded.checked_add(overhead).ok_or("v17 expanded bound")?;
+            if expanded > SOURCE_CAP {
+                return Err("v17 expanded bound");
+            }
+        } else if eligible_row(value) || is_row_envelope(value) {
+            return Err("v17 literal row alias");
+        }
+        Ok(())
+    })?;
+    // The entire expanded bound is proved before cloning any payload.
+    let mut result = page.clone();
+    result["schema"] = SCHEMA_V15.into();
+    transform_positional_rows(&mut result, true)?;
+    if canonical(&result).len() != expanded {
+        return Err("v17 expanded bound");
+    }
+    expand_to_v14_logical(&result)?;
+    Ok(result)
+}
+#[cfg_attr(not(test), allow(dead_code))]
+fn encode_v17_rows(page: &Value) -> Result<Value, &'static str> {
+    source_envelope(page, SCHEMA_V15)?;
+    if canonical(page).len() > SOURCE_CAP {
+        return Err("v17 logical input bound");
+    }
+    expand_to_v14_logical(page)?;
+    visit_source_rows(page, &mut |value| {
+        if eligible_row(value) {
+            if !value["source"].is_string() || !value["compiled"].is_boolean() {
+                return Err("v17 source/compiled type");
+            }
+            if !(value["current"].is_array() || value["current"].is_object())
+                || !value["views"].is_array()
+            {
+                return Err("v17 current/views type");
+            }
+        } else if is_row_envelope(value) {
+            return Err("v17 literal row alias");
+        }
+        Ok(())
+    })?;
+    let mut result = page.clone();
+    transform_positional_rows(&mut result, false)?;
+    result["schema"] = SCHEMA_V17.into();
+    if canonical(&result).len() > PAGE_CAP {
+        return Err("v17 same one-page cap");
+    }
+    if canonical(&expand_positional_to_v15(&result)?) != canonical(page) {
+        return Err("v17 ENTIRE V15 page inverse");
+    }
+    Ok(result)
+}
+#[cfg_attr(not(test), allow(dead_code))]
+fn encode_v17(page: &Value) -> Result<Value, &'static str> {
+    encode_v17_rows(&encode_v15_sources_logical(&encode_v14_tails_logical(
+        &encode_v13_logical(page)?,
+    )?)?)
+}
+pub(in super::super) fn expand_v17(
+    before: &Value,
+    policy: &Value,
+    page: &Value,
+) -> Result<Value, &'static str> {
+    let logical = expand_to_v12_logical(&expand_to_v13_logical(&expand_to_v14_logical(
+        &expand_positional_to_v15(page)?,
     )?)?)?;
     super::expand_v11(before, policy, &logical_v12::expand_to_v11(&logical)?)
 }

@@ -22,6 +22,15 @@ const PAYMENT: usize = 2 * size_of::<(&mut ReplayBudget, &ResolvedFunction, usiz
 // Initializer and drop argument/formal are separate moved packet owners; none
 // of the earlier constructors' backing or receiver payments is credited here.
 pub(super) const RELEASE: usize = 2 * size_of::<Scratch<'static>>() + PAYMENT;
+// The invocation caller prepays this COMPLETE additional tuple/argument bank
+// before any function starts. Original RELEASE and all old fees remain intact.
+pub(super) const INVOCATION_RELEASE: usize = 2 * size_of::<(
+    StatusSources<'static>,
+    Leaves,
+    BTreeSet<StorageId>,
+    StatusCases<'static>,
+    crate::cleanup_plan::replay::expression_facts::arena::invocation::Lease<'static, 'static>,
+)>() + PAYMENT;
 pub(super) const ATTEMPT: usize = 2 * size_of::<Attempt<'static, 'static>>() + PAYMENT;
 
 macro_rules! finish_structure {

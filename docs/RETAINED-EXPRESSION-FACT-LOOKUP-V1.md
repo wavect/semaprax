@@ -316,3 +316,35 @@ or runtime benefit follows from the source equation. New success, full-field
 error/work cuts, zero/short/exact/floor, callback reentry/restoration, foreign and
 sticky ledger, source immutability and whole-Drop controls remain unexecuted until
 the consolidated owning qualification.
+
+The invocation-backing candidate rebuilds the complete arena for every function
+and instance. It retains only cleared Node allocation capacity and cursor slots
+inside one private program-and-ReplayBudget-bound owner. Before returning the
+backing, all keys and CallFact payloads are dropped, every cursor slot is reset,
+and root/first become NIL. No expression identity, AVL edge, lookup result,
+validation verdict or prior per-function work allowance survives that boundary.
+The original ArenaCapacity owner, Arena initializer, per-node fact production,
+AVL and payload charges remain reached. Only replacement Vec construction and
+its actual relocation work can disappear when already-held empty backing fits.
+
+The original program preflight selects its first function and completes its
+unchanged skeleton-work reservation before the additional complete owner,
+ledger, actual/formal call and return banks are paid. Empty programs construct
+no backing and capture no ledger. Acquisition prepays the complete fixed call/receiving/authentication banks for
+every immutable program function and instance, plus the full actual Lease-scratch
+release tuple. Its checked count/product/Options are paid first. No new positive
+debit precedes ledger authentication at a receiving call; authentication repeats
+after the full_program callback. Each successful build then prepays its new
+frame-reset slots before a lease can be formed. Original RELEASE remains whole. Lease Drop is
+infallible and returns empty storage before the original typed-control phase.
+A failed build or failed cleanup acquisition drops all local backing instead.
+There is no refund of a completed constructor or fact tariff.
+
+The complete immediate-old five-argument receiver and producer remain compiled
+independently. The complete old program caller remains executable under cfg(test)
+at its original interface. Whole-source inverses authenticate the changed owners;
+the new source-bound controls cover alternating large/small functions, complete
+fact equality, later duplicate identities, wrong-budget refusal, exact/short/zero
+and sticky acquisition failures, and full Drop. These controls are authored but
+unrun. First-function and tiny programs can regress; no net or application-fit
+claim follows from this source candidate.

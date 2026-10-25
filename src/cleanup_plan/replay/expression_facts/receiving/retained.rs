@@ -837,6 +837,8 @@ mod last_use;
 #[path = "retained/last_use/before.rs"]
 mod before_structure_release;
 mod ordinary_cross_phase;
+mod ordinary_invocation;
+pub(in crate::cleanup_plan::replay) use ordinary_invocation::{validate_structure_with_fact_backing, INVOCATION_RELEASE_BYTES};
 pub(in crate::cleanup_plan::replay) use ordinary_cross_phase::validate_structure_with_budget_storage;
 
 #[cfg(test)]

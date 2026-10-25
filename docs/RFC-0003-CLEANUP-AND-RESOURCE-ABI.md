@@ -781,3 +781,24 @@ not language qualification, call permissions, source/graph/cache bytes or limits
 The ordinary synthetic-AST peak census remains conservative and unchanged. Physical
 constructor/core comparisons and unchanged application gates remain pending; no
 19,422-byte reduction, application fit or issue closure follows from source review.
+
+
+### Same-invocation cleanup-shape projection backing
+
+The source candidate retains one empty projection Vec across the slots of one
+complete leaf collector. Each slot independently replays every shape event,
+field/case uniqueness check, identity clone and leaf/index construction. The
+existing balanced-depth postcondition proves no projection ID crosses a
+successful slot boundary; only empty capacity survives. Every original growth
+reservation remains at the original Push point and no completed fee is refunded.
+The additional Vec owner, constructor, reservation and explicit Drop transports
+are paid before formation, including empty or tiny collectors that can regress.
+On error, the projection owner drops before pending events and constructed leaf
+indexes. On success it drops before the existing final flag-contiguity check
+and Leaves publication. The complete immediate old collector remains an
+independently executable lexical body with the same ABI and original invoice.
+Earlier worklist-zero/net controls retain their explicit pre-reuse stage; new
+complete caller controls cover current net and cold loss, later malformed and
+duplicate shapes, alternating depths, exact/short/zero/sticky refusal and Drop.
+All new controls are source-authored and unexecuted; application admission and
+resource-limit recovery remain separate qualification requirements.

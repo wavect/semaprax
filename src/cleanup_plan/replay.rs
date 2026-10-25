@@ -49,6 +49,7 @@ mod selected_entry;
 mod sequence_prefix;
 mod sequence_vector;
 mod shape_cursor;
+mod projection_backing;
 mod status_construction;
 mod structural_control;
 mod structural_maps;
@@ -1552,20 +1553,31 @@ fn collect_leaves_paid(
     function: &ResolvedFunction,
     budget: &mut ReplayBudget,
 ) -> Result<Leaves, Diagnostic> {
+    #[cfg(test)]
+    if projection_backing::before_selected() {
+        return projection_backing::before_body!(function, budget);
+    }
     let mut leaves = BTreeMap::new();
     let mut places = BTreeSet::new();
     let mut pending = shape_cursor::Pending::new();
+    // This additional owner/constructor/drop bank precedes formation. Existing
+    // shape receiver, work, growth, clone and leaf invoices remain unchanged.
+    budget.reserve_bytes(function, projection_backing::ENTRY, "shape projection backing owner")?;
+    let mut projections = Vec::new();
     for slot in &function.cleanup_plan.slots {
         collect_shape(
             function,
             &slot.storage,
-            &mut Vec::new(),
+            &mut projections,
             &slot.field_liveness_shape,
             &mut leaves,
             &mut places,
             (budget, &mut pending),
         )?;
     }
+    // Each completed shape proves its starting depth was restored. Drop the
+    // empty backing at the original last-use frontier, before flag validation.
+    drop(projections);
     for (expected, flag) in leaves.keys().enumerate() {
         if flag.0 != u32_index(function, expected, "liveness flag")? {
             return Err(replay_error(

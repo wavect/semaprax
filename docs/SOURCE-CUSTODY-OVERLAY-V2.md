@@ -220,6 +220,36 @@ page is not constructed: its redundant envelopes can exceed the unchanged
 262144-byte wire limit. All public V16 functions, limits, and hostile controls
 remain independently executable. V17 adds no source, path, page, or authority.
 
+## Closed prior-source path transport
+
+The authenticated guard configuration may encode only `closed_prior_sources`
+as `{"schema":"semaprax.closed-prior-sources.prefixes.v1","sources":[...]}`.
+A legacy list retains its entire original reader behavior. The fixed tokens are:
+
+```text
+R: src/cleanup_plan/replay/
+W: src/workspace_graph/
+H: src/hir/
+D: docs/evidence/
+T: tests/
+N: crates/semaprax-native-rust-interop-builder/
+S: src/source_reflows/
+M: src/source_reflows_merge/
+```
+
+A token replaces only that directory prefix. The suffix is a nonempty normal
+relative path; absolute paths, empty or dot segments, backslashes and NUL are
+refused. Unknown tokens, multiple colons, extra envelope fields, and an eligible
+unencoded literal are refused. Unmatched normal paths remain literal. Source
+order and duplicates survive exactly; all other configuration values are opaque
+and unchanged. Whole physical configuration authentication precedes decoding.
+
+The wire configuration remains bounded by 262144 bytes. Before joining any
+expanded path, the reader accounts for the complete reconstructed canonical
+configuration, including every opaque field, against the unchanged 9753094-byte
+source bound. The decoded list grants exactly the original named-source scope.
+Entire legacy configurations and their independent readers remain executable.
+
 ## Invocation-local checker compilation reuse
 
 The optional FINAL checker reuse layer may retain at most two successfully

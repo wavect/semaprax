@@ -38,6 +38,70 @@ def reader():
 
 
 class Controls(unittest.TestCase):
+    def test_compile_reuse_preserves_source_filename_mode_and_fresh_exec(self):
+        calls = []
+        def original(*args, **kwargs):
+            calls.append((args, kwargs))
+            return compile(*args, **kwargs)
+        cached = ns['DerivedCompile'](original)
+        source = 'items = []\nitems.append(seed)\n'
+        code = cached(source, 'same-source.py', 'exec')
+        first, second = {'seed': 1}, {'seed': 2}
+        exec(code, first)
+        exec(cached(source, 'same-source.py', 'exec'), second)
+        self.assertEqual((first['items'], second['items']), ([1], [2]))
+        self.assertIsNot(first['items'], second['items'])
+        self.assertEqual(len(calls), 1)
+        cached(source, 'other-source.py', 'exec')
+        cached(source.encode(), 'same-source.py', 'exec')
+        self.assertEqual(len(calls), 3)
+        cached(source, 'same-source.py', 'exec')  # bounded eviction
+        self.assertEqual(len(calls), 4)
+        self.assertEqual(len(cached.entries), 2)
+        for _ in range(2):
+            with self.assertRaises(SyntaxError):
+                cached('if :', 'bad.py', 'exec')
+        self.assertEqual(len(calls), 6)
+        for _ in range(2):
+            cached('1 + 2', 'eval.py', 'eval')
+            cached(source, 'same-source.py', 'exec', optimize=1)
+            cached('\n' * 65537, 'large.py', 'exec')
+        self.assertEqual(len(calls), 12)
+
+    def test_compile_hit_still_executes_original_late_read_and_refuses_drift(self):
+        bounded = reader()
+        with tempfile.TemporaryDirectory(prefix='opt923-compile-', dir='/Volumes/Semaprax/runtime-tmp') as tmp:
+            path = Path(tmp) / 'source'
+            raw = b'complete physical source'
+            path.write_bytes(raw)
+            digest = hashlib.sha256(raw).hexdigest()
+            calls, reads = [], []
+            def original(*args, **kwargs):
+                calls.append((args, kwargs))
+                return compile(*args, **kwargs)
+            cached = ns['DerivedCompile'](original)
+            source = "reads.append('late')\nheld = bounded(path, length, digest)\n"
+            def execute():
+                namespace = dict(reads=reads, bounded=bounded, path=path,
+                                 length=len(raw), digest=digest)
+                exec(cached(source, 'live-read.py', 'exec'), namespace)
+                return namespace['held']
+            self.assertEqual(execute(), raw)
+            self.assertEqual(execute(), raw)
+            self.assertEqual((len(calls), reads), (1, ['late', 'late']))
+            for changed in [b'X' + raw[1:], raw + b' ', b'']:
+                path.write_bytes(changed)
+                with self.assertRaises(AssertionError):
+                    execute()
+                path.write_bytes(raw)
+            regular = Path(tmp) / 'regular'
+            path.rename(regular)
+            path.symlink_to(regular)
+            with self.assertRaises(OSError):
+                execute()
+            self.assertEqual(len(calls), 1)
+            self.assertEqual(len(reads), 6)
+
     def test_complete_original_and_single_insertion_transport(self):
         raw = original()
         wrapper = (D / 'check-source.py').read_text()

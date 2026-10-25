@@ -20,7 +20,7 @@ uncached='--original-checker' in sys.argv
 if uncached:sys.argv.remove('--original-checker')
 namespace={}
 if not uncached:
- helper=bounded(D/'derived_compose.py',2728,'e5881a10f486f17fe89cd830415baa3261965ac9e24487878b0c519be6fbcd08')
+ helper=bounded(D/'derived_compose.py',4597,'18ba0b7cf6ff5f2c2df9fd6f2b482336bfdf22612fca7f88fbc1a223aa54fb83')
  namespace={'__file__':str(D/'derived_compose.py')}
  exec(compile(helper,namespace['__file__'],'exec'),namespace)
 program=original.decode()

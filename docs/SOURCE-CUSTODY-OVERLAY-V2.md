@@ -201,3 +201,19 @@ source-bounded copy of the entire V15 reader. Public V15 functions, their
 executable and unchanged. There is no new page, dictionary, archive path,
 source authority or logical source admission. Source-only size predictions and
 authored controls establish no executable qualification or application gain.
+
+## Invocation-local checker compilation reuse
+
+The optional FINAL checker reuse layer may retain at most two successfully
+compiled Python `exec` code objects, each with at most 65536 UTF-8 source bytes.
+Its key retains the complete source value and exact source type, filename and
+mode. Unsupported call shapes and compile failures use the original compiler
+without publishing an entry. The authenticated guard must have no inherited
+future flags, matching the cache callable's compilation context.
+
+Only compilation is reused. Each invocation still executes the code in its
+fresh original namespace. All original module initialization, configuration,
+source/archive reads, late physical reauthentication, mutations, symlink
+refusals, six roots and hostile controls remain live and unchanged. The complete
+original FINAL checker remains independently executable through its original
+selector. Source-only checks do not establish runtime gain or FINAL acceptance.

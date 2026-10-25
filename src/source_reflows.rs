@@ -8,8 +8,7 @@ use std::sync::{Mutex, OnceLock};
 
 use sha2::{Digest, Sha256};
 
-#[path = "source_front_pool.rs"]
-pub(crate) mod front_pool;
+pub(crate) use ci_inputs::front_pool;
 
 #[path = "source_reflows/ci_inputs.rs"]
 mod ci_inputs;

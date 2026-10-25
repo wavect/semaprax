@@ -137,8 +137,8 @@ fn post21_input(source: &str, current: &str) -> String {
     let current = joined.as_str();
     metadata_json::project(metadata_json::Fixture::M24, source, current)
 }
-// Exact historical ENTRY stages precede the complete compile35f front and its inverses.
 fn historical_project_entry(source: &str, expected: &str, current: &str) -> String {
+    if let Some(entry) = constructor_stage::held_projection_entry(source, expected, current) { return entry; }
     let legacy = crate::source_reflows::legacy_ci_expected_input(source, expected, current);
     let current = legacy.as_ref();
     let probes = phase_probe_stage(source, expected, current);

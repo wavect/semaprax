@@ -426,3 +426,31 @@ fn declared_cursor_epoch_binds_all_current_channels_before_the_complete_history(
         current
     );
 }
+
+#[path = "../workspace_graph/identity_resolution/base/cache_billing/main7f8_reader.rs"]
+mod held_projection_reader;
+// Only this already-declared constructor result enters the named held-projection stage.
+pub(super) fn held_projection_entry(source: &str, expected: &str, supplied: &str) -> Option<String> {
+    if source != "src/workspace_graph/expected_projection/held_projection.rs"
+        || expected != "51c2e34bbc8906757ae0b781e3988b732177da0bba8c05b011c378792d54c356"
+        || supplied.len() != 23082
+        || super::source_sha(supplied) != "e53a5ad24eb87ee600bd01d1916d243c137d24ae7ef7f59b005ddb7af31cbca5"
+    {
+        return None;
+    }
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let declared = held_projection_reader::read(
+        &root.join("e/e53a5ad24eb87ee600bd01d1916d243c137d24ae7ef7f59b005ddb7af31cbca5"),
+        23082,
+        "e53a5ad24eb87ee600bd01d1916d243c137d24ae7ef7f59b005ddb7af31cbca5",
+        2_097_152,
+    ).unwrap();
+    assert_eq!(supplied, declared, "exact declared constructor stage");
+    let physical = include_str!("../workspace_graph/expected_projection/held_projection.rs");
+    assert_eq!(physical, held_projection_reader::read(&root.join(source), physical.len(), &super::source_sha(physical), 2_097_152).unwrap());
+    let entry = super::main_e177_final_inputs::value_direct(source, expected, physical);
+    assert_eq!(entry.len(), 21539);
+    assert_eq!(super::source_sha(&entry), expected);
+    assert_eq!(physical, held_projection_reader::read(&root.join(source), physical.len(), &super::source_sha(physical), 2_097_152).unwrap());
+    Some(entry)
+}

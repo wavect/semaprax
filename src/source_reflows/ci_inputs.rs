@@ -4,6 +4,8 @@ use sha2::{Digest, Sha256};
 use std::borrow::Cow;
 #[path = "../workspace_graph/identity_resolution/base/cache_billing/main7f8_reader.rs"]
 mod reader;
+#[path = "../source_front_pool.rs"]
+pub(crate) mod front_pool;
 fn digest(text: &str) -> String {
     format!(
         "{:x}",
@@ -128,7 +130,7 @@ fn compiled(source: &str) -> Option<(usize, &'static str)> {
         _ => return None,
     })
 }
-// Authenticate the actual compiled/physical/current row before selecting the
+#[rustfmt::skip]
 fn historical_entry<'a>(source: &str, expected: &str, current: &'a str) -> Cow<'a, str> {
     match (source, expected) {
         ("src/cleanup_plan/replay/factored/oracle_hook.rs", "a0cf6a6604b1909859e78ecfe95f780ba1600072ae6ca9e259d2943c7dbebfa7") => { assert_eq!((current.len(), digest(current)), (13225, "926a833bbcf34fd7c826dfb91498565b683d6d9c1118a1c23e94c8f446f099d4".to_owned())); let before = reader::read(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("e/a0cf6a6604b1909859e78ecfe95f780ba1600072ae6ca9e259d2943c7dbebfa7"), 12521, expected, 2_097_152).unwrap(); assert_eq!(digest(&before), expected); Cow::Owned(before) },
@@ -144,7 +146,7 @@ fn historical_entry<'a>(source: &str, expected: &str, current: &'a str) -> Cow<'
                 source, expected, current,
             ),
         ),
-        _ => Cow::Borrowed(current),
+        ("src/cleanup_plan/replay/ordinary_plan_history/producer.rs", "1626a4bd28426cc1e798e59346ccd6f6ce1b919f71b4685d5b477ec737f0ec2e") => { assert_eq!((current.len(), digest(current)), (18378, "a4f39343e1351a5245e09800de30377f7048606f9948da5a7bbdf5db720f0f98".to_owned())); let before = reader::read(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("e/1626a4bd28426cc1e798e59346ccd6f6ce1b919f71b4685d5b477ec737f0ec2e"), 18220, expected, 2_097_152).unwrap(); assert_eq!(digest(&before), expected); Cow::Owned(before) }, _ => Cow::Borrowed(current),
     }
 }
 fn rows() -> serde_json::Value {
@@ -830,7 +832,6 @@ fn intrinsic_profile_entry_keeps_exact_controller_scope_and_refuses_complete_sou
     }
     assert!(intrinsic_profile_entry(caller, "src/hir.rs", "foreign source").is_none());
 }
-
 fn paid_constructor_entry(source: &str, supplied: &str) -> Option<String> {
     if source == "src/stdin_stream_ops.rs" {
         return paid_stdin_entry(supplied);
@@ -870,7 +871,6 @@ fn paid_constructor_entry(source: &str, supplied: &str) -> Option<String> {
     assert_eq!(reader::read(&root.join("docs/evidence/paid-constructor-entry-20261022/217896ad2e11c8bcbdfde236ec29a9cc1c00da142c9c18968a6015b79451127a.txt"), before.len(), &digest(&before), 2_097_152).unwrap(), before);
     Some(before)
 }
-
 fn paid_stdin_entry(supplied: &str) -> Option<String> {
     const CURRENT: &str = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),

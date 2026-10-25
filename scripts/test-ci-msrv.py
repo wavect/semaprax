@@ -15,6 +15,7 @@ Run ``python3 scripts/test-ci-msrv.py fake`` or ``... real``.
 """
 
 import io
+import contextlib
 import json
 import os
 from pathlib import Path
@@ -24,6 +25,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parent.parent
 router = runpy.run_path(str(ROOT / "scripts" / "ci-msrv.py"))
@@ -109,6 +111,55 @@ class FakeCargoTests(unittest.TestCase):
         with self.assertRaises(ValueError) as caught:
             self.checked(environment, **selection)
         self.assertIn(message, str(caught.exception))
+
+    def test_projection_unit_family_moves_once_and_keeps_checked_failures(self):
+        prefix = router["PROJECTION_UNIT_FILTER"]
+        self.assertEqual(prefix, "workspace_graph::expected_projection::")
+        metadata = {
+            "workspace_members": ["root"],
+            "packages": [{"id": "root", "name": "semaprax", "targets": [
+                {"name": "semaprax", "kind": ["lib"]},
+                *[{"name": f"integration_{i}", "kind": ["test"]} for i in range(6)],
+            ]}],
+        }
+        for failure in (0, 101):
+            selected = []
+            def checked(base, environment, **selection):
+                selected.append((base, selection))
+                return failure
+            with patch("subprocess.run", return_value=subprocess.CompletedProcess(
+                [], 0, stdout=json.dumps(metadata)
+            )), patch.dict(router["main"].__globals__, {"run_checked_selection": checked}):
+                self.assertEqual(router["main"]([
+                    "--shard", "unit-projection", "--nocapture"
+                ]), failure)
+            self.assertEqual(len(selected), 1)
+            base, selection = selected[0]
+            self.assertEqual(base, router["HEAVY_UNIT_TEST"])
+            self.assertEqual(selection["prefix"], prefix)
+            self.assertEqual(selection["harness"], ["--nocapture"])
+            self.assertNotIn("exact", selection)
+        with patch("subprocess.run", side_effect=[
+            subprocess.CompletedProcess([], 0, stdout=json.dumps(metadata)),
+            subprocess.CompletedProcess([], 0),
+        ]) as run:
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(router["main"](["--shard", "unit"]), 0)
+            command = run.call_args_list[1].args[0]
+        self.assertEqual(command.count(prefix), 1)
+        self.assertEqual(command[command.index(prefix) - 1], "--skip")
+        for old in router["HEAVY_UNIT_FILTERS"]:
+            self.assertEqual(command[command.index(old) - 1], "--skip")
+        names = [prefix + "a", prefix + "nested::b", prefix + "ignored",
+                 "workspace_graph::expected_projection_lookalike::case", "other::case"]
+        for name in names:
+            in_projection = name.startswith(prefix)
+            in_unit = not any(part in name for part in (*router["HEAVY_UNIT_FILTERS"], prefix))
+            self.assertEqual(int(in_projection) + int(in_unit), 1, name)
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text()
+        tests = workflow.split("\n  verify-tests:\n", 1)[1].split("\n  unix-source-repair:\n", 1)[0]
+        for host in ("ubuntu-latest", "macos-latest", "windows-latest"):
+            self.assertIn(f"- os: {host}\n            shard: unit-projection", tests)
 
     def test_valid_exact_test_runs_once_and_reports_counts(self):
         environment = self.scenario(run_output([("other::exact", "ok")], 1, 0, 0, 6))

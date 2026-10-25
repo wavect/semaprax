@@ -1,0 +1,8 @@
+{
+  "exit": 0,
+  "process_RSS_cap": null,
+  "minimum_device_physical_available_GiB": 8.387863159179688,
+  "minimum_pressure_free_percent": 64,
+  "compiler_pauses": 0,
+  "peak_process_tree_RSS_telemetry_KiB": 67488
+}

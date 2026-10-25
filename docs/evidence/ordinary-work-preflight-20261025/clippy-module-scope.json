@@ -1,0 +1,12 @@
+{
+  "scope": "Named per-module Clippy allowance on cfg(test) source_reflows_merge only, matching existing package policy for named module exceptions. Full historical source order must remain stable for byte-exact controls.",
+  "lint": "clippy::items_after_test_module",
+  "actual_warnings": [
+    "main_eb2_inputs.rs",
+    "opt858_sequence_input.rs",
+    "main_e177_packet_lookup.rs"
+  ],
+  "other_clippy_findings": "Direct compiler invocation initially omitted Cargo.toml result_large_err allowance; corrected to apply exact Cargo package Rust/Clippy levels. No new global warning or result allowance added.",
+  "cfg_test_unchanged": true,
+  "all_body_and_historical_proof_assertions_unchanged": true
+}

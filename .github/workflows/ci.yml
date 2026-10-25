@@ -1982,6 +1982,13 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         shard: [unit, unit-heavy, integration-0, integration-1, integration-2, integration-3, integration-4, integration-5]
+        include:
+          - os: ubuntu-latest
+            shard: unit-projection
+          - os: macos-latest
+            shard: unit-projection
+          - os: windows-latest
+            shard: unit-projection
     runs-on: ${{ matrix.os }}
     steps:
       - name: Allow Windows to check out long evidence paths

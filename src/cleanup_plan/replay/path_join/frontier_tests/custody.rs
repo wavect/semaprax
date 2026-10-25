@@ -423,6 +423,20 @@ fn retained_fork_source_before(path: &str, current: &[u8]) -> Vec<u8> {
 }
 // Finite exact successor inputs; original42 packet and all946 targets stay whole.
 fn current_shared_input_before(path: &str, current: &[u8]) -> Vec<u8> {
+    let lookup_epoch = path == "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests.rs";
+    let current = if lookup_epoch {
+        let physical = std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap();
+        let compiled = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests.rs")).as_slice();
+        assert_eq!(physical.as_slice(), compiled);
+        assert_eq!(current, compiled);
+        assert_eq!(current.len(), 41729);
+        assert_eq!(digest(current), "8fb97de082a60f774add25568ba491fac867b7a82880ef8e601a31f068585394");
+        let prior = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/48ba251872ba4bf83424e95f78cbadcd11636432a03da7ec8e700e78425a353d")).as_slice();
+        assert_eq!(prior.len(), 39177);
+        assert_eq!(digest(prior), "48ba251872ba4bf83424e95f78cbadcd11636432a03da7ec8e700e78425a353d");
+        assert_eq!(std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap(), physical);
+        prior
+    } else { current };
     let (compiled, length, sha, before, before_length, before_sha):
         (&[u8], usize, &str, &[u8], usize, &str) = match path {
         "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests.rs" => (
@@ -574,7 +588,11 @@ fn current_shared_input_before(path: &str, current: &[u8]) -> Vec<u8> {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let physical = std::fs::read(root.join(path)).unwrap();
     assert_eq!(physical.as_slice(), compiled);
-    assert_eq!(current, compiled);
+    if lookup_epoch {
+        assert_eq!(current, include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/48ba251872ba4bf83424e95f78cbadcd11636432a03da7ec8e700e78425a353d")).as_slice());
+    } else {
+        assert_eq!(current, compiled);
+    }
     assert_eq!(current.len(), length);
     assert_eq!(digest(current), sha);
     assert_eq!(before.len(), before_length);

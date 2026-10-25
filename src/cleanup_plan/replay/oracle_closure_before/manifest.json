@@ -63,8 +63,8 @@
     "before_fixture": "src__cleanup_plan__replay__continuation_storage__reached_tests.rs.txt"
   },
   "src/cleanup_plan/replay/path_join/frontier_tests/custody.rs": {
-    "current_length": 43483,
-    "current_sha256": "6fbdb89b61d9b48696633b33f434fab3de02079076c4d638e4a3ea08d8018021",
+    "current_length": 44831,
+    "current_sha256": "994117cf20c54364361e2ad647d7d39facd7ed6d568ff77cfbc9773c1662b400",
     "before_length": 42710,
     "before_sha256": "3d68e87d1e68adabab772808f670ca189f7b3f776dfc2b54cf612b8c6d2f029b",
     "before_fixture": "src__cleanup_plan__replay__path_join__frontier_tests__custody.rs.txt"

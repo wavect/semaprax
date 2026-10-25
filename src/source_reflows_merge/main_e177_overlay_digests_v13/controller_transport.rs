@@ -154,6 +154,28 @@ fn v14_source_before(source: &str, supplied: &str) -> String {
             std::fs::read(root.join(source)).unwrap(),
             compiled.as_bytes()
         );
+        // Acquire complete mainb7 source before the unchanged loader history.
+        let mainb7_compiled_input;
+        let supplied = if super::hash(supplied.as_bytes()) == "777709dffedae86cb1ee7750967b21640d5be4296c92474f99861c34615287e3" {
+            assert_eq!(supplied.len(), 154097);
+            let mut restored = supplied.to_owned();
+            for &(start, end, after, before) in [
+                (45382, 45937, " /* The new test-wire helper has complete current physical and compiled channels before its exact admission is removed for the old proof. */ let helper = \"tests/workspace/semantic_graph/host_pins.rs\"; let physical = std::fs::read_to_string( std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\")).join(helper), ).unwrap(); assert_eq!(super::compiled(helper), Some(physical.as_str())); let expected = format!(\"{:x}\", crate::digest_hex::LowerHex(Sha256::digest(physical.as_bytes()))); assert_eq!(super::super::value_direct(helper, &expected, &physical), physical);", ""),
+                (118072, 118944, "    #[rustfmt::skip] #[test] fn remaining_source_view_requires_the_complete_current_compiled_channel() { use sha2::{Digest, Sha256}; let source = \"src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs\"; let raw = include_str!(concat!( env!(\"CARGO_MANIFEST_DIR\"), \"/src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs\" )); assert_eq!(super::compiled(source), Some(raw)); let old = crate::source_reflows_merge::main_e177_final_inputs::value_direct( source, \"e6d9241f9287e8e00d5c8413623383b53b46e5efbe6da50e576dcf6bbd642db4\", raw, ); assert_eq!( old, include_str!(concat!( env!(\"CARGO_MANIFEST_DIR\"), \"/e/e6d9241f9287e8e00d5c8413623383b53b46e5efbe6da50e576dcf6bbd642db4\" )) ); assert_eq!( format!( \"{:x}\", crate::digest_hex::LowerHex(Sha256::digest(old.as_bytes())) ), \"e6d9241f9287e8e00d5c8413623383b53b46e5efbe6da50e576dcf6bbd642db4\" ); } ", ""),
+                (131340, 131685, "hostpin_arm = \"        \\\"tests/workspace/semantic_graph/host_pins.rs\\\" => Some(include_str!(\\\"../../tests/workspace/semantic_graph/host_pins.rs\\\")),\\n\"; assert_eq!(lookup.matches(hostpin_arm).count(), 1, \"exact incoming host-pin lookup arm\"); let before_hostpins = lookup.replacen(hostpin_arm, \"\", 1); let lookup = before_hostpins.as_str(); let ", ""),
+            ].iter().rev() {
+                assert!(start <= end && end <= restored.len());
+                assert!(restored.is_char_boundary(start) && restored.is_char_boundary(end));
+                assert_eq!(&restored[start..end], after);
+                restored.replace_range(start..end, before);
+            }
+            assert_eq!(restored.len(), 152325);
+            assert_eq!(super::hash(restored.as_bytes()), "7e88be48fafcc0a596fef3b48630452f45ae9441ab98cd1733224644e2151be6");
+            mainb7_compiled_input = restored;
+            mainb7_compiled_input.as_str()
+        } else {
+            supplied
+        };
         // Exact main8/constructor registration source phase; prior epochs remain complete.
         // Complete actual loader-fixture source precedes its immutable pre-V15 input view.
         let v15_loader_input;

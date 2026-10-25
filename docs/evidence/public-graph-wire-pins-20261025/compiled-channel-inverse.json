@@ -1,0 +1,10 @@
+{
+  "source": "src/source_reflows_merge/main_e177_overlay_compiled.rs",
+  "before_sha256": "04edca0a55a2ed8734db0a439d7edf40eb2c0516a67ec052fabf41d4ba712fa3",
+  "after_sha256": "125136fe079ccbc92afa8e9fd14f9c6a621f0208be7d8567538d2d8d876d0bca",
+  "whole_original_recovered_exactly": true,
+  "added_compiled_channel": "        \"tests/workspace/semantic_graph/host_pins.rs\" => Some(include_str!(\"../../tests/workspace/semantic_graph/host_pins.rs\")),\n",
+  "exact_added_scope_declaration": "            \"tests/workspace/semantic_graph/host_pins.rs\",\n",
+  "added_positive_regression": "        // The new test-wire helper has complete current physical and compiled\n        // channels before its exact admission is removed for the old proof.\n        let helper = \"tests/workspace/semantic_graph/host_pins.rs\";\n        let physical = std::fs::read_to_string(\n            std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\")).join(helper),\n        ).unwrap();\n        assert_eq!(super::compiled(helper), Some(physical.as_str()));\n        let expected = format!(\"{:x}\", crate::digest_hex::LowerHex(Sha256::digest(physical.as_bytes())));\n        assert_eq!(super::super::value_direct(helper, &expected, &physical), physical);\n",
+  "all_old_fixed_spans_and_complete_predecessor_assertions_unchanged": true
+}

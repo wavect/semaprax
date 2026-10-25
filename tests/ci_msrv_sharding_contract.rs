@@ -415,7 +415,7 @@ fn checked_selector_controller_fake_cargo_failure_paths() {
         "{stdout}{}",
         String::from_utf8_lossy(&output.stderr)
     );
-    assert!(stdout.contains("fake level: 21 run, 0 skipped"), "{stdout}");
+    assert!(stdout.contains("fake level: 22 run, 0 skipped"), "{stdout}");
 }
 
 #[test]

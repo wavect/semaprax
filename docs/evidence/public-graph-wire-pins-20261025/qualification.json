@@ -1,0 +1,91 @@
+{
+  "scope": "Focused local macOS aarch64 original public graph API/CLI and source preservation checks. Hosted Linux/Windows raw-wire captures are separately recorded. Full CI remains unresolved.",
+  "source_parent": "1893e417e762a74f0b71056d5fe1c45e50972224",
+  "checks": {
+    "constructor-stage-controls": {
+      "passed": 4,
+      "log_sha256": "2a2b0d393104f20d6ff65561ddef631354e32413664d08cfc478eae958516f1e",
+      "minimum_device_physical_available_GiB": 9.380859375
+    },
+    "overlay-controls": {
+      "passed": 33,
+      "log_sha256": "f984159637b1823e757ad2248e2af26ef3235e119d9fd459307a85ce2758879c",
+      "minimum_device_physical_available_GiB": 9.11376953125
+    },
+    "main043-audits": {
+      "passed": 9,
+      "log_sha256": "f4bf75dac777380c0e948f2400000366e09ecb146a71f9c39496bcb9a8566ba5",
+      "minimum_device_physical_available_GiB": 9.12371826171875
+    },
+    "raw-reader-controls": {
+      "passed": 3,
+      "log_sha256": "4379602f6423ea737676e924dab12e75b319cbcbb795979d34d2dc922c2e7aae",
+      "minimum_device_physical_available_GiB": 9.20184326171875
+    },
+    "ordinary-controls": {
+      "passed": 3,
+      "log_sha256": "81191290e83b83e9ea561022d6b843b81d0dc26a86b65c491a6627240b3b409b",
+      "minimum_device_physical_available_GiB": 9.156280517578125
+    },
+    "c883-controls": {
+      "passed": 8,
+      "log_sha256": "73e5c13d08e946c67497a208ff3311d76c49264cb6024b1f410eda09ea0c486d",
+      "minimum_device_physical_available_GiB": 8.725296020507812
+    },
+    "docs-controls": {
+      "passed": 3,
+      "log_sha256": "ab3c73b76fdb1aededaca50fae78e36b34c6bdf0f5c2629d94e38543efd9630b",
+      "minimum_device_physical_available_GiB": 8.439178466796875
+    },
+    "hir-test": {
+      "passed": 11,
+      "log_sha256": "814e7fb6ba94b1c63840951246e8bb36fd575779fcd50bc927dc01deb8275ca8",
+      "minimum_device_physical_available_GiB": 7.80877685546875
+    },
+    "projection-test": {
+      "passed": 1,
+      "log_sha256": "bc9fbf0c828887946a3e9e57a0f8cd35a6e1e60713e2eedf11cd12fb3ca4cd14",
+      "minimum_device_physical_available_GiB": 7.8815765380859375
+    },
+    "public-graph-original-focused-bodies": {
+      "passed": 7,
+      "log_sha256": "9008c8308d665937e4695496f90629070e809213569d8d6cdecdeeb52889430a"
+    },
+    "final-source-build": {
+      "exit": 0,
+      "minimum_device_physical_available_GiB": 9.273300170898438
+    },
+    "final-source-clippy": {
+      "exit": 0,
+      "minimum_device_physical_available_GiB": 9.849166870117188
+    },
+    "docs-build": {
+      "exit": 0,
+      "minimum_device_physical_available_GiB": 8.154739379882812
+    },
+    "hir-build": {
+      "exit": 0,
+      "minimum_device_physical_available_GiB": 7.8080902099609375
+    },
+    "hir-clippy": {
+      "exit": 0,
+      "minimum_device_physical_available_GiB": 8.052703857421875
+    },
+    "projection-build": {
+      "exit": 0,
+      "minimum_device_physical_available_GiB": 6.985137939453125
+    },
+    "public-graph-clippy": {
+      "exit": 0,
+      "minimum_device_physical_available_GiB": 7.1960601806640625
+    },
+    "cargo-fmt-all-check": {
+      "exit": 0,
+      "minimum_device_physical_available_GiB": 7.00927734375
+    }
+  },
+  "root_test_lines": 1495,
+  "full_quality_profile_run": false,
+  "actual_available_device_RAM_monitored": true,
+  "process_RSS_cap": null
+}

@@ -1,0 +1,10 @@
+{
+  "source_parent": "1c38c5c17866cd58498f6f33dc16c02605e30457",
+  "issue": "The 32-row missing-preflight fixture crosses the ordinary builder factored threshold, so it no longer selects the enumerating root-path refusal this test owns.",
+  "change": "Keep every original diagnostic and allocator-drop assertion on a naturally enumerating one-row fixture. Retain the original32-row fixture in a new complete old/current default-path test with maximum, exact, one-unit-short and zero work allowances, H006 error identity, no byte-refusal substitution and full allocation teardown.",
+  "compiler_runtime_changed": false,
+  "private_focused_controls_passed": 14,
+  "private_harness_source_parent_acquisition": "Only runner visibility required exact canonical-parent include rebase; no production source-view control changed.",
+  "test_log_sha256": "501111c974d911176881aaa74715ac0c73b758c87b6f6a3dd187f898b4f487b3",
+  "full_ci_green": false
+}

@@ -1,0 +1,89 @@
+{
+  "source_parent": "1c38c5c17866cd58498f6f33dc16c02605e30457",
+  "scope": "Focused actual compiler replay controls and original source/documentation/HIR/projection gates. Clippy passed with exact Cargo package lint levels on unchanged lib/test source; final source-binding metadata then refreshed and all89 runtime/source controls plus formatting reran. No full CI or backend-conformance claim.",
+  "focused_test_cases_passed": 89,
+  "checks": {
+    "constructor-stage-controls": {
+      "passed": 4,
+      "log_sha256": "6f45c96b54e263f4d88b158414164baf59310b64d51184dbb591224e9dc8d6ad",
+      "minimum_device_physical_available_GiB": 7.934326171875
+    },
+    "overlay-controls": {
+      "passed": 33,
+      "log_sha256": "42a2731f777b5a72bbd3c03441f7c40c134ba64650d2a04b4d0f152dde372b06",
+      "minimum_device_physical_available_GiB": 6.8706512451171875
+    },
+    "main043-audits": {
+      "passed": 9,
+      "log_sha256": "f32baeac86aabd476b1f4a07ada5bf8d4d0b73076065e7a269b983f9208cf413",
+      "minimum_device_physical_available_GiB": 7.471527099609375
+    },
+    "raw-reader-controls": {
+      "passed": 3,
+      "log_sha256": "4379602f6423ea737676e924dab12e75b319cbcbb795979d34d2dc922c2e7aae",
+      "minimum_device_physical_available_GiB": 7.5528717041015625
+    },
+    "ordinary-controls": {
+      "passed": 3,
+      "log_sha256": "8d091f6078ef505512177dc0e0582aefe8639dca3a83d8420023a5816ea0f951",
+      "minimum_device_physical_available_GiB": 7.5847930908203125
+    },
+    "c883-controls": {
+      "passed": 8,
+      "log_sha256": "dbb168380796118634610a5110d2ba8867e714de30da108e9a17cd8b4e51f8b4",
+      "minimum_device_physical_available_GiB": 7.0901336669921875
+    },
+    "docs-controls": {
+      "passed": 3,
+      "log_sha256": "308652a4f22aea70768f1c527a781b5fec33a627846896fe2f6d42e9f9a859bd",
+      "minimum_device_physical_available_GiB": 6.816375732421875
+    },
+    "hir-test": {
+      "passed": 11,
+      "log_sha256": "d584910d03c778207dca8a197beb2d57e6d637d1fde3995477ac15ebed3b1664",
+      "minimum_device_physical_available_GiB": 6.4134368896484375
+    },
+    "projection-test": {
+      "passed": 1,
+      "log_sha256": "6130cb7af6e9a5deed462fdde255945a658c9a99a4214832f0f2b272223f6d0e",
+      "minimum_device_physical_available_GiB": 6.9889678955078125
+    },
+    "genuine_current_compiler_lookup_controls": {
+      "passed": 14,
+      "log_sha256": "501111c974d911176881aaa74715ac0c73b758c87b6f6a3dd187f898b4f487b3"
+    },
+    "final-source-build": {
+      "exit": 0,
+      "minimum_device_physical_available_GiB": 7.7530670166015625
+    },
+    "docs-build": {
+      "exit": 0,
+      "minimum_device_physical_available_GiB": 6.50006103515625
+    },
+    "hir-build": {
+      "exit": 0,
+      "minimum_device_physical_available_GiB": 6.47406005859375
+    },
+    "hir-clippy": {
+      "exit": 0,
+      "minimum_device_physical_available_GiB": 6.6597442626953125
+    },
+    "projection-build": {
+      "exit": 0,
+      "minimum_device_physical_available_GiB": 6.3549041748046875
+    },
+    "lookup-clippy": {
+      "exit": 0,
+      "minimum_device_physical_available_GiB": 4.557952880859375
+    },
+    "fmt": {
+      "exit": 0,
+      "minimum_device_physical_available_GiB": 6.39923095703125
+    }
+  },
+  "patch_qualification_complete": true,
+  "actual_available_device_RAM_monitored": true,
+  "process_RSS_cap": null,
+  "full_quality_profile_run": false,
+  "full_ci_green": false
+}

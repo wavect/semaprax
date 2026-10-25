@@ -1,0 +1,888 @@
+[
+  {
+    "document": "public-graph",
+    "target": "linux-windows-x86_64",
+    "before_source": "docs/evidence/core300-earned-pin-source-stage-20261017/managed-actual-current/wires/public-graph.json",
+    "before_sha256": "0dac82221135ed1967ced1e54e99214196da281bddf39e9c93eff494bbf341d3",
+    "current_source": "docs/evidence/public-graph-wire-pins-20261025/wires/linux-windows-x86_64/public-graph.json",
+    "current_sha256": "5a316bbe0fbd688e60a707a49531e044e120ce8791c0e10b8b724aa3091bd941",
+    "bytes": 6596,
+    "complete_original_recovered": true,
+    "only_changes": [
+      {
+        "pointer": "/graph_digest",
+        "before": "sha256:1042f0bddcd3174f252f562c6fe25ab72cc1735c42dcab5950149dc8c3cbd0a0",
+        "after": "sha256:47d298981828426cc47c8ab0ac5e334da170f9d93b1ac05f31144f80d1b6d1ff"
+      },
+      {
+        "pointer": "/budget/used_builder_bytes",
+        "before": 1024337,
+        "after": 928541
+      },
+      {
+        "pointer": "/budget/used_output_bytes",
+        "before": 6597,
+        "after": 6596
+      }
+    ]
+  },
+  {
+    "document": "public-graph",
+    "target": "macos-aarch64",
+    "before_source": "docs/evidence/core300-earned-pin-source-stage-20261017/managed-actual-current/wires/public-graph.json",
+    "before_sha256": "0dac82221135ed1967ced1e54e99214196da281bddf39e9c93eff494bbf341d3",
+    "current_source": "docs/evidence/public-graph-wire-pins-20261025/wires/macos-aarch64/public-graph.json",
+    "current_sha256": "5c6ceca181c351fde97209fec5c1ae7993f18879069d899008641eb5e2eca61c",
+    "bytes": 6596,
+    "complete_original_recovered": true,
+    "only_changes": [
+      {
+        "pointer": "/graph_digest",
+        "before": "sha256:1042f0bddcd3174f252f562c6fe25ab72cc1735c42dcab5950149dc8c3cbd0a0",
+        "after": "sha256:9731766560ddc61b4ab6ea54ee772fbacb596a8ceef7c9b511622266b6e9ff7e"
+      },
+      {
+        "pointer": "/budget/used_builder_bytes",
+        "before": 1024337,
+        "after": 928685
+      },
+      {
+        "pointer": "/budget/used_output_bytes",
+        "before": 6597,
+        "after": 6596
+      }
+    ]
+  },
+  {
+    "document": "context",
+    "target": "linux-windows-x86_64",
+    "before_source": "docs/evidence/core300-earned-pin-source-stage-20261017/managed-actual-current/wires/context.json",
+    "before_sha256": "989bf4b427f83a5d67fbd00a928b16fd4d3604b11da503948ce27f0a90c11689",
+    "current_source": "docs/evidence/public-graph-wire-pins-20261025/wires/linux-windows-x86_64/context.json",
+    "current_sha256": "c6da1790d2ae1a1f9aaee49d29f532fd2cc15ead017ae11d149615a050220171",
+    "bytes": 4513,
+    "complete_original_recovered": true,
+    "only_changes": [
+      {
+        "pointer": "/workspace_graph_digest",
+        "before": "sha256:1042f0bddcd3174f252f562c6fe25ab72cc1735c42dcab5950149dc8c3cbd0a0",
+        "after": "sha256:47d298981828426cc47c8ab0ac5e334da170f9d93b1ac05f31144f80d1b6d1ff"
+      },
+      {
+        "pointer": "/artifact_digest",
+        "before": "sha256:736be723d1d016e34212d390a762dd8f64406e8a52f762d801eb55ed3c0987ee",
+        "after": "sha256:b860c8a97d3e185344135025eed54ae9176ea168b16ae055b599c048a1843f32"
+      },
+      {
+        "pointer": "/budget/workspace/used_builder_bytes",
+        "before": 1024337,
+        "after": 928541
+      },
+      {
+        "pointer": "/budget/workspace/used_output_bytes",
+        "before": 6597,
+        "after": 6596
+      },
+      {
+        "pointer": "/budget/analysis/used_output_bytes",
+        "before": 4514,
+        "after": 4513
+      }
+    ]
+  },
+  {
+    "document": "context",
+    "target": "macos-aarch64",
+    "before_source": "docs/evidence/core300-earned-pin-source-stage-20261017/managed-actual-current/wires/context.json",
+    "before_sha256": "989bf4b427f83a5d67fbd00a928b16fd4d3604b11da503948ce27f0a90c11689",
+    "current_source": "docs/evidence/public-graph-wire-pins-20261025/wires/macos-aarch64/context.json",
+    "current_sha256": "c6559c0255638f9957306aacbc1dfbc389b9b692bd95d0c018d7878e2fc99ad6",
+    "bytes": 4513,
+    "complete_original_recovered": true,
+    "only_changes": [
+      {
+        "pointer": "/workspace_graph_digest",
+        "before": "sha256:1042f0bddcd3174f252f562c6fe25ab72cc1735c42dcab5950149dc8c3cbd0a0",
+        "after": "sha256:9731766560ddc61b4ab6ea54ee772fbacb596a8ceef7c9b511622266b6e9ff7e"
+      },
+      {
+        "pointer": "/artifact_digest",
+        "before": "sha256:736be723d1d016e34212d390a762dd8f64406e8a52f762d801eb55ed3c0987ee",
+        "after": "sha256:9e90941e42779d79013db1d86bb607ed98ba571fda3678e842bc6a694acb531a"
+      },
+      {
+        "pointer": "/budget/workspace/used_builder_bytes",
+        "before": 1024337,
+        "after": 928685
+      },
+      {
+        "pointer": "/budget/workspace/used_output_bytes",
+        "before": 6597,
+        "after": 6596
+      },
+      {
+        "pointer": "/budget/analysis/used_output_bytes",
+        "before": 4514,
+        "after": 4513
+      }
+    ]
+  },
+  {
+    "document": "forward",
+    "target": "linux-windows-x86_64",
+    "before_source": "docs/evidence/core300-earned-pin-source-stage-20261017/managed-actual-current/wires/forward.json",
+    "before_sha256": "49e0a72ab6b19961743de2e7534781b243d9f4a9f67f7bc92f1f135d32271f3f",
+    "current_source": "docs/evidence/public-graph-wire-pins-20261025/wires/linux-windows-x86_64/forward.json",
+    "current_sha256": "c8122cc08d59dc951bef3058d5c57a96fca1a9a4788f3d1fa49f30ea302da224",
+    "bytes": 4514,
+    "complete_original_recovered": true,
+    "only_changes": [
+      {
+        "pointer": "/workspace_graph_digest",
+        "before": "sha256:1042f0bddcd3174f252f562c6fe25ab72cc1735c42dcab5950149dc8c3cbd0a0",
+        "after": "sha256:47d298981828426cc47c8ab0ac5e334da170f9d93b1ac05f31144f80d1b6d1ff"
+      },
+      {
+        "pointer": "/artifact_digest",
+        "before": "sha256:4cec6281815c7dc69c20a67b870bfaf9b801cf2683419cd87d328696a526acd9",
+        "after": "sha256:96619624015575e2578213548496520f889445cbc983b656f1cf77bae2b9b3e0"
+      },
+      {
+        "pointer": "/budget/workspace/used_builder_bytes",
+        "before": 1024337,
+        "after": 928541
+      },
+      {
+        "pointer": "/budget/workspace/used_output_bytes",
+        "before": 6597,
+        "after": 6596
+      },
+      {
+        "pointer": "/budget/analysis/used_output_bytes",
+        "before": 4515,
+        "after": 4514
+      }
+    ]
+  },
+  {
+    "document": "forward",
+    "target": "macos-aarch64",
+    "before_source": "docs/evidence/core300-earned-pin-source-stage-20261017/managed-actual-current/wires/forward.json",
+    "before_sha256": "49e0a72ab6b19961743de2e7534781b243d9f4a9f67f7bc92f1f135d32271f3f",
+    "current_source": "docs/evidence/public-graph-wire-pins-20261025/wires/macos-aarch64/forward.json",
+    "current_sha256": "4fd64af5eb09e06182e372bce9e4127a7c8f2578313af46a8b8e8d860567b177",
+    "bytes": 4514,
+    "complete_original_recovered": true,
+    "only_changes": [
+      {
+        "pointer": "/workspace_graph_digest",
+        "before": "sha256:1042f0bddcd3174f252f562c6fe25ab72cc1735c42dcab5950149dc8c3cbd0a0",
+        "after": "sha256:9731766560ddc61b4ab6ea54ee772fbacb596a8ceef7c9b511622266b6e9ff7e"
+      },
+      {
+        "pointer": "/artifact_digest",
+        "before": "sha256:4cec6281815c7dc69c20a67b870bfaf9b801cf2683419cd87d328696a526acd9",
+        "after": "sha256:63e85876698c1602d213ce25b031bc7dede6c6a89bda89b3100bf3e78eb2ba2c"
+      },
+      {
+        "pointer": "/budget/workspace/used_builder_bytes",
+        "before": 1024337,
+        "after": 928685
+      },
+      {
+        "pointer": "/budget/workspace/used_output_bytes",
+        "before": 6597,
+        "after": 6596
+      },
+      {
+        "pointer": "/budget/analysis/used_output_bytes",
+        "before": 4515,
+        "after": 4514
+      }
+    ]
+  },
+  {
+    "document": "capability-context",
+    "target": "linux-windows-x86_64",
+    "before_source": "docs/evidence/core300-earned-pin-source-stage-20261017/managed-actual-current/wires/capability-context.json",
+    "before_sha256": "c45b80dcb17cba38e620f5541c4a21eb10ade6ac6604b79f3ba55c315f26056e",
+    "current_source": "docs/evidence/public-graph-wire-pins-20261025/wires/linux-windows-x86_64/capability-context.json",
+    "current_sha256": "755827ec0f3711e11789b3dc354bd63f0dae02250358edbde2659ec1a6934d02",
+    "bytes": 4337,
+    "complete_original_recovered": true,
+    "only_changes": [
+      {
+        "pointer": "/workspace_graph_digest",
+        "before": "sha256:1042f0bddcd3174f252f562c6fe25ab72cc1735c42dcab5950149dc8c3cbd0a0",
+        "after": "sha256:47d298981828426cc47c8ab0ac5e334da170f9d93b1ac05f31144f80d1b6d1ff"
+      },
+      {
+        "pointer": "/artifact_digest",
+        "before": "sha256:ff46ccac8837428b4dffadc6f0e1d4ae91c0462f06b479eb325a987190769224",
+        "after": "sha256:eed711d5d4b6be63ea409ff9f9c537a08a07b1e526aafafd0190671fb7a4aed9"
+      },
+      {
+        "pointer": "/budget/workspace/used_builder_bytes",
+        "before": 1024337,
+        "after": 928541
+      },
+      {
+        "pointer": "/budget/workspace/used_output_bytes",
+        "before": 6597,
+        "after": 6596
+      },
+      {
+        "pointer": "/budget/analysis/used_output_bytes",
+        "before": 4338,
+        "after": 4337
+      }
+    ]
+  },
+  {
+    "document": "capability-context",
+    "target": "macos-aarch64",
+    "before_source": "docs/evidence/core300-earned-pin-source-stage-20261017/managed-actual-current/wires/capability-context.json",
+    "before_sha256": "c45b80dcb17cba38e620f5541c4a21eb10ade6ac6604b79f3ba55c315f26056e",
+    "current_source": "docs/evidence/public-graph-wire-pins-20261025/wires/macos-aarch64/capability-context.json",
+    "current_sha256": "2b1627acf545d8213a1612798f572f308d73c5f36493e271898f4a440060cb11",
+    "bytes": 4337,
+    "complete_original_recovered": true,
+    "only_changes": [
+      {
+        "pointer": "/workspace_graph_digest",
+        "before": "sha256:1042f0bddcd3174f252f562c6fe25ab72cc1735c42dcab5950149dc8c3cbd0a0",
+        "after": "sha256:9731766560ddc61b4ab6ea54ee772fbacb596a8ceef7c9b511622266b6e9ff7e"
+      },
+      {
+        "pointer": "/artifact_digest",
+        "before": "sha256:ff46ccac8837428b4dffadc6f0e1d4ae91c0462f06b479eb325a987190769224",
+        "after": "sha256:f1e7ceecbf9be910aadbe90dd3fa6cd333a75114bc6e0754303d5e2d6eb8f498"
+      },
+      {
+        "pointer": "/budget/workspace/used_builder_bytes",
+        "before": 1024337,
+        "after": 928685
+      },
+      {
+        "pointer": "/budget/workspace/used_output_bytes",
+        "before": 6597,
+        "after": 6596
+      },
+      {
+        "pointer": "/budget/analysis/used_output_bytes",
+        "before": 4338,
+        "after": 4337
+      }
+    ]
+  },
+  {
+    "document": "type-context",
+    "target": "linux-windows-x86_64",
+    "before_source": "docs/evidence/core300-earned-pin-source-stage-20261017/managed-actual-current/wires/type-context.json",
+    "before_sha256": "e3f6964cce17c2da11868db6658a02059bdea1562f68a23d9e7f31faaa5666d4",
+    "current_source": "docs/evidence/public-graph-wire-pins-20261025/wires/linux-windows-x86_64/type-context.json",
+    "current_sha256": "0d09c30d01e0acaf3f3e6e43830b974840cb03ced81611c1fa915a379e725cbe",
+    "bytes": 4011,
+    "complete_original_recovered": true,
+    "only_changes": [
+      {
+        "pointer": "/workspace_graph_digest",
+        "before": "sha256:1042f0bddcd3174f252f562c6fe25ab72cc1735c42dcab5950149dc8c3cbd0a0",
+        "after": "sha256:47d298981828426cc47c8ab0ac5e334da170f9d93b1ac05f31144f80d1b6d1ff"
+      },
+      {
+        "pointer": "/artifact_digest",
+        "before": "sha256:1d7935c93f30c7042869aad87abc8bcf3ea4ca321d95e97ad307ab8dc82dd3d0",
+        "after": "sha256:6710d0b176987bcf965393f6352d543431eb3281497520017f02b0eccd576b44"
+      },
+      {
+        "pointer": "/budget/workspace/used_builder_bytes",
+        "before": 1024337,
+        "after": 928541
+      },
+      {
+        "pointer": "/budget/workspace/used_output_bytes",
+        "before": 6597,
+        "after": 6596
+      },
+      {
+        "pointer": "/budget/analysis/used_output_bytes",
+        "before": 4012,
+        "after": 4011
+      }
+    ]
+  },
+  {
+    "document": "type-context",
+    "target": "macos-aarch64",
+    "before_source": "docs/evidence/core300-earned-pin-source-stage-20261017/managed-actual-current/wires/type-context.json",
+    "before_sha256": "e3f6964cce17c2da11868db6658a02059bdea1562f68a23d9e7f31faaa5666d4",
+    "current_source": "docs/evidence/public-graph-wire-pins-20261025/wires/macos-aarch64/type-context.json",
+    "current_sha256": "9ce18c6600f7c5213d329a309e51bc9241d5a5042791d1c9553a46c9ea38aa1e",
+    "bytes": 4011,
+    "complete_original_recovered": true,
+    "only_changes": [
+      {
+        "pointer": "/workspace_graph_digest",
+        "before": "sha256:1042f0bddcd3174f252f562c6fe25ab72cc1735c42dcab5950149dc8c3cbd0a0",
+        "after": "sha256:9731766560ddc61b4ab6ea54ee772fbacb596a8ceef7c9b511622266b6e9ff7e"
+      },
+      {
+        "pointer": "/artifact_digest",
+        "before": "sha256:1d7935c93f30c7042869aad87abc8bcf3ea4ca321d95e97ad307ab8dc82dd3d0",
+        "after": "sha256:446bc479f5b78f18962c0e48484cfce8432817b695676902a0e4de512b173b0a"
+      },
+      {
+        "pointer": "/budget/workspace/used_builder_bytes",
+        "before": 1024337,
+        "after": 928685
+      },
+      {
+        "pointer": "/budget/workspace/used_output_bytes",
+        "before": 6597,
+        "after": 6596
+      },
+      {
+        "pointer": "/budget/analysis/used_output_bytes",
+        "before": 4012,
+        "after": 4011
+      }
+    ]
+  },
+  {
+    "document": "impact",
+    "target": "linux-windows-x86_64",
+    "before_source": "docs/evidence/core300-earned-pin-source-stage-20261017/managed-actual-current/wires/impact.json",
+    "before_sha256": "57e066c70da3480884e8d67eda67b401e4ab76f830858303227260b9fea024e1",
+    "current_source": "docs/evidence/public-graph-wire-pins-20261025/wires/linux-windows-x86_64/impact.json",
+    "current_sha256": "f8d225bb92f47d14b7792ce88037a4eb6dfaacf85d43f8b303a47a5b66afea98",
+    "bytes": 4159,
+    "complete_original_recovered": true,
+    "only_changes": [
+      {
+        "pointer": "/workspace_graph_digest",
+        "before": "sha256:1042f0bddcd3174f252f562c6fe25ab72cc1735c42dcab5950149dc8c3cbd0a0",
+        "after": "sha256:47d298981828426cc47c8ab0ac5e334da170f9d93b1ac05f31144f80d1b6d1ff"
+      },
+      {
+        "pointer": "/artifact_digest",
+        "before": "sha256:9e19182bb3e2a11aac9f27e2ecb36d498f0db1e2b4ff837e7e9156b0bba837d1",
+        "after": "sha256:3767f07f16653e546823f0aafed5099d4b295de30bf56d25a4c36f746412dde5"
+      },
+      {
+        "pointer": "/budget/workspace/used_builder_bytes",
+        "before": 1024337,
+        "after": 928541
+      },
+      {
+        "pointer": "/budget/workspace/used_output_bytes",
+        "before": 6597,
+        "after": 6596
+      },
+      {
+        "pointer": "/budget/analysis/used_output_bytes",
+        "before": 4160,
+        "after": 4159
+      }
+    ]
+  },
+  {
+    "document": "impact",
+    "target": "macos-aarch64",
+    "before_source": "docs/evidence/core300-earned-pin-source-stage-20261017/managed-actual-current/wires/impact.json",
+    "before_sha256": "57e066c70da3480884e8d67eda67b401e4ab76f830858303227260b9fea024e1",
+    "current_source": "docs/evidence/public-graph-wire-pins-20261025/wires/macos-aarch64/impact.json",
+    "current_sha256": "e5a21cfa07ec2cba63112a7fcaeccc542d5ad281692f1ba872895a719d71640c",
+    "bytes": 4159,
+    "complete_original_recovered": true,
+    "only_changes": [
+      {
+        "pointer": "/workspace_graph_digest",
+        "before": "sha256:1042f0bddcd3174f252f562c6fe25ab72cc1735c42dcab5950149dc8c3cbd0a0",
+        "after": "sha256:9731766560ddc61b4ab6ea54ee772fbacb596a8ceef7c9b511622266b6e9ff7e"
+      },
+      {
+        "pointer": "/artifact_digest",
+        "before": "sha256:9e19182bb3e2a11aac9f27e2ecb36d498f0db1e2b4ff837e7e9156b0bba837d1",
+        "after": "sha256:bd021de53b386e00a9e8a75414fa27d1b59bcca5e9a6a4e28fe7739373accfcf"
+      },
+      {
+        "pointer": "/budget/workspace/used_builder_bytes",
+        "before": 1024337,
+        "after": 928685
+      },
+      {
+        "pointer": "/budget/workspace/used_output_bytes",
+        "before": 6597,
+        "after": 6596
+      },
+      {
+        "pointer": "/budget/analysis/used_output_bytes",
+        "before": 4160,
+        "after": 4159
+      }
+    ]
+  },
+  {
+    "document": "custom-impact",
+    "target": "linux-windows-x86_64",
+    "before_source": "docs/evidence/core300-earned-pin-source-stage-20261017/managed-actual-current/wires/custom-impact.json",
+    "before_sha256": "34a22658cc14f665c1b3e407f0e68319cdd51b25801d4b9d8016d0109aa31033",
+    "current_source": "docs/evidence/public-graph-wire-pins-20261025/wires/linux-windows-x86_64/custom-impact.json",
+    "current_sha256": "b5717c190bfa90eb3b67e5bcf45133bc976e392a97672524f761c4864b13a122",
+    "bytes": 4568,
+    "complete_original_recovered": true,
+    "only_changes": [
+      {
+        "pointer": "/workspace_graph_digest",
+        "before": "sha256:1042f0bddcd3174f252f562c6fe25ab72cc1735c42dcab5950149dc8c3cbd0a0",
+        "after": "sha256:47d298981828426cc47c8ab0ac5e334da170f9d93b1ac05f31144f80d1b6d1ff"
+      },
+      {
+        "pointer": "/artifact_digest",
+        "before": "sha256:6a466b02379bc907493d7778987712059c9830f35b2f94af58c5ea9c0a9d3a0f",
+        "after": "sha256:162f4539bd8246981b6612e2137e1df10010daf58772d0c9e2c8ce5984cc74ba"
+      },
+      {
+        "pointer": "/budget/workspace/used_builder_bytes",
+        "before": 1024337,
+        "after": 928541
+      },
+      {
+        "pointer": "/budget/workspace/used_output_bytes",
+        "before": 6597,
+        "after": 6596
+      },
+      {
+        "pointer": "/budget/analysis/used_output_bytes",
+        "before": 4569,
+        "after": 4568
+      }
+    ]
+  },
+  {
+    "document": "custom-impact",
+    "target": "macos-aarch64",
+    "before_source": "docs/evidence/core300-earned-pin-source-stage-20261017/managed-actual-current/wires/custom-impact.json",
+    "before_sha256": "34a22658cc14f665c1b3e407f0e68319cdd51b25801d4b9d8016d0109aa31033",
+    "current_source": "docs/evidence/public-graph-wire-pins-20261025/wires/macos-aarch64/custom-impact.json",
+    "current_sha256": "1f7ffbeb9d917fb7dd7db1406967b4896f6b050938ff93526e47116749a16233",
+    "bytes": 4568,
+    "complete_original_recovered": true,
+    "only_changes": [
+      {
+        "pointer": "/workspace_graph_digest",
+        "before": "sha256:1042f0bddcd3174f252f562c6fe25ab72cc1735c42dcab5950149dc8c3cbd0a0",
+        "after": "sha256:9731766560ddc61b4ab6ea54ee772fbacb596a8ceef7c9b511622266b6e9ff7e"
+      },
+      {
+        "pointer": "/artifact_digest",
+        "before": "sha256:6a466b02379bc907493d7778987712059c9830f35b2f94af58c5ea9c0a9d3a0f",
+        "after": "sha256:141aec2dfa84de4cd77f551fd7e5359ac8cd1a859a51abd596cfb40864df06b6"
+      },
+      {
+        "pointer": "/budget/workspace/used_builder_bytes",
+        "before": 1024337,
+        "after": 928685
+      },
+      {
+        "pointer": "/budget/workspace/used_output_bytes",
+        "before": 6597,
+        "after": 6596
+      },
+      {
+        "pointer": "/budget/analysis/used_output_bytes",
+        "before": 4569,
+        "after": 4568
+      }
+    ]
+  },
+  {
+    "document": "review",
+    "target": "linux-windows-x86_64",
+    "before_source": "docs/evidence/core300-earned-pin-source-stage-20261017/managed-actual-current/wires/review.json",
+    "before_sha256": "63fff59e2c36756309b5979a9c8ad77326686b904f1dd8bbe1992d7739054704",
+    "current_source": "docs/evidence/public-graph-wire-pins-20261025/wires/linux-windows-x86_64/review.json",
+    "current_sha256": "4ba376e49d913e6b969e80ff6412cb8a860c9b4a68ded9d6126d94dfabdf2f7b",
+    "bytes": 12706,
+    "complete_original_recovered": true,
+    "only_changes": [
+      {
+        "pointer": "/workspace_graph_digest",
+        "before": "sha256:1042f0bddcd3174f252f562c6fe25ab72cc1735c42dcab5950149dc8c3cbd0a0",
+        "after": "sha256:47d298981828426cc47c8ab0ac5e334da170f9d93b1ac05f31144f80d1b6d1ff"
+      },
+      {
+        "pointer": "/artifact_digest",
+        "before": "sha256:eb8c8f33cca944c00d56bce3d9299ca5aef87462f4a05dbf72dcecfacc247462",
+        "after": "sha256:7ae9e589c2c3d7252fdee20172e52dd4cd6278824f0b48e06197e210a0f17597"
+      },
+      {
+        "pointer": "/context/workspace_graph_digest",
+        "before": "sha256:1042f0bddcd3174f252f562c6fe25ab72cc1735c42dcab5950149dc8c3cbd0a0",
+        "after": "sha256:47d298981828426cc47c8ab0ac5e334da170f9d93b1ac05f31144f80d1b6d1ff"
+      },
+      {
+        "pointer": "/context/artifact_digest",
+        "before": "sha256:b5966ee90966bec098d5850917c85b5888ec744ff287a24319198ee118ab7e33",
+        "after": "sha256:5c926bcff2a84a6536079e2319c9004bb7b97a740ed7cf96758313904b899a0f"
+      },
+      {
+        "pointer": "/context/budget/workspace/used_builder_bytes",
+        "before": 1024337,
+        "after": 928541
+      },
+      {
+        "pointer": "/context/budget/workspace/used_output_bytes",
+        "before": 6597,
+        "after": 6596
+      },
+      {
+        "pointer": "/context/budget/analysis/used_output_bytes",
+        "before": 3991,
+        "after": 3990
+      },
+      {
+        "pointer": "/impact/workspace_graph_digest",
+        "before": "sha256:1042f0bddcd3174f252f562c6fe25ab72cc1735c42dcab5950149dc8c3cbd0a0",
+        "after": "sha256:47d298981828426cc47c8ab0ac5e334da170f9d93b1ac05f31144f80d1b6d1ff"
+      },
+      {
+        "pointer": "/impact/artifact_digest",
+        "before": "sha256:7c4dbe6da7a494395a91ede638e6890c09be46787b0c30c732f6f17c65baea98",
+        "after": "sha256:8f608aac4c1a44325263285155d4a0659923d9bffee296bddbe2f8b8cc092c1f"
+      },
+      {
+        "pointer": "/impact/budget/workspace/used_builder_bytes",
+        "before": 1024337,
+        "after": 928541
+      },
+      {
+        "pointer": "/impact/budget/workspace/used_output_bytes",
+        "before": 6597,
+        "after": 6596
+      },
+      {
+        "pointer": "/impact/budget/analysis/used_output_bytes",
+        "before": 4163,
+        "after": 4162
+      },
+      {
+        "pointer": "/budget/workspace/used_builder_bytes",
+        "before": 1024337,
+        "after": 928541
+      },
+      {
+        "pointer": "/budget/workspace/used_output_bytes",
+        "before": 6597,
+        "after": 6596
+      },
+      {
+        "pointer": "/budget/analysis/used_context_bytes",
+        "before": 3991,
+        "after": 3990
+      },
+      {
+        "pointer": "/budget/analysis/used_impact_bytes",
+        "before": 4163,
+        "after": 4162
+      },
+      {
+        "pointer": "/budget/analysis/used_output_bytes",
+        "before": 12709,
+        "after": 12706
+      }
+    ]
+  },
+  {
+    "document": "review",
+    "target": "macos-aarch64",
+    "before_source": "docs/evidence/core300-earned-pin-source-stage-20261017/managed-actual-current/wires/review.json",
+    "before_sha256": "63fff59e2c36756309b5979a9c8ad77326686b904f1dd8bbe1992d7739054704",
+    "current_source": "docs/evidence/public-graph-wire-pins-20261025/wires/macos-aarch64/review.json",
+    "current_sha256": "79ed872322e14e6395b71e32e0329887a48df5a8c9f302938889b73054018942",
+    "bytes": 12706,
+    "complete_original_recovered": true,
+    "only_changes": [
+      {
+        "pointer": "/workspace_graph_digest",
+        "before": "sha256:1042f0bddcd3174f252f562c6fe25ab72cc1735c42dcab5950149dc8c3cbd0a0",
+        "after": "sha256:9731766560ddc61b4ab6ea54ee772fbacb596a8ceef7c9b511622266b6e9ff7e"
+      },
+      {
+        "pointer": "/artifact_digest",
+        "before": "sha256:eb8c8f33cca944c00d56bce3d9299ca5aef87462f4a05dbf72dcecfacc247462",
+        "after": "sha256:dce9f2efe50d337989addc094a09abac86cba37c0916d02cd39dc268bd9c149e"
+      },
+      {
+        "pointer": "/context/workspace_graph_digest",
+        "before": "sha256:1042f0bddcd3174f252f562c6fe25ab72cc1735c42dcab5950149dc8c3cbd0a0",
+        "after": "sha256:9731766560ddc61b4ab6ea54ee772fbacb596a8ceef7c9b511622266b6e9ff7e"
+      },
+      {
+        "pointer": "/context/artifact_digest",
+        "before": "sha256:b5966ee90966bec098d5850917c85b5888ec744ff287a24319198ee118ab7e33",
+        "after": "sha256:26e114921f57ff46352f8937e084624e981c01f7b2a05ad4440d6d2104e13a29"
+      },
+      {
+        "pointer": "/context/budget/workspace/used_builder_bytes",
+        "before": 1024337,
+        "after": 928685
+      },
+      {
+        "pointer": "/context/budget/workspace/used_output_bytes",
+        "before": 6597,
+        "after": 6596
+      },
+      {
+        "pointer": "/context/budget/analysis/used_output_bytes",
+        "before": 3991,
+        "after": 3990
+      },
+      {
+        "pointer": "/impact/workspace_graph_digest",
+        "before": "sha256:1042f0bddcd3174f252f562c6fe25ab72cc1735c42dcab5950149dc8c3cbd0a0",
+        "after": "sha256:9731766560ddc61b4ab6ea54ee772fbacb596a8ceef7c9b511622266b6e9ff7e"
+      },
+      {
+        "pointer": "/impact/artifact_digest",
+        "before": "sha256:7c4dbe6da7a494395a91ede638e6890c09be46787b0c30c732f6f17c65baea98",
+        "after": "sha256:2aaf0c0d48f54a503d4ff1d58b18073ebf62f68b98e936c8ed5e380c98ec67c6"
+      },
+      {
+        "pointer": "/impact/budget/workspace/used_builder_bytes",
+        "before": 1024337,
+        "after": 928685
+      },
+      {
+        "pointer": "/impact/budget/workspace/used_output_bytes",
+        "before": 6597,
+        "after": 6596
+      },
+      {
+        "pointer": "/impact/budget/analysis/used_output_bytes",
+        "before": 4163,
+        "after": 4162
+      },
+      {
+        "pointer": "/budget/workspace/used_builder_bytes",
+        "before": 1024337,
+        "after": 928685
+      },
+      {
+        "pointer": "/budget/workspace/used_output_bytes",
+        "before": 6597,
+        "after": 6596
+      },
+      {
+        "pointer": "/budget/analysis/used_context_bytes",
+        "before": 3991,
+        "after": 3990
+      },
+      {
+        "pointer": "/budget/analysis/used_impact_bytes",
+        "before": 4163,
+        "after": 4162
+      },
+      {
+        "pointer": "/budget/analysis/used_output_bytes",
+        "before": 12709,
+        "after": 12706
+      }
+    ]
+  },
+  {
+    "document": "capability-review",
+    "target": "linux-windows-x86_64",
+    "before_source": "docs/evidence/core300-earned-pin-source-stage-20261017/managed-actual-current/wires/capability-review.json",
+    "before_sha256": "ae98efa2b3d38e294cf4a730547b1361ebe917df83ab3015e7485acff1ce0bc6",
+    "current_source": "docs/evidence/public-graph-wire-pins-20261025/wires/linux-windows-x86_64/capability-review.json",
+    "current_sha256": "2395341e2e81abb4129f32adf5e663f84fa4a2dbc64f646ab8f2d87b1189ac78",
+    "bytes": 13623,
+    "complete_original_recovered": true,
+    "only_changes": [
+      {
+        "pointer": "/workspace_graph_digest",
+        "before": "sha256:1042f0bddcd3174f252f562c6fe25ab72cc1735c42dcab5950149dc8c3cbd0a0",
+        "after": "sha256:47d298981828426cc47c8ab0ac5e334da170f9d93b1ac05f31144f80d1b6d1ff"
+      },
+      {
+        "pointer": "/artifact_digest",
+        "before": "sha256:7ab5a7d3f876cc54dcdc948380a143258470837dbd5a1fa36e2f8d56a6768cec",
+        "after": "sha256:e97c6e24fb8ad68ff07cfeb2dede813fc591ae0e6af720eb5a3e81037cbd7d49"
+      },
+      {
+        "pointer": "/context/workspace_graph_digest",
+        "before": "sha256:1042f0bddcd3174f252f562c6fe25ab72cc1735c42dcab5950149dc8c3cbd0a0",
+        "after": "sha256:47d298981828426cc47c8ab0ac5e334da170f9d93b1ac05f31144f80d1b6d1ff"
+      },
+      {
+        "pointer": "/context/artifact_digest",
+        "before": "sha256:088d7d6b27d5ddc775159eb56a424f9ad05979b3a5467c0d221d5c2319d4a355",
+        "after": "sha256:c7fc1986e8ffb315a7be07e1a19b1ce5f2209ca73214a238aeb67ea00f7d0c72"
+      },
+      {
+        "pointer": "/context/budget/workspace/used_builder_bytes",
+        "before": 1024337,
+        "after": 928541
+      },
+      {
+        "pointer": "/context/budget/workspace/used_output_bytes",
+        "before": 6597,
+        "after": 6596
+      },
+      {
+        "pointer": "/context/budget/analysis/used_output_bytes",
+        "before": 4342,
+        "after": 4341
+      },
+      {
+        "pointer": "/impact/workspace_graph_digest",
+        "before": "sha256:1042f0bddcd3174f252f562c6fe25ab72cc1735c42dcab5950149dc8c3cbd0a0",
+        "after": "sha256:47d298981828426cc47c8ab0ac5e334da170f9d93b1ac05f31144f80d1b6d1ff"
+      },
+      {
+        "pointer": "/impact/artifact_digest",
+        "before": "sha256:28e41834f381ecd2ea48c149ae523e4ac14e161beeb50c409767dc094954f8c5",
+        "after": "sha256:f49f6e7d723a8e023bb72e6aa5044b96114840f10f2451f4f4f7942fc54559ce"
+      },
+      {
+        "pointer": "/impact/budget/workspace/used_builder_bytes",
+        "before": 1024337,
+        "after": 928541
+      },
+      {
+        "pointer": "/impact/budget/workspace/used_output_bytes",
+        "before": 6597,
+        "after": 6596
+      },
+      {
+        "pointer": "/impact/budget/analysis/used_output_bytes",
+        "before": 4575,
+        "after": 4574
+      },
+      {
+        "pointer": "/budget/workspace/used_builder_bytes",
+        "before": 1024337,
+        "after": 928541
+      },
+      {
+        "pointer": "/budget/workspace/used_output_bytes",
+        "before": 6597,
+        "after": 6596
+      },
+      {
+        "pointer": "/budget/analysis/used_context_bytes",
+        "before": 4342,
+        "after": 4341
+      },
+      {
+        "pointer": "/budget/analysis/used_impact_bytes",
+        "before": 4575,
+        "after": 4574
+      },
+      {
+        "pointer": "/budget/analysis/used_output_bytes",
+        "before": 13626,
+        "after": 13623
+      }
+    ]
+  },
+  {
+    "document": "capability-review",
+    "target": "macos-aarch64",
+    "before_source": "docs/evidence/core300-earned-pin-source-stage-20261017/managed-actual-current/wires/capability-review.json",
+    "before_sha256": "ae98efa2b3d38e294cf4a730547b1361ebe917df83ab3015e7485acff1ce0bc6",
+    "current_source": "docs/evidence/public-graph-wire-pins-20261025/wires/macos-aarch64/capability-review.json",
+    "current_sha256": "58902e60f1d669acdfee80b1b0f7cfcad721c37c4d10de6fea0b9e7a1d147df2",
+    "bytes": 13623,
+    "complete_original_recovered": true,
+    "only_changes": [
+      {
+        "pointer": "/workspace_graph_digest",
+        "before": "sha256:1042f0bddcd3174f252f562c6fe25ab72cc1735c42dcab5950149dc8c3cbd0a0",
+        "after": "sha256:9731766560ddc61b4ab6ea54ee772fbacb596a8ceef7c9b511622266b6e9ff7e"
+      },
+      {
+        "pointer": "/artifact_digest",
+        "before": "sha256:7ab5a7d3f876cc54dcdc948380a143258470837dbd5a1fa36e2f8d56a6768cec",
+        "after": "sha256:44d9db74e09e69f70b3dcda0f3e5d5087fdd65c8c0c90726d6d4b48733db02f9"
+      },
+      {
+        "pointer": "/context/workspace_graph_digest",
+        "before": "sha256:1042f0bddcd3174f252f562c6fe25ab72cc1735c42dcab5950149dc8c3cbd0a0",
+        "after": "sha256:9731766560ddc61b4ab6ea54ee772fbacb596a8ceef7c9b511622266b6e9ff7e"
+      },
+      {
+        "pointer": "/context/artifact_digest",
+        "before": "sha256:088d7d6b27d5ddc775159eb56a424f9ad05979b3a5467c0d221d5c2319d4a355",
+        "after": "sha256:5282be6dcead21b2a38b2ced9219de43a6e3b99857be1185cbeb33c5e96aed1b"
+      },
+      {
+        "pointer": "/context/budget/workspace/used_builder_bytes",
+        "before": 1024337,
+        "after": 928685
+      },
+      {
+        "pointer": "/context/budget/workspace/used_output_bytes",
+        "before": 6597,
+        "after": 6596
+      },
+      {
+        "pointer": "/context/budget/analysis/used_output_bytes",
+        "before": 4342,
+        "after": 4341
+      },
+      {
+        "pointer": "/impact/workspace_graph_digest",
+        "before": "sha256:1042f0bddcd3174f252f562c6fe25ab72cc1735c42dcab5950149dc8c3cbd0a0",
+        "after": "sha256:9731766560ddc61b4ab6ea54ee772fbacb596a8ceef7c9b511622266b6e9ff7e"
+      },
+      {
+        "pointer": "/impact/artifact_digest",
+        "before": "sha256:28e41834f381ecd2ea48c149ae523e4ac14e161beeb50c409767dc094954f8c5",
+        "after": "sha256:83145f8ee357b075c38c64606e51bebdfbb9dca63f00319beb13955e0939bac5"
+      },
+      {
+        "pointer": "/impact/budget/workspace/used_builder_bytes",
+        "before": 1024337,
+        "after": 928685
+      },
+      {
+        "pointer": "/impact/budget/workspace/used_output_bytes",
+        "before": 6597,
+        "after": 6596
+      },
+      {
+        "pointer": "/impact/budget/analysis/used_output_bytes",
+        "before": 4575,
+        "after": 4574
+      },
+      {
+        "pointer": "/budget/workspace/used_builder_bytes",
+        "before": 1024337,
+        "after": 928685
+      },
+      {
+        "pointer": "/budget/workspace/used_output_bytes",
+        "before": 6597,
+        "after": 6596
+      },
+      {
+        "pointer": "/budget/analysis/used_context_bytes",
+        "before": 4342,
+        "after": 4341
+      },
+      {
+        "pointer": "/budget/analysis/used_impact_bytes",
+        "before": 4575,
+        "after": 4574
+      },
+      {
+        "pointer": "/budget/analysis/used_output_bytes",
+        "before": 13626,
+        "after": 13623
+      }
+    ]
+  }
+]

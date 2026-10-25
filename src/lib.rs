@@ -17,6 +17,10 @@ extern crate self as semaprax;
 #[macro_use]
 mod source_reflows;
 #[cfg(test)]
+#[allow(
+    clippy::items_after_test_module,
+    reason = "source-history helpers preserve complete predecessor module order for byte-exact custody controls"
+)]
 mod source_reflows_merge;
 
 #[cfg(test)]

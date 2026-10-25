@@ -1,6 +1,7 @@
 const SEMANTIC_GRAPH_PRIVATE_LAYOUT_ROOT: &str =
     "src/workspace_graph/expected_projection/private_layout.rs";
 include!("semantic_graph/source_inventory.rs");
+include!("semantic_graph/host_pins.rs");
 #[path = "semantic_graph/source_inventory_controls.rs"]
 mod source_inventory_controls;
 use semaprax::semantic_workspace;
@@ -644,10 +645,13 @@ fn public_api_cli_bytes_getters_and_read_only_locking_are_exact() {
     // analysis digest chain follow. The separate, explicitly derived history
     // proof restores this semantic transition before unchanged budget checks.
     // See docs/evidence/managed67b-semantic-history-20261016/README.md.
-    assert_eq!(graph.budget().used_builder_bytes(), 1_024_337);
+    assert_eq!(graph.budget().used_builder_bytes(), graph_builder_bytes!());
     assert_eq!(
         document_digest(graph.to_json().as_bytes()),
-        "sha256:0dac82221135ed1967ced1e54e99214196da281bddf39e9c93eff494bbf341d3"
+        wire_pin!(
+            0,
+            "sha256:5a316bbe0fbd688e60a707a49531e044e120ce8791c0e10b8b724aa3091bd941"
+        )
     );
     let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
         .arg("workspace-graph")
@@ -1055,16 +1059,16 @@ fn public_workspace_analysis_api_cli_kats_and_locking_are_exact() {
             document_digest(review.as_bytes()),
             document_digest(capability_review.as_bytes()),
         ],
-        [
-            "sha256:989bf4b427f83a5d67fbd00a928b16fd4d3604b11da503948ce27f0a90c11689",
-            "sha256:49e0a72ab6b19961743de2e7534781b243d9f4a9f67f7bc92f1f135d32271f3f",
-            "sha256:c45b80dcb17cba38e620f5541c4a21eb10ade6ac6604b79f3ba55c315f26056e",
-            "sha256:e3f6964cce17c2da11868db6658a02059bdea1562f68a23d9e7f31faaa5666d4",
-            "sha256:57e066c70da3480884e8d67eda67b401e4ab76f830858303227260b9fea024e1",
-            "sha256:34a22658cc14f665c1b3e407f0e68319cdd51b25801d4b9d8016d0109aa31033",
-            "sha256:63fff59e2c36756309b5979a9c8ad77326686b904f1dd8bbe1992d7739054704",
-            "sha256:ae98efa2b3d38e294cf4a730547b1361ebe917df83ab3015e7485acff1ce0bc6",
-        ]
+        wire_pins!([
+            "sha256:c6da1790d2ae1a1f9aaee49d29f532fd2cc15ead017ae11d149615a050220171",
+            "sha256:c8122cc08d59dc951bef3058d5c57a96fca1a9a4788f3d1fa49f30ea302da224",
+            "sha256:755827ec0f3711e11789b3dc354bd63f0dae02250358edbde2659ec1a6934d02",
+            "sha256:0d09c30d01e0acaf3f3e6e43830b974840cb03ced81611c1fa915a379e725cbe",
+            "sha256:f8d225bb92f47d14b7792ce88037a4eb6dfaacf85d43f8b303a47a5b66afea98",
+            "sha256:b5717c190bfa90eb3b67e5bcf45133bc976e392a97672524f761c4864b13a122",
+            "sha256:4ba376e49d913e6b969e80ff6412cb8a860c9b4a68ded9d6126d94dfabdf2f7b",
+            "sha256:2395341e2e81abb4129f32adf5e663f84fa4a2dbc64f646ab8f2d87b1189ac78",
+        ])
     );
     std::thread::scope(|scope| {
         let context_task = scope.spawn(|| {

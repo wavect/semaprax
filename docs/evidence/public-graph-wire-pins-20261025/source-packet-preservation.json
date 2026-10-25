@@ -1,0 +1,10 @@
+{
+  "old_rows_preserved": 728,
+  "current_rows": 729,
+  "changed_current_sources": [
+    "src/source_reflows_merge/main_e177_overlay_compiled.rs",
+    "tests/workspace/semantic_graph.rs"
+  ],
+  "old_views_other_fields_fragment_edges_and_order_preserved": true,
+  "new_required_archives": 5
+}

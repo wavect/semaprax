@@ -1,0 +1,18 @@
+{
+  "exit": 0,
+  "scope": "Full genuine cfg(test) compiler focused-bin checked with exact Cargo.toml Rust/Clippy settings and -Dwarnings. Private-bin unused macros/imports/dead code suppressed as harness-only registration artifacts.",
+  "package_rust_lints": {
+    "unsafe_code": "deny"
+  },
+  "package_clippy_lints": {
+    "result_large_err": "allow"
+  },
+  "only_added_production_exception": "cfg(test) source_reflows_merge module: clippy::items_after_test_module",
+  "source_hashes": {
+    "src/lib.rs": "0b65f679b905456fb35d240637b132c697f846e2c5e054638b42dcdfab73038a",
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests.rs": "25d82517b2dd7e34292cc13259083ec550ae4fc51b9197087e7de55791eeed8d"
+  },
+  "metadata_only_binding_refresh_after_this_check": true,
+  "minimum_device_physical_available_GiB": 4.557952880859375,
+  "process_RSS_cap": null
+}

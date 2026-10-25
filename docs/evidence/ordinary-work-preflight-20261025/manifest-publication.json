@@ -1,0 +1,18 @@
+[
+  {
+    "domain": "hir",
+    "previous_archive": "e/d9c02c733dac954803259a4a0a1aa4480c4fc46c046606346b4a6f4776c30c45",
+    "current_sha256": "bfc24d12c3b1699a8f6d3e64b5f7e8c7f24a764ab3949e851afdc354e1186a5e",
+    "all_old_sources_roles_and_ordered_chunks_preserved": true,
+    "all_old_acquisition_chains_preserved_under_exact_formatter_and_named_test_lint_inverses": true,
+    "all_original_cfg_and_other_attributes_preserved_with_one_exact_named_test_lint_added": true
+  },
+  {
+    "domain": "projection",
+    "previous_archive": "e/db50813002b2d52f9522c89e4c1f6c4665a47412062867b50cd57064e886df94",
+    "current_sha256": "4c07f1ecc5a29001a7ccfa69a1969b7860631159c3ba79545d9a093a734b4896",
+    "all_old_sources_roles_and_ordered_chunks_preserved": true,
+    "all_old_acquisition_chains_preserved_under_exact_formatter_and_named_test_lint_inverses": true,
+    "all_original_cfg_and_other_attributes_preserved_with_one_exact_named_test_lint_added": true
+  }
+]

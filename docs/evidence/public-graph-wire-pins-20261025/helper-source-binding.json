@@ -1,0 +1,15 @@
+{
+  "schema": "semaprax.test-wire-helper-source-binding.v1",
+  "parent": "tests/workspace/semantic_graph.rs",
+  "parent_registered_role": "test-only",
+  "literal_include": "include!(\"semantic_graph/host_pins.rs\");",
+  "child": "tests/workspace/semantic_graph/host_pins.rs",
+  "child_inherited_registration_role": "derived test-only; literal include in existing workspace test registration",
+  "canonical_whole_source": {
+    "archive": "e/9c6d384d24133dcad874a3aab509693491b7564bbdf22a8bc8ed66538ae7d373",
+    "length": 1861,
+    "sha256": "9c6d384d24133dcad874a3aab509693491b7564bbdf22a8bc8ed66538ae7d373"
+  },
+  "hir_projection_predicate_scope": "The helper is outside the existing HIR/projection forbidden-predicate subjects; neither subject is changed by this repair.",
+  "all_existing_subject_roles_and_raw_predicate_inputs_preserved": true
+}

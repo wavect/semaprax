@@ -1,0 +1,27 @@
+{
+  "scope": "Raw wire fixtures and test expectations only; no public API, authority, limit or runtime change. CI remains unresolved.",
+  "linux": {
+    "head": "5b4ea4db02815496376841a90f77af8d20971377",
+    "run": 40128553773,
+    "job": 120975700769
+  },
+  "windows": {
+    "head": "5b4ea4db02815496376841a90f77af8d20971377",
+    "run": 40128553773,
+    "job": 120975700710,
+    "all_19_wires_equal_linux": true
+  },
+  "macos": {
+    "source_head": "0e5c2ef986c212efe995d8a26a138f8c2f09f186",
+    "toolchain": "Rust 1.97.1 aarch64-apple-darwin",
+    "profile": "normal library at opt-level 1; debug/overflow checks; all crate features; real CLI and daemon; no cfg(test) or diagnostic runtime overlay",
+    "cases": 7,
+    "producer": "original complete fixture/getter/API/CLI/locking/hostile test bodies, with updated expected target-specific literals"
+  },
+  "body_only_expected_values_changed": true,
+  "old_limits_and_all_old_assertions_preserved": true,
+  "root_rust_lines": 1495,
+  "source_policy_byte_cap": 262144,
+  "current_source_policy_page_bytes": 257470,
+  "production_source_controllers": "src/lib.rs gates source_reflows and source_reflows_merge with cfg(test); these source-binding changes do not alter the normal producer."
+}

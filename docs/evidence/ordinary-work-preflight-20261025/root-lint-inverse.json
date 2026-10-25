@@ -1,0 +1,13 @@
+{
+  "scope": "Root is already physically bound in both original source-role manifests; no new canonical-text/compiled registration is required or claimed. This proof handles only one exact nonsemantic test-module lint attribute. Actual current manifests retain the new attribute unchanged; the sealed producer/parser/verifier are unmodified.",
+  "parent": "src/lib.rs",
+  "child": "src/source_reflows_merge.rs",
+  "before_edge": "#[cfg(test)]\nmod source_reflows_merge;",
+  "after_edge": "#[cfg(test)]\n#[allow(\n    clippy::items_after_test_module,\n    reason = \"source-history helpers preserve complete predecessor module order for byte-exact custody controls\"\n)]\nmod source_reflows_merge;",
+  "all_original_cfg_and_other_attributes_preserved": true,
+  "whole_before_source_sha256": "88e47f85887a13d114c862a24e35f90196c02dd7bb11d6477575bced80ecd2de",
+  "whole_current_source_sha256": "0b65f679b905456fb35d240637b132c697f846e2c5e054638b42dcdfab73038a",
+  "complete_before_bytes_recovered": true,
+  "current_root_in_role_manifests": true,
+  "new_canonical_root_registration": false
+}

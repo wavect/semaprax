@@ -14,11 +14,13 @@ fn current_source(path: &str, row: &serde_json::Value) -> String {
     let metadata = file.metadata().unwrap();
     assert!(metadata.is_file());
     let interop_path = path == Path::new("crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs");
+    let interop_next = interop_path && row["sha256"] == "a056e62b5dc75528b2d19f5469b08ab831fbf48c2f8348154a3e360c341c5b4b";
+    if interop_next { assert_eq!(length, 239622); }
     let interop_epoch = interop_path && row["sha256"] == "d1edee35f9a7a97e9478264a44b7e77e4b3903bcbb87bb327602053f22afa6c8";
     let interop_prior_current = interop_path && row["sha256"] == "760872c3ea2924d4accd70e0b42b8573debaa312cfa4cd8a11cd61455b4701c5";
     let interop_current = interop_path && row["sha256"] == "22c4e696c83d5e53b8b2fdb5e0f5b00a7e6b40e9bb53fffbc0fc4e005152b257";
     if interop_current { assert_eq!(length, 239547); }
-    if interop_path && !interop_epoch && !interop_prior_current && !interop_current {
+    if interop_path && !interop_epoch && !interop_prior_current && !interop_current && !interop_next {
         assert_eq!(length, 235724);
         assert_eq!(row["sha256"], "23ea864c426901f3774b0a89bc3f2014e8cd9e784ccdc300f7718b2c174cd6b5");
     }
@@ -30,7 +32,7 @@ fn current_source(path: &str, row: &serde_json::Value) -> String {
         assert_eq!(length, 233409);
         235724
     } else { length };
-    let read_length = if interop_path { 239547 } else { read_length };
+    let read_length = if interop_path { 239622 } else { read_length };
     assert_eq!(metadata.len(), read_length as u64);
     let mut bytes = Vec::new();
     bytes.try_reserve_exact(read_length).unwrap();
@@ -42,6 +44,16 @@ fn current_source(path: &str, row: &serde_json::Value) -> String {
         assert_eq!(bytes.as_slice(), include_bytes!("../../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs").as_slice());
     }
     if interop_path {
+        assert_eq!(bytes.len(), 239622);
+        assert_eq!(format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(&bytes))), "a056e62b5dc75528b2d19f5469b08ab831fbf48c2f8348154a3e360c341c5b4b");
+        if !interop_next {
+            let prior = include_bytes!("../../e/22c4e696c83d5e53b8b2fdb5e0f5b00a7e6b40e9bb53fffbc0fc4e005152b257");
+            assert_eq!(prior.len(), 239547);
+            assert_eq!(format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(prior))), "22c4e696c83d5e53b8b2fdb5e0f5b00a7e6b40e9bb53fffbc0fc4e005152b257");
+            bytes = prior.to_vec();
+        }
+    }
+    if interop_path && !interop_next {
         assert_eq!(bytes.len(), 239547);
         assert_eq!(format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(&bytes))), "22c4e696c83d5e53b8b2fdb5e0f5b00a7e6b40e9bb53fffbc0fc4e005152b257");
         if !interop_current {

@@ -447,7 +447,9 @@ fn complete_caller_success_and_refusal_drop_remain_observed_at_unchanged_cap() {
 
 #[test]
 fn complete_caller_without_skeleton_preflight_keeps_exact_root_refusal_and_drop() {
-    let program = checked_program(32);
+    // Keep the root-refusal boundary on the naturally enumerating route.
+    // The original 32-row case is exercised below with exact work cuts.
+    let program = checked_program(1);
     let function = program.functions.iter().find(|f| f.name == "main").unwrap();
     authenticate_prefitting_ordinary();
     for old in [false, true] {
@@ -990,4 +992,58 @@ fn authenticate_prefitting_ordinary() {
         digest(dispatch),
         "e84402053f4da6ffd1e6c9224104069d1c38399ebd0fa3f67981933e7ae272d2"
     );
+}
+
+#[test]
+fn default_factored_work_without_outer_preflight_is_paid_exact_short_and_dropped() {
+    let program = checked_program(32);
+    let function = program.functions.iter().find(|f| f.name == "main").unwrap();
+    for old in [false, true] {
+        let observe = |allowance| {
+            let mut work_spent = 0;
+            let mut succeeded = false;
+            let mut byte_refused = false;
+            let (_, metrics) = crate::test_allocation_observer::measure(|| {
+                let (result, refused, _) =
+                    crate::bounded_output::with_limit_usage(64 * 1024 * 1024, || {
+                        let mut budget = ReplayBudget::new();
+                        budget.remaining = allowance;
+                        let result = if old {
+                            lookup_caller_before::validate_structure_with_budget_storage(
+                                &program,
+                                function,
+                                &mut budget,
+                                None,
+                                None,
+                            )
+                        } else {
+                            validate_structure_with_budget_storage(
+                                &program,
+                                function,
+                                &mut budget,
+                                None,
+                                None,
+                            )
+                        };
+                        work_spent = allowance - budget.remaining;
+                        result
+                    });
+                succeeded = result.is_ok();
+                byte_refused = refused;
+                if let Err(error) = &result {
+                    assert_eq!(error.code, "SPX-H006");
+                }
+                drop(result);
+            });
+            assert!(!metrics.invalid && metrics.live == 0);
+            assert_eq!(metrics.allocated, metrics.freed);
+            assert!(!byte_refused, "work refusal cannot become a byte refusal");
+            (succeeded, work_spent)
+        };
+        let (success, spent) = observe(MAX_REPLAY_WORK_UNITS);
+        assert!(success && spent > 0 && spent < MAX_REPLAY_WORK_UNITS);
+        assert!(observe(spent).0, "exact measured work must fit");
+        assert!(!observe(spent - 1).0, "one unit short must refuse");
+        assert!(!observe(0).0, "zero work must refuse");
+    }
 }

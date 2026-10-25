@@ -1,0 +1,11 @@
+{
+  "prior_rows": 729,
+  "current_rows": 729,
+  "all_prior_views_unknown_fields_compiled_flags_memberships_fragment_edges_and_order_preserved": true,
+  "changed_canonical_current_sources": [
+    "src/cleanup_plan/replay/expression_facts/receiving/retained/case_certified/lookup_tests.rs"
+  ],
+  "root_source_physically_bound_in_original_hir_and_projection_manifests": true,
+  "root_named_lint_attribute_has_complete_before_source_inverse": true,
+  "new_required_source_archives": 3
+}

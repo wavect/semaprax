@@ -749,8 +749,8 @@
       "sha256": "523afb818016e67c13a23c0f653a13f94d2015aaad95efbb74363efb64ef642c"
     },
     "src/source_reflows_merge/main_e177_overlay_v2.rs": {
-      "length": 90323,
-      "sha256": "6a995393c8a07af6eaa8eab58618a457a5137a1dbaab651342d868e9988fb6e0"
+      "length": 90495,
+      "sha256": "1a34e36ac8a7c94ca36f229becccb2f4d44c769545f6fbc4da53dd00664e577e"
     },
     "src/string_ops/conditions/funded_receiving.rs": {
       "length": 1017,
@@ -1605,8 +1605,8 @@
       "sha256": "b29e820f958cb1acae83258dd7da5af0c5afe30b82727fbb21866c6f65dda366"
     },
     "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission.rs": {
-      "length": 23389,
-      "sha256": "f2539cb9f7408df422dd81ddf360625e2a54fcc4ca9c330288e81147ffa894eb"
+      "length": 23140,
+      "sha256": "d239e04da38ee64645a93db6d6e90d5b48d700821a89afd027e8bb36b19d5607"
     },
     "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/tests.rs": {
       "length": 17977,
@@ -2001,8 +2001,8 @@
       "sha256": "da94643f10ffe0cb22f356726ca16932ff11a5fcbb344cb58a0db625a48c1670"
     },
     "src/source_reflows_merge/main_e177_overlay_lookup.rs": {
-      "length": 86313,
-      "sha256": "3cd72b25d7f967f0bf2102830f40fa34cc5e212e6ea605e9334d974ce5ebd943"
+      "length": 86733,
+      "sha256": "419654d85cb37938f4f8ca7e007ab30e66e95d1aca978d05dfaba1df9dfc41c3"
     },
     "src/cleanup_plan/replay/expression_facts/capacity/before_types.rs": {
       "length": 17257,
@@ -2447,20 +2447,28 @@
     "src/workspace_graph/expected_projection/shared_local_callees/constructor_tests.rs": {
       "length": 19025,
       "sha256": "fba34e650b0c167c87f5f2ee13fb15c7bfeb53e3ade6a5a2260529a22a2570c9"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/neutral.rs": {
+      "length": 7700,
+      "sha256": "c74336005bc59fb1c61ccd47086b209e6f7fe526c39de5515db819bd4a4b3d6b"
+    },
+    "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/neutral/tests.rs": {
+      "length": 8850,
+      "sha256": "db48e9ae8a117e1bd761c53b57c343eabefd6fd94f5e881a914f359747cbb4e2"
     }
   },
   "carriers": {
     "tests/hir_module_boundaries.rs": {
-      "length": 161567,
-      "sha256": "c46d23110b71f316789391acb9f64570e31e4ac1678e07eb069cd5750550a568"
+      "length": 161773,
+      "sha256": "fc20f588f11c9e49794a59bbb169e7fc0c22d3f63ce62bf5c1dc10fd224282e9"
     },
     "tests/workspace/semantic_graph/source_inventory.rs": {
-      "length": 254337,
-      "sha256": "fdeae407ed8edd5853ef546929ed32ec2069927ea0794d35e1963c9ff5995258"
+      "length": 254761,
+      "sha256": "0b6df45f881b572d91f6f02fde3c3084acade7c1558b66bc2c85fd5d9ac0413f"
     },
     "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs": {
-      "length": 240498,
-      "sha256": "407451f879e4740a79bbcd81f13adece6e6ddb0b97fd05ad16c146a4ccb6b3e2"
+      "length": 240728,
+      "sha256": "677cc0d000dfc7a179d0dc07956f9b3f9ca68c4ee2f14e1d134e1c474004f1b6"
     }
   },
   "prior_carriers": {
@@ -2487,8 +2495,8 @@
   },
   "table": {
     "path": "docs/evidence/main-e177-final-source-binding-20261017/current-projection-inputs.tsv",
-    "length": 91178,
-    "sha256": "85a345e9d08fbc5ef145da792c3ac77bd515528d7ffe5276fa9ab9e76ade429a",
+    "length": 91447,
+    "sha256": "fdbbe95fdbaf92a54053b9a314277746371a2e3ec8249e8cad9dc27d3cb895c9",
     "prior": {
       "length": 26040,
       "sha256": "bf9d90d2e54bd7fc117b8f885f94fba383d74207e8833a62c8c3eaa7adeeb190",
@@ -6842,9 +6850,21 @@
       {
         "at": 1512,
         "path": "src/workspace_graph/expected_projection/shared_local_callees/before903/call_carriers_directory.before_local.rs.txt"
+      },
+      {
+        "at": 1513,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/neutral.rs"
+      },
+      {
+        "at": 1514,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/neutral/tests.rs"
+      },
+      {
+        "at": 1515,
+        "path": "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/neutral/emission.before.rs.txt"
       }
     ],
-    "rows": 1513
+    "rows": 1516
   },
   "closed_prior_sources": [
     "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",

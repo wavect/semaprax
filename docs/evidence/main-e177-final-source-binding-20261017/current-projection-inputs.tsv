@@ -1511,3 +1511,6 @@ src/workspace_graph/expected_projection/shared_local_callees/before903/call_carr
 src/workspace_graph/expected_projection/shared_local_callees/before903/call_carriers.before_local.rs.txt
 src/workspace_graph/expected_projection/shared_local_callees/before903/call_carriers_directory.before_local.inverse.json
 src/workspace_graph/expected_projection/shared_local_callees/before903/call_carriers_directory.before_local.rs.txt
+src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/neutral.rs
+src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/neutral/tests.rs
+src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/neutral/emission.before.rs.txt

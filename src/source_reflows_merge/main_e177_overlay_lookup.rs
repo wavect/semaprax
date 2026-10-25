@@ -1,5 +1,7 @@
 pub(crate) fn compiled(source: &str) -> Option<&'static str> {
     match source {
+        "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/neutral.rs" => Some(include_str!("../../src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/neutral.rs")),
+        "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/neutral/tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/neutral/tests.rs")),
         "src/hir/validation/lexical_exit/arm_context_tests.rs" => Some(include_str!("../../src/hir/validation/lexical_exit/arm_context_tests.rs")),
         "src/workspace_graph/expected_projection/shared_local_callees/before903/before_local_projection.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/shared_local_callees/before903/before_local_projection.rs")),
         "src/workspace_graph/expected_projection/shared_local_callees/before903/before_local_uncached.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/shared_local_callees/before903/before_local_uncached.rs")),

@@ -795,3 +795,90 @@ def encode_v16_source_rows(page):
 
 def encode_v16(page):
  return encode_v16_source_rows(_encode_v15_logical_source_paths(_encode_v14_logical_pin_tails(_encode_v13_logical_digest_table(page))))
+
+# V17 removes only the redundant V16 row-envelope key at its closed row slots.
+# All public V16 entry points and their original wire cap stay unchanged.
+V17_SCHEMA = 'semaprax.finite-source-overlay-page.v17'
+
+def _v17_walk(page, inspect, publish=False, postorder=False):
+ def row(value,outer):
+  assert type(value) in (dict,list), 'v17 row type'
+  def fragments_from(item):
+   if type(item) is list:
+    _v17_tuple(item)
+    if len(item)==5:fragments(item[4])
+   elif 'fragments' in item:fragments(item['fragments'])
+  if postorder:
+   if outer:fragments_from(value)
+   return inspect(value)
+  changed=inspect(value)
+  if outer:fragments_from(changed)
+  return changed
+ def fragments(values):
+  if values is None:return
+  assert type(values) is list, 'v17 fragments'
+  for index,value in enumerate(values):
+   assert type(value) in (dict,list), 'v17 fragment row'
+   if type(value) is list or 'canonical_source' not in value:
+    changed=row(value,False)
+    if publish:values[index]=changed
+ for group in ('replacements','additions'):
+  assert type(page[group]) is list, 'v17 rows'
+  for index,value in enumerate(page[group]):
+   if type(value) is dict and 'old519_index' in value:
+    assert group=='replacements' and keys(value,('old519_index',)), 'v17 indexed row'
+    ref=value['old519_index']
+    assert type(ref) is list and len(ref)==4, 'v17 old519 arity'
+    fragments(ref[3])
+   else:
+    changed=row(value,True)
+    if publish:page[group][index]=changed
+
+def _v17_tuple(items):
+ assert type(items) is list and len(items) in (4,5), 'v17 row arity'
+ assert type(items[0]) is str and type(items[1]) is bool, 'v17 source/compiled type'
+ assert type(items[2]) in (list,dict) and type(items[3]) is list, 'v17 current/views type'
+ return items
+
+def expand_v17_source_rows(page):
+ assert keys(page,(*V12_KEYS,'view_labels','digest_table','pin_tails')) and page['schema']==V17_SCHEMA, 'v17 envelope'
+ expanded=len(canonical(page))
+ assert expanded<=PAGE_CAP, 'v17 same one-page cap'
+ def validate(value):
+  nonlocal expanded
+  if type(value) is dict:
+   assert not _v16_eligible(value) and not keys(value,('source_row',)), 'v17 literal row alias'
+   return value
+  items=_v17_tuple(value)
+  expanded+=_v16_overhead(len(items))+len(b'{"source_row":[]}')-2
+  assert expanded<=SOURCE_CAP, 'v17 expanded bound'
+  return {'fragments':items[4]} if len(items)==5 else {}
+ _v17_walk(page,validate)
+ assert expanded<=SOURCE_CAP, 'v17 expanded bound'
+ result=copy.deepcopy(page);result['schema']=V15_SCHEMA
+ def decode(value):
+  if type(value) is dict:return value
+  return dict(zip((*_V16_ROW_KEYS,'fragments'),_v17_tuple(value)))
+ _v17_walk(result,decode,True)
+ assert len(canonical(result))==expanded, 'v17 expanded bound'
+ _expand_v15_logical_source_paths(result)
+ return result
+
+def encode_v17_source_rows(page):
+ assert keys(page,(*V12_KEYS,'view_labels','digest_table','pin_tails')) and page['schema']==V15_SCHEMA, 'v17 input envelope'
+ assert len(canonical(page))<=SOURCE_CAP, 'v17 logical input bound'
+ _expand_v15_logical_source_paths(page)
+ result=copy.deepcopy(page)
+ def encode(value):
+  if not _v16_eligible(value):
+   assert not keys(value,('source_row',)), 'v17 literal row alias'
+   return value
+  items=[value[key] for key in (*_V16_ROW_KEYS,'fragments') if key in value]
+  return _v17_tuple(items)
+ _v16_walk(result,encode,True,True);result['schema']=V17_SCHEMA
+ assert len(canonical(result))<=PAGE_CAP, 'v17 same one-page cap'
+ assert canonical(expand_v17_source_rows(result))==canonical(page), 'v17 ENTIRE V15 page inverse'
+ return result
+
+def encode_v17(page):
+ return encode_v17_source_rows(_encode_v15_logical_source_paths(_encode_v14_logical_pin_tails(_encode_v13_logical_digest_table(page))))

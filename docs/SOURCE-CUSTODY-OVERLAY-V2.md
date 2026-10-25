@@ -202,6 +202,24 @@ executable and unchanged. There is no new page, dictionary, archive path,
 source authority or logical source admission. Source-only size predictions and
 authored controls establish no executable qualification or application gain.
 
+## V17 positional source-row transport
+
+V17 uses the same closed row domain and payloads as V16, with each exact
+`{"source_row":[...]}` envelope replaced by its array payload. The four- and
+five-item arities retain the source, explicit compiled boolean, current pin,
+ordered views, and optional fragments. Indexed rows, canonical-source references,
+and objects carrying unknown metadata retain their entire original values.
+An eligible literal row or a sole `source_row` envelope is a noncanonical alias
+in V17. Fragment rows remain one level deep; their own fifth payload is opaque.
+
+Before cloning any payload, the decoder validates every borrowed row and counts
+the exact fixed field-name and punctuation expansion against the unchanged
+9753094-byte source limit. It reconstructs the entire V15 page directly and
+enters the existing source-bounded V15 decoder chain. An intermediate V16 wire
+page is not constructed: its redundant envelopes can exceed the unchanged
+262144-byte wire limit. All public V16 functions, limits, and hostile controls
+remain independently executable. V17 adds no source, path, page, or authority.
+
 ## Invocation-local checker compilation reuse
 
 The optional FINAL checker reuse layer may retain at most two successfully

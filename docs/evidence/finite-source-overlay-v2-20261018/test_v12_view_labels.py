@@ -543,5 +543,74 @@ class SourceFrontPoolTests(unittest.TestCase):
             _front_decode_bytes(b' ' * 2_097_153)
 
 
+class PositionalSourceRows(unittest.TestCase):
+    def fixture(self):
+        known = {'source': 'literal.rs', 'compiled': False,
+                 'current': [7, 'A' * 43], 'views': []}
+        fragment = {**copy.deepcopy(known), 'fragments': {'source_row': [None]}}
+        outer = {**copy.deepcopy(known), 'fragments': [fragment,
+                 {'canonical_source': 'opaque', 'source_row': [False]}]}
+        unknown = {**copy.deepcopy(known), 'unknown': {'source_row': [None]},
+                   'source_row': 42}
+        full = {'schema': codec.V12_SCHEMA, 'index': 1, 'total_pages': 1,
+                'predecessor': 'kept', 'archive_prefixes': [], 'view_labels': [],
+                'replacements': [{'old519_index': [0, [7, 'A' * 43], [],
+                                  [copy.deepcopy(fragment)]]}],
+                'additions': [outer, unknown]}
+        return codec._encode_v15_logical_source_paths(codec._encode_v14_logical_pin_tails(
+            codec._encode_v13_logical_digest_table(full)))
+
+    def test_entire_inverse_and_unknown_one_level_metadata(self):
+        before = self.fixture()
+        saved = copy.deepcopy(before)
+        legacy = codec.encode_v16_source_rows(before)
+        wire = codec.encode_v17_source_rows(before)
+        self.assertEqual(before, saved)
+        self.assertEqual(codec.expand_v17_source_rows(wire), before)
+        self.assertLess(len(codec.canonical(wire)), len(codec.canonical(legacy)))
+        self.assertIs(wire['additions'][0][1], False)
+        self.assertEqual(wire['additions'][1], before['additions'][1])
+        self.assertEqual(wire['additions'][0][4][0][4], {'source_row': [None]})
+        self.assertEqual(wire['additions'][0][4][1], before['additions'][0]['fragments'][1])
+        self.assertEqual(codec.encode_v16_source_rows(before), legacy)
+
+    def test_hostile_arity_types_aliases_and_fragment_domain(self):
+        wire = codec.encode_v17_source_rows(self.fixture())
+        bad = [[], [None] * 4, ['literal.rs', 0, [], []],
+               ['literal.rs', True, None, []], ['literal.rs', True, [], {}],
+               {'source_row': ['literal.rs', True, [], []]},
+               {'source': 'literal.rs', 'compiled': True, 'current': [], 'views': []},
+               ['literal.rs', True, [], [], {'opaque': True}]]
+        for replacement in bad:
+            with self.subTest(replacement=replacement):
+                changed = copy.deepcopy(wire)
+                changed['additions'][0] = replacement
+                with self.assertRaises(AssertionError):
+                    codec.expand_v17_source_rows(changed)
+        changed = copy.deepcopy(wire)
+        changed['replacements'][0]['old519_index'] = [0, [], []]
+        with self.assertRaises(AssertionError):
+            codec.expand_v17_source_rows(changed)
+
+    def test_bounds_refuse_before_payload_clone(self):
+        wire = codec.encode_v17_source_rows(self.fixture())
+        old_cap = codec.SOURCE_CAP
+        old_copy = codec.copy.deepcopy
+        try:
+            codec.SOURCE_CAP = len(codec.canonical(wire))
+            def forbidden_clone(_):
+                raise RuntimeError('payload cloned before bound')
+            codec.copy.deepcopy = forbidden_clone
+            with self.assertRaisesRegex(AssertionError, 'v17 expanded bound'):
+                codec.expand_v17_source_rows(wire)
+            codec.SOURCE_CAP = old_cap
+            wire['predecessor'] = 'x' * codec.PAGE_CAP
+            with self.assertRaisesRegex(AssertionError, 'v17 same one-page cap'):
+                codec.expand_v17_source_rows(wire)
+        finally:
+            codec.SOURCE_CAP = old_cap
+            codec.copy.deepcopy = old_copy
+
+
 if __name__ == '__main__':
     unittest.main()

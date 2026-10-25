@@ -16,7 +16,7 @@
 
 ## Unreleased
 
-- Reuse cleared invocation-local status and cleanup projection backing, join validated lexical witnesses directly, and select prepaid binding-free name roots; retain complete predecessor paths, diagnostics, resource limits, and source-bound regression controls.
+- Reuse cleared invocation-local status and cleanup projection backing, move owned loan materializer payloads with exact retained capacity, join validated lexical witnesses directly, and select prepaid binding-free name roots; retain complete predecessor paths, diagnostics, resource limits, and source-bound regression controls.
 - Share repeated source-inverse payloads and closed source-path prefixes, and elide redundant row wrappers, while retaining complete legacy readers, unknown metadata, and existing bounds.
 - Prepay branch-sort frames and certified scalar comparison capture, retain complete fallback and historical executables, and encode known source-row fields losslessly within the existing custody limits.
 - Fund immutable Oracle pointer comparisons and Oracle-local reached backing independently, preserving ordinary and Legacy routes, depth limits, sticky refusal, and complete old constructors.

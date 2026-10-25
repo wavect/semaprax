@@ -24,6 +24,9 @@ mod source_reflows;
 mod source_reflows_merge;
 
 #[cfg(test)]
+mod source_front_pool;
+
+#[cfg(test)]
 mod test_allocation_observer;
 
 pub mod abi_report;

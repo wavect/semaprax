@@ -378,7 +378,7 @@ fn main8_raw_before(source: &str, current: &str) -> String {
         .unwrap(),
         data
     );
-    let packet: serde_json::Value = serde_json::from_str(data).unwrap();
+    let packet: serde_json::Value = crate::source_front_pool::decode(data).unwrap();
     let front = &packet["main8_raw_current_fronts"];
     assert_eq!(
         front["schema"],

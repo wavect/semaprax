@@ -247,12 +247,21 @@ macro_rules! multiple {
                     break;
                 }
                 let suffix = &$suffixes[index];
-                $work.charge(1, "skeleton prefix clone")?;
+                // The first clone precedes the first ledger check; every later
+                // ledger check precedes that output's clone, as in both old
+                // emitters. These two predicates use MANY_OUTPUT's scalar/bool
+                // bank before formation; no authority-switch callback is added.
+                if index == 0 {
+                    $work.charge(1, "skeleton prefix clone")?;
+                }
                 if !ledger.current() {
                     return Err($crate::diagnostic::Diagnostic::io(
                         "SPX-H006",
                         String::new(),
                     ));
+                }
+                if index != 0 {
+                    $work.charge(1, "skeleton prefix clone")?;
                 }
                 note_skeleton_materialization();
                 $work.charge(1, "skeleton suffix clone")?;

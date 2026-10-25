@@ -227,3 +227,6 @@ fn immediate_old_bytes_and_serialized_phase_boundary_remain_explicit() {
         assert!(!child.is_empty());
     }
 }
+
+#[path = "constructor_tests.rs"]
+mod constructors;

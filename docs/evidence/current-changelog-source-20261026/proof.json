@@ -1,0 +1,15 @@
+{
+  "base": "9c6005b209",
+  "failure": "main_e177_final_inputs::latest_main_and_afa_complete_views_preserve_all_prior_controls_and_refuse_wrong_stages: length-or-identity",
+  "cause": "9c6005b209 appended a changelog entry without advancing its current source tuple. All757 other current source tuples already matched.",
+  "change": "Bind all596405 actual changelog bytes and preserve the complete595824-byte previous view, every other row, all historical views, compiled flags, fragment edges and unknown fields. Refresh the transitive policy/code hashes and source boundary manifests.",
+  "metadata_page_bytes": 248015,
+  "metadata_page_cap": 262144,
+  "old_record_exact_inverse": true,
+  "python_original_authenticated_packet": "PASS:758 source records match",
+  "full_original_rust_regression": "RUNNING: retained unchanged; no partial result claimed",
+  "all_ci": "INCOMPLETE; semantic wire, allocation forecast and G171 failures remain",
+  "rust_actual_current_source_channels": "PASS: all758 full physical/current archive/compiled channels using original actual_with_packet",
+  "original_overlay_hostile_cases": "PASS:13",
+  "original_full_boundary_verifier_definition": "PASS:688/1163 HIR and742/1188 projection production/test classes; every role/member/edge/attribute/unknown field preserved"
+}

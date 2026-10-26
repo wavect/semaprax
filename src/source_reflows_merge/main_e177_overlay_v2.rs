@@ -13,7 +13,7 @@ pub(super) const ADDITIONS: &[&str] = &["src/cleanup_plan/renewal_profile.rs","s
     "src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_before_protocol/held_invocation_tests.rs",
     "src/cleanup_plan/replay/trailing_active.rs",
     "src/cleanup_plan/replay/trailing_active/tests.rs",
-"src/hir/validation/scope_checkpoint/merge/partial_retain.rs","src/hir/validation/scope_checkpoint/merge/partial_retain/before.rs","src/hir/validation/scope_checkpoint/merge/partial_retain/tests.rs","src/cleanup_plan/replay/factored/paired/visited_transfer.rs",];
+"src/hir/validation/scope_checkpoint/merge/partial_retain.rs","src/hir/validation/scope_checkpoint/merge/partial_retain/before.rs","src/hir/validation/scope_checkpoint/merge/partial_retain/tests.rs","src/cleanup_plan/replay/factored/paired/visited_transfer.rs"];
 const POLICY_PATH: &str = "docs/evidence/finite-source-overlay-v2-20261018/policy.json";
 const PAGE_PATH: &str = "docs/evidence/finite-source-overlay-v2-20261018/page.json";
 const POLICY_LENGTH: usize = 197907; // Filled from the complete literal policy below.

@@ -1076,6 +1076,7 @@ def encode_v18(page):
  return encode_v18_fragment_refs(_encode_v15_logical_source_paths(_encode_v14_logical_pin_tails(_encode_v13_logical_digest_table(page))))
 
 # V19 is an explicit metadata successor; it grants no source or archive authority.
+import re
 V19_SCHEMA = 'semaprax.finite-source-overlay-page.v19'
 _V19_SOURCE = 'src/workspace_graph/expected_projection/borrowed_imports.rs'
 _V19_OWNER = 'src/workspace_graph/expected_projection.rs'

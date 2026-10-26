@@ -896,8 +896,13 @@ class CompiledSuccessorV19(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, 'v19 declaration attribute boundary'):overlay.load_current()
 
     def test_compact_tuple_whole_object_inverse_and_hostile_shapes(self):
+        fresh = runpy.run_path(str(Path(codec.__file__)), run_name='v19_actual_helper_namespace')
+        self.assertIn('re', fresh)
         before, policy, compact, raw = self.fixture(compact=True)
         _, _, original, _ = self.fixture()
+        self.assertEqual(fresh['encode_v19'](compact['page'], original['compiled_successor']), compact)
+        self.assertEqual(fresh['canonical'](fresh['compose_values'](before, policy, compact)),
+                         codec.canonical(codec.compose_values(before, policy, compact)))
         self.assertEqual(codec.canonical(codec._v19_successor(compact)), codec.canonical(original['compiled_successor']))
         self.assertEqual(codec.canonical(codec.compose_values(before, policy, compact)),
                          codec.canonical(codec.compose_values(before, policy, original)))

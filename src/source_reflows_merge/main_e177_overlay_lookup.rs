@@ -480,6 +480,7 @@ pub(crate) fn compiled(source: &str) -> Option<&'static str> {
         "src/loan_plan/paid_materialize/immediate_before.rs" => Some(include_str!("../../src/loan_plan/paid_materialize/immediate_before.rs")),
         "src/loan_plan/paid_materialize/owned_inputs_tests.rs" => Some(include_str!("../../src/loan_plan/paid_materialize/owned_inputs_tests.rs")),
         "src/workspace_graph/expected_projection/call_carriers/closed_roots.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/call_carriers/closed_roots.rs")),
+        "src/workspace_graph/expected_projection/call_carriers/closed_roots_tests.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/call_carriers/closed_roots_tests.rs")),
         "src/source_reflows_merge/main_e177_overlay_digests_v13/typed_refs_v18.rs" => Some(include_str!("../../src/source_reflows_merge/main_e177_overlay_digests_v13/typed_refs_v18.rs")),
         "src/hir/validation/scope_checkpoint/merge/moved_direct.rs" => Some(include_str!("../../src/hir/validation/scope_checkpoint/merge/moved_direct.rs")),
         "src/hir/validation/scope_checkpoint/merge/moved_direct/before.rs" => Some(include_str!("../../src/hir/validation/scope_checkpoint/merge/moved_direct/before.rs")),

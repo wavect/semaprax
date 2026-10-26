@@ -1074,3 +1074,83 @@ def encode_v18_fragment_refs(page):
 
 def encode_v18(page):
  return encode_v18_fragment_refs(_encode_v15_logical_source_paths(_encode_v14_logical_pin_tails(_encode_v13_logical_digest_table(page))))
+
+# V19 is an explicit metadata successor; it grants no source or archive authority.
+V19_SCHEMA = 'semaprax.finite-source-overlay-page.v19'
+_V19_SOURCE = 'src/workspace_graph/expected_projection/borrowed_imports.rs'
+_V19_OWNER = 'src/workspace_graph/expected_projection.rs'
+_V19_INDEX = 389
+_V19_DECLARATION = ('#[path = "expected_projection/borrowed_imports.rs"]\n'
+                    'pub(in crate::workspace_graph) mod borrowed_imports;\n')
+
+def _v19_successor(page):
+ assert len(canonical(page)) <= PAGE_CAP, 'v19 same one-page cap'
+ assert keys(page, ('schema','compiled_successor','page')) and page['schema']==V19_SCHEMA, 'v19 envelope'
+ inner=page['page']
+ assert type(inner) is dict and inner.get('schema')==V18_SCHEMA, 'v19 complete v18 page'
+ entry=page['compiled_successor']
+ assert keys(entry, ('source','prior_row_sha256','current','registration')), 'v19 single successor'
+ assert entry['source']==_V19_SOURCE, 'v19 admitted source'
+ digest=entry['prior_row_sha256']
+ assert type(digest) is str and re.fullmatch('[0-9a-f]{64}',digest), 'v19 prior row digest'
+ for value in (entry['current'],entry['registration'].get('current') if type(entry['registration']) is dict else None):
+  assert keys(value, ('length','sha256','archive')), 'v19 current pin'
+  pin(value);assert value['archive']=='e/'+value['sha256'], 'v19 exact immutable archive'
+ registration=entry['registration']
+ assert keys(registration, ('owner','current','start','text')), 'v19 registration fields'
+ assert registration['owner']==_V19_OWNER, 'v19 admitted owner'
+ assert type(registration['start']) is int and 2<=registration['start']<=SOURCE_CAP, 'v19 declaration start'
+ assert registration['text']==_V19_DECLARATION, 'v19 exact declaration'
+ assert registration['start']+len(registration['text'].encode())<=registration['current']['length'], 'v19 declaration bound'
+ return entry
+
+def authenticate_v19_registration(overlay,page):
+ entry=_v19_successor(page);registration=entry['registration']
+ assert callable(overlay.compiled_current), 'v19 trusted registration binding required'
+ for source,current in ((entry['source'],entry['current']),(registration['owner'],registration['current'])):
+  expected=overlay.compiled_current(source)
+  assert keys(expected,('length','sha256')) and expected=={key:current[key]for key in('length','sha256')}, 'v19 stale trusted current binding'
+ source=overlay.current({'source':entry['source'],'compiled':True,'current':entry['current'],'views':[]})
+ owner=overlay.current({'source':registration['owner'],'compiled':True,'current':registration['current'],'views':[]})
+ assert type(owner) is bytes and type(source) is bytes, 'v19 ordinary current bytes'
+ literal=registration['text'].encode();start=registration['start']
+ assert owner.count(literal)==1 and owner[start:start+len(literal)]==literal, 'v19 actual declaration span'
+ # The exact two-line declaration must begin after a blank line. An adjacent
+ # cfg/test attribute or a declaration embedded in another line cannot qualify.
+ assert owner[start-2:start]==b'\n\n', 'v19 declaration attribute boundary'
+ return entry
+
+def compose_v19(before,policy,page):
+ entry=_v19_successor(page)
+ assert keys(policy, ('schema','page','predecessor','replacements','additions','new_fragment_edges')), 'v19 policy fields'
+ assert policy['schema']=='semaprax.finite-source-overlay-policy.v2', 'v19 policy schema'
+ assert policy['replacements'].count(entry['source'])==1, 'v19 explicit replacement'
+ assert page['page'].get('predecessor')==policy['predecessor'], 'v19 original predecessor'
+ assert H(canonical(before))==policy['predecessor']['logical_sha256'], 'v19 original base digest'
+ assert before['source_cap']==SOURCE_CAP and len(before['rows'])==policy['predecessor']['rows']==519, 'v19 original base shape'
+ assert before['rows'][_V19_INDEX]['source']==entry['source'], 'v19 original source position'
+ original=before['rows'][_V19_INDEX]
+ assert original['compiled'] is False and H(canonical(original))==entry['prior_row_sha256'], 'v19 entire old false row'
+ derived=copy.deepcopy(before);derived['rows'][_V19_INDEX]['compiled']=True
+ inverse=copy.deepcopy(derived);inverse['rows'][_V19_INDEX]['compiled']=False
+ assert canonical(inverse)==canonical(before), 'v19 ENTIRE original base inverse'
+ adjusted_policy=copy.deepcopy(policy);adjusted_page=copy.deepcopy(page['page'])
+ adjusted_policy['predecessor']['logical_sha256']=H(canonical(derived))
+ adjusted_page['predecessor']=copy.deepcopy(adjusted_policy['predecessor'])
+ # The old decoder still owns every view, unknown-field, order, fragment,
+ # whole-row inverse and cap check. The derived base is never physical history.
+ result=compose_values(derived,adjusted_policy,adjusted_page)
+ rows={row['source']:row for row in result['rows']}
+ assert len(rows)==len(result['rows']), 'v19 canonical unique rows'
+ assert rows[entry['source']]['compiled'] is True and rows[entry['source']]['current']==entry['current'], 'v19 successor current'
+ owner=rows[entry['registration']['owner']]
+ assert owner['compiled'] is True and owner['current']==entry['registration']['current'], 'v19 owner current'
+ inverse=copy.deepcopy(result);inverse['rows']=copy.deepcopy(before['rows'])
+ assert canonical(inverse)==canonical(before), 'v19 complete predecessor object inverse'
+ return result
+
+def encode_v19(page,compiled_successor):
+ result={'schema':V19_SCHEMA,'compiled_successor':copy.deepcopy(compiled_successor),'page':copy.deepcopy(page)}
+ _v19_successor(result)
+ assert canonical(result['page'])==canonical(page) and canonical(result['compiled_successor'])==canonical(compiled_successor), 'v19 ENTIRE inputs retained'
+ return result

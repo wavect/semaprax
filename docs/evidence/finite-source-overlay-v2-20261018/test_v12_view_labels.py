@@ -782,12 +782,124 @@ class TypedFragmentReferences(unittest.TestCase):
 
     def test_current_real_page_keeps_entire_v15_preimage(self):
         current = codec.parse((Path(__file__).parent/'page.json').read_bytes())
+        if current['schema']==codec.V19_SCHEMA:
+            codec._v19_successor(current); current = current['page']
         before = (codec.expand_v18_fragment_refs(current) if current['schema']==codec.V18_SCHEMA
                   else codec.expand_v17_source_rows(current))
         wire = codec.encode_v18_fragment_refs(before)
         self.assertEqual(codec.expand_v18_fragment_refs(wire), before)
         self.assertLessEqual(len(codec.canonical(wire)), codec.PAGE_CAP)
         if current['schema']==codec.V18_SCHEMA:self.assertEqual(wire, current)
+
+class CompiledSuccessorV19(unittest.TestCase):
+    @staticmethod
+    def fixture():
+        def current(raw):
+            digest = hashlib.sha256(raw).hexdigest()
+            return {'length': len(raw), 'sha256': digest, 'archive': 'e/' + digest}
+        declaration = codec._V19_DECLARATION.encode()
+        owner_raw, source_raw = b'\n\n' + declaration + b'\n', b'compiled current fixture\n'
+        rows = [{'source': f'src/fixture/item_{i}.rs', 'compiled': False,
+                 'current': current(b'old'), 'views': [], 'opaque': {'order': [3, 1, 2]}}
+                for i in range(519)]
+        rows[0].update(source=codec._V19_OWNER, compiled=True, current=current(owner_raw))
+        rows[10]['compiled'] = True
+        rows[389]['source'] = codec._V19_SOURCE
+        before = {'schema': 'fixture', 'source_cap': codec.SOURCE_CAP,
+                  'rows': rows, 'opaque_root': [False, {'keep': None}]}
+        target = copy.deepcopy(rows[389]); target['compiled'] = True
+        target['current'] = current(source_raw)
+        target['views'].append({'name': 'whole-pre-overlay-v2-current', **rows[389]['current']})
+        carrier = copy.deepcopy(rows[10]); carrier['fragments'] = [copy.deepcopy(target)]
+        predecessor = {'rows': 519, 'logical_sha256': codec.H(codec.canonical(before)), 'extension': {}}
+        policy = {'schema': 'semaprax.finite-source-overlay-policy.v2', 'page': {},
+                  'predecessor': predecessor, 'replacements': [carrier['source'], target['source']],
+                  'additions': [], 'new_fragment_edges': [{'parent': carrier['source'], 'child': target['source']}]}
+        logical = {'schema': codec.V8_SCHEMA, 'index': 1, 'total_pages': 1,
+                   'predecessor': copy.deepcopy(predecessor), 'replacements': [carrier, target], 'additions': []}
+        v9 = codec.transform_v9_pin_slots(logical, True); v9['schema'] = codec.V9_SCHEMA
+        v10 = codec.encode_v10_with_prefixes(v9, ['e/'])
+        v11 = codec.transform_v11_digest_slots(v10, True); v11['schema'] = codec.V11_SCHEMA
+        inner = codec.encode_v18(codec.encode_v12_view_labels(v11))
+        successor = {'source': codec._V19_SOURCE, 'prior_row_sha256': codec.H(codec.canonical(rows[389])),
+                     'current': copy.deepcopy(target['current']), 'registration': {
+                         'owner': codec._V19_OWNER, 'current': copy.deepcopy(rows[0]['current']),
+                         'start': 2, 'text': codec._V19_DECLARATION}}
+        wire = codec.encode_v19(inner, successor)
+        return before, policy, wire, {codec._V19_OWNER: owner_raw, codec._V19_SOURCE: source_raw}
+
+    def test_whole_original_inverse_and_new_compiled_fragment(self):
+        before, policy, wire, _ = self.fixture(); original = codec.canonical(before)
+        result = codec.compose_values(before, policy, wire)
+        self.assertIs(result['rows'][389]['compiled'], True)
+        self.assertEqual(result['rows'][10]['fragments'], [result['rows'][389]])
+        self.assertEqual(result['opaque_root'], before['opaque_root'])
+        self.assertEqual(result['rows'][389]['opaque'], before['rows'][389]['opaque'])
+        self.assertEqual(codec.canonical(before), original)
+        with self.assertRaises(AssertionError):codec.compose_values(before, policy, wire['page'])
+
+    def test_singleton_unknown_false_positive_and_stale_witness_refusals(self):
+        before, policy, wire, _ = self.fixture()
+        mutations = [lambda p: p.update(extra=None),
+                     lambda p: p.update(compiled_successor=[p['compiled_successor'], p['compiled_successor']]),
+                     lambda p: p['compiled_successor'].update(extra=None),
+                     lambda p: p['compiled_successor'].update(source='src/foreign.rs'),
+                     lambda p: p['compiled_successor'].update(prior_row_sha256='0'*64),
+                     lambda p: p['compiled_successor']['current'].update(sha256='0'*64, archive='e/'+'0'*64),
+                     lambda p: p['compiled_successor']['current'].update(archive='arbitrary/normal/path'),
+                     lambda p: p['compiled_successor']['registration'].update(extra=None),
+                     lambda p: p['compiled_successor']['registration'].update(start=True),
+                     lambda p: p['compiled_successor']['registration'].update(text='#[cfg(test)]\n'+codec._V19_DECLARATION),
+                     lambda p: p['compiled_successor']['registration']['current'].update(sha256='0'*64, archive='e/'+'0'*64)]
+        for mutate in mutations:
+            bad = copy.deepcopy(wire); mutate(bad)
+            with self.subTest(mutate=mutate), self.assertRaises(AssertionError):codec.compose_values(before, policy, bad)
+        for replacements in ([policy['replacements'][0]], policy['replacements'] + [codec._V19_SOURCE]):
+            bad_policy = copy.deepcopy(policy);bad_policy['replacements'] = replacements
+            with self.assertRaisesRegex(AssertionError, 'v19 explicit replacement'):
+                codec.compose_values(before, bad_policy, wire)
+        bad_owner = copy.deepcopy(before);bad_owner['rows'][0]['compiled'] = False
+        bad_policy = copy.deepcopy(policy);bad_policy['predecessor']['logical_sha256'] = codec.H(codec.canonical(bad_owner))
+        bad_wire = copy.deepcopy(wire);bad_wire['page']['predecessor'] = copy.deepcopy(bad_policy['predecessor'])
+        with self.assertRaisesRegex(AssertionError, 'v19 owner current'):
+            codec.compose_values(bad_owner, bad_policy, bad_wire)
+        bad_before = copy.deepcopy(before);bad_before['rows'][389]['compiled'] = True
+        bad_policy = copy.deepcopy(policy);bad_policy['predecessor']['logical_sha256'] = codec.H(codec.canonical(bad_before))
+        bad_wire = copy.deepcopy(wire);bad_wire['page']['predecessor'] = copy.deepcopy(bad_policy['predecessor'])
+        with self.assertRaisesRegex(AssertionError, 'v19 entire old false row'):
+            codec.compose_values(bad_before, bad_policy, bad_wire)
+
+    def test_trusted_bindings_precede_every_read_and_physical_drift_refuses(self):
+        _, policy, wire, raw = self.fixture(); calls = []
+        pins = {s: {'length': len(b), 'sha256': hashlib.sha256(b).hexdigest()} for s, b in raw.items()}
+        overlay = codec.Overlay(None, None, None, None, None, None, lambda s: pins[s])
+        overlay.load = lambda: (policy, wire)
+        def acquire(row):
+            calls.append(row['source']); value = raw[row['source']]
+            self.assertEqual({'length': len(value), 'sha256': hashlib.sha256(value).hexdigest()},
+                             {k: row['current'][k] for k in ('length', 'sha256')})
+            return value
+        overlay.current = acquire
+        self.assertEqual(overlay.load_current(), (policy, wire)); self.assertEqual(calls, [codec._V19_SOURCE, codec._V19_OWNER])
+        calls.clear(); pins[codec._V19_SOURCE]['sha256'] = '0'*64
+        with self.assertRaisesRegex(AssertionError, 'v19 stale trusted current binding'):overlay.load_current()
+        self.assertFalse(calls)
+        pins[codec._V19_SOURCE]['sha256'] = wire['compiled_successor']['current']['sha256']
+        raw[codec._V19_OWNER] = b'x' + raw[codec._V19_OWNER][1:]
+        with self.assertRaises(AssertionError):overlay.load_current()
+        raw[codec._V19_OWNER] = b'\nX' + raw[codec._V19_OWNER][2:]
+        pins[codec._V19_OWNER]['sha256'] = hashlib.sha256(raw[codec._V19_OWNER]).hexdigest()
+        wire['compiled_successor']['registration']['current']['sha256'] = pins[codec._V19_OWNER]['sha256']
+        wire['compiled_successor']['registration']['current']['archive'] = 'e/' + pins[codec._V19_OWNER]['sha256']
+        with self.assertRaisesRegex(AssertionError, 'v19 declaration attribute boundary'):overlay.load_current()
+
+    def test_wire_cap_refuses_before_clone(self):
+        _, _, wire, _ = self.fixture(); wire['page']['opaque'] = 'x'*codec.PAGE_CAP
+        original = codec.copy.deepcopy
+        try:
+            codec.copy.deepcopy = lambda _: (_ for _ in ()).throw(RuntimeError('cloned before cap'))
+            with self.assertRaisesRegex(AssertionError, 'v19 same one-page cap'):codec._v19_successor(wire)
+        finally:codec.copy.deepcopy = original
 
 
 if __name__ == '__main__':

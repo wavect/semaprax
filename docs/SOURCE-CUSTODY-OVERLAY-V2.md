@@ -384,3 +384,65 @@ V10/V11 forms and every V12--V17 function, limit and hostile control remain
 independently executable. The two existing Python program members retain their
 65536-byte individual limits. Authored controls and pure round-trip/size
 measurements establish no compiler, runtime or application qualification.
+
+## Compiled-registration successor (page V19, issue #942)
+
+V19 explicitly records one current compiled-registration successor without
+changing the independent V2--V18 readers or their immutable-compiled-field
+refusals. Its exact envelope is `schema`, `compiled_successor`, and `page`; the
+schema is `semaprax.finite-source-overlay-page.v19`, and `page` is the complete
+V18 page, including all unknown fields and ordering. The whole envelope retains
+the 262144-byte bound, and both Python program members retain their individual
+65536-byte bounds. No decoded payload exceeds the existing 9753094-byte bound.
+
+The singleton successor has exactly `source`, `prior_row_sha256`, `current`,
+and `registration`. This admitted packet selects original row 389,
+`src/workspace_graph/expected_projection/borrowed_imports.rs`, whose full
+original canonical row must have `compiled: false` and the declared full-row
+SHA-256. The successor's `current` is the complete ordinary pin. Its exact
+registration fields are `owner`, `current`, `start`, and `text`; the owner is
+`src/workspace_graph/expected_projection.rs`, and its declaration is exactly:
+
+```rust
+#[path = "expected_projection/borrowed_imports.rs"]
+pub(in crate::workspace_graph) mod borrowed_imports;
+```
+
+The trailing newline belongs to the declaration. `start` is its non-boolean
+byte offset after a blank line; the complete literal must occur once in the
+actual authenticated owner. An adjacent attribute, another source, a missing
+or repeated declaration, a stale pin, an unknown field, multiple successors,
+and any already-true predecessor refuse. Both current descriptors must name
+`e/<their full SHA-256>`; a wire-supplied alternate normal path is not admitted.
+
+Before any successor source or archive I/O, the ordinary loader compares both
+source and owner pins against its independently held current registration
+bindings. Rust uses its compiled-source registry; Python uses the sealed
+current module bindings supplied by its caller. It then performs the existing
+complete physical/compiled/archive current checks for both paths and checks
+the exact declaration span. Missing bindings and physical, compiled or archive
+drift fail before any historical selection. A metadata-only decoder performs
+no I/O and supplies neither registration nor publication authority; the normal
+publisher still requires original-parser current classification and source
+admission for the exact source cut.
+
+Composition first authenticates the entire original predecessor and old false
+row. A private clone changes only that row's compiled field to true. Restoring
+false must reproduce the entire original predecessor byte-for-byte. Clones of
+the policy and inner page rebind only their internal predecessor digest to
+that private clone, and enter the complete unchanged V18 through V2 pipeline.
+This permits the explicitly named new compiled fragment while preserving all
+old unknown-field, view-prefix, source-order, fragment, whole-inverse and cap
+checks. The resulting canonical source and owner must exactly match the two
+successor pins. The private clone is proof data, never a new physical
+predecessor, historical checkpoint, source admission or execution claim.
+
+Replacement declarations remain in original predecessor source order. Inserting
+the newly replaced row 389 at replacement position 140 preserves the complete
+relative order of the earlier 201 declarations; additions retain their complete
+existing order. Python's `CompiledSuccessorV19` controls and the Rust V19 child
+controls exercise the successor, old V2 refusal, new compiled fragment, unknown
+and duplicate record rejection, stale/foreign/current witness rejection,
+pre-I/O binding, physical drift, declaration attributes, and unchanged caps.
+These authored controls are pending the joint owning verification batch and
+establish no current normal, runtime, hosted or production qualification.

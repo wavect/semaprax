@@ -1,5 +1,7 @@
 pub(crate) fn compiled(source: &str) -> Option<&'static str> {
     match source {
+        "src/source_reflows_merge/main_e177_overlay_compiled_successor_v19.rs" => Some(include_str!("../../src/source_reflows_merge/main_e177_overlay_compiled_successor_v19.rs")),
+        "src/source_reflows_merge/main_e177_overlay_compiled_successor_v19/tests.rs" => Some(include_str!("../../src/source_reflows_merge/main_e177_overlay_compiled_successor_v19/tests.rs")),
         "src/workspace_graph/expected_projection/borrowed_imports.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/borrowed_imports.rs")),
         "src/source_reflows_merge/final_ready_inputs/merged_projection.rs" => Some(include_str!("../../src/source_reflows_merge/final_ready_inputs/merged_projection.rs")),
         "src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation.rs" => Some(include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation.rs")),

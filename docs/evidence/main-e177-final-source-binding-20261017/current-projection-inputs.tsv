@@ -1565,3 +1565,5 @@ src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_tes
 src/cleanup_plan/replay/expression_facts/receiving/retained/held_status_invocation.rs
 src/cleanup_plan/replay/fact_preflight/before_status_receivers.rs
 src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_inverse.json
+src/source_reflows_merge/main_e177_overlay_compiled_successor_v19.rs
+src/source_reflows_merge/main_e177_overlay_compiled_successor_v19/tests.rs

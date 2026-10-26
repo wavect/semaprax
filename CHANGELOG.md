@@ -6,6 +6,9 @@
   resource, Drop and genuine application controls await the grouped check.
 - Restore exact match diagnostics and repair source bindings and test fixtures
   while preserving their workloads, full predecessors and existing limits.
+- Add an explicit source-custody metadata successor for a newly compiled owner
+  (#942), retaining the complete old row and readers. Python/Rust controls await
+  the grouped check; source publication is not application performance evidence.
 
 ## Direct terminal source moves (#939)
 

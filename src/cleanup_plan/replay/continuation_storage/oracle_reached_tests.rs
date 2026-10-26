@@ -314,4 +314,39 @@ fn new_oracle_fee_frontiers_exact_short_and_sticky_preserve_positive_active_floo
             );
         }
     }
+    // Every physical replacement boundary, including the clamped 512->516
+    // acquisition, has its own exact, short and relocation-work refusal cuts.
+    let work_refusal = replay_error(function,
+        "oracle account work allowance refused during oracle continuation relocation and release");
+    for capacity in [2usize, 4, 8, 16, 32, 64, 128, 256, 512] {
+        let before = run(&program, capacity, false, 1 << 24, 1 << 20, None);
+        let after = run(&program, capacity + 1, false, 1 << 24, 1 << 20, None);
+        let target = (capacity * 2).min(FRAME_CAPACITY);
+        let backing = target * std::mem::size_of::<Frame<'_>>();
+        let bank = before.charged + oracle_reached::GROW_CALL;
+        let relocation = 9 + 2 * capacity;
+        assert_eq!(after.charged, bank + backing);
+        assert_eq!(after.work, before.work + relocation);
+        for (bytes, work, expected, byte_request, work_request) in [
+            (after.charged, after.work, None, None, None),
+            (bank - 1, after.work, Some(&growth_bank), Some(oracle_reached::GROW_CALL), None),
+            (bank, after.work, Some(&growth_backing), Some(backing), None),
+            (after.charged - 1, after.work, Some(&growth_backing), Some(backing), None),
+            (after.charged, before.work, Some(&work_refusal), None, Some(relocation)),
+            (after.charged, after.work - 1, Some(&work_refusal), None, Some(relocation)),
+        ] {
+            let (receipt, refused, consumed, first, site) =
+                with_limit_usage_refusal_site(1 << 20, || {
+                    let floor = active_remaining().unwrap();
+                    assert!(floor > 0 && set_active_floor(floor));
+                    let receipt = run(&program, capacity + 1, false, bytes, work, expected);
+                    assert_eq!(active_remaining(), Some(floor));
+                    receipt
+                });
+            assert!(!refused && consumed == 0 && first.is_none() && site.is_none());
+            assert_eq!(receipt.first_refusal.map(|refusal| refusal.requested), byte_request);
+            assert_eq!(receipt.first_work_refusal.map(|refusal| refusal.requested), work_request);
+            assert!(receipt.physical_failure.is_none());
+        }
+    }
 }

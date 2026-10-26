@@ -80,7 +80,7 @@ impl<'a> Names<'a> {
     fn contains(&self, name: &str, proof: &mut Proof) -> bool {
         #[cfg(test)]
         if tests::before_names_selected() {
-            return tests::names_before_contains!(self, name, proof);
+            tests::names_before_contains!(self, name, proof);
         }
         proof.charge(&(self, name));
         // This is a negative filter only. Collisions always execute the full

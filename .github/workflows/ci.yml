@@ -2007,6 +2007,12 @@ jobs:
           filter: blob:none
           fetch-tags: false
           lfs: false
+      - name: Use a physical temporary directory on macOS
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          cd "${RUNNER_TEMP:?}"
+          printf 'TMPDIR=%s\n' "$(pwd -P)" >> "$GITHUB_ENV"
       - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # master
         with:
           toolchain: 1.97.1

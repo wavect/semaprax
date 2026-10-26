@@ -116,7 +116,7 @@ fn complete_predecessor_and_exact_inert_shape_set_remain_independent() {
         ),
         "08b3d1a43078fcc73d6ba8514a093d5bdd4b7a5b00378bfd20a8a9a67b75e464"
     );
-    let current = include_str!("../marks.rs");
+    let current = super::direct_tests::before_source();
     let start = current
         .find("        // The original walker does nothing")
         .unwrap();
@@ -415,8 +415,10 @@ fn live_overlapping_loan_keeps_complete_original_refusal_and_error_publication()
     );
 }
 
+#[rustfmt::skip]
 #[test]
 fn propagating_driver_keeps_each_original_payer_cut_after_the_new_selector() {
+    super::direct_tests::before(|| {
     let program = program();
     let validator = HirValidator::new(&program).unwrap();
     let expression = expression(
@@ -445,6 +447,7 @@ fn propagating_driver_keeps_each_original_payer_cut_after_the_new_selector() {
         assert_eq!(used, old_used + INERT_ROOT_CONTROLS);
         assert_eq!(current, old);
     }
+    });
 }
 
 thread_local! {

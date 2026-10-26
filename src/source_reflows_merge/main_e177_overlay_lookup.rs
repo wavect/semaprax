@@ -1,5 +1,20 @@
 pub(crate) fn compiled(source: &str) -> Option<&'static str> {
     match source {
+        "src/ast/program_source/decl_slices/alias_tests.rs" => Some(include_str!("../../src/ast/program_source/decl_slices/alias_tests.rs")),
+        "src/ast/program_source/decl_slices/before_alias.rs" => Some(include_str!("../../src/ast/program_source/decl_slices/before_alias.rs")),
+        "src/ast/program_source/function_alias.rs" => Some(include_str!("../../src/ast/program_source/function_alias.rs")),
+        "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs")),
+        "src/hir/identity_resolution/nominal.rs" => Some(include_str!("../../src/hir/identity_resolution/nominal.rs")),
+        "src/workspace_graph/expected_projection/defaults/field_directory.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/defaults/field_directory.rs")),
+        "src/vec_ops/wrappers.rs" => Some(include_str!("../../src/vec_ops/wrappers.rs")),
+        "src/box_ops/wrappers.rs" => Some(include_str!("../../src/box_ops/wrappers.rs")),
+        "src/workspace_graph/expected_projection/defaults.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/defaults.rs")),
+        "src/workspace_graph/expected_projection/import_stub.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/import_stub.rs")),
+        "src/workspace_graph/expected_projection/borrowed_imports/tests/old.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/borrowed_imports/tests/old.rs")),
+        "src/workspace_graph/expected_projection/borrowed_imports/tests/full/original_construct.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/borrowed_imports/tests/full/original_construct.rs")),
+        "src/workspace_graph/expected_projection/borrowed_imports/tests/full/publication.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/borrowed_imports/tests/full/publication.rs")),
+        "src/source_reflows_merge/constructor_stage.rs" => Some(include_str!("../../src/source_reflows_merge/constructor_stage.rs")),
+        "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/owned_growth.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/borrowed_imports/typed/alias/owned_growth.rs")),
         "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/neutral.rs" => Some(include_str!("../../src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/neutral.rs")),
         "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/neutral/tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/neutral/tests.rs")),
         "src/hir/validation/lexical_exit/arm_context_tests.rs" => Some(include_str!("../../src/hir/validation/lexical_exit/arm_context_tests.rs")),
@@ -485,6 +500,8 @@ pub(crate) fn compiled(source: &str) -> Option<&'static str> {
         "src/hir/validation/scope_checkpoint/merge/moved_direct.rs" => Some(include_str!("../../src/hir/validation/scope_checkpoint/merge/moved_direct.rs")),
         "src/hir/validation/scope_checkpoint/merge/moved_direct/before.rs" => Some(include_str!("../../src/hir/validation/scope_checkpoint/merge/moved_direct/before.rs")),
         "src/hir/validation/scope_checkpoint/merge/moved_direct/tests.rs" => Some(include_str!("../../src/hir/validation/scope_checkpoint/merge/moved_direct/tests.rs")),
+        "src/hir/validation/scope_checkpoint/marks/direct_before.rs" => Some(include_str!("../../src/hir/validation/scope_checkpoint/marks/direct_before.rs")),
+        "src/hir/validation/scope_checkpoint/marks/direct_tests.rs" => Some(include_str!("../../src/hir/validation/scope_checkpoint/marks/direct_tests.rs")),
         _ => None,
     }
 }

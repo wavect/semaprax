@@ -304,11 +304,11 @@ const MAIN_FINAL_INGRESS: &str =
     include_str!("../../e/3d61f09b3235194aba756af2ab9ec48ef7d24d77a5dcdba3190d104a306477fe");
 const LIVE_INGRESS: [(&str, usize, &str); 6] = [
     ("src/cleanup_plan/replay.rs", 326095, "5112e91b270644548b1c99eb29628c90a29c5ca6505e0e6827be92ca2bea20ff"),
-    ("src/source_reflows_merge.rs", 102512, "63e15c9f08db2abe227073c6fc5a3440e242e8d3cfb0daf42adb6fbe93841825"),
+    ("src/source_reflows_merge.rs", 102740, "426ddd09476688811850a2a583df6821fd8ee8ad9b469300ae824dcb4958fe3a"),
     ("src/source_reflows_merge/main67107_inputs.rs", 49667, "555d676283e593101b9fc21b8e26f71b1b31b9567c52d3ca402077c4f8bf7fab"),
-    ("tests/hir_module_boundaries.rs", 163887, "6b75d38c323eba5f1a2de2112a1e81c4332bac00b7abd19c1409500169073308"),
-    ("tests/workspace/semantic_graph/source_inventory.rs", 258627, "fd0dc6d497ab95b58942cb46a95ebcf834370e5713506bbc8f70306649ac9387"),
-    ("crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs", 243154, "c0ce1c180278ac6aa8d6c685699c1c21fc7ab1e631f8ac4f65f3450e3cc9a81f"),
+    ("tests/hir_module_boundaries.rs", 164042, "6c2977b38abaed364b2adc284aaf648b322f4b6fd6e44978c44a4b419055e7c9"),
+    ("tests/workspace/semantic_graph/source_inventory.rs", 258788, "48f8a48dc5eb8ef5483f7d8ccf90d8cd49e0f3cd44e50c8963362b2700103693"),
+    ("crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs", 243333, "a118da5b87cccaefd32f7d15e75cb16ad5b0e96c43a799d86aa1cb99b27a911f"),
 ];
 
 fn final_ingress_same_file(a: &std::fs::Metadata, b: &std::fs::Metadata) -> bool {
@@ -479,6 +479,108 @@ fn latest_ingress_records() -> serde_json::Value {
     result
 }
 
+// Entire incoming f65 successor source views are compiled historical archives.
+// They never replace the separately authenticated current physical owners.
+const INCOMING_SUCCESSOR_VIEWS: [(&str, &str); 6] = [
+    (
+        "src/cleanup_plan/replay.rs",
+        include_str!("../../e/bdce82425869a91e406c78175753f19ff0db46a468c4bba33f8bef793b4fe234"),
+    ),
+    (
+        "src/source_reflows_merge.rs",
+        include_str!("../../e/5e5db20c191765da259132014f7945f5b651208102778a2381821f31d0805229"),
+    ),
+    (
+        "src/source_reflows_merge/main67107_inputs.rs",
+        include_str!("../../e/555d676283e593101b9fc21b8e26f71b1b31b9567c52d3ca402077c4f8bf7fab"),
+    ),
+    (
+        "tests/hir_module_boundaries.rs",
+        include_str!("../../e/246d91d06278340a16c3ef24d6660a292f68f74ff4533e87ba349c062956f4f4"),
+    ),
+    (
+        "tests/workspace/semantic_graph/source_inventory.rs",
+        include_str!("../../e/0144e54abac27fcfc032f9bc873fa616539da1a2b20de17495b84f68428104e7"),
+    ),
+    (
+        "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs",
+        include_str!("../../e/3a43d350fbe971a7c3bb46000b559fb3c1bc5995e196953382068149ee82c96f"),
+    ),
+];
+fn historical_successor_ingress_checkpoint(
+    path: &str,
+    compiled: &str,
+    previous: &serde_json::Value,
+) -> (String, String) {
+    const PATH: &str = "docs/evidence/ordinary-ingress-successor-20261026/current-inputs.json";
+    const DATA: &str = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/docs/evidence/ordinary-ingress-successor-20261026/current-inputs.json"
+    ));
+    const LENGTH: usize = 14971;
+    const SHA: &str = "aef6ee23a1724873cd15d3590f0086fc8a304ce3db94ca4525989994e8360046";
+    assert!(LENGTH <= FINAL_INGRESS_CAP);
+    assert_eq!(DATA.len(), LENGTH);
+    assert_eq!(digest(DATA), SHA);
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    assert_eq!(final_ingress_file(&root.join(PATH), LENGTH, SHA), DATA);
+    let packet: serde_json::Value = serde_json::from_str(DATA).unwrap();
+    assert_eq!(
+        packet["schema"],
+        "semaprax.ordinary-plan-source-successor.v1"
+    );
+    let rows = packet["rows"].as_array().unwrap();
+    assert_eq!(rows.len(), CURRENT.len());
+    for (row, (source, _)) in rows.iter().zip(CURRENT) {
+        assert_eq!(row["path"], source, "closed ordered physical source owners");
+    }
+    let row = rows.iter().find(|row| row["path"] == path).unwrap();
+    assert_eq!(row["previous_length"], previous["current_length"]);
+    assert_eq!(row["previous_sha256"], previous["current_sha256"]);
+    assert_eq!(row["previous_archive"], previous["current_archive"]);
+    let length = usize::try_from(row["current_length"].as_u64().unwrap()).unwrap();
+    let sha = row["current_sha256"].as_str().unwrap();
+    let historical_archive = row["current_archive"].as_str().unwrap();
+    assert_eq!(historical_archive, format!("e/{sha}"));
+    let live = final_ingress_file(&root.join(historical_archive), length, sha);
+    assert_eq!(
+        live, compiled,
+        "complete incoming compiled and physical historical archive"
+    );
+    let archive = row["current_archive"].as_str().unwrap();
+    assert_eq!(archive, format!("e/{sha}"));
+    assert_eq!(final_ingress_file(&root.join(archive), length, sha), live);
+    let mut restored = live.clone();
+    let edits = row["inverse"].as_array().unwrap();
+    assert!(edits.len() <= 512);
+    let mut last = restored.len();
+    for edit in edits {
+        let start = usize::try_from(edit["start_byte"].as_u64().unwrap()).unwrap();
+        let after = edit["after"].as_str().unwrap();
+        let end = start
+            .checked_add(after.len())
+            .expect("bounded successor inverse");
+        assert!(end <= last);
+        assert_eq!(restored.get(start..end), Some(after));
+        restored.replace_range(start..end, edit["before"].as_str().unwrap());
+        last = start;
+    }
+    assert_eq!(
+        restored.len(),
+        usize::try_from(previous["current_length"].as_u64().unwrap()).unwrap()
+    );
+    assert_eq!(digest(&restored), previous["current_sha256"]);
+    assert_eq!(
+        restored,
+        final_ingress_file(
+            &root.join(previous["current_archive"].as_str().unwrap()),
+            restored.len(),
+            previous["current_sha256"].as_str().unwrap(),
+        )
+    );
+    (live, restored)
+}
+
 fn final_ingress_checkpoint(source: &str, expected: &str, current: &str) -> (String, String) {
     assert!(FINAL_INGRESS.len() <= FINAL_INGRESS_CAP);
     assert_eq!(FINAL_INGRESS.len(), FINAL_INGRESS_LENGTH);
@@ -537,6 +639,14 @@ fn final_ingress_checkpoint(source: &str, expected: &str, current: &str) -> (Str
             actual, compiled,
             "actual complete compiled and physical final source"
         );
+        let historical_compiled = INCOMING_SUCCESSOR_VIEWS
+            .iter()
+            .find(|(name, _)| *name == path)
+            .expect("six literal incoming historical owners only")
+            .1;
+        let (incoming_successor, incoming_latest) =
+            historical_successor_ingress_checkpoint(path, historical_compiled, newest);
+        assert_eq!(incoming_latest, latest, "both entire common latest stages agree");
         let latest_archive = newest["current_archive"].as_str().unwrap();
         assert_eq!(latest_archive, format!("e/{latest_sha}"));
         assert_eq!(
@@ -606,6 +716,7 @@ fn final_ingress_checkpoint(source: &str, expected: &str, current: &str) -> (Str
             );
             assert!(
                 current == actual
+                    || current == incoming_successor
                     || current == canonical_physical
                     || current == ours_physical
                     || current == latest
@@ -617,6 +728,7 @@ fn final_ingress_checkpoint(source: &str, expected: &str, current: &str) -> (Str
                 "foreign final ingress stage"
             );
             let supplied = if current == actual
+                || current == incoming_successor
                 || current == canonical_physical
                 || current == ours_physical
                 || current == latest

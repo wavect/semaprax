@@ -87,6 +87,67 @@ mod tests {
     }
 
     #[test]
+    fn registered_context_preserves_the_entire_original_reader_and_every_guard() {
+        fn body<'a>(text: &'a str, signature: &str) -> &'a str {
+            let start = text.find(&format!("\n{signature}")).unwrap() + 1;
+            let length = text[start..].find("\n}\n").unwrap() + 3;
+            &text[start..start + length]
+        }
+        let current = include_str!("main_e177_packet_lookup.rs");
+        let before = include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/e/1e31aba22d551ebabbfb57e2f0b1d36f6bb1517f816a1ed6413ebd732df66981"
+        ));
+        let original = body(before, "pub(super) fn registered_file(");
+        let saved = body(
+            current,
+            "pub(super) fn registered_file_before_packet_context(",
+        )
+        .replacen(
+            "registered_file_before_packet_context(",
+            "registered_file(",
+            1,
+        );
+        assert_eq!(saved, original);
+        let restored = body(current, "pub(super) fn registered_file(")
+            .replacen("actual_with_packet(&packet, row)", "super::actual(row)", 1)
+            .replacen(
+                "read_view_with_packet(&packet, selected)",
+                "super::read_view(selected)",
+                1,
+            );
+        assert_eq!(restored, original);
+        // Keep the complete existing current/history/cap/child/unknown-input controls.
+        super::registered_digest_reads_keep_current_history_and_each_original_file_bound();
+    }
+
+    #[test]
+    fn borrowed_registered_reader_matches_original_complete_current_and_history() {
+        let packet = super::super::packet();
+        let row = packet["rows"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["source"] == "src/ast/program_source/decl_slices.rs")
+            .unwrap();
+        let source = row["source"].as_str().unwrap();
+        for pin in [&row["current"], &row["views"][0]] {
+            let expected = pin["sha256"].as_str().unwrap();
+            let old = super::registered_file_before_packet_context(source, expected, usize::MAX);
+            let borrowed = super::registered_file(source, expected, usize::MAX);
+            assert_eq!(borrowed, old);
+            assert_eq!(
+                borrowed.unwrap(),
+                std::fs::read_to_string(
+                    std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                        .join(pin["archive"].as_str().unwrap())
+                )
+                .unwrap()
+            );
+        }
+    }
+
+    #[test]
     fn borrowed_lookup_rechecks_current_on_each_invocation_before_history() {
         let files = files();
         let current = files.0.join("current.rs");
@@ -1141,6 +1202,7 @@ fn assert_transitive_context_source() {
     }
 }
 // Caller-cap lookup retained verbatim in the already audited sibling.
+#[rustfmt::skip]
 pub(super) fn registered_file(source: &str, expected: &str, cap: usize) -> Option<String> {
     if cap == 0
         || !Path::new(source)
@@ -1175,11 +1237,11 @@ pub(super) fn registered_file(source: &str, expected: &str, cap: usize) -> Optio
             }
         }
     }
-    let current = super::actual(row);
+    let current = actual_with_packet(&packet, row);
     if selected == &row["current"] {
         Some(current)
     } else {
-        Some(super::read_view(selected))
+        Some(read_view_with_packet(&packet, selected))
     }
 }
 
@@ -1268,3 +1330,49 @@ fn combined_side_invocation_checks_current_and_complete_prior_before_returning()
         .combined_side_file(&root.join("foreign-unregistered.rs"), 0, &"0".repeat(64))
         .is_none());
 }
+
+// REGISTERED_CONTEXT_PREDECESSOR_BEGIN
+#[allow(dead_code, reason = "Complete original fresh reader remains invocable for comparison")]
+#[rustfmt::skip]
+pub(super) fn registered_file_before_packet_context(source: &str, expected: &str, cap: usize) -> Option<String> {
+    if cap == 0
+        || !Path::new(source)
+            .components()
+            .all(|part| matches!(part, std::path::Component::Normal(_)))
+        || expected.len() != 64
+        || !expected
+            .bytes()
+            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    {
+        return None;
+    }
+    let cap = cap.min(SOURCE_CAP);
+    let packet = super::packet();
+    let row = packet["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["source"] == source)?;
+    let selected = std::iter::once(&row["current"])
+        .chain(row["views"].as_array().unwrap().iter())
+        .find(|pin| pin["sha256"] == expected)?;
+    let fits = |pin: &Value| pin["length"].as_u64().unwrap() <= cap as u64;
+    if !fits(selected) || !fits(&row["current"]) {
+        return None;
+    }
+    if let Some(children) = row.get("fragments") {
+        for child in children.as_array().unwrap() {
+            assert!(child.get("fragments").is_none());
+            if !fits(&child["current"]) {
+                return None;
+            }
+        }
+    }
+    let current = super::actual(row);
+    if selected == &row["current"] {
+        Some(current)
+    } else {
+        Some(super::read_view(selected))
+    }
+}
+// REGISTERED_CONTEXT_PREDECESSOR_END

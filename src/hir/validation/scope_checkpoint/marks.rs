@@ -7,6 +7,10 @@ impl HirValidator<'_> {
         scope: &mut dyn ScopeWrite,
     ) -> Result<(), Diagnostic> {
         #[cfg(test)]
+        if direct_tests::before_selected() {
+            return self.mark_value_sources_moved_before_direct(expression, scope);
+        }
+        #[cfg(test)]
         if tests::before_selected() {
             return self.mark_value_sources_moved_before_inert_root(expression, scope);
         }
@@ -40,6 +44,47 @@ impl HirValidator<'_> {
             }
         }
         match &expression.kind {
+            // This is the original terminal arm, not a second validation or
+            // scratch borrower. The existing prepaid kind/Place loans, local
+            // Owned root and every semantic call retain their exact roles.
+            // Only the two first backing constructors, their push/index/pop
+            // transports and their eventual backing drops are absent.
+            ResolvedExprKind::Place(place) => {
+                let mut root = scope.take_owned();
+                let Some(binding) = root.get(&place.root) else {
+                    scope.replace_owned(root);
+                    return Ok(());
+                };
+                let (place_ty, place_ownership) = self.resolve_place(place, binding)?;
+                let should_move = self.is_owned_resource(&place_ty, place_ownership)?
+                    && Self::place_availability(binding, &place.projections)
+                        == Availability::Available;
+                if should_move {
+                    if self.binding_has_live_overlapping_loans(
+                        binding,
+                        place,
+                        &expression.id,
+                        LoanPointPhase::Before,
+                    )? {
+                        return Err(hir_error(
+                            "SPX-T265: move or transfer would invalidate a lexical byte view",
+                        ));
+                    }
+                    let binding = root.get_mut(&place.root)?.ok_or_else(|| {
+                        hir_error(format!(
+                            "resolved value `{}` disappeared during ownership validation",
+                            place.root
+                        ))
+                    })?;
+                    if place.projections.is_empty() {
+                        binding.availability = Availability::Moved;
+                    } else {
+                        scope_checkpoint::move_projection(binding, &place.projections)?;
+                    }
+                }
+                scope.replace_owned(root);
+                return Ok(());
+            }
             ResolvedExprKind::Closure { .. }
             | ResolvedExprKind::FunctionReference { .. }
             | ResolvedExprKind::Int(_)
@@ -72,7 +117,6 @@ impl HirValidator<'_> {
             | ResolvedExprKind::UpdateRecord { .. } => return Ok(()),
             ResolvedExprKind::LexicalExit { .. }
             | ResolvedExprKind::Invoke { .. }
-            | ResolvedExprKind::Place(_)
             | ResolvedExprKind::Block { .. }
             | ResolvedExprKind::VecConstructor { .. }
             | ResolvedExprKind::If { .. }
@@ -306,3 +350,8 @@ const INERT_ROOT_CONTROLS: usize = 2 * std::mem::size_of::<usize>()
 mod before;
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod direct_before;
+#[cfg(test)]
+mod direct_tests;

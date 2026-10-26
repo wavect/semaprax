@@ -661,9 +661,17 @@ class V11EnvelopeCompatibility(unittest.TestCase):
                   'page': {'path': codec.PAGE_PATH, 'length': 0, 'sha256': '0' * 64},
                   'predecessor': predecessor, 'replacements': [], 'additions': [],
                   'new_fragment_edges': []}
-        legacy = {'schema': codec.V10_SCHEMA, 'index': 1, 'total_pages': 1,
-                  'predecessor': predecessor, 'replacements': [], 'additions': []}
-        prefix = dict(legacy, archive_prefixes=['e/'])
+        policy['replacements'] = [row['source'] for row in before['rows'][:2]]
+        logical = {'schema': codec.V9_SCHEMA, 'index': 1, 'total_pages': 1,
+                   'predecessor': predecessor, 'replacements': [
+                       {'source': row['source'], 'compiled': row['compiled'],
+                        'current': [0, '0' * 64, 'e/' + '0' * 64], 'views': []}
+                       for row in before['rows'][:2]], 'additions': []}
+        legacy = codec.encode_v10_pins(before, policy, logical)
+        prefix = codec.encode_v10_with_prefixes(logical, ['e/'])
+        unused = dict(prefix, replacements=[])
+        with self.assertRaisesRegex(AssertionError, 'v10 unused archive prefix'):
+            codec.compose_values(before, policy, unused)
         for value in (legacy, prefix):
             self.assertEqual(codec.compose_values(before, policy, value), before)
         named = {'schema': codec.V11_SCHEMA, 'names': [], 'page': legacy}
@@ -726,6 +734,9 @@ class TypedFragmentReferences(unittest.TestCase):
         before['additions'][1]['fragments'] = [{
             'source': 'nested.rs', 'compiled': True, 'current': [7, 'A'*43], 'views': [],
             'fragments': [519, {'canonical_source': 519}]}]
+        with self.assertRaisesRegex(AssertionError, 'v13 uninterned or aliased digest'):
+            codec.encode_v18_fragment_refs(before)
+        before['additions'][1]['fragments'][0]['current'][1] = 0
         self.assertEqual(codec.expand_v18_fragment_refs(codec.encode_v18_fragment_refs(before)), before)
 
     def test_hostile_types_aliases_wrong_slots_and_truncation(self):

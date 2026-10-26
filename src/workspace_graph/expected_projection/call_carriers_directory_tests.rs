@@ -83,16 +83,26 @@ fn parity(program: &Program, index: &Index<'_>, imports: bool) -> (Proof, Census
 
 #[test]
 fn complete_before_source_and_all_header_capacity_boundaries_are_retained() {
+    let physical_before = include_str!("call_carriers_before_directory.rs");
+    let formatted_import = "use super::{call_identity, AuthoredDeclaration};";
+    let original_import = "use super::{AuthoredDeclaration, call_identity};";
+    assert_eq!(physical_before.matches(formatted_import).count(), 1);
+    let original_before = physical_before.replacen(formatted_import, original_import, 1);
     let before = crate::source_reflows_merge::main_e177_final_inputs::value_direct(
         "src/workspace_graph/expected_projection/call_carriers_before_directory.rs",
         "87142dc1b3f98f9d381459f0f4f8925c807d28645aa0646ea453eea3c63cc512",
         include_str!("call_carriers_before_directory.rs"),
     );
     let before = before.as_str();
+    assert_eq!(original_before, before, "whole incoming formatter restoration equals the independently acquired original");
     assert_eq!(
         format!("{:x}", crate::digest_hex::LowerHex(&Sha256::digest(before))),
         "87142dc1b3f98f9d381459f0f4f8925c807d28645aa0646ea453eea3c63cc512",
     );
+    let physical_root = include_str!("call_carriers.rs");
+    assert_eq!(physical_root.matches(formatted_import).count(), 1);
+    let original_root = physical_root.replacen(formatted_import, original_import, 1);
+    assert_eq!(original_root.replacen(original_import, formatted_import, 1), physical_root);
     let root = crate::source_reflows_merge::main_e177_final_inputs::value_direct(
         "src/workspace_graph/expected_projection/call_carriers.rs",
         "84802a57f88f708bbc10da608f169ebedba8307677b2e6858cd8e0850c505aaa",

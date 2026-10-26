@@ -304,7 +304,7 @@ macro_rules! before_scratch_body {
 
 #[cfg(test)]
 #[rustfmt::skip]
-macro_rules! before_closed_roots_body {
+macro_rules! before_modular_closed_roots_body {
     ($context:ident,$imports:ident,$proof:ident,$lookup:ident) => {{
     #[cfg(test)]
     if crate::workspace_graph::expected_projection::call_carriers::before_scratch_selected() {
@@ -485,7 +485,7 @@ pub(in crate::workspace_graph::expected_projection) fn count_with_lookup<'p, 'a,
 ) -> Result<(Proof, Costs), Error> {
     #[cfg(test)]
     if crate::workspace_graph::expected_projection::call_carriers::closed_roots::before_selected() {
-        return before_closed_roots_body!(context,imports,proof,lookup);
+        return before_modular_closed_roots_body!(context,imports,proof,lookup);
     }
 
     #[cfg(test)]

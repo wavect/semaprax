@@ -480,7 +480,7 @@ macro_rules! before_scratch_body {
 
 #[cfg(test)]
 #[rustfmt::skip]
-macro_rules! before_closed_roots_body {
+macro_rules! before_directory_closed_roots_body {
     ($N:ident,$program:ident,$authored:ident,$imports:ident,$selector:ident) => {{
     #[cfg(test)]
     if crate::workspace_graph::expected_projection::call_carriers::before_scratch_selected() {
@@ -606,7 +606,7 @@ fn indexed<const N: usize>(
 ) -> Proof {
     #[cfg(test)]
     if crate::workspace_graph::expected_projection::call_carriers::closed_roots::before_selected() {
-        return before_closed_roots_body!(N,program,authored,imports,selector);
+        return before_directory_closed_roots_body!(N,program,authored,imports,selector);
     }
 
     #[cfg(test)]

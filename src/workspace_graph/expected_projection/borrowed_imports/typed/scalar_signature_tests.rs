@@ -312,12 +312,36 @@ fn complete_old_constructor_and_actual_dispatch_remain_independent_and_same_widt
     );
     let old_dispatch = include_str!("../../../constructor_failure/before_scalar_dispatch.rs");
     let header = "#![allow(dead_code, reason = \"Whole immediate-old selector, hooks and invariant forwarding are an independent cfg-test oracle.\")]\nuse super::*;\n";
+    // Keep the obsolete unformatted-header locator visible as a negative;
+    // restore only rustfmt's exact header spelling before the original proof.
+    assert!(!old_dispatch.starts_with(header));
+    let formatted_header = "#![allow(\n    dead_code,\n    reason = \"Whole immediate-old selector, hooks and invariant forwarding are an independent cfg-test oracle.\"\n)]\nuse super::*;\n";
+    assert_eq!(old_dispatch.matches(formatted_header).count(), 1);
+    let header_restored = old_dispatch.replacen(formatted_header, header, 1);
+    let old_dispatch = header_restored.as_str();
     let restored = old_dispatch.strip_prefix(header).unwrap();
     assert_eq!(restored.matches("super::super::super::").count(), 16);
     let restored = restored.replace("super::super::super::", "super::super::");
     let glue = "borrowed_imports::typed::before_scalar_signature::construct_transient(";
     assert_eq!(restored.matches(glue).count(), 1);
     let restored = restored.replace(glue, "borrowed_imports::typed::construct_transient(");
+    // The deeper namespace caused these four wraps. After restoring the
+    // namespace, undo only those wraps; the full original SHA stays unchanged.
+    let mut restored = restored;
+    let current = "super::super::expected_projection::private_layout::registry::LayoutRegistry<\n        '_,\n    >";
+    let before = "super::super::expected_projection::private_layout::registry::LayoutRegistry<'_>";
+    assert_eq!(restored.matches(current).count(), 2);
+    restored = restored.replacen(current, before, 2);
+    let current = "super::super::expected_projection::private_layout::registry::LayoutRegistry<\n                    '_,\n                >";
+    let before = "super::super::expected_projection::private_layout::registry::LayoutRegistry<'_>";
+    assert_eq!(restored.matches(current).count(), 1);
+    restored = restored.replacen(current, before, 1);
+    let current = "std::mem::size_of::<\n                &mut super::super::expected_projection::CoreProviderProofs<'_>,\n            >()";
+    let before =
+        "std::mem::size_of::<&mut super::super::expected_projection::CoreProviderProofs<'_>>()";
+    assert_eq!(restored.matches(current).count(), 1);
+    restored = restored.replacen(current, before, 1);
+
     assert_eq!(
         format!(
             "{:x}",

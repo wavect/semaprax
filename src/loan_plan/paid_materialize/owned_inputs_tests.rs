@@ -322,7 +322,7 @@ fn owned_rows_keep_entire_immediate_source_abi_helpers_and_typed_transport_map()
     let original = include_str!("immediate_before.rs.txt");
     use sha2::{Digest, Sha256};
     assert_eq!(
-        format!("{:x}", Sha256::digest(original.as_bytes())),
+        format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(original.as_bytes()))),
         "97b1eafdd7198997927eb01d6196ef16f094e90e621ebd7e6136befe9e491844"
     );
     let compiled = include_str!("immediate_before.rs");

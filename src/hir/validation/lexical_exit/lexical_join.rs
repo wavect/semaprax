@@ -178,7 +178,8 @@ mod tests {
         ] {
             for mismatch in [false, true] {
                 let values: Vec<_> = types
-                    .into_iter()
+                    .iter()
+                    .cloned()
                     .enumerate()
                     .map(|(i, ty)| {
                         let mut value = base.clone();

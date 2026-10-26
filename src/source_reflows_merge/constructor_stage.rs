@@ -1,5 +1,219 @@
 //! Whole current cache-compatible prefilter input before the unchanged constructor inverse.
 use sha2::{Digest, Sha256};
+
+// Closed final cost825 and retained847 bindings are added here. The entire original
+// consumer and its immutable tables run before this adapter. Both the producer
+// output and the fresh physical/compiled/archive source channels stay bound.
+pub(super) fn after(domain: &str, source: &str, current: &str, projected: String) -> String {
+    let (expected, compiled) = match (domain, source) {
+        ("cost825", "src/workspace_graph/expected_projection/cost.rs") => (
+            "ddf8dc2e74e4c0cc193e4e592671ffcfd9118b8bfe91cef2d0cf19eca3a635ce",
+            include_str!("../workspace_graph/expected_projection/cost.rs"),
+        ),
+        ("cost825", "src/workspace_graph/expected_projection.rs") => (
+            "974468e7035d1a7baa48b13078ce7ec7b0711c2c7610d64db7feea561b192f0c",
+            include_str!("../workspace_graph/expected_projection.rs"),
+        ),
+        ("retained847", "src/ast/program_source/decl_slices.rs") => (
+            "7b86d102694e1358c2a5ce00738a882df320d3e4860ba062c855cea56c198397",
+            include_str!("../ast/program_source/decl_slices.rs"),
+        ),
+        ("retained847", "src/ast/program_source/decl_slices/alias_tests.rs") => (
+            "5533f1fdf357b7b0ccfef93fe663599b6ecf2b1604f848d35f2f08e2479d38f8",
+            include_str!("../ast/program_source/decl_slices/alias_tests.rs"),
+        ),
+        ("retained847", "src/ast/program_source/decl_slices/before_alias.rs") => (
+            "2dbd704d16e38656ccd8b7aa035a1b2e2ddf6b5bfaf74ab7fe572cff858f7681",
+            include_str!("../ast/program_source/decl_slices/before_alias.rs"),
+        ),
+        _ => return projected,
+    };
+    if super::source_sha(&projected) == expected {
+        return projected;
+    }
+    assert_eq!(current, compiled);
+    assert_eq!(
+        projected, current,
+        "the complete preceding cost producer remains unchanged"
+    );
+    let before = super::main_e177_final_inputs::value_direct(source, expected, current);
+    assert_eq!(
+        super::source_sha(&before),
+        expected,
+        "complete historical source-consumer input"
+    );
+    before
+}
+
+pub(super) fn retained_function847_input(source: &str, current: &str) -> String {
+    let projected = super::retained_function847_previous(source, current);
+    after("retained847", source, current, projected)
+}
+
+// A complete historical cursor is DATA, not a replacement current-source
+// channel. Reacquire the actual compiled current and authenticate both named
+// views against that same current before entering the unchanged old projector.
+pub(super) fn history(source: &str, expected: &str, supplied: &str) -> Option<String> {
+    let (cursor_sha, current) = match (source, expected) {
+        (
+            "src/workspace_graph/expected_projection/private_layout/capacity_tests/source.rs",
+            "cb4c709ecd0d8966ec03c9cc9d666468182861ded8cb0c860ed20c35300064e2",
+        ) => (
+            "592ff99b199000a529e68f39e91e986fc133871718965889231f0139ff6a575e",
+            include_str!(
+                "../workspace_graph/expected_projection/private_layout/capacity_tests/source.rs"
+            ),
+        ),
+        (
+            "src/ast/program_source/function_alias.rs",
+            "67bc93a9e52e70a42ad53614b4475a5fa881e96b17859fa376205bbc558088b2",
+        ) => (
+            "14cfbf7b8e491e35e3d52496782eb24ddf5aa51de0d5db1804177531345bbe09",
+            include_str!("../ast/program_source/function_alias.rs"),
+        ),
+        (
+            "src/workspace_graph/expected_projection/borrowed_imports/typed/alias.rs",
+            "434640ce68332a1d96840ae10b8e4a500799a567f6d75cc903a6e272196a24b2",
+        ) => (
+            "6dafc416d72e22cc58ba07cfb63ca91cd727d03167a14de0e88f038a36628561",
+            include_str!("../workspace_graph/expected_projection/borrowed_imports/typed/alias.rs"),
+        ),
+        (
+            "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs",
+            "fdd92e3f7dd1a2064a727f478bdc15f217c5c93edc9d4bb32d0d901d510ec1da",
+        ) => (
+            "b2191c03d4dd66a071d943fe235bb743bc00032340b4928a3313faed1b9bc570",
+            include_str!(
+                "../workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs"
+            ),
+        ),
+        (
+            "src/hir/identity_resolution/nominal.rs",
+            "6ffc8c764bb2638cb174473f95eb88cc8dfc4894af95e08295dfafa4b50ff49a",
+        ) => (
+            "92360748e76da16e6302d5b4d45ae5cdc73a70a25f9b68f56a7589bb176d5c46",
+            include_str!("../hir/identity_resolution/nominal.rs"),
+        ),
+        _ => return None,
+    };
+    if super::source_sha(supplied) != cursor_sha {
+        return None;
+    }
+    let mut invocation = super::main_e177_final_inputs::ProjectionInvocation::new();
+    let cursor = invocation.value_direct(source, cursor_sha, current);
+    assert_eq!(
+        cursor, supplied,
+        "the historical cursor belongs to the complete live current"
+    );
+    let before = invocation.value_direct(source, expected, current);
+    assert_eq!(
+        super::source_sha(&before),
+        expected,
+        "complete earlier source input"
+    );
+    Some(before)
+}
+
+#[test]
+fn final_cost_binding_keeps_the_complete_fixed_source_and_rejects_changed_producers() {
+    let source = "src/workspace_graph/expected_projection/cost.rs";
+    let current = include_str!("../workspace_graph/expected_projection/cost.rs");
+    let expected = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/e/ddf8dc2e74e4c0cc193e4e592671ffcfd9118b8bfe91cef2d0cf19eca3a635ce"
+    ));
+    assert_eq!(
+        after("cost825", source, current, current.to_owned()),
+        expected
+    );
+    for bad in [
+        format!("{current} "),
+        current[..current.len() - 1].to_owned(),
+        String::new(),
+    ] {
+        assert!(std::panic::catch_unwind(|| after("cost825", source, &bad, bad.clone())).is_err());
+    }
+    assert!(std::panic::catch_unwind(|| after(
+        "cost825",
+        source,
+        current,
+        "foreign producer".to_owned()
+    ))
+    .is_err());
+    assert_eq!(
+        after("foreign", source, current, "untouched".to_owned()),
+        "untouched"
+    );
+    assert_eq!(
+        after("cost825", "foreign", current, "untouched".to_owned()),
+        "untouched"
+    );
+}
+
+#[test]
+fn capacity_cursor_reacquires_current_before_both_complete_views_and_refuses_foreign_tuples() {
+    let source = "src/workspace_graph/expected_projection/private_layout/capacity_tests/source.rs";
+    let cursor_sha = "592ff99b199000a529e68f39e91e986fc133871718965889231f0139ff6a575e";
+    let expected = "cb4c709ecd0d8966ec03c9cc9d666468182861ded8cb0c860ed20c35300064e2";
+    let cursor =
+        super::main_e177_final_inputs::registered_file(source, cursor_sha, usize::MAX).unwrap();
+    let before =
+        super::main_e177_final_inputs::registered_file(source, expected, usize::MAX).unwrap();
+    assert_eq!(history(source, expected, &cursor), Some(before));
+    for bad in [
+        format!("{cursor} "),
+        cursor[..cursor.len() - 1].to_owned(),
+        String::new(),
+    ] {
+        assert!(history(source, expected, &bad).is_none());
+    }
+    assert!(history("foreign", expected, &cursor).is_none());
+    assert!(history(source, "foreign", &cursor).is_none());
+}
+
+// Normalize only the constructor checkpoints that consume this complete stage.
+// Other checkpoints retain their own original source and inverse validation.
+pub(super) fn typed_for(source: &str, expected: &str, current: &str) -> Option<String> {
+    match (source, expected) {
+        (
+            "src/workspace_graph/constructor_failure/typed.rs",
+            "1482ad177d1d605a183cccc3ef185aaed36e7214b1bf4db8065a466303fc99f6",
+        )
+        | (
+            "src/workspace_graph/constructor_failure/receiving/typed/tests.rs",
+            "2cd6c2ce3b35abb30253549dc931c6c025653419d2bd16b9fb6c35224a34d6e4",
+        ) => typed(source, current),
+        _ => None,
+    }
+}
+
+#[test]
+fn typed_stage_claims_only_its_owned_checkpoint_and_keeps_complete_current_checks() {
+    let source = "src/workspace_graph/constructor_failure/typed.rs";
+    let expected = "1482ad177d1d605a183cccc3ef185aaed36e7214b1bf4db8065a466303fc99f6";
+    let current = include_str!("../workspace_graph/constructor_failure/typed.rs");
+    assert_eq!(typed_for(source, expected, current), typed(source, current));
+    let fixture: serde_json::Value = serde_json::from_str(include_str!(
+        "../../docs/evidence/function-alias-graph-image-parity-847-20261016/source-inverses.json"
+    ))
+    .unwrap();
+    let row = fixture["sources"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["source"].as_str() == Some(source))
+        .unwrap();
+    let cursor = row["edits"][0]["new"].as_str().unwrap();
+    let cursor_sha = "5532f0f3b6de8c36bc6b4f4eb66863273fdc0c09275daa1e6ebba706d44523e7";
+    assert_eq!(super::source_sha(cursor), cursor_sha);
+    assert!(typed_for(source, cursor_sha, cursor).is_none());
+    assert!(typed_for("foreign", expected, current).is_none());
+    assert!(typed_for(source, "foreign", current).is_none());
+    for bad in [cursor.to_owned(), format!("{current} "), String::new()] {
+        assert!(std::panic::catch_unwind(|| typed_for(source, expected, &bad)).is_err());
+    }
+}
+
 pub(super) fn typed(source: &str, current: &str) -> Option<String> {
     if source == "src/workspace_graph/constructor_failure/receiving/typed/tests.rs" {
         assert_eq!(
@@ -453,4 +667,69 @@ pub(super) fn held_projection_entry(source: &str, expected: &str, supplied: &str
     assert_eq!(super::source_sha(&entry), expected);
     assert_eq!(physical, held_projection_reader::read(&root.join(source), physical.len(), &super::source_sha(physical), 2_097_152).unwrap());
     Some(entry)
+}
+
+#[test]
+fn retained_alias_cursors_authenticate_both_complete_views_against_actual_current() {
+    {
+        let source = "src/ast/program_source/function_alias.rs";
+        let expected = "67bc93a9e52e70a42ad53614b4475a5fa881e96b17859fa376205bbc558088b2";
+        let cursor = super::main_e177_final_inputs::registered_file(
+            source,
+            "14cfbf7b8e491e35e3d52496782eb24ddf5aa51de0d5db1804177531345bbe09",
+            usize::MAX,
+        )
+        .unwrap();
+        let before =
+            super::main_e177_final_inputs::registered_file(source, expected, usize::MAX).unwrap();
+        assert_eq!(history(source, expected, &cursor), Some(before));
+        assert!(history(source, expected, &format!("{cursor} ")).is_none());
+        assert!(history(source, "foreign", &cursor).is_none());
+    }
+    {
+        let source = "src/workspace_graph/expected_projection/borrowed_imports/typed/alias.rs";
+        let expected = "434640ce68332a1d96840ae10b8e4a500799a567f6d75cc903a6e272196a24b2";
+        let cursor = super::main_e177_final_inputs::registered_file(
+            source,
+            "6dafc416d72e22cc58ba07cfb63ca91cd727d03167a14de0e88f038a36628561",
+            usize::MAX,
+        )
+        .unwrap();
+        let before =
+            super::main_e177_final_inputs::registered_file(source, expected, usize::MAX).unwrap();
+        assert_eq!(history(source, expected, &cursor), Some(before));
+        assert!(history(source, expected, &format!("{cursor} ")).is_none());
+        assert!(history(source, "foreign", &cursor).is_none());
+    }
+    {
+        let source =
+            "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs";
+        let expected = "fdd92e3f7dd1a2064a727f478bdc15f217c5c93edc9d4bb32d0d901d510ec1da";
+        let cursor = super::main_e177_final_inputs::registered_file(
+            source,
+            "b2191c03d4dd66a071d943fe235bb743bc00032340b4928a3313faed1b9bc570",
+            usize::MAX,
+        )
+        .unwrap();
+        let before =
+            super::main_e177_final_inputs::registered_file(source, expected, usize::MAX).unwrap();
+        assert_eq!(history(source, expected, &cursor), Some(before));
+        assert!(history(source, expected, &format!("{cursor} ")).is_none());
+        assert!(history(source, "foreign", &cursor).is_none());
+    }
+    {
+        let source = "src/hir/identity_resolution/nominal.rs";
+        let expected = "6ffc8c764bb2638cb174473f95eb88cc8dfc4894af95e08295dfafa4b50ff49a";
+        let cursor = super::main_e177_final_inputs::registered_file(
+            source,
+            "92360748e76da16e6302d5b4d45ae5cdc73a70a25f9b68f56a7589bb176d5c46",
+            usize::MAX,
+        )
+        .unwrap();
+        let before =
+            super::main_e177_final_inputs::registered_file(source, expected, usize::MAX).unwrap();
+        assert_eq!(history(source, expected, &cursor), Some(before));
+        assert!(history(source, expected, &format!("{cursor} ")).is_none());
+        assert!(history(source, "foreign", &cursor).is_none());
+    }
 }

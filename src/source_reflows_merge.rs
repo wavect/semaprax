@@ -418,7 +418,12 @@ pub(crate) fn consumer_input(domain: &str, source: &str, current: &str) -> Strin
         "cold835" => runtime_json::Fixture::F24,
         _ => panic!("unknown complete source consumer domain"),
     };
-    runtime_json::project(data, source, current)
+    constructor_stage::after(
+        domain,
+        source,
+        &entry,
+        runtime_json::project(data, source, current),
+    )
 }
 fn corrected_consumers_previous(source: &str, current: &str) -> String {
     let fixes = final_fix_input(source, current);
@@ -759,7 +764,7 @@ fn retained_function847_previous(source: &str, current: &str) -> String {
     joined_feature_input("453", source, current)
 }
 pub(crate) fn retained_function847_input(source: &str, current: &str) -> String {
-    retained_function847_previous(source, current)
+    constructor_stage::retained_function847_input(source, current)
 }
 pub(crate) fn directory825_input(source: &str, current: &str) -> String {
     let previous = joined_feature_input("453", source, current);
@@ -1216,19 +1221,15 @@ pub(crate) fn ordinary_plan_history_root_checkpoint(
 }
 #[path = "source_reflows_merge/main_c883_inputs.rs"]
 pub(crate) mod main_c883_inputs;
-
 #[path = "source_reflows_merge/main99f_inputs.rs"]
 pub(crate) mod main99f_inputs;
-
 #[path = "source_reflows_merge/main_e177_inputs.rs"]
 pub(crate) mod main_e177_inputs;
 // Distinct complete final-batch views precede both frozen parent readers.
 #[path = "source_reflows_merge/next_big_batch_inputs.rs"]
 pub(crate) mod next_big_batch_inputs;
-
 #[path = "source_reflows_merge/main_e177_final_inputs.rs"]
 pub(crate) mod main_e177_final_inputs;
-
 #[test]
 fn merge_projection_selects_only_the_requested_complete_current_view() {
     let source = "src/cleanup_plan/replay/allocation/oracle.rs";
@@ -1259,13 +1260,15 @@ fn merge_projection_selects_only_the_requested_complete_current_view() {
     foreign[0]["current_sha256"] = "0".repeat(64).into();
     assert!(std::panic::catch_unwind(|| project(&foreign.to_string(), source, &current)).is_err());
 }
-
 pub(crate) fn complete_receiver_followup(source: &str) -> String {
     runtime_json::complete_receiver_followup(source)
 }
 // Closed complete compiled ENTRY acquisition precedes every original #825 inverse.
 fn constructor825_compiled_entry(source: &str, expected: &str, current: &str) -> Option<String> {
-    let restored_typed = constructor_stage::typed(source, current);
+    if let Some(before) = constructor_stage::history(source, expected, current) {
+        return Some(before);
+    }
+    let restored_typed = constructor_stage::typed_for(source, expected, current);
     let current = restored_typed.as_deref().unwrap_or(current);
     let typed_before = if source
         == "src/workspace_graph/constructor_failure/receiving/typed/tests.rs"
@@ -1368,7 +1371,6 @@ fn constructor825_compiled_entry(source: &str, expected: &str, current: &str) ->
     assert_eq!(source_sha(&entry), expected);
     Some(entry)
 }
-
 fn constructor825_attempt_before(current: &str) -> String {
     assert_eq!(
         current,
@@ -1389,7 +1391,6 @@ fn constructor825_attempt_before(current: &str) -> String {
     );
     before
 }
-
 fn initial845_current_owner_before(source: &str, current: &str) -> Option<String> {
     let normalized = constructor_stage::owner(source, current);
     let current = normalized.as_deref().unwrap_or(current);
@@ -1491,7 +1492,6 @@ fn initial845_compiled_owner_entry(source: &str, current: &str) -> Option<String
     assert_eq!(source_sha(&prior), prior_sha);
     Some(prior)
 }
-
 fn source_sha(text: &str) -> String {
     format!(
         "{:x}",

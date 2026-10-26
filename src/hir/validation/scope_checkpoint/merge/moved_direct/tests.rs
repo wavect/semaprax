@@ -100,7 +100,7 @@ fn borrowed_ordered_union_keeps_every_state_prefix_missing_branch_and_empty_case
 fn complete_nonempty_scope_receiver_has_honest_many_field_net_and_visible_cold_loss() {
     for count in [1, 256] {
         let input = BTreeMap::from([(
-            ValueId::new("moved.owner"),
+            ValueId::new("moved.owner".to_owned()),
             binding(count, Availability::MaybeMoved),
         )]);
         for branches in [false, true] {
@@ -143,7 +143,7 @@ fn complete_nonempty_scope_receiver_has_honest_many_field_net_and_visible_cold_l
 #[test]
 fn current_complete_receiver_keeps_exact_short_zero_floor_sticky_and_full_drop() {
     let input = BTreeMap::from([(
-        ValueId::new("moved.owner"),
+        ValueId::new("moved.owner".to_owned()),
         binding(64, Availability::MaybeMoved),
     )]);
     for branches in [false, true] {

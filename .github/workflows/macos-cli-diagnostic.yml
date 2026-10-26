@@ -22,14 +22,280 @@ on:
         type: boolean
         required: false
         default: false
+      census_only:
+        description: Capture only the unchanged application reservation census; no test suites or journey
+        type: boolean
+        required: false
+        default: false
+      matched_904:
+        description: Run only the authenticated old/current OPT904 observation selectors sequentially
+        type: boolean
+        required: false
+        default: false
+      opt_batch:
+        description: Run the selected bounded OPT qualification batch and production Clippy on Linux
+        type: boolean
+        required: false
+        default: false
+      opt_batch_selection:
+        description: OPT profile (historical 50/153, next 65/171, language-followup 2/7, closure 22/114, final-source-closure 15/52, composed-closure 25/130, observed-census 3/5, or query-closure 47/193); requires opt_batch
+        type: choice
+        required: false
+        default: historical
+        options:
+          - historical
+          - next
+          - language-followup
+          - closure
+          - final-source-closure
+          - composed-closure
+          - observed-census
+          - query-closure
+      installed_bundle:
+        description: Generate the original installed agent bundle only (no tests or quality gates)
+        type: boolean
+        required: false
+        default: false
+      loglens_refs:
+        description: Also run the unchanged CLI49 reference checks with the freshly built compiler (no agent campaign)
+        type: boolean
+        required: false
+        default: false
 permissions:
   contents: read
 concurrency:
-  group: macos-cli-diagnostic-${{ github.ref }}
+  group: macos-cli-diagnostic-${{ github.ref }}${{ inputs.opt_batch && format('-opt-batch-{0}', inputs.opt_batch_selection) || '' }}${{ inputs.installed_bundle && '-installed-bundle' || '' }}
   cancel-in-progress: false
 jobs:
+  installed-bundle:
+    name: Original installed bundle producer
+    if: inputs.installed_bundle
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      CARGO_BUILD_JOBS: "1"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_DEV_OPT_LEVEL: "0"
+      CARGO_PROFILE_DEV_CODEGEN_UNITS: "64"
+      CARGO_PROFILE_DEV_DEBUG_ASSERTIONS: "true"
+      CARGO_PROFILE_DEV_OVERFLOW_CHECKS: "true"
+      CARGO_PROFILE_DEV_LTO: "false"
+      CARGO_INCREMENTAL: "0"
+      CARGO_TARGET_DIR: target/installed-bundle-producer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          fetch-tags: false
+          lfs: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+        with:
+          toolchain: 1.97.1
+      - name: Bind the producer to the immutable source tree
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain --untracked-files=no)"
+          git rev-parse HEAD^{tree} > producer-tree.txt
+      - name: Fetch locked dependencies before offline compilation
+        run: cargo fetch --locked
+      - name: Build the normal production compiler only
+        run: cargo build --locked --offline -p semaprax --bin semaprax --jobs 1
+      - name: Capture two byte-identical outputs from the original producer
+        shell: bash
+        run: |
+          python3 - <<'PYCODE'
+          import hashlib,json,os,pathlib,subprocess
+          def git(*args):
+              return subprocess.check_output(["git",*args],text=True).strip()
+          head=git("rev-parse","HEAD")
+          tree=git("rev-parse","HEAD^{tree}")
+          assert head==os.environ["GITHUB_SHA"]
+          assert tree==pathlib.Path("producer-tree.txt").read_text().strip()
+          assert not git("status","--porcelain","--untracked-files=no")
+          binary=pathlib.Path(os.environ["CARGO_TARGET_DIR"])/"debug/semaprax"
+          assert binary.is_file() and not binary.is_symlink()
+          command=[str(binary),"agent","skill"]
+          first=subprocess.check_output(command)
+          second=subprocess.check_output(command)
+          assert first==second, "original bundle producer is nondeterministic"
+          assert 0<len(first)<=1024*1024
+          json.loads(first)
+          assert git("rev-parse","HEAD")==head and git("rev-parse","HEAD^{tree}")==tree
+          assert not git("status","--porcelain","--untracked-files=no")
+          out=pathlib.Path("installed-bundle-artifact")
+          out.mkdir()
+          (out/"AGENT-SKILL-BUNDLE-V1.json").write_bytes(first)
+          digest=hashlib.sha256()
+          with binary.open("rb") as stream:
+              for chunk in iter(lambda:stream.read(65536),b""): digest.update(chunk)
+          (out/"receipt.json").write_text(json.dumps({
+              "schema":"semaprax.installed-bundle-production.v1",
+              "head":head,"tree":tree,"repository":os.environ["GITHUB_REPOSITORY"],
+              "run_id":os.environ["GITHUB_RUN_ID"],"command":command,
+              "build_command":["cargo","build","--locked","--offline","-p","semaprax","--bin","semaprax","--jobs","1"],
+              "features":"default","profile":"dev-opt0-debug0-codegen64-checked-incremental0-lto0",
+              "rustc":subprocess.check_output(["rustc","-vV"],text=True),
+              "binary_sha256":digest.hexdigest(),"bytes":len(first),
+              "sha256":hashlib.sha256(first).hexdigest(),"identical_invocations":2,
+              "qualification":"original installed-bundle generation only; source pins and runtime acceptance remain pending"
+          },indent=2)+"\n")
+          PYCODE
+      - name: Retain the original installed bundle and exact provenance
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: installed-bundle-${{ github.sha }}
+          path: installed-bundle-artifact/
+          if-no-files-found: error
+          retention-days: 3
+      - name: Resolve the existing native tools for optional CLI49 references
+        if: inputs.loglens_refs
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          opt_clang="$(command -v clang)"
+          opt_archiver="$(command -v ar)"
+          test -x "$opt_clang"
+          test -x "$opt_archiver"
+          echo "CLANG=$(readlink -f "$opt_clang")" >> "$GITHUB_ENV"
+          echo "SEMAPRAX_ARCHIVER=$(readlink -f "$opt_archiver")" >> "$GITHUB_ENV"
+      - name: Qualify both unchanged CLI49 references with the installed-bundle compiler
+        if: inputs.loglens_refs
+        shell: bash
+        run: |
+          export SEMAPRAX_BIN="$PWD/target/installed-bundle-producer/debug/semaprax"
+          export LOGLENS_SAMPLE="$PWD/benchmarks/cli-tokens-v1/sample.log"
+          python3 - <<'PYCODE'
+          import hashlib,json,os,pathlib,subprocess
+          def git(*args):
+              return subprocess.check_output(["git",*args],text=True).strip()
+          def sha(path):
+              digest=hashlib.sha256()
+              with path.open("rb") as stream:
+                  for chunk in iter(lambda:stream.read(65536),b""): digest.update(chunk)
+              return digest.hexdigest()
+          head=git("rev-parse","HEAD")
+          tree=git("rev-parse","HEAD^{tree}")
+          original=pathlib.Path("installed-bundle-artifact/receipt.json")
+          bundle=json.loads(original.read_text())
+          binary=pathlib.Path(os.environ["SEMAPRAX_BIN"])
+          assert bundle["schema"]=="semaprax.installed-bundle-production.v1"
+          assert head==os.environ["GITHUB_SHA"]==bundle["head"]
+          assert tree==bundle["tree"]
+          assert bundle["features"]=="default"
+          assert bundle["repository"]==os.environ["GITHUB_REPOSITORY"]
+          assert bundle["run_id"]==os.environ["GITHUB_RUN_ID"]
+          assert not git("status","--porcelain","--untracked-files=no")
+          assert binary.is_file() and not binary.is_symlink() and os.access(binary,os.X_OK)
+          binary_sha=sha(binary)
+          assert binary_sha==bundle["binary_sha256"], "reuse the exact original bundle producer"
+          tools={name:os.environ[name] for name in ("CLANG","SEMAPRAX_ARCHIVER")}
+          assert all(pathlib.Path(path).is_absolute() and os.access(path,os.X_OK) for path in tools.values())
+          out=pathlib.Path("installed-bundle-cli49")
+          out.mkdir()
+          receipt={
+              "schema":"semaprax.installed-bundle-cli49.v1",
+              "head":head,"tree":tree,"repository":os.environ["GITHUB_REPOSITORY"],
+              "run_id":os.environ["GITHUB_RUN_ID"],"binary":str(binary),
+              "binary_sha256":binary_sha,"original_bundle_receipt_sha256":sha(original),
+              "compiler_build_reused":True,"features":"default","native_tools":tools,
+              "native_optimization":"compiler_default_O2",
+              "sample":os.environ["LOGLENS_SAMPLE"],"references":[],
+              "qualification":"unchanged CLI49 native references only; no live agent campaign or benchmark"
+          }
+          failed=False
+          for name,candidate in (
+              ("loglens-selected","experiments/selected-file-input/loglens"),
+              ("loglens-matcher","experiments/ascii-pattern-source/loglens-reference/matcher-package-adapted"),
+          ):
+              output=out/name
+              command=["python3","benchmarks/cli-tokens-v1/selected_file_adoption.py",
+                  "--candidate",candidate,"--output",str(output)]
+              with (out/f"{name}.log").open("wb") as log:
+                  result=subprocess.run(command,stdout=log,stderr=subprocess.STDOUT,check=False)
+              row={"command":command,"exit_code":result.returncode,"accepted":False}
+              if result.returncode==0:
+                  try:
+                      report=json.loads((output/"qualification.json").read_text())
+                      assert report["accepted"] is True
+                      assert len(report["checks"])==33 and len(report["boundary_checks"])==16
+                      assert all(check["status"]=="passed" for check in report["checks"]+report["boundary_checks"])
+                      assert report["execution"]["mode"]=="native_executable_via_wrapper"
+                      row.update(accepted=True,historical_checks=33,boundary_checks=16)
+                  except (OSError,ValueError,KeyError,TypeError,AssertionError) as error:
+                      row["receipt_error"]=str(error) or type(error).__name__
+              failed=failed or not row["accepted"]
+              receipt["references"].append(row)
+          receipt["final_checkout"]={"head":git("rev-parse","HEAD"),"tree":git("rev-parse","HEAD^{tree}")}
+          receipt["tracked_source_unchanged"]=not git("status","--porcelain","--untracked-files=no")
+          receipt["compiler_unchanged"]=sha(binary)==binary_sha
+          receipt["original_bundle_receipt_unchanged"]=sha(original)==receipt["original_bundle_receipt_sha256"]
+          receipt["accepted"]=not failed and receipt["final_checkout"]=={"head":head,"tree":tree} and receipt["tracked_source_unchanged"] and receipt["compiler_unchanged"] and receipt["original_bundle_receipt_unchanged"]
+          (out/"receipt.json").write_text(json.dumps(receipt,indent=2)+"\n")
+          raise SystemExit(0 if receipt["accepted"] else 1)
+          PYCODE
+      - name: Retain separate optional CLI49 results and failed logs
+        if: ${{ always() && inputs.loglens_refs }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: installed-bundle-cli49-${{ github.sha }}-${{ github.run_attempt }}
+          path: installed-bundle-cli49/
+          if-no-files-found: error
+          retention-days: 7
+  matched-904:
+    name: OPT904 matched historical images (3 old / 2 current tests)
+    if: inputs.matched_904
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          fetch-tags: false
+          lfs: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+        with:
+          toolchain: 1.97.1
+      - name: Bind the paired observation package to this source tree
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain --untracked-files=no)"
+          mkdir opt904-paired-artifact
+          mkdir -p "$RUNNER_TEMP/opt904-images"
+          python3 - <<'PYCODE'
+          import hashlib,json,os,pathlib,subprocess
+          def sha(path):
+              return hashlib.sha256(pathlib.Path(path).read_bytes()).hexdigest()
+          git=lambda *args:subprocess.check_output(["git",*args],text=True).strip()
+          assert git("rev-parse","HEAD")==os.environ["GITHUB_SHA"]
+          pathlib.Path("opt904-paired-artifact/job.json").write_text(json.dumps({
+              "head":os.environ["GITHUB_SHA"],"tree":git("rev-parse","HEAD^{tree}"),
+              "repository":os.environ["GITHUB_REPOSITORY"],"run_id":os.environ["GITHUB_RUN_ID"],
+              "runner_sha256":sha("scripts/opt904-matched-observation.py"),
+              "manifest_sha256":sha("scripts/opt904-matched-observation/manifest.json"),
+              "qualification":"historical image observation only; no current-head application or OPT904-only total invoice gain"
+          },indent=2)+"\n")
+          PYCODE
+      - name: Observe the two exact images with one heavy build at a time
+        shell: bash
+        run: >-
+          python3 scripts/opt904-matched-observation.py
+          --scratch-root "$RUNNER_TEMP/opt904-images"
+          --output "$PWD/opt904-paired-artifact/observations"
+          --fetch-missing --fetch-dependencies
+      - name: Retain complete records, failures, executable hashes and host RAM samples
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: opt904-paired-observation-${{ github.sha }}-${{ github.run_attempt }}
+          path: opt904-paired-artifact/
+          if-no-files-found: error
+          retention-days: 7
   cli:
-    if: ${{ ! inputs.linux_stack && ! inputs.resolved_core && ! inputs.focused_controls }}
+    if: ${{ ! inputs.linux_stack && ! inputs.resolved_core && ! inputs.opt_batch && ! inputs.focused_controls && ! inputs.installed_bundle && ! inputs.matched_904 && ! inputs.census_only }}
     runs-on: macos-15
     timeout-minutes: 120
     env:
@@ -212,8 +478,8 @@ jobs:
           retention-days: 1
 
   resolved-core:
-    if: inputs.resolved_core
-    name: Project reservation census (diagnostic only)
+    if: inputs.resolved_core || inputs.census_only
+    name: ${{ inputs.census_only && 'Focused application reservation census' || 'Project reservation census (diagnostic only)' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     env:
@@ -244,9 +510,16 @@ jobs:
         run: |
           set -euo pipefail
           cargo build --locked --offline -p semaprax --lib --features unstable-workflow-profiling --jobs 1 --message-format=json > resolved-core-build.jsonl
-      - name: Capture unchanged failure and exclusive reservation totals
-        run: python3 scripts/diagnose-resolved-core.py resolved-core-build.jsonl
+      - name: Capture unchanged products and exclusive reservation totals
+        shell: bash
+        run: |
+          if [ "${{ inputs.census_only }}" = "true" ]; then
+            python3 scripts/diagnose-resolved-core.py resolved-core-build.jsonl --applications
+          else
+            python3 scripts/diagnose-resolved-core.py resolved-core-build.jsonl
+          fi
       - name: Check complete canonical predecessor and compact Result controls
+        if: ${{ ! inputs.census_only }}
         id: focused_controls
         env:
           CARGO_PROFILE_TEST_DEBUG: "0"
@@ -263,7 +536,7 @@ jobs:
           done
           exit "$result"
       - name: Run the complete default-profile bundled-library project suite
-        if: ${{ !cancelled() && steps.production_build.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.production_build.outcome == 'success' && ! inputs.census_only }}
         env:
           CARGO_PROFILE_TEST_DEBUG: "0"
           CARGO_PROFILE_TEST_OPT_LEVEL: "0"
@@ -272,7 +545,7 @@ jobs:
           cargo test --locked --offline -p semaprax --test project
           standard_library:: -- --nocapture --test-threads=1
       - name: Run the original installed-toolchain journey
-        if: ${{ !cancelled() && steps.production_build.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.production_build.outcome == 'success' && ! inputs.census_only }}
         env:
           CARGO_PROFILE_TEST_DEBUG: "0"
           CARGO_PROFILE_TEST_OPT_LEVEL: "0"
@@ -290,6 +563,137 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+  opt-batch:
+    name: Focused OPT qualification (${{ inputs.opt_batch_selection == 'query-closure' && '47 filters / 193 tests' || inputs.opt_batch_selection == 'observed-census' && '3 filters / 5 tests' || inputs.opt_batch_selection == 'composed-closure' && '25 filters / 130 tests' || inputs.opt_batch_selection == 'final-source-closure' && '15 filters / 52 tests' || inputs.opt_batch_selection == 'closure' && '22 filters / 114 tests' || inputs.opt_batch_selection == 'language-followup' && '2 filters / 7 tests' || inputs.opt_batch_selection == 'next' && '65 filters / 171 tests' || '50 filters / 153 tests' }})
+    if: inputs.opt_batch
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    env:
+      CARGO_BUILD_JOBS: "1"
+      CARGO_INCREMENTAL: "0"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      CARGO_PROFILE_DEV_OPT_LEVEL: "0"
+      CARGO_PROFILE_TEST_OPT_LEVEL: "0"
+      CARGO_PROFILE_DEV_CODEGEN_UNITS: "64"
+      CARGO_PROFILE_TEST_CODEGEN_UNITS: "64"
+      CARGO_PROFILE_DEV_DEBUG_ASSERTIONS: "true"
+      CARGO_PROFILE_TEST_DEBUG_ASSERTIONS: "true"
+      CARGO_PROFILE_DEV_OVERFLOW_CHECKS: "true"
+      CARGO_PROFILE_TEST_OVERFLOW_CHECKS: "true"
+      CARGO_PROFILE_DEV_INCREMENTAL: "false"
+      CARGO_PROFILE_TEST_INCREMENTAL: "false"
+      CARGO_PROFILE_DEV_LTO: "false"
+      CARGO_PROFILE_TEST_LTO: "false"
+      CARGO_TARGET_DIR: target/hosted-opt-batch
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          fetch-tags: false
+          lfs: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+        with:
+          toolchain: 1.97.1
+          components: clippy
+      - name: Resolve the existing native tools before qualification
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          opt_clang="$(command -v clang)"
+          opt_archiver="$(command -v ar)"
+          test -x "$opt_clang"
+          test -x "$opt_archiver"
+          echo "CLANG=$(readlink -f "$opt_clang")" >> "$GITHUB_ENV"
+          echo "SEMAPRAX_ARCHIVER=$(readlink -f "$opt_archiver")" >> "$GITHUB_ENV"
+      - name: Build the selected owning images once, run exact controls, then production Clippy
+        env:
+          OPT_BATCH_SELECTION: ${{ inputs.opt_batch_selection == 'query-closure' && 'query-closure' || inputs.opt_batch_selection == 'observed-census' && 'observed-census' || inputs.opt_batch_selection == 'composed-closure' && 'composed-closure' || inputs.opt_batch_selection == 'final-source-closure' && 'final-source-closure' || inputs.opt_batch_selection == 'closure' && 'closure' || inputs.opt_batch_selection == 'language-followup' && 'language-followup' || inputs.opt_batch_selection == 'next' && 'next' || 'historical' }}
+        run: |
+          if [ "$OPT_BATCH_SELECTION" = query-closure ]; then
+            python3 scripts/ci-opt-batch.py --selection query-closure
+          elif [ "$OPT_BATCH_SELECTION" = observed-census ]; then
+            python3 scripts/ci-opt-batch.py --selection observed-census
+          elif [ "$OPT_BATCH_SELECTION" = composed-closure ]; then
+            python3 scripts/ci-opt-batch.py --selection composed-closure
+          elif [ "$OPT_BATCH_SELECTION" = final-source-closure ]; then
+            python3 scripts/ci-opt-batch.py --selection final-source-closure
+          elif [ "$OPT_BATCH_SELECTION" = closure ]; then
+            python3 scripts/ci-opt-batch.py --selection closure
+          elif [ "$OPT_BATCH_SELECTION" = language-followup ]; then
+            python3 scripts/ci-opt-batch.py --selection language-followup
+          elif [ "$OPT_BATCH_SELECTION" = next ]; then
+            python3 scripts/ci-opt-batch.py --selection next
+          else
+            python3 scripts/ci-opt-batch.py
+          fi
+      - name: Qualify the changed LogLens references without a live agent campaign
+        if: ${{ always() && inputs.loglens_refs && inputs.opt_batch_selection != 'closure' && inputs.opt_batch_selection != 'final-source-closure' && inputs.opt_batch_selection != 'composed-closure' && inputs.opt_batch_selection != 'observed-census' && inputs.opt_batch_selection != 'query-closure' }}
+        shell: bash
+        env:
+          OPT_BATCH_SELECTION: ${{ inputs.opt_batch_selection == 'closure' && 'closure' || inputs.opt_batch_selection == 'language-followup' && 'language-followup' || inputs.opt_batch_selection == 'next' && 'next' || 'historical' }}
+        run: |
+          python3 - <<'PYCODE'
+          import json,os,pathlib,subprocess
+          receipt=json.loads(pathlib.Path("diagnostic-opt-batch/receipt.json").read_text())
+          assert not receipt.get("execution_aborted"), "qualification batch aborted"
+          profile=os.environ["OPT_BATCH_SELECTION"]
+          expected_filters=65 if profile=="next" else 50
+          expected_tests=171 if profile=="next" else 153
+          if profile=="language-followup":
+              expected_filters,expected_tests=2,7
+          assert receipt["selection"]["profile"]==profile
+          assert receipt["selection"]["expected_filters"]==expected_filters
+          assert receipt["selection"]["expected_tests"]==expected_tests
+          assert receipt.get("completed_filters")==expected_filters and receipt.get("summary_counts_complete") is True
+          head=subprocess.check_output(["git","rev-parse","HEAD"],text=True).strip()
+          tree=subprocess.check_output(["git","rev-parse","HEAD^{tree}"],text=True).strip()
+          assert head==os.environ["GITHUB_SHA"]==receipt["head"]
+          assert tree==receipt["tree"]
+          assert receipt["final_checkout"]=={"head":head,"tree":tree}
+          subprocess.run(["git","diff","--quiet","HEAD","--"],check=True)
+          PYCODE
+          cargo build --locked --offline -p semaprax --bin semaprax --jobs 1
+          export SEMAPRAX_BIN="$PWD/target/hosted-opt-batch/debug/semaprax"
+          export LOGLENS_SAMPLE="$PWD/benchmarks/cli-tokens-v1/sample.log"
+          python3 - <<'PYCODE'
+          import hashlib,json,os,pathlib,subprocess
+          binary=pathlib.Path(os.environ["SEMAPRAX_BIN"])
+          head=subprocess.check_output(["git","rev-parse","HEAD"],text=True).strip()
+          assert head==os.environ["GITHUB_SHA"]
+          subprocess.run(["git","diff","--quiet","HEAD","--"],check=True)
+          digest=hashlib.sha256()
+          with binary.open("rb") as stream:
+              for chunk in iter(lambda:stream.read(65536),b""):digest.update(chunk)
+          pathlib.Path("diagnostic-opt-batch/loglens-compiler.json").write_text(json.dumps({"head":head,"binary_sha256":digest.hexdigest(),"qualification":"CLI49 references only; no live agent campaign"},indent=2)+"\n")
+          PYCODE
+          loglens_status=0
+          python3 - <<'PYCODE' || loglens_status=1
+          import os,pathlib,re,shutil,subprocess
+          output=pathlib.Path("diagnostic-opt-batch/browser-graphs")
+          output.mkdir()
+          renamed=pathlib.Path(os.environ["RUNNER_TEMP"])/"opt-calculator-project-renamed"
+          shutil.copytree("examples/calculator-project",renamed)
+          source=renamed/"src/core.spx"
+          text,count=re.subn(r"^fn add\(","fn sum(",source.read_text(),flags=re.MULTILINE)
+          assert count==1
+          source.write_text(text)
+          for name,manifest in (("calculator-baseline.json",pathlib.Path("examples/calculator-project/semaprax.toml")),("calculator-renamed.json",renamed/"semaprax.toml")):
+              with (output/name).open("wb") as stream:
+                  subprocess.run([os.environ["SEMAPRAX_BIN"],"graph",str(manifest)],stdout=stream,check=True)
+          PYCODE
+          python3 benchmarks/cli-tokens-v1/selected_file_adoption.py --candidate experiments/selected-file-input/loglens --output diagnostic-opt-batch/loglens-selected > diagnostic-opt-batch/loglens-selected.log 2>&1 || loglens_status=1
+          python3 benchmarks/cli-tokens-v1/selected_file_adoption.py --candidate experiments/ascii-pattern-source/loglens-reference/matcher-package-adapted --output diagnostic-opt-batch/loglens-matcher > diagnostic-opt-batch/loglens-matcher.log 2>&1 || loglens_status=1
+          exit "$loglens_status"
+      - name: Retain actual commands, binaries' identities, logs and checked test counts
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: diagnostic-opt-batch-${{ github.sha }}-${{ github.run_attempt }}
+          path: diagnostic-opt-batch/
+          if-no-files-found: error
+          retention-days: 7
   focused-controls:
     name: Focused complete-library unit controls (diagnostic only)
     if: inputs.focused_controls

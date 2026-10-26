@@ -1,5 +1,7 @@
 //! Ordinary independent-segment transport, checked against the complete immediate kernel.
 use super::*;
+// This retained incoming equation qualifies the complete puremain599 kernel.
+use super::super::super::main_loaded_segments::compare;
 
 pub(super) fn predecessor_price_counts(row: &pair_scope_census::Row) -> pair_scope_census::Row {
     assert!(row.complete && row.ended && !row.unwound && !row.truncated && !row.overflow);

@@ -2,8 +2,11 @@
 //!
 //! Validates HIR meaning; source resolution remains in
 //! the parent module.
+mod continuation_frame;
+mod frame_reuse;
 mod function_lookup;
 mod function_scope;
+use continuation_frame::Frame;
 mod identity_directory;
 mod identity_insert;
 mod identity_scratch;
@@ -313,11 +316,16 @@ impl<'a> HirValidator<'a> {
             }
         }
 
-        for function in &self.program.functions {
-            self.validate_function(
-                function,
-                &FunctionExecutionId::Monomorphic(function.id.clone()),
-            )?;
+        {
+            let mut scratch = frame_reuse::Scratch::new()?;
+            for function in &self.program.functions {
+                frame_reuse::argument()?;
+                self.validate_function_with_frames(
+                    function,
+                    &FunctionExecutionId::Monomorphic(function.id.clone()),
+                    Some(&mut scratch),
+                )?;
+            }
         }
         let mut instance_ids = BTreeSet::new();
         let expected_instances = self.reachable_function_instances()?;
@@ -1767,336 +1775,33 @@ impl<'a> HirValidator<'a> {
         allow_moves: bool,
         allowed_effects: Option<effect_keys::Allowed<'_>>,
     ) -> Result<(), Diagnostic> {
-        enum Frame<'e> {
-            LexicalReturn {
-                expression: &'e ResolvedExpr,
-                operand: &'e ResolvedExpr,
-            },
-            InvokeNext {
-                expression: &'e ResolvedExpr,
-                index: usize,
-                scope: scope_checkpoint::Scope,
-                path: &'e str,
-            },
-            InvokeAfter {
-                expression: &'e ResolvedExpr,
-                index: usize,
-                path: &'e str,
-            },
-            RestorePublication(bool),
-            Enter {
-                expression: &'e ResolvedExpr,
-                scope: scope_checkpoint::Scope,
-                path: path_label::Label<'e>,
-            },
-            Unary {
-                expression: &'e ResolvedExpr,
-                op: UnaryOp,
-            },
-            ByteRangeAfterSource {
-                expression: &'e ResolvedExpr,
-                start: &'e ResolvedExpr,
-                end: &'e ResolvedExpr,
-                path: &'e str,
-            },
-            ByteRangeAfterStart {
-                expression: &'e ResolvedExpr,
-                end: &'e ResolvedExpr,
-                path: &'e str,
-            },
-            ByteRangeAfterEnd {
-                expression: &'e ResolvedExpr,
-            },
-            BinaryLeft {
-                expression: &'e ResolvedExpr,
-                op: BinaryOp,
-                right: &'e ResolvedExpr,
-                path: &'e str,
-            },
-            BinaryRight {
-                expression: &'e ResolvedExpr,
-                op: BinaryOp,
-                left: &'e ResolvedExpr,
-                baseline: Option<(scope_checkpoint::IdSnapshot, scope_checkpoint::Scope)>,
-            },
-            IfCondition {
-                expression: &'e ResolvedExpr,
-                then_branch: &'e ResolvedExpr,
-                else_branch: &'e ResolvedExpr,
-                path: &'e str,
-            },
-            IfThen {
-                expression: &'e ResolvedExpr,
-                else_branch: &'e ResolvedExpr,
-                path: &'e str,
-                outer: scope_checkpoint::Scope,
-                outer_ids: scope_checkpoint::IdSnapshot,
-            },
-            IfElse {
-                expression: &'e ResolvedExpr,
-                then_scope: scope_checkpoint::Scope,
-                outer: scope_checkpoint::Scope,
-                outer_ids: scope_checkpoint::IdSnapshot,
-            },
-            Project {
-                expression: &'e ResolvedExpr,
-                field: &'e DeclarationId,
-            },
-            Upcast {
-                expression: &'e ResolvedExpr,
-            },
-            /// Resumable Effects v1 (issue #204). See `hir::resolve_yield`.
-            Yield {
-                expression: &'e ResolvedExpr,
-            },
-            Try {
-                expression: &'e ResolvedExpr,
-                path: &'e str,
-                option: bool,
-            },
-            CallNext {
-                expression: &'e ResolvedExpr,
-                args: &'e [ResolvedExpr],
-                params: CallParameters<'e>,
-                return_type: call_signature::ResultType<'e>,
-                return_ownership: OwnershipMode,
-                index: usize,
-                scope: scope_checkpoint::Scope,
-                path: &'e str,
-            },
-            CallAfterArg {
-                expression: &'e ResolvedExpr,
-                args: &'e [ResolvedExpr],
-                params: CallParameters<'e>,
-                return_type: call_signature::ResultType<'e>,
-                return_ownership: OwnershipMode,
-                index: usize,
-                path: &'e str,
-            },
-            NativeNext {
-                expression: &'e ResolvedExpr,
-                args: &'e [ResolvedExpr],
-                params: &'e [ResolvedImportParameter],
-                result: ResolvedType,
-                index: usize,
-                scope: scope_checkpoint::Scope,
-                path: &'e str,
-            },
-            NativeAfterArg {
-                expression: &'e ResolvedExpr,
-                args: &'e [ResolvedExpr],
-                params: &'e [ResolvedImportParameter],
-                result: ResolvedType,
-                index: usize,
-                path: &'e str,
-            },
-            BlockNext {
-                expression: &'e ResolvedExpr,
-                statements: &'e [ResolvedStatement],
-                tail: &'e ResolvedExpr,
-                index: usize,
-                scope: scope_checkpoint::Scope,
-                outer: scope_checkpoint::Scope,
-                outer_ids: scope_checkpoint::IdSnapshot,
-                path: &'e str,
-            },
-            BlockAfterLet {
-                expression: &'e ResolvedExpr,
-                statements: &'e [ResolvedStatement],
-                tail: &'e ResolvedExpr,
-                index: usize,
-                outer: scope_checkpoint::Scope,
-                outer_ids: scope_checkpoint::IdSnapshot,
-                path: &'e str,
-            },
-            BlockAfterAssign {
-                expression: &'e ResolvedExpr,
-                statements: &'e [ResolvedStatement],
-                tail: &'e ResolvedExpr,
-                index: usize,
-                scope: scope_checkpoint::Scope,
-                outer: scope_checkpoint::Scope,
-                outer_ids: scope_checkpoint::IdSnapshot,
-                path: &'e str,
-            },
-            BlockAfterUnsafe {
-                expression: &'e ResolvedExpr,
-                statements: &'e [ResolvedStatement],
-                tail: &'e ResolvedExpr,
-                index: usize,
-                outer: scope_checkpoint::Scope,
-                outer_ids: scope_checkpoint::IdSnapshot,
-                path: &'e str,
-            },
-            BlockAfterWhileCondition {
-                expression: &'e ResolvedExpr,
-                statements: &'e [ResolvedStatement],
-                tail: &'e ResolvedExpr,
-                index: usize,
-                outer: scope_checkpoint::Scope,
-                outer_ids: scope_checkpoint::IdSnapshot,
-                path: &'e str,
-                body: &'e ResolvedExpr,
-                entry: scope_checkpoint::Scope,
-            },
-            BlockAfterWhileBody {
-                expression: &'e ResolvedExpr,
-                statements: &'e [ResolvedStatement],
-                tail: &'e ResolvedExpr,
-                index: usize,
-                outer: scope_checkpoint::Scope,
-                outer_ids: scope_checkpoint::IdSnapshot,
-                path: &'e str,
-                entry: scope_checkpoint::Scope,
-            },
-            BlockTail {
-                expression: &'e ResolvedExpr,
-                outer_ids: scope_checkpoint::IdSnapshot,
-                outer: scope_checkpoint::Scope,
-            },
-            RecordNext {
-                expression: &'e ResolvedExpr,
-                fields: &'e [ResolvedFieldInitializer],
-                expected: &'e [ResolvedFieldDeclaration],
-                record: &'e DeclarationId,
-                arguments: &'e [ResolvedType],
-                seen: BTreeSet<DeclarationId>,
-                index: usize,
-                scope: scope_checkpoint::Scope,
-                path: &'e str,
-            },
-            RecordAfterField {
-                expression: &'e ResolvedExpr,
-                fields: &'e [ResolvedFieldInitializer],
-                expected: &'e [ResolvedFieldDeclaration],
-                record: &'e DeclarationId,
-                arguments: &'e [ResolvedType],
-                seen: BTreeSet<DeclarationId>,
-                index: usize,
-                path: &'e str,
-            },
-            VariantNext {
-                expression: &'e ResolvedExpr,
-                fields: &'e [ResolvedFieldInitializer],
-                expected: &'e [ResolvedFieldDeclaration],
-                variant: &'e DeclarationId,
-                case: &'e DeclarationId,
-                arguments: &'e [ResolvedType],
-                seen: BTreeSet<DeclarationId>,
-                index: usize,
-                scope: scope_checkpoint::Scope,
-                path: &'e str,
-            },
-            VariantAfterField {
-                expression: &'e ResolvedExpr,
-                fields: &'e [ResolvedFieldInitializer],
-                expected: &'e [ResolvedFieldDeclaration],
-                variant: &'e DeclarationId,
-                case: &'e DeclarationId,
-                arguments: &'e [ResolvedType],
-                seen: BTreeSet<DeclarationId>,
-                index: usize,
-                path: &'e str,
-            },
-            UpdateBase {
-                expression: &'e ResolvedExpr,
-                record: &'e DeclarationId,
-                fields: &'e [ResolvedFieldInitializer],
-                path: &'e str,
-            },
-            UpdateNext {
-                expression: &'e ResolvedExpr,
-                fields: &'e [ResolvedFieldInitializer],
-                expected: &'e [ResolvedFieldDeclaration],
-                record: &'e DeclarationId,
-                arguments: &'e [ResolvedType],
-                seen: BTreeSet<DeclarationId>,
-                index: usize,
-                scope: scope_checkpoint::Scope,
-                path: &'e str,
-                ownership: OwnershipMode,
-            },
-            UpdateAfterField {
-                expression: &'e ResolvedExpr,
-                fields: &'e [ResolvedFieldInitializer],
-                expected: &'e [ResolvedFieldDeclaration],
-                record: &'e DeclarationId,
-                arguments: &'e [ResolvedType],
-                seen: BTreeSet<DeclarationId>,
-                index: usize,
-                path: &'e str,
-                ownership: OwnershipMode,
-            },
-            MatchScrutinee {
-                expression: &'e ResolvedExpr,
-                arms: &'e [ResolvedMatchArm],
-                path: &'e str,
-            },
-            RecordMatchArm {
-                expression: &'e ResolvedExpr,
-                arm: &'e ResolvedMatchArm,
-                outer: scope_checkpoint::Scope,
-                outer_ids: scope_checkpoint::IdSnapshot,
-                borrowed_root: Option<ValueId>,
-            },
-            VariantMatchNext {
-                expression: &'e ResolvedExpr,
-                cases: &'e [ResolvedVariantCaseDeclaration],
-                index: usize,
-                outer: scope_checkpoint::Scope,
-                outer_ids: scope_checkpoint::IdSnapshot,
-                arm_scopes: scope_checkpoint::Storage<scope_checkpoint::Scope>,
-                covered: variant_or::Covered<'e>,
-                wildcard_seen: bool,
-                result: Option<&'e ResolvedExpr>,
-                path: &'e str,
-            },
-            VariantMatchAfterArm {
-                expression: &'e ResolvedExpr,
-                cases: &'e [ResolvedVariantCaseDeclaration],
-                index: usize,
-                outer: scope_checkpoint::Scope,
-                outer_ids: scope_checkpoint::IdSnapshot,
-                arm_scopes: scope_checkpoint::Storage<scope_checkpoint::Scope>,
-                covered: variant_or::Covered<'e>,
-                wildcard_seen: bool,
-                result: Option<&'e ResolvedExpr>,
-                path: &'e str,
-            },
-            /// Refutable Match v1 decision-chain twins. They mirror the
-            /// resolver's Copy-scalar admission structurally, fail-closed.
-            ScalarMatchNext {
-                expression: &'e ResolvedExpr,
-                arms: &'e [ResolvedMatchArm],
-                index: usize,
-                outer: scope_checkpoint::Scope,
-                outer_ids: scope_checkpoint::IdSnapshot,
-                arm_scopes: scope_checkpoint::Storage<scope_checkpoint::Scope>,
-                result: Option<&'e ResolvedExpr>,
-                path: &'e str,
-            },
-            ScalarMatchAfterGuard {
-                expression: &'e ResolvedExpr,
-                arms: &'e [ResolvedMatchArm],
-                index: usize,
-                outer: scope_checkpoint::Scope,
-                outer_ids: scope_checkpoint::IdSnapshot,
-                arm_scopes: scope_checkpoint::Storage<scope_checkpoint::Scope>,
-                result: Option<&'e ResolvedExpr>,
-                path: &'e str,
-            },
-            ScalarMatchAfterArm {
-                expression: &'e ResolvedExpr,
-                arms: &'e [ResolvedMatchArm],
-                index: usize,
-                outer: scope_checkpoint::Scope,
-                outer_ids: scope_checkpoint::IdSnapshot,
-                arm_scopes: scope_checkpoint::Storage<scope_checkpoint::Scope>,
-                result: Option<&'e ResolvedExpr>,
-                path: &'e str,
-            },
-        }
+        frame_reuse::fresh_expression_transport()?;
+        frame_reuse::argument()?;
+        self.validate_expr_with_frames(
+            function,
+            expression,
+            scope,
+            path,
+            allow_moves,
+            allowed_effects,
+            None,
+        )
+    }
 
+    #[allow(clippy::too_many_arguments)]
+    fn validate_expr_with_frames<'e>(
+        &mut self,
+        function: &FunctionExecutionId,
+        expression: &'e ResolvedExpr,
+        scope: &mut dyn ScopeWrite,
+        path: path_label::Label<'e>,
+        allow_moves: bool,
+        allowed_effects: Option<effect_keys::Allowed<'_>>,
+        mut scratch: Option<&mut frame_reuse::Scratch<'e>>,
+    ) -> Result<(), Diagnostic>
+    where
+        'a: 'e,
+    {
         const { assert!(std::mem::size_of::<Frame<'static>>() <= super::VALIDATOR_FRAME_BYTES) };
         #[cfg(test)]
         lexical_exit::observe_frame_layout::<Frame<'static>>(
@@ -5361,12 +5066,7 @@ impl<'a> HirValidator<'a> {
                             "resolved owned variant match arm must produce a Copy scalar",
                         ));
                     }
-                    #[cfg(test)]
-                    lexical_exit::observe_witness_frontier("join", lexical_exit::WITNESS_JOIN);
-                    scope_checkpoint::charge::reserve(Some(lexical_exit::WITNESS_JOIN))?;
-                    #[cfg(test)]
-                    lexical_exit::observe_witness_role("join");
-                    validator.join_lexical_match_witness(&mut result, &arm.value)?;
+                    lexical_exit::join_validated_arm!(validator, result, arm.value);
                     #[cfg(test)]
                     lexical_exit::witness_unwind_point();
                     if !super::lexical_exit::returns_only(&arm.value) {
@@ -5621,12 +5321,7 @@ impl<'a> HirValidator<'a> {
                 } => {
                     let arm_scope = scopes.pop().expect("scalar match arm scope retained");
                     let arm = &arms[index];
-                    #[cfg(test)]
-                    lexical_exit::observe_witness_frontier("join", lexical_exit::WITNESS_JOIN);
-                    scope_checkpoint::charge::reserve(Some(lexical_exit::WITNESS_JOIN))?;
-                    #[cfg(test)]
-                    lexical_exit::observe_witness_role("join");
-                    validator.join_lexical_match_witness(&mut result, &arm.value)?;
+                    lexical_exit::join_validated_arm!(validator, result, arm.value);
                     #[cfg(test)]
                     lexical_exit::witness_unwind_point();
                     if !super::lexical_exit::returns_only(&arm.value) {
@@ -5813,13 +5508,25 @@ impl<'a> HirValidator<'a> {
         }
         let mut publication = scope_checkpoint::Publication::take(scope)?;
         let initial_scope = publication.published.clone();
-        let mut frames = scope_checkpoint::Storage::new();
+        // The directory pair is a new transport role, acquired before its
+        // formation on both fresh and reuse paths. Argument transport is paid
+        // by the caller before constructing the optional owner.
+        scope_checkpoint::charge::reserve(Some(
+            std::mem::size_of::<scope_checkpoint::Storage<Frame<'e>>>()
+                + std::mem::size_of::<scope_checkpoint::Storage<scope_checkpoint::Scope>>(),
+        ))?;
+        let (mut frames, mut scopes) = match scratch.as_deref_mut() {
+            Some(scratch) => scratch.take()?,
+            None => (
+                scope_checkpoint::Storage::new(),
+                scope_checkpoint::Storage::new(),
+            ),
+        };
         frames.push(Frame::Enter {
             expression,
             scope: initial_scope,
             path,
         })?;
-        let mut scopes = scope_checkpoint::Storage::new();
         while let Some(frame) = frames.pop() {
             #[cfg(test)]
             note_iterative_phase_capacity(
@@ -5982,6 +5689,12 @@ impl<'a> HirValidator<'a> {
             return Err(hir_error("iterative HIR validator lost its scope stack"));
         }
         publication.publish(&scopes.pop().expect("root validation scope retained"))?;
+        if let Some(scratch) = scratch {
+            scope_checkpoint::charge::reserve(Some(
+                std::mem::size_of_val(&frames) + std::mem::size_of_val(&scopes),
+            ))?;
+            scratch.restore(frames, scopes)?;
+        }
         Ok(())
     }
 

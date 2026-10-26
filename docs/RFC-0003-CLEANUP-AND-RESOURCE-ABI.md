@@ -388,6 +388,25 @@ authenticate within budget changes. Test builds additionally run the
 factored comparison beside enumeration on every function small enough to
 enumerate and require the same verdict.
 
+An additional comparison-time representation selector applies only after the
+unchanged ordinary size/work admission and program-wide skeleton reservation:
+an ordinary active builder may compare a nonlexical function factored when both
+terminal bounds fit the existing 4,096-path window, there are at least 32 checked
+status sources, and there are no slots or live/conditional owned entry parameters.
+The selector's argument, result and loan receivers are prepaid; it still runs
+the existing acyclic CFG validator and complete independent HIR/plan language
+construction, paid paired proof and full canonical fallback. It does not select
+admission, spend or refund the held enumeration pool, or suppress the independent
+test enumerator. Tiny functions retain enumeration, and other payers retain their previous
+selector. Ordinary builder dispatch prepays its selector/header/CFG/error-probe
+receivers before testing thresholds, including on tiny nonselecting paths.
+The existing builder crossover above 128 paths runs first; this fitting selector
+extends only its nonselected comparison window.
+This checkpoint is source-only: the fitting scalar success, schema/CFG/status
+mutation, exact/short byte, sticky refusal, foreign-payer and full Drop controls
+in `cleanup_plan::replay::tests::factored::fitting_` are authored and unrun;
+no ordinary application-budget improvement is claimed before execution.
+
 The source-only [OPT839 retained canonical scratch draft](evidence/canonical-scratch-839/README.md)
 keeps one comparison's cursor/frame/open backing and authenticated receiving
 storage. Its complete old receiver, ordinary Memo, work/arithmetic/diagnostic
@@ -762,3 +781,24 @@ not language qualification, call permissions, source/graph/cache bytes or limits
 The ordinary synthetic-AST peak census remains conservative and unchanged. Physical
 constructor/core comparisons and unchanged application gates remain pending; no
 19,422-byte reduction, application fit or issue closure follows from source review.
+
+
+### Same-invocation cleanup-shape projection backing
+
+The source candidate retains one empty projection Vec across the slots of one
+complete leaf collector. Each slot independently replays every shape event,
+field/case uniqueness check, identity clone and leaf/index construction. The
+existing balanced-depth postcondition proves no projection ID crosses a
+successful slot boundary; only empty capacity survives. Every original growth
+reservation remains at the original Push point and no completed fee is refunded.
+The additional Vec owner, constructor, reservation and explicit Drop transports
+are paid before formation, including empty or tiny collectors that can regress.
+On error, the projection owner drops before pending events and constructed leaf
+indexes. On success it drops before the existing final flag-contiguity check
+and Leaves publication. The complete immediate old collector remains an
+independently executable lexical body with the same ABI and original invoice.
+Earlier worklist-zero/net controls retain their explicit pre-reuse stage; new
+complete caller controls cover current net and cold loss, later malformed and
+duplicate shapes, alternating depths, exact/short/zero/sticky refusal and Drop.
+All new controls are source-authored and unexecuted; application admission and
+resource-limit recovery remain separate qualification requirements.

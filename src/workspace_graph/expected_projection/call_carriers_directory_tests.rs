@@ -68,7 +68,9 @@ fn warm_calls(source: &str, balanced: bool) -> String {
 }
 
 fn parity(program: &Program, index: &Index<'_>, imports: bool) -> (Proof, Census) {
-    let old = super::super::before_directory::count(program, index, imports);
+    let old = super::super::tests::before_names(|| {
+        super::super::before_directory::count(program, index, imports)
+    });
     take_census();
     let current = count(program, index, imports);
     let census = take_census();
@@ -81,21 +83,31 @@ fn parity(program: &Program, index: &Index<'_>, imports: bool) -> (Proof, Census
 
 #[test]
 fn complete_before_source_and_all_header_capacity_boundaries_are_retained() {
-    let before = include_str!("call_carriers_before_directory.rs");
-    // Import ordering is formatter glue. Keep the complete original body/hash.
+    let physical_before = include_str!("call_carriers_before_directory.rs");
     let formatted_import = "use super::{call_identity, AuthoredDeclaration};";
     let original_import = "use super::{AuthoredDeclaration, call_identity};";
-    assert_eq!(before.matches(formatted_import).count(), 1);
-    let original_before = before.replacen(formatted_import, original_import, 1);
-    let before = original_before.as_str();
+    assert_eq!(physical_before.matches(formatted_import).count(), 1);
+    let original_before = physical_before.replacen(formatted_import, original_import, 1);
+    let before = crate::source_reflows_merge::main_e177_final_inputs::value_direct(
+        "src/workspace_graph/expected_projection/call_carriers_before_directory.rs",
+        "87142dc1b3f98f9d381459f0f4f8925c807d28645aa0646ea453eea3c63cc512",
+        include_str!("call_carriers_before_directory.rs"),
+    );
+    let before = before.as_str();
+    assert_eq!(original_before, before, "whole incoming formatter restoration equals the independently acquired original");
     assert_eq!(
         format!("{:x}", crate::digest_hex::LowerHex(&Sha256::digest(before))),
         "87142dc1b3f98f9d381459f0f4f8925c807d28645aa0646ea453eea3c63cc512",
     );
-    let root = include_str!("call_carriers.rs");
-    assert_eq!(root.matches(formatted_import).count(), 1);
-    let original_root = root.replacen(formatted_import, original_import, 1);
-    let root = original_root.as_str();
+    let physical_root = include_str!("call_carriers.rs");
+    assert_eq!(physical_root.matches(formatted_import).count(), 1);
+    let original_root = physical_root.replacen(formatted_import, original_import, 1);
+    assert_eq!(original_root.replacen(original_import, formatted_import, 1), physical_root);
+    let root = crate::source_reflows_merge::main_e177_final_inputs::value_direct(
+        "src/workspace_graph/expected_projection/call_carriers.rs",
+        "84802a57f88f708bbc10da608f169ebedba8307677b2e6858cd8e0850c505aaa",
+        include_str!("call_carriers.rs"),
+    );
     let linear = root.split("\n#[cfg(test)]").next().unwrap();
     assert_eq!(linear.matches("fn count_linear(").count(), 1);
     assert_eq!(
@@ -125,7 +137,9 @@ fn complete_before_source_and_all_header_capacity_boundaries_are_retained() {
             assert_eq!((census.builds, census.rows), (1, n));
             assert!(census.sort_compares > 0);
         } else {
-            let old = super::super::before_directory::count(&programs[0], &index, true);
+            let old = super::super::tests::before_names(|| {
+                super::super::before_directory::count(&programs[0], &index, true)
+            });
             assert_eq!(current.bytes, old.bytes + EMPTY_SELECTOR);
             assert_eq!((census.builds, census.rows, census.queries), (0, 0, 0));
         }
@@ -266,7 +280,9 @@ fn full_cold_invoice_retains_short_losses_and_genuine_dense_net_gate() {
             }
             let programs = [parse(&ambiguous)];
             let index = crate::workspace_graph::index_authored(&programs).unwrap();
-            let old = super::super::before_directory::count(&programs[0], &index, true);
+            let old = super::super::tests::before_names(|| {
+                super::super::before_directory::count(&programs[0], &index, true)
+            });
             let (proof, census) = parity(&programs[0], &index, true);
             assert_eq!(
                 (old.roots, proof.roots, census.queries),
@@ -277,7 +293,9 @@ fn full_cold_invoice_retains_short_losses_and_genuine_dense_net_gate() {
         let program = parse(&source);
         let programs = [program];
         let index = crate::workspace_graph::index_authored(&programs).unwrap();
-        let old = super::super::before_directory::count(&programs[0], &index, true);
+        let old = super::super::tests::before_names(|| {
+            super::super::before_directory::count(&programs[0], &index, true)
+        });
         let (current, census) = parity(&programs[0], &index, true);
         if headers == 2 {
             assert_eq!(current.bytes, old.bytes + EMPTY_SELECTOR);
@@ -367,7 +385,9 @@ fn complete_pre898_forecast_comparison_discloses_every_cold_and_dense_row() {
         let index = crate::workspace_graph::index_authored(&programs).unwrap();
         let program = &programs[0];
         let maximum = Some(dependency_identity_max(program, &index, &programs).unwrap());
-        let before_directory = super::super::before_directory::count(program, &index, true);
+        let before_directory = super::super::tests::before_names(|| {
+            super::super::before_directory::count(program, &index, true)
+        });
         let current_proof = count(program, &index, true);
         assert_eq!(current_proof.roots, before_directory.roots);
         if shape == 1 {

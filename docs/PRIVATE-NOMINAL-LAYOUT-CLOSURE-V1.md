@@ -39,10 +39,13 @@ mints a normal source identifier fresh against all authored identifiers in the
 caller: imports, declarations, parameters and generic parameters, all type
 references, local bindings and reads, constructor and field names, match and
 nested record patterns, closures, and traversal aliases/indices. The MVP census
-covers plain record/variant/function modules. Interfaces, classes, resources,
-protocols, implementations, sessions, Agent declarations, and session-following
-functions refuse inferred private layouts until their full name census is
-implemented. Their existing explicit-import route is unchanged.
+covers record/variant/function modules and the complete borrowed interface/import
+identifier surface: interface/import identities, permits, parameter types,
+result resource/owner names, effects, consumes/status names, and selected-import
+metadata. This census grants no FFI authority and does not replace ordinary
+import validation. Classes, resources, protocols, implementations, sessions,
+Agent declarations, and session-following functions still refuse inferred
+private layouts. Their existing explicit-import route is unchanged.
 
 The new names are used only in copied synthetic declarations, field types,
 function prototypes, and checking-only defaults. Authored AST and `module_uses`
@@ -333,3 +336,11 @@ These definitions have not run. One-caller/header/refusal-slot/control costs and
 retained peak overlap must be reported honestly alongside distinct-caller actual
 reservation/allocation observations. No physical saving, application fit, agent
 token improvement or issue closure is established by this source checkpoint.
+
+The `private_layout::names::interface_tests::` child adds six authored controls:
+function-only layout inference beside an ordinary checked interface; every
+interface/import identifier occurrence in all three census entry points;
+complete executable predecessor and unchanged plain-module receipts; unchanged
+unsupported-surface and FFI refusals; bounded work/depth and suffix overflow;
+and exact/short/zero, sticky/floor and complete-Drop accounting. These controls
+are source definitions pending current-head execution, not backend qualification.

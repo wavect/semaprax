@@ -1,0 +1,1866 @@
+diff --git a/src/hir/validation/frame_reuse/source_inverse.rs b/src/hir/validation/frame_reuse/source_inverse.rs
+index 1233df5181d2c73e8374da2352fefb4b8b25b0ef..9bc7ccef739f06a0295bf6bc95ede0e8a5ab31ad 100644
+--- a/src/hir/validation/frame_reuse/source_inverse.rs
++++ b/src/hir/validation/frame_reuse/source_inverse.rs
+@@ -101,13 +101,20 @@ pub(in crate::hir::validation) fn whole_root(source: &str, current: &str) -> Str
+         ("src/hir/validation/frame_reuse/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/frame_reuse/tests.rs"))),
+     ] {
+         let predecessor = if path == "src/hir/validation/frame_reuse/tests.rs" {
+-            crate::source_reflows::batch_913_entry(path, compiled)
++            Some(super::super::lexical_exit::matched_observation::parent(path, compiled))
++        } else if path == "src/hir/validation/frame_reuse/source_inverse.rs" {
++            Some(super::super::lexical_exit::matched_observation::parent(path, compiled))
+         } else {
+             None
+         };
+         let authenticated = predecessor.as_deref().unwrap_or(compiled);
+         assert_eq!(hash(authenticated), binding["whole_children"][path].as_str().unwrap());
+     }
++    let predecessor;
++    let current = if source == "src/hir/validation/lexical_exit.rs" {
++        predecessor = super::super::lexical_exit::matched_observation::parent(source, current);
++        predecessor.as_str()
++    } else { current };
+     let row = &binding["whole_roots"][source];
+     assert_eq!(current.len() as u64, row["current_length"].as_u64().unwrap());
+     assert_eq!(hash(current), row["current_sha256"].as_str().unwrap());
+diff --git a/src/hir/validation/lexical_exit.rs b/src/hir/validation/lexical_exit.rs
+index b7bafdd7b2d561d7307028b42a0469c276b06453..fcd82a5781b9f862b2ef02f72e0a1a80bae049f7 100644
+--- a/src/hir/validation/lexical_exit.rs
++++ b/src/hir/validation/lexical_exit.rs
+@@ -296,6 +296,7 @@ pub(in crate::hir::validation) fn observe_frame_request<T>(capacity: usize) {
+             if frame_type != std::any::type_name::<T>() {
+                 return;
+             }
++            matched_observation::request(capacity, false);
+             match (
+                 report.requested_capacity.checked_add(capacity),
+                 report.requests.checked_add(1),
+@@ -323,6 +324,7 @@ pub(in crate::hir::validation) fn observe_frame_acquired<T>(capacity: usize) {
+             if frame_type != std::any::type_name::<T>() {
+                 return;
+             }
++            matched_observation::request(capacity, true);
+             match report.acquired_capacity.checked_add(capacity) {
+                 Some(total) => report.acquired_capacity = total,
+                 None => report.overflow = true,
+@@ -1072,3 +1074,7 @@ mod witness_tests {
+         crate::hir::validate(&program).unwrap();
+     }
+ }
++
++#[cfg(test)]
++#[path = "lexical_exit/matched_observation.rs"]
++pub(in crate::hir::validation) mod matched_observation;
+diff --git a/src/hir/validation/lexical_exit/matched_observation.json b/src/hir/validation/lexical_exit/matched_observation.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..960b239526d2e522b100c0583fe9fb5b351ca27d
+--- /dev/null
++++ b/src/hir/validation/lexical_exit/matched_observation.json
+@@ -0,0 +1,90 @@
++{
++  "schema": "semaprax.actual904-observation-source-inverse.v1",
++  "image_base": "1fc1dc11f113b995ceaa971dcf3c9d2bcca1aeb5",
++  "rows": {
++    "src/hir/validation/lexical_exit.rs": {
++      "length": 47437,
++      "sha256": "832f92a3f157e345ac119dd60a4f1fa3961c5e1c0739ac841501dbf57f10e911",
++      "before_length": 47202,
++      "before_sha256": "ed95841d0c0bb977e8120046a0182ff2dcef8731f443d0d1c17af2233ce15bc4",
++      "edits": [
++        {
++          "start": 11695,
++          "end": 11754,
++          "current": "            matched_observation::request(capacity, false);\n",
++          "before": ""
++        },
++        {
++          "start": 12638,
++          "end": 12696,
++          "current": "            matched_observation::request(capacity, true);\n",
++          "before": ""
++        },
++        {
++          "start": 47319,
++          "end": 47437,
++          "current": "\n#[cfg(test)]\n#[path = \"lexical_exit/matched_observation.rs\"]\npub(in crate::hir::validation) mod matched_observation;\n",
++          "before": ""
++        }
++      ]
++    },
++    "src/hir/validation/frame_reuse/source_inverse.rs": {
++      "length": 10140,
++      "sha256": "490a85f077ebae277ac4885b19d56b62c35efbe3a8605ea8636e792290037b20",
++      "before_length": 9708,
++      "before_sha256": "4432050d6538ee4469137dc7f147256591d256c569f1e49a0727e6a223fe7f38",
++      "edits": [
++        {
++          "start": 7528,
++          "end": 7787,
++          "current": "            Some(super::super::lexical_exit::matched_observation::parent(path, compiled))\n        } else if path == \"src/hir/validation/frame_reuse/source_inverse.rs\" {\n            Some(super::super::lexical_exit::matched_observation::parent(path, compiled))\n",
++          "before": "            crate::source_reflows::batch_913_entry(path, compiled)\n"
++        },
++        {
++          "start": 8002,
++          "end": 8242,
++          "current": "    let predecessor;\n    let current = if source == \"src/hir/validation/lexical_exit.rs\" {\n        predecessor = super::super::lexical_exit::matched_observation::parent(source, current);\n        predecessor.as_str()\n    } else { current };\n",
++          "before": ""
++        }
++      ]
++    },
++    "src/hir/validation/frame_reuse/tests.rs": {
++      "length": 13930,
++      "sha256": "11c3145c9b06cbde60f592bcf4def6403ea5b30e7f442381becd1c4324999de8",
++      "before_length": 13594,
++      "before_sha256": "2d874d35d5139662abf9a10e0fe45abbd666136349eae390220f134da2c8ebc9",
++      "edits": [
++        {
++          "start": 654,
++          "end": 1078,
++          "current": "    source.push_str(\"@id(\\\"reuse.main\\\") fn main()->i64 {f31(1)}\\n\");\n    program(&source)\n}\nfn decimal_program() -> ResolvedProgram {\n    // Preserve the entire library; executable resolution also needs an entry.\n    let source = format!(\n        \"{}\\n@id(\\\"reuse.decimal.main\\\") fn main()->i64 {{let value=add(\\\"1\\\",\\\"2\\\");string_len(value)}}\\n\",\n        include_str!(\"../../../../std/int-decimal/src/decimal.spx\")\n    );\n",
++          "before": ""
++        },
++        {
++          "start": 1308,
++          "end": 1335,
++          "current": "        decimal_program(),\n",
++          "before": "        program(include_str!(\"../../../../std/int-decimal/src/decimal.spx\")),\n"
++        },
++        {
++          "start": 2852,
++          "end": 2939,
++          "current": "            root.id = ExpressionId::from_owned(\"forged.trailing.identity\".to_owned());\n",
++          "before": "            root.id = ExpressionId::new(\"forged.trailing.identity\".to_owned());\n"
++        },
++        {
++          "start": 4804,
++          "end": 4886,
++          "current": "                    tail.id = ExpressionId::from_owned(\"forged.tail\".to_owned());\n",
++          "before": "                    tail.id = ExpressionId::new(\"forged.tail\".to_owned());\n"
++        },
++        {
++          "start": 12297,
++          "end": 12343,
++          "current": "        (\"decimal\", decimal_program(), true),\n",
++          "before": "        (\"decimal\", program(include_str!(\"../../../../std/int-decimal/src/decimal.spx\")), true),\n"
++        }
++      ]
++    }
++  }
++}
+diff --git a/src/hir/validation/lexical_exit/matched_observation.rs b/src/hir/validation/lexical_exit/matched_observation.rs
+new file mode 100644
+index 0000000000000000000000000000000000000000..71f1ee399814e34b5370448a66e50ec2eb820e44
+--- /dev/null
++++ b/src/hir/validation/lexical_exit/matched_observation.rs
+@@ -0,0 +1,476 @@
++//! Evaluation-image observation only. This does not qualify application admission.
++use super::*;
++use sha2::{Digest, Sha256};
++
++const LIMIT: usize = 64 << 20;
++const OLD_IMAGE: bool = false;
++const IMAGE: &str = "1fc1dc11f113b995ceaa971dcf3c9d2bcca1aeb5";
++const SLOTS: usize = 1024;
++const SOURCE_BINDING_SHA: &str = "6ebe1ca7a582db7f317f06f70bb2a0c667bccce72899b5a4550c4958918b49c3";
++
++pub(super) fn hash(bytes: &[u8]) -> String {
++    format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)))
++}
++
++// A finite adapter authenticates only the new observation registration/hooks.
++// Its fixed predecessor remains independent, including literal whitespace.
++pub(in crate::hir::validation) fn parent(path: &str, current: &str) -> String {
++    assert_eq!(
++        hash(include_bytes!("matched_observation.json")),
++        SOURCE_BINDING_SHA
++    );
++    let binding: serde_json::Value =
++        serde_json::from_str(include_str!("matched_observation.json")).unwrap();
++    let row = &binding["rows"][path];
++    assert_eq!(current.len() as u64, row["length"].as_u64().unwrap());
++    assert_eq!(hash(current.as_bytes()), row["sha256"].as_str().unwrap());
++    let mut bytes = current.as_bytes().to_vec();
++    for edit in row["edits"].as_array().unwrap().iter().rev() {
++        let start = usize::try_from(edit["start"].as_u64().unwrap()).unwrap();
++        let end = usize::try_from(edit["end"].as_u64().unwrap()).unwrap();
++        assert_eq!(
++            bytes.get(start..end).unwrap(),
++            edit["current"].as_str().unwrap().as_bytes()
++        );
++        bytes.splice(
++            start..end,
++            edit["before"].as_str().unwrap().as_bytes().iter().copied(),
++        );
++    }
++    assert_eq!(bytes.len() as u64, row["before_length"].as_u64().unwrap());
++    assert_eq!(hash(&bytes), row["before_sha256"].as_str().unwrap());
++    String::from_utf8(bytes).unwrap()
++}
++
++#[derive(Clone, Copy)]
++struct Requests {
++    requested: [usize; SLOTS],
++    acquired: [usize; SLOTS],
++    requests: usize,
++    acquisitions: usize,
++}
++thread_local! {
++    static REQUESTS: std::cell::Cell<Option<Requests>> = const { std::cell::Cell::new(None) };
++}
++pub(super) fn request(capacity: usize, acquired: bool) {
++    REQUESTS.with(|cell| {
++        if let Some(mut log) = cell.get() {
++            let (values, count) = if acquired {
++                (&mut log.acquired, &mut log.acquisitions)
++            } else {
++                (&mut log.requested, &mut log.requests)
++            };
++            assert!(
++                *count < SLOTS,
++                "complete fixed observation capacity exceeded"
++            );
++            values[*count] = capacity;
++            *count += 1;
++            cell.set(Some(log));
++        }
++    });
++}
++struct Capture;
++impl Capture {
++    fn begin() -> Self {
++        FRAME_REQUESTS.with(|cell| assert!(cell.replace(Some(FrameRequests::default())).is_none()));
++        REQUESTS.with(|cell| {
++            assert!(
++                cell.replace(Some(Requests {
++                    requested: [0; SLOTS],
++                    acquired: [0; SLOTS],
++                    requests: 0,
++                    acquisitions: 0,
++                }))
++                .is_none()
++            )
++        });
++        Self
++    }
++    fn finish(self) -> (FrameRequests, Requests) {
++        let report = FRAME_REQUESTS.with(|cell| cell.take().unwrap());
++        let requests = REQUESTS.with(|cell| cell.take().unwrap());
++        drop(self);
++        (report, requests)
++    }
++}
++impl Drop for Capture {
++    fn drop(&mut self) {
++        FRAME_REQUESTS.with(|cell| {
++            cell.take();
++        });
++        REQUESTS.with(|cell| {
++            cell.take();
++        });
++        PANIC_AFTER_WITNESS.with(|cell| cell.set(false));
++    }
++}
++
++// Fixed observer backing is identical in the two images, acquired outside the
++// heap window, and never presented as production invoice credit.
++#[derive(Clone, Copy, Debug, Eq, PartialEq)]
++struct Text {
++    bytes: [u8; 4096],
++    len: usize,
++}
++impl Text {
++    fn copy(value: &str) -> Self {
++        assert!(
++            value.len() <= 4096,
++            "complete diagnostic exceeded observer backing"
++        );
++        let mut result = Self {
++            bytes: [0; 4096],
++            len: value.len(),
++        };
++        result.bytes[..value.len()].copy_from_slice(value.as_bytes());
++        result
++    }
++    fn text(&self) -> &str {
++        std::str::from_utf8(&self.bytes[..self.len]).unwrap()
++    }
++}
++#[derive(Clone, Copy, Debug, Eq, PartialEq)]
++struct Error {
++    code: &'static str,
++    severity: &'static str,
++    message: Text,
++    path: Option<Text>,
++    span: Option<crate::ast::Span>,
++    help: Option<Text>,
++}
++impl Error {
++    fn copy(error: &Diagnostic) -> Self {
++        Self {
++            code: error.code,
++            severity: error.severity.as_str(),
++            message: Text::copy(&error.message),
++            path: error.path.as_deref().map(Text::copy),
++            span: error.span,
++            help: error.help.as_deref().map(Text::copy),
++        }
++    }
++    fn json(&self) -> serde_json::Value {
++        serde_json::json!({
++            "code": self.code, "severity": self.severity, "message": self.message.text(),
++            "path": self.path.as_ref().map(Text::text),
++            "span": self.span.map(|s| [s.start, s.end, s.line, s.column]),
++            "help": self.help.as_ref().map(Text::text),
++        })
++    }
++}
++#[derive(Clone, Copy, Debug, Eq, PartialEq)]
++struct Outcome {
++    errors: [Option<Error>; 8],
++    count: usize,
++}
++impl Outcome {
++    fn empty() -> Self {
++        Self {
++            errors: [None; 8],
++            count: 0,
++        }
++    }
++    fn push(&mut self, error: &Diagnostic) {
++        assert!(
++            self.count < self.errors.len(),
++            "complete diagnostic list exceeded observer backing"
++        );
++        self.errors[self.count] = Some(Error::copy(error));
++        self.count += 1;
++    }
++}
++struct Run {
++    outcome: Outcome,
++    metrics: crate::test_allocation_observer::Metrics,
++    refused: bool,
++    paid: usize,
++    first: Option<crate::bounded_output::ReservationRefusal>,
++    frame: FrameRequests,
++    requests: Requests,
++}
++
++fn run(checked: &crate::ast::Program, attack: bool, limit: usize, floor: usize) -> Run {
++    let capture = Capture::begin();
++    let ((outcome, metrics), refused, paid, first) =
++        crate::bounded_output::with_limit_usage_refusal(limit, || {
++            assert!(crate::bounded_output::set_active_floor(floor));
++            let measured = crate::test_allocation_observer::measure_with_capacity(1 << 16, || {
++                let mut outcome = Outcome::empty();
++                match crate::hir::resolve(checked) {
++                    Err(errors) => {
++                        for error in &errors {
++                            outcome.push(error);
++                        }
++                        drop(errors);
++                    }
++                    Ok(mut resolved) => {
++                        if attack {
++                            resolved
++                                .functions
++                                .iter_mut()
++                                .find(|f| f.name == "main")
++                                .unwrap()
++                                .body
++                                .ownership = OwnershipMode::Borrow;
++                        }
++                        let result = crate::hir::validate(&resolved);
++                        if let Err(error) = &result {
++                            outcome.push(error);
++                        }
++                        drop(result);
++                        drop(resolved);
++                    }
++                }
++                outcome
++            });
++            let ledger = crate::bounded_output::classifier_string::ClassifierLedger::capture();
++            let first = ledger.first_refusal();
++            if first.is_some() {
++                let remaining = crate::bounded_output::active_remaining();
++                for retry in [0, 1] {
++                    assert!(scope_checkpoint::charge::reserve(Some(retry)).is_err());
++                    assert_eq!(ledger.first_refusal(), first);
++                    assert_eq!(crate::bounded_output::active_remaining(), remaining);
++                }
++            }
++            crate::bounded_output::clear_active_floor();
++            measured
++        });
++    let (frame, requests) = capture.finish();
++    assert!(!metrics.invalid && metrics.live == 0 && metrics.allocated == metrics.freed);
++    assert!(!frame.overflow);
++    assert_eq!(frame.requests, requests.requests);
++    assert_eq!(
++        frame.requested_capacity,
++        requests.requested[..requests.requests].iter().sum::<usize>()
++    );
++    assert_eq!(
++        frame.acquired_capacity,
++        requests.acquired[..requests.acquisitions].iter().sum::<usize>()
++    );
++    Run {
++        outcome,
++        metrics,
++        refused,
++        paid,
++        first,
++        frame,
++        requests,
++    }
++}
++
++fn sources() -> Vec<String> {
++    let mut nested = "0".to_owned();
++    for _ in 0..16 {
++        nested = format!("match 0 {{0=>{nested}, _=>0,}}");
++    }
++    let calls = std::iter::repeat_n("f(0)", 64)
++        .collect::<Vec<_>>()
++        .join("+");
++    let mut binary = "1".to_owned();
++    for _ in 0..64 {
++        binary = format!("({binary}+1)");
++    }
++    vec![
++        format!("module deep_binary; @id(\"main\") fn main()->i64 {{{binary}}}"),
++        "module tiny; @id(\"t.main\") fn main()->i64 {1}".to_owned(),
++        "module witness; @id(\"w.f\") fn f(x:i64)->i64 {match x {0=>1, n=>n,}} @id(\"w.main\") fn main()->i64 {f(0)}".to_owned(),
++        "module guarded; @id(\"main\") fn main()->i64 {match 0 {0 if true=>1, n=>n,}}".to_owned(),
++        "module never; @id(\"main\") fn main()->i64 {match 0 {0=>{return 1;}, _=>{return 2;},}}".to_owned(),
++        "module mixed; @id(\"main\") fn main()->i64 {match 0 {0=>{1}, _=>2,}}".to_owned(),
++        "module borrowed; @id(\"consume\") fn consume(value:own Result<Bytes,Bytes>)->i64 {let borrowed=match borrow value {Result::Ok {value:payload}=>if byte_len(bytes_as_slice(payload))==0usize {0}else{1},Result::Err {error:payload}=>if byte_len(bytes_as_slice(payload))==0usize {0}else{2},}; match own value {Result::Ok {value:payload}=>borrowed,Result::Err {error:payload}=>borrowed,}} @id(\"main\") fn main()->i64 {0}".to_owned(),
++        format!("module nested; @id(\"main\") fn main()->i64 {{{nested}}}"),
++        format!("module calls; @id(\"f\") fn f(x:i64)->i64 {{x}} @id(\"main\") fn main()->i64 {{{calls}}}"),
++        "module variant_witness; @id(\"shape.type\") variant Shape {@id(\"shape.dot\") Dot,@id(\"shape.box\") Box {width:i64,},} @id(\"main\") fn main()->i64 {match Shape::Box {width:4} {Shape::Dot {}=>0,Shape::Box {width}=>width,}}".to_owned(),
++        "module generic_guard; @id(\"identity\") fn identity<T>(value:T)->T {value} @id(\"main\") fn main()->i64 {match identity<i64>(0) {0 if (match 0 {0=>true, _=>false,})=>identity<i64>(1), _=>2,}}".to_owned(),
++    ]
++}
++
++fn report(
++    source: &str,
++    attack: bool,
++    limit: usize,
++    floor: usize,
++    run: &Run,
++    graph: &str,
++    case: &str,
++) {
++    let f = run.frame;
++    let replacement = f.joins * WITNESS_JOIN
++        + f.variant_views * VARIANT_VIEWS
++        + f.arm_views * VARIANT_ARM_VIEW
++        + f.finishes * WITNESS_FINISH;
++    let first = run.first.map(|receipt| {
++        serde_json::json!({
++            "requested": receipt.requested, "remaining": receipt.remaining,
++            "floor": receipt.floor, "stage": receipt.stage.map(|stage| format!("{stage:?}")),
++        })
++    });
++    let diagnostics: Vec<_> = run.outcome.errors[..run.outcome.count]
++        .iter()
++        .map(|error| error.as_ref().unwrap().json())
++        .collect();
++    let mut record = serde_json::json!({
++            "image_base": IMAGE, "owning_immediate_old": OLD_IMAGE,
++        "observation_source_sha256": hash(include_bytes!("matched_observation.rs")),
++        "source_binding_sha256": SOURCE_BINDING_SHA,
++        "compiled_primary_source_sha256": hash(include_bytes!("../../validation.rs")),
++        "compiled_storage_source_sha256": hash(include_bytes!("../scope_checkpoint/storage.rs")),
++        "compiler_toolchain_env": option_env!("RUSTUP_TOOLCHAIN"),
++            "required_rust": "1.97.1", "source_sha256": hash(source.as_bytes()),
++            "source_bytes": source.len(), "source": source, "attack": attack,
++        "case": case, "accepted_graph_sha256": hash(graph.as_bytes()),
++        "accepted_graph_bytes": graph.len(), "accepted_graph": (case == "full").then_some(graph),
++        "graph_scope": "separate accepted resolved-program graph after all six measured runs",
++            "scope": "cold hir::resolve + second hir::validate + complete owned Drop",
++            "limit": limit, "floor": floor, "diagnostics": diagnostics,
++            "refused": run.refused, "paid": run.paid, "first_refusal": first,
++    });
++    let serde_json::Value::Object(tail) = serde_json::json!({
++            "frame_size": f.size, "frame_align": f.alignment,
++            "requested_capacities": run.requests.requested[..run.requests.requests],
++            "acquired_capacities": run.requests.acquired[..run.requests.acquisitions],
++            "full_frame_backing": f.acquired_capacity * f.size,
++            "joins": f.joins, "variant_views": f.variant_views, "arm_views": f.arm_views,
++            "finishes": f.finishes, "replacement_bill": replacement,
++        "replacement_units": [WITNESS_JOIN, VARIANT_VIEWS, VARIANT_ARM_VIEW, WITNESS_FINISH],
++        "no_clone_payload_credit": true, "observation_overhead_is_test_only": true,
++            "allocated": run.metrics.allocated, "freed": run.metrics.freed,
++            "live": run.metrics.live, "highwater": run.metrics.highwater,
++        "physical_within_paid": run.metrics.allocated <= run.paid,
++            "allocations": run.metrics.allocations, "reallocations": run.metrics.reallocations,
++            "matched_old_image_required": true, "application_admission_proven": false,
++            "intervening_changes_preclude_opt904_only_total_invoice_credit": true,
++    }) else {
++        unreachable!("literal observation object");
++    };
++    for (key, value) in tail {
++        assert!(record.as_object_mut().unwrap().insert(key, value).is_none());
++    }
++    eprintln!("OPT904_MATCHED_JSON {}", record);
++}
++
++#[test]
++fn actual_image_cold_public_caller_invoices_diagnostics_refusals_and_drop() {
++    std::thread::Builder::new()
++        .name("904-actual-image-observation".to_owned())
++        .stack_size(32 << 20)
++        .spawn(|| {
++            let mut roles = [0; 4];
++            for source in sources() {
++                let checked = crate::check(&source, "904-matched-observation.spx").unwrap();
++                let full = run(&checked, false, LIMIT, 0);
++                assert_eq!(
++                    full.outcome.count, 0,
++                    "source={source}; diagnostics={}; refused={}; paid={}; first={:?}",
++                    serde_json::to_string(&full.outcome.errors[..full.outcome.count]
++                        .iter().map(|error| error.as_ref().unwrap().json())
++                        .collect::<Vec<_>>()).unwrap(),
++                    full.refused, full.paid, full.first,
++                );
++                assert!(!full.refused && full.first.is_none() && full.paid > 0);
++                assert!(full.frame.size > 0 && full.frame.alignment.is_power_of_two());
++                assert_eq!(full.frame.size % full.frame.alignment, 0);
++                assert_eq!(full.requests.requests, full.requests.acquisitions);
++                assert_eq!(
++                    &full.requests.requested[..full.requests.requests],
++                    &full.requests.acquired[..full.requests.acquisitions]
++                );
++                roles[0] += full.frame.joins;
++                roles[1] += full.frame.variant_views;
++                roles[2] += full.frame.arm_views;
++                roles[3] += full.frame.finishes;
++
++                let exact = run(&checked, false, full.paid, 0);
++                assert_eq!(exact.outcome, full.outcome);
++                assert!(!exact.refused && exact.first.is_none());
++                assert_eq!(exact.paid, full.paid);
++
++                let refusals = [
++                    (
++                        "short",
++                        full.paid - 1,
++                        0,
++                        run(&checked, false, full.paid - 1, 0),
++                    ),
++                    ("zero", 0, 0, run(&checked, false, 0, 0)),
++                    ("floor", full.paid, 1, run(&checked, false, full.paid, 1)),
++                ];
++                for (_, _, _, refused) in &refusals {
++                    assert!(
++                        refused.outcome.count > 0 && refused.refused && refused.first.is_some()
++                    );
++                    assert!(
++                        refused.outcome.errors[..refused.outcome.count]
++                            .iter()
++                            .all(|error| error.unwrap().code == "SPX-H006")
++                    );
++                }
++                let hostile = run(&checked, true, LIMIT, 0);
++                assert!(hostile.outcome.count > 0 && !hostile.refused && hostile.first.is_none());
++                // All six complete compiler-owner windows have ended before
++                // this separate accepted semantic output is constructed.
++                let accepted = crate::hir::resolve(&checked).unwrap();
++                let graph = crate::graph::to_hir_json(&accepted, &crate::graph::revision(&checked))
++                    .unwrap();
++                drop(accepted);
++                report(&source, false, LIMIT, 0, &full, &graph, "full");
++                report(&source, false, full.paid, 0, &exact, &graph, "exact");
++                for (case, limit, floor, refused) in &refusals {
++                    report(&source, false, *limit, *floor, refused, &graph, case);
++                }
++                report(&source, true, LIMIT, 0, &hostile, &graph, "hostile");
++            }
++            if OLD_IMAGE {
++                assert_eq!(roles, [0; 4]);
++            } else {
++                assert!(roles.into_iter().all(|count| count > 0));
++            }
++        })
++        .unwrap()
++        .join()
++        .unwrap_or_else(|panic| std::panic::resume_unwind(panic));
++}
++
++#[test]
++fn complete_actual_image_source_and_observer_inverse_refuse_drift() {
++    let current = include_str!("../lexical_exit.rs");
++    let restored = parent("src/hir/validation/lexical_exit.rs", current);
++    assert_eq!(
++        restored,
++        include_str!("matched_observation_lexical_before.rs.txt")
++    );
++    for drift in [current.to_owned() + " ", restored] {
++        assert!(
++            std::panic::catch_unwind(|| parent("src/hir/validation/lexical_exit.rs", &drift))
++                .is_err()
++        );
++    }
++    let path = "src/hir/validation/frame_reuse/source_inverse.rs";
++    let current = include_str!("../frame_reuse/source_inverse.rs");
++    let original = include_str!("matched_observation_source_inverse_before.rs.txt");
++    assert_eq!(parent(path, current), original);
++    assert!(std::panic::catch_unwind(|| parent(path, &(current.to_owned() + " "))).is_err());
++    assert!(std::panic::catch_unwind(|| parent(path, original)).is_err());
++    let path = "src/hir/validation/frame_reuse/tests.rs";
++    let current = include_str!("../frame_reuse/tests.rs");
++    let original = include_str!(concat!(
++        env!("CARGO_MANIFEST_DIR"),
++        "/e/2d874d35d5139662abf9a10e0fe45abbd666136349eae390220f134da2c8ebc9"
++    ));
++    assert_eq!(parent(path, current), original);
++    assert!(std::panic::catch_unwind(|| parent(path, &(current.to_owned() + " "))).is_err());
++    assert!(std::panic::catch_unwind(|| parent(path, original)).is_err());
++    // The complete existing #912 inverse and all its fixed child/root targets
++    // still execute, after only the finite observer registration ingress.
++    for (path, current) in [
++        ("src/hir/validation.rs", include_str!("../../validation.rs")),
++        (
++            "src/hir/validation/lexical_exit.rs",
++            include_str!("../lexical_exit.rs"),
++        ),
++    ] {
++        frame_reuse::source_inverse::whole_root(path, current);
++    }
++}
+diff --git a/src/hir/validation/lexical_exit/matched_observation_lexical_before.rs.txt b/src/hir/validation/lexical_exit/matched_observation_lexical_before.rs.txt
+new file mode 100644
+index 0000000000000000000000000000000000000000..b7bafdd7b2d561d7307028b42a0469c276b06453
+--- /dev/null
++++ b/src/hir/validation/lexical_exit/matched_observation_lexical_before.rs.txt
+@@ -0,0 +1,1074 @@
++//! Bottom joins retain only reachable normal ownership states.
++use super::*;
++impl HirValidator<'_> {
++    pub(super) fn validate_lexical_return_operand(
++        &self,
++        operand: &ResolvedExpr,
++        scope: &mut dyn ScopeWrite,
++    ) -> Result<(), Diagnostic> {
++        if operand.ty == ResolvedType::Never
++            || operand.ownership != self.expected_ownership(&operand.ty, OwnershipMode::Own)?
++        {
++            return Err(hir_error(
++                "lexical return operand has invalid result ownership",
++            ));
++        }
++        if operand.ownership == OwnershipMode::Own {
++            self.mark_value_sources_moved(operand, scope)?;
++        }
++        Ok(())
++    }
++    #[allow(clippy::too_many_arguments)]
++    #[cfg(test)]
++    pub(super) fn finish_lexical_if(
++        &self,
++        expression: &ResolvedExpr,
++        left: &ResolvedExpr,
++        right: &ResolvedExpr,
++        outer: &mut BTreeMap<ValueId, ValidationBinding>,
++        left_scope: &dyn ScopeRead,
++        right_scope: &dyn ScopeRead,
++        ids: &[ValueId],
++    ) -> Result<(), Diagnostic> {
++        match (
++            super::super::lexical_exit::returns_only(left),
++            super::super::lexical_exit::returns_only(right),
++        ) {
++            (true, false) => Self::merge_availability(outer, right_scope, ids),
++            (false, true) => Self::merge_availability(outer, left_scope, ids),
++            _ => Self::join_branches(outer, left_scope, right_scope, ids),
++        }
++        let normal = match (
++            left.ty == ResolvedType::Never,
++            right.ty == ResolvedType::Never,
++        ) {
++            (true, false) => right,
++            (false, true) => left,
++            (a, b) => {
++                if !a && !b {
++                    self.require_type(&left.ty, &right.ty, "if branches")?;
++                    if left.ownership != right.ownership {
++                        return Err(hir_error("if branches have inconsistent ownership"));
++                    }
++                }
++                left
++            }
++        };
++        self.finish_expr(expression, &normal.ty, normal.ownership)
++    }
++    #[allow(clippy::too_many_arguments)]
++    pub(super) fn finish_lexical_if_checkpoint(
++        &self,
++        expression: &ResolvedExpr,
++        left: &ResolvedExpr,
++        right: &ResolvedExpr,
++        outer: &mut dyn ScopeWrite,
++        left_scope: &dyn ScopeRead,
++        right_scope: &dyn ScopeRead,
++        ids: &dyn scope_checkpoint::Ids,
++    ) -> Result<(), Diagnostic> {
++        match (
++            super::super::lexical_exit::returns_only(left),
++            super::super::lexical_exit::returns_only(right),
++        ) {
++            (true, false) => scope_checkpoint::merge::availability(outer, right_scope, ids)?,
++            (false, true) => scope_checkpoint::merge::availability(outer, left_scope, ids)?,
++            _ => scope_checkpoint::merge::branches(outer, left_scope, right_scope, ids)?,
++        }
++        let normal = match (
++            left.ty == ResolvedType::Never,
++            right.ty == ResolvedType::Never,
++        ) {
++            (true, false) => right,
++            (false, true) => left,
++            (a, b) => {
++                if !a && !b {
++                    self.require_type(&left.ty, &right.ty, "if branches")?;
++                    if left.ownership != right.ownership {
++                        return Err(hir_error("if branches have inconsistent ownership"));
++                    }
++                }
++                left
++            }
++        };
++        self.finish_expr(expression, &normal.ty, normal.ownership)
++    }
++}
++
++impl HirValidator<'_> {
++    #[cfg(test)]
++    pub(super) fn join_lexical_match(
++        &self,
++        result: &mut Option<(ResolvedType, OwnershipMode)>,
++        value: &ResolvedExpr,
++    ) -> Result<(), Diagnostic> {
++        if let Some((ty, ownership)) = result.as_ref() {
++            if *ty != ResolvedType::Never && value.ty != ResolvedType::Never {
++                self.require_type(&value.ty, ty, "match arm")?;
++                if value.ownership != *ownership {
++                    return Err(hir_error("resolved match arms have inconsistent ownership"));
++                }
++            }
++        }
++        if result
++            .as_ref()
++            .is_none_or(|(ty, _)| *ty == ResolvedType::Never)
++        {
++            *result = Some((value.ty.clone(), value.ownership));
++        }
++        Ok(())
++    }
++}
++impl HirValidator<'_> {
++    #[allow(clippy::too_many_arguments)]
++    pub(super) fn validate_template_lexical_exit<'value>(
++        &mut self,
++        template: &'value ResolvedFunctionTemplate,
++        execution: &FunctionExecutionId,
++        expression: &'value ResolvedExpr,
++        value: Option<&'value ResolvedExpr>,
++        values: &mut generic_template::values::Values<'value>,
++        path: &str,
++    ) -> Result<(), Diagnostic> {
++        if expression.ty != ResolvedType::Never || expression.ownership != OwnershipMode::Value {
++            return Err(hir_error("generic lexical exit has a runtime value"));
++        }
++        if let Some(operand) = value {
++            self.validate_template_expr(
++                template,
++                execution,
++                operand,
++                values,
++                &format!("{path}.value"),
++            )?;
++            self.require_type(&operand.ty, &template.return_type, "generic lexical return")?;
++        }
++        // Canonical template replay checks exact target/contour; each materialized
++        // instance independently validates its execution-rekeyed typed contour.
++        Ok(())
++    }
++}
++
++// The new witness continuation's explicit transport and local receivers. These
++// are additions to the unchanged full-capacity Storage<Frame> backing invoice;
++// removed type clones receive no separate byte credit.
++type WitnessJoinCall<'a, 'v> = (
++    &'a HirValidator<'v>,
++    &'a mut Option<&'v ResolvedExpr>,
++    &'v ResolvedExpr,
++);
++const PAYMENT: usize =
++    2 * std::mem::size_of::<Option<usize>>() + 2 * std::mem::size_of::<Result<(), Diagnostic>>();
++// A fixed complete helper activation also owns its two reachable delegated
++// call envelopes; it claims no credit for the independently retained old helper.
++type WitnessTypeCall<'a, 'v> = (
++    &'a HirValidator<'v>,
++    &'a ResolvedType,
++    &'a ResolvedType,
++    &'a str,
++);
++const WITNESS_TYPE_CALL: usize = 2 * std::mem::size_of::<WitnessTypeCall<'static, 'static>>()
++    + 2 * std::mem::size_of::<Result<(), Diagnostic>>();
++const WITNESS_ERROR_CALL: usize =
++    2 * std::mem::size_of::<&str>() + 2 * std::mem::size_of::<Diagnostic>();
++pub(super) const WITNESS_JOIN: usize = PAYMENT
++    + WITNESS_TYPE_CALL
++    + WITNESS_ERROR_CALL
++    + 2 * std::mem::size_of::<WitnessJoinCall<'static, 'static>>()
++    + 2 * std::mem::size_of::<Result<(), Diagnostic>>()
++    + std::mem::size_of::<Option<&ResolvedExpr>>() // copied selector value
++    + std::mem::size_of::<&ResolvedExpr>() // selected already-validated witness
++    + std::mem::size_of::<Option<&ResolvedExpr>>() // replacement initializer
++    + 4 * std::mem::size_of::<bool>(); // two Never tests, ownership, replacement test
++                                       // Each immutable Vec field produces its pattern binding, then the actual and
++                                       // formal Deref receiver and returned/received exact old slice view. Subsequent
++                                       // len/index/substitution operations retain their original slice types.
++const ARMS_VIEW: usize = 3 * std::mem::size_of::<&Vec<ResolvedMatchArm>>()
++    + 2 * std::mem::size_of::<&[ResolvedMatchArm]>();
++const ARGUMENTS_VIEW: usize =
++    3 * std::mem::size_of::<&Vec<ResolvedType>>() + 2 * std::mem::size_of::<&[ResolvedType]>();
++pub(super) const VARIANT_VIEWS: usize = PAYMENT
++    + ARMS_VIEW
++    + std::mem::size_of::<&DeclarationId>()
++    + ARGUMENTS_VIEW
++    + 2 * std::mem::size_of::<bool>();
++pub(super) const VARIANT_ARM_VIEW: usize = PAYMENT + ARMS_VIEW + std::mem::size_of::<bool>();
++
++// Result selection is now a borrowed std::Option/Result receiver rather than
++// the old owning tuple. Keep its whole new envelope, projection and error
++// closure roles explicit; no old tuple/payload credit is claimed.
++pub(super) const WITNESS_FINISH: usize = PAYMENT
++    + 2 * std::mem::size_of::<Option<&ResolvedExpr>>()
++    + 2 * std::mem::size_of::<Result<&ResolvedExpr, Diagnostic>>()
++    + std::mem::size_of::<&ResolvedExpr>()
++    + std::mem::size_of::<&ResolvedType>()
++    + std::mem::size_of::<OwnershipMode>()
++    + WITNESS_ERROR_CALL;
++
++impl HirValidator<'_> {
++    /// Called only by AfterArm, after the complete arm body succeeded and the
++    /// original borrow-release and owned-result checks. The immutable expression
++    /// itself witnesses the type; a reconstructed/cached type is never authority.
++    pub(super) fn join_lexical_match_witness<'value>(
++        &self,
++        result: &mut Option<&'value ResolvedExpr>,
++        value: &'value ResolvedExpr,
++    ) -> Result<(), Diagnostic> {
++        let Some(previous) = *result else {
++            *result = Some(value);
++            return Ok(());
++        };
++        if previous.ty != ResolvedType::Never && value.ty != ResolvedType::Never {
++            self.require_type(&value.ty, &previous.ty, "match arm")?;
++            if value.ownership != previous.ownership {
++                return Err(hir_error("resolved match arms have inconsistent ownership"));
++            }
++        }
++        if previous.ty == ResolvedType::Never {
++            *result = Some(value);
++        }
++        Ok(())
++    }
++}
++
++#[cfg(test)]
++#[derive(Clone, Copy, Debug)]
++struct Frontier {
++    remaining: usize,
++    amount: usize,
++}
++#[cfg(test)]
++#[derive(Clone, Copy, Debug, Default)]
++struct FrameRequests {
++    frame_type: Option<&'static str>,
++    size: usize,
++    alignment: usize,
++    requested_capacity: usize,
++    requests: usize,
++    acquired_capacity: usize,
++    joins: usize,
++    variant_views: usize,
++    arm_views: usize,
++    finishes: usize,
++    first_join: Option<Frontier>,
++    first_variant: Option<Frontier>,
++    first_arm: Option<Frontier>,
++    first_finish: Option<Frontier>,
++    overflow: bool,
++}
++#[cfg(test)]
++thread_local! {
++    static FRAME_REQUESTS: std::cell::Cell<Option<FrameRequests>> = const { std::cell::Cell::new(None) };
++    static PANIC_AFTER_WITNESS: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
++}
++#[cfg(test)]
++pub(in crate::hir::validation) fn observe_frame_layout<T>(size: usize, alignment: usize) {
++    FRAME_REQUESTS.with(|cell| {
++        if let Some(mut report) = cell.get() {
++            let frame_type = std::any::type_name::<T>();
++            if report
++                .frame_type
++                .is_some_and(|previous| previous != frame_type)
++            {
++                report.overflow = true;
++            }
++            report.frame_type = Some(frame_type);
++            if report.size != 0 && (report.size != size || report.alignment != alignment) {
++                report.overflow = true;
++            }
++            report.size = size;
++            report.alignment = alignment;
++            cell.set(Some(report));
++        }
++    });
++}
++#[cfg(test)]
++pub(in crate::hir::validation) fn observe_frame_request<T>(capacity: usize) {
++    // Diagnostic type label only; it neither selects an algorithm nor funds a
++    // receiver. The charged Storage<T> request and its allocation remain intact.
++    FRAME_REQUESTS.with(|cell| {
++        if let Some(mut report) = cell.get() {
++            let Some(frame_type) = report.frame_type else {
++                report.overflow = true;
++                cell.set(Some(report));
++                return;
++            };
++            if frame_type != std::any::type_name::<T>() {
++                return;
++            }
++            match (
++                report.requested_capacity.checked_add(capacity),
++                report.requests.checked_add(1),
++            ) {
++                (Some(total), Some(requests)) => {
++                    report.requested_capacity = total;
++                    report.requests = requests;
++                }
++                _ => report.overflow = true,
++            }
++            cell.set(Some(report));
++        }
++    });
++}
++
++#[cfg(test)]
++pub(in crate::hir::validation) fn observe_frame_acquired<T>(capacity: usize) {
++    FRAME_REQUESTS.with(|cell| {
++        if let Some(mut report) = cell.get() {
++            let Some(frame_type) = report.frame_type else {
++                report.overflow = true;
++                cell.set(Some(report));
++                return;
++            };
++            if frame_type != std::any::type_name::<T>() {
++                return;
++            }
++            match report.acquired_capacity.checked_add(capacity) {
++                Some(total) => report.acquired_capacity = total,
++                None => report.overflow = true,
++            }
++            cell.set(Some(report));
++        }
++    });
++}
++#[cfg(test)]
++pub(in crate::hir::validation) fn observe_witness_role(role: &'static str) {
++    FRAME_REQUESTS.with(|cell| {
++        if let Some(mut report) = cell.get() {
++            let count = match role {
++                "join" => &mut report.joins,
++                "variant" => &mut report.variant_views,
++                "arm" => &mut report.arm_views,
++                "finish" => &mut report.finishes,
++                _ => {
++                    report.overflow = true;
++                    cell.set(Some(report));
++                    return;
++                }
++            };
++            match count.checked_add(1) {
++                Some(total) => *count = total,
++                None => report.overflow = true,
++            }
++            cell.set(Some(report));
++        }
++    });
++}
++
++#[cfg(test)]
++pub(in crate::hir::validation) fn observe_witness_frontier(role: &'static str, amount: usize) {
++    let Some(remaining) = crate::bounded_output::active_remaining() else {
++        return;
++    };
++    FRAME_REQUESTS.with(|cell| {
++        if let Some(mut report) = cell.get() {
++            let first = match role {
++                "join" => &mut report.first_join,
++                "variant" => &mut report.first_variant,
++                "arm" => &mut report.first_arm,
++                "finish" => &mut report.first_finish,
++                _ => {
++                    report.overflow = true;
++                    cell.set(Some(report));
++                    return;
++                }
++            };
++            if first.is_none() {
++                *first = Some(Frontier { remaining, amount });
++            }
++            cell.set(Some(report));
++        }
++    });
++}
++
++#[cfg(test)]
++pub(in crate::hir::validation) fn witness_unwind_point() {
++    if PANIC_AFTER_WITNESS.with(|flag| flag.replace(false)) {
++        std::panic::resume_unwind(Box::new(()));
++    }
++}
++
++#[cfg(test)]
++mod witness_tests {
++    use super::*;
++    const SCALAR: &str = "module witness; @id(\"w.f\") fn f(x:i64)->i64 {match x {0=>1, n=>n,}} @id(\"w.main\") fn main()->i64 {f(0)}";
++    const MIXED_GUARD_RETURN: &str =
++        "module mixed; @id(\"main\") fn main()->i64 {match 0 {0=>{return 1;}, _=>2,}}";
++    fn sources() -> Vec<String> {
++        let mut nested = "0".to_owned();
++        for _ in 0..16 {
++            nested = format!("match 0 {{0=>{nested}, _=>0,}}");
++        }
++        let calls = std::iter::repeat_n("f(0)", 64)
++            .collect::<Vec<_>>()
++            .join("+");
++        let mut binary = "1".to_owned();
++        for _ in 0..64 {
++            binary = format!("({binary}+1)");
++        }
++        vec![
++            format!("module deep_binary; @id(\"main\") fn main()->i64 {{{binary}}}"),
++            "module tiny; @id(\"t.main\") fn main()->i64 {1}".to_owned(),
++            SCALAR.to_owned(),
++            "module guarded; @id(\"main\") fn main()->i64 {match 0 {0 if true=>1, n=>n,}}".to_owned(),
++            "module never; @id(\"main\") fn main()->i64 {match 0 {0=>{return 1;}, _=>{return 2;},}}".to_owned(),
++            "module mixed; @id(\"main\") fn main()->i64 {match 0 {0=>{1}, _=>2,}}".to_owned(),
++            "module borrowed; @id(\"consume\") fn consume(value:own Result<Bytes,Bytes>)->i64 {let borrowed=match borrow value {Result::Ok {value:payload}=>if byte_len(bytes_as_slice(payload))==0usize {0}else{1},Result::Err {error:payload}=>if byte_len(bytes_as_slice(payload))==0usize {0}else{2},}; match own value {Result::Ok {value:payload}=>borrowed,Result::Err {error:payload}=>borrowed,}} @id(\"main\") fn main()->i64 {0}".to_owned(),
++            format!("module nested; @id(\"main\") fn main()->i64 {{{nested}}}"),
++            format!("module calls; @id(\"f\") fn f(x:i64)->i64 {{x}} @id(\"main\") fn main()->i64 {{{calls}}}"),
++            "module variant_witness; @id(\"shape.type\") variant Shape {@id(\"shape.dot\") Dot,@id(\"shape.box\") Box {width:i64,},} @id(\"main\") fn main()->i64 {match Shape::Box {width:4} {Shape::Dot {}=>0,Shape::Box {width}=>width,}}".to_owned(),
++        ]
++    }
++
++    #[test]
++    fn borrowed_join_keeps_first_normal_latest_never_and_complete_old_errors() {
++        let missing_comma = SCALAR.replacen("n=>n,}", "n=>n}", 1);
++        assert_ne!(missing_comma, SCALAR);
++        let syntax = crate::check(&missing_comma, "witness-missing-comma.spx").unwrap_err();
++        assert_eq!(syntax[0].code, "SPX-P106");
++        // Mixed returning/fallthrough arms are a retained negative, not an
++        // admitted positive fixture. The positive corpus keeps block/scalar arms.
++        let mixed = crate::check(MIXED_GUARD_RETURN, "witness-mixed-return.spx").unwrap_err();
++        assert_eq!(mixed[0].code, "SPX-P210");
++        let checked = crate::check(SCALAR, "witness.spx").unwrap();
++        let program = crate::hir::resolve(&checked).unwrap();
++        let validator = HirValidator::new(&program).unwrap();
++        let base = &program
++            .functions
++            .iter()
++            .find(|f| f.id.as_str() == "w.f")
++            .unwrap()
++            .body;
++        for types in [
++            vec![ResolvedType::Never],
++            vec![ResolvedType::Never, ResolvedType::Never],
++            vec![ResolvedType::Never, ResolvedType::I64, ResolvedType::Never],
++            vec![ResolvedType::I64, ResolvedType::Never, ResolvedType::I64],
++            vec![ResolvedType::I64, ResolvedType::Bool],
++        ] {
++            for ownership_mismatch in [false, true] {
++                let values: Vec<_> = types
++                    .iter()
++                    .cloned()
++                    .enumerate()
++                    .map(|(i, ty)| {
++                        let mut value = base.clone();
++                        value.ty = ty;
++                        value.ownership = if ownership_mismatch && i != 0 {
++                            OwnershipMode::Own
++                        } else {
++                            OwnershipMode::Value
++                        };
++                        value
++                    })
++                    .collect();
++                let mut old = None;
++                let mut witness = None;
++                let mut selected = None;
++                for (i, value) in values.iter().enumerate() {
++                    let before = old.clone();
++                    let old_outcome = validator.join_lexical_match(&mut old, value);
++                    let new_outcome = validator.join_lexical_match_witness(&mut witness, value);
++                    assert_eq!(format!("{old_outcome:?}"), format!("{new_outcome:?}"));
++                    if old_outcome.is_err() {
++                        break;
++                    }
++                    if before
++                        .as_ref()
++                        .is_none_or(|(ty, _)| *ty == ResolvedType::Never)
++                    {
++                        selected = Some(i);
++                    }
++                    let picked = witness.unwrap();
++                    assert!(std::ptr::eq(picked, &values[selected.unwrap()]));
++                    assert_eq!(old.as_ref(), Some(&(picked.ty.clone(), picked.ownership)));
++                }
++            }
++        }
++    }
++
++    #[test]
++    fn complete_recursive_validator_keeps_forged_cached_types_and_late_arm_failures_independent() {
++        fn match_arms(expression: &mut ResolvedExpr) -> Option<&mut Vec<ResolvedMatchArm>> {
++            match &mut expression.kind {
++                ResolvedExprKind::Match { arms, .. } => Some(arms),
++                ResolvedExprKind::Block { tail, .. }
++                | ResolvedExprKind::VecConstructor { tail, .. } => match_arms(tail),
++                _ => None,
++            }
++        }
++        // Keep the complete saved depth64 oracle. On the owning unoptimized
++        // toolchain its recursive body has a 154448-byte frame, so the body
++        // frames alone exceed 8 MiB. This bounded test-only stack also retains
++        // the wrapper/caller frames and propagates every failed assertion.
++        std::thread::Builder::new()
++            .name("904-complete-recursive-oracle".to_owned())
++            .stack_size(32 * 1024 * 1024)
++            .spawn(|| {
++                let mut late_attacks = [0; 2];
++                for source in sources() {
++                    let checked = crate::check(&source, "witness-oracle.spx").unwrap();
++                    let program = crate::hir::resolve(&checked).unwrap();
++                    let function = program.functions.iter().find(|f| f.name == "main").unwrap();
++                    for attack in 0..5 {
++                        let mut expression = function.body.clone();
++                        match attack {
++                            0 => {}
++                            1 => expression.ty = ResolvedType::Bool,
++                            2 => expression.ownership = OwnershipMode::Own,
++                            3 => {
++                                let Some(arms) = match_arms(&mut expression) else {
++                                    continue;
++                                };
++                                arms.last_mut().unwrap().value.ty = ResolvedType::Bool;
++                                late_attacks[0] += 1;
++                            }
++                            4 => {
++                                let Some(arms) = match_arms(&mut expression) else {
++                                    continue;
++                                };
++                                arms.pop().unwrap();
++                                late_attacks[1] += 1;
++                            }
++                            _ => unreachable!(),
++                        }
++                        let execution = FunctionExecutionId::Monomorphic(function.id.clone());
++                        let mut iterative = HirValidator::new(&program).unwrap();
++                        let mut recursive = HirValidator::new(&program).unwrap();
++                        let mut iterative_scope = BTreeMap::new();
++                        let mut recursive_scope = BTreeMap::new();
++                        let actual = iterative.validate_expr(
++                            &execution,
++                            &expression,
++                            &mut iterative_scope,
++                            "body",
++                            true,
++                            None,
++                        );
++                        let old = recursive.validate_expr_recursive_reference_body(
++                            &execution,
++                            &expression,
++                            &mut recursive_scope,
++                            "body",
++                            true,
++                            None,
++                        );
++                        HirValidator::assert_validation_oracle(
++                            &actual,
++                            &old,
++                            &iterative,
++                            &recursive,
++                            &iterative_scope,
++                            &recursive_scope,
++                            "body",
++                        );
++                        if attack == 0 {
++                            assert!(actual.is_ok());
++                        } else {
++                            assert!(
++                                actual.is_err(),
++                                "attack {attack} must be genuinely malformed"
++                            );
++                        }
++                    }
++                }
++                assert!(late_attacks.into_iter().all(|count| count > 0));
++            })
++            .expect("spawn complete recursive oracle")
++            .join()
++            .unwrap_or_else(|payload| std::panic::resume_unwind(payload));
++    }
++
++    struct Capture;
++    impl Capture {
++        fn begin() -> Self {
++            FRAME_REQUESTS
++                .with(|cell| assert!(cell.replace(Some(FrameRequests::default())).is_none()));
++            Self
++        }
++        fn finish(self) -> FrameRequests {
++            let report = FRAME_REQUESTS.with(|cell| cell.take().unwrap());
++            drop(self);
++            report
++        }
++    }
++    impl Drop for Capture {
++        fn drop(&mut self) {
++            FRAME_REQUESTS.with(|cell| {
++                cell.take();
++            });
++            PANIC_AFTER_WITNESS.with(|flag| flag.set(false));
++        }
++    }
++
++    fn run_public(
++        checked: &crate::ast::Program,
++        source: &str,
++        limit: usize,
++        floor: usize,
++    ) -> (
++        bool,
++        crate::test_allocation_observer::Metrics,
++        bool,
++        usize,
++        Option<crate::bounded_output::ReservationRefusal>,
++        FrameRequests,
++    ) {
++        let capture = Capture::begin();
++        let phase = std::cell::Cell::new("before-resolve");
++        let ((success, metrics), refused, paid, receipt) =
++            crate::bounded_output::with_limit_usage_refusal(limit, || {
++                assert!(crate::bounded_output::set_active_floor(floor));
++                let measured =
++                    crate::test_allocation_observer::measure_with_capacity(1 << 16, || {
++                        phase.set("hir::resolve");
++                        let resolved = match crate::hir::resolve(checked) {
++                            Ok(resolved) => resolved,
++                            Err(errors) => {
++                                assert!(errors.iter().all(|error| error.code == "SPX-H006"));
++                                drop(errors);
++                                return false;
++                            }
++                        };
++                        phase.set("second hir::validate");
++                        let outcome = crate::hir::validate(&resolved);
++                        if let Err(error) = &outcome {
++                            assert_eq!(error.code, "SPX-H006");
++                        }
++                        let success = outcome.is_ok();
++                        if success {
++                            phase.set("both full passes completed");
++                        }
++                        drop(outcome);
++                        drop(resolved);
++                        success
++                    });
++                let ledger = crate::bounded_output::classifier_string::ClassifierLedger::capture();
++                let first = ledger.first_refusal();
++                let remaining = crate::bounded_output::active_remaining();
++                if first.is_some() {
++                    assert!(scope_checkpoint::charge::reserve(Some(0)).is_err());
++                    assert_eq!(ledger.first_refusal(), first);
++                    assert_eq!(crate::bounded_output::active_remaining(), remaining);
++                }
++                crate::bounded_output::clear_active_floor();
++                measured
++            });
++        let frame = capture.finish();
++        // Observation follows the complete allocation window, both ledger
++        // passes, original sticky-refusal checks and all owned compiler Drop.
++        if !success || refused || receipt.is_some() || metrics.invalid || metrics.live != 0 {
++            use sha2::{Digest, Sha256};
++            eprintln!(
++                "OPT904_REFUSAL source_sha={:x} source_bytes={} module={} phase={} success={} refused={} paid={} first={:?} frame={:?} allocations={:?}",
++                crate::digest_hex::LowerHex(Sha256::digest(source.as_bytes())),
++                source.len(),
++                checked.module,
++                phase.get(),
++                success,
++                refused,
++                paid,
++                receipt,
++                frame,
++                metrics,
++            );
++        }
++        (success, metrics, refused, paid, receipt, frame)
++    }
++
++    #[test]
++    fn real_new_witness_frontiers_exact_short_zero_floor_sticky_and_drop_are_not_layout_guesses() {
++        let mut seen = [false; 4];
++        for source in sources() {
++            let checked = crate::check(&source, "witness-frontiers.spx").unwrap();
++            let (success, metrics, refused, paid, receipt, full) =
++                run_public(&checked, &source, 64 << 20, 0);
++            assert!(
++                success && !refused && receipt.is_none() && !metrics.invalid && metrics.live == 0,
++                "source_bytes={} success={success} refused={refused} paid={paid} first={receipt:?} frame={full:?} allocations={metrics:?}",
++                source.len(),
++            );
++            for (i, frontier) in [
++                full.first_join,
++                full.first_variant,
++                full.first_arm,
++                full.first_finish,
++            ]
++            .into_iter()
++            .enumerate()
++            {
++                let Some(frontier) = frontier else {
++                    continue;
++                };
++                seen[i] = true;
++                let before = (64usize << 20).checked_sub(frontier.remaining).unwrap();
++                let exact = before.checked_add(frontier.amount).unwrap();
++                for (limit, floor, target_acquired) in
++                    [(exact, 0, true), (exact - 1, 0, false), (exact, 1, false)]
++                {
++                    let (success, metrics, refused, _, receipt, prefix) =
++                        run_public(&checked, &source, limit, floor);
++                    assert!(
++                        !metrics.invalid && metrics.live == 0 && metrics.allocated == metrics.freed
++                    );
++                    let acquired = [
++                        prefix.joins,
++                        prefix.variant_views,
++                        prefix.arm_views,
++                        prefix.finishes,
++                    ][i];
++                    assert_eq!(acquired != 0, target_acquired);
++                    if !target_acquired {
++                        assert!(refused && !success);
++                        assert_eq!(receipt.unwrap().requested, frontier.amount);
++                    } else if success {
++                        assert!(!refused && receipt.is_none());
++                    } else {
++                        assert!(refused && receipt.is_some());
++                    }
++                }
++            }
++        }
++        assert!(
++            seen.into_iter().all(|seen| seen),
++            "every actual new role must be reached"
++        );
++        let checked = crate::check(SCALAR, "witness-zero.spx").unwrap();
++        let (success, metrics, refused, _, receipt, _) = run_public(&checked, SCALAR, 0, 0);
++        assert!(!success && refused && receipt.is_some() && !metrics.invalid && metrics.live == 0);
++    }
++
++    #[test]
++    fn complete_public_caller_reports_real_backing_replacement_bill_and_drop_for_matched_sources() {
++        for source in sources() {
++            let checked = crate::check(&source, "matched-frame.spx").unwrap();
++            let (outcome, metrics, refused, paid, receipt, report) =
++                run_public(&checked, &source, 64 << 20, 0);
++            assert!(
++                outcome && !refused && receipt.is_none(),
++                "source_bytes={} success={outcome} refused={refused} paid={paid} first={receipt:?} frame={report:?} allocations={metrics:?}",
++                source.len(),
++            );
++            assert!(!metrics.invalid && metrics.live == 0 && metrics.allocated == metrics.freed);
++            assert!(!report.overflow && report.size > 0 && report.requests > 0);
++            assert_eq!(report.requested_capacity, report.acquired_capacity);
++            let backing = report.acquired_capacity.checked_mul(report.size).unwrap();
++            let replacement = report
++                .joins
++                .checked_mul(WITNESS_JOIN)
++                .unwrap()
++                .checked_add(report.variant_views.checked_mul(VARIANT_VIEWS).unwrap())
++                .unwrap()
++                .checked_add(report.arm_views.checked_mul(VARIANT_ARM_VIEW).unwrap())
++                .unwrap()
++                .checked_add(report.finishes.checked_mul(WITNESS_FINISH).unwrap())
++                .unwrap();
++            eprintln!(
++                "OPT904 full-public-caller source_sha={} source_bytes={} complete=true layout={report:?} full_frame_backing={backing} actual_replacement_bill={replacement} paid={paid} allocations={metrics:?}; no inferred old layout, no clone payload credit, no shipping/app-fit claim",
++                {
++                    use sha2::Digest;
++                    format!(
++                        "{:x}",
++                        crate::digest_hex::LowerHex(sha2::Sha256::digest(source.as_bytes()))
++                    )
++                },
++                source.len()
++            );
++            let source_sha256 = {
++                use sha2::Digest;
++                format!(
++                    "{:x}",
++                    crate::digest_hex::LowerHex(sha2::Sha256::digest(source.as_bytes()))
++                )
++            };
++            eprintln!(
++                "OPT904_JSON {}",
++                serde_json::json!({
++                    "source_sha256": source_sha256,
++                    "source_bytes": source.len(), "complete": true,
++                    "frame_size": report.size, "frame_align": report.alignment,
++                    "requested_capacity": report.requested_capacity,
++                    "acquired_capacity": report.acquired_capacity, "requests": report.requests,
++                    "replacement_bill": replacement, "paid": paid,
++                    "joins": report.joins, "variant_views": report.variant_views,
++                    "arm_views": report.arm_views, "finishes": report.finishes,
++                    "live": metrics.live, "allocated": metrics.allocated, "freed": metrics.freed,
++                    "invalid": metrics.invalid, "overflow": report.overflow
++                })
++            );
++        }
++    }
++
++    #[test]
++    fn real_complete_frame_layout_and_every_capacity_request_are_reported_without_248_assumption() {
++        // Missing registration is explicitly incomplete; a foreign Storage<T>
++        // cannot contribute capacities to the actual registered frame type.
++        let capture = Capture::begin();
++        observe_frame_request::<usize>(1);
++        assert!(capture.finish().overflow);
++        let capture = Capture::begin();
++        observe_frame_layout::<(usize, usize)>(
++            std::mem::size_of::<(usize, usize)>(),
++            std::mem::align_of::<(usize, usize)>(),
++        );
++        observe_frame_request::<usize>(7);
++        observe_frame_acquired::<usize>(7);
++        observe_frame_request::<(usize, usize)>(3);
++        observe_frame_acquired::<(usize, usize)>(3);
++        let registration = capture.finish();
++        assert!(!registration.overflow);
++        assert_eq!(registration.requests, 1);
++        assert_eq!(registration.requested_capacity, 3);
++        assert_eq!(registration.acquired_capacity, 3);
++        for source in sources() {
++            let checked = crate::check(&source, "frame-invoice.spx").unwrap();
++            let capture = Capture::begin();
++            let program = crate::hir::resolve(&checked).unwrap();
++            crate::hir::validate(&program).unwrap();
++            let report = capture.finish();
++            assert!(!report.overflow);
++            assert!(report.size > 0 && report.alignment.is_power_of_two());
++            assert_eq!(report.size % report.alignment, 0);
++            assert!(report.requests > 0 && report.requested_capacity > 0);
++            let backing = report.requested_capacity.checked_mul(report.size).unwrap();
++            eprintln!(
++                "OPT904 actual_complete_frame size={} alignment={} ALL_requested_capacities={} requests={} full_backing={} includes_failed_requests=true no_248_or_clone_payload_credit",
++                report.size, report.alignment, report.requested_capacity, report.requests, backing
++            );
++        }
++    }
++    #[test]
++    fn actual_live_witness_unwind_and_counter_overflow_preserve_full_owner_drop() {
++        let checked = crate::check(SCALAR, "witness-unwind.spx").unwrap();
++        let capture = Capture::begin();
++        PANIC_AFTER_WITNESS.with(|flag| flag.set(true));
++        let (((), metrics), refused, _, receipt) =
++            crate::bounded_output::with_limit_usage_refusal(64 << 20, || {
++                crate::test_allocation_observer::measure_with_capacity(1 << 16, || {
++                    let caught = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
++                        let resolved = crate::hir::resolve(&checked).unwrap();
++                        drop(resolved);
++                    }));
++                    assert!(caught.is_err());
++                    drop(caught);
++                })
++            });
++        let report = capture.finish();
++        assert!(!refused && receipt.is_none() && report.joins > 0);
++        assert!(!metrics.invalid && metrics.live == 0 && metrics.allocated == metrics.freed);
++        let ordinary = crate::hir::resolve(&checked).unwrap();
++        let capture = Capture::begin();
++        FRAME_REQUESTS.with(|cell| {
++            let mut report = cell.get().unwrap();
++            report.requested_capacity = usize::MAX;
++            cell.set(Some(report));
++        });
++        let observed = crate::hir::resolve(&checked).unwrap();
++        let overflow = capture.finish();
++        assert!(overflow.overflow);
++        assert_eq!(
++            format!("{ordinary:?}"),
++            format!("{observed:?}"),
++            "overflow is diagnostic, never authority"
++        );
++    }
++
++    #[test]
++    fn complete_public_cold_sequential_and_nested_match_callers_report_actual_frame_and_replacement_bills(
++    ) {
++        let mut cases = vec![
++            ("literal", 0usize, "module cold; @id(\"cold.main\") fn main()->i64 {1}".to_owned()),
++            ("call", 0usize, "module cold; @id(\"cold.f\") fn f(x:i64)->i64 {x} @id(\"cold.main\") fn main()->i64 {f(1)}".to_owned()),
++        ];
++        for count in [1usize, 8, 32] {
++            let mut body = String::new();
++            for index in 0..count {
++                body.push_str(&format!("let n{index}=match 0 {{_=>1,}};"));
++            }
++            body.push_str("1");
++            cases.push((
++                "sequential",
++                count,
++                format!("module sequential; @id(\"sequence.main\") fn main()->i64 {{{body}}}"),
++            ));
++            let mut body = "1".to_owned();
++            for _ in 0..count {
++                body = format!("match 0 {{_=>{body},}}");
++            }
++            cases.push((
++                "nested",
++                count,
++                format!("module nested; @id(\"nested.main\") fn main()->i64 {{{body}}}"),
++            ));
++        }
++        // A single exhaustive arm keeps one PLAN path. Sequential matches grow
++        // witness joins without introducing an exponential path-product fixture.
++        for (shape, count, source) in cases {
++            let checked = crate::check(&source, "matched-frame-shape.spx").unwrap();
++            let (success, metrics, refused, paid, receipt, report) =
++                run_public(&checked, &source, 64 << 20, 0);
++            let replacement = report
++                .joins
++                .checked_mul(WITNESS_JOIN)
++                .unwrap()
++                .checked_add(report.variant_views.checked_mul(VARIANT_VIEWS).unwrap())
++                .unwrap()
++                .checked_add(report.arm_views.checked_mul(VARIANT_ARM_VIEW).unwrap())
++                .unwrap()
++                .checked_add(report.finishes.checked_mul(WITNESS_FINISH).unwrap())
++                .unwrap();
++            let source_sha256 = {
++                use sha2::Digest;
++                format!("{:x}", crate::digest_hex::LowerHex(sha2::Sha256::digest(source.as_bytes())))
++            };
++            eprintln!(
++                "OPT904_SHAPE_JSON {}",
++                serde_json::json!({
++                    "source_sha256": source_sha256,
++                    "source_bytes": source.len(), "shape": shape, "match_count": count,
++                    "success": success, "refused": refused, "first_refusal": format!("{receipt:?}"),
++                    "limit": 64usize << 20, "floor": 0, "paid": paid,
++                    "frame_size": report.size, "frame_align": report.alignment,
++                    "requested_capacity": report.requested_capacity, "acquired_capacity": report.acquired_capacity,
++                    "requests": report.requests, "joins": report.joins, "variant_views": report.variant_views,
++                    "arm_views": report.arm_views, "finishes": report.finishes,
++                    "replacement_bill": replacement, "overflow": report.overflow,
++                    "allocated": metrics.allocated, "freed": metrics.freed, "live": metrics.live, "invalid": metrics.invalid,
++                    "matched_old_image_required": true, "no_clone_payload_credit": true
++                })
++            );
++            assert!(
++                success && !refused && receipt.is_none(),
++                "complete unchanged-capacity caller {shape}/{count}"
++            );
++            assert!(!metrics.invalid && metrics.live == 0 && metrics.allocated == metrics.freed);
++            assert!(!report.overflow && report.size > 0 && report.alignment.is_power_of_two());
++            assert_eq!(report.requested_capacity, report.acquired_capacity);
++        }
++    }
++
++    #[test]
++    fn whole_immediate_production_frame_dispatch_helper_and_invoice_restore_and_refuse_drift() {
++        use sha2::{Digest, Sha256};
++        fn hash(bytes: &[u8]) -> String {
++            format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)))
++        }
++        fn restore(row: &serde_json::Value, current: &[u8]) -> Option<Vec<u8>> {
++            if current.len() as u64 != row["current_length"].as_u64()?
++                || hash(current) != row["current_sha256"].as_str()?
++            {
++                return None;
++            }
++            let mut bytes = current.to_vec();
++            for edit in row["edits"].as_array()?.iter().rev() {
++                let start = usize::try_from(edit["current_start"].as_u64()?).ok()?;
++                let end = usize::try_from(edit["current_end"].as_u64()?).ok()?;
++                if bytes.get(start..end)? != edit["current"].as_str()?.as_bytes() {
++                    return None;
++                }
++                bytes.splice(
++                    start..end,
++                    edit["before"].as_str()?.as_bytes().iter().copied(),
++                );
++            }
++            Some(bytes)
++        }
++        let inverse: serde_json::Value =
++            serde_json::from_str(include_str!("match_witness_inverse.json")).unwrap();
++        let original_root = frame_reuse::source_inverse::whole_root(
++            "src/hir/validation.rs", include_str!("../validation.rs"));
++        let original_lexical = frame_reuse::source_inverse::whole_root(
++            "src/hir/validation/lexical_exit.rs", include_str!("lexical_exit.rs"));
++        let sources = [
++            original_root.as_str(),
++            original_lexical.as_str(),
++            include_str!("scope_checkpoint/storage.rs"),
++        ];
++        let before = [
++            (
++                399157,
++                "85a730c701db6b3031fecd84499aa1f2dff5f5c07d0498612bdcd1284dd0b271",
++            ),
++            (
++                5536,
++                "5b1655ec915ba15347dcaaea9914a4f53ee3e922df4e32e424fc3d53775ea869",
++            ),
++            (
++                4073,
++                "b6bdc77ba0bbacf17d7481a0cf5028ed17c795e5f44b361079fc4d1d31e6d64f",
++            ),
++        ];
++        assert_eq!(inverse["rows"].as_array().unwrap().len(), sources.len());
++        for ((row, current), (length, expected)) in inverse["rows"]
++            .as_array()
++            .unwrap()
++            .iter()
++            .zip(sources)
++            .zip(before)
++        {
++            let old = restore(row, current.as_bytes()).unwrap();
++            assert_eq!((old.len(), hash(&old)), (length, expected.to_owned()));
++            assert!(
++                restore(row, &old).is_none(),
++                "already-old is not current authority"
++            );
++            let mut drift = current.as_bytes().to_vec();
++            drift[0] ^= 1;
++            assert!(restore(row, &drift).is_none());
++        }
++        let frame = include_str!("continuation_frame.rs")
++            .split_once("pub(super) enum Frame<'e> {")
++            .unwrap()
++            .1;
++        assert!(
++            !frame.contains("#[cfg"),
++            "instrumentation cannot change shipping frame layout"
++        );
++        assert_eq!(frame.matches("result: Option<&'e ResolvedExpr>").count(), 5);
++        let storage = sources[2]
++            .split_once("struct Storage<T> {")
++            .unwrap()
++            .1
++            .split_once('}')
++            .unwrap()
++            .0;
++        assert_eq!(storage, "\n    values: Vec<T>,\n");
++    }
++    #[test]
++    fn invocation_reuse_unwinds_live_scopes_and_witness_before_publication_drop() {
++        let checked = crate::check(SCALAR, "reuse-witness-unwind.spx").unwrap();
++        let program = crate::hir::resolve(&checked).unwrap();
++        let function = program
++            .functions
++            .iter()
++            .find(|f| f.id.as_str() == "w.f")
++            .unwrap();
++        let validator = HirValidator::new(&program).unwrap();
++        let capture = Capture::begin();
++        let (((), metrics), refused, _, receipt) =
++            crate::bounded_output::with_limit_usage_refusal(64 << 20, || {
++                crate::test_allocation_observer::measure_with_capacity(1 << 16, || {
++                    PANIC_AFTER_WITNESS.with(|flag| flag.set(true));
++                    let caught = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
++                        let mut validator = validator;
++                        let mut scratch = frame_reuse::Scratch::new().unwrap();
++                        frame_reuse::argument().unwrap();
++                        validator
++                            .validate_function_with_frames(
++                                function,
++                                &FunctionExecutionId::Monomorphic(function.id.clone()),
++                                Some(&mut scratch),
++                            )
++                            .unwrap();
++                    }));
++                    assert!(caught.is_err());
++                    drop(caught);
++                    PANIC_AFTER_WITNESS.with(|flag| flag.set(false));
++                })
++            });
++        let report = capture.finish();
++        assert!(!refused && receipt.is_none() && report.joins > 0 && !report.overflow);
++        assert!(!metrics.invalid && metrics.live == 0 && metrics.allocated == metrics.freed);
++        crate::hir::validate(&program).unwrap();
++    }
++}
+diff --git a/src/hir/validation/lexical_exit/matched_observation_source_inverse_before.rs.txt b/src/hir/validation/lexical_exit/matched_observation_source_inverse_before.rs.txt
+new file mode 100644
+index 0000000000000000000000000000000000000000..1233df5181d2c73e8374da2352fefb4b8b25b0ef
+--- /dev/null
++++ b/src/hir/validation/lexical_exit/matched_observation_source_inverse_before.rs.txt
+@@ -0,0 +1,148 @@
++//! Test-only current-byte custody before the unchanged empty-ensures proof.
++use sha2::{Digest, Sha256};
++fn hash(source: &str) -> String {
++    format!(
++        "{:x}",
++        crate::digest_hex::LowerHex(Sha256::digest(source.as_bytes()))
++    )
++}
++fn restore(current: &str, receiver: &str) -> String {
++    let binding: serde_json::Value =
++        serde_json::from_str(include_str!("source_inverse.json")).unwrap();
++    assert_eq!(
++        hash(current),
++        binding["root_current_sha256"].as_str().unwrap()
++    );
++    // Enter the unchanged receiver epoch through its exact visibility inverse.
++    let ingress = &binding["receiver_visibility"];
++    assert_eq!(receiver.len() as u64, ingress["current_length"].as_u64().unwrap());
++    assert_eq!(hash(receiver), ingress["current_sha256"].as_str().unwrap());
++    let after = ingress["after"].as_str().unwrap();
++    assert_eq!(receiver.matches(after).count(), 1);
++    let receiver_before = receiver.replacen(after, ingress["before"].as_str().unwrap(), 1);
++    assert_eq!(receiver_before.len() as u64, ingress["before_length"].as_u64().unwrap());
++    assert_eq!(hash(&receiver_before), ingress["before_sha256"].as_str().unwrap());
++    let receiver = receiver_before.as_str();
++    assert_eq!(
++        hash(receiver),
++        binding["receiver_current_sha256"].as_str().unwrap()
++    );
++    let mut body = receiver.as_bytes().to_vec();
++    for edit in binding["edits"].as_array().unwrap().iter().rev() {
++        let start = usize::try_from(edit["start"].as_u64().unwrap()).unwrap();
++        let end = usize::try_from(edit["end"].as_u64().unwrap()).unwrap();
++        assert_eq!(
++            body.get(start..end).unwrap(),
++            edit["current"].as_str().unwrap().as_bytes()
++        );
++        body.splice(
++            start..end,
++            edit["before"].as_str().unwrap().as_bytes().iter().copied(),
++        );
++    }
++    let body = String::from_utf8(body).unwrap();
++    assert_eq!(
++        hash(&body),
++        binding["receiver_before_sha256"].as_str().unwrap()
++    );
++    let wrapper = binding["wrapper_current"].as_str().unwrap();
++    assert_eq!(current.matches(wrapper).count(), 1);
++    let mut restored = current.replacen(wrapper, &body, 1);
++    for (current, previous) in [
++        (
++            "    #[cfg(test)]\n    fn validate_expr_persistent(",
++            "    fn validate_expr_persistent(",
++        ),
++        ("pub(super) mod lifecycle;", "mod lifecycle;"),
++    ] {
++        assert_eq!(restored.matches(current).count(), 1);
++        restored = restored.replacen(current, previous, 1);
++    }
++    assert_eq!(
++        hash(&restored),
++        binding["root_before_sha256"].as_str().unwrap()
++    );
++    restored
++}
++pub(in crate::hir::validation) fn function_scope(current: &str) -> String {
++    restore(current, include_str!("function.rs"))
++}
++// Authenticate every relocated child before the fixed whole-source ingress.
++pub(in crate::hir::validation) fn whole_root(source: &str, current: &str) -> String {
++    let binding: serde_json::Value = serde_json::from_str(include_str!("source_inverse.json")).unwrap();
++    for (path, compiled) in [
++        ("src/hir/validation/continuation_frame.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/continuation_frame.rs"))),
++        ("src/hir/validation/frame_reuse.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/frame_reuse.rs"))),
++        ("src/hir/validation/frame_reuse/before.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/frame_reuse/before.rs"))),
++        ("src/hir/validation/frame_reuse/before_0.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/frame_reuse/before_0.rs"))),
++        ("src/hir/validation/frame_reuse/before_1.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/frame_reuse/before_1.rs"))),
++        ("src/hir/validation/frame_reuse/before_10.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/frame_reuse/before_10.rs"))),
++        ("src/hir/validation/frame_reuse/before_11.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/frame_reuse/before_11.rs"))),
++        ("src/hir/validation/frame_reuse/before_12.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/frame_reuse/before_12.rs"))),
++        ("src/hir/validation/frame_reuse/before_13.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/frame_reuse/before_13.rs"))),
++        ("src/hir/validation/frame_reuse/before_14.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/frame_reuse/before_14.rs"))),
++        ("src/hir/validation/frame_reuse/before_15.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/frame_reuse/before_15.rs"))),
++        ("src/hir/validation/frame_reuse/before_16.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/frame_reuse/before_16.rs"))),
++        ("src/hir/validation/frame_reuse/before_17.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/frame_reuse/before_17.rs"))),
++        ("src/hir/validation/frame_reuse/before_2.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/frame_reuse/before_2.rs"))),
++        ("src/hir/validation/frame_reuse/before_3.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/frame_reuse/before_3.rs"))),
++        ("src/hir/validation/frame_reuse/before_4.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/frame_reuse/before_4.rs"))),
++        ("src/hir/validation/frame_reuse/before_5.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/frame_reuse/before_5.rs"))),
++        ("src/hir/validation/frame_reuse/before_6.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/frame_reuse/before_6.rs"))),
++        ("src/hir/validation/frame_reuse/before_7.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/frame_reuse/before_7.rs"))),
++        ("src/hir/validation/frame_reuse/before_8.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/frame_reuse/before_8.rs"))),
++        ("src/hir/validation/frame_reuse/before_9.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/frame_reuse/before_9.rs"))),
++        ("src/hir/validation/frame_reuse/contracts.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/frame_reuse/contracts.rs"))),
++        ("src/hir/validation/frame_reuse/contracts_before.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/frame_reuse/contracts_before.rs"))),
++        ("src/hir/validation/frame_reuse/custody.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/frame_reuse/custody.rs"))),
++        ("src/hir/validation/frame_reuse/function.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/frame_reuse/function.rs"))),
++        ("src/hir/validation/frame_reuse/function_before.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/frame_reuse/function_before.rs"))),
++        ("src/hir/validation/frame_reuse/source_inverse.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/frame_reuse/source_inverse.rs"))),
++        ("src/hir/validation/frame_reuse/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/frame_reuse/tests.rs"))),
++    ] {
++        let predecessor = if path == "src/hir/validation/frame_reuse/tests.rs" {
++            crate::source_reflows::batch_913_entry(path, compiled)
++        } else {
++            None
++        };
++        let authenticated = predecessor.as_deref().unwrap_or(compiled);
++        assert_eq!(hash(authenticated), binding["whole_children"][path].as_str().unwrap());
++    }
++    let row = &binding["whole_roots"][source];
++    assert_eq!(current.len() as u64, row["current_length"].as_u64().unwrap());
++    assert_eq!(hash(current), row["current_sha256"].as_str().unwrap());
++    let mut bytes = current.as_bytes().to_vec();
++    for edit in row["edits"].as_array().unwrap().iter().rev() {
++        let start = usize::try_from(edit["start"].as_u64().unwrap()).unwrap();
++        let end = usize::try_from(edit["end"].as_u64().unwrap()).unwrap();
++        assert_eq!(bytes.get(start..end).unwrap(), edit["current"].as_str().unwrap().as_bytes());
++        bytes.splice(start..end, edit["before"].as_str().unwrap().as_bytes().iter().copied());
++    }
++    let restored = String::from_utf8(bytes).unwrap();
++    assert_eq!(restored.len() as u64, row["before_length"].as_u64().unwrap());
++    assert_eq!(hash(&restored), row["before_sha256"].as_str().unwrap());
++    restored
++}
++#[test]
++fn relocated_function_scope_requires_complete_root_and_receiver_before_unchanged_proof() {
++    let current = include_str!("../function_scope.rs");
++    let receiver = include_str!("function.rs");
++    for (path, current) in [
++        ("src/hir/validation.rs", include_str!("../../validation.rs")),
++        ("src/hir/validation/lexical_exit.rs", include_str!("../lexical_exit.rs")),
++    ] {
++        assert!(std::panic::catch_unwind(|| whole_root(path, &(current.to_owned() + " "))).is_err());
++        let restored = whole_root(path, current);
++        assert!(std::panic::catch_unwind(|| whole_root(path, &restored)).is_err());
++    }
++    assert_eq!(
++        hash(&restore(current, receiver)),
++        "2cb5bf4ab361f172241d1c148788a5db09fdb264471818091ea1d83a1be41426"
++    );
++    for (root, body) in [
++        (current.to_owned() + " ", receiver.to_owned()),
++        (current.to_owned(), receiver.to_owned() + " "),
++    ] {
++        assert!(std::panic::catch_unwind(|| restore(&root, &body)).is_err());
++    }
++}

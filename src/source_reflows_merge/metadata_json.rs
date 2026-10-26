@@ -1,6 +1,8 @@
 //! Fixed immutable proof metadata; never reads live Rust inputs at runtime.
 //! Exact absence skips unused data only; the all-file owner checks availability.
 use sha2::{Digest, Sha256};
+#[path = "boxed_inputs.rs"]
+pub(super) mod boxed_inputs;
 #[derive(Clone, Copy)]
 pub(super) enum Fixture {
     M00,

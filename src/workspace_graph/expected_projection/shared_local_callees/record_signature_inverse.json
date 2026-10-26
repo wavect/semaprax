@@ -1,0 +1,58 @@
+{
+  "schema": "semaprax.local-record-signature-entry.v1",
+  "prior_commit": "a01c36aed33b151f85685a2f1e3cd7d65a1c6026",
+  "entries": {
+    "src/workspace_graph/expected_projection/shared_local_callees/modular_census.rs": {
+      "current_sha256": "b5032e96c21ae66a011e08938a5dda8b366a9b495b6d421f7eb259c9e4ae3098",
+      "prior_sha256": "7206907c28fe974510a90661df16005aefd75b45cff9104d4e74f77888c1e3f0",
+      "current_bytes": 9819,
+      "prior_bytes": 9691,
+      "splices": [
+        {
+          "current": "        ExprKind::Call { .. }\n        | ExprKind::If { .. }\n        | ExprKind::Unary { .. }\n        | ExprKind::Binary { .. }\n        | ExprKind::Project { .. }\n        | ExprKind::Var(_)\n        | ExprKind::Int(_)\n        | ExprKind::Int32(_)\n        | ExprKind::Uint8(_)\n",
+          "prior": "        ExprKind::Call { .. }\n        | ExprKind::If { .. }\n        | ExprKind::Unary { .. }\n        | ExprKind::Binary { .. }\n        | ExprKind::Var(_)\n        | ExprKind::Int(_)\n        | ExprKind::Int32(_)\n        | ExprKind::Uint8(_)\n"
+        },
+        {
+          "current": "    Proof, Statement, Type,\n};\nfn plain(ty: &Type) -> bool {\n    matches!(\n        ty,\n        Type::Named { arguments, .. } if arguments.is_empty()\n    ) || matches!(\n        ty,\n        Type::I64\n            | Type::I32\n            | Type::U8\n",
+          "prior": "    Proof, Statement, Type,\n};\nfn plain(ty: &Type) -> bool {\n    matches!(\n        ty,\n        Type::I64\n            | Type::I32\n            | Type::U8\n"
+        }
+      ]
+    },
+    "src/workspace_graph/expected_projection/shared_local_callees/modular_session.rs": {
+      "current_sha256": "342ca60956a62f93878ae04b67aab70a971012aa38839a0a307cbf37001746ba",
+      "prior_sha256": "374f9272a2621d767dc4a2ac03844e7612ee8f000e500f952a4616041eaa9954",
+      "current_bytes": 12946,
+      "prior_bytes": 12699,
+      "splices": [
+        {
+          "current": "\n#[cfg(test)]\n#[path = \"modular_tests.rs\"]\npub(in crate::workspace_graph::expected_projection) mod tests;\n\n#[path = \"record_signatures.rs\"]\nmod record_signatures;\n\n#[cfg(test)]\nuse super::ordinary;\n#[cfg(test)]\n#[path = \"record_before.rs\"]\npub(in crate::workspace_graph::expected_projection) mod record_before;\n",
+          "prior": "\n#[cfg(test)]\n#[path = \"modular_tests.rs\"]\npub(in crate::workspace_graph::expected_projection) mod tests;\n"
+        },
+        {
+          "current": "                    arity: owner.params.len(),\n                });\n            }\n            if !matches!(&held.target, Some(checked) if std::ptr::eq(checked.function, target)) {\n                if !record_signatures::ordinary(context, target, &held.invoice)?\n                    || !local(context, target, &held.invoice)?\n                    || compiler(&target.name, &held.invoice)?\n                    || !unaliased(context, target, &held.invoice)?\n                {\n",
+          "prior": "                    arity: owner.params.len(),\n                });\n            }\n            if !matches!(&held.target, Some(checked) if std::ptr::eq(checked.function, target)) {\n                if !ordinary(target, &held.invoice)?\n                    || !local(context, target, &held.invoice)?\n                    || compiler(&target.name, &held.invoice)?\n                    || !unaliased(context, target, &held.invoice)?\n                {\n"
+        },
+        {
+          "current": "            // Pointer equality is only lookup of a SEALED constructor loan,\n            // never its creation. No result escapes this exact lender/context;\n            // both immutable source owners remain borrowed until finish.\n            if !matches!(&held.owner, Some(checked) if std::ptr::eq(checked.function, owner)) {\n                if !record_signatures::ordinary(context, owner, &held.invoice)?\n                    || !local(context, owner, &held.invoice)?\n                    || !unaliased(context, owner, &held.invoice)?\n                {\n                    return Ok(());\n",
+          "prior": "            // Pointer equality is only lookup of a SEALED constructor loan,\n            // never its creation. No result escapes this exact lender/context;\n            // both immutable source owners remain borrowed until finish.\n            if !matches!(&held.owner, Some(checked) if std::ptr::eq(checked.function, owner)) {\n                if !ordinary(owner, &held.invoice)?\n                    || !local(context, owner, &held.invoice)?\n                    || !unaliased(context, owner, &held.invoice)?\n                {\n                    return Ok(());\n"
+        },
+        {
+          "current": "//! Distinct local constructor proof in an imported module; no import discount.\n//! No auxiliary-carrier count, name index or pointer alone grants identity scope.\nuse super::{\n    compiler, local, Context, Costs, Failure, Function, Index, Invoice, Program, MAX_HEADERS,\n};\ntype Error = Failure;\n\n// These loans can only be formed after the full ordinary/local source check.\n",
+          "prior": "//! Distinct local constructor proof in an imported module; no import discount.\n//! No auxiliary-carrier count, name index or pointer alone grants identity scope.\nuse super::{\n    compiler, local, ordinary, Context, Costs, Failure, Function, Index, Invoice, Program,\n    MAX_HEADERS,\n};\ntype Error = Failure;\n\n// These loans can only be formed after the full ordinary/local source check.\n"
+        }
+      ]
+    },
+    "src/workspace_graph/expected_projection/shared_local_callees/modular_tests.rs": {
+      "current_sha256": "23041fdc6a6a5009de9242193e0e1fcfe292495196a4973b26b621e29f69a89c",
+      "prior_sha256": "27407ce63241427ce52594cf358c988f85fcf31add6a27dd39e840a881b4c7b5",
+      "current_bytes": 10525,
+      "prior_bytes": 10418,
+      "splices": [
+        {
+          "current": "    }\n}\n\npub(in crate::workspace_graph::expected_projection) fn restore(path: &str, source: &str) -> String {\n    let record = super::record_signatures::tests::restore(path, source);\n    let source = record.as_str();\n    let packet: serde_json::Value =\n        serde_json::from_str(include_str!(\"modular_inverse.json\")).unwrap();\n    let canonical = if path.starts_with(\"src/\") {\n        path.to_owned()\n",
+          "prior": "    }\n}\n\npub(in crate::workspace_graph::expected_projection) fn restore(path: &str, source: &str) -> String {\n    let packet: serde_json::Value =\n        serde_json::from_str(include_str!(\"modular_inverse.json\")).unwrap();\n    let canonical = if path.starts_with(\"src/\") {\n        path.to_owned()\n"
+        }
+      ]
+    }
+  }
+}

@@ -91,7 +91,15 @@ fn complete_immediate_sources_and_old_clone_and_both_callers_are_exactly_preserv
     assert_eq!(include_str!("before_caller785.rs"), expected);
     // The new view cannot quietly reprice or alter the original allocating API.
     let old_budget = snapshot("src/bounded_output.rs");
-    let current_budget = std::fs::read_to_string(root.join("src/bounded_output.rs")).unwrap();
+    crate::bounded_output::census_before(
+        "src/bounded_output/request_reservation.rs",
+        include_bytes!("../../bounded_output/request_reservation.rs"),
+    );
+    let current_budget = String::from_utf8(crate::bounded_output::census_before(
+        "src/bounded_output.rs",
+        &std::fs::read(root.join("src/bounded_output.rs")).unwrap(),
+    ))
+    .unwrap();
     let clone = |s: &str| {
         s.split("pub(crate) fn budgeted_clone(value: &str) -> String {")
             .nth(1)

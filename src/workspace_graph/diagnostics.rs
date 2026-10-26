@@ -126,6 +126,9 @@ thread_local! {
     static PRECHARGE_DOMINANT: RefCell<Option<(String, usize)>> = const { RefCell::new(None) };
     static PRECHARGE_PENDING: RefCell<Option<String>> = const { RefCell::new(None) };
     static PRECHARGE_SEQUENTIAL: RefCell<Option<SequentialRefusal>> = const { RefCell::new(None) };
+    // Distinct later-validation attribution never impersonates a module's
+    // resolving or retained-output step. All old sequential records stay whole.
+    static PRECHARGE_LATER: Cell<Option<(usize, usize, usize)>> = const { Cell::new(None) };
 }
 
 /// One refused step of the final uncached forecast. That forecast is a
@@ -157,6 +160,7 @@ pub(super) fn precharge_scope() -> PrechargeScope {
 /// Start one forecast pass. Every fallback receipt re-costs each module, so
 /// attribution keeps only the pass that is currently running.
 pub(super) fn begin_precharge_pass() {
+    PRECHARGE_LATER.with(|later| later.set(None));
     PRECHARGE_MODULES.with(|modules| modules.set(0));
     PRECHARGE_BYTES.with(|bytes| bytes.set(0));
     PRECHARGE_DOMINANT.with(|dominant| *dominant.borrow_mut() = None);
@@ -207,6 +211,16 @@ pub(super) fn record_sequential_precharge_refusal(
     });
 }
 
+/// Preserve the whole-module retained SUM and the independent later MAX /
+/// canonical-directory window as its own refusing static bound.
+pub(super) fn record_retained_validation_precharge_refusal(
+    modules: usize,
+    retained: usize,
+    additional: usize,
+) {
+    PRECHARGE_LATER.with(|later| later.set(Some((modules, retained, additional))));
+}
+
 /// A fitting sequential pass charges its peak, not the sum of the module
 /// forecasts it recorded, so later live attribution must report that peak.
 pub(super) fn complete_sequential_precharge(forecast: usize) {
@@ -238,6 +252,13 @@ fn write_builder_bytes_help(maximum: usize, output: &mut dyn std::fmt::Write) ->
         return write!(output,
             "the static admission pre-charge refused before the graph builder ran, while forecasting module `{path}` on its own: that one module does not fit the {maximum}-byte budget, which already carries {forecast} bytes for {modules} earlier module(s). Splitting `{path}` into several modules cannot reduce the forecast, because the pre-charge sums every reachable module; reducing its admitted source can."
         );
+    }
+    if precharge {
+        if let Some((modules,retained,additional)) = PRECHARGE_LATER.with(Cell::get) {
+            return write!(output,
+                "the static admission pre-charge refused before the graph builder ran, in its final retained-validation forecast: all {modules} module(s) retain {retained} bytes of filtered output, and one function's maximum rebuild scratch plus the canonical lookup directory requires {additional} more bytes beside that complete retained output, which exceeds the {maximum}-byte budget. Resolver and fixed-function allowances remain complete; no individual module owns this later cross-module window."
+            );
+        }
     }
     PRECHARGE_SEQUENTIAL.with(|sequential| {
         let sequential = sequential.borrow();

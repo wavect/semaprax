@@ -273,42 +273,26 @@ pub(super) fn prepare(
             Ok(PreparedProjectAdmission::StdinStreamDataCommandIoV1)
         }
         ProjectProfile::StdinStreamDataCommandIoV2 => {
-            crate::hir::validate_stream_record_program(
-                program,
-                Some(&crate::hir::DeclarationId::new(
-                    manifest.command().unwrap_or(""),
-                )),
-            )?;
+            let command = program.selected_function_id(manifest.command().unwrap_or(""));
+            crate::hir::validate_stream_record_program(program, Some(command.as_ref()))?;
             stdin_stream_command::admit(program, manifest.command().unwrap_or(""), true)?;
             Ok(PreparedProjectAdmission::StdinStreamDataCommandIoV2)
         }
         ProjectProfile::StdinStreamOwnedDataCommandIoV1 => {
-            crate::hir::validate_stream_owned_program(
-                program,
-                Some(&crate::hir::DeclarationId::new(
-                    manifest.command().unwrap_or(""),
-                )),
-            )?;
+            let command = program.selected_function_id(manifest.command().unwrap_or(""));
+            crate::hir::validate_stream_owned_program(program, Some(command.as_ref()))?;
             stdin_stream_command::admit(program, manifest.command().unwrap_or(""), true)?;
             Ok(PreparedProjectAdmission::StdinStreamOwnedDataCommandIoV1)
         }
         ProjectProfile::StdinStreamCollectionRecordCommandIoV1 => {
-            crate::hir::validate_stream_collection_record_program(
-                program,
-                Some(&crate::hir::DeclarationId::new(
-                    manifest.command().unwrap_or(""),
-                )),
-            )?;
+            let command = program.selected_function_id(manifest.command().unwrap_or(""));
+            crate::hir::validate_stream_collection_record_program(program, Some(command.as_ref()))?;
             stdin_stream_command::admit(program, manifest.command().unwrap_or(""), true)?;
             Ok(PreparedProjectAdmission::StdinStreamCollectionRecordCommandIoV1)
         }
         ProjectProfile::StdinStreamNestedOutcomeCommandIoV1 => {
-            crate::hir::validate_stream_nested_outcome_program(
-                program,
-                Some(&crate::hir::DeclarationId::new(
-                    manifest.command().unwrap_or(""),
-                )),
-            )?;
+            let command = program.selected_function_id(manifest.command().unwrap_or(""));
+            crate::hir::validate_stream_nested_outcome_program(program, Some(command.as_ref()))?;
             stdin_stream_command::admit(program, manifest.command().unwrap_or(""), true)?;
             Ok(PreparedProjectAdmission::StdinStreamNestedOutcomeCommandIoV1)
         }

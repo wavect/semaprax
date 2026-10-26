@@ -1,0 +1,104 @@
+{
+  "git_before": "21574297e02afb6f286901171f6c179bf2ccea0a",
+  "source": "src/workspace_graph/expected_projection/call_carriers_directory.rs",
+  "current": {
+    "length": 22139,
+    "sha256": "cc9c89b34def67c380a69ccc4d1f5b8ddd1dc01f10abed418b24517baa390be7"
+  },
+  "target": {
+    "length": 21794,
+    "sha256": "c49b0a20bbb6681d67dfbf177fe3fd41a64c57079afa7d7713aaa78a42d6ab95"
+  },
+  "edits": [
+    {
+      "start": 1976,
+      "end": 1990,
+      "after": "#[cfg(any())]\n",
+      "before": "#[cfg(test)]\n"
+    },
+    {
+      "start": 4145,
+      "end": 4167,
+      "after": "        #[cfg(any())]\n",
+      "before": "        #[cfg(test)]\n"
+    },
+    {
+      "start": 4618,
+      "end": 4648,
+      "after": "                #[cfg(any())]\n",
+      "before": "                #[cfg(test)]\n"
+    },
+    {
+      "start": 7227,
+      "end": 7249,
+      "after": "        #[cfg(any())]\n",
+      "before": "        #[cfg(test)]\n"
+    },
+    {
+      "start": 8009,
+      "end": 8031,
+      "after": "        #[cfg(any())]\n",
+      "before": "        #[cfg(test)]\n"
+    },
+    {
+      "start": 10580,
+      "end": 10606,
+      "after": "            #[cfg(any())]\n",
+      "before": "            #[cfg(test)]\n"
+    },
+    {
+      "start": 11366,
+      "end": 11388,
+      "after": "        #[cfg(any())]\n",
+      "before": "        #[cfg(test)]\n"
+    },
+    {
+      "start": 12172,
+      "end": 12202,
+      "after": "                #[cfg(any())]\n",
+      "before": "                #[cfg(test)]\n"
+    },
+    {
+      "start": 20450,
+      "end": 20464,
+      "after": "#[cfg(any())]\n",
+      "before": "#[cfg(test)]\n"
+    },
+    {
+      "start": 20670,
+      "end": 20684,
+      "after": "#[cfg(any())]\n",
+      "before": "#[cfg(test)]\n"
+    },
+    {
+      "start": 20788,
+      "end": 20802,
+      "after": "#[cfg(any())]\n",
+      "before": "#[cfg(test)]\n"
+    },
+    {
+      "start": 20990,
+      "end": 21004,
+      "after": "#[cfg(any())]\n",
+      "before": "#[cfg(test)]\n"
+    },
+    {
+      "start": 21637,
+      "end": 21651,
+      "after": "#[cfg(any())]\n",
+      "before": "#[cfg(test)]\n"
+    },
+    {
+      "start": 21738,
+      "end": 21752,
+      "after": "#[cfg(any())]\n",
+      "before": "#[cfg(test)]\n"
+    },
+    {
+      "start": 21808,
+      "end": 22139,
+      "after": "\n#[path = \"call_carriers_directory/reused.rs\"]\nmod reused;\npub(super) use reused::count as count_joint;\n\n#[path = \"call_carriers_directory/modular.rs\"]\nmod modular;\npub(super) use modular::count as count_modular;\n\n#[cfg(any())]\npub(in crate::workspace_graph::expected_projection) use modular::indexed_loan as indexed_modular_loan;\n",
+      "before": ""
+    }
+  ]
+}

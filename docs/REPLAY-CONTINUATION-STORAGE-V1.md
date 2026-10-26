@@ -31,3 +31,16 @@ local acquisition, complete paths/work/error outcomes, real guarded reentry,
 whole replay and exact/one-short same-payer backing through Drop. The allocation
 windows exclude checked source, active ledger setup and fixed observer metadata.
 Qualification is pending.
+
+A separate test-only Oracle route (#930) now starts with two physically acquired
+Frame slots and reserves the full replacement backing before reached growth.
+Its new actual/formal receivers, old/new Vec controls, results, target, retained
+frames, relocation and release are paid by that same Oracle lease. The absent
+fixed 516-slot allocation and its fee are removed together, without credit or
+sharing ordinary backing. The original 516 depth check still precedes growth;
+production, selected and Legacy routes retain their own behavior. The complete
+old Oracle constructor and growth remain independently executable with full
+source custody. Deep cumulative backing and work may regress. Qualification
+requires the ten [Oracle local-operation controls](SCOPED-REPLAY-ORACLE-ACCOUNT-V1.md#required-qualification)
+and the unchanged owning callable and complete 64-row controls named there.
+Reference changes alone establish no application or agent gain.

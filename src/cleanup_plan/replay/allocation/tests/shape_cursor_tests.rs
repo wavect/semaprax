@@ -86,6 +86,8 @@ fn complete_old_paid_shape_receiver_keeps_all_ordered_leaves_and_late_failures()
 }
 #[test]
 fn inline_shape_roots_remove_only_real_worklist_backing_through_drop() {
+    // Complete pre-reuse worklist owner; actual successor has separate controls.
+    let _stage = crate::cleanup_plan::replay::projection_backing::Before::hold();
     let mut function = program().functions.remove(0);
     for slot in &mut function.cleanup_plan.slots {
         slot.field_liveness_shape = FieldLivenessShape::NoDrop;
@@ -202,6 +204,8 @@ fn current_shape_receiver_is_exact_full_original_with_named_cursor_hooks() {
         "../../../../../docs/evidence/cleanup-shape-cursor/full-paid-shape-before.txt"
     );
     let root = include_str!("../../../replay.rs");
+    let prior_root = crate::cleanup_plan::replay::projection_backing::prior_source(root);
+    let root = prior_root.as_str();
     let start = root.find("fn collect_leaves_paid(").unwrap();
     let end = root.find("fn validate_status_sources(").unwrap();
     let mut projected = root[start..end].to_owned();
@@ -225,6 +229,8 @@ fn current_shape_receiver_is_exact_full_original_with_named_cursor_hooks() {
 
 #[test]
 fn complete_shape_collectors_are_independently_paid_through_drop() {
+    // Complete pre-reuse worklist owner; actual successor has separate controls.
+    let _stage = crate::cleanup_plan::replay::projection_backing::Before::hold();
     let mut fixtures = shapes();
     fixtures.truncate(4); // The four admitted shapes precede the two explicit hostile cases.
     for function in fixtures {

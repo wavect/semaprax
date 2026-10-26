@@ -2,6 +2,21 @@
 use super::{Loan, LoanEdge, LoanEndpoint, LoanId, LoanPlan, LoanProgramPoint};
 use crate::hir::{ExpressionId, Place, PlaceProjection};
 
+/// Independent qualification observes the existing complete CFG constructor.
+/// It never uses an attached LoanPlan as sizing or constructor authority.
+#[cfg(test)]
+pub(crate) fn inspect_retention_cfg(
+    function: &crate::hir::ResolvedFunction,
+    mut visit: impl FnMut(&crate::hir::ResolvedExpr),
+) -> Result<(usize, usize), crate::diagnostic::Diagnostic> {
+    let mut work = super::WorkCounter::new(super::MAX_LOAN_PLAN_WORK_V1);
+    let cfg = super::build_cfg(function, &mut work)?;
+    for expression in &cfg.expressions {
+        visit(expression);
+    }
+    Ok((cfg.expressions.len(), cfg.points.len()))
+}
+
 pub(super) fn owned_capacity_bytes(plan: &LoanPlan) -> Option<usize> {
     owned_capacity_bytes_excluding(plan, &[])
 }

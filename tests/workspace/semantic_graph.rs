@@ -161,6 +161,7 @@ fn inventory(root: &Path) -> Vec<(String, &'static str, Vec<u8>)> {
 /// Optional evidence sink for the actual owning producers. Existing assertions
 /// still execute, and an existing evidence file is never replaced.
 fn capture_pin_candidate(name: &str, bytes: &[u8]) {
+    assert_merged_measured_host_history(name, bytes);
     super::pin_capture::record(name, bytes);
     let Some(directory) = std::env::var_os("SEMAPRAX_PRELUDE_PIN_CAPTURE_DIR") else {
         return;
@@ -651,7 +652,7 @@ fn public_api_cli_bytes_getters_and_read_only_locking_are_exact() {
         document_digest(graph.to_json().as_bytes()),
         wire_pin!(
             0,
-            "sha256:cb3ce1d786f13e2f0e4bdfbaf5d21382bbd4833a64d3e7c0b247847ac7e85d05"
+            "sha256:5a316bbe0fbd688e60a707a49531e044e120ce8791c0e10b8b724aa3091bd941"
         )
     );
     let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
@@ -1061,14 +1062,14 @@ fn public_workspace_analysis_api_cli_kats_and_locking_are_exact() {
             document_digest(capability_review.as_bytes()),
         ],
         wire_pins!([
-            "sha256:ae568b4796b3a47f405cae837fe6fc8f882127fdbf17c1edaa3411bbc3384e02",
-            "sha256:11216688c1552313982a2fddc78a6efa9977198304474ca7c2eaade992297607",
-            "sha256:8f7cdb8e0df9056a33d4763eeaac490bc89a509d375c4e57d11b4bc61133ff16",
-            "sha256:77235bec8eec4536867a7cfa801df8e362a1817221142880a25e50b5d56eb68f",
-            "sha256:fc95f131ee41262de40f78a7ddf2998e6c09f3a1a55cab5a32c3487308a61ccd",
-            "sha256:c581b22e0fd5d861495716dc7011a8beb4c2e6814b8184bfb7a8ae0364bb0830",
-            "sha256:22af7fe3cc1da5d550b3bc20a6be978672494cf415d35216ccb07198f3ec49a8",
-            "sha256:3ec6214ba462ed2ee3cb4ac9208d72c30ad176ddfc5ce45888dc5d0596ca3030",
+            "sha256:c6da1790d2ae1a1f9aaee49d29f532fd2cc15ead017ae11d149615a050220171",
+            "sha256:c8122cc08d59dc951bef3058d5c57a96fca1a9a4788f3d1fa49f30ea302da224",
+            "sha256:755827ec0f3711e11789b3dc354bd63f0dae02250358edbde2659ec1a6934d02",
+            "sha256:0d09c30d01e0acaf3f3e6e43830b974840cb03ced81611c1fa915a379e725cbe",
+            "sha256:f8d225bb92f47d14b7792ce88037a4eb6dfaacf85d43f8b303a47a5b66afea98",
+            "sha256:b5717c190bfa90eb3b67e5bcf45133bc976e392a97672524f761c4864b13a122",
+            "sha256:4ba376e49d913e6b969e80ff6412cb8a860c9b4a68ded9d6126d94dfabdf2f7b",
+            "sha256:2395341e2e81abb4129f32adf5e663f84fa4a2dbc64f646ab8f2d87b1189ac78",
         ])
     );
     std::thread::scope(|scope| {

@@ -8,7 +8,7 @@ use std::fmt::Write as _;
 
 use crate::aggregate_layout::{AggregateFieldValueKind, AggregateLayout, AggregateTarget};
 use crate::diagnostic::Diagnostic;
-use crate::hir::{DeclarationId, ResolvedProgram, ResolvedType};
+use crate::hir::{CompilerDeclaration, DeclarationId, ResolvedProgram, ResolvedType};
 use crate::project::{
     PublicApiParameterType, PublicApiResultType, PublicApiSubject, PUBLIC_OWNED_UTF8_PROJECT_SCHEMA,
 };
@@ -692,10 +692,10 @@ fn emit_variant_result(
     let variant = c_variant_symbol(ty);
     writeln!(output, "    struct {variant} result = {{0}};").unwrap();
     writeln!(output, "    if ({call}(&semantic{comma}{arguments}, &result) != SPX_STATUS_SUCCESS) return SPX_OWNED_DATA_SEMANTIC_FAILURE;").unwrap();
-    let owned_id = DeclarationId::new(if option {
-        crate::prelude::OPTION_SOME_ID
+    let owned_id = DeclarationId::compiler(if option {
+        CompilerDeclaration::OptionSome
     } else {
-        crate::prelude::RESULT_OK_ID
+        CompilerDeclaration::ResultOk
     });
     let owned = layout
         .case(&owned_id)
@@ -707,12 +707,12 @@ fn emit_variant_result(
         .ok_or_else(|| provider_error("owned result field layout is absent"))?;
     if option {
         let none = layout
-            .case(&DeclarationId::new(crate::prelude::OPTION_NONE_ID))
+            .case(&DeclarationId::compiler(CompilerDeclaration::OptionNone))
             .ok_or_else(|| provider_error("Option None layout is absent"))?;
         writeln!(output, "    if (result.spx_tag == UINT32_C({})) {{ *error_out = INT64_C(0); *tag_out = UINT32_C(0); return SPX_OWNED_DATA_SUCCESS; }}", none.tag).unwrap();
     } else {
         let err = layout
-            .case(&DeclarationId::new(crate::prelude::RESULT_ERR_ID))
+            .case(&DeclarationId::compiler(CompilerDeclaration::ResultErr))
             .ok_or_else(|| provider_error("Result Err layout is absent"))?;
         let error_field = err
             .fields

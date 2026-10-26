@@ -371,6 +371,49 @@ modules by descending full-minus-retained HIR overhead, with a path tie-break;
 the forecast and resolver use the same order. Completed outputs are restored
 to canonical path order before validation and publication.
 
+For this final mode only, the completed-module retained forecast may distinguish
+constructor-covered reachability scratch from retained output. A separately
+counted, constructor-complete function census may remove only the existing typed
+reachability/point-queue allowance (74 bytes per expression on the admitted
+profile) from that function's retained term. The full construction allowance,
+fixed function allowance, and every live allocation reservation remain charged.
+Coverage follows authenticated scalar constructors, statement/contract roots and
+monomorphic local call signatures, including the actual AST-to-HIR/CFG point
+association; it is not selected by declaration names. Generic/default/synthetic
+expansions, unknown constructors or targets, and an incomplete function census
+retain the complete old expression tariff for that function. Census, association,
+iterator, receiving and retained bookkeeping roles are paid before use, with
+checked arithmetic and the complete old forecast retained independently.
+
+The source-census local-name directory may use a negative byte-length residue
+filter in the unused high bits of its existing count word. Its low eight bits
+retain the exact 0..128 entry count; all original directory backing remains
+charged. The residue width follows the actual usize width, with shifts strictly
+below that width. A missing bit omits the real array/Option/string-comparison
+producer; a collision still executes the complete exact spelling scan. The
+filter never establishes equality or a checked callee, and it does not depend
+on module/function names. Insert and query scalar/length/index controls are
+charged before formation. The original method bodies remain independently
+executable at the same ABI with the same directory layout and original fee
+model. Existing cold-invoice controls retain that explicit old mode; current
+whole-census controls separately include the new controls and honest hit-only
+or tiny regressions. No already-completed tariff or retained HIR allowance is
+subtracted because a census frame has dropped. Application admission still
+requires the original production-cap owner.
+
+Later cross-module validation is a separate live window: all completed module
+outputs remain live while one function is validated. Its bound includes the sum
+of retained outputs and compact inventories, the maximum simultaneous covered
+function reachability/point-queue scratch, and the separately counted growing
+canonical function directory, loan-storage headers and receiving costs. It does
+not substitute a retained-only measurement for the whole construction or later
+validation peak. The original module ordering and path ties remain unchanged.
+A refusal selected by this later window is attributed to that window, rather
+than to a last-module construction step; sticky error selection and full
+teardown still apply. This distinction does not establish a numerical saving or
+application admission without the owning allocation, fallback and application
+gates.
+
 Exact authored declaration collections now lend a sealed compiler-only
 `ProgramSource`; local presentations own only an optional scalar `main`.
 A concrete presentation identity distinguishes overlays of the same source.
@@ -605,6 +648,62 @@ source byte where the core build retains 3.8, and the string term is 1.2% to
 `bounded_output` debit is not an under-count worth re-deriving against: it is
 66% to 79% of the retained heap the allocator measures on the same builds.
 
+## Authenticated local callee identity forecast
+
+The uncached parsed-HIR mode may remove only a separately authenticated local
+callee occurrence from the identity-text census. All remaining occurrences keep
+`HIR_IDENTITY_COPY_FACTOR` unchanged. The certificate borrows the exact source
+program, authored index, provider slice and original invoice; unrelated auxiliary
+call-carrier roots grant no identity authority. Compiler/prelude calls, imports,
+aliases, interfaces, generic/default/closure lowerings, shadowed function values
+and unfamiliar expression shapes keep their original bounds.
+
+The constructor map has eight families. These are constructor paths, not a claim
+that every call physically creates eight copies:
+
+| Family | Actual storage constructor and retained obligation |
+| --- | --- |
+| HIR call | `hir/resolve_expr.rs` clones the held `function_id`, then moves it through `Frame::FinishCall`; the callee's shared allocation key must match the declaration. |
+| Declaration index | `hir/declaration_index.rs` clones the declaration ID into `functions_by_name`; the declaration entry and name lookup share the held backing. |
+| Type index | The separate `types_by_name` namespace and retained resolved types do not create a function-callee entry. Nominal, case, field and type identities retain their complete allowance. |
+| Persistent call index | `call_index.rs` clones the callee into sites, caller maps and target sets. Fresh expression-key Strings remain independently owned and charged. |
+| Validation sets | `hir/validation/function_lookup.rs` either borrows the directory or clones IDs in its legacy map. Validation/checking work and temporary maps remain charged. |
+| Cleanup inventory | `cleanup/inventory_builder.rs` traverses Call arguments without materializing callee text. Expression/storage identities and owned argument backing remain independent. |
+| Cleanup plan | `cleanup_plan/build/finish_call.rs` clones the ID into `StatusProducer::PropagatedCall`; status-source expression IDs are fresh and retain their allowance. |
+| Retained call edges | `hir/inspection.rs` clones IDs into the workspace call-edge set. Imported `WorkspaceEdge` paths remain independent Strings and receive no local certificate. |
+
+The graph serializer's `BTreeSet<String>` is a ninth, different physical owner.
+`graph.rs` inserts `callee.as_str().to_owned()` into that set. It is not a
+`CappedString` output write and is never covered by this identity certificate.
+`source_callables.rs` retains the complete mode-zero forecast before its HIR JSON
+route; the final uncached retained WorkspaceModule route does not call that
+serializer.
+
+The owning constructor tests also retain the complete executable forecast from
+`21574297e02afb6f286901171f6c179bf2ccea0a`, immediately before this certificate.
+It uses the frozen two-word call proof and six-word result, rather than silently
+repricing the old arm with the later constructor-retention fields. The original
+whole source, its SHA-256 and a full UTF-8 inverse authenticate the namespace-only
+compiled copy. The current carrier census's fee is observed independently, so
+its later ABI/funding changes are explicit in the exact old/current equation.
+All modes zero through seven, both retention policies and actual imported-source
+inputs remain controlled. The complete immediately preceding mode-five uncached
+sequential caller is also independently executable, with its same seven-argument
+projection gateway and old result type. Its complete source and byte inverse
+remain authenticated. Its old bound is compared with the actual current
+mode-six caller including later composed corrections; that difference is not
+exclusive attribution to the local-ID certificate. Existing matched-current
+oracles stay enabled.
+
+The added source is unqualified until the exact constructor, full-forecast,
+proof-frontier and whole-caller Drop controls execute. Printed forecasts,
+cumulative reservations and requested allocator layouts are separate quantities.
+The local projection/HIR observation does not stand in for the final uncached
+workspace caller, CLI49 or complete applications at their original caps. No
+admission, positive net reduction, physical-device or RSS claim follows from the
+source equations. Those existing application and production qualification gates
+remain required.
+
 An imported declaration is charged for what the synthetic projection retains,
 not for the provider's source. A function import becomes a stub: the rewritten
 signature, no preconditions or postconditions, and the return type's default
@@ -834,3 +933,42 @@ measured full payment exact/one-short controls with first receipt, sticky zero
 and one probes, allocation-free retry, unchanged debits and complete Drop.
 `identity_resolution/tests/refusal_reference.rs` preserves the full historical
 threshold body verbatim as source provenance, not a current execution claim.
+
+The source-only ordinary call-census scratch-reuse candidate constructs the
+complete 128-slot Names aggregate once per invocation in each of the linear,
+indexed-directory, paired-joint and imported-modular owners. It resets the
+packed count/filter scalar before each eligible function. Prior tail slots are
+immutable loans into the same Program and are excluded by the active count;
+resetting neither widens capacity nor grants a prior function's shadowing fact.
+Overflow, incomplete traversal, generics, imports and rollback keep their
+original decisions. The full existing insert/contains/walk/lookup invoices
+remain reached; no completed proof tariff is removed after its producer ran.
+
+The once-paid constructor A is `sizeof(Names)+sizeof(&mut Proof)+sizeof(&Names)`.
+Each reset prepays R, the tuple of four usize scalars, two actual/formal mutable
+Names loans, two shared scope loans and two control booleans, before writing the
+count. For C eligible functions, the removed constructor contribution is
+`(C-1)*A-C*R`; empty and one-function inputs can therefore regress. This equation
+follows the eliminated per-function aggregate constructors, not a claim that a
+completed invoice is no longer retained. Each immediate-old complete loop
+remains a cfg(test) lexical expansion at its original signature, before new
+state/payment. Whole-source byte inverses and all four complete old bodies are
+retained. Authored controls compare every owner, capacity/incomplete/shadowing
+and import cases, complete paired/imported mode6 callers and full Drop. They
+are unexecuted; no positive application admission or physical heap claim follows.
+
+
+The private Names census now has a prepaid closed-root selector before its
+first binding-only walk. Literal and no-argument-call roots, and empty blocks
+with one such tail, cannot add a local, closure parameter or match binding.
+They retain each original ordered expression invoice while physically omitting
+that pass's fixed129-slot walker and callback. All other roots use the complete
+old bounded walk; the complete later call, retention and local-callee visitors
+are unchanged. No constructor allowance, comparison, bound or semantic check
+is discounted by this selector. Its own actual/formal, branch and field loans
+are paid before use, including fallback. The complete immediate old four
+callers remain independently executable, with original Names scratch reuse and
+length filtering. Original719 tiny-loss controls keep their explicit oldstage;
+separate full current controls report actual tiny, dense and fallback results.
+All controls are source-authored and unexecuted. Whole application admission
+and scoped production qualification at existing limits remain required.

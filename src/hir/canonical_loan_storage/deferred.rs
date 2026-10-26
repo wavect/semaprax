@@ -24,6 +24,11 @@ impl<'a> Deferred<'a> {
             self.first_mismatch = Some(function);
         }
     }
+    pub(super) fn compare_match(&mut self, function: &'a ResolvedFunction, matches: bool) {
+        if self.first_mismatch.is_none() && !matches {
+            self.first_mismatch = Some(function);
+        }
+    }
     pub(in crate::hir) fn finish(self, program: &ResolvedProgram) -> Result<(), Diagnostic> {
         if !std::ptr::eq(self.program, program) {
             return Err(hir_error(

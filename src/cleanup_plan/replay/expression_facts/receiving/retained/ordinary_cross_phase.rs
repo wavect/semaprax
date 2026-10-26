@@ -1165,13 +1165,8 @@ pub(in crate::cleanup_plan::replay) fn validate_structure_with_budget_storage<'h
                                 validate_path_states::<Diagnostic>(
                                     program, function, &storage, &leaves, budget, None, helpers,
                                 )?;
-                                validate_typed_control_skeleton_with_index(
-                                    program,
-                                    function,
-                                    budget,
-                                    helpers,
-                                    continuations,
-                                )?;
+                                finish_structure!(program, function, budget, helpers, continuations;
+                                    statuses, leaves, storage, status_cases, expression_facts, attempt)?;
                             }
                             return Ok(());
                         }
@@ -1474,13 +1469,8 @@ pub(in crate::cleanup_plan::replay) fn validate_structure_with_budget_storage<'h
         validate_path_states::<Diagnostic>(
             program, function, &storage, &leaves, budget, None, helpers,
         )?;
-        validate_typed_control_skeleton_with_index(
-            program,
-            function,
-            budget,
-            helpers,
-            continuations,
-        )?;
+        finish_structure!(program, function, budget, helpers, continuations;
+            statuses, leaves, storage, status_cases, expression_facts)?;
     }
     Ok(())
 }

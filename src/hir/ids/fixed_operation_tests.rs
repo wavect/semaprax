@@ -336,6 +336,22 @@ fn full_original_operation_sources_and_receivers_have_only_declared_identity_hoo
         "b24e08d4fb5ca49986917f97b61c72eb796a6dd079db5fc95cd0291a2bf06852"
     );
     let current = ci_str!("../../../src/map_ops.rs");
+    // Authenticate the complete Map catalogue before reversing only its
+    // retained-source profiling accessor; retain the original const-id inverse.
+    assert_eq!(current, include_str!("../../../src/map_ops.rs"));
+    assert_eq!(current.len(), 16989);
+    assert_eq!(
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(<sha2::Sha256 as sha2::Digest>::digest(current.as_bytes()))
+        ),
+        "adf43789d79a542aa5b160665a65f10a9ea116490efbbf1f91f6202651dd1dcf"
+    );
+    let profiled = "program.functions().profile_iter().any(|function| {";
+    let ordinary = "program.functions().iter().any(|function| {";
+    assert_eq!(current.matches(profiled).count(), 1);
+    let unprofiled = current.replacen(profiled, ordinary, 1);
+    let current = unprofiled.as_str();
     assert_eq!(current.matches("pub(crate) const fn id(self)").count(), 1);
     let inverse = current.replace("pub(crate) const fn id(self)", "pub(crate) fn id(self)");
     assert_eq!(inverse, old);

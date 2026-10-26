@@ -436,7 +436,7 @@ fn held_growth_keeps_original_depth_refusal_and_never_relocates_after_work_failu
         assert!(reserve_push(&mut frames, function, &mut budget).is_err());
     });
     let mut old_budget = ReplayBudget::unobserved();
-    let mut old = fresh(function, &mut old_budget).unwrap();
+    let mut old = reached_before::fresh(function, &mut old_budget).unwrap();
     fill_held(&mut old, function);
     let before = reserve_push(&mut old, function, &mut old_budget).unwrap_err();
     crate::bounded_output::with_limit(usize::MAX, || {

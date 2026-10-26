@@ -658,12 +658,7 @@ fn bounded_layout_instance_is_admitted(
                     || (owned_text
                         && (!arguments.is_empty()
                             || !item.type_parameters.is_empty()
-                            || program
-                                .declarations
-                                .declaration(&DeclarationId::new(format!(
-                                    "{declaration}#invariant"
-                                )))
-                                .is_some()))
+                            || program.declarations.has_record_invariant(&declaration)))
                 {
                     return false;
                 }

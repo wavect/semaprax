@@ -253,3 +253,44 @@ fn actual_shared_seal_stage_preserves_exact_short_zero_numeric_receipts_and_comp
     );
     assert_eq!(original, archive);
 }
+
+// The two complete stage-attribution controls above pin the immediate-before
+// receipt shape. Their bodies and assertions are retained verbatim; only these
+// two explicit local entry points select that authenticated complete receiver.
+// stream::tests::current_raw_and_shared_receiving_preserve_exact_short_zero_floor_sticky_and_full_drop
+// exercises the actual new receiver and sealing at its own complete invoices.
+fn prepare_with_comparison<'a>(
+    seed: &ConstructorSeed<'_>,
+    program: &'a ResolvedProgram,
+) -> Result<(Storage<'a>, Deferred<'a>), Diagnostic> {
+    stream::with_before(|| super::prepare_with_comparison(seed, program))
+}
+fn prepare_shared<'a>(seed: &ConstructorSeed<'a>) -> Result<std::rc::Rc<Storage<'a>>, Diagnostic> {
+    stream::with_before(|| super::prepare_shared(seed))
+}
+
+// The historical controls compare both old stage-attribution bodies under the
+// actual 8086 delegate, rather than accidentally executing the owned V2 body.
+mod owned_before {
+    use super::*;
+    pub(super) fn prepare_original<'a>(
+        seed: &ConstructorSeed<'_>,
+        program: &'a ResolvedProgram,
+    ) -> Result<(Storage<'a>, Deferred<'a>), Diagnostic> {
+        crate::loan_plan::canonical_sink::with_materializer_stage(true, || {
+            super::super::owned_before::prepare_original(seed, program)
+        })
+    }
+}
+mod sealed_before_stage {
+    use super::*;
+    pub(super) fn prepare_before_stage<'a, T>(
+        seed: &ConstructorSeed<'_>,
+        program: &'a ResolvedProgram,
+        seal: impl FnOnce(Storage<'a>, Payer<'_>) -> Result<T, Diagnostic>,
+    ) -> Result<(T, Deferred<'a>), Diagnostic> {
+        crate::loan_plan::canonical_sink::with_materializer_stage(true, || {
+            super::super::sealed_before_stage::prepare_before_stage(seed, program, seal)
+        })
+    }
+}

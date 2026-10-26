@@ -32,7 +32,7 @@ impl PlanBuilder<'_> {
             .next_flag
             .checked_add(1)
             .ok_or_else(|| plan_error("too many cleanup liveness flags"))?;
-        let lifecycle = DeclarationId::new(crate::cleanup::VEC_DROP_LIFECYCLE_ID);
+        let lifecycle = DeclarationId::compiler(crate::hir::CompilerDeclaration::VecDrop);
         self.leaves.insert(
             flag,
             LeafMetadata {

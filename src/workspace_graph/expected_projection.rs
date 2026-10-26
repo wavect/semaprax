@@ -34,6 +34,12 @@ mod call_carriers;
 mod call_carriers_original;
 #[path = "expected_projection/call_identity.rs"]
 mod call_identity;
+mod retained_scratch;
+#[path = "expected_projection/shared_local_callees.rs"]
+mod shared_local_callees;
+#[cfg(test)]
+#[path = "expected_projection/shared_local_callees/before_projection.rs"]
+mod before_shared_local_projection;
 #[path = "expected_projection/call_sites.rs"]
 mod call_sites;
 #[path = "expected_projection/cost.rs"]
@@ -91,6 +97,10 @@ mod string_slots;
 pub(super) mod type_rewrite;
 #[path = "expected_projection/uncached_peak.rs"]
 pub(super) mod uncached_peak;
+#[cfg(test)]
+#[path = "expected_projection/uncached_peak_before.rs"]
+#[allow(dead_code, reason = "whole independent pre-903 uncached forecasting generation")]
+mod before_uncached_peak;
 mod vec_constructor;
 use cost::{ExpandedDefaultCost, GenericInstanceCost, StructuralCost};
 #[cfg(test)]
@@ -134,6 +144,7 @@ pub(super) struct SyntheticBuilderCosts {
     pub(super) runtime: usize,
     retained_hir: usize,
     synthetic_ast: usize,
+    retained_scratch: retained_scratch::Counts,
 }
 pub(super) fn synthetic_builder_bytes(
     program: &Program,

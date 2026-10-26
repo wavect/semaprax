@@ -1,8 +1,358 @@
-//! Lossless references to exact current pins in the authenticated old519 table.
-//! Only positional pin slots are decoded; all other metadata remains literal.
 use super::{expand_v9, REFERENCE, SCHEMA_V9};
 use serde_json::Value;
+use std::collections::BTreeSet;
+
 pub(in super::super) const SCHEMA_V10: &str = "semaprax.finite-source-overlay-page.v10";
+const PREFIXES: &str = "archive_prefixes";
+const MAX_PREFIXES: usize = 32;
+
+fn prefix_table(page: &Value) -> Result<Vec<String>, &'static str> {
+    let values = page[PREFIXES].as_array().ok_or("v10 archive prefixes")?;
+    if values.is_empty() || values.len() > MAX_PREFIXES {
+        return Err("v10 archive prefix count");
+    }
+    let mut result = Vec::with_capacity(values.len());
+    let mut unique = BTreeSet::new();
+    for value in values {
+        let prefix = value.as_str().ok_or("v10 archive prefix type")?;
+        let Some(directory) = prefix.strip_suffix('/') else {
+            return Err("v10 archive prefix directory");
+        };
+        if !super::super::normal(directory) || !unique.insert(prefix.to_owned()) {
+            return Err("v10 archive prefix directory");
+        }
+        result.push(prefix.to_owned());
+    }
+    Ok(result)
+}
+
+fn pin_slot<F>(value: &mut Value, named: bool, archive: &mut F) -> Result<(), &'static str>
+where
+    F: FnMut(&mut Value, bool) -> Result<(), &'static str>,
+{
+    if value.is_array() {
+        archive(value, named)?;
+    }
+    Ok(())
+}
+
+fn views<F>(value: &mut Value, archive: &mut F) -> Result<(), &'static str>
+where
+    F: FnMut(&mut Value, bool) -> Result<(), &'static str>,
+{
+    for view in value.as_array_mut().ok_or("v10 views")? {
+        pin_slot(view, true, archive)?;
+    }
+    Ok(())
+}
+
+fn row<F>(value: &mut Value, archive: &mut F) -> Result<(), &'static str>
+where
+    F: FnMut(&mut Value, bool) -> Result<(), &'static str>,
+{
+    let object = value.as_object_mut().ok_or("v10 literal row")?;
+    if let Some(current) = object.get_mut("current") {
+        pin_slot(current, false, archive)?;
+    }
+    if let Some(value) = object.get_mut("views") {
+        views(value, archive)?;
+    }
+    Ok(())
+}
+
+fn fragments<F>(value: &mut Value, archive: &mut F) -> Result<(), &'static str>
+where
+    F: FnMut(&mut Value, bool) -> Result<(), &'static str>,
+{
+    if value.is_null() {
+        return Ok(());
+    }
+    for fragment in value.as_array_mut().ok_or("v10 fragments")? {
+        if !fragment.is_object() {
+            return Err("v10 fragment row");
+        }
+        if fragment.get(super::REFERENCE).is_none() {
+            row(fragment, archive)?;
+        }
+    }
+    Ok(())
+}
+
+fn archive_slots<F>(page: &Value, mut archive: F) -> Result<Value, &'static str>
+where
+    F: FnMut(&mut Value, bool) -> Result<(), &'static str>,
+{
+    let mut result = page.clone();
+    for group in ["replacements", "additions"] {
+        for value in result[group].as_array_mut().ok_or("v10 rows")? {
+            if !value.is_object() {
+                return Err("v10 row");
+            }
+            if value.get("old519_index").is_some() {
+                if group != "replacements" || value.as_object().unwrap().len() != 1 {
+                    return Err("v10 indexed row");
+                }
+                let tuple = value["old519_index"]
+                    .as_array_mut()
+                    .ok_or("v10 old519 arity")?;
+                if tuple.len() != 4 {
+                    return Err("v10 old519 arity");
+                }
+                pin_slot(&mut tuple[1], false, &mut archive)?;
+                views(&mut tuple[2], &mut archive)?;
+                fragments(&mut tuple[3], &mut archive)?;
+            } else {
+                row(value, &mut archive)?;
+                if let Some(value) = value.get_mut("fragments") {
+                    fragments(value, &mut archive)?;
+                }
+            }
+        }
+    }
+    Ok(result)
+}
+
+fn expand_archive(
+    value: &mut Value,
+    named: bool,
+    prefixes: &[String],
+    uses: &mut [usize],
+) -> Result<(), &'static str> {
+    let tuple = value.as_array_mut().ok_or("v10 pin tuple")?;
+    let count = if named { 3 } else { 2 };
+    if tuple.len() != count + 1 {
+        return Ok(());
+    }
+    if let Some(path) = tuple[count].as_str() {
+        if prefixes.iter().any(|prefix| path.starts_with(prefix)) {
+            return Err("v10 uninterned archive");
+        }
+        return Ok(());
+    }
+    let reference = tuple[count].as_array().ok_or("v10 archive reference")?;
+    if reference.len() != 2 {
+        return Err("v10 archive reference");
+    }
+    let index = usize::try_from(reference[0].as_u64().ok_or("v10 archive prefix index")?)
+        .map_err(|_| "v10 archive prefix index")?;
+    let prefix = prefixes.get(index).ok_or("v10 archive prefix index")?;
+    let suffix = reference[1].as_str().ok_or("v10 archive suffix type")?;
+    let path = format!("{prefix}{suffix}");
+    if !super::super::normal(&path) {
+        return Err("v10 expanded archive path");
+    }
+    let longest = prefixes
+        .iter()
+        .enumerate()
+        .filter(|(_, candidate)| path.starts_with(candidate.as_str()))
+        .max_by_key(|(_, candidate)| candidate.len())
+        .map(|(position, _)| position)
+        .ok_or("v10 archive prefix index")?;
+    if longest != index {
+        return Err("v10 noncanonical archive prefix");
+    }
+    uses[index] += 1;
+    tuple[count] = Value::String(path);
+    Ok(())
+}
+
+fn expand_v10_to_v9(page: &Value) -> Result<Value, &'static str> {
+    if page["schema"] != SCHEMA_V10 {
+        return Err("v10 schema");
+    }
+    let prefixes = prefix_table(page)?;
+    let mut uses = vec![0usize; prefixes.len()];
+    let mut expanded = archive_slots(page, |value, named| {
+        expand_archive(value, named, &prefixes, &mut uses)
+    })?;
+    if uses.iter().any(|count| *count < 2) {
+        return Err("v10 unused archive prefix");
+    }
+    expanded
+        .as_object_mut()
+        .ok_or("v10 page object")?
+        .remove(PREFIXES)
+        .ok_or("v10 archive prefixes")?;
+    expanded["schema"] = SCHEMA_V9.into();
+    Ok(expanded)
+}
+
+pub(in super::super) fn expand_v10(
+    before: &Value,
+    policy: &Value,
+    page: &Value,
+) -> Result<Value, &'static str> {
+    // V10 has no composition semantics. It restores one exact V9 page and
+    // enters the complete unchanged V9 -> V2 reader chain.
+    expand_v9(before, policy, &expand_v10_to_v9(page)?)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::super::canonical;
+    use super::*;
+
+    fn encode_archive(
+        value: &mut Value,
+        named: bool,
+        prefixes: &[String],
+    ) -> Result<(), &'static str> {
+        let tuple = value.as_array_mut().ok_or("test pin")?;
+        let count = if named { 3 } else { 2 };
+        if tuple.len() != count + 1 {
+            return Ok(());
+        }
+        let Some(path) = tuple[count].as_str().map(str::to_owned) else {
+            return Ok(());
+        };
+        let Some((index, prefix)) = prefixes
+            .iter()
+            .enumerate()
+            .filter(|(_, prefix)| path.starts_with(prefix.as_str()))
+            .max_by_key(|(_, prefix)| prefix.len())
+        else {
+            return Ok(());
+        };
+        tuple[count] = serde_json::json!([index, &path[prefix.len()..]]);
+        Ok(())
+    }
+
+    fn encode_v10(page: &Value, prefixes: &[&str]) -> Result<Value, &'static str> {
+        if page["schema"] != SCHEMA_V9 {
+            return Err("test v9 schema");
+        }
+        let values: Vec<String> = prefixes.iter().map(|value| (*value).to_owned()).collect();
+        let mut encoded =
+            archive_slots(page, |value, named| encode_archive(value, named, &values))?;
+        encoded["schema"] = SCHEMA_V10.into();
+        encoded[PREFIXES] = values.into();
+        if canonical(&expand_v10_to_v9(&encoded)?) != canonical(page) {
+            return Err("test entire v9 inverse");
+        }
+        Ok(encoded)
+    }
+
+    fn fixture() -> Value {
+        let h = "a".repeat(64);
+        let reference_unknown = serde_json::json!({
+            "canonical_source": 521,
+            "current": [7, h, [0, "must-stay-literal"]],
+            "unknown": {"archive":[0,"also-literal"]}
+        });
+        serde_json::json!({
+            "schema": SCHEMA_V9,
+            "index": 1,
+            "total_pages": 1,
+            "predecessor": {"rows":519},
+            "replacements": [{"old519_index":[38,
+                [7,h,"docs/evidence/a/one.txt"],
+                [["held",7,h,"docs/evidence/fmt/two.txt"]],null]}],
+            "additions": [{
+                "source":"src/new.rs","compiled":true,
+                "current":[7,h,"docs/evidence/b/three.txt"],
+                "views":[["held",7,h,"docs/evidence/fmt/four.txt"]],
+                "fragments":[reference_unknown],
+                "unknown":{"current":[7,h,[0,"literal"]]}
+            }],
+            "unknown":{"archive":[0,"literal"]}
+        })
+    }
+
+    #[test]
+    fn v10_frozen_full_union_restores_the_whole_canonical_v9_value() {
+        const V9: &str = include_str!("../../docs/evidence/finite-source-overlay-v2-20261018/v10-unqualified-full-union-v9.json");
+        const V10: &str = include_str!(
+            "../../docs/evidence/finite-source-overlay-v2-20261018/v10-unqualified-full-union.json"
+        );
+        let v9: Value = serde_json::from_str(V9).unwrap();
+        let v10: Value = serde_json::from_str(V10).unwrap();
+        // This logical fixture freezes the 519 + 188 parent-metadata union.
+        // The eventual source rebind separately admits this V10 Rust child.
+        assert_eq!(519 + v9["additions"].as_array().unwrap().len(), 707);
+        let restored = expand_v10_to_v9(&v10).unwrap();
+        assert_eq!(restored, v9);
+        assert_eq!(canonical(&restored), canonical(&v9));
+        assert_eq!(canonical(&v9).as_slice(), V9.as_bytes());
+        assert_eq!(canonical(&v10).as_slice(), V10.as_bytes());
+        assert_eq!(V9.len(), 267_520);
+        assert_eq!(V10.len(), 251_683);
+        assert!(V10.len() <= super::super::super::PAGE_CAP - 10 * 1024);
+    }
+
+    #[test]
+    fn v10_archive_prefixes_restore_the_entire_v9_page_before_old_readers() {
+        let full = fixture();
+        let compact = encode_v10(&full, &["docs/evidence/", "docs/evidence/fmt/"]).unwrap();
+        assert_eq!(expand_v10_to_v9(&compact).unwrap(), full);
+        assert_eq!(
+            compact["replacements"][0]["old519_index"][1][2],
+            serde_json::json!([0, "a/one.txt"])
+        );
+        assert_eq!(
+            compact["replacements"][0]["old519_index"][2][0][3],
+            serde_json::json!([1, "two.txt"])
+        );
+        assert_eq!(compact["unknown"], full["unknown"]);
+        assert_eq!(
+            compact["additions"][0]["fragments"][0],
+            full["additions"][0]["fragments"][0]
+        );
+        assert_eq!(
+            canonical(&compact),
+            canonical(&encode_v10(&full, &["docs/evidence/", "docs/evidence/fmt/"]).unwrap())
+        );
+    }
+
+    #[test]
+    fn v10_refuses_foreign_prefix_tables_and_archive_references() {
+        let compact = encode_v10(&fixture(), &["docs/evidence/", "docs/evidence/fmt/"]).unwrap();
+        fn current(page: &mut Value) -> &mut Value {
+            &mut page["replacements"][0]["old519_index"][1][2]
+        }
+        for mode in 0..11 {
+            let mut page = compact.clone();
+            match mode {
+                0 => page["schema"] = SCHEMA_V9.into(),
+                1 => page[PREFIXES] = Value::Array(Vec::new()),
+                2 => {
+                    page[PREFIXES] = Value::Array(
+                        (0..=MAX_PREFIXES)
+                            .map(|i| format!("e/{i}/").into())
+                            .collect(),
+                    )
+                }
+                3 => page[PREFIXES] = serde_json::json!(["docs/evidence/", "docs/evidence/"]),
+                4 => page[PREFIXES] = serde_json::json!(["../unsafe/"]),
+                5 => *current(&mut page) = serde_json::json!([99, "a/one.txt"]),
+                6 => *current(&mut page) = serde_json::json!([false, "a/one.txt"]),
+                7 => *current(&mut page) = serde_json::json!([0]),
+                8 => *current(&mut page) = serde_json::json!([0, false]),
+                9 => *current(&mut page) = "docs/evidence/a/one.txt".into(),
+                _ => {
+                    page[PREFIXES]
+                        .as_array_mut()
+                        .unwrap()
+                        .push("docs/evidence/unused/".into());
+                }
+            }
+            assert!(expand_v10_to_v9(&page).is_err(), "v10 mode={mode}");
+        }
+        let mut nonlongest = compact.clone();
+        nonlongest["replacements"][0]["old519_index"][2][0][3] =
+            serde_json::json!([0, "fmt/two.txt"]);
+        assert_eq!(
+            expand_v10_to_v9(&nonlongest).unwrap_err(),
+            "v10 noncanonical archive prefix"
+        );
+        let mut traversal = compact;
+        *current(&mut traversal) = serde_json::json!([0, "../escape"]);
+        assert_eq!(
+            expand_v10_to_v9(&traversal).unwrap_err(),
+            "v10 expanded archive path"
+        );
+    }
+}
+
 type PinTransform<'a> = dyn Fn(&Value, bool) -> Result<Value, &'static str> + 'a;
 fn old_rows<'a>(before: &'a Value, policy: &Value) -> Result<&'a [Value], &'static str> {
     let rows = before["rows"].as_array().ok_or("v10 old rows")?;
@@ -117,7 +467,7 @@ fn expand_v10_pins(before: &Value, policy: &Value, page: &Value) -> Result<Value
     expanded["schema"] = SCHEMA_V9.into();
     Ok(expanded)
 }
-pub(in super::super) fn expand_v10(
+pub(in super::super) fn expand_v10_old519(
     before: &Value,
     policy: &Value,
     page: &Value,
@@ -125,7 +475,7 @@ pub(in super::super) fn expand_v10(
     expand_v9(before, policy, &expand_v10_pins(before, policy, page)?)
 }
 #[cfg(test)]
-mod tests {
+mod old519_tests {
     use super::super::super::{canonical, compose_values, digest, held_4a6eb};
     use super::*;
     fn encode(before: &Value, policy: &Value, page: &Value) -> Result<Value, &'static str> {
@@ -266,328 +616,67 @@ mod tests {
         bad["schema"] = SCHEMA_V9.into();
         assert!(expand_v10_pins(&before, &policy, &bad).is_err());
     }
+    #[test]
+    fn v10_envelope_dispatch_preserves_both_formats_and_refuses_malformed_prefixes() {
+        let (before, policy, page) = fixture();
+        let compact = encode(&before, &policy, &page).unwrap();
+        assert_eq!(
+            compose_values(before.clone(), &policy, &compact).unwrap(),
+            compose_values(before.clone(), &policy, &page).unwrap(),
+        );
+        assert_eq!(
+            expand_v10_compatible(&before, &policy, &compact).unwrap(),
+            expand_v10_old519(&before, &policy, &compact).unwrap()
+        );
+        for marker in [
+            Value::Null,
+            serde_json::json!([]),
+            serde_json::json!(false),
+            serde_json::json!(["bad"]),
+        ] {
+            let mut malformed = compact.clone();
+            malformed["archive_prefixes"] = marker;
+            assert!(expand_v10_compatible(&before, &policy, &malformed).is_err());
+            assert!(compose_values(before.clone(), &policy, &malformed).is_err());
+        }
+        let current = include_str!("main_e177_overlay_pins_v10.rs");
+        let prior = crate::source_reflows::next_custody_before(
+            "main295-prefix-v10",
+            "src/source_reflows_merge/main_e177_overlay_pins_v10.rs",
+            current,
+        );
+        assert_eq!(prior.len(), 13007);
+        assert_eq!(
+            digest(prior.as_bytes()),
+            "328669b88dbafd489e7efaba97b2fd42e48f3d6661e475b02020b4752ea89672"
+        );
+        let prior = crate::source_reflows::next_custody_before(
+            "main295-old519-v10",
+            "src/source_reflows_merge/main_e177_overlay_pins_v10.rs",
+            current,
+        );
+        assert_eq!(prior.len(), 11088);
+        assert_eq!(
+            digest(prior.as_bytes()),
+            "139e342c746175490471415451808f4882720303027f6373dd48562e6a814440"
+        );
+        for schema in [super::super::SCHEMA_V11, super::super::SCHEMA_V12] {
+            let malformed = serde_json::json!({"schema":schema,"replacements":[],"additions":[]});
+            assert!(compose_values(before.clone(), &policy, &malformed).is_err());
+        }
+    }
 }
 
-// V11_VIEW_NAMES_BEGIN: all preceding V10 code remains byte-exact.
-pub(in super::super) const SCHEMA_V11: &str = "semaprax.finite-source-overlay-page.v11";
-fn expand_v11_names(envelope: &Value) -> Result<Value, &'static str> {
-    use std::cell::{Cell, RefCell};
-    if !super::super::keys(envelope, &["schema", "names", "page"])
-        || envelope["schema"] != SCHEMA_V11
-    {
-        return Err("v11 envelope");
-    }
-    if super::super::canonical(envelope).len() > super::super::PAGE_CAP {
-        return Err("v11 wire cap");
-    }
-    let names = envelope["names"].as_array().ok_or("v11 names")?;
-    let mut sizes = Vec::new();
-    let mut previous = None;
-    for name in names {
-        let text = name.as_str().ok_or("v11 names")?;
-        if previous.is_some_and(|old| old >= text) {
-            return Err("v11 unique sorted names");
-        }
-        previous = Some(text);
-        sizes.push(super::super::canonical(name).len());
-    }
-    let page = &envelope["page"];
-    if !page.is_object() || page["schema"] != SCHEMA_V10 {
-        return Err("v11 inner schema");
-    }
-    let used = RefCell::new(vec![false; names.len()]);
-    let materialized = Cell::new(0usize);
-    let result = v10_slots(page, &|value, named| {
-        if !named || !value.is_array() {
-            // Literal view objects, current pins, references and opaque data
-            // retain their exact old representation, including non-string names.
-            return Ok(value.clone());
-        }
-        let tuple = value.as_array().unwrap();
-        let name = tuple.first().ok_or("v11 named tuple")?;
-        let (text, size) = if let Some(text) = name.as_str() {
-            (text, super::super::canonical(name).len())
-        } else {
-            let index = usize::try_from(name.as_u64().ok_or("v11 name index")?)
-                .map_err(|_| "v11 name index")?;
-            let name = names.get(index).ok_or("v11 name index")?;
-            used.borrow_mut()[index] = true;
-            (name.as_str().unwrap(), sizes[index])
-        };
-        let bytes = materialized
-            .get()
-            .checked_add(size)
-            .filter(|bytes| *bytes <= super::super::PAGE_CAP)
-            .ok_or("v11 materialized name cap")?;
-        materialized.set(bytes);
-        // Check the complete canonical-name debit before copying table text.
-        let mut restored = tuple.clone();
-        restored[0] = text.into();
-        Ok(restored.into())
-    })?;
-    if used.borrow().iter().any(|used| !used) {
-        return Err("v11 unused names");
-    }
-    Ok(result)
-}
-pub(in super::super) fn expand_v11(
+// Only the standalone V10 envelope admits the old519 reference encoding.
+// A present malformed prefix table never falls through to another decoder.
+pub(in super::super) fn expand_v10_compatible(
     before: &Value,
     policy: &Value,
-    envelope: &Value,
+    page: &Value,
 ) -> Result<Value, &'static str> {
-    expand_v10(before, policy, &expand_v11_names(envelope)?)
-}
-#[cfg(test)]
-fn encode_v11_names(page: &Value) -> Result<Value, &'static str> {
-    use std::cell::RefCell;
-    use std::collections::BTreeMap;
-    if !page.is_object() || page["schema"] != SCHEMA_V10 {
-        return Err("v11 encoding schema");
-    }
-    let counts = RefCell::new(BTreeMap::<String, usize>::new());
-    v10_slots(page, &|value, named| {
-        if named {
-            if let Some(tuple) = value.as_array() {
-                let name = tuple
-                    .first()
-                    .and_then(Value::as_str)
-                    .ok_or("v11 encoding name")?;
-                *counts.borrow_mut().entry(name.into()).or_default() += 1;
-            }
-        }
-        Ok(value.clone())
-    })?;
-    let names: Vec<_> = counts
-        .into_inner()
-        .into_iter()
-        .filter_map(|(name, count)| (count > 1).then_some(name))
-        .collect();
-    let indices: BTreeMap<_, _> = names
-        .iter()
-        .enumerate()
-        .map(|(index, name)| (name.as_str(), index))
-        .collect();
-    let encoded = v10_slots(page, &|value, named| {
-        if named {
-            if let Some(tuple) = value.as_array() {
-                let name = tuple
-                    .first()
-                    .and_then(Value::as_str)
-                    .ok_or("v11 encoding name")?;
-                if let Some(index) = indices.get(name) {
-                    let mut result = tuple.clone();
-                    result[0] = (*index).into();
-                    return Ok(result.into());
-                }
-            }
-        }
-        Ok(value.clone())
-    })?;
-    drop(indices);
-    let result = serde_json::json!({"schema":SCHEMA_V11,"names":names,"page":encoded});
-    if expand_v11_names(&result)? != *page {
-        return Err("v11 ENTIRE V10 page inverse");
-    }
-    Ok(result)
-}
-
-#[cfg(test)]
-mod v11_tests {
-    use super::super::super::{canonical, compose_values, digest, held_4a6eb, PAGE_CAP};
-    use super::*;
-    fn frozen() -> (Value, Value, Value) {
-        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-        let read = |sha, length| {
-            serde_json::from_str::<Value>(
-                &held_4a6eb(&root.join(format!("e/{sha}")), length, sha).unwrap(),
-            )
-            .unwrap()
-        };
-        (
-            super::super::super::super::packet_before_overlay(),
-            read(
-                "f79b365ce48f1bfe3422feb73453795fe30d563c2d2167486ba85965d7b5d2dc",
-                112303,
-            ),
-            read(
-                "2018302f513448433f418a128169982a6bbe55652a843397e37fc5ed9ab9ac64",
-                261855,
-            ),
-        )
-    }
-    fn page(name: &str, count: usize) -> Value {
-        serde_json::json!({"schema":SCHEMA_V10,"replacements":[],"additions":[{
-            "current":[0],"views":vec![serde_json::json!([name,0]);count]
-        }]})
-    }
-    #[test]
-    fn v11_frozen_entire_v10_page_and_complete_packet_restore_without_changed_limits() {
-        let (before, policy, page) = frozen();
-        let compact = encode_v11_names(&page).unwrap();
-        assert_eq!(canonical(&compact).len(), 239085);
-        assert_eq!(compact["names"].as_array().unwrap().len(), 134);
-        assert!(canonical(&compact).len() < canonical(&page).len());
-        assert_eq!(
-            canonical(&expand_v11_names(&compact).unwrap()),
-            canonical(&page)
-        );
-        let old = compose_values(before.clone(), &policy, &page).unwrap();
-        let current = compose_values(before, &policy, &compact).unwrap();
-        assert_eq!(canonical(&current), canonical(&old));
-        assert_eq!(digest(&canonical(&current)), digest(&canonical(&old)));
-        assert_eq!(PAGE_CAP, 262144);
-        assert_eq!(super::super::super::SOURCE_CAP, 9753094);
-    }
-    #[test]
-    fn v11_only_packed_name_slots_change_and_all_opaque_objects_remain_literal() {
-        let mut original = page("λ\0🙂", 2);
-        let opaque = serde_json::json!({"name":0,"views":[["λ\0🙂",0]],"current":[0]});
-        original["unknown"] = opaque.clone();
-        original["names"] = opaque.clone();
-        original["additions"][0]["views"]
-            .as_array_mut()
-            .unwrap()
-            .extend([
-                serde_json::json!({"name":0,"unknown":opaque}),
-                serde_json::json!({"name":["λ\0🙂",0],"unknown":opaque}),
-                serde_json::json!({"name":"λ\0🙂","unknown":opaque}),
-            ]);
-        original["additions"][0]["fragments"] = serde_json::json!([
-            {"current":[0],"views":[["λ\0🙂",0]],"unknown":opaque},
-            {"canonical_source":"held","views":[["λ\0🙂",0]],"unknown":opaque}
-        ]);
-        original["replacements"] = serde_json::json!([{"old519_index":[0,[0],[["λ\0🙂",0]],null]}]);
-        let compact = encode_v11_names(&original).unwrap();
-        assert_eq!(compact["names"], serde_json::json!(["λ\0🙂"]));
-        assert_eq!(compact["page"]["unknown"], opaque);
-        assert_eq!(compact["page"]["names"], opaque);
-        assert_eq!(
-            compact["page"]["additions"][0]["views"][2],
-            original["additions"][0]["views"][2]
-        );
-        assert_eq!(
-            compact["page"]["additions"][0]["fragments"][1],
-            original["additions"][0]["fragments"][1]
-        );
-        assert_eq!(expand_v11_names(&compact).unwrap(), original);
-    }
-    #[test]
-    fn v11_bad_indices_tables_envelopes_and_positional_shapes_fail_closed() {
-        let valid = encode_v11_names(&page("held", 2)).unwrap();
-        for bad in [
-            serde_json::json!(true),
-            serde_json::json!(-1),
-            serde_json::json!(0.0),
-            serde_json::json!(1),
-            serde_json::json!(u64::MAX),
-            Value::Null,
-            serde_json::json!({}),
-        ] {
-            let mut changed = valid.clone();
-            changed["page"]["additions"][0]["views"][0][0] = bad;
-            assert!(expand_v11_names(&changed).is_err());
-        }
-        for names in [
-            Value::Null,
-            serde_json::json!([0]),
-            serde_json::json!(["held", "held"]),
-            serde_json::json!(["z", "held"]),
-            serde_json::json!(["held", "unused"]),
-        ] {
-            let mut changed = valid.clone();
-            changed["names"] = names;
-            assert!(expand_v11_names(&changed).is_err());
-        }
-        let mut changed = valid.clone();
-        changed["extra"] = true.into();
-        assert!(expand_v11_names(&changed).is_err());
-        let mut changed = valid.clone();
-        changed["schema"] = SCHEMA_V10.into();
-        assert!(expand_v11_names(&changed).is_err());
-        let mut changed = valid.clone();
-        changed["page"]["schema"] = SCHEMA_V9.into();
-        assert!(expand_v11_names(&changed).is_err());
-        let mut changed = valid.clone();
-        changed["page"]["additions"][0]["views"][0] = serde_json::json!([]);
-        assert!(expand_v11_names(&changed).is_err());
-        let mut changed = valid.clone();
-        changed["page"]["replacements"] = serde_json::json!([{"old519_index":[0,[],[]]}]);
-        assert!(expand_v11_names(&changed).is_err());
-        let mut changed = valid.clone();
-        changed["page"]["additions"] = serde_json::json!([{"old519_index":[0,[],[],null]}]);
-        assert!(expand_v11_names(&changed).is_err());
-        let literal = serde_json::json!({"schema":SCHEMA_V11,"names":[],"page":page("held",1)});
-        assert_eq!(expand_v11_names(&literal).unwrap(), page("held", 1));
-    }
-    #[test]
-    fn v11_wire_exact_plus_one_and_materialized_names_exact_plus_one_are_bounded() {
-        let mut exact = serde_json::json!({"schema":SCHEMA_V11,"names":[],"page":{"schema":SCHEMA_V10,"replacements":[],"additions":[],"opaque":""}});
-        let padding = PAGE_CAP - canonical(&exact).len();
-        exact["page"]["opaque"] = "x".repeat(padding).into();
-        assert_eq!(canonical(&exact).len(), PAGE_CAP);
-        assert!(expand_v11_names(&exact).is_ok());
-        exact["page"]["opaque"] = "x".repeat(padding + 1).into();
-        assert_eq!(expand_v11_names(&exact), Err("v11 wire cap"));
-        let name = "x".repeat(PAGE_CAP / 2 - 3);
-        let compact = encode_v11_names(&page(&name, 2)).unwrap();
-        assert!(canonical(&compact).len() < PAGE_CAP);
-        assert_eq!(expand_v11_names(&compact).unwrap(), page(&name, 2));
-        let mut over = compact;
-        over["names"][0] = "x".repeat(PAGE_CAP / 2 - 2).into();
-        assert_eq!(expand_v11_names(&over), Err("v11 materialized name cap"));
-        let escaped = "\0".repeat((PAGE_CAP / 2 - 3) / 6);
-        let mut compact = encode_v11_names(&page(&escaped, 2)).unwrap();
-        compact["names"][0] = format!("{escaped}\0").into();
-        assert_eq!(expand_v11_names(&compact), Err("v11 materialized name cap"));
-    }
-    #[test]
-    fn v11_keeps_original_predecessor_and_pin_refusals() {
-        let (before, policy, page) = frozen();
-        let compact = encode_v11_names(&page).unwrap();
-        let mut bad = before.clone();
-        bad["rows"][0]["compiled"] = Value::Null;
-        assert!(expand_v11(&bad, &policy, &compact).is_err());
-        let mut bad = policy.clone();
-        bad["predecessor"]["logical_sha256"] = "0".repeat(64).into();
-        assert!(expand_v11(&before, &bad, &compact).is_err());
-        let mut bad = compact;
-        bad["page"]["additions"][0]["current"] = serde_json::json!([true]);
-        assert!(expand_v11(&before, &policy, &bad).is_err());
-    }
-    #[test]
-    fn v11_appends_to_the_entire_original_v10_rust_decoder_without_rewriting_it() {
-        let source = std::include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/src/source_reflows_merge/main_e177_overlay_pins_v10.rs"
-        ));
-        let (original, _) = source.split_once("\n// V11_VIEW_NAMES_BEGIN:").unwrap();
-        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-        let frozen = held_4a6eb(
-            &root.join("e/139e342c746175490471415451808f4882720303027f6373dd48562e6a814440"),
-            11088,
-            "139e342c746175490471415451808f4882720303027f6373dd48562e6a814440",
-        )
-        .unwrap();
-        assert_eq!(original.as_bytes(), frozen.as_bytes());
-    }
-    #[test]
-    fn v11_shared_python_fixture_has_identical_encoding_and_refusals() {
-        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-        let data = held_4a6eb(
-            &root.join("e/55b7035de0ddbcfca1e466205cca1ecab30e553bc7636f25604885c8e459564f"),
-            3276,
-            "55b7035de0ddbcfca1e466205cca1ecab30e553bc7636f25604885c8e459564f",
-        )
-        .unwrap();
-        let fixture: Value = serde_json::from_str(&data).unwrap();
-        assert_eq!(fixture["schema"], "semaprax.source-view-name-fixtures.v1");
-        for case in fixture["cases"].as_array().unwrap() {
-            let actual = encode_v11_names(&case["input"]).unwrap();
-            assert_eq!(canonical(&actual), canonical(&case["encoded"]));
-            assert_eq!(expand_v11_names(&actual).unwrap(), case["input"]);
-        }
-        for case in fixture["refusals"].as_array().unwrap() {
-            assert!(expand_v11_names(case).is_err());
-        }
+    if page.get(PREFIXES).is_some() {
+        expand_v10(before, policy, page)
+    } else {
+        expand_v10_old519(before, policy, page)
     }
 }

@@ -2,23 +2,93 @@
 //! The builder result still uses its unchanged ordinary 64 MiB account.
 //! No compiler, resolver, or production caller selects this test-only scope.
 use super::allocation::{opt_in, OracleScope};
+// Each receiver retains its independent ordinary and skeleton work ceilings.
+// The aggregate account pays both domains for every structurally bounded
+// invocation; it never renews either receiver's original allowance.
+pub(in crate::cleanup_plan::replay) fn reference_work_bound(receivers: usize) -> usize {
+    assert!(
+        receivers > 0,
+        "a reference scope must have a finite positive receiver bound"
+    );
+    receivers
+        .checked_mul(2)
+        .and_then(|domains| domains.checked_mul(super::MAX_REPLAY_WORK_UNITS))
+        .expect("finite reference receiver/domain work product")
+}
+
+pub(in crate::cleanup_plan::replay) struct ReferenceReceiptOnUnwind<'a> {
+    scope: &'a OracleScope,
+    receivers: usize,
+}
+impl<'a> ReferenceReceiptOnUnwind<'a> {
+    pub(in crate::cleanup_plan::replay) fn new(scope: &'a OracleScope, receivers: usize) -> Self {
+        Self { scope, receivers }
+    }
+}
+impl Drop for ReferenceReceiptOnUnwind<'_> {
+    fn drop(&mut self) {
+        if std::thread::panicking() {
+            eprintln!(
+                "reference scope unwinding: max_receivers={} complete_receipt={:?}",
+                self.receivers,
+                self.scope.receipt()
+            );
+        }
+    }
+}
 
 pub(crate) fn with_financed_workspace_test_oracles<T>(
+    receivers: usize,
     body: impl FnOnce() -> T,
 ) -> (T, usize, usize) {
-    // A 1,024-function fixture executes 2,052 complete reference receivers.
-    // A private aarch64 Rust 1.97.1 control measured 194,083,774 bytes. Use a finite
-    // 256 MiB account up front; the ordinary builder never draws from it.
-    let scope = OracleScope::open_with_work(1 << 28, 1 << 25)
+    // Preserve the existing finite physical account. This byte allowance is
+    // declared reference funding, not a derived per-receiver allocation bound
+    // and not the ordinary builder's unchanged 64 MiB quota.
+    let scope = OracleScope::open_with_work(1 << 28, reference_work_bound(receivers))
         .expect("explicit independent workspace reference account");
+    let trace = ReferenceReceiptOnUnwind::new(&scope, receivers);
     let lease = scope.lease();
     let selected = opt_in(lease).expect("one explicit workspace reference account");
     let result = body();
     drop(selected);
+    drop(trace);
     let receipt = scope.finish();
+    assert!(receipt.started <= receivers, "{receipt:?}");
+    eprintln!("workspace reference max_receivers={receivers} complete_receipt={receipt:?}");
     assert!(
         receipt.started > 0,
         "workspace fixture must execute the live reference hook"
+    );
+    assert_eq!(receipt.completed, receipt.started);
+    assert!(
+        receipt.first_refusal.is_none()
+            && receipt.first_work_refusal.is_none()
+            && receipt.physical_failure.is_none(),
+        "{receipt:?}"
+    );
+    (result, receipt.started, receipt.charged)
+}
+
+/// Validation frontier fixtures can fail before the first comparison hook.
+/// Successful runs must execute references; a failed run may execute none.
+/// Every started receiver must still finish without any account refusal.
+pub(crate) fn with_financed_validation_test_oracles<T>(
+    receivers: usize,
+    body: impl FnOnce() -> (T, bool),
+) -> (T, usize, usize) {
+    let scope = OracleScope::open_with_work(1 << 28, reference_work_bound(receivers))
+        .expect("explicit independent validation reference account");
+    let trace = ReferenceReceiptOnUnwind::new(&scope, receivers);
+    let selected = opt_in(scope.lease()).expect("one explicit validation reference account");
+    let (result, success) = body();
+    drop(selected);
+    drop(trace);
+    let receipt = scope.finish();
+    eprintln!("validation reference max_receivers={receivers} success={success} complete_receipt={receipt:?}");
+    assert!(receipt.started <= receivers, "{receipt:?}");
+    assert!(
+        !success || receipt.started > 0,
+        "successful validation fixture must execute the live reference hook"
     );
     assert_eq!(receipt.completed, receipt.started);
     assert!(
@@ -34,14 +104,29 @@ pub(crate) fn with_financed_workspace_test_oracles<T>(
 mod tests {
     use super::*;
     #[test]
+    fn validation_reference_scope_allows_only_failed_runs_to_reach_no_hook() {
+        let (result, started, charged) =
+            with_financed_validation_test_oracles(2, || ("early compiler refusal", false));
+        assert_eq!((result, started, charged), ("early compiler refusal", 0, 0));
+        assert!(super::super::allocation::opted().unwrap().is_none());
+        assert!(std::panic::catch_unwind(|| {
+            with_financed_validation_test_oracles(2, || ((), true))
+        })
+        .is_err());
+        assert!(super::super::allocation::opted().unwrap().is_none());
+    }
+
+    #[test]
     fn workspace_reference_scope_rejects_an_empty_comparison_and_restores_opt_in() {
-        assert!(std::panic::catch_unwind(|| with_financed_workspace_test_oracles(|| 7)).is_err());
+        assert!(
+            std::panic::catch_unwind(|| with_financed_workspace_test_oracles(2, || 7)).is_err()
+        );
         assert!(super::super::allocation::opted().unwrap().is_none());
     }
     #[test]
     fn workspace_reference_scope_preserves_the_original_panic_and_restores_opt_in() {
         let error = std::panic::catch_unwind(|| {
-            with_financed_workspace_test_oracles(|| panic!("workspace fixture original panic"))
+            with_financed_workspace_test_oracles(2, || panic!("workspace fixture original panic"))
         })
         .unwrap_err();
         assert_eq!(

@@ -44,6 +44,7 @@ fn event_run(
     hir_shared: bool,
     swaps_only: bool,
 ) -> Run {
+    frontiers::prepare();
     let (actual, mut expected) = event_inputs(length, depth);
     if hir_shared {
         for path in &mut expected {
@@ -308,7 +309,7 @@ fn fresh_entry_suffix_refused_prefix_prices_admitted_bodies_independently_of_g()
         );
         assert_eq!(
             bytes("ordinary plan certified numeric run capture"),
-            current.row.shared_runs * certified_heads::RUN_CAPTURE
+            current.row.shared_runs * certified_heads::RUN_SCALAR_CAPTURE
         );
         assert_eq!(
             bytes("ordinary plan certified numeric run turn"),
@@ -348,6 +349,7 @@ fn main99_run(
     hir_shared: bool,
     swaps_only: bool,
 ) -> Run {
+    frontiers::prepare();
     let (actual, mut expected) = event_inputs(length, depth);
     if hir_shared {
         for path in &mut expected {

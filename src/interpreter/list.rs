@@ -39,20 +39,23 @@ impl Evaluator<'_> {
                 };
                 let mut fields = BTreeMap::new();
                 let case = match list.uncons() {
-                    ListStep::Nil => list_ops::NIL_CASE_ID,
+                    ListStep::Nil => hir::CompilerDeclaration::ListNil,
                     ListStep::Cons { head, tail } => {
-                        fields.insert(hir::DeclarationId::new(list_ops::HEAD_ID), Value::Int(head));
                         fields.insert(
-                            hir::DeclarationId::new(list_ops::TAIL_ID),
+                            hir::DeclarationId::compiler(hir::CompilerDeclaration::ListHead),
+                            Value::Int(head),
+                        );
+                        fields.insert(
+                            hir::DeclarationId::compiler(hir::CompilerDeclaration::ListTail),
                             Value::List(tail),
                         );
-                        list_ops::CONS_CASE_ID
+                        hir::CompilerDeclaration::ListCons
                     }
                 };
                 Ok(Value::Variant(Arc::new(OwnedVariantValue {
                     ty: list_ops::resolved_step(),
-                    variant: hir::DeclarationId::new(list_ops::STEP_ID),
-                    case: hir::DeclarationId::new(case),
+                    variant: hir::DeclarationId::compiler(hir::CompilerDeclaration::ListStep),
+                    case: hir::DeclarationId::compiler(case),
                     fields,
                 })))
             }

@@ -3,6 +3,7 @@ use super::*;
 use std::cmp::Ordering;
 mod prefix;
 pub(super) mod retained;
+pub(in crate::cleanup_plan::replay) mod invocation;
 const NIL: usize = usize::MAX;
 struct Node<'hir> {
     key: ExpressionId,

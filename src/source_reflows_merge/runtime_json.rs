@@ -365,6 +365,87 @@ fn main043_current_subject(source: &str) -> (&'static str, &'static str) {
     }
 }
 
+// Exact current physical channels are acquired before the immutable main5b4 RAW recipe.
+fn main8_raw_before(source: &str, current: &str) -> String {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let data = include_str!("../source_reflows/next_custody_fronts.json");
+    assert_eq!(
+        main043_raw_file(
+            &root.join("src/source_reflows/next_custody_fronts.json"),
+            data.len(),
+            &format!("{:x}", crate::digest_hex::LowerHex(digest(data.as_bytes())))
+        )
+        .unwrap(),
+        data
+    );
+    let packet: serde_json::Value = crate::source_reflows::front_pool::decode(data).unwrap();
+    let front = &packet["main8_raw_current_fronts"];
+    assert_eq!(
+        front["schema"],
+        "semaprax.main5b4.current-raw-input-fronts.v1"
+    );
+    assert_eq!(
+        front["target_head"],
+        "5b4ea4db02815496376841a90f77af8d20971377"
+    );
+    let rows = front["rows"].as_array().unwrap();
+    assert_eq!(rows.len(), 5);
+    let names: Vec<_> = rows
+        .iter()
+        .map(|row| row["source"].as_str().unwrap())
+        .collect();
+    assert_eq!(names, ["crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs", "src/cleanup_plan/replay.rs", "tests/hir_module_boundaries.rs", "tests/workspace/semantic_graph/source_inventory.rs", "src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs"]);
+    let matching: Vec<_> = rows.iter().filter(|row| row["source"] == source).collect();
+    assert_eq!(matching.len(), 1);
+    let row = matching[0];
+    assert_eq!(
+        row["source_kind"],
+        "EXACT_CURRENT_PHYSICAL_TO_COMPLETE_MAIN5B4_RAW_INPUT_VIEW"
+    );
+    let length = usize::try_from(row["after"]["length"].as_u64().unwrap()).unwrap();
+    let sha = row["after"]["sha256"].as_str().unwrap();
+    assert_eq!(current.len(), length);
+    assert_eq!(digest(current.as_bytes()), main043_raw_pin(sha));
+    assert_eq!(
+        main043_raw_file(&root.join(source), length, sha).unwrap(),
+        current
+    );
+    let mut restored = current.to_owned();
+    let mut last = restored.len();
+    for edit in row["inverse"].as_array().unwrap().iter().rev() {
+        let start = usize::try_from(edit["start"].as_u64().unwrap()).unwrap();
+        let end = usize::try_from(edit["end"].as_u64().unwrap()).unwrap();
+        assert!(start <= end && end <= last);
+        assert_eq!(restored.get(start..end), edit["after"].as_str());
+        restored.replace_range(start..end, edit["before"].as_str().unwrap());
+        last = start;
+    }
+    let before_sha = row["before"]["sha256"].as_str().unwrap();
+    let archive = row["archive"].as_str().unwrap();
+    assert_eq!(archive, format!("e/{before_sha}"));
+    let before = main043_raw_file(
+        &root.join(archive),
+        usize::try_from(row["before"]["length"].as_u64().unwrap()).unwrap(),
+        before_sha,
+    )
+    .unwrap();
+    assert_eq!(restored, before, "ENTIRE immutable main5b4 RAW input view");
+    assert_eq!(
+        main043_raw_file(&root.join(source), length, sha).unwrap(),
+        current
+    );
+    assert_eq!(
+        main043_raw_file(
+            &root.join("src/source_reflows/next_custody_fronts.json"),
+            data.len(),
+            &format!("{:x}", crate::digest_hex::LowerHex(digest(data.as_bytes())))
+        )
+        .unwrap(),
+        data
+    );
+    restored
+}
+
 fn main043_before_successors(
     source: &str,
     raw: &str,
@@ -399,17 +480,42 @@ fn main043_before_successors(
     let matching: Vec<_> = rows.iter().filter(|row| row["source"] == source).collect();
     assert_eq!(matching.len(), 1);
     let row = matching[0];
-    let (path, compiled) = main043_current_subject(source);
+    let (path, actual_compiled) = main043_current_subject(source);
+    assert_eq!(
+        raw, actual_compiled,
+        "complete actual physical/compiled RAW source before input-view acquisition"
+    );
+    assert!(matches!(key, "after" | "new"));
+    let actual_raw = raw;
+    let input_view = main8_raw_before(source, actual_raw);
+    let compiled_view = main8_raw_before(source, actual_compiled);
+    if actual_raw != input_view {
+        let mut edit = serde_json::Map::new();
+        edit.insert(key.to_owned(), actual_raw.into());
+        edit.insert("before".to_owned(), input_view.clone().into());
+        outer.push(edit.into());
+    }
+    let raw = input_view.as_str();
+    let compiled = compiled_view.as_str();
     assert_eq!(
         raw, compiled,
         "complete latest supplied/compiled RAW source"
     );
-    let physical = main043_raw_file(
+    let actual_physical = main043_raw_file(
         std::path::Path::new(path),
-        usize::try_from(row["length"].as_u64().unwrap()).unwrap(),
-        row["sha256"].as_str().unwrap(),
+        actual_raw.len(),
+        &format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(digest(actual_raw.as_bytes()))
+        ),
     )
     .unwrap();
+    let physical = main8_raw_before(source, &actual_physical);
+    assert_eq!(physical.len() as u64, row["length"].as_u64().unwrap());
+    assert_eq!(
+        digest(physical.as_bytes()),
+        main043_raw_pin(row["sha256"].as_str().unwrap())
+    );
     assert_eq!(
         physical, raw,
         "complete latest physical/compiled RAW source"

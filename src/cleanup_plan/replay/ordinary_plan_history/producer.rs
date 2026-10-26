@@ -1,5 +1,9 @@
 //! Complete independent plan walk with moved persistent branch tails.
 use super::*;
+#[path = "producer_admission.rs"]
+mod admission;
+#[path = "producer_view.rs"]
+pub(in crate::cleanup_plan::replay::ordinary_plan_history) mod view;
 
 pub(in crate::cleanup_plan::replay) fn produce(
     function: &ResolvedFunction,
@@ -15,7 +19,7 @@ pub(in crate::cleanup_plan::replay) fn produce(
         PRODUCER_CONTROLS,
         "ordinary plan history producer controls"
     )?;
-    if !eligible(function, budget) {
+    if !admission::eligible(function, budget) {
         return Err(replay_error(
             function,
             "ordinary plan history owner is unavailable",

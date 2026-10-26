@@ -20,7 +20,7 @@ mod runtime_json;
 pub(crate) use runtime_json::{receiver_fixture, receiver_fixture_source_before, ReceiverFixture};
 // The final compositor authenticates its raw view at this independent owner front.
 pub(crate) fn boxed849_input(source: &str, current: &str) -> String {
-    let compile_fixed = compile_fixture_input(source, current);
+    let compile_fixed = metadata_json::boxed_inputs::input(source, current);
     let current = compile_fixed.as_str();
     let qualified = metadata_json::project(metadata_json::Fixture::M00, source, current);
     let current = qualified.as_str();
@@ -137,10 +137,12 @@ fn post21_input(source: &str, current: &str) -> String {
     let current = joined.as_str();
     metadata_json::project(metadata_json::Fixture::M24, source, current)
 }
-// Exact historical ENTRY stages precede the complete compile35f front and its inverses.
 fn historical_project_entry(source: &str, expected: &str, current: &str) -> String {
+    if let Some(entry) = constructor_stage::held_projection_entry(source, expected, current) { return entry; }
     let legacy = crate::source_reflows::legacy_ci_expected_input(source, expected, current);
     let current = legacy.as_ref();
+    let probes = phase_probe_stage(source, expected, current);
+    let current = probes.as_ref();
     // The preceding authentic a3 projector already restored this complete stage.
     let restored_receiving_stage = source
         == "src/workspace_graph/constructor_failure/receiving/before.rs"
@@ -395,6 +397,8 @@ pub(crate) fn receiver_fixture_entry(
     entry
 }
 pub(crate) fn consumer_input(domain: &str, source: &str, current: &str) -> String {
+    let interface = crate::source_reflows::next_custody_before("interface754", source, current);
+    let current = interface.as_str();
     let entry = if domain == "lexical832" {
         receiver_fixture_entry(ReceiverFixture::LexicalOperands, source, current)
     } else {
@@ -656,6 +660,8 @@ pub(crate) fn retained833_input(source: &str, current: &str) -> String {
 }
 // Latest MAIN source enters the immutable combined833/841 checkpoint first.
 fn before_main66517(source: &str, current: &str) -> String {
+    let interface = crate::source_reflows::next_custody_before("interface754", source, current);
+    let current = interface.as_str();
     let previous = before_retry_guard(source, current);
     let current = previous.as_str();
     runtime_json::project(runtime_json::Fixture::F54, source, current)
@@ -1161,7 +1167,7 @@ pub(crate) fn main_e47_input(source: &str, current: &str) -> String {
 }
 #[path = "source_reflows_merge/main44_custody.rs"]
 mod main44_custody;
-pub(crate) use main44_custody::Fixture as Main44Fixture;
+pub(crate) use main44_custody::{before_phase_probes, phase_probe_stage, Fixture as Main44Fixture};
 pub(crate) fn main44_metadata(fixture: Main44Fixture) -> String {
     runtime_json::main44_metadata(fixture)
 }
@@ -1215,20 +1221,15 @@ pub(crate) fn ordinary_plan_history_root_checkpoint(
 }
 #[path = "source_reflows_merge/main_c883_inputs.rs"]
 pub(crate) mod main_c883_inputs;
-
 #[path = "source_reflows_merge/main99f_inputs.rs"]
 pub(crate) mod main99f_inputs;
-
 #[path = "source_reflows_merge/main_e177_inputs.rs"]
 pub(crate) mod main_e177_inputs;
-
 // Distinct complete final-batch views precede both frozen parent readers.
 #[path = "source_reflows_merge/next_big_batch_inputs.rs"]
 pub(crate) mod next_big_batch_inputs;
-
 #[path = "source_reflows_merge/main_e177_final_inputs.rs"]
 pub(crate) mod main_e177_final_inputs;
-
 #[test]
 fn merge_projection_selects_only_the_requested_complete_current_view() {
     let source = "src/cleanup_plan/replay/allocation/oracle.rs";
@@ -1259,7 +1260,6 @@ fn merge_projection_selects_only_the_requested_complete_current_view() {
     foreign[0]["current_sha256"] = "0".repeat(64).into();
     assert!(std::panic::catch_unwind(|| project(&foreign.to_string(), source, &current)).is_err());
 }
-
 pub(crate) fn complete_receiver_followup(source: &str) -> String {
     runtime_json::complete_receiver_followup(source)
 }

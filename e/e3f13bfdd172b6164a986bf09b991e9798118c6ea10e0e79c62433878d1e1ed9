@@ -1,0 +1,118 @@
+//! Workspace regressions: the semantic workspace, its session CLI, and the
+//! workspace graph.
+//!
+//! One harness binary for the workspace subject. Each module below was its own
+//! integration test binary, and every one statically linked the whole compiler,
+//! so the family cost thirteen executables to express one subject. The modules
+//! stay independent: each owns a distinct temporary fixture root and asserts
+//! only over its own workspace.
+//!
+//! Two workspace files are deliberately not modules here:
+//!
+//!   - `workspace_mcp_cli_v1` is named with `--test` by
+//!     `scripts/graph-operational-client-mcp-evidence.py`.
+//!   - `semantic_workspace_transaction_v1` re-invokes its own binary through
+//!     `current_exe` with `--exact`, which only holds while it is its own test
+//!     target. Its hostile companion does not, and is a module here.
+//!
+//! `mod` in a test crate root resolves against `tests/`, so each module names
+//! its file explicitly.
+
+// Shared exact source adapter also compiles in this integration crate.
+use semaprax::digest_hex;
+
+#[path = "workspace/agent_definitions_association.rs"]
+mod agent_definitions_association;
+#[path = "workspace/agent_execution.rs"]
+mod agent_execution;
+#[path = "workspace/architecture_claims.rs"]
+mod architecture_claims;
+#[path = "workspace/canonical_revision.rs"]
+mod canonical_revision;
+#[path = "workspace/cli_mcp_query_cross_transport_v1.rs"]
+mod cli_mcp_query_cross_transport_v1;
+#[path = "workspace/contracts_and_tests_facts.rs"]
+mod contracts_and_tests_facts;
+#[path = "workspace/exact_program_context.rs"]
+mod exact_program_context;
+#[path = "workspace/exact_program_context_v2.rs"]
+mod exact_program_context_v2;
+#[path = "workspace/exact_program_context_v2_refresh.rs"]
+mod exact_program_context_v2_refresh;
+#[path = "workspace/function_values.rs"]
+mod function_values;
+#[path = "workspace/graph_phase_a_surface.rs"]
+mod graph_phase_a_surface;
+#[path = "workspace/interface_artifact_facts.rs"]
+mod interface_artifact_facts;
+#[path = "workspace/modular_law.rs"]
+mod modular_law;
+#[path = "workspace/next_construct_query.rs"]
+mod next_construct_query;
+#[path = "workspace/persistent_incremental_semantic_service.rs"]
+mod persistent_incremental_semantic_service;
+#[path = "workspace/persistent_semantic_service_compact_projection.rs"]
+mod persistent_semantic_service_compact_projection;
+#[path = "workspace/persistent_semantic_service_mcp.rs"]
+mod persistent_semantic_service_mcp;
+#[path = "workspace/persistent_semantic_service_transport.rs"]
+mod persistent_semantic_service_transport;
+#[path = "workspace/program_root_dependency_lock.rs"]
+mod program_root_dependency_lock;
+#[path = "workspace/program_root_v2.rs"]
+mod program_root_v2;
+#[path = "workspace/program_root_v3.rs"]
+mod program_root_v3;
+#[path = "workspace/project_assurance_manifest.rs"]
+mod project_assurance_manifest;
+#[path = "workspace/semantic_change.rs"]
+mod semantic_change;
+#[path = "workspace/semantic_graph.rs"]
+mod semantic_graph;
+#[path = "workspace/semantic_image.rs"]
+mod semantic_image;
+#[path = "workspace/semantic_operations.rs"]
+mod semantic_operations;
+#[path = "workspace/semantic_patch_evidence.rs"]
+mod semantic_patch_evidence;
+#[path = "workspace/semantic_patch_evidence_apply.rs"]
+mod semantic_patch_evidence_apply;
+#[path = "workspace/semantic_patch_evidence_hostile.rs"]
+mod semantic_patch_evidence_hostile;
+#[path = "workspace/semantic_structural_change.rs"]
+mod semantic_structural_change;
+#[path = "workspace/semantic_transaction_hostile.rs"]
+mod semantic_transaction_hostile;
+#[path = "workspace/session_cli.rs"]
+mod session_cli;
+#[path = "workspace/session_read_batch_cli.rs"]
+mod session_read_batch_cli;
+#[path = "workspace/session_semantic_cache_cli.rs"]
+mod session_semantic_cache_cli;
+#[path = "workspace/unified_review_cli.rs"]
+mod unified_review_cli;
+#[path = "workspace/universal_semantic_composition_cli.rs"]
+mod universal_semantic_composition_cli;
+#[path = "workspace/universal_semantic_query.rs"]
+mod universal_semantic_query;
+#[path = "workspace/universal_semantic_transaction_v2_cli.rs"]
+mod universal_semantic_transaction_v2_cli;
+#[path = "workspace/universal_semantic_workflow_cli.rs"]
+mod universal_semantic_workflow_cli;
+
+#[path = "workspace/pin_capture.rs"]
+mod pin_capture;
+
+// Preserve the same complete source acquisition in this independent harness.
+#[path = "../src/source_reflows_merge/main_e177_final_inputs.rs"]
+pub(crate) mod main_e177_final_inputs;
+#[path = "../src/source_reflows_merge/next_big_batch_inputs.rs"]
+pub(crate) mod next_big_batch_inputs;
+mod source_reflows_merge {
+    pub(crate) use crate::{main_e177_final_inputs, next_big_batch_inputs};
+}
+
+// Use the same real allocator/registry as the library test image.
+#[allow(dead_code, unused_imports)]
+#[path = "../src/test_allocation_observer/backing.rs"]
+mod test_allocation_observer;

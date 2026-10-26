@@ -407,6 +407,16 @@ impl<'a, 'p> ArenaCapacity<'a, 'p> {
             len: 0,
         })
     }
+    // The invocation receiver prepays these moves and all reset/drop controls.
+    // Only fully cleared slots from the same held program may be installed.
+    pub(super) fn install_cleared_frames(&mut self, frames: Vec<FactFrame<'a>>) {
+        debug_assert!(self.frames.is_empty() && self.len == 0);
+        self.frames = frames;
+    }
+    pub(super) fn take_frames(self) -> Vec<FactFrame<'a>> {
+        debug_assert_eq!(self.len, 0);
+        self.frames
+    }
     fn grow_frames(&mut self, needed: usize) -> Result<(), Failure> {
         // Even a reuse must authenticate the same held payer's sticky state.
         self.base.reserve(0)?;

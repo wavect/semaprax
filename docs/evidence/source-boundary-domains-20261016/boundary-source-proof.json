@@ -1,16 +1,18 @@
 {
   "mode": "SOURCE_ONLY_NO_RUST_EXECUTION",
+  "original_generator_definition_span_sha256": "fabc67d5447a0fe66a363782da7d578383ddc2f1cad504b332eeefe7cb7d6a5f",
+  "current_generator_source_sha256": "23ea5c9dcdf7d2fdbc33f1f2fa2a830f18e5c7834a867e5da37641006d92b33d",
   "original_verifier_definition_span_sha256": "b02eca2b0f07e13c6478f511c2c0a9e2e865ca3f518626e19fe0f78a3eb50912",
   "domains": {
     "hir": {
       "original_roots": 1046,
-      "current_boundary_members": 1258,
-      "current_boundary_production": 450,
-      "outside_production_still_fully_authenticated": 227,
-      "full_role_production": 677,
-      "full_role_test_only": 1145,
-      "full_raw_sha256": "815b259b00e785be7dc694f5f100bd0db47201f4ff86f2e77a5a1a35422f16a1",
-      "boundary_production_sha256": "ee7691d10920ac42bef382f2438fc9ef7867919581c19f598e34e239b80f5256",
+      "current_boundary_members": 1368,
+      "current_boundary_production": 472,
+      "outside_production_still_fully_authenticated": 355,
+      "full_role_production": 827,
+      "full_role_test_only": 1438,
+      "full_raw_sha256": "0536d828ec1a3ffe128b1ed7fd9c51e9e1ee2ab59e8bd82efd73a7641e2de58d",
+      "boundary_production_sha256": "8f81d867c3e9e8502257f13f0e1acbc5d3964e77188c745773b2cc83117eb711",
       "exact_original_forbidden_tokens": [
         "struct Resolver",
         "impl Resolver",
@@ -30,13 +32,13 @@
     },
     "projection": {
       "original_roots": 179,
-      "current_boundary_members": 214,
-      "current_boundary_production": 77,
-      "outside_production_still_fully_authenticated": 658,
-      "full_role_production": 735,
-      "full_role_test_only": 1173,
-      "full_raw_sha256": "9ef6a5ea5cf55fd8e6b6cf6eb833bce7873f0b3b0643d9d9267499cbba3a741d",
-      "boundary_production_sha256": "2422e8206a854d9d9be64152aa49acc64ddaedd4841c87d8fa2e73c13ca5c7e3",
+      "current_boundary_members": 260,
+      "current_boundary_production": 95,
+      "outside_production_still_fully_authenticated": 843,
+      "full_role_production": 938,
+      "full_role_test_only": 1551,
+      "full_raw_sha256": "1ad80906b75f19f8d9d6b66c710ddc4397d0ef36511c50510bbb786bcb5a9b3d",
+      "boundary_production_sha256": "b0f4724d9dcedaef0216e29614316feebceaa8214a2d45d7108276246efdb0a7",
       "exact_original_forbidden_tokens": [
         "use super::*;",
         "workspace::",
@@ -55,9 +57,6 @@
       "global_polluted_purity_result_not_claimed": true
     }
   },
-  "successor_generator_sha256": "4ce8946ad3fcf89f5876868683457ab03f2915855ae22a5413b1ecf13edc854c",
-  "sealed_original_generator_definition_span_sha256": "fabc67d5447a0fe66a363782da7d578383ddc2f1cad504b332eeefe7cb7d6a5f",
-  "generator_execution": "Additive current-source-authority.py; unchanged sealed registration parser; sealed original generator was not executed.",
   "negative_controls": {
     "dropped_actual_child_refused": true,
     "coordinated_class_drop_not_original_generated_output": true,
@@ -66,7 +65,5 @@
     "whole_raw_drift_refused": true,
     "foreign_path_child_cannot_escape": true
   },
-  "status": "SOURCE_ONLY_EXACT_BOUNDARIES_AND_COMPLETE_SOURCE_ROLE_CUSTODY_PASS",
-  "before_head": "1a4385642bb412366957085a9b917cbbc0c60495",
-  "peak_RSS_bytes": 589643776
+  "status": "SOURCE_ONLY_EXACT_BOUNDARIES_AND_COMPLETE_SOURCE_ROLE_CUSTODY_PASS"
 }

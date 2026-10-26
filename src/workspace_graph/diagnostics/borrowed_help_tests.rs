@@ -240,8 +240,57 @@ fn complete_borrowed_help_source_restores_full_original_without_normalization() 
         env!("CARGO_MANIFEST_DIR"),
         "/docs/evidence/borrowed-refusal-help-824/exact-source-inverse.json"
     )))
+    .unwrap(); let physical_json = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/borrowed-refusal-help-824/exact-source-inverse.json")); let complete_json = crate::source_reflows_merge::main_e177_final_inputs::value_direct("docs/evidence/borrowed-refusal-help-824/exact-source-inverse.json", "077c4470aec8e42443c64f30cccaf0a7923f43a96963fc9db6684c6ba2bcdc5e", physical_json); assert_eq!(complete_json, physical_json); assert_eq!(complete_json.len(), 40828); assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(complete_json.as_bytes()))), "077c4470aec8e42443c64f30cccaf0a7923f43a96963fc9db6684c6ba2bcdc5e"); assert_eq!(serde_json::from_str::<serde_json::Value>(&complete_json).unwrap(), record); let mut declared_json = complete_json.clone(); assert!(declared_json.is_char_boundary(8313) && declared_json.is_char_boundary(40821)); declared_json.replace_range(8313..40821, ""); assert_eq!(declared_json.len(), 8320); assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(declared_json.as_bytes()))), "cd56b2ab4670a4c41f7bf95e7cb776157fbb1bd7da6ced272d0805df258a4350"); let prior_json = crate::source_reflows_merge::main_e177_final_inputs::value_direct("docs/evidence/borrowed-refusal-help-824/exact-source-inverse.json", "cd56b2ab4670a4c41f7bf95e7cb776157fbb1bd7da6ced272d0805df258a4350", physical_json); assert_eq!(declared_json, prior_json); let record: serde_json::Value = serde_json::from_str(&declared_json).unwrap();
+    let mut current = crate::source_reflows::next_custody_before(
+        "constructor903",
+        "src/workspace_graph/diagnostics.rs",
+        include_str!("../diagnostics.rs"),
+    );
+    // The later borrowed-writer route is acquired as its complete named
+    // immediate source before the unchanged declared824 inverse below.
+    let constructor_view = current.clone();
+    let fronts: serde_json::Value = crate::source_reflows::front_pool::decode(include_str!(
+        "../../source_reflows/next_custody_fronts.json"
+    ))
     .unwrap();
-    let mut current = include_str!("../diagnostics.rs").to_owned();
+    let front = &fronts["borrowed_help_824_declared_source"];
+    assert_eq!(
+        front["schema"],
+        "semaprax.borrowed-help-824-declared-source.v1"
+    );
+    let hash = |raw: &str| {
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(raw.as_bytes()))
+        )
+    };
+    assert_eq!(current.len() as u64, front["current"]["length"]);
+    assert_eq!(hash(&current), front["current"]["sha256"]);
+    let mut end = 0;
+    for edit in front["edits"].as_array().unwrap() {
+        let start = usize::try_from(edit["start"].as_u64().unwrap()).unwrap();
+        let next = usize::try_from(edit["end"].as_u64().unwrap()).unwrap();
+        assert!(end <= start && start <= next && next <= current.len());
+        assert!(current.is_char_boundary(start) && current.is_char_boundary(next));
+        assert_eq!(&current[start..next], edit["after"].as_str().unwrap());
+        end = next;
+    }
+    for edit in front["edits"].as_array().unwrap().iter().rev() {
+        let start = usize::try_from(edit["start"].as_u64().unwrap()).unwrap();
+        let end = usize::try_from(edit["end"].as_u64().unwrap()).unwrap();
+        current.replace_range(start..end, edit["before"].as_str().unwrap());
+    }
+    assert_eq!(current, front["before_text"].as_str().unwrap());
+    assert_eq!(current.len() as u64, front["target"]["length"]);
+    assert_eq!(hash(&current), front["target"]["sha256"]);
+    assert_eq!(
+        crate::source_reflows::next_custody_before(
+            "constructor903",
+            "src/workspace_graph/diagnostics.rs",
+            include_str!("../diagnostics.rs")
+        ),
+        constructor_view
+    );
     for edit in record["edits"].as_array().unwrap().iter().rev() {
         let after = edit["after"].as_str().unwrap();
         assert_eq!(current.matches(after).count(), 1);

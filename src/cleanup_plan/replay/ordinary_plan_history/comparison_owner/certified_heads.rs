@@ -6,7 +6,7 @@ pub(super) const OWNER: usize = 23 * PAYMENT_HEADER;
 // One place-pattern boolean. No copied slice, receiver call or saved verdict.
 pub(super) const EMPTY_SELECT: usize = size_of::<bool>();
 // Additional actual sites beyond the first-head split: thirteen boundary
-// sites (six payments and seven work calls), one numeric-driver payment,
+// sites (six payments and seven work calls), one run-capture payment,
 // and one empty-selector payment at the sole common suffix expansion.
 pub(super) const BOUNDARY_CHECK: usize = 3 * size_of::<bool>();
 pub(super) const BOUNDARY_EMPTY: usize = size_of::<bool>();
@@ -37,6 +37,33 @@ pub(super) const RUN_CAPTURE: usize = 2 * size_of::<&[Rc<SkeletonObservation>]>(
 #[cfg(test)]
 pub(super) const RUN_TURN: usize = 0;
 const _: () = assert!(size_of::<()>() == 0 && !std::mem::needs_drop::<SharedUnitDriver>());
+// The original RUN_CAPTURE remains complete for paired_value's surviving driver.
+// Scalar capture: two len actual/formal slice loans; len return/local (2U),
+// retained remaining (U), zero-test operands (2U), decrement operands/result
+// (3U), and one condition. All reusable slots are paid BEFORE formation.
+pub(super) const RUN_SCALAR_CAPTURE: usize =
+    2 * size_of::<&[Rc<SkeletonObservation>]>() + size_of::<[usize; 8]>() + size_of::<bool>();
+#[cfg(test)]
+#[allow(dead_code, unused_imports, unused_macros, reason = "complete independently executable immediate countdown predecessor")]
+#[rustfmt::skip]
+#[path = "certified_heads/before_countdown.rs"]
+pub(super) mod before_countdown;
+#[cfg(test)]
+std::thread_local! {
+    static IMMEDIATE_COUNTDOWN: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+#[cfg(test)]
+pub(super) fn immediate_countdown_selected() -> bool { IMMEDIATE_COUNTDOWN.with(|mode| mode.get()) }
+#[cfg(test)]
+pub(super) struct CountdownMode(bool);
+#[cfg(test)]
+impl Drop for CountdownMode {
+    fn drop(&mut self) { IMMEDIATE_COUNTDOWN.with(|mode| mode.set(self.0)); }
+}
+#[cfg(test)]
+pub(super) fn countdown_mode(immediate: bool) -> CountdownMode {
+    CountdownMode(IMMEDIATE_COUNTDOWN.with(|mode| mode.replace(immediate)))
+}
 pub(super) const RUN_PUBLISH: usize =
     4 * size_of::<&[Rc<SkeletonObservation>]>() + 4 * size_of::<usize>() + size_of::<Ordering>();
 pub(super) const BASE: usize =
@@ -366,6 +393,11 @@ macro_rules! certified_left_value {
 // or the direct loaded-empty boundary. No link, flag or certificate is stored.
 macro_rules! certified_suffix {
     ($owner:ident, $function:ident, $budget:ident, $census:ident, $paired:lifetime) => {{
+        #[cfg(test)]
+        if certified_heads::immediate_countdown_selected() {
+            certified_heads::before_countdown::certified_suffix_before_countdown!(
+                $owner, $function, $budget, $census, $paired);
+        }
         paid!($budget, $function, certified_heads::EMPTY_SELECT,
             "ordinary plan certified suffix empty selector")?;
         #[cfg(test)] $census.empty_selector();
@@ -390,23 +422,24 @@ macro_rules! certified_suffix {
             $crate::workflow_profile::plan_comparison::event(
                 $crate::workflow_profile::plan_comparison::Site::IdentityProbeAdmitted,
                 shared_prefix::PROBE);
-                    paid!($budget, $function, certified_heads::RUN_CAPTURE,
+                    // Retain the historical diagnostic phase spelling. Actual
+                    // profiling below identifies the scalar producer explicitly.
+                    paid!($budget, $function, certified_heads::RUN_SCALAR_CAPTURE,
                         "ordinary plan certified numeric run capture")?;
                     #[cfg(test)] $census.shared_runs();
                     #[cfg(feature = "unstable-workflow-profiling")]
                     $crate::workflow_profile::plan_comparison::event(
-                        $crate::workflow_profile::plan_comparison::Site::NumericCaptureAdmitted,
-                        certified_heads::RUN_CAPTURE);
+                        $crate::workflow_profile::plan_comparison::Site::ScalarCaptureAdmitted,
+                        certified_heads::RUN_SCALAR_CAPTURE);
                     let shared_length = $owner.left_items.len();
-                    #[allow(clippy::manual_repeat_n, reason = "closed Take<Repeat<()>> invoice and independent original driver")]
-                    let shared_work_driver: certified_heads::SharedUnitDriver =
-                        std::iter::repeat(()).take(shared_length);
-                    for () in shared_work_driver {
+                    let mut shared_remaining = shared_length;
+                    loop {
                         #[cfg(test)] $census.shared_turns();
                     #[cfg(feature = "unstable-workflow-profiling")]
                     $crate::workflow_profile::plan_comparison::event(
-                        $crate::workflow_profile::plan_comparison::Site::NumericTurnAdmitted,
+                        $crate::workflow_profile::plan_comparison::Site::ScalarTurnAdmitted,
                         0);
+                        if shared_remaining == 0 { break; }
                         $budget.charge($function, 1, "ordinary plan history forward cursor step")?;
                         #[cfg(test)] $census.identity_work();
                         #[cfg(feature = "unstable-workflow-profiling")]
@@ -442,17 +475,16 @@ macro_rules! certified_suffix {
                             $crate::workflow_profile::plan_comparison::event(
                                 $crate::workflow_profile::plan_comparison::Site::Round, 0);
                         }
+                        // The nonzero guard dominates this point; no intervening
+                        // statement mutates shared_remaining. No Option boundary.
+                        shared_remaining -= 1;
                     }
-                    #[cfg(test)] $census.shared_turns(); // the retained driver's sole terminal None
-                    #[cfg(feature = "unstable-workflow-profiling")]
-                    $crate::workflow_profile::plan_comparison::event(
-                        $crate::workflow_profile::plan_comparison::Site::NumericTurnAdmitted, 0);
                     paid!($budget, $function, certified_heads::RUN_PUBLISH,
                         "ordinary plan certified numeric run publication")?;
                     #[cfg(test)] $census.shared_publishes();
                     #[cfg(feature = "unstable-workflow-profiling")]
                     $crate::workflow_profile::plan_comparison::event(
-                        $crate::workflow_profile::plan_comparison::Site::NumericPublishAdmitted,
+                        $crate::workflow_profile::plan_comparison::Site::ScalarPublishAdmitted,
                         certified_heads::RUN_PUBLISH);
                     $owner.left_items = &[];
                     $owner.right_items = &[];
@@ -470,7 +502,7 @@ macro_rules! certified_suffix {
 // stacks identify the SAME next nonempty segment, including on paths whose
 // previous segments differed. Empty/different successors take the old route.
 macro_rules! certified_boundary {
-    ($owner:ident, $left_links:ident, $right_links:ident, $function:ident, $budget:ident, $census:ident, $certificate:lifetime) => {{
+    ($owner:ident, $left_links:ident, $right_links:ident, $function:ident, $budget:ident, $census:ident, $certificate:lifetime, $paired:lifetime) => {{
         paid!(
             $budget,
             $function,
@@ -618,6 +650,9 @@ macro_rules! certified_boundary {
                         }
                     }
                 }
+            } else {
+                independent_plan_segment_run!($owner, $census, $function, $budget, $paired,
+                    "ordinary plan history paired cursor next");
             }
         }
     }};

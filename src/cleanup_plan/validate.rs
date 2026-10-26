@@ -13,6 +13,10 @@ pub(crate) fn validate_program(program: &ResolvedProgram) -> Result<(), Diagnost
         crate::workflow_profile::plan_comparison::PaidPhase::CleanupValidation,
     );
 
+    #[cfg(test)]
+    let _allocation_phase = crate::test_allocation_observer::function_phase_guard(
+        "cleanup_plan::validate::canonical_rebuild",
+    );
     let mut frontier = crate::loop_calls::byte_writer::validation_frontier::Frontier::new(program);
     for function in &program.functions {
         #[cfg(feature = "unstable-workflow-profiling")]
@@ -43,6 +47,8 @@ pub(crate) fn validate_program(program: &ResolvedProgram) -> Result<(), Diagnost
         frontier.advance()?;
     }
     drop(frontier);
+    #[cfg(test)]
+    drop(_allocation_phase);
     // Complete fresh independent replay never borrows frontier proofs.
     super::replay::validate_program(program)
 }

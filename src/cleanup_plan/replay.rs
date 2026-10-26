@@ -22,6 +22,7 @@ mod call_paths;
 mod call_payload;
 mod expression_children;
 mod expression_facts;
+mod fact_preflight;
 mod flat_records;
 use call_paths::finish_call_states;
 mod inventory_coverage;
@@ -32,6 +33,8 @@ pub(in crate::cleanup_plan) mod ordinary_status;
 mod physical_budget;
 mod physical_clone;
 mod physical_storage;
+mod plan_prefix;
+mod projection_backing;
 mod scalar_match;
 mod scalar_replay;
 #[cfg(test)]
@@ -85,12 +88,10 @@ mod primitive_fixture;
 use expression_children::replay_expression_child;
 use expression_facts::expression_facts;
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
-
 #[cfg(test)]
 use crate::hir::ResolvedTypeDeclarationKind;
 #[cfg(test)]
 use std::cell::Cell;
-
 use super::{
     BlockId, CleanupPlace, CleanupRegionId, CleanupResultSource, CleanupTerminator,
     CleanupTransition, EdgeCondition, EdgeId, ExitContinuation, ExitTarget, StagedCopyResultSource,
@@ -133,7 +134,6 @@ use path_summary::{
 #[cfg(test)]
 use path_summary::{cleanup_plan_requires_path_replay, STATUS_ONLY_PATH_SUMMARY_THRESHOLD};
 use skeleton_work::{empty_expr_path, Observations, SkeletonWork};
-
 #[cfg(test)]
 mod context_tests;
 #[cfg(test)]
@@ -183,16 +183,13 @@ use resolved_call::{
     resolved_call_params, seal_changed_success_try_residual as seal_try_residual,
 };
 pub(crate) use schema::selected_schema;
-
 /// Provisional normal-scope end of a region whose independently proven flow has
 /// no normal completion. Only the lexical certificate replay may accept it.
 const UNRESOLVED_NORMAL_END: super::ExitTargetId = super::ExitTargetId(u32::MAX);
 const MAX_REPLAY_PATHS: usize = 65_536;
 const MAX_REPLAY_WORK_UNITS: usize = 32_000_000;
-
 mod allocation;
 use allocation::{AdmissionMode, AllocationPayer};
-
 // Setup identity for the direct selected-budget compatibility receiver only.
 // General Session spending remains multi-function; this is not admission data.
 struct SelectedDirectAnchor {
@@ -525,69 +522,7 @@ pub(super) fn validate_program(program: &ResolvedProgram) -> Result<(), Diagnost
     validate_program_context(program)
 }
 
-pub(in crate::cleanup_plan) fn validate_program_context(
-    program: &dyn crate::cleanup::ReplayContext,
-) -> Result<(), Diagnostic> {
-    let full = program.full_program().ok_or_else(|| {
-        Diagnostic::io(
-            "SPX-H006",
-            "allocation replay requires the held complete program",
-        )
-    })?;
-    let mut budget = ReplayBudget::new();
-    let helpers = ordinary_renewals::index(full, &mut budget)?;
-    reserve_program_skeleton_work(
-        program,
-        program.functions().iter().chain(
-            program
-                .function_instances()
-                .iter()
-                .map(|instance| &instance.function),
-        ),
-        &mut budget,
-    )?;
-    let mut continuations = continuation_storage::Storage::for_program(full, &mut budget)?;
-    #[cfg(test)]
-    let mut diagnostic_ordinal = 0usize;
-    for function in program.functions() {
-        #[cfg(test)]
-        let _debit_function = {
-            let scope = debit_routes::function(diagnostic_ordinal, false, function.id.as_str());
-            diagnostic_ordinal = diagnostic_ordinal.saturating_add(1);
-            scope
-        };
-        #[cfg(feature = "unstable-workflow-profiling")]
-        let _paid_structure = budget.paid_phase(PaidPhase::ReplayStructure);
-        validate_structure_with_budget_storage(
-            program,
-            function,
-            &mut budget,
-            Some(&helpers),
-            Some(&mut continuations),
-        )?;
-    }
-    #[cfg(test)]
-    let mut diagnostic_instance = 0usize;
-    for instance in program.function_instances() {
-        #[cfg(test)]
-        let _debit_function = {
-            let scope =
-                debit_routes::function(diagnostic_instance, true, instance.function.id.as_str());
-            diagnostic_instance = diagnostic_instance.saturating_add(1);
-            scope
-        };
-        #[cfg(feature = "unstable-workflow-profiling")]
-        let _paid_structure = budget.paid_phase(PaidPhase::ReplayStructure);
-        validate_structure_with_budget_storage(
-            program,
-            &instance.function,
-            &mut budget,
-            Some(&helpers),
-            Some(&mut continuations),
-        )?;
-    }
-    Ok(())
-}
+pub(in crate::cleanup_plan) use fact_preflight::validate_program_context;
 
 fn reserve_program_skeleton_work<'a>(
     program: &dyn crate::cleanup::ReplayContext,
@@ -1618,20 +1553,35 @@ fn collect_leaves_paid(
     function: &ResolvedFunction,
     budget: &mut ReplayBudget,
 ) -> Result<Leaves, Diagnostic> {
+    #[cfg(test)]
+    if projection_backing::before_selected() {
+        return projection_backing::before_body!(function, budget);
+    }
     let mut leaves = BTreeMap::new();
     let mut places = BTreeSet::new();
     let mut pending = shape_cursor::Pending::new();
+    // This additional owner/constructor/drop bank precedes formation. Existing
+    // shape receiver, work, growth, clone and leaf invoices remain unchanged.
+    budget.reserve_bytes(
+        function,
+        projection_backing::ENTRY,
+        "shape projection backing owner",
+    )?;
+    let mut projections = Vec::new();
     for slot in &function.cleanup_plan.slots {
         collect_shape(
             function,
             &slot.storage,
-            &mut Vec::new(),
+            &mut projections,
             &slot.field_liveness_shape,
             &mut leaves,
             &mut places,
             (budget, &mut pending),
         )?;
     }
+    // Each completed shape proves its starting depth was restored. Drop the
+    // empty backing at the original last-use frontier, before flag validation.
+    drop(projections);
     for (expected, flag) in leaves.keys().enumerate() {
         if flag.0 != u32_index(function, expected, "liveness flag")? {
             return Err(replay_error(
@@ -2719,6 +2669,7 @@ fn region_chain_to_root(
     Ok(chain)
 }
 
+#[rustfmt::skip]
 fn validate_typed_control_skeleton_with_index<'hir>(
     program: &'hir dyn crate::cleanup::ReplayContext,
     function: &'hir ResolvedFunction,
@@ -2743,6 +2694,7 @@ fn validate_typed_control_skeleton_with_index<'hir>(
     let _debit_phase = debit_routes::phase(debit_routes::Phase::EnumeratedHIR);
     let mut expected =
         hir_skeleton_paths_with_index_storage(program, function, budget, helpers, continuations)?;
+    ordinary_plan_history::completed_fork::shipping::finish!(function, budget, expected);
     #[cfg(test)]
     let _debit_phase = debit_routes::phase(debit_routes::Phase::OtherReplay);
     // Match the existing received reference, with no new payer/tag/flag carrier.
@@ -2804,6 +2756,7 @@ fn validate_typed_control_skeleton_with_index<'hir>(
             actual.sort();
             !skeleton_work::enumerated_prefix::equal(&expected, &actual, function, budget)?
         }
+        ReplayBudget { payer: AllocationPayer::LegacyUnobserved, .. } if { #[cfg(test)] { !ordinary_plan_history::completed_fork::emission::before_selected() } #[cfg(not(test))] { true } } => !plan_prefix::equal_paths(function, budget, &mut expected, &mut actual)?,
         _ => {
             expected.sort();
             actual.sort();
@@ -2849,6 +2802,9 @@ fn hir_skeleton_paths_with_index_storage<'hir>(
     helpers: Option<&crate::loop_calls::byte_writer::ModuleIndex<'hir>>,
     continuations: Option<&mut continuation_storage::Storage<'hir>>,
 ) -> Result<Vec<SkeletonPath>, Diagnostic> {
+    #[cfg(test)]
+    let _allocation_phase =
+        crate::test_allocation_observer::function_phase_guard("cleanup_plan::replay::hir_paths");
     #[cfg(feature = "unstable-workflow-profiling")]
     let _paid_phase = budget.paid_phase(PaidPhase::HirPaths);
 
@@ -2913,7 +2869,8 @@ fn hir_skeleton_paths_with_index_storage<'hir>(
                 .take()
                 .expect("ordinary setup selected first error"));
         }
-        SkeletonWork {
+        budget.reserve_bytes(function, skeleton_work::query_proof::HEADER, "skeleton query neutral slot receivers")?;
+        SkeletonWork { queries: skeleton_work::query_proof::Slot::new(function, budget),
             function,
             budget,
             continuations: None,
@@ -3075,9 +3032,12 @@ fn sequence_skeleton_paths(
     if path_array::main696::selected() {
         return path_array::main696::sequence_skeleton_paths(prefixes, suffixes, work);
     }
+    let prefixes = ordinary_plan_history::completed_fork::emission::dispatch!(
+        prefixes, suffixes, work
+    );
     let mut prefixes = work.merged_paths(prefixes)?;
     let suffixes = work.merged_suffixes(suffixes)?;
-    let share_prefix = work.shares_prefix_tail(&suffixes)?;
+    let share_prefix = work.prefix_tail_sharing(&suffixes)?;
     let mut combined = Vec::new();
     let minimum = compact_path::count!(
         work,
@@ -3094,7 +3054,7 @@ fn sequence_skeleton_paths(
     let single = suffixes.len() == 1;
     let mut precharged = false;
     if single && first {
-        sequence_vector::reuse!(prefixes, suffixes, work, share_prefix, minimum, precharged);
+        sequence_vector::reuse!(prefixes, suffixes, work, token share_prefix, minimum, precharged);
     }
     for mut prefix in prefixes {
         if prefix.failed || prefix.residual {
@@ -3113,8 +3073,8 @@ fn sequence_skeleton_paths(
             );
             continue;
         }
-        if !precharged && share_prefix {
-            work.share_prefix_tail(&mut prefix.observations)?;
+        if !precharged {
+            skeleton_work::dag_storage::share_prefix!(work, share_prefix, prefix.observations);
         }
         if single {
             if precharged {
@@ -6466,7 +6426,7 @@ fn sequence_call_argument(
 ) -> Result<Vec<CallSkeletonState>, Diagnostic> {
     let states = work.merged_call_states(states)?;
     let suffixes = work.merged_suffixes(suffixes)?;
-    let share_prefix = work.shares_prefix_tail(&suffixes)?;
+    let share_prefix = work.prefix_tail_sharing(&suffixes)?;
     let mut next = Vec::new();
     for (mut prefix, commits) in states {
         if prefix.failed || prefix.residual {
@@ -6477,16 +6437,13 @@ fn sequence_call_argument(
             next.push((prefix, commits));
             continue;
         }
-        if share_prefix {
-            work.share_prefix_tail(&mut prefix.observations)?;
-        }
+        skeleton_work::dag_storage::share_prefix!(work, share_prefix, prefix.observations);
+
         for suffix in suffixes.iter() {
             let observations =
                 work.clone_observations(&prefix.observations, "call prefix clone")?;
-            let observations = work.extend_owned_observations(
-                observations,
-                &suffix.observations,
-                "call suffix clone",
+            let observations = ordinary_plan_history::completed_fork::emission::extend_call!(
+                observations, suffix, work
             )?;
             let owned_source =
                 work.clone_owned(&suffix.owned_source, "call suffix owned-source clone")?;
@@ -6756,10 +6713,16 @@ fn cleanup_place_from_hir(
     })
 }
 
+#[rustfmt::skip]
 fn plan_skeleton_paths(
     function: &ResolvedFunction,
     budget: &mut ReplayBudget,
 ) -> Result<Vec<SkeletonPath>, Diagnostic> {
+    budget.reserve_bytes(function, plan_prefix::QUERY_CONTROLS, "PLAN prefix eligibility receivers")?;
+    if matches!(budget.payer, AllocationPayer::LegacyUnobserved) && { #[cfg(test)] { !ordinary_plan_history::completed_fork::emission::before_selected() } #[cfg(not(test))] { true } } { return plan_prefix::build(function, budget); }
+    #[cfg(test)]
+    let _allocation_phase =
+        crate::test_allocation_observer::function_phase_guard("cleanup_plan::replay::plan_paths");
     #[cfg(feature = "unstable-workflow-profiling")]
     let _paid_phase = budget.paid_phase(PaidPhase::PlanPaths);
 
@@ -7905,17 +7868,15 @@ pub(super) mod phase_measurement;
 mod live_oracle;
 #[cfg(test)]
 pub(crate) use live_oracle::with_financed_test_oracles;
-
 #[cfg(test)]
 mod workspace_oracle;
 #[cfg(test)]
-pub(crate) use workspace_oracle::with_financed_workspace_test_oracles;
-
-#[cfg(test)]
 pub(crate) use factored::{EpsilonAppCensus, SuccessorAppCensus};
-
+#[cfg(test)]
+pub(crate) use workspace_oracle::{
+    with_financed_validation_test_oracles, with_financed_workspace_test_oracles,
+};
 mod selected_type_drop;
-
 #[cfg(test)]
 #[path = "replay/sequence_prefix/main24/mod.rs"]
 mod sequence_prefix_main24;

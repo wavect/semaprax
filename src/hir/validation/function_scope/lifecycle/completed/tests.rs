@@ -341,7 +341,8 @@ fn complete_frozen_function_receiver_is_exact_named_projection_with_original_dig
         projected.trim_end_matches('\n').to_owned() + "\n"
     );
     let archived_lifecycle = include_str!("../../../../../../evidence/final-validation-lifecycle-completed/src__hir__validation__function_scope__lifecycle.rs.txt");
-    let mut legacy = include_str!("../../lifecycle.rs").to_owned();
+    let mut legacy = crate::source_reflows::lifecycle_visibility_input(
+        "src/hir/validation/function_scope/lifecycle.rs", include_str!("../../lifecycle.rs"));
     // Unregistered compiled source: authenticate the ENTIRE current input,
     // reverse only these exact optional observer adapters, then preserve every
     // original whole-before assertion and old inverse below. No page admission.

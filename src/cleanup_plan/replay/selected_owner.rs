@@ -7,7 +7,7 @@ pub(super) fn owner(
     budget: &mut ReplayBudget,
 ) -> Result<crate::hir::FunctionExecutionId, Diagnostic> {
     if !budget.selected() {
-        return crate::hir::lexical_exit::owner(program, function);
+        return ordinary::owner(program, function, budget);
     }
     if !program.function_templates().is_empty() || !program.function_instances().is_empty() {
         return Err(replay_error(
@@ -57,3 +57,5 @@ pub(super) mod paid;
 
 #[cfg(test)]
 pub(super) mod paid_before_children;
+
+pub(super) mod ordinary;

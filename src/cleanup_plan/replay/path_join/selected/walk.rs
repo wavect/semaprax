@@ -1,4 +1,3 @@
-//! Exact selected path twin; complete immediate old owners remain independent.
 use super::*;
 pub(in crate::cleanup_plan::replay) fn validate_path_states(
     program: &dyn crate::cleanup::ReplayContext,
@@ -9,8 +8,10 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
     lexical: Option<&lexical_cert::LexicalAuth>,
     helpers: Option<&crate::loop_calls::byte_writer::ModuleIndex<'_>>,
 ) -> Result<(), Error> {
-    // Actual body/iterator/capture roles; original nested backing and
-    // explicit insertion/payload receiving banks remain separately intact.
+    #[cfg(feature = "unstable-workflow-profiling")]
+    crate::bounded_output::exclusive_debits::path_census::event(
+        crate::bounded_output::exclusive_debits::path_census::Event::Body,
+    );
     budget.reserve_array::<receiving::WalkBody<'_>>(
         function,
         1,
@@ -21,6 +22,7 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
         85,
         "selected path validate_path_states body receiving",
     )?;
+    budget.charge(function, 6, "compact incoming additional body receiving")?;
     budget.reserve_array::<(
         &dyn crate::cleanup::ReplayContext,
         &ResolvedFunction,
@@ -65,9 +67,6 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
     let _exclusive_operation = crate::bounded_output::exclusive_debits::operation_guard(
         crate::bounded_output::exclusive_debits::Operation::ReplayPathStates,
     );
-    // Authenticate the absence once before path traversal. The source/HIR
-    // wrapper certificate identifies a conditional Step transfer, which must
-    // never acquire the one-leaf renewal authority of another profile.
     if let Some(auth) = lexical {
         let mut cancel_entries = auth.wrapper_cancels.values();
         while let Some(assignment) = dynamic_next!(
@@ -77,7 +76,6 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
             receiving::CancelEntriesNext<'_>,
             3
         ) {
-            // Inspect the existing lookup result directly; no Option method ABI.
             #[allow(clippy::redundant_pattern_matching)]
             if let Some(_) = receive!(
                 budget,
@@ -108,8 +106,6 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
         3,
         storage::storage_regions(function, budget)
     )?;
-    // Exact ownership state each lexical loop body must restore, captured once
-    // from the state on its true-condition edge.
     let mut loop_entries = BTreeMap::<usize, PathState>::new();
     let no_extra_disposal = BTreeSet::<StorageId>::new();
     let mut contract_sources = BTreeMap::new();
@@ -268,21 +264,43 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
         });
     }
 
-    budget.reserve_array::<BTreeSet<Box<PathState>>>(
+    budget.reserve_array::<frontier::Incoming<PathState>>(
         function,
         plan.blocks.len(),
         "incoming state frontier",
     )?;
-    let mut incoming = vec![BTreeSet::<Box<PathState>>::new(); plan.blocks.len()];
+    let mut incoming = Vec::with_capacity(plan.blocks.len());
+    budget.reserve_array::<receiving::DirectoryCallback<'_>>(
+        function,
+        plan.blocks.len(),
+        "compact incoming repeated default callback receiving",
+    )?;
+    budget.charge(
+        function,
+        plan.blocks.len().saturating_mul(5),
+        "compact incoming repeated default callback receiving",
+    )?;
+    receive!(
+        budget,
+        function,
+        receiving::DirectoryResize<'_>,
+        8,
+        "compact incoming resize method receiving",
+        incoming.resize_with(
+            plan.blocks.len(),
+            frontier::Incoming::default as fn() -> frontier::Incoming<PathState>
+        )
+    );
+    let mut incoming_insertions = frontier::Insertions::<PathState>::acquire(function, budget)?;
     let mut insertions = boxed_states::Insertions::<PathState>::acquire(function, budget)?;
-    insertions.insert_owned(
+    incoming_insertions.insert_owned(
         function,
         incoming_at!(budget, function, incoming, plan.entry.0 as usize),
         initial,
         budget,
     );
-    if insertions.failed {
-        return Err(insertions.failure().into());
+    if incoming_insertions.failed {
+        return Err(incoming_insertions.failure().into());
     }
     budget.reserve_array::<usize>(function, plan.blocks.len(), "cleanup predecessor counters")?;
     let mut remaining_predecessors = vec![0_usize; plan.blocks.len()];
@@ -330,8 +348,6 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
             ))?;
         }
     }
-    // A validated acyclic CFG schedules each block at most once. Hold its
-    // complete queue capacity so push_back never grows an uncharged frontier.
     budget.reserve_array::<BlockId>(function, plan.blocks.len(), "cleanup ready queue")?;
     let mut queue = VecDeque::with_capacity(plan.blocks.len());
     queue.push_back(plan.entry);
@@ -353,6 +369,8 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
             incoming,
             block_id.0 as usize
         ));
+        #[cfg(feature = "unstable-workflow-profiling")]
+        states.observe_incoming();
         if states.is_empty() {
             return Err(path_error!(
                 permit,
@@ -373,7 +391,7 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
             budget,
             function,
             retained_states,
-            receiving::GroupStateEntriesNext<'_>,
+            receiving::FrontierEntriesNext<'_>,
             3
         ) {
             let units = retained_units!(budget, function, state);
@@ -383,14 +401,8 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
         }
         let join_units = states.len().saturating_mul(retained);
         budget.charge(function, join_units, "all-path ownership replay")?;
-        // A single incoming state is already its complete unique control group.
-        // Keep every validation/join/transition/exit and scheduling step below;
-        // no control-key clone, grouping map/set, or held insertion is needed.
         if states.len() == 1 {
             let block = plan_at!(budget, function, plan, blocks, block_id.0 as usize);
-            // An owning break's fragment rejoins its wrapper's parent: every
-            // incoming state must agree exactly, with no ownership or history
-            // repair by the generic join below.
             let exact_join = exact_join!(budget, function, lexical, block_id);
             if exact_join && states.len() != 1 {
                 return Err(path_error!(
@@ -403,39 +415,39 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
             path_child!(
                 budget,
                 function,
-                ValidateControlGroupWithBudgetCall,
+                SingletonGroupCall,
                 5,
-                joins::validate_control_group_with_budget(function, &states, block_id, budget)
+                boxed_flow::validate_singleton(function, states.one(), block_id, budget)
             )?;
-            // The validated singleton already owns the complete joined fields.
-            // Consume it once; neither original vector nor any nested identity
-            // is cloned, replaced from a clone, or temporarily reinitialized.
-            let mut singleton_states = states.into_iter();
-            let mut state = *dynamic_next!(
+            let mut singleton_states = states.into_one();
+            let mut state = dynamic_next!(
                 budget,
                 function,
                 singleton_states,
-                receiving::OwnedStatesNext<'_>,
+                receiving::FrontierOneNext<'_>,
                 3
             )
             .expect("replay control group is non-empty");
-            // Identical branch arms still require their original normalization.
-            // Move the original vector into that same producer and receive its
-            // result back into the same field. Partial failure drops the moved
-            // input and every remaining state field through their original owners.
+            receive!(
+                budget,
+                function,
+                (
+                    &mut Vec<ReplayConditionalVariant>,
+                    Vec<ReplayConditionalVariant>,
+                    Vec<ReplayConditionalVariant>,
+                    Vec<ReplayConditionalVariant>
+                ),
+                4,
+                "same-box normalization replacement and moved vector receiving",
+                ()
+            );
+            let variants = std::mem::take(&mut state.conditional_variants);
             state.conditional_variants = retained_child!(
                 budget,
                 function,
                 BranchNormalize,
                 8,
-                branch_joins.normalize(
-                    program,
-                    function,
-                    block_id,
-                    exact_join,
-                    state.conditional_variants,
-                    budget,
-                )
+                branch_joins.normalize(program, function, block_id, exact_join, variants, budget)
             )?;
             if let Some(auth) = lexical {
                 retained_child!(
@@ -494,9 +506,9 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
                     let state = path_child!(
                         budget,
                         function,
-                        StateForEdgeCall,
+                        BoxedEdgeCall,
                         6,
-                        finish::state_for_edge(
+                        boxed_flow::state_for_edge(
                             function,
                             state,
                             &edge.condition,
@@ -504,14 +516,14 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
                             budget,
                         )
                     )?;
-                    insertions.insert_owned(
+                    incoming_insertions.insert_held(
                         function,
                         incoming_at!(budget, function, incoming, edge.to.0 as usize),
                         state,
                         budget,
                     );
-                    if insertions.failed {
-                        return Err(insertions.failure().into());
+                    if incoming_insertions.failed {
+                        return Err(incoming_insertions.failure().into());
                     }
                 }
                 CleanupTerminator::Branch(edges) => {
@@ -522,8 +534,6 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
                         5,
                         finish::require_normal_flow_state(function, &state, block_id, budget)
                     )?;
-                    // Initial selection receivers are paid before len/index queries.
-                    // This is a new metadata refusal frontier, not clone backing.
                     budget.reserve_bytes(
                         function,
                         std::mem::size_of::<Result<(), Error>>()
@@ -593,17 +603,15 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
                                 )
                             )?;
                         }
-                        insertions.insert_owned(
+                        incoming_insertions.insert_owned(
                             function,
                             incoming_at!(budget, function, incoming, edge.to.0 as usize),
                             next,
                             budget,
                         );
-                        if insertions.failed {
-                            return Err(insertions.failure().into());
+                        if incoming_insertions.failed {
+                            return Err(incoming_insertions.failure().into());
                         }
-                        // The earlier sibling owns its independent clone. The final
-                        // sibling receives the original state, with identical work.
 
                         let edge = plan_at!(
                             budget,
@@ -621,9 +629,9 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
                         let next = path_child!(
                             budget,
                             function,
-                            StateForEdgeCall,
+                            BoxedEdgeCall,
                             6,
-                            finish::state_for_edge(
+                            boxed_flow::state_for_edge(
                                 function,
                                 state,
                                 &edge.condition,
@@ -647,17 +655,16 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
                                 )
                             )?;
                         }
-                        insertions.insert_owned(
+                        incoming_insertions.insert_held(
                             function,
                             incoming_at!(budget, function, incoming, edge.to.0 as usize),
                             next,
                             budget,
                         );
-                        if insertions.failed {
-                            return Err(insertions.failure().into());
+                        if incoming_insertions.failed {
+                            return Err(incoming_insertions.failure().into());
                         }
                     } else {
-                        // Complete old fallback for low-level malformed cardinality.
                         let mut branch_edges = edges.iter();
                         while let Some(edge) = dynamic_next!(
                             budget,
@@ -717,14 +724,14 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
                                     )
                                 )?;
                             }
-                            insertions.insert_owned(
+                            incoming_insertions.insert_owned(
                                 function,
                                 incoming_at!(budget, function, incoming, edge.to.0 as usize),
                                 next,
                                 budget,
                             );
-                            if insertions.failed {
-                                return Err(insertions.failure().into());
+                            if incoming_insertions.failed {
+                                return Err(incoming_insertions.failure().into());
                             }
                         }
                     }
@@ -748,7 +755,7 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
                         execution::exit(
                             function,
                             exit,
-                            state,
+                            *state,
                             &storage_regions,
                             storage,
                             leaves,
@@ -767,9 +774,6 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
                                 wrapper_cancels,
                                 ExpressionId
                             ) {
-                                // The authenticated hidden Step has no
-                                // one-leaf reservation. Preserve every unrelated
-                                // history; unexpected authority fails closed.
                                 if continued.renewals.contains_key(assignment) {
                                     return Err(path_error!(permit, Reason::Finite(
                                         Kind::OwningBreakConditionalStepHasUnexpectedRenewalHistory,
@@ -793,14 +797,14 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
                                     )
                                 )?;
                             }
-                            insertions.insert_owned(
+                            incoming_insertions.insert_owned(
                                 function,
                                 incoming_at!(budget, function, incoming, target.0 as usize),
                                 continued,
                                 budget,
                             );
-                            if insertions.failed {
-                                return Err(insertions.failure().into());
+                            if incoming_insertions.failed {
+                                return Err(incoming_insertions.failure().into());
                             }
                         }
                         ExitFlow::Latch(latched) => {
@@ -812,16 +816,14 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
                                 Kind::LoopLatchOutsideTheLexicalProfile
                             ))?;
                             if let Some(entry) = lexical_cert::latch_resume(plan, exit.id) {
-                                // A certified continue enters its finite generated
-                                // advancement fragment, whose own latch checks entry.
-                                insertions.insert_owned(
+                                incoming_insertions.insert_owned(
                                     function,
                                     incoming_at!(budget, function, incoming, entry.0 as usize),
                                     latched,
                                     budget,
                                 );
-                                if insertions.failed {
-                                    return Err(insertions.failure().into());
+                                if incoming_insertions.failed {
+                                    return Err(incoming_insertions.failure().into());
                                 }
                             } else {
                                 path_child!(
@@ -909,7 +911,7 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
             continue;
         }
         let mut groups = BTreeMap::<ControlKey, BTreeSet<Box<PathState>>>::new();
-        let mut owned_states = states.into_iter();
+        let mut owned_states = states.into_many().into_iter();
         while let Some(state) = dynamic_next!(
             budget,
             function,
@@ -955,9 +957,6 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
             receiving::ControlGroupsNext<'_>,
             3
         ) {
-            // An owning break's fragment rejoins its wrapper's parent: every
-            // incoming state must agree exactly, with no ownership or history
-            // repair by the generic join below.
             let exact_join = exact_join!(budget, function, lexical, block_id);
             if exact_join && states.len() != 1 {
                 return Err(path_error!(
@@ -981,8 +980,6 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
                 5,
                 joins::joined_ownership_state(program, function, &states, budget)
             )?;
-            // Identical branch arms deduplicate to one state; the producer
-            // still joined them. An exact break rejoin is never re-keyed.
             if states.len() == 1 {
                 conditional_variants = retained_child!(
                     budget,
@@ -1000,7 +997,7 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
                 )?;
             }
             let mut singleton_states = states.into_iter();
-            let mut state = *dynamic_next!(
+            let mut state = dynamic_next!(
                 budget,
                 function,
                 singleton_states,
@@ -1067,9 +1064,9 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
                     let state = path_child!(
                         budget,
                         function,
-                        StateForEdgeCall,
+                        BoxedEdgeCall,
                         6,
-                        finish::state_for_edge(
+                        boxed_flow::state_for_edge(
                             function,
                             state,
                             &edge.condition,
@@ -1077,14 +1074,14 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
                             budget,
                         )
                     )?;
-                    insertions.insert_owned(
+                    incoming_insertions.insert_held(
                         function,
                         incoming_at!(budget, function, incoming, edge.to.0 as usize),
                         state,
                         budget,
                     );
-                    if insertions.failed {
-                        return Err(insertions.failure().into());
+                    if incoming_insertions.failed {
+                        return Err(incoming_insertions.failure().into());
                     }
                 }
                 CleanupTerminator::Branch(edges) => {
@@ -1095,8 +1092,6 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
                         5,
                         finish::require_normal_flow_state(function, &state, block_id, budget)
                     )?;
-                    // Initial selection receivers are paid before len/index queries.
-                    // This is a new metadata refusal frontier, not clone backing.
                     budget.reserve_bytes(
                         function,
                         std::mem::size_of::<Result<(), Error>>()
@@ -1166,17 +1161,15 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
                                 )
                             )?;
                         }
-                        insertions.insert_owned(
+                        incoming_insertions.insert_owned(
                             function,
                             incoming_at!(budget, function, incoming, edge.to.0 as usize),
                             next,
                             budget,
                         );
-                        if insertions.failed {
-                            return Err(insertions.failure().into());
+                        if incoming_insertions.failed {
+                            return Err(incoming_insertions.failure().into());
                         }
-                        // The earlier sibling owns its independent clone. The final
-                        // sibling receives the original state, with identical work.
 
                         let edge = plan_at!(
                             budget,
@@ -1194,9 +1187,9 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
                         let next = path_child!(
                             budget,
                             function,
-                            StateForEdgeCall,
+                            BoxedEdgeCall,
                             6,
-                            finish::state_for_edge(
+                            boxed_flow::state_for_edge(
                                 function,
                                 state,
                                 &edge.condition,
@@ -1220,17 +1213,16 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
                                 )
                             )?;
                         }
-                        insertions.insert_owned(
+                        incoming_insertions.insert_held(
                             function,
                             incoming_at!(budget, function, incoming, edge.to.0 as usize),
                             next,
                             budget,
                         );
-                        if insertions.failed {
-                            return Err(insertions.failure().into());
+                        if incoming_insertions.failed {
+                            return Err(incoming_insertions.failure().into());
                         }
                     } else {
-                        // Complete old fallback for low-level malformed cardinality.
                         let mut branch_edges = edges.iter();
                         while let Some(edge) = dynamic_next!(
                             budget,
@@ -1290,14 +1282,14 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
                                     )
                                 )?;
                             }
-                            insertions.insert_owned(
+                            incoming_insertions.insert_owned(
                                 function,
                                 incoming_at!(budget, function, incoming, edge.to.0 as usize),
                                 next,
                                 budget,
                             );
-                            if insertions.failed {
-                                return Err(insertions.failure().into());
+                            if incoming_insertions.failed {
+                                return Err(incoming_insertions.failure().into());
                             }
                         }
                     }
@@ -1321,7 +1313,7 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
                         execution::exit(
                             function,
                             exit,
-                            state,
+                            *state,
                             &storage_regions,
                             storage,
                             leaves,
@@ -1340,9 +1332,6 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
                                 wrapper_cancels,
                                 ExpressionId
                             ) {
-                                // The authenticated hidden Step has no
-                                // one-leaf reservation. Preserve every unrelated
-                                // history; unexpected authority fails closed.
                                 if continued.renewals.contains_key(assignment) {
                                     return Err(path_error!(permit, Reason::Finite(
                                         Kind::OwningBreakConditionalStepHasUnexpectedRenewalHistory,
@@ -1366,14 +1355,14 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
                                     )
                                 )?;
                             }
-                            insertions.insert_owned(
+                            incoming_insertions.insert_owned(
                                 function,
                                 incoming_at!(budget, function, incoming, target.0 as usize),
                                 continued,
                                 budget,
                             );
-                            if insertions.failed {
-                                return Err(insertions.failure().into());
+                            if incoming_insertions.failed {
+                                return Err(incoming_insertions.failure().into());
                             }
                         }
                         ExitFlow::Latch(latched) => {
@@ -1385,16 +1374,14 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
                                 Kind::LoopLatchOutsideTheLexicalProfile
                             ))?;
                             if let Some(entry) = lexical_cert::latch_resume(plan, exit.id) {
-                                // A certified continue enters its finite generated
-                                // advancement fragment, whose own latch checks entry.
-                                insertions.insert_owned(
+                                incoming_insertions.insert_owned(
                                     function,
                                     incoming_at!(budget, function, incoming, entry.0 as usize),
                                     latched,
                                     budget,
                                 );
-                                if insertions.failed {
-                                    return Err(insertions.failure().into());
+                                if incoming_insertions.failed {
+                                    return Err(incoming_insertions.failure().into());
                                 }
                             } else {
                                 path_child!(
@@ -1488,6 +1475,8 @@ pub(in crate::cleanup_plan::replay) fn validate_path_states(
             Reason::Finite(Kind::CleanupCfgHasNoReplayableTerminalSuccessPath,)
         ));
     }
+    #[cfg(feature = "unstable-workflow-profiling")]
+    crate::bounded_output::exclusive_debits::path_census::finish(terminal_paths, successful_paths);
     Ok(())
 }
 

@@ -42,9 +42,14 @@ fn enumerated(program: &ResolvedProgram, function: &ResolvedFunction) -> Result<
     let mut budget = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
     let mut hir = hir_skeleton_paths(program, function, &mut budget)?;
     let mut plan = plan_skeleton_paths(function, &mut budget)?;
-    hir.sort();
-    plan.sort();
-    Ok(hir == plan)
+    budget.reserve_bytes(
+        function,
+        3 * skeleton_work::enumerated_prefix::ENTRY_CALL,
+        "independent moderate full-content comparison entries",
+    )?;
+    skeleton_work::enumerated_prefix::sort(&mut hir, function, &mut budget)?;
+    skeleton_work::enumerated_prefix::sort(&mut plan, function, &mut budget)?;
+    skeleton_work::enumerated_prefix::equal(&hir, &plan, function, &mut budget)
 }
 
 #[test]
@@ -322,6 +327,14 @@ fn joined_hostiles() {
 
 #[test]
 fn ordinary_builder_crossover_128_keeps_reference_routes_and_complete_languages() {
+    use crate::cleanup_plan::replay::allocation::{opt_in, OracleScope};
+    use crate::test_allocation_observer::measure;
+    const PRODUCTION_BYTES: usize = 64 * 1024 * 1024;
+    // Independent, explicit test-oracle accounts. These never increase ACTIVE,
+    // grant production work, refund a request, or skip either full receiver.
+    const ORACLE_BYTES: usize = 1 << 29;
+    const ORACLE_WORK: usize = 2 * MAX_REPLAY_WORK_UNITS;
+    let mut unopted_refusals = 0;
     for decisions in [6, 7, 8, 9] {
         for owned in [false, true] {
             let program = fixture(decisions, owned);
@@ -333,14 +346,78 @@ fn ordinary_builder_crossover_128_keeps_reference_routes_and_complete_languages(
             assert_eq!((cfg, hir), (1 << decisions, 1 << decisions));
             assert!(enumerated(&program, function).unwrap());
             assert_eq!(selected(function, cfg, hir), !owned && decisions > 8);
-            let (result, refused, _, receipt) = with_limit_usage_refusal(64 * 1024 * 1024, || {
-                let mut budget = ReplayBudget::new();
-                validate(&program, function, &mut budget)
+
+            // Keep the complete unopted entry at its original production cap.
+            // Its cfg(test) enumeration/factored cross-checks also pay ACTIVE;
+            // a genuine first refusal is retained as a separate negative.
+            let ((unopted, refused, paid, receipt, remaining), metrics) = measure(|| {
+                let ((result, remaining), refused, paid, receipt) =
+                    with_limit_usage_refusal(PRODUCTION_BYTES, || {
+                        let mut budget = ReplayBudget::new();
+                        let result = validate(&program, function, &mut budget);
+                        let remaining = (budget.remaining, budget.skeleton_remaining);
+                        (result, remaining)
+                    });
+                let result = match result {
+                    Ok(selected) => {
+                        assert_eq!(selected, decisions > 7);
+                        assert!(!refused && receipt.is_none());
+                        Ok(selected)
+                    }
+                    Err(error) => {
+                        assert_eq!(error, replay_error(function,
+                            format_args!("ordinary builder already failed")),
+                            "all six unopted diagnostic fields");
+                        assert!(refused && receipt.is_some());
+                        assert_eq!(remaining, (0, 0));
+                        drop(error);
+                        Err(())
+                    }
+                };
+                (result, refused, paid, receipt, remaining)
+            });
+            if unopted.is_err() {
+                unopted_refusals += 1;
+            }
+            assert!(paid <= PRODUCTION_BYTES && !metrics.invalid);
+            assert_eq!(metrics.live, 0);
+            assert_eq!(metrics.allocated, metrics.freed);
+            eprintln!("moderate unopted decisions={decisions} owned={owned} result={unopted:?} refused={refused} paid={paid} receipt={receipt:?} work_left={remaining:?} allocation={metrics:?}");
+
+            // The shipping selector/comparison still pays the SAME ACTIVE cap;
+            // only the complete independent test cross-check uses its own
+            // cumulative byte/work account, with every invocation balanced.
+            let ((result, refused, paid, receipt, remaining, oracle), metrics) = measure(|| {
+                let scope = OracleScope::open_with_work(ORACLE_BYTES, ORACLE_WORK).unwrap();
+                let opted = opt_in(scope.lease()).unwrap();
+                let ((result, remaining), refused, paid, receipt) =
+                    with_limit_usage_refusal(PRODUCTION_BYTES, || {
+                        let mut budget = ReplayBudget::new();
+                        let result = validate(&program, function, &mut budget);
+                        let remaining = (budget.remaining, budget.skeleton_remaining);
+                        (result, remaining)
+                    });
+                drop(opted);
+                let oracle = scope.finish();
+                (result, refused, paid, receipt, remaining, oracle)
             });
             assert_eq!(result.unwrap(), decisions > 7);
             assert!(!refused && receipt.is_none());
+            assert!(paid <= PRODUCTION_BYTES);
+            assert_eq!((oracle.allowance, oracle.work_allowance), (ORACLE_BYTES, ORACLE_WORK));
+            assert_eq!((oracle.started, oracle.completed), (2, 2));
+            assert!(oracle.charged > 0 && oracle.charged <= ORACLE_BYTES);
+            assert!(oracle.work > 0 && oracle.work <= ORACLE_WORK);
+            assert!(oracle.calls > 0 && oracle.work_calls > 0);
+            assert!(oracle.first_refusal.is_none() && oracle.first_work_refusal.is_none());
+            assert!(oracle.physical_failure.is_none());
+            assert!(!metrics.invalid);
+            assert_eq!(metrics.live, 0);
+            assert_eq!(metrics.allocated, metrics.freed);
+            eprintln!("moderate independently funded decisions={decisions} owned={owned} production_paid={paid} work_left={remaining:?} oracle={oracle:?} allocation={metrics:?}");
         }
     }
+    assert!(unopted_refusals > 0, "retain the actual unopted ACTIVE refusal");
 }
 
 #[test]

@@ -186,7 +186,9 @@ fn whole_current_function_is_exact_prior_source_plus_named_empty_guard() {
         ),
         binding["original"]["sha256"].as_str().unwrap()
     );
-    let mut current = ci_str!("../../function_scope.rs").to_owned();
+    let mut current = crate::hir::validation::frame_reuse::source_inverse::function_scope(
+        include_str!("../../function_scope.rs"),
+    );
     for field in ["additive_guard", "registration"] {
         let addition = binding[field].as_str().unwrap();
         assert_eq!(current.matches(addition).count(), 1, "{field}");

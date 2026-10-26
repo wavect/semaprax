@@ -4,7 +4,6 @@
 //! is charged before it runs; scratch growth is reserved before it happens.
 //! The ordinary derived `Ord` and the borrowed `Key` stay untouched.
 use super::*;
-use std::borrow::Borrow;
 use std::cmp::Ordering;
 
 macro_rules! decide {
@@ -789,15 +788,144 @@ pub(super) fn label(
     }
 }
 
-fn items<I: Borrow<SkeletonObservation>>(
-    a: &[I],
-    b: &[I],
+// This bank covers only the newly introduced comparison operation. A miss
+// still executes the complete original observation comparison below.
+const FLAT_IDENTITY_RECEIVERS: usize = {
+    use std::mem::size_of;
+    2 * size_of::<(&Rc<SkeletonObservation>, &Rc<SkeletonObservation>)>()
+        + 2 * size_of::<bool>()
+        + 2 * size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>()
+        + 2 * size_of::<Result<(), physical_budget::ByteFailure>>()
+};
+#[cfg(test)]
+const BEFORE_LEXICAL_IDENTITY_RECEIVERS: usize = {
+    use std::mem::size_of;
+    2 * size_of::<(&Rc<SkeletonObservation>, &Rc<SkeletonObservation>)>()
+        + 2 * size_of::<bool>()
+        + 4 * size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>()
+        + 4 * size_of::<Result<(), physical_budget::ByteFailure>>()
+};
+
+// The original first iterator member/work frontier is retained below. Its
+// successful work payment precedes this once-only entry; no new mutable flag,
+// failure owner, or caller-paid global budget field is initialized before it.
+// At most one compact failure exits this invocation. Its conversion consumes
+// this bank once; all unused entry/tail controls remain charged on early exit.
+const FLAT_IDENTITY_ENTRY: usize = {
+    use std::mem::size_of;
+    type Item = Rc<SkeletonObservation>;
+    type Iter = std::slice::Iter<'static, Item>;
+    type Pairs = std::iter::Zip<Iter, Iter>;
+    // Entry payment actual/formal arguments and complete return/receiver.
+    2 * size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>()
+        + 2 * size_of::<Result<(), Diagnostic>>()
+        // The one ByteFailure::into_diagnostic terminal conversion, plus a
+        // possible preceding ByteFailure::from_budget conversion inside the
+        // compact producer. Both actual/formal and return/receiving families
+        // are prepaid even on a path where only the terminal conversion runs.
+        // No callback/authority assumption or unused refusal text funds them.
+        + 4 * size_of::<physical_budget::ByteFailure>()
+        + 4 * size_of::<Diagnostic>()
+        // Two tail Index receivers, results and iter() receiver pairs.
+        + 12 * size_of::<&[Item]>()
+        + 4 * size_of::<std::ops::RangeFrom<usize>>()
+        // Two iter() return/receivers plus zip actual/formal iterator values.
+        + 8 * size_of::<Iter>()
+        // zip result/receiver, IntoIterator actual/formal and result/receiver.
+        + 6 * size_of::<Pairs>()
+};
+
+#[cfg(test)]
+macro_rules! before_lexical_identity_items {
+    ($a:ident, $b:ident, $function:ident, $budget:ident) => {{
+        // This is the original first zip/next/Some member binding. In particular,
+        // zero work still refuses at the original member before any new byte bank.
+        if let Some((x, y)) = $a.iter().zip($b).next() {
+            $budget.charge($function, 1, "oracle flat observation member")?;
+            $budget.reserve_bytes($function, FLAT_IDENTITY_ENTRY, "oracle flat identity entry")?;
+            physical_budget::compact_try!($budget.reserve_compact_bytes(
+                $function,
+                BEFORE_LEXICAL_IDENTITY_RECEIVERS,
+                "oracle flat identity receivers",
+            ));
+            physical_budget::compact_try!($budget.charge_compact(
+                $function,
+                1,
+                "oracle flat observation identity"
+            ));
+            if Rc::ptr_eq(x, y) {
+            } else {
+                decide!(observation(x.as_ref(), y.as_ref(), $function, $budget)?);
+            }
+            // Both first elements existed above. All new slices, ranges, iterator
+            // returns and IntoIterator moves are now prepaid; no length is repaired.
+            for (x, y) in $a[1..].iter().zip($b[1..].iter()) {
+                $budget.charge($function, 1, "oracle flat observation member")?;
+                physical_budget::compact_try!($budget.reserve_compact_bytes(
+                    $function,
+                    BEFORE_LEXICAL_IDENTITY_RECEIVERS,
+                    "oracle flat identity receivers",
+                ));
+                physical_budget::compact_try!($budget.charge_compact(
+                    $function,
+                    1,
+                    "oracle flat observation identity"
+                ));
+                if Rc::ptr_eq(x, y) {
+                    continue;
+                }
+                decide!(observation(x.as_ref(), y.as_ref(), $function, $budget)?);
+            }
+        }
+        $budget.charge($function, 1, "oracle flat observation length")?;
+        Ok($a.len().cmp(&$b.len()))
+    }};
+}
+
+fn items(
+    a: &[Rc<SkeletonObservation>],
+    b: &[Rc<SkeletonObservation>],
     function: &ResolvedFunction,
     budget: &mut ReplayBudget,
 ) -> Result<Ordering, Diagnostic> {
-    for (x, y) in a.iter().zip(b) {
+    #[cfg(test)]
+    if flat_identity_tests::lexical_before_selected() {
+        return before_lexical_identity_items!(a, b, function, budget);
+    }
+    // This is the original first zip/next/Some member binding. In particular,
+    // zero work still refuses at the original member before any new byte bank.
+    if let Some((x, y)) = a.iter().zip(b).next() {
         budget.charge(function, 1, "oracle flat observation member")?;
-        decide!(observation(x.borrow(), y.borrow(), function, budget)?);
+        budget.reserve_bytes(function, FLAT_IDENTITY_ENTRY, "oracle flat identity entry")?;
+        physical_budget::compact_try!(budget.reserve_compact_bytes(
+            function,
+            FLAT_IDENTITY_RECEIVERS,
+            "oracle flat identity receivers",
+        ));
+        physical_budget::charge_flat_identity!(budget, function, std::panic::Location::caller());
+        if Rc::ptr_eq(x, y) {
+        } else {
+            decide!(observation(x.as_ref(), y.as_ref(), function, budget)?);
+        }
+        // Both first elements existed above. All new slices, ranges, iterator
+        // returns and IntoIterator moves are now prepaid; no length is repaired.
+        for (x, y) in a[1..].iter().zip(b[1..].iter()) {
+            budget.charge(function, 1, "oracle flat observation member")?;
+            physical_budget::compact_try!(budget.reserve_compact_bytes(
+                function,
+                FLAT_IDENTITY_RECEIVERS,
+                "oracle flat identity receivers",
+            ));
+            physical_budget::charge_flat_identity!(
+                budget,
+                function,
+                std::panic::Location::caller()
+            );
+            if Rc::ptr_eq(x, y) {
+                continue;
+            }
+            decide!(observation(x.as_ref(), y.as_ref(), function, budget)?);
+        }
     }
     budget.charge(function, 1, "oracle flat observation length")?;
     Ok(a.len().cmp(&b.len()))
@@ -899,3 +1027,12 @@ fn sift(
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+#[allow(
+    dead_code,
+    reason = "Complete independently executable original Oracle order."
+)]
+mod before_flat_identity;
+#[cfg(test)]
+mod flat_identity_tests;

@@ -97,6 +97,9 @@ fn lexical_preflight(
 mod tests;
 
 #[cfg(test)]
+pub(super) mod before_reachability_release;
+
+#[cfg(test)]
 #[allow(
     clippy::duplicate_mod,
     reason = "Run the same controls against independent receivers."
@@ -164,3 +167,64 @@ pub(super) fn before_inventory_for_test(
 mod before_dense;
 #[cfg(test)]
 pub(super) use before_dense::build as build_before_dense;
+
+pub(crate) fn build_canonical<'a, 'p, F>(
+    program: &'a ResolvedProgram,
+    function: &'a ResolvedFunction,
+    payer: &'p CfgReservation,
+    receive: F,
+) -> Result<(), PlannerError>
+where
+    F: FnOnce(Option<&mut canonical_sink::Source<'a, 'p>>, bool) -> Result<(), Diagnostic>,
+{
+    // Same immutable current subject, with no new source/profile authority.
+    if !program
+        .functions
+        .iter()
+        .chain(program.function_instances.iter().map(|i| &i.function))
+        .any(|current| std::ptr::eq(current, function))
+    {
+        return Err(PlannerError::Semantic(error(
+            "funded loan planner requires the exact current function",
+        )));
+    }
+    payer
+        .reserve(SUBJECT_BYTES)
+        .map_err(PlannerError::Physical)?;
+    canonical_sink::acquire::<F>(payer).map_err(PlannerError::Physical)?;
+    let subject = CurrentSubject { program, function };
+    // Lexical preflight precedes the legacy guidance boundary. Its semantic
+    // refusal must retain its original span/path/help, even for a work limit.
+    let lexical = lexical_preflight(program, function, payer, &mut |program, region| {
+        traversal::paid::inspect(program, region, payer).map(|proof| proof.is_some())
+    })?;
+    let result = (|| {
+        let mut work = WorkCounter::new(MAX_LOAN_PLAN_WORK_V1);
+        work.allocation = Some(payer);
+        #[cfg(test)]
+        work_boundary::apply(&mut work);
+        let inventory = {
+            let _stage = crate::bounded_output::reservation_stage_guard(
+                crate::bounded_output::ReservationStage::LoanCandidateInventory,
+            );
+            paid_candidate::inspect_retained(subject, payer, &mut work)?
+        };
+        if let Some(inventory) = inventory {
+            paid_plan::build_canonical(program, function, &mut work, inventory, receive)
+        } else {
+            let mut plan = LoanPlan::empty_v1();
+            if lexical {
+                plan.schema = LOAN_PLAN_SCHEMA_V3;
+            }
+            receive(None, function.loan_plan == plan)
+        }
+    })();
+    // Guidance is semantic rendering and may allocate. Never run it on a
+    // physical marker or use its text to decide which receipt to publish.
+    match classify(result, payer) {
+        Err(PlannerError::Semantic(error)) => Err(PlannerError::Semantic(guidance::work_limit(
+            error, function,
+        ))),
+        result => result,
+    }
+}

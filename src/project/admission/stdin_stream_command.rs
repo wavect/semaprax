@@ -1,7 +1,7 @@
 //! Project v23/v24 admission for the native streaming stdin command contract.
 
 use crate::diagnostic::Diagnostic;
-use crate::hir::{DeclarationId, ResolvedProgram, ResolvedType};
+use crate::hir::{ResolvedProgram, ResolvedType};
 
 pub(super) fn admit(
     program: &ResolvedProgram,
@@ -9,11 +9,11 @@ pub(super) fn admit(
     exit_status: bool,
 ) -> Result<(), Diagnostic> {
     crate::hir::validate(program)?;
-    let id = DeclarationId::new(command);
+    let id = program.selected_function_id(command);
     let function = program
         .functions
         .iter()
-        .find(|function| function.id == id)
+        .find(|function| &function.id == id.as_ref())
         .ok_or_else(|| {
             Diagnostic::io(
                 "SPX-J105",
@@ -43,7 +43,7 @@ pub(super) fn admit(
     }
     crate::command_io_ops::validate_operation_profile(
         program,
-        &id,
+        id.as_ref(),
         crate::command_io_ops::CommandOperationProfile::StdinStreamV1,
     )
 }

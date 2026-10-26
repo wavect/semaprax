@@ -95,10 +95,8 @@ pub fn emit_hir_c_with_stdin_stream_records(
     program: &ResolvedProgram,
     command_id: &str,
 ) -> Result<String, Diagnostic> {
-    crate::hir::validate_stream_record_program(
-        program,
-        Some(&hir::DeclarationId::new(command_id)),
-    )?;
+    let command = program.selected_function_id(command_id);
+    crate::hir::validate_stream_record_program(program, Some(command.as_ref()))?;
     emit_profile(
         program,
         command_id,
@@ -111,7 +109,8 @@ pub fn emit_hir_c_with_stdin_stream_owned_data(
     program: &ResolvedProgram,
     command_id: &str,
 ) -> Result<String, Diagnostic> {
-    crate::hir::validate_stream_owned_program(program, Some(&hir::DeclarationId::new(command_id)))?;
+    let command = program.selected_function_id(command_id);
+    crate::hir::validate_stream_owned_program(program, Some(command.as_ref()))?;
     emit_profile(
         program,
         command_id,
@@ -124,10 +123,8 @@ pub fn emit_hir_c_with_stdin_stream_collection_records(
     program: &ResolvedProgram,
     command_id: &str,
 ) -> Result<String, Diagnostic> {
-    crate::hir::validate_stream_collection_record_program(
-        program,
-        Some(&hir::DeclarationId::new(command_id)),
-    )?;
+    let command = program.selected_function_id(command_id);
+    crate::hir::validate_stream_collection_record_program(program, Some(command.as_ref()))?;
     emit_profile(
         program,
         command_id,
@@ -140,10 +137,8 @@ pub fn emit_hir_c_with_stdin_stream_nested_outcomes(
     program: &ResolvedProgram,
     command_id: &str,
 ) -> Result<String, Diagnostic> {
-    crate::hir::validate_stream_nested_outcome_program(
-        program,
-        Some(&hir::DeclarationId::new(command_id)),
-    )?;
+    let command = program.selected_function_id(command_id);
+    crate::hir::validate_stream_nested_outcome_program(program, Some(command.as_ref()))?;
     emit_profile(
         program,
         command_id,

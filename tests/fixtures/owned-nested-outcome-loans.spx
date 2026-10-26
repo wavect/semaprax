@@ -1,0 +1,70 @@
+module test.nested_outcome_loans;
+
+@id("loans.row")
+record Row {
+    @id("loans.row.label")
+    label: string,
+    @id("loans.row.rank")
+    rank: i64,
+}
+
+@id("loans.config")
+record Config {
+    @id("loans.config.label")
+    label: string,
+    @id("loans.config.seed")
+    seed: i64,
+}
+
+@id("loans.payload")
+record Payload {
+    @id("loans.payload.items")
+    items: Vec<Row>,
+    @id("loans.payload.config")
+    config: Config,
+    @id("loans.payload.bytes")
+    bytes: Bytes,
+}
+
+@id("loans.outcome")
+variant Outcome {
+    @id("loans.outcome.ready")
+    Ready {
+        @id("loans.outcome.value")
+        value: Payload,
+    },
+    @id("loans.outcome.error")
+    Error {
+        @id("loans.outcome.code")
+        code: i64,
+        @id("loans.outcome.offset")
+        offset: usize,
+        @id("loans.outcome.field")
+        field: i64,
+    },
+}
+
+@id("loans.make")
+fn make() -> Outcome
+{
+    let items = vec_push<Row>(vec_with_capacity<Row>(1usize), Row { label: "red", rank: 11 });
+    Outcome::Ready { value: Payload { items: items, config: Config { label: "abc", seed: 7 }, bytes: bytes_zeroed(3usize) } }
+}
+
+@id("loans.finish")
+fn finish(value: own Outcome) -> i64
+{
+    match own value { Outcome::Ready { value: payload } => match own payload { Payload { items, config: Config { label, seed }, bytes } => { let row = vec_clone_at<Row>(items, 0usize); let valid = match own row { Row { label: text, rank } => string_len(text) == 3 && rank == 11, }; if valid { i64_from_usize(vec_len<Row>(items)) + seed + string_len(label) + i64_from_usize(byte_len(bytes_as_slice(bytes))) } else { 0 } }, }, Outcome::Error { code, offset, field } => 0, }
+}
+
+@id("loans.read-then-move")
+fn read_then_move(value: own Outcome) -> i64
+{
+    match own value { Outcome::Ready { value: payload } => { let view = string_as_str(payload.config.label); let length = str_len_bytes(view); let moved = finish(Outcome::Ready { value: payload }); if length == 3 && moved == 14 { 42 } else { 0 } }, Outcome::Error { code, offset, field } => 0, }
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    read_then_move(make())
+}

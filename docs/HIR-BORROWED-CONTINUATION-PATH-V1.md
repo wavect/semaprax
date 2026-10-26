@@ -96,3 +96,20 @@ original spelling at depths 1/2/32/512, decimal boundaries through `usize::MAX`,
 Unicode and monomorphic/generic owners with zero debit and zero allocations.
 Original current-cursor limits, literal quotas, forecasts and whole-validator
 observations remain unchanged. No application-fit or measured reduction is claimed.
+
+## Match-finalization diagnostic baseline
+
+Scalar and record match finalization retains the immediate public iterative
+`finish_expr` contract from `20b4479280` (the production source before
+`8fadf0c69`). Cached result-type and ownership failures retain its generic
+expression diagnostic and original publication order. Both complete saved
+validators remain byte-for-byte historical controls.
+
+The older recursive walker used different scalar/record finalization wording.
+The arm-context control pins both raw six-field diagnostics separately only for
+two authenticated source fixtures and their exact single cached-type/ownership
+mutations. Current results must equal the immediate owned walker in all six
+fields; the older recursive raw result must equal its explicit historical
+diagnostic. Expression/value identities, scopes, auxiliary state and static
+text remain directly compared. Every other case still requires raw diagnostic
+equality against both complete walkers. No diagnostic is normalized or ignored.

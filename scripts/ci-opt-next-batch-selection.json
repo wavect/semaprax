@@ -1,0 +1,462 @@
+{
+  "schema": "semaprax.hosted-opt-batch-selection.v1",
+  "filters": 65,
+  "expected_tests": 171,
+  "commands": [
+    {
+      "owner": "OPT899 unchanged default owning controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::shared_prefix_tests::shared_identity_replay_preserves_every_work_cut_six_fields_remaining_and_swaps",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT899 unchanged default owning controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::shared_prefix_tests::shared_identity_replay_has_exact_complete_cold_hot_invoices_and_actual_k",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT899 unchanged default owning controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::shared_prefix_tests::shared_identity_replay_every_new_acquisition_exact_short_zero_floor_and_sticky_drop",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT899 unchanged default owning controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::shared_prefix_tests::shared_identity_replay_real_producer_and_both_hir_representations_keep_complete_result",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT899 unchanged default owning controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::shared_prefix_tests::shared_identity_replay_retains_complete_immediate_sources_and_original_invoices",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT899 unchanged default owning controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::shared_prefix_tests::shared_identity_replay_typed_oracle_missing_foreign_and_restored_scope_keeps_ambient_unspent",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT899 unchanged default owning controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::shared_prefix_tests::shared_identity_replay_unwind_drops_live_remainder_and_marks_only_reached_prefix",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT907 unchanged default owning controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::shared_prefix_tests::certified_head_tests::final_affine_tests::affine_final_hir_keeps_complete_immediate_both_routes_cold_hot_and_actual_typed_invoices",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT907 unchanged default owning controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::shared_prefix_tests::certified_head_tests::final_affine_tests::affine_final_hir_keeps_all_original_work_cuts_malformed_six_fields_and_swaps",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT907 unchanged default owning controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::shared_prefix_tests::certified_head_tests::final_affine_tests::affine_final_hir_actual_banks_keep_exact_short_zero_floor_sticky_and_full_drop",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT907 unchanged default owning controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::shared_prefix_tests::certified_head_tests::final_affine_tests::affine_final_hir_retains_independent_content_exhaustion_and_terminal_mismatches_and_cold_loss",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT907 unchanged default owning controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::shared_prefix_tests::certified_head_tests::final_affine_tests::affine_final_hir_keeps_typed_foreign_restored_authority_and_unwind_full_drop",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT907 unchanged default owning controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::shared_prefix_tests::certified_head_tests::final_affine_tests::affine_final_hir_preserves_entire_immediate_comparator_four_macros_and_all_old_source_guards",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT915 compact lexical receiving complete immediate-old caller",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::factored::strategy::compact_receiving::tests::",
+      "exact": false,
+      "expected_tests": 4
+    },
+    {
+      "owner": "OPT916 shared local callee certificate and full predecessor forecast",
+      "binary": "lib",
+      "filter": "workspace_graph::expected_projection::shared_local_callees::tests::",
+      "exact": false,
+      "expected_tests": 10
+    },
+    {
+      "owner": "OPT729 nested outcome complete existing owner and boundary controls",
+      "binary": "owned_data",
+      "filter": "owned_nested_outcome::",
+      "exact": false,
+      "expected_tests": 6
+    },
+    {
+      "owner": "OPT775 borrowed row traversal complete existing owner and boundary controls",
+      "binary": "owned_data",
+      "filter": "owned_leaf_vec::record_traversal::",
+      "exact": false,
+      "expected_tests": 16
+    },
+    {
+      "owner": "OPT742/743 contract-owner authoring card",
+      "binary": "cli",
+      "filter": "cli_driver::cli::help::authoring::contract_owners::tests::",
+      "exact": false,
+      "expected_tests": 3
+    },
+    {
+      "owner": "Exact failed prior owning check: HIR lowering identities",
+      "binary": "lib",
+      "filter": "hir::ids::lowering_identity_tests::complete_source_inverses_and_independent_old_lowering_bodies_remain_exact",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Exact failed prior owning check: OPT898 authenticated absent call carriers",
+      "binary": "lib",
+      "filter": "workspace_graph::expected_projection::call_carriers::tests::exact_one_short_zero_and_whole_allocation_drop_controls",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Exact failed prior owning check: OPT912 complete ordinary invocation frame reuse and exact predecessor custody",
+      "binary": "lib",
+      "filter": "hir::validation::frame_reuse::tests::invocation_reuse_matches_complete_immediate_previous_function_chain_and_decimal",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Exact failed prior owning check: OPT912 complete ordinary invocation frame reuse and exact predecessor custody",
+      "binary": "lib",
+      "filter": "hir::validation::frame_reuse::tests::late_errors_preserve_complete_diagnostics_partial_publication_and_auxiliary_state",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Exact failed prior owning check: OPT912 complete ordinary invocation frame reuse and exact predecessor custody",
+      "binary": "lib",
+      "filter": "hir::validation::frame_reuse::tests::whole_ordinary_invocation_observes_complete_allocations_and_drop_against_independent_old_driver",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Exact failed prior owning check: OPT903 early HIR scratch release with complete independent constructor and Drop",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::factored::early_release::complete_constructor_drop_observes_both_old_and_released_owner_lifetimes",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Exact failed prior owning check: OPT913 authenticated funded inert move roots and complete predecessor controls",
+      "binary": "lib",
+      "filter": "hir::validation::scope_checkpoint::marks::tests::ordinary_function_callers_report_complete_old_current_bills_and_drop_without_gain_assumption",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Exact failed prior owning check: OPT914 complete selected replay owner regressions",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::selected::tests::renewal::actual_same_owner_byte_renewal_preserves_original_binding_and_whole_owner",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Exact failed prior owning check: OPT914 complete selected replay owner regressions",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::selected::tests::session::live_initialize_paid_session_retains_original_report_source_and_first_receipt",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Exact failed prior owning check: OPT914 complete selected replay owner regressions",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::selected::tests::strings::genuine_string_append_success_preserves_complete_old_and_ordinary_routes",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Exact failed prior owning check: OPT914 complete selected replay owner regressions",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::selected::tests::strings::held_string_append_duplicate_reservation_preserves_first_full_old_diagnostic",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Exact failed prior owning check: OPT914 complete selected replay owner regressions",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::selected::tests::whole::actual_held_unknown_entry_keeps_complete_old_diagnostic_and_prior_profile_order",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Exact failed prior owning check: OPT914 complete selected replay owner regressions",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::selected::tests::whole::complete_scalar_and_lexical_success_keep_ordinary_and_immediate_old_owners",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Exact failed prior owning check: OPT914 complete selected replay owner regressions",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::selected::tests::whole::held_duplicate_initialize_is_closed_by_selected_path_receipt",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Exact failed prior owning check: OPT914 boxed state ownership and receiving controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::boxed_states::receiving_tests::actual_entry_and_box_layout_inventory_and_complete_main_receiver_sources_are_exact",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Exact failed prior owning check: OPT914 complete path replay receiver controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::path_join::receiver_tests::complete_original_receiver_and_exact_current_source_inverse_stay_bound",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Catalog complete original23case functional and native C11O0/O2 owner",
+      "binary": "project",
+      "filter": "standard_library::application_json::owned::catalog_scoped_records::typed_catalog_derives_codecs_and_preserves_all_23_functional_cases",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "ShiftSim complete original15case typed application owner",
+      "binary": "project",
+      "filter": "standard_library::application_json::owned::shiftsim_typed_records::typed_record_shiftsim_derives_both_codecs_and_runs_retained_corpus",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT729 existing complete nested request decoder owner across interpreter/native/Wasm",
+      "binary": "project",
+      "filter": "standard_library::application_json::nested_request::nested_order_example_derives_detached_real_owners_and_agrees_on_three_backends",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT729 existing complete nested request decoder owner across interpreter/native/Wasm",
+      "binary": "project",
+      "filter": "standard_library::application_json::nested_request::nested_order_errors_and_exact_schema_capacities_agree_on_three_backends",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT729 existing complete nested request decoder owner across interpreter/native/Wasm",
+      "binary": "project",
+      "filter": "standard_library::application_json::nested_request::scheduler::independent_scheduler_nested_request_detaches_owners_and_keeps_typed_refusals",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT899/907 unchanged complete32row ordinary compiler caller at64MiB with refusal and fullDrop controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::expression_facts::receiving::retained::case_certified::lookup_tests::complete_caller_success_and_refusal_drop_remain_observed_at_unchanged_cap",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT898 flat fanout prefix sharing and complete old source controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::skeleton_work::dag_storage::flat_fanout::",
+      "exact": false,
+      "expected_tests": 5
+    },
+    {
+      "owner": "OPT899 complete history prototype retention controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::completed_fork::tests::",
+      "exact": false,
+      "expected_tests": 6
+    },
+    {
+      "owner": "OPT899 shipping HIR history emitter owning controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::tests::",
+      "exact": false,
+      "expected_tests": 5
+    },
+    {
+      "owner": "OPT899 whole public and funded HIR/PLAN callers including nested call arguments",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::whole_tests::",
+      "exact": false,
+      "expected_tests": 7
+    },
+    {
+      "owner": "OPT899 independent fresh PLAN history loans",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::producer::view::tests::",
+      "exact": false,
+      "expected_tests": 4
+    },
+    {
+      "owner": "OPT899 fresh PLAN original comparator handoff",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::producer::view::joint_tests::",
+      "exact": false,
+      "expected_tests": 3
+    },
+    {
+      "owner": "OPT916 joint traversal actual shipping path and both complete predecessors",
+      "binary": "lib",
+      "filter": "workspace_graph::expected_projection::call_carriers::joint::tests::",
+      "exact": false,
+      "expected_tests": 7
+    },
+    {
+      "owner": "OPT916 separate callee certificate constructor and lender controls",
+      "binary": "lib",
+      "filter": "workspace_graph::expected_projection::shared_local_callees::reused::tests::",
+      "exact": false,
+      "expected_tests": 3
+    },
+    {
+      "owner": "Complete unchanged pre898 and prelude source oracles through exact pre916 acquisition",
+      "binary": "lib",
+      "filter": "workspace_graph::expected_projection::call_carriers::inverse::complete_forecaster_inverse_reconstructs_entire_pre898_algorithm",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Complete unchanged pre898 and prelude source oracles through exact pre916 acquisition",
+      "binary": "lib",
+      "filter": "workspace_graph::expected_projection::prelude_forecast::tests::complete_receiving_sources_reconstruct_pinned_originals",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT899 immutable HIR sequence last-root validation reuse with full work and Drop controls",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::validation::tests::",
+      "exact": false,
+      "expected_tests": 6
+    },
+    {
+      "owner": "OPT916 exact invocation-local paired full and retained census controls",
+      "binary": "lib",
+      "filter": "workspace_graph::expected_projection::shared_local_callees::paired::tests::",
+      "exact": false,
+      "expected_tests": 6
+    },
+    {
+      "owner": "OPT917 canonical lossless view-label codec parity and hostile input controls",
+      "binary": "lib",
+      "filter": "source_reflows_merge::main_e177_final_inputs::overlay_v2::fragments_v3::labels_v12::tests::",
+      "exact": false,
+      "expected_tests": 6
+    },
+    {
+      "owner": "OPT916 modular local callee authority, alias refusal and independent census controls",
+      "binary": "lib",
+      "filter": "workspace_graph::expected_projection::shared_local_callees::modular_session::tests::",
+      "exact": false,
+      "expected_tests": 6
+    },
+    {
+      "owner": "OPT916 modular local callee authority, alias refusal and independent census controls",
+      "binary": "lib",
+      "filter": "workspace_graph::expected_projection::shared_local_callees::modular_pair::tests::",
+      "exact": false,
+      "expected_tests": 5
+    },
+    {
+      "owner": "OPT916 exact local record signature authority and complete old constructor controls",
+      "binary": "lib",
+      "filter": "workspace_graph::expected_projection::shared_local_callees::record_signatures::tests::",
+      "exact": false,
+      "expected_tests": 7
+    },
+    {
+      "owner": "OPT899 independent persistent PLAN admission for supported flat HIR callers",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::completed_fork::shipping::flat_admission::tests::",
+      "exact": false,
+      "expected_tests": 6
+    },
+    {
+      "owner": "incoming MAIN reusable flat probe frame receivers",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::skeleton_work::enumerated_prefix::flat_probe::receiving_tests::",
+      "exact": false,
+      "expected_tests": 2
+    },
+    {
+      "owner": "dual V10 codec parent compatibility and fail-closed envelope dispatch",
+      "binary": "lib",
+      "filter": "source_reflows_merge::main_e177_final_inputs::overlay_v2::fragments_v3::pins_v10::old519_tests::",
+      "exact": false,
+      "expected_tests": 4
+    },
+    {
+      "owner": "nested byte-traversal inactive failure recorder",
+      "binary": "lib",
+      "filter": "hir::validation::byte_traversal::nested::tests::inactive_failure_recorder_keeps_real_budget_refusals_without_an_observation",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "nested byte-traversal failure capture unwind and rearm",
+      "binary": "lib",
+      "filter": "hir::validation::byte_traversal::nested::tests::failure_capture_unwinds_before_the_observer_and_rearms_with_real_metrics",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT911 decimal package admitted backend and contract conformance",
+      "binary": "project",
+      "filter": "standard_library::decimal::decimal_executes_on_admitted_backends",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT911 decimal package admitted backend and contract conformance",
+      "binary": "project",
+      "filter": "standard_library::decimal::bundled_decimal_consumer_checks_contract_failures_before_arithmetic",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "OPT911 decimal package admitted backend and contract conformance",
+      "binary": "project",
+      "filter": "standard_library::decimal::decimal_does_not_claim_the_frozen_standalone_string_wasm_profile",
+      "exact": true,
+      "expected_tests": 1
+    },
+    {
+      "owner": "Ordinary history unobserved cursor backing and malformed depth regressions",
+      "binary": "lib",
+      "filter": "cleanup_plan::replay::ordinary_plan_history::tests::unobserved_",
+      "exact": false,
+      "expected_tests": 2
+    }
+  ]
+}

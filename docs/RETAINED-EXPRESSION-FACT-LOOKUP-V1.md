@@ -304,15 +304,91 @@ No retained query occurs in those later continuations.
 For successful selected traversal, let `q` be actual transition lookups and `c`
 actual guarded callback sequences. The complete additional comparison is:
 
-- old tail: `q * (OLD_SCRATCH + 2*sizeof(Result<Option<&Option<CallFact>>, Diagnostic>))`;
+- old tail: `q * (OLD_SCRATCH + 2*sizeof(Result<Option<&Option<CallFact>>, ByteFailure>) + sizeof(Result<Option<&Option<CallFact>>, Diagnostic>))`;
 - new tail: `q * (into_edge_local_bytes + into_edge_query_bytes + sizeof(Option<&Option<CallFact>>))`
   plus `c * (StorageParent::CURRENT_CONTROLS + sizeof(usize) + 3*sizeof(&str) + sizeof(bool))`
   plus the one cold `StorageParent::ACQUISITION_CONTROLS + StorageParent::TERMINAL_CONTROLS + sizeof(usize) + 3*sizeof(&str) + sizeof(bool)` bank.
 
-These are actual target-layout costs. The positive gate uses the complete
+The old transition producer still calls `Arena::fact`. Its nonempty ActiveBuilder
+route uses the compact lookup: two narrow `ByteFailure` Results and one outer
+Diagnostic Result survive alongside the entire original scratch. The earlier
+status and initial-edge Session calls retain their own two-Diagnostic-Result
+equations. These are actual target-layout costs. The positive gate uses the complete
 immediate invocation, including its unchanged acquisition, prior retained phases,
 all callback guards and whole-caller work. No CPU, application-fit, physical RSS,
 or runtime benefit follows from the source equation. New success, full-field
 error/work cuts, zero/short/exact/floor, callback reentry/restoration, foreign and
 sticky ledger, source immutability and whole-Drop controls remain unexecuted until
 the consolidated owning qualification.
+
+The invocation-backing candidate rebuilds the complete arena for every function
+and instance. It retains only cleared Node allocation capacity and cursor slots
+inside one private program-and-ReplayBudget-bound owner. Before returning the
+backing, all keys and CallFact payloads are dropped, every cursor slot is reset,
+and root/first become NIL. No expression identity, AVL edge, lookup result,
+validation verdict or prior per-function work allowance survives that boundary.
+The original ArenaCapacity owner, Arena initializer, per-node fact production,
+AVL and payload charges remain reached. Only replacement Vec construction and
+its actual relocation work can disappear when already-held empty backing fits.
+
+The original program preflight selects its first function and completes its
+unchanged skeleton-work reservation before the additional complete owner,
+ledger, actual/formal call and return banks are paid. Empty programs construct
+no backing and capture no ledger. Acquisition prepays the complete fixed call/receiving/authentication banks for
+every immutable program function and instance, plus the full actual Lease-scratch
+release tuple. Its checked count/product/Options are paid first. No new positive
+debit precedes ledger authentication at a receiving call; authentication repeats
+after the full_program callback. Each successful build then prepays its new
+frame-reset slots before a lease can be formed. Original RELEASE remains whole. Lease Drop is
+infallible and returns empty storage before the original typed-control phase.
+A failed build or failed cleanup acquisition drops all local backing instead.
+There is no refund of a completed constructor or fact tariff.
+
+The complete immediate-old five-argument receiver and producer remain compiled
+independently. The complete old program caller remains executable under cfg(test)
+at its original interface. Whole-source inverses authenticate the changed owners;
+the new source-bound controls cover alternating large/small functions, complete
+fact equality, later duplicate identities, wrong-budget refusal, exact/short/zero
+and sticky acquisition failures, and full Drop. These controls are authored but
+unrun. First-function and tiny programs can regress; no net or application-fit
+claim follows from this source candidate.
+
+The private status-directory follow-up uses a separate invocation-local empty
+node backing. It retains the complete status constructor on every reached
+function, independently rebuilds all keys and immutable prefix indexes, and
+returns only a cleared node Vec at the original last-use release frontier.
+The index and all key references are dropped before return; no status proof,
+lookup, verdict or live payload crosses a function. The original fact-only
+caller and receiving body remain independently executable. A distinct typed
+acquisition/count/complete-call/authentication/return bank is paid before its
+new roles; the earlier fact-owner bank is neither reused nor reduced. All old
+capacity, insertion, proof, release and work charges remain, except actual
+node replacement allocation and relocation work physically absent with held
+capacity. New-owner cold costs and complete whole-caller net remain executable
+receiving gates; source-only implementation is not application qualification.
+
+The status receiver transport candidate (#941) keeps the complete ordinary
+controller and directory constructor. `directory/held_invocation.rs` owns one
+invocation-local first Diagnostic destination and a terminal-extraction flag;
+`retained/held_status_invocation.rs` owns the actual caller. Authenticate,
+context, directory publication and completion return bool into explicit
+receivers. Their absent outer Diagnostic Results are replaced by actual typed
+bool, output-slot and argument packets. Every surviving reserve-call Result,
+original directory-constructor Result, scratch owner, callback check, insertion,
+release and work charge remains paid. The enlarged owner and complete possible
+terminal move/Drop bank are paid before acquisition, even on successful runs.
+
+The destination retains its first selected six-field receiver Diagnostic. No later
+receiver, foreign budget, ACTIVE switch or callback may replace it or advance
+the function ordinal. Extraction marks the whole owner terminal; every owning
+caller immediately returns and later use cannot resume another function. The
+output slot starts empty, preserves an occupied destination on refusal, and
+publishes only the complete fresh directory. Recycling retains only cleared
+node capacity after the original ledger and immutable index last-use frontiers.
+The original status owner, controller and whole program caller remain
+independently executable under cfg(test). The owning unit controls compare full
+old/new invoices and outputs, independent exact/short/zero/floor limits,
+first-error and callback affinity, malformed input and unwind-through-Drop.
+These controls are authored; grouped executable qualification and genuine
+application admission remain pending. No token or allocation advantage follows
+from the source transformation.

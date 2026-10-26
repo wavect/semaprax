@@ -9,8 +9,8 @@ use crate::hir::{
     ResolvedStatement, ResolvedType, ValueId,
 };
 
-pub(crate) use storage::PlannerError as FundedError;
-
+pub(crate) use {funded_flat::build_canonical, storage::PlannerError as FundedError};
+pub(crate) mod canonical_sink;
 pub(crate) fn build_plan_with_reservation(
     program: &ResolvedProgram,
     function: &ResolvedFunction,
@@ -170,7 +170,7 @@ impl LoanPlan {
         }
     }
 
-    fn empty_v1() -> Self {
+    pub(crate) fn empty_v1() -> Self {
         Self {
             schema: LOAN_PLAN_SCHEMA_V1,
             loans: Vec::new(),
@@ -740,8 +740,8 @@ fn build_cfg_plan_counted(
             break;
         }
     }
+    drop(reachable);
     reject_cfg_overlaps(program, &cfg, &aliases, &drafts, &live, work)?;
-
     let (mut edge_live, mut termination_edges) = work::edge_liveness(&cfg, &live, work)?;
     // A contract/body root has no outgoing CFG edge. A synchronous call
     // ending at that root completes on its incoming After edge, rather than

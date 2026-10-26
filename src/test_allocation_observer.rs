@@ -16,6 +16,9 @@ pub(crate) struct PhaseObservation {
     stage: PhaseLabel,
     entry: Metrics,
     exit: Metrics,
+    // Actual maximum simultaneous live bytes during THIS interval, including
+    // its entry baseline and every nested allocator callback. Not a delta.
+    local_peak: usize,
 }
 
 /// Fixed instrumentation, acquired outside the measured window. Intervals are
@@ -25,13 +28,25 @@ pub(crate) struct PhaseObservation {
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct PhaseTrace {
     pub(crate) intervals: [Option<PhaseObservation>; 64],
+    local_intervals: [Option<PhaseObservation>; 64],
     pub(crate) overflow: bool,
+}
+impl PhaseTrace {
+    /// Largest real interval peak for this owner, with that occurrence's
+    /// entry/exit snapshots. Existing cumulative intervals remain independent.
+    pub(crate) fn function_peak(&self, label: &'static str) -> Option<(Metrics, usize, Metrics)> {
+        self.local_intervals
+            .iter()
+            .flatten()
+            .find(|interval| interval.stage == PhaseLabel::Function(label))
+            .map(|interval| (interval.entry, interval.local_peak, interval.exit))
+    }
 }
 thread_local! {
     static PHASE_TRACE: RefCell<Option<PhaseTrace>> = const { RefCell::new(None) };
 }
 
-pub(crate) struct PhaseGuard(Option<(PhaseLabel, Metrics)>);
+pub(crate) struct PhaseGuard(Option<(PhaseLabel, Metrics, usize)>);
 pub(crate) fn phase_guard(stage: crate::bounded_output::ReservationStage) -> PhaseGuard {
     labeled_phase_guard(PhaseLabel::Reservation(stage))
 }
@@ -44,17 +59,24 @@ pub(crate) fn function_phase_guard(function: &'static str) -> PhaseGuard {
 fn labeled_phase_guard(stage: PhaseLabel) -> PhaseGuard {
     let enabled = PHASE_TRACE.with(|trace| trace.borrow().is_some());
     PhaseGuard(if enabled && active() {
-        Some((stage, current_metrics()))
+        let entry = current_metrics();
+        if let Some(slot) = phase_peaks::begin(entry.live) {
+            Some((stage, entry, slot))
+        } else {
+            PHASE_TRACE.with(|trace| trace.borrow_mut().as_mut().unwrap().overflow = true);
+            None
+        }
     } else {
         None
     })
 }
 impl Drop for PhaseGuard {
     fn drop(&mut self) {
-        let Some((stage, entry)) = self.0 else {
+        let Some((stage, entry, active_slot)) = self.0 else {
             return;
         };
         let exit = current_metrics();
+        let local_peak = phase_peaks::finish(active_slot);
         PHASE_TRACE.with(|trace| {
             let mut trace = trace.borrow_mut();
             let trace = trace.as_mut().expect("phase trace outlives its guards");
@@ -69,7 +91,20 @@ impl Drop for PhaseGuard {
                         || (exit.highwater == old.exit.highwater
                             && entry.highwater < old.entry.highwater)
                 }) {
-                    trace.intervals[slot] = Some(PhaseObservation { stage, entry, exit });
+                    trace.intervals[slot] = Some(PhaseObservation {
+                        stage,
+                        entry,
+                        exit,
+                        local_peak,
+                    });
+                }
+                if trace.local_intervals[slot].is_none_or(|old| local_peak > old.local_peak) {
+                    trace.local_intervals[slot] = Some(PhaseObservation {
+                        stage,
+                        entry,
+                        exit,
+                        local_peak,
+                    });
                 }
             } else {
                 trace.overflow = true;
@@ -88,6 +123,7 @@ pub(crate) fn with_phase_trace<T>(operation: impl FnOnce() -> T) -> (T, PhaseTra
         assert!(trace.is_none(), "phase traces cannot nest");
         *trace = Some(PhaseTrace {
             intervals: [None; 64],
+            local_intervals: [None; 64],
             overflow: false,
         });
     });
@@ -108,6 +144,58 @@ pub(crate) fn with_phase_trace<T>(operation: impl FnOnce() -> T) -> (T, PhaseTra
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn interval_peak_is_not_masked_by_an_earlier_cumulative_peak() {
+        let operation = || {
+            let early = vec![1_u8; 4096];
+            std::hint::black_box(&early);
+            drop(early);
+            let retained = vec![2_u8; 37];
+            {
+                let _guard = function_phase_guard("test::later_overlap");
+                let scratch = vec![3_u8; 113];
+                std::hint::black_box((&retained, &scratch));
+            }
+            drop(retained);
+        };
+        let (_, plain) = measure(operation);
+        let (((), observed), trace) = with_phase_trace(|| measure(operation));
+        assert_eq!(plain, observed);
+        assert_eq!(observed.highwater, 4096);
+        assert_eq!(observed.live, 0);
+        assert_eq!(observed.allocated, observed.freed);
+        assert!(!observed.invalid);
+        assert!(!trace.overflow);
+        let (entry, peak, exit) = trace.function_peak("test::later_overlap").unwrap();
+        assert_eq!((entry.live, peak, exit.live), (37, 150, 37));
+        assert_eq!((entry.highwater, exit.highwater), (4096, 4096));
+    }
+
+    #[test]
+    fn interval_peak_tracks_nested_replacement_overlap_and_each_occurrence() {
+        let operation = || {
+            let _outer = function_phase_guard("test::outer_peak");
+            let retained = vec![0_u8; 31];
+            for size in [127, 43] {
+                let _inner = function_phase_guard("test::repeated_peak");
+                let mut scratch = Vec::<u8>::with_capacity(size);
+                scratch.resize(size, 9);
+                scratch.reserve_exact(size);
+                std::hint::black_box((&retained, &scratch));
+            }
+        };
+        let (_, plain) = measure(operation);
+        let (((), observed), trace) = with_phase_trace(|| measure(operation));
+        assert_eq!(plain, observed);
+        assert!(!observed.invalid);
+        assert!(!trace.overflow);
+        assert_eq!(observed.live, 0);
+        assert_eq!(observed.allocated, observed.freed);
+        let (entry, peak, exit) = trace.function_peak("test::repeated_peak").unwrap();
+        assert_eq!((entry.live, peak, exit.live), (31, 31 + 127 + 254, 31));
+        assert_eq!(trace.function_peak("test::outer_peak").unwrap().1, peak);
+        assert_eq!(observed.highwater, peak);
+    }
     #[test]
     fn phase_trace_keeps_nested_intervals_without_allocating_observed_backing() {
         use crate::bounded_output::{with_reservation_stage, ReservationStage};

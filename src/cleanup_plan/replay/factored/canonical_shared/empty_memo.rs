@@ -264,6 +264,67 @@ impl<T> Memo<T> {
         self.chunks[index].values.as_mut().expect("paid payload")[key % WIDTH] = Some(make());
         Ok(())
     }
+    pub(super) const RELEASE_CALL: usize = 2 * size_of::<(
+        &mut Self,
+        &ResolvedFunction,
+        &mut ReplayBudget,
+        usize,
+        usize,
+    )>() + 2 * size_of::<Result<(), Diagnostic>>()
+        + size_of::<std::ops::Range<usize>>()
+        + 2 * size_of::<&mut std::ops::Range<usize>>()
+        + 2 * size_of::<Option<usize>>();
+    // Caller holds a certificate that no later root can query these keys.
+    // Directory length/capacity, payload arrays, empty bits and authority remain.
+    pub(super) fn release_private_payloads(
+        &mut self,
+        function: &ResolvedFunction,
+        budget: &mut ReplayBudget,
+        first: usize,
+        end: usize,
+    ) -> Result<(), Diagnostic> {
+        for key in first..end {
+            budget.reserve_bytes(
+                function,
+                // Both the reservation and ordinary-work call form their own
+                // actual/formal arguments; the outer method was paid at entry.
+                4 * size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>()
+                    + 4 * size_of::<usize>()
+                    // Entry pays the first next; this step prepays the next one.
+                    + 2 * size_of::<&mut std::ops::Range<usize>>()
+                    + 2 * size_of::<Option<usize>>()
+                    + 2 * size_of::<Option<&mut Chunk<T>>>()
+                    + 2 * size_of::<Option<&mut Box<[Option<T>; WIDTH]>>>()
+                    + 2 * size_of::<Option<T>>()
+                    + 2 * size_of::<T>()
+                    + 4 * size_of::<Result<(), Diagnostic>>(),
+                "factored HIR-private memo payload release receiving",
+            )?;
+            budget.charge(function, 1, "factored HIR-private memo payload release")?;
+            let Some(chunk) = self.chunks.get_mut(key / WIDTH) else {
+                break;
+            };
+            if let Some(values) = chunk.values.as_mut() {
+                // Preserve the actual payload array even when now empty. A PLAN
+                // key sharing this boundary chunk retains its old paid capacity.
+                drop(values[key % WIDTH].take());
+            }
+        }
+        Ok(())
+    }
+    #[cfg(test)]
+    pub(super) fn private_release_receipt(&self) -> (usize, usize, usize, usize) {
+        (
+            self.chunks.len(),
+            self.chunks.capacity(),
+            self.payload_chunks(),
+            self.chunks
+                .iter()
+                .filter_map(|chunk| chunk.values.as_ref())
+                .map(|values| values.iter().filter(|value| value.is_some()).count())
+                .sum(),
+        )
+    }
     pub(super) fn insert_empty_bound(
         &mut self,
         function: &ResolvedFunction,

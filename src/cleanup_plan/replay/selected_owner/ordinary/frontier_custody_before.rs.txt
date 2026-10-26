@@ -1,0 +1,117 @@
+//! Whole-source inverse and immutable shared dependency binding for the oracle.
+use sha2::{Digest, Sha256};
+fn digest(bytes: &[u8]) -> String {
+    format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)))
+}
+#[test]
+fn complete_immediate_old_driver_and_each_helper_restore_their_whole_preimages() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    assert_eq!(
+        digest(include_bytes!("../before_frontier/custody/inverse.json")),
+        "86a572cc73c1b4981a710e5d7fba725ef9723f62586a30c38fb2bc4b9f0fe510"
+    );
+    let rows: serde_json::Value =
+        serde_json::from_str(include_str!("../before_frontier/custody/inverse.json")).unwrap();
+    for row in rows.as_array().unwrap() {
+        let mut actual =
+            std::fs::read_to_string(root.join(row["compiled"].as_str().unwrap())).unwrap();
+        let original = std::fs::read_to_string(root.join(row["before"].as_str().unwrap())).unwrap();
+        assert_eq!(digest(original.as_bytes()), row["sha256"].as_str().unwrap());
+        for change in row["inverse"].as_array().unwrap().iter().rev() {
+            let at = change[0].as_u64().unwrap() as usize;
+            let current = change[1].as_str().unwrap();
+            let before = change[2].as_str().unwrap();
+            assert_eq!(actual.get(at..at + current.len()), Some(current));
+            actual.replace_range(at..at + current.len(), before);
+        }
+        assert_eq!(actual, original, "whole inverse for {}", row["compiled"]);
+    }
+    assert_eq!(
+        include_str!("../before_frontier/whole.rs.txt"),
+        include_str!("../before_frontier/custody/mod.rs.txt")
+    );
+}
+#[test]
+fn shared_replay_dependencies_and_unchanged_driver_helpers_remain_exactly_source_bound() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    assert_eq!(
+        digest(include_bytes!(
+            "../before_frontier/custody/shared_readset.json"
+        )),
+        "a6004b3b67c5af61e98e225ae1716e3aa5dd9c08d01f14afa02d1ba73f62c4f7"
+    );
+    let rows: Vec<(String, String)> = serde_json::from_str(include_str!(
+        "../before_frontier/custody/shared_readset.json"
+    ))
+    .unwrap();
+    assert_eq!(rows.len(), 946);
+    assert!(rows
+        .iter()
+        .all(|(path, _)| path != "src/cleanup_plan/replay/path_join.rs"));
+    // The changed driver is held in full by whole.rs.txt and its separately
+    // compiled inverse above. Its shared helper bodies and selected module
+    // declaration remain exactly the immediate-old suffix, while all selected
+    // implementation files retain their own unchanged readset bindings.
+    let current = include_str!("../../path_join.rs");
+    let before = include_str!("../before_frontier/whole.rs.txt");
+    let marker = "fn validate_control_group_with_budget";
+    assert_eq!(
+        current.split_once(marker).unwrap().1,
+        before.split_once(marker).unwrap().1
+    );
+    for (path, expected) in rows {
+        let actual = std::fs::read(root.join(&path)).unwrap();
+        let actual =
+            if path == "src/cleanup_plan/replay/factored/strategy/compact_receiving/tests.rs" {
+                // Finite test-only transport: bind the complete current test bytes,
+                // then invert the whole replacement to the complete pinned old
+                // fixture. No production dependency receives this inverse.
+                assert_eq!(
+                    digest(&actual),
+                    "670cc81349b7820dbfe43fc0925745e09d74aed4a45ad32f0e932d7d08b1e041"
+                );
+                let before = include_bytes!(concat!(
+                    env!("CARGO_MANIFEST_DIR"),
+                    "/e/a7e37ebe47e810939282e3e6abfb44db27b658418d91154131679d0759847efe"
+                ));
+                assert_eq!(before.len(), 13592);
+                assert_eq!(digest(before), expected);
+                before.as_slice()
+            } else if path == "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission.rs" {
+                // Exact whole-source transport for OPT892; the complete
+                // immediate-old dependency remains the fixed 946-row target.
+                assert_eq!(actual.len(), 10932);
+                assert_eq!(digest(&actual), "792be2624414510de96336103ccc964f39ff7c474581aa90521be539b8e21d2d");
+                let before = include_bytes!(concat!(
+                    env!("CARGO_MANIFEST_DIR"),
+                    "/e/4392abffc59dee7596e750e1523f0e2b0f4c23a5f35c67caa475de5785c4f568"
+                ));
+                assert_eq!(before.len(), 7942);
+                assert_eq!(digest(before), expected);
+                before.as_slice()
+            } else if path == "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/tests.rs" {
+                // Exact whole-source transport for OPT892; the complete
+                // immediate-old dependency remains the fixed 946-row target.
+                assert_eq!(actual.len(), 22805);
+                assert_eq!(digest(&actual), "6d49caf39c9627fd0dc9c9749fef1e3e91a868c2e08d8f09765831b2478c8922");
+                let before = include_bytes!(concat!(
+                    env!("CARGO_MANIFEST_DIR"),
+                    "/e/2890943d20f5ac052889f50340039fb6c4467ff5d686334796438a5b242bdf55"
+                ));
+                assert_eq!(before.len(), 15818);
+                assert_eq!(digest(before), expected);
+                before.as_slice()
+            } else {
+                actual.as_slice()
+            };
+        assert_eq!(
+            digest(actual),
+            expected,
+            "immediate-old shared dependency {path}"
+        );
+    }
+    assert!(
+        std::mem::size_of::<super::Incoming<super::PathState>>()
+            >= std::mem::size_of::<std::collections::BTreeSet<Box<super::PathState>>>()
+    );
+}

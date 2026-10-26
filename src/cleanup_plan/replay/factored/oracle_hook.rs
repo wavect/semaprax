@@ -30,7 +30,22 @@ pub(super) fn cross_check_with_storage<'hir>(
                 storage.authenticate(program, function, budget)?;
                 super::continuation_receiver::cross_check(program, function, storage)?;
             }
-            _ => super::cross_check(program, function),
+            Some(storage) => {
+                if let ReplayBudget {
+                    payer: AllocationPayer::LegacyUnobserved,
+                    ..
+                } = budget
+                {
+                    budget.reserve_bytes(
+                        function,
+                        continuation_storage::Storage::IDLE_RETIRE_CALL,
+                        "idle Legacy continuation retirement call receiving",
+                    )?;
+                    storage.retire_legacy_idle(program, function, budget)?;
+                }
+                super::cross_check(program, function);
+            }
+            None => super::cross_check(program, function),
         },
         Ok(Some(lease)) => cross_check_oracle(program, function, lease),
         Err(refusal) => panic!("opted oracle lease is not live: {refusal:?}"),
@@ -90,7 +105,7 @@ impl Drop for Run {
 /// Runs one fresh receiver under its own invocation authority and balanced
 /// start/complete pair, then makes any account, work or physical refusal
 /// visible before the verdict is read.
-fn receiver<T>(
+fn receiver<T: std::fmt::Debug>(
     program: &dyn crate::cleanup::ReplayContext,
     function: &ResolvedFunction,
     lease: OracleLease,
@@ -115,9 +130,10 @@ fn receiver<T>(
     run.finish(function);
     assert!(
         !lease.refused(),
-        "oracle account refused the {name} comparison for `{}` (physical: {:?})",
+        "oracle account refused the {name} comparison for `{}` (physical: {:?}); complete verdict={verdict:?}; reference={:?}",
         function.id,
-        lease.physical_failure()
+        lease.physical_failure(),
+        lease.receipt()
     );
     verdict
 }

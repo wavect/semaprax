@@ -1,0 +1,32 @@
+[
+  {
+    "path": "src/cleanup_plan/replay/path_join/selected/tests/mod.rs",
+    "before": "src/cleanup_plan/replay/path_join/selected/tests/fixture_scope_before/mod.rs.txt",
+    "length": 5391,
+    "sha256": "ea6faf59b00eecded5f37db29cef4c7e20be12add32432a6de626803bbe07440"
+  },
+  {
+    "path": "src/cleanup_plan/replay/path_join/selected/tests/renewal.rs",
+    "before": "src/cleanup_plan/replay/path_join/selected/tests/fixture_scope_before/renewal.rs.txt",
+    "length": 3050,
+    "sha256": "bea7a9dc0e5ceb55ae2f3647adcaf67a19f6a78b07d807f2e68f37b4fd022c83"
+  },
+  {
+    "path": "src/cleanup_plan/replay/path_join/selected/tests/strings.rs",
+    "before": "src/cleanup_plan/replay/path_join/selected/tests/fixture_scope_before/strings.rs.txt",
+    "length": 2311,
+    "sha256": "bfd078eea157329819cdbff84ed62bbeafc014542c97276cd4cc2b8becdfbe44"
+  },
+  {
+    "path": "src/cleanup_plan/replay/path_join/selected/tests/whole.rs",
+    "before": "src/cleanup_plan/replay/path_join/selected/tests/fixture_scope_before/whole.rs.txt",
+    "length": 6709,
+    "sha256": "ca6baf7aa6f1d54c1db98e394a427ff44ccd0546783db46228419c760c85654f"
+  },
+  {
+    "path": "src/cleanup_plan/replay/path_join/selected/tests/session.rs",
+    "before": "src/cleanup_plan/replay/path_join/selected/tests/fixture_scope_before/session.rs.txt",
+    "length": 3883,
+    "sha256": "1978ea6af6c6258fe97760e1d03e162cb6947cae5206735ca15ffb9799bfc3d2"
+  }
+]

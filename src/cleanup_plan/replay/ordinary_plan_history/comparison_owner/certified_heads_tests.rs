@@ -1,5 +1,6 @@
 //! Immediate d458 suffix-only comparator versus certified head and right split.
 use super::*;
+use crate::cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::loaded_segment_composition_tests as loaded;
 fn heads_run(
     function: &ResolvedFunction,
     length: usize,
@@ -43,6 +44,7 @@ pub(super) fn heads_run_generation(
     swaps_only: bool,
     shape: usize,
 ) -> Run {
+    frontiers::prepare();
     let (mut actual, mut expected) = fixture(length, depth, shared, fault);
     if shape == 1 {
         let values = actual.arena[0].items.clone();
@@ -207,6 +209,10 @@ pub(super) fn heads_run_generation(
             } else {
                 None
             };
+            assert_eq!(
+                result.as_ref().map(|_| ()).map_err(failure), saved,
+                "the sticky retry cannot change any field of the first held diagnostic"
+            );
             let outcome = Outcome {
                 result: saved,
                 retry: retry.as_ref().map(failure),
@@ -250,6 +256,10 @@ mod paired_tail_composition_tests;
 // This is the genuine immediate suffix-only generation, not a hypothetical
 // first-head-only stage. Every coefficient names an actual old or new packet.
 fn invoice(r: &pair_scope_census::Row) -> (usize, usize) {
+    let loaded_delta = loaded::complete_loaded_delta(r);
+    let immediate438_counts = loaded::complete_immediate438_invoice_counts(r);
+    let r = &immediate438_counts;
+    let prior_generation = {
     let header = 2 * size_of::<&ResolvedFunction>()
         + 2 * size_of::<&mut ReplayBudget>()
         + 2 * size_of::<&str>()
@@ -350,6 +360,8 @@ fn invoice(r: &pair_scope_census::Row) -> (usize, usize) {
             + super::reader_removed(r)
             + final_affine::delta(r).1,
     )
+    };
+    (prior_generation.0 + loaded_delta.0, prior_generation.1 + loaded_delta.1)
 }
 fn observe_heads(
     function: &ResolvedFunction,
@@ -444,9 +456,12 @@ fn certified_heads_keep_complete_immediate_invoices_and_short_losses_for_both_hi
                     old.row.identity_hits,
                     current.row.identity_hits + current.row.shared_boundary_complete
                 );
+                // Compare the same immediate-generation events as invoice():
+                // independent transport records turns instead of legacy steps.
+                let immediate438 = loaded::complete_immediate438_invoice_counts(&current.row);
                 assert_eq!(
                     old.row.value_steps,
-                    current.row.value_steps
+                    immediate438.value_steps
                         + current.row.certified_bases
                         + 4 * current.row.shared_boundary_complete
                         + 2 * current.row.fused_turns
@@ -459,7 +474,7 @@ fn certified_heads_keep_complete_immediate_invoices_and_short_losses_for_both_hi
                 );
                 assert_eq!(
                     old.row.pair_matches_admitted,
-                    current.row.pair_matches_admitted
+                    immediate438.pair_matches_admitted
                         + current.row.certified_firsts
                         + current.row.shared_boundary_complete
                         + current.row.fused_turns
@@ -522,9 +537,10 @@ fn certified_heads_keep_complete_immediate_invoices_and_short_losses_for_both_hi
                                         + paired_value::TAIL))
                     );
                     let (affine_added, affine_removed) = final_affine::delta(&current.row);
+                    let (loaded_added, loaded_removed) = loaded::complete_loaded_delta(&current.row);
                     assert_eq!(
-                        current.observed.2 + affine_removed,
-                        before_affine.observed.2 + affine_added
+                        current.observed.2 + affine_removed + loaded_removed,
+                        before_affine.observed.2 + affine_added + loaded_added
                     );
                 }
                 if shape == 4 && length == 128 {
@@ -1013,6 +1029,7 @@ fn certified_heads_real_oracle_missing_foreign_restored_scope_keeps_ambient_unsp
 
 #[test]
 fn certified_heads_both_complete_generations_unwind_with_full_drop_and_reached_prefix() {
+    frontiers::prepare();
     let program = super::super::super::super::tests::program();
     let function = &program.functions[0];
     for old in [true, false] {
@@ -1296,17 +1313,17 @@ fn certified_heads_opt_in_counts_every_real_new_packet_after_complete_teardown()
             certified_heads::BOUNDARY_BODY,
         ),
         (
-            Site::NumericCaptureAdmitted,
+            Site::ScalarCaptureAdmitted,
             r.row.shared_runs,
-            certified_heads::RUN_CAPTURE,
+            certified_heads::RUN_SCALAR_CAPTURE,
         ),
         (
-            Site::NumericTurnAdmitted,
+            Site::ScalarTurnAdmitted,
             r.row.shared_turns,
             certified_heads::RUN_TURN,
         ),
         (
-            Site::NumericPublishAdmitted,
+            Site::ScalarPublishAdmitted,
             r.row.shared_publishes,
             certified_heads::RUN_PUBLISH,
         ),
@@ -1464,3 +1481,6 @@ fn composed_main7e_and_certified_heads_keep_full_actual_invoices_both_hir_and_al
 
 #[path = "final_affine_tests.rs"]
 mod final_affine_tests;
+
+#[path = "certified_countdown_tests.rs"]
+mod certified_countdown_tests;

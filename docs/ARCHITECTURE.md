@@ -17,6 +17,12 @@ The key rule is separation: readable source, checked meaning, agent reports,
 write authority, and target execution are different things. Passing data
 between them does not automatically transfer authority.
 
+The test-only `source_reflows::front_pool` module owns the bounded edit-string pool
+decoder shared by the source-front readers. Its Python counterpart lives in
+`test_v12_view_labels.py`. They reconstruct existing source DATA without adding
+source or archive authority; [the source contract](SOURCE-CUSTODY-OVERLAY-V2.md#source-front-edit-string-pool-v1)
+owns the exact wire-derived expansion bound and opaque metadata rules.
+
 For a first read, follow [System shape](#system-shape),
 [Representations](#representations), and
 [Trust boundaries](#trust-boundaries-and-invariants). If you are changing code,
@@ -150,6 +156,14 @@ authenticates the exact function, replay budget, invocation and immutable key
 backing before reading the index, then decides membership by full-key ordering.
 Publication seals mutation; rejected owners stay rejected. Other payers retain
 the original lookup. The index grants no verification or source authority.
+
+`expression_facts/receiving/directory/held_invocation.rs` owns the invocation's
+empty status backing and first receiver-error slot; `retained/held_status_invocation.rs`
+owns its ordinary caller. The controller retains complete fresh validation;
+the owner reauthenticates each full_program callback. Complete previous status owners and the whole program caller
+remain test-only in `directory/invocation.rs`, `retained/ordinary_status_invocation.rs`
+and `fact_preflight/before_status_receivers.rs`. The private transport contract and
+pending executable qualification are in [retained fact lookup v1](RETAINED-EXPRESSION-FACT-LOOKUP-V1.md).
 `hir/canonical_loan_storage/caller/shared` owns immutable lookup publication
 inside the existing captured preparation owner. Active compatibility validators
 and nested closures share exact-program storage; unobserved compatibility owns
@@ -301,6 +315,12 @@ attachment boundary. Linked byte-slice provenance borrows authored functions the
 instances through the unchanged full derivation instead of cloning their HIR.
 Declaration-index disposal sends only nominal children to its existing iterative
 frontier, so scalar leaves and empty nominal arguments need no queue.
+`loan_plan/canonical_sink.rs` owns the private independently derived borrowed
+row Source for captured canonical validation; it grants no attachment authority.
+`hir/canonical_loan_storage/caller/stream.rs` owns complete endpoint/edge
+comparison and the existing final lookup tuple emission from those rows. The
+original materializer, complete caller, ordered unions and late Deferred
+frontier remain independently executable. This source candidate is unqualified.
 `loan_plan/funded_flat.rs` owns the exact-current-member paid planner,
 while `bounded_output/cfg_reservation.rs` owns its affine ledger and prepaid
 physical-refusal carrier. `loan_plan/cfg_directory.rs` owns private mutable AVL
@@ -5066,7 +5086,12 @@ owns inline frames with unchanged Vec fallback. Nominal fact preparation now
 borrows cache-key bytes; Array/scalar Function flag misses project full original
 facts. Paid flag Storage initializes in a separate non-inlined miss constructor;
 known leaves and exact cache hits retain the existing payer's sticky zero-byte
-check. Complete original receivers and the fixed builder cap remain. The bounded
+check. Complete original receivers and the fixed builder cap remain. The ordinary function loop lends one invocation-local empty typed continuation
+owner from `hir/validation/frame_reuse` to the single expression dispatch kernel;
+`continuation_frame.rs` owns the lifetime-bearing enum. Scope publication and
+result removal precede returning backing. Fresh generic and nested-guard calls
+use the same kernel without borrowing an active lease; complete predecessor
+receivers remain test-only. The bounded
 contract and pending qualification are in [HIR final-validation scratch v1](HIR-FINAL-VALIDATION-SCRATCH-V1.md).
 
 `cleanup_plan/renewal_profile/ordinary/record_presence.rs` owns the phase-local

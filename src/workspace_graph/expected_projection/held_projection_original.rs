@@ -284,6 +284,7 @@ pub(in crate::workspace_graph) fn synthetic_builder_bytes_scoped_with_retention_
         transient_import_clone,
         runtime: runtime.total,
         retained_hir: hir_upper,
+        retained_scratch: Default::default(),
         synthetic_ast: checked_usage(
             raw.total,
             runtime.total,

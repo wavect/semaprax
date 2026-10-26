@@ -3,6 +3,32 @@
 - Compute recursive ownership flags without constructing discarded record and variant layout strings. Childless builtin queries project the existing complete facts directly; the full TypeFacts API, public IR fields and independent owned classifiers remain unchanged.
 - Fund the paid receiver's actual temporary controls through its existing caller ledger. Preserve cache precedence, malformed-type verdicts and all builder/work/loan limits, with complete old-oracle, exact/short/zero-payer and allocation/drop regression controls.
 
+## Receiving and merged-source repair batch (#941)
+
+- Author invocation-held status receiver outputs with one terminal error
+  destination, replacing absent outer Diagnostic return transports while
+  retaining complete original controllers and fresh validation. Whole-invoice,
+  resource, Drop and genuine application controls await the grouped check.
+- Restore exact match diagnostics and repair source bindings and test fixtures
+  while preserving their workloads, full predecessors and existing limits.
+- Add an explicit source-custody metadata successor for a newly compiled owner
+  (#942), retaining the complete old row and readers. Python/Rust controls await
+  the grouped check; source publication is not application performance evidence.
+
+## Direct terminal source moves (#939)
+
+- Run exact Place roots without constructing temporary source-move directories,
+  preserving every original check, payment and failed-scope publication rule.
+- Retain the complete immediate producer and source inverses; full-caller net,
+  refusal, cold/tiny and Drop controls are authored and await qualification.
+
+## Private ordered moved-place scope joins (#936)
+
+- Replace temporary owned key sets with separately funded ordered borrowed
+  cursors, preserving final maps, availability joins and all other builders.
+- Retain full immediate producer/payer and source inverses; authored whole
+  caller gains, cold loss and resource-frontier controls remain unqualified.
+
 ## Complete constructor source bindings (2026-10-25)
 
 - Authenticate current constructor sources before selecting complete historical cost, capacity and value-owner inputs; retain the original inverse recipes and whole-source comparisons.
@@ -10,6 +36,8 @@
 - Reuse authenticated metadata during registered-file reads while retaining fresh physical, compiled, archive and fragment checks and the complete old reader. Refresh the two stale documentation and inventory current-source records.
 
 ## Bounded repeated source-view labels (2026-10-25)
+
+- Source-only OPT#934: add closed V18 typed fragment-reference transport with unchanged page/program caps and complete older codec routes; focused controls await combined qualification.
 
 - Encode repeated packed view labels through a bounded V11 dictionary while retaining every old source row, view, unknown field and fragment edge. Keep the 262144-byte wire cap and bound aggregate materialized label bytes before copying.
 - Preserve the complete V10 decoder and all older codec controls; authenticate the whole restored page before ordinary source admission.
@@ -29,6 +57,23 @@
 - Keep the complete default-limit G171 message available without allocating when its formatter is exhausted; retain the original formatter debit and sticky refusal.
 - Calibrate selected-call diagnostic costs from the actual refused ledger state, retaining the complete original fresh-ledger test as an exact negative control.
 - Extend the diagnostic source inverse with the complete intervening source image while preserving its original recipe and frozen source.
+
+## Unreleased
+
+- Reuse cleared invocation-local status and cleanup projection backing, move owned loan materializer payloads with exact retained capacity, join validated lexical witnesses directly, and select prepaid binding-free name roots; retain complete predecessor paths, diagnostics, resource limits, and source-bound regression controls.
+- Share repeated source-inverse payloads and closed source-path prefixes, and elide redundant row wrappers, while retaining complete legacy readers, unknown metadata, and existing bounds.
+- Prepay branch-sort frames and certified scalar comparison capture, retain complete fallback and historical executables, and encode known source-row fields losslessly within the existing custody limits.
+- Fund immutable Oracle pointer comparisons and Oracle-local reached backing independently, preserving ordinary and Legacy routes, depth limits, sticky refusal, and complete old constructors.
+- Repair retained-forecast boundary fixtures, historical equation domains, test-module paths, and exact source-view acquisition.
+
+- Add constructor-covered forecast retention and later-validation scratch reuse, preserving the complete fallback when coverage does not apply.
+
+## Fitting scalar cleanup comparison (2026-10-24)
+
+- Prepay both ordinary builder selectors before their new call/header/result/error-probe receivers form, including tiny nonselection. Preserve the upstream 128-path builder crossover and apply the 32-status fitting selector only after nonselection; other payers retain the original route.
+
+- Add a separately prepaid comparison selector for already admitted ordinary builder functions with at least 32 checked statuses and no owning entry state, retaining structural validation, both complete observation languages, paired proof and canonical fallback.
+- Preserve original size/work admission, held skeleton reservations, tiny-function enumeration and independent test controls. Add fitting scalar, malformed/schema/CFG, exact/short, sticky-refusal, foreign-payer and full Drop regressions; this source checkpoint has not executed the new tests or established application-budget improvement.
 
 ## Held replay states and checked native byte reads (2026-10-24)
 
@@ -72,6 +117,33 @@
 - Pin both public and full-host `new` help shapes in the standalone CLI integration regression, matching the existing qualified help contract.
 
 - Pin Tokio 1.53.3 in active manifests, generated consumers and lockfiles to address RUSTSEC-2026-0386. Preserve historical evidence locks and all unrelated locked packages.
+
+- Reuse held stream-command identities, borrowed invariant keys, and closed list/iterator/Option/Result/cleanup identities without changing wire text or admission order.
+- Preserve complete joined source-custody histories within the fixed metadata page limit through canonical V10 archive-prefix references.
+- Reuse closed compiler declaration identities and fund dynamic sort-key identity backing through its existing payer, preserving wire identities and diagnostic precedence.
+- Add optional fixed-storage captures of exclusive resolved-core debits alongside the existing inclusive phase observations, retaining compiler budgets and complete historical source checks.
+
+## Ownership traversal setup and incoming state reuse (#913, #914, 2026-10-22)
+
+- Skip source-move traversal setup for the existing inert root shapes after
+  funded dispatch, retaining the complete predecessor and propagating paths.
+- Retain singleton incoming ownership states and transfer their existing boxes
+  across continuations; preserve sorted multi-state joins and explicit growth
+  funding. Focused execution and unchanged application qualification are pending.
+
+## Factored HIR scratch release (#903, 2026-10-22)
+
+- Release the completed DAG memo and HIR paths before plan construction, retaining
+  owned automaton observations and all prior debits. Fund both new explicit
+  release transports; independent source, result, refusal-frontier and complete
+  Drop controls await the combined focused run. No peak-saving claim is made.
+
+## HIR continuation backing reuse (#912, 2026-10-22)
+
+- Reuse drained typed continuation directories across ordinary functions and
+  contracts in one immutable validation invocation. Retain fresh generic and
+  nested-guard backing, exact publication, the original growth payer and full
+  independent predecessor controls. Focused execution qualification is pending.
 
 ## CI reservation transport and append-only label maps (2026-10-23)
 

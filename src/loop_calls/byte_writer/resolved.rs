@@ -413,6 +413,17 @@ const CENSUS_DEPTH: usize = 514;
 const CENSUS_CODE: &str = "SPX-H006";
 const CENSUS_MESSAGE: &str = "byte helper renewal census exceeds admitted scratch, work or depth";
 pub(super) fn census_error() -> crate::diagnostic::Diagnostic {
+    // This literal error can be selected by the very first zero-cap refusal.
+    // Borrow its immutable bytes rather than allocating an unfunded String.
+    // All six public Diagnostic fields and the exact text remain unchanged.
+    crate::diagnostic::Diagnostic::io_static(CENSUS_CODE, CENSUS_MESSAGE)
+}
+
+// Independently callable complete immediate diagnostic producer; a static
+// literal representation change does not replace its historical owned arm.
+#[cfg(test)]
+#[allow(dead_code)]
+pub(super) fn census_error_before_static() -> crate::diagnostic::Diagnostic {
     crate::diagnostic::Diagnostic::io(
         "SPX-H006",
         "byte helper renewal census exceeds admitted scratch, work or depth",

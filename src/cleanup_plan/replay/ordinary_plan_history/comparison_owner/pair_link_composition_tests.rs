@@ -1,5 +1,6 @@
 //! Both independently compiled complete shipping generations, without a synthetic baseline.
 use super::*;
+use crate::cleanup_plan::replay::ordinary_plan_history::comparison_owner::tests::loaded_segment_composition_tests as loaded;
 
 fn observe(
     function: &ResolvedFunction,
@@ -20,6 +21,10 @@ fn observe(
 // Current + removed = complete fd4c + added. Every coefficient below is a
 // literal actual typed bank, never an observed debit or a fabricated stage.
 fn link_delta(old: &pair_scope_census::Row, r: &pair_scope_census::Row) -> (usize, usize) {
+    let loaded_delta = loaded::complete_loaded_delta(r);
+    let immediate438_counts = loaded::complete_immediate438_invoice_counts(r);
+    let r = &immediate438_counts;
+    let prior_generation = {
     assert!(
         old.complete && r.complete,
         "whole matched caller, no prefix price inference"
@@ -76,6 +81,11 @@ fn link_delta(old: &pair_scope_census::Row, r: &pair_scope_census::Row) -> (usiz
             certified_heads::RUN_CAPTURE
         )
     );
+    // Keep the complete immediate driver expression/assertion above; the new
+    // actual certified caller forms only the separately prepaid scalar frame.
+    let capture = 2 * size_of::<&[Rc<SkeletonObservation>]>()
+        + 8 * size_of::<usize>() + size_of::<bool>();
+    assert_eq!(capture, certified_heads::RUN_SCALAR_CAPTURE);
     // The distinct complete old/new load and split packets have equal totals;
     // this is an exact formation witness, not an anonymous same-width donor.
     let old_pop = 2 * size_of::<&mut Vec<usize>>()
@@ -109,6 +119,8 @@ fn link_delta(old: &pair_scope_census::Row, r: &pair_scope_census::Row) -> (usiz
             + removed_boundary_checks
             + final_affine::delta(r).1,
     )
+    };
+    (prior_generation.0 + loaded_delta.0, prior_generation.1 + loaded_delta.1)
 }
 
 #[test]
@@ -150,7 +162,7 @@ fn borrowed_pair_links_keep_both_whole_generations_and_all_original_source_bytes
             sha
         );
     }
-    let mut old_tests = include_str!("main001_pair_scope_tests.rs").to_owned();
+    let mut old_tests = frontiers::before_preparation("main001_pair_scope_tests.rs").to_owned();
     let import = "use super::super::before_main001::{compare, PAYMENT_HEADER, PATH_INDEX, PAIR_SCOPE, PAIR_PRIMITIVE};\n";
     assert_eq!(old_tests.matches(import).count(), 1);
     old_tests = old_tests.replacen(import, "", 1);

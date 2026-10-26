@@ -73,3 +73,39 @@ impl<'a, T> Pending<'a, T> {
         self.spill.capacity()
     }
 }
+
+impl<'a> Pending<'a, super::ResolvedExpr> {
+    /// Private invocation scratch; only successfully drained roots reuse it.
+    pub(super) fn empty() -> Result<Self, Diagnostic> {
+        reserve(super::EMPTY_EXPRESSION_BYTES)?;
+        Ok(Self {
+            inline: [None; INLINE],
+            len: 0,
+            spill: Vec::new(),
+        })
+    }
+}
+
+impl<'a> Pending<'a, super::ResolvedType> {
+    pub(super) fn type_empty(_formation: super::type_scratch::Formation) -> Self {
+        Self {
+            inline: [None; INLINE],
+            len: 0,
+            spill: Vec::new(),
+        }
+    }
+}
+
+#[cfg(test)]
+impl<'a> Pending<'a, super::ResolvedExpr> {
+    pub(super) fn expression_compat() -> Result<Self, Diagnostic> {
+        reserve(
+            std::mem::size_of::<Self>() + super::type_scratch::HEADER + super::type_scratch::LOAN,
+        )?;
+        Ok(Self {
+            inline: [None; INLINE],
+            len: 0,
+            spill: Vec::new(),
+        })
+    }
+}

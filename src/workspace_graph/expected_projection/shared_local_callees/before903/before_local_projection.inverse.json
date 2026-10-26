@@ -1,0 +1,56 @@
+{
+  "git_before": "21574297e02afb6f286901171f6c179bf2ccea0a",
+  "source": "src/workspace_graph/expected_projection/held_projection.rs",
+  "current": {
+    "length": 21986,
+    "sha256": "14230414e678df382955a081fd39b84e5833d0b00286005cb076fa06238a1ff0"
+  },
+  "target": {
+    "length": 21916,
+    "sha256": "3e0d38a5c01f87a8b05815d9831f80b2604df5e37c15d0dcbf0cf0055656e942"
+  },
+  "edits": [
+    {
+      "start": 7316,
+      "end": 7401,
+      "after": "                crate::workspace_graph::owned_function_import::admitted_with_layout(\n",
+      "before": "                super::super::owned_function_import::admitted_with_layout(\n"
+    },
+    {
+      "start": 8275,
+      "end": 8378,
+      "after": "            crate::workspace_graph::generic_type_import::rewrite_declaration_runtime_cost_with_layout(\n",
+      "before": "            super::super::generic_type_import::rewrite_declaration_runtime_cost_with_layout(\n"
+    },
+    {
+      "start": 13155,
+      "end": 13236,
+      "after": "                .checked_mul(crate::workspace_graph::HIR_FIXED_EXPANSION_FACTOR)\n",
+      "before": "                .checked_mul(super::super::HIR_FIXED_EXPANSION_FACTOR)\n"
+    },
+    {
+      "start": 13664,
+      "end": 13764,
+      "after": "                        .and_then(|n| n.checked_mul(crate::workspace_graph::HIR_EXPR_FIXED_BUNDLE))\n",
+      "before": "                        .and_then(|n| n.checked_mul(super::super::HIR_EXPR_FIXED_BUNDLE))\n"
+    },
+    {
+      "start": 13910,
+      "end": 13979,
+      "after": "    crate::workspace_graph::forecast_observation::record_components(\n",
+      "before": "    super::super::forecast_observation::record_components(\n"
+    },
+    {
+      "start": 17571,
+      "end": 17657,
+      "after": "        crate::workspace_graph::generic_type_import::rewrite_declaration_with_layout(\n",
+      "before": "        super::super::generic_type_import::rewrite_declaration_with_layout(\n"
+    },
+    {
+      "start": 20490,
+      "end": 20571,
+      "after": "            crate::workspace_graph::owned_function_import::admitted_with_layout(\n",
+      "before": "            super::super::owned_function_import::admitted_with_layout(\n"
+    }
+  ]
+}

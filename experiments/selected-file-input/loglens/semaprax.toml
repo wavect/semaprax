@@ -20,5 +20,8 @@ input = "argv-utf8-256+selected-file.follow.v1"
 [capabilities]
 required = ["fs.read", "process.args.read", "process.stderr.write", "process.stdout.write"]
 
+[dependencies]
+std.int.decimal = "=0.1.0"
+
 [targets]
 matrix = ["native64"]

@@ -1,4 +1,7 @@
 module loglens;
+use function @id("std.int.decimal.add") from std.int.decimal as decimal_add;
+use function @id("std.int.decimal.canonicalize") from std.int.decimal as decimal_canonicalize;
+use function @id("std.int.decimal.divide") from std.int.decimal as decimal_divide;
 use type @id("std.pattern.matcher") from std.pattern as Matcher;
 use function @id("std.pattern.capture-count") from std.pattern as matcher_capture_count;
 use function @id("std.pattern.capture-end") from std.pattern as matcher_capture_end;
@@ -11,13 +14,13 @@ use function @id("std.pattern.status") from std.pattern as matcher_status;
 permit { fs.read, process.args.read, process.stderr.write, process.stdout.write }
 
 @id("loglens.digits")
-fn digits(s: string, start: i64, end: i64) -> bool
+fn digits(s: borrow str, start: i64, end: i64) -> bool
 {
     let mut ok = end > start;
     let mut i = start;
     while i < end {
-        let b = string_byte_at(s, i);
-        ok = ok && b >= 48 && b <= 57;
+        let valid = match str_byte_at(s, usize_from_i64(i)) { Option::Some { value: b } => b >= 48u8 && b <= 57u8, Option::None {} => false, };
+        ok = ok && valid;
         i = i + 1;
         0
     }
@@ -25,13 +28,13 @@ fn digits(s: string, start: i64, end: i64) -> bool
 }
 
 @id("loglens.token")
-fn token(s: string, start: i64, end: i64) -> bool
+fn token(s: borrow str, start: i64, end: i64) -> bool
 {
     let mut ok = end > start;
     let mut i = start;
     while i < end {
-        let b = string_byte_at(s, i);
-        ok = ok && b > 32 && b != 127;
+        let valid = match str_byte_at(s, usize_from_i64(i)) { Option::Some { value: b } => b > 32u8 && b != 127u8, Option::None {} => false, };
+        ok = ok && valid;
         i = i + 1;
         0
     }
@@ -55,32 +58,13 @@ fn ascii(s: string, start: i64, end: i64) -> bool
 @id("loglens.add")
 fn add(a: string, b: string) -> string
 {
-    let mut i = string_len(a) - 1;
-    let mut j = string_len(b) - 1;
-    let mut carry = 0;
-    let mut out = "";
-    while i >= 0 || j >= 0 || carry > 0 {
-        let x = if i >= 0 { string_byte_at(a, i) - 48 } else { 0 };
-        let y = if j >= 0 { string_byte_at(b, j) - 48 } else { 0 };
-        let sum = x + y + carry;
-        out = string_concat(string_from_i64(sum % 10), out);
-        carry = sum / 10;
-        i = i - 1;
-        j = j - 1;
-        0
-    }
-    let mut first = 0;
-    while first + 1 < string_len(out) && string_byte_at(out, first) == 48 {
-        first = first + 1;
-        0
-    }
-    string_slice(out, first, string_len(out))
+    decimal_add(decimal_canonicalize(a), decimal_canonicalize(b))
 }
 
 @id("loglens.divide")
 fn divide(a: string, divisor: i64) -> string
 {
-    if divisor == 0 { "0" } else { let mut rem = 0; let mut i = 0; let mut out = ""; while i < string_len(a) { rem = rem * 10 + string_byte_at(a, i) - 48; let digit = rem / divisor; if digit != 0 || string_len(out) > 0 { out = string_concat(out, string_from_i64(digit)); } rem = rem % divisor; i = i + 1; 0 } if string_len(out) == 0 { "0" } else { out } }
+    if divisor == 0 { "0" } else { let denominator = string_from_i64(divisor); decimal_divide(decimal_canonicalize(a), string_as_str(denominator)) }
 }
 
 @id("loglens.usage")
@@ -122,37 +106,15 @@ fn report(top: i64, json: bool) -> i64
             end = end + 1;
             0
         }
-        if end > pos { lines = lines + 1; if !matcher_failed { let line = string_slice(input, pos, end); let line_view = string_as_str(line); let line_bytes = str_as_bytes(line_view); parser = matcher_full_match(parser, line_bytes, 262144usize); let result_status = matcher_status(parser); if result_status == 4usize || result_status == 3usize { matcher_failed = true; } else { if result_status == 1usize { if matcher_capture_count(parser) != 6usize { matcher_failed = true; } else { let ip = string_slice(line, i64_from_usize(matcher_capture_start(parser, 0usize)), i64_from_usize(matcher_capture_end(parser, 0usize))); let hour = string_slice(line, i64_from_usize(matcher_capture_start(parser, 1usize)), i64_from_usize(matcher_capture_end(parser, 1usize))); let path = string_slice(line, i64_from_usize(matcher_capture_start(parser, 3usize)), i64_from_usize(matcher_capture_end(parser, 3usize))); let status = string_slice(line, i64_from_usize(matcher_capture_start(parser, 4usize)), i64_from_usize(matcher_capture_end(parser, 4usize))); let bytes = string_slice(line, i64_from_usize(matcher_capture_start(parser, 5usize)), i64_from_usize(matcher_capture_end(parser, 5usize))); let ip_valid = token(ip, 0, string_len(ip)); let path_valid = token(path, 0, string_len(path)) && !string_contains(path, "\"") && !string_contains(path, "\\"); let hour_valid = string_compare(hour, "23") <= 0; let bytes_valid = string_compare(bytes, "-") == 0 || digits(bytes, 0, string_len(bytes)); if ip_valid && path_valid && hour_valid && bytes_valid { requests = requests + 1; ips = map_set(ips, ip, 1); paths = map_add(paths, path, 1); hours = map_add(hours, hour, 1); let status_code = string_byte_at(status, 0); if status_code == 50 { s2 = s2 + 1; } if status_code == 51 { s3 = s3 + 1; } if status_code == 52 { s4 = s4 + 1; } if status_code == 53 { s5 = s5 + 1; } if string_compare(bytes, "-") != 0 { total = add(total, bytes); } } } } else { if result_status != 2usize { matcher_failed = true; } } } } }
+        if end > pos { lines = lines + 1; if !matcher_failed { let line = string_slice(input, pos, end); let line_view = string_as_str(line); let line_bytes = str_as_bytes(line_view); parser = matcher_full_match(parser, line_bytes, 262144usize); let result_status = matcher_status(parser); if result_status == 4usize || result_status == 3usize { matcher_failed = true; } else { if result_status == 1usize { if matcher_capture_count(parser) != 6usize { matcher_failed = true; } else { let ip = string_slice(line, i64_from_usize(matcher_capture_start(parser, 0usize)), i64_from_usize(matcher_capture_end(parser, 0usize))); let hour = string_slice(line, i64_from_usize(matcher_capture_start(parser, 1usize)), i64_from_usize(matcher_capture_end(parser, 1usize))); let path = string_slice(line, i64_from_usize(matcher_capture_start(parser, 3usize)), i64_from_usize(matcher_capture_end(parser, 3usize))); let status = string_slice(line, i64_from_usize(matcher_capture_start(parser, 4usize)), i64_from_usize(matcher_capture_end(parser, 4usize))); let bytes = string_slice(line, i64_from_usize(matcher_capture_start(parser, 5usize)), i64_from_usize(matcher_capture_end(parser, 5usize))); let ip_length = string_len(ip); let path_length = string_len(path); let bytes_length = string_len(bytes); let ip_valid = token(string_as_str(ip), 0, ip_length); let path_valid = token(string_as_str(path), 0, path_length) && !string_contains(path, "\"") && !string_contains(path, "\\"); let hour_valid = string_compare(hour, "23") <= 0; let bytes_valid = string_compare(bytes, "-") == 0 || digits(string_as_str(bytes), 0, bytes_length); if ip_valid && path_valid && hour_valid && bytes_valid { requests = requests + 1; ips = map_set(ips, ip, 1); paths = map_add(paths, path, 1); hours = map_add(hours, hour, 1); let status_code = string_byte_at(status, 0); if status_code == 50 { s2 = s2 + 1; } if status_code == 51 { s3 = s3 + 1; } if status_code == 52 { s4 = s4 + 1; } if status_code == 53 { s5 = s5 + 1; } if string_compare(bytes, "-") != 0 { total = add(total, bytes); } } } } else { if result_status != 2usize { matcher_failed = true; } } } } }
         pos = end;
         if pos < string_len(input) { let terminator = string_byte_at(input, pos); pos = pos + 1; if terminator == 13 && pos < string_len(input) && string_byte_at(input, pos) == 10 { pos = pos + 1; } }
         0
     }
     let rate = if requests == 0 { 0 } else { ((s4 + s5) * 2000 + requests) / (requests * 2) };
-    let percent = string_concat(string_concat(string_from_i64(rate / 10), "."), string_from_i64(rate % 10));
+    let percent = string_format("{}.{}", rate / 10, rate % 10);
     let average = divide(string_slice(total, 0, string_len(total)), requests);
-    let mut out = if json { "{\"lines\":" } else { "lines: " };
-    out = string_concat(out, string_from_i64(lines));
-    out = string_concat(out, if json { ",\"requests\":" } else { "\nrequests: " });
-    out = string_concat(out, string_from_i64(requests));
-    out = string_concat(out, if json { ",\"malformed\":" } else { "\nmalformed: " });
-    out = string_concat(out, string_from_i64(lines - requests));
-    out = string_concat(out, if json { ",\"unique_ips\":" } else { "\nunique_ips: " });
-    out = string_concat(out, string_from_usize(map_len(ips)));
-    out = string_concat(out, if json { ",\"status\":{\"2xx\":" } else { "\nstatus: 2xx=" });
-    out = string_concat(out, string_from_i64(s2));
-    out = string_concat(out, if json { ",\"3xx\":" } else { " 3xx=" });
-    out = string_concat(out, string_from_i64(s3));
-    out = string_concat(out, if json { ",\"4xx\":" } else { " 4xx=" });
-    out = string_concat(out, string_from_i64(s4));
-    out = string_concat(out, if json { ",\"5xx\":" } else { " 5xx=" });
-    out = string_concat(out, string_from_i64(s5));
-    out = string_concat(out, if json { "},\"error_rate\":" } else { "\nerror_rate: " });
-    out = string_concat(out, percent);
-    out = string_concat(out, if json { ",\"bytes\":" } else { "%\nbytes: " });
-    out = string_concat(out, total);
-    out = string_concat(out, if json { ",\"avg_bytes\":" } else { "\navg_bytes: " });
-    out = string_concat(out, average);
-    out = string_concat(out, if json { ",\"top_paths\":[" } else { "\ntop_paths:\n" });
+    let mut out = if json { string_format("{{\"lines\":{},\"requests\":{},\"malformed\":{},\"unique_ips\":{},\"status\":{{\"2xx\":{},\"3xx\":{},\"4xx\":{},\"5xx\":{}}},\"error_rate\":{},\"bytes\":{},\"avg_bytes\":{},\"top_paths\":[", lines, requests, lines - requests, map_len(ips), s2, s3, s4, s5, percent, total, average) } else { string_format("lines: {}\nrequests: {}\nmalformed: {}\nunique_ips: {}\nstatus: 2xx={} 3xx={} 4xx={} 5xx={}\nerror_rate: {}%\nbytes: {}\navg_bytes: {}\ntop_paths:\n", lines, requests, lines - requests, map_len(ips), s2, s3, s4, s5, percent, total, average) };
     let mut rank = 0;
     while rank < top && rank < i64_from_usize(map_len(paths)) {
         let mut best = 0usize;
@@ -164,7 +126,7 @@ fn report(top: i64, json: bool) -> i64
         }
         let key = map_key_at(paths, best);
         let count = map_value_at(paths, best);
-        if json { if rank > 0 { out = string_concat(out, ","); } out = string_concat(out, "{\"path\":\""); out = string_concat(out, string_slice(key, 0, string_len(key))); out = string_concat(out, "\",\"count\":"); out = string_concat(out, string_from_i64(count)); out = string_concat(out, "}"); } else { out = string_concat(out, "  "); out = string_concat(out, string_from_i64(rank + 1)); out = string_concat(out, ". "); out = string_concat(out, string_slice(key, 0, string_len(key))); out = string_concat(out, " "); out = string_concat(out, string_from_i64(count)); out = string_concat(out, "\n"); }
+        if json { if rank > 0 { out = string_concat(out, ","); } out = string_format("{}{{\"path\":\"{}\",\"count\":{}}}", out, string_slice(key, 0, string_len(key)), count); } else { out = string_format("{}  {}. {} {}\n", out, rank + 1, string_slice(key, 0, string_len(key)), count); }
         paths = map_set(paths, key, -1);
         rank = rank + 1;
         0
@@ -177,13 +139,11 @@ fn report(top: i64, json: bool) -> i64
         let hour = map_key_at(hours, h);
         let count = map_value_at(hours, h);
         if count > peak { busiest = string_slice(hour, 0, string_len(hour)); peak = count; }
-        if json { if h > 0usize { out = string_concat(out, ","); } out = string_concat(out, "\""); out = string_concat(out, hour); out = string_concat(out, "\":"); out = string_concat(out, string_from_i64(count)); } else { out = string_concat(out, "  "); out = string_concat(out, hour); out = string_concat(out, " "); out = string_concat(out, string_from_i64(count)); out = string_concat(out, "\n"); }
+        if json { if h > 0usize { out = string_concat(out, ","); } out = string_format("{}\"{}\":{}", out, hour, count); } else { out = string_format("{}  {} {}\n", out, hour, count); }
         h = h + 1usize;
         0
     }
-    out = string_concat(out, if json { "},\"busiest_hour\":\"" } else { "busiest_hour: " });
-    out = string_concat(out, busiest);
-    out = string_concat(out, if json { "\"}\n" } else { "\n" });
+    out = if json { string_format("{}}},\"busiest_hour\":\"{}\"}}\n", out, busiest) } else { string_format("{}busiest_hour: {}\n", out, busiest) };
     if matcher_failed { let message = "loglens: request matcher failed\n"; let view = string_as_str(message); let written = stderr_write(str_as_bytes(view)); 1 } else { let view = string_as_str(out); let written = stdout_write(str_as_bytes(view)); 0 }
 }
 

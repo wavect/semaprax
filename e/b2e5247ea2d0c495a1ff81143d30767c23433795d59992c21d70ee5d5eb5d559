@@ -1,0 +1,64 @@
+{
+  "rows": [
+    {
+      "source": "src/hir/validation/lexical_exit.rs",
+      "current_length": 48536,
+      "current_sha256": "f20b6d83c225a3615791a10de00adf9684cffdd920230c0f5c851112c2bef61d",
+      "before_length": 48442,
+      "before_sha256": "efd93bf8154b11c5399749f8592bae4ee73617448a12a62f488d0b158bd94302",
+      "edits": [
+        {
+          "start": 48442,
+          "end": 48536,
+          "after": "\n#[cfg(test)]\n#[path = \"lexical_exit/arm_context_tests.rs\"]\npub(super) mod arm_context_tests;\n",
+          "before": ""
+        }
+      ]
+    },
+    {
+      "source": "src/source_reflows_merge/main44_custody.rs",
+      "current_length": 72452,
+      "current_sha256": "211af4a6e43f834ada831ed6c6be49c0a587e758248543c821536ae248509f99",
+      "before_length": 69057,
+      "before_sha256": "beffdf341c9f75491c72425b1932878537caafa776e9a4b24a873521f95944a5",
+      "edits": [
+        {
+          "start": 339,
+          "end": 2334,
+          "after": "    pub(crate) fn prior_source(source: &str, current: &str) -> Option<String> {\n        use sha2::{Digest, Sha256};\n        let hash = |bytes: &[u8]| format!(\"{:x}\", crate::digest_hex::LowerHex(Sha256::digest(bytes)));\n        let binding: serde_json::Value =\n            serde_json::from_str(include_str!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/hir/validation/lexical_exit/arm_context_inverse.json\"))).unwrap();\n        let rows = binding[\"rows\"].as_array().unwrap();\n        assert_eq!(rows.len(), 2);\n        assert_eq!(rows[0][\"source\"], \"src/hir/validation/lexical_exit.rs\");\n        assert_eq!(rows[1][\"source\"], \"src/source_reflows_merge/main44_custody.rs\");\n        let row = rows\n            .iter()\n            .find(|row| row[\"source\"].as_str() == Some(source))?;\n        if current.len() as u64 != row[\"current_length\"].as_u64().unwrap()\n            || hash(current.as_bytes()) != row[\"current_sha256\"].as_str().unwrap()\n        {\n            return None;\n        }\n        let mut previous = Vec::new();\n        let mut end = 0;\n        for edit in row[\"edits\"].as_array().unwrap() {\n            let start = usize::try_from(edit[\"start\"].as_u64().unwrap()).unwrap();\n            let next = usize::try_from(edit[\"end\"].as_u64().unwrap()).unwrap();\n            assert!(end <= start && start <= next && next <= current.len());\n            assert_eq!(\n                &current.as_bytes()[start..next],\n                edit[\"after\"].as_str().unwrap().as_bytes()\n            );\n            previous.extend_from_slice(&current.as_bytes()[end..start]);\n            previous.extend_from_slice(edit[\"before\"].as_str().unwrap().as_bytes());\n            end = next;\n        }\n        previous.extend_from_slice(&current.as_bytes()[end..]);\n        assert_eq!(\n            previous.len() as u64,\n            row[\"before_length\"].as_u64().unwrap()\n        );\n        assert_eq!(hash(&previous), row[\"before_sha256\"].as_str().unwrap());\n        Some(String::from_utf8(previous).unwrap())\n    }\n\n",
+          "before": ""
+        },
+        {
+          "start": 22270,
+          "end": 22984,
+          "after": "        // Acquire the actual complete new arm-context owner before selecting\n        // its exact predecessor. The original physical/supplied check and all\n        // prior hashes, inverse operations and targets remain below.\n        let context_source = if source == \"src/hir/validation/lexical_exit.rs\" {\n            let root = std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\"));\n            assert_eq!(\n                current_file(&root.join(source), compiled.len(), &super::source_sha(compiled)).unwrap(),\n                compiled\n            );\n            Self::prior_source(source, compiled)\n        } else {\n            None\n        };\n        let compiled = context_source.as_deref().unwrap_or(compiled);\n",
+          "before": ""
+        },
+        {
+          "start": 24949,
+          "end": 25445,
+          "after": "        let acquired = if context_source.is_some() {\n            // Preserve the original late physical acquisition as well as the\n            // early one; a source change between the two remains a refusal.\n            let actual = current_file(&root.join(source), physical_compiled.len(), &super::source_sha(physical_compiled)).unwrap();\n            assert_eq!(actual, physical_compiled);\n            Self::prior_source(source, &actual).expect(\"exact late arm-context source\")\n        } else {\n",
+          "before": "        assert_eq!(\n"
+        },
+        {
+          "start": 26042,
+          "end": 26115,
+          "after": "            .unwrap()\n        };\n        assert_eq!(acquired, compiled);\n",
+          "before": "            .unwrap(),\n            compiled\n        );\n"
+        },
+        {
+          "start": 26664,
+          "end": 26856,
+          "after": "        if context_source.is_some() {\n            composed.push((48442, \"\\n#[cfg(test)]\\n#[path = \\\"lexical_exit/arm_context_tests.rs\\\"]\\npub(super) mod arm_context_tests;\\n\", \"\"));\n        }\n",
+          "before": ""
+        }
+      ]
+    }
+  ],
+  "retained_whole_prior_binding": {
+    "git_commit": "39180aaf178075fe7bd82003cb81b8764918eedd",
+    "source": "src/hir/validation/lexical_exit/arm_context_inverse.json",
+    "length": 5166,
+    "sha256": "7fe81f2bcc1c6497bfd565b4e4611de380f0590c730ac8461013d5f822309043"
+  }
+}

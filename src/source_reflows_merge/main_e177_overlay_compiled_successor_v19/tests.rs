@@ -24,6 +24,21 @@ fn auth_fixture(owner: &str) -> Value {
     })
 }
 
+fn packed(page: &Value) -> Value {
+    let entry = header(page).unwrap();
+    let mut result = page.clone();
+    result["compiled_successor"] = serde_json::json!([
+        "m",
+        entry["prior_row_sha256"],
+        entry["current"]["length"],
+        entry["current"]["sha256"],
+        entry["registration"]["current"]["length"],
+        entry["registration"]["current"]["sha256"],
+        entry["registration"]["start"]
+    ]);
+    result
+}
+
 #[test]
 fn singleton_registration_authenticates_both_trusted_current_channels_before_declaration() {
     let page = auth_fixture(OWNER_TEXT);
@@ -41,6 +56,15 @@ fn singleton_registration_authenticates_both_trusted_current_channels_before_dec
             .to_owned())
     };
     authenticate_with(&page, &registry, &acquire).unwrap();
+    assert_eq!(reads.get(), 2);
+    let tuple = packed(&page);
+    assert_eq!(
+        canonical(&header(&tuple).unwrap()),
+        canonical(&header(&page).unwrap()),
+        "ENTIRE closed object reconstructed from the strict tuple"
+    );
+    reads.set(0);
+    authenticate_with(&tuple, &registry, &acquire).unwrap();
     assert_eq!(reads.get(), 2);
     for missing in [SOURCE, OWNER] {
         reads.set(0);
@@ -187,40 +211,83 @@ fn actual_complete_v19_preserves_the_old_base_and_matches_python_composition() {
 #[test]
 fn actual_v19_refuses_unknown_multiple_stale_and_legacy_classification_changes() {
     let (before, policy, page) = actual();
+    // The old closed-object route retains every object-only hostile. These
+    // cannot be expressed by the fixed tuple and remain checked independently.
+    let object = auth_fixture(OWNER_TEXT);
+    let mut object_hostiles = Vec::new();
+    let mut bad = object.clone();
+    bad["compiled_successor"]["compiled"] = true.into();
+    object_hostiles.push(bad);
+    let mut bad = object.clone();
+    bad["compiled_successor"]["source"] = OWNER.into();
+    object_hostiles.push(bad);
+    let mut bad = object.clone();
+    bad["compiled_successor"]["current"]["archive"] = "src/foreign.rs".into();
+    object_hostiles.push(bad);
+    let mut bad = object.clone();
+    bad["compiled_successor"]["registration"]["owner"] = SOURCE.into();
+    object_hostiles.push(bad);
+    let mut bad = object.clone();
+    bad["compiled_successor"]["registration"]["text"] =
+        format!("#[cfg(test)]\n{DECLARATION}").into();
+    object_hostiles.push(bad);
+    for bad in object_hostiles {
+        assert!(header(&bad).is_err());
+    }
+    let page = packed(&page);
     let mut hostiles = Vec::new();
     let mut bad = page.clone();
     bad["unknown"] = true.into();
     hostiles.push(bad);
     let mut bad = page.clone();
-    bad["compiled_successor"]["compiled"] = true.into();
-    hostiles.push(bad);
-    let mut bad = page.clone();
     bad["compiled_successor"] = serde_json::json!([page["compiled_successor"].clone()]);
     hostiles.push(bad);
     let mut bad = page.clone();
-    bad["compiled_successor"]["source"] = OWNER.into();
+    bad["compiled_successor"][1] = "0".repeat(64).into();
     hostiles.push(bad);
     let mut bad = page.clone();
-    bad["compiled_successor"]["prior_row_sha256"] = "0".repeat(64).into();
-    hostiles.push(bad);
-    let mut bad = page.clone();
-    bad["compiled_successor"]["current"]["length"] = (super::super::SOURCE_CAP + 1).into();
-    hostiles.push(bad);
-    let mut bad = page.clone();
-    bad["compiled_successor"]["current"]["archive"] = "src/foreign.rs".into();
-    hostiles.push(bad);
-    let mut bad = page.clone();
-    bad["compiled_successor"]["registration"]["owner"] = SOURCE.into();
-    hostiles.push(bad);
-    let mut bad = page.clone();
-    bad["compiled_successor"]["registration"]["text"] =
-        format!("#[cfg(test)]\n{DECLARATION}").into();
+    bad["compiled_successor"][2] = (super::super::SOURCE_CAP + 1).into();
     hostiles.push(bad);
     let mut bad = page.clone();
     bad["page"]["schema"] = SCHEMA.into();
     hostiles.push(bad);
     let mut bad = page.clone();
-    bad["compiled_successor"]["registration"]["current"]["sha256"] = "0".repeat(64).into();
+    bad["compiled_successor"][5] = "0".repeat(64).into();
+    hostiles.push(bad);
+    for slot in [2, 4, 6] {
+        for value in [
+            serde_json::json!(true),
+            serde_json::json!(-1),
+            serde_json::json!(1.0),
+            serde_json::json!(u64::MAX),
+        ] {
+            let mut bad = page.clone();
+            bad["compiled_successor"][slot] = value;
+            hostiles.push(bad);
+        }
+    }
+    for slot in [1, 3, 5] {
+        for value in [
+            serde_json::json!(true),
+            serde_json::json!("G".repeat(64)),
+            serde_json::json!("0".repeat(63)),
+        ] {
+            let mut bad = page.clone();
+            bad["compiled_successor"][slot] = value;
+            hostiles.push(bad);
+        }
+    }
+    let mut bad = page.clone();
+    bad["compiled_successor"][0] = "unknown".into();
+    hostiles.push(bad);
+    let mut bad = page.clone();
+    bad["compiled_successor"].as_array_mut().unwrap().pop();
+    hostiles.push(bad);
+    let mut bad = page.clone();
+    bad["compiled_successor"]
+        .as_array_mut()
+        .unwrap()
+        .push(false.into());
     hostiles.push(bad);
     for bad in hostiles {
         assert!(compose(before.clone(), &policy, &bad).is_err());

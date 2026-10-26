@@ -1083,12 +1083,7 @@ _V19_INDEX = 389
 _V19_DECLARATION = ('#[path = "expected_projection/borrowed_imports.rs"]\n'
                     'pub(in crate::workspace_graph) mod borrowed_imports;\n')
 
-def _v19_successor(page):
- assert len(canonical(page)) <= PAGE_CAP, 'v19 same one-page cap'
- assert keys(page, ('schema','compiled_successor','page')) and page['schema']==V19_SCHEMA, 'v19 envelope'
- inner=page['page']
- assert type(inner) is dict and inner.get('schema')==V18_SCHEMA, 'v19 complete v18 page'
- entry=page['compiled_successor']
+def _v19_descriptor(entry):
  assert keys(entry, ('source','prior_row_sha256','current','registration')), 'v19 single successor'
  assert entry['source']==_V19_SOURCE, 'v19 admitted source'
  digest=entry['prior_row_sha256']
@@ -1103,6 +1098,23 @@ def _v19_successor(page):
  assert registration['text']==_V19_DECLARATION, 'v19 exact declaration'
  assert registration['start']+len(registration['text'].encode())<=registration['current']['length'], 'v19 declaration bound'
  return entry
+
+def _v19_successor(page):
+ assert len(canonical(page)) <= PAGE_CAP, 'v19 same one-page cap'
+ assert keys(page, ('schema','compiled_successor','page')) and page['schema']==V19_SCHEMA, 'v19 envelope'
+ inner=page['page']
+ assert type(inner) is dict and inner.get('schema')==V18_SCHEMA, 'v19 complete v18 page'
+ entry=page['compiled_successor']
+ if type(entry)is list:
+  assert len(entry)==7 and entry[0]=='m', 'v19 compact singleton'
+  for index in (1,3,5):assert type(entry[index])is str and re.fullmatch('[0-9a-f]{64}',entry[index]), 'v19 compact digest'
+  for index in (2,4,6):assert type(entry[index])is int, 'v19 compact integer'
+  for index in (2,4):assert 0<=entry[index]<=SOURCE_CAP, 'v19 compact length'
+  assert 2<=entry[6]<=SOURCE_CAP and entry[6]+len(_V19_DECLARATION.encode())<=entry[4], 'v19 compact declaration bound'
+  entry={'source':_V19_SOURCE,'prior_row_sha256':entry[1],
+         'current':{'length':entry[2],'sha256':entry[3],'archive':'e/'+entry[3]},
+         'registration':{'owner':_V19_OWNER,'current':{'length':entry[4],'sha256':entry[5],'archive':'e/'+entry[5]},'start':entry[6],'text':_V19_DECLARATION}}
+ return _v19_descriptor(entry)
 
 def authenticate_v19_registration(overlay,page):
  entry=_v19_successor(page);registration=entry['registration']
@@ -1150,7 +1162,9 @@ def compose_v19(before,policy,page):
  return result
 
 def encode_v19(page,compiled_successor):
- result={'schema':V19_SCHEMA,'compiled_successor':copy.deepcopy(compiled_successor),'page':copy.deepcopy(page)}
- _v19_successor(result)
- assert canonical(result['page'])==canonical(page) and canonical(result['compiled_successor'])==canonical(compiled_successor), 'v19 ENTIRE inputs retained'
+ entry=_v19_descriptor(compiled_successor);registration=entry['registration']
+ compact=['m',entry['prior_row_sha256'],entry['current']['length'],entry['current']['sha256'],registration['current']['length'],registration['current']['sha256'],registration['start']]
+ result={'schema':V19_SCHEMA,'compiled_successor':compact,'page':copy.deepcopy(page)}
+ restored=_v19_successor(result)
+ assert canonical(result['page'])==canonical(page) and canonical(restored)==canonical(compiled_successor), 'v19 ENTIRE inputs retained'
  return result

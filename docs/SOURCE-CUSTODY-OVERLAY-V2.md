@@ -408,6 +408,20 @@ registration fields are `owner`, `current`, `start`, and `text`; the owner is
 pub(in crate::workspace_graph) mod borrowed_imports;
 ```
 
+The producer emits a compact singleton tuple with exactly seven positions:
+`["m", prior_row_sha256, source_length, source_sha256, owner_length,
+owner_sha256, declaration_start]`. The decoder also retains the exact closed
+object form above. A tuple reconstructs that entire object using the already
+fixed source, owner, declaration and `e/` plus each full SHA-256. It refuses
+wrong tags, arity, booleans, non-integer lengths or offsets, invalid digests and
+unknown fields. Both forms enter the same complete pin, registration and
+ordinary loader checks; the tuple supplies no new authority. The physical
+262144-byte cap is checked before reconstruction, and the complete inner V18
+page remains within its original public cap. The existing V10 archive-prefix
+dictionary may append useful entries within its unchanged limit of 32 while
+retaining all 23 original entries and their order; every archive path and
+whole-object inverse remains exact.
+
 The trailing newline belongs to the declaration. `start` is its non-boolean
 byte offset after a blank line; the complete literal must occur once in the
 actual authenticated owner. An adjacent attribute, another source, a missing

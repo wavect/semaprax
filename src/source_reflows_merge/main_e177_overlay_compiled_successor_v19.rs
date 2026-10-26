@@ -1,5 +1,6 @@
 //! One explicitly witnessed metadata successor; the V18/V2 readers stay intact.
 use super::{PAGE_CAP, Value, canonical, digest, keys, pin};
+use std::borrow::Cow;
 
 pub(super) const SCHEMA: &str = "semaprax.finite-source-overlay-page.v19";
 const SOURCE: &str = "src/workspace_graph/expected_projection/borrowed_imports.rs";
@@ -20,7 +21,49 @@ fn current_pin(value: &Value) -> Result<(usize, &str), &'static str> {
     Ok((length, sha))
 }
 
-fn header(page: &Value) -> Result<&Value, &'static str> {
+fn tuple_entry(value: &Value) -> Result<Value, &'static str> {
+    let values = value.as_array().ok_or("v19 successor tuple")?;
+    require!(
+        values.len() == 7 && values[0] == "m",
+        "v19 successor tuple tag/arity"
+    );
+    for index in [1, 3, 5] {
+        let sha = values[index].as_str().ok_or("v19 successor tuple digest")?;
+        require!(
+            sha.len() == 64
+                && sha
+                    .bytes()
+                    .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)),
+            "v19 successor tuple digest"
+        );
+    }
+    let source_length = usize::try_from(values[2].as_u64().ok_or("v19 successor tuple length")?)
+        .map_err(|_| "v19 successor tuple length")?;
+    let owner_length = usize::try_from(values[4].as_u64().ok_or("v19 successor tuple length")?)
+        .map_err(|_| "v19 successor tuple length")?;
+    let start = usize::try_from(values[6].as_u64().ok_or("v19 successor tuple start")?)
+        .map_err(|_| "v19 successor tuple start")?;
+    require!(
+        source_length <= super::SOURCE_CAP && owner_length <= super::SOURCE_CAP,
+        "v19 successor tuple bound"
+    );
+    require!(
+        start >= 2
+            && start
+                .checked_add(DECLARATION.len())
+                .is_some_and(|end| end <= owner_length),
+        "v19 successor tuple span"
+    );
+    // Every borrowed scalar and complete fixed-size output bound is checked
+    // before constructing a source, archive descriptor, or registration object.
+    Ok(serde_json::json!({
+        "source":SOURCE,"prior_row_sha256":values[1],
+        "current":{"length":source_length,"sha256":values[3],"archive":format!("e/{}",values[3].as_str().unwrap())},
+        "registration":{"owner":OWNER,"current":{"length":owner_length,"sha256":values[5],"archive":format!("e/{}",values[5].as_str().unwrap())},"start":start,"text":DECLARATION}
+    }))
+}
+
+fn header(page: &Value) -> Result<Cow<'_, Value>, &'static str> {
     require!(canonical(page).len() <= PAGE_CAP, "v19 same one-page cap");
     require!(
         keys(page, &["schema", "compiled_successor", "page"]) && page["schema"] == SCHEMA,
@@ -30,10 +73,14 @@ fn header(page: &Value) -> Result<&Value, &'static str> {
         page["page"]["schema"] == super::fragments_v3::SCHEMA_V18,
         "v19 complete V18 page"
     );
-    let successor = &page["compiled_successor"];
+    let successor = if page["compiled_successor"].is_array() {
+        Cow::Owned(tuple_entry(&page["compiled_successor"])?)
+    } else {
+        Cow::Borrowed(&page["compiled_successor"])
+    };
     require!(
         keys(
-            successor,
+            &successor,
             &["source", "prior_row_sha256", "current", "registration"]
         ) && successor["source"] == SOURCE,
         "v19 singleton source"

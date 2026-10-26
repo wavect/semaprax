@@ -793,7 +793,7 @@ class TypedFragmentReferences(unittest.TestCase):
 
 class CompiledSuccessorV19(unittest.TestCase):
     @staticmethod
-    def fixture():
+    def fixture(compact=False):
         def current(raw):
             digest = hashlib.sha256(raw).hexdigest()
             return {'length': len(raw), 'sha256': digest, 'archive': 'e/' + digest}
@@ -826,6 +826,8 @@ class CompiledSuccessorV19(unittest.TestCase):
                          'owner': codec._V19_OWNER, 'current': copy.deepcopy(rows[0]['current']),
                          'start': 2, 'text': codec._V19_DECLARATION}}
         wire = codec.encode_v19(inner, successor)
+        assert codec.canonical(codec._v19_successor(wire)) == codec.canonical(successor)
+        if not compact:wire['compiled_successor'] = copy.deepcopy(successor)
         return before, policy, wire, {codec._V19_OWNER: owner_raw, codec._V19_SOURCE: source_raw}
 
     def test_whole_original_inverse_and_new_compiled_fragment(self):
@@ -892,6 +894,35 @@ class CompiledSuccessorV19(unittest.TestCase):
         wire['compiled_successor']['registration']['current']['sha256'] = pins[codec._V19_OWNER]['sha256']
         wire['compiled_successor']['registration']['current']['archive'] = 'e/' + pins[codec._V19_OWNER]['sha256']
         with self.assertRaisesRegex(AssertionError, 'v19 declaration attribute boundary'):overlay.load_current()
+
+    def test_compact_tuple_whole_object_inverse_and_hostile_shapes(self):
+        before, policy, compact, raw = self.fixture(compact=True)
+        _, _, original, _ = self.fixture()
+        self.assertEqual(codec.canonical(codec._v19_successor(compact)), codec.canonical(original['compiled_successor']))
+        self.assertEqual(codec.canonical(codec.compose_values(before, policy, compact)),
+                         codec.canonical(codec.compose_values(before, policy, original)))
+        self.assertEqual(compact['page'], original['page'])
+        malformed = [[], compact['compiled_successor'][:-1], compact['compiled_successor'] + [None]]
+        for index, values in [(0, ['other', True, None]), (1, [None, True, '0'*63, 'g'*64]),
+                              (2, [True, 1.5, None, -1, codec.SOURCE_CAP+1]),
+                              (3, [None, True, '0'*63, 'g'*64]),
+                              (4, [True, 1.5, None, -1, codec.SOURCE_CAP+1]),
+                              (5, [None, True, '0'*63, 'g'*64]),
+                              (6, [True, 1.5, None, -1, codec.SOURCE_CAP+1])]:
+            for value in values:
+                record = copy.deepcopy(compact['compiled_successor']);record[index] = value;malformed.append(record)
+        for record in malformed:
+            bad = copy.deepcopy(compact);bad['compiled_successor'] = record
+            with self.subTest(record=record), self.assertRaises(AssertionError):codec.compose_values(before, policy, bad)
+        pins = {source: {'length': len(value), 'sha256': hashlib.sha256(value).hexdigest()} for source, value in raw.items()}
+        calls = [];overlay = codec.Overlay(None, None, None, None, None, None, lambda source: pins[source])
+        overlay.current = lambda row: calls.append(row['source']) or raw[row['source']]
+        codec.authenticate_v19_registration(overlay, compact)
+        self.assertEqual(calls, [codec._V19_SOURCE, codec._V19_OWNER]);calls.clear()
+        pins[codec._V19_OWNER]['sha256'] = '0'*64
+        with self.assertRaisesRegex(AssertionError, 'v19 stale trusted current binding'):
+            codec.authenticate_v19_registration(overlay, compact)
+        self.assertFalse(calls)
 
     def test_wire_cap_refuses_before_clone(self):
         _, _, wire, _ = self.fixture(); wire['page']['opaque'] = 'x'*codec.PAGE_CAP

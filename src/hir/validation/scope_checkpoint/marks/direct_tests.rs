@@ -7,7 +7,7 @@ thread_local! { static BEFORE: std::cell::Cell<bool> = const { std::cell::Cell::
 pub(super) fn before_selected() -> bool {
     BEFORE.with(std::cell::Cell::get)
 }
-fn before<T>(body: impl FnOnce() -> T) -> T {
+pub(super) fn before<T>(body: impl FnOnce() -> T) -> T {
     struct Restore(bool);
     impl Drop for Restore {
         fn drop(&mut self) {
@@ -219,6 +219,44 @@ fn direct_exact_short_zero_floor_sticky_and_unwind_keep_full_drop_and_immutable_
         assert_eq!(first.is_none(), success);
         assert!(!metrics.invalid && metrics.live == 0);
         assert_eq!(metrics.allocated, metrics.freed);
+    }
+    // Exact current counterpart of the retained pre939 missing-Place payer
+    // test. Its eliminated backing cuts are not historical current invoices.
+    let missing = ValueId::new("absent".to_owned());
+    let missing_expression = place(&program, &missing);
+    for cut in [
+        0,
+        1,
+        INERT_ROOT_CONTROLS / 2,
+        INERT_ROOT_CONTROLS - 1,
+        INERT_ROOT_CONTROLS,
+        INERT_ROOT_CONTROLS + 1,
+    ] {
+        let mut scope = seed(&id).unwrap();
+        let snapshot = scope.clone();
+        let ((result, metrics), refused, used, first) = with_limit_usage_refusal(cut, || {
+            measure(|| {
+                let result = validator.mark_value_sources_moved(&missing_expression, &mut scope);
+                if result.is_err() {
+                    let retry = validator.mark_value_sources_moved(&missing_expression, &mut scope);
+                    assert_eq!(retry, result, "complete missing-root sticky status");
+                }
+                result
+            })
+        });
+        let success = cut >= INERT_ROOT_CONTROLS;
+        assert_eq!(result.is_ok(), success);
+        assert_eq!(refused, !success);
+        assert_eq!(first.is_none(), success);
+        if let Some(first) = first {
+            assert_eq!(first.requested, INERT_ROOT_CONTROLS);
+        }
+        assert_eq!(used, if success { INERT_ROOT_CONTROLS } else { 0 });
+        assert_eq!(scope, snapshot, "same full missing-root publication");
+        assert!(!metrics.invalid && metrics.live == 0 && metrics.allocated == 0);
+        drop(result);
+        drop(scope);
+        drop(snapshot);
     }
     for old in [true, false] {
         let (_, metrics) = measure(|| {

@@ -415,8 +415,10 @@ fn live_overlapping_loan_keeps_complete_original_refusal_and_error_publication()
     );
 }
 
+#[rustfmt::skip]
 #[test]
 fn propagating_driver_keeps_each_original_payer_cut_after_the_new_selector() {
+    super::direct_tests::before(|| {
     let program = program();
     let validator = HirValidator::new(&program).unwrap();
     let expression = expression(
@@ -445,6 +447,7 @@ fn propagating_driver_keeps_each_original_payer_cut_after_the_new_selector() {
         assert_eq!(used, old_used + INERT_ROOT_CONTROLS);
         assert_eq!(current, old);
     }
+    });
 }
 
 thread_local! {

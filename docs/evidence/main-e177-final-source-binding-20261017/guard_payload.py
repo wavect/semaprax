@@ -16,7 +16,7 @@ def bounded(path,length,digest):
  finally:os.close(fd)
 _CONFIG_PATH=R/'docs/evidence/merge-2e92-browser-20261018/guard-config.json'
 _CONFIG_LENGTH=258173
-_CONFIG_SHA256='ab0abe6d3e24a6e7f8405996bc0dd623ec9e9eb317f8635052ae0681c4c74064'
+_CONFIG_SHA256='d92ff5ccf3d0d8861fd921b591187ba8c8e5971c373d3aea16611b63d6be3046'
 _CONFIG_RAW=bounded(_CONFIG_PATH,_CONFIG_LENGTH,_CONFIG_SHA256)
 # Closed field-only transport. Legacy list semantics and every other CONFIG value remain unchanged.
 _CLOSED_SOURCE_SCHEMA='semaprax.closed-prior-sources.prefixes.v1'

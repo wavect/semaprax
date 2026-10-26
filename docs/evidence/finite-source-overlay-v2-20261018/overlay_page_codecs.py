@@ -1104,7 +1104,8 @@ def _v19_successor(page):
  assert len(canonical(page)) <= PAGE_CAP, 'v19 same one-page cap'
  assert keys(page, ('schema','compiled_successor','page')) and page['schema']==V19_SCHEMA, 'v19 envelope'
  inner=page['page']
- assert type(inner) is dict and inner.get('schema')==V18_SCHEMA, 'v19 complete v18 page'
+ assert type(inner) is dict and inner.get('schema') in (V18_SCHEMA,V19_INDEXED_SCHEMA), 'v19 complete v18 page'
+ if inner['schema']==V19_INDEXED_SCHEMA:_v19_indexed_preflight(inner,SOURCE_CAP)
  entry=page['compiled_successor']
  if type(entry)is list:
   assert len(entry)==7 and entry[0]=='m', 'v19 compact singleton'
@@ -1150,6 +1151,8 @@ def compose_v19(before,policy,page):
  adjusted_policy=copy.deepcopy(policy);adjusted_page=copy.deepcopy(page['page'])
  adjusted_policy['predecessor']['logical_sha256']=H(canonical(derived))
  adjusted_page['predecessor']=copy.deepcopy(adjusted_policy['predecessor'])
+ if adjusted_page['schema']==V19_INDEXED_SCHEMA:
+  adjusted_page=_expand_v12_logical_view_labels(_expand_v13_logical_digest_table(_expand_v14_logical_pin_tails(_expand_v15_logical_source_paths(expand_v19_indexed_fragment_refs(adjusted_page)))))
  # The old decoder still owns every view, unknown-field, order, fragment,
  # whole-row inverse and cap check. The derived base is never physical history.
  result=compose_values(derived,adjusted_policy,adjusted_page)
@@ -1164,8 +1167,148 @@ def compose_v19(before,policy,page):
 
 def encode_v19(page,compiled_successor):
  entry=_v19_descriptor(compiled_successor);registration=entry['registration']
+ if page.get('schema')==V19_INDEXED_SCHEMA:_v19_indexed_preflight(page,SOURCE_CAP)
  compact=['m',entry['prior_row_sha256'],entry['current']['length'],entry['current']['sha256'],registration['current']['length'],registration['current']['sha256'],registration['start']]
  result={'schema':V19_SCHEMA,'compiled_successor':compact,'page':copy.deepcopy(page)}
  restored=_v19_successor(result)
  assert canonical(result['page'])==canonical(page) and canonical(restored)==canonical(compiled_successor), 'v19 ENTIRE inputs retained'
+ return result
+
+# The indexed V19 inner wire retains public V18 byte bounds and bodies above.
+V19_INDEXED_SCHEMA = 'semaprax.finite-source-overlay-page.v19-indexed'
+def _v19_source_preflight(page, limit):
+ assert keys(page,(*V12_KEYS,'view_labels','digest_table','pin_tails')) and page['schema']==V18_SCHEMA, 'v18 envelope'
+ expanded=len(canonical(page));assert expanded<=SOURCE_CAP, 'v19 restored logical source bound'
+ assert type(page['additions']) is list, 'v18 rows'
+ total=519+len(page['additions'])
+ def bound(amount):
+  nonlocal expanded
+  expanded+=amount;assert expanded<=min(limit,SOURCE_CAP), 'v18 expanded bound'
+ def row(value):
+  if type(value) is dict:
+   assert not _v16_eligible(value) and not keys(value,('source_row',)), 'v18 literal row alias'
+  else:
+   items=_v17_tuple(value)
+   bound(_v16_overhead(len(items))+len(b'{"source_row":[]}')-2+(4 if items[1]==0 else 3))
+  return value
+ def reference(value):
+  if type(value) is dict:
+   if keys(value,('canonical_source',)) and type(value['canonical_source']) is not str:
+    _v18_index(value['canonical_source'],total);assert False, 'v18 wrapped integer alias'
+  else:_v18_index(value,total);bound(21)
+  return value
+ _v18_walk(page,row,reference)
+ assert expanded<=min(limit,SOURCE_CAP), 'v18 expanded bound'
+ return expanded
+
+def _expand_v19_restored_fragment_refs(page):
+ expanded=_v19_source_preflight(page,SOURCE_CAP)
+ result=copy.deepcopy(page);result['schema']=V15_SCHEMA
+ def decode(value):
+  if type(value) is dict:return value
+  items=_v17_tuple(value);value=dict(zip((*_V16_ROW_KEYS,'fragments'),items));value['compiled']=items[1]==1;return value
+ _v18_walk(result,decode,lambda value:{'canonical_source':value} if type(value) is int else value,True)
+ assert len(canonical(result))==expanded, 'v18 expanded bound'
+ _expand_v15_logical_source_paths(result)
+ return result
+
+def _encode_v19_source_fragment_refs(page):
+ assert keys(page,(*V12_KEYS,'view_labels','digest_table','pin_tails')) and page['schema']==V15_SCHEMA, 'v18 input envelope'
+ assert len(canonical(page))<=SOURCE_CAP, 'v18 logical input bound'
+ _expand_v15_logical_source_paths(page)
+ result=copy.deepcopy(page)
+ def row(value):
+  if not _v16_eligible(value):
+   assert not keys(value,('source_row',)), 'v18 literal row alias'
+   return value
+  assert type(value['compiled']) is bool, 'v18 source/compiled type'
+  items=[value[key] for key in (*_V16_ROW_KEYS,'fragments') if key in value];items[1]=int(items[1]);return _v17_tuple(items)
+ _v16_walk(result,row,True,True)
+ total=519+len(result['additions'])
+ def reference(value):
+  assert type(value) is dict, 'v18 literal integer alias'
+  if keys(value,('canonical_source',)) and type(value['canonical_source']) is not str:return _v18_index(value['canonical_source'],total)
+  return value
+ _v18_walk(result,lambda value:value,reference,True);result['schema']=V18_SCHEMA
+ assert len(canonical(result))<=SOURCE_CAP, 'v19 restored logical source bound'
+ assert canonical(_expand_v19_restored_fragment_refs(result))==canonical(page), 'v18 ENTIRE V15 page inverse'
+ return result
+
+def _v19_indexed_walk(page, row, reference, old519, publish=False):
+ def fragments(values):
+  if values is None:return
+  assert type(values) is list, 'v18 fragments'
+  for index,value in enumerate(values):
+   if type(value) is int or type(value) is bool or type(value) is float or (type(value) is dict and 'canonical_source' in value):changed=reference(value)
+   else:
+    assert type(value) in (dict,list), 'v18 fragment row'
+    changed=row(value)
+   if publish:values[index]=changed
+ for group in ('replacements','additions'):
+  assert type(page[group]) is list, 'v18 rows'
+  for index,value in enumerate(page[group]):
+   assert not (type(value) is dict and 'old519_index' in value), 'v19 indexed wrapped old519 alias'
+   compact=type(value) is list and bool(value) and type(value[0]) in (int,bool,float)
+   if compact:
+    assert group=='replacements', 'v19 indexed addition alias'
+    assert len(value)==4 and type(value[0]) is int and 0<=value[0]<519, 'v19 indexed old519 reference'
+    old519();fragments(value[3])
+    if publish:page[group][index]={'old519_index':value}
+   else:
+    assert type(value) in (dict,list), 'v18 row type'
+    changed=row(value)
+    if type(changed) is list:
+     _v17_tuple(changed)
+     if len(changed)==5:fragments(changed[4])
+    elif 'fragments' in changed:fragments(changed['fragments'])
+    if publish:page[group][index]=changed
+
+def _v19_indexed_preflight(page, limit):
+ assert keys(page,(*V12_KEYS,'view_labels','digest_table','pin_tails')) and page['schema']==V19_INDEXED_SCHEMA, 'v18 envelope'
+ physical=len(canonical(page));assert physical<=PAGE_CAP, 'v19 indexed same one-page cap'
+ expanded=physical+len(V18_SCHEMA)-len(V19_INDEXED_SCHEMA)
+ assert type(page['additions']) is list, 'v18 rows'
+ total=519+len(page['additions'])
+ def bound(amount):
+  nonlocal expanded
+  expanded+=amount;assert expanded<=min(limit,SOURCE_CAP), 'v18 expanded bound'
+ def row(value):
+  if type(value) is dict:
+   assert not _v16_eligible(value) and not keys(value,('source_row',)), 'v18 literal row alias'
+  else:
+   items=_v17_tuple(value)
+   bound(_v16_overhead(len(items))+len(b'{"source_row":[]}')-2+(4 if items[1]==0 else 3))
+  return value
+ def reference(value):
+  if type(value) is dict:
+   if keys(value,('canonical_source',)) and type(value['canonical_source']) is not str:
+    _v18_index(value['canonical_source'],total);assert False, 'v18 wrapped integer alias'
+  else:_v18_index(value,total);bound(21)
+  return value
+ _v19_indexed_walk(page,row,reference,lambda:bound(17))
+ assert expanded<=min(limit,SOURCE_CAP), 'v18 expanded bound'
+ return expanded
+
+def expand_v19_indexed_fragment_refs(page):
+ expanded=_v19_indexed_preflight(page,SOURCE_CAP)
+ result=copy.deepcopy(page);result['schema']=V15_SCHEMA
+ def decode(value):
+  if type(value) is dict:return value
+  items=_v17_tuple(value);value=dict(zip((*_V16_ROW_KEYS,'fragments'),items));value['compiled']=items[1]==1;return value
+ _v19_indexed_walk(result,decode,lambda value:{'canonical_source':value} if type(value) is int else value,lambda:None,True)
+ assert len(canonical(result))==expanded, 'v18 expanded bound'
+ _expand_v15_logical_source_paths(result)
+ return result
+
+def encode_v19_indexed_inner(page):
+ logical=_encode_v15_logical_source_paths(_encode_v14_logical_pin_tails(_encode_v13_logical_digest_table(page)))
+ restored=_encode_v19_source_fragment_refs(logical)
+ result=copy.deepcopy(restored);result['schema']=V19_INDEXED_SCHEMA
+ for index,value in enumerate(result['replacements']):
+  if type(value) is dict and 'old519_index' in value:
+   assert keys(value,('old519_index',)), 'v19 indexed old519 fields'
+   items=value['old519_index'];assert type(items)is list and len(items)==4 and type(items[0])is int and 0<=items[0]<519, 'v19 indexed old519 reference'
+   result['replacements'][index]=items
+ assert len(canonical(result))<=PAGE_CAP, 'v19 indexed same one-page cap'
+ assert canonical(expand_v19_indexed_fragment_refs(result))==canonical(logical), 'v19 indexed ENTIRE logical inverse'
  return result

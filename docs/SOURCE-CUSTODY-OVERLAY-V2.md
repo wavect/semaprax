@@ -460,3 +460,20 @@ and duplicate record rejection, stale/foreign/current witness rejection,
 pre-I/O binding, physical drift, declaration attributes, and unchanged caps.
 These authored controls are pending the joint owning verification batch and
 establish no current normal, runtime, hosted or production qualification.
+
+The V19 outer envelope also admits the inner schema
+`semaprax.finite-source-overlay-page.v19-indexed`. Its top-level replacement
+rows encode the existing sole-key `old519_index` object's four slots directly
+as an array. The first slot is a strict integer in `0..519`; booleans, floats,
+wrong arities, wrapped aliases, and this form in additions or fragments are
+rejected. Ordinary source-row arrays retain their string first slot.
+
+The complete physical outer page remains bounded by 262144 bytes. Before any
+expanded row, reference, wrapper, or page is allocated, the indexed preflight
+proves the complete restored V15 logical byte bound under the existing source
+cap, including each 17-byte wrapper, schema delta, source-row expansion, and
+fragment reference. Only this explicit indexed route uses the private source
+bounded V18 frontier; public V18 encoders, decoders, and page caps are unchanged.
+The decoder reconstructs the complete prior logical object and applies every
+ordinary V19 registration, original V2, unknown-field, history, and inverse
+check. This encoding grants no source, archive, or compiled authority.

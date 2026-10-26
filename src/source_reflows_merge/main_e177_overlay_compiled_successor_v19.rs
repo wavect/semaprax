@@ -70,9 +70,13 @@ fn header(page: &Value) -> Result<Cow<'_, Value>, &'static str> {
         "v19 closed envelope"
     );
     require!(
-        page["page"]["schema"] == super::fragments_v3::SCHEMA_V18,
+        page["page"]["schema"] == super::fragments_v3::SCHEMA_V18
+            || page["page"]["schema"] == super::fragments_v3::SCHEMA_V19_INDEXED,
         "v19 complete V18 page"
     );
+    if page["page"]["schema"] == super::fragments_v3::SCHEMA_V19_INDEXED {
+        super::fragments_v3::preflight_indexed(&page["page"], super::SOURCE_CAP)?;
+    }
     let successor = if page["compiled_successor"].is_array() {
         Cow::Owned(tuple_entry(&page["compiled_successor"])?)
     } else {
@@ -241,7 +245,11 @@ pub(super) fn compose(before: Value, policy: &Value, page: &Value) -> Result<Val
     internal_policy["predecessor"]["logical_sha256"] = digest(&canonical(&derived)).into();
     let mut internal_page = page["page"].clone();
     internal_page["predecessor"] = internal_policy["predecessor"].clone();
-    let expanded = super::fragments_v3::expand_v18(&derived, &internal_policy, &internal_page)?;
+    let expanded = if internal_page["schema"] == super::fragments_v3::SCHEMA_V19_INDEXED {
+        super::fragments_v3::expand_v19_indexed(&derived, &internal_policy, &internal_page)?
+    } else {
+        super::fragments_v3::expand_v18(&derived, &internal_policy, &internal_page)?
+    };
     let result = super::compose_values_v2(derived, &internal_policy, &expanded)?;
     let rows = result["rows"].as_array().ok_or("v19 result rows")?;
     let current = &rows[POSITION];

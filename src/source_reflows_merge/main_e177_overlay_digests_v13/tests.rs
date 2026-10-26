@@ -1334,19 +1334,25 @@ pub(in super::super::super) fn verify_current_v18(current: &Value) {
     policy["predecessor"]["logical_sha256"] = hash(&canonical(&derived)).into();
     let mut inner = current["page"].clone();
     inner["predecessor"] = policy["predecessor"].clone();
-    assert_eq!(inner["schema"], typed_refs_v18::SCHEMA_V18);
-    let logical = typed_refs_v18::expand_to_v15(&inner).unwrap();
+    let indexed = inner["schema"] == typed_refs_v18::SCHEMA_V19_INDEXED;
+    assert!(indexed || inner["schema"] == typed_refs_v18::SCHEMA_V18);
+    let decode = |page: &Value| if indexed { typed_refs_v18::expand_indexed_to_v15(page) } else { typed_refs_v18::expand_to_v15(page) };
+    let logical = decode(&inner).unwrap();
     let v12 = expand_to_v12_logical(
         &expand_to_v13_logical(&expand_to_v14_logical(&logical).unwrap()).unwrap(),
     ).unwrap();
-    let wire = typed_refs_v18::encode(&v12).unwrap();
-    let actual = python_v18(&v12, &[]);
+    let wire = if indexed { typed_refs_v18::encode_indexed(&v12) } else { typed_refs_v18::encode(&v12) }.unwrap();
+    let actual = if indexed { typed_refs_v18::python_indexed(&v12) } else { python_v18(&v12, &[]) };
     assert_eq!(canonical(&actual["encoded"]), canonical(&wire));
     assert_eq!(canonical(&actual["v15"]), canonical(&logical));
-    assert_eq!(canonical(&typed_refs_v18::expand_to_v15(&wire).unwrap()), canonical(&logical));
+    assert_eq!(canonical(&decode(&wire).unwrap()), canonical(&logical));
     assert_eq!(canonical(&inner), canonical(&wire));
-    let original = super::super::super::compose_values(derived.clone(), &policy, &inner).unwrap();
-    let restored = super::super::super::compose_values(derived, &policy, &wire).unwrap();
+    let compose = |page: &Value| if indexed {
+        let expanded = typed_refs_v18::expand_v19_indexed(&derived, &policy, page)?;
+        super::super::super::compose_values_v2(derived.clone(), &policy, &expanded)
+    } else { super::super::super::compose_values(derived.clone(), &policy, page) };
+    let original = compose(&inner).unwrap();
+    let restored = compose(&wire).unwrap();
     assert_eq!(canonical(&restored), canonical(&original));
     assert_eq!(canonical(&original), canonical(&expected));
 }

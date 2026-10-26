@@ -14,7 +14,7 @@ OLD = runpy.run_path(str(FIXTURE / 'controller.before.py.txt'))
 
 # Closed current-source acquisition precedes every unchanged legacy assertion.
 _FRONT_PATH = 'src/source_reflows/next_custody_fronts.json'
-_FRONT_PIN = {'length': 1356309, 'sha256': 'be49c04d1052717f5d3f303bd5dbb5a3f5b92db50c527ad8ad0b6c764a42e3d3'}
+_FRONT_PIN = {'length': 1356587, 'sha256': 'aa0b92ed3b26a77d2d636c66a802a63fe9accbc754085383eeea10b8c3a46bc0'}
 _NEXT_PATH = 'src/source_reflows/next_custody_inverse.json'
 _PAIRS = [
     ('prelude286', 'tests/workspace/semantic_graph/source_inventory.rs'),
@@ -793,7 +793,7 @@ class TypedFragmentReferences(unittest.TestCase):
 
 class CompiledSuccessorV19(unittest.TestCase):
     @staticmethod
-    def fixture(compact=False):
+    def fixture(compact=False, indexed=False):
         def current(raw, immutable=True):
             digest = hashlib.sha256(raw).hexdigest()
             return {'length': len(raw), 'sha256': digest, 'archive': ('e/' if immutable else 'fixture/') + digest}
@@ -803,7 +803,7 @@ class CompiledSuccessorV19(unittest.TestCase):
                  'current': current(b'old', immutable=False), 'views': [], 'opaque': {'order': [3, 1, 2]}}
                 for i in range(519)]
         rows[0].update(source=codec._V19_OWNER, compiled=True, current=current(owner_raw))
-        rows[10]['compiled'] = True
+        rows[10].update(source=sorted(codec.V3_ROOTS)[0], compiled=True)
         rows[389]['source'] = codec._V19_SOURCE
         before = {'schema': 'fixture', 'source_cap': codec.SOURCE_CAP,
                   'rows': rows, 'opaque_root': [False, {'keep': None}]}
@@ -817,10 +817,12 @@ class CompiledSuccessorV19(unittest.TestCase):
                   'additions': [], 'new_fragment_edges': [{'parent': carrier['source'], 'child': target['source']}]}
         logical = {'schema': codec.V8_SCHEMA, 'index': 1, 'total_pages': 1,
                    'predecessor': copy.deepcopy(predecessor), 'replacements': [carrier, target], 'additions': []}
+        if indexed:
+            logical['replacements'] = [{'old519_index': [index, row['current'], row['views'], row.get('fragments')]} for index, row in zip((10, 389), logical['replacements'])]
         v9 = codec.transform_v9_pin_slots(logical, True); v9['schema'] = codec.V9_SCHEMA
         v10 = codec.encode_v10_with_prefixes(v9, ['fixture/'])
         v11 = codec.transform_v11_digest_slots(v10, True); v11['schema'] = codec.V11_SCHEMA
-        inner = codec.encode_v18(codec.encode_v12_view_labels(v11))
+        inner = (codec.encode_v19_indexed_inner if indexed else codec.encode_v18)(codec.encode_v12_view_labels(v11))
         successor = {'source': codec._V19_SOURCE, 'prior_row_sha256': codec.H(codec.canonical(rows[389])),
                      'current': copy.deepcopy(target['current']), 'registration': {
                          'owner': codec._V19_OWNER, 'current': copy.deepcopy(rows[0]['current']),
@@ -928,6 +930,29 @@ class CompiledSuccessorV19(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, 'v19 stale trusted current binding'):
             codec.authenticate_v19_registration(overlay, compact)
         self.assertFalse(calls)
+
+        indexed_before, indexed_policy, indexed_wire, _ = self.fixture(compact=True, indexed=True)
+        indexed_result = codec.compose_values(indexed_before, indexed_policy, indexed_wire)
+        old_before, old_policy, old_wire, _ = self.fixture(compact=True)
+        self.assertEqual(codec.canonical(indexed_result), codec.canonical(codec.compose_values(old_before, old_policy, old_wire)))
+        inner = indexed_wire['page']
+        self.assertEqual(inner['schema'], codec.V19_INDEXED_SCHEMA)
+        compact_slot = next(i for i, row in enumerate(inner['replacements']) if type(row) is list and type(row[0]) is int)
+        for bad_index in (True, 1.0, -1, 519, '0'):
+            hostile = copy.deepcopy(indexed_wire); hostile['page']['replacements'][compact_slot][0] = bad_index
+            with self.subTest(indexed_reference=bad_index), self.assertRaises(AssertionError):
+                codec.compose_values(indexed_before, indexed_policy, hostile)
+        hostile = copy.deepcopy(indexed_wire)
+        hostile['page']['replacements'][compact_slot] = {'old519_index': hostile['page']['replacements'][compact_slot]}
+        with self.assertRaisesRegex(AssertionError, 'v19 indexed wrapped old519 alias'):
+            codec.compose_values(indexed_before, indexed_policy, hostile)
+        for group in ('additions', 'fragments'):
+            hostile = copy.deepcopy(indexed_wire); value = copy.deepcopy(hostile['page']['replacements'][compact_slot])
+            if group == 'additions': hostile['page']['additions'].append(value)
+            else: hostile['page']['replacements'][compact_slot][3] = [value]
+            with self.subTest(indexed_alias=group), self.assertRaises(AssertionError):
+                codec.compose_values(indexed_before, indexed_policy, hostile)
+        with self.assertRaises(AssertionError): codec.expand_v18_fragment_refs(inner)
 
     def test_wire_cap_refuses_before_clone(self):
         _, _, wire, _ = self.fixture(); wire['page']['opaque'] = 'x'*codec.PAGE_CAP

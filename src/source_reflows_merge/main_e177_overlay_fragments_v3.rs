@@ -1484,7 +1484,7 @@ pub(super) use digests_v13::{expand_v13, expand_v14, expand_v15, expand_v16, exp
 #[cfg(test)]
 pub(super) use digests_v13::{before_source as v13_before, verify_current_v13, verify_current_v14, verify_current_v15, verify_current_v16};
 
-pub(super) use digests_v13::{expand_v18, SCHEMA_V18};
+pub(super) use digests_v13::{expand_v18, expand_v19_indexed, preflight_indexed, SCHEMA_V18, SCHEMA_V19_INDEXED};
 
 #[cfg(test)]
 pub(super) use digests_v13::{verify_current_v17, verify_current_v18};

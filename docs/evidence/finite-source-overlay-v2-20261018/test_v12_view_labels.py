@@ -794,13 +794,13 @@ class TypedFragmentReferences(unittest.TestCase):
 class CompiledSuccessorV19(unittest.TestCase):
     @staticmethod
     def fixture(compact=False):
-        def current(raw):
+        def current(raw, immutable=True):
             digest = hashlib.sha256(raw).hexdigest()
-            return {'length': len(raw), 'sha256': digest, 'archive': 'e/' + digest}
+            return {'length': len(raw), 'sha256': digest, 'archive': ('e/' if immutable else 'fixture/') + digest}
         declaration = codec._V19_DECLARATION.encode()
         owner_raw, source_raw = b'\n\n' + declaration + b'\n', b'compiled current fixture\n'
         rows = [{'source': f'src/fixture/item_{i}.rs', 'compiled': False,
-                 'current': current(b'old'), 'views': [], 'opaque': {'order': [3, 1, 2]}}
+                 'current': current(b'old', immutable=False), 'views': [], 'opaque': {'order': [3, 1, 2]}}
                 for i in range(519)]
         rows[0].update(source=codec._V19_OWNER, compiled=True, current=current(owner_raw))
         rows[10]['compiled'] = True
@@ -818,7 +818,7 @@ class CompiledSuccessorV19(unittest.TestCase):
         logical = {'schema': codec.V8_SCHEMA, 'index': 1, 'total_pages': 1,
                    'predecessor': copy.deepcopy(predecessor), 'replacements': [carrier, target], 'additions': []}
         v9 = codec.transform_v9_pin_slots(logical, True); v9['schema'] = codec.V9_SCHEMA
-        v10 = codec.encode_v10_with_prefixes(v9, ['e/'])
+        v10 = codec.encode_v10_with_prefixes(v9, ['fixture/'])
         v11 = codec.transform_v11_digest_slots(v10, True); v11['schema'] = codec.V11_SCHEMA
         inner = codec.encode_v18(codec.encode_v12_view_labels(v11))
         successor = {'source': codec._V19_SOURCE, 'prior_row_sha256': codec.H(codec.canonical(rows[389])),

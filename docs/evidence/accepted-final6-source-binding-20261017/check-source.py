@@ -172,7 +172,7 @@ if '--incoming48-original-checker' in sys.argv:
  sys.argv.remove('--incoming48-original-checker')
  incoming=bounded(R/'e/c9b3f6b5c4bb1cc085710b8da140183444ec1d3a9d3d39b69b5491cef57aedd2',2253,'c9b3f6b5c4bb1cc085710b8da140183444ec1d3a9d3d39b69b5491cef57aedd2')
  old_guard_binding="helper_raw=bounded(helper,11549,'f7456316bbcdf82b1487d02d19d848814a43ee6cd9ea3b2c5a7266e5a997278c')"
- current_guard_binding="helper_raw=bounded(helper,22232,'bd45fd40044e2cfd35c2b6caa204ab8772a0a3f302fe58db906de12ed8394706')"
+ current_guard_binding="helper_raw=bounded(helper,22232,'fc6e207ef1ed442ebb7ad56311c23b9dfb88bbde7c9146f2fc70a82889e668a0')"
  assert incoming.decode().count(old_guard_binding)==1
  program=incoming.decode().replace(old_guard_binding,current_guard_binding,1)
  assert program.replace(current_guard_binding,old_guard_binding,1).encode()==incoming
@@ -191,7 +191,7 @@ program=original.decode()
 # The immutable old wrapper retains its complete authenticated original bytes.
 # This exact input-pin transport applies equally to cached and uncached execution.
 old_binding="helper_raw=bounded(helper,19144,'af70eaeeb1cc0da02460858f9e7ddb39086582add858c74138c4d989644e11f3')"
-current_binding="helper_raw=bounded(helper,22232,'bd45fd40044e2cfd35c2b6caa204ab8772a0a3f302fe58db906de12ed8394706')"
+current_binding="helper_raw=bounded(helper,22232,'fc6e207ef1ed442ebb7ad56311c23b9dfb88bbde7c9146f2fc70a82889e668a0')"
 assert program.count(old_binding)==1
 program=program.replace(old_binding,current_binding,1)
 old_ingress_sha='799eee227e9d57fb000d75cbf018e0faf3b9bc03cd592f0405d3050479a12871'

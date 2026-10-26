@@ -327,7 +327,7 @@ impl ClassifierLedger {
     pub(crate) fn capture_current_into(&mut self) {
         super::ACTIVE.with(|active| self.0.clone_from(&*active.borrow()));
     }
-    pub(crate) fn storage_terminal_receipt_controls() -> usize {
+    pub(crate) const fn storage_terminal_receipt_controls() -> usize {
         // Exactly two possible terminal owning sites: parent association and
         // acquisition rejection. Each unchanged record_refusal may return the
         // first Option, initialize the record, initialize Some, receive it in

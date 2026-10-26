@@ -582,3 +582,109 @@ pub(in crate::cleanup_plan::replay) fn original_fast_probe(
         )?),
     }
 }
+
+#[test]
+fn recursive_flags_match_complete_uncached_owned_oracles_and_exact_short_sticky_payer() {
+    for program in fixtures() {
+        let function = &program.functions[0];
+        let index = program.declarations.classifier_uncached_for_test();
+        let mut types = vec![
+            ResolvedType::Never,
+            ResolvedType::Unit,
+            ResolvedType::I64,
+            ResolvedType::Bytes,
+            ResolvedType::String,
+            ResolvedType::ArrayU8(1),
+            ResolvedType::Function {
+                parameters: vec![ResolvedType::I64],
+                result: Box::new(ResolvedType::I64),
+            },
+            ResolvedType::Function {
+                parameters: vec![ResolvedType::Never],
+                result: Box::new(ResolvedType::I64),
+            },
+        ];
+        for item in &program.types {
+            for arguments in [
+                vec![],
+                vec![ResolvedType::I64],
+                vec![ResolvedType::String],
+                vec![ResolvedType::U8],
+                vec![ResolvedType::Never],
+                vec![ResolvedType::I64, ResolvedType::Bool],
+            ] {
+                types.push(ResolvedType::Nominal {
+                    declaration: item.id.clone(),
+                    arguments,
+                });
+            }
+        }
+        for ty in types {
+            let expected = index
+                .classifier_old_facts_for_test(&ty)
+                .as_ref()
+                .map(|facts| {
+                    (
+                        facts.copy,
+                        facts.contains_resource,
+                        facts.sized,
+                        facts.needs_drop,
+                    )
+                });
+            let project = |flags: Option<crate::hir::TypeFlags>| {
+                flags.map(|f| (f.copy, f.contains_resource, f.sized, f.needs_drop))
+            };
+            assert_eq!(project(index.type_flags(&ty)), expected, "unpaid {ty:?}");
+            let run = || {
+                let mut budget = ReplayBudget::new();
+                index.type_flags_paid(&ty, payer(function, &mut budget))
+            };
+            let (actual, refused, used, _) = with_limit_usage_refusal(usize::MAX, run);
+            assert!(!refused);
+            assert_eq!(project(actual.unwrap()), expected, "paid {ty:?}");
+            let mut old_budget = ReplayBudget::new();
+            assert_eq!(
+                project(
+                    index
+                        .type_flags_paid_original_receiver(&ty, payer(function, &mut old_budget))
+                        .unwrap()
+                ),
+                expected,
+                "old paid {ty:?}"
+            );
+            if used > 0 {
+                let (exact, refused, exact_used, _) = with_limit_usage_refusal(used, run);
+                assert!(!refused);
+                assert_eq!(exact_used, used);
+                assert_eq!(project(exact.unwrap()), expected);
+                // Invalid types keep their independent semantic None above.
+                // Budget refusal is checked on admitted complete values.
+                if expected.is_some() {
+                    for limit in [0, used - 1] {
+                        let (_, refused, _, receipt) = with_limit_usage_refusal(limit, || {
+                            let mut budget = ReplayBudget::new();
+                            let first = index.type_flags_paid(&ty, payer(function, &mut budget));
+                            assert!(
+                                matches!(first, Err(_) | Ok(None)),
+                                "short payer cannot produce admitted flags for {ty:?}"
+                            );
+                            let held = crate::bounded_output::active_remaining();
+                            assert!(crate::bounded_output::active_refused());
+                            let retry = index
+                                .type_flags_paid(&ty, payer(function, &mut budget))
+                                .unwrap_err();
+                            assert_eq!(retry.code, "SPX-H006");
+                            assert_eq!(
+                                crate::bounded_output::active_remaining(),
+                                held,
+                                "retry cannot consume more bytes or replace the first refusal"
+                            );
+                        });
+                        assert!(refused);
+                        assert!(receipt.is_some());
+                    }
+                }
+            }
+        }
+    }
+}

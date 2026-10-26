@@ -177,8 +177,8 @@ def _joint_native_cargo_helper_before(actual):
 def _protected_helper(repo,j):
  path='tests/support/production_source_inventory_original.rs'
  assert j['helper_original']==path and j['helper_before_sha256']=='d51a124525e3d41469c1db223a0b4526faa3faff1c757b9526ca0b2233358e8c'
- actual=(repo/path).read_bytes()
- epoch=_inventory_model_epoch_before(_interop_model_epoch_before(_next_raw_registration_helper_before(_constructor903_raw_helper_before(_native966_helper_before(_native967_helper_before(_native977_helper_before(_native990_helper_before(_native_registered_helper_before(_native_v18_helper_before(_native_moved_helper_before(_native_closed_roots_helper_before(_joint_native_cargo_helper_before(actual)))))))))))))
+ actual=_current1045_helper_acquire(repo,path,155861,'eae76603975dd8544d970de100c1d073d3045ef64ce9d40c58f6eec312974799')
+ epoch=_inventory_model_epoch_before(_interop_model_epoch_before(_next_raw_registration_helper_before(_constructor903_raw_helper_before(_native966_helper_before(_native967_helper_before(_native977_helper_before(_native990_helper_before(_native_registered_helper_before(_native_v18_helper_before(_native_moved_helper_before(_native_closed_roots_helper_before(_joint_native_cargo_helper_before(_current1045_helper_before(repo,actual))))))))))))))
  assert epoch==git(repo,'424e9611a87e66f43a82a7ce7c9b4bb56a4ec64b',path), 'complete helper source epoch'
  restored=_restore_protected_helper(epoch)
  assert (repo/path).read_bytes()==actual, 'protected helper source drift'
@@ -280,4 +280,38 @@ def _native_closed_roots_helper_before(actual):
   parts.extend((actual[cursor:e['start']],e['before'].encode()));cursor=e['end']
  restored=b''.join(parts+[actual[cursor:]])
  assert len(restored)==29819 and sha(restored)=='c97d4c6ef74218d77aae7d8eb2424b455fbef1ff26ee01d53a49e3e7f3c1e3c1', 'ENTIRE immediate moved-direct native helper'
+ return restored
+
+
+def _current1045_helper_acquire(repo,relative,length,digest):
+ import os,stat
+ relative=Path(relative);assert not relative.is_absolute() and '..' not in relative.parts
+ path=repo
+ for part in relative.parts:
+  path=path/part;assert not path.is_symlink(), 'current helper ordinary source path'
+ fd=os.open(path,os.O_RDONLY|os.O_CLOEXEC|os.O_NOFOLLOW|os.O_NONBLOCK)
+ try:
+  first=os.fstat(fd);assert stat.S_ISREG(first.st_mode) and first.st_size==length and length<=2097152, 'current helper exact bounded regular file'
+  with os.fdopen(fd,'rb',closefd=False) as stream:raw=stream.read(length+1)
+  last=os.fstat(fd);named=path.lstat();identity=lambda item:(item.st_dev,item.st_ino,item.st_size,item.st_mtime_ns,item.st_ctime_ns)
+  assert identity(first)==identity(last)==identity(named), 'current helper ordinary source freshness'
+ finally:os.close(fd)
+ assert len(raw)==length and sha(raw)==digest, 'current helper exact full source pin'
+ return raw
+
+def _current1045_helper_before(repo,actual):
+ source='tests/support/production_source_inventory_original.rs'
+ expected_length=155861;expected_sha='eae76603975dd8544d970de100c1d073d3045ef64ce9d40c58f6eec312974799'
+ assert len(actual)==expected_length and sha(actual)==expected_sha, 'complete current protected helper'
+ physical=_current1045_helper_acquire(repo,source,expected_length,expected_sha);assert physical==actual
+ prior=_current1045_helper_acquire(repo,'e/d8101a07f87d6fb258191bf7e9a4892682e401106d62c8e21e157c6546b5b597',152351,'d8101a07f87d6fb258191bf7e9a4892682e401106d62c8e21e157c6546b5b597')
+ restored=actual;limit=len(actual)
+ for edit in reversed([{'start': 33003, 'end': 33359, 'after': 'fn current1042_named_native_path(path: &str) -> std::path::PathBuf {\n    let root = Path::new(env!("CARGO_MANIFEST_DIR"));\n    if path == "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs" { root.join("e/d49f3e5888a6368cd2a0271319415fdacd18e8fc9252246bfe34d2bec14d4ae2") } else { root.join(path) }\n}\n', 'before': ''}, {'start': 33426, 'end': 36578, 'after': '    if path != "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs" { return current_source_before_current1042(path, row); }\n    const CURRENT: &str = include_str!("../../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs");\n    const PRIOR: &str = include_str!("../../e/d49f3e5888a6368cd2a0271319415fdacd18e8fc9252246bfe34d2bec14d4ae2");\n    const SHA: &str = "e06a8003cf54de257aff28af1a78b7be85541b2c520c5506ba5510d25431ec39";\n    assert_eq!((CURRENT.len(), format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(CURRENT.as_bytes())))), (244715, SHA.to_owned()));\n    let root = Path::new(env!("CARGO_MANIFEST_DIR"));\n    let physical = joint_reader::read(&root.join(path), CURRENT.len(), SHA, 2_097_152).unwrap();\n    assert_eq!(physical, CURRENT);\n    assert_eq!(joint_reader::read(&root.join("e/d49f3e5888a6368cd2a0271319415fdacd18e8fc9252246bfe34d2bec14d4ae2"), PRIOR.len(), "d49f3e5888a6368cd2a0271319415fdacd18e8fc9252246bfe34d2bec14d4ae2", 2_097_152).unwrap(), PRIOR);\n    let mut restored = physical.clone();\n    let edits: &[(usize, usize, &str, &str)] = &[\n        (49673, 50238, "include_str!(\\"../../../../../src/source_reflows_merge/main_e177_overlay_compiled_successor_v19.rs\\"),include_str!(\\"../../../../../src/source_reflows_merge/main_e177_overlay_compiled_successor_v19/tests.rs\\"),include_str!(\\"../../../../../src/source_reflows/ci_inputs_current_epoch.rs\\"),include_str!(\\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_before_protocol/owner.rs\\"),include_str!(\\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_before_protocol/held_invocation_tests.rs\\"),", "")\n    ];\n    for &(start, end, after, before) in edits.iter().rev() {\n        assert!(start <= end && end <= restored.len());\n        assert!(restored.is_char_boundary(start) && restored.is_char_boundary(end));\n        assert_eq!(&restored[start..end], after);\n        restored.replace_range(start..end, before);\n    }\n    assert_eq!(restored, PRIOR, "entire new native source to whole immediate predecessor");\n    let wants_current = row["length"].as_u64() == Some(CURRENT.len() as u64) && row["sha256"].as_str() == Some(SHA);\n    let result = if wants_current {\n        let mut prior_row = row.clone();\n        prior_row["length"] = (PRIOR.len() as u64).into();\n        prior_row["sha256"] = "d49f3e5888a6368cd2a0271319415fdacd18e8fc9252246bfe34d2bec14d4ae2".into();\n        assert_eq!(current_source_before_current1042(path, &prior_row), PRIOR);\n        physical.clone()\n    } else { current_source_before_current1042(path, row) };\n    assert_eq!(joint_reader::read(&root.join(path), CURRENT.len(), SHA, 2_097_152).unwrap(), physical);\n    assert_eq!(joint_reader::read(&root.join("e/d49f3e5888a6368cd2a0271319415fdacd18e8fc9252246bfe34d2bec14d4ae2"), PRIOR.len(), "d49f3e5888a6368cd2a0271319415fdacd18e8fc9252246bfe34d2bec14d4ae2", 2_097_152).unwrap(), PRIOR);\n    result\n}\nfn current_source_before_current1042(path: &str, row: &serde_json::Value) -> String {\n', 'before': ''}, {'start': 36853, 'end': 36919, 'after': 'e/d49f3e5888a6368cd2a0271319415fdacd18e8fc9252246bfe34d2bec14d4ae2', 'before': 'crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs'}, {'start': 154237, 'end': 154266, 'after': 'current1042_named_native_path', 'before': 'root.join'}, {'start': 155703, 'end': 155732, 'after': 'current1042_named_native_path', 'before': 'root.join'}]):
+  start,end=edit['start'],edit['end'];after,before=edit['after'].encode(),edit['before'].encode()
+  assert type(start)is int and type(end)is int and 0<=start<=end<=limit and restored[start:end]==after, 'exact complete current helper byte inverse'
+  restored=restored[:start]+before+restored[end:];limit=start
+  assert len(restored)<=2097152, 'current helper unchanged bounded source transport'
+ assert restored==prior, 'ENTIRE protected helper before current raw registrations'
+ assert _current1045_helper_acquire(repo,source,expected_length,expected_sha)==physical, 'late current protected helper'
+ assert _current1045_helper_acquire(repo,'e/d8101a07f87d6fb258191bf7e9a4892682e401106d62c8e21e157c6546b5b597',152351,'d8101a07f87d6fb258191bf7e9a4892682e401106d62c8e21e157c6546b5b597')==prior, 'late complete prior protected helper'
  return restored

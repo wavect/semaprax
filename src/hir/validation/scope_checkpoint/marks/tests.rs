@@ -116,7 +116,7 @@ fn complete_predecessor_and_exact_inert_shape_set_remain_independent() {
         ),
         "08b3d1a43078fcc73d6ba8514a093d5bdd4b7a5b00378bfd20a8a9a67b75e464"
     );
-    let current = include_str!("../marks.rs");
+    let current = super::direct_tests::before_source();
     let start = current
         .find("        // The original walker does nothing")
         .unwrap();

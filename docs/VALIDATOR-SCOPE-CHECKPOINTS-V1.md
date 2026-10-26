@@ -186,3 +186,25 @@ exact/short/zero/floor/sticky/Drop controls are authored only. Strict many-field
 allocation AND invoice gates must pass; a paid one-field cold loss remains
 visible. No measured gain, capacity rebate or application recovery is claimed
 by this source-only implementation.
+
+## Terminal source-move roots (#939)
+
+An exact `Place` root runs the complete original terminal operation directly
+inside the existing funded root-kind match. It moves the caller scope into one
+local `Owned` root before lookup, retains full place/type/resource/availability
+and overlapping-loan checks in their original order, and restores that root
+only on success. Errors drop the local root and leave the caller empty, exactly
+as the previous directory receiver did. Nonterminal roots and the legacy map
+receiver retain the entire old walker and all original growth payments.
+
+This removes the two actual initial source-move directories; it introduces no
+scratch cache, loan owner, callback, helper boundary or additional reservation
+primitive. Existing selector and semantic-operation fees stay unchanged. The
+whole immediate producer, older inert-root producer and old owned-map receiver
+remain independently executable; exact current source plus all new children
+are bound before the original source gate acquires its named old stage.
+Authored controls require strict single/repeated and complete many-owned-argument
+HIR allocation/invoice gains, unchanged tiny inert invoices, semantic/late-error
+and failed-publication equality, exact/short/zero/floor/sticky boundaries and
+complete Drop. No compiler, runtime, application fit, peak or RSS claim is made
+by this source implementation.

@@ -1,3 +1,10 @@
+## Direct terminal source moves (#939)
+
+- Run exact Place roots without constructing temporary source-move directories,
+  preserving every original check, payment and failed-scope publication rule.
+- Retain the complete immediate producer and source inverses; full-caller net,
+  refusal, cold/tiny and Drop controls are authored and await qualification.
+
 ## Private ordered moved-place scope joins (#936)
 
 - Replace temporary owned key sets with separately funded ordered borrowed

@@ -1,5 +1,6 @@
 pub(crate) fn compiled(source: &str) -> Option<&'static str> {
     match source {
+        "src/workspace_graph/expected_projection/borrowed_imports_original.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/borrowed_imports_original.rs")),
         "src/ast/program_source/decl_slices/alias_tests.rs" => Some(include_str!("../../src/ast/program_source/decl_slices/alias_tests.rs")),
         "src/ast/program_source/decl_slices/before_alias.rs" => Some(include_str!("../../src/ast/program_source/decl_slices/before_alias.rs")),
         "src/ast/program_source/function_alias.rs" => Some(include_str!("../../src/ast/program_source/function_alias.rs")),

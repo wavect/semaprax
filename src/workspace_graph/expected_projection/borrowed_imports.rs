@@ -425,3 +425,8 @@ pub(in crate::workspace_graph) fn constructor_test_default_expr_inline(
 ) -> Result<crate::ast::Expr, crate::workspace_graph::constructor_failure::Failure> {
     super::import_stub::default_expr_inline(function, declarations, allow_owned, allow_byte_forward)
 }
+
+// Independent shared-fixture contract: current import_stub borrows intrinsic
+// signature views; import_stub_original retains its owned classifier temporaries.
+#[cfg(test)]
+const CLASSIFIER_TEMPORARIES_REMOVED: bool = true;

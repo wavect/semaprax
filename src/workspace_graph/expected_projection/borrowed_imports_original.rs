@@ -373,3 +373,8 @@ pub(in crate::workspace_graph) fn construct<'a>(
     reason = "Run the same controls against independent receivers."
 )]
 mod tests;
+
+// Independent shared-fixture contract: current import_stub borrows intrinsic
+// signature views; import_stub_original retains its owned classifier temporaries.
+#[cfg(test)]
+const CLASSIFIER_TEMPORARIES_REMOVED: bool = false;

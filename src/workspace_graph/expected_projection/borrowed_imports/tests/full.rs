@@ -431,7 +431,7 @@ fn literal_box_wrapper_overlay_removes_real_caller_copy_and_function_growth() {
     // Both current Program destructors keep these narrow frontiers inline.
     // The original classifier still allocates its literal signature and the
     // old signature clone discards each provider function name before aliasing.
-    let (classifier_allocations, classifier_bytes) = original_classifier_invoice("std.mem");
+    let (classifier_allocations, classifier_bytes) = removed_classifier_invoice("std.mem");
     let discarded_names = "new".len() + "into_inner".len();
     assert_eq!(
         before.allocated,
@@ -650,5 +650,17 @@ fn original_classifier_invoice(module: &str) -> (usize, usize) {
             )
         }
         _ => panic!("closed imported std classifier fixtures only"),
+    }
+}
+
+// Both complete implementations share this fixture. The historical receiver
+// retains classifier temporaries on both sides, so its removed invoice is zero.
+// The current receiver removes the independently enumerated old signatures.
+// No measured value chooses the expected invoice.
+fn removed_classifier_invoice(module: &str) -> (usize, usize) {
+    if super::super::CLASSIFIER_TEMPORARIES_REMOVED {
+        original_classifier_invoice(module)
+    } else {
+        (0, 0)
     }
 }

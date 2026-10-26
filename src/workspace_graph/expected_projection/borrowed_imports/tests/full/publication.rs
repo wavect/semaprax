@@ -80,7 +80,7 @@ fn last_alias_and_synthetic_main_refusal_never_publish_partial_generated_roots()
             assert_eq!(old_wide, wide);
             assert!(!old_refused && old_first.is_none());
             assert_eq!(old_paid, paid);
-            let (allocations, bytes) = super::original_classifier_invoice(&programs[1].module);
+            let (allocations, bytes) = super::removed_classifier_invoice(&programs[1].module);
             let mut expected_old = metrics;
             expected_old.allocations += allocations;
             expected_old.allocated += bytes;

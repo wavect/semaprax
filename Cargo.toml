@@ -117,6 +117,14 @@ path = "src/main.rs"
 name = "semapraxd"
 path = "src/bin/semapraxd.rs"
 
+# Source-history gates hash complete immutable inputs repeatedly. Optimize only
+# the allocation-free hashing backend; compiler and test code keep their profiles.
+[profile.dev.package."sha2@0.11.1"]
+opt-level = 3
+
+[profile.test.package."sha2@0.11.1"]
+opt-level = 3
+
 [profile.release]
 lto = "thin"
 strip = true

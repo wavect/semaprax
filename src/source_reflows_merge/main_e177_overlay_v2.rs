@@ -16,8 +16,8 @@ pub(super) const ADDITIONS: &[&str] = &["src/cleanup_plan/renewal_profile.rs","s
 "src/hir/validation/scope_checkpoint/merge/partial_retain.rs","src/hir/validation/scope_checkpoint/merge/partial_retain/before.rs","src/hir/validation/scope_checkpoint/merge/partial_retain/tests.rs","src/cleanup_plan/replay/factored/paired/visited_transfer.rs"];
 const POLICY_PATH: &str = "docs/evidence/finite-source-overlay-v2-20261018/policy.json";
 const PAGE_PATH: &str = "docs/evidence/finite-source-overlay-v2-20261018/page.json";
-const POLICY_LENGTH: usize = 197907; // Filled from the complete literal policy below.
-const POLICY_SHA256: &str = "5e6aa69232f76759baa57a50c34b994f36d2ddd859a388e8cb09bde7699ce90f";
+const POLICY_LENGTH: usize = 200059; // Filled from the complete literal policy below.
+const POLICY_SHA256: &str = "048ab00bad19812edb8d9f0b89281a058a89dde6f0efdd8548ab36cc6b768570";
 const EXTENSION_PATH: &str = "docs/evidence/fmt-local-441-20261018/extension.json";
 const EXTENSION_LENGTH: usize = 262076;
 const EXTENSION_SHA256: &str = "2af7299253e5cfb027186ba4fc151011a937214ff381c9267bfc11ef7d0003b6";

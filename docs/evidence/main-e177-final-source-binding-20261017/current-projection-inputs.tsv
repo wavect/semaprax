@@ -1572,3 +1572,7 @@ src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_bef
 src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_before_protocol/held_invocation_tests.rs
 src/cleanup_plan/replay/trailing_active.rs
 src/cleanup_plan/replay/trailing_active/tests.rs
+src/hir/validation/scope_checkpoint/merge/partial_retain.rs
+src/hir/validation/scope_checkpoint/merge/partial_retain/before.rs
+src/hir/validation/scope_checkpoint/merge/partial_retain/tests.rs
+src/cleanup_plan/replay/factored/paired/visited_transfer.rs

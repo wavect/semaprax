@@ -55,48 +55,5 @@ pub(super) fn with_before<T>(body: impl FnOnce() -> T) -> T {
 #[cfg(test)]
 mod tests;
 
-// Historical source contracts receive their exact old image ONLY after the
-// actual compiled current root/new children/archives authenticate physically.
 #[cfg(test)]
-pub(super) fn whole_merge_before(current: &[u8]) -> Vec<u8> {
-    use std::io::Read;
-    const CURRENT: &str = include_str!("../merge.rs");
-    const BEFORE: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/7f066dff4bbc040dd5b90645588a907173290f119f05532e73429c12209ce9b8"));
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let sources = [
-        ("src/hir/validation/scope_checkpoint/merge.rs", CURRENT),
-        ("src/hir/validation/scope_checkpoint/merge/partial_retain.rs", include_str!("partial_retain.rs")),
-        ("src/hir/validation/scope_checkpoint/merge/partial_retain/before.rs", include_str!("partial_retain/before.rs")),
-        ("src/hir/validation/scope_checkpoint/merge/partial_retain/tests.rs", include_str!("partial_retain/tests.rs")),
-        ("src/hir/validation/scope_checkpoint/merge/moved_direct/tests.rs", include_str!("moved_direct/tests.rs")),
-        ("e/7f066dff4bbc040dd5b90645588a907173290f119f05532e73429c12209ce9b8", BEFORE),
-    ];
-    let authenticate = || {
-        for (path, compiled) in sources {
-            assert!(compiled.len() <= 2_097_152);
-            let mut physical = Vec::new();
-            std::fs::File::open(root.join(path)).unwrap()
-                .take((compiled.len() + 1) as u64).read_to_end(&mut physical).unwrap();
-            assert_eq!(physical, compiled.as_bytes(), "{path}");
-        }
-    };
-    assert_eq!(current, CURRENT.as_bytes());
-    authenticate();
-    let edits: &[(usize, usize, &str, &str)] = &[
-        (111,131,"mod partial_retain;\n",""),
-        (2511,2785,"        // The SAME owned candidate builder still copies every prefix, even\n        // duplicates and rejected paths. Retain reuses that one tree; all\n        // copied path payload and other output/COW fees remain independent.\n        let slots = node.checked_mul(count)?;\n","        // The old candidate builder copies every prefix even when that prefix\n        // is a duplicate. Its filtered output reuses vectors but builds a new\n        // set. Keep both complete tree directories and every prefix payload.\n        let slots = node.checked_mul(count)?.checked_mul(2)?;\n"),
-        (3146,3223,"    charge::reserve(Some(moved_direct::CONTROL + partial_retain::CONTROL))?;\n","    charge::reserve(Some(moved_direct::CONTROL))?;\n"),
-        (5756,5895,"    if partial_retain::before_selected() {\n        return partial_retain::before::conditional(target, source, ids);\n    }\n    #[cfg(test)]\n",""),
-        (6599,6695,"        let definitely_partial = HirValidator::join_definitely_partial_retained(before, after);\n","        let definitely_partial = HirValidator::join_definitely_partial(before, after);\n"),
-        (7721,7862,"    if partial_retain::before_selected() {\n        return partial_retain::before::branches(target, left, right, ids);\n    }\n    #[cfg(test)]\n",""),
-        (8664,8758,"        let definitely_partial = HirValidator::join_definitely_partial_retained(left, right);\n","        let definitely_partial = HirValidator::join_definitely_partial(left, right);\n"),
-    ];
-    let mut restored = current.to_vec();
-    for &(start, end, present, previous) in edits.iter().rev() {
-        assert_eq!(&restored[start..end], present.as_bytes());
-        restored.splice(start..end, previous.bytes());
-    }
-    assert_eq!(restored, BEFORE.as_bytes());
-    authenticate();
-    restored
-}
+pub(super) use tests::whole_merge_before;

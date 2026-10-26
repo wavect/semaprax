@@ -812,7 +812,7 @@ fn live_lexical_selector_floor_foreign_sticky_and_unwind_use_real_gateway(){
         assert!(first.is_err());let retry=Directory::<u32>::new_with_lexical_insert_selector(f,&mut budget,"live selector");assert!(retry.is_err());assert_eq!(budget.remaining,0);drop(retry);drop(first);drop(budget);
     }));assert!(!allocation.invalid&&allocation.live==0);assert_eq!(allocation.allocated,allocation.freed);
     // An expired foreign Oracle lease must not fall back to production ACTIVE.
-    let stale=crate::cleanup_plan::replay::allocation::oracle::OracleScope::open(1<<20).unwrap().lease();
+    let stale=crate::cleanup_plan::replay::allocation::OracleScope::open(1<<20).unwrap().lease();
     let (raw,refused,debit,first)=with_limit_usage_refusal(1<<24,||{
         let mut old=ReplayBudget::with_skeleton_limit_oracle(MAX_REPLAY_WORK_UNITS,stale);let mut new=ReplayBudget::with_skeleton_limit_oracle(MAX_REPLAY_WORK_UNITS,stale);
         let a=Directory::<u32>::new(f,&mut old,"live selector").err().unwrap();let b=Directory::<u32>::new_with_lexical_insert_selector(f,&mut new,"live selector").err().unwrap();assert_eq!(a,b);(a,b)

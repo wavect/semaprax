@@ -320,7 +320,9 @@ fn actual_v19_refuses_unknown_multiple_stale_and_legacy_classification_changes()
     owner[1] = 0.into();
     assert_eq!(
         compose(before.clone(), &policy, &owner_page).unwrap_err(),
-        "v19 owner current",
+        // The ordinary V3 fragment census rejects this actual noncompiled
+        // owner before the later successor-owner check can grant authority.
+        "v3 noncompiled or nested reference",
         "an uncompiled actual canonical declaration owner cannot authorize the successor"
     );
     assert!(

@@ -143,7 +143,7 @@ fn historical_entry<'a>(source: &str, expected: &str, current: &'a str) -> Cow<'
         | (
             "src/cleanup_plan/replay/factored.rs",
             "d3808da9519009c1a7b223a91a635bc94cdeb80a2c8bc40b22bcfc8b1f2f918c",
-        ) => Cow::Owned(
+        ) | ("src/cleanup_plan/replay/expression_facts.rs", "8728d164bd61e2a7a8e8165bc5d0e1a1b6a652aafd56302406cc2db0a386864f") => Cow::Owned(
             crate::source_reflows_merge::main_e177_final_inputs::value_direct(
                 source, expected, current,
             ),
@@ -1005,7 +1005,7 @@ pub(super) fn batch_913_entry(source: &str, supplied: &str) -> Option<String> {
         ]),
         _ => return None,
     };
-    let physical_compiled = compiled;
+    let physical_compiled = compiled; let supplied_stage = supplied; let current_join = current_source_epoch::physical_batch_input(source, supplied, physical_compiled); let supplied = current_join.as_ref();
     let (closure_epoch, _) =
         crate::source_reflows_merge::Main44Fixture::closure_epoch(source, expected, compiled);
     let compiled = closure_epoch.as_ref();
@@ -1106,7 +1106,7 @@ pub(super) fn batch_913_entry(source: &str, supplied: &str) -> Option<String> {
     }
     assert_eq!(before.len(), prior_length);
     assert_eq!(digest(&before), prior_sha);
-    Some(before)
+    let _ = current_source_epoch::physical_batch_input(source, supplied_stage, physical_compiled); Some(before)
 }
 // Enter the immutable selected-path predecessor only through complete live images.
 pub(super) fn compact_frontier_entry(source: &str, supplied: &str) -> Option<String> {

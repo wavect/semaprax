@@ -28,7 +28,7 @@ fn main_body(program: &ResolvedProgram) -> &ResolvedExpr {
 const SCALAR_CACHED_SOURCE: &str = "module arm.scalar; @id(\"main\") fn main()->i64 {match 2 {0 | 1 if false => 7, n => match n { 2 => 9, _ => 8, },}}";
 const RECORD_CACHED_SOURCE: &str = r#"module arm.record;
 @id("item") record Item { @id("item.value") value:i64, }
-@id("main") fn main()->i64 {match Item {value:2} {Item {value}=>value,}}
+@id("main") fn main()->i64 {match (Item {value:2}) {Item {value}=>value,}}
 "#;
 struct PinnedRecursiveFinalization {
     recursive_message: &'static str,
@@ -49,7 +49,7 @@ fn pinned_cached_finalization(
 ) -> PinnedRecursiveFinalization {
     use sha2::{Digest, Sha256};
     let (literal, expected_sha) = if record {
-        (RECORD_CACHED_SOURCE, "a74b4a46c531a7fc93890cad947b049dc8bfef4e0d5abfc155b896b13d99095f")
+        (RECORD_CACHED_SOURCE, "350d8835ff69d2bb6f2b153adeb4767efbc864e4e52ebc32458d4a36872823ed")
     } else {
         (SCALAR_CACHED_SOURCE, "d9d6375b23a4486c79bdbecc80b5ae9075be87615d890ae0e6342a1d44aa17e2")
     };
@@ -225,6 +225,17 @@ fn scalar_constructor_contexts_and_late_arm_mutations_match_both_complete_valida
                 }
             }
         }
+        // Preserve the original ambiguous spelling as its actual parser
+        // diagnostic; the executable record oracle uses a parenthesized value.
+        let ambiguous = RECORD_CACHED_SOURCE.replace("match (Item {value:2})", "match Item {value:2}");
+        let errors = crate::check(&ambiguous, "arm-context.spx").unwrap_err();
+        assert_eq!(errors.len(), 1);
+        assert_eq!(errors[0].code, "SPX-P106");
+        assert_eq!(errors[0].severity, crate::diagnostic::Severity::Error);
+        assert_eq!(errors[0].message, "expected `=>` after match pattern");
+        assert_eq!(errors[0].path.as_deref(), Some("arm-context.spx"));
+        assert_eq!(errors[0].span, Some(crate::ast::Span { start: 121, end: 122, line: 3, column: 46 }));
+        assert!(errors[0].help.is_none());
         let program = program(RECORD_CACHED_SOURCE);
         compare_expression(&program, main_body(&program), false);
         for attack in 0..2 {

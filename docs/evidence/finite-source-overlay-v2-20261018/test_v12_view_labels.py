@@ -784,6 +784,17 @@ class TypedFragmentReferences(unittest.TestCase):
         current = codec.parse((Path(__file__).parent/'page.json').read_bytes())
         if current['schema']==codec.V19_SCHEMA:
             codec._v19_successor(current); current = current['page']
+        if current['schema']==codec.V19_INDEXED_SCHEMA:
+            before = codec.expand_v19_indexed_fragment_refs(current)
+            wire = codec.encode_v19_indexed_inner(before)
+            self.assertEqual(codec.expand_v19_indexed_fragment_refs(wire), before)
+            self.assertEqual(wire, current)
+            self.assertLessEqual(len(codec.canonical(wire)), codec.PAGE_CAP)
+            # This actual complete batch exceeds the old physical format's
+            # cap. Public V18 must still refuse rather than inherit a bypass.
+            with self.assertRaisesRegex(AssertionError, 'v18 same one-page cap'):
+                codec.encode_v18_fragment_refs(before)
+            return
         before = (codec.expand_v18_fragment_refs(current) if current['schema']==codec.V18_SCHEMA
                   else codec.expand_v17_source_rows(current))
         wire = codec.encode_v18_fragment_refs(before)

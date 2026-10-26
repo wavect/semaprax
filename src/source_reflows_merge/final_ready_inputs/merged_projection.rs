@@ -1,8 +1,8 @@
 //! Exact merged current join before either independently retained historical chain.
 use super::digest;
 use crate::source_reflows_merge::main_e177_final_inputs::ProjectionInvocation;
-const CURRENT_LENGTH: usize = 2283206;
-const CURRENT_SHA: &str = "a298bf70cc8c5c8f6c7011d730e35c81ff8e1a2e83145ad9b60ff42eba7cf906";
+const CURRENT_LENGTH: usize = 2283501;
+const CURRENT_SHA: &str = "d93d71610738c60a5a728f8ffd5a5168f05e272ec048fc3a0b9b579c01c82d29";
 // Literal expansion of the owning semantic_graph projection macro, in full order.
 #[rustfmt::skip]
 const CURRENT_PARTS: &[(&str, &str, usize, &str)] = &[
@@ -45,7 +45,7 @@ const CURRENT_PARTS: &[(&str, &str, usize, &str)] = &[
     ("src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission.rs")), 10932, "792be2624414510de96336103ccc964f39ff7c474581aa90521be539b8e21d2d"),
     ("src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/ordinary_plan_history/completed_fork/shipping/flat_admission/tests.rs")), 24967, "703b8e31e2c34896382513d8e4cff5d900d8c5990ccbdb96aad3dc363aed3e05"),
     ("src/source_reflows_merge/main_e177_overlay_labels_v12.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_reflows_merge/main_e177_overlay_labels_v12.rs")), 7219, "260cfb1eb837f15415a05f769e0d6554f6c26a3eeecf01a58eff16e8a2bf2446"),
-    ("src/source_reflows_merge/main_e177_overlay_labels_v12/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_reflows_merge/main_e177_overlay_labels_v12/tests.rs")), 10073, "b156a04e239ea0dba48e30d95d8040d45f84d0100f3fb51ab6edbe67248f890a"),
+    ("src/source_reflows_merge/main_e177_overlay_labels_v12/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_reflows_merge/main_e177_overlay_labels_v12/tests.rs")), 10368, "000028e4120e98e590ea4c03d182f5a22ae58d402f3f16ed9e5aa87f42e97d89"),
     ("src/workspace_graph/expected_projection/call_carriers_directory/modular.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/call_carriers_directory/modular.rs")), 3594, "b00352308d4dc48079e3807aca42493c4d42fed5a7412ce51c4ec8288c5d4952"),
     ("src/workspace_graph/expected_projection/shared_local_callees/modular_census.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/modular_census.rs")), 34238, "e2245dcba9a549068d00edc637e17296dd90e6c71476f84b0ddf49fb9728774b"),
     ("src/workspace_graph/expected_projection/shared_local_callees/modular_pair.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/shared_local_callees/modular_pair.rs")), 10164, "12331004bc5ff08252bb790c870d298dca32160d07059d368c56c2a823cf57a3"),
@@ -673,6 +673,23 @@ pub(super) fn stages(
         actual, supplied,
         "entire actual owning join before either old normalization"
     );
+    // Authenticate the complete immediate owning join before either old chain.
+    // Only this registered child changed. Its ordinary current/compiled/archive
+    // acquisition restores its whole predecessor; every other joined byte and
+    // its original position remain present in the independently pinned image.
+    let mut immediate = String::new();
+    for &(source, compiled, _, _) in CURRENT_PARTS {
+        if source == "src/source_reflows_merge/main_e177_overlay_labels_v12/tests.rs" {
+            let prior = invocation.value_direct(source, "b156a04e239ea0dba48e30d95d8040d45f84d0100f3fb51ab6edbe67248f890a", compiled);
+            assert_eq!(prior.len(), 10073);
+            assert_eq!(digest(&prior), "b156a04e239ea0dba48e30d95d8040d45f84d0100f3fb51ab6edbe67248f890a");
+            immediate.push_str(&prior);
+        } else { immediate.push_str(compiled); }
+    }
+    assert_eq!((immediate.len(), digest(&immediate)), (2283206, "a298bf70cc8c5c8f6c7011d730e35c81ff8e1a2e83145ad9b60ff42eba7cf906".to_owned()));
+    for &(source, compiled, _, _) in CURRENT_PARTS {
+        if !source.is_empty() { assert_eq!(physical(source), Some(compiled)); }
+    }
     let v10 = named_join(V10_CURRENT_PARTS, invocation);
     let old = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),

@@ -930,7 +930,7 @@ fn projection344_live_sources_with(
                     _ => panic!("foreign additional projection part"),
                 };
                 let retained;
-                let compiled = if (source
+                let compiled = if (source == "src/workspace_graph/expected_projection/call_carriers_original.rs" && length == 23564 && sha == "90f8c704f7a8eeb72cfc5318123b27febe80ce5bbba39b7b6a1952ec6e058f58") || (source
                     == "src/workspace_graph/expected_projection/call_carriers.rs"
                     && length == 12395
                     && sha == "84802a57f88f708bbc10da608f169ebedba8307677b2e6858cd8e0850c505aaa")

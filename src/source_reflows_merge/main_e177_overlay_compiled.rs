@@ -1234,7 +1234,6 @@ del _load_fixed_codecs
         "src/cleanup_plan/replay/path_join/fused_before_frontier.rs",
         "src/cleanup_plan/replay/path_join/fused_tests.rs",
         "src/cleanup_plan/replay_tests/factored.rs",
-        "src/source_reflows/ci_inputs_current_epoch.rs", "src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_before_protocol/owner.rs", "src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_before_protocol/held_invocation_tests.rs",
 ];
     const SCOPE_ADDITIONS_LINE: &str = r####"            "src/cleanup_plan/replay/skeleton_work/query_proof.rs", "src/cleanup_plan/replay/skeleton_work/query_proof/before.rs", "src/cleanup_plan/replay/skeleton_work/query_proof/tests.rs", "src/bounded_output/exclusive_debits/path_census.rs", "src/bounded_output/request_reservation.rs", "src/source_reflows_merge/main_e177_overlay_lookup.rs",
 "####;

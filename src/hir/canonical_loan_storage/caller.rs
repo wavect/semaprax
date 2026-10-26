@@ -201,6 +201,10 @@ fn prepare_sealed<'a, T>(
         return prepare_sealed_before(seed, program, seal);
     }
     #[cfg(test)]
+    if stream::empty_before_selected() {
+        return prepare_sealed_before_empty_terminal(seed, program, seal);
+    }
+    #[cfg(test)]
     let _allocation_phase = crate::test_allocation_observer::function_phase_guard(
         "hir::canonical_loan_storage::prepare_sealed",
     );
@@ -251,23 +255,16 @@ fn prepare_sealed<'a, T>(
                 "hir::canonical_loan_storage::next_function",
             );
             if let Some(owner) = captured.as_ref() {
-                // Pay the complete new captured receiver/closure, actual and
-                // formal move, Result/Option receiving and scratch detach/drop
-                // owners before forming either the owner or closure.
+                // Common receiver/closure and Result/Option transports remain
+                // paid before formation. The separately priced branch selection is
+                // additional; actual append-only roles are paid after Some.
                 payer.reserve(
-                    2 * std::mem::size_of::<(
-                        &crate::loan_plan::canonical_sink::Parts<'_>,
-                        Payer<'_>,
-                    )>() + 2 * std::mem::size_of::<Result<usize, Diagnostic>>()
-                        + 12 * std::mem::size_of::<stream::Receiver<'_, '_, '_>>()
+                    12 * std::mem::size_of::<stream::Receiver<'_, '_, '_>>()
                         + 8 * std::mem::size_of::<Result<(), Diagnostic>>()
                         + 8 * std::mem::size_of::<
                             Option<&mut crate::loan_plan::canonical_sink::Source<'_, '_>>,
                         >()
-                        + 4 * std::mem::size_of::<Scratch>()
-                        + 4 * std::mem::size_of::<Option<(usize, bool)>>()
-                        + 8 * std::mem::size_of::<usize>()
-                        + 16 * std::mem::size_of::<bool>(),
+                        + stream::BRANCH_SELECTION_BYTES,
                 )?;
                 let receiver = stream::Receiver {
                     storage: &mut storage,
@@ -595,3 +592,125 @@ mod stage_tests;
 
 #[cfg(test)]
 mod sealed_before_stage;
+
+// Complete immediate driver and original invoice; namespace changes only.
+#[cfg(test)]
+fn prepare_sealed_before_empty_terminal<'a, T>(
+    seed: &ConstructorSeed<'_>,
+    program: &'a ResolvedProgram,
+    seal: impl FnOnce(Storage<'a>, Payer<'_>) -> Result<T, Diagnostic>,
+) -> Result<(T, Deferred<'a>), Diagnostic> {
+    #[cfg(test)]
+    if stream::before_selected() {
+        return prepare_sealed_before(seed, program, seal);
+    }
+    #[cfg(test)]
+    let _allocation_phase = crate::test_allocation_observer::function_phase_guard(
+        "hir::canonical_loan_storage::prepare_sealed",
+    );
+    let _stage = crate::bounded_output::reservation_stage_guard(
+        crate::bounded_output::ReservationStage::CanonicalLoanStorage,
+    );
+    #[cfg(test)]
+    let _operation = crate::bounded_output::stage_debits::operation_guard(
+        crate::bounded_output::stage_debits::Operation::CanonicalLoanStorage,
+    );
+    #[cfg(feature = "unstable-workflow-profiling")]
+    let _exclusive_operation = crate::bounded_output::exclusive_debits::operation_guard(
+        crate::bounded_output::exclusive_debits::Operation::CanonicalLoanStorage,
+    );
+    if !std::ptr::eq(seed.program(), program) {
+        return Err(hir_error(
+            "canonical shared-loan constructor belongs to another program",
+        ));
+    }
+    // Acquisition follows the unchanged ModuleIndex and ConstructorSeed
+    // phases. One report/ledger is held across ALL plans and their append; a
+    // storage-only test injection keeps its separate legacy payer below.
+    let captured = if crate::bounded_output::active_remaining().is_some() {
+        Some(CfgReservation::acquire().map_err(|_| refused())?)
+    } else {
+        None
+    };
+    let payer = captured
+        .as_ref()
+        .map_or_else(Payer::current, Payer::Captured);
+    let result = (|| {
+        payer.reserve(0)?;
+        let mut deferred = Deferred::new(program);
+        let mut storage = Storage {
+            program,
+            ids: Vec::new(),
+            liveness: Vec::new(),
+            origins: Vec::new(),
+            _scratch: Scratch::default(),
+        };
+        for function in program
+            .functions
+            .iter()
+            .chain(program.function_instances.iter().map(|i| &i.function))
+        {
+            #[cfg(test)]
+            let _allocation_phase = crate::test_allocation_observer::function_phase_guard(
+                "hir::canonical_loan_storage::next_function",
+            );
+            if let Some(owner) = captured.as_ref() {
+                // Pay the complete new captured receiver/closure, actual and
+                // formal move, Result/Option receiving and scratch detach/drop
+                // owners before forming either the owner or closure.
+                payer.reserve(
+                    2 * std::mem::size_of::<(
+                        &crate::loan_plan::canonical_sink::Parts<'_>,
+                        Payer<'_>,
+                    )>() + 2 * std::mem::size_of::<Result<usize, Diagnostic>>()
+                        + 12 * std::mem::size_of::<stream::BeforeEmptyReceiver<'_, '_, '_>>()
+                        + 8 * std::mem::size_of::<Result<(), Diagnostic>>()
+                        + 8 * std::mem::size_of::<
+                            Option<&mut crate::loan_plan::canonical_sink::Source<'_, '_>>,
+                        >()
+                        + 4 * std::mem::size_of::<Scratch>()
+                        + 4 * std::mem::size_of::<Option<(usize, bool)>>()
+                        + 8 * std::mem::size_of::<usize>()
+                        + 16 * std::mem::size_of::<bool>(),
+                )?;
+                let receiver = stream::BeforeEmptyReceiver {
+                    storage: &mut storage,
+                    deferred: &mut deferred,
+                    function,
+                    payer,
+                };
+                match crate::loan_plan::build_canonical(
+                    program,
+                    function,
+                    owner,
+                    move |source, matched| receiver.receive(source, matched),
+                ) {
+                    Ok(()) => (),
+                    Err(crate::loan_plan::FundedError::Physical(reason)) => {
+                        debug_assert_eq!(owner.first(), Some(reason));
+                        return Err(refused());
+                    }
+                    Err(crate::loan_plan::FundedError::Semantic(error)) => return Err(error),
+                }
+            } else {
+                // Unobserved planning retains its entire original producer.
+                let plan = crate::loan_plan::build_plan(program, function)?;
+                deferred.compare(function, &plan);
+                let _stage = crate::bounded_output::reservation_stage_guard(
+                    crate::bounded_output::ReservationStage::LoanCanonicalAppend,
+                );
+                append(&mut storage, plan, payer)?;
+            }
+        }
+        Ok((seal(storage, payer)?, deferred))
+    })();
+    // Only this exact affine owner can mark physical failure. Never infer
+    // payment from H006 text, and never reserve/render after semantic error.
+    if let Some(owner) = captured {
+        if owner.first().is_some() {
+            return Err(owner.diagnostic());
+        }
+    }
+    result
+}
+

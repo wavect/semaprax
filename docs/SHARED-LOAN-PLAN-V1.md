@@ -692,3 +692,32 @@ remain visible. Whole former source metadata is retained byte-for-byte, and
 current source inverses still reach the same complete 8086 targets plus the
 complete immediate owned-stage targets. These are source-only, unrun controls;
 combining the two changes does not add their separately observed savings.
+
+### Authenticated empty canonical receiver (unqualified source candidate)
+
+Only an actual `None` returned by the unchanged independent canonical producer
+selects the empty terminal. That producer has already compared the entire
+empty schema and rows; attachment contents select no route. Both original affinity checks and Deferred publication order remain. The
+first check now carries the selected role payment; the second remains a zero
+request on the empty terminal. The terminal clears all
+three retained scratch vectors in place and constructs no empty output plan,
+append call, detached scratch, probe, growth/count or sorting receiver.
+
+Common Receiver/closure/Result/Option roles remain paid before producer entry.
+The exact prior append-only Parts/Result/scratch/control bank is paid after
+`Some` and before its first append role. The original first receiver reservation
+call pays the selected bank, retaining
+its entire original active/required/refusal chain with no additional call.
+Only the Option branch-selection controls are an additional unconditional cost;
+the empty clear receivers have their own payment. No completed charge is
+refunded. The nonempty path
+retains its entire old bank plus the new branch-selection cost; its payment frontier
+is explicit rather than described as unchanged old-prefix refusal parity.
+
+The complete immediate driver, receiver, invoice and empty append pipeline
+remain independently executable test controls with namespace changes and
+external test-only item gates; all original executable bodies remain whole.
+Authored whole scalar-caller controls require a positive exact composed invoice
+after every new role, complete allocation/Drop, exact/short/zero/floor/sticky
+refusal and unchanged Deferred/earlier-semantic diagnostics. These controls have
+not run. No application, native/Wasm, memory, runtime or token gain is claimed.

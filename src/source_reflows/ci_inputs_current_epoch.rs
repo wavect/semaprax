@@ -43,3 +43,34 @@ pub(super) fn finish_probe(probe: &mut Value, actual: &str, prefix: Value) {
     probe["retained_pre_current1042_probe"] = entire_prior;
     authenticate();
 }
+
+// The frame-root caller has already authenticated the lexical-join predecessor.
+// Rejoin only that exact full stage to its physical source before the unchanged
+// batch/closure chains; no other supplied string is admitted as physical input.
+pub(super) fn physical_batch_input<'a>(source: &str, supplied: &'a str, physical: &'a str) -> std::borrow::Cow<'a, str> {
+    if source != "src/hir/validation/lexical_exit.rs" || supplied == physical {
+        return std::borrow::Cow::Borrowed(supplied);
+    }
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let metadata_source = "src/hir/validation/lexical_exit/lexical_join_inverse.json";
+    let metadata = include_str!("../hir/validation/lexical_exit/lexical_join_inverse.json");
+    let child_source = "src/hir/validation/lexical_exit/lexical_join.rs";
+    let child = include_str!("../hir/validation/lexical_exit/lexical_join.rs");
+    let data: Value = serde_json::from_str(metadata).unwrap();
+    let row = data["rows"].as_array().unwrap().iter().find(|r| r["source"] == source).unwrap();
+    let length = row["current"]["length"].as_u64().unwrap() as usize;
+    let sha = row["current"]["sha256"].as_str().unwrap();
+    let before = row["before_text"].as_str().unwrap();
+    assert_eq!(physical.len(), length); assert_eq!(super::digest(physical), sha);
+    assert_eq!(before.len() as u64, row["before"]["length"].as_u64().unwrap());
+    assert_eq!(super::digest(before), row["before"]["sha256"].as_str().unwrap());
+    assert_eq!(supplied, before, "exact authenticated lexical-join predecessor at batch ingress");
+    assert_eq!(child.len() as u64, data["new_child"]["length"].as_u64().unwrap());
+    assert_eq!(super::digest(child), data["new_child"]["sha256"].as_str().unwrap());
+    for _ in 0..2 {
+        assert_eq!(super::reader::read(&root.join(metadata_source), metadata.len(), &super::digest(metadata), 2_097_152).unwrap(), metadata);
+        assert_eq!(super::reader::read(&root.join(child_source), child.len(), &super::digest(child), 2_097_152).unwrap(), child);
+        assert_eq!(super::reader::read(&root.join(source), length, sha, 2_097_152).unwrap(), physical);
+    }
+    std::borrow::Cow::Borrowed(physical)
+}

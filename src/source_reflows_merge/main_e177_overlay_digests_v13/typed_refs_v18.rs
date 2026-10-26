@@ -552,7 +552,13 @@ mod indexed_tests {
             Err("v19 indexed wrapped alias")
         );
         let mut addition = wire.clone();
-        addition["additions"][0] = wire["replacements"][at].clone();
+        // Keep the actual complete digest table and source census; choose the
+        // smallest real indexed row so this is a domain refusal, not a cap hit.
+        let donor = wire["replacements"].as_array().unwrap().iter()
+            .filter(|value| indexed_replacement(value).unwrap().is_some())
+            .min_by_key(|value| canonical(value).len()).unwrap();
+        addition["additions"][0] = donor.clone();
+        assert!(canonical(&addition).len() <= PAGE_CAP);
         assert_eq!(
             expand_indexed_to_v15(&addition),
             Err("v19 indexed replacement slot")
@@ -585,7 +591,8 @@ mod indexed_opaque_tests {
         let outer: Value = serde_json::from_slice(include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/finite-source-overlay-v2-20261018/page.json"))).unwrap();
         let mut wire = outer["page"].clone();
         let at = wire["replacements"].as_array().unwrap().iter().position(|v| indexed_replacement(v).unwrap().is_some()).unwrap();
-        wire["replacements"].as_array_mut().unwrap().truncate(at + 1);
+        // Keep every original row: dropping rows invalidates the complete
+        // digest table's first-use order before opaque preservation is tested.
         let opaque = serde_json::json!({"opaque": {"old519_index": [true, -1, "not an index"], "canonical_source": 519}, "unknown": ["é\u{0}", null, true]});
         let fragments = &mut wire["replacements"][at][3];
         if fragments.is_null() { *fragments = serde_json::json!([]); }

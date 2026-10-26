@@ -584,15 +584,15 @@ fn current_source(path: &str, row: &serde_json::Value) -> String {
     if path != "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs" { return current_source_before_current1042(path, row); }
     const CURRENT: &str = include_str!("../../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs");
     const PRIOR: &str = include_str!("../../e/d49f3e5888a6368cd2a0271319415fdacd18e8fc9252246bfe34d2bec14d4ae2");
-    const SHA: &str = "6c9454c85328d86f063ed445f60f846dda2f8b49cfcf76cc078ff40b0c3586ad";
-    assert_eq!((CURRENT.len(), format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(CURRENT.as_bytes())))), (244356, SHA.to_owned()));
+    const SHA: &str = "e06a8003cf54de257aff28af1a78b7be85541b2c520c5506ba5510d25431ec39";
+    assert_eq!((CURRENT.len(), format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(CURRENT.as_bytes())))), (244715, SHA.to_owned()));
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let physical = joint_reader::read(&root.join(path), CURRENT.len(), SHA, 2_097_152).unwrap();
     assert_eq!(physical, CURRENT);
     assert_eq!(joint_reader::read(&root.join("e/d49f3e5888a6368cd2a0271319415fdacd18e8fc9252246bfe34d2bec14d4ae2"), PRIOR.len(), "d49f3e5888a6368cd2a0271319415fdacd18e8fc9252246bfe34d2bec14d4ae2", 2_097_152).unwrap(), PRIOR);
     let mut restored = physical.clone();
     let edits: &[(usize, usize, &str, &str)] = &[
-        (49673, 49879, "include_str!(\"../../../../../src/source_reflows_merge/main_e177_overlay_compiled_successor_v19.rs\"),include_str!(\"../../../../../src/source_reflows_merge/main_e177_overlay_compiled_successor_v19/tests.rs\"),", "")
+        (49673, 50238, "include_str!(\"../../../../../src/source_reflows_merge/main_e177_overlay_compiled_successor_v19.rs\"),include_str!(\"../../../../../src/source_reflows_merge/main_e177_overlay_compiled_successor_v19/tests.rs\"),include_str!(\"../../../../../src/source_reflows/ci_inputs_current_epoch.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_before_protocol/owner.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_before_protocol/held_invocation_tests.rs\"),", "")
     ];
     for &(start, end, after, before) in edits.iter().rev() {
         assert!(start <= end && end <= restored.len());

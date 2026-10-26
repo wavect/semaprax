@@ -314,9 +314,9 @@ const LIVE_INGRESS: [(&str, usize, &str); 6] = [
     ("src/cleanup_plan/replay.rs", 326143, "392da88cb3c30b1adcff8d845c8af6a797586dfcaab9af2f0c898243f7c8350a"),
     ("src/source_reflows_merge.rs", 102740, "426ddd09476688811850a2a583df6821fd8ee8ad9b469300ae824dcb4958fe3a"),
     ("src/source_reflows_merge/main67107_inputs.rs", 49667, "555d676283e593101b9fc21b8e26f71b1b31b9567c52d3ca402077c4f8bf7fab"),
-    ("tests/hir_module_boundaries.rs", 164984, "de9204c2027f354d7dccd840949d8d84c034af55a72d06f53783c3d46c9b6f1b"),
-    ("tests/workspace/semantic_graph/source_inventory.rs", 259549, "8f161a7b1de2ff3a5d965032bfff159d476b3ae87607f00a9866c3b1df33ccb9"),
-    ("crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs", 244356, "6c9454c85328d86f063ed445f60f846dda2f8b49cfcf76cc078ff40b0c3586ad"),
+    ("tests/hir_module_boundaries.rs", 165307, "48cab54b215cb17575b26218b69b0a2dc900111f33f9bfe8eb8b9036457864d7"),
+    ("tests/workspace/semantic_graph/source_inventory.rs", 259881, "ec37e8b4352ead6f44068a9f91e67a1279f914a3ff74acf88467abad5f4ffa3e"),
+    ("crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs", 244715, "e06a8003cf54de257aff28af1a78b7be85541b2c520c5506ba5510d25431ec39"),
 ];
 const PRIOR_LIVE_INGRESS_IMAGES: [(&str, &str); 6] = [
     ("src/cleanup_plan/replay.rs", include_str!("../../e/392da88cb3c30b1adcff8d845c8af6a797586dfcaab9af2f0c898243f7c8350a")),
@@ -507,17 +507,17 @@ fn latest_ingress_records() -> serde_json::Value {
         "../../docs/evidence/source-coverage-254-20261024/latest-ordinary-inputs.json"
     );
     assert!(data.len() <= FINAL_INGRESS_CAP);
-    assert_eq!(data.len(), 496927);
+    assert_eq!(data.len(), 498173);
     assert_eq!(
         digest(data),
-        "ec0219b5e91fb7575999ea0fedd21034d3d73f1d2ea304bdc5949b4e67f8ae9f"
+        "f713e382b4909d838ac484af8fb83674cd7a9d3adb5af3622c537c6aa03a0ceb"
     );
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     assert_eq!(
         final_ingress_file(
             &root.join("docs/evidence/source-coverage-254-20261024/latest-ordinary-inputs.json"),
             data.len(),
-            "ec0219b5e91fb7575999ea0fedd21034d3d73f1d2ea304bdc5949b4e67f8ae9f"
+            "f713e382b4909d838ac484af8fb83674cd7a9d3adb5af3622c537c6aa03a0ceb"
         ),
         data
     );

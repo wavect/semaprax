@@ -513,6 +513,9 @@ pub(crate) fn compiled(source: &str) -> Option<&'static str> {
         "src/hir/validation/scope_checkpoint/marks/direct_tests.rs" => Some(include_str!("../../src/hir/validation/scope_checkpoint/marks/direct_tests.rs")),
         "src/workspace_graph/expected_projection/borrowed_imports/tests.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/borrowed_imports/tests.rs")),
         "src/workspace_graph/expected_projection/borrowed_imports/tests/full.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/borrowed_imports/tests/full.rs")),
+        "src/source_reflows/ci_inputs_current_epoch.rs" => Some(include_str!("../../src/source_reflows/ci_inputs_current_epoch.rs")),
+        "src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_before_protocol/owner.rs" => Some(include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_before_protocol/owner.rs")),
+        "src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_before_protocol/held_invocation_tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_before_protocol/held_invocation_tests.rs")),
         _ => None,
     }
 }

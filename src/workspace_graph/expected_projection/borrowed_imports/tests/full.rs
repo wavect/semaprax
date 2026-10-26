@@ -658,9 +658,9 @@ fn original_classifier_invoice(module: &str) -> (usize, usize) {
 // The current receiver removes the independently enumerated old signatures.
 // No measured value chooses the expected invoice.
 fn removed_classifier_invoice(module: &str) -> (usize, usize) {
-    if super::super::CLASSIFIER_TEMPORARIES_REMOVED {
-        original_classifier_invoice(module)
-    } else {
-        (0, 0)
+    match module_path!().rsplit("::").nth(2) {
+        Some("borrowed_imports") => original_classifier_invoice(module),
+        Some("borrowed_imports_original") => (0, 0),
+        _ => panic!("shared classifier fixture has an unknown receiver module"),
     }
 }

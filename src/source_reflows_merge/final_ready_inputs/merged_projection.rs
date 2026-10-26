@@ -1,8 +1,8 @@
 //! Exact merged current join before either independently retained historical chain.
 use super::digest;
 use crate::source_reflows_merge::main_e177_final_inputs::ProjectionInvocation;
-const CURRENT_LENGTH: usize = 2283531;
-const CURRENT_SHA: &str = "241c25e276acd2a0a77bacc6f81c9c0423919852c4d70a0efdd9e796a2cb80ef";
+const CURRENT_LENGTH: usize = 2283206;
+const CURRENT_SHA: &str = "a298bf70cc8c5c8f6c7011d730e35c81ff8e1a2e83145ad9b60ff42eba7cf906";
 // Literal expansion of the owning semantic_graph projection macro, in full order.
 #[rustfmt::skip]
 const CURRENT_PARTS: &[(&str, &str, usize, &str)] = &[
@@ -105,19 +105,19 @@ const CURRENT_PARTS: &[(&str, &str, usize, &str)] = &[
     ("src/workspace_graph/expected_projection/borrowed_leaf/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/borrowed_leaf/tests.rs")), 9718, "5558256fbfa1461e510b4387a586bfa631c65578488db91f473913ad97983b82"),
     ("src/workspace_graph/expected_projection/borrowed_leaf/checked_key.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/borrowed_leaf/checked_key.rs")), 6184, "b4beba2c92fa9107b10e7083561f83243827da7e8a5edc4df035b571b608bc62"),
     ("src/workspace_graph/expected_projection/borrowed_leaf/checked_key/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/borrowed_leaf/checked_key/tests.rs")), 6383, "a57ca67affeb834a92f1fe46faee17f14107ad79961b9ef65939da03574464d3"),
-    ("src/workspace_graph/expected_projection/borrowed_imports.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/borrowed_imports.rs")), 16948, "da6714b4bd67b30038a39e4d958849e850a75208a7b932d5268024c641711e8f"),
+    ("src/workspace_graph/expected_projection/borrowed_imports.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/borrowed_imports.rs")), 16722, "9b70751b6d20536b964bf0739ba74e312f0fb1be03ef37037054cf274ca29a99"),
     ("src/workspace_graph/expected_projection/borrowed_imports/typed.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/borrowed_imports/typed.rs")), 20105, "ad172362be3655aacfef822c2834f76d08a2119d33f5774f611058ca7998792b"),
     ("src/workspace_graph/expected_projection/borrowed_imports/typed/alias.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/borrowed_imports/typed/alias.rs")), 19913, "9c277a8ecb1a8b99f6f03031899a4d7cf413583e9cba285a98f8edfa0cfa9b84"),
     ("src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/borrowed_imports/typed/alias/tests.rs")), 24267, "97d414632c2eb68e7c1e6d27785e78a003d4ff9d439306629f23fa5a1cf256cb"),
     ("src/workspace_graph/expected_projection/borrowed_imports/typed/before_alias.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/borrowed_imports/typed/before_alias.rs")), 9900, "e3765f7769af43df16f0ddec00d1df1af56414da65a35633dc3435d3c6145f8c"),
     ("src/workspace_graph/expected_projection/borrowed_imports/inline.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/borrowed_imports/inline.rs")), 9225, "30586033a207b11b600cdb0d08361a37dd78c7a159660aa645115c82b7475422"),
     ("src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/borrowed_imports/typed_cost.rs")), 41916, "f2f3e2251e1f07a737eeeca4e0f12ffea68b1612f67c59b83c2ae5f46a68da01"),
-    ("src/workspace_graph/expected_projection/borrowed_imports_original.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/borrowed_imports_original.rs")), 14941, "a6b2c250cda981f4a7130884582d3e8a4184e51819ce572ebf32677e16823ed3"),
+    ("src/workspace_graph/expected_projection/borrowed_imports_original.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/borrowed_imports_original.rs")), 14714, "f2c4873ebc9e093e5d837490cc5b5573a282c9b7efa9fd5bb258af81910917e2"),
     ("src/workspace_graph/expected_projection/borrowed_imports/alias_clone.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/borrowed_imports/alias_clone.rs")), 2171, "b0459d75aafc04ae2d83b59e3683874e0949b9988742bcbc34cc8abeb799c4e3"),
     ("src/workspace_graph/expected_projection/borrowed_imports/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/borrowed_imports/tests.rs")), 22861, "cff55f0e3f3aa8ac3240c483bd2b90fe99a036ee184bdb472e41686e3703084f"),
     ("src/workspace_graph/expected_projection/borrowed_imports/tests/alias_helpers.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/borrowed_imports/tests/alias_helpers.rs")), 13022, "15d9906bec6769fd96adc9c17d81fcfec5d05b2c6b4bd497fa6e9da3d7ba4067"),
     ("src/workspace_graph/expected_projection/borrowed_imports/tests/old.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/borrowed_imports/tests/old.rs")), 5964, "93bee992f5f49c009e9c40cda5c630fb823dcf109b082c91b7a57b584d798fa1"),
-    ("src/workspace_graph/expected_projection/borrowed_imports/tests/full.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/borrowed_imports/tests/full.rs")), 29466, "45400d59682efc6576eb7e45aa8f37bc9f33b1015776b7e4d9bd572f66d3836c"),
+    ("src/workspace_graph/expected_projection/borrowed_imports/tests/full.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/borrowed_imports/tests/full.rs")), 29594, "04214dc37fb912d136d52daeb5b56cd63a88035e97b5c80be4bd31e2300b3d23"),
     ("src/workspace_graph/expected_projection/borrowed_imports/tests/initialization.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/borrowed_imports/tests/initialization.rs")), 6162, "f2609c5d3880aa06992de4b92657912fbb579eaa00e7b44e19bfbad96a2eafa9"),
     ("src/workspace_graph/expected_projection/borrowed_imports/receiving.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/borrowed_imports/receiving.rs")), 9411, "175a32cb294f72f01fd465d21bd18b43ad93a06cbe209b51283f4ff6ca33c09b"),
     ("src/workspace_graph/expected_projection/borrowed_imports/tests/full/receiving.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/borrowed_imports/tests/full/receiving.rs")), 10032, "b17f58e7c4a6e45b67deb0e685bcea5655cfac22f34d6667daf458df989975f0"),
@@ -464,6 +464,13 @@ const MAIN_PARTS: &[(&str, usize, &str)] = &[
     ("src/workspace_graph/expected_projection/field_update.rs", 7630, "b3e1eea8dd6bf25da2e9a2e928177973070450ffe34f095ed266b21d792fcebc"),
     ("src/workspace_graph/expected_projection/string_slots.rs", 11811, "570d9033ca799f4564b0b2f9e90abd82f063747f45cb8f20a3f23a082db09a5f"),
 ];
+// Incoming constructor epoch; the entire previous MAIN_PARTS chain remains fixed.
+#[rustfmt::skip]
+const CONSTRUCTOR_PARTS: &[(&str, usize, &str)] = &[
+    ("src/workspace_graph/expected_projection/borrowed_imports.rs", 16722, "9b70751b6d20536b964bf0739ba74e312f0fb1be03ef37037054cf274ca29a99"),
+    ("src/workspace_graph/expected_projection/borrowed_imports_original.rs", 14714, "f2c4873ebc9e093e5d837490cc5b5573a282c9b7efa9fd5bb258af81910917e2"),
+    ("src/workspace_graph/expected_projection/borrowed_imports/tests/full.rs", 29594, "04214dc37fb912d136d52daeb5b56cd63a88035e97b5c80be4bd31e2300b3d23"),
+];
 #[rustfmt::skip]
 const EARLIER_PARTS: &[(&str, usize, &str)] = &[
     ("src/workspace_graph/expected_projection.rs", 59698, "cdd35c1e31d513032b5f4943ee86efdb7cce9dd4a8b77e152b4640d2ba094ab4"),
@@ -559,6 +566,7 @@ pub(super) fn named_part(
             .iter()
             .chain(V10_PREVIOUS_PARTS)
             .chain(MAIN_PARTS)
+            .chain(CONSTRUCTOR_PARTS)
             .chain(EARLIER_PARTS)
             .any(|&(p, n, h)| (p, n, h) == (source, length, sha))
     {
@@ -689,6 +697,28 @@ pub(super) fn stages(
             "9fe94926e99b1460c8ed81a16e503b9fbac44c9a6b833a7eed5f7697c74c3ece".to_owned()
         )
     );
+    // Rebuild the complete incoming constructor subject in the same original order.
+    // Each named lookup authenticates whole compiled and physical current bytes
+    // before ordinary historical acquisition; the old whole-stage guard above runs first.
+    let mut constructor_main = String::new();
+    for &(source, length, sha) in MAIN_PARTS {
+        let &(source, length, sha) = CONSTRUCTOR_PARTS
+            .iter()
+            .find(|part| part.0 == source)
+            .unwrap_or(&(source, length, sha));
+        if source.is_empty() {
+            constructor_main.push('\n');
+        } else {
+            constructor_main.push_str(&named_part(source, length, sha, invocation).unwrap());
+        }
+    }
+    assert_eq!(
+        (constructor_main.len(), digest(&constructor_main)),
+        (
+            652398,
+            "a51889fd387c580b3642d62510efae43d4fa5cbf4869b401cb7a2f0cf224b0d2".to_owned()
+        )
+    );
     assert_eq!(
         actual,
         compiled_join(),
@@ -709,7 +739,7 @@ pub(super) fn stages(
         CURRENT_LENGTH,
         "historical recursion cannot select the merged stage"
     );
-    Some((v10, main))
+    Some((v10, constructor_main))
 }
 #[cfg(test)]
 mod tests {
@@ -727,7 +757,10 @@ mod tests {
         let actual = super::super::projection344_stage(&current);
         assert_eq!(actual, super::super::projection344_stage(&v10));
         assert_eq!(actual, super::super::projection344_stage(&main));
-        let prior = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/evidence/current339-source-custody-repair-20261017/projection344-prior.whole.txt"));
+        let prior = include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/docs/evidence/current339-source-custody-repair-20261017/projection344-prior.whole.txt"
+        ));
         assert_eq!(actual, prior, "whole original facade image retained");
     }
     #[test]
@@ -760,7 +793,11 @@ mod tests {
             ))
         );
         assert_eq!(
-            main,
+            super::super::projection344_constructor_subject_join_with(
+                &main,
+                &mut ProjectionInvocation::new(),
+            )
+            .expect("entire incoming constructor stage must execute its own guard"),
             named_join(MAIN_PARTS, &mut ProjectionInvocation::new())
         );
         for &(source, length, sha) in MAIN_PARTS {
@@ -776,13 +813,15 @@ mod tests {
             assert!(
                 named_part(source, length + 1, sha, &mut ProjectionInvocation::new()).is_none()
             );
-            assert!(named_part(
-                source,
-                length,
-                &"0".repeat(64),
-                &mut ProjectionInvocation::new()
-            )
-            .is_none());
+            assert!(
+                named_part(
+                    source,
+                    length,
+                    &"0".repeat(64),
+                    &mut ProjectionInvocation::new()
+                )
+                .is_none()
+            );
         }
         assert!(named_part("unlisted", 1, CURRENT_SHA, &mut ProjectionInvocation::new()).is_none());
         let mut v10_current = String::new();

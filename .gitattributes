@@ -56,5 +56,9 @@ docs/evidence/core-proof-prelude-forecast-correction-4ec/historical-owning-selec
 e/** -text
 docs/evidence/w/** -text
 
+# Byte-pinned evidence source images must survive Windows checkout unchanged.
+# Their .before extension otherwise falls through to core.autocrlf conversion.
+docs/evidence/**/*.before -text
+
 # Frozen operator receiver keeps its exact historical source bytes.
 docs/evidence/operator-refusal-799/src__source_verify__iterative__operators.rs.before -text

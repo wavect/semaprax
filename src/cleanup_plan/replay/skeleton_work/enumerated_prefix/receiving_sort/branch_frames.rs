@@ -58,6 +58,7 @@ fn bank_equation(old: &Run, new: &Run, events: [usize; 4]) {
 
 #[test]
 fn complete_branch_bank_map_pays_new_producer_before_each_constructor() {
+    let _before_advance = old_advance_epoch();
     // Preserve every former common role. PAYMENT is the new branch reserve's
     // actual/formal arguments and two Result controls, renewed before pop.
     let common_without_new_producer = 2 * PAYMENT
@@ -88,6 +89,7 @@ fn complete_branch_bank_map_pays_new_producer_before_each_constructor() {
 
 #[test]
 fn complete_immediate_sort_counts_all_branch_events_and_discloses_cold_totals() {
+    let _before_advance = old_advance_epoch();
     let program = program();
     let function = &program.functions[0];
     for count in [0, 1, 2, 3, 12, 32] {
@@ -123,6 +125,7 @@ fn complete_immediate_sort_counts_all_branch_events_and_discloses_cold_totals() 
 
 #[test]
 fn immediate_and_current_keep_every_work_cut_and_lent_first_diagnostic() {
+    let _before_advance = old_advance_epoch();
     let program = program();
     let function = &program.functions[0];
     for count in [0, 1, 2, 7] {
@@ -143,6 +146,7 @@ fn immediate_and_current_keep_every_work_cut_and_lent_first_diagnostic() {
 
 #[test]
 fn changed_physical_frontier_keeps_sticky_floor_zero_and_malformed_cleanup() {
+    let _before_advance = old_advance_epoch();
     let program = program();
     let function = &program.functions[0];
     let mut paths = fixture(function, 2, 3);
@@ -195,6 +199,7 @@ fn changed_physical_frontier_keeps_sticky_floor_zero_and_malformed_cleanup() {
 
 #[test]
 fn whole_cold_invocation_and_unwind_balance_all_input_and_cursor_owners() {
+    let _before_advance = old_advance_epoch();
     let program = program();
     let function = &program.functions[0];
     let cold = |old| {
@@ -274,6 +279,7 @@ fn whole_cold_invocation_and_unwind_balance_all_input_and_cursor_owners() {
 
 #[test]
 fn full_immediate_source_body_and_all_old_controls_are_preserved() {
+    let _before_advance = old_advance_epoch();
     let captured = include_str!("before_branch_frames.rs.txt");
     assert_eq!(captured.len(), 15369);
     use sha2::{Digest, Sha256};

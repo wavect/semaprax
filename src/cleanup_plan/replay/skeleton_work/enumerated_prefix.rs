@@ -387,6 +387,11 @@ pub(in crate::cleanup_plan::replay) fn sort(
         return receiving_sort::before_branch_frames::sort(paths, function, budget)
             .map_err(|failure| failure.into_diagnostic());
     }
+    #[cfg(test)]
+    if receiving_sort::BEFORE_ADVANCE.with(std::cell::Cell::get) {
+        return receiving_sort::before_advance::sort(paths, function, budget)
+            .map_err(|failure| failure.into_diagnostic());
+    }
     receiving_sort::sort(paths, function, budget).map_err(|failure| failure.into_diagnostic())
 }
 

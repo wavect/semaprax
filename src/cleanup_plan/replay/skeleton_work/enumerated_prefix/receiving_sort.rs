@@ -44,6 +44,7 @@ const PREPARE_CALL: usize = 2 * PAYMENT
     + 4 * size_of::<bool>();
 // Method receivers and completion/lent-refusal transports occur once per
 // invocation. They cannot pay for the unbounded structural loop below.
+#[cfg(test)]
 const ADVANCE_CALL: usize = PAYMENT
     + 4 * size_of::<&mut Cursor>()
     + 4 * size_of::<&Observations>()
@@ -104,6 +105,143 @@ const COMPARE_CALL: usize = 2 * size_of::<(
     + 4 * size_of::<Ordering>()
     + 4 * size_of::<bool>();
 
+// Direct place expressions introduce no cursor/observations alias, closure,
+// returned Result or array. Every binding inside this block is the exact old
+// frame/item/child binding and retains its original branch bank. A labelled
+// unit block replaces only next's successful return; errors return compare's
+// already-funded Result. PAYMENT still renews the same payment gateway.
+const ADVANCE_BLOCK: usize = PAYMENT;
+macro_rules! advance {
+    ($pair:ident, $side:ident, $path:ident, $function:ident, $budget:ident) => {{
+        'advance: {
+            $pair.$side.yielded = None;
+            if $budget.lent_skeleton {
+                return Err($budget.compact_refusal(
+                    $function,
+                    "enumerated HIR cursor cannot spend a lent skeleton allowance",
+                    "",
+                ));
+            }
+            loop {
+                $budget.reserve_compact_bytes(
+                    $function,
+                    FRAME_COMMON,
+                    "enumerated HIR cursor common frame receiving renewal",
+                )?;
+                #[cfg(test)]
+                frame_event(0);
+                $pair.$side.current = $pair.$side.pending.pop();
+                if $pair.$side.current.is_none() {
+                    break;
+                }
+                $budget.charge_compact($function, 1, "enumerated HIR cursor traversal")?;
+                match $pair
+                    .$side
+                    .current
+                    .take()
+                    .expect("the popped frame was present")
+                {
+                    Frame::RootItems { next } => {
+                        #[cfg(test)]
+                        frame_event(1);
+                        $budget.reserve_compact_bytes(
+                            $function,
+                            ROOT_FRAME,
+                            "enumerated HIR root-items frame receivers",
+                        )?;
+                        if let Some(item) = $path.observations.items.get(next) {
+                            $pair.$side.yielded = Some(Rc::clone(item));
+                            $pair
+                                .$side
+                                .pending
+                                .push(Frame::RootItems { next: next + 1 });
+                            break 'advance;
+                        }
+                    }
+                    Frame::SeqItems { node, next } => {
+                        #[cfg(test)]
+                        frame_event(2);
+                        $budget.reserve_compact_bytes(
+                            $function,
+                            SEQ_FRAME,
+                            "enumerated HIR sequence-items frame receivers",
+                        )?;
+                        let ObservationDagKind::Seq(_, items) = &node.kind else {
+                            unreachable!("sequence cursor frame retains its immutable node")
+                        };
+                        if let Some(item) = items.get(next) {
+                            $pair.$side.yielded = Some(Rc::clone(item));
+                            $pair.$side.pending.push(Frame::SeqItems {
+                                node,
+                                next: next + 1,
+                            });
+                            break 'advance;
+                        }
+                    }
+                    Frame::Node(node) => {
+                        #[cfg(test)]
+                        frame_event(3);
+                        $budget.reserve_compact_bytes(
+                            $function,
+                            NODE_FRAME,
+                            "enumerated HIR node frame receivers",
+                        )?;
+                        $budget.reserve_compact_bytes(
+                            $function,
+                            NODE_STEP,
+                            "enumerated HIR node growth receiving renewal",
+                        )?;
+                        match &node.kind {
+                            ObservationDagKind::Seq(prefix, _) => {
+                                $budget.reserve_compact_vec(
+                                    $function,
+                                    &mut $pair.$side.pending,
+                                    2,
+                                    "enumerated HIR sequence cursor backing",
+                                )?;
+                                let prefix = prefix.as_ref().map(Rc::clone);
+                                // Move this handle into the resume frame; do not clone
+                                // the Seq node merely to remember its items.
+                                $pair.$side.pending.push(Frame::SeqItems { node, next: 0 });
+                                if let Some(prefix) = prefix {
+                                    $pair.$side.pending.push(Frame::Node(prefix));
+                                }
+                            }
+                            ObservationDagKind::Cat(children) => {
+                                $budget.reserve_compact_vec(
+                                    $function,
+                                    &mut $pair.$side.pending,
+                                    children.len(),
+                                    "enumerated HIR concatenation cursor backing",
+                                )?;
+                                let mut children = children.iter().rev();
+                                loop {
+                                    $budget.reserve_compact_bytes(
+                                        $function,
+                                        CAT_CHILD_STEP,
+                                        "enumerated HIR concatenation child receiving renewal",
+                                    )?;
+                                    let Some(child) = children.next() else {
+                                        break;
+                                    };
+                                    $pair.$side.pending.push(Frame::Node(Rc::clone(child)));
+                                }
+                            }
+                            ObservationDagKind::Alt(_) => {
+                                return Err($budget.compact_refusal(
+                                    $function,
+                                    "enumerated HIR history cannot contain merged alternatives",
+                                    "",
+                                ))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }};
+}
+
 impl Cursor {
     fn new() -> Self {
         Self {
@@ -139,6 +277,7 @@ impl Cursor {
         }
         Ok(())
     }
+    #[cfg(test)]
     // Return only completion. The actual observation receiver lives in self;
     // neither a returned reference nor a slice iterator crosses a path swap.
     fn next(
@@ -308,12 +447,14 @@ impl Pair {
             // separately renews every dynamic frame and Cat-child attempt.
             budget.reserve_compact_bytes(
                 function,
-                2 * ADVANCE_CALL,
+                2 * ADVANCE_BLOCK,
                 "enumerated HIR paired cursor next receivers",
             )?;
-            self.left.next(&a.observations, function, budget)?;
+            #[cfg(test)]
+            advance_pair_event();
+            advance!(self, left, a, function, budget);
             // Right still advances when left is exhausted.
-            self.right.next(&b.observations, function, budget)?;
+            advance!(self, right, b, function, budget);
             match (&self.left.yielded, &self.right.yielded) {
                 (Some(a), Some(b)) => {
                     self.ordering = a.as_ref().cmp(b.as_ref());
@@ -444,4 +585,41 @@ fn frame_event(index: usize) {
         counts[index] = counts[index].checked_add(1).unwrap();
         events.set(counts);
     });
+    FRAME_UNWIND.with(|cut| {
+        if index == 0 {
+            if let Some(remaining) = cut.get() {
+                if remaining == 0 {
+                    std::panic::resume_unwind(Box::new(()));
+                }
+                cut.set(Some(remaining - 1));
+            }
+        }
+    });
+}
+
+#[cfg(test)]
+#[allow(dead_code, unused_imports, reason = "complete immediate post-926 sorter with independent typed tariffs")]
+#[rustfmt::skip]
+pub(super) mod before_advance;
+#[cfg(test)]
+std::thread_local! {
+    pub(super) static BEFORE_ADVANCE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    static ADVANCE_PAIR_EVENTS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+    static FRAME_UNWIND: std::cell::Cell<Option<usize>> = const { std::cell::Cell::new(None) };
+}
+#[cfg(test)]
+fn advance_pair_event() {
+    ADVANCE_PAIR_EVENTS.with(|events| events.set(events.get().checked_add(1).unwrap()));
+}
+#[cfg(test)]
+struct AdvanceEpoch(bool);
+#[cfg(test)]
+impl Drop for AdvanceEpoch {
+    fn drop(&mut self) {
+        BEFORE_ADVANCE.with(|old| old.set(self.0));
+    }
+}
+#[cfg(test)]
+fn old_advance_epoch() -> AdvanceEpoch {
+    AdvanceEpoch(BEFORE_ADVANCE.with(|old| old.replace(true)))
 }

@@ -69,3 +69,23 @@ budget, admission ceiling or refusal is waived. The complete immediate-old
 sequence remains separately compiled, with exact source inverses and owning
 nested/public/funded/physical/hostile controls. These controls are authored, not
 executed; the successor has no runtime or application qualification yet.
+
+The #948 source candidate expands the two `Cursor::next` advances lexically in
+`Pair::compare`. Direct cursor/path places replace the actual/formal cursor and
+observation arguments and the completed call Result; no replacement closure,
+selector, alias owner or returned Result is formed. A labelled unit block exits
+at the original success points. Each original payment gateway remains funded,
+as do the complete common/root/sequence/node/growth/Cat-child frame banks,
+traversal work and backing growth. The right cursor still advances after left
+exhaustion, and `Pair::order` still clears both cursors before returning status.
+
+A separately compiled complete immediate post-#926 sorter retains its own typed
+fees. Older owning tests select that epoch rather than silently using the new
+invoice. Exact whole-source two-way inverses retain that sorter and every older
+oracle declaration. New owning controls compare complete sorter and shipping
+comparator/independent-PLAN invocations, work/error ordering, physical boundaries,
+foreign/sticky/floor behavior and complete cold/partial/unwind Drop. The declared
+equation removes only paid call transports for observed paired advances; it is
+not a heap saving or an end-to-end performance claim. These controls have not
+executed. Scoped compiler checks, full caller measurements and unchanged CLI49
+admission remain pending at the original limits.

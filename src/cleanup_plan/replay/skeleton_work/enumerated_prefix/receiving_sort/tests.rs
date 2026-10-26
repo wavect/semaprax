@@ -194,6 +194,7 @@ fn same_work(old: &Run, new: &Run) {
 }
 #[test]
 fn every_work_cut_keeps_complete_content_terminal_multiplicity_and_partial_permutation() {
+    let _before_advance = old_advance_epoch();
     let program = program();
     let function = &program.functions[0];
     for count in [0, 1, 2, 3, 7, 12] {
@@ -214,6 +215,7 @@ fn every_work_cut_keeps_complete_content_terminal_multiplicity_and_partial_permu
 }
 #[test]
 fn real_backings_are_reused_across_swaps_and_early_mismatches() {
+    let _before_advance = old_advance_epoch();
     let program = program();
     let function = &program.functions[0];
     let paths = fixture(function, 32, 64);
@@ -239,6 +241,7 @@ fn real_backings_are_reused_across_swaps_and_early_mismatches() {
 }
 #[test]
 fn exact_physical_limit_floor_and_sticky_failure_keep_all_diagnostic_fields() {
+    let _before_advance = old_advance_epoch();
     let program = program();
     let function = &program.functions[0];
     let paths = fixture(function, 7, 8);
@@ -283,6 +286,7 @@ fn exact_physical_limit_floor_and_sticky_failure_keep_all_diagnostic_fields() {
 }
 #[test]
 fn alt_refusal_and_left_exhaustion_still_visit_the_original_right_frontier() {
+    let _before_advance = old_advance_epoch();
     let program = program();
     let function = &program.functions[0];
     let mut paths = fixture(function, 2, 0);
@@ -310,6 +314,7 @@ fn alt_refusal_and_left_exhaustion_still_visit_the_original_right_frontier() {
 }
 #[test]
 fn complete_original_source_and_executable_oracle_remain_byte_bound() {
+    let _before_advance = old_advance_epoch();
     use sha2::{Digest, Sha256};
     let original = include_str!("original.rs.txt");
     let oracle = include_str!("before.rs");
@@ -332,6 +337,8 @@ fn complete_original_source_and_executable_oracle_remain_byte_bound() {
 
 #[test]
 fn paired_capacity_grows_only_when_needed_and_retains_no_path_handles_between_calls() {
+    let _before_advance = old_advance_epoch();
+    use super::before_advance::Pair;
     let program = program();
     let function = &program.functions[0];
     let shallow = fixture(function, 2, 1);
@@ -391,6 +398,7 @@ fn paired_capacity_grows_only_when_needed_and_retains_no_path_handles_between_ca
 }
 #[test]
 fn complete_cold_invocation_including_owned_input_drop_releases_every_backing() {
+    let _before_advance = old_advance_epoch();
     let program = program();
     let function = &program.functions[0];
     let cold = |current| {
@@ -421,6 +429,7 @@ fn complete_cold_invocation_including_owned_input_drop_releases_every_backing() 
 }
 #[test]
 fn unwind_releases_temporary_handles_while_original_paths_still_own_every_node() {
+    let _before_advance = old_advance_epoch();
     let program = program();
     let function = &program.functions[0];
     let paths = fixture(function, 2, 3);
@@ -450,6 +459,7 @@ fn unwind_releases_temporary_handles_while_original_paths_still_own_every_node()
 
 #[test]
 fn singleton_shared_sort_never_acquires_a_cursor_or_receiving_bank() {
+    let _before_advance = old_advance_epoch();
     let program = program();
     let function = &program.functions[0];
     let paths = fixture(function, 1, 8);
@@ -471,6 +481,7 @@ fn singleton_shared_sort_never_acquires_a_cursor_or_receiving_bank() {
 
 #[test]
 fn every_deep_empty_frame_and_warm_cat_child_attempt_renews_its_actual_invoice() {
+    let _before_advance = old_advance_epoch();
     let program = program();
     let function = &program.functions[0];
     for depth in [0, 1, 17, 257] {
@@ -589,6 +600,7 @@ fn every_deep_empty_frame_and_warm_cat_child_attempt_renews_its_actual_invoice()
 
 #[test]
 fn complete_immediate_old_bank_and_original_structural_invoice_are_source_bound() {
+    let _before_advance = old_advance_epoch();
     use sha2::{Digest, Sha256};
     let captured = include_str!("before_frame_pricing.rs.txt");
     assert_eq!(
@@ -622,3 +634,6 @@ fn complete_immediate_old_bank_and_original_structural_invoice_are_source_bound(
 
 #[path = "branch_frames.rs"]
 mod branch_frames;
+
+#[path = "lexical_advance.rs"]
+mod lexical_advance;

@@ -697,3 +697,140 @@ fn expression_fact_observer_inverse_refuses_whole_source_drift_and_old_inputs() 
         assert!(std::panic::catch_unwind(|| before_expression_fact_observer(&foreign)).is_err());
     }
 }
+
+// Live lexical receiver controls: every full-caller comparison enters the
+// ordinary driver and retains its later certificate/CFG/path/factored checks.
+fn live_lexical_program(calls: usize) -> ResolvedProgram {
+    let calls = "leaf(n);".repeat(calls);
+    let source = format!(r#"module replay.live_directories;
+@id("live.leaf") fn leaf(n:i64)->i64 {{n}}
+@id("live.walk") fn walk()->i64 {{
+ let mut n=0;
+ while n<4 {{ n=n+1; {calls} if n==1 {{continue;}}; if n==3 {{break;}}; 0 }}
+ if n==2 {{return n;}}; return 9;
+}}
+@id("app.main") fn main()->i64 {{walk()}}
+"#);
+    crate::hir::resolve(&crate::check(&source,"live-directory.spx").unwrap()).unwrap()
+}
+struct LiveBefore(bool);
+impl Drop for LiveBefore {fn drop(&mut self){LEXICAL_INSERT_BEFORE.set(self.0);}}
+fn live_before(before: bool) -> LiveBefore {LiveBefore(LEXICAL_INSERT_BEFORE.replace(before))}
+fn live_full_result(program:&ResolvedProgram,function:&ResolvedFunction,before:bool)->Result<(),Diagnostic>{
+    let _before=live_before(before);
+    crate::cleanup_plan::replay::validate_structure(program,function)
+}
+fn live_full_probe(program:&ResolvedProgram,function:&ResolvedFunction,before:bool,limit:usize)->(bool,usize,usize,usize,bool){
+    let expected=live_full_result(program,function,true);
+    let ((out,allocation),refused,debit,first)=with_limit_usage_refusal(limit,||measure(||{
+        let _before=live_before(before);let mut budget=ReplayBudget::new();
+        assert!(!budget.selected()&&budget.pays_allocations());
+        let result=crate::cleanup_plan::replay::validate_structure_with_budget(program,function,&mut budget,None);
+        if limit==usize::MAX {assert_eq!(result,expected,"complete ordinary lexical verdict/Diagnostic");}
+        let out=(result.is_ok(),MAX_REPLAY_WORK_UNITS-budget.remaining);
+        drop(result);drop(budget);out
+    }));
+    assert!(!allocation.invalid&&allocation.live==0);assert_eq!(allocation.allocated,allocation.freed);
+    assert_eq!(refused,first.is_some());if limit==usize::MAX&&out.0{assert!(allocation.allocated<=debit,"whole successful caller actual allocations must be funded");}(out.0,out.1,allocation.allocated,debit,refused)
+}
+#[test]
+fn live_lexical_directories_full_old_current_callers_keep_late_checks_and_real_net(){
+    let mut saved=false;
+    for calls in [0,1,8,64]{
+        let p=live_lexical_program(calls);let f=p.functions.iter().find(|f|f.cleanup_plan.lexical_control.is_some()).unwrap();
+        assert!(crate::cleanup_plan::replay::lexical_cert::requires_lexical(f));
+        let old=live_full_probe(&p,f,true,usize::MAX);let new=live_full_probe(&p,f,false,usize::MAX);
+        assert!(old.0&&new.0&&!old.4&&!new.4);
+        if calls>=8 {assert!(new.1<old.1&&new.2<old.2&&new.3<old.3);saved=true;}
+        eprintln!("LIVE944945 calls={calls} old={old:?} current={new:?}");
+    }
+    assert!(saved);assert!(!LEXICAL_INSERT_BEFORE.get());
+}
+#[test]
+fn live_lexical_directories_actual_late_hostiles_keep_all_diagnostic_fields(){
+    let p=live_lexical_program(8);let i=p.functions.iter().position(|f|f.cleanup_plan.lexical_control.is_some()).unwrap();
+    for attack in 0..7 {
+        let mut hostile=p.clone();let f=&mut hostile.functions[i];let mut changed=false;
+        match attack {
+            0=>{f.cleanup_plan.lexical_control.as_mut().unwrap().schema="foreign";changed=true;}
+            1=>{f.cleanup_plan.exits[0].id=crate::cleanup_plan::ExitTargetId(u32::MAX);changed=true;}
+            2=>{for exit in &mut f.cleanup_plan.exits {if let ExitContinuation::FunctionReturn {source:CleanupResultSource::Scalar {expression},..}=&mut exit.continuation {*expression=ExpressionId::from_owned("foreign.return".into());changed=true;break;}}}
+            3|4|5=>{for block in &mut f.cleanup_plan.blocks {if let Some(at)=block.transitions.iter().position(|x|matches!(x,CleanupTransition::CallCommit{..})){match attack{3=>{block.transitions.remove(at);},4=>{let duplicate=block.transitions[at].clone();block.transitions.insert(at,duplicate);},_=>{if let CleanupTransition::CallCommit{call,..}=&mut block.transitions[at]{*call=ExpressionId::from_owned("foreign.call".into());}}}changed=true;break;}}}
+            _=>{f.cleanup_plan.blocks[0].id=BlockId(u32::MAX);changed=true;}
+        }
+        assert!(changed,"authored fixture must reach attack {attack}");let f=&hostile.functions[i];
+        let old=live_full_result(&hostile,f,true);let new=live_full_result(&hostile,f,false);
+        assert!(old.is_err(),"attack {attack}");assert_eq!(new,old,"all six Diagnostic fields attack {attack}");
+        let a=live_full_probe(&hostile,f,true,usize::MAX);let b=live_full_probe(&hostile,f,false,usize::MAX);assert!(!a.0&&!b.0&&!a.4&&!b.4);
+    }
+}
+#[test]
+fn live_lexical_directories_full_caller_exact_short_zero_keep_complete_drop(){
+    let p=live_lexical_program(8);let f=p.functions.iter().find(|f|f.cleanup_plan.lexical_control.is_some()).unwrap();
+    for before in [true,false]{
+        let full=live_full_probe(&p,f,before,usize::MAX);assert!(full.0&&full.3>0);
+        let exact=live_full_probe(&p,f,before,full.3);assert!(exact.0&&!exact.4);assert_eq!(exact.3,full.3);
+        for limit in [0,full.3-1]{let short=live_full_probe(&p,f,before,limit);assert!(!short.0&&short.4);assert!(short.3<=limit);}
+    }
+}
+#[test]
+fn live_lexical_selector_none_constructor_tax_and_first_gate_remain_exact(){
+    let p=program();let f=&p.functions[0];assert!(f.cleanup_plan.lexical_control.is_none());
+    let run=|current:bool,limit|with_limit_usage_refusal(limit,||measure(||{
+        let mut budget=ReplayBudget::new();let result=if current{Directory::<u32>::new_with_lexical_insert_selector(f,&mut budget,"live selector")}else{Directory::<u32>::new(f,&mut budget,"live selector")};
+        let success=result.is_ok();let work=MAX_REPLAY_WORK_UNITS-budget.remaining;drop(result);drop(budget);(success,work)
+    }));
+    let old=run(false,usize::MAX);let new=run(true,usize::MAX);
+    assert!(old.0.0.0&&new.0.0.0);assert!(!old.1&&!new.1);assert_eq!(old.0.1.allocated,new.0.1.allocated);
+    assert_eq!(new.2-old.2,super::directory::LEXICAL_INSERT_SELECTOR_BYTES);assert_eq!(new.0.0.1-old.0.0.1,1);
+    assert_eq!(super::directory::LEXICAL_INSERT_SELECTOR_BYTES,2*std::mem::size_of::<&Option<Box<crate::cleanup_plan::LexicalControlPlan>>>()+3*std::mem::size_of::<bool>());
+    if std::mem::size_of::<usize>()==8{assert_eq!(super::directory::LEXICAL_INSERT_SELECTOR_BYTES,19);}
+    for current in [false,true]{let full=run(current,usize::MAX);let exact=run(current,full.2);assert!(exact.0.0.0&&!exact.1);let zero=run(current,0);assert!(!zero.0.0.0&&zero.1);let bad=run(current,full.2-1);assert!(!bad.0.0.0&&bad.1);let positive=super::directory::LEXICAL_INSERT_CONSTRUCTOR_BASE_BYTES+if current{super::directory::LEXICAL_INSERT_SELECTOR_BYTES}else{0};assert_eq!(bad.3.unwrap().requested,positive);assert_eq!(bad.2,full.2-positive);}
+    // Work is an explicit finite input, never granted or reset after a call.
+    let work_probe=|current,work|{
+        let mut budget=ReplayBudget {remaining:work,..ReplayBudget::unobserved()};
+        let _=crate::cleanup_plan::replay::take_replay_work_refusal();
+        let result=if current{Directory::<u32>::new_with_lexical_insert_selector(f,&mut budget,"live selector")}else{Directory::<u32>::new(f,&mut budget,"live selector")};
+        let success=result.is_ok();let first=result.err();let remaining=budget.remaining;
+        let refusal=crate::cleanup_plan::replay::take_replay_work_refusal().map(|r|(r.requested,r.remaining));
+        let retry=if success{None}else if current{Directory::<u32>::new_with_lexical_insert_selector(f,&mut budget,"live selector").err()}else{Directory::<u32>::new(f,&mut budget,"live selector").err()};
+        (success,first,remaining,retry,refusal)
+    };
+    assert_eq!(work_probe(false,1),(true,None,0,None,None));
+    assert_eq!(work_probe(true,2),(true,None,0,None,None));
+    let old_short=work_probe(false,0);assert!(!old_short.0&&old_short.2==0);assert_eq!(old_short.4,Some((1,0)));
+    for work in [0,1]{let new_short=work_probe(true,work);assert!(!new_short.0&&new_short.2==0);assert_eq!(new_short.4,Some((2,work)));assert_eq!(new_short.1,old_short.1,"all original first-work Diagnostic fields");assert_eq!(new_short.3,old_short.3,"all original sticky-work Diagnostic fields");}
+}
+#[test]
+fn live_lexical_selector_floor_foreign_sticky_and_unwind_use_real_gateway(){
+    use crate::bounded_output::{active_remaining,clear_active_floor,set_active_floor};
+    let p=program();let f=&p.functions[0];
+    let (((),allocation),_,_,_)=with_limit_usage_refusal(1<<24,||measure(||{
+        let mut budget=ReplayBudget::new();budget.prepare_builder(f).unwrap();
+        let remaining=active_remaining().unwrap();assert!(remaining>0&&set_active_floor(remaining));
+        let first=Directory::<u32>::new_with_lexical_insert_selector(f,&mut budget,"live selector");clear_active_floor();
+        assert!(first.is_err());let retry=Directory::<u32>::new_with_lexical_insert_selector(f,&mut budget,"live selector");assert!(retry.is_err());assert_eq!(budget.remaining,0);drop(retry);drop(first);drop(budget);
+    }));assert!(!allocation.invalid&&allocation.live==0);assert_eq!(allocation.allocated,allocation.freed);
+    // An expired foreign Oracle lease must not fall back to production ACTIVE.
+    let stale=crate::cleanup_plan::replay::allocation::oracle::OracleScope::open(1<<20).unwrap().lease();
+    let (raw,refused,debit,first)=with_limit_usage_refusal(1<<24,||{
+        let mut old=ReplayBudget::with_skeleton_limit_oracle(MAX_REPLAY_WORK_UNITS,stale);let mut new=ReplayBudget::with_skeleton_limit_oracle(MAX_REPLAY_WORK_UNITS,stale);
+        let a=Directory::<u32>::new(f,&mut old,"live selector").err().unwrap();let b=Directory::<u32>::new_with_lexical_insert_selector(f,&mut new,"live selector").err().unwrap();assert_eq!(a,b);(a,b)
+    });assert!(!refused&&debit==0&&first.is_none());drop(raw);
+    let ((panicked,allocation),refused,_,_)=with_limit_usage_refusal(1<<24,||measure(||std::panic::catch_unwind(std::panic::AssertUnwindSafe(||{
+        let mut budget=ReplayBudget::new();let mut directory=Directory::<u32>::new_with_lexical_insert_selector(f,&mut budget,"live unwind").unwrap();for k in 0..16u32{directory.insert(f,k,&mut budget).unwrap();}panic!("intentional complete live directory unwind");
+    })).is_err()));assert!(panicked&&!refused&&!allocation.invalid&&allocation.live==0);assert_eq!(allocation.allocated,allocation.freed);
+}
+#[test]
+fn live_lexical_directories_whole_old_sources_and_dead_retained_withdrawal_are_exact(){
+    use sha2::{Digest,Sha256};let hash=|s:&str|format!("{:x}",crate::digest_hex::LowerHex(Sha256::digest(s.as_bytes())));
+    let source=include_str!("../receiving.rs");let marker="\n// Whole immediate receiver before the live lexical insertion fork.\n#[cfg(test)]\nmod before_lexical_inserts {\n    use super::*;\n";
+    let (prefix,tail)=source.split_once(marker).unwrap();let (old,rest)=tail.split_once("}\n#[cfg(test)]\nthread_local! {").unwrap();assert!(rest.contains("LEXICAL_INSERT_BEFORE"));
+    let start=prefix.find("pub(in crate::cleanup_plan::replay) fn validate_blocks_and_edges(").unwrap();let end=prefix[start..].find("\nfn validate_edge_condition(").unwrap()+start;
+    let restored=format!("{}{}{}",&prefix[..start],old,&prefix[end..]);
+    assert_eq!(hash(&restored),"745d75656478f76d31b615ffd2c515c8e36c8f8da522764194c04c98fff92c4e");assert_eq!(hash(old),"fc743c6a947e1fd4085064c072b36269f99eec6621594f65e654d612c470554f");
+    let driver=include_str!("../../lexical_replay/ordinary.rs");assert_eq!(hash(driver),"d947a67e20af65598c445eecf30c19a797793e2ea45d9ca1d096976fa1111927");assert_eq!(driver,include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/e/d947a67e20af65598c445eecf30c19a797793e2ea45d9ca1d096976fa1111927")));
+    assert_eq!(hash(include_str!("retained.rs")),"d35fedf3a3d6ad0d4e3878eac55eccdca5cfc4653705ec7bb726f69ef93cfc00");
+    assert_eq!(hash(include_str!("retained/tests.rs")),"2d11e36011a6ff396fb6d1d2b4c7c31bf2298d696979bb2fa5a13ee2043818a5");
+    let tests=include_str!("tests.rs");assert_eq!(hash(&tests[..28833]),"c835954bd5ab1f2c1581e61e20fe7067164039a14790425183758fddbb933855");
+}

@@ -57,8 +57,7 @@ fn complete(metrics: Metrics, paid: usize) {
     assert_eq!(metrics.allocated, metrics.freed);
     assert!(metrics.allocated <= paid && metrics.highwater <= paid);
 }
-#[test]
-fn borrowed_ordered_union_keeps_every_state_prefix_missing_branch_and_empty_case() {
+fn immediate_pre_retain_borrowed_ordered_union_keeps_every_state_prefix_missing_branch_and_empty_case() {
     for count in [0, 1, 2, 17] {
         for a in [
             Availability::Available,
@@ -86,7 +85,7 @@ fn borrowed_ordered_union_keeps_every_state_prefix_missing_branch_and_empty_case
                 );
                 let expected = HirValidator::join_moved_places(&left, &right);
                 let (actual, refused, _, first) = with_limit_usage_refusal(usize::MAX, || {
-                    super::super::join_scratch(&left, &right).unwrap();
+                    super::super::partial_retain::before::join_scratch(&left, &right).unwrap();
                     join(&left, &right)
                 });
                 assert!(!refused && first.is_none());
@@ -96,8 +95,7 @@ fn borrowed_ordered_union_keeps_every_state_prefix_missing_branch_and_empty_case
         }
     }
 }
-#[test]
-fn complete_nonempty_scope_receiver_has_honest_many_field_net_and_visible_cold_loss() {
+fn immediate_pre_retain_complete_nonempty_scope_receiver_has_honest_many_field_net_and_visible_cold_loss() {
     for count in [1, 256] {
         let input = BTreeMap::from([(
             ValueId::new("moved.owner".to_owned()),
@@ -140,8 +138,7 @@ fn complete_nonempty_scope_receiver_has_honest_many_field_net_and_visible_cold_l
         }
     }
 }
-#[test]
-fn current_complete_receiver_keeps_exact_short_zero_floor_sticky_and_full_drop() {
+fn immediate_pre_retain_current_complete_receiver_keeps_exact_short_zero_floor_sticky_and_full_drop() {
     let input = BTreeMap::from([(
         ValueId::new("moved.owner".to_owned()),
         binding(64, Availability::MaybeMoved),
@@ -185,8 +182,7 @@ fn current_complete_receiver_keeps_exact_short_zero_floor_sticky_and_full_drop()
     }
 }
 
-#[test]
-fn real_many_field_hir_caller_keeps_semantics_diagnostics_and_complete_drop() {
+fn immediate_pre_retain_real_many_field_hir_caller_keeps_semantics_diagnostics_and_complete_drop() {
     let mut source = String::from("module moved.real;\n@id(\"Packet\") record Packet {");
     for n in 0..32 {
         source.push_str(&format!("@id(\"field{n}\") field{n}:Bytes,"));
@@ -301,6 +297,8 @@ fn full_original_merge_payer_and_generic_producers_remain_source_bound() {
         raw
     };
     let current = include_str!("../../merge.rs").as_bytes();
+    let prior_retain = super::super::partial_retain::whole_merge_before(current);
+    let current = prior_retain.as_slice();
     let old = restore(current);
     assert_eq!(old, include_str!("before.rs.txt").as_bytes());
     let old = std::str::from_utf8(&old)
@@ -319,4 +317,25 @@ fn full_original_merge_payer_and_generic_producers_remain_source_bound() {
     let mut drift = current.to_vec();
     drift.push(b' ');
     assert!(std::panic::catch_unwind(|| restore(&drift)).is_err());
+}
+
+// These original936 selectors retain their complete pre-retain fee epoch.
+#[test]
+fn borrowed_ordered_union_keeps_every_state_prefix_missing_branch_and_empty_case() {
+    super::super::partial_retain::with_before(immediate_pre_retain_borrowed_ordered_union_keeps_every_state_prefix_missing_branch_and_empty_case);
+}
+
+#[test]
+fn complete_nonempty_scope_receiver_has_honest_many_field_net_and_visible_cold_loss() {
+    super::super::partial_retain::with_before(immediate_pre_retain_complete_nonempty_scope_receiver_has_honest_many_field_net_and_visible_cold_loss);
+}
+
+#[test]
+fn current_complete_receiver_keeps_exact_short_zero_floor_sticky_and_full_drop() {
+    super::super::partial_retain::with_before(immediate_pre_retain_current_complete_receiver_keeps_exact_short_zero_floor_sticky_and_full_drop);
+}
+
+#[test]
+fn real_many_field_hir_caller_keeps_semantics_diagnostics_and_complete_drop() {
+    super::super::partial_retain::with_before(immediate_pre_retain_real_many_field_hir_caller_keeps_semantics_diagnostics_and_complete_drop);
 }

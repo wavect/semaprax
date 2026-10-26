@@ -208,3 +208,36 @@ HIR allocation/invoice gains, unchanged tiny inert invoices, semantic/late-error
 and failed-publication equality, exact/short/zero/floor/sticky boundaries and
 complete Drop. No compiler, runtime, application fit, peak or RSS claim is made
 by this source implementation.
+
+## Retained partial-candidate output (source-only successor)
+
+The bounded alternative to the four-way prefix-stream proposal retains the
+ENTIRE original owned candidate builder and generic oracle. It changes only
+the final consuming filter/collect into ascending BTreeSet::retain with the
+same two left-to-right Availability::Moved predicates and short circuit. The
+first candidate directory, every duplicate/rejected prefix clone and all
+original candidate work remain. This is removal of the second collected tree
+and its FromIterator staging, not a zero-directory prefix stream.
+
+The existing first positive join CONTROL gateway additionally prepays the
+retain receiver actual/formal pair, explicit two-reference closure environment
+actual/formal pair, complete returned/receiving set and unit-return pair. The
+unchanged callback loans and predicates retain their original ABI. No new
+per-prefix payment, scalar selector or gateway exists. The original second
+gateway and all moved-map, loan, final survivor payload and COW terms remain.
+The third gateway directly derives one candidate node upper per original
+visited prefix instead of two; it never subtracts a virtual debit or refunds
+already reserved backing. Full immediate pre-retain paid conditional/branch
+receivers remain executable independently of the older #936 saved controls.
+
+Retain and collect can leave differently packed trees. Complete owning tests
+therefore include successive joins, retained snapshots and later COW mutation
+through Drop, as well as realistic depth-one-to-three scopes and a real
+many-field HIR caller. Empty/all-reject and small cold outcomes are reported
+without a universal gain assertion. All original state/error/early-skip/no-op
+and publication order is retained. Production predicates are pure; arbitrary
+injected predicate-panic global key destruction order is not promised equal to
+collect's separated output/unvisited-input owners. Full deallocation, immutable
+inputs and no failed publication remain required. This proposal has only parse
+review; tests, complete invoices/allocation tuples and application owners are
+unrun. It establishes no application fit, #937 closure or measured efficiency.

@@ -146,12 +146,13 @@ fn guarded_order(unwind: bool) -> [usize;32] {
     let (_,order)=watch_free_order(&pointers,|| {
         let result=std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             let buffer=PrefixBuffer {paths,published:2,has_unprocessed:true};
-            if unwind {panic!("real guarded receiving unwind")};drop(buffer);
+            if unwind {std::panic::resume_unwind(Box::new("real guarded receiving unwind"))};drop(buffer);
         }));assert_eq!(result.is_err(),unwind);
     });assert!(!order.invalid);assert_eq!(order.count,5);order.order
 }
 #[test]
 fn actual_path_tail_drops_before_published_prefix_on_refusal_and_unwind() {
+    let ((), metrics) = measure(|| {
     let paths=drop_paths();let pointers:Vec<_>=paths.iter().map(|p|p.observations.items.as_ptr()as usize).collect();
     let (_,old)=watch_free_order(&pointers,|| {
         let mut pending=paths.into_iter();let published=vec![pending.next().unwrap(),pending.next().unwrap()];
@@ -159,6 +160,8 @@ fn actual_path_tail_drops_before_published_prefix_on_refusal_and_unwind() {
     });assert!(!old.invalid);assert_eq!(old.count,5);
     assert_eq!(&old.order[..5],&[2,3,4,0,1]);
     assert_eq!(guarded_order(false),old.order);assert_eq!(guarded_order(true),old.order);
+    });
+    assert!(!metrics.invalid); assert_eq!(metrics.live,0); assert_eq!(metrics.allocated,metrics.freed);
 }
 #[test]
 fn entire_immediate_sequence_body_and_full_original_root_are_source_bound() {
@@ -215,12 +218,22 @@ struct OracleRun {
     seed_work: usize,
     metrics: Metrics,
 }
+// A real completed direct sequence-caller observation, using the same account
+// protocol as factored/oracle_hook::Run. Invocation authority alone never starts
+// this observation. The independent whole-program50 control remains unchanged.
+struct SequenceObservation(allocation::OracleLease);
+impl SequenceObservation {
+    fn begin(lease: allocation::OracleLease) -> Self { lease.start().unwrap(); Self(lease) }
+}
+impl Drop for SequenceObservation {
+    fn drop(&mut self) { self.0.complete().unwrap(); }
+}
 fn oracle_run(program: &ResolvedProgram, old: bool, bytes: usize, units: usize) -> OracleRun {
     use allocation::{enter,OracleScope,OracleRefusal};
     let function=&program.functions[0];
     let ((ok,receipt,seed_work),metrics)=measure(|| {
         let scope=OracleScope::open_with_work(bytes,units).unwrap();let lease=scope.lease();
-        let invocation=enter(program,function,lease).unwrap();
+        let invocation=enter(program,function,lease).unwrap();let observation=SequenceObservation::begin(lease);
         let mut budget=ReplayBudget::with_skeleton_limit_oracle(MAX_REPLAY_WORK_UNITS,lease);
         let mut seed_work=0;
         let result=(|| {
@@ -240,7 +253,7 @@ fn oracle_run(program: &ResolvedProgram, old: bool, bytes: usize, units: usize) 
             assert_eq!(after.first_refusal,first.first_refusal);assert_eq!(after.first_work_refusal,first.first_work_refusal);
             assert_eq!(after.physical_failure,first.physical_failure);
         }
-        drop(budget);assert_eq!(invocation.exit(),Ok(()));(ok,scope.finish(),seed_work)
+        drop(budget);assert_eq!(invocation.exit(),Ok(()));drop(observation);(ok,scope.finish(),seed_work)
     });
     assert!(!metrics.invalid&&metrics.live==0);assert_eq!(metrics.allocated,metrics.freed);
     assert!(metrics.allocated<=receipt.charged&&metrics.highwater<=receipt.charged);
@@ -321,6 +334,7 @@ fn actual_query_and_frame_positive_frontiers_refuse_exact_request_before_scan_or
 }
 #[test]
 fn actual_selected_transfer_work_refusal_keeps_original_tail_then_published_drop_order() {
+    let ((), metrics) = measure(|| {
     let program=fixture();let function=&program.functions[0];let n=warm_count();assert!(n>=8);
     let observe=|old| {
         let scope=allocation::OracleScope::open_with_work(1<<28,1<<26).unwrap();let lease=scope.lease();let invocation=allocation::enter(&program,function,lease).unwrap();let mut budget=ReplayBudget::with_skeleton_limit_oracle(MAX_REPLAY_WORK_UNITS,lease);let mut work=SkeletonWork::new(&program,function,&mut budget);
@@ -330,4 +344,6 @@ fn actual_selected_transfer_work_refusal_keeps_original_tail_then_published_drop
         assert!(result.is_err());assert!(!order.invalid);assert_eq!(order.count,5);drop(suffixes);drop(work);drop(budget);assert_eq!(invocation.exit(),Ok(()));let receipt=scope.finish();assert!(receipt.first_refusal.is_none());(result.err().unwrap(),order.order)
     };
     let old=observe(true);let current=observe(false);assert_eq!(current.0,old.0,"whole original selected raw diagnostic");assert_eq!(current.1,old.1);assert_eq!(&current.1[..5],&[2,3,4,0,1]);
+    });
+    assert!(!metrics.invalid); assert_eq!(metrics.live,0); assert_eq!(metrics.allocated,metrics.freed);
 }

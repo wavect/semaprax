@@ -1,3 +1,13 @@
+## Live lexical replay directories and scope joins (#944, #945, #937)
+
+- Fund one fixed selector in the ordinary lexical receiver and omit only unused
+  committed-key and expected-key insertions. Keep both directory constructors,
+  fees, complete fact iteration and all later certificate/path checks. Withdraw
+  the earlier unreachable retained-receiver candidate and preserve its source.
+- Reuse the existing scope candidate index while filtering reached roots,
+  removing a second collected tree. Complete predecessors, source inverses and
+  owning refusal/allocation controls remain; grouped qualification is pending.
+
 ## Recursive flag query allocation (2026-10-26)
 
 - Compute recursive ownership flags without constructing discarded record and variant layout strings. Childless builtin queries project the existing complete facts directly; the full TypeFacts API, public IR fields and independent owned classifiers remain unchanged.

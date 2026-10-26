@@ -84,8 +84,239 @@ impl<T> Drop for PrefixBuffer<T> {
     }
 }
 
+// The cold multi-suffix route resumes the COMPLETE original loop inline.
+// Its first work/materialization already ran; retain the original COMPACT
+// ByteFailure payment, rather than borrowing the older Diagnostic-sized single-
+// suffix resume helper. No new callee/header transport or shipping branch.
+macro_rules! fallback {
+    ($prefixes:ident, $suffixes:ident, $work:ident, $share_prefix:ident,
+     $minimum:ident, $precharged:ident, $first:ident, $single:ident, $combined:ident) => {{
+        return {
+    for mut prefix in $prefixes {
+        if prefix.failed || prefix.residual {
+            if $precharged {
+                $precharged = false;
+                physical_budget::compact_try!($work.budget.reserve_compact_bytes(
+                    $work.function,
+                    final_output::compact::path_capacity_controls(),
+                    "short-circuited skeleton path",
+                ));
+                let capacity = match $minimum.checked_next_power_of_two() {
+                    Some(capacity) => capacity,
+                    None => return Err($work.budget.budget_refusal(
+                        $work.function, "cleanup replay minimum path capacity overflowed", "",
+                    )),
+                };
+                $work.budget.reserve_vec($work.function, &mut $combined, capacity, "short-circuited skeleton path")?;
+                $combined.push(prefix);
+                $first = false;
+                continue;
+            }
+            compact_path::push!(
+                $work,
+                $first,
+                $minimum,
+                &mut $combined,
+                prefix,
+                "short-circuited skeleton path"
+            );
+            continue;
+        }
+        if !$precharged {
+            skeleton_work::dag_storage::$share_prefix!($work, $share_prefix, prefix.observations);
+        }
+        if $single {
+            if $precharged {
+                $precharged = false;
+            } else {
+                final_output::compact::hir_move!($work);
+                final_output::compact::hir_work!($work);
+                note_skeleton_materialization();
+            }
+            let suffix = &$suffixes[0];
+            let observations = prefix.observations;
+            let observations = $work.extend_owned_observations(
+                observations,
+                &suffix.observations,
+                "skeleton suffix clone",
+            )?;
+            let owned_source = $work.clone_owned(
+                &suffix.owned_source,
+                "sequenced skeleton owned-source clone",
+            )?;
+            compact_path::push!(
+                $work,
+                $first,
+                $minimum,
+                &mut $combined,
+                ExprSkeletonPath {
+                    observations,
+                    owned_source,
+                    failed: suffix.failed,
+                    residual: suffix.residual,
+                    continuation: lexical_skeleton::Continuation::sequenced(
+                        &prefix.continuation,
+                        &suffix.continuation,
+                    ),
+                },
+                "sequenced skeleton path",
+            );
+            continue;
+        }
+        // The first original clone work debit wins before optional metadata.
+        // Iter/next are the original borrowed for-loop state; empty input does
+        // not introduce either a work debit or a selector payment.
+        let mut pending = $suffixes.iter();
+        let Some(first_suffix) = pending.next() else {
+            continue;
+        };
+        #[cfg(test)]
+        if !$precharged { final_output::record_final_frontier(0, $work); }
+        if $precharged { $precharged = false; }
+        else { $work.charge(1, "skeleton prefix clone")?; }
+        $work.budget.reserve_bytes(
+            $work.function,
+            final_output::FINAL_SPLIT_CONTROLS,
+            "HIR final-suffix split controls",
+        )?;
+        skeleton_work::enumerated_prefix::share!($work, prefix);
+        // Lexical remainder of the original first clone: no second charge and
+        // no newly forwarded Result<Observations, Diagnostic>.
+        let observations = skeleton_work::prefix_fusion::after_work!(
+            $work,
+            prefix.observations,
+            first_suffix.observations
+        );
+        let owned_source = $work.clone_owned(
+            &first_suffix.owned_source,
+            "sequenced skeleton owned-source clone",
+        )?;
+        path_array::sequence_minimum::optimized::push!(
+            $work,
+            $first,
+            $minimum,
+            pending,
+            &mut $combined,
+            ExprSkeletonPath {
+                observations,
+                owned_source,
+                failed: first_suffix.failed,
+                residual: first_suffix.residual,
+                continuation: lexical_skeleton::Continuation::sequenced(
+                    &prefix.continuation,
+                    &first_suffix.continuation,
+                ),
+            },
+            "sequenced skeleton path",
+        );
+        // Preserve the original first-output remaining-count receiver: only
+        // after that publication may the last suffix leave this iterator.
+        let Some(last) = pending.next_back() else {
+            continue;
+        };
+        for suffix in pending {
+            let observations =
+                $work.clone_observations(&prefix.observations, "skeleton prefix clone")?;
+            let observations = $work.extend_owned_observations(
+                observations,
+                &suffix.observations,
+                "skeleton suffix clone",
+            )?;
+            let owned_source = $work.clone_owned(
+                &suffix.owned_source,
+                "sequenced skeleton owned-source clone",
+            )?;
+            compact_path::push!(
+                $work,
+                $first,
+                $minimum,
+                &mut $combined,
+                ExprSkeletonPath {
+                    observations,
+                    owned_source,
+                    failed: suffix.failed,
+                    residual: suffix.residual,
+                    continuation: lexical_skeleton::Continuation::sequenced(
+                        &prefix.continuation,
+                        &suffix.continuation,
+                    ),
+                },
+                "sequenced skeleton path",
+            );
+        }
+        // The last original clone also debits work before any header query.
+        #[cfg(test)]
+        final_output::record_final_frontier(1, $work);
+        $work.charge(1, "skeleton prefix clone")?;
+        $work.budget.reserve_bytes(
+            $work.function,
+            final_output::FINAL_HEADER_CONTROLS,
+            "HIR final-suffix header controls",
+        )?;
+        let len = prefix.observations.items.len();
+        let capacity = prefix.observations.items.capacity();
+        let suffix_len = last.observations.items.len();
+        let take = if $work.budget.pays_allocations() {
+            if $work.budget.selected() || len < final_output::FINAL_MINIMUM_ITEMS {
+                false
+            } else if last.observations.prefix.is_some() || capacity == len {
+                true
+            } else {
+                suffix_len <= capacity - len
+            }
+        } else {
+            false
+        };
+        let observations = if take {
+            $work.budget.reserve_bytes(
+                $work.function,
+                final_output::FINAL_MOVE_CONTROLS,
+                "HIR final-suffix move controls",
+            )?;
+            note_skeleton_materialization();
+            prefix.observations
+        } else {
+            $work.budget.reserve_clone(
+                $work.function,
+                &prefix.observations,
+                "skeleton prefix clone",
+            )?;
+            note_skeleton_materialization();
+            prefix.observations.clone()
+        };
+        let observations = $work.extend_owned_observations(
+            observations,
+            &last.observations,
+            "skeleton suffix clone",
+        )?;
+        let owned_source =
+            $work.clone_owned(&last.owned_source, "sequenced skeleton owned-source clone")?;
+        compact_path::push!(
+            $work,
+            $first,
+            $minimum,
+            &mut $combined,
+            ExprSkeletonPath {
+                observations,
+                owned_source,
+                failed: last.failed,
+                residual: last.residual,
+                continuation: lexical_skeleton::Continuation::sequenced(
+                    &prefix.continuation,
+                    &last.continuation,
+                ),
+            },
+            "sequenced skeleton path",
+        );
+    }
+    Ok($combined)
+        };
+    }};
+}
+pub(super) use fallback;
+
 macro_rules! reuse {
-    ($prefixes:ident, $suffixes:ident, $work:ident, $sharing:ident, $minimum:ident, $precharged:ident, $first:ident, $single:ident) => {{
+    ($prefixes:ident, $suffixes:ident, $work:ident, $sharing:ident, $minimum:ident, $precharged:ident, $first:ident, $single:ident, $combined:ident) => {{
         let stopped;
         {
             let mut input = $prefixes.iter_mut();
@@ -144,6 +375,9 @@ macro_rules! reuse {
                 }
             }
         }
+        $crate::cleanup_plan::replay::trailing_active::fallback!(
+            $prefixes, $suffixes, $work, $sharing, $minimum,
+            $precharged, $first, $single, $combined);
     }};
 }
 pub(super) use reuse;

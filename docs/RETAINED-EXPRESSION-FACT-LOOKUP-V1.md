@@ -392,3 +392,38 @@ first-error and callback affinity, malformed input and unwind-through-Drop.
 These controls are authored; grouped executable qualification and genuine
 application admission remain pending. No token or allocation advantage follows
 from the source transformation.
+
+## Live lexical insertion candidate (#944, #945)
+
+The earlier retained-receiver lexical fork was unreachable from ordinary lexical
+replay: actual lexical functions enter the independent lexical driver before the
+retained status receiver, while a nonlexical function carrying a lexical
+certificate is refused. That dormant fork and its incorrectly selected fixture
+corpus are withdrawn; their complete source images, proposals and actual failures
+remain retained. No production saving is claimed for that component.
+
+The replacement operates in `receiving::validate_blocks_and_edges`, reached by
+the ordinary lexical driver's Arena lane. Before the single immutable lexical
+choice, the existing committed-directory constructor retains its original zero,
+positive and work requests and adds only the owner-typed selector bank:
+`2 * size_of::<&Option<Box<LexicalControlPlan>>>() + 3 * size_of::<bool>()`
+and one work unit (19 bytes on the 64-bit ABI). This is a fixed additional tax,
+including direct nonlexical component calls; no removed allocation funds it.
+
+One static tracked/untracked expansion preserves the complete receiver. The
+tracked lane retains every original operation. The lexical lane omits only
+committed-key and expected-key insertions whose results have no consumer there.
+Both original directory constructors, empty headers, fees, full paid fact
+iteration, `fact.is_some()` and final original `is_none()` short circuit remain.
+No directory header, stack receiver or existing charge is credited as a saving.
+
+Lexical presence selects this local omission but is not certificate authority.
+The unchanged complete ordinary lexical driver still authenticates return
+operands and certificates, CFG, every path and the factored comparison after the
+receiver. Authored lexical `return`, `break` and `continue` fixtures compare the
+full original/current caller, all Diagnostic fields, physical allocations,
+declared bytes, work and Drop. Cold surcharge, exact/short/zero, genuine physical
+floor, expired foreign payer and sticky refusal controls are separate from the
+net comparison. Whole old receiver and source images remain independently
+executable and invertible. These are authored controls; no runtime, performance,
+application or normal qualification follows before the grouped owning batch runs.

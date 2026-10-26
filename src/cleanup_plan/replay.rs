@@ -3064,7 +3064,7 @@ fn sequence_skeleton_paths(
     }
     #[cfg(test)]
     if !single && first {
-        trailing_active::reuse!(prefixes, suffixes, work, share_prefix, minimum, precharged, first, single);
+        trailing_active::reuse!(prefixes, suffixes, work, share_prefix, minimum, precharged, first, single, combined);
     }
     for mut prefix in prefixes {
         if prefix.failed || prefix.residual {

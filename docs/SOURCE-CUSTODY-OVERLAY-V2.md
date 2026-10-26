@@ -511,3 +511,31 @@ validator. The oversized logical indexed frontier is never submitted to an
 old public wire decoder. The producer requires exact whole V15 equality after
 its round trip. Source roles and runtime qualification never follow from the
 codec or this document.
+
+
+## Private shared current-source ingress
+
+The controller source transport keeps its existing 2,097,152-byte physical
+cap and all complete V16/V14 predecessor records. Its separate private schema
+`semaprax.v20-shared-source-ingress.v1` accepts only the existing four-slot
+`[start,end,after,before]` edits or closed objects with those four fields. A
+three-slot edit remains malformed under v1.
+
+The explicitly selected private v2 schema
+`semaprax.v20-shared-source-ingress.v2` accepts only
+`[start,end,before]`. It omits the duplicated `after` string, deriving it from
+the immutable current compiled source at the original byte offsets only after
+supplied source equality and ordinary physical/current-archive/prior-archive
+authentication. Unknown versions fail before those reads. Integer, bounds and
+UTF-8 checks precede slicing; independent bounds and UTF-8 checks on the
+restoration buffer still require its replaced slice to equal that immutable
+current slice. Reverse edit order, checked intermediate source bounds, entire
+prior equality and all early/late acquisition frontiers around the unchanged
+older history functions remain mandatory. Expanding every v2 edit must preserve
+the complete original packet value and each whole predecessor.
+
+This private source-control encoding changes no public V18, V19 or V20 page
+contract and grants no source or archive authority. The existing owning ingress
+case retains the v1 routes and refusals and adds v2 reconstruction, version,
+type, range, UTF-8 and authentication controls; their execution remains pending
+the joint focused batch.

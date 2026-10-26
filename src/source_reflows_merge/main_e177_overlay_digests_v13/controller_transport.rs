@@ -562,6 +562,10 @@ fn v20_current_compiled(index:usize)->&'static str { match index {
     _=>unreachable!(),
 }}
 fn v20_ingress_before_using(index:usize,supplied:&str,record:&Value,read:&impl Fn(&std::path::Path,usize,&str)->String)->String {
+    v20_ingress_before_format_using(index,supplied,record,"semaprax.v20-shared-source-ingress.v1",read)
+}
+fn v20_ingress_before_format_using(index:usize,supplied:&str,record:&Value,format:&str,read:&impl Fn(&std::path::Path,usize,&str)->String)->String {
+    let compact=match format {"semaprax.v20-shared-source-ingress.v1"=>false,"semaprax.v20-shared-source-ingress.v2"=>true,_=>panic!("closed source ingress format")};
     let keys=|value:&Value,names:&[&str]|value.as_object().is_some_and(|o|o.len()==names.len()&&names.iter().all(|name|o.contains_key(*name)));
     assert!(keys(record,&["source","current","previous","edits"]));assert_eq!(record["source"],V14_FRONT_SOURCES[index]);
     let compiled=v20_current_compiled(index);assert_eq!(compiled,supplied,"whole actual current source before history");
@@ -579,11 +583,18 @@ fn v20_ingress_before_using(index:usize,supplied:&str,record:&Value,read:&impl F
     };
     acquire();let mut restored=supplied.to_owned();
     for edit in record["edits"].as_array().unwrap().iter().rev(){
-        let (start,end,after,before)=if let Some(parts)=edit.as_array(){
-            assert_eq!(parts.len(),4,"closed compact ingress edit");(&parts[0],&parts[1],&parts[2],&parts[3])
-        }else{assert!(keys(edit,&["start","end","after","before"]));(&edit["start"],&edit["end"],&edit["after"],&edit["before"])};
-        let start=usize::try_from(start.as_u64().unwrap()).unwrap();let end=usize::try_from(end.as_u64().unwrap()).unwrap();let before=before.as_str().unwrap();
-        assert!(start<=end&&end<=restored.len()&&restored.is_char_boundary(start)&&restored.is_char_boundary(end));assert_eq!(&restored[start..end],after.as_str().unwrap());
+        let (start,end,after,before)=if compact {
+            let parts=edit.as_array().unwrap();assert_eq!(parts.len(),3,"closed slice ingress edit");
+            let start=usize::try_from(parts[0].as_u64().unwrap()).unwrap();let end=usize::try_from(parts[1].as_u64().unwrap()).unwrap();
+            assert!(start<=end&&end<=compiled.len()&&compiled.is_char_boundary(start)&&compiled.is_char_boundary(end));
+            (start,end,&compiled[start..end],parts[2].as_str().unwrap())
+        }else{
+            let (start,end,after,before)=if let Some(parts)=edit.as_array(){
+                assert_eq!(parts.len(),4,"closed compact ingress edit");(&parts[0],&parts[1],&parts[2],&parts[3])
+            }else{assert!(keys(edit,&["start","end","after","before"]));(&edit["start"],&edit["end"],&edit["after"],&edit["before"])};
+            (usize::try_from(start.as_u64().unwrap()).unwrap(),usize::try_from(end.as_u64().unwrap()).unwrap(),after.as_str().unwrap(),before.as_str().unwrap())
+        };
+        assert!(start<=end&&end<=restored.len()&&restored.is_char_boundary(start)&&restored.is_char_boundary(end));assert_eq!(&restored[start..end],after);
         assert!(restored.len().checked_sub(end-start).unwrap().checked_add(before.len()).unwrap()<=9_753_094);restored.replace_range(start..end,before);
     }
     assert_eq!(restored,prior,"ENTIRE pre-V20 physical stage");acquire();restored
@@ -594,11 +605,11 @@ fn v20_ingress_before(index:usize,supplied:&str,record:&Value)->String {
 fn v14_source_before_using(source:&str,supplied:&str,read:&impl Fn(&std::path::Path,usize,&str)->String)->String {
     let Some(index)=V14_FRONT_SOURCES.iter().position(|s|*s==source)else{return v14_source_before_before_v20(source,supplied);};
     let packet:Value=serde_json::from_str(include_str!("controller_transport.json")).unwrap();let ingress=&packet["v20_shared_ingress"];
-    assert!(ingress.as_object().is_some_and(|o|o.len()==4));assert_eq!(ingress["schema"],"semaprax.v20-shared-source-ingress.v1");assert_eq!(ingress["source_kind"],"ACTUAL_CURRENT_TO_ENTIRE_PRE_V20_PHYSICAL_STAGE");assert_eq!(ingress["sources"],serde_json::json!(V14_FRONT_SOURCES));
+    assert!(ingress.as_object().is_some_and(|o|o.len()==4));let format=ingress["schema"].as_str().unwrap();assert!(matches!(format,"semaprax.v20-shared-source-ingress.v1"|"semaprax.v20-shared-source-ingress.v2"));assert_eq!(ingress["source_kind"],"ACTUAL_CURRENT_TO_ENTIRE_PRE_V20_PHYSICAL_STAGE");assert_eq!(ingress["sources"],serde_json::json!(V14_FRONT_SOURCES));
     let records=ingress["records"].as_array().unwrap();assert_eq!(records.len(),V14_FRONT_SOURCES.len());
     assert_eq!(records.iter().map(|r|r["source"].as_str().unwrap()).collect::<Vec<_>>(),V14_FRONT_SOURCES);
-    let before=v20_ingress_before_using(index,supplied,&records[index],read);let result=v14_source_before_before_v20(source,&before);
-    assert_eq!(v20_ingress_before_using(index,supplied,&records[index],read),before);result
+    let before=v20_ingress_before_format_using(index,supplied,&records[index],format,read);let result=v14_source_before_before_v20(source,&before);
+    assert_eq!(v20_ingress_before_format_using(index,supplied,&records[index],format,read),before);result
 }
 fn v14_source_before(source:&str,supplied:&str)->String {
     v14_source_before_using(source,supplied,&|p,n,h|physical_reader::read(p,n,h,9_753_094).unwrap())
@@ -610,7 +621,12 @@ mod v20_ingress_tests {
     fn current_three_channels_restore_whole_pre_v20_and_all_old_targets_refuse_drift() {
         let packet:Value=serde_json::from_str(include_str!("controller_transport.json")).unwrap();
         for index in 0..V14_FRONT_SOURCES.len(){
-            let record=&packet["v20_shared_ingress"]["records"][index];let current=v20_current_compiled(index);let prior=v20_previous_compiled(index);
+            let current=v20_current_compiled(index);let prior=v20_previous_compiled(index);
+            let compact_record=&packet["v20_shared_ingress"]["records"][index];let mut expanded=compact_record.clone();
+            if packet["v20_shared_ingress"]["schema"]=="semaprax.v20-shared-source-ingress.v2" {
+                for edit in expanded["edits"].as_array_mut().unwrap(){let parts=edit.as_array().unwrap();assert_eq!(parts.len(),3);let start=usize::try_from(parts[0].as_u64().unwrap()).unwrap();let end=usize::try_from(parts[1].as_u64().unwrap()).unwrap();*edit=serde_json::json!([start,end,&current[start..end],parts[2]]);}
+            }
+            let record=&expanded;
             assert_eq!(v20_ingress_before(index,current,record),prior);
             assert_eq!(v14_source_before(V14_FRONT_SOURCES[index],current),v14_source_before_before_v20(V14_FRONT_SOURCES[index],prior));
             let mut drift=current.to_owned();drift.push(' ');assert!(std::panic::catch_unwind(||v20_ingress_before(index,&drift,record)).is_err());
@@ -619,9 +635,18 @@ mod v20_ingress_tests {
             let first=&record["edits"][0];let tuple=if let Some(parts)=first.as_array(){parts.clone()}else{vec![first["start"].clone(),first["end"].clone(),first["after"].clone(),first["before"].clone()]};
             let mut compact=record.clone();compact["edits"][0]=serde_json::json!(tuple);assert_eq!(v20_ingress_before(index,current,&compact),prior);
             let mut object=record.clone();object["edits"][0]=serde_json::json!({"start":tuple[0],"end":tuple[1],"after":tuple[2],"before":tuple[3]});assert_eq!(v20_ingress_before(index,current,&object),prior);
-            for edit in [serde_json::json!([]),serde_json::json!([0,0,"","",false]),serde_json::json!([true,0,"",""]),serde_json::json!([-1,0,"",""]),serde_json::json!([0.5,0,"",""]),serde_json::json!([0,0,false,""]),serde_json::json!([0,0,"",false]),serde_json::json!({"start":0,"end":0,"after":"","before":"","extra":true})]{
+            for edit in [serde_json::json!([0,0,""]),serde_json::json!([]),serde_json::json!([0,0,"","",false]),serde_json::json!([true,0,"",""]),serde_json::json!([-1,0,"",""]),serde_json::json!([0.5,0,"",""]),serde_json::json!([0,0,false,""]),serde_json::json!([0,0,"",false]),serde_json::json!({"start":0,"end":0,"after":"","before":"","extra":true})]{
                 let mut bad=record.clone();bad["edits"][0]=edit;assert!(std::panic::catch_unwind(||v20_ingress_before(index,current,&bad)).is_err());
             }
+            // The new version derives slices only after all ordinary channels authenticate.
+            let mut slice_record=record.clone();for edit in slice_record["edits"].as_array_mut().unwrap(){let p=edit.as_array().unwrap();*edit=serde_json::json!([p[0],p[1],p[3]]);}
+            let decode=|r:&Value,supplied:&str|v20_ingress_before_format_using(index,supplied,r,"semaprax.v20-shared-source-ingress.v2",&|p,n,h|physical_reader::read(p,n,h,9_753_094).unwrap());
+            assert_eq!(decode(&slice_record,current),prior);
+            assert!(std::panic::catch_unwind(||decode(&slice_record,&drift)).is_err());
+            for field in ["current","previous"]{let mut bad=slice_record.clone();bad[field]["sha256"]="0".repeat(64).into();assert!(std::panic::catch_unwind(||decode(&bad,current)).is_err());}
+            for edit in [serde_json::json!([]),serde_json::json!([0,0,"",""]),serde_json::json!([true,0,""]),serde_json::json!([-1,0,""]),serde_json::json!([0.5,0,""]),serde_json::json!([0,0,false]),serde_json::json!([1,0,""]),serde_json::json!([0,current.len()+1,""]),serde_json::json!({"start":0,"end":0,"before":""})]{let mut bad=slice_record.clone();bad["edits"][0]=edit;assert!(std::panic::catch_unwind(||decode(&bad,current)).is_err());}
+            if let Some((offset,ch))=current.char_indices().find(|(_,ch)|ch.len_utf8()>1){let mut bad=slice_record.clone();bad["edits"][0]=serde_json::json!([offset+1,offset+ch.len_utf8(),""]);assert!(std::panic::catch_unwind(||decode(&bad,current)).is_err());}
+            let reads=std::cell::Cell::new(0);assert!(std::panic::catch_unwind(std::panic::AssertUnwindSafe(||v20_ingress_before_format_using(index,current,&slice_record,"unknown",&|_,_,_|{reads.set(reads.get()+1);String::new()}))).is_err());assert_eq!(reads.get(),0);
             // Exercise each actual channel through the unchanged ordinary held
             // reader, with corrupt/truncated fixture bytes at early AND late
             // acquisition. The immutable repository images are never edited.

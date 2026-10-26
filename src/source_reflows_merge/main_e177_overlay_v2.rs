@@ -53,7 +53,80 @@ fn control(path: &str) -> bool {
     ]
     .contains(&path)
 }
-use fragments_v3::canonical;
+fn canonical(value: &Value) -> Vec<u8> {
+    fn quoted(value: &str, out: &mut String) {
+        let bytes = value.as_bytes();
+        let mut index = 0;
+        while index < bytes.len() {
+            let byte = bytes[index];
+            if !matches!(byte, 0x20..=0x7e) || matches!(byte, b'"' | b'\\') {
+                out.push_str(&serde_json::to_string(value).unwrap());
+                return;
+            }
+            index += 1;
+        }
+        out.push('"');
+        out.push_str(value);
+        out.push('"');
+    }
+    fn write(v: &Value, out: &mut String) {
+        match v {
+            Value::Object(map) => {
+                out.push('{');
+                let mut emit = |index: usize, key: &str, value: &Value| {
+                    if index != 0 {
+                        out.push(',');
+                    }
+                    quoted(key, out);
+                    out.push(':');
+                    write(value, out);
+                };
+                if map.keys().is_sorted() {
+                    for (index, (key, value)) in map.iter().enumerate() {
+                        emit(index, key, value);
+                    }
+                } else if map.len() <= 16 {
+                    // Borrow every field. Large/unknown dictionaries retain the full fallback.
+                    let mut fields = [None; 16];
+                    for (slot, entry) in fields.iter_mut().zip(map.iter()) {
+                        *slot = Some(entry);
+                    }
+                    let fields = &mut fields[..map.len()];
+                    fields.sort_unstable_by_key(|entry| entry.unwrap().0);
+                    for (index, entry) in fields.iter().enumerate() {
+                        let (key, value) = entry.unwrap();
+                        emit(index, key, value);
+                    }
+                } else {
+                    for (index, (key, value)) in
+                        map.iter().collect::<BTreeMap<_, _>>().iter().enumerate()
+                    {
+                        emit(index, key, value);
+                    }
+                }
+                out.push('}');
+            }
+            Value::Array(array) => {
+                out.push('[');
+                for (index, value) in array.iter().enumerate() {
+                    if index != 0 {
+                        out.push(',');
+                    }
+                    write(value, out);
+                }
+                out.push(']');
+            }
+            Value::String(value) => quoted(value, out),
+            Value::Null => out.push_str("null"),
+            Value::Bool(value) => out.push_str(if *value { "true" } else { "false" }),
+            _ => out.push_str(&serde_json::to_string(v).unwrap()),
+        }
+    }
+    let mut result = String::new();
+    write(value, &mut result);
+    result.push('\n');
+    result.into_bytes()
+}
 fn json(raw: &str) -> Result<Value, &'static str> {
     let value: Value = serde_json::from_str(raw).map_err(|_| "JSON syntax")?;
     require!(
@@ -776,6 +849,108 @@ pub(super) fn declares_source(source: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn full_before_canonical_serializer(value: &Value) -> Vec<u8> {
+        fn write(v: &Value, out: &mut String) {
+            match v {
+                Value::Object(map) => {
+                    out.push('{');
+                    for (i, (key, value)) in
+                        map.iter().collect::<BTreeMap<_, _>>().iter().enumerate()
+                    {
+                        if i != 0 {
+                            out.push(',');
+                        }
+                        out.push_str(&serde_json::to_string(key).unwrap());
+                        out.push(':');
+                        write(value, out);
+                    }
+                    out.push('}');
+                }
+                Value::Array(array) => {
+                    out.push('[');
+                    for (i, value) in array.iter().enumerate() {
+                        if i != 0 {
+                            out.push(',');
+                        }
+                        write(value, out);
+                    }
+                    out.push(']');
+                }
+                _ => out.push_str(&serde_json::to_string(v).unwrap()),
+            }
+        }
+        let mut result = String::new();
+        write(value, &mut result);
+        result.push('\n');
+        result.into_bytes()
+    }
+
+    #[test]
+    fn canonical_writer_matches_full_before_for_all_json_types_and_unknown_fields() {
+        let special = serde_json::json!({
+            "all_ascii": (0u8..=127).map(char::from).collect::<String>(),
+            "unicode": "é😀\u{2028}",
+            "escaped": "\0\n\r\t\"\\",
+            "numbers": [-0.0, 1.25e90, i64::MIN as f64],
+            "booleans": [true, false],
+            "nothing": null,
+        });
+        for width in 0..=128 {
+            for reverse in [false, true] {
+                let mut fields = serde_json::Map::new();
+                for offset in 0..width {
+                    let index = if reverse { width - offset - 1 } else { offset };
+                    fields.insert(format!("unknown-{index:04}"), special.clone());
+                }
+                let value = Value::Object(fields);
+                let actual = canonical(&value);
+                assert_eq!(actual, full_before_canonical_serializer(&value));
+                assert_eq!(serde_json::from_slice::<Value>(&actual).unwrap(), value);
+            }
+        }
+        let mut exotic_keys = serde_json::Map::new();
+        for key in ["", "\0\n\r\t\"\\", "é😀\u{2028}"] {
+            exotic_keys.insert(key.to_owned(), special.clone());
+        }
+        let exotic_keys = Value::Object(exotic_keys);
+        assert_eq!(
+            canonical(&exotic_keys),
+            full_before_canonical_serializer(&exotic_keys)
+        );
+        assert_eq!(
+            serde_json::from_slice::<Value>(&canonical(&exotic_keys)).unwrap(),
+            exotic_keys
+        );
+        let mut nested = special;
+        for _ in 0..64 {
+            nested = serde_json::json!([nested]);
+        }
+        assert_eq!(
+            canonical(&nested),
+            full_before_canonical_serializer(&nested)
+        );
+    }
+    #[test]
+    fn canonical_writer_preserves_every_field_of_complete_current_metadata_files() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+        for path in [
+            "docs/evidence/finite-source-overlay-v2-20261018/page.json",
+            "docs/evidence/finite-source-overlay-v2-20261018/policy.json",
+            "docs/evidence/a3-e47-final-custody-20261016/hir.json",
+            "docs/evidence/a3-e47-final-custody-20261016/projection.json",
+        ] {
+            let raw = std::fs::read(root.join(path)).unwrap();
+            let value: Value = serde_json::from_slice(&raw).unwrap();
+            let actual = canonical(&value);
+            assert_eq!(actual, full_before_canonical_serializer(&value), "{path}");
+            assert_eq!(
+                serde_json::from_slice::<Value>(&actual).unwrap(),
+                value,
+                "{path}"
+            );
+        }
+    }
+
     #[test]
     fn logical_current_view_precedes_stage_normalization_and_preserves_foreign_refusals() {
         // Borrow immutable metadata only. Both independently compiled routes still acquire current/archive bytes afresh for every supplied input.
@@ -1209,7 +1384,6 @@ mod tests {
 #[cfg(test)]
 #[path = "main_e177_overlay_incoming064.rs"]
 mod incoming064;
-
 #[rustfmt::skip]
 pub(super) const INVOCATION_PACKET_READS: &[(&str,usize,&str)] = &[("docs/evidence/main-e177-final-source-binding-20261017/current-inputs.json",260977,"de6103a37cb677be139de99b4a945ddf2d588b5292a01ca058715b3d7f8734dc"),("docs/evidence/fmt-a110/packet-wV4m7PTunyjrIa8VFcfB0eaqPxmD03tBMXOGHXLXakY.json.txt",112949,"c15e26ecf4ee9f28eb21af1515c7c1d1e6aa3f1983d37b413173861d72d76a46"),("docs/evidence/main-e177-final-source-binding-20261017/views/3384be6e49144e547e28e613294b2aa53aa8b538acb9cfd84b3dd003a9126a71.txt",84171,"3384be6e49144e547e28e613294b2aa53aa8b538acb9cfd84b3dd003a9126a71"),("docs/evidence/current339-source-custody-repair-20261017/final98-current-inputs.whole-before.json",82953,"996aa3de35097ef764384db3b8fbaffa57bb500fb18368280a20dac9c3ff5f52"),("docs/evidence/main-e177-final-source-binding-20261017/views/802a9e325c6d4e9da033593b365119441fb2c1431cb981793fe4026e29ff6734.txt",111187,"802a9e325c6d4e9da033593b365119441fb2c1431cb981793fe4026e29ff6734"),("docs/evidence/main-e177-final-source-binding-20261017/views/f3591ff220c338d79adaa9106b347daef4bea5b4227ef47063d58dabdeade469.txt",68224,"f3591ff220c338d79adaa9106b347daef4bea5b4227ef47063d58dabdeade469"),("docs/evidence/ci-msrv-parent-import-20261018/whole/3384be6e49144e547e28e613294b2aa53aa8b538acb9cfd84b3dd003a9126a71.txt",84171,"3384be6e49144e547e28e613294b2aa53aa8b538acb9cfd84b3dd003a9126a71"),("docs/evidence/current339-source-custody-repair-20261017/final98-current-inputs.whole-before.json",82953,"996aa3de35097ef764384db3b8fbaffa57bb500fb18368280a20dac9c3ff5f52"),("docs/evidence/next-big-batch-source-binding-20261017/current-inputs.json",112927,"336d79ff6cddc852d4750aa304b85a31494ac98c2e015bb52dfb615db7d98fe3"),("docs/evidence/main-e177-final-source-binding-20261017/tables/336d79ff6cddc852d4750aa304b85a31494ac98c2e015bb52dfb615db7d98fe3.txt",112927,"336d79ff6cddc852d4750aa304b85a31494ac98c2e015bb52dfb615db7d98fe3"),("docs/evidence/main99f-full-controller-acquisition-20261017/inputs.json",228105,"7da7c03cee1c8232577d85e4b34a671ec5af4c32617d1385f4ec6e7226b3c0d9"),("docs/evidence/main-e177-final-source-binding-20261017/tables/7da7c03cee1c8232577d85e4b34a671ec5af4c32617d1385f4ec6e7226b3c0d9.txt",228105,"7da7c03cee1c8232577d85e4b34a671ec5af4c32617d1385f4ec6e7226b3c0d9"),("docs/evidence/main-e177-final-source-binding-20261017/views/7ce1ea34daa31a1eda756cf7c0cd542adcfa3d351cbc3e0d12a37c51e5036986.txt",54780,"7ce1ea34daa31a1eda756cf7c0cd542adcfa3d351cbc3e0d12a37c51e5036986"),("docs/evidence/main-e177-final-source-binding-20261017/views/7ce1ea34daa31a1eda756cf7c0cd542adcfa3d351cbc3e0d12a37c51e5036986.txt",54780,"7ce1ea34daa31a1eda756cf7c0cd542adcfa3d351cbc3e0d12a37c51e5036986"),("docs/evidence/earned-managed-pin42-source-coupling-20261017/inputs.json",34641,"27ec261cbc4f2b00a6ff0be7084f8c1a8c76e42523043b180f49701f8540abd2"),("docs/evidence/main-e177-final-source-binding-20261017/views/27ec261cbc4f2b00a6ff0be7084f8c1a8c76e42523043b180f49701f8540abd2.txt",34641,"27ec261cbc4f2b00a6ff0be7084f8c1a8c76e42523043b180f49701f8540abd2"),("docs/evidence/semantic162-compile-source-ingress-20261017/inputs.json",13993,"e3870d5c067c099197b21f5b749b3124eaa4174701fe3eb47ca73db88ac44f14"),("docs/evidence/main-e177-final-source-binding-20261017/views/e3870d5c067c099197b21f5b749b3124eaa4174701fe3eb47ca73db88ac44f14.txt",13993,"e3870d5c067c099197b21f5b749b3124eaa4174701fe3eb47ca73db88ac44f14"),("docs/evidence/next-semantic-source-views-20261017/inputs.json",84888,"c876c6b5f15969fe55bee55b31be8b6174db300d6b4f9f18cd412044273b6305"),("docs/evidence/main-e177-final-source-binding-20261017/views/c876c6b5f15969fe55bee55b31be8b6174db300d6b4f9f18cd412044273b6305.txt",84888,"c876c6b5f15969fe55bee55b31be8b6174db300d6b4f9f18cd412044273b6305"),("docs/evidence/main-e177-final-source-binding-20261017/views/bc66e360cefb55655815018153316bca517702bc32791462f2dfb9ca70b90d41.txt",56884,"bc66e360cefb55655815018153316bca517702bc32791462f2dfb9ca70b90d41"),("docs/evidence/main-e177-final-source-binding-20261017/views/bc66e360cefb55655815018153316bca517702bc32791462f2dfb9ca70b90d41.txt",56884,"bc66e360cefb55655815018153316bca517702bc32791462f2dfb9ca70b90d41"),("docs/evidence/main-e177-final-source-binding-20261017/views/de9c72c5fba416e93d5fba422174cd0888c0bd6991fb2fc4367396c541bf92a7.txt",80681,"de9c72c5fba416e93d5fba422174cd0888c0bd6991fb2fc4367396c541bf92a7"),("docs/evidence/main-e177-final-source-binding-20261017/views/de9c72c5fba416e93d5fba422174cd0888c0bd6991fb2fc4367396c541bf92a7.txt",80681,"de9c72c5fba416e93d5fba422174cd0888c0bd6991fb2fc4367396c541bf92a7"),("docs/evidence/main-e177-final-source-binding-20261017/views/3fa32fc7c4b039abed780ccc39b34d759e329705e2674f62cc56016ab08007bd.txt",81430,"3fa32fc7c4b039abed780ccc39b34d759e329705e2674f62cc56016ab08007bd"),("docs/evidence/main-e177-final-source-binding-20261017/views/3fa32fc7c4b039abed780ccc39b34d759e329705e2674f62cc56016ab08007bd.txt",81430,"3fa32fc7c4b039abed780ccc39b34d759e329705e2674f62cc56016ab08007bd"),("docs/evidence/main-e177-final-source-binding-20261017/views/a1e425d6dec0ae2619b7c2f6964966a15e287aeecbdc27507166f13245a75fa6.txt",82192,"a1e425d6dec0ae2619b7c2f6964966a15e287aeecbdc27507166f13245a75fa6"),("docs/evidence/main-e177-final-source-binding-20261017/views/a1e425d6dec0ae2619b7c2f6964966a15e287aeecbdc27507166f13245a75fa6.txt",82192,"a1e425d6dec0ae2619b7c2f6964966a15e287aeecbdc27507166f13245a75fa6"),("docs/evidence/next-big-batch-source-binding-20261017/current-inputs.json",112927,"336d79ff6cddc852d4750aa304b85a31494ac98c2e015bb52dfb615db7d98fe3"),("docs/evidence/main-e177-final-source-binding-20261017/tables/336d79ff6cddc852d4750aa304b85a31494ac98c2e015bb52dfb615db7d98fe3.txt",112927,"336d79ff6cddc852d4750aa304b85a31494ac98c2e015bb52dfb615db7d98fe3"),("docs/evidence/main99f-full-controller-acquisition-20261017/inputs.json",228105,"7da7c03cee1c8232577d85e4b34a671ec5af4c32617d1385f4ec6e7226b3c0d9"),("docs/evidence/main-e177-final-source-binding-20261017/tables/7da7c03cee1c8232577d85e4b34a671ec5af4c32617d1385f4ec6e7226b3c0d9.txt",228105,"7da7c03cee1c8232577d85e4b34a671ec5af4c32617d1385f4ec6e7226b3c0d9"),("docs/evidence/main-e177-final-source-binding-20261017/views/7ce1ea34daa31a1eda756cf7c0cd542adcfa3d351cbc3e0d12a37c51e5036986.txt",54780,"7ce1ea34daa31a1eda756cf7c0cd542adcfa3d351cbc3e0d12a37c51e5036986"),("docs/evidence/main-e177-final-source-binding-20261017/views/7ce1ea34daa31a1eda756cf7c0cd542adcfa3d351cbc3e0d12a37c51e5036986.txt",54780,"7ce1ea34daa31a1eda756cf7c0cd542adcfa3d351cbc3e0d12a37c51e5036986"),("docs/evidence/earned-managed-pin42-source-coupling-20261017/inputs.json",34641,"27ec261cbc4f2b00a6ff0be7084f8c1a8c76e42523043b180f49701f8540abd2"),("docs/evidence/main-e177-final-source-binding-20261017/views/27ec261cbc4f2b00a6ff0be7084f8c1a8c76e42523043b180f49701f8540abd2.txt",34641,"27ec261cbc4f2b00a6ff0be7084f8c1a8c76e42523043b180f49701f8540abd2"),("docs/evidence/semantic162-compile-source-ingress-20261017/inputs.json",13993,"e3870d5c067c099197b21f5b749b3124eaa4174701fe3eb47ca73db88ac44f14"),("docs/evidence/main-e177-final-source-binding-20261017/views/e3870d5c067c099197b21f5b749b3124eaa4174701fe3eb47ca73db88ac44f14.txt",13993,"e3870d5c067c099197b21f5b749b3124eaa4174701fe3eb47ca73db88ac44f14"),("docs/evidence/next-semantic-source-views-20261017/inputs.json",84888,"c876c6b5f15969fe55bee55b31be8b6174db300d6b4f9f18cd412044273b6305"),("docs/evidence/main-e177-final-source-binding-20261017/views/c876c6b5f15969fe55bee55b31be8b6174db300d6b4f9f18cd412044273b6305.txt",84888,"c876c6b5f15969fe55bee55b31be8b6174db300d6b4f9f18cd412044273b6305"),("docs/evidence/main-e177-final-source-binding-20261017/views/bc66e360cefb55655815018153316bca517702bc32791462f2dfb9ca70b90d41.txt",56884,"bc66e360cefb55655815018153316bca517702bc32791462f2dfb9ca70b90d41"),("docs/evidence/main-e177-final-source-binding-20261017/views/bc66e360cefb55655815018153316bca517702bc32791462f2dfb9ca70b90d41.txt",56884,"bc66e360cefb55655815018153316bca517702bc32791462f2dfb9ca70b90d41"),("docs/evidence/main-e177-final-source-binding-20261017/views/de9c72c5fba416e93d5fba422174cd0888c0bd6991fb2fc4367396c541bf92a7.txt",80681,"de9c72c5fba416e93d5fba422174cd0888c0bd6991fb2fc4367396c541bf92a7"),("docs/evidence/main-e177-final-source-binding-20261017/views/de9c72c5fba416e93d5fba422174cd0888c0bd6991fb2fc4367396c541bf92a7.txt",80681,"de9c72c5fba416e93d5fba422174cd0888c0bd6991fb2fc4367396c541bf92a7"),("docs/evidence/main-e177-final-source-binding-20261017/views/3fa32fc7c4b039abed780ccc39b34d759e329705e2674f62cc56016ab08007bd.txt",81430,"3fa32fc7c4b039abed780ccc39b34d759e329705e2674f62cc56016ab08007bd"),("docs/evidence/main-e177-final-source-binding-20261017/views/3fa32fc7c4b039abed780ccc39b34d759e329705e2674f62cc56016ab08007bd.txt",81430,"3fa32fc7c4b039abed780ccc39b34d759e329705e2674f62cc56016ab08007bd"),("docs/evidence/main-e177-final-source-binding-20261017/views/a1e425d6dec0ae2619b7c2f6964966a15e287aeecbdc27507166f13245a75fa6.txt",82192,"a1e425d6dec0ae2619b7c2f6964966a15e287aeecbdc27507166f13245a75fa6"),("docs/evidence/main-e177-final-source-binding-20261017/views/a1e425d6dec0ae2619b7c2f6964966a15e287aeecbdc27507166f13245a75fa6.txt",82192,"a1e425d6dec0ae2619b7c2f6964966a15e287aeecbdc27507166f13245a75fa6"),("docs/evidence/main-e177-final-source-binding-20261017/views/3384be6e49144e547e28e613294b2aa53aa8b538acb9cfd84b3dd003a9126a71.txt",84171,"3384be6e49144e547e28e613294b2aa53aa8b538acb9cfd84b3dd003a9126a71"),("docs/evidence/main-e177-final-source-binding-20261017/views/3384be6e49144e547e28e613294b2aa53aa8b538acb9cfd84b3dd003a9126a71.txt",84171,"3384be6e49144e547e28e613294b2aa53aa8b538acb9cfd84b3dd003a9126a71"),("docs/evidence/main-e177-final-source-binding-20261017/views/2e4b3b5441418b7e21a1424445e19bb4473d15f196ab3a897ca920417dce730f.txt",84060,"2e4b3b5441418b7e21a1424445e19bb4473d15f196ab3a897ca920417dce730f"),("docs/evidence/main-e177-final-source-binding-20261017/views/2e4b3b5441418b7e21a1424445e19bb4473d15f196ab3a897ca920417dce730f.txt",84060,"2e4b3b5441418b7e21a1424445e19bb4473d15f196ab3a897ca920417dce730f"),("docs/evidence/next-large-side-source-composition-20261017/side-inputs.json",18033,"c185ed85f164ff3295e55d29d69e47de8616d3a582ffe359abb959b5d693713c"),("docs/evidence/main-e177-final-source-binding-20261017/views/c185ed85f164ff3295e55d29d69e47de8616d3a582ffe359abb959b5d693713c.txt",18033,"c185ed85f164ff3295e55d29d69e47de8616d3a582ffe359abb959b5d693713c"),("docs/evidence/main-e177-final-source-binding-20261017/views/996aa3de35097ef764384db3b8fbaffa57bb500fb18368280a20dac9c3ff5f52.txt",82953,"996aa3de35097ef764384db3b8fbaffa57bb500fb18368280a20dac9c3ff5f52"),("docs/evidence/main-e177-final-source-binding-20261017/views/996aa3de35097ef764384db3b8fbaffa57bb500fb18368280a20dac9c3ff5f52.txt",82953,"996aa3de35097ef764384db3b8fbaffa57bb500fb18368280a20dac9c3ff5f52"),("docs/evidence/main-e177-final-source-binding-20261017/views/f3591ff220c338d79adaa9106b347daef4bea5b4227ef47063d58dabdeade469.txt",68224,"f3591ff220c338d79adaa9106b347daef4bea5b4227ef47063d58dabdeade469"),("docs/evidence/main-e177-final-source-binding-20261017/views/f3591ff220c338d79adaa9106b347daef4bea5b4227ef47063d58dabdeade469.txt",68224,"f3591ff220c338d79adaa9106b347daef4bea5b4227ef47063d58dabdeade469"),("docs/evidence/main-e177-final-source-binding-20261017/views/3740fb709bdfb10aeb16a6159312f12b8752d2c910ac7ea6aae727ff01847d09.txt",109477,"3740fb709bdfb10aeb16a6159312f12b8752d2c910ac7ea6aae727ff01847d09"),("docs/evidence/main-e177-final-source-binding-20261017/views/3740fb709bdfb10aeb16a6159312f12b8752d2c910ac7ea6aae727ff01847d09.txt",109477,"3740fb709bdfb10aeb16a6159312f12b8752d2c910ac7ea6aae727ff01847d09"),("docs/evidence/main-e177-final-source-binding-20261017/views/802a9e325c6d4e9da033593b365119441fb2c1431cb981793fe4026e29ff6734.txt",111187,"802a9e325c6d4e9da033593b365119441fb2c1431cb981793fe4026e29ff6734"),("docs/evidence/main-e177-final-source-binding-20261017/views/802a9e325c6d4e9da033593b365119441fb2c1431cb981793fe4026e29ff6734.txt",111187,"802a9e325c6d4e9da033593b365119441fb2c1431cb981793fe4026e29ff6734"),("docs/evidence/fmt-local-441-20261018/extension.json",262076,"2af7299253e5cfb027186ba4fc151011a937214ff381c9267bfc11ef7d0003b6"),("docs/evidence/fmt-local-441-20261018/whole/319ad85e33b0a6b384b9b4c7eeb10753cd321113bb048b27469c33c0ab7cc045.txt",123158,"319ad85e33b0a6b384b9b4c7eeb10753cd321113bb048b27469c33c0ab7cc045"),("docs/evidence/fmt-local-441-20261018/whole/319ad85e33b0a6b384b9b4c7eeb10753cd321113bb048b27469c33c0ab7cc045.txt",123158,"319ad85e33b0a6b384b9b4c7eeb10753cd321113bb048b27469c33c0ab7cc045"),("docs/evidence/main-e177-final-source-binding-20261017/views/c15e26ecf4ee9f28eb21af1515c7c1d1e6aa3f1983d37b413173861d72d76a46.txt",112949,"c15e26ecf4ee9f28eb21af1515c7c1d1e6aa3f1983d37b413173861d72d76a46"),("docs/evidence/main-e177-final-source-binding-20261017/views/3384be6e49144e547e28e613294b2aa53aa8b538acb9cfd84b3dd003a9126a71.txt",84171,"3384be6e49144e547e28e613294b2aa53aa8b538acb9cfd84b3dd003a9126a71"),("docs/evidence/current339-source-custody-repair-20261017/final98-current-inputs.whole-before.json",82953,"996aa3de35097ef764384db3b8fbaffa57bb500fb18368280a20dac9c3ff5f52"),("docs/evidence/main-e177-final-source-binding-20261017/views/802a9e325c6d4e9da033593b365119441fb2c1431cb981793fe4026e29ff6734.txt",111187,"802a9e325c6d4e9da033593b365119441fb2c1431cb981793fe4026e29ff6734"),("docs/evidence/main-e177-final-source-binding-20261017/views/f3591ff220c338d79adaa9106b347daef4bea5b4227ef47063d58dabdeade469.txt",68224,"f3591ff220c338d79adaa9106b347daef4bea5b4227ef47063d58dabdeade469"),("docs/evidence/ci-msrv-parent-import-20261018/whole/3384be6e49144e547e28e613294b2aa53aa8b538acb9cfd84b3dd003a9126a71.txt",84171,"3384be6e49144e547e28e613294b2aa53aa8b538acb9cfd84b3dd003a9126a71"),("docs/evidence/current339-source-custody-repair-20261017/final98-current-inputs.whole-before.json",82953,"996aa3de35097ef764384db3b8fbaffa57bb500fb18368280a20dac9c3ff5f52"),("docs/evidence/next-big-batch-source-binding-20261017/current-inputs.json",112927,"336d79ff6cddc852d4750aa304b85a31494ac98c2e015bb52dfb615db7d98fe3"),("docs/evidence/main-e177-final-source-binding-20261017/tables/336d79ff6cddc852d4750aa304b85a31494ac98c2e015bb52dfb615db7d98fe3.txt",112927,"336d79ff6cddc852d4750aa304b85a31494ac98c2e015bb52dfb615db7d98fe3"),("docs/evidence/main99f-full-controller-acquisition-20261017/inputs.json",228105,"7da7c03cee1c8232577d85e4b34a671ec5af4c32617d1385f4ec6e7226b3c0d9"),("docs/evidence/main-e177-final-source-binding-20261017/tables/7da7c03cee1c8232577d85e4b34a671ec5af4c32617d1385f4ec6e7226b3c0d9.txt",228105,"7da7c03cee1c8232577d85e4b34a671ec5af4c32617d1385f4ec6e7226b3c0d9"),("docs/evidence/main-e177-final-source-binding-20261017/views/7ce1ea34daa31a1eda756cf7c0cd542adcfa3d351cbc3e0d12a37c51e5036986.txt",54780,"7ce1ea34daa31a1eda756cf7c0cd542adcfa3d351cbc3e0d12a37c51e5036986"),("docs/evidence/main-e177-final-source-binding-20261017/views/7ce1ea34daa31a1eda756cf7c0cd542adcfa3d351cbc3e0d12a37c51e5036986.txt",54780,"7ce1ea34daa31a1eda756cf7c0cd542adcfa3d351cbc3e0d12a37c51e5036986"),("docs/evidence/earned-managed-pin42-source-coupling-20261017/inputs.json",34641,"27ec261cbc4f2b00a6ff0be7084f8c1a8c76e42523043b180f49701f8540abd2"),("docs/evidence/main-e177-final-source-binding-20261017/views/27ec261cbc4f2b00a6ff0be7084f8c1a8c76e42523043b180f49701f8540abd2.txt",34641,"27ec261cbc4f2b00a6ff0be7084f8c1a8c76e42523043b180f49701f8540abd2"),("docs/evidence/semantic162-compile-source-ingress-20261017/inputs.json",13993,"e3870d5c067c099197b21f5b749b3124eaa4174701fe3eb47ca73db88ac44f14"),("docs/evidence/main-e177-final-source-binding-20261017/views/e3870d5c067c099197b21f5b749b3124eaa4174701fe3eb47ca73db88ac44f14.txt",13993,"e3870d5c067c099197b21f5b749b3124eaa4174701fe3eb47ca73db88ac44f14"),("docs/evidence/next-semantic-source-views-20261017/inputs.json",84888,"c876c6b5f15969fe55bee55b31be8b6174db300d6b4f9f18cd412044273b6305"),("docs/evidence/main-e177-final-source-binding-20261017/views/c876c6b5f15969fe55bee55b31be8b6174db300d6b4f9f18cd412044273b6305.txt",84888,"c876c6b5f15969fe55bee55b31be8b6174db300d6b4f9f18cd412044273b6305"),("docs/evidence/main-e177-final-source-binding-20261017/views/bc66e360cefb55655815018153316bca517702bc32791462f2dfb9ca70b90d41.txt",56884,"bc66e360cefb55655815018153316bca517702bc32791462f2dfb9ca70b90d41"),("docs/evidence/main-e177-final-source-binding-20261017/views/bc66e360cefb55655815018153316bca517702bc32791462f2dfb9ca70b90d41.txt",56884,"bc66e360cefb55655815018153316bca517702bc32791462f2dfb9ca70b90d41"),("docs/evidence/main-e177-final-source-binding-20261017/views/de9c72c5fba416e93d5fba422174cd0888c0bd6991fb2fc4367396c541bf92a7.txt",80681,"de9c72c5fba416e93d5fba422174cd0888c0bd6991fb2fc4367396c541bf92a7"),("docs/evidence/main-e177-final-source-binding-20261017/views/de9c72c5fba416e93d5fba422174cd0888c0bd6991fb2fc4367396c541bf92a7.txt",80681,"de9c72c5fba416e93d5fba422174cd0888c0bd6991fb2fc4367396c541bf92a7"),("docs/evidence/main-e177-final-source-binding-20261017/views/3fa32fc7c4b039abed780ccc39b34d759e329705e2674f62cc56016ab08007bd.txt",81430,"3fa32fc7c4b039abed780ccc39b34d759e329705e2674f62cc56016ab08007bd"),("docs/evidence/main-e177-final-source-binding-20261017/views/3fa32fc7c4b039abed780ccc39b34d759e329705e2674f62cc56016ab08007bd.txt",81430,"3fa32fc7c4b039abed780ccc39b34d759e329705e2674f62cc56016ab08007bd"),("docs/evidence/main-e177-final-source-binding-20261017/views/a1e425d6dec0ae2619b7c2f6964966a15e287aeecbdc27507166f13245a75fa6.txt",82192,"a1e425d6dec0ae2619b7c2f6964966a15e287aeecbdc27507166f13245a75fa6"),("docs/evidence/main-e177-final-source-binding-20261017/views/a1e425d6dec0ae2619b7c2f6964966a15e287aeecbdc27507166f13245a75fa6.txt",82192,"a1e425d6dec0ae2619b7c2f6964966a15e287aeecbdc27507166f13245a75fa6"),("docs/evidence/main-e177-final-source-binding-20261017/views/c15e26ecf4ee9f28eb21af1515c7c1d1e6aa3f1983d37b413173861d72d76a46.txt",112949,"c15e26ecf4ee9f28eb21af1515c7c1d1e6aa3f1983d37b413173861d72d76a46"),("docs/evidence/next-big-batch-source-binding-20261017/current-inputs.json",112927,"336d79ff6cddc852d4750aa304b85a31494ac98c2e015bb52dfb615db7d98fe3"),("docs/evidence/main-e177-final-source-binding-20261017/tables/336d79ff6cddc852d4750aa304b85a31494ac98c2e015bb52dfb615db7d98fe3.txt",112927,"336d79ff6cddc852d4750aa304b85a31494ac98c2e015bb52dfb615db7d98fe3"),("docs/evidence/main99f-full-controller-acquisition-20261017/inputs.json",228105,"7da7c03cee1c8232577d85e4b34a671ec5af4c32617d1385f4ec6e7226b3c0d9"),("docs/evidence/main-e177-final-source-binding-20261017/tables/7da7c03cee1c8232577d85e4b34a671ec5af4c32617d1385f4ec6e7226b3c0d9.txt",228105,"7da7c03cee1c8232577d85e4b34a671ec5af4c32617d1385f4ec6e7226b3c0d9"),("docs/evidence/main-e177-final-source-binding-20261017/views/7ce1ea34daa31a1eda756cf7c0cd542adcfa3d351cbc3e0d12a37c51e5036986.txt",54780,"7ce1ea34daa31a1eda756cf7c0cd542adcfa3d351cbc3e0d12a37c51e5036986"),("docs/evidence/main-e177-final-source-binding-20261017/views/7ce1ea34daa31a1eda756cf7c0cd542adcfa3d351cbc3e0d12a37c51e5036986.txt",54780,"7ce1ea34daa31a1eda756cf7c0cd542adcfa3d351cbc3e0d12a37c51e5036986"),("docs/evidence/earned-managed-pin42-source-coupling-20261017/inputs.json",34641,"27ec261cbc4f2b00a6ff0be7084f8c1a8c76e42523043b180f49701f8540abd2"),("docs/evidence/main-e177-final-source-binding-20261017/views/27ec261cbc4f2b00a6ff0be7084f8c1a8c76e42523043b180f49701f8540abd2.txt",34641,"27ec261cbc4f2b00a6ff0be7084f8c1a8c76e42523043b180f49701f8540abd2"),("docs/evidence/semantic162-compile-source-ingress-20261017/inputs.json",13993,"e3870d5c067c099197b21f5b749b3124eaa4174701fe3eb47ca73db88ac44f14"),("docs/evidence/main-e177-final-source-binding-20261017/views/e3870d5c067c099197b21f5b749b3124eaa4174701fe3eb47ca73db88ac44f14.txt",13993,"e3870d5c067c099197b21f5b749b3124eaa4174701fe3eb47ca73db88ac44f14"),("docs/evidence/next-semantic-source-views-20261017/inputs.json",84888,"c876c6b5f15969fe55bee55b31be8b6174db300d6b4f9f18cd412044273b6305"),("docs/evidence/main-e177-final-source-binding-20261017/views/c876c6b5f15969fe55bee55b31be8b6174db300d6b4f9f18cd412044273b6305.txt",84888,"c876c6b5f15969fe55bee55b31be8b6174db300d6b4f9f18cd412044273b6305"),("docs/evidence/main-e177-final-source-binding-20261017/views/bc66e360cefb55655815018153316bca517702bc32791462f2dfb9ca70b90d41.txt",56884,"bc66e360cefb55655815018153316bca517702bc32791462f2dfb9ca70b90d41"),("docs/evidence/main-e177-final-source-binding-20261017/views/bc66e360cefb55655815018153316bca517702bc32791462f2dfb9ca70b90d41.txt",56884,"bc66e360cefb55655815018153316bca517702bc32791462f2dfb9ca70b90d41"),("docs/evidence/main-e177-final-source-binding-20261017/views/de9c72c5fba416e93d5fba422174cd0888c0bd6991fb2fc4367396c541bf92a7.txt",80681,"de9c72c5fba416e93d5fba422174cd0888c0bd6991fb2fc4367396c541bf92a7"),("docs/evidence/main-e177-final-source-binding-20261017/views/de9c72c5fba416e93d5fba422174cd0888c0bd6991fb2fc4367396c541bf92a7.txt",80681,"de9c72c5fba416e93d5fba422174cd0888c0bd6991fb2fc4367396c541bf92a7"),("docs/evidence/main-e177-final-source-binding-20261017/views/3fa32fc7c4b039abed780ccc39b34d759e329705e2674f62cc56016ab08007bd.txt",81430,"3fa32fc7c4b039abed780ccc39b34d759e329705e2674f62cc56016ab08007bd"),("docs/evidence/main-e177-final-source-binding-20261017/views/3fa32fc7c4b039abed780ccc39b34d759e329705e2674f62cc56016ab08007bd.txt",81430,"3fa32fc7c4b039abed780ccc39b34d759e329705e2674f62cc56016ab08007bd"),("docs/evidence/main-e177-final-source-binding-20261017/views/a1e425d6dec0ae2619b7c2f6964966a15e287aeecbdc27507166f13245a75fa6.txt",82192,"a1e425d6dec0ae2619b7c2f6964966a15e287aeecbdc27507166f13245a75fa6"),("docs/evidence/main-e177-final-source-binding-20261017/views/a1e425d6dec0ae2619b7c2f6964966a15e287aeecbdc27507166f13245a75fa6.txt",82192,"a1e425d6dec0ae2619b7c2f6964966a15e287aeecbdc27507166f13245a75fa6"),("docs/evidence/main-e177-final-source-binding-20261017/views/3384be6e49144e547e28e613294b2aa53aa8b538acb9cfd84b3dd003a9126a71.txt",84171,"3384be6e49144e547e28e613294b2aa53aa8b538acb9cfd84b3dd003a9126a71"),("docs/evidence/main-e177-final-source-binding-20261017/views/3384be6e49144e547e28e613294b2aa53aa8b538acb9cfd84b3dd003a9126a71.txt",84171,"3384be6e49144e547e28e613294b2aa53aa8b538acb9cfd84b3dd003a9126a71"),("docs/evidence/main-e177-final-source-binding-20261017/views/2e4b3b5441418b7e21a1424445e19bb4473d15f196ab3a897ca920417dce730f.txt",84060,"2e4b3b5441418b7e21a1424445e19bb4473d15f196ab3a897ca920417dce730f"),("docs/evidence/main-e177-final-source-binding-20261017/views/2e4b3b5441418b7e21a1424445e19bb4473d15f196ab3a897ca920417dce730f.txt",84060,"2e4b3b5441418b7e21a1424445e19bb4473d15f196ab3a897ca920417dce730f"),("docs/evidence/next-large-side-source-composition-20261017/side-inputs.json",18033,"c185ed85f164ff3295e55d29d69e47de8616d3a582ffe359abb959b5d693713c"),("docs/evidence/main-e177-final-source-binding-20261017/views/c185ed85f164ff3295e55d29d69e47de8616d3a582ffe359abb959b5d693713c.txt",18033,"c185ed85f164ff3295e55d29d69e47de8616d3a582ffe359abb959b5d693713c"),("docs/evidence/main-e177-final-source-binding-20261017/views/996aa3de35097ef764384db3b8fbaffa57bb500fb18368280a20dac9c3ff5f52.txt",82953,"996aa3de35097ef764384db3b8fbaffa57bb500fb18368280a20dac9c3ff5f52"),("docs/evidence/main-e177-final-source-binding-20261017/views/996aa3de35097ef764384db3b8fbaffa57bb500fb18368280a20dac9c3ff5f52.txt",82953,"996aa3de35097ef764384db3b8fbaffa57bb500fb18368280a20dac9c3ff5f52"),("docs/evidence/main-e177-final-source-binding-20261017/views/f3591ff220c338d79adaa9106b347daef4bea5b4227ef47063d58dabdeade469.txt",68224,"f3591ff220c338d79adaa9106b347daef4bea5b4227ef47063d58dabdeade469"),("docs/evidence/main-e177-final-source-binding-20261017/views/f3591ff220c338d79adaa9106b347daef4bea5b4227ef47063d58dabdeade469.txt",68224,"f3591ff220c338d79adaa9106b347daef4bea5b4227ef47063d58dabdeade469"),("docs/evidence/main-e177-final-source-binding-20261017/views/3740fb709bdfb10aeb16a6159312f12b8752d2c910ac7ea6aae727ff01847d09.txt",109477,"3740fb709bdfb10aeb16a6159312f12b8752d2c910ac7ea6aae727ff01847d09"),("docs/evidence/main-e177-final-source-binding-20261017/views/3740fb709bdfb10aeb16a6159312f12b8752d2c910ac7ea6aae727ff01847d09.txt",109477,"3740fb709bdfb10aeb16a6159312f12b8752d2c910ac7ea6aae727ff01847d09"),("docs/evidence/main-e177-final-source-binding-20261017/views/802a9e325c6d4e9da033593b365119441fb2c1431cb981793fe4026e29ff6734.txt",111187,"802a9e325c6d4e9da033593b365119441fb2c1431cb981793fe4026e29ff6734"),("docs/evidence/main-e177-final-source-binding-20261017/views/802a9e325c6d4e9da033593b365119441fb2c1431cb981793fe4026e29ff6734.txt",111187,"802a9e325c6d4e9da033593b365119441fb2c1431cb981793fe4026e29ff6734"),("docs/evidence/main-e177-final-source-binding-20261017/views/c15e26ecf4ee9f28eb21af1515c7c1d1e6aa3f1983d37b413173861d72d76a46.txt",112949,"c15e26ecf4ee9f28eb21af1515c7c1d1e6aa3f1983d37b413173861d72d76a46"),("docs/evidence/main-e177-final-source-binding-20261017/views/c15e26ecf4ee9f28eb21af1515c7c1d1e6aa3f1983d37b413173861d72d76a46.txt",112949,"c15e26ecf4ee9f28eb21af1515c7c1d1e6aa3f1983d37b413173861d72d76a46")];
 fn invocation_load(read: &impl Fn(&Path, usize, &str)->Result<String, &'static str>) -> Result<(Value, Arc<Value>), &'static str> {

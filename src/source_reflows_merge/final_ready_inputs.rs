@@ -531,11 +531,17 @@ fn projection344_classifier_join_with(
         if let Some(pin) = part.get("previous") {
             let length = usize::try_from(pin["length"].as_u64().unwrap()).unwrap();
             let sha = pin["sha256"].as_str().unwrap();
+            if (current.len(), digest(&current)) == (length, sha.to_owned()) {
+                assert_eq!(reader::read(&root.join(format!("e/{sha}")),length,sha,2_097_152).unwrap(),current,"whole current archive for an unchanged classifier part");
+                assert_eq!(reader::read(&root.join(source),length,sha,2_097_152).unwrap(),current,"late current classifier source");
+                previous.push_str(&current);
+            } else {
             previous.push_str(
                 &invocation
                     .file(&root.join(source), length, sha)
                     .expect("independent whole before-classifier source and all current channels"),
             );
+            }
         } else {
             previous.push_str(&current);
         }
@@ -1150,9 +1156,14 @@ fn observer_projection_stage_keeps_whole_current_and_prior_and_refuses_foreign_j
     let live = projection344_live_sources(&projection344_live_descriptor());
     assert_ne!(live, current);
     assert_eq!(projection344_stage(&live), previous);
-    let compiled =
-        include_str!("../../src/workspace_graph/expected_projection/call_carriers_tests.rs");
-    let old_phase = projection344_phase_test_source(compiled);
+    let actual_compiled = include_str!("../../src/workspace_graph/expected_projection/call_carriers_tests.rs");
+    let compiled_phase = merged_projection::named_part(
+        "src/workspace_graph/expected_projection/call_carriers_tests.rs",25183,
+        "d5f1f5027b904e45143b0a65d05a7027d987c69dce23392f06fb134aa66d75a9",
+        &mut crate::source_reflows_merge::main_e177_final_inputs::ProjectionInvocation::new(),
+    ).expect("whole named observer phase after complete actual source authentication");
+    let compiled = compiled_phase.as_str();
+    let old_phase = projection344_phase_test_source(actual_compiled);
     assert_eq!(live.matches(&old_phase).count(), 1);
     let phase_join = live.replacen(&old_phase, compiled, 1);
     assert_eq!(

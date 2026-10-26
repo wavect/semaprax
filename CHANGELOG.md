@@ -1,4 +1,13 @@
-## Live lexical replay directories and scope joins (#944, #945, #937)
+## Canonical source-history serialization (2026-10-26)
+
+- Serialize complete canonical source-history metadata with borrowed field ordering and direct printable-ASCII output. Retain the full sorted large-object and serde escaping paths, every field and source check, with complete original-encoder and hostile-input regressions.
+
+## Paired-proof state transfer (2026-10-26)
+
+- Move each complete weighted state into the visited directory after its last borrow, avoiding both component clones. Preserve labels, multiplicities, sorted lookup, logical work, payer authentication and the original backing reservation frontier.
+- Retain the complete prior implementation and its original hostile and byte/work-cut tests alongside an exact actual-type charge and allocation comparison. Builder, replay and loan limits and all public IR fields remain unchanged.
+
+## Lexical replay, scope joins and path reuse (#944, #945, #937, #943)
 
 - Fund one fixed selector in the ordinary lexical receiver and omit only unused
   committed-key and expected-key insertions. Keep both directory constructors,
@@ -7,6 +16,9 @@
 - Reuse the existing scope candidate index while filtering reached roots,
   removing a second collected tree. Complete predecessors, source inverses and
   owning refusal/allocation controls remain; grouped qualification is pending.
+- Fund the trailing-path reuse probe through the existing first reservation
+  after its original work debit. Cold paths avoid the heavy eligibility frame;
+  original fees and refusal priority remain. Runtime qualification is pending.
 
 ## Recursive flag query allocation (2026-10-26)
 

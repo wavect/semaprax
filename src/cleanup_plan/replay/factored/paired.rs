@@ -569,9 +569,11 @@ fn run(b: &BuiltComparison, w: &mut Work<'_, '_>) -> Result<Option<bool>, Failur
             return Ok(None);
         }
         w.units(s.seen.len() - low + pair.0.rows().len() + pair.1.rows().len() + 1)?;
-        w.bytes(4 * size_of::<Weighted>() + 2 * size_of::<Pair>())?;
+        // Reserve the same visited directory before either frontier. The
+        // current pair already lives through this iteration; transfer it only
+        // after its last borrow instead of cloning both full Weighted values.
+        w.bytes(2 * size_of::<Pair>())?;
         w.grow(&mut s.seen, 1)?;
-        s.seen.insert(low, pair.clone());
         let Some(left) = frontier(
             a,
             pair.0.rows(),
@@ -636,6 +638,9 @@ fn run(b: &BuiltComparison, w: &mut Work<'_, '_>) -> Result<Option<bool>, Failur
         if left != s.left.len() || right != s.right.len() {
             return Ok(None);
         }
+        // Neither frontier nor successor publication reads or mutates seen.
+        // Its sorted insertion position and pre-reserved capacity are intact.
+        s.seen.insert(low, pair);
     }
     Ok(Some(true))
 }

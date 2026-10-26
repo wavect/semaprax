@@ -481,10 +481,16 @@ mod invocation_acquisition_tests {
     fn refused(body:impl FnOnce())->String {let panic=std::panic::catch_unwind(std::panic::AssertUnwindSafe(body)).unwrap_err();if let Some(s)=panic.downcast_ref::<String>() {s.clone()}else if let Some(s)=panic.downcast_ref::<&str>() {(*s).to_owned()}else{panic!("unexpected panic type")}}
     #[test]
     fn whole_original_acquisition_generates_guard_trace_and_same_owner_drift_refuses() {
-        let fixture=Fixture::new();let scope=fixture.route();let loads=Cell::new(0);let mut context=ProjectionInvocation::with_loaders(||{loads.set(loads.get()+1);super::super::packet()},super::super::clippy_stage::rows);context.guard=overlay_v2::InvocationGuard::Current;
+        let fixture=Fixture::new();
+        let raw=super::super::compiled(SOURCE).unwrap();let expected=digest(raw.as_bytes());
+        let capture=Scope::capture();
+        let mut old_body=ProjectionInvocation::with_loaders(||fixture.packet.clone(),super::super::clippy_stage::rows);
+        assert_eq!(old_body.independent_old_value_direct(SOURCE,&expected,raw),raw);
+        let body_reads=capture.stats().reads;drop(capture);drop(old_body);
+        let scope=fixture.route();let loads=Cell::new(0);let mut context=ProjectionInvocation::with_loaders(||{loads.set(loads.get()+1);super::super::packet()},super::super::clippy_stage::rows);context.guard=overlay_v2::InvocationGuard::Current;
         let raw=super::super::compiled(SOURCE).unwrap();let expected=digest(raw.as_bytes());assert_eq!(context.value_direct(SOURCE,&expected,raw),raw);scope.reset();assert_eq!(context.value_direct(SOURCE,&expected,raw),raw);
-        let stats=scope.stats();assert_eq!(stats.calls,2);assert_eq!(stats.stages,0);let controllers=overlay_v2::invocation_controllers();let controller_bytes:usize=controllers.iter().map(|(_,s)|s.len()).sum();let oldbytes:usize=fixture.original_reads.iter().map(|p|p.length).sum();assert_eq!(stats.bytes,2*(oldbytes+controller_bytes));
-        let one=fixture.original_reads.len()+controllers.len();assert_eq!(stats.reads.len(),2*one);assert_eq!(&stats.reads[..fixture.original_reads.len()],fixture.original_reads.as_slice());assert_eq!(&stats.reads[one..one+fixture.original_reads.len()],fixture.original_reads.as_slice());
+        let stats=scope.stats();assert_eq!(stats.calls,2);assert_eq!(stats.stages,0);let controllers=overlay_v2::invocation_controllers();let controller_bytes:usize=controllers.iter().map(|(_,s)|s.len()).sum();let oldbytes:usize=fixture.original_reads.iter().map(|p|p.length).sum();let body_bytes:usize=body_reads.iter().map(|p|p.length).sum();assert_eq!(stats.bytes,2*(oldbytes+controller_bytes)+body_bytes);
+        let one=fixture.original_reads.len()+controllers.len();assert_eq!(stats.reads.len(),2*one+body_reads.len());assert_eq!(&stats.reads[..fixture.original_reads.len()],fixture.original_reads.as_slice());assert_eq!(&stats.reads[one..one+body_reads.len()],body_reads.as_slice());let late=one+body_reads.len();assert_eq!(&stats.reads[late..late+fixture.original_reads.len()],fixture.original_reads.as_slice());
         let archive=format!("e/{expected}");for path in [SOURCE,archive.as_str(),PAGE,POLICY,controllers[0].0] {fixture.flip(path);scope.reset();let error=refused(||{context.value_direct(SOURCE,&expected,raw);});assert!(error.contains("length-or-digest"));assert_eq!(scope.stats().reads.last().unwrap().path,path);fixture.flip(path);assert_eq!(context.value_direct(SOURCE,&expected,raw),raw);}
         assert_eq!(loads.get(),1);assert_eq!(fixture.packet,super::super::packet());
     }

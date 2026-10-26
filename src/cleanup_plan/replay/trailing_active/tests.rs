@@ -80,6 +80,21 @@ fn complete_old_and_current_paths_work_materializations_and_actual_backing_cover
     assert!(!reached,"test ActiveBuilder pays the closed selector then keeps the original fallback");
     assert!(!refused && first.is_none());clean(metrics,paid);
 }
+fn oracle_cold_run(program:&ResolvedProgram,old:bool,count:usize,shape:usize)->(OracleRun,usize){
+    let function=&program.functions[0];
+    // Independently obtain every expected output field before the paid observer.
+    let expected={let mut budget=ReplayBudget::unobserved();let mut work=SkeletonWork::new(program,function,&mut budget);let input=seed(count,shape,&mut work).unwrap();let suffixes=seed(2,2,&mut work).unwrap();before_sequence_skeleton_paths(input,&suffixes,&mut work).unwrap()};
+    let ((ok,receipt,seed_work,materialized),metrics)=measure(||{
+        let scope=allocation::OracleScope::open_with_work(1<<28,1<<26).unwrap();let lease=scope.lease();let invocation=allocation::enter(program,function,lease).unwrap();let observation=SequenceObservation::begin(lease);
+        let mut budget=ReplayBudget::with_skeleton_limit_oracle(MAX_REPLAY_WORK_UNITS,lease);let mut work=SkeletonWork::with_index(program,function,&mut budget,None).unwrap();
+        let input=seed(count,shape,&mut work).unwrap();let suffixes=seed(2,2,&mut work).unwrap();let seed_work=scope.receipt().work;let before=skeleton_materializations();
+        let result=if old{before_sequence_skeleton_paths(input,&suffixes,&mut work)}else{sequence_skeleton_paths(input,&suffixes,&mut work)};
+        let materialized=skeleton_materializations()-before;let ok=result.is_ok();equal(result.as_ref().unwrap(),&expected);drop(result);drop(suffixes);drop(work);drop(budget);assert_eq!(invocation.exit(),Ok(()));drop(observation);(ok,scope.finish(),seed_work,materialized)
+    });
+    assert!(!metrics.invalid&&metrics.live==0);assert_eq!(metrics.allocated,metrics.freed);assert!(metrics.allocated<=receipt.charged&&metrics.highwater<=receipt.charged);assert!(receipt.first_refusal.is_none()&&receipt.first_work_refusal.is_none()&&receipt.physical_failure.is_none());assert_eq!(receipt.started,1);assert_eq!(receipt.completed,1);
+    (OracleRun{ok,receipt,seed_work,metrics},materialized)
+}
+
 fn run(program: &ResolvedProgram, old: bool, count: usize, shape: usize, cap: usize, floor: usize) -> (bool,usize,usize,Metrics) {
     let function=&program.functions[0];
     let (((ok,spent),metrics),refused,paid,first)=with_limit_usage_refusal(cap,|| {
@@ -110,13 +125,21 @@ fn warm_and_cold_whole_callers_keep_exact_short_zero_floor_sticky_and_complete_d
     for (count,shape) in [(511,0),(511,4),(31,0),(511,2),(511,3),(511,1)] {
         let before=run(&program,true,count,shape,usize::MAX,0);let current=run(&program,false,count,shape,usize::MAX,0);
         assert!(before.0&&current.0);
-        assert_eq!(current.1,before.1+QUERY,"exact cfg(test) cold selector surcharge; non-test shipping route is unchanged");assert_eq!(current.2,before.2);assert_eq!(current.3,before.3);
+        assert_eq!(current.1,before.1+PROBE,"exact cfg(test) cold probe folded into the original donor; no heavy eligibility on ActiveBuilder");assert_eq!(current.2,before.2);assert_eq!(current.3,before.3);
         for (old,exact) in [(true,before.1),(false,current.1)] {
             assert!(run(&program,old,count,shape,exact,0).0);
             assert!(!run(&program,old,count,shape,exact-1,0).0);
             assert!(!run(&program,old,count,shape,exact,1).0);
             assert!(!run(&program,old,count,shape,0,0).0);
         }
+    }
+    // Actual Oracle cold invocations, not an ActiveBuilder stand-in.
+    for (count,shape,heavy) in [(31,2,false),(7,0,false),(8,0,true)] {
+        let (old,old_materialized)=oracle_cold_run(&program,true,count,shape);
+        let ((current,current_materialized),frontiers)=with_frontiers(||oracle_cold_run(&program,false,count,shape));
+        assert!(old.ok&&current.ok);assert_eq!(old_materialized,current_materialized);assert_eq!(old.receipt.work,current.receipt.work);assert_eq!(old.metrics,current.metrics);
+        assert_eq!(current.receipt.charged,old.receipt.charged+PROBE+if heavy{ELIGIBILITY}else{0});
+        assert!(frontiers[1]>0);assert_eq!(frontiers[3]>0,heavy);assert_eq!(frontiers[5],0,"cold shape never pays FRAME");
     }
 }
 #[test]
@@ -326,10 +349,10 @@ fn actual_oracle_shape_bank_preserves_all_outputs_work_and_selected_backing() {
 #[test]
 fn actual_query_and_frame_positive_frontiers_refuse_exact_request_before_scan_or_transfer() {
     let program=fixture();let (full,frontiers)=with_frontiers(||oracle_run(&program,false,1<<28,1<<26));assert!(full.ok);
-    for index in 0..2 {let before=frontiers[index*2];let requested=frontiers[index*2+1];assert!(before>0&&requested>0);let (failed,seen)=with_frontiers(||oracle_run(&program,false,before+requested-1,1<<26));assert!(!failed.ok);
+    for index in 0..3 {let before=frontiers[index*2];let requested=frontiers[index*2+1];assert!(before>0&&requested>0);let (failed,seen)=with_frontiers(||oracle_run(&program,false,before+requested-1,1<<26));assert!(!failed.ok);
         let first=failed.receipt.first_refusal.unwrap();assert_eq!(first.requested,requested);assert_eq!(first.remaining,requested-1);assert_eq!(failed.receipt.charged,before);assert_eq!(seen[index*2+1],requested);
         assert_eq!(failed.receipt.work,failed.seed_work+1,"first original stopped work, no shape scan or transfer work");
-        if index==0 {assert_eq!(seen[3],0,"query refuses before the frame request");}
+        for later in index+1..3 {assert_eq!(seen[later*2+1],0,"earlier actual positive frontier refuses before later metadata");}
     }
 }
 #[test]

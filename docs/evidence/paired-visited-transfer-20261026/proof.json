@@ -1,0 +1,138 @@
+{
+  "base": "b3aa7daea2",
+  "problem": "The positive weighted proof cloned both complete Weighted values into seen while retaining the original Pair until the end of the same nonrecursive iteration.",
+  "change": "Reserve the same seen capacity and work at the original frontier; move the Pair after its last borrow. Neither frontier nor successor publication accesses seen, so the original sorted index remains valid. Remove only four actual Weighted clone return/receive carriers; retain both full Pair insertion carriers.",
+  "public_IR_fields_and_all_payers_caps_forecasts_factors_and_full_reference_verifiers": "UNCHANGED",
+  "normal_initial_build_and_cli": "PASS",
+  "private_actual_compiler_controls": {
+    "passed": 37,
+    "existing_failure": "Whole public callcarrier resolve/validate/drop highwater2254266 exceeds unchanged543852 forecast. No peak or whole-CI pass claim."
+  },
+  "actual_byte_census": [
+    {
+      "duplicate": false,
+      "mismatch": false,
+      "visited": 3,
+      "before": 16288,
+      "after": 16000,
+      "removed": 288,
+      "work_both": 149,
+      "allocated_freed_both": 1507
+    },
+    {
+      "duplicate": true,
+      "mismatch": false,
+      "visited": 3,
+      "before": 15644,
+      "after": 15356,
+      "removed": 288,
+      "work_both": 136,
+      "allocated_freed_both": 1411
+    },
+    {
+      "duplicate": false,
+      "mismatch": true,
+      "visited": 2,
+      "before": 15096,
+      "after": 14904,
+      "removed": 192,
+      "work_both": 111,
+      "allocated_freed_both": 1171
+    }
+  ],
+  "old_complete_sources": [
+    "e/1d8dfb0257df05b4151e0bd94e8d75af19e19aa7989cff0b3edc1b8db455b6d6",
+    "e/1f6e0405215d6f7c2163f4d2cc8eb25d3e690f8e5efe79f79e7c456aa33822af"
+  ],
+  "new_regression": "Existing owning1428-line test harness contains the whole independent immediate implementation, its three original tests, the three unchanged current tests, and the exact fee/work/refusal/drop comparison.",
+  "metadata": {
+    "status": "PASS",
+    "complete_rows": 758,
+    "current_source_pins_changed": [
+      "src/cleanup_plan/replay/factored/paired.rs",
+      "src/cleanup_plan/replay/factored/paired/tests.rs",
+      "CHANGELOG.md"
+    ],
+    "all_old_rows_views_compiled_flags_fragments_unknown_fields_preserved_after_exact_inverse": true,
+    "raw_encoded_page_exact_inverse": true,
+    "page_bytes": 248299,
+    "page_cap": 262144,
+    "every_current_physical_source_matches": true,
+    "new_source_archives": [
+      "e/328ba30c22281dd2a6b8c7bae4fd7f0e3282369365efe1f8dc709f9160a6abcf",
+      "e/1d4c90c32596b12ecfd6b381610a28ce027984e2cc1b071e011e8de9ce7c259d",
+      "e/6d85166d4210ebd2986a623fd05f1b6ac6ef7d8dd653c58d3ca164bcda2c944b"
+    ]
+  },
+  "source_custody": {
+    "scope": "Exact current raw pins and moved registration offsets only; no role, membership, attribute, fragment, closure or unknown-field changes. Original complete verifier definition acquired every current source. Original Rust hostile boundary tests still required.",
+    "manifests": {
+      "hir": {
+        "changed_source_pins": [
+          "src/cleanup_plan/replay/factored/paired.rs",
+          "src/cleanup_plan/replay/factored/paired/tests.rs",
+          "src/source_reflows_merge/main_e177_overlay_v2.rs"
+        ],
+        "moved_existing_edge_offsets": 1,
+        "retained_oracle_lint_registration_attributes_added": 0,
+        "all_original_roles_members_edges_attributes_and_unknown_fields_byte_preserved_after_inverse": true,
+        "original_complete_verify_definition": "PASS",
+        "production_classes": 688,
+        "test_classes": 1163,
+        "length": 8496439,
+        "sha256": "11182a11d39586341d6f9c6954f7d50f59c255219497fcd70aaabdd8b90a440f"
+      },
+      "projection": {
+        "changed_source_pins": [
+          "src/cleanup_plan/replay/factored/paired.rs",
+          "src/cleanup_plan/replay/factored/paired/tests.rs",
+          "src/source_reflows_merge/main_e177_overlay_v2.rs"
+        ],
+        "moved_existing_edge_offsets": 1,
+        "retained_oracle_lint_registration_attributes_added": 0,
+        "all_original_roles_members_edges_attributes_and_unknown_fields_byte_preserved_after_inverse": true,
+        "original_complete_verify_definition": "PASS",
+        "production_classes": 742,
+        "test_classes": 1188,
+        "length": 8477342,
+        "sha256": "a0932ba49ae8c6fff5893439b287863e6d96ffe95b63aeba3087e7669ecd8b14"
+      }
+    },
+    "current_domains_changed_digest_fields_per_domain": 3
+  },
+  "final_publication_checks": "Completed final packed1428line actual38-case image:37passed; unchanged original whole-public allocation-peak regression stillfails. Normalcompiler/CLI, productionClippy-Dwarnings, original21source/API+19boundary controls, bothintegration-shapeClippy, docs and fmt passed. This is an incremental optimization, not a claim of greenCI.",
+  "remaining_CI": "G171 examples and known wholepeak and semantic wire pins remain unresolved. No green claim.",
+  "final_actual_results": {
+    "passed": 37,
+    "failed": [
+      "workspace_graph::expected_projection::call_carriers::tests::exact_one_short_zero_and_whole_allocation_drop_controls"
+    ],
+    "run_exit": 101,
+    "compiler": "1.97.1",
+    "scope": "complete packed final source; real full IR; independent before and current paired controls",
+    "log": "/Volumes/Semaprax/tmp/ci-38383508340/paired-move-publish-b3aa/recovered-actual/tests.log"
+  },
+  "compiled_source_lookup_input_audit": {
+    "reason": "Concrete verified include path relocation changed six additional channels to instrumented shadow text. Retired compiler for input fix, not elapsed time. All230 channels now absolute final regular source and byteaudited.",
+    "retired_pids": [
+      33064
+    ],
+    "prior_verdict": "INCOMPLETE_NOT_PASS",
+    "corrected_channels": 230,
+    "all_channels_byte_equal_final_regular_source": true
+  },
+  "normal_actual_inputs": {
+    "actual_normal_compiler_inputs_compared": 3139,
+    "changed": [
+      {
+        "path": "src/cleanup_plan/replay/factored/paired.rs",
+        "before_length": 21905,
+        "after_length": 22257,
+        "before_sha256": "1d8dfb0257df05b4151e0bd94e8d75af19e19aa7989cff0b3edc1b8db455b6d6",
+        "after_sha256": "328ba30c22281dd2a6b8c7bae4fd7f0e3282369365efe1f8dc709f9160a6abcf"
+      }
+    ],
+    "unlisted_normal_compiler_inputs_byte_exact": true,
+    "full_public_IR_type_fields_and_old_apis_unchanged": "One private move instead of clone; no type/layout/field or API edits."
+  }
+}

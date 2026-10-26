@@ -288,9 +288,29 @@ fn v14_source_before_before_v20(source: &str, supplied: &str) -> String {
         return restored;
     }
     if source == "src/source_reflows_merge/main_e177_overlay_labels_v12/tests.rs" {
+        let actual = include_str!("../main_e177_overlay_labels_v12/tests.rs");
+        assert_eq!(supplied, actual, "whole actual labels test before any historical source stage");
+        let actual_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        let actual_sha = super::hash(actual.as_bytes());
+        assert_eq!(physical_reader::read(&actual_root.join(source),actual.len(),&actual_sha,9_753_094).unwrap(),actual);
+        const OLD_LABELS: &str = include_str!("../../../e/0421597ed21e1938cc215e2eea2ac2461b6d3324527df9833e1769688f1e65f2");
+        let edits: Value = serde_json::from_str(r####"[{"start":2203,"end":2918,"current":"    if page[\"schema\"] == \"semaprax.finite-source-overlay-page.v20\" {\n        super::super::verify_current_v18(&page);\n        return;\n    }\n    if page[\"schema\"] == \"semaprax.finite-source-overlay-page.v19\" {\n        // The shared verifier authenticates and composes the complete current\n        // V19 packet before selecting its exact immutable V18/V12 history.\n        super::super::verify_current_v18(&page);\n        return;\n    }\n    if page[\"schema\"] == \"semaprax.finite-source-overlay-page.v18\" {\n        super::super::verify_current_v18(&page);\n        return;\n    }\n    if page[\"schema\"] == \"semaprax.finite-source-overlay-page.v17\" {\n        super::super::verify_current_v17(&page);\n        return;\n    }\n","before":""}]"####).unwrap();
+        assert!(edits.as_array().unwrap().len() <= 512);
+        let mut restored_labels = supplied.to_owned(); let mut next = restored_labels.len();
+        for edit in edits.as_array().unwrap().iter().rev() {
+            let lo = usize::try_from(edit["start"].as_u64().unwrap()).unwrap();
+            let hi = usize::try_from(edit["end"].as_u64().unwrap()).unwrap();
+            assert!(lo <= hi && hi <= next);
+            assert_eq!(restored_labels.get(lo..hi),Some(edit["current"].as_str().unwrap()));
+            restored_labels.replace_range(lo..hi,edit["before"].as_str().unwrap());
+            assert!(restored_labels.len() <= 9_753_094); next = lo;
+        }
+        assert_eq!(restored_labels,OLD_LABELS,"ENTIRE retained V16 labels source");
+        let supplied = restored_labels.as_str();
+
         assert_eq!(
             supplied,
-            include_str!("../main_e177_overlay_labels_v12/tests.rs")
+            OLD_LABELS
         );
         // Acquire the entire physical V16 source before the unchanged V15 inverse.
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
@@ -301,7 +321,7 @@ fn v14_source_before_before_v20(source: &str, supplied: &str) -> String {
         {
             assert_eq!(supplied.len(), 9793);
             assert_eq!(
-                physical_reader::read(&root.join(source), 9793,
+                physical_reader::read(&root.join("e/0421597ed21e1938cc215e2eea2ac2461b6d3324527df9833e1769688f1e65f2"), 9793,
                     "0421597ed21e1938cc215e2eea2ac2461b6d3324527df9833e1769688f1e65f2", 9_753_094).unwrap(),
                 compiled
             );
@@ -354,9 +374,10 @@ fn v14_source_before_before_v20(source: &str, supplied: &str) -> String {
             "6b316023a1d5f99cec3300b78bd84cd93077e1a806c774ab349aaea6356920e6"
         );
         if compiled.len() == 9793 {
-            assert_eq!(physical_reader::read(&root.join(source), 9793,
+            assert_eq!(physical_reader::read(&root.join("e/0421597ed21e1938cc215e2eea2ac2461b6d3324527df9833e1769688f1e65f2"), 9793,
                 "0421597ed21e1938cc215e2eea2ac2461b6d3324527df9833e1769688f1e65f2", 9_753_094).unwrap(), compiled);
         }
+        assert_eq!(physical_reader::read(&actual_root.join(source),actual.len(),&actual_sha,9_753_094).unwrap(),actual);
         return restored;
     }
     let Some(index) = V14_FRONT_SOURCES.iter().position(|path| *path == source) else {

@@ -1,0 +1,155 @@
+{
+  "change": "Avoid redundant object-tree rebuilding and temporary serde scalar strings during canonical source metadata serialization. Full original serializer remains an independent test oracle.",
+  "checks": {
+    "status": "PASS",
+    "serial": true,
+    "ram_caps": false,
+    "source_checks": {
+      "status": "PASS",
+      "serial": true,
+      "ram_caps": false,
+      "filters": [
+        [
+          "canonical-writer",
+          "main_e177_final_inputs::overlay_v2::tests::canonical_writer_"
+        ],
+        [
+          "overlay-hostile",
+          "main_e177_final_inputs::overlay_v2::tests::"
+        ],
+        [
+          "packet",
+          "main_e177_final_inputs::packet_lookup::"
+        ],
+        [
+          "compiled-sources",
+          "main_e177_final_inputs::overlay_v2::compiled_sources::"
+        ]
+      ]
+    },
+    "full_codec": {
+      "complete_function_before_preserved": true,
+      "hostile_unknown_field_width_cases": 258,
+      "rows": [
+        {
+          "after_ns": "5438458",
+          "before_ns": "16648000",
+          "full_byte_equal": true,
+          "input": "/Volumes/Semaprax/tmp/ci-38383508340/canonical-metadata-publish-cf60/repository/docs/evidence/finite-source-overlay-v2-20261018/page.json",
+          "input_bytes": 248543,
+          "iterations": 3,
+          "output_bytes": 248543,
+          "input_sha256": "d1bdee99b62cd274c26bc96d81a8766626fb1912d603ac2caa5d811d9673db0b",
+          "output_sha256": "d1bdee99b62cd274c26bc96d81a8766626fb1912d603ac2caa5d811d9673db0b",
+          "speedup": 3.0611618219723313
+        },
+        {
+          "after_ns": "2093042",
+          "before_ns": "7605500",
+          "full_byte_equal": true,
+          "input": "/Volumes/Semaprax/tmp/ci-38383508340/canonical-metadata-publish-cf60/repository/docs/evidence/finite-source-overlay-v2-20261018/policy.json",
+          "input_bytes": 114167,
+          "iterations": 3,
+          "output_bytes": 114167,
+          "input_sha256": "e6fc4396ab0fc057625ad2a163221c11d6720a3b1cfc4ffeec2aec14a48e2ea1",
+          "output_sha256": "e6fc4396ab0fc057625ad2a163221c11d6720a3b1cfc4ffeec2aec14a48e2ea1",
+          "speedup": 3.6337063470298254
+        },
+        {
+          "after_ns": "392342291",
+          "before_ns": "709267542",
+          "full_byte_equal": true,
+          "input": "/Volumes/Semaprax/tmp/ci-38383508340/canonical-metadata-publish-cf60/repository/docs/evidence/a3-e47-final-custody-20261016/hir.json",
+          "input_bytes": 8496439,
+          "iterations": 3,
+          "output_bytes": 8496439,
+          "input_sha256": "2200b994cb194e7a9fd4ac0208a51c113a6b8a8bde793914c785076cbf80983a",
+          "output_sha256": "be962b90a288186643fc66d9d60dba38bf9e95fbb2f9e167c000e7b44c0b2eaa",
+          "speedup": 1.8077774389098422
+        },
+        {
+          "after_ns": "392146250",
+          "before_ns": "714150042",
+          "full_byte_equal": true,
+          "input": "/Volumes/Semaprax/tmp/ci-38383508340/canonical-metadata-publish-cf60/repository/docs/evidence/a3-e47-final-custody-20261016/projection.json",
+          "input_bytes": 8477342,
+          "iterations": 3,
+          "output_bytes": 8477342,
+          "input_sha256": "1853a041b9159080da7f6282e62fb99f07ac5b690964ecb424f9b0d5ccb9e48f",
+          "output_sha256": "06970c9a9190b22d0b292440ae6f569d57b067abf447c966e1751801fc4a4785",
+          "speedup": 1.8211318914818133
+        }
+      ],
+      "status": "PASS",
+      "actual_final_function_and_original_controls": true
+    },
+    "clippy": "PASS",
+    "fmt": "PASS"
+  },
+  "metadata": {
+    "status": "PASS",
+    "rows": 758,
+    "page_bytes": 248543,
+    "page_cap": 262144,
+    "changed_current_pins": [
+      "CHANGELOG.md",
+      "src/source_reflows_merge/main_e177_overlay_compiled.rs"
+    ],
+    "all_old_rows_views_compiled_flags_fragments_and_unknown_fields_preserved_after_exact_inverse": true,
+    "raw_encoded_page_exact_inverse": true,
+    "every_current_physical_source_matches": true,
+    "complete_authenticated_python_reader_matches": true,
+    "current_code_pin_only_changes": [
+      "docs/evidence/finite-source-overlay-v2-20261018/overlay_page.py",
+      "docs/evidence/main-e177-final-source-binding-20261017/guard_payload.py",
+      "docs/evidence/accepted-final6-source-binding-20261017/check-source.py",
+      "docs/evidence/accepted-strict-guard-generation-20261017/check-source.py",
+      "docs/evidence/main043-independent-custody-20261016/verify-or-refresh.py"
+    ],
+    "new_source_archives": [
+      "e/af4c5fc942938fbde72c2600fa2403d988acab51cc9efa1de2a19368fbda920c",
+      "e/20db735082d7f020693e3c38cc163dec7ca49e2bb1325830fb4a0232a387481b"
+    ]
+  },
+  "custody": {
+    "scope": "Exact current raw pins and moved registration offsets only; no role, membership, attribute, fragment, closure or unknown-field changes. Original complete verifier definition acquired every current source. Original Rust hostile boundary tests still required.",
+    "manifests": {
+      "hir": {
+        "changed_source_pins": [
+          "src/source_reflows_merge/main_e177_overlay_v2.rs",
+          "src/source_reflows_merge/main_e177_overlay_compiled.rs"
+        ],
+        "moved_existing_edge_offsets": 705,
+        "retained_oracle_lint_registration_attributes_added": 0,
+        "all_original_roles_members_edges_attributes_and_unknown_fields_byte_preserved_after_inverse": true,
+        "original_complete_verify_definition": "PASS",
+        "production_classes": 688,
+        "test_classes": 1163,
+        "length": 8496439,
+        "sha256": "2200b994cb194e7a9fd4ac0208a51c113a6b8a8bde793914c785076cbf80983a"
+      },
+      "projection": {
+        "changed_source_pins": [
+          "src/source_reflows_merge/main_e177_overlay_v2.rs",
+          "src/source_reflows_merge/main_e177_overlay_compiled.rs"
+        ],
+        "moved_existing_edge_offsets": 645,
+        "retained_oracle_lint_registration_attributes_added": 0,
+        "all_original_roles_members_edges_attributes_and_unknown_fields_byte_preserved_after_inverse": true,
+        "original_complete_verify_definition": "PASS",
+        "production_classes": 742,
+        "test_classes": 1188,
+        "length": 8477342,
+        "sha256": "1853a041b9159080da7f6282e62fb99f07ac5b690964ecb424f9b0d5ccb9e48f"
+      }
+    },
+    "current_domains_changed_digest_fields_per_domain": 3
+  },
+  "archives": {
+    "status": "PASS",
+    "complete_current_sources_and_archives": 758,
+    "all_full_bytes_sha256_and_lengths_match": true,
+    "public_reader_caps_unchanged": true
+  },
+  "limitations": "Focused source metadata fix; remaining compiler allocation-budget, whole-public allocation peak and semantic-wire CI failures are not claimed resolved. Original four-hour source-history test passed on unchanged b3aa source; that result is not claimed as current-head coverage."
+}

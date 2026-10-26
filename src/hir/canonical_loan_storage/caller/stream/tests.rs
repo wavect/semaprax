@@ -530,9 +530,18 @@ fn entire_immediate_sources_and_independent_old_receivers_are_authenticated() {
     assert_eq!(architecture_inverse, architecture_before, "ENTIRE unchanged source-stage architecture");
     let caller_before_empty = before_empty_terminal_source("src/hir/canonical_loan_storage/caller.rs", include_str!("../../caller.rs"));
     let stream_before_empty = before_empty_terminal_source("src/hir/canonical_loan_storage/caller/stream.rs", include_str!("../stream.rs"));
+    let shared_plan_actual = include_str!("../../../../../docs/SHARED-LOAN-PLAN-V1.md");
+    let shared_plan_before = include_str!("../../../../../e/06a8c5b29fa2fd8513a0f56cdcc59b1c97657213600b0cec4df7b9f58cccd6f1");
+    assert_eq!(shared_plan_actual.len(),46634);
+    assert_eq!(digest(shared_plan_actual.as_bytes()),"f914ca617ca0b06482d4c548b8a698f94f865322006399ca21e33b9897321901");
+    assert_eq!(shared_plan_before.len(),44756);
+    assert_eq!(digest(shared_plan_before.as_bytes()),"06a8c5b29fa2fd8513a0f56cdcc59b1c97657213600b0cec4df7b9f58cccd6f1");
+    assert_eq!(shared_plan_actual.get(..shared_plan_before.len()),Some(shared_plan_before),"complete immutable pre-empty-terminal owning contract");
+    let shared_plan_path=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/SHARED-LOAN-PLAN-V1.md");
+    assert_eq!(source_reader::read(&shared_plan_path,shared_plan_actual.len(),&digest(shared_plan_actual.as_bytes()),2*1024*1024).unwrap(),shared_plan_actual);
     let cases: &[(&str, &str)] = &[
         ("docs/ARCHITECTURE.md", architecture_before),
-        ("docs/SHARED-LOAN-PLAN-V1.md", include_str!("../../../../../docs/SHARED-LOAN-PLAN-V1.md")),
+        ("docs/SHARED-LOAN-PLAN-V1.md", shared_plan_before),
         ("src/hir/canonical_loan_storage/caller.rs", caller_before_empty.as_ref()),
         ("src/hir/canonical_loan_storage/caller/stage_tests.rs", include_str!("../stage_tests.rs")),
         ("src/hir/canonical_loan_storage/deferred.rs", include_str!("../../deferred.rs")),
@@ -700,7 +709,7 @@ fn entire_immediate_sources_and_independent_old_receivers_are_authenticated() {
         );
         let pin = row["after_sha256"].as_str().unwrap();
         assert_eq!(digest(compiled.as_bytes()), pin);
-        let physical = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(match *path { "docs/ARCHITECTURE.md" => "e/20fdbcf1ec5fefc07b95342fea78b1e30edcd3ebf22a052b196cb0a9a0db0a41", "src/hir/canonical_loan_storage/caller.rs" => "e/e6182e13a2435197176743921951ba2a88ebc15ef9af0ce4007f2e778c1f3e7b", "src/hir/canonical_loan_storage/caller/stream.rs" => "e/cf07788c9675cdaad420205cc55ae6920acb24ad554a6f9ffe4c51b6c8e4a9ea", _ => path });
+        let physical = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(match *path { "docs/SHARED-LOAN-PLAN-V1.md" => "e/06a8c5b29fa2fd8513a0f56cdcc59b1c97657213600b0cec4df7b9f58cccd6f1", "docs/ARCHITECTURE.md" => "e/20fdbcf1ec5fefc07b95342fea78b1e30edcd3ebf22a052b196cb0a9a0db0a41", "src/hir/canonical_loan_storage/caller.rs" => "e/e6182e13a2435197176743921951ba2a88ebc15ef9af0ce4007f2e778c1f3e7b", "src/hir/canonical_loan_storage/caller/stream.rs" => "e/cf07788c9675cdaad420205cc55ae6920acb24ad554a6f9ffe4c51b6c8e4a9ea", _ => path });
         assert_eq!(
             source_reader::read(&physical, compiled.len(), pin, 2 * 1024 * 1024).unwrap(),
             *compiled
@@ -790,6 +799,7 @@ fn entire_immediate_sources_and_independent_old_receivers_are_authenticated() {
         .unwrap()
         .1;
     assert!(current.contains(&format!("fn prepare_sealed_before<'a, T>({original}")));
+    assert_eq!(source_reader::read(&shared_plan_path,shared_plan_actual.len(),&digest(shared_plan_actual.as_bytes()),2*1024*1024).unwrap(),shared_plan_actual);
 }
 
 fn empty_scalar_program(functions: usize) -> ResolvedProgram {

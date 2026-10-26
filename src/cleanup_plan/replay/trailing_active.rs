@@ -3,23 +3,39 @@ use super::*;
 use std::mem::size_of;
 use physical_budget::ByteFailure;
 
-// New query and cold fallback frames. The first borrowed acquisition substitutes
-// for the first original consuming acquisition; its original work precedes this
-// bank. Active-first cold probes retain exact DAG sharing and first clone work,
-// and run no active reuse. Extra iterator/next roles are separately priced.
-pub(super) const QUERY: usize = 2 * size_of::<Result<(), ByteFailure>>()
-    + 4 * size_of::<&mut ReplayBudget>() + 4 * size_of::<&ResolvedFunction>()
-    + 4 * size_of::<&str>()
-    + 2 * size_of::<std::slice::IterMut<'static, ExprSkeletonPath>>()
+// The accepted first borrowed acquisition substitutes for the original first
+// consuming acquisition. Its first work remains before the original positive
+// transport. The extra eventual consuming fallback iterator is paid here.
+pub(super) const PROBE: usize =
+    2 * size_of::<std::slice::IterMut<'static, ExprSkeletonPath>>()
     + 2 * size_of::<Option<&mut ExprSkeletonPath>>() + size_of::<&mut ExprSkeletonPath>()
     + 2 * size_of::<std::slice::Iter<'static, ExprSkeletonPath>>()
     + 2 * size_of::<Option<&ExprSkeletonPath>>() + size_of::<&ExprSkeletonPath>()
     + 2 * size_of::<std::vec::IntoIter<ExprSkeletonPath>>()
     + 2 * size_of::<Option<ExprSkeletonPath>>()
+    // The cheap borrowed tagged-payer match forms no OracleLease or Option.
+    + 2 * size_of::<&AllocationPayer>() + 2 * size_of::<AllocationPayer>()
+    + 2 * size_of::<usize>() // held minimum and conservative lower-bound operand
+    + size_of::<bool>() // unchanged stopped receiving slot
+    + 2 * size_of::<bool>() // precharged publication value and receiving slot
+    + 2 * size_of::<bool>() // lower-bound comparison return and receiver
+    + 2 * size_of::<bool>() // borrowed payer-tag predicate and receiver
+    + 4 * size_of::<bool>(); // two lazy conjunction expression/receiving pairs
+
+// Heavy checked eligibility, the real leased selector and its positive-call
+// warm/Oracle controls are not executed on a cold non-Oracle rejection.
+pub(super) const ELIGIBILITY: usize = 2 * size_of::<Result<(), ByteFailure>>()
+    + 4 * size_of::<&mut ReplayBudget>() + 4 * size_of::<&ResolvedFunction>()
+    + 4 * size_of::<&str>()
     + 10 * size_of::<Option<usize>>() + 32 * size_of::<usize>()
     + 16 * size_of::<bool>() + 4 * size_of::<&Vec<ExprSkeletonPath>>()
     + 2 * size_of::<&ReplayBudget>() + ORACLE_QUERY_CONTROLS
     + ReplayBudget::WARM_PREPARE_CONTROLS + ReplayBudget::ORACLE_SELECTOR_CONTROLS;
+pub(super) const STOPPED_PROBE_CONTROLS: usize = final_output::compact::path_capacity_controls() + PROBE;
+pub(super) const ACTIVE_PROBE_CONTROLS: usize = final_output::FINAL_SPLIT_CONTROLS + PROBE;
+// Compile-time aggregate only: no QUERY gateway. The distinct larger selected
+// transfer bank remains fully paid and is included without donor credit.
+pub(super) const QUERY: usize = PROBE + ELIGIBILITY + path_array::capacity_controls();
 
 // Every reached scan member: returned/matched Some reference, bound reference,
 // both stop flags, their lazy combination and the accumulated eligibility flag.
@@ -96,11 +112,6 @@ macro_rules! fallback {
         if prefix.failed || prefix.residual {
             if $precharged {
                 $precharged = false;
-                physical_budget::compact_try!($work.budget.reserve_compact_bytes(
-                    $work.function,
-                    final_output::compact::path_capacity_controls(),
-                    "short-circuited skeleton path",
-                ));
                 let capacity = match $minimum.checked_next_power_of_two() {
                     Some(capacity) => capacity,
                     None => return Err($work.budget.budget_refusal(
@@ -173,12 +184,14 @@ macro_rules! fallback {
         #[cfg(test)]
         if !$precharged { final_output::record_final_frontier(0, $work); }
         if $precharged { $precharged = false; }
-        else { $work.charge(1, "skeleton prefix clone")?; }
-        $work.budget.reserve_bytes(
-            $work.function,
-            final_output::FINAL_SPLIT_CONTROLS,
-            "HIR final-suffix split controls",
-        )?;
+        else {
+            $work.charge(1, "skeleton prefix clone")?;
+            $work.budget.reserve_bytes(
+                $work.function,
+                final_output::FINAL_SPLIT_CONTROLS,
+                "HIR final-suffix split controls",
+            )?;
+        }
         skeleton_work::enumerated_prefix::share!($work, prefix);
         // Lexical remainder of the original first clone: no second charge and
         // no newly forwarded Result<Observations, Diagnostic>.
@@ -325,6 +338,10 @@ macro_rules! reuse {
             if stopped {
                 $work.charge(1, "short-circuited skeleton path")?;
                 note_skeleton_materialization();
+                $crate::cleanup_plan::replay::trailing_active::observe_frontier($work,0,$crate::cleanup_plan::replay::trailing_active::STOPPED_PROBE_CONTROLS);
+                physical_budget::compact_try!($work.budget.reserve_compact_bytes(
+                    $work.function, $crate::cleanup_plan::replay::trailing_active::STOPPED_PROBE_CONTROLS,
+                    "short-circuited skeleton path"));
             } else {
                 // Preserve the exact old pre-clone ordering on a cold miss.
                 skeleton_work::dag_storage::share_prefix!($work, $sharing, prefix.observations);
@@ -333,13 +350,20 @@ macro_rules! reuse {
                 #[cfg(test)]
                 final_output::record_final_frontier(0, $work);
                 $work.charge(1, "skeleton prefix clone")?;
+                $crate::cleanup_plan::replay::trailing_active::observe_frontier($work,0,$crate::cleanup_plan::replay::trailing_active::ACTIVE_PROBE_CONTROLS);
+                $work.budget.reserve_bytes(
+                    $work.function, $crate::cleanup_plan::replay::trailing_active::ACTIVE_PROBE_CONTROLS,
+                    "HIR final-suffix split controls")?;
             }
         }
         $precharged = true;
-        $crate::cleanup_plan::replay::trailing_active::observe_frontier($work,0,$crate::cleanup_plan::replay::trailing_active::QUERY);
-        physical_budget::compact_try!($work.budget.reserve_compact_bytes(
-            $work.function, $crate::cleanup_plan::replay::trailing_active::QUERY,
-            "trailing-active reuse query controls"));
+        // Only a cheap funded rejection runs here. No Oracle payload or heavy
+        // arithmetic is formed until the following eligibility bank succeeds.
+        if stopped && $minimum >= 8 && matches!(&$work.budget.payer, &AllocationPayer::Oracle(_)) {
+            $crate::cleanup_plan::replay::trailing_active::observe_frontier($work,1,$crate::cleanup_plan::replay::trailing_active::ELIGIBILITY);
+            physical_budget::compact_try!($work.budget.reserve_compact_bytes(
+                $work.function, $crate::cleanup_plan::replay::trailing_active::ELIGIBILITY,
+                "trailing-active reuse query controls"));
         let oracle = $work.budget.oracle_lease();
         if oracle.is_some() && stopped && !$work.budget.selected() {
             let n = $prefixes.len();
@@ -354,7 +378,7 @@ macro_rules! reuse {
                                         // Input capacity is not a saving: compare the exact old
                                         // minimum output allocation against ALL new controls.
                                         if old_bytes > total {
-                                            $crate::cleanup_plan::replay::trailing_active::observe_frontier($work,1,frame);
+                                            $crate::cleanup_plan::replay::trailing_active::observe_frontier($work,2,frame);
                                             physical_budget::compact_try!($work.budget.reserve_compact_bytes(
                                                 $work.function, frame, "trailing-active scan and cleanup controls"));
                                             $work.charge(n, "trailing-active shape scan")?;
@@ -374,6 +398,7 @@ macro_rules! reuse {
                     }
                 }
             }
+        }
         }
         $crate::cleanup_plan::replay::trailing_active::fallback!(
             $prefixes, $suffixes, $work, $sharing, $minimum,
@@ -872,14 +897,14 @@ pub(super) fn before_sequence_skeleton_paths(
 }
 
 // Fixed test instrumentation only: records an existing account's charge at the
-// two NEW positive requests. It cannot grant budget, reset an account, replace
+// existing donor+PROBE and two funded eligibility/frame requests. It cannot grant budget, reset an account, replace
 // the payer, alter admission, or suppress the actual ordinary reserve call.
-thread_local! {static FRONTIERS: std::cell::Cell<Option<[usize;4]>>=const{std::cell::Cell::new(None)};}
+thread_local! {static FRONTIERS: std::cell::Cell<Option<[usize;6]>>=const{std::cell::Cell::new(None)};}
 pub(super) fn observe_frontier(work:&SkeletonWork<'_, '_>,index:usize,requested:usize) {
     FRONTIERS.with(|slot|{if let Some(mut rows)=slot.get(){let receipt=work.budget.oracle_lease().unwrap().receipt().unwrap();rows[index*2]=receipt.charged;rows[index*2+1]=requested;slot.set(Some(rows));}});
 }
 #[cfg(test)]
-fn with_frontiers<R>(body:impl FnOnce()->R)->(R,[usize;4]) {
+fn with_frontiers<R>(body:impl FnOnce()->R )->(R,[usize;6]) {
     struct Reset;impl Drop for Reset {fn drop(&mut self){FRONTIERS.with(|s|s.set(None));}}
-    FRONTIERS.with(|s|{assert!(s.get().is_none());s.set(Some([0;4]));});let reset=Reset;let result=body();let rows=FRONTIERS.with(|s|s.get().unwrap());drop(reset);(result,rows)
+    FRONTIERS.with(|s|{assert!(s.get().is_none());s.set(Some([0;6]));});let reset=Reset;let result=body();let rows=FRONTIERS.with(|s|s.get().unwrap());drop(reset);(result,rows)
 }

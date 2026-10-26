@@ -946,3 +946,6 @@ pub(in crate::cleanup_plan::replay) fn authenticate_prefitting_dispatch() {
         );
     }
 }
+
+#[path = "visited_transfer.rs"]
+mod visited_transfer;

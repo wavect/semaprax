@@ -389,17 +389,11 @@ fn literal_full_old_layout_removal_is_observed_without_fitting_discovery_counts(
     let removed = strings + std::mem::size_of::<ModuleUse>()
         + directories
         + inert
-        // Saved old Program Drop acquires independent expression/type Vecs,
-        // each capacity4 for the three scalar results and three bodies (the
-        // inert Block's tail is pushed only after its Block pops). Direct
-        // overlay Drop has only leaf bodies/inline scalar types and obtains
-        // no scratch.
-        + 4 * std::mem::size_of::<Expr>() + 4 * std::mem::size_of::<Type>();
+        // The saved signature receiver clones the provider name before
+        // replacing it. The actual current Program Drop uses inline scratch.
+        + "helper".len();
     assert_eq!(before.allocated, after.allocated + removed);
-    // Five strings and one ModuleUse directory, three inert payloads, one
-    // additional old directory acquisition (capacity1 then its capacity4
-    // reallocation versus one exact capacity2) and two Drop scratch Vecs.
-    assert_eq!(before.allocations, after.allocations + 5 + 1 + 3 + 1 + 2);
+    assert_eq!(before.allocations, after.allocations + 5 + 1 + 3 + 1 + 1);
     for observed in [before, after] {
         assert!(!observed.invalid && observed.live == 0);
         assert_eq!(observed.allocated, observed.freed);
@@ -469,16 +463,21 @@ fn literal_imported_directory_replacements_and_authored_payloads_are_removed() {
         + imported_string_bytes
         + "caller.spx".len()
         + "indexed.app".len();
-    // Old Program Drop visits eighteen scalar fields and one scalar result,
-    // growing its Type scratch through 4,8,16,32. One Block/leaf body obtains
-    // expression scratch capacity4. The view's leaf-owned fields allocate none.
-    let drop_backing =
-        (4 + 8 + 16 + 32) * std::mem::size_of::<Type>() + 4 * std::mem::size_of::<Expr>();
+    // Nineteen scalar roots fill the actual inline16 Type frontier and
+    // spill three values into one capacity4 Vec. Expression scratch stays inline.
+    let drop_backing = 4 * std::mem::size_of::<Type>();
+    // The original type clone owns RowN before replacing it with ImportedN.
+    let discarded_names: usize = (0..17).map(|ordinal| format!("Row{ordinal}").len()).sum();
     assert_eq!(
         old.allocated,
-        current.allocated + directories + authored + discarded_sidecars + drop_backing
+        current.allocated
+            + directories
+            + authored
+            + discarded_sidecars
+            + drop_backing
+            + discarded_names
     );
-    assert_eq!(old.reallocations, current.reallocations + 7);
+    assert_eq!(old.reallocations, current.reallocations + 4);
     for observed in [old, current] {
         assert!(!observed.invalid && observed.live == 0);
         assert_eq!(observed.allocated, observed.freed);

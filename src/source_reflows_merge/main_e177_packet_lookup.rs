@@ -466,7 +466,10 @@ fn read_view_with_packet(authenticated: &serde_json::Value, view: &serde_json::V
     )
     .unwrap()
 }
-fn actual_with_packet(authenticated: &serde_json::Value, row: &serde_json::Value) -> String {
+pub(super) fn actual_with_packet(
+    authenticated: &serde_json::Value,
+    row: &serde_json::Value,
+) -> String {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let source = row["source"].as_str().unwrap();
     let current = &row["current"];
@@ -558,6 +561,31 @@ fn root_before_nested_context(current: &str) -> String {
     let current = current.replace("    pub(super) fn compiled(source:", "    fn compiled(source:")
         .replace("    pub(super) fn pin(pin:", "    fn pin(pin:");
     let current = current.as_str();
+    let reader_predecessor;
+    let current = if current.contains("fn actual_before_current_context(") {
+        let mut restored = current.to_owned();
+        const WRAPPER: &str = "fn actual(row: &serde_json::Value) -> String {\n    let source = row[\"source\"].as_str().unwrap();\n    if overlay_v2::declares_source(source) {\n        return packet_lookup::actual_with_packet(&packet(), row);\n    }\n    actual_before_current_context(row)\n}\n#[allow(dead_code, reason = \"Complete independent predecessor acquisition\")]\n";
+        assert_eq!(restored.matches(WRAPPER).count(), 1);
+        restored = restored.replacen(WRAPPER, "", 1);
+        assert_eq!(
+            restored
+                .matches("fn actual_before_current_context(")
+                .count(),
+            1
+        );
+        restored = restored.replacen("fn actual_before_current_context(", "fn actual(", 1);
+        assert_eq!(
+            restored
+                .matches("actual_before_current_context(child);")
+                .count(),
+            1
+        );
+        restored = restored.replacen("actual_before_current_context(child);", "actual(child);", 1);
+        reader_predecessor = restored;
+        reader_predecessor.as_str()
+    } else {
+        current
+    };
     // Main adds exactly one API forwarder and its executable regression.
     // Remove only their complete bytes before the unchanged release inverse.
     let registered_predecessor;
@@ -1376,3 +1404,66 @@ pub(super) fn registered_file_before_packet_context(source: &str, expected: &str
     }
 }
 // REGISTERED_CONTEXT_PREDECESSOR_END
+
+#[cfg(test)]
+mod current_reader_tests {
+    #[test]
+    fn every_declared_compiled_source_has_its_complete_actual_current_channel() {
+        let packet = super::packet();
+        let mut checked = 0;
+        for row in packet["rows"].as_array().unwrap() {
+            if row["compiled"] != true {
+                continue;
+            }
+            super::actual_with_packet(&packet, row);
+            checked += 1;
+        }
+        assert!(checked > 0);
+        eprintln!("COMPLETE_CURRENT_COMPILED_CHANNELS checked={checked}");
+    }
+
+    #[test]
+    fn complete_current_reader_preserves_entire_predecessor_root_and_recursive_body() {
+        let before = include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/e/21f45e03fe08b7309c02875226c65fb71129ec55e8dcc1e96689a76d537df75e"
+        ));
+        let current = include_str!("main_e177_final_inputs.rs");
+        assert_eq!(
+            super::root_before_nested_context(current),
+            super::root_before_nested_context(before)
+        );
+        fn body<'a>(text: &'a str, signature: &str) -> &'a str {
+            let start = text.find(&format!("\n{signature}")).unwrap() + 1;
+            let length = text[start..].find("\n}\n").unwrap() + 3;
+            &text[start..start + length]
+        }
+        let restored = body(current, "fn actual_before_current_context(")
+            .replacen("fn actual_before_current_context(", "fn actual(", 1)
+            .replacen("actual_before_current_context(child);", "actual(child);", 1);
+        assert_eq!(restored, body(before, "fn actual("));
+    }
+    #[test]
+    fn closed_current_reader_keeps_complete_fragment_owner_and_original_unclaimed_route() {
+        let packet = super::packet();
+        let rows = packet["rows"].as_array().unwrap();
+        let source = "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs";
+        assert!(super::super::overlay_v2::declares_source(source));
+        let row = rows.iter().find(|row| row["source"] == source).unwrap();
+        assert!(row["fragments"].as_array().unwrap().len() > 100);
+        let current = super::super::actual(row);
+        assert_eq!(current, super::actual_with_packet(&packet, row));
+        assert_eq!(Some(current.as_str()), super::super::compiled(source));
+        let old = rows
+            .iter()
+            .find(|row| {
+                !super::super::overlay_v2::declares_source(row["source"].as_str().unwrap())
+                    && row.get("fragments").is_none()
+            })
+            .unwrap();
+        assert_eq!(
+            super::super::actual(old),
+            super::super::actual_before_current_context(old)
+        );
+    }
+}

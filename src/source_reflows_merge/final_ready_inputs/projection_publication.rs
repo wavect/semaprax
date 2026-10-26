@@ -10,6 +10,13 @@ pub(super) fn previous(path: &str, length: usize, sha: &str) -> Option<String> {
     let compiled = include_str!(
         "../../workspace_graph/expected_projection/borrowed_imports/tests/full/publication.rs"
     );
+    let before = super::invoice_compiled_stage(
+        SOURCE,
+        9293,
+        "f30d8ceea4d53421be07e2eec5610b9c5f0ac05ff06005f67c74028128157149",
+        compiled,
+    );
+    let compiled = before.as_str();
     assert_eq!(
         (compiled.len(), digest(compiled)),
         (
@@ -282,7 +289,8 @@ pub(super) fn audit_join(supplied: &str) -> Option<String> {
                 .expect("fresh complete current projection audit part");
             assert_eq!(physical, compiled);
         }
-        let next_current = next_part_before(path, compiled);
+        let invoice_previous = super::invoice_compiled_stage(path, length, sha, compiled);
+        let next_current = next_part_before(path, &invoice_previous);
         let prior_current = post83_part_before(path, &next_current);
         let previous = current_part_before(path, &prior_current);
         assert_eq!((previous.len(), digest(&previous)), (length, sha.to_owned()));

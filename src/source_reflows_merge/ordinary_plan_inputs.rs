@@ -519,7 +519,7 @@ fn historical_successor_ingress_checkpoint(
     ));
     const LENGTH: usize = 14971;
     const SHA: &str = "aef6ee23a1724873cd15d3590f0086fc8a304ce3db94ca4525989994e8360046";
-    assert!(LENGTH <= FINAL_INGRESS_CAP);
+    const { assert!(LENGTH <= FINAL_INGRESS_CAP) };
     assert_eq!(DATA.len(), LENGTH);
     assert_eq!(digest(DATA), SHA);
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));

@@ -418,27 +418,35 @@ fn literal_box_wrapper_overlay_removes_real_caller_copy_and_function_growth() {
         + 2 * std::mem::size_of::<crate::ast::Type>()
         + "overlay.box.main".len()
         + "main".len()
-        + "take_box".len()
-        + "new_box".len();
+        + "into_inner".len()
+        + "new".len();
     let sidecars = 2 * std::mem::size_of::<crate::ast::ModuleUse>()
         + "std.mem.box.new".len()
         + "std.mem.box.into-inner".len()
         + 2 * "std.mem".len()
-        + "new_box".len()
-        + "take_box".len()
+        + "new".len()
+        + "into_inner".len()
         + "caller.spx".len()
         + "overlay.box".len();
-    // Both iterative receivers obtain Expr capacity4. The new receiver has
-    // four signature roots plus two wrapper-call type arguments (six Types:
-    // capacities4,8). The full old receiver adds the main result and two call
-    // arguments (nine Types: capacities4,8,16), so only its real capacity16
-    // replacement and one additional realloc are removed.
-    let drop_replacement = 16 * std::mem::size_of::<crate::ast::Type>();
+    // Both current Program destructors keep these narrow frontiers inline.
+    // The original classifier still allocates its literal signature and the
+    // old signature clone discards each provider function name before aliasing.
+    let (classifier_allocations, classifier_bytes) = original_classifier_invoice("std.mem");
+    let discarded_names = "new".len() + "into_inner".len();
     assert_eq!(
         before.allocated,
-        after.allocated + directories + main_payload + sidecars + drop_replacement
+        after.allocated
+            + directories
+            + main_payload
+            + sidecars
+            + classifier_bytes
+            + discarded_names
     );
-    assert_eq!(before.reallocations, after.reallocations + 2);
+    assert_eq!(before.reallocations, after.reallocations + 1);
+    assert_eq!(
+        before.allocations,
+        after.allocations + 1 + 9 + 9 + classifier_allocations + 2
+    );
     for observed in [before, after] {
         assert!(!observed.invalid && observed.live == 0);
         assert_eq!(observed.allocated, observed.freed);
@@ -610,3 +618,37 @@ mod transient;
 
 #[path = "full/publication.rs"]
 mod publication;
+
+// Independent literal original-classifier layouts; no measured counters supply this invoice.
+fn original_classifier_invoice(module: &str) -> (usize, usize) {
+    use crate::ast::{Param, Type};
+    use std::mem::size_of;
+    match module {
+        "std.collections" => {
+            // with_capacity/push/get: 5 Param elements in 3 directories,
+            // 9 Type elements in 7 directories, 12 T names, 5 argN names
+            // (format's 2*literal-prefix estimate), and 4 Vec names.
+            (
+                3 + 7 + 12 + 5 + 4,
+                5 * size_of::<Param>()
+                    + 9 * size_of::<Type>()
+                    + 12 * "T".len()
+                    + 5 * (2 * "arg".len())
+                    + 4 * "Vec".len(),
+            )
+        }
+        "std.mem" => {
+            // new/into_inner each own one Param directory, one Type
+            // directory, four T strings, one Box name and one arg0 name.
+            (
+                2 * (1 + 1 + 4 + 1 + 1),
+                2 * (size_of::<Param>()
+                    + size_of::<Type>()
+                    + 4 * "T".len()
+                    + "Box".len()
+                    + "arg0".len()),
+            )
+        }
+        _ => panic!("closed imported std classifier fixtures only"),
+    }
+}

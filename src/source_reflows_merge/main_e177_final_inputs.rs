@@ -766,6 +766,14 @@ fn read_view(view: &serde_json::Value) -> String {
     .unwrap()
 }
 fn actual(row: &serde_json::Value) -> String {
+    let source = row["source"].as_str().unwrap();
+    if overlay_v2::declares_source(source) {
+        return packet_lookup::actual_with_packet(&packet(), row);
+    }
+    actual_before_current_context(row)
+}
+#[allow(dead_code, reason = "Complete independent predecessor acquisition")]
+fn actual_before_current_context(row: &serde_json::Value) -> String {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let source = row["source"].as_str().unwrap();
     let current = &row["current"];
@@ -788,7 +796,7 @@ fn actual(row: &serde_json::Value) -> String {
             assert!(child.get("fragments").is_none());
             // Authenticate actual same-scope compiled bytes before returning
             // the shortened parent's complete historical source view.
-            actual(child);
+            actual_before_current_context(child);
         }
     }
 

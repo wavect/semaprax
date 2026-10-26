@@ -1901,3 +1901,5 @@ Audience: all documentation readers.
 - [Exact hosted calculator graph invoice update](evidence/browser-capture-a281-20261025/README.md)
 
 - [Valid alias success subjects with original rejection witnesses](evidence/alias-valid-subjects-20261025/README.md)
+
+- [Public workspace wire accounting repair](evidence/public-wire-accounting-20261026/README.md)

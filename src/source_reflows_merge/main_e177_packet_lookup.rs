@@ -1,4 +1,4 @@
-//! Same-call borrowing only; no stored packet or acquisition cache.
+//! Stack-owned projection borrowing; each logical lookup authenticates live containers.
 use super::SOURCE_CAP;
 use super::{actual, clippy_stage, digest, packet, read_view, value_4a6eb};
 use serde_json::Value;
@@ -377,7 +377,7 @@ mod tests {
             "views":[{"archive":old.to_str().unwrap(),"length":4,"sha256":expected}]}]});
         let ((), heap) = crate::test_allocation_observer::measure(|| {
             for invocation in 1..=2 {
-                let mut context = ProjectionInvocation { packet: None, stage: None, acquire_stage: super::clippy_stage::rows, acquire: || {
+                let mut context = ProjectionInvocation { guard: super::super::overlay_v2::InvocationGuard::Disabled, packet: None, stage: None, acquire_stage: super::clippy_stage::rows, acquire: || {
                     loads.set(loads.get() + 1);
                     fixture.clone()
                 }};
@@ -403,7 +403,7 @@ mod tests {
         });
         assert!(!heap.invalid && heap.live == 0 && heap.allocated == heap.freed);
         // Metadata reuse never hides fresh-current failure or the missing archive.
-        let mut context = ProjectionInvocation { packet: None, stage: None, acquire_stage: super::clippy_stage::rows, acquire: || fixture.clone() };
+        let mut context = ProjectionInvocation { guard: super::super::overlay_v2::InvocationGuard::Disabled, packet: None, stage: None, acquire_stage: super::clippy_stage::rows, acquire: || fixture.clone() };
         assert_eq!(context.value(source, &expected, "new!"), "old!");
         std::fs::write(&current, b"drft").unwrap();
         std::fs::remove_file(&old).unwrap();
@@ -627,19 +627,22 @@ pub(crate) struct ProjectionInvocation<F = fn() -> serde_json::Value, S = fn() -
     packet: Option<serde_json::Value>,
     acquire: F,
     stage: Option<serde_json::Value>,
-    acquire_stage: S,
+    acquire_stage: S, pub(super) guard: super::overlay_v2::InvocationGuard,
 }
 impl ProjectionInvocation {
     pub(crate) fn new() -> Self {
-        Self { packet: None, acquire: packet, stage: None, acquire_stage: clippy_stage::rows }
+        Self { packet: None, acquire: packet, stage: None, acquire_stage: clippy_stage::rows, guard: super::overlay_v2::InvocationGuard::Current }
     }
 }
 #[rustfmt::skip] // Keep the complete old file-lookup suffix available verbatim.
 impl<F: FnMut() -> serde_json::Value, S: FnMut() -> serde_json::Value> ProjectionInvocation<F, S> {
     #[cfg(test)]
     pub(super) fn with_loaders(acquire: F, acquire_stage: S) -> Self {
-        Self { packet: None, acquire, stage: None, acquire_stage }
+        Self { packet: None, acquire, stage: None, acquire_stage, guard: super::overlay_v2::InvocationGuard::Disabled }
     }
+    fn finish_call(&self, call: InvocationCall) { if call.metadata { self.guard.after_body(); self.guard.check(call.stage); } }
+    fn call_metadata(&mut self, call: &mut InvocationCall) -> &serde_json::Value { if self.packet.is_none() { self.packet=Some((self.acquire)());call.metadata=true; } else if !call.metadata { self.guard.check(false);call.metadata=true; } self.packet.as_ref().unwrap() }
+    fn call_direct_metadata(&mut self, call: &mut InvocationCall, source: &str) -> (&serde_json::Value,Option<&serde_json::Value>) { let _=self.call_metadata(call);let packet=self.packet.as_ref().unwrap();let stage=if clippy_stage::compiled(source).is_some() {let stage=self.stage.get_or_insert_with(&mut self.acquire_stage);if !call.stage {self.guard.stage();call.stage=true;}Some(stage as &serde_json::Value)}else{None};(packet,stage) }
     fn metadata(&mut self) -> &serde_json::Value {
         self.packet.get_or_insert_with(&mut self.acquire)
     }
@@ -650,13 +653,15 @@ impl<F: FnMut() -> serde_json::Value, S: FnMut() -> serde_json::Value> Projectio
         } else { None };
         (packet, stage)
     }
-    pub(crate) fn value(&mut self, source: &str, expected: &str, supplied: &str) -> String {
-        with_packet_context(self.metadata(), source, expected, supplied)
+    pub(crate) fn value(&mut self, source: &str, expected: &str, supplied: &str) -> String { let mut call=InvocationCall::default(); let result=self.value_inner(&mut call, source, expected, supplied); self.finish_call(call); result }
+    fn value_inner(&mut self, call: &mut InvocationCall, source: &str, expected: &str, supplied: &str) -> String {
+        with_packet_context(self.call_metadata(call), source, expected, supplied)
     }
-    pub(crate) fn file(&mut self, path: &std::path::Path, length: usize, expected: &str) -> Option<String> {
+    pub(crate) fn file(&mut self, path: &std::path::Path, length: usize, expected: &str) -> Option<String> { let mut call=InvocationCall::default(); let result=self.file_inner(&mut call, path, length, expected); self.finish_call(call); result }
+    fn file_inner(&mut self, call: &mut InvocationCall, path: &std::path::Path, length: usize, expected: &str) -> Option<String> {
         // Original Clippy read precedes metadata acquisition on every lookup.
         if let Some(Ok(value)) = clippy_stage::read(path, length, expected) {
-            let _ = self.metadata();
+            let _ = self.call_metadata(call);
             return Some(value);
         }
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
@@ -668,7 +673,7 @@ impl<F: FnMut() -> serde_json::Value, S: FnMut() -> serde_json::Value> Projectio
             return None;
         }
         let source = relative.to_str()?;
-        self.file_row_with_context(source, length, expected)
+        self.file_row_with_context_inner(call, source, length, expected)
     }
 
     // Reuse only immutable canonical metadata; all lookup readers and fallbacks stay live.
@@ -679,26 +684,27 @@ impl<F: FnMut() -> serde_json::Value, S: FnMut() -> serde_json::Value> Projectio
         let (authenticated, stage) = self.direct_metadata(source);
         independent_old_direct(authenticated, stage, source, expected, supplied)
     }
-    pub(crate) fn value_direct(&mut self, source: &str, expected: &str, supplied: &str) -> String {
+    pub(crate) fn value_direct(&mut self, source: &str, expected: &str, supplied: &str) -> String { let mut call=InvocationCall::default(); let result=self.value_direct_inner(&mut call, source, expected, supplied); self.finish_call(call); result }
+    fn value_direct_inner(&mut self, call: &mut InvocationCall, source: &str, expected: &str, supplied: &str) -> String {
         // This intentionally closes the noncanonical-known-Clippy boundary.
         // A foreign subject never gains a historical acquisition route here.
-        if !self.metadata()["rows"].as_array().unwrap().iter().any(|row| row["source"] == source) {
+        if !self.call_metadata(call)["rows"].as_array().unwrap().iter().any(|row| row["source"] == source) {
             return supplied.to_owned();
         }
         // A current-table hit needs no stage metadata or fallback allocation.
-        let direct = from_packet_with_context(self.metadata(), source, expected, supplied);
+        let direct = from_packet_with_context(self.call_metadata(call), source, expected, supplied);
         if digest(direct.as_bytes()) == expected {
             return direct;
         }
-        self.value_direct_with_stage_context(source, expected, supplied)
+        self.value_direct_with_stage_context_inner(call, source, expected, supplied)
     }
 
     // Borrow only invocation metadata; current/prior source reads remain live.
-    fn value_direct_with_stage_context(&mut self, source: &str, expected: &str, supplied: &str) -> String {
+    fn value_direct_with_stage_context_inner(&mut self, call: &mut InvocationCall, source: &str, expected: &str, supplied: &str) -> String {
         // A whole logical-table view is selected only after its actual current
         // physical, compiled and archive channels have authenticated. Preserve the
         // complete historical stage fallback below for every other input.
-        let (authenticated, stage) = self.direct_metadata(source);
+        let (authenticated, stage) = self.call_direct_metadata(call, source);
         let direct = direct_row_context(authenticated, stage, source, expected, supplied);
         if digest(direct.as_bytes()) == expected {
             return direct;
@@ -762,24 +768,24 @@ impl<F: FnMut() -> serde_json::Value, S: FnMut() -> serde_json::Value> Projectio
         }
     }
 
-    fn combined_side_actual(&mut self, row: &serde_json::Value) -> String {
+    fn combined_side_actual_inner(&mut self, call: &mut InvocationCall, row: &serde_json::Value) -> String {
         let root = Path::new(env!("CARGO_MANIFEST_DIR"));
         let source = row["source"].as_str().unwrap();
         let current = &row["current"];
-        let actual = self.file(
+        let actual = self.file_inner(call,
             &root.join(source),
             current["length"].as_u64().unwrap() as usize,
             current["sha256"].as_str().unwrap(),
         )
         .unwrap_or_else(|| {
-            held_with_packet(self.metadata(),
+            held_with_packet(self.call_metadata(call),
                 &root.join(source),
                 current["length"].as_u64().unwrap() as usize,
                 current["sha256"].as_str().unwrap(),
             )
             .unwrap()
         });
-        let compiled = self.value_direct(
+        let compiled = self.value_direct_inner(call,
             source,
             current["sha256"].as_str().unwrap(),
             super::combined_side_compiled(source).unwrap(),
@@ -790,13 +796,14 @@ impl<F: FnMut() -> serde_json::Value, S: FnMut() -> serde_json::Value> Projectio
         );
         assert_eq!(
             actual,
-            read_view_with_packet(self.metadata(), current),
+            read_view_with_packet(self.call_metadata(call), current),
             "complete combined raw-carrier archive"
         );
         actual
     }
 
-    pub(crate) fn combined_side_file(&mut self, path: &Path, length: usize, expected: &str) -> Option<String> {
+    pub(crate) fn combined_side_file(&mut self, path: &Path, length: usize, expected: &str) -> Option<String> { let mut call=InvocationCall::default(); let result=self.combined_side_file_inner(&mut call, path, length, expected); self.finish_call(call); result }
+    fn combined_side_file_inner(&mut self, call: &mut InvocationCall, path: &Path, length: usize, expected: &str) -> Option<String> {
         let root = Path::new(env!("CARGO_MANIFEST_DIR"));
         let relative = path.strip_prefix(root).ok()?;
         if !relative
@@ -816,12 +823,13 @@ impl<F: FnMut() -> serde_json::Value, S: FnMut() -> serde_json::Value> Projectio
             row["views"].as_array().unwrap().iter().find(|old| {
                 old["length"].as_u64() == Some(length as u64) && old["sha256"] == expected
             })?;
-        self.combined_side_actual(row);
-        Some(read_view_with_packet(self.metadata(), previous))
+        self.combined_side_actual_inner(call, row);
+        Some(read_view_with_packet(self.call_metadata(call), previous))
     }
 
-    fn file_row_with_context(&mut self, source: &str, length: usize, expected: &str) -> Option<String> {
-        let authenticated = self.metadata();
+    fn file_row_with_context(&mut self, source: &str, length: usize, expected: &str) -> Option<String> { let mut call=InvocationCall::default(); let result=self.file_row_with_context_inner(&mut call, source, length, expected); self.finish_call(call); result }
+    fn file_row_with_context_inner(&mut self, call: &mut InvocationCall, source: &str, length: usize, expected: &str) -> Option<String> {
+        let authenticated = self.call_metadata(call);
         let row = authenticated["rows"].as_array().unwrap().iter().find(|r| r["source"] == source)?;
         let prior = row["views"].as_array().unwrap().iter()
             .find(|v| v["length"].as_u64() == Some(length as u64) && v["sha256"] == expected)?;
@@ -1467,3 +1475,22 @@ mod current_reader_tests {
         );
     }
 }
+
+impl<F: FnMut() -> serde_json::Value, S: FnMut() -> serde_json::Value> ProjectionInvocation<F, S> {
+    pub(crate) fn combined_side_expected_value(&mut self, source: &str, expected: &str, supplied: &str) -> String { let mut call=InvocationCall::default(); let result=self.combined_side_expected_value_inner(&mut call, source, expected, supplied); self.finish_call(call); result }
+    fn combined_side_expected_value_inner(&mut self, call: &mut InvocationCall, source: &str, expected: &str, supplied: &str) -> String {
+        let packet = super::combined_side_packet();
+        let Some(row) = packet["rows"].as_array().unwrap().iter().find(|row| row["source"] == source) else { return supplied.to_owned(); };
+        let Some(previous) = row["views"].as_array().unwrap().iter().find(|view| view["sha256"] == expected) else { return supplied.to_owned(); };
+        let old = read_view_with_packet(self.call_metadata(call), previous);
+        let actual = self.combined_side_actual_inner(call, row);
+        let (authenticated, stage) = self.call_direct_metadata(call, source);
+        if normalize_context(authenticated, stage, source, supplied).as_ref() == actual || supplied == old { old }
+        else { supplied.to_owned() }
+    }
+
+}
+#[derive(Default)]
+struct InvocationCall { metadata: bool, stage: bool }
+#[cfg(test)]
+pub(super) fn test_stage_metadata<F: FnMut()->Value,S: FnMut()->Value>(invocation:&mut ProjectionInvocation<F,S>,source:&str) {let mut call=InvocationCall::default();let _=invocation.call_direct_metadata(&mut call,source);invocation.finish_call(call);}

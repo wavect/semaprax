@@ -986,6 +986,10 @@ fn projection344_live_sources_with(
 }
 
 pub(crate) fn current344_input(source: &str, current: &str) -> String {
+    let mut invocation = super::main_e177_final_inputs::ProjectionInvocation::new();
+    current344_input_with(&mut invocation, source, current)
+}
+pub(crate) fn current344_input_with(invocation: &mut super::main_e177_final_inputs::ProjectionInvocation, source: &str, current: &str) -> String {
     let domain = match source {
         "src/cleanup_plan/replay/factored/canonical_shared.rs" => Domain::Canonical344,
         "expected_projection::root_join" => Domain::Projection344,
@@ -993,7 +997,7 @@ pub(crate) fn current344_input(source: &str, current: &str) -> String {
     };
     let stage;
     let current = if matches!(domain, Domain::Canonical344) {
-        stage = canonical870_stage(current);
+        stage = canonical870_stage_with(invocation, current);
         stage.as_str()
     } else if matches!(domain, Domain::Projection344) {
         stage = projection344_stage(current);
@@ -1047,7 +1051,12 @@ pub(crate) fn controls() {
 
 // Separate new raw endpoint; the immutable Canonical344 row remains staged51.
 // Old stage bytes are never an alternative live870 input.
+#[allow(dead_code, reason = "Complete standalone source-custody entry retains its own invocation")]
 fn canonical870_stage(current: &str) -> String {
+    let mut invocation = super::main_e177_final_inputs::ProjectionInvocation::new();
+    canonical870_stage_with(&mut invocation, current)
+}
+fn canonical870_stage_with(invocation: &mut super::main_e177_final_inputs::ProjectionInvocation, current: &str) -> String {
     // This endpoint admits only the complete live raw input. Reject foreign
     // bytes before the expensive historical acquisition; valid input still
     // passes every original physical, compiled, archive and stage assertion.
@@ -1059,7 +1068,7 @@ fn canonical870_stage(current: &str) -> String {
         )),
         "complete live canonical870 input"
     );
-    let outer = super::main67107_inputs::project("canonical870", current);
+    let outer = super::main67107_inputs::project_with(invocation, "canonical870", current);
     let current = outer.as_str();
     let data = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),

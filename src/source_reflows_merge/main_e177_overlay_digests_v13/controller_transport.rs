@@ -143,7 +143,7 @@ const V14_FRONT_SOURCES: [&str; 4] = [
     "src/source_reflows_merge/main_e177_overlay_fragments_v3.rs",
 ];
 
-fn v14_source_before(source: &str, supplied: &str) -> String {
+fn v14_source_before_before_v20(source: &str, supplied: &str) -> String {
     if source == OWNERS[2] {
         // Complete repaired physical source first; the immutable controller
         // routes below still consume their entire Git424e input view.
@@ -362,19 +362,7 @@ fn v14_source_before(source: &str, supplied: &str) -> String {
     let Some(index) = V14_FRONT_SOURCES.iter().position(|path| *path == source) else {
         return supplied.to_owned();
     };
-    let compiled = match index {
-        0 => include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/finite-source-overlay-v2-20261018/overlay_page.py"
-        )),
-        1 => include_str!("../main_e177_overlay_v2.rs"),
-        2 => include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/docs/evidence/finite-source-overlay-v2-20261018/overlay_page_codecs.py"
-        )),
-        3 => include_str!("../main_e177_overlay_fragments_v3.rs"),
-        _ => unreachable!(),
-    };
+    let compiled = v20_previous_compiled(index);
     assert_eq!(supplied, compiled, "complete physical V14 caller source");
     let packet: Value = serde_json::from_str(include_str!("controller_transport.json")).unwrap();
     let front = &packet["v14_source_fronts"];
@@ -394,7 +382,7 @@ fn v14_source_before(source: &str, supplied: &str) -> String {
     assert_eq!(supplied.len(), physical_length);
     assert_eq!(super::hash(supplied.as_bytes()), physical_sha);
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    assert_eq!(physical_reader::read(&root.join(source), physical_length,
+    assert_eq!(physical_reader::read(&root.join(v20_previous_archive(index)), physical_length,
         physical_sha, 9_753_094).unwrap(), compiled);
     let mut v16_input = supplied.to_owned();
     for edit in physical_row["edits"].as_array().unwrap().iter().rev() {
@@ -477,7 +465,7 @@ fn v14_source_before(source: &str, supplied: &str) -> String {
         super::hash(restored.as_bytes()),
         row["target"]["sha256"].as_str().unwrap()
     );
-    assert_eq!(physical_reader::read(&root.join(source), physical_length,
+    assert_eq!(physical_reader::read(&root.join(v20_previous_archive(index)), physical_length,
         physical_sha, 9_753_094).unwrap(), compiled);
     restored
 }
@@ -487,8 +475,8 @@ fn joint_compiled_source_before(supplied: &str) -> Option<String> {
     const SOURCE: &str = "src/source_reflows_merge/main_e177_overlay_compiled.rs";
     const CURRENT: &str = include_str!("../main_e177_overlay_compiled.rs");
     const PRIOR: &str = include_str!("../../../e/d89a458c6d798b37f185929e312aecdb3f0ddc1eff908127a8d3677050773679");
-    const SHA: &str = "6bc09b21092d9a6164939f6761b99140e0feb9ec474ff2fff1f9bd97b8e12e42";
-    if supplied.len() != 181920 || super::hash(supplied.as_bytes()) != SHA { return None; }
+    const SHA: &str = "783a685712dfb5be8792f0915156d61d7ab6b136765215565aa05f22eda5d37d";
+    if supplied.len() != 183704 || super::hash(supplied.as_bytes()) != SHA { return None; }
     assert_eq!(supplied, CURRENT, "whole current compiled source before named predecessor");
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let physical = physical_reader::read(&root.join(SOURCE), CURRENT.len(), SHA, 9_753_094).unwrap();
@@ -499,13 +487,10 @@ fn joint_compiled_source_before(supplied: &str) -> Option<String> {
         (102, 102, "", "\n"),
         (184, 184, "", "\n"),
         (664, 664, "", "\n"),
-        (123346, 123629, "        \"src/source_reflows/ci_inputs_current_epoch.rs\", \"src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_before_protocol/owner.rs\", \"src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_before_protocol/held_invocation_tests.rs\",\n", ""),
-        (131777, 134002, "         assert_eq!(parent, ROOT); assert_eq!(lookup, LOOKUP);         let registration_root = std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\"));         let registration_actual = super::main48_historical_reader::read(&registration_root.join(\"src/source_reflows_merge/main_e177_overlay_lookup.rs\"), 96525, \"28cda8999aae299ae9ab1af5f1529428d6cc77b97b801c069fbde0690e559581\", 2_097_152).unwrap();         assert_eq!(registration_actual, LOOKUP);         let registration_parent = super::main48_historical_reader::read(&registration_root.join(\"src/source_reflows_merge/main_e177_overlay_compiled.rs\"), ROOT.len(), &digest(ROOT), 2_097_152).unwrap(); assert_eq!(registration_parent, ROOT);         let mut registration_prior = lookup.to_owned();         for arm in [\"        \\\"src/source_reflows/ci_inputs_current_epoch.rs\\\" => Some(include_str!(\\\"../../src/source_reflows/ci_inputs_current_epoch.rs\\\")),\\n\", \"        \\\"src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_before_protocol/owner.rs\\\" => Some(include_str!(\\\"../../src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_before_protocol/owner.rs\\\")),\\n\", \"        \\\"src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_before_protocol/held_invocation_tests.rs\\\" => Some(include_str!(\\\"../../src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_before_protocol/held_invocation_tests.rs\\\")),\\n\"] { assert_eq!(registration_prior.matches(arm).count(), 1); registration_prior = registration_prior.replacen(arm, \"\", 1); }         const REGISTRATION_BEFORE: &str = include_str!(\"../../e/758584ac732d901b9467614e2b4c672b83f320429419888b15648ff1b2db124b\");         assert_eq!(registration_prior, REGISTRATION_BEFORE);         assert_eq!(super::main48_historical_reader::read(&registration_root.join(\"e/758584ac732d901b9467614e2b4c672b83f320429419888b15648ff1b2db124b\"), 95867, \"758584ac732d901b9467614e2b4c672b83f320429419888b15648ff1b2db124b\", 2_097_152).unwrap(), REGISTRATION_BEFORE);         let registration_result = (|| { const LOOKUP: &str = include_str!(\"../../e/758584ac732d901b9467614e2b4c672b83f320429419888b15648ff1b2db124b\"); let lookup = registration_prior.as_str(); \n", ""),
-        (134222, 134364, "e/758584ac732d901b9467614e2b4c672b83f320429419888b15648ff1b2db124b\"), 95867, \"758584ac732d901b9467614e2b4c672b83f320429419888b15648ff1b2db124b", "src/source_reflows_merge/main_e177_overlay_lookup.rs\"), 95495, \"bdbfde2197219ad237e2137853b8a54da87e20092e334c7831114a6841cbb934"),
-        (134518, 135231, " (95867, \"758584ac732d901b9467614e2b4c672b83f320429419888b15648ff1b2db124b\".to_owned())); let mut v19_lookup = lookup.to_owned(); for arm in [\"        \\\"src/source_reflows_merge/main_e177_overlay_compiled_successor_v19.rs\\\" => Some(include_str!(\\\"../../src/source_reflows_merge/main_e177_overlay_compiled_successor_v19.rs\\\")),\\n\",\"        \\\"src/source_reflows_merge/main_e177_overlay_compiled_successor_v19/tests.rs\\\" => Some(include_str!(\\\"../../src/source_reflows_merge/main_e177_overlay_compiled_successor_v19/tests.rs\\\")),\\n\"] { assert_eq!(v19_lookup.matches(arm).count(), 1, \"exact V19 compiled lookup arm\"); v19_lookup = v19_lookup.replacen(arm, \"\", 1); } assert_eq!((v19_lookup.len(), digest(&v19_lookup)),", ""),
-        (135321, 135755, "assert_eq!(v19_lookup, include_str!(\"../../e/bdbfde2197219ad237e2137853b8a54da87e20092e334c7831114a6841cbb934\"), \"ENTIRE named pre-V19 compiled lookup\"); assert_eq!(super::main48_historical_reader::read(&joint_root.join(\"e/bdbfde2197219ad237e2137853b8a54da87e20092e334c7831114a6841cbb934\"), 95495, \"bdbfde2197219ad237e2137853b8a54da87e20092e334c7831114a6841cbb934\", 2_097_152).unwrap(), v19_lookup); let lookup = v19_lookup.as_str(); ", ""),
-        (166795, 166937, "e/758584ac732d901b9467614e2b4c672b83f320429419888b15648ff1b2db124b\"), 95867, \"758584ac732d901b9467614e2b4c672b83f320429419888b15648ff1b2db124b", "src/source_reflows_merge/main_e177_overlay_lookup.rs\"), 95495, \"bdbfde2197219ad237e2137853b8a54da87e20092e334c7831114a6841cbb934"),
-        (167020, 167530, "         })();         assert_eq!(super::main48_historical_reader::read(&registration_root.join(\"src/source_reflows_merge/main_e177_overlay_lookup.rs\"), 96525, \"28cda8999aae299ae9ab1af5f1529428d6cc77b97b801c069fbde0690e559581\", 2_097_152).unwrap(), registration_actual);         assert_eq!(super::main48_historical_reader::read(&registration_root.join(\"src/source_reflows_merge/main_e177_overlay_compiled.rs\"), ROOT.len(), &digest(ROOT), 2_097_152).unwrap(), registration_parent);         registration_result \n", "")
+        (1009, 1009, "", "\n"),
+        (131493, 135338, "         assert_eq!(parent,ROOT);assert_eq!(lookup,LOOKUP);         let next_root=std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\"));         let next_actual=super::main48_historical_reader::read(&next_root.join(\"src/source_reflows_merge/main_e177_overlay_lookup.rs\"), 96793,\"65bdc9a6c3a63378911550dd87d5ec8a7bc35576812dcc4eecd572f645a4d9bf\",2_097_152).unwrap();assert_eq!(next_actual,LOOKUP);         let next_parent=super::main48_historical_reader::read(&next_root.join(\"src/source_reflows_merge/main_e177_overlay_compiled.rs\"),ROOT.len(),&digest(ROOT),2_097_152).unwrap();assert_eq!(next_parent,ROOT);         let mut next_before=lookup.to_owned();for arm in [\"        \\\"src/cleanup_plan/replay/trailing_active.rs\\\" => Some(include_str!(\\\"../../src/cleanup_plan/replay/trailing_active.rs\\\")),\\n\",\"        \\\"src/cleanup_plan/replay/trailing_active/tests.rs\\\" => Some(include_str!(\\\"../../src/cleanup_plan/replay/trailing_active/tests.rs\\\")),\\n\"] {assert_eq!(next_before.matches(arm).count(),1);next_before=next_before.replacen(arm,\"\",1);}         const NEXT_BEFORE:&str=include_str!(\"../../e/28cda8999aae299ae9ab1af5f1529428d6cc77b97b801c069fbde0690e559581\");assert_eq!(next_before,NEXT_BEFORE);assert_eq!(super::main48_historical_reader::read(&next_root.join(\"e/28cda8999aae299ae9ab1af5f1529428d6cc77b97b801c069fbde0690e559581\"),96525,\"28cda8999aae299ae9ab1af5f1529428d6cc77b97b801c069fbde0690e559581\",2_097_152).unwrap(),NEXT_BEFORE);         let next_result=(|| {const LOOKUP:&str=include_str!(\"../../e/28cda8999aae299ae9ab1af5f1529428d6cc77b97b801c069fbde0690e559581\");let lookup=next_before.as_str();\n         assert_eq!(parent, ROOT); assert_eq!(lookup, LOOKUP);         let registration_root = std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\"));         let registration_actual = super::main48_historical_reader::read(&registration_root.join(\"e/28cda8999aae299ae9ab1af5f1529428d6cc77b97b801c069fbde0690e559581\"), 96525, \"28cda8999aae299ae9ab1af5f1529428d6cc77b97b801c069fbde0690e559581\", 2_097_152).unwrap();         assert_eq!(registration_actual, LOOKUP);         let registration_parent = super::main48_historical_reader::read(&registration_root.join(\"src/source_reflows_merge/main_e177_overlay_compiled.rs\"), ROOT.len(), &digest(ROOT), 2_097_152).unwrap(); assert_eq!(registration_parent, ROOT);         let mut registration_prior = lookup.to_owned();         for arm in [\"        \\\"src/source_reflows/ci_inputs_current_epoch.rs\\\" => Some(include_str!(\\\"../../src/source_reflows/ci_inputs_current_epoch.rs\\\")),\\n\", \"        \\\"src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_before_protocol/owner.rs\\\" => Some(include_str!(\\\"../../src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_before_protocol/owner.rs\\\")),\\n\", \"        \\\"src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_before_protocol/held_invocation_tests.rs\\\" => Some(include_str!(\\\"../../src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_before_protocol/held_invocation_tests.rs\\\")),\\n\"] { assert_eq!(registration_prior.matches(arm).count(), 1); registration_prior = registration_prior.replacen(arm, \"\", 1); }         const REGISTRATION_BEFORE: &str = include_str!(\"../../e/758584ac732d901b9467614e2b4c672b83f320429419888b15648ff1b2db124b\");         assert_eq!(registration_prior, REGISTRATION_BEFORE);         assert_eq!(super::main48_historical_reader::read(&registration_root.join(\"e/758584ac732d901b9467614e2b4c672b83f320429419888b15648ff1b2db124b\"), 95867, \"758584ac732d901b9467614e2b4c672b83f320429419888b15648ff1b2db124b\", 2_097_152).unwrap(), REGISTRATION_BEFORE);         let registration_result = (|| { const LOOKUP: &str = include_str!(\"../../e/758584ac732d901b9467614e2b4c672b83f320429419888b15648ff1b2db124b\"); let lookup = registration_prior.as_str(); \n", ""),
+        (135558, 137088, "e/758584ac732d901b9467614e2b4c672b83f320429419888b15648ff1b2db124b\"), 95867, \"758584ac732d901b9467614e2b4c672b83f320429419888b15648ff1b2db124b\", 2_097_152).expect(\"complete actual current joint compiled lookup\"); assert_eq!(joint_actual_lookup, LOOKUP); assert_eq!((lookup.len(), digest(lookup)), (95867, \"758584ac732d901b9467614e2b4c672b83f320429419888b15648ff1b2db124b\".to_owned())); let mut v19_lookup = lookup.to_owned(); for arm in [\"        \\\"src/source_reflows_merge/main_e177_overlay_compiled_successor_v19.rs\\\" => Some(include_str!(\\\"../../src/source_reflows_merge/main_e177_overlay_compiled_successor_v19.rs\\\")),\\n\",\"        \\\"src/source_reflows_merge/main_e177_overlay_compiled_successor_v19/tests.rs\\\" => Some(include_str!(\\\"../../src/source_reflows_merge/main_e177_overlay_compiled_successor_v19/tests.rs\\\")),\\n\"] { assert_eq!(v19_lookup.matches(arm).count(), 1, \"exact V19 compiled lookup arm\"); v19_lookup = v19_lookup.replacen(arm, \"\", 1); } assert_eq!((v19_lookup.len(), digest(&v19_lookup)), (95495, \"bdbfde2197219ad237e2137853b8a54da87e20092e334c7831114a6841cbb934\".to_owned())); assert_eq!(v19_lookup, include_str!(\"../../e/bdbfde2197219ad237e2137853b8a54da87e20092e334c7831114a6841cbb934\"), \"ENTIRE named pre-V19 compiled lookup\"); assert_eq!(super::main48_historical_reader::read(&joint_root.join(\"e/bdbfde2197219ad237e2137853b8a54da87e20092e334c7831114a6841cbb934\"), 95495, \"bdbfde2197219ad237e2137853b8a54da87e20092e334c7831114a6841cbb934\", 2_097_152).unwrap(), v19_lookup); let lookup = v19_lookup.as_str(", "src/source_reflows_merge/main_e177_overlay_lookup.rs\"), 95495, \"bdbfde2197219ad237e2137853b8a54da87e20092e334c7831114a6841cbb934\", 2_097_152).expect(\"complete actual current joint compiled lookup\"); assert_eq!(joint_actual_lookup, LOOKUP); assert_eq!((lookup.len(), digest(lookup)), (95495, \"bdbfde2197219ad237e2137853b8a54da87e20092e334c7831114a6841cbb934\".to_owned())"),
+        (168131, 169314, "e/758584ac732d901b9467614e2b4c672b83f320429419888b15648ff1b2db124b\"), 95867, \"758584ac732d901b9467614e2b4c672b83f320429419888b15648ff1b2db124b\", 2_097_152).unwrap(), joint_actual_lookup); restored.replacen(BRIDGE, \"\", 1)\n             })();         assert_eq!(super::main48_historical_reader::read(&registration_root.join(\"e/28cda8999aae299ae9ab1af5f1529428d6cc77b97b801c069fbde0690e559581\"), 96525, \"28cda8999aae299ae9ab1af5f1529428d6cc77b97b801c069fbde0690e559581\", 2_097_152).unwrap(), registration_actual);         assert_eq!(super::main48_historical_reader::read(&registration_root.join(\"src/source_reflows_merge/main_e177_overlay_compiled.rs\"), ROOT.len(), &digest(ROOT), 2_097_152).unwrap(), registration_parent);         registration_result \n         })();assert_eq!(super::main48_historical_reader::read(&next_root.join(\"src/source_reflows_merge/main_e177_overlay_lookup.rs\"),96793,\"65bdc9a6c3a63378911550dd87d5ec8a7bc35576812dcc4eecd572f645a4d9bf\",2_097_152).unwrap(),next_actual);assert_eq!(super::main48_historical_reader::read(&next_root.join(\"src/source_reflows_merge/main_e177_overlay_compiled.rs\"),ROOT.len(),&digest(ROOT),2_097_152).unwrap(),next_parent);next_result\n", "src/source_reflows_merge/main_e177_overlay_lookup.rs\"), 95495, \"bdbfde2197219ad237e2137853b8a54da87e20092e334c7831114a6841cbb934\", 2_097_152).unwrap(), joint_actual_lookup); restored.replacen(BRIDGE, \"\", 1)\n    ")
     ];
     for &(start, end, after, before) in edits.iter().rev() {
         assert!(start <= end && end <= prior.len());
@@ -552,4 +537,114 @@ fn joint_compiled_source_before_current1042(supplied: &str) -> Option<String> {
     assert_eq!(physical_reader::read(&root.join("e/777709dffedae86cb1ee7750967b21640d5be4296c92474f99861c34615287e3"), 154097, "777709dffedae86cb1ee7750967b21640d5be4296c92474f99861c34615287e3", 9_753_094).unwrap(), BEFORE);
     assert_eq!(physical_reader::read(&root.join(SOURCE), CURRENT.len(), SHA, 9_753_094).unwrap(), physical, "late whole current compiled source");
     Some(prior)
+}
+
+// Closed current ingress; old V16 and V14 packets stay byte-exact below it.
+fn v20_previous_archive(index:usize)->&'static str { match index {
+    0 => "e/db75ca979432426a1c536505a3f1276cc983db7d37070be39bd3a6367471acd7",
+    1 => "e/cb545f91a3c5354918f1695a3225b6d1ee00fd9f28bfb5ed54930b27bf38179e",
+    2 => "e/f03a36e0ca253e8d181491526aae3e29d57093b3f5225a31b1ebe65aab8d0bb6",
+    3 => "e/f96fdfc3f5fd5a2a6afac6b29170ba79f6100feb77459b415390f67c2841f339",
+    _=>unreachable!(),
+}}
+fn v20_previous_compiled(index:usize)->&'static str { match index {
+    0 => include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/e/db75ca979432426a1c536505a3f1276cc983db7d37070be39bd3a6367471acd7")),
+    1 => include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/e/cb545f91a3c5354918f1695a3225b6d1ee00fd9f28bfb5ed54930b27bf38179e")),
+    2 => include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/e/f03a36e0ca253e8d181491526aae3e29d57093b3f5225a31b1ebe65aab8d0bb6")),
+    3 => include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/e/f96fdfc3f5fd5a2a6afac6b29170ba79f6100feb77459b415390f67c2841f339")),
+    _=>unreachable!(),
+}}
+fn v20_current_compiled(index:usize)->&'static str { match index {
+    0 => include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/docs/evidence/finite-source-overlay-v2-20261018/overlay_page.py")),
+    1 => include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/src/source_reflows_merge/main_e177_overlay_v2.rs")),
+    2 => include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/docs/evidence/finite-source-overlay-v2-20261018/overlay_page_codecs.py")),
+    3 => include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/src/source_reflows_merge/main_e177_overlay_fragments_v3.rs")),
+    _=>unreachable!(),
+}}
+fn v20_ingress_before_using(index:usize,supplied:&str,record:&Value,read:&impl Fn(&std::path::Path,usize,&str)->String)->String {
+    let keys=|value:&Value,names:&[&str]|value.as_object().is_some_and(|o|o.len()==names.len()&&names.iter().all(|name|o.contains_key(*name)));
+    assert!(keys(record,&["source","current","previous","edits"]));assert_eq!(record["source"],V14_FRONT_SOURCES[index]);
+    let compiled=v20_current_compiled(index);assert_eq!(compiled,supplied,"whole actual current source before history");
+    let prior=v20_previous_compiled(index);let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let length=compiled.len();let sha=super::hash(compiled.as_bytes());let archive=format!("e/{sha}");
+    let previous_sha=super::hash(prior.as_bytes());
+    for (descriptor,n,h,path) in [(&record["current"],length,sha.as_str(),archive.as_str()),(&record["previous"],prior.len(),previous_sha.as_str(),v20_previous_archive(index))] {
+        assert!(keys(descriptor,&["length","sha256"]));assert!(n<=9_753_094);
+        assert_eq!(descriptor["length"].as_u64(),Some(n as u64));assert_eq!(descriptor["sha256"],h);assert_eq!(path,format!("e/{h}"));
+    }
+    let acquire=||{
+        assert_eq!(read(&root.join(V14_FRONT_SOURCES[index]),length,&sha),compiled);
+        assert_eq!(read(&root.join(&archive),length,&sha),compiled);
+        assert_eq!(read(&root.join(v20_previous_archive(index)),prior.len(),&previous_sha),prior);
+    };
+    acquire();let mut restored=supplied.to_owned();
+    for edit in record["edits"].as_array().unwrap().iter().rev(){
+        let (start,end,after,before)=if let Some(parts)=edit.as_array(){
+            assert_eq!(parts.len(),4,"closed compact ingress edit");(&parts[0],&parts[1],&parts[2],&parts[3])
+        }else{assert!(keys(edit,&["start","end","after","before"]));(&edit["start"],&edit["end"],&edit["after"],&edit["before"])};
+        let start=usize::try_from(start.as_u64().unwrap()).unwrap();let end=usize::try_from(end.as_u64().unwrap()).unwrap();let before=before.as_str().unwrap();
+        assert!(start<=end&&end<=restored.len()&&restored.is_char_boundary(start)&&restored.is_char_boundary(end));assert_eq!(&restored[start..end],after.as_str().unwrap());
+        assert!(restored.len().checked_sub(end-start).unwrap().checked_add(before.len()).unwrap()<=9_753_094);restored.replace_range(start..end,before);
+    }
+    assert_eq!(restored,prior,"ENTIRE pre-V20 physical stage");acquire();restored
+}
+fn v20_ingress_before(index:usize,supplied:&str,record:&Value)->String {
+    v20_ingress_before_using(index,supplied,record,&|p,n,h|physical_reader::read(p,n,h,9_753_094).unwrap())
+}
+fn v14_source_before_using(source:&str,supplied:&str,read:&impl Fn(&std::path::Path,usize,&str)->String)->String {
+    let Some(index)=V14_FRONT_SOURCES.iter().position(|s|*s==source)else{return v14_source_before_before_v20(source,supplied);};
+    let packet:Value=serde_json::from_str(include_str!("controller_transport.json")).unwrap();let ingress=&packet["v20_shared_ingress"];
+    assert!(ingress.as_object().is_some_and(|o|o.len()==4));assert_eq!(ingress["schema"],"semaprax.v20-shared-source-ingress.v1");assert_eq!(ingress["source_kind"],"ACTUAL_CURRENT_TO_ENTIRE_PRE_V20_PHYSICAL_STAGE");assert_eq!(ingress["sources"],serde_json::json!(V14_FRONT_SOURCES));
+    let records=ingress["records"].as_array().unwrap();assert_eq!(records.len(),V14_FRONT_SOURCES.len());
+    assert_eq!(records.iter().map(|r|r["source"].as_str().unwrap()).collect::<Vec<_>>(),V14_FRONT_SOURCES);
+    let before=v20_ingress_before_using(index,supplied,&records[index],read);let result=v14_source_before_before_v20(source,&before);
+    assert_eq!(v20_ingress_before_using(index,supplied,&records[index],read),before);result
+}
+fn v14_source_before(source:&str,supplied:&str)->String {
+    v14_source_before_using(source,supplied,&|p,n,h|physical_reader::read(p,n,h,9_753_094).unwrap())
+}
+#[cfg(test)]
+mod v20_ingress_tests {
+    use super::*;
+    #[test]
+    fn current_three_channels_restore_whole_pre_v20_and_all_old_targets_refuse_drift() {
+        let packet:Value=serde_json::from_str(include_str!("controller_transport.json")).unwrap();
+        for index in 0..V14_FRONT_SOURCES.len(){
+            let record=&packet["v20_shared_ingress"]["records"][index];let current=v20_current_compiled(index);let prior=v20_previous_compiled(index);
+            assert_eq!(v20_ingress_before(index,current,record),prior);
+            assert_eq!(v14_source_before(V14_FRONT_SOURCES[index],current),v14_source_before_before_v20(V14_FRONT_SOURCES[index],prior));
+            let mut drift=current.to_owned();drift.push(' ');assert!(std::panic::catch_unwind(||v20_ingress_before(index,&drift,record)).is_err());
+            for field in ["current","previous"]{let mut bad=record.clone();bad[field]["sha256"]="0".repeat(64).into();assert!(std::panic::catch_unwind(||v20_ingress_before(index,current,&bad)).is_err());}
+            let mut bad=record.clone();bad["extra"]=true.into();assert!(std::panic::catch_unwind(||v20_ingress_before(index,current,&bad)).is_err());
+            let first=&record["edits"][0];let tuple=if let Some(parts)=first.as_array(){parts.clone()}else{vec![first["start"].clone(),first["end"].clone(),first["after"].clone(),first["before"].clone()]};
+            let mut compact=record.clone();compact["edits"][0]=serde_json::json!(tuple);assert_eq!(v20_ingress_before(index,current,&compact),prior);
+            let mut object=record.clone();object["edits"][0]=serde_json::json!({"start":tuple[0],"end":tuple[1],"after":tuple[2],"before":tuple[3]});assert_eq!(v20_ingress_before(index,current,&object),prior);
+            for edit in [serde_json::json!([]),serde_json::json!([0,0,"","",false]),serde_json::json!([true,0,"",""]),serde_json::json!([-1,0,"",""]),serde_json::json!([0.5,0,"",""]),serde_json::json!([0,0,false,""]),serde_json::json!([0,0,"",false]),serde_json::json!({"start":0,"end":0,"after":"","before":"","extra":true})]{
+                let mut bad=record.clone();bad["edits"][0]=edit;assert!(std::panic::catch_unwind(||v20_ingress_before(index,current,&bad)).is_err());
+            }
+            // Exercise each actual channel through the unchanged ordinary held
+            // reader, with corrupt/truncated fixture bytes at early AND late
+            // acquisition. The immutable repository images are never edited.
+            let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+            let current_sha=super::super::hash(current.as_bytes());
+            let channels=[(root.join(V14_FRONT_SOURCES[index]),current),(root.join(format!("e/{current_sha}")),current),(root.join(v20_previous_archive(index)),prior)];
+            for (channel,bytes) in channels {for frontier in 0..4 {for truncated in [false,true] {
+                static NEXT:std::sync::atomic::AtomicU64=std::sync::atomic::AtomicU64::new(0);
+                let sequence=NEXT.fetch_add(1,std::sync::atomic::Ordering::Relaxed);
+                let path=std::env::temp_dir().join(format!("semaprax-v20-source-ingress-{}-{sequence}",std::process::id()));
+                let mut bad=bytes.as_bytes().to_vec();if truncated{bad.pop();}else{bad[0]^=1;}
+                let mut file=std::fs::OpenOptions::new().write(true).create_new(true).open(&path).unwrap();
+                use std::io::Write;file.write_all(&bad).unwrap();drop(file);
+                struct Remove(std::path::PathBuf);impl Drop for Remove{fn drop(&mut self){std::fs::remove_file(&self.0).unwrap();}}
+                let remove=Remove(path);let encounters=std::cell::Cell::new(0usize);
+                let read=|p:&std::path::Path,n:usize,h:&str|{
+                    let selected=if p==channel.as_path() {let count=encounters.get();encounters.set(count+1);count==frontier}else{false};
+                    physical_reader::read(if selected{remove.0.as_path()}else{p},n,h,9_753_094).unwrap()
+                };
+                assert!(std::panic::catch_unwind(std::panic::AssertUnwindSafe(||v14_source_before_using(V14_FRONT_SOURCES[index],current,&read))).is_err());
+                assert_eq!(encounters.get(),frontier+1,"selected freshness frontier reached");
+            }}}
+
+        }
+    }
 }

@@ -469,6 +469,8 @@ fn held_4a6eb(path: &Path, length: usize, expected: &str) -> Result<String, &'st
     if length > SOURCE_CAP {
         return Err("bound");
     }
+    #[cfg(test)]
+    if let Some(result)=historical_before_data::invocation_probe::read(path,length,expected) { return result; }
     let before = std::fs::symlink_metadata(path).map_err(|_| "missing")?;
     if before.file_type().is_symlink() || !before.is_file() {
         return Err("nonregular");

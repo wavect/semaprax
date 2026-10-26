@@ -1004,3 +1004,22 @@ fn run(input: borrow Slice<u8>) -> bool
         assert!(error.message.contains("cannot reach byte_range"));
     }
 }
+
+// Complete project-owned id dispatch reached through DeclarationId::as_str.
+// Only a const-evaluated maximum is formed; no runtime selector or capability.
+#[cfg(test)]
+pub(crate) const ID_CALL_CONTROLS: usize = {
+    use std::mem::size_of;
+    let environment_guard = size_of::<ResolvedHostCommandOperation>() // env binding
+        + crate::environment_ops::CLASSIFY_CALL_CONTROLS;
+    let environment = crate::environment_ops::ID_CALL_CONTROLS;
+    let filesystem_guard = size_of::<ResolvedHostCommandOperation>() // filesystem binding
+        + crate::filesystem_ops::CLASSIFY_CALL_CONTROLS;
+    let filesystem = crate::filesystem_ops::ID_CALL_CONTROLS;
+    let network = size_of::<ResolvedHostCommandOperation>() // final network binding
+        + crate::network_io_ops::ID_CALL_CONTROLS;
+    let remaining = filesystem_guard + if filesystem > network { filesystem } else { network };
+    4 * size_of::<ResolvedHostCommandOperation>() // actual/formal and match sum
+        + 2 * size_of::<&'static str>() // outer return/receiving arm
+        + environment_guard + if environment > remaining { environment } else { remaining }
+};

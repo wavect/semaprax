@@ -531,8 +531,8 @@ pub(super) fn prior<'a>(source: &str, supplied: &'a str) -> Cow<'a, str> {
     )
     .unwrap();
     assert_eq!(fresh, current, "complete fresh physical CI history input");
-    let source903 = constructor903_before(source, current);
-    let entered = historical_entry(source, row["current_sha256"].as_str().unwrap(), source903.as_deref().unwrap_or(current));
+    let allocation943 = current_source_epoch::allocation_input(source, current); let source903 = constructor903_before(source, allocation943.as_ref());
+    let entered = historical_entry(source, row["current_sha256"].as_str().unwrap(), source903.as_deref().unwrap_or(allocation943.as_ref()));
     assert_eq!(entered.len() as u64, row["current_length"]);
     assert_eq!(digest(&entered), row["current_sha256"]);
     let mut before = entered.into_owned();
@@ -544,7 +544,7 @@ pub(super) fn prior<'a>(source: &str, supplied: &'a str) -> Cow<'a, str> {
     }
     assert_eq!(before.len() as u64, row["before_length"]);
     assert_eq!(digest(&before), row["before_sha256"]);
-    Cow::Owned(before)
+    let _ = current_source_epoch::allocation_input(source, current); Cow::Owned(before)
 }
 pub(super) fn file_expected(
     path: &std::path::Path,

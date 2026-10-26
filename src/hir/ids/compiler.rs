@@ -142,3 +142,34 @@ impl CompilerDeclaration {
 // closed enum replaces that receiver; it introduces no larger call carrier.
 const _: () = assert!(std::mem::size_of::<CompilerDeclaration>() <= std::mem::size_of::<&str>());
 const _: () = assert!(std::mem::align_of::<CompilerDeclaration>() <= std::mem::align_of::<&str>());
+
+// Complete closed text dispatch for the additional warm preparation calls.
+// Payload and helper types remain owned here or by their original operation
+// module. The numeric packet cannot construct an identity or admit an operation.
+#[cfg(test)]
+impl CompilerDeclaration {
+    pub(crate) const TEXT_CALL_CONTROLS: usize = {
+        use std::mem::size_of;
+        let branches = [
+            size_of::<crate::vec_ops::VecOp>() + crate::vec_ops::VecOp::ID_CALL_CONTROLS,
+            size_of::<crate::box_ops::BoxOp>() + crate::box_ops::BoxOp::ID_CALL_CONTROLS,
+            size_of::<crate::stdin_stream_ops::PureOp>() + crate::stdin_stream_ops::PureOp::ID_CALL_CONTROLS,
+            size_of::<crate::str_ops::StrOp>() + crate::str_ops::StrOp::ID_CALL_CONTROLS,
+            size_of::<crate::byte_ops::ByteOp>() + crate::byte_ops::ByteOp::ID_CALL_CONTROLS,
+            size_of::<crate::host_io_ops::HostIoOp>() + crate::host_io_ops::HostIoOp::ID_CALL_CONTROLS,
+            size_of::<crate::map_ops::MapOp>() + crate::map_ops::MapOp::ID_CALL_CONTROLS,
+            size_of::<crate::list_ops::ListOp>() + crate::list_ops::ListOp::ID_CALL_CONTROLS,
+            size_of::<crate::iterator_ops::IteratorOp>() + crate::iterator_ops::IteratorOp::ID_CALL_CONTROLS,
+            size_of::<ResolvedHostCommandOperation>() + crate::command_io_ops::ID_CALL_CONTROLS,
+        ];
+        let mut maximum = 0;
+        let mut index = 0;
+        while index < branches.len() {
+            if branches[index] > maximum { maximum = branches[index]; }
+            index += 1;
+        }
+        4 * size_of::<Self>() // copied text(self) actual/formal and match sum
+            + 2 * size_of::<&'static str>() // text return/as_str arm receiver
+            + maximum // mutually exclusive payload binding and project helper
+    };
+}

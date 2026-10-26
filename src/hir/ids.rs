@@ -689,3 +689,19 @@ mod declaration_tag;
 
 #[cfg(test)]
 mod lowering_identity_tests;
+
+// ABI packet INTERNAL to the additional warm as_str call. Its outer &Self
+// actual/formal and &str return/caller receiver stay in the caller's bank.
+// DeclarationText remains private; no identity, backing or authority is exposed.
+#[cfg(test)]
+impl DeclarationId {
+    pub(crate) const AS_STR_INTERNAL_CONTROLS: usize = {
+        use std::mem::size_of;
+        let shared = 3 * size_of::<&Arc<str>>() // pattern binding, Deref actual/formal
+            + 2 * size_of::<&str>(); // Deref return/match-arm receiver
+        let compiler = size_of::<&CompilerDeclaration>() // pattern binding
+            + CompilerDeclaration::TEXT_CALL_CONTROLS; // Copy/text(self), dispatch and return
+        2 * size_of::<&DeclarationText>() // &self.0 and match receiving reference
+            + if shared > compiler { shared } else { compiler }
+    };
+}

@@ -398,3 +398,136 @@ fn packet_previous_remote_d88() -> serde_json::Value {
     }
     packet
 }
+
+// Test-only bounded-reader capture/routing. The complete original400line
+// acquisition producer above remains byte-for-byte and is executed by tests.
+pub(super) mod invocation_probe {
+    use super::super::{held_4a6eb,SOURCE_CAP};
+    use std::{cell::RefCell,path::{Path,PathBuf},rc::Rc};
+    #[derive(Clone,Debug,PartialEq,Eq)]
+    pub(crate) struct Pin {pub path:String,pub length:usize,pub sha:String}
+    #[derive(Clone,Default,Debug)]
+    pub(crate) struct Stats {pub reads:Vec<Pin>,pub calls:usize,pub stages:usize,pub bytes:usize}
+    #[derive(Clone)]
+    struct State {root:Option<PathBuf>,allowed:Vec<Pin>,stats:Rc<RefCell<Stats>>,late:Rc<RefCell<Option<String>>>}
+    thread_local! {static ACTIVE:RefCell<Option<State>>=const{RefCell::new(None)};}
+    pub(crate) struct Scope {prior:Option<State>,state:State}
+    impl Scope {
+        fn install(root:Option<PathBuf>,allowed:Vec<Pin>)->Self {
+            let state=State {root,allowed,stats:Default::default(),late:Default::default()};let prior=ACTIVE.with(|slot|slot.replace(Some(state.clone())));Self {prior,state}
+        }
+        pub(crate) fn capture()->Self {Self::install(None,Vec::new())}
+        pub(crate) fn route(root:PathBuf,allowed:Vec<Pin>)->Self {assert!(root.is_absolute());Self::install(Some(root),allowed)}
+        pub(crate) fn stats(&self)->Stats {self.state.stats.borrow().clone()}
+        pub(crate) fn reset(&self) {*self.state.stats.borrow_mut()=Stats::default();}
+        pub(crate) fn late(&self,path:&str) {assert!(self.state.root.is_some()&&self.state.allowed.iter().any(|p|p.path==path));*self.state.late.borrow_mut()=Some(path.to_owned());}
+    }
+    impl Drop for Scope {fn drop(&mut self){ACTIVE.with(|slot|slot.replace(self.prior.take()));}}
+    pub(crate) fn read(path:&Path,length:usize,sha:&str)->Option<Result<String,&'static str>> {
+        if length>SOURCE_CAP {return None;}
+        let root=Path::new(env!("CARGO_MANIFEST_DIR"));let relative=path.strip_prefix(root).ok()?;
+        if !relative.components().all(|p|matches!(p,std::path::Component::Normal(_))) {return None;}
+        let name=relative.to_str()?;
+        let mapped=ACTIVE.with(|slot| {
+            let slot=slot.borrow();let state=slot.as_ref()?;let mut stats=state.stats.borrow_mut();stats.bytes+=length;stats.reads.push(Pin {path:name.to_owned(),length,sha:sha.to_owned()});
+            // A known path still receives the ORIGINAL requested length/hash,
+            // so hostile pin requests fail in the unchanged ordinary reader.
+            if !state.allowed.iter().any(|p|p.path==name) {return None;}
+            state.root.as_ref().map(|root|root.join(relative))
+        });
+        // Drop all TLS/RefCell loans before recursion. A fixture path lies
+        // outside the real root and therefore executes the full old reader.
+        mapped.map(|path|held_4a6eb(&path,length,sha))
+    }
+    pub(crate) fn note(stage:bool) {ACTIVE.with(|slot|{if let Some(state)=slot.borrow().as_ref(){let mut stats=state.stats.borrow_mut();if stage {stats.stages+=1;}else{stats.calls+=1;}}});}
+    pub(crate) fn after_body() {
+        let target=ACTIVE.with(|slot| {let slot=slot.borrow();let state=slot.as_ref()?;let path=state.late.borrow_mut().take()?;Some(state.root.as_ref()?.join(path))});
+        if let Some(path)=target {let mut bytes=std::fs::read(&path).unwrap();bytes[0]^=1;std::fs::write(path,bytes).unwrap();}
+    }
+}
+
+#[cfg(test)]
+mod invocation_acquisition_tests {
+    use super::{packet_before_overlay as original_before,invocation_probe::{Pin,Scope}};
+    use super::super::{overlay_v2,packet_lookup::ProjectionInvocation,digest,held_4a6eb};
+    use std::{cell::Cell,path::{Path,PathBuf}};
+    const SOURCE:&str="src/workspace_graph/expected_projection/borrowed_imports.rs";
+    const POLICY:&str="docs/evidence/finite-source-overlay-v2-20261018/policy.json";
+    const PAGE:&str="docs/evidence/finite-source-overlay-v2-20261018/page.json";
+    fn original_packet()->serde_json::Value {overlay_v2::compose(original_before())}
+    struct Fixture {root:PathBuf,pins:Vec<Pin>,packet:serde_json::Value,original_reads:Vec<Pin>}
+    impl Fixture {
+        fn new()->Self {
+            static NEXT:std::sync::atomic::AtomicUsize=std::sync::atomic::AtomicUsize::new(0);
+            // This is the WHOLE independently retained original producer, with
+            // every loop, parser assertion, inverse and unknown field intact.
+            let capture=Scope::capture();let before=original_before();let historical=capture.stats().reads;drop(capture);
+            assert_eq!(before,super::super::packet_before_overlay());
+            assert_eq!(historical.len(),overlay_v2::INVOCATION_PACKET_READS.len());
+            for (actual,&(path,length,sha)) in historical.iter().zip(overlay_v2::INVOCATION_PACKET_READS) {assert_eq!((actual.path.as_str(),actual.length,actual.sha.as_str()),(path,length,sha));}
+            let capture=Scope::capture();let packet=original_packet();let original_reads=capture.stats().reads;drop(capture);
+            let capture=Scope::capture();let _=super::super::clippy_stage::rows();let stage=capture.stats().reads;drop(capture);
+            let mut pins=original_reads.clone();pins.extend(stage);
+            for (path,raw) in overlay_v2::invocation_controllers() {pins.push(Pin {path:path.to_owned(),length:raw.len(),sha:digest(raw.as_bytes())});}
+            let root=std::env::temp_dir().join(format!("semaprax-full-acquisition-{}-{}",std::process::id(),NEXT.fetch_add(1,std::sync::atomic::Ordering::Relaxed)));std::fs::create_dir(&root).unwrap();
+            let actual=Path::new(env!("CARGO_MANIFEST_DIR"));let mut unique=std::collections::BTreeMap::new();
+            for pin in &pins {if let Some(old)=unique.insert(pin.path.clone(),(pin.length,pin.sha.clone())) {assert_eq!(old,(pin.length,pin.sha.clone()));}let raw=held_4a6eb(&actual.join(&pin.path),pin.length,&pin.sha).unwrap();let target=root.join(&pin.path);std::fs::create_dir_all(target.parent().unwrap()).unwrap();std::fs::write(target,raw).unwrap();}
+            Self {root,pins,packet,original_reads}
+        }
+        fn route(&self)->Scope {Scope::route(self.root.clone(),self.pins.clone())}
+        fn flip(&self,path:&str) {assert!(self.pins.iter().any(|p|p.path==path));let target=self.root.join(path);let mut bytes=std::fs::read(&target).unwrap();bytes[0]^=1;std::fs::write(target,bytes).unwrap();}
+    }
+    impl Drop for Fixture {fn drop(&mut self){let _=std::fs::remove_dir_all(&self.root);}}
+    fn refused(body:impl FnOnce())->String {let panic=std::panic::catch_unwind(std::panic::AssertUnwindSafe(body)).unwrap_err();if let Some(s)=panic.downcast_ref::<String>() {s.clone()}else if let Some(s)=panic.downcast_ref::<&str>() {(*s).to_owned()}else{panic!("unexpected panic type")}}
+    #[test]
+    fn whole_original_acquisition_generates_guard_trace_and_same_owner_drift_refuses() {
+        let fixture=Fixture::new();let scope=fixture.route();let loads=Cell::new(0);let mut context=ProjectionInvocation::with_loaders(||{loads.set(loads.get()+1);super::super::packet()},super::super::clippy_stage::rows);context.guard=overlay_v2::InvocationGuard::Current;
+        let raw=super::super::compiled(SOURCE).unwrap();let expected=digest(raw.as_bytes());assert_eq!(context.value_direct(SOURCE,&expected,raw),raw);scope.reset();assert_eq!(context.value_direct(SOURCE,&expected,raw),raw);
+        let stats=scope.stats();assert_eq!(stats.calls,2);assert_eq!(stats.stages,0);let controllers=overlay_v2::invocation_controllers();let controller_bytes:usize=controllers.iter().map(|(_,s)|s.len()).sum();let oldbytes:usize=fixture.original_reads.iter().map(|p|p.length).sum();assert_eq!(stats.bytes,2*(oldbytes+controller_bytes));
+        let one=fixture.original_reads.len()+controllers.len();assert_eq!(stats.reads.len(),2*one);assert_eq!(&stats.reads[..fixture.original_reads.len()],fixture.original_reads.as_slice());assert_eq!(&stats.reads[one..one+fixture.original_reads.len()],fixture.original_reads.as_slice());
+        let archive=format!("e/{expected}");for path in [SOURCE,archive.as_str(),PAGE,POLICY,controllers[0].0] {fixture.flip(path);scope.reset();let error=refused(||{context.value_direct(SOURCE,&expected,raw);});assert!(error.contains("length-or-digest"));assert_eq!(scope.stats().reads.last().unwrap().path,path);fixture.flip(path);assert_eq!(context.value_direct(SOURCE,&expected,raw),raw);}
+        assert_eq!(loads.get(),1);assert_eq!(fixture.packet,super::super::packet());
+    }
+    #[test]
+    fn two_fault_selection_matches_executed_whole_original_producer_not_a_trace_copy() {
+        let fixture=Fixture::new();let scope=fixture.route();let mut context=ProjectionInvocation::with_loaders(super::super::packet,super::super::clippy_stage::rows);context.guard=overlay_v2::InvocationGuard::Current;let raw=super::super::compiled(SOURCE).unwrap();let expected=digest(raw.as_bytes());assert_eq!(context.value_direct(SOURCE,&expected,raw),raw);
+        let archive=format!("e/{expected}");for (first,second) in [(fixture.original_reads[0].path.as_str(),POLICY),(POLICY,PAGE),(SOURCE,archive.as_str())] {
+            fixture.flip(first);fixture.flip(second);scope.reset();let old=refused(||{original_packet();});let oldlast=scope.stats().reads.last().unwrap().clone();scope.reset();let current=refused(||{context.value_direct(SOURCE,&expected,raw);});let newlast=scope.stats().reads.last().unwrap().clone();assert_eq!(newlast,oldlast);assert_eq!(oldlast.path,first);assert!(old.contains("length-or-digest")&&current.contains("length-or-digest"));fixture.flip(first);fixture.flip(second);assert_eq!(context.value_direct(SOURCE,&expected,raw),raw);
+        }
+    }
+    #[test]
+    fn logical_endpoints_keep_one_scoped_early_and_late_guard_through_nested_readers() {
+        let fixture=Fixture::new();let scope=fixture.route();let mut context=ProjectionInvocation::with_loaders(super::super::packet,super::super::clippy_stage::rows);context.guard=overlay_v2::InvocationGuard::Current;
+        let row=fixture.packet["rows"].as_array().unwrap().iter().find(|r|r["source"]==SOURCE).unwrap();let prior=&row["views"][0];let path=Path::new(env!("CARGO_MANIFEST_DIR")).join(SOURCE);let first=context.file(&path,prior["length"].as_u64().unwrap()as usize,prior["sha256"].as_str().unwrap());assert!(first.is_some());scope.reset();
+        assert_eq!(context.file(&path,prior["length"].as_u64().unwrap()as usize,prior["sha256"].as_str().unwrap()),first);assert_eq!(scope.stats().calls,2,"file -> private row reader shares one call state");
+        let side=super::super::combined_side_packet();let row=&side["rows"][0];let prior=&row["views"][0];let path=Path::new(env!("CARGO_MANIFEST_DIR")).join(row["source"].as_str().unwrap());scope.reset();assert!(context.combined_side_file(&path,prior["length"].as_u64().unwrap()as usize,prior["sha256"].as_str().unwrap()).is_some());assert_eq!(scope.stats().calls,2,"combined -> file -> value/direct all share one call state");
+        scope.reset();assert_eq!(context.file(Path::new("/foreign-unregistered-root"),0,"foreign"),None);assert_eq!(context.combined_side_file(Path::new("/foreign-unregistered-root"),0,"foreign"),None);assert_eq!((scope.stats().calls,scope.stats().bytes),(0,0));
+        scope.reset();scope.late(POLICY);let raw=super::super::compiled(SOURCE).unwrap();assert!(refused(||{context.value_direct(SOURCE,&digest(raw.as_bytes()),raw);}).contains("length-or-digest"));assert_eq!(scope.stats().calls,2);assert_eq!(scope.stats().reads.last().unwrap().path,POLICY);fixture.flip(POLICY);assert_eq!(context.value_direct(SOURCE,&digest(raw.as_bytes()),raw),raw);
+    }
+    #[test]
+    fn cached_stage_is_not_used_until_this_logical_call_requests_it() {
+        let fixture=Fixture::new();let scope=fixture.route();let mut context=ProjectionInvocation::with_loaders(super::super::packet,super::super::clippy_stage::rows);context.guard=overlay_v2::InvocationGuard::Current;let known="src/ast/program_source/function_alias/presentation.rs";
+        super::super::packet_lookup::test_stage_metadata(&mut context,known);assert!(scope.stats().stages>0);let path=overlay_v2::invocation_stages()[0].0;fixture.flip(path);scope.reset();let raw=super::super::compiled(SOURCE).unwrap();assert_eq!(context.value_direct(SOURCE,&digest(raw.as_bytes()),raw),raw);assert_eq!(scope.stats().stages,0);assert!(refused(||super::super::packet_lookup::test_stage_metadata(&mut context,known)).contains("length-or-digest"));assert_eq!(scope.stats().reads.last().unwrap().path,path);fixture.flip(path);
+    }
+    #[test]
+    fn independent_old_producer_and_original_bounded_reader_are_whole() {
+        let old=include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/e/05ecc0163fa3593182d2044c5f2029e3c1dd0cd7143ed9904eccfd6e6b751a3d"));let current=include_str!("main_e177_historical_before_data.rs");assert_eq!(&current[..old.len()],old,"complete original independent producer remains byte prefix");
+        let old=include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/e/7ea19e20137bd5d4c203072d41eab7cc0c835f847e51b94a4b24eeac997589f4"));let current=include_str!("main_e177_final_inputs.rs");let hook="    #[cfg(test)]\n    if let Some(result)=historical_before_data::invocation_probe::read(path,length,expected) { return result; }\n";assert_eq!(current.matches(hook).count(),1);assert_eq!(current.replacen(hook,"",1),old,"complete old root including bounded reader remains exact after removing only hook");
+    }
+#[test]
+fn combined_expected_invocation_keeps_every_prior_and_foreign_value_with_one_owned_packet() {
+    let packet=super::super::combined_side_packet();let row=&packet["rows"].as_array().unwrap()[0];
+    let source=row["source"].as_str().unwrap();let current=super::super::combined_side_actual(row);
+    let loads=std::cell::Cell::new(0);let stages=std::cell::Cell::new(0);
+    let mut invocation=ProjectionInvocation::with_loaders(||{loads.set(loads.get()+1);super::super::packet()},||{stages.set(stages.get()+1);super::super::clippy_stage::rows()});
+    for prior in row["views"].as_array().unwrap() {
+        let expected=prior["sha256"].as_str().unwrap();let old=super::super::read_view(prior);
+        for supplied in [current.as_str(),old.as_str(),"foreign-same-invocation"] {
+            assert_eq!(invocation.combined_side_expected_value(source,expected,supplied),super::super::combined_side_expected_value(source,expected,supplied));
+        }
+    }
+    assert_eq!(loads.get(),1);assert!(stages.get()<=1);
+    assert_eq!(invocation.combined_side_expected_value("foreign",&"0".repeat(64),"unchanged"),"unchanged");
+}
+
+}

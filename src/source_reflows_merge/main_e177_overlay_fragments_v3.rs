@@ -1488,3 +1488,5 @@ pub(super) use digests_v13::{expand_v18, expand_v19_indexed, preflight_indexed, 
 
 #[cfg(test)]
 pub(super) use digests_v13::{verify_current_v17, verify_current_v18};
+
+pub(super) use digests_v13::{expand_v20_compact, preflight_compact, SCHEMA_V20_COMPACT};

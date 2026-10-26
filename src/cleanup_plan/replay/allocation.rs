@@ -281,3 +281,38 @@ impl ReplayBudget {
 
 #[cfg(test)]
 mod tests;
+
+// Extra traversals reached by the independently funded trailing-active probe.
+// The original first work has already formed/funded refusal backing; each NEW
+// call still performs this complete warm capacity check. Backing is no credit
+// for these new references, closure captures, Options and returning carriers.
+#[cfg(test)]
+impl ReplayBudget {
+    pub(super) const WARM_PREPARE_CONTROLS: usize = {
+        use std::mem::size_of;
+        crate::hir::DeclarationId::AS_STR_INTERNAL_CONTROLS // exact helper-owned transitive packet
+        + 2 * size_of::<&crate::hir::DeclarationId>() // as_str actual/formal
+        + 4 * size_of::<&str>() // as_str return/receiver and len actual/formal
+        + 8 * size_of::<usize>() // len return/receiver, checked_add actual/formal, capacity bind and comparison
+        + 2 * size_of::<Option<usize>>() // checked_add return/match
+        + 2 * size_of::<&Option<String>>() // as_ref actual/formal
+        + 2 * size_of::<Option<&String>>() // as_ref return/is_some_and receiver
+        + 2 * size_of::<&usize>() // is_some_and closure capture actual/formal
+        + 4 * size_of::<&String>() // predicate argument/receiver and capacity actual/formal
+        + 2 * size_of::<usize>() // String::capacity return/receiver
+        + 4 * size_of::<bool>() // comparison and predicate return/selection
+        + 2 * size_of::<Result<(), Diagnostic>>() // warm prepare return/caller match
+    };
+    // Full sum-selector transport is paid BEFORE oracle_lease/is_some. The
+    // cfg(test) ActiveBuilder None arm pays this same closed query packet and
+    // takes the old fallback; cfg(not(test)) has no added selector or charge.
+    pub(super) const ORACLE_SELECTOR_CONTROLS: usize = {
+        use std::mem::size_of;
+        2 * size_of::<&ReplayBudget>() // oracle_lease actual/formal
+        + 2 * size_of::<AllocationPayer>() // discriminant receiving sum
+        + 2 * size_of::<OracleLease>() // selected Oracle payload binding/Some input
+        + 2 * size_of::<Option<OracleLease>>() // return/receiving selector sum
+        + 2 * size_of::<&Option<OracleLease>>() // is_some actual/formal
+        + 2 * size_of::<bool>() // predicate return/branch
+    };
+}

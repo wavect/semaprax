@@ -477,3 +477,37 @@ bounded V18 frontier; public V18 encoders, decoders, and page caps are unchanged
 The decoder reconstructs the complete prior logical object and applies every
 ordinary V19 registration, original V2, unknown-field, history, and inverse
 check. This encoding grants no source, archive, or compiled authority.
+
+
+## V20 compact dictionary transport
+
+The distinct `semaprax.finite-source-overlay-page.v20` envelope retains the
+complete V19 compiled successor witness, ordinary compiled/physical/archive
+registration authentication and original519 whole predecessor inverse. Its
+inner schema is `semaprax.finite-source-overlay-page.v20-compact`. Every V18 and
+V19 entry point, accepted encoding and physical cap remains independent.
+
+Only two closed dictionary slots change. `view_labels` contains unique strings
+in original declaration order; position supplies the exact old integer index.
+The old `[index,label]` spelling is refused here. Within an arity-three
+`pin_tails` declaration only, an archive may be a strict nonnegative integer
+index into `archive_prefixes`. It means exactly that prefix paired with the
+own tail's canonical lowercase full digest followed by `.txt`. The tail digest
+is either its canonical43-character digest or a strict in-range digest-table
+index. Matching explicit archive pairs are refused as aliases; all nonmatching
+archives keep their exact old representation. Booleans, floats, negative or
+out-of-range indices, wrong arities, malformed digests and unknown envelope
+fields are refused. No nested unknown field is interpreted or rewritten.
+
+Both physical inner and outer retain262144-byte caps. Before any witness,
+page, source-row or fragment-reference clone, the borrowed preflight proves the
+entire V15 payload fits the unchanged source cap: original positional-row and
+reference deltas,17 bytes per restored old519 wrapper, schema delta, the decimal
+index width plus3 bytes per label, and73 bytes per typed archive. Checked Rust
+arithmetic fails closed. Only after that proof may the decoder materialize the
+complete V15 object and run every unchanged source-path, pin-tail, digest,
+label, archive-prefix, unknown-field, order, multiplicity and full-row inverse
+validator. The oversized logical indexed frontier is never submitted to an
+old public wire decoder. The producer requires exact whole V15 equality after
+its round trip. Source roles and runtime qualification never follow from the
+codec or this document.

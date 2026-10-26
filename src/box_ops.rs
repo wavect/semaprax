@@ -265,3 +265,13 @@ pub(crate) fn resolved_program_uses_owned_payload(program: &crate::hir::Resolved
 
 #[cfg(test)]
 mod owned_payload_tests;
+
+// Closed ABI census for the additional cfg(test) trailing-active preparation.
+// No reservation or identity authority is introduced by this numeric constant.
+#[cfg(test)]
+impl BoxOp {
+    pub(crate) const ID_CALL_CONTROLS: usize =
+        2 * std::mem::size_of::<Self>() // by-value actual/formal
+        + 2 * std::mem::size_of::<Self>() // match scrutinee/receiving sum
+        + 2 * std::mem::size_of::<&'static str>(); // return/caller receiver
+}

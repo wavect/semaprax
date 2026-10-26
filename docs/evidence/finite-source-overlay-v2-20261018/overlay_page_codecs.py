@@ -1312,3 +1312,175 @@ def encode_v19_indexed_inner(page):
  assert len(canonical(result))<=PAGE_CAP, 'v19 indexed same one-page cap'
  assert canonical(expand_v19_indexed_fragment_refs(result))==canonical(logical), 'v19 indexed ENTIRE logical inverse'
  return result
+
+# V20 changes only two closed dictionary slots; V18/V19 bodies stay intact.
+V20_SCHEMA = 'semaprax.finite-source-overlay-page.v20'
+V20_COMPACT_SCHEMA = 'semaprax.finite-source-overlay-page.v20-compact'
+def _v20_tail_digest(page,tail):
+ value=tail[1]
+ if type(value)is int:
+  table=page['digest_table'];assert type(table)is list and 0<=value<len(table), 'v20 digest index'
+  value=table[value]
+ return v11_digest(value)
+
+def _v20_table_delta(page):
+ labels=page['view_labels'];tails=page['pin_tails'];prefixes=page['archive_prefixes']
+ assert type(labels)is list and type(tails)is list and type(prefixes)is list, 'v20 dictionaries'
+ assert all(type(label)is str for label in labels) and len(set(labels))==len(labels), 'v20 sequential labels'
+ delta=sum(len(str(index))+3 for index in range(len(labels)))
+ for tail in tails:
+  _v14_tail(tail);sha=_v20_tail_digest(page,tail)
+  if len(tail)==3:
+   archive=tail[2]
+   if type(archive)is int:
+    assert 0<=archive<len(prefixes), 'v20 archive prefix index'
+    delta+=73
+   elif type(archive)is list:
+    assert len(archive)==2 and type(archive[0])is int and 0<=archive[0]<len(prefixes) and type(archive[1])is str, 'v20 archive pair'
+    assert archive[1]!=sha+'.txt', 'v20 typed archive literal alias'
+   else:assert type(archive)is str, 'v20 archive type'
+ return delta
+
+def _v20_preflight(page, limit):
+ assert keys(page,(*V12_KEYS,'view_labels','digest_table','pin_tails')) and page['schema']==V20_COMPACT_SCHEMA, 'v18 envelope'
+ physical=len(canonical(page));assert physical<=PAGE_CAP, 'v20 same one-page cap'
+ expanded=physical+len(V18_SCHEMA)-len(V20_COMPACT_SCHEMA)+_v20_table_delta(page)
+ assert type(page['additions']) is list, 'v18 rows'
+ total=519+len(page['additions'])
+ def bound(amount):
+  nonlocal expanded
+  expanded+=amount;assert expanded<=min(limit,SOURCE_CAP), 'v18 expanded bound'
+ def row(value):
+  if type(value) is dict:
+   assert not _v16_eligible(value) and not keys(value,('source_row',)), 'v18 literal row alias'
+  else:
+   items=_v17_tuple(value)
+   bound(_v16_overhead(len(items))+len(b'{"source_row":[]}')-2+(4 if items[1]==0 else 3))
+  return value
+ def reference(value):
+  if type(value) is dict:
+   if keys(value,('canonical_source',)) and type(value['canonical_source']) is not str:
+    _v18_index(value['canonical_source'],total);assert False, 'v18 wrapped integer alias'
+  else:_v18_index(value,total);bound(21)
+  return value
+ _v19_indexed_walk(page,row,reference,lambda:bound(17))
+ assert expanded<=min(limit,SOURCE_CAP), 'v18 expanded bound'
+ return expanded
+
+def _v20_restore_tables(result):
+ result['view_labels']=[[index,label]for index,label in enumerate(result['view_labels'])]
+ for tail in result['pin_tails']:
+  if len(tail)==3 and type(tail[2])is int:tail[2]=[tail[2],_v20_tail_digest(result,tail)+'.txt']
+
+def expand_v20_compact_fragment_refs(page):
+ expanded=_v20_preflight(page,SOURCE_CAP)
+ result=copy.deepcopy(page);_v20_restore_tables(result);result['schema']=V15_SCHEMA
+ def decode(value):
+  if type(value)is dict:return value
+  items=_v17_tuple(value);value=dict(zip((*_V16_ROW_KEYS,'fragments'),items));value['compiled']=items[1]==1;return value
+ _v19_indexed_walk(result,decode,lambda value:{'canonical_source':value}if type(value)is int else value,lambda:None,True)
+ assert len(canonical(result))==expanded, 'v18 expanded bound'
+ _expand_v12_logical_view_labels(_expand_v13_logical_digest_table(_expand_v14_logical_pin_tails(_expand_v15_logical_source_paths(result))))
+ return result
+
+def _v20_compact_tables(result):
+ labels=result['view_labels'];assert type(labels)is list, 'v20 dictionaries'
+ for index,item in enumerate(labels):assert type(item)is list and len(item)==2 and type(item[0])is int and item[0]==index and type(item[1])is str, 'v20 sequential labels'
+ result['view_labels']=[item[1]for item in labels]
+ for tail in result['pin_tails']:
+  _v14_tail(tail);sha=_v20_tail_digest(result,tail)
+  if len(tail)==3 and type(tail[2])is list:
+   archive=tail[2]
+   assert len(archive)==2 and type(archive[0])is int and 0<=archive[0]<len(result['archive_prefixes']) and type(archive[1])is str, 'v20 archive pair'
+   if archive[1]==sha+'.txt':tail[2]=archive[0]
+
+def encode_v20_compact_rows(logical):
+ restored=_encode_v19_source_fragment_refs(logical)
+ result=copy.deepcopy(restored);result['schema']=V20_COMPACT_SCHEMA
+ for index,value in enumerate(result['replacements']):
+  if type(value)is dict and 'old519_index'in value:
+   assert keys(value,('old519_index',)), 'v19 indexed old519 fields'
+   items=value['old519_index'];assert type(items)is list and len(items)==4 and type(items[0])is int and 0<=items[0]<519, 'v19 indexed old519 reference'
+   result['replacements'][index]=items
+ _v20_compact_tables(result)
+ assert len(canonical(result))<=PAGE_CAP, 'v20 same one-page cap'
+ assert canonical(expand_v20_compact_fragment_refs(result))==canonical(logical), 'v20 ENTIRE logical inverse'
+ return result
+
+def encode_v20_compact_inner(page):
+ return encode_v20_compact_rows(_encode_v15_logical_source_paths(_encode_v14_logical_pin_tails(_encode_v13_logical_digest_table(page))))
+
+def _v20_successor(page):
+ assert len(canonical(page)) <= PAGE_CAP, 'v19 same one-page cap'
+ assert keys(page, ('schema','compiled_successor','page')) and page['schema']==V20_SCHEMA, 'v19 envelope'
+ inner=page['page']
+ assert type(inner) is dict and inner.get('schema')==V20_COMPACT_SCHEMA, 'v19 complete v18 page'
+ _v20_preflight(inner,SOURCE_CAP)
+ entry=page['compiled_successor']
+ if type(entry)is list:
+  assert len(entry)==7 and entry[0]=='m', 'v19 compact singleton'
+  for index in (1,3,5):assert type(entry[index])is str and re.fullmatch('[0-9a-f]{64}',entry[index]), 'v19 compact digest'
+  for index in (2,4,6):assert type(entry[index])is int, 'v19 compact integer'
+  for index in (2,4):assert 0<=entry[index]<=SOURCE_CAP, 'v19 compact length'
+  assert 2<=entry[6]<=SOURCE_CAP and entry[6]+len(_V19_DECLARATION.encode())<=entry[4], 'v19 compact declaration bound'
+  entry={'source':_V19_SOURCE,'prior_row_sha256':entry[1],
+         'current':{'length':entry[2],'sha256':entry[3],'archive':'e/'+entry[3]},
+         'registration':{'owner':_V19_OWNER,'current':{'length':entry[4],'sha256':entry[5],'archive':'e/'+entry[5]},'start':entry[6],'text':_V19_DECLARATION}}
+ return _v19_descriptor(entry)
+
+def authenticate_v20_registration(overlay,page):
+ entry=_v20_successor(page);registration=entry['registration']
+ assert callable(overlay.compiled_current), 'v19 trusted registration binding required'
+ for source,current in ((entry['source'],entry['current']),(registration['owner'],registration['current'])):
+  expected=overlay.compiled_current(source)
+  assert keys(expected,('length','sha256')) and expected=={key:current[key]for key in('length','sha256')}, 'v19 stale trusted current binding'
+ source=overlay.current({'source':entry['source'],'compiled':True,'current':entry['current'],'views':[]})
+ owner=overlay.current({'source':registration['owner'],'compiled':True,'current':registration['current'],'views':[]})
+ assert type(owner) is bytes and type(source) is bytes, 'v19 ordinary current bytes'
+ literal=registration['text'].encode();start=registration['start']
+ assert owner.count(literal)==1 and owner[start:start+len(literal)]==literal, 'v19 actual declaration span'
+ # The exact two-line declaration must begin after a blank line. An adjacent
+ # cfg/test attribute or a declaration embedded in another line cannot qualify.
+ assert owner[start-2:start]==b'\n\n', 'v19 declaration attribute boundary'
+ return entry
+
+def compose_v20(before,policy,page):
+ entry=_v20_successor(page)
+ assert keys(policy, ('schema','page','predecessor','replacements','additions','new_fragment_edges')), 'v19 policy fields'
+ assert policy['schema']=='semaprax.finite-source-overlay-policy.v2', 'v19 policy schema'
+ assert policy['replacements'].count(entry['source'])==1, 'v19 explicit replacement'
+ assert page['page'].get('predecessor')==policy['predecessor'], 'v19 original predecessor'
+ assert H(canonical(before))==policy['predecessor']['logical_sha256'], 'v19 original base digest'
+ assert before['source_cap']==SOURCE_CAP and len(before['rows'])==policy['predecessor']['rows']==519, 'v19 original base shape'
+ assert before['rows'][_V19_INDEX]['source']==entry['source'], 'v19 original source position'
+ original=before['rows'][_V19_INDEX]
+ assert original['compiled'] is False and H(canonical(original))==entry['prior_row_sha256'], 'v19 entire old false row'
+ derived=copy.deepcopy(before);derived['rows'][_V19_INDEX]['compiled']=True
+ inverse=copy.deepcopy(derived);inverse['rows'][_V19_INDEX]['compiled']=False
+ assert canonical(inverse)==canonical(before), 'v19 ENTIRE original base inverse'
+ adjusted_policy=copy.deepcopy(policy);adjusted_page=copy.deepcopy(page['page'])
+ adjusted_policy['predecessor']['logical_sha256']=H(canonical(derived))
+ adjusted_page['predecessor']=copy.deepcopy(adjusted_policy['predecessor'])
+ if adjusted_page['schema']==V20_COMPACT_SCHEMA:
+  adjusted_page=_expand_v12_logical_view_labels(_expand_v13_logical_digest_table(_expand_v14_logical_pin_tails(_expand_v15_logical_source_paths(expand_v20_compact_fragment_refs(adjusted_page)))))
+ # The old decoder still owns every view, unknown-field, order, fragment,
+ # whole-row inverse and cap check. The derived base is never physical history.
+ result=compose_values(derived,adjusted_policy,adjusted_page)
+ rows={row['source']:row for row in result['rows']}
+ assert len(rows)==len(result['rows']), 'v19 canonical unique rows'
+ assert rows[entry['source']]['compiled'] is True and rows[entry['source']]['current']==entry['current'], 'v19 successor current'
+ owner=rows[entry['registration']['owner']]
+ assert owner['compiled'] is True and owner['current']==entry['registration']['current'], 'v19 owner current'
+ inverse=copy.deepcopy(result);inverse['rows']=copy.deepcopy(before['rows'])
+ assert canonical(inverse)==canonical(before), 'v19 complete predecessor object inverse'
+ return result
+
+def encode_v20(page,compiled_successor):
+ entry=_v19_descriptor(compiled_successor);registration=entry['registration']
+ assert page.get('schema')==V20_COMPACT_SCHEMA, 'v20 complete compact page'
+ _v20_preflight(page,SOURCE_CAP)
+ compact=['m',entry['prior_row_sha256'],entry['current']['length'],entry['current']['sha256'],registration['current']['length'],registration['current']['sha256'],registration['start']]
+ result={'schema':V20_SCHEMA,'compiled_successor':compact,'page':copy.deepcopy(page)}
+ restored=_v20_successor(result)
+ assert canonical(result['page'])==canonical(page) and canonical(restored)==canonical(compiled_successor), 'v19 ENTIRE inputs retained'
+ return result

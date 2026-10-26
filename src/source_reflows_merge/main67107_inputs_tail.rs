@@ -37,6 +37,10 @@ fn owned_compile35f_current_acquisition_preserves_complete_seven_subjects_and_re
 
 // Import-only compile generation before the immutable Selected947 source rows.
 pub(crate) fn canonical_import_input(source: &str, current: &str) -> String {
+    let mut invocation = super::main_e177_final_inputs::ProjectionInvocation::new();
+    canonical_import_input_with(&mut invocation, source, current)
+}
+pub(crate) fn canonical_import_input_with(invocation: &mut super::main_e177_final_inputs::ProjectionInvocation, source: &str, current: &str) -> String {
     let compiled = match source {
         "src/cleanup_plan/replay/factored/canonical_shared.rs" => {
             include_str!("../cleanup_plan/replay/factored/canonical_shared.rs")
@@ -46,13 +50,13 @@ pub(crate) fn canonical_import_input(source: &str, current: &str) -> String {
         }
         _ => return current.to_owned(),
     };
-    let batch_compiled = semantic_batch_previous(source, compiled, "base851");
+    let batch_compiled = semantic_batch_previous_with(invocation, source, compiled, "base851");
     let compiled = batch_compiled.as_str();
-    let batch_current = semantic_batch_previous(source, current, "base851");
+    let batch_current = semantic_batch_previous_with(invocation, source, current, "base851");
     let current = batch_current.as_str();
-    let lexical_compiled = paid_many_canonical_previous(source, compiled);
+    let lexical_compiled = paid_many_canonical_previous_with(invocation, source, compiled);
     let compiled = lexical_compiled.as_str();
-    let lexical_current = paid_many_canonical_previous(source, current);
+    let lexical_current = paid_many_canonical_previous_with(invocation, source, current);
     let current = lexical_current.as_str();
     let data = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
@@ -72,28 +76,28 @@ pub(crate) fn canonical_import_input(source: &str, current: &str) -> String {
         .find(|r| r["source"] == source)
         .unwrap();
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let read = |archive: &str, length: &str, hash: &str| {
+    let read = |invocation: &mut super::main_e177_final_inputs::ProjectionInvocation, archive: &str, length: &str, hash: &str| {
         let length = usize::try_from(row[length].as_u64().unwrap()).unwrap();
         assert!(length <= 131_072);
         if archive == source && source == "src/cleanup_plan/replay/factored/canonical_shared.rs" {
-            return paid_many_canonical_previous(
+            return paid_many_canonical_previous_with(invocation,
                 source,
                 include_str!("../cleanup_plan/replay/factored/canonical_shared.rs"),
             );
         }
-        semantic_batch_file(&root.join(archive), length, row[hash].as_str().unwrap()).unwrap()
+        semantic_batch_file_with(invocation, &root.join(archive), length, row[hash].as_str().unwrap()).unwrap()
     };
-    let actual = read(source, "current_length", "current_sha256");
+    let actual = read(invocation, source, "current_length", "current_sha256");
     assert_eq!(actual, compiled);
     assert_eq!(
         actual,
-        read(
+        read(invocation,
             row["current_archive"].as_str().unwrap(),
             "current_length",
             "current_sha256"
         )
     );
-    let stage = read(
+    let stage = read(invocation,
         row["stage_archive"].as_str().unwrap(),
         "stage_length",
         "stage_sha256",
@@ -140,11 +144,16 @@ fn canonical_import_generation_authenticates_current_and_complete_selected_stage
 }
 
 // Complete PaidMany source -> frozen compile-import input, a separate namespace.
+#[allow(dead_code, reason = "Complete standalone source-custody entry retains its own invocation")]
 fn paid_many_canonical_previous(source: &str, current: &str) -> String {
+    let mut invocation = super::main_e177_final_inputs::ProjectionInvocation::new();
+    paid_many_canonical_previous_with(&mut invocation, source, current)
+}
+fn paid_many_canonical_previous_with(invocation: &mut super::main_e177_final_inputs::ProjectionInvocation, source: &str, current: &str) -> String {
     if source != "src/cleanup_plan/replay/factored/canonical_shared.rs" {
         return current.to_owned();
     }
-    let batch = semantic_batch_previous(source, current, "base851");
+    let batch = semantic_batch_previous_with(invocation, source, current, "base851");
     let current = batch.as_str();
     let data = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
@@ -159,20 +168,20 @@ fn paid_many_canonical_previous(source: &str, current: &str) -> String {
     assert_eq!(seal["schema"], "semaprax.paid-many-canonical-ingress.v1");
     assert_eq!(seal["source"], source);
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let read = |path: &str, kind: &str| {
+    let read = |invocation: &mut super::main_e177_final_inputs::ProjectionInvocation, path: &str, kind: &str| {
         let length = seal[format!("{kind}_length")].as_u64().unwrap() as usize;
         assert!(length <= 131_072);
-        semantic_batch_file(
+        semantic_batch_file_with(invocation,
             &root.join(path),
             length,
             seal[format!("{kind}_sha256")].as_str().unwrap(),
         )
         .unwrap()
     };
-    let actual = read(source, "current");
+    let actual = read(invocation, source, "current");
     assert_eq!(
         actual,
-        semantic_batch_previous(
+        semantic_batch_previous_with(invocation,
             source,
             include_str!("../cleanup_plan/replay/factored/canonical_shared.rs"),
             "base851"
@@ -180,9 +189,9 @@ fn paid_many_canonical_previous(source: &str, current: &str) -> String {
     );
     assert_eq!(
         actual,
-        read(seal["current_archive"].as_str().unwrap(), "current")
+        read(invocation, seal["current_archive"].as_str().unwrap(), "current")
     );
-    let previous = read(seal["previous_archive"].as_str().unwrap(), "previous");
+    let previous = read(invocation, seal["previous_archive"].as_str().unwrap(), "previous");
     let mut restored = actual.clone();
     let mut last = restored.len();
     for edit in seal["inverse"].as_array().unwrap() {
@@ -244,7 +253,11 @@ fn semantic_batch_records() -> serde_json::Value {
     packet
 }
 pub(crate) fn semantic_batch_previous(source: &str, current: &str, view: &str) -> String {
-    let repaired = compile_repair_previous(source, current);
+    let mut invocation = super::main_e177_final_inputs::ProjectionInvocation::new();
+    semantic_batch_previous_with(&mut invocation, source, current, view)
+}
+pub(crate) fn semantic_batch_previous_with(invocation: &mut super::main_e177_final_inputs::ProjectionInvocation, source: &str, current: &str, view: &str) -> String {
+    let repaired = compile_repair_previous_with(invocation, source, current);
     let current = repaired.as_str();
     let packet = semantic_batch_records();
     let rows = packet["rows"].as_array().unwrap();
@@ -258,23 +271,23 @@ pub(crate) fn semantic_batch_previous(source: &str, current: &str, view: &str) -
         return current.to_owned();
     };
     let root = ::std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let read = |path: &str, length: &serde_json::Value, sha: &serde_json::Value| {
-        compile_repair_file(
+    let read = |invocation: &mut super::main_e177_final_inputs::ProjectionInvocation, path: &str, length: &serde_json::Value, sha: &serde_json::Value| {
+        compile_repair_file_with(invocation,
             &root.join(path),
             usize::try_from(length.as_u64().unwrap()).unwrap(),
             sha.as_str().unwrap(),
         )
         .unwrap()
     };
-    let actual = crate::source_reflows_merge::next_big_batch_inputs::file(
+    let actual = crate::source_reflows_merge::next_big_batch_inputs::file_with(invocation,
         &root.join(source),
         row["current_length"].as_u64().unwrap() as usize,
         row["current_sha256"].as_str().unwrap(),
     )
-    .unwrap_or_else(|| read(source, &row["current_length"], &row["current_sha256"]));
+    .unwrap_or_else(|| read(invocation, source, &row["current_length"], &row["current_sha256"]));
     assert_eq!(
         actual,
-        read(
+        read(invocation,
             row["current_archive"].as_str().unwrap(),
             &row["current_length"],
             &row["current_sha256"]
@@ -324,17 +337,17 @@ pub(crate) fn semantic_batch_previous(source: &str, current: &str, view: &str) -
         }
         _ => unreachable!("sealed finite semantic source"),
     };
-    let compiled = crate::source_reflows_merge::next_big_batch_inputs::value(
+    let compiled = crate::source_reflows_merge::next_big_batch_inputs::value_with(invocation,
         source,
         row["current_sha256"].as_str().unwrap(),
         compiled,
     );
-    let compiled = compile_repair_previous(source, &compiled);
+    let compiled = compile_repair_previous_with(invocation, source, &compiled);
     assert_eq!(
         actual, compiled,
         "complete physical/compiled semantic source"
     );
-    let previous = read(
+    let previous = read(invocation,
         prior["archive"].as_str().unwrap(),
         &prior["length"],
         &prior["sha256"],
@@ -351,7 +364,7 @@ pub(crate) fn semantic_batch_previous(source: &str, current: &str, view: &str) -
         last = start;
     }
     assert_eq!(restored, previous, "whole independent semantic predecessor");
-    let current = crate::source_reflows_merge::next_big_batch_inputs::value(
+    let current = crate::source_reflows_merge::next_big_batch_inputs::value_with(invocation,
         source,
         row["current_sha256"].as_str().unwrap(),
         current,
@@ -363,6 +376,14 @@ pub(crate) fn semantic_batch_previous(source: &str, current: &str, view: &str) -
     }
 }
 pub(crate) fn semantic_batch_file(
+    path: &::std::path::Path,
+    length: usize,
+    expected: &str,
+) -> Result<String, &'static str> {
+    let mut invocation = super::main_e177_final_inputs::ProjectionInvocation::new();
+    semantic_batch_file_with(&mut invocation, path, length, expected)
+}
+pub(crate) fn semantic_batch_file_with(invocation: &mut super::main_e177_final_inputs::ProjectionInvocation,
     path: &::std::path::Path,
     length: usize,
     expected: &str,
@@ -380,13 +401,13 @@ pub(crate) fn semantic_batch_file(
                 if let Some(prior) = row["views"].as_array().unwrap().iter().find(|r| {
                     r["sha256"] == expected && r["length"].as_u64() == Some(length as u64)
                 }) {
-                    let actual = compile_repair_file(
+                    let actual = compile_repair_file_with(invocation,
                         path,
                         usize::try_from(row["current_length"].as_u64().unwrap())
                             .map_err(|_| "semantic-length")?,
                         row["current_sha256"].as_str().ok_or("semantic-sha")?,
                     )?;
-                    return Ok(semantic_batch_previous(
+                    return Ok(semantic_batch_previous_with(invocation,
                         source,
                         &actual,
                         prior["name"].as_str().ok_or("semantic-view")?,
@@ -395,7 +416,7 @@ pub(crate) fn semantic_batch_file(
             }
         }
     }
-    compile_repair_file(path, length, expected)
+    compile_repair_file_with(invocation, path, length, expected)
 }
 #[test]
 fn semantic_batch_complete_physical_views_preserve_old_sources_and_refuse_supplied_drift() {
@@ -480,8 +501,13 @@ fn compile_repair_records() -> serde_json::Value {
     assert_eq!(packet["rows"].as_array().unwrap().len(), 16);
     packet
 }
+#[allow(dead_code, reason = "Complete standalone source-custody entry retains its own invocation")]
 fn compile_repair_previous(source: &str, current: &str) -> String {
-    let accepted = accepted_base_previous(source, current);
+    let mut invocation = super::main_e177_final_inputs::ProjectionInvocation::new();
+    compile_repair_previous_with(&mut invocation, source, current)
+}
+fn compile_repair_previous_with(invocation: &mut super::main_e177_final_inputs::ProjectionInvocation, source: &str, current: &str) -> String {
+    let accepted = accepted_base_previous_with(invocation, source, current);
     let current = accepted.as_str();
     let packet = compile_repair_records();
     let rows = packet["rows"].as_array().unwrap();
@@ -490,23 +516,23 @@ fn compile_repair_previous(source: &str, current: &str) -> String {
         return current.to_owned();
     };
     let root = ::std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let read = |path: &str, length: &serde_json::Value, sha: &serde_json::Value| {
-        factored_core_file(
+    let read = |invocation: &mut super::main_e177_final_inputs::ProjectionInvocation, path: &str, length: &serde_json::Value, sha: &serde_json::Value| {
+        factored_core_file_with(invocation,
             &root.join(path),
             usize::try_from(length.as_u64().unwrap()).unwrap(),
             sha.as_str().unwrap(),
         )
         .unwrap()
     };
-    let actual = crate::source_reflows_merge::next_big_batch_inputs::file(
+    let actual = crate::source_reflows_merge::next_big_batch_inputs::file_with(invocation,
         &root.join(source),
         row["current_length"].as_u64().unwrap() as usize,
         row["current_sha256"].as_str().unwrap(),
     )
-    .unwrap_or_else(|| read(source, &row["current_length"], &row["current_sha256"]));
+    .unwrap_or_else(|| read(invocation, source, &row["current_length"], &row["current_sha256"]));
     assert_eq!(
         actual,
-        read(
+        read(invocation,
             row["current_archive"].as_str().unwrap(),
             &row["current_length"],
             &row["current_sha256"]
@@ -563,17 +589,17 @@ fn compile_repair_previous(source: &str, current: &str) -> String {
         }
         _ => unreachable!("sealed sixteen compilation subjects"),
     };
-    let compiled = crate::source_reflows_merge::next_big_batch_inputs::value(
+    let compiled = crate::source_reflows_merge::next_big_batch_inputs::value_with(invocation,
         source,
         row["current_sha256"].as_str().unwrap(),
         compiled,
     );
-    let compiled = accepted_base_previous(source, &compiled);
+    let compiled = accepted_base_previous_with(invocation, source, &compiled);
     assert_eq!(
         actual, compiled,
         "whole physical/compiled compilation repair"
     );
-    let previous = read(
+    let previous = read(invocation,
         row["previous_archive"].as_str().unwrap(),
         &row["previous_length"],
         &row["previous_sha256"],
@@ -593,7 +619,7 @@ fn compile_repair_previous(source: &str, current: &str) -> String {
         restored, previous,
         "complete independently retained precompile source"
     );
-    let current = crate::source_reflows_merge::next_big_batch_inputs::value(
+    let current = crate::source_reflows_merge::next_big_batch_inputs::value_with(invocation,
         source,
         row["current_sha256"].as_str().unwrap(),
         current,
@@ -604,7 +630,16 @@ fn compile_repair_previous(source: &str, current: &str) -> String {
         current.to_owned()
     }
 }
+#[allow(dead_code, reason = "Complete standalone source-custody entry retains its own invocation")]
 fn compile_repair_file(
+    path: &::std::path::Path,
+    length: usize,
+    expected: &str,
+) -> Result<String, &'static str> {
+    let mut invocation = super::main_e177_final_inputs::ProjectionInvocation::new();
+    compile_repair_file_with(&mut invocation, path, length, expected)
+}
+fn compile_repair_file_with(invocation: &mut super::main_e177_final_inputs::ProjectionInvocation,
     path: &::std::path::Path,
     length: usize,
     expected: &str,
@@ -618,17 +653,17 @@ fn compile_repair_file(
                     && r["previous_sha256"] == expected
                     && r["previous_length"].as_u64() == Some(length as u64)
             }) {
-                let actual = factored_core_file(
+                let actual = factored_core_file_with(invocation,
                     path,
                     usize::try_from(row["current_length"].as_u64().unwrap())
                         .map_err(|_| "compile-length")?,
                     row["current_sha256"].as_str().ok_or("compile-sha")?,
                 )?;
-                return Ok(compile_repair_previous(source, &actual));
+                return Ok(compile_repair_previous_with(invocation, source, &actual));
             }
         }
     }
-    factored_core_file(path, length, expected)
+    factored_core_file_with(invocation, path, length, expected)
 }
 
 // Whole-source finite admission in front of the independently frozen prior chains.
@@ -735,11 +770,16 @@ fn accepted_read(row: &serde_json::Value) -> String {
     )
     .unwrap()
 }
+#[allow(dead_code, reason = "Complete standalone source-custody entry retains its own invocation")]
 fn accepted_actual(row: &serde_json::Value) -> String {
+    let mut invocation = super::main_e177_final_inputs::ProjectionInvocation::new();
+    accepted_actual_with(&mut invocation, row)
+}
+fn accepted_actual_with(invocation: &mut super::main_e177_final_inputs::ProjectionInvocation, row: &serde_json::Value) -> String {
     let source = row["source"].as_str().unwrap();
     let current = &row["current"];
     let root = ::std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let actual = crate::source_reflows_merge::next_big_batch_inputs::file(
+    let actual = crate::source_reflows_merge::next_big_batch_inputs::file_with(invocation,
         &root.join(source),
         current["length"].as_u64().unwrap() as usize,
         current["sha256"].as_str().unwrap(),
@@ -752,7 +792,7 @@ fn accepted_actual(row: &serde_json::Value) -> String {
         )
         .unwrap()
     });
-    let compiled = crate::source_reflows_merge::next_big_batch_inputs::value(
+    let compiled = crate::source_reflows_merge::next_big_batch_inputs::value_with(invocation,
         source,
         current["sha256"].as_str().unwrap(),
         accepted_compiled(source),
@@ -764,10 +804,15 @@ fn accepted_actual(row: &serde_json::Value) -> String {
     assert_eq!(actual, accepted_read(current), "complete current archive");
     actual
 }
+#[allow(dead_code, reason = "Complete standalone source-custody entry retains its own invocation")]
 fn accepted_select(row: &serde_json::Value, prior: &serde_json::Value, supplied: &str) -> String {
-    let actual = accepted_actual(row);
+    let mut invocation = super::main_e177_final_inputs::ProjectionInvocation::new();
+    accepted_select_with(&mut invocation, row, prior, supplied)
+}
+fn accepted_select_with(invocation: &mut super::main_e177_final_inputs::ProjectionInvocation, row: &serde_json::Value, prior: &serde_json::Value, supplied: &str) -> String {
+    let actual = accepted_actual_with(invocation, row);
     let previous = accepted_read(prior);
-    let supplied = crate::source_reflows_merge::next_big_batch_inputs::value(
+    let supplied = crate::source_reflows_merge::next_big_batch_inputs::value_with(invocation,
         row["source"].as_str().unwrap(),
         row["current"]["sha256"].as_str().unwrap(),
         supplied,
@@ -780,7 +825,12 @@ fn accepted_select(row: &serde_json::Value, prior: &serde_json::Value, supplied:
         supplied.to_owned()
     }
 }
+#[allow(dead_code, reason = "Complete standalone source-custody entry retains its own invocation")]
 fn accepted_base_previous(source: &str, supplied: &str) -> String {
+    let mut invocation = super::main_e177_final_inputs::ProjectionInvocation::new();
+    accepted_base_previous_with(&mut invocation, source, supplied)
+}
+fn accepted_base_previous_with(invocation: &mut super::main_e177_final_inputs::ProjectionInvocation, source: &str, supplied: &str) -> String {
     let packet = accepted_records();
     let Some(row) = packet["rows"]
         .as_array()
@@ -798,9 +848,13 @@ fn accepted_base_previous(source: &str, supplied: &str) -> String {
     else {
         return supplied.to_owned();
     };
-    accepted_select(row, prior, supplied)
+    accepted_select_with(invocation, row, prior, supplied)
 }
 pub(crate) fn accepted_expected_value(source: &str, expected: &str, supplied: &str) -> String {
+    let mut invocation = super::main_e177_final_inputs::ProjectionInvocation::new();
+    accepted_expected_value_with(&mut invocation, source, expected, supplied)
+}
+pub(crate) fn accepted_expected_value_with(invocation: &mut super::main_e177_final_inputs::ProjectionInvocation, source: &str, expected: &str, supplied: &str) -> String {
     let packet = accepted_records();
     let Some(row) = packet["rows"]
         .as_array()
@@ -818,9 +872,17 @@ pub(crate) fn accepted_expected_value(source: &str, expected: &str, supplied: &s
     else {
         return supplied.to_owned();
     };
-    accepted_select(row, prior, supplied)
+    accepted_select_with(invocation, row, prior, supplied)
 }
 pub(crate) fn accepted_expected_file(
+    path: &::std::path::Path,
+    length: usize,
+    expected: &str,
+) -> Option<String> {
+    let mut invocation = super::main_e177_final_inputs::ProjectionInvocation::new();
+    accepted_expected_file_with(&mut invocation, path, length, expected)
+}
+pub(crate) fn accepted_expected_file_with(invocation: &mut super::main_e177_final_inputs::ProjectionInvocation,
     path: &::std::path::Path,
     length: usize,
     expected: &str,
@@ -836,8 +898,8 @@ pub(crate) fn accepted_expected_file(
     let prior = row["priors"].as_array().unwrap().iter().find(|prior| {
         prior["sha256"] == expected && prior["length"].as_u64() == Some(length as u64)
     })?;
-    let actual = accepted_actual(row);
-    Some(accepted_select(row, prior, &actual))
+    let actual = accepted_actual_with(invocation, row);
+    Some(accepted_select_with(invocation, row, prior, &actual))
 }
 #[test]
 fn accepted_whole_sources_authenticate_actual_owners_and_keep_every_prior_independent() {

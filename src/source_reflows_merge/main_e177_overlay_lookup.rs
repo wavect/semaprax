@@ -516,6 +516,8 @@ pub(crate) fn compiled(source: &str) -> Option<&'static str> {
         "src/source_reflows/ci_inputs_current_epoch.rs" => Some(include_str!("../../src/source_reflows/ci_inputs_current_epoch.rs")),
         "src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_before_protocol/owner.rs" => Some(include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_before_protocol/owner.rs")),
         "src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_before_protocol/held_invocation_tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_before_protocol/held_invocation_tests.rs")),
+        "src/cleanup_plan/replay/trailing_active.rs" => Some(include_str!("../../src/cleanup_plan/replay/trailing_active.rs")),
+        "src/cleanup_plan/replay/trailing_active/tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/trailing_active/tests.rs")),
         _ => None,
     }
 }

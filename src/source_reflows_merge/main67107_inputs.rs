@@ -20,7 +20,12 @@ fn records() -> serde_json::Value {
     assert_eq!(rows.as_array().unwrap().len(), 9);
     rows
 }
+#[allow(dead_code, reason = "Complete standalone source-custody entry retains its own invocation")]
 fn restore(rows: &serde_json::Value, domain: &str, current: &str) -> String {
+    let mut invocation = super::main_e177_final_inputs::ProjectionInvocation::new();
+    restore_with(&mut invocation, rows, domain, current)
+}
+fn restore_with(invocation: &mut super::main_e177_final_inputs::ProjectionInvocation, rows: &serde_json::Value, domain: &str, current: &str) -> String {
     let rows = rows.as_array().unwrap();
     assert_eq!(rows.iter().filter(|r| r["domain"] == domain).count(), 1);
     let row = rows.iter().find(|r| r["domain"] == domain).unwrap();
@@ -37,23 +42,23 @@ fn restore(rows: &serde_json::Value, domain: &str, current: &str) -> String {
     };
     assert_eq!(row["source"], source);
     let selected =
-        selected_successor_expected_input(source, row["current_sha256"].as_str().unwrap(), current);
+        selected_successor_expected_input_with(invocation, source, row["current_sha256"].as_str().unwrap(), current);
     let current = selected.as_str();
-    let singleton = singleton_successor_expected_input(
+    let singleton = singleton_successor_expected_input_with(invocation,
         source,
         row["current_sha256"].as_str().unwrap(),
         current,
     );
     let current = singleton.as_str();
-    let stage = supplemental_receiver_expected_input(
+    let stage = supplemental_receiver_expected_input_with(invocation,
         source,
         row["current_sha256"].as_str().unwrap(),
         current,
     );
     let acquired =
-        compile35f_expected_input(source, row["current_sha256"].as_str().unwrap(), &stage);
+        compile35f_expected_input_with(invocation, source, row["current_sha256"].as_str().unwrap(), &stage);
     let selected = if domain == "followupCoreMAIN" {
-        super::main_e177_final_inputs::value_direct(
+        invocation.value_direct(
             source,
             row["current_sha256"].as_str().unwrap(),
             &acquired,
@@ -88,7 +93,11 @@ fn restore(rows: &serde_json::Value, domain: &str, current: &str) -> String {
     before
 }
 pub(crate) fn project(domain: &str, current: &str) -> String {
-    restore(&records(), domain, current)
+    let mut invocation = super::main_e177_final_inputs::ProjectionInvocation::new();
+    project_with(&mut invocation, domain, current)
+}
+pub(crate) fn project_with(invocation: &mut super::main_e177_final_inputs::ProjectionInvocation, domain: &str, current: &str) -> String {
+    restore_with(invocation, &records(), domain, current)
 }
 #[test]
 fn complete_main_domains_and_both_unit_namespaces_are_preserved() {
@@ -357,40 +366,45 @@ fn compile35f_records() -> serde_json::Value {
     );
     rows
 }
+#[allow(dead_code, reason = "Complete standalone source-custody entry retains its own invocation")]
 fn compile35f_restore(row: &serde_json::Value, current: &str) -> String {
+    let mut invocation = super::main_e177_final_inputs::ProjectionInvocation::new();
+    compile35f_restore_with(&mut invocation, row, current)
+}
+fn compile35f_restore_with(invocation: &mut super::main_e177_final_inputs::ProjectionInvocation, row: &serde_json::Value, current: &str) -> String {
     let source = row["source"].as_str().unwrap();
     assert!(COMPILE35F_KEYS.binary_search(&source).is_ok());
-    let selected = super::main_e177_final_inputs::value_direct(
+    let selected = invocation.value_direct(
         source,
         row["current_sha256"].as_str().unwrap(),
         current,
     );
     let current = selected.as_str();
-    let repaired = compile_repair_previous(source, current);
+    let repaired = compile_repair_previous_with(invocation, source, current);
     let current = repaired.as_str();
-    let owned = owned_compile35f_input(source, current);
+    let owned = owned_compile35f_input_with(invocation, source, current);
     let current = owned.as_str();
     // A preselected35f view still acquires/authenticates physical current below.
     // Do not project it again through the distinct new-to-c874 fixture stage.
     let fixture = if digest(current) == row["before_sha256"].as_str().unwrap() {
         current.to_owned()
     } else {
-        corrected_alias_fixture_input(source, current)
+        corrected_alias_fixture_input_with(invocation, source, current)
     };
     let current = fixture.as_str();
-    let acquired = factored_core_input(source, current);
+    let acquired = factored_core_input_with(invocation, source, current);
     let current = acquired.as_str();
     // A35f intermediate requires the actual physical new source to remain bound.
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let raw = if source == "src/cleanup_plan/replay/sequence_prefix.rs" {
-        compile_repair_previous(
+        compile_repair_previous_with(invocation,
             source,
             include_str!("../cleanup_plan/replay/sequence_prefix.rs"),
         )
     } else {
-        factored_core_physical(source)
+        factored_core_physical_with(invocation, source)
     };
-    let raw = super::main_e177_final_inputs::value_direct(
+    let raw = invocation.value_direct(
         source,
         row["current_sha256"].as_str().unwrap(),
         &raw,
@@ -431,6 +445,10 @@ fn compile35f_restore(row: &serde_json::Value, current: &str) -> String {
     restored
 }
 pub(crate) fn compile35f_input(source: &str, current: &str) -> String {
+    let mut invocation = super::main_e177_final_inputs::ProjectionInvocation::new();
+    compile35f_input_with(&mut invocation, source, current)
+}
+pub(crate) fn compile35f_input_with(invocation: &mut super::main_e177_final_inputs::ProjectionInvocation, source: &str, current: &str) -> String {
     if COMPILE35F_KEYS.binary_search(&source).is_err() {
         return current.to_owned();
     }
@@ -441,16 +459,20 @@ pub(crate) fn compile35f_input(source: &str, current: &str) -> String {
         .iter()
         .find(|r| r["source"] == source)
         .unwrap();
-    compile35f_restore(row, current)
+    compile35f_restore_with(invocation, row, current)
 }
 pub(super) fn compile35f_expected_input(source: &str, expected: &str, current: &str) -> String {
-    let selected = selected_successor_expected_input(source, expected, current);
+    let mut invocation = super::main_e177_final_inputs::ProjectionInvocation::new();
+    compile35f_expected_input_with(&mut invocation, source, expected, current)
+}
+pub(super) fn compile35f_expected_input_with(invocation: &mut super::main_e177_final_inputs::ProjectionInvocation, source: &str, expected: &str, current: &str) -> String {
+    let selected = selected_successor_expected_input_with(invocation, source, expected, current);
     let current = selected.as_str();
-    let singleton = singleton_successor_expected_input(source, expected, current);
+    let singleton = singleton_successor_expected_input_with(invocation, source, expected, current);
     let current = singleton.as_str();
     let ordinary = super::ordinary_plan_inputs::acquire_expected(source, expected, current);
     let current = ordinary.as_str();
-    let accepted = accepted_expected_value(source, expected, current);
+    let accepted = accepted_expected_value_with(invocation, source, expected, current);
     let current = accepted.as_str();
     if COMPILE35F_KEYS.binary_search(&source).is_err() {
         return current.to_owned();
@@ -466,7 +488,7 @@ pub(super) fn compile35f_expected_input(source: &str, expected: &str, current: &
     if row["before_sha256"] != expected {
         return current.to_owned();
     }
-    compile35f_restore(row, current)
+    compile35f_restore_with(invocation, row, current)
 }
 #[test]
 fn complete_seven_compile_inputs_restore_35f_and_refuse_foreign_receivers() {
@@ -617,32 +639,46 @@ fn factored_core_file_raw(
     }
     Ok(value)
 }
+#[allow(dead_code, reason = "Complete standalone source-custody entry retains its own invocation")]
 fn factored_core_file(
     path: &::std::path::Path,
     length: usize,
     expected: &str,
 ) -> Result<String, &'static str> {
-    if let Some(value) = accepted_expected_file(path, length, expected) {
+    let mut invocation = super::main_e177_final_inputs::ProjectionInvocation::new();
+    factored_core_file_with(&mut invocation, path, length, expected)
+}
+fn factored_core_file_with(invocation: &mut super::main_e177_final_inputs::ProjectionInvocation,
+    path: &::std::path::Path,
+    length: usize,
+    expected: &str,
+) -> Result<String, &'static str> {
+    if let Some(value) = accepted_expected_file_with(invocation, path, length, expected) {
         return Ok(value);
     }
     if let Some(value) =
-        crate::source_reflows_merge::main_e177_final_inputs::file(path, length, expected)
+        invocation.file(path, length, expected)
     {
         return Ok(value);
     }
     factored_core_file_raw(path, length, expected)
 }
 
+#[allow(dead_code, reason = "Complete standalone source-custody entry retains its own invocation")]
 fn factored_core_physical(source: &str) -> String {
+    let mut invocation = super::main_e177_final_inputs::ProjectionInvocation::new();
+    factored_core_physical_with(&mut invocation, source)
+}
+fn factored_core_physical_with(invocation: &mut super::main_e177_final_inputs::ProjectionInvocation, source: &str) -> String {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     if source == OWNED_COMPILE35F_PATH {
-        return owned_compile35f_input(source, OWNED_COMPILE35F_RAW);
+        return owned_compile35f_input_with(invocation, source, OWNED_COMPILE35F_RAW);
     }
     if source != FACTORED_CORE_PATH {
         let raw = std::fs::read_to_string(root.join(source)).unwrap();
-        return corrected_alias_fixture_input(source, &raw);
+        return corrected_alias_fixture_input_with(invocation, source, &raw);
     }
-    let actual = factored_core_file(
+    let actual = factored_core_file_with(invocation,
         &root.join(source),
         FACTORED_CORE_RAW.len(),
         &factored_core_digest(FACTORED_CORE_RAW.as_bytes()),
@@ -653,7 +689,7 @@ fn factored_core_physical(source: &str) -> String {
         digest(FACTORED_CORE_OURS),
         "c151768408bd95f3a56ae5eb48b013ac010c221d0b43df9a141ad47cd97ca953"
     );
-    let old = factored_core_file(
+    let old = factored_core_file_with(invocation,
         &root.join("docs/evidence/main-d285-factored-custody-20261017/ours-core.before.txt"),
         FACTORED_CORE_OURS.len(),
         &digest(FACTORED_CORE_OURS),
@@ -662,11 +698,16 @@ fn factored_core_physical(source: &str) -> String {
     assert_eq!(old, FACTORED_CORE_OURS);
     old
 }
+#[allow(dead_code, reason = "Complete standalone source-custody entry retains its own invocation")]
 fn factored_core_input(source: &str, current: &str) -> String {
+    let mut invocation = super::main_e177_final_inputs::ProjectionInvocation::new();
+    factored_core_input_with(&mut invocation, source, current)
+}
+fn factored_core_input_with(invocation: &mut super::main_e177_final_inputs::ProjectionInvocation, source: &str, current: &str) -> String {
     if source != FACTORED_CORE_PATH {
         return current.to_owned();
     }
-    let old = factored_core_physical(source);
+    let old = factored_core_physical_with(invocation, source);
     if current == FACTORED_CORE_RAW {
         old
     } else {
@@ -712,7 +753,12 @@ fn factored_core_relocation_preserves_complete_seven_source_domain_and_refuses_d
 
 // A new ordinary production receiver has its own closed current acquisition.
 // Immutable canonical870/MAIN rows continue to name their full c874 inputs.
+#[allow(dead_code, reason = "Complete standalone source-custody entry retains its own invocation")]
 fn singleton_successor_expected_input(source: &str, expected: &str, current: &str) -> String {
+    let mut invocation = super::main_e177_final_inputs::ProjectionInvocation::new();
+    singleton_successor_expected_input_with(&mut invocation, source, expected, current)
+}
+fn singleton_successor_expected_input_with(invocation: &mut super::main_e177_final_inputs::ProjectionInvocation, source: &str, expected: &str, current: &str) -> String {
     if source != "src/cleanup_plan/replay/factored/canonical_shared.rs" {
         return current.to_owned();
     }
@@ -733,10 +779,10 @@ fn singleton_successor_expected_input(source: &str, expected: &str, current: &st
     if row["before_sha256"] != expected {
         return current.to_owned();
     }
-    let selected = selected_successor_expected_input(source, expected, current);
+    let selected = selected_successor_expected_input_with(invocation, source, expected, current);
     let current = selected.as_str();
     let compiled = include_str!("../cleanup_plan/replay/factored/canonical_shared.rs");
-    let selected_physical = selected_successor_expected_input(
+    let selected_physical = selected_successor_expected_input_with(invocation,
         source,
         row["current_sha256"].as_str().unwrap(),
         compiled,
@@ -744,7 +790,7 @@ fn singleton_successor_expected_input(source: &str, expected: &str, current: &st
     let physical = selected_physical.as_str();
     assert_eq!(digest(physical), row["current_sha256"]);
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let before = factored_core_file(
+    let before = factored_core_file_with(invocation,
         &root.join(row["archive"].as_str().unwrap()),
         63023,
         row["before_sha256"].as_str().unwrap(),
@@ -801,7 +847,12 @@ fn singleton_successor_whole_c874_acquisition_is_scoped_and_refuses_foreign_stag
     );
 }
 
+#[allow(dead_code, reason = "Complete standalone source-custody entry retains its own invocation")]
 fn corrected_alias_fixture_input(source: &str, current: &str) -> String {
+    let mut invocation = super::main_e177_final_inputs::ProjectionInvocation::new();
+    corrected_alias_fixture_input_with(&mut invocation, source, current)
+}
+fn corrected_alias_fixture_input_with(invocation: &mut super::main_e177_final_inputs::ProjectionInvocation, source: &str, current: &str) -> String {
     let physical = match source {
         "src/workspace_graph/expected_projection/borrowed_imports/typed/alias/rename_tests.rs" => {
             include_str!(
@@ -830,13 +881,13 @@ fn corrected_alias_fixture_input(source: &str, current: &str) -> String {
         .iter()
         .find(|r| r["source"] == source)
         .unwrap();
-    let selected_physical = super::main_e177_final_inputs::value_direct(
+    let selected_physical = invocation.value_direct(
         source,
         row["current_sha256"].as_str().unwrap(),
         physical,
     );
     let physical = selected_physical.as_str();
-    let selected_current = super::main_e177_final_inputs::value_direct(
+    let selected_current = invocation.value_direct(
         source,
         row["current_sha256"].as_str().unwrap(),
         current,
@@ -844,11 +895,11 @@ fn corrected_alias_fixture_input(source: &str, current: &str) -> String {
     let current = selected_current.as_str();
     assert_eq!(digest(physical), row["current_sha256"]);
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let actual = factored_core_file(&root.join(source), physical.len(), &digest(physical)).unwrap();
+    let actual = factored_core_file_with(invocation, &root.join(source), physical.len(), &digest(physical)).unwrap();
     assert_eq!(actual, physical);
     let before_len = usize::try_from(row["before_len"].as_u64().unwrap()).unwrap();
     assert!(before_len <= 262_144);
-    let before = factored_core_file(
+    let before = factored_core_file_with(invocation,
         &root.join(row["archive"].as_str().unwrap()),
         before_len,
         row["before_sha256"].as_str().unwrap(),
@@ -897,14 +948,19 @@ fn corrected_alias_fixtures_keep_complete_c874_sources_and_refuse_foreign_stages
 }
 // Separate actual endpoint before immutable followup/043 d196 source inputs.
 const SUPPLEMENT_RECEIVER_PREFIX: &str = "docs/evidence/c874-supplement-custody-domains-20261017";
+#[allow(dead_code, reason = "Complete standalone source-custody entry retains its own invocation")]
 fn supplemental_receiver_expected_input(source: &str, expected: &str, current: &str) -> String {
+    let mut invocation = super::main_e177_final_inputs::ProjectionInvocation::new();
+    supplemental_receiver_expected_input_with(&mut invocation, source, expected, current)
+}
+fn supplemental_receiver_expected_input_with(invocation: &mut super::main_e177_final_inputs::ProjectionInvocation, source: &str, expected: &str, current: &str) -> String {
     if source != "src/source_reflows/semantic_receivers.rs"
         || expected != "d19607ffcbca7e4d676a774eb2f21d81293430f6c5985a7afd6409d9bb7589df"
     {
         return current.to_owned();
     }
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let text = factored_core_file(
+    let text = factored_core_file_with(invocation,
         &root
             .join(SUPPLEMENT_RECEIVER_PREFIX)
             .join("receiver-input.json"),
@@ -918,8 +974,8 @@ fn supplemental_receiver_expected_input(source: &str, expected: &str, current: &
     let length = usize::try_from(row["current_length"].as_u64().unwrap()).unwrap();
     assert!(length <= 65_536);
     let sha = row["current_sha256"].as_str().unwrap();
-    let raw = factored_core_file(&root.join(source), length, sha).unwrap();
-    let held = factored_core_file(
+    let raw = factored_core_file_with(invocation, &root.join(source), length, sha).unwrap();
+    let held = factored_core_file_with(invocation,
         &root
             .join(SUPPLEMENT_RECEIVER_PREFIX)
             .join(row["current_archive"].as_str().unwrap()),
@@ -928,17 +984,17 @@ fn supplemental_receiver_expected_input(source: &str, expected: &str, current: &
     )
     .unwrap();
     assert_eq!(raw, held, "complete independently sealed actual receiver");
-    let compiled = crate::source_reflows_merge::main_e177_final_inputs::value(
+    let compiled = invocation.value(
         source,
         sha,
         include_str!("../source_reflows/semantic_receivers.rs"),
     );
     assert_eq!(raw, compiled, "complete actual compiled receiver");
-    let supplied = crate::source_reflows_merge::main_e177_final_inputs::value(source, sha, current);
+    let supplied = invocation.value(source, sha, current);
     let current = supplied.as_str();
     let stage_len = usize::try_from(row["stage_length"].as_u64().unwrap()).unwrap();
     assert!(stage_len <= 65_536);
-    let stage = factored_core_file(
+    let stage = factored_core_file_with(invocation,
         &root
             .join(SUPPLEMENT_RECEIVER_PREFIX)
             .join(row["stage_archive"].as_str().unwrap()),
@@ -1003,7 +1059,12 @@ fn complete_supplemental_receiver_stages_and_original_six_field_record_remain_bo
 
 // Selected876 is a separate complete generation. Only these exact predecessor
 // namespaces acquire it; every existing singleton and arena inverse stays fixed.
+#[allow(dead_code, reason = "Complete standalone source-custody entry retains its own invocation")]
 fn selected_successor_expected_input(source: &str, expected: &str, current: &str) -> String {
+    let mut invocation = super::main_e177_final_inputs::ProjectionInvocation::new();
+    selected_successor_expected_input_with(&mut invocation, source, expected, current)
+}
+fn selected_successor_expected_input_with(invocation: &mut super::main_e177_final_inputs::ProjectionInvocation, source: &str, expected: &str, current: &str) -> String {
     let root_source = "src/cleanup_plan/replay/factored/canonical_shared.rs";
     let arena_source = "src/cleanup_plan/replay/factored/canonical_shared/arena_tests.rs";
     let admitted = match source {
@@ -1044,7 +1105,7 @@ fn selected_successor_expected_input(source: &str, expected: &str, current: &str
         let before_length = usize::try_from(row["before_length"].as_u64().unwrap()).unwrap();
         assert!(length <= 131_072 && before_length <= 131_072);
         let raw_compiled = compiled;
-        let compiled_stage = canonical_import_input(path, compiled);
+        let compiled_stage = canonical_import_input_with(invocation, path, compiled);
         let compiled = compiled_stage.as_str();
         let physical = compiled_stage.clone();
         assert_eq!(physical.len(), length);
@@ -1053,7 +1114,7 @@ fn selected_successor_expected_input(source: &str, expected: &str, current: &str
             physical, compiled,
             "complete compiled and physical selected source"
         );
-        let before = factored_core_file(
+        let before = factored_core_file_with(invocation,
             &root.join(row["archive"].as_str().unwrap()),
             before_length,
             row["before_sha256"].as_str().unwrap(),
@@ -1080,7 +1141,7 @@ fn selected_successor_expected_input(source: &str, expected: &str, current: &str
             {
                 // The independently authenticated older singleton namespace is
                 // already at its requested stage; do not project it a second time.
-                let historical = factored_core_file(&root.join("docs/evidence/ordinary-singleton-successors-20261017/before/src/cleanup_plan/replay/factored/canonical_shared.rs"), 63_023, expected).unwrap();
+                let historical = factored_core_file_with(invocation, &root.join("docs/evidence/ordinary-singleton-successors-20261017/before/src/cleanup_plan/replay/factored/canonical_shared.rs"), 63_023, expected).unwrap();
                 assert_eq!(current, historical);
                 selected = Some(historical);
             } else {
@@ -1130,21 +1191,31 @@ const OWNED_COMPILE35F_PATH: &str =
 const OWNED_COMPILE35F_RAW: &str = include_str!(
     "../../docs/evidence/compile35f-owned-growth-ingress-20261017/owned-growth.current.rs.txt"
 );
+#[allow(dead_code, reason = "Complete standalone source-custody entry retains its own invocation")]
 fn owned_compile35f_input(source: &str, current: &str) -> String {
+    let mut invocation = super::main_e177_final_inputs::ProjectionInvocation::new();
+    owned_compile35f_input_with(&mut invocation, source, current)
+}
+fn owned_compile35f_input_with(invocation: &mut super::main_e177_final_inputs::ProjectionInvocation, source: &str, current: &str) -> String {
     if source != OWNED_COMPILE35F_PATH {
         return current.to_owned();
     }
     // Acquire the complete seal-owning generation before its unchanged
     // original byte inverse. The current physical/compiled image is checked
     // by the independently authenticated current logical source table.
-    let prior = crate::source_reflows_merge::main_e177_final_inputs::value(
+    let prior = invocation.value(
         source,
         "5265ad08a18f48440a0615bf5e4f815e40790f99c43ec681d0f31401a3e4aaa9",
         current,
     );
-    owned_compile35f_input_previous(source, &prior)
+    owned_compile35f_input_previous_with(invocation, source, &prior)
 }
+#[allow(dead_code, reason = "Complete standalone source-custody entry retains its own invocation")]
 fn owned_compile35f_input_previous(source: &str, current: &str) -> String {
+    let mut invocation = super::main_e177_final_inputs::ProjectionInvocation::new();
+    owned_compile35f_input_previous_with(&mut invocation, source, current)
+}
+fn owned_compile35f_input_previous_with(invocation: &mut super::main_e177_final_inputs::ProjectionInvocation, source: &str, current: &str) -> String {
     if source != OWNED_COMPILE35F_PATH {
         return current.to_owned();
     }
@@ -1174,32 +1245,32 @@ fn owned_compile35f_input_previous(source: &str, current: &str) -> String {
     assert_eq!(row["current_sha256"], seal["previous_sha256"]);
     assert_eq!(row["before_sha256"], seal["original35f_sha256"]);
     assert_eq!(row["before_archive"], seal["original35f_archive"]);
-    let read = |archive: &str, length: &str, expected: &str| {
+    let read = |invocation: &mut super::main_e177_final_inputs::ProjectionInvocation, archive: &str, length: &str, expected: &str| {
         let length = usize::try_from(seal[length].as_u64().unwrap()).unwrap();
         assert!(length <= 262_144);
-        factored_core_file(
+        factored_core_file_with(invocation,
             &root.join(archive),
             length,
             seal[expected].as_str().unwrap(),
         )
         .unwrap()
     };
-    let actual = read(source, "current_length", "current_sha256");
+    let actual = read(invocation, source, "current_length", "current_sha256");
     assert_eq!(actual, OWNED_COMPILE35F_RAW);
     assert_eq!(
         actual,
-        read(
+        read(invocation,
             seal["current_archive"].as_str().unwrap(),
             "current_length",
             "current_sha256"
         )
     );
-    let previous = read(
+    let previous = read(invocation,
         seal["previous_archive"].as_str().unwrap(),
         "previous_length",
         "previous_sha256",
     );
-    let original = read(
+    let original = read(invocation,
         seal["original35f_archive"].as_str().unwrap(),
         "original35f_length",
         "original35f_sha256",

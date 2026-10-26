@@ -49,6 +49,8 @@ mod selected_entry;
 #[cfg(test)]
 mod sequence_prefix;
 mod sequence_vector;
+#[cfg(test)]
+mod trailing_active;
 mod shape_cursor;
 mod status_construction;
 mod structural_control;
@@ -3032,6 +3034,10 @@ fn sequence_skeleton_paths(
     if path_array::main696::selected() {
         return path_array::main696::sequence_skeleton_paths(prefixes, suffixes, work);
     }
+    #[cfg(test)]
+    if trailing_active::before_selected() {
+        return trailing_active::before_sequence_skeleton_paths(prefixes, suffixes, work);
+    }
     let prefixes = ordinary_plan_history::completed_fork::emission::dispatch!(
         prefixes, suffixes, work
     );
@@ -3055,6 +3061,10 @@ fn sequence_skeleton_paths(
     let mut precharged = false;
     if single && first {
         sequence_vector::reuse!(prefixes, suffixes, work, token share_prefix, minimum, precharged);
+    }
+    #[cfg(test)]
+    if !single && first {
+        trailing_active::reuse!(prefixes, suffixes, work, share_prefix, minimum, precharged, first, single);
     }
     for mut prefix in prefixes {
         if prefix.failed || prefix.residual {
@@ -3122,8 +3132,9 @@ fn sequence_skeleton_paths(
             continue;
         };
         #[cfg(test)]
-        final_output::record_final_frontier(0, work);
-        work.charge(1, "skeleton prefix clone")?;
+        if !precharged { final_output::record_final_frontier(0, work); }
+        if precharged { precharged = false; }
+        else { work.charge(1, "skeleton prefix clone")?; }
         work.budget.reserve_bytes(
             work.function,
             final_output::FINAL_SPLIT_CONTROLS,

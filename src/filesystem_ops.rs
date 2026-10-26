@@ -288,3 +288,20 @@ mod tests {
         .is_err());
     }
 }
+
+// Owner-typed closed ABI census of additional trailing-active classification.
+// The worst short-circuit path calls both original is_v2 and is_v3 helpers.
+#[cfg(test)]
+const IS_VERSION_CALL_CONTROLS: usize =
+    4 * std::mem::size_of::<Op>() // actual/formal and matches scrutinee/receiver
+    + 2 * std::mem::size_of::<bool>(); // return/short-circuit receiver
+#[cfg(test)]
+pub(crate) const CLASSIFY_CALL_CONTROLS: usize =
+    4 * std::mem::size_of::<Op>() // actual/formal and initial matches sum
+    + 2 * std::mem::size_of::<bool>() // initial matches/short-circuit receiver
+    + 2 * IS_VERSION_CALL_CONTROLS // both actually reachable version calls
+    + 2 * std::mem::size_of::<bool>(); // entire function return/caller guard
+#[cfg(test)]
+pub(crate) const ID_CALL_CONTROLS: usize =
+    4 * std::mem::size_of::<Op>() // actual/formal and match scrutinee/receiver
+    + 2 * std::mem::size_of::<&'static str>(); // return/caller receiver

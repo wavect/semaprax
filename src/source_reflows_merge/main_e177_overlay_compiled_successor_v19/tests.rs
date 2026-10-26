@@ -145,7 +145,7 @@ fn singleton_declaration_rejects_hidden_attributes_duplicates_and_nonbyte_spans(
     }
 }
 
-fn actual() -> (Value, Value, Value) {
+fn actual_before_v20() -> (Value, Value, Value) {
     let (policy, page) = super::super::load_current().unwrap();
     assert_eq!(
         page["schema"], SCHEMA,
@@ -345,4 +345,310 @@ fn actual_v19_refuses_unknown_multiple_stale_and_legacy_classification_changes()
         header(&over).is_err(),
         "the complete wrapper retains the original wire cap"
     );
+}
+
+fn actual() -> (Value,Value,Value) {
+    let (policy,page)=super::super::load_current().unwrap();
+    if page["schema"] != SCHEMA_V20 { return actual_before_v20(); }
+    let before=super::super::super::packet_before_overlay();
+    compose20(before.clone(),&policy,&page).unwrap();
+    let raw_page=include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"),"/e/9f61257911904ae42695cf2994813c97f403cadd5f71bdd330e1160d3db9b6c6"));
+    let raw_policy=include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"),"/e/c26bd8ae837d06c6b0048df2ce0c82bccd79f740af59719a39b8c3b8dc957ff0"));
+    for (raw,length,sha) in [(raw_page.as_slice(),261145,"9f61257911904ae42695cf2994813c97f403cadd5f71bdd330e1160d3db9b6c6"),(raw_policy.as_slice(),196922,"c26bd8ae837d06c6b0048df2ce0c82bccd79f740af59719a39b8c3b8dc957ff0")] {
+        assert_eq!(raw.len(),length);assert_eq!(digest(raw),sha);
+        let path=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("e/{sha}"));
+        assert_eq!(super::super::held_4a6eb(&path,length,sha).unwrap().as_bytes(),raw);
+    }
+    let retained_page:Value=serde_json::from_slice(raw_page).unwrap();let retained_policy:Value=serde_json::from_slice(raw_policy).unwrap();
+    assert_eq!(canonical(&retained_page).as_slice(),raw_page.as_slice());assert_eq!(canonical(&retained_policy).as_slice(),raw_policy.as_slice());
+    assert_eq!(retained_page["schema"],SCHEMA);compose(before.clone(),&retained_policy,&retained_page).unwrap();
+    (before,retained_policy,retained_page)
+}
+
+fn auth_fixture20(owner:&str)->Value {
+    let mut fixture=auth_fixture(owner);fixture["schema"]=SCHEMA_V20.into();
+    let current:Value=serde_json::from_slice(include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"),"/docs/evidence/finite-source-overlay-v2-20261018/page.json"))).unwrap();
+    assert_eq!(current["schema"],SCHEMA_V20);fixture["page"]=current["page"].clone();fixture
+}
+fn actual20()->(Value,Value,Value) {
+    let (policy,page)=super::super::load_current().unwrap();assert_eq!(page["schema"],SCHEMA_V20);
+    (super::super::super::packet_before_overlay(),policy,(*page).clone())
+}
+fn packed20(page: &Value) -> Value {
+    let entry = header20(page).unwrap();
+    let mut result = page.clone();
+    result["compiled_successor"] = serde_json::json!([
+        "m",
+        entry["prior_row_sha256"],
+        entry["current"]["length"],
+        entry["current"]["sha256"],
+        entry["registration"]["current"]["length"],
+        entry["registration"]["current"]["sha256"],
+        entry["registration"]["start"]
+    ]);
+    result
+}
+fn exercise20_singleton_registration_authenticates_both_trusted_current_channels_before_declaration() {
+    let page = auth_fixture20(OWNER_TEXT);
+    let reads = Cell::new(0);
+    let registry = |source: &str| match source {
+        SOURCE => Some(SOURCE_TEXT),
+        OWNER => Some(OWNER_TEXT),
+        _ => None,
+    };
+    let acquire = |row: &Value| {
+        reads.set(reads.get() + 1);
+        assert_eq!(row["compiled"], true);
+        Ok(registry(row["source"].as_str().unwrap())
+            .unwrap()
+            .to_owned())
+    };
+    authenticate20_with(&page, &registry, &acquire).unwrap();
+    assert_eq!(reads.get(), 2);
+    let tuple = packed20(&page);
+    assert_eq!(
+        canonical(&header20(&tuple).unwrap()),
+        canonical(&header20(&page).unwrap()),
+        "ENTIRE closed object reconstructed from the strict tuple"
+    );
+    reads.set(0);
+    authenticate20_with(&tuple, &registry, &acquire).unwrap();
+    assert_eq!(reads.get(), 2);
+    for missing in [SOURCE, OWNER] {
+        reads.set(0);
+        let incomplete = |source: &str| {
+            if source == missing {
+                None
+            } else {
+                registry(source)
+            }
+        };
+        assert!(authenticate20_with(&page, &incomplete, &acquire).is_err());
+        assert_eq!(
+            reads.get(),
+            0,
+            "both trusted bindings precede the first read"
+        );
+    }
+    for channel in ["source", "owner"] {
+        let mut stale = page.clone();
+        let current = if channel == "source" {
+            &mut stale["compiled_successor"]["current"]
+        } else {
+            &mut stale["compiled_successor"]["registration"]["current"]
+        };
+        current["sha256"] = "0".repeat(64).into();
+        current["archive"] = format!("e/{}", "0".repeat(64)).into();
+        reads.set(0);
+        assert!(authenticate20_with(&stale, &registry, &acquire).is_err());
+        assert_eq!(
+            reads.get(),
+            0,
+            "a wire pin cannot authorize physical acquisition"
+        );
+    }
+    for broken in [SOURCE, OWNER] {
+        let acquire = |row: &Value| {
+            if row["source"] == broken {
+                Ok("foreign physical bytes".to_owned())
+            } else {
+                Ok(registry(row["source"].as_str().unwrap())
+                    .unwrap()
+                    .to_owned())
+            }
+        };
+        assert!(authenticate20_with(&page, &registry, &acquire).is_err());
+    }
+}
+fn exercise20_singleton_declaration_rejects_hidden_attributes_duplicates_and_nonbyte_spans() {
+    let ordinary = auth_fixture20(OWNER_TEXT);
+    for owner in [
+        format!("\n\n#[cfg(test)]\n{DECLARATION}"),
+        format!("\n\n{DECLARATION}\n{DECLARATION}"),
+    ] {
+        let page = auth_fixture20(&owner);
+        let registry = |source: &str| match source {
+            SOURCE => Some(SOURCE_TEXT),
+            OWNER => Some(owner.as_str()),
+            _ => None,
+        };
+        let acquire = |row: &Value| {
+            Ok(registry(row["source"].as_str().unwrap())
+                .unwrap()
+                .to_owned())
+        };
+        assert!(authenticate20_with(&page, &registry, &acquire).is_err());
+    }
+    for start in [
+        serde_json::json!(true),
+        serde_json::json!(-1),
+        serde_json::json!(0),
+        serde_json::json!(u64::MAX),
+    ] {
+        let mut page = ordinary.clone();
+        page["compiled_successor"]["registration"]["start"] = start;
+        assert!(header20(&page).is_err());
+    }
+}
+fn exercise20_actual_v19_refuses_unknown_multiple_stale_and_legacy_classification_changes() {
+    let (before, policy, page) = actual20();
+    // The old closed-object route retains every object-only hostile. These
+    // cannot be expressed by the fixed tuple and remain checked independently.
+    let object = auth_fixture20(OWNER_TEXT);
+    let mut object_hostiles = Vec::new();
+    let mut bad = object.clone();
+    bad["compiled_successor"]["compiled"] = true.into();
+    object_hostiles.push(bad);
+    let mut bad = object.clone();
+    bad["compiled_successor"]["source"] = OWNER.into();
+    object_hostiles.push(bad);
+    let mut bad = object.clone();
+    bad["compiled_successor"]["current"]["archive"] = "src/foreign.rs".into();
+    object_hostiles.push(bad);
+    let mut bad = object.clone();
+    bad["compiled_successor"]["registration"]["owner"] = SOURCE.into();
+    object_hostiles.push(bad);
+    let mut bad = object.clone();
+    bad["compiled_successor"]["registration"]["text"] =
+        format!("#[cfg(test)]\n{DECLARATION}").into();
+    object_hostiles.push(bad);
+    for bad in object_hostiles {
+        assert!(header20(&bad).is_err());
+    }
+    let page = packed20(&page);
+    let mut hostiles = Vec::new();
+    let mut bad = page.clone();
+    bad["unknown"] = true.into();
+    hostiles.push(bad);
+    let mut bad = page.clone();
+    bad["compiled_successor"] = serde_json::json!([page["compiled_successor"].clone()]);
+    hostiles.push(bad);
+    let mut bad = page.clone();
+    bad["compiled_successor"][1] = "0".repeat(64).into();
+    hostiles.push(bad);
+    let mut bad = page.clone();
+    bad["compiled_successor"][2] = (super::super::SOURCE_CAP + 1).into();
+    hostiles.push(bad);
+    let mut bad = page.clone();
+    bad["page"]["schema"] = SCHEMA.into();
+    hostiles.push(bad);
+    let mut bad = page.clone();
+    bad["compiled_successor"][5] = "0".repeat(64).into();
+    hostiles.push(bad);
+    for slot in [2, 4, 6] {
+        for value in [
+            serde_json::json!(true),
+            serde_json::json!(-1),
+            serde_json::json!(1.0),
+            serde_json::json!(u64::MAX),
+        ] {
+            let mut bad = page.clone();
+            bad["compiled_successor"][slot] = value;
+            hostiles.push(bad);
+        }
+    }
+    for slot in [1, 3, 5] {
+        for value in [
+            serde_json::json!(true),
+            serde_json::json!("G".repeat(64)),
+            serde_json::json!("0".repeat(63)),
+        ] {
+            let mut bad = page.clone();
+            bad["compiled_successor"][slot] = value;
+            hostiles.push(bad);
+        }
+    }
+    let mut bad = page.clone();
+    bad["compiled_successor"][0] = "unknown".into();
+    hostiles.push(bad);
+    let mut bad = page.clone();
+    bad["compiled_successor"].as_array_mut().unwrap().pop();
+    hostiles.push(bad);
+    let mut bad = page.clone();
+    bad["compiled_successor"]
+        .as_array_mut()
+        .unwrap()
+        .push(false.into());
+    hostiles.push(bad);
+    for bad in hostiles {
+        assert!(compose20(before.clone(), &policy, &bad).is_err());
+    }
+    for duplicate in [false, true] {
+        let mut changed_policy = policy.clone();
+        let paths = changed_policy["replacements"].as_array_mut().unwrap();
+        if duplicate {
+            paths.push(SOURCE.into());
+        } else {
+            paths.retain(|source| source.as_str() != Some(SOURCE));
+        }
+        assert_eq!(
+            compose20(before.clone(), &changed_policy, &page).unwrap_err(),
+            "v19 explicit replacement",
+            "the singleton must occur exactly once in the explicit replacement scope"
+        );
+    }
+    let admitted = compose20(before.clone(), &policy, &page).unwrap();
+    let owner_index = admitted["rows"].as_array().unwrap().iter()
+        .position(|row| row["source"] == OWNER).expect("actual canonical OWNER");
+    let base_rows = before["rows"].as_array().unwrap().len();
+    assert!(owner_index >= base_rows, "OWNER is an actual current addition");
+    let mut owner_page = page.clone();
+    // Mutate the actual producer-emitted V18 typed row through its admitted
+    // public 0/1 compiled slot; every ordinary decoder and cap check still runs.
+    let owner = &mut owner_page["page"]["additions"][owner_index - base_rows];
+    assert!(owner.is_array());
+    assert_eq!(owner[1], 1);
+    owner[1] = 0.into();
+    assert_eq!(
+        compose20(before.clone(), &policy, &owner_page).unwrap_err(),
+        // The ordinary V3 fragment census rejects this actual noncompiled
+        // owner before the later successor-owner check can grant authority.
+        "v3 noncompiled or nested reference",
+        "an uncompiled actual canonical declaration owner cannot authorize the successor"
+    );
+    assert!(
+        super::super::compose_values(before.clone(), &policy, &page["page"]).is_err(),
+        "V18/V2 still refuse a changed compiled flag"
+    );
+    let mut changed = before.clone();
+    changed["rows"][POSITION]["compiled"] = true.into();
+    let mut internal_policy = policy.clone();
+    internal_policy["predecessor"]["logical_sha256"] = digest(&canonical(&changed)).into();
+    let mut bad = page.clone();
+    bad["page"]["predecessor"] = internal_policy["predecessor"].clone();
+    assert!(
+        compose20(changed, &internal_policy, &bad).is_err(),
+        "no true-to-true or repeated successor"
+    );
+    let mut over = page.clone();
+    over["padding"] = "x".repeat(PAGE_CAP).into();
+    assert!(
+        header20(&over).is_err(),
+        "the complete wrapper retains the original wire cap"
+    );
+}
+
+#[test]
+fn v20_entire_authority_hostile_corpus_and_warm_injected_reader_stay_fail_closed() {
+    exercise20_singleton_registration_authenticates_both_trusted_current_channels_before_declaration();
+    exercise20_singleton_declaration_rejects_hidden_attributes_duplicates_and_nonbyte_spans();
+    exercise20_actual_v19_refuses_unknown_multiple_stale_and_legacy_classification_changes();
+    let (_,_,page)=actual20();
+    let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let reads=Cell::new(0usize);
+    let read=|path:&std::path::Path,n:usize,h:&str|{reads.set(reads.get()+1);super::super::held_4a6eb(path,n,h)};
+    authenticate20_using(&page,&read).unwrap();assert_eq!(reads.get(),4);
+    let entry=header20(&page).unwrap();
+    for path in [SOURCE,OWNER,entry["current"]["archive"].as_str().unwrap(),entry["registration"]["current"]["archive"].as_str().unwrap()] {
+        let fail=root.join(path);
+        assert!(authenticate20_using(&page,&|p,n,h|if p==fail{Err("hostile injected drift")}else{super::super::held_4a6eb(p,n,h)}).is_err());
+    }
+    // The same trusted-binding-before-I/O condition applies to the injected
+    // warm reader; complete early/late routing is exercised by owning940 tests.
+    {
+        let mut stale=page.clone();stale["compiled_successor"]=header20(&page).unwrap().into_owned();
+        stale["compiled_successor"]["current"]["sha256"]="0".repeat(64).into();stale["compiled_successor"]["current"]["archive"]=format!("e/{}","0".repeat(64)).into();
+        let reads=Cell::new(0usize);
+        assert!(authenticate20_using(&stale,&|_,_,_|{reads.set(reads.get()+1);Err("must not acquire")}).is_err());assert_eq!(reads.get(),0);
+    }
 }

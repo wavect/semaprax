@@ -1570,3 +1570,5 @@ src/source_reflows_merge/main_e177_overlay_compiled_successor_v19/tests.rs
 src/source_reflows/ci_inputs_current_epoch.rs
 src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_before_protocol/owner.rs
 src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_before_protocol/held_invocation_tests.rs
+src/cleanup_plan/replay/trailing_active.rs
+src/cleanup_plan/replay/trailing_active/tests.rs

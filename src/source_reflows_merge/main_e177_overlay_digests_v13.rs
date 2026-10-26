@@ -1365,3 +1365,5 @@ pub(in super::super) use typed_refs_v18::{expand_v18, expand_v19_indexed, prefli
 
 #[cfg(test)]
 pub(in super::super) use tests::{verify_current_v17, verify_current_v18};
+
+pub(in super::super) use typed_refs_v18::{expand_v20_compact, preflight_compact, SCHEMA_V20_COMPACT};

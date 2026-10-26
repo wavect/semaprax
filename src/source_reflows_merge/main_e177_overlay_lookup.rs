@@ -1,5 +1,11 @@
 pub(crate) fn compiled(source: &str) -> Option<&'static str> {
     match source {
+        "src/workspace_graph/expected_projection/borrowed_imports.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/borrowed_imports.rs")),
+        "src/source_reflows_merge/final_ready_inputs/merged_projection.rs" => Some(include_str!("../../src/source_reflows_merge/final_ready_inputs/merged_projection.rs")),
+        "src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation.rs" => Some(include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation.rs")),
+        "src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_tests.rs")),
+        "src/cleanup_plan/replay/expression_facts/receiving/retained/held_status_invocation.rs" => Some(include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/retained/held_status_invocation.rs")),
+        "src/cleanup_plan/replay/fact_preflight/before_status_receivers.rs" => Some(include_str!("../../src/cleanup_plan/replay/fact_preflight/before_status_receivers.rs")),
         "src/workspace_graph/expected_projection/borrowed_imports_original.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/borrowed_imports_original.rs")),
         "src/ast/program_source/decl_slices/alias_tests.rs" => Some(include_str!("../../src/ast/program_source/decl_slices/alias_tests.rs")),
         "src/ast/program_source/decl_slices/before_alias.rs" => Some(include_str!("../../src/ast/program_source/decl_slices/before_alias.rs")),

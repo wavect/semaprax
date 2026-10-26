@@ -322,7 +322,10 @@ fn owned_rows_keep_entire_immediate_source_abi_helpers_and_typed_transport_map()
     let original = include_str!("immediate_before.rs.txt");
     use sha2::{Digest, Sha256};
     assert_eq!(
-        format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(original.as_bytes()))),
+        format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(original.as_bytes()))
+        ),
         "97b1eafdd7198997927eb01d6196ef16f094e90e621ebd7e6136befe9e491844"
     );
     let compiled = include_str!("immediate_before.rs");
@@ -352,6 +355,25 @@ fn owned_rows_malformed_unwind_releases_complete_inputs_and_partly_built_result(
     let (program, index) = boundary_tests::fixture_with_uses(3, true);
     let function = &program.functions[index];
     let plan = saved_planner::build_plan(&program, function).unwrap();
+    // Prime the process/thread panic runtime outside observation, not the loan
+    // producer: each measured arm below independently repeats the entire same
+    // malformed construction, natural index panic, payload and owner teardown.
+    // First-panic runtime backing is not retained compiler semantic storage.
+    for old in [true, false] {
+        let (_, refused, _, first) = with_limit_usage_refusal(usize::MAX, || {
+            let owner = CfgReservation::acquire().unwrap();
+            let mut input = inputs(function, &plan, &owner).unwrap();
+            assert!(input.4.len() > 1);
+            input.4.truncate(1);
+            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                invoke(input, &owner, old)
+            }));
+            assert!(result.is_err());
+            drop(result);
+            drop(owner);
+        });
+        assert!(!refused && first.is_none());
+    }
     for old in [true, false] {
         with_limit_usage_refusal(usize::MAX, || {
             let (_, metrics) = measure(|| {
@@ -412,7 +434,10 @@ fn owned_rows_complete_funded_caller_keeps_retained_capacity_and_allocation_drop
                             Err(_) => return None,
                         };
                         let result = build_plan_with_reservation(&program, function, &owner);
-                        let retained = result.as_ref().ok().map(|plan| {
+                        // This post-materialization identity census also pays
+                        // actual scratch. A short cap may refuse here after a
+                        // successful materializer; propagate that same refusal.
+                        let retained = result.as_ref().ok().and_then(|plan| {
                             assert_eq!(plan, &expected);
                             for loan in &plan.loans {
                                 assert_eq!(loan.end_edges.capacity(), loan.end_edges.len());
@@ -421,10 +446,10 @@ fn owned_rows_complete_funded_caller_keeps_retained_capacity_and_allocation_drop
                                     loan.origin.projections.len()
                                 );
                             }
-                            (
-                                owned_capacity::clone_capacity_bytes(plan).unwrap(),
-                                owned_capacity::owned_capacity_bytes(plan).unwrap(),
-                            )
+                            Some((
+                                owned_capacity::clone_capacity_bytes(plan)?,
+                                owned_capacity::owned_capacity_bytes(plan)?,
+                            ))
                         });
                         drop(result);
                         drop(owner);

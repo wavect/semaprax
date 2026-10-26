@@ -156,6 +156,14 @@ authenticates the exact function, replay budget, invocation and immutable key
 backing before reading the index, then decides membership by full-key ordering.
 Publication seals mutation; rejected owners stay rejected. Other payers retain
 the original lookup. The index grants no verification or source authority.
+
+`expression_facts/receiving/directory/held_invocation.rs` owns the invocation's
+empty status backing and first receiver-error slot; `retained/held_status_invocation.rs`
+owns its ordinary caller. The controller retains complete fresh validation;
+the owner reauthenticates each full_program callback. Complete previous status owners and the whole program caller
+remain test-only in `directory/invocation.rs`, `retained/ordinary_status_invocation.rs`
+and `fact_preflight/before_status_receivers.rs`. The private transport contract and
+pending executable qualification are in [retained fact lookup v1](RETAINED-EXPRESSION-FACT-LOOKUP-V1.md).
 `hir/canonical_loan_storage/caller/shared` owns immutable lookup publication
 inside the existing captured preparation owner. Active compatibility validators
 and nested closures share exact-program storage; unobserved compatibility owns

@@ -500,6 +500,8 @@ pub(crate) fn before_phase_probes<'a>(
     // Authenticate the exact early-release epoch before the unchanged incoming
     // main and diagnostic-probe inverses; no predecessor pins move.
     let physical_compiled = compiled;
+    let joint_workspace_epoch = joint_replay_workspace_epoch(source, compiled);
+    let compiled = joint_workspace_epoch.as_deref().unwrap_or(compiled);
     let (closure_epoch, _) = Fixture::closure_epoch(
         source,
         "809181e23ff2dd185ba0f28504fa05eea592aa40e94144714c884d997d00d8cc",
@@ -738,4 +740,39 @@ pub(crate) fn phase_probe_stage<'a>(
     }
     let acquired = super::main_e177_final_inputs::value_direct(source, expected, supplied);
     std::borrow::Cow::Owned(before_phase_probes(source, &acquired).into_owned())
+}
+
+// Authenticate the complete joint replay source before the retained workspace epoch.
+fn joint_replay_workspace_epoch(source: &str, supplied: &str) -> Option<String> {
+    if source != "src/cleanup_plan/replay.rs" { return None; }
+    const CURRENT: &str = include_str!("../cleanup_plan/replay.rs");
+    const BEFORE: &str = include_str!("../../e/751c95561915a9b99ebec0bdf702dc9c7448d411f0f80ac58d244bc7df20dde5");
+    const CURRENT_SHA: &str = "392da88cb3c30b1adcff8d845c8af6a797586dfcaab9af2f0c898243f7c8350a";
+    assert_eq!(supplied, CURRENT);
+    assert_eq!((supplied.len(), super::source_sha(supplied)), (326143, CURRENT_SHA.to_owned()));
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let physical = current_file(&root.join(source), CURRENT.len(), CURRENT_SHA).unwrap();
+    assert_eq!(physical, CURRENT);
+    let edits: &[(usize, usize, &str, &str)] = &[
+        (849, 869, "mod fact_preflight;\n", ""),
+        (1134, 1158, "mod projection_backing;\n", ""),
+        (16893, 16967, "pub(in crate::cleanup_plan) use fact_preflight::validate_program_context;\n", "pub(in crate::cleanup_plan) fn validate_program_context(\n    program: &dyn crate::cleanup::ReplayContext,\n) -> Result<(), Diagnostic> {\n    let full = program.full_program().ok_or_else(|| {\n        Diagnostic::io(\n            \"SPX-H006\",\n            \"allocation replay requires the held complete program\",\n        )\n    })?;\n    let mut budget = ReplayBudget::new();\n    let helpers = ordinary_renewals::index(full, &mut budget)?;\n    reserve_program_skeleton_work(\n        program,\n        program.functions().iter().chain(\n            program\n                .function_instances()\n                .iter()\n                .map(|instance| &instance.function),\n        ),\n        &mut budget,\n    )?;\n    let mut continuations = continuation_storage::Storage::for_program(full, &mut budget)?;\n    #[cfg(test)]\n    let mut diagnostic_ordinal = 0usize;\n    for function in program.functions() {\n        #[cfg(test)]\n        let _debit_function = {\n            let scope = debit_routes::function(diagnostic_ordinal, false, function.id.as_str());\n            diagnostic_ordinal = diagnostic_ordinal.saturating_add(1);\n            scope\n        };\n        #[cfg(feature = \"unstable-workflow-profiling\")]\n        let _paid_structure = budget.paid_phase(PaidPhase::ReplayStructure);\n        validate_structure_with_budget_storage(\n            program,\n            function,\n            &mut budget,\n            Some(&helpers),\n            Some(&mut continuations),\n        )?;\n    }\n    #[cfg(test)]\n    let mut diagnostic_instance = 0usize;\n    for instance in program.function_instances() {\n        #[cfg(test)]\n        let _debit_function = {\n            let scope =\n                debit_routes::function(diagnostic_instance, true, instance.function.id.as_str());\n            diagnostic_instance = diagnostic_instance.saturating_add(1);\n            scope\n        };\n        #[cfg(feature = \"unstable-workflow-profiling\")]\n        let _paid_structure = budget.paid_phase(PaidPhase::ReplayStructure);\n        validate_structure_with_budget_storage(\n            program,\n            &instance.function,\n            &mut budget,\n            Some(&helpers),\n            Some(&mut continuations),\n        )?;\n    }\n    Ok(())\n}\n"),
+        (60176, 60313, "    #[cfg(test)]\n    if projection_backing::before_selected() {\n        return projection_backing::before_body!(function, budget);\n    }\n", ""),
+        (60441, 60767, "    // This additional owner/constructor/drop bank precedes formation. Existing\n    // shape receiver, work, growth, clone and leaf invoices remain unchanged.\n    budget.reserve_bytes(\n        function,\n        projection_backing::ENTRY,\n        \"shape projection backing owner\",\n    )?;\n    let mut projections = Vec::new();\n", ""),
+        (60886, 60916, "            &mut projections,\n", "            &mut Vec::new(),\n"),
+        (61060, 61240, "    // Each completed shape proves its starting depth was restored. Drop the\n    // empty backing at the original last-use frontier, before flag validation.\n    drop(projections);\n", ""),
+        (323616, 323735, "pub(crate) use workspace_oracle::{\n    with_financed_validation_test_oracles, with_financed_workspace_test_oracles,\n};\n", "pub(crate) use workspace_oracle::with_financed_workspace_test_oracles;\n"),
+    ];
+    let mut restored = supplied.to_owned();
+    for &(start, end, after, before) in edits.iter().rev() {
+        assert!(start <= end && end <= restored.len());
+        assert!(restored.is_char_boundary(start) && restored.is_char_boundary(end));
+        assert_eq!(&restored[start..end], after);
+        restored.replace_range(start..end, before);
+    }
+    assert_eq!((restored.len(), super::source_sha(&restored)), (327551, "751c95561915a9b99ebec0bdf702dc9c7448d411f0f80ac58d244bc7df20dde5".to_owned()));
+    assert_eq!(restored, BEFORE);
+    assert_eq!(current_file(&root.join("e/751c95561915a9b99ebec0bdf702dc9c7448d411f0f80ac58d244bc7df20dde5"), BEFORE.len(), "751c95561915a9b99ebec0bdf702dc9c7448d411f0f80ac58d244bc7df20dde5").unwrap(), BEFORE);
+    assert_eq!(current_file(&root.join(source), CURRENT.len(), CURRENT_SHA).unwrap(), physical);
+    Some(restored)
 }

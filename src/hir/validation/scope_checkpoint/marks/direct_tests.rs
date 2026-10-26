@@ -269,9 +269,14 @@ fn direct_exact_short_zero_floor_sticky_and_unwind_keep_full_drop_and_immutable_
                         .mark_value_sources_moved(&expression, &mut scope)
                         .unwrap();
                 }
-                panic!("source-owned unwind after actual root return");
+                // Inject an owned unwind payload without the process panic hook retaining backing.
+                std::panic::resume_unwind(Box::new("source-owned unwind after actual root return"));
             }));
             assert!(caught.is_err());
+            assert_eq!(
+                caught.as_ref().unwrap_err().downcast_ref::<&str>(),
+                Some(&"source-owned unwind after actual root return")
+            );
             drop(caught);
         });
         assert!(!metrics.invalid && metrics.live == 0);

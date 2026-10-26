@@ -541,7 +541,8 @@ fn unchanged_propagating_take_unwind_releases_the_complete_owned_scope() {
         }
         fn take_owned(&mut self) -> scope_checkpoint::Owned {
             let _taken = self.0.take_owned();
-            panic!("owning take unwind");
+            // Inject an owned unwind payload without the process panic hook retaining backing.
+            std::panic::resume_unwind(Box::new("owning take unwind"));
         }
         fn replace_owned(&mut self, value: scope_checkpoint::Owned) {
             self.0.replace_owned(value);
@@ -563,6 +564,10 @@ fn unchanged_propagating_take_unwind_releases_the_complete_owned_scope() {
                 call(&validator, &expression, &mut scope, old)
             }));
             assert!(caught.is_err());
+            assert_eq!(
+                caught.as_ref().unwrap_err().downcast_ref::<&str>(),
+                Some(&"owning take unwind")
+            );
             assert_eq!(scope.len(), 0);
             drop(caught);
             drop(scope);

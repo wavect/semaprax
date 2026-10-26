@@ -275,13 +275,13 @@ fn complete_direct_caller_has_honest_large_net_and_keeps_its_cold_loss_visible()
     // Preserve the original many-borrowcall shape and both strict conditions;
     // the one-view shape above is an additional case, not a replacement.
     let mut many_source = String::from("module direct.net;\n@id(\"packet\") record Packet { @id(\"data\") data:Bytes, }\n@id(\"large\") fn large(packet:own Packet)->usize {let view=bytes_as_slice(packet.data); ");
-    for index in 0..192 {
-        if index != 0 {
-            many_source.push('+');
-        }
-        many_source.push_str("byte_len(view)");
+    // Preserve all 192 calls and 191 left-to-right additions without a
+    // left-associated expression deeper than the ordinary parser limit.
+    many_source.push_str("let mut count=byte_len(view); ");
+    for _ in 1..192 {
+        many_source.push_str("count=count+byte_len(view); ");
     }
-    many_source.push_str("}\n@id(\"main\") fn main()->i64 {0}\n");
+    many_source.push_str("count}\n@id(\"main\") fn main()->i64 {0}\n");
     let many = crate::hir::resolve(&crate::check(&many_source, "direct-net.spx").unwrap()).unwrap();
     assert_eq!(
         many.functions.iter().map(|f| f.loan_plan.loans.len()).max(),
@@ -506,7 +506,7 @@ fn entire_immediate_sources_and_independent_old_receivers_are_authenticated() {
     assert!(raw.len() <= 2 * 1024 * 1024);
     assert_eq!(
         digest(raw.as_bytes()),
-        "b0431b45c4448896a962c8bfb7be0cb93f2b648c976eeae81865c44741cfc238"
+        "0f9b47d44e062f48ea99385888151db83cae1b6a4ac00a4ed959b76fd3105b45"
     );
     let snapshot: serde_json::Value = serde_json::from_str(raw).unwrap();
     assert_eq!(snapshot["base"], "8086b7e5047e7199c8fccb2f07c49c3513982d2a");
@@ -555,6 +555,119 @@ fn entire_immediate_sources_and_independent_old_receivers_are_authenticated() {
         )
         .unwrap(),
         historical
+    );
+
+    // Authenticate the entire preceding source contract and both old test
+    // bodies, rather than relabeling their snapshots as current coverage.
+    let history = &snapshot["retained_pre_admitted_fixtures"];
+    let prior = &history["source_metadata"];
+    let read_archive = |record: &serde_json::Value| {
+        source_reader::read(
+            &std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join(record["path"].as_str().unwrap()),
+            record["length"].as_u64().unwrap() as usize,
+            record["sha256"].as_str().unwrap(),
+            2 * 1024 * 1024,
+        )
+        .unwrap()
+    };
+    let repair = &snapshot["retained_before_control_repair"];
+    let repair_prior_raw = read_archive(&repair["metadata"]);
+    let repair_prior: serde_json::Value = serde_json::from_str(&repair_prior_raw).unwrap();
+    assert_eq!(repair_prior_raw.len(), 670127);
+    assert_eq!(
+        digest(repair_prior_raw.as_bytes()),
+        "8aee7eb9e4279066053937a40a42ff32c2bdff678136e3741157b1f93d9af499"
+    );
+    let repair_sources = repair["test_sources"].as_array().unwrap();
+    assert_eq!(repair_sources.len(), 2);
+    for record in repair_sources {
+        let archived = read_archive(record);
+        assert_eq!(
+            digest(archived.as_bytes()),
+            record["sha256"].as_str().unwrap()
+        );
+    }
+    let mut repair_metadata = snapshot.clone();
+    repair_metadata
+        .as_object_mut()
+        .unwrap()
+        .remove("retained_before_control_repair");
+    for stage in ["rows", "immediate_owned_stage"] {
+        let (current_rows, previous_rows) = if stage == "rows" {
+            (&mut repair_metadata["rows"], &repair_prior["rows"])
+        } else {
+            (
+                &mut repair_metadata[stage]["rows"],
+                &repair_prior[stage]["rows"],
+            )
+        };
+        let current_rows = current_rows.as_array_mut().unwrap();
+        let previous_rows = previous_rows.as_array().unwrap();
+        assert_eq!(current_rows.len(), previous_rows.len());
+        for (current, previous) in current_rows.iter_mut().zip(previous_rows) {
+            for key in ["after_length", "after_sha256", "edits"] {
+                current[key] = previous[key].clone();
+            }
+            assert_eq!(
+                &*current, previous,
+                "whole target and unknown fields remain exact"
+            );
+        }
+    }
+    assert_eq!(repair_metadata, repair_prior);
+    let prior_raw = read_archive(prior);
+    assert_eq!(prior_raw.len(), 669479);
+    assert_eq!(
+        digest(prior_raw.as_bytes()),
+        "b0431b45c4448896a962c8bfb7be0cb93f2b648c976eeae81865c44741cfc238"
+    );
+    let prior_snapshot: serde_json::Value = serde_json::from_str(&prior_raw).unwrap();
+    let test_sources = history["test_sources"].as_array().unwrap();
+    assert_eq!(test_sources.len(), 2);
+    for record in test_sources {
+        let archived = read_archive(record);
+        assert_eq!(
+            digest(archived.as_bytes()),
+            record["sha256"].as_str().unwrap()
+        );
+    }
+    for (current_rows, prior_rows) in [
+        (&snapshot["rows"], &prior_snapshot["rows"]),
+        (
+            &snapshot["immediate_owned_stage"]["rows"],
+            &prior_snapshot["immediate_owned_stage"]["rows"],
+        ),
+    ] {
+        let current_rows = current_rows.as_array().unwrap();
+        let prior_rows = prior_rows.as_array().unwrap();
+        assert_eq!(current_rows.len(), prior_rows.len());
+        for (current, prior) in current_rows.iter().zip(prior_rows) {
+            assert_eq!(current["path"], prior["path"]);
+            assert_eq!(current["before"], prior["before"]);
+            assert_eq!(current["before_sha256"], prior["before_sha256"]);
+            let mut original_row = current.clone();
+            for key in ["after_length", "after_sha256", "edits"] {
+                original_row[key] = prior[key].clone();
+            }
+            assert_eq!(&original_row, prior, "all other row metadata is retained");
+        }
+    }
+    let mut retained = snapshot.clone();
+    retained
+        .as_object_mut()
+        .unwrap()
+        .remove("retained_pre_admitted_fixtures");
+    retained
+        .as_object_mut()
+        .unwrap()
+        .remove("retained_before_control_repair");
+    retained["rows"] = prior_snapshot["rows"].clone();
+    retained["immediate_owned_stage"]["rows"] =
+        prior_snapshot["immediate_owned_stage"]["rows"].clone();
+    assert_eq!(
+        retained, prior_snapshot,
+        "all preceding unknown metadata remains whole"
     );
 
     let rows = snapshot["rows"].as_array().unwrap();

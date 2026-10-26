@@ -1208,6 +1208,19 @@ fn v18_entire_preimage_keeps_unknown_fields_one_level_domains_and_order() {
     let mut nested = logical.clone();
     nested["additions"][1]["fragments"] = serde_json::json!([{ "source":"nested.rs", "compiled":true,"current":[1,"A".repeat(43)],"views":[],"fragments":[519,{"canonical_source":519}]}]);
     assert_eq!(
+        typed_refs_v18::encode_rows(&nested).unwrap_err(),
+        "v13 uninterned or aliased digest"
+    );
+    nested["additions"][1]["fragments"][0]["current"] = serde_json::json!([1, 0]);
+    assert_eq!(
+        typed_refs_v18::encode_rows(&nested).unwrap_err(),
+        "v14 uninterned or aliased tail"
+    );
+    let admitted_tail = logical["replacements"][0]["old519_index"][1].clone();
+    assert_eq!(admitted_tail.as_array().unwrap().len(), 1);
+    assert!(admitted_tail[0].is_u64());
+    nested["additions"][1]["fragments"][0]["current"] = admitted_tail;
+    assert_eq!(
         typed_refs_v18::expand_to_v15(&typed_refs_v18::encode_rows(&nested).unwrap()).unwrap(),
         nested
     );

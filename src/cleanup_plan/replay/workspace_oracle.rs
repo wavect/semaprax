@@ -69,9 +69,53 @@ pub(crate) fn with_financed_workspace_test_oracles<T>(
     (result, receipt.started, receipt.charged)
 }
 
+/// Validation frontier fixtures can fail before the first comparison hook.
+/// Successful runs must execute references; a failed run may execute none.
+/// Every started receiver must still finish without any account refusal.
+pub(crate) fn with_financed_validation_test_oracles<T>(
+    receivers: usize,
+    body: impl FnOnce() -> (T, bool),
+) -> (T, usize, usize) {
+    let scope = OracleScope::open_with_work(1 << 28, reference_work_bound(receivers))
+        .expect("explicit independent validation reference account");
+    let trace = ReferenceReceiptOnUnwind::new(&scope, receivers);
+    let selected = opt_in(scope.lease()).expect("one explicit validation reference account");
+    let (result, success) = body();
+    drop(selected);
+    drop(trace);
+    let receipt = scope.finish();
+    eprintln!("validation reference max_receivers={receivers} success={success} complete_receipt={receipt:?}");
+    assert!(receipt.started <= receivers, "{receipt:?}");
+    assert!(
+        !success || receipt.started > 0,
+        "successful validation fixture must execute the live reference hook"
+    );
+    assert_eq!(receipt.completed, receipt.started);
+    assert!(
+        receipt.first_refusal.is_none()
+            && receipt.first_work_refusal.is_none()
+            && receipt.physical_failure.is_none(),
+        "{receipt:?}"
+    );
+    (result, receipt.started, receipt.charged)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn validation_reference_scope_allows_only_failed_runs_to_reach_no_hook() {
+        let (result, started, charged) =
+            with_financed_validation_test_oracles(2, || ("early compiler refusal", false));
+        assert_eq!((result, started, charged), ("early compiler refusal", 0, 0));
+        assert!(super::super::allocation::opted().unwrap().is_none());
+        assert!(std::panic::catch_unwind(|| {
+            with_financed_validation_test_oracles(2, || ((), true))
+        })
+        .is_err());
+        assert!(super::super::allocation::opted().unwrap().is_none());
+    }
+
     #[test]
     fn workspace_reference_scope_rejects_an_empty_comparison_and_restores_opt_in() {
         assert!(

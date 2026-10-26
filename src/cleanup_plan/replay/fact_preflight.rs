@@ -35,8 +35,11 @@ macro_rules! with_program_backing {
                 expression_facts::arena::invocation::Backing::ACQUISITION_BYTES,
                 "invocation fact backing acquisition and returned receiver",
             )?;
-            let mut $owner =
-                expression_facts::arena::invocation::Backing::acquire($full, function, &mut $budget)?;
+            let mut $owner = expression_facts::arena::invocation::Backing::acquire(
+                $full,
+                function,
+                &mut $budget,
+            )?;
             $continuation
         } else {
             // No owner-shaped Option/Result/return packet exists on this path.
@@ -129,7 +132,9 @@ pub(in crate::cleanup_plan) fn validate_program_context(
             &mut fact_backing,
             &mut status_backing,
         )?;
-        status_backing.complete(program, function, &mut budget)?;
+        if !status_backing.complete_into(program, function, &mut budget) {
+            return Err(status_backing.take_error());
+        }
     }
     #[cfg(test)]
     let mut diagnostic_instance = 0usize;
@@ -152,7 +157,9 @@ pub(in crate::cleanup_plan) fn validate_program_context(
             &mut fact_backing,
             &mut status_backing,
         )?;
-        status_backing.complete(program, &instance.function, &mut budget)?;
+        if !status_backing.complete_into(program, &instance.function, &mut budget) {
+            return Err(status_backing.take_error());
+        }
     }
     Ok(())
     })
@@ -283,3 +290,8 @@ pub(in crate::cleanup_plan) fn before_invocation_validate_program_context(
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod before_status_receivers;
+#[cfg(test)]
+pub(in crate::cleanup_plan) use before_status_receivers::validate_program_context as before_941_validate_program_context;

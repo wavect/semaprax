@@ -1,3 +1,12 @@
+## Receiving and merged-source repair batch (#941)
+
+- Author invocation-held status receiver outputs with one terminal error
+  destination, replacing absent outer Diagnostic return transports while
+  retaining complete original controllers and fresh validation. Whole-invoice,
+  resource, Drop and genuine application controls await the grouped check.
+- Restore exact match diagnostics and repair source bindings and test fixtures
+  while preserving their workloads, full predecessors and existing limits.
+
 ## Direct terminal source moves (#939)
 
 - Run exact Place roots without constructing temporary source-move directories,

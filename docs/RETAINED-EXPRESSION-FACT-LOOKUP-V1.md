@@ -304,12 +304,16 @@ No retained query occurs in those later continuations.
 For successful selected traversal, let `q` be actual transition lookups and `c`
 actual guarded callback sequences. The complete additional comparison is:
 
-- old tail: `q * (OLD_SCRATCH + 2*sizeof(Result<Option<&Option<CallFact>>, Diagnostic>))`;
+- old tail: `q * (OLD_SCRATCH + 2*sizeof(Result<Option<&Option<CallFact>>, ByteFailure>) + sizeof(Result<Option<&Option<CallFact>>, Diagnostic>))`;
 - new tail: `q * (into_edge_local_bytes + into_edge_query_bytes + sizeof(Option<&Option<CallFact>>))`
   plus `c * (StorageParent::CURRENT_CONTROLS + sizeof(usize) + 3*sizeof(&str) + sizeof(bool))`
   plus the one cold `StorageParent::ACQUISITION_CONTROLS + StorageParent::TERMINAL_CONTROLS + sizeof(usize) + 3*sizeof(&str) + sizeof(bool)` bank.
 
-These are actual target-layout costs. The positive gate uses the complete
+The old transition producer still calls `Arena::fact`. Its nonempty ActiveBuilder
+route uses the compact lookup: two narrow `ByteFailure` Results and one outer
+Diagnostic Result survive alongside the entire original scratch. The earlier
+status and initial-edge Session calls retain their own two-Diagnostic-Result
+equations. These are actual target-layout costs. The positive gate uses the complete
 immediate invocation, including its unchanged acquisition, prior retained phases,
 all callback guards and whole-caller work. No CPU, application-fit, physical RSS,
 or runtime benefit follows from the source equation. New success, full-field
@@ -362,3 +366,29 @@ capacity, insertion, proof, release and work charges remain, except actual
 node replacement allocation and relocation work physically absent with held
 capacity. New-owner cold costs and complete whole-caller net remain executable
 receiving gates; source-only implementation is not application qualification.
+
+The status receiver transport candidate (#941) keeps the complete ordinary
+controller and directory constructor. `directory/held_invocation.rs` owns one
+invocation-local first Diagnostic destination and a terminal-extraction flag;
+`retained/held_status_invocation.rs` owns the actual caller. Authenticate,
+context, directory publication and completion return bool into explicit
+receivers. Their absent outer Diagnostic Results are replaced by actual typed
+bool, output-slot and argument packets. Every surviving reserve-call Result,
+original directory-constructor Result, scratch owner, callback check, insertion,
+release and work charge remains paid. The enlarged owner and complete possible
+terminal move/Drop bank are paid before acquisition, even on successful runs.
+
+The destination retains its first selected six-field receiver Diagnostic. No later
+receiver, foreign budget, ACTIVE switch or callback may replace it or advance
+the function ordinal. Extraction marks the whole owner terminal; every owning
+caller immediately returns and later use cannot resume another function. The
+output slot starts empty, preserves an occupied destination on refusal, and
+publishes only the complete fresh directory. Recycling retains only cleared
+node capacity after the original ledger and immutable index last-use frontiers.
+The original status owner, controller and whole program caller remain
+independently executable under cfg(test). The owning unit controls compare full
+old/new invoices and outputs, independent exact/short/zero/floor limits,
+first-error and callback affinity, malformed input and unwind-through-Drop.
+These controls are authored; grouped executable qualification and genuine
+application admission remain pending. No token or allocation advantage follows
+from the source transformation.

@@ -363,7 +363,7 @@ fn complete_receiving_sources_reconstruct_pinned_originals() {
             digest
         );
         assert_eq!(record["sha256"].as_str().unwrap(), digest);
-        let current_stage = receiving_pre286_source(record["path"].as_str().unwrap(), current);
+        let current_stage = receiving_pre286_record_source(record["path"].as_str().unwrap(), current, record);
         let current = current_stage.as_str();
         let mut restored = super::super::call_carriers::inverse::pre898(current);
         for edit in record["edits"].as_array().unwrap().iter().rev() {
@@ -403,4 +403,48 @@ fn historical_pre898_complete_saved_forecast_differs_only_by_base_prelude_retent
             }
         }
     }
+}
+
+#[path = "../identity_resolution/base/cache_billing/main7f8_reader.rs"]
+mod forecast_joint_physical_reader;
+
+// Four recorded whole transports must enter the unchanged inverse exactly once.
+fn receiving_pre286_record_source(path: &str, current: &str, record: &serde_json::Value) -> String {
+    use sha2::{Digest, Sha256};
+    let hash = |raw: &str| format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(raw.as_bytes())));
+    let compiled = match path {
+        "src/prelude.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/prelude.rs")),
+        "src/workspace_graph/expected_projection.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection.rs")),
+        "src/workspace_graph/expected_projection/held_projection.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/workspace_graph/expected_projection/held_projection.rs")),
+        "src/source_verify/constructor_tests.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/source_verify/constructor_tests.rs")),
+        "tests/workspace/semantic_graph/source_inventory.rs" => include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/workspace/semantic_graph/source_inventory.rs")),
+        _ => panic!("foreign complete forecast source"),
+    };
+    assert_eq!(current, compiled);
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let physical = forecast_joint_physical_reader::read(&root.join(path), current.len(), &hash(current), 9_753_094).unwrap();
+    assert_eq!(physical, current);
+    let receiving = receiving_pre286_source(path, current);
+    let stage = match path {
+        "src/prelude.rs" => Some((4, 46154, "e7ad3dacb0541f2c4558a6826aaef49f05a3cbdec2ae358061f6e387017f6a51", 46130, "32a5461db85f2832bb788ed32efd1df82eb8f48ffe44c51c533ceb20a596b478")),
+        "src/source_verify/constructor_tests.rs" => Some((3, 17238, "3bb066087c62d99a1169a6eabb6a24af2c786afb3561a18e6fd0641ac33d944d", 17125, "79fc6385f511d98cdae7404b9100abc21dbd1e793dec7e004509f5f545def0e3")),
+        "tests/workspace/semantic_graph/source_inventory.rs" => Some((17, 167349, "27679536bd5660b4d4928b5cbf96a5d0ff30748ad306218d7f4a1bab12639f00", 45102, "4a1920f6abdff90036fe9afabe687c091b08a38d4f26a28e2e7c7feb678cbd14")),
+        "src/workspace_graph/expected_projection/held_projection.rs" => Some((2, 21629, "1530f578236abe624f92941698def06f8de44d9deba0003936fb60206afe74bd", 21539, "51c2e34bbc8906757ae0b781e3988b732177da0bba8c05b011c378792d54c356")),
+        _ => None,
+    };
+    let result = if let Some((index, length, sha, before_length, before_sha)) = stage {
+        let edits = record["edits"].as_array().unwrap();
+        assert_eq!(edits.len(), index + 1);
+        let after = edits[index]["after"].as_str().unwrap();
+        let before = edits[index]["before"].as_str().unwrap();
+        assert_eq!((after.len(), hash(after)), (length, sha.to_owned()));
+        assert_eq!((before.len(), hash(before)), (before_length, before_sha.to_owned()));
+        let receiving = if path == "src/workspace_graph/expected_projection/held_projection.rs" {
+            super::super::call_carriers::inverse::pre898(&receiving)
+        } else { receiving };
+        assert_eq!(receiving, before, "entire original receiving result before the retained full transport");
+        after.to_owned()
+    } else { receiving };
+    assert_eq!(forecast_joint_physical_reader::read(&root.join(path), current.len(), &hash(current), 9_753_094).unwrap(), physical);
+    result
 }

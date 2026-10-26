@@ -2124,6 +2124,8 @@
         "src/hir/validation/scope_checkpoint/fresh/tests.rs",
         "src/hir/validation/scope_checkpoint/marks.rs",
         "src/hir/validation/scope_checkpoint/marks/before.rs",
+        "src/hir/validation/scope_checkpoint/marks/direct_before.rs",
+        "src/hir/validation/scope_checkpoint/marks/direct_tests.rs",
         "src/hir/validation/scope_checkpoint/marks/tests.rs",
         "src/hir/validation/scope_checkpoint/merge.rs",
         "src/hir/validation/scope_checkpoint/merge/moved_direct.rs",
@@ -3243,9 +3245,9 @@
         "src/workspace_graph/validation.rs",
         "src/workspace_report.rs"
       ],
-      "full_manifest_sha256": "448aaffdb456ec9dba5dcf6adfeec399627f893f6cbe59540a0bddacc42f98bb",
-      "full_raw_sha256": "f293f363331b3bd5ea8e632336da9c8fe9cdb7e6269912b0934f03ebbee3d5b9",
-      "full_authenticated_production_sha256": "a3f38938591a69829450e40d6bfc71f68b18a2082119ee18f96404e1a1e0d5dd"
+      "full_manifest_sha256": "502350b557f6829495f36c30153280cdb03069c7464c54f6f3f9c4e68a72c1f9",
+      "full_raw_sha256": "e64591dfb5072488e6f93f18baf0c351583afce320313e2b6a19036c6c49a782",
+      "full_authenticated_production_sha256": "aa72ca64b795cb3bc28723ca8c501da700ef5be435968be752a92aa0c92e2ede"
     },
     "projection": {
       "baseline": "a82e00cc83f99b16249181c45710d962598577db",
@@ -3807,6 +3809,8 @@
         "src/bounded_output/identity_reservation/source_abort.rs",
         "src/bounded_output/invocation_binding.rs",
         "src/bounded_output/request_reservation.rs",
+        "src/box_ops.rs",
+        "src/box_ops/wrappers.rs",
         "src/byte_data_capacity.rs",
         "src/byte_data_capacity/witnesses.rs",
         "src/byte_ops.rs",
@@ -4597,6 +4601,7 @@
         "src/vec_ops/field_unique.rs",
         "src/vec_ops/field_update.rs",
         "src/vec_ops/sort_keys.rs",
+        "src/vec_ops/wrappers.rs",
         "src/wasm.rs",
         "src/wasm/aggregate.rs",
         "src/wasm/aggregate/indexed_reads.rs",
@@ -4632,9 +4637,9 @@
         "src/workspace_report.rs",
         "src/workspace_report/initial.rs"
       ],
-      "full_manifest_sha256": "8acbb965ec0509713a713d8e9dcd31e0cd070f08e4ff94a061bc12963fcabcdc",
-      "full_raw_sha256": "e6342ccb08034285f6bc6bb3515c511f4d510502d487d1067073a48a2557785f",
-      "full_authenticated_production_sha256": "0e52b665493cdf72eeb7206fe9ef545e2614a5329beed34b20effeee3f975151"
+      "full_manifest_sha256": "fbeaee7a7916a133ee76670b77d5fd9a55635aa95fc0564e63813ecb18e962e3",
+      "full_raw_sha256": "4e8985c0ef72eea062efdc242b2abf016d16e462d05641bc37115b2260e92927",
+      "full_authenticated_production_sha256": "71c850eb45700393cafb3b357efba0db1c5670c875ccb428575d0a7362912c39"
     }
   }
 }

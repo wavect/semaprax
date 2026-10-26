@@ -163,11 +163,22 @@ def _next_raw_registration_helper_before(actual):
  assert len(restored)==11833 and sha(restored)=='5851468b37ae14800e0edc14c91cc3eb7bc158b85417e954ab0c32030aa5a301', 'entire preceding helper'
  return restored
 
+def _joint_native_cargo_helper_before(actual):
+ # Only this whole next-joint helper may enter the unchanged historical chain.
+ assert len(actual)==152351 and sha(actual)=='d8101a07f87d6fb258191bf7e9a4892682e401106d62c8e21e157c6546b5b597', 'whole joint native/Cargo helper'
+ assert len(actual[32319:])==120032 and sha(actual[32319:])=='1081e56bb9f876095b8a9a30ababfad7f9dd633348f1c198f4428c3c6573fe08', 'complete bounded joint acquisition suffix'
+ restored=actual[:32319]
+ for after,before,count in [(b'fn current_source_before_joint(path: &str, row: &serde_json::Value) -> String {', b'fn current_source(path: &str, row: &serde_json::Value) -> String {', 1), (b'joint_historical_path(path)', b'Path::new(env!("CARGO_MANIFEST_DIR")).join(path)', 4), (b'include_bytes!("../../e/c0ce1c180278ac6aa8d6c685699c1c21fc7ab1e631f8ac4f65f3450e3cc9a81f")', b'include_bytes!("../../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs")', 3), (b'include_bytes!("../../e/206f6e4ac63533b6f1e136ffe44c3d80f580a1009cc05688c771ab4ea4e5e99b")', b'include_bytes!("../../Cargo.toml")', 2)]:
+  assert restored.count(after)==count, 'exact original named-channel source seam'
+  restored=restored.replace(after,before)
+ assert len(restored)==32392 and sha(restored)=='bc30b9981766628a37c2f969b27ffe2369f2f94d6c68a2fe72269a2514cd8d36', 'entire preceding protected inventory helper'
+ return restored
+
 def _protected_helper(repo,j):
  path='tests/support/production_source_inventory_original.rs'
  assert j['helper_original']==path and j['helper_before_sha256']=='d51a124525e3d41469c1db223a0b4526faa3faff1c757b9526ca0b2233358e8c'
  actual=(repo/path).read_bytes()
- epoch=_inventory_model_epoch_before(_interop_model_epoch_before(_next_raw_registration_helper_before(_constructor903_raw_helper_before(_native966_helper_before(_native967_helper_before(_native977_helper_before(_native990_helper_before(_native_registered_helper_before(_native_v18_helper_before(_native_moved_helper_before(_native_closed_roots_helper_before(actual))))))))))))
+ epoch=_inventory_model_epoch_before(_interop_model_epoch_before(_next_raw_registration_helper_before(_constructor903_raw_helper_before(_native966_helper_before(_native967_helper_before(_native977_helper_before(_native990_helper_before(_native_registered_helper_before(_native_v18_helper_before(_native_moved_helper_before(_native_closed_roots_helper_before(_joint_native_cargo_helper_before(actual)))))))))))))
  assert epoch==git(repo,'424e9611a87e66f43a82a7ce7c9b4bb56a4ec64b',path), 'complete helper source epoch'
  restored=_restore_protected_helper(epoch)
  assert (repo/path).read_bytes()==actual, 'protected helper source drift'

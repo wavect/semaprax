@@ -9,10 +9,19 @@ fn fixture() -> ResolvedProgram {
             source.push_str(&format!("let value{local}={local};"));
         }
         source.push_str("value63} ");
-        source.push_str(&format!(
-            "@id(\"small{index}\") fn small{index}()->i64 {{0}} "
-        ));
+        // Keep all 32 stable identities and the alternating 16 large/16 small
+        // workload; the final empty-body function supplies the public entry.
+        let name = if index == 15 {
+            "main".to_owned()
+        } else {
+            format!("small{index}")
+        };
+        source.push_str(&format!("@id(\"small{index}\") fn {name}()->i64 {{0}} "));
     }
+    assert_eq!(source.matches(" fn ").count(), 32);
+    assert_eq!(source.matches("@id(\"large").count(), 16);
+    assert_eq!(source.matches("@id(\"small").count(), 16);
+    assert_eq!(source.matches(" fn main()->i64").count(), 1);
     crate::hir::resolve(&crate::check(&source, "invocation-facts.spx").unwrap()).unwrap()
 }
 fn run(program: &ResolvedProgram, old: bool, cap: usize, success: bool) -> usize {
@@ -344,7 +353,7 @@ fn lexical_functions_skip_fact_construction_without_skipping_program_sequence() 
             r#"module invocation.lexical;
 @id("first") fn first()->i64{1}
 @id("exit") fn exit(flag:bool)->i64{while flag {break;} return 7;}
-@id("last") fn last()->i64{2}
+@id("last") fn main()->i64{2}
 "#,
             "invocation-lexical.spx",
         )

@@ -7873,7 +7873,9 @@ mod workspace_oracle;
 #[cfg(test)]
 pub(crate) use factored::{EpsilonAppCensus, SuccessorAppCensus};
 #[cfg(test)]
-pub(crate) use workspace_oracle::with_financed_workspace_test_oracles;
+pub(crate) use workspace_oracle::{
+    with_financed_validation_test_oracles, with_financed_workspace_test_oracles,
+};
 mod selected_type_drop;
 #[cfg(test)]
 #[path = "replay/sequence_prefix/main24/mod.rs"]

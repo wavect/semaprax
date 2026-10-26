@@ -1,0 +1,299 @@
+{
+  "schema": "semaprax.held-status-invocation-source-custody.v1",
+  "before_revision": "dcaec55523cd0e6cf8b031119030115344078023",
+  "current": [
+    {
+      "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation.rs",
+      "current": {
+        "length": 12925,
+        "sha256": "1f1c63aee7d304e6c44d2decc2b72c285621d0977257d7a33a62fbb65023eb59"
+      }
+    },
+    {
+      "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_tests.rs",
+      "current": {
+        "length": 34683,
+        "sha256": "623b7cc93e6b6a81ffd7933978ec91c0126c4891d68c8f43919481b978936226"
+      }
+    },
+    {
+      "path": "src/cleanup_plan/replay/expression_facts/receiving/directory.rs",
+      "current": {
+        "length": 20969,
+        "sha256": "22145740db7bddf2f665508d1a0427d9a8377d46e1e6f6f95b7175edda7f28c4"
+      }
+    },
+    {
+      "path": "src/cleanup_plan/replay/expression_facts/receiving/retained/held_status_invocation.rs",
+      "current": {
+        "length": 87405,
+        "sha256": "f3c52ba7d87e6bb1b3491e09a376d9a63552f60b511bd4267e6536986680f19d"
+      }
+    },
+    {
+      "path": "src/cleanup_plan/replay/expression_facts/receiving/retained.rs",
+      "current": {
+        "length": 38695,
+        "sha256": "d35fedf3a3d6ad0d4e3878eac55eccdca5cfc4653705ec7bb726f69ef93cfc00"
+      }
+    },
+    {
+      "path": "src/cleanup_plan/replay/expression_facts/receiving.rs",
+      "current": {
+        "length": 28395,
+        "sha256": "745d75656478f76d31b615ffd2c515c8e36c8f8da522764194c04c98fff92c4e"
+      }
+    },
+    {
+      "path": "src/cleanup_plan/replay/fact_preflight/before_status_receivers.rs",
+      "current": {
+        "length": 2812,
+        "sha256": "6e97ca175121242f2f050f7d3043e5ac1ff6d88807308827e4477efb6c6881e2"
+      }
+    },
+    {
+      "path": "src/cleanup_plan/replay/fact_preflight.rs",
+      "current": {
+        "length": 11679,
+        "sha256": "86f57d32b369923bd55d798dfc078b2f80e8ef912c02dc48e91a6c972afdde50"
+      }
+    }
+  ],
+  "owners": [
+    {
+      "path": "src/cleanup_plan/replay/expression_facts/receiving/directory.rs",
+      "current": {
+        "length": 20969,
+        "sha256": "22145740db7bddf2f665508d1a0427d9a8377d46e1e6f6f95b7175edda7f28c4"
+      },
+      "before": {
+        "length": 20899,
+        "sha256": "6036a1ba83d5532c94ccc630c88127e38cedafdeec21345841e5a32a8602711e"
+      },
+      "archive": "e/6036a1ba83d5532c94ccc630c88127e38cedafdeec21345841e5a32a8602711e",
+      "edits": [
+        {
+          "start": 169,
+          "end": 239,
+          "current": "\npub(in crate::cleanup_plan::replay) mod held_invocation;\n#[cfg(test)]",
+          "before": ""
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/expression_facts/receiving/retained.rs",
+      "current": {
+        "length": 38695,
+        "sha256": "d35fedf3a3d6ad0d4e3878eac55eccdca5cfc4653705ec7bb726f69ef93cfc00"
+      },
+      "before": {
+        "length": 38115,
+        "sha256": "769cfe4612da4c081d0b1c85e33951297609a1d23d6875ce76736eb7ab88c558"
+      },
+      "archive": "e/769cfe4612da4c081d0b1c85e33951297609a1d23d6875ce76736eb7ab88c558",
+      "edits": [
+        {
+          "start": 37613,
+          "end": 37630,
+          "current": "#[cfg(test)]\n    ",
+          "before": ""
+        },
+        {
+          "start": 37990,
+          "end": 38237,
+          "current": "    fn return_held_invocation_directory(\n        self,\n        backing: &mut super::directory::held_invocation::Backing<'hir>,\n    ) {\n        let Self {\n            function: _,\n            budget: _,\n            ledger,\n            ids,\n        ",
+          "before": ""
+        },
+        {
+          "start": 38238,
+          "end": 38378,
+          "current": " = self;\n        drop(ledger);\n        if let Some(directory) = ids {\n            backing.recycle(directory);\n        }\n    }\n}\n#[cfg(test)]",
+          "before": ""
+        },
+        {
+          "start": 38410,
+          "end": 38423,
+          "current": "\n#[cfg(test)]",
+          "before": ""
+        },
+        {
+          "start": 38530,
+          "end": 38561,
+          "current": " as before_941_status_structure",
+          "before": ""
+        },
+        {
+          "start": 38563,
+          "end": 38695,
+          "current": "mod held_status_invocation;\npub(in crate::cleanup_plan::replay) use held_status_invocation::validate_structure_with_status_backing;\n",
+          "before": ""
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/expression_facts/receiving.rs",
+      "current": {
+        "length": 28395,
+        "sha256": "745d75656478f76d31b615ffd2c515c8e36c8f8da522764194c04c98fff92c4e"
+      },
+      "before": {
+        "length": 28183,
+        "sha256": "6e30d8c90477a9ebcb0527678b43d0a49e1b8e441c6804f2f573a445c507e4b1"
+      },
+      "archive": "e/6e30d8c90477a9ebcb0527678b43d0a49e1b8e441c6804f2f573a445c507e4b1",
+      "edits": [
+        {
+          "start": 171,
+          "end": 176,
+          "current": "held_",
+          "before": ""
+        },
+        {
+          "start": 212,
+          "end": 415,
+          "current": ";\n#[cfg(test)]\npub(in crate::cleanup_plan::replay) use directory::invocation::Backing as Before941StatusBacking;\n#[cfg(test)]\npub(in crate::cleanup_plan::replay) use retained::before_941_status_structure",
+          "before": ""
+        },
+        {
+          "start": 572,
+          "end": 576,
+          "current": "\n   ",
+          "before": ""
+        },
+        {
+          "start": 778,
+          "end": 778,
+          "current": "",
+          "before": "\n   "
+        },
+        {
+          "start": 831,
+          "end": 835,
+          "current": "\n   ",
+          "before": ""
+        }
+      ]
+    },
+    {
+      "path": "src/cleanup_plan/replay/fact_preflight.rs",
+      "current": {
+        "length": 11679,
+        "sha256": "86f57d32b369923bd55d798dfc078b2f80e8ef912c02dc48e91a6c972afdde50"
+      },
+      "before": {
+        "length": 11310,
+        "sha256": "46be8582ccbfb6399b36dcf5e5aecc2c695c5c6794df60434aa922f01eaa08e5"
+      },
+      "archive": "e/46be8582ccbfb6399b36dcf5e5aecc2c695c5c6794df60434aa922f01eaa08e5",
+      "edits": [
+        {
+          "start": 1685,
+          "end": 1685,
+          "current": "",
+          "before": "\n               "
+        },
+        {
+          "start": 1740,
+          "end": 1757,
+          "current": "\n                ",
+          "before": ""
+        },
+        {
+          "start": 1763,
+          "end": 1779,
+          "current": "\n               ",
+          "before": ""
+        },
+        {
+          "start": 1789,
+          "end": 1805,
+          "current": "\n               ",
+          "before": ""
+        },
+        {
+          "start": 1818,
+          "end": 1832,
+          "current": ",\n            ",
+          "before": ""
+        },
+        {
+          "start": 5829,
+          "end": 5833,
+          "current": "if !",
+          "before": ""
+        },
+        {
+          "start": 5856,
+          "end": 5861,
+          "current": "_into",
+          "before": ""
+        },
+        {
+          "start": 5893,
+          "end": 5947,
+          "current": " {\n            return Err(status_backing.take_error())",
+          "before": "?"
+        },
+        {
+          "start": 5948,
+          "end": 5958,
+          "current": "\n        }",
+          "before": ""
+        },
+        {
+          "start": 6790,
+          "end": 6794,
+          "current": "if !",
+          "before": ""
+        },
+        {
+          "start": 6817,
+          "end": 6822,
+          "current": "_into",
+          "before": ""
+        },
+        {
+          "start": 6864,
+          "end": 6918,
+          "current": " {\n            return Err(status_backing.take_error())",
+          "before": "?"
+        },
+        {
+          "start": 6919,
+          "end": 6929,
+          "current": "\n        }",
+          "before": ""
+        },
+        {
+          "start": 11501,
+          "end": 11679,
+          "current": "\n#[cfg(test)]\nmod before_status_receivers;\n#[cfg(test)]\npub(in crate::cleanup_plan) use before_status_receivers::validate_program_context as before_941_validate_program_context;\n",
+          "before": ""
+        }
+      ]
+    }
+  ],
+  "original_producers": [
+    {
+      "path": "src/cleanup_plan/replay/expression_facts/receiving/directory/invocation.rs",
+      "current": {
+        "length": 8408,
+        "sha256": "8613d5a1c4ace323feea403f11225896296aceba3fddd4e1f86848776ae7b6f2"
+      }
+    },
+    {
+      "path": "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_status_invocation.rs",
+      "current": {
+        "length": 87316,
+        "sha256": "03fc8ecdc83dd32ef1ac6b5a4afd6878802c49002a591ff018ad32dd8aaed6d9"
+      }
+    }
+  ],
+  "prior_test_controls": {
+    "archive": "e/5e6d75ae92109612b22449bbb8d81fae8b2caebed98e3c888fe994897e19c11f",
+    "before": {
+      "length": 25381,
+      "sha256": "5e6d75ae92109612b22449bbb8d81fae8b2caebed98e3c888fe994897e19c11f"
+    }
+  }
+}

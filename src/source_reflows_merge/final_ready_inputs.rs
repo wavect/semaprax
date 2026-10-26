@@ -2,6 +2,8 @@
 use sha2::{Digest, Sha256};
 #[path = "final_ready_inputs/projection_publication.rs"]
 mod projection_publication;
+#[path = "final_ready_inputs/merged_projection.rs"]
+mod merged_projection;
 #[path = "../workspace_graph/identity_resolution/base/cache_billing/main7f8_reader.rs"]
 mod raw_reader;
 // The original reader remains complete and independently compiled. Only three
@@ -19,6 +21,9 @@ mod reader {
     ) -> Result<String, Failure> {
         if length > cap {
             return Err(Failure::Bound);
+        }
+        if let Some(before) = super::merged_projection::named_file(path, length, sha) {
+            return Ok(before);
         }
         if let Some(before) = super::invoice_previous_file(path, length, sha) {
             return Ok(before);
@@ -190,6 +195,12 @@ pub(crate) fn source_owner(domain: &str, source: &str, current: &str) -> String 
 fn projection344_stage(supplied: &str) -> String {
     let mut invocation =
         crate::source_reflows_merge::main_e177_final_inputs::ProjectionInvocation::new();
+    if let Some((v10, main)) = merged_projection::stages(supplied, &mut invocation) {
+        let v10_previous = projection344_stage(&v10);
+        let main_previous = projection344_stage(&main);
+        assert_eq!(v10_previous, main_previous, "both entire predecessor chains must agree");
+        return v10_previous;
+    }
     let current_audit = projection_publication::audit_join(supplied);
     let supplied = current_audit.as_deref().unwrap_or(supplied);
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
@@ -360,11 +371,19 @@ fn projection344_phase_test_source_with(
     invocation: &mut crate::source_reflows_merge::main_e177_final_inputs::ProjectionInvocation,
 ) -> String {
     let source = "src/workspace_graph/expected_projection/call_carriers_tests.rs";
+    let actual = merged_projection::current_for_named(
+        source, 25183, "d5f1f5027b904e45143b0a65d05a7027d987c69dce23392f06fb134aa66d75a9", compiled,
+    ).unwrap_or(compiled);
+    let named = merged_projection::named_part(
+        source, 25183, "d5f1f5027b904e45143b0a65d05a7027d987c69dce23392f06fb134aa66d75a9", invocation,
+    );
+    let compiled = named.as_deref().unwrap_or(compiled);
     assert_eq!(compiled.len(), 25183);
     assert_eq!(
         digest(compiled),
         "d5f1f5027b904e45143b0a65d05a7027d987c69dce23392f06fb134aa66d75a9"
     );
+    let compiled = actual;
     let prior = invocation.value_direct(
         source,
         "bf17711b9ee9801531b16d3a505163c32df52e2ef13a46d1426eeee2cc8c3934",
@@ -427,8 +446,10 @@ fn projection344_classifier_join_with(
         let pin = &part["current"];
         let length = usize::try_from(pin["length"].as_u64().unwrap()).unwrap();
         let sha = pin["sha256"].as_str().unwrap();
-        let current = reader::read(&root.join(source), length, sha, 2_097_152)
-            .expect("complete current classifier source before all historical normalization");
+        let current = merged_projection::named_part(source, length, sha, invocation).unwrap_or_else(|| {
+            reader::read(&root.join(source), length, sha, 2_097_152)
+                .expect("complete current classifier source before all historical normalization")
+        });
         physical.push_str(&current);
         if let Some(pin) = part.get("previous") {
             let length = usize::try_from(pin["length"].as_u64().unwrap()).unwrap();
@@ -605,6 +626,9 @@ fn projection344_phase_join_with(
     // physical and current-archive channels before returning the pinned prior.
     let prior = projection344_phase_test_source_with(compiled, invocation);
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let named_phase = merged_projection::named_part(
+        source, 25183, "d5f1f5027b904e45143b0a65d05a7027d987c69dce23392f06fb134aa66d75a9", invocation,
+    );
     let intermediate_source;
     let phase = if intermediate {
         intermediate_source = invocation
@@ -621,7 +645,7 @@ fn projection344_phase_join_with(
         );
         intermediate_source.as_str()
     } else {
-        compiled
+        named_phase.as_deref().unwrap_or(compiled)
     };
     let descriptor = projection344_live_descriptor();
     let mut physical = String::new();
@@ -1268,6 +1292,8 @@ fn invoice_compiled_stage(source: &str, length: usize, sha: &str, compiled: &str
     if let Some(previous) = invoice_previous_file(&path, length, sha) {
         let mut invocation =
             crate::source_reflows_merge::main_e177_final_inputs::ProjectionInvocation::new();
+        let current = merged_projection::current_for_named(source, length, sha, compiled);
+        let compiled = current.unwrap_or(compiled);
         assert_eq!(invocation.value_direct(source, sha, compiled), previous);
         previous
     } else {

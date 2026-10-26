@@ -416,6 +416,10 @@ fn independent_projection_source_reconstructs_the_entire_pre_certificate_owner()
 
 #[test]
 fn complete_uncached_old_current_forecasts_keep_their_actual_invoices() {
+    // The process-wide OnceLock belongs to neither whole-caller observation.
+    // Match whole() above: fresh per-call constructors still run under measure.
+    let warm = crate::hir::resolve(&inputs(0)[0]).unwrap();
+    drop(warm);
     for case in 0..3 {
         let programs = inputs(case);
         let authored = crate::workspace_graph::index_authored(&programs).unwrap();

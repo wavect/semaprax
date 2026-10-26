@@ -855,6 +855,7 @@ mod ordinary_block_before;
 // Consume fields in the ORIGINAL StatusSources Drop order: ledger before ids.
 // No key/index is dropped while its original ledger receiver remains held.
 impl<'hir> StatusSources<'hir> {
+    #[cfg(test)]
     fn return_invocation_directory(
         self,
         backing: &mut super::directory::invocation::Backing<'hir>,
@@ -870,6 +871,25 @@ impl<'hir> StatusSources<'hir> {
             backing.recycle(directory);
         }
     }
+    fn return_held_invocation_directory(
+        self,
+        backing: &mut super::directory::held_invocation::Backing<'hir>,
+    ) {
+        let Self {
+            function: _,
+            budget: _,
+            ledger,
+            ids,
+        } = self;
+        drop(ledger);
+        if let Some(directory) = ids {
+            backing.recycle(directory);
+        }
+    }
 }
+#[cfg(test)]
 mod ordinary_status_invocation;
-pub(in crate::cleanup_plan::replay) use ordinary_status_invocation::validate_structure_with_status_backing;
+#[cfg(test)]
+pub(in crate::cleanup_plan::replay) use ordinary_status_invocation::validate_structure_with_status_backing as before_941_status_structure;
+mod held_status_invocation;
+pub(in crate::cleanup_plan::replay) use held_status_invocation::validate_structure_with_status_backing;

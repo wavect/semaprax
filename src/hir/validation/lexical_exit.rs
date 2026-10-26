@@ -626,49 +626,66 @@ mod witness_tests {
         use std::fmt::Write as _;
         let mut diagnostic_report = String::with_capacity(1 << 16);
         let phase = std::cell::Cell::new("before-resolve");
-        let ((success, metrics), refused, paid, receipt) =
-            crate::bounded_output::with_limit_usage_refusal(limit, || {
-                assert!(crate::bounded_output::set_active_floor(floor));
-                let measured = crate::test_allocation_observer::measure_with_capacity(
-                    1 << 16,
-                    || {
-                        phase.set("hir::resolve");
-                        let resolved = match crate::hir::resolve(checked) {
-                            Ok(resolved) => resolved,
-                            Err(errors) => {
-                                for error in &errors {
-                                    writeln!(&mut diagnostic_report, "OPT904_DIAGNOSTIC phase=hir::resolve code={:?} severity={:?} message={:?} path={:?} span={:?} help={:?}", error.code, error.severity, error.message, error.path, error.span, error.help).unwrap();
+        // This corpus has only authored monomorphic functions: two full HIR
+        // validation passes, each with both original comparison receivers.
+        assert!(checked
+            .functions
+            .iter()
+            .all(|f| f.type_parameters.is_empty()));
+        assert!(checked.agents.is_empty() && checked.implementations.is_empty());
+        assert!(checked
+            .types
+            .iter()
+            .all(|ty| !matches!(ty.kind, crate::ast::TypeDeclarationKind::Class { .. })));
+        let receivers = checked.functions.len().checked_mul(4).unwrap();
+        let (((success, metrics), refused, paid, receipt), _, _) =
+            crate::cleanup_plan::with_financed_validation_test_oracles(receivers, || {
+                let observed = crate::bounded_output::with_limit_usage_refusal(limit, || {
+                    assert!(crate::bounded_output::set_active_floor(floor));
+                    let measured = crate::test_allocation_observer::measure_with_capacity(
+                        1 << 16,
+                        || {
+                            phase.set("hir::resolve");
+                            let resolved = match crate::hir::resolve(checked) {
+                                Ok(resolved) => resolved,
+                                Err(errors) => {
+                                    for error in &errors {
+                                        writeln!(&mut diagnostic_report, "OPT904_DIAGNOSTIC phase=hir::resolve code={:?} severity={:?} message={:?} path={:?} span={:?} help={:?}", error.code, error.severity, error.message, error.path, error.span, error.help).unwrap();
+                                    }
+                                    assert!(errors.iter().all(|error| error.code == "SPX-H006"));
+                                    drop(errors);
+                                    return false;
                                 }
-                                assert!(errors.iter().all(|error| error.code == "SPX-H006"));
-                                drop(errors);
-                                return false;
+                            };
+                            phase.set("second hir::validate");
+                            let outcome = crate::hir::validate(&resolved);
+                            if let Err(error) = &outcome {
+                                writeln!(&mut diagnostic_report, "OPT904_DIAGNOSTIC phase=hir::validate code={:?} severity={:?} message={:?} path={:?} span={:?} help={:?}", error.code, error.severity, error.message, error.path, error.span, error.help).unwrap();
+                                assert_eq!(error.code, "SPX-H006");
                             }
-                        };
-                        phase.set("second hir::validate");
-                        let outcome = crate::hir::validate(&resolved);
-                        if let Err(error) = &outcome {
-                            writeln!(&mut diagnostic_report, "OPT904_DIAGNOSTIC phase=hir::validate code={:?} severity={:?} message={:?} path={:?} span={:?} help={:?}", error.code, error.severity, error.message, error.path, error.span, error.help).unwrap();
-                            assert_eq!(error.code, "SPX-H006");
-                        }
-                        let success = outcome.is_ok();
-                        if success {
-                            phase.set("both full passes completed");
-                        }
-                        drop(outcome);
-                        drop(resolved);
-                        success
-                    },
-                );
-                let ledger = crate::bounded_output::classifier_string::ClassifierLedger::capture();
-                let first = ledger.first_refusal();
-                let remaining = crate::bounded_output::active_remaining();
-                if first.is_some() {
-                    assert!(scope_checkpoint::charge::reserve(Some(0)).is_err());
-                    assert_eq!(ledger.first_refusal(), first);
-                    assert_eq!(crate::bounded_output::active_remaining(), remaining);
-                }
-                crate::bounded_output::clear_active_floor();
-                measured
+                            let success = outcome.is_ok();
+                            if success {
+                                phase.set("both full passes completed");
+                            }
+                            drop(outcome);
+                            drop(resolved);
+                            success
+                        },
+                    );
+                    let ledger =
+                        crate::bounded_output::classifier_string::ClassifierLedger::capture();
+                    let first = ledger.first_refusal();
+                    let remaining = crate::bounded_output::active_remaining();
+                    if first.is_some() {
+                        assert!(scope_checkpoint::charge::reserve(Some(0)).is_err());
+                        assert_eq!(ledger.first_refusal(), first);
+                        assert_eq!(crate::bounded_output::active_remaining(), remaining);
+                    }
+                    crate::bounded_output::clear_active_floor();
+                    measured
+                });
+                let success = (observed.0).0;
+                (observed, success)
             });
         let frame = capture.finish();
         // Darwin stderr's process-lifetime lock belongs to reporting, never

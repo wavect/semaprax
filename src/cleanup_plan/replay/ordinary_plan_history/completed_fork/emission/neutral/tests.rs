@@ -116,7 +116,9 @@ fn observed(
 fn neutral_complete_caller_preserves_cached_work_every_cut_and_whole_drop() {
     let program = fixture();
     for repeat in [false, true] {
-        let old_work = before(|| run(&program, usize::MAX, repeat)).1;
+        let old_work =
+            before(|| with_limit_usage_refusal(usize::MAX, || run(&program, usize::MAX, repeat)).0)
+                .1;
         let current = observed(&program, false, usize::MAX, repeat, &Ok(()));
         let old = observed(&program, true, usize::MAX, repeat, &Ok(()));
         assert_eq!(current.0 .0, old.0 .0);
@@ -132,7 +134,8 @@ fn neutral_complete_caller_preserves_cached_work_every_cut_and_whole_drop() {
             "entire ordinary sequence caller must earn a real byte reduction"
         );
         for cut in 0..=old_work {
-            let expected = before(|| run(&program, cut, repeat)).0;
+            let expected =
+                before(|| with_limit_usage_refusal(usize::MAX, || run(&program, cut, repeat)).0).0;
             let a = observed(&program, false, cut, repeat, &expected);
             let b = observed(&program, true, cut, repeat, &expected);
             assert_eq!(a.0 .0, b.0 .0);
@@ -333,7 +336,13 @@ fn run_many(
 fn neutral_many_complete_caller_preserves_all_work_cuts_cache_outputs_and_drop() {
     let program = fixture();
     for (width, repeat, flat_tail) in [(2, false, false), (8, true, false), (3, true, true)] {
-        let old_work = before(|| run_many(&program, width, usize::MAX, repeat, flat_tail)).1;
+        let old_work = before(|| {
+            with_limit_usage_refusal(usize::MAX, || {
+                run_many(&program, width, usize::MAX, repeat, flat_tail)
+            })
+            .0
+        })
+        .1;
         let observe = |old, cut, expected: &Result<(), Diagnostic>| {
             let body = || {
                 with_limit_usage_refusal(usize::MAX, || {
@@ -369,7 +378,13 @@ fn neutral_many_complete_caller_preserves_all_work_cuts_cache_outputs_and_drop()
         }
         eprintln!("NEUTRAL_MANY width={width} repeat={repeat} flat_tail={flat_tail} current={current:?} old={old:?}");
         for cut in 0..=old_work {
-            let expected = before(|| run_many(&program, width, cut, repeat, flat_tail)).0;
+            let expected = before(|| {
+                with_limit_usage_refusal(usize::MAX, || {
+                    run_many(&program, width, cut, repeat, flat_tail)
+                })
+                .0
+            })
+            .0;
             let old = observe(true, cut, &expected);
             let current = observe(false, cut, &expected);
             assert_eq!(current.0 .0, old.0 .0);

@@ -359,9 +359,22 @@ mod compatibility_tests {
         let legacy=json!({"schema":SCHEMA_V10,"index":1,"total_pages":1,
             "predecessor":predecessor,"replacements":[],"additions":[]});
         let mut prefix=legacy.clone();prefix["archive_prefixes"]=json!(["e/"]);
-        for value in [&legacy,&prefix] {
-            assert_eq!(super::super::super::compose_values(before.clone(),&policy,value).unwrap(),before);
-        }
+        assert_eq!(super::super::super::compose_values(before.clone(),&policy,&legacy).unwrap(),before);
+        // The original prefix-only fixture has no references and is hostile.
+        assert!(super::super::super::compose_values(before.clone(),&policy,&prefix).is_err());
+        // A valid prefix page uses its sole directory twice in admitted pin slots.
+        let source = "src/prefix_provenance.rs";
+        let sha = "0".repeat(64);
+        let mut used_prefix = prefix.clone();
+        used_prefix["additions"] = json!([{"source":source,"compiled":false,
+            "current":[0,sha,[0,sha]],"views":[["prior",0,sha,[0,sha]]]}]);
+        let mut used_policy = policy.clone();
+        used_policy["additions"] = json!([{"source":source,"compiled":false}]);
+        let mut expected = before.clone();
+        expected["rows"].as_array_mut().unwrap().push(json!({"source":source,"compiled":false,
+            "current":{"length":0,"sha256":sha,"archive":format!("e/{sha}")},
+            "views":[{"name":"prior","length":0,"sha256":sha,"archive":format!("e/{sha}")}]}));
+        assert_eq!(super::super::super::compose_values(before.clone(),&used_policy,&used_prefix).unwrap(),expected);
         let names=json!({"schema":SCHEMA_V11,"names":[],"page":legacy});
         assert_eq!(super::super::super::compose_values(before.clone(),&policy,&names).unwrap(),before);
         let mut crossed=names;crossed["page"]=prefix.clone();

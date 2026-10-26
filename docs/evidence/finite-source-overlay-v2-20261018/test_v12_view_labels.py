@@ -14,7 +14,7 @@ OLD = runpy.run_path(str(FIXTURE / 'controller.before.py.txt'))
 
 # Closed current-source acquisition precedes every unchanged legacy assertion.
 _FRONT_PATH = 'src/source_reflows/next_custody_fronts.json'
-_FRONT_PIN = {'length': 1959861, 'sha256': '264697348f9460c8dd4b1da2ff2470518205c9acc88e0d5cdadff658ed594796'}
+_FRONT_PIN = {'length': 1982349, 'sha256': 'd80b3409cdc66367b9de70d1963c9d924fdb46bd639c9e4005676cdf7dbdf159'}
 _NEXT_PATH = 'src/source_reflows/next_custody_inverse.json'
 _PAIRS = [
     ('prelude286', 'tests/workspace/semantic_graph/source_inventory.rs'),
@@ -737,6 +737,12 @@ class TypedFragmentReferences(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, 'v13 uninterned or aliased digest'):
             codec.encode_v18_fragment_refs(before)
         before['additions'][1]['fragments'][0]['current'][1] = 0
+        with self.assertRaisesRegex(AssertionError, 'v14 uninterned or aliased tail'):
+            codec.encode_v18_fragment_refs(before)
+        admitted_tail = copy.deepcopy(before['replacements'][0]['old519_index'][1])
+        self.assertEqual(len(admitted_tail), 1)
+        self.assertIs(type(admitted_tail[0]), int)
+        before['additions'][1]['fragments'][0]['current'] = admitted_tail
         self.assertEqual(codec.expand_v18_fragment_refs(codec.encode_v18_fragment_refs(before)), before)
 
     def test_hostile_types_aliases_wrong_slots_and_truncation(self):

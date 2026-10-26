@@ -2002,7 +2002,8 @@ fn callable_limit_exact_advances_and_one_over_is_g171() {
     assert!(reference_comparisons >= 2 * MAX_CALLABLES);
     assert!(reference_bytes > (1 << 26) && reference_bytes <= (1 << 28));
     let trace = crate::bounded_output::stage_debits::take_completed();
-    eprintln!("callable-limit-exact post-construction trace={trace:?}");
+    let final_trace = crate::bounded_output::stage_debits::take_last_completed();
+    eprintln!("callable-limit-exact largest-consumed trace={trace:?}; final-attempt trace={final_trace:?}");
     exact_result.expect("exact callable limit must advance");
     let over = callable_boundary_source(MAX_CALLABLES);
     let error = build_owned(vec![over, leaf])

@@ -205,6 +205,18 @@ fn whole_immediate_ordinary_result_exact_short_zero_and_real_nm_are_observed() {
         let callback_packet = std::mem::size_of::<usize>()
             + 3 * std::mem::size_of::<&str>()
             + std::mem::size_of::<bool>();
+        // BeforeReceiving's transition helpers still call Arena::fact. Its
+        // ActiveBuilder/nonempty route is prefix::compact::find_receiving:
+        // TWO narrow returned/received Results plus ONE outer Diagnostic
+        // Result survive, alongside the ENTIRE old receiving scratch. Status
+        // and initial-edge Session calls above retain their own original ABI.
+        let transition_old_results =
+            2 * std::mem::size_of::<
+                Result<
+                    Option<&Option<CallFact<'_>>>,
+                    crate::cleanup_plan::replay::physical_budget::ByteFailure,
+                >,
+            >() + std::mem::size_of::<Result<Option<&Option<CallFact<'_>>>, Diagnostic>>();
         let transition_expected = transition_census.reached[0] as i128
             * (old_setup_invoice() as i128 - skeleton_work::receiving::acquisition_bytes() as i128)
             + transition_census.reached[2] as i128
@@ -216,9 +228,7 @@ fn whole_immediate_ordinary_result_exact_short_zero_and_real_nm_are_observed() {
                     as i128
                     - Session::added_edge_query_bytes() as i128)
             + transition_queries as i128
-                * ((Session::OLD_SCRATCH
-                    + 2 * std::mem::size_of::<Result<Option<&Option<CallFact<'_>>>, Diagnostic>>())
-                    as i128
+                * ((Session::OLD_SCRATCH + transition_old_results) as i128
                     - (Session::into_edge_local_bytes()
                         + Session::into_edge_query_bytes()
                         + std::mem::size_of::<Option<&Option<CallFact<'_>>>>())
@@ -593,6 +603,10 @@ fn receiving_transition_counts(function: &ResolvedFunction) -> (usize, usize) {
     (lookups, callbacks)
 }
 
+// Reuse the existing bounded no-follow regular-file/full-digest reader.
+#[path = "../../../../../../../workspace_graph/identity_resolution/base/cache_billing/main7f8_reader.rs"]
+mod history_reader;
+
 // Complete literal source custody for both independently preserved merge parents.
 fn complete_receiving_parent_sources() {
     use sha2::{Digest, Sha256};
@@ -609,6 +623,70 @@ fn complete_receiving_parent_sources() {
         raw.len()
     );
     assert_eq!(packet["current_sha256"].as_str().unwrap(), hash(&raw));
+    let history = &packet["retained_before_compact_transition_invoice"];
+    let read_history = |descriptor: &serde_json::Value| {
+        let length = descriptor["length"].as_u64().unwrap() as usize;
+        assert!(length <= 2 * 1024 * 1024);
+        history_reader::read(
+            &root.join(descriptor["path"].as_str().unwrap()),
+            length,
+            descriptor["sha256"].as_str().unwrap(),
+            2 * 1024 * 1024,
+        )
+        .unwrap()
+        .into_bytes()
+    };
+    let previous_raw = read_history(&history["source"]);
+    let previous_packet_raw = read_history(&history["packet"]);
+    let previous_packet: serde_json::Value = serde_json::from_slice(&previous_packet_raw).unwrap();
+    assert_eq!(
+        previous_packet["current_length"].as_u64().unwrap() as usize,
+        previous_raw.len()
+    );
+    assert_eq!(
+        previous_packet["current_sha256"].as_str().unwrap(),
+        hash(&previous_raw)
+    );
+    let mut restored = raw.clone();
+    for edit in history["current_to_before"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .rev()
+    {
+        let start = edit["start"].as_u64().unwrap() as usize;
+        let end = edit["end"].as_u64().unwrap() as usize;
+        assert!(start <= end && end <= restored.len());
+        assert_eq!(
+            &restored[start..end],
+            edit["current"].as_str().unwrap().as_bytes()
+        );
+        drop(restored.splice(start..end, edit["before"].as_str().unwrap().bytes()));
+    }
+    assert_eq!(
+        restored, previous_raw,
+        "entire immediate source including the old equation"
+    );
+    let mut metadata = packet.clone();
+    metadata
+        .as_object_mut()
+        .unwrap()
+        .remove("retained_before_compact_transition_invoice");
+    metadata["current_length"] = previous_packet["current_length"].clone();
+    metadata["current_sha256"] = previous_packet["current_sha256"].clone();
+    assert_eq!(
+        metadata, previous_packet,
+        "all old unknowns and both executable parent inverses"
+    );
+    // Reacquire actual current bytes before evaluating the complete old grammar.
+    assert_eq!(
+        history_reader::read(&root.join(path), raw.len(), &hash(&raw), 2 * 1024 * 1024)
+            .unwrap()
+            .as_bytes(),
+        raw.as_slice(),
+    );
+    let raw = previous_raw;
+    let packet = previous_packet;
     // Preserve the complete prior packet and its generation-specific inverse
     // rows before acquiring this test-only financing/census source phase.
     let prior_raw = packet["full_prior_packet"].as_str().unwrap().as_bytes();
@@ -702,4 +780,17 @@ fn complete_receiving_parent_sources() {
         );
         assert_eq!(row["before_sha256"].as_str().unwrap(), hash(&restored));
     }
+    // The historical grammar above never grants current-source authority.
+    let compiled_current = include_bytes!("receiving.rs").as_slice();
+    assert_eq!(
+        history_reader::read(
+            &root.join(path),
+            compiled_current.len(),
+            &hash(compiled_current),
+            2 * 1024 * 1024
+        )
+        .unwrap()
+        .as_bytes(),
+        compiled_current,
+    );
 }

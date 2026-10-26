@@ -289,6 +289,11 @@ pub(super) fn audit_join(supplied: &str) -> Option<String> {
                 .expect("fresh complete current projection audit part");
             assert_eq!(physical, compiled);
         }
+        let named = super::merged_projection::v10_current_part(
+            path,
+            &mut crate::source_reflows_merge::main_e177_final_inputs::ProjectionInvocation::new(),
+        );
+        let compiled = named.as_deref().unwrap_or(compiled);
         let invoice_previous = super::invoice_compiled_stage(path, length, sha, compiled);
         let next_current = next_part_before(path, &invoice_previous);
         let prior_current = post83_part_before(path, &next_current);
@@ -313,6 +318,16 @@ pub(super) fn audit_join(supplied: &str) -> Option<String> {
         .expect("complete independent unchanged phase predecessor");
     assert_eq!(previous, BEFORE);
     Some(previous)
+}
+
+#[cfg(test)]
+pub(super) fn previous_part_for_control(path: &str, length: usize, sha: &str, current: &str) -> String {
+    let invoice = super::invoice_compiled_stage(path, length, sha, current);
+    let next = next_part_before(path, &invoice);
+    let post83 = post83_part_before(path, &next);
+    let previous = current_part_before(path, &post83);
+    assert_eq!((previous.len(), digest(&previous)), (length, sha.to_owned()));
+    previous
 }
 
 #[cfg(test)]

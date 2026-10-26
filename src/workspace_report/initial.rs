@@ -2,6 +2,11 @@
 use super::*;
 impl WorkspaceReportFailure {
     pub fn write_lines(&self, output: &mut impl fmt::Write, json: bool) -> fmt::Result {
+        if let Owner::ExistingWithSite { report, site } = &self.0 {
+            if self.1.is_none() {
+                return super::site::write_lines(report, *site, output, json);
+            }
+        }
         if let Some(report) = self.reported() {
             return crate::diagnostic::writer::write_lines(output, report, json);
         }
@@ -16,7 +21,7 @@ impl WorkspaceReportFailure {
             Owner::Selected { form, .. } => {
                 Diagnostic::io_static(form.code(), form.message()).write_to(output, json)?
             }
-            Owner::Existing(_) | Owner::Unreceived(_) => {
+            Owner::Existing(_) | Owner::ExistingWithSite { .. } | Owner::Unreceived(_) => {
                 unreachable!("existing backing was handled above")
             }
         }

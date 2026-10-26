@@ -1479,3 +1479,6 @@ const NPM_PUBLICATION_SUBJECT: &str = "installable npm package";
 const NATIVE_PUBLICATION_SUBJECT: &str = "native executable";
 const OCI_PUBLICATION_SUBJECT: &str = "OCI deployable artifact";
 const AUTHENTICATED_PROJECT_SUBJECT_OPERATION: &str = "authenticated Project subject operation";
+
+mod reporting;
+pub use reporting::with_authenticated_project_reporting;

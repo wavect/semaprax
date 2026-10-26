@@ -285,7 +285,7 @@ pub(super) fn owner(source: &str, current: &str) -> Option<String> {
             )
         }
         "src/workspace_graph/initial_report/build.rs" => (
-            include_str!("../workspace_graph/initial_report/build.rs"),
+            report947_compiled("src/workspace_graph/initial_report/build.rs", include_str!("../workspace_graph/initial_report/build.rs")),
             "48b56f916c25d00004bf6d8bc13e56a0972d07f531fceda2c7c94b57d2af20e1",
         ),
         "src/workspace_graph/initial_report/tests.rs" => (
@@ -297,8 +297,7 @@ pub(super) fn owner(source: &str, current: &str) -> Option<String> {
     assert_eq!(current, compiled);
     assert_eq!(
         current,
-        std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(source))
-            .unwrap()
+        report947_physical(source)
     );
     let before = if source == "src/workspace_graph/initial_report/tests.rs" {
         let edits: Vec<(usize, String, String)> = serde_json::from_str(include_str!(
@@ -741,5 +740,147 @@ fn retained_alias_cursors_authenticate_both_complete_views_against_actual_curren
         assert_eq!(history(source, expected, &cursor), Some(before));
         assert!(history(source, expected, &format!("{cursor} ")).is_none());
         assert!(history(source, "foreign", &cursor).is_none());
+    }
+}
+
+// BEGIN OPT947 WHOLE76AD CUSTODY INGRESS
+
+// Closed test-only acquisition: entire old sources are targets, never current authority.
+#[path = "../workspace_graph/identity_resolution/base/cache_billing/main7f8_reader.rs"]
+mod report947_reader;
+const REPORT947_CAP: usize = 9_753_094;
+type Report947Row = (&'static str, &'static str, &'static [(usize, usize, &'static str)]);
+fn report947_row(source: &str) -> Option<Report947Row> {
+    match source {
+        "src/cli_driver.rs" => Some((include_str!("../cli_driver.rs"), include_str!("../../e/2cc325a8ea74cfedb0c30fb93452969eae6f1f9ea295e8c4f3b3b1972d002af5"), &[(7131,7298,"                    let (name, revision) =\n                        project::with_authenticated_project(&manifest_path, |snapshot| {\n"),(7552,7776,"                        })\n                        .map_err(|errors| {\n                            let errors =\n                                cli::manifest_hint::hint_missing_manifest(errors, &manifest_path);\n                            report(&errors, json)\n                        })?;\n"),(27894,28001,"                    let output = project::with_authenticated_project(manifest_path, |snapshot| {\n"),(32589,32770,"                    })\n                    .map_err(|errors| {\n                        let errors =\n                            cli::manifest_hint::hint_missing_manifest(errors, manifest_path);\n                        report(&errors, options.json)\n                    })?;\n")])),
+        "src/diagnostic/writer.rs" => Some((include_str!("../diagnostic/writer.rs"), include_str!("../../e/234adedbf03a1c76098f51339a9d5b96bc0a755c196c9de681d413a05a5f6b34"), &[(195,221,""),(2223,2315,"fn quoted(output: &mut (impl fmt::Write + ?Sized), value: &str) -> fmt::Result {\n"),(4206,6567,"")])),
+        "src/project/build.rs" => Some((include_str!("../project/build.rs"), include_str!("../../e/9393bdc1c0eea98c6f175f075bc4bc08bc153744781703054204643975a1b848"), &[(19502,20583,"")])),
+        "src/project/mod.rs" => Some((include_str!("../project/mod.rs"), include_str!("../../e/5df08297b41a6b5c8fb335fefc38f8f20c1ed345126b39ad95714c6b84515927"), &[(66539,66612,"")])),
+        "src/project/snapshot_building.rs" => Some((include_str!("../project/snapshot_building.rs"), include_str!("../../e/dc14145341cd371642095d5b526b07676c0de98d915505a730833e895dc03a54"), &[(314,766,""),(1008,1096,"        return Err(grammar(\"Project v1 manifest path must name semaprax.toml\"));\n"),(1403,1469,"        return Err(host_policy::selected_route_refused());\n"),(1545,1612,"        return Err(host_policy::strict_route_unselected());\n"),(1761,1844,"        return Err(capacity(\"ancestor_directories\", MAX_HELD_DIRECTORIES));\n"),(2187,2285,"        return Err(authentication(\n            \"Project v1 manifest selection changed while opening\",\n        ));\n"),(3156,3255,"                        return Err(capacity(\"ancestor_directories\", MAX_HELD_DIRECTORIES));\n"),(4094,4131,"            )));\n"),(4333,4467,"            return Err(authentication(\n                \"Project v1 source paths resolve to one physical file\",\n            ));\n"),(4741,4828,"            return Err(capacity(\"total_source_bytes\", MAX_TOTAL_SOURCE_BYTES));\n"),(5717,5816,"                        return Err(capacity(\"ancestor_directories\", MAX_HELD_DIRECTORIES));\n"),(6842,6879,"            )));\n"),(7353,7376,"            ));\n"),(8344,8431,"            return Err(capacity(\"total_source_bytes\", MAX_TOTAL_SOURCE_BYTES));\n"),(8544,8614,"        return Err(capacity(\"resolved_sources\", MAX_SOURCES));\n"),(8677,8860,"    let (revision, result) = build(manifest, workspace_sources).map_err(|errors| {\n"),(9030,9451,"    })?;\n"),(9804,16656,"")])),
+        "src/project/tests.rs" => Some((include_str!("../project/tests.rs"), include_str!("../../e/2ec57379d493632aea1c42b12b4cea02b651a66ea0a067663ee4749208edc2e6"), &[(4570,4607,"fn fixture() -> PathBuf {\n"),(54370,56332,"")])),
+        "src/semantic_workspace/reporting.rs" => Some((include_str!("../semantic_workspace/reporting.rs"), include_str!("../../e/a24be6d24d1fb928ba298fd32621cdf04f99d58623962c99876d2bbfb49f162c"), &[(1853,3080,""),(3154,3182,""),(3248,4373,""),(6167,6270,"        workspace_graph::build_owned_retaining_sources_with_frontend_limit::<WorkspaceReportFailure>(\n"),(6596,6625,""),(6649,6752,"        workspace_graph::build_owned_retaining_sources_with_frontend_limit::<WorkspaceReportFailure>(\n"),(6779,6858,"            workspace_graph::MAX_BUILDER_BYTES,\n"),(6932,6961,""),(12819,13303,"")])),
+        "src/source_reflows_merge.rs" => Some((include_str!("../source_reflows_merge.rs"), include_str!("../../e/426ddd09476688811850a2a583df6821fd8ee8ad9b469300ae824dcb4958fe3a"), &[(26923,27170,"pub(crate) fn setup_typed_input(source: &str, current: &str) -> String {\n"),(35211,35464,"pub(crate) fn diagnostic846_input(source: &str, current: &str) -> String {\n"),(39568,39812,"pub(crate) fn initial845_input(source: &str, current: &str) -> String {\n"),(64546,64913,"        (\"src/workspace_graph/constructor_failure/report.rs\", \"fc2eb1ecc98cc13b6df906a1e2f59f09d198cf958a4c7ff3472e0aae1a866a84\") => (include_str!(\"workspace_graph/constructor_failure/report.rs\"), 10609, \"a389503a2f7e6b241bbbaf906f71e980e564fa689d2389543d581dbc12fe5662\", &[\n"),(79154,79318,"        include_str!(\"workspace_graph/constructor_failure/attempt.rs\")\n"),(81120,81507,"        \"src/workspace_graph/initial_report/build.rs\" => (normalized.as_deref().unwrap_or(include_str!(\"workspace_graph/initial_report/build.rs\")), 17509, \"48b56f916c25d00004bf6d8bc13e56a0972d07f531fceda2c7c94b57d2af20e1\", 17054, \"0fd9df9abe4ceadd45105394a4efcda2edc3a3ab780d0326d924288a60ea5bda\", &[\n")])),
+        "src/source_reflows_merge/constructor_stage.rs" => Some((include_str!("../source_reflows_merge/constructor_stage.rs"), include_str!("../../e/34659412bdd67e8058ea9110918d231979f38fc610c74671631c2bfbef4e14c4"), &[(12057,12196,"            include_str!(\"../workspace_graph/initial_report/build.rs\"),\n"),(12610,12645,"        std::fs::read_to_string(std::path::Path::new(env!(\"CARGO_MANIFEST_DIR\")).join(source))\n            .unwrap()\n")])),
+        "src/workspace_graph.rs" => Some((include_str!("../workspace_graph.rs"), include_str!("../../e/3cfe18af8f3321f852f70ec75dd1592b81f7d597b6cf40abdc89e54206ea5eaf"), &[(150626,151838,""),(152733,152758,"")])),
+        "src/workspace_graph/constructor_failure/attempt.rs" => Some((include_str!("../workspace_graph/constructor_failure/attempt.rs"), include_str!("../../e/a6ee9ade44a91d067b516603e52453d965b0e4bd8060add721ebe057f5fcb082"), &[(422,2298,""),(2434,2744,""),(2787,2907,"        .checked_add(size_of::<Result<T, CoreFailure>>())\n")])),
+        "src/workspace_graph/constructor_failure/report.rs" => Some((include_str!("../workspace_graph/constructor_failure/report.rs"), include_str!("../../e/a389503a2f7e6b241bbbaf906f71e980e564fa689d2389543d581dbc12fe5662"), &[(2831,2885,"")])),
+        "src/workspace_graph/constructor_failure/report/tests.rs" => Some((include_str!("../workspace_graph/constructor_failure/report/tests.rs"), include_str!("../../e/96b2af4f54da82fbcea13dc50d0ead551725f8d2551e92e0894c23fb22b17cbf"), &[(13287,21263,"")])),
+        "src/workspace_graph/initial_report.rs" => Some((include_str!("../workspace_graph/initial_report.rs"), include_str!("../../e/4561e56ae34b8620fbfd6e78c5548bc4b4450a66e0010bb7f2ba531f62454165"), &[(2622,2697,"            Some(report) => Self::existing(report),\n")])),
+        "src/workspace_graph/initial_report/build.rs" => Some((include_str!("../workspace_graph/initial_report/build.rs"), include_str!("../../e/48b56f916c25d00004bf6d8bc13e56a0972d07f531fceda2c7c94b57d2af20e1"), &[(283,311,""),(9480,10052,"                let result = constructor_failure::attempt::run(active_builder_limit(), || {\n                    constructor_failure::attempt::reserve(layouts.receipt())?;\n                    staged!(\n                        CorePrebound,\n                        constructor_failure::attempt::reserve(resolve_builder_bytes)\n                    )?;\n                    let custody = custody::SourceCustody::plan(\n                        &sources,\n                        &programs,\n                        &pruned_dependency_functions,\n                    )\n                    .map_err(|error| match error {\n                        custody::CustodyError::Prepaid(_) => {\n                            vec![limit_error(\"builder_bytes\", active_builder_limit())]\n                        }\n                        _ => vec![graph_error(\n                            \"SPX-G173\",\n                            \"current parsed source custody is inconsistent\",\n                        )],\n                    })?;\n                    let core = staged!(\n                        ResolvedCore,\n                        build_resolved_core_current(\n"),(10091,10149,"                            &module_paths,\n                            &dependency_depths,\n                            &authored,\n                            Some(&sources),\n                            frontend.as_deref_mut(),\n                            &layouts,\n                            compact_layout\n                                .as_ref()\n                                .map(|layout| &layout.order[..programs.len()]),\n"),(10175,11501,"                    )?;\n                    Ok::<_, constructor_failure::receiving::CoreFailure>((core, custody))\n                });\n")])),
+        "src/workspace_report.rs" => Some((include_str!("../workspace_report.rs"), include_str!("../../e/fa7df387eb05aebefbd4c86c11ded727d9db05f11d79016e63579c33ed24db1b"), &[(662,779,""),(1696,2089,""),(2908,3081,"            Owner::Existing(diagnostics) => Some(diagnostics),\n"),(4579,4746,"            Owner::Existing(diagnostics) => diagnostics,\n"),(5743,5927,""),(6397,6534,"            Owner::Existing(_) | Owner::Unreceived(_) => unreachable!(),\n"),(7749,7991,""),(8490,8848,"")])),
+        "src/workspace_report/initial.rs" => Some((include_str!("../workspace_report/initial.rs"), include_str!("../../e/d7fe22d57ea6189b591e469e3c9d13014a7f75469b63e15c3991a0171bb04d7d"), &[(211,415,""),(952,1044,"            Owner::Existing(_) | Owner::Unreceived(_) => {\n")])),
+        _ => None,
+    }
+}
+fn report947_read(path: &std::path::Path, length: usize, sha: &str) -> String {
+    report947_reader::read(path, length, sha, REPORT947_CAP).unwrap()
+}
+fn report947_check(source: &str, compiled: &str, prior: &str) {
+    report947_check_using(source, compiled, prior, &mut report947_read);
+}
+fn report947_check_using(source: &str, compiled: &str, prior: &str,
+    read: &mut impl FnMut(&std::path::Path, usize, &str) -> String) {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    assert!(compiled.len() <= REPORT947_CAP && prior.len() <= REPORT947_CAP);
+    for (path, expected) in [
+        (root.join(source), compiled),
+        (root.join("e").join(report947_sha(compiled)), compiled),
+        (root.join("e").join(report947_sha(prior)), prior),
+    ] {
+        let actual = read(&path, expected.len(), &report947_sha(expected));
+        assert_eq!(actual.len(), expected.len());
+        assert_eq!(report947_sha(&actual), report947_sha(expected));
+        assert_eq!(actual, expected);
+    }
+}
+fn report947_sha(text: &str) -> String {
+    format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(text.as_bytes())))
+}
+fn report947_restore(source: &str, compiled: &str, prior: &str, edits: &[(usize, usize, &str)]) -> String {
+    let mut restored = if source == "src/source_reflows_merge/constructor_stage.rs" {
+        let marker = "\n// BEGIN OPT947 WHOLE76AD CUSTODY INGRESS\n";
+        let (prefix, _) = compiled.split_once(marker).expect("one closed custody section");
+        assert_eq!(compiled.matches(marker).count(), 1);
+        prefix.to_owned()
+    } else { compiled.to_owned() };
+    for &(start, end, before) in edits.iter().rev() {
+        assert!(start <= end && end <= restored.len());
+        assert!(restored.is_char_boundary(start) && restored.is_char_boundary(end));
+        assert!(restored.len().checked_sub(end-start).and_then(|n| n.checked_add(before.len())).is_some_and(|n| n <= REPORT947_CAP));
+        restored.replace_range(start..end, before);
+    }
+    assert_eq!(restored, prior, "ENTIRE fixed76ad custody owner");
+    restored
+}
+pub(super) fn report947_compiled(source: &str, supplied: &'static str) -> &'static str {
+    let Some((compiled, prior, edits)) = report947_row(source) else { return supplied; };
+    assert_eq!(supplied, compiled, "trusted current compiled acquisition");
+    report947_check(source, compiled, prior);
+    assert_eq!(report947_restore(source, compiled, prior, edits), prior);
+    report947_check(source, compiled, prior);
+    prior
+}
+fn report947_physical(source: &str) -> String {
+    let Some((compiled, prior, edits)) = report947_row(source) else {
+        return std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(source)).unwrap();
+    };
+    report947_check(source, compiled, prior);
+    let restored = report947_restore(source, compiled, prior, edits);
+    report947_check(source, compiled, prior);
+    restored
+}
+pub(super) fn report947_run<T>(source: &str, supplied: &str, operation: impl FnOnce(&str) -> T) -> T {
+    report947_run_using(source, supplied, operation, &mut report947_read)
+}
+fn report947_run_using<T>(source: &str, supplied: &str, operation: impl FnOnce(&str) -> T,
+    read: &mut impl FnMut(&std::path::Path, usize, &str) -> String) -> T {
+    let Some((compiled, prior, edits)) = report947_row(source) else { return operation(supplied); };
+    assert_eq!(supplied, compiled, "actual supplied current owner, before selecting history");
+    report947_check_using(source, compiled, prior, read);
+    let restored = report947_restore(source, compiled, prior, edits);
+    let result = operation(&restored);
+    report947_check_using(source, compiled, prior, read);
+    result
+}
+
+#[test]
+fn report947_current_ingress_preserves_whole_targets_and_refuses_all_channels_early_and_late() {
+    use std::panic::{catch_unwind, AssertUnwindSafe};
+    for source in [
+        "src/workspace_graph/constructor_failure/report.rs",
+        "src/workspace_graph/constructor_failure/attempt.rs",
+        "src/workspace_graph/initial_report/build.rs",
+        "src/workspace_report.rs", "src/diagnostic/writer.rs",
+        "src/cli_driver.rs", "src/source_reflows_merge.rs",
+        "src/source_reflows_merge/constructor_stage.rs",
+    ] {
+        let (compiled, prior, _) = report947_row(source).unwrap();
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        let previous = root.join("e").join(report947_sha(prior));
+        let read = |path: &std::path::Path, _: usize, _: &str| {
+            if path == previous { prior.to_owned() } else { compiled.to_owned() }
+        };
+        let mut calls = 0;
+        let actual = report947_run_using(source, compiled, str::to_owned, &mut |path, len, sha| {
+            calls += 1; read(path, len, sha)
+        });
+        assert_eq!(actual, prior);
+        assert_eq!(calls, 6, "all three channels before AND after complete old operation");
+        for forged in [format!("{compiled}\n"), compiled[..compiled.len()-1].to_owned(), prior.to_owned()] {
+            assert!(catch_unwind(AssertUnwindSafe(|| report947_run_using(source, &forged, str::to_owned, &mut read.clone()))).is_err());
+        }
+        for corrupt_at in 0..6 {
+            for truncate in [false, true] {
+                let mut index = 0;
+                assert!(catch_unwind(AssertUnwindSafe(|| report947_run_using(source, compiled, str::to_owned, &mut |path, len, sha| {
+                    let mut bytes = read(path, len, sha);
+                    if index == corrupt_at {
+                        if truncate { bytes.pop(); } else { bytes.replace_range(0..1, "!"); }
+                    }
+                    index += 1;
+                    bytes
+                }))).is_err(), "physical/current archive/prior archive drift at frontier {corrupt_at}");
+            }
+        }
     }
 }

@@ -365,3 +365,96 @@ for(let i=0;i<8;i++) {
     );
     fixture.cleanup();
 }
+
+#[test]
+fn checked_literal_format_same_c_o0_o2_preserves_success_precommit_failure_and_render_settlement() {
+    fn symbol(id: &str) -> String {
+        format!("spx_decl_{}", id.bytes().map(|byte| format!("{byte:02x}")).collect::<String>())
+    }
+    let source = format!(r#"{SOURCE}
+@id("format.reject")
+fn reject(text: string) -> string requires string_len(text) < 0 {{ text }}
+@id("format.precommit")
+fn precommit() -> i64 {{
+    let prefix = "staged";
+    let rendered = string_format("{{}}{{}}", prefix, reject("late"));
+    string_len(rendered)
+}}
+"#);
+    let program = semaprax::check(&source, "format-paired-native.spx").unwrap();
+    let resolved = hir::resolve(&program).unwrap();
+    hir::validate(&resolved).unwrap();
+    semaprax::cleanup_plan::validate_program(&resolved).unwrap();
+    let emitted = codegen::emit_c(&program).unwrap();
+    assert_eq!(emitted, codegen::emit_c(&program).unwrap());
+    let marker = "#define SPX_FORMAT_STATUS_DOMAIN_V1";
+    let (before, after) = emitted.split_once(marker).expect("same checked format worker");
+    let allocation = "struct spx_string_v10 *value = (struct spx_string_v10 *)malloc(";
+    assert!(after.matches(allocation).count() >= 2);
+    // Exactly the original helper-failure injection boundary, now observed
+    // through both optimized C11 executions and the complete allocator inventory.
+    let worker = after.replacen(
+        allocation,
+        "struct spx_string_v10 *value = (struct spx_string_v10 *)format_pair_malloc(",
+        2,
+    );
+    let tracked = format!("{before}{marker}{worker}").replace("realloc(", "format_pair_realloc(");
+    let mut probe = String::from(include_str!("../support/native_fixture_stdio.c"));
+    probe.push_str(include_str!("../native_owned_utf8_settlement_v1/allocations.c"));
+    probe.push_str(r#"
+static unsigned format_pair_requests, format_pair_refuse_at, format_pair_realloc_requests;
+static void *format_pair_malloc(size_t bytes) {
+    if (++format_pair_requests == format_pair_refuse_at) return NULL;
+    return malloc(bytes);
+}
+static __attribute__((unused)) void *format_pair_realloc(void *pointer, size_t bytes) {
+    ++format_pair_realloc_requests;
+    return realloc(pointer, bytes);
+}
+"#);
+    probe.push_str(&tracked);
+    probe.push_str("\n#undef malloc\n#undef free\n");
+    probe.push_str(&format!("#define PAIR_SUCCESS {}\n#define PAIR_PRECOMMIT {}\n#define PAIR_POSTCOMMIT {}\n", symbol("format.success"), symbol("format.precommit"), symbol("format.failure")));
+    probe.push_str(r#"
+int main(void) {
+    REQUIRE(fixture_binary_stdout());
+    struct spx_status_entry entries[32];
+    struct spx_context context = {0};
+    REQUIRE(spx_context_init(&context,19,entries,32,NULL,NULL,NULL));
+    for (unsigned repeat=0; repeat<3; ++repeat) {
+        for (unsigned scenario=0; scenario<3; ++scenario) {
+            size_t allocated=fixture_allocations, freed=fixture_frees;
+            int64_t result=INT64_MIN;
+            format_pair_requests=0;
+            format_pair_realloc_requests=0;
+            format_pair_refuse_at=scenario==0 ? 0 : 2;
+            spx_status_token token=scenario==0 ? PAIR_SUCCESS(&context,&result)
+                : scenario==1 ? PAIR_PRECOMMIT(&context,&result)
+                : PAIR_POSTCOMMIT(&context,&result);
+            if (scenario==0) {
+                REQUIRE(token==0 && result==7 && format_pair_requests>0);
+            } else {
+                REQUIRE(token!=0 && result==INT64_MIN);
+                const struct spx_normalized_status *status=spx_status_resolve(&context,token);
+                REQUIRE(status!=NULL && status->code==1);
+                REQUIRE(strcmp(status->domain_id,scenario==1 ? "semaprax.contract.v1" : "semaprax.string-format.v1")==0);
+                REQUIRE(format_pair_requests==(scenario==1 ? 0u : 2u));
+            }
+            REQUIRE(format_pair_realloc_requests==0);
+            REQUIRE(fixture_live==0 && fixture_allocations==fixture_frees);
+            REQUIRE(fixture_allocations>allocated && fixture_frees>freed);
+            printf("%u:%u:%zu:%zu:%u:%zu\n",repeat,scenario,
+                fixture_allocations-allocated,fixture_frees-freed,
+                format_pair_requests,fixture_peak);
+        }
+    }
+    return 0;
+}
+"#);
+    let mut fixture = Fixture::new(&source);
+    let o0 = fixture.native(&probe, "-O0");
+    let o2 = fixture.native(&probe, "-O2");
+    assert_eq!(o0.lines().count(), 9);
+    assert_eq!(o0, o2, "same checked source/C probe must preserve every observed allocation/settlement tuple");
+    fixture.cleanup();
+}

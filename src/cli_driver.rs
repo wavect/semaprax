@@ -173,19 +173,18 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             let path = match options.input {
                 cli::project::CheckInput::Source(path) => path,
                 cli::project::CheckInput::Project(manifest_path) => {
-                    let (name, revision) =
-                        project::with_authenticated_project(&manifest_path, |snapshot| {
+                    let (name, revision) = project::with_authenticated_project_reporting(
+                        &manifest_path,
+                        |snapshot| {
                             snapshot.check()?;
                             Ok((
                                 snapshot.manifest().name().to_owned(),
                                 snapshot.project_revision().to_owned(),
                             ))
-                        })
-                        .map_err(|errors| {
-                            let errors =
-                                cli::manifest_hint::hint_missing_manifest(errors, &manifest_path);
-                            report(&errors, json)
-                        })?;
+                        },
+                        |errors| cli::manifest_hint::hint_missing_manifest(errors, &manifest_path),
+                    )
+                    .map_err(|failure| report_workspace(&failure, json))?;
                     if json {
                         println!(
                             "{{\"status\":\"verified\",\"name\":{},\"revision\":{}}}",
@@ -651,7 +650,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             match &options.input {
                 cli::build::BuildInput::Source(input) => build_source(&options, input)?,
                 cli::build::BuildInput::Project(manifest_path) => {
-                    let output = project::with_authenticated_project(manifest_path, |snapshot| {
+                    let output = project::with_authenticated_project_reporting(manifest_path, |snapshot| {
                         snapshot.check()?;
                         snapshot.manifest().admit_build_target(&options.target)?;
                         let mut output = options.output.clone().unwrap_or_else(|| {
@@ -725,12 +724,8 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
                             parent.retain().map_err(|error| vec![error])?;
                         }
                         Ok((output, snapshot.manifest().project_profile()))
-                    })
-                    .map_err(|errors| {
-                        let errors =
-                            cli::manifest_hint::hint_missing_manifest(errors, manifest_path);
-                        report(&errors, options.json)
-                    })?;
+                    }, |errors| cli::manifest_hint::hint_missing_manifest(errors, manifest_path))
+                    .map_err(|failure| report_workspace(&failure, options.json))?;
                     cli::project_runtime::report_build_success(
                         &options.target,
                         output.1,

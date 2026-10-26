@@ -4,6 +4,8 @@ use sha2::{Digest, Sha256};
 use std::borrow::Cow;
 #[path = "../workspace_graph/identity_resolution/base/cache_billing/main7f8_reader.rs"]
 mod reader;
+#[path = "ci_inputs_current_epoch.rs"]
+mod current_source_epoch;
 #[path = "../source_front_pool.rs"]
 pub(crate) mod front_pool;
 fn digest(text: &str) -> String {
@@ -211,7 +213,6 @@ fn rows() -> serde_json::Value {
         "c4eb6d914f71ea5ea5ec3cee2710b4c18fee4c45b2c9019e8b48b5fb46653bbb"
     );
     let main44: serde_json::Value = serde_json::from_str("[[366,\"#[cfg(test)]\\npub(crate) use path_array_main44::current_source as main44_current_source;\\n\",\"\"],[2719,\"\",\"\\n\"]]").unwrap();
-
     let mut checkpoint = current.to_owned();
     for edit in main44.as_array().unwrap().iter().rev() {
         let at = usize::try_from(edit[0].as_u64().unwrap()).unwrap();
@@ -334,7 +335,9 @@ fn rows() -> serde_json::Value {
             "5b40d53c43ccf6335bd2fbaf33c3c57d75b5bcfab2a7d6ebbd03851d77ee6e9d"
         );
         let original_probe = probe.clone();
-        let actual = compiled("src/cleanup_plan/replay.rs").unwrap().1;
+        let actual_current = compiled("src/cleanup_plan/replay.rs").unwrap().1;
+        let (prior_actual, current_prefix) = current_source_epoch::before_probe(actual_current);
+        let actual = prior_actual.as_str();
         assert_eq!(actual.len(), 327551);
         assert_eq!(
             digest(actual),
@@ -342,7 +345,7 @@ fn rows() -> serde_json::Value {
         );
         assert_eq!(
             std::fs::read(
-                std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/cleanup_plan/replay.rs")
+                std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("e/751c95561915a9b99ebec0bdf702dc9c7448d411f0f80ac58d244bc7df20dde5")
             )
             .unwrap(),
             actual.as_bytes()
@@ -372,6 +375,7 @@ fn rows() -> serde_json::Value {
         probe["length"] = serde_json::json!(actual.len());
         probe["sha256"] = serde_json::json!(digest(actual));
         probe["retained_prior_record"] = original_probe;
+        current_source_epoch::finish_probe(probe, actual_current, current_prefix);
     }
     // Preserve the complete original probe entry, then compose the two exact
     // current early-release splices ahead of every immutable indexed inverse.
@@ -721,7 +725,6 @@ fn fourteen_complete_ci_input_inverses_keep_independent_git_bodies_and_refuse_st
     assert!(compact_frontier_entry("foreign.rs", "unlisted input").is_none());
     reader::controls();
 }
-
 // This controller alone consumes the pre-profile intrinsic-dispatch source.
 // The actual compiler and every other source reader keep the current iterator.
 pub(super) fn intrinsic_profile_entry(
@@ -808,7 +811,6 @@ pub(super) fn intrinsic_profile_entry(
     );
     Some(previous)
 }
-
 #[test]
 fn intrinsic_profile_entry_keeps_exact_controller_scope_and_refuses_complete_source_drift() {
     let caller = "src/hir/validation/constructor_seed/intrinsic_tests.rs";
@@ -906,7 +908,6 @@ fn paid_stdin_entry(supplied: &str) -> Option<String> {
     assert_eq!(reader::read(&root.join("docs/evidence/paid-constructor-entry-20261022/bc1e107b8756db7b323000b0d282b731db08b06b29b21ca9a3e86bb6366bef97.txt"), before.len(), &digest(&before), 2_097_152).unwrap(), before);
     Some(before)
 }
-
 #[test]
 fn paid_constructor_entries_refuse_foreign_controllers_and_changed_whole_sources() {
     let caller = "src/hir/validation/function_lookup/paid_custody.rs";
@@ -936,7 +937,6 @@ fn paid_constructor_entries_refuse_foreign_controllers_and_changed_whole_sources
     }
     assert!(intrinsic_profile_entry(caller, "src/hir.rs", "foreign").is_none());
 }
-
 // The relocated validator receiver shares these private helpers. Every older
 // source consumer enters through the exact six visibility-only reversals.
 pub(super) fn lifecycle_visibility_entry(source: &str, supplied: &str) -> Option<String> {
@@ -1013,9 +1013,10 @@ pub(super) fn batch_913_entry(source: &str, supplied: &str) -> Option<String> {
     assert_eq!(compiled.len(), length);
     assert_eq!(digest(compiled), expected);
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    if source == "src/hir/validation/frame_reuse/source_inverse.rs" { assert_eq!(reader::read(&root.join(source), physical_compiled.len(), &digest(physical_compiled), 2_097_152).unwrap(), physical_compiled); }
     assert_eq!(
         reader::read(
-            &if matches!(source, "src/hir/validation/lexical_exit.rs" | "src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs") {
+            &if matches!(source, "src/hir/validation/lexical_exit.rs" | "src/hir/validation/frame_reuse/source_inverse.rs" | "src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs") {
                 root.join("e").join(expected)
             } else {
                 root.join(source)
@@ -1107,7 +1108,6 @@ pub(super) fn batch_913_entry(source: &str, supplied: &str) -> Option<String> {
     assert_eq!(digest(&before), prior_sha);
     Some(before)
 }
-
 // Enter the immutable selected-path predecessor only through complete live images.
 pub(super) fn compact_frontier_entry(source: &str, supplied: &str) -> Option<String> {
     let compiled = match source {

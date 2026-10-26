@@ -1316,6 +1316,41 @@ fn v18_complete_current_page_and_python_rust_transport_match() {
     verify_current_v18(&current);
 }
 pub(in super::super::super) fn verify_current_v18(current: &Value) {
+    if current["schema"] != super::super::super::compiled_successor_v19::SCHEMA {
+        return verify_current_v18_before_v19(current);
+    }
+    authenticate_current_page_for_retained_controls(current);
+    let (mut policy, _) = super::super::super::load_current().unwrap();
+    let before = super::super::super::super::packet_before_overlay();
+    let expected = super::super::super::compose_values(before.clone(), &policy, current).unwrap();
+    // Only the private singleton base is derived, after full V19 validation.
+    let mut derived = before.clone();
+    assert_eq!(derived["rows"][389]["source"], "src/workspace_graph/expected_projection/borrowed_imports.rs");
+    assert_eq!(derived["rows"][389]["compiled"], false);
+    derived["rows"][389]["compiled"] = true.into();
+    let mut inverse = derived.clone();
+    inverse["rows"][389]["compiled"] = false.into();
+    assert_eq!(canonical(&inverse), canonical(&before));
+    policy["predecessor"]["logical_sha256"] = hash(&canonical(&derived)).into();
+    let mut inner = current["page"].clone();
+    inner["predecessor"] = policy["predecessor"].clone();
+    assert_eq!(inner["schema"], typed_refs_v18::SCHEMA_V18);
+    let logical = typed_refs_v18::expand_to_v15(&inner).unwrap();
+    let v12 = expand_to_v12_logical(
+        &expand_to_v13_logical(&expand_to_v14_logical(&logical).unwrap()).unwrap(),
+    ).unwrap();
+    let wire = typed_refs_v18::encode(&v12).unwrap();
+    let actual = python_v18(&v12, &[]);
+    assert_eq!(canonical(&actual["encoded"]), canonical(&wire));
+    assert_eq!(canonical(&actual["v15"]), canonical(&logical));
+    assert_eq!(canonical(&typed_refs_v18::expand_to_v15(&wire).unwrap()), canonical(&logical));
+    assert_eq!(canonical(&inner), canonical(&wire));
+    let original = super::super::super::compose_values(derived.clone(), &policy, &inner).unwrap();
+    let restored = super::super::super::compose_values(derived, &policy, &wire).unwrap();
+    assert_eq!(canonical(&restored), canonical(&original));
+    assert_eq!(canonical(&original), canonical(&expected));
+}
+fn verify_current_v18_before_v19(current: &Value) {
     authenticate_current_page_for_retained_controls(current);
     let logical = if current["schema"] == typed_refs_v18::SCHEMA_V18 {
         typed_refs_v18::expand_to_v15(current).unwrap()
@@ -1380,6 +1415,13 @@ fn v18_python_rust_hostile_reference_decisions_match() {
 // Historical controls acquire the actual live wire first, then an exact
 // independently pinned full predecessor. Their evidence remains historical.
 fn authenticate_current_page_for_retained_controls(current: &Value) {
+    if current["schema"] == super::super::super::compiled_successor_v19::SCHEMA {
+        let (policy, loaded) = super::super::super::load_current().unwrap();
+        assert_eq!(canonical(current), canonical(&loaded));
+        let before = super::super::super::super::packet_before_overlay();
+        super::super::super::compose_values(before, &policy, current).unwrap();
+        return;
+    }
     assert!(current["schema"] == SCHEMA_V17 || current["schema"] == typed_refs_v18::SCHEMA_V18);
     let compiled = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"),
         "/docs/evidence/finite-source-overlay-v2-20261018/page.json"));
@@ -1396,7 +1438,7 @@ fn authenticate_current_page_for_retained_controls(current: &Value) {
     }
 }
 fn retain_current_v17_for_v18(current: Value) -> Value {
-    if current["schema"] != typed_refs_v18::SCHEMA_V18 { return current; }
+    if current["schema"] != typed_refs_v18::SCHEMA_V18 && current["schema"] != super::super::super::compiled_successor_v19::SCHEMA { return current; }
     authenticate_current_page_for_retained_controls(&current);
     let raw=include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"),
         "/e/ab3c0bc973d3720e5afe6eb2b1594cd4080bc391a8ff6cae9773dadb2cdd979a"));

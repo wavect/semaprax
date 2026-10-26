@@ -4710,16 +4710,7 @@ impl<'a> HirValidator<'a> {
                         outer.copy_binding_from(&arm_scope, id)?;
                     }
                     publication.publish(&outer)?;
-                    validator.require_type(
-                        &expression.ty,
-                        &arm.value.ty,
-                        "record match expression",
-                    )?;
-                    if expression.ownership != arm.value.ownership {
-                        return Err(hir_error(
-                            "resolved record match expression has inconsistent ownership",
-                        ));
-                    }
+                    validator.finish_expr(expression, &arm.value.ty, arm.value.ownership)?;
                     scopes.push(outer)?;
                 }
                 _ => unreachable!("frame was routed to its matching phase"),
@@ -5167,12 +5158,7 @@ impl<'a> HirValidator<'a> {
                             )?;
                         }
                         publication.publish(&final_scope)?;
-                        validator.require_type(&expression.ty, &witness.ty, "match expression")?;
-                        if expression.ownership != witness.ownership {
-                            return Err(hir_error(
-                                "resolved match expression has inconsistent ownership",
-                            ));
-                        }
+                        validator.finish_expr(expression, &witness.ty, witness.ownership)?;
                         scopes.push(final_scope)?;
                         return Ok(());
                     }

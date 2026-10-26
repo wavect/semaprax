@@ -302,13 +302,29 @@ const OURS_FINAL_INGRESS: &str =
     include_str!("../../e/2fcdc7c3798717cea1df0172e442cc79368f525d687a0fdd87cac92a30f648d6");
 const MAIN_FINAL_INGRESS: &str =
     include_str!("../../e/3d61f09b3235194aba756af2ab9ec48ef7d24d77a5dcdba3190d104a306477fe");
-const LIVE_INGRESS: [(&str, usize, &str); 6] = [
+const PRIOR_LIVE_INGRESS: [(&str, usize, &str); 6] = [
     ("src/cleanup_plan/replay.rs", 326143, "392da88cb3c30b1adcff8d845c8af6a797586dfcaab9af2f0c898243f7c8350a"),
     ("src/source_reflows_merge.rs", 102740, "426ddd09476688811850a2a583df6821fd8ee8ad9b469300ae824dcb4958fe3a"),
     ("src/source_reflows_merge/main67107_inputs.rs", 49667, "555d676283e593101b9fc21b8e26f71b1b31b9567c52d3ca402077c4f8bf7fab"),
     ("tests/hir_module_boundaries.rs", 164775, "d38a89d107d7b8c666be6346a7a6a28ad167c740b5ba9c7f97156cc300805169"),
     ("tests/workspace/semantic_graph/source_inventory.rs", 259361, "5a3db1c2f1beae041e3df91b474afe27a67a9e3b1b2de9668a5f549d8a30b47e"),
     ("crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs", 244150, "d49f3e5888a6368cd2a0271319415fdacd18e8fc9252246bfe34d2bec14d4ae2"),
+];
+const LIVE_INGRESS: [(&str, usize, &str); 6] = [
+    ("src/cleanup_plan/replay.rs", 326143, "392da88cb3c30b1adcff8d845c8af6a797586dfcaab9af2f0c898243f7c8350a"),
+    ("src/source_reflows_merge.rs", 102740, "426ddd09476688811850a2a583df6821fd8ee8ad9b469300ae824dcb4958fe3a"),
+    ("src/source_reflows_merge/main67107_inputs.rs", 49667, "555d676283e593101b9fc21b8e26f71b1b31b9567c52d3ca402077c4f8bf7fab"),
+    ("tests/hir_module_boundaries.rs", 164984, "de9204c2027f354d7dccd840949d8d84c034af55a72d06f53783c3d46c9b6f1b"),
+    ("tests/workspace/semantic_graph/source_inventory.rs", 259549, "8f161a7b1de2ff3a5d965032bfff159d476b3ae87607f00a9866c3b1df33ccb9"),
+    ("crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs", 244356, "6c9454c85328d86f063ed445f60f846dda2f8b49cfcf76cc078ff40b0c3586ad"),
+];
+const PRIOR_LIVE_INGRESS_IMAGES: [(&str, &str); 6] = [
+    ("src/cleanup_plan/replay.rs", include_str!("../../e/392da88cb3c30b1adcff8d845c8af6a797586dfcaab9af2f0c898243f7c8350a")),
+    ("src/source_reflows_merge.rs", include_str!("../../e/426ddd09476688811850a2a583df6821fd8ee8ad9b469300ae824dcb4958fe3a")),
+    ("src/source_reflows_merge/main67107_inputs.rs", include_str!("../../e/555d676283e593101b9fc21b8e26f71b1b31b9567c52d3ca402077c4f8bf7fab")),
+    ("tests/hir_module_boundaries.rs", include_str!("../../e/d38a89d107d7b8c666be6346a7a6a28ad167c740b5ba9c7f97156cc300805169")),
+    ("tests/workspace/semantic_graph/source_inventory.rs", include_str!("../../e/5a3db1c2f1beae041e3df91b474afe27a67a9e3b1b2de9668a5f549d8a30b47e")),
+    ("crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs", include_str!("../../e/d49f3e5888a6368cd2a0271319415fdacd18e8fc9252246bfe34d2bec14d4ae2")),
 ];
 
 fn final_ingress_same_file(a: &std::fs::Metadata, b: &std::fs::Metadata) -> bool {
@@ -389,6 +405,41 @@ fn current_ingress_view(root: &std::path::Path, source: &str, compiled: &str) ->
         .expect("six literal current ingress sources only");
     let actual = final_ingress_file(&root.join(source), *length, expected);
     assert_eq!(actual, compiled, "complete current compiled ingress source");
+    let packet = latest_ingress_records();
+    let epoch = &packet["current_source_epoch"];
+    assert_eq!(epoch["schema"], "semaprax.ordinary-final-ingress-current-source-epoch.v1");
+    let rows = epoch["rows"].as_array().unwrap();
+    assert_eq!(rows.len(), LIVE_INGRESS.len());
+    assert_eq!(rows.iter().map(|r| r["source"].as_str().unwrap()).collect::<Vec<_>>(), LIVE_INGRESS.iter().map(|r| r.0).collect::<Vec<_>>());
+    let position = LIVE_INGRESS.iter().position(|r| r.0 == source).unwrap();
+    let row = &rows[position];
+    assert_eq!(row["current"], serde_json::json!({"length": length, "sha256": expected}));
+    let (prior_source, prior_length, prior_sha) = PRIOR_LIVE_INGRESS[position];
+    assert_eq!(prior_source, source);
+    assert_eq!(row["previous"], serde_json::json!({"length": prior_length, "sha256": prior_sha}));
+    assert_eq!(row["previous_archive"], format!("e/{prior_sha}"));
+    let prior_compiled = PRIOR_LIVE_INGRESS_IMAGES[position];
+    assert_eq!(prior_compiled.0, source);
+    assert_eq!((prior_compiled.1.len(), digest(prior_compiled.1)), (prior_length, prior_sha.to_owned()));
+    let prior = final_ingress_file(&root.join(format!("e/{prior_sha}")), prior_length, prior_sha);
+    assert_eq!(prior, prior_compiled.1);
+    let mut restored = actual.clone();
+    let edits = row["inverse"].as_array().unwrap();
+    assert!(edits.len() <= 512);
+    let mut next = restored.len();
+    for edit in edits.iter().rev() {
+        let start = usize::try_from(edit["start"].as_u64().unwrap()).unwrap();
+        let end = usize::try_from(edit["end"].as_u64().unwrap()).unwrap();
+        assert!(start <= end && end <= next);
+        assert!(restored.is_char_boundary(start) && restored.is_char_boundary(end));
+        assert_eq!(&restored[start..end], edit["after"].as_str().unwrap());
+        restored.replace_range(start..end, edit["before"].as_str().unwrap());
+        assert!(restored.len() <= FINAL_INGRESS_CAP);
+        next = start;
+    }
+    assert_eq!(restored, prior, "entire actual source to independently retained predecessor");
+    assert_eq!(final_ingress_file(&root.join(format!("e/{prior_sha}")), prior_length, prior_sha), prior_compiled.1);
+    assert_eq!(final_ingress_file(&root.join(source), *length, expected), actual);
     actual
 }
 fn historical_final_records(text: &str, length: usize, expected: &str) -> serde_json::Value {
@@ -456,17 +507,17 @@ fn latest_ingress_records() -> serde_json::Value {
         "../../docs/evidence/source-coverage-254-20261024/latest-ordinary-inputs.json"
     );
     assert!(data.len() <= FINAL_INGRESS_CAP);
-    assert_eq!(data.len(), 499221);
+    assert_eq!(data.len(), 496927);
     assert_eq!(
         digest(data),
-        "575f816ae3634fcef8f5b2da7f1516a5e4d6a7723273871fe0722aec215861a8"
+        "ec0219b5e91fb7575999ea0fedd21034d3d73f1d2ea304bdc5949b4e67f8ae9f"
     );
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     assert_eq!(
         final_ingress_file(
             &root.join("docs/evidence/source-coverage-254-20261024/latest-ordinary-inputs.json"),
             data.len(),
-            "575f816ae3634fcef8f5b2da7f1516a5e4d6a7723273871fe0722aec215861a8"
+            "ec0219b5e91fb7575999ea0fedd21034d3d73f1d2ea304bdc5949b4e67f8ae9f"
         ),
         data
     );
@@ -709,6 +760,7 @@ fn final_ingress_checkpoint(source: &str, expected: &str, current: &str) -> (Str
             ours_checkpoint, checkpoint,
             "retained ours and incoming complete checkpoints agree"
         );
+        assert_eq!(current_ingress_view(root, path, compiled), actual, "late whole source after all original ingress routes");
         if path == source {
             assert_eq!(
                 row["expected_sha256"], expected,

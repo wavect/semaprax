@@ -90,7 +90,13 @@ impl<'hir> Backing<'hir> {
         // Option::take receiver pair, flag false/true literals and stores.
         + 2 * size_of::<(&mut Self, &str)>()
         + 2 * size_of::<&mut Option<Diagnostic>>()
-        + 4 * size_of::<bool>();
+        + 4 * size_of::<bool>()
+        // One reached protocol refusal rejects only this captured parent.
+        // Its self-loan, original receipt publication and overflow Cell::set
+        // actual/formals are prepaid before the held owner is constructed.
+        + 2 * size_of::<&ClassifierLedger>()
+        + ClassifierLedger::storage_terminal_receipt_controls()
+        + 2 * size_of::<(&std::cell::Cell<bool>, bool)>();
 
     // The owned Some-pattern has no take/expect call. Its impossible None arm
     // retains a cold internal panic, with its literal/format/location and
@@ -151,6 +157,9 @@ impl<'hir> Backing<'hir> {
             || self.payer != budget.payer
             || (self.payer == AllocationPayer::ActiveBuilder && !self.ledger.current())
         {
+            // No ACTIVE lookup or foreign debit: record the protocol refusal
+            // on the exact captured owner, preserving any earlier receipt.
+            self.ledger.reject_storage();
             self.error = Some(budget.budget_refusal(
                 function,
                 "status backing belongs to another invocation",
@@ -167,6 +176,9 @@ impl<'hir> Backing<'hir> {
                 .map(|instance| &instance.function)
         };
         if next.is_none_or(|expected| !std::ptr::eq(expected, function)) {
+            // No ACTIVE lookup or foreign debit: record the protocol refusal
+            // on the exact captured owner, preserving any earlier receipt.
+            self.ledger.reject_storage();
             self.error = Some(budget.budget_refusal(
                 function,
                 "status backing function order differs from held program",
@@ -196,6 +208,9 @@ impl<'hir> Backing<'hir> {
             .full_program()
             .is_some_and(|full| std::ptr::eq(full, self.program))
         {
+            // No ACTIVE lookup or foreign debit: record the protocol refusal
+            // on the exact captured owner, preserving any earlier receipt.
+            self.ledger.reject_storage();
             self.error = Some(budget.budget_refusal(
                 function,
                 "status backing belongs to another typed program",
@@ -217,6 +232,9 @@ impl<'hir> Backing<'hir> {
             return false;
         }
         if output.is_some() {
+            // No ACTIVE lookup or foreign debit: record the protocol refusal
+            // on the exact captured owner, preserving any earlier receipt.
+            self.ledger.reject_storage();
             self.error = Some(budget.budget_refusal(
                 function,
                 "status directory receiving slot is not empty",
@@ -292,6 +310,13 @@ macro_rules! receive_directory {
     }};
 }
 pub(in crate::cleanup_plan::replay::expression_facts::receiving) use receive_directory;
+
+// Entire immediate producer, including its independent original test harness.
+// It remains executable; no old receiving body or tariff is edited in place.
+#[cfg(test)]
+#[allow(dead_code, unused_imports)]
+#[path = "held_invocation_before_protocol/owner.rs"]
+mod before_protocol;
 
 #[cfg(test)]
 #[path = "held_invocation_tests.rs"]

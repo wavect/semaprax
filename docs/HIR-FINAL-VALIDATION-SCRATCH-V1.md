@@ -136,3 +136,20 @@ Drop. Whole immediate source bytes are retained and projected only after exact
 physical/compiled authentication and a late physical reread. All controls remain
 authored and unexecuted pending the authorized combined focused qualification.
 No measured saving, application admission or issue-closure claim is made.
+
+## Match-finalization diagnostic baseline
+
+Scalar and record match finalization retains the immediate public iterative
+`finish_expr` contract from `20b4479280` (the production source before
+`8fadf0c69`). Cached result-type and ownership failures retain its generic
+expression diagnostic and original publication order. Both complete saved
+validators remain byte-for-byte historical controls.
+
+The older recursive walker used different scalar/record finalization wording.
+The arm-context control pins both raw six-field diagnostics separately only for
+two authenticated source fixtures and their exact single cached-type/ownership
+mutations. Current results must equal the immediate owned walker in all six
+fields; the older recursive raw result must equal its explicit historical
+diagnostic. Expression/value identities, scopes, auxiliary state and static
+text remain directly compared. Every other case still requires raw diagnostic
+equality against both complete walkers. No diagnostic is normalized or ignored.

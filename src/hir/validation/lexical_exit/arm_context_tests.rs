@@ -23,7 +23,69 @@ fn main_body(program: &ResolvedProgram) -> &ResolvedExpr {
         .body
 }
 
+// These two exact authored sources pin the older recursive diagnostic only.
+// The live/public result must still equal the complete immediate owned oracle.
+const SCALAR_CACHED_SOURCE: &str = "module arm.scalar; @id(\"main\") fn main()->i64 {match 2 {0 | 1 if false => 7, n => match n { 2 => 9, _ => 8, },}}";
+const RECORD_CACHED_SOURCE: &str = r#"module arm.record;
+@id("item") record Item { @id("item.value") value:i64, }
+@id("main") fn main()->i64 {match Item {value:2} {Item {value}=>value,}}
+"#;
+struct PinnedRecursiveFinalization {
+    recursive_message: &'static str,
+    public_message: String,
+}
+fn match_root(expression: &mut ResolvedExpr) -> &mut ResolvedExpr {
+    match expression {
+        ResolvedExpr { kind: ResolvedExprKind::Block { tail, .. }, .. } => match_root(tail),
+        expression => {
+            assert!(matches!(expression.kind, ResolvedExprKind::Match { .. }));
+            expression
+        }
+    }
+}
+fn pinned_cached_finalization(
+    program: &ResolvedProgram, expression: &ResolvedExpr, source: &str,
+    attack: usize, record: bool,
+) -> PinnedRecursiveFinalization {
+    use sha2::{Digest, Sha256};
+    let (literal, expected_sha) = if record {
+        (RECORD_CACHED_SOURCE, "a74b4a46c531a7fc93890cad947b049dc8bfef4e0d5abfc155b896b13d99095f")
+    } else {
+        (SCALAR_CACHED_SOURCE, "d9d6375b23a4486c79bdbecc80b5ae9075be87615d890ae0e6342a1d44aa17e2")
+    };
+    assert_eq!(source, literal);
+    assert_eq!(format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(source.as_bytes()))), expected_sha);
+    assert!(attack <= 1);
+    let mut exact = main_body(program).clone();
+    let target = if record {
+        match_root(&mut exact)
+    } else {
+        &mut arms(&mut exact).last_mut().unwrap().value
+    };
+    assert!(matches!(target.kind, ResolvedExprKind::Match { .. }));
+    assert_eq!(target.ty, ResolvedType::I64);
+    assert_eq!(target.ownership, OwnershipMode::Value);
+    let public_message;
+    let recursive_message;
+    if attack == 0 {
+        target.ty = ResolvedType::Bool;
+        public_message = "expression has inconsistent resolved types".to_owned();
+        recursive_message = if record { "record match expression has inconsistent resolved types" } else { "match expression has inconsistent resolved types" };
+    } else {
+        target.ownership = OwnershipMode::Own;
+        public_message = format!("expression `{}` has inconsistent ownership", target.id);
+        recursive_message = if record { "resolved record match expression has inconsistent ownership" } else { "resolved match expression has inconsistent ownership" };
+    }
+    assert_eq!(&exact, expression, "only the exact pinned cached-finalization mutation is admitted");
+    PinnedRecursiveFinalization { recursive_message, public_message }
+}
 fn compare_expression(program: &ResolvedProgram, expression: &ResolvedExpr, fails: bool) {
+    compare_expression_with_history(program, expression, fails, None);
+}
+fn compare_expression_with_history(
+    program: &ResolvedProgram, expression: &ResolvedExpr, fails: bool,
+    historical: Option<PinnedRecursiveFinalization>,
+) {
     let function = program.functions.iter().find(|f| f.name == "main").unwrap();
     assert!(function.params.is_empty());
     let execution = FunctionExecutionId::Monomorphic(function.id.clone());
@@ -57,21 +119,42 @@ fn compare_expression(program: &ResolvedProgram, expression: &ResolvedExpr, fail
         true,
         None,
     );
+    if let Some(pinned) = &historical {
+        let public: Result<(), Diagnostic> = Err(Diagnostic {
+            code: "SPX-H006", severity: crate::diagnostic::Severity::Error,
+            message: pinned.public_message.clone().into(),
+            path: None, span: None, help: None,
+        });
+        HirValidator::assert_validation_oracle(
+            &actual, &public, &current, &current,
+            &current_scope, &current_scope, "pinned immediate public finalization",
+        );
+    }
     for (outcome, validator, scope) in [
         (&expected, &recursive, &recursive_scope),
         (&saved, &owned, &owned_scope),
     ] {
         // This compares all six diagnostic fields, expression/value identities
         // and the complete published map, including failed partial prefixes.
-        HirValidator::assert_validation_oracle(
-            &actual,
-            outcome,
-            &current,
-            validator,
-            &current_scope,
-            scope,
-            "body",
-        );
+        if std::ptr::eq(validator, &recursive) && historical.is_some() {
+            // Preserve the older raw result and compare every field to its
+            // independently pinned historical diagnostic. State remains a
+            // direct current/recursive comparison, with no message rewriting.
+            let pinned: Result<(), Diagnostic> = Err(Diagnostic {
+                code: "SPX-H006", severity: crate::diagnostic::Severity::Error,
+                message: historical.as_ref().unwrap().recursive_message.into(),
+                path: None, span: None, help: None,
+            });
+            HirValidator::assert_validation_oracle(
+                &pinned, outcome, &current, validator,
+                &current_scope, scope, "pinned older recursive finalization",
+            );
+        } else {
+            HirValidator::assert_validation_oracle(
+                &actual, outcome, &current, validator,
+                &current_scope, scope, "body",
+            );
+        }
         HirValidator::assert_scope_auxiliary_oracle(&current, validator);
         assert_eq!(current.static_text.get(), validator.static_text.get());
     }
@@ -134,8 +217,23 @@ fn scalar_constructor_contexts_and_late_arm_mutations_match_both_complete_valida
                     }
                     _ => unreachable!(),
                 }
-                compare_expression(&program, &expression, true);
+                if source == SCALAR_CACHED_SOURCE && attack <= 1 {
+                    let pinned = pinned_cached_finalization(&program, &expression, &source, attack, false);
+                    compare_expression_with_history(&program, &expression, true, Some(pinned));
+                } else {
+                    compare_expression(&program, &expression, true);
+                }
             }
+        }
+        let program = program(RECORD_CACHED_SOURCE);
+        compare_expression(&program, main_body(&program), false);
+        for attack in 0..2 {
+            let mut expression = main_body(&program).clone();
+            let target = match_root(&mut expression);
+            if attack == 0 { target.ty = ResolvedType::Bool; }
+            else { target.ownership = OwnershipMode::Own; }
+            let pinned = pinned_cached_finalization(&program, &expression, RECORD_CACHED_SOURCE, attack, true);
+            compare_expression_with_history(&program, &expression, true, Some(pinned));
         }
     });
 }

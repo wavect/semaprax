@@ -486,6 +486,38 @@ fn v14_source_before(source: &str, supplied: &str) -> String {
 fn joint_compiled_source_before(supplied: &str) -> Option<String> {
     const SOURCE: &str = "src/source_reflows_merge/main_e177_overlay_compiled.rs";
     const CURRENT: &str = include_str!("../main_e177_overlay_compiled.rs");
+    const PRIOR: &str = include_str!("../../../e/d89a458c6d798b37f185929e312aecdb3f0ddc1eff908127a8d3677050773679");
+    const SHA: &str = "e2840d0556e6b74ffcfadca80b2c1cb2e667a5f3f91243207a51c1c9a91fe38e";
+    if supplied.len() != 178877 || super::hash(supplied.as_bytes()) != SHA { return None; }
+    assert_eq!(supplied, CURRENT, "whole current compiled source before named predecessor");
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let physical = physical_reader::read(&root.join(SOURCE), CURRENT.len(), SHA, 9_753_094).unwrap();
+    assert_eq!(physical, CURRENT);
+    assert_eq!(physical_reader::read(&root.join("e/d89a458c6d798b37f185929e312aecdb3f0ddc1eff908127a8d3677050773679"), PRIOR.len(), "d89a458c6d798b37f185929e312aecdb3f0ddc1eff908127a8d3677050773679", 9_753_094).unwrap(), PRIOR);
+    let mut prior = supplied.to_owned();
+    let edits: &[(usize, usize, &str, &str)] = &[
+        (131775, 131845, "867, \"758584ac732d901b9467614e2b4c672b83f320429419888b15648ff1b2db124b", "495, \"bdbfde2197219ad237e2137853b8a54da87e20092e334c7831114a6841cbb934"),
+        (131999, 132712, " (95867, \"758584ac732d901b9467614e2b4c672b83f320429419888b15648ff1b2db124b\".to_owned())); let mut v19_lookup = lookup.to_owned(); for arm in [\"        \\\"src/source_reflows_merge/main_e177_overlay_compiled_successor_v19.rs\\\" => Some(include_str!(\\\"../../src/source_reflows_merge/main_e177_overlay_compiled_successor_v19.rs\\\")),\\n\",\"        \\\"src/source_reflows_merge/main_e177_overlay_compiled_successor_v19/tests.rs\\\" => Some(include_str!(\\\"../../src/source_reflows_merge/main_e177_overlay_compiled_successor_v19/tests.rs\\\")),\\n\"] { assert_eq!(v19_lookup.matches(arm).count(), 1, \"exact V19 compiled lookup arm\"); v19_lookup = v19_lookup.replacen(arm, \"\", 1); } assert_eq!((v19_lookup.len(), digest(&v19_lookup)),", ""),
+        (132802, 133236, "assert_eq!(v19_lookup, include_str!(\"../../e/bdbfde2197219ad237e2137853b8a54da87e20092e334c7831114a6841cbb934\"), \"ENTIRE named pre-V19 compiled lookup\"); assert_eq!(super::main48_historical_reader::read(&joint_root.join(\"e/bdbfde2197219ad237e2137853b8a54da87e20092e334c7831114a6841cbb934\"), 95495, \"bdbfde2197219ad237e2137853b8a54da87e20092e334c7831114a6841cbb934\", 2_097_152).unwrap(), v19_lookup); let lookup = v19_lookup.as_str(); ", ""),
+        (164334, 164404, "867, \"758584ac732d901b9467614e2b4c672b83f320429419888b15648ff1b2db124b", "495, \"bdbfde2197219ad237e2137853b8a54da87e20092e334c7831114a6841cbb934")
+    ];
+    for &(start, end, after, before) in edits.iter().rev() {
+        assert!(start <= end && end <= prior.len());
+        assert!(prior.is_char_boundary(start) && prior.is_char_boundary(end));
+        assert_eq!(&prior[start..end], after);
+        prior.replace_range(start..end, before);
+    }
+    assert_eq!(prior, PRIOR, "entire immediate prior compiled source");
+    let result = joint_compiled_source_before_current1042(&prior);
+    assert!(result.is_some(), "complete original joint route still executes");
+    assert_eq!(physical_reader::read(&root.join(SOURCE), CURRENT.len(), SHA, 9_753_094).unwrap(), physical);
+    assert_eq!(physical_reader::read(&root.join("e/d89a458c6d798b37f185929e312aecdb3f0ddc1eff908127a8d3677050773679"), PRIOR.len(), "d89a458c6d798b37f185929e312aecdb3f0ddc1eff908127a8d3677050773679", 9_753_094).unwrap(), PRIOR);
+    result
+}
+
+fn joint_compiled_source_before_current1042(supplied: &str) -> Option<String> {
+    const SOURCE: &str = "e/d89a458c6d798b37f185929e312aecdb3f0ddc1eff908127a8d3677050773679";
+    const CURRENT: &str = include_str!("../../../e/d89a458c6d798b37f185929e312aecdb3f0ddc1eff908127a8d3677050773679");
     const BEFORE: &str = include_str!("../../../e/777709dffedae86cb1ee7750967b21640d5be4296c92474f99861c34615287e3");
     const SHA: &str = "d89a458c6d798b37f185929e312aecdb3f0ddc1eff908127a8d3677050773679";
     if supplied.len() != 177730 || super::hash(supplied.as_bytes()) != SHA { return None; }

@@ -510,8 +510,26 @@ fn entire_immediate_sources_and_independent_old_receivers_are_authenticated() {
     );
     let snapshot: serde_json::Value = serde_json::from_str(raw).unwrap();
     assert_eq!(snapshot["base"], "8086b7e5047e7199c8fccb2f07c49c3513982d2a");
+    // Authenticate the entire actual document before selecting its fixed
+    // old source-stage image; the unchanged snapshot/old hashes remain below.
+    let architecture_current = include_str!("../../../../../docs/ARCHITECTURE.md");
+    assert_eq!(architecture_current.len(), 395407);
+    assert_eq!(digest(architecture_current.as_bytes()), "7404359862f60c6adda119c1e32fbff955d9568105b6046ba5c712354a246317");
+    let architecture_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/ARCHITECTURE.md");
+    assert_eq!(source_reader::read(&architecture_path, 395407, "7404359862f60c6adda119c1e32fbff955d9568105b6046ba5c712354a246317", 2 * 1024 * 1024).unwrap(), architecture_current);
+    let architecture_before = include_str!("../../../../../e/20fdbcf1ec5fefc07b95342fea78b1e30edcd3ebf22a052b196cb0a9a0db0a41");
+    assert_eq!(architecture_before.len(), 394768);
+    assert_eq!(digest(architecture_before.as_bytes()), "20fdbcf1ec5fefc07b95342fea78b1e30edcd3ebf22a052b196cb0a9a0db0a41");
+    let mut architecture_inverse = architecture_current.to_owned();
+    for &(at, after, before) in [
+        (9746, "\n`expression_facts/receiving/directory/held_invocation.rs` owns the invocation's\nempty status backing and first receiver-error slot; `retained/held_status_invocation.rs`\nowns its ordinary caller. The controller retains complete fresh validation;\nthe owner reauthenticates each full_program callback. Complete previous status owners and the whole program caller\nremain test-only in `directory/invocation.rs`, `retained/ordinary_status_invocation.rs`\nand `fact_preflight/before_status_receivers.rs`. The private transport contract and\npending executable qualification are in [retained fact lookup v1](RETAINED-EXPRESSION-FACT-LOOKUP-V1.md).\n", ""),
+    ].iter().rev() {
+        assert_eq!(architecture_inverse.get(at..at + after.len()), Some(after));
+        architecture_inverse.replace_range(at..at + after.len(), before);
+    }
+    assert_eq!(architecture_inverse, architecture_before, "ENTIRE unchanged source-stage architecture");
     let cases: &[(&str, &str)] = &[
-        ("docs/ARCHITECTURE.md", include_str!("../../../../../docs/ARCHITECTURE.md")),
+        ("docs/ARCHITECTURE.md", architecture_before),
         ("docs/SHARED-LOAN-PLAN-V1.md", include_str!("../../../../../docs/SHARED-LOAN-PLAN-V1.md")),
         ("src/hir/canonical_loan_storage/caller.rs", include_str!("../../caller.rs")),
         ("src/hir/canonical_loan_storage/caller/stage_tests.rs", include_str!("../stage_tests.rs")),
@@ -680,7 +698,7 @@ fn entire_immediate_sources_and_independent_old_receivers_are_authenticated() {
         );
         let pin = row["after_sha256"].as_str().unwrap();
         assert_eq!(digest(compiled.as_bytes()), pin);
-        let physical = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(path);
+        let physical = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(if *path == "docs/ARCHITECTURE.md" { "e/20fdbcf1ec5fefc07b95342fea78b1e30edcd3ebf22a052b196cb0a9a0db0a41" } else { path });
         assert_eq!(
             source_reader::read(&physical, compiled.len(), pin, 2 * 1024 * 1024).unwrap(),
             *compiled
@@ -715,6 +733,8 @@ fn entire_immediate_sources_and_independent_old_receivers_are_authenticated() {
             *compiled
         );
     }
+
+    assert_eq!(source_reader::read(&architecture_path, 395407, "7404359862f60c6adda119c1e32fbff955d9568105b6046ba5c712354a246317", 2 * 1024 * 1024).unwrap(), architecture_current);
 
     assert_eq!(
         snapshot["immediate_owned_stage"]["commit"],

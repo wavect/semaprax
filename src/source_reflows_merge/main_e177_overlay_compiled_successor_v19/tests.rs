@@ -306,20 +306,22 @@ fn actual_v19_refuses_unknown_multiple_stale_and_legacy_classification_changes()
             "the singleton must occur exactly once in the explicit replacement scope"
         );
     }
-    let mut owner_false = before.clone();
-    owner_false["rows"]
-        .as_array_mut()
-        .unwrap()
-        .iter_mut()
-        .find(|row| row["source"] == OWNER)
-        .unwrap()["compiled"] = false.into();
-    let mut owner_policy = policy.clone();
-    owner_policy["predecessor"]["logical_sha256"] = digest(&canonical(&owner_false)).into();
+    let admitted = compose(before.clone(), &policy, &page).unwrap();
+    let owner_index = admitted["rows"].as_array().unwrap().iter()
+        .position(|row| row["source"] == OWNER).expect("actual canonical OWNER");
+    let base_rows = before["rows"].as_array().unwrap().len();
+    assert!(owner_index >= base_rows, "OWNER is an actual current addition");
     let mut owner_page = page.clone();
-    owner_page["page"]["predecessor"] = owner_policy["predecessor"].clone();
-    assert!(
-        compose(owner_false, &owner_policy, &owner_page).is_err(),
-        "an uncompiled canonical declaration owner cannot authorize a compiled successor"
+    // Mutate the actual producer-emitted V18 typed row through its admitted
+    // public 0/1 compiled slot; every ordinary decoder and cap check still runs.
+    let owner = &mut owner_page["page"]["additions"][owner_index - base_rows];
+    assert!(owner.is_array());
+    assert_eq!(owner[1], 1);
+    owner[1] = 0.into();
+    assert_eq!(
+        compose(before.clone(), &policy, &owner_page).unwrap_err(),
+        "v19 owner current",
+        "an uncompiled actual canonical declaration owner cannot authorize the successor"
     );
     assert!(
         super::super::compose_values(before.clone(), &policy, &page["page"]).is_err(),

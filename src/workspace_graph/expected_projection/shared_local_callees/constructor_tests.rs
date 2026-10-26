@@ -429,7 +429,7 @@ fn complete_uncached_old_current_forecasts_keep_their_actual_invoices() {
                     measure_with_capacity(1 << 16, || {
                         // Replace the same complete caller signature; no extra
                         // forwarding frame, returned proof padding or refund.
-                        if old {
+                        let forecast = if old {
                             before903::before_local_uncached::uncached_output_layout(
                                 &programs, &authored,
                             )
@@ -441,7 +441,14 @@ fn complete_uncached_old_current_forecasts_keep_their_actual_invoices() {
                             )
                             .unwrap()
                             .forecast
-                        }
+                        };
+                        // This success-only caller returns a scalar forecast,
+                        // not retained diagnostic attribution. Include the TLS
+                        // path owner's complete teardown in BOTH observations.
+                        // Failed passes still publish their ordinary diagnostic
+                        // before any attribution can be cleared.
+                        crate::workspace_graph::diagnostics::begin_precharge_pass();
+                        forecast
                     })
                 });
             assert!(!refused && first.is_none());

@@ -69,6 +69,12 @@ pub(in crate::hir::validation) fn function_scope(current: &str) -> String {
 }
 // Authenticate every relocated child before the fixed whole-source ingress.
 pub(in crate::hir::validation) fn whole_root(source: &str, current: &str) -> String {
+    let root_before;
+    let current = if source == "src/hir/validation.rs" {
+        root_before = super::super::lexical_exit::lexical_join::before_source(source, current)
+            .expect("exact physical current validation root");
+        root_before.as_str()
+    } else { current };
     let lexical_join_before = super::super::lexical_exit::lexical_join::before_source(source, current);
     let current = lexical_join_before.as_deref().unwrap_or(current);
     let observed;
@@ -110,10 +116,11 @@ pub(in crate::hir::validation) fn whole_root(source: &str, current: &str) -> Str
         ("src/hir/validation/frame_reuse/source_inverse.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/frame_reuse/source_inverse.rs"))),
         ("src/hir/validation/frame_reuse/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/hir/validation/frame_reuse/tests.rs"))),
     ] {
+        let physical_compiled = compiled;
         let lexical_join_before = super::super::lexical_exit::lexical_join::before_source(path, compiled);
         let compiled = lexical_join_before.as_deref().unwrap_or(compiled);
         let predecessor = if matches!(path, "src/hir/validation/frame_reuse/tests.rs" | "src/hir/validation/frame_reuse/source_inverse.rs") {
-            crate::source_reflows::batch_913_entry(path, compiled)
+            crate::source_reflows::batch_913_entry(path, physical_compiled)
         } else {
             None
         };

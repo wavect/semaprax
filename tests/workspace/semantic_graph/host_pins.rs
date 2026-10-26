@@ -14,7 +14,7 @@ const MACOS_AARCH64_WIRES: [&str; 9] = [
 macro_rules! wire_pin {
     ($slot:literal, $portable:literal) => {
         if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
-            MERGED_MACOS_AARCH64_WIRES.expect("actual merged macOS KAT capture required")[$slot]
+            CURRENT_MACOS_AARCH64_WIRES.expect("actual merged macOS KAT capture required")[$slot]
         } else {
             $portable
         }
@@ -23,7 +23,7 @@ macro_rules! wire_pin {
 macro_rules! graph_builder_bytes {
     () => {
         if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
-            MERGED_MACOS_BUILDER_BYTES.expect("actual merged macOS builder measurement required")
+            CURRENT_MACOS_BUILDER_BYTES.expect("actual merged macOS builder measurement required")
         } else {
             928_541
         }
@@ -34,14 +34,14 @@ macro_rules! wire_pins {
     ($portable:expr) => {
         if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
             [
-                MERGED_MACOS_AARCH64_WIRES.expect("actual merged macOS KAT capture required")[1],
-                MERGED_MACOS_AARCH64_WIRES.expect("actual merged macOS KAT capture required")[2],
-                MERGED_MACOS_AARCH64_WIRES.expect("actual merged macOS KAT capture required")[3],
-                MERGED_MACOS_AARCH64_WIRES.expect("actual merged macOS KAT capture required")[4],
-                MERGED_MACOS_AARCH64_WIRES.expect("actual merged macOS KAT capture required")[5],
-                MERGED_MACOS_AARCH64_WIRES.expect("actual merged macOS KAT capture required")[6],
-                MERGED_MACOS_AARCH64_WIRES.expect("actual merged macOS KAT capture required")[7],
-                MERGED_MACOS_AARCH64_WIRES.expect("actual merged macOS KAT capture required")[8],
+                CURRENT_MACOS_AARCH64_WIRES.expect("actual merged macOS KAT capture required")[1],
+                CURRENT_MACOS_AARCH64_WIRES.expect("actual merged macOS KAT capture required")[2],
+                CURRENT_MACOS_AARCH64_WIRES.expect("actual merged macOS KAT capture required")[3],
+                CURRENT_MACOS_AARCH64_WIRES.expect("actual merged macOS KAT capture required")[4],
+                CURRENT_MACOS_AARCH64_WIRES.expect("actual merged macOS KAT capture required")[5],
+                CURRENT_MACOS_AARCH64_WIRES.expect("actual merged macOS KAT capture required")[6],
+                CURRENT_MACOS_AARCH64_WIRES.expect("actual merged macOS KAT capture required")[7],
+                CURRENT_MACOS_AARCH64_WIRES.expect("actual merged macOS KAT capture required")[8],
             ]
         } else {
             $portable
@@ -175,7 +175,7 @@ const INCOMING_F65_MACOS_WHOLE: [&str; 9] = [
     include_str!("../../../docs/evidence/public-wire-accounting-20261026/capability-review-current-macos.json"),
  ];
 
-fn assert_merged_measured_host_history(name: &str, bytes: &[u8]) {
+fn assert_merged_measured_host_history_before_current272388(name: &str, bytes: &[u8]) {
     if !cfg!(all(target_os = "macos", target_arch = "aarch64")) {
         assert_measured_host_history(name, bytes);
         return;
@@ -220,4 +220,62 @@ fn assert_merged_measured_host_history(name: &str, bytes: &[u8]) {
         }
     }
     assert!(predecessor.is_some());
+}
+
+#[path = "../../../src/workspace_graph/identity_resolution/base/cache_billing/main7f8_reader.rs"]
+mod current_host_archive_reader;
+const CURRENT_MACOS_AARCH64_WIRES: Option<[&str; 9]> = Some(["sha256:6c90f295a2d394c3196179995ad3098462294dcda2c803334ee2a1db866669b4", "sha256:9727395c784eff80e702368d899a88517a256627e4fa379fee271503f2ab005b", "sha256:b59864cbf7cfc95c9db06e81bebf19f71b4b6fe399b67a584c6279235842a22c", "sha256:488330432756f3bd7d436e22a6131f7f2028be8fd280f19ad8a2b933f51520fd", "sha256:f8717dedc9204b854604e634868175054f20287c4eac81a0ae80c6fafe83fbe5", "sha256:1c00c80267f96f26c92567ead7df8a28a88b2295f9b43df3167343553f04c918", "sha256:6cda207eb1d199abd157a823f072f44f80bd222855c805cb65917b14f2b2324f", "sha256:2976dadc458e66772fb0e0bb4fbbbdbc6e1c8f6a4d73224e2250d52286dff698", "sha256:0c46123230a7d854210269880e8d12942d5d5d0e8917865b77b80116bd17ca3e"]);
+const CURRENT_MACOS_BUILDER_BYTES: Option<usize> = Some(1479208);
+const CURRENT_MACOS_FULL_INVERSES: &str = r####"[{"name":"public-graph.json","current":{"length":6597,"sha256":"6c90f295a2d394c3196179995ad3098462294dcda2c803334ee2a1db866669b4"},"entire_previous_merged":{"length":6597,"sha256":"12ddc81987c4c358344744d20c70390b2b1f0f42819ead27d6a0291d1afeccd2"},"archive":"e/12ddc81987c4c358344744d20c70390b2b1f0f42819ead27d6a0291d1afeccd2","inverse":[[237,301,"73b45b4424440622e19c07495f0cac13ffee5b58294b1e2debf6cdd52e763f4a","668663785b1c4887c29c2850992d52469c651544ed5c1c3ba51ef8cf8e3b1ee5"],[5423,5428,"79208","81580"]]},{"name":"context.json","current":{"length":4514,"sha256":"9727395c784eff80e702368d899a88517a256627e4fa379fee271503f2ab005b"},"entire_previous_merged":{"length":4514,"sha256":"a8ab6f053b5460aa2cee50b804fc5f68a52ef36901b4428205630e0a9ecd1ee3"},"archive":"e/a8ab6f053b5460aa2cee50b804fc5f68a52ef36901b4428205630e0a9ecd1ee3","inverse":[[249,405,"73b45b4424440622e19c07495f0cac13ffee5b58294b1e2debf6cdd52e763f4a\",\"artifact_digest\":\"sha256:6e4d0d9dfa611d6e290e5028d104c21cc143546f184630a15fd1b43213cfb57e","668663785b1c4887c29c2850992d52469c651544ed5c1c3ba51ef8cf8e3b1ee5\",\"artifact_digest\":\"sha256:b66045dead7659172d4f13b569d636a73cfe8fdc721d1ef9f3f6b1f4eac0aba8"],[1718,1723,"79208","81580"]]},{"name":"forward.json","current":{"length":4515,"sha256":"b59864cbf7cfc95c9db06e81bebf19f71b4b6fe399b67a584c6279235842a22c"},"entire_previous_merged":{"length":4515,"sha256":"7c3724a8f2b9c011604e41e157129b98213f4af01b776075dcc9ac089314446d"},"archive":"e/7c3724a8f2b9c011604e41e157129b98213f4af01b776075dcc9ac089314446d","inverse":[[249,405,"73b45b4424440622e19c07495f0cac13ffee5b58294b1e2debf6cdd52e763f4a\",\"artifact_digest\":\"sha256:c0d282691fdda4f17d3a66d28072e43416aaa82727bd64cfaafa4422a91bfd93","668663785b1c4887c29c2850992d52469c651544ed5c1c3ba51ef8cf8e3b1ee5\",\"artifact_digest\":\"sha256:4ea73c4d0ed90d63a13c7566ad5e64b92eac062dbce2c79f0aefba091c9b25b8"],[1719,1724,"79208","81580"]]},{"name":"capability-context.json","current":{"length":4338,"sha256":"488330432756f3bd7d436e22a6131f7f2028be8fd280f19ad8a2b933f51520fd"},"entire_previous_merged":{"length":4338,"sha256":"9e41b9171cae94b8c3b6196c1f11e52edbc961cd5ab9f9acc885426bcdd55df8"},"archive":"e/9e41b9171cae94b8c3b6196c1f11e52edbc961cd5ab9f9acc885426bcdd55df8","inverse":[[249,405,"73b45b4424440622e19c07495f0cac13ffee5b58294b1e2debf6cdd52e763f4a\",\"artifact_digest\":\"sha256:d753de637e091c9201a70bf796c44c230d1e8c4ad14695a11a087123fdf28a19","668663785b1c4887c29c2850992d52469c651544ed5c1c3ba51ef8cf8e3b1ee5\",\"artifact_digest\":\"sha256:e3491ccef412b4e1334ac1c387de1f93da5983d52aea32b9ee6ba39b3b25cd5a"],[1690,1695,"79208","81580"]]},{"name":"type-context.json","current":{"length":4012,"sha256":"f8717dedc9204b854604e634868175054f20287c4eac81a0ae80c6fafe83fbe5"},"entire_previous_merged":{"length":4012,"sha256":"756d2d4307cfd7e30e3cfccdb0c157e5ad7cce040c23b0eea3bb10a5312760c4"},"archive":"e/756d2d4307cfd7e30e3cfccdb0c157e5ad7cce040c23b0eea3bb10a5312760c4","inverse":[[249,405,"73b45b4424440622e19c07495f0cac13ffee5b58294b1e2debf6cdd52e763f4a\",\"artifact_digest\":\"sha256:6fbc0eca0c42d9e55349013eaa12df00390d06df49de9e43ad70302c26c6c836","668663785b1c4887c29c2850992d52469c651544ed5c1c3ba51ef8cf8e3b1ee5\",\"artifact_digest\":\"sha256:5dd9d7b80300e47bb0742c97abfee9c6c6f2a254ded2c28865de5d03c9e1f29c"],[1727,1732,"79208","81580"]]},{"name":"impact.json","current":{"length":4160,"sha256":"1c00c80267f96f26c92567ead7df8a28a88b2295f9b43df3167343553f04c918"},"entire_previous_merged":{"length":4160,"sha256":"8da8a2281593d4c523f2285d8291a49662c87ee1544073861e6385ce0a5f2795"},"archive":"e/8da8a2281593d4c523f2285d8291a49662c87ee1544073861e6385ce0a5f2795","inverse":[[248,403,"73b45b4424440622e19c07495f0cac13ffee5b58294b1e2debf6cdd52e763f4a\",\"artifact_digest\":\"sha256:2bbf37f27a10a0ed43532be03b7358dc1b4a76287541b180fc727f76f8adc75","668663785b1c4887c29c2850992d52469c651544ed5c1c3ba51ef8cf8e3b1ee5\",\"artifact_digest\":\"sha256:b88bd50c4ba9a27902fd425c11d78d3aa85606c7c82e76d04043094e10bf933"],[1731,1736,"79208","81580"]]},{"name":"custom-impact.json","current":{"length":4569,"sha256":"6cda207eb1d199abd157a823f072f44f80bd222855c805cb65917b14f2b2324f"},"entire_previous_merged":{"length":4569,"sha256":"04f43fe3a530c8252ebfa8fdfec570d8103b17b9945e57322e36b8a141fa35bb"},"archive":"e/04f43fe3a530c8252ebfa8fdfec570d8103b17b9945e57322e36b8a141fa35bb","inverse":[[248,404,"73b45b4424440622e19c07495f0cac13ffee5b58294b1e2debf6cdd52e763f4a\",\"artifact_digest\":\"sha256:86b54d0b327fcf60cce77b5d2b603f56ee9017f90e04d4ea1107a93f8dc210af","668663785b1c4887c29c2850992d52469c651544ed5c1c3ba51ef8cf8e3b1ee5\",\"artifact_digest\":\"sha256:b9fef4d3e601f6b5550a8cd7c5f89875423197d5de52a0de56d5c03651f9e92e"],[1690,1695,"79208","81580"]]},{"name":"review.json","current":{"length":12709,"sha256":"2976dadc458e66772fb0e0bb4fbbbdbc6e1c8f6a4d73224e2250d52286dff698"},"entire_previous_merged":{"length":12709,"sha256":"b4e0133fc638d9080efb2e404d4ebe5d0de37f09377151901bd87b0a8ef0c2d4"},"archive":"e/b4e0133fc638d9080efb2e404d4ebe5d0de37f09377151901bd87b0a8ef0c2d4","inverse":[[248,403,"73b45b4424440622e19c07495f0cac13ffee5b58294b1e2debf6cdd52e763f4a\",\"artifact_digest\":\"sha256:7ccb5cf2dda2d5b3a303b73e5bd44048682788b4407728ab8f044d05be92411","668663785b1c4887c29c2850992d52469c651544ed5c1c3ba51ef8cf8e3b1ee5\",\"artifact_digest\":\"sha256:9b48d760f238b933a35ac1251d469133f3ce6a06970b964eb7121d2787b7768"],[877,1033,"73b45b4424440622e19c07495f0cac13ffee5b58294b1e2debf6cdd52e763f4a\",\"artifact_digest\":\"sha256:0b62ccb471d6f4e6fd6ab2c1d36ac5c44a5821a885a26a0c1f52b24458cff336","668663785b1c4887c29c2850992d52469c651544ed5c1c3ba51ef8cf8e3b1ee5\",\"artifact_digest\":\"sha256:070809f209915ba5602c0f1265d9253f4eb34f9ff81aa38eb218898851d973c8"],[2360,2365,"79208","81580"],[4877,5033,"73b45b4424440622e19c07495f0cac13ffee5b58294b1e2debf6cdd52e763f4a\",\"artifact_digest\":\"sha256:a11d0e5733dc0cd086c8a4bc102668148dcb34bada1633e306aaf30212701eed","668663785b1c4887c29c2850992d52469c651544ed5c1c3ba51ef8cf8e3b1ee5\",\"artifact_digest\":\"sha256:125f86e10b797ec70cef152527384fe4b5fbcfb730a3bb14879344941be687a0"],[6363,6368,"79208","81580"],[11464,11469,"79208","81580"]]},{"name":"capability-review.json","current":{"length":13626,"sha256":"0c46123230a7d854210269880e8d12942d5d5d0e8917865b77b80116bd17ca3e"},"entire_previous_merged":{"length":13626,"sha256":"aeaefd960264292ef77823474c8c268354e366ffc687b29d903f3b5ebafa2c4f"},"archive":"e/aeaefd960264292ef77823474c8c268354e366ffc687b29d903f3b5ebafa2c4f","inverse":[[248,404,"73b45b4424440622e19c07495f0cac13ffee5b58294b1e2debf6cdd52e763f4a\",\"artifact_digest\":\"sha256:cb27ae753176405954454183053a3e4d35983597c2d8572fca5d1e81cd881469","668663785b1c4887c29c2850992d52469c651544ed5c1c3ba51ef8cf8e3b1ee5\",\"artifact_digest\":\"sha256:4b928c68fe8153ead3e81a15153b3aec6b5572edaba4511a9d91b394ea82c773"],[839,995,"73b45b4424440622e19c07495f0cac13ffee5b58294b1e2debf6cdd52e763f4a\",\"artifact_digest\":\"sha256:26f035eaf0771bc79da570e1daada4cac81617668bd61759ca7bf8eee5d86aba","668663785b1c4887c29c2850992d52469c651544ed5c1c3ba51ef8cf8e3b1ee5\",\"artifact_digest\":\"sha256:70f2349d9be0259858bd8d6c1e926fffa14f0f1dab32fe2b1048648af8a7ee51"],[2284,2289,"79208","81580"],[5190,5346,"73b45b4424440622e19c07495f0cac13ffee5b58294b1e2debf6cdd52e763f4a\",\"artifact_digest\":\"sha256:90d195447433ef6fd91f12ada0963fc9911cbcb82d20f316acb3908f2b944605","668663785b1c4887c29c2850992d52469c651544ed5c1c3ba51ef8cf8e3b1ee5\",\"artifact_digest\":\"sha256:3c51cc712d33e23b44c7a4d336664396cbf907ec3d9499af2aa7b6c385afa984"],[6638,6643,"79208","81580"],[12380,12385,"79208","81580"]]}]"####;
+const CURRENT_MACOS_PREVIOUS_IMAGES: [&str; 9] = [
+    include_str!("../../../e/12ddc81987c4c358344744d20c70390b2b1f0f42819ead27d6a0291d1afeccd2"),
+    include_str!("../../../e/a8ab6f053b5460aa2cee50b804fc5f68a52ef36901b4428205630e0a9ecd1ee3"),
+    include_str!("../../../e/7c3724a8f2b9c011604e41e157129b98213f4af01b776075dcc9ac089314446d"),
+    include_str!("../../../e/9e41b9171cae94b8c3b6196c1f11e52edbc961cd5ab9f9acc885426bcdd55df8"),
+    include_str!("../../../e/756d2d4307cfd7e30e3cfccdb0c157e5ad7cce040c23b0eea3bb10a5312760c4"),
+    include_str!("../../../e/8da8a2281593d4c523f2285d8291a49662c87ee1544073861e6385ce0a5f2795"),
+    include_str!("../../../e/04f43fe3a530c8252ebfa8fdfec570d8103b17b9945e57322e36b8a141fa35bb"),
+    include_str!("../../../e/b4e0133fc638d9080efb2e404d4ebe5d0de37f09377151901bd87b0a8ef0c2d4"),
+    include_str!("../../../e/aeaefd960264292ef77823474c8c268354e366ffc687b29d903f3b5ebafa2c4f"),
+];
+fn assert_merged_measured_host_history(name: &str, bytes: &[u8]) {
+    if !cfg!(all(target_os = "macos", target_arch = "aarch64")) {
+        assert_merged_measured_host_history_before_current272388(name, bytes);
+        return;
+    }
+    let names = ["public-graph.json", "context.json", "forward.json", "capability-context.json", "type-context.json", "impact.json", "custom-impact.json", "review.json", "capability-review.json"];
+    let slot = names.iter().position(|n| *n == name).unwrap();
+    assert_eq!(document_digest(bytes), CURRENT_MACOS_AARCH64_WIRES.unwrap()[slot]);
+    let rows: serde_json::Value = serde_json::from_str(CURRENT_MACOS_FULL_INVERSES).unwrap();
+    assert_eq!(rows.as_array().unwrap().len(), names.len());
+    let row = &rows[slot];
+    assert_eq!(row["name"], name);
+    assert_eq!(row["current"]["length"].as_u64(), Some(bytes.len() as u64));
+    assert_eq!(format!("sha256:{}", row["current"]["sha256"].as_str().unwrap()), document_digest(bytes));
+    assert!(bytes.len() <= 2_097_152);
+    let mut restored = std::str::from_utf8(bytes).unwrap().to_owned();
+    let edits = row["inverse"].as_array().unwrap();
+    assert!(edits.len() <= 512);
+    let mut next = restored.len();
+    for edit in edits.iter().rev() {
+        let start = usize::try_from(edit[0].as_u64().unwrap()).unwrap();
+        let end = usize::try_from(edit[1].as_u64().unwrap()).unwrap();
+        assert!(start <= end && end <= next);
+        assert_eq!(restored.get(start..end), Some(edit[2].as_str().unwrap()));
+        restored.replace_range(start..end, edit[3].as_str().unwrap());
+        assert!(restored.len() <= 2_097_152);
+        next = start;
+    }
+    let previous = CURRENT_MACOS_PREVIOUS_IMAGES[slot];
+    assert_eq!(restored, previous, "entire independently captured previous merged native payload");
+    let expected = &row["entire_previous_merged"];
+    assert_eq!(expected["length"].as_u64(), Some(previous.len() as u64));
+    assert_eq!(format!("sha256:{}", expected["sha256"].as_str().unwrap()), document_digest(previous.as_bytes()));
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let archive = row["archive"].as_str().unwrap();
+    assert_eq!(archive, format!("e/{}", expected["sha256"].as_str().unwrap()));
+    let acquired = current_host_archive_reader::read(&root.join(archive), previous.len(), expected["sha256"].as_str().unwrap(), 2_097_152).unwrap();
+    assert_eq!(acquired, previous);
+    assert_merged_measured_host_history_before_current272388(name, restored.as_bytes());
+    assert_eq!(current_host_archive_reader::read(&root.join(archive), previous.len(), expected["sha256"].as_str().unwrap(), 2_097_152).unwrap(), acquired);
 }

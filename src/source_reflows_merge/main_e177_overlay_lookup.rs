@@ -518,6 +518,10 @@ pub(crate) fn compiled(source: &str) -> Option<&'static str> {
         "src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_before_protocol/held_invocation_tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_before_protocol/held_invocation_tests.rs")),
         "src/cleanup_plan/replay/trailing_active.rs" => Some(include_str!("../../src/cleanup_plan/replay/trailing_active.rs")),
         "src/cleanup_plan/replay/trailing_active/tests.rs" => Some(include_str!("../../src/cleanup_plan/replay/trailing_active/tests.rs")),
+        "src/hir/validation/scope_checkpoint/merge/partial_retain.rs" => Some(include_str!("../../src/hir/validation/scope_checkpoint/merge/partial_retain.rs")),
+        "src/hir/validation/scope_checkpoint/merge/partial_retain/before.rs" => Some(include_str!("../../src/hir/validation/scope_checkpoint/merge/partial_retain/before.rs")),
+        "src/hir/validation/scope_checkpoint/merge/partial_retain/tests.rs" => Some(include_str!("../../src/hir/validation/scope_checkpoint/merge/partial_retain/tests.rs")),
+        "src/cleanup_plan/replay/factored/paired/visited_transfer.rs" => Some(include_str!("../../src/cleanup_plan/replay/factored/paired/visited_transfer.rs")),
         _ => None,
     }
 }

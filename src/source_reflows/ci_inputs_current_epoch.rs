@@ -78,15 +78,15 @@ pub(super) fn physical_batch_input<'a>(source: &str, supplied: &'a str, physical
 // Complete new943 physical root -> entire392da immediate predecessor -> the
 // original751c CI probe leg. Old before/finish bodies and metadata stay whole.
 const NEXT_CURRENT: &str = include_str!("../cleanup_plan/replay.rs");
-const NEXT_SHA: &str = "4830476b83035da6f6748315a02222a67dba06ac79bcb6f68ed27b09dbca7b4a";
-const NEXT_PREFIX: &str = r####"[[1455,"#[cfg(test)]\nmod trailing_active;\n",""],[121014,"    #[cfg(test)]\n    if trailing_active::before_selected() {\n        return trailing_active::before_sequence_skeleton_paths(prefixes, suffixes, work);\n    }\n",""],[122004,"    }\n    #[cfg(test)]\n    if !single && first {\n        trailing_active::reuse!(prefixes, suffixes, work, share_prefix, minimum, precharged, first, single);\n",""],[124554,"        if !precharged { final_output::record_final_frontier(0, work); }\n        if precharged { precharged = false; }\n        else { work.charge(1, \"skeleton prefix clone\")?; }\n","        final_output::record_final_frontier(0, work);\n        work.charge(1, \"skeleton prefix clone\")?;\n"]]"####;
+const NEXT_SHA: &str = "2ae4da23cf6002ee01f95842c072dc8f80533814090607e442d2da05a5324a16";
+const NEXT_PREFIX: &str = r####"[[1455,"#[cfg(test)]\nmod trailing_active;\n",""],[121014,"    #[cfg(test)]\n    if trailing_active::before_selected() {\n        return trailing_active::before_sequence_skeleton_paths(prefixes, suffixes, work);\n    }\n",""],[122004,"    }\n    #[cfg(test)]\n    if !single && first {\n        trailing_active::reuse!(prefixes, suffixes, work, share_prefix, minimum, precharged, first, single, combined);\n",""],[124572,"if !precharged { final_output::record_final_frontier(0, work); }\n        if precharged { precharged = false; }\n        else { work.charge(1, \"skeleton prefix clone\")?; }","final_output::record_final_frontier(0, work);\n        work.charge(1, \"skeleton prefix clone\")?;"]]"####;
 fn authenticate_next() {
-    assert_eq!((NEXT_CURRENT.len(), super::digest(NEXT_CURRENT)), (326566, NEXT_SHA.to_owned()));
+    assert_eq!((NEXT_CURRENT.len(), super::digest(NEXT_CURRENT)), (326576, NEXT_SHA.to_owned()));
     let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     assert_eq!(super::reader::read(&root.join(SOURCE), NEXT_CURRENT.len(), NEXT_SHA, 2_097_152).unwrap(), NEXT_CURRENT);
     authenticate();
 }
-fn next_before(actual: &str) -> (String, Value) {
+pub(crate) fn next_before(actual: &str) -> (String, Value) {
     authenticate_next(); assert_eq!(actual, NEXT_CURRENT);
     let edits:Value=serde_json::from_str(NEXT_PREFIX).unwrap();assert!(edits.as_array().unwrap().len()<=512);
     let mut before=actual.to_owned();let mut next=before.len();

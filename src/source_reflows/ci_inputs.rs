@@ -5,7 +5,7 @@ use std::borrow::Cow;
 #[path = "../workspace_graph/identity_resolution/base/cache_billing/main7f8_reader.rs"]
 mod reader;
 #[path = "ci_inputs_current_epoch.rs"]
-mod current_source_epoch;
+pub(crate) mod current_source_epoch;
 #[path = "../source_front_pool.rs"]
 pub(crate) mod front_pool;
 fn digest(text: &str) -> String {

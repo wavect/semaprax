@@ -778,13 +778,16 @@ pub(crate) fn phase_probe_stage<'a>(
 // Authenticate the complete joint replay source before the retained workspace epoch.
 fn joint_replay_workspace_epoch(source: &str, supplied: &str) -> Option<String> {
     if source != "src/cleanup_plan/replay.rs" { return None; }
-    const CURRENT: &str = include_str!("../cleanup_plan/replay.rs");
+    let physical_current = supplied;
+    let (entire_pre_943, _) = crate::source_reflows::replay_before_943(physical_current);
+    let supplied = entire_pre_943.as_str();
+    const CURRENT: &str = include_str!("../../e/392da88cb3c30b1adcff8d845c8af6a797586dfcaab9af2f0c898243f7c8350a");
     const BEFORE: &str = include_str!("../../e/751c95561915a9b99ebec0bdf702dc9c7448d411f0f80ac58d244bc7df20dde5");
     const CURRENT_SHA: &str = "392da88cb3c30b1adcff8d845c8af6a797586dfcaab9af2f0c898243f7c8350a";
     assert_eq!(supplied, CURRENT);
     assert_eq!((supplied.len(), super::source_sha(supplied)), (326143, CURRENT_SHA.to_owned()));
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let physical = current_file(&root.join(source), CURRENT.len(), CURRENT_SHA).unwrap();
+    let physical = current_file(&root.join(format!("e/{CURRENT_SHA}")), CURRENT.len(), CURRENT_SHA).unwrap();
     assert_eq!(physical, CURRENT);
     let edits: &[(usize, usize, &str, &str)] = &[
         (849, 869, "mod fact_preflight;\n", ""),
@@ -806,6 +809,7 @@ fn joint_replay_workspace_epoch(source: &str, supplied: &str) -> Option<String> 
     assert_eq!((restored.len(), super::source_sha(&restored)), (327551, "751c95561915a9b99ebec0bdf702dc9c7448d411f0f80ac58d244bc7df20dde5".to_owned()));
     assert_eq!(restored, BEFORE);
     assert_eq!(current_file(&root.join("e/751c95561915a9b99ebec0bdf702dc9c7448d411f0f80ac58d244bc7df20dde5"), BEFORE.len(), "751c95561915a9b99ebec0bdf702dc9c7448d411f0f80ac58d244bc7df20dde5").unwrap(), BEFORE);
-    assert_eq!(current_file(&root.join(source), CURRENT.len(), CURRENT_SHA).unwrap(), physical);
+    assert_eq!(current_file(&root.join(format!("e/{CURRENT_SHA}")), CURRENT.len(), CURRENT_SHA).unwrap(), physical);
+    assert_eq!(crate::source_reflows::replay_before_943(physical_current).0, entire_pre_943);
     Some(restored)
 }

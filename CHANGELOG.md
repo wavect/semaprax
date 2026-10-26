@@ -16,7 +16,7 @@
 - Reuse the existing scope candidate index while filtering reached roots,
   removing a second collected tree. Complete predecessors, source inverses and
   owning refusal/allocation controls remain; grouped qualification is pending.
-- Fund the trailing-path reuse probe through the existing first reservation
+- Fund the proof-only trailing-path reuse probe through its first reservation
   after its original work debit. Cold paths avoid the heavy eligibility frame;
   original fees and refusal priority remain. Runtime qualification is pending.
 

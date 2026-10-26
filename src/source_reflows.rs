@@ -9,6 +9,7 @@ use std::sync::{Mutex, OnceLock};
 use sha2::{Digest, Sha256};
 
 pub(crate) use ci_inputs::front_pool;
+pub(crate) use ci_inputs::current_source_epoch::next_before as replay_before_943;
 
 #[path = "source_reflows/ci_inputs.rs"]
 mod ci_inputs;

@@ -1194,6 +1194,8 @@
         "src/cleanup_plan/replay/expression_facts/receiving/directory/before_cursor.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/directory/before_cursor/qualification.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/directory/before_cursor/status_prefix.rs",
+        "src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation.rs",
+        "src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation_tests.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/directory/invocation.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/directory/invocation_tests.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs",
@@ -1235,6 +1237,7 @@
         "src/cleanup_plan/replay/expression_facts/receiving/retained/exit_tests.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/retained/exits.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/retained/exits/tests.rs",
+        "src/cleanup_plan/replay/expression_facts/receiving/retained/held_status_invocation.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/retained/inline_status.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/retained/inline_status/tests.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/retained/last_use.rs",
@@ -2258,6 +2261,7 @@
         "src/source_reflows_merge/current344.rs",
         "src/source_reflows_merge/final_custody.rs",
         "src/source_reflows_merge/final_ready_inputs.rs",
+        "src/source_reflows_merge/final_ready_inputs/merged_projection.rs",
         "src/source_reflows_merge/final_ready_inputs/projection_publication.rs",
         "src/source_reflows_merge/joined_custody.rs",
         "src/source_reflows_merge/main043_custody.rs",
@@ -2276,6 +2280,8 @@
         "src/source_reflows_merge/main_e177_historical_data_tests.rs",
         "src/source_reflows_merge/main_e177_inputs.rs",
         "src/source_reflows_merge/main_e177_overlay_compiled.rs",
+        "src/source_reflows_merge/main_e177_overlay_compiled_successor_v19.rs",
+        "src/source_reflows_merge/main_e177_overlay_compiled_successor_v19/tests.rs",
         "src/source_reflows_merge/main_e177_overlay_digests_v13.rs",
         "src/source_reflows_merge/main_e177_overlay_digests_v13/controller_transport.rs",
         "src/source_reflows_merge/main_e177_overlay_digests_v13/logical_v12.rs",
@@ -2480,7 +2486,7 @@
         "src/cleanup_plan/replay/expression_facts/errors.rs",
         "src/cleanup_plan/replay/expression_facts/receiving.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/directory.rs",
-        "src/cleanup_plan/replay/expression_facts/receiving/directory/invocation.rs",
+        "src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/inline.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/reused_cursor.rs",
@@ -2497,11 +2503,11 @@
         "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/retained/exit_prefix.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/retained/exits.rs",
+        "src/cleanup_plan/replay/expression_facts/receiving/retained/held_status_invocation.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/retained/inline_status.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/retained/last_use.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_invocation.rs",
-        "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_status_invocation.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/return_operands.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/return_operands/exits.rs",
         "src/cleanup_plan/replay/factored/canonical_shared.rs",
@@ -3245,9 +3251,9 @@
         "src/workspace_graph/validation.rs",
         "src/workspace_report.rs"
       ],
-      "full_manifest_sha256": "502350b557f6829495f36c30153280cdb03069c7464c54f6f3f9c4e68a72c1f9",
-      "full_raw_sha256": "e64591dfb5072488e6f93f18baf0c351583afce320313e2b6a19036c6c49a782",
-      "full_authenticated_production_sha256": "aa72ca64b795cb3bc28723ca8c501da700ef5be435968be752a92aa0c92e2ede"
+      "full_manifest_sha256": "df2433beb6fea51062c145fdaa0cc87ce7a9e7ba94759224c802e1ba66c54e93",
+      "full_raw_sha256": "34293f2503fcc89e77ff242eb8c4b34bdb0acff31ee52b7a7765d8a546fa4e54",
+      "full_authenticated_production_sha256": "e79c6045c31b74735478dbe4b3bbe64d6778ef1aae3415f1e6525150faef23c5"
     },
     "projection": {
       "baseline": "a82e00cc83f99b16249181c45710d962598577db",
@@ -3894,7 +3900,7 @@
         "src/cleanup_plan/replay/expression_facts/errors.rs",
         "src/cleanup_plan/replay/expression_facts/receiving.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/directory.rs",
-        "src/cleanup_plan/replay/expression_facts/receiving/directory/invocation.rs",
+        "src/cleanup_plan/replay/expression_facts/receiving/directory/held_invocation.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/inline.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/directory/status_prefix/reused_cursor.rs",
@@ -3911,11 +3917,11 @@
         "src/cleanup_plan/replay/expression_facts/receiving/retained/case_proof.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/retained/exit_prefix.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/retained/exits.rs",
+        "src/cleanup_plan/replay/expression_facts/receiving/retained/held_status_invocation.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/retained/inline_status.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/retained/last_use.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_cross_phase.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_invocation.rs",
-        "src/cleanup_plan/replay/expression_facts/receiving/retained/ordinary_status_invocation.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/return_operands.rs",
         "src/cleanup_plan/replay/expression_facts/receiving/return_operands/exits.rs",
         "src/cleanup_plan/replay/fact_preflight.rs",
@@ -4637,9 +4643,9 @@
         "src/workspace_report.rs",
         "src/workspace_report/initial.rs"
       ],
-      "full_manifest_sha256": "fbeaee7a7916a133ee76670b77d5fd9a55635aa95fc0564e63813ecb18e962e3",
-      "full_raw_sha256": "4e8985c0ef72eea062efdc242b2abf016d16e462d05641bc37115b2260e92927",
-      "full_authenticated_production_sha256": "71c850eb45700393cafb3b357efba0db1c5670c875ccb428575d0a7362912c39"
+      "full_manifest_sha256": "0930d542dadcf0d8e00684e62b74dfc4958ac4dcd148cbb9b8b4bd4d72c0137b",
+      "full_raw_sha256": "0a5fc0b4c2aac29843024974aa37839db108f2498fffd1c47af1eba3d3ee7a35",
+      "full_authenticated_production_sha256": "b0f007d50922f97a6f1d1e55f51d9ccb6aeff21ba7c296c40a0a41f75a817421"
     }
   }
 }

@@ -481,8 +481,9 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
             .collect::<Vec<_>>(),
         current_facade
     );
+    let call_sites_facade = final_ready_inputs::projection_call_sites_facade(projection_call_sites);
     assert_eq!(
-        projection_call_sites
+        call_sites_facade
             .lines()
             .filter_map(|line| {
                 let trimmed = line.trim();

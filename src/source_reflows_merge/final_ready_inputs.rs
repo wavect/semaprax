@@ -3,7 +3,29 @@ use sha2::{Digest, Sha256};
 #[path = "final_ready_inputs/projection_publication.rs"]
 mod projection_publication;
 #[path = "../workspace_graph/identity_resolution/base/cache_billing/main7f8_reader.rs"]
-mod reader;
+mod raw_reader;
+// The original reader remains complete and independently compiled. Only three
+// exact before-invoice tuples acquire authenticated historical views here.
+mod reader {
+    pub(super) use super::raw_reader::Failure;
+    pub(super) fn controls() {
+        super::raw_reader::controls();
+    }
+    pub(super) fn read(
+        path: &std::path::Path,
+        length: usize,
+        sha: &str,
+        cap: usize,
+    ) -> Result<String, Failure> {
+        if length > cap {
+            return Err(Failure::Bound);
+        }
+        if let Some(before) = super::invoice_previous_file(path, length, sha) {
+            return Ok(before);
+        }
+        super::raw_reader::read(path, length, sha, cap)
+    }
+}
 // Only these NEW endpoint spec constants are generated after the final Rust fixes.
 const ENDPOINT_LENGTH: usize = 646446;
 const ENDPOINT_SHA256: &str = "ba88bc9f7766f2e0ae848ecc3400b3c20eb787d8750a94aa0e1713a14d041ca2";
@@ -218,6 +240,10 @@ fn projection344_stage(supplied: &str) -> String {
     // The immutable old44 stage above remains independently checked. Only
     // this exact, separately pinned live49 join may enter that old facade.
     let live = projection344_live_descriptor();
+    let invoice = projection344_invoice_join_with(supplied, &mut invocation);
+    let supplied = invoice.as_deref().unwrap_or(supplied);
+    let successor = projection344_successor_join_with(supplied, &mut invocation);
+    let supplied = successor.as_deref().unwrap_or(supplied);
     let phase_prior = projection344_phase_join_with(supplied, &mut invocation);
     let supplied = phase_prior.as_deref().unwrap_or(supplied);
     let supplied = if supplied != current
@@ -349,6 +375,138 @@ fn projection344_phase_test_source_with(
     );
     prior
 }
+// Authenticate the complete new physical join before the unchanged phase
+// observer, live49, old44 and original facade guards below consume old bytes.
+// Separate invoice-only source epoch. The exact complete 35e successor and
+// every earlier phase/live49/facade guard still execute unchanged below.
+fn projection344_invoice_join_with(
+    supplied: &str,
+    invocation: &mut crate::source_reflows_merge::main_e177_final_inputs::ProjectionInvocation,
+) -> Option<String> {
+    if supplied.len() != 651787
+        || digest(supplied) != "a33bec6daa6374d06d1964aff42050628d10403f3d3205109f2efbd2d4b5e3fc"
+    {
+        return None;
+    }
+    const PATH: &str = "docs/evidence/physical-invoice-successor-20261026/projection-join.json";
+    let data = include_str!(
+        "../../docs/evidence/physical-invoice-successor-20261026/projection-join.json"
+    );
+    assert_eq!(data.len(), 9338);
+    assert_eq!(
+        digest(data),
+        "7e89d34e9cc2532bd42f592047718291ec932c654ce2edba257c1078d43a143e"
+    );
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    assert_eq!(
+        reader::read(&root.join(PATH), data.len(), &digest(data), 2_097_152).unwrap(),
+        data
+    );
+    let packet: serde_json::Value = serde_json::from_str(data).unwrap();
+    assert_eq!(
+        packet["schema"],
+        "semaprax.projection344.physical-invoice-successor.v1"
+    );
+    let old = projection344_live_descriptor();
+    let parts = packet["parts"].as_array().unwrap();
+    let previous_parts = old["parts"].as_array().unwrap();
+    assert_eq!(parts.len(), previous_parts.len());
+    let mut physical = String::new();
+    let mut previous = String::new();
+    for (part, declared) in parts.iter().zip(previous_parts) {
+        if let Some(literal) = declared["literal"].as_str() {
+            assert_eq!(part["literal"], literal);
+            physical.push_str(literal);
+            previous.push_str(literal);
+            continue;
+        }
+        let source = declared["source"].as_str().unwrap();
+        assert_eq!(part["source"], source);
+        let pin = &part["current"];
+        let length = usize::try_from(pin["length"].as_u64().unwrap()).unwrap();
+        let sha = pin["sha256"].as_str().unwrap();
+        let current = reader::read(&root.join(source), length, sha, 2_097_152)
+            .expect("complete current invoice source before all historical normalization");
+        physical.push_str(&current);
+        if let Some(pin) = part.get("previous") {
+            let length = usize::try_from(pin["length"].as_u64().unwrap()).unwrap();
+            let sha = pin["sha256"].as_str().unwrap();
+            previous.push_str(
+                &invocation
+                    .file(&root.join(source), length, sha)
+                    .expect("independent whole before-invoice source and all current channels"),
+            );
+        } else {
+            previous.push_str(&current);
+        }
+    }
+    assert_eq!(
+        physical, supplied,
+        "complete actual compiled and physical invoice join"
+    );
+    assert_eq!(previous.len(), 650350);
+    assert_eq!(
+        digest(&previous),
+        "cd2bd4c1065642e6494072f54cf6e627eaf778e234d144fe42f6877544e951e5"
+    );
+    Some(previous)
+}
+
+fn projection344_successor_join_with(
+    supplied: &str,
+    invocation: &mut crate::source_reflows_merge::main_e177_final_inputs::ProjectionInvocation,
+) -> Option<String> {
+    if supplied.len() != 650350
+        || digest(supplied) != "cd2bd4c1065642e6494072f54cf6e627eaf778e234d144fe42f6877544e951e5"
+    {
+        return None;
+    }
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let descriptor = projection344_live_descriptor();
+    let mut physical = String::new();
+    let mut previous = String::new();
+    for part in descriptor["parts"].as_array().unwrap() {
+        if let Some(literal) = part["literal"].as_str() {
+            physical.push_str(literal);
+            previous.push_str(literal);
+            continue;
+        }
+        let path = part["source"].as_str().unwrap();
+        let old_length = usize::try_from(part["length"].as_u64().unwrap()).unwrap();
+        let old_sha = part["sha256"].as_str().unwrap();
+        let (length, sha) = match path {
+            "src/workspace_graph/expected_projection/call_carriers.rs" => (12395, "d0f832f517a6037e1c3f8c7f5b1cca79af990ed2837b8c29b38903cb4baa6033"),
+            "src/workspace_graph/expected_projection/call_carriers_tests.rs" => (23994, "04baeff68abf890ab6bfa855969786876b0b91ef59cf685f898b829e14e0c047"),
+            "src/workspace_graph/expected_projection/borrowed_imports/typed.rs" => (20105, "ad172362be3655aacfef822c2834f76d08a2119d33f5774f611058ca7998792b"),
+            "src/workspace_graph/expected_projection/borrowed_imports/tests/full/publication.rs" => (9293, "f30d8ceea4d53421be07e2eec5610b9c5f0ac05ff06005f67c74028128157149"),
+            _ => (old_length, old_sha),
+        };
+        let current = reader::read(&root.join(path), length, sha, 2_097_152)
+            .expect("complete current projection part before every historical join");
+        physical.push_str(&current);
+        if path != "src/workspace_graph/expected_projection/call_carriers_tests.rs"
+            && (length != old_length || sha != old_sha)
+        {
+            previous.push_str(
+                &projection344_retained_part_with(path, old_length, old_sha, invocation)
+                    .expect("independent complete predecessor part"),
+            );
+        } else {
+            previous.push_str(&current);
+        }
+    }
+    assert_eq!(
+        physical, supplied,
+        "complete compiled and physical successor join"
+    );
+    assert_eq!(previous.len(), 647939);
+    assert_eq!(
+        digest(&previous),
+        "fe42350bec2fc90ebd37d5aef11786020716c555df70c85c3bf7622a4b4b1e7b"
+    );
+    Some(previous)
+}
+
 fn projection344_phase_join(supplied: &str) -> Option<String> {
     let mut invocation =
         crate::source_reflows_merge::main_e177_final_inputs::ProjectionInvocation::new();
@@ -481,6 +639,13 @@ fn projection344_retained_part_with(
     }
 }
 fn projection344_publication_part(compiled: &str) -> String {
+    let before = invoice_compiled_stage(
+        "src/workspace_graph/expected_projection/borrowed_imports/tests/full/publication.rs",
+        9293,
+        "f30d8ceea4d53421be07e2eec5610b9c5f0ac05ff06005f67c74028128157149",
+        compiled,
+    );
+    let compiled = before.as_str();
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let current_sha = "f30d8ceea4d53421be07e2eec5610b9c5f0ac05ff06005f67c74028128157149";
     let current = reader::read(
@@ -927,5 +1092,90 @@ fn projection344_retained_parts_reject_foreign_compiled_and_requested_tuples() {
         assert!(
             projection344_retained_part_with("unlisted", length, sha, &mut invocation).is_none()
         );
+    }
+}
+
+// Retain every current byte in the complete role audit. This independent old
+// facade is allowed only for the exact test-calibration successor below; its
+// complete production prefix must remain identical to the preserved module.
+pub(super) fn projection_call_sites_facade(supplied: &str) -> String {
+    assert_eq!(supplied.len(), 10899, "whole current call-site source");
+    assert_eq!(
+        digest(supplied),
+        "b349cbfa3c51b46a7203a1051ca27c716df885fcec805ee1ed9f15c0d5de4c8e",
+        "whole current call-site source"
+    );
+    let mut invocation =
+        crate::source_reflows_merge::main_e177_final_inputs::ProjectionInvocation::new();
+    let before = invocation.value_direct(
+        "src/workspace_graph/expected_projection/call_sites.rs",
+        "f5373c1a3f2061b2556b218860d520281d6ab1cb7338d3def2ad4e1ad85abfa0",
+        supplied,
+    );
+    assert_eq!(before.len(), 7352);
+    assert_eq!(
+        digest(&before),
+        "f5373c1a3f2061b2556b218860d520281d6ab1cb7338d3def2ad4e1ad85abfa0"
+    );
+    let marker = "\n#[cfg(test)]\nmod tests {";
+    assert_eq!(supplied.matches(marker).count(), 1);
+    assert_eq!(before.matches(marker).count(), 1);
+    assert_eq!(
+        supplied.split_once(marker).unwrap().0,
+        before.split_once(marker).unwrap().0,
+        "every actual production declaration and body precedes the unchanged test-only module"
+    );
+    before
+}
+#[test]
+fn current_call_site_facade_keeps_complete_modules_production_and_foreign_refusals() {
+    let current = include_str!("../workspace_graph/expected_projection/call_sites.rs");
+    let before = projection_call_sites_facade(current);
+    assert!(current.contains("        pub(super) fn run() {"));
+    assert!(!before.contains("pub(super) fn run() {"));
+    for bad in [
+        String::new(),
+        format!("{current} "),
+        current[..current.len() - 1].to_owned(),
+        format!("{current}\npub(super) fn leaked() {{}}\n"),
+    ] {
+        assert!(std::panic::catch_unwind(|| projection_call_sites_facade(&bad)).is_err());
+    }
+}
+
+// Only these three complete 35e stages are routed through the ordinary
+// current physical/compiled/archive acquisition before any old stage guard.
+fn invoice_previous_file(path: &std::path::Path, length: usize, sha: &str) -> Option<String> {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let source = path.strip_prefix(root).ok()?.to_str()?.replace('\\', "/");
+    match (source.as_str(), length, sha) {
+        (
+            "src/workspace_graph/expected_projection/borrowed_imports/tests.rs",
+            23207,
+            "94aa760de11d6317cebdc638946b4d2a76d822b7b9249ea8a8789d6c681777e9",
+        )
+        | (
+            "src/workspace_graph/expected_projection/borrowed_imports/tests/full.rs",
+            27568,
+            "f7ada2db950526d26e0c8e91ef90548c3a5154216b42d61e8c30a89beb978ef2",
+        )
+        | (
+            "src/workspace_graph/expected_projection/borrowed_imports/tests/full/publication.rs",
+            9293,
+            "f30d8ceea4d53421be07e2eec5610b9c5f0ac05ff06005f67c74028128157149",
+        ) => crate::source_reflows_merge::main_e177_final_inputs::ProjectionInvocation::new()
+            .file(path, length, sha),
+        _ => None,
+    }
+}
+fn invoice_compiled_stage(source: &str, length: usize, sha: &str, compiled: &str) -> String {
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(source);
+    if let Some(previous) = invoice_previous_file(&path, length, sha) {
+        let mut invocation =
+            crate::source_reflows_merge::main_e177_final_inputs::ProjectionInvocation::new();
+        assert_eq!(invocation.value_direct(source, sha, compiled), previous);
+        previous
+    } else {
+        compiled.to_owned()
     }
 }

@@ -502,6 +502,8 @@ pub(crate) fn compiled(source: &str) -> Option<&'static str> {
         "src/hir/validation/scope_checkpoint/merge/moved_direct/tests.rs" => Some(include_str!("../../src/hir/validation/scope_checkpoint/merge/moved_direct/tests.rs")),
         "src/hir/validation/scope_checkpoint/marks/direct_before.rs" => Some(include_str!("../../src/hir/validation/scope_checkpoint/marks/direct_before.rs")),
         "src/hir/validation/scope_checkpoint/marks/direct_tests.rs" => Some(include_str!("../../src/hir/validation/scope_checkpoint/marks/direct_tests.rs")),
+        "src/workspace_graph/expected_projection/borrowed_imports/tests.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/borrowed_imports/tests.rs")),
+        "src/workspace_graph/expected_projection/borrowed_imports/tests/full.rs" => Some(include_str!("../../src/workspace_graph/expected_projection/borrowed_imports/tests/full.rs")),
         _ => None,
     }
 }

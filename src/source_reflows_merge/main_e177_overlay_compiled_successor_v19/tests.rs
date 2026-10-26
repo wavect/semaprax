@@ -165,7 +165,7 @@ fn actual_complete_v19_preserves_the_old_base_and_matches_python_composition() {
     assert_eq!(result["rows"][POSITION]["compiled"], true);
     assert_eq!(
         result["rows"][POSITION]["current"],
-        page["compiled_successor"]["current"]
+        header(&page).unwrap()["current"]
     );
     let mut inverse = result.clone();
     inverse["rows"] = before["rows"].clone();

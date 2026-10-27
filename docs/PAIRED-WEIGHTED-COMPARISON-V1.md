@@ -66,3 +66,29 @@ Original moderate-selector tests and their owned fallbacks remain intact.
 Focused original collection-response backend tests fit the ordinary limit;
 this does not claim that all JSON fixtures, application projects, or hosted CI
 are green.
+
+
+## Paid cold builder threshold (#949)
+
+Source candidate; compilation, owning execution and application admission are
+pending. The ordinary builder prepays a small lexical receiver before testing
+the same lazy pair of `<=128` path bounds. When both hold, it publishes only
+nonselection: the full selector call, returned Diagnostic Result and temporary
+ReplayBudget are absent. The existing fitting selector, independent test
+comparison, enumerating fallthrough and all subsequent verification remain.
+
+The replacement gateway retains its complete argument/formal and error-result
+roles, comparison operands and boolean receivers, and the later nonselection
+predicate. Hot dispatch retains the entire immediate selector bank and pays an
+additional warm-gateway bank; it receives no discount from the cold route. The
+helper-owned declaration-text and closed operation-ID census constants are
+available to shipping accounting without exposing their private types or
+changing their runtime implementations. The actual hot surcharge is part of
+any whole-caller comparison, not an omitted cost or an assumed application gain.
+
+The existing moderate owner retains the complete immediate caller, selector
+and fixed tariff as an independently compiled oracle. Its authored cold/hot
+operand, exact/short/zero/floor, sticky/foreign, unwind, full language/work and
+six-field diagnostic controls preserve the original 64 MiB and work limits.
+Whole current sources and all helper owners reconstruct their entire immediate
+predecessors; no unqualified source epoch is admitted by this source candidate.

@@ -693,7 +693,6 @@ mod lowering_identity_tests;
 // ABI packet INTERNAL to the additional warm as_str call. Its outer &Self
 // actual/formal and &str return/caller receiver stay in the caller's bank.
 // DeclarationText remains private; no identity, backing or authority is exposed.
-#[cfg(test)]
 impl DeclarationId {
     pub(crate) const AS_STR_INTERNAL_CONTROLS: usize = {
         use std::mem::size_of;

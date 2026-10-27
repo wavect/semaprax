@@ -1742,9 +1742,11 @@
         "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/flat_probe/receiving_tests.rs",
         "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort.rs",
         "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before.rs",
+        "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_advance.rs",
         "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_branch_frames.rs",
         "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_frame_pricing.rs",
         "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/branch_frames.rs",
+        "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/lexical_advance.rs",
         "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/tests.rs",
         "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/source_custody.rs",
         "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/tests.rs",
@@ -2304,6 +2306,8 @@
         "src/source_reflows_merge/main_e177_overlay_pins_v9.rs",
         "src/source_reflows_merge/main_e177_overlay_v2.rs",
         "src/source_reflows_merge/main_e177_packet_lookup.rs",
+        "src/source_reflows_merge/main_e177_packet_reacquire.rs",
+        "src/source_reflows_merge/main_e177_reacquired_context.rs",
         "src/source_reflows_merge/main_eb2_inputs.rs",
         "src/source_reflows_merge/maina3_custody.rs",
         "src/source_reflows_merge/metadata_json.rs",
@@ -3138,10 +3142,15 @@
         "src/prelude.rs",
         "src/project/authority.rs",
         "src/project/authority/retained_input.rs",
+        "src/project/build.rs",
         "src/project/incremental.rs",
         "src/project/json_codec.rs",
         "src/project/json_codec/retained_receipt.rs",
         "src/project/mod.rs",
+        "src/project/reporting.rs",
+        "src/project/snapshot_building.rs",
+        "src/semantic_workspace.rs",
+        "src/semantic_workspace/reporting.rs",
         "src/source_verify.rs",
         "src/source_verify/declaration.rs",
         "src/source_verify/declaration/classes.rs",
@@ -3256,11 +3265,12 @@
         "src/workspace_graph/static_text/scalar_helpers.rs",
         "src/workspace_graph/static_text/scalar_helpers/capture_directory.rs",
         "src/workspace_graph/validation.rs",
-        "src/workspace_report.rs"
+        "src/workspace_report.rs",
+        "src/workspace_report/site.rs"
       ],
-      "full_manifest_sha256": "2b85e918b58f1024b14d340aa6c0527567adfc280af6beaedb5eb59304e7b628",
-      "full_raw_sha256": "56a17c6165812a176074814f10feb199ab39e468a25ec993aff64b2224d95062",
-      "full_authenticated_production_sha256": "d06b9e66ab87ccf7ff497ff0173082768a24fded5d3ab1e640609b00a12f8e8f"
+      "full_manifest_sha256": "aee1366280e8b09aed73be730e478ae40ad331beb0cbf54c8705e56c21689e4f",
+      "full_raw_sha256": "55b11079df89adc39f7b83988474b642bdd8a401afb8faa1033cb0787fd1f893",
+      "full_authenticated_production_sha256": "df4372865873a4e4860a1569e145d3a4689bce4da4019cb10c72b3081eb473bd"
     },
     "projection": {
       "baseline": "a82e00cc83f99b16249181c45710d962598577db",
@@ -4587,6 +4597,7 @@
         "src/project/json_codec.rs",
         "src/project/json_codec/retained_receipt.rs",
         "src/project/mod.rs",
+        "src/project/reporting.rs",
         "src/source_verify.rs",
         "src/source_verify/declaration.rs",
         "src/source_verify/declaration/classes.rs",
@@ -4649,11 +4660,12 @@
         "src/workspace_graph/static_text/scalar_helpers/capture_directory.rs",
         "src/workspace_graph/validation.rs",
         "src/workspace_report.rs",
-        "src/workspace_report/initial.rs"
+        "src/workspace_report/initial.rs",
+        "src/workspace_report/site.rs"
       ],
-      "full_manifest_sha256": "0f92dd8cfaadebec185e3687d540498ab4eb8b17b96b99433afbf5bca8952618",
-      "full_raw_sha256": "f7fa12ac14b4829aec7a14b0e942ea3b39bdfc0b10098b2edd400d94a07bf3d1",
-      "full_authenticated_production_sha256": "7ab53fcd8cd484d627ebfd262e1182a4375db6c33637c6b2278f12cf45a0d53c"
+      "full_manifest_sha256": "a975bc543001b696f240eda7a5e9233ca01750918b3411c5942416e21df77b8a",
+      "full_raw_sha256": "a433b86a897cf19b61e4c49f145c41b798109f5cb550e9a5d04dfe8fc6bdcd8e",
+      "full_authenticated_production_sha256": "414b950d34f7b8531eb89ea7423fa9052771779b5d1d95c085a989ca6bb348c1"
     }
   }
 }

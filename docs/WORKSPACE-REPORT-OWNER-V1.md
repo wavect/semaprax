@@ -158,3 +158,44 @@ owners and ordinary APIs remain independent. Owning source-only controls cover
 live duplicate Initialize, current paid Session recovery, full six-field legacy
 observation and Drop. This candidate remains unqualified and does not establish
 whole-engine funding, net cost benefit or closure of #781.
+
+## Borrowed reservation-site successor (#947)
+
+The ordinary Project `check` and `build` commands use the typed authenticated loader and the
+same checked preflight, preserving its first captured reservation location beside
+the original paid diagnostic vector. The original six diagnostic fields, vector
+backing, held-source acquisition, final rechecks and selected status remain intact.
+A borrowed compiler `Location` grants no filesystem or payer authority. The report
+streams that location into ordinary caller-owned human/JSON output; it does not
+append an allocating string after refusal or assume a maximum filename length.
+An unlock override suppresses the primary presentation, while the primary owner
+survives until Drop. Explicit legacy materialization still moves the original
+six-field vector and does not certify or materialize the sidecar.
+
+The original report control acquisition additionally prepays the site carrier and
+fixed formatting ABI carrier banks. This is not a certificate for arbitrary
+character traversal, output execution or sink backing. The typed Project route passes its actual generic
+result/receiving layouts into that same positive acquisition before core work;
+there is no new allowance, refund or post-refusal reservation. Unacquired report
+fallbacks retain their explicit initial/unfunded compatibility status. Output
+backing remains the caller's obligation. Source-authored controls cover complete
+fields/backing, real sticky receipts, absent sites, hint mapping, JSON/human
+streaming, bounded-output suppression and writer refusal. They are unrun; no
+current executable support, application admission or #947 closure is claimed.
+
+The source-authored frontier controls observe the original positive acquisition,
+including extra caller banks, zero/exact/short/floor and arithmetic refusal. They
+are not a runtime result for aggregate Project funding. The actual Project owner
+also sweeps the original private finite builder-limit route over compiler-checked
+sources, retaining both hint layers and the outward borrowed-site writer; it must
+observe a genuinely acquired report rather than count an inline fallback as paid.
+Ordinary default-cap CLI `check` and `build` qualification remains required.
+
+The actual CLI manifest hint and the loader's source-hint closures are formed
+before core execution. Their concrete generic types (including real captures),
+owned self/return vectors and error carriers are counted before the original
+positive report acquisition. The shared held-source loader forwards this bank
+through its private callback; ordinary Vec APIs retain their existing callback
+shape and diagnostic projection. Hint execution remains after a failure, with
+the original nested order and final source recheck priority, and happens once.
+No placeholder closure tuple, assumed enum padding or new payer is used.

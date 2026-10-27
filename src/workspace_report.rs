@@ -13,6 +13,10 @@ enum Owner {
     Initial(crate::workspace_graph::InitialReport),
     Unreceived(crate::workspace_graph::initial_report::Unreceived),
     Existing(Vec<Diagnostic>),
+    ExistingWithSite {
+        report: Vec<Diagnostic>,
+        site: crate::bounded_output::ReservationSite,
+    },
     Selected {
         failure: SelectedReplayRefusal,
         form: SelectedReplayReportForm,
@@ -34,6 +38,16 @@ impl WorkspaceReportFailure {
     pub(crate) fn existing(diagnostics: Vec<Diagnostic>) -> Self {
         Self(Owner::Existing(diagnostics), None)
     }
+    pub(crate) fn existing_with_site(
+        report: Vec<Diagnostic>,
+        first: Option<crate::bounded_output::ReservationRefusal>,
+        site: Option<crate::bounded_output::ReservationSite>,
+    ) -> Self {
+        match (first, site) {
+            (Some(_), Some(site)) => Self(Owner::ExistingWithSite { report, site }, None),
+            _ => Self::existing(report),
+        }
+    }
     pub(crate) fn selected(
         failure: SelectedReplayRefusal,
         expected: Option<SelectedReplayReportForm>,
@@ -53,7 +67,11 @@ impl WorkspaceReportFailure {
     /// an existing legacy outward report. This borrow grants no authority.
     pub fn retained_report(&self) -> Option<&[Diagnostic]> {
         match &self.0 {
-            Owner::Existing(diagnostics) => Some(diagnostics),
+            Owner::Existing(diagnostics)
+            | Owner::ExistingWithSite {
+                report: diagnostics,
+                ..
+            } => Some(diagnostics),
             Owner::Initial(_) => None,
             Owner::Unreceived(failure) => Some(failure.diagnostics()),
             Owner::Selected { failure, form } => failure.published_for(*form),
@@ -90,7 +108,11 @@ impl WorkspaceReportFailure {
             return report;
         }
         match self.0 {
-            Owner::Existing(diagnostics) => diagnostics,
+            Owner::Existing(diagnostics)
+            | Owner::ExistingWithSite {
+                report: diagnostics,
+                ..
+            } => diagnostics,
             Owner::Initial(failure) => vec![failure.materialize_unfunded()],
             Owner::Unreceived(failure) => failure.into_legacy_unfunded(),
             Owner::Selected { failure, form } => failure
@@ -115,6 +137,11 @@ impl From<Vec<Diagnostic>> for WorkspaceReportFailure {
 }
 impl fmt::Display for WorkspaceReportFailure {
     fn fmt(&self, out: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Owner::ExistingWithSite { report, site } = &self.0 {
+            if self.1.is_none() {
+                return site::display(report, *site, out);
+            }
+        }
         if let Some(diagnostics) = self.reported() {
             for (index, diagnostic) in diagnostics.iter().enumerate() {
                 if index != 0 {
@@ -127,7 +154,9 @@ impl fmt::Display for WorkspaceReportFailure {
         let form = match &self.0 {
             Owner::Selected { form, .. } => *form,
             Owner::Initial(failure) => return failure.write_human(out),
-            Owner::Existing(_) | Owner::Unreceived(_) => unreachable!(),
+            Owner::Existing(_) | Owner::ExistingWithSite { .. } | Owner::Unreceived(_) => {
+                unreachable!()
+            }
         };
         fmt::Display::fmt(&Diagnostic::io_static(form.code(), form.message()), out)
     }
@@ -167,6 +196,13 @@ impl WorkspaceReportFailure {
     ) -> Self {
         match self {
             Self(Owner::Existing(report), None) => Self::existing(mapper(report)),
+            Self(Owner::ExistingWithSite { report, site }, None) => Self(
+                Owner::ExistingWithSite {
+                    report: mapper(report),
+                    site,
+                },
+                None,
+            ),
             // Explicit remaining unreceived-child compatibility allocation;
             // the original primary and failed owner survive until this edge.
             Self(Owner::Unreceived(failure), None) => {
@@ -184,3 +220,18 @@ impl WorkspaceReportFailure {
 }
 
 mod initial;
+
+mod site;
+impl WorkspaceReportFailure {
+    /// Map ordinary diagnostic hints without discarding an acquired call site.
+    pub fn map_existing_diagnostics(
+        self,
+        mapper: impl FnOnce(Vec<Diagnostic>) -> Vec<Diagnostic>,
+    ) -> Self {
+        self.map_legacy(mapper)
+    }
+}
+
+pub(crate) fn site_controls() -> usize {
+    site::controls()
+}

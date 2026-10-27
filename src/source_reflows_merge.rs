@@ -566,7 +566,7 @@ fn before_setup825(source: &str, current: &str) -> String {
     runtime_json::project(runtime_json::Fixture::F41, source, current)
 }
 // Preserve the complete immutable typed825 runtime manifest's own exact domain.
-pub(crate) fn setup_typed_input(source: &str, current: &str) -> String {
+pub(crate) fn setup_typed_input(source: &str, current: &str) -> String { constructor_stage::report947_run(source, current, |current| setup_typed_input_pre947(source, current)) } fn setup_typed_input_pre947(source: &str, current: &str) -> String {
     let typed_entry = match source {
         "src/workspace_graph/expected_projection/defaults/typed.rs" => {
             constructor825_compiled_entry(
@@ -730,7 +730,7 @@ pub(crate) fn compact844_input(source: &str, current: &str) -> String {
     let current = final_ready_input("844", source, current);
     runtime_json::project(runtime_json::Fixture::F67, source, &current)
 }
-pub(crate) fn diagnostic846_input(source: &str, current: &str) -> String {
+pub(crate) fn diagnostic846_input(source: &str, current: &str) -> String { constructor_stage::report947_run(source, current, |current| diagnostic846_input_pre947(source, current)) } fn diagnostic846_input_pre947(source: &str, current: &str) -> String {
     let entry;
     let current = if source == "src/diagnostic.rs" {
         entry = historical_project_entry(
@@ -821,7 +821,7 @@ fn final_batch_input(branch: &str, source: &str, current: &str) -> String {
     runtime_json::project(rows, source, current)
 }
 // Direct845 owners authenticate independently from inherited source guards.
-pub(crate) fn initial845_input(source: &str, current: &str) -> String {
+pub(crate) fn initial845_input(source: &str, current: &str) -> String { constructor_stage::report947_run(source, current, |current| initial845_input_pre947(source, current)) } fn initial845_input_pre947(source: &str, current: &str) -> String {
     let acquired = initial845_current_owner_before(source, current);
     let current = acquired.as_deref().unwrap_or(current);
     let ledger_entry = initial845_ledger_entry(source, current);
@@ -1308,7 +1308,7 @@ fn constructor825_compiled_entry(source: &str, expected: &str, current: &str) ->
     };
     let current = typed_before.as_deref().unwrap_or(current);
     let (compiled, length, current_sha, edits): (&str, usize, &str, &[(&str, &str)]) = match (source, expected) {
-        ("src/workspace_graph/constructor_failure/report.rs", "fc2eb1ecc98cc13b6df906a1e2f59f09d198cf958a4c7ff3472e0aae1a866a84") => (include_str!("workspace_graph/constructor_failure/report.rs"), 10609, "a389503a2f7e6b241bbbaf906f71e980e564fa689d2389543d581dbc12fe5662", &[
+        ("src/workspace_graph/constructor_failure/report.rs", "fc2eb1ecc98cc13b6df906a1e2f59f09d198cf958a4c7ff3472e0aae1a866a84") => (constructor_stage::report947_compiled("src/workspace_graph/constructor_failure/report.rs", include_str!("workspace_graph/constructor_failure/report.rs")), 10609, "a389503a2f7e6b241bbbaf906f71e980e564fa689d2389543d581dbc12fe5662", &[
             ("        // Reserve the full width of the captured usize maximum. Otherwise the\n        // same successful construction acquires different report backing at\n        // each decimal limit boundary, so its exact minimum changes its bill.\n        // Rendering below still uses the actual maximum and original help.\n        let message_len = counted(|out| message(out, usize::MAX))?;\n        let base_len = counted(|out| write!(out, \"{}\", BorrowedBuilderHelp(usize::MAX)))?;\n", "        let message_len = counted(|out| message(out, maximum))?;\n        let base_len = counted(|out| write!(out, \"{}\", BorrowedBuilderHelp(maximum)))?;\n"),
         ]),
         ("src/workspace_graph/constructor_failure/receiving/before.rs", "6135d75cf3f57029b9dd754030aba155a75ca902772aa036345481c1d3abc8b1") => (include_str!("workspace_graph/constructor_failure/receiving/before.rs"), 14616, "a43797702bc674b8764a7b5533059e49c0eb1272006d38aaf22538bf8334254b", &[
@@ -1374,7 +1374,7 @@ fn constructor825_compiled_entry(source: &str, expected: &str, current: &str) ->
 fn constructor825_attempt_before(current: &str) -> String {
     assert_eq!(
         current,
-        include_str!("workspace_graph/constructor_failure/attempt.rs")
+        constructor_stage::report947_compiled("src/workspace_graph/constructor_failure/attempt.rs", include_str!("workspace_graph/constructor_failure/attempt.rs"))
     );
     assert_eq!(current.len(), 4136);
     assert_eq!(
@@ -1401,7 +1401,7 @@ fn initial845_current_owner_before(source: &str, current: &str) -> Option<String
             ("        #[cfg(feature = \"unstable-workflow-profiling\")]\n        exclusive_debits::refusal(budget, length);\n", ""),
             ("    #[cfg(feature = \"unstable-workflow-profiling\")]\n    exclusive_debits::debit(budget, length);\n", ""),
         ]),
-        "src/workspace_graph/initial_report/build.rs" => (normalized.as_deref().unwrap_or(include_str!("workspace_graph/initial_report/build.rs")), 17509, "48b56f916c25d00004bf6d8bc13e56a0972d07f531fceda2c7c94b57d2af20e1", 17054, "0fd9df9abe4ceadd45105394a4efcda2edc3a3ab780d0326d924288a60ea5bda", &[
+        "src/workspace_graph/initial_report/build.rs" => (normalized.as_deref().unwrap_or(constructor_stage::report947_compiled("src/workspace_graph/initial_report/build.rs", include_str!("workspace_graph/initial_report/build.rs"))), 17509, "48b56f916c25d00004bf6d8bc13e56a0972d07f531fceda2c7c94b57d2af20e1", 17054, "0fd9df9abe4ceadd45105394a4efcda2edc3a3ab780d0326d924288a60ea5bda", &[
             ("                #[cfg(feature = \"unstable-workflow-profiling\")]\n                let mut exclusive = crate::bounded_output::exclusive_debits::attempt(\n                    resolve_builder_bytes,\n                    layouts.receipt(),\n                    fallback_mode,\n                );\n                let result = constructor_failure::attempt::run(active_builder_limit(), || {\n", "                constructor_failure::attempt::run(active_builder_limit(), || {\n"),
             ("                });\n                #[cfg(feature = \"unstable-workflow-profiling\")]\n                exclusive.complete(result.observation_succeeded());\n                result\n", "                })\n"),
         ]),

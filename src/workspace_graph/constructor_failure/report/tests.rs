@@ -304,3 +304,213 @@ fn constructor_setup_compatibility_keeps_six_fields_and_never_reclassifies_stora
         [before::limit_error("builder_bytes", 17)].as_slice()
     );
 }
+
+#[test]
+fn paid_terminal_site_moves_unchanged_report_and_streams_after_original_owner_restores() {
+    use crate::bounded_output::with_limit_usage_refusal_site;
+    use crate::workspace_graph::initial_report::Policy;
+    use crate::workspace_report::WorkspaceReportFailure;
+    let maximum = exact();
+    let (report, refused, used, first, site) = with_limit_usage_refusal_site(maximum, || {
+        let owner = Owner::acquire(maximum, 0).unwrap();
+        let pointer = owner.report.as_ptr();
+        assert!(!reserve_active_required(1));
+        assert!(!reserve_active_required(2));
+        let report = owner
+            .seal()
+            .unwrap_or_else(|_| panic!("same sticky owner"))
+            .into_report();
+        assert_eq!(report.as_ptr(), pointer);
+        report
+    });
+    assert!(refused && used == maximum);
+    assert_eq!(first.unwrap().requested, 1);
+    let expected = before::live_builder_refusal(maximum, first);
+    assert_eq!(report.as_slice(), [expected]);
+    let pointer = report.as_ptr();
+    let failure = <WorkspaceReportFailure as Policy>::terminal(maximum, Some(report), first, site);
+    assert_eq!(failure.reported().unwrap().as_ptr(), pointer);
+    let mut output = String::with_capacity(8192); // Ordinary output owner, acquired before rendering.
+    let (result, observed) = measure(|| failure.write_lines(&mut output, true));
+    assert!(result.is_ok());
+    assert_eq!(
+        (
+            observed.allocations,
+            observed.reallocations,
+            observed.allocated
+        ),
+        (0, 0, 0)
+    );
+    let json: serde_json::Value = serde_json::from_str(&output).unwrap();
+    let site = site.unwrap();
+    assert!(json["help"].as_str().unwrap().ends_with(&format!(
+        " Reservation caller: {}:{}:{}.",
+        site.file(),
+        site.line(),
+        site.column()
+    )));
+    assert_eq!(failure.reported().unwrap()[0].code, "SPX-G171");
+    drop(failure);
+}
+
+#[test]
+fn extra_report_controls_keep_real_first_positive_exact_short_zero_floor_and_whole_drop() {
+    use crate::bounded_output::{clear_active_floor, set_active_floor};
+    use std::cell::Cell;
+
+    let cost = |extra| {
+        let (((), physical), refused, used, first) = with_limit_usage_refusal(usize::MAX, || {
+            measure(|| {
+                let attempt = attempt::run_with_report_controls(usize::MAX, extra, || {
+                    Ok::<(), CoreFailure>(())
+                });
+                let (result, publication) = attempt.into_parts();
+                assert!(result.is_ok() && publication.is_none());
+            })
+        });
+        assert!(!refused && first.is_none());
+        assert!(!physical.invalid && physical.live == 0);
+        assert_eq!(physical.allocated, physical.freed);
+        used
+    };
+    let base = cost(0);
+    let extra = 37; // An explicit test argument, not an inferred production tariff.
+    let exact = cost(extra);
+    assert_eq!(exact, base + extra);
+
+    let first_gate = |extra| {
+        let (((), physical), refused, used, first) = with_limit_usage_refusal(0, || {
+            measure(|| {
+                let attempt = attempt::run_with_report_controls::<()>(usize::MAX, extra, || {
+                    panic!("first positive gate refused")
+                });
+                let (result, publication) = attempt.into_parts();
+                assert!(matches!(
+                    result,
+                    Err(CoreFailure::Setup(Setup::Budget { .. }))
+                ));
+                assert!(publication.is_none());
+            })
+        });
+        assert!(refused && used == 0);
+        assert_eq!(
+            (
+                physical.allocations,
+                physical.reallocations,
+                physical.allocated,
+                physical.live
+            ),
+            (0, 0, 0, 0)
+        );
+        first.unwrap().requested
+    };
+    let controls = first_gate(extra);
+    assert_eq!(controls, first_gate(0) + extra);
+    for (limit, floor, success) in [
+        (0, 0, false),
+        (controls - 1, 0, false),
+        (exact - 1, 0, false),
+        (exact, 0, true),
+        (exact + 29, 29, true),
+        (exact + 28, 29, false),
+        (exact, exact, false),
+    ] {
+        let entered = Cell::new(false);
+        let (((), physical), refused, used, first) = with_limit_usage_refusal(limit, || {
+            assert!(set_active_floor(floor));
+            let result = measure(|| {
+                let attempt = attempt::run_with_report_controls(usize::MAX, extra, || {
+                    entered.set(true);
+                    Ok::<(), CoreFailure>(())
+                });
+                let (result, publication) = attempt.into_parts();
+                assert_eq!(result.is_ok(), success);
+                assert!(publication.is_none());
+                if !success {
+                    assert!(matches!(
+                        result,
+                        Err(CoreFailure::Setup(Setup::Budget { .. }))
+                    ));
+                }
+            });
+            clear_active_floor();
+            result
+        });
+        assert_eq!(entered.get(), success);
+        assert_eq!(refused, !success);
+        assert!(!physical.invalid && physical.live == 0);
+        assert_eq!(physical.allocated, physical.freed);
+        if success {
+            assert_eq!(used, exact);
+            assert!(first.is_none());
+        } else {
+            assert_eq!(physical.allocated, 0);
+            assert_eq!(first.unwrap().floor, floor);
+        }
+    }
+}
+
+#[test]
+fn extra_report_controls_keep_actual_sticky_receipt_full_publication_and_arithmetic_refusal() {
+    let extra = 37;
+    let (_, probe_refused, _, probe_first) = with_limit_usage_refusal(usize::MAX, || {
+        drop(attempt::run_with_report_controls::<()>(
+            usize::MAX,
+            extra,
+            || {
+                assert!(!reserve_active_required(usize::MAX));
+                Err(CoreFailure::Setup(Setup::Budget {
+                    maximum: usize::MAX,
+                }))
+            },
+        ));
+    });
+    assert!(probe_refused);
+    let expected = before::live_builder_refusal(usize::MAX, probe_first);
+    let (((), physical), refused, _, first) = with_limit_usage_refusal(usize::MAX, || {
+        measure(|| {
+            let attempt = attempt::run_with_report_controls::<()>(usize::MAX, extra, || {
+                assert!(!reserve_active_required(usize::MAX));
+                assert!(!reserve_active_required(0));
+                Err(CoreFailure::Setup(Setup::Budget {
+                    maximum: usize::MAX,
+                }))
+            });
+            let (result, publication) = attempt.into_parts();
+            assert!(matches!(
+                result,
+                Err(CoreFailure::Setup(Setup::Budget { .. }))
+            ));
+            let report = publication.expect("same paid owner sealed before restoration");
+            assert_eq!(report.as_slice(), std::slice::from_ref(&expected));
+            drop(report);
+            drop(result);
+        })
+    });
+    assert!(refused);
+    assert_eq!(first, probe_first);
+    assert_eq!(first.unwrap().requested, usize::MAX);
+    assert!(!physical.invalid && physical.live == 0);
+    assert_eq!(physical.allocated, physical.freed);
+
+    let (((), physical), refused, used, first) = with_limit_usage_refusal(usize::MAX, || {
+        measure(|| {
+            let attempt = attempt::run_with_report_controls::<()>(usize::MAX, usize::MAX, || {
+                panic!("arithmetic refusal cannot enter core")
+            });
+            let (result, publication) = attempt.into_parts();
+            assert!(matches!(result, Err(CoreFailure::Setup(Setup::Arithmetic))));
+            assert!(publication.is_none());
+        })
+    });
+    assert!(!refused && used == 0 && first.is_none());
+    assert_eq!(
+        (
+            physical.allocations,
+            physical.reallocations,
+            physical.allocated,
+            physical.live
+        ),
+        (0, 0, 0, 0)
+    );
+}

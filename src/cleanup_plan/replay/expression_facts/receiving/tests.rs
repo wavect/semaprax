@@ -787,15 +787,15 @@ fn live_lexical_selector_none_constructor_tax_and_first_gate_remain_exact(){
     if std::mem::size_of::<usize>()==8{assert_eq!(super::directory::LEXICAL_INSERT_SELECTOR_BYTES,19);}
     for current in [false,true]{let full=run(current,usize::MAX);let exact=run(current,full.2);assert!(exact.0.0.0&&!exact.1);let zero=run(current,0);assert!(!zero.0.0.0&&zero.1);let bad=run(current,full.2-1);assert!(!bad.0.0.0&&bad.1);let positive=super::directory::LEXICAL_INSERT_CONSTRUCTOR_BASE_BYTES+if current{super::directory::LEXICAL_INSERT_SELECTOR_BYTES}else{0};assert_eq!(bad.3.unwrap().requested,positive);assert_eq!(bad.2,full.2-positive);}
     // Work is an explicit finite input, never granted or reset after a call.
-    let work_probe=|current,work|{
-        let mut budget=ReplayBudget {remaining:work,..ReplayBudget::unobserved()};
+    let work_probe=|current,work|with_limit_usage_refusal(usize::MAX,||{
+        let mut budget=ReplayBudget {remaining:work,..ReplayBudget::new()};
         let _=crate::cleanup_plan::replay::take_replay_work_refusal();
         let result=if current{Directory::<u32>::new_with_lexical_insert_selector(f,&mut budget,"live selector")}else{Directory::<u32>::new(f,&mut budget,"live selector")};
         let success=result.is_ok();let first=result.err();let remaining=budget.remaining;
         let refusal=crate::cleanup_plan::replay::take_replay_work_refusal().map(|r|(r.requested,r.remaining));
         let retry=if success{None}else if current{Directory::<u32>::new_with_lexical_insert_selector(f,&mut budget,"live selector").err()}else{Directory::<u32>::new(f,&mut budget,"live selector").err()};
         (success,first,remaining,retry,refusal)
-    };
+    }).0;
     assert_eq!(work_probe(false,1),(true,None,0,None,None));
     assert_eq!(work_probe(true,2),(true,None,0,None,None));
     let old_short=work_probe(false,0);assert!(!old_short.0&&old_short.2==0);assert_eq!(old_short.4,Some((1,0)));
@@ -818,7 +818,9 @@ fn live_lexical_selector_floor_foreign_sticky_and_unwind_use_real_gateway(){
         let a=Directory::<u32>::new(f,&mut old,"live selector").err().unwrap();let b=Directory::<u32>::new_with_lexical_insert_selector(f,&mut new,"live selector").err().unwrap();assert_eq!(a,b);(a,b)
     });assert!(!refused&&debit==0&&first.is_none());drop(raw);
     let ((panicked,allocation),refused,_,_)=with_limit_usage_refusal(1<<24,||measure(||std::panic::catch_unwind(std::panic::AssertUnwindSafe(||{
-        let mut budget=ReplayBudget::new();let mut directory=Directory::<u32>::new_with_lexical_insert_selector(f,&mut budget,"live unwind").unwrap();for k in 0..16u32{directory.insert(f,k,&mut budget).unwrap();}panic!("intentional complete live directory unwind");
+        let mut budget=ReplayBudget::new();let mut directory=Directory::<u32>::new_with_lexical_insert_selector(f,&mut budget,"live unwind").unwrap();for k in 0..16u32{directory.insert(f,k,&mut budget).unwrap();}
+        // A real owned unwind skips libtest's process-lived captured panic output.
+        std::panic::resume_unwind(Box::new("intentional complete live directory unwind"));
     })).is_err()));assert!(panicked&&!refused&&!allocation.invalid&&allocation.live==0);assert_eq!(allocation.allocated,allocation.freed);
 }
 #[test]

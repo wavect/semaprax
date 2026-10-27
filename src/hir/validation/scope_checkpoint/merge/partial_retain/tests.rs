@@ -278,7 +278,8 @@ fn postjoin_unwind_drops_retained_nodes_snapshots_and_restores_old_selection() {
                         assert_eq!(target.get(id).unwrap().definitely_partial, value.definitely_partial);
                     }
                     assert!(snapshot.iter().eq(input.iter()));
-                    panic!("after complete retained candidate publication");
+                    // Keep libtest's captured panic output outside this allocation lifetime.
+                    std::panic::resume_unwind(Box::new("after complete retained candidate publication"));
                 };
                 if old { with_before(invoke) } else { invoke() }
             })).is_err()

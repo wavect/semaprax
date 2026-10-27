@@ -790,7 +790,16 @@ pub(super) fn label(
 
 // This bank covers only the newly introduced comparison operation. A miss
 // still executes the complete original observation comparison below.
+// Fixed source-level ABI packet: Rc comparison actual/formal loans and
+// booleans, plus the surviving block result/local and receiving match. Both
+// function argument tuples are absent; no inner/helper payment is credited.
 const FLAT_IDENTITY_RECEIVERS: usize = {
+    use std::mem::size_of;
+    2 * size_of::<(&Rc<SkeletonObservation>, &Rc<SkeletonObservation>)>()
+        + 2 * size_of::<bool>()
+        + 2 * size_of::<Result<(), physical_budget::ByteFailure>>()
+};
+const BEFORE_BYTE_IDENTITY_RECEIVERS: usize = {
     use std::mem::size_of;
     2 * size_of::<(&Rc<SkeletonObservation>, &Rc<SkeletonObservation>)>()
         + 2 * size_of::<bool>()
@@ -882,7 +891,49 @@ macro_rules! before_lexical_identity_items {
     }};
 }
 
-fn items(
+// OPT950: fixed-positive lexical byte producer. No budget/function/phase/byte
+// aliases, forwarding tuple or closure is formed. Every failure joins the
+// shared observer completion before the original compact diagnostic conversion.
+macro_rules! reserve_flat_identity {
+    ($budget:ident, $function:ident) => {{
+        let ticket = crate::cleanup_plan::replay::merge_census::before(
+            $budget, $function, $crate::cleanup_plan::replay::factored::oracle_order::FLAT_IDENTITY_RECEIVERS, "oracle flat identity receivers",
+        );
+        let result = 'reservation: {
+            match $budget.prepare_builder($function) {
+                Ok(()) => (),
+                Err(error) => break 'reservation Err(physical_budget::ByteFailure::from_budget(error)),
+            };
+            let accepted = match $budget.payer {
+                AllocationPayer::LegacyUnobserved => true,
+                AllocationPayer::ActiveBuilder => {
+                    !$budget.refusal_spent
+                        && !crate::bounded_output::active_refused()
+                        && crate::bounded_output::reserve_active_required($crate::cleanup_plan::replay::factored::oracle_order::FLAT_IDENTITY_RECEIVERS)
+                }
+                AllocationPayer::Oracle(lease) => {
+                    !$budget.refusal_spent && !lease.refused()
+                        && lease.charge($crate::cleanup_plan::replay::factored::oracle_order::FLAT_IDENTITY_RECEIVERS).is_ok()
+                }
+                AllocationPayer::SelectedReservation => $budget
+                    .physical.as_deref_mut().expect("selected reservation payer")
+                    .reserve($crate::cleanup_plan::replay::factored::oracle_order::FLAT_IDENTITY_RECEIVERS).is_ok(),
+            };
+            if accepted {
+                Ok(())
+            } else {
+                Err($budget.compact_refusal(
+                    $function, "cleanup replay physical reservation exhausted during ",
+                    "oracle flat identity receivers",
+                ))
+            }
+        };
+        crate::cleanup_plan::replay::merge_census::after(ticket, $budget, $function, result.is_ok());
+        physical_budget::compact_try!(result);
+    }};
+}
+
+fn before_byte_items(
     a: &[Rc<SkeletonObservation>],
     b: &[Rc<SkeletonObservation>],
     function: &ResolvedFunction,
@@ -899,7 +950,7 @@ fn items(
         budget.reserve_bytes(function, FLAT_IDENTITY_ENTRY, "oracle flat identity entry")?;
         physical_budget::compact_try!(budget.reserve_compact_bytes(
             function,
-            FLAT_IDENTITY_RECEIVERS,
+            BEFORE_BYTE_IDENTITY_RECEIVERS,
             "oracle flat identity receivers",
         ));
         physical_budget::charge_flat_identity!(budget, function, std::panic::Location::caller());
@@ -913,9 +964,47 @@ fn items(
             budget.charge(function, 1, "oracle flat observation member")?;
             physical_budget::compact_try!(budget.reserve_compact_bytes(
                 function,
-                FLAT_IDENTITY_RECEIVERS,
+                BEFORE_BYTE_IDENTITY_RECEIVERS,
                 "oracle flat identity receivers",
             ));
+            physical_budget::charge_flat_identity!(
+                budget,
+                function,
+                std::panic::Location::caller()
+            );
+            if Rc::ptr_eq(x, y) {
+                continue;
+            }
+            decide!(observation(x.as_ref(), y.as_ref(), function, budget)?);
+        }
+    }
+    budget.charge(function, 1, "oracle flat observation length")?;
+    Ok(a.len().cmp(&b.len()))
+}
+
+
+fn items(
+    a: &[Rc<SkeletonObservation>],
+    b: &[Rc<SkeletonObservation>],
+    function: &ResolvedFunction,
+    budget: &mut ReplayBudget,
+) -> Result<Ordering, Diagnostic> {
+    // This is the original first zip/next/Some member binding. In particular,
+    // zero work still refuses at the original member before any new byte bank.
+    if let Some((x, y)) = a.iter().zip(b).next() {
+        budget.charge(function, 1, "oracle flat observation member")?;
+        budget.reserve_bytes(function, FLAT_IDENTITY_ENTRY, "oracle flat identity entry")?;
+        reserve_flat_identity!(budget, function);
+        physical_budget::charge_flat_identity!(budget, function, std::panic::Location::caller());
+        if Rc::ptr_eq(x, y) {
+        } else {
+            decide!(observation(x.as_ref(), y.as_ref(), function, budget)?);
+        }
+        // Both first elements existed above. All new slices, ranges, iterator
+        // returns and IntoIterator moves are now prepaid; no length is repaired.
+        for (x, y) in a[1..].iter().zip(b[1..].iter()) {
+            budget.charge(function, 1, "oracle flat observation member")?;
+            reserve_flat_identity!(budget, function);
             physical_budget::charge_flat_identity!(
                 budget,
                 function,

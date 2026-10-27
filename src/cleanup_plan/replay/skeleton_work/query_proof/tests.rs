@@ -25,6 +25,9 @@ pub(super) fn restore(current: &str, path: &str) -> String {
         .iter()
         .find(|row| row["path"] == path)
         .unwrap();
+    if path == "src/cleanup_plan/replay/skeleton_work/query_proof.rs" {
+        assert_eq!(std::fs::read(root.join("e").join(digest(current.as_bytes()))).unwrap(), current.as_bytes());
+    }
     let (old_length, old_hash) = match path {
         "src/cleanup_plan/replay.rs" => (327251, "6ac23252b3207a753b7f65940c17cd515de6cc7ebe4988d8a37fb775ae6034e4"),
         "src/cleanup_plan/replay/skeleton_work.rs" => (48238, "22f4de0b3fe49f2446588917440ad0beaa9473cfe0c638197149cdcf210d011f"),
@@ -34,6 +37,7 @@ pub(super) fn restore(current: &str, path: &str) -> String {
         "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs" => (10194, "52299d69ae04653546366d2eb220e0acbfc590c823e0a7819d29a1b47e7be134"),
         "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs" => (17889, "24506f3ae2705ba0274d20f43f261948f06cba5c70cd955e99907e82918a9899"),
         "src/cleanup_plan/replay/skeleton_work/query_proof/before.rs" => (10194, "52299d69ae04653546366d2eb220e0acbfc590c823e0a7819d29a1b47e7be134"),
+        "src/cleanup_plan/replay/skeleton_work/query_proof.rs" => (20996, "49ca7d263fb322b1058d6870a8cb1f5849221ae97f7a64c64227104327f3c500"),
         _ => panic!("unknown immutable predecessor {path}"),
     };
     assert_eq!(row["before_length"], old_length);
@@ -149,6 +153,12 @@ pub(super) fn restore(current: &str, path: &str) -> String {
         row["before_length"].as_u64().unwrap() as usize
     );
     assert_eq!(digest(restored.as_bytes()), row["before_sha256"]);
+    if path == "src/cleanup_plan/replay/skeleton_work/query_proof.rs" {
+        assert_eq!(std::fs::read(root.join(path)).unwrap(), current.as_bytes());
+        assert_eq!(std::fs::read(root.join("e").join(digest(current.as_bytes()))).unwrap(), current.as_bytes());
+        assert_eq!(std::fs::read(root.join("src/cleanup_plan/replay/skeleton_work/query_proof/source_inverse.json")).unwrap(), encoded.as_bytes());
+        assert_eq!(std::fs::read(root.join("src/cleanup_plan/replay/skeleton_work/query_proof").join(row["before_file"].as_str().unwrap())).unwrap(), target);
+    }
     restored
 }
 fn program() -> ResolvedProgram {
@@ -228,6 +238,7 @@ fn complete_sources_and_independent_old_query_bindings_are_exact() {
             "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation.rs" => include_str!("../../ordinary_plan_history/completed_fork/emission/validation.rs"),
             "src/cleanup_plan/replay/ordinary_plan_history/completed_fork/emission/validation/tests.rs" => include_str!("../../ordinary_plan_history/completed_fork/emission/validation/tests.rs"),
             "src/cleanup_plan/replay/skeleton_work/query_proof/before.rs" => include_str!("before.rs"),
+            "src/cleanup_plan/replay/skeleton_work/query_proof.rs" => include_str!("../query_proof.rs"),
             _ => panic!("unknown complete source {path}"),
         };
         let before = restore(current, path);
@@ -238,6 +249,22 @@ fn complete_sources_and_independent_old_query_bindings_are_exact() {
         .find("pub(super) struct SkeletonWork<'a, 'b> {")
         .unwrap();
     let last = first + frozen_work[first..].find("\n}\n").unwrap() + 3;
+    // The complete old ordinary validation source is reconstructed from the
+    // retained executable namespace, including its original test declaration.
+    let root_source = include_str!("../query_proof.rs");
+    let marker = "\n// OPT952 complete immediate-old validation caller; namespace transports only.\n";
+    let (_, namespace) = root_source.split_once(marker).unwrap();
+    let namespace = namespace.strip_prefix("#[cfg(test)]\n#[rustfmt::skip]\nmod before_take_validation {\n").unwrap().strip_suffix("}\n").unwrap();
+    let bank = "use super::{ReplayBudget, ResolvedFunction};\nconst PAYMENT: usize = 2 * size_of::<&mut ReplayBudget>()\n    + 2 * size_of::<&ResolvedFunction>()\n    + 2 * size_of::<&str>()\n    + 2 * size_of::<usize>()\n    + 2 * size_of::<Result<(), Diagnostic>>();\n";
+    assert_eq!(namespace.matches(bank).count(), 1);
+    let original = namespace.replacen(bank, "", 1)
+        .replacen("SkeletonWork,\n", "SkeletonWork, PAYMENT,\n", 1)
+        .replace("query_proof::BEFORE_TAKE_CLASSIFY_CALL", "query_proof::CLASSIFY_CALL")
+        .replace("query_proof::before_take_classify_paid", "query_proof::classify_paid")
+        + "#[cfg(test)]\nmod tests;\n";
+    assert_eq!(original, include_str!("../../ordinary_plan_history/completed_fork/emission/validation.rs"));
+    assert_eq!(original.len(), 11753);
+    assert_eq!(digest(original.as_bytes()), "7944d10f5515da0a4e9c4b6ed49882bb3e20ccf9cfc96fc4c20372370ebf955f");
     let layout = frozen_work[first..last].replacen(
         "pub(super) struct SkeletonWork<'a, 'b>",
         "struct BeforeWork<'a, 'b>",
@@ -784,4 +811,285 @@ fn weak_one_entry_releases_disjoint_payloads_bounds_peak_and_final_drop() {
         "QUERY_ONLY weak cache disjoint-root old_common_ABI={:?} new={:?}; no forecast/app claim",
         observations[0], observations[1]
     );
+}
+
+
+// Immediate-old #952 boundary, independent of the older pre-query oracle above.
+fn take_boundary_call(
+    work: &mut SkeletonWork<'_, '_>, observations: &Observations,
+    old: bool, classifier: bool,
+) -> Result<bool, Diagnostic> {
+    let bank = if classifier { CLASSIFY_CALL } else { CALL }
+        + if old { BEFORE_TAKE_CALL - CALL } else { 0 };
+    work.queries.preflight(work.function, &mut *work.budget, bank,
+        if classifier { "shared sequence classifier call receivers" }
+        else { "shared sequence query call receivers" })?;
+    if classifier {
+        let root = observations.prefix.as_ref().expect("actual fixture root");
+        let (valid, visits) = if old { before_take_classify_paid(root, work)? }
+            else { classify_paid(root, work)? };
+        assert_eq!(visits, 4);
+        Ok(valid)
+    } else if old { before_take_sequence_paid(observations, work) }
+    else { sequence_paid(observations, work) }
+}
+fn take_boundary_measured(
+    program: &ResolvedProgram, old: bool, classifier: bool, limit: usize, floor: bool,
+) -> ((Result<usize, DiagnosticReceipt>, Metrics), bool, usize,
+      Option<crate::bounded_output::ReservationRefusal>) {
+    with_limit_usage_refusal(limit, || measure(|| {
+        let function = &program.functions[0];
+        let mut budget = ReplayBudget::with_skeleton_limit(usize::MAX);
+        let result = (|| {
+            let mut work = SkeletonWork::with_index(program, function, &mut budget, None)?;
+            let observations = tree(&mut work, 4)?;
+            let remaining = work.budget.remaining;
+            for _ in 0..6 {
+                if floor {
+                    assert!(set_active_floor(crate::bounded_output::active_remaining().unwrap()));
+                }
+                match take_boundary_call(&mut work, &observations, old, classifier) {
+                    Ok(valid) => assert!(valid),
+                    Err(first) => {
+                        // Refusal removes the owner and is sticky on the actual next call.
+                        assert!(work.queries.owner.is_none());
+                        assert!(take_boundary_call(&mut work, &observations, old, classifier).is_err());
+                        assert!(work.queries.owner.is_none());
+                        return Err(first);
+                    }
+                }
+            }
+            Ok(remaining - work.budget.remaining)
+        })();
+        drop(budget);
+        result.map_err(DiagnosticReceipt::from)
+    }))
+}
+#[test]
+fn lexical_take_exact_boundary_equation_keeps_cold_warm_work_and_complete_drop() {
+    let program = program();
+    let delta = 2 * size_of::<Result<Box<Proof<'static>>, Diagnostic>>()
+        - 2 * size_of::<Box<Proof<'static>>>();
+    assert_eq!(BEFORE_TAKE_CALL - CALL, delta);
+    assert!(delta > 0);
+    for classifier in [false, true] {
+        let ((old, old_heap), old_refused, old_paid, _) =
+            take_boundary_measured(&program, true, classifier, usize::MAX, false);
+        let ((new, new_heap), new_refused, new_paid, _) =
+            take_boundary_measured(&program, false, classifier, usize::MAX, false);
+        assert_eq!(old.unwrap(), new.unwrap());
+        assert!(!old_refused && !new_refused);
+        assert_eq!(old_paid - new_paid, 6 * delta);
+        assert_eq!(old_heap.allocated, new_heap.allocated);
+        assert_eq!(old_heap.allocations, new_heap.allocations);
+        assert_eq!(old_heap.highwater, new_heap.highwater);
+        for heap in [old_heap, new_heap] {
+            assert_eq!(heap.live, 0);
+            assert_eq!(heap.allocated, heap.freed);
+            assert!(!heap.invalid);
+        }
+    }
+}
+#[test]
+fn lexical_take_both_callers_exact_short_zero_floor_and_sticky_are_physical() {
+    let program = program();
+    for old in [true, false] {
+        for classifier in [false, true] {
+            let ((success, _), refused, paid, _) =
+                take_boundary_measured(&program, old, classifier, usize::MAX, false);
+            assert!(success.is_ok());
+            assert!(!refused);
+            for limit in [0, paid - 1, paid] {
+                let ((result, heap), refused, spent, first) =
+                    take_boundary_measured(&program, old, classifier, limit, false);
+                assert_eq!(result.is_ok(), limit == paid);
+                assert_eq!(refused, limit != paid);
+                assert_eq!(first.is_some(), limit != paid);
+                assert!(spent <= limit);
+                assert_eq!(heap.live, 0);
+                assert_eq!(heap.allocated, heap.freed);
+                assert!(!heap.invalid);
+            }
+            let ((result, heap), refused, _, first) =
+                take_boundary_measured(&program, old, classifier, usize::MAX, true);
+            assert!(result.is_err());
+            assert!(refused && first.is_some());
+            assert_eq!(heap.live, 0);
+            assert_eq!(heap.allocated, heap.freed);
+            assert!(!heap.invalid);
+        }
+    }
+}
+
+fn whole_take_inputs(
+    program: &ResolvedProgram,
+    old: bool,
+) -> (
+    (Result<usize, DiagnosticReceipt>, Metrics),
+    bool,
+    usize,
+    Option<crate::bounded_output::ReservationRefusal>,
+) {
+    with_limit_usage_refusal(usize::MAX, || {
+        measure(|| {
+            let function = &program.functions[0];
+            let mut budget = ReplayBudget::with_skeleton_limit(usize::MAX);
+            let result: Result<usize, Diagnostic> = (|| {
+                let mut work = SkeletonWork::with_index(program, function, &mut budget, None)?;
+                let observations = tree(&mut work, 64)?;
+                work.budget.reserve_bytes(
+                    function,
+                    4 * size_of::<ExprSkeletonPath>() + CALL,
+                    "whole caller fixture output receivers",
+                )?;
+                let mut path = empty_expr_path();
+                path.observations = observations;
+                let paths = [path];
+                let before = work.budget.remaining;
+                for _ in 0..24 {
+                    let valid = if old {
+                        work.budget.reserve_bytes(
+                            function,
+                            before_take_validation::CALL,
+                            "test complete sequence validation caller",
+                        )?;
+                        before_take_validation::inputs(&paths, &[], &mut work)?
+                    } else {
+                        crate::cleanup_plan::replay::ordinary_plan_history::completed_fork::emission::shared_query_inputs_for_test(
+                        &paths, &[], &mut work)?
+                    };
+                    assert!(valid);
+                }
+                Ok(before - work.budget.remaining)
+            })();
+            drop(budget);
+            result.map_err(DiagnosticReceipt::from)
+        })
+    })
+}
+#[test]
+fn lexical_take_full_ordinary_validation_caller_keeps_old_work_drop_and_counted_invoice() {
+    let program = program();
+    let ((old, old_heap), old_refused, old_paid, _) = whole_take_inputs(&program, true);
+    let ((new, new_heap), new_refused, new_paid, _) = whole_take_inputs(&program, false);
+    assert_eq!(old.unwrap(), new.unwrap());
+    assert!(!old_refused && !new_refused);
+    assert_eq!(old_paid - new_paid, 24 * (BEFORE_TAKE_CALL - CALL));
+    assert_eq!(old_heap.allocated, new_heap.allocated);
+    assert_eq!(old_heap.allocations, new_heap.allocations);
+    assert_eq!(old_heap.highwater, new_heap.highwater);
+    for heap in [old_heap, new_heap] {
+        assert_eq!(heap.live, 0);
+        assert_eq!(heap.allocated, heap.freed);
+        assert!(!heap.invalid);
+    }
+}
+
+#[test]
+fn lexical_take_complete_old_work_frontiers_preserve_all_diagnostic_fields() {
+    let program = program();
+    let function = &program.functions[0];
+    for classifier in [false, true] {
+        for warm in [false, true] {
+            for cut in 0..=4 {
+                let mut outcomes = Vec::new();
+                for old in [true, false] {
+                    let (outcome, _, _, _) = with_limit_usage_refusal(usize::MAX, || {
+                        let mut budget = ReplayBudget::with_skeleton_limit(usize::MAX);
+                        let mut work = SkeletonWork::new(&program, function, &mut budget);
+                        let observations = tree(&mut work, 4).unwrap();
+                        if warm { assert!(take_boundary_call(&mut work, &observations, old, classifier).unwrap()); }
+                        work.budget.remaining = cut;
+                        let result = take_boundary_call(&mut work, &observations, old, classifier);
+                        if result.is_err() { assert!(work.queries.owner.is_none()); }
+                        result.map_err(fields)
+                    });
+                    outcomes.push(outcome);
+                }
+                assert_eq!(outcomes[0], outcomes[1]);
+                assert_eq!(outcomes[0].is_ok(), cut == 4);
+            }
+        }
+    }
+}
+fn take_then_unwind(work: &mut SkeletonWork<'_, '_>, old: bool) -> Result<(), Diagnostic> {
+    let proof = if old { take(work)? } else { take_owned!(work) };
+    assert!(proof.current(work));
+    std::panic::resume_unwind(Box::new(()))
+}
+#[test]
+fn lexical_take_unwind_empties_surviving_slot_and_drops_local_proof_immediately() {
+    let program = program();
+    for old in [true, false] {
+        let (((), heap), refused, _, _) = with_limit_usage_refusal(usize::MAX, || measure(|| {
+            let function = &program.functions[0];
+            let mut budget = ReplayBudget::with_skeleton_limit(usize::MAX);
+            {
+                let mut work = SkeletonWork::new(&program, function, &mut budget);
+                let observations = tree(&mut work, 4).unwrap();
+                assert!(take_boundary_call(&mut work, &observations, old, false).unwrap());
+                let root = observations.prefix.as_ref().unwrap();
+                let weak = Rc::weak_count(root);
+                work.queries.preflight(function, &mut *work.budget,
+                    if old { BEFORE_TAKE_CALL } else { CALL },
+                    "shared sequence query call receivers").unwrap();
+                let panic = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                    take_then_unwind(&mut work, old).unwrap();
+                }));
+                assert!(panic.is_err());
+                assert!(work.queries.owner.is_none());
+                assert_eq!(Rc::weak_count(root) + 1, weak);
+                // A caught panic does not republish an owner or poison a valid
+                // ledger: the next real query constructs a fresh proof.
+                assert!(take_boundary_call(&mut work, &observations, old, false).unwrap());
+            }
+            drop(budget);
+        }));
+        assert!(!refused);
+        assert_eq!(heap.live, 0);
+        assert_eq!(heap.allocated, heap.freed);
+        assert!(!heap.invalid);
+    }
+}
+
+#[test]
+fn lexical_take_both_callers_foreign_function_budget_and_nested_authority_refuse_exactly() {
+    let other = program();
+    let program = program();
+    let function = &program.functions[0];
+    let expected = fields(Diagnostic::io("SPX-H006", String::new()));
+    for old in [true, false] {
+        for classifier in [false, true] {
+            for warm in [false, true] {
+                for arm in 0..3 {
+                    with_limit_usage_refusal(usize::MAX, || {
+                        let mut budget = ReplayBudget::with_skeleton_limit(usize::MAX);
+                        let mut foreign = ReplayBudget::with_skeleton_limit(usize::MAX);
+                        let mut work = SkeletonWork::new(&program, function, &mut budget);
+                        let observations = tree(&mut work, 4).unwrap();
+                        if warm { assert!(take_boundary_call(&mut work, &observations, old, classifier).unwrap()); }
+                        let error = if arm == 0 {
+                            work.function = &other.functions[0];
+                            take_boundary_call(&mut work, &observations, old, classifier).unwrap_err()
+                        } else if arm == 1 {
+                            let remaining = foreign.remaining;
+                            work.budget = &mut foreign;
+                            let error = take_boundary_call(&mut work, &observations, old, classifier).unwrap_err();
+                            assert_eq!(work.budget.remaining, remaining);
+                            error
+                        } else {
+                            let (error, refused, paid, _) = with_limit_usage_refusal(0, || {
+                                take_boundary_call(&mut work, &observations, old, classifier).unwrap_err()
+                            });
+                            assert!(!refused);
+                            assert_eq!(paid, 0);
+                            error
+                        };
+                        assert_eq!(fields(error), expected);
+                        assert!(work.queries.owner.is_none());
+                    });
+                }
+            }
+        }
+    }
 }

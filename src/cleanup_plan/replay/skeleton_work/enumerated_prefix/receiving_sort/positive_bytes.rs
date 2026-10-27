@@ -182,7 +182,8 @@ fn caught_unwind_drops_the_complete_real_sort_and_restores_the_epoch() {
 // rewritten reference enumeration with the changed sorting implementation.
 fn shipping_input(program: &ResolvedProgram, function: &ResolvedFunction) -> Vec<SkeletonPath> {
     use crate::cleanup_plan::replay::{
-        emission, hir_skeleton_paths, reserve_program_skeleton_work,
+        hir_skeleton_paths, ordinary_plan_history::completed_fork::emission,
+        reserve_program_skeleton_work,
     };
     let (paths, refused, _, _) = with_limit_usage_refusal(usize::MAX, || {
         let mut budget = ReplayBudget::new();
@@ -357,7 +358,7 @@ fn full_positive_producers_preserve_prepare_failure_sticky_and_nested_census_cal
         }
     }
     let oracle = |old, bytes| {
-        use crate::cleanup_plan::replay::allocation::oracle::OracleScope;
+        use crate::cleanup_plan::replay::allocation::OracleScope;
         let owner = OracleScope::open_with_work(bytes, usize::MAX).unwrap();
         let mut budget = ReplayBudget::with_skeleton_limit_oracle(usize::MAX, owner.lease());
         let first = payment(old, &mut budget, function).map_err(|e| e.into_diagnostic().json());
@@ -383,7 +384,7 @@ fn full_positive_producers_preserve_prepare_failure_sticky_and_nested_census_cal
     // A nested ACTIVE observer alone does not exercise the Oracle payer.
     // Carry the actual expired lease into the new producer and a new account.
     let expired = |old| {
-        use crate::cleanup_plan::replay::allocation::oracle::OracleScope;
+        use crate::cleanup_plan::replay::allocation::OracleScope;
         let owner = OracleScope::open_with_work(usize::MAX, usize::MAX).unwrap();
         let mut budget = ReplayBudget::with_skeleton_limit_oracle(usize::MAX, owner.lease());
         assert!(owner.finish().first_refusal.is_none());

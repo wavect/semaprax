@@ -569,7 +569,7 @@ fn complete_original_receivers_and_all_literal_source_inverses_remain_byte_exact
         let current = current903.as_str();
         let current = crate::source_reflows_merge::constructor_complete_input(
             row["file"].as_str().unwrap(),
-            if row["file"] == "src/workspace_graph/expected_projection/held_projection.rs" { physical_current } else { current },
+            if matches!(row["file"].as_str().unwrap(), "src/workspace_graph/expected_projection/held_projection.rs" | "src/workspace_graph/expected_projection/uncached_peak.rs") { physical_current } else { current },
         );
         let current = current.as_str();
         assert_eq!(

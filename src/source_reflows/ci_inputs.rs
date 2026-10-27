@@ -1008,7 +1008,7 @@ pub(super) fn batch_913_entry(source: &str, supplied: &str) -> Option<String> {
     let physical_compiled = compiled; let supplied_stage = supplied; let current_join = current_source_epoch::physical_batch_input(source, supplied, physical_compiled); let supplied = current_join.as_ref();
     let (closure_epoch, _) =
         crate::source_reflows_merge::Main44Fixture::closure_epoch(source, expected, compiled);
-    let compiled = closure_epoch.as_ref();
+    let batch_input = current_source_epoch::batch_compiled_input(source, closure_epoch.as_ref()); let compiled = batch_input.as_ref();
     assert_eq!(supplied, physical_compiled, "complete current batch source");
     assert_eq!(compiled.len(), length);
     assert_eq!(digest(compiled), expected);
@@ -1016,7 +1016,7 @@ pub(super) fn batch_913_entry(source: &str, supplied: &str) -> Option<String> {
     if source == "src/hir/validation/frame_reuse/source_inverse.rs" { assert_eq!(reader::read(&root.join(source), physical_compiled.len(), &digest(physical_compiled), 2_097_152).unwrap(), physical_compiled); }
     assert_eq!(
         reader::read(
-            &if matches!(source, "src/hir/validation/lexical_exit.rs" | "src/hir/validation/frame_reuse/source_inverse.rs" | "src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs") {
+            &if matches!(source, "src/hir/validation/scope_checkpoint/marks.rs" | "src/hir/validation/lexical_exit.rs" | "src/hir/validation/frame_reuse/source_inverse.rs" | "src/cleanup_plan/replay/ordinary_plan_history/frontiers.rs") {
                 root.join("e").join(expected)
             } else {
                 root.join(source)
@@ -1106,7 +1106,7 @@ pub(super) fn batch_913_entry(source: &str, supplied: &str) -> Option<String> {
     }
     assert_eq!(before.len(), prior_length);
     assert_eq!(digest(&before), prior_sha);
-    let _ = current_source_epoch::physical_batch_input(source, supplied_stage, physical_compiled); Some(before)
+    let _ = current_source_epoch::batch_compiled_input(source, closure_epoch.as_ref()); let _ = current_source_epoch::physical_batch_input(source, supplied_stage, physical_compiled); Some(before)
 }
 // Enter the immutable selected-path predecessor only through complete live images.
 pub(super) fn compact_frontier_entry(source: &str, supplied: &str) -> Option<String> {

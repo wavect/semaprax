@@ -28,6 +28,7 @@ impl Fixture {
         {
             return None;
         }
+        Self::authenticate_context_source(source, current, &binding);
         let mut previous = Vec::new();
         let mut end = 0;
         for edit in row["edits"].as_array().unwrap() {
@@ -48,7 +49,37 @@ impl Fixture {
             row["before_length"].as_u64().unwrap()
         );
         assert_eq!(hash(&previous), row["before_sha256"].as_str().unwrap());
+        Self::authenticate_context_source(source, current, &binding);
         Some(String::from_utf8(previous).unwrap())
+    }
+
+    // Closed physical/compiled channels remain current while old rows keep their
+    // complete fixed targets. A historical image never becomes current authority.
+    fn authenticate_context_source(source: &str, supplied: &str, binding: &serde_json::Value) {
+        let current = match source {
+            "src/hir/validation/lexical_exit.rs" => include_str!("../hir/validation/lexical_exit.rs"),
+            "src/source_reflows_merge/main44_custody.rs" => include_str!("main44_custody.rs"),
+            _ => panic!("unlisted arm context source"),
+        };
+        assert_eq!(supplied, current, "complete compiled current arm-context owner");
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        let current_sha = super::source_sha(current);
+        assert_eq!(current_file(&root.join(source), current.len(), &current_sha).unwrap(), current);
+        assert_eq!(current_file(&root.join(format!("e/{current_sha}")), current.len(), &current_sha).unwrap(), current);
+        let metadata_source = "src/hir/validation/lexical_exit/arm_context_inverse.json";
+        let metadata = include_str!("../hir/validation/lexical_exit/arm_context_inverse.json");
+        let metadata_sha = super::source_sha(metadata);
+        assert_eq!(current_file(&root.join(metadata_source), metadata.len(), &metadata_sha).unwrap(), metadata);
+        assert_eq!(current_file(&root.join(format!("e/{metadata_sha}")), metadata.len(), &metadata_sha).unwrap(), metadata);
+        const OLD_METADATA: &str = include_str!("../../e/97d1692a64edd5cbf25f4c486b9238fefce4be8a73aecf71d3088d12e55c59f3");
+        assert_eq!(current_file(&root.join("e/97d1692a64edd5cbf25f4c486b9238fefce4be8a73aecf71d3088d12e55c59f3"), OLD_METADATA.len(), "97d1692a64edd5cbf25f4c486b9238fefce4be8a73aecf71d3088d12e55c59f3").unwrap(), OLD_METADATA);
+        let retained: serde_json::Value = serde_json::from_str(OLD_METADATA).unwrap();
+        assert_eq!(binding["retained_whole_arm_context_inverse"], retained);
+        let row = binding["rows"].as_array().unwrap().iter().find(|r| r["source"] == source).unwrap();
+        let length = usize::try_from(row["before_length"].as_u64().unwrap()).unwrap();
+        let sha = row["before_sha256"].as_str().unwrap();
+        let historical = current_file(&root.join(format!("e/{sha}")), length, sha).unwrap();
+        assert_eq!(historical.len(), length);
     }
 
     // A finite complete source epoch before the unchanged CI/Main44 inverses.

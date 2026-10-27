@@ -129,3 +129,33 @@ pub(super) fn allocation_input<'a>(source:&str, supplied:&'a str) -> std::borrow
     }
     std::borrow::Cow::Borrowed(OLD)
 }
+
+// A later complete marks owner enters the unchanged #913 inverse only through
+// its exact whole immediate input, with both live and archive channels checked.
+pub(super) fn batch_compiled_input<'a>(source: &str, supplied: &'a str) -> std::borrow::Cow<'a, str> {
+    if source != "src/hir/validation/scope_checkpoint/marks.rs" { return std::borrow::Cow::Borrowed(supplied); }
+    const ACTUAL: &str = include_str!("../hir/validation/scope_checkpoint/marks.rs");
+    const OLD: &str = include_str!("../../e/2965bb2d4a43a3ca060b21db1a7ad11ca0af3a7e5061e48832366a833bca3c0e");
+    assert_eq!(supplied, ACTUAL, "complete compiled marks input before fixed #913 source");
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let authenticate = || {
+        assert_eq!(super::reader::read(&root.join(source), ACTUAL.len(), "8d1919c8eb29198b0111a3759a8058ef7f2995365abea78b3a9d071f1a9a5f3d", 2_097_152).unwrap(), ACTUAL);
+        assert_eq!(super::reader::read(&root.join("e/8d1919c8eb29198b0111a3759a8058ef7f2995365abea78b3a9d071f1a9a5f3d"), ACTUAL.len(), "8d1919c8eb29198b0111a3759a8058ef7f2995365abea78b3a9d071f1a9a5f3d", 2_097_152).unwrap(), ACTUAL);
+        assert_eq!(super::reader::read(&root.join("e/2965bb2d4a43a3ca060b21db1a7ad11ca0af3a7e5061e48832366a833bca3c0e"), 14549, "2965bb2d4a43a3ca060b21db1a7ad11ca0af3a7e5061e48832366a833bca3c0e", 2_097_152).unwrap(), OLD);
+    };
+    authenticate();
+    let edits: Value = serde_json::from_str(r########"[[305,464,"        #[cfg(test)]\n        if direct_tests::before_selected() {\n            return self.mark_value_sources_moved_before_direct(expression, scope);\n        }\n",""],[2349,4430,"            // This is the original terminal arm, not a second validation or\n            // scratch borrower. The existing prepaid kind/Place loans, local\n            // Owned root and every semantic call retain their exact roles.\n            // Only the two first backing constructors, their push/index/pop\n            // transports and their eventual backing drops are absent.\n            ResolvedExprKind::Place(place) => {\n                let mut root = scope.take_owned();\n                let Some(binding) = root.get(&place.root) else {\n                    scope.replace_owned(root);\n                    return Ok(());\n                };\n                let (place_ty, place_ownership) = self.resolve_place(place, binding)?;\n                let should_move = self.is_owned_resource(&place_ty, place_ownership)?\n                    && Self::place_availability(binding, &place.projections)\n                        == Availability::Available;\n                if should_move {\n                    if self.binding_has_live_overlapping_loans(\n                        binding,\n                        place,\n                        &expression.id,\n                        LoanPointPhase::Before,\n                    )? {\n                        return Err(hir_error(\n                            \"SPX-T265: move or transfer would invalidate a lexical byte view\",\n                        ));\n                    }\n                    let binding = root.get_mut(&place.root)?.ok_or_else(|| {\n                        hir_error(format!(\n                            \"resolved value `{}` disappeared during ownership validation\",\n                            place.root\n                        ))\n                    })?;\n                    if place.projections.is_empty() {\n                        binding.availability = Availability::Moved;\n                    } else {\n                        scope_checkpoint::move_projection(binding, &place.projections)?;\n                    }\n                }\n                scope.replace_owned(root);\n                return Ok(());\n            }\n",""],[5960,5960,"","            | ResolvedExprKind::Place(_)\n"],[16748,16812,"\n#[cfg(test)]\nmod direct_before;\n#[cfg(test)]\nmod direct_tests;\n",""]]"########).unwrap();
+    let edits = edits.as_array().unwrap(); assert!(edits.len() <= 512);
+    let mut restored = supplied.to_owned(); let mut next = restored.len();
+    for edit in edits.iter().rev() {
+        assert_eq!(edit.as_array().unwrap().len(), 4);
+        let lo = usize::try_from(edit[0].as_u64().unwrap()).unwrap();
+        let hi = usize::try_from(edit[1].as_u64().unwrap()).unwrap();
+        assert!(lo <= hi && hi <= next);
+        assert_eq!(restored.get(lo..hi), Some(edit[2].as_str().unwrap()));
+        restored.replace_range(lo..hi, edit[3].as_str().unwrap());
+        assert!(restored.len() <= 2_097_152); next = lo;
+    }
+    assert_eq!(restored, OLD, "ENTIRE fixed marks source before unchanged old edits");
+    authenticate(); std::borrow::Cow::Owned(restored)
+}

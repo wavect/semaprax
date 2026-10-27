@@ -343,7 +343,8 @@ fn v14_source_before_before_v20(source: &str, supplied: &str) -> String {
         {
             assert_eq!(supplied.len(), 9670);
             assert_eq!(
-                std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(source)).unwrap(),
+                physical_reader::read(&root.join("e/0421597ed21e1938cc215e2eea2ac2461b6d3324527df9833e1769688f1e65f2"), 9793,
+                    "0421597ed21e1938cc215e2eea2ac2461b6d3324527df9833e1769688f1e65f2", 9_753_094).unwrap().as_bytes(),
                 compiled.as_bytes()
             );
             let post = "    if page[\"schema\"] == super::super::SCHEMA_V15 {\n        super::super::verify_current_v15(&page);\n        return;\n    }\n";

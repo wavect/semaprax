@@ -93,11 +93,9 @@ pub(crate) fn ast_params(op: Op) -> Vec<Param> {
 }
 
 // Additional trailing-active calls only; original helpers above stay unchanged.
-#[cfg(test)]
 pub(crate) const CLASSIFY_CALL_CONTROLS: usize =
     4 * std::mem::size_of::<Op>() // actual/formal and matches scrutinee/receiver
     + 2 * std::mem::size_of::<bool>(); // returned predicate/caller guard
-#[cfg(test)]
 pub(crate) const ID_CALL_CONTROLS: usize =
     4 * std::mem::size_of::<Op>() // actual/formal and match scrutinee/receiver
     + 2 * std::mem::size_of::<&'static str>(); // return/caller receiver

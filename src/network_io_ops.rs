@@ -485,7 +485,6 @@ mod tests {
 }
 
 // Additional trailing-active text lookup; the closed helper body is unchanged.
-#[cfg(test)]
 pub(crate) const ID_CALL_CONTROLS: usize =
     4 * std::mem::size_of::<ResolvedHostCommandOperation>() // actual/formal and match sum
     + 2 * std::mem::size_of::<&'static str>(); // return/caller receiver

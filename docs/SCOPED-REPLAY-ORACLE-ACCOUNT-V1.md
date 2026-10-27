@@ -125,3 +125,26 @@ Authored controls compare the complete old/current invoices, all work cuts,
 exact/short/sticky paths, real expired/foreign scopes, lending and local ceiling
 trace fields, source bodies and full Drop. They are unrun: the source-level typed
 delta establishes no whole-reference fit or application-admission claim.
+
+The OPT950 source candidate additionally owns the two fixed-positive byte
+reservations lexically. Both the observer wrapper and its positive inner
+producer expand at the actual items boundary. The complete original methods,
+zero-request route, immediate items body and original tariff remain independently
+executable; no shipping payer or reference cap changes. The lexical block keeps
+prepare, payer selection, sticky/foreign/floor checks, compact refusal, observer
+completion and terminal diagnostic conversion in order. Preparation errors break
+to the shared observer completion rather than returning before its callback.
+
+Its proposed per-pointer source ABI packet retains both compact Result roles
+for the lexical block result/local and receiving match, together with the
+original Rc loans and booleans. Only the absent actual/formal argument tuple
+`2*sizeof((&mut ReplayBudget,&ResolvedFunction,usize,&str))` is removed. This is
+an 80-byte source delta on the pinned 64-bit target, not a second credit for
+unchanged nested prepare, payer, observer or refusal helpers. No closure, runtime
+selector, phase/byte alias, additional gateway or zero-to-positive activation is
+introduced. The original once-only cold and diagnostic-conversion banks stay
+unchanged. Complete current/immediate invoices, work cuts, exact/short/sticky,
+real floor and expired generation, observer completion and whole-source inverses
+are authored controls; they remain unrun. The unchanged whole fifty-reference
+256 MiB/3.2-billion-work gate is still required for fit and closure. This
+source-only candidate establishes no complete-reference or application gain.

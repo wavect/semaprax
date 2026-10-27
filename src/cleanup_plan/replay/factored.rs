@@ -66,6 +66,66 @@ const ENUMERATION_CROSS_CHECK_THRESHOLD: usize = 4_096;
 pub(super) use paired::{fitting_comparison_selected_paid, FITTING_SELECTOR_CONTROLS};
 use paired::{selected_builder_paid, BUILDER_SELECTOR_CONTROLS};
 
+// The cold request replaces the old builder-selector request. It retains that
+// gateway's actual/formal packet and Diagnostic result pair. Only the lexical
+// threshold and surviving nonselection roles are initialized after payment.
+const COLD_BUILDER_THRESHOLD_CONTROLS: usize = {
+    use std::mem::size_of;
+    2 * size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>()
+        + 2 * size_of::<Result<(), Diagnostic>>()
+        + 4 * size_of::<usize>() // two path/threshold primitive operand pairs
+        + 4 * size_of::<bool>() // comparison expression/receiving pairs
+        + 2 * size_of::<bool>() // lazy conjunction expression/branch receiver
+        + 2 * size_of::<bool>() // false initializer/selected receiving slot
+        + 2 * size_of::<bool>() // later !selected operand/result
+};
+// Hot paths keep the entire old bank and pay this genuinely additional warm
+// reservation traversal. The first request has already prepared this exact
+// function's refusal backing; no new backing or clone-cursor credit is taken.
+const HOT_BUILDER_THRESHOLD_GATE_CONTROLS: usize = {
+    use std::mem::size_of;
+    ReplayBudget::WARM_PREPARE_CONTROLS
+        + 2 * size_of::<(&mut ReplayBudget, &ResolvedFunction)>() // prepare actual/formal
+        + 2 * size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>()
+        + 2 * size_of::<Result<(), Diagnostic>>() // extra reserve return/receiver
+        + 2 * size_of::<&ReplayBudget>() + 2 * size_of::<AllocationPayer>()
+        + 2 * size_of::<bool>() // pays_builder wrapper and returned predicate
+        + 2 * size_of::<bool>() // !pays_builder expression/branch
+        + 2 * size_of::<&ReplayBudget>() + 2 * size_of::<AllocationPayer>()
+        + 2 * size_of::<bool>() // builder_refused wrapper return/receiver
+        + 2 * paired::ACTIVE_REFUSAL_CONTROLS // prepare and reservation active probes
+        + 4 * size_of::<bool>() // prepare refusal operand and lazy branch
+        + 2 * size_of::<AllocationPayer>() // reservation payer match sum/receiver
+        + 6 * size_of::<bool>() // !spent and two lazy conjunction receiving pairs
+        + 2 * size_of::<bool>() // !active_refused expression/receiving pair
+        + 2 * size_of::<bool>() // accepted binding and final branch discriminator
+        + 2 * size_of::<usize>() + 2 * size_of::<bool>() // byte-zero primitive branch
+        + 2 * size_of::<usize>() + 2 * size_of::<bool>() // required reservation ABI
+};
+// Restricted lexical operands introduce no forwarding callee or temporary
+// ReplayBudget on the cold branch. Hot dispatch retains the original call.
+macro_rules! ordinary_builder_selected {
+    ($function:ident, $cfg_paths:ident, $semantic_paths:ident, $budget:ident) => {{
+        $budget.reserve_bytes(
+            $function, COLD_BUILDER_THRESHOLD_CONTROLS,
+            "ordinary builder cold threshold receivers",
+        )?;
+        if $cfg_paths <= paired::BUILDER_FACTORED_PATH_THRESHOLD
+            && $semantic_paths <= paired::BUILDER_FACTORED_PATH_THRESHOLD
+        {
+            false
+        } else {
+            $budget.reserve_bytes(
+                $function, BUILDER_SELECTOR_CONTROLS + HOT_BUILDER_THRESHOLD_GATE_CONTROLS,
+                "ordinary builder representation selector receivers",
+            )?;
+            selected_builder_paid(
+                $function, $cfg_paths, $semantic_paths, &mut ReplayBudget::new(),
+            )?
+        }
+    }};
+}
+
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 enum Label {
     Observation(Rc<SkeletonObservation>),
@@ -163,17 +223,7 @@ pub(super) fn validate_with_index_storage<'hir>(
         ..
     } = budget
     {
-        budget.reserve_bytes(
-            function,
-            BUILDER_SELECTOR_CONTROLS,
-            "ordinary builder representation selector receivers",
-        )?;
-        selected_builder_paid(
-            function,
-            cfg_paths,
-            semantic_paths,
-            &mut ReplayBudget::new(),
-        )?
+        ordinary_builder_selected!(function, cfg_paths, semantic_paths, budget)
     } else {
         selected_paid(
             function,
@@ -182,9 +232,9 @@ pub(super) fn validate_with_index_storage<'hir>(
             &mut ReplayBudget::new(),
         )?
     };
-    // Keep both existing selectors above unchanged. Only the ordinary builder
-    // evaluates this nonselection guard; its two bool roles were prepaid in
-    // BUILDER_SELECTOR_CONTROLS before entering the initial selector.
+    // Only ordinary builders evaluate this nonselection guard. Its two bool
+    // roles are prepaid by the small threshold bank on cold and hot paths;
+    // hot dispatch additionally retains the entire preceding selector bank.
     if let ReplayBudget {
         payer: AllocationPayer::ActiveBuilder,
         ..
@@ -1381,7 +1431,7 @@ pub(crate) use canonical_shared::app_census::Scope as EpsilonAppCensus;
 pub(crate) use canonical_shared::lexical_successors::census::Scope as SuccessorAppCensus;
 
 #[cfg(test)]
-mod moderate_tests;
+pub(super) mod moderate_tests;
 
 #[cfg(test)]
 mod hir_memo_release_tests;

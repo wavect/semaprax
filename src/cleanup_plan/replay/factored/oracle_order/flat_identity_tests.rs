@@ -1,5 +1,7 @@
 //! New cuts belong to the new operation stream; old work cuts are independent.
 use super::*;
+// Historical controls keep the complete immediate pre-byte lexical producer.
+use super::{before_byte_items as items, BEFORE_BYTE_IDENTITY_RECEIVERS as FLAT_IDENTITY_RECEIVERS};
 use crate::cleanup_plan::replay::allocation::{enter, OracleReceipt, OracleRefusal, OracleScope};
 use crate::test_allocation_observer::measure;
 
@@ -843,4 +845,249 @@ fn lexical_identity_full_old_sources_general_producer_cold_bank_and_items_are_pr
         .unwrap(),
         packet.as_bytes()
     );
+}
+
+// OPT950 controls use the actual current items, not the historical aliases.
+fn byte_run(
+    program: &ResolvedProgram,
+    a: &[Rc<SkeletonObservation>],
+    b: &[Rc<SkeletonObservation>],
+    old: bool,
+    bytes: usize,
+    work: usize,
+    expected: Result<Ordering, &Diagnostic>,
+) -> OracleReceipt {
+    let function = &program.functions[0];
+    let (receipt, observed) = measure(|| {
+        let scope = OracleScope::open_with_work(bytes, work).unwrap();
+        let lease = scope.lease();
+        let invocation = enter(program, function, lease).unwrap();
+        let mut budget = ReplayBudget::with_skeleton_limit_oracle(MAX_REPLAY_WORK_UNITS, lease);
+        let actual = if old {
+            super::before_byte_items(a, b, function, &mut budget)
+        } else {
+            super::items(a, b, function, &mut budget)
+        };
+        assert_eq!(
+            actual.as_ref().copied(),
+            expected,
+            "complete six-field Diagnostic"
+        );
+        let refused = actual.is_err();
+        drop(actual);
+        if refused {
+            assert_eq!(lease.charge(0), Err(OracleRefusal::Sticky));
+            assert_eq!(
+                budget.reserve_bytes(function, 0, "identity sticky retry"),
+                Err(Diagnostic::io("SPX-H006", String::new()))
+            );
+        }
+        drop(budget);
+        assert_eq!(invocation.exit(), Ok(()));
+        scope.finish()
+    });
+    assert!(!observed.invalid && observed.live == 0);
+    assert_eq!(observed.allocated, observed.freed);
+    assert!(
+        observed.allocated <= receipt.charged,
+        "old={old} observed={observed:?} complete_reference={receipt:?}"
+    );
+    receipt
+}
+
+#[test]
+fn lexical_bytes_full_immediate_invoice_work_cuts_and_drop_are_exact() {
+    let program = fixture();
+    let function = &program.functions[0];
+    let x = Rc::new(SkeletonObservation::Boolean {
+        expression: ExpressionId::from_owned("byte\0é.identity".to_owned()), value: false,
+    });
+    let separate = Rc::new((*x).clone());
+    assert_eq!(BEFORE_BYTE_IDENTITY_RECEIVERS - super::FLAT_IDENTITY_RECEIVERS,
+        2 * std::mem::size_of::<(&mut ReplayBudget, &ResolvedFunction, usize, &str)>());
+    for n in [0, 1, 2, 17] {
+        for right in [&x, &separate] {
+            let a = vec![x.clone(); n];
+            let b = vec![right.clone(); n];
+            let old = byte_run(&program, &a, &b, true, 1 << 24, 1 << 24, Ok(Ordering::Equal));
+            let new = byte_run(&program, &a, &b, false, 1 << 24, 1 << 24, Ok(Ordering::Equal));
+            assert_eq!(old.work, new.work);
+            assert_eq!(old.charged - new.charged,
+                n * (BEFORE_BYTE_IDENTITY_RECEIVERS - super::FLAT_IDENTITY_RECEIVERS));
+            for cap in 0..=old.work {
+                let scope = OracleScope::open_with_work(1 << 24, cap).unwrap();
+                let lease = scope.lease();
+                let invocation = enter(&program, function, lease).unwrap();
+                let mut budget = ReplayBudget::with_skeleton_limit_oracle(MAX_REPLAY_WORK_UNITS, lease);
+                let expected = super::before_byte_items(&a, &b, function, &mut budget);
+                drop(budget);
+                assert_eq!(invocation.exit(), Ok(()));
+                scope.finish();
+                let old = byte_run(&program, &a, &b, true, 1 << 24, cap, expected.as_ref().copied());
+                let new = byte_run(&program, &a, &b, false, 1 << 24, cap, expected.as_ref().copied());
+                assert_eq!(old.work, new.work);
+                assert_eq!(old.first_work_refusal, new.first_work_refusal);
+                assert_eq!(old.physical_failure, new.physical_failure);
+                drop(expected);
+            }
+            for old in [true, false] {
+                let ample = byte_run(&program, &a, &b, old, 1 << 24, 1 << 24, Ok(Ordering::Equal));
+                let exact = byte_run(&program, &a, &b, old, ample.charged, ample.work, Ok(Ordering::Equal));
+                assert_eq!((ample.charged, ample.work), (exact.charged, exact.work));
+                if n != 0 {
+                    let expected = replay_error(function,
+                        "cleanup replay physical reservation exhausted during oracle flat identity receivers");
+                    let short = byte_run(&program, &a, &b, old, ample.charged - 1, ample.work, Err(&expected));
+                    let bank = if old { BEFORE_BYTE_IDENTITY_RECEIVERS } else { super::FLAT_IDENTITY_RECEIVERS };
+                    assert_eq!(short.first_refusal.unwrap().requested, bank);
+                    assert_eq!(short.first_refusal.unwrap().remaining, bank - 1);
+                }
+            }
+            drop((a, b));
+        }
+    }
+    assert_eq!(Rc::strong_count(&x), 1);
+    assert_eq!(Rc::strong_count(&separate), 1);
+}
+
+fn lexical_byte_probe(function: &ResolvedFunction, budget: &mut ReplayBudget) -> Result<(), Diagnostic> {
+    reserve_flat_identity!(budget, function);
+    Ok(())
+}
+#[test]
+fn lexical_bytes_observer_completes_before_first_short_floor_and_sticky_return() {
+    use crate::bounded_output::{active_remaining, set_active_floor, with_limit_usage_refusal_site};
+    let program = fixture();
+    let function = &program.functions[0];
+    for short in [false, true] {
+        let ((report, failed), refused, _, first, site) = with_limit_usage_refusal_site(1 << 20, || {
+            let mut budget = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
+            budget.prepare_builder(function).unwrap();
+            let remaining = active_remaining().unwrap();
+            let bank = super::FLAT_IDENTITY_RECEIVERS;
+            assert!(set_active_floor(remaining - bank + usize::from(short)));
+            let scope = crate::cleanup_plan::replay::merge_census::Scope::enter(function, &budget);
+            let result = lexical_byte_probe(function, &mut budget);
+            if short {
+                assert_eq!(result.as_ref().err(), Some(&replay_error(function,
+                    "cleanup replay physical reservation exhausted during oracle flat identity receivers")));
+            } else { assert_eq!(result, Ok(())); }
+            let report = scope.report();
+            assert!(report.complete && report.foreign == 0);
+            assert_eq!(report.cells[12].attempts, 1);
+            assert_eq!(report.cells[12].requested, bank);
+            assert_eq!(report.cells[12].acquired, if short { 0 } else { bank });
+            assert_eq!(report.cells[12].refused, usize::from(short));
+            assert_eq!(report.last[12].unwrap().phase, "oracle flat identity receivers");
+            drop(result);
+            if short {
+                assert_eq!(lexical_byte_probe(function, &mut budget),
+                    Err(Diagnostic::io("SPX-H006", String::new())));
+                let sticky = scope.report();
+                assert!(sticky.complete);
+                assert_eq!((sticky.cells[12].attempts, sticky.cells[12].refused), (2, 2));
+                assert_eq!(sticky.cells[12].acquired, 0);
+            }
+            drop(scope);
+            drop(budget);
+            (report, short)
+        });
+        assert_eq!(refused, failed);
+        if short {
+            assert_eq!(first.unwrap().requested, super::FLAT_IDENTITY_RECEIVERS);
+            assert!(site.unwrap().line() > 0);
+        } else { assert!(first.is_none() && site.is_none()); }
+        assert_eq!(report.cells[12].refused, usize::from(short));
+    }
+}
+
+#[test]
+fn lexical_bytes_expired_oracle_keeps_foreign_receipt_and_complete_diagnostic() {
+    let program = fixture();
+    let function = &program.functions[0];
+    let x = Rc::new(SkeletonObservation::Boolean {
+        expression: ExpressionId::from_owned("byte.expired".to_owned()), value: false,
+    });
+    for old in [true, false] {
+        let scope = OracleScope::open_with_work(1 << 20, 1 << 20).unwrap();
+        let lease = scope.lease();
+        let invocation = enter(&program, function, lease).unwrap();
+        let mut budget = ReplayBudget::with_skeleton_limit_oracle(MAX_REPLAY_WORK_UNITS, lease);
+        budget.prepare_builder(function).unwrap();
+        assert_eq!(invocation.exit(), Ok(()));
+        scope.finish();
+        let scope = OracleScope::open_with_work(1 << 20, 1 << 20).unwrap();
+        let invocation = enter(&program, function, scope.lease()).unwrap();
+        let before = scope.receipt();
+        let result = if old {
+            match budget.reserve_compact_bytes(function, BEFORE_BYTE_IDENTITY_RECEIVERS,
+                "oracle flat identity receivers") {
+                Ok(()) => Ok(()), Err(error) => Err(error.into_diagnostic()),
+            }
+        } else { lexical_byte_probe(function, &mut budget) };
+        assert_eq!(result, Err(replay_error(function, "ordinary builder already failed")));
+        assert_eq!(scope.receipt(), before);
+        drop((result, budget));
+        assert_eq!(invocation.exit(), Ok(()));
+        assert_eq!(scope.finish(), before);
+    }
+    assert_eq!(Rc::strong_count(&x), 1);
+}
+
+#[test]
+fn lexical_bytes_entire_immediate_sources_and_original_positive_producer_are_preserved() {
+    use sha2::{Digest, Sha256};
+    let packet = include_str!("lexical_identity_source_inverse.json");
+    let data: serde_json::Value = serde_json::from_str(packet).unwrap();
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let digest = |bytes: &[u8]| format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)));
+    let metadata = root.join("src/cleanup_plan/replay/factored/oracle_order/lexical_identity_source_inverse.json");
+    assert_eq!(std::fs::read(&metadata).unwrap(), packet.as_bytes());
+    let scope = &data["opt950_byte_lexicalization"];
+    for (path, current) in [
+        ("src/cleanup_plan/replay/factored/oracle_order.rs", include_str!("../oracle_order.rs")),
+        ("src/cleanup_plan/replay/factored/oracle_order/flat_identity_tests.rs", include_str!("flat_identity_tests.rs")),
+    ] {
+        let rows = scope["owners"].as_array().unwrap();
+        assert_eq!(rows.iter().filter(|row| row["path"] == path).count(), 1);
+        let row = rows.iter().find(|row| row["path"] == path).unwrap();
+        assert_eq!(std::fs::read(root.join(path)).unwrap(), current.as_bytes());
+        assert_eq!(row["current"]["length"], current.len());
+        assert_eq!(row["current"]["sha256"], digest(current.as_bytes()));
+        let mut restored = current.to_owned();
+        for edit in row["edits"].as_array().unwrap().iter().rev() {
+            let start = edit["start"].as_u64().unwrap() as usize;
+            let end = edit["end"].as_u64().unwrap() as usize;
+            assert_eq!(&restored[start..end], edit["current"].as_str().unwrap());
+            restored.replace_range(start..end, edit["before"].as_str().unwrap());
+        }
+        let sha = row["before"]["sha256"].as_str().unwrap();
+        assert_eq!(row["before"]["length"], restored.len());
+        assert_eq!(digest(restored.as_bytes()), sha);
+        assert_eq!(std::fs::read(root.join("e").join(sha)).unwrap(), restored.as_bytes());
+        if path.ends_with("oracle_order.rs") {
+            let start = restored.find("fn items(\n").unwrap();
+            let end = restored[start..].find("\n/// Exact existing prefix pointer identity").unwrap() + start;
+            let held = restored[start..end].replace("fn items(", "fn before_byte_items(")
+                .replace("FLAT_IDENTITY_RECEIVERS", "BEFORE_BYTE_IDENTITY_RECEIVERS");
+            assert!(current.contains(&held), "whole immediate same-signature items and tariff");
+        }
+        assert_eq!(std::fs::read(root.join(path)).unwrap(), current.as_bytes());
+        assert_eq!(std::fs::read(root.join("e").join(sha)).unwrap(), restored.as_bytes());
+    }
+    let prior = &scope["whole_immediate_metadata"];
+    let archive = root.join("e").join(prior["sha256"].as_str().unwrap());
+    let before = std::fs::read(&archive).unwrap();
+    assert_eq!(prior["length"], before.len());
+    assert_eq!(prior["sha256"], digest(&before));
+    let previous: serde_json::Value = serde_json::from_slice(&before).unwrap();
+    let physical = include_str!("../../physical_budget.rs");
+    let oldrow = previous["owners"].as_array().unwrap().iter().find(|row| row["path"] ==
+        "src/cleanup_plan/replay/physical_budget.rs").unwrap();
+    assert_eq!(oldrow["current"]["length"], physical.len());
+    assert_eq!(oldrow["current"]["sha256"], digest(physical.as_bytes()));
+    assert_eq!(data["owners"][0], previous["owners"][0], "unchanged full general producer custody row");
+    assert_eq!(std::fs::read(root.join("src/cleanup_plan/replay/physical_budget.rs")).unwrap(), physical.as_bytes());
+    assert_eq!(std::fs::read(archive).unwrap(), before);
+    assert_eq!(std::fs::read(metadata).unwrap(), packet.as_bytes());
 }

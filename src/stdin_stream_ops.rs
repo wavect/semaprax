@@ -490,7 +490,6 @@ mod tests;
 
 // Closed ABI census for the additional cfg(test) trailing-active preparation.
 // No reservation or identity authority is introduced by this numeric constant.
-#[cfg(test)]
 impl PureOp {
     pub(crate) const ID_CALL_CONTROLS: usize =
         2 * std::mem::size_of::<Self>() // by-value actual/formal

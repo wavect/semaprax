@@ -678,14 +678,12 @@ const FITTING_STATUS_THRESHOLD: usize = 32;
 // The error guard renews active_refused's actual TLS/RefCell/Rc/Option and
 // Cell receivers. This is the complete STICKY_ACTIVE_CONTROLS inventory from
 // inline_singleton/hir_last_use.rs, separately prepaid for this new invocation.
-const FITTING_REFUSAL_PROBE_CONTROLS: usize = {
+pub(super) const ACTIVE_REFUSAL_CONTROLS: usize = {
     use std::cell::{Cell, Ref, RefCell};
     use std::thread::LocalKey;
     type Active = RefCell<Option<Rc<()>>>;
     type Loan = Ref<'static, Option<Rc<()>>>;
-    2 * size_of::<&ReplayBudget>()
-        + 2 * size_of::<bool>()
-        + 2 * size_of::<&LocalKey<Active>>()
+    2 * size_of::<&LocalKey<Active>>()
         + 4 * size_of::<&Active>()
         + size_of::<Loan>()
         + 2 * size_of::<&Loan>()
@@ -697,6 +695,9 @@ const FITTING_REFUSAL_PROBE_CONTROLS: usize = {
         + 2 * size_of::<&Cell<bool>>()
         + 4 * size_of::<bool>()
 };
+pub(super) const FITTING_REFUSAL_PROBE_CONTROLS: usize =
+    2 * std::mem::size_of::<&ReplayBudget>()
+        + 2 * std::mem::size_of::<bool>() + ACTIVE_REFUSAL_CONTROLS;
 pub(in crate::cleanup_plan::replay) const FITTING_SELECTOR_CONTROLS: usize = {
     use std::mem::size_of;
     // Selector and CFG call actual/formal loans; selector path arguments;
@@ -788,7 +789,7 @@ pub(in crate::cleanup_plan::replay) fn fitting_comparison_selected_paid(
 // The synchronous paid comparator changes the ordinary representation cost.
 // This threshold is not an admission limit. Selected/reference payers retain
 // their complete original selector and canonical comparison routes below.
-const BUILDER_FACTORED_PATH_THRESHOLD: usize = 128;
+pub(super) const BUILDER_FACTORED_PATH_THRESHOLD: usize = 128;
 
 pub(super) fn selected_builder_paid(
     function: &ResolvedFunction,

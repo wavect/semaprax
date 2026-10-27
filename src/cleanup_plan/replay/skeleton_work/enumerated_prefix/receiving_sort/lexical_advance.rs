@@ -1,8 +1,17 @@
 //! Whole immediate sorter and shipping caller controls; authored, not executed.
 use super::*;
+use before_positive_bytes::Pair;
 
-fn mode(old: bool) -> AdvanceEpoch {
-    AdvanceEpoch(BEFORE_ADVANCE.with(|value| value.replace(old)))
+const ADVANCE_BLOCK: usize = before_positive_bytes::banks()[1];
+struct Mode {
+    _advance: AdvanceEpoch,
+    _positive: PositiveEpoch,
+}
+fn mode(old: bool) -> Mode {
+    Mode {
+        _advance: AdvanceEpoch(BEFORE_ADVANCE.with(|value| value.replace(old))),
+        _positive: old_positive_byte_epoch(),
+    }
 }
 fn observe(
     old: bool,
@@ -484,6 +493,8 @@ fn complete_immediate_sources_and_all_older_oracle_bodies_have_exact_two_way_inv
             env!("CARGO_MANIFEST_DIR"),
             "/src/cleanup_plan/replay/skeleton_work/enumerated_prefix.rs"
         ));
+        let normalized = positive_bytes::restore_before("enumerated_prefix.rs", current);
+        let current = normalized.as_str();
         let before = include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/e/b77a27d55d5565de11015abbdb4d14437804674564dcd07e336c7e97b9d0080a"
@@ -523,6 +534,8 @@ fn complete_immediate_sources_and_all_older_oracle_bodies_have_exact_two_way_inv
             env!("CARGO_MANIFEST_DIR"),
             "/src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort.rs"
         ));
+        let normalized = positive_bytes::restore_before("receiving_sort.rs", current);
+        let current = normalized.as_str();
         let before = include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/e/e6ae7f63df349b2a4f8e260b8ec25312bf9362eed35882af10a3da3b2520c534"
@@ -799,6 +812,8 @@ fn old_advance_epoch() -> AdvanceEpoch {
             env!("CARGO_MANIFEST_DIR"),
             "/src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/tests.rs"
         ));
+        let normalized = positive_bytes::restore_before("receiving_sort/tests.rs", current);
+        let current = normalized.as_str();
         let before = include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/e/d6ce5ade786b2027c78ce173f548a0d9dacb09faba44e11435e55d467a2632f0"

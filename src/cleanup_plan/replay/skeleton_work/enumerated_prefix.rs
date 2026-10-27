@@ -392,6 +392,11 @@ pub(in crate::cleanup_plan::replay) fn sort(
         return receiving_sort::before_advance::sort(paths, function, budget)
             .map_err(|failure| failure.into_diagnostic());
     }
+    #[cfg(test)]
+    if receiving_sort::BEFORE_POSITIVE_BYTES.with(std::cell::Cell::get) {
+        return receiving_sort::before_positive_bytes::sort(paths, function, budget)
+            .map_err(|failure| failure.into_diagnostic());
+    }
     receiving_sort::sort(paths, function, budget).map_err(|failure| failure.into_diagnostic())
 }
 

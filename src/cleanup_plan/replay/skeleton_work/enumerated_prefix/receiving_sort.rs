@@ -105,12 +105,73 @@ const COMPARE_CALL: usize = 2 * size_of::<(
     + 4 * size_of::<Ordering>()
     + 4 * size_of::<bool>();
 
+// A fixed-positive lexical producer has no actual/formal payment tuple. The
+// complete Result pair and all transitive prepare/payer/refusal roles survive.
+const POSITIVE_BYTE_PAYMENT: usize = 2 * size_of::<Result<(), ByteFailure>>();
+// Keep the full ordinary method banks for the retained general Cursor::next.
+// Only the exact byte-renewal sites in advance! use these narrower ABIs.
+const LEXICAL_NODE_STEP: usize = PAYMENT + POSITIVE_BYTE_PAYMENT;
+const LEXICAL_CAT_CHILD_STEP: usize = CAT_CHILD_STEP - PAYMENT + POSITIVE_BYTE_PAYMENT;
+macro_rules! positive_bytes {
+    ($budget:ident, $function:ident, $bytes:ident, $phase:literal) => {{
+        const {
+            assert!($bytes > 0);
+        }
+        #[cfg(test)]
+        let ticket =
+            crate::cleanup_plan::replay::merge_census::before($budget, $function, $bytes, $phase);
+        let result = 'reservation: {
+            match $budget.prepare_builder($function) {
+                Ok(()) => (),
+                Err(error) => break 'reservation Err(ByteFailure::from_budget(error)),
+            };
+            let accepted = match $budget.payer {
+                $crate::cleanup_plan::replay::allocation::AllocationPayer::LegacyUnobserved => true,
+                $crate::cleanup_plan::replay::allocation::AllocationPayer::ActiveBuilder => {
+                    !$budget.refusal_spent
+                        && !crate::bounded_output::active_refused()
+                        && crate::bounded_output::reserve_active_required($bytes)
+                }
+                #[cfg(test)]
+                $crate::cleanup_plan::replay::allocation::AllocationPayer::Oracle(lease) => {
+                    !$budget.refusal_spent && !lease.refused() && lease.charge($bytes).is_ok()
+                }
+                $crate::cleanup_plan::replay::allocation::AllocationPayer::SelectedReservation => {
+                    $budget
+                        .physical
+                        .as_deref_mut()
+                        .expect("selected reservation payer")
+                        .reserve($bytes)
+                        .is_ok()
+                }
+            };
+            if accepted {
+                Ok(())
+            } else {
+                Err($budget.compact_refusal(
+                    $function,
+                    "cleanup replay physical reservation exhausted during ",
+                    $phase,
+                ))
+            }
+        };
+        #[cfg(test)]
+        crate::cleanup_plan::replay::merge_census::after(
+            ticket,
+            $budget,
+            $function,
+            result.is_ok(),
+        );
+        result?;
+    }};
+}
+
 // Direct place expressions introduce no cursor/observations alias, closure,
 // returned Result or array. Every binding inside this block is the exact old
 // frame/item/child binding and retains its original branch bank. A labelled
 // unit block replaces only next's successful return; errors return compare's
 // already-funded Result. PAYMENT still renews the same payment gateway.
-const ADVANCE_BLOCK: usize = PAYMENT;
+const ADVANCE_BLOCK: usize = POSITIVE_BYTE_PAYMENT;
 macro_rules! advance {
     ($pair:ident, $side:ident, $path:ident, $function:ident, $budget:ident) => {{
         'advance: {
@@ -123,11 +184,12 @@ macro_rules! advance {
                 ));
             }
             loop {
-                $budget.reserve_compact_bytes(
+                positive_bytes!(
+                    $budget,
                     $function,
                     FRAME_COMMON,
-                    "enumerated HIR cursor common frame receiving renewal",
-                )?;
+                    "enumerated HIR cursor common frame receiving renewal"
+                );
                 #[cfg(test)]
                 frame_event(0);
                 $pair.$side.current = $pair.$side.pending.pop();
@@ -144,11 +206,12 @@ macro_rules! advance {
                     Frame::RootItems { next } => {
                         #[cfg(test)]
                         frame_event(1);
-                        $budget.reserve_compact_bytes(
+                        positive_bytes!(
+                            $budget,
                             $function,
                             ROOT_FRAME,
-                            "enumerated HIR root-items frame receivers",
-                        )?;
+                            "enumerated HIR root-items frame receivers"
+                        );
                         if let Some(item) = $path.observations.items.get(next) {
                             $pair.$side.yielded = Some(Rc::clone(item));
                             $pair
@@ -161,11 +224,12 @@ macro_rules! advance {
                     Frame::SeqItems { node, next } => {
                         #[cfg(test)]
                         frame_event(2);
-                        $budget.reserve_compact_bytes(
+                        positive_bytes!(
+                            $budget,
                             $function,
                             SEQ_FRAME,
-                            "enumerated HIR sequence-items frame receivers",
-                        )?;
+                            "enumerated HIR sequence-items frame receivers"
+                        );
                         let ObservationDagKind::Seq(_, items) = &node.kind else {
                             unreachable!("sequence cursor frame retains its immutable node")
                         };
@@ -181,16 +245,18 @@ macro_rules! advance {
                     Frame::Node(node) => {
                         #[cfg(test)]
                         frame_event(3);
-                        $budget.reserve_compact_bytes(
+                        positive_bytes!(
+                            $budget,
                             $function,
                             NODE_FRAME,
-                            "enumerated HIR node frame receivers",
-                        )?;
-                        $budget.reserve_compact_bytes(
+                            "enumerated HIR node frame receivers"
+                        );
+                        positive_bytes!(
+                            $budget,
                             $function,
-                            NODE_STEP,
-                            "enumerated HIR node growth receiving renewal",
-                        )?;
+                            LEXICAL_NODE_STEP,
+                            "enumerated HIR node growth receiving renewal"
+                        );
                         match &node.kind {
                             ObservationDagKind::Seq(prefix, _) => {
                                 $budget.reserve_compact_vec(
@@ -216,11 +282,14 @@ macro_rules! advance {
                                 )?;
                                 let mut children = children.iter().rev();
                                 loop {
-                                    $budget.reserve_compact_bytes(
+                                    positive_bytes!(
+                                        $budget,
                                         $function,
-                                        CAT_CHILD_STEP,
-                                        "enumerated HIR concatenation child receiving renewal",
-                                    )?;
+                                        LEXICAL_CAT_CHILD_STEP,
+                                        "enumerated HIR concatenation child receiving renewal"
+                                    );
+                                    #[cfg(test)]
+                                    positive_child_event();
                                     let Some(child) = children.next() else {
                                         break;
                                     };
@@ -278,6 +347,10 @@ impl Cursor {
         Ok(())
     }
     #[cfg(test)]
+    #[allow(
+        dead_code,
+        reason = "complete general method retained beside its independently executable predecessor"
+    )]
     // Return only completion. The actual observation receiver lives in self;
     // neither a returned reference nor a slice iterator crosses a path swap.
     fn next(
@@ -622,4 +695,34 @@ impl Drop for AdvanceEpoch {
 #[cfg(test)]
 fn old_advance_epoch() -> AdvanceEpoch {
     AdvanceEpoch(BEFORE_ADVANCE.with(|old| old.replace(true)))
+}
+
+#[cfg(test)]
+#[allow(dead_code, unused_imports, unused_macros, reason = "complete immediate post-948 sorter and independent typed tariffs")]
+#[rustfmt::skip]
+pub(super) mod before_positive_bytes;
+#[cfg(test)]
+std::thread_local! {
+    pub(super) static BEFORE_POSITIVE_BYTES: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+#[cfg(test)]
+struct PositiveEpoch(bool);
+#[cfg(test)]
+impl Drop for PositiveEpoch {
+    fn drop(&mut self) {
+        BEFORE_POSITIVE_BYTES.with(|old| old.set(self.0));
+    }
+}
+#[cfg(test)]
+fn old_positive_byte_epoch() -> PositiveEpoch {
+    PositiveEpoch(BEFORE_POSITIVE_BYTES.with(|old| old.replace(true)))
+}
+
+#[cfg(test)]
+std::thread_local! {
+    static POSITIVE_CHILD_EVENTS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+#[cfg(test)]
+fn positive_child_event() {
+    POSITIVE_CHILD_EVENTS.with(|events| events.set(events.get().checked_add(1).unwrap()));
 }

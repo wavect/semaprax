@@ -139,7 +139,7 @@ impl fmt::Display for WorkspaceReportFailure {
     fn fmt(&self, out: &mut fmt::Formatter<'_>) -> fmt::Result {
         if let Owner::ExistingWithSite { report, site } = &self.0 {
             if self.1.is_none() {
-                return site::display(report, *site, out);
+                return site::display(report, site, out);
             }
         }
         if let Some(diagnostics) = self.reported() {

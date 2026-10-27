@@ -4,7 +4,7 @@ impl WorkspaceReportFailure {
     pub fn write_lines(&self, output: &mut impl fmt::Write, json: bool) -> fmt::Result {
         if let Owner::ExistingWithSite { report, site } = &self.0 {
             if self.1.is_none() {
-                return super::site::write_lines(report, *site, output, json);
+                return super::site::write_lines(report, site, output, json);
             }
         }
         if let Some(report) = self.reported() {

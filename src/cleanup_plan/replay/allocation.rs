@@ -287,6 +287,7 @@ mod tests;
 // call still performs this complete warm capacity check. Backing is no credit
 // for these new references, closure captures, Options and returning carriers.
 impl ReplayBudget {
+    #[allow(clippy::manual_bits)] // Eight distinct usize carriers, not a bit count.
     pub(super) const WARM_PREPARE_CONTROLS: usize = {
         use std::mem::size_of;
         crate::hir::DeclarationId::AS_STR_INTERNAL_CONTROLS // exact helper-owned transitive packet

@@ -3,7 +3,7 @@ use super::SOURCE_CAP;
 use super::{actual, clippy_stage, digest, packet, read_view, value_4a6eb};
 use serde_json::Value;
 use std::path::Path;
-
+#[path = "main_e177_reacquired_context.rs"] pub(super) mod reacquired_context;
 #[rustfmt::skip] // Exact extracted historical lookup body.
 pub(super) fn from_packet(packet: &serde_json::Value, source: &str, expected: &str, supplied: &str) -> String {
     let Some(row) = packet["rows"]
@@ -377,7 +377,7 @@ mod tests {
             "views":[{"archive":old.to_str().unwrap(),"length":4,"sha256":expected}]}]});
         let ((), heap) = crate::test_allocation_observer::measure(|| {
             for invocation in 1..=2 {
-                let mut context = ProjectionInvocation { guard: super::super::overlay_v2::InvocationGuard::Disabled, packet: None, stage: None, acquire_stage: super::clippy_stage::rows, acquire: || {
+                let mut context = ProjectionInvocation { guard: super::super::overlay_v2::InvocationGuard::Disabled, packet: None, ordinary_packet_loader: false, stage: None, acquire_stage: super::clippy_stage::rows, acquire: || {
                     loads.set(loads.get() + 1);
                     fixture.clone()
                 }};
@@ -403,7 +403,7 @@ mod tests {
         });
         assert!(!heap.invalid && heap.live == 0 && heap.allocated == heap.freed);
         // Metadata reuse never hides fresh-current failure or the missing archive.
-        let mut context = ProjectionInvocation { guard: super::super::overlay_v2::InvocationGuard::Disabled, packet: None, stage: None, acquire_stage: super::clippy_stage::rows, acquire: || fixture.clone() };
+        let mut context = ProjectionInvocation { guard: super::super::overlay_v2::InvocationGuard::Disabled, packet: None, ordinary_packet_loader: false, stage: None, acquire_stage: super::clippy_stage::rows, acquire: || fixture.clone() };
         assert_eq!(context.value(source, &expected, "new!"), "old!");
         std::fs::write(&current, b"drft").unwrap();
         std::fs::remove_file(&old).unwrap();
@@ -625,20 +625,22 @@ fn root_before_nested_context(current: &str) -> String {
 // Current sources, compiled bytes and current/prior archives are never cached.
 pub(crate) struct ProjectionInvocation<F = fn() -> serde_json::Value, S = fn() -> serde_json::Value> {
     packet: Option<serde_json::Value>,
+    // Only new() installs the complete ordinary packet producer.
+    ordinary_packet_loader: bool,
     acquire: F,
     stage: Option<serde_json::Value>,
     acquire_stage: S, pub(super) guard: super::overlay_v2::InvocationGuard,
 }
 impl ProjectionInvocation {
     pub(crate) fn new() -> Self {
-        Self { packet: None, acquire: packet, stage: None, acquire_stage: clippy_stage::rows, guard: super::overlay_v2::InvocationGuard::Current }
+        Self { packet: None, ordinary_packet_loader: true, acquire: packet, stage: None, acquire_stage: clippy_stage::rows, guard: super::overlay_v2::InvocationGuard::Current }
     }
 }
 #[rustfmt::skip] // Keep the complete old file-lookup suffix available verbatim.
 impl<F: FnMut() -> serde_json::Value, S: FnMut() -> serde_json::Value> ProjectionInvocation<F, S> {
     #[cfg(test)]
     pub(super) fn with_loaders(acquire: F, acquire_stage: S) -> Self {
-        Self { packet: None, acquire, stage: None, acquire_stage, guard: super::overlay_v2::InvocationGuard::Disabled }
+        Self { packet: None, ordinary_packet_loader: false, acquire, stage: None, acquire_stage, guard: super::overlay_v2::InvocationGuard::Disabled }
     }
     fn finish_call(&self, call: InvocationCall) { if call.metadata { self.guard.after_body(); self.guard.check(call.stage); } }
     fn call_metadata(&mut self, call: &mut InvocationCall) -> &serde_json::Value { if self.packet.is_none() { self.packet=Some((self.acquire)());call.metadata=true; } else if !call.metadata { self.guard.check(false);call.metadata=true; } self.packet.as_ref().unwrap() }
@@ -655,7 +657,8 @@ impl<F: FnMut() -> serde_json::Value, S: FnMut() -> serde_json::Value> Projectio
     }
     pub(crate) fn value(&mut self, source: &str, expected: &str, supplied: &str) -> String { let mut call=InvocationCall::default(); let result=self.value_inner(&mut call, source, expected, supplied); self.finish_call(call); result }
     fn value_inner(&mut self, call: &mut InvocationCall, source: &str, expected: &str, supplied: &str) -> String {
-        with_packet_context(self.call_metadata(call), source, expected, supplied)
+        let lookup: fn(&Value, &str, &str, &str) -> String = if self.ordinary_packet_loader { reacquired_context::value } else { with_packet_context };
+        lookup(self.call_metadata(call), source, expected, supplied)
     }
     pub(crate) fn file(&mut self, path: &std::path::Path, length: usize, expected: &str) -> Option<String> { let mut call=InvocationCall::default(); let result=self.file_inner(&mut call, path, length, expected); self.finish_call(call); result }
     fn file_inner(&mut self, call: &mut InvocationCall, path: &std::path::Path, length: usize, expected: &str) -> Option<String> {

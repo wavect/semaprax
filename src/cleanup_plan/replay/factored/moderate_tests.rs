@@ -667,7 +667,7 @@ fn cold_builder_threshold_both_operands_and_hot_routes_keep_complete_invoices() 
     }
     // Inspect the actual expansion, rather than substitute an eager predicate.
     // Both path slots are already immutable usize values in the shipping caller.
-    let source = include_str!("../../factored.rs");
+    let source = include_str!("../factored.rs");
     assert!(source.contains("if $cfg_paths <= paired::BUILDER_FACTORED_PATH_THRESHOLD\n            && $semantic_paths <= paired::BUILDER_FACTORED_PATH_THRESHOLD"));
 }
 #[test]

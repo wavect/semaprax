@@ -205,7 +205,7 @@ fn exact_short_zero_floor_sticky_and_foreign_boundaries_keep_original_status() {
         }
     }
     let foreign = |old| {
-        use crate::cleanup_plan::replay::allocation::oracle::OracleScope;
+        use crate::cleanup_plan::replay::allocation::OracleScope;
         let _mode = mode(old);
         let owner = OracleScope::open_with_work(usize::MAX, usize::MAX).unwrap();
         let mut budget = ReplayBudget::with_skeleton_limit_oracle(usize::MAX, owner.lease());
@@ -375,7 +375,8 @@ fn both_cursor_owners_clear_after_every_status_and_unwind_releases_all_lent_hand
 
 fn shipping_input(program: &ResolvedProgram, function: &ResolvedFunction) -> Vec<SkeletonPath> {
     use crate::cleanup_plan::replay::{
-        emission, hir_skeleton_paths, reserve_program_skeleton_work,
+        hir_skeleton_paths, ordinary_plan_history::completed_fork::emission,
+        reserve_program_skeleton_work,
     };
     let (paths, refused, _, _) = with_limit_usage_refusal(usize::MAX, || {
         let mut budget = ReplayBudget::new();

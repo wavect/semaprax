@@ -115,3 +115,18 @@ complete Drop, including a caught unwind while Work survives. These source
 controls have not executed. The observed preliminary CHECK refusal only locates
 a reached owner boundary; it establishes neither dominant cost nor unchanged
 CLI49 admission, which remains required at the original limits.
+
+## Lexical positive byte payments (source-only successor)
+
+The #953 successor expands only fixed-positive byte payments reached by the
+lexical `advance!` body. It removes their actual/formal budget, function, byte
+count and phase tuple. The complete Result pair, prepare-builder path, payer
+dispatch, sticky checks, physical reservation and compact refusal roles remain
+funded at the original positive frontiers. No reservation runs after refusal.
+
+`POSITIVE_BYTE_PAYMENT` prices the retained Result pair. The lexical node and
+Cat-child renewal banks retain every other original role; the complete general
+`Cursor::next` keeps its original `NODE_STEP`, `CAT_CHILD_STEP` and payment banks.
+Work, frame order, output order, all caps and final Drop remain unchanged. The
+complete immediate sorter and all older oracles remain executable independently.
+Source review establishes no runtime, invoice, allocation or application gain.

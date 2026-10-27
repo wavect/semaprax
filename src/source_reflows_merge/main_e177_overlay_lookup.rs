@@ -529,6 +529,8 @@ pub(crate) fn compiled(source: &str) -> Option<&'static str> {
         "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/lexical_advance.rs" => Some(include_str!("../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/lexical_advance.rs")),
         "src/source_reflows_merge/main_e177_packet_reacquire.rs" => Some(include_str!("../../src/source_reflows_merge/main_e177_packet_reacquire.rs")),
         "src/source_reflows_merge/main_e177_reacquired_context.rs" => Some(include_str!("../../src/source_reflows_merge/main_e177_reacquired_context.rs")),
+        "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_positive_bytes.rs" => Some(include_str!("../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_positive_bytes.rs")),
+        "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/positive_bytes.rs" => Some(include_str!("../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/positive_bytes.rs")),
         _ => None,
     }
 }

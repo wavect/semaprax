@@ -383,8 +383,8 @@ fn precommit() -> i64 {{
 "#);
     let program = semaprax::check(&source, "format-paired-native.spx").unwrap();
     let resolved = hir::resolve(&program).unwrap();
+    // Public HIR validation includes complete cleanup-plan replay.
     hir::validate(&resolved).unwrap();
-    semaprax::cleanup_plan::validate_program(&resolved).unwrap();
     let emitted = codegen::emit_c(&program).unwrap();
     assert_eq!(emitted, codegen::emit_c(&program).unwrap());
     let marker = "#define SPX_FORMAT_STATUS_DOMAIN_V1";

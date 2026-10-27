@@ -516,6 +516,149 @@ mod invocation_acquisition_tests {
         super::super::packet_lookup::test_stage_metadata(&mut context,known);assert!(scope.stats().stages>0);let path=overlay_v2::invocation_stages()[0].0;fixture.flip(path);scope.reset();let raw=super::super::compiled(SOURCE).unwrap();assert_eq!(context.value_direct(SOURCE,&digest(raw.as_bytes()),raw),raw);assert_eq!(scope.stats().stages,0);assert!(refused(||super::super::packet_lookup::test_stage_metadata(&mut context,known)).contains("length-or-digest"));assert_eq!(scope.stats().reads.last().unwrap().path,path);fixture.flip(path);
     }
     #[test]
+    fn fallback_reacquisition_matches_the_whole_original_packet_read_trace() {
+        let fixture = Fixture::new();
+        let scope = fixture.route();
+        scope.reset();
+        let old = original_packet();
+        let old_reads = scope.stats().reads;
+        assert_eq!(old, fixture.packet);
+        scope.reset();
+        overlay_v2::packet_reacquire::run();
+        assert_eq!(scope.stats().reads, old_reads, "all fresh reads including repeated paths, in original order");
+        assert_eq!(scope.stats().calls, 0, "fallback acquisition adds no early/late invocation guard");
+        assert_eq!(scope.stats().stages, 0, "fallback acquisition adds no stage hook");
+        // A known row with a foreign requested digest reaches the actual
+        // fallback after the original direct lookup and normalization.
+        let raw = super::super::compiled(SOURCE).unwrap();
+        let foreign = "f".repeat(64);
+        let row = fixture.packet["rows"].as_array().unwrap().iter().find(|row| row["source"] == SOURCE).unwrap();
+        assert!(!row["views"].as_array().unwrap().iter().any(|view| view["sha256"] == foreign), "foreign digest is absent from the actual row's complete view set");
+        let old = super::super::packet_lookup::reacquired_context::test_original_context(&fixture.packet, SOURCE, &foreign, raw);
+        scope.reset();
+        let current = super::super::packet_lookup::reacquired_context::test_reacquired_value(&fixture.packet, SOURCE, &foreign, raw, || {});
+        assert_eq!(current, old);
+        assert!(scope.stats().reads.windows(fixture.original_reads.len()).any(|reads| reads == fixture.original_reads), "fallback really reacquires the complete packet inputs");
+        let mut ordinary = ProjectionInvocation::new();
+        scope.reset();
+        assert_eq!(ordinary.value(SOURCE, &foreign, raw), old, "ordinary constructor executes the real value/value_inner fallback");
+        scope.reset();
+        assert_eq!(ordinary.value(SOURCE, &foreign, raw), old);
+        assert_eq!(scope.stats().calls, 2, "warm ordinary value retains exactly the original early and late guards");
+        assert!(scope.stats().reads.windows(fixture.original_reads.len()).any(|reads| reads == fixture.original_reads));
+        drop(ordinary);
+        let complete_metadata = fixture.packet.clone();
+        // The immutable packet and the already-warmed trace backing belong to
+        // the caller. All newly acquired reader/parser/result owners must drop.
+        scope.reset();
+        let (same, metrics) = crate::test_allocation_observer::measure(|| {
+            let current = super::super::packet_lookup::reacquired_context::test_reacquired_value(&fixture.packet, SOURCE, &foreign, raw, || {});
+            let same = current == old;
+            drop(current);
+            scope.reset();
+            same
+        });
+        assert!(same && !metrics.invalid && metrics.live == 0);
+        assert_eq!(metrics.allocated, metrics.freed);
+        let (panicked, metrics) = crate::test_allocation_observer::measure(|| {
+            let failure = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                super::super::packet_lookup::reacquired_context::test_reacquired_value(&fixture.packet, SOURCE, &foreign, raw, || {
+                    std::panic::resume_unwind(Box::new("after direct lookup before packet reacquisition"));
+                });
+            }));
+            let panicked = failure.is_err();
+            drop(failure);
+            scope.reset();
+            panicked
+        });
+        assert!(panicked && !metrics.invalid && metrics.live == 0);
+        assert_eq!(metrics.allocated, metrics.freed);
+        assert_eq!(fixture.packet, complete_metadata, "entire metadata including unknown fields remains immutable");
+    }
+
+    #[test]
+    fn injected_current_value_keeps_the_complete_old_packet_producer() {
+        let fixture = Fixture::new();
+        let scope = fixture.route();
+        let raw = super::super::compiled(SOURCE).unwrap();
+        // A fabricated row intentionally omits every prior view. Reusing this
+        // packet would return the supplied normalized bytes; the complete old
+        // fallback must independently acquire the real row and prior image.
+        let injected_packet = serde_json::json!({"rows": [{"source": SOURCE, "views": []}], "unknown-injected-metadata": {"keep": true}});
+        let normalized = super::super::clippy_stage::normalize(SOURCE, raw);
+        let row = fixture.packet["rows"].as_array().unwrap().iter().find(|row| row["source"] == SOURCE).unwrap();
+        let mut witness = None;
+        for view in row["views"].as_array().unwrap() {
+            let expected = view["sha256"].as_str().unwrap();
+            if expected == digest(normalized.as_bytes()) || expected == digest(raw.as_bytes()) { continue; }
+            scope.reset();
+            let old = super::super::packet_lookup::reacquired_context::test_original_context(&injected_packet, SOURCE, expected, raw);
+            if digest(old.as_bytes()) == expected
+                && scope.stats().reads.windows(fixture.original_reads.len()).any(|reads| reads == fixture.original_reads)
+            {
+                witness = Some((expected.to_owned(), old));
+                break;
+            }
+        }
+        let (expected, old) = witness.expect("one complete real prior view must distinguish reconstruction from reuse of injected metadata");
+        assert_ne!(super::super::packet_lookup::from_packet(&injected_packet, SOURCE, &expected, normalized.as_ref()), old, "counterexample would detect incorrectly trusting the injected packet");
+        let loads = Cell::new(0);
+        let mut injected = ProjectionInvocation::with_loaders(|| { loads.set(loads.get() + 1); injected_packet.clone() }, super::super::clippy_stage::rows);
+        injected.guard = overlay_v2::InvocationGuard::Current;
+        scope.reset();
+        assert_eq!(injected.value(SOURCE, &expected, raw), old, "guard Current cannot promote an arbitrary loader into packet-reuse provenance");
+        assert_eq!(loads.get(), 1);
+        scope.reset();
+        assert_eq!(injected.value(SOURCE, &expected, raw), old);
+        assert_eq!(loads.get(), 1);
+        assert!(scope.stats().reads.windows(fixture.original_reads.len()).any(|reads| reads == fixture.original_reads));
+        assert_eq!(injected_packet["unknown-injected-metadata"], serde_json::json!({"keep": true}));
+    }
+
+    #[test]
+    fn fallback_reacquisition_preserves_first_faults_and_observes_post_direct_drift() {
+        let fixture = Fixture::new();
+        let scope = fixture.route();
+        let mut paths = Vec::new();
+        for &(path, _, _) in overlay_v2::INVOCATION_PACKET_READS {
+            if !paths.iter().any(|old: &&str| *old == path) { paths.push(path); }
+        }
+        let raw = super::super::compiled(SOURCE).unwrap();
+        let archive = format!("e/{}", digest(raw.as_bytes()));
+        for path in [POLICY, PAGE, SOURCE, archive.as_str()] {
+            if !paths.contains(&path) { paths.push(path); }
+        }
+        for path in paths {
+            fixture.flip(path);
+            scope.reset();
+            let old = refused(|| { original_packet(); });
+            let old_reads = scope.stats().reads;
+            scope.reset();
+            let current = refused(overlay_v2::packet_reacquire::run);
+            assert_eq!(scope.stats().reads, old_reads, "first failure and complete preceding read order for {path}");
+            assert_eq!(current, old, "reader/error meaning for {path}; panic source locations are outside the payload");
+            fixture.flip(path);
+        }
+        // These two-fault choices span the historical, policy, page and
+        // current/archive frontiers. Controllers stay outside this prefix.
+        for (first, second) in [(fixture.original_reads[0].path.as_str(), POLICY), (POLICY, PAGE), (SOURCE, archive.as_str())] {
+            fixture.flip(first); fixture.flip(second);
+            scope.reset(); let _ = refused(|| { original_packet(); }); let old_reads = scope.stats().reads;
+            scope.reset(); let _ = refused(overlay_v2::packet_reacquire::run);
+            assert_eq!(scope.stats().reads, old_reads);
+            fixture.flip(first); fixture.flip(second);
+        }
+        let foreign = "f".repeat(64);
+        scope.reset();
+        let _ = refused(|| {
+            super::super::packet_lookup::reacquired_context::test_reacquired_value(&fixture.packet, SOURCE, &foreign, raw, || fixture.flip(POLICY));
+        });
+        assert_eq!(scope.stats().reads.last().unwrap().path, POLICY, "mutation after direct lookup is detected at fallback acquisition");
+        fixture.flip(POLICY);
+        assert_eq!(super::super::packet_lookup::reacquired_context::test_reacquired_value(&fixture.packet, SOURCE, &foreign, raw, || {}), super::super::packet_lookup::reacquired_context::test_original_context(&fixture.packet, SOURCE, &foreign, raw));
+    }
+
+    #[test]
     fn independent_old_producer_and_original_bounded_reader_are_whole() {
         let old=include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/e/05ecc0163fa3593182d2044c5f2029e3c1dd0cd7143ed9904eccfd6e6b751a3d"));let current=include_str!("main_e177_historical_before_data.rs");assert_eq!(&current[..old.len()],old,"complete original independent producer remains byte prefix");
         let old=include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/e/7ea19e20137bd5d4c203072d41eab7cc0c835f847e51b94a4b24eeac997589f4"));let current=include_str!("main_e177_final_inputs.rs");let hook="    #[cfg(test)]\n    if let Some(result)=historical_before_data::invocation_probe::read(path,length,expected) { return result; }\n";assert_eq!(current.matches(hook).count(),1);assert_eq!(current.replacen(hook,"",1),old,"complete old root including bounded reader remains exact after removing only hook");

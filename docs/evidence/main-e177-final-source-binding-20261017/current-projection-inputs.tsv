@@ -1576,3 +1576,10 @@ src/hir/validation/scope_checkpoint/merge/partial_retain.rs
 src/hir/validation/scope_checkpoint/merge/partial_retain/before.rs
 src/hir/validation/scope_checkpoint/merge/partial_retain/tests.rs
 src/cleanup_plan/replay/factored/paired/visited_transfer.rs
+src/project/reporting.rs
+src/workspace_report/site.rs
+src/workspace_report/site/tests.rs
+src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_advance.rs
+src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/lexical_advance.rs
+src/source_reflows_merge/main_e177_packet_reacquire.rs
+src/source_reflows_merge/main_e177_reacquired_context.rs

@@ -398,9 +398,14 @@ the existing acyclic CFG validator and complete independent HIR/plan language
 construction, paid paired proof and full canonical fallback. It does not select
 admission, spend or refund the held enumeration pool, or suppress the independent
 test enumerator. Tiny functions retain enumeration, and other payers retain their previous
-selector. Ordinary builder dispatch prepays its selector/header/CFG/error-probe
-receivers before testing thresholds, including on tiny nonselecting paths.
-The existing builder crossover above 128 paths runs first; this fitting selector
+selector. Ordinary builder dispatch prepays the lexical threshold and all
+surviving nonselection receivers before testing the lazy pair of 128-path
+bounds. A cold pair omits the unused full selector call and its temporary
+budget/Result; hot dispatch retains that entire preceding bank plus its actual
+additional warm-gateway census. This changes only reached receiving costs, not
+verification, limits or admission. The complete immediate caller and selector
+remain independent test oracles. The existing builder crossover above 128 paths
+runs first; this fitting selector
 extends only its nonselected comparison window.
 This checkpoint is source-only: the fitting scalar success, schema/CFG/status
 mutation, exact/short byte, sticky refusal, foreign-payer and full Drop controls

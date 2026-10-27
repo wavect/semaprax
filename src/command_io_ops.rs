@@ -1007,7 +1007,6 @@ fn run(input: borrow Slice<u8>) -> bool
 
 // Complete project-owned id dispatch reached through DeclarationId::as_str.
 // Only a const-evaluated maximum is formed; no runtime selector or capability.
-#[cfg(test)]
 pub(crate) const ID_CALL_CONTROLS: usize = {
     use std::mem::size_of;
     let environment_guard = size_of::<ResolvedHostCommandOperation>() // env binding

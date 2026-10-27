@@ -282,11 +282,10 @@ impl ReplayBudget {
 #[cfg(test)]
 mod tests;
 
-// Extra traversals reached by the independently funded trailing-active probe.
+// Warm traversals shared by the trailing-active probe and paid hot threshold.
 // The original first work has already formed/funded refusal backing; each NEW
 // call still performs this complete warm capacity check. Backing is no credit
 // for these new references, closure captures, Options and returning carriers.
-#[cfg(test)]
 impl ReplayBudget {
     pub(super) const WARM_PREPARE_CONTROLS: usize = {
         use std::mem::size_of;
@@ -306,6 +305,7 @@ impl ReplayBudget {
     // Full sum-selector transport is paid BEFORE oracle_lease/is_some. The
     // cfg(test) ActiveBuilder None arm pays this same closed query packet and
     // takes the old fallback; cfg(not(test)) has no added selector or charge.
+    #[cfg(test)]
     pub(super) const ORACLE_SELECTOR_CONTROLS: usize = {
         use std::mem::size_of;
         2 * size_of::<&ReplayBudget>() // oracle_lease actual/formal

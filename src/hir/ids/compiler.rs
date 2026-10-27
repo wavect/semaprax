@@ -146,7 +146,6 @@ const _: () = assert!(std::mem::align_of::<CompilerDeclaration>() <= std::mem::a
 // Complete closed text dispatch for the additional warm preparation calls.
 // Payload and helper types remain owned here or by their original operation
 // module. The numeric packet cannot construct an identity or admit an operation.
-#[cfg(test)]
 impl CompilerDeclaration {
     pub(crate) const TEXT_CALL_CONTROLS: usize = {
         use std::mem::size_of;

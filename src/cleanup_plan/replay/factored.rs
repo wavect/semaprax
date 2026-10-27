@@ -1431,7 +1431,7 @@ pub(crate) use canonical_shared::app_census::Scope as EpsilonAppCensus;
 pub(crate) use canonical_shared::lexical_successors::census::Scope as SuccessorAppCensus;
 
 #[cfg(test)]
-mod moderate_tests;
+pub(super) mod moderate_tests;
 
 #[cfg(test)]
 mod hir_memo_release_tests;

@@ -874,9 +874,10 @@ const COLD949_ROWS: &[Cold949Row] = &[
     ("src/box_ops.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/box_ops.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/c1c21bfdfc4ae4db27239ee21426328f42b3404c42e5a4bca55bf59117f2df79")), &[(10250,10250,"#[cfg(test)]\n")]),
     ("src/byte_ops.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/byte_ops.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/aac7715eed4a017553d09f3543aab57177e8400d9bffc45bfbe78e277fe42f9e")), &[(30590,30590,"#[cfg(test)]\n")]),
     ("src/cleanup_plan/replay/allocation.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/allocation.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/0d9c44752ba86a56eb75d5a77cbe97f60a7152dce52530daf9b5c06066faeda5")), &[(9891,9970,"// Extra traversals reached by the independently funded trailing-active probe.\n"),(10207,10207,"#[cfg(test)]\n"),(11545,11562,"")]),
-    ("src/cleanup_plan/replay/factored.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/a707ba025d94fa1dfcd81f44b1984ee945c3479e4e0bae6f5f5cda2dde010269")), &[(2993,6427,""),(10251,10331,"        budget.reserve_bytes(\n            function,\n            BUILDER_SELECTOR_CONTROLS,\n            \"ordinary builder representation selector receivers\",\n        )?;\n        selected_builder_paid(\n            function,\n            cfg_paths,\n            semantic_paths,\n            &mut ReplayBudget::new(),\n        )?\n"),(10496,10726,"    // Keep both existing selectors above unchanged. Only the ordinary builder\n    // evaluates this nonselection guard; its two bool roles were prepaid in\n    // BUILDER_SELECTOR_CONTROLS before entering the initial selector.\n")]),
+    ("src/cleanup_plan/replay/factored.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/a707ba025d94fa1dfcd81f44b1984ee945c3479e4e0bae6f5f5cda2dde010269")), &[(2993,6427,""),(10251,10331,"        budget.reserve_bytes(\n            function,\n            BUILDER_SELECTOR_CONTROLS,\n            \"ordinary builder representation selector receivers\",\n        )?;\n        selected_builder_paid(\n            function,\n            cfg_paths,\n            semantic_paths,\n            &mut ReplayBudget::new(),\n        )?\n"),(10496,10726,"    // Keep both existing selectors above unchanged. Only the ordinary builder\n    // evaluates this nonselection guard; its two bool roles were prepaid in\n    // BUILDER_SELECTOR_CONTROLS before entering the initial selector.\n"),(59052,59083,"mod moderate_tests;\n")]),
     ("src/cleanup_plan/replay/factored/moderate_tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/moderate_tests.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/4c32d91e8bc3d5567f19984cb289471e285a0ae14b42a9909ca8dba489aa8224")), &[]),
     ("src/cleanup_plan/replay/factored/paired.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/factored/paired.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/e2d57d474e4467653c6d5ef266a11bf4d5b22f1999dfaf46fd0da5bc19e67c32")), &[(22812,22864,"const FITTING_REFUSAL_PROBE_CONTROLS: usize = {\n"),(23025,23064,"    2 * size_of::<&ReplayBudget>()\n        + 2 * size_of::<bool>()\n        + 2 * size_of::<&LocalKey<Active>>()\n"),(23415,23586,""),(27544,27607,"const BUILDER_FACTORED_PATH_THRESHOLD: usize = 128;\n")]),
+    ("src/cleanup_plan/replay/trailing_active/tests.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/cleanup_plan/replay/trailing_active/tests.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/12909e042372067ae367d991e6cd159805f1abd671eb155cb1c54983ae5af493")), &[(18984,19336,""),(19644,19772,"        assert_eq!(source_reader::read(&root.join(source),length,sha,2*1024*1024).unwrap(),current);\n"),(19971,20099,"        assert_eq!(source_reader::read(&root.join(source),length,sha,2*1024*1024).unwrap(),current);\n")]),
     ("src/command_io_ops.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/command_io_ops.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/31bee6ec1d18c786de7161c63f2fd85ddea221bf9ca366762d8a332452892239")), &[(43240,43240,"#[cfg(test)]\n")]),
     ("src/environment_ops.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/environment_ops.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/fc20ba1d398a69b13aae41a8057bc3953091d3b45b84702dfdca8c0cdc989af0")), &[(3068,3068,"#[cfg(test)]\n"),(3273,3273,"#[cfg(test)]\n")]),
     ("src/filesystem_ops.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/filesystem_ops.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/e/30c9508c40a210f5724a643562f48169f1e5a4278def0631c56c7692cc1041af")), &[(9915,9915,"#[cfg(test)]\n"),(10109,10109,"#[cfg(test)]\n"),(10467,10467,"#[cfg(test)]\n")]),
@@ -952,7 +953,7 @@ fn cold_builder_threshold_entire_old_caller_selector_tariffs_and_owner_inverses_
     ] { assert_eq!(definition(independent, marker), definition(old, marker)); }
     assert_eq!(paired::BUILDER_FACTORED_PATH_THRESHOLD, 128);
     assert!(independent.contains("const BUILDER_FACTORED_PATH_THRESHOLD: usize = 128;"));
-    assert_eq!(COLD949_ROWS.len(), 21);
+    assert_eq!(COLD949_ROWS.len(), 22);
     for &(path, compiled, prior, _) in COLD949_ROWS {
         assert_eq!(cold949_restore(path, compiled, &mut cold949_read).as_deref(), Some(prior));
         let half = compiled.char_indices().map(|(i,_)| i).take_while(|i| *i <= compiled.len()/2).last().unwrap_or(0);
@@ -980,4 +981,17 @@ fn cold_builder_threshold_entire_old_caller_selector_tariffs_and_owner_inverses_
         }
     }
     assert!(cold949_restore("src/foreign.rs", "foreign", &mut |_,_,_| panic!("unknown source has no read authority")).is_none());
+}
+
+// This is an exact historical view for the unchanged trailing-probe consumer,
+// never a replacement for its live source/compiled/archive authentication.
+pub(in crate::cleanup_plan::replay) fn cold949_previous_input(
+    source: &str, supplied: &str, length: usize, sha: &str,
+) -> String {
+    assert!(supplied.len() <= 2*1024*1024 && length <= 2*1024*1024);
+    let previous = cold949_restore(source, supplied, &mut cold949_read)
+        .expect("actual current helper and complete immediate predecessor");
+    assert_eq!(previous.len(), length);
+    assert_eq!(cold949_sha(&previous), sha);
+    previous
 }

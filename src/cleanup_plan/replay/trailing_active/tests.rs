@@ -218,13 +218,18 @@ fn entire_immediate_sequence_body_and_full_original_root_are_source_bound() {
         ("src/hir/ids/compiler.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/src/hir/ids/compiler.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/e/89ff8b726bcbacb4474e73f7bb7a1c321da261666c4b039e98745d2fbcab15df")), 7672, "0e2cb9430e9a6ec9f73e8e1bd07d36fbec84b5299635f2883b26a835cc6796b5"),
         ("src/hir/ids.rs", include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/src/hir/ids.rs")), include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/e/1eceacba63ce7ce7cbeb99ebe1ecfa05b3bdc25b679c6f74fadaa0b5b3a0284e")), 24265, "5a7fb6366d3f448c6ab0f30dc99b24a007e3c2805db082f59396d8c0ca4ee0d8"),
     ] {
+        // Acquire the actual shipping helper through all current channels
+        // before entering the complete unchanged trailing-probe source epoch.
+        let physical_current = current;
+        let acquired = super::super::factored::moderate_tests::cold949_previous_input(source, current, length, sha);
+        let current = acquired.as_str();
         assert_eq!(current.len(), length);
         assert_eq!(format!("{:x}",crate::digest_hex::LowerHex(Sha256::digest(current.as_bytes()))),sha);
         assert_eq!(&current[..original.len()], original);
         let old_sha=format!("{:x}",crate::digest_hex::LowerHex(Sha256::digest(original.as_bytes())));
-        assert_eq!(source_reader::read(&root.join(source),length,sha,2*1024*1024).unwrap(),current);
+        assert_eq!(super::super::factored::moderate_tests::cold949_previous_input(source,physical_current,length,sha),current);
         assert_eq!(source_reader::read(&root.join("e").join(old_sha),original.len(),&format!("{:x}",crate::digest_hex::LowerHex(Sha256::digest(original.as_bytes()))),2*1024*1024).unwrap(),original);
-        assert_eq!(source_reader::read(&root.join(source),length,sha,2*1024*1024).unwrap(),current);
+        assert_eq!(super::super::factored::moderate_tests::cold949_previous_input(source,physical_current,length,sha),current);
     }
     let current=include_str!("../../replay.rs");
     let expected=include_str!(concat!(env!("CARGO_MANIFEST_DIR"),"/docs/evidence/ci-inputs-20261021/before/e688f57ac691a478b7c751ad69975d3ba447ffdc6ac8f71b018a5d438e8f3d0c.txt"));

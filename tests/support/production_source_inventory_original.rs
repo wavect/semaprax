@@ -584,16 +584,16 @@ fn current_source(path: &str, row: &serde_json::Value) -> String {
     if path != "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs" { return current_source_before_current1056(path, row); }
     const ACTUAL: &str = include_str!("../../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs");
     const OLD: &str = include_str!("../../e/76c5ebcbe867b5e282db3cccb1df967a23f4ad5c65b82089f7d6db74d6302c15");
-    const ACTUAL_SHA: &str = "bee65c9d4cf3b1644c5dc0f60061bd831dc7d49704431cd74d26b2cf28444cd0";
-    assert_eq!((ACTUAL.len(), format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(ACTUAL.as_bytes())))), (245669, ACTUAL_SHA.to_owned()));
+    const ACTUAL_SHA: &str = "7ae58be3a30b2981842787d871284f991206e73553b0cbdb8308ef7af5e163e3";
+    assert_eq!((ACTUAL.len(), format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(ACTUAL.as_bytes())))), (245843, ACTUAL_SHA.to_owned()));
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let authenticate = || {
         assert_eq!(joint_reader::read(&root.join(path), ACTUAL.len(), ACTUAL_SHA, 2_097_152).unwrap(), ACTUAL);
-        assert_eq!(joint_reader::read(&root.join("e/bee65c9d4cf3b1644c5dc0f60061bd831dc7d49704431cd74d26b2cf28444cd0"), ACTUAL.len(), ACTUAL_SHA, 2_097_152).unwrap(), ACTUAL);
+        assert_eq!(joint_reader::read(&root.join("e/7ae58be3a30b2981842787d871284f991206e73553b0cbdb8308ef7af5e163e3"), ACTUAL.len(), ACTUAL_SHA, 2_097_152).unwrap(), ACTUAL);
         assert_eq!(joint_reader::read(&root.join("e/76c5ebcbe867b5e282db3cccb1df967a23f4ad5c65b82089f7d6db74d6302c15"), OLD.len(), "76c5ebcbe867b5e282db3cccb1df967a23f4ad5c65b82089f7d6db74d6302c15", 2_097_152).unwrap(), OLD);
     };
     authenticate();
-    let edits: serde_json::Value = serde_json::from_str(r########"[[50425,51225,"project/reporting.rs\"),include_str!(\"../../../../../src/workspace_report/site.rs\"),include_str!(\"../../../../../src/workspace_report/site/tests.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_advance.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/lexical_advance.rs\"),include_str!(\"../../../../../src/hir/validation/scope_checkpoint/merge/partial_retain.rs\"),include_str!(\"../../../../../src/hir/validation/scope_checkpoint/merge/partial_retain/before.rs\"),include_str!(\"../../../../../src/hir/validation/scope_checkpoint/merge/partial_retain/tests.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/factored/paired/visited_transfer.rs\"),include_str!(\"../../../../../src/",""]]"########).unwrap();
+    let edits: serde_json::Value = serde_json::from_str(r########"[[50425,51399,"project/reporting.rs\"),include_str!(\"../../../../../src/workspace_report/site.rs\"),include_str!(\"../../../../../src/workspace_report/site/tests.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_advance.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/lexical_advance.rs\"),include_str!(\"../../../../../src/source_reflows_merge/main_e177_packet_reacquire.rs\"),include_str!(\"../../../../../src/source_reflows_merge/main_e177_reacquired_context.rs\"),include_str!(\"../../../../../src/hir/validation/scope_checkpoint/merge/partial_retain.rs\"),include_str!(\"../../../../../src/hir/validation/scope_checkpoint/merge/partial_retain/before.rs\"),include_str!(\"../../../../../src/hir/validation/scope_checkpoint/merge/partial_retain/tests.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/factored/paired/visited_transfer.rs\"),include_str!(\"../../../../../src/",""]]"########).unwrap();
     let edits = edits.as_array().unwrap(); assert!(edits.len() <= 512);
     let mut restored = ACTUAL.to_owned(); let mut next = restored.len();
     for edit in edits.iter().rev() {

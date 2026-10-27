@@ -1,6 +1,7 @@
 //! Ordinary Project build keeps the original authenticated loader and final recheck.
 use super::*;
 use crate::workspace_report::WorkspaceReportFailure;
+use crate::{semantic_workspace, workspace_graph};
 
 /// Same authority and operation order as `with_authenticated_project`, retaining
 /// the acquired builder report and its borrowed first reservation location.

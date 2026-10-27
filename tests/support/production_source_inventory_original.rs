@@ -581,13 +581,47 @@ fn current1042_named_native_path(path: &str) -> std::path::PathBuf {
     if path == "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs" { root.join("e/d49f3e5888a6368cd2a0271319415fdacd18e8fc9252246bfe34d2bec14d4ae2") } else { root.join(path) }
 }
 fn current_source(path: &str, row: &serde_json::Value) -> String {
+    if path != "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs" { return current_source_before_current1056(path, row); }
+    const ACTUAL: &str = include_str!("../../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs");
+    const OLD: &str = include_str!("../../e/76c5ebcbe867b5e282db3cccb1df967a23f4ad5c65b82089f7d6db74d6302c15");
+    const ACTUAL_SHA: &str = "bee65c9d4cf3b1644c5dc0f60061bd831dc7d49704431cd74d26b2cf28444cd0";
+    assert_eq!((ACTUAL.len(), format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(ACTUAL.as_bytes())))), (245669, ACTUAL_SHA.to_owned()));
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let authenticate = || {
+        assert_eq!(joint_reader::read(&root.join(path), ACTUAL.len(), ACTUAL_SHA, 2_097_152).unwrap(), ACTUAL);
+        assert_eq!(joint_reader::read(&root.join("e/bee65c9d4cf3b1644c5dc0f60061bd831dc7d49704431cd74d26b2cf28444cd0"), ACTUAL.len(), ACTUAL_SHA, 2_097_152).unwrap(), ACTUAL);
+        assert_eq!(joint_reader::read(&root.join("e/76c5ebcbe867b5e282db3cccb1df967a23f4ad5c65b82089f7d6db74d6302c15"), OLD.len(), "76c5ebcbe867b5e282db3cccb1df967a23f4ad5c65b82089f7d6db74d6302c15", 2_097_152).unwrap(), OLD);
+    };
+    authenticate();
+    let edits: serde_json::Value = serde_json::from_str(r########"[[50425,51225,"project/reporting.rs\"),include_str!(\"../../../../../src/workspace_report/site.rs\"),include_str!(\"../../../../../src/workspace_report/site/tests.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_advance.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/lexical_advance.rs\"),include_str!(\"../../../../../src/hir/validation/scope_checkpoint/merge/partial_retain.rs\"),include_str!(\"../../../../../src/hir/validation/scope_checkpoint/merge/partial_retain/before.rs\"),include_str!(\"../../../../../src/hir/validation/scope_checkpoint/merge/partial_retain/tests.rs\"),include_str!(\"../../../../../src/cleanup_plan/replay/factored/paired/visited_transfer.rs\"),include_str!(\"../../../../../src/",""]]"########).unwrap();
+    let edits = edits.as_array().unwrap(); assert!(edits.len() <= 512);
+    let mut restored = ACTUAL.to_owned(); let mut next = restored.len();
+    for edit in edits.iter().rev() {
+        assert_eq!(edit.as_array().unwrap().len(), 4);
+        let lo = usize::try_from(edit[0].as_u64().unwrap()).unwrap();
+        let hi = usize::try_from(edit[1].as_u64().unwrap()).unwrap();
+        assert!(lo <= hi && hi <= next); assert_eq!(restored.get(lo..hi), Some(edit[2].as_str().unwrap()));
+        restored.replace_range(lo..hi, edit[3].as_str().unwrap());
+        assert!(restored.len() <= 2_097_152); next = lo;
+    }
+    assert_eq!(restored, OLD, "ENTIRE fixed244869 native owner before unchanged d49f history");
+    let wants_actual = row["length"].as_u64() == Some(ACTUAL.len() as u64) && row["sha256"].as_str() == Some(ACTUAL_SHA);
+    let result = if wants_actual {
+        let mut prior_row = row.clone();
+        prior_row["length"] = (OLD.len() as u64).into(); prior_row["sha256"] = "76c5ebcbe867b5e282db3cccb1df967a23f4ad5c65b82089f7d6db74d6302c15".into();
+        assert_eq!(current_source_before_current1056(path, &prior_row), OLD);
+        ACTUAL.to_owned()
+    } else { current_source_before_current1056(path, row) };
+    authenticate(); result
+}
+fn current_source_before_current1056(path: &str, row: &serde_json::Value) -> String {
     if path != "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs" { return current_source_before_current1042(path, row); }
-    const CURRENT: &str = include_str!("../../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs");
+    const CURRENT: &str = include_str!("../../e/76c5ebcbe867b5e282db3cccb1df967a23f4ad5c65b82089f7d6db74d6302c15");
     const PRIOR: &str = include_str!("../../e/d49f3e5888a6368cd2a0271319415fdacd18e8fc9252246bfe34d2bec14d4ae2");
     const SHA: &str = "76c5ebcbe867b5e282db3cccb1df967a23f4ad5c65b82089f7d6db74d6302c15";
     assert_eq!((CURRENT.len(), format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(CURRENT.as_bytes())))), (244869, SHA.to_owned()));
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let physical = joint_reader::read(&root.join(path), CURRENT.len(), SHA, 2_097_152).unwrap();
+    let physical = joint_reader::read(&root.join("e/76c5ebcbe867b5e282db3cccb1df967a23f4ad5c65b82089f7d6db74d6302c15"), CURRENT.len(), SHA, 2_097_152).unwrap();
     assert_eq!(physical, CURRENT);
     assert_eq!(joint_reader::read(&root.join("e/d49f3e5888a6368cd2a0271319415fdacd18e8fc9252246bfe34d2bec14d4ae2"), PRIOR.len(), "d49f3e5888a6368cd2a0271319415fdacd18e8fc9252246bfe34d2bec14d4ae2", 2_097_152).unwrap(), PRIOR);
     let mut restored = physical.clone();
@@ -609,7 +643,7 @@ fn current_source(path: &str, row: &serde_json::Value) -> String {
         assert_eq!(current_source_before_current1042(path, &prior_row), PRIOR);
         physical.clone()
     } else { current_source_before_current1042(path, row) };
-    assert_eq!(joint_reader::read(&root.join(path), CURRENT.len(), SHA, 2_097_152).unwrap(), physical);
+    assert_eq!(joint_reader::read(&root.join("e/76c5ebcbe867b5e282db3cccb1df967a23f4ad5c65b82089f7d6db74d6302c15"), CURRENT.len(), SHA, 2_097_152).unwrap(), physical);
     assert_eq!(joint_reader::read(&root.join("e/d49f3e5888a6368cd2a0271319415fdacd18e8fc9252246bfe34d2bec14d4ae2"), PRIOR.len(), "d49f3e5888a6368cd2a0271319415fdacd18e8fc9252246bfe34d2bec14d4ae2", 2_097_152).unwrap(), PRIOR);
     result
 }

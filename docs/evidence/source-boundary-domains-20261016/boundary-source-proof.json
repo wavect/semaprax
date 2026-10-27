@@ -6,13 +6,13 @@
   "domains": {
     "hir": {
       "original_roots": 1046,
-      "current_boundary_members": 1375,
+      "current_boundary_members": 1377,
       "current_boundary_production": 473,
       "outside_production_still_fully_authenticated": 361,
       "full_role_production": 834,
-      "full_role_test_only": 1449,
-      "full_raw_sha256": "55b11079df89adc39f7b83988474b642bdd8a401afb8faa1033cb0787fd1f893",
-      "boundary_production_sha256": "dfb982f8d17723e71d0e93ba8adbafcae5ec4373397fff1a243cdae45a0c3fa1",
+      "full_role_test_only": 1451,
+      "full_raw_sha256": "b46603e5a8d2737038f352eaa12ef2bcc1d3a10ecb65540153b942f2d7e0ff58",
+      "boundary_production_sha256": "25599d73a2cf90b4adef5191d37ee1634593132d50a4da961f5525ec22f82566",
       "exact_original_forbidden_tokens": [
         "struct Resolver",
         "impl Resolver",
@@ -36,8 +36,8 @@
       "current_boundary_production": 95,
       "outside_production_still_fully_authenticated": 846,
       "full_role_production": 941,
-      "full_role_test_only": 1561,
-      "full_raw_sha256": "a433b86a897cf19b61e4c49f145c41b798109f5cb550e9a5d04dfe8fc6bdcd8e",
+      "full_role_test_only": 1563,
+      "full_raw_sha256": "fa527fc40dba27157027354051fbf1e2988a228007e2cd4133a926aadd97a141",
       "boundary_production_sha256": "b0f4724d9dcedaef0216e29614316feebceaa8214a2d45d7108276246efdb0a7",
       "exact_original_forbidden_tokens": [
         "use super::*;",

@@ -257,6 +257,30 @@ configuration, including every opaque field, against the unchanged 9753094-byte
 source bound. The decoded list grants exactly the original named-source scope.
 Entire legacy configurations and their independent readers remain executable.
 
+
+The separately versioned `semaprax.closed-prior-sources.prefixes.v2` spelling
+keeps all eight v1 tokens and adds these fixed disjoint prefixes:
+
+```text
+L: src/loan_plan/
+V: src/source_verify/
+B: src/bounded_output/
+A: src/ast/program_source/
+P: src/project/
+C: src/loop_calls/
+F: src/cleanup_plan/renewal_profile/
+G: src/codegen/
+```
+
+Schema dispatch selects the exact version's table. The complete v1 decoder and
+encoder remain independently callable, so v1's unmatched literal paths keep
+that spelling; new tokens are not accepted as v1 aliases. The current encoder
+emits v2 and proves the entire decoded configuration inverse. Both original
+physical and expanded bounds, preflight-before-joining order, opaque fields,
+source ordering and duplicates, ordinary acquisition and late authentication
+remain unchanged. This is a field transport, not an accepted source epoch or
+additional source authority. Actual final INSTALL size must still be checked.
+
 ## Invocation-local checker compilation reuse
 
 The optional FINAL checker reuse layer may retain at most two successfully

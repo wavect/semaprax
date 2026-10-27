@@ -177,7 +177,7 @@ def _joint_native_cargo_helper_before(actual):
 def _protected_helper(repo,j):
  path='tests/support/production_source_inventory_original.rs'
  assert j['helper_original']==path and j['helper_before_sha256']=='d51a124525e3d41469c1db223a0b4526faa3faff1c757b9526ca0b2233358e8c'
- actual=_current1045_helper_acquire(repo,path,159869,'8bb5c1ee5819646d7b1f48f6584a2c2eca1faa820674844146aef0e94a603262')
+ actual=_current1045_helper_acquire(repo,path,160120,'ba4c1da7f0b608e6d17e24e7d891e0861a80f011e29041343a95c55758a6931e')
  epoch=_inventory_model_epoch_before(_interop_model_epoch_before(_next_raw_registration_helper_before(_constructor903_raw_helper_before(_native966_helper_before(_native967_helper_before(_native977_helper_before(_native990_helper_before(_native_registered_helper_before(_native_v18_helper_before(_native_moved_helper_before(_native_closed_roots_helper_before(_joint_native_cargo_helper_before(_current1045_helper_before(repo,actual))))))))))))))
  assert epoch==git(repo,'424e9611a87e66f43a82a7ce7c9b4bb56a4ec64b',path), 'complete helper source epoch'
  restored=_restore_protected_helper(epoch)
@@ -317,16 +317,16 @@ def _current1045_helper_before_prior(repo,actual,_read):
  return restored
 
 
-def _current1045_helper_before(repo,actual):
+def _current1045_helper_before_oct27(repo,actual,_read):
  # Exact current ingress precedes every unchanged historical helper check.
  source='tests/support/production_source_inventory_original.rs'
  current_sha='8bb5c1ee5819646d7b1f48f6584a2c2eca1faa820674844146aef0e94a603262'
  prior_sha='035b4437d1bc4a0943d96f966e5f8fb84ab21a3be86c9a66a7943b740e404b58'
  def acquire():
-  physical=_current1045_helper_acquire(repo,source,159869,current_sha)
+  physical=_read(repo,source,159869,current_sha)
   assert physical==actual
-  assert _current1045_helper_acquire(repo,'e/'+current_sha,159869,current_sha)==actual
-  return _current1045_helper_acquire(repo,'e/'+prior_sha,156019,prior_sha)
+  assert _read(repo,'e/'+current_sha,159869,current_sha)==actual
+  return _read(repo,'e/'+prior_sha,156019,prior_sha)
  prior=acquire();restored=actual;limit=len(actual)
  for edit in reversed([{'start': 33426, 'end': 37186, 'after': '    if path != "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs" { return current_source_before_current1056(path, row); }\n    const ACTUAL: &str = include_str!("../../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs");\n    const OLD: &str = include_str!("../../e/76c5ebcbe867b5e282db3cccb1df967a23f4ad5c65b82089f7d6db74d6302c15");\n    const ACTUAL_SHA: &str = "7ae58be3a30b2981842787d871284f991206e73553b0cbdb8308ef7af5e163e3";\n    assert_eq!((ACTUAL.len(), format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(ACTUAL.as_bytes())))), (245843, ACTUAL_SHA.to_owned()));\n    let root = Path::new(env!("CARGO_MANIFEST_DIR"));\n    let authenticate = || {\n        assert_eq!(joint_reader::read(&root.join(path), ACTUAL.len(), ACTUAL_SHA, 2_097_152).unwrap(), ACTUAL);\n        assert_eq!(joint_reader::read(&root.join("e/7ae58be3a30b2981842787d871284f991206e73553b0cbdb8308ef7af5e163e3"), ACTUAL.len(), ACTUAL_SHA, 2_097_152).unwrap(), ACTUAL);\n        assert_eq!(joint_reader::read(&root.join("e/76c5ebcbe867b5e282db3cccb1df967a23f4ad5c65b82089f7d6db74d6302c15"), OLD.len(), "76c5ebcbe867b5e282db3cccb1df967a23f4ad5c65b82089f7d6db74d6302c15", 2_097_152).unwrap(), OLD);\n    };\n    authenticate();\n    let edits: serde_json::Value = serde_json::from_str(r########"[[50425,51399,"project/reporting.rs\\"),include_str!(\\"../../../../../src/workspace_report/site.rs\\"),include_str!(\\"../../../../../src/workspace_report/site/tests.rs\\"),include_str!(\\"../../../../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_advance.rs\\"),include_str!(\\"../../../../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/lexical_advance.rs\\"),include_str!(\\"../../../../../src/source_reflows_merge/main_e177_packet_reacquire.rs\\"),include_str!(\\"../../../../../src/source_reflows_merge/main_e177_reacquired_context.rs\\"),include_str!(\\"../../../../../src/hir/validation/scope_checkpoint/merge/partial_retain.rs\\"),include_str!(\\"../../../../../src/hir/validation/scope_checkpoint/merge/partial_retain/before.rs\\"),include_str!(\\"../../../../../src/hir/validation/scope_checkpoint/merge/partial_retain/tests.rs\\"),include_str!(\\"../../../../../src/cleanup_plan/replay/factored/paired/visited_transfer.rs\\"),include_str!(\\"../../../../../src/",""]]"########).unwrap();\n    let edits = edits.as_array().unwrap(); assert!(edits.len() <= 512);\n    let mut restored = ACTUAL.to_owned(); let mut next = restored.len();\n    for edit in edits.iter().rev() {\n        assert_eq!(edit.as_array().unwrap().len(), 4);\n        let lo = usize::try_from(edit[0].as_u64().unwrap()).unwrap();\n        let hi = usize::try_from(edit[1].as_u64().unwrap()).unwrap();\n        assert!(lo <= hi && hi <= next); assert_eq!(restored.get(lo..hi), Some(edit[2].as_str().unwrap()));\n        restored.replace_range(lo..hi, edit[3].as_str().unwrap());\n        assert!(restored.len() <= 2_097_152); next = lo;\n    }\n    assert_eq!(restored, OLD, "ENTIRE fixed244869 native owner before unchanged d49f history");\n    let wants_actual = row["length"].as_u64() == Some(ACTUAL.len() as u64) && row["sha256"].as_str() == Some(ACTUAL_SHA);\n    let result = if wants_actual {\n        let mut prior_row = row.clone();\n        prior_row["length"] = (OLD.len() as u64).into(); prior_row["sha256"] = "76c5ebcbe867b5e282db3cccb1df967a23f4ad5c65b82089f7d6db74d6302c15".into();\n        assert_eq!(current_source_before_current1056(path, &prior_row), OLD);\n        ACTUAL.to_owned()\n    } else { current_source_before_current1056(path, row) };\n    authenticate(); result\n}\nfn current_source_before_current1056(path: &str, row: &serde_json::Value) -> String {\n', 'before': ''}, {'start': 37365, 'end': 37481, 'after': '    const CURRENT: &str = include_str!("../../e/76c5ebcbe867b5e282db3cccb1df967a23f4ad5c65b82089f7d6db74d6302c15");\n', 'before': '    const CURRENT: &str = include_str!("../../crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs");\n'}, {'start': 37883, 'end': 38044, 'after': '    let physical = joint_reader::read(&root.join("e/76c5ebcbe867b5e282db3cccb1df967a23f4ad5c65b82089f7d6db74d6302c15"), CURRENT.len(), SHA, 2_097_152).unwrap();\n', 'before': '    let physical = joint_reader::read(&root.join(path), CURRENT.len(), SHA, 2_097_152).unwrap();\n'}, {'start': 40093, 'end': 40261, 'after': '    assert_eq!(joint_reader::read(&root.join("e/76c5ebcbe867b5e282db3cccb1df967a23f4ad5c65b82089f7d6db74d6302c15"), CURRENT.len(), SHA, 2_097_152).unwrap(), physical);\n', 'before': '    assert_eq!(joint_reader::read(&root.join(path), CURRENT.len(), SHA, 2_097_152).unwrap(), physical);\n'}]):
   start,end=edit['start'],edit['end'];after,before=edit['after'].encode(),edit['before'].encode()
@@ -338,10 +338,41 @@ def _current1045_helper_before(repo,actual):
   assert root==repo
   acquire()
   selected='e/'+prior_sha if relative==source else relative
-  value=_current1045_helper_acquire(repo,selected,length,digest)
+  value=_read(repo,selected,length,digest)
   acquire()
   return value
  acquire()
  result=_current1045_helper_before_prior(repo,restored,read_prior)
+ assert acquire()==prior
+ return result
+
+
+def _current1045_helper_before(repo,actual):
+ # The current registration helper enters its complete immediate predecessor
+ # before any unchanged historical reader or inverse is selected.
+ source='tests/support/production_source_inventory_original.rs'
+ current_sha='ba4c1da7f0b608e6d17e24e7d891e0861a80f011e29041343a95c55758a6931e'
+ prior_sha='8bb5c1ee5819646d7b1f48f6584a2c2eca1faa820674844146aef0e94a603262'
+ def acquire():
+  physical=_current1045_helper_acquire(repo,source,160120,current_sha)
+  assert physical==actual
+  assert _current1045_helper_acquire(repo,'e/'+current_sha,160120,current_sha)==actual
+  return _current1045_helper_acquire(repo,'e/'+prior_sha,159869,prior_sha)
+ prior=acquire();restored=actual;limit=len(actual)
+ for edit in reversed([{'start': 33870, 'end': 34116, 'after': '    const ACTUAL_SHA: &str = "f477df4692424e3526a712ba4b880d21f6f58a42f8c570f976bf6af6b942d0ef";\n    assert_eq!((ACTUAL.len(), format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(ACTUAL.as_bytes())))), (246090, ACTUAL_SHA.to_owned()));\n', 'before': '    const ACTUAL_SHA: &str = "7ae58be3a30b2981842787d871284f991206e73553b0cbdb8308ef7af5e163e3";\n    assert_eq!((ACTUAL.len(), format!("{:x}", semaprax::digest_hex::LowerHex(Sha256::digest(ACTUAL.as_bytes())))), (245843, ACTUAL_SHA.to_owned()));\n'}, {'start': 34310, 'end': 34486, 'after': '        assert_eq!(joint_reader::read(&root.join("e/f477df4692424e3526a712ba4b880d21f6f58a42f8c570f976bf6af6b942d0ef"), ACTUAL.len(), ACTUAL_SHA, 2_097_152).unwrap(), ACTUAL);\n', 'before': '        assert_eq!(joint_reader::read(&root.join("e/7ae58be3a30b2981842787d871284f991206e73553b0cbdb8308ef7af5e163e3"), ACTUAL.len(), ACTUAL_SHA, 2_097_152).unwrap(), ACTUAL);\n'}, {'start': 34739, 'end': 36094, 'after': '    let edits: serde_json::Value = serde_json::from_str(r########"[[50425,51646,"project/reporting.rs\\"),include_str!(\\"../../../../../src/workspace_report/site.rs\\"),include_str!(\\"../../../../../src/workspace_report/site/tests.rs\\"),include_str!(\\"../../../../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_advance.rs\\"),include_str!(\\"../../../../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/lexical_advance.rs\\"),include_str!(\\"../../../../../src/source_reflows_merge/main_e177_packet_reacquire.rs\\"),include_str!(\\"../../../../../src/source_reflows_merge/main_e177_reacquired_context.rs\\"),include_str!(\\"../../../../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_positive_bytes.rs\\"),include_str!(\\"../../../../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/positive_bytes.rs\\"),include_str!(\\"../../../../../src/hir/validation/scope_checkpoint/merge/partial_retain.rs\\"),include_str!(\\"../../../../../src/hir/validation/scope_checkpoint/merge/partial_retain/before.rs\\"),include_str!(\\"../../../../../src/hir/validation/scope_checkpoint/merge/partial_retain/tests.rs\\"),include_str!(\\"../../../../../src/cleanup_plan/replay/factored/paired/visited_transfer.rs\\"),include_str!(\\"../../../../../src/",""]]"########).unwrap();\n', 'before': '    let edits: serde_json::Value = serde_json::from_str(r########"[[50425,51399,"project/reporting.rs\\"),include_str!(\\"../../../../../src/workspace_report/site.rs\\"),include_str!(\\"../../../../../src/workspace_report/site/tests.rs\\"),include_str!(\\"../../../../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_advance.rs\\"),include_str!(\\"../../../../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/lexical_advance.rs\\"),include_str!(\\"../../../../../src/source_reflows_merge/main_e177_packet_reacquire.rs\\"),include_str!(\\"../../../../../src/source_reflows_merge/main_e177_reacquired_context.rs\\"),include_str!(\\"../../../../../src/hir/validation/scope_checkpoint/merge/partial_retain.rs\\"),include_str!(\\"../../../../../src/hir/validation/scope_checkpoint/merge/partial_retain/before.rs\\"),include_str!(\\"../../../../../src/hir/validation/scope_checkpoint/merge/partial_retain/tests.rs\\"),include_str!(\\"../../../../../src/cleanup_plan/replay/factored/paired/visited_transfer.rs\\"),include_str!(\\"../../../../../src/",""]]"########).unwrap();\n'}]):
+  start,end=edit['start'],edit['end'];after,before=edit['after'].encode(),edit['before'].encode()
+  assert type(start)is int and type(end)is int and 0<=start<=end<=limit and restored[start:end]==after
+  restored=restored[:start]+before+restored[end:];limit=start
+  assert len(restored)<=2097152
+ assert restored==prior, 'ENTIRE pre541 protected helper'
+ def read_prior(root,relative,length,digest):
+  assert root==repo
+  acquire()
+  selected='e/'+prior_sha if relative==source else relative
+  value=_current1045_helper_acquire(repo,selected,length,digest)
+  acquire()
+  return value
+ acquire()
+ result=_current1045_helper_before_oct27(repo,restored,read_prior)
  assert acquire()==prior
  return result

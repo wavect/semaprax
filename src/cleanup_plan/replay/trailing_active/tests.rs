@@ -83,7 +83,7 @@ fn complete_old_and_current_paths_work_materializations_and_actual_backing_cover
 fn oracle_cold_run(program:&ResolvedProgram,old:bool,count:usize,shape:usize)->(OracleRun,usize){
     let function=&program.functions[0];
     // Independently obtain every expected output field before the paid observer.
-    let expected={let mut budget=ReplayBudget::unobserved();let mut work=SkeletonWork::new(program,function,&mut budget);let input=seed(count,shape,&mut work).unwrap();let suffixes=seed(2,2,&mut work).unwrap();before_sequence_skeleton_paths(input,&suffixes,&mut work).unwrap()};
+    let expected={let mut budget=ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);let mut work=SkeletonWork::new(program,function,&mut budget);let input=seed(count,shape,&mut work).unwrap();let suffixes=seed(2,2,&mut work).unwrap();before_sequence_skeleton_paths(input,&suffixes,&mut work).unwrap()};
     let ((ok,receipt,seed_work,materialized),metrics)=measure(||{
         let scope=allocation::OracleScope::open_with_work(1<<28,1<<26).unwrap();let lease=scope.lease();let invocation=allocation::enter(program,function,lease).unwrap();let observation=SequenceObservation::begin(lease);
         let mut budget=ReplayBudget::with_skeleton_limit_oracle(MAX_REPLAY_WORK_UNITS,lease);let mut work=SkeletonWork::with_index(program,function,&mut budget,None).unwrap();
@@ -357,6 +357,11 @@ fn actual_query_and_frame_positive_frontiers_refuse_exact_request_before_scan_or
 }
 #[test]
 fn actual_selected_transfer_work_refusal_keeps_original_tail_then_published_drop_order() {
+    // Only the immutable process-lifetime prelude is acquired outside this
+    // invocation. The complete fixture, both producers and every input/output
+    // owner are still constructed and dropped inside the original observation.
+    let held_prelude = crate::prelude::declarations();
+    let prelude_identity = (held_prelude.as_ptr(), held_prelude.len());
     let ((), metrics) = measure(|| {
     let program=fixture();let function=&program.functions[0];let n=warm_count();assert!(n>=8);
     let observe=|old| {
@@ -369,4 +374,7 @@ fn actual_selected_transfer_work_refusal_keeps_original_tail_then_published_drop
     let old=observe(true);let current=observe(false);assert_eq!(current.0,old.0,"whole original selected raw diagnostic");assert_eq!(current.1,old.1);assert_eq!(&current.1[..5],&[2,3,4,0,1]);
     });
     assert!(!metrics.invalid); assert_eq!(metrics.live,0); assert_eq!(metrics.allocated,metrics.freed);
+    let after_prelude = crate::prelude::declarations();
+    assert_eq!(prelude_identity, (after_prelude.as_ptr(), after_prelude.len()));
+    assert!(std::ptr::eq(held_prelude, after_prelude));
 }

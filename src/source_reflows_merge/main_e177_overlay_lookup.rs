@@ -522,6 +522,11 @@ pub(crate) fn compiled(source: &str) -> Option<&'static str> {
         "src/hir/validation/scope_checkpoint/merge/partial_retain/before.rs" => Some(include_str!("../../src/hir/validation/scope_checkpoint/merge/partial_retain/before.rs")),
         "src/hir/validation/scope_checkpoint/merge/partial_retain/tests.rs" => Some(include_str!("../../src/hir/validation/scope_checkpoint/merge/partial_retain/tests.rs")),
         "src/cleanup_plan/replay/factored/paired/visited_transfer.rs" => Some(include_str!("../../src/cleanup_plan/replay/factored/paired/visited_transfer.rs")),
+        "src/project/reporting.rs" => Some(include_str!("../../src/project/reporting.rs")),
+        "src/workspace_report/site.rs" => Some(include_str!("../../src/workspace_report/site.rs")),
+        "src/workspace_report/site/tests.rs" => Some(include_str!("../../src/workspace_report/site/tests.rs")),
+        "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_advance.rs" => Some(include_str!("../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/before_advance.rs")),
+        "src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/lexical_advance.rs" => Some(include_str!("../../src/cleanup_plan/replay/skeleton_work/enumerated_prefix/receiving_sort/lexical_advance.rs")),
         _ => None,
     }
 }

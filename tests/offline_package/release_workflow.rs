@@ -426,10 +426,11 @@ fn unix_packager_rejects_tag_and_commit_drift_before_output() {
 fn release_reconcile_agrees_with_the_real_published_v0_4_1_evidence() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     // CI checks out with `fetch-depth: 1` and `fetch-tags: false`, so a
-    // shallow job has no local `v0.4.1` tag and the reconcile reports
-    // `no-candidate` even though the repository does have a published
-    // release. Ensure the tag is present before reconciling; this is a
-    // read-only `git fetch` and does not mutate any repository file.
+    // shallow job has neither historical tag. Fetch each required ref alone:
+    // fetching all tags also downloads unrelated history and can fail before
+    // either required ref is installed. Check failures at the fetch boundary;
+    // never turn a failed prerequisite into a misleading `no-candidate` state.
+    // This changes local Git refs only, never source files or remote state.
     // The failed historical 0.6.0 tag remains tagged-unpublished. The real
     // published evidence for 0.4.1 must remain hosted-green.
     for version in ["0.4.1", "0.6.0"] {
@@ -440,11 +441,24 @@ fn release_reconcile_agrees_with_the_real_published_v0_4_1_evidence() {
             .output()
             .expect("git rev-list must run");
         if !tag_check.status.success() {
-            let _ = Command::new("git")
-                .args(["fetch", "--tags", "--prune", "--prune-tags"])
+            let refspec = format!("refs/tags/v{version}:refs/tags/v{version}");
+            let fetch = Command::new("git")
+                .args([
+                    "fetch",
+                    "--no-tags",
+                    "--depth=1",
+                    "--filter=blob:none",
+                    "origin",
+                    &refspec,
+                ])
                 .current_dir(root)
-                .output();
-            break;
+                .output()
+                .expect("required historical release tag fetch must run");
+            assert!(
+                fetch.status.success(),
+                "cannot fetch required release tag v{version}: {}",
+                String::from_utf8_lossy(&fetch.stderr)
+            );
         }
     }
     // The historical 0.6.0 tag remains tagged-unpublished; the v0.7.0

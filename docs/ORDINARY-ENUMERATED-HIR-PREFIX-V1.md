@@ -89,3 +89,29 @@ equation removes only paid call transports for observed paired advances; it is
 not a heap saving or an end-to-end performance claim. These controls have not
 executed. Scoped compiler checks, full caller measurements and unchanged CLI49
 admission remain pending at the original limits.
+
+The #952 source candidate expands the complete positive query-owner acquisition
+lexically at the two sequence/classifier entrypoints. The slot still takes its
+owning Box before authenticating; failure and panic destroy that local owner
+before any publication. The allocation, capture, sticky zero-byte/work probes,
+classification, visit replay and successful republishing operations keep their
+original order and multiplicity. No borrowed proof survives inside the slot
+during authentication, and no selector, cache, additional Result or fee credit
+is introduced.
+
+The query-call bank substitutes the removed take-function returned/received
+`Result<Box<Proof>, Diagnostic>` pair with the lexical block's yielded/received
+`Box<Proof>` pair. Every other original owner, Option, authentication, payment,
+work and publication role remains funded. The old take and both old entrypoint
+bodies retain their original tariff and share only byte-identical unchanged
+classification and physical owner helpers; a complete-source inverse binds
+those helpers. The whole immediate-old ordinary validation input/check/classify
+caller is separately compiled with explicit old-query bindings. Older oracles
+and all of their source targets remain independent.
+
+Owning controls cover counted cold/warm/full-caller invoice differences, work
+frontiers and all diagnostic fields, exact/short/zero/floor/sticky refusal and
+complete Drop, including a caught unwind while Work survives. These source
+controls have not executed. The observed preliminary CHECK refusal only locates
+a reached owner boundary; it establishes neither dominant cost nor unchanged
+CLI49 admission, which remains required at the original limits.

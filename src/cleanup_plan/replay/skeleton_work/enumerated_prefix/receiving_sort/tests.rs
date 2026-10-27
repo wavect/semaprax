@@ -1,7 +1,9 @@
 //! Complete old heap algorithm remains the independently executable receiver.
 use super::*;
+// Historical direct controls retain the exact post-948 nominal layouts.
 use crate::bounded_output::with_limit_usage_refusal;
 use crate::test_allocation_observer::{measure, Metrics};
+use before_positive_bytes::{Cursor, Frame, Pair};
 
 fn program() -> ResolvedProgram {
     let checked = crate::check(
@@ -637,3 +639,6 @@ mod branch_frames;
 
 #[path = "lexical_advance.rs"]
 mod lexical_advance;
+
+#[path = "positive_bytes.rs"]
+mod positive_bytes;

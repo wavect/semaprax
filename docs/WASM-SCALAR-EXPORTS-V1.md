@@ -122,10 +122,18 @@ aggregate/resource program would be a different, separately evidenced ABI.
 
 SDK-mode modules export only the explicitly selected adapters. They do not
 export the legacy `semaprax_main`, memory, unselected functions, or owned
-resource adapters. Successful String-free builds without `--export` retain
-the unchanged legacy `semaprax.web.v3` package and `semaprax_main` behavior.
+resource adapters. Successful String-free builds without `--export` whose
+imports the generated loader supplies retain the unchanged legacy
+`semaprax.web.v3` package and `semaprax_main` behavior.
 Legacy scalar-only String Web builds reject with `SPX-W116` before output
 creation: that lowering uses the separate internal String import ABI.
+After that check, legacy Web builds also reject with `SPX-W131`, before output
+creation, any module with an import outside the inventory the generated
+loader links on the branch it selects: `env` functions from the checked
+arithmetic, byte and String-toolkit set always, plus the owned-ABI imports only
+when the package has owned exports. The unversioned `env.spx_vec_*` Vec imports
+are the current example; such builds previously reported success with a
+package their own loader could not instantiate, and now refuse.
 Aggregate String builds use the private carrier adapter specified by
 [owned String variants v1](OWNED-STRING-VARIANTS-V1.md).
 The separate explicit [internal String Web profile](WASM-INTERNAL-STRINGS-WEB-V1.md)

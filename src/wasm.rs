@@ -72,6 +72,8 @@ mod scalar_call_admission;
 mod source_result_component_v4;
 mod text_exports;
 mod vec_ops;
+/// Legacy Web import-inventory admission (refuses before output creation).
+mod web_import_inventory;
 /// Core Wasm call-depth admission (issue #293 P2-1): the sticky exported
 /// marker a refused build sets.
 pub(crate) use aggregate::call_admission::CALL_DEPTH_EXCEEDED_EXPORT;
@@ -2032,6 +2034,8 @@ pub fn build_web(program: &Program, output: &Path) -> Result<(), Diagnostic> {
             "for standalone scalar String source, use --profile internal-strings-v1 with admitted scalar exports; aggregate String programs use the aggregate Web lowering",
         ));
     }
+    let wasm_bytes = emit_resolved_module(&resolved)?;
+    web_import_inventory::admit(&wasm_bytes, !owned_plans.is_empty())?;
     std::fs::create_dir(output).map_err(|error| {
         let code = if error.kind() == std::io::ErrorKind::AlreadyExists {
             "SPX-I307"
@@ -2046,7 +2050,6 @@ pub fn build_web(program: &Program, output: &Path) -> Result<(), Diagnostic> {
             ),
         )
     })?;
-    let wasm_bytes = emit_resolved_module(&resolved)?;
     std::fs::write(output.join("app.wasm"), &wasm_bytes).map_err(|error| {
         Diagnostic::io(
             "SPX-I302",

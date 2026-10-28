@@ -2301,8 +2301,12 @@ Its eight-file package preserves exact compiler/runtime outputs; a separate
 manifest binds artifacts, while the local browser console authenticates the
 descriptor before constructing scalar controls. Legacy `build_web` rejects
 String-bearing ordinary and materialized generic functions before output
-creation because its runtime lacks those imports. Raw emission and successful
-String-free legacy packages stay unchanged. See [Standalone internal String Web
+creation because its runtime lacks those imports. `src/wasm/web_import_inventory.rs`
+owns the following legacy Web import-inventory admission: `build_web` emits the
+module in memory and refuses, with `SPX-W131` before output creation, any import
+the generated loader does not link on its selected branch. Raw emission and
+successful String-free legacy packages whose imports the loader supplies stay
+unchanged. See [Standalone internal String Web
 package v1](WASM-INTERNAL-STRINGS-WEB-V1.md#local-validation-record) for selected
 local consumer and boundary evidence; required host/release gates remain open.
 

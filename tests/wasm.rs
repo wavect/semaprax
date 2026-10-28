@@ -20,6 +20,8 @@ mod internal_strings_web_v1;
 mod law_runtime_structured;
 #[path = "wasm/legacy_string_admission_v1.rs"]
 mod legacy_string_admission_v1;
+#[path = "wasm/legacy_vec_admission_v1.rs"]
+mod legacy_vec_admission_v1;
 #[path = "wasm/owned.rs"]
 mod owned;
 #[path = "wasm/readme_web_package_commands.rs"]

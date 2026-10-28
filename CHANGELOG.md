@@ -1,3 +1,7 @@
+## Legacy Web import admission (2026-10-28)
+
+- Refuse legacy `build --target web` modules whose host imports the generated browser loader does not supply, such as the unversioned `env.spx_vec_*` Vec imports, with `SPX-W131` before creating output, and stop leaving an empty output directory when emission fails.
+
 ## Replay and loan scratch allocation (2026-10-27)
 
 - Reduce transient replay history, continuation, path-join, and loan-directory allocation while preserving complete checked HIR, canonical plans, diagnostics, work limits, and independent comparisons. Keep the original allocation and failure controls and add full prior-producer comparisons for the changed storage paths.

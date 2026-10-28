@@ -64,13 +64,32 @@ lower-schema programs remain v10-v13, and CleanupPlan selection is unchanged.
 - `SPX-G108`: stale generic-call tuple, source/HIR index mismatch, or excessive
   post-HIR semantic delta.
 - Existing v1 parse, name, stale-revision, effect, verification, and A0 I/O
-  diagnostics retain their codes and behavior.
+  diagnostics retain their codes and behavior, except for the function-rename
+  target check below.
 
 The direct single-file apply route also rejects a schema-less rename whose
 candidate revision equals its base as `SPX-G106`, before creating a staging
 file. A source whose retained permissions are read-only rejects as
 `SPX-I205`; atomic replacement never turns read-only input into write
 authority.
+
+A schema-less rename of a function in a single-file apply requires a base that
+resolves: a base that fails resolution rejects with the resolver's own
+diagnostic before staging, even when the candidate would verify. When base and
+candidate both resolve and the candidate changes the resolved target of any
+call, value invocation, or function reference, the rename rejects as
+`SPX-G111` before staging and leaves the source unchanged. This happens when a
+local binding or parameter captures the new name, or when a renamed call site
+resolved to a same-named local value. Project rename runs the same comparison
+over the resolved HIR of every Project module in the base snapshot and in the
+complete candidate build, before its typed-fact equivalence gate, which compares
+no display names and records no same-module call edge. A retargeting Project
+rename rejects as `SPX-G111` before any plan is retained, so nothing reaches
+A0 or the source. A candidate `rename_declaration` of a function, which a
+semantic transaction `RenameDisplayName` also applies, runs the same
+comparison between the candidate's base revision and its complete candidate
+build and rejects a retargeting rename as `SPX-G111` before the candidate
+exists.
 
 ## Threat model and nonclaims
 

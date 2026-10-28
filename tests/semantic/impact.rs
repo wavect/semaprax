@@ -1049,3 +1049,55 @@ session protocol "app-session-v1" {
     let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
     assert!(parsed.get("session_protocols_affected").is_none());
 }
+
+const FUNCTION_VALUE_RENAME_SOURCE: &str = r#"module t;
+
+@id("t.one")
+fn one() -> i64
+{
+    1
+}
+
+@id("t.two")
+fn two() -> i64
+{
+    2
+}
+
+@id("t.main")
+fn main() -> i64
+{
+    let f = two;
+    one() * 10 + f()
+}
+"#;
+
+#[test]
+fn v1_function_rename_capture_fails_g111_before_the_legacy_graph_gate() {
+    for (new_name, code) in [("f", "SPX-G111"), ("uno", "SPX-G410")] {
+        let (fixture, revision) = Fixture::new(
+            &format!("v1-capture-{new_name}"),
+            FUNCTION_VALUE_RENAME_SOURCE,
+        );
+        std::fs::write(
+            &fixture.patch,
+            format!("base {revision}\nrename t.one to {new_name}\nrequire no-new-effects\n"),
+        )
+        .unwrap();
+        let before_inventory = fixture.inventory();
+        let impact_error = impact::preview(
+            &fixture.source,
+            &fixture.patch,
+            &impact::SemanticImpactOptions::default(),
+        )
+        .unwrap_err();
+        assert_eq!(impact_error[0].code, code, "impact {new_name}");
+        let review_error = semaprax::review::preview(&fixture.source, &fixture.patch).unwrap_err();
+        assert_eq!(review_error[0].code, code, "review {new_name}");
+        assert_eq!(fixture.inventory(), before_inventory);
+        assert_eq!(
+            std::fs::read_to_string(&fixture.source).unwrap(),
+            FUNCTION_VALUE_RENAME_SOURCE
+        );
+    }
+}

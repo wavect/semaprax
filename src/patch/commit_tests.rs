@@ -448,10 +448,14 @@ fn target_preflight_constructs_four_thousand_edits_in_one_source_pass() {
     let mut source = String::from(
             "module patch.many_edits;\n@id(\"target.helper\") fn helper()->i64{1}\n@id(\"app.main\") fn main()->i64{\n",
         );
-    for index in 0..4096 {
-        source.push_str(&format!("let value{index}=helper();\n"));
+    // 64 bindings of 64 calls each keep the base resolvable: v1 function
+    // renames resolve the base, and one binding per call exceeds the
+    // program-wide cleanup replay budget.
+    let calls = ["helper()"; 64].join("+");
+    for index in 0..64 {
+        source.push_str(&format!("let value{index}={calls};\n"));
     }
-    source.push_str("value4095}\n");
+    source.push_str("value63}\n");
     let patch = format!(
         "base {}\nrename target.helper to renamed\n",
         graph::revision(&parse(&source, "many-edits.spx").unwrap())

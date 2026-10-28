@@ -235,3 +235,48 @@ fn sealed_plan_acquires_a0_for_validated_imported_module_without_main() {
 
     assert_eq!(before, inventory(&fixture.0));
 }
+
+#[test]
+fn rename_that_lets_a_local_value_capture_a_call_is_refused_before_planning() {
+    let fixture = fixture();
+    let manifest_path = fixture.0.join("semaprax.toml");
+    let manifest = std::fs::read_to_string(&manifest_path).unwrap().replace(
+        "\"calculator.not\", ",
+        "\"calculator.not\", \"calculator.one\", ",
+    );
+    std::fs::write(&manifest_path, manifest).unwrap();
+    let core_path = fixture.0.join("src/core.spx");
+    let mut core = std::fs::read_to_string(&core_path).unwrap();
+    core.push_str(
+        "\n@id(\"calculator.one\")\nfn one() -> i64\n{\n    1\n}\n\n\
+         @id(\"calculator.two\")\nfn two() -> i64\n{\n    2\n}\n\n\
+         @id(\"calculator.caller\")\nfn caller() -> i64\n{\n    let f = two;\n    one() * 10 + f()\n}\n",
+    );
+    std::fs::write(&core_path, core).unwrap();
+    let before = inventory(&fixture.0);
+    let snapshot = super::super::load_snapshot(&manifest_path).unwrap();
+
+    let diagnostics = snapshot
+        .prepare_rename("calculator.one", "one", "f")
+        .err()
+        .expect("a rename captured by the local `f` was planned");
+    assert!(
+        diagnostics.iter().any(|diagnostic| {
+            diagnostic.code == "SPX-G111" && diagnostic.message.contains("calculator.caller")
+        }),
+        "{diagnostics:?}"
+    );
+    let prepared = snapshot
+        .prepare_rename("calculator.one", "one", "uno")
+        .unwrap();
+    assert!(prepared
+        .candidate_source()
+        .source()
+        .contains("uno() * 10 + f()"));
+    let impact: serde_json::Value = serde_json::from_str(prepared.impact()).unwrap();
+    assert_eq!(
+        impact["conclusions"]["behavioral_call_edge_delta"],
+        serde_json::Value::Bool(false)
+    );
+    assert_eq!(before, inventory(&fixture.0));
+}

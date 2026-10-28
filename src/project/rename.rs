@@ -268,6 +268,13 @@ pub(super) fn prepare(
             "Project rename pure patch and complete candidate build disagree",
         ));
     }
+    // The typed-fact gate below omits display names and records no same-module
+    // call edge, so a local value capturing a renamed call is checked here. The
+    // impact conclusion `behavioral_call_edge_delta:false` rests on both gates.
+    crate::patch::validate_project_rename_targets(
+        snapshot.semantic.image_modules(),
+        candidate.semantic.image_modules(),
+    )?;
     let patch_digest = domain_digest(PATCH_DIGEST_DOMAIN, patch_bytes.as_bytes());
     let candidate_graph_digest = candidate.semantic.graph_digest().to_owned();
     if !snapshot

@@ -93,22 +93,51 @@ fn internal_owned_record_imports_preserve_checked_calls_and_scalar_boundary() {
 }
 #[test]
 fn internal_owned_record_import_requires_direct_types_and_no_generic_widening() {
+    // Private Nominal Layout Closure v1 (15149c189): exact imported function
+    // signatures root the private `Reader` layout, so a caller that never names
+    // `Reader` needs no type import. An authored name still needs the direct
+    // import, and generic signatures keep their closed explicit route.
     let missing = APP.replace(
         "use type @id(\"reader.type\") from reader.provider as Reader;",
         "",
     );
-    let errors = build_owned(sources(&missing, PROVIDER))
-        .err()
-        .expect("direct type import required");
-    assert!(errors.iter().any(|error| error.code == "SPX-G172"));
+    assert_ne!(missing, APP);
+    let built = build_owned(sources(&missing, PROVIDER))
+        .expect("function-only signature roots authenticate the private record layout");
+    assert!(!built.edges.iter().any(|edge| edge.caller_path == "app.spx"
+        && matches!(edge.kind, "type_import" | "type_reference")));
+    let linked = built
+        .linked_owned_data_api_program_with_roots("reader.app", &[])
+        .expect("private-layout closure links the real providers");
+    hir::validate(&linked).expect("independent HIR cleanup replay");
+    assert!(linked
+        .types
+        .iter()
+        .any(|ty| ty.id.as_str() == "reader.type"));
+    let value = crate::interpreter::evaluate_resolved_zero_arg_i64(&linked, "app.main", 100_000)
+        .expect("linked private-layout reader runs");
+    assert!(matches!(
+        value.outcome,
+        crate::interpreter::ResolvedEvaluationOutcome::ReturnedI64(1)
+    ));
+    assert!(built.linked_scalar_program("reader.app").is_err());
+    let declaration = "@id(\"app.bad\") fn bad(value: borrow Reader) -> usize { value.cursor }";
+    build_owned(sources(&format!("{APP}\n{declaration}\n"), PROVIDER))
+        .expect("the explicitly imported name may be authored");
+    assert!(
+        build_owned(sources(&format!("{missing}\n{declaration}\n"), PROVIDER)).is_err(),
+        "a private layout grants no source name"
+    );
     let generic = PROVIDER.replace(
         "fn advance(value:own Reader)",
         "fn advance<T>(value:own Reader)",
     );
-    let errors = build_owned(sources(APP, &generic))
-        .err()
-        .expect("generic import remains closed");
-    assert!(errors.iter().any(|error| error.code == "SPX-G172"));
+    for app in [APP, missing.as_str()] {
+        let errors = build_owned(sources(app, &generic))
+            .err()
+            .expect("generic import remains closed");
+        assert!(errors.iter().any(|error| error.code == "SPX-G172"));
+    }
 }
 
 #[test]
@@ -118,10 +147,36 @@ fn internal_owned_record_import_rejects_same_shape_wrong_identity() {
         "use type @id(\"reader.type\")",
         "use type @id(\"reader.other\")",
     );
-    let errors = build_owned(sources(&app, &provider))
+    // Private Nominal Layout Closure v1 (15149c189): the exact function
+    // signatures still root the real `reader.type` layout, so an unused alias
+    // for a same-shape foreign record substitutes nothing and is inert.
+    let built = build_owned(sources(&app, &provider))
+        .expect("an unused foreign alias does not replace the signature identity");
+    let linked = built
+        .linked_owned_data_api_program_with_roots("reader.app", &[])
+        .unwrap();
+    hir::validate(&linked).unwrap();
+    let value =
+        crate::interpreter::evaluate_resolved_zero_arg_i64(&linked, "app.main", 100_000).unwrap();
+    assert!(matches!(
+        value.outcome,
+        crate::interpreter::ResolvedEvaluationOutcome::ReturnedI64(1)
+    ));
+    // Using the foreign identity where the real record flows refuses.
+    let annotate = |app: &str| app.replace("let reader=create(", "let reader:Reader=create(");
+    let used = annotate(&app);
+    assert_ne!(used, app);
+    let errors = build_owned(sources(&used, &provider))
         .err()
         .expect("same shape does not substitute identity");
-    assert!(errors.iter().any(|error| error.code == "SPX-G172"));
+    assert!(
+        errors.iter().any(|error| error.code == "SPX-T232"
+            && error
+                .message
+                .contains("[unimported @id(\"reader.type\") from reader.provider]")),
+        "{errors:?}"
+    );
+    build_owned(sources(&annotate(APP), &provider)).expect("the exact identity is accepted");
 }
 
 #[test]
@@ -248,21 +303,6 @@ use function @id("reader.inspect") from reader.provider as inspect;
         crate::interpreter::ResolvedEvaluationOutcome::ReturnedI64(1)
     ));
     assert!(built.linked_scalar_program("reader.app").is_err());
-    for hostile in [
-        app.replace(
-            "use type @id(\"reader.info\") from reader.provider as Info;",
-            "",
-        ),
-        app.replace(
-            "use type @id(\"reader.info\")",
-            "use type @id(\"reader.other-info\")",
-        ),
-    ] {
-        let errors = build_owned(sources(&hostile, &provider))
-            .err()
-            .expect("Copy result identity is not interchangeable");
-        assert!(errors.iter().any(|error| error.code == "SPX-G172"));
-    }
     let borrowed = provider.replace(
         "fn inspect(value:own Reader)",
         "fn inspect(value:borrow Reader)",
@@ -284,17 +324,62 @@ use function @id("reader.inspect") from reader.provider as inspect;
         observed.outcome,
         crate::interpreter::ResolvedEvaluationOutcome::ReturnedI64(1)
     ));
-    for hostile in [
+    // Private Nominal Layout Closure v1 (15149c189): the exact `inspect`
+    // signature roots the private Copy `Info` layout. Omitting its import, or
+    // aliasing an unused same-shape foreign record, keeps the real identity;
+    // authoring the foreign identity for the result refuses.
+    let missing = app.replace(
+        "use type @id(\"reader.info\") from reader.provider as Info;",
+        "",
+    );
+    let foreign = app.replace(
+        "use type @id(\"reader.info\")",
+        "use type @id(\"reader.other-info\")",
+    );
+    let annotate = |app: &str| {
         app.replace(
-            "use type @id(\"reader.info\") from reader.provider as Info;",
-            "",
-        ),
-        app.replace(
-            "use type @id(\"reader.info\")",
-            "use type @id(\"reader.other-info\")",
-        ),
-    ] {
-        assert!(build_owned(sources(&hostile, &borrowed)).is_err());
+            "let info=inspect(reader);",
+            "let info:Info=inspect(reader);",
+        )
+    };
+    assert_ne!(annotate(app), app);
+    for provider in [provider.as_str(), borrowed.as_str()] {
+        for admitted in [&missing, &foreign] {
+            assert_ne!(admitted, app);
+            let built = build_owned(sources(admitted, provider))
+                .expect("signature root authenticates the private Copy result");
+            let linked = built
+                .linked_owned_data_api_program_with_roots("reader.app", &[])
+                .unwrap();
+            hir::validate(&linked).unwrap();
+            assert!(linked
+                .types
+                .iter()
+                .any(|ty| ty.id.as_str() == "reader.info"));
+            let observed =
+                crate::interpreter::evaluate_resolved_zero_arg_i64(&linked, "app.main", 100_000)
+                    .unwrap();
+            assert!(matches!(
+                observed.outcome,
+                crate::interpreter::ResolvedEvaluationOutcome::ReturnedI64(1)
+            ));
+            assert!(built.linked_scalar_program("reader.app").is_err());
+        }
+        build_owned(sources(&annotate(app), provider)).expect("exact Info identity is accepted");
+        assert!(
+            build_owned(sources(&annotate(&missing), provider)).is_err(),
+            "a private layout grants no source name"
+        );
+        let errors = build_owned(sources(&annotate(&foreign), provider))
+            .err()
+            .expect("Copy result identity is not interchangeable");
+        assert!(
+            errors.iter().any(|error| error.code == "SPX-T232"
+                && error
+                    .message
+                    .contains("[unimported @id(\"reader.info\") from reader.provider]")),
+            "{errors:?}"
+        );
     }
     let generic = provider.replace(
         "fn inspect(value:own Reader)",
@@ -386,11 +471,34 @@ fn borrowed_byte_view_and_owned_record_import_compose_without_public_abi_widenin
         crate::interpreter::ResolvedEvaluationOutcome::ReturnedI64(1)
     ));
     assert!(built.linked_scalar_program("reader.app").is_err());
+    // Private Nominal Layout Closure v1 (15149c189): the exact signatures root
+    // the private Reader layout; the composition stays in the internal lane
+    // and still never widens the public scalar ABI.
     let missing = app.replace(
         "use type @id(\"reader.type\") from reader.provider as Reader;",
         "",
     );
-    assert!(build_owned(sources(&missing, &provider)).is_err());
+    assert_ne!(missing, app);
+    let built = build_owned(sources(&missing, &provider))
+        .expect("function-only signature roots authenticate the record");
+    let linked = built
+        .linked_owned_data_api_program_with_roots("reader.app", &[])
+        .unwrap();
+    hir::validate(&linked).unwrap();
+    let value =
+        crate::interpreter::evaluate_resolved_zero_arg_i64(&linked, "app.main", 100_000).unwrap();
+    assert!(matches!(
+        value.outcome,
+        crate::interpreter::ResolvedEvaluationOutcome::ReturnedI64(1)
+    ));
+    assert!(built.linked_scalar_program("reader.app").is_err());
+    let named = format!(
+        "{missing}\n@id(\"app.bad\") fn bad(value: borrow Reader) -> usize {{ value.cursor }}\n"
+    );
+    assert!(
+        build_owned(sources(&named, &provider)).is_err(),
+        "a private layout grants no source name"
+    );
 }
 
 #[test]
@@ -579,18 +687,42 @@ fn owned_record_factory_missing_nominal_import_reports_exact_repair() {
     let canonical = crate::format::canonical(&parsed);
     let parsed = crate::parse(&canonical, Path::new("app.spx")).unwrap();
     let expected_span = parsed.module_uses[0].span;
-    let errors = build_owned(sources(&missing, FACTORY_PROVIDER))
+    // Private Nominal Layout Closure v1 (15149c189): the exact factory, renewal
+    // and observer signatures root the private Reader layout, so this caller,
+    // which never names `Reader`, needs no type import.
+    let built = build_owned(sources(&missing, FACTORY_PROVIDER))
+        .expect("function-only signature roots authenticate the factory result");
+    let linked = built
+        .linked_owned_data_api_program_with_roots("factory.app", &[])
+        .unwrap();
+    hir::validate(&linked).unwrap();
+    for _ in 0..3 {
+        let observed = crate::interpreter::evaluate_resolved_zero_arg_i64(
+            &linked,
+            "factory.app.main",
+            100_000,
+        )
+        .unwrap();
+        assert!(matches!(
+            observed.outcome,
+            crate::interpreter::ResolvedEvaluationOutcome::ReturnedI64(1)
+        ));
+    }
+    assert!(built.linked_scalar_program("factory.app").is_err());
+    // A generic factory is not a signature root; its refused import still
+    // carries the exact repair at its own span.
+    let generic = FACTORY_PROVIDER.replace("fn new()", "fn new<T>()");
+    let errors = build_owned(sources(&missing, &generic))
         .err()
-        .expect("return identity must be directly imported even for a zero-arg factory");
-    assert_eq!(errors.len(), 1, "{errors:?}");
-    let error = &errors[0];
-    assert_eq!(error.code, "SPX-G172");
-    assert_eq!(error.span, Some(expected_span));
+        .expect("zero-arg factory does not widen generic admission");
+    let error = errors
+        .iter()
+        .find(|error| error.code == "SPX-G172" && error.span == Some(expected_span))
+        .unwrap_or_else(|| panic!("{errors:?}"));
     assert_eq!(error.path.as_deref(), Some("app.spx"));
     assert_eq!(error.help.as_deref(), Some(
         "missing direct nominal type import: use type @id(\"factory.reader\") from factory.provider as Reader;"
     ));
-    let generic = FACTORY_PROVIDER.replace("fn new()", "fn new<T>()");
     let errors = build_owned(sources(FACTORY_APP, &generic))
         .err()
         .expect("zero-arg factory does not widen generic admission");
@@ -608,12 +740,24 @@ use type @id("factory.outer") from factory.provider as Outer;
 use function @id("factory.nested") from factory.provider as nested;
 @id("factory.app.main") fn main() -> i64 { let value = nested(); 0 }
 "#;
-    let errors = build_owned(sources(nested_app, nested_provider))
-        .err()
-        .expect("nested signature identities also require direct type imports");
-    assert!(errors.iter().any(|error| error.code == "SPX-G172" && error.help.as_deref() == Some(
-        "missing direct nominal type import: use type @id(\"factory.inner\") from factory.provider as Inner;"
-    )), "{errors:?}");
+    // The explicit Outer root replays its private Inner record descendant.
+    let built = build_owned(sources(nested_app, nested_provider))
+        .expect("explicit root authenticates its private nested record");
+    let linked = built
+        .linked_owned_data_api_program_with_roots("factory.app", &[])
+        .unwrap();
+    hir::validate(&linked).unwrap();
+    assert!(linked
+        .types
+        .iter()
+        .any(|ty| ty.id.as_str() == "factory.inner"));
+    let observed =
+        crate::interpreter::evaluate_resolved_zero_arg_i64(&linked, "factory.app.main", 100_000)
+            .unwrap();
+    assert!(matches!(
+        observed.outcome,
+        crate::interpreter::ResolvedEvaluationOutcome::ReturnedI64(0)
+    ));
     let repaired = nested_app.replace(
         "module factory.app;",
         "module factory.app; use type @id(\"factory.inner\") from factory.provider as Inner;",
@@ -624,6 +768,24 @@ use function @id("factory.nested") from factory.provider as nested;
         .linked_owned_data_api_program_with_roots("factory.app", &[])
         .unwrap();
     hir::validate(&linked).unwrap();
+    // A nested variant descendant stays outside the private layout profile.
+    let variant_provider = nested_provider
+        .replace(
+            "record Inner { @id(\"factory.inner.data\") data: Bytes, }",
+            "variant Inner { @id(\"factory.inner.data\") Data { @id(\"factory.inner.data.bytes\") bytes: Bytes, }, @id(\"factory.inner.none\") None, }",
+        )
+        .replace(
+            "Inner { data: bytes_zeroed(1usize) }",
+            "Inner::Data { bytes: bytes_zeroed(1usize) }",
+        );
+    assert!(variant_provider.contains("variant Inner") && variant_provider.contains("Inner::Data"));
+    let errors = build_owned(sources(nested_app, &variant_provider))
+        .err()
+        .expect("a nested variant descendant remains refused");
+    assert!(
+        errors.iter().any(|error| error.code == "SPX-G172"),
+        "{errors:?}"
+    );
 }
 
 #[test]
@@ -656,19 +818,39 @@ use function @id("rows.first") from rows.provider as first;
         value.outcome,
         crate::interpreter::ResolvedEvaluationOutcome::ReturnedI64(3)
     );
+    // Private Nominal Layout Closure v1 (15149c189): the exact `Vec<Row>` and
+    // `Row` signatures root the private flat element layout, so a caller that
+    // never names `Row` needs no type import.
     let missing = app.replace(
         "use type @id(\"row\") from rows.provider as ImportedRow;",
         "",
     );
-    let errors = build_owned(sources(&missing, provider))
-        .err()
-        .expect("missing concrete element authority refuses");
-    assert!(errors.iter().any(|error| error.code == "SPX-G172"));
-    let nested = provider.replace("n:i64", "n:Vec<i64>");
-    assert!(
-        build_owned(sources(app, &nested)).is_err(),
-        "nested Vec elements remain outside the flat classifier"
+    assert_ne!(missing, app);
+    let built = build_owned(sources(&missing, provider))
+        .expect("signature roots authenticate the private Vec element");
+    let linked = built
+        .linked_owned_data_api_program_with_roots("rows.app", &[])
+        .unwrap();
+    hir::validate(&linked).expect("real body and cleanup independently replay");
+    assert!(linked.types.iter().any(|ty| ty.id.as_str() == "row"));
+    let value =
+        crate::interpreter::evaluate_resolved_zero_arg_i64(&linked, "app.main", 100_000).unwrap();
+    assert_eq!(
+        value.outcome,
+        crate::interpreter::ResolvedEvaluationOutcome::ReturnedI64(3)
     );
+    let named = format!("{missing}\n@id(\"app.bad\") fn bad()->i64 {{let row=Row{{n:1}};row.n}}\n");
+    assert!(
+        build_owned(sources(&named, provider)).is_err(),
+        "a private layout grants no constructor name"
+    );
+    let nested = provider.replace("n:i64", "n:Vec<i64>");
+    for app in [app, missing.as_str()] {
+        assert!(
+            build_owned(sources(app, &nested)).is_err(),
+            "nested Vec elements remain outside the flat classifier"
+        );
+    }
 }
 
 const BYTE_WRITER_PROVIDER: &str = r#"module writer.provider;

@@ -1354,10 +1354,30 @@ use type @id("b.wrapper") from b.wrapper as Wrapper;
 fn main() -> i64 { 0 }
 "#,
     );
-    let error = build_owned(vec![leaf.clone(), wrapper.clone(), missing])
-        .err()
-        .expect("transitive type authority must be direct");
-    assert_eq!(error[0].code, "SPX-G172");
+    // Private Nominal Layout Closure v1 (75f528cf4): the explicit `Wrapper`
+    // root authenticates its private `Point` descendant without a child import
+    // edge; authored names still require a direct import.
+    let build = build_owned(vec![leaf.clone(), wrapper.clone(), missing.clone()])
+        .expect("explicit root replays its private transitive descendant");
+    let consumer = |target: &str| {
+        build
+            .edges
+            .iter()
+            .any(|edge| edge.caller_path == "c/main.spx" && edge.target == target)
+    };
+    assert!(consumer("b.wrapper"));
+    assert!(!consumer("a.point"));
+    for declaration in [
+        "@id(\"c.bad\") fn bad(value: Point) -> i64 { value.x }",
+        "@id(\"c.bad\") fn bad() -> i64 { let p = InnerPoint { x: 1 }; p.x }",
+    ] {
+        let named = canonical_source(
+            "c/main.spx",
+            &format!("{}\n{declaration}\n", missing.source),
+        );
+        let refused = build_owned(vec![leaf.clone(), wrapper.clone(), named]);
+        assert!(refused.is_err(), "{declaration}");
+    }
 
     let present = canonical_source(
         "c/main.spx",

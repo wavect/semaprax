@@ -540,8 +540,11 @@ use type @id("outcome") from imports.provider as Outcome;
             &provider.replace("offset:usize", "offset:i64"),
             app
         ));
-        // The explicit outcome root now authenticates its private Item layout.
-        assert!(accepts(
+        // A vector-payload outcome is not an inferred private-layout root
+        // (Private Nominal Layout Closure v1: only records and the exact
+        // record-payload refusal outcome are); its Item element keeps the
+        // explicit import route, so the layout closure refuses the omission.
+        assert!(!accepts(
             provider,
             &app.replace("use type @id(\"item\") from imports.provider as Item;", "")
         ));

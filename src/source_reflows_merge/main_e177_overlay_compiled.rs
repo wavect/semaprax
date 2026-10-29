@@ -687,6 +687,9 @@ mod tests {
             "docs/evidence/compact-replay-h006-transport-20261025/source-coverage-followup.json",
             "docs/evidence/finite-source-overlay-v2-20261018/README.md",
             "docs/CONSTRUCTOR-FAILURE-RECEIVING-V1.md",
+            "src/cleanup_plan/replay/skeleton_work/merge_search.rs",
+            "src/cleanup_plan/replay/owned_suffix/tests.rs",
+            "src/cleanup_plan/replay/skeleton_work/merge_keys.rs",
         ] {
             let declaration = format!("    {source:?},\n");
             assert_eq!(current_scope_root.matches(&declaration).count(), 1);

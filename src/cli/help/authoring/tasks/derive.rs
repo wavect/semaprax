@@ -285,8 +285,19 @@ fn check_descriptor_project(files: &[Value]) {
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
         std::fs::write(path, file["content"].as_str().unwrap()).unwrap();
     }
-    semaprax::project::with_authenticated_project(&directory.0.join("semaprax.toml"), |project| {
-        project.check()
-    })
-    .unwrap();
+    let checked = semaprax::project::with_authenticated_project(
+        &directory.0.join("semaprax.toml"),
+        |project| project.check(),
+    );
+    // The selected-file native adapter exists only on a native64 Unix host.
+    // Elsewhere Phase A still replays grammar, types and authority, then
+    // refuses with exactly the documented host diagnostic and nothing else.
+    if cfg!(all(unix, target_pointer_width = "64")) {
+        checked.unwrap();
+    } else if let Err(diagnostics) = checked {
+        assert!(
+            matches!(diagnostics.as_slice(), [only] if only.code == "SPX-B104"),
+            "{diagnostics:?}"
+        );
+    }
 }

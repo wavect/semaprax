@@ -144,7 +144,10 @@ uncertainty and removes only expected regular files matching the complete
 rendered bytes. Partial, changed or foreign files can remain as inert residue;
 failure does not universally mean an absent destination. No recursive cleanup
 or rollback guarantee is added. Existing `SPX-I301`, `SPX-I302` and `SPX-I307`
-publication diagnostics, including inherited wording, remain unchanged.
+publication codes and policy remain unchanged. A rejected output parent's
+`SPX-I301` names the parent and its kind (symbolic link or junction,
+non-directory, reparse point) and, for a link, suggests the resolved output
+path; a missing parent's `SPX-I301` suggests creating it.
 
 ## Legacy correction and compatibility
 

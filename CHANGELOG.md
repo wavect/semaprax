@@ -1,3 +1,7 @@
+## SPX-I301 output parent diagnostics (2026-10-28)
+
+- Name the rejected output parent in SPX-I301 for native, Web package and explicit Project outputs, identify symbolic links with their resolved output path, and hint to create a missing parent, keeping the real non-reparse parent policy. Control characters in the named paths are escaped so a hostile file name cannot forge diagnostic lines.
+
 ## Replay and loan scratch allocation (2026-10-27)
 
 - Reduce transient replay history, continuation, path-join, and loan-directory allocation while preserving complete checked HIR, canonical plans, diagnostics, work limits, and independent comparisons. Keep the original allocation and failure controls and add full prior-producer comparisons for the changed storage paths.

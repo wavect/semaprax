@@ -204,7 +204,16 @@ fn failed_build_parent_cleanup_preserves_foreign_bytes_and_rejects_bad_parents()
 
     let file_parent = fixture.root.join("file-parent");
     std::fs::write(&file_parent, b"not a directory\n").unwrap();
-    assert!(build_cli::ProjectOutputParent::prepare(&file_parent.join("web")).is_err());
+    let rejected = build_cli::ProjectOutputParent::prepare(&file_parent.join("web"))
+        .err()
+        .expect("a regular file must not be admitted as the Project output parent");
+    assert_eq!(
+        rejected.message,
+        format!(
+            "explicit Project output parent {} is not a directory; it must be a real non-reparse directory",
+            file_parent.display()
+        )
+    );
     assert_eq!(std::fs::read(&file_parent).unwrap(), b"not a directory\n");
 
     let linked = project_directory_link::create(&fixture.root);
@@ -212,10 +221,51 @@ fn failed_build_parent_cleanup_preserves_foreign_bytes_and_rejects_bad_parents()
     let rejected = build_cli::ProjectOutputParent::prepare(&linked.join("web"))
         .err()
         .expect("a directory link must not be admitted as the Project output parent");
+    let link_kind = if cfg!(windows) {
+        "is a symbolic link or junction"
+    } else {
+        "is a symbolic link"
+    };
+    let resolved = std::fs::canonicalize(&linked).unwrap();
     assert_eq!(rejected.code, "SPX-I301");
     assert_eq!(
         rejected.message,
-        "explicit Project output parent must be a real non-reparse directory"
+        format!(
+            "explicit Project output parent {} {link_kind}; it must be a real non-reparse directory",
+            linked.display()
+        )
+    );
+    assert_eq!(
+        rejected.help.as_deref(),
+        Some(
+            format!(
+                "{} resolves to {}; use the resolved output path {}, or choose an output whose parent is a real directory",
+                linked.display(),
+                resolved.display(),
+                resolved.join("web").display()
+            )
+            .as_str()
+        )
+    );
+    project_directory_link::assert_intact(&fixture.root);
+    assert_eq!(project_directory_link::entries(&fixture.root), inventory);
+
+    // A missing parent below a linked grandparent is rejected before creation.
+    let rejected = build_cli::ProjectOutputParent::prepare(&linked.join("missing").join("web"))
+        .err()
+        .expect("a directory link must not be admitted as the Project output grandparent");
+    assert_eq!(rejected.code, "SPX-I301");
+    assert_eq!(
+        rejected.message,
+        format!(
+            "explicit Project output grandparent {} {link_kind}; it must be a real non-reparse directory",
+            linked.display()
+        )
+    );
+    let help = rejected.help.expect("linked grandparent help");
+    assert!(
+        help.contains(&resolved.join("missing").join("web").display().to_string()),
+        "{help}"
     );
     project_directory_link::assert_intact(&fixture.root);
     assert_eq!(project_directory_link::entries(&fixture.root), inventory);

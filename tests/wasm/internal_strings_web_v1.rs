@@ -279,6 +279,14 @@ fn invalid_cli_profiles_and_admission_create_no_output_and_existing_bytes_surviv
     let nested = fixture.root.join("missing-parent").join("output");
     let error = cli(&path, &nested, "web", &IDS);
     assert!(String::from_utf8_lossy(&error.stderr).contains("SPX-I301"));
+    assert!(
+        String::from_utf8_lossy(&error.stderr).contains(&format!(
+            "help: create the directory {} first, then rerun the build",
+            nested.parent().unwrap().display()
+        )),
+        "{}",
+        String::from_utf8_lossy(&error.stderr)
+    );
     assert!(!nested.parent().unwrap().exists());
     let existing = fixture.package("existing");
     success(cli(&path, &existing, "web", &IDS));
@@ -296,10 +304,37 @@ fn directory_link_output_and_parent_do_not_publish_through_foreign_paths() {
     let path = fixture.write("source.spx", source());
     let alias = project_directory_link::create(&fixture.root);
     let expected_entries = project_directory_link::entries(&fixture.root);
+    let resolved_child = fs::canonicalize(&alias).unwrap().join("child");
+    let expected_message = format!(
+        "Public Scalar Export output parent {} {}; it must be a real non-reparse directory",
+        alias.display(),
+        if cfg!(windows) {
+            "is a symbolic link or junction"
+        } else {
+            "is a symbolic link"
+        }
+    );
+    let expected_help = format!(
+        "{} resolves to {}; use the resolved output path {}, or choose an output whose parent is a real directory",
+        alias.display(),
+        resolved_child.parent().unwrap().display(),
+        resolved_child.display()
+    );
     for (output, code) in [(&alias, "SPX-I307"), (&alias.join("child"), "SPX-I301")] {
         let result = cli(&path, output, "web", &IDS);
         assert!(!result.status.success());
-        assert!(String::from_utf8_lossy(&result.stderr).contains(code));
+        let stderr = String::from_utf8_lossy(&result.stderr);
+        assert!(stderr.contains(code));
+        if code == "SPX-I301" {
+            assert!(
+                stderr.contains(&format!("error[SPX-I301]: {expected_message}\n")),
+                "{stderr}"
+            );
+            assert!(
+                stderr.contains(&format!("\n  help: {expected_help}")),
+                "{stderr}"
+            );
+        }
         // The mandatory helper authenticates the link/reparse target, its
         // complete one-file inventory and exact sentinel bytes on both hosts.
         project_directory_link::assert_intact(&fixture.root);
@@ -308,7 +343,36 @@ fn directory_link_output_and_parent_do_not_publish_through_foreign_paths() {
             expected_entries
         );
     }
+    let mut command = Command::new(env!("CARGO_BIN_EXE_semaprax"));
+    command
+        .arg("build")
+        .arg(&path)
+        .args(["--target", "web", "--profile", "internal-strings-v1"]);
+    for id in IDS {
+        command.arg(format!("--export={id}"));
+    }
+    let result = command
+        .arg("-o")
+        .arg(alias.join("child"))
+        .arg("--json")
+        .output()
+        .unwrap();
+    assert_eq!(result.status.code(), Some(1));
+    assert!(result.stderr.is_empty());
+    let diagnostic: serde_json::Value = serde_json::from_slice(&result.stdout).unwrap();
+    assert_eq!(diagnostic["code"], "SPX-I301");
+    assert_eq!(diagnostic["message"], expected_message.as_str());
+    assert_eq!(diagnostic["help"], expected_help.as_str());
+    project_directory_link::assert_intact(&fixture.root);
+    assert_eq!(
+        project_directory_link::entries(&fixture.root),
+        expected_entries
+    );
     project_directory_link::remove_link(&fixture.root);
+    // The suggested resolved output path is a real parent and publishes.
+    success(cli(&path, &resolved_child, "web", &IDS));
+    reopen(&resolved_child);
+    fs::remove_dir_all(&resolved_child).unwrap();
     let foreign = fixture.root.join("symlink-target");
     fs::remove_file(foreign.join("sentinel")).unwrap();
     fs::remove_dir(foreign).unwrap();

@@ -534,7 +534,7 @@ with patch('subprocess.run', side_effect=[
     assert run.call_count == 2
     assert run.call_args_list[0].kwargs['check'] is True
     assert run.call_args_list[0].kwargs['env']['SEMAPRAX_TEST_PYTHON'] == sys.executable
-    assert run.call_args_list[1].args[0] == plan['shards'][1]['command']
+    assert run.call_args_list[1].args[0] == plan['shards'][1]['command'] + ['--no-fail-fast']
     assert run.call_args_list[1].kwargs['env']['SEMAPRAX_TEST_PYTHON'] == sys.executable
 with patch('subprocess.run', side_effect=[
     subprocess.CompletedProcess([], 0, stdout=json.dumps(metadata)),
@@ -542,7 +542,7 @@ with patch('subprocess.run', side_effect=[
 ]) as run:
     with contextlib.redirect_stdout(io.StringIO()):
         assert router['main'](['--shard', 'integration-0', '--nocapture']) == 101
-    assert run.call_args_list[1].args[0] == plan['shards'][1]['command'] + ['--', '--nocapture']
+    assert run.call_args_list[1].args[0] == plan['shards'][1]['command'] + ['--no-fail-fast', '--', '--nocapture']
 for harness in ('project', 'project_candidate'):
     git_metadata = copy.deepcopy(metadata)
     git_metadata['packages'][0]['targets'][-1]['name'] = harness
@@ -579,8 +579,9 @@ for arguments, codes, harness in (
     ]), patch.dict(router['main'].__globals__, {'run_checked_selection': heavy}):
         with contextlib.redirect_stdout(io.StringIO()):
             assert router['main'](arguments) == max(codes)
-    # Each family is a checked module-prefix selection; the first failure stops.
-    expected = list(router['HEAVY_UNIT_FILTERS'])[:1 if codes[0] else 2]
+    # Each family is a checked module-prefix selection; every family runs and
+    # the first failing status is returned.
+    expected = list(router['HEAVY_UNIT_FILTERS'])
     assert [selection['prefix'] for _, selection in checked] == expected
     assert all(base == router['HEAVY_UNIT_TEST'] for base, _ in checked)
     assert all(selection['harness'] == harness for _, selection in checked)

@@ -558,18 +558,19 @@ def main(argv=None):
     if args.shard == HEAVY_UNIT_SHARD:
         if args.split_windows_agent_runtime:
             raise ValueError("agent runtime split does not apply to heavy unit tests")
+        first = 0
         for test_filter in HEAVY_UNIT_FILTERS:
             print(f"{args.label} {args.shard}: {test_filter}", flush=True)
             # Each family is inventoried, must stay inside its module prefix,
-            # and must report every listed case.
+            # and must report every listed case. Later families still run
+            # after a failure; the first failing status is returned.
             code = run_checked_selection(
                 HEAVY_UNIT_TEST, cargo_env, prefix=test_filter,
                 harness=["--nocapture"] if args.nocapture else [],
                 label=f"{args.label} {args.shard} {test_filter}",
             )
-            if code:
-                return code
-        return 0
+            first = first or code
+        return first
     assert shard is not None
     if args.split_windows_agent_runtime and not (
         os.name == "nt" and args.label == "Rust Windows" and args.shard == "integration-3"
@@ -635,7 +636,9 @@ def main(argv=None):
         macos_test_git(cargo_env)
         test_arguments.append("--test-threads=1")
 
-    # One Cargo invocation; preserve its first failure and exact exit status.
+    # One Cargo invocation; preserve its exact exit status. Every target runs
+    # so one CI attempt reports all failing binaries instead of the first.
+    command.append("--no-fail-fast")
     command += ["--", *test_arguments] if test_arguments else []
     return subprocess.run(
         command, cwd=ROOT, env=cargo_env, check=False

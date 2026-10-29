@@ -215,7 +215,13 @@ fn run_checked_source_adapter_probe(source: &str) {
             "{}",
             String::from_utf8_lossy(&result.stderr)
         );
-        assert_eq!(result.stdout, b"selected-final-utf8-v1: ok\n");
+        // The C probe writes stdout in text mode, which is CRLF on Windows.
+        let expected: &[u8] = if cfg!(windows) {
+            b"selected-final-utf8-v1: ok\r\n"
+        } else {
+            b"selected-final-utf8-v1: ok\n"
+        };
+        assert_eq!(result.stdout, expected);
         assert!(result.stderr.is_empty());
     }
     std::fs::remove_dir_all(root).unwrap();

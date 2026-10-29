@@ -7,6 +7,24 @@ fn required(function: &ResolvedFunction) -> usize {
         + function.id.as_str().len()
         + 512
 }
+// Inline direct-anchor receiving controls that selected setup reserves after
+// the refusal text since 4bb6f67ce ("Bind direct selected singleton owners").
+// Independently enumerated, as in physical_clone/tests.rs; stack/inline only.
+fn direct_anchor_controls() -> usize {
+    use crate::bounded_output::classifier_string::ClassifierLedger;
+    use crate::cleanup_plan::replay::{physical_storage, SelectedDirectAnchor};
+    use std::mem::size_of;
+    3 * size_of::<Option<SelectedDirectAnchor>>()
+        + 2 * size_of::<SelectedDirectAnchor>()
+        + size_of::<ClassifierLedger>()
+        + ClassifierLedger::capture_into_controls()
+        + 2 * size_of::<*const crate::hir::ResolvedFunction>()
+        + 2 * size_of::<&crate::hir::ResolvedFunction>()
+        + size_of::<&mut ClassifierLedger>()
+        + 2 * size_of::<Result<(), physical_storage::PhysicalRefusal>>()
+        + 2 * size_of::<(&mut physical_storage::PhysicalReservation, usize)>()
+        + 2 * size_of::<bool>()
+}
 #[test]
 fn inline_setup_zero_and_each_one_short_return_the_exact_sticky_ledger_without_allocating() {
     let program = program();
@@ -68,7 +86,9 @@ fn inline_setup_zero_and_each_one_short_return_the_exact_sticky_ledger_without_a
 fn inline_setup_exact_preparation_preserves_first_prepaid_text_pointer_receipt_and_drop() {
     let program = program();
     let function = members(&program)[0];
-    let bytes = required(function);
+    // The text-ledger boundary above is unchanged; exact completion also pays
+    // the direct-anchor controls reserved after the refusal text.
+    let bytes = required(function) + direct_anchor_controls();
     let (_, allocations) = measure(|| {
         let mut preparation = match Preparation::try_new(function, PhysicalReservation::new(bytes))
         {

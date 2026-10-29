@@ -66,7 +66,8 @@ fn byte_traversal_roundtrips_source_graph_and_both_cache_projections() {
     // The checked-HIR wire that may carry tag 3 is owned by cache v8.
     assert_eq!(
         crate::project::PROJECT_SEMANTIC_CACHE_COMPATIBILITY,
-        "semaprax.project-checked-module-hir.v11"
+        // v12 since e13c35e26/23e8f1d0a; was v11.
+        "semaprax.project-checked-module-hir.v12"
     );
 }
 

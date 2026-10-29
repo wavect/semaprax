@@ -333,7 +333,12 @@ mod tests {
         // Refusing the site does not copy its path/owner, but reporting the
         // refusal still charges every diagnostic append, including discarded
         // partial text. Keep that distinct from the refused site allocation.
+        // The report is formed after the site's own refusal, so reproduce that
+        // sticky state first: since 87612d690 a refused budget admits no
+        // further required append, and 74d6ff96d then borrows the static
+        // default-limit message instead of charging formatted text.
         let (_, _, bytes) = bounded_output::with_limit_usage(remaining, || {
+            assert!(!bounded_output::reserve_active_required(remaining + 1));
             crate::workspace_graph::diagnostics::limit_error(
                 "builder_bytes",
                 crate::workspace_graph::active_builder_limit(),

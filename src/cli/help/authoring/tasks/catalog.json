@@ -174,7 +174,7 @@
         "path": "src/request.spx"
       },
       {
-        "content": "module example.response_schema;\n\n@id(\"example.row\")\nrecord Row {\n    @id(\"example.row.value\")\n    value: i64,\n}\n\n@id(\"example.summary\")\nrecord Summary {\n    @id(\"example.summary.count\")\n    count: i64,\n}\n\n@id(\"example.response\")\nrecord Response {\n    @id(\"example.response.rows\")\n    rows: Vec<Row>,\n    @id(\"example.response.summary\")\n    summary: Summary,\n}\n\n@id(\"example.response.anchor\")\nfn response_anchor() -> i64\n{\n    0\n}\n",
+        "content": "module example.response_schema;\n\n@id(\"example.row\")\nrecord Row {\n    @id(\"example.row.label\")\n    label: string,\n    @id(\"example.row.value\")\n    value: i64,\n}\n\n@id(\"example.summary\")\nrecord Summary {\n    @id(\"example.summary.count\")\n    count: i64,\n}\n\n@id(\"example.response\")\nrecord Response {\n    @id(\"example.response.rows\")\n    rows: Vec<Row>,\n    @id(\"example.response.summary\")\n    summary: Summary,\n}\n\n@id(\"example.response.anchor\")\nfn response_anchor() -> i64\n{\n    0\n}\n",
         "path": "src/response.spx"
       },
       {

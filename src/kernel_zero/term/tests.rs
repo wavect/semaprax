@@ -64,9 +64,12 @@ fn borrowed_entry_preserves_exact_current_pointer_and_first_duplicate_without_al
         }
     });
     assert!(!old.invalid);
-    assert_eq!(old.allocations, 1000);
+    // a3d51efe8 made `DeclarationId::new` move its temporary String into one
+    // shared `Arc<str>` backing: two exact requests per saved lookup.
+    let backing = crate::hir::DeclarationId::shared_backing_bytes(text.len()).unwrap();
+    assert_eq!(old.allocations, 2000);
     assert_eq!(old.reallocations, 0);
-    assert_eq!(old.allocated, 1000 * text.len());
+    assert_eq!(old.allocated, 1000 * (text.len() + backing));
     assert_eq!(old.freed, old.allocated);
     assert_eq!(old.live, 0);
     let (_, new) = measure(|| {

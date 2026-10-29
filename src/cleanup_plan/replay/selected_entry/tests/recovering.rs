@@ -9,12 +9,31 @@ fn tiny() -> ResolvedProgram {
     .unwrap();
     crate::hir::resolve(&source).unwrap()
 }
+// Inline direct-anchor receiving controls that selected setup reserves after
+// the refusal text since 4bb6f67ce ("Bind direct selected singleton owners").
+// Independently enumerated, as in physical_clone/tests.rs; stack/inline only.
+fn direct_anchor_controls() -> usize {
+    use crate::bounded_output::classifier_string::ClassifierLedger;
+    use crate::cleanup_plan::replay::{physical_storage, SelectedDirectAnchor};
+    use std::mem::size_of;
+    3 * size_of::<Option<SelectedDirectAnchor>>()
+        + 2 * size_of::<SelectedDirectAnchor>()
+        + size_of::<ClassifierLedger>()
+        + ClassifierLedger::capture_into_controls()
+        + 2 * size_of::<*const crate::hir::ResolvedFunction>()
+        + 2 * size_of::<&crate::hir::ResolvedFunction>()
+        + size_of::<&mut ClassifierLedger>()
+        + 2 * size_of::<Result<(), physical_storage::PhysicalRefusal>>()
+        + 2 * size_of::<(&mut physical_storage::PhysicalReservation, usize)>()
+        + 2 * size_of::<bool>()
+}
 fn literal_bytes(anchor: &ResolvedFunction) -> usize {
     // Independent actual setup/stack/carrier inventory, not measured usage.
     std::mem::size_of::<PhysicalReservation>()
         + 514 * std::mem::size_of::<Option<(&ResolvedType, usize)>>()
         + anchor.id.as_str().len()
         + 512
+        + direct_anchor_controls()
         + std::mem::size_of::<Session<'_>>()
         + std::mem::size_of::<selected_callees::Context<'_>>()
         + 2 * std::mem::size_of::<&ResolvedFunction>()

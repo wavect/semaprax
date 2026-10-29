@@ -929,7 +929,8 @@ fn retained_traversal_row_lends_to_an_imported_borrowed_scalar_reader() {
     let retained = build_imported(&provider, &consumer);
     assert_eq!(
         retained.source_graph_schemas().unwrap()["writer.spx"],
-        "semaprax.graph.v82"
+        // v85 since cb55986d6 (scoped vec field source forms); was v82.
+        "semaprax.graph.v85"
     );
     let scan = function(writer(&retained), "static.scan");
     assert_lexical(scan, &[LexicalExitKind::Continue, LexicalExitKind::Return]);

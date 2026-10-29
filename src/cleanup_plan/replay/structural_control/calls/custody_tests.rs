@@ -62,11 +62,30 @@ fn detailed(f: &ResolvedFunction, e: Engine) -> Diagnostic {
         _ => panic!("call error kind"),
     }
 }
+// Inline direct-anchor receiving controls that selected setup reserves after
+// the refusal text since 4bb6f67ce ("Bind direct selected singleton owners").
+// Independently enumerated, as in physical_clone/tests.rs; stack/inline only.
+fn direct_anchor_controls() -> usize {
+    use crate::bounded_output::classifier_string::ClassifierLedger;
+    use crate::cleanup_plan::replay::{physical_storage, SelectedDirectAnchor};
+    use std::mem::size_of;
+    3 * size_of::<Option<SelectedDirectAnchor>>()
+        + 2 * size_of::<SelectedDirectAnchor>()
+        + size_of::<ClassifierLedger>()
+        + ClassifierLedger::capture_into_controls()
+        + 2 * size_of::<*const crate::hir::ResolvedFunction>()
+        + 2 * size_of::<&crate::hir::ResolvedFunction>()
+        + size_of::<&mut ClassifierLedger>()
+        + 2 * size_of::<Result<(), physical_storage::PhysicalRefusal>>()
+        + 2 * size_of::<(&mut physical_storage::PhysicalReservation, usize)>()
+        + 2 * size_of::<bool>()
+}
 fn budget(f: &ResolvedFunction, extra: usize) -> ReplayBudget {
     let setup = std::mem::size_of::<PhysicalReservation>()
         + 514 * std::mem::size_of::<Option<(&ResolvedType, usize)>>()
         + f.id.as_str().len()
-        + 512;
+        + 512
+        + direct_anchor_controls();
     let mut budget = ReplayBudget::with_physical(f, setup.saturating_add(extra)).unwrap();
     budget.remaining = usize::MAX;
     budget

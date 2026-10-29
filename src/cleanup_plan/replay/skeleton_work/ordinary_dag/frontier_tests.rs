@@ -15,6 +15,17 @@ fn clean(observed: Metrics) {
     assert_eq!(observed.live, 0);
     assert_eq!(observed.allocated, observed.freed);
 }
+/// Reservation header plus the funded ordinary constructor inventory. Since
+/// 2d87a3b89 ("Fund ordinary skeleton constructor inventories before
+/// allocation") `SkeletonWork::new` reserves its receivers on this same
+/// physical reservation before any probe begins measuring.
+fn admission(program: &ResolvedProgram, header_limit: usize) -> usize {
+    let function = &program.functions[0];
+    let mut budget = ReplayBudget::with_physical(function, header_limit).unwrap();
+    budget.skeleton_remaining = MAX_REPLAY_WORK_UNITS;
+    let work = SkeletonWork::new(program, function, &mut budget);
+    work.budget.physical.as_ref().unwrap().charged()
+}
 fn input_tail(
     work: &mut SkeletonWork<'_, '_>,
     item: &Observation,
@@ -74,13 +85,7 @@ fn union_probe(
 #[test]
 fn actual_empty_union_prepays_literal_frontier_node_backing_and_complete_work_drop() {
     let program = fixture();
-    let function = &program.functions[0];
-    let setup = ReplayBudget::with_physical(function, 1 << 20)
-        .unwrap()
-        .physical
-        .as_ref()
-        .unwrap()
-        .charged();
+    let setup = admission(&program, 1 << 20);
     let capacity = physical_storage::replay_growth_capacity(0, 4).unwrap();
     let required = 5 * physical_clone::rc_backing_bytes::<ObservationDag>()
         + 4 * std::mem::size_of::<Rc<ObservationDag>>()
@@ -311,13 +316,7 @@ fn deep_probe(
 #[test]
 fn duplicate_deep_dag_frontier_is_linear_and_all_publication_failures_drop_paid_children() {
     let program = fixture();
-    let function = &program.functions[0];
-    let setup = ReplayBudget::with_physical(function, 1 << 24)
-        .unwrap()
-        .physical
-        .as_ref()
-        .unwrap()
-        .charged();
+    let setup = admission(&program, 1 << 24);
     for depth in [0, 1, 17, 1024] {
         let (result, observed) = deep_probe(&program, depth, 1 << 24);
         let (paid, capacity) = result.unwrap();
@@ -500,12 +499,7 @@ fn successful_paid_parent_drains_legacy_children_but_zero_refusal_preserves_lega
     assert_eq!(observed.allocated, 0);
     clean(observed);
     drop(work);
-    let setup = ReplayBudget::with_physical(function, 1 << 20)
-        .unwrap()
-        .physical
-        .as_ref()
-        .unwrap()
-        .charged();
+    let setup = admission(&program, 1 << 20);
     let mut budget = ReplayBudget::with_physical(function, setup).unwrap();
     budget.skeleton_remaining = MAX_REPLAY_WORK_UNITS;
     let mut work = SkeletonWork::new(&program, function, &mut budget);

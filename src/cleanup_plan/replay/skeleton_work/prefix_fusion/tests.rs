@@ -304,6 +304,9 @@ fn ordinary_prefix_fusion_expired_active_builder_and_dag_suffix_keep_old_route()
     // active account. Neither a copied prefix nor a fusion probe can revive it.
     for old in [true, false] {
         let mut budget = ReplayBudget::unobserved();
+        // `unobserved()` inherits `skeleton_remaining: 0`, and each seed
+        // observation charges one work unit (refused since f2f5a348a).
+        budget.skeleton_remaining = MAX_REPLAY_WORK_UNITS;
         let mut work = SkeletonWork::new(&program, function, &mut budget);
         let prefix = seed(&mut work, 1024).unwrap();
         let suffix = seed(&mut work, 1).unwrap();

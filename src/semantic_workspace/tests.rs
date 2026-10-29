@@ -1099,7 +1099,8 @@ fn constructor_schema_round_trips_without_admitting_forged_spellings() {
         "semaprax.graph.v081",
         "semaprax.graph.v81 ",
         "semaprax.graph.v81+v80",
-        "semaprax.graph.v82",
+        // v82 became an admitted schema (755863f65); v86 is the next unadmitted spelling.
+        "semaprax.graph.v86",
     ] {
         let error = parse_manifest(&manifest.replace("semaprax.graph.v81", forged)).unwrap_err();
         assert_eq!(error[0].code, "SPX-G174");

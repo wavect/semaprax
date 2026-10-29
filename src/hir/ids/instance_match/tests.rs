@@ -237,7 +237,8 @@ fn streamed_instance_exact_short_zero_sticky_floor_keep_all_key_producers_and_dr
     assert!(first.remaining - child_bytes < floor);
     assert_eq!(first.stage, None);
     let site = site.unwrap();
-    assert!(site.file().ends_with("bounded_output/checked_string.rs"));
+    // Compare path components so a Windows `\\` caller location matches too.
+    assert!(std::path::Path::new(site.file()).ends_with("bounded_output/checked_string.rs"));
     assert!(site.line() > 0);
     assert_eq!(count(), 2 * compound.len());
     let zero = Vec::<ResolvedType>::new();
@@ -395,8 +396,5 @@ fn streamed_instance_zero_argument_nominal_omission_cannot_authenticate_empty_ke
     assert!(first.remaining >= declaration_bytes);
     assert!(first.remaining - declaration_bytes < floor);
     assert_eq!(first.stage, None);
-    assert!(site
-        .unwrap()
-        .file()
-        .ends_with("bounded_output/checked_string.rs"));
+    assert!(std::path::Path::new(site.unwrap().file()).ends_with("bounded_output/checked_string.rs"));
 }

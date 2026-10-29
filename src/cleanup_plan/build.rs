@@ -6655,9 +6655,13 @@ interface HostEcho permits { host.echo } {
         // The lowering compatibility census sums separate builder/staged/attached
         // component maxima; standalone and invocation samples are checked separately.
         // This aggregate is not simultaneous allocator high-water or process RSS.
+        // Re-pinned 2026-10-29: inventory 9_224 -> 8_456 and lowering
+        // 443_313 -> 397_025 drifted between d94653b60 and c22cad79b; lowering
+        // then fell to 349_505 when d70e4af22 gave the first cleanup transition
+        // slot an exact one-element backing (push_cleanup_transition).
         assert_eq!(
             actual,
-            [9_224, 443_313],
+            [8_456, 349_505],
             "inventory/lowering owned-capacity high-water pins drifted"
         );
         assert!(actual[0] <= 6_492_084);

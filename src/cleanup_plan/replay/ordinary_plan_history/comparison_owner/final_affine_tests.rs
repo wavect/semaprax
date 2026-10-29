@@ -556,7 +556,7 @@ fn affine_final_hir_preserves_entire_immediate_comparator_four_macros_and_all_ol
 
 // Whole current input channels authenticate before the declared prior formatting
 // view is selected. The historical byte assertions and inverse below are exact.
-fn restore_exact_preformat_source(source: &str, current: &[u8], expected: &str) -> String {
+pub(super) fn restore_exact_preformat_source(source: &str, current: &[u8], expected: &str) -> String {
     use sha2::{Digest, Sha256};
     let digest = |bytes: &[u8]| format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)));
     assert_ne!(

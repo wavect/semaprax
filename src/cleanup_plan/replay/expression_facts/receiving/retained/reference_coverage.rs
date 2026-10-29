@@ -19,16 +19,8 @@ pub(super) fn validate(
             "",
         ));
     }
-    budget.reserve_bytes(function, 0, "retained reference directory authentication")?;
-    budget.charge(function, 0, "retained reference directory authentication")?;
-    budget.reserve_bytes(
-        function,
-        std::mem::size_of::<Result<(), Diagnostic>>()
-            + 4 * std::mem::size_of::<bool>()
-            + 2 * std::mem::size_of::<&StatusSources<'_>>()
-            + std::mem::size_of::<Option<&Directory<&StatusSourceId>>>(),
-        "retained reference selection controls",
-    )?;
+    // Ineligible routes return to the unchanged original owner before paying
+    // any retained-route control, so their bytes and work stay exactly as before.
     let Some(statuses) = validated.ids.as_ref() else {
         return structural_maps::validate_reference_coverage(function, budget);
     };
@@ -41,6 +33,16 @@ pub(super) fn validate(
     {
         return structural_maps::validate_reference_coverage(function, budget);
     }
+    budget.reserve_bytes(function, 0, "retained reference directory authentication")?;
+    budget.charge(function, 0, "retained reference directory authentication")?;
+    budget.reserve_bytes(
+        function,
+        std::mem::size_of::<Result<(), Diagnostic>>()
+            + 4 * std::mem::size_of::<bool>()
+            + 2 * std::mem::size_of::<&StatusSources<'_>>()
+            + std::mem::size_of::<Option<&Directory<&StatusSourceId>>>(),
+        "retained reference selection controls",
+    )?;
     let plan = &function.cleanup_plan;
     budget.reserve_array::<usize>(function, plan.edges.len(), "edge reference vector")?;
     let mut edge_references = vec![0_usize; plan.edges.len()];

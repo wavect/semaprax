@@ -1,5 +1,6 @@
 //! A full real Frame per live unpaid continuation, with a fixed pointer directory.
 //! This changes storage only. The shared complete runner and 516-frame authority remain.
+//! Push and pop debit no work beyond the runner's own, exactly as the Vec stack does.
 use super::*;
 struct BoxedFrames<'hir> {
     #[allow(
@@ -37,19 +38,14 @@ impl<'hir> FrameStack<'hir> for BoxedFrames<'hir> {
             std::mem::size_of::<Box<Frame<'hir>>>() + std::mem::size_of::<Result<(), Diagnostic>>(),
             "unpaid continuation box controls",
         )?;
-        budget.charge(function, 1, "unpaid continuation box initialization")?;
         self.frames.push(Box::new(frame));
         Ok(())
     }
     fn pop_owned(
         &mut self,
-        function: &ResolvedFunction,
-        budget: &mut ReplayBudget,
+        _: &ResolvedFunction,
+        _: &mut ReplayBudget,
     ) -> Result<Option<Frame<'hir>>, Diagnostic> {
-        if self.frames.is_empty() {
-            return Ok(None);
-        }
-        budget.charge(function, 1, "unpaid continuation box extraction")?;
         Ok(self.frames.pop().map(|frame| *frame))
     }
 }

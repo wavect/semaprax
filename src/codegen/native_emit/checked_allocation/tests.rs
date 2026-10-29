@@ -224,7 +224,13 @@ fn run_generated(emitted: &str, probe: &str) {
             "{}",
             String::from_utf8_lossy(&ran.stderr)
         );
-        assert_eq!(ran.stdout, b"checked-native-allocation: ok\n");
+        // The C probe writes stdout in text mode, which is CRLF on Windows.
+        let expected: &[u8] = if cfg!(windows) {
+            b"checked-native-allocation: ok\r\n"
+        } else {
+            b"checked-native-allocation: ok\n"
+        };
+        assert_eq!(ran.stdout, expected);
         assert!(ran.stderr.is_empty());
     }
     std::fs::remove_dir_all(root).unwrap();

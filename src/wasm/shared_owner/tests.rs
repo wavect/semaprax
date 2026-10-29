@@ -247,6 +247,9 @@ const ORDINARY_IMPORTS: &[&str] = &[
     "spx_vec_set_v2",
     "spx_vec_sort_by_v1",
     "spx_vec_sort_v3",
+    // Record-Vec field uniqueness (96e6fbfb6) and scalar field update (4249cfc62).
+    "spx_vec_unique_by_v1",
+    "spx_vec_update_field_v1",
     "spx_vec_with_capacity",
     "spx_vec_with_capacity_v2",
 ];
@@ -443,12 +446,21 @@ fn every_emitter_import_literal_is_in_the_classified_inventory() {
     let mut found = quoted_names(&std::fs::read_to_string(root.join("wasm.rs")).unwrap());
     emitter_literals(&root.join("wasm"), &mut found);
     let known: BTreeSet<&str> = ORDINARY_IMPORTS.iter().copied().collect();
+    // The private source-checked partition producer (597d6e1a5) is emitted by
+    // `aggregate::emit_partition` but deliberately stays outside the ordinary
+    // classification: only `PartitionModule` admits it, and only as the host's
+    // exact `producer` object. Bind the exception to that host object.
+    let producer = object_keys(HOST_SOURCE, "const producer = {", "\n  };");
+    assert_eq!(producer, BTreeSet::from(["spx_bytes_partition".to_owned()]));
+    for name in &producer {
+        assert!(!known.contains(name.as_str()), "{name} classified as ordinary");
+    }
     for name in &found {
         let export = EMITTER_EXPORT_NAMES
             .iter()
             .any(|prefix| name == prefix || (prefix.ends_with('_') && name.starts_with(prefix)));
         assert!(
-            known.contains(name.as_str()) || export,
+            known.contains(name.as_str()) || export || producer.contains(name),
             "{name} is neither a classified import nor a known export"
         );
     }

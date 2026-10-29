@@ -822,7 +822,11 @@ pub(super) fn with_authoring_repair_help(mut diagnostic: Diagnostic) -> Diagnost
     // Optional presentation must never select a new refusal or consume the
     // authoritative diagnostic floor. Sticky refusal rejects even fitting help.
     // Admitted help consumes real bytes; later required-work boundaries can move.
-    if !crate::bounded_output::reserve_active_preserving(text.len(), 0) {
+    // `reserve_active_preserving` admits positive optional writes after a
+    // refusal (87612d690), so the sticky refusal is checked explicitly.
+    if crate::bounded_output::active_refused()
+        || !crate::bounded_output::reserve_active_preserving(text.len(), 0)
+    {
         return diagnostic;
     }
     let mut help = String::new();

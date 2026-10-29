@@ -124,8 +124,20 @@ fn projected_borrow_shape_gate_rejects_wrong_operation_and_depth() {
         &DeclarationId::new(crate::byte_ops::BYTES_AS_SLICE_ID),
         &exact,
     ));
+    // 63b12469d (PROJECTED-STRING-VIEWS-V1) admits the projected String view
+    // and its exact fused `str_as_bytes(string_as_str(..))` Slice composition.
+    for admitted in [
+        crate::byte_ops::STRING_AS_STR_ID,
+        crate::byte_ops::STR_AS_BYTES_ID,
+    ] {
+        assert!(borrow_place_shape_is_admitted(
+            &DeclarationId::new(admitted),
+            &exact,
+        ));
+    }
+    // Any other borrowing operation stays refused on a projected place.
     assert!(!borrow_place_shape_is_admitted(
-        &DeclarationId::new(crate::byte_ops::STR_AS_BYTES_ID),
+        &DeclarationId::new(crate::byte_ops::ARRAY_AS_SLICE_ID),
         &exact,
     ));
     let deeper = hir::Place {

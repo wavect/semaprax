@@ -78,7 +78,10 @@ fn paid_fact_cursor_and_growth_exact_short_keep_first_receipt_and_drop_one_owner
     struct CapacityLayout<'a> {
         _function: &'a ResolvedFunction,
         _physical: PayerLayout<'a>,
-        _types: [Option<(&'a ResolvedType, usize)>; 514],
+        // c90764eeb ("grow funded type cursor") replaced the inline 514-slot
+        // type array with a lazily grown Vec; this literal fixture has no
+        // call or callable type, so the cursor never grows.
+        _types: Vec<Option<(&'a ResolvedType, usize)>>,
         _work: usize,
     }
     type Frame<'a> = Option<(expression_children::ReplayChildCursor<'a>, bool)>;

@@ -329,14 +329,12 @@ fn an_owned_bytes_local_defined_before_a_loop_embedded_site_is_admitted_with_a_v
 /// storage is reassigned *inside* the `while` body recurs once per
 /// iteration with a value that can legitimately differ each time, which the
 /// flat `ValueId`-keyed carrying map cannot represent (only the first
-/// dynamic occurrence would ever be consulted). In practice this reaches
-/// `hir::resolve_statement`'s own pre-existing while-body admission first:
-/// `rebuild`'s return type (`Bytes`) is not scalar, so the call is refused
-/// with `SPX-T252` ("call `rebuild` is not admitted in while bodies; only
-/// scalar functions qualify") before `cleanup_plan::admit_owned_bytes_profile`
-/// ever runs. If that carve-out ever widens to admit a non-scalar-returning
-/// call, `SPX-T303` (via `slot_touched_inside_while`) is this increment's own
-/// second line of defence: not exercised by this exact fixture today, but
+/// dynamic occurrence would ever be consulted). This fixture used to reach
+/// `hir::resolve_statement`'s while-body admission first (`SPX-T252`).
+/// 716e72ece ("authenticate transitive nonallocating Bytes helper renewal")
+/// widened that carve-out to admit the nonallocating `rebuild` helper, so
+/// `SPX-T303` (via `slot_touched_inside_while`), this increment's own second
+/// line of defence, is now the refusal this fixture exercises; it is also
 /// asserted separately (below) directly against the plan-admission query.
 const OWNED_BYTES_LOOP_REASSIGNED_SOURCE: &str = r#"
 module test.control_lowering_owned_loop_reassigned;
@@ -383,7 +381,7 @@ fn an_owned_bytes_local_reassigned_inside_a_loop_embedded_site_stays_refused() {
     )
     .unwrap();
     let error = hir::resolve(&ast).unwrap_err().remove(0);
-    assert_eq!(error.code, "SPX-T252");
+    assert_eq!(error.code, "SPX-T303");
 }
 
 /// The if/else-nested case (`OWNED_BYTES_SOURCE`, admitted above) still

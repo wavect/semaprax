@@ -63,11 +63,11 @@ fn funded_flat_receiver_keeps_complete_saved_plan_and_current_member_boundary() 
             assert!(crate::vec_ops::string_slot::place(value).is_some());
         }
     });
-    assert_eq!(old_queries.allocations, 32);
-    assert_eq!(
-        old_queries.allocated,
-        32 * std::mem::size_of::<ResolvedType>()
-    );
+    // 86c424b30 made the independent predicate compare the Vec<string> type
+    // in place (`resolved_vec_matches`), so it no longer builds a temporary
+    // `ResolvedType` per query either.
+    assert_eq!(old_queries.allocations, 0);
+    assert_eq!(old_queries.allocated, 0);
     assert_eq!(old_queries.freed, old_queries.allocated);
     assert_eq!(old_queries.live, 0);
     for attack in 0..4 {

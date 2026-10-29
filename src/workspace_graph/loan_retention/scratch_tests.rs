@@ -98,14 +98,17 @@ fn scratch_growth_reserves_the_whole_new_carrier_and_refuses_one_short() {
                 refusal.unwrap().stage,
                 Some(bounded_output::ReservationStage::RetainedLoanScratch)
             );
-            // The refused replacement allocates no keys. Its diagnostic still
-            // appends the complete message to the same cumulative ledger.
-            assert_eq!(
-                debit,
-                metadata(&small)
-                    + errors[0].message.len()
-                    + errors[0].help.as_ref().map_or(0, String::len)
-            );
+            // The refused replacement allocates no keys. Since 74d6ff96d the
+            // exhausted formatter's default-limit message is borrowed static
+            // text with no help, so the diagnostic adds no ledger debit.
+            assert!(matches!(
+                errors[0].message,
+                std::borrow::Cow::Borrowed(
+                    "Workspace Semantic Graph `builder_bytes` exceeds 67108864"
+                )
+            ));
+            assert_eq!(errors[0].help, None);
+            assert_eq!(debit, metadata(&small));
         }
     }
 }
@@ -451,10 +454,18 @@ fn candidate_intersection_keeps_equal_text_distinct_full_capacity_and_exact_unma
             );
             assert_eq!(scratch.keys.capacity(), 0);
             assert_eq!(scratch.matched.capacity(), 0);
+            // 74d6ff96d: the exhausted default-limit message is borrowed static
+            // text with no help, so nothing at all is materialized.
+            assert!(matches!(
+                errors[0].message,
+                std::borrow::Cow::Borrowed(
+                    "Workspace Semantic Graph `builder_bytes` exceeds 67108864"
+                )
+            ));
+            assert_eq!(errors[0].help, None);
             assert_eq!(
-                debit,
-                errors[0].message.len() + errors[0].help.as_ref().map_or(0, String::len),
-                "only refusal text is materialized; the complete scratch reservation failed"
+                debit, 0,
+                "no refusal text is materialized; the complete scratch reservation failed"
             );
         }
         assert_eq!(

@@ -878,7 +878,15 @@ fn certified_heads_keep_whole_d458_owner_macros_and_independent_final_hir_loops(
     let current = include_str!("../comparison_owner.rs");
     // Authenticate and restore the entire immediate predecessor before the
     // original final-loop comparison; the affine owner binds its new driver.
-    let current_before_affine = final_affine_tests::whole_before(0, current).unwrap();
+    // The affine inverse was recorded against the pre-format bytes; formatting
+    // commits 7d42ad08b and f622ae240 changed the live file, so authenticate and
+    // restore that exact pre-format view first (as the affine owner test does).
+    let current_preformat = final_affine_tests::restore_exact_preformat_source(
+        "src/cleanup_plan/replay/ordinary_plan_history/comparison_owner.rs",
+        current.as_bytes(),
+        "e98bf0ffd40155974eeb159ffc5cb0a194c5c0b72f5735ad95381c3644d7dedd",
+    );
+    let current_before_affine = final_affine_tests::whole_before(0, &current_preformat).unwrap();
     let current = std::str::from_utf8(&current_before_affine).unwrap();
     let final_marker = "    let mut pairs = actual.paths.iter().zip(expected);";
     let old_final = restored

@@ -24,6 +24,14 @@ fn fixed_compiler_prelude_identities_preserve_complete_saved_index_and_drop_payl
         assert_eq!(current, saved);
         for text in texts {
             let declaration = current.declarations.get(*text).unwrap();
+            // A `const &str` has no guaranteed unique address (MSVC links a
+            // separate copy per use), so pointer equality with the constant is
+            // checked only where the linker merges them. Everywhere the identity
+            // must be the compiler-owned static text with no owned backing.
+            assert!(declaration.id.is_compiler_static());
+            assert_eq!(declaration.id.owned_allocation_bytes(), 0);
+            assert_eq!(declaration.id.as_str(), *text);
+            #[cfg(not(windows))]
             assert_eq!(declaration.id.as_str().as_ptr(), text.as_ptr());
             assert_eq!(declaration.identity_origin, IdentityOrigin::CompilerOwned);
             assert_eq!(current.type_parameters[&declaration.id].len(), 1);

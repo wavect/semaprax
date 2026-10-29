@@ -85,6 +85,23 @@ pub(super) fn collect<'a>(
         {
             return Err(refusal());
         }
+        // An imported helper is presented to the consumer verifier without
+        // its provider body, so its Row Loan v1 body proof is replayed here
+        // on the current provider body (SCOPED-RECORD-ROW-LOAN-V1 "Helper
+        // proof"). A local callee was already proven by the source verifier.
+        if !std::ptr::eq(context, program) {
+            let crate::ast::TypeDeclarationKind::Record { fields } = &row.declaration.kind else {
+                return Err(refusal());
+            };
+            if !crate::source_verify::row_loan_field_reader_proof(target, position, fields) {
+                return Err(vec![Diagnostic::error(
+                    "SPX-T284",
+                    "record traversal row can only be lent to a helper that reads Copy scalar fields of its borrowed parameter",
+                    argument.span,
+                )
+                .at_path(&program.path)]);
+            }
+        }
         reserve_builder_structure(4 * std::mem::size_of::<Lend<'_>>())?;
         out.loans.push(Lend {
             function,

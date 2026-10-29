@@ -95,6 +95,7 @@ pub(crate) use declared_type::copy_record_collection::{
     source_admitted as copy_record_source_admitted,
 };
 pub(crate) use diagnostics::is_scalar_source_type;
+pub(crate) use record_traversal::row_loan::field_reader_proof as row_loan_field_reader_proof;
 
 pub(crate) fn program_uses_record_iterator(program: &dyn ProgramSource) -> bool {
     fn type_uses(program: &dyn ProgramSource, ty: &Type) -> bool {

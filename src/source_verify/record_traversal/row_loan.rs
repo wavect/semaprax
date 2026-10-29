@@ -100,6 +100,23 @@ pub(in crate::source_verify) fn reader_proof(
     let TypeDeclarationKind::Record { fields } = &declaration.kind else {
         return false;
     };
+    field_reader_proof(target, index, fields)
+}
+
+/// The body half of [`reader_proof`] over the lent record's exact authored
+/// fields. Workspace projection replays it on the current provider body of an
+/// imported helper, whose consumer-side presentation carries no body.
+pub(crate) fn field_reader_proof(
+    target: &Function,
+    index: usize,
+    fields: &[crate::ast::FieldDeclaration],
+) -> bool {
+    if !target.effects.is_empty() || !crate::vec_ops::ast_element_is_admitted(&target.return_type) {
+        return false;
+    }
+    let Some(parameter) = target.params.get(index) else {
+        return false;
+    };
     let scalar = |field: &str| {
         fields
             .iter()

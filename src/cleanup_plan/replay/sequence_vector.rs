@@ -215,6 +215,15 @@ pub(super) mod funded_tests;
 
 // This caller already owns prefixes while its caller retains the full suffix
 // vector. The slice is an actual borrow, never a cheaper claimed owned path.
+//
+// Observable work is payer-route independent: this route debits exactly the
+// ordinary route's total work for the same prefixes/suffixes.
+// d70e4af22 shifted rows with `Vec::remove`/`insert` and charged that
+// quadratic relocation on the ActiveBuilder route only, so the same program
+// could be admitted or refused depending on the payer. The receiver is now a
+// `VecDeque` over the same allocation: every row moves a bounded constant
+// number of times, so there is no quadratic relocation left to price, and
+// selection depends only on the payer and the shape, never on remaining work.
 macro_rules! inplace_dispatch {
     ($prefixes:ident, $suffixes:ident, $work:ident) => {{
         if matches!($work.budget.payer, AllocationPayer::ActiveBuilder)
@@ -223,30 +232,52 @@ macro_rules! inplace_dispatch {
             && $prefixes.len() <= 256
             && $suffixes.len() > 1
             && $suffixes.len() <= 8
+            && $crate::cleanup_plan::replay::sequence_vector::inplace_selectable()
         {
-            // Representation selection is read-only. It grants no work: the
-            // authoritative counter still pays every actual relocation below.
-            let extra = $prefixes.len() * ($prefixes.len() - 1) * ($suffixes.len() + 1)
-                + 2 * $prefixes.len();
-            if extra < $work.budget.skeleton_remaining / 4 {
-                $work.budget.reserve_bytes(
-                    $work.function,
-                    $crate::cleanup_plan::replay::sequence_vector::INPLACE_QUERY,
-                    "inplace path eligibility controls",
-                )?;
-                $work.budget.reserve_bytes(
-                    $work.function,
-                    $crate::cleanup_plan::replay::sequence_vector::INPLACE_BODY,
-                    "inplace complete path receiving controls",
-                )?;
-                return $crate::cleanup_plan::replay::sequence_vector::inplace_sequence(
-                    $prefixes, $suffixes, $work,
-                );
-            }
+            $work.budget.reserve_bytes(
+                $work.function,
+                $crate::cleanup_plan::replay::sequence_vector::INPLACE_QUERY,
+                "inplace path eligibility controls",
+            )?;
+            $work.budget.reserve_bytes(
+                $work.function,
+                $crate::cleanup_plan::replay::sequence_vector::INPLACE_BODY,
+                "inplace complete path receiving controls",
+            )?;
+            return $crate::cleanup_plan::replay::sequence_vector::inplace_sequence(
+                $prefixes, $suffixes, $work,
+            );
         }
     }};
 }
 pub(super) use inplace_dispatch;
+
+#[cfg(test)]
+thread_local! {
+    static ORDINARY_ONLY: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+/// Test-only selector: run `operation` with the inplace representation
+/// disabled, so a gate can price the ordinary route on an ActiveBuilder.
+#[cfg(test)]
+pub(super) fn with_ordinary_route<T>(operation: impl FnOnce() -> T) -> T {
+    struct Restore(bool);
+    impl Drop for Restore {
+        fn drop(&mut self) {
+            ORDINARY_ONLY.with(|only| only.set(self.0));
+        }
+    }
+    let _restore = Restore(ORDINARY_ONLY.with(|only| only.replace(true)));
+    operation()
+}
+
+pub(super) fn inplace_selectable() -> bool {
+    #[cfg(test)]
+    if ORDINARY_ONLY.with(std::cell::Cell::get) {
+        return false;
+    }
+    true
+}
 // Actual new scan/receiver carriers, including full original paths/results.
 // These are storage fees, never a new path, work or allocation allowance.
 pub(super) const INPLACE_QUERY: usize = 2 * std::mem::size_of::<Result<(), Diagnostic>>()
@@ -264,30 +295,33 @@ pub(super) const INPLACE_BODY: usize = 2 * std::mem::size_of::<(
     + std::mem::size_of::<std::iter::Enumerate<std::slice::Iter<'static, ExprSkeletonPath>>>()
     + 8 * std::mem::size_of::<usize>()
     + 2 * std::mem::size_of::<&mut SkeletonWork<'static, 'static>>()
-    + 2 * std::mem::size_of::<Result<(), Diagnostic>>();
+    + 2 * std::mem::size_of::<Result<(), Diagnostic>>()
+    + std::mem::size_of::<VecDeque<ExprSkeletonPath>>();
 
 pub(super) fn inplace_sequence(
-    mut prefixes: Vec<ExprSkeletonPath>,
+    prefixes: Vec<ExprSkeletonPath>,
     suffixes: &[ExprSkeletonPath],
     work: &mut SkeletonWork<'_, '_>,
 ) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
-    let mut remaining = prefixes.len();
-    work.charge(2 * remaining, "inplace full path index cursor work")?;
-    let mut index = 0usize;
-    while remaining != 0 {
-        if prefixes[index].failed || prefixes[index].residual {
+    // `From<Vec>` reuses the allocation without moving rows. The deque holds
+    // the unprocessed prefixes at its front and finished outputs at its back,
+    // so each row leaves the front once and each output enters the back once.
+    let mut rows = VecDeque::from(prefixes);
+    let pending = rows.len();
+    for _ in 0..pending {
+        // Each pass pops one of the `pending` original rows, which stay ahead
+        // of every output, so the front is always an unprocessed prefix.
+        let Some(mut prefix) = rows.pop_front() else {
+            break;
+        };
+        if prefix.failed || prefix.residual {
             work.charge(1, "short-circuited skeleton path")?;
             note_skeleton_materialization();
             work.budget
                 .reserve_bytes(work.function, 0, "short-circuited skeleton path")?;
-            index += 1;
+            // The front slot just vacated keeps this push within capacity.
+            rows.push_back(prefix);
         } else {
-            // All prior outputs precede index, so tail is exactly the original
-            // rows still unprocessed. No canonical sequence is sorted/repaired.
-            let tail = remaining - 1;
-            let shifts = tail * (suffixes.len() + 1) * 2;
-            work.charge(shifts, "inplace full path relocation work")?;
-            let mut prefix = prefixes.remove(index);
             for (offset, suffix) in suffixes.iter().enumerate() {
                 let observations = if offset == 0 {
                     work.charge(1, "skeleton prefix clone")?;
@@ -327,18 +361,18 @@ pub(super) fn inplace_sequence(
                 };
                 work.charge(1, "sequenced skeleton path")?;
                 note_skeleton_materialization();
-                work.budget.reserve_vec(
+                work.budget.reserve_deque(
                     work.function,
-                    &mut prefixes,
+                    &mut rows,
                     1,
                     "sequenced skeleton path",
                 )?;
-                prefixes.insert(index + offset, path);
+                rows.push_back(path);
             }
             drop(prefix);
-            index += suffixes.len();
         }
-        remaining -= 1;
     }
-    Ok(prefixes)
+    // Rotates the ring into place within the same allocation: linear in the
+    // already-paid output rows, with no reallocation and no reordering.
+    Ok(Vec::from(rows))
 }

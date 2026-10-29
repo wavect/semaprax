@@ -460,7 +460,17 @@ fn whole_sequence_owner_reports_paid_allocated_peak_and_complete_drop_for_small_
             assert_eq!(heap.allocated, heap.freed);
         }
         if len == 1 {
-            assert_eq!(old_paid, new_paid);
+            // The current ordinary route's selection (f7d35b4d7) and sequenced
+            // count (2d4d15679) controls receive a compact `Result<(), ByteFailure>`
+            // instead of the frozen route's `Result<(), Diagnostic>`: an intended,
+            // still fully reserved saving, statically pinned in final_output::compact.
+            let compact = (crate::cleanup_plan::replay::final_output::HIR_SELECTION_CONTROLS
+                - crate::cleanup_plan::replay::final_output::compact::HIR_SELECTION_CONTROLS)
+                + (crate::cleanup_plan::replay::path_array::count_controls::<true>()
+                    - crate::cleanup_plan::replay::final_output::compact::path_count_controls::<
+                        true,
+                    >());
+            assert_eq!(old_paid, new_paid + compact);
             assert_eq!(old_heap.allocated, new_heap.allocated);
         } else {
             assert!(new_heap.allocated < old_heap.allocated);

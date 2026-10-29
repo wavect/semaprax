@@ -456,8 +456,27 @@ impl<K: KeyWork> Directory<K> {
         }
     }
 
+    /// Receiving controls `same_btree_keys` pays before its walk.
+    pub(super) fn same_btree_keys_control_bytes() -> usize {
+        2 * std::mem::size_of::<Result<bool, Diagnostic>>()
+            + 2 * std::mem::size_of::<Result<Option<&K>, Diagnostic>>()
+            + 2 * std::mem::size_of::<Result<(), Diagnostic>>()
+            + std::mem::size_of::<Iter<'_, K>>()
+            + std::mem::size_of::<std::collections::btree_set::Iter<'_, K>>()
+            + 4 * std::mem::size_of::<Option<&K>>()
+            + 4 * std::mem::size_of::<&K>()
+            + 2 * std::mem::size_of::<bool>()
+    }
+
     /// Compare a retained full-key directory with one borrowed ordered set.
     /// The set and directory retain all original identities; no second key set.
+    ///
+    /// The walk debits no work. It replaces the original route's unmetered
+    /// `BTreeSet` equality (`structural_maps::validate_reference_coverage`),
+    /// and observable work must not depend on which route the payer selects
+    /// (d70e4af22 added this route with per-key step and comparison debits,
+    /// which refused programs the original route admitted). The walk is
+    /// linear in the already-bounded status count, exactly like the original.
     pub(super) fn same_btree_keys(
         &self,
         other: &BTreeSet<K>,
@@ -467,14 +486,7 @@ impl<K: KeyWork> Directory<K> {
         self.authenticate(function, budget)?;
         budget.reserve_bytes(
             function,
-            2 * std::mem::size_of::<Result<bool, Diagnostic>>()
-                + 2 * std::mem::size_of::<Result<Option<&K>, Diagnostic>>()
-                + 2 * std::mem::size_of::<Result<(), Diagnostic>>()
-                + std::mem::size_of::<Iter<'_, K>>()
-                + std::mem::size_of::<std::collections::btree_set::Iter<'_, K>>()
-                + 4 * std::mem::size_of::<Option<&K>>()
-                + 4 * std::mem::size_of::<&K>()
-                + 2 * std::mem::size_of::<bool>(),
+            Self::same_btree_keys_control_bytes(),
             "retained reference comparison controls",
         )?;
         if self.len() != other.len() {
@@ -482,10 +494,9 @@ impl<K: KeyWork> Directory<K> {
         }
         let mut left = self.iter();
         for right in other {
-            let Some(key) = self.next_paid(&mut left, function, budget)? else {
+            let Some(key) = left.next() else {
                 return Ok(false);
             };
-            Self::charge_pair(key, right, function, budget, self.phase)?;
             if Ord::cmp(key, right) != Ordering::Equal {
                 return Ok(false);
             }

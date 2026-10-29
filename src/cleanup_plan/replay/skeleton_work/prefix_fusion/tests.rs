@@ -203,10 +203,20 @@ fn ordinary_prefix_fusion_whole_owner_removes_actual_backing_and_pays_controls()
         assert!(current.okay && !old_refused && !new_refused);
         let removed = len * size_of::<Observation>();
         assert_eq!(old_alloc.allocated - new_alloc.allocated, removed);
-        assert_eq!(old_paid - new_paid, removed - CONTROLS);
+        // The current ordinary route's selection (f7d35b4d7) and sequenced
+        // count (2d4d15679) controls receive a compact `Result<(), ByteFailure>`
+        // instead of the frozen route's `Result<(), Diagnostic>`: an intended,
+        // still fully reserved saving, statically pinned in final_output::compact.
+        let compact = (crate::cleanup_plan::replay::final_output::HIR_SELECTION_CONTROLS
+            - crate::cleanup_plan::replay::final_output::compact::HIR_SELECTION_CONTROLS)
+            + (crate::cleanup_plan::replay::path_array::count_controls::<true>()
+                - crate::cleanup_plan::replay::final_output::compact::path_count_controls::<true>(
+                ));
+        assert_eq!(old_paid - new_paid, removed - CONTROLS + compact);
         assert_eq!(
             old_alloc.allocations + old_alloc.reallocations,
-            new_alloc.allocations + new_alloc.reallocations + 1
+            new_alloc.allocations + new_alloc.reallocations + 1,
+            "count={count} old={old_alloc:?} new={new_alloc:?}"
         );
         assert!(new_alloc.highwater <= old_alloc.highwater);
         let (exact, _, refused, paid) = owner(&program, false, len, 1, count, new_paid);

@@ -43,9 +43,18 @@ fn checked_nested_guards_keep_full_old_observations_work_and_result_failures() {
     for nested in [false, true] {
         let program = checked(nested);
         let function = &program.functions[1];
-        for limit in [1, 8, 64, 512, MAX_REPLAY_WORK_UNITS] {
+        // d70e4af22 sends the LegacyUnobserved payer through
+        // `boxed_frames::run`, which never acquires the pooled Storage: it
+        // drops the idle top-level backing and enters no nested slot. A paying
+        // (ActiveBuilder) budget still drives the pool. Both routes keep the
+        // complete old observations, result failures and work.
+        let run = |paying: bool, limit: usize| {
             let mut before_budget = ReplayBudget::with_skeleton_limit(limit);
             let mut after_budget = ReplayBudget::with_skeleton_limit(limit);
+            assert_eq!(
+                matches!(after_budget.payer, AllocationPayer::ActiveBuilder),
+                paying
+            );
             let mut storage = Storage::new(&program);
             let before = old_expression(
                 &program,
@@ -57,6 +66,7 @@ fn checked_nested_guards_keep_full_old_observations_work_and_result_failures() {
             work.continuations = Some(&mut storage);
             ENTRY_COUNT.with(|count| count.set(0));
             let after = expression_skeleton(&program, function, &function.body, &mut work);
+            let verdict = after.is_ok();
             match (before, after) {
                 (Ok(old), Ok(new)) => {
                     assert_eq!(old.len(), new.len());
@@ -75,11 +85,24 @@ fn checked_nested_guards_keep_full_old_observations_work_and_result_failures() {
                 (Err(old), Err(new)) => assert_eq!(old, new),
                 _ => panic!("old/new result diverged"),
             }
+            // Relocation debits no work on any backing, so the general
+            // account is exact on both payer routes.
             assert_eq!(before_budget.remaining, work.budget.remaining);
             assert_eq!(before_budget.skeleton_spent, work.budget.skeleton_spent);
+            // A paying refusal also zeroes `remaining` (sticky failure), so the
+            // cross-route comparison reads it only on success.
+            let observed = (
+                verdict,
+                work.budget.skeleton_spent,
+                verdict.then_some(work.budget.remaining),
+            );
             drop(work);
             empty(&storage);
-            if limit == MAX_REPLAY_WORK_UNITS {
+            if !paying {
+                assert_eq!(ENTRY_COUNT.with(std::cell::Cell::get), 0);
+                assert!(storage.nested.is_none());
+                assert_eq!(storage.frames.as_ref().unwrap().capacity(), 0);
+            } else if limit == MAX_REPLAY_WORK_UNITS {
                 let entries = ENTRY_TRACE.with(std::cell::Cell::get);
                 assert_eq!(
                     ENTRY_COUNT.with(std::cell::Cell::get),
@@ -105,6 +128,15 @@ fn checked_nested_guards_keep_full_old_observations_work_and_result_failures() {
                     }
                 }
             }
+            observed
+        };
+        for limit in [1, 8, 64, 512, MAX_REPLAY_WORK_UNITS] {
+            let unobserved = run(false, limit);
+            let (paying, refused, _) =
+                crate::bounded_output::with_limit_usage(usize::MAX, || run(true, limit));
+            assert!(!refused);
+            // The verdict and observable work do not depend on the payer.
+            assert_eq!(unobserved, paying, "limit={limit}");
         }
         // Old one-slot/local-nested dispatch is retained as a whole ordinary
         // receiver control, including both factored and enumerating consumers.

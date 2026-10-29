@@ -386,13 +386,11 @@ fn held_growth_preserves_every_live_frame_and_pays_every_physical_frontier() {
         assert!(allocation.allocated >= backing && allocation.allocated <= exact);
         assert!(!allocation.invalid && allocation.live == 0);
         assert_eq!(allocation.allocated, allocation.freed);
-        let growth_work = HELD_TARGETS
-            .into_iter()
-            .take_while(|n| *n < target)
-            .map(|n| 8 + 2 * n)
-            .sum::<usize>()
-            + 8;
-        assert_eq!(work, growth_work);
+        // Relocation is bounded by the 516-frame cap and amortised against the
+        // paid continuation pushes; it debits no work, so the general account
+        // matches the fixed, boxed and pooled backings (f68ceaeb8 charged
+        // `8 + 2 * len` per growth on this payer only).
+        assert_eq!(work, 0);
         for floor in [0, 37] {
             for available in [0, exact - 1, exact] {
                 let (((ok, _), allocation), refused, used, first) =
@@ -424,7 +422,12 @@ fn held_growth_keeps_original_depth_refusal_and_never_relocates_after_work_failu
         let mut budget = ReplayBudget::new();
         let mut frames = fresh_receiving(function, &mut budget).unwrap();
         fill_held(&mut frames, function);
+        // A genuine work failure is sticky on the paying builder; growth then
+        // refuses at its zero-byte authentication before any relocation.
         budget.remaining = 0;
+        assert!(budget
+            .charge(function, 1, "exhausted ordinary work")
+            .is_err());
         let pointer = frames.as_ptr();
         let capacity = frames.capacity();
         let (result, allocation) = measure(|| reserve_push(&mut frames, function, &mut budget));
@@ -571,10 +574,12 @@ fn checked_roots_and_reentrant_guards_keep_complete_old_paths_with_small_paid_ba
             let frames = slot.as_ref().unwrap();
             frames.is_empty() && frames.capacity() < FRAME_CAPACITY
         }));
-        // Relocation uses the ordinary work account; every original skeleton
-        // push/event still consumes exactly the original skeleton account.
+        // Every original skeleton push/event consumes exactly the original
+        // skeleton account, and relocation debits no general work, so the
+        // ordinary account matches the fixed old backing too.
         assert_eq!(old_budget.skeleton_spent, budget.skeleton_spent);
         assert_eq!(old_budget.skeleton_remaining, budget.skeleton_remaining);
+        assert_eq!(old_budget.remaining, budget.remaining);
     });
 }
 
@@ -613,5 +618,6 @@ fn ordinary_standalone_roots_keep_complete_original_paths_without_fixed_backing(
         }
         assert_eq!(old_budget.skeleton_spent, budget.skeleton_spent);
         assert_eq!(old_budget.skeleton_remaining, budget.skeleton_remaining);
+        assert_eq!(old_budget.remaining, budget.remaining);
     });
 }

@@ -253,46 +253,68 @@ fn staged_probe_reports_every_paid_and_heap_delta_with_exact_sticky_accounts() {
     let program = path_array_main8a::fixture_program();
     let function = &program.functions[0];
     for count in [8, 9, 16, 64] {
-        let run = |old, limit| {
-            with_limit_usage_refusal_site(limit, || {
-                measure(|| {
-                    let mut budget = ReplayBudget::new();
-                    let result = (|| {
-                        budget.prepare_builder(function)?;
-                        budget.reserve_skeleton(function, MAX_REPLAY_WORK_UNITS)?;
-                        let mut work = SkeletonWork::new(&program, function, &mut budget);
-                        let inputs = seed(count, 0, &mut work)?;
-                        let suffixes = seed(2, 0, &mut work)?;
-                        let result = if old {
-                            before::sequence_skeleton_paths(inputs, &suffixes, &mut work)
+        // These counts with two suffixes are inplace-eligible on an
+        // ActiveBuilder since d70e4af22. The exact header/receiving byte
+        // claims below price `sequence_minimum::optimized`, so they run with
+        // the inplace representation disabled; the inplace route is checked
+        // after them against the same ordinary outputs and work.
+        let run_route = |old: bool, limit: usize, inplace: bool| {
+            let probe = || {
+                with_limit_usage_refusal_site(limit, || {
+                    measure(|| {
+                        let mut budget = ReplayBudget::new();
+                        let result = (|| {
+                            budget.prepare_builder(function)?;
+                            budget.reserve_skeleton(function, MAX_REPLAY_WORK_UNITS)?;
+                            let mut work = SkeletonWork::new(&program, function, &mut budget);
+                            let inputs = seed(count, 0, &mut work)?;
+                            let suffixes = seed(2, 0, &mut work)?;
+                            let result = if old {
+                                before::sequence_skeleton_paths(inputs, &suffixes, &mut work)
+                            } else {
+                                sequence_skeleton_paths(inputs, &suffixes, &mut work)
+                            };
+                            result.map(|paths| {
+                                let shape = (paths.len(), paths.capacity());
+                                drop(paths);
+                                shape
+                            })
+                        })()
+                        .map_err(failure);
+                        let retry = if result.is_err() {
+                            Some(
+                                budget
+                                    .reserve_bytes(function, 0, "minimum sticky retry")
+                                    .map_err(failure),
+                            )
                         } else {
-                            sequence_skeleton_paths(inputs, &suffixes, &mut work)
+                            None
                         };
-                        result.map(|paths| {
-                            let shape = (paths.len(), paths.capacity());
-                            drop(paths);
-                            shape
-                        })
-                    })()
-                    .map_err(failure);
-                    let retry = if result.is_err() {
-                        Some(
-                            budget
-                                .reserve_bytes(function, 0, "minimum sticky retry")
-                                .map_err(failure),
-                        )
-                    } else {
-                        None
-                    };
-                    drop(budget);
-                    (result, retry)
+                        let spent = (budget.skeleton_spent, budget.skeleton_remaining);
+                        drop(budget);
+                        (result, retry, spent)
+                    })
                 })
-            })
+            };
+            if inplace {
+                probe()
+            } else {
+                sequence_vector::with_ordinary_route(probe)
+            }
         };
-        let (((actual, _), allocation), refused, exact, first, site) = run(false, usize::MAX);
-        let (((expected, _), old_allocation), old_refused, old_paid, old_first, old_site) =
-            run(true, usize::MAX);
-        assert_eq!(actual.unwrap(), expected.unwrap());
+        let run = |old, limit| run_route(old, limit, false);
+        let (((actual, _, spent), allocation), refused, exact, first, site) =
+            run(false, usize::MAX);
+        let (
+            ((expected, _, old_spent), old_allocation),
+            old_refused,
+            old_paid,
+            old_first,
+            old_site,
+        ) = run(true, usize::MAX);
+        let (actual, expected) = (actual.unwrap(), expected.unwrap());
+        assert_eq!(actual, expected);
+        assert_eq!(spent, old_spent);
         assert!(!refused && first.is_none() && site.is_none());
         assert!(!old_refused && old_first.is_none() && old_site.is_none());
         assert!(!allocation.invalid && allocation.live == 0);
@@ -315,9 +337,18 @@ fn staged_probe_reports_every_paid_and_heap_delta_with_exact_sticky_accounts() {
             old_allocation.allocated + old_saved,
             allocation.allocated + saved
         );
+        // The current ordinary route's selection (f7d35b4d7) and sequenced
+        // count (2d4d15679) controls receive a compact `Result<(), ByteFailure>`
+        // instead of the frozen route's `Result<(), Diagnostic>`: an intended,
+        // still fully reserved saving, statically pinned in final_output::compact.
+        let compact = (crate::cleanup_plan::replay::final_output::HIR_SELECTION_CONTROLS
+            - crate::cleanup_plan::replay::final_output::compact::HIR_SELECTION_CONTROLS)
+            + (crate::cleanup_plan::replay::path_array::count_controls::<true>()
+                - crate::cleanup_plan::replay::final_output::compact::path_count_controls::<true>(
+                ));
         assert_eq!(
             old_paid + old_saved + added,
-            exact + saved + super::RECEIVING
+            exact + saved + super::RECEIVING + compact
         );
         if count == 64 {
             assert!(selected > old_capacity);
@@ -325,15 +356,47 @@ fn staged_probe_reports_every_paid_and_heap_delta_with_exact_sticky_accounts() {
         if count == 9 {
             assert_eq!(capacity(9, 1, 16), 16);
             assert!(HEADER < super::RECEIVING);
-            assert_eq!(exact + super::RECEIVING, old_paid + HEADER);
+            assert_eq!(exact + super::RECEIVING + compact, old_paid + HEADER);
             assert!(exact < old_paid, "real no-growth paid reduction");
             assert_eq!(allocation.allocated, old_allocation.allocated);
         }
         eprintln!("sequence minimum count={count} current_paid={exact} old_paid={old_paid} current_heap={allocation:?} old_heap={old_allocation:?}");
         for limit in [0, exact - 1, exact] {
-            let (((outcome, retry), allocation), refused, paid, first, site) = run(false, limit);
+            let (((outcome, retry, _), allocation), refused, paid, first, site) = run(false, limit);
             assert_eq!(outcome.is_ok(), limit == exact);
             assert_eq!(refused, limit != exact);
+            if refused {
+                assert!(first.is_some() && site.is_some());
+                assert!(retry.unwrap().is_err());
+            }
+            assert!(!allocation.invalid && allocation.live == 0);
+            assert_eq!(allocation.allocated, allocation.freed);
+            assert!(allocation.allocated <= paid);
+        }
+        // The production ActiveBuilder route for this shape: the same complete
+        // outputs and the same work as the ordinary route (payer-route
+        // independent), every heap byte paid, and exact/short sticky accounts.
+        let (
+            ((inplace, _, inplace_spent), inplace_allocation),
+            refused,
+            inplace_exact,
+            first,
+            site,
+        ) = run_route(false, usize::MAX, true);
+        assert_eq!(inplace.unwrap().0, actual.0);
+        assert_eq!(inplace_spent, spent);
+        assert!(!refused && first.is_none() && site.is_none());
+        assert!(!inplace_allocation.invalid && inplace_allocation.live == 0);
+        assert_eq!(inplace_allocation.allocated, inplace_allocation.freed);
+        assert!(inplace_allocation.allocated <= inplace_exact);
+        eprintln!(
+            "sequence inplace count={count} paid={inplace_exact} heap={inplace_allocation:?}"
+        );
+        for limit in [0, inplace_exact - 1, inplace_exact] {
+            let (((outcome, retry, _), allocation), refused, paid, first, site) =
+                run_route(false, limit, true);
+            assert_eq!(outcome.is_ok(), limit == inplace_exact);
+            assert_eq!(refused, limit != inplace_exact);
             if refused {
                 assert!(first.is_some() && site.is_some());
                 assert!(retry.unwrap().is_err());

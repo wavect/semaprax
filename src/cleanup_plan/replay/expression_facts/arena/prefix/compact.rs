@@ -11,6 +11,11 @@ const _: () = assert!(
         == std::mem::size_of::<Result<Option<&Option<CallFact<'_>>>, Diagnostic>>()
             - 2 * std::mem::size_of::<Result<Option<&Option<CallFact<'_>>>, ByteFailure>>()
 );
+/// Bytes one prefix-certified lookup no longer pays since a2814be65 narrowed
+/// its two inner result roles; asserted equal to that transport delta above.
+#[cfg(test)]
+pub(in crate::cleanup_plan::replay::expression_facts) const NARROWED_SAVING: usize =
+    super::LOOKUP_BYTES - LOOKUP_BYTES;
 pub(in crate::cleanup_plan::replay::expression_facts) fn find_receiving<'a, 'hir>(
     arena: &'a Arena<'hir>,
     function: &ResolvedFunction,

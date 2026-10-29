@@ -401,12 +401,14 @@ pub(super) fn reserve_push(
             + std::mem::size_of::<Frame<'_>>(),
         "held continuation replacement controls",
     )?;
-    // Eight setup steps and a read/move for every retained live frame.
-    budget.charge(
-        function,
-        8 + 2 * frames.len(),
-        "held continuation relocation",
-    )?;
+    // Relocation debits no work. f68ceaeb8 charged `8 + 2 * len` here, but
+    // only the ActiveBuilder's small receiving stacks relocate: the fixed,
+    // boxed (unobserved) and pooled backings never do, so the same program's
+    // general work depended on the payer and on whether a Storage was passed.
+    // The moves stay bounded: capacity doubles up to the 516-frame cap, so each
+    // stack relocates at most twice its final length in total, and every frame
+    // it holds was pushed under a paid "typed-HIR skeleton continuation push".
+    // The replacement backing and controls remain fully reserved above/below.
     let target = frames
         .capacity()
         .saturating_mul(2)

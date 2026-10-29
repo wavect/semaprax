@@ -2,6 +2,8 @@
 use super::*;
 use std::cmp::Ordering;
 mod prefix;
+#[cfg(test)]
+pub(in crate::cleanup_plan::replay::expression_facts) use prefix::compact::NARROWED_SAVING as NARROWED_LOOKUP_SAVING;
 pub(super) mod retained;
 const NIL: usize = usize::MAX;
 struct Node<'hir> {

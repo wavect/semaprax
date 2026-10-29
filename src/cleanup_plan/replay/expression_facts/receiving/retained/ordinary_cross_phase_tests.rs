@@ -85,8 +85,11 @@ fn actual_status_to_initial_edge_owner_has_full_typed_net_and_unchanged_work() {
     let current = run(&program, false, CAP, MAX_REPLAY_WORK_UNITS);
     assert_eq!(current.0, old.0);
     assert!(current.0.is_ok() && !current.1 && !old.1);
+    // The old lookup's arena search pays its narrowed inner transport since
+    // a2814be65 (statically asserted in arena::prefix::compact).
     let s = Session::OLD_SCRATCH
-        + 2 * std::mem::size_of::<Result<Option<&Option<CallFact<'_>>>, Diagnostic>>();
+        + 2 * std::mem::size_of::<Result<Option<&Option<CallFact<'_>>>, Diagnostic>>()
+        - crate::cleanup_plan::replay::expression_facts::arena::NARROWED_LOOKUP_SAVING;
     let r = Session::into_edge_local_bytes() + Session::into_edge_query_bytes();
     assert!(s > r);
     assert_eq!(current.3, old.3, "all original work cuts remain");
@@ -453,20 +456,65 @@ fn transition_scratch_has_complete_immediate_typed_invoice_and_unchanged_work() 
         let program = fixture(rows, true);
         let function = function(&program);
         let old = block_run(&program, function, false, CAP, MAX_REPLAY_WORK_UNITS);
+        super::super::reference_coverage::RETAINED_ROUTES.with(|routes| routes.set(0));
+        super::super::reference_coverage::RETAINED_BYTES.with(|bytes| bytes.set(0));
         let current = block_run(&program, function, true, CAP, MAX_REPLAY_WORK_UNITS);
+        let reference_routes =
+            super::super::reference_coverage::RETAINED_ROUTES.with(|routes| routes.get());
+        let new_reference =
+            super::super::reference_coverage::RETAINED_BYTES.with(|bytes| bytes.get());
         assert_eq!(current.0, old.0, "all six fields rows={rows}");
         assert!(
             current.0.is_ok() && !old.1 && !current.1,
             "rows={rows}: old={old:?} current={current:?}"
         );
         assert_eq!(current.3, old.3, "every original query work debit remains");
+        // d70e4af22 lets the retained reference-coverage route reuse the
+        // status directory instead of building the original declared-status
+        // set. It debits no work (checked above). Its bytes replace exactly
+        // what the original owner pays for the same function: measure that
+        // owner on a prepared paying budget, once per retained entry.
+        let original_reference = crate::bounded_output::with_limit_usage(CAP, || {
+            let mut budget = ReplayBudget::new();
+            budget.prepare_builder(function).unwrap();
+            let start = crate::bounded_output::active_remaining().unwrap();
+            crate::cleanup_plan::replay::structural_maps::validate_reference_coverage(
+                function,
+                &mut budget,
+            )
+            .unwrap();
+            start - crate::bounded_output::active_remaining().unwrap()
+        })
+        .0;
+        let old_reference = reference_routes * original_reference;
+        // The retained entry pays the original owner's bytes less the
+        // declared-status set nodes, plus its selection/comparison controls.
+        let (declared_set, reference_controls) =
+            super::super::reference_coverage::retained_route_bytes(function);
+        // Checked after the whole-run equations below, so a failure still
+        // reports which side of this derivation differs.
+        let derived_reference = || {
+            assert_eq!(
+                new_reference + reference_routes * declared_set,
+                old_reference + reference_routes * reference_controls,
+                "rows={rows} routes={reference_routes} original={original_reference} \
+                 retained={new_reference} declared={declared_set} controls={reference_controls}"
+            )
+        };
         if function.cleanup_plan.status_sources.len() < retained_lookup::MIN_ROWS {
-            assert_eq!(current, old, "ineligible route acquires no tail owner");
+            assert_eq!(
+                (&current.0, current.1, current.2 + old_reference, current.3),
+                (&old.0, old.1, old.2 + new_reference, old.3),
+                "ineligible route acquires no tail owner"
+            );
+            derived_reference();
             continue;
         }
         let (lookups, callbacks) = transition_counts(function);
+        // As above: the old lookup's arena search is narrowed since a2814be65.
         let old_query = Session::OLD_SCRATCH
-            + 2 * size_of::<Result<Option<&Option<CallFact<'_>>>, Diagnostic>>();
+            + 2 * size_of::<Result<Option<&Option<CallFact<'_>>>, Diagnostic>>()
+            - crate::cleanup_plan::replay::expression_facts::arena::NARROWED_LOOKUP_SAVING;
         let new_query = Session::into_edge_local_bytes()
             + Session::into_edge_query_bytes()
             + size_of::<Option<&Option<CallFact<'_>>>>();
@@ -478,7 +526,13 @@ fn transition_scratch_has_complete_immediate_typed_invoice_and_unchanged_work() 
         // No second activation, allocation, selector or status/edge credit.
         let old_tail = lookups * old_query;
         let new_tail = lookups * new_query + callbacks * guards + cold;
-        assert_eq!(old.2 + new_tail, current.2 + old_tail);
+        assert_eq!(
+            old.2 + new_tail + new_reference,
+            current.2 + old_tail + old_reference,
+            "rows={rows} routes={reference_routes} original={original_reference} \
+             retained={new_reference}"
+        );
+        derived_reference();
         if rows == 64 {
             assert!(lookups > 0 && callbacks > 0);
             assert!(old_tail > new_tail, "complete typed positive gate: lookups={lookups} callbacks={callbacks} old_query={old_query} new_query={new_query} guards={guards} cold={cold} old_tail={old_tail} new_tail={new_tail} old={old:?} current={current:?}");

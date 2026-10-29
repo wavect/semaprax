@@ -1,6 +1,33 @@
 //! Reuse the existing authenticated complete status directory.
 use super::*;
 
+const SELECTION_CONTROL_BYTES: usize = std::mem::size_of::<Result<(), Diagnostic>>()
+    + 4 * std::mem::size_of::<bool>()
+    + 2 * std::mem::size_of::<&StatusSources<'static>>()
+    + std::mem::size_of::<Option<&Directory<&'static StatusSourceId>>>();
+
+// Counts entries into the retained route on this thread, so a byte comparison
+// against the original `structural_maps` owner can attribute its delta.
+// `RETAINED_BYTES` sums the bytes those entries consumed from the active ledger.
+#[cfg(test)]
+thread_local! {
+    pub(super) static RETAINED_ROUTES: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+    pub(super) static RETAINED_BYTES: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
+/// Byte delta of one retained-route entry relative to the original owner:
+/// the original's declared-status set nodes it no longer allocates, and the
+/// selection and comparison controls it pays instead. Work is identical.
+#[cfg(test)]
+pub(super) fn retained_route_bytes(function: &ResolvedFunction) -> (usize, usize) {
+    let declared = function.cleanup_plan.status_sources.len()
+        * crate::cleanup_plan::replay::physical_storage::btree_node_upper::<&StatusSourceId, ()>()
+            .unwrap();
+    let controls =
+        SELECTION_CONTROL_BYTES + Directory::<&StatusSourceId>::same_btree_keys_control_bytes();
+    (declared, controls)
+}
+
 pub(super) fn validate(
     function: &ResolvedFunction,
     budget: &mut ReplayBudget,
@@ -33,14 +60,28 @@ pub(super) fn validate(
     {
         return structural_maps::validate_reference_coverage(function, budget);
     }
+    #[cfg(test)]
+    RETAINED_ROUTES.with(|routes| routes.set(routes.get() + 1));
+    #[cfg(test)]
+    let start = crate::bounded_output::active_remaining();
+    let result = retained(function, budget, statuses);
+    #[cfg(test)]
+    if let (Some(start), Some(end)) = (start, crate::bounded_output::active_remaining()) {
+        RETAINED_BYTES.with(|bytes| bytes.set(bytes.get() + start.saturating_sub(end)));
+    }
+    result
+}
+
+fn retained(
+    function: &ResolvedFunction,
+    budget: &mut ReplayBudget,
+    statuses: &Directory<&StatusSourceId>,
+) -> Result<(), Diagnostic> {
     budget.reserve_bytes(function, 0, "retained reference directory authentication")?;
     budget.charge(function, 0, "retained reference directory authentication")?;
     budget.reserve_bytes(
         function,
-        std::mem::size_of::<Result<(), Diagnostic>>()
-            + 4 * std::mem::size_of::<bool>()
-            + 2 * std::mem::size_of::<&StatusSources<'_>>()
-            + std::mem::size_of::<Option<&Directory<&StatusSourceId>>>(),
+        SELECTION_CONTROL_BYTES,
         "retained reference selection controls",
     )?;
     let plan = &function.cleanup_plan;

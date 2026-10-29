@@ -376,8 +376,8 @@ fn core_retry_fixture() -> Vec<WorkspaceSource> {
                 .is_some_and(|paid| paid <= MAX_BUILDER_BYTES)
     };
     assert!(fits(1));
-    assert!(!fits(1024));
-    let (mut low, mut high) = (1, 1024);
+    assert!(!fits(2048));
+    let (mut low, mut high) = (1, 2048);
     while low + 1 < high {
         let middle = low + (high - low) / 2;
         if fits(middle) {

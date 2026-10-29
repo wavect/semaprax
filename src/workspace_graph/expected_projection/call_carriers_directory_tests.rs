@@ -411,10 +411,10 @@ fn complete_pre898_forecast_comparison_discloses_every_cold_and_dense_row() {
                         errors,
                         vec![crate::workspace_graph::limit_error(
                             "builder_bytes",
-                            67_108_864
+                            crate::workspace_graph::MAX_BUILDER_BYTES
                         )]
                     );
-                    eprintln!("AUTHORED_HEADER_DIRECTORY mode={mode} retention={retention:?} headers={headers} groups={groups} shape={shape} pre898={} current_refusal={errors:?}; original 64MiB cap retained", old.retained_clone_and_hir);
+                    eprintln!("AUTHORED_HEADER_DIRECTORY mode={mode} retention={retention:?} headers={headers} groups={groups} shape={shape} pre898={} current_refusal={errors:?}; original builder cap retained", old.retained_clone_and_hir);
                     continue;
                 }
             };

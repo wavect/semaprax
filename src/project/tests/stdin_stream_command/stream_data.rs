@@ -206,12 +206,27 @@ fn private_vec_and_copy_scalar_helpers_keep_command_abi_closed() {
     }
 
     std::fs::write(root.join(MANIFEST_FILE), &v27).unwrap();
+    // Since fa9af8c93 the generic workspace import gate admits an owned
+    // Copy-scalar Vec import, so owning both helpers makes `count` move its
+    // outer owner into `at` inside the loop: the source verifier refuses that
+    // loop transfer before any profile link.
     let helpers = canonical_source(
         "b/helpers.spx",
         &HELPERS.replace("values:borrow Vec<i64>", "values:own Vec<i64>"),
     );
     std::fs::write(root.join("b/helpers.spx"), helpers).unwrap();
-    assert_code(&root, "SPX-G172");
+    assert_code(&root, "SPX-T252");
+    // An owned Vec only at the imported `count` boundary passes source
+    // verification; the v27 private-helper profile still refuses it.
+    let helpers = canonical_source(
+        "b/helpers.spx",
+        &HELPERS.replace(
+            "fn count(values:borrow Vec<i64>)",
+            "fn count(values:own Vec<i64>)",
+        ),
+    );
+    std::fs::write(root.join("b/helpers.spx"), helpers).unwrap();
+    assert_code(&root, "SPX-H006");
 
     std::fs::write(
         root.join("b/helpers.spx"),
@@ -236,7 +251,9 @@ fn private_vec_and_copy_scalar_helpers_keep_command_abi_closed() {
             );
         std::fs::write(root.join(path), canonical_source(path, &source)).unwrap();
     }
-    assert_code(&root, "SPX-G172");
+    // The non-Copy `borrow Vec<Bytes>` import also passes the fa9af8c93
+    // import gate; the loop call to `at` is refused by the source verifier.
+    assert_code(&root, "SPX-T252");
 
     std::fs::write(
         root.join("b/helpers.spx"),

@@ -93,6 +93,16 @@ fn irrelevant_modules_have_no_new_backing_and_allocating_legacy_helpers_keep_old
     // + vector11 + two leaf collectors26 = 86 fixed requested words.
     // Payload: directory5 + numeric2 + iterator4 + vector2 + leaf2.
     let mut payload = 15 * std::mem::size_of::<usize>();
+    // Since 96682b472 and da56f1b2c the shared record-presence receiver is
+    // funded before formation: its caller boundary, its constructor and one
+    // direct caller payment for the single ordinary member (`main`). These are
+    // reservations only; the observed payload below is unchanged.
+    {
+        use crate::cleanup_plan::renewal_profile::ordinary::RecordPresence;
+        expected += RecordPresence::caller_controls()
+            + RecordPresence::constructor_controls()
+            + RecordPresence::direct_caller_controls();
+    }
     for count in crate::hir::renewal_probes::phase::current_map_counts(&plain.declarations) {
         expected += 3 * std::mem::size_of::<usize>();
         let mut capacity = 1;

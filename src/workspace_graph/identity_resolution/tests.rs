@@ -249,37 +249,46 @@ fn first_identity_refusal_publishes_the_acquired_report_and_keeps_the_first_rece
 
 #[test]
 fn later_identity_refusal_transfers_the_acquired_report_after_funded_identities() {
-    let (program, function) = refusal_inputs();
+    let (program, _) = refusal_inputs();
     let owned = Input::Owned(program.clone());
     let borrowed = Input::Borrowed(SyntheticProgramView::new(&program, Vec::new()).unwrap());
-    // Option then Result (both 11 bytes) precede the first function.
-    let identity = backing(11);
+    // Since ccfbefd69 (private nominal payload ownership) the funded index
+    // first prepays its two lent cell receivers, then the nominal rollback
+    // workspace acquires one complete BTree node upper per possible insertion,
+    // starting with the prelude Option's type parameters and then its cases,
+    // before any declaration identity. A later refusal is therefore a node
+    // upper, not a second 32-byte identity; the report transfer and the sticky
+    // first receipt are unchanged.
     let report = report_bytes();
+    let pair = 2 * size_of::<Option<&[crate::ast::program_source::FunctionCell<'_>]>>();
+    let node = crate::cleanup_plan::compiler_btree_node_upper::<
+        crate::hir::DeclarationId,
+        crate::hir::NominalPayload<crate::hir::ResolvedTypeParameterDeclaration>,
+    >()
+    .unwrap();
+    let cases = crate::cleanup_plan::compiler_btree_node_upper::<
+        crate::hir::DeclarationId,
+        crate::hir::NominalPayload<crate::hir::ResolvedVariantCaseDeclaration>,
+    >()
+    .unwrap();
     for input in [&owned, &borrowed] {
-        // Second identity one short, then at zero remaining.
+        // First workspace node one short, then at zero remaining.
         assert_refusal(
             input,
             &program.path,
-            report + 2 * identity - 1,
-            report + identity,
-            identity,
-            identity - 1,
+            report + pair + node - 1,
+            report + pair,
+            node,
+            node - 1,
         );
+        assert_refusal(input, &program.path, report + pair, report + pair, node, 0);
+        // The fitting larger budget funds that node and reaches the cases.
         assert_refusal(
             input,
             &program.path,
-            report + identity,
-            report + identity,
-            identity,
-            0,
-        );
-        // Exactly two funded: the fitting larger budget reaches the function.
-        assert_refusal(
-            input,
-            &program.path,
-            report + 2 * identity,
-            report + 2 * identity,
-            function,
+            report + pair + node,
+            report + pair + node,
+            cases,
             0,
         );
     }

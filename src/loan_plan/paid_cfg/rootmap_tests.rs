@@ -180,26 +180,45 @@ fn observe(
         })
     })
 }
+/// Growth steps of a caller-paid Vec pushed one value at a time from capacity
+/// 0: `storage::push` grows to `max(2 * capacity, 4)` on each full push.
+fn growths(len: usize) -> usize {
+    let (mut capacity, mut steps) = (0usize, 0usize);
+    while capacity < len {
+        capacity = (capacity * 2).max(4);
+        steps += 1;
+    }
+    steps
+}
 #[test]
 fn rootmap_identity_membership_removes_one_actual_box_per_expression_and_funds_drop() {
     for (width, depth) in [(0, 0), (17, 32), (129, 1)] {
         let program = fixture(width, depth);
         let function = &program.functions[0];
-        let (count, refused, _, _) = with_limit_usage_refusal(usize::MAX, || {
+        let ((count, edges), refused, _, _) = with_limit_usage_refusal(usize::MAX, || {
             let owner = CfgReservation::acquire().unwrap();
             let mut work = WorkCounter::new(MAX_LOAN_PLAN_WORK_V1);
             work.allocation = Some(&owner);
-            build(function, &mut work).unwrap().expressions.len()
+            let cfg = build(function, &mut work).unwrap();
+            (cfg.expressions.len(), cfg.edges.len())
         });
         assert!(!refused);
         let ((old_ok, old), old_refused, old_paid, _) = observe(function, true, usize::MAX);
         let ((ok, current), refused, exact, first) = observe(function, false, usize::MAX);
         assert!(old_ok && ok && !old_refused && !refused);
         assert_eq!(first, None);
+        // d70e4af22 keeps one shared discovery/phase-pair AVL node per
+        // expression where the old builder held four (seen set, root map and
+        // two point nodes), moves each expression's root into a Vec, and
+        // collects edges in a Vec instead of one AVL node per unique edge plus
+        // the exact drained edge Vec. Every Vec grows one value at a time from
+        // capacity 0, one observed (re)allocation per growth step. These
+        // straight-line fixtures push no duplicate edge, so the pushed edge
+        // count equals the published unique count.
         assert_eq!(
             old.allocations - current.allocations,
-            count,
-            "one removed actual AVL Box per unique expression"
+            3 * count + edges + 1 - growths(count) - growths(edges),
+            "removed AVL Boxes per expression and edge net of the new Vec growth"
         );
         assert!(old.allocated > current.allocated && old_paid > exact);
         for metrics in [old, current] {

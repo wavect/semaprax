@@ -184,6 +184,19 @@ const PRESENTED: &str =
      and _spx_layout_0";
 const ORDINARY: &str = "`if` branches return different types: _spx_layout_1 and _spx_layout_0";
 
+/// Since 1e4894e2f (Scoped Diagnostic Recovery v1, flow_799) a refused `if`
+/// join (`SPX-T211`) publishes no checked result, so the current verifier no
+/// longer reports the old oracle's cascaded `SPX-T103` for `pick`'s body.
+/// Exactly that one symptom is removed; every other diagnostic stays exact.
+fn without_pick_join_cascade(old: Vec<Diagnostic>) -> Vec<Diagnostic> {
+    let before = old.len();
+    let kept = old
+        .into_iter()
+        .filter(|d| !(d.code == "SPX-T103" && d.message.starts_with("function `pick` returns ")))
+        .collect::<Vec<_>>();
+    assert_eq!(before - kept.len(), 1, "one cascaded join result symptom");
+    kept
+}
 #[test]
 fn complete_old_private_presentation_keeps_exact_subject_provider_and_authored_spelling() {
     let provider = crate::parse(PROVIDER, "provider.spx").unwrap();
@@ -191,7 +204,7 @@ fn complete_old_private_presentation_keeps_exact_subject_provider_and_authored_s
     let held = Held(&provider.types[0]);
     let view = PrivateNames::new(&program, &program, program.types.len() - 1, &held);
     let current = super::verify_presenting(&program, Some(view));
-    let old = declaration::old::verify_presenting(&program, Some(view));
+    let old = without_pick_join_cascade(declaration::old::verify_presenting(&program, Some(view)));
     assert_eq!(json(&current), json(&old));
     assert_eq!(
         current
@@ -217,14 +230,13 @@ fn complete_old_private_presentation_keeps_exact_subject_provider_and_authored_s
             &generic_private,
             Some(generic_view)
         )),
-        json(&declaration::old::verify_presenting(
-            &generic_private,
-            Some(generic_view)
+        json(&without_pick_join_cascade(
+            declaration::old::verify_presenting(&generic_private, Some(generic_view))
         )),
     );
     let drifted = program.clone();
     let current = super::verify_presenting(&drifted, Some(view));
-    let old = declaration::old::verify_presenting(&drifted, Some(view));
+    let old = without_pick_join_cascade(declaration::old::verify_presenting(&drifted, Some(view)));
     assert_eq!(json(&current), json(&old));
     assert_eq!(
         current
@@ -236,11 +248,15 @@ fn complete_old_private_presentation_keeps_exact_subject_provider_and_authored_s
     );
     assert_eq!(
         json(&super::verify_presenting(&program, None)),
-        json(&declaration::old::verify_presenting(&program, None))
+        json(&without_pick_join_cascade(
+            declaration::old::verify_presenting(&program, None)
+        ))
     );
     assert_eq!(
         json(&super::verify(&program)),
-        json(&declaration::old::verify(&program))
+        json(&without_pick_join_cascade(declaration::old::verify(
+            &program
+        )))
     );
 }
 fn assert_observed_drop(

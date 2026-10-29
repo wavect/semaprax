@@ -240,12 +240,19 @@ fn validate_candidate_source(
     let candidate = super::build::build_owned(revision.manifest(), sources)?;
     crate::hir::validate(&candidate.entry_program).map_err(|error| vec![error])?;
     crate::hir::validate(&candidate.test_program).map_err(|error| vec![error])?;
-    candidate
-        .sources
+    // Since f7aeaf32c each checked source shares its bytes with the candidate's
+    // parsed-source and source-fact owners. Release the whole remaining
+    // candidate first so the retained buffer is handed back, not copied.
+    into_sources(candidate)
         .into_iter()
         .find(|source| source.path == source_path)
-        .map(|source| source.source.into())
+        .map(|source| source.source.into_unshared_string())
         .ok_or_else(|| refusal("JSON codec replacement is absent from its checked candidate"))
+}
+
+/// Keep only the checked sources; every other candidate owner drops here.
+fn into_sources(candidate: super::build::BuiltProject) -> Vec<super::ProjectSource> {
+    candidate.sources
 }
 
 /// Replay a derivation claim against the exact authenticated revision.

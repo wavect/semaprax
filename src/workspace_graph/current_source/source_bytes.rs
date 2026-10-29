@@ -72,6 +72,21 @@ impl From<SourceBytes> for String {
         }
     }
 }
+impl SourceBytes {
+    /// Move the exact retained buffer out when this is its last owner. Since
+    /// f7aeaf32c a current source is shared through `SourceMetadata`; a caller
+    /// that has released every other holder receives the original allocation
+    /// without a copy. A still-shared carrier keeps the cloning conversion.
+    pub(crate) fn into_unshared_string(self) -> String {
+        match self {
+            Self::Owned(bytes) => bytes,
+            Self::Current(metadata) => match Arc::try_unwrap(metadata) {
+                Ok(metadata) => metadata.input.source,
+                Err(shared) => shared.input().source.clone(),
+            },
+        }
+    }
+}
 #[cfg(test)]
 impl std::ops::DerefMut for SourceBytes {
     fn deref_mut(&mut self) -> &mut String {

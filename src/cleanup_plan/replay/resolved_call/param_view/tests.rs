@@ -433,7 +433,14 @@ fn whole_authored_receiver_arity_seventeen_removes_only_owned_parameter_payload(
     assert!(old_ok && new_ok && !old_refused && !refused);
     assert_eq!(old.allocated, new.allocated + removed);
     assert_eq!(old.allocations, new.allocations + 18);
-    assert_eq!(old_charge, charge + removed);
+    // Since d70e4af22 the ordinary bootstrap no longer prepays the shared
+    // clone-census cursor; only a recursive clone acquires it, immediately
+    // before constructing it (`reserve_clone` -> `prepare_clone_cursor`). The
+    // owned route clones the parameter vector and so pays that stack layout;
+    // the borrowed route performs no recursive clone and never constructs it.
+    // The cursor is stack storage, so the heap equations above are unchanged.
+    let cursor = 514 * std::mem::size_of::<Option<(&ResolvedType, usize)>>();
+    assert_eq!(old_charge, charge + removed + cursor);
     for observed in [old, new] {
         assert!(!observed.invalid && observed.live == 0);
         assert_eq!(observed.allocated, observed.freed);

@@ -173,13 +173,26 @@ if cursor==44usize{{1}}else{{0}}}}\n"
             .unwrap(),
             encoded
         );
+        // Since 043faab51 (SCALAR-EXPRESSION-STATEMENTS-V1) an intermediate
+        // `expr;` discards exactly one Copy scalar. This block's value is the
+        // i64 `0`, so the bare spelling is no longer SPX-P106: the parser mints
+        // an immutable unannotated ExpressionStatement let around the block.
         let bare = text.replacen("let k0={let k=", "{let k=", 1);
-        assert_eq!(
-            crate::parse(&bare, "bare-block-writer.spx")
-                .unwrap_err()
-                .code,
-            "SPX-P106"
-        );
+        let bare = crate::parse(&bare, "bare-block-writer.spx").unwrap();
+        let bare_first = bare.functions.iter().find(|f| f.name == "first").unwrap();
+        let crate::ast::ExprKind::Block { statements, .. } = &bare_first.body.kind else {
+            panic!("writer helper body is a block")
+        };
+        assert!(statements.iter().any(|statement| matches!(
+            statement,
+            crate::ast::Statement::Let {
+                syntax: crate::ast::LetSyntax::ExpressionStatement,
+                mutable: false,
+                declared: None,
+                value,
+                ..
+            } if matches!(value.kind, crate::ast::ExprKind::Block { .. })
+        )));
         // Arbitrary Block-valued ownership assignment still has no direct-call
         // authority; correcting the generator must not broaden that boundary.
         let old_rhs = first

@@ -89,8 +89,10 @@ int main(void){
     assert!(runner.contains("spx_contract_fail:selector"));
     let script = root.join("frame-refusal.mjs");
     std::fs::write(&script, runner).unwrap();
+    // Pass the bare name like every sibling runner: `root` is canonical, and a
+    // Windows verbatim `\\?\C:\` entry path makes Node's realpath fail on `C:`.
     let output = Command::new("node")
-        .arg(&script)
+        .arg(script.file_name().unwrap())
         .current_dir(root)
         .output()
         .unwrap();

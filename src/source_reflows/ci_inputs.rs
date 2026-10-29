@@ -140,6 +140,13 @@ fn historical_entry<'a>(source: &str, expected: &str, current: &'a str) -> Cow<'
         | (
             "src/cleanup_plan/replay/factored.rs",
             "d3808da9519009c1a7b223a91a635bc94cdeb80a2c8bc40b22bcfc8b1f2f918c",
+        )
+        // d70e4af22 changed this row after its pre-allocation whole view was
+        // retained in the overlay; recover that exact view, then run every
+        // original indexed inverse unchanged.
+        | (
+            "src/cleanup_plan/replay/factored/oracle_hook.rs",
+            "a0cf6a6604b1909859e78ecfe95f780ba1600072ae6ca9e259d2943c7dbebfa7",
         ) => Cow::Owned(
             crate::source_reflows_merge::main_e177_final_inputs::value_direct(
                 source, expected, current,

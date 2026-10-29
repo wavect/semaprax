@@ -375,14 +375,18 @@ fn main043_before_successors(
         "crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity/source_inventory.rs"
         | "src/cleanup_plan/replay.rs" | "tests/hir_module_boundaries.rs"
         | "tests/workspace/semantic_graph/source_inventory.rs"
-        | "src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs") {
+        | "src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs"
+        // a2814be65 and d70e4af22 changed these two RAW owners after their
+        // sealed checkpoints; each row restores that exact checkpoint.
+        | "src/cleanup_plan/replay/expression_facts/receiving/retained.rs"
+        | "src/cleanup_plan/replay/expression_facts/arena.rs") {
         return raw.to_owned();
     }
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let data = main043_raw_file(
         &root.join("docs/evidence/source-coverage-254-20261024/latest-to-successors.json"),
-        286968,
-        "7746c771eaf205e67df886e43f027083ec1e61b4dae4380d16c3476e303f6734",
+        379459,
+        "846a9cea93c9f8636519027358acab34a91eed08efae0b3b5c75812268eac139",
     )
     .unwrap();
     assert_eq!(
@@ -395,7 +399,7 @@ fn main043_before_successors(
         "semaprax.main043.raw-checkpoint-successor.v1"
     );
     let rows = spec["rows"].as_array().unwrap();
-    assert_eq!(rows.len(), 5);
+    assert_eq!(rows.len(), 7);
     let matching: Vec<_> = rows.iter().filter(|row| row["source"] == source).collect();
     assert_eq!(matching.len(), 1);
     let row = matching[0];
@@ -790,6 +794,8 @@ mod main043_raw_tests {
             "tests/hir_module_boundaries.rs",
             "tests/workspace/semantic_graph/source_inventory.rs",
             "src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs",
+            "src/cleanup_plan/replay/expression_facts/receiving/retained.rs",
+            "src/cleanup_plan/replay/expression_facts/arena.rs",
         ];
         for source in sources {
             let (_, current) = main043_current_subject(source);

@@ -209,7 +209,7 @@ pub fn execute_for_conformance(
         .map_err(|diagnostic| CleanupExecutionError::InvalidProgram(diagnostic.to_string()))?;
     crate::cleanup::validate_program(program)
         .map_err(|diagnostic| CleanupExecutionError::InvalidProgram(diagnostic.to_string()))?;
-    super::replay::validate_program(program)
+    super::validate::scratch_ledger::validate_program(program)
         .map_err(|diagnostic| CleanupExecutionError::InvalidProgram(diagnostic.to_string()))?;
     let function = program
         .functions

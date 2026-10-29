@@ -1,4 +1,6 @@
 use super::*;
+// Selected byte renewal is a lexical-route family; the authored `continue`
+// makes `app.main` an actual lexical function for `new_paid(.., true)`.
 const SOURCE: &str = r#"module test.byte_renewal;
 @id("app.main") fn main()->i64 {
  let mut buffer=bytes_zeroed(2usize);
@@ -7,6 +9,7 @@ const SOURCE: &str = r#"module test.byte_renewal;
  while index<2usize {
   if index==0usize {buffer=bytes_set(buffer,index,65u8);0}else{0}
   index=index+1usize;
+  if index==1usize {continue;};
   0
  }
  if byte_len(bytes_as_slice(buffer))==2usize && byte_len(bytes_as_slice(untouched))==1usize {7}else{0}

@@ -198,10 +198,18 @@ impl ReplayBudget {
             _ => false,
         }
     }
+    /// An ActiveBuilder payer was selected because an ACTIVE account existed.
+    /// Once that account has expired, `reserve_active_required` would admit
+    /// every request with no ledger debit; fail closed instead, so no later
+    /// clone or fusion probe allocates unpaid on an expired builder.
     fn builder_refused(&self) -> bool {
         match self.payer {
             #[cfg(test)]
             AllocationPayer::Oracle(lease) => lease.refused(),
+            AllocationPayer::ActiveBuilder => {
+                crate::bounded_output::active_refused()
+                    || crate::bounded_output::active_limit().is_none()
+            }
             _ => crate::bounded_output::active_refused(),
         }
     }

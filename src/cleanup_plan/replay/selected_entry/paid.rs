@@ -452,6 +452,26 @@ impl PaidReport {
         (self.diagnostics.as_ptr(), self.message.as_ptr())
     }
 
+    /// Test-only inverse of `publish`: the single published Diagnostic slot
+    /// and its exact text backing return to the unpublished carrier without
+    /// allocation, so a failed owner observed after refusal still holds the
+    /// carrier that production `refuse` requires and republishes in place.
+    #[cfg(test)]
+    fn unpublish(form: ReportForm, mut diagnostics: Vec<Diagnostic>) -> Self {
+        let published = diagnostics.pop().expect("one published Diagnostic");
+        assert!(diagnostics.is_empty(), "paid carrier publishes exactly one");
+        let mut message = match published.message {
+            std::borrow::Cow::Owned(message) => message,
+            std::borrow::Cow::Borrowed(_) => unreachable!("paid text is owned"),
+        };
+        message.clear();
+        Self {
+            form,
+            diagnostics,
+            message,
+        }
+    }
+
     /// Exact-capacity writes into the acquired backing; no reallocation.
     fn publish(self, ledger: Ledger, refused: Refused) -> PaidRefusal {
         let Self {
@@ -732,13 +752,21 @@ impl PaidRefusal {
     }
 
     /// The retained failed preparation, for no-restoration controls only.
+    /// Its paid carrier returns with it (unpublished, same backing), so a
+    /// later refusal on the failed owner keeps the first receipt, drops the
+    /// later error and republishes the one original Diagnostic slot.
     #[cfg(test)]
     pub(crate) fn into_preparation(self) -> Option<Preparation> {
         match self.0 {
             Refusal::Paid {
-                ledger: Ledger::Prepared(preparation),
+                report,
+                form,
+                ledger: Ledger::Prepared(mut preparation),
                 ..
-            } => Some(preparation),
+            } => {
+                preparation.report = Some(PaidReport::unpublish(form, report));
+                Some(preparation)
+            }
             _ => None,
         }
     }

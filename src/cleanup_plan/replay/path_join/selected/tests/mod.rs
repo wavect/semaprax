@@ -13,12 +13,18 @@ const LEXICAL: &str = r#"module structural.selected;
 }
 @id("main") fn main()->i64 {probe(false)}
 "#;
+// `family.bytes` owns Bytes storage, which no production selected scalar
+// route admits (the scalar-lexical census and helper purity gates reject
+// non-Copy bindings; the borrowed helper lease is test-only). Its authored
+// loop exit makes it an actual lexical function, so `same_owner` replays it
+// on the selected lexical route that production uses for owned storage.
 const SCALAR: &str = r#"module selected.schema.family;
 @id("family.one") fn one(n:i64)->i64 {n+1}
 @id("family.main") fn main()->i64 {one(3)}
 @id("family.fill") fn fill(data:own Bytes)->Bytes {data}
 @id("family.bytes") fn bytes()->i64 {
- let data=fill(bytes_zeroed(1usize));
+ let data=fill(bytes_zeroed(1usize));let mut at=0;
+ while at<2 {at=at+1;if at==1 {continue;};0}
  if byte_len(bytes_as_slice(data))==1usize {7}else{0}
 }
 "#;

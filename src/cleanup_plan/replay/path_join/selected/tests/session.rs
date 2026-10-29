@@ -44,7 +44,9 @@ fn live_initialize_paid_session_retains_original_report_source_and_first_receipt
         let mut session = prepared
             .into_paid_session(&source, function)
             .unwrap_or_else(|_| panic!("held source constructor"));
-        let error = session.validate_scalar_paid(function).unwrap_err();
+        // `family.bytes` owns Bytes storage: its production Session entry is
+        // the lexical `validate_paid`, never the Copy-only scalar entry.
+        let error = session.validate_paid(function).unwrap_err();
         let Error::Structural(receipt) = &error else {
             panic!("path semantic must remain typed: {error:?}")
         };
@@ -58,15 +60,29 @@ fn live_initialize_paid_session_retains_original_report_source_and_first_receipt
             Kind::InitializeTransitionInitializesAnEmptyOrLiveCleanupPlace
         );
         assert_eq!(held.as_str().as_ptr(), function.body.id.as_str().as_ptr());
-        let (later, later_observed) = measure(|| session.validate_scalar_paid(function));
+        // Observations cannot nest: deltas of the enclosing observation.
+        let current = crate::test_allocation_observer::current_metrics;
+        let before = current();
+        let later = session.validate_paid(function);
+        let after = current();
         assert!(matches!(later, Err(Error::Failed)));
         assert_eq!(
-            (later_observed.allocations, later_observed.reallocations),
+            (
+                after.allocations - before.allocations,
+                after.reallocations - before.reallocations
+            ),
             (0, 0)
         );
-        let (mut refusal, publish) =
-            measure(|| session.into_failed_preparation().refuse_engine(error));
-        assert_eq!((publish.allocations, publish.reallocations), (0, 0));
+        let before = current();
+        let mut refusal = session.into_failed_preparation().refuse_engine(error);
+        let after = current();
+        assert_eq!(
+            (
+                after.allocations - before.allocations,
+                after.reallocations - before.reallocations
+            ),
+            (0, 0)
+        );
         let report = refusal.report().unwrap();
         assert_eq!((report.len(), report.capacity()), (1, 1));
         assert_eq!(report.as_ptr(), backing.0);

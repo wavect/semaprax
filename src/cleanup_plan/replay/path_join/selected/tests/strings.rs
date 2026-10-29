@@ -1,4 +1,7 @@
 use super::*;
+// Selected String append renewal is a lexical-route family (schema V19); the
+// authored `continue` makes `o.main` an actual lexical function, as the
+// production static-text String fixtures are.
 const CONCAT: &str = r#"module oracle.concat;
 @id("o.main") fn main()->i64 {
  let mut text=string_from_i64(1);
@@ -6,6 +9,7 @@ const CONCAT: &str = r#"module oracle.concat;
  while count<2 {
   text=string_concat(text,"x");
   count=count+1;
+  if count==1 {continue;};
   0
  }
  string_len(text)

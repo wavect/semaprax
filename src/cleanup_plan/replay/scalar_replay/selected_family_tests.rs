@@ -45,38 +45,66 @@ fn scalar_selected_schema_keeps_complete_original_schema_and_whole_owner() {
             .map_err(|e| legacy(e, function))
             .unwrap();
         assert_eq!(selected, old_schema);
-        for old in [true, false] {
-            let ((result, bytes, work), observed) = measure(|| {
-                let mut budget = ReplayBudget::with_physical(function, usize::MAX).unwrap();
-                let initial = budget.remaining;
-                let context =
-                    selected_context::Context::new_paid(&source, function, &mut budget, false)
-                        .unwrap();
-                let result = if old {
-                    paid_before::validate_paid_before(&context, function, &mut budget)
-                } else {
-                    validate_paid(&context, function, &mut budget)
-                };
-                let result = result.map_err(|e| legacy(e, function));
-                (
-                    result,
-                    budget.physical.as_ref().unwrap().charged(),
-                    initial - budget.remaining,
-                )
-            });
-            assert_eq!(
+        // `family.bytes` keeps owned Bytes locals and call arguments. No
+        // production selected scalar route admits non-Copy storage (the
+        // scalar-lexical census and helper purity gates reject it before a
+        // Session; the borrowed helper lease is test-only), so the immediate
+        // old and current scalar owners must select the same first refusal.
+        let owned_storage = function.id.as_str() == "family.bytes";
+        let mut outcomes = Vec::new();
+        let run = |old: bool| {
+            let mut budget = ReplayBudget::with_physical(function, usize::MAX).unwrap();
+            let initial = budget.remaining;
+            let context =
+                selected_context::Context::new_paid(&source, function, &mut budget, false).unwrap();
+            let result = if old {
+                paid_before::validate_paid_before(&context, function, &mut budget)
+            } else {
+                validate_paid(&context, function, &mut budget)
+            };
+            let result = result.map_err(|e| legacy(e, function));
+            (
                 result,
-                Ok(()),
-                "whole scalar owner {} old={old}",
-                function.id
-            );
+                budget.physical.as_ref().unwrap().charged(),
+                initial - budget.remaining,
+            )
+        };
+        for old in [true, false] {
+            let ((result, bytes, work), observed) = measure(|| run(old));
+            if owned_storage {
+                let error = result.as_ref().unwrap_err();
+                assert!(
+                    error
+                        .message
+                        .contains("selected scalar helper body contains non-Copy storage"),
+                    "whole scalar owner {} old={old}: {error:?}",
+                    function.id
+                );
+            } else {
+                assert_eq!(
+                    result,
+                    Ok(()),
+                    "whole scalar owner {} old={old}",
+                    function.id
+                );
+            }
             eprintln!(
                 "selected scalar {} old={old} bytes={bytes} work={work}",
                 function.id
             );
-            assert!(!observed.invalid && observed.live == 0);
-            assert_eq!(observed.allocated, observed.freed);
+            assert!(!observed.invalid);
+            if result.is_ok() {
+                assert_eq!(observed.live, 0);
+                assert_eq!(observed.allocated, observed.freed);
+            } else {
+                // The returned legacy observation owns its text until dropped.
+                let (_, dropped) = measure(|| drop(run(old)));
+                assert!(!dropped.invalid && dropped.live == 0);
+                assert_eq!(dropped.allocated, dropped.freed);
+            }
+            outcomes.push(result);
         }
+        assert_eq!(outcomes[0], outcomes[1], "all six fields {}", function.id);
     }
 }
 #[test]

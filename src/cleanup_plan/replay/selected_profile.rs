@@ -579,9 +579,13 @@ mod cursor_work_tests {
                 "SPX-H006"
             );
         });
-        // Retain the previous 16-arm witness at its actual admission boundary:
-        // symbolic guarded histories exhaust the unchanged branch-state budget
-        // before the selected cursor proof can execute.
+        // Retain the previous 16-arm witness at its actual admission boundary.
+        // Its symbolic guarded histories give 3 * (2^8 - 1) = 765 terminal
+        // paths, which once exhausted enumerating plan branch-state work. Since
+        // 4cc5e096c ("factor scalar path products before vector blowup") a
+        // slot-free function above FACTORED_PATH_THRESHOLD (256) paths is
+        // verified by the complete factored comparison instead, with every
+        // limit retained, so this witness is now admitted on that route.
         let branch_arms = (0..16)
             .map(|i| {
                 let pattern = if i == 15 {
@@ -595,17 +599,25 @@ mod cursor_work_tests {
             .collect::<String>();
         let branch_source =
             format!("module app; @id(\"app.main\") fn main()->i64 {{match 0 {{{branch_arms}}}}}");
-        let Err(branch_error) =
-            SourceRecordReplayFixture::try_new(&authenticated_source(&branch_source))
-        else {
-            panic!("guarded histories must exhaust the authenticated plan budget");
-        };
-        assert!(branch_error.iter().any(|error| {
-            error.code == "SPX-H006"
-                && error
-                    .message
-                    .contains("cleanup replay work budget exhausted during plan branch state push")
-        }));
+        // Ordinary check, as the original witness used: the whole authenticated
+        // workspace fixture is bounded separately by the Graph builder budget.
+        let branch = crate::check(&branch_source, "linear-profile-branch-limit.spx")
+            .unwrap_or_else(|errors| panic!("factored guarded histories: {errors:?}"));
+        let branch = crate::hir::resolve(&branch).unwrap();
+        let function = branch
+            .functions
+            .iter()
+            .find(|f| f.id.as_str() == "app.main")
+            .unwrap();
+        let cfg = crate::cleanup_plan::replay::branch_sensitive_cfg_bounds(function)
+            .unwrap()
+            .terminal_paths;
+        let hir = crate::cleanup_plan::replay::hir_terminal_path_bound(function).unwrap();
+        assert!(function.cleanup_plan.slots.is_empty());
+        assert!(cfg > 256 || hir > 256, "cfg={cfg} hir={hir}");
+        assert!(crate::cleanup_plan::replay::factored::selected(
+            function, cfg, hir
+        ));
         // Preserve the original large guarded source as an explicit unchanged
         // terminal-path limit refusal, independently of this cursor-work gate.
         let oversized_arms = (0..64)

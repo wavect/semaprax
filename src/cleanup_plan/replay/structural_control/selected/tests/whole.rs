@@ -30,10 +30,40 @@ fn actual_held_unknown_entry_keeps_complete_old_diagnostic_and_prior_profile_ord
             selected.message.contains("cleanup entry block is unknown"),
             "{selected:?}"
         );
-        assert_eq!(
-            crate::cleanup_plan::replay::validate_program(&program).unwrap_err(),
-            selected
-        );
+        let ordinary = crate::cleanup_plan::replay::validate_program(&program).unwrap_err();
+        if function.cleanup_plan.lexical_control.is_some() {
+            assert_eq!(ordinary, selected);
+        } else {
+            // Whole-program `validate_program` first reserves program-wide
+            // skeleton work (`reserve_program_skeleton_work`), whose CFG
+            // preflight (`cfg_bounds::bounds`, 8f67eca1d) rejects the unknown
+            // entry of every non-deferred-lexical member before any
+            // per-function structure check. The per-function selected route
+            // has no program-wide preflight, so only the first reason differs.
+            assert_eq!(
+                (
+                    ordinary.code,
+                    ordinary.severity,
+                    &ordinary.path,
+                    &ordinary.span,
+                    &ordinary.help
+                ),
+                (
+                    selected.code,
+                    selected.severity,
+                    &selected.path,
+                    &selected.span,
+                    &selected.help
+                )
+            );
+            assert_eq!(
+                ordinary.message,
+                selected.message.replace(
+                    "cleanup entry block is unknown",
+                    "cleanup replay preflight references an unknown id"
+                )
+            );
+        }
     }
     let mut program = program(SCALAR);
     let function = program

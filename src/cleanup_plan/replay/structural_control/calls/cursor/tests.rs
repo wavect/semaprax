@@ -22,7 +22,11 @@ fn program() -> ResolvedProgram {
 fn prepared(function: &ResolvedFunction) -> ReplayBudget {
     let mut budget = ReplayBudget::new();
     budget.payer = AllocationPayer::ActiveBuilder;
-    budget.prepare_builder(function).unwrap();
+    // An ActiveBuilder pays only while an ACTIVE account exists; the refusal
+    // text is prepaid on its own account, outside the measured bills below.
+    let ((), refused, _) =
+        with_limit_usage(usize::MAX, || budget.prepare_builder(function).unwrap());
+    assert!(!refused);
     budget
 }
 
@@ -197,7 +201,10 @@ fn check_zero_and_work(function: &ResolvedFunction) {
     assert_eq!(receipt.unwrap().requested, size_of::<CallCursor<'_>>());
 
     let mut budget = prepared(function);
-    let mut cursor = CallCursor::new::<Diagnostic>(function, &mut budget).unwrap();
+    let (mut cursor, refused, _) = with_limit_usage(usize::MAX, || {
+        CallCursor::new::<Diagnostic>(function, &mut budget).unwrap()
+    });
+    assert!(!refused);
     budget.remaining = 0;
     let ((result, observed), refused, used) = with_limit_usage(usize::MAX, || {
         measure(|| cursor.grow::<Diagnostic>(function, 1, &mut budget))

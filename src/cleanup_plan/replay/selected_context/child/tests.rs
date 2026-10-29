@@ -100,21 +100,47 @@ fn complete_old_child_receivers_keep_success_raw_errors_prefix_and_order() {
     .err()
     .unwrap();
     same(&old, &rendered(f, permit.refuse(new)));
-    let mut deep = f.clone();
-    let ResolvedExprKind::Block { tail, .. } = &deep.body.kind else {
+    let ResolvedExprKind::Block { tail, .. } = &f.body.kind else {
         panic!("block")
     };
     let leaf = tail.as_ref().clone();
-    let mut nested = leaf.clone();
-    for _ in 0..=crate::cache_codec::MAX_DEPTH + 1 {
-        let mut parent = leaf.clone();
-        parent.kind = ResolvedExprKind::Block {
-            statements: Vec::new(),
-            tail: Box::new(nested),
-        };
-        nested = parent;
-    }
-    deep.body = nested;
+    let deep = |wraps: usize| {
+        let mut deep = f.clone();
+        let mut nested = leaf.clone();
+        for _ in 0..wraps {
+            let mut parent = leaf.clone();
+            parent.kind = ResolvedExprKind::Block {
+                statements: Vec::new(),
+                tail: Box::new(nested),
+            };
+            nested = parent;
+        }
+        deep.body = nested;
+        deep
+    };
+    // Since 87612d690 the ordinary scan admits exit-free nesting up to its
+    // 513-frame presence stack (512 HIR nodes plus the root cursor); the
+    // selected scan admits exactly the same nesting.
+    const PRESENCE_DEPTH: usize = 513;
+    let admitted = deep(crate::cache_codec::MAX_DEPTH + 2);
+    assert_eq!(
+        crate::hir::lexical_exit::requires(&admitted).ok(),
+        Some(false)
+    );
+    assert_eq!(
+        crate::hir::lexical_exit::requires_inline(&admitted).ok(),
+        Some(false)
+    );
+    let admitted = deep(PRESENCE_DEPTH - 1);
+    assert_eq!(
+        crate::hir::lexical_exit::requires(&admitted).ok(),
+        Some(false)
+    );
+    assert_eq!(
+        crate::hir::lexical_exit::requires_inline(&admitted).ok(),
+        Some(false)
+    );
+    let deep = deep(PRESENCE_DEPTH);
     let old = crate::hir::lexical_exit::requires(&deep).unwrap_err();
     let new = crate::hir::lexical_exit::requires_inline(&deep).unwrap_err();
     same(&old, &new.legacy());

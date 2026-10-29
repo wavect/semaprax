@@ -391,7 +391,10 @@ fn actual_raw_child_refusal_keeps_one_prepaid_session_report_and_ledger_through_
     let mut deep = function.clone();
     let leaf = deep.body.clone();
     let mut nested = leaf.clone();
-    for _ in 0..=crate::cache_codec::MAX_DEPTH + 1 {
+    // Since 87612d690 both scans admit exit-free nesting through the 513-frame
+    // presence stack; only nesting beyond it still refuses on both routes.
+    const PRESENCE_DEPTH: usize = 513;
+    for _ in 0..PRESENCE_DEPTH {
         let mut parent = leaf.clone();
         parent.kind = crate::hir::ResolvedExprKind::Block {
             statements: Vec::new(),

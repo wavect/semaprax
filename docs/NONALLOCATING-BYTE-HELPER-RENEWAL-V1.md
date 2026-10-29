@@ -95,7 +95,9 @@ site backing remains charged, and the validator's retained-capacity probe
 includes the index. A module without a potentially relevant signature creates
 no new backing or cursor reservation. Index lookup construction has a bounded
 1,000,000-unit module budget in addition to the existing per-function census
-and per-target closure limits. Reservation failure is H006, not a legacy
+and per-target closure limits. The construction-phase ordinary renewal
+directory does not draw on that helper remainder; it has its own 4,000,000-unit
+allowance ([ordinary renewal directory](ORDINARY-RENEWAL-DIRECTORY-V1.md)). Reservation failure is H006, not a legacy
 fallback. An allocating ordinary helper still supplies no renewal authority
 and retains the ordinary profile.
 

@@ -16,6 +16,11 @@ precedence over consuming additions, whose first discovered binding wins.
 Standalone construction remains the saved per-query compatibility route.
 
 The caller lends its existing phase work and active physical reservation.
+During cleanup-plan construction that phase work is a dedicated 4,000,000-unit
+ordinary-directory allowance (`ORDINARY_DIRECTORY_WORK`), separate from the
+1,000,000-unit helper lookup account it formerly continued: collection walks
+every member body, and the 72-member `std/pattern` linked test program needs
+1,232,430 units. Replay keeps debiting its own program-wide work ledger.
 Borrowed keys and bindings do not clone identities. Scratch headers, geometric
 replacement requests and overlap are charged before allocation. Actual excess
 capacity is charged and refused before publication. Collector traversal keeps

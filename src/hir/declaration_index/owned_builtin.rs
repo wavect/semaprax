@@ -11,6 +11,45 @@ pub(super) fn owned_builtin_facts(
     if let Some(facts) = crate::iterator_ops::type_facts(declarations, declaration, arguments) {
         return Some(facts);
     }
+    let (prefix, element) = owned_builtin_prefix(declarations, declaration, arguments)?;
+    Some(TypeFacts {
+        copy: false,
+        contains_resource: false,
+        sized: true,
+        needs_drop: true,
+        layout_key: format!("{prefix}:{}", element.identity_key()),
+    })
+}
+
+/// Flag-only sibling of [`owned_builtin_facts`] with the same admission order
+/// and the same four facts. A flag query discards `layout_key`, so this never
+/// builds it: the element identity key and its formatted text were unpaid
+/// allocations on the funded validator chain (9c6005b20 shortcut).
+pub(super) fn owned_builtin_flags(
+    declarations: &DeclarationIndex,
+    declaration: &DeclarationId,
+    arguments: &[ResolvedType],
+) -> Option<super::TypeFlags> {
+    if let Some(facts) = crate::stdin_stream_ops::type_facts(declaration, arguments) {
+        return Some(super::TypeFlags::from(&facts));
+    }
+    if let Some(facts) = crate::iterator_ops::type_facts(declarations, declaration, arguments) {
+        return Some(super::TypeFlags::from(&facts));
+    }
+    owned_builtin_prefix(declarations, declaration, arguments)?;
+    Some(super::TypeFlags {
+        copy: false,
+        contains_resource: false,
+        sized: true,
+        needs_drop: true,
+    })
+}
+
+fn owned_builtin_prefix<'t>(
+    declarations: &DeclarationIndex,
+    declaration: &DeclarationId,
+    arguments: &'t [ResolvedType],
+) -> Option<(&'static str, &'t ResolvedType)> {
     let [element] = arguments else {
         return None;
     };
@@ -30,13 +69,7 @@ pub(super) fn owned_builtin_facts(
         }
         _ => return None,
     };
-    Some(TypeFacts {
-        copy: false,
-        contains_resource: false,
-        sized: true,
-        needs_drop: true,
-        layout_key: format!("{prefix}:{}", element.identity_key()),
-    })
+    Some((prefix, element))
 }
 
 /// Structural ownership facts only. Source/callable admission separately

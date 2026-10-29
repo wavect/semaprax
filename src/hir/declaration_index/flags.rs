@@ -16,14 +16,25 @@ mod recursive {
             // original root and project its full facts directly; a local memo,
             // cloned root and traversal worklist would be immediately discarded.
             // The existing outer query has already applied current-cache precedence.
+            // A typed Map/Set collection is classified before any declaration
+            // lookup, exactly as the owned and paid classifiers do; the
+            // 9c6005b20 shortcut must not refuse it on an index without one.
             if let ResolvedType::Nominal {
                 declaration,
                 arguments,
             } = ty
             {
+                if crate::map_ops::is_typed_collection(ty) {
+                    return self.compute_flag_values(
+                        ty,
+                        &mut BTreeSet::new(),
+                        &mut BTreeMap::new(),
+                    );
+                }
                 self.declaration(declaration)?;
-                if let Some(facts) = owned_builtin_facts(self, declaration, arguments) {
-                    return Some(TypeFlags::from(&facts));
+                if let Some(flags) = owned_builtin::owned_builtin_flags(self, declaration, arguments)
+                {
+                    return Some(flags);
                 }
             }
             self.compute_flag_values(ty, &mut BTreeSet::new(), &mut BTreeMap::new())

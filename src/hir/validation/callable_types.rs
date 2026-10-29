@@ -87,28 +87,18 @@ impl HirValidator<'_> {
                         )));
                     }
                     if !arguments.is_empty() {
-                        let admitted_owned_record =
-                            super::type_reachability::is_flat_owned_byte_record(
-                                &self.program.declarations,
-                                ty,
-                            );
-                        let admitted_nested_owned_record =
-                            super::type_reachability::is_admitted_nested_owned_byte_record(
-                                &self.program.declarations,
-                                ty,
-                            );
-                        let admitted_owned_variant =
-                            super::type_reachability::is_admitted_concrete_owned_byte_variant(
-                                &self.program.declarations,
-                                ty,
-                            );
-                        let admitted_owned_generic = box_intrinsic::is_type(
-                            &self.program.declarations,
-                            declaration,
-                            arguments,
-                        );
+                        // One pure conjunction, evaluated lazily. The two
+                        // allocation-free argument tests run first, so an
+                        // all-I64/Bool instance (Box<i64>) never runs the
+                        // unpaid traversal admissions below; every other
+                        // instance computes the same terms with the same result.
                         if !matches!(kind, DeclarationKind::Record | DeclarationKind::Variant)
-                            || (!admitted_owned_byte_prelude_instance(declaration, arguments)
+                            || ((arguments.as_slice() != [ResolvedType::U8]
+                                || declaration.as_str() != crate::prelude::OPTION_ID)
+                                && arguments.iter().any(|argument| {
+                                    !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)
+                                })
+                                && !admitted_owned_byte_prelude_instance(declaration, arguments)
                                 && !(ResolvedImportResultKind::is_owned_container_type(
                                     ty,
                                     &self.program.declarations,
@@ -122,16 +112,24 @@ impl HirValidator<'_> {
                                             && i.result.kind.matches_value_type(&self.program.declarations, ty)
                                     }))
                                 && !crate::hir::workspace_link::native_owner::admitted_ri06_regex_result(self.program, ty)
-                                && !admitted_owned_record
-                                && !admitted_nested_owned_record
-                                && !admitted_owned_variant
+                                && !super::type_reachability::is_flat_owned_byte_record(
+                                    &self.program.declarations,
+                                    ty,
+                                )
+                                && !super::type_reachability::is_admitted_nested_owned_byte_record(
+                                    &self.program.declarations,
+                                    ty,
+                                )
+                                && !super::type_reachability::is_admitted_concrete_owned_byte_variant(
+                                    &self.program.declarations,
+                                    ty,
+                                )
                                 && !super::super::declared_collection::vector(&self.program.declarations,ty)
-                                && !admitted_owned_generic
-                                && (arguments.as_slice() != [ResolvedType::U8]
-                                    || declaration.as_str() != crate::prelude::OPTION_ID)
-                                && arguments.iter().any(|argument| {
-                                    !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)
-                                }))
+                                && !box_intrinsic::is_type(
+                                    &self.program.declarations,
+                                    declaration,
+                                    arguments,
+                                ))
                     {
                         return Err(hir_error(format!(
                             "nominal type `{declaration}` has unsupported generic arguments"

@@ -60,7 +60,61 @@ DOMAIN_BASE = {
                    'f943a9f16b7f4bb1f2b4f0574d8e07db57e275661211f523c9f79217922937ee'),
 }
 PRE_OVERLAY = 'whole-pre-overlay-v2-current'
+INGRESS = 'docs/evidence/ordinary-ingress-successor-20261026/current-inputs.json'
+INGRESS_RS = 'src/source_reflows_merge/ordinary_plan_inputs.rs'
 sha = lambda b: hashlib.sha256(b).hexdigest()
+
+
+def refresh_ordinary_ingress(repo):
+    """Rebind drifted rows of the physical->latest ordinary-plan successor.
+
+    Each row keeps its sealed `previous_*` pin; only the current pin, its
+    `e/` archive and the exact current->previous inverse are recomputed.
+    """
+    import difflib
+    raw = repo.raw(INGRESS)
+    packet = json.loads(raw)
+    assert (json.dumps(packet, separators=(',', ':')) + '\n').encode() == raw
+    changed = []
+    for row in packet['rows']:
+        live = repo.raw(row['path'])
+        if len(live) == row['current_length'] and sha(live) == row['current_sha256']:
+            continue
+        previous = repo.raw(row['previous_archive'])
+        assert len(previous) == row['previous_length'] and sha(previous) == row['previous_sha256']
+        a = live.decode().splitlines(keepends=True)
+        b = previous.decode().splitlines(keepends=True)
+        offsets = [0]
+        for line in a:
+            offsets.append(offsets[-1] + len(line.encode()))
+        edits = []
+        for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, a, b, autojunk=False).get_opcodes():
+            if tag != 'equal':
+                edits.append(dict(after=''.join(a[i1:i2]), before=''.join(b[j1:j2]), start_byte=offsets[i1]))
+        edits.reverse()
+        assert len(edits) <= 512
+        restored, last = live.decode(), len(live)
+        for e in edits:  # the Rust reader's exact replay (byte offsets, descending)
+            start, end = e['start_byte'], e['start_byte'] + len(e['after'].encode())
+            assert end <= last
+            data = restored.encode()
+            assert data[start:end] == e['after'].encode()
+            restored = (data[:start] + e['before'].encode() + data[end:]).decode()
+            last = start
+        assert restored.encode() == previous
+        row.update(current_length=len(live), current_sha256=sha(live),
+                   current_archive=f'e/{sha(live)}', inverse=edits)
+        repo.write(f'e/{sha(live)}', live)
+        changed.append(row['path'])
+    if not changed:
+        return []
+    new = (json.dumps(packet, separators=(',', ':')) + '\n').encode()
+    repo.write(INGRESS, new)
+    rs = repo.raw(INGRESS_RS).decode()
+    rs = replace_once(rs, f'const LENGTH: usize = {len(raw)};', f'const LENGTH: usize = {len(new)};', INGRESS_RS)
+    rs = replace_once(rs, f'const SHA: &str = "{sha(raw)}";', f'const SHA: &str = "{sha(new)}";', INGRESS_RS)
+    repo.write(INGRESS_RS, rs)
+    return changed
 
 
 class Repo:
@@ -340,6 +394,9 @@ def main():
                         'registration or audit-inventory list changed')
     args = a.parse_args()
     repo = Repo(args.repo.resolve(), args.check)
+    ingress = refresh_ordinary_ingress(repo)
+    if ingress:
+        print('ordinary ingress rows refreshed:', *ingress, sep='\n  ')
     old_guard = repo.raw(GUARD)
     old_overlay_py = repo.raw(OVERLAY_PY)
     result = refresh_overlay(repo, args.label or 'unlabelled')

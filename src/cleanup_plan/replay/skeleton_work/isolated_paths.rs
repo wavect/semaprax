@@ -40,5 +40,29 @@ pub(super) fn can_reuse(work: &SkeletonWork<'_, '_>, paths: &Vec<ExprSkeletonPat
             .is_some_and(|removed| removed > RECEIVING_BYTES)
 }
 
+/// Standalone owner of the f247b8e5b receiver. The merge cd04b20e9 retired it
+/// from production `merged_paths` (ARCHITECTURE: activation awaits a complete
+/// query census paid before formation); it stays a test-only candidate here.
+/// `can_reuse` reads no work state, so selecting before the unchanged work
+/// charge is the original order; every other input takes the complete
+/// current production merger.
+impl SkeletonWork<'_, '_> {
+    pub(super) fn isolated_merged_paths(
+        &mut self,
+        paths: Vec<ExprSkeletonPath>,
+    ) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
+        if !self.budget.merge_paths || paths.len() < 2 || !can_reuse(self, &paths) {
+            return self.merged_paths(paths);
+        }
+        self.charge(paths.len(), "factored path-state merge")?;
+        self.budget.reserve_array::<u8>(
+            self.function,
+            RECEIVING_BYTES,
+            "isolated path receiving owners",
+        )?;
+        Ok(paths)
+    }
+}
+
 #[cfg(test)]
 mod tests;

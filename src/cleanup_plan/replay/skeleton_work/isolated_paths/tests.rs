@@ -88,7 +88,8 @@ fn probe(
                 let result = if old {
                     work.saved_merged_paths(paths)
                 } else {
-                    work.merged_paths(paths)
+                    // The retired production hook's standalone owner (cd04b20e9).
+                    work.isolated_merged_paths(paths)
                 };
                 if let Ok(paths) = &result {
                     assert_eq!(paths.len(), count);

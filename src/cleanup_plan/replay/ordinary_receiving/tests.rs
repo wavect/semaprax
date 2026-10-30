@@ -75,6 +75,10 @@ fn complete_direct_collectors_match_full_immediate_constructor_and_drop_at_all_c
         for function in &program.functions {
             for index in [None, Some(&held)] {
                 let mut old_budget = ReplayBudget::unobserved();
+                // Same starting skeleton allowance as the current receiver below
+                // (`with_skeleton_limit(MAX_REPLAY_WORK_UNITS)`); `unobserved()`
+                // starts at zero, so only equal starts compare the work spent.
+                old_budget.skeleton_remaining = MAX_REPLAY_WORK_UNITS;
                 // Full immediate funded constructor, not pre-funding predecessor.
                 let old =
                     SkeletonWork::with_index(&program, function, &mut old_budget, index).unwrap();

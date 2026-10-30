@@ -194,15 +194,21 @@ fn subtree_resolution_and_independent_replay_use_exact_sticky_builder_budget_thr
     assert!(!exhausted && required > 0);
     // Fixed Copy instrumentation records the existing whole observation; it
     // excludes no stage and grants no allocation credit or semantic authority.
+    // Since g171 cleanup replay inside resolution and HIR validation debits a
+    // detached per-program scratch ledger (cleanup_plan::validate::
+    // scratch_ledger) instead of the builder ledger. Those receipts are read
+    // from the detached ledgers themselves and added to the builder debit.
     let mut stages = [crate::test_allocation_observer::Metrics::default(); 5];
     let mut debits = [0usize; 5];
+    let detached_start = crate::bounded_output::detached::detached_debits();
     let ((exact, observed), exhausted, spent) =
         crate::bounded_output::with_limit_usage(required, || {
             crate::test_allocation_observer::measure(|| {
                 let mut snapshot = |index| {
                     stages[index] = crate::test_allocation_observer::current_metrics();
                     debits[index] = crate::bounded_output::active_limit().unwrap()
-                        - crate::bounded_output::active_remaining().unwrap();
+                        - crate::bounded_output::active_remaining().unwrap()
+                        + (crate::bounded_output::detached::detached_debits() - detached_start);
                 };
                 snapshot(0);
                 let program = resolve_funded(&ast)?;
@@ -217,13 +223,16 @@ fn subtree_resolution_and_independent_replay_use_exact_sticky_builder_budget_thr
                 Ok::<(), ()>(())
             })
         });
+    let detached = crate::bounded_output::detached::detached_debits() - detached_start;
     exact.unwrap();
     assert!(!exhausted);
     assert_eq!(spent, required);
+    assert_eq!(debits[4], required + detached);
     assert!(!observed.invalid && observed.live == 0);
+    let debited = required + detached;
     assert!(
-        observed.allocated <= required && observed.highwater <= required,
-        "whole observation {observed:?}, required {required}, stages initial/resolve/HIR/replay/Drop {stages:?}, cumulative debits {debits:?}"
+        observed.allocated <= debited && observed.highwater <= debited,
+        "whole observation {observed:?}, builder {required}, detached {detached}, stages initial/resolve/HIR/replay/Drop {stages:?}, cumulative debits {debits:?}"
     );
     // Required is the measured implementation debit, not an analytical total.
     // The separate prefix/shape owner above supplies independent literal facts.

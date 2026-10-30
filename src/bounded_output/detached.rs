@@ -43,7 +43,22 @@ pub(crate) fn with_detached_limit<T>(
     let overflowed = budget.overflowed.get();
     let consumed = limit.saturating_sub(budget.remaining.get());
     drop(restore);
+    #[cfg(test)]
+    DETACHED_DEBITS.with(|total| total.set(total.get().saturating_add(consumed)));
     (value, overflowed, consumed)
+}
+
+#[cfg(test)]
+thread_local! {
+    // Test-only receipt sum; it grants nothing and is never read for admission.
+    static DETACHED_DEBITS: Cell<usize> = const { Cell::new(0) };
+}
+
+/// Test-only running sum of every completed detached ledger's debit on this
+/// thread, so an observation can add detached scratch to its enclosing debits.
+#[cfg(test)]
+pub(crate) fn detached_debits() -> usize {
+    DETACHED_DEBITS.with(Cell::get)
 }
 
 #[cfg(test)]

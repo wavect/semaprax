@@ -217,6 +217,61 @@ fn block_usage(
     let after = owner.usage();
     (before.0 - after.0, after.1 - before.1)
 }
+// The driver bodies migrated after the original context/block seams
+// (bd5007064, e5a0a92c2, 9bab6dfdc, a6714a162, 9ee59a524) are measured as
+// their own step: each body runs after its own driver's actual Context
+// constructor, outside the measured window. The block receivers are part of
+// every body, so they are not added again. No credit.
+#[derive(Clone, Copy)]
+enum Body {
+    /// `validate` / `validate_scalar`: Context::new, legacy body.
+    Legacy,
+    /// `validate_paid_original` / `validate_scalar_paid_original`.
+    Original,
+    /// `validate_paid` / `validate_scalar_paid`: Context::new_paid.
+    Current,
+}
+fn body_usage(
+    source: &dyn ReplayContext,
+    function: &ResolvedFunction,
+    lexical: bool,
+    body: Body,
+) -> (usize, usize) {
+    use crate::cleanup_plan::replay::{lexical_replay, scalar_replay};
+    let mut owner = session(source, function, usize::MAX);
+    let context = match body {
+        Body::Current => selected_context::Context::new_paid(
+            &owner.indexed,
+            function,
+            &mut owner.budget,
+            lexical,
+        )
+        .unwrap(),
+        Body::Legacy | Body::Original => {
+            selected_context::Context::new(&owner.indexed, function, &mut owner.budget).unwrap()
+        }
+    };
+    let before = owner.usage();
+    let budget = &mut owner.budget;
+    match (lexical, body) {
+        (true, Body::Legacy) => {
+            lexical_replay::validate_with_index(&context, function, budget, None).unwrap()
+        }
+        (false, Body::Legacy) => scalar_replay::validate(&context, function, budget).unwrap(),
+        (true, Body::Original) => {
+            lexical_replay::validate_paid_before_local_receivers(&context, function, budget)
+                .unwrap()
+        }
+        (false, Body::Original) => {
+            scalar_replay::validate_paid_before_local_receivers(&context, function, budget).unwrap()
+        }
+        (true, Body::Current) => lexical_replay::validate_paid(&context, function, budget).unwrap(),
+        (false, Body::Current) => scalar_replay::validate_paid(&context, function, budget).unwrap(),
+    }
+    let after = owner.usage();
+    drop(context);
+    (before.0 - after.0, after.1 - before.1)
+}
 fn compare_driver_usage(
     old: (usize, usize),
     current: (usize, usize),
@@ -229,10 +284,21 @@ fn compare_driver_usage(
     let context_new = context_usage(source, function, lexical, current_context);
     let blocks_old = block_usage(source, function, false);
     let blocks_new = block_usage(source, function, true);
-    let before = (context_old.0 + blocks_old.0, context_old.1 + blocks_old.1);
-    let after = (context_new.0 + blocks_new.0, context_new.1 + blocks_new.1);
+    let body_old = body_usage(source, function, lexical, Body::Legacy);
+    let body_new = body_usage(
+        source,
+        function,
+        lexical,
+        if current_context {
+            Body::Current
+        } else {
+            Body::Original
+        },
+    );
+    let before = (context_old.0 + body_old.0, context_old.1 + body_old.1);
+    let after = (context_new.0 + body_new.0, context_new.1 + body_new.1);
     eprintln!(
-        "selected driver lexical={lexical} old={old:?} current={current:?} context_old={context_old:?} context_current={context_new:?} blocks_old={blocks_old:?} blocks_current={blocks_new:?} ordinary_832_directory=not_entered_by_selected_budget",
+        "selected driver lexical={lexical} old={old:?} current={current:?} context_old={context_old:?} context_current={context_new:?} blocks_old={blocks_old:?} blocks_current={blocks_new:?} body_old={body_old:?} body_current={body_new:?} ordinary_832_directory=not_entered_by_selected_budget",
     );
     // Cross-add independently observed producer debits. Added genuine controls
     // remain fully charged and are never credited to the old whole driver.

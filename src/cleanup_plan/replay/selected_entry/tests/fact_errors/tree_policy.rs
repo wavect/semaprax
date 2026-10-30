@@ -270,8 +270,16 @@ fn full_tree_semantic_primary_and_simultaneous_hostiles_match_policy_facades_thr
                         let mut selected = session(&context, function, usize::MAX);
                         let ledger = selected.budget.physical.as_deref().unwrap() as *const _;
                         let error = run(route, &mut selected, function).unwrap_err();
-                        let expression_facts::errors::EngineError::Owned(error) = error else {
-                            panic!("pre-fact primary must retain full Diagnostic")
+                        // bd5007064 gives the selected scalar driver typed
+                        // scalar-local refusals; their explicit legacy
+                        // observation renders the original full Diagnostic.
+                        let error = match (route, error) {
+                            (_, expression_facts::errors::EngineError::Owned(error)) => error,
+                            (
+                                Route::SelectedArena,
+                                expression_facts::errors::EngineError::Structural(receipt),
+                            ) => receipt.legacy(function),
+                            _ => panic!("pre-fact primary must retain full Diagnostic"),
                         };
                         assert!(selected.failed);
                         assert_eq!(error, expected);

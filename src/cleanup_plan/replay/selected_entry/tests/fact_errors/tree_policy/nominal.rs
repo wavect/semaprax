@@ -31,8 +31,17 @@ fn full_tree_and_policy_facades_keep_source_bound_nominal_signature_and_field_ho
         let tree = success(Route::Tree, context, function, usize::MAX, None);
         let legacy = success(Route::LegacyArena, context, function, usize::MAX, None);
         let paid = success(Route::SelectedArena, context, function, usize::MAX, None);
-        assert_eq!((legacy.remaining, legacy.reserved), (paid.remaining, paid.reserved));
-        assert_eq!(legacy.work, paid.work);
+        // The current paid driver adds separately measured context, block and
+        // body steps; equal totals were the pre-migration seam.
+        let (old_seams, new_seams) = compare_driver_usage(
+            (legacy.remaining, legacy.reserved),
+            (paid.remaining, paid.reserved),
+            context,
+            function,
+            false,
+            true,
+        );
+        assert_eq!(legacy.work + new_seams, paid.work + old_seams);
         assert!(tree.work > 0);
         let mut pending = vec![&function.body];
         let mut projection = None;

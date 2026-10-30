@@ -1078,12 +1078,19 @@ mod ordinary_entry {
 
         const SUBJECTS: [&str; 3] = [
             "module setup.scalar; @id(\"f\") fn f()->i64 {0} @id(\"main\") fn main()->i64 {0}",
+            // An acyclic trailing return alone is normalized away by the
+            // parser (`parser/return_flow.rs`, dd9522c3e), leaving no lexical
+            // owner. A separate scalar-latched loop carries the actual
+            // LexicalExit (the admitted static-text `continue` shape), while
+            // the plain String-condition loop keeps its condition reads.
             r#"module setup.strings;
 @id("f") fn f(text:string)->i64 {
  let mut owner=text; let mut count=0;
  while string_len(owner)>0 && string_len(owner)<4 {
   owner=string_concat(owner,"x"); count=count+1; 0
  }
+ let mut at=0;
+ while at<2 {at=at+1;if at==1 {continue;};0}
  return count;
 }
 @id("main") fn main()->i64 {0}

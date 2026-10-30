@@ -104,7 +104,7 @@ fn scratch_growth_reserves_the_whole_new_carrier_and_refuses_one_short() {
             assert!(matches!(
                 errors[0].message,
                 std::borrow::Cow::Borrowed(
-                    "Workspace Semantic Graph `builder_bytes` exceeds 67108864"
+                    "Workspace Semantic Graph `builder_bytes` exceeds 134217728"
                 )
             ));
             assert_eq!(errors[0].help, None);
@@ -459,7 +459,7 @@ fn candidate_intersection_keeps_equal_text_distinct_full_capacity_and_exact_unma
             assert!(matches!(
                 errors[0].message,
                 std::borrow::Cow::Borrowed(
-                    "Workspace Semantic Graph `builder_bytes` exceeds 67108864"
+                    "Workspace Semantic Graph `builder_bytes` exceeds 134217728"
                 )
             ));
             assert_eq!(errors[0].help, None);

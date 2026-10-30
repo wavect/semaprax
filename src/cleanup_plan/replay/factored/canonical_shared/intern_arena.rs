@@ -318,11 +318,24 @@ impl PartialEq<Arena<Signature>> for std::collections::BTreeMap<Signature, usize
 
 // The caller's existing unit destination receives every nested Result. The
 // former BTree node is actually absent; no fallible rotation follows this bank.
+// The first backing holds FIRST_CAPACITY nodes, then grows geometrically; this
+// replaces the 1 -> 2 -> 4 reallocation chain for small comparisons and matches
+// the unpaid route, whose first Vec::reserve already yields capacity 4.
 macro_rules! prepare_insert {
     ($arena:expr, $key:ty, $function:expr, $budget:expr) => {{
         attempt!($budget.reserve_bytes($function, crate::cleanup_plan::replay::factored::canonical_shared::intern_arena::Arena::<$key>::INSERT_CONTROLS, "canonical arena node receiving"));
-        attempt!($budget.reserve_vec($function, &mut $arena.nodes, 1, "canonical ordered arena backing"));
-        if !$budget.pays_allocations() { $arena.nodes.reserve(1); }
+        let additional = crate::cleanup_plan::replay::factored::canonical_shared::intern_arena::additional(&$arena.nodes);
+        attempt!($budget.reserve_vec($function, &mut $arena.nodes, additional, "canonical ordered arena backing"));
+        if !$budget.pays_allocations() { $arena.nodes.reserve(additional); }
     }};
+}
+pub(super) const FIRST_CAPACITY: usize = 4;
+/// Nodes the next insertion reserves: the whole first block, then one.
+pub(super) fn additional<T>(nodes: &Vec<T>) -> usize {
+    if nodes.capacity() == 0 {
+        FIRST_CAPACITY
+    } else {
+        1
+    }
 }
 pub(super) use prepare_insert;

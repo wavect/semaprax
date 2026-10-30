@@ -12,7 +12,25 @@ use super::{
     wasm_host, PackageMetadata,
 };
 
+// The CLI compiles on one explicit 16 MiB worker (`cli_driver::CLI_STACK_BYTES`)
+// because the admitted compiler depth exceeds a default thread stack; the
+// library entry points leave that to their caller. These lanes call the same
+// entry points directly, so give them the CLI's stack instead of the 2 MiB
+// libtest default. Measured: unoptimized Core Wasm planning of the std.pattern
+// tests closure overflows 2 MiB and completes in 4 MiB.
+const COMPILER_STACK_BYTES: usize = 16 * 1024 * 1024;
+
 pub(super) fn run_examples_and_conformance(selected: Vec<PackageMetadata>) {
+    std::thread::Builder::new()
+        .name("standard-library-conformance".to_owned())
+        .stack_size(COMPILER_STACK_BYTES)
+        .spawn(move || run_examples_and_conformance_on_compiler_stack(selected))
+        .unwrap()
+        .join()
+        .unwrap_or_else(|payload| std::panic::resume_unwind(payload));
+}
+
+fn run_examples_and_conformance_on_compiler_stack(selected: Vec<PackageMetadata>) {
     assert!(!selected.is_empty());
     let scratch = temporary("lanes");
     for package in selected {

@@ -519,9 +519,15 @@ mod tests {
         let tail_id = tail.id.clone();
         let (selected, refused, after) = measured(&function);
         assert!(!refused);
+        // The original fixture has no type argument, so it never touches the
+        // type cursor. Since c90764eeb that cursor is grown and paid on first
+        // use (two frames: the nominal root and its U8 argument) rather than
+        // being prepaid inside the owner on both runs.
         assert_eq!(
             after - before,
-            2 * std::mem::size_of::<ResolvedType>() + "test.clone.type".len()
+            2 * std::mem::size_of::<ResolvedType>()
+                + "test.clone.type".len()
+                + super::capacity::type_cursor_tests::first_two_frame_traversal(2)
         );
         same(&expression_facts(&function).unwrap(), &selected);
         let fact = selected.get(&tail_id).unwrap().as_ref().unwrap();

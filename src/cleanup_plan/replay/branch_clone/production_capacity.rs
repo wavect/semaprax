@@ -255,7 +255,7 @@ macro_rules! produce {
 pub(in crate::cleanup_plan::replay) use produce;
 
 #[cfg(test)]
-mod before_short;
+pub(in crate::cleanup_plan::replay) mod before_short;
 
 /// The caller immediately appends one full observation. The closed unpaid
 /// route acquires that slot together with the original full history copy.

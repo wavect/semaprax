@@ -1,7 +1,7 @@
 //! Complete independently compiled main-a73 enumerator, before short-history dispatch.
 use super::super::super::*;
 
-pub(super) fn plan_skeleton_paths(
+pub(in crate::cleanup_plan::replay) fn plan_skeleton_paths(
     function: &ResolvedFunction,
     budget: &mut ReplayBudget,
 ) -> Result<Vec<SkeletonPath>, Diagnostic> {

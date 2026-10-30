@@ -23,6 +23,16 @@ fn growth(slots: usize) -> usize {
         + size_of::<TypeFrame<'_>>()
         + slots * size_of::<TypeFrame<'_>>()
 }
+/// Receiving and backing paid by the first `types` traversal of a function
+/// whose tree needs at most two cursor frames: one selector per frame entered,
+/// one cold grow call and the first growth to two slots. Since c90764eeb the
+/// cursor is grown on first use instead of living inside the prepaid owner.
+pub(in crate::cleanup_plan::replay::expression_facts) fn first_two_frame_traversal(
+    frames: usize,
+) -> usize {
+    assert!((1..=2).contains(&frames));
+    frames * FactCapacity::TYPE_SELECTOR + FactCapacity::TYPE_GROW_CALL + growth(2)
+}
 const SIZES: [usize; 10] = [2, 4, 8, 16, 32, 64, 128, 256, 512, 514];
 
 #[test]

@@ -143,6 +143,28 @@ fn whole_subtree_uses_one_exact_prefix_transfer_and_refuses_plan_forgeries() {
     }
 }
 
+/// The funded production resolution route: one identity owner on the active
+/// ledger funds source verification, identities, the base prelude and HIR.
+/// Public `hir::resolve` verifies with `SourceFunding::ordinary()`, which is
+/// unfunded by design, so it cannot carry a reserve-before-allocate bound.
+fn resolve_funded(ast: &crate::ast::Program) -> Result<hir::ResolvedProgram, ()> {
+    let mut owner =
+        crate::bounded_output::identity_reservation::IdentityReservation::acquire().map_err(drop)?;
+    let mut invocation = crate::hir::prelude_bundle::Invocation::new();
+    let resolved = crate::hir::identity_resolution::resolve_source_checked_previous_with_owner(
+        ast,
+        None,
+        None,
+        None,
+        None,
+        &mut invocation,
+        &mut owner,
+    );
+    drop(invocation);
+    drop(owner);
+    resolved.map(|(program, _)| program).map_err(drop)
+}
+
 #[test]
 fn subtree_resolution_and_independent_replay_use_exact_sticky_builder_budget_through_drop() {
     let source = SOURCE
@@ -155,16 +177,16 @@ fn subtree_resolution_and_independent_replay_use_exact_sticky_builder_budget_thr
             "right_marker + sequence",
         );
     // Authored parsing precedes this constructor scope. The observation covers
-    // real resolved HIR, independent cleanup replay and complete resolved Drop;
-    // it excludes the held input AST and fixed test tracking metadata.
+    // funded resolution (source verification through resolved HIR), independent
+    // cleanup replay and complete resolved Drop; it excludes the held input AST
+    // and fixed test tracking metadata.
     let ast = crate::check(&source, Path::new("subtree-budget.spx")).unwrap();
     let run = || {
-        let program = hir::resolve(&ast)?;
-        hir::validate(&program).map_err(|d| vec![d])?;
-        validate_structure(&program, function(&program, "envelope.consume"))
-            .map_err(|d| vec![d])?;
+        let program = resolve_funded(&ast)?;
+        hir::validate(&program).map_err(drop)?;
+        validate_structure(&program, function(&program, "envelope.consume")).map_err(drop)?;
         drop(program);
-        Ok::<(), Vec<crate::diagnostic::Diagnostic>>(())
+        Ok::<(), ()>(())
     };
     let (wide, exhausted, required) =
         crate::bounded_output::with_limit_usage(crate::workspace_graph::MAX_BUILDER_BYTES, run);
@@ -183,16 +205,16 @@ fn subtree_resolution_and_independent_replay_use_exact_sticky_builder_budget_thr
                         - crate::bounded_output::active_remaining().unwrap();
                 };
                 snapshot(0);
-                let program = hir::resolve(&ast)?;
+                let program = resolve_funded(&ast)?;
                 snapshot(1);
-                hir::validate(&program).map_err(|d| vec![d])?;
+                hir::validate(&program).map_err(drop)?;
                 snapshot(2);
                 validate_structure(&program, function(&program, "envelope.consume"))
-                    .map_err(|d| vec![d])?;
+                    .map_err(drop)?;
                 snapshot(3);
                 drop(program);
                 snapshot(4);
-                Ok::<(), Vec<crate::diagnostic::Diagnostic>>(())
+                Ok::<(), ()>(())
             })
         });
     exact.unwrap();

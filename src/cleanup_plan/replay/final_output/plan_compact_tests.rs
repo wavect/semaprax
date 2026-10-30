@@ -55,7 +55,25 @@ struct Run {
     moves: (usize, usize, usize),
     materializations: usize,
 }
+#[derive(Clone, Copy)]
+enum Route {
+    /// The complete immediately preceding PLAN producer (before compaction).
+    Predecessor,
+    /// The compact producer exactly before 827cda1f5 added short-history
+    /// dispatch; it shares every current helper with production.
+    CompactBeforeShort,
+    /// The actual production producer.
+    Production,
+}
 fn run(compact: bool, f: &ResolvedFunction, work: usize, bytes: usize, floor: usize) -> Run {
+    let route = if compact {
+        Route::Production
+    } else {
+        Route::Predecessor
+    };
+    run_route(route, f, work, bytes, floor)
+}
+fn run_route(route: Route, f: &ResolvedFunction, work: usize, bytes: usize, floor: usize) -> Run {
     let ((result, remaining, spent, heap, moves, materializations), refused, paid, _) =
         with_limit_usage_refusal(bytes, || {
             let ((result, remaining, spent, moves, materializations), heap) = measure(|| {
@@ -63,10 +81,16 @@ fn run(compact: bool, f: &ResolvedFunction, work: usize, bytes: usize, floor: us
                 let before = skeleton_materializations();
                 let mut b = ReplayBudget::with_skeleton_limit(work);
                 assert!(crate::bounded_output::set_active_floor(floor));
-                let result = if compact {
-                    plan_skeleton_paths(f, &mut b)
-                } else {
-                    super::before_plan_compact::plan_skeleton_paths(f, &mut b)
+                let result = match route {
+                    Route::Production => plan_skeleton_paths(f, &mut b),
+                    Route::CompactBeforeShort => {
+                        branch_clone::production_capacity::before_short::plan_skeleton_paths(
+                            f, &mut b,
+                        )
+                    }
+                    Route::Predecessor => {
+                        super::before_plan_compact::plan_skeleton_paths(f, &mut b)
+                    }
                 }
                 .map_err(failure);
                 (
@@ -140,13 +164,34 @@ fn complete_plan_paths_work_heap_and_exact_compact_result_delta_match_predecesso
     let mut observed_moves = 0;
     for f in &program.functions {
         let old = run(false, f, usize::MAX, 64 * 1024 * 1024, 0);
+        let compact = run_route(
+            Route::CompactBeforeShort,
+            f,
+            usize::MAX,
+            64 * 1024 * 1024,
+            0,
+        );
         let new = run(true, f, usize::MAX, 64 * 1024 * 1024, 0);
+        same(&old, &compact);
         same(&old, &new);
-        assert!(new.result.is_ok() && !new.refused && !old.refused);
+        assert!(new.result.is_ok() && !new.refused && !old.refused && !compact.refused);
+        // The compaction delta is exact on the compact producer that both this
+        // seam and production share. 827cda1f5 then let production copy short
+        // histories directly instead of entering the full take query; that
+        // route keeps every result, work, move and heap field (checked above)
+        // and only pays less. Its banks are pinned exactly by the short-plan
+        // tests in branch_clone::production_capacity::tests.
         assert_eq!(
-            new.paid + (selections(f) + 6 * new.moves.0) * unit,
+            compact.paid + (selections(f) + 6 * compact.moves.0) * unit,
             old.paid
         );
+        assert!(new.paid <= compact.paid);
+        for observed in [&compact, &new] {
+            assert!(
+                observed.heap.allocated <= observed.paid
+                    && observed.heap.highwater <= observed.paid
+            );
+        }
         observed_moves += new.moves.0;
     }
     assert!(

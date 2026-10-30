@@ -259,12 +259,16 @@
     },
     {
       "source": "src/cleanup_plan/replay/expression_facts/arena.rs",
-      "length": 13662,
-      "sha256": "077204a5ccbc3429fbcc881bfd50a69fa56e39536d7a5a5aa1c87b17db07e84d",
+      "length": 13793,
+      "sha256": "e69c9d8a5672639e56a9a82841cf5b5e3f71efb1aa72646695b129a7336a736e",
       "checkpoint_length": 13588,
       "checkpoint_sha256": "c075f4e758cd36ab40328df263bbd8b4836c8012abdcc6c4fd23fd95efb13a59",
       "archive": "e/c075f4e758cd36ab40328df263bbd8b4836c8012abdcc6c4fd23fd95efb13a59",
       "inverse": [
+        [
+          "#[cfg(test)]\npub(in crate::cleanup_plan::replay::expression_facts) use prefix::compact::NARROWED_SAVING as NARROWED_LOOKUP_SAVING;\n",
+          ""
+        ],
         [
           "            Ok(physical_budget::compact_try!(\n                prefix::compact::find_receiving(self, function, key, budget)\n            ))\n",
           "            prefix::find_receiving(self, function, key, budget)\n"

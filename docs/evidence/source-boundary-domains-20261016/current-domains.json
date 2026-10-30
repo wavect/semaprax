@@ -1793,6 +1793,7 @@
         "src/cleanup_plan/validate.rs",
         "src/cleanup_plan/validate/frontier_tests.rs",
         "src/cleanup_plan/validate/owned.rs",
+        "src/cleanup_plan/validate/scratch_ledger.rs",
         "src/cli/help/authoring/tasks.rs",
         "src/cli/help/authoring/tasks/derive.rs",
         "src/cli/help/authoring/tasks/tests.rs",
@@ -2568,6 +2569,7 @@
         "src/cleanup_plan/replay/typed_storage.rs",
         "src/cleanup_plan/replay/typed_storage/collections.rs",
         "src/cleanup_plan/validate.rs",
+        "src/cleanup_plan/validate/scratch_ledger.rs",
         "src/cli/help/authoring/tasks.rs",
         "src/diagnostic/writer.rs",
         "src/finite_byte_scratch.rs",
@@ -3028,9 +3030,9 @@
         "src/workspace_graph/validation.rs",
         "src/workspace_report.rs"
       ],
-      "full_manifest_sha256": "007aa3fdca574423369f41782ae9c3029e254365072ac0c57d99e1cc20804b4c",
-      "full_raw_sha256": "43c9eab400fbe22849d1817d35355dcd9de8332eace7d82add6300f6cece926d",
-      "full_authenticated_production_sha256": "3096eb8b0d3ef145a0d57de3c29e93436340837ae4e905fd340bf574626d8e6b"
+      "full_manifest_sha256": "d3976fe6be7fd7029b4bdc3892e32f2e260a56a34f4ec5fefd76df0e07b59c01",
+      "full_raw_sha256": "c81322363e60b0e87b395218f83b18f675febd3781220c2a00ccd1130b413e86",
+      "full_authenticated_production_sha256": "015893416d91ee6f66eaecd5b711702f0ee443e816ee03f709a305144adb8db2"
     },
     "projection": {
       "baseline": "a82e00cc83f99b16249181c45710d962598577db",
@@ -4182,9 +4184,9 @@
         "src/workspace_graph/source_schema.rs",
         "src/workspace_graph/source_schema/static_text.rs"
       ],
-      "full_manifest_sha256": "0182dda0d28cc63d7c80ce15c7dae1aa71d630d90d3786b5cea5d897311770c3",
-      "full_raw_sha256": "f46d8a6be79d24ac17a9c83720b140936c748cf29e4e40e844f95583e20b39dc",
-      "full_authenticated_production_sha256": "23d71393e0dd6ca83299e55214327c6872d7973fe0874bc556fb2334890818db"
+      "full_manifest_sha256": "a3e972b04d350833df25d16b3a1ae10fcfbdba073504d3fa3291781a93e152cc",
+      "full_raw_sha256": "4e5dc7ae715aa45ca296ff2579d7caf07d50d542ac518627ee562b533f387076",
+      "full_authenticated_production_sha256": "bac6a4be181e9b355e71d10f039a69fa337984d4793075a49cc982e4132b65d0"
     }
   }
 }

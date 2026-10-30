@@ -16,7 +16,7 @@
     },
     {
       "before": "    let error = graph_error(\n        \"SPX-G171\",\n        crate::bounded_output::budgeted_format(format_args!(\n            \"Workspace Semantic Graph `{field}` exceeds {maximum}\"\n        )),\n    );",
-      "after": "    let mut error = graph_error(\n        \"SPX-G171\",\n        crate::bounded_output::budgeted_format(format_args!(\n            \"Workspace Semantic Graph `{field}` exceeds {maximum}\"\n        )),\n    );\n    // Preserve the formatter's original debit and first refusal. The fixed\n    // default-limit message needs no backing when that formatter is exhausted.\n    if field == \"builder_bytes\" && maximum == MAX_BUILDER_BYTES && error.message.is_empty() {\n        const DEFAULT_MESSAGE: &str = \"Workspace Semantic Graph `builder_bytes` exceeds 67108864\";\n        const { assert!(MAX_BUILDER_BYTES == 67_108_864) };\n        error.message = std::borrow::Cow::Borrowed(DEFAULT_MESSAGE);\n    }"
+      "after": "    let mut error = graph_error(\n        \"SPX-G171\",\n        crate::bounded_output::budgeted_format(format_args!(\n            \"Workspace Semantic Graph `{field}` exceeds {maximum}\"\n        )),\n    );\n    // Preserve the formatter's original debit and first refusal. The fixed\n    // default-limit message needs no backing when that formatter is exhausted.\n    if field == \"builder_bytes\" && maximum == MAX_BUILDER_BYTES && error.message.is_empty() {\n        const DEFAULT_MESSAGE: &str = \"Workspace Semantic Graph `builder_bytes` exceeds 134217728\";\n        const { assert!(MAX_BUILDER_BYTES == 134_217_728) };\n        error.message = std::borrow::Cow::Borrowed(DEFAULT_MESSAGE);\n    }"
     }
   ]
 }

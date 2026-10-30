@@ -314,7 +314,7 @@ fn exhausted_default_builder_message_is_complete_without_backing_or_refusal_drif
             });
             let mut expected = old;
             expected.message = std::borrow::Cow::Borrowed(
-                "Workspace Semantic Graph `builder_bytes` exceeds 67108864",
+                "Workspace Semantic Graph `builder_bytes` exceeds 134217728",
             );
             assert_eq!(current, expected);
             assert!(matches!(current.message, std::borrow::Cow::Borrowed(_)));

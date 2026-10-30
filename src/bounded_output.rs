@@ -1,4 +1,5 @@
 pub(crate) mod cfg_reservation;
+pub(crate) mod detached;
 #[cfg(feature = "unstable-workflow-profiling")]
 pub(crate) mod exclusive_debits;
 pub(crate) mod format_acceptance;

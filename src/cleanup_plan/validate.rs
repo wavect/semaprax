@@ -7,6 +7,7 @@ use super::{CleanupPlan, CleanupSlot};
 
 #[cfg(test)]
 pub(in crate::cleanup_plan) mod owned;
+pub(in crate::cleanup_plan) mod scratch_ledger;
 pub(crate) fn validate_program(program: &ResolvedProgram) -> Result<(), Diagnostic> {
     #[cfg(feature = "unstable-workflow-profiling")]
     let _paid_phase = crate::workflow_profile::plan_comparison::active_paid_phase(
@@ -44,7 +45,7 @@ pub(crate) fn validate_program(program: &ResolvedProgram) -> Result<(), Diagnost
     }
     drop(frontier);
     // Complete fresh independent replay never borrows frontier proofs.
-    super::replay::validate_program(program)
+    scratch_ledger::validate_program(program)
 }
 
 fn validate_canonical_plan(

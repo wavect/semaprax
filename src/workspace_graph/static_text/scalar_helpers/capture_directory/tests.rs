@@ -558,10 +558,10 @@ fn refused_digest_scope(
 }
 fn complete_outside_digest_capacity() {
     assert!(crate::bounded_output::active_remaining().is_none());
-    assert_eq!(super::super::active_builder_limit(), 67_108_864);
+    assert_eq!(super::super::active_builder_limit(), 134_217_728);
     let expected = crate::diagnostic::Diagnostic::io("SPX-G171",
-        "Workspace Semantic Graph `builder_bytes` exceeds 67108864")
-        .with_help("live graph construction, not the static admission pre-charge, exceeded the 67108864-byte budget while allocating workspace graph structure.");
+        "Workspace Semantic Graph `builder_bytes` exceeds 134217728")
+        .with_help("live graph construction, not the static admission pre-charge, exceeded the 134217728-byte budget while allocating workspace graph structure.");
     assert_eq!(super::super::capacity(), vec![expected]);
 }
 

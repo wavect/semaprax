@@ -1,3 +1,9 @@
+## Workspace graph builder ceiling and replay scratch ledger (2026-10-29)
+
+- Debit whole-program cleanup replay scratch from a detached per-program ledger instead of settling it cumulatively into the Workspace Semantic Graph builder ledger. The ordinary payer, every per-allocation charge and the `SPX-H006` refusal are unchanged; the ledger is 4 GiB because the charges are cumulative requests (3.6 GB for the unfactored ShiftSim schedule) and replay stays bounded by `MAX_REPLAY_WORK_UNITS`.
+- Give the construction-phase ordinary renewal directory its own 4,000,000-unit work allowance instead of the 1,000,000-unit helper lookup remainder, which the 72-member `std/pattern` linked test program exceeded.
+- Raise `MAX_BUILDER_BYTES` (`SPX-G171`) from 67,108,864 to 134,217,728 bytes: `std/pattern`, `catalog-normalizer` and the Catalog scoped-record successor exceed 64 MiB without replay scratch, and the ShiftSim typed starter needs 133,282,152 bytes.
+
 ## Replay and loan scratch allocation (2026-10-27)
 
 - Reduce transient replay history, continuation, path-join, and loan-directory allocation while preserving complete checked HIR, canonical plans, diagnostics, work limits, and independent comparisons. Keep the original allocation and failure controls and add full prior-producer comparisons for the changed storage paths.

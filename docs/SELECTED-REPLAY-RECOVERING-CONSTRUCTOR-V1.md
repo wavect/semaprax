@@ -447,7 +447,10 @@ The actual ordinary fact map, slot tree, arbitrary record/variant shape walk,
 leaf trees and storage directory reserve their known carrier/backing requests
 before construction. Queue/vector growth, clone payment and shared certificate,
 path and factored storage guards can consume the active builder. No new limit,
-refund or separate ledger is introduced. The original arbitrary-shape algorithm
+refund or separate ledger is introduced. (Superseded for whole-program
+ordinary replay: those same charges now debit a detached per-program replay
+scratch ledger; see
+[Workspace Semantic Graph](WORKSPACE-SEMANTIC-GRAPH-V1.md#builder-ceiling-and-replay-scratch-ledger).) The original arbitrary-shape algorithm
 remains inline; a saved uncharged test oracle preserves its old verdict/order.
 The first ordinary refusal String is charged before allocation; initial short
 setup returns an inline H006 and retries allocate nothing. Longer current

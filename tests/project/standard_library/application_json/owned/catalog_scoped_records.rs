@@ -105,9 +105,42 @@ fn stage(root: &Path) {
         assert_eq!(canonical(&generated.source), generated.source);
     }
     // Only the complete, independently replayed candidate becomes staged input.
+    // The checked candidate carries the manifest's bundled standard dependency
+    // sources and their transitive closure too (`candidate.sources`, since the
+    // paired-bundle derivation).
+    // They are resolved from the toolchain, not staged project files: each must
+    // be byte-identical to its authored counterpart, and the set is exact.
+    let mut bundled = BTreeSet::new();
     for source in &bundle.candidate_sources {
-        std::fs::write(root.join(&source.path), &source.source).unwrap();
+        if source.path.starts_with("dependencies/") {
+            let authored = bundle
+                .authored_sources
+                .iter()
+                .find(|authored| authored.path == source.path)
+                .unwrap();
+            assert_eq!(authored.source, source.source, "{}", source.path);
+            assert_eq!(authored.sha256, source.sha256, "{}", source.path);
+            assert!(!root.join(&source.path).exists(), "{}", source.path);
+            bundled.insert(source.path.as_str());
+        } else {
+            std::fs::write(root.join(&source.path), &source.source).unwrap();
+        }
     }
+    assert_eq!(
+        bundled,
+        BTreeSet::from([
+            "dependencies/std.data.json.digits/0.1.0/digits.spx",
+            "dependencies/std.data.json.doc/0.1.0/doc.spx",
+            "dependencies/std.data.json.query/0.1.0/query.spx",
+            "dependencies/std.data.json.scan/0.1.0/scan.spx",
+            "dependencies/std.data.json.token/0.1.0/token.spx",
+            "dependencies/std.data.json.utf8/0.1.0/utf8.spx",
+            "dependencies/std.data.json.write/0.1.0/write.spx",
+            "dependencies/std.data.json/0.1.0/json.spx",
+            "dependencies/std.io/0.1.0/io.spx",
+            "dependencies/std.text/0.1.0/text.spx",
+        ])
+    );
     // The original ordinary Input→Decode tail now composes. Preserve its
     // independent projected-owner refusal against the same generated schemas.
     let original = include_str!("catalog-scoped-record-command-original.txt");

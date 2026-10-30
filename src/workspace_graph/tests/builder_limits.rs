@@ -376,8 +376,8 @@ fn core_retry_fixture() -> Vec<WorkspaceSource> {
                 .is_some_and(|paid| paid <= MAX_BUILDER_BYTES)
     };
     assert!(fits(1));
-    assert!(!fits(1024));
-    let (mut low, mut high) = (1, 1024);
+    assert!(!fits(4096));
+    let (mut low, mut high) = (1, 4096);
     while low + 1 < high {
         let middle = low + (high - low) / 2;
         if fits(middle) {
@@ -757,7 +757,7 @@ fn catalog_normalizer_compact_core_fits_production_builder_cap() {
 #[test]
 fn builder_budget_refusal_names_the_bound_that_fired_and_its_dominant_module() {
     let precharge =
-        build_owned_with_builder_limit(identity_scale_workspace(0, 64, 128), MAX_BUILDER_BYTES)
+        build_owned_with_builder_limit(identity_scale_workspace(0, 80, 128), MAX_BUILDER_BYTES)
             .err()
             .expect("an oversized workspace must be refused");
     assert_exact_builder_limit_error(&precharge, MAX_BUILDER_BYTES);

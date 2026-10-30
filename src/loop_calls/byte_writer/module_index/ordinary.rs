@@ -5,11 +5,18 @@ use crate::cleanup_plan::renewal_profile::ordinary::{
     Admission, Directory, Family, RecordPresence, Refusal, Scratch,
 };
 use crate::hir::ExpressionId;
+/// Construction-phase ordinary directory work, separate from the 1,000,000-unit
+/// helper lookup account. The directories traverse every member body, so a
+/// shared helper remainder refused the 72-member `std.pattern` linked test
+/// program, which needs 1,232,430 units; replay rebuilds the same directories
+/// under its own program-wide work ledger.
+const ORDINARY_DIRECTORY_WORK: usize = 4_000_000;
 impl<'a> ModuleIndex<'a> {
     pub(crate) fn new(program: &'a ResolvedProgram) -> Result<Self, Diagnostic> {
         let mut index = Self::new_helpers(program)?;
-        // Continue the existing helper lookup account, including on the
-        // allocation-free no-helper route. No second allowance is created.
+        // Ordinary collection and every later ordinary query debit their own
+        // phase allowance, not the helper census remainder.
+        index.lookup_work.set(ORDINARY_DIRECTORY_WORK);
         let remaining = &index.lookup_work;
         let failed = &index.ordinary_failed;
         let mut work = |units| Self::ordinary_units(remaining, failed, units);

@@ -135,15 +135,16 @@ The `limits` object has this exact order and values:
 | `max_uses` | 4,096 |
 | `max_resolved_cross_file_edges` | 65,536 |
 | `max_dependency_depth` | 16 |
-| `max_builder_bytes` | 67,108,864 |
+| `max_builder_bytes` | 134,217,728 |
 | `max_manifest_bytes` | 1,048,576 |
 | `max_output_bytes` | 16,777,216 |
 | `max_retained_generations` | 32 |
 | `max_staging_attempts` | 32 |
 | `max_unexpected_inventory_entries` | 0 |
 
-Corrective byte compatibility: `max_builder_bytes` is 67,108,864 because that
-is the `SPX-G171` enforcement limit. Earlier v1 output that encoded
+Corrective byte compatibility: `max_builder_bytes` is 134,217,728 because that
+is the `SPX-G171` enforcement limit (see "Builder ceiling and replay scratch
+ledger" below for the raise from 67,108,864). Earlier v1 output that encoded
 16,777,216 was defective and is not canonical. Re-rendering a graph with the
 corrected limit changes its digest, but does not change the schema or raise a
 ceiling.
@@ -235,10 +236,50 @@ peak forecast, allocator measurement, or process RSS. The SPX-G171 code,
 message, source immutability, and ceiling are unchanged. Missing evidence is
 reported as unknown, never synthesized from the static forecast.
 
-At the default 67,108,864-byte builder limit, an exhausted primary formatter
-borrows the complete fixed message ``Workspace Semantic Graph `builder_bytes` exceeds 67108864``. It retains the formatter's original debit
+At the default 134,217,728-byte builder limit, an exhausted primary formatter
+borrows the complete fixed message ``Workspace Semantic Graph `builder_bytes` exceeds 134217728``. It retains the formatter's original debit
 and first sticky refusal without allocating message backing. Diagnostic cost
 controls reproduce the refused reservation before measuring its output.
+
+### Builder ceiling and replay scratch ledger
+
+Independent cleanup replay is verification scratch: every carrier it reserves
+is released when the program's replay returns and none is retained by the
+resolved program, graph or artifact. Since the ordinary replay payer was
+separated from admission, those per-allocation charges were settled
+cumulatively into the builder ledger, so one program's replay of its members
+was charged as if every member's freed scratch were still live. Replay now
+keeps the same `ActiveBuilder` payer and every charge, but debits a detached
+per-program ledger of `MAX_REPLAY_SCRATCH_BYTES`
+(`src/cleanup_plan/validate/scratch_ledger.rs`). That ledger is never settled
+into or refunded to the builder ledger and is independent of the enclosing
+ledger's remaining or nested limit; its exhaustion is the existing `SPX-H006`
+replay refusal. Without an active ledger replay stays unobserved; an already
+refused builder keeps its route.
+
+Replay charges are cumulative allocation requests, not live bytes: freed
+carriers inside one member stay debited. Measured whole-program replay debits
+are 53.9 MB for `std/pattern` (128.5 MB in a test build), about 150 MB for
+ShiftSim's `shiftsim.schedule.run`, about 322 MB for the nested String-vector
+response consumer, and 3,635,613,686 bytes for the unfactored ShiftSim
+schedule, all of which completed with normal process memory. A byte ceiling
+on such a counter is not a memory bound; the replay remains bounded by
+`MAX_REPLAY_WORK_UNITS`. `MAX_REPLAY_SCRATCH_BYTES` is therefore 4,294,967,296
+on 64-bit hosts, above the largest measured admitted program, and refuses only
+a runaway counter. Releasing freed carriers would let it fall to a real
+peak-scratch bound and would also remove the allocation churn.
+
+Even without replay scratch, the cumulative builder debit of the bundled
+standard-library and application closures exceeds 67,108,864 bytes:
+`std/pattern` 79.1 MB, `catalog-normalizer` 76.0 MB and the Catalog
+scoped-record successor 81.8 MB in their tightest fallback-mode attempts (the
+successor still overflowed every mode at 83,886,080 bytes), and the ShiftSim
+typed-record application, the `semaprax new` typed starter, refuses at
+100,663,296 bytes and completes at 134,217,728 bytes after a 133,282,152-byte
+debit, earlier attempts' debit retained across fallback retries.
+`MAX_BUILDER_BYTES` is therefore 134,217,728; the ShiftSim margin is under
+1%, so the next growth in that closure needs its own measurement. The limit is
+a cumulative reservation bound, not a retained-memory or RSS forecast.
 
 The legacy estimate uses the longest authored identity in the whole workspace.
 If that estimate would exceed the builder limit, an additive fallback repeats
@@ -247,7 +288,7 @@ the frozen prelude as its identity scope. Reverse-dependent test declarations
 cannot occur in that module's synthetic HIR and therefore cannot enlarge its
 identity bound. Every previously accepted estimate is retained exactly; the
 fallback runs only after a builder-limit refusal. Structural and string factors,
-the 64 MiB limit, and actual allocation charges remain unchanged.
+the builder limit, and actual allocation charges remain unchanged.
 
 If both estimates refuse, a third attempt accounts inline AST storage once:
 embedded String headers, and the audited inline expression and pattern fields,
@@ -288,7 +329,7 @@ that historical transient-body peak. Ordinary imported stubs now clone only
 their signature: their provider bodies and contracts are never allocated in
 the consumer. Checked compiler wrappers still retain their full implementations
 and their existing runtime charges. The new fallback keeps all retained
-structure, string, identity, and runtime costs, and the same 64 MiB limit;
+structure, string, identity, and runtime costs, and the same builder limit;
 earlier successful receipts remain unchanged.
 
 The final output-carrier profile reserves the complete compile-time asserted
@@ -299,7 +340,7 @@ their independent ceilings. Other profiles retain their historical receipts.
 Independent call replay borrows the final core's immutable edges, reconstructs
 all ten fields from authenticated AST occurrences, rejects missing, extra and
 duplicate occurrences, then checks retained HIR and capability projections.
-Every allocation still consumes the live ledger; the 64 MiB cap is unchanged.
+Every allocation still consumes the live ledger; the builder cap is unchanged.
 
 The authored ordinary-call absence proof applies only to the final exact
 profiles' already carrier-free boxed/argument-vector positions outside closures.
@@ -818,7 +859,7 @@ released at each pop. Every edge is created after its event's first push and is
 pushed at once, so at most one node is live per frame-stack slot and the backing
 never exceeds the frame vector capacity. `RESOLVER_FRAME_BYTES` is therefore the
 physical frame size plus one 20-byte node: a per-slot bound for frame and arena
-storage together. Forecast formulas, budgets, floors, ceilings, the 64 MiB cap
+storage together. Forecast formulas, budgets, floors, ceilings, the builder cap
 and failure selection are unchanged; this constant is the only forecast input
 that moves, by the node size minus the removed inline `String` slot. Its exact
 numeric value, and every pinned builder phase peak derived from it, must be

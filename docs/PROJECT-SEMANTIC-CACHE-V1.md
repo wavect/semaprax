@@ -171,7 +171,7 @@ threading the `Arc` through the workspace consumers, which today all take
 The cache retains one successful context under the existing source count,
 source byte, and compiler-construction bounds. Checked retention additionally
 uses `MAX_PROJECT_CHECKED_MODULE_CACHE_PREBOUND`, tied to the Workspace Semantic
-Graph's 64 MiB `MAX_BUILDER_BYTES`, and enforced against the whole synthetic
+Graph's 128 MiB `MAX_BUILDER_BYTES`, and enforced against the whole synthetic
 AST/HIR construction estimate before checked clones are made. Sharing the
 ceiling removes the smaller independent 16 MiB cache limit; it does not combine
 the phases, equate their estimates, or turn either estimate into allocator/RSS

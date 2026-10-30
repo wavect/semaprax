@@ -29,7 +29,7 @@ impl<'source> Validated<'source> {
     /// Each receiver repeats the complete projected replay on this immutable
     /// owner instead of trusting construction history or a copied verdict.
     pub(crate) fn replay(&self) -> Result<(), Diagnostic> {
-        crate::cleanup_plan::replay::validate_program_context(&Projected {
+        crate::cleanup_plan::validate::scratch_ledger::validate_program_context(&Projected {
             program: &self.program,
         })
     }
@@ -106,7 +106,8 @@ pub(super) fn receive<'source>(
     let context = Projected {
         program: &prepared.program,
     };
-    crate::cleanup_plan::replay::validate_program_context(&context).map_err(Refusal::Projection)?;
+    crate::cleanup_plan::validate::scratch_ledger::validate_program_context(&context)
+        .map_err(Refusal::Projection)?;
     Ok(Validated {
         source: prepared.source,
         program: prepared.program,

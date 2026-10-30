@@ -17,7 +17,7 @@ use function @id("fault.report.json.nested.decode") from consumer.schema as deco
 use function @id("fault.report.json.nested-response-v2.encode") from consumer.schema as encode;
 use function @id("fault.report.json.nested-response-v2.encoded-len") from consumer.schema as encoded_len;
 @id("fault.decision") fn decision(values:borrow Vec<string>)->bool{{
-let count=vec_len<string>(values);if count==4usize{{let first=vec_str_at(values,0usize);let last=vec_str_at(values,count-1usize);str_len_bytes(first)==4usize && str_len_bytes(last)==2usize}}else{{false}}
+let count=vec_len<string>(values);if count==4usize{{let first=vec_str_at(values,0usize);let last=vec_str_at(values,count-1usize);str_len_bytes(first)==4 && str_len_bytes(last)==2}}else{{false}}
 }}
 @id("fault.decode") fn decode_only(input:borrow Slice<u8>)->i64{{let outcome=decode(input,byte_len(input));match own outcome{{Decoded::Error{{code,offset,field}}=>0,Decoded::Ready{{value}}=>if value.config.retry==2usize && value.ok{{724}}else{{0}},}}}}
 @id("fault.preflight") fn preflight(input:borrow Slice<u8>)->i64{{let outcome=decode(input,byte_len(input));match own outcome{{Decoded::Error{{code,offset,field}}=>0,Decoded::Ready{{value}}=>{{

@@ -7,7 +7,9 @@ static const uint8_t *fixture_input_start;
 static size_t fixture_input_length;
 static bool fixture_forbid_allocation;
 
-static void *fixture_bulk_malloc(size_t size) {
+/* Fault-injection probes include this observer for its copy counters and then
+ * rebind malloc to their own fault allocator, leaving this hook unreferenced. */
+__attribute__((unused)) static void *fixture_bulk_malloc(size_t size) {
     if (fixture_forbid_allocation) {
         (void)fputs("unexpected allocation before stale-slice rejection\n", stderr);
         exit(91);

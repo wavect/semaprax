@@ -47,7 +47,7 @@ BREW_TARGETS = {
 }
 
 DESCRIPTION = "Systems language: meaning in, verified machine code out"
-WINGET_SCHEMA = "1.10.0"
+WINGET_SCHEMA = "1.28.0"
 WINGET_MIN_OS = "10.0.17763.0"
 WINGET_TARGET = "x86_64-pc-windows-msvc"
 

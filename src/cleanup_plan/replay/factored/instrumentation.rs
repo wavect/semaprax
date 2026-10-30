@@ -109,9 +109,13 @@ fn original_shiftsim_factored_work_phase_witness() {
     let _scope = Scope::new();
     let repository = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let example = repository.join("examples/shiftsim-typed-record-successor");
+    // This file is also compiled as `compact_nodes::before::instrumentation`,
+    // so both copies run in one test process: the root must be distinct per
+    // copy, or one copy's cleanup removes the other's tree mid-copy.
     let root = std::env::temp_dir().join(format!(
-        "semaprax-original-shiftsim-phase-{}",
-        std::process::id()
+        "semaprax-original-shiftsim-phase-{}-{}",
+        std::process::id(),
+        module_path!().replace("::", "-")
     ));
     std::fs::create_dir_all(root.join("src")).unwrap();
     std::fs::create_dir_all(root.join("fixtures")).unwrap();

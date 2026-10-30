@@ -293,8 +293,10 @@ fn stack_layout_and_original_carrier_size() {
         INLINE * cell + size_of::<Vec<ChildCursor<'static>>>() + size_of::<usize>()
     );
     assert!(size_of::<Stack<'static>>() < size_of::<old::Frames<'static>>());
+    // 257 frames of the 24-byte borrowed cursor (40 bytes before the compact
+    // child cursor of 65601d26a; the frozen original shares the live cursor).
     #[cfg(target_pointer_width = "64")]
-    assert_eq!(size_of::<old::Frames<'static>>(), 10280);
+    assert_eq!(size_of::<old::Frames<'static>>(), 6168);
 }
 
 #[test]
@@ -566,7 +568,13 @@ fn full_consuming_collector_matches_unchanged_original() {
     let program = crate::hir::resolve(&source).unwrap();
     let mut emitted = 0;
     for function in &program.functions {
-        let collect = |original: bool| {
+        // 0: frozen fixed-array original; 1: its stack-backed replacement as
+        // it stood before the loop-free spine admission (f2cefb219); 2: the
+        // live collector. The replacement must match the original exactly,
+        // work and backing included. The live collector may only skip a
+        // loop-free body, which emits nothing (the spine tests own its cost),
+        // so it must emit the same entries for no more work.
+        let collect = |which: u8| {
             let work = Cell::new(0usize);
             let backing = Cell::new(0usize);
             let mut charge = |units| {
@@ -579,44 +587,63 @@ fn full_consuming_collector_matches_unchanged_original() {
             };
             let mut admission = Admission::new(&mut charge, &mut reserve);
             let mut output = super::super::Scratch::new(&mut admission).unwrap();
-            if original {
-                old::collect(&program, function, &mut output, &mut admission).unwrap();
-            } else {
-                super::collect(&program, function, &mut output, &mut admission).unwrap();
+            match which {
+                0 => old::collect(&program, function, &mut output, &mut admission).unwrap(),
+                1 => super::collect_before_spine(&program, function, &mut output, &mut admission)
+                    .unwrap(),
+                _ => super::collect(&program, function, &mut output, &mut admission).unwrap(),
             }
             (output.into_vec(), work.get(), backing.get())
         };
-        let (before, old_work, old_backing) = collect(true);
-        let (after, new_work, new_backing) = collect(false);
+        let same_entries = |before: &[super::Entry<'_>], after: &[super::Entry<'_>]| {
+            assert_eq!(before.len(), after.len());
+            for (before, after) in before.iter().zip(after) {
+                assert!(std::ptr::eq(before.at, after.at));
+                assert!(std::ptr::eq(before.binding, after.binding));
+                assert_eq!(
+                    (
+                        before.families,
+                        before.family,
+                        before.ordinal,
+                        before.rank,
+                        before.first
+                    ),
+                    (
+                        after.families,
+                        after.family,
+                        after.ordinal,
+                        after.rank,
+                        after.first
+                    ),
+                );
+            }
+        };
+        let (before, old_work, old_backing) = collect(0);
+        let (after, new_work, new_backing) = collect(1);
+        let (live, live_work, _) = collect(2);
         assert_eq!(old_work, new_work);
-        assert_eq!(before.len(), after.len());
-        emitted += after.len();
-        for (before, after) in before.iter().zip(&after) {
-            assert!(std::ptr::eq(before.at, after.at));
-            assert!(std::ptr::eq(before.binding, after.binding));
-            assert_eq!(
-                (
-                    before.families,
-                    before.family,
-                    before.ordinal,
-                    before.rank,
-                    before.first
-                ),
-                (
-                    after.families,
-                    after.family,
-                    after.ordinal,
-                    after.rank,
-                    after.first
-                ),
-            );
+        same_entries(&before, &after);
+        same_entries(&after, &live);
+        // The live collector first pays the loop-free spine probe; only a
+        // loop-free body skips the traversal, otherwise the work is additive.
+        let (spine, spine_work, _) = spine_evaluate(
+            &function.body,
+            usize::MAX,
+            super::NO_LOOP_SPINE_CONTROLS,
+        );
+        if spine == Ok(true) {
+            assert!(live_work < new_work);
+        } else {
+            assert_eq!(live_work, new_work + spine_work);
         }
+        emitted += after.len();
         if function.id.as_str() == "plain" {
             assert!(new_backing < old_backing);
             assert_eq!(
                 old_backing - new_backing,
                 size_of::<old::Frames<'static>>() - size_of::<Stack<'static>>()
             );
+            assert_eq!(spine, Ok(true), "loop-free body skips the traversal");
         }
     }
     assert!(

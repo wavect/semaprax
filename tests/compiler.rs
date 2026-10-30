@@ -3,6 +3,10 @@ use std::process::Command;
 
 use semaprax::{ast::Span, codegen, diagnostic::Diagnostic, graph, parse, verify};
 
+#[cfg(any(unix, windows))]
+#[path = "support/project_directory_link.rs"]
+mod project_directory_link;
+
 const VALID: &str = r#"
 module test.answer;
 
@@ -474,6 +478,141 @@ fn human_diagnostics_include_terminal_safe_source_locations() {
         located.json(),
         "{\"code\":\"SPX-T001\",\"severity\":\"error\",\"message\":\"invalid source\",\"path\":\"src/main.spx\",\"location\":{\"line\":2,\"column\":3,\"start\":4,\"end\":9},\"help\":\"replace it\"}"
     );
+}
+
+#[cfg(any(unix, windows))]
+#[test]
+fn single_file_native_build_names_linked_parent_and_resolved_output() {
+    let root = std::env::temp_dir().join(format!(
+        "semaprax-source-build-linked-parent-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    std::fs::create_dir(&root).unwrap();
+    let root = std::fs::canonicalize(&root).unwrap();
+    let source = root.join("input.spx");
+    std::fs::write(&source, VALID).unwrap();
+    let linked = project_directory_link::create(&root);
+    let inventory = project_directory_link::entries(&root);
+    let resolved = std::fs::canonicalize(&linked).unwrap();
+    let artifact = format!("artifact{}", std::env::consts::EXE_SUFFIX);
+    let suggested = resolved.join(&artifact);
+    let build = |output: &Path, json: bool| {
+        let mut command = Command::new(env!("CARGO_BIN_EXE_semaprax"));
+        command
+            .arg("build")
+            .arg(&source)
+            .args(["--target", "native", "-o"])
+            .arg(output);
+        if json {
+            command.arg("--json");
+        }
+        command.output().unwrap()
+    };
+
+    let rejected = build(&linked.join(&artifact), true);
+    assert_eq!(rejected.status.code(), Some(1));
+    assert!(rejected.stderr.is_empty());
+    let diagnostic: serde_json::Value = serde_json::from_slice(&rejected.stdout).unwrap();
+    assert_eq!(diagnostic["code"], "SPX-I301");
+    let link_kind = if cfg!(windows) {
+        "is a symbolic link or junction"
+    } else {
+        "is a symbolic link"
+    };
+    assert_eq!(
+        diagnostic["message"],
+        format!(
+            "single-file native output parent {} {link_kind}; it must be a real non-reparse directory",
+            linked.display()
+        )
+        .as_str()
+    );
+    assert_eq!(
+        diagnostic["help"],
+        format!(
+            "{} resolves to {}; use the resolved output path {}, or choose an output whose parent is a real directory",
+            linked.display(),
+            resolved.display(),
+            suggested.display()
+        )
+        .as_str()
+    );
+    let human = build(&linked.join(&artifact), false);
+    assert_eq!(human.status.code(), Some(1));
+    let stderr = String::from_utf8_lossy(&human.stderr);
+    assert!(stderr.contains("error[SPX-I301]: single-file native output parent "));
+    assert!(stderr.contains("\n  help: "), "{stderr}");
+    // A hostile output basename is echoed in the help with its control
+    // characters escaped, so it cannot forge a diagnostic line or reach the
+    // terminal as an escape sequence; the JSON help carries the same text.
+    #[cfg(unix)]
+    {
+        let hostile = linked.join("evil\n\u{1b}[31mFAKE error[SPX-X]: forged");
+        let escaped = format!(
+            "use the resolved output path {}/evil\\n\\u{{1b}}[31mFAKE error[SPX-X]: forged, or ",
+            resolved.display()
+        );
+        let human = build(&hostile, false);
+        assert_eq!(human.status.code(), Some(1));
+        let stderr = String::from_utf8(human.stderr).unwrap();
+        assert!(!stderr.contains('\u{1b}'), "{stderr:?}");
+        let lines = stderr.lines().collect::<Vec<_>>();
+        assert_eq!(lines.len(), 2, "{stderr:?}");
+        assert!(lines[0].starts_with("error[SPX-I301]: "), "{stderr:?}");
+        assert!(lines[1].starts_with("  help: "), "{stderr:?}");
+        assert!(stderr.contains(&escaped), "{stderr:?}");
+        let rejected = build(&hostile, true);
+        assert_eq!(rejected.status.code(), Some(1));
+        let diagnostic: serde_json::Value = serde_json::from_slice(&rejected.stdout).unwrap();
+        assert_eq!(diagnostic["code"], "SPX-I301");
+        let help = diagnostic["help"].as_str().unwrap();
+        assert!(!help.chars().any(char::is_control), "{help:?}");
+        assert!(help.contains(&escaped), "{help:?}");
+    }
+    project_directory_link::assert_intact(&root);
+    assert_eq!(project_directory_link::entries(&root), inventory);
+
+    let missing = root.join("missing");
+    let rejected = build(&missing.join(&artifact), true);
+    assert_eq!(rejected.status.code(), Some(1));
+    let diagnostic: serde_json::Value = serde_json::from_slice(&rejected.stdout).unwrap();
+    assert_eq!(diagnostic["code"], "SPX-I301");
+    assert!(diagnostic["message"]
+        .as_str()
+        .unwrap()
+        .starts_with(&format!(
+            "cannot inspect single-file native output parent {}",
+            missing.display()
+        )));
+    assert_eq!(
+        diagnostic["help"],
+        format!(
+            "create the directory {} first, then rerun the build",
+            missing.display()
+        )
+        .as_str()
+    );
+    assert!(!missing.exists());
+
+    project_directory_link::remove_link(&root);
+    if Command::new("clang").arg("--version").output().is_ok() {
+        let result = build(&suggested, false);
+        assert!(
+            result.status.success(),
+            "{}",
+            String::from_utf8_lossy(&result.stderr)
+        );
+        assert!(suggested.is_file());
+        std::fs::remove_file(&suggested).unwrap();
+    }
+    std::fs::remove_file(resolved.join("sentinel")).unwrap();
+    std::fs::remove_dir(&resolved).unwrap();
+    std::fs::remove_file(&source).unwrap();
+    std::fs::remove_dir(&root).unwrap();
 }
 
 #[test]

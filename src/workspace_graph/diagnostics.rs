@@ -92,8 +92,8 @@ pub(super) fn limit_error(field: &'static str, maximum: usize) -> Diagnostic {
     // Preserve the formatter's original debit and first refusal. The fixed
     // default-limit message needs no backing when that formatter is exhausted.
     if field == "builder_bytes" && maximum == MAX_BUILDER_BYTES && error.message.is_empty() {
-        const DEFAULT_MESSAGE: &str = "Workspace Semantic Graph `builder_bytes` exceeds 100663296";
-        const { assert!(MAX_BUILDER_BYTES == 100_663_296) };
+        const DEFAULT_MESSAGE: &str = "Workspace Semantic Graph `builder_bytes` exceeds 134217728";
+        const { assert!(MAX_BUILDER_BYTES == 134_217_728) };
         error.message = std::borrow::Cow::Borrowed(DEFAULT_MESSAGE);
     }
     if field != "builder_bytes" {

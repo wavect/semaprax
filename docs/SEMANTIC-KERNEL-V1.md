@@ -85,7 +85,7 @@ Read this section before citing this document elsewhere.
   unproved edge" and "Differential testing" together name what is now
   checked and what remains open.
 - **The `SPX-G171` byte figures below are not independently re-measured at
-  full scale in this session.** The 100,663,296-byte `MAX_BUILDER_BYTES`
+  full scale in this session.** The 134,217,728-byte `MAX_BUILDER_BYTES`
   constant is read directly from source and cited with its exact location;
   the "~35-40 KB of source" translation of that budget is the finding of the
   session recorded in `examples/catalog-normalizer-project/README.md` and
@@ -1001,7 +1001,7 @@ fixture now have one.
 
 ### Ceiling 1 — `SPX-G171`, the Workspace Semantic Graph builder-bytes budget
 
-- **Constant:** `MAX_BUILDER_BYTES: usize = 96 * 1024 * 1024` (`100_663_296`
+- **Constant:** `MAX_BUILDER_BYTES: usize = 128 * 1024 * 1024` (`134_217_728`
   bytes) — `src/workspace_graph.rs:57`, surfaced via `limit_error("builder_bytes", ...)`
   in `src/workspace_graph/diagnostics.rs:33-38`.
 - **What it charges:** not raw source bytes. It is an in-memory structural-

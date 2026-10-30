@@ -92,7 +92,7 @@ fn generate(root: &Path, prefix: &str) -> Result<(), Vec<crate::diagnostic::Diag
     Ok(())
 }
 pub(super) fn run(report: impl Fn(&str, &str, &ResolvedProgram)) {
-    assert_eq!(crate::workspace_graph::MAX_BUILDER_BYTES, 100_663_296);
+    assert_eq!(crate::workspace_graph::MAX_BUILDER_BYTES, 134_217_728);
     assert_eq!(
         project::ProjectExecutionOptions::default().max_steps,
         1_000_000

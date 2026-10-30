@@ -5,19 +5,25 @@
 //! the resolved program, graph or artifact. Under an active builder it keeps
 //! the exact ordinary `ActiveBuilder` payer and every per-allocation charge,
 //! but those charges are debited from a fresh detached ledger instead of being
-//! settled cumulatively into the enclosing builder ledger. The detached ledger
-//! has the Workspace Semantic Graph builder limit: a replay may consume what a
-//! builder ledger could admit, but no longer shares it with graph
-//! construction. It is independent of the enclosing ledger's remaining or
-//! nested limit, since a stage budget is sized for its own retained output.
-//! Exhaustion is the replay's existing `SPX-H006` refusal. Without an active
-//! ledger replay stays unobserved, and an already refused enclosing ledger
-//! keeps its route.
+//! settled cumulatively into the enclosing builder ledger. The ledger is
+//! independent of the enclosing ledger's remaining or nested limit, since a
+//! stage budget is sized for its own retained output.
+//!
+//! The charges count allocation requests, not live bytes: carriers freed
+//! inside one member stay debited (3,635,613,686 bytes for the unfactored
+//! ShiftSim schedule). The ledger therefore refuses only a runaway counter;
+//! replay itself stays bounded by `MAX_REPLAY_WORK_UNITS`. Exhaustion is the
+//! existing `SPX-H006` refusal. Without an active ledger replay stays
+//! unobserved, and an already refused enclosing ledger keeps its route.
 use crate::diagnostic::Diagnostic;
 use crate::hir::ResolvedProgram;
 
-/// Per-program cleanup-replay scratch ceiling.
-const MAX_REPLAY_SCRATCH_BYTES: usize = crate::workspace_graph::MAX_BUILDER_BYTES;
+/// Per-program cleanup-replay charge ceiling (4 GiB on 64-bit hosts).
+const MAX_REPLAY_SCRATCH_BYTES: usize = if usize::BITS >= 64 {
+    4 << 30
+} else {
+    usize::MAX
+};
 
 /// Complete independent replay of a resolved program on the detached ledger.
 pub(in crate::cleanup_plan) fn validate_program(

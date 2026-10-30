@@ -135,14 +135,14 @@ The `limits` object has this exact order and values:
 | `max_uses` | 4,096 |
 | `max_resolved_cross_file_edges` | 65,536 |
 | `max_dependency_depth` | 16 |
-| `max_builder_bytes` | 100,663,296 |
+| `max_builder_bytes` | 134,217,728 |
 | `max_manifest_bytes` | 1,048,576 |
 | `max_output_bytes` | 16,777,216 |
 | `max_retained_generations` | 32 |
 | `max_staging_attempts` | 32 |
 | `max_unexpected_inventory_entries` | 0 |
 
-Corrective byte compatibility: `max_builder_bytes` is 100,663,296 because that
+Corrective byte compatibility: `max_builder_bytes` is 134,217,728 because that
 is the `SPX-G171` enforcement limit (see "Builder ceiling and replay scratch
 ledger" below for the raise from 67,108,864). Earlier v1 output that encoded
 16,777,216 was defective and is not canonical. Re-rendering a graph with the
@@ -236,8 +236,8 @@ peak forecast, allocator measurement, or process RSS. The SPX-G171 code,
 message, source immutability, and ceiling are unchanged. Missing evidence is
 reported as unknown, never synthesized from the static forecast.
 
-At the default 100,663,296-byte builder limit, an exhausted primary formatter
-borrows the complete fixed message ``Workspace Semantic Graph `builder_bytes` exceeds 100663296``. It retains the formatter's original debit
+At the default 134,217,728-byte builder limit, an exhausted primary formatter
+borrows the complete fixed message ``Workspace Semantic Graph `builder_bytes` exceeds 134217728``. It retains the formatter's original debit
 and first sticky refusal without allocating message backing. Diagnostic cost
 controls reproduce the refused reservation before measuring its output.
 
@@ -250,31 +250,36 @@ separated from admission, those per-allocation charges were settled
 cumulatively into the builder ledger, so one program's replay of its members
 was charged as if every member's freed scratch were still live. Replay now
 keeps the same `ActiveBuilder` payer and every charge, but debits a detached
-per-program ledger of `MAX_REPLAY_SCRATCH_BYTES`, equal to `MAX_BUILDER_BYTES`
-(`src/cleanup_plan/validate/scratch_ledger.rs`): one program's replay may consume
-what a builder ledger could admit, but no longer shares it with graph
-construction. That ledger is never settled into or refunded to the builder
-ledger and is independent of the enclosing ledger's remaining or nested limit;
-its exhaustion is the existing `SPX-H006` replay refusal. Without an
-active ledger replay stays unobserved; an already refused builder keeps its
-route.
+per-program ledger of `MAX_REPLAY_SCRATCH_BYTES`
+(`src/cleanup_plan/validate/scratch_ledger.rs`). That ledger is never settled
+into or refunded to the builder ledger and is independent of the enclosing
+ledger's remaining or nested limit; its exhaustion is the existing `SPX-H006`
+replay refusal. Without an active ledger replay stays unobserved; an already
+refused builder keeps its route.
+
+Replay charges are cumulative allocation requests, not live bytes: freed
+carriers inside one member stay debited. Measured whole-program replay debits
+are 53.9 MB for `std/pattern` (128.5 MB in a test build), about 150 MB for
+ShiftSim's `shiftsim.schedule.run`, about 322 MB for the nested String-vector
+response consumer, and 3,635,613,686 bytes for the unfactored ShiftSim
+schedule, all of which completed with normal process memory. A byte ceiling
+on such a counter is not a memory bound; the replay remains bounded by
+`MAX_REPLAY_WORK_UNITS`. `MAX_REPLAY_SCRATCH_BYTES` is therefore 4,294,967,296
+on 64-bit hosts, above the largest measured admitted program, and refuses only
+a runaway counter. Releasing freed carriers would let it fall to a real
+peak-scratch bound and would also remove the allocation churn.
 
 Even without replay scratch, the cumulative builder debit of the bundled
-standard-library and application closures exceeded 67,108,864 bytes in their
-tightest fallback-mode attempt: `std/pattern` 79.1 MB, `catalog-normalizer`
-76.0 MB and the Catalog scoped-record successor 81.8 MB, with earlier attempts'
-debit retained across fallback retries. At 83,886,080 bytes the scoped-record successor still overflowed every
-fallback mode; at 100,663,296 bytes all three are admitted. `MAX_BUILDER_BYTES`
-is therefore 100,663,296. The ShiftSim typed-record application needs about
-133 MB and remains refused with `SPX-G171`. The limit is a cumulative
-reservation bound, not a retained-memory or RSS forecast.
-
-Replay charges are also cumulative: freed carriers inside one member stay
-debited. Measured whole-program replay debits are 53.9 MB for the
-`std/pattern` linked program, about 150 MB for ShiftSim's `shiftsim.schedule.run`,
-about 322 MB for the nested String-vector response consumer, and about
-3.6 GB for the unfactored ShiftSim schedule; the last three remain `SPX-H006`
-refusals until replay scratch accounting releases freed carriers.
+standard-library and application closures exceeds 67,108,864 bytes:
+`std/pattern` 79.1 MB, `catalog-normalizer` 76.0 MB and the Catalog
+scoped-record successor 81.8 MB in their tightest fallback-mode attempts (the
+successor still overflowed every mode at 83,886,080 bytes), and the ShiftSim
+typed-record application, the `semaprax new` typed starter, refuses at
+100,663,296 bytes and completes at 134,217,728 bytes after a 133,282,152-byte
+debit, earlier attempts' debit retained across fallback retries.
+`MAX_BUILDER_BYTES` is therefore 134,217,728; the ShiftSim margin is under
+1%, so the next growth in that closure needs its own measurement. The limit is
+a cumulative reservation bound, not a retained-memory or RSS forecast.
 
 The legacy estimate uses the longest authored identity in the whole workspace.
 If that estimate would exceed the builder limit, an additive fallback repeats

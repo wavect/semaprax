@@ -106,7 +106,8 @@ fn stage(root: &Path) {
     }
     // Only the complete, independently replayed candidate becomes staged input.
     // The checked candidate carries the manifest's bundled standard dependency
-    // sources too (`candidate.sources`, since the paired-bundle derivation).
+    // sources and their transitive closure too (`candidate.sources`, since the
+    // paired-bundle derivation).
     // They are resolved from the toolchain, not staged project files: each must
     // be byte-identical to its authored counterpart, and the set is exact.
     let mut bundled = BTreeSet::new();
@@ -129,10 +130,14 @@ fn stage(root: &Path) {
         bundled,
         BTreeSet::from([
             "dependencies/std.data.json.digits/0.1.0/digits.spx",
+            "dependencies/std.data.json.doc/0.1.0/doc.spx",
             "dependencies/std.data.json.query/0.1.0/query.spx",
             "dependencies/std.data.json.scan/0.1.0/scan.spx",
             "dependencies/std.data.json.token/0.1.0/token.spx",
+            "dependencies/std.data.json.utf8/0.1.0/utf8.spx",
             "dependencies/std.data.json.write/0.1.0/write.spx",
+            "dependencies/std.data.json/0.1.0/json.spx",
+            "dependencies/std.io/0.1.0/io.spx",
             "dependencies/std.text/0.1.0/text.spx",
         ])
     );

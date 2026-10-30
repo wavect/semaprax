@@ -291,13 +291,27 @@ fn application_starter_typed_shiftsim_fresh_check_native_tests_and_original_fift
     let fixture = Fixture::new("application-typed");
     let source = repo().join("examples/shiftsim-typed-record-successor");
     let raw_before = read_tree(&source);
+    // The checked-in example is canonical since 1206681d4, so author the
+    // noncanonical negative input explicitly: one extra trailing blank line
+    // in an otherwise exact copy of the example tree.
+    let raw = fixture.root.join("raw");
+    for (relative, bytes) in &raw_before {
+        let path = raw.join(relative);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        let mut bytes = bytes.clone();
+        if relative == "src/model.spx" {
+            bytes.push(b'\n');
+        }
+        std::fs::write(&path, bytes).unwrap();
+    }
+    let raw_inputs = read_tree(&raw);
     let raw_output = fixture.root.join("raw-application");
     let noncanonical = install(
         &raw_output,
-        &source,
-        &source.join("codec-plan.json"),
+        &raw,
+        &raw.join("codec-plan.json"),
         "language-command-io.collection-record.v1",
-        Some(&source.join("src/app.command.spx")),
+        Some(&raw.join("src/app.command.spx")),
     );
     assert!(!noncanonical.status.success());
     assert!(
@@ -306,6 +320,7 @@ fn application_starter_typed_shiftsim_fresh_check_native_tests_and_original_fift
         noncanonical
     );
     assert!(!raw_output.exists());
+    assert_eq!(read_tree(&raw), raw_inputs);
     assert_eq!(read_tree(&source), raw_before);
     // Preserve every original fixture byte, then use the compiler's actual
     // parser/formatter for the successful authored inventory (including command).
@@ -509,7 +524,14 @@ fn application_starter_selected_file_declared_native_tests_and_unchanged_cli49()
         .output()
         .unwrap();
     assert_success(&result);
-    assert!(String::from_utf8_lossy(&result.stdout).contains("49"));
+    // The unchanged receiver's own deterministic (seeded) check count. CLI49
+    // names the 33 historical + 16 SPEC bodies the Project gate owns
+    // (`source_command::loglens_selected_file`); tests.mjs runs them all
+    // among its 207 invocations, so "49" was never its printed count.
+    assert_eq!(
+        String::from_utf8_lossy(&result.stdout),
+        "Passed 207 CLI checks, including exact inline goldens and exit statuses 0, 1, 2.\n"
+    );
     assert_eq!(
         std::fs::read(output.join("tests.mjs")).unwrap(),
         std::fs::read(reference.join("tests.mjs")).unwrap()

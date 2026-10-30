@@ -190,7 +190,9 @@ fn typed_catalog_derives_codecs_and_preserves_all_23_functional_cases() {
             project::ProjectProfile::StdinStreamCollectionRecordCommandIoV1
         );
         let graph = snapshot.semantic_graph();
-        assert!(graph.contains("core.vec.str-at"));
+        // The Project semantic graph carries cross-module edges and declared
+        // types only; builtin call identities live in the checked HIR.
+        super::assert_calls_string_slot_view(snapshot.public_api_program());
         assert!(!graph.contains("\"catalog.tag\""));
         super::super::collection_response::assert_scoped_row_reads(
             snapshot.public_api_program(),

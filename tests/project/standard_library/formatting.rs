@@ -70,6 +70,11 @@ pub(super) fn conformance_manifests(
             std::fs::copy(file.path(), directory.join("src").join(file.file_name())).unwrap();
         }
         let mut selected = parsed.clone();
+        // Owned-data test programs root every declared `test_` case, so keep
+        // only this split's case; each case still runs in its own split.
+        selected
+            .functions
+            .retain(|f| !f.name.starts_with("test_") || f.name == case.name);
         let main = selected
             .functions
             .iter_mut()

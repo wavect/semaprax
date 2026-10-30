@@ -218,7 +218,9 @@ fn typed_record_shiftsim_derives_both_codecs_and_runs_retained_corpus() {
     let native = root.join("shiftsim-native");
     let c_source = project::with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
         assert_eq!(snapshot.manifest().schema(), project::PROJECT_SCHEMA_V31);
-        assert!(snapshot.semantic_graph().contains("core.vec.str-at"));
+        // The Project semantic graph carries cross-module edges and declared
+        // types only; builtin call identities live in the checked HIR.
+        super::assert_calls_string_slot_view(snapshot.public_api_program());
         assert!(!snapshot.semantic_graph().contains("\"shiftsim.server\""));
         assert_eq!(
             snapshot.manifest().project_profile(),

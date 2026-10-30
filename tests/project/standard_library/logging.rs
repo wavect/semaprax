@@ -217,6 +217,11 @@ fn log_conformance_manifests(scratch: &Path, manifest: &Path) -> Vec<PathBuf> {
     let mut covered = BTreeSet::new();
     for case in CASES {
         let mut selected = parsed.clone();
+        // Owned-data test programs root every declared `test_` case, so keep
+        // only this split's case; each case still runs in its own split.
+        selected
+            .functions
+            .retain(|f| !f.name.starts_with("test_") || f.name.as_str() == *case);
         let main = selected
             .functions
             .iter_mut()

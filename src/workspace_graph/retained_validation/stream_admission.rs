@@ -143,6 +143,10 @@ pub(in crate::workspace_graph) fn stream_test_program(
         crate::project::ProjectProfile::StdinStreamTextCommandIoV1 => {
             build.linked_stream_text_test_program(test_module)
         }
+        // The owned-data linker retains only the named closure, so the test
+        // module's `test_` cases must be explicit roots or they are pruned
+        // before case selection (PROJECT-TEST-CASES-V1).
+        _ if profile.is_owned_api() => build.linked_owned_api_test_program(test_module),
         _ => build.linked_project_program(test_module, profile, dependency_anchors),
     }
 }

@@ -118,6 +118,15 @@ fn irrelevant_modules_have_no_new_backing_and_allocating_legacy_helpers_keep_old
             }
         }
     }
+    // Shared record-presence acquisition (96682b472, 67733f183, da56f1b2c):
+    // ModuleIndex prepays the caller and constructor receivers once and each
+    // current member's direct caller bank. None of it is backing payload.
+    {
+        use crate::cleanup_plan::renewal_profile::ordinary::{current_members, RecordPresence};
+        expected += RecordPresence::caller_controls()
+            + RecordPresence::constructor_controls()
+            + current_members(&plain).count() * RecordPresence::direct_caller_controls();
+    }
     let ((ordinary, observed), overflowed, required) =
         crate::bounded_output::with_limit_usage(usize::MAX, || {
             crate::test_allocation_observer::measure(|| {

@@ -71,10 +71,9 @@ pub(super) fn promote(
         promoted.insert(child, sum);
         return Ok(Targets::Many(promoted));
     }
-    // One real key comparison and two tuple insertions, acquired before either
-    // comparison or publication. Allocation failure leaves the caller's One.
-    budget.charge(function, 1, "factored flat promotion key comparison")?;
-    budget.charge(function, 2, "factored flat promotion insertions")?;
+    // The paid flat form debits no work: the legacy tree branch above debits
+    // none, and work must not depend on the payer (1bae9e890 charged three
+    // units here only on paying budgets). Allocation failure leaves the One.
     let mut promoted = Vec::new();
     // Use the existing fallible physical owner, including its exact geometric
     // capacity, allocation-failure receipt and capacity-mismatch refusal.
@@ -115,7 +114,9 @@ pub(super) fn add(
         comparisons * (size_of::<&(usize, u64)>() + 2 * size_of::<usize>()),
         "factored flat search callback receivers",
     )?;
-    budget.charge(function, comparisons, "factored target search")?;
+    // No work debit: the legacy tree insertion debits none (see promote).
+    // Production callers reach this only through add_target, which keeps the
+    // flat form at most FLAT_CAP rows, so each insertion shift is bounded.
     match targets.binary_search_by_key(&child, child_key as fn(&(usize, u64)) -> usize) {
         Ok(index) => {
             let Some(sum) = targets[index].1.checked_add(weight) else {
@@ -124,16 +125,97 @@ pub(super) fn add(
             targets[index].1 = sum;
         }
         Err(index) => {
-            budget.charge(
-                function,
-                targets.len() - index + 1,
-                "factored target insertion and shifts",
-            )?;
             budget.reserve_vec(function, targets, 1, "factored target weights")?;
             targets.insert(index, (child, weight));
         }
     }
     Ok(true)
+}
+
+/// Largest paid flat target list. A further distinct child converts the list to
+/// the legacy ordered tree, so unpaid insertion shifting stays constant per add.
+pub(super) const FLAT_CAP: usize = 8;
+/// Receivers a spill forms: the tree, the consuming iterator and its items,
+/// the replacement enum and the returned tree Result.
+pub(super) const SPILL_RECEIVING: usize = size_of::<BTreeMap<usize, u64>>()
+    + size_of::<std::vec::IntoIter<(usize, u64)>>()
+    + 2 * size_of::<Option<(usize, u64)>>()
+    + 2 * size_of::<Targets>()
+    + size_of::<Result<BTreeMap<usize, u64>, Diagnostic>>();
+/// Receivers of the bounded-form probe: borrowed rows, search result and branch.
+pub(super) const FIT_PROBE: usize = size_of::<&Weighted>()
+    + size_of::<Result<usize, usize>>()
+    + 2 * size_of::<fn(&(usize, u64)) -> usize>()
+    + 2 * size_of::<bool>();
+
+/// Whether `child` can be added while keeping the flat form within FLAT_CAP.
+pub(super) fn fits_flat(targets: &Weighted, child: usize) -> bool {
+    targets.len() < FLAT_CAP
+        || targets
+            .binary_search_by_key(&child, child_key as fn(&(usize, u64)) -> usize)
+            .is_ok()
+}
+
+/// Move a full flat list into the ordered tree and insert one new distinct
+/// child. Every tree node is reserved before the tree is built.
+pub(super) fn spill(
+    function: &ResolvedFunction,
+    budget: &mut ReplayBudget,
+    targets: &mut Weighted,
+    child: usize,
+    weight: u64,
+) -> Result<BTreeMap<usize, u64>, Diagnostic> {
+    budget.reserve_bytes(
+        function,
+        SPILL_RECEIVING,
+        "factored flat target spill receivers",
+    )?;
+    for _ in 0..=targets.len() {
+        budget.reserve_btree_node::<usize, u64>(function, "factored successor target node")?;
+    }
+    let mut tree = BTreeMap::new();
+    for (key, value) in std::mem::take(targets) {
+        tree.insert(key, value);
+    }
+    tree.insert(child, weight);
+    Ok(tree)
+}
+
+/// Add one target to promoted targets: the bounded flat form while it fits,
+/// otherwise the ordered tree. Debits no work on any payer.
+pub(super) fn add_target(
+    function: &ResolvedFunction,
+    budget: &mut ReplayBudget,
+    targets: &mut Targets,
+    child: usize,
+    weight: u64,
+) -> Result<bool, Diagnostic> {
+    match targets {
+        Targets::PaidMany(flat) => {
+            if flat.len() >= FLAT_CAP {
+                budget.reserve_bytes(function, FIT_PROBE, "factored flat target bound probe")?;
+            }
+            if fits_flat(flat, child) {
+                return add(function, budget, flat, child, weight);
+            }
+            let tree = spill(function, budget, flat, child, weight)?;
+            *targets = Targets::Many(tree);
+            Ok(true)
+        }
+        Targets::Many(tree) => {
+            if !tree.contains_key(&child) {
+                budget
+                    .reserve_btree_node::<usize, u64>(function, "factored successor target node")?;
+            }
+            let slot = tree.entry(child).or_insert(0);
+            let Some(sum) = slot.checked_add(weight) else {
+                return Ok(false);
+            };
+            *slot = sum;
+            Ok(true)
+        }
+        Targets::One { .. } => unreachable!("a single target is promoted before any add"),
+    }
 }
 
 #[cfg(test)]

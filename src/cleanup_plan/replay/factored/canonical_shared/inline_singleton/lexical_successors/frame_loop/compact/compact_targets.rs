@@ -62,10 +62,7 @@ pub(super) fn promote(
         promoted.insert(child, sum);
         return Ok(Targets::Many(promoted));
     }
-    // One real key comparison and two tuple insertions, acquired before either
-    // comparison or publication. Allocation failure leaves the caller's One.
-    budget.charge_compact(function, 1, "factored flat promotion key comparison")?;
-    budget.charge_compact(function, 2, "factored flat promotion insertions")?;
+    // No work debit on any payer, exactly as paid_many::promote.
     let mut promoted = Vec::new();
     // Use the existing fallible physical owner, including its exact geometric
     // capacity, allocation-failure receipt and capacity-mismatch refusal.
@@ -106,7 +103,8 @@ pub(super) fn add(
         comparisons * (size_of::<&(usize, u64)>() + 2 * size_of::<usize>()),
         "factored flat search callback receivers",
     )?;
-    budget.charge_compact(function, comparisons, "factored target search")?;
+    // No work debit on any payer, exactly as paid_many::add; add_target keeps
+    // the flat rows within paid_many::FLAT_CAP.
     match targets.binary_search_by_key(&child, child_key as fn(&(usize, u64)) -> usize) {
         Ok(index) => {
             let Some(sum) = targets[index].1.checked_add(weight) else {
@@ -115,16 +113,68 @@ pub(super) fn add(
             targets[index].1 = sum;
         }
         Err(index) => {
-            budget.charge_compact(
-                function,
-                targets.len() - index + 1,
-                "factored target insertion and shifts",
-            )?;
             budget.reserve_compact_vec(function, targets, 1, "factored target weights")?;
             targets.insert(index, (child, weight));
         }
     }
     Ok(true)
+}
+
+/// Compact transport of paid_many::add_target: bounded flat rows, then the tree.
+pub(super) fn add_target(
+    function: &ResolvedFunction,
+    budget: &mut ReplayBudget,
+    targets: &mut Targets,
+    child: usize,
+    weight: u64,
+) -> Result<bool, ByteFailure> {
+    match targets {
+        Targets::PaidMany(flat) => {
+            if flat.len() >= paid_many::FLAT_CAP {
+                budget.reserve_compact_bytes(
+                    function,
+                    paid_many::FIT_PROBE,
+                    "factored flat target bound probe",
+                )?;
+            }
+            if paid_many::fits_flat(flat, child) {
+                return add(function, budget, flat, child, weight);
+            }
+            budget.reserve_compact_bytes(
+                function,
+                paid_many::SPILL_RECEIVING,
+                "factored flat target spill receivers",
+            )?;
+            for _ in 0..=flat.len() {
+                budget.reserve_compact_btree_node::<usize, u64>(
+                    function,
+                    "factored successor target node",
+                )?;
+            }
+            let mut tree = BTreeMap::new();
+            for (key, value) in std::mem::take(flat) {
+                tree.insert(key, value);
+            }
+            tree.insert(child, weight);
+            *targets = Targets::Many(tree);
+            Ok(true)
+        }
+        Targets::Many(tree) => {
+            if !tree.contains_key(&child) {
+                budget.reserve_compact_btree_node::<usize, u64>(
+                    function,
+                    "factored successor target node",
+                )?;
+            }
+            let slot = tree.entry(child).or_insert(0);
+            let Some(sum) = slot.checked_add(weight) else {
+                return Ok(false);
+            };
+            *slot = sum;
+            Ok(true)
+        }
+        Targets::One { .. } => unreachable!("a single target is promoted before any add"),
+    }
 }
 
 // The promotion bank conservatively includes all six lexical unit producers:

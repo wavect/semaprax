@@ -186,13 +186,15 @@ macro_rules! lexical_one_pass_successors {
                             $function, $budget, *first, *total, *$child, *$weight
                         ));
                     }
-                    paid_many::Targets::PaidMany(flat) => {
+                    paid_many::Targets::PaidMany(_) => {
                         $attempt!($budget.reserve_bytes(
                             $function,
                             paid_many::ADD_RECEIVING,
                             "factored one-pass flat-target receivers"
                         ));
-                        if !$attempt!(paid_many::add($function, $budget, flat, *$child, *$weight)) {
+                        if !$attempt!(paid_many::add_target(
+                            $function, $budget, $targets, *$child, *$weight
+                        )) {
                             $receiving.finish_overflow();
                             return;
                         }

@@ -188,14 +188,14 @@ macro_rules! compact_one_pass_successors {
                                 $function, $budget, *first, *total, *$child, *$weight
                             ));
                         }
-                        paid_many::Targets::PaidMany(flat) => {
+                        paid_many::Targets::PaidMany(_) => {
                             $compact_attempt!($budget.reserve_compact_bytes(
                                 $function,
                                 compact_targets::ADD_RECEIVING,
                                 "factored one-pass flat-target receivers"
                             ));
-                            if !$compact_attempt!(compact_targets::add(
-                                $function, $budget, flat, *$child, *$weight
+                            if !$compact_attempt!(compact_targets::add_target(
+                                $function, $budget, $targets, *$child, *$weight
                             )) {
                                 $receiving.finish_overflow();
                                 return;

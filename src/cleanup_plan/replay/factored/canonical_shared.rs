@@ -879,10 +879,9 @@ impl<'a> Canonicalizer<'a> {
                                     paid_many::ADD_RECEIVING,
                                     "factored composed flat add receivers",
                                 )?;
-                                let paid_many::Targets::PaidMany(flat) = targets else {
-                                    unreachable!("paid flat arm")
-                                };
-                                if !paid_many::add(function, budget, flat, *child, *weight)? {
+                                if !paid_many::add_target(
+                                    function, budget, targets, *child, *weight,
+                                )? {
                                     return Ok(None);
                                 }
                             }
@@ -1148,10 +1147,7 @@ impl<'a> Canonicalizer<'a> {
                                 paid_many::ADD_RECEIVING,
                                 "factored composed flat add receivers",
                             )?;
-                            let paid_many::Targets::PaidMany(flat) = targets else {
-                                unreachable!("paid flat arm")
-                            };
-                            if !paid_many::add(function, budget, flat, *child, *weight)? {
+                            if !paid_many::add_target(function, budget, targets, *child, *weight)? {
                                 return Ok(None);
                             }
                         }

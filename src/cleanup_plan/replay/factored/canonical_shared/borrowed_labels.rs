@@ -193,18 +193,18 @@ impl<'a> Directory<'a> {
                     function, budget, *first, *total, child, weight,
                 )?);
             }
-            Some(paid_many::Targets::PaidMany(flat)) => {
+            Some(targets @ paid_many::Targets::PaidMany(_)) => {
                 budget.reserve_bytes(
                     function,
                     paid_many::ADD_RECEIVING,
                     "factored composed flat add receivers",
                 )?;
-                if !paid_many::add(function, budget, flat, child, weight)? {
+                if !paid_many::add_target(function, budget, targets, child, weight)? {
                     return Ok(false);
                 }
             }
             Some(paid_many::Targets::Many(targets)) => {
-                // Reachable only in direct unobserved compatibility controls.
+                // Unobserved compatibility controls, and paid lists spilled past FLAT_CAP.
                 if !targets.contains_key(&child) {
                     budget.reserve_btree_node::<usize, u64>(
                         function,
@@ -1242,13 +1242,13 @@ pub(super) fn one_pass_successors(
                     *$targets =
                         paid_many::promote(function, budget, *first, *total, *$child, *$weight)?;
                 }
-                paid_many::Targets::PaidMany(flat) => {
+                paid_many::Targets::PaidMany(_) => {
                     budget.reserve_bytes(
                         function,
                         paid_many::ADD_RECEIVING,
                         "factored one-pass flat-target receivers",
                     )?;
-                    if !paid_many::add(function, budget, flat, *$child, *$weight)? {
+                    if !paid_many::add_target(function, budget, $targets, *$child, *$weight)? {
                         return Ok(None);
                     }
                 }

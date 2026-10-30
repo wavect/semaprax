@@ -764,17 +764,11 @@ fn composed_paid_memo_rejects_foreign_function_budget_and_ledger_then_stays_pois
 }
 
 #[test]
-fn composed_promotion_work_refusal_keeps_six_fields_first_order_and_zero_allocation_sticky_retry() {
+fn composed_promotion_debits_no_work_and_sticky_refusal_keeps_zero_allocation() {
+    // Promotion debits no work on any payer: the legacy tree promotion debits
+    // none, and 1bae9e890's paid-only three units made work payer dependent.
     let function = fixture();
     for work in [0, 1, 2] {
-        let phase = if work == 0 {
-            "factored flat promotion key comparison"
-        } else {
-            "factored flat promotion insertions"
-        };
-        let expected = Diagnostic::io("SPX-H006", format!(
-            "cleanup plan for function `{}` failed independent replay: cleanup replay work budget exhausted during {phase}",
-            function.id.as_str()));
         let ((), metrics) = measure(|| {
             let mut budget = ReplayBudget::with_physical(&function, 1 << 20).unwrap();
             budget
@@ -785,20 +779,19 @@ fn composed_promotion_work_refusal_keeps_six_fields_first_order_and_zero_allocat
                 )
                 .unwrap();
             budget.remaining = work;
-            let allocated = current_metrics().allocated;
-            let error = match promote(&function, &mut budget, 97, 2, 3, 3) {
-                Ok(_) => panic!("work refuses before flat backing or publication"),
-                Err(error) => error,
+            let promoted = promote(&function, &mut budget, 97, 2, 3, 3).unwrap();
+            let Targets::PaidMany(rows) = &promoted else {
+                panic!("paying budgets promote to the bounded flat form")
             };
-            assert_eq!(
-                error, expected,
-                "all six fields, first comparison then insertions"
-            );
-            assert_eq!(
-                current_metrics().allocated,
-                allocated,
-                "prepaid first diagnostic only"
-            );
+            assert_eq!(rows.as_slice(), &[(3, 3), (97, 2)]);
+            assert_eq!(budget.remaining, work, "promotion debits no work");
+            drop(promoted);
+            // A genuine selected work failure stays sticky: promotion then
+            // refuses at its zero-byte authentication before any allocation.
+            assert!(budget
+                .charge(&function, work + 1, "exhaust selected work")
+                .is_err());
+            let allocated = current_metrics().allocated;
             let charged = budget.physical.as_ref().unwrap().charged();
             let error = match promote(&function, &mut budget, 97, 2, 3, 3) {
                 Ok(_) => panic!("selected work failure stays sticky"),
@@ -811,6 +804,59 @@ fn composed_promotion_work_refusal_keeps_six_fields_first_order_and_zero_allocat
         });
         assert!(!metrics.invalid && metrics.live == 0 && metrics.allocated == metrics.freed);
     }
+}
+
+#[test]
+fn bounded_flat_targets_spill_to_the_ordered_tree_without_work() {
+    let function = fixture();
+    let mut budget = ReplayBudget::with_physical(&function, 1 << 24).unwrap();
+    budget
+        .reserve_bytes(
+            &function,
+            PROMOTE_RECEIVING,
+            "test actual promotion receivers",
+        )
+        .unwrap();
+    let mut targets = promote(&function, &mut budget, 1, 1, 0, 1).unwrap();
+    let mut expected = BTreeMap::from([(0, 1), (1, 1)]);
+    let work = (budget.remaining, budget.skeleton_remaining);
+    let mut spilled = false;
+    for child in (2..20).rev().chain([5, 0, 19]) {
+        budget
+            .reserve_bytes(&function, ADD_RECEIVING, "test actual add receivers")
+            .unwrap();
+        assert!(add_target(&function, &mut budget, &mut targets, child, 2).unwrap());
+        *expected.entry(child).or_insert(0) += 2;
+        let rows: Vec<(usize, u64)> = match &targets {
+            Targets::PaidMany(flat) => {
+                assert!(!spilled && flat.len() <= FLAT_CAP);
+                flat.clone()
+            }
+            Targets::Many(tree) => {
+                spilled = true;
+                tree.iter().map(|(key, value)| (*key, *value)).collect()
+            }
+            Targets::One { .. } => panic!("promoted targets never return to One"),
+        };
+        assert!(rows
+            .iter()
+            .copied()
+            .eq(expected.iter().map(|(key, value)| (*key, *value))));
+    }
+    assert!(spilled, "more than FLAT_CAP distinct targets use the tree");
+    assert_eq!(
+        (budget.remaining, budget.skeleton_remaining),
+        work,
+        "no payer-only work"
+    );
+    budget
+        .reserve_bytes(&function, ADD_RECEIVING, "test overflow receivers")
+        .unwrap();
+    assert!(!add_target(&function, &mut budget, &mut targets, 0, u64::MAX).unwrap());
+    let Targets::Many(tree) = &targets else {
+        panic!("spilled targets stay in the tree")
+    };
+    assert_eq!(tree.get(&0), expected.get(&0), "overflow never mutates");
 }
 
 #[test]

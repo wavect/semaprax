@@ -32,7 +32,7 @@ winapi-util = "=0.1.11"
 [target.'cfg(unix)'.dependencies]
 semaprax-harness = { version = "0.1.0", path = "../semaprax-harness" }
 fs2 = "=0.4.3"
-rustix = { version = "=1.1.5", default-features = false, features = ["fs", "process", "std", "stdio"] }
+rustix = { version = "=1.1.6", default-features = false, features = ["fs", "process", "std", "stdio"] }
 
 [[bin]]
 name = "semaprax-full"

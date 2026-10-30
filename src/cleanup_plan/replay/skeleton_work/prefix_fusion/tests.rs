@@ -213,9 +213,15 @@ fn ordinary_prefix_fusion_whole_owner_removes_actual_backing_and_pays_controls()
                 - crate::cleanup_plan::replay::final_output::compact::path_count_controls::<true>(
                 ));
         assert_eq!(old_paid - new_paid, removed - CONTROLS + compact);
+        // The old route clones the prefix (one allocation) and then grows that
+        // exact-length clone for the suffix (one reallocation, which the
+        // observer records as both an allocation and a reallocation). Fusion
+        // makes one allocation at the grown size instead: one fewer of each.
+        // A sequencing-only probe confirmed this at count=2 (old 4 allocations
+        // and 2 reallocations, current 3 and 1, identical setup).
         assert_eq!(
-            old_alloc.allocations + old_alloc.reallocations,
-            new_alloc.allocations + new_alloc.reallocations + 1,
+            (old_alloc.allocations, old_alloc.reallocations),
+            (new_alloc.allocations + 1, new_alloc.reallocations + 1),
             "count={count} old={old_alloc:?} new={new_alloc:?}"
         );
         assert!(new_alloc.highwater <= old_alloc.highwater);
@@ -235,7 +241,19 @@ fn ordinary_prefix_fusion_whole_owner_removes_actual_backing_and_pays_controls()
         let (new, new_alloc, _, new_paid) = owner(&program, false, len, suffix, count, usize::MAX);
         assert_eq!(old, new);
         assert_eq!(old_alloc.allocated, new_alloc.allocated);
-        assert_eq!(new_paid - old_paid, 0);
+        // No fusion fee is taken here; the only difference is the compact
+        // selection/count control transport (f7d35b4d7, 2d4d15679), which the
+        // current ordinary route uses for every sequence.
+        let compact = (crate::cleanup_plan::replay::final_output::HIR_SELECTION_CONTROLS
+            - crate::cleanup_plan::replay::final_output::compact::HIR_SELECTION_CONTROLS)
+            + (crate::cleanup_plan::replay::path_array::count_controls::<true>()
+                - crate::cleanup_plan::replay::final_output::compact::path_count_controls::<true>(
+                ));
+        assert_eq!(
+            old_paid - new_paid,
+            compact,
+            "len={len} suffix={suffix} count={count}"
+        );
     }
 }
 #[test]

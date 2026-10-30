@@ -650,3 +650,240 @@ fn semantic_patch_never_follows_or_deletes_a_planted_lock_symlink() {
         assert!(!stage_path(&source_path, index).exists());
     }
 }
+
+const LET_CAPTURE_SOURCE: &str = r#"module t;
+
+@id("t.one")
+fn one() -> i64
+{
+    1
+}
+
+@id("t.two")
+fn two() -> i64
+{
+    2
+}
+
+@id("t.main")
+fn main() -> i64
+{
+    let f = two;
+    one() * 10 + f()
+}
+"#;
+
+fn rename_fixture(
+    label: &str,
+    source: &str,
+    rename: &str,
+) -> (std::path::PathBuf, std::path::PathBuf) {
+    let sequence = NEXT_A0_FIXTURE.fetch_add(1, Ordering::Relaxed);
+    let directory = std::env::temp_dir().join(format!(
+        "semaprax-patch-capture-{}-{label}-{sequence}",
+        std::process::id()
+    ));
+    std::fs::create_dir_all(&directory).unwrap();
+    let source_path = directory.join("module.spx");
+    let patch_path = directory.join("rename.spatch");
+    let revision = graph::revision(&parse(source, &source_path).unwrap());
+    std::fs::write(&source_path, source).unwrap();
+    std::fs::write(
+        &patch_path,
+        format!("base {revision}\nrename {rename}\nrequire no-new-effects\n"),
+    )
+    .unwrap();
+    (source_path, patch_path)
+}
+
+fn assert_rename_refused(label: &str, source: &str, rename: &str, code: &str) {
+    let (source_path, patch_path) = rename_fixture(label, source, rename);
+    let error = patch::apply(&source_path, &patch_path).unwrap_err();
+    assert_eq!(error[0].code, code, "{label}: {error:?}");
+    assert_eq!(std::fs::read_to_string(&source_path).unwrap(), source);
+    assert_no_owned_artifacts(&source_path);
+}
+
+#[test]
+fn function_rename_refuses_a_name_captured_by_a_local_value() {
+    assert_rename_refused("let-capture", LET_CAPTURE_SOURCE, "t.one to f", "SPX-G111");
+}
+
+#[test]
+fn function_rename_refuses_a_name_captured_by_a_function_parameter() {
+    let source = r#"module t;
+
+@id("t.one")
+fn one() -> i64
+{
+    1
+}
+
+@id("t.two")
+fn two() -> i64
+{
+    2
+}
+
+@id("t.apply")
+fn apply(f: fn() -> i64) -> i64
+{
+    one() * 10 + f()
+}
+
+@id("t.main")
+fn main() -> i64
+{
+    apply(two)
+}
+"#;
+    assert_rename_refused("param-capture", source, "t.one to f", "SPX-G111");
+}
+
+#[test]
+fn function_rename_refuses_to_retarget_a_call_of_a_same_named_local_value() {
+    let source = r#"module t;
+
+@id("t.one")
+fn one() -> i64
+{
+    1
+}
+
+@id("t.two")
+fn two() -> i64
+{
+    2
+}
+
+@id("t.main")
+fn main() -> i64
+{
+    let one = two;
+    one() * 10
+}
+"#;
+    assert_rename_refused("reverse-capture", source, "t.one to uno", "SPX-G111");
+}
+
+#[test]
+fn function_rename_requires_a_resolvable_base() {
+    let source = r#"module t;
+
+@id("t.old")
+fn old() -> i64
+{
+    1
+}
+
+@id("t.main")
+fn main() -> i64
+{
+    fresh() * 10
+}
+"#;
+    assert_rename_refused("unresolvable-base", source, "t.old to fresh", "SPX-T203");
+}
+
+/// Returns the `one()` callee and the `f()` invocation root in `t.main`.
+fn main_call_targets(program: &semaprax::ast::Program) -> (String, String, String) {
+    use semaprax::hir::{self, ResolvedExprKind, ResolvedStatement};
+    let resolved = hir::resolve(program).unwrap();
+    let main = resolved
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "t.main")
+        .unwrap();
+    let ResolvedExprKind::Block { statements, tail } = &main.body.kind else {
+        panic!("main body is a block: {:?}", main.body);
+    };
+    let [ResolvedStatement::Let { binding, .. }] = statements.as_slice() else {
+        panic!("main binds one local value: {statements:?}");
+    };
+    let ResolvedExprKind::Binary { left, right, .. } = &tail.kind else {
+        panic!("main tail is a sum: {tail:?}");
+    };
+    let ResolvedExprKind::Binary { left: call, .. } = &left.kind else {
+        panic!("left operand is a product: {left:?}");
+    };
+    let ResolvedExprKind::Call { callee, .. } = &call.kind else {
+        panic!("renamed call stays a direct call: {call:?}");
+    };
+    let ResolvedExprKind::Invoke { callable, .. } = &right.kind else {
+        panic!("local value call stays an invocation: {right:?}");
+    };
+    let ResolvedExprKind::Place(place) = &callable.kind else {
+        panic!("invocation reads a local place: {callable:?}");
+    };
+    (
+        callee.to_string(),
+        place.root.to_string(),
+        binding.id.to_string(),
+    )
+}
+
+#[test]
+fn function_rename_without_capture_preserves_resolved_call_targets() {
+    let (source_path, patch_path) =
+        rename_fixture("no-capture", LET_CAPTURE_SOURCE, "t.one to uno");
+    let before = parse(LET_CAPTURE_SOURCE, &source_path).unwrap();
+    patch::apply(&source_path, &patch_path).unwrap();
+    assert_no_owned_artifacts(&source_path);
+
+    let changed = std::fs::read_to_string(&source_path).unwrap();
+    let candidate = semaprax::check(&changed, &source_path).unwrap();
+    let canonical = semaprax::format::canonical(&candidate);
+    let recheck = semaprax::check(&canonical, &source_path).unwrap();
+    assert_eq!(canonical, semaprax::format::canonical(&recheck));
+    assert!(canonical.contains("uno() * 10 + f()"), "{canonical}");
+
+    let graph_json = graph::to_json(&candidate).unwrap();
+    assert!(graph_json.contains("semaprax.graph.v36"));
+    graph::verify_json(&candidate, &graph_json).unwrap();
+    assert_eq!(graph_json, graph::to_json(&candidate).unwrap());
+
+    let (before_callee, before_root, before_binding) = main_call_targets(&before);
+    let (after_callee, after_root, after_binding) = main_call_targets(&candidate);
+    assert_eq!(before_callee, "t.one");
+    assert_eq!(after_callee, "t.one");
+    assert_eq!(before_root, before_binding);
+    assert_eq!(after_root, before_root);
+    assert_eq!(after_binding, before_binding);
+
+    let run = std::process::Command::new(env!("CARGO_BIN_EXE_semaprax"))
+        .arg("run")
+        .arg(&source_path)
+        .output()
+        .unwrap();
+    assert!(run.status.success(), "{run:?}");
+    assert_eq!(run.stdout, b"12\n");
+}
+
+#[test]
+fn cli_function_rename_capture_fails_without_changing_the_source() {
+    let (source_path, patch_path) = rename_fixture("cli-capture", LET_CAPTURE_SOURCE, "t.one to f");
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_semaprax"))
+        .arg("patch")
+        .arg(&source_path)
+        .arg(&patch_path)
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(1), "{output:?}");
+    assert!(
+        output.stderr.starts_with(b"error[SPX-G111]"),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        std::fs::read_to_string(&source_path).unwrap(),
+        LET_CAPTURE_SOURCE
+    );
+    assert_no_owned_artifacts(&source_path);
+    let run = std::process::Command::new(env!("CARGO_BIN_EXE_semaprax"))
+        .arg("run")
+        .arg(&source_path)
+        .output()
+        .unwrap();
+    assert!(run.status.success(), "{run:?}");
+    assert_eq!(run.stdout, b"12\n");
+}

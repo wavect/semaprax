@@ -535,41 +535,52 @@ fn type_facts_capacity_high_water_covers_layered_and_wide_hostiles() {
         resolve_type_facts_peak(&wide, "typefacts-wide.spx"),
         resolve_type_facts_peak(&chain, "typefacts-chain.spx"),
     ];
+    // a3d51efe8 narrowed `DeclarationId` from an owned 24-byte `String` to a
+    // 16-byte shared/compiler identity, shrinking `ResolvedType` (48 -> 40)
+    // and this phase's `Frame` (64 -> 56). The probe charges those widths per
+    // declaration-directory slot and per frame slot, so every peak fell by a
+    // multiple of 8 (-256, -256, -4160 = 8 * (516 declarations + 4 frames),
+    // -8192); identity-key String capacities are unchanged by c349d93be.
     let expected = [
         (
             "sha256:cfa16985be87d169c3fb81d5958126347ec82b4c1afed878e2d98d1fbfe72c80",
-            1_741_655,
+            1_741_399,
             669_965_618,
         ),
         (
             "sha256:461611e4315e312330af0285273568e5d09cd8e5770a35dcf66a82783aa15ae6",
-            1_397_598,
+            1_397_342,
             2_886_293_140,
         ),
         (
             "sha256:dc19474b86def3eaf6e3c60cc2224694e6aa7cf2811cca6115943c11102f95fc",
-            102_101,
+            97_941,
             122_429_248,
         ),
         (
             "sha256:d2692d4883957575ee95df8f9ee7057343599e1da945c386cedea714c716f66d",
-            6_277_920,
+            6_269_728,
             31_588_832_202,
         ),
     ];
-    for ((digest, actual), (expected_digest, expected_actual, envelope)) in
-        observed.into_iter().zip(expected)
-    {
-        assert_eq!(digest, expected_digest, "canonical hostile fixture drifted");
-        assert_eq!(
-            actual, expected_actual,
-            "TypeFacts owned-capacity peak drifted"
-        );
+    for ((_, actual), (_, _, envelope)) in observed.iter().zip(&expected) {
         assert!(
             actual <= envelope,
             "TypeFacts observed total exceeded retained_upper + TypeFacts phase"
         );
     }
+    // Compare every row at once so a drift report carries all four peaks.
+    assert_eq!(
+        observed
+            .iter()
+            .map(|(digest, actual)| (digest.as_str(), *actual))
+            .collect::<Vec<_>>(),
+        expected
+            .iter()
+            .map(|(digest, actual, _)| (*digest, *actual))
+            .collect::<Vec<_>>(),
+        "canonical hostile fixture or TypeFacts owned-capacity peak drifted"
+    );
 }
 
 #[test]

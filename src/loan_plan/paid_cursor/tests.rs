@@ -217,7 +217,34 @@ fn full_old_current_planner_backing_includes_receiver_drop_and_no_expression_mat
         assert!(current.allocated <= paid && current.highwater <= paid);
         assert_eq!(current.allocated, current.freed);
         assert_eq!(current.live, 0);
-        assert!(current.allocated < old.allocated && paid < old_paid);
+        // abde0d0ec retains the candidate inventory for the same subject and
+        // prepays its exact affine carriers (the subject frames and the
+        // Result/Option inventory return), and 362482ddf adds the contextual
+        // byte-census carrier. Those fixed carriers are paid before any
+        // allocation even when no candidate is found; the old receiver had
+        // none. Excluding exactly them, the current receiver still pays and
+        // allocates strictly less than the old materializing discovery.
+        let subject = 3 * std::mem::size_of::<funded_flat::CurrentSubject<'static>>();
+        type Retained = Option<paid_candidate::Inventory<'static, 'static>>;
+        let result =
+            std::mem::size_of::<Result<Retained, Diagnostic>>() + std::mem::size_of::<Retained>();
+        let (census, census_refused, census_paid) = with_limit_usage(usize::MAX, || {
+            crate::hir::ByteTraversalSlot::new(&program, function).map(drop)
+        });
+        census.unwrap();
+        assert!(!census_refused && census_paid > 0);
+        let carriers = subject + result + census_paid;
+        assert!(
+            current.allocated < old.allocated
+                && current.highwater < old.highwater
+                && paid < old_paid + carriers,
+            "wide={wide} allocated {} vs old {}; highwater {} vs old {}; paid {paid} \
+             (subject {subject} + result {result} + census {census_paid}) vs old {old_paid}",
+            current.allocated,
+            old.allocated,
+            current.highwater,
+            old.highwater
+        );
     }
 }
 #[test]
@@ -318,9 +345,15 @@ fn complete_old_candidate_and_funded_receivers_are_exact_and_current_hooks_are_s
     );
     let current_hook = "        let mut work = WorkCounter::new(MAX_LOAN_PLAN_WORK_V1);\n        work.allocation = Some(payer);\n        if paid_candidate::inspect(program, function, payer, &mut work)? {\n";
     let original_hook = "        if paid_candidate::inspect(program, function, payer)? {\n            let mut work = WorkCounter::new(MAX_LOAN_PLAN_WORK_V1);\n            work.allocation = Some(payer);\n";
+    // ae2f6006c and bc52cc9c1 later added this exact Clippy attribute to the
+    // three test-module declarations; it has no runtime meaning. Invert only
+    // those three copies before replaying the recorded inventory edits.
+    let lint = "#[allow(\n    clippy::duplicate_mod,\n    reason = \"Run the same controls against independent receivers.\"\n)]\n";
+    let funded_source = include_str!("../funded_flat.rs");
+    assert_eq!(funded_source.matches(lint).count(), 3);
     let mut current = paid_candidate::before_inventory_source(
         "src/loan_plan/funded_flat.rs",
-        include_str!("../funded_flat.rs"),
+        &funded_source.replace(lint, ""),
     );
     for test_hook in [
         "        #[cfg(test)]\n        work_boundary::apply(&mut work);\n",

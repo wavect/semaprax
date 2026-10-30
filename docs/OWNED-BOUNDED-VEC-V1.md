@@ -156,6 +156,11 @@ This v1 profile supplies no `pop`, insertion, removal, implicit or amortized
 growth, shrink, owned element, general iterator interface, escaping borrow,
 mutable reference, public Project/FFI/WIT/Component representation, or production
 support. `std.iter` remains absent pending its independent library contract.
+Core-Wasm execution of this profile runs through private hosts that supply the
+`env.spx_vec_*` imports. The generated legacy scalar Web loader does not supply
+them, so legacy `build --target web` refuses Vec programs with `SPX-W131` before
+output creation under the
+[scalar export Wasm rule](WASM-SCALAR-EXPORTS-V1.md#wasm-and-binding-abi).
 
 Owned Bytes vectors, [consuming iterators](OWNING-ITERATORS-V1.md),
 [iterator loops](OWNING-ITERATOR-LOOPS-V1.md),

@@ -156,8 +156,11 @@ for admitted scalar exports; it does not promise that generics/resources or
 every rejected legacy program fit the new route.
 
 This is an explicit admission correction, not silent migration. Successful
-String-free legacy Web v3 bytes, scalar Web v4 admission/output, ordinary raw
-Wasm emission and every Project v1-v10 route remain unchanged. The old raw
+String-free legacy Web v3 bytes of previously linkable packages, scalar Web v4
+admission/output, ordinary raw Wasm emission and every Project v1-v10 route
+remain unchanged. Legacy packages whose imports the generated loader does not
+supply reject with `SPX-W131` under the
+[scalar export Wasm rule](WASM-SCALAR-EXPORTS-V1.md#wasm-and-binding-abi). The old raw
 emitter's separate String settlement/coverage gaps are not declared solved.
 
 ## Required evidence

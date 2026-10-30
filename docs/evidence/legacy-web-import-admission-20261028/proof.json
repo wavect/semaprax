@@ -1,0 +1,122 @@
+{
+  "base": "2d215d3377",
+  "cause": "Legacy Web import admission (SPX-W131) edits CHANGELOG.md and docs/ARCHITECTURE.md, adds one installed diagnostic to the regenerated docs/AGENT-SKILL-BUNDLE-V1.json and registers one module in tests/wasm.rs; each is an authenticated current source.",
+  "change": "Advance the finite-source-overlay-v2 current pins of the three overlay sources, keep each previous current pin as the view whole-before-legacy-web-import-admission and archive the new bytes at e/<sha256>. Refresh the transitive policy, overlay_page.py, guard_payload.py and main_e177_overlay_v2.rs pins. Rebind tests/wasm.rs (length, sha256, registration edge offsets) and main_e177_overlay_v2.rs in the a3-e47 hir and projection manifests and recompute the source-boundary domain hashes with the unchanged verify() of verify-authority.py. Every other row, view, field and assertion is unchanged.",
+  "overlay_sources": [
+    {
+      "source": "CHANGELOG.md",
+      "before": [
+        597636,
+        "8dabeae09b5b7d411f09b3fd0ca4195165f4cf362091c403af83865a02d049c7"
+      ],
+      "current": [
+        597949,
+        "9da31c95afa1ec861c30038a29c7711b719d607aff516f382a6a414507812253"
+      ]
+    },
+    {
+      "source": "docs/ARCHITECTURE.md",
+      "before": [
+        393457,
+        "ab8b9cf0bf553ad8958cb329c25237fcad55a9ede70233bba0045b48e412f8f2"
+      ],
+      "current": [
+        393746,
+        "2a2c6cb9de27a0e32f768661e5045fe1a358d04356cd4d3feb2ed2825dac50bc"
+      ]
+    },
+    {
+      "source": "docs/AGENT-SKILL-BUNDLE-V1.json",
+      "before": [
+        5544,
+        "12e98ea8f8b70d3d2169cda1622f9c725a86e61b64930fffdda6e4b9771a5482"
+      ],
+      "current": [
+        5544,
+        "fc6655cf3bc038a4108a9c472a160ea15daebb81da21ce20f0b40308443871ac"
+      ]
+    }
+  ],
+  "overlay_page": {
+    "before": [
+      252364,
+      "eaa6098c091daf8f624d15d52c08bcae4e5bcdbb4d1ee566d534c9b303dac850"
+    ],
+    "current": [
+      252719,
+      "e9f2d6e5ca168bd9a2dbc79a3de630346d2bd37908d91622d2318e593a90767a"
+    ]
+  },
+  "overlay_policy": {
+    "before": [
+      114753,
+      "a59e8cd172a78fe7d8751205ccd79447add0c91007d462d303f141029051f926"
+    ],
+    "current": [
+      114753,
+      "2f5fbb71840d176c772317919d8e0a9dc5cf9d41c4b88a8f0615772e457f9673"
+    ]
+  },
+  "main_e177_overlay_v2_rs": {
+    "before": [
+      80276,
+      "0026672eeb2930e737466aa5a80e247e119d4b4a052ca4d91c187b8fbf3b690f"
+    ],
+    "current": [
+      80276,
+      "fc0287630646c177a7dce9755888d625ece996c2b87ec4bdfd23b42927cec9f8"
+    ]
+  },
+  "overlay_page_py": {
+    "before": [
+      57853,
+      "3a9f7001e38b699ab3e562272ff2fc97a7026b96fcae7a350b35f939889d1e5e"
+    ],
+    "current": [
+      57853,
+      "63ca7dd76c15bd8269782d7f83d7f99c88aa3e40ba2c6c4c68167ce989daceed"
+    ]
+  },
+  "guard_payload_py": {
+    "before": [
+      11549,
+      "c011770c40f8a09c5864603143ac165bf0f768242b04f02b740610efebe0c977"
+    ],
+    "current": [
+      11549,
+      "c7f687b4552af9edf5350008d7620f1b73649b4e5eba8434c3bef153ed97ff83"
+    ]
+  },
+  "a3_e47_manifests": {
+    "hir": {
+      "before": [
+        8546784,
+        "73044d2bf14e8f54315bfe89a43f6cb6ba467c51f6149d254dcbdb93bffcd989"
+      ],
+      "current": [
+        8546784,
+        "07e35e632e5d618308789457695bafb52f39707b2d86f8f5607090d2115c2c8b"
+      ],
+      "moved_tests_wasm_edges": 784,
+      "full_raw_sha256": "d35a6a35a6eea6bce77c7d9a0620af82a45d1476f3358766e34e42ded085c616",
+      "full_authenticated_production_sha256": "3096eb8b0d3ef145a0d57de3c29e93436340837ae4e905fd340bf574626d8e6b"
+    },
+    "projection": {
+      "before": [
+        8527684,
+        "b09dc07f4a9d75d0b840251f1c3d806048e06330aa77cc4ad004e40e89cadaa7"
+      ],
+      "current": [
+        8527684,
+        "47d0a3a0520169d7e1812c8cbd17613bf9df5626290da0e949c1654329510efd"
+      ],
+      "moved_tests_wasm_edges": 713,
+      "full_raw_sha256": "dc4c2df79980f0cf892c73d35e981bf42883d1a684239996e0a78d353458f045",
+      "full_authenticated_production_sha256": "23d71393e0dd6ca83299e55214327c6872d7973fe0874bc556fb2334890818db"
+    }
+  },
+  "rust_writer_source_owners": "PASS: diagnostic::writer::tests::full_original_renderer_and_all_current_source_owners_remain_bound",
+  "rust_skill_bundle_drift": "PASS: agent_skill_bundle::tests::committed_bundle_is_pinned_and_regenerates_byte_identical",
+  "rust_main_e177": "79 passed; the 9 failures are the same tests that fail on unmodified 2d215d3377; latest_main_and_afa_complete_views_preserve_all_prior_controls_and_refuse_wrong_stages did not finish within 74 minutes here or within 70 minutes on 2d215d3377",
+  "python_846_verifier": "Not a gate for this change: verify.py compares raw current bytes with current_sha256, which 9 of its 10 rows already fail on 2d215d3377"
+}

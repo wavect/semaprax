@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const module = new WebAssembly.Module(readFileSync(process.argv[2]));
-const provider = environmentProvider(module, 69710);
+// The application program now carries the indexed scalar Vec updates.
+const provider = environmentProvider(module, 69710, true);
 assert.equal(provider.acceptsOwnedLength(69710), true);
 assert.equal(provider.acceptsOwnedLength(69711), false);
 assert.equal(provider.acceptsOwnedLength(Number.MAX_SAFE_INTEGER + 1), false);
@@ -16,7 +17,10 @@ assert.deepEqual(
     'spx_bytes_as_slice', 'spx_bytes_zeroed', 'spx_bytes_set',
     'spx_bytes_set5', 'spx_bytes_set1_or5', 'spx_bytes_set1_or6_or48',
     'spx_vec_with_capacity', 'spx_vec_push', 'spx_vec_len',
-    'spx_vec_capacity', 'spx_vec_get', 'spx_vec_drop'].sort(),
+    'spx_vec_capacity', 'spx_vec_get', 'spx_vec_drop',
+    // The decoded identifier index (697da5d30) calls vec_set, and Core Wasm
+    // imports reserve_exact/set/clear as one fixed extended-Vec family.
+    'spx_vec_reserve_exact', 'spx_vec_set', 'spx_vec_clear'].sort(),
 );
 const min = -(1n << 63n);
 const max = (1n << 63n) - 1n;

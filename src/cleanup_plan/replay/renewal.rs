@@ -188,7 +188,17 @@ pub(super) fn renew(
             "renewal destination is not one owner leaf",
         ));
     }
-    if !budget.selected() && crate::string_ops::replacement::binding(function, at).is_some() {
+    // Since 1e57fa7f8 a selected budget skipped this branch to avoid the
+    // unpaid body scan, which left the replaced owner live. Selected replay
+    // decides it from its held, funded renewal lease instead.
+    let replacement = if budget.selected() {
+        program
+            .primitive_renewals(function)
+            .is_some_and(|sites| selected_string_replacement(sites, at))
+    } else {
+        crate::string_ops::replacement::binding(function, at).is_some()
+    };
+    if replacement {
         let source_flags =
             path_join::storage::validate_place(function, source, storage, leaves, budget)?;
         if source_flags == flags {
@@ -209,7 +219,10 @@ pub(super) fn renew(
         budget,
     )?;
     let flag = flags[0];
-    if !budget.selected() && crate::string_ops::replacement::binding(function, at).is_some() {
+    if replacement {
+        if budget.selected() {
+            return string_replacement::finish_paid(function, flag, &history, state, budget);
+        }
         return string_replacement::finish(function, flag, &history, state);
     }
     if !history.contains(&flag)
@@ -228,6 +241,19 @@ pub(super) fn renew(
     }
     state.live_order = history.history;
     Ok(())
+}
+/// A held selected renewal lease names whole String replacement exactly by its
+/// String-typed sites: iterator, Vec and byte renewals are never String, and
+/// helper and same-owner append sites are excluded. No scan or allocation.
+pub(super) fn selected_string_replacement(
+    sites: &crate::cleanup_plan::ReplayRenewalBindings<'_>,
+    at: &ExpressionId,
+) -> bool {
+    !sites.is_helper(at)
+        && !sites.appends().contains_key(at)
+        && sites
+            .get(at)
+            .is_some_and(|binding| binding.ty == crate::hir::ResolvedType::String)
 }
 pub(super) fn prepend_reservation(
     function: &ResolvedFunction,

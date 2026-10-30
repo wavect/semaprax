@@ -59,6 +59,87 @@ pub(super) fn finish(
     Ok(())
 }
 
+/// Funded twin of [`finish`] for a selected budget: identical checks and
+/// published order, with both owned vectors reserved at exact capacity.
+pub(super) fn finish_paid(
+    function: &ResolvedFunction,
+    target: LivenessFlagId,
+    reserved: &[LivenessFlagId],
+    state: &mut PathState,
+    budget: &mut ReplayBudget,
+) -> Result<(), Diagnostic> {
+    if !reserved.contains(&target) || !state.live_order.contains(&target) {
+        return Err(replay_error(
+            function,
+            "String replacement lost its reserved owner",
+        ));
+    }
+    budget.charge(
+        function,
+        reserved
+            .len()
+            .saturating_add(1)
+            .saturating_mul(state.live_order.len().saturating_add(1)),
+        "String replacement history comparison",
+    )?;
+    budget.reserve_array::<LivenessFlagId>(
+        function,
+        state.live_order.len(),
+        "String replacement fresh owners",
+    )?;
+    let mut fresh = Vec::with_capacity(state.live_order.len());
+    let mut prior = reserved
+        .iter()
+        .copied()
+        .filter(|flag| *flag != target && state.live_order.contains(flag));
+    let mut next = prior.next();
+    for flag in state
+        .live_order
+        .iter()
+        .copied()
+        .filter(|flag| *flag != target)
+    {
+        if let Some(expected) = next {
+            if flag != expected {
+                return Err(replay_error(
+                    function,
+                    "String replacement changed surviving owner history",
+                ));
+            }
+            next = prior.next();
+        } else {
+            if reserved.contains(&flag) {
+                return Err(replay_error(
+                    function,
+                    "String replacement repeats prior owner history",
+                ));
+            }
+            fresh.push(flag);
+        }
+    }
+    if next.is_some() {
+        return Err(replay_error(
+            function,
+            "String replacement omits surviving owner history",
+        ));
+    }
+    let capacity = reserved.len().saturating_add(fresh.len());
+    budget.reserve_array::<LivenessFlagId>(
+        function,
+        capacity,
+        "String replacement published owners",
+    )?;
+    let mut published = Vec::with_capacity(capacity);
+    for flag in reserved {
+        if *flag == target || state.live_order.contains(flag) {
+            published.push(*flag);
+        }
+    }
+    published.extend(fresh);
+    state.live_order = published;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

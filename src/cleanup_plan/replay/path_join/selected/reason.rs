@@ -72,6 +72,10 @@ pub(in crate::cleanup_plan::replay) enum Kind {
     RenewalHasNoReservation,
     RenewalDestinationIsNotOneOwnerLeaf,
     StringReplacementAliasesItsNewOwner,
+    StringReplacementLostItsReservedOwner,
+    StringReplacementChangedSurvivingOwnerHistory,
+    StringReplacementRepeatsPriorOwnerHistory,
+    StringReplacementOmitsSurvivingOwnerHistory,
     RenewalChangedUnrelatedCleanupInitializationHistory,
     SelectedAppendLacksCurrentFunctionCensus,
     SelectedAppendLookupOverflow,
@@ -263,6 +267,18 @@ impl Kind {
                 "renewal destination is not one owner leaf"
             }
             Self::StringReplacementAliasesItsNewOwner => "String replacement aliases its new owner",
+            Self::StringReplacementLostItsReservedOwner => {
+                "String replacement lost its reserved owner"
+            }
+            Self::StringReplacementChangedSurvivingOwnerHistory => {
+                "String replacement changed surviving owner history"
+            }
+            Self::StringReplacementRepeatsPriorOwnerHistory => {
+                "String replacement repeats prior owner history"
+            }
+            Self::StringReplacementOmitsSurvivingOwnerHistory => {
+                "String replacement omits surviving owner history"
+            }
             Self::RenewalChangedUnrelatedCleanupInitializationHistory => {
                 "renewal changed unrelated cleanup initialization history"
             }

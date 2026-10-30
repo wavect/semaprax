@@ -442,9 +442,11 @@ fn retained_static_string_append_and_replacement_compose_with_direct_parity() {
     runtime_parity(&retained, &control, Some(9));
     // A division by zero inside the Return operand follows the String renewal
     // and still reads the static literal; `replace` (right operand) never runs.
+    // The operand starts with an identifier: since abd0bae84 `return (` keeps
+    // the ordinary identifier-call reading and is not a lexical return.
     let failing = STRING_SOURCE.replace(
         "{return string_len(text)+str_len_bytes(key);}",
-        "{return (string_len(text)+str_len_bytes(key))/(at-3);}",
+        "{return str_len_bytes(key)+string_len(text)/(at-3);}",
     );
     assert_ne!(failing, STRING_SOURCE);
     let failing_control = direct(&failing);

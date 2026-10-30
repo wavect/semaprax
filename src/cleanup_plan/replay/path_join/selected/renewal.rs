@@ -450,7 +450,17 @@ pub(super) fn renew(
             Reason::Finite(Kind::RenewalDestinationIsNotOneOwnerLeaf)
         ));
     }
-    if !budget.selected() && crate::string_ops::replacement::binding(function, at).is_some() {
+    // Since 1e57fa7f8 the unpaid `string_ops::replacement::binding` scan is
+    // skipped under a selected budget, which silently disabled whole String
+    // replacement in this selected engine: the reserved old owner stayed live
+    // and the renewal transfer refused. Use the held, already funded renewal
+    // lease instead: its String-typed non-helper, non-append sites are exactly
+    // the replacement sites (iterator, Vec and byte renewals are never String).
+    let replacement = crate::cleanup_plan::replay::renewal::selected_string_replacement(
+        selected_renewals!(budget, function, program).expect("held selected renewal lease"),
+        at,
+    );
+    if replacement {
         let source_flags = path_child!(
             budget,
             function,
@@ -490,8 +500,78 @@ pub(super) fn renew(
         )
     )?;
     let flag = flag_at!(budget, function, flags, 0);
-    if !budget.selected() && crate::string_ops::replacement::binding(function, at).is_some() {
-        string_replacement::finish(function, flag, &history, state)?;
+    if replacement {
+        // Paid twin of `string_replacement::finish`: identical checks and
+        // published order, with both owned vectors reserved at exact capacity.
+        if !history.contains(&flag) || !state.live_order.contains(&flag) {
+            return Err(path_error!(
+                permit,
+                Reason::Finite(Kind::StringReplacementLostItsReservedOwner)
+            ));
+        }
+        budget.charge(
+            function,
+            history
+                .len()
+                .saturating_add(1)
+                .saturating_mul(state.live_order.len().saturating_add(1)),
+            "selected String replacement history comparison",
+        )?;
+        budget.reserve_array::<LivenessFlagId>(
+            function,
+            state.live_order.len(),
+            "selected String replacement fresh owners",
+        )?;
+        let mut fresh = Vec::with_capacity(state.live_order.len());
+        let mut prior = history
+            .iter()
+            .copied()
+            .filter(|candidate| *candidate != flag && state.live_order.contains(candidate));
+        let mut next = prior.next();
+        for candidate in state
+            .live_order
+            .iter()
+            .copied()
+            .filter(|candidate| *candidate != flag)
+        {
+            if let Some(expected) = next {
+                if candidate != expected {
+                    return Err(path_error!(
+                        permit,
+                        Reason::Finite(Kind::StringReplacementChangedSurvivingOwnerHistory)
+                    ));
+                }
+                next = prior.next();
+            } else {
+                if history.contains(&candidate) {
+                    return Err(path_error!(
+                        permit,
+                        Reason::Finite(Kind::StringReplacementRepeatsPriorOwnerHistory)
+                    ));
+                }
+                fresh.push(candidate);
+            }
+        }
+        if next.is_some() {
+            return Err(path_error!(
+                permit,
+                Reason::Finite(Kind::StringReplacementOmitsSurvivingOwnerHistory)
+            ));
+        }
+        let capacity = history.len().saturating_add(fresh.len());
+        budget.reserve_array::<LivenessFlagId>(
+            function,
+            capacity,
+            "selected String replacement published owners",
+        )?;
+        let mut published = Vec::with_capacity(capacity);
+        for candidate in history.iter() {
+            if *candidate == flag || state.live_order.contains(candidate) {
+                published.push(*candidate);
+            }
+        }
+        published.extend(fresh);
+        state.live_order = published;
         return Ok(());
     }
     if !history.contains(&flag)

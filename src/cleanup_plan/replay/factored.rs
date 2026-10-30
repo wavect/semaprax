@@ -43,6 +43,8 @@ pub(super) mod copy_regions;
 mod dag_memo;
 #[cfg(test)]
 mod instrumentation;
+// Retired from production; see compare_with_index_storage.
+#[cfg(test)]
 mod paired;
 mod storage;
 #[cfg(test)]
@@ -225,8 +227,18 @@ pub(super) fn validate_with_index_storage<'hir>(
                 // keeps every work and physical debit already spent.
                 return Ok(false);
             }
+            // Any resource refusal of the factored attempt (work text names a
+            // "budget"; a physical/builder refusal is recorded as spent or
+            // ACTIVE-refused) is the same over-limit verdict. Which resource
+            // runs out first must not select the reported reason.
             match verdict {
-                Err(error) if !error.message.contains("budget") => Err(error),
+                Err(error)
+                    if !error.message.contains("budget")
+                        && !budget.refusal_spent
+                        && !crate::bounded_output::active_refused() =>
+                {
+                    Err(error)
+                }
                 _ => path_summary::path_budget_errors(function, cfg_paths, semantic_paths)
                     .map(|()| false),
             }
@@ -270,16 +282,11 @@ fn compare_with_index_storage<'hir>(
         budget.paid_phase(crate::workflow_profile::plan_comparison::PaidPhase::FactoredComparison);
 
     let built = build_comparison(program, function, budget, helpers, continuations)?;
-    if budget.payer == AllocationPayer::ActiveBuilder {
-        budget.reserve_bytes(
-            function,
-            paired::entry_controls(),
-            "paired weighted comparison entry",
-        )?;
-        if paired::positive(function, &built, budget)? == Some(true) {
-            return Ok(Some(true));
-        }
-    }
+    // The paired weighted proof (93877b333) is no longer a production route:
+    // it ran only for the ActiveBuilder payer and debited its own traversal
+    // work instead of the canonical comparator's, so observable work depended
+    // on the payer. Its work cannot equal the canonical work without running
+    // the canonical comparator. The proof stays compiled for its tests.
     let BuiltComparison {
         automaton,
         sink,

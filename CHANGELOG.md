@@ -1,3 +1,8 @@
+## Payer-independent replay work (2026-10-30)
+
+- Retire the ActiveBuilder-only paired weighted comparison from production. It debited its own traversal work instead of the canonical comparator's, so the same program's observable work depended on the payer; every payer now runs the canonical comparator. The proof stays compiled for its tests.
+- Paid flat successor targets no longer debit promotion, search or insertion work that the legacy tree route never debited. A flat list holds at most eight targets before moving to the ordered tree, so unpaid insertion shifting stays constant per target.
+
 ## Workspace graph builder ceiling and replay scratch ledger (2026-10-29)
 
 - Debit whole-program cleanup replay scratch from a detached per-program ledger instead of settling it cumulatively into the Workspace Semantic Graph builder ledger. The ordinary payer, every per-allocation charge and the `SPX-H006` refusal are unchanged; the ledger is 4 GiB because the charges are cumulative requests (3.6 GB for the unfactored ShiftSim schedule) and replay stays bounded by `MAX_REPLAY_WORK_UNITS`.

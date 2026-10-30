@@ -336,16 +336,8 @@ pub(in crate::cleanup_plan::replay) fn validate_authenticated(
         Strategy::LexicalFactored => {}
         Strategy::RefusedArithmeticOverflow => unreachable!("overflow census already refused"),
     }
-    if budget.payer == AllocationPayer::ActiveBuilder {
-        budget.reserve_bytes(
-            function,
-            paired::entry_controls(),
-            "paired weighted comparison entry",
-        )?;
-        if paired::positive(function, &candidate.built, budget)? == Some(true) {
-            return Ok(());
-        }
-    }
+    // No ActiveBuilder-only paired proof here: its work differed from the
+    // canonical proof below (see factored::compare_with_index_storage).
     // Both admission classes now consume the independently built exact language.
     // Counts never authenticate equality. This tail is the complete existing
     // weighted proof, with all original root/invocation/receiver payments.

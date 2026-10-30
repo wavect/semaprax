@@ -1,6 +1,13 @@
 # Paired weighted comparison v1
 
-Status: focused local source, native and normal-compiler checks passed; hosted gates pending.
+Status: retired from production. No production comparison calls the paired
+proof; it stays compiled for its tests. The proof ran only for the ActiveBuilder
+payer and debited its own traversal work in place of the canonical comparator's,
+so the same program's observable work depended on the payer. That work cannot
+equal the canonical comparator's without running the canonical comparator, so
+every payer now runs the canonical comparator. The description below records
+the retired design and is not a current production claim. The "Ordinary builder
+representation crossover" section is unaffected and still current.
 
 Audience: compiler contributors and reviewers.
 

@@ -215,8 +215,10 @@ the admission and replay input. Its test children retain the full original flat
 plan producer, observation shape, header traits, and lexical marker producer;
 the live producer and borrowed-key comparator retain all semantic work.
 
-`factored/paired.rs` owns the ordinary positive synchronous weighted-language
-comparison after the existing automaton and lexical admission boundaries. Its
+`factored/paired.rs` holds the synchronous weighted-language comparison. It is
+compiled only for tests and no production comparison calls it: it ran only for
+the ActiveBuilder payer and debited its own work instead of the canonical
+comparator's, so observable work depended on the payer. Its
 function/budget/current-ledger bound invocation acquires actual scratch and
 primitive receiving frames; complete owning return carriers remain per-call.
 It compares complete labels and checked multiplicities by value, retaining the

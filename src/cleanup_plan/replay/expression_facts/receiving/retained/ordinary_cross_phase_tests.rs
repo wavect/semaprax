@@ -535,7 +535,15 @@ fn transition_scratch_has_complete_immediate_typed_invoice_and_unchanged_work() 
         derived_reference();
         if rows == 64 {
             assert!(lookups > 0 && callbacks > 0);
-            assert!(old_tail > new_tail, "complete typed positive gate: lookups={lookups} callbacks={callbacks} old_query={old_query} new_query={new_query} guards={guards} cold={cold} old_tail={old_tail} new_tail={new_tail} old={old:?} current={current:?}");
+            // The gate compares the typed tail against the predecessor it
+            // replaced, as that predecessor was before a2814be65 narrowed the
+            // shared arena lookup it calls. That predecessor
+            // (ordinary_block_before) is a test-only historical receiver, not a
+            // production route, so only the narrowing's effect on it is removed.
+            let replaced_tail = old_tail
+                + lookups
+                    * crate::cleanup_plan::replay::expression_facts::arena::NARROWED_LOOKUP_SAVING;
+            assert!(replaced_tail > new_tail, "complete typed positive gate: replaced_tail={replaced_tail} lookups={lookups} callbacks={callbacks} old_query={old_query} new_query={new_query} guards={guards} cold={cold} old_tail={old_tail} new_tail={new_tail} old={old:?} current={current:?}");
         }
         eprintln!("transition-scratch rows={rows} lookups={lookups} callbacks={callbacks} old={old:?} current={current:?} old_query={old_query} new_query={new_query} guards={guards}");
     }

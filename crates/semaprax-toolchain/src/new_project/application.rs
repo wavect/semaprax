@@ -241,6 +241,13 @@ mod tests {
             STAGING_SERIAL.fetch_add(1, Ordering::Relaxed)
         ));
         fs::create_dir(&path).unwrap();
+        // The held parent walk refuses every symlinked ancestor by contract
+        // (APPLICATION-STARTER-V1), and macOS `temp_dir()` lives under the
+        // `/var` -> `/private/var` alias. Hold the scratch root by its plain
+        // spelling, as the binding and CLI fixtures already do. Windows keeps
+        // its lexical spelling: its walk owns 8.3 names and reparse refusal.
+        #[cfg(unix)]
+        let path = path.canonicalize().unwrap();
         path
     }
     struct Fail(usize);

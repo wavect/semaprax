@@ -4,7 +4,7 @@ use super::*;
 use crate::cleanup_plan::replay::physical_budget::ByteFailure;
 use paid_many::Targets;
 use std::mem::size_of;
-pub(super) const PROMOTE_RECEIVING: usize = 2 * size_of::<&ResolvedFunction>()
+pub(in crate::cleanup_plan::replay::factored::canonical_shared) const PROMOTE_RECEIVING: usize = 2 * size_of::<&ResolvedFunction>()
     + 2 * size_of::<&mut ReplayBudget>()
     + 4 * size_of::<usize>()
     + 5 * size_of::<u64>()
@@ -18,7 +18,7 @@ pub(super) const PROMOTE_RECEIVING: usize = 2 * size_of::<&ResolvedFunction>()
     + size_of::<(&usize, &usize)>()
     + 2 * size_of::<&mut Weighted>() // fallible growth owner argument/receiving
     + 6 * size_of::<Result<(), ByteFailure>>();
-pub(super) const ADD_RECEIVING: usize = 2 * size_of::<&ResolvedFunction>()
+pub(in crate::cleanup_plan::replay::factored::canonical_shared) const ADD_RECEIVING: usize = 2 * size_of::<&ResolvedFunction>()
     + 2 * size_of::<&mut ReplayBudget>()
     + 2 * size_of::<&mut Weighted>()
     + 6 * size_of::<usize>() // child argument/receiving, bound, index, len, shifts
@@ -33,7 +33,7 @@ pub(super) const ADD_RECEIVING: usize = 2 * size_of::<&ResolvedFunction>()
     + size_of::<&usize>()
     + size_of::<(usize, u64)>()
     + 6 * size_of::<Result<(), ByteFailure>>();
-pub(super) fn promote(
+pub(in crate::cleanup_plan::replay::factored::canonical_shared) fn promote(
     function: &ResolvedFunction,
     budget: &mut ReplayBudget,
     first: usize,
@@ -121,7 +121,7 @@ pub(super) fn add(
 }
 
 /// Compact transport of paid_many::add_target: bounded flat rows, then the tree.
-pub(super) fn add_target(
+pub(in crate::cleanup_plan::replay::factored::canonical_shared) fn add_target(
     function: &ResolvedFunction,
     budget: &mut ReplayBudget,
     targets: &mut Targets,

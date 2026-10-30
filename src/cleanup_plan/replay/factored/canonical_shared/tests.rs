@@ -731,11 +731,70 @@ mod successor_labels {
                 })
             })
         };
-        let ((old_ok, old), refused, before, receipt) = observe(true, usize::MAX, 0);
+        use crate::cleanup_plan::replay::merge_census::phase_census;
+        let (((old_ok, old), refused, before, receipt), old_census) =
+            phase_census(|| observe(true, usize::MAX, 0));
         assert!(old_ok && !refused && receipt.is_none());
-        let ((new_ok, new), refused, exact, receipt) = observe(false, usize::MAX, 0);
+        let (((new_ok, new), refused, exact, receipt), new_census) =
+            phase_census(|| observe(false, usize::MAX, 0));
         assert!(new_ok && !refused && receipt.is_none());
-        assert!(exact < before && new.allocated < old.allocated);
+        assert!(old_census.complete() && new_census.complete());
+        for (phase, bytes, count) in new_census.phases() {
+            eprintln!("successor-labels current phase={phase} bytes={bytes} count={count}");
+        }
+        // The directory route still allocates less real backing than the frozen
+        // producer. Its reservations are not compared with that producer: every
+        // call's receiving bank is honestly priced here, which the frozen
+        // producer never did, and production reaches this route only through the
+        // test-only Oracle payer.
+        assert!(new.allocated < old.allocated);
+        // Structural target transitions per label, in the producer's own order.
+        let (mut promotions, mut adds) = (0, 0);
+        let mut states = BTreeMap::<&Label, Vec<usize>>::new();
+        for node in closed.keys() {
+            for (label, child) in automaton.nodes[*node].moves() {
+                let children = states.entry(label).or_default();
+                match children.len() {
+                    0 => children.push(*child),
+                    1 if children[0] == *child => {}
+                    1 => {
+                        promotions += 1;
+                        children.push(*child);
+                    }
+                    _ => {
+                        adds += 1;
+                        if !children.contains(child) {
+                            children.push(*child);
+                        }
+                    }
+                }
+            }
+        }
+        let flat = states
+            .values()
+            .filter(|children| children.len() > 1)
+            .count();
+        assert!(states
+            .values()
+            .all(|children| children.len() <= super::super::paid_many::FLAT_CAP));
+        assert_eq!(
+            new_census.phase("factored directory compact promotion receivers"),
+            (promotions * labels::DIRECTORY_PROMOTE_RECEIVING, promotions)
+        );
+        assert_eq!(
+            new_census.phase("factored directory compact add receivers"),
+            (adds * labels::DIRECTORY_ADD_RECEIVING, adds)
+        );
+        assert_eq!(
+            new_census.phase("factored composed flat finish receivers"),
+            (flat * super::super::paid_many::FINISH_RECEIVING, flat)
+        );
+        // Every other reservation is a measured phase: the whole difference in
+        // reserved bytes is exactly the sum of the per-phase differences.
+        assert_eq!(
+            exact as isize - before as isize,
+            new_census.total() as isize - old_census.total() as isize
+        );
         for allocation in [old, new] {
             assert!(!allocation.invalid && allocation.live == 0);
             assert_eq!(allocation.allocated, allocation.freed);

@@ -79,14 +79,44 @@ fn observe(
     })
 }
 
+/// Requested bytes of an intern arena's backing for `nodes` insertions: the
+/// first block holds FIRST_CAPACITY nodes, then each growth reserves the whole
+/// replay_growth_capacity target while the old block remains charged.
+fn arena_backing(nodes: usize, node_bytes: usize) -> (usize, usize) {
+    let (mut capacity, mut bytes, mut growths) = (0, 0, 0);
+    for len in 0..nodes {
+        if len == capacity {
+            let additional = if capacity == 0 {
+                super::intern_arena::FIRST_CAPACITY
+            } else {
+                1
+            };
+            capacity = crate::cleanup_plan::replay::physical_storage::replay_growth_capacity(
+                capacity,
+                len + additional,
+            )
+            .unwrap();
+            bytes += capacity * node_bytes;
+            growths += 1;
+        }
+    }
+    (bytes, growths)
+}
+
 #[test]
 fn unified_closure_slot_reports_whole_immediate_costs_and_exact_short_zero_drop() {
+    use super::intern_arena::{Arena, Node, Signature};
+    use crate::cleanup_plan::replay::merge_census::phase_census;
+    use std::mem::size_of;
     let function = fixture();
     let (graph, sink, roots) = super::tests::automaton(&function);
     for root in [roots[0], roots[3], roots[4], sink] {
         let mut paid = [0; 2];
+        let mut censuses = Vec::new();
         for (index, old) in [true, false].into_iter().enumerate() {
-            let (result, metrics) = observe(&function, &graph, sink, root, 1 << 24, old);
+            let ((result, metrics), census) =
+                phase_census(|| observe(&function, &graph, sink, root, 1 << 24, old));
+            assert!(census.complete());
             paid[index] = result.unwrap();
             assert!(!metrics.invalid && metrics.live == 0);
             assert_eq!(metrics.allocated, metrics.freed);
@@ -94,17 +124,78 @@ fn unified_closure_slot_reports_whole_immediate_costs_and_exact_short_zero_drop(
                 "unified-closure root={root} old={old} reserved={} physical={metrics:?}",
                 paid[index]
             );
+            for (phase, bytes, count) in census.phases() {
+                eprintln!("unified-closure root={root} old={old} phase={phase} bytes={bytes} count={count}");
+            }
             for cut in [0, paid[index] - 1, paid[index]] {
                 let (result, metrics) = observe(&function, &graph, sink, root, cut, old);
                 assert_eq!(result.is_ok(), cut == paid[index]);
                 assert!(!metrics.invalid && metrics.live == 0);
                 assert_eq!(metrics.allocated, metrics.freed);
             }
+            censuses.push(census);
         }
-        assert!(
-            paid[1] < paid[0],
-            "actual duplicated owner and Result removed; old remains complete"
+        // Current named phases equal their constants times the structural
+        // insertion counts of an independent current receiver on this root.
+        let mut receiver = Canonicalizer::new(&graph, sink);
+        assert!(receiver
+            .id(&function, vec![(root, 1)], &mut ReplayBudget::unobserved())
+            .unwrap()
+            .is_some());
+        let (signatures, states) = (receiver.ids.len(), receiver.states.len());
+        let current = &censuses[1];
+        assert_eq!(
+            current.phase("canonical arena node receiving"),
+            (
+                signatures * Arena::<Signature>::INSERT_CONTROLS
+                    + states * Arena::<super::SharedWeighted>::INSERT_CONTROLS,
+                signatures + states
+            )
         );
+        let (signature_backing, signature_growths) =
+            arena_backing(signatures, size_of::<Node<Signature>>());
+        let (state_backing, state_growths) =
+            arena_backing(states, size_of::<Node<super::SharedWeighted>>());
+        // Every insertion authenticates its backing; each growth also requests it.
+        assert_eq!(
+            current.phase("canonical ordered arena backing"),
+            (
+                signature_backing + state_backing,
+                signatures + states + signature_growths + state_growths
+            )
+        );
+        // The whole reservation difference is exactly the sum of per-phase
+        // differences: every byte either route requests is a censused phase.
+        let phase_net = current.total() as isize - censuses[0].total() as isize;
+        assert_eq!(
+            paid[1] as isize - paid[0] as isize,
+            phase_net,
+            "root={root}"
+        );
+        // The unified slot's own saving, at the phases it changed (fac23f62f):
+        // the duplicated retained-memo owner and its failure Result are gone,
+        // and the held producer/take controls shrink. Whole-route totals also
+        // include later, independently gated changes (the four-node intern
+        // arena start trades a few bytes on two-node closures for fewer
+        // allocation events), so they are pinned by the per-phase equation
+        // above, never by a whole-route inequality.
+        let slot = |census: &crate::cleanup_plan::replay::merge_census::PhaseCensus| {
+            [
+                "factored retained memo controls and failure receiving",
+                "factored held closure producer and take controls",
+            ]
+            .into_iter()
+            .map(|phase| census.phase(phase).0)
+            .sum::<usize>()
+        };
+        let (old_slot, new_slot) = (slot(&censuses[0]), slot(current));
+        assert!(new_slot <= old_slot, "root={root}");
+        if old_slot != 0 {
+            assert!(
+                new_slot < old_slot,
+                "actual duplicated owner and Result removed; old remains complete"
+            );
+        }
     }
 }
 

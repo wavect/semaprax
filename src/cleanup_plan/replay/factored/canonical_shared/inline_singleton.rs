@@ -1265,7 +1265,7 @@ impl<'a> Canonicalizer<'a> {
 }
 
 #[macro_use]
-mod lexical_successors;
+pub(in crate::cleanup_plan::replay::factored::canonical_shared) mod lexical_successors;
 mod inline_exit;
 mod terminal_leaf;
 #[cfg(test)]

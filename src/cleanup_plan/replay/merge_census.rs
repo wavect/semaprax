@@ -152,12 +152,121 @@ pub(super) struct Ticket {
     category: usize,
     before: usize,
 }
+/// Observe-only census of requested reservation bytes and request counts per
+/// phase text. Fixed storage: recording never allocates and never feeds
+/// admission. A phase name longer than PHASE_NAME bytes, or more than
+/// PHASE_ROWS distinct phases, marks the census incomplete.
+pub(super) const PHASE_NAME: usize = 96;
+pub(super) const PHASE_ROWS: usize = 128;
+#[derive(Clone, Copy)]
+struct PhaseRow {
+    name: [u8; PHASE_NAME],
+    len: usize,
+    bytes: usize,
+    count: usize,
+}
+#[derive(Clone, Copy)]
+pub(super) struct PhaseCensus {
+    rows: [PhaseRow; PHASE_ROWS],
+    complete: bool,
+}
+impl PhaseCensus {
+    const EMPTY: Self = Self {
+        rows: [PhaseRow {
+            name: [0; PHASE_NAME],
+            len: 0,
+            bytes: 0,
+            count: 0,
+        }; PHASE_ROWS],
+        complete: true,
+    };
+    pub(super) fn complete(&self) -> bool {
+        self.complete
+    }
+    /// Requested bytes and request count for one exact phase text.
+    pub(super) fn phase(&self, phase: &str) -> (usize, usize) {
+        self.rows
+            .iter()
+            .find(|row| row.count != 0 && &row.name[..row.len] == phase.as_bytes())
+            .map_or((0, 0), |row| (row.bytes, row.count))
+    }
+    pub(super) fn phases(&self) -> impl Iterator<Item = (&str, usize, usize)> + '_ {
+        self.rows.iter().filter(|row| row.count != 0).map(|row| {
+            (
+                std::str::from_utf8(&row.name[..row.len]).expect("whole phase text"),
+                row.bytes,
+                row.count,
+            )
+        })
+    }
+    pub(super) fn total(&self) -> usize {
+        self.rows.iter().map(|row| row.bytes).sum()
+    }
+}
+thread_local! {
+    static PHASES: RefCell<Option<PhaseCensus>> = const { RefCell::new(None) };
+}
+/// Run `operation` with the phase census enabled; censuses do not nest.
+pub(super) fn phase_census<T>(operation: impl FnOnce() -> T) -> (T, PhaseCensus) {
+    PHASES.with(|phases| {
+        let mut phases = phases.borrow_mut();
+        assert!(phases.is_none(), "phase censuses cannot nest");
+        *phases = Some(PhaseCensus::EMPTY);
+    });
+    struct Restore;
+    impl Drop for Restore {
+        fn drop(&mut self) {
+            PHASES.with(|phases| phases.borrow_mut().take());
+        }
+    }
+    let restore = Restore;
+    let value = operation();
+    let census = PHASES
+        .with(|phases| phases.borrow_mut().take())
+        .expect("census active");
+    drop(restore);
+    (value, census)
+}
+fn record_phase(phase: &str, requested: usize) {
+    let _ = PHASES.try_with(|phases| {
+        let mut phases = phases.borrow_mut();
+        let Some(census) = phases.as_mut() else {
+            return;
+        };
+        if phase.len() > PHASE_NAME {
+            census.complete = false;
+            return;
+        }
+        let name = phase.as_bytes();
+        let slot = census
+            .rows
+            .iter()
+            .position(|row| row.count != 0 && &row.name[..row.len] == name)
+            .or_else(|| census.rows.iter().position(|row| row.count == 0));
+        let Some(slot) = slot else {
+            census.complete = false;
+            return;
+        };
+        let row = &mut census.rows[slot];
+        if row.count == 0 {
+            row.name[..name.len()].copy_from_slice(name);
+            row.len = name.len();
+        }
+        match row.bytes.checked_add(requested) {
+            Some(bytes) => row.bytes = bytes,
+            None => census.complete = false,
+        }
+        row.count += 1;
+    });
+}
+
 pub(super) fn before(
     budget: &ReplayBudget,
     function: &ResolvedFunction,
     requested: usize,
     phase: &str,
 ) -> Option<Ticket> {
+    record_phase(phase, requested);
     ACTIVE.with(|slot| {
         let mut slot = slot.borrow_mut();
         let state = slot.as_mut()?;

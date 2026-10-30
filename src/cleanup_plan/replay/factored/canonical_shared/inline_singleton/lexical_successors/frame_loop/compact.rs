@@ -4,7 +4,7 @@ use payments as compact_successors;
 #[macro_use]
 mod payments;
 mod active;
-mod compact_targets;
+pub(in crate::cleanup_plan::replay::factored::canonical_shared) mod compact_targets;
 
 impl<'hir> Canonicalizer<'hir> {
     #[allow(

@@ -7,6 +7,16 @@ use crate::cleanup_plan::replay::physical_storage;
 use std::mem::size_of;
 
 type Successors = (u64, Vec<(Label, SharedWeighted)>);
+use super::inline_singleton::lexical_successors::frame_loop::compact::compact_targets;
+use crate::cleanup_plan::replay::physical_budget::ByteFailure;
+// The directory route reaches the paid target producers through their compact
+// ByteFailure transport. Each call's complete compact receiving bank is paid,
+// plus the one Diagnostic Result formed when this Diagnostic-returning owner
+// converts the narrow failure at its boundary.
+pub(super) const DIRECTORY_PROMOTE_RECEIVING: usize =
+    compact_targets::PROMOTE_RECEIVING + size_of::<Result<paid_many::Targets, Diagnostic>>();
+pub(super) const DIRECTORY_ADD_RECEIVING: usize =
+    compact_targets::ADD_RECEIVING + size_of::<Result<bool, Diagnostic>>();
 pub(super) trait Closed: 'static {
     type Iter<'a>: Iterator<Item = (&'a usize, &'a u64)>
     where
@@ -182,24 +192,27 @@ impl<'a> Directory<'a> {
             }) => {
                 budget.reserve_bytes(
                     function,
-                    paid_many::PROMOTE_RECEIVING,
-                    "factored composed promotion receivers",
+                    DIRECTORY_PROMOTE_RECEIVING,
+                    "factored directory compact promotion receivers",
                 )?;
                 #[cfg(test)]
                 if budget.pays_allocations() {
                     paid_many::note_branch(true);
                 }
-                *slot = Some(paid_many::promote(
-                    function, budget, *first, *total, child, weight,
-                )?);
+                *slot = Some(
+                    compact_targets::promote(function, budget, *first, *total, child, weight)
+                        .map_err(ByteFailure::into_diagnostic)?,
+                );
             }
             Some(targets @ paid_many::Targets::PaidMany(_)) => {
                 budget.reserve_bytes(
                     function,
-                    paid_many::ADD_RECEIVING,
-                    "factored composed flat add receivers",
+                    DIRECTORY_ADD_RECEIVING,
+                    "factored directory compact add receivers",
                 )?;
-                if !paid_many::add_target(function, budget, targets, child, weight)? {
+                if !compact_targets::add_target(function, budget, targets, child, weight)
+                    .map_err(ByteFailure::into_diagnostic)?
+                {
                     return Ok(false);
                 }
             }

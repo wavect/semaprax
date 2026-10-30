@@ -651,4 +651,4 @@ macro_rules! lexical_successors {
 
 #[cfg(test)]
 pub(super) use super::super::lexical_successors::census;
-pub(super) mod frame_loop;
+pub(in crate::cleanup_plan::replay::factored::canonical_shared) mod frame_loop;

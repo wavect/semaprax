@@ -244,11 +244,22 @@ fn ordinary_prefix_fusion_whole_owner_removes_actual_backing_and_pays_controls()
         // No fusion fee is taken here; the only difference is the compact
         // selection/count control transport (f7d35b4d7, 2d4d15679), which the
         // current ordinary route uses for every sequence.
+        // A sole suffix (count == 1) takes the single-suffix move of the one
+        // live prefix, whose bank is likewise compact on the current route
+        // (`compact::hir_move!` in owned_suffix.rs / sequence_vector.rs reuse)
+        // and carries two Result receivers.
+        let sole_move = if count == 1 {
+            crate::cleanup_plan::replay::final_output::HIR_MOVE_CONTROLS
+                - crate::cleanup_plan::replay::final_output::compact::HIR_MOVE_CONTROLS
+        } else {
+            0
+        };
         let compact = (crate::cleanup_plan::replay::final_output::HIR_SELECTION_CONTROLS
             - crate::cleanup_plan::replay::final_output::compact::HIR_SELECTION_CONTROLS)
             + (crate::cleanup_plan::replay::path_array::count_controls::<true>()
                 - crate::cleanup_plan::replay::final_output::compact::path_count_controls::<true>(
-                ));
+                ))
+            + sole_move;
         assert_eq!(
             old_paid - new_paid,
             compact,
@@ -399,11 +410,15 @@ fn ordinary_prefix_fusion_independent_oracle_keeps_complete_original_account() {
     let ((), refused, _, _) = with_limit_usage_refusal(usize::MAX, || {
         let run = |old| {
             let scope = allocation::OracleScope::open_with_work(usize::MAX, usize::MAX).unwrap();
+            // The oracle payer admits only its live subject (07146bb97): bind
+            // this exact program/function to the lease before construction.
+            let invocation = allocation::enter(&program, function, scope.lease()).unwrap();
             let mut budget = ReplayBudget::with_skeleton_limit_oracle(usize::MAX, scope.lease());
             let mut work = SkeletonWork::new(&program, function, &mut budget);
             let (prefixes, suffixes) = inputs(&mut work, 1024, 1, 4).unwrap();
             let result = sequence(old, prefixes, &suffixes, &mut work).unwrap();
             drop((suffixes, work));
+            assert_eq!(invocation.exit(), Ok(()));
             let work = (budget.skeleton_spent, budget.skeleton_remaining);
             drop(budget);
             let receipt = scope.receipt();
@@ -414,7 +429,17 @@ fn ordinary_prefix_fusion_independent_oracle_keeps_complete_original_account() {
         let (actual, new_work, new_receipt) = run(false);
         same(&actual, &expected);
         assert_eq!(new_work, old_work);
-        assert_eq!(new_receipt, old_receipt);
+        // The oracle bills the same calls and work; its byte charge differs
+        // only by the compact selection/count control transport the current
+        // ordinary route uses (f7d35b4d7, 2d4d15679).
+        let compact = (crate::cleanup_plan::replay::final_output::HIR_SELECTION_CONTROLS
+            - crate::cleanup_plan::replay::final_output::compact::HIR_SELECTION_CONTROLS)
+            + (crate::cleanup_plan::replay::path_array::count_controls::<true>()
+                - crate::cleanup_plan::replay::final_output::compact::path_count_controls::<true>(
+                ));
+        let mut adjusted = new_receipt;
+        adjusted.charged += compact;
+        assert_eq!(adjusted, old_receipt);
         drop((actual, expected));
     });
     assert!(!refused);

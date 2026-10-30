@@ -699,3 +699,23 @@ fn retained_alias_cursors_authenticate_both_complete_views_against_actual_curren
         assert!(history(source, "foreign", &cursor).is_none());
     }
 }
+
+// Authenticate the actual compiled constructor ENTRY, then recover only the
+// overlay's retained whole view of a pinned ENTRY that a later commit edited
+// (74d6ff96d for diagnostics.rs). The caller's unchanged hunks follow.
+pub(super) fn compiled_entry(
+    source: &str,
+    current_sha: &str,
+    current: &str,
+    compiled: &str,
+) -> String {
+    assert_eq!(
+        current, compiled,
+        "actual complete compiled constructor ENTRY"
+    );
+    if source == "src/workspace_graph/diagnostics.rs" {
+        super::main_e177_final_inputs::value_direct(source, current_sha, current)
+    } else {
+        current.to_owned()
+    }
+}

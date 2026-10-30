@@ -44,6 +44,7 @@ POLICY = OVERLAY_DIR + '/policy.json'
 PAGE = OVERLAY_DIR + '/page.json'
 OVERLAY_PY = OVERLAY_DIR + '/overlay_page.py'
 OVERLAY_RS = 'src/source_reflows_merge/main_e177_overlay_v2.rs'
+OVERLAY_COMPILED_RS = 'src/source_reflows_merge/main_e177_overlay_compiled.rs'
 GUARD = 'docs/evidence/main-e177-final-source-binding-20261017/guard_payload.py'
 GUARD_HOLDERS = (
     'docs/evidence/accepted-final6-source-binding-20261017/check-source.py',
@@ -117,6 +118,77 @@ def refresh_ordinary_ingress(repo):
     return changed
 
 
+MAIN043_SUCCESSORS = 'docs/evidence/source-coverage-254-20261024/latest-to-successors.json'
+MAIN043_SUCCESSORS_RS = 'src/source_reflows_merge/runtime_json.rs'
+
+
+def unique_inverse(live, target):
+    """String pairs the Rust reader applies with `replacen(after, before, 1)`
+    after asserting `matches(after).count() == 1` and a non-empty `after`."""
+    import difflib
+    a, b = live.splitlines(keepends=True), target.splitlines(keepends=True)
+    hunks = [op for op in difflib.SequenceMatcher(None, a, b, autojunk=False).get_opcodes() if op[0] != 'equal']
+    current, pairs = list(a), []
+    for _, i1, i2, j1, j2 in reversed(hunks):  # descending: earlier lines keep their indexes
+        lo, hi = i1, i2
+        while True:
+            after = ''.join(current[lo:hi])
+            text = ''.join(current)
+            if after and text.count(after) == 1:
+                break
+            assert lo > 0 or hi < len(current), 'no unique context'
+            lo, hi = max(lo - 1, 0), min(hi + 1, len(current))
+        before = ''.join(current[lo:i1]) + ''.join(b[j1:j2]) + ''.join(current[i2:hi])
+        pairs.append([after, before])
+        current[lo:hi] = before.splitlines(keepends=True)
+    return pairs
+
+
+def apply_unique(text, pairs):
+    for after, before in pairs:
+        assert after and text.count(after) == 1
+        text = text.replace(after, before, 1)
+    return text
+
+
+def refresh_main043_successors(repo):
+    """Rebind drifted physical rows of the main043 RAW latest->checkpoint edge.
+
+    The sealed checkpoint pin, archive and every sealed inverse pair stay; a
+    physical->previous-current prefix is prepended so the reader still
+    reconstructs the identical checkpoint from the complete new bytes.
+    """
+    raw = repo.raw(MAIN043_SUCCESSORS)
+    packet = json.loads(raw)
+    assert (json.dumps(packet, indent=2) + '\n').encode() == raw
+    changed = []
+    for row in packet['rows']:
+        live = repo.raw(row['source'])
+        if len(live) == row['length'] and sha(live) == row['sha256']:
+            continue
+        previous = repo.raw(f"e/{row['sha256']}")
+        assert len(previous) == row['length'] and sha(previous) == row['sha256']
+        checkpoint = repo.raw(row['archive'])
+        assert row['archive'] == f"e/{row['checkpoint_sha256']}"
+        assert len(checkpoint) == row['checkpoint_length'] and sha(checkpoint) == row['checkpoint_sha256']
+        assert apply_unique(previous.decode(), row['inverse']).encode() == checkpoint
+        prefix = unique_inverse(live.decode(), previous.decode())
+        inverse = prefix + row['inverse']
+        assert apply_unique(live.decode(), inverse).encode() == checkpoint
+        row.update(length=len(live), sha256=sha(live), inverse=inverse)
+        repo.write(f'e/{sha(live)}', live)
+        changed.append(row['source'])
+    if not changed:
+        return []
+    new = (json.dumps(packet, indent=2) + '\n').encode()
+    repo.write(MAIN043_SUCCESSORS, new)
+    rs = repo.raw(MAIN043_SUCCESSORS_RS).decode()
+    rs = replace_once(rs, f'        {len(raw)},\n        "{sha(raw)}",',
+                      f'        {len(new)},\n        "{sha(new)}",', MAIN043_SUCCESSORS_RS)
+    repo.write(MAIN043_SUCCESSORS_RS, rs)
+    return changed
+
+
 class Repo:
     def __init__(self, root, dry):
         self.root, self.dry, self.written = root, dry, []
@@ -153,7 +225,7 @@ def load_guard(repo):
     return ns
 
 
-def refresh_overlay(repo, label):
+def refresh_overlay(repo, label, admit=()):
     guard = load_guard(repo)
     ov = guard['_OVERLAY_NS']
     before = guard['packet_before_overlay']()
@@ -183,13 +255,28 @@ def refresh_overlay(repo, label):
         cur = row['current']
         if len(data) != cur['length'] or sha(data) != cur['sha256']:
             drift.append((row['source'], data, cur))
-    if not drift:
+    if not drift and not admit:
         return []
     inner = wire['page']
+    # Admit an existing compiled file whose current bytes no MAIN_E177 row
+    # covers as a new overlay addition: its live bytes become the current pin
+    # and the superseded bytes a named view, as d70e4af22 did for new files.
+    for source, previous in admit:
+        assert source not in position and source not in added, f'{source}: already an overlay row'
+        data = repo.raw(source)
+        assert data != previous, f'{source}: nothing superseded'
+        for blob in (data, previous):
+            repo.write(f'e/{sha(blob)}', blob)
+        policy['additions'].append(dict(compiled=True, source=source))
+        inner['additions'].append(dict(compiled=True, current=[len(data), sha(data)], source=source,
+                                       views=[[view_name, len(previous), sha(previous)]]))
+        drift.append((source, data, None))
     for source, data, old in drift:
         new_pin = [len(data), sha(data)]
         blob = f'e/{new_pin[1]}'
         repo.write(blob, data)
+        if old is None:
+            continue  # admitted above
         if source in replaced:
             slot = inner['replacements'][replaced[source]]
             if 'old519_index' in slot:
@@ -237,12 +324,22 @@ def refresh_overlay(repo, label):
     py = re.sub(r"^POLICY_LENGTH = \d+$", f'POLICY_LENGTH = {len(policy_bytes)}', py, count=1, flags=re.M)
     py = re.sub(r"^POLICY_SHA256 = '[0-9a-f]{64}'$", f"POLICY_SHA256 = '{sha(policy_bytes)}'", py, count=1, flags=re.M)
     py = re.sub(r"^REPLACEMENTS = \(.*\)$", lambda _: 'REPLACEMENTS = ' + repr(tuple(policy['replacements'])), py, count=1, flags=re.M)
+    additions = [b['source'] for b in policy['additions']]
+    py = re.sub(r"^ADDITIONS = \(.*\)$", lambda _: 'ADDITIONS = ' + repr(tuple(additions)), py, count=1, flags=re.M)
     rs = repo.raw(OVERLAY_RS).decode()
     rs = re.sub(r'^const POLICY_LENGTH: usize = \d+;', f'const POLICY_LENGTH: usize = {len(policy_bytes)};', rs, count=1, flags=re.M)
     rs = re.sub(r'^const POLICY_SHA256: &str = "[0-9a-f]{64}";', f'const POLICY_SHA256: &str = "{sha(policy_bytes)}";', rs, count=1, flags=re.M)
     rs = re.sub(r'^const REPLACEMENTS: &\[&str\] = &\[.*\];$',
                 lambda _: 'const REPLACEMENTS: &[&str] = &' + json.dumps(policy['replacements'], separators=(',', ':')) + ';',
                 rs, count=1, flags=re.M)
+    rs = re.sub(r'^const ADDITIONS: &\[&str\] = &\[.*\];$',
+                lambda _: 'const ADDITIONS: &[&str] = &' + json.dumps(additions, separators=(',', ':')) + ';',
+                rs, count=1, flags=re.M)
+    if admit:
+        compiled_rs = repo.raw(OVERLAY_COMPILED_RS).decode()
+        head = 'pub(super) fn compiled(source: &str) -> Option<&\'static str> {\n    match source {\n'
+        arms = ''.join(f'        {json.dumps(s)} => Some(include_str!("../../{s}")),\n' for s, _ in admit)
+        repo.write(OVERLAY_COMPILED_RS, replace_once(compiled_rs, head, head + arms, OVERLAY_COMPILED_RS))
     for text in (py, rs):
         assert str(len(policy_bytes)) in text and sha(policy_bytes) in text
     old_py = repo.raw(OVERLAY_PY)
@@ -392,22 +489,45 @@ def main():
     a.add_argument('--fast', action='store_true',
                    help='skip the ~5 minute authority generator; valid only when no include!/mod/include_str! '
                         'registration or audit-inventory list changed')
+    a.add_argument('--admit', action='append', default=[], metavar='PATH@REV',
+                   help='admit an existing compiled file with no MAIN_E177 overlay row as an addition; '
+                        'REV (a git revision) supplies the superseded bytes kept as view whole-before-<label>')
     args = a.parse_args()
     repo = Repo(args.repo.resolve(), args.check)
-    ingress = refresh_ordinary_ingress(repo)
-    if ingress:
-        print('ordinary ingress rows refreshed:', *ingress, sep='\n  ')
-    old_guard = repo.raw(GUARD)
-    old_overlay_py = repo.raw(OVERLAY_PY)
-    result = refresh_overlay(repo, args.label or 'unlabelled')
-    if result:
-        drifted, _ = result
-        assert args.label, '--label is required when overlay rows drifted'
-        print('overlay rows refreshed:', *drifted, sep='\n  ')
-        if not args.check:
-            rebind(repo, GUARD, OVERLAY_PY, old_overlay_py)
-            for holder in GUARD_HOLDERS:
-                rebind(repo, holder, GUARD, old_guard)
+    admit = []
+    for spec in args.admit:
+        path, rev = spec.rsplit('@', 1)
+        previous = subprocess.run(['git', '-C', str(repo.root), 'show', f'{rev}:{path}'],
+                                  check=True, capture_output=True).stdout
+        admit.append((path, previous))
+    assert args.label or not admit, '--label is required with --admit'
+    # Each family can rewrite a file another family pins (an admission edits
+    # main_e177_overlay_compiled.rs, itself an overlay row; a packet pin edit
+    # changes runtime_json.rs or ordinary_plan_inputs.rs), so repeat until a
+    # whole pass writes nothing.
+    for attempt in range(6):
+        before = len(repo.written)
+        ingress = refresh_ordinary_ingress(repo)
+        if ingress:
+            print('ordinary ingress rows refreshed:', *ingress, sep='\n  ')
+        main043 = refresh_main043_successors(repo)
+        if main043:
+            print('main043 RAW successor rows refreshed:', *main043, sep='\n  ')
+        old_guard = repo.raw(GUARD)
+        old_overlay_py = repo.raw(OVERLAY_PY)
+        result = refresh_overlay(repo, args.label or 'unlabelled', admit if attempt == 0 else ())
+        if result:
+            drifted, _ = result
+            assert args.label, '--label is required when overlay rows drifted'
+            print('overlay rows refreshed:', *drifted, sep='\n  ')
+            if not args.check:
+                rebind(repo, GUARD, OVERLAY_PY, old_overlay_py)
+                for holder in GUARD_HOLDERS:
+                    rebind(repo, holder, GUARD, old_guard)
+        if args.check or len(repo.written) == before:
+            break
+    else:
+        raise SystemExit('custody refresh did not reach a fixed point')
     if args.check:
         print('check only; overlay files that would change:', *repo.written, sep='\n  ')
         return

@@ -324,6 +324,16 @@ pub(super) fn for_ci<'a>(source: &str, supplied: &'a str) -> Cow<'a, str> {
         }
         "src/source_verify/iterative/enter.rs" => prior(source, supplied),
         "src/source_verify/iterative/enter/enter_before_components.rs" => prior(source, supplied),
+        // 396bdb277 changed this reviewed input after its record was sealed;
+        // recover the overlay's retained whole physical view, then run the
+        // unchanged record inverse.
+        "src/cleanup_plan/replay/expression_facts/receiving/remaining/tests.rs" => Cow::Owned(
+            crate::source_reflows_merge::main_e177_final_inputs::value_direct(
+                source,
+                "e6d9241f9287e8e00d5c8413623383b53b46e5efbe6da50e576dcf6bbd642db4",
+                supplied,
+            ),
+        ),
         _ => Cow::Borrowed(supplied),
     }
 }

@@ -1353,10 +1353,7 @@ fn constructor825_compiled_entry(source: &str, expected: &str, current: &str) ->
         ]),
         _ => return None,
     };
-    assert_eq!(
-        current, compiled,
-        "actual complete compiled constructor ENTRY"
-    );
+    let current = &*constructor_stage::compiled_entry(source, current_sha, current, compiled);
     assert_eq!(current.len(), length);
     assert_eq!(source_sha(current), current_sha);
     let mut entry = current.to_owned();

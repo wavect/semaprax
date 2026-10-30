@@ -1,5 +1,10 @@
 pub(super) fn compiled(source: &str) -> Option<&'static str> {
     match source {
+        "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching.rs" => Some(include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/helpers/matching.rs")),
+        "src/cleanup_plan/replay/physical_clone.rs" => Some(include_str!("../../src/cleanup_plan/replay/physical_clone.rs")),
+        "src/cleanup_plan/replay/continuation_storage.rs" => Some(include_str!("../../src/cleanup_plan/replay/continuation_storage.rs")),
+        "src/cleanup_plan/replay/expression_facts/receiving/helpers.rs" => Some(include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/helpers.rs")),
+        "src/cleanup_plan/replay/expression_facts/receiving/retained/exits.rs" => Some(include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/retained/exits.rs")),
         "src/cleanup_plan/replay/continuation_storage/boxed_frames.rs" => Some(include_str!("../../src/cleanup_plan/replay/continuation_storage/boxed_frames.rs")),
         "src/cleanup_plan/replay/factored/unpaid_continuation_receiver.rs" => Some(include_str!("../../src/cleanup_plan/replay/factored/unpaid_continuation_receiver.rs")),
         "src/cleanup_plan/replay/expression_facts/receiving/retained/reference_coverage.rs" => Some(include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/retained/reference_coverage.rs")),

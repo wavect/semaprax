@@ -407,8 +407,8 @@ fn successor_ingress_checkpoint(
         env!("CARGO_MANIFEST_DIR"),
         "/docs/evidence/ordinary-ingress-successor-20261026/current-inputs.json"
     ));
-    const LENGTH: usize = 94820;
-    const SHA: &str = "4a854787b1162799cceeb73080875c153ac7b64432507d1dd209ada61d0cbb44";
+    const LENGTH: usize = 95069;
+    const SHA: &str = "d3e0aec378ac8ac7ceb328ba11e97ce48982a896be2a23ad29e306d424b02c93";
     const { assert!(LENGTH <= FINAL_INGRESS_CAP) };
     assert_eq!(DATA.len(), LENGTH);
     assert_eq!(digest(DATA), SHA);

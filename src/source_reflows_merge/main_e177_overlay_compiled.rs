@@ -1,5 +1,7 @@
 pub(super) fn compiled(source: &str) -> Option<&'static str> {
     match source {
+        "src/cleanup_plan/replay/allocation.rs" => Some(include_str!("../../src/cleanup_plan/replay/allocation.rs")),
+        "src/cleanup_plan/validate.rs" => Some(include_str!("../../src/cleanup_plan/validate.rs")),
         "src/cleanup_plan/replay/expression_facts/receiving/helpers/matching.rs" => Some(include_str!("../../src/cleanup_plan/replay/expression_facts/receiving/helpers/matching.rs")),
         "src/cleanup_plan/replay/physical_clone.rs" => Some(include_str!("../../src/cleanup_plan/replay/physical_clone.rs")),
         "src/cleanup_plan/replay/continuation_storage.rs" => Some(include_str!("../../src/cleanup_plan/replay/continuation_storage.rs")),

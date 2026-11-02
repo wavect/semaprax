@@ -1,0 +1,7 @@
+{
+  "source_head": "9d46a41778d9d55278ee89ea73fd1c142ada510a",
+  "rustc": "rustc 1.98.0 (88d9e12ae 2026-08-18) (Homebrew)\nbinary: rustc\ncommit-hash: 88d9e12ae178fab0fb5cc050a94da85685d449ea\ncommit-date: 2026-08-18\nhost: aarch64-apple-darwin\nrelease: 1.98.0\nLLVM version: 22.1.8\n",
+  "library_sha256": "50e2aafe9a6b6a29c9c87611fcecb29663850b833d5683546d3253fc717f380c",
+  "capture_program_sha256": "9c5f2de36d51d1925d21275c260242676e1bd9c7d49436e988449f3aa7e7cfe9",
+  "capture": "Actual public project::with_authenticated_project -> retain_revision().semantic_graph(); baseline and source-renamed calculator; only the two standalone Cargo.lock files differ from hosted e127 source."
+}

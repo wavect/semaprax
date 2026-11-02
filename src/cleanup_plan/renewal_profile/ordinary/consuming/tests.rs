@@ -626,11 +626,8 @@ fn full_consuming_collector_matches_unchanged_original() {
         same_entries(&after, &live);
         // The live collector first pays the loop-free spine probe; only a
         // loop-free body skips the traversal, otherwise the work is additive.
-        let (spine, spine_work, _) = spine_evaluate(
-            &function.body,
-            usize::MAX,
-            super::NO_LOOP_SPINE_CONTROLS,
-        );
+        let (spine, spine_work, _) =
+            spine_evaluate(&function.body, usize::MAX, super::NO_LOOP_SPINE_CONTROLS);
         if spine == Ok(true) {
             assert!(live_work < new_work);
         } else {

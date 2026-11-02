@@ -32,7 +32,8 @@ mod recursive {
                     );
                 }
                 self.declaration(declaration)?;
-                if let Some(flags) = owned_builtin::owned_builtin_flags(self, declaration, arguments)
+                if let Some(flags) =
+                    owned_builtin::owned_builtin_flags(self, declaration, arguments)
                 {
                     return Some(flags);
                 }

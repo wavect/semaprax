@@ -148,8 +148,8 @@ fn whole_subtree_uses_one_exact_prefix_transfer_and_refuses_plan_forgeries() {
 /// Public `hir::resolve` verifies with `SourceFunding::ordinary()`, which is
 /// unfunded by design, so it cannot carry a reserve-before-allocate bound.
 fn resolve_funded(ast: &crate::ast::Program) -> Result<hir::ResolvedProgram, ()> {
-    let mut owner =
-        crate::bounded_output::identity_reservation::IdentityReservation::acquire().map_err(drop)?;
+    let mut owner = crate::bounded_output::identity_reservation::IdentityReservation::acquire()
+        .map_err(drop)?;
     let mut invocation = crate::hir::prelude_bundle::Invocation::new();
     let resolved = crate::hir::identity_resolution::resolve_source_checked_previous_with_owner(
         ast,

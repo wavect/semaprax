@@ -396,5 +396,7 @@ fn streamed_instance_zero_argument_nominal_omission_cannot_authenticate_empty_ke
     assert!(first.remaining >= declaration_bytes);
     assert!(first.remaining - declaration_bytes < floor);
     assert_eq!(first.stage, None);
-    assert!(std::path::Path::new(site.unwrap().file()).ends_with("bounded_output/checked_string.rs"));
+    assert!(
+        std::path::Path::new(site.unwrap().file()).ends_with("bounded_output/checked_string.rs")
+    );
 }

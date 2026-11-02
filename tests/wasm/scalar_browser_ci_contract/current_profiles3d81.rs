@@ -3,6 +3,43 @@ use super::{graph_digest, HOSTED909, NATIVE909};
 use sha2::{Digest, Sha256};
 use std::borrow::Cow;
 
+// Complete hosted e127 producer and independently captured current native producer.
+const HOSTED_E127: [&str; 2] = [
+    include_str!("../../../docs/evidence/browser-capture-e127-20261102/calculator-baseline.json"),
+    include_str!("../../../docs/evidence/browser-capture-e127-20261102/calculator-renamed.json"),
+];
+const NATIVE_E127: [&str; 2] = [
+    include_str!(
+        "../../../docs/evidence/browser-capture-e127-20261102/native-calculator-baseline.json"
+    ),
+    include_str!(
+        "../../../docs/evidence/browser-capture-e127-20261102/native-calculator-renamed.json"
+    ),
+];
+
+pub(super) fn latest_previous(graph: &str, role: &str) -> Option<&'static str> {
+    if !HOSTED_E127
+        .into_iter()
+        .chain(NATIVE_E127)
+        .any(|raw| graph == wire(raw))
+    {
+        return None;
+    }
+    let index = match role {
+        "baseline" => 0,
+        "renamed" => 1,
+        _ => panic!("unknown exact current fixture role"),
+    };
+    assert!(
+        graph == wire(HOSTED_E127[index]) || graph == wire(NATIVE_E127[index]),
+        "complete exact current role/profile wire required"
+    );
+    let previous = wire(HOSTED_A281[index]);
+    assert_eq!(restore_bill(graph, previous), previous);
+    assert_eq!(pinned(previous, role), previous);
+    Some(previous)
+}
+
 const NATIVE_A281: [&str; 2] = [
     include_str!(
         "../../../docs/evidence/browser-capture-a281-20261025/native-calculator-baseline.json"
@@ -59,6 +96,8 @@ pub(super) fn recognizes(graph: &str) -> bool {
         .chain(NATIVE)
         .chain(HOSTED_A281)
         .chain(NATIVE_A281)
+        .chain(HOSTED_E127)
+        .chain(NATIVE_E127)
         .any(|text| graph == wire(text))
 }
 
@@ -94,6 +133,10 @@ fn restore_bill(graph: &str, previous: &str) -> String {
 }
 
 pub(super) fn pinned(graph: &str, role: &str) -> &'static str {
+    if latest_previous(graph, role).is_some() {
+        return wire(HOSTED_E127[if role == "baseline" { 0 } else { 1 }]);
+    }
+
     if HOSTED_A281
         .into_iter()
         .chain(NATIVE_A281)
@@ -215,6 +258,29 @@ fn prior_source<'a>(source: &str, current: &'a str) -> Cow<'a, str> {
         .collect();
     assert_eq!(rows.len(), 1);
     let row = rows[0];
+    // New acquisition extends the original inverse without rewriting any
+    // sealed row. The existing complete-source hash, physical read, unique
+    // inverse and full original byte equality below remain authoritative.
+    let mut latest_row;
+    let row = if let Some(latest) = records["latest_rows"].as_array().and_then(|rows| {
+        let mut found = rows.iter().filter(|r| r["source"] == source);
+        let first = found.next();
+        assert!(
+            found.next().is_none(),
+            "one complete latest source extension"
+        );
+        first
+    }) {
+        latest_row = row.clone();
+        latest_row["current_sha256"] = latest["current_sha256"].clone();
+        latest_row["inverse"]
+            .as_array_mut()
+            .unwrap()
+            .extend(latest["inverse"].as_array().unwrap().iter().cloned());
+        &latest_row
+    } else {
+        row
+    };
     let previous = before(source);
     assert_eq!(sha(previous), row["previous_sha256"]);
     // This exact historical input was already accepted by the retained receiver.
@@ -257,6 +323,18 @@ pub(super) fn prior_owner(current: &str) -> Cow<'_, str> {
 }
 
 pub(super) fn runner_for_graph(graph: &str, runner: &str) -> Option<String> {
+    if runner == compiled("platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs")
+        && HOSTED_A281
+            .into_iter()
+            .chain(NATIVE_A281)
+            .any(|raw| graph == wire(raw))
+    {
+        return Some(
+            include_str!("../../../docs/evidence/browser-capture-e127-20261102/runner.before.mjs")
+                .to_owned(),
+        );
+    }
+
     // Preserve the exact old raw pins for every complete old profile. The
     // ordinary predecessor chain below still authenticates all earlier wires.
     if runner == compiled("platform-tests/wasm-scalar-browser-v1/test-fixtures.mjs")
@@ -504,4 +582,57 @@ mod tests {
             assert_eq!(sha(raw), row["current_sha256"]);
         }
     }
+}
+
+#[test]
+fn latest_profiles_preserve_complete_predecessors_and_refuse_every_semantic_drift() {
+    for (index, role) in ["baseline", "renamed"].into_iter().enumerate() {
+        for raw in [HOSTED_E127[index], NATIVE_E127[index]] {
+            let graph = wire(raw);
+            assert_eq!(pinned(graph, role), wire(HOSTED_E127[index]));
+            assert_eq!(latest_previous(graph, role), Some(wire(HOSTED_A281[index])));
+            let opposite = if role == "baseline" {
+                "renamed"
+            } else {
+                "baseline"
+            };
+            assert!(std::panic::catch_unwind(|| pinned(graph, opposite)).is_err());
+            let parsed: serde_json::Value = serde_json::from_str(graph).unwrap();
+            for (field, changed) in [("used_call_sites", 11), ("used_builder_bytes", 1)] {
+                let from = format!("\"{field}\":{}", parsed["budget"][field]);
+                let to = format!("\"{field}\":{changed}");
+                assert_eq!(graph.matches(&from).count(), 1);
+                let altered = graph.replacen(&from, &to, 1);
+                let from = format!("\"graph_digest\":{}", parsed["graph_digest"]);
+                let digest = graph_digest(&altered);
+                let altered = altered.replacen(&from, &format!("\"graph_digest\":\"{digest}\""), 1);
+                assert!(
+                    std::panic::catch_unwind(|| super::pinned_fixture_graph(&altered, role))
+                        .is_err()
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn latest_source_extensions_preserve_every_original_record_and_unknown_field() {
+    let original: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../docs/evidence/browser-capture-e127-20261102/source-inverses.before.json"
+    ))
+    .unwrap();
+    let mut current: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../docs/evidence/browser-capture-3d81-20261024/source-inverses.json"
+    ))
+    .unwrap();
+    let extensions = current
+        .as_object_mut()
+        .unwrap()
+        .remove("latest_rows")
+        .unwrap();
+    assert_eq!(extensions.as_array().unwrap().len(), 3);
+    assert_eq!(
+        current, original,
+        "entire original packet, not selected fields"
+    );
 }

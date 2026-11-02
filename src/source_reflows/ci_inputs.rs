@@ -141,6 +141,19 @@ fn historical_entry<'a>(source: &str, expected: &str, current: &'a str) -> Cow<'
             "src/cleanup_plan/replay/factored.rs",
             "d3808da9519009c1a7b223a91a635bc94cdeb80a2c8bc40b22bcfc8b1f2f918c",
         )
+        // Complete pinned CI stages retained before the current replay fixes.
+        | (
+            "src/cleanup_plan/replay/allocation.rs",
+            "d3f844655708972aa9e089c39923ddced6891b6b776f483d4f0be07e43cceb59",
+        )
+        | (
+            "src/cleanup_plan/validate.rs",
+            "794785605a074c9c2b80f48e665e6e0a03723a9ace4802c88561ca084bb7632e",
+        )
+        | (
+            "src/cleanup_plan/replay/expression_facts.rs",
+            "8728d164bd61e2a7a8e8165bc5d0e1a1b6a652aafd56302406cc2db0a386864f",
+        )
         // d70e4af22 changed this row after its pre-allocation whole view was
         // retained in the overlay; recover that exact view, then run every
         // original indexed inverse unchanged.

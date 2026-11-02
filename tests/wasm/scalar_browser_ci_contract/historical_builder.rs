@@ -974,6 +974,10 @@ fn current_browser_all_with_runner(graph: &str, role: &str, runner: &str) -> Str
 }
 
 pub(super) fn current_browser_digest(graph: &str, role: &str) -> String {
+    if let Some(previous) = current_profiles3d81::latest_previous(graph, role) {
+        return current_browser_digest(previous, role);
+    }
+
     // Preserve the complete previous entry point and its raw shipping acquisition.
     let expected = retained_current_entry::current_browser_digest(graph, role);
     let current = current_browser_all_with_runner(

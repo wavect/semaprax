@@ -1793,6 +1793,7 @@
         "src/cleanup_plan/validate.rs",
         "src/cleanup_plan/validate/frontier_tests.rs",
         "src/cleanup_plan/validate/owned.rs",
+        "src/cleanup_plan/validate/scratch_ledger.rs",
         "src/cli/help/authoring/tasks.rs",
         "src/cli/help/authoring/tasks/derive.rs",
         "src/cli/help/authoring/tasks/tests.rs",
@@ -2568,6 +2569,7 @@
         "src/cleanup_plan/replay/typed_storage.rs",
         "src/cleanup_plan/replay/typed_storage/collections.rs",
         "src/cleanup_plan/validate.rs",
+        "src/cleanup_plan/validate/scratch_ledger.rs",
         "src/cli/help/authoring/tasks.rs",
         "src/diagnostic/writer.rs",
         "src/finite_byte_scratch.rs",
@@ -2832,7 +2834,6 @@
         "src/cleanup_plan/replay/factored.rs",
         "src/cleanup_plan/replay/factored/copy_regions.rs",
         "src/cleanup_plan/replay/factored/dag_memo.rs",
-        "src/cleanup_plan/replay/factored/paired.rs",
         "src/cleanup_plan/replay/factored/storage.rs",
         "src/cleanup_plan/replay/factored/strategy.rs",
         "src/cleanup_plan/replay/flat_records.rs",
@@ -3028,9 +3029,9 @@
         "src/workspace_graph/validation.rs",
         "src/workspace_report.rs"
       ],
-      "full_manifest_sha256": "007aa3fdca574423369f41782ae9c3029e254365072ac0c57d99e1cc20804b4c",
-      "full_raw_sha256": "43c9eab400fbe22849d1817d35355dcd9de8332eace7d82add6300f6cece926d",
-      "full_authenticated_production_sha256": "3096eb8b0d3ef145a0d57de3c29e93436340837ae4e905fd340bf574626d8e6b"
+      "full_manifest_sha256": "4dbb59300a212f48c4a9cbac5e0ee48d02d1a602c9f32a28abe145e855a792ac",
+      "full_raw_sha256": "bb191bfc5a415a3b5aabd5e5778648b533604dd8fdf14bd5fbcd768fec9f2bde",
+      "full_authenticated_production_sha256": "fa54d40d78b5b154bf55688981697d3db5ced7ca36eec0a13060d16984f7d65d"
     },
     "projection": {
       "baseline": "a82e00cc83f99b16249181c45710d962598577db",
@@ -3611,7 +3612,6 @@
         "src/cleanup_plan/replay/factored/compact_nodes.rs",
         "src/cleanup_plan/replay/factored/copy_regions.rs",
         "src/cleanup_plan/replay/factored/dag_memo.rs",
-        "src/cleanup_plan/replay/factored/paired.rs",
         "src/cleanup_plan/replay/factored/storage.rs",
         "src/cleanup_plan/replay/factored/strategy.rs",
         "src/cleanup_plan/replay/flat_records.rs",
@@ -4182,9 +4182,9 @@
         "src/workspace_graph/source_schema.rs",
         "src/workspace_graph/source_schema/static_text.rs"
       ],
-      "full_manifest_sha256": "0182dda0d28cc63d7c80ce15c7dae1aa71d630d90d3786b5cea5d897311770c3",
-      "full_raw_sha256": "f46d8a6be79d24ac17a9c83720b140936c748cf29e4e40e844f95583e20b39dc",
-      "full_authenticated_production_sha256": "23d71393e0dd6ca83299e55214327c6872d7973fe0874bc556fb2334890818db"
+      "full_manifest_sha256": "1b895883a69d848df7d83c2110a4ee4d04821aab0a5e37ba41cc8738cd862cb5",
+      "full_raw_sha256": "4c71cf9175ce87a94cad29a6248b7460485e1308bf445207ee3d9afa8553b6ce",
+      "full_authenticated_production_sha256": "1f21d3f6bf77bdfb07539dbb3fa7dd2cf3698945b6db072fabd4993874f38673"
     }
   }
 }

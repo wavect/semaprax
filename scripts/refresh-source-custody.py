@@ -22,8 +22,8 @@ records that authenticate *current* bytes, in this order:
 3. the pin chain overlay_page.py -> guard_payload.py -> check-source.py (x2)
    and verify-or-refresh.py;
 4. `docs/evidence/a3-e47-final-custody-20261016/{hir,projection}.json`:
-   sources, chunks and closure come from the canonical-byte generator; every
-   existing class chain is retained and only its edge offsets are relocated;
+   sources, chunks and closure come from the canonical-byte generator; current registration chains and production/test roles are regenerated,
+   while other existing class metadata is retained;
 5. `docs/evidence/source-boundary-domains-20261016/current-domains.json`
    (members and the three full-manifest/raw/production digests).
 
@@ -304,6 +304,12 @@ def refresh_overlay(repo, label, admit=()):
             replaced = {s: i for i, s in enumerate(policy['replacements'])}
         else:
             raise SystemExit(f'{source}: drifted row is neither predecessor nor addition')
+    # Intern repeated new view labels through the existing V11 encoder. Keep
+    # every row and view; the encoder proves the entire V10 page round-trip
+    # and enforces the unchanged page cap on the resulting wire.
+    expanded = ov['v11_names_slots'](
+        wire['page'], lambda value: names[value] if type(value) is int else value)
+    wire = ov['encode_v11_names'](expanded)
     page_bytes = ov['canonical'](wire)
     assert len(page_bytes) <= ov['PAGE_CAP'], 'overlay page exceeds its one-page cap'
     policy['page'] = dict(path=PAGE, length=len(page_bytes), sha256=sha(page_bytes))
@@ -402,7 +408,15 @@ def refresh_authority(repo, fast):
         else:
             generated = json.loads((out / f'{name}.json').read_text())
             assert generated['parser_sha256'] == manifest['parser_sha256']
-            classes = {p: manifest['classes'].get(p, generated['classes'][p]) for p in generated['classes']}
+            # Registration can change its exact text or cfg boundary after a
+            # merge. Authenticate the current complete graph rather than
+            # retaining vanished edges or an obsolete production/test role.
+            # Preserve any other class metadata from the previous manifest.
+            classes = {}
+            for source, current in generated['classes'].items():
+                prior = copy.deepcopy(manifest['classes'].get(source, {}))
+                prior.update(chains=current['chains'], role=current['role'])
+                classes[source] = prior
             manifest = dict(schema=manifest['schema'], parser_sha256=manifest['parser_sha256'],
                             sources=generated['sources'], classes=classes,
                             chunks=generated['chunks'], closure_only=generated['closure_only'])

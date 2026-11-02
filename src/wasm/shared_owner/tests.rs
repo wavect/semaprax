@@ -453,7 +453,10 @@ fn every_emitter_import_literal_is_in_the_classified_inventory() {
     let producer = object_keys(HOST_SOURCE, "const producer = {", "\n  };");
     assert_eq!(producer, BTreeSet::from(["spx_bytes_partition".to_owned()]));
     for name in &producer {
-        assert!(!known.contains(name.as_str()), "{name} classified as ordinary");
+        assert!(
+            !known.contains(name.as_str()),
+            "{name} classified as ordinary"
+        );
     }
     for name in &found {
         let export = EMITTER_EXPORT_NAMES

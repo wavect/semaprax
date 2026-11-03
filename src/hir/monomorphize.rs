@@ -299,6 +299,26 @@ pub(super) fn materialize_function_template(
     template: &ResolvedFunctionTemplate,
     arguments: &[ResolvedType],
 ) -> Result<ResolvedFunction, Diagnostic> {
+    // Materialization and validation each construct a fresh complete function.
+    // The retained AST/HIR forecast does not pay these repeated local values,
+    // the constructed function literal, or both Result transport receivers.
+    const RECEIVING: usize =
+        2 * std::mem::size_of::<(&ResolvedFunctionTemplate, &[ResolvedType])>()
+            + std::mem::size_of::<FunctionInstanceId>()
+            + std::mem::size_of::<FunctionExecutionId>()
+            + 2 * std::mem::size_of::<BTreeMap<ValueId, ValueId>>()
+            + std::mem::size_of::<Vec<ResolvedParam>>()
+            + std::mem::size_of::<ValueId>()
+            + std::mem::size_of::<ResolvedType>()
+            + 2 * std::mem::size_of::<Vec<ResolvedExpr>>()
+            + std::mem::size_of::<ResolvedExpr>()
+            + std::mem::size_of::<ResolvedFunction>()
+            + 2 * std::mem::size_of::<Result<ResolvedFunction, Diagnostic>>();
+    if !crate::bounded_output::reserve_active_required(RECEIVING) {
+        return Err(super::hir_error_static(
+            "generic materialization receivers exceed the active builder budget",
+        ));
+    }
     let instance = FunctionInstanceId::derive(&template.id, arguments);
     let execution = FunctionExecutionId::Generic(instance);
     let mut values = BTreeMap::new();

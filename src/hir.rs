@@ -196,7 +196,7 @@ pub(crate) use workspace_link::native_owner::{
 pub fn validate(program: &ResolvedProgram) -> Result<(), Diagnostic> {
     #[cfg(feature = "unstable-workflow-profiling")]
     let _workflow_span = crate::workflow_profile::span(crate::workflow_profile::Stage::HirValidate);
-    validate_with_static_text(program).map(|_| ())
+    crate::cleanup_plan::with_coupled(|| validate_with_static_text(program)).map(|_| ())
 }
 
 pub(crate) fn validate_with_static_text(program: &ResolvedProgram) -> Result<bool, Diagnostic> {

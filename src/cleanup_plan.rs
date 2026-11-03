@@ -61,6 +61,7 @@ pub(crate) use owned_liveness::{
     owned_frame_v2_liveness, owned_frame_v2_parameter, OwnedFrameLiveness,
 };
 pub(crate) use replay::selected_schema;
+pub(crate) use validate::scratch_ledger::with_coupled;
 pub(crate) use validate::validate_program;
 
 use crate::cleanup::{FieldLivenessShape, LivenessFlagId};

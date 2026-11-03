@@ -4,6 +4,92 @@ pub(in crate::workspace_graph) fn pre898(source: &str) -> String {
     let mut restored = source.to_owned();
     for (before, after) in [
         (
+            r####""####,
+            r####"// Imported intrinsic wrappers are retained as templates by the synthetic
+// projection too. Each actual typed call constructs a full instance, just as
+// a call to an authored local template does; count its real provider body.
+fn generic_instance_source_cost_with_imports(
+    program: &Program,
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+    programs: &[Program],
+    include_imports: bool,
+) -> Result<GenericInstanceCost, Vec<Diagnostic>> {
+    let mut total = generic_instance_source_cost(program)?;
+    for module_use in program.module_uses.iter().filter(|_| include_imports) {
+        if module_use.kind != ModuleUseKind::Function {
+            continue;
+        }
+        let Some(target) = authored.get(module_use.persistent_id.as_str()) else {
+            continue;
+        };
+        let Some(function) = target.function.filter(|f| !f.type_parameters.is_empty()) else {
+            continue;
+        };
+        let Some(provider) = programs.iter().find(|p| p.module == target.module) else {
+            continue;
+        };
+        if crate::vec_ops::source_wrapper(provider, function).is_none()
+            && crate::box_ops::source_wrapper(provider, function).is_none()
+        {
+            continue;
+        }
+        let mut instances = 0usize;
+        for caller in program
+            .functions
+            .iter()
+            .filter(|f| f.type_parameters.is_empty())
+        {
+            for expression in caller
+                .requires
+                .iter()
+                .chain(std::iter::once(&caller.body))
+                .chain(&caller.ensures)
+            {
+                expression.visit_call_instances(&mut |name, arguments, _| {
+                    if name == module_use.alias && !arguments.is_empty() {
+                        instances = instances.saturating_add(1);
+                    }
+                });
+            }
+        }
+        if instances == 0 {
+            continue;
+        }
+        let mut cost = StructuralCost::new();
+        ast_function_cost(function, &mut cost)?;
+        let slots = ast_function_identity_slots(function)?;
+        for (sum, per_instance) in [
+            (&mut total.bytes, cost.total),
+            (&mut total.string_bytes, cost.string_bytes),
+            (&mut total.identity_slots, slots),
+            (&mut total.identity_carriers, cost.identity_carriers),
+        ] {
+            *sum = instances
+                .checked_mul(per_instance)
+                .and_then(|bytes| sum.checked_add(bytes))
+                .filter(|bytes| *bytes <= active_builder_limit())
+                .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?;
+        }
+    }
+    Ok(total)
+}
+
+"####,
+        ),
+        (
+            r####"    let generic_instances = generic_instance_source_cost(program)?;
+"####,
+            r####"    let generic_instances =
+        generic_instance_source_cost_with_imports(program, authored, programs, include_imports)?;
+"####,
+        ),
+        (
+            r####"    default_expr, generic_instance_source_cost, graph_error, import_stub, limit_error,
+"####,
+            r####"    default_expr, generic_instance_source_cost_with_imports, graph_error, import_stub, limit_error,
+"####,
+        ),
+        (
             r####"#[path = "expected_projection/cached_exact.rs"]
 pub(super) mod cached_exact;
 #[path = "expected_projection/call_identity.rs"]

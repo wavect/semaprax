@@ -4,7 +4,7 @@ use super::{
     ast_function_identity_slots, ast_function_signature_cost, ast_program_cost,
     ast_program_identity_slots, ast_type_declaration_cost, ast_type_declaration_identity_slots,
     ast_type_identity_slots, cached_exact, call_identity, checked_builder_sum, checked_usage, cost,
-    default_expr, generic_instance_source_cost, graph_error, import_stub, limit_error,
+    default_expr, generic_instance_source_cost_with_imports, graph_error, import_stub, limit_error,
     private_layout, reserve_builder_structure, synthetic_main_runtime_cost, type_rewrite,
     AuthoredDeclaration, StructuralCost, SyntheticBuilderCosts, HIR_IDENTITY_COPY_FACTOR,
     HIR_STRING_COPY_FACTOR, HIR_STRUCTURE_EXPANSION_FACTOR,
@@ -222,7 +222,8 @@ pub(in crate::workspace_graph) fn synthetic_builder_bytes_scoped_with_retention_
     identity_slots = identity_slots
         .checked_sub(raw.scalar_identity_discount)
         .expect("raw scalar discount retains each expression identity slot");
-    let generic_instances = generic_instance_source_cost(program)?;
+    let generic_instances =
+        generic_instance_source_cost_with_imports(program, authored, programs, include_imports)?;
     identity_slots = checked_builder_sum(identity_slots, generic_instances.identity_slots)?;
     let hir_input = checked_usage(
         raw.total,

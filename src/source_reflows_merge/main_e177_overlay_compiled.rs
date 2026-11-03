@@ -619,6 +619,32 @@ mod tests {
             assert_eq!(current_scope_root.matches(&packed).count(), 1);
             current_scope_root = current_scope_root.replacen(&packed, &expanded, 1);
         }
+        // Later closed custody registrations are real current inputs. Undo
+        // exactly their literal admission before the unchanged whole inverses.
+        // The selected/merge rows were re-admitted after the older scope cut;
+        // their original registration is restored by that existing inverse.
+        for source in [
+            "src/cleanup_plan/replay/factored/canonical_shared/selected_labels.rs",
+            "src/cleanup_plan/replay/merge_census.rs",
+            "src/cleanup_plan/replay/skeleton_work/isolated_paths.rs",
+            "src/cleanup_plan/replay/skeleton_work/isolated_paths/tests.rs",
+            "src/cleanup_plan/replay/allocation.rs",
+            "src/cleanup_plan/validate.rs",
+        ] {
+            let declaration = format!("    {source:?},\n");
+            assert_eq!(current_scope_root.matches(&declaration).count(), 1);
+            current_scope_root = current_scope_root.replacen(&declaration, "", 1);
+        }
+        let mut current_scope_child = child.to_owned();
+        for source in [
+            "src/cleanup_plan/replay/allocation.rs",
+            "src/cleanup_plan/validate.rs",
+        ] {
+            let arm = format!("        {source:?} => Some(include_str!(\"../../{source}\")),\n");
+            assert_eq!(current_scope_child.matches(&arm).count(), 1);
+            current_scope_child = current_scope_child.replacen(&arm, "", 1);
+        }
+        let child = current_scope_child.as_str();
         for source in [
             "src/workspace_graph/expected_projection/borrowed_imports_original.rs",
             "src/workspace_graph/expected_projection/borrowed_imports/tests.rs",
@@ -880,7 +906,12 @@ mod tests {
             ("    require!(policy[\"predecessor\"][\"rows\"] == 519, \"predecessor rows\");\n    require!(\n        policy[\"predecessor\"][\"extension\"]\n            == serde_json::json!({\"path\":EXTENSION_PATH,\"length\":EXTENSION_LENGTH,\"sha256\":EXTENSION_SHA256}),\n        \"predecessor extension\"\n    );\n    require!(\n        policy[\"replacements\"] == serde_json::json!(REPLACEMENTS),\n        \"literal replacement scope\"\n    );\n    require!(\n        policy[\"additions\"]\n            .as_array()\n            .ok_or(\"additions\")?\n            .iter()\n            .map(|r| r[\"source\"].as_str())\n            .collect::<Vec<_>>()\n            == ADDITIONS.iter().map(|p| Some(*p)).collect::<Vec<_>>(),\n        \"literal addition scope\"\n    );\n    let extension = include_str!(\"../../docs/evidence/fmt-local-441-20261018/extension.json\");\n    require!(\n        held_4a6eb(\n            &root.join(EXTENSION_PATH),\n            EXTENSION_LENGTH,\n            EXTENSION_SHA256\n        )? == extension,\n        \"predecessor physical/compiled\"\n    );\n    let length = usize::try_from(policy[\"page\"][\"length\"].as_u64().ok_or(\"page length\")?)\n        .map_err(|_| \"page length\")?;\n    let sha = policy[\"page\"][\"sha256\"].as_str().ok_or(\"page digest\")?;\n    require!(length <= PAGE_CAP, \"page bound\");\n    let physical = held_4a6eb(&root.join(PAGE_PATH), length, sha)?;\n    let compiled = include_str!(\"../../docs/evidence/finite-source-overlay-v2-20261018/page.json\");\n    page_bytes(compiled, &physical, length, sha)?;\n    Ok((policy, json(&physical)?))\n}\nfn edges(packet: &Value) -> Result<Vec<(String, String)>, &'static str> {\n    let rows = packet[\"rows\"].as_array().ok_or(\"rows\")?;\n", "    require!(policy[\"predecessor\"][\"rows\"] == 519, \"predecessor rows\");\n    require!(\n        policy[\"predecessor\"][\"extension\"]\n            == serde_json::json!({\"path\":EXTENSION_PATH,\"length\":EXTENSION_LENGTH,\"sha256\":EXTENSION_SHA256}),\n        \"predecessor extension\"\n    );\n    require!(\n        policy[\"replacements\"] == serde_json::json!(REPLACEMENTS),\n        \"literal replacement scope\"\n    );\n    require!(\n        policy[\"additions\"]\n            .as_array()\n            .ok_or(\"additions\")?\n            .iter()\n            .map(|r| r[\"source\"].as_str())\n            .collect::<Vec<_>>()\n            == ADDITIONS.iter().map(|p| Some(*p)).collect::<Vec<_>>(),\n        \"literal addition scope\"\n    );\n    // Original metadata is read as metadata. It is never substituted for a\n    // changed physical Rust source, and it retains its original individual cap.\n    let extension = include_str!(\"../../docs/evidence/fmt-local-441-20261018/extension.json\");\n    require!(\n        held_4a6eb(\n            &root.join(EXTENSION_PATH),\n            EXTENSION_LENGTH,\n            EXTENSION_SHA256\n        )? == extension,\n        \"predecessor physical/compiled\"\n    );\n    let length = usize::try_from(policy[\"page\"][\"length\"].as_u64().ok_or(\"page length\")?)\n        .map_err(|_| \"page length\")?;\n    let sha = policy[\"page\"][\"sha256\"].as_str().ok_or(\"page digest\")?;\n    require!(length <= PAGE_CAP, \"page bound\");\n    let physical = held_4a6eb(&root.join(PAGE_PATH), length, sha)?;\n    let compiled = include_str!(\"../../docs/evidence/finite-source-overlay-v2-20261018/page.json\");\n    page_bytes(compiled, &physical, length, sha)?;\n    Ok((policy, json(&physical)?))\n}\nfn edges(packet: &Value) -> Result<Vec<(String, String)>, &'static str> {\n    let rows = packet[\"rows\"].as_array().ok_or(\"rows\")?;\n"),
             ("            let (length, sha, _) = pin(&row[\"current\"])?;\n            held_4a6eb(\n                &Path::new(env!(\"CARGO_MANIFEST_DIR\"))\n                    .join(row[\"source\"].as_str().ok_or(\"source\")?),\n                length,\n                sha,\n            )\n        },\n        &super::compiled,\n        &image,\n    )\n}\nfn affected_row(source: &str) -> Option<Value> {\n    if !REPLACEMENTS.contains(&source) && !ADDITIONS.contains(&source) {\n        return None;\n    }\n    let (policy, page) = load().unwrap();\n    if !affected(&policy, source) {\n        return None;\n    }\n    let packet = compose_values(super::packet_before_overlay(), &policy, &page).unwrap();\n    Some(\n        packet[\"rows\"]\n            .as_array()\n            .unwrap()\n            .iter()\n            .find(|r| r[\"source\"] == source)\n            .unwrap()\n            .clone(),\n    )\n}\npub(super) fn held_source(\n    path: &Path,\n    length: usize,\n    expected: &str,\n) -> Option<Result<String, &'static str>> {\n    let root = Path::new(env!(\"CARGO_MANIFEST_DIR\"));\n    let relative = path.strip_prefix(root).ok()?.to_str()?;\n    if !normal(relative) {\n        return None;\n", "            let (length, sha, _) = pin(&row[\"current\"])?;\n            held_4a6eb(\n                &Path::new(env!(\"CARGO_MANIFEST_DIR\"))\n                    .join(row[\"source\"].as_str().ok_or(\"source\")?),\n                length,\n                sha,\n            )\n        },\n        &super::compiled,\n        &image,\n    )\n}\nfn affected_row(source: &str) -> Option<Value> {\n    if !REPLACEMENTS.contains(&source) && !ADDITIONS.contains(&source) {\n        return None;\n    }\n    let (policy, page) = load().unwrap();\n    if !affected(&policy, source) {\n        return None;\n    }\n    // Metadata replay precedes current validation. No old physical source is read to establish the current source; only the composed row is then admitted.\n    let packet = compose_values(super::packet_before_overlay(), &policy, &page).unwrap();\n    Some(\n        packet[\"rows\"]\n            .as_array()\n            .unwrap()\n            .iter()\n            .find(|r| r[\"source\"] == source)\n            .unwrap()\n            .clone(),\n    )\n}\npub(super) fn held_source(\n    path: &Path,\n    length: usize,\n    expected: &str,\n) -> Option<Result<String, &'static str>> {\n    let root = Path::new(env!(\"CARGO_MANIFEST_DIR\"));\n    let relative = path.strip_prefix(root).ok()?.to_str()?;\n    if !normal(relative) {\n        return None;\n"),
         ] {
-            assert_eq!(browser_root.matches(after).count(), 1);
+            assert_eq!(
+                browser_root.matches(after).count(),
+                1,
+                "complete browser inverse prefix: {:?}",
+                after.lines().next()
+            );
             browser_root = browser_root.replacen(after, before, 1);
         }
         let root = browser_root.as_str();

@@ -257,7 +257,7 @@ def compact_v11_names(ov, page):
     indices = {name: index for index, name in enumerate(names)}
     encoded = ov['v11_names_slots'](page, lambda name: indices.get(name, name))
     result = dict(schema=ov['V11_SCHEMA'], names=names, page=encoded)
-    assert len(ov['canonical'](result)) <= ov['PAGE_CAP'], 'v11 unchanged wire cap'
+    assert len(ov['canonical'](result)) <= ov['PAGE_CAP'], f"v11 unchanged wire cap: {len(ov['canonical'](result))}/{ov['PAGE_CAP']}"
     assert ov['canonical'](ov['expand_v11_names'](result)) == ov['canonical'](page), 'v11 ENTIRE V10 page inverse'
     return result
 
@@ -278,7 +278,8 @@ def refresh_overlay(repo, label, admit=()):
     replaced = {s: i for i, s in enumerate(policy['replacements'])}
     added = {b['source']: i for i, b in enumerate(policy['additions'])}
     names = wire['names']
-    view_name = f'whole-before-{label}'
+    # The caller's label names the complete superseded source directly.
+    view_name = label
 
     def name_slot(name):
         return names.index(name) if name in names else name

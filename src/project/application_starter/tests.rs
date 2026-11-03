@@ -125,20 +125,31 @@ fn old_starter_error_order_stale_activation_and_mixed_member_publish_nothing() {
 #[test]
 fn whole_starter_allocation_observation_counts_complete_drop_without_gain_assumption() {
     let (root, revision) = fixture(false);
-    let (_, old) = crate::test_allocation_observer::measure(|| {
+    // These immutable renderer tables live for the process, independently of
+    // either starter. Acquire their five exact-source lanes before observing
+    // temporary starter ownership; neither starter is run or retained here.
+    let mut token = [0; crate::kernel_zero::rung_two_authority::MAX_TOKEN_BYTES];
+    use crate::kernel_zero::rung_two_authority as tokens;
+    tokens::char_into(u32::from('a'), "'a'", &mut token);
+    tokens::bool_into(false, "false", &mut token);
+    tokens::int_into(0, "0", &mut token);
+    tokens::binary_operator_into(crate::ast::BinaryOp::Add, "+", &mut token);
+    tokens::string_scalar_into(u32::from('a'), "a", &mut token);
+    let (_, old) = crate::test_allocation_observer::measure_with_capacity(131_072, || {
         let artifact =
             before::derive_application_starter(&revision, PLAN, "source-command.v1", None).unwrap();
         assert!(!artifact.files().is_empty());
         drop(artifact);
     });
     assert_eq!(counts(), [2, 2, 2]);
-    let (_, current) = crate::test_allocation_observer::measure(|| {
+    let (_, current) = crate::test_allocation_observer::measure_with_capacity(131_072, || {
         let artifact =
             derive_application_starter(&revision, PLAN, "source-command.v1", None).unwrap();
         assert!(!artifact.files().is_empty());
         drop(artifact);
     });
     assert_eq!(counts(), [1, 1, 1]);
+    eprintln!("complete starter before={old:?} current={current:?}");
     for metrics in [old, current] {
         assert!(!metrics.invalid);
         assert_eq!(metrics.live, 0);

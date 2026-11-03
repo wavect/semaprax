@@ -37,6 +37,26 @@ pub(crate) fn project(source: &str, current: &str) -> String {
             std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(source))
                 .unwrap()
         );
+        // The authored length comparison now uses the actual i64 result.
+        // Keep the complete pre-fix input for the unchanged historical reader.
+        assert_digest(
+            current,
+            &serde_json::Value::String(
+                "d9bc839d8ac046551361cde60039525ff9bbc0e70080769dd5f7f3403e809fed".into(),
+            ),
+        );
+        let typed_before = current.replacen(
+            "str_len_bytes(first)==4 && str_len_bytes(last)==2",
+            "str_len_bytes(first)==4usize && str_len_bytes(last)==2usize",
+            1,
+        );
+        assert_eq!(
+            typed_before,
+            include_str!(
+                "../../e/660fffb5b73ff401f8d4b96ae735653c05a8623a5d6df1a28452bf09b673ac01"
+            )
+        );
+        let current = typed_before.as_str();
         assert_eq!(
             format!(
                 "{:x}",

@@ -7,11 +7,26 @@ const ENTRY: &str = "kernel-zero.owned-handoff.move";
 
 thread_local! {
     static STAGED: Cell<usize> = const { Cell::new(0) };
+    static OBSERVE_LIFETIME: Cell<bool> = const { Cell::new(false) };
     static PANIC: Cell<bool> = const { Cell::new(false) };
     static RETAIN: Cell<bool> = const { Cell::new(false) };
     static RETAINED: RefCell<Option<Arc<[u8]>>> = const { RefCell::new(None) };
     static OBSERVER: RefCell<Option<Weak<[u8]>>> = const { RefCell::new(None) };
     static OBSERVED_THREAD: RefCell<Option<std::thread::ThreadId>> = const { RefCell::new(None) };
+}
+
+// A weak witness retains the Arc allocation after its bytes have dropped.
+// Acquire that test instrumentation only for explicit lifetime assertions.
+struct LifetimeObservation;
+fn observe_lifetime() -> LifetimeObservation {
+    assert!(!OBSERVE_LIFETIME.with(|enabled| enabled.replace(true)));
+    LifetimeObservation
+}
+impl Drop for LifetimeObservation {
+    fn drop(&mut self) {
+        OBSERVE_LIFETIME.with(|enabled| enabled.set(false));
+        OBSERVER.with(|slot| drop(slot.borrow_mut().take()));
+    }
 }
 
 pub(super) fn after_staging(observer: &Weak<[u8]>) {
@@ -21,7 +36,9 @@ pub(super) fn after_staging(observer: &Weak<[u8]>) {
     );
     STAGED.with(|count| count.set(count.get() + 1));
     OBSERVED_THREAD.with(|thread| *thread.borrow_mut() = Some(std::thread::current().id()));
-    OBSERVER.with(|slot| *slot.borrow_mut() = Some(observer.clone()));
+    if OBSERVE_LIFETIME.with(Cell::get) {
+        OBSERVER.with(|slot| *slot.borrow_mut() = Some(observer.clone()));
+    }
     if RETAIN.with(|retain| retain.replace(false)) {
         RETAINED.with(|slot| *slot.borrow_mut() = Some(observer.upgrade().unwrap()));
     }
@@ -46,6 +63,7 @@ fn prepared() -> PreparedOwnedHandoff {
 
 #[test]
 fn synchronous_handoff_transfers_and_releases_one_actual_owner() {
+    let _lifetime = observe_lifetime();
     let prepared = prepared();
     for input in [b"".as_slice(), b"x", b"abcdefghijklmnopqrst"] {
         let before = STAGED.with(Cell::get);
@@ -81,6 +99,7 @@ fn synchronous_handoff_transfers_and_releases_one_actual_owner() {
 
 #[test]
 fn bounds_refuse_before_staging_and_exhaustion_cleans_without_publication() {
+    let _lifetime = observe_lifetime();
     let prepared = prepared();
     let before = STAGED.with(Cell::get);
     for (bytes, fuel) in [
@@ -122,6 +141,7 @@ fn bounds_refuse_before_staging_and_exhaustion_cleans_without_publication() {
 
 #[test]
 fn ownership_body_depth_and_receipt_substitution_cannot_publish() {
+    let _lifetime = observe_lifetime();
     let before = STAGED.with(Cell::get);
     for source in [
         SOURCE.replace("let next = input;\n    next", "input"),
@@ -164,6 +184,7 @@ fn panic_drops_the_staged_owner_and_shallow_handoff_runs_on_two_mib_stack() {
     std::thread::Builder::new()
         .stack_size(2 * 1024 * 1024)
         .spawn(|| {
+            let _lifetime = observe_lifetime();
             let prepared = prepared();
             PANIC.with(|panic| panic.set(true));
             let panic = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
@@ -186,4 +207,18 @@ fn panic_drops_the_staged_owner_and_shallow_handoff_runs_on_two_mib_stack() {
         .unwrap()
         .join()
         .unwrap();
+}
+
+#[test]
+fn inactive_lifetime_observation_releases_complete_handoff_backing() {
+    let prepared = prepared();
+    assert!(!OBSERVE_LIFETIME.with(Cell::get));
+    let (_, observed) = crate::test_allocation_observer::measure(|| {
+        drop(prepared.execute(b"abc", MAX_FUEL).unwrap());
+    });
+    assert!(!observed.invalid);
+    assert!(observed.allocated > 0);
+    assert_eq!(observed.live, 0);
+    assert_eq!(observed.allocated, observed.freed);
+    OBSERVER.with(|slot| assert!(slot.borrow().is_none()));
 }

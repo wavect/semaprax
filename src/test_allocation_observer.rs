@@ -441,7 +441,7 @@ mod tests {
         assert!(!active());
         assert!(STATE.with(|state| state.borrow().extended.is_none()));
         let (_, next) = measure(|| {
-            drop(Box::new(7u8));
+            drop(std::hint::black_box(Box::new(7u8)));
         });
         assert!(!next.invalid && next.allocated == 1 && next.freed == 1 && next.live == 0);
     }
